@@ -58,6 +58,25 @@ describe('possession', () => {
       expect(m.ball.by).not.toBe(nearIdx);
     }
   });
+
+  it('a pass target KO\'d mid-flight cannot receive the ball unconscious (phantom-pass bug)', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const targetPos = { ...m.players[6].pos };
+    m.ball = { kind: 'pass', pos: { x: targetPos.x - 2000, y: targetPos.y }, from: 5, to: 6, willSucceed: true, interceptor: -1 } as BallState;
+    m.players[6].outUntilTick = m.tick + 300;
+    m.players[6].outReason = 'ko';
+    let flying = true;
+    for (let i = 0; i < 200 && flying; i++) {
+      tick(m);
+      flying = m.ball.kind === 'pass';
+    }
+    expect(flying).toBe(false);
+    if (m.ball.kind === 'held') {
+      expect(m.ball.by).not.toBe(6);
+    } else {
+      expect(m.ball.kind).toBe('loose');
+    }
+  });
 });
 
 describe('tackling', () => {

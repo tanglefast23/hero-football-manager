@@ -1,6 +1,6 @@
 import { createMatch, queueInput, runMatch, tick } from '../match';
 import { speedFor } from '../engine';
-import { activatePower, interruptWindup, ZONE_WINDOW_TICKS } from '../powers';
+import { activatePower, interruptWindup, knockOut, ZONE_WINDOW_TICKS } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState } from '../types';
 
@@ -208,5 +208,39 @@ describe('power effects', () => {
     expect(cards.map(c => c.color)).toEqual(['yellow', 'red']);
     expect(m.players[9].outUntilTick).toBe(Number.MAX_SAFE_INTEGER);
     expect(m.players[9].outReason).toBe('redcard');
+  });
+});
+
+describe('frozen-team bug: knockOut clears an active/winding power instead of freezing the team', () => {
+  it('knockOut on an active hero reverts them to idle, freeing the team for their teammate to Zone in', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[9].powerState = { kind: 'active', untilTick: m.tick + 60, strength: 1 };
+    knockOut(m, 9, m.tick + 100, 'ko');
+    expect(m.players[9].powerState.kind).toBe('idle');
+
+    // Pre-fix, player 9 stuck 'active' forever would hold teamPowerBusy true,
+    // so player 10 (same team) could never even roll a Zone entry.
+    m.players[SPEEDSTER].gauge = 99.9;
+    let ready = false;
+    for (let i = 0; i < 100 && !ready; i++) {
+      tick(m);
+      ready = m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER);
+    }
+    expect(ready).toBe(true);
+  });
+
+  // Natural repro (audit seeds 6/34/103): seed 6 deterministically red-cards Dario
+  // (player 9, FIRE_TORCH) while he is 'active' — pre-fix this froze teamPowerBusy
+  // for team 0 permanently (red card never returns), so Zip (player 10) recorded
+  // zero POWER_READY for the rest of the match. Verified directly against the
+  // pre-fix knockOut (git stash) before writing this assertion: pre-fix the
+  // POWER_READY-after list is empty; post-fix it is not — so this is a single
+  // deterministic seed, not a probabilistic scan across 1-40.
+  it('seed 6: Zip (10) still records a POWER_READY after Dario (9) is red-carded while active', () => {
+    const r = runMatch(6, ROVERS, UNITED, [], { homePolicy: 'FIRE_WHEN_READY' });
+    const dario9Red = r.events.find(e => e.kind === 'CARD' && (e as { player: number; color: string }).player === 9 && (e as { color: string }).color === 'red') as { t: number } | undefined;
+    expect(dario9Red).toBeDefined();
+    const readyAfter = r.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER && e.t > dario9Red!.t);
+    expect(readyAfter).toBe(true);
   });
 });

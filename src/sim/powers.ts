@@ -208,13 +208,23 @@ export function isActive(state: MatchState, idx: number): boolean {
  * Centralizes "going out": if idx is holding the ball, release it to loose (at
  * their feet, no velocity) BEFORE marking them out — otherwise the ball stays
  * phantom-"held" by an unconscious player and possession freezes (the audit's
- * possession-freeze bug). `untilTick` is the absolute tick to return at, not a
- * duration — sendOff passes Number.MAX_SAFE_INTEGER straight through.
+ * possession-freeze bug). Also clears any in-progress power state: a winding
+ * hero gets the normal interrupt refund; an active hero simply reverts to idle
+ * (the power already resolved — no refund) — otherwise a permanently-out hero
+ * (red card) would keep teamPowerBusy true for their team for the rest of the
+ * match (the audit's frozen-team bug). `untilTick` is the absolute tick to
+ * return at, not a duration — sendOff passes Number.MAX_SAFE_INTEGER straight through.
  */
 export function knockOut(state: MatchState, idx: number, untilTick: number, reason: OutReason): void {
   const p = state.players[idx];
   if (state.ball.kind === 'held' && state.ball.by === idx) {
     state.ball = { kind: 'loose', pos: { ...p.pos }, vel: { x: 0, y: 0 } };
+  }
+  if (p.powerState.kind === 'winding') {
+    interruptWindup(state, idx);
+  } else if (p.powerState.kind === 'active') {
+    p.powerState = { kind: 'idle' };
+    p.gauge = 0;
   }
   p.outUntilTick = untilTick;
   p.outReason = reason;

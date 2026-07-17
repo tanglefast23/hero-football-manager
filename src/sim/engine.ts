@@ -142,7 +142,10 @@ export function possessionTick(state: MatchState): void {
     const target = state.players[targetIdx].pos;
     b.pos = moveToward(b.pos, target, PASS_SPEED);
     if (dist2(b.pos, target) < 150 * 150) {
-      if (b.willSucceed || b.interceptor !== -1) {
+      // A recipient (or interceptor) knocked out mid-flight can't receive the ball
+      // unconscious (the audit's phantom-pass bug) — it goes loose at the arrival
+      // point instead, same as a failed pass with no interceptor.
+      if ((b.willSucceed || b.interceptor !== -1) && isAvailable(state, targetIdx)) {
         state.ball = { kind: 'held', by: targetIdx };
         addGauge(state, targetIdx, 8);
       } else {

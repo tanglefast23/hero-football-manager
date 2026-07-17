@@ -170,11 +170,23 @@ describe('validateEnvelope', () => {
     expect(() => validateEnvelope(env)).toThrow('opts.blindAutoHome');
   });
 
-  it('rejects an out-of-range input.player (Task 13 pre-flight: must be 0..21)', () => {
+  it('rejects an out-of-range input.player (must be 0..10 — own heroes only, same as queueInput)', () => {
     const env = makeValidEnvelope();
-    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: 22 }];
-    expect(() => validateEnvelope(env)).toThrow('0..21');
+    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: 11 }];
+    expect(() => validateEnvelope(env)).toThrow('0..10');
     env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: -1 }];
-    expect(() => validateEnvelope(env)).toThrow('0..21');
+    expect(() => validateEnvelope(env)).toThrow('0..10');
+  });
+
+  it('rejects a null/non-object player in a team roster', () => {
+    const env = makeValidEnvelope();
+    env.home = { ...env.home, players: env.home.players.map((p, i) => (i === 0 ? (null as unknown as PlayerDef) : p)) };
+    expect(() => validateEnvelope(env)).toThrow('must be an object');
+  });
+
+  it('rejects a null/non-object entry in inputs', () => {
+    const env = makeValidEnvelope();
+    env.inputs = [null as unknown as MatchInput];
+    expect(() => validateEnvelope(env)).toThrow('must be an object');
   });
 });

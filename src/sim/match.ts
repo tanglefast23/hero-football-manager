@@ -5,7 +5,7 @@ import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTic
 import { powerTick } from './powers';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-export const ENGINE_VERSION = 'm0.3';
+export const ENGINE_VERSION = 'm0.4';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 const VALID_ROLES: ReadonlySet<Role> = new Set(['GK', 'DEF', 'MID', 'FWD']);
@@ -118,6 +118,9 @@ function validateTeam(team: TeamDef, label: 'home' | 'away'): void {
     throw new Error(`replay envelope: ${label} team must have exactly 11 players`);
   }
   for (const p of team.players as PlayerDef[]) {
+    if (!p || typeof p !== 'object') {
+      throw new Error(`replay envelope: ${label} team player must be an object`);
+    }
     if (typeof p.id !== 'string' || typeof p.name !== 'string') {
       throw new Error(`replay envelope: ${label} team has a player with a non-string id/name`);
     }
@@ -168,14 +171,20 @@ export function validateEnvelope(env: ReplayEnvelope): void {
     throw new Error('replay envelope: inputs must be an array');
   }
   for (const input of env.inputs as MatchInput[]) {
+    if (!input || typeof input !== 'object') {
+      throw new Error('replay envelope: input must be an object');
+    }
     if (input.kind !== 'POWER_TAP') {
       throw new Error(`replay envelope: unknown input kind ${String(input.kind)}`);
     }
     if (typeof input.tick !== 'number' || !Number.isFinite(input.tick) || !Number.isInteger(input.tick) || input.tick < 1) {
       throw new Error(`replay envelope: input tick must be a finite integer >= 1, got ${input.tick}`);
     }
-    if (typeof input.player !== 'number' || !Number.isFinite(input.player) || !Number.isInteger(input.player) || input.player < 0 || input.player > 21) {
-      throw new Error(`replay envelope: input player must be a finite integer in 0..21, got ${input.player}`);
+    // Same 0..10 range as queueInput's own-heroes rule (Task 13 pre-flight tightened
+    // this from 0..21 — a replayed tap can no-op target a rival same as a live one,
+    // but the envelope should reject it the same way queueInput does for a live tap).
+    if (typeof input.player !== 'number' || !Number.isFinite(input.player) || !Number.isInteger(input.player) || input.player < 0 || input.player > 10) {
+      throw new Error(`replay envelope: input player must be a finite integer in 0..10 — taps may only target your own heroes, got ${input.player}`);
     }
   }
 }
