@@ -12,6 +12,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8471", "--directory", "/Users/joemacprom5/Documents/Vibecode/HFM-art-worktree/art"],
       "port": 8471
+    },
+    {
+      "name": "audio-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8472", "--directory", "/Users/joemacprom5/Documents/Vibecode/HFM-audio-worktree"],
+      "port": 8472
     }
   ]
 }

@@ -1,0 +1,51 @@
+// Single source of truth for the audio catalog: duration bounds, loudness
+// targets, loop flags, and descriptions. Shared by gen-sfx.mjs, gen-music.mjs,
+// verify.mjs, and art/audio-preview.html's data — so nothing drifts out of sync.
+
+// targetDb: peak level each sound is normalized to (dBFS). Establishes the
+// loudness hierarchy: goal-fanfare loudest (-1, the ceiling), crowd-ambient
+// quietest (-14). Everything else falls between by narrative importance.
+export const SFX_CATALOG = [
+  // -- Match core --
+  { name: 'kickoff-whistle', group: 'Match', minMs: 250, maxMs: 550, targetDb: -2, desc: 'Two-tone ref whistle, kickoff' },
+  { name: 'halftime-whistle', group: 'Match', minMs: 700, maxMs: 1150, targetDb: -2, desc: 'One long whistle blast' },
+  { name: 'fulltime-whistle', group: 'Match', minMs: 600, maxMs: 950, targetDb: -2, desc: 'Three short whistle blasts' },
+  { name: 'kick-pass', group: 'Match', minMs: 70, maxMs: 110, targetDb: -5, desc: 'Soft pass thump' },
+  { name: 'kick-shot', group: 'Match', minMs: 120, maxMs: 220, targetDb: -2, desc: 'Hard shot thump + low punch' },
+  { name: 'ball-bounce', group: 'Match', minMs: 30, maxMs: 70, targetDb: -6, desc: 'Dry ball-on-turf tick' },
+  { name: 'post-ding', group: 'Match', minMs: 500, maxMs: 950, targetDb: -2, desc: 'Metallic post ring — the heartbreak sound' },
+  { name: 'net-swish', group: 'Match', minMs: 250, maxMs: 500, targetDb: -4, desc: 'Filtered noise swoosh through the net' },
+  { name: 'goal-fanfare', group: 'Match', minMs: 1100, maxMs: 1500, targetDb: -1, desc: 'Rising 3-note arpeggio + crowd swell' },
+  { name: 'crowd-cheer', group: 'Crowd', minMs: 1200, maxMs: 1500, targetDb: -2, desc: 'Shaped noise swell, crowd cheering' },
+  { name: 'crowd-ooh', group: 'Crowd', minMs: 1000, maxMs: 1400, targetDb: -3, desc: 'Falling swell — save or near-miss' },
+  { name: 'crowd-ambient', group: 'Crowd', minMs: 7900, maxMs: 8100, targetDb: -14, loop: true, loopFadeMs: 50, desc: 'Low crowd murmur, 8s seamless loop' },
+  { name: 'tackle-thud', group: 'Match', minMs: 130, maxMs: 260, targetDb: -2, desc: 'Body-impact thud' },
+  { name: 'grunt', group: 'Match', minMs: 120, maxMs: 300, targetDb: -6, desc: 'Short comedic pitched-down grunt' },
+  { name: 'save-slap', group: 'Match', minMs: 130, maxMs: 260, targetDb: -2, desc: 'Sharp keeper save slap + thump' },
+  { name: 'card-whistle', group: 'Match', minMs: 150, maxMs: 300, targetDb: -2, desc: 'Sharp single whistle — card shown' },
+  { name: 'crowd-jeer', group: 'Crowd', minMs: 1000, maxMs: 1400, targetDb: -3, desc: 'Grumbly descending boo' },
+  // -- Zone & powers --
+  { name: 'zone-enter', group: 'Zone & Powers', minMs: 400, maxMs: 750, targetDb: -3, desc: 'Ascending sparkle chime — hero zone entered' },
+  { name: 'zone-expire', group: 'Zone & Powers', minMs: 280, maxMs: 500, targetDb: -5, desc: 'Soft deflating womp — zone expired' },
+  { name: 'tap-fire', group: 'Zone & Powers', minMs: 70, maxMs: 160, targetDb: -4, desc: 'Instant confirm click-chime' },
+  { name: 'windup-riser', group: 'Zone & Powers', minMs: 1450, maxMs: 1550, targetDb: -3, desc: 'Rising tone + 15 accelerating ticks' },
+  { name: 'power-interrupt', group: 'Zone & Powers', minMs: 180, maxMs: 400, targetDb: -4, desc: 'Record-scratch fizzle, power cut short' },
+  { name: 'super-speed-whoosh', group: 'Zone & Powers', minMs: 350, maxMs: 600, targetDb: -3, desc: 'Doppler-ish filtered noise sweep' },
+  { name: 'super-strength-boom', group: 'Zone & Powers', minMs: 700, maxMs: 1000, targetDb: -1.5, desc: 'Charging footsteps then a big soft-clipped impact' },
+  { name: 'fire-torch-ignite', group: 'Zone & Powers', minMs: 350, maxMs: 600, targetDb: -3, desc: 'Crackle + low whoomp' },
+  { name: 'extinguisher-spray', group: 'Zone & Powers', minMs: 450, maxMs: 800, targetDb: -3, desc: 'Sputtering noise spray — the ref gag sound' },
+  { name: 'match-end-sting', group: 'Zone & Powers', minMs: 700, maxMs: 1200, targetDb: -3, desc: 'Short resolving cadence in key' },
+];
+
+export const MUSIC_CATALOG = [
+  {
+    name: 'match-theme',
+    group: 'Music',
+    minMs: 44000,
+    maxMs: 61000,
+    targetDb: -1,
+    loop: true,
+    loopFadeMs: 80,
+    desc: '120 BPM chiptune-adjacent loop — square melody, triangle bass, noise percussion',
+  },
+];
