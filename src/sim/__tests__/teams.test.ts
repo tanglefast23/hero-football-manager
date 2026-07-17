@@ -24,4 +24,12 @@ describe('demo teams', () => {
       }
     }
   });
+
+  it('index positions are locked: engine and renderer hardcode these', () => {
+    expect(ROVERS.players[9].power).toBe('FIRE_TORCH');   // global idx 9 (Dario Flint)
+    expect(ROVERS.players[10].power).toBe('SUPER_SPEED'); // global idx 10 (Zip Vela)
+    expect(UNITED.players[3].power).toBe('SUPER_STRENGTH'); // global idx 14 (Rex Bould)
+    expect(ROVERS.players[0].role).toBe('GK');  // global idx 0
+    expect(UNITED.players[0].role).toBe('GK');  // global idx 11
+  });
 });
