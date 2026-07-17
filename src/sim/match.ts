@@ -10,6 +10,7 @@ const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 const VALID_ROLES: ReadonlySet<Role> = new Set(['GK', 'DEF', 'MID', 'FWD']);
 const VALID_POWER_IDS: ReadonlySet<string> = new Set(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']);
+const VALID_FIRE_POLICIES: ReadonlySet<string> = new Set(['SAVE_FOR_TAP', 'FIRE_WHEN_READY']);
 const ATTR_KEYS: ReadonlyArray<keyof Attrs> = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'];
 
 function deepCopyTeam(t: TeamDef): TeamDef {
@@ -135,6 +136,20 @@ function validateTeam(team: TeamDef, label: 'home' | 'away'): void {
   }
 }
 
+/** Structural validation for the optional opts bag (Task 13 pre-flight, Issue B) — same reasoning as validateTeam: a deserialized envelope offers no runtime type guarantee. */
+function validateOpts(opts: MatchOpts | undefined): void {
+  if (opts === undefined) return;
+  if (opts.homePolicy !== undefined && !VALID_FIRE_POLICIES.has(opts.homePolicy)) {
+    throw new Error(`replay envelope: opts.homePolicy must be SAVE_FOR_TAP or FIRE_WHEN_READY, got ${String(opts.homePolicy)}`);
+  }
+  if (opts.awayPolicy !== undefined && !VALID_FIRE_POLICIES.has(opts.awayPolicy)) {
+    throw new Error(`replay envelope: opts.awayPolicy must be SAVE_FOR_TAP or FIRE_WHEN_READY, got ${String(opts.awayPolicy)}`);
+  }
+  if (opts.blindAutoHome !== undefined && typeof opts.blindAutoHome !== 'boolean') {
+    throw new Error(`replay envelope: opts.blindAutoHome must be a boolean, got ${String(opts.blindAutoHome)}`);
+  }
+}
+
 /** Structural validation for a replay envelope — e.g. one deserialized from JSON, where TS types offer no runtime guarantee. Throws a descriptive error on the first violation found. */
 export function validateEnvelope(env: ReplayEnvelope): void {
   if (env.schemaVersion !== 1) {
@@ -148,6 +163,7 @@ export function validateEnvelope(env: ReplayEnvelope): void {
   }
   validateTeam(env.home, 'home');
   validateTeam(env.away, 'away');
+  validateOpts(env.opts);
   if (!Array.isArray(env.inputs)) {
     throw new Error('replay envelope: inputs must be an array');
   }
@@ -158,8 +174,8 @@ export function validateEnvelope(env: ReplayEnvelope): void {
     if (typeof input.tick !== 'number' || !Number.isFinite(input.tick) || !Number.isInteger(input.tick) || input.tick < 1) {
       throw new Error(`replay envelope: input tick must be a finite integer >= 1, got ${input.tick}`);
     }
-    if (typeof input.player !== 'number' || !Number.isFinite(input.player) || !Number.isInteger(input.player)) {
-      throw new Error(`replay envelope: input player must be a finite integer, got ${input.player}`);
+    if (typeof input.player !== 'number' || !Number.isFinite(input.player) || !Number.isInteger(input.player) || input.player < 0 || input.player > 21) {
+      throw new Error(`replay envelope: input player must be a finite integer in 0..21, got ${input.player}`);
     }
   }
 }

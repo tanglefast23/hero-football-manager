@@ -1,5 +1,5 @@
 import { emit } from './events';
-import { dist2 } from './geometry';
+import { dist2, PITCH_H } from './geometry';
 import type { MatchState, OutReason, PowerId } from './types';
 
 export const WINDUP_TICKS = 15;
@@ -24,7 +24,7 @@ export const ZONE_ENTRY_RATE = 0.0009;
 // one whiffed fire under the 90% gate.
 export const PURSUIT_MULT = 1.4;
 
-/** Heat cap. Heat can run well past 100 while frozen behind a busy teammate; it never gates firing (only the Zone roll and taps do). */
+/** Heat cap. Heat can run well past 100 through ordinary involvement (passes, tackles, saves, shots) before the probabilistic Zone-entry roll fires; it never gates firing (only the Zone roll and taps do). */
 const GAUGE_CAP = 200;
 
 /** Any teammate currently winding or active — freezes the rest of the team's heat and Zone timers (one power active per team). */
@@ -71,6 +71,26 @@ function requiresTarget(power: PowerId): boolean {
   return power === 'SUPER_STRENGTH';
 }
 
+// FIRE_TORCH's ignite radius. inUsefulContext references this SAME constant for
+// the power's useful context (Task 13 pre-flight, Issue A) so "I see a context"
+// and "someone is close enough to catch fire" can never drift apart, the same
+// guarantee STRENGTH_LOCK_RANGE gives Super Strength.
+const TORCH_IGNITE_RANGE = 800;
+// SUPER_SPEED's useful context distance to a loose ball worth a sprint for.
+const SPEED_LOOSE_BALL_RANGE = 1500;
+
+/** True if any available opponent of idx is within `range`. */
+function opponentWithin(state: MatchState, idx: number, range: number): boolean {
+  const p = state.players[idx];
+  const r2 = range * range;
+  for (let i = 0; i < 22; i++) {
+    const o = state.players[i];
+    if (o.team === p.team || o.outUntilTick > state.tick) continue;
+    if (dist2(o.pos, p.pos) < r2) return true;
+  }
+  return false;
+}
+
 /** The "when should I fire?" answer, per power. Shown to players via chip glow. */
 export function inUsefulContext(state: MatchState, idx: number): boolean {
   const p = state.players[idx];
@@ -82,9 +102,18 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
 
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
   if (power === 'SUPER_SPEED') {
-    return (b.kind === 'held' && b.by === idx) || (b.kind === 'loose' && dist2(b.pos, p.pos) < 1500 * 1500);
+    // Self-carrier value is directional (Task 13 pre-flight, Issue A): a speedster
+    // in their own defensive half isn't breaking anything by sprinting, so only the
+    // attacking half counts. A loose ball worth a sprint counts anywhere.
+    const inAttackingHalf = p.team === 0 ? p.pos.y < PITCH_H / 2 : p.pos.y > PITCH_H / 2;
+    return (b.kind === 'held' && b.by === idx && inAttackingHalf) ||
+      (b.kind === 'loose' && dist2(b.pos, p.pos) < SPEED_LOOSE_BALL_RANGE * SPEED_LOOSE_BALL_RANGE);
   }
-  return (b.kind === 'held' && b.by === idx) || oppCarrierNear(800); // FIRE_TORCH
+  // FIRE_TORCH: self-carrier only counts with a marker close enough to actually
+  // ignite (firing into empty space wastes the tackle-suppression window) — the
+  // same TORCH_IGNITE_RANGE the ignite effect resolves against.
+  return (b.kind === 'held' && b.by === idx && opponentWithin(state, idx, TORCH_IGNITE_RANGE)) ||
+    oppCarrierNear(TORCH_IGNITE_RANGE);
 }
 
 function startWindup(state: MatchState, idx: number, strength: number): void {
@@ -215,7 +244,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
 
   if (power === 'FIRE_TORCH') {
     rollCard(state, idx, 0.15, 0);
-    let nearest = -1, nearestD2 = 800 * 800;
+    let nearest = -1, nearestD2 = TORCH_IGNITE_RANGE * TORCH_IGNITE_RANGE;
     for (let i = 0; i < 22; i++) {
       const o = state.players[i];
       if (o.team === p.team || o.outUntilTick > state.tick) continue;

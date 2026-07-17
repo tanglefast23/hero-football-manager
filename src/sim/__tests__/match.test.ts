@@ -2,7 +2,7 @@ import { createMatch, tick, runMatch, envelopeFrom, runReplay, queueInput, valid
 import { restartKickoff } from '../engine';
 import { ROVERS, UNITED } from '../teams';
 import { HALF_TICKS } from '../geometry';
-import type { MatchInput, PlayerDef, ReplayEnvelope } from '../types';
+import type { FirePolicy, MatchInput, PlayerDef, ReplayEnvelope } from '../types';
 
 describe('match skeleton', () => {
   it('creates 22 players with correct fire policies', () => {
@@ -150,5 +150,31 @@ describe('validateEnvelope', () => {
       players: env.home.players.map((p, i) => (i === 0 ? { ...p, attrs: { ...p.attrs, pac: 150 } } : p)),
     };
     expect(() => validateEnvelope(env)).toThrow();
+  });
+
+  it('rejects an out-of-set opts.homePolicy (Task 13 pre-flight)', () => {
+    const env = makeValidEnvelope();
+    env.opts = { homePolicy: 'FIRE_AT_WILL' as unknown as FirePolicy };
+    expect(() => validateEnvelope(env)).toThrow('opts.homePolicy');
+  });
+
+  it('rejects an out-of-set opts.awayPolicy (Task 13 pre-flight)', () => {
+    const env = makeValidEnvelope();
+    env.opts = { awayPolicy: 'ALWAYS_TAP' as unknown as FirePolicy };
+    expect(() => validateEnvelope(env)).toThrow('opts.awayPolicy');
+  });
+
+  it('rejects a non-boolean opts.blindAutoHome (Task 13 pre-flight)', () => {
+    const env = makeValidEnvelope();
+    env.opts = { blindAutoHome: 'yes' as unknown as boolean };
+    expect(() => validateEnvelope(env)).toThrow('opts.blindAutoHome');
+  });
+
+  it('rejects an out-of-range input.player (Task 13 pre-flight: must be 0..21)', () => {
+    const env = makeValidEnvelope();
+    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: 22 }];
+    expect(() => validateEnvelope(env)).toThrow('0..21');
+    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: -1 }];
+    expect(() => validateEnvelope(env)).toThrow('0..21');
   });
 });

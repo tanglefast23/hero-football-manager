@@ -217,7 +217,9 @@ export function attemptShot(state: MatchState, by: number, distToGoal: number): 
   const gy = goalYFor(shooter.team);
   const spread = 200 + (99 - effectiveStat(state, by, 'sho')) * 10;
   const targetX = Math.round(GOAL_CENTER_X + (state.rng() * 2 - 1) * spread);
-  const power = Math.max(1, Math.round(effectiveStat(state, by, 'sho') + shotBonus(state, by) - distToGoal / 100));
+  // distToGoal / 200 (Task 13 pre-flight Lever A, was / 100): the old penalty made
+  // shots too easy to save; halving it targets goals/match ~2-3 and save rate ~70-80%.
+  const power = Math.max(1, Math.round(effectiveStat(state, by, 'sho') + shotBonus(state, by) - distToGoal / 200));
   emit(state, { t: state.tick, kind: 'SHOT', by, power });
   addGauge(state, by, 20);
   const dir = gy === 0 ? -1 : 1;
