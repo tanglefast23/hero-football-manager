@@ -194,7 +194,10 @@ export function powerTick(state: MatchState): void {
   }
 }
 
-const DUR = { SUPER_SPEED: 40, SUPER_STRENGTH: 80, FIRE_TORCH: 50 } as const;
+// Tuning round 1 (Task 13 decision record): 40/80/50 → 70/110/80. GATE-1 measured
+// the original durations at +0.065 goals/match — real but imperceptible against
+// docs/09's 15-25% hero-uplift target.
+const DUR = { SUPER_SPEED: 70, SUPER_STRENGTH: 110, FIRE_TORCH: 80 } as const;
 
 export function isActive(state: MatchState, idx: number): boolean {
   const ps = state.players[idx].powerState;
@@ -252,7 +255,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       if (d2 < nearestD2) { nearestD2 = d2; nearest = i; }
     }
     if (nearest !== -1) {
-      knockOut(state, nearest, state.tick + 100, 'ignited');
+      knockOut(state, nearest, state.tick + 140, 'ignited'); // 100 → 140 ticks out (tuning round 1)
       emit(state, { t: state.tick, kind: 'IGNITED', player: nearest });
     }
   } else if (power === 'SUPER_STRENGTH') {

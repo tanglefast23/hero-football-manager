@@ -163,14 +163,16 @@ export function possessionTick(state: MatchState): void {
   const toGoal = dist(carrier.pos, goal);
   const marker = nearestOpponent(state, carrierIdx);
   const pressured = marker !== -1 && dist2(state.players[marker].pos, carrier.pos) < 400 * 400;
+  // Anti-blowout game-management rule (tuning round 1): a team 4+ goals up shoots only from closer in and prefers to pass — deterministic (score is state), lead-dependent thresholds only.
+  const bigLead = state.score[carrier.team] - state.score[carrier.team === 0 ? 1 : 0] >= 4;
 
-  if (toGoal < 2500 && carrier.def.role !== 'GK') {
+  if (toGoal < (bigLead ? 1700 : 2500) && carrier.def.role !== 'GK') {
     attemptShot(state, carrierIdx, toGoal); // real implementation in Task 10
     return;
   }
 
   // rng draw order here is replay-load-bearing: the draw happens only when unpressured, even if no pass results
-  if (pressured || state.rng() < 0.35) {
+  if (pressured || state.rng() < (bigLead ? 0.6 : 0.35)) {
     const to = bestPassTarget(state, carrierIdx);
     if (to !== -1) {
       const interceptorIdx = nearestOpponent(state, to);
