@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "hfm-scaffold",
-    "slug": "hfm-scaffold",
+    "name": "Hero Football Manager",
+    "slug": "hero-football-manager",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
