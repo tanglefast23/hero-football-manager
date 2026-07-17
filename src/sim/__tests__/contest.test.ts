@@ -14,6 +14,7 @@ describe('contest (table-based logistic)', () => {
     for (let d = -99; d <= 99; d++) {
       const truth = 1 / (1 + Math.exp(-d / 12)); // Math.exp fine IN TESTS (approximation check, not runtime)
       expect(Math.abs(contestProbability(50 + d, 50) - truth)).toBeLessThan(1e-4);
+      expect(contestProbability(50 + d, 50)).toBe(Math.round(65536 / (1 + Math.exp(-d / 12))) / 65536);
     }
   });
 
