@@ -48,25 +48,40 @@ describe('hero gauge and firing', () => {
     expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
   });
 
-  it('the rival hero auto-fires at policy strengths only (0.85 contextual / 0.75 deadline lapse, never 1.0)', () => {
-    const r = runMatch(42, ROVERS, UNITED);
-    const rivalFired = r.events.filter(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL) as Array<{ strength: number }>;
-    expect(rivalFired.length).toBeGreaterThan(0);
-    expect(rivalFired.every(f => f.strength === 0.85 || f.strength === 0.75)).toBe(true);
+  it('the rival auto-fires only via context (0.85) — never a targetless 0.75 lapse, never 1.0', () => {
+    // SUPER_STRENGTH requires a target (Task 12.2 ruling): its zone either finds a
+    // context (which guarantees a lock) and fires 0.85, or expires. Zone entry is a
+    // probabilistic roll, so a single seed may have zero rival fires — scan seeds
+    // 1-20 (this task's empirical range) for existence plus the strength invariant.
+    let fires = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const r = runMatch(seed, ROVERS, UNITED);
+      for (const e of r.events) {
+        if (e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL) {
+          fires++;
+          expect((e as { strength: number }).strength).toBe(0.85);
+        }
+      }
+    }
+    expect(fires).toBeGreaterThan(0);
   });
 
-  it('the rival finds a contextual 0.85 fire on at least one of seeds 1-20', () => {
-    // Zone entry is now a probabilistic roll (docs/04), so a hero — including the
-    // rival — may not even enter the Zone within a single match; seeds 1-10 alone
-    // can (and does, deterministically) come up empty. 1-20 matches this task's
-    // other empirical seed range and reliably includes a hit (seeds 16 and 19).
-    let saw085 = false;
-    for (let seed = 1; seed <= 20 && !saw085; seed++) {
-      saw085 = runMatch(seed, ROVERS, UNITED).events.some(
-        e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL && (e as { strength: number }).strength === 0.85,
-      );
+  it('a FIRE_WHEN_READY SUPER_STRENGTH hero with no lockable target expires instead of firing targetless', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    // Every opponent is out: the only possible opposing "carrier" is the out kickoff
+    // holder frozen at midfield (~2900+ from Rex's anchor), so no opposing carrier can
+    // enter STRENGTH_LOCK_RANGE at any point in the window — no context, ever.
+    for (let i = 0; i < 11; i++) {
+      m.players[i].outUntilTick = 10_000;
+      m.players[i].outReason = 'ko';
     }
-    expect(saw085).toBe(true);
+    m.ball = { kind: 'held', by: 16 }; // United's own carrier is never a context for Rex
+    m.players[RIVAL].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === RIVAL), ZONE_WINDOW_TICKS + 5);
+    expect(m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === RIVAL)).toBe(true);
+    expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL)).toBe(false);
+    expect(m.players[RIVAL].powerState.kind).toBe('idle');
+    expect(m.players[RIVAL].gauge).toBe(50);
   });
 });
 

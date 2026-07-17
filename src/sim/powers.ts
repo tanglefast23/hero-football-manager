@@ -1,6 +1,6 @@
 import { emit } from './events';
 import { dist2 } from './geometry';
-import type { MatchState, OutReason } from './types';
+import type { MatchState, OutReason, PowerId } from './types';
 
 export const WINDUP_TICKS = 15;
 export const TAP_STRENGTH = 1.0;
@@ -19,7 +19,10 @@ export const ZONE_ENTRY_RATE = 0.0009;
 
 // Charging Super Strength closes distance faster than normal movement (the
 // windup telegraph is the counterplay window, not a free pass to escape it).
-export const PURSUIT_MULT = 1.3;
+// 1.3 -> 1.4 (Task 12.2 follow-up): with context/lock widened to 1200, charges
+// start from farther out; 1.3 left the seeds 1-20 KO landing rate at 85.7%,
+// one whiffed fire under the 90% gate.
+export const PURSUIT_MULT = 1.4;
 
 /** Heat cap. Heat can run well past 100 while frozen behind a busy teammate; it never gates firing (only the Zone roll and taps do). */
 const GAUGE_CAP = 200;
@@ -49,6 +52,25 @@ export function interruptWindup(state: MatchState, idx: number): void {
   emit(state, { t: state.tick, kind: 'POWER_INTERRUPTED', player: idx });
 }
 
+// A Super Strength windup locks the opposing carrier inside this range and
+// charges them. inUsefulContext references this SAME constant for the power's
+// useful context, so "I see a context" and "I can acquire a lock" can never
+// drift apart (Task 12.2 ruling).
+const STRENGTH_LOCK_RANGE = 1200;
+// KO range checked when the charge windup completes (400 -> 500, Task 12.2 tuning).
+const STRENGTH_LAND_RANGE = 500;
+
+/**
+ * Powers whose entire effect resolves against a locked target. These never take
+ * the late-window lapse (0.75) auto-fire: a targetless fire is a stat smear,
+ * while an expiring rival zone is visible, playable threat (design ruling,
+ * Task 12.2 follow-up). Their fires come only from a tap or a useful context —
+ * and a Super Strength context inside STRENGTH_LOCK_RANGE guarantees the lock.
+ */
+function requiresTarget(power: PowerId): boolean {
+  return power === 'SUPER_STRENGTH';
+}
+
 /** The "when should I fire?" answer, per power. Shown to players via chip glow. */
 export function inUsefulContext(state: MatchState, idx: number): boolean {
   const p = state.players[idx];
@@ -58,19 +80,12 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
   const oppCarrierNear = (range: number) =>
     b.kind === 'held' && state.players[b.by].team !== p.team && dist2(state.players[b.by].pos, p.pos) < range * range;
 
-  if (power === 'SUPER_STRENGTH') return oppCarrierNear(900);
+  if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
   if (power === 'SUPER_SPEED') {
     return (b.kind === 'held' && b.by === idx) || (b.kind === 'loose' && dist2(b.pos, p.pos) < 1500 * 1500);
   }
   return (b.kind === 'held' && b.by === idx) || oppCarrierNear(800); // FIRE_TORCH
 }
-
-const STRENGTH_LOCK_RANGE = 1200;
-// Landing-rate fallback knob (400 -> 500, Task 12.2): widened after PURSUIT_MULT alone
-// left the seeds 1-20 KO landing rate short — see the Task 12.2 commit note for the
-// measured before/after and the remaining gap (most fires are lapse-triggered with
-// no target ever locked, which this range cannot address).
-const STRENGTH_LAND_RANGE = 500;
 
 function startWindup(state: MatchState, idx: number, strength: number): void {
   const p = state.players[idx];
@@ -126,7 +141,9 @@ export function powerTick(state: MatchState): void {
       if (p.firePolicy === 'FIRE_WHEN_READY') {
         const blind = p.team === 0 && state.blindAutoHome;
         if (blind || inUsefulContext(state, idx)) startWindup(state, idx, CONTEXT_AUTO_STRENGTH);
-        else if (p.powerState.remainingTicks <= 20) startWindup(state, idx, LAPSE_STRENGTH);
+        // Target-requiring powers skip the targetless late-window fallback: their
+        // window expires like a manual miss instead (POWER_EXPIRED, heat 50).
+        else if (p.powerState.remainingTicks <= 20 && !requiresTarget(p.def.power)) startWindup(state, idx, LAPSE_STRENGTH);
       }
       // SAVE_FOR_TAP heroes never auto-fire — a missed window only decays heat.
       if (p.powerState.kind === 'zone') {
