@@ -659,6 +659,8 @@ git commit -m "feat(sim): 4-4-2 anchors with mirroring and ball pull"
 
 ---
 
+> **Task 7.5 note:** the code blocks below predate the post-audit hardening commit `31394e0` (replay envelope fields, stoppage-time boundaries, restart invariants, deep-copied teams, DAG guard) and later amendments. The as-built files are canon; these blocks are historical. See commits `31394e0`, `f1b8603`, and the amendment sections below.
+
 ### Task 7: Events sink, match skeleton, movement (`events.ts`, `match.ts`, `engine.ts` v1)
 
 **Files:**
@@ -1711,6 +1713,40 @@ git commit -m "feat(sim): SUPER_SPEED, rival SUPER_STRENGTH, FIRE_TORCH effects 
 ```
 
 ---
+
+### Task 12.2: "In the Zone" activation rework + hardening batch (user pivot 2026-07-17 + external audit)
+
+ONE commit. Modifies types.ts, powers.ts, engine.ts, match.ts + reworks affected tests. This replaces the READY-window model; the fun-gate tests zone semantics.
+
+**A. State machine (types.ts):**
+```ts
+export type PowerState =
+  | { kind: 'idle' }
+  | { kind: 'zone'; remainingTicks: number }
+  | { kind: 'winding'; untilTick: number; strength: number; targetIdx?: number }
+  | { kind: 'active'; untilTick: number; strength: number };
+```
+MatchEvent gains `| { t: number; kind: 'POWER_EXPIRED'; player: number }`. The `gauge` field on SimPlayer is renamed in MEANING only (it is heat now) — keep the field name `gauge` to limit churn; add a comment.
+
+**B. powers.ts rework:** constants `ZONE_WINDOW_TICKS = 70`, `ZONE_HEAT_THRESHOLD = 60`, `ZONE_ENTRY_RATE = 0.0009` (per heat point above threshold, per tick), `PURSUIT_MULT = 1.3`. Remove READY_WINDOW_TICKS/HARD_DEADLINE_TICKS. addGauge: heroes only, idle only, cap 200 (heat may exceed 100), NO ready transition — entry happens in powerTick. New helper `teamPowerBusy(state, team)`: any teammate with powerState winding or active. addGauge returns early when teamPowerBusy (heat freezes). powerTick per available hero:
+1. If `teamPowerBusy(state, p.team)` and THIS hero is not the busy one → `continue` (zones and heat frozen).
+2. idle: trickle via addGauge; then if `p.gauge >= ZONE_HEAT_THRESHOLD && state.rng() < (p.gauge - ZONE_HEAT_THRESHOLD) * ZONE_ENTRY_RATE` → `p.powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS }; p.gauge = 0; emit POWER_READY` (event kind retained; it now means zone entry). NOTE: this conditional rng draw is state-dependent and deterministic; powerTick draws happen before all other systems each tick, ascending index — document with a comment.
+3. zone: taps (consumed at top of powerTick as today, valid only when that hero's state is zone) → windup at TAP_STRENGTH. FIRE_WHEN_READY: in context → windup 0.85; `remainingTicks <= 20` and no context → windup 0.75. Then `remainingTicks--`; at 0 → `emit POWER_EXPIRED; p.gauge = 50; idle`.
+4. winding/active: unchanged (windup completes → activatePower with targetIdx; active expires → idle, gauge stays 0).
+`speedMultiplier` additionally returns PURSUIT_MULT when winding with a targetIdx (the charge accelerates — Super Strength landing-rate fix; if seeds 1–20 landing stays <50%, raise STRENGTH_LAND_RANGE 400→500 and report which knob was needed).
+`knockOut(state, idx, ticks, reason)` centralizes going-out: if the ball is held by idx → ball becomes loose at their position (vel 0); set outUntilTick/outReason. Used by FIRE_TORCH ignite, SUPER_STRENGTH KO, and sendOff (sendOff passes Number.MAX_SAFE_INTEGER).
+
+**C. match.ts hardening:** `opts: { ...opts }` in createMatch; queueInput pushes separate copies `{ ...input }` into pendingInputs and inputLog; envelopeFrom maps inputs to fresh copies. `ENGINE_VERSION = 'm0.3'`. New `validateEnvelope(env)` called first in runReplay: schemaVersion === 1; engineVersion is a string; seed is a finite integer; both teams have exactly 11 players each with string id/name, role in {GK,DEF,MID,FWD}, 7 finite numeric attrs in 1..99, power undefined or in the PowerId set; inputs is an array of {kind:'POWER_TAP', tick: finite integer ≥ 1, player: finite integer}. Throw descriptive errors.
+
+**D. Test rework acceptance gates** (adapt Task 11/12 tests to zone semantics; rigs set `powerState = { kind: 'zone', remainingTicks: 70 }` directly):
+- Manual hero's expired window emits POWER_EXPIRED and leaves gauge 50, and NEVER auto-fires.
+- FIRE_WHEN_READY fires 0.85 in context, 0.75 late-window; never 1.0 without a tap.
+- One-active: rig two home heroes in zone, fire one → the other's remainingTicks must not decrease while the first is winding/active, and heat must not accumulate.
+- knockOut releases a held ball (rig: ignite the carrier → ball becomes loose at their feet) — the audit's possession-freeze case.
+- validateEnvelope rejects: string player index, NaN/Infinity tick, unknown input kind, unknown power, 10-player squad, attrs out of range (one test each, forged from a valid envelopeFrom output).
+- Empirical (report, delete harness): seeds 1-20 zones/hero/match mean in [1.5, 3.5]; Super Strength KO landing ≥50%; possession changes after tick 1000 still >0; determinism double-run 5 seeds; full suite green + tsc clean + import-layers green.
+
+Commit: `feat(sim): In-the-Zone activation, one-active-per-team, knockOut ball release, envelope validation, m0.3`
 
 ### Task 13: Acceptance suite — parity, causality, timing value, golden replay, balance
 
