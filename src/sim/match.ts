@@ -54,6 +54,12 @@ export function queueInput(state: MatchState, input: MatchInput): void {
   if (input.tick <= state.tick) {
     throw new Error(`input stamped for tick ${input.tick} but match is at tick ${state.tick} — inputs must be future-stamped`);
   }
+  if (input.kind === 'POWER_TAP') {
+    const target = state.players[input.player];
+    if (input.player < 0 || input.player > 10 || !target?.def.power) {
+      throw new Error(`invalid POWER_TAP target ${input.player} — taps may only target your own heroes`);
+    }
+  }
   state.pendingInputs.push(input);
   state.inputLog.push(input);
 }

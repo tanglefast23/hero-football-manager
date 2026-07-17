@@ -67,12 +67,13 @@ export function powerTick(state: MatchState): void {
     }
 
     if (p.powerState.kind === 'idle') {
-      if (p.outUntilTick <= state.tick) addGauge(state, idx, GAUGE_TRICKLE);
+      addGauge(state, idx, GAUGE_TRICKLE);
     } else if (p.powerState.kind === 'ready') {
       const waited = state.tick - p.powerState.sinceTick;
       const blind = p.team === 0 && state.blindAutoHome;
       if (p.firePolicy === 'FIRE_WHEN_READY') {
         if (blind || inUsefulContext(state, idx)) startWindup(state, idx, CONTEXT_AUTO_STRENGTH);
+        else if (waited >= HARD_DEADLINE_TICKS) startWindup(state, idx, LAPSE_STRENGTH);
       } else if (waited >= HARD_DEADLINE_TICKS) {
         startWindup(state, idx, LAPSE_STRENGTH);
       } else if (waited >= READY_WINDOW_TICKS && inUsefulContext(state, idx)) {
