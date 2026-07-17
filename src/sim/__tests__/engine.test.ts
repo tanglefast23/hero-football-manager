@@ -59,3 +59,27 @@ describe('possession', () => {
     }
   });
 });
+
+describe('tackling', () => {
+  it('tackles occur, some won and some lost', () => {
+    const r = runMatch(42, ROVERS, UNITED);
+    const tackles = r.events.filter(e => e.kind === 'TACKLE') as Array<{ won: boolean }>;
+    expect(tackles.length).toBeGreaterThan(5);
+    expect(tackles.some(t => t.won)).toBe(true);
+    expect(tackles.some(t => !t.won)).toBe(true);
+  });
+
+  it('the nearest defender presses the carrier (closes distance while possession is held)', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    for (let i = 0; i < 5 && m.ball.kind !== 'held'; i++) tick(m);
+    expect(m.ball.kind).toBe('held');
+    if (m.ball.kind !== 'held') return;
+    const carrier = m.ball.by;
+    const presser = m.players.map((p, i) => ({ i, d: p.team !== m.players[carrier].team ? Math.hypot(p.pos.x - m.players[carrier].pos.x, p.pos.y - m.players[carrier].pos.y) : Infinity }))
+      .sort((a, b) => a.d - b.d)[0];
+    const dBefore = presser.d;
+    for (let i = 0; i < 20 && m.ball.kind === 'held' && m.ball.by === carrier; i++) tick(m);
+    const dAfter = Math.hypot(m.players[presser.i].pos.x - m.players[carrier].pos.x, m.players[presser.i].pos.y - m.players[carrier].pos.y);
+    expect(dAfter).toBeLessThan(dBefore);
+  });
+});

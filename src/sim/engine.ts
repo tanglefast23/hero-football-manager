@@ -62,6 +62,7 @@ export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
 
 export function movementTick(state: MatchState): void {
   const ball = ballPos(state);
+  const presserIdx = state.ball.kind === 'held' ? nearestOpponent(state, state.ball.by) : -1;
   for (let i = 0; i < 22; i++) {
     const p = state.players[i];
     if (!isAvailable(state, i)) continue;
@@ -77,7 +78,7 @@ export function movementTick(state: MatchState): void {
     const chaseLoose = state.ball.kind === 'loose' && dist2(p.pos, ball) < 1500 * 1500;
     const target: Vec = isCarrier
       ? { x: ball.x, y: goalYFor(p.team) === 0 ? Math.max(0, p.pos.y - 800) : Math.min(PITCH_H, p.pos.y + 800) }
-      : isPassReceiver || chaseLoose ? ball
+      : i === presserIdx || isPassReceiver || chaseLoose ? ball
       : anchorFor(p.team, i % 11, ball);
     const before = p.pos;
     p.pos = moveToward(p.pos, target, speedFor(state, i));
@@ -180,6 +181,36 @@ export function possessionTick(state: MatchState): void {
       emit(state, { t: state.tick, kind: 'PASS', from: carrierIdx, to, ok });
       state.ball = { kind: 'pass', pos: { ...carrier.pos }, from: carrierIdx, to, willSucceed: ok, interceptor: interceptorIdx };
     }
+  }
+}
+
+/** Task 11/12 replace these with imports from ./powers. */
+export function interruptWindup(_state: MatchState, _idx: number): void {}
+export function fireSuppressed(_state: MatchState, _tackler: number, _carrier: number): boolean { return false; }
+export function dribbleBonus(_state: MatchState, _carrier: number): number { return 0; }
+export function defenseBonus(_state: MatchState, _idx: number): number { return 0; }
+
+export function tackleTick(state: MatchState): void {
+  if (state.ball.kind !== 'held') return;
+  const carrierIdx = state.ball.by;
+  const carrier = state.players[carrierIdx];
+
+  for (let i = 0; i < 22; i++) {
+    const d = state.players[i];
+    if (d.team === carrier.team || !isAvailable(state, i)) continue;
+    if (state.tick < d.tackleCooldownUntil) continue;
+    if (dist2(d.pos, carrier.pos) > 250 * 250) continue;
+    if (fireSuppressed(state, i, carrierIdx)) continue;
+
+    d.tackleCooldownUntil = state.tick + 10;
+    const won = contest(state.rng, effectiveStat(state, i, 'def') + defenseBonus(state, i), effectiveStat(state, carrierIdx, 'tec'), -dribbleBonus(state, carrierIdx));
+    emit(state, { t: state.tick, kind: 'TACKLE', by: i, on: carrierIdx, won });
+    if (won) {
+      state.ball = { kind: 'held', by: i };
+      addGauge(state, i, 15);
+      interruptWindup(state, carrierIdx);
+    }
+    return;
   }
 }
 
