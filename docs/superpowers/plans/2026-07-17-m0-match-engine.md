@@ -949,7 +949,7 @@ export function nearestOpponent(state: MatchState, idx: number): number {
   let best = -1, bestD2 = Infinity;
   for (let i = 0; i < 22; i++) {
     const o = state.players[i];
-    if (o.team === me.team || o.outUntilTick > state.tick) continue;
+    if (o.team === me.team || !isAvailable(state, i)) continue;
     const d2 = dist2(o.pos, me.pos);
     if (d2 < bestD2) { bestD2 = d2; best = i; }
   }
@@ -962,7 +962,7 @@ function bestPassTarget(state: MatchState, from: number): number {
   let best = -1, bestScore = -Infinity;
   for (let i = 0; i < 22; i++) {
     const mate = state.players[i];
-    if (i === from || mate.team !== me.team || mate.outUntilTick > state.tick) continue;
+    if (i === from || mate.team !== me.team || !isAvailable(state, i)) continue;
     const d2 = dist2(mate.pos, me.pos);
     if (d2 < 400 * 400 || d2 > 3500 * 3500) continue;
     const forwardness = Math.abs(mate.pos.y - gy);
@@ -981,8 +981,8 @@ export function possessionTick(state: MatchState): void {
     b.pos = { x: b.pos.x + b.vel.x, y: b.pos.y + b.vel.y };
     b.vel = { x: Math.trunc(b.vel.x * 0.8), y: Math.trunc(b.vel.y * 0.8) };
     for (let i = 0; i < 22; i++) {
+      if (!isAvailable(state, i)) continue;
       const p = state.players[i];
-      if (p.outUntilTick > state.tick) continue;
       if (dist2(p.pos, b.pos) < 150 * 150) {
         state.ball = { kind: 'held', by: i };
         addGauge(state, i, 8);
