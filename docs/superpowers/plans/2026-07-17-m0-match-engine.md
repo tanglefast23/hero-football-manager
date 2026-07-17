@@ -1110,24 +1110,32 @@ export function tackleTick(state: MatchState): void {
   const carrierIdx = state.ball.by;
   const carrier = state.players[carrierIdx];
 
+  let tackler = -1, tacklerD2 = 250 * 250 + 1;
   for (let i = 0; i < 22; i++) {
     const d = state.players[i];
     if (d.team === carrier.team || !isAvailable(state, i)) continue;
     if (state.tick < d.tackleCooldownUntil) continue;
-    if (dist2(d.pos, carrier.pos) > 250 * 250) continue;
     if (fireSuppressed(state, i, carrierIdx)) continue;
+    const d2 = dist2(d.pos, carrier.pos);
+    if (d2 <= 250 * 250 && d2 < tacklerD2) { tacklerD2 = d2; tackler = i; }
+  }
+  if (tackler === -1) return;
 
-    d.tackleCooldownUntil = state.tick + 10;
-    const won = contest(state.rng, effectiveStat(state, i, 'def') + defenseBonus(state, i), effectiveStat(state, carrierIdx, 'tec'), -dribbleBonus(state, carrierIdx));
-    emit(state, { t: state.tick, kind: 'TACKLE', by: i, on: carrierIdx, won });
-    if (won) {
-      state.ball = { kind: 'held', by: i };
-      addGauge(state, i, 15);
-      interruptWindup(state, carrierIdx);
-    }
-    return;
+  const d = state.players[tackler];
+  d.tackleCooldownUntil = state.tick + 10;
+  const won = contest(state.rng, effectiveStat(state, tackler, 'def') + defenseBonus(state, tackler), effectiveStat(state, carrierIdx, 'tec'), -dribbleBonus(state, carrierIdx));
+  emit(state, { t: state.tick, kind: 'TACKLE', by: tackler, on: carrierIdx, won });
+  if (won) {
+    state.ball = { kind: 'held', by: tackler };
+    addGauge(state, tackler, 15);
+    interruptWindup(state, carrierIdx);
   }
 }
+```
+
+(Amended after the Task 9 review: the tackler is the NEAREST eligible defender, not the first by index — the index-order tie-break made the GK the busiest tackler on the pitch and starved wide slots entirely.)
+
+```ts
 ```
 
 In `match.ts` `tick()`, after `possessionTick(state);` add `tackleTick(state);`.
