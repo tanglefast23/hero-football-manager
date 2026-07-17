@@ -25,4 +25,11 @@ describe('mulberry32', () => {
     expect(sum / 10000).toBeGreaterThan(0.47);
     expect(sum / 10000).toBeLessThan(0.53);
   });
+
+  it('golden values: exact sequence is locked for replay determinism', () => {
+    const r = mulberry32(42);
+    expect([r(), r(), r()]).toMatchSnapshot();
+    const r7 = mulberry32(7);
+    expect([r7(), r7()]).toMatchSnapshot();
+  });
 });
