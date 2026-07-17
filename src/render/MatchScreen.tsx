@@ -7,6 +7,7 @@ import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState } from '../sim/types';
 import { buildSpriteAtlas } from './sprites/buildAtlas';
 import { lerpFrame, snapshotFrame, type PitchFrame } from './interpolate';
+import { Pitch } from './Pitch';
 
 const MY_HEROES = [9, 10]; // Dario Flint (FIRE_TORCH), Zip Vela (SUPER_SPEED)
 const RIVAL_HERO = 14; // Rex Bould (SUPER_STRENGTH) — team 1 index 3 (11 + 3)
@@ -14,9 +15,16 @@ const MAX_CATCHUP_TICKS = 5;
 const TOTAL_TICKS = HALF_TICKS * 2;
 
 // Magnifies each atlas source-pixel into screen px, before the pitch->screen
-// `scale` factor. Chosen to match the sprite cell width (16px) so on-screen
-// sizing mirrors the plan's original placeholder calibration.
-const SPRITE_DRAW_SCALE = 40;
+// `scale` factor. Player cells are 16x20 source px; at PLAYER_DRAW_SCALE=26
+// that's a ~28-34pt tall sprite across the common iPhone width range
+// (375-430pt), matching the target "readable but not oversized" body size.
+const PLAYER_DRAW_SCALE = 26;
+
+// The ball sprite is a separate 6x6 source asset, not a scaled-down player —
+// reusing PLAYER_DRAW_SCALE would shrink it to a ~5pt speck. Calibrated
+// instead for its own ~6pt on-screen radius (~12pt diameter) across the same
+// width range.
+const BALL_DRAW_SCALE = 34;
 
 // speedFor()'s theoretical ceiling: (40 + 99 max pac) * 1.0 max conditionScale
 // * 2.2 max active-SUPER_SPEED multiplier ~= 306 pitch-units/tick. The snap
@@ -100,7 +108,11 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       canvas.drawRect(Skia.XYWHRect(0, 0, FALLBACK_SPRITE, FALLBACK_SPRITE), paint);
       surface.flush();
       return {
-        image: surface.makeImageSnapshot() as unknown,
+        // MakeOffscreen is GPU-backed; makeNonTextureImage() copies the
+        // snapshot into a portable, CPU-backed image so it actually renders
+        // inside the match <Canvas>'s own separate GPU context (see the
+        // matching comment in buildAtlas.ts's SkiaImageLike).
+        image: surface.makeImageSnapshot().makeNonTextureImage() as unknown,
         rectFor: (_key: string) => ({ x: 0, y: 0, w: FALLBACK_SPRITE, h: FALLBACK_SPRITE }),
         fallbackMode: true,
       };
@@ -221,7 +233,8 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   }, [frame, hud.tick, atlas, match]);
 
   const transforms: SkRSXform[] = useMemo(() => {
-    const scos = scale * SPRITE_DRAW_SCALE;
+    const scos = scale * PLAYER_DRAW_SCALE;
+    const ballScos = scale * BALL_DRAW_SCALE;
     const ball = atlas.rectFor('ball');
     return [
       ...match.players.map((p, i) => {
@@ -230,7 +243,12 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         const pos = frame.players[i];
         return Skia.RSXform(scos, 0, pos.x * scale - (r.w * scos) / 2, pos.y * scale - (r.h * scos) / 2);
       }),
-      Skia.RSXform(scos, 0, frame.ball.x * scale - (ball.w * scos) / 2, frame.ball.y * scale - (ball.h * scos) / 2),
+      Skia.RSXform(
+        ballScos,
+        0,
+        frame.ball.x * scale - (ball.w * ballScos) / 2,
+        frame.ball.y * scale - (ball.h * ballScos) / 2
+      ),
     ];
   }, [frame, hud.tick, atlas, match, scale]);
 
@@ -257,7 +275,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     match.phase === 'play' &&
     ((match.half === 1 && match.tick >= HALF_TICKS) || (match.half === 2 && match.tick >= TOTAL_TICKS));
   const pulse = hud.tick % 20 < 10 ? 1 : 0.55;
-  const ringR = (PLAYER_CELL_W * scale * SPRITE_DRAW_SCALE) / 2 + 4;
+  const ringR = (PLAYER_CELL_W * scale * PLAYER_DRAW_SCALE) / 2 + 4;
 
   const chip = (idx: number, tappable: boolean) => {
     const p = match.players[idx];
@@ -301,6 +319,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       </Pressable>
       <Canvas style={{ width, height: pitchH }}>
         <Fill color="#2e7d3a" />
+        <Pitch scale={scale} />
         {trailRef.current.map((t, i) => (
           <Circle key={i} cx={t.x * scale} cy={t.y * scale} r={4 - i} color="#ffffff" opacity={0.5 - i * 0.15} />
         ))}
@@ -318,7 +337,13 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
             />
           ) : null
         )}
-        <Atlas image={atlas.image as SkImage} sprites={sprites} transforms={transforms} colors={colors} />
+        <Atlas
+          image={atlas.image as SkImage}
+          sprites={sprites}
+          transforms={transforms}
+          colors={colors}
+          colorBlendMode="modulate"
+        />
         {frame.carrier >= 0 ? (
           <Circle
             cx={frame.players[frame.carrier].x * scale}

@@ -20,10 +20,20 @@ export interface SkiaPaintLike {
 export interface SkiaCanvasLike {
   drawRect(rect: SkiaRectLike, paint: SkiaPaintLike): void;
 }
+export interface SkiaImageLike {
+  // MakeOffscreen (below) creates a GPU-backed surface, so its snapshot is a
+  // texture image bound to that surface's own GPU context — invalid when
+  // sampled from a different <Canvas>'s context (renders nothing, even
+  // though the pixels are correct). makeNonTextureImage() copies it into a
+  // portable, CPU-backed image, which is exactly the conversion
+  // react-native-skia's own renderer/Offscreen.tsx applies to a
+  // MakeOffscreen snapshot before handing it back for general use.
+  makeNonTextureImage(): unknown;
+}
 export interface SkiaSurfaceLike {
   getCanvas(): SkiaCanvasLike;
   flush(): void;
-  makeImageSnapshot(): unknown;
+  makeImageSnapshot(): SkiaImageLike;
 }
 export interface SkiaApi {
   Surface: { MakeOffscreen(width: number, height: number): SkiaSurfaceLike | null };
@@ -71,5 +81,5 @@ export function buildSpriteAtlas(Skia: SkiaApi): { image: unknown; rectFor: Atla
   }
 
   surface.flush();
-  return { image: surface.makeImageSnapshot(), rectFor: layout.rectFor };
+  return { image: surface.makeImageSnapshot().makeNonTextureImage(), rectFor: layout.rectFor };
 }
