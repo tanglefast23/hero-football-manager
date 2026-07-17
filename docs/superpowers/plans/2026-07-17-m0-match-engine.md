@@ -1647,10 +1647,66 @@ export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonu
 
 Run: `npm test` → all suites pass, including earlier determinism tests.
 
+#### Task 12.1 amendment — target-locked charge for SUPER_STRENGTH (approved after the first Task 12 attempt measured a 0% steal landing rate)
+
+Root cause: closing into context range makes the carrier "pressured," so they pass away during the 15-tick windup; re-checking proximity at completion always whiffs. Fix: lock at windup start, chase while winding, resolve against the locked target. Releasing the ball fast remains the counterplay (the flatten still lands, the steal doesn't).
+
+`src/sim/types.ts` — the winding variant gains an optional lock:
+```ts
+  | { kind: 'winding'; untilTick: number; strength: number; targetIdx?: number }
+```
+
+`src/sim/powers.ts` — constants + lock at windup start + pass-through:
+```ts
+const STRENGTH_LOCK_RANGE = 1200;
+const STRENGTH_LAND_RANGE = 400;
+
+function startWindup(state: MatchState, idx: number, strength: number): void {
+  const p = state.players[idx];
+  let targetIdx: number | undefined;
+  if (p.def.power === 'SUPER_STRENGTH' && state.ball.kind === 'held') {
+    const carrier = state.players[state.ball.by];
+    if (carrier.team !== p.team && dist2(carrier.pos, p.pos) < STRENGTH_LOCK_RANGE * STRENGTH_LOCK_RANGE) {
+      targetIdx = state.ball.by;
+    }
+  }
+  p.powerState = { kind: 'winding', untilTick: state.tick + WINDUP_TICKS, strength, targetIdx };
+}
+```
+In `powerTick`'s winding branch, pass the lock through: `activatePower(state, idx, p.powerState.strength, p.powerState.targetIdx);`
+
+`activatePower` gains the fourth parameter and its SUPER_STRENGTH branch becomes:
+```ts
+  } else if (power === 'SUPER_STRENGTH') {
+    rollCard(state, idx, 0.25, 0.05);
+    if (p.outUntilTick <= state.tick && targetIdx !== undefined) {
+      const target = state.players[targetIdx];
+      if (target.outUntilTick <= state.tick && dist2(target.pos, p.pos) < STRENGTH_LAND_RANGE * STRENGTH_LAND_RANGE) {
+        target.outUntilTick = state.tick + Math.round(80 * strength);
+        target.outReason = 'ko';
+        const hadBall = state.ball.kind === 'held' && state.ball.by === targetIdx;
+        if (hadBall) state.ball = { kind: 'held', by: idx };
+        emit(state, { t: state.tick, kind: 'TACKLE', by: idx, on: targetIdx, won: hadBall });
+      }
+    }
+  }
+```
+
+`src/sim/engine.ts` `movementTick` — a winding hero with a lock CHARGES the target (insert after the `isCarrier` computation, and add the branch to the target ternary between the carrier branch and the presser branch):
+```ts
+    const chargeTarget = p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined
+      ? state.players[p.powerState.targetIdx].pos : null;
+```
+```ts
+      : chargeTarget ? chargeTarget
+```
+
+Test amendments: the rigged steal/ignite tests place both players at midfield (y≈5250, outside shot range) and set `powerState = { kind: 'ready', sinceTick: m.tick }` directly to control timing; the steal test asserts the locked target is flattened (`outReason 'ko'` + a TACKLE event by the rival) regardless of whether the steal component landed; the Task 11 "rival fires at 0.85" test is loosened to the policy-level truth (strengths ⊆ {0.85, 0.75}, never 1.0, with at least one 0.85 across seeds 1–10). Acceptance: SUPER_STRENGTH KO landing rate ≥50% of its fires across seeds 1–20.
+
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sim/powers.ts src/sim/engine.ts src/sim/__tests__/powers.test.ts
+git add src/sim/types.ts src/sim/powers.ts src/sim/engine.ts src/sim/__tests__/powers.test.ts
 git commit -m "feat(sim): SUPER_SPEED, rival SUPER_STRENGTH, FIRE_TORCH effects with cards and ignition"
 ```
 
