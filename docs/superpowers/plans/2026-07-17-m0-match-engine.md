@@ -53,6 +53,7 @@ npx create-expo-app@latest hfm-scaffold --template blank-typescript
 rm hfm-scaffold/README.md
 cp -R hfm-scaffold/. .
 rm -rf hfm-scaffold
+grep -q '^\.DS_Store$' .gitignore || echo '.DS_Store' >> .gitignore
 ```
 
 Expected: `App.tsx`, `package.json`, `tsconfig.json`, `app.json`, `assets/`, `.gitignore` at repo root; `README.md`, `CLAUDE.md`, `docs/`, `research/` untouched.
