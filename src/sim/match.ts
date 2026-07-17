@@ -3,11 +3,14 @@ import { HALF_TICKS } from './geometry';
 import { emit } from './events';
 import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTick } from './engine';
 import { powerTick } from './powers';
-import type { MatchInput, MatchOpts, MatchResult, MatchState, ReplayEnvelope, SimPlayer, TeamDef } from './types';
+import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-export const ENGINE_VERSION = 'm0.2';
+export const ENGINE_VERSION = 'm0.3';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
+const VALID_ROLES: ReadonlySet<Role> = new Set(['GK', 'DEF', 'MID', 'FWD']);
+const VALID_POWER_IDS: ReadonlySet<string> = new Set(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']);
+const ATTR_KEYS: ReadonlyArray<keyof Attrs> = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'];
 
 function deepCopyTeam(t: TeamDef): TeamDef {
   return { id: t.id, name: t.name, players: t.players.map(p => ({ ...p, attrs: { ...p.attrs } })) };
@@ -34,16 +37,17 @@ export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: Ma
   if (home.players.length !== 11 || away.players.length !== 11) {
     throw new Error('teams must have 11 players');
   }
+  const optsCopy: MatchOpts = { ...opts }; // detach from caller's opts object, same reasoning as deepCopyTeam below
   const teams: [TeamDef, TeamDef] = [deepCopyTeam(home), deepCopyTeam(away)];
   const state: MatchState = {
     tick: 0, half: 1, phase: 'play', score: [0, 0],
-    players: makePlayers(teams[0], teams[1], opts),
+    players: makePlayers(teams[0], teams[1], optsCopy),
     ball: { kind: 'held', by: 9 },
     resolve: [100, 100],
     rng: mulberry32(seed),
     events: [], pendingInputs: [],
-    blindAutoHome: opts.blindAutoHome ?? false,
-    seed, opts, teams, inputLog: [],
+    blindAutoHome: optsCopy.blindAutoHome ?? false,
+    seed, opts: optsCopy, teams, inputLog: [],
   };
   restartKickoff(state, 0);
   emit(state, { t: 0, kind: 'KICKOFF', half: 1 });
@@ -60,8 +64,10 @@ export function queueInput(state: MatchState, input: MatchInput): void {
       throw new Error(`invalid POWER_TAP target ${input.player} — taps may only target your own heroes`);
     }
   }
-  state.pendingInputs.push(input);
-  state.inputLog.push(input);
+  // Separate copies so pendingInputs (consumed/spliced by powerTick) and inputLog
+  // (the append-only replay record) can never alias the same object.
+  state.pendingInputs.push({ ...input });
+  state.inputLog.push({ ...input });
 }
 
 export function tick(state: MatchState): void {
@@ -101,15 +107,65 @@ export function envelopeFrom(state: MatchState): ReplayEnvelope {
     seed: state.seed,
     home: deepCopyTeam(state.teams[0]),
     away: deepCopyTeam(state.teams[1]),
-    inputs: [...state.inputLog],
+    inputs: state.inputLog.map(i => ({ ...i })),
     opts: { ...state.opts },
   };
 }
 
-export function runReplay(env: ReplayEnvelope): MatchResult {
-  if (env.schemaVersion !== 1) {
-    throw new Error(`replay schema mismatch: ${env.schemaVersion}`);
+function validateTeam(team: TeamDef, label: 'home' | 'away'): void {
+  if (!team || !Array.isArray(team.players) || team.players.length !== 11) {
+    throw new Error(`replay envelope: ${label} team must have exactly 11 players`);
   }
+  for (const p of team.players as PlayerDef[]) {
+    if (typeof p.id !== 'string' || typeof p.name !== 'string') {
+      throw new Error(`replay envelope: ${label} team has a player with a non-string id/name`);
+    }
+    if (!VALID_ROLES.has(p.role)) {
+      throw new Error(`replay envelope: ${label} team player ${p.id} has invalid role ${String(p.role)}`);
+    }
+    for (const key of ATTR_KEYS) {
+      const v = p.attrs?.[key];
+      if (typeof v !== 'number' || !Number.isFinite(v) || v < 1 || v > 99) {
+        throw new Error(`replay envelope: ${label} team player ${p.id} has invalid attrs.${key} (${v})`);
+      }
+    }
+    if (p.power !== undefined && !VALID_POWER_IDS.has(p.power)) {
+      throw new Error(`replay envelope: ${label} team player ${p.id} has unknown power ${String(p.power)}`);
+    }
+  }
+}
+
+/** Structural validation for a replay envelope — e.g. one deserialized from JSON, where TS types offer no runtime guarantee. Throws a descriptive error on the first violation found. */
+export function validateEnvelope(env: ReplayEnvelope): void {
+  if (env.schemaVersion !== 1) {
+    throw new Error(`replay envelope: schemaVersion must be 1, got ${env.schemaVersion}`);
+  }
+  if (typeof env.engineVersion !== 'string') {
+    throw new Error('replay envelope: engineVersion must be a string');
+  }
+  if (typeof env.seed !== 'number' || !Number.isFinite(env.seed) || !Number.isInteger(env.seed)) {
+    throw new Error(`replay envelope: seed must be a finite integer, got ${env.seed}`);
+  }
+  validateTeam(env.home, 'home');
+  validateTeam(env.away, 'away');
+  if (!Array.isArray(env.inputs)) {
+    throw new Error('replay envelope: inputs must be an array');
+  }
+  for (const input of env.inputs as MatchInput[]) {
+    if (input.kind !== 'POWER_TAP') {
+      throw new Error(`replay envelope: unknown input kind ${String(input.kind)}`);
+    }
+    if (typeof input.tick !== 'number' || !Number.isFinite(input.tick) || !Number.isInteger(input.tick) || input.tick < 1) {
+      throw new Error(`replay envelope: input tick must be a finite integer >= 1, got ${input.tick}`);
+    }
+    if (typeof input.player !== 'number' || !Number.isFinite(input.player) || !Number.isInteger(input.player)) {
+      throw new Error(`replay envelope: input player must be a finite integer, got ${input.player}`);
+    }
+  }
+}
+
+export function runReplay(env: ReplayEnvelope): MatchResult {
+  validateEnvelope(env);
   if (env.engineVersion !== ENGINE_VERSION) {
     throw new Error(`replay engine mismatch: ${env.engineVersion} vs ${ENGINE_VERSION}`);
   }

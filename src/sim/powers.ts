@@ -1,23 +1,44 @@
 import { emit } from './events';
 import { dist2 } from './geometry';
-import type { MatchState } from './types';
+import type { MatchState, OutReason } from './types';
 
-export const READY_WINDOW_TICKS = 80;
-export const HARD_DEADLINE_TICKS = 120;
 export const WINDUP_TICKS = 15;
 export const TAP_STRENGTH = 1.0;
 export const CONTEXT_AUTO_STRENGTH = 0.85;
 export const LAPSE_STRENGTH = 0.75;
 export const GAUGE_TRICKLE = 0.02;
 
+// In-the-Zone activation model (2026-07-17, replaces the fixed READY window):
+// heat builds via addGauge, and above ZONE_HEAT_THRESHOLD each tick rolls a small
+// seeded chance to enter a 7s Zone window (see powerTick). ZONE_ENTRY_RATE is the
+// per-heat-point-above-threshold, per-tick roll rate — tuned so seeds 1-20 average
+// ~1.5-3.5 zone entries per hero per match (docs/04 target: ~2-3).
+export const ZONE_WINDOW_TICKS = 70;
+export const ZONE_HEAT_THRESHOLD = 60;
+export const ZONE_ENTRY_RATE = 0.0009;
+
+// Charging Super Strength closes distance faster than normal movement (the
+// windup telegraph is the counterplay window, not a free pass to escape it).
+export const PURSUIT_MULT = 1.3;
+
+/** Heat cap. Heat can run well past 100 while frozen behind a busy teammate; it never gates firing (only the Zone roll and taps do). */
+const GAUGE_CAP = 200;
+
+/** Any teammate currently winding or active — freezes the rest of the team's heat and Zone timers (one power active per team). */
+export function teamPowerBusy(state: MatchState, team: 0 | 1): boolean {
+  const base = team === 0 ? 0 : 11;
+  for (let i = base; i < base + 11; i++) {
+    const kind = state.players[i].powerState.kind;
+    if (kind === 'winding' || kind === 'active') return true;
+  }
+  return false;
+}
+
 export function addGauge(state: MatchState, idx: number, amount: number): void {
   const p = state.players[idx];
   if (!p.def.power || p.powerState.kind !== 'idle') return;
-  p.gauge = Math.min(100, p.gauge + amount);
-  if (p.gauge >= 100) {
-    p.powerState = { kind: 'ready', sinceTick: state.tick };
-    emit(state, { t: state.tick, kind: 'POWER_READY', player: idx });
-  }
+  if (teamPowerBusy(state, p.team)) return; // heat freezes while a teammate's power is winding/active
+  p.gauge = Math.min(GAUGE_CAP, p.gauge + amount);
 }
 
 export function interruptWindup(state: MatchState, idx: number): void {
@@ -45,7 +66,11 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
 }
 
 const STRENGTH_LOCK_RANGE = 1200;
-const STRENGTH_LAND_RANGE = 400;
+// Landing-rate fallback knob (400 -> 500, Task 12.2): widened after PURSUIT_MULT alone
+// left the seeds 1-20 KO landing rate short — see the Task 12.2 commit note for the
+// measured before/after and the remaining gap (most fires are lapse-triggered with
+// no target ever locked, which this range cannot address).
+const STRENGTH_LAND_RANGE = 500;
 
 function startWindup(state: MatchState, idx: number, strength: number): void {
   const p = state.players[idx];
@@ -60,11 +85,14 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
 }
 
 export function powerTick(state: MatchState): void {
+  // Taps only convert a hero already in the Zone, and only when their team isn't
+  // frozen behind a busy teammate (one power active per team — a tap can't jump
+  // the queue while a teammate is winding/active).
   const due = state.pendingInputs.filter(i => i.tick <= state.tick);
   state.pendingInputs = state.pendingInputs.filter(i => i.tick > state.tick);
   for (const input of due) {
     const p = state.players[input.player];
-    if (input.kind === 'POWER_TAP' && p.powerState.kind === 'ready') {
+    if (input.kind === 'POWER_TAP' && p.powerState.kind === 'zone' && !teamPowerBusy(state, p.team)) {
       startWindup(state, input.player, TAP_STRENGTH);
     }
   }
@@ -77,18 +105,37 @@ export function powerTick(state: MatchState): void {
       continue; // out players neither charge nor fire (Task 7 review)
     }
 
+    // A busy teammate freezes this hero's heat/Zone timer — but a hero already
+    // winding/active is never "frozen by itself" and must keep processing below.
+    const selfBusy = p.powerState.kind === 'winding' || p.powerState.kind === 'active';
+    if (!selfBusy && teamPowerBusy(state, p.team)) continue;
+
     if (p.powerState.kind === 'idle') {
       addGauge(state, idx, GAUGE_TRICKLE);
-    } else if (p.powerState.kind === 'ready') {
-      const waited = state.tick - p.powerState.sinceTick;
-      const blind = p.team === 0 && state.blindAutoHome;
+      // Zone-entry roll: state-dependent (heat-weighted) but still a conditional
+      // rng() draw, so it is replay-load-bearing. It must run here — before
+      // movementTick/possessionTick/tackleTick/shotFlightTick — and in ascending
+      // player index order every tick, or replays taped against an older build
+      // diverge even with identical inputs.
+      if (p.gauge >= ZONE_HEAT_THRESHOLD && state.rng() < (p.gauge - ZONE_HEAT_THRESHOLD) * ZONE_ENTRY_RATE) {
+        p.powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+        p.gauge = 0;
+        emit(state, { t: state.tick, kind: 'POWER_READY', player: idx }); // event kind retained; now means Zone entry
+      }
+    } else if (p.powerState.kind === 'zone') {
       if (p.firePolicy === 'FIRE_WHEN_READY') {
+        const blind = p.team === 0 && state.blindAutoHome;
         if (blind || inUsefulContext(state, idx)) startWindup(state, idx, CONTEXT_AUTO_STRENGTH);
-        else if (waited >= HARD_DEADLINE_TICKS) startWindup(state, idx, LAPSE_STRENGTH);
-      } else if (waited >= HARD_DEADLINE_TICKS) {
-        startWindup(state, idx, LAPSE_STRENGTH);
-      } else if (waited >= READY_WINDOW_TICKS && inUsefulContext(state, idx)) {
-        startWindup(state, idx, LAPSE_STRENGTH);
+        else if (p.powerState.remainingTicks <= 20) startWindup(state, idx, LAPSE_STRENGTH);
+      }
+      // SAVE_FOR_TAP heroes never auto-fire — a missed window only decays heat.
+      if (p.powerState.kind === 'zone') {
+        p.powerState.remainingTicks--;
+        if (p.powerState.remainingTicks <= 0) {
+          emit(state, { t: state.tick, kind: 'POWER_EXPIRED', player: idx });
+          p.gauge = 50;
+          p.powerState = { kind: 'idle' };
+        }
       }
     } else if (p.powerState.kind === 'winding') {
       if (state.tick >= p.powerState.untilTick) activatePower(state, idx, p.powerState.strength, p.powerState.targetIdx);
@@ -108,9 +155,24 @@ export function isActive(state: MatchState, idx: number): boolean {
   return ps.kind === 'active' && state.tick < ps.untilTick;
 }
 
+/**
+ * Centralizes "going out": if idx is holding the ball, release it to loose (at
+ * their feet, no velocity) BEFORE marking them out — otherwise the ball stays
+ * phantom-"held" by an unconscious player and possession freezes (the audit's
+ * possession-freeze bug). `untilTick` is the absolute tick to return at, not a
+ * duration — sendOff passes Number.MAX_SAFE_INTEGER straight through.
+ */
+export function knockOut(state: MatchState, idx: number, untilTick: number, reason: OutReason): void {
+  const p = state.players[idx];
+  if (state.ball.kind === 'held' && state.ball.by === idx) {
+    state.ball = { kind: 'loose', pos: { ...p.pos }, vel: { x: 0, y: 0 } };
+  }
+  p.outUntilTick = untilTick;
+  p.outReason = reason;
+}
+
 function sendOff(state: MatchState, idx: number): void {
-  state.players[idx].outUntilTick = Number.MAX_SAFE_INTEGER;
-  state.players[idx].outReason = 'redcard';
+  knockOut(state, idx, Number.MAX_SAFE_INTEGER, 'redcard');
   emit(state, { t: state.tick, kind: 'CARD', player: idx, color: 'red' });
 }
 
@@ -144,8 +206,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       if (d2 < nearestD2) { nearestD2 = d2; nearest = i; }
     }
     if (nearest !== -1) {
-      state.players[nearest].outUntilTick = state.tick + 100;
-      state.players[nearest].outReason = 'ignited';
+      knockOut(state, nearest, state.tick + 100, 'ignited');
       emit(state, { t: state.tick, kind: 'IGNITED', player: nearest });
     }
   } else if (power === 'SUPER_STRENGTH') {
@@ -153,9 +214,8 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     if (p.outUntilTick <= state.tick && targetIdx !== undefined) {
       const target = state.players[targetIdx];
       if (target.outUntilTick <= state.tick && dist2(target.pos, p.pos) < STRENGTH_LAND_RANGE * STRENGTH_LAND_RANGE) {
-        target.outUntilTick = state.tick + Math.round(80 * strength);
-        target.outReason = 'ko';
         const hadBall = state.ball.kind === 'held' && state.ball.by === targetIdx;
+        knockOut(state, targetIdx, state.tick + Math.round(80 * strength), 'ko');
         if (hadBall) state.ball = { kind: 'held', by: idx };
         emit(state, { t: state.tick, kind: 'TACKLE', by: idx, on: targetIdx, won: hadBall });
       }
@@ -164,7 +224,11 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
 }
 
 export function speedMultiplier(state: MatchState, idx: number): number {
-  return isActive(state, idx) && state.players[idx].def.power === 'SUPER_SPEED' ? 2.2 : 1;
+  const p = state.players[idx];
+  // Charging a locked Super Strength target accelerates the pursuit — the windup
+  // telegraph is the counterplay, not a guaranteed whiff (Task 12.1/12.2 landing-rate fix).
+  if (p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined) return PURSUIT_MULT;
+  return isActive(state, idx) && p.def.power === 'SUPER_SPEED' ? 2.2 : 1;
 }
 
 export function dribbleBonus(state: MatchState, carrierIdx: number): number {

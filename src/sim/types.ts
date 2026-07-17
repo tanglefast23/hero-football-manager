@@ -17,7 +17,7 @@ export interface TeamDef { id: string; name: string; players: PlayerDef[]; }
 
 export type PowerState =
   | { kind: 'idle' }
-  | { kind: 'ready'; sinceTick: number }
+  | { kind: 'zone'; remainingTicks: number }
   | { kind: 'winding'; untilTick: number; strength: number; targetIdx?: number }
   | { kind: 'active'; untilTick: number; strength: number };
 
@@ -28,7 +28,7 @@ export interface SimPlayer {
   team: 0 | 1;
   pos: Vec;
   condition: number;
-  gauge: number;
+  gauge: number; // this is HEAT (In-the-Zone model, 2026-07-17) — field name kept as `gauge` to limit churn
   powerState: PowerState;
   firePolicy: FirePolicy;
   outUntilTick: number;       // 0 = fine
@@ -54,6 +54,7 @@ export type MatchEvent =
   | { t: number; kind: 'POWER_READY'; player: number }
   | { t: number; kind: 'POWER_FIRED'; player: number; power: PowerId; strength: number }
   | { t: number; kind: 'POWER_INTERRUPTED'; player: number }
+  | { t: number; kind: 'POWER_EXPIRED'; player: number }
   | { t: number; kind: 'CARD'; player: number; color: 'yellow' | 'red' }
   | { t: number; kind: 'IGNITED'; player: number }
   | { t: number; kind: 'EXTINGUISHED'; player: number }

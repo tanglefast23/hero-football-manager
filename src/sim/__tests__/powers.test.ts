@@ -1,6 +1,6 @@
 import { createMatch, queueInput, runMatch, tick } from '../match';
 import { speedFor } from '../engine';
-import { activatePower, interruptWindup } from '../powers';
+import { activatePower, interruptWindup, ZONE_WINDOW_TICKS } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState } from '../types';
 
@@ -19,17 +19,18 @@ describe('hero gauge and firing', () => {
     expect(m.players[SPEEDSTER].gauge).toBeGreaterThan(0);
   });
 
-  it('gauge 100 emits POWER_READY', () => {
+  it('high heat rolls a Zone entry (POWER_READY, now meaning "entered the Zone")', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    m.players[SPEEDSTER].gauge = 99.9;
-    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER), 100);
-    expect(m.events.some(e => e.kind === 'POWER_READY')).toBe(true);
+    m.players[SPEEDSTER].gauge = 199; // near the heat cap maximizes the per-tick entry roll
+    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER), 300);
+    expect(m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER)).toBe(true);
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
+    expect(m.players[SPEEDSTER].gauge).toBe(0); // heat resets on entry
   });
 
-  it('a tap fires at strength 1.0 after the windup', () => {
+  it('a tap fires at strength 1.0 after the windup (rigged directly into the Zone)', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    m.players[SPEEDSTER].gauge = 99.9;
-    tickUntil(m, () => m.players[SPEEDSTER].powerState.kind === 'ready', 100);
+    m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
     tickUntil(m, () => m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER));
     const fired = m.events.find(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER) as { strength: number; power: string };
@@ -37,12 +38,14 @@ describe('hero gauge and firing', () => {
     expect(fired.strength).toBe(1);
   });
 
-  it('an ignored SAVE_FOR_TAP window auto-fires at 0.75', () => {
+  it('a SAVE_FOR_TAP hero who is not tapped in time gets POWER_EXPIRED, decays to 50 heat, and never auto-fires', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    m.players[SPEEDSTER].gauge = 99.9;
-    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER), 400);
-    const fired = m.events.find(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER) as { strength: number };
-    expect(fired.strength).toBe(0.75);
+    m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === SPEEDSTER), ZONE_WINDOW_TICKS + 5);
+    expect(m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(true);
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('idle');
+    expect(m.players[SPEEDSTER].gauge).toBe(50);
+    expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
   });
 
   it('the rival hero auto-fires at policy strengths only (0.85 contextual / 0.75 deadline lapse, never 1.0)', () => {
@@ -52,9 +55,13 @@ describe('hero gauge and firing', () => {
     expect(rivalFired.every(f => f.strength === 0.85 || f.strength === 0.75)).toBe(true);
   });
 
-  it('the rival finds a contextual 0.85 fire on at least one of seeds 1-10', () => {
+  it('the rival finds a contextual 0.85 fire on at least one of seeds 1-20', () => {
+    // Zone entry is now a probabilistic roll (docs/04), so a hero — including the
+    // rival — may not even enter the Zone within a single match; seeds 1-10 alone
+    // can (and does, deterministically) come up empty. 1-20 matches this task's
+    // other empirical seed range and reliably includes a hit (seeds 16 and 19).
     let saw085 = false;
-    for (let seed = 1; seed <= 10 && !saw085; seed++) {
+    for (let seed = 1; seed <= 20 && !saw085; seed++) {
       saw085 = runMatch(seed, ROVERS, UNITED).events.some(
         e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL && (e as { strength: number }).strength === 0.85,
       );
@@ -118,7 +125,7 @@ describe('power effects', () => {
     // through the windup.
     m.ball = { kind: 'held', by: torch };
     m.players[17].pos = { x: 3400, y: 5550 };
-    m.players[torch].powerState = { kind: 'ready', sinceTick: m.tick };
+    m.players[torch].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: torch });
     tickUntil(m, () => m.events.some(e => e.kind === 'IGNITED'), 300);
     const ignited = m.events.find(e => e.kind === 'IGNITED') as { player: number };
@@ -127,19 +134,46 @@ describe('power effects', () => {
     expect(m.events.some(e => e.kind === 'EXTINGUISHED')).toBe(true);
   });
 
+  it('igniting the ball carrier releases the ball (knockOut) instead of freezing possession', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const torch = 9;
+    const oppCarrier = 11;
+    const pos = { x: 3400, y: 5250 };
+    m.ball = { kind: 'held', by: oppCarrier };
+    m.players[torch].pos = { ...pos };
+    m.players[oppCarrier].pos = { ...pos }; // co-located with torch: guaranteed "nearest opponent"
+    for (const idx of [12, 13, 14, 15, 16, 17, 18, 19, 20, 21]) m.players[idx].pos = { x: 200, y: 9000 };
+    activatePower(m, torch, 1); // direct call — no tick() pipeline, so nothing can re-pick-up the ball before we assert
+    const ignited = m.events.find(e => e.kind === 'IGNITED') as { player: number } | undefined;
+    expect(ignited?.player).toBe(oppCarrier);
+    expect(m.ball).toEqual({ kind: 'loose', pos, vel: { x: 0, y: 0 } });
+  });
+
   it('rival SUPER_STRENGTH locks its target at windup start, charges, and flattens them', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    // Rig at midfield (outside shot range): Zip carries on top of Rex; ready set directly
+    // Rig at midfield (outside shot range): Zip carries on top of Rex; zone set directly
     // so the lock happens at this windup's start. The flatten must land even though Zip
     // releases the ball during the charge (hadBall false is fine — that IS the counterplay).
     m.ball = { kind: 'held', by: SPEEDSTER };
     m.players[SPEEDSTER].pos = { x: 3400, y: 5250 };
     m.players[RIVAL].pos = { x: 3400, y: 5250 };
-    m.players[RIVAL].powerState = { kind: 'ready', sinceTick: m.tick };
+    m.players[RIVAL].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     tickUntil(m, () => m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL), 200);
     expect(m.players[SPEEDSTER].outReason).toBe('ko');
     expect(m.players[SPEEDSTER].outUntilTick).toBeGreaterThan(m.tick);
     expect(m.events.some(e => e.kind === 'TACKLE' && (e as { by: number }).by === RIVAL)).toBe(true);
+  });
+
+  it('one-active-per-team: a winding/active teammate freezes the others Zone timer and heat', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const torch = 9;
+    m.players[torch].powerState = { kind: 'winding', untilTick: m.tick + 200, strength: 1 };
+    m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+    m.players[SPEEDSTER].gauge = 0;
+    for (let i = 0; i < 30; i++) tick(m);
+    expect(m.players[torch].powerState.kind).toBe('winding'); // still busy — untilTick (200) not reached
+    expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS });
+    expect(m.players[SPEEDSTER].gauge).toBe(0);
   });
 
   it('cards appear across many seeds', () => {

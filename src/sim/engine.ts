@@ -2,10 +2,10 @@ import { anchorFor } from './formation';
 import { dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest } from './contest';
-import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus } from './powers';
+import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut } from './powers';
 import type { Attrs, MatchState, SimPlayer } from './types';
 
-export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus };
+export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut };
 
 export function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;

@@ -1,7 +1,8 @@
-import { createMatch, tick, runMatch, envelopeFrom, runReplay, queueInput } from '../match';
+import { createMatch, tick, runMatch, envelopeFrom, runReplay, queueInput, validateEnvelope } from '../match';
 import { restartKickoff } from '../engine';
 import { ROVERS, UNITED } from '../teams';
 import { HALF_TICKS } from '../geometry';
+import type { MatchInput, PlayerDef, ReplayEnvelope } from '../types';
 
 describe('match skeleton', () => {
   it('creates 22 players with correct fire policies', () => {
@@ -91,5 +92,63 @@ describe('match skeleton', () => {
     for (let i = 0; i < 10; i++) tick(m);
     expect(() => queueInput(m, { tick: 5, kind: 'POWER_TAP', player: 10 })).toThrow('future-stamped');
     expect(m.inputLog).toHaveLength(0);
+  });
+});
+
+describe('validateEnvelope', () => {
+  function makeValidEnvelope(): ReplayEnvelope {
+    const m = createMatch(9, ROVERS, UNITED, { homePolicy: 'FIRE_WHEN_READY' });
+    queueInput(m, { tick: 5, kind: 'POWER_TAP', player: 10 });
+    for (let i = 0; i < 20; i++) tick(m);
+    return envelopeFrom(m);
+  }
+
+  it('accepts a valid envelope produced by envelopeFrom', () => {
+    expect(() => validateEnvelope(makeValidEnvelope())).not.toThrow();
+  });
+
+  it('rejects a string player index', () => {
+    const env = makeValidEnvelope();
+    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: '10' as unknown as number }];
+    expect(() => validateEnvelope(env)).toThrow();
+  });
+
+  it('rejects a NaN/Infinity tick', () => {
+    const env = makeValidEnvelope();
+    env.inputs = [{ tick: Infinity, kind: 'POWER_TAP', player: 10 }];
+    expect(() => validateEnvelope(env)).toThrow();
+    env.inputs = [{ tick: NaN, kind: 'POWER_TAP', player: 10 }];
+    expect(() => validateEnvelope(env)).toThrow();
+  });
+
+  it('rejects an unknown input kind', () => {
+    const env = makeValidEnvelope();
+    env.inputs = [{ tick: 5, player: 10 } as unknown as MatchInput];
+    (env.inputs[0] as unknown as { kind: string }).kind = 'BOGUS';
+    expect(() => validateEnvelope(env)).toThrow();
+  });
+
+  it('rejects an unknown power id', () => {
+    const env = makeValidEnvelope();
+    env.home = {
+      ...env.home,
+      players: env.home.players.map((p, i) => (i === 9 ? { ...p, power: 'LASER_EYES' as unknown as PlayerDef['power'] } : p)),
+    };
+    expect(() => validateEnvelope(env)).toThrow();
+  });
+
+  it('rejects a 10-player squad', () => {
+    const env = makeValidEnvelope();
+    env.home = { ...env.home, players: env.home.players.slice(0, 10) };
+    expect(() => validateEnvelope(env)).toThrow();
+  });
+
+  it('rejects attrs out of range', () => {
+    const env = makeValidEnvelope();
+    env.home = {
+      ...env.home,
+      players: env.home.players.map((p, i) => (i === 0 ? { ...p, attrs: { ...p.attrs, pac: 150 } } : p)),
+    };
+    expect(() => validateEnvelope(env)).toThrow();
   });
 });
