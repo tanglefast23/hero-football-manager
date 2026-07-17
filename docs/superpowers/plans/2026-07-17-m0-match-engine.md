@@ -1771,6 +1771,8 @@ Justification: GATE-2 is what "your tap matters" means; GATE-1 is why watching p
 
 These are the M0 acceptance gate. They should pass immediately if Tasks 7–12 are correct; if TIMING VALUE fails, the contexts aren't valuable — that's a design problem to fix (tune contexts/effects), never a test to weaken.
 
+> **NOTE: the Step 1 code block below is SUPERSEDED by the decision records above** (three-gate timing value, balance rails with the blowout cap, fingerprint golden). The as-built suite is `src/sim/__tests__/parity.test.ts`. Do not copy the block verbatim.
+
 - [ ] **Step 1: Write the tests**
 
 ```ts
@@ -1869,6 +1871,15 @@ Runs in an isolated git worktree (branch `feature/m0-pixel-art`) in parallel wit
 - Task 14 integration consumes `buildSpriteAtlas` in place of `makePlaceholderTexture` (which remains as fallback).
 
 ### Task 14: Match screen — telegraphs, threat chip, lifecycle-safe loop
+
+> **AMENDMENT LEDGER (authoritative — the code blocks below are stale where they conflict; every item here comes from an approved review/audit finding):**
+> 1. **Lazy match init**: never `useRef(createMatch(...))` (argument runs every render); use `useRef<MatchState | null>(null)` + `if (ref.current === null) ref.current = createMatch(...)`.
+> 2. **Single pause setter**: one `setPausedBoth(v)` that sets React state AND `pausedRef.current` together; the AppState listener calls it; NO render-time `pausedRef.current = paused` write-back (that bug silently un-paused after backgrounding).
+> 3. **Snap on restarts**: when the tick batch consumed a GOAL/MISS/HALF_TIME event, or any player displaced > 2× max speed in one tick, set `prevRef.current = nextRef.current` (snap, don't lerp) and clear the speed trail.
+> 4. **Sprite pack integration** (merged from Workstream A): `loadSpriteSheet()` + `buildSpriteAtlas(Skia)` at mount; per-player sprite via `rectFor(\`\${player.def.id}:run\${frame}\`)` with `frame = Math.floor(tick / 5) % 2` while the player moved this tick, `run0` when stationary; ball via `rectFor('ball')`. `colors[]` carries tints ONLY for status (ignited `#ff6a00`, out `#666666`, windup white-pulse, active `#f5c518`) — normal players get white/no-op tint so kit/skin/hair colors survive.
+> 5. **Zone semantics** (no `'ready'` state exists): a hero with `powerState.kind === 'zone'` shows a pulsing glow ring, opacity ∝ `remainingTicks / 70` (fading = urgency); heat bar width = `Math.min(100, gauge)` (heat runs past 100). On a `POWER_EXPIRED` event, flash the chip dim for ~30 ticks. The rival's chip glows red in zone — starving his window is the counterplay, so the threat read matters.
+> 6. Tolerate dangling `SHOT` events (a shot in flight at a boundary may lack SAVE/GOAL/MISS pairing).
+> 7. Catch-up cap (5 ticks/frame) + AppState pause stay as specified below.
 
 **Files:**
 - Create: `src/render/interpolate.ts`, `src/render/atlas.ts`, `src/render/MatchScreen.tsx`
