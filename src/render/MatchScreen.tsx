@@ -71,9 +71,10 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   const trailRef = useRef<Array<{ x: number; y: number }>>([]);
   const bannerRef = useRef<{ text: string; untilTick: number }>({ text: '', untilTick: 0 });
   const expiredAtRef = useRef<Record<number, number>>({});
+  const scoreFlashUntilRef = useRef<number>(0);
 
   const [frame, setFrame] = useState<PitchFrame>(() => prevRef.current!);
-  const [hud, setHud] = useState({ score: [0, 0] as [number, number], tick: 0, banner: '' });
+  const [hud, setHud] = useState({ score: [0, 0] as [number, number], tick: 0, banner: '', scoreFlash: false });
   const [speed, setSpeed] = useState(1);
   const [paused, setPaused] = useState(false);
   const speedRef = useRef(1);
@@ -176,6 +177,11 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       const newEvents = s.events.slice(eventsBefore);
       for (const e of newEvents) {
         if (e.kind === 'GOAL' || e.kind === 'MISS' || e.kind === 'HALF_TIME') snap = true;
+        if (e.kind === 'GOAL') {
+          const scorerName = e.by >= 0 && e.by < 22 ? s.players[e.by].def.name : 'Unknown';
+          bannerRef.current = { text: `GOAL! ${scorerName}`, untilTick: e.t + FLASH_TICKS };
+          scoreFlashUntilRef.current = e.t + FLASH_TICKS;
+        }
         if (e.kind === 'POWER_FIRED') {
           bannerRef.current = {
             text: `${e.power.replace(/_/g, ' ')} — ${s.players[e.player].def.name}`,
@@ -202,6 +208,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         score: [...s.score] as [number, number],
         tick: s.tick,
         banner: s.tick <= bannerRef.current.untilTick ? bannerRef.current.text : '',
+        scoreFlash: s.tick <= scoreFlashUntilRef.current,
       });
 
       if (s.phase === 'fulltime') {
@@ -309,7 +316,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   return (
     <View style={styles.root}>
       <Pressable style={styles.scorebar} onPress={() => setPausedBoth(!pausedRef.current)}>
-        <Text style={styles.scoreText}>
+        <Text style={[styles.scoreText, hud.scoreFlash ? styles.scoreTextFlash : null]}>
           ROV {hud.score[0]} – {hud.score[1]} UNI · {minute}'{stoppage ? '+' : ''}
           {paused ? ' ⏸' : ''}
         </Text>
@@ -368,6 +375,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#101418' },
   scorebar: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, paddingTop: 56 },
   scoreText: { color: 'white', fontSize: 18, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  scoreTextFlash: { color: '#f5c518' },
   speedText: { color: 'white', fontSize: 18, padding: 4 },
   banner: { color: '#f5c518', fontSize: 18, fontWeight: 'bold', textAlign: 'center', padding: 8 },
   chips: { flexDirection: 'row', justifyContent: 'space-around', padding: 16 },
