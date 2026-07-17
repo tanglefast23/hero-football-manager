@@ -1028,8 +1028,8 @@ export function possessionTick(state: MatchState): void {
     const to = bestPassTarget(state, carrierIdx);
     if (to !== -1) {
       const interceptorIdx = nearestOpponent(state, to);
-      const interceptStat = interceptorIdx === -1 ? 20 : state.players[interceptorIdx].def.attrs.def;
-      const ok = contest(state.rng, carrier.def.attrs.pas, interceptStat, 10);
+      const interceptStat = interceptorIdx === -1 ? 20 : effectiveStat(state, interceptorIdx, 'def');
+      const ok = contest(state.rng, effectiveStat(state, carrierIdx, 'pas'), interceptStat, 10);
       emit(state, { t: state.tick, kind: 'PASS', from: carrierIdx, to, ok });
       state.ball = { kind: 'pass', pos: { ...carrier.pos }, from: carrierIdx, to, willSucceed: ok, interceptor: interceptorIdx };
     }
@@ -1101,7 +1101,7 @@ export function tackleTick(state: MatchState): void {
     if (fireSuppressed(state, i, carrierIdx)) continue;
 
     d.tackleCooldownUntil = state.tick + 10;
-    const won = contest(state.rng, d.def.attrs.def + defenseBonus(state, i), carrier.def.attrs.tec, -dribbleBonus(state, carrierIdx));
+    const won = contest(state.rng, effectiveStat(state, i, 'def') + defenseBonus(state, i), effectiveStat(state, carrierIdx, 'tec'), -dribbleBonus(state, carrierIdx));
     emit(state, { t: state.tick, kind: 'TACKLE', by: i, on: carrierIdx, won });
     if (won) {
       state.ball = { kind: 'held', by: i };
@@ -1193,9 +1193,9 @@ export function shotBonus(_state: MatchState, _by: number): number { return 0; }
 export function attemptShot(state: MatchState, by: number, distToGoal: number): void {
   const shooter = state.players[by];
   const gy = goalYFor(shooter.team);
-  const spread = 200 + (99 - shooter.def.attrs.sho) * 10;
+  const spread = 200 + (99 - effectiveStat(state, by, 'sho')) * 10;
   const targetX = Math.round(GOAL_CENTER_X + (state.rng() * 2 - 1) * spread);
-  const power = Math.max(1, Math.round(shooter.def.attrs.sho + shotBonus(state, by) - distToGoal / 100));
+  const power = Math.max(1, Math.round(effectiveStat(state, by, 'sho') + shotBonus(state, by) - distToGoal / 100));
   emit(state, { t: state.tick, kind: 'SHOT', by, power });
   addGauge(state, by, 20);
   const dir = gy === 0 ? -1 : 1;
@@ -1226,9 +1226,15 @@ export function shotFlightTick(state: MatchState): void {
     return;
   }
 
-  const gk = state.players[gkIdx];
+  if (!isAvailable(state, gkIdx)) {
+    state.score[shooter.team]++;
+    emit(state, { t: state.tick, kind: 'GOAL', by: b.by, team: shooter.team });
+    restartKickoff(state, defendingTeam);
+    return; // an ignited/KO'd keeper cannot save (Task 7.5 audit) — open goal
+  }
+
   const resolveScale = 0.5 + 0.5 * (state.resolve[defendingTeam] / 100);
-  const saved = contest(state.rng, gk.def.attrs.ref * resolveScale, b.power);
+  const saved = contest(state.rng, effectiveStat(state, gkIdx, 'ref') * resolveScale, b.power);
 
   if (saved) {
     state.resolve[defendingTeam] = Math.max(0, state.resolve[defendingTeam] - Math.round(b.power / 4));
