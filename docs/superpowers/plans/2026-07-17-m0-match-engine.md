@@ -1444,6 +1444,7 @@ export function powerTick(state: MatchState): void {
       const blind = p.team === 0 && state.blindAutoHome;
       if (p.firePolicy === 'FIRE_WHEN_READY') {
         if (blind || inUsefulContext(state, idx)) startWindup(state, idx, CONTEXT_AUTO_STRENGTH);
+        else if (waited >= HARD_DEADLINE_TICKS) startWindup(state, idx, LAPSE_STRENGTH); // starvation fix (Task 11 review)
       } else if (waited >= HARD_DEADLINE_TICKS) {
         startWindup(state, idx, LAPSE_STRENGTH);
       } else if (waited >= READY_WINDOW_TICKS && inUsefulContext(state, idx)) {
@@ -1561,16 +1562,22 @@ export function isActive(state: MatchState, idx: number): boolean {
   return ps.kind === 'active' && state.tick < ps.untilTick;
 }
 
+function sendOff(state: MatchState, idx: number): void {
+  state.players[idx].outUntilTick = Number.MAX_SAFE_INTEGER;
+  state.players[idx].outReason = 'redcard';
+  emit(state, { t: state.tick, kind: 'CARD', player: idx, color: 'red' });
+}
+
 function rollCard(state: MatchState, idx: number, yellowP: number, redP: number): void {
   const r = state.rng();
+  const p = state.players[idx];
   if (r < redP) {
-    state.players[idx].cards = 2;
-    state.players[idx].outUntilTick = Number.MAX_SAFE_INTEGER;
-    state.players[idx].outReason = 'redcard';
-    emit(state, { t: state.tick, kind: 'CARD', player: idx, color: 'red' });
+    p.cards = 2;
+    sendOff(state, idx);
   } else if (r < redP + yellowP) {
-    state.players[idx].cards = Math.min(2, state.players[idx].cards + 1) as 0 | 1 | 2;
+    p.cards = Math.min(2, p.cards + 1) as 0 | 1 | 2;
     emit(state, { t: state.tick, kind: 'CARD', player: idx, color: 'yellow' });
+    if (p.cards === 2) sendOff(state, idx); // second yellow = red, real soccer rules (Task 5 review ruling)
   }
 }
 
