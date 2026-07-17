@@ -86,6 +86,19 @@ describe('snapshotFrame', () => {
     m.ball = { kind: 'loose', pos: { x: 100, y: 100 }, vel: { x: 0, y: 0 } };
     expect(snapshotFrame(m).carrier).toBe(-1);
   });
+
+  it('ball is a copy, never an alias of live sim state', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    if (m.ball.kind !== 'held') throw new Error('expected kickoff ball to be held');
+    const carrierPos = m.players[m.ball.by].pos;
+    expect(snapshotFrame(m).ball).not.toBe(carrierPos);
+    expect(snapshotFrame(m).ball).toEqual(carrierPos);
+
+    const loosePos = { x: 100, y: 100 };
+    m.ball = { kind: 'loose', pos: loosePos, vel: { x: 0, y: 0 } };
+    expect(snapshotFrame(m).ball).not.toBe(loosePos);
+    expect(snapshotFrame(m).ball).toEqual(loosePos);
+  });
 });
 
 describe('lerpFrame', () => {

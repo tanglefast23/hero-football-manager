@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MatchScreen } from './src/render/MatchScreen';
 import { StressScreen } from './src/render/StressScreen';
@@ -13,10 +13,12 @@ export default function App() {
   const [seed, setSeed] = useState(42);
   const [result, setResult] = useState<string | null>(null);
 
-  const finishWatched = (s: MatchState) => {
+  // Stable identity: MatchScreen's game-loop effect depends on [onDone], so an
+  // unstable callback would tear down and re-arm the loop on any parent re-render.
+  const finishWatched = useCallback((s: MatchState) => {
     setResult(`Watched · ROV ${s.score[0]} – ${s.score[1]} UNI (seed ${seed})`);
     setScreen('home');
-  };
+  }, [seed]);
 
   if (screen === 'match') return <MatchScreen seed={seed} onDone={finishWatched} />;
   if (screen === 'stress') return <StressScreen />;

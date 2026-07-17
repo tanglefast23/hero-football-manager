@@ -34,7 +34,9 @@ export function lerpVec(a: Vec, b: Vec, t: number): Vec {
 export function snapshotFrame(state: MatchState, prevPositions?: readonly Vec[]): PitchFrame {
   return {
     players: state.players.map((p) => ({ ...p.pos })),
-    ball: ballPos(state),
+    // Copy, don't alias: a held ball's ballPos IS the carrier's live pos
+    // object (and a loose/pass/shot ball's pos is live sim state too).
+    ball: { ...ballPos(state) },
     carrier: state.ball.kind === 'held' ? state.ball.by : -1,
     statuses: state.players.map((p): PlayerStatus => {
       if (p.outUntilTick > state.tick) return p.outReason === 'ignited' ? 'ignited' : 'out';

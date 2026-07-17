@@ -34,6 +34,10 @@ const FLASH_TICKS = 30;
 // — used to size the possession/zone rings around a player's sprite.
 const PLAYER_CELL_W = 16;
 
+// Side of the plain white square drawn when the sprite pack fails to build
+// (the plan's original placeholder texture size).
+const FALLBACK_SPRITE = 16;
+
 export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: MatchState) => void }) {
   const { width } = useWindowDimensions();
   const scale = width / PITCH_W;
@@ -80,7 +84,28 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   };
 
   // Ledger item 4 — build the atlas once at mount from the merged sprite pack.
-  const atlas = useMemo(() => buildSpriteAtlas(Skia), []);
+  // If the pack fails to build (realistically: sprites.json failing loader
+  // validation), fall back to a white square texture with team-color tints
+  // (the plan's original placeholder look) instead of crashing the match.
+  const atlas = useMemo(() => {
+    try {
+      return { ...buildSpriteAtlas(Skia), fallbackMode: false };
+    } catch (err) {
+      console.warn('MatchScreen: buildSpriteAtlas failed — rendering placeholder rects', err);
+      const surface = Skia.Surface.MakeOffscreen(FALLBACK_SPRITE, FALLBACK_SPRITE);
+      if (!surface) throw err; // Skia itself is broken — nothing could render anyway
+      const canvas = surface.getCanvas();
+      const paint = Skia.Paint();
+      paint.setColor(Skia.Color('#ffffff'));
+      canvas.drawRect(Skia.XYWHRect(0, 0, FALLBACK_SPRITE, FALLBACK_SPRITE), paint);
+      surface.flush();
+      return {
+        image: surface.makeImageSnapshot() as unknown,
+        rectFor: (_key: string) => ({ x: 0, y: 0, w: FALLBACK_SPRITE, h: FALLBACK_SPRITE }),
+        fallbackMode: true,
+      };
+    }
+  }, []);
 
   useEffect(() => {
     let raf = 0;
@@ -98,17 +123,26 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
 
     const loop = (now: number) => {
       const s = stateRef.current!;
-      if (!pausedRef.current) {
-        // Ledger item 7 — capped catch-up: never simulate more than
-        // MAX_CATCHUP_TICKS in one frame, however long the JS thread stalled.
-        acc = Math.min(acc + (now - last) * speedRef.current, TICK_MS * MAX_CATCHUP_TICKS);
+      if (pausedRef.current) {
+        // Paused: keep the frame clock current (so resuming doesn't dump the
+        // whole pause duration into the accumulator) and reschedule — but skip
+        // the setFrame/setHud work, so a paused match doesn't re-render at
+        // display refresh rate.
+        last = now;
+        raf = requestAnimationFrame(loop);
+        return;
       }
+      // Ledger item 7 — capped catch-up: never simulate more than
+      // MAX_CATCHUP_TICKS in one frame, however long the JS thread stalled.
+      acc = Math.min(acc + (now - last) * speedRef.current, TICK_MS * MAX_CATCHUP_TICKS);
       last = now;
 
       const eventsBefore = s.events.length;
       let snap = false;
 
-      while (acc >= TICK_MS && s.phase !== 'fulltime' && !pausedRef.current) {
+      // No pausedRef check needed here: the early return above already ran,
+      // and the flag cannot flip mid-invocation on a single-threaded runtime.
+      while (acc >= TICK_MS && s.phase !== 'fulltime') {
         const before = nextRef.current!.players;
         prevRef.current = nextRef.current;
         tick(s);
@@ -204,16 +238,19 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   // no-op multiply) so the sprite's own kit/skin/hair colors survive instead
   // of being flattened to a solid team-color block.
   const colors: SkColor[] = useMemo(() => {
-    const tints = frame.statuses.map((st) => {
+    const tints = frame.statuses.map((st, i) => {
       if (st === 'ignited') return Skia.Color('#ff6a00');
       if (st === 'out') return Skia.Color('#666666');
       if (st === 'windup') return Skia.Color(hud.tick % 4 < 2 ? '#ffffff' : '#f5c518');
       if (st === 'active') return Skia.Color('#f5c518');
-      return Skia.Color('#ffffff'); // 'ok' | 'zone' — zone is telegraphed by the glow ring, not a body tint
+      // 'ok' | 'zone' — zone is telegraphed by the glow ring, not a body tint.
+      // In fallback mode there are no kit pixels to preserve, so tint the
+      // white placeholder rects with team colors instead.
+      return atlas.fallbackMode ? Skia.Color(i < 11 ? '#e8433f' : '#3f6fd8') : Skia.Color('#ffffff');
     });
     tints.push(Skia.Color('#ffffff')); // ball — no tint
     return tints;
-  }, [frame, hud.tick]);
+  }, [frame, hud.tick, atlas]);
 
   const minute = Math.min(90, Math.ceil((hud.tick / TOTAL_TICKS) * 90));
   const stoppage =
