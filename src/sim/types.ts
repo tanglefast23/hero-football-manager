@@ -18,7 +18,7 @@ export interface TeamDef { id: string; name: string; players: PlayerDef[]; }
 export type PowerState =
   | { kind: 'idle' }
   | { kind: 'ready'; sinceTick: number }
-  | { kind: 'winding'; untilTick: number; strength: number }
+  | { kind: 'winding'; untilTick: number; strength: number; targetIdx?: number }
   | { kind: 'active'; untilTick: number; strength: number };
 
 export type OutReason = 'ko' | 'ignited' | 'redcard';

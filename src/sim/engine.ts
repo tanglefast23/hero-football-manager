@@ -2,10 +2,10 @@ import { anchorFor } from './formation';
 import { dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest } from './contest';
-import { addGauge, interruptWindup } from './powers';
+import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus } from './powers';
 import type { Attrs, MatchState, SimPlayer } from './types';
 
-export { addGauge, interruptWindup };
+export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus };
 
 export function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;
@@ -29,11 +29,6 @@ export function speedFor(state: MatchState, idx: number): number {
   const p = state.players[idx];
   const conditionScale = 0.75 + 0.25 * (p.condition / 100);
   return Math.round((40 + p.def.attrs.pac) * conditionScale * speedMultiplier(state, idx));
-}
-
-/** Task 12 replaces via powers.ts re-import; v1 constant keeps the engine testable now. */
-export function speedMultiplier(_state: MatchState, _idx: number): number {
-  return 1;
 }
 
 export function ballPos(state: MatchState): Vec {
@@ -77,10 +72,13 @@ export function movementTick(state: MatchState): void {
       p.outReason = undefined;
     }
     const isCarrier = state.ball.kind === 'held' && state.ball.by === i;
+    const chargeTarget = p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined
+      ? state.players[p.powerState.targetIdx].pos : null;
     const isPassReceiver = state.ball.kind === 'pass' && state.ball.to === i;
     const chaseLoose = state.ball.kind === 'loose' && dist2(p.pos, ball) < 1500 * 1500;
     const target: Vec = isCarrier
       ? { x: ball.x, y: goalYFor(p.team) === 0 ? Math.max(0, p.pos.y - 800) : Math.min(PITCH_H, p.pos.y + 800) }
+      : chargeTarget ? chargeTarget
       : i === presserIdx || isPassReceiver || chaseLoose ? ball
       : anchorFor(p.team, i % 11, ball);
     const before = p.pos;
@@ -183,11 +181,6 @@ export function possessionTick(state: MatchState): void {
     }
   }
 }
-
-/** Task 12 replaces these with imports from ./powers. */
-export function fireSuppressed(_state: MatchState, _tackler: number, _carrier: number): boolean { return false; }
-export function dribbleBonus(_state: MatchState, _carrier: number): number { return 0; }
-export function defenseBonus(_state: MatchState, _idx: number): number { return 0; }
 
 export function tackleTick(state: MatchState): void {
   if (state.ball.kind !== 'held') return;

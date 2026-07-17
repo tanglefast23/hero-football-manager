@@ -1,5 +1,6 @@
 import { createMatch, queueInput, runMatch, tick } from '../match';
-import { interruptWindup } from '../powers';
+import { speedFor } from '../engine';
+import { activatePower, interruptWindup } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState } from '../types';
 
@@ -44,11 +45,21 @@ describe('hero gauge and firing', () => {
     expect(fired.strength).toBe(0.75);
   });
 
-  it('the rival hero fires on its own at 0.85 (FIRE_WHEN_READY, contextual)', () => {
+  it('the rival hero auto-fires at policy strengths only (0.85 contextual / 0.75 deadline lapse, never 1.0)', () => {
     const r = runMatch(42, ROVERS, UNITED);
     const rivalFired = r.events.filter(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL) as Array<{ strength: number }>;
     expect(rivalFired.length).toBeGreaterThan(0);
-    expect(rivalFired.every(f => f.strength === 0.85)).toBe(true);
+    expect(rivalFired.every(f => f.strength === 0.85 || f.strength === 0.75)).toBe(true);
+  });
+
+  it('the rival finds a contextual 0.85 fire on at least one of seeds 1-10', () => {
+    let saw085 = false;
+    for (let seed = 1; seed <= 10 && !saw085; seed++) {
+      saw085 = runMatch(seed, ROVERS, UNITED).events.some(
+        e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL && (e as { strength: number }).strength === 0.85,
+      );
+    }
+    expect(saw085).toBe(true);
   });
 });
 
@@ -88,5 +99,65 @@ describe('windup interrupts and input guards', () => {
     expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 5 })).toThrow('own heroes');
     expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 99 })).toThrow('own heroes');
     expect(m.inputLog).toHaveLength(0);
+  });
+});
+
+describe('power effects', () => {
+  it('SUPER_SPEED multiplies speed while active — read through the authoritative speedFor(state, idx)', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const base = speedFor(m, SPEEDSTER);
+    m.players[SPEEDSTER].powerState = { kind: 'active', untilTick: m.tick + 40, strength: 1 };
+    expect(speedFor(m, SPEEDSTER)).toBe(Math.round((base / 1) * 2.2));
+  });
+
+  it('FIRE_TORCH ignites the nearest opponent, who is later extinguished', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const torch = 9;
+    // Rig at midfield: Dario already carries the kickoff at center (outside shot range);
+    // a presser starts just outside tackle range and pressing keeps him inside 800
+    // through the windup.
+    m.ball = { kind: 'held', by: torch };
+    m.players[17].pos = { x: 3400, y: 5550 };
+    m.players[torch].powerState = { kind: 'ready', sinceTick: m.tick };
+    queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: torch });
+    tickUntil(m, () => m.events.some(e => e.kind === 'IGNITED'), 300);
+    const ignited = m.events.find(e => e.kind === 'IGNITED') as { player: number };
+    expect(ignited.player).toBeGreaterThanOrEqual(11);
+    tickUntil(m, () => m.events.some(e => e.kind === 'EXTINGUISHED'), 300);
+    expect(m.events.some(e => e.kind === 'EXTINGUISHED')).toBe(true);
+  });
+
+  it('rival SUPER_STRENGTH locks its target at windup start, charges, and flattens them', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    // Rig at midfield (outside shot range): Zip carries on top of Rex; ready set directly
+    // so the lock happens at this windup's start. The flatten must land even though Zip
+    // releases the ball during the charge (hadBall false is fine — that IS the counterplay).
+    m.ball = { kind: 'held', by: SPEEDSTER };
+    m.players[SPEEDSTER].pos = { x: 3400, y: 5250 };
+    m.players[RIVAL].pos = { x: 3400, y: 5250 };
+    m.players[RIVAL].powerState = { kind: 'ready', sinceTick: m.tick };
+    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL), 200);
+    expect(m.players[SPEEDSTER].outReason).toBe('ko');
+    expect(m.players[SPEEDSTER].outUntilTick).toBeGreaterThan(m.tick);
+    expect(m.events.some(e => e.kind === 'TACKLE' && (e as { by: number }).by === RIVAL)).toBe(true);
+  });
+
+  it('cards appear across many seeds', () => {
+    let sawCard = false;
+    for (let seed = 1; seed <= 60 && !sawCard; seed++) {
+      sawCard = runMatch(seed, ROVERS, UNITED).events.some(e => e.kind === 'CARD');
+    }
+    expect(sawCard).toBe(true);
+  });
+
+  it('a second yellow card sends the player off (red + permanent out)', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[9].cards = 1;
+    m.rng = () => 0.10; // forces the yellow branch for FIRE_TORCH (redP 0, yellowP 0.15)
+    activatePower(m, 9, 1);
+    const cards = m.events.filter(e => e.kind === 'CARD' && (e as { player: number }).player === 9) as Array<{ color: string }>;
+    expect(cards.map(c => c.color)).toEqual(['yellow', 'red']);
+    expect(m.players[9].outUntilTick).toBe(Number.MAX_SAFE_INTEGER);
+    expect(m.players[9].outReason).toBe('redcard');
   });
 });
