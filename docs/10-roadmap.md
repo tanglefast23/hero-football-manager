@@ -7,11 +7,13 @@ Solo-dev milestones, each ending in something playable. Estimates assume part-ti
 Build the smallest thing that answers the riskiest question.
 
 - sim/ core: two hardcoded teams — **your 2 heroes vs. 1 rival hero** (all 3 launch powers covered, license cap respected, opponent threat tested) — full match loop, in-flight passes, stats math, seeded determinism with a replay envelope.
-- Skia renderer with **Atlas from day one**; placeholder shapes plus **cheap telegraphs** (possession ring, wind-up pulse, power trails, ignite marker) — enough to test readability, not beauty. Budget-Android stress test on the worklet-driven render path.
+- Skia renderer with **Atlas from day one**, rendering the real **B+ heroic-chibi sprite pack** (all 22 players hand-designed, stars visually distinct, 2-frame run cycles — produced as a concurrent workstream) plus **cheap telegraphs** (possession ring, wind-up pulse, power trails, ignite marker). Polish is part of what's being tested — a fire power on a gray rectangle under-tests the fantasy. Budget-Android stress test on the worklet-driven render path.
 - 3 powers with Hero Gauge, per-power **useful contexts**, tap-to-fire (100%) / contextual auto (85%) / lapse (75%), interruptible wind-ups.
 - Acceptance tests: parity (untapped watch == Quick Result), **causal divergence** (a tap changes possession/shots/score, not just event bytes), **timing-value** (context-aware firing must outperform context-blind firing over 200 seeds), golden replay with full payloads.
 
-**Gate**: hand the phone to 3 people and ask three questions — "What just happened?" (comprehension), "When should you tap?" (decision legibility), "Was the rival's power scary but fair?" (threat + counterplay). If they can't answer, or nobody smiles, we redesign the match layer before building anything else. Nothing in M1+ is worth building on an unfun or unreadable core.
+**Gate**: hand the phone to 3 people and ask three questions — "What just happened?" (comprehension), "When should you tap?" (decision legibility), "Was the rival's power scary but fair?" (threat + counterplay). If they can't answer, or nobody smiles, we redesign the match layer before building anything else.
+
+Scope of this gate, stated precisely: M0 judges whether the match is a **readable, charming payoff screen** — not whether the game is fun. Management sims earn most of their fun in the building loop (training nobodies into heroes, economy pressure, collection), which is industry-proven and gets its own verdict at M1's two-season slice, where matches and management are finally judged together. M0 exists because "auto-played soccer with tappable superpowers" is the one unproven bet; it must clear the bar of "worthy payoff for the loop," nothing more.
 
 ## M1 — Two-season hero vertical slice (4 weeks) — THE SECOND GATE
 

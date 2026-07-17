@@ -1718,6 +1718,16 @@ git commit -m "test(sim): M0 acceptance — parity, causal divergence, timing va
 
 ---
 
+### Workstream A (concurrent): B+ heroic-chibi sprite pack
+
+Runs in an isolated git worktree (branch `feature/m0-pixel-art`) in parallel with Tasks 9–13; merged before Task 14 integration. User decision (2026-07-17): the M0 fun-gate tests the match WITH real art — polish is part of the fantasy being validated.
+
+- **Style**: B+ heroic chibi (see docs/01, docs/08): ~12×19px sprites, big readable head (~8px wide), two-heads-tall body, 1px dark outline `#3a2b23`, flat colors, no anti-aliasing.
+- **Coverage**: all 22 players hand-designed with individual variety (hair style/color, skin tone, facial hair, body type). Stars visually distinct: Dario Flint (FIRE_TORCH — spiky red-orange hair), Zip Vela (SUPER_SPEED — slim build, aerodynamic look), Rex Bould (SUPER_STRENGTH — muscular build, wide shoulders). Kits: Rovers red `#e8433f`, United blue `#3f6fd8`, distinct GK kits (teal / amber). 2-frame run cycle per player + shared ball sprite.
+- **Format**: sprites as pixel-map DATA (`src/render/sprites/sprites.json`: palette + rows-of-chars per sprite frame, keyed by player id `r0…u10`), zod-free typed loader, and `buildSpriteAtlas(Skia)` compositing all frames into one texture with `rectFor(playerId, frame)` lookup. State effects (windup flash, active glow, out gray, ignited orange) stay renderer-side tints — not extra sprites.
+- **Preview**: `art/preview.html` — a standalone browser page rendering every sprite at 8× from the same JSON, for user approval before integration.
+- Task 14 integration consumes `buildSpriteAtlas` in place of `makePlaceholderTexture` (which remains as fallback).
+
 ### Task 14: Match screen — telegraphs, threat chip, lifecycle-safe loop
 
 **Files:**
