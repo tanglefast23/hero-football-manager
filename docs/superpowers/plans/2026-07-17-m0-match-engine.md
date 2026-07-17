@@ -1081,6 +1081,23 @@ Run: `npm test -- engine` → FAIL: tackles.length = 0.
 
 - [ ] **Step 3: Implement in `engine.ts`**
 
+First, pressing (Task 9 amendment — docs/03 specifies defenders "mark, press"; without it, zonal anchors never bring defenders inside tackle range and tackling is unreachable). In `movementTick`, insert before the player loop:
+
+```ts
+  const presserIdx = state.ball.kind === 'held' ? nearestOpponent(state, state.ball.by) : -1;
+```
+
+and extend the target selection so the presser closes down the carrier (merge into the existing ternary — the presser's target is the ball):
+
+```ts
+    const target: Vec = isCarrier
+      ? { x: ball.x, y: goalYFor(p.team) === 0 ? Math.max(0, p.pos.y - 800) : Math.min(PITCH_H, p.pos.y + 800) }
+      : i === presserIdx || isPassReceiver || chaseLoose ? ball
+      : anchorFor(p.team, i % 11, ball);
+```
+
+(`nearestOpponent` is a hoisted function declaration defined later in the file — legal.) Then add the tackle machinery:
+
 ```ts
 /** Task 11/12 replace these with imports from ./powers. */
 export function interruptWindup(_state: MatchState, _idx: number): void {}
