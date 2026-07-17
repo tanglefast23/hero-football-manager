@@ -43,7 +43,7 @@ Version policy: pin per EAS milestone; upgrade quarterly, never continuously (st
 
 1. No `Math.random`, `Date.now`, or `new Date()` inside sim/ or game/ — a seeded PRNG (mulberry32) is injected; the seed is stored in the save per match/season.
 2. Fixed timestep (100ms ticks); positions on an integer centimeter grid (no float drift across platforms).
-3. Golden replay tests: recorded seeds must produce byte-identical event streams on every platform and every release (or the save-version bumps consciously).
+3. Golden replay tests: recorded seed + input streams (including mid-match power taps) must produce byte-identical event streams on every platform and every release (or the save-version bumps consciously).
 
 ## Testing strategy
 

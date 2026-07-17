@@ -1,11 +1,22 @@
 # 03 — Match Engine & Presentation
 
-Two strictly separated layers: a **deterministic simulation core** (pure TypeScript, no rendering, no timers) and a **renderer** (Skia canvas) that plays back what the sim decides. The same sim runs a watched match and an instant Quick Result — identical outcomes for identical seeds.
+Two strictly separated layers: a **deterministic simulation core** (pure TypeScript, no rendering, no timers) and a **renderer** (Skia canvas) that plays back what the sim decides. The same sim runs a watched match and an instant Quick Result — identical outcomes for identical seeds *and identical inputs*.
+
+## Deterministic ≠ predetermined
+
+The match is a live simulation: 22 agents making stat-driven decisions, with a dice roll at every contested moment — and **the user's taps are real inputs that change the outcome**. A well-timed Super Speed burst beats a defender who would otherwise have won the ball, creating a goal that would not have happened untapped.
+
+"Deterministic" is an engineering promise, not a gameplay one: every dice roll comes from one seeded generator, and the sim reads no clocks or device state. (Like a deck shuffled once at kickoff — the shuffle is fixed, but which cards get drawn depends on how play unfolds, including your taps.)
+
+- Same seed + same inputs → byte-identical match. This buys replays that match reality, identical behavior across iPhone/Android/PC, reproducible bugs, and the Monte Carlo balance harness (doc 09).
+- Same seed + different tap timing → a genuinely different match. Involvement is real.
+
+**Quick Result** runs the same engine with every hero on their pre-set auto behavior and no manual taps — a fair playing-out of the match, not a prediction of what watching would have produced. Watching and tapping well earns a modest edge (better power timing), by design: attention is rewarded; simming only forgoes that edge, never gets punished beyond it.
 
 ## Simulation core
 
 - **Tick-based**: fixed 100ms logical ticks. A match is 2 halves × ~100 seconds of play at 1× speed (≈ 2,000 ticks), presenting as "90 minutes" on the match clock. Total watched runtime with cut-ins and halftime: **3–4 real minutes** (research: the sweet spot across every comparable game).
-- **Seeded randomness**: one seed per match stored in the save. Replays, Quick Result, and watched play all produce byte-identical outcomes. No `Math.random`, no `Date.now` inside the sim — ever.
+- **Seeded randomness**: one seed per match stored in the save; user inputs (power taps, subs, tactic changes) are recorded as a timestamped input stream alongside it. Seed + input stream = byte-identical replay. No `Math.random`, no `Date.now` inside the sim — ever.
 - **11v11**, positions grouped GK / DEF / MID / FWD by formation (6 formations at launch: 4-4-2, 4-3-3, 3-5-2, 5-3-2, 4-5-1, 3-4-3).
 - **Simplifications** (Pocket League Story precedent): no offside, no throw-in ceremony (ball wraps), fouls exist *only* as superpower side effects.
 

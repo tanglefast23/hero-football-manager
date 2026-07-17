@@ -9,7 +9,7 @@ Build the smallest thing that answers the riskiest question.
 - sim/ core: two hardcoded teams, full match loop, stats math, seeded determinism.
 - Skia renderer with **Atlas from day one**; placeholder rectangles are fine, budget-Android stress test included.
 - 3 powers (Super Speed, Super Strength, Fire Torch) with Hero Gauge + tap-to-fire + auto-fire.
-- Quick Result parity test (same seed, same score).
+- Parity test: a watched match with zero manual taps reproduces Quick Result exactly (same seed → same score); a tapped match diverges (proving inputs matter).
 
 **Gate**: hand the phone to 3 people. If watching a match and firing a power doesn't make anyone smile, we redesign the match layer before building anything else. Nothing in M1+ is worth building on an unfun core.
 

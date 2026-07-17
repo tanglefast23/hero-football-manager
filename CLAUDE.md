@@ -16,7 +16,7 @@ Kairosoft-style soccer club management sim with superpowered players. iOS-first 
 
 ## Key design facts (don't re-litigate casually)
 
-- Matches auto-play, 3–4 real minutes watched; heroes charge a Hero Gauge; user taps to fire (auto-fires at 75% after 8s). Quick Result always available and outcome-identical.
+- Matches auto-play, 3–4 real minutes watched; heroes charge a Hero Gauge; user taps to fire (auto-fires at 75% after 8s). Taps are recorded inputs that genuinely change outcomes (deterministic = same seed + same inputs, NOT predetermined). Quick Result runs the same engine with heroes on auto behavior.
 - Powers: 12 at launch, Hero License field caps (2→5), GK Resolve prevents one-shot goals, wind-ups are interruptible, cut-ins skippable after first view.
 - Economy: Money + Training Points + Hero Essence — exactly one job each; no new currencies.
 - Salaries weekly; awakened players keep old wage until renewal, then ×3–5 hero rates.
