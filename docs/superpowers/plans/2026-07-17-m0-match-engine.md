@@ -1008,6 +1008,7 @@ export function possessionTick(state: MatchState): void {
   }
 
   if (b.kind !== 'held') return; // 'shot' handled in Task 10
+  if (state.players[b.by].outUntilTick > state.tick) return; // unconscious carriers don't play (Task 7 review)
   if (state.tick % 5 !== 0) return;
 
   const carrierIdx = b.by;
@@ -1400,6 +1401,10 @@ export function powerTick(state: MatchState): void {
   for (let idx = 0; idx < 22; idx++) {
     const p = state.players[idx];
     if (!p.def.power) continue;
+    if (p.outUntilTick > state.tick) {
+      if (p.powerState.kind === 'winding') interruptWindup(state, idx);
+      continue; // out players neither charge nor fire (Task 7 review)
+    }
 
     if (p.powerState.kind === 'idle') {
       if (p.outUntilTick <= state.tick) addGauge(state, idx, GAUGE_TRICKLE);
