@@ -170,6 +170,7 @@ export function possessionTick(state: MatchState): void {
     return;
   }
 
+  // rng draw order here is replay-load-bearing: the draw happens only when unpressured, even if no pass results
   if (pressured || state.rng() < 0.35) {
     const to = bestPassTarget(state, carrierIdx);
     if (to !== -1) {
