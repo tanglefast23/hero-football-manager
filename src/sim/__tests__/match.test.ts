@@ -1,4 +1,5 @@
 import { createMatch, tick, runMatch } from '../match';
+import { restartKickoff } from '../engine';
 import { ROVERS, UNITED } from '../teams';
 import { HALF_TICKS } from '../geometry';
 
@@ -33,5 +34,23 @@ describe('match skeleton', () => {
     for (let i = 0; i < 50; i++) tick(m);
     const moved = m.players.filter((p, i) => p.pos.x !== before[i].x || p.pos.y !== before[i].y);
     expect(moved.length).toBeGreaterThan(10);
+  });
+
+  it('kickoff never hands the ball to an out player', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[9].outUntilTick = m.tick + 500;
+    m.players[9].outReason = 'ko';
+    restartKickoff(m, 0);
+    expect(m.ball.kind).toBe('held');
+    if (m.ball.kind === 'held') {
+      expect(m.ball.by).not.toBe(9);
+      expect(m.players[m.ball.by].outUntilTick).toBeLessThanOrEqual(m.tick);
+      expect(m.players[m.ball.by].team).toBe(0);
+    }
+  });
+
+  it('createMatch rejects malformed squads', () => {
+    const tenMen = { ...ROVERS, players: ROVERS.players.slice(0, 10) };
+    expect(() => createMatch(1, tenMen, UNITED)).toThrow('teams must have 11 players');
   });
 });

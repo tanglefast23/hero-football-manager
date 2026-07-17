@@ -34,7 +34,13 @@ export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
     const p = state.players[i];
     p.pos = anchorFor(p.team, i % 11, center);
   }
-  const striker = toTeam === 0 ? 9 : 20;
+  let striker = toTeam === 0 ? 9 : 20;
+  if (state.players[striker].outUntilTick > state.tick) {
+    const base = toTeam === 0 ? 0 : 11;
+    for (let s = base + 10; s >= base; s--) {
+      if (state.players[s].outUntilTick <= state.tick) { striker = s; break; }
+    }
+  }
   state.players[striker].pos = { ...center };
   state.ball = { kind: 'held', by: striker };
 }

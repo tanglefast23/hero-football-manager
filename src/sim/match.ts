@@ -21,6 +21,9 @@ function makePlayers(home: TeamDef, away: TeamDef, opts: MatchOpts): SimPlayer[]
 }
 
 export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: MatchOpts = {}): MatchState {
+  if (home.players.length !== 11 || away.players.length !== 11) {
+    throw new Error('teams must have 11 players');
+  }
   const state: MatchState = {
     tick: 0, half: 1, phase: 'play', score: [0, 0],
     players: makePlayers(home, away, opts),
