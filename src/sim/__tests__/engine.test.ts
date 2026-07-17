@@ -82,4 +82,21 @@ describe('tackling', () => {
     const dAfter = Math.hypot(m.players[presser.i].pos.x - m.players[carrier].pos.x, m.players[presser.i].pos.y - m.players[carrier].pos.y);
     expect(dAfter).toBeLessThan(dBefore);
   });
+
+  it('the nearest eligible defender makes the tackle attempt, not the lowest index', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.ball = { kind: 'held', by: 9 };
+    m.players[9].pos = { x: 3400, y: 3000 };
+    m.players[11].pos = { x: 3400, y: 3240 };
+    m.players[16].pos = { x: 3400, y: 3100 };
+    for (const idx of [12, 13, 14, 15, 17, 18, 19, 20, 21]) {
+      m.players[idx].pos = { x: 200, y: 9000 };
+    }
+    m.players[11].tackleCooldownUntil = 0;
+    m.players[16].tackleCooldownUntil = 0;
+    tick(m);
+    const tackle = m.events.filter(e => e.kind === 'TACKLE').pop() as { by: number } | undefined;
+    expect(tackle).toBeDefined();
+    expect(tackle?.by).toBe(16);
+  });
 });
