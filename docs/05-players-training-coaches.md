@@ -19,8 +19,9 @@
 
 Weekly plan, set once and it repeats until changed:
 
-- **Drill slots**: assign each player one drill. Drills map to stats (Sprints→PAC, Finishing→SHO, Rondo→PAS+TEC, Duels→DEF, Circuit→STA, Keeper Drills→REF).
-- **Costs**: each drill session costs Money + **Training Points** (earned from matches: win 30 TP, draw 15, loss 8, +2 per goal, +10 man-of-the-match; small ambient +5 TP/week from facilities so losing streaks never fully starve growth).
+- **Free base layer**: every player automatically runs Basic Conditioning each week — small, free gains. Nobody ever stagnates completely.
+- **Focus drills (the TP decision)**: pick up to **3 squad-wide focus drills** per week; each costs Money + TP once and applies to every player you assign to it. Drills map to stats (Sprints→PAC, Finishing→SHO, Rondo→PAS+TEC, Duels→DEF, Circuit→STA, Keeper Drills→REF). Choosing *which three* is the weekly puzzle.
+- **TP income**: win 30, draw 20, loss 14, +2 per goal, +10 man-of-the-match, +5 ambient from facilities. The win/loss gap is deliberately narrow (~2:1) — losing slows you down, it never buries you (cozy pillar). Tuning target for the harness: an average club affords ~2 of 3 focus drills per week.
 - **Gain formula**: `base gain × archetype multiplier × facility level (1.0–2.0) × coach bonus × age curve × diminishing returns (higher current stat = smaller gains)`.
 - **Stamina price**: training drains condition; overtraining (condition < 30%) risks injury (2–6 weeks). The Medical Bay facility shortens recoveries.
 - **Chemistry trios** (Pocket League Story 2's standout mechanic, adapted): specific 3-archetype combinations training together grant +15% to +60% gains for the whole trio (e.g. Speedster + Sniper + Playmaker = +40% attack drills). Combos are discoverable in-game and collectible in a Chemistry Codex. One combo bonus per week.

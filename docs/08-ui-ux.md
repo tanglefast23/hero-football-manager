@@ -34,7 +34,7 @@ Haptics: power fired (heavy), goal (success), full gauge (light tick). Count-up 
 
 ## Onboarding (first 20 minutes, tutorialized by fiction)
 
-1. Cold open: you inherit the club mid-crisis; assistant coach walks you through one match (Watch, ×1) — you tap nothing yet.
+1. Cold open: you inherit the club mid-crisis — along with a mysterious **trialist on loan who already has a power**. In the first match, within the first two minutes, the assistant coach freezes the action once: "His gauge is full — TAP HIM NOW." One guided activation, one spectacular goal, and the player has seen why this isn't an ordinary football manager. (The trialist departs after Week 2, leaving the hunger; the differentiator must not wait for Week 3.)
 2. Week 2: training plan + first sponsor signing (guided).
 3. **Week 3 scripted event**: a mystery event awakens your first hero (guaranteed Super Speed on your best forward). Next match teaches the gauge tap with a slow-mo prompt.
 4. Systems unlock progressively: facilities W4, scouting W6, Hero Lab mentioned only via rumor text until Div 3. Tutorial never blocks Quick Result.

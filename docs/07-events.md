@@ -4,7 +4,7 @@ Events are the game's storyteller and the primary superpower faucet. They must f
 
 ## System rules
 
-- **Roll**: 18% chance per week during the manage phase; guaranteed at least one event per 8 weeks (pity timer). Big beats (first awakening) are scripted early (see onboarding, doc 08).
+- **Roll**: 18% chance per week during the manage phase; guaranteed at least one event per 8 weeks (pity timer). Taking risky choices raises the weight of future **mystery** events (the game notices you're a gambler). Big beats are scripted: the trialist demo in Match 1, the first permanent awakening at Week 3, and a guaranteed second-hero opportunity chain before Season 1 ends.
 - **Format**: an event card — pixel illustration, 2–4 lines of flavor text, 2–3 choice buttons. Choices can be gated (needs a facility, a personality on the roster, or cash).
 - **Outcomes**: weighted rolls; weights shift with relevant stats, facilities, and personalities. Outcomes always narrate ("The spider respected the hustle."), never just emit numbers.
 - **Risk philosophy**: safe choices give small guaranteed value; risky choices carry the good stuff (stat jumps, Hero Essence, awakenings) *and* real downside (injuries, stat loss, cash). The player should hover over risky buttons and grin.
@@ -19,7 +19,7 @@ Events are the game's storyteller and the primary superpower faucet. They must f
 | **Squash it** | — | 100%: +5 morale, +10 TP, the Joker on your squad is inconsolable (−5 their morale) |
 | **Call the scientist** | Hero Lab built · 2,000 | Awakening odds double (16%), injury odds halve; 10% the scientist bills you again (−2,000) |
 
-Awakening odds are per-event-instance; across a season of consistent risk-taking, expected pace is ~1 awakening per 1.5–2 seasons (doc 04).
+Honest math: base odds alone (~2 mystery events/season × 8%) would give ~1 awakening per 6 seasons — far too slow. The **awakening pity counter** closes the gap: every risky choice that doesn't awaken adds +6% to the next awakening roll (persists across events, resets on awakening), and risk-taking raises mystery-event frequency. Measured cadence target: ~1 per 1.5–2 risk-taking seasons, asserted in the balance harness with the full event distribution simulated (doc 04, doc 09).
 
 ## Launch catalog (~30 events, by category)
 

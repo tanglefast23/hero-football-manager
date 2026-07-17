@@ -29,6 +29,8 @@ Each of the 22 agents runs a small role state machine every few ticks:
 - **Defenders**: mark, press, attempt tackles when in range.
 - **GK**: positioning, save attempts, distribution.
 
+Passes and shots **travel through space** — a pass is a moving ball that can be cut out en route, never a teleport. If it isn't watchable, it isn't in the sim.
+
 ## Stats → outcomes
 
 Six visible stats, 1–99: **PAC** (pace) · **SHO** (shooting; GKs show **REF** reflexes instead) · **PAS** (passing) · **DEF** (defending) · **TEC** (technique/dribbling) · **STA** (stamina). Hidden: potential (1–5★), morale, condition, consistency.
@@ -53,7 +55,8 @@ Borrowed directly from Inazuma Eleven's Keeper Power (see research/match-present
 A power is a **timed modifier burst** the sim applies to one agent (details in doc 04):
 
 - Each fielded hero has a **Hero Gauge** (0–100) that fills from involvement events (touches, tackles won, shots, goals conceded for keepers) plus a small time trickle — earned, not a timer.
-- **Full gauge** → 8-second window: the player taps the hero's chip to fire (full effect, directed at the current situation), or it **auto-fires at 75% effect** when the window lapses. Pre-match, each hero can be set to "Fire when ready" (auto, full effect, no window) for hands-off players.
+- Every power defines a **useful context** — the situations where firing it actually matters (Super Speed: you have the ball or it's loose nearby; Super Strength: an opposing carrier is in range; a GK power: a shot is incoming). Contexts are shown to the player (the chip glows brighter in context), so "when do I tap?" is a readable decision, not a guess.
+- **Full gauge** → 8-second window: tap the hero's chip to fire at **100%**, aimed at the current situation. If the window lapses, the hero auto-fires at **75%** at the next useful context (hard deadline: +4 more seconds). Pre-match, each hero can be set to **Fire when ready** — the AI fires automatically at the next useful context at **85%**. The attention ladder is deliberate: your tap > hero's instincts > wasted lapse, so watching earns an edge and simming stays respectable.
 - **Wind-up**: 1.5s telegraph (glow + rising jingle) during which a tackle can interrupt the power (Mario Strikers rule — the counterplay that stops power-snowballing).
 - **Opposing heroes** use powers on their own AI priorities. They appear rarely in Div 5–4, commonly from Div 2 up.
 - Power vs. power in the same moment → contested roll with a special clash cut-in.

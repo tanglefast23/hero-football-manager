@@ -35,7 +35,7 @@ The user should feel money pressure without fearing a game-over screen.
 1. **Season 1 safety net**: the league covers 50% of your wage bill in Season 1 ("new club subsidy" — Game Dev Story's proven tutorial-protection pattern, halved rather than total so wages still teach).
 2. **Negative balance** → board warning banner; transfers and construction locked.
 3. **4 weeks negative** → one-time **emergency loan** (20,000, repaid at 10% interest over the next season).
-4. **Still sinking** → forced sale: your highest-value player is auto-listed at a 20% discount until solvent. Fans and morale take a hit.
+4. **Still sinking** → board ultimatum: the board sets a cash target and a 4-week deadline. You choose what to sell — the board proposes 3–4 sale candidates, and you may mark **one player as protected** (your hero, your academy kid — untouchable). Miss the deadline and the board sells from the unprotected list itself, at a discount, with a fan/morale hit. The pressure is real; the heartbreak is never random. (An auto-sale of your favorite player would violate the cozy pillar harder than a game-over screen.)
 5. There is no step 5. You can always limp on with youth players and rebuild.
 
 ## Difficulty settings

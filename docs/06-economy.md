@@ -59,7 +59,8 @@ An 8×6 tile grid (expandable). Buildings: Training Pitch, Gym, Tech Center, Sho
 | Prize: Div 5 champion / runner-up | 20,000 / 10,000 |
 | Cup: per round win / trophy | 2,000–8,000 / 25,000 |
 | Facility Lv1 build | 5,000–15,000 |
-| Drill session | 200–800 + 10–40 TP |
+| Focus drill (squad-wide, max 3/week) | 400–1,200 + 10–25 TP each |
+| TP income per match | win 30 · draw 20 · loss 14 (+2/goal, +10 MOTM, +5 ambient/wk) |
 | Transfer (decent Div 5 player) | 5,000–15,000 |
 | Pre-powered hero signing | 100,000+ + 2,500+/wk (Div 3 era) |
 | Emergency loan | 20,000 once, 10%/season interest |

@@ -42,8 +42,10 @@ Version policy: pin per EAS milestone; upgrade quarterly, never continuously (st
 ## Determinism rules (non-negotiable, enforced by lint + tests)
 
 1. No `Math.random`, `Date.now`, or `new Date()` inside sim/ or game/ — a seeded PRNG (mulberry32) is injected; the seed is stored in the save per match/season.
-2. Fixed timestep (100ms ticks); positions on an integer centimeter grid (no float drift across platforms).
-3. Golden replay tests: recorded seed + input streams (including mid-match power taps) must produce byte-identical event streams on every platform and every release (or the save-version bumps consciously).
+2. Fixed timestep (100ms ticks); positions on an integer centimeter grid.
+3. **No transcendental Math in the sim.** IEEE 754 specifies +, −, ×, ÷, and `Math.sqrt` exactly (bit-identical on every JS engine), but `Math.exp`, `Math.pow`, `Math.hypot` etc. are implementation-defined and can differ across Hermes/V8/JSC near decision boundaries. Distances use `sqrt` of integer squares; the logistic contest curve ships as a **generated, checked-in integer lookup table** (regenerated only by an explicit script).
+4. **Replays are envelopes, not just seeds**: `{ schemaVersion, engineVersion, seed, both team snapshots, ordered input stream }`. Seed + taps alone go stale the moment stats or tuning change; the envelope pins everything. Golden tests snapshot full event payloads, not just event names. (Mid-match save/resume — which would also need the PRNG cursor — is an M1 concern, deliberately out of M0.)
+5. Golden replay fixtures must pass on every release; from M1, CI runs them on both Node and the Hermes runtime to catch engine drift, not just code drift.
 
 ## Testing strategy
 
