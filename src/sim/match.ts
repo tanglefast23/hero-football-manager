@@ -1,7 +1,7 @@
 import { mulberry32 } from './rng';
 import { HALF_TICKS } from './geometry';
 import { emit } from './events';
-import { movementTick, possessionTick, restartKickoff, tackleTick } from './engine';
+import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTick } from './engine';
 import type { MatchInput, MatchOpts, MatchResult, MatchState, ReplayEnvelope, SimPlayer, TeamDef } from './types';
 
 export const ENGINE_VERSION = 'm0.2';
@@ -64,6 +64,7 @@ export function tick(state: MatchState): void {
   movementTick(state);
   possessionTick(state);
   tackleTick(state);
+  shotFlightTick(state);
 
   if (state.half === 1 && state.tick >= HALF_TICKS && (ballSettled(state) || state.tick >= HALF_TICKS + STOPPAGE_CAP)) {
     state.half = 2;

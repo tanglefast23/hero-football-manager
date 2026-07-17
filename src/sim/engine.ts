@@ -1,5 +1,5 @@
 import { anchorFor } from './formation';
-import { dist, dist2, moveToward, GOAL_CENTER_X, PITCH_W, PITCH_H, type Vec } from './geometry';
+import { dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest } from './contest';
 import type { Attrs, MatchState, SimPlayer } from './types';
@@ -217,5 +217,63 @@ export function tackleTick(state: MatchState): void {
   }
 }
 
-/** Task 10 replaces with real shooting. */
-export function attemptShot(_state: MatchState, _by: number, _distToGoal: number): void {}
+/** Hook for future shot-boosting powers (none among the M0 three). */
+export function shotBonus(_state: MatchState, _by: number): number { return 0; }
+
+export function attemptShot(state: MatchState, by: number, distToGoal: number): void {
+  const shooter = state.players[by];
+  const gy = goalYFor(shooter.team);
+  const spread = 200 + (99 - effectiveStat(state, by, 'sho')) * 10;
+  const targetX = Math.round(GOAL_CENTER_X + (state.rng() * 2 - 1) * spread);
+  const power = Math.max(1, Math.round(effectiveStat(state, by, 'sho') + shotBonus(state, by) - distToGoal / 100));
+  emit(state, { t: state.tick, kind: 'SHOT', by, power });
+  addGauge(state, by, 20);
+  const dir = gy === 0 ? -1 : 1;
+  state.ball = {
+    kind: 'shot',
+    pos: { ...shooter.pos },
+    vel: { x: Math.trunc((targetX - shooter.pos.x) / Math.max(1, distToGoal / 300)), y: 300 * dir },
+    by, power, targetX,
+  };
+}
+
+export function shotFlightTick(state: MatchState): void {
+  const b = state.ball;
+  if (b.kind !== 'shot') return;
+  b.pos = { x: b.pos.x + b.vel.x, y: b.pos.y + b.vel.y };
+  const shooter = state.players[b.by];
+  const gy = goalYFor(shooter.team);
+  const crossed = gy === 0 ? b.pos.y <= 0 : b.pos.y >= PITCH_H;
+  if (!crossed) return;
+
+  const defendingTeam: 0 | 1 = shooter.team === 0 ? 1 : 0;
+  const gkIdx = defendingTeam === 0 ? 0 : 11;
+  const onTarget = Math.abs(b.targetX - GOAL_CENTER_X) <= GOAL_W / 2;
+
+  if (!onTarget) {
+    emit(state, { t: state.tick, kind: 'MISS', by: b.by });
+    restartKickoff(state, defendingTeam);
+    return;
+  }
+
+  if (!isAvailable(state, gkIdx)) {
+    state.score[shooter.team]++;
+    emit(state, { t: state.tick, kind: 'GOAL', by: b.by, team: shooter.team });
+    restartKickoff(state, defendingTeam);
+    return; // an ignited/KO'd keeper cannot save (Task 7.5 audit) — open goal
+  }
+
+  const resolveScale = 0.5 + 0.5 * (state.resolve[defendingTeam] / 100);
+  const saved = contest(state.rng, effectiveStat(state, gkIdx, 'ref') * resolveScale, b.power);
+
+  if (saved) {
+    state.resolve[defendingTeam] = Math.max(0, state.resolve[defendingTeam] - Math.round(b.power / 4));
+    emit(state, { t: state.tick, kind: 'SAVE', by: gkIdx, resolveLeft: state.resolve[defendingTeam] });
+    addGauge(state, gkIdx, 12);
+    state.ball = { kind: 'held', by: gkIdx };
+  } else {
+    state.score[shooter.team]++;
+    emit(state, { t: state.tick, kind: 'GOAL', by: b.by, team: shooter.team });
+    restartKickoff(state, defendingTeam);
+  }
+}
