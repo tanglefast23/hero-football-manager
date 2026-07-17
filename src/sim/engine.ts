@@ -1,6 +1,7 @@
 import { anchorFor } from './formation';
-import { dist2, moveToward, PITCH_W, PITCH_H, type Vec } from './geometry';
+import { dist, dist2, moveToward, GOAL_CENTER_X, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
+import { contest } from './contest';
 import type { Attrs, MatchState, SimPlayer } from './types';
 
 export function goalYFor(team: 0 | 1): number {
@@ -83,3 +84,103 @@ export function movementTick(state: MatchState): void {
     drainStamina(p, dist2(before, p.pos) > 6400);
   }
 }
+
+export const PASS_SPEED = 250;
+
+/** Task 11 replaces with the real gauge (import from ./powers). */
+export function addGauge(_state: MatchState, _idx: number, _amount: number): void {}
+
+export function nearestOpponent(state: MatchState, idx: number): number {
+  const me = state.players[idx];
+  let best = -1, bestD2 = Infinity;
+  for (let i = 0; i < 22; i++) {
+    const o = state.players[i];
+    if (o.team === me.team || !isAvailable(state, i)) continue;
+    const d2 = dist2(o.pos, me.pos);
+    if (d2 < bestD2) { bestD2 = d2; best = i; }
+  }
+  return best;
+}
+
+function bestPassTarget(state: MatchState, from: number): number {
+  const me = state.players[from];
+  const gy = goalYFor(me.team);
+  let best = -1, bestScore = -Infinity;
+  for (let i = 0; i < 22; i++) {
+    const mate = state.players[i];
+    if (i === from || mate.team !== me.team || !isAvailable(state, i)) continue;
+    const d2 = dist2(mate.pos, me.pos);
+    if (d2 < 400 * 400 || d2 > 3500 * 3500) continue;
+    const forwardness = Math.abs(mate.pos.y - gy);
+    const marker = nearestOpponent(state, i);
+    const space = marker === -1 ? 1000 : dist(state.players[marker].pos, mate.pos);
+    const score = -forwardness + space * 2;
+    if (score > bestScore) { bestScore = score; best = i; }
+  }
+  return best;
+}
+
+export function possessionTick(state: MatchState): void {
+  const b = state.ball;
+
+  if (b.kind === 'loose') {
+    b.pos = { x: b.pos.x + b.vel.x, y: b.pos.y + b.vel.y };
+    b.vel = { x: Math.trunc(b.vel.x * 0.8), y: Math.trunc(b.vel.y * 0.8) };
+    for (let i = 0; i < 22; i++) {
+      if (!isAvailable(state, i)) continue;
+      const p = state.players[i];
+      if (dist2(p.pos, b.pos) < 150 * 150) {
+        state.ball = { kind: 'held', by: i };
+        addGauge(state, i, 8);
+        return;
+      }
+    }
+    return;
+  }
+
+  if (b.kind === 'pass') {
+    const targetIdx = b.willSucceed ? b.to : (b.interceptor !== -1 ? b.interceptor : b.to);
+    const target = state.players[targetIdx].pos;
+    b.pos = moveToward(b.pos, target, PASS_SPEED);
+    if (dist2(b.pos, target) < 150 * 150) {
+      if (b.willSucceed || b.interceptor !== -1) {
+        state.ball = { kind: 'held', by: targetIdx };
+        addGauge(state, targetIdx, 8);
+      } else {
+        state.ball = { kind: 'loose', pos: { ...b.pos }, vel: { x: 0, y: 0 } };
+      }
+    }
+    return;
+  }
+
+  if (b.kind !== 'held') return; // 'shot' handled in Task 10
+  if (state.players[b.by].outUntilTick > state.tick) return; // unconscious carriers don't play (Task 7 review)
+  if (state.tick % 5 !== 0) return;
+
+  const carrierIdx = b.by;
+  const carrier = state.players[carrierIdx];
+  const gy = goalYFor(carrier.team);
+  const goal = { x: GOAL_CENTER_X, y: gy };
+  const toGoal = dist(carrier.pos, goal);
+  const marker = nearestOpponent(state, carrierIdx);
+  const pressured = marker !== -1 && dist2(state.players[marker].pos, carrier.pos) < 400 * 400;
+
+  if (toGoal < 2500 && carrier.def.role !== 'GK') {
+    attemptShot(state, carrierIdx, toGoal); // real implementation in Task 10
+    return;
+  }
+
+  if (pressured || state.rng() < 0.35) {
+    const to = bestPassTarget(state, carrierIdx);
+    if (to !== -1) {
+      const interceptorIdx = nearestOpponent(state, to);
+      const interceptStat = interceptorIdx === -1 ? 20 : effectiveStat(state, interceptorIdx, 'def');
+      const ok = contest(state.rng, effectiveStat(state, carrierIdx, 'pas'), interceptStat, 10);
+      emit(state, { t: state.tick, kind: 'PASS', from: carrierIdx, to, ok });
+      state.ball = { kind: 'pass', pos: { ...carrier.pos }, from: carrierIdx, to, willSucceed: ok, interceptor: interceptorIdx };
+    }
+  }
+}
+
+/** Task 10 replaces with real shooting. */
+export function attemptShot(_state: MatchState, _by: number, _distToGoal: number): void {}
