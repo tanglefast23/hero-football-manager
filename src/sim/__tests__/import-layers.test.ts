@@ -26,7 +26,7 @@ describe('import layers', () => {
         continue;
       }
       const src = readFileSync(join(SIM_DIR, f), 'utf8');
-      const imports = [...src.matchAll(/from\s+'\.\/([^']+)'/g)].map(m => m[1]);
+      const imports = [...src.matchAll(/from\s+['"]\.\/([^'"]+)['"]/g)].map(m => m[1]);
       for (const imp of imports) {
         if (!ALLOWED[f].includes(imp)) violations.push(`${f} imports './${imp}' (not allowed)`);
       }

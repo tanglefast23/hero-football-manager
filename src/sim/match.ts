@@ -50,6 +50,9 @@ export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: Ma
 }
 
 export function queueInput(state: MatchState, input: MatchInput): void {
+  if (input.tick <= state.tick) {
+    throw new Error(`input stamped for tick ${input.tick} but match is at tick ${state.tick} — inputs must be future-stamped`);
+  }
   state.pendingInputs.push(input);
   state.inputLog.push(input);
 }

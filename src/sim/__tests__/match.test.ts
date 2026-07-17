@@ -85,4 +85,11 @@ describe('match skeleton', () => {
     expect(replayed.events).toEqual(m.events);
     expect(replayed.score).toEqual(m.score);
   });
+
+  it('queueInput rejects past-stamped inputs (replay-fidelity invariant)', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    for (let i = 0; i < 10; i++) tick(m);
+    expect(() => queueInput(m, { tick: 5, kind: 'POWER_TAP', player: 10 })).toThrow('future-stamped');
+    expect(m.inputLog).toHaveLength(0);
+  });
 });

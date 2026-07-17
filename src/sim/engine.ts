@@ -11,7 +11,11 @@ export function isAvailable(state: MatchState, idx: number): boolean {
   return state.players[idx].outUntilTick <= state.tick;
 }
 
-/** M1 fatigue hook: contested stats route through here. Deliberately raw in M0. */
+/**
+ * M1 fatigue hook: contested stats route through here. Deliberately raw in M0.
+ * def.attrs must stay immutable at runtime — fatigue/power modifiers belong in
+ * this function (or the powers queries), never in-place attrs mutation.
+ */
 export function effectiveStat(state: MatchState, idx: number, stat: keyof Attrs): number {
   return state.players[idx].def.attrs[stat];
 }
