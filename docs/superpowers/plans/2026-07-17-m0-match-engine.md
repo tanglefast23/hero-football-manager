@@ -1752,6 +1752,18 @@ Commit: `feat(sim): In-the-Zone activation, one-active-per-team, knockOut ball r
 
 ### Task 13: Acceptance suite — parity, causality, timing value, golden replay, balance
 
+**Pre-flight (one commit before the suite):**
+1. Context upgrades (12.2 review Issue A — home heroes were context-less in ~50% of zones): SUPER_SPEED's useful context becomes "self-carrier AND in the attacking half (own y < PITCH_H/2 for team 0, mirrored for team 1), OR loose ball within 1500"; FIRE_TORCH's becomes "self-carrier with an opponent within 800 (its ignite radius — fire when a marker is on you), OR opposing carrier within 800". One constant per radius shared with the effect code so they can't drift.
+2. validateEnvelope extension (Issue B): reject `homePolicy`/`awayPolicy` outside {SAVE_FOR_TAP, FIRE_WHEN_READY}, non-boolean `blindAutoHome`, and out-of-range `input.player` (integer 0..21) — descriptive errors + one forged-envelope test each.
+3. Balance Lever A (Task 10 review): `attemptShot` distance penalty `distToGoal / 100` → `/ 200` (target: save rate ~70-75%, goals/match ~2-3). ENGINE_VERSION stays m0.3 (same unreleased batch).
+4. Fix the stale GAUGE_CAP comment in powers.ts (heat exceeds 100 via involvement, not freeze).
+
+**TIMING VALUE — redesigned gates (decision record, replacing `contextual > blind`):** the old gate compared two AIs and measured our trigger quality, not player agency. The claims the game actually makes, each with its own gate:
+- **GATE-1 attention floor**: firing beats never-firing — home goals with all-FIRE_WHEN_READY vs SAVE_FOR_TAP-never-tapped over 400 seeds; paired margin must be positive with a bootstrap 95% CI lower bound > 0.
+- **GATE-2 moment quality (per power, the player-agency claim)**: scripted paired comparisons on identical seeds — SUPER_SPEED tapped at a value moment (carrier attacking-half) vs tapped at an anti-moment (own-half, no threat): attacking outcomes (shots within 150 ticks of the fire) must favor the value moment with CI > 0 over 200 paired samples; FIRE_TORCH fired with a marker inside 800 vs alone: ignitions must occur only/overwhelmingly in the former; SUPER_STRENGTH is structurally proven (locked fires land 92.9%, targetless fires cannot exist).
+- **GATE-3 auto sanity**: contextual auto must not embarrass — home goals contextual-auto ≥ blind-auto − 5% over 400 seeds (parity acceptable; regression not).
+Justification: GATE-2 is what "your tap matters" means; GATE-1 is why watching pays at all; GATE-3 keeps Quick Result respectable. The blind comparator remains test-only scaffolding (blindAutoHome).
+
 **Files:**
 - Test: `src/sim/__tests__/parity.test.ts`
 
