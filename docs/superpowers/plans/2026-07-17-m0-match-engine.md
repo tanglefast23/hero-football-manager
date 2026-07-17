@@ -1764,6 +1764,8 @@ Commit: `feat(sim): In-the-Zone activation, one-active-per-team, knockOut ball r
 - **GATE-3 auto sanity**: contextual auto must not embarrass — home goals contextual-auto ≥ blind-auto − 5% over 400 seeds (parity acceptable; regression not).
 Justification: GATE-2 is what "your tap matters" means; GATE-1 is why watching pays at all; GATE-3 keeps Quick Result respectable. The blind comparator remains test-only scaffolding (blindAutoHome).
 
+**Tuning round 1 (decision record, after first gate run):** GATE-1 measured +0.065 goals/match CI [-0.065, +0.198] — real but imperceptible, contradicting docs/09's "hero uplift 15-25%" target. Effect magnitudes raised: `DUR` map SUPER_SPEED 40 → 70, FIRE_TORCH 50 → 80, SUPER_STRENGTH 80 → 110; FIRE_TORCH ignite-out 100 → 140 ticks. Blowout rail measured 19.5 goals/match for a +20 team (compounding through every contest): new **game-management rule** in possessionTick — when a carrier's team leads by 4+ goals, the shoot trigger tightens to `toGoal < 1700` and the pass inclination rises (`state.rng() < 0.35` → `< 0.6`), deterministic, rng-order preserved (the draw still happens on the same condition path). Rails and gates unchanged; goldens regenerate (they were never committed). ENGINE_VERSION stays m0.3 — same unreleased batch. Suite runtime budget raised to 180s (measured 137s; gate power > speed).
+
 **Files:**
 - Test: `src/sim/__tests__/parity.test.ts`
 
