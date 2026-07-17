@@ -1748,6 +1748,8 @@ MatchEvent gains `| { t: number; kind: 'POWER_EXPIRED'; player: number }`. The `
 
 Commit: `feat(sim): In-the-Zone activation, one-active-per-team, knockOut ball release, envelope validation, m0.3`
 
+**12.2 follow-up ruling (as-built, commit 79a2f42):** target-requiring powers (`requiresTarget(power)`, true for SUPER_STRENGTH) never take the late-window 0.75 fallback — their windows expire like manual misses. SUPER_STRENGTH context = STRENGTH_LOCK_RANGE (one constant, 1200). PURSUIT_MULT 1.4. Measured: rival 0.7 fires/match, 100% locked, 92.9% KO landing.
+
 ### Task 13: Acceptance suite — parity, causality, timing value, golden replay, balance
 
 **Files:**
