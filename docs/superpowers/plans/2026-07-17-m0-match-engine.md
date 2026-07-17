@@ -1112,7 +1112,7 @@ export function tackleTick(state: MatchState): void {
 
   for (let i = 0; i < 22; i++) {
     const d = state.players[i];
-    if (d.team === carrier.team || d.outUntilTick > state.tick) continue;
+    if (d.team === carrier.team || !isAvailable(state, i)) continue;
     if (state.tick < d.tackleCooldownUntil) continue;
     if (dist2(d.pos, carrier.pos) > 250 * 250) continue;
     if (fireSuppressed(state, i, carrierIdx)) continue;
