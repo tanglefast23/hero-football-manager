@@ -13,6 +13,7 @@ Kairosoft-style soccer club management sim with superpowered players. iOS-first 
 - Match rendering uses react-native-skia's **Atlas batched API** — never one component per sprite (known perf trap).
 - Game content (powers, events, drills, sponsors, archetypes, names) is typed JSON in `content/`, zod-validated. New content ships as data, not code.
 - Balance changes must keep the CI balance-harness assertions passing (see `docs/09-tech-stack.md`).
+- Any replay-affecting sim change (behavior, tuning, or RNG consumption) must bump `ENGINE_VERSION` in `src/sim/match.ts`. The golden-replay snapshot update is the forcing reminder — never update that snapshot without a version decision.
 
 ## Key design facts (don't re-litigate casually)
 

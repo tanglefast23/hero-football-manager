@@ -1,10 +1,19 @@
 import { anchorFor } from './formation';
 import { dist2, moveToward, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
-import type { MatchState, SimPlayer } from './types';
+import type { Attrs, MatchState, SimPlayer } from './types';
 
 export function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;
+}
+
+export function isAvailable(state: MatchState, idx: number): boolean {
+  return state.players[idx].outUntilTick <= state.tick;
+}
+
+/** M1 fatigue hook: contested stats route through here. Deliberately raw in M0. */
+export function effectiveStat(state: MatchState, idx: number, stat: keyof Attrs): number {
+  return state.players[idx].def.attrs[stat];
 }
 
 /** Authoritative speed: reads power state internally (Task 12 supplies the multiplier). */
@@ -31,14 +40,15 @@ export function drainStamina(p: SimPlayer, movedFar: boolean): void {
 export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
   const center = { x: PITCH_W / 2, y: PITCH_H / 2 };
   for (let i = 0; i < 22; i++) {
+    if (!isAvailable(state, i)) continue;
     const p = state.players[i];
     p.pos = anchorFor(p.team, i % 11, center);
   }
   let striker = toTeam === 0 ? 9 : 20;
-  if (state.players[striker].outUntilTick > state.tick) {
+  if (!isAvailable(state, striker)) {
     const base = toTeam === 0 ? 0 : 11;
     for (let s = base + 10; s >= base; s--) {
-      if (state.players[s].outUntilTick <= state.tick) { striker = s; break; }
+      if (isAvailable(state, s)) { striker = s; break; }
     }
   }
   state.players[striker].pos = { ...center };
@@ -49,7 +59,7 @@ export function movementTick(state: MatchState): void {
   const ball = ballPos(state);
   for (let i = 0; i < 22; i++) {
     const p = state.players[i];
-    if (p.outUntilTick > state.tick) continue;
+    if (!isAvailable(state, i)) continue;
     if (p.outUntilTick !== 0) {
       if (p.outUntilTick !== Number.MAX_SAFE_INTEGER) {
         emit(state, { t: state.tick, kind: p.outReason === 'ignited' ? 'EXTINGUISHED' : 'RECOVERED', player: i });

@@ -6,6 +6,15 @@ import type { MatchInput, MatchOpts, MatchResult, MatchState, ReplayEnvelope, Si
 
 export const ENGINE_VERSION = 'm0.2';
 const TOTAL_TICKS = HALF_TICKS * 2;
+const STOPPAGE_CAP = 50;
+
+function deepCopyTeam(t: TeamDef): TeamDef {
+  return { id: t.id, name: t.name, players: t.players.map(p => ({ ...p, attrs: { ...p.attrs } })) };
+}
+
+function ballSettled(state: MatchState): boolean {
+  return state.ball.kind === 'held' || state.ball.kind === 'loose';
+}
 
 function makePlayers(home: TeamDef, away: TeamDef, opts: MatchOpts): SimPlayer[] {
   const mk = (team: 0 | 1, defs: TeamDef): SimPlayer[] =>
@@ -24,14 +33,16 @@ export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: Ma
   if (home.players.length !== 11 || away.players.length !== 11) {
     throw new Error('teams must have 11 players');
   }
+  const teams: [TeamDef, TeamDef] = [deepCopyTeam(home), deepCopyTeam(away)];
   const state: MatchState = {
     tick: 0, half: 1, phase: 'play', score: [0, 0],
-    players: makePlayers(home, away, opts),
+    players: makePlayers(teams[0], teams[1], opts),
     ball: { kind: 'held', by: 9 },
     resolve: [100, 100],
     rng: mulberry32(seed),
     events: [], pendingInputs: [],
     blindAutoHome: opts.blindAutoHome ?? false,
+    seed, opts, teams, inputLog: [],
   };
   restartKickoff(state, 0);
   emit(state, { t: 0, kind: 'KICKOFF', half: 1 });
@@ -40,6 +51,7 @@ export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: Ma
 
 export function queueInput(state: MatchState, input: MatchInput): void {
   state.pendingInputs.push(input);
+  state.inputLog.push(input);
 }
 
 export function tick(state: MatchState): void {
@@ -48,14 +60,14 @@ export function tick(state: MatchState): void {
 
   movementTick(state);
 
-  if (state.half === 1 && state.tick === HALF_TICKS) {
+  if (state.half === 1 && state.tick >= HALF_TICKS && (ballSettled(state) || state.tick >= HALF_TICKS + STOPPAGE_CAP)) {
     state.half = 2;
     emit(state, { t: state.tick, kind: 'HALF_TIME' });
     state.resolve = [Math.min(100, state.resolve[0] + 30), Math.min(100, state.resolve[1] + 30)];
     for (const p of state.players) p.condition = Math.min(100, p.condition + 15);
     restartKickoff(state, 1);
     emit(state, { t: state.tick, kind: 'KICKOFF', half: 2 });
-  } else if (state.tick >= TOTAL_TICKS) {
+  } else if (state.half === 2 && state.tick >= TOTAL_TICKS && (ballSettled(state) || state.tick >= TOTAL_TICKS + STOPPAGE_CAP)) {
     state.phase = 'fulltime';
     emit(state, { t: state.tick, kind: 'FULL_TIME' });
   }
@@ -68,6 +80,18 @@ export function runMatch(seed: number, home: TeamDef, away: TeamDef, inputs: Mat
   return { score: state.score, events: state.events };
 }
 
+export function envelopeFrom(state: MatchState): ReplayEnvelope {
+  return {
+    schemaVersion: 1,
+    engineVersion: ENGINE_VERSION,
+    seed: state.seed,
+    home: deepCopyTeam(state.teams[0]),
+    away: deepCopyTeam(state.teams[1]),
+    inputs: [...state.inputLog],
+    opts: { ...state.opts },
+  };
+}
+
 export function runReplay(env: ReplayEnvelope): MatchResult {
   if (env.schemaVersion !== 1) {
     throw new Error(`replay schema mismatch: ${env.schemaVersion}`);
@@ -75,5 +99,5 @@ export function runReplay(env: ReplayEnvelope): MatchResult {
   if (env.engineVersion !== ENGINE_VERSION) {
     throw new Error(`replay engine mismatch: ${env.engineVersion} vs ${ENGINE_VERSION}`);
   }
-  return runMatch(env.seed, env.home, env.away, env.inputs);
+  return runMatch(env.seed, env.home, env.away, env.inputs, env.opts ?? {});
 }

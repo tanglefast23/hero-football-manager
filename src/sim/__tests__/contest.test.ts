@@ -35,4 +35,14 @@ describe('contest (table-based logistic)', () => {
     expect(wins / 10000).toBeGreaterThan(0.81);
     expect(wins / 10000).toBeLessThan(0.87);
   });
+
+  it('consumes exactly one rng draw per contest, win or lose', () => {
+    let calls = 0;
+    const winRng = () => { calls++; return 0.0; };
+    const loseRng = () => { calls++; return 0.999999; };
+    expect(contest(winRng, 60, 40)).toBe(true);
+    expect(calls).toBe(1);
+    expect(contest(loseRng, 60, 40)).toBe(false);
+    expect(calls).toBe(2);
+  });
 });

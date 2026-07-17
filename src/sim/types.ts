@@ -81,6 +81,10 @@ export interface MatchState {
   events: MatchEvent[];
   pendingInputs: MatchInput[];
   blindAutoHome: boolean;
+  seed: number;
+  opts: MatchOpts;
+  teams: [TeamDef, TeamDef];   // match-owned deep copies (createMatch detaches from caller data)
+  inputLog: MatchInput[];      // append-only history of every queued input (replay capture)
 }
 
 export interface MatchResult { score: [number, number]; events: MatchEvent[]; }
@@ -92,4 +96,5 @@ export interface ReplayEnvelope {
   home: TeamDef;
   away: TeamDef;
   inputs: MatchInput[];
+  opts?: MatchOpts;
 }
