@@ -2,7 +2,10 @@ import { anchorFor } from './formation';
 import { dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest } from './contest';
+import { addGauge, interruptWindup } from './powers';
 import type { Attrs, MatchState, SimPlayer } from './types';
+
+export { addGauge, interruptWindup };
 
 export function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;
@@ -87,9 +90,6 @@ export function movementTick(state: MatchState): void {
 }
 
 export const PASS_SPEED = 250;
-
-/** Task 11 replaces with the real gauge (import from ./powers). */
-export function addGauge(_state: MatchState, _idx: number, _amount: number): void {}
 
 export function nearestOpponent(state: MatchState, idx: number): number {
   const me = state.players[idx];
@@ -184,8 +184,7 @@ export function possessionTick(state: MatchState): void {
   }
 }
 
-/** Task 11/12 replace these with imports from ./powers. */
-export function interruptWindup(_state: MatchState, _idx: number): void {}
+/** Task 12 replaces these with imports from ./powers. */
 export function fireSuppressed(_state: MatchState, _tackler: number, _carrier: number): boolean { return false; }
 export function dribbleBonus(_state: MatchState, _carrier: number): number { return 0; }
 export function defenseBonus(_state: MatchState, _idx: number): number { return 0; }

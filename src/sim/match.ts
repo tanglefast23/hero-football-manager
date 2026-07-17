@@ -2,6 +2,7 @@ import { mulberry32 } from './rng';
 import { HALF_TICKS } from './geometry';
 import { emit } from './events';
 import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTick } from './engine';
+import { powerTick } from './powers';
 import type { MatchInput, MatchOpts, MatchResult, MatchState, ReplayEnvelope, SimPlayer, TeamDef } from './types';
 
 export const ENGINE_VERSION = 'm0.2';
@@ -61,6 +62,7 @@ export function tick(state: MatchState): void {
   if (state.phase === 'fulltime') return;
   state.tick++;
 
+  powerTick(state);
   movementTick(state);
   possessionTick(state);
   tackleTick(state);
