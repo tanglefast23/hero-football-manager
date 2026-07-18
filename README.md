@@ -39,7 +39,9 @@ Research reports (source material, written by research agents):
 | Career structure | Climb the league pyramid (Div 5 → Div 1 → cups), endless play after winning it all; score recap after Season 10 |
 | Business model | Paid app, ~$0.99, no IAP at launch; economy balanced purely for fun |
 | Art direction | B+ "heroic chibi" pixel art + comic FX layer + broadcast match dressing |
+| Opening music | **“Heroes Start Here”** — original 128 BPM title-screen fanfare and seamless chiptune loop |
 | Match music | **“Match Day Heroes”** — original 128 BPM heroic stadium-chiptune loop; the official watched-match theme |
+| Management music | **“Clubhouse Dreams”** — original 112 BPM warm chiptune loop for training, squad, transfers, facilities, and finances |
 | Income sources | All four: sponsors, tickets/fans, prize money, player sales |
 | Currencies | Money + Training Points (TP) + Hero Essence (HE) — each with exactly one job |
 | Contract talks | Offer/counter with mood meter; a light card mini-game influences (max ±20%) but never fully decides |
@@ -51,7 +53,7 @@ Research reports (source material, written by research agents):
 
 ## Deliberately deferred (not forgotten)
 
-- Additional music and final mix balance — decide during M4 polish
+- Final mix balance — decide during M4 polish
 - PC input mapping and landscape layouts — decide at the PC port spike
 - Localization beyond English — post-launch
 - Android release timing — after iOS beta feedback

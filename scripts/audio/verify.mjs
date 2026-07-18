@@ -136,10 +136,12 @@ const tmpB = mkdtempSync(join(tmpdir(), 'hfm-audio-verify-b-'));
 try {
   const genSfxPath = join(__dirname, 'gen-sfx.mjs');
   const genMusicPath = join(__dirname, 'gen-music.mjs');
+  const genMenuMusicPath = join(__dirname, 'gen-menu-music.mjs');
 
   for (const [label, tmpDir] of [['A', tmpA], ['B', tmpB]]) {
     execFileSync(process.execPath, ['-e', `import('${pathToFileUrl(genSfxPath)}').then(m => m.generateAllSfx('${tmpDir}'))`], { stdio: 'pipe' });
     execFileSync(process.execPath, ['-e', `import('${pathToFileUrl(genMusicPath)}').then(m => m.generateMusic('${tmpDir}'))`], { stdio: 'pipe' });
+    execFileSync(process.execPath, ['-e', `import('${pathToFileUrl(genMenuMusicPath)}').then(m => m.generateMenuMusic('${tmpDir}'))`], { stdio: 'pipe' });
   }
 
   for (const entry of ALL) {

@@ -35,6 +35,7 @@ import {
   note,
 } from './synth.mjs';
 import { MUSIC_CATALOG } from './catalog.mjs';
+import { generateMenuMusic } from './gen-menu-music.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, '../../assets/audio/music');
@@ -347,4 +348,5 @@ export function generateMusic(outDir = OUT_DIR) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   generateMusic();
+  generateMenuMusic();
 }
