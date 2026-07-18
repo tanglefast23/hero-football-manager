@@ -48,6 +48,15 @@ const FULLTIME_HOLD_MS = 1500;
 // — used to size the possession/zone rings around a player's sprite.
 const PLAYER_CELL_W = 16;
 
+// Held-ball foot offset (T8) — draws a held ball at the carrier's leading
+// foot instead of dead-center, so it reads as carried rather than "stood
+// on." Render-only (transforms useMemo below); never touches frame.ball,
+// frame.players, or any sim state. Reuses PLAYER_CELL_W above for "half the
+// player sprite's drawn width."
+const BALL_FOOT_FORWARD_FRACTION = 0.35; // of the player sprite's drawn half-width
+const BALL_FOOT_DOWN_PX = 3; // feet sit toward the sprite's bottom half, not its center
+const BALL_FOOT_DEADZONE_PX = 0.5; // tick-to-tick screen-px delta below this reads as "stationary"
+
 // Side of the plain white square drawn when the sprite pack fails to build
 // (the plan's original placeholder texture size).
 const FALLBACK_SPRITE = 16;
@@ -361,6 +370,40 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     const scos = scale * PLAYER_DRAW_SCALE;
     const ballScos = scale * BALL_DRAW_SCALE;
     const ball = atlas.rectFor('ball');
+
+    // Held-ball foot offset (T8; constants above) — direction comes from the
+    // carrier's last-tick displacement via prevRef/nextRef (the same
+    // tick-boundary snapshots the snap-distance check above reads), not the
+    // lerped `frame`: those refs only change once per sim tick, so the
+    // offset holds steady between ticks instead of wobbling every animation
+    // frame. Non-held states (loose/pass/shot) leave both offsets at 0 —
+    // unchanged, centered on frame.ball.
+    let ballOffsetX = 0;
+    let ballOffsetY = 0;
+    if (frame.carrier >= 0) {
+      const carrier = frame.carrier;
+      const from = prevRef.current!.players[carrier];
+      const to = nextRef.current!.players[carrier];
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const mag = Math.hypot(dx, dy); // render code only — sqrt precision is a non-issue here
+      let ux: number;
+      let uy: number;
+      if (mag * scale < BALL_FOOT_DEADZONE_PX) {
+        // Stationary (or sub-pixel tick jitter) — point toward the carrier's
+        // attacking goal (sim/types.ts: team 0 attacks toward y=0) instead
+        // of trusting a near-zero, noise-prone velocity direction.
+        ux = 0;
+        uy = carrier < 11 ? -1 : 1;
+      } else {
+        ux = dx / mag;
+        uy = dy / mag;
+      }
+      const playerHalfW = (PLAYER_CELL_W * scos) / 2;
+      ballOffsetX = ux * playerHalfW * BALL_FOOT_FORWARD_FRACTION;
+      ballOffsetY = uy * playerHalfW * BALL_FOOT_FORWARD_FRACTION + BALL_FOOT_DOWN_PX;
+    }
+
     return [
       ...match.players.map((p, i) => {
         const runFrame = frame.moved[i] ? Math.floor(hud.tick / 5) % 2 : 0;
@@ -371,8 +414,8 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       Skia.RSXform(
         ballScos,
         0,
-        frame.ball.x * scale - (ball.w * ballScos) / 2,
-        frame.ball.y * scale - (ball.h * ballScos) / 2
+        frame.ball.x * scale - (ball.w * ballScos) / 2 + ballOffsetX,
+        frame.ball.y * scale - (ball.h * ballScos) / 2 + ballOffsetY
       ),
     ];
   }, [frame, hud.tick, atlas, match, scale]);
