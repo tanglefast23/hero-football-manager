@@ -77,6 +77,8 @@ Redo **all three** icon concepts in genuine NES/SNES pixel style, then pick a wi
 - Concepts: A "Blazing Ball", B "Hero Face" (artist-ranked best of round 1), C (becomes fully
   colored this round). Present previews → user picks → export 1024×1024 PNG to
   `assets/icon.png` (app.json already points there). Ships in the T6 rebuild.
+- Tooling is already on `main`: `scripts/icon/gen-icons.mjs` + `scripts/icon/png.mjs`, round-1
+  concepts + preview at `art/icons/`. Rework in place — no worktree needed.
 
 ### T4 — Worklet stress screen rebuild (Task 15)
 
@@ -89,8 +91,8 @@ screenshot as proof.
 ### T5 — Audio integration (after T2; shares MatchScreen.tsx)
 
 - **Confirm the `expo-audio` dependency with the user first** (no-new-deps rule), then install.
-- Assets live on `feature/m0-audio` / `../HFM-audio-worktree`: 27 SFX + match theme (wav/m4a),
-  `scripts/audio/*`, `audio-preview.html`. Copy into `assets/audio/`.
+- Assets are already merged to `main`: 27 SFX + match theme (wav/m4a) at `assets/audio/`,
+  generators at `scripts/audio/*`, audition page at `art/audio-preview.html`.
 - Wire to the sim event stream: kickoff/half/full whistles, kick/pass, tackle + grunt, post,
   goal + crowd, zone entry, tap-fire, per-power SFX, card, extinguisher. Match-theme loop.
   Respect the iOS mute switch. User audition verdicts still open on: grunt, extinguisher-spray,
