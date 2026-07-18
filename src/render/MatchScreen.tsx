@@ -37,6 +37,12 @@ const SNAP_DIST2 = (2 * MAX_SPEED_PER_TICK) ** 2;
 // duration — ledger item 5 ("flash the chip dim for ~30 ticks").
 const FLASH_TICKS = 30;
 
+// End-of-match hold — real-time ms the screen stays mounted after the sim
+// reaches fulltime, so the FULL_TIME whistle (and any last-tick goal audio)
+// rings out before onDone unmounts the screen and tears audio down.
+// Renderer-side wall clock, not sim state: sim ticks already stop at fulltime.
+const FULLTIME_HOLD_MS = 1500;
+
 // Player sprite cell width (sprites.json `cell.w`, validated by loadSpriteSheet)
 // — used to size the possession/zone rings around a player's sprite.
 const PLAYER_CELL_W = 16;
@@ -112,6 +118,9 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   });
   const expiredAtRef = useRef<Record<number, number>>({});
   const scoreFlashUntilRef = useRef<number>(0);
+  // End-of-match hold deadline (RAF/performance.now() timebase), set once
+  // when the loop first sees phase === 'fulltime' — see FULLTIME_HOLD_MS.
+  const fulltimeDeadlineRef = useRef<number | null>(null);
   // UX fix — keyed by player index: the tick a home hero's chip was last
   // tapped outside its zone (early-tap feedback), read by homeChip() below.
   const pressFeedbackRef = useRef<Record<number, number>>({});
@@ -256,6 +265,11 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         if (e.kind === 'HALF_TIME') {
           bannerRef.current = { text: '⚡ HALF TIME', untilTick: e.t + FLASH_TICKS, tone: 'gold' };
         }
+        if (e.kind === 'FULL_TIME') {
+          // Sim ticks freeze at fulltime, so `s.tick <= untilTick` below
+          // holds and this banner stays up for the whole end-of-match hold.
+          bannerRef.current = { text: '⚡ FULL TIME', untilTick: e.t + FLASH_TICKS, tone: 'gold' };
+        }
         if (e.kind === 'POWER_EXPIRED') expiredAtRef.current[e.player] = e.t;
         // UX fix — zone entry announcement: the player didn't discover the
         // tap affordance from the chip alone, so a HOME hero's Zone entry
@@ -303,8 +317,17 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       });
 
       if (s.phase === 'fulltime') {
-        onDone(s);
-        return;
+        // End-of-match hold: calling onDone on the same frame that emitted
+        // FULL_TIME would unmount the screen and tear audio down mid-whistle
+        // (same for a last-tick goal). Keep rendering — sim ticks already
+        // stop at fulltime — until the deadline passes, then hand off once.
+        // `now` is the RAF timestamp: the same performance.now() timebase
+        // the rest of the loop uses.
+        if (fulltimeDeadlineRef.current === null) fulltimeDeadlineRef.current = now + FULLTIME_HOLD_MS;
+        if (now >= fulltimeDeadlineRef.current) {
+          onDone(s);
+          return;
+        }
       }
       raf = requestAnimationFrame(loop);
     };

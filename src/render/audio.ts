@@ -73,9 +73,7 @@ const POWER_SFX: Record<PowerId, SfxKey> = {
 // The single source of truth for what plays on what: swapping a sound is a
 // one-line change here (plus its require() above).
 //
-// Not every MatchEvent kind is wired: SAVE, MISS, POWER_INTERRUPTED,
-// POWER_EXPIRED, IGNITED, and RECOVERED have no assigned sound yet, and
-// there is no POST event in m0.4 (see the MatchEvent union in sim/types.ts)
+// There is no POST event in m0.4 (see the MatchEvent union in sim/types.ts)
 // even though a post-ding SFX asset exists — never invent a sim event to
 // reach it.
 //
@@ -110,8 +108,22 @@ function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       // (CONTEXT_AUTO_STRENGTH 0.85 / LAPSE_STRENGTH 0.75) get just the
       // power sound.
       return e.strength === 1 ? ['tap-fire', POWER_SFX[e.power]] : [POWER_SFX[e.power]];
-    default:
+    // Deliberately silent — no assigned sound yet. Explicit cases (not a
+    // catch-all) so the exhaustiveness check below stays meaningful.
+    case 'SAVE':
+    case 'MISS':
+    case 'POWER_INTERRUPTED':
+    case 'POWER_EXPIRED':
+    case 'IGNITED':
+    case 'RECOVERED':
       return [];
+    default: {
+      // Exhaustiveness — adding a MatchEvent kind fails compilation here
+      // until a sound (or explicit silence above) is chosen for it, the same
+      // self-enforcement Record<PowerId, SfxKey> gives POWER_SFX.
+      const unhandled: never = e;
+      return unhandled;
+    }
   }
 }
 
@@ -122,10 +134,12 @@ let warned = false;
 const sfxPlayers = new Map<SfxKey, AudioPlayer>();
 let themePlayer: AudioPlayer | null = null;
 
+// Only the first failure of the session warns (whatever it is) — the point
+// is one diagnostic line, not a per-frame warning flood.
 function warnOnce(context: string, err: unknown): void {
   if (warned) return;
   warned = true;
-  console.warn(`audio: ${context} — sound disabled for this session`, err);
+  console.warn(`audio: ${context}`, err);
 }
 
 export function initAudio(): void {
@@ -138,31 +152,63 @@ export function initAudio(): void {
     // expo-audio defaults `playsInSilentMode` to true (ignores the hardware
     // mute switch) — set it false so match audio respects the switch.
     mod.setAudioModeAsync({ playsInSilentMode: false }).catch((err: unknown) => warnOnce('setAudioModeAsync failed', err));
+    // keepAudioSessionActive is deliberately NOT passed here (settled at the
+    // T5 review — don't re-litigate at T6): native deactivateSession() only
+    // fires when NO registered player isPlaying (after a 100ms grace), and
+    // the looping match theme holds that guard true for the whole match;
+    // every play() re-activates the session anyway.
+    //
+    // Per-player try/catch: one bad asset/player must not abort the rest
+    // (playForEvent already skips missing map entries).
     for (const key of Object.keys(SFX_SOURCES) as SfxKey[]) {
-      sfxPlayers.set(key, mod.createAudioPlayer(SFX_SOURCES[key]));
+      try {
+        sfxPlayers.set(key, mod.createAudioPlayer(SFX_SOURCES[key]));
+      } catch (err) {
+        warnOnce(`createAudioPlayer failed (${key})`, err);
+      }
     }
-    themePlayer = mod.createAudioPlayer(THEME_SOURCE);
-    themePlayer.loop = true;
+    try {
+      themePlayer = mod.createAudioPlayer(THEME_SOURCE);
+      themePlayer.loop = true;
+    } catch (err) {
+      themePlayer = null;
+      warnOnce('createAudioPlayer failed (match-theme)', err);
+    }
     ready = true;
   } catch (err) {
+    // Reachable only from require() / a synchronous setAudioModeAsync throw —
+    // player creation failures are caught per-player above, so nothing here
+    // needs remove()-ing.
     sfxPlayers.clear();
     themePlayer = null;
-    warnOnce('init failed', err);
+    warnOnce('init failed — sound disabled for this session', err);
   }
 }
 
 export function teardownAudio(): void {
-  try {
-    for (const player of sfxPlayers.values()) player.remove();
-    themePlayer?.remove();
-  } catch (err) {
-    warnOnce('teardown failed', err);
-  } finally {
-    sfxPlayers.clear();
-    themePlayer = null;
-    ready = false;
-    initAttempted = false; // allow the next mount to retry init
+  // Per-player try/catch mirrors initAudio's: one bad player must not leave
+  // the rest un-removed. release() after remove() detaches the JS wrapper so
+  // native destruction is deterministic instead of waiting on GC — safe here
+  // because the end-of-match hold in MatchScreen means teardown no longer
+  // races the fulltime whistle.
+  for (const player of sfxPlayers.values()) {
+    try {
+      player.remove();
+      player.release();
+    } catch (err) {
+      warnOnce('player teardown failed', err);
+    }
   }
+  try {
+    themePlayer?.remove();
+    themePlayer?.release();
+  } catch (err) {
+    warnOnce('theme teardown failed', err);
+  }
+  sfxPlayers.clear();
+  themePlayer = null;
+  ready = false;
+  initAttempted = false; // allow the next mount to retry init
 }
 
 export function playForEvent(e: MatchEvent): void {
