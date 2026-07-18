@@ -211,6 +211,36 @@ describe('power effects', () => {
   });
 });
 
+describe('zone/knockout fix (audit R1): a KO ends the Zone with missed-window semantics', () => {
+  it('knockOut on a zoned hero emits POWER_EXPIRED, reverts to idle at heat 50, and a queued tap while out does nothing', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+    knockOut(m, SPEEDSTER, m.tick + 200, 'ko');
+    expect(m.events.filter(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === SPEEDSTER)).toHaveLength(1);
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('idle');
+    expect(m.players[SPEEDSTER].gauge).toBe(50);
+
+    queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
+    tick(m);
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('idle'); // no windup started
+    expect(m.events.some(e => e.kind === 'POWER_INTERRUPTED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
+    expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
+  });
+
+  it('the tap loop itself refuses a downed hero (zone + out rigged directly, bypassing knockOut)', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+    m.players[SPEEDSTER].outUntilTick = m.tick + 200;
+    m.players[SPEEDSTER].outReason = 'ko';
+    queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
+    tick(m);
+    // pre-fix: the tap started a windup that the out-check instantly interrupted (spurious POWER_INTERRUPTED)
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('zone'); // untouched frozen zone, not a windup
+    expect(m.events.some(e => e.kind === 'POWER_INTERRUPTED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
+    expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
+  });
+});
+
 describe('frozen-team bug: knockOut clears an active/winding power instead of freezing the team', () => {
   it('knockOut on an active hero reverts them to idle, freeing the team for their teammate to Zone in', () => {
     const m = createMatch(42, ROVERS, UNITED);

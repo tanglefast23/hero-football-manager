@@ -136,7 +136,10 @@ export function powerTick(state: MatchState): void {
   state.pendingInputs = state.pendingInputs.filter(i => i.tick > state.tick);
   for (const input of due) {
     const p = state.players[input.player];
-    if (input.kind === 'POWER_TAP' && p.powerState.kind === 'zone' && !teamPowerBusy(state, p.team)) {
+    // p.outUntilTick guard (audit R1): a tap on a downed hero must not start a
+    // windup that the out-check below would instantly interrupt (spurious
+    // POWER_INTERRUPTED).
+    if (input.kind === 'POWER_TAP' && p.powerState.kind === 'zone' && p.outUntilTick <= state.tick && !teamPowerBusy(state, p.team)) {
       startWindup(state, input.player, TAP_STRENGTH);
     }
   }
@@ -225,6 +228,13 @@ export function knockOut(state: MatchState, idx: number, untilTick: number, reas
   } else if (p.powerState.kind === 'active') {
     p.powerState = { kind: 'idle' };
     p.gauge = 0;
+  } else if (p.powerState.kind === 'zone') {
+    // A hero knocked out mid-Zone loses the window with missed-window
+    // semantics — exactly the expiry path (POWER_EXPIRED, heat 50). Without
+    // this, the zone stayed frozen while out — forever, for a red card (audit R1).
+    emit(state, { t: state.tick, kind: 'POWER_EXPIRED', player: idx });
+    p.gauge = 50;
+    p.powerState = { kind: 'idle' };
   }
   p.outUntilTick = untilTick;
   p.outReason = reason;

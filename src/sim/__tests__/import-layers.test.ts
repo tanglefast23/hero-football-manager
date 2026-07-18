@@ -26,9 +26,15 @@ describe('import layers', () => {
         continue;
       }
       const src = readFileSync(join(SIM_DIR, f), 'utf8');
-      const imports = [...src.matchAll(/from\s+['"]\.\/([^'"]+)['"]/g)].map(m => m[1]);
-      for (const imp of imports) {
-        if (!ALLOWED[f].includes(imp)) violations.push(`${f} imports './${imp}' (not allowed)`);
+      // EVERY `from '...'` specifier (audit R3): a package import (e.g.
+      // 'react-native') must fail here, not slip past a relative-only regex.
+      const imports = [...src.matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
+      for (const spec of imports) {
+        if (!spec.startsWith('./')) {
+          violations.push(`${f} imports '${spec}' (non-relative — sim modules may only import sim modules)`);
+          continue;
+        }
+        if (!ALLOWED[f].includes(spec.slice(2))) violations.push(`${f} imports '${spec}' (not allowed)`);
       }
     }
     expect(violations).toEqual([]);
