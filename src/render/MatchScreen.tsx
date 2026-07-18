@@ -890,7 +890,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#101418' },
-  scorebar: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, paddingTop: 56 },
+  scorebar: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, paddingTop: 56, paddingRight: 98 },
   scoreText: { color: 'white', fontSize: 18, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
   scoreTextFlash: { color: '#f5c518' },
   speedText: { color: 'white', fontSize: 18, padding: 4 },

@@ -86,6 +86,10 @@ const FIRE_LOOP_SOURCE: AudioSource = require('../../assets/audio/sfx/flame-loop
 const MUSIC_VOLUME = 0.5;
 // The fire crackle rides above the music bed but below the one-shot SFX.
 const FIRE_LOOP_VOLUME = 0.7;
+// Multiplies the existing mix without changing its balance. The dev overlay
+// owns the five user-facing steps; keeping this as a plain 0..1 number makes
+// the audio layer usable by a future release settings screen too.
+let masterVolume = 1;
 
 // Per-power "fire" sound — plays on every POWER_FIRED regardless of strength
 // (see filesForEvent: a manual tap additionally layers 'tap-fire' on top).
@@ -175,6 +179,27 @@ function warnOnce(context: string, err: unknown): void {
   console.warn(`audio: ${context}`, err);
 }
 
+function setPlayerVolume(player: AudioPlayer, baseVolume: number, context: string): void {
+  try {
+    player.volume = baseVolume * masterVolume;
+  } catch (err) {
+    warnOnce(`${context} volume failed`, err);
+  }
+}
+
+function applyMasterVolume(): void {
+  for (const player of sfxPlayers.values()) {
+    setPlayerVolume(player, 1, 'SFX');
+  }
+  if (themePlayer) setPlayerVolume(themePlayer, MUSIC_VOLUME, 'theme');
+  if (fireLoopPlayer) setPlayerVolume(fireLoopPlayer, FIRE_LOOP_VOLUME, 'fire loop');
+}
+
+export function setMasterVolume(volume: number): void {
+  masterVolume = Math.max(0, Math.min(1, volume));
+  applyMasterVolume();
+}
+
 export function initAudio(): void {
   if (initAttempted) return; // one attempt per mount; teardownAudio() resets this
   initAttempted = true;
@@ -203,9 +228,6 @@ export function initAudio(): void {
     try {
       themePlayer = mod.createAudioPlayer(THEME_SOURCE);
       themePlayer.loop = true;
-      // Duck the music bed so the SFX (which play at the 1.0 volume ceiling)
-      // sit clearly on top instead of being buried under a full-volume loop.
-      themePlayer.volume = MUSIC_VOLUME;
     } catch (err) {
       themePlayer = null;
       warnOnce('createAudioPlayer failed (match-theme)', err);
@@ -213,12 +235,14 @@ export function initAudio(): void {
     try {
       fireLoopPlayer = mod.createAudioPlayer(FIRE_LOOP_SOURCE);
       fireLoopPlayer.loop = true;
-      fireLoopPlayer.volume = FIRE_LOOP_VOLUME;
     } catch (err) {
       fireLoopPlayer = null;
       warnOnce('createAudioPlayer failed (flame-loop)', err);
     }
     ready = true;
+    // Preserve a dev volume chosen before the match screen mounted. This also
+    // establishes every player's base level in one place.
+    applyMasterVolume();
   } catch (err) {
     // Reachable only from require() / a synchronous setAudioModeAsync throw —
     // player creation failures are caught per-player above, so nothing here
