@@ -16,10 +16,12 @@ import type { AudioPlayer, AudioSource } from 'expo-audio';
 import type { MatchEvent, PowerId } from '../sim/types';
 
 // -- Asset table (the one place SFX filenames are named) --------------------
-// SFX are the short one-shot .wav masters; the match theme uses the
-// compressed .m4a build (assets/audio/music also keeps a .wav master,
-// unused here). See scripts/audio/catalog.mjs for the full 27-SFX
-// inventory — only the subset below has a wired trigger today.
+// SFX are short one-shots. Supplied replacement effects use runtime-optimized
+// 24 kHz mono AAC-LC .m4a files with silent tails trimmed; the procedural
+// catalog keeps its original .wav fixtures for deterministic audio-pipeline
+// checks. The match theme likewise uses its compressed .m4a build. See
+// scripts/audio/catalog.mjs for the full 27-SFX inventory — only the subset
+// below has a wired trigger.
 type SfxKey =
   | 'kickoff-whistle'
   | 'halftime-whistle'
@@ -40,18 +42,18 @@ type SfxKey =
   | 'fire-torch-ignite';
 
 const SFX_SOURCES: Record<SfxKey, AudioSource> = {
-  'kickoff-whistle': require('../../assets/audio/sfx/kickoff-whistle.wav'),
+  'kickoff-whistle': require('../../assets/audio/sfx/kickoff-whistle.m4a'),
   'halftime-whistle': require('../../assets/audio/sfx/halftime-whistle.wav'),
   'fulltime-whistle': require('../../assets/audio/sfx/fulltime-whistle.wav'),
   'kick-pass': require('../../assets/audio/sfx/kick-pass.wav'),
-  'kick-shot': require('../../assets/audio/sfx/kick-shot.wav'),
-  'tackle-thud': require('../../assets/audio/sfx/tackle-thud.wav'),
+  'kick-shot': require('../../assets/audio/sfx/kick-shot.m4a'),
+  'tackle-thud': require('../../assets/audio/sfx/tackle-thud.m4a'),
   grunt: require('../../assets/audio/sfx/grunt.wav'),
   'goal-fanfare': require('../../assets/audio/sfx/goal-fanfare.wav'),
   'crowd-cheer': require('../../assets/audio/sfx/crowd-cheer.wav'),
   'card-whistle': require('../../assets/audio/sfx/card-whistle.wav'),
   'crowd-jeer': require('../../assets/audio/sfx/crowd-jeer.wav'),
-  'zone-enter': require('../../assets/audio/sfx/zone-enter.wav'),
+  'zone-enter': require('../../assets/audio/sfx/zone-enter.m4a'),
   'tap-fire': require('../../assets/audio/sfx/tap-fire.wav'),
   'extinguisher-spray': require('../../assets/audio/sfx/extinguisher-spray.wav'),
   'super-speed-whoosh': require('../../assets/audio/sfx/super-speed-whoosh.wav'),

@@ -145,6 +145,10 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   // part of the deterministic event stream; these poses never feed back into
   // positions, possession, RNG, or replay data.
   const actionRef = useRef<Record<number, PlayerActionAnimation>>({});
+  // createMatch() emits the opening KICKOFF synchronously. Start at zero so
+  // the first render-loop pass consumes that event instead of treating it as
+  // old history; later passes advance this cursor normally.
+  const eventCursorRef = useRef(0);
 
   const [frame, setFrame] = useState<PitchFrame>(() => prevRef.current!);
   const [hud, setHud] = useState({
@@ -247,7 +251,6 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       acc = Math.min(acc + (now - last) * speedRef.current, TICK_MS * MAX_CATCHUP_TICKS);
       last = now;
 
-      const eventsBefore = s.events.length;
       let snap = false;
 
       // No pausedRef check needed here: the early return above already ran,
@@ -274,7 +277,8 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         acc -= TICK_MS;
       }
 
-      const newEvents = s.events.slice(eventsBefore);
+      const newEvents = s.events.slice(eventCursorRef.current);
+      eventCursorRef.current = s.events.length;
       for (const e of newEvents) {
         playForEvent(e);
         if (e.kind === 'GOAL' || e.kind === 'MISS' || e.kind === 'HALF_TIME' || e.kind === 'KICKOFF') snap = true;

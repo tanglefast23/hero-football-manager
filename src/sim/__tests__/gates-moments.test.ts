@@ -22,7 +22,7 @@ function tickUntil(m: MatchState, pred: () => boolean, max: number): void {
 
 describe('M0 acceptance suite (Task 13)', () => {
   describe('GATE-2: moment quality', () => {
-    const ATTACK_Y = Math.round(PITCH_H * 0.32); // attacking third — outside shot range (2500) but past the opposing forward line
+    const ATTACK_Y = Math.round(PITCH_H * 0.32); // attacking third — beyond the automatic close-range shot, but past the opposing forward line
     const OWN_Y = Math.round(PITCH_H * 0.85);    // deep in the defensive third
 
     function shotsAfterSpeedTap(seed: number, attackingHalf: boolean): number {
@@ -57,7 +57,7 @@ describe('M0 acceptance suite (Task 13)', () => {
       function fires(markerNearby: boolean): boolean {
         const m = createMatch(1, ROVERS, UNITED);
         m.ball = { kind: 'held', by: TORCH };
-        m.players[TORCH].pos = { x: GOAL_CENTER_X, y: 5250 }; // midfield, outside shot range
+        m.players[TORCH].pos = { x: GOAL_CENTER_X, y: 5250 }; // midfield, far from a valuable shot
         if (markerNearby) {
           m.players[17].pos = { x: GOAL_CENTER_X, y: 5250 }; // co-located opponent, well inside the 800 ignite radius
         } else {

@@ -48,14 +48,14 @@ const X_PARAMS = {
     // press IN possession = ball-side support: the nearest one-two teammates
     // converge toward the carrier's line (pass options, second balls after a
     // power KO frees the ball) — the narrow pressReach keeps it a duty, not a sheet.
-    DEF: { width: 1.00, slide: 0.25, near: 0.25, reach: 0.45, pressReach: 0.20, attackRun: 0.05, press: 0.10, cover: 0.06 },
-    MID: { width: 1.10, slide: 0.20, near: 0.30, reach: 0.45, pressReach: 0.22, attackRun: 0.14, press: 0.42, cover: 0.08 },
-    FWD: { width: 1.15, slide: 0.15, near: 0.25, reach: 0.45, pressReach: 0.24, attackRun: 0.18, press: 0.36, cover: 0.04 },
+    DEF: { width: 1.00, slide: 0.25, near: 0.25, reach: 0.45, pressReach: 0.20, attackRun: 0.05, press: 0.015, cover: 0.06 },
+    MID: { width: 1.10, slide: 0.20, near: 0.30, reach: 0.45, pressReach: 0.22, attackRun: 0.14, press: 0.05, cover: 0.08 },
+    FWD: { width: 1.15, slide: 0.15, near: 0.25, reach: 0.45, pressReach: 0.24, attackRun: 0.18, press: 0.05, cover: 0.04 },
   },
   outOfPossession: {
-    DEF: { width: 0.72, slide: 0.26, near: 0.28, reach: 0.50, pressReach: 0.20, attackRun: 0, press: 0.40, cover: 0.06 },
-    MID: { width: 0.68, slide: 0.35, near: 0.42, reach: 0.50, pressReach: 0.22, attackRun: 0, press: 0.65, cover: 0.08 },
-    FWD: { width: 0.64, slide: 0.45, near: 0.35, reach: 0.50, pressReach: 0.24, attackRun: 0, press: 0.38, cover: 0.03 },
+    DEF: { width: 0.72, slide: 0.26, near: 0.28, reach: 0.50, pressReach: 0.20, attackRun: 0, press: 0.06, cover: 0.06 },
+    MID: { width: 0.68, slide: 0.35, near: 0.42, reach: 0.50, pressReach: 0.22, attackRun: 0, press: 0.10, cover: 0.08 },
+    FWD: { width: 0.64, slide: 0.45, near: 0.35, reach: 0.50, pressReach: 0.24, attackRun: 0, press: 0.06, cover: 0.03 },
   },
 };
 
@@ -146,8 +146,8 @@ function cellTarget(slot, phaseName, slotIdx, bx, by) {
   const falloff = Math.max(0, 1 - Math.abs(bx - slot.ax) / px.reach);
   const pressFalloff = Math.max(0, 1 - Math.abs(bx - slot.ax) / px.pressReach);
   const x = 0.5 + (slot.ax - 0.5) * px.width + (bx - 0.5) * px.slide + (bx - slot.ax) * px.near * falloff;
-  const step = 0.17 + slotIdx * 0.013;
-  const steppedBy = clamp(stair(clamp(by, py.winLo, py.winHi), step, slotIdx * 0.037), py.winLo, py.winHi); // re-clamp: a step-center may overshoot the window
+  const step = 0.13 + slotIdx * 0.011;
+  const steppedBy = clamp(stair(clamp(by, py.winLo, py.winHi), step, slotIdx * 0.031), py.winLo, py.winHi); // re-clamp: a step-center may overshoot the window
   let y = py.lineY + py.follow * (steppedBy - 0.5);
   if (py.pressTrigger !== undefined && by < py.pressTrigger) y = py.pressLine; // counter-press cells override the window model
   y += (by - y) * px.press * pressFalloff; // ball-side step toward the ball's y line

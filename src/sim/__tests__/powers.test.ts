@@ -135,7 +135,7 @@ describe('power effects', () => {
   it('FIRE_TORCH ignites the nearest opponent, who is later extinguished', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const torch = 9;
-    // Rig at midfield: Dario already carries the kickoff at center (outside shot range);
+    // Rig at midfield: Dario already carries the kickoff at center (far from a valuable shot);
     // a presser starts just outside tackle range and pressing keeps him inside 800
     // through the windup.
     m.ball = { kind: 'held', by: torch };
@@ -166,7 +166,7 @@ describe('power effects', () => {
 
   it('rival SUPER_STRENGTH locks its target at windup start, charges, and flattens them', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    // Rig at midfield (outside shot range): Zip carries on top of Rex; zone set directly
+    // Rig at midfield (far from a valuable shot): Zip carries on top of Rex; zone set directly
     // so the lock happens at this windup's start. The flatten must land even though Zip
     // releases the ball during the charge (hadBall false is fine — that IS the counterplay).
     m.ball = { kind: 'held', by: SPEEDSTER };
@@ -259,18 +259,17 @@ describe('frozen-team bug: knockOut clears an active/winding power instead of fr
     expect(ready).toBe(true);
   });
 
-  // Natural repro. Trajectory-dependent seed: the m0.4 repro seeds (6/34/103)
-  // stopped red-carding Dario under the m0.5 positional-movement tables (re-scan
-  // found 86), and m0.5's seed 86 stopped red-carding him under the m0.6 GK
-  // angle-narrowing, so the scan was re-run on m0.6 — seed 227 deterministically
-  // red-cards Dario (player 9, FIRE_TORCH) at tick 1015 while he is 'active'
+  // Natural repro. Trajectory-dependent seed: the m0.6 seed 227 stopped
+  // red-carding Dario after the attacking-decision rework, so the scan was
+  // re-run on m0.7 — seed 152 deterministically red-cards Dario (player 9,
+  // FIRE_TORCH) at tick 1696 while he is 'active'
   // (torch card rolls happen at activation; reds arrive via second yellow) —
   // pre-fix this froze teamPowerBusy for team 0 permanently (red card never
   // returns), so Zip (player 10) recorded zero POWER_READY for the rest of the
   // match. The mechanism itself is pinned by the rigged test above; this one
   // keeps a whole-match natural pathway covered.
-  it('seed 227: Zip (10) still records a POWER_READY after Dario (9) is red-carded while active', () => {
-    const r = runMatch(227, ROVERS, UNITED, [], { homePolicy: 'FIRE_WHEN_READY' });
+  it('seed 152: Zip (10) still records a POWER_READY after Dario (9) is red-carded while active', () => {
+    const r = runMatch(152, ROVERS, UNITED, [], { homePolicy: 'FIRE_WHEN_READY' });
     const dario9Red = r.events.find(e => e.kind === 'CARD' && (e as { player: number; color: string }).player === 9 && (e as { color: string }).color === 'red') as { t: number } | undefined;
     expect(dario9Red).toBeDefined();
     const readyAfter = r.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER && e.t > dario9Red!.t);
