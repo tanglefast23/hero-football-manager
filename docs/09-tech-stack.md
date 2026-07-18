@@ -39,7 +39,7 @@ Version policy: pin per EAS milestone; upgrade quarterly, never continuously (st
 - **render/** consumes the sim's event stream + tick snapshots and interpolates 100ms ticks into 60fps motion. The renderer can lag, drop frames, or not exist (Quick Result) without affecting outcomes.
 - Content (powers, events, drills, sponsors, archetypes, name tables) lives in typed JSON under `content/`, validated by zod at build time.
 
-## Determinism rules (non-negotiable, enforced by lint + tests)
+## Determinism rules (non-negotiable, enforced by a guard test + golden replays)
 
 1. No `Math.random`, `Date.now`, or `new Date()` inside sim/ or game/ — a seeded PRNG (mulberry32) is injected; the seed is stored in the save per match/season.
 2. Fixed timestep (100ms ticks); positions on an integer centimeter grid.

@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`mulberry32 golden values: exact sequence is locked for replay determinism 1`] = `
+[
+  0.6011037519201636,
+  0.44829055899754167,
+  0.8524657934904099,
+]
+`;
+
+exports[`mulberry32 golden values: exact sequence is locked for replay determinism 2`] = `
+[
+  0.011704753153026104,
+  0.06195825757458806,
+]
+`;

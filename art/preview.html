@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hero Football Manager — M0 Sprite Pack Preview</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #101418;
+    color: #eef1f5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 32px 24px 64px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #8a93a0; font-size: 13px; margin-bottom: 8px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #8a93a0; margin-bottom: 32px; }
+  .legend span.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .team-section { margin-bottom: 40px; }
+  .team-title {
+    font-size: 15px; font-weight: 700; padding: 6px 14px; border-radius: 6px;
+    display: inline-block; margin-bottom: 16px; letter-spacing: 0.02em;
+  }
+  .team-title.rovers { background: rgba(232, 67, 63, 0.14); color: #ff8f8b; border: 1px solid #e8433f; }
+  .team-title.united { background: rgba(63, 111, 216, 0.14); color: #9db8ff; border: 1px solid #3f6fd8; }
+  .team-title.neutral { background: rgba(255, 255, 255, 0.08); color: #eef1f5; border: 1px solid #444d5a; }
+  .grid { display: flex; flex-wrap: wrap; gap: 16px; }
+  .card {
+    background: #171d24; border: 1px solid #262f3a; border-radius: 10px;
+    padding: 12px; width: 232px;
+  }
+  .card.star { border-color: #e0b23a; box-shadow: 0 0 0 2px rgba(224, 178, 58, 0.35); }
+  .card .label { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .card .label .star-badge { color: #e0b23a; font-size: 10px; font-weight: 700; margin-left: 6px; }
+  .card .meta { font-size: 11px; color: #8a93a0; margin-bottom: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .sprites-row { display: flex; gap: 8px; align-items: flex-end; }
+  .sprite-box { text-align: center; }
+  .sprite-box canvas {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    background: #2e7d4f;
+    border-radius: 3px;
+    display: block;
+  }
+  .sprite-box .tag { font-size: 10px; color: #8a93a0; margin-top: 4px; }
+  .ball-section .card { width: auto; display: inline-block; }
+  .zoom-note { color: #8a93a0; font-size: 12px; margin: -8px 0 12px; }
+  .pitch-strip {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+    background: #2e7d4f; padding: 12px; border-radius: 8px; margin-bottom: 12px;
+  }
+  .zoom-unit { text-align: center; }
+  .zoom-unit .pair { display: flex; gap: 2px; justify-content: center; }
+  .zoom-unit.star .pair { outline: 2px solid #e0b23a; outline-offset: 1px; border-radius: 2px; }
+  .zoom-unit canvas { image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; display: block; }
+  .zoom-unit .tag { font-size: 9px; color: rgba(10, 26, 16, 0.9); margin-top: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body>
+  <h1>Hero Football Manager — M0 Sprite Pack Preview</h1>
+  <div class="sub">B+ heroic chibi · 16&times;20 px per frame · all 22 players individually designed, 2-frame run cycle, shared ball. Rosters at 8&times;, match-zoom strip at 2&times; below.</div>
+  <div class="legend">
+    <span><span class="swatch" style="background:#e8433f"></span>Rovers kit</span>
+    <span><span class="swatch" style="background:#1d9e75"></span>Rovers GK</span>
+    <span><span class="swatch" style="background:#3f6fd8"></span>United kit</span>
+    <span><span class="swatch" style="background:#ba7517"></span>United GK</span>
+    <span><span class="swatch" style="background:#e0b23a;border:1px solid #b6862a"></span>Gold border = Hero star</span>
+  </div>
+  <div id="app"></div>
+
+<script type="application/json" id="sheet-data">{"cell":{"w":16,"h":20},"palette":{".":null,"O":"#3a2b23","E":"#1c1410","K":"#000000","R":"#e8433f","r":"#c22f2c","B":"#3f6fd8","b":"#2f55b8","T":"#1d9e75","t":"#157a5a","A":"#ba7517","a":"#96600f","W":"#ffffff","S":"#f5c99a","D":"#c98d5a","M":"#8a5a34","V":"#5c3a21","H":"#241a12","N":"#4a3628","Y":"#e0b23a","C":"#c94f2a","G":"#9a9a9a","F":"#ff6a00"},"sprites":{"r0:run0":["................","......OOOO......",".....OHHHHO.....","....OHHHHHHO....","....OHHHHHHO....","....ODEDDEDO....","....ODDMMDDO....","....ODDDDDDO....",".....OOOOOO.....","....OTTTTTTO....","...DOTTTTTTOD...","...DOTTTTTTOD...","....OTTTTTTO....","....OTTTTTTO....","....OttttttO....","....OWWWWWWO....","....DD...DD.....","....DD...DD.....","....WW...WW.....","....OO...OO....."],"r0:run1":["................","......OOOO......",".....OHHHHO.....","....OHHHHHHO....","....OHHHHHHO....","....ODEDDEDO....","....ODDMMDDO....","....ODDDDDDO....",".....OOOOOO.....","....OTTTTTTO....","...DOTTTTTTOD...","...DOTTTTTTOD...","....OTTTTTTO....","....OTTTTTTO....","....OttttttO....","....OWWWWWWO....",".....DD.DD......",".....DD.DD......",".....WW.WW......",".....OO.OO......"],"r1:run0":["................","......OOOO......",".....OGGGGO.....","....OGGGGGGO....","....OGGGGGGO....","....OSESSESO....","....OSGGGGSO....","....OSSSSSSO....",".....OOOOOO.....","....ORRRRRRO....","...SORRRRRROS...","...SORRRRRROS...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....","....SS...SS.....","....SS...SS.....","....WW...WW.....","....OO...OO....."],"r1:run1":["................","......OOOO......",".....OGGGGO.....","....OGGGGGGO....","....OGGGGGGO....","....OSESSESO....","....OSGGGGSO....","....OSSSSSSO....",".....OOOOOO.....","....ORRRRRRO....","...SORRRRRROS...","...SORRRRRROS...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....",".....SS.SS......",".....SS.SS......",".....WW.WW......",".....OO.OO......"],"r2:run0":["................","......OOOO......",".....ONNNNO.....","....ONONNONO....","....ONNNNNNO....","....OMEMMEMO....","....OMDVMDMO....","....OMMMMMMO....",".....OOOOOO.....","....ORRRRRRO....","...MORRRRRROM...","...MORRRRRROM...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....","....MM...MM.....","....MM...MM.....","....WW...WW.....","....OO...OO....."],"r2:run1":["................","......OOOO......",".....ONNNNO.....","....ONONNONO....","....ONNNNNNO....","....OMEMMEMO....","....OMDVMDMO....","....OMMMMMMO....",".....OOOOOO.....","....ORRRRRRO....","...MORRRRRROM...","...MORRRRRROM...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....",".....MM.MM......",".....MM.MM......",".....WW.WW......",".....OO.OO......"],"r3:run0":["................","......OOOO......",".....OHHHHO.....","....ODDDDDDO....","....ODDDDDDO....","....ODEDDEDO....","....ODDMMDDO....","....ODDDDDDO....",".....OOOOOO.....","...ORRRRRRRRO...","...ORRRRRRRRO...","....ORRRRRRO....","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....","....DD...DD.....","....DD...DD.....","....WW...WW.....","....OO...OO....."],"r3:run1":["................","......OOOO......",".....OHHHHO.....","....ODDDDDDO....","....ODDDDDDO....","....ODEDDEDO....","....ODDMMDDO....","....ODDDDDDO....",".....OOOOOO.....","...ORRRRRRRRO...","...ORRRRRRRRO...","....ORRRRRRO....","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....",".....DD.DD......",".....DD.DD......",".....WW.WW......",".....OO.OO......"],"r4:run0":["................","......OOOO......",".....OGGGGO.....","....OGGGGGGO....","....OGGGGGGO....","....GVEVVEVO....","....GGMEEMGO....","....OGGGGGGO....",".....OOOOOO.....","....ORRRRRRO....","...VORRRRRROV...","...VORRRRRROV...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....","....VV...VV.....","....VV...VV.....","....WW...WW.....","....OO...OO....."],"r4:run1":["................","......OOOO......",".....OGGGGO.....","....OGGGGGGO....","....OGGGGGGO....","....GVEVVEVO....","....GGMEEMGO....","....OGGGGGGO....",".....OOOOOO.....","....ORRRRRRO....","...VORRRRRROV...","...VORRRRRROV...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....",".....VV.VV......",".....VV.VV......",".....WW.WW......",".....OO.OO......"],"r5:run0":["................","......OOOO......",".....OYYYYO.....","....OYOYYOYO....","....OYYYYYYO....","....OSESSESO....","....OSSDDSSO....","....OSSSSSSO....",".....OOOOOO.....","....ORRRRRRO....","...SORRRRRROS...","...SORRRRRROS...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....","....SS...SS.....","....SS...SS.....","....WW...WW.....","....OO...OO....."],"r5:run1":["................","......OOOO......",".....OYYYYO.....","....OYOYYOYO....","....OYYYYYYO....","....OSESSESO....","....OSSDDSSO....","....OSSSSSSO....",".....OOOOOO.....","....ORRRRRRO....","...SORRRRRROS...","...SORRRRRROS...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....",".....SS.SS......",".....SS.SS......",".....WW.WW......",".....OO.OO......"],"r6:run0":["................","......OOOO......",".....OHHHHO.....","....OHHHHHHO....","....OHHHHHHO....","....OMEMMEMO....","....OMDVMDMO....","....OMMMMMMO....",".....OOOOOO.....","....ORRRRRRO....","...MORRRRRROM...","...MORRRRRROM...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....","....MM...MM.....","....MM...MM.....","....WW...WW.....","....OO...OO....."],"r6:run1":["................","......OOOO......",".....OHHHHO.....","....OHHHHHHO....","....OHHHHHHO....","....OMEMMEMO....","....OMDVMDMO....","....OMMMMMMO....",".....OOOOOO.....","....ORRRRRRO....","...MORRRRRROM...","...MORRRRRROM...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....",".....MM.MM......",".....MM.MM......",".....WW.WW......",".....OO.OO......"],"r7:run0":["................",".....C.CC.C.....",".....OCCCCO.....","....OCCCCCCO....","....OSSSSSSO....","....OSESSESO....","....OSSDDSSO....","....OSSSSSSO....",".....OOOOOO.....","....ORRRRRO.....","...SORRRRROS....","...SORRRRROS....","....ORRRRRO.....","....ORRRRRO.....","....OrrrrrO.....","....OWWWWWWO....","....SS...SS.....","....SS...SS.....","....WW...WW.....","....OO...OO....."],"r7:run1":["................",".....C.CC.C.....",".....OCCCCO.....","....OCCCCCCO....","....OSSSSSSO....","....OSESSESO....","....OSSDDSSO....","....OSSSSSSO....",".....OOOOOO.....","....ORRRRRO.....","...SORRRRROS....","...SORRRRROS....","....ORRRRRO.....","....ORRRRRO.....","....OrrrrrO.....","....OWWWWWWO....",".....SS.SS......",".....SS.SS......",".....WW.WW......",".....OO.OO......"],"r8:run0":["................","......OOOO......",".....OHHHHO.....","....OHHHHHHO....","....OHHHHHHO....","....HDEDDEDO....","....HDDMMDDO....","....ODDDDDDO....",".....OOOOOO.....","....ORRRRRRO....","...DORRRRRROD...","...DORRRRRROD...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....","....DD...DD.....","....DD...DD.....","....WW...WW.....","....OO...OO....."],"r8:run1":["................","......OOOO......",".....OHHHHO.....","....OHHHHHHO....","....OHHHHHHO....","....HDEDDEDO....","....HDDMMDDO....","....ODDDDDDO....",".....OOOOOO.....","....ORRRRRRO....","...DORRRRRROD...","...DORRRRRROD...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....",".....DD.DD......",".....DD.DD......",".....WW.WW......",".....OO.OO......"],"r9:run0":["................",".....F.FF.F.....",".....OCCCCO.....","....OCCCCCCO....","....ODODDODO....","....ODEDDEDO....","....ODDEEDDO....","....ODDDDDDO....",".....OOOOOO.....","....ORRRRRRO....","...DORRRRRROD...","...DORRRRRROD...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....","....DD...DD.....","....DD...DD.....","....WW...WW.....","....OO...OO....."],"r9:run1":["................",".....F.FF.F.....",".....OCCCCO.....","....OCCCCCCO....","....ODODDODO....","....ODEDDEDO....","....ODDEEDDO....","....ODDDDDDO....",".....OOOOOO.....","....ORRRRRRO....","...DORRRRRROD...","...DORRRRRROD...","....ORRRRRRO....","....ORRRRRRO....","....OrrrrrrO....","....OWWWWWWO....",".....DD.DD......",".....DD.DD......",".....WW.WW......",".....OO.OO......"],"r10:run0":["................","......OOOOO.....",".....OYYYYYO....","....OYYYYYYO....","....OOOOOOOO....","....OSESSESO....","....OSDSSDSO....","....OSSDDSSO....",".....OOOOOO.....","....ORRRRRO.....","...SORRRRROS....","...SORRRRROS....","....ORRRRRO.....","....ORRRRRO.....","....OrrrrrO.....","....OWWWWWWO....","....SS...SS.....","....SS...SS.....","....WW...WW.....","....OO...OO....."],"r10:run1":["................","......OOOOO.....",".....OYYYYYO....","....OYYYYYYO....","....OOOOOOOO....","....OSESSESO....","....OSDSSDSO....","....OSSDDSSO....",".....OOOOOO.....","....ORRRRRO.....","...SORRRRROS....","...SORRRRROS....","....ORRRRRO.....","....ORRRRRO.....","....OrrrrrO.....","....OWWWWWWO....",".....SS.SS......",".....SS.SS......",".....WW.WW......",".....OO.OO......"],"u0:run0":["................","......OOOO......",".....ONNNNO.....","....ONNNNNNO....","....ONNNNNNO....","....OMEMMEMO....","....OMDVVDMO....","....OMMMMMMO....",".....OOOOOO.....","....OAAAAAAO....","...MOAAAAAAOM...","...MOAAAAAAOM...","....OAAAAAAO....","....OAAAAAAO....","....OaaaaaaO....","....OWWWWWWO....","....MM...MM.....","....MM...MM.....","....WW...WW.....","....OO...OO....."],"u0:run1":["................","......OOOO......",".....ONNNNO.....","....ONNNNNNO....","....ONNNNNNO....","....OMEMMEMO....","....OMDVVDMO....","....OMMMMMMO....",".....OOOOOO.....","....OAAAAAAO....","...MOAAAAAAOM...","...MOAAAAAAOM...","....OAAAAAAO....","....OAAAAAAO....","....OaaaaaaO....","....OWWWWWWO....",".....MM.MM......",".....MM.MM......",".....WW.WW......",".....OO.OO......"],"u1:run0":["................","......OOOO......",".....OGGGGO.....","....OSSSSSSO....","....OSSSSSSO....","....OSESSESO....","....OSSDDSSO....","....OSSSSSSO....",".....OOOOOO.....","....OBBBBBBO....","...SOBBBBBBOS...","...SOBBBBBBOS...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....","....SS...SS.....","....SS...SS.....","....WW...WW.....","....OO...OO....."],"u1:run1":["................","......OOOO......",".....OGGGGO.....","....OSSSSSSO....","....OSSSSSSO....","....OSESSESO....","....OSSDDSSO....","....OSSSSSSO....",".....OOOOOO.....","....OBBBBBBO....","...SOBBBBBBOS...","...SOBBBBBBOS...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....",".....SS.SS......",".....SS.SS......",".....WW.WW......",".....OO.OO......"],"u2:run0":["................","......OOOO......",".....OHHHHO.....","....OHHHHHHO....","....OHHHHHHO....","....OVEVVEVO....","....OVMHHMVO....","....OVVVVVVO....",".....OOOOOO.....","....OBBBBBBO....","...VOBBBBBBOV...","...VOBBBBBBOV...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....","....VV...VV.....","....VV...VV.....","....WW...WW.....","....OO...OO....."],"u2:run1":["................","......OOOO......",".....OHHHHO.....","....OHHHHHHO....","....OHHHHHHO....","....OVEVVEVO....","....OVMHHMVO....","....OVVVVVVO....",".....OOOOOO.....","....OBBBBBBO....","...VOBBBBBBOV...","...VOBBBBBBOV...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....",".....VV.VV......",".....VV.VV......",".....WW.WW......",".....OO.OO......"],"u3:run0":["................","......OOOO......",".....OHHHHO.....","....ODDDDDDO....","....ODOOOODO....","....ODEDDEDO....","....ODEWWEDO....","....ODDDDDDO....",".....OOOOOO.....","...OBBBBBBBBO...","...OBBBBBBBBO...","....OBBBBBBO....","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....","....DD...DD.....","....DD...DD.....","....WW...WW.....","....OO...OO....."],"u3:run1":["................","......OOOO......",".....OHHHHO.....","....ODDDDDDO....","....ODOOOODO....","....ODEDDEDO....","....ODEWWEDO....","....ODDDDDDO....",".....OOOOOO.....","...OBBBBBBBBO...","...OBBBBBBBBO...","....OBBBBBBO....","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....",".....DD.DD......",".....DD.DD......",".....WW.WW......",".....OO.OO......"],"u4:run0":["................","......OOOO......",".....OCCCCO.....","....OCCCCCCO....","....OCCCCCCO....","....CSESSESO....","....CSSDDSSO....","....OSSSSSSO....",".....OOOOOO.....","....OBBBBBBO....","...SOBBBBBBOS...","...SOBBBBBBOS...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....","....SS...SS.....","....SS...SS.....","....WW...WW.....","....OO...OO....."],"u4:run1":["................","......OOOO......",".....OCCCCO.....","....OCCCCCCO....","....OCCCCCCO....","....CSESSESO....","....CSSDDSSO....","....OSSSSSSO....",".....OOOOOO.....","....OBBBBBBO....","...SOBBBBBBOS...","...SOBBBBBBOS...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....",".....SS.SS......",".....SS.SS......",".....WW.WW......",".....OO.OO......"],"u5:run0":["................","......OOOO......",".....OYYYYO.....","....OMMMMMMO....","....OMMMMMMO....","....OMEMMEMO....","....OMDVMDMO....","....OMMMMMMO....",".....OOOOOO.....","....OBBBBBBO....","...MOBBBBBBOM...","...MOBBBBBBOM...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....","....MM...MM.....","....MM...MM.....","....WW...WW.....","....OO...OO....."],"u5:run1":["................","......OOOO......",".....OYYYYO.....","....OMMMMMMO....","....OMMMMMMO....","....OMEMMEMO....","....OMDVMDMO....","....OMMMMMMO....",".....OOOOOO.....","....OBBBBBBO....","...MOBBBBBBOM...","...MOBBBBBBOM...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....",".....MM.MM......",".....MM.MM......",".....WW.WW......",".....OO.OO......"],"u6:run0":["................",".....N.NN.N.....",".....ONNNNO.....","....ONNNNNNO....","....OSSSSSSO....","....OSESSESO....","....OSSDDSSO....","....OSSSSSSO....",".....OOOOOO.....","....OBBBBBBO....","...SOBBBBBBOS...","...SOBBBBBBOS...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....","....SS...SS.....","....SS...SS.....","....WW...WW.....","....OO...OO....."],"u6:run1":["................",".....N.NN.N.....",".....ONNNNO.....","....ONNNNNNO....","....OSSSSSSO....","....OSESSESO....","....OSSDDSSO....","....OSSSSSSO....",".....OOOOOO.....","....OBBBBBBO....","...SOBBBBBBOS...","...SOBBBBBBOS...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....",".....SS.SS......",".....SS.SS......",".....WW.WW......",".....OO.OO......"],"u7:run0":["................","......OOOO......",".....OGGGGO.....","....OGGGGGGO....","....OGGGGGGO....","....GDEDDEDO....","....GDDMMDDO....","....ODDDDDDO....",".....OOOOOO.....","....OBBBBBBO....","...DOBBBBBBOD...","...DOBBBBBBOD...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....","....DD...DD.....","....DD...DD.....","....WW...WW.....","....OO...OO....."],"u7:run1":["................","......OOOO......",".....OGGGGO.....","....OGGGGGGO....","....OGGGGGGO....","....GDEDDEDO....","....GDDMMDDO....","....ODDDDDDO....",".....OOOOOO.....","....OBBBBBBO....","...DOBBBBBBOD...","...DOBBBBBBOD...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....",".....DD.DD......",".....DD.DD......",".....WW.WW......",".....OO.OO......"],"u8:run0":["................","......OOOO......",".....OHHHHO.....","....OHOHHOHO....","....OHHHHHHO....","....OMEMMEMO....","....OHDVVDHO....","....OHHHHHHO....",".....OOOOOO.....","....OBBBBBBO....","...MOBBBBBBOM...","...MOBBBBBBOM...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....","....MM...MM.....","....MM...MM.....","....WW...WW.....","....OO...OO....."],"u8:run1":["................","......OOOO......",".....OHHHHO.....","....OHOHHOHO....","....OHHHHHHO....","....OMEMMEMO....","....OHDVVDHO....","....OHHHHHHO....",".....OOOOOO.....","....OBBBBBBO....","...MOBBBBBBOM...","...MOBBBBBBOM...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....",".....MM.MM......",".....MM.MM......",".....WW.WW......",".....OO.OO......"],"u9:run0":["................","......OOOO......",".....OCCCCO.....","....OCOCCOCO....","....OCCCCCCO....","....OSESSESO....","....OSSDSSSO....","....OSSSSSSO....",".....OOOOOO.....","....OBBBBBBO....","...SOBBBBBBOS...","...SOBBBBBBOS...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....","....SS...SS.....","....SS...SS.....","....WW...WW.....","....OO...OO....."],"u9:run1":["................","......OOOO......",".....OCCCCO.....","....OCOCCOCO....","....OCCCCCCO....","....OSESSESO....","....OSSDSSSO....","....OSSSSSSO....",".....OOOOOO.....","....OBBBBBBO....","...SOBBBBBBOS...","...SOBBBBBBOS...","....OBBBBBBO....","....OBBBBBBO....","....ObbbbbbO....","....OWWWWWWO....",".....SS.SS......",".....SS.SS......",".....WW.WW......",".....OO.OO......"],"u10:run0":["................","......OOOO......",".....OYYYYO.....","....OYYYYYYO....","....OYYYYYYO....","....ODEDDEDO....","....ODDMDDDO....","....ODDDDDDO....",".....OOOOOO.....","....OBBBBBBO....","...DOBBBBBBOD...","...DOBBBBBBOD...","...OBBBBBBBBO...","...OBBBBBBBBO...","...ObbbbbbbbO...","....OWWWWWWO....","....DD...DD.....","....DD...DD.....","....WW...WW.....","....OO...OO....."],"u10:run1":["................","......OOOO......",".....OYYYYO.....","....OYYYYYYO....","....OYYYYYYO....","....ODEDDEDO....","....ODDMDDDO....","....ODDDDDDO....",".....OOOOOO.....","....OBBBBBBO....","...DOBBBBBBOD...","...DOBBBBBBOD...","...OBBBBBBBBO...","...OBBBBBBBBO...","...ObbbbbbbbO...","....OWWWWWWO....",".....DD.DD......",".....DD.DD......",".....WW.WW......",".....OO.OO......"],"ball":[".KKKK.","KWWWWK","KWKKWK","KWWWWK","KWWWWK",".KKKK."]}}</script>
+<script type="application/json" id="roster-data">[{"id":"r0","name":"Sam Mitts","role":"GK","team":"rovers","star":false},{"id":"r1","name":"Ed Stone","role":"DEF","team":"rovers","star":false},{"id":"r2","name":"Bo Hedges","role":"DEF","team":"rovers","star":false},{"id":"r3","name":"Max Tanko","role":"DEF","team":"rovers","star":false},{"id":"r4","name":"Ty Brooks","role":"DEF","team":"rovers","star":false},{"id":"r5","name":"Gio Marsh","role":"MID","team":"rovers","star":false},{"id":"r6","name":"Ken Ash","role":"MID","team":"rovers","star":false},{"id":"r7","name":"Leo Quick","role":"MID","team":"rovers","star":false},{"id":"r8","name":"Ravi Chan","role":"MID","team":"rovers","star":false},{"id":"r9","name":"Dario Flint","role":"FWD","team":"rovers","star":true},{"id":"r10","name":"Zip Vela","role":"FWD","team":"rovers","star":true},{"id":"u0","name":"Vic Palm","role":"GK","team":"united","star":false},{"id":"u1","name":"Ali Frost","role":"DEF","team":"united","star":false},{"id":"u2","name":"Jon Crag","role":"DEF","team":"united","star":false},{"id":"u3","name":"Rex Bould","role":"DEF","team":"united","star":true},{"id":"u4","name":"Nik Vale","role":"DEF","team":"united","star":false},{"id":"u5","name":"Oz Reeds","role":"MID","team":"united","star":false},{"id":"u6","name":"Cal Dunn","role":"MID","team":"united","star":false},{"id":"u7","name":"Ian Slate","role":"MID","team":"united","star":false},{"id":"u8","name":"Uri Kemp","role":"MID","team":"united","star":false},{"id":"u9","name":"Abe Torro","role":"FWD","team":"united","star":false},{"id":"u10","name":"Moe Lyle","role":"FWD","team":"united","star":false}]</script>
+<script>
+(function () {
+  const SHEET = JSON.parse(document.getElementById('sheet-data').textContent);
+  const ROSTER = JSON.parse(document.getElementById('roster-data').textContent);
+  const SCALE = 8;
+  const FPS = 6;
+
+  function drawSprite(canvas, rows, scale) {
+    const px = scale || SCALE;
+    const w = rows[0].length, h = rows.length;
+    canvas.width = w;
+    canvas.height = h;
+    canvas.style.width = (w * px) + 'px';
+    canvas.style.height = (h * px) + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    for (let y = 0; y < h; y++) {
+      const row = rows[y];
+      for (let x = 0; x < row.length; x++) {
+        const color = SHEET.palette[row[x]];
+        if (!color) continue; // transparent — let the backdrop show through
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+  }
+
+  function spriteBox(tag, rows) {
+    const box = document.createElement('div');
+    box.className = 'sprite-box';
+    const canvas = document.createElement('canvas');
+    drawSprite(canvas, rows);
+    const label = document.createElement('div');
+    label.className = 'tag';
+    label.textContent = tag;
+    box.appendChild(canvas);
+    box.appendChild(label);
+    return box;
+  }
+
+  function animatedBox(id) {
+    const box = document.createElement('div');
+    box.className = 'sprite-box';
+    const canvas = document.createElement('canvas');
+    const frames = [SHEET.sprites[id + ':run0'], SHEET.sprites[id + ':run1']];
+    let frame = 0;
+    drawSprite(canvas, frames[0]);
+    setInterval(function () {
+      frame = 1 - frame;
+      drawSprite(canvas, frames[frame]);
+    }, 1000 / FPS);
+    const label = document.createElement('div');
+    label.className = 'tag';
+    label.textContent = 'animated';
+    box.appendChild(canvas);
+    box.appendChild(label);
+    return box;
+  }
+
+  function buildCard(player) {
+    const card = document.createElement('div');
+    card.className = 'card' + (player.star ? ' star' : '');
+
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.innerHTML = player.id + ' \u00b7 ' + player.name + (player.star ? ' <span class="star-badge">\u2605 HERO STAR</span>' : '');
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = player.role;
+
+    const row = document.createElement('div');
+    row.className = 'sprites-row';
+    row.appendChild(spriteBox('run0', SHEET.sprites[player.id + ':run0']));
+    row.appendChild(spriteBox('run1', SHEET.sprites[player.id + ':run1']));
+    row.appendChild(animatedBox(player.id));
+
+    card.appendChild(label);
+    card.appendChild(meta);
+    card.appendChild(row);
+    return card;
+  }
+
+  function teamSection(app, teamKey, teamLabel, cls) {
+    const section = document.createElement('div');
+    section.className = 'team-section';
+    const title = document.createElement('div');
+    title.className = 'team-title ' + cls;
+    title.textContent = teamLabel;
+    section.appendChild(title);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    ROSTER.filter(function (p) { return p.team === teamKey; }).forEach(function (p) {
+      grid.appendChild(buildCard(p));
+    });
+    section.appendChild(grid);
+    app.appendChild(section);
+  }
+
+  function zoomUnit(labelText, isStar, spriteKeys) {
+    const unit = document.createElement('div');
+    unit.className = 'zoom-unit' + (isStar ? ' star' : '');
+    const pair = document.createElement('div');
+    pair.className = 'pair';
+    spriteKeys.forEach(function (key) {
+      const canvas = document.createElement('canvas');
+      drawSprite(canvas, SHEET.sprites[key], 2);
+      pair.appendChild(canvas);
+    });
+    const tag = document.createElement('div');
+    tag.className = 'tag';
+    tag.textContent = labelText;
+    unit.appendChild(pair);
+    unit.appendChild(tag);
+    return unit;
+  }
+
+  function zoomSection(app) {
+    const section = document.createElement('div');
+    section.className = 'team-section';
+    const title = document.createElement('div');
+    title.className = 'team-title neutral';
+    title.textContent = 'Match zoom (2\u00d7)';
+    section.appendChild(title);
+    const note = document.createElement('div');
+    note.className = 'zoom-note';
+    note.textContent = 'Roughly the in-match sprite size on the pitch \u2014 judge readability here, not just at 8\u00d7. Gold outline = star.';
+    section.appendChild(note);
+
+    ['rovers', 'united'].forEach(function (teamKey) {
+      const strip = document.createElement('div');
+      strip.className = 'pitch-strip';
+      ROSTER.filter(function (p) { return p.team === teamKey; }).forEach(function (p) {
+        strip.appendChild(zoomUnit(p.id, p.star, [p.id + ':run0', p.id + ':run1']));
+      });
+      if (teamKey === 'united') {
+        strip.appendChild(zoomUnit('ball', false, ['ball']));
+      }
+      section.appendChild(strip);
+    });
+    app.appendChild(section);
+  }
+
+  const app = document.getElementById('app');
+  teamSection(app, 'rovers', 'Bramble Rovers (home)', 'rovers');
+  teamSection(app, 'united', 'Ferrous United (away)', 'united');
+
+  const ballSection = document.createElement('div');
+  ballSection.className = 'team-section ball-section';
+  const ballTitle = document.createElement('div');
+  ballTitle.className = 'team-title neutral';
+  ballTitle.textContent = 'Ball';
+  ballSection.appendChild(ballTitle);
+  const ballCard = document.createElement('div');
+  ballCard.className = 'card';
+  ballCard.appendChild(spriteBox('ball (6\u00d76)', SHEET.sprites.ball));
+  ballSection.appendChild(ballCard);
+  app.appendChild(ballSection);
+
+  zoomSection(app);
+})();
+</script>
+</body>
+</html>

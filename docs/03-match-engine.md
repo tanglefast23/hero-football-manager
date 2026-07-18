@@ -33,7 +33,7 @@ Passes and shots **travel through space** — a pass is a moving ball that can b
 
 ## Stats → outcomes
 
-Six visible stats, 1–99: **PAC** (pace) · **SHO** (shooting; GKs show **REF** reflexes instead) · **PAS** (passing) · **DEF** (defending) · **TEC** (technique/dribbling) · **STA** (stamina). Hidden: potential (1–5★), morale, condition, consistency.
+Six visible stats, 1–99: **PAC** (pace) · **SHO** (shooting; GKs show **REF** reflexes instead) · **PAS** (passing) · **DEF** (defending) · **TEC** (technique/dribbling) · **STA** (stamina). Hidden: potential (1–5★), morale, condition, consistency. (Storage note: every player carries all 7 attribute fields — GKs' SHO and outfielders' REF are unused filler; 'six visible' refers to the UI, not the data shape.)
 
 Contested actions resolve as opposed rolls through a logistic curve (in plain terms: the better your stat vs. theirs, the more often you win, but upsets always possible):
 
@@ -48,15 +48,16 @@ P(success) = 1 / (1 + e^(-(attacker_stat − defender_stat + situation_mod) / 12
 
 ### GK Resolve (the anti-frustration keystone)
 
-Borrowed directly from Inazuma Eleven's Keeper Power (see research/match-presentation.md): each GK has a **Resolve bar** (base 100, scaled by REF). Power shots and repeated pressure *damage Resolve* instead of auto-scoring; saves get weaker as Resolve drops. An opponent's fire-shot doesn't instantly score — it visibly wears your keeper down, giving you drama without cheapness. Resolve partially regenerates at halftime.
+Borrowed directly from Inazuma Eleven's Keeper Power (see research/match-presentation.md): each GK has a **Resolve bar** (base 100 for every keeper; REF sets how strongly saves resist shots, scaled by remaining Resolve). Power shots and repeated pressure *damage Resolve* instead of auto-scoring; saves get weaker as Resolve drops. An opponent's fire-shot doesn't instantly score — it visibly wears your keeper down, giving you drama without cheapness. Resolve partially regenerates at halftime.
 
 ## Superpowers in the engine
 
 A power is a **timed modifier burst** the sim applies to one agent (details in doc 04):
 
-- Each fielded hero has a **Hero Gauge** (0–100) that fills from involvement events (touches, tackles won, shots, goals conceded for keepers) plus a small time trickle — earned, not a timer.
+- Each fielded hero builds **Heat** from involvement events (touches, tackles won, shots at launch, saves) plus a small time trickle — earned, not a timer. Above a threshold, each tick rolls a small seeded entry chance scaled by heat: the hero enters **the Zone** (heat resets, glow starts). Semi-random entry means watching the pitch for who's catching fire is real gameplay; heat-weighting means it's earned luck.
 - Every power defines a **useful context** — the situations where firing it actually matters (Super Speed: you have the ball or it's loose nearby; Super Strength: an opposing carrier is in range; a GK power: a shot is incoming). Contexts are shown to the player (the chip glows brighter in context), so "when do I tap?" is a readable decision, not a guess.
-- **Full gauge** → 8-second window: tap the hero's chip to fire at **100%**, aimed at the current situation. If the window lapses, the hero auto-fires at **75%** at the next useful context (hard deadline: +4 more seconds). Pre-match, each hero can be set to **Fire when ready** — the AI fires automatically at the next useful context at **85%**. The attention ladder is deliberate: your tap > hero's instincts > wasted lapse, so watching earns an edge and simming stays respectable.
+- **The Zone window** lasts ~7 seconds, glow fading as it runs out. Tap the hero's chip during it to fire at **100%**, aimed at the current situation. A manual hero's expired window **decays heat to half — no auto-fire**: the attention premium is catching windows, not a stat bonus. Pre-match, each hero can instead be set to **Fire when ready** — the AI fires at the next useful context at **85%**, or at **75%** in the window's final seconds if no context appears (hands-off play and Quick Result stay respectable; rival heroes always run this policy). Powers that require a victim never fire targetless — those windows expire instead, making an opponent's glow a threat you can starve.
+- **One power active per team at a time**; while one is active or winding, teammates' zones and heat freeze (paused, never wasted). No stacking — and the spectacle cut-in only ever has one thing to show.
 - **Wind-up**: 1.5s telegraph (glow + rising jingle) during which a tackle can interrupt the power (Mario Strikers rule — the counterplay that stops power-snowballing).
 - **Opposing heroes** use powers on their own AI priorities. They appear rarely in Div 5–4, commonly from Div 2 up.
 - Power vs. power in the same moment → contested roll with a special clash cut-in.

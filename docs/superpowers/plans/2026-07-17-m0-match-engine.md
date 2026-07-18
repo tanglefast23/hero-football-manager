@@ -659,6 +659,8 @@ git commit -m "feat(sim): 4-4-2 anchors with mirroring and ball pull"
 
 ---
 
+> **Task 7.5 note:** the code blocks below predate the post-audit hardening commit `31394e0` (replay envelope fields, stoppage-time boundaries, restart invariants, deep-copied teams, DAG guard) and later amendments. The as-built files are canon; these blocks are historical. See commits `31394e0`, `f1b8603`, and the amendment sections below.
+
 ### Task 7: Events sink, match skeleton, movement (`events.ts`, `match.ts`, `engine.ts` v1)
 
 **Files:**
@@ -949,7 +951,7 @@ export function nearestOpponent(state: MatchState, idx: number): number {
   let best = -1, bestD2 = Infinity;
   for (let i = 0; i < 22; i++) {
     const o = state.players[i];
-    if (o.team === me.team || o.outUntilTick > state.tick) continue;
+    if (o.team === me.team || !isAvailable(state, i)) continue;
     const d2 = dist2(o.pos, me.pos);
     if (d2 < bestD2) { bestD2 = d2; best = i; }
   }
@@ -962,7 +964,7 @@ function bestPassTarget(state: MatchState, from: number): number {
   let best = -1, bestScore = -Infinity;
   for (let i = 0; i < 22; i++) {
     const mate = state.players[i];
-    if (i === from || mate.team !== me.team || mate.outUntilTick > state.tick) continue;
+    if (i === from || mate.team !== me.team || !isAvailable(state, i)) continue;
     const d2 = dist2(mate.pos, me.pos);
     if (d2 < 400 * 400 || d2 > 3500 * 3500) continue;
     const forwardness = Math.abs(mate.pos.y - gy);
@@ -981,8 +983,8 @@ export function possessionTick(state: MatchState): void {
     b.pos = { x: b.pos.x + b.vel.x, y: b.pos.y + b.vel.y };
     b.vel = { x: Math.trunc(b.vel.x * 0.8), y: Math.trunc(b.vel.y * 0.8) };
     for (let i = 0; i < 22; i++) {
+      if (!isAvailable(state, i)) continue;
       const p = state.players[i];
-      if (p.outUntilTick > state.tick) continue;
       if (dist2(p.pos, b.pos) < 150 * 150) {
         state.ball = { kind: 'held', by: i };
         addGauge(state, i, 8);
@@ -1008,6 +1010,7 @@ export function possessionTick(state: MatchState): void {
   }
 
   if (b.kind !== 'held') return; // 'shot' handled in Task 10
+  if (state.players[b.by].outUntilTick > state.tick) return; // unconscious carriers don't play (Task 7 review)
   if (state.tick % 5 !== 0) return;
 
   const carrierIdx = b.by;
@@ -1027,8 +1030,8 @@ export function possessionTick(state: MatchState): void {
     const to = bestPassTarget(state, carrierIdx);
     if (to !== -1) {
       const interceptorIdx = nearestOpponent(state, to);
-      const interceptStat = interceptorIdx === -1 ? 20 : state.players[interceptorIdx].def.attrs.def;
-      const ok = contest(state.rng, carrier.def.attrs.pas, interceptStat, 10);
+      const interceptStat = interceptorIdx === -1 ? 20 : effectiveStat(state, interceptorIdx, 'def');
+      const ok = contest(state.rng, effectiveStat(state, carrierIdx, 'pas'), interceptStat, 10);
       emit(state, { t: state.tick, kind: 'PASS', from: carrierIdx, to, ok });
       state.ball = { kind: 'pass', pos: { ...carrier.pos }, from: carrierIdx, to, willSucceed: ok, interceptor: interceptorIdx };
     }
@@ -1080,6 +1083,23 @@ Run: `npm test -- engine` → FAIL: tackles.length = 0.
 
 - [ ] **Step 3: Implement in `engine.ts`**
 
+First, pressing (Task 9 amendment — docs/03 specifies defenders "mark, press"; without it, zonal anchors never bring defenders inside tackle range and tackling is unreachable). In `movementTick`, insert before the player loop:
+
+```ts
+  const presserIdx = state.ball.kind === 'held' ? nearestOpponent(state, state.ball.by) : -1;
+```
+
+and extend the target selection so the presser closes down the carrier (merge into the existing ternary — the presser's target is the ball):
+
+```ts
+    const target: Vec = isCarrier
+      ? { x: ball.x, y: goalYFor(p.team) === 0 ? Math.max(0, p.pos.y - 800) : Math.min(PITCH_H, p.pos.y + 800) }
+      : i === presserIdx || isPassReceiver || chaseLoose ? ball
+      : anchorFor(p.team, i % 11, ball);
+```
+
+(`nearestOpponent` is a hoisted function declaration defined later in the file — legal.) Then add the tackle machinery:
+
 ```ts
 /** Task 11/12 replace these with imports from ./powers. */
 export function interruptWindup(_state: MatchState, _idx: number): void {}
@@ -1092,24 +1112,32 @@ export function tackleTick(state: MatchState): void {
   const carrierIdx = state.ball.by;
   const carrier = state.players[carrierIdx];
 
+  let tackler = -1, tacklerD2 = 250 * 250 + 1;
   for (let i = 0; i < 22; i++) {
     const d = state.players[i];
-    if (d.team === carrier.team || d.outUntilTick > state.tick) continue;
+    if (d.team === carrier.team || !isAvailable(state, i)) continue;
     if (state.tick < d.tackleCooldownUntil) continue;
-    if (dist2(d.pos, carrier.pos) > 250 * 250) continue;
     if (fireSuppressed(state, i, carrierIdx)) continue;
+    const d2 = dist2(d.pos, carrier.pos);
+    if (d2 <= 250 * 250 && d2 < tacklerD2) { tacklerD2 = d2; tackler = i; }
+  }
+  if (tackler === -1) return;
 
-    d.tackleCooldownUntil = state.tick + 10;
-    const won = contest(state.rng, d.def.attrs.def + defenseBonus(state, i), carrier.def.attrs.tec, -dribbleBonus(state, carrierIdx));
-    emit(state, { t: state.tick, kind: 'TACKLE', by: i, on: carrierIdx, won });
-    if (won) {
-      state.ball = { kind: 'held', by: i };
-      addGauge(state, i, 15);
-      interruptWindup(state, carrierIdx);
-    }
-    return;
+  const d = state.players[tackler];
+  d.tackleCooldownUntil = state.tick + 10;
+  const won = contest(state.rng, effectiveStat(state, tackler, 'def') + defenseBonus(state, tackler), effectiveStat(state, carrierIdx, 'tec'), -dribbleBonus(state, carrierIdx));
+  emit(state, { t: state.tick, kind: 'TACKLE', by: tackler, on: carrierIdx, won });
+  if (won) {
+    state.ball = { kind: 'held', by: tackler };
+    addGauge(state, tackler, 15);
+    interruptWindup(state, carrierIdx);
   }
 }
+```
+
+(Amended after the Task 9 review: the tackler is the NEAREST eligible defender, not the first by index — the index-order tie-break made the GK the busiest tackler on the pitch and starved wide slots entirely.)
+
+```ts
 ```
 
 In `match.ts` `tick()`, after `possessionTick(state);` add `tackleTick(state);`.
@@ -1192,9 +1220,9 @@ export function shotBonus(_state: MatchState, _by: number): number { return 0; }
 export function attemptShot(state: MatchState, by: number, distToGoal: number): void {
   const shooter = state.players[by];
   const gy = goalYFor(shooter.team);
-  const spread = 200 + (99 - shooter.def.attrs.sho) * 10;
+  const spread = 200 + (99 - effectiveStat(state, by, 'sho')) * 10;
   const targetX = Math.round(GOAL_CENTER_X + (state.rng() * 2 - 1) * spread);
-  const power = Math.max(1, Math.round(shooter.def.attrs.sho + shotBonus(state, by) - distToGoal / 100));
+  const power = Math.max(1, Math.round(effectiveStat(state, by, 'sho') + shotBonus(state, by) - distToGoal / 100));
   emit(state, { t: state.tick, kind: 'SHOT', by, power });
   addGauge(state, by, 20);
   const dir = gy === 0 ? -1 : 1;
@@ -1225,9 +1253,15 @@ export function shotFlightTick(state: MatchState): void {
     return;
   }
 
-  const gk = state.players[gkIdx];
+  if (!isAvailable(state, gkIdx)) {
+    state.score[shooter.team]++;
+    emit(state, { t: state.tick, kind: 'GOAL', by: b.by, team: shooter.team });
+    restartKickoff(state, defendingTeam);
+    return; // an ignited/KO'd keeper cannot save (Task 7.5 audit) — open goal
+  }
+
   const resolveScale = 0.5 + 0.5 * (state.resolve[defendingTeam] / 100);
-  const saved = contest(state.rng, gk.def.attrs.ref * resolveScale, b.power);
+  const saved = contest(state.rng, effectiveStat(state, gkIdx, 'ref') * resolveScale, b.power);
 
   if (saved) {
     state.resolve[defendingTeam] = Math.max(0, state.resolve[defendingTeam] - Math.round(b.power / 4));
@@ -1400,6 +1434,10 @@ export function powerTick(state: MatchState): void {
   for (let idx = 0; idx < 22; idx++) {
     const p = state.players[idx];
     if (!p.def.power) continue;
+    if (p.outUntilTick > state.tick) {
+      if (p.powerState.kind === 'winding') interruptWindup(state, idx);
+      continue; // out players neither charge nor fire (Task 7 review)
+    }
 
     if (p.powerState.kind === 'idle') {
       if (p.outUntilTick <= state.tick) addGauge(state, idx, GAUGE_TRICKLE);
@@ -1408,6 +1446,7 @@ export function powerTick(state: MatchState): void {
       const blind = p.team === 0 && state.blindAutoHome;
       if (p.firePolicy === 'FIRE_WHEN_READY') {
         if (blind || inUsefulContext(state, idx)) startWindup(state, idx, CONTEXT_AUTO_STRENGTH);
+        else if (waited >= HARD_DEADLINE_TICKS) startWindup(state, idx, LAPSE_STRENGTH); // starvation fix (Task 11 review)
       } else if (waited >= HARD_DEADLINE_TICKS) {
         startWindup(state, idx, LAPSE_STRENGTH);
       } else if (waited >= READY_WINDOW_TICKS && inUsefulContext(state, idx)) {
@@ -1525,16 +1564,22 @@ export function isActive(state: MatchState, idx: number): boolean {
   return ps.kind === 'active' && state.tick < ps.untilTick;
 }
 
+function sendOff(state: MatchState, idx: number): void {
+  state.players[idx].outUntilTick = Number.MAX_SAFE_INTEGER;
+  state.players[idx].outReason = 'redcard';
+  emit(state, { t: state.tick, kind: 'CARD', player: idx, color: 'red' });
+}
+
 function rollCard(state: MatchState, idx: number, yellowP: number, redP: number): void {
   const r = state.rng();
+  const p = state.players[idx];
   if (r < redP) {
-    state.players[idx].cards = 2;
-    state.players[idx].outUntilTick = Number.MAX_SAFE_INTEGER;
-    state.players[idx].outReason = 'redcard';
-    emit(state, { t: state.tick, kind: 'CARD', player: idx, color: 'red' });
+    p.cards = 2;
+    sendOff(state, idx);
   } else if (r < redP + yellowP) {
-    state.players[idx].cards = Math.min(2, state.players[idx].cards + 1) as 0 | 1 | 2;
+    p.cards = Math.min(2, p.cards + 1) as 0 | 1 | 2;
     emit(state, { t: state.tick, kind: 'CARD', player: idx, color: 'yellow' });
+    if (p.cards === 2) sendOff(state, idx); // second yellow = red, real soccer rules (Task 5 review ruling)
   }
 }
 
@@ -1604,21 +1649,129 @@ export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonu
 
 Run: `npm test` → all suites pass, including earlier determinism tests.
 
+#### Task 12.1 amendment — target-locked charge for SUPER_STRENGTH (approved after the first Task 12 attempt measured a 0% steal landing rate)
+
+Root cause: closing into context range makes the carrier "pressured," so they pass away during the 15-tick windup; re-checking proximity at completion always whiffs. Fix: lock at windup start, chase while winding, resolve against the locked target. Releasing the ball fast remains the counterplay (the flatten still lands, the steal doesn't).
+
+`src/sim/types.ts` — the winding variant gains an optional lock:
+```ts
+  | { kind: 'winding'; untilTick: number; strength: number; targetIdx?: number }
+```
+
+`src/sim/powers.ts` — constants + lock at windup start + pass-through:
+```ts
+const STRENGTH_LOCK_RANGE = 1200;
+const STRENGTH_LAND_RANGE = 400;
+
+function startWindup(state: MatchState, idx: number, strength: number): void {
+  const p = state.players[idx];
+  let targetIdx: number | undefined;
+  if (p.def.power === 'SUPER_STRENGTH' && state.ball.kind === 'held') {
+    const carrier = state.players[state.ball.by];
+    if (carrier.team !== p.team && dist2(carrier.pos, p.pos) < STRENGTH_LOCK_RANGE * STRENGTH_LOCK_RANGE) {
+      targetIdx = state.ball.by;
+    }
+  }
+  p.powerState = { kind: 'winding', untilTick: state.tick + WINDUP_TICKS, strength, targetIdx };
+}
+```
+In `powerTick`'s winding branch, pass the lock through: `activatePower(state, idx, p.powerState.strength, p.powerState.targetIdx);`
+
+`activatePower` gains the fourth parameter and its SUPER_STRENGTH branch becomes:
+```ts
+  } else if (power === 'SUPER_STRENGTH') {
+    rollCard(state, idx, 0.25, 0.05);
+    if (p.outUntilTick <= state.tick && targetIdx !== undefined) {
+      const target = state.players[targetIdx];
+      if (target.outUntilTick <= state.tick && dist2(target.pos, p.pos) < STRENGTH_LAND_RANGE * STRENGTH_LAND_RANGE) {
+        target.outUntilTick = state.tick + Math.round(80 * strength);
+        target.outReason = 'ko';
+        const hadBall = state.ball.kind === 'held' && state.ball.by === targetIdx;
+        if (hadBall) state.ball = { kind: 'held', by: idx };
+        emit(state, { t: state.tick, kind: 'TACKLE', by: idx, on: targetIdx, won: hadBall });
+      }
+    }
+  }
+```
+
+`src/sim/engine.ts` `movementTick` — a winding hero with a lock CHARGES the target (insert after the `isCarrier` computation, and add the branch to the target ternary between the carrier branch and the presser branch):
+```ts
+    const chargeTarget = p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined
+      ? state.players[p.powerState.targetIdx].pos : null;
+```
+```ts
+      : chargeTarget ? chargeTarget
+```
+
+Test amendments: the rigged steal/ignite tests place both players at midfield (y≈5250, outside shot range) and set `powerState = { kind: 'ready', sinceTick: m.tick }` directly to control timing; the steal test asserts the locked target is flattened (`outReason 'ko'` + a TACKLE event by the rival) regardless of whether the steal component landed; the Task 11 "rival fires at 0.85" test is loosened to the policy-level truth (strengths ⊆ {0.85, 0.75}, never 1.0, with at least one 0.85 across seeds 1–10). Acceptance: SUPER_STRENGTH KO landing rate ≥50% of its fires across seeds 1–20.
+
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sim/powers.ts src/sim/engine.ts src/sim/__tests__/powers.test.ts
+git add src/sim/types.ts src/sim/powers.ts src/sim/engine.ts src/sim/__tests__/powers.test.ts
 git commit -m "feat(sim): SUPER_SPEED, rival SUPER_STRENGTH, FIRE_TORCH effects with cards and ignition"
 ```
 
 ---
 
+### Task 12.2: "In the Zone" activation rework + hardening batch (user pivot 2026-07-17 + external audit)
+
+ONE commit. Modifies types.ts, powers.ts, engine.ts, match.ts + reworks affected tests. This replaces the READY-window model; the fun-gate tests zone semantics.
+
+**A. State machine (types.ts):**
+```ts
+export type PowerState =
+  | { kind: 'idle' }
+  | { kind: 'zone'; remainingTicks: number }
+  | { kind: 'winding'; untilTick: number; strength: number; targetIdx?: number }
+  | { kind: 'active'; untilTick: number; strength: number };
+```
+MatchEvent gains `| { t: number; kind: 'POWER_EXPIRED'; player: number }`. The `gauge` field on SimPlayer is renamed in MEANING only (it is heat now) — keep the field name `gauge` to limit churn; add a comment.
+
+**B. powers.ts rework:** constants `ZONE_WINDOW_TICKS = 70`, `ZONE_HEAT_THRESHOLD = 60`, `ZONE_ENTRY_RATE = 0.0009` (per heat point above threshold, per tick), `PURSUIT_MULT = 1.3`. Remove READY_WINDOW_TICKS/HARD_DEADLINE_TICKS. addGauge: heroes only, idle only, cap 200 (heat may exceed 100), NO ready transition — entry happens in powerTick. New helper `teamPowerBusy(state, team)`: any teammate with powerState winding or active. addGauge returns early when teamPowerBusy (heat freezes). powerTick per available hero:
+1. If `teamPowerBusy(state, p.team)` and THIS hero is not the busy one → `continue` (zones and heat frozen).
+2. idle: trickle via addGauge; then if `p.gauge >= ZONE_HEAT_THRESHOLD && state.rng() < (p.gauge - ZONE_HEAT_THRESHOLD) * ZONE_ENTRY_RATE` → `p.powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS }; p.gauge = 0; emit POWER_READY` (event kind retained; it now means zone entry). NOTE: this conditional rng draw is state-dependent and deterministic; powerTick draws happen before all other systems each tick, ascending index — document with a comment.
+3. zone: taps (consumed at top of powerTick as today, valid only when that hero's state is zone) → windup at TAP_STRENGTH. FIRE_WHEN_READY: in context → windup 0.85; `remainingTicks <= 20` and no context → windup 0.75. Then `remainingTicks--`; at 0 → `emit POWER_EXPIRED; p.gauge = 50; idle`.
+4. winding/active: unchanged (windup completes → activatePower with targetIdx; active expires → idle, gauge stays 0).
+`speedMultiplier` additionally returns PURSUIT_MULT when winding with a targetIdx (the charge accelerates — Super Strength landing-rate fix; if seeds 1–20 landing stays <50%, raise STRENGTH_LAND_RANGE 400→500 and report which knob was needed).
+`knockOut(state, idx, ticks, reason)` centralizes going-out: if the ball is held by idx → ball becomes loose at their position (vel 0); set outUntilTick/outReason. Used by FIRE_TORCH ignite, SUPER_STRENGTH KO, and sendOff (sendOff passes Number.MAX_SAFE_INTEGER).
+
+**C. match.ts hardening:** `opts: { ...opts }` in createMatch; queueInput pushes separate copies `{ ...input }` into pendingInputs and inputLog; envelopeFrom maps inputs to fresh copies. `ENGINE_VERSION = 'm0.3'`. New `validateEnvelope(env)` called first in runReplay: schemaVersion === 1; engineVersion is a string; seed is a finite integer; both teams have exactly 11 players each with string id/name, role in {GK,DEF,MID,FWD}, 7 finite numeric attrs in 1..99, power undefined or in the PowerId set; inputs is an array of {kind:'POWER_TAP', tick: finite integer ≥ 1, player: finite integer}. Throw descriptive errors.
+
+**D. Test rework acceptance gates** (adapt Task 11/12 tests to zone semantics; rigs set `powerState = { kind: 'zone', remainingTicks: 70 }` directly):
+- Manual hero's expired window emits POWER_EXPIRED and leaves gauge 50, and NEVER auto-fires.
+- FIRE_WHEN_READY fires 0.85 in context, 0.75 late-window; never 1.0 without a tap.
+- One-active: rig two home heroes in zone, fire one → the other's remainingTicks must not decrease while the first is winding/active, and heat must not accumulate.
+- knockOut releases a held ball (rig: ignite the carrier → ball becomes loose at their feet) — the audit's possession-freeze case.
+- validateEnvelope rejects: string player index, NaN/Infinity tick, unknown input kind, unknown power, 10-player squad, attrs out of range (one test each, forged from a valid envelopeFrom output).
+- Empirical (report, delete harness): seeds 1-20 zones/hero/match mean in [1.5, 3.5]; Super Strength KO landing ≥50%; possession changes after tick 1000 still >0; determinism double-run 5 seeds; full suite green + tsc clean + import-layers green.
+
+Commit: `feat(sim): In-the-Zone activation, one-active-per-team, knockOut ball release, envelope validation, m0.3`
+
+**12.2 follow-up ruling (as-built, commit 79a2f42):** target-requiring powers (`requiresTarget(power)`, true for SUPER_STRENGTH) never take the late-window 0.75 fallback — their windows expire like manual misses. SUPER_STRENGTH context = STRENGTH_LOCK_RANGE (one constant, 1200). PURSUIT_MULT 1.4. Measured: rival 0.7 fires/match, 100% locked, 92.9% KO landing.
+
 ### Task 13: Acceptance suite — parity, causality, timing value, golden replay, balance
+
+**Pre-flight (one commit before the suite):**
+1. Context upgrades (12.2 review Issue A — home heroes were context-less in ~50% of zones): SUPER_SPEED's useful context becomes "self-carrier AND in the attacking half (own y < PITCH_H/2 for team 0, mirrored for team 1), OR loose ball within 1500"; FIRE_TORCH's becomes "self-carrier with an opponent within 800 (its ignite radius — fire when a marker is on you), OR opposing carrier within 800". One constant per radius shared with the effect code so they can't drift.
+2. validateEnvelope extension (Issue B): reject `homePolicy`/`awayPolicy` outside {SAVE_FOR_TAP, FIRE_WHEN_READY}, non-boolean `blindAutoHome`, and out-of-range `input.player` (integer 0..21) — descriptive errors + one forged-envelope test each.
+3. Balance Lever A (Task 10 review): `attemptShot` distance penalty `distToGoal / 100` → `/ 200` (target: save rate ~70-75%, goals/match ~2-3). ENGINE_VERSION stays m0.3 (same unreleased batch).
+4. Fix the stale GAUGE_CAP comment in powers.ts (heat exceeds 100 via involvement, not freeze).
+
+**TIMING VALUE — redesigned gates (decision record, replacing `contextual > blind`):** the old gate compared two AIs and measured our trigger quality, not player agency. The claims the game actually makes, each with its own gate:
+- **GATE-1 attention floor**: firing beats never-firing — home goals with all-FIRE_WHEN_READY vs SAVE_FOR_TAP-never-tapped over 400 seeds; paired margin must be positive with a bootstrap 95% CI lower bound > 0.
+- **GATE-2 moment quality (per power, the player-agency claim)**: scripted paired comparisons on identical seeds — SUPER_SPEED tapped at a value moment (carrier attacking-half) vs tapped at an anti-moment (own-half, no threat): attacking outcomes (shots within 150 ticks of the fire) must favor the value moment with CI > 0 over 200 paired samples; FIRE_TORCH fired with a marker inside 800 vs alone: ignitions must occur only/overwhelmingly in the former; SUPER_STRENGTH is structurally proven (locked fires land 92.9%, targetless fires cannot exist).
+- **GATE-3 auto sanity**: contextual auto must not embarrass — home goals contextual-auto ≥ blind-auto − 5% over 400 seeds (parity acceptable; regression not).
+Justification: GATE-2 is what "your tap matters" means; GATE-1 is why watching pays at all; GATE-3 keeps Quick Result respectable. The blind comparator remains test-only scaffolding (blindAutoHome).
+
+**Tuning round 1 (decision record, after first gate run):** GATE-1 measured +0.065 goals/match CI [-0.065, +0.198] — real but imperceptible, contradicting docs/09's "hero uplift 15-25%" target. Effect magnitudes raised: `DUR` map SUPER_SPEED 40 → 70, FIRE_TORCH 50 → 80, SUPER_STRENGTH 80 → 110; FIRE_TORCH ignite-out 100 → 140 ticks. Blowout rail measured 19.5 goals/match for a +20 team (compounding through every contest): new **game-management rule** in possessionTick — when a carrier's team leads by 4+ goals, the shoot trigger tightens to `toGoal < 1700` and the pass inclination rises (`state.rng() < 0.35` → `< 0.6`), deterministic, rng-order preserved (the draw still happens on the same condition path). Rails and gates unchanged; goldens regenerate (they were never committed). ENGINE_VERSION stays m0.3 — same unreleased batch. Suite runtime budget raised to 180s (measured 137s; gate power > speed).
 
 **Files:**
 - Test: `src/sim/__tests__/parity.test.ts`
 
 These are the M0 acceptance gate. They should pass immediately if Tasks 7–12 are correct; if TIMING VALUE fails, the contexts aren't valuable — that's a design problem to fix (tune contexts/effects), never a test to weaken.
+
+> **NOTE: the Step 1 code block below is SUPERSEDED by the decision records above** (three-gate timing value, balance rails with the blowout cap, fingerprint golden). The as-built suite is `src/sim/__tests__/parity.test.ts`. Do not copy the block verbatim.
 
 - [ ] **Step 1: Write the tests**
 
@@ -1707,7 +1860,26 @@ git commit -m "test(sim): M0 acceptance — parity, causal divergence, timing va
 
 ---
 
+### Workstream A (concurrent): B+ heroic-chibi sprite pack
+
+Runs in an isolated git worktree (branch `feature/m0-pixel-art`) in parallel with Tasks 9–13; merged before Task 14 integration. User decision (2026-07-17): the M0 fun-gate tests the match WITH real art — polish is part of the fantasy being validated.
+
+- **Style**: B+ heroic chibi (see docs/01, docs/08): ~12×19px sprites, big readable head (~8px wide), two-heads-tall body, 1px dark outline `#3a2b23`, flat colors, no anti-aliasing.
+- **Coverage**: all 22 players hand-designed with individual variety (hair style/color, skin tone, facial hair, body type). Stars visually distinct: Dario Flint (FIRE_TORCH — spiky red-orange hair), Zip Vela (SUPER_SPEED — slim build, aerodynamic look), Rex Bould (SUPER_STRENGTH — muscular build, wide shoulders). Kits: Rovers red `#e8433f`, United blue `#3f6fd8`, distinct GK kits (teal / amber). 2-frame run cycle per player + shared ball sprite.
+- **Format**: sprites as pixel-map DATA (`src/render/sprites/sprites.json`: palette + rows-of-chars per sprite frame, keyed by player id `r0…u10`), zod-free typed loader, and `buildSpriteAtlas(Skia)` compositing all frames into one texture with `rectFor(playerId, frame)` lookup. State effects (windup flash, active glow, out gray, ignited orange) stay renderer-side tints — not extra sprites.
+- **Preview**: `art/preview.html` — a standalone browser page rendering every sprite at 8× from the same JSON, for user approval before integration.
+- Task 14 integration consumes `buildSpriteAtlas` in place of `makePlaceholderTexture` (which remains as fallback).
+
 ### Task 14: Match screen — telegraphs, threat chip, lifecycle-safe loop
+
+> **AMENDMENT LEDGER (authoritative — the code blocks below are stale where they conflict; every item here comes from an approved review/audit finding):**
+> 1. **Lazy match init**: never `useRef(createMatch(...))` (argument runs every render); use `useRef<MatchState | null>(null)` + `if (ref.current === null) ref.current = createMatch(...)`.
+> 2. **Single pause setter**: one `setPausedBoth(v)` that sets React state AND `pausedRef.current` together; the AppState listener calls it; NO render-time `pausedRef.current = paused` write-back (that bug silently un-paused after backgrounding).
+> 3. **Snap on restarts**: when the tick batch consumed a GOAL/MISS/HALF_TIME event, or any player displaced > 2× max speed in one tick, set `prevRef.current = nextRef.current` (snap, don't lerp) and clear the speed trail.
+> 4. **Sprite pack integration** (merged from Workstream A): `loadSpriteSheet()` + `buildSpriteAtlas(Skia)` at mount; per-player sprite via `rectFor(\`\${player.def.id}:run\${frame}\`)` with `frame = Math.floor(tick / 5) % 2` while the player moved this tick, `run0` when stationary; ball via `rectFor('ball')`. `colors[]` carries tints ONLY for status (ignited `#ff6a00`, out `#666666`, windup white-pulse, active `#f5c518`) — normal players get white/no-op tint so kit/skin/hair colors survive.
+> 5. **Zone semantics** (no `'ready'` state exists): a hero with `powerState.kind === 'zone'` shows a pulsing glow ring, opacity ∝ `remainingTicks / 70` (fading = urgency); heat bar width = `Math.min(100, gauge)` (heat runs past 100). On a `POWER_EXPIRED` event, flash the chip dim for ~30 ticks. The rival's chip glows red in zone — starving his window is the counterplay, so the threat read matters.
+> 6. Tolerate dangling `SHOT` events (a shot in flight at a boundary may lack SAVE/GOAL/MISS pairing).
+> 7. Catch-up cap (5 ticks/frame) + AppState pause stay as specified below.
 
 **Files:**
 - Create: `src/render/interpolate.ts`, `src/render/atlas.ts`, `src/render/MatchScreen.tsx`
