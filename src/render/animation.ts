@@ -4,7 +4,9 @@ import type { Vec } from '../sim/geometry';
 
 export const RUN_PHASE_DISTANCE = 110;
 export const KEEPER_READY_DISTANCE = 4_800;
-export const SLIDE_TACKLE_TICKS = 5;
+// Default launch + successful recovery presentation. A missed slide can extend
+// its own `untilTick`; actual forward travel now comes from sim coordinates.
+export const SLIDE_TACKLE_TICKS = 10;
 export const TACKLED_RECOVERY_TICKS = 10;
 // A knockdown drops in over KNOCKDOWN_DROP_TICKS and stands back up over the
 // last KNOCKDOWN_RISE_TICKS before the player's recovery tick; the long flat
@@ -20,6 +22,7 @@ export type PlayerActionAnimation =
       startTick: number;
       direction: Vec;
       rotation: number;
+      untilTick: number;
     }
   | {
       kind: 'fall';
@@ -70,7 +73,8 @@ export function isKeeperReady(ballDistanceSquared: number): boolean {
 
 /**
  * A tackle attempt drops quickly into a slide, holds low through contact, then
- * rises. The small forward offset sells momentum without changing sim space.
+ * rises. Forward travel is intentionally zero here: the deterministic player
+ * coordinate now performs the lunge and remains at its landing position.
  */
 export function actionPose(action: PlayerActionAnimation | undefined, visualTick: number): ActionPose {
   if (!action) return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
@@ -90,20 +94,20 @@ export function actionPose(action: PlayerActionAnimation | undefined, visualTick
     return { active: true, rotation: action.rotation * down, anchorWeight: down, forwardOffset: 0 };
   }
 
-  const duration = action.kind === 'slide' ? SLIDE_TACKLE_TICKS : TACKLED_RECOVERY_TICKS;
+  const duration = action.kind === 'slide' ? action.untilTick - action.startTick : TACKLED_RECOVERY_TICKS;
   if (elapsed >= duration) {
     return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
   }
 
   if (action.kind === 'slide') {
     const drop = smoothstep(elapsed / 1.2);
-    const rise = smoothstep((elapsed - 3.5) / 1.5);
+    const rise = smoothstep((visualTick - (action.untilTick - 3)) / 3);
     const low = drop * (1 - rise);
     return {
       active: true,
       rotation: action.rotation * low,
       anchorWeight: 0,
-      forwardOffset: Math.sin((elapsed / SLIDE_TACKLE_TICKS) * Math.PI) * 120,
+      forwardOffset: 0,
     };
   }
 

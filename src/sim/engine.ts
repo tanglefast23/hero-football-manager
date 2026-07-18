@@ -8,18 +8,35 @@ import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 
 export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut };
 
+export const STANDING_TACKLE_RANGE = 200;
+export const SLIDE_TACKLE_MAX_RANGE = 450;
+export const SLIDE_TACKLE_TICKS = 4;
+export const SLIDE_TACKLE_SPEED_MULTIPLIER = 1.8;
+export const SLIDE_TACKLE_CONDITION_FLOOR = 30;
+export const SLIDE_TACKLE_PREFERRED_CONDITION = 80;
+export const SLIDE_TACKLE_CONDITION_COST = 0.4;
+export const SLIDE_TACKLE_COOLDOWN_TICKS = 25;
+export const SLIDE_SUCCESS_RECOVERY_TICKS = 6;
+export const SLIDE_MISS_RECOVERY_TICKS = 12;
+const SLIDE_CONTACT_RANGE = 150;
+
 export function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;
 }
 
 export function isAvailable(state: MatchState, idx: number): boolean {
+  const p = state.players[idx];
+  return p.outUntilTick <= state.tick && p.slideTackle === undefined && p.tackleRecoveryUntil <= state.tick;
+}
+
+function isConscious(state: MatchState, idx: number): boolean {
   return state.players[idx].outUntilTick <= state.tick;
 }
 
 /**
- * M1 fatigue hook: contested stats route through here. Deliberately raw in M0.
- * def.attrs must stay immutable at runtime — fatigue/power modifiers belong in
- * this function (or the powers queries), never in-place attrs mutation.
+ * Condition applies exactly once through this funnel, bottoming out at 75% of
+ * the raw attribute. def.attrs stays immutable in production — fatigue/power
+ * modifiers belong here (or in the powers queries), never in-place mutation.
  */
 export function effectiveStat(state: MatchState, idx: number, stat: keyof Attrs): number {
   const player = state.players[idx];
@@ -48,11 +65,20 @@ export function drainStamina(p: SimPlayer, movedFar: boolean): void {
   p.condition = Math.max(0, p.condition - cost);
 }
 
+function drainSlideCondition(p: SimPlayer): void {
+  const drainMultiplier = 1 + 0.6 * (100 - p.def.attrs.sta) / 100;
+  p.condition = clamp(p.condition - SLIDE_TACKLE_CONDITION_COST * drainMultiplier, 0, 100);
+}
+
 export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
   const center = { x: PITCH_W / 2, y: PITCH_H / 2 };
   for (let i = 0; i < 22; i++) {
-    if (!isAvailable(state, i)) continue;
     const p = state.players[i];
+    // A restart resets ordinary tackle choreography; a genuinely knocked-out,
+    // ignited, or dismissed player remains unavailable and is not teleported.
+    p.slideTackle = undefined;
+    p.tackleRecoveryUntil = 0;
+    if (!isConscious(state, i)) continue;
     p.pos = formationTarget(
       p.team,
       i % 11,
@@ -61,10 +87,10 @@ export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
     );
   }
   let striker = toTeam === 0 ? 9 : 20;
-  if (!isAvailable(state, striker)) {
+  if (!isConscious(state, striker)) {
     const base = toTeam === 0 ? 0 : 11;
     for (let s = base + 10; s >= base; s--) {
-      if (isAvailable(state, s)) { striker = s; break; }
+      if (isConscious(state, s)) { striker = s; break; }
     }
   }
   state.players[striker].pos = { ...center };
@@ -158,6 +184,21 @@ function targetFor(state: MatchState, i: number, mv: MovementState, presserIdx: 
     : fallbackTarget(state, i, mv, ball);
 }
 
+function slideMovementTick(state: MatchState, idx: number): void {
+  const p = state.players[idx];
+  const slide = p.slideTackle;
+  if (!slide) return;
+  const before = { ...p.pos };
+  const speed = Math.max(1, Math.round(speedFor(state, idx) * SLIDE_TACKLE_SPEED_MULTIPLIER));
+  const step = Math.min(speed, slide.remainingDistance);
+  p.pos = {
+    x: Math.round(clamp(p.pos.x + slide.direction.x * step, 0, PITCH_W)),
+    y: Math.round(clamp(p.pos.y + slide.direction.y * step, 0, PITCH_H)),
+  };
+  slide.previousPos = before;
+  slide.remainingDistance = Math.max(0, slide.remainingDistance - dist(before, p.pos));
+}
+
 export function movementTick(state: MatchState): void {
   const ball = ballPos(state);
   const mv = resolveMovement(state);
@@ -165,7 +206,7 @@ export function movementTick(state: MatchState): void {
   const presserIdx = state.ball.kind === 'held' ? mv.presserIdx : -1;
   for (let i = 0; i < 22; i++) {
     const p = state.players[i];
-    if (!isAvailable(state, i)) continue;
+    if (!isConscious(state, i)) continue;
     if (p.outUntilTick !== 0) {
       if (p.outUntilTick !== Number.MAX_SAFE_INTEGER) {
         emit(state, { t: state.tick, kind: p.outReason === 'ignited' ? 'EXTINGUISHED' : 'RECOVERED', player: i });
@@ -173,6 +214,11 @@ export function movementTick(state: MatchState): void {
       p.outUntilTick = 0;
       p.outReason = undefined;
     }
+    if (p.slideTackle) {
+      slideMovementTick(state, i);
+      continue;
+    }
+    if (p.tackleRecoveryUntil > state.tick) continue;
     const target = targetFor(state, i, mv, presserIdx, ball);
     const before = p.pos;
     // A carrier controls the ball while moving and cannot sustain an off-ball
@@ -532,7 +578,7 @@ export function possessionTick(state: MatchState): void {
   }
 
   if (b.kind !== 'held') return; // 'shot' handled in Task 10
-  if (state.players[b.by].outUntilTick > state.tick) return; // unconscious carriers don't play (Task 7 review)
+  if (!isAvailable(state, b.by)) return; // unconscious/sliding/recovering carriers do not act
   if (state.tick % 5 !== 0) return;
 
   const carrierIdx = b.by;
@@ -553,32 +599,185 @@ export function possessionTick(state: MatchState): void {
   }
 }
 
+function inOwnDefensiveThird(team: 0 | 1, pos: Vec): boolean {
+  return team === 0 ? pos.y >= PITCH_H * 2 / 3 : pos.y <= PITCH_H / 3;
+}
+
+function inOwnHalf(team: 0 | 1, pos: Vec): boolean {
+  return team === 0 ? pos.y >= PITCH_H / 2 : pos.y <= PITCH_H / 2;
+}
+
+function isGoalSideOfCarrier(tackler: SimPlayer, carrier: SimPlayer): boolean {
+  const carrierAttackY = carrier.team === 0 ? -1 : 1;
+  return (tackler.pos.y - carrier.pos.y) * carrierAttackY >= 0;
+}
+
+/**
+ * 80% is the preferred band, not a cliff. Below it, the launch range and
+ * opportunity narrows; below 50%, only a shorter emergency challenge in the
+ * defender's own third is allowed. Under 30%, a player cannot launch at all.
+ */
+function slideLaunchRange(state: MatchState, tacklerIdx: number, carrierIdx: number): number {
+  const tackler = state.players[tacklerIdx];
+  // Sliding is principally the committed defender tool. Midfielders only use
+  // it as shorter cover in their own half; forwards keep pressing into
+  // standing-tackle range instead of repeatedly going to ground.
+  if (tackler.condition < SLIDE_TACKLE_CONDITION_FLOOR) return 0;
+  const ownThird = inOwnDefensiveThird(tackler.team, state.players[carrierIdx].pos);
+  const midfieldCover = tackler.def.role === 'MID'
+    && (tackler.condition >= 50 ? inOwnHalf(tackler.team, state.players[carrierIdx].pos) : ownThird);
+  if (tackler.def.role !== 'DEF' && !midfieldCover) return 0;
+  if (!isGoalSideOfCarrier(tackler, state.players[carrierIdx])) return 0;
+  const roleMax = tackler.def.role === 'DEF' ? SLIDE_TACKLE_MAX_RANGE : 320;
+  if (tackler.condition >= SLIDE_TACKLE_PREFERRED_CONDITION) return roleMax;
+  if (tackler.condition >= 50) return Math.min(roleMax, tackler.def.role === 'DEF' ? 380 : 320);
+  return ownThird ? Math.min(roleMax, tackler.def.role === 'DEF' ? 320 : 280) : 0;
+}
+
+function finishSlide(state: MatchState, tacklerIdx: number, won: boolean, contact: boolean): void {
+  const tackler = state.players[tacklerIdx];
+  const slide = tackler.slideTackle;
+  if (!slide) return;
+  const targetIdx = slide.targetIdx;
+  tackler.slideTackle = undefined;
+  tackler.tackleRecoveryUntil = state.tick + (won ? SLIDE_SUCCESS_RECOVERY_TICKS : SLIDE_MISS_RECOVERY_TICKS);
+  emit(state, { t: state.tick, kind: 'TACKLE', by: tacklerIdx, on: targetIdx, won, style: 'slide', contact });
+  if (won) {
+    state.ball = { kind: 'held', by: tacklerIdx };
+    addGauge(state, tacklerIdx, 12); // launch + clean win preserves the existing 15-Heat reward
+    interruptWindup(state, targetIdx);
+  }
+}
+
+/** Closest approach of two moving points over the same tick, expressed as 0..1. */
+function sweptContactFraction(tacklerFrom: Vec, tacklerTo: Vec, targetFrom: Vec, targetTo: Vec): number | null {
+  const startX = tacklerFrom.x - targetFrom.x;
+  const startY = tacklerFrom.y - targetFrom.y;
+  const velocityX = (tacklerTo.x - tacklerFrom.x) - (targetTo.x - targetFrom.x);
+  const velocityY = (tacklerTo.y - tacklerFrom.y) - (targetTo.y - targetFrom.y);
+  const speed2 = velocityX * velocityX + velocityY * velocityY;
+  const t = speed2 === 0 ? 0 : clamp(-(startX * velocityX + startY * velocityY) / speed2, 0, 1);
+  const closestX = startX + velocityX * t;
+  const closestY = startY + velocityY * t;
+  return closestX * closestX + closestY * closestY <= SLIDE_CONTACT_RANGE * SLIDE_CONTACT_RANGE ? t : null;
+}
+
+/** Returns true while a committed slide owns this tick's challenge slot. */
+function resolveActiveSlide(state: MatchState): boolean {
+  const tacklerIdx = state.players.findIndex(p => p.slideTackle !== undefined);
+  if (tacklerIdx === -1) return false;
+
+  const tackler = state.players[tacklerIdx];
+  const slide = tackler.slideTackle!;
+  const carrierStillTargeted = state.ball.kind === 'held' && state.ball.by === slide.targetIdx
+    && isConscious(state, slide.targetIdx);
+  if (!carrierStillTargeted) {
+    finishSlide(state, tacklerIdx, false, false);
+    return true;
+  }
+
+  const target = state.players[slide.targetIdx];
+  const contactFraction = sweptContactFraction(slide.previousPos, tackler.pos, slide.targetPreviousPos, target.pos);
+  if (contactFraction !== null) {
+    // Stop at the collision point. The coordinate persists through recovery;
+    // the renderer no longer offsets the sprite and snaps it back afterward.
+    tackler.pos = {
+      x: Math.round(slide.previousPos.x + (tackler.pos.x - slide.previousPos.x) * contactFraction),
+      y: Math.round(slide.previousPos.y + (tackler.pos.y - slide.previousPos.y) * contactFraction),
+    };
+    const won = contest(
+      state.rng,
+      effectiveStat(state, tacklerIdx, 'def') + defenseBonus(state, tacklerIdx),
+      effectiveStat(state, slide.targetIdx, 'tec'),
+      -dribbleBonus(state, slide.targetIdx),
+    );
+    finishSlide(state, tacklerIdx, won, true);
+    return true;
+  }
+
+  if (state.tick >= slide.untilTick || slide.remainingDistance <= 0) {
+    finishSlide(state, tacklerIdx, false, false);
+    return true;
+  }
+  slide.targetPreviousPos = { ...target.pos };
+  return true;
+}
+
+function startSlide(state: MatchState, tacklerIdx: number, carrierIdx: number, distance: number): void {
+  const tackler = state.players[tacklerIdx];
+  const carrier = state.players[carrierIdx];
+  const dx = carrier.pos.x - tackler.pos.x;
+  const dy = carrier.pos.y - tackler.pos.y;
+  const magnitude = Math.sqrt(dx * dx + dy * dy);
+  const direction = magnitude > 0
+    ? { x: dx / magnitude, y: dy / magnitude }
+    : { x: 0, y: carrier.team === 0 ? -1 : 1 };
+  const untilTick = state.tick + SLIDE_TACKLE_TICKS;
+  tackler.slideTackle = {
+    targetIdx: carrierIdx,
+    startTick: state.tick,
+    untilTick,
+    direction,
+    remainingDistance: Math.min(SLIDE_TACKLE_MAX_RANGE, Math.max(300, distance + SLIDE_CONTACT_RANGE)),
+    previousPos: { ...tackler.pos },
+    targetPreviousPos: { ...carrier.pos },
+  };
+  tackler.tackleCooldownUntil = state.tick + SLIDE_TACKLE_COOLDOWN_TICKS;
+  drainSlideCondition(tackler);
+  addGauge(state, tacklerIdx, 3);
+  emit(state, { t: state.tick, kind: 'SLIDE_STARTED', by: tacklerIdx, on: carrierIdx, direction: { ...direction }, untilTick });
+}
+
+function standingTackle(state: MatchState, tacklerIdx: number, carrierIdx: number): void {
+  const tackler = state.players[tacklerIdx];
+  tackler.tackleCooldownUntil = state.tick + 10;
+  addGauge(state, tacklerIdx, 3);
+  const won = contest(
+    state.rng,
+    effectiveStat(state, tacklerIdx, 'def') + defenseBonus(state, tacklerIdx),
+    effectiveStat(state, carrierIdx, 'tec'),
+    -dribbleBonus(state, carrierIdx),
+  );
+  emit(state, { t: state.tick, kind: 'TACKLE', by: tacklerIdx, on: carrierIdx, won, style: 'standing', contact: true });
+  if (won) {
+    state.ball = { kind: 'held', by: tacklerIdx };
+    addGauge(state, tacklerIdx, 12);
+    interruptWindup(state, carrierIdx);
+  }
+}
+
 export function tackleTick(state: MatchState): void {
-  if (state.ball.kind !== 'held') return;
+  if (resolveActiveSlide(state)) return;
+  if (state.ball.kind !== 'held' || !isAvailable(state, state.ball.by)) return;
   const carrierIdx = state.ball.by;
   const carrier = state.players[carrierIdx];
 
-  let tackler = -1, tacklerD2 = 250 * 250 + 1;
+  let standingIdx = -1;
+  let standingD2 = STANDING_TACKLE_RANGE * STANDING_TACKLE_RANGE + 1;
+  let slideIdx = -1;
+  let slideDistance = 0;
+  let slideD2 = SLIDE_TACKLE_MAX_RANGE * SLIDE_TACKLE_MAX_RANGE + 1;
   for (let i = 0; i < 22; i++) {
-    const d = state.players[i];
-    if (d.team === carrier.team || !isAvailable(state, i)) continue;
-    if (state.tick < d.tackleCooldownUntil) continue;
+    const defender = state.players[i];
+    if (defender.team === carrier.team || !isAvailable(state, i)) continue;
+    if (state.tick < defender.tackleCooldownUntil || defender.powerState.kind === 'winding') continue;
     if (fireSuppressed(state, i, carrierIdx)) continue;
-    const d2 = dist2(d.pos, carrier.pos);
-    if (d2 <= 250 * 250 && d2 < tacklerD2) { tacklerD2 = d2; tackler = i; }
+    const d2 = dist2(defender.pos, carrier.pos);
+    if (d2 <= STANDING_TACKLE_RANGE * STANDING_TACKLE_RANGE && d2 < standingD2) {
+      standingIdx = i;
+      standingD2 = d2;
+      continue;
+    }
+    if (defender.def.role === 'GK') continue;
+    const launchRange = slideLaunchRange(state, i, carrierIdx);
+    if (launchRange === 0 || d2 > launchRange * launchRange || d2 >= slideD2) continue;
+    slideIdx = i;
+    slideD2 = d2;
+    slideDistance = Math.sqrt(d2);
   }
-  if (tackler === -1) return;
 
-  const d = state.players[tackler];
-  d.tackleCooldownUntil = state.tick + 10;
-  addGauge(state, tackler, 3); // defensive involvement matters even when the challenge is beaten
-  const won = contest(state.rng, effectiveStat(state, tackler, 'def') + defenseBonus(state, tackler), effectiveStat(state, carrierIdx, 'tec'), -dribbleBonus(state, carrierIdx));
-  emit(state, { t: state.tick, kind: 'TACKLE', by: tackler, on: carrierIdx, won });
-  if (won) {
-    state.ball = { kind: 'held', by: tackler };
-    addGauge(state, tackler, 12); // attempt + win keeps the existing 15-Heat reward
-    interruptWindup(state, carrierIdx);
-  }
+  if (standingIdx !== -1) standingTackle(state, standingIdx, carrierIdx);
+  else if (slideIdx !== -1) startSlide(state, slideIdx, carrierIdx, slideDistance);
 }
 
 /** Hook for future shot-boosting powers (none among the M0 three). */

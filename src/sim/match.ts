@@ -6,9 +6,9 @@ import { powerTick } from './powers';
 import { isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.0 makes STA affect condition drain and adds replayable formations,
-// mentality, and substitutions. Every item changes match behavior or input shape.
-export const ENGINE_VERSION = 'm1.0';
+// m1.1 adds committed slide-tackle movement and recovery to m1.0's replayable
+// formations, mentality, substitutions, and STA-driven condition model.
+export const ENGINE_VERSION = 'm1.1';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -47,7 +47,7 @@ function makePlayers(home: TeamDef, away: TeamDef, opts: MatchOpts): SimPlayer[]
       condition: 100, gauge: 0,
       powerState: { kind: 'idle' as const },
       firePolicy: team === 0 ? (opts.homePolicy ?? 'SAVE_FOR_TAP') : (opts.awayPolicy ?? 'FIRE_WHEN_READY'),
-      outUntilTick: 0, tackleCooldownUntil: 0, cards: 0 as const,
+      outUntilTick: 0, tackleRecoveryUntil: 0, tackleCooldownUntil: 0, cards: 0 as const,
     }));
   return [...mk(0, home), ...mk(1, away)];
 }
@@ -184,6 +184,7 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
       ? (state.opts.homePolicy ?? 'SAVE_FOR_TAP')
       : (state.opts.awayPolicy ?? 'FIRE_WHEN_READY'),
     outUntilTick: 0,
+    tackleRecoveryUntil: 0,
     tackleCooldownUntil: state.tick,
     cards: 0,
   };
@@ -205,7 +206,14 @@ export function tick(state: MatchState): void {
   const dueInputs: MatchInput[] = [];
   const remainingInputs: MatchInput[] = [];
   for (const input of state.pendingInputs) {
-    (input.tick <= state.tick ? dueInputs : remainingInputs).push(input);
+    const player = input.kind === 'POWER_TAP' ? state.players[input.player] : undefined;
+    // Preserve a legal Zone tap made during a committed slide/recovery. The
+    // replay keeps its original stamped tick; only deterministic consumption
+    // waits until the hero is back on their feet.
+    const tackleDeferred = input.kind === 'POWER_TAP' && input.tick <= state.tick
+      && player?.powerState.kind === 'zone'
+      && (player.slideTackle !== undefined || player.tackleRecoveryUntil > state.tick);
+    (input.tick <= state.tick && !tackleDeferred ? dueInputs : remainingInputs).push(input);
   }
   state.pendingInputs = remainingInputs;
   for (const input of dueInputs) processCoachingInput(state, input);

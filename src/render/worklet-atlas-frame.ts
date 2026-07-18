@@ -13,7 +13,6 @@ import type { PitchFrame } from './interpolate';
 import {
   KNOCKDOWN_DROP_TICKS,
   KNOCKDOWN_RISE_TICKS,
-  SLIDE_TACKLE_TICKS,
   TACKLED_RECOVERY_TICKS,
   type PlayerActionAnimation,
 } from './animation';
@@ -85,7 +84,7 @@ function packActions(actions: Record<number, PlayerActionAnimation>): Float32Arr
     packed[offset + 2] = action.rotation;
     packed[offset + 3] = action.kind === 'slide' ? action.direction.x : action.anchor.x;
     packed[offset + 4] = action.kind === 'slide' ? action.direction.y : action.anchor.y;
-    packed[offset + 5] = action.kind === 'knockdown' ? action.untilTick : 0;
+    packed[offset + 5] = action.kind === 'slide' || action.kind === 'knockdown' ? action.untilTick : 0;
   }
   return packed;
 }
@@ -145,20 +144,23 @@ function actionPoseWorklet(
     return { active: true, rotation: rotation * down, anchorWeight: down, forwardOffset: 0 };
   }
 
-  const duration = kind === ACTION_SLIDE ? SLIDE_TACKLE_TICKS : TACKLED_RECOVERY_TICKS;
+  const untilTick = packed[offset + 5];
+  const duration = kind === ACTION_SLIDE ? untilTick - packed[offset + 1] : TACKLED_RECOVERY_TICKS;
   if (elapsed >= duration) {
     return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
   }
 
   if (kind === ACTION_SLIDE) {
     const drop = smoothstepWorklet(elapsed / 1.2);
-    const rise = smoothstepWorklet((elapsed - 3.5) / 1.5);
+    const rise = smoothstepWorklet((visualTick - (untilTick - 3)) / 3);
     const low = drop * (1 - rise);
     return {
       active: true,
       rotation: rotation * low,
       anchorWeight: 0,
-      forwardOffset: Math.sin((elapsed / SLIDE_TACKLE_TICKS) * Math.PI) * 120,
+      // The sim coordinate now performs the lunge and remains at its landing
+      // position. Adding a second render-only offset would double the travel.
+      forwardOffset: 0,
     };
   }
 

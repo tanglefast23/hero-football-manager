@@ -122,8 +122,10 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       return ['kick-pass'];
     case 'SHOT':
       return ['kick-shot'];
+    case 'SLIDE_STARTED':
+      return [];
     case 'TACKLE':
-      return ['tackle-thud', 'grunt'];
+      return e.contact ? ['tackle-thud', 'grunt'] : [];
     case 'GOAL':
       return ['goal-fanfare', 'goal-celebration', 'crowd-cheer'];
     case 'CARD':

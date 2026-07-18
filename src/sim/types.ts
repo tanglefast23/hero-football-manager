@@ -30,6 +30,21 @@ export type PowerState =
 
 export type OutReason = 'ko' | 'ignited' | 'redcard';
 
+/**
+ * A committed slide is replay state, not renderer choreography. The direction
+ * is locked at launch; movement and contact resolution advance from this same
+ * state on every deterministic tick.
+ */
+export interface SlideTackleState {
+  targetIdx: number;
+  startTick: number;
+  untilTick: number;
+  direction: Vec;
+  remainingDistance: number;
+  previousPos: Vec;
+  targetPreviousPos: Vec;
+}
+
 export interface SimPlayer {
   def: PlayerDef;
   team: 0 | 1;
@@ -40,6 +55,8 @@ export interface SimPlayer {
   firePolicy: FirePolicy;
   outUntilTick: number;       // 0 = fine
   outReason?: OutReason;
+  slideTackle?: SlideTackleState;
+  tackleRecoveryUntil: number;
   tackleCooldownUntil: number;
   cards: 0 | 1 | 2;
 }
@@ -53,7 +70,8 @@ export type BallState =
 export type MatchEvent =
   | { t: number; kind: 'KICKOFF'; half: 1 | 2 }
   | { t: number; kind: 'PASS'; from: number; to: number; ok: boolean }
-  | { t: number; kind: 'TACKLE'; by: number; on: number; won: boolean }
+  | { t: number; kind: 'SLIDE_STARTED'; by: number; on: number; direction: Vec; untilTick: number }
+  | { t: number; kind: 'TACKLE'; by: number; on: number; won: boolean; style: 'standing' | 'slide' | 'power'; contact: boolean }
   | { t: number; kind: 'SHOT'; by: number; power: number }
   | { t: number; kind: 'SAVE'; by: number; resolveLeft: number }
   | { t: number; kind: 'MISS'; by: number }

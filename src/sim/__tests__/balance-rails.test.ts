@@ -16,21 +16,31 @@ describe('M0 acceptance suite (Task 13)', () => {
     it('a normal matchup stays within sane bounds (200 seeds)', () => {
       const N = 200;
       let totalGoals = 0, totalShots = 0, totalSaves = 0, savedOrConceded = 0, maxGoals = 0;
+      let totalSlides = 0, totalSlideWins = 0;
       for (let seed = 1; seed <= N; seed++) {
         const r = runMatch(seed, ROVERS, UNITED);
+        const lastSlideByPlayer = new Map<number, number>();
+        for (const e of r.events) {
+          if (e.kind !== 'SLIDE_STARTED') continue;
+          const last = lastSlideByPlayer.get(e.by);
+          if (last !== undefined) expect(e.t - last).toBeGreaterThanOrEqual(25);
+          lastSlideByPlayer.set(e.by, e.t);
+        }
         const goals = r.score[0] + r.score[1];
         const shots = shotCount(r);
         const saves = r.events.filter(e => e.kind === 'SAVE').length;
         totalGoals += goals;
         totalShots += shots;
         totalSaves += saves;
+        totalSlides += r.events.filter(e => e.kind === 'SLIDE_STARTED').length;
+        totalSlideWins += r.events.filter(e => e.kind === 'TACKLE' && e.style === 'slide' && e.won).length;
         savedOrConceded += saves + goals;
         if (goals > maxGoals) maxGoals = goals;
       }
       const goalsPerMatch = totalGoals / N;
       const shotsPerMatch = totalShots / N;
       const saveRate = totalSaves / savedOrConceded;
-      console.log(`BALANCE RAILS normal: goals/match=${goalsPerMatch.toFixed(3)} maxGoalsInAMatch=${maxGoals} shots/match=${shotsPerMatch.toFixed(3)} saveRate=${saveRate.toFixed(4)} over ${N} seeds`);
+      console.log(`BALANCE RAILS normal: goals/match=${goalsPerMatch.toFixed(3)} maxGoalsInAMatch=${maxGoals} shots/match=${shotsPerMatch.toFixed(3)} saveRate=${saveRate.toFixed(4)} slides/match=${(totalSlides / N).toFixed(3)} slideWinRate=${(totalSlideWins / Math.max(1, totalSlides)).toFixed(3)} over ${N} seeds`);
       expect(goalsPerMatch).toBeGreaterThanOrEqual(1.5);
       expect(goalsPerMatch).toBeLessThanOrEqual(4.0);
       expect(maxGoals).toBeLessThanOrEqual(12);
@@ -38,6 +48,8 @@ describe('M0 acceptance suite (Task 13)', () => {
       expect(shotsPerMatch).toBeLessThanOrEqual(40);
       expect(saveRate).toBeGreaterThanOrEqual(0.55);
       expect(saveRate).toBeLessThanOrEqual(0.90);
+      expect(totalSlides / N).toBeGreaterThanOrEqual(2);
+      expect(totalSlides / N).toBeLessThanOrEqual(30);
     }, 30000);
 
     it('a +20-stat team dominates without a runaway blowout (200 seeds)', () => {

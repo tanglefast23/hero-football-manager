@@ -51,10 +51,10 @@ describe('hero gauge and firing', () => {
   it('the rival auto-fires only via context (0.85) — never a targetless 0.75 lapse, never 1.0', () => {
     // SUPER_STRENGTH requires a target (Task 12.2 ruling): its zone either finds a
     // context (which guarantees a lock) and fires 0.85, or expires. Zone entry is a
-    // probabilistic roll, so a single seed may have zero rival fires — scan seeds
-    // 1-20 (this task's empirical range) for existence plus the strength invariant.
+    // probabilistic roll, so a small seed window may have zero rival fires — scan
+    // 1-60 for existence plus the strength invariant after the m0.9 trajectory change.
     let fires = 0;
-    for (let seed = 1; seed <= 20; seed++) {
+    for (let seed = 1; seed <= 60; seed++) {
       const r = runMatch(seed, ROVERS, UNITED);
       for (const e of r.events) {
         if (e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL) {
@@ -266,6 +266,21 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     expect(m.events.some(e => e.kind === 'POWER_INTERRUPTED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
     expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
   });
+
+  it('remembers a legal Zone tap through tackle recovery and starts the windup afterward', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+    m.players[SPEEDSTER].tackleRecoveryUntil = m.tick + 2;
+    queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
+
+    tick(m);
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
+    expect(m.pendingInputs).toHaveLength(1);
+
+    tick(m);
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('winding');
+    expect(m.pendingInputs).toHaveLength(0);
+  });
 });
 
 describe('frozen-team bug: knockOut clears an active/winding power instead of freezing the team', () => {
@@ -286,4 +301,16 @@ describe('frozen-team bug: knockOut clears an active/winding power instead of fr
     expect(ready).toBe(true);
   });
 
+  it('a second-yellow activation frees the team so Zip can still enter the Zone', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[9].cards = 1;
+    m.rng = () => 0.10; // FIRE_TORCH yellow branch; the existing yellow becomes red
+    activatePower(m, 9, 1);
+    expect(m.players[9].outReason).toBe('redcard');
+    expect(m.players[9].powerState.kind).toBe('idle');
+
+    m.players[SPEEDSTER].gauge = 199;
+    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER), 100);
+    expect(m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER)).toBe(true);
+  });
 });

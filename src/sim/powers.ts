@@ -142,7 +142,8 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
     // p.outUntilTick guard (audit R1): a tap on a downed hero must not start a
     // windup that the out-check below would instantly interrupt (spurious
     // POWER_INTERRUPTED).
-    if (p.powerState.kind === 'zone' && p.outUntilTick <= state.tick && !teamPowerBusy(state, p.team)) {
+    if (p.powerState.kind === 'zone' && p.outUntilTick <= state.tick
+      && p.slideTackle === undefined && p.tackleRecoveryUntil <= state.tick && !teamPowerBusy(state, p.team)) {
       startWindup(state, input.player, TAP_STRENGTH);
     }
   }
@@ -154,6 +155,8 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
       if (p.powerState.kind === 'winding') interruptWindup(state, idx);
       continue; // out players neither charge nor fire (Task 7 review)
     }
+    const tacklingBusy = p.slideTackle !== undefined || p.tackleRecoveryUntil > state.tick;
+    if (tacklingBusy && (p.powerState.kind === 'idle' || p.powerState.kind === 'zone')) continue;
 
     // A busy teammate freezes this hero's heat/Zone timer — but a hero already
     // winding/active is never "frozen by itself" and must keep processing below.
@@ -240,6 +243,8 @@ export function knockOut(state: MatchState, idx: number, untilTick: number, reas
     p.powerState = { kind: 'idle' };
     p.gauge = 0;
   }
+  p.slideTackle = undefined;
+  p.tackleRecoveryUntil = 0;
   // 'zone' is intentionally left untouched — see the pause/resume note above.
   p.outUntilTick = untilTick;
   p.outReason = reason;
@@ -291,7 +296,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
         const hadBall = state.ball.kind === 'held' && state.ball.by === targetIdx;
         knockOut(state, targetIdx, state.tick + Math.round(80 * strength), 'ko');
         if (hadBall) state.ball = { kind: 'held', by: idx };
-        emit(state, { t: state.tick, kind: 'TACKLE', by: idx, on: targetIdx, won: hadBall });
+        emit(state, { t: state.tick, kind: 'TACKLE', by: idx, on: targetIdx, won: hadBall, style: 'power', contact: true });
       }
     }
   }

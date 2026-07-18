@@ -1,14 +1,24 @@
 # Defense Engagement & Player Stats — Design Spec
 
 **Date:** 2026-07-18 (v5 same day)
-**Status:** **APPROVED** — externally reviewed by Codex (gpt-5.6-sol, xhigh), 4 iterative rounds, final verdict APPROVED 2026-07-18. Decisions in §Decision record. Next: m0.6 implementation plan, written after T1 lands.
-**Target:** engine `m0.6`. Base: `main` **after T1** (approved positional-movement rework — its zonal tables decide *where* players stand; this spec decides *what they do* on arrival, per the external review's framing).
-**Companion:** `2026-07-18-ball-physics-design.md` (tackle spills, traps and second balls all resolve through its free-ball physics; both specs ship as one m0.6 version bump)
+**Status:** **APPROVED** — externally reviewed by Codex (gpt-5.6-sol, xhigh), 4 iterative rounds, final verdict APPROVED 2026-07-18. The focused slide-travel/stamina amendment was locked and built into engine `m0.9` on 2026-07-18; contain, cover, personality dials, and spilled-ball outcomes remain the later full engagement layer.
+**Target:** engine `m0.9` for the focused slide/stamina slice. Base: the current engine after positional movement and geometry-aware attacking decisions (its zonal tables decide *where* players stand; this spec decides *what they do* on arrival, per the external review's framing).
+**Companion:** `2026-07-18-ball-physics-design.md` (the later full engagement layer still pairs tackle spills, traps, and second balls with its free-ball physics)
 
-## Problem
+## Problem (pre-m0.9 baseline)
 
 1. **Defense looks passive.** m0.4 already rolls a tackle contest whenever a defender stands within 2.5 m of the carrier (`tackleTick`, every 10-tick cooldown) — but it is an invisible, instant dice roll: possession teleports, nothing lunges, nothing whiffs. Only one defender (nearest opponent) even converges; everyone else walks back to formation anchors. On screen this reads as "nobody tries to take the ball."
 2. **Stats are shallow and one is dead.** Of the canon six, `sta` is defined, validated, rendered — and never read by the engine. The others mostly gate single dice rolls. There is no notion of playing style: nothing distinguishes a reckless defender from a patient one.
+
+## Locked m0.9 implementation slice
+
+The first build deliberately solves the visible commitment and stamina problems without pulling the companion ball-physics/containment work forward:
+
+- Any outfield player can press into a standing tackle inside **2 m**. Slide tackles are principally the committed **DEF-role** tool; midfielders only use a shorter cover slide in their own half (and only their own third below 50% condition), while forwards do not slide. A defender can launch from **2–4.5 m**, travel their real deterministic coordinate along a locked vector for up to **4 ticks**, run at **1.8×** ordinary movement speed, and is capped at **4.5 m** total travel. The renderer supplies only the prone pose—no fake offset and no snap-back.
+- Current condition uses bands rather than an 80% cliff: **80–100%** gets the full 4.5 m opportunity; **50–79%** is capped at 3.8 m; **30–49%** is emergency-only in the defender's own third and capped at 3.2 m; **below 30%** cannot launch. DEF versus TEC decides whether contact succeeds rather than also deciding whether the animation is allowed to begin.
+- Each launch drains **0.4 condition**, scaled by the player's raw STA drain multiplier. STA also scales ordinary movement drain, while condition feeds `effectiveStat()` once and can reduce execution by at most 25%.
+- Slide cooldown is **25 ticks (2.5 s) from launch**. A clean win holds the tackler at the contact coordinate for **6 ticks (0.6 s)**; a beaten or no-contact slide holds them at the landing coordinate for **12 ticks (1.2 s)**. Passing before contact makes the committed slide miss.
+- The focused event contract distinguishes `SLIDE_STARTED` from the later `TACKLE` resolution and labels resolved challenges as `standing`, `slide`, or `power`. Full `clean` / `spilled` / `whiff` outcomes remain paired with the companion free-ball physics implementation.
 
 ## Canon guardrails (obeyed, not re-litigated)
 
@@ -118,7 +128,7 @@ COVER (new, 2nd defender: goal-side bias off its T1 table target, workRate-gated
 
 - **Press** — the movement layer's presser (T1 lease, ≥ 10 ticks — no target flicker) converges; trigger radius scales with workRate.
 - **Contain** (new) — within ~3.5 m the defender stops charging and jockeys from a goal-side shadow point. **DEF is approach quality** (review adopted, simplified): high DEF places that block point accurately on the carrier-to-goal line; low DEF's offset is sloppy and easier to skip past — no curved-path simulation needed, the offset error *is* the bad angle. While contained, the carrier must maneuver — a TEC (+PAC-if-sprinting, canon) vs DEF escape contest every 5 ticks; forward progress slows. Contain patience before committing = aggression dial. This state alone kills the "nobody tries" feel: a defender crouched in the carrier's path *is* visible intent.
-- **The challenge** — standing poke at ≤ 2 m (existing 10-tick cooldown), or slide at ≤ 4.5 m. Slide eligibility gates: intercept point inside PAC-scaled lunge reach, **ahead of the carrier** (no from-behind lunges), and condition ≥ 30 (exhausted legs don't launch). The slide **commits**: ~1.8× speed along a locked vector for 4 ticks (no homing — same principle as the ball), resolved by swept closest-approach. The carrier's normal decision cadence keeps running during the lunge, so releasing the pass early beats the slide — real counterplay, emergent.
+- **The challenge** — standing poke at ≤ 2 m (10-tick cooldown), or slide at ≤ 4.5 m. Slide eligibility uses the locked condition bands above, requires a goal-side approach (no from-behind lunges), and reads effective PAC for lunge speed. The slide **commits**: ~1.8× speed along a locked vector for up to 4 ticks (no homing — same principle as the ball), resolved by swept closest-approach. The carrier's normal decision cadence keeps running during the lunge, so releasing the pass early beats the slide — real counterplay, emergent.
 - **Three outcomes, one contest** (review adopted): the **margin-contest primitive** (defined in ball-physics §1: one draw, `strong`/`narrow`/`loss`, total win probability provably unchanged by the margin) resolves every challenge from the DEF-vs-TEC probability:
   - **Clean take** (comfortable win) → defender hooks the ball into their own possession. Standing tackles bias toward this band (the Professional's pickpocket).
   - **Poke loose** (narrow win) → ball **spills** with real velocity in the challenge direction (+ small hop, `vz` 0–20) — free-ball physics takes over, anyone can pounce. Slides bias toward this band: they win contact more often than they win the *ball*.
@@ -152,7 +162,7 @@ COVER (new, 2nd defender: goal-side bias off its T1 table target, workRate-gated
 - `TACKLE` event gains `style: 'standing' | 'slide' | 'power'` (`power` = Super Strength's hit, per the compatibility map) and outcome `'clean' | 'spilled' | 'whiff'` (ticker/commentary can differentiate "crunching slide!" from "picked his pocket"). New `DRIBBLE` event `{by, past, won}` on containment-escape contests — feeds commentary ("skips past him!") and the whole-preset signature tests.
 - `PlayerStatus` union gains `'sliding'` and `'down'` — and the renderer needs real **sprite-selection logic**, not just new enum values (external review: `MatchScreen.tsx` currently always draws run-cycle sprites and uses status only for tinting). Work: slide + prone atlas keys from the art branch (`HFM-art-worktree`), selection by status, dust puff, and interpolation tests. Containment deliberately gets no status: the jockeying movement itself reads on screen.
 - Gauge: `clean` challenge wins earn the existing +15 tackle fill; spills route heat through the eventual collector (see the superpower compatibility map).
-- `ENGINE_VERSION` → `m0.6` shared with ball physics (many new rng draw sites; one version bump, one replay break).
+- The focused slice already bumped `ENGINE_VERSION` to `m0.9`. The later containment/spill/free-ball layer must make a fresh version decision when it lands; it must not reuse this replay envelope.
 
 ## Balance rails & tests
 
@@ -181,3 +191,4 @@ Unit tests: state-ladder transitions on fixed seeds; slide lunge geometry + rela
 2. **Second-defender cover: IN.** The T1 tables already put the second defender in roughly the right zone; cover adds a small goal-side bias between table target and carrier when the press is active (~10 lines, sells "team defense").
 3. **STA funnel: IN for m0.6.** STA-is-dead is exactly what prompted the stats question; morale/consistency follow in M1 through the same funnel.
 4. **Slide-win chip: IN** — a spilled ball can pop airborne (small `vz`), courtesy of the ball-physics primitive.
+5. **m0.9 focused slide rules: LOCKED.** 80% is the preferred full-reach band, 30% is the hard floor, middle/low bands lose reach and the low band is emergency-only, launch cost is 0.4 condition, cooldown is 25 ticks, and recovery is 6 ticks on a win / 12 on a miss. Slide travel is simulation state, never a renderer-only offset.
