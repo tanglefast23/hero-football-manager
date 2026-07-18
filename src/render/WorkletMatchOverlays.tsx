@@ -167,12 +167,12 @@ function WorkletZoneIndicator({
     <Fragment>
       <Path
         path={ring}
-        color={isControlled ? '#f5c518' : '#e8433f'}
+        color={isControlled ? '#edb54a' : '#d94f52'}
         style="stroke"
         strokeWidth={2}
         opacity={opacity}
       />
-      {isControlled ? <Path path={marker} color="#f5c518" /> : null}
+      {isControlled ? <Path path={marker} color="#edb54a" /> : null}
     </Fragment>
   );
 }

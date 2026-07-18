@@ -74,7 +74,7 @@ export function ManagementShell({
                 className="min-h-12 flex-1 items-center justify-center"
                 style={({ pressed }) => ({ opacity: !tab.available ? 0.35 : pressed ? 0.7 : undefined })}
               >
-                <Text className={selected ? 'font-mono text-sm font-bold text-signal' : 'font-mono text-sm text-paper/60'}>
+                <Text className={selected ? 'font-mono text-sm font-bold text-paper' : 'font-mono text-sm text-paper/60'}>
                   {tab.glyph}
                 </Text>
                 <Text className={selected ? 'mt-1 text-xs font-bold uppercase text-paper' : 'mt-1 text-xs uppercase text-paper/50'}>

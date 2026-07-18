@@ -15,7 +15,10 @@ const CENTER_SPOT_R = PITCH_H * (0.3 / REAL_LENGTH_M);
 const POST_TICK_LEN = PITCH_H * (1.5 / REAL_LENGTH_M); // short goalpost tick into the pitch
 
 const STRIPE_COUNT = 8;
-const STRIPE_ALT_COLOR = '#357f42'; // painted over the base <Fill> (#2e7d3a) for the other 4 bands
+// Mow stripes use two exact values from the pixel-bible pitch/turf ramp
+// (docs/11): the base <Fill> is pitch-dark #3f8a4a, and these 4 bands paint
+// the brighter pitch base #5cb85c over it.
+const STRIPE_ALT_COLOR = '#5cb85c';
 const LINE_COLOR = '#ffffff';
 const LINE_W = 2; // pt — Skia strokeWidth is already screen-space, not pitch-space
 const POST_W = 4; // pt — thicker than LINE_W so the goal mouth reads as posts at a glance

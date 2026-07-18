@@ -558,14 +558,14 @@ export function MatchScreen({
   // of being flattened to a solid team-color block.
   const colors: SkColor[] = useMemo(() => {
     const tints = frame.statuses.map((st, i) => {
-      if (st === 'ignited') return Skia.Color('#ff6a00');
-      if (st === 'out') return Skia.Color('#666666');
-      if (st === 'windup') return Skia.Color(hud.tick % 4 < 2 ? '#ffffff' : '#f5c518');
-      if (st === 'active') return Skia.Color('#f5c518');
+      if (st === 'ignited') return Skia.Color('#ff6a00'); // flame orange (matches Fire Torch FX)
+      if (st === 'out') return Skia.Color('#6b6675'); // bible grey-dark
+      if (st === 'windup') return Skia.Color(hud.tick % 4 < 2 ? '#ffffff' : '#edb54a'); // hero gold
+      if (st === 'active') return Skia.Color('#edb54a'); // hero gold
       // 'ok' | 'zone' — zone is telegraphed by the glow ring, not a body tint.
       // In fallback mode there are no kit pixels to preserve, so tint the
-      // white placeholder rects with team colors instead.
-      return atlas.fallbackMode ? Skia.Color(i < 11 ? '#e8433f' : '#3f6fd8') : Skia.Color('#ffffff');
+      // white placeholder rects with bible team colors (red / blue) instead.
+      return atlas.fallbackMode ? Skia.Color(i < 11 ? '#d94f52' : '#5a8fd6') : Skia.Color('#ffffff');
     });
     tints.push(Skia.Color('#ffffff')); // ball — no tint
     return tints;
@@ -651,7 +651,7 @@ export function MatchScreen({
           warmthStyle,
           inZone ? styles.chipReady : null,
           inZone ? styles.chipZoneTap : null,
-          inZone ? { borderColor: chipPulseGold ? '#f5c518' : '#ffffff' } : null,
+          inZone ? { borderColor: chipPulseGold ? '#edb54a' : '#f7d894' } : null,
           dimmed || unavailable || frozen ? styles.chipDim : null,
           earlyTap ? styles.chipFlash : null,
         ]}
@@ -706,29 +706,41 @@ export function MatchScreen({
   return (
     <View style={styles.root}>
       <Pressable style={styles.scorebar} onPress={() => setPausedBoth(!pausedRef.current)}>
-        <Text style={[styles.scoreText, hud.scoreFlash ? styles.scoreTextFlash : null]}>
-          {homeCode} {hud.score[0]} – {hud.score[1]} {awayCode} · {minute}'{stoppage ? '+' : ''}
-          {paused ? ' ⏸' : ''}
-        </Text>
-        <Pressable onPress={() => setSpeed((current) => {
-          const next = current === 1 ? 2 : 1;
-          speedRef.current = next;
-          resumeAtlasFrame(next);
-          return next;
-        })}>
-          <Text style={styles.speedText}>×{speed}</Text>
-        </Pressable>
-        {__DEV__ ? (
-          <Pressable onPress={() => setDebugGrid((d) => !d)}>
-            <Text style={styles.speedText}>{debugGrid ? '▦' : '▢'}</Text>
+        {/* Scoreboard "bug": an ink-outlined dark pill with a raised bottom
+            lip (Track-A bevel) and cream mono numerals; flashes hero-gold on a
+            goal. Tapping the surrounding bar still toggles pause. */}
+        <View style={styles.scoreBug}>
+          <Text style={[styles.scoreText, hud.scoreFlash ? styles.scoreTextFlash : null]}>
+            {homeCode} {hud.score[0]} – {hud.score[1]} {awayCode} · {minute}'{stoppage ? '+' : ''}
+            {paused ? ' ⏸' : ''}
+          </Text>
+        </View>
+        <View style={styles.controls}>
+          <Pressable
+            style={styles.ctrlButton}
+            onPress={() => setSpeed((current) => {
+              const next = current === 1 ? 2 : 1;
+              speedRef.current = next;
+              resumeAtlasFrame(next);
+              return next;
+            })}
+          >
+            <Text style={styles.ctrlText}>×{speed}</Text>
           </Pressable>
-        ) : null}
+          {__DEV__ ? (
+            <Pressable style={styles.ctrlButton} onPress={() => setDebugGrid((d) => !d)}>
+              <Text style={styles.ctrlText}>{debugGrid ? '▦' : '▢'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </Pressable>
       {rivalHeroes.length > 0 ? (
         <View style={styles.rivalStrip}>{rivalHeroes.map((i) => rivalChip(i))}</View>
       ) : null}
       <Canvas style={{ width, height: pitchH }}>
-        <Fill color="#2e7d3a" />
+        {/* Pitch base = pixel-bible pitch-dark (#3f8a4a); Pitch.tsx paints the
+            brighter base #5cb85c on alternating mow bands over it. */}
+        <Fill color="#3f8a4a" />
         <Pitch scale={scale} />
         {trailRef.current.map((t, i) => (
           <Circle
@@ -787,13 +799,13 @@ export function MatchScreen({
           const cy = im.y * scale;
           const fade = 1 - prog;
           return [
-            <Circle key="impact-core" cx={cx} cy={cy} r={6 + prog * 22} color="#fff2b0" opacity={fade * 0.5} />,
+            <Circle key="impact-core" cx={cx} cy={cy} r={6 + prog * 22} color="#f7d894" opacity={fade * 0.5} />,
             <Circle
               key="impact-ring"
               cx={cx}
               cy={cy}
               r={9 + prog * 34}
-              color="#ffd23a"
+              color="#edb54a"
               style="stroke"
               strokeWidth={3}
               opacity={fade * 0.7}
@@ -847,32 +859,86 @@ export function MatchScreen({
   );
 }
 
+// All colours below come from the pixel-art bible palette (docs/11): ink
+// #241f2e / ink-soft #3a3350 (dark canvas + chrome faces), cream #f4f1ea
+// (text), hero gold #edb54a / #c8862a / #f7d894 (hero-only accents), red
+// #d94f52 / #a83440 (rival threat), grey-dark #6b6675 (structure). Interactive
+// chrome (Track A) uses an ink outline with a thicker bottom edge as the
+// raised "lip"; gold is reserved for hero/power moments per docs/08.
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#101418' },
-  scorebar: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, paddingTop: 56, paddingRight: 98 },
-  scoreText: { color: 'white', fontSize: 18, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
-  scoreTextFlash: { color: '#f5c518' },
-  speedText: { color: 'white', fontSize: 18, padding: 4 },
-  banner: { color: '#f5c518', fontSize: 18, fontWeight: 'bold', textAlign: 'center', padding: 8 },
-  bannerThreat: { color: '#e8433f' },
+  root: { flex: 1, backgroundColor: '#241f2e' },
+  scorebar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 56,
+    paddingBottom: 12,
+  },
+  // Scoreboard "bug": a lighter ink-soft pill on the ink canvas, outlined in
+  // ink with a thicker bottom lip for a raised, pressable-panel read.
+  scoreBug: {
+    backgroundColor: '#3a3350',
+    borderWidth: 2,
+    borderColor: '#241f2e',
+    borderBottomWidth: 4,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  scoreText: { color: '#f4f1ea', fontSize: 18, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  scoreTextFlash: { color: '#f7d894' },
+  // Top-right controls: small beveled buttons (same Track-A recipe as the bug).
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ctrlButton: {
+    minWidth: 40,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    backgroundColor: '#3a3350',
+    borderWidth: 2,
+    borderColor: '#241f2e',
+    borderBottomWidth: 4,
+    borderRadius: 4,
+  },
+  ctrlText: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold' },
+  banner: { color: '#edb54a', fontSize: 18, fontWeight: 'bold', textAlign: 'center', padding: 8 },
+  bannerThreat: { color: '#d94f52' },
   chips: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, padding: 16 },
   autoButton: {
     minWidth: 56,
     minHeight: 54,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1e2630',
-    borderRadius: 12,
+    backgroundColor: '#3a3350',
+    borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#59636e',
+    borderColor: '#6b6675',
+    borderBottomWidth: 4,
+    borderBottomColor: '#241f2e',
     paddingHorizontal: 8,
   },
-  autoButtonOn: { backgroundColor: '#4a3b10', borderColor: '#f5c518' },
-  autoLabel: { color: '#aab2bb', fontSize: 11, fontWeight: 'bold' },
-  autoLabelOn: { color: '#f5c518' },
-  autoState: { color: '#ffffff', fontSize: 13, fontWeight: 'bold', marginTop: 2 },
-  autoStateOn: { color: '#f5c518' },
-  chip: { backgroundColor: '#1e2630', borderRadius: 12, padding: 12, minWidth: 96, alignItems: 'center' },
+  // AUTO governs hero-power firing, so gold is on-theme here (docs/08).
+  autoButtonOn: { backgroundColor: '#4a3a1c', borderColor: '#edb54a', borderBottomColor: '#c8862a' },
+  autoLabel: { color: '#c9c5d0', fontSize: 11, fontWeight: 'bold' },
+  autoLabelOn: { color: '#edb54a' },
+  autoState: { color: '#f4f1ea', fontSize: 13, fontWeight: 'bold', marginTop: 2 },
+  autoStateOn: { color: '#f7d894' },
+  // Home hero chip (Track A): ink-outlined ink-soft panel with a raised ink
+  // lip. borderWidth/borderBottomWidth stay constant across all states below —
+  // only colours change — so the chip never resizes as a hero heats up.
+  chip: {
+    backgroundColor: '#3a3350',
+    borderWidth: 2,
+    borderColor: '#6b6675',
+    borderBottomWidth: 4,
+    borderBottomColor: '#241f2e',
+    borderRadius: 4,
+    padding: 12,
+    minWidth: 96,
+    alignItems: 'center',
+  },
   // Rival strip — sits under the scorebar, above the Canvas. Kept slim
   // (reduced padding, smaller text than the home chip) since the Canvas
   // height is width-derived, so any chrome added above it pushes the pitch
@@ -887,8 +953,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#1e2630',
-    borderRadius: 12,
+    backgroundColor: '#3a3350',
+    borderRadius: 4,
     borderWidth: 2,
     borderColor: 'transparent',
     paddingVertical: 4,
@@ -896,28 +962,29 @@ const styles = StyleSheet.create({
   },
   // WARMTH steps (replace the old numeric heat bar — heat-weighted zone entry
   // is a hot-streak mechanic, not a "fills up and fires" gauge). Cold has no
-  // entry here: it keeps the plain `chip` look above, unchanged.
-  warmingHome: { backgroundColor: '#2b2a24', borderWidth: 1, borderColor: '#6b5b2a' },
-  hotHome: { backgroundColor: '#3a2f18', borderWidth: 1, borderColor: '#a8842e' },
-  warmingRival: { backgroundColor: '#2f1f1e', borderColor: '#7a3a34' },
-  hotRival: { backgroundColor: '#3f2320', borderColor: '#b04a40' },
-  chipReady: { backgroundColor: '#4a3b10', borderWidth: 2, borderColor: '#f5c518' },
-  chipThreat: { backgroundColor: '#3a1512', borderColor: '#e8433f' },
+  // entry here: it keeps the plain `chip` look above, unchanged. These only
+  // ever change colours (see the chip metric note above).
+  warmingHome: { borderColor: '#c8862a' },
+  hotHome: { backgroundColor: '#4a3a1c', borderColor: '#edb54a' },
+  warmingRival: { backgroundColor: '#3a2320', borderColor: '#a83440' },
+  hotRival: { backgroundColor: '#4a2a22', borderColor: '#d94f52' },
+  chipReady: { backgroundColor: '#5a4620', borderColor: '#edb54a', borderBottomColor: '#c8862a' },
+  chipThreat: { backgroundColor: '#3a1512', borderColor: '#d94f52' },
   chipZoneTap: { transform: [{ scale: 1.08 }] },
   chipDim: { opacity: 0.4 },
-  // Early-tap feedback — brief bright-white border flash standing in for the
-  // old "flash the heat bar brighter" (there is no bar anymore; see WARMTH).
-  chipFlash: { borderWidth: 2, borderColor: '#ffffff' },
-  chipName: { color: 'white', fontSize: 14, marginBottom: 6 },
-  rivalTag: { color: '#e8433f', fontSize: 11, fontWeight: 'bold' },
-  rivalChipName: { color: 'white', fontSize: 11 },
+  // Early-tap feedback — brief bright border flash standing in for the old
+  // "flash the heat bar brighter" (there is no bar anymore; see WARMTH).
+  chipFlash: { borderColor: '#f4f1ea' },
+  chipName: { color: '#f4f1ea', fontSize: 14, marginBottom: 6 },
+  rivalTag: { color: '#d94f52', fontSize: 11, fontWeight: 'bold' },
+  rivalChipName: { color: '#f4f1ea', fontSize: 11 },
   tapOverlay: {
     position: 'absolute',
     top: -14,
     left: 0,
     right: 0,
     textAlign: 'center',
-    color: '#f5c518',
+    color: '#edb54a',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -927,7 +994,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     textAlign: 'center',
-    color: '#ffffff',
+    color: '#f4f1ea',
     fontSize: 11,
   },
 });
