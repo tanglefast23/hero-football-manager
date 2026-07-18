@@ -375,28 +375,37 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     return { homeHeroes: home, rivalHeroes: rival };
   }, [match]);
 
+  // Shared per-chip state, read by both renderers below.
+  //
   // Availability guard (audit rider) — a hero can still carry a stale
   // `powerState.kind === 'zone'` after being knocked out mid-window (a
-  // separate task fixes the sim-side clear), so the chip must not trust that
-  // alone. `outUntilTick > match.tick` is the same "is this player currently
-  // out" check interpolate.ts's snapshotFrame uses to pick the canvas
-  // 'out'/'ignited' tint, so it renders unavailable here too — dimmed, no
-  // zone styling, no TAP! overlay, no queued input.
-  const homeChip = (idx: number) => {
+  // separate task fixes the sim-side clear), so the chips must not trust
+  // that alone. `outUntilTick > match.tick` is the same "is this player
+  // currently out" check interpolate.ts's snapshotFrame uses to pick the
+  // canvas 'out'/'ignited' tint, so it renders unavailable here too —
+  // dimmed, no zone styling, no TAP! overlay, no queued input.
+  //
+  // Ledger item 5 — no 'ready' state exists; a hero is chip-highlighted
+  // while its powerState.kind is 'zone'.
+  //
+  // WARMTH step replaces the old numeric heat bar — heat-weighted zone
+  // entry is a hot-streak mechanic, not a "fills up and fires" gauge, so no
+  // bar/number is shown. The zone state owns the chip's look once a hero is
+  // actually in the Zone; warmth only applies before that.
+  const chipState = (idx: number) => {
     const p = match.players[idx];
     const unavailable = p.outUntilTick > match.tick;
-    // Ledger item 5 — no 'ready' state exists; a hero is chip-highlighted
-    // while its powerState.kind is 'zone'.
     const inZone = !unavailable && p.powerState.kind === 'zone';
     const dimmed = match.tick - (expiredAtRef.current[idx] ?? -Infinity) < FLASH_TICKS;
+    const step = unavailable || inZone ? null : warmthStep(p.gauge);
+    return { p, unavailable, inZone, dimmed, step };
+  };
+
+  const homeChip = (idx: number) => {
+    const { p, unavailable, inZone, dimmed, step } = chipState(idx);
     // UX fix — early-tap feedback: set (only) in onPress below, read here for
     // up to EARLY_TAP_TICKS afterward.
     const earlyTap = !unavailable && match.tick - (pressFeedbackRef.current[idx] ?? -Infinity) < EARLY_TAP_TICKS;
-    // WARMTH step replaces the old numeric heat bar — heat-weighted zone
-    // entry is a hot-streak mechanic, not a "fills up and fires" gauge, so no
-    // bar/number is shown. The zone state (below) owns the chip's look once
-    // a hero is actually in the Zone; warmth only applies before that.
-    const step = unavailable || inZone ? null : warmthStep(p.gauge);
     const warmthStyle = step === 'warming' ? styles.warmingHome : step === 'hot' ? styles.hotHome : null;
     return (
       <Pressable
@@ -440,11 +449,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   // he's in the Zone — starving his window is the counterplay, so seeing him
   // heat up matters even though the player can't act on it directly.
   const rivalChip = (idx: number) => {
-    const p = match.players[idx];
-    const unavailable = p.outUntilTick > match.tick;
-    const inZone = !unavailable && p.powerState.kind === 'zone';
-    const dimmed = match.tick - (expiredAtRef.current[idx] ?? -Infinity) < FLASH_TICKS;
-    const step = unavailable || inZone ? null : warmthStep(p.gauge);
+    const { p, unavailable, inZone, dimmed, step } = chipState(idx);
     const warmthStyle = step === 'warming' ? styles.warmingRival : step === 'hot' ? styles.hotRival : null;
     return (
       <View
@@ -551,12 +556,19 @@ const styles = StyleSheet.create({
   // height is width-derived, so any chrome added above it pushes the pitch
   // down.
   rivalStrip: { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 4, paddingHorizontal: 12 },
+  // The constant transparent border reserves the warm/hot/threat border's
+  // space up front: the strip sits above the fixed-height Canvas, so a
+  // state-dependent borderWidth would change the chip's height and nudge
+  // the whole pitch down and back mid-play. The rival state styles below
+  // must therefore only ever change colors, never metrics.
   rivalChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: '#1e2630',
     borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
@@ -565,10 +577,10 @@ const styles = StyleSheet.create({
   // entry here: it keeps the plain `chip` look above, unchanged.
   warmingHome: { backgroundColor: '#2b2a24', borderWidth: 1, borderColor: '#6b5b2a' },
   hotHome: { backgroundColor: '#3a2f18', borderWidth: 1, borderColor: '#a8842e' },
-  warmingRival: { backgroundColor: '#2f1f1e', borderWidth: 1, borderColor: '#7a3a34' },
-  hotRival: { backgroundColor: '#3f2320', borderWidth: 1, borderColor: '#b04a40' },
+  warmingRival: { backgroundColor: '#2f1f1e', borderColor: '#7a3a34' },
+  hotRival: { backgroundColor: '#3f2320', borderColor: '#b04a40' },
   chipReady: { backgroundColor: '#4a3b10', borderWidth: 2, borderColor: '#f5c518' },
-  chipThreat: { backgroundColor: '#3a1512', borderWidth: 2, borderColor: '#e8433f' },
+  chipThreat: { backgroundColor: '#3a1512', borderColor: '#e8433f' },
   chipZoneTap: { transform: [{ scale: 1.08 }] },
   chipDim: { opacity: 0.4 },
   // Early-tap feedback — brief bright-white border flash standing in for the
