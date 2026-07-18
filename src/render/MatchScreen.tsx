@@ -7,6 +7,13 @@ import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState } from '../sim/types';
 import { buildSpriteAtlas } from './sprites/buildAtlas';
 import { lerpFrame, snapshotFrame, type PitchFrame } from './interpolate';
+import {
+  actionPose,
+  isKeeperReady,
+  keeperReadyFrame,
+  runFrameForDistance,
+  type PlayerActionAnimation,
+} from './animation';
 import { Pitch } from './Pitch';
 import { DebugOverlay } from './DebugOverlay';
 import { initAudio, playForEvent, startTheme, stopTheme, teardownAudio } from './audio';
@@ -134,6 +141,10 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   // UX fix — keyed by player index: the tick a home hero's chip was last
   // tapped outside its zone (early-tap feedback), read by homeChip() below.
   const pressFeedbackRef = useRef<Record<number, number>>({});
+  // Render-only tackle choreography keyed by player index. TACKLE is already
+  // part of the deterministic event stream; these poses never feed back into
+  // positions, possession, RNG, or replay data.
+  const actionRef = useRef<Record<number, PlayerActionAnimation>>({});
 
   const [frame, setFrame] = useState<PitchFrame>(() => prevRef.current!);
   const [hud, setHud] = useState({
@@ -142,6 +153,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     banner: '',
     bannerTone: 'gold' as 'gold' | 'red',
     scoreFlash: false,
+    visualTick: 0,
   });
   const [speed, setSpeed] = useState(1);
   // Dev-only movement-table tuning instrument (movement spec's debug-overlay
@@ -241,15 +253,18 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       // No pausedRef check needed here: the early return above already ran,
       // and the flag cannot flip mid-invocation on a single-threaded runtime.
       while (acc >= TICK_MS && s.phase !== 'fulltime') {
-        const before = nextRef.current!.players;
-        prevRef.current = nextRef.current;
+        const before = nextRef.current!;
+        prevRef.current = before;
         tick(s);
         nextRef.current = snapshotFrame(s, before);
 
         for (let i = 0; i < 22; i++) {
           if (dist2(prevRef.current!.players[i], nextRef.current.players[i]) > SNAP_DIST2) {
+            // A restart teleport is not locomotion. Keep the accumulated
+            // stride distance unchanged so a kickoff cannot arbitrarily flip
+            // every player's feet.
+            nextRef.current.travel[i] = prevRef.current!.travel[i];
             snap = true;
-            break;
           }
         }
 
@@ -284,6 +299,27 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
           bannerRef.current = { text: '⚡ FULL TIME', untilTick: e.t + FLASH_TICKS, tone: 'gold' };
         }
         if (e.kind === 'POWER_EXPIRED') expiredAtRef.current[e.player] = e.t;
+        if (e.kind === 'TACKLE') {
+          const byPos = nextRef.current!.players[e.by];
+          const onPos = nextRef.current!.players[e.on];
+          const dx = onPos.x - byPos.x;
+          const dy = onPos.y - byPos.y;
+          const magnitude = Math.hypot(dx, dy);
+          const direction = magnitude > 0
+            ? { x: dx / magnitude, y: dy / magnitude }
+            : { x: 0, y: s.players[e.by].team === 0 ? -1 : 1 };
+          const rotation = direction.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
+          const startTick = e.t - 1;
+          actionRef.current[e.by] = { kind: 'slide', startTick, direction, rotation };
+          if (e.won) {
+            actionRef.current[e.on] = {
+              kind: 'fall',
+              startTick,
+              anchor: { ...onPos },
+              rotation: -rotation,
+            };
+          }
+        }
         // UX fix — zone entry announcement: the player didn't discover the
         // tap affordance from the chip alone, so a HOME hero's Zone entry
         // (POWER_READY; see sim/powers.ts's comment — "event kind retained;
@@ -320,13 +356,18 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         trailRef.current = [];
       }
 
-      setFrame(lerpFrame(prevRef.current!, nextRef.current!, Math.min(1, acc / TICK_MS)));
+      const interpolation = Math.min(1, acc / TICK_MS);
+      setFrame(lerpFrame(prevRef.current!, nextRef.current!, interpolation));
       setHud({
         score: [...s.score] as [number, number],
         tick: s.tick,
         banner: s.tick <= bannerRef.current.untilTick ? bannerRef.current.text : '',
         bannerTone: bannerRef.current.tone,
         scoreFlash: s.tick <= scoreFlashUntilRef.current,
+        // Sim tick N is visually interpolated from snapshot N-1 to N. This
+        // fractional clock lets tackle rotations and recoveries move smoothly
+        // at display refresh rate while remaining aligned to event ticks.
+        visualTick: Math.max(0, s.tick - 1 + interpolation),
       });
 
       if (s.phase === 'fulltime') {
@@ -351,20 +392,28 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     };
   }, [onDone]);
 
-  // Ledger item 4 — per-player sprite key: `${id}:run${frame}`, 2-frame cycle
-  // while the player moved this tick, run0 (idle pose) when stationary. Ball
-  // is the 23rd atlas entry (index 22), sharing the same texture/draw call.
+  // Distance, not wall-clock ticks, advances the run cycle. The action pose
+  // takes priority, followed by the far-ball GK ready loop, then locomotion.
+  const playerSpriteKeys = useMemo(() => match.players.map((p, i) => {
+    const pose = actionPose(actionRef.current[i], hud.visualTick);
+    if (pose.active) return `${p.def.id}:run0`;
+    if (p.def.role === 'GK' && isKeeperReady(dist2(frame.players[i], frame.ball))) {
+      return `${p.def.id}:${keeperReadyFrame(hud.visualTick)}`;
+    }
+    return `${p.def.id}:${runFrameForDistance(frame.travel[i], frame.moved[i])}`;
+  }), [frame, hud.visualTick, match]);
+
+  // All 22 players plus the ball still share one batched Atlas draw call.
   const sprites: SkRect[] = useMemo(() => {
     const ball = atlas.rectFor('ball');
     return [
-      ...match.players.map((p, i) => {
-        const runFrame = frame.moved[i] ? Math.floor(hud.tick / 5) % 2 : 0;
-        const r = atlas.rectFor(`${p.def.id}:run${runFrame}`);
+      ...match.players.map((_p, i) => {
+        const r = atlas.rectFor(playerSpriteKeys[i]);
         return Skia.XYWHRect(r.x, r.y, r.w, r.h);
       }),
       Skia.XYWHRect(ball.x, ball.y, ball.w, ball.h),
     ];
-  }, [frame, hud.tick, atlas, match]);
+  }, [atlas, match, playerSpriteKeys]);
 
   const transforms: SkRSXform[] = useMemo(() => {
     const scos = scale * PLAYER_DRAW_SCALE;
@@ -405,11 +454,28 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     }
 
     return [
-      ...match.players.map((p, i) => {
-        const runFrame = frame.moved[i] ? Math.floor(hud.tick / 5) % 2 : 0;
-        const r = atlas.rectFor(`${p.def.id}:run${runFrame}`);
+      ...match.players.map((_p, i) => {
+        const r = atlas.rectFor(playerSpriteKeys[i]);
         const pos = frame.players[i];
-        return Skia.RSXform(scos, 0, pos.x * scale - (r.w * scos) / 2, pos.y * scale - (r.h * scos) / 2);
+        const action = actionRef.current[i];
+        const pose = actionPose(action, hud.visualTick);
+        let centerX = pos.x;
+        let centerY = pos.y;
+        if (pose.active && action?.kind === 'slide') {
+          centerX += action.direction.x * pose.forwardOffset;
+          centerY += action.direction.y * pose.forwardOffset;
+        } else if (pose.active && action?.kind === 'fall') {
+          centerX = pos.x * (1 - pose.anchorWeight) + action.anchor.x * pose.anchorWeight;
+          centerY = pos.y * (1 - pose.anchorWeight) + action.anchor.y * pose.anchorWeight;
+        }
+
+        const rotatedScos = Math.cos(pose.rotation) * scos;
+        const rotatedSsin = Math.sin(pose.rotation) * scos;
+        // Keep the sprite's center pinned to the player while rotating around
+        // that center (RSXform's translation otherwise rotates around 0,0).
+        const tx = centerX * scale - (rotatedScos * r.w - rotatedSsin * r.h) / 2;
+        const ty = centerY * scale - (rotatedSsin * r.w + rotatedScos * r.h) / 2;
+        return Skia.RSXform(rotatedScos, rotatedSsin, tx, ty);
       }),
       Skia.RSXform(
         ballScos,
@@ -418,7 +484,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         frame.ball.y * scale - (ball.h * ballScos) / 2 + ballOffsetY
       ),
     ];
-  }, [frame, hud.tick, atlas, match, scale]);
+  }, [frame, hud.visualTick, atlas, match, playerSpriteKeys, scale]);
 
   // Ledger item 4 — tints carry status ONLY. A normal player gets white (a
   // no-op multiply) so the sprite's own kit/skin/hair colors survive instead

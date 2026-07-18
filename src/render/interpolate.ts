@@ -16,6 +16,7 @@ export interface PitchFrame {
   statuses: PlayerStatus[];
   zoneFraction: number[]; // remainingTicks / ZONE_WINDOW_TICKS while in zone, else 0
   moved: boolean[]; // true if a player's position changed vs the passed prevPositions
+  travel: number[]; // cumulative render-only distance, used to keep foot cadence tied to motion
 }
 
 export function lerpVec(a: Vec, b: Vec, t: number): Vec {
@@ -23,15 +24,12 @@ export function lerpVec(a: Vec, b: Vec, t: number): Vec {
 }
 
 /**
- * Captures one tick's render-relevant state. `prevPositions`, when supplied,
- * is the caller's previous snapshot's `players` array (positions entering
- * this tick) — used only to derive `moved` (whether each player's position
- * changed as a result of simulating this tick, for run-cycle animation
- * selection; ledger item 4). Omit it for a standalone snapshot (e.g. the
- * very first frame at mount, before any tick has run) — `moved` then
- * defaults to false for every player.
+ * Captures one tick's render-relevant state. `previous`, when supplied, is
+ * the caller's prior render snapshot (positions entering this tick plus its
+ * accumulated visual travel). It derives `moved` and advances the run-cycle
+ * distance without changing sim state. Omit it for the first frame at mount.
  */
-export function snapshotFrame(state: MatchState, prevPositions?: readonly Vec[]): PitchFrame {
+export function snapshotFrame(state: MatchState, previous?: Pick<PitchFrame, 'players' | 'travel'>): PitchFrame {
   return {
     players: state.players.map((p) => ({ ...p.pos })),
     // Copy, don't alias: a held ball's ballPos IS the carrier's live pos
@@ -46,7 +44,13 @@ export function snapshotFrame(state: MatchState, prevPositions?: readonly Vec[])
       return 'ok';
     }),
     zoneFraction: state.players.map((p) => (p.powerState.kind === 'zone' ? p.powerState.remainingTicks / ZONE_WINDOW_TICKS : 0)),
-    moved: state.players.map((p, i) => prevPositions !== undefined && (p.pos.x !== prevPositions[i].x || p.pos.y !== prevPositions[i].y)),
+    moved: state.players.map((p, i) => previous !== undefined && (p.pos.x !== previous.players[i].x || p.pos.y !== previous.players[i].y)),
+    travel: state.players.map((p, i) => {
+      if (!previous) return 0;
+      const dx = p.pos.x - previous.players[i].x;
+      const dy = p.pos.y - previous.players[i].y;
+      return previous.travel[i] + Math.sqrt(dx * dx + dy * dy);
+    }),
   };
 }
 
@@ -63,5 +67,6 @@ export function lerpFrame(prev: PitchFrame, next: PitchFrame, t: number): PitchF
     statuses: next.statuses,
     zoneFraction: next.zoneFraction,
     moved: next.moved,
+    travel: prev.travel.map((distance, i) => distance + (next.travel[i] - distance) * t),
   };
 }

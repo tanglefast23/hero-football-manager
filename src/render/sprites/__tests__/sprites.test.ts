@@ -2,20 +2,21 @@ import { loadSpriteSheet, atlasLayout } from '../loader';
 
 const IDS = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10',
   'u0', 'u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8', 'u9', 'u10'];
-const EXPECTED_KEYS = IDS.flatMap((id) => [`${id}:run0`, `${id}:run1`]).concat(['ball']);
+const EXPECTED_KEYS = IDS.flatMap((id) => [`${id}:run0`, `${id}:run1`])
+  .concat(['r0:ready0', 'r0:ready1', 'u0:ready0', 'u0:ready1', 'ball']);
 
 describe('sprites.json', () => {
   it('loads and validates without throwing', () => {
     expect(() => loadSpriteSheet()).not.toThrow();
   });
 
-  it('contains all 44 player frames plus the ball (45 keys total)', () => {
+  it('contains 44 run frames, four goalkeeper-ready frames, and the ball', () => {
     const sheet = loadSpriteSheet();
-    expect(EXPECTED_KEYS).toHaveLength(45);
+    expect(EXPECTED_KEYS).toHaveLength(49);
     for (const key of EXPECTED_KEYS) {
       expect(sheet.sprites).toHaveProperty(key);
     }
-    expect(Object.keys(sheet.sprites)).toHaveLength(45);
+    expect(Object.keys(sheet.sprites)).toHaveLength(49);
   });
 
   it('every sprite row is exactly the expected width (16 for players, 6 for ball)', () => {
@@ -45,12 +46,21 @@ describe('sprites.json', () => {
     expect(Object.keys(sheet.palette).length).toBeLessThanOrEqual(24);
   });
 
+  it('gives each goalkeeper two distinct crouched ready poses', () => {
+    const sheet = loadSpriteSheet();
+    for (const id of ['r0', 'u0']) {
+      expect(sheet.sprites[`${id}:ready0`]).not.toEqual(sheet.sprites[`${id}:run0`]);
+      expect(sheet.sprites[`${id}:ready1`]).not.toEqual(sheet.sprites[`${id}:run0`]);
+      expect(sheet.sprites[`${id}:ready0`]).not.toEqual(sheet.sprites[`${id}:ready1`]);
+    }
+  });
+
   describe('atlasLayout', () => {
     it('uses a fixed 8-column grid', () => {
       const sheet = loadSpriteSheet();
       const layout = atlasLayout(sheet);
       expect(layout.cols).toBe(8);
-      expect(layout.rows).toBe(Math.ceil(45 / 8));
+      expect(layout.rows).toBe(Math.ceil(49 / 8));
     });
 
     it('produces rects that stay within the atlas bounds', () => {

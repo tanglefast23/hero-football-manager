@@ -12,7 +12,7 @@ describe('lerpVec', () => {
 });
 
 describe('snapshotFrame', () => {
-  it('captures players, ball, carrier, statuses, zoneFraction, and moved', () => {
+  it('captures players, ball, carrier, statuses, zoneFraction, moved, and travel', () => {
     const m = createMatch(42, ROVERS, UNITED);
     tick(m);
     const s = snapshotFrame(m);
@@ -20,6 +20,7 @@ describe('snapshotFrame', () => {
     expect(s.statuses).toHaveLength(22);
     expect(s.zoneFraction).toHaveLength(22);
     expect(s.moved).toHaveLength(22);
+    expect(s.travel).toHaveLength(22);
     expect(typeof s.carrier).toBe('number');
     expect(s.ball).toBeDefined();
   });
@@ -28,17 +29,30 @@ describe('snapshotFrame', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const s = snapshotFrame(m);
     expect(s.moved.every((v) => v === false)).toBe(true);
+    expect(s.travel.every((v) => v === 0)).toBe(true);
   });
 
   it('moved is true only for players whose position changed since the passed prev positions', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const before = snapshotFrame(m);
     tick(m);
-    const after = snapshotFrame(m, before.players);
+    const after = snapshotFrame(m, before);
     expect(after.moved.some(Boolean)).toBe(true);
     for (let i = 0; i < 22; i++) {
       const changed = before.players[i].x !== after.players[i].x || before.players[i].y !== after.players[i].y;
       expect(after.moved[i]).toBe(changed);
+    }
+  });
+
+  it('accumulates the actual distance each player travelled', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const before = snapshotFrame(m);
+    tick(m);
+    const after = snapshotFrame(m, before);
+    for (let i = 0; i < 22; i++) {
+      const dx = after.players[i].x - before.players[i].x;
+      const dy = after.players[i].y - before.players[i].y;
+      expect(after.travel[i]).toBeCloseTo(Math.sqrt(dx * dx + dy * dy));
     }
   });
 
@@ -106,12 +120,15 @@ describe('lerpFrame', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const prev = snapshotFrame(m);
     tick(m);
-    const next = snapshotFrame(m, prev.players);
+    const next = snapshotFrame(m, prev);
     const mid = lerpFrame(prev, next, 0.5);
     expect(mid.carrier).toBe(next.carrier);
     expect(mid.statuses).toBe(next.statuses);
     expect(mid.zoneFraction).toBe(next.zoneFraction);
     expect(mid.moved).toBe(next.moved);
+    for (let i = 0; i < 22; i++) {
+      expect(mid.travel[i]).toBeCloseTo((prev.travel[i] + next.travel[i]) / 2);
+    }
     for (let i = 0; i < 22; i++) {
       expect(mid.players[i]).toEqual(lerpVec(prev.players[i], next.players[i], 0.5));
     }

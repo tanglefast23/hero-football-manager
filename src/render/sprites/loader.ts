@@ -13,12 +13,15 @@ const PLAYER_IDS = [
   'u0', 'u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8', 'u9', 'u10',
 ];
 const FRAMES = ['run0', 'run1'];
+const GOALKEEPER_IDS = ['r0', 'u0'];
+const GOALKEEPER_FRAMES = ['ready0', 'ready1'];
 const BALL_KEY = 'ball';
 const BALL_SIZE = 6;
 
 function requiredKeys(): string[] {
   const keys: string[] = [];
   for (const id of PLAYER_IDS) for (const frame of FRAMES) keys.push(`${id}:${frame}`);
+  for (const id of GOALKEEPER_IDS) for (const frame of GOALKEEPER_FRAMES) keys.push(`${id}:${frame}`);
   keys.push(BALL_KEY);
   return keys;
 }
