@@ -15,8 +15,9 @@ export interface PitchFrame {
   carrier: number; // -1 when ball not held
   statuses: PlayerStatus[];
   zoneFraction: number[]; // remainingTicks / ZONE_WINDOW_TICKS while in zone, else 0
-  moved: boolean[]; // true if a player's position changed vs the passed prevPositions
+  moved: boolean[]; // true if a player's position changed vs the passed previous frame
   travel: number[]; // cumulative render-only distance, used to keep foot cadence tied to motion
+  ballShooting: boolean; // the ball is a live shot (drives the shot trail); a pass/loose/held ball is false
 }
 
 export function lerpVec(a: Vec, b: Vec, t: number): Vec {
@@ -51,13 +52,14 @@ export function snapshotFrame(state: MatchState, previous?: Pick<PitchFrame, 'pl
       const dy = p.pos.y - previous.players[i].y;
       return previous.travel[i] + Math.sqrt(dx * dx + dy * dy);
     }),
+    ballShooting: state.ball.kind === 'shot',
   };
 }
 
 /**
- * Blends only the continuous quantities (positions) between two snapshots.
- * Discrete per-tick state (statuses, carrier, zoneFraction, moved) snaps to
- * `next` — there is no meaningful "half status" to interpolate.
+ * Blends only the continuous quantities (positions, travel) between two
+ * snapshots. Discrete per-tick state (statuses, carrier, zoneFraction, moved,
+ * ballShooting) snaps to `next` — there is no meaningful "half status".
  */
 export function lerpFrame(prev: PitchFrame, next: PitchFrame, t: number): PitchFrame {
   return {
@@ -68,5 +70,6 @@ export function lerpFrame(prev: PitchFrame, next: PitchFrame, t: number): PitchF
     zoneFraction: next.zoneFraction,
     moved: next.moved,
     travel: prev.travel.map((distance, i) => distance + (next.travel[i] - distance) * t),
+    ballShooting: next.ballShooting,
   };
 }
