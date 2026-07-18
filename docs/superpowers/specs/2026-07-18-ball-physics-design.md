@@ -1,8 +1,8 @@
 # Ball Physics — Design Spec
 
-**Date:** 2026-07-18
-**Status:** Draft — awaiting user review
-**Target:** match engine `m0.5` (implementation branches from `feature/m0-match-engine`, engine version bump required — new rng draws change replay draw order)
+**Date:** 2026-07-18 (v2 same day)
+**Status:** Draft v2 — user locked Option B (emergent interception, "straight do 1B"); delegated decisions recorded in §8. Next: external review round per process, then implementation plan.
+**Target:** engine `m0.6`. Base: `main` **after T1 lands** (the approved positional-movement rework, `2026-07-18-positional-movement.md`, owns `m0.5`). Companion: `2026-07-18-defense-and-player-stats-design.md` — both specs ship as one m0.6 version bump (new rng draws change replay draw order).
 
 ## Problem
 
@@ -102,7 +102,8 @@ v0 = D × (1 − ROLL_FRICTION) / (1 − ROLL_FRICTION^n)
 - Flight time nominal: `n = clamp(round(D / 150), 6, 18)` ticks (0.6–1.8 s; a tuning dial like the constants table).
 - Aim at the receiver's **predicted** position (`pos + vel × n`, one iteration — the lead pass).
 - Cap `v0` by kicker leg speed (from `pas`). If the distance needs more than the cap: **lofted pass** — split into `vz`, which legitimately extends range because `AIR_DRAG` < `ROLL_FRICTION`. Chipped long balls emerge from the friction model instead of being scripted.
-- Arrival is no longer exact — the receiver collects via the swept pickup check, or the ball rolls past and is simply live. Under Option A (below) this is presentation-level slop only.
+- **Pass error (PAS is to passes what SHO is to shots):** the solver's ideal `(aim, v0)` gets perturbed by the same triangular model as shots — lateral offset `tri × spreadP` where `spreadP = (BASE_P + (99 − pas) × K_P) × (D/REF) × pressureMult × fatigueMult`, and a power error `v0 × (1 + tri' × (0.05 + (99 − pas) × 0.002))`. Underhit passes die short and get cut out; overhit ones run through to space or the keeper. Four draws per pass, fixed order (lateral 2, power 2).
+- Arrival is genuinely contested (Option B, §4): the receiver must trap it, opponents on the path may cut it.
 
 **Shot** — launch speed from the shooter:
 
@@ -135,7 +136,8 @@ aimZ = 60–120 cm (low corner bias)
 ```
 tri = rng() + rng() − 1                     // [−1, 1], peaked at 0
 errX = tri × spread;  errZ = tri' × spreadZ
-spread = (BASE + (99 − sho) × K) × (dist / REF_DIST) × pressureMult × fatigueMult
+control = 0.7 × sho + 0.3 × tec             // external review: TEC = body control & placement
+spread = (BASE + (99 − control) × K) × (dist / REF_DIST) × pressureMult × fatigueMult
 ```
 
 `spreadZ` uses the same formula with its own `BASE_Z/K_Z` (vertical control is worse than lateral — skying a ball is easier than shanking it 10 m wide, so `K_Z > K`). `POST_MARGIN` nominal 150 cm. Rng draw order per shot is fixed and replay-load-bearing: aim side (1), `vz` band (1), `triX` (2), `triZ` (2) — six draws, always, even when a value ends up unused.
@@ -143,6 +145,7 @@ spread = (BASE + (99 − sho) × K) × (dist / REF_DIST) × pressureMult × fati
 - `pressureMult = 1.5` when the existing `pressured` flag is true (marker within 4 m).
 - `fatigueMult = 1 + (100 − condition) / 400` (tired legs spray; cheap, deterministic).
 - `BASE`, `K`, `REF_DIST` are the tuning dials for the balance round.
+- Shot angle needs no explicit term: wide positions are farther from the aim points, and distance already scales the spread — the geometry taxes bad angles on its own. Hidden `consistency` (composure) joins this formula in M1 via the same funnel as morale.
 
 **Outcomes are now geometry, not a table:**
 
@@ -156,18 +159,25 @@ The user's three named behaviors all emerge: *wide* and *over* from error vs. ge
 
 ---
 
-## 4. The pass-interception fork (the one real architecture decision)
+## 4. Emergent interception (DECIDED: Option B, user call — "lets straight do 1B")
 
-- **Option A — physical flight, scripted outcome (recommended now).** Keep the `pas`-vs-`def` contest and `willSucceed`/`interceptor` precompute exactly as today; the ballistic ball is simply *aimed at the winner's* predicted spot and collected by the swept check. The mid-flight-KO fallthrough (audit's phantom-pass fix) generalizes: nobody eligible → ball just keeps rolling. Pass success rates, possession share, and the balance rails barely move; only shot outcomes need retuning. All the visible feel (zip → slow → arrive) ships.
-- **Option B — emergent interception (later).** No precompute; opponents crossing the swept path get a `def`-based reaction contest to take the ball. Deflections and through-balls beating a flat back line become real. Costs: pass success becomes emergent (full rebalance), and the pass-target AI must learn to pass into space or it will look dumb. Do it as its own milestone on top of the same primitive.
-- **Option C — cosmetic decay in the renderer only. Rejected:** the renderer draws sim truth in this codebase, and a fake ball position breaks tap-timing fairness the moment rebounds or interceptions depend on where the ball actually is.
+No precomputed pass outcome. `willSucceed`/`interceptor` are deleted; the ball is a free physical object from the moment it leaves the boot, and possession changes are geometry + reaction contests. (Option A — physical flight with dice-decided outcomes — remains documented in git history as the cheap fallback if the emergent tuning round fails; same flight code either way. Option C — renderer-only fakery — stays rejected: the renderer draws sim truth.)
+
+**Who gets the ball, mechanically:**
+
+- **Opponent cut-out** — an opponent whose distance to the tick's swept segment is inside `CONTROL_R` (150) gets **one reaction attempt per pass flight** (on the first tick the path enters their radius): contest with attacker = their `DEF`, defender = ball-speed difficulty (`speed / K_CUT` through the standard logistic table). A zipped pass whooshes past flat feet; a slowing or underhit one is meat. Success → held, `INTERCEPT` event, +8 gauge (as any reception today).
+- **High balls can't be cut** — if the ball's `z > INTERCEPT_H` (250 cm) at the crossing, no attempt (canon defers headers/aerials). This is *why* chipped through-balls beat a flat defensive line — and the price is built in: lofted balls hang longer (slower to arrive) and come down hot (harder trap).
+- **Receiver trap (first touch)** — the intended receiver (or any teammate once the ball has slowed below a loose threshold) collects via a `TEC` vs arrival-speed contest (`speed / K_TRAP`). Win → held + `RECEIVE` event. Fail → **bobble**: ball deflects onward at half speed (one tri draw for the nudge direction), still live — re-attempt next tick when it's slower and easier. High-TEC players kill a 25 m/s pass dead; low-TEC ones cough it up for a beat.
+- **AI must aim into lanes** — `bestPassTarget` gains a lane-block penalty: minimum opponent distance to the pass segment (deterministic, no draws). Without this, emergent cutting turns midfield into a wall; with it, the AI visibly plays around blocks, which is the point.
+
+**What this buys:** deflections, second balls, underhit passes punished, through-balls rewarded — the "fight for the ball" the defense spec choreographs happens *on real ball trajectories*, not scripted ones.
 
 ## 5. Schema / event / renderer impact
 
-- `BallState`: `loose` / `pass` / `shot` all gain `z`, `vz` (and `pass` gains real `vel`); intent fields (`from/to/willSucceed/interceptor`, `by/power`) stay. `held` unchanged.
-- Events: `MISS` gains `flavor: 'wide-left' | 'wide-right' | 'over'`. `SHOT` unchanged externally.
+- `BallState`: `loose` / `pass` / `shot` all gain `z`, `vz` (and `pass` gains real `vel`); `pass` keeps intent fields `from/to` but **drops `willSucceed`/`interceptor`** (outcomes are emergent); `shot` keeps `by` (+ derived `power`). `held` unchanged.
+- Events: `MISS` gains `flavor: 'wide-left' | 'wide-right' | 'over'`; new `INTERCEPT {by}` and `RECEIVE {by}` (gives the ticker "cut out!"/"clean take" and gives the harness a direct pass-completion metric). `SHOT` unchanged externally; `SAVE` gains `held: boolean` (catch vs parry, §7).
 - `PitchFrame` (`src/render/interpolate.ts`): add `ballZ`, lerped like positions. Renderer draws the shadow at `pos` and offsets the ball sprite up by `k × z` with a slight scale — the standard top-down height illusion. Atlas-batched as before; squash-stretch on bounce is optional juice.
-- `ENGINE_VERSION` → `m0.5`; `runReplay`'s existing version gate handles old envelopes.
+- `ENGINE_VERSION` → `m0.6` (shared with the defense/stats spec); `runReplay`'s existing version gate handles old envelopes.
 
 ## 6. Determinism rules (unchanged, restated because physics tempts violations)
 
@@ -179,18 +189,21 @@ The user's three named behaviors all emerge: *wide* and *over* from error vs. ge
 
 Rails will drift (a new miss mode lowers on-target share). Tuning order:
 
-1. `BASE/K/REF_DIST` until team-average `sho` ≈ 50 gives ~55–65% shots on target.
+1. `BASE/K/REF_DIST` until team-average control ≈ 50 gives ~55–65% shots on target.
 2. Placement mod `PM` until save rate sits ~0.70–0.80 (rail: 0.55–0.90).
-3. Re-check goals/match 1.5–4.0; nudge shot-attempt range if needed.
+3. Pass dials (`BASE_P/K_P`, `K_CUT`, `K_TRAP`, lane penalty) until completion lands in its band.
+4. `CATCH_MARGIN` until ~70–80% of saves are catches; then re-check goals/match 1.5–4.0.
 
 New rails to add:
 - Shots-on-target fraction band (locks the miss model itself).
 - Stat monotonicity: a `sho = 90` striker converts ≥ 1.5× a `sho = 40` striker over 500 matches (the actual point of the feature, asserted).
+- **Emergent-pass rails (Option B's safety net):** team-average pass completion inside ~65–85% (from `PASS`→`RECEIVE`/`INTERCEPT` streams); `pas = 90` playmaker completes measurably more than `pas = 40`; possession doesn't collapse into endless midfield turnovers (possession-share band).
+- **Rebound rail:** goals scored within ~2 s of a parried save stay a small share of total goals (scrappy, not dominant).
 
 Unit tests: integrator golden decay curves; bounce settles and `z ≥ 0` invariant; kick solver arrival tolerance across distance bands; swept segment math incl. the fast-diagonal tunneling case; on-target fraction by `sho` tier over fixed seeds; determinism guard + replay parity across the version bump.
 
-## 8. Open questions for review
+## 8. Decision record (2026-07-18)
 
-1. **Option A vs B** for passes — recommendation is A now, B as its own later milestone. Agree?
-2. **GK parries/rebounds** (save margin decides catch vs. spill; spilled balls are live in the box): high charm, high balance blast radius. Recommended: design hook now (`catch` threshold constant), ship OFF, enable in its own tuning round. Agree?
-3. **Miss-flavor presentation** — does commentary/skit presentation (doc 03) want `wide-left/right` vs `over` distinguished, or is a single `MISS` flavor enough for M0.5 UI?
+1. **Passes: Option B — emergent interception, immediately.** User decision ("lets straight do 1B"). §4 is now the design; Option A survives only as the documented fallback if the emergent tuning round can't reach the pass-completion band.
+2. **GK parries/rebounds: IN, conservatively tuned.** (Delegated to Claude.) The save contest is unchanged; its *margin* now decides the result: comfortable win → **catch** (GK holds, as today), narrow win → **parry** — the ball spills into the box with real velocity and the free-ball machinery resolves the scramble. One dial (`CATCH_MARGIN`) starts strict (~70–80% catches) so rebounds are an occasional thrill, not the meta; the rebound rail in §7 enforces that. Rationale: in a fully emergent world (decision 1), a ball that glues to gloves on every save would be the *only* scripted outcome left.
+3. **Miss flavors: record now, present simply.** (Delegated to Claude.) The `MISS` event carries `wide-left`/`wide-right`/`over` from day one — the data is free at the moment of the swept check and impossible to reconstruct later. UI ships one generic miss banner; the ticker/commentary layer can differentiate ("blazes it over!") whenever presentation work wants it. No UI scope added to m0.6.

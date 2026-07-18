@@ -1,8 +1,9 @@
 # Defense Engagement & Player Stats — Design Spec
 
-**Date:** 2026-07-18
-**Status:** Draft — awaiting user review
-**Companion:** `2026-07-18-ball-physics-design.md` (tackle spills use its free-ball primitive; both land as engine `m0.5`)
+**Date:** 2026-07-18 (v2 same day)
+**Status:** Draft v2 — external review incorporated (accept/pushback ledger in chat); open questions resolved in §Decision record. Next: external review round, then implementation plan.
+**Target:** engine `m0.6`. Base: `main` **after T1** (approved positional-movement rework — its zonal tables decide *where* players stand; this spec decides *what they do* on arrival, per the external review's framing).
+**Companion:** `2026-07-18-ball-physics-design.md` (tackle spills, traps and second balls all resolve through its free-ball physics; both specs ship as one m0.6 version bump)
 
 ## Problem
 
@@ -15,6 +16,7 @@
 - **Fouls exist only as superpower side effects** (doc 03 simplifications). Slide tackles therefore carry no card/referee risk — their cost is physical.
 - **Personality is canon** (doc 05): Fiery, Loyal, Greedy, Joker, Professional, Timid — today it only drives events/negotiation/morale.
 - Doc 03 already promises: defenders "mark, press, attempt tackles when in range"; STA "scales all stats down up to −25% late in the match"; contested actions resolve through the logistic table.
+- **Positional-movement spec (approved, T1)** supplies shape: zonal tables set every player's intended position per ball cell and phase, and its presser lease (≥ 10 ticks) already prevents defender-swapping flicker. This spec never moves players *to* places — it defines the engagement actions once the movement layer has put them there.
 
 ## The three-layer player model
 
@@ -29,7 +31,7 @@ LAYER 3  CONDITION   fatigue (morale,   → multiplies Layer 1 through effective
 
 ### Layer 1 — the six stats, full sim mapping
 
-| Stat | Drives today (m0.4) | Adds in m0.5 (this spec + ball physics) |
+| Stat | Drives today (m0.4) | Adds in m0.6 (this spec + ball physics) |
 |---|---|---|
 | **PAC** | run speed | slide-lunge reach & speed; chase-down of rolling balls |
 | **SHO** | aim spread, shot power | launch speed, aim confidence (corner vs center), error spread (ball-physics spec) |
@@ -37,7 +39,7 @@ LAYER 3  CONDITION   fatigue (morale,   → multiplies Layer 1 through effective
 | **DEF** | tackle & intercept contests | contain quality (slows carrier), standing-tackle win, slide win, cover positioning |
 | **TEC** | anti-tackle contest | dribble-escape from containment; first touch — high TEC kills an arriving fast ball dead, low TEC bobbles it loose for a beat (free-ball physics makes this visible) |
 | **STA** | **nothing (dead)** | condition drain rate; slides/sprints cost extra; low condition scales all contested stats down to −25% (canon), widens shot/pass error (ball-physics `fatigueMult`) |
-| **REF** (GK) | save contest | save contest + placement modifier (ball-physics spec) |
+| **REF** (GK) | save contest | save contest + placement modifier + catch-vs-parry margin (ball-physics spec). GK *positioning* arrives with T7 (angle-narrowing) and reads DEF; GK distribution reads PAS |
 
 Real-football sanity check: FM tracks ~36 attributes, FIFA ~29 sub-stats under 6 face stats. Our compression covers the same space: vision → PAS + risk dial, positioning → DEF + discipline dial, composure → pressure/fatigue multipliers, physicality → deliberately absent (SUPER_STRENGTH is the fantasy version), mental attributes → Layer 2. Kairosoft readability beats simulation depth; six numbers a player can hold in their head is the point.
 
@@ -60,6 +62,10 @@ Dial → sim hooks (all deterministic thresholds; nominal values are tuning-roun
 - **risk** — shoot-from-distance range (`2500 × (1 + (risk − 50)/200)`), the existing pass/shoot rng threshold, lofted "hero ball" pass choice (Option B later), Greedy's shoot-first bias in the box.
 - **workRate** — press trigger radius (`1200 + 8 × workRate`), whether a second defender bothers covering, chase-back after losing the ball.
 - **discipline** — anchor leash (how far from formation slot they'll roam before returning); Joker's low discipline doubles as a decision-variance widener.
+
+**Display (external review adopted):** the player card shows the aggression dial as a readable style chip — **Cautious** (< 40) / **Balanced** (40–65) / **Aggressive** (> 65) — never a fourth visible number. Role and team-tactic instructions become additional dial inputs when the tactics layer lands (M1+).
+
+The intent/execution split creates the four defender types the review named, for free: high DEF + Cautious = patient marker; high DEF + Aggressive = elite ball-winner; low DEF + Aggressive = dives in and gets skipped; low DEF + Cautious = backs off too far. High aggression must never *imply* good defending — aggression decides whether to challenge, DEF decides whether it works.
 
 This makes personality — "visible after a few weeks" per doc 05 — matter on the pitch, so scouting it becomes squad-building strategy for free. **Rejected alternative:** a hidden per-player numeric aggression stat — more variance, but unreadable ("why does MY Fiery guy not slide?") and it duplicates a system canon already has.
 
@@ -85,32 +91,34 @@ A small state ladder for defenders near the carrier. Every state is visible and 
 PRESS ──close──▶ CONTAIN ──patience elapsed──▶ STANDING TACKLE (≤2 m)
  (exists)        (new)                    └──▶ SLIDE TACKLE   (≤4.5 m, needs lunge reach)
                     │
-COVER (new, 2nd defender: goal-side midpoint, workRate-gated)
+COVER (new, 2nd defender: goal-side bias off its T1 table target, workRate-gated)
 ```
 
-- **Press** — nearest defender converges (exists today); trigger radius now scales with workRate.
-- **Contain** (new) — within ~3.5 m the defender stops charging and jockeys: matches carrier speed from a goal-side shadow point. While contained the carrier must maneuver — a TEC (+PAC-if-sprinting, canon) vs DEF escape contest every 5 ticks; the carrier's forward progress slows. How long a defender contains before committing = aggression dial. This state alone kills the "nobody tries" feel: a defender crouched in the carrier's path *is* visible intent.
-- **Standing tackle** (new visible form of the existing contest) — at ≤2 m, a quick poke. Win → **clean take** (possession swaps, today's behavior — the Professional's tool). Lose → 3-tick stagger, carrier plays on. Existing 10-tick cooldown applies.
-- **Slide tackle** (the ask) — at ≤4.5 m with the intercept point inside lunge reach (PAC-scaled): the defender **commits** — launches at ~1.8× speed along a locked vector for 4 ticks (no homing, same principle as ball physics), resolved by swept closest-approach against the carrier's path.
-  - **Win** → the ball **spills loose** with real velocity in the slide direction (+ optional small hop, `vz` 0–20) — the free-ball physics takes over and anyone can collect. Slides win the ball but create chaos; standing tackles keep it clean. That's the style trade-off, embodied.
-  - **Whiff** → carrier skips past untouched; defender is **down** for ~1.2 s via the existing `knockOut(idx, tick + 12, 'slid')` plumbing (new `OutReason`, silent wake — no RECOVERED event spam). The floored defender IS the cost, per canon's no-fouls rule — and the dribbler's highlight.
-  - Contest: DEF vs TEC through the standard table; aggression decides *whether* to slide, DEF decides *if it works* — intent vs execution, the two-layer model doing its job.
+- **Press** — the movement layer's presser (T1 lease, ≥ 10 ticks — no target flicker) converges; trigger radius scales with workRate.
+- **Contain** (new) — within ~3.5 m the defender stops charging and jockeys from a goal-side shadow point. **DEF is approach quality** (review adopted, simplified): high DEF places that block point accurately on the carrier-to-goal line; low DEF's offset is sloppy and easier to skip past — no curved-path simulation needed, the offset error *is* the bad angle. While contained, the carrier must maneuver — a TEC (+PAC-if-sprinting, canon) vs DEF escape contest every 5 ticks; forward progress slows. Contain patience before committing = aggression dial. This state alone kills the "nobody tries" feel: a defender crouched in the carrier's path *is* visible intent.
+- **The challenge** — standing poke at ≤ 2 m (existing 10-tick cooldown), or slide at ≤ 4.5 m. Slide eligibility gates: intercept point inside PAC-scaled lunge reach, **ahead of the carrier** (no from-behind lunges), and condition ≥ 30 (exhausted legs don't launch). The slide **commits**: ~1.8× speed along a locked vector for 4 ticks (no homing — same principle as the ball), resolved by swept closest-approach. The carrier's normal decision cadence keeps running during the lunge, so releasing the pass early beats the slide — real counterplay, emergent.
+- **Three outcomes, one contest** (review adopted): the DEF-vs-TEC roll's *margin* — one rng draw against two thresholds — resolves every challenge:
+  - **Clean take** (comfortable win) → defender hooks the ball into their own possession. Standing tackles bias toward this band (the Professional's pickpocket).
+  - **Poke loose** (narrow win) → ball **spills** with real velocity in the challenge direction (+ small hop, `vz` 0–20) — free-ball physics takes over, anyone can pounce. Slides bias toward this band: they win contact more often than they win the *ball*.
+  - **Whiff** (loss) → standing: 3-tick stagger; slide: **down** ~1.2 s via existing `knockOut(idx, tick + 12, 'slid')` plumbing (new `OutReason`, silent wake — no RECOVERED spam). The floored defender IS the cost, per canon's no-fouls rule — and the dribbler's highlight.
+- **The second ball** (review's "then try to get the ball" moment): a spill is not possession. PAC decides who reaches the loose ball; the ball-physics trap contest (TEC vs ball speed) decides who *keeps* it — a rugged low-TEC stopper knocks it away and then fumbles the collection; a technical defender wins it clean and their PAS starts the counter. Every stat in the chain, visibly.
 - **Wind-up interruption** — slides and standing tackles are exactly what `interruptWindup` responds to, so a Fiery defender is organic anti-hero tech (doc 03's Mario Strikers rule gets a face).
 - GKs never enter contain/slide states (unchanged M0 behavior).
 
 ## Schema / events / renderer impact
 
 - `PlayerDef` + `personality` field; zod default `Professional` for old content; `teams.ts` fixtures and replay-envelope validation updated. Dial presets live in `content/personality-dials.json`.
-- `TACKLE` event gains `style: 'standing' | 'slide'` and outcome `'won' | 'spilled' | 'whiff'` (ticker/commentary can differentiate "crunching slide!" from "picked his pocket"). New `DRIBBLE` event `{by, past, won}` on containment-escape contests — feeds commentary ("skips past him!") and makes the aggression rail measurable.
+- `TACKLE` event gains `style: 'standing' | 'slide'` and outcome `'clean' | 'spilled' | 'whiff'` (ticker/commentary can differentiate "crunching slide!" from "picked his pocket"). New `DRIBBLE` event `{by, past, won}` on containment-escape contests — feeds commentary ("skips past him!") and makes the aggression rail measurable.
 - `PlayerStatus` union gains `'sliding'` and `'down'` → renderer picks slide/prone sprites; needs 2 new poses + dust puff from the art branch (`HFM-art-worktree`). Containment deliberately gets no status: the jockeying movement itself reads on screen.
 - Gauge: slide/standing wins reuse the existing +15 tackle fill (canon involvement events).
-- `ENGINE_VERSION` → `m0.5` shared with ball physics (many new rng draw sites; one version bump, one replay break).
+- `ENGINE_VERSION` → `m0.6` shared with ball physics (many new rng draw sites; one version bump, one replay break).
 
 ## Balance rails & tests
 
 New rails (same 200-seed harness style):
 
 - Tackle attempts per match inside a sane band; slide share of attempts responds to aggression.
+- Tackle-outcome distribution: clean/spilled/whiff shares each inside a band per style (locks the margin thresholds — e.g. slides must not become reliable clean takes).
 - **Aggression monotonicity**: all-Fiery XI attempts more tackles and wins possession back faster than all-Timid XI, but loses more `DRIBBLE` contests (beaten by the escape) — both directions asserted via the event stream, so "aggression = strictly better" can't ship silently.
 - **STA monotonicity**: a low-STA squad's second-half goal difference degrades vs its first half.
 - Existing rails (goals/match 1.5–4.0, save rate, blowout guard) still pass after the tuning round.
@@ -119,14 +127,17 @@ Unit tests: state-ladder transitions on fixed seeds; slide lunge geometry + swep
 
 ## Out of scope (named so they're decisions, not omissions)
 
-- Fouls/cards from tackles (canon: powers only), penalties, set pieces.
+- Fouls/cards from tackles (canon: powers only), penalties, set pieces. Per the external review: aggressive tackling is punished physically (whiffs, down-time, lost shape, stamina cost); ordinary foul risk may be *reconsidered later as its own design decision* — it is not smuggled in here.
+- Curved approach runs (review proposal, simplified away): DEF-scaled block-point accuracy delivers the same "smart angle vs naive charge" read without path simulation.
+- Runner-abandonment as a slide-decision input (review proposal, deferred): requires per-player marking assignments, which don't exist until a marking model does.
+- A seventh PHY/strength stat — reviewer concurs: only revisit if playtesting shows heavy and light players can't feel different through DEF/TEC/STA + archetypes.
 - Team-level tactics (Normal / Short Pass / Long Ball, doc 03) — a later layer that *biases* these same dials squad-wide; the dial architecture is deliberately shaped to receive it.
 - Morale & consistency wiring (M1, via the same `effectiveStat` funnel).
-- GK sweeping/rushing decisions.
+- GK sweeping/rushing decisions (T7 owns GK positioning).
 
-## Open questions for review
+## Decision record (2026-07-18)
 
-1. **Personality presets vs hidden numeric aggression** — recommendation: presets (readable, uses canon, zero new player-facing numbers). Agree?
-2. **Second-defender cover** — ship in m0.5 (recommended: it's ~10 lines on `movementTick` and sells "team defense") or defer?
-3. **STA funnel now vs M1** — the code comment deferred fatigue to M1, but this spec touches `effectiveStat` anyway and STA-is-dead is exactly what prompted the stats question. Recommendation: STA now, morale/consistency M1.
-4. Should a **clean slide win occasionally chip the ball airborne** (small `vz`)? Pure charm, ~2 lines on top of ball physics. Recommendation: yes.
+1. **Personality presets, displayed as style tiers** (Cautious / Balanced / Aggressive) — locked; external review independently recommended the same shape.
+2. **Second-defender cover: IN.** The T1 tables already put the second defender in roughly the right zone; cover adds a small goal-side bias between table target and carrier when the press is active (~10 lines, sells "team defense").
+3. **STA funnel: IN for m0.6.** STA-is-dead is exactly what prompted the stats question; morale/consistency follow in M1 through the same funnel.
+4. **Slide-win chip: IN** — a spilled ball can pop airborne (small `vz`), courtesy of the ball-physics primitive.
