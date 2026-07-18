@@ -401,6 +401,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     return (
       <Pressable
         key={idx}
+        disabled={unavailable}
         style={[
           styles.chip,
           warmthStyle,
@@ -415,9 +416,10 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
           // Zone was always a no-op in the sim (powerTick only converts a
           // POWER_TAP input while powerState.kind === 'zone'; see
           // sim/powers.ts), so gating it here changes no sim behavior. It
-          // just stops those taps from feeling ignored. An unavailable
-          // (knocked-out/ignited) hero is a hard no-op too — see the
-          // availability guard comment above.
+          // just stops those taps from feeling ignored. `disabled` above
+          // already blocks this when unavailable; the check is repeated
+          // here so the guard holds even if disabled's native behavior
+          // ever changes.
           if (unavailable) return;
           if (p.powerState.kind === 'zone') {
             queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: idx });
