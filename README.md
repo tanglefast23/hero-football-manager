@@ -27,6 +27,7 @@ A cozy, Kairosoft-style soccer club management sim where some of your players ar
 | [docs/08-ui-ux.md](docs/08-ui-ux.md) | Screen map, match screen layout, design language, onboarding |
 | [docs/09-tech-stack.md](docs/09-tech-stack.md) | Stack decision, architecture, determinism rules, save data, testing |
 | [docs/10-roadmap.md](docs/10-roadmap.md) | Milestones M0–M5, risks, post-launch |
+| [docs/11-art-style.md](docs/11-art-style.md) | Pixel-art bible: palette, button bevel recipe, caricature + expression rules, atlas/naming |
 
 Research reports (source material, written by research agents):
 [research/kairosoft-economy.md](research/kairosoft-economy.md) · [research/match-presentation.md](research/match-presentation.md) · [research/stack-analysis.md](research/stack-analysis.md)
