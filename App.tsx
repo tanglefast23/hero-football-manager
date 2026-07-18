@@ -248,9 +248,11 @@ export default function App() {
         clubName={home.clubName}
         seasonLabel={home.seasonLabel}
         weekLabel={home.weekLabel}
+        resources={home.resources}
         activeTab={store.activeTab}
         onTabChange={store.setActiveTab}
         onAdvanceWeek={store.advanceCareer}
+        onOpenLedger={() => store.setActiveTab('club')}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
       >
         {store.activeTab === 'squad' ? (
@@ -283,7 +285,6 @@ export default function App() {
               else store.notify('This alert is resolved from the season review.');
             }}
             onOpenLeague={() => store.setActiveTab('league')}
-            onOpenFinances={() => store.setActiveTab('club')}
           />
         )}
       </ManagementShell>

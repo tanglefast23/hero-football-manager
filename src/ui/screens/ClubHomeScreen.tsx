@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { ActionButton, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
 import type { ClubAlertViewModel, HomeViewModel } from '../models';
 
 /** Full-card tint per alert tone — bible palette only, never off-palette Tailwind hues. */
@@ -14,7 +14,6 @@ export interface ClubHomeScreenProps {
   onOpenFixture: (fixtureId: string) => void;
   onOpenAlert: (alertId: string) => void;
   onOpenLeague: () => void;
-  onOpenFinances: () => void;
 }
 
 export function ClubHomeScreen({
@@ -22,7 +21,6 @@ export function ClubHomeScreen({
   onOpenFixture,
   onOpenAlert,
   onOpenLeague,
-  onOpenFinances,
 }: ClubHomeScreenProps) {
   const fixture = viewModel.nextFixture;
 
@@ -83,25 +81,6 @@ export function ClubHomeScreen({
           />
         </View>
       </PaperPanel>
-
-      <View className="mt-6">
-        <SectionLabel
-          eyebrow="Club pulse"
-          title="Resources"
-          right={<Text className="font-mono text-xs font-bold uppercase tracking-wide text-sky">Ledger ›</Text>}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open club finances"
-          onPress={onOpenFinances}
-          className="flex-row gap-2"
-          style={({ pressed }) => ({ opacity: pressed ? 0.75 : undefined })}
-        >
-          <Metric label="Money" value={formatCompactNumber(viewModel.resources.money)} />
-          <Metric label="TP" value={formatCompactNumber(viewModel.resources.trainingPoints)} />
-          <Metric label="Essence" value={formatCompactNumber(viewModel.resources.heroEssence)} tone="hero" />
-        </Pressable>
-      </View>
 
       <View className="mt-6">
         <SectionLabel
