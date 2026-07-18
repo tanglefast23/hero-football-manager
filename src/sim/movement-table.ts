@@ -33,10 +33,13 @@ export function gkTarget(team: 0 | 1, ball: Vec): Vec {
 }
 
 /**
- * Team 1 mirrors the continuous grid coordinates before sampling (spec).
- * Mirroring the integer ball position first computes the same quantity
- * exactly — (PITCH_W - b)/cellW - 0.5 == (cols-1) - (b/cellW - 0.5) — while
- * keeping the mirror an exact integer operation.
+ * Team 1 mirrors the ball into team-0 frame before sampling. Algebraically
+ * (PITCH_W - b)/cellW - 0.5 == (cols-1) - (b/cellW - 0.5) over the reals, but
+ * NOT bit-identical to mirroring the continuous coordinates in IEEE doubles
+ * (1-ulp grid-coord differences; 1 cm target differences at ~0.08% of probes
+ * on exact .5 rounding ties). This integer-mirror formulation IS the canonical
+ * convention (spec disposition record, m0.5 review): it is the only one under
+ * which the 180°-rotation property test holds exactly by construction.
  */
 function ballForTeam(team: 0 | 1, ball: Vec): Vec {
   return team === 0 ? ball : { x: PITCH_W - ball.x, y: PITCH_H - ball.y };

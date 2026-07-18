@@ -34,3 +34,7 @@ Current movement = fixed anchor + uniform linear pull toward the ball (0.15x/0.1
 
 Accepted: overrides file; possession phases in m0.5 (+turnover blend); cell-center bilinear; continuous-coordinate mirroring; 180° rotation semantics + property test; GK isolation; dedicated kickoff; role-band spacing + crowding metric; y-velocity correlation test; presser lease; 7×5 retained; debug overlay; SWOS attribution.
 Conceded pragmatically: quantize sampled targets to integer cm (already our convention; ends the cross-runtime float debate regardless of position on IEEE basic-op exactness).
+
+Accepted at m0.5 implementation review (2026-07-18):
+- Turnover blend = per-slot STAGGERED starts (delays 0–9 ticks, DEF earliest → FWD last, each slot's lerp exactly 10 ticks). The letter's shared start still synchronizes every reversal's onset — the exact correlated-velocity signature this milestone's defect metric targets — so the stagger implements the blend's stated purpose ("so all ten don't reverse simultaneously"). Deterministic function of tick/slot; zero rng.
+- Team-1 sampling = exact integer ball-mirror convention (mirror the integer ball position, then sample), canonical over the letter's mirror-continuous-coordinates pipeline. The two are algebraically identical over the reals but differ by 1 cm at ~0.08% of probes in IEEE doubles (.5-tie rounding); the integer formulation is the only one under which the demanded 180°-rotation property test holds exactly by construction.

@@ -96,9 +96,11 @@ function resolveMovement(state: MatchState): MovementState {
 
 /**
  * Turnover-blend stagger per engine slot (1-4 DEF, 5-8 MID, 9-10 FWD):
- * defenders re-shape first, forwards drift last, and no two neighbours start
- * together — the blend exists so all ten don't reverse simultaneously, and a
- * shared start would still pulse every line's velocity in lockstep.
+ * defenders re-shape first, forwards drift last, delays spread 0-9 ticks
+ * (slots 6 and 9 deliberately share a delay; full spread matters, not
+ * pairwise uniqueness) — the blend exists so all ten don't reverse
+ * simultaneously, and a shared start would still pulse every line's
+ * velocity in lockstep (accepted deviation, spec disposition record).
  */
 const BLEND_DELAY: ReadonlyArray<number> = [0, 0, 2, 3, 1, 4, 6, 8, 5, 6, 9]; // index = engine slot; [0] unused (GK)
 function blendDelay(slot: number): number {

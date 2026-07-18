@@ -152,7 +152,7 @@ describe('possession phases', () => {
     const from = watched.map(s => tableTarget(0, s, true, ball));   // team 0 was in possession
     const to = watched.map(s => tableTarget(0, s, false, ball));
     let prev = movementTargets(m).slice();
-    const MAX_WINDOW = BLEND_TICKS + 12; // blend + max per-slot stagger delay
+    const MAX_WINDOW = BLEND_TICKS + 12; // blend + stagger headroom (max per-slot delay is 9)
     for (let k = 1; k <= MAX_WINDOW + 2; k++) {
       m.tick++;
       movementTick(m);
@@ -168,6 +168,37 @@ describe('possession phases', () => {
     }
     watched.forEach((slot, i) => expect(prev[slot]).toEqual(to[i])); // settled on the new phase
   });
+
+  it('stagger: per-slot settle ticks are spread, not shared-start (accepted deviation, spec disposition record)', () => {
+    const m = createMatch(1, ROVERS, UNITED);
+    m.ball = { kind: 'held', by: 16 };
+    m.players[16].outUntilTick = 100000;
+    const ball = { ...m.players[16].pos };
+    const slots = [1, 2, 3, 4, 5, 6, 7, 8, 10]; // outfield minus slot 9 (the presser in this rig)
+    // Only slots whose target actually moves across the phase flip can express
+    // a settle tick; a from==to slot settles instantly regardless of delay.
+    const blending = slots.filter(s => {
+      const from = tableTarget(0, s, true, ball);
+      const to = tableTarget(0, s, false, ball);
+      return from.x !== to.x || from.y !== to.y;
+    });
+    const to = new Map(blending.map(s => [s, tableTarget(0, s, false, ball)]));
+    const settle = new Map<number, number>();
+    for (let k = 0; k < BLEND_TICKS + 15; k++) {
+      m.tick++;
+      movementTick(m);
+      const cur = movementTargets(m);
+      for (const s of blending) {
+        const t = to.get(s)!;
+        if (!settle.has(s) && cur[s].x === t.x && cur[s].y === t.y) settle.set(s, m.tick);
+      }
+    }
+    expect(settle.size).toBe(blending.length); // everyone settled inside the window
+    const distinct = new Set(blending.map(s => settle.get(s)!));
+    // Shared-start would settle every blending slot on the SAME tick
+    // (distinct.size === 1); the stagger spreads them.
+    expect(distinct.size).toBeGreaterThanOrEqual(5);
+  });
 });
 
 describe('spacing and support pressure', () => {
@@ -175,8 +206,9 @@ describe('spacing and support pressure', () => {
     // Measured (seeds 1-5, all ticks, both teams): mean nearest-teammate
     // distance DEF 1291 / MID 1243 / FWD 1308 cm; crowding (<300cm) 0.79%;
     // support pressure (non-presser opponents within 1200 of the carrier)
-    // 0.971 per held tick. Bands are means-with-headroom, not per-tick minima:
-    // compact defending legitimately bunches.
+    // 0.970 per held tick (re-measured at ba9fb4b, post-R1). Bands are
+    // means-with-headroom, not per-tick minima: compact defending
+    // legitimately bunches.
     const LINES: Record<string, number[]> = { DEF: [1, 2, 3, 4], MID: [5, 6, 7, 8], FWD: [9, 10] };
     const sums: Record<string, [number, number]> = { DEF: [0, 0], MID: [0, 0], FWD: [0, 0] };
     let crowd = 0, crowdN = 0, support = 0, supportN = 0;
@@ -224,8 +256,11 @@ describe('spacing and support pressure', () => {
 describe('rigid-sheet defect metric', () => {
   it(`off-ball y-velocity correlation DROPS vs m0.4 (seeds 1-${CORRELATION_SEEDS})`, () => {
     // m0.4 baseline: 0.46059936294381776 (measured at commit 092bd91, this
-    // helper, seeds 1-40, before any movement change). Reworked engine at the
-    // tuned V5 tables: 0.412857515857253. Assert with margin so the drop is
+    // helper, seeds 1-40, before any movement change; independently re-derived
+    // to the last digit at the m0.5 spec review). Reworked engine at the tuned
+    // V5 tables: 0.4135364714434378 (re-measured at ba9fb4b, post-R1 — the
+    // 0.4129 figure in mid-range commit messages was measured pre-R1, before
+    // zone-knockout trajectories shifted). Assert with margin so the drop is
     // structural, not rounding: anything above baseline-0.02 means the sheet
     // is creeping back — retune the generator, never this bound.
     const M04_BASELINE = 0.46059936294381776;
@@ -296,13 +331,19 @@ describe('kickoff layout', () => {
 });
 
 describe('movementTargets (debug overlay query)', () => {
-  it('is pure, deterministic, and reports 22 integer-cm targets', () => {
+  it('is pure, deterministic, consumes no rng, and reports 22 integer-cm targets', () => {
     const m = createMatch(11, ROVERS, UNITED);
     for (let i = 0; i < 50; i++) tick(m);
+    // JSON.stringify omits the rng closure, so it cannot detect a draw — count
+    // draws through a delegating wrapper instead (a real draw fails this).
+    let draws = 0;
+    const inner = m.rng;
+    m.rng = () => { draws++; return inner(); };
     const before = JSON.stringify(m);
     const a = movementTargets(m);
     const b = movementTargets(m);
-    expect(JSON.stringify(m)).toBe(before); // no mutation, no rng consumed
+    expect(draws).toBe(0); // no rng consumed
+    expect(JSON.stringify(m)).toBe(before); // no state mutation
     expect(a).toEqual(b);
     expect(a).toHaveLength(22);
     for (const t of a) {
