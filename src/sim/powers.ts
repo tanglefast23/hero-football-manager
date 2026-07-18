@@ -130,22 +130,19 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
   p.powerState = { kind: 'winding', untilTick: state.tick + WINDUP_TICKS, strength, targetIdx };
 }
 
-export function powerTick(state: MatchState): void {
+export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = []): void {
   // Taps only convert a hero already in the Zone, and only when their team isn't
   // frozen behind a busy teammate (one power active per team — a tap can't jump
   // the queue while a teammate is winding/active).
-  // Single pass partitions due-now vs still-pending — order-preserving, so the
-  // due set and its processing order are identical to the old two-filter form.
-  const due: MatchInput[] = [];
-  const remaining: MatchInput[] = [];
-  for (const i of state.pendingInputs) (i.tick <= state.tick ? due : remaining).push(i);
-  state.pendingInputs = remaining;
-  for (const input of due) {
+  // match.tick owns the due-input partition so coaching and power inputs share
+  // one ordered replay stream. This function handles only power taps.
+  for (const input of dueInputs) {
+    if (input.kind !== 'POWER_TAP') continue;
     const p = state.players[input.player];
     // p.outUntilTick guard (audit R1): a tap on a downed hero must not start a
     // windup that the out-check below would instantly interrupt (spurious
     // POWER_INTERRUPTED).
-    if (input.kind === 'POWER_TAP' && p.powerState.kind === 'zone' && p.outUntilTick <= state.tick && !teamPowerBusy(state, p.team)) {
+    if (p.powerState.kind === 'zone' && p.outUntilTick <= state.tick && !teamPowerBusy(state, p.team)) {
       startWindup(state, input.player, TAP_STRENGTH);
     }
   }

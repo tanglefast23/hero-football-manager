@@ -1,7 +1,12 @@
 import type { Attrs, Role, TeamDef } from '../sim/types';
 import type { ProgressionPlayer } from './progression';
 
-export type MatchSquadPlayer = ProgressionPlayer & { name: string; role: Role; morale: number };
+export type MatchSquadPlayer = ProgressionPlayer & {
+  name: string;
+  role: Role;
+  morale: number;
+  injuryWeeks?: number;
+};
 
 const ATTR_NAMES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 
@@ -100,15 +105,24 @@ export function buildTeamDef(
     throw new Error(`A match lineup may contain at most ${heroLimit} licensed heroes`);
   }
 
+  const lineupIdSet = new Set(lineupIds);
+  const toPlayerDef = (player: MatchSquadPlayer) => ({
+    id: player.id,
+    name: player.name,
+    role: player.role,
+    attrs: matchAttrsAtMorale(player.attrs, player.morale),
+    ...(player.licensed && player.power ? { power: player.power } : {}),
+  });
+  const bench = roster.filter(player =>
+    !lineupIdSet.has(player.id)
+    && (player.injuryWeeks ?? 0) === 0
+    && !(player.power && !player.licensed),
+  );
+
   return {
     id: club.id,
     name: club.name,
-    players: lineup.map(player => ({
-      id: player.id,
-      name: player.name,
-      role: player.role,
-      attrs: matchAttrsAtMorale(player.attrs, player.morale),
-      ...(player.licensed && player.power ? { power: player.power } : {}),
-    })),
+    players: lineup.map(toPlayerDef),
+    bench: bench.map(toPlayerDef),
   };
 }

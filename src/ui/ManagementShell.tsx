@@ -20,6 +20,7 @@ export interface ManagementShellProps {
   activeTab: ManagementTab;
   onTabChange: (tab: ManagementTab) => void;
   onAdvanceWeek: () => void;
+  onOpenSettings?: () => void;
   advanceWeekLabel?: string;
   advanceWeekDisabled?: boolean;
 }
@@ -32,6 +33,7 @@ export function ManagementShell({
   activeTab,
   onTabChange,
   onAdvanceWeek,
+  onOpenSettings,
   advanceWeekLabel = 'Advance Week  ▸',
   advanceWeekDisabled = false,
 }: ManagementShellProps) {
@@ -44,9 +46,22 @@ export function ManagementShell({
             {clubName}
           </Text>
         </View>
-        <View className="border border-paper/40 px-3 py-2">
-          <Text className="text-right font-mono text-xs font-bold text-paper">{seasonLabel}</Text>
-          <Text className="mt-1 text-right font-mono text-xs text-sky">{weekLabel}</Text>
+        <View className="flex-row items-center gap-2">
+          <View className="border border-paper/40 px-3 py-2">
+            <Text className="text-right font-mono text-xs font-bold text-paper">{seasonLabel}</Text>
+            <Text className="mt-1 text-right font-mono text-xs text-sky">{weekLabel}</Text>
+          </View>
+          {onOpenSettings ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+              onPress={onOpenSettings}
+              className="min-h-11 min-w-11 items-center justify-center border border-paper/40"
+              style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+            >
+              <Text className="font-mono text-lg font-bold text-sky">⚙</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 

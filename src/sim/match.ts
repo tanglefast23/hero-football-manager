@@ -3,11 +3,12 @@ import { HALF_TICKS } from './geometry';
 import { emit } from './events';
 import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTick } from './engine';
 import { powerTick } from './powers';
+import { isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m0.9 adds replayable manual control for either fixture side. Match tuning
-// and RNG are unchanged, but the accepted input domain is replay-affecting.
-export const ENGINE_VERSION = 'm0.9';
+// m1.0 makes STA affect condition drain and adds replayable formations,
+// mentality, and substitutions. Every item changes match behavior or input shape.
+export const ENGINE_VERSION = 'm1.0';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -19,9 +20,19 @@ const VALID_ROLES: ReadonlySet<Role> = new Set(['GK', 'DEF', 'MID', 'FWD']);
 const VALID_POWER_IDS: ReadonlySet<string> = new Set(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']);
 const VALID_FIRE_POLICIES: ReadonlySet<string> = new Set(['SAVE_FOR_TAP', 'FIRE_WHEN_READY']);
 const ATTR_KEYS: ReadonlyArray<keyof Attrs> = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'];
+export const MAX_SUBSTITUTIONS = 3;
 
 function deepCopyTeam(t: TeamDef): TeamDef {
-  return { id: t.id, name: t.name, players: t.players.map(p => ({ ...p, attrs: { ...p.attrs } })) };
+  return {
+    id: t.id,
+    name: t.name,
+    players: t.players.map(deepCopyPlayerDef),
+    ...(t.bench === undefined ? {} : { bench: t.bench.map(deepCopyPlayerDef) }),
+  };
+}
+
+function deepCopyPlayerDef(player: PlayerDef): PlayerDef {
+  return { ...player, attrs: { ...player.attrs } };
 }
 
 function ballSettled(state: MatchState): boolean {
@@ -53,6 +64,12 @@ export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: Ma
     // Inert placeholder (blendFrom === phase → no blend); restartKickoff below
     // resets it properly for the opening kickoff.
     movement: { phase: 0, blendFrom: 0, blendStartTick: 0, presserIdx: -1, presserSinceTick: 0 },
+    tactics: [
+      { formation: optsCopy.homeFormation ?? '4-4-2', mentality: 'BALANCED' },
+      { formation: optsCopy.awayFormation ?? '4-4-2', mentality: 'BALANCED' },
+    ],
+    bench: [teams[0].bench?.map(deepCopyPlayerDef) ?? [], teams[1].bench?.map(deepCopyPlayerDef) ?? []],
+    substitutionsUsed: [0, 0],
     resolve: [100, 100],
     rng: mulberry32(seed),
     events: [], pendingInputs: [],
@@ -79,18 +96,120 @@ export function queueInput(state: MatchState, input: MatchInput): void {
         `invalid POWER_TAP target ${input.player} — taps may only target heroes on the manually controlled team`
       );
     }
+  } else if (input.kind === 'SET_FORMATION') {
+    requireControlledTeam(state);
+    if (!isFormationId(input.formation)) throw new Error(`invalid formation ${String(input.formation)}`);
+  } else if (input.kind === 'SET_MENTALITY') {
+    requireControlledTeam(state);
+    if (!isMentality(input.mentality)) throw new Error(`invalid mentality ${String(input.mentality)}`);
+  } else if (input.kind === 'SUBSTITUTE') {
+    validateSubstitutionInput(state, input);
   }
-  // Separate copies so pendingInputs (consumed/spliced by powerTick) and inputLog
+  // Separate copies so pendingInputs (consumed by tick) and inputLog
   // (the append-only replay record) can never alias the same object.
   state.pendingInputs.push({ ...input });
   state.inputLog.push({ ...input });
+}
+
+function requireControlledTeam(state: MatchState): 0 | 1 {
+  const controlled = state.opts.controlledTeam;
+  if (controlled !== 0 && controlled !== 1) {
+    throw new Error('coaching inputs require a manually controlled team');
+  }
+  return controlled;
+}
+
+function validateSubstitutionInput(
+  state: MatchState,
+  input: Extract<MatchInput, { kind: 'SUBSTITUTE' }>,
+): void {
+  const controlled = requireControlledTeam(state);
+  const first = controlled * 11;
+  if (!Number.isSafeInteger(input.player) || input.player < first || input.player >= first + 11) {
+    throw new Error(`substitution player must be a slot on controlled team ${controlled}`);
+  }
+  if (typeof input.replacementId !== 'string' || input.replacementId.trim().length === 0) {
+    throw new Error('substitution replacementId must be a non-empty string');
+  }
+  const replacement = state.bench[controlled].find(player => player.id === input.replacementId);
+  if (replacement === undefined) throw new Error(`substitution replacement ${input.replacementId} is not available`);
+  const outgoing = state.players[input.player];
+  if ((outgoing.def.role === 'GK') !== (replacement.role === 'GK')) {
+    throw new Error('goalkeepers may only be swapped with another goalkeeper');
+  }
+  const queuedSubs = state.pendingInputs.filter(candidate => candidate.kind === 'SUBSTITUTE').length;
+  if (state.substitutionsUsed[controlled] + queuedSubs >= MAX_SUBSTITUTIONS) {
+    throw new Error(`team ${controlled} has used all ${MAX_SUBSTITUTIONS} substitutions`);
+  }
+  if (state.pendingInputs.some(candidate =>
+    candidate.kind === 'SUBSTITUTE'
+    && (candidate.player === input.player || candidate.replacementId === input.replacementId),
+  )) {
+    throw new Error('that player or replacement already has a substitution queued');
+  }
+}
+
+function processCoachingInput(state: MatchState, input: MatchInput): void {
+  if (input.kind === 'POWER_TAP') return;
+  const team = state.opts.controlledTeam;
+  if (team !== 0 && team !== 1) return; // validate/queue rejects this; replay corruption stays fail-soft here.
+
+  if (input.kind === 'SET_FORMATION') {
+    state.tactics[team].formation = input.formation;
+    emit(state, { t: state.tick, kind: 'FORMATION_CHANGED', team, formation: input.formation });
+    return;
+  }
+  if (input.kind === 'SET_MENTALITY') {
+    state.tactics[team].mentality = input.mentality;
+    emit(state, { t: state.tick, kind: 'MENTALITY_CHANGED', team, mentality: input.mentality });
+    return;
+  }
+
+  const benchIndex = state.bench[team].findIndex(player => player.id === input.replacementId);
+  if (benchIndex < 0 || state.substitutionsUsed[team] >= MAX_SUBSTITUTIONS) return;
+  const replacement = state.bench[team][benchIndex];
+  const outgoing = state.players[input.player];
+  if (outgoing.team !== team || (outgoing.def.role === 'GK') !== (replacement.role === 'GK')) return;
+
+  state.bench[team].splice(benchIndex, 1);
+  const outPlayerId = outgoing.def.id;
+  state.players[input.player] = {
+    def: deepCopyPlayerDef(replacement),
+    team,
+    pos: { ...outgoing.pos },
+    condition: 100,
+    gauge: 0,
+    powerState: { kind: 'idle' },
+    firePolicy: team === 0
+      ? (state.opts.homePolicy ?? 'SAVE_FOR_TAP')
+      : (state.opts.awayPolicy ?? 'FIRE_WHEN_READY'),
+    outUntilTick: 0,
+    tackleCooldownUntil: state.tick,
+    cards: 0,
+  };
+  state.substitutionsUsed[team] += 1;
+  emit(state, {
+    t: state.tick,
+    kind: 'SUBSTITUTION',
+    team,
+    player: input.player,
+    outPlayerId,
+    inPlayerId: replacement.id,
+  });
 }
 
 export function tick(state: MatchState): void {
   if (state.phase === 'fulltime') return;
   state.tick++;
 
-  powerTick(state);
+  const dueInputs: MatchInput[] = [];
+  const remainingInputs: MatchInput[] = [];
+  for (const input of state.pendingInputs) {
+    (input.tick <= state.tick ? dueInputs : remainingInputs).push(input);
+  }
+  state.pendingInputs = remainingInputs;
+  for (const input of dueInputs) processCoachingInput(state, input);
+  powerTick(state, dueInputs);
   movementTick(state);
   possessionTick(state);
   tackleTick(state);
@@ -125,6 +244,9 @@ function serializeReplayOpts(opts: MatchOpts): MatchOpts {
   const out: MatchOpts = {};
   if (opts.homePolicy !== undefined) out.homePolicy = opts.homePolicy;
   if (opts.awayPolicy !== undefined) out.awayPolicy = opts.awayPolicy;
+  if (opts.controlledTeam !== undefined) out.controlledTeam = opts.controlledTeam;
+  if (opts.homeFormation !== undefined) out.homeFormation = opts.homeFormation;
+  if (opts.awayFormation !== undefined) out.awayFormation = opts.awayFormation;
   return out;
 }
 
@@ -151,11 +273,16 @@ export function validateTeamDef(team: TeamDef, label: string): void {
   if (!Array.isArray(team.players) || team.players.length !== 11) {
     throw new Error(`${label} must have exactly 11 players`);
   }
+  if (team.bench !== undefined && !Array.isArray(team.bench)) {
+    throw new Error(`${label} bench must be an array when present`);
+  }
 
   const playerIds = new Set<string>();
   let goalkeeperCount = 0;
 
-  for (const p of team.players as PlayerDef[]) {
+  const allPlayers = [...team.players, ...(team.bench ?? [])];
+  for (let index = 0; index < allPlayers.length; index++) {
+    const p = allPlayers[index] as PlayerDef;
     if (!p || typeof p !== 'object') {
       throw new Error(`${label} player must be an object`);
     }
@@ -172,7 +299,7 @@ export function validateTeamDef(team: TeamDef, label: string): void {
     if (!VALID_ROLES.has(p.role)) {
       throw new Error(`${label} player ${p.id} has invalid role ${String(p.role)}`);
     }
-    if (p.role === 'GK') goalkeeperCount += 1;
+    if (index < 11 && p.role === 'GK') goalkeeperCount += 1;
     for (const key of ATTR_KEYS) {
       const v = p.attrs?.[key];
       if (!Number.isSafeInteger(v) || v < 1 || v > 99) {
@@ -203,6 +330,15 @@ function validateOpts(opts: MatchOpts | undefined): void {
   if (opts.awayPolicy !== undefined && !VALID_FIRE_POLICIES.has(opts.awayPolicy)) {
     throw new Error(`replay envelope: opts.awayPolicy must be SAVE_FOR_TAP or FIRE_WHEN_READY, got ${String(opts.awayPolicy)}`);
   }
+  if (opts.controlledTeam !== undefined && opts.controlledTeam !== 0 && opts.controlledTeam !== 1) {
+    throw new Error(`replay envelope: opts.controlledTeam must be 0 or 1, got ${String(opts.controlledTeam)}`);
+  }
+  if (opts.homeFormation !== undefined && !isFormationId(opts.homeFormation)) {
+    throw new Error(`replay envelope: opts.homeFormation is invalid (${String(opts.homeFormation)})`);
+  }
+  if (opts.awayFormation !== undefined && !isFormationId(opts.awayFormation)) {
+    throw new Error(`replay envelope: opts.awayFormation is invalid (${String(opts.awayFormation)})`);
+  }
   if (opts.blindAutoHome !== undefined && typeof opts.blindAutoHome !== 'boolean') {
     throw new Error(`replay envelope: opts.blindAutoHome must be a boolean, got ${String(opts.blindAutoHome)}`);
   }
@@ -232,20 +368,42 @@ export function validateEnvelope(env: ReplayEnvelope): void {
     if (!input || typeof input !== 'object') {
       throw new Error('replay envelope: input must be an object');
     }
-    if (input.kind !== 'POWER_TAP') {
-      throw new Error(`replay envelope: unknown input kind ${String(input.kind)}`);
-    }
     // Upper bound too: an input stamped past full time is never processed by the
     // sim, so accept-and-ignore is a validation gap — reject it here.
     if (typeof input.tick !== 'number' || !Number.isFinite(input.tick) || !Number.isInteger(input.tick) || input.tick < 1 || input.tick > MAX_REPLAY_TICK) {
       throw new Error(`replay envelope: input tick must be a finite integer in 1..${MAX_REPLAY_TICK}, got ${input.tick}`);
+    }
+    if (input.kind === 'SET_FORMATION') {
+      if (env.opts?.controlledTeam === undefined || !isFormationId(input.formation)) {
+        throw new Error('replay envelope: formation input needs a controlled team and valid formation');
+      }
+      continue;
+    }
+    if (input.kind === 'SET_MENTALITY') {
+      if (env.opts?.controlledTeam === undefined || !isMentality(input.mentality)) {
+        throw new Error('replay envelope: mentality input needs a controlled team and valid mentality');
+      }
+      continue;
+    }
+    if (input.kind !== 'POWER_TAP' && input.kind !== 'SUBSTITUTE') {
+      throw new Error(`replay envelope: unknown input kind ${String((input as { kind?: unknown }).kind)}`);
     }
     if (typeof input.player !== 'number' || !Number.isFinite(input.player) || !Number.isInteger(input.player) || input.player < 0 || input.player > 21) {
       throw new Error(`replay envelope: input player must be a finite integer in 0..21, got ${input.player}`);
     }
     const targetTeam = input.player < 11 ? 0 : 1;
     const targetSlot = targetTeam === 0 ? input.player : input.player - 11;
-    const target = targetTeam === 0 ? env.home.players[targetSlot] : env.away.players[targetSlot];
+    const team = targetTeam === 0 ? env.home : env.away;
+    if (input.kind === 'SUBSTITUTE') {
+      if (env.opts?.controlledTeam !== targetTeam) {
+        throw new Error('replay envelope: substitution must target the controlled team');
+      }
+      if (typeof input.replacementId !== 'string' || !team.bench?.some(player => player.id === input.replacementId)) {
+        throw new Error(`replay envelope: unavailable substitution replacement ${String(input.replacementId)}`);
+      }
+      continue;
+    }
+    const target = team.players[targetSlot];
     if (target?.power === undefined) {
       throw new Error(`replay envelope: input targets team ${targetTeam} slot ${targetSlot}, which is not a hero (no power)`);
     }

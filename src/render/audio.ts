@@ -152,6 +152,9 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     // silent, an explicit case (not a catch-all) so the exhaustiveness check
     // below stays meaningful.
     case 'RECOVERED':
+    case 'FORMATION_CHANGED':
+    case 'MENTALITY_CHANGED':
+    case 'SUBSTITUTION':
       return [];
     default: {
       // Exhaustiveness — adding a MatchEvent kind fails compilation here

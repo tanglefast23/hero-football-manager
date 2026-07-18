@@ -36,6 +36,16 @@ const MIGRATIONS: readonly Migration[] = [
         ON replay_envelopes (career_id, sort_order, fixture_id)`,
     ],
   },
+  {
+    version: 3,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS app_preferences (
+        slot INTEGER PRIMARY KEY CHECK (slot = 1),
+        schema_version INTEGER NOT NULL,
+        preferences_json TEXT NOT NULL
+      )`,
+    ],
+  },
 ];
 
 export const PERSISTENCE_SCHEMA_VERSION = MIGRATIONS.length;

@@ -1,5 +1,6 @@
 import type { Vec } from './geometry';
 import type { Rng } from './rng';
+import type { FormationId, TeamTactics, Mentality } from './tactics';
 
 export type PowerId = 'SUPER_SPEED' | 'SUPER_STRENGTH' | 'FIRE_TORCH';
 export type Role = 'GK' | 'DEF' | 'MID' | 'FWD';
@@ -13,7 +14,13 @@ export interface PlayerDef {
   id: string; name: string; role: Role; attrs: Attrs; power?: PowerId;
 }
 
-export interface TeamDef { id: string; name: string; players: PlayerDef[]; }
+export interface TeamDef {
+  id: string;
+  name: string;
+  players: PlayerDef[];
+  /** Match-eligible substitutes. They remain outside the fixed 22 render slots until used. */
+  bench?: PlayerDef[];
+}
 
 export type PowerState =
   | { kind: 'idle' }
@@ -59,14 +66,24 @@ export type MatchEvent =
   | { t: number; kind: 'IGNITED'; player: number }
   | { t: number; kind: 'EXTINGUISHED'; player: number }
   | { t: number; kind: 'RECOVERED'; player: number }
+  | { t: number; kind: 'FORMATION_CHANGED'; team: 0 | 1; formation: FormationId }
+  | { t: number; kind: 'MENTALITY_CHANGED'; team: 0 | 1; mentality: Mentality }
+  | { t: number; kind: 'SUBSTITUTION'; team: 0 | 1; player: number; outPlayerId: string; inPlayerId: string }
   | { t: number; kind: 'HALF_TIME' }
   | { t: number; kind: 'FULL_TIME' };
 
-export type MatchInput = { tick: number; kind: 'POWER_TAP'; player: number };
+export type MatchInput =
+  | { tick: number; kind: 'POWER_TAP'; player: number }
+  | { tick: number; kind: 'SET_FORMATION'; formation: FormationId }
+  | { tick: number; kind: 'SET_MENTALITY'; mentality: Mentality }
+  | { tick: number; kind: 'SUBSTITUTE'; player: number; replacementId: string };
 
 export interface MatchOpts {
   homePolicy?: FirePolicy;   // default SAVE_FOR_TAP
   awayPolicy?: FirePolicy;   // default FIRE_WHEN_READY
+  controlledTeam?: 0 | 1;   // watched side; enables replay-recorded coaching inputs
+  homeFormation?: FormationId;
+  awayFormation?: FormationId;
   blindAutoHome?: boolean;   // TEST-ONLY: home heroes auto-fire ignoring context (timing-value baseline)
 }
 
@@ -91,6 +108,9 @@ export interface MatchState {
   players: SimPlayer[];      // 22; 0-10 team 0 (attacks toward y=0), 11-21 team 1
   ball: BallState;
   movement: MovementState;
+  tactics: [TeamTactics, TeamTactics];
+  bench: [PlayerDef[], PlayerDef[]];
+  substitutionsUsed: [number, number];
   resolve: [number, number];
   rng: Rng;
   events: MatchEvent[];

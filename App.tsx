@@ -1,12 +1,20 @@
 import './global.css';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { loadLaunchContent } from './src/content';
-import { createCareerRepository, createReplayRepository } from './src/persistence';
+import {
+  createCareerRepository,
+  createPreferencesRepository,
+  createReplayRepository,
+  DEFAULT_APP_PREFERENCES,
+  replaceFormationPreset,
+  type AppPreferences,
+  type PreferencesRepository,
+} from './src/persistence';
 import { MatchScreen } from './src/render/MatchScreen';
 import { setMasterVolume } from './src/render/audio';
 import { devVolumePercent, nextDevVolume, type DevVolume } from './src/render/dev-volume';
@@ -52,8 +60,22 @@ export default function App() {
   const store = useM1Store();
   const content = useMemo(loadLaunchContent, []);
   const [bootError, setBootError] = useState<string | null>(null);
-  const [devVolume, setDevVolume] = useState<DevVolume>(1);
+  const [preferences, setPreferences] = useState<AppPreferences>(DEFAULT_APP_PREFERENCES);
   const [landingView, setLandingView] = useState<LandingView>('title');
+  const [managementSettingsOpen, setManagementSettingsOpen] = useState(false);
+  const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
+  const devVolume = preferences.masterVolume as DevVolume;
+
+  const savePreferences = useCallback((next: AppPreferences) => {
+    setPreferences(next);
+    void preferencesRepositoryRef.current?.save(next).catch(error => {
+      Alert.alert('Settings were not saved', error instanceof Error ? error.message : String(error));
+    });
+  }, []);
+
+  const cycleVolume = useCallback(() => {
+    savePreferences({ ...preferences, masterVolume: nextDevVolume(devVolume) });
+  }, [devVolume, preferences, savePreferences]);
 
   useEffect(() => {
     setMasterVolume(devVolume);
@@ -93,13 +115,21 @@ export default function App() {
       .then(async database => ({
         careerRepository: await createCareerRepository(database),
         replayRepository: await createReplayRepository(database),
+        preferencesRepository: await createPreferencesRepository(database),
       }))
-      .then(repositories => active
-        ? store.initializePersistence(
+      .then(async repositories => ({
+        ...repositories,
+        preferences: await repositories.preferencesRepository.load(),
+      }))
+      .then(repositories => {
+        if (!active) return undefined;
+        preferencesRepositoryRef.current = repositories.preferencesRepository;
+        setPreferences(repositories.preferences);
+        return store.initializePersistence(
           repositories.careerRepository,
           repositories.replayRepository,
-        )
-        : undefined)
+        );
+      })
       .catch(error => {
         if (active) setBootError(error instanceof Error ? error.message : String(error));
       });
@@ -161,8 +191,10 @@ export default function App() {
   } else if (store.screen === 'welcome' && landingView === 'settings') {
     screen = (
       <TitleSettingsScreen
-        volumePercent={devVolumePercent(devVolume)}
-        onCycleVolume={() => setDevVolume(current => nextDevVolume(current))}
+        preferences={preferences}
+        onCycleVolume={cycleVolume}
+        onCycleFormation={slot => savePreferences(replaceFormationPreset(preferences, slot))}
+        onToggleAutoPowers={() => savePreferences({ ...preferences, autoPowers: !preferences.autoPowers })}
         onBack={() => setLandingView('title')}
       />
     );
@@ -202,6 +234,8 @@ export default function App() {
         home={store.watchedMatch.home}
         away={store.watchedMatch.away}
         controlledTeam={store.watchedMatch.controlledTeam}
+        formationPresets={preferences.formationPresets}
+        autoPowers={preferences.autoPowers}
         onDone={finishWatchedMatch}
       />
     );
@@ -213,6 +247,17 @@ export default function App() {
         onToggleHeroLicense={store.toggleHeroLicense}
         onWatchMatch={store.watchMatch}
         onQuickResult={store.quickResult}
+      />
+    );
+  } else if (store.screen === 'management' && managementSettingsOpen) {
+    screen = (
+      <TitleSettingsScreen
+        preferences={preferences}
+        onCycleVolume={cycleVolume}
+        onCycleFormation={slot => savePreferences(replaceFormationPreset(preferences, slot))}
+        onToggleAutoPowers={() => savePreferences({ ...preferences, autoPowers: !preferences.autoPowers })}
+        onBack={() => setManagementSettingsOpen(false)}
+        backLabel="Back to club"
       />
     );
   } else if (store.screen === 'postmatch' && store.postMatch !== null) {
@@ -251,6 +296,7 @@ export default function App() {
         activeTab={store.activeTab}
         onTabChange={store.setActiveTab}
         onAdvanceWeek={store.advanceCareer}
+        onOpenSettings={() => setManagementSettingsOpen(true)}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
       >
         {store.activeTab === 'squad' ? (
@@ -304,7 +350,7 @@ export default function App() {
             hitSlop={8}
             testID="dev-volume-button"
             style={styles.volumeBtn}
-            onPress={() => setDevVolume(current => nextDevVolume(current))}
+            onPress={cycleVolume}
           >
             <Text style={styles.volumeText}>
               {devVolume === 0 ? '🔇' : devVolume <= 0.5 ? '🔉' : '🔊'} {devVolumePercent(devVolume)}%

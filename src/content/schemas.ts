@@ -54,7 +54,7 @@ export const LaunchClubSchema = z.strictObject({
   fans: safeNonnegativeIntegerSchema,
   ticketPrice: safeNonnegativeIntegerSchema,
   sponsorMonthlyFee: safeNonnegativeIntegerSchema,
-  players: z.array(LaunchPlayerSchema).length(13),
+  players: z.array(LaunchPlayerSchema).length(16),
   startingLineup: z.array(idSchema).length(11),
 }).superRefine((club, context) => {
   addDuplicateIssues(club.players.map(player => player.id), context, ['players'], 'player ID');

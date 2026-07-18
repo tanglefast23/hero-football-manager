@@ -17,14 +17,14 @@ The match is a live simulation: 22 agents making stat-driven decisions, with a d
 
 - **Tick-based**: fixed 100ms logical ticks. A match is 2 halves × ~100 seconds of play at 1× speed (≈ 2,000 ticks), presenting as "90 minutes" on the match clock. Total watched runtime with cut-ins and halftime: **3–4 real minutes** (research: the sweet spot across every comparable game).
 - **Seeded randomness**: one seed per match stored in the save; user inputs (power taps, subs, tactic changes) are recorded as a timestamped input stream alongside it. Seed + input stream = byte-identical replay. No `Math.random`, no `Date.now` inside the sim — ever.
-- **11v11**, positions grouped GK / DEF / MID / FWD by formation (6 formations at launch: 4-4-2, 4-3-3, 3-5-2, 5-3-2, 4-5-1, 3-4-3).
+- **11v11**, positions grouped GK / DEF / MID / FWD by formation. The coaching UI currently exposes the four statistically validated shapes: 4-4-2, 4-3-3, 5-3-2, and 3-4-3. The engine retains 3-5-2 and 4-5-1 for replay compatibility, but they stay hidden until balance sweeps show they are real choices rather than traps.
 - **Simplifications** (Pocket League Story precedent): no offside, no throw-in ceremony (ball wraps), fouls exist *only* as superpower side effects.
 
 ## Player agents
 
 Each of the 22 agents runs a small role state machine every few ticks:
 
-- **Ball carrier**: choose dribble / short pass / long pass / shoot, weighted by stats, position on pitch, pressure, and team tactic (Normal / Short Pass / Long Ball).
+- **Ball carrier**: choose dribble / pass / shoot, weighted by stats, position, pressure, formation, and mentality (Balanced / Attack / Protect).
 - **Teammates**: make runs, offer passing lanes (formation anchors + ball-side drift).
 - **Defenders**: mark, press, attempt tackles when in range.
 - **GK**: positioning, save attempts, distribution.
@@ -55,8 +55,8 @@ Borrowed directly from Inazuma Eleven's Keeper Power (see research/match-present
 A power is a **timed modifier burst** the sim applies to one agent (details in doc 04):
 
 - Each fielded hero builds **Heat** from involvement events (touches, tackles won, shots at launch, saves) plus a small time trickle — earned, not a timer. Above a threshold, each tick rolls a small seeded entry chance scaled by heat: the hero enters **the Zone** (heat resets, glow starts). Semi-random entry means watching the pitch for who's catching fire is real gameplay; heat-weighting means it's earned luck.
-- Every power defines a **useful context** — the situations where firing it actually matters (Super Speed: you have the ball or it's loose nearby; Super Strength: an opposing carrier is in range; a GK power: a shot is incoming). Contexts are shown to the player (the chip glows brighter in context), so "when do I tap?" is a readable decision, not a guess.
-- **The Zone window** lasts ~7 seconds, glow fading as it runs out. Tap the hero's chip during it to fire at **100%**, aimed at the current situation. A manual hero's expired window **decays heat to half — no auto-fire**: the attention premium is catching windows, not a stat bonus. Pre-match, each hero can instead be set to **Fire when ready** — the AI fires at the next useful context at **85%**, or at **75%** in the window's final seconds if no context appears (hands-off play and Quick Result stay respectable; rival heroes always run this policy). Powers that require a victim never fire targetless — those windows expire instead, making an opponent's glow a threat you can starve.
+- Every power defines a **useful context** — the situations where firing it actually matters (Super Speed: you have the ball or it's loose nearby; Super Strength: an opposing carrier is in range; a GK power: a shot is incoming). The hero's on-pitch glow intensifies in context, so "when do I tap?" is a readable decision, not a guess.
+- **The Zone window** lasts ~7 seconds, glow fading as it runs out. Tap the glowing on-pitch hero during it to fire at **100%**, aimed at the current situation. A manual hero's expired window **decays heat to half — no auto-fire**: the attention premium is catching windows, not a stat bonus. The persistent Auto Powers setting instead makes all home heroes fire at the next useful context at **85%**, or at **75%** in the window's final seconds if no context appears (hands-off play and Quick Result stay respectable; rival heroes always run this policy). Powers that require a victim never fire targetless — those windows expire instead, making an opponent's glow a threat you can starve.
 - **One power active per team at a time**; while one is active or winding, teammates' zones and heat freeze (paused, never wasted). No stacking — and the spectacle cut-in only ever has one thing to show.
 - **Wind-up**: 1.5s telegraph (glow + rising jingle) during which a tackle can interrupt the power (Mario Strikers rule — the counterplay that stops power-snowballing).
 - **Opposing heroes** use powers on their own AI priorities. They appear rarely in Div 5–4, commonly from Div 2 up.
@@ -69,11 +69,11 @@ A power is a **timed modifier burst** the sim applies to one agent (details in d
 - All cut-ins are **tap-to-skip after first viewing per power** (three games got the same review complaint about unskippable spectacle; we won't).
 - Speed controls: ×1 / ×2, pause. **Quick Result** available for every match from day one (Retro Bowl's per-match Sim pattern) — produces the same result as watching, plus a highlights ticker and optional "watch goals only" replay.
 - Goal celebration: 2s banner + crowd burst, skippable. Broadcast dressing: scoreboard bug top-center, match clock, division-colored lower third.
-- Match HUD: hero chips bottom row (portrait + gauge ring, ≥44pt tap targets), tactic button, speed/skip top-right.
+- Match HUD: a fixed bottom-left name + live energy card shows the current carrier and retains the last carrier while the ball travels; glowing home heroes are tapped directly on the pitch; bottom coaching bar cycles the three selected formations, cycles mentality, and opens Swap; speed/pause remain by the scoreboard. Rival heroes always run automatically.
 
 ## Halftime
 
-15-second interstitial (skippable): score, shot count, Resolve status, hero gauges — with buttons for subs (3 per match) and tactic changes. The one strategic checkpoint mid-match.
+15-second interstitial (skippable): score, shot count, Resolve status, and hero gauges. Coaching is not limited to halftime: formation, mentality, and up to three substitutions can be changed during live play, and every change is recorded in the deterministic replay input stream.
 
 ## Outputs
 
