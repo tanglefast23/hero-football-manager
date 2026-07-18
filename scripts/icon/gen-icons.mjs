@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Generates the three M0 app-icon concepts for Hero Football Manager — round 2.
-// Each concept is a HAND-AUTHORED 32x32 pixel map: 32 rows of 32 chars, each char
-// a palette key. No drawing primitives (round 1's fillRect circles/gradients read
-// as modern flat design, not NES/SNES pixel art). Authenticity rules enforced by
-// validateConcept(): <=16 colors, every char mapped, exact 32x32. All pixels are
-// opaque (iOS icons forbid alpha) — "background" chars map to real colors.
+// Generates the three M0 app-icon concepts for Hero Football Manager — round 3.
+// User verdict after round 2: the soccer ball is the subject, no fire. Each
+// concept is a HAND-AUTHORED 32x32 pixel map: 32 rows of 32 chars, each char a
+// palette key. No drawing primitives. Authenticity rules enforced by
+// validateConcept(): <=16 colors, every char mapped, exact 32x32. All pixels
+// are opaque (iOS icons forbid alpha) — "background" chars map to real colors.
 // Nearest-neighbor upscaled to 1024/180/120px PNGs in art/icons/. No external
 // deps — see png.mjs.
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
@@ -18,176 +18,165 @@ const OUT_DIR = path.join(__dirname, '..', '..', 'art', 'icons');
 const N = 32; // native authoring resolution for every concept
 
 // ---------------------------------------------------------------------------
-// Concept A — Blazing Ball
-// A chunky outlined soccer ball blazing in from the upper-left corner over a
-// vertically striped pitch. Flame ramp is a discrete 4-step NES band
-// (red -> orange -> gold -> pale core, hottest where it meets the ball),
-// wrapped in a hard black outline. Ball: black ring, white fill, one shade
-// step (lower-right crescent), three classic patches. Single-pixel gold sparks.
+// Concept A — Caped Ball
+// The ball IS the hero: chunky outlined soccer ball (center pentagon +
+// rim-straddling partials + shade crescent — the round-2 geometry that read
+// well) wearing a red hero cape, knotted at the top-left rim, billowing off
+// to the left with a pointed trailing edge. 3-step cape ramp: light-red
+// highlight, red base, dark-red underside. Navy background, single-pixel
+// gold sparks. 8 colors.
 // ---------------------------------------------------------------------------
 const CONCEPT_A = {
   palette: {
-    G: '#2e7d3a', // dark pitch stripe
-    g: '#3a8f4a', // light pitch stripe
+    n: '#101418', // navy background
     K: '#14100c', // hard black outline / ball patches
     w: '#f4efe4', // ball white
     s: '#c9c2b2', // ball shade step
-    R: '#c94f2a', // flame band 1 (outermost, coolest)
-    O: '#ff6a00', // flame band 2
-    Y: '#f5c518', // flame band 3 / sparks
-    H: '#ffe08a', // flame band 4 (core, hottest, hugs the ball)
+    Y: '#f5c518', // gold sparks
+    R: '#e8433f', // cape base
+    P: '#f2836b', // cape highlight step
+    D: '#b02420', // cape shade step
   },
   rows: [
-    'GKRKGGGGKRKgggggGGGGGGGGgggggggg',
-    'KRRRKGGKRRRKggggGGGGGGGGgggggggg',
-    'KRRRRKGKRROOKgggGGGGYGGGgggggggg',
-    'KRRROKGKROOOKgggGGGGGGGGgggYgggg',
-    'KRRROOOOOOOYYKggGGGGGGGGgggggggg',
-    'GKRROOOOOYYYYYKgGGGGGGGGgggggggg',
-    'GKROOOOYYYYYYYKgGGGGGGGGgggggggg',
-    'GGKROOOYYYYYHHYKGGGGGGGGgggggggg',
-    'KROOOOYYYYHHHHYKGGGGGGGGgggggggg',
-    'GGKOOOYYYYHHHHHKGGGGGGGGgggggggg',
-    'GGGKOOYYYHHHHHHHKKKKKKKKgggggggg',
-    'GGGKOYYYHHHHHHKKKKwwwwwKKKgggggg',
-    'GGGGKOYYHHHHHKKKwwwwwwKKKKKggggg',
-    'GGGGKOYHHHHHKKwwwwwwwwwKKKwKgggg',
-    'GGGYGKYYHHHKKKwwwwwwwwwwwKKKKggg',
-    'GGGGGKYHHHHKKwwwwwwwwwwwwwwwKggg',
-    'GGGGGGKYHHKKKwwwwwwwwwwwwwwwKKgg',
-    'GGGGGGGKHKGKKKwwwwwKKwwwwwwwwKgg',
-    'GGGGGGGGgggKKKKwwwKKKKwwwwwwwKgg',
-    'GGGGGGGGgggKKKKwwKKKKKKwwwwssKgg',
-    'GGGGGYGGgggKKKwwwKKKKKKwwsssKKgg',
-    'GGGGGGGGgggKwwwwwwKKKKwwwsssKKgg',
-    'GGGGGGGGgggKKwwwwwwwwwwwwsssKKgg',
-    'GGGGGGGGggggKwwwwwwwwwwwssssKggg',
-    'GGGGGGGGggggKKwwwKKKwwwssssKKggg',
-    'GGGGGGGGYggggKwwKKKKwwsssssKgggg',
-    'GGGGGGGGggggggKKwKKKsssssKKggggg',
-    'GGGGGGGGgggggggKKKwssssKKKgggggg',
-    'GGGGGGGGggggggggGKKKKKKKgggggggg',
-    'GGGGGGGGggggggggGGGGGGGGgggggggg',
-    'GGGGGGGGgggggYggGGGGGGGGggYggggg',
-    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnYnnnnn',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnnnYnnn',
+    'nnnnnnnnnnnnnnKKnnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnKRRKnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnKRRRRKKKKKKKnnnnnnnn',
+    'nnnnnnnnnKPPPRRKKKwwwwwKKKnnnnnn',
+    'nnnnnnKPPPPRRRKKwwwwwKKKKKKnnnnn',
+    'nnnnKPPPPRRRRKwwwwwwwwKKKwwKnnnn',
+    'nnKPPPPRRRRRKKwwwwwwwwwwwKKKKnnn',
+    'nKPPPRRRRRRDKwwwwwwwwwwwwwwwKnnn',
+    'nKPPRRRRRRDKKwwwwwwwwwwwwwwwKKnn',
+    'KRRRRRRRRDDKwwwwwwwKKwwwwwwwwKnn',
+    'KRRRRRRRDDDKwwwwwwKKKKwwwwwssKnn',
+    'KRRRRRRDDDKKwwwwwKKKKKKwwwsssKnn',
+    'KRRRRRDDKnnKwwwwwKKKKKKwwwsssKnn',
+    'KRRDDDDKnnnKwwwwwwKKKKwwwssssKnn',
+    'KDKnKDKnnnnKKwwwwwwwwwwwwsssKKnn',
+    'nnnnnnnnnnnnKwwwwwwwwwwwssssKnnn',
+    'nnnnnnnnnnnnKKwwwKKKwwwssssKKnnn',
+    'nnnnnnnnnnnnnKwwKKKKwwsssssKnnnn',
+    'nnnnnnnnnnnnnnKKwKKKsssssKKnnnnn',
+    'nnnnnnnnnnnnnnnKKKwssssKKKnnnnnn',
+    'nnnnnnnnnnnnnnnnnKKKKKKKnnnnnnnn',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnYnnnnnnnnnnnnnnYnnnnnn',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
   ],
 };
 
 // ---------------------------------------------------------------------------
-// Concept B — Hero Face (Dario Flint, FIRE_TORCH)
-// Ranked best of round 1; same composition rebuilt as hand-placed pixels.
-// Big chibi close-up on navy with gold corner/side burst rays. Fire-spike hair
-// in a strict 3-step ramp (red roots -> orange -> gold tips), angry angled
-// brows, inward-focused 2x2 pupils, shouting mouth, one skin shade step, red
-// V-neck kit collar with gold trim. Hard dark outline around the whole head.
+// Concept B — Masked Ball
+// The game's premise in one image: the ball is SECRETLY a superhero. A red
+// domino mask with pointed wings wraps the ball, white slit eyes glare out,
+// a smirk below. Patches simplified so the mask owns the face: one
+// rim-straddling partial above the mask, shade crescent below. Striped pitch
+// background with gold sparks. 8 colors.
 // ---------------------------------------------------------------------------
 const CONCEPT_B = {
   palette: {
-    n: '#101418', // navy background
-    x: '#ba7517', // burst ray, dark step
-    Y: '#f5c518', // burst ray bright / hair tips / collar trim
-    K: '#1c1410', // hard outline / brows / pupils
-    R: '#c94f2a', // hair roots (band 1)
-    O: '#ff6a00', // hair mid (band 2)
-    s: '#f5c99a', // skin base
-    d: '#c98d5a', // skin shade step
-    w: '#fbf6ec', // eye white
-    m: '#7a3f2a', // mouth interior
-    c: '#e8433f', // kit collar red
-    v: '#c22f2c', // kit collar shade / inner V
+    G: '#2e7d3a', // dark pitch stripe
+    g: '#3a8f4a', // light pitch stripe
+    K: '#14100c', // hard black outline / mask edges / smirk
+    w: '#f4efe4', // ball white / mask eye slits
+    s: '#c9c2b2', // ball shade step
+    R: '#e8433f', // mask red
+    D: '#c22f2c', // mask shade step
+    Y: '#f5c518', // sparks
   },
   rows: [
-    'YYYYxxnnnnnnnnKYYKnnnnnnnnxxYYYY',
-    'YYYxxnnnnKYKnnKYYKnnKYKnnnnxxYYY',
-    'YYxxnnnnnKYYKnKYYKnKYYKnnnnnxxYY',
-    'YxxnnnnnKYYYKKYYYYKKYYYKnnnnnxxY',
-    'xxnnnnnnKYYYOOYYYYOOYYYKnnnnnnxx',
-    'xnnnKYYYOOOOOOOOOOOOOOOOYYYKnnnx',
-    'nnnKYYOOOOORRRRRRRRRROOOOOYYKnnn',
-    'nnnnKOOOORRRRRRRRRRRRRRROOOKnnnn',
-    'nnnnnKORRRRRRRRRRRRRRRRROKnnnnnn',
-    'nnnnnKRRRRRRRRRRRRRRRRRRRKnnnnnn',
-    'nnnnnKRRRRRRRRRRRRRRRRRRRKnnnnnn',
-    'nnnnnKRRRRRRRRRRRRRRRRRRRKnnnnnn',
-    'nnnnnKRRRRsssRRRRRRsssRRRKnnnnnn',
-    'nnnnnKsRRKKKKssRRssKKKKRRssKnnnn',
-    'xxnnnKssssssKKKssssKKKsssssKnnxx',
-    'YYYnnKssswwwwsssssswwwwssssKnYYY',
-    'YYYnnKssswwKKssssssKKwwssddKnYYY',
-    'xxnnnKssswwKKssssssKKwwssddKnnxx',
-    'nnnnnKssssssssssssssssssdddKnnnn',
-    'nnnnnKssssssssssssssssssdddKnnnn',
-    'nnnnnnKssssssKKKKKKsssssddKnnnnn',
-    'nnnnnnKssssssKmmmmKsssssddKnnnnn',
-    'nnnnnnnKssssssKKKKssssdddKnnnnnn',
-    'nnnnnnnKssssssssssssssdddKnnnnnn',
-    'nnnnnnnnKssssssssssssddddKnnnnnn',
-    'nnnnnnnnnKsssssssssssddKnnnnnnnn',
-    'nnnnnnnnnnnKssssssdddKnnnnnnnnnn',
-    'nnnKKKKKKKKKKKKKKKKKKKKKKKKKKnnn',
-    'nnKcccccccccYYvvvvvvvYYcccccKnnn',
-    'nKccccccccccccYYvvvvYYcccccccKnn',
-    'KccccccccccccccYYYYcccccccccccnK',
-    'KvvcccccccccccccccccccccccccvvvK',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'GGGGGGGGggggggggGGGGGGGGgggYgggg',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'GGGGYGGGggggggggGGGGGGGGgggggggg',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'GGGGGGGGggggggggGKKKKKKKgggggggg',
+    'GGGGGGGGgggggggKKKwwwKKKKKgggggg',
+    'GGGGGGGGggggggKKwwwwwwKKwKKggggg',
+    'GGGGGGGGgggggKwwwwwwwwwwwwwKgggg',
+    'GGGGGGGGggggKKwwwwwwwwwwwwwKKggg',
+    'GGGGGGGGggKKKKKKKKKKKKKKKKKKKKKg',
+    'GGGGGGGGgKRRRRRRRRRRRRRRRRRRRRKg',
+    'GGGGGGGGggKRRRwwwwRRRRRwwwwRRKgg',
+    'GGGGGGGGggKRRRwKKwRRRRRwKKwRRKgg',
+    'GGGGGGGGgggKDDDDDDDDDDDDDDDDDKgg',
+    'GGGGGGGGgggKKKKKKKKKKKKKKKKKKKgg',
+    'GGGGGGGGgggKwwwwwwwwwwwwwwwssKgg',
+    'GGGGGGGGgggKKwwwwwwwwKwwwsssKKgg',
+    'GGGGGGGGggggKwwwKKKKKwwwssssKggg',
+    'GGYGGGGGggggKKwwwKKKwwwssssKKggg',
+    'GGGGGGGGgggggKwwKKKKwwsssssKgggg',
+    'GGGGGGGGggggggKKwKKKssssssKKgYgg',
+    'GGGGGGGGgggggggKKKwwsssssKKggggg',
+    'GGGGGGGGggggggggGKKKKKKKgggggggg',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
+    'GGGGGGGGggggggggGGGGGGGGgggggggg',
   ],
 };
 
 // ---------------------------------------------------------------------------
-// Concept C — Power Strike (fully colored this round)
-// Round 1's kicking-player subject kept, but full color: a caped chibi hero in
-// the red kit flies feet-first, fist forward, boot planted on the ball's
-// underside with thin gold impact spikes and pale contact sparks. A gold cape
-// streams behind with pointed trailing edge. White motion dashes, navy sky,
-// striped pitch, white touchline slicing the lower-right corner.
+// Concept C — Impact Ball
+// The ball punches through a comic-book impact burst: four thick K-outlined
+// star spikes (gold, pale at the base where they meet the ball), diagonal
+// gold dashes between them, two white speed dashes. Clean centered ball on
+// navy. 2-step burst ramp, no fire anywhere. 6 colors.
 // ---------------------------------------------------------------------------
 const CONCEPT_C = {
   palette: {
-    n: '#101418', // navy sky
-    g: '#3a8f4a', // light pitch stripe
-    G: '#2e7d3a', // dark pitch stripe
-    K: '#14100c', // hard black outline / boots
-    s: '#f5c99a', // skin
-    h: '#4a2e1a', // hair
-    c: '#e8433f', // kit red (shirt, socks)
-    w: '#f4efe4', // white (shorts, ball, touchline, motion dashes)
-    q: '#c9c2b2', // ball shade step
-    Y: '#f5c518', // gold (cape, burst spikes)
-    x: '#c99a12', // cape shade step
-    H: '#ffe08a', // impact spark pixels
+    n: '#101418', // navy background
+    K: '#14100c', // hard black outline / ball patches
+    w: '#f4efe4', // ball white / speed dashes
+    s: '#c9c2b2', // ball shade step
+    Y: '#f5c518', // burst gold
+    H: '#ffe08a', // burst pale step (spike bases)
   },
   rows: [
-    'nnnnnnnnnnnnnnnnnnnnYnnnnnYnnnnY',
-    'nnnnnnnnnnHnnnnnnnnnYYnnnYYYnnYn',
-    'nnnnnnnnnnnnnnnnnnnnnYYnnnnnnnnn',
-    'nnnnnHnnnnnnnnnnnnnnnnnnKKKKKnnn',
-    'nnnnnnnnnnnnnnnnnnnnnnnKKwwwKKnn',
-    'nnnnnnnnnnnnnnnnnnnnnnKKwwwwwKKn',
-    'nnnnnnnnnnnnnnnnnnnYYnKwwKKwwwKn',
-    'nnnnnnnnnnnnnnnnnnnnnnKwwKKwwwKn',
-    'nnnnnnnnnnnnnnnnnnnnnnKwwwwwqqKn',
-    'nnnnnnnnKKKKKnnnnnnnnHKKwwqqqKKn',
-    'nnnnnnnKhhhhhKnnnnnnnnnKKqqqKKnn',
-    'nnnnnnKhhhhhhhKnnnnnnKKKKKKKKnnn',
-    'gggggKhhhhsssssKKKKKKKKccKKggggg',
-    'gwwwgKhhhsssKKsKccccwwwKKKgHgggg',
-    'gggggKhhssssKKsKccccwwwKgggggggg',
-    'gggggKsssssssKsKccccwwwKgggggggg',
-    'wwwggKsssssssssKKKKKKKKggggggggg',
-    'ggggggKssssssKYYKgKssKgggggggggg',
-    'gggggggKsssssKYYYKggKccKgggggggg',
-    'GGGGGGGGKKKKKYYYKGGGGGKKKGGGGGGG',
-    'GwwGGGKYYYYYYYxKGGGGGGGGGGGGGGGG',
-    'GGGGKYYYYYxxKGGGGGGGGGGGGGGGGGGG',
-    'GGGKYYxxxKGGGGGGGGGGGGGGGGGGGGGG',
-    'GGGKxKGKxKGGGGGGGGGGGGGGGGGGGGGG',
-    'GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG',
-    'GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG',
-    'gggggggggggggggggggggggggggggggg',
-    'gggggggggggggggggggggggggggggggg',
-    'gggggggggggggggggggggggggggggwww',
-    'ggggggggggggggggggggggggggwwwggg',
-    'gggggggggggggggggggggggwwwgggggg',
-    'ggggggggggggggggggggwwwggggggggg',
+    'nnnnnnnnnnnnnnnKYKnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnnnKYKnnnnnnnnnnnnnn',
+    'nnwwwnnnnnnnnnKYYYKnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnnKYYYKnnnnnnnnnnnnn',
+    'nnnnnnYnnnnnnKYYYYYKnnnnnnYnnnnn',
+    'nnnnnnnYnnnnnKYHHHYKnnnnnYnnnnnn',
+    'nnnnnnnnYnnnnKHHHHHKnnnnYnnnnnnn',
+    'nnnnnnnnnnnnnKHHHHHKnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnKKKKKKKnnnnnnnnnnnn',
+    'nnnnnnnnnnnnKKwwwwwKKnnnnnnnnnnn',
+    'nnnnnnnnnnKKwwwwwwKKKKKnnnnnnnnn',
+    'nnnnnnnnnnKwwwwwwwwwKKwKnnnnnnnn',
+    'nnnnnnnnnKwwwwwwwwwwwwwKnnnnnnnn',
+    'nnnnnnnnnKwwwwwwwwwwwwwKnnnnnnnn',
+    'nnnnKKKKKwwwwwKKKwwwwwwwKKKKKnnn',
+    'nKYYYHHHKwwwwKKKKKwwwwwwKHHYYYKn',
+    'KYYYHHHHKwwwwKKKKKwwwwwwKHHHYYYK',
+    'nKYYYHHHKwwwwwKKKwwwwwssKHHYYYKn',
+    'nnnnKKKKKwwwwwwwwwwwwsssKKKKKnnn',
+    'nnnnnnnnnKwwwwwwwwwwsssKnnnnnnnn',
+    'nnnnnnnnnKwwwwwwwwwssssKnnnnnnnn',
+    'nnnnnnnnnnKwKKwwssssssKnnnnnnnnn',
+    'nnnnnnnnnnKKKKwwsssssKKnnnnnnnnn',
+    'nnnnnnnnnnnnKKwssssKKnnnnnnnnnnn',
+    'nnnnnnnnnnnnnKKKKKKKnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnKHHHHHKnnnnnnnnnnnn',
+    'YnnnnnnnnnnnnKYHHHYKnnnnYnnnnnnn',
+    'nnnnnnnYnnnnnnKYYYKnnnnnYnnnnnnn',
+    'nnnnnnYnnnnnnnKYYYKnnnnnnYnnnnnn',
+    'nnnnnnnnnnnnnnnKYKnnnnnnnnnwwwnn',
+    'nnnnnnnnnnnnnnnKYKnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
   ],
 };
 
