@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hero Football Manager — App Icon Concepts</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #0b0d14;
+    color: #eef1f5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 32px 24px 64px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 4px; color: #eef1f5; }
+  .sub { color: #8a93a0; font-size: 13px; margin-bottom: 32px; max-width: 680px; line-height: 1.5; }
+  .sub2 { color: #8a93a0; font-size: 12px; margin-bottom: 16px; max-width: 680px; line-height: 1.5; }
+
+  .concepts { display: flex; flex-direction: column; gap: 20px; margin-bottom: 48px; }
+  .concept-card { background: #12161d; border: 1px solid #262f3a; border-radius: 12px; padding: 18px 20px; }
+  .concept-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px; flex-wrap: wrap; }
+  .concept-title { font-size: 14px; font-weight: 700; }
+  .concept-tag { font-size: 10px; color: #b6862a; background: rgba(245,197,24,0.12); border: 1px solid #b6862a; border-radius: 4px; padding: 1px 6px; }
+  .concept-desc { font-size: 11.5px; color: #8a93a0; margin-bottom: 16px; max-width: 620px; }
+
+  .wallpaper {
+    background: radial-gradient(circle at 28% 18%, #2b3554 0%, #161d2e 45%, #0a0e17 100%);
+    border-radius: 14px;
+    padding: 24px 20px;
+    display: flex;
+    align-items: flex-end;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .icon-slot { text-align: center; }
+  .icon-slot img {
+    display: block;
+    margin: 0 auto;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    border-radius: 22.5%;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.08);
+  }
+  .icon-slot .app-label {
+    margin-top: 7px;
+    font-size: 11px;
+    color: #f2f4f8;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+  }
+  .icon-slot .size-tag {
+    margin-top: 2px;
+    font-size: 9px;
+    color: #7d8794;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .squint-section { margin-top: 8px; }
+  .squint-wallpaper {
+    background: radial-gradient(circle at 28% 18%, #2b3554 0%, #161d2e 45%, #0a0e17 100%);
+    border-radius: 14px;
+    padding: 28px 24px;
+    display: flex;
+    gap: 36px;
+    flex-wrap: wrap;
+  }
+  .rank-note {
+    margin-top: 14px;
+    font-size: 11.5px;
+    color: #8a93a0;
+  }
+</style>
+</head>
+<body>
+  <h1>Hero Football Manager — App Icon Concepts</h1>
+  <div class="sub">
+    Three 64&times;64 hand-authored pixel maps, nearest-neighbor upscaled to 1024px (App Store),
+    180px (@3x home screen), and 120px (@2x home screen). Rendered on a dark wallpaper mock with
+    the iOS superellipse corner approximated at 22.5% border-radius. The "Hero FC" label is page
+    furniture for this mock only — it is not part of the icon file.
+  </div>
+
+  <div class="concepts">
+
+    <div class="concept-card">
+      <div class="concept-head">
+        <span class="concept-title">Concept A — Blazing Ball</span>
+        <span class="concept-tag">no text</span>
+      </div>
+      <div class="concept-desc">
+        Chunky tilted soccer ball trailing fire from the upper-left, on a deep pitch-green
+        diagonal-stripe background with a thin gold zone-glow ring.
+      </div>
+      <div class="wallpaper">
+        <div class="icon-slot">
+          <img src="concept-a-180.png" width="180" height="180" alt="Concept A at 180px">
+          <div class="app-label">Hero FC</div>
+          <div class="size-tag">180 &times; 180</div>
+        </div>
+        <div class="icon-slot">
+          <img src="concept-a-120.png" width="120" height="120" alt="Concept A at 120px">
+          <div class="app-label">Hero FC</div>
+          <div class="size-tag">120 &times; 120</div>
+        </div>
+        <div class="icon-slot">
+          <img src="concept-a-120.png" width="60" height="60" alt="Concept A at 60px">
+          <div class="app-label">Hero FC</div>
+          <div class="size-tag">60 &times; 60</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-card">
+      <div class="concept-head">
+        <span class="concept-title">Concept B — Hero Face</span>
+        <span class="concept-tag">no text</span>
+      </div>
+      <div class="concept-desc">
+        Dario Flint (FIRE_TORCH) in B+ chibi close-up: determined eyes, spiky fire-tipped hair,
+        red kit collar hint at the bottom edge, gold comic burst on dark navy.
+      </div>
+      <div class="wallpaper">
+        <div class="icon-slot">
+          <img src="concept-b-180.png" width="180" height="180" alt="Concept B at 180px">
+          <div class="app-label">Hero FC</div>
+          <div class="size-tag">180 &times; 180</div>
+        </div>
+        <div class="icon-slot">
+          <img src="concept-b-120.png" width="120" height="120" alt="Concept B at 120px">
+          <div class="app-label">Hero FC</div>
+          <div class="size-tag">120 &times; 120</div>
+        </div>
+        <div class="icon-slot">
+          <img src="concept-b-120.png" width="60" height="60" alt="Concept B at 60px">
+          <div class="app-label">Hero FC</div>
+          <div class="size-tag">60 &times; 60</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-card">
+      <div class="concept-head">
+        <span class="concept-title">Concept C — Power Strike</span>
+        <span class="concept-tag">no text</span>
+      </div>
+      <div class="concept-desc">
+        Black silhouette, gold outline: a chibi player mid-bicycle-kick against a split
+        pitch-green / dark background, ball and speed lines above, shape-only "POW" burst.
+      </div>
+      <div class="wallpaper">
+        <div class="icon-slot">
+          <img src="concept-c-180.png" width="180" height="180" alt="Concept C at 180px">
+          <div class="app-label">Hero FC</div>
+          <div class="size-tag">180 &times; 180</div>
+        </div>
+        <div class="icon-slot">
+          <img src="concept-c-120.png" width="120" height="120" alt="Concept C at 120px">
+          <div class="app-label">Hero FC</div>
+          <div class="size-tag">120 &times; 120</div>
+        </div>
+        <div class="icon-slot">
+          <img src="concept-c-120.png" width="60" height="60" alt="Concept C at 60px">
+          <div class="app-label">Hero FC</div>
+          <div class="size-tag">60 &times; 60</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="squint-section">
+    <h2>Squint test — all three at 60&times;60</h2>
+    <div class="sub2">This is the size that actually matters: a thumb-sized home-screen icon glanced at, not
+      studied. Step back from the screen (or just squint) and see which one still reads instantly.</div>
+    <div class="squint-wallpaper">
+      <div class="icon-slot">
+        <img src="concept-a-120.png" width="60" height="60" alt="Concept A at 60px">
+        <div class="app-label">Hero FC</div>
+        <div class="size-tag">A — Blazing Ball</div>
+      </div>
+      <div class="icon-slot">
+        <img src="concept-b-120.png" width="60" height="60" alt="Concept B at 60px">
+        <div class="app-label">Hero FC</div>
+        <div class="size-tag">B — Hero Face</div>
+      </div>
+      <div class="icon-slot">
+        <img src="concept-c-120.png" width="60" height="60" alt="Concept C at 60px">
+        <div class="app-label">Hero FC</div>
+        <div class="size-tag">C — Power Strike</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
