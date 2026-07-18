@@ -41,11 +41,11 @@ export const MUSIC_CATALOG = [
   {
     name: 'match-theme',
     group: 'Music',
-    minMs: 44000,
+    minMs: 59000,
     maxMs: 61000,
-    targetDb: -1,
+    targetDb: -5,
     loop: true,
     loopFadeMs: 80,
-    desc: '120 BPM chiptune-adjacent loop — square melody, triangle bass, noise percussion',
+    desc: 'Match Day Heroes — 128 BPM heroic stadium-chiptune loop with a singable synth hook, driving bass, and crowd claps',
   },
 ];

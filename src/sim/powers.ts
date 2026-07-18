@@ -7,6 +7,8 @@ export const TAP_STRENGTH = 1.0;
 export const CONTEXT_AUTO_STRENGTH = 0.85;
 export const LAPSE_STRENGTH = 0.75;
 export const GAUGE_TRICKLE = 0.02;
+const DEFENSIVE_ENGAGEMENT_TRICKLE = 0.08;
+const DEFENSIVE_ENGAGEMENT_RANGE = 2000;
 
 // In-the-Zone activation model (2026-07-17, replaces the fixed READY window):
 // heat builds via addGauge, and above ZONE_HEAT_THRESHOLD each tick rolls a small
@@ -56,7 +58,7 @@ export function interruptWindup(state: MatchState, idx: number): void {
 // charges them. inUsefulContext references this SAME constant for the power's
 // useful context, so "I see a context" and "I can acquire a lock" can never
 // drift apart (Task 12.2 ruling).
-const STRENGTH_LOCK_RANGE = 1200;
+export const STRENGTH_LOCK_RANGE = 1200;
 // KO range checked when the charge windup completes (400 -> 500, Task 12.2 tuning).
 const STRENGTH_LAND_RANGE = 500;
 
@@ -162,7 +164,10 @@ export function powerTick(state: MatchState): void {
     if (!selfBusy && teamPowerBusy(state, p.team)) continue;
 
     if (p.powerState.kind === 'idle') {
-      addGauge(state, idx, GAUGE_TRICKLE);
+      const defensiveEngagement = p.def.role === 'DEF' && state.ball.kind === 'held'
+        && state.players[state.ball.by].team !== p.team
+        && dist2(state.players[state.ball.by].pos, p.pos) < DEFENSIVE_ENGAGEMENT_RANGE * DEFENSIVE_ENGAGEMENT_RANGE;
+      addGauge(state, idx, GAUGE_TRICKLE + (defensiveEngagement ? DEFENSIVE_ENGAGEMENT_TRICKLE : 0));
       // Zone-entry roll: state-dependent (heat-weighted) but still a conditional
       // rng() draw, so it is replay-load-bearing. It must run here — before
       // movementTick/possessionTick/tackleTick/shotFlightTick — and in ascending
@@ -304,8 +309,12 @@ export function speedMultiplier(state: MatchState, idx: number): number {
 }
 
 export function dribbleBonus(state: MatchState, carrierIdx: number): number {
+  const player = state.players[carrierIdx];
+  // Super Speed visibly spools up during its interruptible wind-up. The bonus is
+  // enough to resist an ordinary poke more often, but tackles can still cancel it.
+  if (player.powerState.kind === 'winding' && player.def.power === 'SUPER_SPEED') return 25;
   if (!isActive(state, carrierIdx)) return 0;
-  const power = state.players[carrierIdx].def.power;
+  const power = player.def.power;
   return power === 'SUPER_SPEED' ? 15 : power === 'FIRE_TORCH' ? 25 : 0;
 }
 

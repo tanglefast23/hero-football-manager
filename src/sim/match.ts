@@ -5,9 +5,9 @@ import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTic
 import { powerTick } from './powers';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m0.7: a knocked-down hero keeps the Zone (paused, resumes on recovery) per
-// docs/04 canon — was expired-on-knockout in m0.6 (see powers.ts knockOut).
-export const ENGINE_VERSION = 'm0.7';
+// m0.8 combines the m0.7 Zone pause/resume rule with geometry-aware attacking
+// decisions. Both alter replay output and RNG consumption relative to m0.7.
+export const ENGINE_VERSION = 'm0.8';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one

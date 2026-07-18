@@ -48,15 +48,17 @@ describe('M0 acceptance suite (Task 13)', () => {
         }
       }
       const N = 200;
-      let strongWins = 0, weakWins = 0, strongGoals = 0;
+      let strongWins = 0, weakWins = 0, strongGoals = 0, strongShots = 0, strongPasses = 0;
       for (let seed = 1; seed <= N; seed++) {
         const r = runMatch(seed, strong, UNITED);
         if (r.score[0] > r.score[1]) strongWins++;
         else if (r.score[1] > r.score[0]) weakWins++;
         strongGoals += r.score[0];
+        strongShots += r.events.filter(e => e.kind === 'SHOT' && (e as { by: number }).by < 11).length;
+        strongPasses += r.events.filter(e => e.kind === 'PASS' && (e as { from: number }).from < 11).length;
       }
       const strongGoalsPerMatch = strongGoals / N;
-      console.log(`BALANCE RAILS blowout: strongWins=${strongWins} weakWins=${weakWins} strongGoals/match=${strongGoalsPerMatch.toFixed(3)} over ${N} seeds`);
+      console.log(`BALANCE RAILS blowout: strongWins=${strongWins} weakWins=${weakWins} strongGoals/match=${strongGoalsPerMatch.toFixed(3)} strongShots/match=${(strongShots / N).toFixed(3)} strongPasses/match=${(strongPasses / N).toFixed(3)} over ${N} seeds`);
       expect(strongWins).toBeGreaterThan(weakWins * 3);
       expect(strongGoalsPerMatch).toBeLessThan(10);
     }, 30000);
