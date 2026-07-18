@@ -1,9 +1,9 @@
-import { anchorFor } from './formation';
-import { dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, PITCH_W, PITCH_H, type Vec } from './geometry';
+import { BLEND_TICKS, blendedTableTarget, gkTarget, kickoffPos } from './movement-table';
+import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest } from './contest';
 import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut } from './powers';
-import type { Attrs, MatchState, SimPlayer } from './types';
+import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 
 export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut };
 
@@ -45,7 +45,7 @@ export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
   for (let i = 0; i < 22; i++) {
     if (!isAvailable(state, i)) continue;
     const p = state.players[i];
-    p.pos = anchorFor(p.team, i % 11, center);
+    p.pos = kickoffPos(p.team, i % 11);
   }
   let striker = toTeam === 0 ? 9 : 20;
   if (!isAvailable(state, striker)) {
@@ -56,11 +56,84 @@ export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
   }
   state.players[striker].pos = { ...center };
   state.ball = { kind: 'held', by: striker };
+  // Restart repositioning is a teleport — snap the phase to the kicking team
+  // (no blend) and drop the presser lease.
+  state.movement = { phase: toTeam, blendFrom: toTeam, blendStartTick: state.tick, presserIdx: -1, presserSinceTick: state.tick };
+}
+
+/** Presser hysteresis: once selected, a presser holds the role for at least this many ticks unless unavailable (movement spec — kills per-tick flip-flop between near-equidistant defenders). */
+export const PRESSER_LEASE_TICKS = 10;
+
+/**
+ * Pure: the movement bookkeeping a movement tick would run under the current
+ * state — phase turnover (blend restart) + presser lease renewal. movementTick
+ * commits the result to state.movement; movementTargets only reads it. A
+ * turnover mid-blend re-bases the blend on the interrupted phase pair (the
+ * small target discontinuity is smoothed by the movement speed cap).
+ */
+function resolveMovement(state: MatchState): MovementState {
+  const mv = state.movement;
+  let { phase, blendFrom, blendStartTick, presserIdx, presserSinceTick } = mv;
+  const b = state.ball;
+  if (b.kind === 'held') {
+    const holderTeam = state.players[b.by].team;
+    if (holderTeam !== phase) {
+      blendFrom = phase;
+      phase = holderTeam;
+      blendStartTick = state.tick;
+    }
+    const leaseValid = presserIdx !== -1 && isAvailable(state, presserIdx)
+      && state.players[presserIdx].team !== holderTeam
+      && state.tick < presserSinceTick + PRESSER_LEASE_TICKS;
+    if (!leaseValid) {
+      presserIdx = nearestOpponent(state, b.by);
+      presserSinceTick = state.tick;
+    }
+  }
+  // Loose/pass/shot states keep the previous phase and let the lease age out.
+  return { phase, blendFrom, blendStartTick, presserIdx, presserSinceTick };
+}
+
+/**
+ * Turnover-blend stagger per engine slot (1-4 DEF, 5-8 MID, 9-10 FWD):
+ * defenders re-shape first, forwards drift last, and no two neighbours start
+ * together — the blend exists so all ten don't reverse simultaneously, and a
+ * shared start would still pulse every line's velocity in lockstep.
+ */
+const BLEND_DELAY: ReadonlyArray<number> = [0, 0, 2, 3, 1, 4, 6, 8, 5, 6, 9]; // index = engine slot; [0] unused (GK)
+function blendDelay(slot: number): number {
+  return BLEND_DELAY[slot];
+}
+
+/** Fallback (off-ball) target: GK keeps its anchor rule; outfielders sample the phase tables with the turnover blend. */
+function fallbackTarget(state: MatchState, idx: number, mv: MovementState, ball: Vec): Vec {
+  const p = state.players[idx];
+  const slot = idx % 11;
+  if (slot === 0) return gkTarget(p.team, ball);
+  const t = clamp((state.tick - mv.blendStartTick - blendDelay(slot)) / BLEND_TICKS, 0, 1);
+  return blendedTableTarget(p.team, slot, mv.blendFrom === p.team, mv.phase === p.team, t, ball);
+}
+
+/** The movement priority ladder (unchanged order: carrier → charge lock → presser → receiver → loose chaser → table target). */
+function targetFor(state: MatchState, i: number, mv: MovementState, presserIdx: number, ball: Vec): Vec {
+  const p = state.players[i];
+  const isCarrier = state.ball.kind === 'held' && state.ball.by === i;
+  const chargeTarget = p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined
+    ? state.players[p.powerState.targetIdx].pos : null;
+  const isPassReceiver = state.ball.kind === 'pass' && state.ball.to === i;
+  const chaseLoose = state.ball.kind === 'loose' && dist2(p.pos, ball) < 1500 * 1500;
+  return isCarrier
+    ? { x: ball.x, y: goalYFor(p.team) === 0 ? Math.max(0, p.pos.y - 800) : Math.min(PITCH_H, p.pos.y + 800) }
+    : chargeTarget ? chargeTarget
+    : i === presserIdx || isPassReceiver || chaseLoose ? ball
+    : fallbackTarget(state, i, mv, ball);
 }
 
 export function movementTick(state: MatchState): void {
   const ball = ballPos(state);
-  const presserIdx = state.ball.kind === 'held' ? nearestOpponent(state, state.ball.by) : -1;
+  const mv = resolveMovement(state);
+  state.movement = mv;
+  const presserIdx = state.ball.kind === 'held' ? mv.presserIdx : -1;
   for (let i = 0; i < 22; i++) {
     const p = state.players[i];
     if (!isAvailable(state, i)) continue;
@@ -71,20 +144,28 @@ export function movementTick(state: MatchState): void {
       p.outUntilTick = 0;
       p.outReason = undefined;
     }
-    const isCarrier = state.ball.kind === 'held' && state.ball.by === i;
-    const chargeTarget = p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined
-      ? state.players[p.powerState.targetIdx].pos : null;
-    const isPassReceiver = state.ball.kind === 'pass' && state.ball.to === i;
-    const chaseLoose = state.ball.kind === 'loose' && dist2(p.pos, ball) < 1500 * 1500;
-    const target: Vec = isCarrier
-      ? { x: ball.x, y: goalYFor(p.team) === 0 ? Math.max(0, p.pos.y - 800) : Math.min(PITCH_H, p.pos.y + 800) }
-      : chargeTarget ? chargeTarget
-      : i === presserIdx || isPassReceiver || chaseLoose ? ball
-      : anchorFor(p.team, i % 11, ball);
+    const target = targetFor(state, i, mv, presserIdx, ball);
     const before = p.pos;
     p.pos = moveToward(p.pos, target, speedFor(state, i));
     drainStamina(p, dist2(before, p.pos) > 6400);
   }
+}
+
+/**
+ * Dev/debug query (renderer overlay): the target each player would steer to if
+ * a movement tick ran on the current state. Pure — no state mutation, no rng.
+ * Out players report their own position (they don't move).
+ */
+export function movementTargets(state: MatchState): Vec[] {
+  const ball = ballPos(state);
+  const mv = resolveMovement(state);
+  const presserIdx = state.ball.kind === 'held' ? mv.presserIdx : -1;
+  const targets: Vec[] = [];
+  for (let i = 0; i < 22; i++) {
+    const t = isAvailable(state, i) ? targetFor(state, i, mv, presserIdx, ball) : state.players[i].pos;
+    targets.push({ x: t.x, y: t.y }); // copies — never alias live sim positions
+  }
+  return targets;
 }
 
 export const PASS_SPEED = 250;

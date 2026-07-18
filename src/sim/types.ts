@@ -70,6 +70,19 @@ export interface MatchOpts {
   blindAutoHome?: boolean;   // TEST-ONLY: home heroes auto-fire ignoring context (timing-value baseline)
 }
 
+/**
+ * Positional-table movement bookkeeping (m0.5 rework): possession phase,
+ * turnover blend, and the presser lease. Pure derived-from-play state —
+ * consumes no rng, so it adds nothing to the replay envelope.
+ */
+export interface MovementState {
+  phase: 0 | 1;           // team of the current/last holder — picks each side's in/out-of-possession table
+  blendFrom: 0 | 1;       // phase being blended away from after a turnover (== phase once settled)
+  blendStartTick: number; // tick the blend began; factor = clamp((tick - start) / BLEND_TICKS, 0, 1)
+  presserIdx: number;     // leased presser (holds the role >= PRESSER_LEASE_TICKS), -1 = none
+  presserSinceTick: number;
+}
+
 export interface MatchState {
   tick: number;
   half: 1 | 2;
@@ -77,6 +90,7 @@ export interface MatchState {
   score: [number, number];
   players: SimPlayer[];      // 22; 0-10 team 0 (attacks toward y=0), 11-21 team 1
   ball: BallState;
+  movement: MovementState;
   resolve: [number, number];
   rng: Rng;
   events: MatchEvent[];

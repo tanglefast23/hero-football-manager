@@ -44,6 +44,9 @@ export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: Ma
     tick: 0, half: 1, phase: 'play', score: [0, 0],
     players: makePlayers(teams[0], teams[1], optsCopy),
     ball: { kind: 'held', by: 9 },
+    // Inert placeholder (blendFrom === phase → no blend); restartKickoff below
+    // resets it properly for the opening kickoff.
+    movement: { phase: 0, blendFrom: 0, blendStartTick: 0, presserIdx: -1, presserSinceTick: 0 },
     resolve: [100, 100],
     rng: mulberry32(seed),
     events: [], pendingInputs: [],
