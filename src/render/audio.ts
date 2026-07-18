@@ -61,6 +61,11 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
 
 const THEME_SOURCE: AudioSource = require('../../assets/audio/music/match-theme.m4a');
 
+// Music sits at half volume under the SFX (which play at the 1.0 ceiling) —
+// the mix balance, not a fix for the earlier silence (that was the seek/play
+// ordering in playForEvent). Tune here if the bed still competes.
+const MUSIC_VOLUME = 0.5;
+
 // Per-power "fire" sound — plays on every POWER_FIRED regardless of strength
 // (see filesForEvent: a manual tap additionally layers 'tap-fire' on top).
 const POWER_SFX: Record<PowerId, SfxKey> = {
@@ -170,6 +175,9 @@ export function initAudio(): void {
     try {
       themePlayer = mod.createAudioPlayer(THEME_SOURCE);
       themePlayer.loop = true;
+      // Duck the music bed so the SFX (which play at the 1.0 volume ceiling)
+      // sit clearly on top instead of being buried under a full-volume loop.
+      themePlayer.volume = MUSIC_VOLUME;
     } catch (err) {
       themePlayer = null;
       warnOnce('createAudioPlayer failed (match-theme)', err);
@@ -217,8 +225,13 @@ export function playForEvent(e: MatchEvent): void {
     for (const key of filesForEvent(e)) {
       const player = sfxPlayers.get(key);
       if (!player) continue;
-      player.seekTo(0).catch((err: unknown) => warnOnce('seek failed', err));
-      player.play();
+      // Chain play() AFTER the async seek resolves — NOT two separate
+      // statements. seekTo(0) is a native async call and play() is sync, so
+      // `seekTo(0); play()` runs play-then-seek on device: replaying a
+      // finished sub-second clip no-ops the play() (already at the end), then
+      // the late seek rewinds it while stopped — silent restarts (was the
+      // "no SFX on device" bug). Rewind first, then play from 0.
+      player.seekTo(0).then(() => player.play()).catch((err: unknown) => warnOnce('seek/play failed', err));
     }
   } catch (err) {
     warnOnce('playback failed', err);

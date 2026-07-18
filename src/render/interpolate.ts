@@ -16,6 +16,7 @@ export interface PitchFrame {
   statuses: PlayerStatus[];
   zoneFraction: number[]; // remainingTicks / ZONE_WINDOW_TICKS while in zone, else 0
   moved: boolean[]; // true if a player's position changed vs the passed prevPositions
+  ballShooting: boolean; // the ball is a live shot (drives the shot trail); a pass/loose/held ball is false
 }
 
 export function lerpVec(a: Vec, b: Vec, t: number): Vec {
@@ -47,6 +48,7 @@ export function snapshotFrame(state: MatchState, prevPositions?: readonly Vec[])
     }),
     zoneFraction: state.players.map((p) => (p.powerState.kind === 'zone' ? p.powerState.remainingTicks / ZONE_WINDOW_TICKS : 0)),
     moved: state.players.map((p, i) => prevPositions !== undefined && (p.pos.x !== prevPositions[i].x || p.pos.y !== prevPositions[i].y)),
+    ballShooting: state.ball.kind === 'shot',
   };
 }
 
@@ -63,5 +65,6 @@ export function lerpFrame(prev: PitchFrame, next: PitchFrame, t: number): PitchF
     statuses: next.statuses,
     zoneFraction: next.zoneFraction,
     moved: next.moved,
+    ballShooting: next.ballShooting,
   };
 }
