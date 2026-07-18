@@ -18,6 +18,7 @@ import {
 import { flameTongues } from './flames';
 import { Pitch } from './Pitch';
 import { DebugOverlay } from './DebugOverlay';
+import { queueAutoPowerTap } from './autoPower';
 import {
   initAudio,
   playForEvent,
@@ -185,13 +186,20 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     visualTick: 0,
   });
   const [speed, setSpeed] = useState(1);
+  const [autoPower, setAutoPower] = useState(false);
   // Dev-only movement-table tuning instrument (movement spec's debug-overlay
   // deliverable; the toggle ships __DEV__-gated, never in release UI).
   const [debugGrid, setDebugGrid] = useState(false);
   const [paused, setPaused] = useState(false);
   const speedRef = useRef(1);
+  const autoPowerRef = useRef(false);
   const pausedRef = useRef(false);
   speedRef.current = speed;
+
+  const setAutoPowerBoth = (enabled: boolean) => {
+    autoPowerRef.current = enabled;
+    setAutoPower(enabled);
+  };
 
   // Ledger item 2 — single pause setter: sets React state AND pausedRef
   // together. There is deliberately NO render-time `pausedRef.current = paused`
@@ -274,6 +282,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       while (acc >= TICK_MS && s.phase !== 'fulltime') {
         const before = nextRef.current!;
         prevRef.current = before;
+        if (autoPowerRef.current) queueAutoPowerTap(s);
         tick(s);
         nextRef.current = snapshotFrame(s, before);
 
@@ -861,7 +870,19 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         <Text style={[styles.banner, hud.bannerTone === 'red' ? styles.bannerThreat : null]}>{hud.banner}</Text>
       ) : null}
       {homeHeroes.length > 0 ? (
-        <View style={styles.chips}>{homeHeroes.map((i) => homeChip(i))}</View>
+        <View style={styles.chips}>
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityLabel="Auto activate super powers"
+            accessibilityState={{ checked: autoPower }}
+            onPress={() => setAutoPowerBoth(!autoPowerRef.current)}
+            style={[styles.autoButton, autoPower ? styles.autoButtonOn : null]}
+          >
+            <Text style={[styles.autoLabel, autoPower ? styles.autoLabelOn : null]}>AUTO</Text>
+            <Text style={[styles.autoState, autoPower ? styles.autoStateOn : null]}>{autoPower ? 'ON' : 'OFF'}</Text>
+          </Pressable>
+          {homeHeroes.map((i) => homeChip(i))}
+        </View>
       ) : null}
     </View>
   );
@@ -875,7 +896,23 @@ const styles = StyleSheet.create({
   speedText: { color: 'white', fontSize: 18, padding: 4 },
   banner: { color: '#f5c518', fontSize: 18, fontWeight: 'bold', textAlign: 'center', padding: 8 },
   bannerThreat: { color: '#e8433f' },
-  chips: { flexDirection: 'row', justifyContent: 'space-around', padding: 16 },
+  chips: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, padding: 16 },
+  autoButton: {
+    minWidth: 56,
+    minHeight: 54,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1e2630',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#59636e',
+    paddingHorizontal: 8,
+  },
+  autoButtonOn: { backgroundColor: '#4a3b10', borderColor: '#f5c518' },
+  autoLabel: { color: '#aab2bb', fontSize: 11, fontWeight: 'bold' },
+  autoLabelOn: { color: '#f5c518' },
+  autoState: { color: '#ffffff', fontSize: 13, fontWeight: 'bold', marginTop: 2 },
+  autoStateOn: { color: '#f5c518' },
   chip: { backgroundColor: '#1e2630', borderRadius: 12, padding: 12, minWidth: 96, alignItems: 'center' },
   // Rival strip — sits under the scorebar, above the Canvas. Kept slim
   // (reduced padding, smaller text than the home chip) since the Canvas
