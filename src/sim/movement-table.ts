@@ -1,5 +1,5 @@
 import tables from './formation-tables.json';
-import { clamp, PITCH_W, PITCH_H, type Vec } from './geometry';
+import { clamp, dist, GOAL_CENTER_X, PITCH_W, PITCH_H, type Vec } from './geometry';
 
 // Positional-table movement (m0.5 rework, SWOS-style 35-area tactics table —
 // spec: docs/superpowers/specs/2026-07-18-positional-movement.md). The table
@@ -16,20 +16,40 @@ export const CELL_H: number = PITCH_H / GRID_ROWS;
 /** Turnover blend length: targets lerp old-phase → new-phase over this many ticks. */
 export const BLEND_TICKS = 10;
 
-// GK is deliberately NOT in the tables this milestone (angle-narrowing is a
-// separate follow-up commit): this preserves the m0.4 anchor behavior exactly —
-// fixed anchor [0.50, 0.94] with the retired uniform ball pull (0.15x / 0.10y).
-const GK_ANCHOR_X = 0.50;
-const GK_ANCHOR_Y = 0.94;
-const GK_PULL_X = 0.15;
-const GK_PULL_Y = 0.10;
+// GK angle-narrowing (m0.6, T7 — the follow-up the m0.5 movement spec deferred):
+// the keeper stands ON the segment from his own goal center to the ball, at a
+// depth off the goal line that GROWS as the ball approaches, narrowing the
+// shooting angle. Replaces the m0.4 anchor-pull relic (anchor [0.5, 0.94],
+// 0.15x/0.10y uniform ball pull). Pure arithmetic — zero rng draws.
+//
+// Penalty-box proportions restated from the real senior pitch (105m x 68m),
+// mirroring src/render/Pitch.tsx's PENALTY_BOX_W/D ratios — sim must never
+// import from render, so the named constants are hardcoded here.
+const GK_BOX_HALF_W = Math.round(PITCH_W * (40.3 / 68) / 2); // 2015 cm
+const GK_BOX_DEPTH = Math.round(PITCH_H * (16.5 / 105));     // 1650 cm
+// Depth ramp: MAX at the goal, shedding SLOPE cm of depth per cm of ball
+// distance, floored at MIN (reached beyond (MAX-MIN)/SLOPE = 4000 cm).
+// Tuned against the balance rails (200 seeds, ROVERS vs UNITED, commit-time
+// measurement): m0.5 baseline goals/match 2.670, shots/match 8.860, saveRate
+// 0.6985, blowout strongGoals/match 7.415 — at these constants: goals/match
+// 2.720, shots/match 9.075, saveRate 0.6913, blowout 7.480. All rails green.
+const GK_DEPTH_MAX = 1000;  // cm off the line with the ball at the goal (upper clamp)
+const GK_DEPTH_MIN = 200;   // cm off the line with play far away (lower clamp)
+const GK_DEPTH_SLOPE = 0.2; // cm of depth shed per cm of ball distance
 
 export function gkTarget(team: 0 | 1, ball: Vec): Vec {
-  const baseX = GK_ANCHOR_X * PITCH_W;
-  const baseY = (team === 0 ? GK_ANCHOR_Y : 1 - GK_ANCHOR_Y) * PITCH_H;
-  const x = clamp(Math.round(baseX + (ball.x - baseX) * GK_PULL_X), 0, PITCH_W);
-  const y = clamp(Math.round(baseY + (ball.y - baseY) * GK_PULL_Y), 0, PITCH_H);
-  return { x, y };
+  const b = ballForTeam(team, ball);
+  const goal: Vec = { x: GOAL_CENTER_X, y: PITCH_H }; // own goal, team-0 frame
+  const d = dist(goal, b);
+  // Off-line depth grows as the ball approaches; never placed beyond the ball.
+  const depth = Math.min(clamp(GK_DEPTH_MAX - GK_DEPTH_SLOPE * d, GK_DEPTH_MIN, GK_DEPTH_MAX), d);
+  const t = d === 0 ? 0 : depth / d;
+  // Box clamps are safety rails (a shot-flight ball can sit behind the goal
+  // line; future retunes may raise GK_DEPTH_MAX past the box bounds): never
+  // wider than the penalty box, never deeper than it, never behind the line.
+  const x = clamp(Math.round(goal.x + (b.x - goal.x) * t), GOAL_CENTER_X - GK_BOX_HALF_W, GOAL_CENTER_X + GK_BOX_HALF_W);
+  const y = clamp(Math.round(goal.y + (b.y - goal.y) * t), PITCH_H - GK_BOX_DEPTH, PITCH_H);
+  return team === 0 ? { x, y } : { x: PITCH_W - x, y: PITCH_H - y };
 }
 
 /**
@@ -104,9 +124,20 @@ export function tableTarget(team: 0 | 1, engineSlot: number, inPossession: boole
   return blendedTableTarget(team, engineSlot, inPossession, inPossession, 1, ball);
 }
 
-/** Dedicated kickoff spot per engine slot (0 = GK via the preserved anchor rule). */
+// Frozen GK kickoff spot (team-0 frame, integer cm): the retired m0.4 anchor
+// rule sampled at the center spot — round(9870 + (5250 - 9870) * 0.10) = 9408.
+// Kept verbatim through the m0.6 angle-narrowing change (it sits inside the
+// new box clamps) so restarts stay placed exactly as before.
+const GK_KICKOFF_X = 3400;
+const GK_KICKOFF_Y = 9408;
+
+/** Dedicated kickoff spot per engine slot (0 = GK via the frozen kickoff spot). */
 export function kickoffPos(team: 0 | 1, engineSlot: number): Vec {
-  if (engineSlot === 0) return gkTarget(team, { x: PITCH_W / 2, y: PITCH_H / 2 });
+  if (engineSlot === 0) {
+    return team === 0
+      ? { x: GK_KICKOFF_X, y: GK_KICKOFF_Y }
+      : { x: PITCH_W - GK_KICKOFF_X, y: PITCH_H - GK_KICKOFF_Y };
+  }
   const cell = tables.kickoff[engineSlot - 1];
   const x = Math.round(cell[0] * PITCH_W);
   const y = Math.round(cell[1] * PITCH_H);

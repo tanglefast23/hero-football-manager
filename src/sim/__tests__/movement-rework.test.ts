@@ -1,5 +1,5 @@
 import tables from '../formation-tables.json';
-import { gkTarget, kickoffPos, tableTarget, BLEND_TICKS, GRID_COLS, GRID_ROWS } from '../movement-table';
+import { kickoffPos, tableTarget, BLEND_TICKS, GRID_COLS, GRID_ROWS } from '../movement-table';
 import { movementTick, movementTargets, PRESSER_LEASE_TICKS } from '../engine';
 import { createMatch, tick } from '../match';
 import { ROVERS, UNITED } from '../teams';
@@ -316,15 +316,15 @@ describe('presser lease', () => {
 });
 
 describe('kickoff layout', () => {
-  it('every player restarts inside their own half; the GK keeps the m0.4 anchor spot', () => {
+  it('every player restarts inside their own half; the GK keeps the frozen kickoff spot', () => {
     const m = createMatch(7, ROVERS, UNITED);
     for (let i = 0; i < 22; i++) {
       if (m.ball.kind === 'held' && m.ball.by === i) continue; // kicking striker stands on the spot
       if (m.players[i].team === 0) expect(m.players[i].pos.y).toBeGreaterThanOrEqual(PITCH_H / 2);
       else expect(m.players[i].pos.y).toBeLessThanOrEqual(PITCH_H / 2);
     }
-    // preserved m0.4 GK behavior: anchor [0.5, 0.94] pulled 0.15x/0.10y toward the center spot
-    expect(m.players[0].pos).toEqual(gkTarget(0, { x: PITCH_W / 2, y: PITCH_H / 2 }));
+    // Frozen GK kickoff spot: the retired m0.4 anchor rule sampled at the center
+    // spot, kept verbatim through the m0.6 angle-narrowing change (T7).
     expect(m.players[0].pos).toEqual({ x: 3400, y: 9408 });
     expect(kickoffPos(1, 0)).toEqual({ x: PITCH_W - 3400, y: PITCH_H - 9408 });
   });

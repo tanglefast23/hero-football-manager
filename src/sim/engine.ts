@@ -107,7 +107,7 @@ function blendDelay(slot: number): number {
   return BLEND_DELAY[slot];
 }
 
-/** Fallback (off-ball) target: GK keeps its anchor rule; outfielders sample the phase tables with the turnover blend. */
+/** Fallback (off-ball) target: GK narrows the angle on the goal-center→ball ray; outfielders sample the phase tables with the turnover blend. */
 function fallbackTarget(state: MatchState, idx: number, mv: MovementState, ball: Vec): Vec {
   const p = state.players[idx];
   const slot = idx % 11;
