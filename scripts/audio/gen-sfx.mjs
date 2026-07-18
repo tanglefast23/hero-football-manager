@@ -184,10 +184,17 @@ function genKickPass(seed) {
 
 function genKickShot(seed) {
   const rng = mulberry32(seed);
-  const n = secondsToSamples(0.17);
-  const body = thump(n, { baseFreq: 140, pitchDrop: 0.5, noiseAmt: 0.4, cutoff: 1200, decay: 0.09, rng });
-  const punch = applyEnv(oscSine(n, expGlide(90, 45, 0.14)), decayEnv(n, { attack: 0.001, decay: 0.14 }));
-  return mix([{ buf: body, gain: 0.8 }, { buf: punch, gain: 0.9 }]);
+  const n = secondsToSamples(0.2);
+  // Leather "thwack" — a short bandpassed-noise snap, the foot striking the
+  // ball. This attack transient is what reads as a hard STRIKE vs a soft pass.
+  const thwackN = secondsToSamples(0.022);
+  const thwack = resize(applyEnv(bandpass(noiseWhite(thwackN, rng), 1400, 3800), decayEnv(thwackN, { attack: 0.0004, decay: 0.016 })), n);
+  // Deep bass punch — sine glide from higher, longer decay for weight/thunk.
+  const punch = applyEnv(oscSine(n, expGlide(160, 46, 0.11)), decayEnv(n, { attack: 0.001, decay: 0.17 }));
+  // Mid thump body.
+  const body = thump(n, { baseFreq: 130, pitchDrop: 0.55, noiseAmt: 0.35, cutoff: 1100, decay: 0.11, rng });
+  // softClip glues the layers and lifts RMS so the strike cuts over the music.
+  return softClip(mix([{ buf: thwack, gain: 0.75 }, { buf: body, gain: 0.7 }, { buf: punch, gain: 1.0 }]), 1.35);
 }
 
 function genBallBounce(seed) {

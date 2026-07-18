@@ -45,6 +45,12 @@ const SNAP_DIST2 = (2 * MAX_SPEED_PER_TICK) ** 2;
 // duration — ledger item 5 ("flash the chip dim for ~30 ticks").
 const FLASH_TICKS = 30;
 
+// Shot presentation (render-only) — a shot reads differently from a pass via a
+// fading motion trail on the ball plus a dust puff kicked up at the strike.
+const SHOT_TRAIL_LEN = 6; // recent ball positions kept while a shot is in flight
+const PUFF_TICKS = 16; // how long the kick-origin dust puff lingers, in sim ticks
+const PUFF_RINGS = 3; // concentric expanding dust rings
+
 // End-of-match hold — real-time ms the screen stays mounted after the sim
 // reaches fulltime, so the FULL_TIME whistle (and any last-tick goal audio)
 // rings out before onDone unmounts the screen and tears audio down.
@@ -135,6 +141,10 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   });
   const expiredAtRef = useRef<Record<number, number>>({});
   const scoreFlashUntilRef = useRef<number>(0);
+  // Shot presentation — recent ball positions while a shot flies (motion
+  // trail), and the last kick origin + tick (dust puff). Render-only.
+  const shotTrailRef = useRef<Array<{ x: number; y: number }>>([]);
+  const puffRef = useRef<{ x: number; y: number; tick: number } | null>(null);
   // End-of-match hold deadline (RAF/performance.now() timebase), set once
   // when the loop first sees phase === 'fulltime' — see FULLTIME_HOLD_MS.
   const fulltimeDeadlineRef = useRef<number | null>(null);
@@ -211,6 +221,11 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   useEffect(() => {
     initAudio();
     startTheme();
+    // The opening KICKOFF is emitted by createMatch before the RAF loop below
+    // starts slicing newEvents, so its whistle would be skipped — play any
+    // events already present at mount here. The loop starts from the current
+    // length, so nothing double-fires.
+    for (const e of match.events) playForEvent(e);
     return () => {
       stopTheme();
       teardownAudio();
@@ -271,12 +286,23 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         const speedster = s.players.find((p, i) => nextRef.current!.statuses[i] === 'active' && p.def.power === 'SUPER_SPEED');
         trailRef.current = speedster ? [{ ...speedster.pos }, ...trailRef.current].slice(0, 3) : [];
 
+        // Shot-ball motion trail — recent ball positions while it's a live
+        // shot; cleared the instant it stops being one (goal/save/miss).
+        shotTrailRef.current = nextRef.current!.ballShooting
+          ? [{ ...nextRef.current!.ball }, ...shotTrailRef.current].slice(0, SHOT_TRAIL_LEN)
+          : [];
+
         acc -= TICK_MS;
       }
 
       const newEvents = s.events.slice(eventsBefore);
       for (const e of newEvents) {
         playForEvent(e);
+        if (e.kind === 'SHOT' && e.by >= 0 && e.by < 22) {
+          // Kick up a dust puff at the striker's feet — the visual "he hit it".
+          const o = s.players[e.by].pos;
+          puffRef.current = { x: o.x, y: o.y, tick: e.t };
+        }
         if (e.kind === 'GOAL' || e.kind === 'MISS' || e.kind === 'HALF_TIME' || e.kind === 'KICKOFF') snap = true;
         if (e.kind === 'GOAL') {
           const scorerName = e.by >= 0 && e.by < 22 ? s.players[e.by].def.name : 'Unknown';
@@ -644,6 +670,42 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         {trailRef.current.map((t, i) => (
           <Circle key={i} cx={t.x * scale} cy={t.y * scale} r={4 - i} color="#ffffff" opacity={0.5 - i * 0.15} />
         ))}
+        {/* Shot motion trail — a fading streak behind the ball while it flies. */}
+        {shotTrailRef.current.map((t, i) => (
+          <Circle
+            key={`shot-${i}`}
+            cx={t.x * scale}
+            cy={t.y * scale}
+            r={Math.max(1.5, 6.5 - i)}
+            color="#f4f7fa"
+            opacity={0.6 * (1 - i / SHOT_TRAIL_LEN)}
+          />
+        ))}
+        {/* Dust puff at the strike origin — a soft filled smoke body plus
+            expanding rings; both grow and fade over PUFF_TICKS. */}
+        {(() => {
+          const puff = puffRef.current;
+          if (!puff) return null;
+          const prog = (match.tick - puff.tick) / PUFF_TICKS;
+          if (prog < 0 || prog >= 1) return null;
+          const cx = puff.x * scale;
+          const cy = puff.y * scale;
+          return [
+            <Circle key="puff-body" cx={cx} cy={cy} r={9 + prog * 20} color="#efeade" opacity={Math.max(0, (1 - prog) * 0.6)} />,
+            ...Array.from({ length: PUFF_RINGS }, (_, k) => (
+              <Circle
+                key={`puff-${k}`}
+                cx={cx}
+                cy={cy}
+                r={11 + prog * 28 + k * 6}
+                color="#d8d2c4"
+                style="stroke"
+                strokeWidth={2.5}
+                opacity={Math.max(0, (1 - prog) * (0.62 - k * 0.16))}
+              />
+            )),
+          ];
+        })()}
         {frame.statuses.map((st, i) =>
           st === 'zone' ? (
             <Circle
