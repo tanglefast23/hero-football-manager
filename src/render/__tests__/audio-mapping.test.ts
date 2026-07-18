@@ -15,7 +15,7 @@ describe('filesForEvent: event → SFX wiring', () => {
 
   it('keeps the opening whistle and core action sounds wired', () => {
     expect(filesForEvent({ t: 0, kind: 'KICKOFF', half: 1 })).toEqual(['kickoff-whistle']);
-    expect(filesForEvent({ t: 0, kind: 'GOAL', by: 9, team: 0 })).toEqual(['goal-fanfare', 'crowd-cheer']);
+    expect(filesForEvent({ t: 0, kind: 'GOAL', by: 9, team: 0 })).toEqual(['goal-fanfare', 'goal-celebration', 'crowd-cheer']);
     expect(filesForEvent({ t: 0, kind: 'TACKLE', by: 3, on: 14, won: true })).toEqual(['tackle-thud', 'grunt']);
   });
 

@@ -1,13 +1,15 @@
 import './global.css';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { loadLaunchContent } from './src/content';
 import { createCareerRepository, createReplayRepository } from './src/persistence';
 import { MatchScreen } from './src/render/MatchScreen';
+import { setMasterVolume } from './src/render/audio';
+import { devVolumePercent, nextDevVolume, type DevVolume } from './src/render/dev-volume';
 import { assertRuntimeGoldenReplay, runtimeGoldenFingerprint } from './src/sim/runtime-golden';
 import type { MatchState } from './src/sim/types';
 import {
@@ -41,6 +43,11 @@ export default function App() {
   const store = useM1Store();
   const content = useMemo(loadLaunchContent, []);
   const [bootError, setBootError] = useState<string | null>(null);
+  const [devVolume, setDevVolume] = useState<DevVolume>(1);
+
+  useEffect(() => {
+    setMasterVolume(devVolume);
+  }, [devVolume]);
 
   useEffect(() => {
     let active = true;
@@ -245,6 +252,21 @@ export default function App() {
       <View className="flex-1 bg-ink">
         {screen}
         {store.error ? <ErrorNotice message={store.error} onDismiss={store.clearError} /> : null}
+        {__DEV__ ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Development volume ${devVolumePercent(devVolume)} percent`}
+            accessibilityHint="Cycles through mute, 25, 50, 75, and 100 percent"
+            hitSlop={8}
+            testID="dev-volume-button"
+            style={styles.volumeBtn}
+            onPress={() => setDevVolume(current => nextDevVolume(current))}
+          >
+            <Text style={styles.volumeText}>
+              {devVolume === 0 ? '🔇' : devVolume <= 0.5 ? '🔉' : '🔊'} {devVolumePercent(devVolume)}%
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </SafeAreaProvider>
   );
@@ -287,3 +309,23 @@ function ErrorNotice({ message, onDismiss }: { message: string; onDismiss: () =>
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  volumeBtn: {
+    position: 'absolute',
+    top: 52,
+    right: 12,
+    minWidth: 74,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1e2630',
+    borderColor: '#536273',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    zIndex: 1000,
+    elevation: 12,
+  },
+  volumeText: { color: 'white', fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
+});

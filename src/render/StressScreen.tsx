@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   backText: { color: 'white', fontSize: 16 },
   hud: {
     position: 'absolute',
-    top: 56,
+    top: 108,
     right: 16,
     backgroundColor: '#1e2630',
     paddingVertical: 8,

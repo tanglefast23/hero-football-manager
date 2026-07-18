@@ -25,7 +25,7 @@ Events interrupt as full-screen cards on Advance Week (never mid-match). Match D
 ## Match Day flow
 
 1. **Pre-match** (one screen): formation pitch with drag-swap lineup, tactic (Normal/Short/Long), hero license slot picker, per-hero fire mode toggle. Big buttons: **Watch** / **Quick Result**.
-2. **Live match** (portrait vertical pitch): scoreboard bug top; speed ×1/×2 + skip top-right; bottom row = hero chips (portrait + gold gauge ring, ≥44pt) that pulse and chime when full — tap to fire. Power cut-in: full-width comic panel, 2–3s, tap-to-skip after first view. Halftime sheet: subs/tactics.
+2. **Live match** (portrait vertical pitch): scoreboard bug top; speed ×1/×2 + skip top-right; bottom row = an **AUTO ON/OFF** switch on the left (OFF by default) followed by hero chips (portrait + gold gauge ring, ≥44pt) that pulse and chime when full — tap to fire. AUTO immediately fires the first legally available home power through the same recorded tap-input path; the one-power-per-team rule delays any teammate's Zone until it becomes legal. Power cut-in: full-width comic panel, 2–3s, tap-to-skip after first view. Halftime sheet: subs/tactics.
 3. **Post-match**: result banner → itemized income statement (line-by-line count-up with mono numerals) → TP/XP/fan gains → highlights ticker (tap any goal to replay).
 
 ## Feel (juice budget — restrained but present)
