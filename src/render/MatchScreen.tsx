@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Atlas, Canvas, Circle, Fill, Path, Skia, type SkColor, type SkImage, type SkRSXform, type SkRect } from '@shopify/react-native-skia';
 import { createMatch, queueInput, tick } from '../sim/match';
+import { teamPowerBusy } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState } from '../sim/types';
-import { buildSpriteAtlas } from './sprites/buildAtlas';
+import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
 import { lerpFrame, snapshotFrame, type PitchFrame } from './interpolate';
 import {
   actionPose,
@@ -184,22 +185,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       return { ...buildSpriteAtlas(Skia), fallbackMode: false };
     } catch (err) {
       console.warn('MatchScreen: buildSpriteAtlas failed — rendering placeholder rects', err);
-      const surface = Skia.Surface.MakeOffscreen(FALLBACK_SPRITE, FALLBACK_SPRITE);
-      if (!surface) throw err; // Skia itself is broken — nothing could render anyway
-      const canvas = surface.getCanvas();
-      const paint = Skia.Paint();
-      paint.setColor(Skia.Color('#ffffff'));
-      canvas.drawRect(Skia.XYWHRect(0, 0, FALLBACK_SPRITE, FALLBACK_SPRITE), paint);
-      surface.flush();
-      return {
-        // MakeOffscreen is GPU-backed; makeNonTextureImage() copies the
-        // snapshot into a portable, CPU-backed image so it actually renders
-        // inside the match <Canvas>'s own separate GPU context (see the
-        // matching comment in buildAtlas.ts's SkiaImageLike).
-        image: surface.makeImageSnapshot().makeNonTextureImage() as unknown,
-        rectFor: (_key: string) => ({ x: 0, y: 0, w: FALLBACK_SPRITE, h: FALLBACK_SPRITE }),
-        fallbackMode: true,
-      };
+      return { ...buildFallbackAtlas(Skia, FALLBACK_SPRITE), fallbackMode: true };
     }
   }, []);
 
@@ -211,6 +197,13 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   useEffect(() => {
     initAudio();
     startTheme();
+    // Drain the pre-loop event backlog once: the opening KICKOFF is emitted at
+    // createMatch, before the RAF loop below takes its first `eventsBefore`
+    // snapshot, so the loop never replays it and the kickoff whistle was silent
+    // (audit finding 1). Play it here — the loop only ever plays events added
+    // after its first frame, so nothing double-fires.
+    const initial = stateRef.current?.events;
+    if (initial) for (const e of initial) playForEvent(e);
     return () => {
       stopTheme();
       teardownAudio();
@@ -529,10 +522,11 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
 
   // Shared per-chip state, read by both renderers below.
   //
-  // Availability guard (audit rider) — a hero can still carry a stale
-  // `powerState.kind === 'zone'` after being knocked out mid-window (a
-  // separate task fixes the sim-side clear), so the chips must not trust
-  // that alone. `outUntilTick > match.tick` is the same "is this player
+  // Availability guard — a hero knocked out mid-window KEEPS its Zone by
+  // design (docs/04 canon: the window pauses and resumes on recovery — see
+  // powers.ts knockOut), so a downed hero legitimately carries
+  // `powerState.kind === 'zone'`. The chips must not treat that paused window
+  // as tappable. `outUntilTick > match.tick` is the same "is this player
   // currently out" check interpolate.ts's snapshotFrame uses to pick the
   // canvas 'out'/'ignited' tint, so it renders unavailable here too —
   // dimmed, no zone styling, no TAP! overlay, no queued input.
@@ -547,14 +541,21 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   const chipState = (idx: number) => {
     const p = match.players[idx];
     const unavailable = p.outUntilTick > match.tick;
-    const inZone = !unavailable && p.powerState.kind === 'zone';
+    const inZoneRaw = !unavailable && p.powerState.kind === 'zone';
+    // One power per team: a teammate winding/active freezes this hero's Zone
+    // (paused in the sim). A frozen home window must not invite a tap — powerTick
+    // silently drops a tap while the team is busy (audit finding 7) — so the
+    // home chip treats `frozen` as "waiting, not tappable". The rival strip keeps
+    // using `inZoneRaw` for its threat glow (a paused rival is still a threat).
+    const frozen = inZoneRaw && teamPowerBusy(match, p.team);
+    const inZone = inZoneRaw && !frozen;
     const dimmed = match.tick - (expiredAtRef.current[idx] ?? -Infinity) < FLASH_TICKS;
-    const step = unavailable || inZone ? null : warmthStep(p.gauge);
-    return { p, unavailable, inZone, dimmed, step };
+    const step = unavailable || inZoneRaw ? null : warmthStep(p.gauge);
+    return { p, unavailable, inZone, inZoneRaw, frozen, dimmed, step };
   };
 
   const homeChip = (idx: number) => {
-    const { p, unavailable, inZone, dimmed, step } = chipState(idx);
+    const { p, unavailable, inZone, frozen, dimmed, step } = chipState(idx);
     // UX fix — early-tap feedback: set (only) in onPress below, read here for
     // up to EARLY_TAP_TICKS afterward.
     const earlyTap = !unavailable && match.tick - (pressFeedbackRef.current[idx] ?? -Infinity) < EARLY_TAP_TICKS;
@@ -562,14 +563,14 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     return (
       <Pressable
         key={idx}
-        disabled={unavailable}
+        disabled={unavailable || frozen}
         style={[
           styles.chip,
           warmthStyle,
           inZone ? styles.chipReady : null,
           inZone ? styles.chipZoneTap : null,
           inZone ? { borderColor: chipPulseGold ? '#f5c518' : '#ffffff' } : null,
-          dimmed || unavailable ? styles.chipDim : null,
+          dimmed || unavailable || frozen ? styles.chipDim : null,
           earlyTap ? styles.chipFlash : null,
         ]}
         onPress={() => {
@@ -578,10 +579,11 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
           // POWER_TAP input while powerState.kind === 'zone'; see
           // sim/powers.ts), so gating it here changes no sim behavior. It
           // just stops those taps from feeling ignored. `disabled` above
-          // already blocks this when unavailable; the check is repeated
+          // already blocks this when unavailable/frozen; the check is repeated
           // here so the guard holds even if disabled's native behavior
-          // ever changes.
-          if (unavailable) return;
+          // ever changes. `frozen` = the Zone is paused behind a busy teammate,
+          // so a tap would be silently dropped by powerTick (audit finding 7).
+          if (unavailable || frozen) return;
           if (p.powerState.kind === 'zone') {
             queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: idx });
           } else {
@@ -601,7 +603,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   // he's in the Zone — starving his window is the counterplay, so seeing him
   // heat up matters even though the player can't act on it directly.
   const rivalChip = (idx: number) => {
-    const { p, unavailable, inZone, dimmed, step } = chipState(idx);
+    const { p, unavailable, inZoneRaw, dimmed, step } = chipState(idx);
     const warmthStyle = step === 'warming' ? styles.warmingRival : step === 'hot' ? styles.hotRival : null;
     return (
       <View
@@ -609,7 +611,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         style={[
           styles.rivalChip,
           warmthStyle,
-          inZone ? styles.chipThreat : null,
+          inZoneRaw ? styles.chipThreat : null, // a paused rival is still a threat — unchanged from pre-fix
           dimmed || unavailable ? styles.chipDim : null,
         ]}
       >
@@ -661,8 +663,9 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         {frame.statuses.map((st, i) =>
           // On-pitch zone marker — home-only (see MARKER_Y_OFFSET comment
           // above): flags the tap opportunity to a player watching the pitch
-          // instead of the chip row.
-          st === 'zone' && i < 11 ? (
+          // instead of the chip row. Hidden while team 0's Zones are frozen
+          // behind a busy teammate — the tap would be dropped (audit finding 7).
+          st === 'zone' && i < 11 && !teamPowerBusy(match, 0) ? (
             <Path
               key={`marker-${i}`}
               path={triangleMarkerPath(frame.players[i].x * scale, frame.players[i].y * scale - MARKER_Y_OFFSET)}

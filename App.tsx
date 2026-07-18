@@ -43,9 +43,11 @@ export default function App() {
       <Pressable style={styles.btn} onPress={() => setSeed((x) => x + 1)}>
         <Text style={styles.btnText}>New seed</Text>
       </Pressable>
-      <Pressable style={styles.btn} onPress={() => setScreen('stress')}>
-        <Text style={styles.btnText}>Stress test</Text>
-      </Pressable>
+      {__DEV__ ? (
+        <Pressable style={styles.btn} onPress={() => setScreen('stress')}>
+          <Text style={styles.btnText}>Stress test</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

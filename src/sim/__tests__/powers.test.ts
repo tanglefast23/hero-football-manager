@@ -211,20 +211,38 @@ describe('power effects', () => {
   });
 });
 
-describe('zone/knockout fix (audit R1): a KO ends the Zone with missed-window semantics', () => {
-  it('knockOut on a zoned hero emits POWER_EXPIRED, reverts to idle at heat 50, and a queued tap while out does nothing', () => {
+describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zone pauses and resumes)', () => {
+  it('knockOut on a zoned hero preserves the window (no POWER_EXPIRED, heat untouched) and freezes it while down', () => {
     const m = createMatch(42, ROVERS, UNITED);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
-    knockOut(m, SPEEDSTER, m.tick + 200, 'ko');
-    expect(m.events.filter(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === SPEEDSTER)).toHaveLength(1);
-    expect(m.players[SPEEDSTER].powerState.kind).toBe('idle');
-    expect(m.players[SPEEDSTER].gauge).toBe(50);
+    m.players[SPEEDSTER].gauge = 0; // heat already spent on Zone entry
+    knockOut(m, SPEEDSTER, m.tick + 5, 'ko');
+    // The window is paused, not spent: still 'zone', no expiry event, heat not decayed to 50.
+    expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS });
+    expect(m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
+    expect(m.players[SPEEDSTER].gauge).toBe(0);
 
+    // A queued tap while still down does nothing (can't fire unconscious) and the
+    // frozen window does not tick down.
     queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
     tick(m);
-    expect(m.players[SPEEDSTER].powerState.kind).toBe('idle'); // no windup started
+    expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS });
     expect(m.events.some(e => e.kind === 'POWER_INTERRUPTED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
     expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
+  });
+
+  it('the window resumes on recovery — a tap after standing up still fires the preserved Zone', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+    m.players[SPEEDSTER].gauge = 0;
+    knockOut(m, SPEEDSTER, m.tick + 3, 'ko');
+    // Run out the knockdown; the hero recovers still in the Zone.
+    tickUntil(m, () => m.players[SPEEDSTER].outUntilTick <= m.tick, 10);
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
+    // Tapping the resumed window converts it into a fire, exactly as an un-interrupted Zone would.
+    queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
+    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER), ZONE_WINDOW_TICKS + 40);
+    expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(true);
   });
 
   it('the tap loop itself refuses a downed hero (zone + out rigged directly, bypassing knockOut)', () => {

@@ -15,4 +15,10 @@ module.exports = {
     // explicit rootDir — set rootDir to the project root to satisfy that.
     '^.+\\.tsx?$': ['ts-jest', { isolatedModules: true, tsconfig: { module: 'commonjs', rootDir: '.' } }],
   },
+  // Binary media assets (require('*.wav'/'*.m4a')) can't load as JS modules under
+  // Jest — Metro handles them in the app. Stub them so audio.ts (and its pure
+  // event→sound mapping) is importable in tests.
+  moduleNameMapper: {
+    '\\.(wav|m4a)$': '<rootDir>/src/render/__tests__/__mocks__/assetStub.js',
+  },
 };

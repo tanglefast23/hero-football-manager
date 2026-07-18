@@ -83,3 +83,26 @@ export function buildSpriteAtlas(Skia: SkiaApi): { image: unknown; rectFor: Atla
   surface.flush();
   return { image: surface.makeImageSnapshot().makeNonTextureImage(), rectFor: layout.rectFor };
 }
+
+/**
+ * Placeholder atlas for when buildSpriteAtlas throws (realistically: sprites.json
+ * failing loader validation): a single white `size`×`size` square, so a screen
+ * draws plain rects instead of crashing. Shared by MatchScreen and StressScreen,
+ * which previously duplicated this construction (audit finding 14). Mirrors
+ * buildSpriteAtlas's offscreen → non-texture flow and its plain-rect drawRect.
+ */
+export function buildFallbackAtlas(Skia: SkiaApi, size: number): { image: unknown; rectFor: AtlasLayout['rectFor'] } {
+  const surface = Skia.Surface.MakeOffscreen(size, size);
+  if (!surface) {
+    throw new Error('buildFallbackAtlas: Skia.Surface.MakeOffscreen returned null'); // Skia itself is broken — nothing could render anyway
+  }
+  const canvas = surface.getCanvas();
+  const paint = Skia.Paint();
+  paint.setColor(Skia.Color('#ffffff'));
+  canvas.drawRect({ x: 0, y: 0, width: size, height: size }, paint);
+  surface.flush();
+  return {
+    image: surface.makeImageSnapshot().makeNonTextureImage(),
+    rectFor: () => ({ x: 0, y: 0, w: size, h: size }),
+  };
+}

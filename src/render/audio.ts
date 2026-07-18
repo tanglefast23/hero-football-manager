@@ -37,7 +37,11 @@ type SfxKey =
   | 'extinguisher-spray'
   | 'super-speed-whoosh'
   | 'super-strength-boom'
-  | 'fire-torch-ignite';
+  | 'fire-torch-ignite'
+  | 'save-slap'
+  | 'crowd-ooh'
+  | 'power-interrupt'
+  | 'zone-expire';
 
 const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'kickoff-whistle': require('../../assets/audio/sfx/kickoff-whistle.wav'),
@@ -57,9 +61,18 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'super-speed-whoosh': require('../../assets/audio/sfx/super-speed-whoosh.wav'),
   'super-strength-boom': require('../../assets/audio/sfx/super-strength-boom.wav'),
   'fire-torch-ignite': require('../../assets/audio/sfx/fire-torch-ignite.wav'),
+  'save-slap': require('../../assets/audio/sfx/save-slap.wav'),
+  'crowd-ooh': require('../../assets/audio/sfx/crowd-ooh.wav'),
+  'power-interrupt': require('../../assets/audio/sfx/power-interrupt.wav'),
+  'zone-expire': require('../../assets/audio/sfx/zone-expire.wav'),
 };
 
 const THEME_SOURCE: AudioSource = require('../../assets/audio/music/match-theme.m4a');
+
+// The match theme is mastered several dB hotter than the one-shot SFX, so at
+// equal player volume it masks them (audit finding 1). Duck the loop well under
+// the effects so whistles/tackles/power sounds read clearly over it.
+const THEME_VOLUME = 0.4;
 
 // Per-power "fire" sound — plays on every POWER_FIRED regardless of strength
 // (see filesForEvent: a manual tap additionally layers 'tap-fire' on top).
@@ -80,7 +93,7 @@ const POWER_SFX: Record<PowerId, SfxKey> = {
 // CARD is paired with crowd-jeer (a booing reaction) on the same
 // action+crowd-reaction pattern GOAL uses with crowd-cheer — this specific
 // pairing isn't spelled out verbatim in the plan, so flag it for review.
-function filesForEvent(e: MatchEvent): readonly SfxKey[] {
+export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
   switch (e.kind) {
     case 'KICKOFF':
       return ['kickoff-whistle'];
@@ -108,12 +121,18 @@ function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       // (CONTEXT_AUTO_STRENGTH 0.85 / LAPSE_STRENGTH 0.75) get just the
       // power sound.
       return e.strength === 1 ? ['tap-fire', POWER_SFX[e.power]] : [POWER_SFX[e.power]];
-    // Deliberately silent — no assigned sound yet. Explicit cases (not a
-    // catch-all) so the exhaustiveness check below stays meaningful.
     case 'SAVE':
+      return ['save-slap'];       // keeper stops it
     case 'MISS':
+      return ['crowd-ooh'];       // shot off target — crowd groans
     case 'POWER_INTERRUPTED':
+      return ['power-interrupt']; // wind-up tackled off
     case 'POWER_EXPIRED':
+      return ['zone-expire'];     // an un-fired Zone window lapses
+    // Deliberately silent — no matching asset. IGNITED (a marker catching fire)
+    // has no distinct sound of its own (fire-torch-ignite is the caster's
+    // POWER_FIRED), and RECOVERED (a player getting back up) has none. Explicit
+    // cases (not a catch-all) so the exhaustiveness check below stays meaningful.
     case 'IGNITED':
     case 'RECOVERED':
       return [];
@@ -170,6 +189,7 @@ export function initAudio(): void {
     try {
       themePlayer = mod.createAudioPlayer(THEME_SOURCE);
       themePlayer.loop = true;
+      themePlayer.volume = THEME_VOLUME; // duck under the SFX — see THEME_VOLUME
     } catch (err) {
       themePlayer = null;
       warnOnce('createAudioPlayer failed (match-theme)', err);
@@ -217,8 +237,9 @@ export function playForEvent(e: MatchEvent): void {
     for (const key of filesForEvent(e)) {
       const player = sfxPlayers.get(key);
       if (!player) continue;
-      player.seekTo(0).catch((err: unknown) => warnOnce('seek failed', err));
-      player.play();
+      // seekTo(0) is async; play() must wait for it or a rapid re-trigger of the
+      // same one-shot races the rewind (audit finding 1) — chain, don't fire both.
+      player.seekTo(0).then(() => player.play()).catch((err: unknown) => warnOnce('seek/play failed', err));
     }
   } catch (err) {
     warnOnce('playback failed', err);

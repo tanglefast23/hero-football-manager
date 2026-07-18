@@ -7,7 +7,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Atlas, Canvas, Fill, Skia, useRSXformBuffer, type SkImage, type SkRect } from '@shopify/react-native-skia';
 import { runOnJS, useFrameCallback, useSharedValue, type FrameInfo } from 'react-native-reanimated';
-import { buildSpriteAtlas } from './sprites/buildAtlas';
+import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
 import { mulberry32 } from '../sim/rng';
 
 const SPRITE_COUNT = 2000;
@@ -45,17 +45,7 @@ export function StressScreen({ onBack }: { onBack?: () => void }) {
       return buildSpriteAtlas(Skia);
     } catch (err) {
       console.warn('StressScreen: buildSpriteAtlas failed — rendering placeholder rects', err);
-      const surface = Skia.Surface.MakeOffscreen(FALLBACK_SPRITE, FALLBACK_SPRITE);
-      if (!surface) throw err; // Skia itself is broken — nothing could render anyway
-      const canvas = surface.getCanvas();
-      const paint = Skia.Paint();
-      paint.setColor(Skia.Color('#ffffff'));
-      canvas.drawRect(Skia.XYWHRect(0, 0, FALLBACK_SPRITE, FALLBACK_SPRITE), paint);
-      surface.flush();
-      return {
-        image: surface.makeImageSnapshot().makeNonTextureImage() as unknown,
-        rectFor: (_key: string) => ({ x: 0, y: 0, w: FALLBACK_SPRITE, h: FALLBACK_SPRITE }),
-      };
+      return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
   }, []);
 

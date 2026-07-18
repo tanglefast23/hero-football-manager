@@ -1,6 +1,6 @@
 import { emit } from './events';
 import { dist2, PITCH_H } from './geometry';
-import type { MatchState, OutReason, PowerId } from './types';
+import type { MatchInput, MatchState, OutReason, PowerId } from './types';
 
 export const WINDUP_TICKS = 15;
 export const TAP_STRENGTH = 1.0;
@@ -132,8 +132,12 @@ export function powerTick(state: MatchState): void {
   // Taps only convert a hero already in the Zone, and only when their team isn't
   // frozen behind a busy teammate (one power active per team — a tap can't jump
   // the queue while a teammate is winding/active).
-  const due = state.pendingInputs.filter(i => i.tick <= state.tick);
-  state.pendingInputs = state.pendingInputs.filter(i => i.tick > state.tick);
+  // Single pass partitions due-now vs still-pending — order-preserving, so the
+  // due set and its processing order are identical to the old two-filter form.
+  const due: MatchInput[] = [];
+  const remaining: MatchInput[] = [];
+  for (const i of state.pendingInputs) (i.tick <= state.tick ? due : remaining).push(i);
+  state.pendingInputs = remaining;
   for (const input of due) {
     const p = state.players[input.player];
     // p.outUntilTick guard (audit R1): a tap on a downed hero must not start a
@@ -211,12 +215,17 @@ export function isActive(state: MatchState, idx: number): boolean {
  * Centralizes "going out": if idx is holding the ball, release it to loose (at
  * their feet, no velocity) BEFORE marking them out — otherwise the ball stays
  * phantom-"held" by an unconscious player and possession freezes (the audit's
- * possession-freeze bug). Also clears any in-progress power state: a winding
- * hero gets the normal interrupt refund; an active hero simply reverts to idle
- * (the power already resolved — no refund) — otherwise a permanently-out hero
- * (red card) would keep teamPowerBusy true for their team for the rest of the
- * match (the audit's frozen-team bug). `untilTick` is the absolute tick to
- * return at, not a duration — sendOff passes Number.MAX_SAFE_INTEGER straight through.
+ * possession-freeze bug). In-progress power state is handled per canon
+ * (docs/04): a winding hero gets the normal interrupt refund; an active hero
+ * simply reverts to idle (the power already resolved — no refund) — otherwise a
+ * permanently-out hero (red card) would keep teamPowerBusy true for their team
+ * for the rest of the match (the audit's frozen-team bug). A hero knocked out
+ * mid-Zone KEEPS the Zone: "a knocked-down hero stays hot" — the window is
+ * paused (powerTick skips out players, so remainingTicks freezes) and resumes on
+ * recovery. A Zone never sets teamPowerBusy, so a permanently-out (red-carded)
+ * hero left in a frozen Zone is inert and cannot re-freeze the team.
+ * `untilTick` is the absolute tick to return at, not a duration — sendOff passes
+ * Number.MAX_SAFE_INTEGER straight through.
  */
 export function knockOut(state: MatchState, idx: number, untilTick: number, reason: OutReason): void {
   const p = state.players[idx];
@@ -228,14 +237,8 @@ export function knockOut(state: MatchState, idx: number, untilTick: number, reas
   } else if (p.powerState.kind === 'active') {
     p.powerState = { kind: 'idle' };
     p.gauge = 0;
-  } else if (p.powerState.kind === 'zone') {
-    // A hero knocked out mid-Zone loses the window with missed-window
-    // semantics — exactly the expiry path (POWER_EXPIRED, heat 50). Without
-    // this, the zone stayed frozen while out — forever, for a red card (audit R1).
-    emit(state, { t: state.tick, kind: 'POWER_EXPIRED', player: idx });
-    p.gauge = 50;
-    p.powerState = { kind: 'idle' };
   }
+  // 'zone' is intentionally left untouched — see the pause/resume note above.
   p.outUntilTick = untilTick;
   p.outReason = reason;
 }

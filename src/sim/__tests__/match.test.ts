@@ -189,4 +189,37 @@ describe('validateEnvelope', () => {
     env.inputs = [null as unknown as MatchInput];
     expect(() => validateEnvelope(env)).toThrow('must be an object');
   });
+
+  it('rejects a tap on an in-range but non-hero slot (validate up front, not validate-then-fail)', () => {
+    const env = makeValidEnvelope();
+    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: 0 }]; // slot 0 is the GK — no power
+    expect(() => validateEnvelope(env)).toThrow('not a hero');
+  });
+
+  it('rejects an input tick stamped past full time', () => {
+    const env = makeValidEnvelope();
+    env.inputs = [{ tick: 999999, kind: 'POWER_TAP', player: 10 }];
+    expect(() => validateEnvelope(env)).toThrow('input tick');
+  });
+
+  it('rejects an absurd input flood (count cap)', () => {
+    const env = makeValidEnvelope();
+    env.inputs = Array.from({ length: 5000 }, () => ({ tick: 5, kind: 'POWER_TAP' as const, player: 10 }));
+    expect(() => validateEnvelope(env)).toThrow('too many inputs');
+  });
+
+  it('rejects a team whose slot 0 is not the goalkeeper', () => {
+    const env = makeValidEnvelope();
+    env.home = { ...env.home, players: env.home.players.map((p, i) => (i === 0 ? { ...p, role: 'FWD' as const } : p)) };
+    expect(() => validateEnvelope(env)).toThrow('slot 0 must be the goalkeeper');
+  });
+});
+
+describe('envelopeFrom does not leak the test-only blindAutoHome flag', () => {
+  it('omits blindAutoHome from a serialized envelope even when the match used it', () => {
+    const m = createMatch(9, ROVERS, UNITED, { homePolicy: 'FIRE_WHEN_READY', blindAutoHome: true });
+    const env = envelopeFrom(m);
+    expect(env.opts?.blindAutoHome).toBeUndefined();
+    expect(env.opts?.homePolicy).toBe('FIRE_WHEN_READY'); // production opts still carried
+  });
 });

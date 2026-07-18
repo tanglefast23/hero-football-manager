@@ -5,9 +5,16 @@ import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTic
 import { powerTick } from './powers';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-export const ENGINE_VERSION = 'm0.6';
+// m0.7: a knocked-down hero keeps the Zone (paused, resumes on recovery) per
+// docs/04 canon — was expired-on-knockout in m0.6 (see powers.ts knockOut).
+export const ENGINE_VERSION = 'm0.7';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
+// A replay tap can only matter on a tick the match actually simulates. Even one
+// input per simulated tick dwarfs a real match (zones cap taps to a few dozen),
+// so this bound rejects corrupt/DoS input floods without touching any real replay.
+const MAX_REPLAY_TICK = TOTAL_TICKS + STOPPAGE_CAP;
+const MAX_REPLAY_INPUTS = MAX_REPLAY_TICK;
 const VALID_ROLES: ReadonlySet<Role> = new Set(['GK', 'DEF', 'MID', 'FWD']);
 const VALID_POWER_IDS: ReadonlySet<string> = new Set(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']);
 const VALID_FIRE_POLICIES: ReadonlySet<string> = new Set(['SAVE_FOR_TAP', 'FIRE_WHEN_READY']);
@@ -104,6 +111,18 @@ export function runMatch(seed: number, home: TeamDef, away: TeamDef, inputs: Mat
   return { score: state.score, events: state.events };
 }
 
+/**
+ * Replay envelopes carry only production opts. blindAutoHome is a TEST-ONLY flag
+ * (types.ts): serializing it would let a saved replay silently flip home heroes to
+ * the blind-firing test baseline, so it is deliberately dropped here.
+ */
+function serializeReplayOpts(opts: MatchOpts): MatchOpts {
+  const out: MatchOpts = {};
+  if (opts.homePolicy !== undefined) out.homePolicy = opts.homePolicy;
+  if (opts.awayPolicy !== undefined) out.awayPolicy = opts.awayPolicy;
+  return out;
+}
+
 export function envelopeFrom(state: MatchState): ReplayEnvelope {
   return {
     schemaVersion: 1,
@@ -112,7 +131,7 @@ export function envelopeFrom(state: MatchState): ReplayEnvelope {
     home: deepCopyTeam(state.teams[0]),
     away: deepCopyTeam(state.teams[1]),
     inputs: state.inputLog.map(i => ({ ...i })),
-    opts: { ...state.opts },
+    opts: serializeReplayOpts(state.opts),
   };
 }
 
@@ -139,6 +158,12 @@ function validateTeam(team: TeamDef, label: 'home' | 'away'): void {
     if (p.power !== undefined && !VALID_POWER_IDS.has(p.power)) {
       throw new Error(`replay envelope: ${label} team player ${p.id} has unknown power ${String(p.power)}`);
     }
+  }
+  // Slot 0 is the goalkeeper by position (the engine reads index 0/11 as GK
+  // regardless of role). Reject a squad whose slot 0 isn't a GK — otherwise an
+  // all-outfield team validates and an outfielder silently keeps goal.
+  if (team.players[0].role !== 'GK') {
+    throw new Error(`replay envelope: ${label} team slot 0 must be the goalkeeper (role GK), got ${String(team.players[0].role)}`);
   }
 }
 
@@ -173,6 +198,9 @@ export function validateEnvelope(env: ReplayEnvelope): void {
   if (!Array.isArray(env.inputs)) {
     throw new Error('replay envelope: inputs must be an array');
   }
+  if (env.inputs.length > MAX_REPLAY_INPUTS) {
+    throw new Error(`replay envelope: too many inputs (${env.inputs.length} > ${MAX_REPLAY_INPUTS} max) — a tap can only land on a simulated tick`);
+  }
   for (const input of env.inputs as MatchInput[]) {
     if (!input || typeof input !== 'object') {
       throw new Error('replay envelope: input must be an object');
@@ -180,14 +208,21 @@ export function validateEnvelope(env: ReplayEnvelope): void {
     if (input.kind !== 'POWER_TAP') {
       throw new Error(`replay envelope: unknown input kind ${String(input.kind)}`);
     }
-    if (typeof input.tick !== 'number' || !Number.isFinite(input.tick) || !Number.isInteger(input.tick) || input.tick < 1) {
-      throw new Error(`replay envelope: input tick must be a finite integer >= 1, got ${input.tick}`);
+    // Upper bound too: an input stamped past full time is never processed by the
+    // sim, so accept-and-ignore is a validation gap — reject it here.
+    if (typeof input.tick !== 'number' || !Number.isFinite(input.tick) || !Number.isInteger(input.tick) || input.tick < 1 || input.tick > MAX_REPLAY_TICK) {
+      throw new Error(`replay envelope: input tick must be a finite integer in 1..${MAX_REPLAY_TICK}, got ${input.tick}`);
     }
     // Same 0..10 range as queueInput's own-heroes rule (Task 13 pre-flight tightened
     // this from 0..21 — a replayed tap can no-op target a rival same as a live one,
     // but the envelope should reject it the same way queueInput does for a live tap).
     if (typeof input.player !== 'number' || !Number.isFinite(input.player) || !Number.isInteger(input.player) || input.player < 0 || input.player > 10) {
       throw new Error(`replay envelope: input player must be a finite integer in 0..10 — taps may only target your own heroes, got ${input.player}`);
+    }
+    // The target must actually be a hero (own a power). queueInput throws on this
+    // during execution; validating it here avoids a validate-then-fail gap.
+    if (env.home.players[input.player]?.power === undefined) {
+      throw new Error(`replay envelope: input targets home slot ${input.player}, which is not a hero (no power)`);
     }
   }
 }
