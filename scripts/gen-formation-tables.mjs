@@ -94,8 +94,9 @@ const Y_PARAMS = {
     // Three-tier defense, piecewise by ball cell (this is what a per-cell
     // table buys over any single linear response):
     // 1. COUNTER-PRESS cells — ball deep in the OPPONENT's third (by <
-    //    pressTrigger): mids and fullbacks jump to pressLine, hunting the
-    //    keeper's outlets while the burst/pressure is on (post-shot regains).
+    //    pressTrigger): the WIDE MIDS jump to pressLine (only WM carries
+    //    pressTrigger/pressLine params), hunting the keeper's outlets while
+    //    the burst/pressure is on (post-shot regains).
     // 2. MID-BLOCK wall — ball at middle heights: winLo pins the midfield
     //    across the center, in a deep opposing carrier's path — a solo run
     //    must beat four mids, then the back line (GATE-2/GATE-3 regression
@@ -183,5 +184,8 @@ for (const o of overrides) {
 }
 
 const out = { grid: { cols: COLS, rows: ROWS }, phases, kickoff: KICKOFF };
-writeFileSync('src/sim/formation-tables.json', JSON.stringify(out));
-console.log(`wrote 2 phases x ${SLOTS.length} slots x ${COLS * ROWS} cells (+${KICKOFF.length} kickoff entries), ${overrides.length} override(s) applied`);
+// Optional argv[2] output path lets the drift-guard test emit to scratch and
+// byte-compare against the committed file (default stays the real target).
+const outPath = process.argv[2] ?? 'src/sim/formation-tables.json';
+writeFileSync(outPath, JSON.stringify(out));
+console.log(`wrote ${outPath}: 2 phases x ${SLOTS.length} slots x ${COLS * ROWS} cells (+${KICKOFF.length} kickoff entries), ${overrides.length} override(s) applied`);
