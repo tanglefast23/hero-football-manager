@@ -6,6 +6,7 @@ export * from './screens/ClubFinancesScreen';
 export * from './screens/CharacterCreationScreen';
 export * from './screens/FirstAwakeningScreen';
 export * from './screens/FixtureMatchDayScreen';
+export * from './screens/HirePitchScreen';
 export * from './screens/LeagueTableScreen';
 export * from './screens/NewGameWelcomeScreen';
 export * from './screens/PostMatchLedgerScreen';
