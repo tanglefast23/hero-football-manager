@@ -37,7 +37,8 @@ type SfxKey =
   | 'extinguisher-spray'
   | 'super-speed-whoosh'
   | 'super-strength-boom'
-  | 'fire-torch-ignite'
+  | 'flame-hit'
+  | 'flame-up'
   | 'save-slap'
   | 'crowd-ooh'
   | 'power-interrupt'
@@ -60,7 +61,8 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'extinguisher-spray': require('../../assets/audio/sfx/extinguisher-spray.wav'),
   'super-speed-whoosh': require('../../assets/audio/sfx/super-speed-whoosh.wav'),
   'super-strength-boom': require('../../assets/audio/sfx/super-strength-boom.wav'),
-  'fire-torch-ignite': require('../../assets/audio/sfx/fire-torch-ignite.wav'),
+  'flame-hit': require('../../assets/audio/sfx/flame-hit.wav'),
+  'flame-up': require('../../assets/audio/sfx/flame-up.wav'),
   'save-slap': require('../../assets/audio/sfx/save-slap.wav'),
   'crowd-ooh': require('../../assets/audio/sfx/crowd-ooh.wav'),
   'power-interrupt': require('../../assets/audio/sfx/power-interrupt.wav'),
@@ -69,17 +71,24 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
 
 const THEME_SOURCE: AudioSource = require('../../assets/audio/music/match-theme.m4a');
 
+// Crackling fire bed, looped for as long as a Fire Torch hero is ablaze
+// (started/stopped by MatchScreen off the caster's 'active' state, not a
+// one-shot event). Its own dedicated looping player, like THEME_SOURCE.
+const FIRE_LOOP_SOURCE: AudioSource = require('../../assets/audio/sfx/flame-loop.wav');
+
 // Music sits at half volume under the SFX (which play at the 1.0 ceiling) —
 // the mix balance, not a fix for the earlier silence (that was the seek/play
 // ordering in playForEvent). Tune here if the bed still competes.
 const MUSIC_VOLUME = 0.5;
+// The fire crackle rides above the music bed but below the one-shot SFX.
+const FIRE_LOOP_VOLUME = 0.7;
 
 // Per-power "fire" sound — plays on every POWER_FIRED regardless of strength
 // (see filesForEvent: a manual tap additionally layers 'tap-fire' on top).
 const POWER_SFX: Record<PowerId, SfxKey> = {
   SUPER_SPEED: 'super-speed-whoosh',
   SUPER_STRENGTH: 'super-strength-boom',
-  FIRE_TORCH: 'fire-torch-ignite',
+  FIRE_TORCH: 'flame-up', // Flint bursting into flames as the power switches on
 };
 
 // -- Event -> file table ------------------------------------------------
@@ -129,11 +138,11 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       return ['power-interrupt']; // wind-up tackled off
     case 'POWER_EXPIRED':
       return ['zone-expire'];     // an un-fired Zone window lapses
-    // Deliberately silent — no matching asset. IGNITED (a marker catching fire)
-    // has no distinct sound of its own (fire-torch-ignite is the caster's
-    // POWER_FIRED), and RECOVERED (a player getting back up) has none. Explicit
-    // cases (not a catch-all) so the exhaustiveness check below stays meaningful.
     case 'IGNITED':
+      return ['flame-hit']; // a defender catches fire (distinct from the caster's flame-up)
+    // RECOVERED (a player getting back up) has no matching asset — deliberately
+    // silent, an explicit case (not a catch-all) so the exhaustiveness check
+    // below stays meaningful.
     case 'RECOVERED':
       return [];
     default: {
@@ -152,6 +161,7 @@ let initAttempted = false;
 let warned = false;
 const sfxPlayers = new Map<SfxKey, AudioPlayer>();
 let themePlayer: AudioPlayer | null = null;
+let fireLoopPlayer: AudioPlayer | null = null;
 
 // Only the first failure of the session warns (whatever it is) — the point
 // is one diagnostic line, not a per-frame warning flood.
@@ -196,6 +206,14 @@ export function initAudio(): void {
       themePlayer = null;
       warnOnce('createAudioPlayer failed (match-theme)', err);
     }
+    try {
+      fireLoopPlayer = mod.createAudioPlayer(FIRE_LOOP_SOURCE);
+      fireLoopPlayer.loop = true;
+      fireLoopPlayer.volume = FIRE_LOOP_VOLUME;
+    } catch (err) {
+      fireLoopPlayer = null;
+      warnOnce('createAudioPlayer failed (flame-loop)', err);
+    }
     ready = true;
   } catch (err) {
     // Reachable only from require() / a synchronous setAudioModeAsync throw —
@@ -203,6 +221,7 @@ export function initAudio(): void {
     // needs remove()-ing.
     sfxPlayers.clear();
     themePlayer = null;
+    fireLoopPlayer = null;
     warnOnce('init failed — sound disabled for this session', err);
   }
 }
@@ -227,8 +246,15 @@ export function teardownAudio(): void {
   } catch (err) {
     warnOnce('theme teardown failed', err);
   }
+  try {
+    fireLoopPlayer?.remove();
+    fireLoopPlayer?.release();
+  } catch (err) {
+    warnOnce('fire loop teardown failed', err);
+  }
   sfxPlayers.clear();
   themePlayer = null;
+  fireLoopPlayer = null;
   ready = false;
   initAttempted = false; // allow the next mount to retry init
 }
@@ -267,5 +293,30 @@ export function stopTheme(): void {
     themePlayer.pause();
   } catch (err) {
     warnOnce('theme stop failed', err);
+  }
+}
+
+// Fire crackle loop — MatchScreen calls startFireAmbience() when a Fire Torch
+// hero becomes active and stopFireAmbience() when the last one stops burning.
+// Both are idempotent-safe (play()/pause() on an already-playing/paused looping
+// player is a no-op), so the caller can reconcile once per frame without
+// tracking edges itself. seekTo(0) before play so each ignition restarts the
+// crackle from the top rather than resuming wherever the last burn paused.
+export function startFireAmbience(): void {
+  if (!ready || !fireLoopPlayer) return;
+  const p = fireLoopPlayer;
+  try {
+    p.seekTo(0).then(() => p.play()).catch((err: unknown) => warnOnce('fire loop start failed', err));
+  } catch (err) {
+    warnOnce('fire loop start failed', err);
+  }
+}
+
+export function stopFireAmbience(): void {
+  if (!ready || !fireLoopPlayer) return;
+  try {
+    fireLoopPlayer.pause();
+  } catch (err) {
+    warnOnce('fire loop stop failed', err);
   }
 }

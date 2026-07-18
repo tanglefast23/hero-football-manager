@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Atlas, Canvas, Circle, Fill, Path, Skia, type SkColor, type SkImage, type SkRSXform, type SkRect } from '@shopify/react-native-skia';
 import { createMatch, queueInput, tick } from '../sim/match';
-import { teamPowerBusy } from '../sim/powers';
+import { isActive, teamPowerBusy } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState } from '../sim/types';
@@ -15,9 +15,18 @@ import {
   runFrameForDistance,
   type PlayerActionAnimation,
 } from './animation';
+import { flameTongues } from './flames';
 import { Pitch } from './Pitch';
 import { DebugOverlay } from './DebugOverlay';
-import { initAudio, playForEvent, startTheme, stopTheme, teardownAudio } from './audio';
+import {
+  initAudio,
+  playForEvent,
+  startFireAmbience,
+  startTheme,
+  stopFireAmbience,
+  stopTheme,
+  teardownAudio,
+} from './audio';
 
 const MAX_CATCHUP_TICKS = 5;
 const TOTAL_TICKS = HALF_TICKS * 2;
@@ -51,6 +60,10 @@ const FLASH_TICKS = 30;
 const SHOT_TRAIL_LEN = 6; // recent ball positions kept while a shot is in flight
 const PUFF_TICKS = 16; // how long the kick-origin dust puff lingers, in sim ticks
 const PUFF_RINGS = 3; // concentric expanding dust rings
+
+// Super Strength impact burst — a bright core + shockwave ring at the point a
+// charge lands, in sim ticks (render-only, like the shot dust puff above).
+const IMPACT_TICKS = 14;
 
 // End-of-match hold — real-time ms the screen stays mounted after the sim
 // reaches fulltime, so the FULL_TIME whistle (and any last-tick goal audio)
@@ -156,6 +169,11 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   // part of the deterministic event stream; these poses never feed back into
   // positions, possession, RNG, or replay data.
   const actionRef = useRef<Record<number, PlayerActionAnimation>>({});
+  // Super Strength impact burst (render-only), set when a charge lands a KO.
+  const impactRef = useRef<{ x: number; y: number; tick: number } | null>(null);
+  // Whether the looping fire crackle is currently playing — reconciled each
+  // frame against whether any Fire Torch hero is ablaze (see the RAF loop).
+  const fireLoopOnRef = useRef(false);
 
   const [frame, setFrame] = useState<PitchFrame>(() => prevRef.current!);
   const [hud, setHud] = useState({
@@ -270,7 +288,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         }
 
         const speedster = s.players.find((p, i) => nextRef.current!.statuses[i] === 'active' && p.def.power === 'SUPER_SPEED');
-        trailRef.current = speedster ? [{ ...speedster.pos }, ...trailRef.current].slice(0, 3) : [];
+        trailRef.current = speedster ? [{ ...speedster.pos }, ...trailRef.current].slice(0, 7) : [];
 
         // Shot-ball motion trail — recent ball positions while it's a live
         // shot; cleared the instant it stops being one (goal/save/miss).
@@ -282,8 +300,15 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       }
 
       const newEvents = s.events.slice(eventsBefore);
+      // A FIRE_TORCH POWER_FIRED is emitted just before its IGNITED in the same
+      // batch, so remembering the caster's spot here lets the ignite knockdown
+      // fling the victim *away* from Flint.
+      let torchCasterPos: { x: number; y: number } | null = null;
       for (const e of newEvents) {
         playForEvent(e);
+        if (e.kind === 'POWER_FIRED' && e.power === 'FIRE_TORCH') {
+          torchCasterPos = { ...nextRef.current!.players[e.player] };
+        }
         if (e.kind === 'SHOT' && e.by >= 0 && e.by < 22) {
           // Kick up a dust puff at the striker's feet — the visual "he hit it".
           const o = s.players[e.by].pos;
@@ -323,7 +348,19 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
           const rotation = direction.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
           const startTick = e.t - 1;
           actionRef.current[e.by] = { kind: 'slide', startTick, direction, rotation };
-          if (e.won) {
+          // Super Strength knocks the target OUT (outUntilTick in the future):
+          // hold them flat until they recover and punch up an impact burst. An
+          // ordinary tackle only dispossesses — the quick fall-and-recover.
+          if (s.players[e.on].outUntilTick > s.tick) {
+            actionRef.current[e.on] = {
+              kind: 'knockdown',
+              startTick,
+              anchor: { ...onPos },
+              rotation: -rotation,
+              untilTick: s.players[e.on].outUntilTick,
+            };
+            impactRef.current = { x: onPos.x, y: onPos.y, tick: e.t };
+          } else if (e.won) {
             actionRef.current[e.on] = {
               kind: 'fall',
               startTick,
@@ -331,6 +368,19 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
               rotation: -rotation,
             };
           }
+        }
+        if (e.kind === 'IGNITED') {
+          const victimPos = nextRef.current!.players[e.player];
+          const rotation = torchCasterPos
+            ? (victimPos.x - torchCasterPos.x >= 0 ? Math.PI / 2 : -Math.PI / 2)
+            : (e.player % 2 === 0 ? Math.PI / 2 : -Math.PI / 2);
+          actionRef.current[e.player] = {
+            kind: 'knockdown',
+            startTick: e.t - 1,
+            anchor: { ...victimPos },
+            rotation,
+            untilTick: s.players[e.player].outUntilTick,
+          };
         }
         // UX fix — zone entry announcement: the player didn't discover the
         // tap affordance from the chip alone, so a HOME hero's Zone entry
@@ -356,6 +406,19 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
           }
         }
       }
+      // Fire crackle loop follows the caster's active window: on while any Fire
+      // Torch hero is ablaze, off once none are. Reconciled from state each
+      // frame (not off an event) so it also stops on a KO, interrupt, or the
+      // half-time freeze — none of which emit a "power ended" event.
+      const fireActive = s.players.some((p, i) => p.def.power === 'FIRE_TORCH' && isActive(s, i));
+      if (fireActive && !fireLoopOnRef.current) {
+        startFireAmbience();
+        fireLoopOnRef.current = true;
+      } else if (!fireActive && fireLoopOnRef.current) {
+        stopFireAmbience();
+        fireLoopOnRef.current = false;
+      }
+
       // Ledger item 6 — a dangling SHOT at a tick/half boundary (no paired
       // SAVE/GOAL/MISS) needs no special handling: the renderer never assumes
       // events pair up, it only reacts to the specific kinds listed above.
@@ -476,7 +539,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         if (pose.active && action?.kind === 'slide') {
           centerX += action.direction.x * pose.forwardOffset;
           centerY += action.direction.y * pose.forwardOffset;
-        } else if (pose.active && action?.kind === 'fall') {
+        } else if (pose.active && action && (action.kind === 'fall' || action.kind === 'knockdown')) {
           centerX = pos.x * (1 - pose.anchorWeight) + action.anchor.x * pose.anchorWeight;
           centerY = pos.y * (1 - pose.anchorWeight) + action.anchor.y * pose.anchorWeight;
         }
@@ -663,7 +726,14 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         <Fill color="#2e7d3a" />
         <Pitch scale={scale} />
         {trailRef.current.map((t, i) => (
-          <Circle key={i} cx={t.x * scale} cy={t.y * scale} r={4 - i} color="#ffffff" opacity={0.5 - i * 0.15} />
+          <Circle
+            key={i}
+            cx={t.x * scale}
+            cy={t.y * scale}
+            r={Math.max(1.5, 7 - i)}
+            color="#ffffff"
+            opacity={0.55 * (1 - i / trailRef.current.length)}
+          />
         ))}
         {/* Shot motion trail — a fading streak behind the ball while it flies. */}
         {shotTrailRef.current.map((t, i) => (
@@ -701,6 +771,30 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
             )),
           ];
         })()}
+        {/* Super Strength impact — a bright core plus an expanding shockwave
+            ring where the charge lands, fading over IMPACT_TICKS. */}
+        {(() => {
+          const im = impactRef.current;
+          if (!im) return null;
+          const prog = (match.tick - im.tick) / IMPACT_TICKS;
+          if (prog < 0 || prog >= 1) return null;
+          const cx = im.x * scale;
+          const cy = im.y * scale;
+          const fade = 1 - prog;
+          return [
+            <Circle key="impact-core" cx={cx} cy={cy} r={6 + prog * 22} color="#fff2b0" opacity={fade * 0.5} />,
+            <Circle
+              key="impact-ring"
+              cx={cx}
+              cy={cy}
+              r={9 + prog * 34}
+              color="#ffd23a"
+              style="stroke"
+              strokeWidth={3}
+              opacity={fade * 0.7}
+            />,
+          ];
+        })()}
         {frame.statuses.map((st, i) =>
           st === 'zone' ? (
             <Circle
@@ -735,6 +829,22 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
           colors={colors}
           colorBlendMode="modulate"
         />
+        {/* Flames, drawn over the sprites so the fire reads in front of the
+            body: every ignited defender (knocked flat, burning until they
+            recover) and the Fire Torch caster while his power is active. Pure
+            geometry from flames.ts flickering off the visual-tick clock. */}
+        {frame.statuses.map((st, i) => {
+          const burning = st === 'ignited' || (st === 'active' && match.players[i].def.power === 'FIRE_TORCH');
+          if (!burning) return null;
+          const px = frame.players[i].x * scale;
+          const baseY = frame.players[i].y * scale + ringR * 0.35;
+          return flameTongues(px, baseY, ringR * 1.7, ringR * 2.6, hud.visualTick + i * 2).map((tongue, k) => {
+            const path = Skia.Path.MakeFromSVGString(tongue.d);
+            return path ? (
+              <Path key={`flame-${i}-${k}`} path={path} color={tongue.color} opacity={tongue.opacity} />
+            ) : null;
+          });
+        })}
         {frame.carrier >= 0 ? (
           <Circle
             cx={frame.players[frame.carrier].x * scale}

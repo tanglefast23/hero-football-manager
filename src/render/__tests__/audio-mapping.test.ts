@@ -24,8 +24,17 @@ describe('filesForEvent: event → SFX wiring', () => {
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 0.85 })).toEqual(['super-speed-whoosh']);
   });
 
-  it('leaves IGNITED / RECOVERED intentionally silent (no matching asset)', () => {
-    expect(filesForEvent({ t: 0, kind: 'IGNITED', player: 5 })).toEqual([]);
+  it('plays the flame-hit sting when a defender catches fire (IGNITED)', () => {
+    expect(filesForEvent({ t: 0, kind: 'IGNITED', player: 5 })).toEqual(['flame-hit']);
+  });
+
+  it('uses the flame-up sound when Fire Torch activates', () => {
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 0.85 })).toEqual(['flame-up']);
+    // A manual tap-confirm still layers the tap click on top.
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 })).toEqual(['tap-fire', 'flame-up']);
+  });
+
+  it('leaves RECOVERED intentionally silent (no matching asset)', () => {
     expect(filesForEvent({ t: 0, kind: 'RECOVERED', player: 5 })).toEqual([]);
   });
 

@@ -64,3 +64,39 @@ describe('tackle action poses', () => {
     expect(actionPose(fall, 10 + TACKLED_RECOVERY_TICKS).active).toBe(false);
   });
 });
+
+describe('knockdown action pose (Super Strength / Fire Torch)', () => {
+  // Knocked out at tick 10, recovers at tick 150 (out for 140 ticks, like ignite).
+  const kd: PlayerActionAnimation = {
+    kind: 'knockdown',
+    startTick: 10,
+    anchor: { x: 50, y: 60 },
+    rotation: Math.PI / 2,
+    untilTick: 150,
+  };
+
+  it('drops the player prone and holds them flat through the middle of the out window', () => {
+    // Just after the hit: already rotating toward the ground.
+    expect(actionPose(kd, 12).active).toBe(true);
+    expect(Math.abs(actionPose(kd, 12).rotation)).toBeGreaterThan(1);
+    // Deep in the middle of a 140-tick knockout: still fully flat and anchored
+    // at the spot they fell — NOT recovered (the bug: a burning player standing).
+    const mid = actionPose(kd, 80);
+    expect(mid.active).toBe(true);
+    expect(Math.abs(mid.rotation)).toBeGreaterThan(1.5); // ~PI/2, lying flat
+    expect(mid.anchorWeight).toBeGreaterThan(0.9);
+  });
+
+  it('rises back toward upright as it approaches the recovery tick', () => {
+    const mid = Math.abs(actionPose(kd, 80).rotation);
+    const late = Math.abs(actionPose(kd, 149).rotation);
+    expect(late).toBeLessThan(mid);
+    expect(actionPose(kd, 149).anchorWeight).toBeLessThan(0.9);
+  });
+
+  it('is inactive before the hit and once recovered', () => {
+    expect(actionPose(kd, 9).active).toBe(false);
+    expect(actionPose(kd, 150).active).toBe(false);
+    expect(actionPose(kd, 400).active).toBe(false);
+  });
+});

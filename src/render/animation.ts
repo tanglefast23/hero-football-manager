@@ -6,6 +6,11 @@ export const RUN_PHASE_DISTANCE = 110;
 export const KEEPER_READY_DISTANCE = 4_800;
 export const SLIDE_TACKLE_TICKS = 5;
 export const TACKLED_RECOVERY_TICKS = 10;
+// A knockdown drops in over KNOCKDOWN_DROP_TICKS and stands back up over the
+// last KNOCKDOWN_RISE_TICKS before the player's recovery tick; the long flat
+// hold in between is however many ticks the sim keeps them out.
+export const KNOCKDOWN_DROP_TICKS = 1.6;
+export const KNOCKDOWN_RISE_TICKS = 4;
 
 export type PlayerSpriteFrame = 'run0' | 'run1' | 'ready0' | 'ready1';
 
@@ -21,6 +26,17 @@ export type PlayerActionAnimation =
       startTick: number;
       anchor: Vec;
       rotation: number;
+    }
+  | {
+      // A knocked-OUT player (Super Strength boom, Fire Torch ignite). Unlike
+      // 'fall' (a quick dispossession that recovers in TACKLED_RECOVERY_TICKS),
+      // this holds the player prone until their sim recovery tick (`untilTick`,
+      // read from outUntilTick when the event fires) and then stands them up.
+      kind: 'knockdown';
+      startTick: number;
+      anchor: Vec;
+      rotation: number;
+      untilTick: number;
     };
 
 export interface ActionPose {
@@ -60,8 +76,22 @@ export function actionPose(action: PlayerActionAnimation | undefined, visualTick
   if (!action) return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
 
   const elapsed = visualTick - action.startTick;
+  if (elapsed < 0) return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
+
+  if (action.kind === 'knockdown') {
+    // Held flat for the whole out window: drop in, hold prone, then rise over
+    // the final KNOCKDOWN_RISE_TICKS so the get-up lands exactly on recovery.
+    if (visualTick >= action.untilTick) {
+      return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
+    }
+    const drop = smoothstep(elapsed / KNOCKDOWN_DROP_TICKS);
+    const rise = smoothstep((visualTick - (action.untilTick - KNOCKDOWN_RISE_TICKS)) / KNOCKDOWN_RISE_TICKS);
+    const down = drop * (1 - rise);
+    return { active: true, rotation: action.rotation * down, anchorWeight: down, forwardOffset: 0 };
+  }
+
   const duration = action.kind === 'slide' ? SLIDE_TACKLE_TICKS : TACKLED_RECOVERY_TICKS;
-  if (elapsed < 0 || elapsed >= duration) {
+  if (elapsed >= duration) {
     return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
   }
 
