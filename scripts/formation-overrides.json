@@ -1,0 +1,4 @@
+{
+  "comment": "Hand corrections consumed by scripts/gen-formation-tables.mjs, applied on top of its positional model before emit. NEVER hand-edit src/sim/formation-tables.json — put per-cell/per-slot corrections here and regenerate. Entry shape: { phase: 'inPossession'|'outOfPossession', slot: 0-9, col: 0-4, row: 0-6, x?: 0-1, y?: 0-1, note: 'why' } — x/y replace the model's value for that cell (team-0 normalized frame, y=0 is the attacked goal).",
+  "overrides": []
+}
