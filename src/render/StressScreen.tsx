@@ -17,10 +17,10 @@ const MIN_SPEED = 60; // px/sec
 const MAX_SPEED = 220; // px/sec
 const DEFAULT_FRAME_MS = 1000 / 60; // assumed dt before Reanimated reports a real delta (first frame)
 
-// The pack's 23 distinct sprites (see sprites/loader.ts's PLAYER_IDS: r0-r10,
-// u0-u10, each with run0/run1, plus 'ball') — cycled across all 2000 slots
-// for atlas variety. Walk-cycle frame animation (run0 vs run1) is a gameplay
-// detail this screen has no need for, so every player slot pins to run0.
+// 23 of the pack's 45 sprites (see sprites/loader.ts's PLAYER_IDS: 22 ids ×
+// run0/run1 + 'ball' = 45 entries; we use each id's run0 plus the ball) —
+// cycled across all 2000 slots for atlas variety. Walk-cycle frame animation
+// (run0 vs run1) is a gameplay detail this screen has no need for.
 const SPRITE_KEYS: string[] = [
   ...Array.from({ length: 11 }, (_, i) => `r${i}:run0`),
   ...Array.from({ length: 11 }, (_, i) => `u${i}:run0`),
@@ -117,7 +117,9 @@ export function StressScreen({ onBack }: { onBack?: () => void }) {
   const onFrame = useCallback(
     (info: FrameInfo) => {
       'worklet';
-      const dt = (info.timeSincePreviousFrame ?? DEFAULT_FRAME_MS) / 1000;
+      // Clamped like MatchScreen's capped catch-up: a multi-second stall
+      // (backgrounding, debugger) must not launch sprites through the walls.
+      const dt = Math.min((info.timeSincePreviousFrame ?? DEFAULT_FRAME_MS) / 1000, 0.1);
 
       // Position + bounce-velocity update. velX/velY have no reactive
       // dependents (only posX/posY feed the transforms buffer above), so
@@ -157,10 +159,10 @@ export function StressScreen({ onBack }: { onBack?: () => void }) {
 
       // 1Hz FPS readout: count frames on the UI thread, flush to React state
       // via runOnJS at most once per second — never setState per frame.
-      frameCount.value += 1;
       if (lastFlushMs.value < 0) {
-        lastFlushMs.value = info.timestamp; // seed the flush clock, don't flush yet
+        lastFlushMs.value = info.timestamp; // seed the flush clock; the seed frame itself isn't counted
       } else {
+        frameCount.value += 1;
         const elapsed = info.timestamp - lastFlushMs.value;
         if (elapsed >= 1000) {
           runOnJS(setFps)(Math.round((frameCount.value * 1000) / elapsed));

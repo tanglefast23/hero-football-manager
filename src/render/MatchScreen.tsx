@@ -8,6 +8,7 @@ import type { MatchState } from '../sim/types';
 import { buildSpriteAtlas } from './sprites/buildAtlas';
 import { lerpFrame, snapshotFrame, type PitchFrame } from './interpolate';
 import { Pitch } from './Pitch';
+import { DebugOverlay } from './DebugOverlay';
 import { initAudio, playForEvent, startTheme, stopTheme, teardownAudio } from './audio';
 
 const MAX_CATCHUP_TICKS = 5;
@@ -134,6 +135,9 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     scoreFlash: false,
   });
   const [speed, setSpeed] = useState(1);
+  // Dev-only movement-table tuning instrument (movement spec's debug-overlay
+  // deliverable; the toggle ships __DEV__-gated, never in release UI).
+  const [debugGrid, setDebugGrid] = useState(false);
   const [paused, setPaused] = useState(false);
   const speedRef = useRef(1);
   const pausedRef = useRef(false);
@@ -516,6 +520,11 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         <Pressable onPress={() => setSpeed((x) => (x === 1 ? 2 : 1))}>
           <Text style={styles.speedText}>×{speed}</Text>
         </Pressable>
+        {__DEV__ ? (
+          <Pressable onPress={() => setDebugGrid((d) => !d)}>
+            <Text style={styles.speedText}>{debugGrid ? '▦' : '▢'}</Text>
+          </Pressable>
+        ) : null}
       </Pressable>
       {rivalHeroes.length > 0 ? (
         <View style={styles.rivalStrip}>{rivalHeroes.map((i) => rivalChip(i))}</View>
@@ -569,6 +578,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
             strokeWidth={2}
           />
         ) : null}
+        {debugGrid ? <DebugOverlay state={match} scale={scale} /> : null}
       </Canvas>
       {hud.banner ? (
         <Text style={[styles.banner, hud.bannerTone === 'red' ? styles.bannerThreat : null]}>{hud.banner}</Text>
