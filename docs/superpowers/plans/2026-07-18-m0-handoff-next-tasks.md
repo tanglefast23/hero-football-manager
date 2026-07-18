@@ -128,6 +128,15 @@ opinion.
   PARITY test rename (it proves determinism, not two-path equivalence); stale buildAtlas header
   comment.
 
+### T11 — Review the orphaned ball-physics spec draft
+
+A stopped worktree agent left ONE unmerged commit on branch `claude/soccer-ball-physics-3c6d65`
+(`fae9288`): `docs/superpowers/specs/2026-07-18-ball-physics-design.md` — 196 lines on 2.5D
+ballistics, friction/bounce, SHO-driven shot error. It is **unreviewed draft work** and was
+deliberately kept out of `main` (docs are canon; nothing unreviewed goes in). Read it and
+decide: adopt via the normal external-review workflow (likely M1+ material — it overlaps the
+deliberately-simple ball flight shipped in m0.4), or delete the branch.
+
 ## Then: M1 — the two-season hero vertical slice (docs/10)
 
 Awakening chance-event chain + pity counter; license competition; the wage cliff (awakened wage
