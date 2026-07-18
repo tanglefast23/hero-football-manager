@@ -1,7 +1,7 @@
 # Defense Engagement & Player Stats — Design Spec
 
-**Date:** 2026-07-18 (v2 same day)
-**Status:** Draft v2 — external review incorporated (accept/pushback ledger in chat); open questions resolved in §Decision record. Next: external review round, then implementation plan.
+**Date:** 2026-07-18 (v5 same day)
+**Status:** **APPROVED** — externally reviewed by Codex (gpt-5.6-sol, xhigh), 4 iterative rounds, final verdict APPROVED 2026-07-18. Decisions in §Decision record. Next: m0.6 implementation plan, written after T1 lands.
 **Target:** engine `m0.6`. Base: `main` **after T1** (approved positional-movement rework — its zonal tables decide *where* players stand; this spec decides *what they do* on arrival, per the external review's framing).
 **Companion:** `2026-07-18-ball-physics-design.md` (tackle spills, traps and second balls all resolve through its free-ball physics; both specs ship as one m0.6 version bump)
 
@@ -133,7 +133,7 @@ COVER (new, 2nd defender: goal-side bias off its T1 table target, workRate-gated
 - **Slide resolution is relative-motion swept** (ball-physics §1 resolver): defender segment vs carrier segment for the lunge ticks, contact at the earliest fraction; no contact by `slideUntilTick` → automatic whiff.
 - **Tick order within a sim tick — the existing loop, unchanged:** movement (incl. lunge travel) → carrier decision (`possessionTick`; a pass/shot may release the ball) → challenge resolution (`tackleTick`) → ball flight. The release-beats-challenge property falls out of the current `match.ts` ordering; no loop reshuffle. A slide whose contact tick finds the carrier ball-less resolves as a whiff by rule, and the ball flies on.
 - **Cancellation:** any engagement ends immediately on turnover, the carrier releasing the ball, ball going loose to a different chase, either player knocked out/unavailable, or restart. Restarts (kickoff/half) additionally clear `staggerUntil` and `'slid'` down-states — nobody teleports to formation while lying down.
-- **Two ordering decisions the implementation plan must state explicitly** (round-3 review — safe to defer, not safe to leave implicit): (a) when a containment-escape contest and a patience-expired challenge both come due in the same `tackleTick`, which resolves first (proposal: the challenge — the defender committed first); (b) a player mid-slide cannot begin a power wind-up — the activation is deferred to slide end (taps aren't lost, matching the existing pending-input model), and conversely a `winding` player never initiates a slide (already in the movement priority order).
+- **Two ordering decisions, committed at final approval** (round-3 review flagged them; the approval makes them decisions, not proposals): (a) when a containment-escape contest and a patience-expired challenge both come due in the same `tackleTick`, **the challenge resolves first** (the defender committed first); (b) a player mid-slide cannot begin a power wind-up — **the activation defers to slide end** (taps aren't lost, matching the existing pending-input model), and conversely a `winding` player never initiates a slide (already in the movement priority order).
 - GKs never enter contain/slide states (unchanged M0 behavior).
 
 ### Superpower compatibility map (round-1 external review — explicit, not implied)

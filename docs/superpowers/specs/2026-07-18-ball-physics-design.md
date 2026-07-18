@@ -1,7 +1,7 @@
 # Ball Physics — Design Spec
 
-**Date:** 2026-07-18 (v2 same day)
-**Status:** Draft v2 — user locked Option B (emergent interception, "straight do 1B"); delegated decisions recorded in §8. Next: external review round per process, then implementation plan.
+**Date:** 2026-07-18 (v5 same day)
+**Status:** **APPROVED** — externally reviewed by Codex (gpt-5.6-sol, xhigh), 4 iterative rounds, final verdict APPROVED 2026-07-18. User-locked decisions in §8. Next: m0.6 implementation plan, written after T1 lands.
 **Target:** engine `m0.6`. Base: `main` **after T1 lands** (the approved positional-movement rework, `2026-07-18-positional-movement.md`, owns `m0.5`). Companion: `2026-07-18-defense-and-player-stats-design.md` — both specs ship as one m0.6 version bump (new rng draws change replay draw order).
 
 ## Problem
@@ -75,7 +75,7 @@ else (rolling):
 
 Only `+ − × trunc compare` — bit-identical on every device. Truncation doubles as static friction (the ball genuinely stops).
 
-**Authority (round-3 review):** this block defines the per-tick *velocity update*; the contact resolver (below) is the **authoritative step function** that owns movement — it advances the position through the tick, processing contacts at their fractions (the whole-tick-then-bounce reading of the pseudocode is superseded). Kick solvers simulate by calling this same step function, so solver previews and live flight can never disagree.
+**Authority (round-3 review):** this block defines the per-tick *velocity update*; the contact resolver (below) is the **authoritative step function** that owns movement — it advances the position through the tick, processing contacts at their fractions (the whole-tick-then-bounce reading of the pseudocode is superseded). Kick solvers simulate by calling this same step function **in a pure preview mode: physics only, no player contacts, no state writes, no rng** (final-approval note) — so previews and live flight can never disagree, and solving consumes zero draws.
 
 Sanity checks at these values (gravity-first integrator: `vz0 = v` yields apex `Σ(v − G·k)` for `k = 1..`, i.e. `vz = 40` → **60 cm**, `vz = 100` → **~4.5 m**):
 - Firm 18 m/s ground pass travels ~14 m in ~1 s, arriving ~10 m/s. Feels like football.
@@ -175,7 +175,7 @@ spread = (BASE + (99 − control) × K) × (dist / REF_DIST) × pressureMult × 
 | `zAtLine > CROSSBAR (300)` | `MISS` (flavor `over`) — the new "skied it" |
 | otherwise | on target → GK save resolved at the **contact plane** (below), **modulated by placement**: centrality `c = clamp(1 − abs(xAtPlane − gkX)/(GOAL_W/2), 0, 1)` adds `+c × PM` to the keeper's side (clamped — a displaced GK must not produce a negative modifier) |
 
-**The save resolves at a keeper contact plane, not the goal line** (external review, accepted): the plane sits just inside the pitch (`~100 cm` in front of the line), so a parried ball spawns *in play*, never behind the line. The save uses the margin-contest primitive (§1): **strong** → caught, GK holds (today's behavior); **narrow** → **parry** — the ball's outgoing velocity is derived deterministically from the incoming one (reflected off the plane, horizontal speed reduced, direction biased by the impact offset from the GK's center — no extra rng draws), with small `z`/`vz` so it drops into the box for the scramble; **loss** → goal. `CATCH_MARGIN` starts strict (~70–80% of saves are catches).
+**The save resolves at a keeper contact plane, not the goal line** (external review, accepted): the plane sits just inside the pitch (`~100 cm` in front of the line), so a parried ball spawns *in play*, never behind the line. Keeper-plane contest candidates are generated **only for shots whose projected crossing is on target** (final-approval note) — wide/over balls never trouble the keeper. The save uses the margin-contest primitive (§1): **strong** → caught, GK holds (today's behavior); **narrow** → **parry** — the ball's outgoing velocity is derived deterministically from the incoming one (reflected off the plane, horizontal speed reduced, direction biased by the impact offset from the GK's center — no extra rng draws), with small `z`/`vz` so it drops into the box for the scramble; **loss** → goal. `CATCH_MARGIN` starts strict (~70–80% of saves are catches).
 
 The user's three named behaviors all emerge: *wide* and *over* from error vs. geometry; *straight at the keeper* because weak shooters aim centrally (b) and central on-target shots are easier to save (placement mod). GK Resolve survives unchanged.
 
