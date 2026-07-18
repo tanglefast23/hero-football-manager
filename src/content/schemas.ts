@@ -106,6 +106,52 @@ export const OnboardingContentSchema = z.strictObject({
   }
 });
 
+export const AssistantGuideSequenceIdSchema = z.enum([
+  'management-intro',
+  'squad-intro',
+  'desk-intro',
+]);
+
+const AssistantGuidePageSchema = z.strictObject({
+  kicker: displayNameSchema,
+  title: displayNameSchema,
+  body: z.array(displayNameSchema).min(1).max(2),
+  focus: z.enum(['assistant', 'money', 'navigation', 'desk', 'training']),
+  objective: displayNameSchema.optional(),
+  buttonLabel: displayNameSchema,
+  navItems: z.array(z.strictObject({
+    tab: z.enum(['HOME', 'SQUAD', 'CLUB', 'MARKET', 'LEAGUE']),
+    detail: displayNameSchema,
+  })).length(5).optional(),
+}).superRefine((page, context) => {
+  if (page.focus === 'navigation' && page.navItems === undefined) {
+    addIssue(context, ['navItems'], 'navigation guide page requires all five nav items');
+  }
+  if (page.focus !== 'navigation' && page.navItems !== undefined) {
+    addIssue(context, ['navItems'], 'only navigation guide pages may define nav items');
+  }
+});
+
+export const AssistantGuideContentSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  assistant: z.strictObject({
+    name: displayNameSchema,
+    role: displayNameSchema,
+    portraitArchetype: z.literal('GAFFER'),
+  }),
+  sequences: z.array(z.strictObject({
+    id: AssistantGuideSequenceIdSchema,
+    pages: z.array(AssistantGuidePageSchema).min(1).max(4),
+  })).length(3),
+}).superRefine((content, context) => {
+  addDuplicateIssues(content.sequences.map(sequence => sequence.id), context, ['sequences'], 'guide sequence ID');
+  for (const sequenceId of AssistantGuideSequenceIdSchema.options) {
+    if (!content.sequences.some(sequence => sequence.id === sequenceId)) {
+      addIssue(context, ['sequences'], `missing assistant guide sequence ${sequenceId}`);
+    }
+  }
+});
+
 const DrillGainsSchema = z.strictObject({
   pac: z.number().int().min(1).max(9).optional(),
   sho: z.number().int().min(1).max(9).optional(),
@@ -205,6 +251,7 @@ export const EventCatalogSchema = z.strictObject({
 });
 
 export const LaunchContentSchema = z.strictObject({
+  assistantGuide: AssistantGuideContentSchema,
   clubs: ClubCatalogSchema,
   onboarding: OnboardingContentSchema,
   powers: PowerCatalogSchema,
@@ -302,6 +349,8 @@ export type ClubCatalog = z.infer<typeof ClubCatalogSchema>;
 export type PowerDefinition = z.infer<typeof PowerDefinitionSchema>;
 export type PowerCatalog = z.infer<typeof PowerCatalogSchema>;
 export type OnboardingContent = z.infer<typeof OnboardingContentSchema>;
+export type AssistantGuideSequenceId = z.infer<typeof AssistantGuideSequenceIdSchema>;
+export type AssistantGuideContent = z.infer<typeof AssistantGuideContentSchema>;
 export type TrainingDrill = z.infer<typeof TrainingDrillSchema>;
 export type TrainingCatalog = z.infer<typeof TrainingCatalogSchema>;
 export type GameEvent = z.infer<typeof GameEventSchema>;

@@ -10,6 +10,8 @@ import {
   buildCareerTeams,
   buildTrainingGround,
   completeFirstOnboardingMatch,
+  completeAssistantGuideMilestone,
+  completeAssistantGuideSequence,
   completeMatchday,
   completeStoryOnboarding,
   createCareer,
@@ -17,6 +19,7 @@ import {
   deterministicCareerEventRoll,
   dismissCareerEvent,
   fixturesForCurrentWeek,
+  hasAssistantGuideMilestone,
   isFirstOnboardingFixture,
   onboardingAwakeningSeed,
   offerCareerEvent,
@@ -30,6 +33,7 @@ import {
   startNextSeason,
   withoutPowers,
   type CreatedPlayerDraft,
+  type AssistantGuideSequenceId,
   type GameState,
   type LeagueFixture,
   type OnboardingOrigin,
@@ -93,6 +97,7 @@ interface M1Store {
   chooseFirstAwakening: (origin: OnboardingOrigin) => void;
   continueFirstAwakening: () => void;
   setActiveTab: (tab: ManagementTab) => void;
+  completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
   openMatchday: () => void;
   advanceCareer: () => void;
   quickResult: () => void;
@@ -232,6 +237,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
     set({ activeTab, screen: 'management', error: null });
   },
 
+  completeAssistantGuide(sequenceId) {
+    guarded(set, () => {
+      const next = completeAssistantGuideSequence(requireCareer(get()), sequenceId);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
   openMatchday() {
     const career = get().career;
     if (career?.phase !== 'matchday') {
@@ -278,7 +291,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         return;
       }
 
-      const next = advanceWeek(career);
+      const advanced = advanceWeek(career);
+      const next = advanced.week !== career.week
+        && hasAssistantGuideMilestone(career, 'desk-intro-complete')
+        ? completeAssistantGuideMilestone(advanced, 'first-week-advanced')
+        : advanced;
       set({
         career: next,
         screen: next.phase === 'matchday'
@@ -521,7 +538,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         if (drill === undefined) throw new Error(`unknown training drill ${id}`);
         return drill;
       });
-      const next = applyCareerTraining(career, assigned, drills);
+      const next = completeAssistantGuideMilestone(
+        applyCareerTraining(career, assigned, drills),
+        'first-training-complete',
+      );
       set({
         career: next,
         assignedPlayerIds: [],

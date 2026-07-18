@@ -31,6 +31,7 @@ import type { MatchState } from './src/sim/types';
 import {
   ClubFinancesScreen,
   ClubHomeScreen,
+  AssistantGuideOverlay,
   CharacterCreationScreen,
   FirstAwakeningScreen,
   FixtureMatchDayScreen,
@@ -46,6 +47,10 @@ import {
 } from './src/ui';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import { useM1Store } from './src/application/store';
+import {
+  currentAssistantObjective,
+  pendingAssistantGuideSequence,
+} from './src/application/assistant-guide';
 import {
   clubFinancesViewModel,
   homeViewModel,
@@ -65,6 +70,7 @@ export default function App() {
   const [bootError, setBootError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<AppPreferences>(DEFAULT_APP_PREFERENCES);
   const [landingView, setLandingView] = useState<LandingView>('title');
+  const [assistantPageIndex, setAssistantPageIndex] = useState(0);
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [managementSettingsOpen, setManagementSettingsOpen] = useState(false);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
@@ -176,6 +182,31 @@ export default function App() {
     : content.powers.powers.find(
         power => power.id === onboardingPowerId,
       )?.name ?? onboardingPowerId;
+  const assistantSequenceId = store.screen === 'management' && store.career !== null
+    ? pendingAssistantGuideSequence(store.career, store.activeTab)
+    : null;
+  const assistantSequence = assistantSequenceId === null
+    ? undefined
+    : content.assistantGuide.sequences.find(sequence => sequence.id === assistantSequenceId);
+  const assistantPage = assistantSequence?.pages[
+    Math.min(assistantPageIndex, (assistantSequence?.pages.length ?? 1) - 1)
+  ];
+  const assistantObjective = store.career === null
+    ? null
+    : currentAssistantObjective(store.career);
+
+  useEffect(() => {
+    setAssistantPageIndex(0);
+  }, [assistantSequenceId]);
+
+  const advanceAssistantGuide = useCallback(() => {
+    if (assistantSequenceId === null || assistantSequence === undefined) return;
+    if (assistantPageIndex < assistantSequence.pages.length - 1) {
+      setAssistantPageIndex(index => index + 1);
+      return;
+    }
+    store.completeAssistantGuide(assistantSequenceId);
+  }, [assistantPageIndex, assistantSequence, assistantSequenceId, store.completeAssistantGuide]);
 
   let screen;
   if (!fontsLoaded && !fontError && bootError === null) {
@@ -306,6 +337,14 @@ export default function App() {
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setManagementSettingsOpen(true)}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
+        guideFocus={assistantPage?.focus === 'money' || assistantPage?.focus === 'navigation'
+          ? assistantPage.focus
+          : undefined}
+        guideObjective={assistantObjective?.text}
+        onGuideObjectivePress={assistantObjective?.targetTab !== undefined
+          && assistantObjective.targetTab !== store.activeTab
+          ? () => store.setActiveTab(assistantObjective.targetTab!)
+          : undefined}
       >
         {store.activeTab === 'squad' ? (
           <SquadTrainingScreen
@@ -353,6 +392,14 @@ export default function App() {
           volume={devVolume}
           onVolumeChange={volume => savePreferences({ ...preferences, masterVolume: volume })}
         />
+        {assistantSequenceId !== null ? (
+          <AssistantGuideOverlay
+            content={content.assistantGuide}
+            sequenceId={assistantSequenceId}
+            pageIndex={assistantPageIndex}
+            onAdvance={advanceAssistantGuide}
+          />
+        ) : null}
       </View>
     </SafeAreaProvider>
   );

@@ -1,3 +1,4 @@
+export * from './AssistantGuideOverlay';
 export * from './ManagementShell';
 export * from './models';
 export * from './components/Scorecard';

@@ -34,10 +34,13 @@ Haptics: power fired (heavy), goal (success), full gauge (light tick). Count-up 
 
 ## Onboarding (first 20 minutes, tutorialized by fiction)
 
-1. Cold open: you inherit the club mid-crisis — along with a mysterious **trialist on loan who already has a power**. In the first match, within the first two minutes, the assistant coach freezes the action once: "His gauge is full — TAP HIM NOW." One guided activation, one spectacular goal, and the player has seen why this isn't an ordinary football manager. (The trialist departs after Week 2, leaving the hunger; the differentiator must not wait for Week 3.)
-2. Week 2: training plan + first sponsor signing (guided).
-3. **Week 3 scripted event**: a mystery event awakens your first hero (guaranteed Super Speed on your best forward). Next match teaches the gauge tap with a slow-mo prompt.
-4. Systems unlock progressively: facilities W4, scouting W6, Hero Lab mentioned only via rumor text until Div 3. Tutorial never blocks Quick Result.
+1. Create the manager's former high-school player with a bounded six-stat point buy. The campaign starts with **zero heroes**.
+2. In the first club-office visit, assistant manager **Bert Rudge** establishes the step up from a national-championship high-school team to a professional club. He points out weekly wages, summarizes the five bottom-nav areas, and makes Home the player's reliable "what do I do next?" desk.
+3. Bert follows the Kairosoft cadence: one short return, one relevant system, one concrete objective. The guided quick start is **Open Squad → train one player once → return Home → read the desk and Advance Week**. Each milestone is saved and never repeats after completion; the guide does not hard-block other choices.
+4. Match 1 has no powers. At the final whistle the created player collapses, the one choice-driven awakening resolves, and the created player becomes hero #1. Match 2 introduces using the new power. Later awakenings keep the general stat-weighted fitting rule.
+5. Contracts, facilities, scouting and later systems are introduced only when their decisions become relevant. Tutorial text never attempts to explain the full game in advance and never blocks Quick Result.
+
+The approved Bert design and full copy cadence live in [the assistant-manager brainstorm](brainstorms/2026-07-19-assistant-manager-tutorial-brainstorm.md).
 
 ## Accessibility
 

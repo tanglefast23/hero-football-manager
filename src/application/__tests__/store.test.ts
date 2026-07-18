@@ -109,6 +109,23 @@ describe('M1 app store integration', () => {
     expect(after.clubs[0].cash).toBe(before.clubs[0].cash - 8000 - 400);
     expect(after.trainingPoints).toBe(before.trainingPoints - 10);
     expect(after.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac + 3);
+    expect(after.eventFlags).toContain('guide:bert:first-training-complete');
+  });
+
+  it('persists Bert guide progress and clears his first-week objective after advancing', () => {
+    startCreatedCareer(790);
+    useM1Store.getState().completeAssistantGuide('management-intro');
+    useM1Store.getState().completeAssistantGuide('squad-intro');
+    useM1Store.getState().completeAssistantGuide('desk-intro');
+
+    expect(useM1Store.getState().career?.eventFlags).toEqual(expect.arrayContaining([
+      'guide:bert:intro-complete',
+      'guide:bert:squad-intro-complete',
+      'guide:bert:desk-intro-complete',
+    ]));
+
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.eventFlags).toContain('guide:bert:first-week-advanced');
   });
 
   it('blocks a new career after a load failure without overwriting the save', async () => {

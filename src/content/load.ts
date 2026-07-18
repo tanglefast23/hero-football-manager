@@ -1,15 +1,18 @@
+import assistantGuideJson from '../../content/assistant-guide.json';
 import clubsJson from '../../content/clubs.json';
 import eventsJson from '../../content/events.json';
 import onboardingJson from '../../content/onboarding.json';
 import powersJson from '../../content/powers.json';
 import trainingJson from '../../content/training.json';
 import {
+  AssistantGuideContentSchema,
   ClubCatalogSchema,
   EventCatalogSchema,
   LaunchContentSchema,
   OnboardingContentSchema,
   PowerCatalogSchema,
   TrainingCatalogSchema,
+  type AssistantGuideContent,
   type ClubCatalog,
   type EventCatalog,
   type LaunchContent,
@@ -38,12 +41,17 @@ export function parseOnboardingContent(input: unknown): OnboardingContent {
   return OnboardingContentSchema.parse(input);
 }
 
+export function parseAssistantGuideContent(input: unknown): AssistantGuideContent {
+  return AssistantGuideContentSchema.parse(input);
+}
+
 export function parseLaunchContent(input: unknown): LaunchContent {
   return LaunchContentSchema.parse(input);
 }
 
 export function loadLaunchContent(): LaunchContent {
   return parseLaunchContent({
+    assistantGuide: assistantGuideJson,
     clubs: clubsJson,
     onboarding: onboardingJson,
     powers: powersJson,

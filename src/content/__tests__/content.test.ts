@@ -152,5 +152,19 @@ describe('validated M1 launch content', () => {
     ]);
     expect(content.onboarding.collapse).toContain('{name}');
     expect(content.onboarding.choices.every(choice => choice.reveal.includes('{name}'))).toBe(true);
+    expect(content.assistantGuide.assistant).toEqual({
+      name: 'Bert Rudge',
+      role: 'Assistant Manager',
+      portraitArchetype: 'GAFFER',
+    });
+    expect(content.assistantGuide.sequences.map(sequence => sequence.id)).toEqual([
+      'management-intro',
+      'squad-intro',
+      'desk-intro',
+    ]);
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'management-intro')
+      ?.pages.find(page => page.focus === 'navigation')
+      ?.navItems).toHaveLength(5);
   });
 });

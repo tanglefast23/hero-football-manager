@@ -1,3 +1,4 @@
+export * from './assistant-guide';
 export * from './career';
 export * from './career-events';
 export * from './event-clock';

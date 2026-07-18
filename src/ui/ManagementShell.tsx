@@ -58,6 +58,9 @@ export interface ManagementShellProps {
   onOpenSettings?: () => void;
   advanceWeekLabel?: string;
   advanceWeekDisabled?: boolean;
+  guideFocus?: 'money' | 'navigation';
+  guideObjective?: string;
+  onGuideObjectivePress?: () => void;
 }
 
 export function ManagementShell({
@@ -73,9 +76,14 @@ export function ManagementShell({
   onOpenSettings,
   advanceWeekLabel = 'Advance Week  ▸',
   advanceWeekDisabled = false,
+  guideFocus,
+  guideObjective,
+  onGuideObjectivePress,
 }: ManagementShellProps) {
   const resourceCluster = (
-    <View className="flex-row gap-1.5">
+    <View className={guideFocus === 'money'
+      ? 'flex-row gap-1.5 border-2 border-blue-dark bg-blue-light p-1'
+      : 'flex-row gap-1.5'}>
       <ResourceChip glyph="G" name="Money" value={resources.money} />
       <ResourceChip glyph="TP" name="Training points" value={resources.trainingPoints} />
       <ResourceChip glyph="✦" name="Hero essence" value={resources.heroEssence} tone="hero" />
@@ -124,6 +132,30 @@ export function ManagementShell({
       <View className="flex-1">{children}</View>
 
       <View className="border-t-2 border-ink bg-paper-dark px-3 pt-2">
+        {guideObjective ? (
+          onGuideObjectivePress ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Bert's current job: ${guideObjective}`}
+              onPress={onGuideObjectivePress}
+              className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
+              style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
+            >
+              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">Bert's job</Text>
+              <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">{guideObjective}</Text>
+              <Text className="font-mono text-lg font-bold text-ink">›</Text>
+            </Pressable>
+          ) : (
+            <View
+              accessible
+              accessibilityLabel={`Bert's current job: ${guideObjective}`}
+              className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
+            >
+              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">Bert's job</Text>
+              <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">{guideObjective}</Text>
+            </View>
+          )
+        ) : null}
         <ActionButton
           label={advanceWeekLabel}
           accessibilityLabel={advanceWeekLabel.replace('▸', '').trim()}
@@ -131,7 +163,12 @@ export function ManagementShell({
           disabled={advanceWeekDisabled}
           compact
         />
-        <View className="mt-2 flex-row" accessibilityRole="tablist">
+        <View
+          className={guideFocus === 'navigation'
+            ? 'mt-2 flex-row border-2 border-blue-dark bg-blue-light/40'
+            : 'mt-2 flex-row'}
+          accessibilityRole="tablist"
+        >
           {TABS.map(tab => {
             const selected = tab.id === activeTab;
             return (

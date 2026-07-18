@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "assistant": {
+    "name": "Bert Rudge",
+    "role": "Assistant Manager",
+    "portraitArchetype": "GAFFER"
+  },
+  "sequences": [
+    {
+      "id": "management-intro",
+      "pages": [
+        {
+          "kicker": "The old hand",
+          "title": "Bert Rudge",
+          "body": [
+            "So. You're the new manager.",
+            "Took a high-school team all the way to the national championship, did you? Very impressive. Apparently."
+          ],
+          "focus": "assistant",
+          "buttonLabel": "Go on..."
+        },
+        {
+          "kicker": "A professional club",
+          "title": "The books bite",
+          "body": [
+            "This is a REAL professional team. Players earn wages every week, whether they played like champions or garden furniture.",
+            "Contracts, facilities and the rest can wait until they matter. For now, keep one eye on the money at the top."
+          ],
+          "focus": "money",
+          "buttonLabel": "Got it"
+        },
+        {
+          "kicker": "The bottom rail",
+          "title": "Know your doors",
+          "body": [
+            "These are the only doors you need today. I'll explain the machinery behind them when it can actually hurt us."
+          ],
+          "focus": "navigation",
+          "buttonLabel": "And my desk?",
+          "navItems": [
+            { "tab": "HOME", "detail": "Your desk and today's work." },
+            { "tab": "SQUAD", "detail": "Pick players and train them." },
+            { "tab": "CLUB", "detail": "Wages, books and facilities." },
+            { "tab": "LEAGUE", "detail": "Table, fixtures and rivals." },
+            { "tab": "MARKET", "detail": "Shuttered until the board opens it." }
+          ]
+        },
+        {
+          "kicker": "Your main desk",
+          "title": "Read it first",
+          "body": [
+            "When you're unsure, come HOME. Read NEXT ASSIGNMENT and NEEDS YOUR CALL. That desk tells you what matters today.",
+            "Someone like you should manage that much. Probably."
+          ],
+          "focus": "desk",
+          "objective": "OPEN SQUAD.",
+          "buttonLabel": "Right. Off I go."
+        }
+      ]
+    },
+    {
+      "id": "squad-intro",
+      "pages": [
+        {
+          "kicker": "Bert's next job",
+          "title": "One player. One drill.",
+          "body": [
+            "Choose a player, assign a drill, then run the session. Training costs TP and money, so don't scatter it around because a button looks cheerful."
+          ],
+          "focus": "training",
+          "objective": "TRAIN ONE PLAYER ONCE.",
+          "buttonLabel": "I'll handle it."
+        }
+      ]
+    },
+    {
+      "id": "desk-intro",
+      "pages": [
+        {
+          "kicker": "Bert returns",
+          "title": "Back to your desk",
+          "body": [
+            "Not hopeless. Read NEXT ASSIGNMENT and NEEDS YOUR CALL. If the desk is clear, ADVANCE WEEK.",
+            "For someone like you, reading the desk before touching things will save us all a great deal of paperwork."
+          ],
+          "focus": "desk",
+          "objective": "READ THE DESK. THEN ADVANCE WEEK.",
+          "buttonLabel": "Understood."
+        }
+      ]
+    }
+  ]
+}
