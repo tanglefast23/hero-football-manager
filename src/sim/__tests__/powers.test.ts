@@ -229,15 +229,16 @@ describe('frozen-team bug: knockOut clears an active/winding power instead of fr
     expect(ready).toBe(true);
   });
 
-  // Natural repro (audit seeds 6/34/103): seed 6 deterministically red-cards Dario
-  // (player 9, FIRE_TORCH) while he is 'active' — pre-fix this froze teamPowerBusy
-  // for team 0 permanently (red card never returns), so Zip (player 10) recorded
-  // zero POWER_READY for the rest of the match. Verified directly against the
-  // pre-fix knockOut (git stash) before writing this assertion: pre-fix the
-  // POWER_READY-after list is empty; post-fix it is not — so this is a single
-  // deterministic seed, not a probabilistic scan across 1-40.
-  it('seed 6: Zip (10) still records a POWER_READY after Dario (9) is red-carded while active', () => {
-    const r = runMatch(6, ROVERS, UNITED, [], { homePolicy: 'FIRE_WHEN_READY' });
+  // Natural repro. Trajectory-dependent seed: the m0.4 repro seeds (6/34/103)
+  // stopped red-carding Dario under the m0.5 positional-movement tables, so the
+  // scan was re-run on m0.5 — seed 86 deterministically red-cards Dario
+  // (player 9, FIRE_TORCH) at tick 864 while he is 'active' (torch reds roll at
+  // activation) — pre-fix this froze teamPowerBusy for team 0 permanently (red
+  // card never returns), so Zip (player 10) recorded zero POWER_READY for the
+  // rest of the match. The mechanism itself is pinned by the rigged test above;
+  // this one keeps a whole-match natural pathway covered.
+  it('seed 86: Zip (10) still records a POWER_READY after Dario (9) is red-carded while active', () => {
+    const r = runMatch(86, ROVERS, UNITED, [], { homePolicy: 'FIRE_WHEN_READY' });
     const dario9Red = r.events.find(e => e.kind === 'CARD' && (e as { player: number; color: string }).player === 9 && (e as { color: string }).color === 'red') as { t: number } | undefined;
     expect(dario9Red).toBeDefined();
     const readyAfter = r.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER && e.t > dario9Red!.t);
