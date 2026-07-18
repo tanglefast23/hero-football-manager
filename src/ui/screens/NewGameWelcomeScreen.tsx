@@ -18,17 +18,17 @@ export interface NewGameWelcomeScreenProps {
  * `gold` marks the hero payoff word — the screen's single gold moment.
  */
 function MastheadLine({ text, tone = 'paper' }: { text: string; tone?: 'paper' | 'gold' }) {
-  const face = tone === 'gold' ? 'text-gold' : 'text-paper';
+  const face = tone === 'gold' ? 'text-gold' : 'text-ink';
   const shadow = tone === 'gold' ? 'text-gold-dark' : 'text-grey-dark';
   return (
     <View className="relative self-start">
       <Text
-        className={`absolute left-0 top-0 font-mono text-4xl font-bold uppercase leading-none ${shadow}`}
+        className={`absolute left-0 top-0 font-mono text-5xl font-bold uppercase leading-none ${shadow}`}
         style={{ transform: [{ translateX: 3 }, { translateY: 3 }] }}
       >
         {text}
       </Text>
-      <Text className={`font-mono text-4xl font-bold uppercase leading-none ${face}`}>{text}</Text>
+      <Text className={`font-mono text-5xl font-bold uppercase leading-none ${face}`}>{text}</Text>
     </View>
   );
 }
@@ -38,11 +38,11 @@ function BriefRow({ index, title, note, children }: { index: string; title: stri
   return (
     <View className="flex-row items-start gap-3">
       <View className="h-6 w-6 items-center justify-center bg-ink">
-        <Text className="font-mono text-xs font-bold text-paper">{index}</Text>
+        <Text className="font-mono text-sm font-bold text-paper">{index}</Text>
       </View>
       <View className="flex-1">
-        <Text className="text-sm font-bold uppercase tracking-wide text-ink">{title}</Text>
-        <Text className="mt-1 text-xs leading-4 text-ink/60">{note}</Text>
+        <Text className="text-base font-bold uppercase tracking-wide text-ink">{title}</Text>
+        <Text className="mt-1 text-sm leading-4 text-ink/60">{note}</Text>
         {children}
       </View>
     </View>
@@ -58,7 +58,7 @@ export function NewGameWelcomeScreen({
   onBackToTitle,
 }: NewGameWelcomeScreenProps) {
   return (
-    <SafeAreaView className="flex-1 bg-ink" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View className="flex-1 justify-between px-5 py-6">
           <View>
@@ -70,7 +70,7 @@ export function NewGameWelcomeScreen({
                 className="mb-5 min-h-11 self-start justify-center"
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
               >
-                <Text className="text-xs font-bold uppercase tracking-[2px] text-sky">‹ Title</Text>
+                <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">‹ Title</Text>
               </Pressable>
             ) : null}
             <View className="flex-row items-start justify-between">
@@ -78,17 +78,17 @@ export function NewGameWelcomeScreen({
               <View className="relative h-14 w-14 -rotate-2 items-center justify-center overflow-hidden border-2 border-ink bg-paper">
                 <View pointerEvents="none" className="absolute left-0 right-0 top-0 h-1.5 bg-white" />
                 <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-1.5 bg-paper-dark" />
-                <Text className="font-mono text-2xl font-bold text-ink">HF</Text>
+                <Text className="font-mono text-3xl font-bold text-ink">HF</Text>
               </View>
               {/* Board stamp — full red tint, hand-applied tilt */}
               <View className="rotate-2 border-2 border-b-4 border-red bg-red-light/30 px-3 py-1.5">
-                <Text className="font-mono text-xs font-bold uppercase tracking-[2px] text-red-dark">Board approved</Text>
+                <Text className="font-mono text-sm font-bold uppercase text-red-dark">Board approved</Text>
               </View>
             </View>
 
-            <View className="my-5 h-0.5 bg-ink-soft" />
+            <View className="my-5 h-0.5 bg-ink/20" />
 
-            <Text className="text-xs font-bold uppercase tracking-[3px] text-sky">A club in crisis</Text>
+            <Text className="text-sm font-bold uppercase tracking-[3px] text-blue-dark">A club in crisis</Text>
 
             <View className="mt-4 gap-1">
               <MastheadLine text="THE KEYS" />
@@ -97,7 +97,7 @@ export function NewGameWelcomeScreen({
               <MastheadLine text="HEROES." tone="gold" />
             </View>
 
-            <Text className="mt-5 max-w-sm text-sm leading-5 text-paper/70">
+            <Text className="mt-5 max-w-sm text-base leading-5 text-ink/70">
               A tiny ground. A nervous board. One blank registration card with your name waiting.
               Build the club they will talk about for decades.
             </Text>
@@ -140,7 +140,7 @@ export function NewGameWelcomeScreen({
                 className="min-h-11 items-center justify-center"
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
               >
-                <Text className="text-xs font-bold uppercase tracking-widest text-sky">Accessibility & controls</Text>
+                <Text className="text-sm font-bold uppercase tracking-widest text-blue-dark">Accessibility & controls</Text>
               </Pressable>
             ) : null}
           </View>

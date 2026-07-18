@@ -22,24 +22,24 @@ export function PostMatchLedgerScreen({
       : 'normal';
 
   return (
-    <SafeAreaView className="flex-1 bg-ink" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
         <View className="items-center py-3">
           <StatusChip label="Full time" tone={resultTone} />
-          <Text className="mt-3 text-xs font-bold uppercase tracking-[2px] text-sky">{result.competition}</Text>
+          <Text className="mt-3 text-sm font-bold uppercase text-blue-dark">{result.competition}</Text>
           <View className="mt-4 flex-row items-center gap-4">
-            <Text className="w-24 text-right text-sm font-bold uppercase text-paper" numberOfLines={2}>{result.homeTeam}</Text>
-            <View className="flex-row items-center border-2 border-paper bg-ink-soft px-4 py-3">
-              <Text className="font-mono text-2xl font-bold text-paper">{result.homeScore}</Text>
-              <Text className="mx-3 font-mono text-lg text-sky">–</Text>
-              <Text className="font-mono text-2xl font-bold text-paper">{result.awayScore}</Text>
+            <Text className="w-24 text-right text-base font-bold uppercase text-ink" numberOfLines={2}>{result.homeTeam}</Text>
+            <View className="flex-row items-center border-2 border-ink bg-ink px-4 py-3">
+              <Text className="font-mono text-3xl font-bold text-paper">{result.homeScore}</Text>
+              <Text className="mx-3 font-mono text-xl text-paper/60">–</Text>
+              <Text className="font-mono text-3xl font-bold text-paper">{result.awayScore}</Text>
             </View>
-            <Text className="w-24 text-sm font-bold uppercase text-paper" numberOfLines={2}>{result.awayTeam}</Text>
+            <Text className="w-24 text-base font-bold uppercase text-ink" numberOfLines={2}>{result.awayTeam}</Text>
           </View>
           <View className="mt-4 -rotate-2 border-2 border-stamp px-4 py-2">
-            <Text className="text-lg font-bold uppercase tracking-widest text-stamp">{result.outcomeLabel}</Text>
+            <Text className="text-xl font-bold uppercase text-stamp">{result.outcomeLabel}</Text>
           </View>
-          <Text className="mt-4 text-center text-sm text-paper/70">{result.headline}</Text>
+          <Text className="mt-4 text-center text-base text-ink/70">{result.headline}</Text>
         </View>
 
         <PaperPanel kicker="Accounts office" title="Match statement" stamp="Filed" className="mt-5">
@@ -52,8 +52,8 @@ export function PostMatchLedgerScreen({
                   : 'text-ink';
               return (
                 <View key={line.id} className="flex-row items-center border-b border-ink/10 py-3 last:border-b-0">
-                  <Text className="flex-1 text-sm text-ink">{line.label}</Text>
-                  <Text className={`font-mono text-sm font-bold ${color}`}>
+                  <Text className="flex-1 text-base text-ink">{line.label}</Text>
+                  <Text className={`font-mono text-base font-bold ${color}`}>
                     {line.amount > 0 ? '+' : ''}{formatCompactNumber(line.amount)}
                   </Text>
                 </View>
@@ -61,8 +61,8 @@ export function PostMatchLedgerScreen({
             })}
           </View>
           <View className="mt-3 flex-row items-center justify-between bg-ink px-3 py-3">
-            <Text className="text-sm font-bold uppercase tracking-widest text-paper">Net movement</Text>
-            <Text className={viewModel.netAmount < 0 ? 'font-mono text-lg font-bold text-red-300' : 'font-mono text-lg font-bold text-emerald-300'}>
+            <Text className="text-base font-bold uppercase text-paper">Net movement</Text>
+            <Text className={viewModel.netAmount < 0 ? 'font-mono text-xl font-bold text-red-300' : 'font-mono text-xl font-bold text-emerald-300'}>
               {viewModel.netAmount > 0 ? '+' : ''}{formatCompactNumber(viewModel.netAmount)}
             </Text>
           </View>
@@ -92,12 +92,12 @@ export function PostMatchLedgerScreen({
                   accessibilityLabel={`${highlight.minuteLabel}. ${highlight.description}`}
                   disabled={!onReplayHighlight}
                   onPress={() => onReplayHighlight?.(highlight.id)}
-                  className="min-h-12 flex-row items-center border border-paper/25 bg-ink-soft px-3 py-2"
+                  className="min-h-12 flex-row items-center border border-ink/25 bg-white px-3 py-2"
                   style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
                 >
-                  <Text className="w-12 font-mono text-sm font-bold text-signal">{highlight.minuteLabel}</Text>
-                  <Text className="flex-1 text-sm text-paper">{highlight.description}</Text>
-                  {onReplayHighlight ? <Text className="font-mono text-sm text-sky">▶</Text> : null}
+                  <Text className="w-12 font-mono text-base font-bold text-gold-dark">{highlight.minuteLabel}</Text>
+                  <Text className="flex-1 text-base text-ink">{highlight.description}</Text>
+                  {onReplayHighlight ? <Text className="font-mono text-base text-blue-dark">▶</Text> : null}
                 </Pressable>
               ))}
             </View>
@@ -105,7 +105,7 @@ export function PostMatchLedgerScreen({
         ) : null}
       </ScrollView>
 
-      <View className="border-t-2 border-sky/30 bg-ink-soft p-3">
+      <View className="border-t-2 border-ink/20 bg-white p-3">
         <ActionButton
           label="Back to the office  ▸"
           accessibilityLabel="Continue to club management"

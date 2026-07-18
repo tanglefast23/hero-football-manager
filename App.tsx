@@ -1,9 +1,11 @@
 import './global.css';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import { Silkscreen_400Regular, Silkscreen_700Bold } from '@expo-google-fonts/silkscreen';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { loadLaunchContent } from './src/content';
 import { createCareerRepository, createReplayRepository } from './src/persistence';
@@ -34,6 +36,7 @@ import {
   TitleLandingScreen,
   TitleSettingsScreen,
 } from './src/ui';
+import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import { useM1Store } from './src/application/store';
 import {
   clubFinancesViewModel,
@@ -54,6 +57,7 @@ export default function App() {
   const [bootError, setBootError] = useState<string | null>(null);
   const [devVolume, setDevVolume] = useState<DevVolume>(1);
   const [landingView, setLandingView] = useState<LandingView>('title');
+  const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
 
   useEffect(() => {
     setMasterVolume(devVolume);
@@ -144,7 +148,9 @@ export default function App() {
       )?.name ?? onboardingPowerId;
 
   let screen;
-  if (bootError !== null) {
+  if (!fontsLoaded && !fontError && bootError === null) {
+    screen = <LoadingScreen />;
+  } else if (bootError !== null) {
     screen = <BootFailure message={bootError} />;
   } else if (!store.persistenceReady) {
     screen = <LoadingScreen />;
@@ -297,21 +303,7 @@ export default function App() {
       <View className="flex-1 bg-ink">
         {screen}
         {store.error ? <ErrorNotice message={store.error} onDismiss={store.clearError} /> : null}
-        {__DEV__ ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Development volume ${devVolumePercent(devVolume)} percent`}
-            accessibilityHint="Cycles through mute, 25, 50, 75, and 100 percent"
-            hitSlop={8}
-            testID="dev-volume-button"
-            style={styles.volumeBtn}
-            onPress={() => setDevVolume(current => nextDevVolume(current))}
-          >
-            <Text style={styles.volumeText}>
-              {devVolume === 0 ? '🔇' : devVolume <= 0.5 ? '🔉' : '🔊'} {devVolumePercent(devVolume)}%
-            </Text>
-          </Pressable>
-        ) : null}
+        <SettingsOverlay volume={devVolume} onVolumeChange={setDevVolume} />
       </View>
     </SafeAreaProvider>
   );
@@ -354,23 +346,3 @@ function ErrorNotice({ message, onDismiss }: { message: string; onDismiss: () =>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  volumeBtn: {
-    position: 'absolute',
-    top: 52,
-    right: 12,
-    minWidth: 74,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1e2630',
-    borderColor: '#536273',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    zIndex: 1000,
-    elevation: 12,
-  },
-  volumeText: { color: 'white', fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
-});

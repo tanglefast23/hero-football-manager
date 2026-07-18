@@ -32,13 +32,13 @@ function ResourceChip({ glyph, name, value, tone }: {
       accessible
       accessibilityLabel={`${name}: ${formatCompactNumber(value)}`}
       className={hero
-        ? 'flex-row items-baseline gap-1 border-2 border-gold-dark bg-ink px-2 py-1'
-        : 'flex-row items-baseline gap-1 border-2 border-paper/25 bg-ink px-2 py-1'}
+        ? 'flex-row items-baseline gap-1 border-2 border-gold-dark bg-white px-2 py-1'
+        : 'flex-row items-baseline gap-1 border-2 border-ink bg-white px-2 py-1'}
     >
-      <Text className={hero ? 'font-mono text-[10px] font-bold text-gold' : 'font-mono text-[10px] font-bold text-sky'}>
+      <Text className={hero ? 'font-mono text-xs font-bold text-gold-dark' : 'font-mono text-xs font-bold text-blue-dark'}>
         {glyph}
       </Text>
-      <Text className={hero ? 'font-mono text-xs font-bold text-gold-light' : 'font-mono text-xs font-bold text-paper'}>
+      <Text className={hero ? 'font-mono text-sm font-bold text-gold-dark' : 'font-mono text-sm font-bold text-ink'}>
         {abbrev(value)}
       </Text>
     </View>
@@ -81,14 +81,14 @@ export function ManagementShell({
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-ink" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       {/* Persistent HUD bar — club + date on the left, resources on the right. */}
-      <View className="flex-row items-center justify-between gap-2 border-b-2 border-ink bg-ink-soft px-3 py-2">
+      <View className="flex-row items-center justify-between gap-2 border-b-2 border-ink bg-paper-dark py-2.5 pl-16 pr-3">
         <View className="flex-1 pr-1">
-          <Text className="text-sm font-bold uppercase tracking-wide text-paper" numberOfLines={1}>
+          <Text className="font-pixel text-base uppercase text-ink" numberOfLines={1}>
             {clubName}
           </Text>
-          <Text className="mt-0.5 font-mono text-xs font-bold uppercase tracking-wide text-sky" numberOfLines={1}>
+          <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark" numberOfLines={1}>
             {seasonLabel} · {weekLabel}
           </Text>
         </View>
@@ -108,7 +108,7 @@ export function ManagementShell({
 
       <View className="flex-1">{children}</View>
 
-      <View className="border-t-2 border-ink bg-ink-soft px-3 pt-2">
+      <View className="border-t-2 border-ink bg-paper-dark px-3 pt-2">
         <ActionButton
           label={advanceWeekLabel}
           accessibilityLabel={advanceWeekLabel.replace('▸', '').trim()}
@@ -130,10 +130,10 @@ export function ManagementShell({
                 className="min-h-12 flex-1 items-center justify-center"
                 style={({ pressed }) => ({ opacity: !tab.available ? 0.35 : pressed ? 0.7 : undefined })}
               >
-                <Text className={selected ? 'font-mono text-sm font-bold text-paper' : 'font-mono text-sm text-paper/60'}>
+                <Text className={selected ? 'font-mono text-lg font-bold text-ink' : 'font-mono text-lg text-ink/50'}>
                   {tab.glyph}
                 </Text>
-                <Text className={selected ? 'mt-1 text-xs font-bold uppercase text-paper' : 'mt-1 text-xs uppercase text-paper/50'}>
+                <Text className={selected ? 'mt-1 text-sm font-bold uppercase text-ink' : 'mt-1 text-sm uppercase text-ink/50'}>
                   {tab.label}
                 </Text>
               </Pressable>

@@ -19,8 +19,8 @@ export function ClubFinancesScreen({
     <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
       <View className="flex-row items-end justify-between">
         <View>
-          <Text className="text-xs font-bold uppercase tracking-[2px] text-sky">Accounts office</Text>
-          <Text className="mt-1 text-lg font-bold uppercase text-paper">Club finances</Text>
+          <Text className="text-sm font-bold uppercase text-blue-dark">Accounts office</Text>
+          <Text className="mt-1 text-xl font-bold uppercase text-ink">Club finances</Text>
         </View>
         <StatusChip label={viewModel.periodLabel} />
       </View>
@@ -37,7 +37,7 @@ export function ClubFinancesScreen({
         </View>
         {viewModel.wageSubsidyLabel ? (
           <View className="mt-3 border border-emerald-700 bg-emerald-100 px-3 py-2">
-            <Text className="text-xs font-bold uppercase tracking-wide text-emerald-800">
+            <Text className="text-sm font-bold uppercase tracking-wide text-emerald-800">
               {viewModel.wageSubsidyLabel}
             </Text>
           </View>
@@ -46,17 +46,17 @@ export function ClubFinancesScreen({
 
       <View className="mt-6">
         <SectionLabel eyebrow="Itemized statement" title="Every coin accounted for" />
-        <View className="border-2 border-paper/30 bg-ink-soft">
-          <View className="flex-row border-b border-paper/20 px-3 py-2">
-            <Text className="flex-1 text-xs font-bold uppercase tracking-wide text-paper/50">Entry</Text>
-            <Text className="text-right text-xs font-bold uppercase tracking-wide text-paper/50">Amount</Text>
+        <View className="border-2 border-ink bg-white">
+          <View className="flex-row border-b border-ink/20 px-3 py-2">
+            <Text className="flex-1 text-sm font-bold uppercase tracking-wide text-ink/50">Entry</Text>
+            <Text className="text-right text-sm font-bold uppercase tracking-wide text-ink/50">Amount</Text>
           </View>
           {viewModel.ledger.map(line => {
             const amountClass = line.kind === 'income'
-              ? 'text-emerald-300'
+              ? 'text-pitch-dark'
               : line.kind === 'expense'
-                ? 'text-red-300'
-                : 'text-paper';
+                ? 'text-red-dark'
+                : 'text-ink';
             return (
               <Pressable
                 key={line.id}
@@ -64,11 +64,11 @@ export function ClubFinancesScreen({
                 accessibilityLabel={`${line.label}, ${line.amount > 0 ? 'plus ' : ''}${formatCompactNumber(line.amount)}`}
                 disabled={!onOpenLedgerLine}
                 onPress={() => onOpenLedgerLine?.(line.id)}
-                className="min-h-11 flex-row items-center border-b border-paper/10 px-3 py-2"
+                className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
               >
-                <Text className="flex-1 text-sm text-paper">{line.label}</Text>
-                <Text className={`font-mono text-sm font-bold ${amountClass}`}>
+                <Text className="flex-1 text-base text-ink">{line.label}</Text>
+                <Text className={`font-mono text-base font-bold ${amountClass}`}>
                   {line.amount > 0 ? '+' : ''}{formatCompactNumber(line.amount)}
                 </Text>
               </Pressable>
@@ -88,8 +88,8 @@ export function ClubFinancesScreen({
               </View>
             </View>
             <View className="flex-1">
-              <Text className="text-sm font-bold uppercase text-ink">Training Ground · Level 1</Text>
-              <Text className="mt-2 text-xs leading-4 text-ink/60">
+              <Text className="text-base font-bold uppercase text-ink">Training Ground · Level 1</Text>
+              <Text className="mt-2 text-sm leading-4 text-ink/60">
                 A proper weekly practice base. Small, dependable improvement without adding another management chore.
               </Text>
             </View>
@@ -98,7 +98,7 @@ export function ClubFinancesScreen({
             <Metric label="Build cost" value={formatCompactNumber(facility.cost)} tone="negative" />
             <Metric label="Weekly return" value={`+${facility.weeklyTrainingPoints} TP`} tone="positive" />
           </View>
-          <Text className="mt-3 text-xs font-bold uppercase tracking-wide text-ink/50">
+          <Text className="mt-3 text-sm font-bold uppercase tracking-wide text-ink/50">
             M1 offer: 8,000 cost · +5 TP every week
           </Text>
           <View className="mt-3">
@@ -110,7 +110,7 @@ export function ClubFinancesScreen({
             />
           </View>
           {!facility.built && !facility.affordable ? (
-            <Text className="mt-2 text-center text-xs font-bold uppercase tracking-wide text-stamp">
+            <Text className="mt-2 text-center text-sm font-bold uppercase tracking-wide text-stamp">
               Insufficient balance
             </Text>
           ) : null}

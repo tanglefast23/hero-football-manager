@@ -19,12 +19,12 @@ export interface PaperPanelProps {
   className?: string;
 }
 
-/** Chunky pixel panel: dark ink outline with a thicker bottom edge for depth. */
+/** Chunky pixel card: white face, thick ink outline with a deeper bottom edge. */
 export function PaperPanel({ children, title, kicker, stamp, className }: PaperPanelProps) {
   return (
     <View
       className={cx(
-        'relative border-2 border-b-4 border-ink bg-paper p-4',
+        'relative border-2 border-b-4 border-ink bg-white p-4',
         className,
       )}
     >
@@ -32,15 +32,15 @@ export function PaperPanel({ children, title, kicker, stamp, className }: PaperP
         <View className="mb-3 flex-row items-start justify-between gap-3">
           <View className="flex-1">
             {kicker ? (
-              <Text className="font-mono text-xs font-bold uppercase tracking-[2px] text-stamp">{kicker}</Text>
+              <Text className="font-mono text-sm font-bold uppercase text-stamp">{kicker}</Text>
             ) : null}
             {title ? (
-              <Text className="mt-1 text-lg font-bold uppercase tracking-wide text-ink">{title}</Text>
+              <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
             ) : null}
           </View>
           {stamp ? (
             <View className="border-2 border-b-4 border-stamp bg-red-light/40 px-2 py-1">
-              <Text className="font-mono text-xs font-bold uppercase tracking-widest text-stamp">{stamp}</Text>
+              <Text className="font-mono text-sm font-bold uppercase text-stamp">{stamp}</Text>
             </View>
           ) : null}
         </View>
@@ -70,8 +70,8 @@ interface ActionButtonProps {
 }
 
 /**
- * Pixel-bible beveled button: ink outline, bright top highlight, solid face,
- * dark bottom lip. Presses "in" (drops 2px, highlight hides) for tactile feel.
+ * Pixel-bible beveled button: thick ink outline, rounded chunky corners, a bold
+ * top-third gloss, a dark bottom lip, a vibrant face, and a pixel-font label.
  */
 export function ActionButton({
   label,
@@ -93,9 +93,9 @@ export function ActionButton({
       disabled={disabled}
       onPress={onPress}
       className={cx(
-        'relative min-h-11 items-center justify-center overflow-hidden border-2 border-ink px-4',
+        'relative min-h-12 items-center justify-center overflow-hidden rounded-lg border-2 border-ink px-4',
         ramp.face,
-        compact ? 'py-2' : 'py-3',
+        compact ? 'py-2.5' : 'py-3.5',
         disabled && 'opacity-60',
       )}
       style={({ pressed }) => ({
@@ -104,11 +104,20 @@ export function ActionButton({
     >
       {({ pressed }) => (
         <>
+          {/* bold top-third gloss — clipped to the rounded corners */}
           {!pressed && !disabled ? (
-            <View pointerEvents="none" className={cx('absolute left-0 right-0 top-0 h-1.5', ramp.light)} />
+            <View pointerEvents="none" className={cx('absolute inset-x-0 top-0', compact ? 'h-4' : 'h-5', ramp.light)} />
           ) : null}
-          <View pointerEvents="none" className={cx('absolute bottom-0 left-0 right-0 h-1.5', ramp.lip)} />
-          <Text className={cx('text-sm font-bold uppercase tracking-widest', ramp.text)}>{label}</Text>
+          {/* dark bottom lip — the raised depth */}
+          <View pointerEvents="none" className={cx('absolute inset-x-0 bottom-0 h-2', ramp.lip)} />
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            className={cx('font-pixel text-sm uppercase', ramp.text)}
+            style={{ textShadowColor: 'rgba(36,31,46,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 0 }}
+          >
+            {label}
+          </Text>
         </>
       )}
     </Pressable>
@@ -131,9 +140,9 @@ export function Metric({ label, value, tone = 'normal' }: MetricProps) {
         : 'text-ink';
 
   return (
-    <View className="min-w-0 flex-1 border-2 border-b-4 border-ink/70 bg-paper px-2 py-2">
-      <Text className="text-xs font-bold uppercase tracking-wide text-ink/60">{label}</Text>
-      <Text className={cx('mt-1 font-mono text-sm font-bold', valueColor)} numberOfLines={1}>
+    <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-2 py-2">
+      <Text className="text-sm font-bold uppercase text-ink/60">{label}</Text>
+      <Text className={cx('mt-1 font-mono text-base font-bold', valueColor)} numberOfLines={1}>
         {value}
       </Text>
     </View>
@@ -150,8 +159,8 @@ export function SectionLabel({ eyebrow, title, right }: SectionLabelProps) {
   return (
     <View className="mb-3 flex-row items-end justify-between gap-3">
       <View className="flex-1">
-        <Text className="font-mono text-xs font-bold uppercase tracking-[2px] text-sky">{eyebrow}</Text>
-        <Text className="mt-1 text-lg font-bold uppercase tracking-wide text-paper">{title}</Text>
+        <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{eyebrow}</Text>
+        <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
       </View>
       {right}
     </View>
@@ -173,11 +182,11 @@ export function StatusChip({ label, selected = false, tone = 'normal' }: StatusC
         ? 'border-pitch-dark bg-pitch-light text-ink'
         : tone === 'danger'
           ? 'border-red-dark bg-red-light text-ink'
-          : 'border-ink/40 bg-paper text-ink';
+          : 'border-ink/40 bg-white text-ink';
 
   return (
-    <View className={cx('min-h-7 justify-center border-2 px-2 py-1', palette)}>
-      <Text className={cx('text-xs font-bold uppercase tracking-wide', palette.split(' ').find(c => c.startsWith('text-')))}>
+    <View className={cx('min-h-8 justify-center border-2 px-2 py-1', palette)}>
+      <Text className={cx('text-sm font-bold uppercase', palette.split(' ').find(c => c.startsWith('text-')))}>
         {label}
       </Text>
     </View>

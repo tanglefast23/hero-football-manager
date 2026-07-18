@@ -1,14 +1,14 @@
 # 11 — Art Style (Pixel Bible)
 
-The look: **B+ "heroic chibi" pixel art**. Two rendering tracks share one palette so the whole game reads as one world. This doc is canon for how art is *drawn*; UI colour-role and chrome discipline live in [08-ui-ux.md](08-ui-ux.md) (60-30-10, hero-gold reserved) and this doc defers to it for *usage*.
+The look: **B+ "heroic chibi" pixel art** — bright, chunky, hand-built, a little storybook. Two rendering tracks share one palette and one pixel font so the whole game reads as one world. This doc is canon for how everything is *drawn*; UI colour-role and chrome discipline live in [08-ui-ux.md](08-ui-ux.md) (60-30-10, hero-gold reserved) and this doc defers to it for *usage*.
 
-A rendered visual companion exists — the style-guide page with every swatch, the bevel construction, the shading ramp, and the worked caricature/expression examples. (Private Claude artifact: `claude.ai/code/artifact/6cdbc00c-02c4-4e8d-b8ac-e3df858bde25`. The hexes and rules below are the source of truth; the page just shows them.)
+A rendered visual companion exists — the style-guide page with swatches, the button construction, the shading ramp, and worked examples. (Claude artifact: `claude.ai/code/artifact/6cdbc00c-02c4-4e8d-b8ac-e3df858bde25`. The hexes and rules below are the source of truth; the page shows them.)
 
-## Two tracks, one palette
+## Two tracks, one palette, one font
 
-- **Track A — Interactive UI** (buttons, toggles, tabs, sliders, chrome): a hard **bevel** — dark outline, bright top highlight, solid face, dark bottom lip. Reads raised, glossy, pressable.
-- **Track B — Character & object art** (players, people, fans, buildings, trophies, items, icons): a **soft coloured outline** (a dark tint of the fill, never pure black), 3–4 value shading, chibi shapes, and **one feature exaggerated**. Reads hand-drawn and full of character.
-- **Never mix the recipes.** A face is not beveled like a button; a button is not shaded like a sprite.
+- **Track A — Interactive UI** (buttons, toggles, tabs, sliders, chrome): a **chunky pixel bevel** — a *thick* outline, *rounded* chunky corners, a *bold two-tone* face (bright top, dark lip), and a **pixel-font** label. Reads fat, tactile, unmistakably pressable. Never a flat tinted rectangle.
+- **Track B — World & character art** (players, people, fans **and** buildings, the clubhouse, stands, goals & nets, pitch furniture, trophies, items, icons): a **soft coloured outline** (a dark tint of the fill, never pure black), 3–4 value ramp shading, chunky readable silhouettes. Characters add caricature; objects add character of their own.
+- **Never mix the recipes.** A face is not beveled like a button; a button is not shaded like a sprite; a building is drawn like a sprite, not extruded like a button.
 
 ## Master palette
 
@@ -16,81 +16,109 @@ Every colour comes from here. Author art as indexed PNG with the palette locked.
 
 ### Core families — UI + art
 
-| Family | Shadow | Base | Light | Meaning (see 08) |
+| Family | Shadow / lip | Base / face | Light / highlight | Meaning (see 08) |
 |---|---|---|---|---|
 | Violet | `#5b3a91` | `#9a63d6` | `#c9a6ec` | Confirm / primary |
 | Red | `#a83440` | `#d94f52` | `#f2938c` | Cancel / destructive |
 | Blue | `#3f6fb5` | `#5a8fd6` | `#a3c8f0` | Neutral action |
 | Gold | `#c8862a` | `#edb54a` | `#f7d894` | **Hero / reward only** |
-| Grey | `#6b6675` | `#9a95a4` | `#c9c5d0` | Disabled / structure |
+| Grey | `#6b6675` | `#9a95a4` | `#c9c5d0` | Disabled / structure / metal |
 
-Shared neutrals used by both tracks: **Ink** `#241f2e` · **Cream** `#f4f1ea` · **White** `#ffffff`.
+Shared neutrals: **Ink** `#241f2e` (outlines, text, structure) · **Cream** `#f4f1ea` · **White** `#ffffff`.
 
-> Gold is "hero gold." Per [08](08-ui-ux.md) it may only mark hero/power/reward moments — never plain settings or generic emphasis.
+> Gold is "hero gold." Per [08](08-ui-ux.md) it only marks hero/power/reward moments — never plain settings or generic emphasis.
+
+### Canvas & theme
+
+- **Cream `#f4f1ea` is the primary background** — the bright, calm 60% canvas the whole game sits on (matches the reference button sheet's world). Ink `#241f2e` is text/outline/structure. Buttons and hero art are where the palette gets **loud** against that calm cream.
+- A **dark theme** (deep plum-charcoal ground, cream text) is a secondary mode, not the default. Design cream-first.
 
 ### Extended world — art track only (same 4-value ramp discipline)
 
 | Ramp | Shadow | Base | Light |
 |---|---|---|---|
 | Skin | `#cf9268` | `#eab48c` | `#f7d7ba` |
-| Hair / wood / leather | `#6a4326` | `#8a5a30` | `#a9743d` |
+| Wood / leather / hair | `#6a4326` | `#8a5a30` | `#a9743d` |
 | Pitch / turf | `#3f8a4a` | `#5cb85c` | `#8fd98f` |
 
-Face extras: soft skin outline `#6a4326`, nostril/deep-crease `#b07a52`, grey hair `#7d7887`/`#b9b4c2`. Deeper skin tones extend the Skin ramp darker (e.g. shadow `#8a4f38`) — same discipline, more range; the game's players are diverse.
+Face extras: soft skin outline `#6a4326`, nostril/crease `#b07a52`, grey hair `#7d7887`/`#b9b4c2`. Deeper skin tones extend the Skin ramp darker (e.g. `#8a4f38`) — same discipline, more range; players are diverse. Metal/concrete/posts use the **Grey** ramp; walls use **Cream/Grey**.
 
-**Rule:** pick a family, use its ramp. A shape uses one family + ink + cream + at most one neutral for a contact shadow. Extend a ramp when you need more range; never invent a one-off colour.
+**Rule:** pick a ramp, use its four steps. A shape uses one family + ink + cream + at most one neutral for a contact shadow. Extend a ramp for more range; never invent a one-off colour.
 
-## Track A — the button recipe
+## Typography — the pixel font
 
-9-slice beveled buttons. The frame scales to any label; only the ramp changes. **Meaning is carried by colour, not by shape.** Four fixed values per family (violet example):
+The game speaks in **one bitmap pixel font: Silkscreen** (`@expo-google-fonts/silkscreen`). Because it's a true pixel font, type reads as part of the art, not layered on top.
 
-| Layer | Rule | Violet |
+- **Display / buttons / labels / headings / eyebrows:** Silkscreen **Bold**, uppercase, letter-spaced. This is the default voice — every button label, tab, title, stat label.
+- **Numerals & data** (money, stats, tables): Silkscreen with `tabular-nums` so digits align in columns.
+- **Long body copy** (event narration, tooltips, paragraphs): a clean readable **sans** — pixel fonts are exhausting to *read*. Pixel font for short punchy strings; readable font for anything longer than a sentence.
+- **Sizes ≤4 per screen, weights regular + bold** (per [08](08-ui-ux.md)). Render at **integer** point sizes; never blur/anti-alias pixel type at 1× — it defeats the look.
+
+## Track A — the button recipe (chunky, rounded, two-tone)
+
+Every button is a **fat pixel lozenge**, not a flat tinted rect. Meaning is carried by colour; shape is always this. Construction, at native res on a ~44–48px-tall button:
+
+| Layer | Rule | Violet example |
 |---|---|---|
-| Outline | 1px dark border; corners notched 1px | `#35234f` |
-| Highlight | top 3 rows + left edge — the gloss | `#c9a6ec` |
-| Face | solid mid-tone body | `#9a63d6` |
-| Lip | bottom 3 rows — the raised depth | `#6d3fa6` |
+| **Outline** | **2px** solid dark border, all the way around | `#35234f` (or ink `#241f2e`) |
+| **Corners** | **Rounded chunky** — a 2–3px stepped pixel radius. Not square, not a 1px notch | — |
+| **Highlight** | the **top ~40%** is the family **light** tint — a bold gloss band, *not* a 1px line; plus a 1px lighter rim on the top+left inner edge | `#c9a6ec` |
+| **Face** | the family **base** fills the body — vibrant, saturated | `#9a63d6` |
+| **Lip** | the **bottom 2–3px** is the family **shadow/dark** — the raised depth | `#6d3fa6` |
+| **Label** | **Silkscreen bold**, uppercase, cream/white, 1px ink drop-shadow, centred + tracked | `#f4f1ea` on face |
+| **At rest** | optional 1–2px ink contact-shadow *under* the whole button | — |
+| **Pressed** | button drops ~2px and the top highlight collapses — reads as pushed in | — |
 
-Labels: cream mono, uppercase, tracked, with a 1px ink drop-shadow. Disabled = grey ramp, dimmed label. Reserve red for genuinely destructive/negative actions only. Vivid buttons are for primary actions and moments; everyday chrome stays calm per [08](08-ui-ux.md).
+Proportions on a 48px button: outline 2px · corner radius 2–3px · highlight band ~18px (top ~40%) · lip 2–3px.
 
-## Track B — character & object art
+Colour = meaning (per [08](08-ui-ux.md)): **violet** confirm/primary · **red** cancel/destructive · **blue** neutral action · **gold** hero/reward only · **grey** disabled. Faces are **vibrant** — buttons are exactly where the palette is allowed to shout, against the calm cream canvas. Reserve red for genuinely destructive actions.
 
-### Rule 1 — Exaggerate; break the thirds
+## Track B — world & character art
 
-A normal face splits into even thirds: hairline→brow, brow→nose, nose→chin. **A caricature refuses to keep them even** — one third balloons and the others shrink to make room. Find the feature that defines the character, blow it up hard, and let it steal space from everything else. Push the **eyes** to the extremes too: giant all-pupil orbs with no white, or tiny 1–2px beady dots — the choice is a personality, not a default. **One big move per face; keep the rest quiet** so the exaggeration lands.
+Soft coloured outline (dark tint of the fill, never `#000000`), 3–4 value ramp shading, light from the **upper-left**, hard bands (no gradients, no anti-aliasing), chunky silhouette.
 
-Reference archetypes (each breaks a different third, each a different eye treatment):
+### Characters — Rule 1: exaggerate; break the thirds
 
-- **The Wonderkid** — middle third swallowed by eyes; the *whole eye is the pupil*, no white, one sparkle.
-- **The Enforcer** — lower third exploded into a giant jaw + gritted mouth; tiny 1px beady pupils under a heavy brow.
-- **The Gaffer** — bald tiny upper third; middle third owned by a bulbous nose, heavy brow, and moustache; deep-set dot eyes.
+A normal face splits into even thirds (hairline→brow, brow→nose, nose→chin). **A caricature refuses to keep them even** — one third balloons, the others shrink. Find the defining feature, blow it up, let it steal space. Push the **eyes** to extremes: giant all-pupil orbs with no white, or tiny 1–2px beady dots — a personality, not a default. **One big move per face; keep the rest quiet.**
 
-### Rule 2 — Expression sets
+Archetypes: **Wonderkid** (eyes eat the face, whole eye = pupil, one sparkle) · **Enforcer** (huge jaw + gritted mouth, 1px beady pupils) · **Gaffer** (bald tiny upper third, bulbous nose + heavy brow + moustache, deep-set dots).
 
-Faces are **eyes-and-mouth swaps over a fixed head** — the head stays put, only the features change. Ship each character with at least three: **resting**, **peak-joy** (closed happy arcs + open grin), **knocked-out**. **X-for-eyes is the universal KO / faint tell**; gritted teeth sell the pain. In game one portrait reacts live — neutral on the ball → X-eyes when injured → grin on a goal — with no full redraw.
+### Characters — Rule 2: expression sets
 
-### Rule 3 — Shade with a 4-value ramp
+Faces are **eyes-and-mouth swaps over a fixed head**. Ship **resting / peak-joy / knocked-out** minimum. **X-for-eyes is the universal KO tell**; gritted teeth sell pain. One portrait reacts live — neutral on the ball → X-eyes injured → grin on a goal — no full redraw.
 
-Light comes from the **upper-left, always**. Each form uses four steps of one ramp — core, shadow, light, highlight — quantised into hard bands. No smooth gradients, no anti-aliased edges. Highlights top-left, contact shadow bottom-right.
+### World objects, props & architecture
 
-### Outlines
+Buildings, goals, and items obey the same outline + 4-value shading as characters, **plus**:
 
-Art outline = the **darkest step of that shape's own ramp** (a coloured dark), never `#000000` — that softness is what separates our look from harsh clip-art. 1px weight at native resolution. UI outline = the single dark ink `#241f2e`.
+- **Silhouette first.** It must read as a solid black shape before any detail. Chunky, slightly stubby proportions to match the chibi cast — a storybook miniature, not a blueprint.
+- **Give it character.** Props are never sterile. Exaggerate one defining feature — a tall crooked chimney, an oversized hand-painted sign, a bulging kit bag, a wonky goal frame. One deliberate imperfection reads as "hand-built" — that's the charm.
+- **One coloured outline.** 1px dark-tint outline around the whole silhouette and the major internal edges — the darkest step of that material's ramp, never `#000000`.
+- **4-value material shading.** Lit plane (upper-left) → base → shadow → dark. Buildings: lit wall vs shadowed wall + a 1px roof-eave highlight. Give every object **one ground contact shadow** — a squashed ink ellipse at low opacity.
+- **Materials from the palette:** cream/grey walls, **wood/leather brown** ramp, **pitch green** turf, **grey** ramp for metal/concrete/posts, **gold** only for silverware/hero fixtures. Same ramp discipline, no one-off colours.
+- **Perspective:** menu & prop art is **flat front-elevation** (straight-on, no vanishing point) — easiest to read and to build as a family. The match pitch keeps its own side/¾ view (see [03](03-match-engine.md)); never drop a perspective building into the flat menu set.
+- **Scale:** buildings in multiples of `16px`; small props/items `16` or `24px`; a goal frame sized to its pitch context.
+
+**Worked objects**
+- **Clubhouse / stand** — cream wall (lit left, shadowed right), red pitched roof with a 1px highlight eave, blue windows, brown door, grass strip at the base; a crooked chimney or hanging sign for character.
+- **Goal & net** — white/cream posts + crossbar, grey-dark outline, 1px gloss on the lit side. The **net is implied, not literal**: a light-grey 1px lattice (square or diagonal mesh) across the goal mouth at ~50% density, fading toward the back. Read the mesh, never draw every hole.
+- **Ball** — shaded white sphere + Telstar pentagon panels (see companion).
+- **Trophy / item icons** — `16px`, gold ramp for silverware, one highlight pip.
 
 ## Shared foundations
 
 | Rule | Detail |
 |---|---|
-| Native resolution | Item icons `16px`; portraits `24×29` (head + shoulders + kit — the torso runs long enough to read team colour and build); buildings in multiples of `16`. |
+| Native resolution | Item/props icons `16`–`24px`; portraits `24×29` (head + shoulders + kit); buildings multiples of `16`; goal frame to pitch scale. |
 | Pixel grid | One logical pixel = the unit; never half-pixels. On-screen scaling is always an integer multiple (×2/×3/×4). |
-| Render settings | `image-rendering: pixelated` in DOM; `FilterMode.Nearest` in Skia. Never bilinear-filter a sprite. |
-| Light direction | Upper-left, always. |
-| Atlas & export | Packed Skia **Atlas** — one draw call, never one node per sprite (see [03](03-match-engine.md)/[09](09-tech-stack.md)). Portraits ship as a base head + a small eye/mouth overlay sheet. |
-| File naming | `track/category/name@1x.png` — e.g. `art/player/striker_ko@1x.png`, `ui/button/confirm.png`. |
-| Spacing | Anything the sprites sit inside obeys the 8-pt grid (`4 / 8 / 12 / 16 / 24 / 32`), per [08](08-ui-ux.md). |
+| Render settings | `image-rendering: pixelated` in DOM; `FilterMode.Nearest` in Skia. Never bilinear-filter a sprite or blur pixel type. |
+| Light direction | Upper-left, always. Contact shadow bottom-right / on the ground. |
+| Atlas & export | Packed Skia **Atlas** — one draw call, never one node per sprite (see [03](03-match-engine.md)/[09](09-tech-stack.md)). Portraits ship base head + eye/mouth overlay sheet. |
+| File naming | `track/category/name@1x.png` — `art/player/striker_ko@1x.png`, `art/prop/goal_net@1x.png`, `ui/button/confirm.png`. |
+| Spacing | The 8-pt grid everywhere (`4 / 8 / 12 / 16 / 24 / 32`), per [08](08-ui-ux.md). |
 
 ## Do / don't
 
-**Do** — break the thirds; one exaggeration per face; outline in a dark tint of the fill; 3–4 values with hard bands; ship a resting / joy / KO set per face.
+**Do** — cream canvas, vibrant chunky buttons; thick 2px outlines and rounded corners on UI; Silkscreen pixel-font labels; on art, coloured outlines + 4-value bands + one character-giving exaggeration + a ground contact shadow; break the thirds on faces; ship resting/joy/KO sets.
 
-**Don't** — flat, symmetrical, feature-less faces; `#000000` outlines; smooth gradients or anti-aliased edges; bevel/gloss on sprites (that's the button recipe); one-off colours outside the palette.
+**Don't** — flat square tinted-rectangle buttons; thin 1px UI outlines; system font on labels; `#000000` outlines; smooth gradients or anti-aliasing; blueprint-flat sterile props; literal every-hole nets; mixed perspective in the menu set; bevel/gloss on sprites; one-off colours outside the palette.

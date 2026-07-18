@@ -35,12 +35,12 @@ export function FirstAwakeningScreen({
   const selectedCopy = content.choices.find(choice => choice.origin === selectedOrigin);
 
   return (
-    <SafeAreaView className="flex-1 bg-ink" edges={['top', 'left', 'right', 'bottom']}>
-      <View className={revealed ? 'border-b-2 border-signal bg-ink-soft px-5 py-4' : 'border-b-2 border-stamp bg-ink-soft px-5 py-4'}>
-        <Text className={revealed ? 'text-xs font-bold uppercase tracking-[3px] text-signal' : 'text-xs font-bold uppercase tracking-[3px] text-stamp'}>
+    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+      <View className={revealed ? 'border-b-2 border-signal bg-white px-5 py-4' : 'border-b-2 border-stamp bg-white px-5 py-4'}>
+        <Text className={revealed ? 'text-sm font-bold uppercase text-gold-dark' : 'text-sm font-bold uppercase text-stamp'}>
           Final whistle · incident report
         </Text>
-        <Text className="mt-2 text-2xl font-bold uppercase leading-7 text-paper">
+        <Text className="mt-2 text-3xl font-bold uppercase leading-8 text-ink">
           {revealed ? 'That was no injury.' : `${playerName} is down.`}
         </Text>
       </View>
@@ -51,11 +51,11 @@ export function FirstAwakeningScreen({
             <View className="absolute h-1 w-44 rotate-45 bg-paper/70" />
             <View className="absolute h-1 w-44 -rotate-45 bg-paper/70" />
             <View className={revealed ? 'h-20 w-14 items-center justify-center border-4 border-paper bg-signal' : 'h-10 w-24 rotate-6 items-center justify-center border-4 border-paper bg-stamp'}>
-              <Text className="font-mono text-xl font-bold text-ink">{revealed ? '★' : '!!'}</Text>
+              <Text className="font-mono text-2xl font-bold text-ink">{revealed ? '★' : '!!'}</Text>
             </View>
           </View>
           <View className={revealed ? 'mt-5 -rotate-2 border-2 border-signal bg-signal px-4 py-2' : 'mt-5 rotate-2 border-2 border-stamp px-4 py-2'}>
-            <Text className="text-xs font-bold uppercase tracking-[2px] text-paper">
+            <Text className={revealed ? 'text-sm font-bold uppercase text-ink' : 'text-sm font-bold uppercase text-stamp'}>
               {revealed ? 'Hero #1 confirmed' : 'Panic — then something fizzes'}
             </Text>
           </View>
@@ -64,9 +64,9 @@ export function FirstAwakeningScreen({
         {!revealed ? (
           <>
             <PaperPanel kicker="Pitch-side cut-in" title="Hold on…" stamp="Live">
-              <Text className="text-sm leading-5 text-ink/75">{fillName(content.collapse, playerName)}</Text>
+              <Text className="text-base leading-6 text-ink/75">{fillName(content.collapse, playerName)}</Text>
             </PaperPanel>
-            <Text className="mt-6 text-xs font-bold uppercase tracking-[2px] text-sky">{content.prompt}</Text>
+            <Text className="mt-6 text-sm font-bold uppercase text-blue-dark">{content.prompt}</Text>
             <View className="mt-3 gap-3">
               {content.choices.map(choice => (
                 <Pressable
@@ -74,15 +74,15 @@ export function FirstAwakeningScreen({
                   accessibilityRole="button"
                   accessibilityLabel={`${choice.label}. ${choice.hint}`}
                   onPress={() => onChoose(choice.origin)}
-                  className="min-h-24 flex-row items-center border-2 border-paper/30 bg-ink-soft p-3"
+                  className="min-h-24 flex-row items-center border-2 border-ink/30 bg-white p-3"
                   style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
                 >
                   <View className="mr-3 h-14 w-14 -rotate-2 items-center justify-center border-2 border-signal bg-signal">
-                    <Text className="font-mono text-sm font-bold text-ink">{ORIGIN_MARK[choice.origin]}</Text>
+                    <Text className="font-mono text-base font-bold text-ink">{ORIGIN_MARK[choice.origin]}</Text>
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-bold uppercase text-paper">{choice.label}</Text>
-                    <Text className="mt-2 text-xs leading-4 text-sky">{choice.hint}</Text>
+                    <Text className="text-base font-bold uppercase text-ink">{choice.label}</Text>
+                    <Text className="mt-2 text-sm leading-5 text-blue-dark">{choice.hint}</Text>
                   </View>
                 </Pressable>
               ))}
@@ -90,14 +90,14 @@ export function FirstAwakeningScreen({
           </>
         ) : (
           <PaperPanel kicker="Origin revealed" title={powerName} stamp="Awakened" className="bg-signal">
-            <Text className="text-sm leading-5 text-ink">
+            <Text className="text-base leading-6 text-ink">
               {selectedCopy ? fillName(selectedCopy.reveal, playerName) : `${playerName} awakens.`}
             </Text>
             <View className="mt-4 flex-row gap-2">
               <StatusChip label="License 1 / 2" selected />
               <StatusChip label="Rookie wage locked" tone="hero" />
             </View>
-            <Text className="mt-4 text-xs leading-4 text-ink/60">
+            <Text className="mt-4 text-sm leading-5 text-ink/60">
               The 180/week deal survives the awakening. At renewal, the agent will ask for hero money.
             </Text>
           </PaperPanel>
@@ -105,7 +105,7 @@ export function FirstAwakeningScreen({
       </ScrollView>
 
       {revealed ? (
-        <View className="border-t-2 border-signal bg-ink-soft p-3">
+        <View className="border-t-2 border-signal bg-white p-3">
           <ActionButton
             label="Bring on match two  ▸"
             accessibilityLabel="Finish first awakening"

@@ -37,6 +37,12 @@ module.exports = {
         stamp: '#d94f52', // red — cancel / danger / negative
         sky: '#a3c8f0', // light blue — eyebrows / accents on dark
       },
+      fontFamily: {
+        // Silkscreen bitmap pixel font — the game's display/label voice.
+        // Loaded at runtime in App.tsx via @expo-google-fonts/silkscreen.
+        mono: ['Silkscreen_400Regular'],
+        pixel: ['Silkscreen_700Bold'],
+      },
     },
   },
   plugins: [],

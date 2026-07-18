@@ -138,20 +138,20 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass }: Hi
     : player.position;
 
   return (
-    <SafeAreaView className="flex-1 bg-ink" edges={['top', 'left', 'right', 'bottom']}>
-      <View className="border-b-2 border-signal bg-ink-soft px-5 py-4">
+    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+      <View className="border-b-2 border-ink bg-white px-5 py-4">
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="text-xs font-bold uppercase tracking-[3px] text-signal">Trial · unsolicited</Text>
-            <Text className="mt-2 text-2xl font-bold uppercase leading-7 tracking-wide text-paper">
+            <Text className="text-sm font-bold uppercase tracking-[3px] text-blue-dark">Trial · unsolicited</Text>
+            <Text className="mt-2 text-3xl font-bold uppercase leading-9 tracking-wide text-ink">
               Sign me. Please.
             </Text>
           </View>
           <View className="-rotate-3 border-2 border-stamp px-3 py-2">
-            <Text className="text-xs font-bold uppercase tracking-widest text-stamp">Trialist</Text>
+            <Text className="text-sm font-bold uppercase tracking-widest text-stamp">Trialist</Text>
           </View>
         </View>
-        <Text className="mt-3 max-w-sm text-sm leading-5 text-paper/65">{tagline}</Text>
+        <Text className="mt-3 max-w-sm text-base leading-5 text-ink/65">{tagline}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
@@ -164,12 +164,12 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass }: Hi
             </View>
           </View>
 
-          <View className="-mt-3 border-2 border-b-4 border-ink bg-ink-soft px-5 py-2">
-            <Text className="text-center text-lg font-bold uppercase tracking-wide text-paper" numberOfLines={1}>
+          <View className="-mt-3 border-2 border-b-4 border-ink bg-white px-5 py-2">
+            <Text className="text-center text-xl font-bold uppercase tracking-wide text-ink" numberOfLines={1}>
               {player.name}
             </Text>
           </View>
-          <Text className="mt-2 font-mono text-xs font-bold uppercase tracking-[2px] text-sky">{subLine}</Text>
+          <Text className="mt-2 font-mono text-sm font-bold uppercase text-blue-dark">{subLine}</Text>
           <View className="mt-3">
             <StatusChip label="Wonderkid (his words)" tone="hero" />
           </View>
@@ -192,22 +192,22 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass }: Hi
             ) : null}
           </View>
           {usingDefaultStats ? (
-            <Text className="mt-3 text-xs leading-4 text-ink/50">* Self-reported. Wildly. Verify before wiring wages.</Text>
+            <Text className="mt-3 text-sm leading-4 text-ink/50">* Self-reported. Wildly. Verify before wiring wages.</Text>
           ) : null}
         </PaperPanel>
 
         {/* Speech bubble — his desperate, lovable pitch */}
-        <View className="relative mt-6 border-2 border-b-4 border-ink bg-paper p-4">
+        <View className="relative mt-6 border-2 border-b-4 border-ink bg-white p-4">
           <View
             pointerEvents="none"
-            className="absolute -top-2 left-8 h-4 w-4 rotate-45 border-l-2 border-t-2 border-ink bg-paper"
+            className="absolute -top-2 left-8 h-4 w-4 rotate-45 border-l-2 border-t-2 border-ink bg-white"
           />
-          <Text className="font-mono text-xs font-bold uppercase tracking-[2px] text-stamp">The pitch</Text>
+          <Text className="font-mono text-sm font-bold uppercase text-stamp">The pitch</Text>
           <View className="mt-2 gap-3">
             {speech.map((line, index) => (
               <Text
                 key={index}
-                className={index === 0 ? 'text-base font-bold leading-5 text-ink' : 'text-sm leading-5 text-ink/75'}
+                className={index === 0 ? 'text-lg font-bold leading-6 text-ink' : 'text-base leading-6 text-ink/75'}
               >
                 {line}
               </Text>
@@ -216,7 +216,7 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass }: Hi
         </View>
       </ScrollView>
 
-      <View className="flex-row items-stretch gap-3 border-t-2 border-signal bg-ink-soft p-3">
+      <View className="flex-row items-stretch gap-3 border-t-2 border-ink bg-white p-3">
         <View className="w-28">
           <ActionButton label="Pass" accessibilityLabel={`Pass on ${player.name}`} variant="paper" onPress={onPass} />
         </View>
