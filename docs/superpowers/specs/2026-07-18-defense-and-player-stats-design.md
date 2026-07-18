@@ -16,7 +16,19 @@
 - **Fouls exist only as superpower side effects** (doc 03 simplifications). Slide tackles therefore carry no card/referee risk — their cost is physical.
 - **Personality is canon** (doc 05): Fiery, Loyal, Greedy, Joker, Professional, Timid — today it only drives events/negotiation/morale.
 - Doc 03 already promises: defenders "mark, press, attempt tackles when in range"; STA "scales all stats down up to −25% late in the match"; contested actions resolve through the logistic table.
-- **Positional-movement spec (approved, T1)** supplies shape: zonal tables set every player's intended position per ball cell and phase, and its presser lease (≥ 10 ticks) already prevents defender-swapping flicker. **Precedence (T1 amendment, recorded in its plan ledger — external review corrected an earlier "this spec never moves players" overclaim):** T1 owns every player's *base* tactical target; m0.6 adds short-range **engagement overlays** that override it while engaged, in fixed priority — slide lunge (locked vector) > contain shadow point / cover bias > T1 table target. Disengaging returns the player to their T1 target. The cover defender gets a lease tied to the presser's lease so the second defender can't flicker either.
+- **Positional-movement spec (approved, T1)** supplies shape: zonal tables set every player's intended position per ball cell and phase, and its presser lease (≥ 10 ticks) already prevents defender-swapping flicker. **Movement priority — one total order (round-2 review; supersedes T1's partial chain `carrier → charge lock → presser → receiver → loose chaser → table`):**
+
+  1. down / stagger (movement locked)
+  2. slide lunge (locked vector until `slideUntilTick`)
+  3. power charge lock (Super Strength wind-up target — a charging player never initiates a slide; `winding` is busy)
+  4. ball carrier (attacking dribble target)
+  5. pass receiver → immutable `targetPos` (ball-physics §2)
+  6. presser engagement: converge, then contain shadow point
+  7. loose-ball chase
+  8. cover bias (second defender, lease tied to the presser's lease — no flicker)
+  9. T1 table target
+
+  Every slot claims a player exclusively; a player can hold at most one engagement. Disengaging falls through to the highest remaining slot. **Amending T1's approved doc with this total order is an explicit implementation-plan step** (the amendment does not yet exist in that document — external review corrected both an earlier "this spec never moves players" overclaim and a partial ordering that left charge locks, presser, receiver and loose-chase unranked).
 
 ## The three-layer player model
 
@@ -45,7 +57,7 @@ Real-football sanity check: FM tracks ~36 attributes, FIFA ~29 sub-stats under 6
 
 ### Layer 2 — personality dials (the "aggressiveness stat", canon-shaped)
 
-Each canon personality maps to a fixed preset of four dials (0–100), shipped as one typed JSON table in `content/` (zod-validated, tunable without code):
+Each canon personality maps to a fixed preset of four dials (0–100), shipped for m0.6 as an **engine tuning constant** — `src/sim/personality-dials.ts`, same species as the physics-constants table (round-2 review: no zod/`content/` infrastructure exists yet and the no-new-deps rule applies; M1's content pipeline migrates this table to zod-validated JSON, recorded there):
 
 | Personality | aggression | risk | workRate | discipline | Signature on the pitch |
 |---|---|---|---|---|---|
@@ -71,15 +83,24 @@ This makes personality — "visible after a few weeks" per doc 05 — matter on 
 
 ### Layer 3 — the condition funnel (STA comes alive)
 
-`effectiveStat()` was left in the code as the declared fatigue hook; it gets its body:
+`effectiveStat()` was left in the code as the declared fatigue hook; it gets its body — and round-2 review demanded the **single-application rule** be explicit, because two reasonable implementations diverge materially late-match:
 
 ```
-effectiveStat = round(attr × (1 − 0.25 × (1 − condition/100)))     // canon −25% cap
-drain/tick    = base × (1 + 0.6 × (100 − sta)/100)                 // low STA drains ~1.6×
-slide cost    = 0.4 condition;  sprint-chase surcharge per tick
+condition ∈ [0, 100], clamped after every drain
+effectiveStat(stat) = round(attr × (1 − 0.25 × (1 − condition/100)))   // canon −25% cap
+speedFor = round((40 + effectiveStat('pac')) × powerMultiplier)         // its old private
+                                                            // 0.75+0.25c scale is DELETED
+drain/tick = base × (1 + 0.6 × (100 − sta)/100)   // raw STA modulates drain, nothing else
+  base: 0.005 ordinary movement · 0.02 sprint/chase (the existing moved-far rule)
+        + 0.4 one-shot per slide launch
 ```
 
-`speedFor`'s own condition scale merges into this funnel (condition must apply once, not twice). Morale (±10%, doc 05) and consistency (hidden, per-match form draw) are **M1**: they're season-layer state that doesn't exist in `SimPlayer` yet, but they will multiply through this same funnel — the hook is the design.
+**Who reads what (each formula applies condition exactly once):**
+- Contests (escape, challenge, cut, trap, save) use `effectiveStat` values — no `fatigueMult` on top.
+- Shot/pass **error spreads** use **raw** attributes × `fatigueMult` (ball-physics §3) — fatigue widens the miss; it does not also shrink the contest stat inside the same formula.
+- Raw `STA` is read by drain alone; `condition` is read by `effectiveStat` and `fatigueMult` alone.
+
+Morale (±10%, doc 05) and consistency (hidden, per-match form draw) are **M1**: they're season-layer state that doesn't exist in `SimPlayer` yet, but they will multiply through this same funnel — the hook is the design.
 
 ---
 
@@ -124,9 +145,9 @@ COVER (new, 2nd defender: goal-side bias off its T1 table target, workRate-gated
 
 ## Schema / events / renderer impact
 
-- `PlayerDef` + `personality` field, defaulting to `Professional` when absent; `teams.ts` fixtures assign personalities and `validateTeam` (the existing hand-rolled envelope validator) learns the field. **Zod is deferred** (external review: no `content/` directory or zod dependency exists yet, and the no-new-deps rule applies) — the dial presets ship as a typed TS const table in `content/personality-dials.ts`; the JSON+zod content pipeline arrives with M1 as canon already plans.
+- `PlayerDef` + `personality` field, defaulting to `Professional` when absent; `teams.ts` fixtures assign personalities and `validateTeam` (the existing hand-rolled envelope validator) learns the field. **Zod is deferred** (external review: no `content/` directory or zod dependency exists yet, and the no-new-deps rule applies) — the dial presets ship as the `src/sim/personality-dials.ts` tuning constant (see Layer 2); the JSON+zod content pipeline arrives with M1 as canon already plans.
 - **Personality-reveal gating** (doc 05: visible "after a few weeks"): the *engine* always knows the personality (dials need it); the style chip on the player card is a season-layer UI reveal. Until revealed, the player's on-pitch behavior is the tell — scouting by watching, which is charming, not a bug. The sim never gates on reveal state.
-- `TACKLE` event gains `style: 'standing' | 'slide'` and outcome `'clean' | 'spilled' | 'whiff'` (ticker/commentary can differentiate "crunching slide!" from "picked his pocket"). New `DRIBBLE` event `{by, past, won}` on containment-escape contests — feeds commentary ("skips past him!") and makes the aggression rail measurable.
+- `TACKLE` event gains `style: 'standing' | 'slide' | 'power'` (`power` = Super Strength's hit, per the compatibility map) and outcome `'clean' | 'spilled' | 'whiff'` (ticker/commentary can differentiate "crunching slide!" from "picked his pocket"). New `DRIBBLE` event `{by, past, won}` on containment-escape contests — feeds commentary ("skips past him!") and the whole-preset signature tests.
 - `PlayerStatus` union gains `'sliding'` and `'down'` — and the renderer needs real **sprite-selection logic**, not just new enum values (external review: `MatchScreen.tsx` currently always draws run-cycle sprites and uses status only for tinting). Work: slide + prone atlas keys from the art branch (`HFM-art-worktree`), selection by status, dust puff, and interpolation tests. Containment deliberately gets no status: the jockeying movement itself reads on screen.
 - Gauge: `clean` challenge wins earn the existing +15 tackle fill; spills route heat through the eventual collector (see the superpower compatibility map).
 - `ENGINE_VERSION` → `m0.6` shared with ball physics (many new rng draw sites; one version bump, one replay break).
@@ -136,7 +157,7 @@ COVER (new, 2nd defender: goal-side bias off its T1 table target, workRate-gated
 New rails (same 200-seed harness style):
 
 - Tackle attempts per match **15–50**; challenge-outcome shares per style inside bands over 200 seeds — standing: clean 45–75% / spilled 10–35% / whiff 15–40%; slide: clean 10–30% / spilled 30–60% / whiff 25–50% (locks the margin thresholds — slides must never become reliable clean takes).
-- **Dial isolation** (external review: an all-Fiery vs all-Timid match moves all four dials at once and proves nothing about aggression): a **test-only dial table** varies aggression alone (20 vs 85, other dials pinned at 50) — the aggressive XI attempts ≥ 2× the tackles and regains possession faster; the cautious XI loses fewer `DRIBBLE` contests. Both directions asserted, so "aggression = strictly better" can't ship silently. *Separate* whole-preset tests then check each personality's behavioral signature (Fiery slide share > Professional's; Timid contain time > everyone's).
+- **Dial isolation** (external review: an all-Fiery vs all-Timid match moves all four dials at once and proves nothing about aggression): a **test-only dial table** varies aggression alone (20 vs 85, other dials pinned at 50). Assertions measure only what aggression *directly controls* (round-2 review killed a `DRIBBLE`-loss assertion that actually measured exposure time): the aggressive XI attempts ≥ 2× the tackles and regains possession faster; **and** it accumulates ≥ 2× the slide-whiff down-ticks and concedes more carrier forward progress in the 20 ticks after a failed challenge. Upside and cost both asserted, so "aggression = strictly better" can't ship silently. *Separate* whole-preset tests then check each personality's behavioral signature (Fiery slide share > Professional's; Timid contain time > everyone's).
 - **STA, same-seed A/B** (replaces the vague half-difference idea): identical squads except STA 40 vs 80, same seeds — assert (a) the low-STA squad's mean condition at tick 1600 is ≥ 10 points lower, (b) its second-half `effectiveStat` decay is measurably deeper, (c) directionally worse second-half shot/goal deltas over 500 seeds.
 - Existing rails (goals/match 1.5–4.0, save rate, blowout guard) still pass, **and the full acceptance-gate suite re-runs** — especially hero-zone cadence and the attention-edge gates, which extra touches from spills can silently inflate (see the Heat-economy guard in the ball-physics spec).
 
