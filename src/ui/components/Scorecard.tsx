@@ -19,11 +19,12 @@ export interface PaperPanelProps {
   className?: string;
 }
 
+/** Chunky pixel panel: dark ink outline with a thicker bottom edge for depth. */
 export function PaperPanel({ children, title, kicker, stamp, className }: PaperPanelProps) {
   return (
     <View
       className={cx(
-        'relative border-2 border-ink bg-paper p-4 shadow-lg shadow-black/30',
+        'relative border-2 border-b-4 border-ink bg-paper p-4',
         className,
       )}
     >
@@ -31,15 +32,15 @@ export function PaperPanel({ children, title, kicker, stamp, className }: PaperP
         <View className="mb-3 flex-row items-start justify-between gap-3">
           <View className="flex-1">
             {kicker ? (
-              <Text className="text-xs font-bold uppercase tracking-[2px] text-stamp">{kicker}</Text>
+              <Text className="font-mono text-xs font-bold uppercase tracking-[2px] text-stamp">{kicker}</Text>
             ) : null}
             {title ? (
               <Text className="mt-1 text-lg font-bold uppercase tracking-wide text-ink">{title}</Text>
             ) : null}
           </View>
           {stamp ? (
-            <View className="-rotate-2 border-2 border-stamp px-2 py-1">
-              <Text className="text-xs font-bold uppercase tracking-widest text-stamp">{stamp}</Text>
+            <View className="border-2 border-b-4 border-stamp bg-red-light/40 px-2 py-1">
+              <Text className="font-mono text-xs font-bold uppercase tracking-widest text-stamp">{stamp}</Text>
             </View>
           ) : null}
         </View>
@@ -49,15 +50,29 @@ export function PaperPanel({ children, title, kicker, stamp, className }: PaperP
   );
 }
 
+// Beveled button ramps — full literal class strings so NativeWind can extract them.
+type ButtonVariant = 'primary' | 'confirm' | 'action' | 'danger' | 'paper';
+const BUTTON_RAMP: Record<ButtonVariant, { face: string; light: string; lip: string; text: string }> = {
+  primary: { face: 'bg-gold', light: 'bg-gold-light', lip: 'bg-gold-dark', text: 'text-ink' },
+  confirm: { face: 'bg-violet', light: 'bg-violet-light', lip: 'bg-violet-dark', text: 'text-paper' },
+  action: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-paper' },
+  danger: { face: 'bg-red', light: 'bg-red-light', lip: 'bg-red-dark', text: 'text-paper' },
+  paper: { face: 'bg-paper', light: 'bg-white', lip: 'bg-paper-dark', text: 'text-ink' },
+};
+
 interface ActionButtonProps {
   label: string;
   onPress: () => void;
   accessibilityLabel: string;
   disabled?: boolean;
-  variant?: 'primary' | 'paper' | 'danger';
+  variant?: ButtonVariant;
   compact?: boolean;
 }
 
+/**
+ * Pixel-bible beveled button: ink outline, bright top highlight, solid face,
+ * dark bottom lip. Presses "in" (drops 2px, highlight hides) for tactile feel.
+ */
 export function ActionButton({
   label,
   onPress,
@@ -66,12 +81,9 @@ export function ActionButton({
   variant = 'primary',
   compact = false,
 }: ActionButtonProps) {
-  const palette = variant === 'primary'
-    ? 'border-ink bg-signal'
-    : variant === 'danger'
-      ? 'border-paper bg-stamp'
-      : 'border-ink bg-paper';
-  const textColor = variant === 'danger' ? 'text-paper' : 'text-ink';
+  const ramp = disabled
+    ? { face: 'bg-grey', light: 'bg-grey-light', lip: 'bg-grey-dark', text: 'text-paper' }
+    : BUTTON_RAMP[variant];
 
   return (
     <Pressable
@@ -81,14 +93,24 @@ export function ActionButton({
       disabled={disabled}
       onPress={onPress}
       className={cx(
-        'min-h-11 items-center justify-center border-2 px-4 shadow-md shadow-black/30',
-        palette,
+        'relative min-h-11 items-center justify-center overflow-hidden border-2 border-ink px-4',
+        ramp.face,
         compact ? 'py-2' : 'py-3',
-        disabled && 'opacity-40',
+        disabled && 'opacity-60',
       )}
-      style={({ pressed }) => ({ opacity: pressed && !disabled ? 0.78 : undefined })}
+      style={({ pressed }) => ({
+        transform: [{ translateY: pressed && !disabled ? 2 : 0 }],
+      })}
     >
-      <Text className={cx('text-sm font-bold uppercase tracking-widest', textColor)}>{label}</Text>
+      {({ pressed }) => (
+        <>
+          {!pressed && !disabled ? (
+            <View pointerEvents="none" className={cx('absolute left-0 right-0 top-0 h-1.5', ramp.light)} />
+          ) : null}
+          <View pointerEvents="none" className={cx('absolute bottom-0 left-0 right-0 h-1.5', ramp.lip)} />
+          <Text className={cx('text-sm font-bold uppercase tracking-widest', ramp.text)}>{label}</Text>
+        </>
+      )}
     </Pressable>
   );
 }
@@ -101,15 +123,15 @@ interface MetricProps {
 
 export function Metric({ label, value, tone = 'normal' }: MetricProps) {
   const valueColor = tone === 'hero'
-    ? 'text-amber-600'
+    ? 'text-gold-dark'
     : tone === 'positive'
-      ? 'text-emerald-700'
+      ? 'text-pitch-dark'
       : tone === 'negative'
         ? 'text-stamp'
         : 'text-ink';
 
   return (
-    <View className="min-w-0 flex-1 border border-ink/30 bg-paper px-2 py-2">
+    <View className="min-w-0 flex-1 border-2 border-b-4 border-ink/70 bg-paper px-2 py-2">
       <Text className="text-xs font-bold uppercase tracking-wide text-ink/60">{label}</Text>
       <Text className={cx('mt-1 font-mono text-sm font-bold', valueColor)} numberOfLines={1}>
         {value}
@@ -128,7 +150,7 @@ export function SectionLabel({ eyebrow, title, right }: SectionLabelProps) {
   return (
     <View className="mb-3 flex-row items-end justify-between gap-3">
       <View className="flex-1">
-        <Text className="text-xs font-bold uppercase tracking-[2px] text-sky">{eyebrow}</Text>
+        <Text className="font-mono text-xs font-bold uppercase tracking-[2px] text-sky">{eyebrow}</Text>
         <Text className="mt-1 text-lg font-bold uppercase tracking-wide text-paper">{title}</Text>
       </View>
       {right}
@@ -144,17 +166,17 @@ interface StatusChipProps {
 
 export function StatusChip({ label, selected = false, tone = 'normal' }: StatusChipProps) {
   const palette = selected
-    ? 'border-ink bg-signal text-ink'
+    ? 'border-ink bg-gold text-ink'
     : tone === 'hero'
-      ? 'border-amber-500 bg-amber-100 text-amber-800'
+      ? 'border-gold-dark bg-gold-light text-ink'
       : tone === 'success'
-        ? 'border-emerald-700 bg-emerald-100 text-emerald-800'
+        ? 'border-pitch-dark bg-pitch-light text-ink'
         : tone === 'danger'
-          ? 'border-stamp bg-red-100 text-stamp'
+          ? 'border-red-dark bg-red-light text-ink'
           : 'border-ink/40 bg-paper text-ink';
 
   return (
-    <View className={cx('min-h-7 justify-center border px-2 py-1', palette)}>
+    <View className={cx('min-h-7 justify-center border-2 px-2 py-1', palette)}>
       <Text className={cx('text-xs font-bold uppercase tracking-wide', palette.split(' ').find(c => c.startsWith('text-')))}>
         {label}
       </Text>
