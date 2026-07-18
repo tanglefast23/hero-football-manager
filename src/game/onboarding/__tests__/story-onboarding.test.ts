@@ -1,0 +1,164 @@
+import { mulberry32 } from '../../../sim/rng';
+import type { GameState } from '../../types';
+import { DEFAULT_CREATION_RATINGS } from '../player-creation';
+import {
+  addCreatedPlayer,
+  awakenCreatedPlayer,
+  beginStoryOnboarding,
+  completeFirstOnboardingMatch,
+  completeStoryOnboarding,
+  createdPlayer,
+  isFirstOnboardingFixture,
+} from '../story-onboarding';
+
+function state(): GameState {
+  return {
+    schemaVersion: 1,
+    careerSeed: 42,
+    userClubId: 'rovers',
+    season: 1,
+    week: 1,
+    phase: 'manage',
+    clubs: [{
+      id: 'rovers',
+      name: 'Rovers',
+      cash: 25000,
+      fans: 500,
+      ticketPrice: 4,
+      sponsorMonthlyFee: 2000,
+      weeklyWages: 400,
+    }],
+    fixtures: [{
+      id: 's1-r1-rovers-v-united',
+      season: 1,
+      round: 1,
+      week: 5,
+      homeClubId: 'rovers',
+      awayClubId: 'united',
+      matchSeed: 7,
+      status: 'scheduled',
+    }],
+    players: [
+      {
+        id: 'old-hero',
+        clubId: 'rovers',
+        name: 'Old Hero',
+        role: 'FWD',
+        attrs: { pac: 60, sho: 60, pas: 45, def: 30, tec: 55, sta: 55, ref: 10 },
+        power: 'FIRE_TORCH',
+        licensed: true,
+        weeklyWage: 220,
+        onHeroWage: false,
+        contractSeasonsRemaining: 2,
+        morale: 50,
+        injuryWeeks: 0,
+      },
+      {
+        id: 'forward-two',
+        clubId: 'rovers',
+        name: 'Forward Two',
+        role: 'FWD',
+        attrs: { pac: 58, sho: 57, pas: 44, def: 31, tec: 54, sta: 56, ref: 10 },
+        licensed: false,
+        weeklyWage: 180,
+        onHeroWage: false,
+        contractSeasonsRemaining: 2,
+        morale: 50,
+        injuryWeeks: 0,
+      },
+    ],
+    lineups: [{ clubId: 'rovers', playerIds: ['old-hero', 'forward-two'] }],
+    facilities: { trainingGroundBuilt: false },
+    eventClock: { weeksWithoutEvent: 0, riskyChoices: 0 },
+    eventFlags: [],
+    resolvedEventIds: [],
+    trainingPoints: 0,
+    heroEssence: 0,
+    ledgers: [],
+  };
+}
+
+describe('story onboarding state machine', () => {
+  it('starts with zero user heroes, adds the created forward, and locks a rookie wage', () => {
+    const begun = beginStoryOnboarding(state());
+    expect(begun.players.filter(player => player.power)).toHaveLength(0);
+    expect(begun.players.filter(player => player.licensed)).toHaveLength(0);
+
+    const created = addCreatedPlayer(begun, {
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    const avatar = createdPlayer(created);
+    expect(avatar).toMatchObject({
+      name: 'Jo Rook',
+      role: 'FWD',
+      weeklyWage: 180,
+      contractSeasonsRemaining: 1,
+      onHeroWage: false,
+      licensed: false,
+    });
+    expect(avatar?.attrs.ref).toBe(10);
+    expect(created.clubs[0].weeklyWages).toBe(580);
+    expect(created.lineups[0].playerIds).toContain(avatar?.id);
+    expect(created.onboarding).toMatchObject({
+      stage: 'first-match',
+      createdPlayerId: avatar?.id,
+      firstFixtureId: 's1-r1-rovers-v-united',
+    });
+  });
+
+  it('turns the played first fixture into the guaranteed choice-driven first hero', () => {
+    const created = addCreatedPlayer(beginStoryOnboarding(state()), {
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    expect(isFirstOnboardingFixture(created, 's1-r1-rovers-v-united')).toBe(true);
+    const played = {
+      ...created,
+      fixtures: created.fixtures.map(fixture => ({
+        ...fixture,
+        status: 'played' as const,
+        score: { homeGoals: 1, awayGoals: 0 },
+      })),
+    };
+    const collapsed = completeFirstOnboardingMatch(played, 's1-r1-rovers-v-united');
+    const revealed = awakenCreatedPlayer(collapsed, 'CREATURE', mulberry32(77));
+    const avatar = createdPlayer(revealed);
+    expect(revealed.onboarding).toMatchObject({
+      stage: 'reveal',
+      selectedOrigin: 'CREATURE',
+      awakenedPower: 'FIRE_TORCH',
+    });
+    expect(avatar).toMatchObject({
+      power: 'FIRE_TORCH',
+      licensed: true,
+      weeklyWage: 180,
+      onHeroWage: false,
+    });
+    expect(revealed.players.filter(player => player.power)).toHaveLength(1);
+    expect(completeStoryOnboarding(revealed).onboarding?.stage).toBe('complete');
+  });
+
+  it('refuses to make the avatar hero #1 if another user hero still exists', () => {
+    const created = addCreatedPlayer(beginStoryOnboarding(state()), {
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    const avatarId = created.onboarding?.createdPlayerId;
+    const invalid = {
+      ...created,
+      fixtures: created.fixtures.map(fixture => ({
+        ...fixture,
+        status: 'played' as const,
+        score: { homeGoals: 0, awayGoals: 0 },
+      })),
+      players: created.players.map(player => player.id === 'old-hero'
+        ? { ...player, power: 'SUPER_SPEED' as const }
+        : player),
+    };
+    const collapsed = completeFirstOnboardingMatch(invalid, 's1-r1-rovers-v-united');
+    expect(avatarId).toBeDefined();
+    expect(() => awakenCreatedPlayer(collapsed, 'CHEMICAL', mulberry32(1)))
+      .toThrow('first hero');
+  });
+});

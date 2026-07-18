@@ -54,7 +54,31 @@ describe('match skeleton', () => {
 
   it('createMatch rejects malformed squads', () => {
     const tenMen = { ...ROVERS, players: ROVERS.players.slice(0, 10) };
-    expect(() => createMatch(1, tenMen, UNITED)).toThrow('teams must have 11 players');
+    expect(() => createMatch(1, tenMen, UNITED)).toThrow('home team must have exactly 11 players');
+
+    const duplicateId = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => (
+        index === 1 ? { ...player, id: ROVERS.players[0].id } : player
+      )),
+    };
+    expect(() => createMatch(1, duplicateId, UNITED)).toThrow('player IDs must be unique');
+
+    const fractionalAttr = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => (
+        index === 1 ? { ...player, attrs: { ...player.attrs, pac: 50.5 } } : player
+      )),
+    };
+    expect(() => createMatch(1, fractionalAttr, UNITED)).toThrow('attrs.pac');
+
+    const extraGoalkeeper = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => (
+        index === 1 ? { ...player, role: 'GK' as const } : player
+      )),
+    };
+    expect(() => createMatch(1, extraGoalkeeper, UNITED)).toThrow('exactly one goalkeeper');
   });
 
   it('createMatch deep-copies teams: mutating the source cannot affect a running match', () => {
@@ -76,12 +100,16 @@ describe('match skeleton', () => {
   });
 
   it('envelopeFrom captures inputs and opts for a faithful replay', () => {
-    const m = createMatch(9, ROVERS, UNITED, { homePolicy: 'FIRE_WHEN_READY' });
+    const m = createMatch(9, ROVERS, UNITED, {
+      homePolicy: 'SAVE_FOR_TAP',
+      awayPolicy: 'FIRE_WHEN_READY',
+    });
     queueInput(m, { tick: 100, kind: 'POWER_TAP', player: 10 });
     while (m.phase !== 'fulltime') tick(m);
     const env = envelopeFrom(m);
     expect(env.inputs).toHaveLength(1);
-    expect(env.opts?.homePolicy).toBe('FIRE_WHEN_READY');
+    expect(env.opts?.homePolicy).toBe('SAVE_FOR_TAP');
+    expect(env.opts?.awayPolicy).toBe('FIRE_WHEN_READY');
     const replayed = runReplay(env);
     expect(replayed.events).toEqual(m.events);
     expect(replayed.score).toEqual(m.score);
@@ -97,7 +125,10 @@ describe('match skeleton', () => {
 
 describe('validateEnvelope', () => {
   function makeValidEnvelope(): ReplayEnvelope {
-    const m = createMatch(9, ROVERS, UNITED, { homePolicy: 'FIRE_WHEN_READY' });
+    const m = createMatch(9, ROVERS, UNITED, {
+      homePolicy: 'SAVE_FOR_TAP',
+      awayPolicy: 'FIRE_WHEN_READY',
+    });
     queueInput(m, { tick: 5, kind: 'POWER_TAP', player: 10 });
     for (let i = 0; i < 20; i++) tick(m);
     return envelopeFrom(m);
@@ -140,7 +171,7 @@ describe('validateEnvelope', () => {
   it('rejects a 10-player squad', () => {
     const env = makeValidEnvelope();
     env.home = { ...env.home, players: env.home.players.slice(0, 10) };
-    expect(() => validateEnvelope(env)).toThrow();
+    expect(() => validateEnvelope(env)).toThrow('replay envelope: home team must have exactly 11 players');
   });
 
   it('rejects attrs out of range', () => {
@@ -149,7 +180,7 @@ describe('validateEnvelope', () => {
       ...env.home,
       players: env.home.players.map((p, i) => (i === 0 ? { ...p, attrs: { ...p.attrs, pac: 150 } } : p)),
     };
-    expect(() => validateEnvelope(env)).toThrow();
+    expect(() => validateEnvelope(env)).toThrow('replay envelope: home team player');
   });
 
   it('rejects an out-of-set opts.homePolicy (Task 13 pre-flight)', () => {
@@ -170,12 +201,19 @@ describe('validateEnvelope', () => {
     expect(() => validateEnvelope(env)).toThrow('opts.blindAutoHome');
   });
 
-  it('rejects an out-of-range input.player (must be 0..10 — own heroes only, same as queueInput)', () => {
+  it('rejects an out-of-range input.player (must be 0..21)', () => {
     const env = makeValidEnvelope();
-    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: 11 }];
-    expect(() => validateEnvelope(env)).toThrow('0..10');
+    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: 22 }];
+    expect(() => validateEnvelope(env)).toThrow('0..21');
     env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: -1 }];
-    expect(() => validateEnvelope(env)).toThrow('0..10');
+    expect(() => validateEnvelope(env)).toThrow('0..21');
+  });
+
+  it('accepts a hero tap on a manually controlled away team', () => {
+    const env = makeValidEnvelope();
+    env.opts = { homePolicy: 'FIRE_WHEN_READY', awayPolicy: 'SAVE_FOR_TAP' };
+    env.inputs = [{ tick: 5, kind: 'POWER_TAP', player: 14 }];
+    expect(() => validateEnvelope(env)).not.toThrow();
   });
 
   it('rejects a null/non-object player in a team roster', () => {

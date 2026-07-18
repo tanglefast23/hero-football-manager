@@ -1,7 +1,6 @@
 import { mulberry32 } from '../../../sim/rng';
 import type { PowerId } from '../../../sim/types';
 import {
-  ONBOARDING_COPY,
   ONBOARDING_ORIGINS,
   resolveFirstAwakening,
   STARTER_POWER_PAIRS,
@@ -42,13 +41,5 @@ describe('first awakening (tutorial exception)', () => {
       expect(STARTER_POWER_PAIRS[origin]).toEqual([built[origin]]);
       expect(resolveFirstAwakening(origin, mulberry32(12345))).toBe(built[origin]);
     }
-  });
-
-  it('every origin has exactly one matching choice in the event copy', () => {
-    for (const origin of ONBOARDING_ORIGINS) {
-      const matches = ONBOARDING_COPY.choices.filter((c) => c.origin === origin);
-      expect(matches).toHaveLength(1);
-    }
-    expect(ONBOARDING_COPY.choices).toHaveLength(ONBOARDING_ORIGINS.length);
   });
 });

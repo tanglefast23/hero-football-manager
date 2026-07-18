@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "maxFocusDrillsPerWeek": 3,
+  "baseConditioning": {
+    "id": "basic-conditioning",
+    "name": "Basic Conditioning",
+    "moneyCost": 0,
+    "tpCost": 0,
+    "gains": { "sta": 1 }
+  },
+  "focusDrills": [
+    { "id": "sprints", "name": "Sprints", "moneyCost": 400, "tpCost": 10, "gains": { "pac": 3 } },
+    { "id": "finishing", "name": "Finishing", "moneyCost": 500, "tpCost": 12, "gains": { "sho": 3 } },
+    { "id": "rondo", "name": "Rondo", "moneyCost": 600, "tpCost": 15, "gains": { "pas": 2, "tec": 2 } },
+    { "id": "duels", "name": "Duels", "moneyCost": 450, "tpCost": 11, "gains": { "def": 3 } },
+    { "id": "circuit", "name": "Circuit", "moneyCost": 350, "tpCost": 9, "gains": { "sta": 3 } },
+    { "id": "keeper-drills", "name": "Keeper Drills", "moneyCost": 450, "tpCost": 11, "gains": { "ref": 3 } }
+  ]
+}

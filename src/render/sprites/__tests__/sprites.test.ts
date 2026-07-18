@@ -1,4 +1,5 @@
 import { loadSpriteSheet, atlasLayout } from '../loader';
+import { spriteKeyForMatchSlot } from '../slot-key';
 
 const IDS = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10',
   'u0', 'u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8', 'u9', 'u10'];
@@ -6,6 +7,13 @@ const EXPECTED_KEYS = IDS.flatMap((id) => [`${id}:run0`, `${id}:run1`])
   .concat(['r0:ready0', 'r0:ready1', 'u0:ready0', 'u0:ready1', 'ball']);
 
 describe('sprites.json', () => {
+  it('maps arbitrary career players onto the fixed home and away visual slots', () => {
+    expect(spriteKeyForMatchSlot(0, 'ready0')).toBe('r0:ready0');
+    expect(spriteKeyForMatchSlot(10, 'run1')).toBe('r10:run1');
+    expect(spriteKeyForMatchSlot(11, 'ready1')).toBe('u0:ready1');
+    expect(spriteKeyForMatchSlot(21, 'run0')).toBe('u10:run0');
+    expect(() => spriteKeyForMatchSlot(22, 'run0')).toThrow('0 to 21');
+  });
   it('loads and validates without throwing', () => {
     expect(() => loadSpriteSheet()).not.toThrow();
   });

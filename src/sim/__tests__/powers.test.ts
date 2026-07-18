@@ -117,10 +117,19 @@ describe('windup interrupts and input guards', () => {
 
   it('taps on rivals, non-heroes, and bad indices are rejected', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 14 })).toThrow('own heroes');
-    expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 5 })).toThrow('own heroes');
-    expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 99 })).toThrow('own heroes');
+    expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 14 })).toThrow('manually controlled team');
+    expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 5 })).toThrow('manually controlled team');
+    expect(() => queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: 99 })).toThrow('manually controlled team');
     expect(m.inputLog).toHaveLength(0);
+  });
+
+  it('accepts a tap for a manually controlled away hero', () => {
+    const m = createMatch(42, ROVERS, UNITED, {
+      homePolicy: 'FIRE_WHEN_READY',
+      awayPolicy: 'SAVE_FOR_TAP',
+    });
+    queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: RIVAL });
+    expect(m.inputLog).toEqual([{ tick: 1, kind: 'POWER_TAP', player: RIVAL }]);
   });
 });
 

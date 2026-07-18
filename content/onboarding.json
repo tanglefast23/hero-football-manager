@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "collapse": "The final whistle blows — and {name} drops. The physio races on, the crowd gasps… and then the grass starts to fizz.",
+  "prompt": "Quick — what do you do?",
+  "choices": [
+    {
+      "origin": "CHEMICAL",
+      "label": "Splash water on his face",
+      "hint": "Though something is definitely floating in that bottle.",
+      "reveal": "{name} coughs, sits bolt upright, and is suddenly moving faster than the eye can follow. FWOOSH!"
+    },
+    {
+      "origin": "CREATURE",
+      "label": "Get him onto the stretcher",
+      "hint": "Is that a beetle the size of a plum sitting on the canvas?",
+      "reveal": "The bug takes one tiny bite — and {name} leaps up wreathed in flame. The referee reaches for the extinguisher."
+    },
+    {
+      "origin": "SERUM",
+      "label": "Let the pitch-side doctor handle it",
+      "hint": "The doctor is already uncapping a very unlabelled bottle of pills.",
+      "reveal": "One gulp, and {name}'s shirt tears clean off the shoulders. He is, quite suddenly, enormous."
+    }
+  ]
+}

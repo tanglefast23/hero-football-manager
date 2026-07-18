@@ -1,62 +1,289 @@
-import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { MatchScreen } from './src/render/MatchScreen';
-import { StressScreen } from './src/render/StressScreen';
-import { runMatch } from './src/sim/match';
-import { ROVERS, UNITED } from './src/sim/teams';
-import type { MatchState } from './src/sim/types';
+import './global.css';
 
-type Screen = 'home' | 'match' | 'stress';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
+import { openDatabaseAsync } from 'expo-sqlite';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { loadLaunchContent } from './src/content';
+import { createCareerRepository, createReplayRepository } from './src/persistence';
+import { MatchScreen } from './src/render/MatchScreen';
+import { assertRuntimeGoldenReplay, runtimeGoldenFingerprint } from './src/sim/runtime-golden';
+import type { MatchState } from './src/sim/types';
+import {
+  ClubFinancesScreen,
+  ClubHomeScreen,
+  CharacterCreationScreen,
+  FirstAwakeningScreen,
+  FixtureMatchDayScreen,
+  LeagueTableScreen,
+  ManagementShell,
+  NewGameWelcomeScreen,
+  PostMatchLedgerScreen,
+  SeasonEndScreen,
+  SquadTrainingScreen,
+  StoryEventScreen,
+} from './src/ui';
+import { useM1Store } from './src/application/store';
+import {
+  clubFinancesViewModel,
+  homeViewModel,
+  leagueTableViewModel,
+  matchDayViewModel,
+  seasonEndViewModel,
+  squadTrainingViewModel,
+  storyEventViewModel,
+} from './src/application/view-models';
+
+const DATABASE_NAME = 'hero-football-manager.db';
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('home');
-  const [seed, setSeed] = useState(42);
-  const [result, setResult] = useState<string | null>(null);
+  const store = useM1Store();
+  const content = useMemo(loadLaunchContent, []);
+  const [bootError, setBootError] = useState<string | null>(null);
 
-  // Stable identity: MatchScreen's game-loop effect depends on [onDone], so an
-  // unstable callback would tear down and re-arm the loop on any parent re-render.
-  const finishWatched = useCallback((s: MatchState) => {
-    setResult(`Watched · ROV ${s.score[0]} – ${s.score[1]} UNI (seed ${seed})`);
-    setScreen('home');
-  }, [seed]);
+  useEffect(() => {
+    let active = true;
+    try {
+      // Expo's native runtime is Hermes. This boot gate executes the same
+      // full-payload replay fingerprint as the Node test before opening a save.
+      assertRuntimeGoldenReplay();
+      console.info(`HERMES_GOLDEN_OK ${runtimeGoldenFingerprint()}`);
+    } catch (error) {
+      setBootError(error instanceof Error ? error.message : String(error));
+      return () => {
+        active = false;
+      };
+    }
+    void openDatabaseAsync(DATABASE_NAME)
+      .then(async database => ({
+        careerRepository: await createCareerRepository(database),
+        replayRepository: await createReplayRepository(database),
+      }))
+      .then(repositories => active
+        ? store.initializePersistence(
+          repositories.careerRepository,
+          repositories.replayRepository,
+        )
+        : undefined)
+      .catch(error => {
+        if (active) setBootError(error instanceof Error ? error.message : String(error));
+      });
+    return () => {
+      active = false;
+    };
+  }, [store.initializePersistence]);
 
-  if (screen === 'match') return <MatchScreen seed={seed} onDone={finishWatched} />;
-  if (screen === 'stress') return <StressScreen onBack={() => setScreen('home')} />;
+  const finishWatchedMatch = useCallback((result: MatchState) => {
+    store.finishWatchedMatch(result);
+  }, [store.finishWatchedMatch]);
+
+  const startNewCareer = useCallback(() => {
+    if (!store.hasSavedCareer) {
+      store.startNewCareer();
+      return;
+    }
+    Alert.alert(
+      'Replace saved career?',
+      'Starting over permanently erases the current career and its match replays.',
+      [
+        { text: 'Keep saved career', style: 'cancel' },
+        {
+          text: 'Erase and start over',
+          style: 'destructive',
+          onPress: () => store.startNewCareer(),
+        },
+      ],
+    );
+  }, [store.hasSavedCareer, store.startNewCareer]);
+
+  const onboardingPlayer = store.career?.onboarding?.createdPlayerId === undefined
+    ? undefined
+    : store.career.players.find(
+        player => player.id === store.career?.onboarding?.createdPlayerId,
+      );
+  const onboardingPowerId = store.career?.onboarding?.awakenedPower;
+  const onboardingPowerName = onboardingPowerId === undefined
+    ? undefined
+    : content.powers.powers.find(
+        power => power.id === onboardingPowerId,
+      )?.name ?? onboardingPowerId;
+
+  let screen;
+  if (bootError !== null) {
+    screen = <BootFailure message={bootError} />;
+  } else if (!store.persistenceReady) {
+    screen = <LoadingScreen />;
+  } else if (store.persistenceLoadError !== null) {
+    screen = <BootFailure message={store.persistenceLoadError} />;
+  } else if (store.screen === 'welcome') {
+    screen = (
+      <NewGameWelcomeScreen
+        hasSavedCareer={store.hasSavedCareer}
+        savedCareerLabel={store.career ? `Season ${store.career.season} · Week ${store.career.week}` : undefined}
+        onStartNewCareer={startNewCareer}
+        onContinueCareer={store.hasSavedCareer ? store.continueCareer : undefined}
+      />
+    );
+  } else if (store.screen === 'create-player' && store.career !== null) {
+    screen = <CharacterCreationScreen onComplete={store.completePlayerCreation} />;
+  } else if (
+    store.screen === 'first-awakening'
+    && store.career !== null
+    && onboardingPlayer !== undefined
+  ) {
+    screen = (
+      <FirstAwakeningScreen
+        playerName={onboardingPlayer.name}
+        content={content.onboarding}
+        selectedOrigin={store.career.onboarding?.selectedOrigin}
+        powerName={onboardingPowerName}
+        onChoose={store.chooseFirstAwakening}
+        onContinue={store.continueFirstAwakening}
+      />
+    );
+  } else if (store.career === null) {
+    screen = <BootFailure message="The saved career could not be loaded." />;
+  } else if (store.screen === 'watched' && store.watchedMatch !== null) {
+    screen = (
+      <MatchScreen
+        seed={store.watchedMatch.fixture.matchSeed}
+        home={store.watchedMatch.home}
+        away={store.watchedMatch.away}
+        controlledTeam={store.watchedMatch.controlledTeam}
+        onDone={finishWatchedMatch}
+      />
+    );
+  } else if (store.screen === 'matchday') {
+    screen = (
+      <FixtureMatchDayScreen
+        viewModel={matchDayViewModel(store.career, content)}
+        onBack={() => store.setActiveTab('home')}
+        onToggleHeroLicense={store.toggleHeroLicense}
+        onWatchMatch={store.watchMatch}
+        onQuickResult={store.quickResult}
+      />
+    );
+  } else if (store.screen === 'postmatch' && store.postMatch !== null) {
+    screen = (
+      <PostMatchLedgerScreen
+        viewModel={store.postMatch}
+        onContinue={store.continueAfterMatch}
+      />
+    );
+  } else if (store.screen === 'event' && store.career.pendingEvent !== undefined) {
+    screen = (
+      <StoryEventScreen
+        viewModel={storyEventViewModel(store.career, content)}
+        onChoose={store.chooseEvent}
+        onSelectPlayer={store.selectEventPlayer}
+        onContinue={store.continueAfterEvent}
+      />
+    );
+  } else if (store.screen === 'season-end') {
+    const season = seasonEndViewModel(store.career, content, store.selectedContractTerm);
+    screen = (
+      <SeasonEndScreen
+        viewModel={season}
+        onSelectContractTerm={(_playerId, term) => store.setContractTerm(term)}
+        onRenewContract={(playerId, term) => store.renewPlayer(playerId, term)}
+        onPrimaryAction={() => season.sliceComplete ? store.setActiveTab('home') : store.advanceCareer()}
+      />
+    );
+  } else {
+    const home = homeViewModel(store.career);
+    screen = (
+      <ManagementShell
+        clubName={home.clubName}
+        seasonLabel={home.seasonLabel}
+        weekLabel={home.weekLabel}
+        activeTab={store.activeTab}
+        onTabChange={store.setActiveTab}
+        onAdvanceWeek={store.advanceCareer}
+        advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
+      >
+        {store.activeTab === 'squad' ? (
+          <SquadTrainingScreen
+            viewModel={squadTrainingViewModel(
+              store.career,
+              content,
+              store.selectedPlayerId,
+              store.assignedPlayerIds,
+              store.selectedDrillIds,
+            )}
+            onSelectPlayer={store.selectPlayer}
+            onTogglePlayerAssignment={store.toggleTrainingPlayer}
+            onToggleDrill={store.toggleDrill}
+            onApplyTraining={store.applyTraining}
+          />
+        ) : store.activeTab === 'club' ? (
+          <ClubFinancesScreen
+            viewModel={clubFinancesViewModel(store.career)}
+            onBuildTrainingGround={store.buildFacility}
+          />
+        ) : store.activeTab === 'league' ? (
+          <LeagueTableScreen viewModel={leagueTableViewModel(store.career)} />
+        ) : (
+          <ClubHomeScreen
+            viewModel={home}
+            onOpenFixture={store.openMatchday}
+            onOpenAlert={alertId => {
+              if (alertId === 'training-ground') store.setActiveTab('club');
+              else store.notify('This alert is resolved from the season review.');
+            }}
+            onOpenLeague={() => store.setActiveTab('league')}
+            onOpenFinances={() => store.setActiveTab('club')}
+          />
+        )}
+      </ManagementShell>
+    );
+  }
 
   return (
-    <View style={styles.root}>
-      <Text style={styles.title}>Hero Football Manager — M0</Text>
-      <Text style={styles.seed}>Seed: {seed}</Text>
-      {result ? <Text style={styles.result}>{result}</Text> : null}
-      <Pressable style={styles.btn} onPress={() => setScreen('match')}>
-        <Text style={styles.btnText}>Watch match</Text>
-      </Pressable>
-      <Pressable
-        style={styles.btn}
-        onPress={() => {
-          const r = runMatch(seed, ROVERS, UNITED);
-          setResult(`Quick · ROV ${r.score[0]} – ${r.score[1]} UNI (seed ${seed})`);
-        }}
-      >
-        <Text style={styles.btnText}>Quick result</Text>
-      </Pressable>
-      <Pressable style={styles.btn} onPress={() => setSeed((x) => x + 1)}>
-        <Text style={styles.btnText}>New seed</Text>
-      </Pressable>
-      {__DEV__ ? (
-        <Pressable style={styles.btn} onPress={() => setScreen('stress')}>
-          <Text style={styles.btnText}>Stress test</Text>
-        </Pressable>
-      ) : null}
-    </View>
+    <SafeAreaProvider>
+      <StatusBar style="light" />
+      <View className="flex-1 bg-ink">
+        {screen}
+        {store.error ? <ErrorNotice message={store.error} onDismiss={store.clearError} /> : null}
+      </View>
+    </SafeAreaProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#101418', alignItems: 'center', justifyContent: 'center', gap: 16 },
-  title: { color: 'white', fontSize: 22, fontWeight: 'bold' },
-  seed: { color: '#9ab', fontSize: 16, fontVariant: ['tabular-nums'] },
-  result: { color: '#f5c518', fontSize: 16 },
-  btn: { backgroundColor: '#1e2630', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, minWidth: 220, alignItems: 'center' },
-  btnText: { color: 'white', fontSize: 17 },
-});
+function LoadingScreen() {
+  return (
+    <SafeAreaView className="flex-1 items-center justify-center bg-ink">
+      <View className="-rotate-2 border-2 border-signal px-5 py-4">
+        <Text className="font-mono text-lg font-bold uppercase tracking-widest text-signal">Opening club files…</Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function BootFailure({ message }: { message: string }) {
+  return (
+    <SafeAreaView className="flex-1 items-center justify-center bg-ink px-6">
+      <View className="w-full border-2 border-stamp bg-paper p-5">
+        <Text className="text-lg font-bold uppercase text-stamp">The club files would not open</Text>
+        <Text className="mt-3 text-sm leading-5 text-ink/70">{message}</Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function ErrorNotice({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="alert"
+      accessibilityLabel={`${message}. Tap to dismiss.`}
+      onPress={onDismiss}
+      className="absolute left-4 right-4 top-16 border-2 border-stamp bg-paper px-4 py-3 shadow-lg shadow-black/40"
+    >
+      <View className="flex-row items-start gap-3">
+        <Text className="font-mono text-base font-bold text-stamp">!</Text>
+        <Text className="flex-1 text-sm font-bold text-ink">{message}</Text>
+        <Text className="font-mono text-sm text-ink/50">×</Text>
+      </View>
+    </Pressable>
+  );
+}

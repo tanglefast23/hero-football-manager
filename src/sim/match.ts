@@ -5,9 +5,9 @@ import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTic
 import { powerTick } from './powers';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m0.8 combines the m0.7 Zone pause/resume rule with geometry-aware attacking
-// decisions. Both alter replay output and RNG consumption relative to m0.7.
-export const ENGINE_VERSION = 'm0.8';
+// m0.9 adds replayable manual control for either fixture side. Match tuning
+// and RNG are unchanged, but the accepted input domain is replay-affecting.
+export const ENGINE_VERSION = 'm0.9';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -42,9 +42,8 @@ function makePlayers(home: TeamDef, away: TeamDef, opts: MatchOpts): SimPlayer[]
 }
 
 export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: MatchOpts = {}): MatchState {
-  if (home.players.length !== 11 || away.players.length !== 11) {
-    throw new Error('teams must have 11 players');
-  }
+  validateTeamDef(home, 'home team');
+  validateTeamDef(away, 'away team');
   const optsCopy: MatchOpts = { ...opts }; // detach from caller's opts object, same reasoning as deepCopyTeam below
   const teams: [TeamDef, TeamDef] = [deepCopyTeam(home), deepCopyTeam(away)];
   const state: MatchState = {
@@ -71,8 +70,14 @@ export function queueInput(state: MatchState, input: MatchInput): void {
   }
   if (input.kind === 'POWER_TAP') {
     const target = state.players[input.player];
-    if (input.player < 0 || input.player > 10 || !target?.def.power) {
-      throw new Error(`invalid POWER_TAP target ${input.player} — taps may only target your own heroes`);
+    if (!Number.isSafeInteger(input.player)
+      || input.player < 0
+      || input.player > 21
+      || !target?.def.power
+      || target.firePolicy !== 'SAVE_FOR_TAP') {
+      throw new Error(
+        `invalid POWER_TAP target ${input.player} — taps may only target heroes on the manually controlled team`
+      );
     }
   }
   // Separate copies so pendingInputs (consumed/spliced by powerTick) and inputLog
@@ -135,39 +140,61 @@ export function envelopeFrom(state: MatchState): ReplayEnvelope {
   };
 }
 
-function validateTeam(team: TeamDef, label: 'home' | 'away'): void {
-  if (!team || !Array.isArray(team.players) || team.players.length !== 11) {
-    throw new Error(`replay envelope: ${label} team must have exactly 11 players`);
+export function validateTeamDef(team: TeamDef, label: string): void {
+  if (!team || typeof team !== 'object') {
+    throw new Error(`${label} must be an object`);
   }
+  if (typeof team.id !== 'string' || team.id.trim().length === 0
+    || typeof team.name !== 'string' || team.name.trim().length === 0) {
+    throw new Error(`${label} must have a non-empty id and name`);
+  }
+  if (!Array.isArray(team.players) || team.players.length !== 11) {
+    throw new Error(`${label} must have exactly 11 players`);
+  }
+
+  const playerIds = new Set<string>();
+  let goalkeeperCount = 0;
+
   for (const p of team.players as PlayerDef[]) {
     if (!p || typeof p !== 'object') {
-      throw new Error(`replay envelope: ${label} team player must be an object`);
+      throw new Error(`${label} player must be an object`);
     }
-    if (typeof p.id !== 'string' || typeof p.name !== 'string') {
-      throw new Error(`replay envelope: ${label} team has a player with a non-string id/name`);
+    if (typeof p.id !== 'string' || p.id.trim().length === 0) {
+      throw new Error(`${label} player IDs must be non-empty strings`);
+    }
+    if (playerIds.has(p.id)) {
+      throw new Error(`${label} player IDs must be unique; duplicate ${p.id}`);
+    }
+    playerIds.add(p.id);
+    if (typeof p.name !== 'string' || p.name.trim().length === 0) {
+      throw new Error(`${label} player names must be non-empty strings`);
     }
     if (!VALID_ROLES.has(p.role)) {
-      throw new Error(`replay envelope: ${label} team player ${p.id} has invalid role ${String(p.role)}`);
+      throw new Error(`${label} player ${p.id} has invalid role ${String(p.role)}`);
     }
+    if (p.role === 'GK') goalkeeperCount += 1;
     for (const key of ATTR_KEYS) {
       const v = p.attrs?.[key];
-      if (typeof v !== 'number' || !Number.isFinite(v) || v < 1 || v > 99) {
-        throw new Error(`replay envelope: ${label} team player ${p.id} has invalid attrs.${key} (${v})`);
+      if (!Number.isSafeInteger(v) || v < 1 || v > 99) {
+        throw new Error(`${label} player ${p.id} has invalid attrs.${key} (${v}); expected an integer from 1 to 99`);
       }
     }
     if (p.power !== undefined && !VALID_POWER_IDS.has(p.power)) {
-      throw new Error(`replay envelope: ${label} team player ${p.id} has unknown power ${String(p.power)}`);
+      throw new Error(`${label} player ${p.id} has unknown power ${String(p.power)}`);
     }
   }
   // Slot 0 is the goalkeeper by position (the engine reads index 0/11 as GK
   // regardless of role). Reject a squad whose slot 0 isn't a GK — otherwise an
   // all-outfield team validates and an outfielder silently keeps goal.
   if (team.players[0].role !== 'GK') {
-    throw new Error(`replay envelope: ${label} team slot 0 must be the goalkeeper (role GK), got ${String(team.players[0].role)}`);
+    throw new Error(`${label} slot 0 must be the goalkeeper (role GK), got ${String(team.players[0].role)}`);
+  }
+  if (goalkeeperCount !== 1) {
+    throw new Error(`${label} must have exactly one goalkeeper, got ${goalkeeperCount}`);
   }
 }
 
-/** Structural validation for the optional opts bag (Task 13 pre-flight, Issue B) — same reasoning as validateTeam: a deserialized envelope offers no runtime type guarantee. */
+/** Structural validation for the optional opts bag (Task 13 pre-flight, Issue B) — same reasoning as validateTeamDef: a deserialized envelope offers no runtime type guarantee. */
 function validateOpts(opts: MatchOpts | undefined): void {
   if (opts === undefined) return;
   if (opts.homePolicy !== undefined && !VALID_FIRE_POLICIES.has(opts.homePolicy)) {
@@ -192,8 +219,8 @@ export function validateEnvelope(env: ReplayEnvelope): void {
   if (typeof env.seed !== 'number' || !Number.isFinite(env.seed) || !Number.isInteger(env.seed)) {
     throw new Error(`replay envelope: seed must be a finite integer, got ${env.seed}`);
   }
-  validateTeam(env.home, 'home');
-  validateTeam(env.away, 'away');
+  validateTeamDef(env.home, 'replay envelope: home team');
+  validateTeamDef(env.away, 'replay envelope: away team');
   validateOpts(env.opts);
   if (!Array.isArray(env.inputs)) {
     throw new Error('replay envelope: inputs must be an array');
@@ -213,16 +240,20 @@ export function validateEnvelope(env: ReplayEnvelope): void {
     if (typeof input.tick !== 'number' || !Number.isFinite(input.tick) || !Number.isInteger(input.tick) || input.tick < 1 || input.tick > MAX_REPLAY_TICK) {
       throw new Error(`replay envelope: input tick must be a finite integer in 1..${MAX_REPLAY_TICK}, got ${input.tick}`);
     }
-    // Same 0..10 range as queueInput's own-heroes rule (Task 13 pre-flight tightened
-    // this from 0..21 — a replayed tap can no-op target a rival same as a live one,
-    // but the envelope should reject it the same way queueInput does for a live tap).
-    if (typeof input.player !== 'number' || !Number.isFinite(input.player) || !Number.isInteger(input.player) || input.player < 0 || input.player > 10) {
-      throw new Error(`replay envelope: input player must be a finite integer in 0..10 — taps may only target your own heroes, got ${input.player}`);
+    if (typeof input.player !== 'number' || !Number.isFinite(input.player) || !Number.isInteger(input.player) || input.player < 0 || input.player > 21) {
+      throw new Error(`replay envelope: input player must be a finite integer in 0..21, got ${input.player}`);
     }
-    // The target must actually be a hero (own a power). queueInput throws on this
-    // during execution; validating it here avoids a validate-then-fail gap.
-    if (env.home.players[input.player]?.power === undefined) {
-      throw new Error(`replay envelope: input targets home slot ${input.player}, which is not a hero (no power)`);
+    const targetTeam = input.player < 11 ? 0 : 1;
+    const targetSlot = targetTeam === 0 ? input.player : input.player - 11;
+    const target = targetTeam === 0 ? env.home.players[targetSlot] : env.away.players[targetSlot];
+    if (target?.power === undefined) {
+      throw new Error(`replay envelope: input targets team ${targetTeam} slot ${targetSlot}, which is not a hero (no power)`);
+    }
+    const targetPolicy = targetTeam === 0
+      ? (env.opts?.homePolicy ?? 'SAVE_FOR_TAP')
+      : (env.opts?.awayPolicy ?? 'FIRE_WHEN_READY');
+    if (targetPolicy !== 'SAVE_FOR_TAP') {
+      throw new Error(`replay envelope: input targets team ${targetTeam}, which is not manually controlled`);
     }
   }
 }

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "powers": [
+    {
+      "id": "SUPER_SPEED",
+      "name": "Super Speed",
+      "tier": "starter",
+      "category": "attack",
+      "description": "Burst into open grass with or without the ball.",
+      "usefulContext": "BREAKAWAY",
+      "requiresTarget": false,
+      "windupTicks": 15
+    },
+    {
+      "id": "FIRE_TORCH",
+      "name": "Fire Torch",
+      "tier": "starter",
+      "category": "attack",
+      "description": "A flaming run that makes nearby markers hesitate and may ignite one.",
+      "usefulContext": "MARKED_FINAL_THIRD",
+      "requiresTarget": false,
+      "windupTicks": 15
+    },
+    {
+      "id": "SUPER_STRENGTH",
+      "name": "Super Strength",
+      "tier": "starter",
+      "category": "defense",
+      "description": "Lock onto a dangerous carrier, charge, and flatten them.",
+      "usefulContext": "DANGEROUS_CARRIER",
+      "requiresTarget": true,
+      "windupTicks": 15
+    }
+  ]
+}

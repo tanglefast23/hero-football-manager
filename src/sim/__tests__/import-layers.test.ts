@@ -14,6 +14,7 @@ const ALLOWED: Record<string, string[]> = {
   'powers.ts': ['types', 'geometry', 'events'],
   'engine.ts': ['movement-table', 'geometry', 'events', 'types', 'contest', 'powers'],
   'match.ts': ['rng', 'geometry', 'events', 'engine', 'types', 'powers'],
+  'runtime-golden.ts': ['match', 'teams'],
 };
 
 describe('import layers', () => {

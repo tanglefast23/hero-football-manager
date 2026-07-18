@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Atlas, Canvas, Circle, Fill, Path, Skia, type SkColor, type SkImage, type SkRSXform, type SkRect } from '@shopify/react-native-skia';
+import { Atlas, Canvas, Circle, Fill, Skia, type SkColor, type SkImage, type SkRect } from '@shopify/react-native-skia';
 import { createMatch, queueInput, tick } from '../sim/match';
 import { isActive, teamPowerBusy } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
-import type { MatchState } from '../sim/types';
+import type { MatchState, TeamDef } from '../sim/types';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
-import { lerpFrame, snapshotFrame, type PitchFrame } from './interpolate';
+import { spriteKeyForMatchSlot } from './sprites/slot-key';
+import { snapshotFrame, type PitchFrame } from './interpolate';
 import {
   actionPose,
   isKeeperReady,
@@ -15,7 +16,9 @@ import {
   runFrameForDistance,
   type PlayerActionAnimation,
 } from './animation';
-import { flameTongues } from './flames';
+import { useWorkletAtlasFrame } from './worklet-atlas-frame';
+import { WorkletMatchOverlays } from './WorkletMatchOverlays';
+import { matchPoliciesForControlledTeam } from './match-control';
 import { Pitch } from './Pitch';
 import { DebugOverlay } from './DebugOverlay';
 import {
@@ -120,22 +123,40 @@ const warmthStep = (heat: number): WarmthStep =>
 const MARKER_Y_OFFSET = 14; // pt above the sprite's center, before the triangle's own height
 const MARKER_HALF_W = 5;
 const MARKER_H = 7;
-function triangleMarkerPath(cx: number, baseY: number): string {
-  const top = baseY - MARKER_H;
-  return `M ${cx - MARKER_HALF_W} ${baseY} L ${cx + MARKER_HALF_W} ${baseY} L ${cx} ${top} Z`;
+function scoreCode(team: TeamDef): string {
+  const words = team.name.trim().split(/\s+/);
+  const last = words[words.length - 1];
+  const source = /^(fc|afc|club)$/i.test(last) && words.length > 1
+    ? words[0]
+    : last;
+  return source.slice(0, 3).toUpperCase();
 }
 
-export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: MatchState) => void }) {
+export function MatchScreen({
+  seed,
+  home = ROVERS,
+  away = UNITED,
+  controlledTeam = 0,
+  onDone,
+}: {
+  seed: number;
+  home?: TeamDef;
+  away?: TeamDef;
+  controlledTeam?: 0 | 1;
+  onDone: (state: MatchState) => void;
+}) {
   const { width } = useWindowDimensions();
   const scale = width / PITCH_W;
   const pitchH = PITCH_H * scale;
+  const homeCode = scoreCode(home);
+  const awayCode = scoreCode(away);
 
   // Ledger item 1 — lazy init: never `useRef(createMatch(...))`, whose
   // argument expression would run (creating and discarding a fresh match)
   // on every render. Guard-then-assign only ever creates one match per mount.
   const stateRef = useRef<MatchState | null>(null);
   if (stateRef.current === null) {
-    stateRef.current = createMatch(seed, ROVERS, UNITED);
+    stateRef.current = createMatch(seed, home, away, matchPoliciesForControlledTeam(controlledTeam));
   }
   const match = stateRef.current;
 
@@ -193,17 +214,6 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   const pausedRef = useRef(false);
   speedRef.current = speed;
 
-  // Ledger item 2 — single pause setter: sets React state AND pausedRef
-  // together. There is deliberately NO render-time `pausedRef.current = paused`
-  // write-back: that pattern silently un-paused the match after backgrounding,
-  // because the AppState listener below only touched the ref while `paused`
-  // (state) stayed false, and the very next render's write-back stomped the
-  // ref back to false, undoing the pause one frame after it took effect.
-  const setPausedBoth = (v: boolean) => {
-    pausedRef.current = v;
-    setPaused(v);
-  };
-
   // Ledger item 4 — build the atlas once at mount from the merged sprite pack.
   // If the pack fails to build (realistically: sprites.json failing loader
   // validation), fall back to a white square texture with team-color tints
@@ -216,6 +226,41 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       return { ...buildFallbackAtlas(Skia, FALLBACK_SPRITE), fallbackMode: true };
     }
   }, []);
+
+  const playerCell = atlas.rectFor('r0:run0');
+  const ballCell = atlas.rectFor('ball');
+  const {
+    transforms: workletTransforms,
+    visualPositions: workletVisualPositions,
+    statuses: workletStatuses,
+    zoneFractions: workletZoneFractions,
+    carrier: workletCarrier,
+    simTick: workletSimTick,
+    progress: workletProgress,
+    publish: publishAtlasFrame,
+    pause: pauseAtlasFrame,
+    resume: resumeAtlasFrame,
+  } = useWorkletAtlasFrame({
+    initialFrame: prevRef.current!,
+    scale,
+    playerCell: { width: playerCell.w, height: playerCell.h },
+    ballCell: { width: ballCell.w, height: ballCell.h },
+    playerDrawScale: PLAYER_DRAW_SCALE,
+    ballDrawScale: BALL_DRAW_SCALE,
+    ballFootForwardFraction: BALL_FOOT_FORWARD_FRACTION,
+    ballFootDownPx: BALL_FOOT_DOWN_PX,
+    ballFootDeadzonePx: BALL_FOOT_DEADZONE_PX,
+  });
+
+  // Single pause setter: pauses both the JS simulation clock and the UI-thread
+  // interpolation. There is deliberately no render-time ref write-back; that
+  // would undo an AppState pause on the next render.
+  const setPausedBoth = (value: boolean) => {
+    pausedRef.current = value;
+    if (value) pauseAtlasFrame();
+    else resumeAtlasFrame(speedRef.current);
+    setPaused(value);
+  };
 
   // Audio lifecycle — own effect, separate from the RAF loop below: starts
   // the match theme on mount, tears everything down on unmount. No pause
@@ -268,6 +313,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
 
       const eventsBefore = s.events.length;
       let snap = false;
+      let advanced = false;
 
       // No pausedRef check needed here: the early return above already ran,
       // and the flag cannot flip mid-invocation on a single-threaded runtime.
@@ -275,6 +321,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         const before = nextRef.current!;
         prevRef.current = before;
         tick(s);
+        advanced = true;
         nextRef.current = snapshotFrame(s, before);
 
         for (let i = 0; i < 22; i++) {
@@ -391,7 +438,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         // chip/ring's existing red treatment (ledger item 5 above).
         if (e.kind === 'POWER_READY') {
           const firstName = s.players[e.player].def.name.split(' ')[0];
-          if (s.players[e.player].team === 0) {
+          if (s.players[e.player].team === controlledTeam) {
             bannerRef.current = {
               text: `⚡ ${firstName} IS IN THE ZONE — TAP!`,
               untilTick: e.t + ZONE_BANNER_TICKS,
@@ -431,19 +478,27 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         trailRef.current = [];
       }
 
-      const interpolation = Math.min(1, acc / TICK_MS);
-      setFrame(lerpFrame(prevRef.current!, nextRef.current!, interpolation));
-      setHud({
-        score: [...s.score] as [number, number],
-        tick: s.tick,
-        banner: s.tick <= bannerRef.current.untilTick ? bannerRef.current.text : '',
-        bannerTone: bannerRef.current.tone,
-        scoreFlash: s.tick <= scoreFlashUntilRef.current,
-        // Sim tick N is visually interpolated from snapshot N-1 to N. This
-        // fractional clock lets tackle rotations and recoveries move smoothly
-        // at display refresh rate while remaining aligned to event ticks.
-        visualTick: Math.max(0, s.tick - 1 + interpolation),
-      });
+      if (advanced) {
+        // Publish one immutable tick pair. Reanimated interpolates it and
+        // updates all 23 Atlas transforms on the UI thread; React only receives
+        // the discrete state used by HUD, chips, and event overlays.
+        publishAtlasFrame(
+          prevRef.current!,
+          nextRef.current!,
+          s.tick,
+          speedRef.current,
+          actionRef.current
+        );
+        setFrame(nextRef.current!);
+        setHud({
+          score: [...s.score] as [number, number],
+          tick: s.tick,
+          banner: s.tick <= bannerRef.current.untilTick ? bannerRef.current.text : '',
+          bannerTone: bannerRef.current.tone,
+          scoreFlash: s.tick <= scoreFlashUntilRef.current,
+          visualTick: s.tick,
+        });
+      }
 
       if (s.phase === 'fulltime') {
         // End-of-match hold: calling onDone on the same frame that emitted
@@ -465,17 +520,17 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       cancelAnimationFrame(raf);
       sub.remove();
     };
-  }, [onDone]);
+  }, [onDone, publishAtlasFrame]);
 
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
   // takes priority, followed by the far-ball GK ready loop, then locomotion.
   const playerSpriteKeys = useMemo(() => match.players.map((p, i) => {
     const pose = actionPose(actionRef.current[i], hud.visualTick);
-    if (pose.active) return `${p.def.id}:run0`;
+    if (pose.active) return spriteKeyForMatchSlot(i, 'run0');
     if (p.def.role === 'GK' && isKeeperReady(dist2(frame.players[i], frame.ball))) {
-      return `${p.def.id}:${keeperReadyFrame(hud.visualTick)}`;
+      return spriteKeyForMatchSlot(i, keeperReadyFrame(hud.visualTick));
     }
-    return `${p.def.id}:${runFrameForDistance(frame.travel[i], frame.moved[i])}`;
+    return spriteKeyForMatchSlot(i, runFrameForDistance(frame.travel[i], frame.moved[i]));
   }), [frame, hud.visualTick, match]);
 
   // All 22 players plus the ball still share one batched Atlas draw call.
@@ -489,77 +544,6 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       Skia.XYWHRect(ball.x, ball.y, ball.w, ball.h),
     ];
   }, [atlas, match, playerSpriteKeys]);
-
-  const transforms: SkRSXform[] = useMemo(() => {
-    const scos = scale * PLAYER_DRAW_SCALE;
-    const ballScos = scale * BALL_DRAW_SCALE;
-    const ball = atlas.rectFor('ball');
-
-    // Held-ball foot offset (T8; constants above) — direction comes from the
-    // carrier's last-tick displacement via prevRef/nextRef (the same
-    // tick-boundary snapshots the snap-distance check above reads), not the
-    // lerped `frame`: those refs only change once per sim tick, so the
-    // offset holds steady between ticks instead of wobbling every animation
-    // frame. Non-held states (loose/pass/shot) leave both offsets at 0 —
-    // unchanged, centered on frame.ball.
-    let ballOffsetX = 0;
-    let ballOffsetY = 0;
-    if (frame.carrier >= 0) {
-      const carrier = frame.carrier;
-      const from = prevRef.current!.players[carrier];
-      const to = nextRef.current!.players[carrier];
-      const dx = to.x - from.x;
-      const dy = to.y - from.y;
-      const mag = Math.hypot(dx, dy); // render code only — sqrt precision is a non-issue here
-      let ux: number;
-      let uy: number;
-      if (mag * scale < BALL_FOOT_DEADZONE_PX) {
-        // Stationary (or sub-pixel tick jitter) — point toward the carrier's
-        // attacking goal (sim/types.ts: team 0 attacks toward y=0) instead
-        // of trusting a near-zero, noise-prone velocity direction.
-        ux = 0;
-        uy = carrier < 11 ? -1 : 1;
-      } else {
-        ux = dx / mag;
-        uy = dy / mag;
-      }
-      const playerHalfW = (PLAYER_CELL_W * scos) / 2;
-      ballOffsetX = ux * playerHalfW * BALL_FOOT_FORWARD_FRACTION;
-      ballOffsetY = uy * playerHalfW * BALL_FOOT_FORWARD_FRACTION + BALL_FOOT_DOWN_PX;
-    }
-
-    return [
-      ...match.players.map((_p, i) => {
-        const r = atlas.rectFor(playerSpriteKeys[i]);
-        const pos = frame.players[i];
-        const action = actionRef.current[i];
-        const pose = actionPose(action, hud.visualTick);
-        let centerX = pos.x;
-        let centerY = pos.y;
-        if (pose.active && action?.kind === 'slide') {
-          centerX += action.direction.x * pose.forwardOffset;
-          centerY += action.direction.y * pose.forwardOffset;
-        } else if (pose.active && action && (action.kind === 'fall' || action.kind === 'knockdown')) {
-          centerX = pos.x * (1 - pose.anchorWeight) + action.anchor.x * pose.anchorWeight;
-          centerY = pos.y * (1 - pose.anchorWeight) + action.anchor.y * pose.anchorWeight;
-        }
-
-        const rotatedScos = Math.cos(pose.rotation) * scos;
-        const rotatedSsin = Math.sin(pose.rotation) * scos;
-        // Keep the sprite's center pinned to the player while rotating around
-        // that center (RSXform's translation otherwise rotates around 0,0).
-        const tx = centerX * scale - (rotatedScos * r.w - rotatedSsin * r.h) / 2;
-        const ty = centerY * scale - (rotatedSsin * r.w + rotatedScos * r.h) / 2;
-        return Skia.RSXform(rotatedScos, rotatedSsin, tx, ty);
-      }),
-      Skia.RSXform(
-        ballScos,
-        0,
-        frame.ball.x * scale - (ball.w * ballScos) / 2 + ballOffsetX,
-        frame.ball.y * scale - (ball.h * ballScos) / 2 + ballOffsetY
-      ),
-    ];
-  }, [frame, hud.visualTick, atlas, match, playerSpriteKeys, scale]);
 
   // Ledger item 4 — tints carry status ONLY. A normal player gets white (a
   // no-op multiply) so the sprite's own kit/skin/hair colors survive instead
@@ -583,7 +567,6 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   const stoppage =
     match.phase === 'play' &&
     ((match.half === 1 && match.tick >= HALF_TICKS) || (match.half === 2 && match.tick >= TOTAL_TICKS));
-  const pulse = hud.tick % 20 < 10 ? 1 : 0.55;
   const ringR = (PLAYER_CELL_W * scale * PLAYER_DRAW_SCALE) / 2 + 4;
   // Zone-urgency chip border pulse — alternates gold/white every ~5 ticks,
   // independent of the on-canvas ring's own (slower, 20-tick) pulse above.
@@ -592,15 +575,24 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   // Home/rival hero indices — scanned generically from live roster data
   // (whichever players carry `def.power`) instead of hardcoded slots, since
   // which squad members are heroes is content, not an engine fact.
-  const { homeHeroes, rivalHeroes } = useMemo(() => {
-    const home: number[] = [];
+  const { userHeroes, rivalHeroes, heroPlayers, fireTorchPlayers } = useMemo(() => {
+    const user: number[] = [];
     const rival: number[] = [];
+    const heroes: number[] = [];
+    const fireTorch: number[] = [];
     match.players.forEach((p, i) => {
       if (!p.def.power) return;
-      (p.team === 0 ? home : rival).push(i);
+      heroes.push(i);
+      if (p.def.power === 'FIRE_TORCH') fireTorch.push(i);
+      (p.team === controlledTeam ? user : rival).push(i);
     });
-    return { homeHeroes: home, rivalHeroes: rival };
-  }, [match]);
+    return {
+      userHeroes: user,
+      rivalHeroes: rival,
+      heroPlayers: heroes,
+      fireTorchPlayers: fireTorch,
+    };
+  }, [controlledTeam, match]);
 
   // Shared per-chip state, read by both renderers below.
   //
@@ -707,10 +699,15 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     <View style={styles.root}>
       <Pressable style={styles.scorebar} onPress={() => setPausedBoth(!pausedRef.current)}>
         <Text style={[styles.scoreText, hud.scoreFlash ? styles.scoreTextFlash : null]}>
-          ROV {hud.score[0]} – {hud.score[1]} UNI · {minute}'{stoppage ? '+' : ''}
+          {homeCode} {hud.score[0]} – {hud.score[1]} {awayCode} · {minute}'{stoppage ? '+' : ''}
           {paused ? ' ⏸' : ''}
         </Text>
-        <Pressable onPress={() => setSpeed((x) => (x === 1 ? 2 : 1))}>
+        <Pressable onPress={() => setSpeed((current) => {
+          const next = current === 1 ? 2 : 1;
+          speedRef.current = next;
+          resumeAtlasFrame(next);
+          return next;
+        })}>
           <Text style={styles.speedText}>×{speed}</Text>
         </Pressable>
         {__DEV__ ? (
@@ -795,73 +792,36 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
             />,
           ];
         })()}
-        {frame.statuses.map((st, i) =>
-          st === 'zone' ? (
-            <Circle
-              key={`zone-${i}`}
-              cx={frame.players[i].x * scale}
-              cy={frame.players[i].y * scale}
-              r={ringR}
-              color={i < 11 ? '#f5c518' : '#e8433f'}
-              style="stroke"
-              strokeWidth={2}
-              opacity={frame.zoneFraction[i] * pulse}
-            />
-          ) : null
-        )}
-        {frame.statuses.map((st, i) =>
-          // On-pitch zone marker — home-only (see MARKER_Y_OFFSET comment
-          // above): flags the tap opportunity to a player watching the pitch
-          // instead of the chip row. Hidden while team 0's Zones are frozen
-          // behind a busy teammate — the tap would be dropped (audit finding 7).
-          st === 'zone' && i < 11 && !teamPowerBusy(match, 0) ? (
-            <Path
-              key={`marker-${i}`}
-              path={triangleMarkerPath(frame.players[i].x * scale, frame.players[i].y * scale - MARKER_Y_OFFSET)}
-              color="#f5c518"
-            />
-          ) : null
-        )}
         <Atlas
           image={atlas.image as SkImage}
           sprites={sprites}
-          transforms={transforms}
+          transforms={workletTransforms}
           colors={colors}
           colorBlendMode="modulate"
         />
-        {/* Flames, drawn over the sprites so the fire reads in front of the
-            body: every ignited defender (knocked flat, burning until they
-            recover) and the Fire Torch caster while his power is active. Pure
-            geometry from flames.ts flickering off the visual-tick clock. */}
-        {frame.statuses.map((st, i) => {
-          const burning = st === 'ignited' || (st === 'active' && match.players[i].def.power === 'FIRE_TORCH');
-          if (!burning) return null;
-          const px = frame.players[i].x * scale;
-          const baseY = frame.players[i].y * scale + ringR * 0.35;
-          return flameTongues(px, baseY, ringR * 1.7, ringR * 2.6, hud.visualTick + i * 2).map((tongue, k) => {
-            const path = Skia.Path.MakeFromSVGString(tongue.d);
-            return path ? (
-              <Path key={`flame-${i}-${k}`} path={path} color={tongue.color} opacity={tongue.opacity} />
-            ) : null;
-          });
-        })}
-        {frame.carrier >= 0 ? (
-          <Circle
-            cx={frame.players[frame.carrier].x * scale}
-            cy={frame.players[frame.carrier].y * scale}
-            r={ringR + 2}
-            color="#ffffff"
-            style="stroke"
-            strokeWidth={2}
-          />
-        ) : null}
+        <WorkletMatchOverlays
+          visualPositions={workletVisualPositions}
+          statuses={workletStatuses}
+          zoneFractions={workletZoneFractions}
+          carrier={workletCarrier}
+          simTick={workletSimTick}
+          progress={workletProgress}
+          controlledTeam={controlledTeam}
+          heroPlayers={heroPlayers}
+          fireTorchPlayers={fireTorchPlayers}
+          scale={scale}
+          ringRadius={ringR}
+          markerYOffset={MARKER_Y_OFFSET}
+          markerHalfWidth={MARKER_HALF_W}
+          markerHeight={MARKER_H}
+        />
         {debugGrid ? <DebugOverlay state={match} scale={scale} /> : null}
       </Canvas>
       {hud.banner ? (
         <Text style={[styles.banner, hud.bannerTone === 'red' ? styles.bannerThreat : null]}>{hud.banner}</Text>
       ) : null}
-      {homeHeroes.length > 0 ? (
-        <View style={styles.chips}>{homeHeroes.map((i) => homeChip(i))}</View>
+      {userHeroes.length > 0 ? (
+        <View style={styles.chips}>{userHeroes.map((i) => homeChip(i))}</View>
       ) : null}
     </View>
   );
