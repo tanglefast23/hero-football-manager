@@ -6,15 +6,19 @@ function cloneContent(content: LaunchContent): LaunchContent {
 }
 
 describe('validated M1 launch content', () => {
-  test('loads ten playable clubs with thirteen players each', () => {
+  test('loads ten playable clubs with sixteen players each', () => {
     const content = loadLaunchContent();
     const clubs = content.clubs.clubs;
 
     expect(clubs).toHaveLength(10);
-    expect(clubs.flatMap(club => club.players)).toHaveLength(130);
+    expect(clubs.flatMap(club => club.players)).toHaveLength(160);
 
     for (const club of clubs) {
-      expect(club.players).toHaveLength(13);
+      expect(club.players).toHaveLength(16);
+      expect(club.players.filter(player => player.role === 'GK')).toHaveLength(2);
+      expect(club.players.filter(player => player.role === 'DEF')).toHaveLength(5);
+      expect(club.players.filter(player => player.role === 'MID')).toHaveLength(5);
+      expect(club.players.filter(player => player.role === 'FWD')).toHaveLength(4);
       expect(club.startingLineup).toHaveLength(11);
       const playerById = new Map(club.players.map(player => [player.id, player]));
       const lineup = club.startingLineup.map(playerId => playerById.get(playerId));

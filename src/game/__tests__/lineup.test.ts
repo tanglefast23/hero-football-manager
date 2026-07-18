@@ -81,6 +81,7 @@ describe('buildTeamDef', () => {
     expect(team.players[0].role).toBe('GK');
     expect(team.players[9].power).toBe('SUPER_SPEED');
     expect(team.players[10].power).toBe('FIRE_TORCH');
+    expect(team.bench?.map(player => player.id)).toEqual(['bench-regular']);
   });
 
   it('requires an owned hero to be licensed or benched', () => {

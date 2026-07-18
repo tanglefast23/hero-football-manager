@@ -19,10 +19,17 @@ import {
 import { useWorkletAtlasFrame } from './worklet-atlas-frame';
 import { nextMatchSpeed, type MatchSpeed } from './match-speed';
 import { WorkletMatchOverlays } from './WorkletMatchOverlays';
-import { matchPoliciesForControlledTeam } from './match-control';
+import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
 import { Pitch } from './Pitch';
 import { DebugOverlay } from './DebugOverlay';
-import { queueAutoPowerTap } from './autoPower';
+import { FormationDiagram } from '../ui/components/FormationDiagram';
+import {
+  DEFAULT_FORMATION_PRESETS,
+  FORMATION_LABELS,
+  nextFormation,
+  nextMentality,
+  type FormationId,
+} from '../sim/tactics';
 import {
   initAudio,
   playForEvent,
@@ -99,23 +106,6 @@ const FALLBACK_SPRITE = 16;
 const ZONE_BANNER_TICKS = 25;
 const RIVAL_ZONE_BANNER_TICKS = 20;
 
-// How long the "wait for the glow…" early-tap feedback (mini-label + chip
-// border flash) stays visible after a home hero is tapped outside its zone.
-const EARLY_TAP_TICKS = 15;
-
-// WARMTH step heat thresholds for the (non-zone) chip background/border.
-// ZONE_HEAT_THRESHOLD (sim/powers.ts) is 60 — the heat level below which a
-// Zone-entry roll can never happen at all — so "warming" starts exactly
-// there; "hot ember" at 100 flags heat that has run past the old 0-100 gauge
-// display range (heat has no firing-relevant ceiling; it only ever affects
-// the entry-roll odds).
-const WARMTH_WARM_THRESHOLD = 60;
-const WARMTH_HOT_THRESHOLD = 100;
-
-type WarmthStep = 'cold' | 'warming' | 'hot';
-const warmthStep = (heat: number): WarmthStep =>
-  heat >= WARMTH_HOT_THRESHOLD ? 'hot' : heat >= WARMTH_WARM_THRESHOLD ? 'warming' : 'cold';
-
 // On-pitch zone marker geometry — a small upward triangle drawn ~14pt above
 // a HOME hero's sprite while it's in the Zone, so an eyes-on-the-pitch player
 // spots the tap opportunity without looking down at the chip row. Rival zone
@@ -139,12 +129,16 @@ export function MatchScreen({
   home = ROVERS,
   away = UNITED,
   controlledTeam = 0,
+  formationPresets = DEFAULT_FORMATION_PRESETS,
+  autoPowers = false,
   onDone,
 }: {
   seed: number;
   home?: TeamDef;
   away?: TeamDef;
   controlledTeam?: 0 | 1;
+  formationPresets?: readonly [FormationId, FormationId, FormationId];
+  autoPowers?: boolean;
   onDone: (state: MatchState) => void;
 }) {
   const { width } = useWindowDimensions();
@@ -158,12 +152,18 @@ export function MatchScreen({
   // on every render. Guard-then-assign only ever creates one match per mount.
   const stateRef = useRef<MatchState | null>(null);
   if (stateRef.current === null) {
-    stateRef.current = createMatch(seed, home, away, matchPoliciesForControlledTeam(controlledTeam));
+    stateRef.current = createMatch(
+      seed,
+      home,
+      away,
+      matchPoliciesForControlledTeam(controlledTeam, autoPowers, formationPresets[0]),
+    );
   }
   const match = stateRef.current;
 
   const prevRef = useRef<PitchFrame | null>(null);
   const nextRef = useRef<PitchFrame | null>(null);
+  const lastCarrierRef = useRef<number | null>(null);
   if (prevRef.current === null) {
     const initial = snapshotFrame(match);
     prevRef.current = initial;
@@ -176,7 +176,6 @@ export function MatchScreen({
     untilTick: 0,
     tone: 'gold',
   });
-  const expiredAtRef = useRef<Record<number, number>>({});
   const scoreFlashUntilRef = useRef<number>(0);
   // Shot presentation — recent ball positions while a shot flies (motion
   // trail), and the last kick origin + tick (dust puff). Render-only.
@@ -185,9 +184,6 @@ export function MatchScreen({
   // End-of-match hold deadline (RAF/performance.now() timebase), set once
   // when the loop first sees phase === 'fulltime' — see FULLTIME_HOLD_MS.
   const fulltimeDeadlineRef = useRef<number | null>(null);
-  // UX fix — keyed by player index: the tick a home hero's chip was last
-  // tapped outside its zone (early-tap feedback), read by homeChip() below.
-  const pressFeedbackRef = useRef<Record<number, number>>({});
   // Render-only tackle choreography keyed by player index. TACKLE is already
   // part of the deterministic event stream; these poses never feed back into
   // positions, possession, RNG, or replay data.
@@ -208,20 +204,17 @@ export function MatchScreen({
     visualTick: 0,
   });
   const [speed, setSpeed] = useState<MatchSpeed>(1);
-  const [autoPower, setAutoPower] = useState(false);
   // Dev-only movement-table tuning instrument (movement spec's debug-overlay
   // deliverable; the toggle ships __DEV__-gated, never in release UI).
   const [debugGrid, setDebugGrid] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [selectedOutgoing, setSelectedOutgoing] = useState<number | null>(null);
+  const [selectedIncoming, setSelectedIncoming] = useState<string | null>(null);
   const speedRef = useRef<MatchSpeed>(1);
-  const autoPowerRef = useRef(false);
   const pausedRef = useRef(false);
+  const swapWasPausedRef = useRef(false);
   speedRef.current = speed;
-
-  const setAutoPowerBoth = (enabled: boolean) => {
-    autoPowerRef.current = enabled;
-    setAutoPower(enabled);
-  };
   // Ledger item 4 — build the atlas once at mount from the merged sprite pack.
   // If the pack fails to build (realistically: sprites.json failing loader
   // validation), fall back to a white square texture with team-color tints
@@ -328,7 +321,6 @@ export function MatchScreen({
       while (acc >= TICK_MS && s.phase !== 'fulltime') {
         const before = nextRef.current!;
         prevRef.current = before;
-        if (autoPowerRef.current) queueAutoPowerTap(s, controlledTeam);
         tick(s);
         advanced = true;
         nextRef.current = snapshotFrame(s, before);
@@ -391,7 +383,28 @@ export function MatchScreen({
           // holds and this banner stays up for the whole end-of-match hold.
           bannerRef.current = { text: '⚡ FULL TIME', untilTick: e.t + FLASH_TICKS, tone: 'gold' };
         }
-        if (e.kind === 'POWER_EXPIRED') expiredAtRef.current[e.player] = e.t;
+        if (e.kind === 'FORMATION_CHANGED' && e.team === controlledTeam) {
+          bannerRef.current = {
+            text: `${e.formation} · ${FORMATION_LABELS[e.formation].toUpperCase()}`,
+            untilTick: e.t + FLASH_TICKS,
+            tone: 'gold',
+          };
+        }
+        if (e.kind === 'MENTALITY_CHANGED' && e.team === controlledTeam) {
+          bannerRef.current = {
+            text: `MENTALITY · ${e.mentality}`,
+            untilTick: e.t + FLASH_TICKS,
+            tone: 'gold',
+          };
+        }
+        if (e.kind === 'SUBSTITUTION' && e.team === controlledTeam) {
+          const incoming = s.players[e.player].def.name;
+          bannerRef.current = {
+            text: `SUBSTITUTION · ${incoming} ON`,
+            untilTick: e.t + FLASH_TICKS,
+            tone: 'gold',
+          };
+        }
         if (e.kind === 'TACKLE') {
           const byPos = nextRef.current!.players[e.by];
           const onPos = nextRef.current!.players[e.on];
@@ -577,131 +590,72 @@ export function MatchScreen({
     match.phase === 'play' &&
     ((match.half === 1 && match.tick >= HALF_TICKS) || (match.half === 2 && match.tick >= TOTAL_TICKS));
   const ringR = (PLAYER_CELL_W * scale * PLAYER_DRAW_SCALE) / 2 + 4;
-  // Zone-urgency chip border pulse — alternates gold/white every ~5 ticks,
-  // independent of the on-canvas ring's own (slower, 20-tick) pulse above.
-  const chipPulseGold = hud.tick % 10 < 5;
+  const heroPlayers: number[] = [];
+  const userHeroes: number[] = [];
+  const fireTorchPlayers: number[] = [];
+  match.players.forEach((player, index) => {
+    if (!player.def.power) return;
+    heroPlayers.push(index);
+    if (player.team === controlledTeam) userHeroes.push(index);
+    if (player.def.power === 'FIRE_TORCH') fireTorchPlayers.push(index);
+  });
 
-  // Home/rival hero indices — scanned generically from live roster data
-  // (whichever players carry `def.power`) instead of hardcoded slots, since
-  // which squad members are heroes is content, not an engine fact.
-  const { userHeroes, rivalHeroes, heroPlayers, fireTorchPlayers } = useMemo(() => {
-    const user: number[] = [];
-    const rival: number[] = [];
-    const heroes: number[] = [];
-    const fireTorch: number[] = [];
-    match.players.forEach((p, i) => {
-      if (!p.def.power) return;
-      heroes.push(i);
-      if (p.def.power === 'FIRE_TORCH') fireTorch.push(i);
-      (p.team === controlledTeam ? user : rival).push(i);
+  const teamOffset = controlledTeam === 0 ? 0 : 11;
+  const onFieldIndices = Array.from({ length: 11 }, (_, slot) => teamOffset + slot);
+  const currentTactics = match.tactics[controlledTeam];
+  const pendingFormation = [...match.pendingInputs].reverse().find(
+    (input) => input.kind === 'SET_FORMATION',
+  );
+  const pendingMentality = [...match.pendingInputs].reverse().find(
+    (input) => input.kind === 'SET_MENTALITY',
+  );
+  const displayedFormation = pendingFormation?.kind === 'SET_FORMATION'
+    ? pendingFormation.formation
+    : currentTactics.formation;
+  const displayedMentality = pendingMentality?.kind === 'SET_MENTALITY'
+    ? pendingMentality.mentality
+    : currentTactics.mentality;
+  const carrierIndex = retainedCarrierIndex(frame.carrier, lastCarrierRef.current);
+  useEffect(() => {
+    if (frame.carrier >= 0) lastCarrierRef.current = frame.carrier;
+  }, [frame.carrier]);
+  const carrier = carrierIndex === null ? null : match.players[carrierIndex];
+  const selectedOutgoingPlayer = selectedOutgoing === null ? null : match.players[selectedOutgoing];
+  const selectedIncomingPlayer = selectedIncoming === null
+    ? null
+    : match.bench[controlledTeam].find((player) => player.id === selectedIncoming) ?? null;
+  const bench = match.bench[controlledTeam];
+  const substitutionsUsed = match.substitutionsUsed[controlledTeam];
+
+  const surname = (name: string) => {
+    const parts = name.trim().split(/\s+/);
+    return parts[parts.length - 1];
+  };
+  const initials = (name: string) => name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+
+  const openSwap = () => {
+    if (substitutionsUsed >= 3 || bench.length === 0) return;
+    swapWasPausedRef.current = pausedRef.current;
+    setSelectedOutgoing(null);
+    setSelectedIncoming(null);
+    setSwapOpen(true);
+    setPausedBoth(true);
+  };
+  const closeSwap = () => {
+    setSwapOpen(false);
+    setSelectedOutgoing(null);
+    setSelectedIncoming(null);
+    if (!swapWasPausedRef.current) setPausedBoth(false);
+  };
+  const confirmSwap = () => {
+    if (selectedOutgoing === null || selectedIncoming === null) return;
+    queueInput(match, {
+      tick: match.tick + 1,
+      kind: 'SUBSTITUTE',
+      player: selectedOutgoing,
+      replacementId: selectedIncoming,
     });
-    return {
-      userHeroes: user,
-      rivalHeroes: rival,
-      heroPlayers: heroes,
-      fireTorchPlayers: fireTorch,
-    };
-  }, [controlledTeam, match]);
-
-  // Shared per-chip state, read by both renderers below.
-  //
-  // Availability guard — a hero knocked out mid-window KEEPS its Zone by
-  // design (docs/04 canon: the window pauses and resumes on recovery — see
-  // powers.ts knockOut), so a downed hero legitimately carries
-  // `powerState.kind === 'zone'`. The chips must not treat that paused window
-  // as tappable. `outUntilTick > match.tick` is the same "is this player
-  // currently out" check interpolate.ts's snapshotFrame uses to pick the
-  // canvas 'out'/'ignited' tint, so it renders unavailable here too —
-  // dimmed, no zone styling, no TAP! overlay, no queued input.
-  //
-  // Ledger item 5 — no 'ready' state exists; a hero is chip-highlighted
-  // while its powerState.kind is 'zone'.
-  //
-  // WARMTH step replaces the old numeric heat bar — heat-weighted zone
-  // entry is a hot-streak mechanic, not a "fills up and fires" gauge, so no
-  // bar/number is shown. The zone state owns the chip's look once a hero is
-  // actually in the Zone; warmth only applies before that.
-  const chipState = (idx: number) => {
-    const p = match.players[idx];
-    const unavailable = p.outUntilTick > match.tick;
-    const inZoneRaw = !unavailable && p.powerState.kind === 'zone';
-    // One power per team: a teammate winding/active freezes this hero's Zone
-    // (paused in the sim). A frozen home window must not invite a tap — powerTick
-    // silently drops a tap while the team is busy (audit finding 7) — so the
-    // home chip treats `frozen` as "waiting, not tappable". The rival strip keeps
-    // using `inZoneRaw` for its threat glow (a paused rival is still a threat).
-    const frozen = inZoneRaw && teamPowerBusy(match, p.team);
-    const inZone = inZoneRaw && !frozen;
-    const dimmed = match.tick - (expiredAtRef.current[idx] ?? -Infinity) < FLASH_TICKS;
-    const step = unavailable || inZoneRaw ? null : warmthStep(p.gauge);
-    return { p, unavailable, inZone, inZoneRaw, frozen, dimmed, step };
-  };
-
-  const homeChip = (idx: number) => {
-    const { p, unavailable, inZone, frozen, dimmed, step } = chipState(idx);
-    // UX fix — early-tap feedback: set (only) in onPress below, read here for
-    // up to EARLY_TAP_TICKS afterward.
-    const earlyTap = !unavailable && match.tick - (pressFeedbackRef.current[idx] ?? -Infinity) < EARLY_TAP_TICKS;
-    const warmthStyle = step === 'warming' ? styles.warmingHome : step === 'hot' ? styles.hotHome : null;
-    return (
-      <Pressable
-        key={idx}
-        disabled={unavailable || frozen}
-        style={[
-          styles.chip,
-          warmthStyle,
-          inZone ? styles.chipReady : null,
-          inZone ? styles.chipZoneTap : null,
-          inZone ? { borderColor: chipPulseGold ? '#edb54a' : '#f7d894' } : null,
-          dimmed || unavailable || frozen ? styles.chipDim : null,
-          earlyTap ? styles.chipFlash : null,
-        ]}
-        onPress={() => {
-          // Route around the old unconditional queue — a tap outside the
-          // Zone was always a no-op in the sim (powerTick only converts a
-          // POWER_TAP input while powerState.kind === 'zone'; see
-          // sim/powers.ts), so gating it here changes no sim behavior. It
-          // just stops those taps from feeling ignored. `disabled` above
-          // already blocks this when unavailable/frozen; the check is repeated
-          // here so the guard holds even if disabled's native behavior
-          // ever changes. `frozen` = the Zone is paused behind a busy teammate,
-          // so a tap would be silently dropped by powerTick (audit finding 7).
-          if (unavailable || frozen) return;
-          if (p.powerState.kind === 'zone') {
-            queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: idx });
-          } else {
-            pressFeedbackRef.current[idx] = match.tick;
-          }
-        }}
-      >
-        {inZone ? <Text style={styles.tapOverlay}>TAP!</Text> : null}
-        <Text style={styles.chipName}>{p.def.name.split(' ')[1]}</Text>
-        {earlyTap ? <Text style={styles.waitLabel}>wait for the glow…</Text> : null}
-      </Pressable>
-    );
-  };
-
-  // Rival strip chip — slim, non-tappable badge (red family, plain View: no
-  // Pressable behavior at all). Keeps the zone-threat glow (chipThreat) when
-  // he's in the Zone — starving his window is the counterplay, so seeing him
-  // heat up matters even though the player can't act on it directly.
-  const rivalChip = (idx: number) => {
-    const { p, unavailable, inZoneRaw, dimmed, step } = chipState(idx);
-    const warmthStyle = step === 'warming' ? styles.warmingRival : step === 'hot' ? styles.hotRival : null;
-    return (
-      <View
-        key={idx}
-        style={[
-          styles.rivalChip,
-          warmthStyle,
-          inZoneRaw ? styles.chipThreat : null, // a paused rival is still a threat — unchanged from pre-fix
-          dimmed || unavailable ? styles.chipDim : null,
-        ]}
-      >
-        <Text style={styles.rivalTag}>RIVAL</Text>
-        <Text style={styles.rivalChipName}>{p.def.name.split(' ')[1]}</Text>
-      </View>
-    );
+    closeSwap();
   };
 
   return (
@@ -738,10 +692,8 @@ export function MatchScreen({
           ) : null}
         </View>
       </Pressable>
-      {rivalHeroes.length > 0 ? (
-        <View style={styles.rivalStrip}>{rivalHeroes.map((i) => rivalChip(i))}</View>
-      ) : null}
-      <Canvas style={{ width, height: pitchH }}>
+      <View style={{ width, height: pitchH }}>
+        <Canvas style={{ width, height: pitchH }}>
         {/* Pitch base = pixel-bible pitch-dark (#3f8a4a); Pitch.tsx paints the
             brighter base #5cb85c on alternating mow bands over it. */}
         <Fill color="#3f8a4a" />
@@ -840,23 +792,209 @@ export function MatchScreen({
           markerHeight={MARKER_H}
         />
         {debugGrid ? <DebugOverlay state={match} scale={scale} /> : null}
-      </Canvas>
+        </Canvas>
+        {carrier ? (
+          <View
+            pointerEvents="none"
+            style={styles.carrierCard}
+          >
+            <View style={styles.carrierLine}>
+              <Text numberOfLines={1} style={styles.carrierName}>{carrier.def.name}</Text>
+              <Text style={styles.carrierEnergy}>ENERGY {Math.round(carrier.condition)}%</Text>
+            </View>
+            <View style={styles.energyTrack}>
+              <View style={[
+                styles.energyFill,
+                carrier.condition <= 30 ? styles.energyFillLow : null,
+                { width: `${Math.max(0, Math.min(100, carrier.condition))}%` },
+              ]} />
+            </View>
+          </View>
+        ) : null}
+        {!autoPowers ? userHeroes.map((index) => {
+          const player = match.players[index];
+          const ready = player.outUntilTick <= match.tick
+            && player.powerState.kind === 'zone'
+            && !teamPowerBusy(match, controlledTeam);
+          if (!ready) return null;
+          const position = frame.players[index];
+          return (
+            <Pressable
+              key={`hero-tap-${index}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Activate ${player.def.name}'s ${player.def.power?.replace(/_/g, ' ').toLowerCase()}`}
+              hitSlop={8}
+              style={[styles.heroTapTarget, { left: position.x * scale - 27, top: position.y * scale - 30 }]}
+              onPress={() => queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: index })}
+            >
+              <Text style={styles.heroTapLabel}>TAP</Text>
+            </Pressable>
+          );
+        }) : null}
+      </View>
       {hud.banner ? (
         <Text style={[styles.banner, hud.bannerTone === 'red' ? styles.bannerThreat : null]}>{hud.banner}</Text>
       ) : null}
-      {userHeroes.length > 0 ? (
-        <View style={styles.chips}>
-          <Pressable
-            accessibilityRole="switch"
-            accessibilityLabel="Auto activate super powers"
-            accessibilityState={{ checked: autoPower }}
-            onPress={() => setAutoPowerBoth(!autoPowerRef.current)}
-            style={[styles.autoButton, autoPower ? styles.autoButtonOn : null]}
-          >
-            <Text style={[styles.autoLabel, autoPower ? styles.autoLabelOn : null]}>AUTO</Text>
-            <Text style={[styles.autoState, autoPower ? styles.autoStateOn : null]}>{autoPower ? 'ON' : 'OFF'}</Text>
-          </Pressable>
-          {userHeroes.map((i) => homeChip(i))}
+      <View style={styles.coachBar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Formation ${displayedFormation}. Tap for next match formation.`}
+          style={styles.coachButton}
+          onPress={() => {
+            const formation = nextFormation(displayedFormation, formationPresets);
+            queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
+            const text = `${formation} · ${FORMATION_LABELS[formation].toUpperCase()}`;
+            bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'gold' };
+            setHud((current) => ({ ...current, banner: text, bannerTone: 'gold' }));
+          }}
+        >
+          <FormationDiagram formation={displayedFormation} compact inverted />
+          <View style={styles.coachCopy}>
+            <Text style={styles.coachLabel}>FORMATION</Text>
+            <Text style={styles.coachValue}>{displayedFormation}</Text>
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Mentality ${displayedMentality}. Tap for next mentality.`}
+          style={styles.coachButton}
+          onPress={() => {
+            const mentality = nextMentality(displayedMentality);
+            queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
+            const text = `MENTALITY · ${mentality}`;
+            bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'gold' };
+            setHud((current) => ({ ...current, banner: text, bannerTone: 'gold' }));
+          }}
+        >
+          <Text style={styles.mentalityIcon}>{displayedMentality === 'ATTACK' ? '▲' : displayedMentality === 'PROTECT' ? '▼' : '◆'}</Text>
+          <View style={styles.coachCopy}>
+            <Text style={styles.coachLabel}>MENTALITY</Text>
+            <Text style={styles.coachValue}>{displayedMentality}</Text>
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Swap players. ${substitutionsUsed} of 3 substitutions used.`}
+          disabled={substitutionsUsed >= 3 || bench.length === 0}
+          style={[styles.coachButton, substitutionsUsed >= 3 || bench.length === 0 ? styles.coachButtonDisabled : null]}
+          onPress={openSwap}
+        >
+          <Text style={styles.swapIcon}>⇄</Text>
+          <View style={styles.coachCopy}>
+            <Text style={styles.coachLabel}>SWAP</Text>
+            <Text style={styles.coachValue}>{substitutionsUsed}/3 USED</Text>
+          </View>
+        </Pressable>
+      </View>
+      {swapOpen ? (
+        <View style={styles.swapOverlay}>
+          <View style={styles.swapSheet}>
+            <View style={styles.swapHeader}>
+              <View>
+                <Text style={styles.swapEyebrow}>MATCH PAUSED</Text>
+                <Text style={styles.swapTitle}>CHOOSE A SUBSTITUTE</Text>
+              </View>
+              <Text style={styles.swapCount}>{substitutionsUsed} / 3</Text>
+            </View>
+
+            <Text style={styles.swapInstruction}>1 · TAP THE PLAYER COMING OFF</Text>
+            <View style={styles.playerGrid}>
+              {onFieldIndices.map((index, slot) => {
+                const player = match.players[index];
+                const selected = selectedOutgoing === index;
+                return (
+                  <Pressable
+                    key={player.def.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${player.def.name}, ${Math.round(player.condition)} percent energy`}
+                    style={[styles.playerCard, selected ? styles.playerCardSelected : null]}
+                    onPress={() => {
+                      setSelectedOutgoing(index);
+                      setSelectedIncoming(null);
+                    }}
+                  >
+                    <View style={[styles.playerHead, selected ? styles.playerHeadSelected : null]}>
+                      <Text style={styles.playerInitials}>{initials(player.def.name)}</Text>
+                      <Text style={styles.shirtNumber}>{slot + 1}</Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.playerSurname}>{surname(player.def.name)}</Text>
+                    <View style={styles.cardEnergyTrack}>
+                      <View style={[
+                        styles.cardEnergyFill,
+                        player.condition <= 30 ? styles.energyFillLow : null,
+                        { width: `${Math.max(0, Math.min(100, player.condition))}%` },
+                      ]} />
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={styles.swapInstruction}>2 · TAP THE PLAYER COMING ON</Text>
+            <View style={styles.benchGrid}>
+              {bench.map((player) => {
+                const compatible = selectedOutgoingPlayer !== null
+                  && ((selectedOutgoingPlayer.def.role === 'GK') === (player.role === 'GK'));
+                const selected = selectedIncoming === player.id;
+                return (
+                  <Pressable
+                    key={player.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${player.name}, full energy`}
+                    disabled={!compatible}
+                    style={[
+                      styles.benchCard,
+                      selected ? styles.playerCardSelected : null,
+                      !compatible ? styles.benchCardDisabled : null,
+                    ]}
+                    onPress={() => setSelectedIncoming(player.id)}
+                  >
+                    <View style={[styles.playerHead, styles.benchHead, selected ? styles.playerHeadSelected : null]}>
+                      <Text style={styles.playerInitials}>{initials(player.name)}</Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.playerSurname}>{surname(player.name)}</Text>
+                    <Text style={styles.roleLabel}>{player.role}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View style={styles.swapSelection}>
+              <View style={styles.selectionSide}>
+                <Text style={styles.selectionLabel}>OFF</Text>
+                <Text numberOfLines={1} style={styles.selectionName}>
+                  {selectedOutgoingPlayer?.def.name ?? 'Select player'}
+                </Text>
+                <Text style={styles.selectionEnergy}>
+                  {selectedOutgoingPlayer ? `${Math.round(selectedOutgoingPlayer.condition)}% ENERGY` : '—'}
+                </Text>
+              </View>
+              <Text style={styles.swapArrow}>→</Text>
+              <View style={styles.selectionSide}>
+                <Text style={styles.selectionLabel}>ON</Text>
+                <Text numberOfLines={1} style={styles.selectionName}>
+                  {selectedIncomingPlayer?.name ?? 'Select substitute'}
+                </Text>
+                <Text style={styles.selectionEnergy}>{selectedIncomingPlayer ? '100% ENERGY' : '—'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.swapActions}>
+              <Pressable style={styles.cancelButton} onPress={closeSwap}>
+                <Text style={styles.cancelText}>CANCEL</Text>
+              </Pressable>
+              <Pressable
+                disabled={selectedOutgoing === null || selectedIncoming === null}
+                style={[
+                  styles.confirmButton,
+                  selectedOutgoing === null || selectedIncoming === null ? styles.confirmButtonDisabled : null,
+                ]}
+                onPress={confirmSwap}
+              >
+                <Text style={styles.confirmText}>MAKE SWAP</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
       ) : null}
     </View>
@@ -907,98 +1045,214 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   ctrlText: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold' },
-  banner: { color: '#edb54a', fontSize: 18, fontWeight: 'bold', textAlign: 'center', padding: 8 },
-  bannerThreat: { color: '#d94f52' },
-  chips: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, padding: 16 },
-  autoButton: {
-    minWidth: 56,
-    minHeight: 54,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#3a3350',
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#6b6675',
-    borderBottomWidth: 4,
-    borderBottomColor: '#241f2e',
-    paddingHorizontal: 8,
-  },
-  // AUTO governs hero-power firing, so gold is on-theme here (docs/08).
-  autoButtonOn: { backgroundColor: '#4a3a1c', borderColor: '#edb54a', borderBottomColor: '#c8862a' },
-  autoLabel: { color: '#c9c5d0', fontSize: 11, fontWeight: 'bold' },
-  autoLabelOn: { color: '#edb54a' },
-  autoState: { color: '#f4f1ea', fontSize: 13, fontWeight: 'bold', marginTop: 2 },
-  autoStateOn: { color: '#f7d894' },
-  // Home hero chip (Track A): ink-outlined ink-soft panel with a raised ink
-  // lip. borderWidth/borderBottomWidth stay constant across all states below —
-  // only colours change — so the chip never resizes as a hero heats up.
-  chip: {
-    backgroundColor: '#3a3350',
-    borderWidth: 2,
-    borderColor: '#6b6675',
-    borderBottomWidth: 4,
-    borderBottomColor: '#241f2e',
-    borderRadius: 4,
-    padding: 12,
-    minWidth: 96,
-    alignItems: 'center',
-  },
-  // Rival strip — sits under the scorebar, above the Canvas. Kept slim
-  // (reduced padding, smaller text than the home chip) since the Canvas
-  // height is width-derived, so any chrome added above it pushes the pitch
-  // down.
-  rivalStrip: { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 4, paddingHorizontal: 12 },
-  // The constant transparent border reserves the warm/hot/threat border's
-  // space up front: the strip sits above the fixed-height Canvas, so a
-  // state-dependent borderWidth would change the chip's height and nudge
-  // the whole pitch down and back mid-play. The rival state styles below
-  // must therefore only ever change colors, never metrics.
-  rivalChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#3a3350',
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  // WARMTH steps (replace the old numeric heat bar — heat-weighted zone entry
-  // is a hot-streak mechanic, not a "fills up and fires" gauge). Cold has no
-  // entry here: it keeps the plain `chip` look above, unchanged. These only
-  // ever change colours (see the chip metric note above).
-  warmingHome: { borderColor: '#c8862a' },
-  hotHome: { backgroundColor: '#4a3a1c', borderColor: '#edb54a' },
-  warmingRival: { backgroundColor: '#3a2320', borderColor: '#a83440' },
-  hotRival: { backgroundColor: '#4a2a22', borderColor: '#d94f52' },
-  chipReady: { backgroundColor: '#5a4620', borderColor: '#edb54a', borderBottomColor: '#c8862a' },
-  chipThreat: { backgroundColor: '#3a1512', borderColor: '#d94f52' },
-  chipZoneTap: { transform: [{ scale: 1.08 }] },
-  chipDim: { opacity: 0.4 },
-  // Early-tap feedback — brief bright border flash standing in for the old
-  // "flash the heat bar brighter" (there is no bar anymore; see WARMTH).
-  chipFlash: { borderColor: '#f4f1ea' },
-  chipName: { color: '#f4f1ea', fontSize: 14, marginBottom: 6 },
-  rivalTag: { color: '#d94f52', fontSize: 11, fontWeight: 'bold' },
-  rivalChipName: { color: '#f4f1ea', fontSize: 11 },
-  tapOverlay: {
+  banner: {
     position: 'absolute',
-    top: -14,
-    left: 0,
-    right: 0,
+    zIndex: 8,
+    top: '46%',
+    left: 18,
+    right: 18,
     textAlign: 'center',
     color: '#edb54a',
     fontSize: 18,
     fontWeight: 'bold',
+    backgroundColor: '#241f2edd',
+    borderWidth: 2,
+    borderColor: '#edb54a',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  waitLabel: {
+  bannerThreat: { color: '#f4f1ea', borderColor: '#d94f52', backgroundColor: '#3a1512ee' },
+  carrierCard: {
     position: 'absolute',
-    bottom: -16,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
+    zIndex: 4,
+    left: 8,
+    bottom: 8,
+    width: 150,
+    backgroundColor: '#241f2eee',
+    borderWidth: 1,
+    borderColor: '#f4f1ea99',
+    borderRadius: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+  },
+  carrierLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  carrierName: { flex: 1, color: '#f4f1ea', fontSize: 11, fontWeight: 'bold' },
+  carrierEnergy: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  energyTrack: { height: 4, backgroundColor: '#3a3350', marginTop: 4, overflow: 'hidden' },
+  energyFill: { height: 4, backgroundColor: '#65b96e' },
+  energyFillLow: { backgroundColor: '#d94f52' },
+  heroTapTarget: {
+    position: 'absolute',
+    zIndex: 6,
+    width: 54,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  heroTapLabel: {
     color: '#f4f1ea',
-    fontSize: 11,
+    backgroundColor: '#a83440',
+    borderColor: '#f4f1ea',
+    borderWidth: 1,
+    fontSize: 9,
+    fontWeight: 'bold',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  coachBar: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingTop: 10,
+    paddingBottom: 16,
+    backgroundColor: '#241f2e',
+  },
+  coachButton: {
+    flex: 1,
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#3a3350',
+    borderWidth: 2,
+    borderColor: '#6b6675',
+    borderBottomWidth: 5,
+    borderBottomColor: '#16121f',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
+  },
+  coachButtonDisabled: { opacity: 0.38 },
+  coachCopy: { flexShrink: 1, alignItems: 'flex-start' },
+  coachLabel: { color: '#bcb7c4', fontSize: 8, fontWeight: 'bold' },
+  coachValue: { color: '#f4f1ea', fontSize: 11, fontWeight: 'bold', marginTop: 3 },
+  mentalityIcon: { color: '#70b879', fontSize: 28, fontWeight: 'bold' },
+  swapIcon: { color: '#77a4d8', fontSize: 30, fontWeight: 'bold' },
+  swapOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 20,
+    backgroundColor: '#16121fee',
+    justifyContent: 'flex-end',
+  },
+  swapSheet: {
+    backgroundColor: '#2d283c',
+    borderTopWidth: 3,
+    borderColor: '#6b6675',
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 24,
+  },
+  swapHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  swapEyebrow: { color: '#77a4d8', fontSize: 9, fontWeight: 'bold' },
+  swapTitle: { color: '#f4f1ea', fontSize: 17, fontWeight: 'bold', marginTop: 2 },
+  swapCount: {
+    color: '#f4f1ea',
+    backgroundColor: '#3a3350',
+    borderWidth: 1,
+    borderColor: '#6b6675',
+    fontWeight: 'bold',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  swapInstruction: { color: '#bcb7c4', fontSize: 9, fontWeight: 'bold', marginTop: 5, marginBottom: 5 },
+  playerGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 },
+  benchGrid: { flexDirection: 'row', justifyContent: 'center', gap: 8, minHeight: 62 },
+  playerCard: {
+    width: 49,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: 3,
+    paddingVertical: 3,
+  },
+  benchCard: {
+    width: 54,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: 3,
+    paddingVertical: 3,
+  },
+  playerCardSelected: { backgroundColor: '#49415f', borderColor: '#f4f1ea' },
+  benchCardDisabled: { opacity: 0.25 },
+  playerHead: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#a83440',
+    borderWidth: 2,
+    borderColor: '#d94f52',
+  },
+  benchHead: { backgroundColor: '#35618e', borderColor: '#77a4d8' },
+  playerHeadSelected: { borderColor: '#f4f1ea', transform: [{ scale: 1.08 }] },
+  playerInitials: { color: '#f4f1ea', fontSize: 9, fontWeight: 'bold' },
+  shirtNumber: {
+    position: 'absolute',
+    right: -3,
+    bottom: -3,
+    color: '#241f2e',
+    backgroundColor: '#f4f1ea',
+    minWidth: 13,
+    height: 13,
+    borderRadius: 7,
+    textAlign: 'center',
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
+  playerSurname: { color: '#f4f1ea', fontSize: 8, marginTop: 3, maxWidth: 50 },
+  roleLabel: { color: '#77a4d8', fontSize: 7, fontWeight: 'bold', marginTop: 1 },
+  cardEnergyTrack: { width: 38, height: 3, backgroundColor: '#16121f', marginTop: 3, overflow: 'hidden' },
+  cardEnergyFill: { height: 3, backgroundColor: '#65b96e' },
+  swapSelection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#241f2e',
+    borderWidth: 1,
+    borderColor: '#49415f',
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  selectionSide: { flex: 1 },
+  selectionLabel: { color: '#bcb7c4', fontSize: 8, fontWeight: 'bold' },
+  selectionName: { color: '#f4f1ea', fontSize: 11, fontWeight: 'bold', marginTop: 2 },
+  selectionEnergy: { color: '#65b96e', fontSize: 8, fontWeight: 'bold', marginTop: 2 },
+  swapArrow: { color: '#f4f1ea', fontSize: 20, paddingHorizontal: 8 },
+  swapActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  cancelButton: {
+    flex: 1,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3a3350',
+    borderWidth: 2,
+    borderColor: '#6b6675',
+    borderBottomWidth: 4,
+    borderBottomColor: '#16121f',
+  },
+  cancelText: { color: '#f4f1ea', fontSize: 12, fontWeight: 'bold' },
+  confirmButton: {
+    flex: 2,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#35618e',
+    borderWidth: 2,
+    borderColor: '#77a4d8',
+    borderBottomWidth: 4,
+    borderBottomColor: '#214566',
+  },
+  confirmButtonDisabled: { opacity: 0.3 },
+  confirmText: { color: '#f4f1ea', fontSize: 12, fontWeight: 'bold' },
+  selectionPlaceholder: {
+    color: '#bcb7c4',
+    fontSize: 10,
   },
 });

@@ -1,6 +1,9 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
+import { FormationDiagram } from '../components/FormationDiagram';
+import { FORMATION_LABELS } from '../../sim/tactics';
+import type { AppPreferences } from '../../persistence';
 
 export interface TitleLandingScreenProps {
   hasSavedCareer: boolean;
@@ -94,16 +97,23 @@ export function TitleLandingScreen({
 }
 
 export interface TitleSettingsScreenProps {
-  volumePercent: number;
+  preferences: AppPreferences;
   onCycleVolume: () => void;
+  onCycleFormation: (slot: number) => void;
+  onToggleAutoPowers: () => void;
   onBack: () => void;
+  backLabel?: string;
 }
 
 export function TitleSettingsScreen({
-  volumePercent,
+  preferences,
   onCycleVolume,
+  onCycleFormation,
+  onToggleAutoPowers,
   onBack,
+  backLabel = 'Back to title',
 }: TitleSettingsScreenProps) {
+  const volumePercent = Math.round(preferences.masterVolume * 100);
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
@@ -115,11 +125,57 @@ export function TitleSettingsScreen({
                 <Text className="mt-2 text-4xl font-bold uppercase tracking-wide text-ink">Settings</Text>
               </View>
               <View className="-rotate-3 border-2 border-stamp px-3 py-2">
-                <Text className="text-sm font-bold uppercase tracking-[2px] text-stamp">Sound desk</Text>
+                <Text className="text-sm font-bold uppercase tracking-[2px] text-stamp">Coach’s board</Text>
               </View>
             </View>
 
-            <PaperPanel kicker="Master mix" title="Game audio" stamp={`${volumePercent}%`} className="mt-10">
+            <PaperPanel kicker="Match-day kit" title="Three formations" stamp="Tap to swap" className="mt-10">
+              <Text className="text-base leading-5 text-ink/65">
+                These are the three shapes available from the live Formation button. The first shape starts every watched match.
+              </Text>
+              <View className="mt-5 flex-row gap-2">
+                {preferences.formationPresets.map((formation, index) => (
+                  <Pressable
+                    key={`${index}-${formation}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Formation slot ${index + 1}, ${formation}. Tap to replace.`}
+                    onPress={() => onCycleFormation(index)}
+                    className="flex-1 items-center border-2 border-ink bg-paper-dark px-2 py-3"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
+                  >
+                    <FormationDiagram formation={formation} compact />
+                    <Text className="mt-2 font-mono text-sm font-bold text-ink">{formation}</Text>
+                    <Text className="mt-1 text-center text-xs font-bold uppercase text-ink/50" numberOfLines={2}>
+                      {FORMATION_LABELS[formation]}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </PaperPanel>
+
+            <PaperPanel kicker="Hero control" title="Power activation" stamp={preferences.autoPowers ? 'AUTO' : 'MANUAL'} className="mt-6">
+              <Text className="text-base leading-5 text-ink/65">
+                Manual lets you tap glowing heroes directly on the pitch. Auto fires powers in a useful context at reduced strength.
+              </Text>
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityLabel="Automatic hero powers"
+                accessibilityState={{ checked: preferences.autoPowers }}
+                onPress={onToggleAutoPowers}
+                className={preferences.autoPowers ? 'mt-5 min-h-14 flex-row items-center justify-between border-2 border-ink bg-signal px-4 py-3' : 'mt-5 min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3'}
+                style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
+              >
+                <View>
+                  <Text className="text-xs font-bold uppercase tracking-[2px] text-ink/55">Tap to change</Text>
+                  <Text className="mt-1 font-mono text-lg font-bold text-ink">
+                    {preferences.autoPowers ? 'AUTO POWERS' : 'TAP PLAYERS'}
+                  </Text>
+                </View>
+                <Text className="font-mono text-2xl font-bold text-ink">{preferences.autoPowers ? 'ON' : 'OFF'}</Text>
+              </Pressable>
+            </PaperPanel>
+
+            <PaperPanel kicker="Master mix" title="Game audio" stamp={`${volumePercent}%`} className="mt-6">
               <Text className="text-base leading-5 text-ink/65">
                 One master level keeps the opening, clubhouse, match music, and sound effects balanced together.
               </Text>
@@ -162,8 +218,8 @@ export function TitleSettingsScreen({
 
           <View className="mt-8">
             <ActionButton
-              label="‹  Back to title"
-              accessibilityLabel="Back to title"
+              label={`‹  ${backLabel}`}
+              accessibilityLabel={backLabel}
               onPress={onBack}
               variant="paper"
             />

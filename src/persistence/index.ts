@@ -26,3 +26,11 @@ export {
   type StoredReplayEnvelope,
 } from './replay-repository';
 export { REPLAY_SCHEMA_VERSION } from './replay-codec';
+export {
+  createPreferencesRepository,
+  DEFAULT_APP_PREFERENCES,
+  replaceFormationPreset,
+  type AppPreferences,
+  type MasterVolume,
+  type PreferencesRepository,
+} from './preferences-repository';

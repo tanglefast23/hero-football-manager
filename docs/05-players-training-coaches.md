@@ -44,5 +44,5 @@ One head coach (assistant slot unlocks with the Coaching Office facility).
 
 ## Roster rules
 
-- Squad cap: 14 at start → 24 (Dorm facility upgrades). Matchday: 11 + 3 subs.
+- Every launch club carries **16 players**: 2 GK, 5 DEF, 5 MID, 4 FWD. Matchday: 11 starters + 5 bench players, with a maximum of 3 substitutions. Future Dorm upgrades may raise the broader career squad cap, but never the in-match substitution limit.
 - Morale: fed by wins, playing time, fair wages, event outcomes. Low morale = stat penalty ±10% and transfer-request risk.

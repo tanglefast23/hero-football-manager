@@ -40,7 +40,7 @@ import { envelopeFrom } from '../sim/match';
 import { mulberry32 } from '../sim/rng';
 import type { MatchState, TeamDef } from '../sim/types';
 import type { ManagementTab, PostMatchViewModel } from '../ui';
-import { createLaunchCareerSetup } from './launch';
+import { createLaunchCareerSetup, reconcileLaunchRoster } from './launch';
 import { postMatchViewModel } from './view-models';
 
 const launchContent = loadLaunchContent();
@@ -133,7 +133,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   async initializePersistence(repository, replayRepository) {
     try {
-      const career = await repository.load();
+      const loadedCareer = await repository.load();
+      const career = loadedCareer === null ? null : reconcileLaunchRoster(loadedCareer, launchContent);
+      if (career !== null && career !== loadedCareer) await repository.save(career);
       set({
         repository,
         replayRepository: replayRepository ?? null,

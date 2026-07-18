@@ -18,22 +18,30 @@ export interface FakeReplayRow {
   envelope_json: unknown;
 }
 
+export interface FakePreferencesRow {
+  schema_version: unknown;
+  preferences_json: unknown;
+}
+
 export class FakePersistenceDatabase implements PersistenceDatabase {
   userVersion: number;
   journalMode: string | null = null;
   foreignKeysEnabled = false;
   tableExists = false;
   replayTableExists = false;
+  preferencesTableExists = false;
   migrationTransactions = 0;
   createTableExecutions = 0;
   executedSql: string[] = [];
   careerRow: FakeCareerRow | null = null;
   replayRows = new Map<string, FakeReplayRow>();
+  preferencesRow: FakePreferencesRow | null = null;
 
   constructor(userVersion = 0) {
     this.userVersion = userVersion;
     this.tableExists = userVersion >= 1;
     this.replayTableExists = userVersion >= 2;
+    this.preferencesTableExists = userVersion >= 3;
   }
 
   async execAsync(source: string): Promise<void> {
@@ -55,6 +63,11 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
     }
     if (sql.startsWith('CREATE TABLE IF NOT EXISTS replay_envelopes')) {
       this.replayTableExists = true;
+      this.createTableExecutions += 1;
+      return;
+    }
+    if (sql.startsWith('CREATE TABLE IF NOT EXISTS app_preferences')) {
+      this.preferencesTableExists = true;
       this.createTableExecutions += 1;
       return;
     }
@@ -138,6 +151,16 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       return { lastInsertRowId: 1, changes: 1 };
     }
 
+    if (sql.startsWith('INSERT INTO app_preferences')) {
+      if (!this.preferencesTableExists) throw new Error('app_preferences table does not exist');
+      const [slot, schemaVersion, preferencesJson] = values;
+      if (slot !== 1 || typeof schemaVersion !== 'number' || typeof preferencesJson !== 'string') {
+        throw new Error('invalid fake preferences upsert parameters');
+      }
+      this.preferencesRow = { schema_version: schemaVersion, preferences_json: preferencesJson };
+      return { lastInsertRowId: 1, changes: 1 };
+    }
+
     if (
       sql ===
       'DELETE FROM replay_envelopes WHERE career_id = ? AND fixture_id = ?'
@@ -205,6 +228,13 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       return row === undefined ? null : ({ ...row } as T);
     }
 
+    if (sql.startsWith('SELECT schema_version, preferences_json FROM app_preferences')) {
+      if (!this.preferencesTableExists) throw new Error('app_preferences table does not exist');
+      const values = arrayParams(params);
+      if (values[0] !== 1) throw new Error('invalid fake preferences load slot');
+      return this.preferencesRow === null ? null : ({ ...this.preferencesRow } as T);
+    }
+
     throw new Error(`fake database does not support query SQL: ${sql}`);
   }
 
@@ -238,10 +268,12 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       userVersion: this.userVersion,
       tableExists: this.tableExists,
       replayTableExists: this.replayTableExists,
+      preferencesTableExists: this.preferencesTableExists,
       careerRow: this.careerRow === null ? null : { ...this.careerRow },
       replayRows: new Map(
         Array.from(this.replayRows, ([key, row]) => [key, { ...row }]),
       ),
+      preferencesRow: this.preferencesRow === null ? null : { ...this.preferencesRow },
       createTableExecutions: this.createTableExecutions,
     };
     this.migrationTransactions += 1;
@@ -252,8 +284,10 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       this.userVersion = snapshot.userVersion;
       this.tableExists = snapshot.tableExists;
       this.replayTableExists = snapshot.replayTableExists;
+      this.preferencesTableExists = snapshot.preferencesTableExists;
       this.careerRow = snapshot.careerRow;
       this.replayRows = snapshot.replayRows;
+      this.preferencesRow = snapshot.preferencesRow;
       this.createTableExecutions = snapshot.createTableExecutions;
       throw error;
     }

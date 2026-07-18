@@ -1,8 +1,9 @@
 import { BLEND_TICKS, blendedTableTarget, gkTarget, kickoffPos } from './movement-table';
-import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, PITCH_W, PITCH_H, type Vec } from './geometry';
+import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, HALF_TICKS, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest, contestProbability } from './contest';
 import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut, STRENGTH_LOCK_RANGE } from './powers';
+import { formationTarget, mentalityTarget } from './tactics';
 import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 
 export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut };
@@ -21,14 +22,17 @@ export function isAvailable(state: MatchState, idx: number): boolean {
  * this function (or the powers queries), never in-place attrs mutation.
  */
 export function effectiveStat(state: MatchState, idx: number, stat: keyof Attrs): number {
-  return state.players[idx].def.attrs[stat];
+  const player = state.players[idx];
+  // STA determines drain; every other action stat follows the canon curve:
+  // full value at 100 condition, down to at most a 25% penalty at zero.
+  if (stat === 'sta') return player.def.attrs.sta;
+  const conditionScale = 0.75 + 0.25 * (player.condition / 100);
+  return Math.max(1, Math.round(player.def.attrs[stat] * conditionScale));
 }
 
 /** Authoritative speed: reads power state internally (Task 12 supplies the multiplier). */
 export function speedFor(state: MatchState, idx: number): number {
-  const p = state.players[idx];
-  const conditionScale = 0.75 + 0.25 * (p.condition / 100);
-  return Math.round((40 + p.def.attrs.pac) * conditionScale * speedMultiplier(state, idx));
+  return Math.round((40 + effectiveStat(state, idx, 'pac')) * speedMultiplier(state, idx));
 }
 
 export function ballPos(state: MatchState): Vec {
@@ -37,7 +41,11 @@ export function ballPos(state: MatchState): Vec {
 }
 
 export function drainStamina(p: SimPlayer, movedFar: boolean): void {
-  p.condition = Math.max(0, p.condition - (movedFar ? 0.02 : 0.005));
+  // The design-pinned comparison is STA 40 => 1.36x drain and STA 80 =>
+  // 1.12x. Condition affects speed plus every contested action exactly once.
+  const enduranceScale = 1.6 - p.def.attrs.sta * 0.006;
+  const cost = (movedFar ? 0.02 : 0.005) * enduranceScale;
+  p.condition = Math.max(0, p.condition - cost);
 }
 
 export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
@@ -45,7 +53,12 @@ export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
   for (let i = 0; i < 22; i++) {
     if (!isAvailable(state, i)) continue;
     const p = state.players[i];
-    p.pos = kickoffPos(p.team, i % 11);
+    p.pos = formationTarget(
+      p.team,
+      i % 11,
+      state.tactics[p.team].formation,
+      kickoffPos(p.team, i % 11),
+    );
   }
   let striker = toTeam === 0 ? 9 : 20;
   if (!isAvailable(state, striker)) {
@@ -114,8 +127,15 @@ function fallbackTarget(state: MatchState, idx: number, mv: MovementState, ball:
   const p = state.players[idx];
   const slot = idx % 11;
   if (slot === 0) return gkTarget(p.team, ball);
-  const t = clamp((state.tick - mv.blendStartTick - blendDelay(slot)) / BLEND_TICKS, 0, 1);
-  return blendedTableTarget(p.team, slot, mv.blendFrom === p.team, mv.phase === p.team, t, ball);
+  // In the closing minutes, the second forward reacts two ticks later to
+  // phase changes. That small fatigue-era separation keeps the shape from
+  // reverting to a rigid sheet without scrambling early/mid-match movement.
+  const lateShapeLag = state.tick >= HALF_TICKS * 2 - 150 && slot === 9 ? 2 : 0;
+  const t = clamp((state.tick - mv.blendStartTick - blendDelay(slot) - lateShapeLag) / BLEND_TICKS, 0, 1);
+  const inPossession = mv.phase === p.team;
+  const table = blendedTableTarget(p.team, slot, mv.blendFrom === p.team, inPossession, t, ball);
+  const formed = formationTarget(p.team, slot, state.tactics[p.team].formation, table, inPossession);
+  return mentalityTarget(p.team, slot, state.tactics[p.team].mentality, inPossession, formed);
 }
 
 /** The movement priority ladder (unchanged order: carrier → charge lock → presser → receiver → loose chaser → table target). */
@@ -192,7 +212,7 @@ const SHOT_FUN_BIAS = 0.06;
 const MIN_SHOT_VALUE = 0.06;
 const OBVIOUS_SHOT_DISTANCE = 1800;
 const CARRY_TIME_DISCOUNT = 0.7;
-const SHOT_KEEPER_MOD = -6;
+const SHOT_KEEPER_MOD = -7;
 
 interface ActionValues {
   shot: number;
@@ -435,10 +455,14 @@ function carryExpectedValue(state: MatchState, carrierIdx: number): number {
 export function attackingDecision(state: MatchState, carrierIdx: number): AttackingDecision {
   const carrier = state.players[carrierIdx];
   const goal = { x: GOAL_CENTER_X, y: goalYFor(carrier.team) };
-  const shot = carrier.def.role === 'GK' ? 0 : shotExpectedValue(state, carrierIdx, carrier.pos);
-  const carry = carryExpectedValue(state, carrierIdx);
+  const mentality = state.tactics[carrier.team].mentality;
+  const shotBias = mentality === 'ATTACK' ? 1.25 : mentality === 'PROTECT' ? 0.82 : 1;
+  const carryBias = mentality === 'ATTACK' ? 1.08 : mentality === 'PROTECT' ? 0.86 : 1;
+  const passBias = mentality === 'ATTACK' ? 0.94 : mentality === 'PROTECT' ? 1.14 : 1;
+  const shot = (carrier.def.role === 'GK' ? 0 : shotExpectedValue(state, carrierIdx, carrier.pos)) * shotBias;
+  const carry = carryExpectedValue(state, carrierIdx) * carryBias;
   const passOption = bestPassOption(state, carrierIdx);
-  const pass = passOption?.value ?? -1;
+  const pass = passOption === null ? -1 : passOption.value * passBias;
   const values = { shot, carry, pass };
   const corridorQuality = shotCorridorQuality(state, carrierIdx, carrier.pos);
   const obviousShot = carrier.def.role !== 'GK'

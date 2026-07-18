@@ -16,9 +16,10 @@ describe('persistence migrations', () => {
     expect(database.foreignKeysEnabled).toBe(true);
     expect(database.tableExists).toBe(true);
     expect(database.replayTableExists).toBe(true);
+    expect(database.preferencesTableExists).toBe(true);
     expect(database.userVersion).toBe(PERSISTENCE_SCHEMA_VERSION);
-    expect(database.migrationTransactions).toBe(2);
-    expect(database.createTableExecutions).toBe(2);
+    expect(database.migrationTransactions).toBe(3);
+    expect(database.createTableExecutions).toBe(3);
   });
 
   it('is idempotent after the current migration is applied', async () => {
@@ -28,8 +29,8 @@ describe('persistence migrations', () => {
     await migrateDatabase(database);
 
     expect(database.userVersion).toBe(PERSISTENCE_SCHEMA_VERSION);
-    expect(database.migrationTransactions).toBe(2);
-    expect(database.createTableExecutions).toBe(2);
+    expect(database.migrationTransactions).toBe(3);
+    expect(database.createTableExecutions).toBe(3);
   });
 
   it('migrates a version-1 career database without changing its save row', async () => {
@@ -39,10 +40,11 @@ describe('persistence migrations', () => {
 
     await migrateDatabase(database);
 
-    expect(database.userVersion).toBe(2);
+    expect(database.userVersion).toBe(3);
     expect(database.replayTableExists).toBe(true);
+    expect(database.preferencesTableExists).toBe(true);
     expect(database.careerRow).toEqual(existingRow);
-    expect(database.migrationTransactions).toBe(1);
+    expect(database.migrationTransactions).toBe(2);
   });
 
   it('rejects a database created by a newer build', async () => {

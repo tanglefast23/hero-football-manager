@@ -24,8 +24,8 @@ Events interrupt as full-screen cards on Advance Week (never mid-match). Match D
 
 ## Match Day flow
 
-1. **Pre-match** (one screen): formation pitch with drag-swap lineup, tactic (Normal/Short/Long), hero license slot picker, per-hero fire mode toggle. Big buttons: **Watch** / **Quick Result**.
-2. **Live match** (portrait vertical pitch): scoreboard bug top; speed ×1/×2/×3 + skip top-right; bottom row = an **AUTO ON/OFF** switch on the left (OFF by default) followed by hero chips (portrait + gold gauge ring, ≥44pt) that pulse and chime when full — tap to fire. AUTO immediately fires the first legally available home power through the same recorded tap-input path; the one-power-per-team rule delays any teammate's Zone until it becomes legal. Power cut-in: full-width comic panel, 2–3s, tap-to-skip after first view. Halftime sheet: subs/tactics.
+1. **Pre-match** (one screen): formation pitch with drag-swap lineup and hero license slot picker. Big buttons: **Watch** / **Quick Result**. The three quick-cycle formations and manual/automatic power control live in persistent Settings, reachable from both the title screen and management shell.
+2. **Live match** (portrait vertical pitch): scoreboard bug top with speed and pause; a compact name + energy card stays fixed at bottom-left and retains the last carrier during passes, shots, and loose balls. A home hero glows in the Zone and is tapped directly on the pitch; rivals always run automatically. The bottom coaching bar has **Formation**, **Mentality**, and **Swap**: Formation taps cycle the three Settings presets with a large text overlay, Mentality cycles Balanced / Attack / Protect, and Swap pauses play for an on-field-player → bench-player → confirm flow with names and energy bars. Power cut-in: full-width comic panel, 2–3s, tap-to-skip after first view.
 3. **Post-match**: result banner → itemized income statement (line-by-line count-up with mono numerals) → TP/XP/fan gains → highlights ticker (tap any goal to replay).
 
 ## Feel (juice budget — restrained but present)

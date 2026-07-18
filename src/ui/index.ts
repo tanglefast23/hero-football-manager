@@ -1,6 +1,7 @@
 export * from './ManagementShell';
 export * from './models';
 export * from './components/Scorecard';
+export * from './components/FormationDiagram';
 export * from './screens/ClubHomeScreen';
 export * from './screens/ClubFinancesScreen';
 export * from './screens/CharacterCreationScreen';

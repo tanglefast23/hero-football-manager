@@ -258,7 +258,7 @@
             "sta": 61,
             "ref": 63
           },
-          "weeklyWage": 282,
+          "weeklyWage": 110,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -279,8 +279,71 @@
             "sta": 60,
             "ref": 10
           },
-          "weeklyWage": 304,
+          "weeklyWage": 112,
           "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "bramble-rovers-p14",
+          "name": "Mae Thorn",
+          "role": "DEF",
+          "age": 21,
+          "archetype": "Anchor",
+          "ratings": {
+            "pac": 51,
+            "sho": 27,
+            "pas": 47,
+            "def": 59,
+            "tec": 42,
+            "sta": 64,
+            "ref": 8
+          },
+          "weeklyWage": 114,
+          "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "bramble-rovers-p15",
+          "name": "Sol Reed",
+          "role": "MID",
+          "age": 22,
+          "archetype": "Engine",
+          "ratings": {
+            "pac": 58,
+            "sho": 43,
+            "pas": 61,
+            "def": 47,
+            "tec": 57,
+            "sta": 64,
+            "ref": 8
+          },
+          "weeklyWage": 120,
+          "contractSeasonsRemaining": 2,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "bramble-rovers-p16",
+          "name": "Kit Rowan",
+          "role": "FWD",
+          "age": 23,
+          "archetype": "Speedster",
+          "ratings": {
+            "pac": 63,
+            "sho": 58,
+            "pas": 45,
+            "def": 23,
+            "tec": 56,
+            "sta": 58,
+            "ref": 8
+          },
+          "weeklyWage": 130,
+          "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
           "onHeroWage": false
@@ -557,7 +620,7 @@
             "sta": 63,
             "ref": 65
           },
-          "weeklyWage": 290,
+          "weeklyWage": 113,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -578,8 +641,71 @@
             "sta": 62,
             "ref": 10
           },
-          "weeklyWage": 312,
+          "weeklyWage": 115,
           "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "ferrous-united-p14",
+          "name": "Ava Iron",
+          "role": "DEF",
+          "age": 21,
+          "archetype": "Anchor",
+          "ratings": {
+            "pac": 53,
+            "sho": 29,
+            "pas": 49,
+            "def": 61,
+            "tec": 44,
+            "sta": 66,
+            "ref": 8
+          },
+          "weeklyWage": 117,
+          "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "ferrous-united-p15",
+          "name": "Remy Forge",
+          "role": "MID",
+          "age": 22,
+          "archetype": "Engine",
+          "ratings": {
+            "pac": 60,
+            "sho": 45,
+            "pas": 63,
+            "def": 49,
+            "tec": 59,
+            "sta": 66,
+            "ref": 8
+          },
+          "weeklyWage": 123,
+          "contractSeasonsRemaining": 2,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "ferrous-united-p16",
+          "name": "Jett Steel",
+          "role": "FWD",
+          "age": 23,
+          "archetype": "Speedster",
+          "ratings": {
+            "pac": 65,
+            "sho": 60,
+            "pas": 47,
+            "def": 25,
+            "tec": 58,
+            "sta": 60,
+            "ref": 8
+          },
+          "weeklyWage": 134,
+          "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
           "onHeroWage": false
@@ -856,7 +982,7 @@
             "sta": 60,
             "ref": 62
           },
-          "weeklyWage": 298,
+          "weeklyWage": 116,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -877,8 +1003,71 @@
             "sta": 59,
             "ref": 10
           },
-          "weeklyWage": 320,
+          "weeklyWage": 118,
           "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "harbor-comets-p14",
+          "name": "Tia Dock",
+          "role": "DEF",
+          "age": 21,
+          "archetype": "Anchor",
+          "ratings": {
+            "pac": 50,
+            "sho": 26,
+            "pas": 46,
+            "def": 58,
+            "tec": 41,
+            "sta": 63,
+            "ref": 8
+          },
+          "weeklyWage": 120,
+          "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "harbor-comets-p15",
+          "name": "Finn Wake",
+          "role": "MID",
+          "age": 22,
+          "archetype": "Engine",
+          "ratings": {
+            "pac": 57,
+            "sho": 42,
+            "pas": 60,
+            "def": 46,
+            "tec": 56,
+            "sta": 63,
+            "ref": 8
+          },
+          "weeklyWage": 126,
+          "contractSeasonsRemaining": 2,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "harbor-comets-p16",
+          "name": "Cove Archer",
+          "role": "FWD",
+          "age": 23,
+          "archetype": "Speedster",
+          "ratings": {
+            "pac": 62,
+            "sho": 57,
+            "pas": 44,
+            "def": 22,
+            "tec": 55,
+            "sta": 57,
+            "ref": 8
+          },
+          "weeklyWage": 138,
+          "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
           "onHeroWage": false
@@ -1155,7 +1344,7 @@
             "sta": 59,
             "ref": 61
           },
-          "weeklyWage": 306,
+          "weeklyWage": 119,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1176,8 +1365,71 @@
             "sta": 58,
             "ref": 10
           },
-          "weeklyWage": 328,
+          "weeklyWage": 121,
           "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "oakridge-owls-p14",
+          "name": "Ivy Bark",
+          "role": "DEF",
+          "age": 21,
+          "archetype": "Anchor",
+          "ratings": {
+            "pac": 49,
+            "sho": 25,
+            "pas": 45,
+            "def": 57,
+            "tec": 40,
+            "sta": 62,
+            "ref": 8
+          },
+          "weeklyWage": 123,
+          "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "oakridge-owls-p15",
+          "name": "Moss Glenn",
+          "role": "MID",
+          "age": 22,
+          "archetype": "Engine",
+          "ratings": {
+            "pac": 56,
+            "sho": 41,
+            "pas": 59,
+            "def": 45,
+            "tec": 55,
+            "sta": 62,
+            "ref": 8
+          },
+          "weeklyWage": 129,
+          "contractSeasonsRemaining": 2,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "oakridge-owls-p16",
+          "name": "Wren Acorn",
+          "role": "FWD",
+          "age": 23,
+          "archetype": "Speedster",
+          "ratings": {
+            "pac": 61,
+            "sho": 56,
+            "pas": 43,
+            "def": 21,
+            "tec": 54,
+            "sta": 56,
+            "ref": 8
+          },
+          "weeklyWage": 142,
+          "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
           "onHeroWage": false
@@ -1454,7 +1706,7 @@
             "sta": 62,
             "ref": 64
           },
-          "weeklyWage": 314,
+          "weeklyWage": 122,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1475,8 +1727,71 @@
             "sta": 61,
             "ref": 10
           },
-          "weeklyWage": 336,
+          "weeklyWage": 124,
           "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "neon-athletic-p14",
+          "name": "Lux Ray",
+          "role": "DEF",
+          "age": 21,
+          "archetype": "Anchor",
+          "ratings": {
+            "pac": 52,
+            "sho": 28,
+            "pas": 48,
+            "def": 60,
+            "tec": 43,
+            "sta": 65,
+            "ref": 8
+          },
+          "weeklyWage": 126,
+          "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "neon-athletic-p15",
+          "name": "Nova Pulse",
+          "role": "MID",
+          "age": 22,
+          "archetype": "Engine",
+          "ratings": {
+            "pac": 59,
+            "sho": 44,
+            "pas": 62,
+            "def": 48,
+            "tec": 58,
+            "sta": 65,
+            "ref": 8
+          },
+          "weeklyWage": 132,
+          "contractSeasonsRemaining": 2,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "neon-athletic-p16",
+          "name": "Vex Flash",
+          "role": "FWD",
+          "age": 23,
+          "archetype": "Speedster",
+          "ratings": {
+            "pac": 64,
+            "sho": 59,
+            "pas": 46,
+            "def": 24,
+            "tec": 57,
+            "sta": 59,
+            "ref": 8
+          },
+          "weeklyWage": 146,
+          "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
           "onHeroWage": false
@@ -1753,7 +2068,7 @@
             "sta": 58,
             "ref": 60
           },
-          "weeklyWage": 322,
+          "weeklyWage": 125,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1774,8 +2089,71 @@
             "sta": 57,
             "ref": 10
           },
-          "weeklyWage": 344,
+          "weeklyWage": 127,
           "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "meadow-city-p14",
+          "name": "Fern Bloom",
+          "role": "DEF",
+          "age": 21,
+          "archetype": "Anchor",
+          "ratings": {
+            "pac": 48,
+            "sho": 24,
+            "pas": 44,
+            "def": 56,
+            "tec": 39,
+            "sta": 61,
+            "ref": 8
+          },
+          "weeklyWage": 129,
+          "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "meadow-city-p15",
+          "name": "Clover Lane",
+          "role": "MID",
+          "age": 22,
+          "archetype": "Engine",
+          "ratings": {
+            "pac": 55,
+            "sho": 40,
+            "pas": 58,
+            "def": 44,
+            "tec": 54,
+            "sta": 61,
+            "ref": 8
+          },
+          "weeklyWage": 135,
+          "contractSeasonsRemaining": 2,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "meadow-city-p16",
+          "name": "Sunny Pike",
+          "role": "FWD",
+          "age": 23,
+          "archetype": "Speedster",
+          "ratings": {
+            "pac": 60,
+            "sho": 55,
+            "pas": 42,
+            "def": 20,
+            "tec": 53,
+            "sta": 55,
+            "ref": 8
+          },
+          "weeklyWage": 150,
+          "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
           "onHeroWage": false
@@ -2052,7 +2430,7 @@
             "sta": 61,
             "ref": 63
           },
-          "weeklyWage": 330,
+          "weeklyWage": 128,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2073,8 +2451,71 @@
             "sta": 60,
             "ref": 10
           },
-          "weeklyWage": 352,
+          "weeklyWage": 130,
           "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "quartz-fc-p14",
+          "name": "Opal Flint",
+          "role": "DEF",
+          "age": 21,
+          "archetype": "Anchor",
+          "ratings": {
+            "pac": 51,
+            "sho": 27,
+            "pas": 47,
+            "def": 59,
+            "tec": 42,
+            "sta": 64,
+            "ref": 8
+          },
+          "weeklyWage": 132,
+          "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "quartz-fc-p15",
+          "name": "Mica Vale",
+          "role": "MID",
+          "age": 22,
+          "archetype": "Engine",
+          "ratings": {
+            "pac": 58,
+            "sho": 43,
+            "pas": 61,
+            "def": 47,
+            "tec": 57,
+            "sta": 64,
+            "ref": 8
+          },
+          "weeklyWage": 138,
+          "contractSeasonsRemaining": 2,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "quartz-fc-p16",
+          "name": "Gem Arrow",
+          "role": "FWD",
+          "age": 23,
+          "archetype": "Speedster",
+          "ratings": {
+            "pac": 63,
+            "sho": 58,
+            "pas": 45,
+            "def": 23,
+            "tec": 56,
+            "sta": 58,
+            "ref": 8
+          },
+          "weeklyWage": 154,
+          "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
           "onHeroWage": false
@@ -2351,7 +2792,7 @@
             "sta": 64,
             "ref": 66
           },
-          "weeklyWage": 338,
+          "weeklyWage": 131,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2372,8 +2813,71 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 360,
+          "weeklyWage": 133,
           "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "thunder-borough-p14",
+          "name": "Gale Bolt",
+          "role": "DEF",
+          "age": 21,
+          "archetype": "Anchor",
+          "ratings": {
+            "pac": 54,
+            "sho": 30,
+            "pas": 50,
+            "def": 62,
+            "tec": 45,
+            "sta": 67,
+            "ref": 8
+          },
+          "weeklyWage": 135,
+          "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "thunder-borough-p15",
+          "name": "Storm Rook",
+          "role": "MID",
+          "age": 22,
+          "archetype": "Engine",
+          "ratings": {
+            "pac": 61,
+            "sho": 46,
+            "pas": 64,
+            "def": 50,
+            "tec": 60,
+            "sta": 67,
+            "ref": 8
+          },
+          "weeklyWage": 141,
+          "contractSeasonsRemaining": 2,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "thunder-borough-p16",
+          "name": "Flash Reed",
+          "role": "FWD",
+          "age": 23,
+          "archetype": "Speedster",
+          "ratings": {
+            "pac": 66,
+            "sho": 61,
+            "pas": 48,
+            "def": 26,
+            "tec": 59,
+            "sta": 61,
+            "ref": 8
+          },
+          "weeklyWage": 158,
+          "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
           "onHeroWage": false
@@ -2650,7 +3154,7 @@
             "sta": 60,
             "ref": 62
           },
-          "weeklyWage": 346,
+          "weeklyWage": 134,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2671,8 +3175,71 @@
             "sta": 59,
             "ref": 10
           },
-          "weeklyWage": 368,
+          "weeklyWage": 136,
           "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "cedar-crown-p14",
+          "name": "Holly Crown",
+          "role": "DEF",
+          "age": 21,
+          "archetype": "Anchor",
+          "ratings": {
+            "pac": 50,
+            "sho": 26,
+            "pas": 46,
+            "def": 58,
+            "tec": 41,
+            "sta": 63,
+            "ref": 8
+          },
+          "weeklyWage": 138,
+          "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "cedar-crown-p15",
+          "name": "Ash Grove",
+          "role": "MID",
+          "age": 22,
+          "archetype": "Engine",
+          "ratings": {
+            "pac": 57,
+            "sho": 42,
+            "pas": 60,
+            "def": 46,
+            "tec": 56,
+            "sta": 63,
+            "ref": 8
+          },
+          "weeklyWage": 144,
+          "contractSeasonsRemaining": 2,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "cedar-crown-p16",
+          "name": "Robin Pine",
+          "role": "FWD",
+          "age": 23,
+          "archetype": "Speedster",
+          "ratings": {
+            "pac": 62,
+            "sho": 57,
+            "pas": 44,
+            "def": 22,
+            "tec": 55,
+            "sta": 57,
+            "ref": 8
+          },
+          "weeklyWage": 162,
+          "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
           "onHeroWage": false
@@ -2949,7 +3516,7 @@
             "sta": 62,
             "ref": 64
           },
-          "weeklyWage": 354,
+          "weeklyWage": 137,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2970,8 +3537,71 @@
             "sta": 61,
             "ref": 10
           },
-          "weeklyWage": 376,
+          "weeklyWage": 139,
           "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "moonlight-town-p14",
+          "name": "Luna Shade",
+          "role": "DEF",
+          "age": 21,
+          "archetype": "Anchor",
+          "ratings": {
+            "pac": 52,
+            "sho": 28,
+            "pas": 48,
+            "def": 60,
+            "tec": 43,
+            "sta": 65,
+            "ref": 8
+          },
+          "weeklyWage": 141,
+          "contractSeasonsRemaining": 1,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "moonlight-town-p15",
+          "name": "Astro Vale",
+          "role": "MID",
+          "age": 22,
+          "archetype": "Engine",
+          "ratings": {
+            "pac": 59,
+            "sho": 44,
+            "pas": 62,
+            "def": 48,
+            "tec": 58,
+            "sta": 65,
+            "ref": 8
+          },
+          "weeklyWage": 147,
+          "contractSeasonsRemaining": 2,
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
+        },
+        {
+          "id": "moonlight-town-p16",
+          "name": "Nova Knight",
+          "role": "FWD",
+          "age": 23,
+          "archetype": "Speedster",
+          "ratings": {
+            "pac": 64,
+            "sho": 59,
+            "pas": 46,
+            "def": 24,
+            "tec": 57,
+            "sta": 59,
+            "ref": 8
+          },
+          "weeklyWage": 166,
+          "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
           "onHeroWage": false

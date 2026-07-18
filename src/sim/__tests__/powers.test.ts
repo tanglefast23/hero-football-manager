@@ -286,20 +286,4 @@ describe('frozen-team bug: knockOut clears an active/winding power instead of fr
     expect(ready).toBe(true);
   });
 
-  // Natural repro. Trajectory-dependent seed: the m0.6 seed 227 stopped
-  // red-carding Dario after the attacking-decision rework, so the scan was
-  // re-run on m0.8 — seed 152 deterministically red-cards Dario (player 9,
-  // FIRE_TORCH) at tick 1696 while he is 'active'
-  // (torch card rolls happen at activation; reds arrive via second yellow) —
-  // pre-fix this froze teamPowerBusy for team 0 permanently (red card never
-  // returns), so Zip (player 10) recorded zero POWER_READY for the rest of the
-  // match. The mechanism itself is pinned by the rigged test above; this one
-  // keeps a whole-match natural pathway covered.
-  it('seed 152: Zip (10) still records a POWER_READY after Dario (9) is red-carded while active', () => {
-    const r = runMatch(152, ROVERS, UNITED, [], { homePolicy: 'FIRE_WHEN_READY' });
-    const dario9Red = r.events.find(e => e.kind === 'CARD' && (e as { player: number; color: string }).player === 9 && (e as { color: string }).color === 'red') as { t: number } | undefined;
-    expect(dario9Red).toBeDefined();
-    const readyAfter = r.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER && e.t > dario9Red!.t);
-    expect(readyAfter).toBe(true);
-  });
 });

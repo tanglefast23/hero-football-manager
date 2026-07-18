@@ -55,6 +55,7 @@ export interface ManagementShellProps {
   onTabChange: (tab: ManagementTab) => void;
   onAdvanceWeek: () => void;
   onOpenLedger?: () => void;
+  onOpenSettings?: () => void;
   advanceWeekLabel?: string;
   advanceWeekDisabled?: boolean;
 }
@@ -69,6 +70,7 @@ export function ManagementShell({
   onTabChange,
   onAdvanceWeek,
   onOpenLedger,
+  onOpenSettings,
   advanceWeekLabel = 'Advance Week  ▸',
   advanceWeekDisabled = false,
 }: ManagementShellProps) {
@@ -92,18 +94,31 @@ export function ManagementShell({
             {seasonLabel} · {weekLabel}
           </Text>
         </View>
-        {onOpenLedger ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open the club ledger"
-            onPress={onOpenLedger}
-            style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
-          >
-            {resourceCluster}
-          </Pressable>
-        ) : (
-          resourceCluster
-        )}
+        <View className="flex-row items-center gap-2">
+          {onOpenLedger ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open the club ledger"
+              onPress={onOpenLedger}
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
+            >
+              {resourceCluster}
+            </Pressable>
+          ) : (
+            resourceCluster
+          )}
+          {onOpenSettings ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+              onPress={onOpenSettings}
+              className="min-h-11 min-w-11 items-center justify-center border-2 border-ink bg-white"
+              style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+            >
+              <Text className="font-mono text-lg font-bold text-blue-dark">⚙</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <View className="flex-1">{children}</View>
