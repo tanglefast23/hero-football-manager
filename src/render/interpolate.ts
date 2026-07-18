@@ -7,7 +7,7 @@ import type { MatchState } from '../sim/types';
 
 // No 'ready' state exists (Task 14 amendment ledger item 5) — a hero's
 // zone window is its own status, distinct from an ordinary idle 'ok'.
-export type PlayerStatus = 'ok' | 'windup' | 'active' | 'out' | 'ignited' | 'zone';
+export type PlayerStatus = 'ok' | 'windup' | 'active' | 'out' | 'ignited' | 'zone' | 'sliding' | 'recovering';
 
 export interface PitchFrame {
   players: Vec[];
@@ -39,6 +39,8 @@ export function snapshotFrame(state: MatchState, previous?: Pick<PitchFrame, 'pl
     carrier: state.ball.kind === 'held' ? state.ball.by : -1,
     statuses: state.players.map((p): PlayerStatus => {
       if (p.outUntilTick > state.tick) return p.outReason === 'ignited' ? 'ignited' : 'out';
+      if (p.slideTackle) return 'sliding';
+      if (p.tackleRecoveryUntil > state.tick) return 'recovering';
       if (p.powerState.kind === 'zone') return 'zone';
       if (p.powerState.kind === 'winding') return 'windup';
       if (p.powerState.kind === 'active') return 'active';

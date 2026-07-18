@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Atlas, Canvas, Circle, Fill, Path, Skia, type SkColor, type SkImage, type SkRSXform, type SkRect } from '@shopify/react-native-skia';
 import { createMatch, queueInput, tick } from '../sim/match';
+import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, teamPowerBusy } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
@@ -165,9 +166,8 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   // UX fix — keyed by player index: the tick a home hero's chip was last
   // tapped outside its zone (early-tap feedback), read by homeChip() below.
   const pressFeedbackRef = useRef<Record<number, number>>({});
-  // Render-only tackle choreography keyed by player index. TACKLE is already
-  // part of the deterministic event stream; these poses never feed back into
-  // positions, possession, RNG, or replay data.
+  // Render-only tackle poses keyed by player index. Slide travel itself is now
+  // deterministic sim movement; this layer only tilts/recovers the sprite.
   const actionRef = useRef<Record<number, PlayerActionAnimation>>({});
   // Super Strength impact burst (render-only), set when a charge lands a KO.
   const impactRef = useRef<{ x: number; y: number; tick: number } | null>(null);
@@ -336,6 +336,16 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
           bannerRef.current = { text: '⚡ FULL TIME', untilTick: e.t + FLASH_TICKS, tone: 'gold' };
         }
         if (e.kind === 'POWER_EXPIRED') expiredAtRef.current[e.player] = e.t;
+        if (e.kind === 'SLIDE_STARTED') {
+          const rotation = e.direction.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
+          actionRef.current[e.by] = {
+            kind: 'slide',
+            startTick: e.t,
+            direction: { ...e.direction },
+            rotation,
+            untilTick: e.untilTick + SLIDE_SUCCESS_RECOVERY_TICKS,
+          };
+        }
         if (e.kind === 'TACKLE') {
           const byPos = nextRef.current!.players[e.by];
           const onPos = nextRef.current!.players[e.on];
@@ -347,7 +357,12 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
             : { x: 0, y: s.players[e.by].team === 0 ? -1 : 1 };
           const rotation = direction.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
           const startTick = e.t - 1;
-          actionRef.current[e.by] = { kind: 'slide', startTick, direction, rotation };
+          if (e.style === 'slide') {
+            const current = actionRef.current[e.by];
+            if (current?.kind === 'slide') {
+              current.untilTick = s.players[e.by].tackleRecoveryUntil;
+            }
+          }
           // Super Strength knocks the target OUT (outUntilTick in the future):
           // hold them flat until they recover and punch up an impact burst. An
           // ordinary tackle only dispossesses — the quick fall-and-recover.
@@ -360,7 +375,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
               untilTick: s.players[e.on].outUntilTick,
             };
             impactRef.current = { x: onPos.x, y: onPos.y, tick: e.t };
-          } else if (e.won) {
+          } else if (e.won && e.contact) {
             actionRef.current[e.on] = {
               kind: 'fall',
               startTick,
@@ -536,10 +551,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
         const pose = actionPose(action, hud.visualTick);
         let centerX = pos.x;
         let centerY = pos.y;
-        if (pose.active && action?.kind === 'slide') {
-          centerX += action.direction.x * pose.forwardOffset;
-          centerY += action.direction.y * pose.forwardOffset;
-        } else if (pose.active && action && (action.kind === 'fall' || action.kind === 'knockdown')) {
+        if (pose.active && action && (action.kind === 'fall' || action.kind === 'knockdown')) {
           centerX = pos.x * (1 - pose.anchorWeight) + action.anchor.x * pose.anchorWeight;
           centerY = pos.y * (1 - pose.anchorWeight) + action.anchor.y * pose.anchorWeight;
         }

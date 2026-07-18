@@ -16,7 +16,8 @@ describe('filesForEvent: event → SFX wiring', () => {
   it('keeps the opening whistle and core action sounds wired', () => {
     expect(filesForEvent({ t: 0, kind: 'KICKOFF', half: 1 })).toEqual(['kickoff-whistle']);
     expect(filesForEvent({ t: 0, kind: 'GOAL', by: 9, team: 0 })).toEqual(['goal-fanfare', 'crowd-cheer']);
-    expect(filesForEvent({ t: 0, kind: 'TACKLE', by: 3, on: 14, won: true })).toEqual(['tackle-thud', 'grunt']);
+    expect(filesForEvent({ t: 0, kind: 'TACKLE', by: 3, on: 14, won: true, style: 'slide', contact: true })).toEqual(['tackle-thud', 'grunt']);
+    expect(filesForEvent({ t: 0, kind: 'TACKLE', by: 3, on: 14, won: false, style: 'slide', contact: false })).toEqual([]);
   });
 
   it('layers tap-fire only on a manual (strength 1.0) power fire', () => {
@@ -42,7 +43,8 @@ describe('filesForEvent: event → SFX wiring', () => {
     const samples: MatchEvent[] = [
       { t: 0, kind: 'KICKOFF', half: 1 },
       { t: 0, kind: 'PASS', from: 1, to: 2, ok: true },
-      { t: 0, kind: 'TACKLE', by: 1, on: 2, won: false },
+      { t: 0, kind: 'SLIDE_STARTED', by: 1, on: 2, direction: { x: 1, y: 0 }, untilTick: 4 },
+      { t: 0, kind: 'TACKLE', by: 1, on: 2, won: false, style: 'slide', contact: true },
       { t: 0, kind: 'SHOT', by: 9, power: 50 },
       { t: 0, kind: 'SAVE', by: 0, resolveLeft: 80 },
       { t: 0, kind: 'MISS', by: 9 },

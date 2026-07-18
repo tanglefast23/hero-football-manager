@@ -41,6 +41,7 @@ describe('tackle action poses', () => {
     startTick: 10,
     direction: { x: 1, y: 0 },
     rotation: Math.PI / 2,
+    untilTick: 10 + SLIDE_TACKLE_TICKS,
   };
   const fall: PlayerActionAnimation = {
     kind: 'fall',
@@ -49,10 +50,10 @@ describe('tackle action poses', () => {
     rotation: -Math.PI / 2,
   };
 
-  it('drops the tackler into a visible slide and returns upright', () => {
+  it('drops the tackler into a visible slide without faking coordinate travel', () => {
     expect(actionPose(slide, 10).active).toBe(true);
     expect(Math.abs(actionPose(slide, 12).rotation)).toBeGreaterThan(1);
-    expect(actionPose(slide, 12).forwardOffset).toBeGreaterThan(0);
+    expect(actionPose(slide, 12).forwardOffset).toBe(0);
     expect(actionPose(slide, 10 + SLIDE_TACKLE_TICKS).active).toBe(false);
   });
 

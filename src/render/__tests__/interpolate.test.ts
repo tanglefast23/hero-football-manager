@@ -95,6 +95,23 @@ describe('snapshotFrame', () => {
     expect(s.statuses[15]).toBe('out');
   });
 
+  it('statuses expose committed slide movement and its recovery window', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[3].slideTackle = {
+      targetIdx: 14,
+      startTick: m.tick,
+      untilTick: m.tick + 4,
+      direction: { x: 1, y: 0 },
+      remainingDistance: 400,
+      previousPos: { ...m.players[3].pos },
+      targetPreviousPos: { ...m.players[14].pos },
+    };
+    expect(snapshotFrame(m).statuses[3]).toBe('sliding');
+    m.players[3].slideTackle = undefined;
+    m.players[3].tackleRecoveryUntil = m.tick + 6;
+    expect(snapshotFrame(m).statuses[3]).toBe('recovering');
+  });
+
   it('carrier is -1 when the ball is not held', () => {
     const m = createMatch(42, ROVERS, UNITED);
     m.ball = { kind: 'loose', pos: { x: 100, y: 100 }, vel: { x: 0, y: 0 } };

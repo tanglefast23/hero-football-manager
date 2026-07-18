@@ -5,9 +5,9 @@ import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTic
 import { powerTick } from './powers';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m0.8 combines the m0.7 Zone pause/resume rule with geometry-aware attacking
-// decisions. Both alter replay output and RNG consumption relative to m0.7.
-export const ENGINE_VERSION = 'm0.8';
+// m0.9 makes slide tackles committed simulation movement and wires STA through
+// condition drain/effective stats. Both alter positions, events, and rng timing.
+export const ENGINE_VERSION = 'm0.9';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -36,7 +36,7 @@ function makePlayers(home: TeamDef, away: TeamDef, opts: MatchOpts): SimPlayer[]
       condition: 100, gauge: 0,
       powerState: { kind: 'idle' as const },
       firePolicy: team === 0 ? (opts.homePolicy ?? 'SAVE_FOR_TAP') : (opts.awayPolicy ?? 'FIRE_WHEN_READY'),
-      outUntilTick: 0, tackleCooldownUntil: 0, cards: 0 as const,
+      outUntilTick: 0, tackleRecoveryUntil: 0, tackleCooldownUntil: 0, cards: 0 as const,
     }));
   return [...mk(0, home), ...mk(1, away)];
 }
