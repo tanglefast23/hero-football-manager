@@ -8,6 +8,7 @@ import type { MatchState } from '../sim/types';
 import { buildSpriteAtlas } from './sprites/buildAtlas';
 import { lerpFrame, snapshotFrame, type PitchFrame } from './interpolate';
 import { Pitch } from './Pitch';
+import { initAudio, playForEvent, startTheme, stopTheme, teardownAudio } from './audio';
 
 const MAX_CATCHUP_TICKS = 5;
 const TOTAL_TICKS = HALF_TICKS * 2;
@@ -168,6 +169,20 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
     }
   }, []);
 
+  // Audio lifecycle — own effect, separate from the RAF loop below: starts
+  // the match theme on mount, tears everything down on unmount. No pause
+  // handling needed (see src/render/audio.ts) — the theme keeps looping
+  // through a paused match, and playForEvent() below is only ever reached
+  // from ticks the RAF loop actually simulates.
+  useEffect(() => {
+    initAudio();
+    startTheme();
+    return () => {
+      stopTheme();
+      teardownAudio();
+    };
+  }, []);
+
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
@@ -224,7 +239,8 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
 
       const newEvents = s.events.slice(eventsBefore);
       for (const e of newEvents) {
-        if (e.kind === 'GOAL' || e.kind === 'MISS' || e.kind === 'HALF_TIME') snap = true;
+        playForEvent(e);
+        if (e.kind === 'GOAL' || e.kind === 'MISS' || e.kind === 'HALF_TIME' || e.kind === 'KICKOFF') snap = true;
         if (e.kind === 'GOAL') {
           const scorerName = e.by >= 0 && e.by < 22 ? s.players[e.by].def.name : 'Unknown';
           bannerRef.current = { text: `⚡ GOAL! ${scorerName}`, untilTick: e.t + FLASH_TICKS, tone: 'gold' };
