@@ -21,7 +21,7 @@ export default function App() {
   }, [seed]);
 
   if (screen === 'match') return <MatchScreen seed={seed} onDone={finishWatched} />;
-  if (screen === 'stress') return <StressScreen />;
+  if (screen === 'stress') return <StressScreen onBack={() => setScreen('home')} />;
 
   return (
     <View style={styles.root}>
