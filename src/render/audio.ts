@@ -31,6 +31,7 @@ type SfxKey =
   | 'tackle-thud'
   | 'grunt'
   | 'goal-fanfare'
+  | 'goal-celebration'
   | 'crowd-cheer'
   | 'card-whistle'
   | 'crowd-jeer'
@@ -54,7 +55,8 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'kick-shot': require('../../assets/audio/sfx/kick-shot.m4a'),
   'tackle-thud': require('../../assets/audio/sfx/tackle-thud.m4a'),
   grunt: require('../../assets/audio/sfx/grunt.wav'),
-  'goal-fanfare': require('../../assets/audio/sfx/goal-fanfare.wav'),
+  'goal-fanfare': require('../../assets/audio/sfx/goal-fanfare.m4a'),
+  'goal-celebration': require('../../assets/audio/sfx/goal-celebration.m4a'),
   'crowd-cheer': require('../../assets/audio/sfx/crowd-cheer.wav'),
   'card-whistle': require('../../assets/audio/sfx/card-whistle.wav'),
   'crowd-jeer': require('../../assets/audio/sfx/crowd-jeer.wav'),
@@ -119,7 +121,7 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     case 'TACKLE':
       return ['tackle-thud', 'grunt'];
     case 'GOAL':
-      return ['goal-fanfare', 'crowd-cheer'];
+      return ['goal-fanfare', 'goal-celebration', 'crowd-cheer'];
     case 'CARD':
       return ['card-whistle', 'crowd-jeer'];
     case 'POWER_READY':
