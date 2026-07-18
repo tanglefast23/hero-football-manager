@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Generates the three M0 app-icon concepts for Hero Football Manager — round 3.
-// User verdict after round 2: the soccer ball is the subject, no fire. Each
-// concept is a HAND-AUTHORED 32x32 pixel map: 32 rows of 32 chars, each char a
-// palette key. No drawing primitives. Authenticity rules enforced by
-// validateConcept(): <=16 colors, every char mapped, exact 32x32. All pixels
-// are opaque (iOS icons forbid alpha) — "background" chars map to real colors.
-// Nearest-neighbor upscaled to 1024/180/120px PNGs in art/icons/. No external
-// deps — see png.mjs.
+// Generates the three M0 app-icon concepts for Hero Football Manager — round 3
+// (ball-centric trio; user picked Concept A "Caped Ball" on 2026-07-18, which
+// main() also exports to assets/icon.png). Each concept is a HAND-AUTHORED
+// 32x32 pixel map: 32 rows of 32 chars, each char a palette key. No drawing
+// primitives. Authenticity rules enforced by validateConcept(): <=16 colors,
+// every char mapped, exact 32x32. All pixels are opaque (iOS icons forbid
+// alpha) — "background" chars map to real colors. Nearest-neighbor upscaled
+// to 1024/180/120px PNGs in art/icons/. No external deps — see png.mjs.
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import path from 'node:path';
@@ -45,13 +45,13 @@ const CONCEPT_A = {
     'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
     'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
     'nnnnnnnnnnnnnnnnnnnnnnnnnnnnYnnn',
-    'nnnnnnnnnnnnnnKKnnnnnnnnnnnnnnnn',
-    'nnnnnnnnnnnnnKRRKnnnnnnnnnnnnnnn',
-    'nnnnnnnnnnnnKRRRRKKKKKKKnnnnnnnn',
-    'nnnnnnnnnKPPPRRKKKwwwwwKKKnnnnnn',
-    'nnnnnnKPPPPRRRKKwwwwwKKKKKKnnnnn',
-    'nnnnKPPPPRRRRKwwwwwwwwKKKwwKnnnn',
-    'nnKPPPPRRRRRKKwwwwwwwwwwwKKKKnnn',
+    'nnnnnnnnnnnnnnKKKnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnKPRKnnnnnnnnnnnnnnn',
+    'nnnnnnnnnnnnnKRRKKKKKKKKnnnnnnnn',
+    'nnnnnnnnnnnKRRKKKKwwwwwKKKnnnnnn',
+    'nnnnnnnnKPPRRRKKwwwwwKKKKKKnnnnn',
+    'nnnnnKPPPRRRRKwwwwwwwwKKKwwKnnnn',
+    'nnnKPPPRRRRRKKwwwwwwwwwwwKKKKnnn',
     'nKPPPRRRRRRDKwwwwwwwwwwwwwwwKnnn',
     'nKPPRRRRRRDKKwwwwwwwwwwwwwwwKKnn',
     'KRRRRRRRRDDKwwwwwwwKKwwwwwwwwKnn',
@@ -312,6 +312,27 @@ function main() {
 
   console.log(`Generated ${concepts.length * sizes.length} PNGs in ${OUT_DIR}:`);
   console.log(report.join('\n'));
+
+  // -------------------------------------------------------------------------
+  // Shipped app icon — the user's 2026-07-18 pick: Concept A "Caped Ball".
+  // app.json already points at assets/icon.png; this is the only writer of
+  // that file, so the choice is recorded in code and regeneration stays
+  // deterministic. Exact x32 nearest-neighbor upscale, opaque-verified twice
+  // (pre-encode and re-parsed from disk) — iOS icons must have no alpha.
+  // -------------------------------------------------------------------------
+  const shippedPath = path.join(__dirname, '..', '..', 'assets', 'icon.png');
+  const shippedNative = rasterizeRows(CONCEPT_A.rows, CONCEPT_A.palette);
+  const shipped = upscaleNearest(shippedNative, N, 1024);
+  assertOpaque(shipped, 'assets/icon.png pre-encode');
+  writeFileSync(shippedPath, encodePNG(1024, 1024, shipped));
+  const shippedDecoded = decodePNG(readFileSync(shippedPath));
+  if (shippedDecoded.width !== 1024 || shippedDecoded.height !== 1024) {
+    throw new Error(`${shippedPath}: expected 1024x1024, got ${shippedDecoded.width}x${shippedDecoded.height}`);
+  }
+  for (let i = 3; i < shippedDecoded.pixels.length; i += 4) {
+    if (shippedDecoded.pixels[i] !== 255) throw new Error(`${shippedPath}: non-opaque pixel on re-parse at byte ${i}`);
+  }
+  console.log(`Exported shipped icon (Concept A "Caped Ball", user pick 2026-07-18) -> ${shippedPath}`);
 }
 
 main();
