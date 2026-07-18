@@ -10,6 +10,12 @@ import { createCareerRepository, createReplayRepository } from './src/persistenc
 import { MatchScreen } from './src/render/MatchScreen';
 import { setMasterVolume } from './src/render/audio';
 import { devVolumePercent, nextDevVolume, type DevVolume } from './src/render/dev-volume';
+import {
+  setMenuMasterVolume,
+  setMenuTheme,
+  teardownMenuAudio,
+  type MenuTheme,
+} from './src/render/menu-audio';
 import { assertRuntimeGoldenReplay, runtimeGoldenFingerprint } from './src/sim/runtime-golden';
 import type { MatchState } from './src/sim/types';
 import {
@@ -25,6 +31,8 @@ import {
   SeasonEndScreen,
   SquadTrainingScreen,
   StoryEventScreen,
+  TitleLandingScreen,
+  TitleSettingsScreen,
 } from './src/ui';
 import { useM1Store } from './src/application/store';
 import {
@@ -38,16 +46,35 @@ import {
 } from './src/application/view-models';
 
 const DATABASE_NAME = 'hero-football-manager.db';
+type LandingView = 'title' | 'story' | 'settings';
 
 export default function App() {
   const store = useM1Store();
   const content = useMemo(loadLaunchContent, []);
   const [bootError, setBootError] = useState<string | null>(null);
   const [devVolume, setDevVolume] = useState<DevVolume>(1);
+  const [landingView, setLandingView] = useState<LandingView>('title');
 
   useEffect(() => {
     setMasterVolume(devVolume);
+    setMenuMasterVolume(devVolume);
   }, [devVolume]);
+
+  const menuTheme: MenuTheme = bootError === null
+    && store.persistenceReady
+    && store.persistenceLoadError === null
+    ? store.screen === 'welcome'
+      ? 'opening'
+      : store.screen === 'management'
+        ? 'management'
+        : null
+    : null;
+
+  useEffect(() => {
+    setMenuTheme(menuTheme);
+  }, [menuTheme]);
+
+  useEffect(() => () => teardownMenuAudio(), []);
 
   useEffect(() => {
     let active = true;
@@ -123,6 +150,22 @@ export default function App() {
     screen = <LoadingScreen />;
   } else if (store.persistenceLoadError !== null) {
     screen = <BootFailure message={store.persistenceLoadError} />;
+  } else if (store.screen === 'welcome' && landingView === 'title') {
+    screen = (
+      <TitleLandingScreen
+        hasSavedCareer={store.hasSavedCareer}
+        onStory={() => setLandingView('story')}
+        onSettings={() => setLandingView('settings')}
+      />
+    );
+  } else if (store.screen === 'welcome' && landingView === 'settings') {
+    screen = (
+      <TitleSettingsScreen
+        volumePercent={devVolumePercent(devVolume)}
+        onCycleVolume={() => setDevVolume(current => nextDevVolume(current))}
+        onBack={() => setLandingView('title')}
+      />
+    );
   } else if (store.screen === 'welcome') {
     screen = (
       <NewGameWelcomeScreen
@@ -130,6 +173,7 @@ export default function App() {
         savedCareerLabel={store.career ? `Season ${store.career.season} · Week ${store.career.week}` : undefined}
         onStartNewCareer={startNewCareer}
         onContinueCareer={store.hasSavedCareer ? store.continueCareer : undefined}
+        onBackToTitle={() => setLandingView('title')}
       />
     );
   } else if (store.screen === 'create-player' && store.career !== null) {

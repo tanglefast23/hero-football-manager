@@ -1,4 +1,5 @@
 import {
+  CREATION_BASE_RATING,
   CREATION_POINT_POOL,
   CREATION_RATING_TOTAL,
   CREATION_STAT_MAX,
@@ -20,10 +21,18 @@ describe('created outfield player point-buy', () => {
       ...DEFAULT_CREATION_RATINGS,
       ref: 10,
     });
-    expect(creationPointsRemaining(DEFAULT_CREATION_RATINGS)).toBe(0);
+    expect(DEFAULT_CREATION_RATINGS).toEqual({
+      pac: 50,
+      sho: 50,
+      pas: 50,
+      def: 50,
+      tec: 50,
+      sta: 50,
+    });
+    expect(creationPointsRemaining(DEFAULT_CREATION_RATINGS)).toBe(15);
     expect(Object.values(DEFAULT_CREATION_RATINGS).reduce((sum, value) => sum + value, 0))
-      .toBe(CREATION_RATING_TOTAL);
-    expect(CREATION_RATING_TOTAL).toBe(6 * CREATION_STAT_MIN + CREATION_POINT_POOL);
+      .toBe(6 * CREATION_BASE_RATING);
+    expect(CREATION_RATING_TOTAL).toBe(6 * CREATION_BASE_RATING + CREATION_POINT_POOL);
   });
 
   it('allows flavor specialization without exceeding the Div-5 cap', () => {
@@ -40,14 +49,30 @@ describe('created outfield player point-buy', () => {
       .not.toThrow();
   });
 
-  it('rejects unspent points, values outside the bounds, and malformed names', () => {
+  it('allows unspent points and lets reductions fund a different balance', () => {
+    const redistributed = {
+      ...DEFAULT_CREATION_RATINGS,
+      pac: 45,
+      sho: 65,
+      tec: 55,
+    };
+    expect(creationPointsRemaining(redistributed)).toBe(0);
+    expect(() => validateCreatedPlayerDraft({ name: 'Rook', ratings: redistributed }))
+      .not.toThrow();
     expect(() => validateCreatedPlayerDraft({
       name: 'Rook',
-      ratings: { ...DEFAULT_CREATION_RATINGS, pac: 52 },
-    })).toThrow('remaining');
+      ratings: DEFAULT_CREATION_RATINGS,
+    })).not.toThrow();
+  });
+
+  it('rejects overspending, values outside the bounds, and malformed names', () => {
     expect(() => validateCreatedPlayerDraft({
       name: 'Rook',
-      ratings: { ...DEFAULT_CREATION_RATINGS, pac: CREATION_STAT_MAX + 1, sho: 52 },
+      ratings: { ...DEFAULT_CREATION_RATINGS, pac: CREATION_STAT_MAX, sho: 51 },
+    })).toThrow('exceed');
+    expect(() => validateCreatedPlayerDraft({
+      name: 'Rook',
+      ratings: { ...DEFAULT_CREATION_RATINGS, pac: CREATION_STAT_MAX + 1 },
     })).toThrow('PAC');
     expect(() => validateCreatedPlayerDraft({ name: ' ', ratings: DEFAULT_CREATION_RATINGS }))
       .toThrow('name');

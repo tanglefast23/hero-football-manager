@@ -14,19 +14,20 @@ export type OutfieldCreationRatings = Record<OutfieldCreationStat, number>;
 
 export const CREATION_STAT_MIN = 35;
 export const CREATION_STAT_MAX = 65;
-export const CREATION_POINT_POOL = 105;
+export const CREATION_BASE_RATING = 50;
+export const CREATION_POINT_POOL = 15;
 export const CREATION_RATING_TOTAL =
-  OUTFIELD_CREATION_STATS.length * CREATION_STAT_MIN + CREATION_POINT_POOL;
+  OUTFIELD_CREATION_STATS.length * CREATION_BASE_RATING + CREATION_POINT_POOL;
 export const CREATED_PLAYER_REF = 10;
 export const CREATED_PLAYER_ROOKIE_WAGE = 180;
 
 export const DEFAULT_CREATION_RATINGS: Readonly<OutfieldCreationRatings> = Object.freeze({
-  pac: 53,
-  sho: 53,
-  pas: 53,
-  def: 52,
-  tec: 52,
-  sta: 52,
+  pac: CREATION_BASE_RATING,
+  sho: CREATION_BASE_RATING,
+  pas: CREATION_BASE_RATING,
+  def: CREATION_BASE_RATING,
+  tec: CREATION_BASE_RATING,
+  sta: CREATION_BASE_RATING,
 });
 
 export interface CreatedPlayerDraft {
@@ -36,11 +37,11 @@ export interface CreatedPlayerDraft {
 
 export function creationPointsRemaining(ratings: Readonly<OutfieldCreationRatings>): number {
   validateRatingsShape(ratings);
-  const spent = OUTFIELD_CREATION_STATS.reduce(
-    (total, stat) => total + ratings[stat] - CREATION_STAT_MIN,
+  const ratingTotal = OUTFIELD_CREATION_STATS.reduce(
+    (total, stat) => total + ratings[stat],
     0,
   );
-  return CREATION_POINT_POOL - spent;
+  return CREATION_RATING_TOTAL - ratingTotal;
 }
 
 export function validateCreatedPlayerDraft(draft: CreatedPlayerDraft): {
@@ -61,8 +62,8 @@ export function validateCreatedPlayerDraft(draft: CreatedPlayerDraft): {
     }
   }
   const pointsRemaining = creationPointsRemaining(draft.ratings);
-  if (pointsRemaining !== 0) {
-    throw new Error(`Spend the full point pool (${pointsRemaining} remaining)`);
+  if (pointsRemaining < 0) {
+    throw new Error(`Creation ratings exceed the available point pool by ${-pointsRemaining}`);
   }
   return {
     name,

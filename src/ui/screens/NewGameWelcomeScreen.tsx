@@ -8,6 +8,7 @@ export interface NewGameWelcomeScreenProps {
   onStartNewCareer: () => void;
   onContinueCareer?: () => void;
   onOpenAccessibility?: () => void;
+  onBackToTitle?: () => void;
 }
 
 export function NewGameWelcomeScreen({
@@ -16,12 +17,24 @@ export function NewGameWelcomeScreen({
   onStartNewCareer,
   onContinueCareer,
   onOpenAccessibility,
+  onBackToTitle,
 }: NewGameWelcomeScreenProps) {
   return (
     <SafeAreaView className="flex-1 bg-ink" edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View className="flex-1 justify-between px-5 py-6">
           <View>
+            {onBackToTitle ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Back to title"
+                onPress={onBackToTitle}
+                className="mb-5 min-h-11 self-start justify-center"
+                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+              >
+                <Text className="text-xs font-bold uppercase tracking-[2px] text-sky">‹ Title</Text>
+              </Pressable>
+            ) : null}
             <View className="mb-6 flex-row items-start justify-between">
               <View className="h-14 w-14 -rotate-2 items-center justify-center border-2 border-signal bg-ink-soft">
                 <Text className="font-mono text-2xl font-bold text-signal">HF</Text>

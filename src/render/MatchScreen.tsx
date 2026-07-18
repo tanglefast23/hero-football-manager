@@ -17,6 +17,7 @@ import {
   type PlayerActionAnimation,
 } from './animation';
 import { useWorkletAtlasFrame } from './worklet-atlas-frame';
+import { nextMatchSpeed, type MatchSpeed } from './match-speed';
 import { WorkletMatchOverlays } from './WorkletMatchOverlays';
 import { matchPoliciesForControlledTeam } from './match-control';
 import { Pitch } from './Pitch';
@@ -206,13 +207,13 @@ export function MatchScreen({
     scoreFlash: false,
     visualTick: 0,
   });
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState<MatchSpeed>(1);
   const [autoPower, setAutoPower] = useState(false);
   // Dev-only movement-table tuning instrument (movement spec's debug-overlay
   // deliverable; the toggle ships __DEV__-gated, never in release UI).
   const [debugGrid, setDebugGrid] = useState(false);
   const [paused, setPaused] = useState(false);
-  const speedRef = useRef(1);
+  const speedRef = useRef<MatchSpeed>(1);
   const autoPowerRef = useRef(false);
   const pausedRef = useRef(false);
   speedRef.current = speed;
@@ -710,12 +711,17 @@ export function MatchScreen({
           {homeCode} {hud.score[0]} – {hud.score[1]} {awayCode} · {minute}'{stoppage ? '+' : ''}
           {paused ? ' ⏸' : ''}
         </Text>
-        <Pressable onPress={() => setSpeed((current) => {
-          const next = current === 1 ? 2 : 1;
-          speedRef.current = next;
-          resumeAtlasFrame(next);
-          return next;
-        })}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Match speed ${speed} times. Tap for next speed.`}
+          hitSlop={10}
+          onPress={() => setSpeed((current) => {
+            const next = nextMatchSpeed(current);
+            speedRef.current = next;
+            resumeAtlasFrame(next);
+            return next;
+          })}
+        >
           <Text style={styles.speedText}>×{speed}</Text>
         </Pressable>
         {__DEV__ ? (

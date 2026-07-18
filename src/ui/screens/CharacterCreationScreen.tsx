@@ -18,12 +18,12 @@ export interface CharacterCreationScreenProps {
 }
 
 const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }> = {
-  pac: { label: 'PAC', detail: 'Burst and recovery runs' },
-  sho: { label: 'SHO', detail: 'Finishing and striking' },
-  pas: { label: 'PAS', detail: 'Weight and vision' },
-  def: { label: 'DEF', detail: 'Challenges and marking' },
-  tec: { label: 'TEC', detail: 'Touch under pressure' },
-  sta: { label: 'STA', detail: 'Late-match engine' },
+  pac: { label: 'PACE', detail: 'Burst and recovery runs' },
+  sho: { label: 'SHOOTING', detail: 'Finishing and striking' },
+  pas: { label: 'PASSING', detail: 'Weight and vision' },
+  def: { label: 'DEFENDING', detail: 'Challenges and marking' },
+  tec: { label: 'TECHNIQUE', detail: 'Touch under pressure' },
+  sta: { label: 'STAMINA', detail: 'Late-match engine' },
 };
 
 export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenProps) {
@@ -32,7 +32,7 @@ export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenP
     ...DEFAULT_CREATION_RATINGS,
   });
   const pointsRemaining = useMemo(() => creationPointsRemaining(ratings), [ratings]);
-  const canSubmit = name.trim().length >= 2 && pointsRemaining === 0;
+  const canSubmit = name.trim().length >= 2 && pointsRemaining >= 0;
 
   function adjust(stat: OutfieldCreationStat, delta: -1 | 1): void {
     setRatings(current => {
@@ -84,7 +84,7 @@ export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenP
         <View className="mt-6 flex-row items-end justify-between gap-3">
           <View className="flex-1">
             <Text className="text-xs font-bold uppercase tracking-[2px] text-sky">Six visible stats</Text>
-            <Text className="mt-1 text-xl font-bold uppercase text-paper">Spend every point</Text>
+            <Text className="mt-1 text-xl font-bold uppercase text-paper">Balance your way</Text>
           </View>
           <View className={pointsRemaining === 0 ? 'border-2 border-emerald-600 bg-emerald-100 px-3 py-2' : 'border-2 border-signal bg-signal px-3 py-2'}>
             <Text className="text-center font-mono text-xl font-bold text-ink">{pointsRemaining}</Text>
@@ -98,8 +98,11 @@ export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenP
             const value = ratings[stat];
             return (
               <View key={stat} className="min-h-20 flex-row items-center border-2 border-paper/25 bg-ink-soft p-3">
-                <View className="w-16">
-                  <Text className="font-mono text-lg font-bold text-signal">{copy.label}</Text>
+                <View className="w-24">
+                  <Text className="font-mono text-base text-signal">
+                    <Text className="font-bold">{copy.label.slice(0, 3)}</Text>
+                    <Text className="font-normal">{copy.label.slice(3)}</Text>
+                  </Text>
                   <Text className="mt-1 text-xs leading-4 text-paper/45">{copy.detail}</Text>
                 </View>
                 <View className="mx-3 h-2 flex-1 overflow-hidden border border-paper/25 bg-ink">
@@ -139,7 +142,7 @@ export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenP
         </View>
 
         <Text className="mt-4 text-xs leading-4 text-paper/45">
-          REF is goalkeeper-only and stays hidden at its outfield filler value. Every legal build has the same total quality.
+          Points can stay unspent. Lower any stat to free more for another. REF is goalkeeper-only and stays hidden at its outfield filler value.
         </Text>
       </ScrollView>
 
