@@ -5,7 +5,7 @@ import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTic
 import { powerTick } from './powers';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-export const ENGINE_VERSION = 'm0.4';
+export const ENGINE_VERSION = 'm0.5';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 const VALID_ROLES: ReadonlySet<Role> = new Set(['GK', 'DEF', 'MID', 'FWD']);
