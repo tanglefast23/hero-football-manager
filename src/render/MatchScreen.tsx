@@ -9,8 +9,6 @@ import { buildSpriteAtlas } from './sprites/buildAtlas';
 import { lerpFrame, snapshotFrame, type PitchFrame } from './interpolate';
 import { Pitch } from './Pitch';
 
-const MY_HEROES = [9, 10]; // Dario Flint (FIRE_TORCH), Zip Vela (SUPER_SPEED)
-const RIVAL_HERO = 14; // Rex Bould (SUPER_STRENGTH) — team 1 index 3 (11 + 3)
 const MAX_CATCHUP_TICKS = 5;
 const TOTAL_TICKS = HALF_TICKS * 2;
 
@@ -114,7 +112,7 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   const expiredAtRef = useRef<Record<number, number>>({});
   const scoreFlashUntilRef = useRef<number>(0);
   // UX fix — keyed by player index: the tick a home hero's chip was last
-  // tapped outside its zone (early-tap feedback), read by chip() below.
+  // tapped outside its zone (early-tap feedback), read by homeChip() below.
   const pressFeedbackRef = useRef<Record<number, number>>({});
 
   const [frame, setFrame] = useState<PitchFrame>(() => prevRef.current!);
@@ -364,36 +362,52 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
   // independent of the on-canvas ring's own (slower, 20-tick) pulse above.
   const chipPulseGold = hud.tick % 10 < 5;
 
-  const chip = (idx: number, tappable: boolean) => {
+  // Home/rival hero indices — scanned generically from live roster data
+  // (whichever players carry `def.power`) instead of hardcoded slots, since
+  // which squad members are heroes is content, not an engine fact.
+  const { homeHeroes, rivalHeroes } = useMemo(() => {
+    const home: number[] = [];
+    const rival: number[] = [];
+    match.players.forEach((p, i) => {
+      if (!p.def.power) return;
+      (p.team === 0 ? home : rival).push(i);
+    });
+    return { homeHeroes: home, rivalHeroes: rival };
+  }, [match]);
+
+  // Availability guard (audit rider) — a hero can still carry a stale
+  // `powerState.kind === 'zone'` after being knocked out mid-window (a
+  // separate task fixes the sim-side clear), so the chip must not trust that
+  // alone. `outUntilTick > match.tick` is the same "is this player currently
+  // out" check interpolate.ts's snapshotFrame uses to pick the canvas
+  // 'out'/'ignited' tint, so it renders unavailable here too — dimmed, no
+  // zone styling, no TAP! overlay, no queued input.
+  const homeChip = (idx: number) => {
     const p = match.players[idx];
+    const unavailable = p.outUntilTick > match.tick;
     // Ledger item 5 — no 'ready' state exists; a hero is chip-highlighted
-    // while its powerState.kind is 'zone'. Rival chip glows red, not gold —
-    // starving his window is the counterplay, so the threat read matters.
-    const inZone = p.powerState.kind === 'zone';
+    // while its powerState.kind is 'zone'.
+    const inZone = !unavailable && p.powerState.kind === 'zone';
     const dimmed = match.tick - (expiredAtRef.current[idx] ?? -Infinity) < FLASH_TICKS;
     // UX fix — early-tap feedback: set (only) in onPress below, read here for
     // up to EARLY_TAP_TICKS afterward.
-    const earlyTap = match.tick - (pressFeedbackRef.current[idx] ?? -Infinity) < EARLY_TAP_TICKS;
+    const earlyTap = !unavailable && match.tick - (pressFeedbackRef.current[idx] ?? -Infinity) < EARLY_TAP_TICKS;
     // WARMTH step replaces the old numeric heat bar — heat-weighted zone
     // entry is a hot-streak mechanic, not a "fills up and fires" gauge, so no
     // bar/number is shown. The zone state (below) owns the chip's look once
     // a hero is actually in the Zone; warmth only applies before that.
-    const step = inZone ? null : warmthStep(p.gauge);
-    const warmthStyle =
-      step === 'warming' ? (tappable ? styles.warmingHome : styles.warmingRival)
-      : step === 'hot' ? (tappable ? styles.hotHome : styles.hotRival)
-      : null;
+    const step = unavailable || inZone ? null : warmthStep(p.gauge);
+    const warmthStyle = step === 'warming' ? styles.warmingHome : step === 'hot' ? styles.hotHome : null;
     return (
       <Pressable
         key={idx}
-        disabled={!tappable}
         style={[
           styles.chip,
           warmthStyle,
-          inZone ? (tappable ? styles.chipReady : styles.chipThreat) : null,
-          inZone && tappable ? styles.chipZoneTap : null,
-          inZone && tappable ? { borderColor: chipPulseGold ? '#f5c518' : '#ffffff' } : null,
-          dimmed ? styles.chipDim : null,
+          inZone ? styles.chipReady : null,
+          inZone ? styles.chipZoneTap : null,
+          inZone ? { borderColor: chipPulseGold ? '#f5c518' : '#ffffff' } : null,
+          dimmed || unavailable ? styles.chipDim : null,
           earlyTap ? styles.chipFlash : null,
         ]}
         onPress={() => {
@@ -401,18 +415,48 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
           // Zone was always a no-op in the sim (powerTick only converts a
           // POWER_TAP input while powerState.kind === 'zone'; see
           // sim/powers.ts), so gating it here changes no sim behavior. It
-          // just stops those taps from feeling ignored.
+          // just stops those taps from feeling ignored. An unavailable
+          // (knocked-out/ignited) hero is a hard no-op too — see the
+          // availability guard comment above.
+          if (unavailable) return;
           if (p.powerState.kind === 'zone') {
             queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: idx });
-          } else if (tappable) {
+          } else {
             pressFeedbackRef.current[idx] = match.tick;
           }
         }}
       >
-        {inZone && tappable ? <Text style={styles.tapOverlay}>TAP!</Text> : null}
-        <Text style={styles.chipName}>{(tappable ? '' : '⚠ ') + p.def.name.split(' ')[1]}</Text>
+        {inZone ? <Text style={styles.tapOverlay}>TAP!</Text> : null}
+        <Text style={styles.chipName}>{p.def.name.split(' ')[1]}</Text>
         {earlyTap ? <Text style={styles.waitLabel}>wait for the glow…</Text> : null}
       </Pressable>
+    );
+  };
+
+  // Rival strip chip — slim, non-tappable badge (red family, plain View: no
+  // Pressable behavior at all). Keeps the zone-threat glow (chipThreat) when
+  // he's in the Zone — starving his window is the counterplay, so seeing him
+  // heat up matters even though the player can't act on it directly.
+  const rivalChip = (idx: number) => {
+    const p = match.players[idx];
+    const unavailable = p.outUntilTick > match.tick;
+    const inZone = !unavailable && p.powerState.kind === 'zone';
+    const dimmed = match.tick - (expiredAtRef.current[idx] ?? -Infinity) < FLASH_TICKS;
+    const step = unavailable || inZone ? null : warmthStep(p.gauge);
+    const warmthStyle = step === 'warming' ? styles.warmingRival : step === 'hot' ? styles.hotRival : null;
+    return (
+      <View
+        key={idx}
+        style={[
+          styles.rivalChip,
+          warmthStyle,
+          inZone ? styles.chipThreat : null,
+          dimmed || unavailable ? styles.chipDim : null,
+        ]}
+      >
+        <Text style={styles.rivalTag}>RIVAL</Text>
+        <Text style={styles.rivalChipName}>{p.def.name.split(' ')[1]}</Text>
+      </View>
     );
   };
 
@@ -427,6 +471,9 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
           <Text style={styles.speedText}>×{speed}</Text>
         </Pressable>
       </Pressable>
+      {rivalHeroes.length > 0 ? (
+        <View style={styles.rivalStrip}>{rivalHeroes.map((i) => rivalChip(i))}</View>
+      ) : null}
       <Canvas style={{ width, height: pitchH }}>
         <Fill color="#2e7d3a" />
         <Pitch scale={scale} />
@@ -480,10 +527,9 @@ export function MatchScreen({ seed, onDone }: { seed: number; onDone: (state: Ma
       {hud.banner ? (
         <Text style={[styles.banner, hud.bannerTone === 'red' ? styles.bannerThreat : null]}>{hud.banner}</Text>
       ) : null}
-      <View style={styles.chips}>
-        {MY_HEROES.map((i) => chip(i, true))}
-        {chip(RIVAL_HERO, false)}
-      </View>
+      {homeHeroes.length > 0 ? (
+        <View style={styles.chips}>{homeHeroes.map((i) => homeChip(i))}</View>
+      ) : null}
     </View>
   );
 }
@@ -498,6 +544,20 @@ const styles = StyleSheet.create({
   bannerThreat: { color: '#e8433f' },
   chips: { flexDirection: 'row', justifyContent: 'space-around', padding: 16 },
   chip: { backgroundColor: '#1e2630', borderRadius: 12, padding: 12, minWidth: 96, alignItems: 'center' },
+  // Rival strip — sits under the scorebar, above the Canvas. Kept slim
+  // (reduced padding, smaller text than the home chip) since the Canvas
+  // height is width-derived, so any chrome added above it pushes the pitch
+  // down.
+  rivalStrip: { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 4, paddingHorizontal: 12 },
+  rivalChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#1e2630',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
   // WARMTH steps (replace the old numeric heat bar — heat-weighted zone entry
   // is a hot-streak mechanic, not a "fills up and fires" gauge). Cold has no
   // entry here: it keeps the plain `chip` look above, unchanged.
@@ -513,6 +573,8 @@ const styles = StyleSheet.create({
   // old "flash the heat bar brighter" (there is no bar anymore; see WARMTH).
   chipFlash: { borderWidth: 2, borderColor: '#ffffff' },
   chipName: { color: 'white', fontSize: 14, marginBottom: 6 },
+  rivalTag: { color: '#e8433f', fontSize: 11, fontWeight: 'bold' },
+  rivalChipName: { color: 'white', fontSize: 11 },
   tapOverlay: {
     position: 'absolute',
     top: -14,
