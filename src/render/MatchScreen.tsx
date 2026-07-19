@@ -16,11 +16,16 @@ import {
   isKeeperReady,
   keeperReadyFrame,
   runFrameForDistance,
+  slideTackleSpriteFrameForAction,
   type PlayerActionAnimation,
 } from './animation';
 import { useWorkletAtlasFrame } from './worklet-atlas-frame';
 import { nextMatchSpeed, type MatchSpeed } from './match-speed';
-import { WorkletBallShadow, WorkletMatchOverlays } from './WorkletMatchOverlays';
+import {
+  WorkletBallShadow,
+  WorkletMatchOverlays,
+  WorkletSlideTackleEffects,
+} from './WorkletMatchOverlays';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
 import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
 import { Pitch } from './Pitch';
@@ -257,6 +262,7 @@ export function MatchScreen({
   }, []);
 
   const playerCell = atlas.rectFor('r0:run0');
+  const actionCell = atlas.rectFor('r0:slide0');
   const ballCell = atlas.rectFor('ball');
   const {
     transforms: workletTransforms,
@@ -268,6 +274,7 @@ export function MatchScreen({
     carrier: workletCarrier,
     simTick: workletSimTick,
     progress: workletProgress,
+    actionData: workletActionData,
     publish: publishAtlasFrame,
     pause: pauseAtlasFrame,
     resume: resumeAtlasFrame,
@@ -275,6 +282,7 @@ export function MatchScreen({
     initialFrame: prevRef.current!,
     scale,
     playerCell: { width: playerCell.w, height: playerCell.h },
+    actionCell: { width: actionCell.w, height: actionCell.h },
     ballCell: { width: ballCell.w, height: ballCell.h },
     playerDrawScale: PLAYER_DRAW_SCALE,
     ballDrawScale: BALL_DRAW_SCALE,
@@ -457,7 +465,7 @@ export function MatchScreen({
           };
         }
         if (!reduceMotion && e.kind === 'SLIDE_STARTED') {
-          const rotation = e.direction.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
+          const rotation = Math.atan2(e.direction.y, e.direction.x);
           actionRef.current[e.by] = {
             kind: 'slide',
             startTick: e.t,
@@ -480,7 +488,7 @@ export function MatchScreen({
           if (e.style === 'slide') {
             const current = actionRef.current[e.by];
             if (current?.kind === 'slide') {
-              current.untilTick = s.players[e.by].tackleRecoveryUntil;
+              current.untilTick = Math.max(current.untilTick, s.players[e.by].tackleRecoveryUntil);
             }
           }
           // Super Strength knocks the target OUT (outUntilTick in the future):
@@ -615,7 +623,11 @@ export function MatchScreen({
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
   // takes priority, followed by the far-ball GK ready loop, then locomotion.
   const playerSpriteKeys = useMemo(() => match.players.map((p, i) => {
-    const pose = actionPose(actionRef.current[i], hud.visualTick);
+    const action = actionRef.current[i];
+    const pose = actionPose(action, hud.visualTick);
+    if (pose.active && action?.kind === 'slide') {
+      return spriteKeyForMatchSlot(i, slideTackleSpriteFrameForAction(action, hud.visualTick));
+    }
     if (pose.active) return spriteKeyForMatchSlot(i, 'run0');
     if (p.def.role === 'GK' && isKeeperReady(dist2(frame.players[i], frame.ball))) {
       return spriteKeyForMatchSlot(i, keeperReadyFrame(hud.visualTick));
@@ -895,6 +907,15 @@ export function MatchScreen({
           ballHeight={workletBallHeight}
           scale={scale}
         />
+        <WorkletSlideTackleEffects
+          layer="dust"
+          visualPositions={workletVisualPositions}
+          actionData={workletActionData}
+          simTick={workletSimTick}
+          progress={workletProgress}
+          scale={scale}
+          playerDrawScale={PLAYER_DRAW_SCALE}
+        />
         <Atlas
           image={atlas.image as SkImage}
           sprites={sprites}
@@ -902,6 +923,15 @@ export function MatchScreen({
           colors={colors}
           colorBlendMode="modulate"
           sampling={PIXEL_ART_SAMPLING}
+        />
+        <WorkletSlideTackleEffects
+          layer="grass"
+          visualPositions={workletVisualPositions}
+          actionData={workletActionData}
+          simTick={workletSimTick}
+          progress={workletProgress}
+          scale={scale}
+          playerDrawScale={PLAYER_DRAW_SCALE}
         />
         <WorkletMatchOverlays
           visualPositions={workletVisualPositions}

@@ -1,10 +1,14 @@
 import { ATLAS_GUTTER, loadSpriteSheet, atlasLayout } from '../loader';
 import { spriteKeyForMatchSlot } from '../slot-key';
+import { SLIDE_TACKLE_CELL, SLIDE_TACKLE_FRAME_COUNT, slideTackleSpriteFrame } from '../slide-tackle';
 
 const IDS = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10',
   'u0', 'u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8', 'u9', 'u10'];
 const EXPECTED_KEYS = IDS.flatMap((id) => [`${id}:run0`, `${id}:run1`])
   .concat(['r0:ready0', 'r0:ready1', 'u0:ready0', 'u0:ready1', 'ball']);
+const EXPECTED_SLIDE_KEYS = IDS.flatMap(id => (
+  Array.from({ length: SLIDE_TACKLE_FRAME_COUNT }, (_, frame) => `${id}:${slideTackleSpriteFrame(frame)}`)
+));
 
 describe('sprites.json', () => {
   it('maps arbitrary career players onto the fixed home and away visual slots', () => {
@@ -18,20 +22,21 @@ describe('sprites.json', () => {
     expect(() => loadSpriteSheet()).not.toThrow();
   });
 
-  it('contains 44 run frames, four goalkeeper-ready frames, and the ball', () => {
+  it('contains base frames plus ten derived slide-tackle frames for every visual slot', () => {
     const sheet = loadSpriteSheet();
     expect(EXPECTED_KEYS).toHaveLength(49);
-    for (const key of EXPECTED_KEYS) {
+    for (const key of [...EXPECTED_KEYS, ...EXPECTED_SLIDE_KEYS]) {
       expect(sheet.sprites).toHaveProperty(key);
     }
-    expect(Object.keys(sheet.sprites)).toHaveLength(49);
+    expect(Object.keys(sheet.sprites)).toHaveLength(49 + IDS.length * SLIDE_TACKLE_FRAME_COUNT);
   });
 
-  it('every sprite row is exactly the expected width (16 for players, 6 for ball)', () => {
+  it('keeps base players at 24x30 while derived tackle poses use their approved 34x30 cell', () => {
     const sheet = loadSpriteSheet();
     for (const [key, rows] of Object.entries(sheet.sprites)) {
-      const expected = key === 'ball' ? 6 : sheet.cell.w;
-      expect(rows).toHaveLength(key === 'ball' ? 6 : sheet.cell.h);
+      const slideFrame = /:slide\d+$/.test(key);
+      const expected = key === 'ball' ? 6 : slideFrame ? SLIDE_TACKLE_CELL.w : sheet.cell.w;
+      expect(rows).toHaveLength(key === 'ball' ? 6 : slideFrame ? SLIDE_TACKLE_CELL.h : sheet.cell.h);
       for (const row of rows) {
         expect(row).toHaveLength(expected);
       }
@@ -68,14 +73,14 @@ describe('sprites.json', () => {
       const sheet = loadSpriteSheet();
       const layout = atlasLayout(sheet);
       expect(layout.cols).toBe(8);
-      expect(layout.rows).toBe(Math.ceil(49 / 8));
+      expect(layout.rows).toBe(Math.ceil(Object.keys(sheet.sprites).length / 8));
     });
 
     it('produces rects that stay within the atlas bounds', () => {
       const sheet = loadSpriteSheet();
       const layout = atlasLayout(sheet);
-      const atlasW = layout.cols * (sheet.cell.w + ATLAS_GUTTER * 2);
-      const atlasH = layout.rows * (sheet.cell.h + ATLAS_GUTTER * 2);
+      const atlasW = layout.cols * layout.slotW;
+      const atlasH = layout.rows * layout.slotH;
       for (const key of Object.keys(sheet.sprites)) {
         const r = layout.rectFor(key);
         expect(r.x).toBeGreaterThanOrEqual(0);
@@ -90,7 +95,7 @@ describe('sprites.json', () => {
       const layout = atlasLayout(sheet);
       const rects = Object.keys(sheet.sprites).map((key) => layout.rectFor(key));
       const uniqueColumns = [...new Set(rects.map((rect) => rect.x))].sort((a, b) => a - b);
-      expect(uniqueColumns[1] - uniqueColumns[0]).toBe(sheet.cell.w + ATLAS_GUTTER * 2);
+      expect(uniqueColumns[1] - uniqueColumns[0]).toBe(layout.slotW);
       expect(uniqueColumns[0]).toBe(ATLAS_GUTTER);
     });
 

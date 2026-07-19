@@ -1,6 +1,15 @@
 import { Fragment } from 'react';
 import { Path, usePathValue } from '@shopify/react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
+import { WORKLET_ACTION_SLIDE, WORKLET_ACTION_STRIDE } from './worklet-atlas-frame';
+import {
+  TACKLE_DUST_COLOR,
+  TACKLE_DUST_OPACITY,
+  TACKLE_DUST_PIXELS,
+  TACKLE_GRASS_COLOR,
+  TACKLE_GRASS_OPACITY,
+  TACKLE_GRASS_PIXELS,
+} from './slide-tackle-effects';
 
 const STATUS_ACTIVE = 2;
 const STATUS_IGNITED = 4;
@@ -36,6 +45,91 @@ const FLAME_LAYERS: readonly FlameLayer[] = [
   { color: '#ff6a00', heightScale: 0.72, widthScale: 0.78, opacity: 0.95 },
   { color: '#ffc23a', heightScale: 0.45, widthScale: 0.55, opacity: 0.9 },
 ];
+
+/**
+ * Pixel-clustered tackle debris. Dust is batched into one hard-edged path at
+ * exactly 65% opacity; grass is a second opaque path. No blur/filter nodes.
+ */
+export function WorkletSlideTackleEffects({
+  layer,
+  visualPositions,
+  actionData,
+  simTick,
+  progress,
+  scale,
+  playerDrawScale,
+}: {
+  layer: 'dust' | 'grass';
+  visualPositions: SharedValue<Float32Array>;
+  actionData: SharedValue<Float32Array>;
+  simTick: SharedValue<number>;
+  progress: SharedValue<number>;
+  scale: number;
+  playerDrawScale: number;
+}) {
+  const debris = usePathValue((builder) => {
+    'worklet';
+    const visualTick = Math.max(0, simTick.value - 1 + progress.value);
+    const pixel = scale * playerDrawScale;
+    for (let player = 0; player < 22; player += 1) {
+      const offset = player * WORKLET_ACTION_STRIDE;
+      if (actionData.value[offset] !== WORKLET_ACTION_SLIDE) continue;
+      const startTick = actionData.value[offset + 1];
+      const untilTick = actionData.value[offset + 5];
+      const elapsed = visualTick - startTick;
+      const duration = untilTick - startTick;
+      if (elapsed < 1.5 || elapsed >= duration - 1.5) continue;
+
+      const rawX = actionData.value[offset + 3];
+      const rawY = actionData.value[offset + 4];
+      const magnitude = Math.sqrt(rawX * rawX + rawY * rawY);
+      const ux = magnitude > 0 ? rawX / magnitude : 1;
+      const uy = magnitude > 0 ? rawY / magnitude : 0;
+      const sideX = -uy;
+      const sideY = ux;
+      const cx = visualPositions.value[player * 2] * scale;
+      const cy = visualPositions.value[player * 2 + 1] * scale;
+      const age = Math.max(0, elapsed - 1.5);
+
+      if (layer === 'dust') {
+        const count = Math.min(TACKLE_DUST_PIXELS.length, Math.max(2, Math.floor(age * 2) + 2));
+        for (let index = 0; index < count; index += 1) {
+          const puff = TACKLE_DUST_PIXELS[index];
+          const drift = Math.min(5, age * 0.8 + index * 0.35);
+          const along = puff.along - drift;
+          const left = cx + (ux * along + sideX * puff.side) * pixel;
+          const top = cy + (uy * along + sideY * puff.side) * pixel - puff.size * pixel * 0.5;
+          const size = puff.size * pixel;
+          builder.moveTo(left, top);
+          builder.lineTo(left + size, top);
+          builder.lineTo(left + size, top + size);
+          builder.lineTo(left, top + size);
+          builder.close();
+        }
+      } else {
+        const count = Math.min(TACKLE_GRASS_PIXELS.length, Math.max(1, Math.floor(age * 1.5)));
+        for (let index = 0; index < count; index += 1) {
+          const blade = TACKLE_GRASS_PIXELS[index];
+          const rise = Math.min(7, age + index * 0.7);
+          const along = blade.along - age * 0.35;
+          const baseX = cx + (ux * along + sideX * blade.side) * pixel;
+          const baseY = cy + (uy * along + sideY * blade.side) * pixel;
+          const width = Math.max(1, pixel * 1.5);
+          const height = (blade.height + rise) * pixel;
+          builder.moveTo(baseX, baseY);
+          builder.lineTo(baseX + width, baseY);
+          builder.lineTo(baseX + width, baseY - height);
+          builder.lineTo(baseX, baseY - height);
+          builder.close();
+        }
+      }
+    }
+  });
+
+  return layer === 'dust'
+    ? <Path path={debris} color={TACKLE_DUST_COLOR} opacity={TACKLE_DUST_OPACITY} antiAlias={false} />
+    : <Path path={debris} color={TACKLE_GRASS_COLOR} opacity={TACKLE_GRASS_OPACITY} antiAlias={false} />;
+}
 
 /** Ground-locked cue that makes the ball sprite's vertical offset read as height. */
 export function WorkletBallShadow({

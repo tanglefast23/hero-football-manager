@@ -13,6 +13,7 @@ import type { PitchFrame } from './interpolate';
 import {
   KNOCKDOWN_DROP_TICKS,
   KNOCKDOWN_RISE_TICKS,
+  SLIDE_TACKLE_TICKS,
   TACKLED_RECOVERY_TICKS,
   type PlayerActionAnimation,
 } from './animation';
@@ -20,11 +21,13 @@ import {
 const PLAYER_COUNT = 22;
 const ATLAS_SLOT_COUNT = PLAYER_COUNT + 1;
 const BALL_SLOT = PLAYER_COUNT;
-const ACTION_STRIDE = 6;
+export const WORKLET_ACTION_STRIDE = 6;
+export const WORKLET_ACTION_SLIDE = 1;
+const ACTION_STRIDE = WORKLET_ACTION_STRIDE;
 const BALL_HEIGHT_VISUAL_SCALE = 0.7;
 
 const ACTION_NONE = 0;
-const ACTION_SLIDE = 1;
+const ACTION_SLIDE = WORKLET_ACTION_SLIDE;
 const ACTION_FALL = 2;
 const ACTION_KNOCKDOWN = 3;
 
@@ -32,6 +35,7 @@ interface WorkletAtlasOptions {
   initialFrame: PitchFrame;
   scale: number;
   playerCell: { width: number; height: number };
+  actionCell: { width: number; height: number };
   ballCell: { width: number; height: number };
   playerDrawScale: number;
   ballDrawScale: number;
@@ -50,6 +54,7 @@ export interface WorkletAtlasController {
   carrier: SharedValue<number>;
   simTick: SharedValue<number>;
   progress: SharedValue<number>;
+  actionData: SharedValue<Float32Array>;
   publish: (
     previous: PitchFrame,
     next: PitchFrame,
@@ -116,6 +121,21 @@ function smoothstepWorklet(value: number): number {
   return t * t * (3 - 2 * t);
 }
 
+function slideTackleFrameIndexWorklet(elapsed: number, duration: number): number {
+  'worklet';
+  const safeDuration = Math.max(SLIDE_TACKLE_TICKS, duration);
+  const t = Math.max(0, elapsed);
+  if (t < 1) return 0;
+  if (t < 2) return 1;
+  if (t >= safeDuration - 1) return 9;
+  if (t >= safeDuration - 2) return 8;
+  if (t >= safeDuration - 3) return 7;
+  if (t >= safeDuration - 4) return 6;
+  const slideWindow = Math.max(1, safeDuration - 6);
+  const slideProgress = Math.max(0, Math.min(0.999, (t - 2) / slideWindow));
+  return 2 + Math.floor(slideProgress * 4);
+}
+
 function actionPoseWorklet(
   packed: Float32Array,
   index: number,
@@ -154,12 +174,11 @@ function actionPoseWorklet(
   }
 
   if (kind === ACTION_SLIDE) {
-    const drop = smoothstepWorklet(elapsed / 1.2);
-    const rise = smoothstepWorklet((visualTick - (untilTick - 3)) / 3);
-    const low = drop * (1 - rise);
+    const frameIndex = slideTackleFrameIndexWorklet(elapsed, duration);
+    const followsDirection = frameIndex >= 2 && frameIndex <= 6;
     return {
       active: true,
-      rotation: rotation * low,
+      rotation: followsDirection ? rotation : 0,
       anchorWeight: 0,
       // The sim coordinate now performs the lunge and remains at its landing
       // position. Adding a second render-only offset would double the travel.
@@ -188,6 +207,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     initialFrame,
     scale,
     playerCell,
+    actionCell,
     ballCell,
     playerDrawScale,
     ballDrawScale,
@@ -298,14 +318,18 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
 
     const visualTick = Math.max(0, simTick.value - 1 + t);
     const pose = actionPoseWorklet(actionData.value, index, visualTick);
+    const actionOffset = index * ACTION_STRIDE;
+    const usesActionCell = pose.active && actionData.value[actionOffset] === ACTION_SLIDE;
+    const sourceWidth = usesActionCell ? actionCell.width : playerCell.width;
+    const sourceHeight = usesActionCell ? actionCell.height : playerCell.height;
     const playerScale = scale * playerDrawScale;
     const scos = Math.cos(pose.rotation) * playerScale;
     const ssin = Math.sin(pose.rotation) * playerScale;
     xf.set(
       scos,
       ssin,
-      x * scale - (scos * playerCell.width - ssin * playerCell.height) / 2,
-      y * scale - (ssin * playerCell.width + scos * playerCell.height) / 2
+      x * scale - (scos * sourceWidth - ssin * sourceHeight) / 2,
+      y * scale - (ssin * sourceWidth + scos * sourceHeight) / 2
     );
   });
 
@@ -353,6 +377,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     carrier,
     simTick,
     progress,
+    actionData,
     publish,
     pause,
     resume,

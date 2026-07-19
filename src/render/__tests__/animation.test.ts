@@ -7,6 +7,8 @@ import {
   isKeeperReady,
   keeperReadyFrame,
   runFrameForDistance,
+  slideTackleFrameIndex,
+  slideTackleSpriteFrameForAction,
   type PlayerActionAnimation,
 } from '../animation';
 
@@ -55,6 +57,23 @@ describe('tackle action poses', () => {
     expect(Math.abs(actionPose(slide, 12).rotation)).toBeGreaterThan(1);
     expect(actionPose(slide, 12).forwardOffset).toBe(0);
     expect(actionPose(slide, 10 + SLIDE_TACKLE_TICKS).active).toBe(false);
+  });
+
+  it('plays plant, crouch, four slide angles, tuck, knee, rise, and stand', () => {
+    expect(Array.from({ length: SLIDE_TACKLE_TICKS }, (_, elapsed) => (
+      slideTackleFrameIndex(elapsed, SLIDE_TACKLE_TICKS)
+    ))).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(slideTackleSpriteFrameForAction(slide, 10)).toBe('slide0');
+    expect(slideTackleSpriteFrameForAction(slide, 15)).toBe('slide5');
+    expect(slideTackleSpriteFrameForAction(slide, 19)).toBe('slide9');
+    expect(actionPose(slide, 10).rotation).toBe(0);
+    expect(actionPose(slide, 19).rotation).toBe(0);
+  });
+
+  it('holds low frames longer for an extended missed-tackle recovery', () => {
+    expect(Array.from({ length: 16 }, (_, elapsed) => slideTackleFrameIndex(elapsed, 16))).toEqual([
+      0, 1, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5, 6, 7, 8, 9,
+    ]);
   });
 
   it('holds a dispossessed player down, then blends back during recovery', () => {
