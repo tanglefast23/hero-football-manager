@@ -13,10 +13,14 @@ import type {
   LeagueTableViewModel,
   MatchDayViewModel,
   PostMatchViewModel,
+  PlayerDevelopmentViewModel,
   SeasonEndViewModel,
   StoryEventViewModel,
   SquadTrainingViewModel,
+  WeeklyReviewViewModel,
 } from '../ui';
+
+const REVIEW_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 
 export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
   const club = requireUserClub(state);
@@ -363,6 +367,52 @@ export function squadTrainingViewModel(
   };
 }
 
+export function weeklyReviewViewModel(
+  before: GameState,
+  after: GameState,
+): WeeklyReviewViewModel {
+  const clubBefore = requireUserClub(before);
+  const clubAfter = requireUserClub(after);
+  const ledger = after.ledgers[after.ledgers.length - 1];
+  if (
+    ledger === undefined
+    || ledger.season !== before.season
+    || ledger.week !== before.week
+  ) {
+    throw new Error('weekly review requires a newly settled weekly ledger');
+  }
+
+  const nextFixture = after.fixtures
+    .filter(fixture =>
+      fixture.status === 'scheduled'
+      && fixture.season === after.season
+      && fixture.week === after.week
+      && (fixture.homeClubId === after.userClubId || fixture.awayClubId === after.userClubId),
+    )[0];
+
+  return {
+    completedWeekLabel: `Week ${before.week} complete`,
+    nextWeekLabel: after.phase === 'season-end' || after.phase === 'complete'
+      ? 'Season review'
+      : `Week ${after.week}`,
+    clubName: clubAfter.name,
+    cashBefore: clubBefore.cash,
+    cashAfter: clubAfter.cash,
+    netAmount: clubAfter.cash - clubBefore.cash,
+    trainingPointsBefore: before.trainingPoints,
+    trainingPointsAfter: after.trainingPoints,
+    ledger: ledger.lines.map((line, index) => ({
+      id: `weekly-review-${ledger.season}-${ledger.week}-${index}`,
+      label: line.label,
+      amount: line.amount,
+      kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
+    })),
+    development: playerDevelopmentViewModel(before, after),
+    updates: weekUpdates(before, after),
+    ...(nextFixture === undefined ? {} : { nextFixture: fixtureViewModel(after, nextFixture) }),
+  };
+}
+
 export function postMatchViewModel(
   before: GameState,
   after: GameState,
@@ -404,7 +454,130 @@ export function postMatchViewModel(
     fanDelta: requireUserClub(after).fans - requireUserClub(before).fans,
     heroEssenceGained: after.heroEssence - before.heroEssence,
     highlights,
+    development: playerDevelopmentViewModel(before, after),
   };
+}
+
+function playerDevelopmentViewModel(
+  before: GameState,
+  after: GameState,
+): PlayerDevelopmentViewModel {
+  const ledger = after.ledgers[after.ledgers.length - 1];
+  const plan = before.trainingPlan;
+  const focusApplied = plan !== undefined
+    && ledger?.season === before.season
+    && ledger.week === before.week
+    && ledger.lines.some(line => line.kind === 'training');
+  const afterPlayers = new Map(after.players.map(player => [player.id, player]));
+
+  const focusedTrainees = focusApplied && plan !== undefined
+    ? plan.assignedPlayerIds.flatMap(playerId => {
+        const playerBefore = before.players.find(player => player.id === playerId);
+        const playerAfter = afterPlayers.get(playerId);
+        if (playerBefore === undefined || playerAfter === undefined) return [];
+        return [{
+          id: playerBefore.id,
+          name: playerBefore.name,
+          role: playerBefore.role,
+          gains: REVIEW_ATTRIBUTES.flatMap(attribute => {
+            const delta = playerAfter.attrs[attribute] - playerBefore.attrs[attribute];
+            return delta <= 0 ? [] : [{
+              id: `${playerBefore.id}-${attribute}`,
+              label: attribute.toUpperCase(),
+              before: playerBefore.attrs[attribute],
+              after: playerAfter.attrs[attribute],
+              delta,
+            }];
+          }),
+        }];
+      })
+    : [];
+
+  const userPlayers = before.players.filter(player => player.clubId === before.userClubId);
+  const conditioning = before.trainingRules === undefined
+    ? []
+    : REVIEW_ATTRIBUTES.flatMap(attribute => {
+        const plannedGain = before.trainingRules?.baseConditioning.gains[attribute];
+        if (plannedGain === undefined || plannedGain <= 0) return [];
+        const affected = userPlayers.filter(player => player.attrs[attribute] < 99);
+        if (affected.length === 0) return [];
+        return [{
+          id: `conditioning-${attribute}`,
+          attributeLabel: attribute.toUpperCase(),
+          gain: plannedGain,
+          playerCount: affected.length,
+        }];
+      });
+
+  return {
+    focusedTrainees,
+    conditioning,
+    ...(plan !== undefined && !focusApplied ? {
+      trainingSkippedWarning: skippedTrainingWarning(before, after),
+    } : {}),
+  };
+}
+
+function skippedTrainingWarning(before: GameState, after: GameState): string {
+  const plan = before.trainingPlan;
+  if (plan === undefined) return 'Focused training was skipped.';
+  const moneyCost = plan.drills.reduce((sum, drill) => sum + drill.moneyCost, 0);
+  const trainingPointCost = plan.drills.reduce((sum, drill) => sum + drill.tpCost, 0);
+  const ambientTrainingPoints = before.facilities.trainingGroundBuilt ? 5 : 0;
+  const availableTrainingPoints = Math.max(before.trainingPoints, after.trainingPoints - ambientTrainingPoints);
+  const lacksMoney = moneyCost > requireUserClub(before).cash;
+  const lacksTrainingPoints = trainingPointCost > availableTrainingPoints;
+  const reason = lacksMoney && lacksTrainingPoints
+    ? 'not enough money or TP'
+    : lacksMoney
+      ? 'not enough money'
+      : lacksTrainingPoints
+        ? 'not enough TP'
+        : 'the weekly plan could not be funded';
+  return `Focused training skipped — ${reason}.`;
+}
+
+function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel['updates'] {
+  const afterPlayers = new Map(after.players.map(player => [player.id, player]));
+  const updates: WeeklyReviewViewModel['updates'][number][] = [];
+  for (const playerBefore of before.players.filter(player => player.clubId === before.userClubId)) {
+    const playerAfter = afterPlayers.get(playerBefore.id);
+    if (playerAfter === undefined) continue;
+    if (playerBefore.injuryWeeks > playerAfter.injuryWeeks) {
+      updates.push({
+        id: `injury-${playerBefore.id}`,
+        title: playerAfter.injuryWeeks === 0 ? `${playerBefore.name} cleared to play` : `${playerBefore.name} recovering`,
+        detail: playerAfter.injuryWeeks === 0
+          ? 'The medical team has cleared the player for selection.'
+          : `${playerAfter.injuryWeeks} week${playerAfter.injuryWeeks === 1 ? '' : 's'} remaining.`,
+        tone: 'positive',
+      });
+    }
+    if (playerBefore.contractSeasonsRemaining > playerAfter.contractSeasonsRemaining) {
+      updates.push({
+        id: `contract-${playerBefore.id}`,
+        title: playerAfter.contractSeasonsRemaining === 0
+          ? `${playerBefore.name} contract expired`
+          : `${playerBefore.name} entering final season`,
+        detail: playerAfter.contractSeasonsRemaining === 0
+          ? 'A renewal decision is required before the next season.'
+          : 'Renewal terms will matter at the next season review.',
+        tone: 'warning',
+      });
+    }
+  }
+  if (
+    after.pendingEvent !== undefined
+    && after.pendingEvent.eventId !== before.pendingEvent?.eventId
+  ) {
+    updates.push({
+      id: `event-${after.pendingEvent.eventId}`,
+      title: 'New club event',
+      detail: 'Something at the club needs your decision.',
+      tone: 'info',
+    });
+  }
+  return updates;
 }
 
 function fixtureViewModel(state: GameState, fixture: GameState['fixtures'][number]): FixtureViewModel {

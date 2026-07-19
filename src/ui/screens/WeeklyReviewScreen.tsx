@@ -1,0 +1,192 @@
+import { useEffect, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { WeeklyReviewViewModel } from '../models';
+import {
+  ActionButton,
+  PaperPanel,
+  SectionLabel,
+  StatusChip,
+  formatCompactNumber,
+} from '../components/Scorecard';
+import { PlayerDevelopmentSpotlight } from '../components/PlayerDevelopmentSpotlight';
+
+export interface WeeklyReviewScreenProps {
+  viewModel: WeeklyReviewViewModel;
+  onContinue: () => void;
+  reduceMotion?: boolean;
+}
+
+export function WeeklyReviewScreen({
+  viewModel,
+  onContinue,
+  reduceMotion = false,
+}: WeeklyReviewScreenProps) {
+  const [animationsComplete, setAnimationsComplete] = useState(reduceMotion);
+  const complete = reduceMotion || animationsComplete;
+
+  useEffect(() => {
+    if (complete) return undefined;
+    const timeout = setTimeout(() => setAnimationsComplete(true), 2800);
+    return () => clearTimeout(timeout);
+  }, [complete]);
+
+  const finishAnimations = () => {
+    if (!complete) setAnimationsComplete(true);
+  };
+
+  const continueOrFinish = () => {
+    if (complete) onContinue();
+    else setAnimationsComplete(true);
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        onTouchStart={finishAnimations}
+      >
+        <View className="flex-row items-start justify-between gap-3 border-b-2 border-ink pb-3">
+          <View className="flex-1">
+            <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Weekly review</Text>
+            <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.completedWeekLabel}</Text>
+            <Text className="mt-2 text-sm font-bold uppercase text-ink/50">{viewModel.clubName}</Text>
+          </View>
+
+          <View className="min-w-36 border-2 border-b-4 border-ink bg-white px-3 py-2">
+            <Text className="text-right text-sm font-bold uppercase text-ink/50">Money</Text>
+            <Text className="mt-1 text-right font-mono text-xl font-bold text-ink">
+              {formatCurrency(viewModel.cashAfter)}
+            </Text>
+            <View className="mt-2 border-t border-ink/20 pt-2">
+              <Text className="text-right text-sm font-bold uppercase text-ink/50">Net</Text>
+              <AnimatedNetAmount
+                amount={viewModel.netAmount}
+                complete={complete}
+              />
+            </View>
+          </View>
+        </View>
+
+        <View className="mt-3 flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
+          <Text className="text-sm font-bold uppercase text-paper/70">Cash movement</Text>
+          <Text className="font-mono text-base font-bold text-paper">
+            {formatCurrency(viewModel.cashBefore)} → {formatCurrency(viewModel.cashAfter)}
+          </Text>
+        </View>
+
+        <View className="min-h-96 justify-center pt-5">
+          <SectionLabel eyebrow="Training ground" title="Player development" />
+          <PlayerDevelopmentSpotlight
+            development={viewModel.development}
+            reduceMotion={reduceMotion}
+            forceComplete={complete}
+          />
+        </View>
+
+        <PaperPanel kicker="Accounts office" title="Weekly statement" stamp="Filed" className="mt-5">
+          {viewModel.ledger.map(line => (
+            <View key={line.id} className="flex-row items-center border-b border-ink/10 py-2.5 last:border-b-0">
+              <Text className="flex-1 text-base text-ink">{line.label}</Text>
+              <Text className={line.amount < 0
+                ? 'font-mono text-base font-bold text-stamp'
+                : line.amount > 0
+                  ? 'font-mono text-base font-bold text-pitch-dark'
+                  : 'font-mono text-base font-bold text-ink'}>
+                {formatCurrency(line.amount, true)}
+              </Text>
+            </View>
+          ))}
+          <View className="mt-3 flex-row items-center justify-between bg-blue-light px-3 py-2">
+            <Text className="text-sm font-bold uppercase text-blue-dark">Training points</Text>
+            <Text className="font-mono text-base font-bold text-ink">
+              {formatCompactNumber(viewModel.trainingPointsBefore)} → {formatCompactNumber(viewModel.trainingPointsAfter)} TP
+            </Text>
+          </View>
+        </PaperPanel>
+
+        {viewModel.updates.length > 0 || viewModel.nextFixture !== undefined ? (
+          <View className="mt-7">
+            <SectionLabel eyebrow="Club desk" title="What needs attention" />
+            <View className="gap-2">
+              {viewModel.updates.map(update => (
+                <View
+                  key={update.id}
+                  className={update.tone === 'warning'
+                    ? 'border-2 border-b-4 border-red-dark bg-red-light p-3'
+                    : update.tone === 'positive'
+                      ? 'border-2 border-b-4 border-pitch-dark bg-pitch-light p-3'
+                      : 'border-2 border-b-4 border-blue-dark bg-blue-light p-3'}
+                >
+                  <Text className="text-base font-bold uppercase text-ink">{update.title}</Text>
+                  <Text className="mt-1 text-sm text-ink/70">{update.detail}</Text>
+                </View>
+              ))}
+
+              {viewModel.nextFixture ? (
+                <View className="border-2 border-b-4 border-ink bg-white p-3">
+                  <View className="flex-row items-center justify-between gap-2">
+                    <View className="flex-1">
+                      <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Next fixture</Text>
+                      <Text className="mt-1 text-base font-bold uppercase text-ink">
+                        {viewModel.nextFixture.homeTeam} vs {viewModel.nextFixture.awayTeam}
+                      </Text>
+                    </View>
+                    <StatusChip label={viewModel.nextFixture.weekLabel} />
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+      </ScrollView>
+
+      <View className="border-t-2 border-ink/20 bg-white p-3">
+        <ActionButton
+          label={`Start ${viewModel.nextWeekLabel}  ▸`}
+          accessibilityLabel={`Finish the weekly review and start ${viewModel.nextWeekLabel}`}
+          onPress={continueOrFinish}
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function formatCurrency(amount: number, signed = false): string {
+  const sign = amount < 0 ? '−' : signed && amount > 0 ? '+' : '';
+  return `${sign}$${formatCompactNumber(Math.abs(amount))}`;
+}
+
+function AnimatedNetAmount({ amount, complete }: { amount: number; complete: boolean }) {
+  const [displayAmount, setDisplayAmount] = useState(complete ? amount : 0);
+
+  useEffect(() => {
+    if (complete) {
+      setDisplayAmount(amount);
+      return undefined;
+    }
+    let frame = 0;
+    let startedAt: number | null = null;
+    const animate = (timestamp: number) => {
+      if (startedAt === null) startedAt = timestamp;
+      const progress = Math.min(1, (timestamp - startedAt) / 850);
+      setDisplayAmount(Math.round(amount * progress));
+      if (progress < 1) frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [amount, complete]);
+
+  return (
+    <Text
+      accessible
+      accessibilityLabel={`Net ${amount < 0 ? 'minus' : 'plus'} ${Math.abs(amount)} dollars`}
+      className={amount < 0
+        ? 'mt-1 text-right font-mono text-xl font-bold text-stamp'
+        : 'mt-1 text-right font-mono text-xl font-bold text-pitch-dark'}
+    >
+      {displayAmount > 0 ? '+' : displayAmount < 0 ? '−' : ''}${formatCompactNumber(Math.abs(displayAmount))}
+    </Text>
+  );
+}

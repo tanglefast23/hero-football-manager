@@ -7,6 +7,7 @@ Time advances in weeks. One button — **Advance Week** — is the game's primar
 1. **Manage phase** (player-driven, untimed): set training plans, handle transfers/contracts, build facilities, respond to any event card.
 2. **Match day** (if scheduled): pre-match screen (lineup, formation, tactic, hero power priorities) → Watch or Quick Result → post-match income statement (itemized, Kairosoft-style: tickets, sponsor fees, prize, minus wages).
 3. **Week tick**: wages paid, training results applied, stamina recovers, injuries count down, sponsor/fan numbers update, next event rolls.
+4. **Weekly Review**: a fast 2–4 second payoff shows the exact cash movement at the top, spotlights focused trainees and their stat gains in the center, and lists only applicable recovery, contract, event, or next-fixture updates. One tap finishes every animation immediately. On match weeks, player development is folded into the post-match statement instead of adding another screen.
 
 Session math: a match week ≈ 3–6 minutes (watched) or ~90 seconds (simmed). Non-match weeks ≈ 30–90 seconds. The loop is playable one-handed in portrait.
 

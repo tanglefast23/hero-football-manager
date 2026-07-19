@@ -125,6 +125,56 @@ export interface HighlightViewModel {
   description: string;
 }
 
+export interface AttributeGainViewModel {
+  id: string;
+  label: string;
+  before: number;
+  after: number;
+  delta: number;
+}
+
+export interface FocusedTraineeViewModel {
+  id: string;
+  name: string;
+  role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  gains: readonly AttributeGainViewModel[];
+}
+
+export interface SquadConditioningViewModel {
+  id: string;
+  attributeLabel: string;
+  gain: number;
+  playerCount: number;
+}
+
+export interface WeekUpdateViewModel {
+  id: string;
+  title: string;
+  detail: string;
+  tone: 'positive' | 'warning' | 'info';
+}
+
+export interface PlayerDevelopmentViewModel {
+  focusedTrainees: readonly FocusedTraineeViewModel[];
+  conditioning: readonly SquadConditioningViewModel[];
+  trainingSkippedWarning?: string;
+}
+
+export interface WeeklyReviewViewModel {
+  completedWeekLabel: string;
+  nextWeekLabel: string;
+  clubName: string;
+  cashBefore: number;
+  cashAfter: number;
+  netAmount: number;
+  trainingPointsBefore: number;
+  trainingPointsAfter: number;
+  ledger: readonly LedgerLineViewModel[];
+  development: PlayerDevelopmentViewModel;
+  updates: readonly WeekUpdateViewModel[];
+  nextFixture?: FixtureViewModel;
+}
+
 export interface PostMatchViewModel {
   result: MatchResultViewModel;
   ledger: readonly LedgerLineViewModel[];
@@ -133,6 +183,7 @@ export interface PostMatchViewModel {
   fanDelta: number;
   heroEssenceGained: number;
   highlights: readonly HighlightViewModel[];
+  development: PlayerDevelopmentViewModel;
 }
 
 export interface SquadPlayerViewModel {

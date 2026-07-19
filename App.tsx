@@ -44,6 +44,7 @@ import {
   StoryEventScreen,
   TitleLandingScreen,
   TitleSettingsScreen,
+  WeeklyReviewScreen,
 } from './src/ui';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
@@ -322,6 +323,14 @@ export default function App() {
         viewModel={store.postMatch}
         reduceMotion={reduceMotion}
         onContinue={store.continueAfterMatch}
+      />
+    );
+  } else if (store.screen === 'week-review' && store.weekReview !== null) {
+    screen = (
+      <WeeklyReviewScreen
+        viewModel={store.weekReview}
+        reduceMotion={reduceMotion}
+        onContinue={store.continueWeekReview}
       />
     );
   } else if (store.screen === 'event' && store.career.pendingEvent !== undefined) {
