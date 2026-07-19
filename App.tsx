@@ -44,6 +44,7 @@ import {
   StoryEventScreen,
   TitleLandingScreen,
   TitleSettingsScreen,
+  shouldShowOpeningBrief,
 } from './src/ui';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
@@ -255,6 +256,7 @@ export default function App() {
       <NewGameWelcomeScreen
         hasSavedCareer={store.hasSavedCareer}
         savedCareerLabel={store.career ? `Season ${store.career.season} · Week ${store.career.week}` : undefined}
+        showOpeningBrief={shouldShowOpeningBrief(store.career)}
         onStartNewCareer={startNewCareer}
         onContinueCareer={store.hasSavedCareer ? store.continueCareer : undefined}
         onBackToTitle={() => setLandingView('title')}
