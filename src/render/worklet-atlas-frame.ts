@@ -16,12 +16,12 @@ import {
   TACKLED_RECOVERY_TICKS,
   type PlayerActionAnimation,
 } from './animation';
+import { ballHeightScale, ballVisualOffset } from './ball-flight-visuals';
 
 const PLAYER_COUNT = 22;
 const ATLAS_SLOT_COUNT = PLAYER_COUNT + 1;
 const BALL_SLOT = PLAYER_COUNT;
 const ACTION_STRIDE = 6;
-const BALL_HEIGHT_VISUAL_SCALE = 0.7;
 
 const ACTION_NONE = 0;
 const ACTION_SLIDE = 1;
@@ -267,7 +267,9 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
 
     if (index === BALL_SLOT) {
       const height = ballHeight.value;
-      const heightScale = 1 + Math.min(0.18, height / 1000);
+      // Pixel Cup-style aerial cue: never shrink the ball; a modest 10% apex
+      // growth keeps it bright/readable while the arc + shadow carry height.
+      const heightScale = ballHeightScale(height);
       const ballScale = scale * ballDrawScale * heightScale;
       let offsetX = 0;
       let offsetY = 0;
@@ -291,7 +293,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
         ballScale,
         0,
         x * scale - (ballCell.width * ballScale) / 2 + offsetX,
-        y * scale - (ballCell.height * ballScale) / 2 + offsetY - height * scale * BALL_HEIGHT_VISUAL_SCALE
+        y * scale - (ballCell.height * ballScale) / 2 + offsetY - ballVisualOffset(height, scale)
       );
       return;
     }

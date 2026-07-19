@@ -437,6 +437,7 @@ export function weeklyReviewViewModel(
     netAmount: clubAfter.cash - clubBefore.cash,
     trainingPointsBefore: before.trainingPoints,
     trainingPointsAfter: after.trainingPoints,
+    netTrainingPoints: after.trainingPoints - before.trainingPoints,
     ledger: ledger.lines.map((line, index) => ({
       id: `weekly-review-${ledger.season}-${ledger.week}-${index}`,
       label: line.label,

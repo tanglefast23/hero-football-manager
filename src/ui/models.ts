@@ -170,6 +170,7 @@ export interface WeeklyReviewViewModel {
   netAmount: number;
   trainingPointsBefore: number;
   trainingPointsAfter: number;
+  netTrainingPoints: number;
   ledger: readonly LedgerLineViewModel[];
   development: PlayerDevelopmentViewModel;
   updates: readonly WeekUpdateViewModel[];

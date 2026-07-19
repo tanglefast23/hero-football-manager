@@ -188,6 +188,15 @@ function GameApp() {
     }
   }, [content, trainingTransition]);
 
+  const buildTrainingGroundWithSfx = useCallback(() => {
+    const builtBefore = useM1Store.getState().career?.facilities.trainingGroundBuilt;
+    useM1Store.getState().buildFacility();
+    const builtAfter = useM1Store.getState().career?.facilities.trainingGroundBuilt;
+    if (builtBefore === false && builtAfter === true) {
+      playAdvanceWeekSfx();
+    }
+  }, []);
+
   const dismissTrainingTransition = useCallback(() => {
     setTrainingTransition(null);
   }, []);
@@ -551,7 +560,7 @@ function GameApp() {
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen
             viewModel={clubFinancesViewModel(store.career)}
-            onBuildTrainingGround={store.buildFacility}
+            onBuildTrainingGround={buildTrainingGroundWithSfx}
             guideTrainingGround={assistantObjective?.target === 'training-ground-facility'}
           />
         ) : store.activeTab === 'league' ? (

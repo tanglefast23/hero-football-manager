@@ -36,7 +36,7 @@
             "These are the only doors you need today. I'll explain the machinery behind them when it can actually hurt us."
           ],
           "focus": "navigation",
-          "buttonLabel": "And my desk?",
+          "buttonLabel": "Right. Off I go.",
           "navItems": [
             { "tab": "HOME", "detail": "Your desk and today's work." },
             { "tab": "SQUAD", "detail": "Pick players and train them." },
@@ -44,16 +44,6 @@
             { "tab": "LEAGUE", "detail": "Table, fixtures and rivals." },
             { "tab": "MARKET", "detail": "Coming soon." }
           ]
-        },
-        {
-          "kicker": "Your main desk",
-          "title": "Read it first",
-          "body": [
-            "Honestly all you gotta look at is your inbox. I'll have all your to do's ready to go every week. Maybe I should get a salary too, eh?"
-          ],
-          "focus": "desk",
-          "objective": "OPEN SQUAD.",
-          "buttonLabel": "Right. Off I go."
         }
       ]
     },
@@ -64,7 +54,7 @@
           "kicker": "Bert's next job",
           "title": "One player. One drill.",
           "body": [
-            "Choose a player, assign a drill, then run the session. Training costs TP and money, so don't scatter it around because a button looks cheerful."
+            "Choose a player, assign a drill, then run the session. Training costs TP (Training Points) and money, so don't scatter it around because a button looks cheerful."
           ],
           "focus": "training",
           "objective": "TRAIN ONE PLAYER ONCE.",

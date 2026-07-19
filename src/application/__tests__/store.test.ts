@@ -59,6 +59,50 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('complete');
   });
 
+  it('still awakens the created player after they are substituted in the first match', () => {
+    startCreatedCareer(124);
+    while ((useM1Store.getState().career?.week ?? 0) < 5) {
+      useM1Store.getState().advanceCareer();
+    }
+    useM1Store.getState().advanceCareer();
+    useM1Store.getState().watchMatch();
+
+    const watched = useM1Store.getState().watchedMatch!;
+    const createdPlayerId = useM1Store.getState().career?.onboarding?.createdPlayerId;
+    expect(createdPlayerId).toBeDefined();
+    const match = createMatch(watched.fixture.matchSeed, watched.home, watched.away, {
+      controlledTeam: watched.controlledTeam,
+    });
+    const playerIndex = match.players.findIndex(player => player.def.id === createdPlayerId);
+    const replacement = match.bench[watched.controlledTeam]
+      .find(player => player.role === match.players[playerIndex].def.role);
+    expect(playerIndex).toBeGreaterThanOrEqual(0);
+    expect(replacement).toBeDefined();
+
+    queueInput(match, {
+      tick: 1,
+      kind: 'SUBSTITUTE',
+      player: playerIndex,
+      replacementId: replacement!.id,
+    });
+    tick(match);
+    expect(match.events).toContainEqual(expect.objectContaining({
+      kind: 'SUBSTITUTION',
+      outPlayerId: createdPlayerId,
+      inPlayerId: replacement!.id,
+    }));
+    expect(match.players.some(player => player.def.id === createdPlayerId)).toBe(false);
+
+    match.phase = 'fulltime';
+    useM1Store.getState().finishWatchedMatch(match);
+
+    expect(useM1Store.getState()).toMatchObject({ screen: 'awakening', error: null });
+    expect(useM1Store.getState().career?.awakening.pending).toMatchObject({
+      playerId: createdPlayerId,
+      firstHero: true,
+    });
+  });
+
   it('offers and resolves the one-time giant-spider club event without awakening anyone', () => {
     startAwakenedCareer(456);
     const career = useM1Store.getState().career!;
@@ -661,6 +705,14 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
     }
     if (current.screen === 'week-review') {
       current.continueWeekReview();
+      continue;
+    }
+    if (current.screen === 'championship-celebration') {
+      current.completeChampionshipCelebration();
+      continue;
+    }
+    if (current.screen === 'season-end' && career.phase === 'season-end') {
+      current.advanceCareer();
       continue;
     }
     if (current.screen === 'management') {

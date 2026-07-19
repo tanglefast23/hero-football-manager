@@ -915,9 +915,15 @@ function userMatchParticipantIds(
   userClubId: string,
 ): string[] {
   const userTeam = fixture.homeClubId === userClubId ? 0 : 1;
-  return result.players
+  const finalPlayers = result.players
     .filter(player => player.team === userTeam)
     .map(player => player.def.id);
+  const substitutedPlayers = result.events.flatMap(event =>
+    event.kind === 'SUBSTITUTION' && event.team === userTeam
+      ? [event.outPlayerId]
+      : [],
+  );
+  return [...new Set([...finalPlayers, ...substitutedPlayers])];
 }
 
 function userReplayParticipantIds(

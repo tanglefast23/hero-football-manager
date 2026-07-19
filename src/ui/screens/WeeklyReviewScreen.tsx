@@ -47,33 +47,42 @@ export function WeeklyReviewScreen({
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
         onTouchStart={finishAnimations}
       >
-        <View className="flex-row items-start justify-between gap-3 border-b-2 border-ink pb-3">
-          <View className="flex-1">
-            <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Weekly review</Text>
-            <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.completedWeekLabel}</Text>
-            <Text className="mt-2 text-sm font-bold uppercase text-ink/50">{viewModel.clubName}</Text>
-          </View>
-
-          <View className="min-w-36 border-2 border-b-4 border-ink bg-white px-3 py-2">
-            <Text className="text-right text-sm font-bold uppercase text-ink/50">Money</Text>
-            <Text className="mt-1 text-right font-mono text-xl font-bold text-ink">
-              {formatCurrency(viewModel.cashAfter)}
-            </Text>
-            <View className="mt-2 border-t border-ink/20 pt-2">
-              <Text className="text-right text-sm font-bold uppercase text-ink/50">Net</Text>
-              <AnimatedNetAmount
-                amount={viewModel.netAmount}
-                complete={complete}
-              />
-            </View>
-          </View>
+        <View className="border-b-2 border-ink pb-3">
+          <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Weekly review</Text>
+          <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.completedWeekLabel}</Text>
+          <Text className="mt-2 text-sm font-bold uppercase text-ink/50">{viewModel.clubName}</Text>
         </View>
 
-        <View className="mt-3 flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
-          <Text className="text-sm font-bold uppercase text-paper/70">Cash movement</Text>
-          <Text className="font-mono text-base font-bold text-paper">
-            {formatCurrency(viewModel.cashBefore)} → {formatCurrency(viewModel.cashAfter)}
-          </Text>
+        <View className="mt-3 flex-row gap-2">
+          <WeeklyBalanceCard
+            label="Money"
+            currentAmount={viewModel.cashAfter}
+            netAmount={viewModel.netAmount}
+            complete={complete}
+            kind="money"
+          />
+          <WeeklyBalanceCard
+            label="TP"
+            currentAmount={viewModel.trainingPointsAfter}
+            netAmount={viewModel.netTrainingPoints}
+            complete={complete}
+            kind="training-points"
+          />
+        </View>
+
+        <View className="mt-3 gap-2">
+          <View className="flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
+            <Text className="text-sm font-bold uppercase text-paper/70">Cash movement</Text>
+            <Text className="font-mono text-base font-bold text-paper">
+              {formatCurrency(viewModel.cashBefore)} → {formatCurrency(viewModel.cashAfter)}
+            </Text>
+          </View>
+          <View className="flex-row items-center justify-between border-2 border-ink bg-blue-dark px-3 py-2.5">
+            <Text className="text-sm font-bold uppercase text-paper/70">TP movement</Text>
+            <Text className="font-mono text-base font-bold text-paper">
+              {formatCompactNumber(viewModel.trainingPointsBefore)} → {formatCompactNumber(viewModel.trainingPointsAfter)} TP
+            </Text>
+          </View>
         </View>
 
         <View className="min-h-96 justify-center pt-5">
@@ -98,12 +107,6 @@ export function WeeklyReviewScreen({
               </Text>
             </View>
           ))}
-          <View className="mt-3 flex-row items-center justify-between bg-blue-light px-3 py-2">
-            <Text className="text-sm font-bold uppercase text-blue-dark">Training points</Text>
-            <Text className="font-mono text-base font-bold text-ink">
-              {formatCompactNumber(viewModel.trainingPointsBefore)} → {formatCompactNumber(viewModel.trainingPointsAfter)} TP
-            </Text>
-          </View>
         </PaperPanel>
 
         {viewModel.updates.length > 0 || viewModel.nextFixture !== undefined ? (
@@ -158,7 +161,52 @@ function formatCurrency(amount: number, signed = false): string {
   return `${sign}$${formatCompactNumber(Math.abs(amount))}`;
 }
 
-function AnimatedNetAmount({ amount, complete }: { amount: number; complete: boolean }) {
+type WeeklyBalanceKind = 'money' | 'training-points';
+
+function WeeklyBalanceCard({
+  label,
+  currentAmount,
+  netAmount,
+  complete,
+  kind,
+}: {
+  label: string;
+  currentAmount: number;
+  netAmount: number;
+  complete: boolean;
+  kind: WeeklyBalanceKind;
+}) {
+  return (
+    <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-3 py-2">
+      <Text className="text-right text-sm font-bold uppercase text-ink/50">{label}</Text>
+      <Text
+        className="mt-1 text-right font-mono text-xl font-bold text-ink"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {kind === 'money'
+          ? formatCurrency(currentAmount)
+          : `${formatCompactNumber(currentAmount)} TP`}
+      </Text>
+      <View className="mt-2 border-t border-ink/20 pt-2">
+        <Text className="text-right text-sm font-bold uppercase text-ink/50">
+          {kind === 'money' ? 'Net' : 'Net TP'}
+        </Text>
+        <AnimatedNetAmount amount={netAmount} complete={complete} kind={kind} />
+      </View>
+    </View>
+  );
+}
+
+function AnimatedNetAmount({
+  amount,
+  complete,
+  kind,
+}: {
+  amount: number;
+  complete: boolean;
+  kind: WeeklyBalanceKind;
+}) {
   const [displayAmount, setDisplayAmount] = useState(complete ? amount : 0);
 
   useEffect(() => {
@@ -181,12 +229,17 @@ function AnimatedNetAmount({ amount, complete }: { amount: number; complete: boo
   return (
     <Text
       accessible
-      accessibilityLabel={`Net ${amount < 0 ? 'minus' : 'plus'} ${Math.abs(amount)} dollars`}
+      accessibilityLabel={`Net ${amount < 0 ? 'minus' : amount > 0 ? 'plus' : ''} ${Math.abs(amount)} ${kind === 'money' ? 'dollars' : 'training points'}`}
       className={amount < 0
         ? 'mt-1 text-right font-mono text-xl font-bold text-stamp'
         : 'mt-1 text-right font-mono text-xl font-bold text-pitch-dark'}
+      numberOfLines={1}
+      adjustsFontSizeToFit
     >
-      {displayAmount > 0 ? '+' : displayAmount < 0 ? '−' : ''}${formatCompactNumber(Math.abs(displayAmount))}
+      {displayAmount > 0 ? '+' : displayAmount < 0 ? '−' : ''}
+      {kind === 'money' ? '$' : ''}
+      {formatCompactNumber(Math.abs(displayAmount))}
+      {kind === 'training-points' ? ' TP' : ''}
     </Text>
   );
 }

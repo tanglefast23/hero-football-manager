@@ -168,10 +168,21 @@ describe('validated M1 launch content', () => {
       'squad-intro',
       'desk-intro',
     ]);
-    expect(content.assistantGuide.sequences
+    const managementIntroPages = content.assistantGuide.sequences
       .find(sequence => sequence.id === 'management-intro')
-      ?.pages.find(page => page.focus === 'navigation')
-      ?.navItems).toHaveLength(5);
+      ?.pages;
+    expect(managementIntroPages).toHaveLength(3);
+    expect(managementIntroPages?.find(page => page.focus === 'navigation')).toMatchObject({
+      buttonLabel: 'Right. Off I go.',
+      navItems: expect.arrayContaining([
+        { tab: 'HOME', detail: "Your desk and today's work." },
+        { tab: 'SQUAD', detail: 'Pick players and train them.' },
+      ]),
+    });
+    expect(managementIntroPages?.some(page => page.title === 'Read it first')).toBe(false);
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'squad-intro')
+      ?.pages[0].body[0]).toContain('Training costs TP (Training Points) and money');
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'desk-intro')
       ?.pages[0]).toMatchObject({
