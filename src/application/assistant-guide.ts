@@ -7,7 +7,7 @@ import type { ManagementTab } from '../ui/models';
 
 export interface AssistantObjective {
   text: string;
-  targetTab?: Extract<ManagementTab, 'home' | 'squad'>;
+  target: 'home-tab' | 'squad-tab' | 'training-plan' | 'advance-week';
 }
 
 export function pendingAssistantGuideSequence(
@@ -36,16 +36,16 @@ export function pendingAssistantGuideSequence(
 export function currentAssistantObjective(state: GameState): AssistantObjective | null {
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) return null;
   if (!hasAssistantGuideMilestone(state, 'squad-intro-complete')) {
-    return { text: 'OPEN SQUAD.', targetTab: 'squad' };
+    return { text: 'OPEN SQUAD.', target: 'squad-tab' };
   }
   if (!hasAssistantGuideMilestone(state, 'first-training-complete')) {
-    return { text: 'TRAIN ONE PLAYER ONCE.', targetTab: 'squad' };
+    return { text: 'TRAIN ONE PLAYER ONCE.', target: 'training-plan' };
   }
   if (!hasAssistantGuideMilestone(state, 'desk-intro-complete')) {
-    return { text: 'RETURN HOME.', targetTab: 'home' };
+    return { text: 'RETURN HOME.', target: 'home-tab' };
   }
   if (!hasAssistantGuideMilestone(state, 'first-week-advanced')) {
-    return { text: 'READ THE DESK. THEN ADVANCE WEEK.', targetTab: 'home' };
+    return { text: 'READ THE DESK. THEN ADVANCE WEEK.', target: 'advance-week' };
   }
   return null;
 }

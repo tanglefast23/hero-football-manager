@@ -1,5 +1,6 @@
 export * from './AssistantGuideOverlay';
 export * from './ManagementShell';
+export * from './TutorialTapCue';
 export * from './models';
 export * from './components/Scorecard';
 export * from './components/FormationDiagram';
