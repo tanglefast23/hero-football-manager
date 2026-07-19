@@ -1,0 +1,15 @@
+import * as Haptics from 'expo-haptics';
+import type { MatchEvent } from '../sim/types';
+import { hapticCueForEvent } from './haptic-cues';
+
+/** Native feedback is presentation-only and always fails soft. */
+export function playHapticForEvent(event: MatchEvent, controlledTeam: 0 | 1): void {
+  const cue = hapticCueForEvent(event, controlledTeam);
+  let feedback: Promise<void> | undefined;
+  if (cue === 'zone') feedback = Haptics.selectionAsync();
+  else if (cue === 'power') feedback = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  else if (cue === 'rival-power') feedback = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  else if (cue === 'goal') feedback = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  else if (cue === 'conceded') feedback = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  void feedback?.catch(() => undefined);
+}

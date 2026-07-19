@@ -101,6 +101,8 @@ export interface TitleSettingsScreenProps {
   onCycleVolume: () => void;
   onCycleFormation: (slot: number) => void;
   onToggleAutoPowers: () => void;
+  onToggleReduceMotion: () => void;
+  onToggleHudSide: () => void;
   onBack: () => void;
   backLabel?: string;
 }
@@ -110,6 +112,8 @@ export function TitleSettingsScreen({
   onCycleVolume,
   onCycleFormation,
   onToggleAutoPowers,
+  onToggleReduceMotion,
+  onToggleHudSide,
   onBack,
   backLabel = 'Back to title',
 }: TitleSettingsScreenProps) {
@@ -173,6 +177,43 @@ export function TitleSettingsScreen({
                 </View>
                 <Text className="font-mono text-2xl font-bold text-ink">{preferences.autoPowers ? 'ON' : 'OFF'}</Text>
               </Pressable>
+            </PaperPanel>
+
+            <PaperPanel kicker="Accessibility" title="Comfort and reach" stamp="Saved" className="mt-6">
+              <Text className="text-base leading-5 text-ink/65">
+                Reduce animated flourishes and put the live-match information where it is easiest to read.
+              </Text>
+              <View className="mt-5 gap-3">
+                <Pressable
+                  accessibilityRole="switch"
+                  accessibilityLabel="Reduce motion"
+                  accessibilityState={{ checked: preferences.reduceMotion }}
+                  onPress={onToggleReduceMotion}
+                  className={preferences.reduceMotion
+                    ? 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-violet-light px-4 py-3'
+                    : 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3'}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
+                >
+                  <View className="flex-1 pr-3">
+                    <Text className="font-mono text-base font-bold uppercase text-ink">Reduce motion</Text>
+                    <Text className="mt-1 text-sm text-ink/60">Stops count-ups, flashes, pulses, and decorative match trails.</Text>
+                  </View>
+                  <Text className="font-mono text-lg font-bold text-ink">{preferences.reduceMotion ? 'ON' : 'OFF'}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Match information HUD on the ${preferences.hudSide}. Tap to move it.`}
+                  onPress={onToggleHudSide}
+                  className="min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3"
+                  style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
+                >
+                  <View className="flex-1 pr-3">
+                    <Text className="font-mono text-base font-bold uppercase text-ink">Match HUD side</Text>
+                    <Text className="mt-1 text-sm text-ink/60">Moves the carrier card and top controls together.</Text>
+                  </View>
+                  <Text className="font-mono text-lg font-bold uppercase text-violet-dark">{preferences.hudSide}</Text>
+                </Pressable>
+              </View>
             </PaperPanel>
 
             <PaperPanel kicker="Master mix" title="Game audio" stamp={`${volumePercent}%`} className="mt-6">

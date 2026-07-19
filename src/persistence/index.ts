@@ -31,6 +31,7 @@ export {
   DEFAULT_APP_PREFERENCES,
   replaceFormationPreset,
   type AppPreferences,
+  type HudSide,
   type MasterVolume,
   type PreferencesRepository,
 } from './preferences-repository';

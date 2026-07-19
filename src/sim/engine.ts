@@ -259,6 +259,12 @@ const MIN_SHOT_VALUE = 0.06;
 const OBVIOUS_SHOT_DISTANCE = 1800;
 const CARRY_TIME_DISCOUNT = 0.7;
 const SHOT_KEEPER_MOD = -7;
+// Resolve should make sustained pressure visible without turning one strong
+// half into an irreversible keeper-collapse cascade. Six keeps repeated shots
+// meaningful while preserving a realistic recovery window at halftime.
+const RESOLVE_DAMAGE_DIVISOR = 6;
+const SHOT_POWER_BASELINE = 60;
+const KEEPER_RESOLVE_FLOOR = 0.8;
 
 interface ActionValues {
   shot: number;
@@ -387,18 +393,37 @@ function shotSpreadAt(state: MatchState, by: number, pos: Vec, distance: number)
   return hasFrontalPressure(state, by, pos) ? Math.round(base * 1.25) : base;
 }
 
+/**
+ * SHO already improves aim through shotSpreadAt(). Compress only its second
+ * contribution to keeper-beating power so a rating gap matters without being
+ * counted at full strength twice. Explicit power bonuses remain uncompressed.
+ */
+function shotPowerAt(state: MatchState, by: number, distance: number): number {
+  const sho = effectiveStat(state, by, 'sho');
+  return Math.max(1, Math.round(
+    SHOT_POWER_BASELINE
+      + (sho - SHOT_POWER_BASELINE) / 4
+      + shotBonus(state, by)
+      - distance / 200,
+  ));
+}
+
+function keeperResolveScale(resolve: number): number {
+  return KEEPER_RESOLVE_FLOOR
+    + (1 - KEEPER_RESOLVE_FLOOR) * (resolve / 100);
+}
+
 /** Approximate probability that a shot from `pos` scores under the current shot/save model. */
 function shotExpectedValue(state: MatchState, by: number, pos: Vec): number {
   const shooter = state.players[by];
   const goal = { x: GOAL_CENTER_X, y: goalYFor(shooter.team) };
   const distance = dist(pos, goal);
-  const sho = effectiveStat(state, by, 'sho');
   const spread = shotSpreadAt(state, by, pos, distance);
   const onTargetProbability = Math.min(1, (GOAL_W / 2) / spread);
-  const power = Math.max(1, Math.round(sho + shotBonus(state, by) - distance / 200));
+  const power = shotPowerAt(state, by, distance);
   const defendingTeam: 0 | 1 = shooter.team === 0 ? 1 : 0;
   const keeperIdx = defendingTeam === 0 ? 0 : 11;
-  const resolveScale = 0.5 + 0.5 * (state.resolve[defendingTeam] / 100);
+  const resolveScale = keeperResolveScale(state.resolve[defendingTeam]);
   const saveProbability = isAvailable(state, keeperIdx)
     ? contestProbability(effectiveStat(state, keeperIdx, 'ref') * resolveScale, power, SHOT_KEEPER_MOD)
     : 0;
@@ -790,7 +815,7 @@ export function attemptShot(state: MatchState, by: number, distToGoal: number): 
   const targetX = Math.round(GOAL_CENTER_X + (state.rng() * 2 - 1) * spread);
   // distToGoal / 200 (Task 13 pre-flight Lever A, was / 100): the old penalty made
   // shots too easy to save; halving it targets goals/match ~2-3 and save rate ~70-80%.
-  const power = Math.max(1, Math.round(effectiveStat(state, by, 'sho') + shotBonus(state, by) - distToGoal / 200));
+  const power = shotPowerAt(state, by, distToGoal);
   emit(state, { t: state.tick, kind: 'SHOT', by, power });
   addGauge(state, by, 20);
   const dir = gy === 0 ? -1 : 1;
@@ -828,11 +853,14 @@ export function shotFlightTick(state: MatchState): void {
     return; // an ignited/KO'd keeper cannot save (Task 7.5 audit) — open goal
   }
 
-  const resolveScale = 0.5 + 0.5 * (state.resolve[defendingTeam] / 100);
+  const resolveScale = keeperResolveScale(state.resolve[defendingTeam]);
   const saved = contest(state.rng, effectiveStat(state, gkIdx, 'ref') * resolveScale, b.power, SHOT_KEEPER_MOD);
 
   if (saved) {
-    state.resolve[defendingTeam] = Math.max(0, state.resolve[defendingTeam] - Math.round(b.power / 4));
+    state.resolve[defendingTeam] = Math.max(
+      0,
+      state.resolve[defendingTeam] - Math.round(b.power / RESOLVE_DAMAGE_DIVISOR),
+    );
     emit(state, { t: state.tick, kind: 'SAVE', by: gkIdx, resolveLeft: state.resolve[defendingTeam] });
     addGauge(state, gkIdx, 12);
     state.ball = { kind: 'held', by: gkIdx };

@@ -1,18 +1,66 @@
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
 import type { PostMatchViewModel } from '../models';
+import { countUpValue } from '../count-up';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
   onContinue: () => void;
   onReplayHighlight?: (highlightId: string) => void;
+  reduceMotion?: boolean;
+}
+
+function CountUpAmount({
+  amount,
+  delay,
+  reduceMotion,
+  className,
+}: {
+  amount: number;
+  delay: number;
+  reduceMotion: boolean;
+  className: string;
+}) {
+  const [displayAmount, setDisplayAmount] = useState(reduceMotion ? amount : 0);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      setDisplayAmount(amount);
+      return undefined;
+    }
+    let frame = 0;
+    let startedAt: number | null = null;
+    const duration = 450;
+    const timeout = setTimeout(() => {
+      const animate = (timestamp: number) => {
+        if (startedAt === null) startedAt = timestamp;
+        const progress = (timestamp - startedAt) / duration;
+        setDisplayAmount(countUpValue(amount, progress));
+        if (progress < 1) frame = requestAnimationFrame(animate);
+      };
+      frame = requestAnimationFrame(animate);
+    }, delay);
+    return () => {
+      clearTimeout(timeout);
+      cancelAnimationFrame(frame);
+    };
+  }, [amount, delay, reduceMotion]);
+
+  const finalLabel = `${amount > 0 ? 'plus ' : amount < 0 ? 'minus ' : ''}${formatCompactNumber(Math.abs(amount))}`;
+  return (
+    <Text accessible accessibilityLabel={finalLabel} className={className}>
+      {displayAmount > 0 ? '+' : ''}{formatCompactNumber(displayAmount)}
+    </Text>
+  );
 }
 
 export function PostMatchLedgerScreen({
   viewModel,
   onContinue,
   onReplayHighlight,
+  reduceMotion = false,
 }: PostMatchLedgerScreenProps) {
   const { result } = viewModel;
   const resultTone = result.outcomeLabel === 'WIN'
@@ -44,7 +92,7 @@ export function PostMatchLedgerScreen({
 
         <PaperPanel kicker="Accounts office" title="Match statement" stamp="Filed" className="mt-5">
           <View className="border-y border-ink/30">
-            {viewModel.ledger.map(line => {
+            {viewModel.ledger.map((line, index) => {
               const color = line.kind === 'income'
                 ? 'text-emerald-700'
                 : line.kind === 'expense'
@@ -53,18 +101,24 @@ export function PostMatchLedgerScreen({
               return (
                 <View key={line.id} className="flex-row items-center border-b border-ink/10 py-3 last:border-b-0">
                   <Text className="flex-1 text-base text-ink">{line.label}</Text>
-                  <Text className={`font-mono text-base font-bold ${color}`}>
-                    {line.amount > 0 ? '+' : ''}{formatCompactNumber(line.amount)}
-                  </Text>
+                  <CountUpAmount
+                    amount={line.amount}
+                    delay={index * 120}
+                    reduceMotion={reduceMotion}
+                    className={`font-mono text-base font-bold ${color}`}
+                  />
                 </View>
               );
             })}
           </View>
           <View className="mt-3 flex-row items-center justify-between bg-ink px-3 py-3">
             <Text className="text-base font-bold uppercase text-paper">Net movement</Text>
-            <Text className={viewModel.netAmount < 0 ? 'font-mono text-xl font-bold text-red-300' : 'font-mono text-xl font-bold text-emerald-300'}>
-              {viewModel.netAmount > 0 ? '+' : ''}{formatCompactNumber(viewModel.netAmount)}
-            </Text>
+            <CountUpAmount
+              amount={viewModel.netAmount}
+              delay={viewModel.ledger.length * 120}
+              reduceMotion={reduceMotion}
+              className={viewModel.netAmount < 0 ? 'font-mono text-xl font-bold text-red-300' : 'font-mono text-xl font-bold text-emerald-300'}
+            />
           </View>
         </PaperPanel>
 

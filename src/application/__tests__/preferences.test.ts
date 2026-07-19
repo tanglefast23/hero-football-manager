@@ -15,6 +15,8 @@ describe('fail-soft app preferences', () => {
       formationPresets: ['4-4-2', '3-4-3', '5-3-2'],
       autoPowers: false,
       masterVolume: 1,
+      reduceMotion: false,
+      hudSide: 'left',
     });
     expect(saved).toEqual(result.preferences);
     expect(result.warning).toContain('reset to defaults');

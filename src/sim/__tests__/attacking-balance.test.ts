@@ -4,7 +4,7 @@ import { ROVERS, UNITED } from '../teams';
 
 describe('attacking decision balance', () => {
   it('keeps the normal-match attacking mix inside the fast arcade target', () => {
-    const matches = 100;
+    const matches = 200;
     let goals = 0;
     let shots = 0;
     let passes = 0;
@@ -12,9 +12,11 @@ describe('attacking decision balance', () => {
     let zoneEntries = 0;
     const zoneEntriesByPlayer = new Array<number>(22).fill(0);
     const powerFiresByPlayer = new Array<number>(22).fill(0);
+    let matchesWithRivalCard = 0;
 
     for (let seed = 1; seed <= matches; seed++) {
       const result = runMatch(seed, ROVERS, UNITED);
+      let rivalCardInMatch = false;
       goals += result.score[0] + result.score[1];
       for (const event of result.events) {
         if (event.kind === 'SHOT') shots++;
@@ -26,8 +28,11 @@ describe('attacking decision balance', () => {
           zoneEntriesByPlayer[event.player]++;
         } else if (event.kind === 'POWER_FIRED') {
           powerFiresByPlayer[event.player]++;
+        } else if (event.kind === 'CARD' && event.player === 14) {
+          rivalCardInMatch = true;
         }
       }
+      if (rivalCardInMatch) matchesWithRivalCard++;
     }
 
     const goalsPerMatch = goals / matches;
@@ -40,7 +45,7 @@ describe('attacking decision balance', () => {
       `passes=${passesPerMatch.toFixed(3)} completion=${completionRate.toFixed(3)} ` +
       `zoneEntries=${zoneEntriesPerMatch.toFixed(3)} ` +
       `heroEntries=[${zoneEntriesByPlayer[9]},${zoneEntriesByPlayer[10]},${zoneEntriesByPlayer[14]}] ` +
-      `rivalFires=${powerFiresByPlayer[14]} over ${matches} seeds`,
+      `rivalFires=${powerFiresByPlayer[14]} rivalCardMatches=${matchesWithRivalCard} over ${matches} seeds`,
     );
 
     expect(goalsPerMatch).toBeGreaterThanOrEqual(1.5);
@@ -54,7 +59,16 @@ describe('attacking decision balance', () => {
     // tap loop remains central, without every possession becoming a power.
     expect(zoneEntriesPerMatch).toBeGreaterThanOrEqual(3);
     expect(zoneEntriesPerMatch).toBeLessThanOrEqual(14);
-  }, 30000);
+    // Natural-match reachability matters as much as the rigged power contracts:
+    // the launch rival must regularly threaten Super Strength and its seeded
+    // discipline risk must surface without a test-only activation.
+    expect(zoneEntriesByPlayer[14] / matches).toBeGreaterThanOrEqual(1.5);
+    expect(zoneEntriesByPlayer[14] / matches).toBeLessThanOrEqual(3.5);
+    expect(powerFiresByPlayer[14] / matches).toBeGreaterThanOrEqual(0.5);
+    expect(powerFiresByPlayer[14] / matches).toBeLessThanOrEqual(1.5);
+    expect(matchesWithRivalCard / matches).toBeGreaterThanOrEqual(0.1);
+    expect(matchesWithRivalCard / matches).toBeLessThanOrEqual(0.5);
+  }, 60000);
 
   it('keeps unpressured attacking-third backpasses exceptional across seeds', () => {
     const matches = 40;

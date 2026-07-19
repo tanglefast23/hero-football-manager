@@ -1,4 +1,4 @@
-import { createMatch, queueInput, runMatch, tick } from '../match';
+import { createMatch, queueInput, tick } from '../match';
 import { speedFor } from '../engine';
 import { activatePower, interruptWindup, knockOut, ZONE_WINDOW_TICKS } from '../powers';
 import { ROVERS, UNITED } from '../teams';
@@ -49,21 +49,16 @@ describe('hero gauge and firing', () => {
   });
 
   it('the rival auto-fires only via context (0.85) — never a targetless 0.75 lapse, never 1.0', () => {
-    // SUPER_STRENGTH requires a target (Task 12.2 ruling): its zone either finds a
-    // context (which guarantees a lock) and fires 0.85, or expires. Zone entry is a
-    // probabilistic roll, so a small seed window may have zero rival fires — scan
-    // 1-60 for existence plus the strength invariant after the m0.9 trajectory change.
-    let fires = 0;
-    for (let seed = 1; seed <= 60; seed++) {
-      const r = runMatch(seed, ROVERS, UNITED);
-      for (const e of r.events) {
-        if (e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL) {
-          fires++;
-          expect((e as { strength: number }).strength).toBe(0.85);
-        }
-      }
-    }
-    expect(fires).toBeGreaterThan(0);
+    const m = createMatch(42, ROVERS, UNITED);
+    m.ball = { kind: 'held', by: SPEEDSTER };
+    m.players[SPEEDSTER].pos = { x: 3400, y: 5250 };
+    m.players[RIVAL].pos = { ...m.players[SPEEDSTER].pos };
+    m.players[RIVAL].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+
+    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_FIRED' && e.player === RIVAL), 60);
+
+    const fired = m.events.find(e => e.kind === 'POWER_FIRED' && e.player === RIVAL);
+    expect(fired).toMatchObject({ player: RIVAL, power: 'SUPER_STRENGTH', strength: 0.85 });
   });
 
   it('a FIRE_WHEN_READY SUPER_STRENGTH hero with no lockable target expires instead of firing targetless', () => {
@@ -200,12 +195,16 @@ describe('power effects', () => {
     expect(m.players[SPEEDSTER].gauge).toBe(0);
   });
 
-  it('cards appear across many seeds', () => {
-    let sawCard = false;
-    for (let seed = 1; seed <= 60 && !sawCard; seed++) {
-      sawCard = runMatch(seed, ROVERS, UNITED).events.some(e => e.kind === 'CARD');
-    }
-    expect(sawCard).toBe(true);
+  it('FIRE_TORCH applies its seeded 15% yellow-card boundary', () => {
+    const card = createMatch(42, ROVERS, UNITED);
+    card.rng = () => 0.149;
+    activatePower(card, 9, 1);
+    expect(card.events).toContainEqual(expect.objectContaining({ kind: 'CARD', player: 9, color: 'yellow' }));
+
+    const clean = createMatch(42, ROVERS, UNITED);
+    clean.rng = () => 0.15;
+    activatePower(clean, 9, 1);
+    expect(clean.events.some(e => e.kind === 'CARD')).toBe(false);
   });
 
   it('a second yellow card sends the player off (red + permanent out)', () => {

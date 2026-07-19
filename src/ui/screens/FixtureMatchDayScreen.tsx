@@ -136,7 +136,7 @@ export function FixtureMatchDayScreen({
                     accessibilityLabel={`${hero.playerName} hero license`}
                     accessibilityState={{ checked: hero.licensed }}
                     onPress={() => onToggleHeroLicense(hero.playerId)}
-                    className={hero.licensed ? 'h-11 w-11 items-center justify-center border-2 border-amber-600 bg-signal' : 'h-11 w-11 items-center justify-center border-2 border-ink bg-paper-dark'}
+                    className={hero.licensed ? 'h-11 w-11 items-center justify-center border-2 border-gold-dark bg-gold' : 'h-11 w-11 items-center justify-center border-2 border-ink bg-paper-dark'}
                     style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
                   >
                     <Text className="font-mono text-xl font-bold text-ink">{hero.licensed ? '★' : '○'}</Text>

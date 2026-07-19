@@ -105,7 +105,7 @@ export function SeasonEndScreen({
               </View>
 
               {contract.isHeroWageCliff ? (
-                <View className="mt-3 border-2 border-amber-600 bg-signal/40 p-3">
+                <View className="mt-3 border-2 border-gold-dark bg-gold/40 p-3">
                   <Text className="text-sm font-bold uppercase tracking-wide text-amber-800">The bargain years are over</Text>
                   <Text className="mt-1 text-sm leading-5 text-ink/60">
                     The awakening never changed this contract. Renewal does—and the agent knows exactly what a hero is worth.
