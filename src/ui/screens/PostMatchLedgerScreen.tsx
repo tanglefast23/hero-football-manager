@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { PlayerDevelopmentSpotlight } from '../components/PlayerDevelopmentSpotlight';
 import type { PostMatchViewModel } from '../models';
 import { countUpValue } from '../count-up';
 import { SettingsButton } from '../SettingsOverlay';
@@ -66,6 +67,8 @@ export function PostMatchLedgerScreen({
   onOpenSettings,
 }: PostMatchLedgerScreenProps) {
   const { result } = viewModel;
+  const [animationsComplete, setAnimationsComplete] = useState(reduceMotion);
+  const motionOff = reduceMotion || animationsComplete;
   const resultTone = result.outcomeLabel === 'WIN'
     ? 'success'
     : result.outcomeLabel === 'LOSS'
@@ -73,7 +76,11 @@ export function PostMatchLedgerScreen({
       : 'normal';
 
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      className="flex-1 bg-paper"
+      edges={['top', 'left', 'right', 'bottom']}
+      onTouchStart={() => setAnimationsComplete(true)}
+    >
       <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
         <View>
           <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Match filed</Text>
@@ -114,7 +121,7 @@ export function PostMatchLedgerScreen({
                   <CountUpAmount
                     amount={line.amount}
                     delay={index * 120}
-                    reduceMotion={reduceMotion}
+                    reduceMotion={motionOff}
                     className={`font-mono text-base font-bold ${color}`}
                   />
                 </View>
@@ -126,7 +133,7 @@ export function PostMatchLedgerScreen({
             <CountUpAmount
               amount={viewModel.netAmount}
               delay={viewModel.ledger.length * 120}
-              reduceMotion={reduceMotion}
+              reduceMotion={motionOff}
               className={viewModel.netAmount < 0 ? 'font-mono text-xl font-bold text-red-300' : 'font-mono text-xl font-bold text-emerald-300'}
             />
           </View>
@@ -143,6 +150,15 @@ export function PostMatchLedgerScreen({
             />
             <Metric label="Essence" value={`+${formatCompactNumber(viewModel.heroEssenceGained)}`} tone="hero" />
           </View>
+        </View>
+
+        <View className="mt-7 min-h-96 justify-center">
+          <SectionLabel eyebrow="Training ground" title="Player development" />
+          <PlayerDevelopmentSpotlight
+            development={viewModel.development}
+            reduceMotion={reduceMotion}
+            forceComplete={motionOff}
+          />
         </View>
 
         {viewModel.highlights.length ? (

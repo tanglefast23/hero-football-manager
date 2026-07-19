@@ -189,6 +189,19 @@ describe('M1 app store integration', () => {
 
     useM1Store.getState().advanceCareer();
     const settled = useM1Store.getState().career!;
+    expect(useM1Store.getState().screen).toBe('week-review');
+    const review = useM1Store.getState().weekReview!;
+    expect(review).toMatchObject({
+      completedWeekLabel: 'Week 1 complete',
+      nextWeekLabel: 'Week 2',
+      development: {
+        focusedTrainees: [{ id: playerId }],
+      },
+    });
+    expect(review.development.focusedTrainees[0].gains).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'PAC', before: beforePac, after: beforePac + 3, delta: 3 }),
+    ]));
+    expect(review.development.trainingSkippedWarning).toBeUndefined();
     expect(settled.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac + 3);
     expect(settled.players.find(player => player.id === playerId)?.attrs.sta).toBe(
       before.players.find(player => player.id === playerId)!.attrs.sta + 1,
@@ -201,6 +214,35 @@ describe('M1 app store integration', () => {
       amount: -400,
     });
     expect(settled.eventFlags).toContain('guide:bert:first-training-complete');
+  });
+
+  it('shows why a repeating focus plan was skipped and returns to the new week', () => {
+    startCreatedCareer(791);
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
+    useM1Store.getState().toggleDrill('sprints');
+    useM1Store.getState().applyTraining();
+    const planned = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...planned,
+        clubs: planned.clubs.map(club => club.id === planned.userClubId ? { ...club, cash: 0 } : club),
+        trainingPoints: 0,
+      },
+    });
+
+    useM1Store.getState().advanceCareer();
+
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'week-review',
+      weekReview: {
+        development: {
+          focusedTrainees: [],
+          trainingSkippedWarning: 'Focused training skipped — not enough money or TP.',
+        },
+      },
+    });
+    useM1Store.getState().continueWeekReview();
+    expect(useM1Store.getState()).toMatchObject({ screen: 'management', weekReview: null });
   });
 
   it('persists Bert guide progress and clears his first-week objective after advancing', () => {
@@ -388,8 +430,13 @@ describe('M1 app store integration', () => {
         } else {
           break;
         }
-      } else if (current.screen === 'management' || current.screen === 'postmatch') {
+      } else if (
+        current.screen === 'management'
+        || current.screen === 'postmatch'
+        || current.screen === 'week-review'
+      ) {
         if (current.screen === 'postmatch') current.continueAfterMatch();
+        else if (current.screen === 'week-review') current.continueWeekReview();
         else current.advanceCareer();
       } else {
         throw new Error(`unexpected persisted journey screen ${current.screen}`);
@@ -651,6 +698,10 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
     }
     if (current.screen === 'postmatch') {
       current.continueAfterMatch();
+      continue;
+    }
+    if (current.screen === 'week-review') {
+      current.continueWeekReview();
       continue;
     }
     if (current.screen === 'management') {

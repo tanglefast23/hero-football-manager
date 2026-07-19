@@ -45,9 +45,9 @@ import { HALF_TICKS } from '../sim/geometry';
 import { envelopeFrom } from '../sim/match';
 import { mulberry32 } from '../sim/rng';
 import type { MatchState, TeamDef } from '../sim/types';
-import type { ManagementTab, PostMatchViewModel } from '../ui';
+import type { ManagementTab, PostMatchViewModel, WeeklyReviewViewModel } from '../ui';
 import { createLaunchCareerSetup, generateCareerSeed, reconcileLaunchRoster } from './launch';
-import { postMatchViewModel } from './view-models';
+import { postMatchViewModel, weeklyReviewViewModel } from './view-models';
 
 const launchContent = loadLaunchContent();
 let saveQueue = Promise.resolve();
@@ -62,6 +62,7 @@ export type M1Screen =
   | 'matchday'
   | 'watched'
   | 'postmatch'
+  | 'week-review'
   | 'season-end';
 
 export interface WatchedMatch {
@@ -87,6 +88,7 @@ interface M1Store {
   selectedDrillIds: string[];
   watchedMatch: WatchedMatch | null;
   postMatch: PostMatchViewModel | null;
+  weekReview: WeeklyReviewViewModel | null;
   selectedContractTerm: 1 | 2 | 3;
   error: string | null;
   initializePersistence: (
@@ -106,6 +108,7 @@ interface M1Store {
   watchMatch: () => void;
   finishWatchedMatch: (result: MatchState) => void;
   continueAfterMatch: () => void;
+  continueWeekReview: () => void;
   selectEventPlayer: () => void;
   chooseEvent: (choiceId: string) => void;
   continueAfterEvent: () => void;
@@ -136,6 +139,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   selectedDrillIds: [],
   watchedMatch: null,
   postMatch: null,
+  weekReview: null,
   selectedContractTerm: 1,
   error: null,
 
@@ -183,6 +187,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         selectedDrillIds: [],
         watchedMatch: null,
         postMatch: null,
+        weekReview: null,
         error: null,
       });
       queueNewCareerSave(get, set, career);
@@ -197,6 +202,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     const career = get().career!;
     set({
       screen: resumeScreen(career),
+      weekReview: null,
       error: null,
     });
   },
@@ -230,6 +236,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         screen: 'management',
         activeTab: 'home',
         postMatch: null,
+        weekReview: null,
         error: null,
       });
       queueCareerSave(get, set, next);
@@ -300,7 +307,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       }
       if (career.phase === 'season-end') {
         const next = startNextSeason(career);
-        set({ career: next, screen: 'management', activeTab: 'home', error: null });
+        set({ career: next, screen: 'management', activeTab: 'home', weekReview: null, error: null });
         queueCareerSave(get, set, next);
         return;
       }
@@ -326,13 +333,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
         && hasAssistantGuideMilestone(career, 'first-training-complete')
         ? completeAssistantGuideMilestone(advanced, 'first-week-advanced')
         : advanced;
+      const weekReview = next.phase === 'manage' && next.week !== career.week
+        ? weeklyReviewViewModel(career, next)
+        : null;
       set({
         career: next,
-        screen: next.phase === 'matchday'
+        screen: weekReview !== null
+          ? 'week-review'
+          : next.phase === 'matchday'
           ? 'matchday'
           : next.phase === 'season-end' || next.phase === 'complete'
             ? 'season-end'
             : 'management',
+        weekReview,
         error: null,
       });
       queueCareerSave(get, set, next);
@@ -358,6 +371,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({
         career: next,
         postMatch,
+        weekReview: null,
         screen: isOnboardingMatch ? 'first-awakening' : 'postmatch',
         watchedMatch: null,
         error: null,
@@ -420,6 +434,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({
         career: next,
         postMatch,
+        weekReview: null,
         screen: isOnboardingMatch ? 'first-awakening' : 'postmatch',
         watchedMatch: null,
         error: null,
@@ -430,7 +445,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
   },
 
   continueAfterMatch() {
-    set({ postMatch: null, screen: 'management', activeTab: 'home', error: null });
+    set({ postMatch: null, weekReview: null, screen: 'management', activeTab: 'home', error: null });
+  },
+
+  continueWeekReview() {
+    set({ weekReview: null, screen: 'management', activeTab: 'home', error: null });
   },
 
   selectEventPlayer() {
@@ -477,13 +496,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
         && selectedPlayer?.power === undefined;
       const dismissed = dismissCareerEvent(career, !shouldRepeat);
       const next = advanceWeek(dismissed);
+      const weekReview = next.phase === 'manage' && next.week !== dismissed.week
+        ? weeklyReviewViewModel(dismissed, next)
+        : null;
       set({
         career: next,
-        screen: next.phase === 'matchday'
+        screen: weekReview !== null
+          ? 'week-review'
+          : next.phase === 'matchday'
           ? 'matchday'
           : next.phase === 'season-end' || next.phase === 'complete'
             ? 'season-end'
             : 'management',
+        weekReview,
         error: null,
       });
       queueCareerSave(get, set, next);

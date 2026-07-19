@@ -68,4 +68,14 @@ export const MUSIC_CATALOG = [
     loopFadeMs: 120,
     desc: 'Clubhouse Dreams — 112 BPM management loop with warm synth plucks, relaxed drums, and an optimistic training-day melody',
   },
+  {
+    name: 'event-theme',
+    group: 'Music',
+    minMs: 55000,
+    maxMs: 57000,
+    targetDb: -5,
+    loop: true,
+    loopFadeMs: 160,
+    desc: 'The Big Call — 136 BPM dramatic event-choice loop with a suspense pulse, urgent chiptune hook, and rising stadium drums',
+  },
 ];

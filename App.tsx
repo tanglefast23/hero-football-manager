@@ -46,6 +46,7 @@ import {
   StoryEventScreen,
   TitleLandingScreen,
   TitleSettingsScreen,
+  WeeklyReviewScreen,
 } from './src/ui';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import type { TutorialAnchorLayout } from './src/ui/tutorial-cue-position';
@@ -139,7 +140,9 @@ export default function App() {
       ? 'opening'
       : store.screen === 'management'
         ? 'management'
-        : null
+        : store.screen === 'event'
+          ? 'event'
+          : null
     : null;
 
   useEffect(() => {
@@ -350,6 +353,14 @@ export default function App() {
         reduceMotion={reduceMotion}
         onContinue={store.continueAfterMatch}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
+      />
+    );
+  } else if (store.screen === 'week-review' && store.weekReview !== null) {
+    screen = (
+      <WeeklyReviewScreen
+        viewModel={store.weekReview}
+        reduceMotion={reduceMotion}
+        onContinue={store.continueWeekReview}
       />
     );
   } else if (store.screen === 'event' && store.career.pendingEvent !== undefined) {

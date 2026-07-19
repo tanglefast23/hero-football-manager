@@ -130,20 +130,22 @@ export function ClubFinancesScreen({
           <Text className="mt-3 text-sm font-bold uppercase tracking-wide text-ink/50">
             M1 offer: 8,000 cost · +5 TP every week
           </Text>
-          <View className={guideTrainingGround ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>
-            {guideTrainingGround ? (
-              <TutorialTapCue
-                detail="Build the facility"
-                style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+          {!facility.built ? (
+            <View className={guideTrainingGround ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>
+              {guideTrainingGround ? (
+                <TutorialTapCue
+                  detail="Build the facility"
+                  style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+                />
+              ) : null}
+              <ActionButton
+                label="Approve build · 8,000"
+                accessibilityLabel="Build the Training Ground for 8,000 money"
+                onPress={onBuildTrainingGround}
+                disabled={!facility.affordable}
               />
-            ) : null}
-            <ActionButton
-              label={facility.built ? 'Training Ground built' : 'Approve build · 8,000'}
-              accessibilityLabel={facility.built ? 'Training Ground is already built' : 'Build the Training Ground for 8,000 money'}
-              onPress={onBuildTrainingGround}
-              disabled={facility.built || !facility.affordable}
-            />
-          </View>
+            </View>
+          ) : null}
           {!facility.built && !facility.affordable ? (
             <Text className="mt-2 text-center text-sm font-bold uppercase tracking-wide text-stamp">
               Insufficient balance

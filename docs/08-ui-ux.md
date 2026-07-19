@@ -22,6 +22,12 @@ Bottom tab bar, 5 tabs; a persistent **Advance Week ▸** button lives above it 
 
 Events interrupt as full-screen cards on Advance Week (never mid-match). Match Day replaces the shell entirely.
 
+### Weekly Review
+
+Settling a non-match week always opens **Week N Complete** before the next management desk. The money block stays at the top beside the current cash total: the weekly net counts from zero to its signed value, followed by the exact cash-before → cash-after movement and itemized ledger. The center of the screen belongs to focused trainees: each player receives a joyful portrait reaction and their actual stat values count upward. Free squad conditioning is summarized once rather than repeating every player card.
+
+Only relevant club notes appear below development: skipped focus training names the missing Money or TP, injury recovery, contract pressure, a newly available event, and a fixture that has just become current. The full sequence settles within 2–4 seconds; one tap completes all motion, and Reduce Motion renders final values immediately. Match weeks reuse the post-match statement and add the same centered player-development block rather than presenting a second review screen.
+
 ## Match Day flow
 
 1. **Pre-match** (one screen): formation pitch with drag-swap lineup and hero license slot picker. Big buttons: **Watch** / **Quick Result**. The three quick-cycle formations and manual/automatic power control live in persistent Settings, reachable from both the title screen and management shell.
