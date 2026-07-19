@@ -156,6 +156,7 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     case 'RECOVERED':
     case 'FORMATION_CHANGED':
     case 'MENTALITY_CHANGED':
+    case 'ENERGY_USE_CHANGED':
     case 'SUBSTITUTION':
       return [];
     default: {

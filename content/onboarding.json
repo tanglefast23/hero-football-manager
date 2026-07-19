@@ -1,25 +1,158 @@
 {
   "schemaVersion": 1,
-  "collapse": "The final whistle blows — and {name} drops. The physio races on, the crowd gasps… and then the grass starts to fizz.",
-  "prompt": "Quick — what do you do?",
-  "choices": [
+  "limp": "The final whistle blows. {name} takes one limping step, then drops to the turf. Players from both teams race in.",
+  "triggers": [
     {
-      "origin": "CHEMICAL",
-      "label": "Splash water on his face",
-      "hint": "Though something is definitely floating in that bottle.",
-      "reveal": "{name} coughs, sits bolt upright, and is suddenly moving faster than the eye can follow. FWOOSH!"
+      "id": "glowing-caterpillar",
+      "visual": "caterpillar",
+      "kicker": "THE BITE",
+      "title": "It already happened.",
+      "callout": "BITE CONFIRMED",
+      "detail": "Tiny · glowing · already gone",
+      "copy": "There—a tiny caterpillar glowing against {name}'s skin. It has already bitten. Something impossible is leaking out."
     },
     {
-      "origin": "CREATURE",
-      "label": "Get him onto the stretcher",
-      "hint": "Is that a beetle the size of a plum sitting on the canvas?",
-      "reveal": "The bug takes one tiny bite — and {name} leaps up wreathed in flame. The referee reaches for the extinguisher."
+      "id": "overenthusiastic-water-bottle",
+      "visual": "water",
+      "kicker": "THE SPLASH",
+      "title": "One drop goes the wrong way.",
+      "callout": "WATER REACTION",
+      "detail": "Cold · glowing · absorbed",
+      "copy": "A teammate pours water over {name}'s face. One shining droplet stops in midair, turns, and sinks into their forehead."
     },
     {
-      "origin": "SERUM",
-      "label": "Let the pitch-side doctor handle it",
-      "hint": "The doctor is already uncapping a very unlabelled bottle of pills.",
-      "reveal": "One gulp, and {name}'s shirt tears clean off the shoulders. He is, quite suddenly, enormous."
+      "id": "rhythmic-cpr",
+      "visual": "cpr",
+      "kicker": "THE RHYTHM",
+      "title": "The chant finds a heartbeat.",
+      "callout": "CPR IN RHYTHM",
+      "detail": "One · two · thunder",
+      "copy": "The physio's compressions fall into time with the crowd. On the final beat, a pulse of light rolls out from {name}."
+    },
+    {
+      "id": "magic-sponge",
+      "visual": "sponge",
+      "kicker": "THE SPONGE",
+      "title": "That is not standard equipment.",
+      "callout": "SPONGE ACTIVE",
+      "detail": "Ancient · damp · sparkling",
+      "copy": "The groundskeeper dabs {name} with a battered old sponge. It wrings itself out, releasing a shower of impossible sparks."
+    },
+    {
+      "id": "smelling-salt-super-sneeze",
+      "visual": "sneeze",
+      "kicker": "THE SNEEZE",
+      "title": "Everyone should stand back.",
+      "callout": "SNEEZE DETECTED",
+      "detail": "Sharp · sudden · stadium-wide",
+      "copy": "The smelling salts reach {name}. The resulting sneeze ripples every nearby shirt and makes the scoreboard blink."
+    },
+    {
+      "id": "ice-pack-moons",
+      "visual": "ice",
+      "kicker": "THE CHILL",
+      "title": "The ice refuses to stay put.",
+      "callout": "ICE IN ORBIT",
+      "detail": "Three cubes · zero gravity",
+      "copy": "An ice pack touches {name}'s head. The cubes escape and begin circling like tiny frozen moons."
+    },
+    {
+      "id": "strong-man-strong-drink",
+      "visual": "drink",
+      "kicker": "THE DRINK",
+      "title": "STRONG MAN STRONG DRINK.",
+      "callout": "STRONG MAN STRONG DRINK",
+      "detail": "One sip · alarming results",
+      "copy": "Someone gives {name} a bottle of STRONG MAN STRONG DRINK. The liquid changes color, bubbles upward, and glows through their cheeks."
+    },
+    {
+      "id": "runaway-sprinkler",
+      "visual": "sprinkler",
+      "kicker": "THE SPRINKLER",
+      "title": "Its aim is suspiciously good.",
+      "callout": "DIRECT HIT",
+      "detail": "One stream · perfect accuracy",
+      "copy": "A sprinkler swivels toward the huddle and fires one precise stream at {name}. Then it politely shuts itself off."
+    },
+    {
+      "id": "buzzing-shin-guard",
+      "visual": "shin-guard",
+      "kicker": "THE SIGNAL",
+      "title": "The shin guard has a message.",
+      "callout": "SIGNAL RECEIVED",
+      "detail": "Vibrating · scrolling · unreadable",
+      "copy": "The physio removes {name}'s buzzing shin guard. Glowing symbols race across its inner surface."
+    },
+    {
+      "id": "meteorite-in-the-boot",
+      "visual": "meteor",
+      "kicker": "THE STONE",
+      "title": "That was not here at kickoff.",
+      "callout": "FOREIGN OBJECT",
+      "detail": "Warm · sparkling · not local",
+      "copy": "A teammate empties {name}'s boot. A warm, sparkling pebble drops onto the grass and hums."
+    },
+    {
+      "id": "ball-of-destiny",
+      "visual": "ball",
+      "kicker": "THE BALL",
+      "title": "It is rolling uphill.",
+      "callout": "BALL APPROACHING",
+      "detail": "No slope · no touch · one eye",
+      "copy": "The match ball rolls uphill, nudges {name}'s head, and opens one glowing eye before becoming perfectly ordinary again."
+    },
+    {
+      "id": "confetti-cannon-misfire",
+      "visual": "confetti",
+      "kicker": "THE MISFIRE",
+      "title": "Someone celebrated too early.",
+      "callout": "CONFETTI LOCKED ON",
+      "detail": "One golden piece remains",
+      "copy": "A confetti cannon fires into the huddle. One golden strip lands on {name} and settles like a tiny cape."
+    },
+    {
+      "id": "pigeons-chosen-feather",
+      "visual": "feather",
+      "kicker": "THE FEATHER",
+      "title": "A selection has been made.",
+      "callout": "PIGEON APPROVED",
+      "detail": "Iridescent · official · unexplained",
+      "copy": "An iridescent feather drifts onto {name}'s chest. Somewhere above the stand, a pigeon gives one solemn salute."
+    },
+    {
+      "id": "hero-thermometer",
+      "visual": "thermometer",
+      "kicker": "THE READING",
+      "title": "The numbers have disappeared.",
+      "callout": "THERMOMETER: HERO",
+      "detail": "Temperature unavailable",
+      "copy": "The physio checks {name}'s temperature. The display abandons numbers and reads only: HERO."
+    },
+    {
+      "id": "defibrillator-star",
+      "visual": "defibrillator",
+      "kicker": "THE CHARGE",
+      "title": "The paddles fire themselves.",
+      "callout": "STAR PULSE",
+      "detail": "No contact · full charge",
+      "copy": "The defibrillator activates before touching {name}. Energy crosses the gap in the shape of a brilliant star."
+    }
+  ],
+  "powers": [
+    {
+      "powerId": "SUPER_SPEED",
+      "omen": "The grass around {name}'s boots bends backward. The stadium lights seem a fraction too slow.",
+      "reveal": "FWOOSH! {name} floats upright—and the world blurs around a brand-new hero."
+    },
+    {
+      "powerId": "FIRE_TORCH",
+      "omen": "A red glow pulses beneath {name}'s kit. Heat ripples through the huddle.",
+      "reveal": "WHUMPF! {name} floats upright in a crown of flame. The referee reaches for the extinguisher."
+    },
+    {
+      "powerId": "SUPER_STRENGTH",
+      "omen": "The turf dents beneath {name}'s palm. Everyone in the huddle feels the shock before they hear it.",
+      "reveal": "KRAK! {name} floats upright as the ground shudders. He is, quite suddenly, enormous."
     }
   ]
 }

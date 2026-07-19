@@ -1,12 +1,10 @@
-import { mulberry32 } from '../../../sim/rng';
 import type { GameState } from '../../types';
+import { completePostMatchAwakening, resolvePostMatchAwakening } from '../../post-match-awakening';
 import { DEFAULT_CREATION_RATINGS } from '../player-creation';
 import {
   addCreatedPlayer,
-  awakenCreatedPlayer,
   beginStoryOnboarding,
   completeFirstOnboardingMatch,
-  completeStoryOnboarding,
   createdPlayer,
   isFirstOnboardingFixture,
 } from '../story-onboarding';
@@ -72,6 +70,7 @@ function state(): GameState {
     eventClock: { weeksWithoutEvent: 0, riskyChoices: 0 },
     eventFlags: [],
     resolvedEventIds: [],
+    awakening: { matchesSinceLastAwakening: 0, usedTriggerIds: [] },
     trainingPoints: 0,
     heroEssence: 0,
     ledgers: [],
@@ -107,7 +106,7 @@ describe('story onboarding state machine', () => {
     });
   });
 
-  it('turns the played first fixture into the guaranteed choice-driven first hero', () => {
+  it('turns the played first fixture into the guaranteed automatic first hero', () => {
     const created = addCreatedPlayer(beginStoryOnboarding(state()), {
       name: 'Jo Rook',
       ratings: DEFAULT_CREATION_RATINGS,
@@ -122,21 +121,27 @@ describe('story onboarding state machine', () => {
       })),
     };
     const collapsed = completeFirstOnboardingMatch(played, 's1-r1-rovers-v-united');
-    const revealed = awakenCreatedPlayer(collapsed, 'CREATURE', mulberry32(77));
+    const revealed = resolvePostMatchAwakening(
+      collapsed,
+      's1-r1-rovers-v-united',
+      collapsed.lineups[0].playerIds,
+      ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'],
+      ['glowing-caterpillar'],
+      { chancePercent: 10, minimumMatchesBetween: 3 },
+    ).state;
     const avatar = createdPlayer(revealed);
     expect(revealed.onboarding).toMatchObject({
       stage: 'reveal',
-      selectedOrigin: 'CREATURE',
-      awakenedPower: 'FIRE_TORCH',
+      awakenedPower: expect.stringMatching(/SUPER_SPEED|SUPER_STRENGTH|FIRE_TORCH/),
     });
     expect(avatar).toMatchObject({
-      power: 'FIRE_TORCH',
+      power: expect.stringMatching(/SUPER_SPEED|SUPER_STRENGTH|FIRE_TORCH/),
       licensed: true,
       weeklyWage: 180,
       onHeroWage: false,
     });
     expect(revealed.players.filter(player => player.power)).toHaveLength(1);
-    expect(completeStoryOnboarding(revealed).onboarding?.stage).toBe('complete');
+    expect(completePostMatchAwakening(revealed).onboarding?.stage).toBe('complete');
   });
 
   it('refuses to make the avatar hero #1 if another user hero still exists', () => {
@@ -158,7 +163,14 @@ describe('story onboarding state machine', () => {
     };
     const collapsed = completeFirstOnboardingMatch(invalid, 's1-r1-rovers-v-united');
     expect(avatarId).toBeDefined();
-    expect(() => awakenCreatedPlayer(collapsed, 'CHEMICAL', mulberry32(1)))
+    expect(() => resolvePostMatchAwakening(
+      collapsed,
+      's1-r1-rovers-v-united',
+      collapsed.lineups[0].playerIds,
+      ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'],
+      ['glowing-caterpillar'],
+      { chancePercent: 10, minimumMatchesBetween: 3 },
+    ))
       .toThrow('first hero');
   });
 });

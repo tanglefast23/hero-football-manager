@@ -1,7 +1,5 @@
-import type { Rng } from '../../sim/rng';
 import type { PowerId, TeamDef } from '../../sim/types';
 import type { CareerPlayer, GameState, LeagueFixture } from '../types';
-import { resolveFirstAwakening, type OnboardingOrigin } from './first-awakening';
 import {
   CREATED_PLAYER_ROOKIE_WAGE,
   validateCreatedPlayerDraft,
@@ -97,48 +95,6 @@ export function completeFirstOnboardingMatch(state: GameState, fixtureId: string
   };
 }
 
-export function awakenCreatedPlayer(
-  state: GameState,
-  origin: OnboardingOrigin,
-  rng: Rng,
-): GameState {
-  const onboarding = state.onboarding;
-  if (onboarding?.stage !== 'collapse' || onboarding.createdPlayerId === undefined) {
-    throw new Error('The first awakening requires the post-match collapse');
-  }
-  const created = state.players.find(player => player.id === onboarding.createdPlayerId);
-  if (created === undefined || created.clubId !== state.userClubId) {
-    throw new Error('The created player is missing from the user club');
-  }
-  if (created.power !== undefined) throw new Error('The created player has already awakened');
-  const existingUserHeroes = state.players.filter(
-    player => player.clubId === state.userClubId && player.power !== undefined,
-  );
-  if (existingUserHeroes.length !== 0) {
-    throw new Error('The created player must be the campaign’s first hero');
-  }
-  const power = resolveFirstAwakening(origin, rng);
-  return {
-    ...state,
-    players: state.players.map(player => player.id === created.id
-      ? { ...player, power, licensed: true }
-      : player),
-    onboarding: {
-      ...onboarding,
-      stage: 'reveal',
-      selectedOrigin: origin,
-      awakenedPower: power,
-    },
-  };
-}
-
-export function completeStoryOnboarding(state: GameState): GameState {
-  if (state.onboarding?.stage !== 'reveal') {
-    throw new Error('The awakening reveal must resolve before onboarding completes');
-  }
-  return { ...state, onboarding: { ...state.onboarding, stage: 'complete' } };
-}
-
 export function withoutPowers(team: TeamDef): TeamDef {
   return {
     ...team,
@@ -147,10 +103,6 @@ export function withoutPowers(team: TeamDef): TeamDef {
       return { ...regular, attrs: { ...regular.attrs } };
     }),
   };
-}
-
-export function onboardingAwakeningSeed(state: GameState): number {
-  return (state.careerSeed ^ 0xa11ce123) >>> 0;
 }
 
 export function createdPlayer(state: GameState): CareerPlayer | undefined {

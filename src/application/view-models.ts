@@ -7,6 +7,7 @@ import {
   type GameState,
 } from '../game';
 import type {
+  AwakeningCutsceneViewModel,
   ClubFinancesViewModel,
   FixtureViewModel,
   HomeViewModel,
@@ -21,6 +22,54 @@ import type {
 } from '../ui';
 
 const REVIEW_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
+
+export function awakeningCutsceneViewModel(
+  state: GameState,
+  content: LaunchContent,
+  hasPostMatchReport = false,
+): AwakeningCutsceneViewModel {
+  const pending = state.awakening.pending;
+  if (pending === undefined) throw new Error('there is no pending awakening cutscene');
+  const player = state.players.find(candidate => candidate.id === pending.playerId);
+  if (player === undefined || player.clubId !== state.userClubId || player.power !== pending.power) {
+    throw new Error('the pending awakening player is invalid');
+  }
+  const power = content.powers.powers.find(candidate => candidate.id === pending.power);
+  const copy = content.onboarding.powers.find(candidate => candidate.powerId === pending.power);
+  const trigger = content.onboarding.triggers.find(candidate => candidate.id === pending.triggerId);
+  if (power === undefined || copy === undefined || trigger === undefined) {
+    throw new Error(`awakening content is missing ${pending.power}`);
+  }
+  const fixture = state.fixtures.find(candidate => candidate.id === pending.fixtureId);
+  if (fixture === undefined) throw new Error('the awakening fixture is missing');
+  const fillName = (value: string) => value.split('{name}').join(player.name);
+
+  return {
+    fixtureLabel: `S${fixture.season} · W${fixture.week} · Full time`,
+    playerName: player.name,
+    role: player.role,
+    powerId: pending.power,
+    powerName: power.name,
+    limpCopy: fillName(content.onboarding.limp),
+    triggerVisual: trigger.visual,
+    triggerKicker: trigger.kicker,
+    triggerTitle: trigger.title,
+    triggerCallout: trigger.callout,
+    triggerDetail: trigger.detail,
+    triggerCopy: fillName(trigger.copy),
+    omenCopy: fillName(copy.omen),
+    revealCopy: fillName(copy.reveal),
+    firstHero: pending.firstHero,
+    licenseLabel: player.licensed ? 'Hero license active' : 'Awaiting hero license',
+    continueLabel: pending.firstHero
+      ? 'BEGIN THE HERO ERA  ▸'
+      : state.phase === 'season-end' || state.phase === 'complete'
+        ? 'CONTINUE TO SEASON REVIEW  ▸'
+        : hasPostMatchReport
+          ? 'CONTINUE TO MATCH REPORT  ▸'
+          : 'RETURN TO THE OFFICE  ▸',
+  };
+}
 
 export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
   const club = requireUserClub(state);
@@ -67,11 +116,7 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
   const selected = pending.selectedPlayerId === undefined
     ? undefined
     : state.players.find(player => player.id === pending.selectedPlayerId);
-  const requiresPlayer = event.choices.some(choice =>
-    choice.outcomes.some(outcome =>
-      outcome.effects.some(effect => effect.type === 'awakenPower'),
-    ),
-  );
+  const requiresPlayer = false;
 
   return {
     id: event.id,
@@ -94,25 +139,13 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
     } : {}),
     playerSelectionRequired: requiresPlayer,
     choices: event.choices.map(choice => {
-      const canAwaken = choice.outcomes.some(outcome =>
-        outcome.effects.some(effect => effect.type === 'awakenPower'),
-      );
-      const guaranteedAwakening = event.id === 'license-pressure-awakening' && canAwaken;
       return {
         id: choice.id,
         label: choice.label,
-        detail: guaranteedAwakening
-          ? 'Awaken a third hero and force a real two-license squad choice.'
-          : canAwaken
-            ? 'Risk an injury or setback for the chance to awaken a new hero.'
-            : choice.risky
-              ? 'Take the unusual path to keep the mystery alive.'
-              : 'Take the reliable response without ending the hero chase.',
-        consequenceHint: guaranteedAwakening
-          ? 'Guaranteed stat-fit awakening'
-          : canAwaken
-            ? `Awakening chance: ${Math.min(100, 8 + state.eventClock.riskyChoices * 6)}%`
-            : describeSafeOutcome(choice.outcomes[0]?.effects ?? []),
+        detail: choice.risky
+          ? 'Take the unusual club-culture response.'
+          : 'Take the sensible groundskeeping response.',
+        consequenceHint: describeSafeOutcome(choice.outcomes[0]?.effects ?? []),
         tone: choice.risky ? 'risky' as const : 'safe' as const,
         disabled: pending.resolvedChoiceId !== undefined,
       };
@@ -220,6 +253,9 @@ export function homeViewModel(state: GameState): HomeViewModel {
     managerName: 'Boss',
     seasonLabel: `Season ${state.season} / 2`,
     weekLabel: `Week ${state.week} / 30`,
+    nextMatchTimingLabel: nextFixture === undefined
+      ? state.phase === 'complete' ? 'Complete' : 'Season end'
+      : `In ${nextFixture.week} week${nextFixture.week === 1 ? '' : 's'}`,
     form: recentForm(state),
     resources: {
       money: userClub.cash,

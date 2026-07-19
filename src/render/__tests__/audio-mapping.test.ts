@@ -57,6 +57,10 @@ describe('filesForEvent: event → SFX wiring', () => {
       { t: 0, kind: 'IGNITED', player: 5 },
       { t: 0, kind: 'EXTINGUISHED', player: 5 },
       { t: 0, kind: 'RECOVERED', player: 5 },
+      { t: 0, kind: 'FORMATION_CHANGED', team: 0, formation: '4-4-2' },
+      { t: 0, kind: 'MENTALITY_CHANGED', team: 0, mentality: 'BALANCED' },
+      { t: 0, kind: 'ENERGY_USE_CHANGED', team: 0, energyUse: 'BALANCED' },
+      { t: 0, kind: 'SUBSTITUTION', team: 0, player: 4, outPlayerId: 'out', inPlayerId: 'in' },
       { t: 0, kind: 'HALF_TIME' },
       { t: 0, kind: 'FULL_TIME' },
     ];

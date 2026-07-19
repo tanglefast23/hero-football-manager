@@ -1,8 +1,7 @@
-import type { PowerId, TeamDef } from '../sim/types';
+import type { TeamDef } from '../sim/types';
 import { buildTeamDef } from './lineup';
 import {
   renewContract,
-  resolveAwakening,
   selectLicensedHeroes,
   type FocusDrill,
 } from './progression';
@@ -107,44 +106,6 @@ export function buildTrainingGround(
       candidate.id === state.userClubId ? { ...candidate, cash: candidate.cash - cost } : candidate,
     ),
     facilities: { ...state.facilities, trainingGroundBuilt: true },
-  };
-}
-
-export function resolveCareerAwakening(
-  state: GameState,
-  playerId: string,
-  rollPercent: number,
-  power: PowerId,
-): { state: GameState; awakened: boolean; chancePercent: number } {
-  if (state.phase !== 'manage') {
-    throw new Error('awakening events resolve during the manage phase');
-  }
-  const player = state.players.find(
-    candidate => candidate.id === playerId && candidate.clubId === state.userClubId,
-  );
-  if (player === undefined) throw new Error(`unknown user-club player ${playerId}`);
-
-  const result = resolveAwakening(
-    player,
-    { failedRiskyChoices: state.eventClock.riskyChoices },
-    rollPercent,
-    power,
-  );
-  return {
-    state: {
-      ...state,
-      players: state.players.map(candidate =>
-        candidate.id === playerId
-          ? { ...candidate, ...result.player, attrs: { ...result.player.attrs } }
-          : candidate,
-      ),
-      eventClock: {
-        ...state.eventClock,
-        riskyChoices: result.pityState.failedRiskyChoices,
-      },
-    },
-    awakened: result.awakened,
-    chancePercent: result.chancePercent,
   };
 }
 

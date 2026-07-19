@@ -66,11 +66,12 @@ Launch ships **at least 12** of these (final launch set chosen at M4 by playtest
 
 Power levels: Lv1 (as awakened) → Lv2 (+duration/magnitude) → Lv3 (+secondary effect). Upgrades cost Hero Essence (doc 06).
 
-## Getting powers (three doors)
+## Getting powers
 
-1. **Chance events** (primary, doc 07): risky event choices carry a small base awakening chance, plus a **pity counter** — each risky choice that doesn't awaken adds +6% to the next one (persists across events, resets on awakening), and taking risks raises how often mystery events appear. Season 1 additionally guarantees a second-hero opportunity chain (the license cap must have something to bite on). Net cadence target: **~1 awakening per 1.5–2 risk-taking seasons** — asserted in the balance harness, not hoped for. Key hook: an awakened player's **wage stays locked until their contract expires** — awaken a player on a fresh 3-season deal and you've got a bargain hero; at renewal their agent knows what they're worth (×3–5 wage demand).
-2. **Pre-powered signings**: rare scouted "hero" players (★ marked), fame-gated (start appearing at Div 3). Huge signing fee + hero wages from day one. The expensive-but-certain door.
-3. **Hero Lab** (endgame facility): pay 15,000 + 3 HE per attempt on a chosen player; 10% awakening odds, +5% per failed attempt on that player (pity), 10% risk of a 4-week "lab accident" injury. Turns late-game cash piles into hero pipeline.
+1. **Post-match awakening** (primary): after a completed user match, an eligible check has a flat **10% chance**. The first check cannot occur until the **third completed match after the previous awakening**. If it fires, one unpowered participant is selected deterministically from the match and is **guaranteed** to receive a stat-weighted power; there is no failure card and no weekly choice prompt. The awakened player's **wage stays locked until their contract expires**; at renewal their agent asks the hero rate (×3–5).
+2. **Campaign first hero**: the created player is the sole exception to the 10% roll. Their first completed match guarantees the same automatic cutscene and stat-weighted power, with no origin choice.
+3. **Cutscene trigger deck**: every awakening uses the same collapse → discovery → ascension structure. Discovery causes come from a 17-entry comedy bank; every entry is used once before free random repeats begin.
+4. **Pre-powered signings**: rare scouted "hero" players (★ marked), fame-gated (start appearing at Div 3). Huge signing fee + hero wages from day one. The expensive-but-certain door.
 
 Which power a player awakens is weighted by their stats and body type (a PAC-heavy skinny winger leans Super Speed; a DEF-heavy muscular unit leans Super Strength) — awakenings feel *fitting*, not random.
 
@@ -78,4 +79,4 @@ Which power a player awakens is weighted by their stats and body type (a PAC-hea
 
 - Div 5–4 are winnable with zero heroes; heroes accelerate, never gate.
 - Opposing hero density ramps: Div 5 ~10% of teams field one → Div 1 all field 2–3 → Hero Cup full squads.
-- Hero wages + license caps + Essence scarcity are the three tuning valves; the season-simulation harness (doc 09) verifies "no-hero playthrough reaches Div 3 by season 4", "full-hero endgame team wins Hero Cup ~60% per season", "risk-taking manager awakens ~1 hero per 1.5–2 seasons", and — per the timing audit — that **attentive tapping measurably beats reasonable auto, which beats blind firing**, per power, with a predeclared confidence-interval-positive margin.
+- Hero wages + license caps + Essence scarcity are the three tuning valves; the season-simulation harness (doc 09) verifies the flat 10% post-match cadence and three-match cooldown, plus — per the timing audit — that **attentive tapping measurably beats reasonable auto, which beats blind firing**, per power, with a predeclared confidence-interval-positive margin.

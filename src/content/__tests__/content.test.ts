@@ -69,11 +69,6 @@ describe('validated M1 launch content', () => {
           if (outcome.nextEventId !== undefined) {
             expect(eventIds.has(outcome.nextEventId)).toBe(true);
           }
-          for (const effect of outcome.effects) {
-            if (effect.type === 'awakenPower') {
-              expect(effect.powerIds.every(powerId => powerIds.has(powerId))).toBe(true);
-            }
-          }
         }
       }
     }
@@ -127,31 +122,42 @@ describe('validated M1 launch content', () => {
     expect(() => parseLaunchContent(missingPower)).toThrow(/power IDs must be unique|unknown power ID/);
   });
 
-  test('captures the locked M1 training and awakening tuning', () => {
+  test('captures the locked M1 training and post-match awakening tuning', () => {
     const content = loadLaunchContent();
-    const spiderOutcomes = content.events.events
-      .find(event => event.id === 'spider-training-day')
-      ?.choices.find(choice => choice.id === 'approach-spider')
-      ?.outcomes;
 
     expect(content.training.maxFocusDrillsPerWeek).toBe(3);
     expect(content.training.baseConditioning).toMatchObject({ moneyCost: 0, tpCost: 0 });
     expect(content.events.tuning).toEqual({
       weeklyChancePercent: 18,
       guaranteeAfterDryWeeks: 8,
-      baseAwakeningChancePercent: 8,
-      pityIncrementPercent: 6,
     });
-    expect(spiderOutcomes?.reduce((sum, outcome) => sum + outcome.weight, 0)).toBe(100);
-    expect(spiderOutcomes?.some(outcome => outcome.effects.some(effect => effect.type === 'awakenPower')))
-      .toBe(true);
-    expect(content.onboarding.choices.map(choice => choice.origin).sort()).toEqual([
-      'CHEMICAL',
-      'CREATURE',
-      'SERUM',
+    expect(content.powers.awakening).toEqual({
+      postMatchChancePercent: 10,
+      minimumMatchesBetween: 3,
+    });
+    expect(content.onboarding.limp).toContain('{name}');
+    expect(content.onboarding.triggers).toHaveLength(15);
+    expect(new Set(content.onboarding.triggers.map(trigger => trigger.visual)).size).toBe(15);
+    expect(content.onboarding.triggers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'glowing-caterpillar', callout: 'BITE CONFIRMED' }),
+      expect.objectContaining({
+        id: 'strong-man-strong-drink',
+        title: 'STRONG MAN STRONG DRINK.',
+        callout: 'STRONG MAN STRONG DRINK',
+      }),
+    ]));
+    expect(content.onboarding.triggers.map(trigger => trigger.id)).not.toEqual(expect.arrayContaining([
+      'mystic-orange-slice',
+      'forbidden-energy-gel',
+      'var-future-flash',
+    ]));
+    expect(content.onboarding.powers.map(power => power.powerId).sort()).toEqual([
+      'FIRE_TORCH',
+      'SUPER_SPEED',
+      'SUPER_STRENGTH',
     ]);
-    expect(content.onboarding.collapse).toContain('{name}');
-    expect(content.onboarding.choices.every(choice => choice.reveal.includes('{name}'))).toBe(true);
+    expect(content.onboarding.powers.every(power =>
+      power.omen.includes('{name}') && power.reveal.includes('{name}'))).toBe(true);
     expect(content.assistantGuide.assistant).toEqual({
       name: 'Bert Rudge',
       role: 'Assistant Manager',

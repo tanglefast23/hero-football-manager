@@ -188,7 +188,7 @@ function TutorialSpotlight({
 }
 
 /** Original full-body Gaffer: bald crown, heavy brow, moustache and old club suit. */
-function BertFullBody({ pointing }: { pointing: boolean }) {
+export function BertFullBody({ pointing }: { pointing: boolean }) {
   return (
     <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.bertSprite}>
       <View style={styles.bertGroundShadow} />

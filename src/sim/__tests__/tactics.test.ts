@@ -8,7 +8,10 @@ import {
   DEFAULT_FORMATION_PRESETS,
   FORMATION_IDS,
   FORMATION_LAYOUTS,
+  energyDrainMultiplier,
+  energyMovementMultiplier,
   formationTarget,
+  isEnergyUse,
   mentalityTarget,
   nextFormation,
   nextMentality,
@@ -80,23 +83,52 @@ describe('match tactics', () => {
     expect(Math.abs(defending.x - 3400)).toBeGreaterThan(Math.abs(attacking.x - 3400));
   });
 
-  it('records formation and mentality changes as deterministic coaching inputs', () => {
+  it('defines the three locked Energy Use modes and their physical tradeoffs', () => {
+    expect(isEnergyUse('SAVE_ENERGY')).toBe(true);
+    expect(isEnergyUse('BALANCED')).toBe(true);
+    expect(isEnergyUse('ALL_OUT')).toBe(true);
+    expect(isEnergyUse('MAXIMUM')).toBe(false);
+    expect(energyDrainMultiplier('SAVE_ENERGY')).toBe(0.6);
+    expect(energyDrainMultiplier('BALANCED')).toBe(1);
+    expect(energyDrainMultiplier('ALL_OUT')).toBe(1.65);
+    expect(energyMovementMultiplier('SAVE_ENERGY', 100)).toBe(0.9);
+    expect(energyMovementMultiplier('BALANCED', 100)).toBe(1);
+    expect(energyMovementMultiplier('ALL_OUT', 100)).toBeCloseTo(1.12);
+    expect(energyMovementMultiplier('ALL_OUT', 0)).toBe(1);
+  });
+
+  it('records formation, playstyle, and Energy Use as deterministic coaching inputs', () => {
     const match = createMatch(42, ROVERS, UNITED, { controlledTeam: 0 });
     queueInput(match, { tick: 1, kind: 'SET_FORMATION', formation: '4-3-3' });
     queueInput(match, { tick: 1, kind: 'SET_MENTALITY', mentality: 'ATTACK' });
+    queueInput(match, { tick: 1, kind: 'SET_ENERGY_USE', energyUse: 'ALL_OUT' });
     tick(match);
 
-    expect(match.tactics[0]).toEqual({ formation: '4-3-3', mentality: 'ATTACK' });
+    expect(match.tactics[0]).toEqual({ formation: '4-3-3', mentality: 'ATTACK', energyUse: 'ALL_OUT' });
     expect(match.events).toEqual(expect.arrayContaining([
       { t: 1, kind: 'FORMATION_CHANGED', team: 0, formation: '4-3-3' },
       { t: 1, kind: 'MENTALITY_CHANGED', team: 0, mentality: 'ATTACK' },
+      { t: 1, kind: 'ENERGY_USE_CHANGED', team: 0, energyUse: 'ALL_OUT' },
     ]));
 
     const replay = runReplay(envelopeFrom(match));
     expect(replay.events).toEqual(expect.arrayContaining([
       { t: 1, kind: 'FORMATION_CHANGED', team: 0, formation: '4-3-3' },
       { t: 1, kind: 'MENTALITY_CHANGED', team: 0, mentality: 'ATTACK' },
+      { t: 1, kind: 'ENERGY_USE_CHANGED', team: 0, energyUse: 'ALL_OUT' },
     ]));
+  });
+
+  it('makes the same player drain Save Energy < Balanced < All Out', () => {
+    const match = createMatch(42, ROVERS, UNITED);
+    const saved = { ...match.players[5], def: { ...match.players[5].def, attrs: { ...match.players[5].def.attrs } } };
+    const balanced = { ...saved, def: { ...saved.def, attrs: { ...saved.def.attrs } } };
+    const allOut = { ...saved, def: { ...saved.def, attrs: { ...saved.def.attrs } } };
+    drainStamina(saved, true, 'SAVE_ENERGY');
+    drainStamina(balanced, true, 'BALANCED');
+    drainStamina(allOut, true, 'ALL_OUT');
+    expect(saved.condition).toBeGreaterThan(balanced.condition);
+    expect(balanced.condition).toBeGreaterThan(allOut.condition);
   });
 
   it('swaps a compatible bench player into the same render slot with fresh energy', () => {
@@ -142,6 +174,25 @@ describe('match tactics', () => {
       player: 6,
       replacementId: keeper.id,
     })).toThrow('goalkeepers may only be swapped');
+  });
+
+  it('never restores a sent-off player through a substitution', () => {
+    const replacement: PlayerDef = {
+      id: 'bench-mid',
+      name: 'Mae Thorn',
+      role: 'MID',
+      attrs: { pac: 55, sho: 45, pas: 58, def: 47, tec: 56, sta: 64, ref: 10 },
+    };
+    const match = createMatch(42, { ...ROVERS, bench: [replacement] }, UNITED, { controlledTeam: 0 });
+    match.players[6].outReason = 'redcard';
+    match.players[6].outUntilTick = Number.MAX_SAFE_INTEGER;
+
+    expect(() => queueInput(match, {
+      tick: 1,
+      kind: 'SUBSTITUTE',
+      player: 6,
+      replacementId: replacement.id,
+    })).toThrow('sent-off player cannot be substituted');
   });
 
   it('makes high STA drain more slowly and low condition reduce live performance', () => {

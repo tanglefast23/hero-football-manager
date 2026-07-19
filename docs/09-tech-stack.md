@@ -50,7 +50,7 @@ Version policy: pin per EAS milestone; upgrade quarterly, never continuously (st
 ## Testing strategy
 
 - **Unit**: sim actions (tackles, shots, gauge math), economy functions, negotiation math — Jest, TDD for sim/ and game/.
-- **Balance harness** (the deterministic core's superpower): headless Monte Carlo — simulate 1,000 seasons per candidate tuning table in CI, assert the design promises: "zero-hero club reaches Div 3 by season 4 (median)", "season-1 bankruptcy rate < 2% on Cozy", "hero win-rate uplift 15–25%", "awakening pace ≈ 1 per 1.5–2 risk-taking seasons". Balance changes become measurable, not vibes.
+- **Balance harness** (the deterministic core's superpower): headless Monte Carlo — simulate 1,000 seasons per candidate tuning table in CI, assert the design promises: "zero-hero club reaches Div 3 by season 4 (median)", "season-1 bankruptcy rate < 2% on Cozy", "hero win-rate uplift 15–25%", and the shipped 10% eligible post-match awakening cadence after its three-match cooldown. Balance changes become measurable, not vibes.
 - **Render smoke**: Atlas stress scene on a real budget Android device at M0 (research risk #1) — gate before building more match UI.
 - Standard house rules apply: `npm test` after changes, lint before commit, both web and native checked for UI work.
 

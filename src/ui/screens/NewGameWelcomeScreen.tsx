@@ -7,6 +7,7 @@ import { SettingsButton } from '../SettingsOverlay';
 export interface NewGameWelcomeScreenProps {
   hasSavedCareer: boolean;
   savedCareerLabel?: string;
+  showOpeningBrief: boolean;
   onStartNewCareer: () => void;
   onContinueCareer?: () => void;
   onOpenAccessibility?: () => void;
@@ -54,6 +55,7 @@ function BriefRow({ index, title, note, children }: { index: string; title: stri
 export function NewGameWelcomeScreen({
   hasSavedCareer,
   savedCareerLabel,
+  showOpeningBrief,
   onStartNewCareer,
   onContinueCareer,
   onOpenAccessibility,
@@ -79,49 +81,55 @@ export function NewGameWelcomeScreen({
               ) : <View />}
               <SettingsButton onPress={onOpenSettings} />
             </View>
-            <View className="flex-row items-start justify-between">
-              {/* Club crest — a chunky beveled pixel badge (cream enamel) */}
-              <View className="relative h-14 w-14 -rotate-2 items-center justify-center overflow-hidden border-2 border-ink bg-paper">
-                <View pointerEvents="none" className="absolute left-0 right-0 top-0 h-1.5 bg-white" />
-                <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-1.5 bg-paper-dark" />
-                <Text className="font-mono text-3xl font-bold text-ink">HF</Text>
-              </View>
-              {/* Board stamp — full red tint, hand-applied tilt */}
-              <View className="rotate-2 border-2 border-b-4 border-red bg-red-light/30 px-3 py-1.5">
-                <Text className="font-mono text-sm font-bold uppercase text-red-dark">Board approved</Text>
-              </View>
-            </View>
+            {showOpeningBrief ? (
+              <>
+                <View className="flex-row items-start justify-between">
+                  {/* Club crest — a chunky beveled pixel badge (cream enamel) */}
+                  <View className="relative h-14 w-14 -rotate-2 items-center justify-center overflow-hidden border-2 border-ink bg-paper">
+                    <View pointerEvents="none" className="absolute left-0 right-0 top-0 h-1.5 bg-white" />
+                    <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-1.5 bg-paper-dark" />
+                    <Text className="font-mono text-3xl font-bold text-ink">HF</Text>
+                  </View>
+                  {/* Board stamp — full red tint, hand-applied tilt */}
+                  <View className="rotate-2 border-2 border-b-4 border-red bg-red-light/30 px-3 py-1.5">
+                    <Text className="font-mono text-sm font-bold uppercase text-red-dark">Board approved</Text>
+                  </View>
+                </View>
 
-            <View className="my-5 h-0.5 bg-ink/20" />
+                <View className="my-5 h-0.5 bg-ink/20" />
 
-            <Text className="text-sm font-bold uppercase tracking-[3px] text-blue-dark">A club in crisis</Text>
+                <Text className="text-sm font-bold uppercase tracking-[3px] text-blue-dark">A club in crisis</Text>
 
-            <View className="mt-4 gap-1">
-              <MastheadLine text="THE KEYS" />
-              <MastheadLine text="ARE YOURS." />
-              <MastheadLine text="MAKE THEM" />
-              <MastheadLine text="HEROES." tone="gold" />
-            </View>
+                <View className="mt-4 gap-1">
+                  <MastheadLine text="THE KEYS" />
+                  <MastheadLine text="ARE YOURS." />
+                  <MastheadLine text="MAKE THEM" />
+                  <MastheadLine text="HEROES." tone="gold" />
+                </View>
 
-            <Text className="mt-5 max-w-sm text-base leading-5 text-ink/70">
-              A tiny ground. A nervous board. One blank registration card with your name waiting.
-              Build the club they will talk about for decades.
-            </Text>
+                <Text className="mt-5 max-w-sm text-base leading-5 text-ink/70">
+                  A tiny ground. A nervous board. One blank registration card with your name waiting.
+                  Build the club they will talk about for decades.
+                </Text>
+              </>
+            ) : null}
           </View>
 
-          <PaperPanel kicker="Incoming file" title="Week one brief" stamp="Urgent" className="my-7">
-            <View className="gap-3">
-              <BriefRow index="01" title="Meet the squad" note="Sixteen hopefuls. One empty shirt. Zero heroes." />
-              <View className="h-0.5 bg-ink/15" />
-              <BriefRow index="02" title="Survive the books" note="Every ticket, wage, and training point matters." />
-              <View className="h-0.5 bg-ink/15" />
-              <BriefRow index="03" title="First match" note="No powers. Just eleven players and a before-picture.">
-                <View className="mt-2 flex-row">
-                  <StatusChip label="2 empty licenses" tone="hero" />
-                </View>
-              </BriefRow>
-            </View>
-          </PaperPanel>
+          {showOpeningBrief ? (
+            <PaperPanel kicker="Incoming file" title="Week one brief" stamp="Urgent" className="my-7">
+              <View className="gap-3">
+                <BriefRow index="01" title="Meet the squad" note="Sixteen hopefuls. One empty shirt. Zero heroes." />
+                <View className="h-0.5 bg-ink/15" />
+                <BriefRow index="02" title="Survive the books" note="Every ticket, wage, and training point matters." />
+                <View className="h-0.5 bg-ink/15" />
+                <BriefRow index="03" title="First match" note="No powers. Just eleven players and a before-picture.">
+                  <View className="mt-2 flex-row">
+                    <StatusChip label="2 empty licenses" tone="hero" />
+                  </View>
+                </BriefRow>
+              </View>
+            </PaperPanel>
+          ) : null}
 
           <View className="gap-3">
             {hasSavedCareer && onContinueCareer ? (

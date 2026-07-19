@@ -18,6 +18,10 @@ const GOALKEEPER_FRAMES = ['ready0', 'ready1'];
 const BALL_KEY = 'ball';
 const BALL_SIZE = 6;
 
+// Keep every source rect away from its neighbours. This prevents transformed
+// sprites from ever sampling a shoe/hair pixel from the next atlas cell.
+export const ATLAS_GUTTER = 1;
+
 function requiredKeys(): string[] {
   const keys: string[] = [];
   for (const id of PLAYER_IDS) for (const frame of FRAMES) keys.push(`${id}:${frame}`);
@@ -80,7 +84,7 @@ export interface AtlasLayout {
 
 /**
  * Deterministic grid layout: sprite keys sorted alphabetically, assigned to a
- * fixed 8-column grid using the sheet's cell size for slot positioning. Each
+ * fixed 8-column grid with a transparent gutter around every cell. Each
  * rect's w/h reflects the sprite's own pixel dimensions (so the 6x6 ball sits
  * tightly in the top-left corner of its 16x20 slot, not stretched to fill it).
  * Pure math — no Skia/RN dependency, safe to unit test.
@@ -91,6 +95,8 @@ export function atlasLayout(sheet: SpriteSheet): AtlasLayout {
   const rows = Math.ceil(keys.length / cols);
   const cellW = sheet.cell.w;
   const cellH = sheet.cell.h;
+  const slotW = cellW + ATLAS_GUTTER * 2;
+  const slotH = cellH + ATLAS_GUTTER * 2;
   const indexOf = new Map(keys.map((k, i) => [k, i]));
 
   function rectFor(key: string): { x: number; y: number; w: number; h: number } {
@@ -103,7 +109,12 @@ export function atlasLayout(sheet: SpriteSheet): AtlasLayout {
     const frame = sheet.sprites[key];
     const h = frame.length;
     const w = h > 0 ? frame[0].length : 0;
-    return { x: col * cellW, y: row * cellH, w, h };
+    return {
+      x: col * slotW + ATLAS_GUTTER,
+      y: row * slotH + ATLAS_GUTTER,
+      w,
+      h,
+    };
   }
 
   return { cols, rows, rectFor };

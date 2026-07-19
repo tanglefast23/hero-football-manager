@@ -8,11 +8,6 @@ import {
 } from '../balance';
 
 const content = loadLaunchContent();
-const spiderEvent = content.events.events.find(event => event.id === 'spider-training-day');
-const spiderChoice = spiderEvent?.choices.find(choice => choice.id === 'approach-spider');
-if (spiderEvent === undefined || spiderChoice === undefined || !spiderChoice.risky) {
-  throw new Error('launch balance scenario requires the risky spider-training choice');
-}
 const { seed: _launchSeed, ...launchCareerSetup } = createLaunchCareerSetup(1);
 const LAUNCH_SCENARIO: MiniBalanceScenario = {
   careerSetup: {
@@ -30,14 +25,9 @@ const LAUNCH_SCENARIO: MiniBalanceScenario = {
     weeklyFocusDrillIds: ['sprints'],
   },
   awakening: {
-    season: spiderEvent.trigger.season,
-    firstWeek: spiderEvent.trigger.minWeek,
-    lastWeek: spiderEvent.trigger.maxWeek,
-    // Adopting the spider is itself the first failed risky choice.
-    initialFailedRiskyChoices: 1,
-    choiceId: spiderChoice.id,
-    baseChancePercent: content.events.tuning.baseAwakeningChancePercent,
-    pityIncrementPercent: content.events.tuning.pityIncrementPercent,
+    chancePercent: content.powers.awakening.postMatchChancePercent,
+    minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
+    seasonMatches: 18,
   },
 };
 
@@ -67,16 +57,18 @@ describe('M1 mini balance harness', () => {
       .toBeLessThanOrEqual(MINI_BALANCE_RAILS.maximumAffordableFocusDrillsPerMatchWeek);
   });
 
-  test('models the shipped weekly retry chain through its Week-24 deadline', () => {
+  test('models the shipped post-match chance without a hidden pity guarantee', () => {
     const metrics = runMiniBalanceHarness(LAUNCH_SCENARIO);
 
-    expect(metrics.meanAwakeningWeek)
-      .toBeGreaterThanOrEqual(MINI_BALANCE_RAILS.minimumMeanAwakeningWeek);
-    expect(metrics.meanAwakeningWeek)
-      .toBeLessThanOrEqual(MINI_BALANCE_RAILS.maximumMeanAwakeningWeek);
+    expect(metrics.meanAwakeningMatch)
+      .toBeGreaterThanOrEqual(MINI_BALANCE_RAILS.minimumMeanAwakeningMatch);
+    expect(metrics.meanAwakeningMatch)
+      .toBeLessThanOrEqual(MINI_BALANCE_RAILS.maximumMeanAwakeningMatch);
     expect(metrics.awakeningByDeadlineRate)
-      .toBeGreaterThanOrEqual(MINI_BALANCE_RAILS.minimumAwakeningByDeadlineRate);
-    expect(metrics.awakeningDeadlineWeek).toBe(24);
+      .toBeGreaterThanOrEqual(MINI_BALANCE_RAILS.minimumAwakeningBySeasonEndRate);
+    expect(metrics.awakeningByDeadlineRate)
+      .toBeLessThanOrEqual(MINI_BALANCE_RAILS.maximumAwakeningBySeasonEndRate);
+    expect(metrics.awakeningDeadlineMatch).toBe(18);
   });
 
   test('rejects invalid sample sizes', () => {

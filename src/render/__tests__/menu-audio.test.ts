@@ -30,8 +30,10 @@ jest.mock('expo-audio', () => ({
 import {
   playAdvanceWeekSfx,
   playPlanLockedSfx,
+  playLeagueChampionsSfx,
   setMenuMasterVolume,
   setMenuTheme,
+  stopLeagueChampionsSfx,
   teardownMenuAudio,
 } from '../menu-audio';
 
@@ -50,7 +52,7 @@ describe('non-match music ownership', () => {
   it('hands off exclusively from opening to management to event music', () => {
     setMenuTheme('opening');
 
-    expect(mockPlayers).toHaveLength(5);
+    expect(mockPlayers).toHaveLength(6);
     expect(mockPlayers.slice(0, 3).every(player => player.loop)).toBe(true);
     expect(mockPlayers.slice(3).every(player => !player.loop)).toBe(true);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
@@ -63,7 +65,6 @@ describe('non-match music ownership', () => {
     expect(mockPlayers[1].play).toHaveBeenCalledTimes(1);
 
     setMenuTheme('event');
-
     expect(mockPlayers[1].pause).toHaveBeenCalledTimes(1);
     expect(mockPlayers[2].play).toHaveBeenCalledTimes(1);
 
@@ -101,5 +102,19 @@ describe('non-match music ownership', () => {
 
     expect(mockPlayers[4].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[4].play).toHaveBeenCalledTimes(1);
+  });
+
+  it('plays the league-title fanfare once and can stop it when the scene is skipped', async () => {
+    setMenuTheme(null);
+
+    playLeagueChampionsSfx();
+    await Promise.resolve();
+
+    expect(mockPlayers[5].loop).toBe(false);
+    expect(mockPlayers[5].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers[5].play).toHaveBeenCalledTimes(1);
+
+    stopLeagueChampionsSfx();
+    expect(mockPlayers[5].pause).toHaveBeenCalledTimes(1);
   });
 });

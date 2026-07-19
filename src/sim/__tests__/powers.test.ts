@@ -1,6 +1,6 @@
 import { createMatch, queueInput, tick } from '../match';
 import { speedFor } from '../engine';
-import { activatePower, interruptWindup, knockOut, ZONE_WINDOW_TICKS } from '../powers';
+import { activatePower, inUsefulContext, interruptWindup, knockOut, ZONE_WINDOW_TICKS } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState } from '../types';
 
@@ -77,6 +77,35 @@ describe('hero gauge and firing', () => {
     expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL)).toBe(false);
     expect(m.players[RIVAL].powerState.kind).toBe('idle');
     expect(m.players[RIVAL].gauge).toBe(50);
+  });
+
+  it('recognizes decisive carries, nearby loose balls, and carrier pressure as useful contexts', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[SPEEDSTER].pos = { x: 3400, y: 4000 };
+    m.ball = { kind: 'held', by: SPEEDSTER };
+    expect(inUsefulContext(m, SPEEDSTER)).toBe(true);
+    m.players[SPEEDSTER].pos = { x: 3400, y: 7000 };
+    expect(inUsefulContext(m, SPEEDSTER)).toBe(false);
+
+    m.ball = {
+      kind: 'loose',
+      pos: { x: 3400, y: 4100 },
+      vel: { x: 0, y: 0 },
+      z: 0,
+      vz: 0,
+    };
+    m.players[SPEEDSTER].pos = { x: 3400, y: 4500 };
+    expect(inUsefulContext(m, SPEEDSTER)).toBe(true);
+
+    m.ball = { kind: 'held', by: 11 };
+    m.players[9].pos = { x: 3400, y: 5000 };
+    m.players[11].pos = { x: 3400, y: 5600 };
+    expect(inUsefulContext(m, 9)).toBe(true);
+    m.ball = { kind: 'held', by: 8 };
+    expect(inUsefulContext(m, 9)).toBe(false);
+    m.players[11].pos = { x: 3400, y: 9000 };
+    for (let index = 12; index < 22; index += 1) m.players[index].pos = { x: 200, y: 9000 };
+    expect(inUsefulContext(m, 9)).toBe(false);
   });
 });
 

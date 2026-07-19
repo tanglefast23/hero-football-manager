@@ -9,6 +9,7 @@ import type { ReplayEnvelope } from '../../sim/types';
 import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
 import { DEFAULT_CREATION_RATINGS } from '../../game';
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
+import type { PostMatchViewModel } from '../../ui';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {
@@ -34,15 +35,17 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.phase).toBe('matchday');
 
     useM1Store.getState().quickResult();
-    expect(useM1Store.getState().screen).toBe('first-awakening');
-    expect(useM1Store.getState().career?.onboarding?.stage).toBe('collapse');
+    expect(useM1Store.getState().screen).toBe('awakening');
+    expect(useM1Store.getState().career?.onboarding?.stage).toBe('reveal');
     expect(useM1Store.getState().career?.week).toBe(6);
     expect(useM1Store.getState().career?.ledgers).toHaveLength(5);
-    useM1Store.getState().chooseFirstAwakening('CHEMICAL');
     expect(useM1Store.getState().career?.onboarding).toMatchObject({
       stage: 'reveal',
-      selectedOrigin: 'CHEMICAL',
-      awakenedPower: 'SUPER_SPEED',
+      awakenedPower: expect.stringMatching(/SUPER_SPEED|SUPER_STRENGTH|FIRE_TORCH/),
+    });
+    expect(useM1Store.getState().career?.awakening.pending).toMatchObject({
+      firstHero: true,
+      triggerId: 'glowing-caterpillar',
     });
     expect(userHeroes()).toHaveLength(1);
     expect(userHeroes()[0]).toMatchObject({
@@ -51,12 +54,12 @@ describe('M1 app store integration', () => {
       onHeroWage: false,
       licensed: true,
     });
-    useM1Store.getState().continueFirstAwakening();
+    useM1Store.getState().continueAfterAwakening();
     expect(useM1Store.getState()).toMatchObject({ screen: 'management' });
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('complete');
   });
 
-  it('offers and resolves the persisted giant-spider chain with a selectable bench player', () => {
+  it('offers and resolves the one-time giant-spider club event without awakening anyone', () => {
     startAwakenedCareer(456);
     const career = useM1Store.getState().career!;
     useM1Store.setState({ career: { ...career, week: 7, phase: 'manage' }, screen: 'management' });
@@ -65,98 +68,9 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe('giant-spider-arrives');
     useM1Store.getState().chooseEvent('adopt-spider');
     expect(useM1Store.getState().career?.eventFlags).toContain('spider-adopted');
+    expect(userHeroes()).toHaveLength(1);
     useM1Store.getState().continueAfterEvent();
     expect(useM1Store.getState().career?.resolvedEventIds).toContain('giant-spider-arrives');
-
-    const afterFirst = useM1Store.getState().career!;
-    useM1Store.setState({
-      career: {
-        ...afterFirst,
-        week: 9,
-        phase: 'manage',
-        eventClock: { ...afterFirst.eventClock, riskyChoices: 20 },
-      },
-      screen: 'management',
-    });
-    useM1Store.getState().advanceCareer();
-    expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe('spider-training-day');
-    useM1Store.getState().selectEventPlayer();
-    const selectedId = useM1Store.getState().career?.pendingEvent?.selectedPlayerId;
-    const selected = useM1Store.getState().career?.players.find(player => player.id === selectedId);
-    const lineup = useM1Store.getState().career?.lineups.find(candidate =>
-      candidate.clubId === useM1Store.getState().career?.userClubId,
-    );
-    expect(selected).toMatchObject({ role: 'FWD', power: undefined });
-    expect(selectedId).not.toBe(useM1Store.getState().career?.onboarding?.createdPlayerId);
-    expect(lineup?.playerIds).not.toContain(selectedId);
-    useM1Store.getState().chooseEvent('approach-spider');
-    expect(useM1Store.getState().career?.pendingEvent?.resolvedChoiceId).toBe('approach-spider');
-    expect(useM1Store.getState().career?.pendingEvent?.outcomeText).toBeTruthy();
-    expect(userHeroes()).toHaveLength(2);
-    expect(userHeroes().filter(player => player.licensed)).toHaveLength(2);
-    expect(useM1Store.getState().career?.lineups.find(candidate =>
-      candidate.clubId === useM1Store.getState().career?.userClubId,
-    )?.playerIds).toContain(selectedId);
-
-    const afterSecondHero = useM1Store.getState().career!;
-    useM1Store.setState({
-      career: {
-        ...afterSecondHero,
-        week: 10,
-        phase: 'manage',
-        pendingEvent: undefined,
-        resolvedEventIds: [...afterSecondHero.resolvedEventIds, 'spider-training-day'],
-      },
-      screen: 'management',
-    });
-    useM1Store.getState().advanceCareer();
-    expect(useM1Store.getState().career?.pendingEvent?.eventId)
-      .toBe('license-pressure-awakening');
-    useM1Store.getState().selectEventPlayer();
-    useM1Store.getState().chooseEvent('trust-their-instincts');
-
-    expect(userHeroes()).toHaveLength(3);
-    expect(userHeroes().filter(player => player.licensed)).toHaveLength(2);
-    const thirdHero = userHeroes().find(player => !player.licensed)!;
-    const heroToBench = userHeroes().find(player => player.licensed && player.id !== selectedId)!;
-    useM1Store.getState().toggleHeroLicense(heroToBench.id);
-    useM1Store.getState().toggleHeroLicense(thirdHero.id);
-    expect(userHeroes().filter(player => player.licensed).map(player => player.id))
-      .toContain(thirdHero.id);
-    expect(useM1Store.getState().career?.lineups.find(candidate =>
-      candidate.clubId === useM1Store.getState().career?.userClubId,
-    )?.playerIds).toContain(thirdHero.id);
-  });
-
-  it('keeps the hero chase alive through both non-risky spider choices', () => {
-    startAwakenedCareer(457);
-    const career = useM1Store.getState().career!;
-    useM1Store.setState({ career: { ...career, week: 7, phase: 'manage' }, screen: 'management' });
-
-    useM1Store.getState().advanceCareer();
-    useM1Store.getState().chooseEvent('call-groundskeeper');
-    useM1Store.getState().continueAfterEvent();
-    expect(useM1Store.getState().career?.eventFlags).toContain('spider-chase');
-
-    const afterGroundskeeper = useM1Store.getState().career!;
-    useM1Store.setState({
-      career: { ...afterGroundskeeper, week: 9, phase: 'manage' },
-      screen: 'management',
-    });
-    useM1Store.getState().advanceCareer();
-    expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe('spider-training-day');
-    useM1Store.getState().selectEventPlayer();
-    useM1Store.getState().chooseEvent('squash-training');
-    useM1Store.getState().continueAfterEvent();
-    expect(useM1Store.getState().career?.resolvedEventIds).not.toContain('spider-training-day');
-
-    const afterSafeDrill = useM1Store.getState().career!;
-    useM1Store.setState({
-      career: { ...afterSafeDrill, week: 10, phase: 'manage' },
-      screen: 'management',
-    });
-    useM1Store.getState().advanceCareer();
-    expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe('spider-training-day');
   });
 
   it('stores a repeating weekly squad plan and settles it only once per week', () => {
@@ -245,6 +159,31 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState()).toMatchObject({ screen: 'management', weekReview: null });
   });
 
+  it('returns Home beneath the statement, then celebrates player development', () => {
+    const postMatch = examplePostMatch();
+    useM1Store.setState({ screen: 'postmatch', postMatch, postMatchOverlay: null });
+
+    useM1Store.getState().continueAfterMatch();
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'management',
+      activeTab: 'home',
+      postMatch,
+      postMatchOverlay: 'summary',
+    });
+
+    useM1Store.getState().dismissPostMatchSummary();
+    expect(useM1Store.getState()).toMatchObject({
+      postMatch,
+      postMatchOverlay: 'development',
+    });
+
+    useM1Store.getState().dismissPostMatchDevelopment();
+    expect(useM1Store.getState()).toMatchObject({
+      postMatch: null,
+      postMatchOverlay: null,
+    });
+  });
+
   it('persists Bert guide progress and clears his first-week objective after advancing', () => {
     startCreatedCareer(790);
     useM1Store.getState().completeAssistantGuide('management-intro');
@@ -329,8 +268,8 @@ describe('M1 app store integration', () => {
     expect(seasonOne.season).toBe(1);
     expect(seasonOne.clubs.find(club => club.id === seasonOne.userClubId)?.cash)
       .toBeGreaterThanOrEqual(0);
-    expect(userHeroes()).toHaveLength(3);
-    expect(userHeroes().filter(player => player.licensed)).toHaveLength(2);
+    expect(userHeroes().length).toBeGreaterThanOrEqual(1);
+    expect(userHeroes().filter(player => player.licensed).length).toBeLessThanOrEqual(2);
     expect(seasonOne.players.filter(player =>
       player.clubId === seasonOne.userClubId && player.contractSeasonsRemaining === 0,
     )).toHaveLength(1);
@@ -374,35 +313,15 @@ describe('M1 app store integration', () => {
       if (career === null) throw new Error('career disappeared during persisted journey');
       if (career.phase === 'complete') break;
 
-      if (current.screen === 'first-awakening') {
-        if (career.onboarding?.stage === 'collapse') current.chooseFirstAwakening('CHEMICAL');
-        else current.continueFirstAwakening();
+      if (current.screen === 'awakening') {
+        current.continueAfterAwakening();
       } else if (current.screen === 'event') {
         const pending = career.pendingEvent;
         if (pending === undefined) throw new Error('event screen lost its pending event');
         if (pending.resolvedChoiceId !== undefined) {
-          if (pending.eventId === 'license-pressure-awakening') {
-            const selected = pending.selectedPlayerId;
-            const selectedHero = userHeroes().find(player => player.id === selected);
-            if (selectedHero !== undefined && !selectedHero.licensed) {
-              const licensed = userHeroes().find(player => player.licensed);
-              if (licensed === undefined) throw new Error('expected a licensed hero to swap');
-              current.toggleHeroLicense(licensed.id);
-              useM1Store.getState().toggleHeroLicense(selectedHero.id);
-            } else {
-              current.continueAfterEvent();
-            }
-          } else {
-            current.continueAfterEvent();
-          }
+          current.continueAfterEvent();
         } else if (pending.eventId === 'giant-spider-arrives') {
           current.chooseEvent('adopt-spider');
-        } else if (pending.selectedPlayerId === undefined) {
-          current.selectEventPlayer();
-        } else if (pending.eventId === 'spider-training-day') {
-          current.chooseEvent('approach-spider');
-        } else if (pending.eventId === 'license-pressure-awakening') {
-          current.chooseEvent('trust-their-instincts');
         } else {
           throw new Error(`unexpected journey event ${pending.eventId}`);
         }
@@ -429,6 +348,8 @@ describe('M1 app store integration', () => {
         } else {
           current.quickResult();
         }
+      } else if (current.screen === 'championship-celebration') {
+        current.completeChampionshipCelebration();
       } else if (current.screen === 'season-end') {
         if (career.phase === 'season-end') {
           const expired = career.players.find(player =>
@@ -446,6 +367,8 @@ describe('M1 app store integration', () => {
       ) {
         if (current.screen === 'postmatch') current.continueAfterMatch();
         else if (current.screen === 'week-review') current.continueWeekReview();
+        else if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
+        else if (current.postMatchOverlay === 'development') current.dismissPostMatchDevelopment();
         else current.advanceCareer();
       } else {
         throw new Error(`unexpected persisted journey screen ${current.screen}`);
@@ -457,8 +380,8 @@ describe('M1 app store integration', () => {
     const completed = useM1Store.getState().career!;
     expect(completed).toMatchObject({ season: 2, phase: 'complete' });
     expect(completed.ledgers).toHaveLength(60);
-    expect(userHeroes()).toHaveLength(3);
-    expect(userHeroes().filter(player => player.licensed)).toHaveLength(2);
+    expect(userHeroes().length).toBeGreaterThanOrEqual(1);
+    expect(userHeroes().filter(player => player.licensed).length).toBeLessThanOrEqual(2);
     expect(watchedMatches).toBe(1);
     expect(checkpoints).toBeGreaterThan(80);
 
@@ -473,6 +396,49 @@ describe('M1 app store integration', () => {
       expect(recovered.score).toEqual([fixture.score.homeGoals, fixture.score.awayGoals]);
     }
   }, 120000);
+
+  it('resumes a saved final-match awakening and continues to the season review', async () => {
+    const database = new FakePersistenceDatabase();
+    const careerRepository = await createCareerRepository(database);
+    const replayRepository = await createReplayRepository(database);
+    startAwakenedCareer(8642);
+    const current = useM1Store.getState().career!;
+    const candidate = current.players.find(player =>
+      player.clubId === current.userClubId && player.power === undefined,
+    )!;
+    const fixture = current.fixtures.find(item =>
+      item.status === 'played'
+      && (item.homeClubId === current.userClubId || item.awayClubId === current.userClubId),
+    )!;
+    const pendingCareer = {
+      ...current,
+      phase: 'season-end' as const,
+      players: current.players.map(player => player.id === candidate.id
+        ? { ...player, power: 'SUPER_STRENGTH' as const }
+        : player),
+      awakening: {
+        matchesSinceLastAwakening: 0,
+        usedTriggerIds: ['glowing-caterpillar'],
+        pending: {
+          fixtureId: fixture.id,
+          playerId: candidate.id,
+          power: 'SUPER_STRENGTH' as const,
+          triggerId: 'glowing-caterpillar',
+          firstHero: false,
+        },
+      },
+    };
+    await careerRepository.save(pendingCareer);
+
+    useM1Store.setState(useM1Store.getInitialState(), true);
+    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+    useM1Store.getState().continueCareer();
+    expect(useM1Store.getState().screen).toBe('awakening');
+
+    useM1Store.getState().continueAfterAwakening();
+    expect(useM1Store.getState().screen).toBe('season-end');
+    expect(useM1Store.getState().career?.awakening.pending).toBeUndefined();
+  });
 
   it('blocks a new career after a load failure without overwriting the save', async () => {
     let careerSaveCalls = 0;
@@ -668,9 +634,8 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
     const career = current.career;
     if (career === null) throw new Error('career disappeared during the default journey');
 
-    if (current.screen === 'first-awakening') {
-      if (career.onboarding?.stage === 'collapse') current.chooseFirstAwakening('CHEMICAL');
-      else current.continueFirstAwakening();
+    if (current.screen === 'awakening') {
+      current.continueAfterAwakening();
       continue;
     }
     if (current.screen === 'event') {
@@ -682,21 +647,6 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
       }
       if (pending.eventId === 'giant-spider-arrives') {
         current.chooseEvent('adopt-spider');
-        continue;
-      }
-      current.selectEventPlayer();
-      if (pending.eventId === 'spider-training-day') {
-        current.chooseEvent('approach-spider');
-        continue;
-      }
-      if (pending.eventId === 'license-pressure-awakening') {
-        current.chooseEvent('trust-their-instincts');
-        const unlicensed = userHeroes().find(player => !player.licensed);
-        const licensed = userHeroes().find(player => player.licensed);
-        if (unlicensed !== undefined && licensed !== undefined) {
-          useM1Store.getState().toggleHeroLicense(licensed.id);
-          useM1Store.getState().toggleHeroLicense(unlicensed.id);
-        }
         continue;
       }
       throw new Error(`unexpected journey event ${pending.eventId}`);
@@ -714,7 +664,9 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
       continue;
     }
     if (current.screen === 'management') {
-      current.advanceCareer();
+      if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
+      else if (current.postMatchOverlay === 'development') current.dismissPostMatchDevelopment();
+      else current.advanceCareer();
       continue;
     }
     throw new Error(`unexpected journey screen ${current.screen}`);
@@ -730,6 +682,36 @@ function startCreatedCareer(seed: number): void {
   });
 }
 
+function examplePostMatch(): PostMatchViewModel {
+  return {
+    result: {
+      fixtureId: 'fixture-1',
+      competition: 'Division Five',
+      homeTeam: 'Bramble Rovers',
+      awayTeam: 'Ferrous United',
+      homeScore: 1,
+      awayScore: 0,
+      outcomeLabel: 'WIN',
+      headline: 'The office will be loud tonight.',
+    },
+    ledger: [{ id: 'tickets', label: 'Home match tickets', amount: 1200, kind: 'income' }],
+    netAmount: 1200,
+    trainingPointsGained: 7,
+    fanDelta: 10,
+    heroEssenceGained: 0,
+    highlights: [],
+    development: {
+      focusedTrainees: [{
+        id: 'player-1',
+        name: 'Joe',
+        role: 'FWD',
+        gains: [{ id: 'player-1-pac', label: 'PAC', before: 92, after: 95, delta: 3 }],
+      }],
+      conditioning: [{ id: 'conditioning-sta', attributeLabel: 'STA', gain: 1, playerCount: 17 }],
+    },
+  };
+}
+
 function startAwakenedCareer(seed: number): void {
   startCreatedCareer(seed);
   while ((useM1Store.getState().career?.week ?? 0) < 5) {
@@ -737,8 +719,7 @@ function startAwakenedCareer(seed: number): void {
   }
   useM1Store.getState().advanceCareer();
   useM1Store.getState().quickResult();
-  useM1Store.getState().chooseFirstAwakening('CHEMICAL');
-  useM1Store.getState().continueFirstAwakening();
+  useM1Store.getState().continueAfterAwakening();
 }
 
 function userHeroes() {

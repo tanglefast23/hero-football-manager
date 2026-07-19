@@ -6,7 +6,7 @@
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 
 export type MenuTheme = 'opening' | 'management' | 'event' | null;
-type MenuSfx = 'advance-week' | 'plan-locked';
+type MenuSfx = 'advance-week' | 'plan-locked' | 'league-champions';
 
 const MENU_SOURCES: Record<Exclude<MenuTheme, null>, AudioSource> = {
   opening: require('../../assets/audio/music/opening-theme.m4a'),
@@ -16,9 +16,11 @@ const MENU_SOURCES: Record<Exclude<MenuTheme, null>, AudioSource> = {
 const MENU_SFX_SOURCES: Record<MenuSfx, AudioSource> = {
   'advance-week': require('../../assets/audio/sfx/advance-week.m4a'),
   'plan-locked': require('../../assets/audio/sfx/plan-locked-chime.m4a'),
+  'league-champions': require('../../assets/audio/sfx/league-champions.m4a'),
 };
 
 const MUSIC_VOLUME = 0.5;
+const IS_WEB = typeof document !== 'undefined';
 
 const players = new Map<Exclude<MenuTheme, null>, AudioPlayer>();
 const sfxPlayers = new Map<MenuSfx, AudioPlayer>();
@@ -27,6 +29,8 @@ let activeTheme: MenuTheme = null;
 let masterVolume = 1;
 let ready = false;
 let initAttempted = false;
+let webPlaybackUnlocked = !IS_WEB;
+let removeWebUnlockListeners: (() => void) | null = null;
 
 function warnOnce(context: string, error: unknown): void {
   if (warned.has(context)) return;
@@ -49,6 +53,38 @@ function applyMasterVolume(): void {
       warnOnce(`${key} volume failed`, error);
     }
   }
+}
+
+function playActiveTheme(): void {
+  if (!ready || activeTheme === null) return;
+  try {
+    players.get(activeTheme)?.play();
+  } catch (error) {
+    warnOnce(`${activeTheme} playback failed`, error);
+  }
+}
+
+function armWebAudioUnlock(): void {
+  if (
+    !IS_WEB
+    || webPlaybackUnlocked
+    || removeWebUnlockListeners !== null
+    || typeof document === 'undefined'
+  ) return;
+
+  const unlock = () => {
+    webPlaybackUnlocked = true;
+    removeWebUnlockListeners?.();
+    removeWebUnlockListeners = null;
+    initMenuAudio();
+    playActiveTheme();
+  };
+  document.addEventListener('pointerdown', unlock, { once: true });
+  document.addEventListener('keydown', unlock, { once: true });
+  removeWebUnlockListeners = () => {
+    document.removeEventListener('pointerdown', unlock);
+    document.removeEventListener('keydown', unlock);
+  };
 }
 
 export function setMenuMasterVolume(volume: number): void {
@@ -98,6 +134,20 @@ export function playPlanLockedSfx(): void {
   playMenuSfx('plan-locked');
 }
 
+export function playLeagueChampionsSfx(): void {
+  playMenuSfx('league-champions');
+}
+
+export function stopLeagueChampionsSfx(): void {
+  initMenuAudio();
+  if (!ready) return;
+  try {
+    sfxPlayers.get('league-champions')?.pause();
+  } catch (error) {
+    warnOnce('league-champions stop failed', error);
+  }
+}
+
 function playMenuSfx(key: MenuSfx): void {
   initMenuAudio();
   if (!ready) return;
@@ -126,16 +176,18 @@ export function setMenuTheme(theme: MenuTheme): void {
   activeTheme = theme;
   if (theme === null) return;
 
-  initMenuAudio();
-  if (!ready) return;
-  try {
-    players.get(theme)?.play();
-  } catch (error) {
-    warnOnce(`${theme} playback failed`, error);
+  if (!webPlaybackUnlocked) {
+    armWebAudioUnlock();
+    return;
   }
+
+  initMenuAudio();
+  playActiveTheme();
 }
 
 export function teardownMenuAudio(): void {
+  removeWebUnlockListeners?.();
+  removeWebUnlockListeners = null;
   for (const [theme, player] of players) {
     try {
       player.pause();

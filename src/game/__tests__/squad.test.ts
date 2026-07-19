@@ -5,7 +5,6 @@ import {
   buildTrainingGround,
   releaseCareerPlayer,
   renewCareerPlayer,
-  resolveCareerAwakening,
   selectCareerLicensedHeroes,
   setCareerLineup,
 } from '../squad';
@@ -146,21 +145,6 @@ describe('career squad integration', () => {
     expect(settled.players.find(player => player.id === `${CLUB_IDS[0]}-p9`)?.attrs.pac).toBe(50);
     expect(settled.trainingPlan).toEqual(planned.trainingPlan);
     expect(settled.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
-  });
-
-  it('persists awakening pity and resets it when hero #2 awakens', () => {
-    const playerId = `${CLUB_IDS[0]}-p12`;
-    const failed = resolveCareerAwakening(career(), playerId, 99, 'SUPER_STRENGTH');
-    expect(failed.awakened).toBe(false);
-    expect(failed.chancePercent).toBe(8);
-    expect(failed.state.eventClock.riskyChoices).toBe(1);
-
-    const awakened = resolveCareerAwakening(failed.state, playerId, 0, 'SUPER_STRENGTH');
-    expect(awakened.awakened).toBe(true);
-    expect(awakened.chancePercent).toBe(14);
-    expect(awakened.state.eventClock.riskyChoices).toBe(0);
-    expect(awakened.state.players.find(player => player.id === playerId)?.power)
-      .toBe('SUPER_STRENGTH');
   });
 
   it('expires contracts at season end and applies the hero wage cliff only on renewal', () => {

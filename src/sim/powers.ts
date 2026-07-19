@@ -108,16 +108,15 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
 
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
   if (power === 'SUPER_SPEED') {
-    // Self-carrier value is directional (Task 13 pre-flight, Issue A): a speedster
-    // in their own defensive half isn't breaking anything by sprinting, so only the
-    // attacking half counts. A loose ball worth a sprint counts anywhere.
+    // Self-carrier value is directional: a speedster in their own defensive half
+    // is not breaking anything by sprinting, so only the attacking half counts.
+    // A loose ball worth a sprint counts anywhere.
     const inAttackingHalf = p.team === 0 ? p.pos.y < PITCH_H / 2 : p.pos.y > PITCH_H / 2;
     return (b.kind === 'held' && b.by === idx && inAttackingHalf) ||
       (b.kind === 'loose' && dist2(b.pos, p.pos) < SPEED_LOOSE_BALL_RANGE * SPEED_LOOSE_BALL_RANGE);
   }
-  // FIRE_TORCH: self-carrier only counts with a marker close enough to actually
-  // ignite (firing into empty space wastes the tackle-suppression window) — the
-  // same TORCH_IGNITE_RANGE the ignite effect resolves against.
+  // FIRE_TORCH fires when its carrier has a close marker, or when it can directly
+  // ignite the opposing carrier. The effect and context share one radius.
   return (b.kind === 'held' && b.by === idx && opponentWithin(state, idx, TORCH_IGNITE_RANGE)) ||
     oppCarrierNear(TORCH_IGNITE_RANGE);
 }
@@ -289,7 +288,10 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       if (d2 < nearestD2) { nearestD2 = d2; nearest = i; }
     }
     if (nearest !== -1) {
-      knockOut(state, nearest, state.tick + 140, 'ignited'); // 100 → 140 ticks out (tuning round 1)
+      // Stronger match fatigue otherwise made useful-context auto-fire lose to
+      // blind immediate firing. The longer visible removal restores timing value
+      // while keeping the approved contextual trigger and 0.85 strength intact.
+      knockOut(state, nearest, state.tick + 180, 'ignited');
       emit(state, { t: state.tick, kind: 'IGNITED', player: nearest });
     }
   } else if (power === 'SUPER_STRENGTH') {

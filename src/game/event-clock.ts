@@ -1,11 +1,7 @@
 import { mulberry32 } from '../sim/rng';
-import { awakeningChancePercent } from './progression';
 
 const WEEKLY_EVENT_PERCENT = 18;
 const GUARANTEED_EVENT_WEEK = 8;
-
-export const M1_AWAKENING_RETRY_FIRST_WEEK = 9;
-export const M1_AWAKENING_RETRY_LAST_WEEK = 24;
 
 export interface EventClockState {
   weeksWithoutEvent: number;
@@ -22,24 +18,6 @@ export interface CareerEventRollContext {
   season: number;
   week: number;
   riskyChoices: number;
-}
-
-export interface AwakeningRetryWindowOptions {
-  careerSeed: number;
-  season: number;
-  firstWeek: number;
-  lastWeek: number;
-  initialFailedRiskyChoices: number;
-  choiceId: string;
-  baseChancePercent: number;
-  pityIncrementPercent: number;
-}
-
-export interface AwakeningRetryWindowResult {
-  awakened: boolean;
-  awakeningWeek?: number;
-  attempts: number;
-  failedRiskyChoices: number;
 }
 
 export function rollWeeklyEvent(state: EventClockState, rollPercent: number): WeeklyEventRoll {
@@ -134,49 +112,6 @@ export function deterministicCareerEventRoll(
     Math.imul(hashString(choiceId), stream + 1)
   ) >>> 0;
   return Math.floor(mulberry32(seed)() * upperExclusive);
-}
-
-/** Models the shipped M1 chain: retry the same risky choice once per week. */
-export function simulateWeeklyAwakeningRetryWindow(
-  options: AwakeningRetryWindowOptions,
-): AwakeningRetryWindowResult {
-  validatePositiveInteger(options.firstWeek, 'awakening retry first week');
-  validatePositiveInteger(options.lastWeek, 'awakening retry last week');
-  if (options.lastWeek < options.firstWeek) {
-    throw new Error('awakening retry last week must not precede the first week');
-  }
-  if (!Number.isSafeInteger(options.initialFailedRiskyChoices)
-    || options.initialFailedRiskyChoices < 0) {
-    throw new Error('initial failed risky choices must be a nonnegative safe integer');
-  }
-
-  let failedRiskyChoices = options.initialFailedRiskyChoices;
-  let attempts = 0;
-  for (let week = options.firstWeek; week <= options.lastWeek; week += 1) {
-    attempts += 1;
-    const chancePercent = awakeningChancePercent(
-      failedRiskyChoices,
-      options.baseChancePercent,
-      options.pityIncrementPercent,
-    );
-    const rollPercent = deterministicCareerEventRoll(
-      {
-        careerSeed: options.careerSeed,
-        season: options.season,
-        week,
-        riskyChoices: failedRiskyChoices,
-      },
-      options.choiceId,
-      0,
-      100,
-    );
-    if (rollPercent < chancePercent) {
-      return { awakened: true, awakeningWeek: week, attempts, failedRiskyChoices: 0 };
-    }
-    failedRiskyChoices += 1;
-  }
-
-  return { awakened: false, attempts, failedRiskyChoices };
 }
 
 function validateState(state: EventClockState): void {

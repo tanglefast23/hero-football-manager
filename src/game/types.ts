@@ -1,5 +1,4 @@
 import type { Attrs, PowerId, Role } from '../sim/types';
-import type { OnboardingOrigin } from './onboarding/first-awakening';
 
 export const GAME_SCHEMA_VERSION = 1;
 export const M1_SEASONS = 2;
@@ -80,6 +79,20 @@ export interface PendingCareerEvent {
   outcomeText?: string;
 }
 
+export interface PendingCareerAwakening {
+  fixtureId: string;
+  playerId: string;
+  power: PowerId;
+  triggerId: string;
+  firstHero: boolean;
+}
+
+export interface CareerAwakeningState {
+  matchesSinceLastAwakening: number;
+  usedTriggerIds: string[];
+  pending?: PendingCareerAwakening;
+}
+
 export type OnboardingStage =
   | 'create-player'
   | 'first-match'
@@ -91,7 +104,8 @@ export interface CareerOnboardingState {
   stage: OnboardingStage;
   createdPlayerId?: string;
   firstFixtureId?: string;
-  selectedOrigin?: OnboardingOrigin;
+  /** Retained only so saves made before automatic awakenings remain readable. */
+  selectedOrigin?: 'CHEMICAL' | 'CREATURE' | 'SERUM';
   awakenedPower?: PowerId;
 }
 
@@ -116,6 +130,8 @@ export interface LeagueFixture {
 
 export interface FixtureResult extends FixtureScore {
   fixtureId: string;
+  /** Ordered scorer IDs when the full simulation result is available. */
+  scorerPlayerIds?: string[];
 }
 
 export type LedgerLineKind =
@@ -139,6 +155,12 @@ export interface WeeklyLedger {
   balanceAfter: number;
 }
 
+export interface PlayerSeasonGoalTally {
+  season: number;
+  playerId: string;
+  goals: number;
+}
+
 export interface GameState {
   schemaVersion: number;
   careerSeed: number;
@@ -157,11 +179,14 @@ export interface GameState {
   eventFlags: string[];
   resolvedEventIds: string[];
   pendingEvent?: PendingCareerEvent;
+  awakening: CareerAwakeningState;
   /** Optional only so pre-onboarding internal M1 saves remain loadable. */
   onboarding?: CareerOnboardingState;
   trainingPoints: number;
   heroEssence: number;
   ledgers: WeeklyLedger[];
+  /** Optional so careers saved before Golden Boot tracking remain loadable. */
+  seasonGoalTallies?: PlayerSeasonGoalTally[];
 }
 
 export interface LeagueStanding {

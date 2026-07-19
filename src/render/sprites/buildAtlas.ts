@@ -6,7 +6,13 @@
 // typed below) so the caller wires in the actual package at the integration
 // site (see docs/superpowers/plans/2026-07-17-m0-match-engine.md Task 14,
 // which mirrors this same offscreen-surface pattern in src/render/atlas.ts).
-import { loadSpriteSheet, atlasLayout, type SpriteSheet, type AtlasLayout } from './loader';
+import {
+  ATLAS_GUTTER,
+  loadSpriteSheet,
+  atlasLayout,
+  type SpriteSheet,
+  type AtlasLayout,
+} from './loader';
 
 export interface SkiaRectLike {
   x: number;
@@ -57,8 +63,8 @@ export function buildSpriteAtlas(Skia: SkiaApi): { image: unknown; rectFor: Atla
   const sheet: SpriteSheet = loadSpriteSheet();
   const layout = atlasLayout(sheet);
 
-  const atlasW = layout.cols * sheet.cell.w;
-  const atlasH = layout.rows * sheet.cell.h;
+  const atlasW = layout.cols * (sheet.cell.w + ATLAS_GUTTER * 2);
+  const atlasH = layout.rows * (sheet.cell.h + ATLAS_GUTTER * 2);
   const surface = Skia.Surface.MakeOffscreen(atlasW, atlasH);
   if (!surface) {
     throw new Error('buildSpriteAtlas: Skia.Surface.MakeOffscreen returned null');

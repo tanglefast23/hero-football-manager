@@ -45,4 +45,28 @@ describe('management UI truthfulness view models', () => {
     expect(homeViewModel({ ...career, week: fixture.week, phase: 'matchday' }).nextFixture.matchdayReady)
       .toBe(true);
   });
+
+  it('spells out the next match week on the home desk', () => {
+    const career = createCareer(createLaunchCareerSetup(924));
+    const firstFixture = career.fixtures.find(fixture =>
+      fixture.season === 1 &&
+      fixture.week === 5 &&
+      (fixture.homeClubId === career.userClubId || fixture.awayClubId === career.userClubId),
+    );
+    if (firstFixture === undefined) throw new Error('launch career has no week five user fixture');
+
+    const afterOpeningMatch = {
+      ...career,
+      week: 5,
+      fixtures: career.fixtures.map(fixture => fixture.id === firstFixture.id
+        ? {
+            ...fixture,
+            status: 'played' as const,
+            score: { homeGoals: 0, awayGoals: 1 },
+          }
+        : fixture),
+    };
+
+    expect(homeViewModel(afterOpeningMatch).nextMatchTimingLabel).toBe('In 6 weeks');
+  });
 });

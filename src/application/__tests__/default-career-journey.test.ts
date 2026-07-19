@@ -3,21 +3,20 @@ import {
   addCreatedPlayer,
   advanceWeek,
   applyCareerTraining,
-  awakenCreatedPlayer,
   beginStoryOnboarding,
   buildCareerTeamDef,
   buildTrainingGround,
   completeFirstOnboardingMatch,
   completeMatchday,
-  completeStoryOnboarding,
+  completePostMatchAwakening,
   createCareer,
   fixturesForCurrentWeek,
   releaseCareerPlayer,
   renewCareerPlayer,
+  resolvePostMatchAwakening,
   startNextSeason,
   type GameState,
 } from '../../game';
-import { mulberry32 } from '../../sim/rng';
 import { createLaunchCareerSetup } from '../launch';
 import { seasonEndViewModel } from '../view-models';
 
@@ -112,9 +111,15 @@ function playToSeasonBoundary(initial: GameState): GameState {
     })));
     if (state.onboarding?.stage === 'first-match' && firstFixtureId !== undefined) {
       state = completeFirstOnboardingMatch(state, firstFixtureId);
-      state = completeStoryOnboarding(
-        awakenCreatedPlayer(state, 'CHEMICAL', mulberry32(99)),
-      );
+      const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+      state = completePostMatchAwakening(resolvePostMatchAwakening(
+        state,
+        firstFixtureId,
+        lineup.playerIds,
+        ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'],
+        ['glowing-caterpillar'],
+        { chancePercent: 10, minimumMatchesBetween: 3 },
+      ).state);
     }
   }
   return state;

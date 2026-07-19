@@ -10,17 +10,6 @@ export interface ProgressionPlayer {
   readonly contractSeasonsRemaining: number;
 }
 
-export interface AwakeningPityState {
-  readonly failedRiskyChoices: number;
-}
-
-export interface AwakeningResult {
-  readonly player: ProgressionPlayer;
-  readonly pityState: AwakeningPityState;
-  readonly awakened: boolean;
-  readonly chancePercent: number;
-}
-
 export interface FocusDrill {
   readonly id: string;
   readonly moneyCost: number;
@@ -94,64 +83,6 @@ export function selectLicensedHeroes(
 
   const selected = new Set(selectedIds);
   return players.map(player => ({ ...player, licensed: selected.has(player.id) }));
-}
-
-export function awakeningChancePercent(
-  failedRiskyChoices: number,
-  base = 8,
-  step = 6,
-): number {
-  assertNonNegativeInteger(failedRiskyChoices, 'Failed risky choices');
-  assertNonNegativeInteger(base, 'Awakening base chance');
-  assertNonNegativeInteger(step, 'Awakening pity step');
-
-  const chance = base + failedRiskyChoices * step;
-  return chance > 100 ? 100 : chance;
-}
-
-/**
- * Resolves an awakening from a pre-generated percentage roll. This function
- * consumes no ambient randomness, so callers can persist/replay the roll.
- */
-export function resolveAwakening(
-  player: ProgressionPlayer,
-  pityState: AwakeningPityState,
-  rollPercent: number,
-  power: PowerId,
-): AwakeningResult {
-  assertNonNegativeInteger(pityState.failedRiskyChoices, 'Failed risky choices');
-  if (!Number.isSafeInteger(rollPercent) || rollPercent < 0 || rollPercent > 99) {
-    throw new Error('Awakening roll must be an integer from 0 to 99');
-  }
-
-  const chancePercent = awakeningChancePercent(pityState.failedRiskyChoices);
-
-  // A hero cannot awaken twice. This is not another failed attempt, so pity is
-  // preserved and the existing power remains authoritative.
-  if (player.power) {
-    return {
-      player: { ...player },
-      pityState: { ...pityState },
-      awakened: false,
-      chancePercent,
-    };
-  }
-
-  if (rollPercent < chancePercent) {
-    return {
-      player: { ...player, power },
-      pityState: { failedRiskyChoices: 0 },
-      awakened: true,
-      chancePercent,
-    };
-  }
-
-  return {
-    player: { ...player },
-    pityState: { failedRiskyChoices: pityState.failedRiskyChoices + 1 },
-    awakened: false,
-    chancePercent,
-  };
 }
 
 /** Returns the simple M1 renewal ask. Negotiation modifiers arrive in M2. */

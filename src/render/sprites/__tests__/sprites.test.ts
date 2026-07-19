@@ -1,4 +1,4 @@
-import { loadSpriteSheet, atlasLayout } from '../loader';
+import { ATLAS_GUTTER, loadSpriteSheet, atlasLayout } from '../loader';
 import { spriteKeyForMatchSlot } from '../slot-key';
 
 const IDS = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10',
@@ -74,8 +74,8 @@ describe('sprites.json', () => {
     it('produces rects that stay within the atlas bounds', () => {
       const sheet = loadSpriteSheet();
       const layout = atlasLayout(sheet);
-      const atlasW = layout.cols * sheet.cell.w;
-      const atlasH = layout.rows * sheet.cell.h;
+      const atlasW = layout.cols * (sheet.cell.w + ATLAS_GUTTER * 2);
+      const atlasH = layout.rows * (sheet.cell.h + ATLAS_GUTTER * 2);
       for (const key of Object.keys(sheet.sprites)) {
         const r = layout.rectFor(key);
         expect(r.x).toBeGreaterThanOrEqual(0);
@@ -83,6 +83,15 @@ describe('sprites.json', () => {
         expect(r.x + r.w).toBeLessThanOrEqual(atlasW);
         expect(r.y + r.h).toBeLessThanOrEqual(atlasH);
       }
+    });
+
+    it('keeps a transparent gutter between neighbouring sprite cells', () => {
+      const sheet = loadSpriteSheet();
+      const layout = atlasLayout(sheet);
+      const rects = Object.keys(sheet.sprites).map((key) => layout.rectFor(key));
+      const uniqueColumns = [...new Set(rects.map((rect) => rect.x))].sort((a, b) => a - b);
+      expect(uniqueColumns[1] - uniqueColumns[0]).toBe(sheet.cell.w + ATLAS_GUTTER * 2);
+      expect(uniqueColumns[0]).toBe(ATLAS_GUTTER);
     });
 
     it('produces non-overlapping rects for every sprite pair', () => {

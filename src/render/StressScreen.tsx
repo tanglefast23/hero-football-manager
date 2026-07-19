@@ -8,6 +8,7 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 import { Atlas, Canvas, Fill, Skia, useRSXformBuffer, type SkImage, type SkRect } from '@shopify/react-native-skia';
 import { runOnJS, useFrameCallback, useSharedValue, type FrameInfo } from 'react-native-reanimated';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
+import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { mulberry32 } from '../sim/rng';
 
 const SPRITE_COUNT = 2000;
@@ -169,7 +170,12 @@ export function StressScreen({ onBack }: { onBack?: () => void }) {
     <View style={styles.root}>
       <Canvas style={{ width, height }}>
         <Fill color="#101418" />
-        <Atlas image={atlas.image as SkImage} sprites={sprites} transforms={transforms} />
+        <Atlas
+          image={atlas.image as SkImage}
+          sprites={sprites}
+          transforms={transforms}
+          sampling={PIXEL_ART_SAMPLING}
+        />
       </Canvas>
       <Pressable style={styles.backBtn} onPress={() => onBack?.()}>
         <Text style={styles.backText}>‹ Back</Text>

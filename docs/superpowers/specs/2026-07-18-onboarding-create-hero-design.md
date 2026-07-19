@@ -1,5 +1,7 @@
 # Onboarding — Create-a-Hero + First Awakening (Story Mode opening)
 
+> **Superseded 2026-07-19:** the three-origin choice and weekly risk/pity awakening system below were replaced by the automatic post-match cutscene specified in docs 04, 07, 08, and 10. This file remains only as historical design context.
+
 Status: **APPROVED for M1 implementation** (owner brainstorm 2026-07-18). This is the literal
 first thing a new player does, so a minimal version ships **inside the M1 vertical slice**. Full
 look-customization (paper-doll) stays deferred to M4.

@@ -63,6 +63,7 @@ export interface HomeViewModel {
   managerName: string;
   seasonLabel: string;
   weekLabel: string;
+  nextMatchTimingLabel: string;
   form: readonly ('W' | 'D' | 'L')[];
   resources: ResourceSummaryViewModel;
   nextFixture: FixtureViewModel;
@@ -270,6 +271,41 @@ export interface StoryEventViewModel {
   outcomeText?: string;
 }
 
+export interface AwakeningCutsceneViewModel {
+  fixtureLabel: string;
+  playerName: string;
+  role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  powerId: 'SUPER_SPEED' | 'SUPER_STRENGTH' | 'FIRE_TORCH';
+  powerName: string;
+  limpCopy: string;
+  triggerVisual:
+    | 'caterpillar'
+    | 'water'
+    | 'cpr'
+    | 'sponge'
+    | 'sneeze'
+    | 'ice'
+    | 'drink'
+    | 'sprinkler'
+    | 'shin-guard'
+    | 'meteor'
+    | 'ball'
+    | 'confetti'
+    | 'feather'
+    | 'thermometer'
+    | 'defibrillator';
+  triggerKicker: string;
+  triggerTitle: string;
+  triggerCallout: string;
+  triggerDetail: string;
+  triggerCopy: string;
+  omenCopy: string;
+  revealCopy: string;
+  firstHero: boolean;
+  licenseLabel: string;
+  continueLabel: string;
+}
+
 export interface SeasonTableRowViewModel {
   position: number;
   clubId: string;
@@ -305,4 +341,24 @@ export interface SeasonEndViewModel {
   expiredContract?: ExpiredContractViewModel;
   sliceComplete: boolean;
   canContinue: boolean;
+}
+
+export interface ChampionshipCelebrationPlayerViewModel {
+  id: string;
+  name: string;
+  role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  isHero: boolean;
+  /** The exact atlas character used for this player in the final match. */
+  spriteKey: string;
+}
+
+export interface ChampionshipCelebrationViewModel {
+  seasonLabel: string;
+  clubName: string;
+  assistantName: string;
+  star: ChampionshipCelebrationPlayerViewModel & {
+    goals: number;
+    hasRecordedGoals: boolean;
+  };
+  squad: readonly ChampionshipCelebrationPlayerViewModel[];
 }

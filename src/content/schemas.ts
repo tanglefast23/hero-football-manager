@@ -81,27 +81,54 @@ export const PowerDefinitionSchema = z.strictObject({
 
 export const PowerCatalogSchema = z.strictObject({
   schemaVersion: ContentSchemaVersion,
+  awakening: z.strictObject({
+    postMatchChancePercent: z.literal(10),
+    minimumMatchesBetween: z.literal(3),
+  }),
   powers: z.array(PowerDefinitionSchema).length(3),
 }).superRefine((catalog, context) => {
   addDuplicateIssues(catalog.powers.map(power => power.id), context, ['powers'], 'power ID');
 });
 
-export const OnboardingOriginSchema = z.enum(['CHEMICAL', 'CREATURE', 'SERUM']);
 export const OnboardingContentSchema = z.strictObject({
   schemaVersion: ContentSchemaVersion,
-  collapse: displayNameSchema,
-  prompt: displayNameSchema,
-  choices: z.array(z.strictObject({
-    origin: OnboardingOriginSchema,
-    label: displayNameSchema,
-    hint: displayNameSchema,
+  limp: displayNameSchema,
+  triggers: z.array(z.strictObject({
+    id: idSchema,
+    visual: z.enum([
+      'caterpillar',
+      'water',
+      'cpr',
+      'sponge',
+      'sneeze',
+      'ice',
+      'drink',
+      'sprinkler',
+      'shin-guard',
+      'meteor',
+      'ball',
+      'confetti',
+      'feather',
+      'thermometer',
+      'defibrillator',
+    ]),
+    kicker: displayNameSchema,
+    title: displayNameSchema,
+    callout: displayNameSchema,
+    detail: displayNameSchema,
+    copy: displayNameSchema,
+  })).length(15),
+  powers: z.array(z.strictObject({
+    powerId: PowerIdSchema,
+    omen: displayNameSchema,
     reveal: displayNameSchema,
   })).length(3),
 }).superRefine((content, context) => {
-  addDuplicateIssues(content.choices.map(choice => choice.origin), context, ['choices'], 'origin');
-  for (const origin of OnboardingOriginSchema.options) {
-    if (!content.choices.some(choice => choice.origin === origin)) {
-      addIssue(context, ['choices'], `missing onboarding origin ${origin}`);
+  addDuplicateIssues(content.triggers.map(trigger => trigger.id), context, ['triggers'], 'awakening trigger');
+  addDuplicateIssues(content.powers.map(power => power.powerId), context, ['powers'], 'power');
+  for (const powerId of PowerIdSchema.options) {
+    if (!content.powers.some(power => power.powerId === powerId)) {
+      addIssue(context, ['powers'], `missing awakening copy for ${powerId}`);
     }
   }
 });
@@ -195,10 +222,6 @@ const EventEffectSchema = z.discriminatedUnion('type', [
     attribute: AttributeSchema,
     amount: z.number().int().min(-10).max(10),
   }),
-  z.strictObject({
-    type: z.literal('awakenPower'),
-    powerIds: z.array(PowerIdSchema).min(1),
-  }),
   z.strictObject({ type: z.literal('flag'), flag: idSchema, value: z.boolean() }),
 ]);
 
@@ -242,10 +265,8 @@ export const EventCatalogSchema = z.strictObject({
   tuning: z.strictObject({
     weeklyChancePercent: z.literal(18),
     guaranteeAfterDryWeeks: z.literal(8),
-    baseAwakeningChancePercent: z.literal(8),
-    pityIncrementPercent: z.literal(6),
   }),
-  events: z.array(GameEventSchema).min(2),
+  events: z.array(GameEventSchema).min(1),
 }).superRefine((catalog, context) => {
   addDuplicateIssues(catalog.events.map(event => event.id), context, ['events'], 'event ID');
 });
@@ -326,18 +347,6 @@ export const LaunchContentSchema = z.strictObject({
             `unknown next event ID ${outcome.nextEventId}`,
           );
         }
-        outcome.effects.forEach((effect, effectIndex) => {
-          if (effect.type !== 'awakenPower') return;
-          effect.powerIds.forEach((powerId, powerIndex) => {
-            if (!powerIds.has(powerId)) {
-              addIssue(
-                context,
-                ['events', 'events', eventIndex, 'choices', choiceIndex, 'outcomes', outcomeIndex, 'effects', effectIndex, 'powerIds', powerIndex],
-                `unknown awakening power ID ${powerId}`,
-              );
-            }
-          });
-        });
       });
     });
   });

@@ -13,7 +13,7 @@ module.exports = {
     // CommonJS, which Jest needs; (2) allowJs makes ts-jest default outDir to an
     // internal constant, and TS 6 hard-errors (TS5011) on outDir without an
     // explicit rootDir — set rootDir to the project root to satisfy that.
-    '^.+\\.tsx?$': ['ts-jest', { isolatedModules: true, tsconfig: { module: 'commonjs', rootDir: '.' } }],
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: { module: 'commonjs', rootDir: '.', isolatedModules: true } }],
   },
   // Binary media assets (require('*.wav'/'*.m4a')) can't load as JS modules under
   // Jest — Metro handles them in the app. Stub them so audio.ts (and its pure

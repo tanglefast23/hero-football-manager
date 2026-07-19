@@ -2,9 +2,7 @@
   "schemaVersion": 1,
   "tuning": {
     "weeklyChancePercent": 18,
-    "guaranteeAfterDryWeeks": 8,
-    "baseAwakeningChancePercent": 8,
-    "pityIncrementPercent": 6
+    "guaranteeAfterDryWeeks": 8
   },
   "events": [
     {
@@ -26,10 +24,8 @@
               "text": "The spider accepts a locker and demands extra training cones.",
               "effects": [
                 { "type": "morale", "amount": 5 },
-                { "type": "flag", "flag": "spider-adopted", "value": true },
-                { "type": "flag", "flag": "spider-chase", "value": true }
-              ],
-              "nextEventId": "spider-training-day"
+                { "type": "flag", "flag": "spider-adopted", "value": true }
+              ]
             }
           ]
         },
@@ -41,95 +37,7 @@
             {
               "weight": 100,
               "text": "The clubhouse is safe, but the tiny scarf remains unexplained.",
-              "effects": [
-                { "type": "tp", "amount": 10 },
-                { "type": "flag", "flag": "spider-chase", "value": true }
-              ],
-              "nextEventId": "spider-training-day"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "spider-training-day",
-      "category": "mystery",
-      "rarity": "rare",
-      "art": "event-spider-training",
-      "title": "Eight-Legged Training",
-      "body": "Your new mascot challenges one player to approach during sprint drills.",
-      "trigger": { "season": 1, "minWeek": 9, "maxWeek": 24, "requiredFlag": "spider-chase" },
-      "choices": [
-        {
-          "id": "approach-spider",
-          "label": "Pick a player to approach",
-          "risky": true,
-          "outcomes": [
-            { "weight": 30, "text": "The spider respects the hustle.", "effects": [{ "type": "morale", "amount": 5 }] },
-            { "weight": 25, "text": "Adrenaline sharpens every step.", "effects": [{ "type": "statDelta", "attribute": "pac", "amount": 2 }] },
-            { "weight": 20, "text": "A heroic bite requires two weeks of ice packs.", "effects": [{ "type": "injury", "weeks": 2 }] },
-            { "weight": 15, "text": "The player feels strangely drained for the season.", "effects": [{ "type": "statDelta", "attribute": "sta", "amount": -2 }] },
-            {
-              "weight": 8,
-              "text": "KRAK! Something impossible awakens.",
-              "effects": [
-                { "type": "awakenPower", "powerIds": ["SUPER_SPEED", "SUPER_STRENGTH", "FIRE_TORCH"] },
-                { "type": "flag", "flag": "second-hero-awakened", "value": true }
-              ]
-            },
-            { "weight": 2, "text": "It just wanted season tickets.", "effects": [{ "type": "fans", "amount": 500 }] }
-          ]
-        },
-        {
-          "id": "squash-training",
-          "label": "Run a supervised drill instead",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "text": "The spider stays behind a barrier. The squad trains hard and can try again another week.",
               "effects": [{ "type": "tp", "amount": 10 }]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "license-pressure-awakening",
-      "category": "mystery",
-      "rarity": "rare",
-      "art": "event-license-pressure",
-      "title": "The Spark Spreads",
-      "body": "The new hero's awakening sends a second pulse through the training ground. One more unpowered reserve steps forward—and the club owns only two match permits.",
-      "trigger": { "season": 1, "minWeek": 10, "maxWeek": 29, "requiredFlag": "second-hero-awakened" },
-      "choices": [
-        {
-          "id": "trust-their-instincts",
-          "label": "Trust their strongest traits",
-          "risky": true,
-          "outcomes": [
-            {
-              "weight": 100,
-              "text": "The spark finds the shape that already lived inside their game.",
-              "effects": [
-                { "type": "awakenPower", "powerIds": ["SUPER_SPEED", "SUPER_STRENGTH", "FIRE_TORCH"] },
-                { "type": "flag", "flag": "license-competition-ready", "value": true }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "let-bert-guide-them",
-          "label": "Let Bert steady the moment",
-          "risky": false,
-          "outcomes": [
-            {
-              "weight": 100,
-              "text": "Bert keeps everyone calm while the player's natural power breaks through.",
-              "effects": [
-                { "type": "awakenPower", "powerIds": ["SUPER_SPEED", "SUPER_STRENGTH", "FIRE_TORCH"] },
-                { "type": "flag", "flag": "license-competition-ready", "value": true }
-              ]
             }
           ]
         }
