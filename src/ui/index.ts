@@ -7,7 +7,7 @@ export * from './components/FormationDiagram';
 export * from './screens/ClubHomeScreen';
 export * from './screens/ClubFinancesScreen';
 export * from './screens/CharacterCreationScreen';
-export * from './screens/FirstAwakeningScreen';
+export * from './screens/AwakeningCutsceneScreen';
 export * from './screens/FixtureMatchDayScreen';
 export * from './screens/HirePitchScreen';
 export * from './screens/LeagueTableScreen';

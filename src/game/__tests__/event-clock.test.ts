@@ -1,11 +1,8 @@
 import {
   chooseWeightedOutcome,
   deterministicCareerEventRoll,
-  M1_AWAKENING_RETRY_FIRST_WEEK,
-  M1_AWAKENING_RETRY_LAST_WEEK,
   recordEventChoice,
   rollWeeklyEvent,
-  simulateWeeklyAwakeningRetryWindow,
   type EventClockState,
 } from '../event-clock';
 
@@ -152,44 +149,5 @@ describe('deterministic career event rolls', () => {
     [{ careerSeed: 1, season: 1, week: 9, riskyChoices: -1 }],
   ])('rejects invalid roll context %p', context => {
     expect(() => deterministicCareerEventRoll(context, 'approach-spider', 0, 100)).toThrow();
-  });
-});
-
-describe('M1 awakening retry window', () => {
-  it('retries weekly and always resolves by the Week-24 pity deadline', () => {
-    for (let careerSeed = 1; careerSeed <= 200; careerSeed += 1) {
-      const result = simulateWeeklyAwakeningRetryWindow({
-        careerSeed,
-        season: 1,
-        firstWeek: M1_AWAKENING_RETRY_FIRST_WEEK,
-        lastWeek: M1_AWAKENING_RETRY_LAST_WEEK,
-        // Adopting the spider is itself the first failed risky choice.
-        initialFailedRiskyChoices: 1,
-        choiceId: 'approach-spider',
-        baseChancePercent: 8,
-        pityIncrementPercent: 6,
-      });
-
-      expect(result.awakened).toBe(true);
-      expect(result.awakeningWeek).toBeGreaterThanOrEqual(M1_AWAKENING_RETRY_FIRST_WEEK);
-      expect(result.awakeningWeek).toBeLessThanOrEqual(M1_AWAKENING_RETRY_LAST_WEEK);
-      expect(result.attempts).toBe(result.awakeningWeek! - M1_AWAKENING_RETRY_FIRST_WEEK + 1);
-      expect(result.failedRiskyChoices).toBe(0);
-    }
-  });
-
-  it('reports an unresolved window when pity cannot reach a guaranteed roll', () => {
-    const result = simulateWeeklyAwakeningRetryWindow({
-      careerSeed: 1,
-      season: 1,
-      firstWeek: 9,
-      lastWeek: 9,
-      initialFailedRiskyChoices: 0,
-      choiceId: 'approach-spider',
-      baseChancePercent: 0,
-      pityIncrementPercent: 0,
-    });
-
-    expect(result).toEqual({ awakened: false, attempts: 1, failedRiskyChoices: 1 });
   });
 });

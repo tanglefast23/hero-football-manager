@@ -190,6 +190,24 @@ const pendingEventSchema = z
   })
   .passthrough();
 
+const pendingAwakeningSchema = z
+  .object({
+    fixtureId: nonemptyString,
+    playerId: nonemptyString,
+    power: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']),
+    triggerId: nonemptyString,
+    firstHero: z.boolean(),
+  })
+  .passthrough();
+
+const awakeningSchema = z
+  .object({
+    matchesSinceLastAwakening: nonnegativeInteger,
+    usedTriggerIds: z.array(nonemptyString).optional(),
+    pending: pendingAwakeningSchema.optional(),
+  })
+  .passthrough();
+
 const onboardingSchema = z
   .object({
     stage: z.enum(['create-player', 'first-match', 'collapse', 'reveal', 'complete']),
@@ -208,9 +226,6 @@ const onboardingSchema = z
       context.addIssue({ code: 'custom', path: ['firstFixtureId'], message: 'is required after creation' });
     }
     if (onboarding.stage === 'reveal' || onboarding.stage === 'complete') {
-      if (onboarding.selectedOrigin === undefined) {
-        context.addIssue({ code: 'custom', path: ['selectedOrigin'], message: 'is required after awakening' });
-      }
       if (onboarding.awakenedPower === undefined) {
         context.addIssue({ code: 'custom', path: ['awakenedPower'], message: 'is required after awakening' });
       }
@@ -236,6 +251,9 @@ const gameStateSchema = z
     eventFlags: z.array(nonemptyString),
     resolvedEventIds: z.array(nonemptyString),
     pendingEvent: pendingEventSchema.optional(),
+    // Optional at decode time so pre-cutscene schema-1 saves can be upgraded
+    // by the application reconciliation pass without being treated as corrupt.
+    awakening: awakeningSchema.optional(),
     onboarding: onboardingSchema.optional(),
     trainingPoints: nonnegativeInteger,
     heroEssence: nonnegativeInteger,
@@ -330,6 +348,24 @@ const gameStateSchema = z
         path: ['onboarding', 'firstFixtureId'],
         message: 'first fixture does not exist',
       });
+    }
+    if (state.awakening?.pending !== undefined) {
+      const pending = state.awakening.pending;
+      if (!fixtureIds.has(pending.fixtureId)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['awakening', 'pending', 'fixtureId'],
+          message: 'awakening fixture does not exist',
+        });
+      }
+      const awakeningPlayer = state.players.find(player => player.id === pending.playerId);
+      if (awakeningPlayer?.clubId !== state.userClubId || awakeningPlayer.power !== pending.power) {
+        context.addIssue({
+          code: 'custom',
+          path: ['awakening', 'pending', 'playerId'],
+          message: 'pending awakening must match a user-club hero',
+        });
+      }
     }
     const onboardingPlayer = state.onboarding?.createdPlayerId === undefined
       ? undefined
@@ -513,7 +549,18 @@ export function parseStoredGameState(serialized: string): GameState {
   if (!validation.success) {
     throw new CorruptCareerSaveError(formatIssues(validation.error.issues));
   }
-  return validation.data as GameState;
+  const parsed = validation.data as Omit<GameState, 'awakening'> & {
+    awakening?: Omit<GameState['awakening'], 'usedTriggerIds'> & { usedTriggerIds?: string[] };
+  };
+  return {
+    ...parsed,
+    awakening: parsed.awakening === undefined
+      ? { matchesSinceLastAwakening: 0, usedTriggerIds: [] }
+      : {
+          ...parsed.awakening,
+          usedTriggerIds: parsed.awakening.usedTriggerIds ?? [],
+        },
+  };
 }
 
 function assertSupportedSchema(value: unknown, stored: boolean): void {

@@ -5,7 +5,6 @@ import {
   addCreatedPlayer,
   applyCareerEventOutcome,
   applyCareerTraining,
-  awakenCreatedPlayer,
   beginStoryOnboarding,
   buildCareerTeams,
   buildTrainingGround,
@@ -13,21 +12,18 @@ import {
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
   completeMatchday,
-  completeStoryOnboarding,
+  completePostMatchAwakening,
   createCareer,
-  awakeningPowerRollSize,
-  chooseStatWeightedAwakeningPower,
   deterministicCareerEventRoll,
   dismissCareerEvent,
   fixturesForCurrentWeek,
   hasAssistantGuideMilestone,
   isFirstOnboardingFixture,
-  onboardingAwakeningSeed,
   offerCareerEvent,
   quickMatchForFixture,
   renewCareerPlayer,
   releaseCareerPlayer,
-  resolveCareerAwakening,
+  resolvePostMatchAwakening,
   resolveMatchday,
   selectCareerEventPlayer,
   selectCareerLicensedHeroes,
@@ -38,18 +34,22 @@ import {
   type AssistantGuideSequenceId,
   type GameState,
   type LeagueFixture,
-  type OnboardingOrigin,
 } from '../game';
 import type { CareerRepository, ReplayRepository } from '../persistence';
 import { HALF_TICKS } from '../sim/geometry';
 import { envelopeFrom } from '../sim/match';
-import { mulberry32 } from '../sim/rng';
-import type { MatchState, TeamDef } from '../sim/types';
+import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
 import type { ManagementTab, PostMatchViewModel } from '../ui';
 import { createLaunchCareerSetup, generateCareerSeed, reconcileLaunchRoster } from './launch';
 import { postMatchViewModel } from './view-models';
 
 const launchContent = loadLaunchContent();
+const awakeningPowerIds = launchContent.powers.powers.map(power => power.id);
+const awakeningTriggerIds = launchContent.onboarding.triggers.map(trigger => trigger.id);
+const awakeningTuning = {
+  chancePercent: launchContent.powers.awakening.postMatchChancePercent,
+  minimumMatchesBetween: launchContent.powers.awakening.minimumMatchesBetween,
+};
 let saveQueue = Promise.resolve();
 let latestSaveTicket = 0;
 
@@ -57,7 +57,7 @@ export type M1Screen =
   | 'welcome'
   | 'create-player'
   | 'management'
-  | 'first-awakening'
+  | 'awakening'
   | 'event'
   | 'matchday'
   | 'watched'
@@ -96,8 +96,7 @@ interface M1Store {
   startNewCareer: (seed?: number) => void;
   continueCareer: () => void;
   completePlayerCreation: (draft: CreatedPlayerDraft) => void;
-  chooseFirstAwakening: (origin: OnboardingOrigin) => void;
-  continueFirstAwakening: () => void;
+  continueAfterAwakening: () => void;
   setActiveTab: (tab: ManagementTab) => void;
   completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
   openMatchday: () => void;
@@ -142,7 +141,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
   async initializePersistence(repository, replayRepository) {
     try {
       const loadedCareer = await repository.load();
-      const career = loadedCareer === null ? null : reconcileLaunchRoster(loadedCareer, launchContent);
+      const reconciled = loadedCareer === null ? null : reconcileLaunchRoster(loadedCareer, launchContent);
+      const career = reconciled === null ? null : reconcileLegacyFirstAwakening(reconciled);
       if (career !== null && career !== loadedCareer) await repository.save(career);
       set({
         repository,
@@ -209,27 +209,25 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  chooseFirstAwakening(origin) {
+  continueAfterAwakening() {
     guarded(set, () => {
       const career = requireCareer(get());
-      const next = awakenCreatedPlayer(
-        career,
-        origin,
-        mulberry32(onboardingAwakeningSeed(career)),
-      );
-      set({ career: next, screen: 'first-awakening', error: null });
-      queueCareerSave(get, set, next);
-    });
-  },
-
-  continueFirstAwakening() {
-    guarded(set, () => {
-      const next = completeStoryOnboarding(requireCareer(get()));
+      const pending = career.awakening.pending;
+      if (pending === undefined) throw new Error('there is no awakening cutscene to finish');
+      const next = completePostMatchAwakening(career);
+      const returnToPostMatch = !pending.firstHero
+        && career.phase === 'manage'
+        && get().postMatch !== null;
+      const screen: M1Screen = returnToPostMatch
+        ? 'postmatch'
+        : career.phase === 'season-end' || career.phase === 'complete'
+          ? 'season-end'
+          : 'management';
       set({
         career: next,
-        screen: 'management',
+        screen,
         activeTab: 'home',
-        postMatch: null,
+        postMatch: returnToPostMatch ? get().postMatch : null,
         error: null,
       });
       queueCareerSave(get, set, next);
@@ -267,8 +265,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (career.onboarding?.stage === 'create-player') {
         throw new Error('Create your player before entering the club office.');
       }
-      if (career.onboarding?.stage === 'collapse' || career.onboarding?.stage === 'reveal') {
-        set({ screen: 'first-awakening', error: null });
+      if (career.awakening.pending !== undefined || career.onboarding?.stage === 'reveal') {
+        set({ screen: 'awakening', error: null });
         return;
       }
       if (career.phase === 'matchday') {
@@ -326,16 +324,25 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (userResult === undefined) throw new Error('the user fixture did not produce a result');
       const after = completeMatchday(before, results);
       const isOnboardingMatch = isFirstOnboardingFixture(before, fixture.id);
-      const next = isOnboardingMatch
+      const completed = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)
         : after;
+      const awakening = resolvePostMatchAwakening(
+        completed,
+        fixture.id,
+        userReplayParticipantIds(quickMatch.replay, fixture, before.userClubId),
+        awakeningPowerIds,
+        awakeningTriggerIds,
+        awakeningTuning,
+      );
+      const next = awakening.state;
       const postMatch = isOnboardingMatch
         ? null
         : postMatchViewModel(before, next, fixture.id, userResult);
       set({
         career: next,
         postMatch,
-        screen: isOnboardingMatch ? 'first-awakening' : 'postmatch',
+        screen: awakening.awakened ? 'awakening' : 'postmatch',
         watchedMatch: null,
         error: null,
       });
@@ -388,16 +395,25 @@ export const useM1Store = create<M1Store>((set, get) => ({
             : 'Goal',
         }));
       const isOnboardingMatch = isFirstOnboardingFixture(before, fixture.id);
-      const next = isOnboardingMatch
+      const completed = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)
         : after;
+      const awakening = resolvePostMatchAwakening(
+        completed,
+        fixture.id,
+        userMatchParticipantIds(result, fixture, before.userClubId),
+        awakeningPowerIds,
+        awakeningTriggerIds,
+        awakeningTuning,
+      );
+      const next = awakening.state;
       const postMatch = isOnboardingMatch
         ? null
         : postMatchViewModel(before, next, fixture.id, supplied, highlights);
       set({
         career: next,
         postMatch,
-        screen: isOnboardingMatch ? 'first-awakening' : 'postmatch',
+        screen: awakening.awakened ? 'awakening' : 'postmatch',
         watchedMatch: null,
         error: null,
       });
@@ -446,13 +462,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const career = requireCareer(get());
       const pending = career.pendingEvent;
       if (pending?.resolvedChoiceId === undefined) throw new Error('resolve the event before continuing');
-      const selectedPlayer = pending.selectedPlayerId === undefined
-        ? undefined
-        : career.players.find(player => player.id === pending.selectedPlayerId);
-      const shouldRepeat = pending.eventId === 'spider-training-day'
-        && !career.eventFlags.includes('second-hero-awakened')
-        && selectedPlayer?.power === undefined;
-      const dismissed = dismissCareerEvent(career, !shouldRepeat);
+      const dismissed = dismissCareerEvent(career, true);
       const next = advanceWeek(dismissed);
       set({
         career: next,
@@ -642,24 +652,6 @@ function scheduledEventId(state: GameState): string | undefined {
   ) {
     return 'giant-spider-arrives';
   }
-  if (
-    state.season === 1 &&
-    state.week >= 9 &&
-    state.week <= 24 &&
-    state.eventFlags.includes('spider-chase') &&
-    !state.resolvedEventIds.includes('spider-training-day')
-  ) {
-    return 'spider-training-day';
-  }
-  if (
-    state.season === 1
-    && state.week >= 10
-    && state.week <= 29
-    && state.eventFlags.includes('second-hero-awakened')
-    && !state.resolvedEventIds.includes('license-pressure-awakening')
-  ) {
-    return 'license-pressure-awakening';
-  }
   return undefined;
 }
 
@@ -671,73 +663,22 @@ function resolveContentEvent(state: GameState, choiceId: string): GameState {
   const choice = event.choices.find(candidate => candidate.id === choiceId);
   if (choice === undefined) throw new Error(`unknown event choice ${choiceId}`);
 
+  const total = choice.outcomes.reduce((sum, candidate) => sum + candidate.weight, 0);
+  const outcome = choice.outcomes[
+    weightedIndex(
+      choice.outcomes.map(candidate => candidate.weight),
+      careerEventRoll(state, choiceId, 0, total),
+    )
+  ];
   let working = state;
-  let outcome;
-  const awakeningOutcome = choice.outcomes.find(candidate =>
-    candidate.effects.some(effect => effect.type === 'awakenPower'),
-  );
-  if (awakeningOutcome !== undefined) {
-    const playerId = pending.selectedPlayerId;
-    if (playerId === undefined) throw new Error('choose a player before resolving the awakening');
-    const player = working.players.find(candidate =>
-      candidate.id === playerId && candidate.clubId === working.userClubId,
-    );
-    if (player === undefined) throw new Error(`unknown awakening player ${playerId}`);
-    const awakeningEffect = awakeningOutcome?.effects.find(
-      effect => effect.type === 'awakenPower',
-    );
-    if (awakeningEffect?.type !== 'awakenPower') {
-      throw new Error('the awakening content is missing its power outcome');
+  if (choice.risky) {
+    if (working.eventClock.riskyChoices === Number.MAX_SAFE_INTEGER) {
+      throw new Error('event risk counter exceeds the safe integer range');
     }
-    const guaranteed = event.id === 'license-pressure-awakening';
-    const awakeningRoll = guaranteed ? 0 : careerEventRoll(working, choiceId, 0, 100);
-    const powerRollSize = awakeningPowerRollSize(awakeningEffect.powerIds, player.attrs);
-    const powerRoll = careerEventRoll(
-      working,
-      choiceId,
-      2,
-      powerRollSize,
-    );
-    const awakening = resolveCareerAwakening(
-      working,
-      playerId,
-      awakeningRoll,
-      chooseStatWeightedAwakeningPower(awakeningEffect.powerIds, player.attrs, powerRoll),
-    );
-    working = awakening.state;
-    if (awakening.awakened) {
-      if (!guaranteed) {
-        working = licenseSecondHero(working, playerId);
-        working = addEventFlag(working, 'second-hero-awakened');
-      }
-      outcome = awakeningOutcome;
-    } else {
-      const ordinary = choice.outcomes.filter(candidate =>
-        !candidate.effects.some(effect => effect.type === 'awakenPower'),
-      );
-      const total = ordinary.reduce((sum, candidate) => sum + candidate.weight, 0);
-      outcome = ordinary[weightedIndex(
-        ordinary.map(candidate => candidate.weight),
-        careerEventRoll(working, choiceId, 1, total),
-      )];
-    }
-  } else {
-    const total = choice.outcomes.reduce((sum, candidate) => sum + candidate.weight, 0);
-    outcome = choice.outcomes[
-      weightedIndex(
-        choice.outcomes.map(candidate => candidate.weight),
-        careerEventRoll(working, choiceId, 0, total),
-      )
-    ];
-    if (choice.risky) {
-      if (working.eventClock.riskyChoices === Number.MAX_SAFE_INTEGER) {
-        throw new Error('awakening pity counter exceeds the safe integer range');
-      }
-      working = {
-        ...working,
-        eventClock: { ...working.eventClock, riskyChoices: working.eventClock.riskyChoices + 1 },
-      };
-    }
+    working = {
+      ...working,
+      eventClock: { ...working.eventClock, riskyChoices: working.eventClock.riskyChoices + 1 },
+    };
   }
   if (outcome === undefined) throw new Error('the event outcome did not resolve');
 
@@ -799,12 +740,6 @@ function weightedIndex(weights: readonly number[], roll: number): number {
   throw new Error('weighted event outcome did not resolve');
 }
 
-function addEventFlag(state: GameState, flag: string): GameState {
-  return state.eventFlags.includes(flag)
-    ? state
-    : { ...state, eventFlags: [...state.eventFlags, flag] };
-}
-
 function careerEventRoll(
   state: GameState,
   choiceId: string,
@@ -826,53 +761,70 @@ function careerEventRoll(
 
 function resumeScreen(career: GameState): M1Screen {
   if (career.onboarding?.stage === 'create-player') return 'create-player';
-  if (career.onboarding?.stage === 'collapse' || career.onboarding?.stage === 'reveal') {
-    return 'first-awakening';
-  }
+  if (career.awakening.pending !== undefined || career.onboarding?.stage === 'reveal') return 'awakening';
   if (career.pendingEvent !== undefined) return 'event';
   if (career.phase === 'matchday') return 'matchday';
   if (career.phase === 'season-end' || career.phase === 'complete') return 'season-end';
   return 'management';
 }
 
-function licenseSecondHero(state: GameState, playerId: string): GameState {
-  const player = state.players.find(candidate =>
-    candidate.id === playerId && candidate.clubId === state.userClubId,
-  );
-  if (player?.power === undefined) throw new Error('the awakened player is not a user-club hero');
-  const licensedIds = state.players
-    .filter(candidate => candidate.clubId === state.userClubId && candidate.licensed)
-    .map(candidate => candidate.id);
-  if (licensedIds.includes(playerId)) return state;
-  if (licensedIds.length >= 2) return state;
+function userMatchParticipantIds(
+  result: MatchState,
+  fixture: LeagueFixture,
+  userClubId: string,
+): string[] {
+  const userTeam = fixture.homeClubId === userClubId ? 0 : 1;
+  return result.players
+    .filter(player => player.team === userTeam)
+    .map(player => player.def.id);
+}
 
-  let next = selectCareerLicensedHeroes(state, [...licensedIds, playerId]);
-  const lineup = next.lineups.find(candidate => candidate.clubId === next.userClubId);
-  if (lineup === undefined) throw new Error('the user club has no lineup');
-  if (lineup.playerIds.includes(playerId)) return next;
+function userReplayParticipantIds(
+  replay: ReplayEnvelope,
+  fixture: LeagueFixture,
+  userClubId: string,
+): string[] {
+  const team = fixture.homeClubId === userClubId ? replay.home : replay.away;
+  return team.players.map(player => player.id);
+}
 
-  const playerById = new Map(next.players.map(candidate => [candidate.id, candidate]));
-  const outgoing = lineup.playerIds
-    .map(id => playerById.get(id))
-    .find(candidate =>
-      candidate?.role === player.role
-      && candidate.power === undefined
-      && candidate.injuryWeeks === 0,
-    ) ?? lineup.playerIds
-    .map(id => playerById.get(id))
-    .find(candidate =>
-      candidate?.role !== 'GK'
-      && candidate?.power === undefined
-      && candidate?.injuryWeeks === 0,
-    );
-  if (outgoing === undefined) {
-    throw new Error('there is no regular outfield starter available for the second hero');
+function reconcileLegacyFirstAwakening(state: GameState): GameState {
+  if (state.awakening.pending !== undefined) return state;
+  const onboarding = state.onboarding;
+  if (onboarding?.stage === 'collapse' && onboarding.firstFixtureId !== undefined) {
+    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+    if (lineup === undefined) throw new Error('legacy first awakening is missing the user lineup');
+    return resolvePostMatchAwakening(
+      state,
+      onboarding.firstFixtureId,
+      lineup.playerIds,
+      awakeningPowerIds,
+      awakeningTriggerIds,
+      awakeningTuning,
+    ).state;
   }
-  next = setCareerLineup(
-    next,
-    lineup.playerIds.map(id => id === outgoing.id ? playerId : id),
-  );
-  return next;
+  if (
+    onboarding?.stage === 'reveal'
+    && onboarding.firstFixtureId !== undefined
+    && onboarding.createdPlayerId !== undefined
+    && onboarding.awakenedPower !== undefined
+  ) {
+    return {
+      ...state,
+      awakening: {
+        matchesSinceLastAwakening: 0,
+        usedTriggerIds: [awakeningTriggerIds[0]],
+        pending: {
+          fixtureId: onboarding.firstFixtureId,
+          playerId: onboarding.createdPlayerId,
+          power: onboarding.awakenedPower,
+          triggerId: awakeningTriggerIds[0],
+          firstHero: true,
+        },
+      },
+    };
+  }
+  return state;
 }
 
 function requireCareer(state: Pick<M1Store, 'career'>): GameState {

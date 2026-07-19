@@ -73,6 +73,9 @@ export function reconcileLaunchRoster(
   state: GameState,
   content: LaunchContent = loadLaunchContent(),
 ): GameState {
+  const savedAwakening = (state as Omit<GameState, 'awakening'> & {
+    awakening?: Omit<GameState['awakening'], 'usedTriggerIds'> & { usedTriggerIds?: string[] };
+  }).awakening;
   const launch = createLaunchCareerSetup(state.careerSeed, state.userClubId, content);
   const launchPlayers = launch.players ?? [];
   const existingIds = new Set(state.players.map(player => player.id));
@@ -88,7 +91,10 @@ export function reconcileLaunchRoster(
     legacyReserveWages.set(`${club.id}-p13`, 304 + index * 8);
   });
 
-  let changed = missing.length > 0 || state.trainingRules === undefined;
+  let changed = missing.length > 0
+    || state.trainingRules === undefined
+    || savedAwakening === undefined
+    || savedAwakening.usedTriggerIds === undefined;
   const players = [
     ...state.players.map(player => {
       const current = launchById.get(player.id);
@@ -135,6 +141,12 @@ export function reconcileLaunchRoster(
 
   return {
     ...state,
+    awakening: savedAwakening === undefined
+      ? { matchesSinceLastAwakening: 0, usedTriggerIds: [] }
+      : {
+          ...savedAwakening,
+          usedTriggerIds: savedAwakening.usedTriggerIds ?? [],
+        },
     players,
     ...(state.trainingRules === undefined && launch.trainingRules !== undefined
       ? {

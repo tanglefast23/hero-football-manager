@@ -47,13 +47,13 @@ describe('career event state', () => {
     const initial = createCareer(createLaunchCareerSetup());
     const playerId = 'bramble-rovers-p13';
     const pending = selectCareerEventPlayer(
-      offerCareerEvent(initial, 'spider-training-day'),
+      offerCareerEvent(initial, 'giant-spider-arrives'),
       playerId,
     );
     const resolved = applyCareerEventOutcome(
       pending,
-      'approach-spider',
-      'A heroic bite requires two weeks of ice packs.',
+      'adopt-spider',
+      'The mascot meeting requires two weeks of ice packs.',
       {
         moneyDelta: -100,
         fanDelta: 20,
@@ -63,9 +63,9 @@ describe('career event state', () => {
     );
 
     expect(resolved.pendingEvent).toMatchObject({
-      eventId: 'spider-training-day',
+      eventId: 'giant-spider-arrives',
       selectedPlayerId: playerId,
-      resolvedChoiceId: 'approach-spider',
+      resolvedChoiceId: 'adopt-spider',
     });
     expect(resolved.players.find(player => player.id === playerId)).toMatchObject({
       injuryWeeks: 2,
@@ -76,8 +76,8 @@ describe('career event state', () => {
 
     const dismissed = dismissCareerEvent(resolved);
     expect(dismissed.pendingEvent).toBeUndefined();
-    expect(dismissed.resolvedEventIds).toContain('spider-training-day');
-    expect(() => offerCareerEvent(dismissed, 'spider-training-day')).toThrow('already resolved');
+    expect(dismissed.resolvedEventIds).toContain('giant-spider-arrives');
+    expect(() => offerCareerEvent(dismissed, 'giant-spider-arrives')).toThrow('already resolved');
   });
 
   it('recovers one injury week whenever a management week settles', () => {

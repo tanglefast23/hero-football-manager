@@ -1,10 +1,8 @@
 import type { Attrs, PowerId } from '../../sim/types';
 import {
   applyTrainingPlan,
-  awakeningChancePercent,
   renewContract,
   renewalQuote,
-  resolveAwakening,
   selectLicensedHeroes,
   type FocusDrill,
   type ProgressionPlayer,
@@ -79,51 +77,6 @@ describe('hero licensing', () => {
     ];
 
     expect(() => selectLicensedHeroes(roster, selectedIds, limit)).toThrow();
-  });
-});
-
-describe('awakening pity', () => {
-  it('adds six percentage points per failure and caps the chance at 100', () => {
-    expect(awakeningChancePercent(0)).toBe(8);
-    expect(awakeningChancePercent(3)).toBe(26);
-    expect(awakeningChancePercent(100)).toBe(100);
-  });
-
-  it('uses a strict below-chance boundary, resets pity on success, and increments it on failure', () => {
-    const candidate = player('candidate');
-
-    const boundaryFailure = resolveAwakening(
-      candidate,
-      { failedRiskyChoices: 2 },
-      20,
-      'SUPER_SPEED',
-    );
-    expect(boundaryFailure.awakened).toBe(false);
-    expect(boundaryFailure.player.power).toBeUndefined();
-    expect(boundaryFailure.pityState.failedRiskyChoices).toBe(3);
-
-    const success = resolveAwakening(
-      candidate,
-      { failedRiskyChoices: 2 },
-      19,
-      'SUPER_SPEED',
-    );
-    expect(success.awakened).toBe(true);
-    expect(success.player.power).toBe('SUPER_SPEED');
-    expect(success.pityState.failedRiskyChoices).toBe(0);
-  });
-
-  it('never overwrites an existing hero or treats the no-op as a failed attempt', () => {
-    const hero = player('hero', { power: 'FIRE_TORCH' });
-    const pityState = { failedRiskyChoices: 4 };
-
-    const result = resolveAwakening(hero, pityState, 0, 'SUPER_STRENGTH');
-
-    expect(result.awakened).toBe(false);
-    expect(result.player.power).toBe('FIRE_TORCH');
-    expect(result.pityState).toEqual(pityState);
-    expect(result.player).not.toBe(hero);
-    expect(result.pityState).not.toBe(pityState);
   });
 });
 

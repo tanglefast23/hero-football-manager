@@ -19,6 +19,12 @@ import {
 } from './src/persistence';
 import { MatchScreen } from './src/render/MatchScreen';
 import { setMasterVolume } from './src/render/audio';
+import {
+  playAwakeningAscension,
+  setAwakeningMasterVolume,
+  stopAwakeningAscension,
+  teardownAwakeningAudio,
+} from './src/render/awakening-audio';
 import { nextDevVolume, type DevVolume } from './src/render/dev-volume';
 import {
   setMenuMasterVolume,
@@ -33,7 +39,7 @@ import {
   ClubHomeScreen,
   AssistantGuideOverlay,
   CharacterCreationScreen,
-  FirstAwakeningScreen,
+  AwakeningCutsceneScreen,
   FixtureMatchDayScreen,
   LeagueTableScreen,
   ManagementShell,
@@ -54,6 +60,7 @@ import {
 } from './src/application/assistant-guide';
 import { loadPreferencesFailSoft } from './src/application/preferences';
 import {
+  awakeningCutsceneViewModel,
   clubFinancesViewModel,
   homeViewModel,
   leagueTableViewModel,
@@ -62,11 +69,55 @@ import {
   squadTrainingViewModel,
   storyEventViewModel,
 } from './src/application/view-models';
+import type { AwakeningCutsceneViewModel } from './src/ui/models';
+import { AwakeningArtQaScreen } from './src/ui/screens/AwakeningArtQaScreen';
 
 const DATABASE_NAME = 'hero-football-manager.db';
 type LandingView = 'title' | 'story' | 'settings';
 
 export default function App() {
+  const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID
+    ?? (__DEV__ ? 'overenthusiastic-water-bottle' : undefined);
+  if (__DEV__ && process.env.EXPO_PUBLIC_AWAKENING_ART_QA === '1') {
+    return <AwakeningArtQaApp triggerId={previewTriggerId ?? 'magic-sponge'} />;
+  }
+  if (__DEV__ && previewTriggerId) {
+    return <AwakeningReviewApp triggerId={previewTriggerId} />;
+  }
+  return <GameApp />;
+}
+
+function AwakeningArtQaApp({ triggerId }: { triggerId: string }) {
+  const content = useMemo(loadLaunchContent, []);
+  const [selectedTriggerIndex, setSelectedTriggerIndex] = useState(() => {
+    const requestedIndex = content.onboarding.triggers.findIndex(candidate => candidate.id === triggerId);
+    return requestedIndex >= 0 ? requestedIndex : 0;
+  });
+  const triggerCount = content.onboarding.triggers.length;
+  const triggerIndex = Math.min(selectedTriggerIndex, triggerCount - 1);
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const trigger = content.onboarding.triggers[triggerIndex];
+
+  if (!fontsLoaded) return <LoadingScreen />;
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="light" />
+      <AwakeningArtQaScreen
+        index={triggerIndex}
+        total={triggerCount}
+        title={trigger.title}
+        callout={trigger.callout}
+        visual={trigger.visual}
+        onPrevious={() => setSelectedTriggerIndex((
+          triggerIndex - 1 + triggerCount
+        ) % triggerCount)}
+        onNext={() => setSelectedTriggerIndex((triggerIndex + 1) % triggerCount)}
+      />
+    </SafeAreaProvider>
+  );
+}
+
+function GameApp() {
   const store = useM1Store();
   const content = useMemo(loadLaunchContent, []);
   const [bootError, setBootError] = useState<string | null>(null);
@@ -76,6 +127,7 @@ export default function App() {
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [managementSettingsOpen, setManagementSettingsOpen] = useState(false);
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
+  const [awakeningBeat, setAwakeningBeat] = useState<1 | 2 | 3>(1);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const devVolume = preferences.masterVolume as DevVolume;
   const reduceMotion = useReducedMotion(preferences.reduceMotion);
@@ -100,6 +152,7 @@ export default function App() {
   useEffect(() => {
     setMasterVolume(devVolume);
     setMenuMasterVolume(devVolume);
+    setAwakeningMasterVolume(devVolume);
   }, [devVolume]);
 
   const menuTheme: MenuTheme = bootError === null
@@ -109,6 +162,8 @@ export default function App() {
       ? 'opening'
       : store.screen === 'management'
         ? 'management'
+        : store.screen === 'awakening' && awakeningBeat >= 2
+          ? 'event'
         : null
     : null;
 
@@ -116,7 +171,26 @@ export default function App() {
     setMenuTheme(menuTheme);
   }, [menuTheme]);
 
-  useEffect(() => () => teardownMenuAudio(), []);
+  useEffect(() => () => {
+    teardownMenuAudio();
+    teardownAwakeningAudio();
+  }, []);
+
+  useEffect(() => {
+    if (store.screen === 'awakening' && awakeningBeat === 3) {
+      playAwakeningAscension();
+      return () => stopAwakeningAscension();
+    }
+    stopAwakeningAscension();
+    return undefined;
+  }, [awakeningBeat, store.screen]);
+
+  const pendingAwakeningKey = store.career?.awakening.pending === undefined
+    ? null
+    : `${store.career.awakening.pending.fixtureId}:${store.career.awakening.pending.playerId}`;
+  useEffect(() => {
+    setAwakeningBeat(1);
+  }, [pendingAwakeningKey]);
 
   useEffect(() => {
     let active = true;
@@ -185,17 +259,6 @@ export default function App() {
     );
   }, [store.hasSavedCareer, store.startNewCareer]);
 
-  const onboardingPlayer = store.career?.onboarding?.createdPlayerId === undefined
-    ? undefined
-    : store.career.players.find(
-        player => player.id === store.career?.onboarding?.createdPlayerId,
-      );
-  const onboardingPowerId = store.career?.onboarding?.awakenedPower;
-  const onboardingPowerName = onboardingPowerId === undefined
-    ? undefined
-    : content.powers.powers.find(
-        power => power.id === onboardingPowerId,
-      )?.name ?? onboardingPowerId;
   const assistantSequenceId = store.screen === 'management' && store.career !== null
     ? pendingAssistantGuideSequence(store.career, store.activeTab)
     : null;
@@ -263,18 +326,17 @@ export default function App() {
   } else if (store.screen === 'create-player' && store.career !== null) {
     screen = <CharacterCreationScreen onComplete={store.completePlayerCreation} />;
   } else if (
-    store.screen === 'first-awakening'
+    store.screen === 'awakening'
     && store.career !== null
-    && onboardingPlayer !== undefined
+    && store.career.awakening.pending !== undefined
   ) {
     screen = (
-      <FirstAwakeningScreen
-        playerName={onboardingPlayer.name}
-        content={content.onboarding}
-        selectedOrigin={store.career.onboarding?.selectedOrigin}
-        powerName={onboardingPowerName}
-        onChoose={store.chooseFirstAwakening}
-        onContinue={store.continueFirstAwakening}
+      <AwakeningCutsceneScreen
+        key={pendingAwakeningKey ?? undefined}
+        viewModel={awakeningCutsceneViewModel(store.career, content, store.postMatch !== null)}
+        reduceMotion={reduceMotion}
+        onBeatChange={setAwakeningBeat}
+        onContinue={store.continueAfterAwakening}
       />
     );
   } else if (store.career === null) {
@@ -420,6 +482,7 @@ export default function App() {
           || !store.persistenceReady
           || store.persistenceLoadError !== null
           || store.screen === 'watched'
+          || store.screen === 'awakening'
         ) ? 'light' : 'dark'}
       />
       <View className="flex-1 bg-ink">
@@ -443,6 +506,74 @@ export default function App() {
           />
         ) : null}
       </View>
+    </SafeAreaProvider>
+  );
+}
+
+function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
+  const content = useMemo(loadLaunchContent, []);
+  const [triggerIndex, setTriggerIndex] = useState(() => {
+    const requestedIndex = content.onboarding.triggers.findIndex(candidate => candidate.id === triggerId);
+    return requestedIndex >= 0 ? requestedIndex : 0;
+  });
+  const trigger = content.onboarding.triggers[triggerIndex];
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  const [previewBeat, setPreviewBeat] = useState<1 | 2 | 3>(1);
+  const nextTriggerIndex = (triggerIndex + 1) % content.onboarding.triggers.length;
+
+  useEffect(() => {
+    return () => {
+      teardownMenuAudio();
+      teardownAwakeningAudio();
+    };
+  }, []);
+
+  useEffect(() => {
+    setMenuTheme(previewBeat >= 2 ? 'event' : null);
+    if (previewBeat === 3) {
+      playAwakeningAscension();
+      return () => stopAwakeningAscension();
+    }
+    stopAwakeningAscension();
+    return undefined;
+  }, [previewBeat]);
+
+  const viewModel: AwakeningCutsceneViewModel = {
+    fixtureLabel: `Review ${triggerIndex + 1}/${content.onboarding.triggers.length} · Full time`,
+    playerName: 'ZIP VELA',
+    role: 'FWD',
+    powerId: 'SUPER_STRENGTH',
+    powerName: 'SUPER STRENGTH',
+    limpCopy: content.onboarding.limp.split('{name}').join('ZIP VELA'),
+    triggerVisual: trigger.visual,
+    triggerKicker: trigger.kicker,
+    triggerTitle: trigger.title,
+    triggerCallout: trigger.callout,
+    triggerDetail: trigger.detail,
+    triggerCopy: trigger.copy.split('{name}').join('ZIP VELA'),
+    omenCopy: 'The turf dents beneath ZIP VELA’s palm. Everyone in the huddle feels the shock before they hear it.',
+    revealCopy: 'KRAK! ZIP VELA floats upright as the ground shudders. He is, quite suddenly, enormous.',
+    firstHero: true,
+    licenseLabel: 'Hero license active',
+    continueLabel: triggerIndex === content.onboarding.triggers.length - 1
+      ? 'RESTART SCENE REVIEW'
+      : `NEXT SCENE · ${nextTriggerIndex + 1}/${content.onboarding.triggers.length}`,
+  };
+
+  if (!fontsLoaded) return <LoadingScreen />;
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="light" />
+      <AwakeningCutsceneScreen
+        key={trigger.id}
+        viewModel={viewModel}
+        initialBeat={1}
+        onBeatChange={setPreviewBeat}
+        onContinue={() => {
+          setPreviewBeat(1);
+          setTriggerIndex(nextTriggerIndex);
+        }}
+      />
     </SafeAreaProvider>
   );
 }

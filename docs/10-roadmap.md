@@ -21,17 +21,16 @@ Scope of this gate, stated precisely: M0 judges whether the match is a **readabl
 
 The second existential question — "does *managing heroes* stay fun across seasons?" — gets answered before any breadth is built. One division, 10 teams, two compressed seasons, containing exactly one of everything that defines the game:
 
-- Create your outfield player, play one ordinary match, then choose the origin of
-  the tutorial-exception first awakening. The Season-1 mystery chain creates
-  stat-weighted heroes #2 and #3, forcing the player to choose which two receive
-  the 2 starting match licenses.
+- Create your outfield player and play one ordinary match; the final whistle
+  guarantees their automatic first awakening. Later heroes arrive through a
+  flat 10% eligible post-match check with a three-match cooldown and no choice prompt.
 - One contract renewal crossing the **hero wage cliff** (the awakened-bargain dilemma, felt end to end).
 - Training v1 (focus drills + TP), money v1 (wages, tickets, one sponsor, prize money, itemized statement), one facility decision.
 - Save/load (sqlite + migrations, replay envelopes persisted); worklet-driven match renderer migration.
 - **Mini balance harness in CI from this milestone** (season bankruptcy rate, TP affordability, awakening cadence).
 - First real sprite set (B+ heroic chibi, one kit) + vertical pitch.
 
-**Gate**: play both seasons twice. If the license-slot competition, the wage cliff, and the awakening chase don't generate "one more season" pull, fix the loop before widening it.
+**Gate**: play both seasons twice. If the license-slot competition, the wage cliff, and the surprise awakening cadence don't generate "one more season" pull, fix the loop before widening it.
 
 ## M2 — The management game (4 weeks)
 

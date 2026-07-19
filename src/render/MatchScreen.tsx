@@ -24,6 +24,7 @@ import { WorkletMatchOverlays } from './WorkletMatchOverlays';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
 import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
 import { Pitch } from './Pitch';
+import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { DebugOverlay } from './DebugOverlay';
 import { playHapticForEvent } from './haptics';
 import { FormationDiagram } from '../ui/components/FormationDiagram';
@@ -847,6 +848,7 @@ export function MatchScreen({
           transforms={workletTransforms}
           colors={colors}
           colorBlendMode="modulate"
+          sampling={PIXEL_ART_SAMPLING}
         />
         <WorkletMatchOverlays
           visualPositions={workletVisualPositions}

@@ -6,6 +6,8 @@ date: 2026-07-18
 
 # M1 Two-Season Hero Vertical Slice
 
+> **Design update 2026-07-19:** completed checklist references to origin choices, repeatable spider awakenings, and pity describe the previous implementation. Current canon is the automatic post-match awakening system in docs 04, 07, 08, and 10.
+
 ## Overview
 
 Build the smallest complete management game that can answer M1's second gate:

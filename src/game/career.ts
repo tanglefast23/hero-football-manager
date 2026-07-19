@@ -49,6 +49,7 @@ export function createCareer(setup: CareerSetup): GameState {
     eventClock: { weeksWithoutEvent: 0, riskyChoices: 0 },
     eventFlags: [],
     resolvedEventIds: [],
+    awakening: { matchesSinceLastAwakening: 0, usedTriggerIds: [] },
     trainingPoints: setup.startingTrainingPoints ?? 0,
     heroEssence: 0,
     ledgers: [],

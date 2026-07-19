@@ -5,7 +5,7 @@ import {
   createCareer,
   fixturesForCurrentWeek,
 } from './career';
-import { simulateWeeklyAwakeningRetryWindow } from './event-clock';
+import { deterministicPostMatchAwakeningRoll } from './post-match-awakening';
 import { buildTrainingGround } from './squad';
 import { setCareerTrainingPlan } from './training';
 import type { FocusDrill } from './progression';
@@ -18,16 +18,17 @@ const DEFAULT_AWAKENING_SEEDS = 2000;
  * M1 CI rails, taken directly from the design promises:
  * - docs/09: Season-1 Cozy bankruptcy stays below 2%.
  * - docs/05: a typical match-week TP award buys about two of three focus drills.
- * - docs/10: the guaranteed Season-1 chain produces hero #2 before its
- *   Week-24 deadline, without collapsing into an immediate guaranteed result.
+ * - Post-match awakenings average roughly one per ten eligible matches after
+ *   their three-match cooldown, without silently adding a pity guarantee.
  */
 export const MINI_BALANCE_RAILS = Object.freeze({
   maximumSeasonOneBankruptcyRate: 0.02,
   minimumAffordableFocusDrillsPerMatchWeek: 1.5,
   maximumAffordableFocusDrillsPerMatchWeek: 2.5,
-  minimumMeanAwakeningWeek: 10,
-  maximumMeanAwakeningWeek: 13,
-  minimumAwakeningByDeadlineRate: 1,
+  minimumMeanAwakeningMatch: 10,
+  maximumMeanAwakeningMatch: 14,
+  minimumAwakeningBySeasonEndRate: 0.75,
+  maximumAwakeningBySeasonEndRate: 0.86,
 });
 
 export interface MiniBalanceHarnessOptions {
@@ -44,13 +45,9 @@ export interface MiniBalanceScenario {
     readonly weeklyFocusDrillIds: readonly string[];
   };
   readonly awakening: {
-    readonly season: number;
-    readonly firstWeek: number;
-    readonly lastWeek: number;
-    readonly initialFailedRiskyChoices: number;
-    readonly choiceId: string;
-    readonly baseChancePercent: number;
-    readonly pityIncrementPercent: number;
+    readonly chancePercent: number;
+    readonly minimumMatchesBetween: number;
+    readonly seasonMatches: number;
   };
 }
 
@@ -62,10 +59,10 @@ export interface MiniBalanceMetrics {
   readonly meanSeasonOneDiscretionarySpend: number;
   readonly meanTrainingPointsPerSeason: number;
   readonly meanAffordableFocusDrillsPerMatchWeek: number;
-  readonly meanAwakeningWeek: number;
+  readonly meanAwakeningMatch: number;
   readonly meanAwakeningAttempts: number;
   readonly awakeningByDeadlineRate: number;
-  readonly awakeningDeadlineWeek: number;
+  readonly awakeningDeadlineMatch: number;
   readonly representativeDrillIds: readonly string[];
 }
 
@@ -105,21 +102,17 @@ export function runMiniBalanceHarness(
   }
 
   const awakening = scenario.awakening;
-  let awakeningWeekTotal = 0;
+  let awakeningMatchTotal = 0;
   let awakeningAttemptTotal = 0;
   let awakeningsByDeadline = 0;
   for (let sample = 1; sample <= awakeningSeeds; sample += 1) {
-    const result = simulateWeeklyAwakeningRetryWindow({
-      careerSeed: sample,
-      season: awakening.season,
-      firstWeek: awakening.firstWeek,
-      lastWeek: awakening.lastWeek,
-      initialFailedRiskyChoices: awakening.initialFailedRiskyChoices,
-      choiceId: awakening.choiceId,
-      baseChancePercent: awakening.baseChancePercent,
-      pityIncrementPercent: awakening.pityIncrementPercent,
-    });
-    awakeningWeekTotal += result.awakeningWeek ?? awakening.lastWeek + 1;
+    const result = simulatePostMatchAwakeningWindow(
+      sample,
+      awakening.chancePercent,
+      awakening.minimumMatchesBetween,
+      awakening.seasonMatches,
+    );
+    awakeningMatchTotal += result.awakeningMatch ?? awakening.seasonMatches + 1;
     awakeningAttemptTotal += result.attempts;
     if (result.awakened) awakeningsByDeadline += 1;
   }
@@ -132,12 +125,36 @@ export function runMiniBalanceHarness(
     meanSeasonOneDiscretionarySpend: discretionarySpendTotal / careerSeeds,
     meanTrainingPointsPerSeason: trainingPointsTotal / careerSeeds,
     meanAffordableFocusDrillsPerMatchWeek: affordableDrillTotal / matchWeekTotal,
-    meanAwakeningWeek: awakeningWeekTotal / awakeningSeeds,
+    meanAwakeningMatch: awakeningMatchTotal / awakeningSeeds,
     meanAwakeningAttempts: awakeningAttemptTotal / awakeningSeeds,
     awakeningByDeadlineRate: awakeningsByDeadline / awakeningSeeds,
-    awakeningDeadlineWeek: awakening.lastWeek,
+    awakeningDeadlineMatch: awakening.seasonMatches,
     representativeDrillIds: representativeDrills.map(drill => drill.id),
   };
+}
+
+function simulatePostMatchAwakeningWindow(
+  careerSeed: number,
+  chancePercent: number,
+  minimumMatchesBetween: number,
+  seasonMatches: number,
+): { awakened: boolean; awakeningMatch?: number; attempts: number } {
+  let matchesSinceLastAwakening = 0;
+  let attempts = 0;
+  for (let match = 1; match <= seasonMatches; match += 1) {
+    matchesSinceLastAwakening += 1;
+    if (matchesSinceLastAwakening < minimumMatchesBetween) continue;
+    attempts += 1;
+    if (deterministicPostMatchAwakeningRoll(
+      careerSeed,
+      `balance-match-${match}`,
+      0,
+      100,
+    ) < chancePercent) {
+      return { awakened: true, awakeningMatch: match, attempts };
+    }
+  }
+  return { awakened: false, attempts };
 }
 
 interface SeasonOneResult {

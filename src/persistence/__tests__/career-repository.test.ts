@@ -9,6 +9,7 @@ import type { CareerSetup, GameState } from '../../game/types';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
 import { createCareerRepository } from '../career-repository';
+import { parseStoredGameState } from '../game-state-codec';
 import {
   CorruptCareerSaveError,
   InvalidGameStateError,
@@ -18,6 +19,23 @@ import { PERSISTENCE_SCHEMA_VERSION } from '../migrations';
 import { FakePersistenceDatabase } from './fake-database';
 
 describe('career repository', () => {
+  it('normalizes schema-1 saves created before awakening history existed', () => {
+    const state = createCareer(createLaunchCareerSetup(1234));
+    const withoutAwakening = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+    delete withoutAwakening.awakening;
+    expect(parseStoredGameState(JSON.stringify(withoutAwakening)).awakening).toEqual({
+      matchesSinceLastAwakening: 0,
+      usedTriggerIds: [],
+    });
+
+    const withoutTriggerHistory = JSON.parse(JSON.stringify(state)) as {
+      awakening: Record<string, unknown>;
+    };
+    delete withoutTriggerHistory.awakening.usedTriggerIds;
+    expect(parseStoredGameState(JSON.stringify(withoutTriggerHistory)).awakening.usedTriggerIds)
+      .toEqual([]);
+  });
+
   it('creates a fresh schema and reports a missing slot', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);

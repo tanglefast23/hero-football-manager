@@ -43,6 +43,7 @@ Research reports (source material, written by research agents):
 | Opening music | **“Heroes Start Here”** — original 128 BPM title-screen fanfare and seamless chiptune loop |
 | Match music | **“Match Day Heroes”** — original 128 BPM heroic stadium-chiptune loop; the official watched-match theme |
 | Management music | **“Clubhouse Dreams”** — original 112 BPM warm chiptune loop for training, squad, transfers, facilities, and finances |
+| Awakening music | **“The Big Call”** — original 136 BPM dramatic chiptune loop that enters when the cause of an awakening is revealed |
 | Income sources | All four: sponsors, tickets/fans, prize money, player sales |
 | Currencies | Money + Training Points (TP) + Hero Essence (HE) — each with exactly one job |
 | Contract talks | Offer/counter with mood meter; a light card mini-game influences (max ±20%) but never fully decides |

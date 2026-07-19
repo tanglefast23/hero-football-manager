@@ -1,5 +1,9 @@
 {
   "schemaVersion": 1,
+  "awakening": {
+    "postMatchChancePercent": 10,
+    "minimumMatchesBetween": 3
+  },
   "powers": [
     {
       "id": "SUPER_SPEED",
