@@ -33,7 +33,7 @@ module.exports = {
         'pitch-light': '#8fd98f',
         // --- legacy semantic aliases (kept so existing screens keep working,
         //     now pointing at the bible hues) ---
-        signal: '#9a63d6', // violet — primary / confirm / current selection
+        signal: '#edb54a', // gold — hero/reward + primary CTA
         stamp: '#d94f52', // red — cancel / danger / negative
         sky: '#a3c8f0', // light blue — eyebrows / accents on dark
       },

@@ -165,7 +165,7 @@ describe('power effects', () => {
     activatePower(m, torch, 1); // direct call — no tick() pipeline, so nothing can re-pick-up the ball before we assert
     const ignited = m.events.find(e => e.kind === 'IGNITED') as { player: number } | undefined;
     expect(ignited?.player).toBe(oppCarrier);
-    expect(m.ball).toEqual({ kind: 'loose', pos, vel: { x: 0, y: 0 } });
+    expect(m.ball).toEqual({ kind: 'loose', pos, vel: { x: 0, y: 0 }, z: 0, vz: 0 });
   });
 
   it('rival SUPER_STRENGTH locks its target at windup start, charges, and flattens them', () => {

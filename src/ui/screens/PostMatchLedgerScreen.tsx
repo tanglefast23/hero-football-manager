@@ -5,12 +5,14 @@ import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompa
 import { PlayerDevelopmentSpotlight } from '../components/PlayerDevelopmentSpotlight';
 import type { PostMatchViewModel } from '../models';
 import { countUpValue } from '../count-up';
+import { SettingsButton } from '../SettingsOverlay';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
   onContinue: () => void;
   onReplayHighlight?: (highlightId: string) => void;
   reduceMotion?: boolean;
+  onOpenSettings: () => void;
 }
 
 function CountUpAmount({
@@ -62,6 +64,7 @@ export function PostMatchLedgerScreen({
   onContinue,
   onReplayHighlight,
   reduceMotion = false,
+  onOpenSettings,
 }: PostMatchLedgerScreenProps) {
   const { result } = viewModel;
   const [animationsComplete, setAnimationsComplete] = useState(reduceMotion);
@@ -78,6 +81,13 @@ export function PostMatchLedgerScreen({
       edges={['top', 'left', 'right', 'bottom']}
       onTouchStart={() => setAnimationsComplete(true)}
     >
+      <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
+        <View>
+          <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Match filed</Text>
+          <Text className="mt-1 text-base font-bold uppercase text-ink">Full-time report</Text>
+        </View>
+        <SettingsButton onPress={onOpenSettings} />
+      </View>
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
         <View className="items-center py-3">
           <StatusChip label="Full time" tone={resultTone} />

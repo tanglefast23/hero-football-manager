@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
+import { SettingsButton } from '../SettingsOverlay';
 import type { MatchDayViewModel } from '../models';
 
 export interface FixtureMatchDayScreenProps {
@@ -11,6 +12,7 @@ export interface FixtureMatchDayScreenProps {
   onQuickResult: () => void;
   watchDisabled?: boolean;
   quickResultDisabled?: boolean;
+  onOpenSettings: () => void;
 }
 
 const ROLE_ORDER: ReadonlyArray<'FWD' | 'MID' | 'DEF' | 'GK'> = ['FWD', 'MID', 'DEF', 'GK'];
@@ -23,6 +25,7 @@ export function FixtureMatchDayScreen({
   onQuickResult,
   watchDisabled = false,
   quickResultDisabled = false,
+  onOpenSettings,
 }: FixtureMatchDayScreenProps) {
   const fixture = viewModel.fixture;
   const licensedCount = viewModel.heroes.filter(hero => hero.licensed).length;
@@ -43,8 +46,11 @@ export function FixtureMatchDayScreen({
           <Text className="text-center text-sm font-bold uppercase text-blue-dark">Match-day docket</Text>
           <Text className="mt-1 text-center text-base font-bold uppercase text-ink">{fixture.competition}</Text>
         </View>
-        <View className="min-w-11 border border-stamp px-2 py-2">
-          <Text className="text-center font-mono text-sm font-bold text-stamp">{fixture.weekLabel}</Text>
+        <View className="flex-row items-center gap-2">
+          <View className="min-w-11 border border-stamp px-2 py-2">
+            <Text className="text-center font-mono text-sm font-bold text-stamp">{fixture.weekLabel}</Text>
+          </View>
+          <SettingsButton onPress={onOpenSettings} />
         </View>
       </View>
 

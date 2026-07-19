@@ -20,13 +20,13 @@ import {
 } from './animation';
 import { useWorkletAtlasFrame } from './worklet-atlas-frame';
 import { nextMatchSpeed, type MatchSpeed } from './match-speed';
-import { WorkletMatchOverlays } from './WorkletMatchOverlays';
+import { WorkletBallShadow, WorkletMatchOverlays } from './WorkletMatchOverlays';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
 import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
 import { Pitch } from './Pitch';
-import { DebugOverlay } from './DebugOverlay';
 import { playHapticForEvent } from './haptics';
 import { FormationDiagram } from '../ui/components/FormationDiagram';
+import { SettingsButton } from '../ui/SettingsOverlay';
 import {
   DEFAULT_FORMATION_PRESETS,
   FORMATION_LABELS,
@@ -99,6 +99,7 @@ const PLAYER_CELL_W = 24;
 const BALL_FOOT_FORWARD_FRACTION = 0.35; // of the player sprite's drawn half-width
 const BALL_FOOT_DOWN_PX = 3; // feet sit toward the sprite's bottom half, not its center
 const BALL_FOOT_DEADZONE_PX = 0.5; // tick-to-tick screen-px delta below this reads as "stationary"
+const BALL_HEIGHT_VISUAL_SCALE = 0.7;
 
 // Side of the plain white square drawn when the sprite pack fails to build
 // (matches the player cell width so the placeholder keeps sane proportions).
@@ -137,6 +138,7 @@ export function MatchScreen({
   reduceMotion = false,
   hudSide = 'left',
   pausedExternally = false,
+  onOpenSettings,
   onDone,
 }: {
   seed: number;
@@ -147,6 +149,7 @@ export function MatchScreen({
   reduceMotion?: boolean;
   hudSide?: HudSide;
   pausedExternally?: boolean;
+  onOpenSettings: () => void;
   onDone: (state: MatchState) => void;
 }) {
   const { width } = useWindowDimensions();
@@ -187,7 +190,7 @@ export function MatchScreen({
   const scoreFlashUntilRef = useRef<number>(0);
   // Shot presentation — recent ball positions while a shot flies (motion
   // trail), and the last kick origin + tick (dust puff). Render-only.
-  const shotTrailRef = useRef<Array<{ x: number; y: number }>>([]);
+  const shotTrailRef = useRef<Array<{ x: number; y: number; z: number }>>([]);
   const puffRef = useRef<{ x: number; y: number; tick: number } | null>(null);
   // End-of-match hold deadline (RAF/performance.now() timebase), set once
   // when the loop first sees phase === 'fulltime' — see FULLTIME_HOLD_MS.
@@ -212,9 +215,6 @@ export function MatchScreen({
   });
   const [speed, setSpeed] = useState<MatchSpeed>(1);
   const [autoPowers, setAutoPowers] = useState(false);
-  // Dev-only movement-table tuning instrument (movement spec's debug-overlay
-  // deliverable; the toggle ships __DEV__-gated, never in release UI).
-  const [debugGrid, setDebugGrid] = useState(false);
   const [paused, setPaused] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
   const [selectedOutgoing, setSelectedOutgoing] = useState<number | null>(null);
@@ -242,6 +242,8 @@ export function MatchScreen({
   const {
     transforms: workletTransforms,
     visualPositions: workletVisualPositions,
+    ballGroundPosition: workletBallGroundPosition,
+    ballHeight: workletBallHeight,
     statuses: workletStatuses,
     zoneFractions: workletZoneFractions,
     carrier: workletCarrier,
@@ -363,7 +365,7 @@ export function MatchScreen({
         // Shot-ball motion trail — recent ball positions while it's a live
         // shot; cleared the instant it stops being one (goal/save/miss).
         shotTrailRef.current = !reduceMotion && nextRef.current!.ballShooting
-          ? [{ ...nextRef.current!.ball }, ...shotTrailRef.current].slice(0, SHOT_TRAIL_LEN)
+          ? [{ ...nextRef.current!.ball, z: nextRef.current!.ballHeight }, ...shotTrailRef.current].slice(0, SHOT_TRAIL_LEN)
           : [];
 
         acc -= TICK_MS;
@@ -758,11 +760,7 @@ export function MatchScreen({
           >
             <Text style={styles.ctrlText}>×{speed}</Text>
           </Pressable>
-          {__DEV__ ? (
-            <Pressable style={styles.ctrlButton} onPress={() => setDebugGrid((d) => !d)}>
-              <Text style={styles.ctrlText}>{debugGrid ? '▦' : '▢'}</Text>
-            </Pressable>
-          ) : null}
+          <SettingsButton onPress={onOpenSettings} variant="match" />
         </View>
       </Pressable>
       <View style={{ width, height: pitchH }}>
@@ -786,7 +784,7 @@ export function MatchScreen({
           <Circle
             key={`shot-${i}`}
             cx={t.x * scale}
-            cy={t.y * scale}
+            cy={t.y * scale - t.z * scale * BALL_HEIGHT_VISUAL_SCALE}
             r={Math.max(1.5, 6.5 - i)}
             color="#f4f7fa"
             opacity={0.6 * (1 - i / SHOT_TRAIL_LEN)}
@@ -841,6 +839,11 @@ export function MatchScreen({
             />,
           ];
         })()}
+        <WorkletBallShadow
+          ballGroundPosition={workletBallGroundPosition}
+          ballHeight={workletBallHeight}
+          scale={scale}
+        />
         <Atlas
           image={atlas.image as SkImage}
           sprites={sprites}
@@ -865,7 +868,6 @@ export function MatchScreen({
           markerHeight={MARKER_H}
           reduceMotion={reduceMotion}
         />
-        {debugGrid ? <DebugOverlay state={match} scale={scale} /> : null}
         </Canvas>
         {carrier ? (
           <View
@@ -877,7 +879,7 @@ export function MatchScreen({
           >
             <View style={styles.carrierLine}>
               <Text numberOfLines={1} style={styles.carrierName}>{carrier.def.name}</Text>
-              <Text style={styles.carrierEnergy}>ENERGY {Math.round(carrier.condition)}%</Text>
+              <Text style={styles.carrierEnergy}>{Math.round(carrier.condition)}%</Text>
             </View>
             <View style={styles.energyTrack}>
               <View style={[

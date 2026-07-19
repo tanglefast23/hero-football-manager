@@ -45,7 +45,7 @@ describe('filesForEvent: event → SFX wiring', () => {
       { t: 0, kind: 'PASS', from: 1, to: 2, ok: true },
       { t: 0, kind: 'SLIDE_STARTED', by: 1, on: 2, direction: { x: 1, y: 0 }, untilTick: 4 },
       { t: 0, kind: 'TACKLE', by: 1, on: 2, won: false, style: 'slide', contact: true },
-      { t: 0, kind: 'SHOT', by: 9, power: 50 },
+      { t: 0, kind: 'SHOT', by: 9, power: 50, trajectory: 'driven' },
       { t: 0, kind: 'SAVE', by: 0, resolveLeft: 80 },
       { t: 0, kind: 'MISS', by: 9 },
       { t: 0, kind: 'GOAL', by: 9, team: 0 },

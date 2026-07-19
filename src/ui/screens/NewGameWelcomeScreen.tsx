@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
+import { SettingsButton } from '../SettingsOverlay';
 
 export interface NewGameWelcomeScreenProps {
   hasSavedCareer: boolean;
@@ -10,6 +11,7 @@ export interface NewGameWelcomeScreenProps {
   onContinueCareer?: () => void;
   onOpenAccessibility?: () => void;
   onBackToTitle?: () => void;
+  onOpenSettings: () => void;
 }
 
 /**
@@ -56,23 +58,27 @@ export function NewGameWelcomeScreen({
   onContinueCareer,
   onOpenAccessibility,
   onBackToTitle,
+  onOpenSettings,
 }: NewGameWelcomeScreenProps) {
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View className="flex-1 justify-between px-5 py-6">
           <View>
-            {onBackToTitle ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Back to title"
-                onPress={onBackToTitle}
-                className="mb-5 min-h-11 self-start justify-center"
-                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
-              >
-                <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">‹ Title</Text>
-              </Pressable>
-            ) : null}
+            <View className="mb-5 flex-row items-center justify-between">
+              {onBackToTitle ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Back to title"
+                  onPress={onBackToTitle}
+                  className="min-h-11 justify-center"
+                  style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                >
+                  <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">‹ Title</Text>
+                </Pressable>
+              ) : <View />}
+              <SettingsButton onPress={onOpenSettings} />
+            </View>
             <View className="flex-row items-start justify-between">
               {/* Club crest — a chunky beveled pixel badge (cream enamel) */}
               <View className="relative h-14 w-14 -rotate-2 items-center justify-center overflow-hidden border-2 border-ink bg-paper">

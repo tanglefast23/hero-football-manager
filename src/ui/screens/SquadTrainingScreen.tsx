@@ -1,7 +1,12 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
 import type { FocusDrillViewModel, SquadTrainingViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
+import {
+  isTutorialTargetVisible,
+  TUTORIAL_TAP_CUE_WIDTH,
+} from '../tutorial-cue-position';
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
@@ -28,10 +33,67 @@ export function SquadTrainingScreen({
 }: SquadTrainingScreenProps) {
   const selectedPlayer = viewModel.players.find(player => player.id === viewModel.selectedPlayerId);
   const assigned = new Set(viewModel.assignedPlayerIds);
+  const scrollViewportRef = useRef<View>(null);
+  const lockPlanRef = useRef<View>(null);
+  const visibilityFrameRef = useRef<number | null>(null);
+  const [lockPlanVisible, setLockPlanVisible] = useState(false);
+  const guideLockPlan = guideTraining
+    && viewModel.assignedPlayerIds.length > 0
+    && viewModel.selectedDrillCount > 0;
+
+  const measureLockPlanVisibility = useCallback(() => {
+    scrollViewportRef.current?.measureInWindow((viewportX, viewportY, viewportWidth, viewportHeight) => {
+      lockPlanRef.current?.measureInWindow((targetX, targetY, targetWidth, targetHeight) => {
+        const visible = isTutorialTargetVisible(
+          { x: targetX, y: targetY, width: targetWidth, height: targetHeight },
+          { x: viewportX, y: viewportY, width: viewportWidth, height: viewportHeight },
+        );
+        setLockPlanVisible(current => current === visible ? current : visible);
+      });
+    });
+  }, []);
+
+  const scheduleLockPlanVisibility = useCallback(() => {
+    if (!guideLockPlan) return;
+    if (visibilityFrameRef.current !== null) cancelAnimationFrame(visibilityFrameRef.current);
+    visibilityFrameRef.current = requestAnimationFrame(() => {
+      visibilityFrameRef.current = null;
+      measureLockPlanVisibility();
+    });
+  }, [guideLockPlan, measureLockPlanVisibility]);
+
+  useEffect(() => {
+    if (!guideLockPlan) {
+      setLockPlanVisible(false);
+      return;
+    }
+    scheduleLockPlanVisibility();
+    return () => {
+      if (visibilityFrameRef.current !== null) {
+        cancelAnimationFrame(visibilityFrameRef.current);
+        visibilityFrameRef.current = null;
+      }
+    };
+  }, [guideLockPlan, scheduleLockPlanVisibility]);
+
+  const showScrollCue = guideTraining
+    && viewModel.assignedPlayerIds.length > 0
+    && (viewModel.selectedDrillCount === 0 || !lockPlanVisible);
 
   return (
-    <View className="flex-1">
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
+    <View
+      ref={scrollViewportRef}
+      collapsable={false}
+      className="flex-1"
+      onLayout={scheduleLockPlanVisibility}
+    >
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        onLayout={scheduleLockPlanVisibility}
+        onScroll={scheduleLockPlanVisibility}
+        scrollEventThrottle={16}
+      >
       <View>
         <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Squad room</Text>
         <Text className="mt-1 text-xl font-bold uppercase text-ink">Roster & training</Text>
@@ -70,11 +132,10 @@ export function SquadTrainingScreen({
                   <Text className={selected ? 'w-12 font-mono text-sm font-bold text-ink' : 'w-12 font-mono text-sm font-bold text-blue-dark'} numberOfLines={1}>{player.role}</Text>
                   <View className="flex-1 pr-2">
                     <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
+                    <Text className="mt-1 text-sm text-ink/60" numberOfLines={1}>{player.contractLabel}</Text>
                     {player.powerName ? (
-                      <Text className="mt-1 text-sm font-bold uppercase text-amber-600" numberOfLines={1}>★ {player.powerName}</Text>
-                    ) : (
-                      <Text className="mt-1 text-sm text-ink/60" numberOfLines={1}>{player.contractLabel}</Text>
-                    )}
+                      <Text className="mt-0.5 text-sm font-bold uppercase text-amber-600" numberOfLines={1}>★ {player.powerName}</Text>
+                    ) : null}
                   </View>
                   <Text className="w-12 text-right font-mono text-base font-bold text-ink" numberOfLines={1}>{player.overall}</Text>
                   <Text className={player.condition < 30 ? 'w-16 text-right font-mono text-base font-bold text-stamp' : 'w-16 text-right font-mono text-base text-ink'} numberOfLines={1}>{player.condition}%</Text>
@@ -92,7 +153,10 @@ export function SquadTrainingScreen({
                   style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
                 >
                   {guidePlayer ? (
-                    <TutorialTapCue detail="Add one player" style={{ right: -4, top: -72 }} />
+                    <TutorialTapCue
+                      detail="Add one player"
+                      style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+                    />
                   ) : null}
                   <Text className={isAssigned ? 'font-mono text-base font-bold text-ink' : 'font-mono text-base text-ink/40'}>{isAssigned ? '✓' : '+'}</Text>
                 </Pressable>
@@ -161,7 +225,10 @@ export function SquadTrainingScreen({
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
             >
               {guideDrill ? (
-                <TutorialTapCue detail="Pick a drill" style={{ right: 8, top: -70 }} />
+                <TutorialTapCue
+                  detail="Pick a drill"
+                  style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -70 }}
+                />
               ) : null}
               <View className={drill.selected ? 'mr-3 h-9 w-9 items-center justify-center border-2 border-ink bg-paper' : 'mr-3 h-9 w-9 items-center justify-center border border-ink/30'}>
                 <Text className={drill.selected ? 'font-mono text-base font-bold text-ink' : 'font-mono text-base text-ink/40'}>{drill.selected ? '✓' : '+'}</Text>
@@ -186,7 +253,12 @@ export function SquadTrainingScreen({
           <Metric label="Money cost" value={formatCompactNumber(viewModel.totalMoneyCost)} tone="negative" />
           <Metric label="TP cost" value={formatCompactNumber(viewModel.totalTrainingPointCost)} tone="negative" />
         </View>
-        <View className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>
+        <View
+          ref={lockPlanRef}
+          collapsable={false}
+          onLayout={scheduleLockPlanVisibility}
+          className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
+        >
           {guideTraining && viewModel.selectedDrillCount > 0 ? (
             <TutorialTapCue detail="Lock the plan" style={{ right: 4, top: -74 }} />
           ) : null}
@@ -199,7 +271,7 @@ export function SquadTrainingScreen({
         </View>
       </PaperPanel>
       </ScrollView>
-      {guideTraining && viewModel.assignedPlayerIds.length > 0 ? (
+      {showScrollCue ? (
         <TutorialTapCue
           label="Scroll down"
           detail={viewModel.selectedDrillCount === 0 ? 'Pick a drill' : 'Lock the plan'}

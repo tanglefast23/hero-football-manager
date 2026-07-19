@@ -1,6 +1,7 @@
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, StatusChip } from '../components/Scorecard';
+import { SettingsButton } from '../SettingsOverlay';
 
 /** One self-reported stat tile. `value` is a display string so "99*" / "MAX" both work. */
 export interface HirePitchStat {
@@ -32,6 +33,7 @@ export interface HirePitchScreenProps {
   signLabel?: string;
   onSign: () => void;
   onPass: () => void;
+  onOpenSettings: () => void;
 }
 
 // --- Placeholder portrait --------------------------------------------------
@@ -128,7 +130,7 @@ const DEFAULT_STATS: HirePitchStat[] = [
  * for a contract. A big pixel portrait, a self-reported scouting card, a funny
  * speech bubble, and Sign / Pass. Meant to make the player smile.
  */
-export function HirePitchScreen({ player, lines, signLabel, onSign, onPass }: HirePitchScreenProps) {
+export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOpenSettings }: HirePitchScreenProps) {
   const speech = lines && lines.length > 0 ? lines : DEFAULT_LINES;
   const stats = player.stats && player.stats.length > 0 ? player.stats : DEFAULT_STATS;
   const usingDefaultStats = !(player.stats && player.stats.length > 0);
@@ -147,8 +149,11 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass }: Hi
               Sign me. Please.
             </Text>
           </View>
-          <View className="-rotate-3 border-2 border-stamp px-3 py-2">
-            <Text className="text-sm font-bold uppercase tracking-widest text-stamp">Trialist</Text>
+          <View className="items-end gap-3">
+            <SettingsButton onPress={onOpenSettings} />
+            <View className="-rotate-3 border-2 border-stamp px-3 py-2">
+              <Text className="text-sm font-bold uppercase tracking-widest text-stamp">Trialist</Text>
+            </View>
           </View>
         </View>
         <Text className="mt-3 max-w-sm text-base leading-5 text-ink/65">{tagline}</Text>

@@ -14,7 +14,7 @@
           "title": "Bert Rudge",
           "body": [
             "So. You're the new manager.",
-            "Took a high-school team all the way to the national championship, did you? Very impressive. Apparently."
+            "Took a high-school team all the way to the national championship, did you? Very impressive."
           ],
           "focus": "assistant",
           "buttonLabel": "Go on..."
@@ -42,15 +42,14 @@
             { "tab": "SQUAD", "detail": "Pick players and train them." },
             { "tab": "CLUB", "detail": "Wages, books and facilities." },
             { "tab": "LEAGUE", "detail": "Table, fixtures and rivals." },
-            { "tab": "MARKET", "detail": "Shuttered until the board opens it." }
+            { "tab": "MARKET", "detail": "Coming soon." }
           ]
         },
         {
           "kicker": "Your main desk",
           "title": "Read it first",
           "body": [
-            "When you're unsure, come HOME. Read NEXT ASSIGNMENT and NEEDS YOUR CALL. That desk tells you what matters today.",
-            "Someone like you should manage that much. Probably."
+            "Honestly all you gotta look at is your inbox. I'll have all your to do's ready to go every week. Maybe I should get a salary too, eh?"
           ],
           "focus": "desk",
           "objective": "OPEN SQUAD.",

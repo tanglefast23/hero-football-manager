@@ -7,7 +7,13 @@ import type { ManagementTab } from '../ui/models';
 
 export interface AssistantObjective {
   text: string;
-  target: 'home-tab' | 'squad-tab' | 'training-plan' | 'advance-week';
+  target:
+    | 'home-tab'
+    | 'squad-tab'
+    | 'training-plan'
+    | 'training-ground-alert'
+    | 'training-ground-facility'
+    | 'advance-week';
 }
 
 export function pendingAssistantGuideSequence(
@@ -23,17 +29,13 @@ export function pendingAssistantGuideSequence(
   ) {
     return 'squad-intro';
   }
-  if (
-    activeTab === 'home'
-    && hasAssistantGuideMilestone(state, 'first-training-complete')
-    && !hasAssistantGuideMilestone(state, 'desk-intro-complete')
-  ) {
-    return 'desk-intro';
-  }
   return null;
 }
 
-export function currentAssistantObjective(state: GameState): AssistantObjective | null {
+export function currentAssistantObjective(
+  state: GameState,
+  activeTab: ManagementTab,
+): AssistantObjective | null {
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) return null;
   if (!hasAssistantGuideMilestone(state, 'squad-intro-complete')) {
     return { text: 'OPEN SQUAD.', target: 'squad-tab' };
@@ -41,11 +43,20 @@ export function currentAssistantObjective(state: GameState): AssistantObjective 
   if (!hasAssistantGuideMilestone(state, 'first-training-complete')) {
     return { text: 'TRAIN ONE PLAYER ONCE.', target: 'training-plan' };
   }
-  if (!hasAssistantGuideMilestone(state, 'desk-intro-complete')) {
+  if (!state.facilities.trainingGroundBuilt) {
+    if (activeTab === 'home') {
+      return { text: 'CHECK YOUR INBOX.', target: 'training-ground-alert' };
+    }
+    if (activeTab === 'club') {
+      return { text: 'BUILD THE TRAINING GROUND.', target: 'training-ground-facility' };
+    }
+    return { text: 'RETURN HOME.', target: 'home-tab' };
+  }
+  if (activeTab !== 'home') {
     return { text: 'RETURN HOME.', target: 'home-tab' };
   }
   if (!hasAssistantGuideMilestone(state, 'first-week-advanced')) {
-    return { text: 'READ THE DESK. THEN ADVANCE WEEK.', target: 'advance-week' };
+    return { text: 'INBOX CLEAR. ADVANCE WEEK.', target: 'advance-week' };
   }
   return null;
 }

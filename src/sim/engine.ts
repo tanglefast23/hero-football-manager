@@ -57,6 +57,12 @@ export function ballPos(state: MatchState): Vec {
   return b.kind === 'held' ? state.players[b.by].pos : b.pos;
 }
 
+/** Height in centimetres above the pitch; caught keepers hold the ball at chest height. */
+export function ballHeight(state: MatchState): number {
+  const b = state.ball;
+  return b.kind === 'held' ? (b.caught ? GOALKEEPER_CATCH_HEIGHT : 0) : b.z;
+}
+
 export function drainStamina(p: SimPlayer, movedFar: boolean): void {
   // The design-pinned comparison is STA 40 => 1.36x drain and STA 80 =>
   // 1.12x. Condition affects speed plus every contested action exactly once.
@@ -249,6 +255,31 @@ export function movementTargets(state: MatchState): Vec[] {
 }
 
 export const PASS_SPEED = 250;
+export const BALL_GRAVITY = 10;
+export const BALL_CONTROL_HEIGHT = 150;
+export const GOALKEEPER_CATCH_HOLD_TICKS = 6;
+export const LIFTED_SHOT_CHANCE = 0.3;
+
+const GOALKEEPER_CATCH_HEIGHT = 90;
+const GOALKEEPER_DISTRIBUTION_FLIGHT_TICKS = 12;
+const LIFTED_SHOT_GOAL_HEIGHT = 110;
+
+/**
+ * Initial vertical speed for semi-implicit Euler (`vz -= g; z += vz`) to
+ * arrive at `targetHeight` after `flightTicks`. All values are integer cm/tick.
+ */
+export function verticalLaunchSpeed(flightTicks: number, targetHeight: number): number {
+  const ticks = Math.max(1, Math.round(flightTicks));
+  return Math.round((targetHeight + BALL_GRAVITY * ticks * (ticks + 1) / 2) / ticks);
+}
+
+/** Advances only the vertical component; the pitch-plane coordinate stays independent. */
+export function advanceFlightHeight(ball: { z: number; vz: number }): void {
+  if (ball.z === 0 && ball.vz === 0) return;
+  ball.vz -= BALL_GRAVITY;
+  ball.z = Math.max(0, ball.z + ball.vz);
+  if (ball.z === 0 && ball.vz < 0) ball.vz = 0;
+}
 
 const DECISION_TICKS = 5;
 const OPEN_LANE_CLEARANCE = 800;
@@ -572,6 +603,8 @@ export function possessionTick(state: MatchState): void {
   if (b.kind === 'loose') {
     b.pos = { x: b.pos.x + b.vel.x, y: b.pos.y + b.vel.y };
     b.vel = { x: Math.trunc(b.vel.x * 0.8), y: Math.trunc(b.vel.y * 0.8) };
+    advanceFlightHeight(b);
+    if (b.z > BALL_CONTROL_HEIGHT) return;
     for (let i = 0; i < 22; i++) {
       if (!isAvailable(state, i)) continue;
       const p = state.players[i];
@@ -587,8 +620,12 @@ export function possessionTick(state: MatchState): void {
   if (b.kind === 'pass') {
     const targetIdx = b.willSucceed ? b.to : (b.interceptor !== -1 ? b.interceptor : b.to);
     const target = state.players[targetIdx].pos;
-    b.pos = moveToward(b.pos, target, PASS_SPEED);
+    b.pos = moveToward(b.pos, target, b.speed);
+    advanceFlightHeight(b);
     if (dist2(b.pos, target) < 150 * 150) {
+      // The 2.5D control gate is simulation truth, not a render trick: a
+      // lofted ball can visibly pass over a player's pitch-plane coordinate.
+      if (b.z > BALL_CONTROL_HEIGHT) return;
       // A recipient (or interceptor) knocked out mid-flight can't receive the ball
       // unconscious (the audit's phantom-pass bug) — it goes loose at the arrival
       // point instead, same as a failed pass with no interceptor.
@@ -596,7 +633,7 @@ export function possessionTick(state: MatchState): void {
         state.ball = { kind: 'held', by: targetIdx };
         addGauge(state, targetIdx, 2);
       } else {
-        state.ball = { kind: 'loose', pos: { ...b.pos }, vel: { x: 0, y: 0 } };
+        state.ball = { kind: 'loose', pos: { ...b.pos }, vel: { x: 0, y: 0 }, z: b.z, vz: b.vz };
       }
     }
     return;
@@ -604,6 +641,13 @@ export function possessionTick(state: MatchState): void {
 
   if (b.kind !== 'held') return; // 'shot' handled in Task 10
   if (!isAvailable(state, b.by)) return; // unconscious/sliding/recovering carriers do not act
+  if (b.releaseAfterTick !== undefined) {
+    if (state.tick < b.releaseAfterTick) return;
+    const option = bestPassOption(state, b.by);
+    if (option !== null) launchPass(state, b.by, option.to, true);
+    else state.ball = { kind: 'held', by: b.by };
+    return;
+  }
   if (state.tick % 5 !== 0) return;
 
   const carrierIdx = b.by;
@@ -617,11 +661,35 @@ export function possessionTick(state: MatchState): void {
   }
 
   if (decision.kind === 'pass') {
-    const inputs = passContestInputs(state, carrierIdx, decision.to);
-    const ok = contest(state.rng, effectiveStat(state, carrierIdx, 'pas'), inputs.interceptStat, 10);
-    emit(state, { t: state.tick, kind: 'PASS', from: carrierIdx, to: decision.to, ok });
-    state.ball = { kind: 'pass', pos: { ...carrier.pos }, from: carrierIdx, to: decision.to, willSucceed: ok, interceptor: inputs.interceptor };
+    launchPass(state, carrierIdx, decision.to, false);
   }
+}
+
+function launchPass(state: MatchState, from: number, to: number, lofted: boolean): void {
+  const passer = state.players[from];
+  const inputs = passContestInputs(state, from, to);
+  const ok = contest(state.rng, effectiveStat(state, from, 'pas'), inputs.interceptStat, 10);
+  const targetIdx = ok ? to : (inputs.interceptor !== -1 ? inputs.interceptor : to);
+  const target = state.players[targetIdx].pos;
+  const horizontalDistance = dist(passer.pos, target);
+  const flightTicks = lofted
+    ? Math.max(GOALKEEPER_DISTRIBUTION_FLIGHT_TICKS, Math.ceil(horizontalDistance / PASS_SPEED))
+    : Math.max(1, Math.ceil(horizontalDistance / PASS_SPEED));
+  const speed = lofted
+    ? Math.max(1, Math.ceil(horizontalDistance / flightTicks))
+    : PASS_SPEED;
+  emit(state, { t: state.tick, kind: 'PASS', from, to, ok });
+  state.ball = {
+    kind: 'pass',
+    pos: { ...passer.pos },
+    from,
+    to,
+    willSucceed: ok,
+    interceptor: inputs.interceptor,
+    z: 0,
+    vz: lofted ? verticalLaunchSpeed(flightTicks, 0) : 0,
+    speed,
+  };
 }
 
 function inOwnDefensiveThird(team: 0 | 1, pos: Vec): boolean {
@@ -813,17 +881,25 @@ export function attemptShot(state: MatchState, by: number, distToGoal: number): 
   const gy = goalYFor(shooter.team);
   const spread = shotSpreadAt(state, by, shooter.pos, distToGoal);
   const targetX = Math.round(GOAL_CENTER_X + (state.rng() * 2 - 1) * spread);
+  const trajectory = state.rng() < LIFTED_SHOT_CHANCE ? 'lifted' : 'driven';
   // distToGoal / 200 (Task 13 pre-flight Lever A, was / 100): the old penalty made
   // shots too easy to save; halving it targets goals/match ~2-3 and save rate ~70-80%.
   const power = shotPowerAt(state, by, distToGoal);
-  emit(state, { t: state.tick, kind: 'SHOT', by, power });
+  emit(state, { t: state.tick, kind: 'SHOT', by, power, trajectory });
   addGauge(state, by, 20);
   const dir = gy === 0 ? -1 : 1;
+  const flightTicks = Math.max(1, Math.ceil(Math.abs(gy - shooter.pos.y) / 300));
   state.ball = {
     kind: 'shot',
     pos: { ...shooter.pos },
     vel: { x: Math.trunc((targetX - shooter.pos.x) / Math.max(1, distToGoal / 300)), y: 300 * dir },
-    by, power, targetX,
+    by,
+    power,
+    targetX,
+    z: 0,
+    vz: trajectory === 'lifted' ? verticalLaunchSpeed(flightTicks, LIFTED_SHOT_GOAL_HEIGHT) : 0,
+    trajectory,
+    keeperChecked: false,
   };
 }
 
@@ -831,14 +907,42 @@ export function shotFlightTick(state: MatchState): void {
   const b = state.ball;
   if (b.kind !== 'shot') return;
   b.pos = { x: b.pos.x + b.vel.x, y: b.pos.y + b.vel.y };
+  advanceFlightHeight(b);
   const shooter = state.players[b.by];
   const gy = goalYFor(shooter.team);
-  const crossed = gy === 0 ? b.pos.y <= 0 : b.pos.y >= PITCH_H;
-  if (!crossed) return;
-
   const defendingTeam: 0 | 1 = shooter.team === 0 ? 1 : 0;
   const gkIdx = defendingTeam === 0 ? 0 : 11;
   const onTarget = Math.abs(b.targetX - GOAL_CENTER_X) <= GOAL_W / 2;
+  const keeper = state.players[gkIdx];
+  const reachedKeeperPlane = gy === 0 ? b.pos.y <= keeper.pos.y : b.pos.y >= keeper.pos.y;
+
+  // Resolve a catch at the goalkeeper, not after the ball has already drawn in
+  // the net. This removes the apparent "goal, then bounce out" sequence.
+  if (onTarget && !b.keeperChecked && reachedKeeperPlane) {
+    b.keeperChecked = true;
+    if (isAvailable(state, gkIdx)) {
+      const resolveScale = keeperResolveScale(state.resolve[defendingTeam]);
+      const saved = contest(state.rng, effectiveStat(state, gkIdx, 'ref') * resolveScale, b.power, SHOT_KEEPER_MOD);
+      if (saved) {
+        state.resolve[defendingTeam] = Math.max(
+          0,
+          state.resolve[defendingTeam] - Math.round(b.power / RESOLVE_DAMAGE_DIVISOR),
+        );
+        emit(state, { t: state.tick, kind: 'SAVE', by: gkIdx, resolveLeft: state.resolve[defendingTeam] });
+        addGauge(state, gkIdx, 12);
+        state.ball = {
+          kind: 'held',
+          by: gkIdx,
+          caught: true,
+          releaseAfterTick: state.tick + GOALKEEPER_CATCH_HOLD_TICKS,
+        };
+        return;
+      }
+    }
+  }
+
+  const crossed = gy === 0 ? b.pos.y <= 0 : b.pos.y >= PITCH_H;
+  if (!crossed) return;
 
   if (!onTarget) {
     emit(state, { t: state.tick, kind: 'MISS', by: b.by });
@@ -846,27 +950,7 @@ export function shotFlightTick(state: MatchState): void {
     return;
   }
 
-  if (!isAvailable(state, gkIdx)) {
-    state.score[shooter.team]++;
-    emit(state, { t: state.tick, kind: 'GOAL', by: b.by, team: shooter.team });
-    restartKickoff(state, defendingTeam);
-    return; // an ignited/KO'd keeper cannot save (Task 7.5 audit) — open goal
-  }
-
-  const resolveScale = keeperResolveScale(state.resolve[defendingTeam]);
-  const saved = contest(state.rng, effectiveStat(state, gkIdx, 'ref') * resolveScale, b.power, SHOT_KEEPER_MOD);
-
-  if (saved) {
-    state.resolve[defendingTeam] = Math.max(
-      0,
-      state.resolve[defendingTeam] - Math.round(b.power / RESOLVE_DAMAGE_DIVISOR),
-    );
-    emit(state, { t: state.tick, kind: 'SAVE', by: gkIdx, resolveLeft: state.resolve[defendingTeam] });
-    addGauge(state, gkIdx, 12);
-    state.ball = { kind: 'held', by: gkIdx };
-  } else {
-    state.score[shooter.team]++;
-    emit(state, { t: state.tick, kind: 'GOAL', by: b.by, team: shooter.team });
-    restartKickoff(state, defendingTeam);
-  }
+  state.score[shooter.team]++;
+  emit(state, { t: state.tick, kind: 'GOAL', by: b.by, team: shooter.team });
+  restartKickoff(state, defendingTeam);
 }

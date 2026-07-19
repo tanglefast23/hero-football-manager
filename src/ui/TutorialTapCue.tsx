@@ -7,11 +7,13 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { TUTORIAL_TAP_CUE_WIDTH } from './tutorial-cue-position';
 
 export interface TutorialTapCueProps {
   label?: string;
   detail: string;
   direction?: 'up' | 'down';
+  labelOffsetX?: number;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -20,6 +22,7 @@ export function TutorialTapCue({
   label = 'Tap here',
   detail,
   direction = 'down',
+  labelOffsetX = 0,
   style,
 }: TutorialTapCueProps) {
   const bounce = useRef(new Animated.Value(0)).current;
@@ -58,7 +61,12 @@ export function TutorialTapCue({
     >
       <Animated.View style={[styles.cue, { transform: [{ translateY: travel }] }]}>
         {direction === 'up' ? <Text style={styles.arrow}>▲</Text> : null}
-        <View style={styles.labelShadow}>
+        <View
+          style={[
+            styles.labelShadow,
+            labelOffsetX === 0 ? null : { transform: [{ translateX: labelOffsetX }] },
+          ]}
+        >
           <View style={styles.labelFrame}>
             <Text className="text-center font-pixel text-sm uppercase text-white">{label}</Text>
             <Text className="mt-1 text-center font-mono text-[10px] uppercase text-white/90">
@@ -75,7 +83,7 @@ export function TutorialTapCue({
 const styles = StyleSheet.create({
   anchor: {
     position: 'absolute',
-    width: 146,
+    width: TUTORIAL_TAP_CUE_WIDTH,
     zIndex: 40,
   },
   cue: { alignItems: 'center' },

@@ -249,16 +249,63 @@ describe('M1 app store integration', () => {
     startCreatedCareer(790);
     useM1Store.getState().completeAssistantGuide('management-intro');
     useM1Store.getState().completeAssistantGuide('squad-intro');
-    useM1Store.getState().completeAssistantGuide('desk-intro');
+    useM1Store.getState().setActiveTab('squad');
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
+    useM1Store.getState().toggleDrill('sprints');
+    useM1Store.getState().applyTraining();
+    useM1Store.getState().setActiveTab('home');
+    useM1Store.getState().setActiveTab('club');
+    useM1Store.getState().buildFacility();
+    useM1Store.getState().setActiveTab('home');
 
     expect(useM1Store.getState().career?.eventFlags).toEqual(expect.arrayContaining([
       'guide:bert:intro-complete',
       'guide:bert:squad-intro-complete',
-      'guide:bert:desk-intro-complete',
+      'guide:bert:first-training-complete',
     ]));
 
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.eventFlags).toContain('guide:bert:first-week-advanced');
+  });
+
+  it('blocks advancing until the first guided training plan is finished', () => {
+    startCreatedCareer(791);
+    useM1Store.getState().completeAssistantGuide('management-intro');
+    useM1Store.getState().completeAssistantGuide('squad-intro');
+    useM1Store.getState().setActiveTab('squad');
+    const weekBefore = useM1Store.getState().career!.week;
+
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(weekBefore);
+    expect(useM1Store.getState().error).toBe(
+      'Finish your first training plan before advancing the week.',
+    );
+
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
+    useM1Store.getState().toggleDrill('sprints');
+    useM1Store.getState().applyTraining();
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(weekBefore);
+    expect(useM1Store.getState().error).toBe(
+      'Return home and check your inbox before advancing the week.',
+    );
+
+    useM1Store.getState().setActiveTab('home');
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(weekBefore);
+    expect(useM1Store.getState().error).toBe(
+      'Build the Training Ground from your inbox before advancing the week.',
+    );
+
+    useM1Store.getState().setActiveTab('club');
+    useM1Store.getState().buildFacility();
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(weekBefore);
+    expect(useM1Store.getState().error).toBe('Return home before advancing the week.');
+
+    useM1Store.getState().setActiveTab('home');
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(weekBefore + 1);
   });
 
   it('completes the real default two-season store flow through events, licenses, and renewal', () => {

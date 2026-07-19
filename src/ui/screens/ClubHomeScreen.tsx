@@ -1,6 +1,8 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ActionButton, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
 import type { ClubAlertViewModel, HomeViewModel } from '../models';
+import { TutorialTapCue } from '../TutorialTapCue';
+import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
 
 /** Full-card tint per alert tone — bible palette only, never off-palette Tailwind hues. */
 function alertPalette(tone: ClubAlertViewModel['tone']): string {
@@ -14,6 +16,7 @@ export interface ClubHomeScreenProps {
   onOpenFixture: (fixtureId: string) => void;
   onOpenAlert: (alertId: string) => void;
   onOpenLeague: () => void;
+  guideAlertId?: string;
 }
 
 export function ClubHomeScreen({
@@ -21,6 +24,7 @@ export function ClubHomeScreen({
   onOpenFixture,
   onOpenAlert,
   onOpenLeague,
+  guideAlertId,
 }: ClubHomeScreenProps) {
   const fixture = viewModel.nextFixture;
 
@@ -93,22 +97,31 @@ export function ClubHomeScreen({
             <View className="border-2 border-b-4 border-ink bg-white p-4">
               <Text className="text-base text-ink/60">Desk clear. The board is suspiciously quiet.</Text>
             </View>
-          ) : viewModel.alerts.map(alert => (
-            <Pressable
-              key={alert.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${alert.title}. ${alert.detail}`}
-              onPress={() => onOpenAlert(alert.id)}
-              className={`min-h-14 flex-row items-center justify-between border-2 border-b-4 p-3 ${alertPalette(alert.tone)}`}
-              style={({ pressed }) => ({ opacity: pressed ? 0.75 : undefined })}
-            >
-              <View className="flex-1 pr-3">
-                <Text className="text-base font-bold uppercase text-ink">{alert.title}</Text>
-                <Text className="mt-1 text-sm leading-4 text-ink/70" numberOfLines={2}>{alert.detail}</Text>
-              </View>
-              <Text className="font-mono text-xl font-bold text-ink">›</Text>
-            </Pressable>
-          ))}
+          ) : viewModel.alerts.map(alert => {
+            const guided = alert.id === guideAlertId;
+            return (
+              <Pressable
+                key={alert.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${alert.title}. ${alert.detail}`}
+                onPress={() => onOpenAlert(alert.id)}
+                className={`relative min-h-14 flex-row items-center justify-between border-2 border-b-4 p-3 ${alertPalette(alert.tone)}`}
+                style={({ pressed }) => ({ opacity: pressed ? 0.75 : undefined })}
+              >
+                {guided ? (
+                  <TutorialTapCue
+                    detail="Check your inbox"
+                    style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+                  />
+                ) : null}
+                <View className="flex-1 pr-3">
+                  <Text className="text-base font-bold uppercase text-ink">{alert.title}</Text>
+                  <Text className="mt-1 text-sm leading-4 text-ink/70" numberOfLines={2}>{alert.detail}</Text>
+                </View>
+                <Text className="font-mono text-xl font-bold text-ink">›</Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 

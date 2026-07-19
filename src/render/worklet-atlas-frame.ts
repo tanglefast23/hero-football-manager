@@ -21,6 +21,7 @@ const PLAYER_COUNT = 22;
 const ATLAS_SLOT_COUNT = PLAYER_COUNT + 1;
 const BALL_SLOT = PLAYER_COUNT;
 const ACTION_STRIDE = 6;
+const BALL_HEIGHT_VISUAL_SCALE = 0.7;
 
 const ACTION_NONE = 0;
 const ACTION_SLIDE = 1;
@@ -42,6 +43,8 @@ interface WorkletAtlasOptions {
 export interface WorkletAtlasController {
   transforms: ReturnType<typeof useRSXformBuffer>;
   visualPositions: SharedValue<Float32Array>;
+  ballGroundPosition: SharedValue<Float32Array>;
+  ballHeight: SharedValue<number>;
   statuses: SharedValue<Float32Array>;
   zoneFractions: SharedValue<Float32Array>;
   carrier: SharedValue<number>;
@@ -195,6 +198,8 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
 
   const previousPositions = useSharedValue<Float32Array>(() => packPositions(initialFrame));
   const nextPositions = useSharedValue<Float32Array>(() => packPositions(initialFrame));
+  const previousBallHeight = useSharedValue(initialFrame.ballHeight);
+  const nextBallHeight = useSharedValue(initialFrame.ballHeight);
   const actionData = useSharedValue<Float32Array>(() => new Float32Array(PLAYER_COUNT * ACTION_STRIDE));
   const statuses = useSharedValue<Float32Array>(() => packStatuses(initialFrame));
   const zoneFractions = useSharedValue<Float32Array>(() => Float32Array.from(initialFrame.zoneFraction));
@@ -234,6 +239,19 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     return output;
   });
 
+  const ballGroundPosition = useDerivedValue<Float32Array>(() => {
+    const offset = BALL_SLOT * 2;
+    const t = progress.value;
+    return Float32Array.from([
+      previousPositions.value[offset] + (nextPositions.value[offset] - previousPositions.value[offset]) * t,
+      previousPositions.value[offset + 1] + (nextPositions.value[offset + 1] - previousPositions.value[offset + 1]) * t,
+    ]);
+  });
+
+  const ballHeight = useDerivedValue(() => (
+    previousBallHeight.value + (nextBallHeight.value - previousBallHeight.value) * progress.value
+  ));
+
   const transforms = useRSXformBuffer(ATLAS_SLOT_COUNT, (xf: SkRSXform, index: number) => {
     'worklet';
     const t = progress.value;
@@ -248,11 +266,13 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
       : visualPositions.value[packedOffset + 1];
 
     if (index === BALL_SLOT) {
-      const ballScale = scale * ballDrawScale;
+      const height = ballHeight.value;
+      const heightScale = 1 + Math.min(0.18, height / 1000);
+      const ballScale = scale * ballDrawScale * heightScale;
       let offsetX = 0;
       let offsetY = 0;
       const heldBy = carrier.value;
-      if (heldBy >= 0) {
+      if (heldBy >= 0 && height < 1) {
         const playerOffset = heldBy * 2;
         const dx = next[playerOffset] - prev[playerOffset];
         const dy = next[playerOffset + 1] - prev[playerOffset + 1];
@@ -271,7 +291,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
         ballScale,
         0,
         x * scale - (ballCell.width * ballScale) / 2 + offsetX,
-        y * scale - (ballCell.height * ballScale) / 2 + offsetY
+        y * scale - (ballCell.height * ballScale) / 2 + offsetY - height * scale * BALL_HEIGHT_VISUAL_SCALE
       );
       return;
     }
@@ -298,6 +318,8 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
   ) => {
     previousPositions.value = packPositions(previous);
     nextPositions.value = packPositions(next);
+    previousBallHeight.value = previous.ballHeight;
+    nextBallHeight.value = next.ballHeight;
     actionData.value = packActions(actions);
     statuses.value = packStatuses(next);
     zoneFractions.value = Float32Array.from(next.zoneFraction);
@@ -308,7 +330,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
       duration: TICK_MS / Math.max(1, speed),
       easing: Easing.linear,
     });
-  }, [previousPositions, nextPositions, actionData, statuses, zoneFractions, carrier, simTick, progress]);
+  }, [previousPositions, nextPositions, previousBallHeight, nextBallHeight, actionData, statuses, zoneFractions, carrier, simTick, progress]);
 
   const pause = useCallback(() => {
     cancelAnimation(progress);
@@ -324,6 +346,8 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
   return {
     transforms,
     visualPositions,
+    ballGroundPosition,
+    ballHeight,
     statuses,
     zoneFractions,
     carrier,

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import * as Haptics from 'expo-haptics';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -12,9 +13,11 @@ import {
   type OutfieldCreationStat,
 } from '../../game';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
+import { SettingsButton } from '../SettingsOverlay';
 
 export interface CharacterCreationScreenProps {
   onComplete: (draft: CreatedPlayerDraft) => void;
+  onOpenSettings: () => void;
 }
 
 const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }> = {
@@ -26,7 +29,11 @@ const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }>
   sta: { label: 'STAMINA', detail: 'Late-match engine' },
 };
 
-export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenProps) {
+function playImpact(style: Haptics.ImpactFeedbackStyle): void {
+  void Haptics.impactAsync(style).catch(() => undefined);
+}
+
+export function CharacterCreationScreen({ onComplete, onOpenSettings }: CharacterCreationScreenProps) {
   const [name, setName] = useState('');
   const [ratings, setRatings] = useState<OutfieldCreationRatings>({
     ...DEFAULT_CREATION_RATINGS,
@@ -50,11 +57,14 @@ export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenP
           <View className="flex-1">
             <Text className="text-sm font-bold uppercase tracking-[3px] text-blue-dark">Club file 00</Text>
             <Text className="mt-2 text-3xl font-bold uppercase leading-9 tracking-wide text-ink">
-              Create “You.”
+              Your first hire
             </Text>
           </View>
-          <View className="-rotate-3 border-2 border-stamp px-3 py-2">
-            <Text className="text-sm font-bold uppercase tracking-widest text-stamp">Rookie</Text>
+          <View className="items-end gap-3">
+            <SettingsButton onPress={onOpenSettings} />
+            <View className="-rotate-3 border-2 border-stamp px-3 py-2">
+              <Text className="text-sm font-bold uppercase tracking-widest text-stamp">Rookie</Text>
+            </View>
           </View>
         </View>
         <Text className="mt-3 max-w-sm text-base leading-5 text-ink/65">
@@ -76,7 +86,7 @@ export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenP
             className="min-h-14 border-2 border-ink bg-paper-dark px-3 py-3 text-xl font-bold text-ink"
           />
           <View className="mt-3 flex-row items-center justify-between">
-            <StatusChip label="FWD" selected />
+            <StatusChip label="Position: FWD" selected />
             <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">180 / week · 1 season</Text>
           </View>
         </PaperPanel>
@@ -116,7 +126,10 @@ export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenP
                   accessibilityLabel={`Decrease ${copy.label}`}
                   accessibilityState={{ disabled: value <= CREATION_STAT_MIN }}
                   disabled={value <= CREATION_STAT_MIN}
-                  onPress={() => adjust(stat, -1)}
+                  onPress={() => {
+                    playImpact(Haptics.ImpactFeedbackStyle.Light);
+                    adjust(stat, -1);
+                  }}
                   className="h-11 w-11 items-center justify-center border-2 border-ink/40"
                   style={({ pressed }) => ({ opacity: pressed ? 0.65 : value <= CREATION_STAT_MIN ? 0.3 : 1 })}
                 >
@@ -128,7 +141,10 @@ export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenP
                   accessibilityLabel={`Increase ${copy.label}`}
                   accessibilityState={{ disabled: value >= CREATION_STAT_MAX || pointsRemaining <= 0 }}
                   disabled={value >= CREATION_STAT_MAX || pointsRemaining <= 0}
-                  onPress={() => adjust(stat, 1)}
+                  onPress={() => {
+                    playImpact(Haptics.ImpactFeedbackStyle.Light);
+                    adjust(stat, 1);
+                  }}
                   className="h-11 w-11 items-center justify-center border-2 border-signal bg-signal"
                   style={({ pressed }) => ({
                     opacity: pressed ? 0.65 : value >= CREATION_STAT_MAX || pointsRemaining <= 0 ? 0.3 : 1,
@@ -151,7 +167,10 @@ export function CharacterCreationScreen({ onComplete }: CharacterCreationScreenP
           label="Sign the rookie  ▸"
           accessibilityLabel="Finish creating player"
           disabled={!canSubmit}
-          onPress={() => onComplete({ name, ratings })}
+          onPress={() => {
+            playImpact(Haptics.ImpactFeedbackStyle.Medium);
+            onComplete({ name, ratings });
+          }}
         />
       </View>
     </SafeAreaView>

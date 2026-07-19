@@ -2,6 +2,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
 import type { SeasonEndViewModel } from '../models';
+import { SettingsButton } from '../SettingsOverlay';
 
 export interface SeasonEndScreenProps {
   viewModel: SeasonEndViewModel;
@@ -9,6 +10,7 @@ export interface SeasonEndScreenProps {
   onRenewContract: (playerId: string, term: 1 | 2 | 3) => void;
   onReleaseContract: (playerId: string) => void;
   onPrimaryAction: () => void;
+  onOpenSettings: () => void;
 }
 
 export function SeasonEndScreen({
@@ -17,6 +19,7 @@ export function SeasonEndScreen({
   onRenewContract,
   onReleaseContract,
   onPrimaryAction,
+  onOpenSettings,
 }: SeasonEndScreenProps) {
   const contract = viewModel.expiredContract;
   const outcomeTone = viewModel.outcomeLabel === 'CHAMPIONS' || viewModel.outcomeLabel === 'PROMOTED'
@@ -27,6 +30,13 @@ export function SeasonEndScreen({
 
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+      <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
+        <View>
+          <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Front office</Text>
+          <Text className="mt-1 text-base font-bold uppercase text-ink">Season review</Text>
+        </View>
+        <SettingsButton onPress={onOpenSettings} />
+      </View>
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
         <View className="items-center py-3">
           <Text className="text-sm font-bold uppercase text-blue-dark">Season filed</Text>

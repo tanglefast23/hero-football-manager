@@ -37,6 +37,34 @@ const FLAME_LAYERS: readonly FlameLayer[] = [
   { color: '#ffc23a', heightScale: 0.45, widthScale: 0.55, opacity: 0.9 },
 ];
 
+/** Ground-locked cue that makes the ball sprite's vertical offset read as height. */
+export function WorkletBallShadow({
+  ballGroundPosition,
+  ballHeight,
+  scale,
+}: {
+  ballGroundPosition: SharedValue<Float32Array>;
+  ballHeight: SharedValue<number>;
+  scale: number;
+}) {
+  const shadow = usePathValue((builder) => {
+    'worklet';
+    if (ballHeight.value < 2) return;
+    const radius = 3.5 + Math.min(3, ballHeight.value / 80);
+    builder.addCircle(
+      ballGroundPosition.value[0] * scale,
+      ballGroundPosition.value[1] * scale,
+      radius,
+    );
+  });
+  const opacity = useDerivedValue(() => {
+    const heightFraction = Math.max(0, Math.min(1, ballHeight.value / 180));
+    return 0.34 - heightFraction * 0.16;
+  });
+
+  return <Path path={shadow} color="#17371d" opacity={opacity} />;
+}
+
 /** Gameplay overlays share the Atlas worklet's interpolated player centers. */
 export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
   const {

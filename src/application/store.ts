@@ -278,6 +278,29 @@ export const useM1Store = create<M1Store>((set, get) => ({
         set({ screen: 'first-awakening', error: null });
         return;
       }
+      if (
+        hasAssistantGuideMilestone(career, 'intro-complete')
+        && hasAssistantGuideMilestone(career, 'squad-intro-complete')
+        && !hasAssistantGuideMilestone(career, 'first-training-complete')
+      ) {
+        throw new Error('Finish your first training plan before advancing the week.');
+      }
+      const guidedFirstWeek = hasAssistantGuideMilestone(career, 'intro-complete')
+        && hasAssistantGuideMilestone(career, 'squad-intro-complete')
+        && hasAssistantGuideMilestone(career, 'first-training-complete')
+        && !hasAssistantGuideMilestone(career, 'first-week-advanced');
+      if (guidedFirstWeek) {
+        const activeTab = get().activeTab;
+        if (activeTab !== 'home' && activeTab !== 'club') {
+          throw new Error('Return home and check your inbox before advancing the week.');
+        }
+        if (!career.facilities.trainingGroundBuilt) {
+          throw new Error('Build the Training Ground from your inbox before advancing the week.');
+        }
+        if (activeTab !== 'home') {
+          throw new Error('Return home before advancing the week.');
+        }
+      }
       if (career.phase === 'matchday') {
         set({ screen: 'matchday', error: null });
         return;
@@ -307,7 +330,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
       const advanced = advanceWeek(career);
       const next = advanced.week !== career.week
-        && hasAssistantGuideMilestone(career, 'desk-intro-complete')
+        && hasAssistantGuideMilestone(career, 'first-training-complete')
         ? completeAssistantGuideMilestone(advanced, 'first-week-advanced')
         : advanced;
       const weekReview = next.phase === 'manage' && next.week !== career.week
