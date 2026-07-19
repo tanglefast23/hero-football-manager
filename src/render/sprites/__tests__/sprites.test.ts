@@ -121,9 +121,10 @@ describe('sprites.json', () => {
 
     it('Rex Bould (u3, muscular) has visibly wider shoulders than Ali Frost (u1, normal build)', () => {
       const sheet = loadSpriteSheet();
-      // Row index 9 is the sprite's first torso row (rows: 0 margin, 1-8 head,
-      // 9-14 torso, 15 shorts, 16-17 legs, 18-19 boots) — i.e. the shoulder row.
-      const SHOULDER_ROW = 9;
+      // Row index 16 is the sprite's shoulder line / first torso row at 24x30
+      // (rows: 0-1 hair, 2-14 head, 15 neck, 16-23 torso, 24-25 shorts,
+      // 26-27 legs, 28 socks, 29 boots).
+      const SHOULDER_ROW = 16;
       const countPainted = (row: string) => [...row].filter((ch) => ch !== '.').length;
       const rexShoulders = countPainted(sheet.sprites['u3:run0'][SHOULDER_ROW]);
       const aliShoulders = countPainted(sheet.sprites['u1:run0'][SHOULDER_ROW]);

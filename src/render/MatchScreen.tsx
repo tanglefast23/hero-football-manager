@@ -46,10 +46,10 @@ const MAX_CATCHUP_TICKS = 5;
 const TOTAL_TICKS = HALF_TICKS * 2;
 
 // Magnifies each atlas source-pixel into screen px, before the pitch->screen
-// `scale` factor. Player cells are 16x20 source px; at PLAYER_DRAW_SCALE=26
-// that's a ~28-34pt tall sprite across the common iPhone width range
-// (375-430pt), matching the target "readable but not oversized" body size.
-const PLAYER_DRAW_SCALE = 26;
+// `scale` factor. Player cells are 24x30 source px; at PLAYER_DRAW_SCALE=17
+// that keeps the same ~28-34pt tall footprint as the prior 16x20@26 across the
+// common iPhone width range (375-430pt) — crisper and more detailed, not bigger.
+const PLAYER_DRAW_SCALE = 17;
 
 // The ball sprite is a separate 6x6 source asset, not a scaled-down player —
 // reusing PLAYER_DRAW_SCALE would shrink it to a ~5pt speck. Calibrated
@@ -87,7 +87,7 @@ const FULLTIME_HOLD_MS = 1500;
 
 // Player sprite cell width (sprites.json `cell.w`, validated by loadSpriteSheet)
 // — used to size the possession/zone rings around a player's sprite.
-const PLAYER_CELL_W = 16;
+const PLAYER_CELL_W = 24;
 
 // Held-ball foot offset (T8) — draws a held ball at the carrier's leading
 // foot instead of dead-center, so it reads as carried rather than "stood
@@ -99,8 +99,8 @@ const BALL_FOOT_DOWN_PX = 3; // feet sit toward the sprite's bottom half, not it
 const BALL_FOOT_DEADZONE_PX = 0.5; // tick-to-tick screen-px delta below this reads as "stationary"
 
 // Side of the plain white square drawn when the sprite pack fails to build
-// (the plan's original placeholder texture size).
-const FALLBACK_SPRITE = 16;
+// (matches the player cell width so the placeholder keeps sane proportions).
+const FALLBACK_SPRITE = 24;
 
 // UX fix (zone-entry discoverability) — a HOME hero's zone entry gets a
 // longer "go tap now" banner than a RIVAL hero's threat flash, since only the
