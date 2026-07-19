@@ -29,7 +29,7 @@ const SPRITE_KEYS: string[] = [
 
 // Side of the placeholder square drawn when the sprite pack fails to build —
 // mirrors MatchScreen's atlas useMemo fallback (same constant/behavior).
-const FALLBACK_SPRITE = 16;
+const FALLBACK_SPRITE = 24;
 
 export function StressScreen({ onBack }: { onBack?: () => void }) {
   const { width, height } = useWindowDimensions();
