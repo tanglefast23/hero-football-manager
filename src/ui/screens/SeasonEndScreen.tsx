@@ -7,6 +7,7 @@ export interface SeasonEndScreenProps {
   viewModel: SeasonEndViewModel;
   onSelectContractTerm: (playerId: string, term: 1 | 2 | 3) => void;
   onRenewContract: (playerId: string, term: 1 | 2 | 3) => void;
+  onReleaseContract: (playerId: string) => void;
   onPrimaryAction: () => void;
 }
 
@@ -14,6 +15,7 @@ export function SeasonEndScreen({
   viewModel,
   onSelectContractTerm,
   onRenewContract,
+  onReleaseContract,
   onPrimaryAction,
 }: SeasonEndScreenProps) {
   const contract = viewModel.expiredContract;
@@ -138,17 +140,19 @@ export function SeasonEndScreen({
                       label="Renew deal"
                       accessibilityLabel={`Renew ${contract.playerName} for ${contract.selectedTerm} seasons`}
                       onPress={() => onRenewContract(contract.playerId, contract.selectedTerm)}
-                      disabled={!contract.canAfford}
+                    />
+                  </View>
+                  <View className="mt-2">
+                    <ActionButton
+                      label="Let player leave"
+                      accessibilityLabel={`Let ${contract.playerName} leave on a free transfer`}
+                      onPress={() => onReleaseContract(contract.playerId)}
+                      variant="danger"
                     />
                   </View>
                   <Text className="mt-2 text-center text-sm text-ink/50">
-                    Player release and transfer negotiation arrive with the M2 market.
+                    Renewal raises weekly payroll; it does not require an upfront fee.
                   </Text>
-                  {!contract.canAfford ? (
-                    <Text className="mt-2 text-center text-sm font-bold uppercase tracking-wide text-stamp">
-                      Club cannot afford this renewal
-                    </Text>
-                  ) : null}
                 </>
               ) : (
                 <View className="mt-3 flex-row gap-2">

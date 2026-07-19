@@ -1,4 +1,5 @@
 import { generateSeasonFixtures } from './schedule';
+import { resolveCareerTrainingWeek } from './training';
 import {
   GAME_SCHEMA_VERSION,
   M1_SEASONS,
@@ -36,6 +37,15 @@ export function createCareer(setup: CareerSetup): GameState {
       playerIds: [...lineup.playerIds],
     })),
     facilities: { trainingGroundBuilt: false },
+    ...(setup.trainingRules === undefined ? {} : {
+      trainingRules: {
+        maxFocusDrillsPerWeek: setup.trainingRules.maxFocusDrillsPerWeek,
+        baseConditioning: {
+          ...setup.trainingRules.baseConditioning,
+          gains: { ...setup.trainingRules.baseConditioning.gains },
+        },
+      },
+    }),
     eventClock: { weeksWithoutEvent: 0, riskyChoices: 0 },
     eventFlags: [],
     resolvedEventIds: [],
@@ -211,7 +221,13 @@ function settleCurrentWeek(state: GameState): GameState {
     throw new Error(`user club ${state.userClubId} does not exist`);
   }
 
-  const lines = settlementLines(state, userClub);
+  const training = resolveCareerTrainingWeek(state);
+  const trainedState = {
+    ...state,
+    players: training.players,
+    trainingPoints: training.trainingPoints,
+  };
+  const lines = settlementLines(trainedState, userClub, training.moneyCost);
   let net = 0;
   for (const line of lines) {
     net = checkedAdd(net, line.amount, 'weekly ledger net');
@@ -222,7 +238,7 @@ function settleCurrentWeek(state: GameState): GameState {
   );
   const ambientTrainingPoints = state.facilities.trainingGroundBuilt ? 5 : 0;
   const trainingPoints = checkedAdd(
-    state.trainingPoints,
+    training.trainingPoints,
     ambientTrainingPoints,
     'facility training point balance',
   );
@@ -236,7 +252,7 @@ function settleCurrentWeek(state: GameState): GameState {
     },
   ];
 
-  const recoveredPlayers = state.players.map(player => ({
+  const recoveredPlayers = training.players.map(player => ({
     ...player,
     injuryWeeks: player.injuryWeeks > 0 ? player.injuryWeeks - 1 : 0,
   }));
@@ -269,7 +285,11 @@ function settleCurrentWeek(state: GameState): GameState {
   };
 }
 
-function settlementLines(state: GameState, userClub: ClubState): LedgerLine[] {
+function settlementLines(
+  state: GameState,
+  userClub: ClubState,
+  trainingMoneyCost: number,
+): LedgerLine[] {
   const lines: LedgerLine[] = [];
   const homeFixture = state.fixtures.find(
     fixture =>
@@ -306,6 +326,14 @@ function settlementLines(state: GameState, userClub: ClubState): LedgerLine[] {
         amount: prize,
       });
     }
+  }
+
+  if (trainingMoneyCost > 0) {
+    lines.push({
+      kind: 'training',
+      label: 'Weekly focus training',
+      amount: checkedMultiply(trainingMoneyCost, -1, 'weekly training expense'),
+    });
   }
 
   lines.push({
@@ -381,6 +409,15 @@ function validateSetup(setup: CareerSetup): void {
   }
 
   validateNonnegativeInteger(setup.startingTrainingPoints ?? 0, 'starting training points');
+  if (setup.trainingRules !== undefined) {
+    validateNonnegativeInteger(
+      setup.trainingRules.maxFocusDrillsPerWeek,
+      'maximum weekly focus drills',
+    );
+    if (setup.trainingRules.maxFocusDrillsPerWeek < 1) {
+      throw new Error('maximum weekly focus drills must be positive');
+    }
+  }
   validatePlayerSetup(setup, ids);
 }
 

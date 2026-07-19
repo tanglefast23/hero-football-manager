@@ -23,9 +23,14 @@ export interface CareerEventOutcomeApplication {
   playerEffect?: CareerEventPlayerEffect;
 }
 
-/** Selects from a content-provided, unweighted awakening power list. */
-export function chooseAwakeningPower(
+/**
+ * Chooses a fitting power from deterministic integer weights. PAC leans toward
+ * Speed, DEF/STA toward Strength, and SHO/TEC toward Fire Torch. Every allowed
+ * power keeps a non-zero chance so awakenings still retain some surprise.
+ */
+export function chooseStatWeightedAwakeningPower(
   powerIds: readonly PowerId[],
+  attrs: Readonly<Attrs>,
   roll: number,
 ): PowerId {
   if (powerIds.length === 0) throw new Error('awakening requires at least one power');
@@ -35,10 +40,43 @@ export function chooseAwakeningPower(
     if (seen.has(powerId)) throw new Error(`duplicate awakening power ${powerId}`);
     seen.add(powerId);
   }
-  if (!Number.isSafeInteger(roll) || roll < 0 || roll >= powerIds.length) {
-    throw new Error(`awakening power roll must be an integer from 0 to ${powerIds.length - 1}`);
+  const weights = powerIds.map(powerId => awakeningPowerWeight(powerId, attrs));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  if (!Number.isSafeInteger(total) || total <= 0) {
+    throw new Error('awakening power weights exceed the supported range');
   }
-  return powerIds[roll];
+  if (!Number.isSafeInteger(roll) || roll < 0 || roll >= total) {
+    throw new Error(`awakening power roll must be an integer from 0 to ${total - 1}`);
+  }
+  let cumulative = 0;
+  for (let index = 0; index < powerIds.length; index += 1) {
+    cumulative += weights[index];
+    if (roll < cumulative) return powerIds[index];
+  }
+  throw new Error('awakening power roll did not resolve');
+}
+
+export function awakeningPowerRollSize(
+  powerIds: readonly PowerId[],
+  attrs: Readonly<Attrs>,
+): number {
+  // Use the same validation and weight path as selection without consuming a
+  // random value. A roll of zero is legal for every non-empty power list.
+  chooseStatWeightedAwakeningPower(powerIds, attrs, 0);
+  return powerIds.reduce(
+    (sum, powerId) => sum + awakeningPowerWeight(powerId, attrs),
+    0,
+  );
+}
+
+function awakeningPowerWeight(powerId: PowerId, attrs: Readonly<Attrs>): number {
+  const values = Object.values(attrs);
+  if (values.some(value => !Number.isSafeInteger(value) || value < 1 || value > 99)) {
+    throw new Error('awakening attributes must be integers from 1 to 99');
+  }
+  if (powerId === 'SUPER_SPEED') return 10 + attrs.pac * 3 + attrs.tec + attrs.pas;
+  if (powerId === 'SUPER_STRENGTH') return 10 + attrs.def * 2 + attrs.sta * 2 + attrs.pac;
+  return 10 + attrs.sho * 3 + attrs.tec + attrs.pas;
 }
 
 export function offerCareerEvent(state: GameState, eventId: string): GameState {

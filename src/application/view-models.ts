@@ -63,7 +63,11 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
   const selected = pending.selectedPlayerId === undefined
     ? undefined
     : state.players.find(player => player.id === pending.selectedPlayerId);
-  const requiresPlayer = event.id === 'spider-training-day';
+  const requiresPlayer = event.choices.some(choice =>
+    choice.outcomes.some(outcome =>
+      outcome.effects.some(effect => effect.type === 'awakenPower'),
+    ),
+  );
 
   return {
     id: event.id,
@@ -85,18 +89,30 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
       },
     } : {}),
     playerSelectionRequired: requiresPlayer,
-    choices: event.choices.map(choice => ({
-      id: choice.id,
-      label: choice.label,
-      detail: choice.risky
-        ? 'Risk an injury or setback for the chance to awaken a new hero.'
-        : 'Take the reliable, lower-upside response.',
-      consequenceHint: choice.risky
-        ? `Awakening chance: ${Math.min(100, 8 + state.eventClock.riskyChoices * 6)}%`
-        : describeSafeOutcome(choice.outcomes[0]?.effects ?? []),
-      tone: choice.risky ? 'risky' : 'safe',
-      disabled: pending.resolvedChoiceId !== undefined,
-    })),
+    choices: event.choices.map(choice => {
+      const canAwaken = choice.outcomes.some(outcome =>
+        outcome.effects.some(effect => effect.type === 'awakenPower'),
+      );
+      const guaranteedAwakening = event.id === 'license-pressure-awakening' && canAwaken;
+      return {
+        id: choice.id,
+        label: choice.label,
+        detail: guaranteedAwakening
+          ? 'Awaken a third hero and force a real two-license squad choice.'
+          : canAwaken
+            ? 'Risk an injury or setback for the chance to awaken a new hero.'
+            : choice.risky
+              ? 'Take the unusual path to keep the mystery alive.'
+              : 'Take the reliable response without ending the hero chase.',
+        consequenceHint: guaranteedAwakening
+          ? 'Guaranteed stat-fit awakening'
+          : canAwaken
+            ? `Awakening chance: ${Math.min(100, 8 + state.eventClock.riskyChoices * 6)}%`
+            : describeSafeOutcome(choice.outcomes[0]?.effects ?? []),
+        tone: choice.risky ? 'risky' as const : 'safe' as const,
+        disabled: pending.resolvedChoiceId !== undefined,
+      };
+    }),
     ...(pending.resolvedChoiceId ? { resolvedChoiceId: pending.resolvedChoiceId } : {}),
     ...(pending.outcomeText ? { outcomeTitle: 'The choice is made', outcomeText: pending.outcomeText } : {}),
   };
@@ -151,7 +167,6 @@ export function seasonEndViewModel(
         termOptions: [1, 2, 3] as const,
         selectedTerm,
         decision: 'pending' as const,
-        canAfford: requireUserClub(state).cash >= renewalQuote(expiredHero, 4),
       },
     } : {}),
     sliceComplete,
@@ -267,14 +282,17 @@ export function matchDayViewModel(state: GameState, content: LaunchContent): Mat
   const roster = rosterForClub(state, state.userClubId);
   const playerById = new Map(roster.map(player => [player.id, player]));
   const powerNames = new Map(content.powers.powers.map(power => [power.id, power.name]));
+  const lineupPlayers = lineup.playerIds.map(playerId => {
+    const player = playerById.get(playerId);
+    if (player === undefined) throw new Error(`lineup references unknown player ${playerId}`);
+    return player;
+  });
 
   return {
     fixture: fixtureViewModel(state, fixture),
     selectedTacticId: 'balanced',
     tactics: [{ id: 'balanced', label: 'Balanced', detail: 'The M1 match engine’s proven default shape.' }],
-    lineup: lineup.playerIds.map((playerId, index) => {
-      const player = playerById.get(playerId);
-      if (player === undefined) throw new Error(`lineup references unknown player ${playerId}`);
+    lineup: lineupPlayers.map((player, index) => {
       return {
         id: player.id,
         name: player.name,
@@ -290,6 +308,8 @@ export function matchDayViewModel(state: GameState, content: LaunchContent): Mat
       powerName: powerNames.get(player.power!) ?? player.power!,
       licensed: player.licensed,
     })),
+    licenseReady: lineupPlayers.every(player => player.power === undefined || player.licensed)
+      && lineupPlayers.filter(player => player.licensed).length <= 2,
   };
 }
 
@@ -337,7 +357,7 @@ export function squadTrainingViewModel(
     totalTrainingPointCost,
     canApply:
       assignedPlayerIds.length > 0 &&
-      assignedPlayerIds.length === selectedDrills.length &&
+      selectedDrills.length > 0 &&
       totalMoneyCost <= club.cash &&
       totalTrainingPointCost <= state.trainingPoints,
   };

@@ -6,6 +6,9 @@ import {
   fixturesForCurrentWeek,
 } from './career';
 import { simulateWeeklyAwakeningRetryWindow } from './event-clock';
+import { buildTrainingGround } from './squad';
+import { setCareerTrainingPlan } from './training';
+import type { FocusDrill } from './progression';
 import type { CareerSetup, FixtureResult, GameState, LeagueFixture } from './types';
 
 const DEFAULT_CAREER_SEEDS = 200;
@@ -34,7 +37,12 @@ export interface MiniBalanceHarnessOptions {
 
 export interface MiniBalanceScenario {
   readonly careerSetup: Omit<CareerSetup, 'seed'>;
-  readonly representativeDrills: ReadonlyArray<{ id: string; tpCost: number }>;
+  readonly representativeDrills: readonly FocusDrill[];
+  readonly spendingPolicy: {
+    readonly trainingGroundCost: number;
+    readonly assignedPlayerIds: readonly string[];
+    readonly weeklyFocusDrillIds: readonly string[];
+  };
   readonly awakening: {
     readonly season: number;
     readonly firstWeek: number;
@@ -51,6 +59,7 @@ export interface MiniBalanceMetrics {
   readonly awakeningSeeds: number;
   readonly seasonOneBankruptcyRate: number;
   readonly meanSeasonOneEndingCash: number;
+  readonly meanSeasonOneDiscretionarySpend: number;
   readonly meanTrainingPointsPerSeason: number;
   readonly meanAffordableFocusDrillsPerMatchWeek: number;
   readonly meanAwakeningWeek: number;
@@ -74,19 +83,23 @@ export function runMiniBalanceHarness(
   if (representativeDrills.length !== 3) {
     throw new Error('balance harness requires three representative drills');
   }
-  const representativeCosts = representativeDrills.map(drill => drill.tpCost);
-
   let bankruptCareers = 0;
   let endingCashTotal = 0;
   let trainingPointsTotal = 0;
+  let discretionarySpendTotal = 0;
   let affordableDrillTotal = 0;
   let matchWeekTotal = 0;
 
   for (let seed = 1; seed <= careerSeeds; seed += 1) {
-    const result = simulateSeasonOne({ ...setupTemplate, seed }, representativeCosts);
+    const result = simulateSeasonOne(
+      { ...setupTemplate, seed },
+      representativeDrills,
+      scenario.spendingPolicy,
+    );
     if (result.minimumBalance < 0) bankruptCareers += 1;
     endingCashTotal += result.endingCash;
     trainingPointsTotal += result.trainingPoints;
+    discretionarySpendTotal += result.discretionarySpend;
     affordableDrillTotal += result.affordableDrills;
     matchWeekTotal += result.matchWeeks;
   }
@@ -116,6 +129,7 @@ export function runMiniBalanceHarness(
     awakeningSeeds,
     seasonOneBankruptcyRate: bankruptCareers / careerSeeds,
     meanSeasonOneEndingCash: endingCashTotal / careerSeeds,
+    meanSeasonOneDiscretionarySpend: discretionarySpendTotal / careerSeeds,
     meanTrainingPointsPerSeason: trainingPointsTotal / careerSeeds,
     meanAffordableFocusDrillsPerMatchWeek: affordableDrillTotal / matchWeekTotal,
     meanAwakeningWeek: awakeningWeekTotal / awakeningSeeds,
@@ -132,24 +146,42 @@ interface SeasonOneResult {
   trainingPoints: number;
   affordableDrills: number;
   matchWeeks: number;
+  discretionarySpend: number;
 }
 
 function simulateSeasonOne(
   setup: CareerSetup,
-  representativeDrillCosts: readonly number[],
+  representativeDrills: readonly FocusDrill[],
+  spendingPolicy: MiniBalanceScenario['spendingPolicy'],
 ): SeasonOneResult {
   let state = createCareer(setup);
+  state = buildTrainingGround(state, spendingPolicy.trainingGroundCost);
+  const focusDrillById = new Map(representativeDrills.map(drill => [drill.id, drill]));
+  const weeklyDrills = spendingPolicy.weeklyFocusDrillIds.map(id => {
+    const drill = focusDrillById.get(id);
+    if (drill === undefined) throw new Error(`balance spending policy uses unknown drill ${id}`);
+    return drill;
+  });
+  state = setCareerTrainingPlan(state, spendingPolicy.assignedPlayerIds, weeklyDrills);
+
   let affordableDrills = 0;
   let matchWeeks = 0;
+  const representativeDrillCosts = representativeDrills.map(drill => drill.tpCost);
+  const initialCash = setup.clubs.find(club => club.id === setup.userClubId)?.cash ?? 0;
+  let minimumBalance = initialCash - spendingPolicy.trainingGroundCost;
 
   while (state.phase !== 'season-end') {
     state = advanceWeek(state);
     if (state.phase !== 'matchday') continue;
 
     const fixtures = fixturesForCurrentWeek(state);
-    const trainingPointsBefore = state.trainingPoints;
-    state = completeMatchday(state, fixtures.map(scoreFixture));
-    const earnedTrainingPoints = state.trainingPoints - trainingPointsBefore;
+    const results = fixtures.map(scoreFixture);
+    const earnedTrainingPoints = trainingPointsForUserResult(
+      state.userClubId,
+      fixtures,
+      results,
+    );
+    state = completeMatchday(state, results);
     affordableDrills += affordablePrefixCount(earnedTrainingPoints, representativeDrillCosts);
     matchWeeks += 1;
   }
@@ -161,12 +193,36 @@ function simulateSeasonOne(
     endingCash: userClub.cash,
     minimumBalance: state.ledgers.reduce(
       (minimum, ledger) => Math.min(minimum, ledger.balanceAfter),
-      setup.clubs.find(club => club.id === setup.userClubId)?.cash ?? 0,
+      minimumBalance,
     ),
     trainingPoints: state.trainingPoints,
     affordableDrills,
     matchWeeks,
+    discretionarySpend: spendingPolicy.trainingGroundCost + state.ledgers.reduce(
+      (sum, ledger) => sum + ledger.lines
+        .filter(line => line.kind === 'training')
+        .reduce((weekly, line) => weekly + Math.max(0, -line.amount), 0),
+      0,
+    ),
   };
+}
+
+function trainingPointsForUserResult(
+  userClubId: string,
+  fixtures: readonly LeagueFixture[],
+  results: readonly FixtureResult[],
+): number {
+  const fixture = fixtures.find(candidate =>
+    candidate.homeClubId === userClubId || candidate.awayClubId === userClubId,
+  );
+  if (fixture === undefined) return 0;
+  const result = results.find(candidate => candidate.fixtureId === fixture.id);
+  if (result === undefined) throw new Error(`balance harness lost result ${fixture.id}`);
+  const isHome = fixture.homeClubId === userClubId;
+  const goalsFor = isHome ? result.homeGoals : result.awayGoals;
+  const goalsAgainst = isHome ? result.awayGoals : result.homeGoals;
+  return (goalsFor > goalsAgainst ? 30 : goalsFor === goalsAgainst ? 20 : 14)
+    + goalsFor * 2;
 }
 
 function scoreFixture(fixture: LeagueFixture): FixtureResult {

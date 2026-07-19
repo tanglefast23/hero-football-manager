@@ -24,6 +24,24 @@ export interface CareerSetup {
   startingTrainingPoints?: number;
   players?: CareerPlayer[];
   lineups?: ClubLineupState[];
+  trainingRules?: TrainingRules;
+}
+
+export interface CareerTrainingDrill {
+  id: string;
+  moneyCost: number;
+  tpCost: number;
+  gains: Partial<Attrs>;
+}
+
+export interface CareerTrainingPlan {
+  assignedPlayerIds: string[];
+  drills: CareerTrainingDrill[];
+}
+
+export interface TrainingRules {
+  baseConditioning: CareerTrainingDrill;
+  maxFocusDrillsPerWeek: number;
 }
 
 export interface CareerPlayer {
@@ -100,7 +118,13 @@ export interface FixtureResult extends FixtureScore {
   fixtureId: string;
 }
 
-export type LedgerLineKind = 'tickets' | 'sponsor' | 'prize' | 'wages' | 'subsidy';
+export type LedgerLineKind =
+  | 'tickets'
+  | 'sponsor'
+  | 'prize'
+  | 'training'
+  | 'wages'
+  | 'subsidy';
 
 export interface LedgerLine {
   kind: LedgerLineKind;
@@ -127,6 +151,8 @@ export interface GameState {
   players: CareerPlayer[];
   lineups: ClubLineupState[];
   facilities: FacilityState;
+  trainingRules?: TrainingRules;
+  trainingPlan?: CareerTrainingPlan;
   eventClock: CareerEventState;
   eventFlags: string[];
   resolvedEventIds: string[];

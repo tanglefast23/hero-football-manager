@@ -22,8 +22,9 @@ Scope of this gate, stated precisely: M0 judges whether the match is a **readabl
 The second existential question — "does *managing heroes* stay fun across seasons?" — gets answered before any breadth is built. One division, 10 teams, two compressed seasons, containing exactly one of everything that defines the game:
 
 - Create your outfield player, play one ordinary match, then choose the origin of
-  the tutorial-exception first awakening. A later stat-weighted awakening creates
-  hero #2 and fills the 2 starting license slots.
+  the tutorial-exception first awakening. The Season-1 mystery chain creates
+  stat-weighted heroes #2 and #3, forcing the player to choose which two receive
+  the 2 starting match licenses.
 - One contract renewal crossing the **hero wage cliff** (the awakened-bargain dilemma, felt end to end).
 - Training v1 (focus drills + TP), money v1 (wages, tickets, one sponsor, prize money, itemized statement), one facility decision.
 - Save/load (sqlite + migrations, replay envelopes persisted); worklet-driven match renderer migration.

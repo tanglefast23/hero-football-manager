@@ -4,7 +4,7 @@ Events are the game's storyteller and the primary superpower faucet. They must f
 
 ## System rules
 
-- **Roll**: 18% chance per week during the manage phase; guaranteed at least one event per 8 weeks (pity timer). Taking risky choices raises the weight of future **mystery** events (the game notices you're a gambler). Big beats are scripted: the trialist demo in Match 1, the first permanent awakening at Week 3, and a guaranteed second-hero opportunity chain before Season 1 ends.
+- **Roll**: 18% chance per week during the manage phase; guaranteed at least one event per 8 weeks (pity timer). Taking risky choices raises the weight of future **mystery** events (the game notices you're a gambler). Big beats are scripted: the trialist demo in Match 1, the first permanent awakening after that match, then a repeatable spider chase for hero #2 and a guaranteed follow-on spark for hero #3 before Season 1 ends. Three heroes competing for two licenses is the M1 decision gate.
 - **Format**: an event card — pixel illustration, 2–4 lines of flavor text, 2–3 choice buttons. Choices can be gated (needs a facility, a personality on the roster, or cash).
 - **Outcomes**: weighted rolls; weights shift with relevant stats, facilities, and personalities. Outcomes always narrate ("The spider respected the hustle."), never just emit numbers.
 - **Risk philosophy**: safe choices give small guaranteed value; risky choices carry the good stuff (stat jumps, Hero Essence, awakenings) *and* real downside (injuries, stat loss, cash). The player should hover over risky buttons and grin.
@@ -16,7 +16,7 @@ Events are the game's storyteller and the primary superpower faucet. They must f
 | Choice | Requirements | Outcomes (weighted) |
 |---|---|---|
 | **Approach it** (pick a player) | — | 30% nothing, +5 squad morale · 25% +2 random stat (adrenaline) · 20% bitten: injured 2 wks · 15% bitten: −2 STA for the season · **8% POWER AWAKENING** · 2% it just wants tickets: +500 fans |
-| **Squash it** | — | 100%: +5 morale, +10 TP, the Joker on your squad is inconsolable (−5 their morale) |
+| **Supervise it instead** | — | 100%: +10 TP and the awakening chase remains available next week |
 | **Call the scientist** | Hero Lab built · 2,000 | Awakening odds double (16%), injury odds halve; 10% the scientist bills you again (−2,000) |
 
 Honest math: base odds alone (~2 mystery events/season × 8%) would give ~1 awakening per 6 seasons — far too slow. The **awakening pity counter** closes the gap: every risky choice that doesn't awaken adds +6% to the next awakening roll (persists across events, resets on awakening), and risk-taking raises mystery-event frequency. Measured cadence target: ~1 per 1.5–2 risk-taking seasons, asserted in the balance harness with the full event distribution simulated (doc 04, doc 09).

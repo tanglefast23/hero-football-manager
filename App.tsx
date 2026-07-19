@@ -51,6 +51,7 @@ import {
   currentAssistantObjective,
   pendingAssistantGuideSequence,
 } from './src/application/assistant-guide';
+import { loadPreferencesFailSoft } from './src/application/preferences';
 import {
   clubFinancesViewModel,
   homeViewModel,
@@ -73,6 +74,7 @@ export default function App() {
   const [assistantPageIndex, setAssistantPageIndex] = useState(0);
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [managementSettingsOpen, setManagementSettingsOpen] = useState(false);
+  const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const devVolume = preferences.masterVolume as DevVolume;
 
@@ -129,16 +131,20 @@ export default function App() {
       }))
       .then(async repositories => ({
         ...repositories,
-        preferences: await repositories.preferencesRepository.load(),
+        ...(await loadPreferencesFailSoft(repositories.preferencesRepository)),
       }))
-      .then(repositories => {
+      .then(async repositories => {
         if (!active) return undefined;
         preferencesRepositoryRef.current = repositories.preferencesRepository;
         setPreferences(repositories.preferences);
-        return store.initializePersistence(
+        await store.initializePersistence(
           repositories.careerRepository,
           repositories.replayRepository,
         );
+        if (active && repositories.warning !== undefined) {
+          store.notify(repositories.warning);
+        }
+        return undefined;
       })
       .catch(error => {
         if (active) setBootError(error instanceof Error ? error.message : String(error));
@@ -273,13 +279,15 @@ export default function App() {
         controlledTeam={store.watchedMatch.controlledTeam}
         formationPresets={preferences.formationPresets}
         autoPowers={preferences.autoPowers}
+        pausedExternally={globalSettingsOpen}
         onDone={finishWatchedMatch}
       />
     );
   } else if (store.screen === 'matchday') {
+    const matchday = matchDayViewModel(store.career, content);
     screen = (
       <FixtureMatchDayScreen
-        viewModel={matchDayViewModel(store.career, content)}
+        viewModel={matchday}
         onBack={() => store.setActiveTab('home')}
         onToggleHeroLicense={store.toggleHeroLicense}
         onWatchMatch={store.watchMatch}
@@ -320,6 +328,18 @@ export default function App() {
         viewModel={season}
         onSelectContractTerm={(_playerId, term) => store.setContractTerm(term)}
         onRenewContract={(playerId, term) => store.renewPlayer(playerId, term)}
+        onReleaseContract={playerId => Alert.alert(
+          'Let this player leave?',
+          `${season.expiredContract?.playerName ?? 'This player'} will leave the club immediately. This cannot be undone.`,
+          [
+            { text: 'Keep player', style: 'cancel' },
+            {
+              text: 'Let player leave',
+              style: 'destructive',
+              onPress: () => store.releasePlayer(playerId),
+            },
+          ],
+        )}
         onPrimaryAction={() => season.sliceComplete ? store.setActiveTab('home') : store.advanceCareer()}
       />
     );
@@ -391,6 +411,7 @@ export default function App() {
         <SettingsOverlay
           volume={devVolume}
           onVolumeChange={volume => savePreferences({ ...preferences, masterVolume: volume })}
+          onOpenChange={setGlobalSettingsOpen}
         />
         {assistantSequenceId !== null ? (
           <AssistantGuideOverlay

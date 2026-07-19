@@ -2,10 +2,12 @@ import { createCareer } from '../../game/career';
 import {
   DEFAULT_CREATION_RATINGS,
   addCreatedPlayer,
+  applyCareerTraining,
   beginStoryOnboarding,
 } from '../../game';
 import type { CareerSetup, GameState } from '../../game/types';
 import { createLaunchCareerSetup } from '../../application/launch';
+import { loadLaunchContent } from '../../content';
 import { createCareerRepository } from '../career-repository';
 import {
   CorruptCareerSaveError,
@@ -62,6 +64,23 @@ describe('career repository', () => {
       });
     expect(loaded?.players.find(player => player.id === loaded.onboarding?.createdPlayerId)?.power)
       .toBeUndefined();
+  });
+
+  it('round-trips the repeating training rules and selected weekly plan', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const sprint = loadLaunchContent().training.focusDrills.find(drill => drill.id === 'sprints')!;
+    const state = applyCareerTraining(
+      createCareer(createLaunchCareerSetup(13579)),
+      ['bramble-rovers-p13', 'bramble-rovers-p14'],
+      [sprint],
+    );
+
+    await repository.save(state);
+    const loaded = await repository.load();
+
+    expect(loaded?.trainingRules).toEqual(state.trainingRules);
+    expect(loaded?.trainingPlan).toEqual(state.trainingPlan);
   });
 
   it('overwrites the existing slot atomically with the latest state', async () => {

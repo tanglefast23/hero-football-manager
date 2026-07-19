@@ -21,6 +21,7 @@ import { useWorkletAtlasFrame } from './worklet-atlas-frame';
 import { nextMatchSpeed, type MatchSpeed } from './match-speed';
 import { WorkletMatchOverlays } from './WorkletMatchOverlays';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
+import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
 import { Pitch } from './Pitch';
 import { DebugOverlay } from './DebugOverlay';
 import { FormationDiagram } from '../ui/components/FormationDiagram';
@@ -132,6 +133,7 @@ export function MatchScreen({
   controlledTeam = 0,
   formationPresets = DEFAULT_FORMATION_PRESETS,
   autoPowers = false,
+  pausedExternally = false,
   onDone,
 }: {
   seed: number;
@@ -140,6 +142,7 @@ export function MatchScreen({
   controlledTeam?: 0 | 1;
   formationPresets?: readonly [FormationId, FormationId, FormationId];
   autoPowers?: boolean;
+  pausedExternally?: boolean;
   onDone: (state: MatchState) => void;
 }) {
   const { width } = useWindowDimensions();
@@ -213,7 +216,8 @@ export function MatchScreen({
   const [selectedIncoming, setSelectedIncoming] = useState<string | null>(null);
   const speedRef = useRef<MatchSpeed>(1);
   const pausedRef = useRef(false);
-  const swapWasPausedRef = useRef(false);
+  const userPausedRef = useRef(false);
+  const automaticPauseReasonsRef = useRef(new Set<AutomaticMatchPauseReason>());
   speedRef.current = speed;
   // Ledger item 4 — build the atlas once at mount from the merged sprite pack.
   // If the pack fails to build (realistically: sprites.json failing loader
@@ -263,6 +267,16 @@ export function MatchScreen({
     setPaused(value);
   };
 
+  const syncPauseReasons = () => {
+    setPausedBoth(shouldPauseMatch(userPausedRef.current, automaticPauseReasonsRef.current));
+  };
+
+  useEffect(() => {
+    if (pausedExternally) automaticPauseReasonsRef.current.add('settings');
+    else automaticPauseReasonsRef.current.delete('settings');
+    syncPauseReasons();
+  }, [pausedExternally]);
+
   // Audio lifecycle — own effect, separate from the RAF loop below: starts
   // the match theme on mount, tears everything down on unmount. No pause
   // handling needed (see src/render/audio.ts) — the theme keeps looping
@@ -292,7 +306,8 @@ export function MatchScreen({
         last = performance.now();
         acc = 0;
       } else {
-        setPausedBoth(true); // background -> hard pause; user resumes via a tap
+        automaticPauseReasonsRef.current.add('background');
+        syncPauseReasons(); // background -> hard pause; user resumes via a tap
       }
     });
 
@@ -650,17 +665,18 @@ export function MatchScreen({
 
   const openSwap = () => {
     if (substitutionsUsed >= 3 || bench.length === 0) return;
-    swapWasPausedRef.current = pausedRef.current;
     setSelectedOutgoing(null);
     setSelectedIncoming(null);
     setSwapOpen(true);
-    setPausedBoth(true);
+    automaticPauseReasonsRef.current.add('swap');
+    syncPauseReasons();
   };
   const closeSwap = () => {
     setSwapOpen(false);
     setSelectedOutgoing(null);
     setSelectedIncoming(null);
-    if (!swapWasPausedRef.current) setPausedBoth(false);
+    automaticPauseReasonsRef.current.delete('swap');
+    syncPauseReasons();
   };
   const confirmSwap = () => {
     if (selectedOutgoing === null || selectedIncoming === null) return;
@@ -675,7 +691,14 @@ export function MatchScreen({
 
   return (
     <View style={styles.root}>
-      <Pressable style={styles.scorebar} onPress={() => setPausedBoth(!pausedRef.current)}>
+      <Pressable
+        style={styles.scorebar}
+        onPress={() => {
+          automaticPauseReasonsRef.current.delete('background');
+          userPausedRef.current = !pausedRef.current;
+          syncPauseReasons();
+        }}
+      >
         {/* Scoreboard "bug": an ink-outlined dark pill with a raised bottom
             lip (Track-A bevel) and cream mono numerals; flashes hero-gold on a
             goal. Tapping the surrounding bar still toggles pause. */}
@@ -694,7 +717,7 @@ export function MatchScreen({
             onPress={() => setSpeed((current) => {
               const next = nextMatchSpeed(current);
               speedRef.current = next;
-              resumeAtlasFrame(next);
+              if (!pausedRef.current) resumeAtlasFrame(next);
               return next;
             })}
           >

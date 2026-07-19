@@ -11,4 +11,5 @@ export * from './onboarding/story-onboarding';
 export * from './progression';
 export * from './schedule';
 export * from './squad';
+export * from './training';
 export * from './types';

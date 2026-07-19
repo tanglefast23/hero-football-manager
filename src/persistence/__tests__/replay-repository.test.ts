@@ -23,9 +23,13 @@ describe('replay repository', () => {
     expect(loaded).toEqual(envelope);
     expect(loaded?.inputs).toEqual([
       { tick: 25, kind: 'POWER_TAP', player: 9 },
-      { tick: 25, kind: 'POWER_TAP', player: 10 },
+      { tick: 25, kind: 'SET_FORMATION', formation: '4-3-3' },
+      { tick: 25, kind: 'SET_MENTALITY', mentality: 'ATTACK' },
+      { tick: 30, kind: 'SUBSTITUTE', player: 8, replacementId: 'rovers-bench-1' },
       { tick: 40, kind: 'POWER_TAP', player: 9 },
     ]);
+    expect(loaded?.home.bench?.map(player => player.id)).toEqual(['rovers-bench-1']);
+    expect(loaded?.opts).toMatchObject({ controlledTeam: 0, homeFormation: '4-4-2' });
     expect(JSON.stringify(envelope)).toBe(original);
   });
 
@@ -205,18 +209,29 @@ describe('replay repository', () => {
 });
 
 function makeEnvelope(): ReplayEnvelope {
+  const home = {
+    ...ROVERS,
+    bench: [{ ...UNITED.players[9], id: 'rovers-bench-1' }],
+  };
   return {
     schemaVersion: REPLAY_SCHEMA_VERSION,
     engineVersion: ENGINE_VERSION,
     seed: 246813579,
-    home: ROVERS,
+    home,
     away: UNITED,
     inputs: [
       { tick: 25, kind: 'POWER_TAP', player: 9 },
-      { tick: 25, kind: 'POWER_TAP', player: 10 },
+      { tick: 25, kind: 'SET_FORMATION', formation: '4-3-3' },
+      { tick: 25, kind: 'SET_MENTALITY', mentality: 'ATTACK' },
+      { tick: 30, kind: 'SUBSTITUTE', player: 8, replacementId: 'rovers-bench-1' },
       { tick: 40, kind: 'POWER_TAP', player: 9 },
     ],
-    opts: { homePolicy: 'SAVE_FOR_TAP', awayPolicy: 'FIRE_WHEN_READY' },
+    opts: {
+      homePolicy: 'SAVE_FOR_TAP',
+      awayPolicy: 'FIRE_WHEN_READY',
+      controlledTeam: 0,
+      homeFormation: '4-4-2',
+    },
   };
 }
 
