@@ -1,10 +1,12 @@
-// Generates the title and management themes. They share Match Day Heroes'
-// A-minor/C-major harmony and chiptune-adjacent sound palette, but each has a
-// different job:
+// Generates the title, management, and event themes. They share Match Day
+// Heroes' A-minor/C-major harmony and chiptune-adjacent sound palette, but each
+// has a different job:
 //
 // - Heroes Start Here: a compact, immediately memorable title-screen fanfare.
 // - Clubhouse Dreams: a warm two-minute loop for the game's primary management
 //   screens, with enough space and sectional change to survive long sessions.
+// - The Big Call: an urgent loop for story interruptions where the player has
+//   to weigh a risky choice, with dramatic momentum but space to read.
 //
 // Everything is synthesized here. No samples or third-party music are used.
 import { execFileSync } from 'node:child_process';
@@ -46,6 +48,8 @@ const CHORDS = {
   F: { bass: 'F2', fifth: 'C3', octave: 'F3', tones: ['F4', 'A4', 'C5'] },
   C: { bass: 'C3', fifth: 'G3', octave: 'C4', tones: ['C4', 'E4', 'G4'] },
   G: { bass: 'G2', fifth: 'D3', octave: 'G3', tones: ['G4', 'B4', 'D5'] },
+  D: { bass: 'D2', fifth: 'A2', octave: 'D3', tones: ['D4', 'F4', 'A4'] },
+  E: { bass: 'E2', fifth: 'B2', octave: 'E3', tones: ['E4', 'G#4', 'B4'] },
 };
 
 function makeClock(bpm) {
@@ -402,6 +406,85 @@ function managementBar(index, rng, clock) {
   return resize(mix(layers), clock.barN);
 }
 
+// The event tune leans into A harmonic minor (the E-major turnaround supplies
+// G-sharp) for more danger than the other themes without leaving their shared
+// key or synth palette. Each phrase is still four bars, so it feels deliberate
+// rather than frantic while the player reads the choice text.
+const EVENT_HOOK = [
+  [['A5', 0.5], ['C6', 0.5], ['E6', 0.5], ['A6', 0.5], ['G6', 0.5], ['E6', 0.5], ['C6', 0.5], ['A5', 0.5]],
+  [['A5', 0.5], ['C6', 0.5], ['F6', 1], ['E6', 0.5], ['C6', 0.5], ['A5', 1]],
+  [['A5', 0.5], ['D6', 0.5], ['F6', 0.5], ['A6', 0.5], ['F6', 0.5], ['E6', 0.5], ['D6', 1]],
+  [['B5', 0.5], ['E6', 0.5], ['G#6', 1], ['B6', 0.5], ['A6', 0.5], ['G#6', 0.5], [null, 0.5]],
+];
+
+const EVENT_ANSWER = [
+  [['E6', 0.5], ['C6', 0.5], ['A5', 1], ['C6', 0.5], ['E6', 0.5], ['A6', 1]],
+  [['F6', 0.5], ['A6', 0.5], ['C7', 1], ['A6', 0.5], ['G6', 0.5], ['E6', 1]],
+  [['F6', 0.5], ['D6', 0.5], ['A5', 1], ['D6', 0.5], ['F6', 0.5], ['A6', 1]],
+  [['E6', 0.5], ['G#6', 0.5], ['B6', 0.5], ['E7', 0.5], ['D7', 0.5], ['B6', 0.5], ['G#6', 0.5], [null, 0.5]],
+];
+
+const EVENT_WARNING = [
+  [['A5', 0.5], ['E6', 0.5], ['A6', 0.5], ['E6', 0.5], ['C6', 0.5], ['E6', 0.5], ['A6', 0.5], [null, 0.5]],
+  [['A5', 0.5], ['F6', 0.5], ['A6', 0.5], ['F6', 0.5], ['C6', 0.5], ['F6', 0.5], ['A6', 0.5], [null, 0.5]],
+  [['A5', 0.5], ['D6', 0.5], ['A6', 0.5], ['D6', 0.5], ['F6', 0.5], ['A6', 0.5], ['D7', 0.5], [null, 0.5]],
+  [['B5', 0.5], ['E6', 0.5], ['B6', 0.5], ['E6', 0.5], ['G#6', 0.5], ['B6', 0.5], ['E7', 0.5], [null, 0.5]],
+];
+
+function eventBar(index, rng, clock) {
+  const progression = ['A', 'F', 'D', 'E'];
+  const chordName = progression[index % progression.length];
+  const cycle = Math.floor(index / 4);
+  const barInCycle = index % 4;
+  const quiet = cycle === 0 || cycle === 4;
+  const layers = [
+    { buf: padBar(chordName, clock, { brightness: quiet ? 1150 : 1650, pulse: true }), gain: quiet ? 0.16 : 0.2 },
+    { buf: arpeggioBar(chordName, clock, { reverse: cycle % 2 === 1, soft: quiet }), gain: quiet ? 0.3 : 0.38 },
+    { buf: bassBar(chordName, clock, { walking: cycle >= 2 && cycle !== 4, soft: quiet }), gain: quiet ? 0.46 : 0.58 },
+  ];
+
+  if (cycle === 0) {
+    // A quick suspense entrance: pulse first, then reveal half of the warning
+    // motif so the screen change immediately feels like an interruption.
+    layers.push({ buf: titleDrums(rng, clock, { intensity: 0.58, fill: index === 3 }), gain: 0.56 });
+    if (barInCycle >= 2) {
+      layers.push({ buf: sequenceBar(EVENT_WARNING[barInCycle], clock, titleLead, { octaveShift: -1, softer: true }), gain: 0.44 });
+    }
+  } else if (cycle === 1) {
+    layers.push({ buf: sequenceBar(EVENT_HOOK[barInCycle], clock, titleLead), gain: 0.66 });
+    layers.push({ buf: titleDrums(rng, clock, { intensity: 0.88, fill: index === 7 }), gain: 0.64 });
+  } else if (cycle === 2) {
+    layers.push({ buf: sequenceBar(EVENT_WARNING[barInCycle], clock, titleLead), gain: 0.64 });
+    layers.push({ buf: fanfareStabs(chordName, clock, { quiet: true }), gain: 0.14 });
+    layers.push({ buf: titleDrums(rng, clock, { intensity: 1, stadium: true, fill: index === 11 }), gain: 0.68 });
+  } else if (cycle === 3) {
+    layers.push({ buf: sequenceBar(EVENT_ANSWER[barInCycle], clock, titleLead), gain: 0.68 });
+    layers.push({ buf: titleDrums(rng, clock, { intensity: 1.06, stadium: true, fill: index === 15 }), gain: 0.7 });
+  } else if (cycle === 4) {
+    // Brief investigation beat: pull the lead down an octave and open a pocket
+    // in the mix for the player to read before the second build begins.
+    layers.push({ buf: sequenceBar(EVENT_HOOK[barInCycle], clock, titleLead, { octaveShift: -1, softer: true }), gain: 0.42 });
+    layers.push({ buf: titleDrums(rng, clock, { intensity: 0.68, stadium: true, fill: index === 19 }), gain: 0.58 });
+  } else if (cycle === 5) {
+    layers.push({ buf: sequenceBar(EVENT_WARNING[barInCycle], clock, titleLead), gain: 0.7 });
+    layers.push({ buf: sequenceBar(EVENT_WARNING[barInCycle], clock, titleLead, { octaveShift: -1, softer: true }), gain: 0.16 });
+    layers.push({ buf: titleDrums(rng, clock, { intensity: 1.08, stadium: true, fill: index === 23 }), gain: 0.7 });
+  } else if (cycle === 6) {
+    layers.push({ buf: sequenceBar(EVENT_ANSWER[barInCycle], clock, titleLead), gain: 0.72 });
+    layers.push({ buf: fanfareStabs(chordName, clock), gain: 0.17 });
+    layers.push({ buf: titleDrums(rng, clock, { intensity: 1.12, stadium: true, fill: index === 27 }), gain: 0.72 });
+  } else {
+    // Full hook return. The fill lands in bar 31 and the last bar resolves onto
+    // E major, whose leading tone pulls naturally back to A minor at the seam.
+    layers.push({ buf: sequenceBar(EVENT_HOOK[barInCycle], clock, titleLead), gain: 0.74 });
+    layers.push({ buf: sequenceBar(EVENT_HOOK[barInCycle], clock, titleLead, { octaveShift: -1, softer: true }), gain: 0.2 });
+    layers.push({ buf: fanfareStabs(chordName, clock), gain: 0.2 });
+    layers.push({ buf: titleDrums(rng, clock, { intensity: 1.14, stadium: true, fill: index === 30 }), gain: 0.72 });
+  }
+
+  return resize(mix(layers), clock.barN);
+}
+
 function buildTitleTheme() {
   const clock = makeClock(128);
   const rng = mulberry32(4101);
@@ -414,6 +497,13 @@ function buildManagementTheme() {
   const rng = mulberry32(4102);
   const bars = Array.from({ length: 56 }, (_, index) => managementBar(index, rng, clock));
   return { bpm: clock.bpm, buffer: highpass(softClip(concat(bars), 1.02), 28) };
+}
+
+function buildEventTheme() {
+  const clock = makeClock(136);
+  const rng = mulberry32(4103);
+  const bars = Array.from({ length: 32 }, (_, index) => eventBar(index, rng, clock));
+  return { bpm: clock.bpm, buffer: highpass(softClip(concat(bars), 1.06), 28) };
 }
 
 function writeM4a(wavPath, m4aPath) {
@@ -457,10 +547,12 @@ export function generateMenuMusic(outDir = OUT_DIR) {
   mkdirSync(outDir, { recursive: true });
   const openingEntry = MUSIC_CATALOG.find((entry) => entry.name === 'opening-theme');
   const managementEntry = MUSIC_CATALOG.find((entry) => entry.name === 'management-theme');
-  if (!openingEntry || !managementEntry) throw new Error('menu music entries missing from MUSIC_CATALOG');
+  const eventEntry = MUSIC_CATALOG.find((entry) => entry.name === 'event-theme');
+  if (!openingEntry || !managementEntry || !eventEntry) throw new Error('menu music entries missing from MUSIC_CATALOG');
   return [
     renderTrack(openingEntry, buildTitleTheme(), outDir),
     renderTrack(managementEntry, buildManagementTheme(), outDir),
+    renderTrack(eventEntry, buildEventTheme(), outDir),
   ];
 }
 
