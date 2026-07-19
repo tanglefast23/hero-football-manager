@@ -23,6 +23,7 @@ import { setMasterVolume } from './src/render/audio';
 import { nextDevVolume, type DevVolume } from './src/render/dev-volume';
 import {
   playAdvanceWeekSfx,
+  playPlanLockedSfx,
   setMenuMasterVolume,
   setMenuTheme,
   teardownMenuAudio,
@@ -40,6 +41,7 @@ import {
   LeagueTableScreen,
   ManagementShell,
   NewGameWelcomeScreen,
+  PlanLockedConfirmation,
   PostMatchLedgerScreen,
   SeasonEndScreen,
   SquadTrainingScreen,
@@ -47,6 +49,7 @@ import {
   TitleLandingScreen,
   TitleSettingsScreen,
   WeeklyReviewScreen,
+  type LockedPlanConfirmation,
 } from './src/ui';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import type { TutorialAnchorLayout } from './src/ui/tutorial-cue-position';
@@ -86,6 +89,7 @@ export default function App() {
   const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [trainingTransition, setTrainingTransition] = useState<TrainingTransitionScene | null>(null);
+  const [lockedPlanConfirmation, setLockedPlanConfirmation] = useState<LockedPlanConfirmation | null>(null);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const devVolume = preferences.masterVolume as DevVolume;
   const reduceMotion = useReducedMotion(preferences.reduceMotion);
@@ -126,6 +130,34 @@ export default function App() {
 
   const dismissTrainingTransition = useCallback(() => {
     setTrainingTransition(null);
+  }, []);
+
+  const lockTrainingPlanWithFeedback = useCallback(() => {
+    const before = useM1Store.getState();
+    const selectedDrillIds = [...before.selectedDrillIds];
+    const assignedPlayerIds = [...before.assignedPlayerIds];
+    before.applyTraining();
+
+    const after = useM1Store.getState();
+    const lockedPlan = after.career?.trainingPlan;
+    const planWasLocked = after.error === null
+      && lockedPlan !== undefined
+      && lockedPlan.drills.length === selectedDrillIds.length
+      && lockedPlan.drills.every((drill, index) => drill.id === selectedDrillIds[index])
+      && lockedPlan.assignedPlayerIds.length === assignedPlayerIds.length
+      && lockedPlan.assignedPlayerIds.every((playerId, index) => playerId === assignedPlayerIds[index]);
+    if (!planWasLocked) return;
+
+    const drillNamesById = new Map(content.training.focusDrills.map(drill => [drill.id, drill.name]));
+    playPlanLockedSfx();
+    setLockedPlanConfirmation({
+      drillNames: selectedDrillIds.map(id => drillNamesById.get(id) ?? id),
+      playerCount: assignedPlayerIds.length,
+    });
+  }, [content]);
+
+  const dismissLockedPlanConfirmation = useCallback(() => {
+    setLockedPlanConfirmation(null);
   }, []);
 
   useEffect(() => {
@@ -432,7 +464,7 @@ export default function App() {
             onSelectPlayer={store.selectPlayer}
             onTogglePlayerAssignment={store.toggleTrainingPlayer}
             onToggleDrill={store.toggleDrill}
-            onApplyTraining={store.applyTraining}
+            onApplyTraining={lockTrainingPlanWithFeedback}
             guideTraining={assistantObjective?.target === 'training-plan'}
           />
         ) : store.activeTab === 'club' ? (
@@ -500,6 +532,13 @@ export default function App() {
             scene={trainingTransition}
             reduceMotion={reduceMotion}
             onComplete={dismissTrainingTransition}
+          />
+        ) : null}
+        {lockedPlanConfirmation !== null ? (
+          <PlanLockedConfirmation
+            confirmation={lockedPlanConfirmation}
+            reduceMotion={reduceMotion}
+            onComplete={dismissLockedPlanConfirmation}
           />
         ) : null}
       </View>
