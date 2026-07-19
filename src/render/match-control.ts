@@ -12,15 +12,14 @@ export function retainedCarrierIndex(
 /** Keep the watched side manual without changing scheduled home/away order. */
 export function matchPoliciesForControlledTeam(
   controlledTeam: 0 | 1,
-  autoPowers = false,
   initialFormation: FormationId = '4-4-2',
 ): MatchOpts {
   return {
     homePolicy: controlledTeam === 0
-      ? (autoPowers ? 'FIRE_WHEN_READY' : 'SAVE_FOR_TAP')
+      ? 'SAVE_FOR_TAP'
       : 'FIRE_WHEN_READY',
     awayPolicy: controlledTeam === 1
-      ? (autoPowers ? 'FIRE_WHEN_READY' : 'SAVE_FOR_TAP')
+      ? 'SAVE_FOR_TAP'
       : 'FIRE_WHEN_READY',
     controlledTeam,
     ...(controlledTeam === 0

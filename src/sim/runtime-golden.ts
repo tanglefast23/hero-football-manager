@@ -4,7 +4,7 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
-const EXPECTED_RUNTIME_GOLDEN = 'a2616460';
+const EXPECTED_RUNTIME_GOLDEN = '0b7b9fa1';
 
 export function runtimeGoldenFingerprint(): string {
   const result = runMatch(42, ROVERS, UNITED, [], {

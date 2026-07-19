@@ -23,6 +23,7 @@ describe('replay repository', () => {
     expect(loaded).toEqual(envelope);
     expect(loaded?.inputs).toEqual([
       { tick: 25, kind: 'POWER_TAP', player: 9 },
+      { tick: 25, kind: 'SET_AUTO_POWERS', enabled: true },
       { tick: 25, kind: 'SET_FORMATION', formation: '4-3-3' },
       { tick: 25, kind: 'SET_MENTALITY', mentality: 'ATTACK' },
       { tick: 30, kind: 'SUBSTITUTE', player: 8, replacementId: 'rovers-bench-1' },
@@ -221,6 +222,7 @@ function makeEnvelope(): ReplayEnvelope {
     away: UNITED,
     inputs: [
       { tick: 25, kind: 'POWER_TAP', player: 9 },
+      { tick: 25, kind: 'SET_AUTO_POWERS', enabled: true },
       { tick: 25, kind: 'SET_FORMATION', formation: '4-3-3' },
       { tick: 25, kind: 'SET_MENTALITY', mentality: 'ATTACK' },
       { tick: 30, kind: 'SUBSTITUTE', player: 8, replacementId: 'rovers-bench-1' },

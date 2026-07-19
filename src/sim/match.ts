@@ -6,9 +6,9 @@ import { powerTick } from './powers';
 import { isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.1 adds committed slide-tackle movement and recovery to m1.0's replayable
-// formations, mentality, substitutions, and STA-driven condition model.
-export const ENGINE_VERSION = 'm1.1';
+// m1.2 adds replayable live manual/automatic power-mode switching to m1.1's
+// committed slide-tackle movement, coaching inputs, and STA model.
+export const ENGINE_VERSION = 'm1.2';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -96,6 +96,9 @@ export function queueInput(state: MatchState, input: MatchInput): void {
         `invalid POWER_TAP target ${input.player} — taps may only target heroes on the manually controlled team`
       );
     }
+  } else if (input.kind === 'SET_AUTO_POWERS') {
+    requireControlledTeam(state);
+    if (typeof input.enabled !== 'boolean') throw new Error('automatic powers input must be boolean');
   } else if (input.kind === 'SET_FORMATION') {
     requireControlledTeam(state);
     if (!isFormationId(input.formation)) throw new Error(`invalid formation ${String(input.formation)}`);
@@ -154,6 +157,15 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
   const team = state.opts.controlledTeam;
   if (team !== 0 && team !== 1) return; // validate/queue rejects this; replay corruption stays fail-soft here.
 
+  if (input.kind === 'SET_AUTO_POWERS') {
+    const policy = input.enabled ? 'FIRE_WHEN_READY' : 'SAVE_FOR_TAP';
+    const first = team * 11;
+    for (let index = first; index < first + 11; index += 1) {
+      state.players[index].firePolicy = policy;
+    }
+    return;
+  }
+
   if (input.kind === 'SET_FORMATION') {
     state.tactics[team].formation = input.formation;
     emit(state, { t: state.tick, kind: 'FORMATION_CHANGED', team, formation: input.formation });
@@ -180,9 +192,9 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
     condition: 100,
     gauge: 0,
     powerState: { kind: 'idle' },
-    firePolicy: team === 0
-      ? (state.opts.homePolicy ?? 'SAVE_FOR_TAP')
-      : (state.opts.awayPolicy ?? 'FIRE_WHEN_READY'),
+    // A substitute inherits the live M/A setting, not merely the match's
+    // starting policy recorded in opts.
+    firePolicy: state.players[team * 11].firePolicy,
     outUntilTick: 0,
     tackleRecoveryUntil: 0,
     tackleCooldownUntil: state.tick,
@@ -390,6 +402,12 @@ export function validateEnvelope(env: ReplayEnvelope): void {
     if (input.kind === 'SET_MENTALITY') {
       if (env.opts?.controlledTeam === undefined || !isMentality(input.mentality)) {
         throw new Error('replay envelope: mentality input needs a controlled team and valid mentality');
+      }
+      continue;
+    }
+    if (input.kind === 'SET_AUTO_POWERS') {
+      if (env.opts?.controlledTeam === undefined || typeof input.enabled !== 'boolean') {
+        throw new Error('replay envelope: automatic powers input needs a controlled team and boolean mode');
       }
       continue;
     }

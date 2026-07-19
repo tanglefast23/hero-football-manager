@@ -100,7 +100,6 @@ export interface TitleSettingsScreenProps {
   preferences: AppPreferences;
   onCycleVolume: () => void;
   onCycleFormation: (slot: number) => void;
-  onToggleAutoPowers: () => void;
   onBack: () => void;
   backLabel?: string;
 }
@@ -109,7 +108,6 @@ export function TitleSettingsScreen({
   preferences,
   onCycleVolume,
   onCycleFormation,
-  onToggleAutoPowers,
   onBack,
   backLabel = 'Back to title',
 }: TitleSettingsScreenProps) {
@@ -151,28 +149,6 @@ export function TitleSettingsScreen({
                   </Pressable>
                 ))}
               </View>
-            </PaperPanel>
-
-            <PaperPanel kicker="Hero control" title="Power activation" stamp={preferences.autoPowers ? 'AUTO' : 'MANUAL'} className="mt-6">
-              <Text className="text-base leading-5 text-ink/65">
-                Manual lets you tap glowing heroes directly on the pitch. Auto fires powers in a useful context at reduced strength.
-              </Text>
-              <Pressable
-                accessibilityRole="switch"
-                accessibilityLabel="Automatic hero powers"
-                accessibilityState={{ checked: preferences.autoPowers }}
-                onPress={onToggleAutoPowers}
-                className={preferences.autoPowers ? 'mt-5 min-h-14 flex-row items-center justify-between border-2 border-ink bg-signal px-4 py-3' : 'mt-5 min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3'}
-                style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
-              >
-                <View>
-                  <Text className="text-xs font-bold uppercase tracking-[2px] text-ink/55">Tap to change</Text>
-                  <Text className="mt-1 font-mono text-lg font-bold text-ink">
-                    {preferences.autoPowers ? 'AUTO POWERS' : 'TAP PLAYERS'}
-                  </Text>
-                </View>
-                <Text className="font-mono text-2xl font-bold text-ink">{preferences.autoPowers ? 'ON' : 'OFF'}</Text>
-              </Pressable>
             </PaperPanel>
 
             <PaperPanel kicker="Master mix" title="Game audio" stamp={`${volumePercent}%`} className="mt-6">

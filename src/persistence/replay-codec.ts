@@ -93,6 +93,11 @@ const inputSchema = z.discriminatedUnion('kind', [
   }).passthrough(),
   z.object({
     tick: positiveInteger,
+    kind: z.literal('SET_AUTO_POWERS'),
+    enabled: z.boolean(),
+  }).passthrough(),
+  z.object({
+    tick: positiveInteger,
     kind: z.literal('SET_FORMATION'),
     formation: formationSchema,
   }).passthrough(),
