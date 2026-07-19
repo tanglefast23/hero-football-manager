@@ -109,7 +109,9 @@ export default function App() {
       ? 'opening'
       : store.screen === 'management'
         ? 'management'
-        : null
+        : store.screen === 'event'
+          ? 'event'
+          : null
     : null;
 
   useEffect(() => {
