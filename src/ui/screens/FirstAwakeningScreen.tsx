@@ -36,7 +36,7 @@ export function FirstAwakeningScreen({
 
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
-      <View className={revealed ? 'border-b-2 border-signal bg-white px-5 py-4' : 'border-b-2 border-stamp bg-white px-5 py-4'}>
+      <View className={revealed ? 'border-b-2 border-gold bg-white px-5 py-4' : 'border-b-2 border-stamp bg-white px-5 py-4'}>
         <Text className={revealed ? 'text-sm font-bold uppercase text-gold-dark' : 'text-sm font-bold uppercase text-stamp'}>
           Final whistle · incident report
         </Text>
@@ -47,14 +47,14 @@ export function FirstAwakeningScreen({
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
         <View className="items-center py-4">
-          <View className={revealed ? 'h-36 w-36 rotate-3 items-center justify-center border-4 border-signal bg-stamp' : 'h-36 w-36 -rotate-2 items-center justify-center border-4 border-stamp bg-pitch'}>
+          <View className={revealed ? 'h-36 w-36 rotate-3 items-center justify-center border-4 border-gold bg-stamp' : 'h-36 w-36 -rotate-2 items-center justify-center border-4 border-stamp bg-pitch'}>
             <View className="absolute h-1 w-44 rotate-45 bg-paper/70" />
             <View className="absolute h-1 w-44 -rotate-45 bg-paper/70" />
-            <View className={revealed ? 'h-20 w-14 items-center justify-center border-4 border-paper bg-signal' : 'h-10 w-24 rotate-6 items-center justify-center border-4 border-paper bg-stamp'}>
+            <View className={revealed ? 'h-20 w-14 items-center justify-center border-4 border-paper bg-gold' : 'h-10 w-24 rotate-6 items-center justify-center border-4 border-paper bg-stamp'}>
               <Text className="font-mono text-2xl font-bold text-ink">{revealed ? '★' : '!!'}</Text>
             </View>
           </View>
-          <View className={revealed ? 'mt-5 -rotate-2 border-2 border-signal bg-signal px-4 py-2' : 'mt-5 rotate-2 border-2 border-stamp px-4 py-2'}>
+          <View className={revealed ? 'mt-5 -rotate-2 border-2 border-gold bg-gold px-4 py-2' : 'mt-5 rotate-2 border-2 border-stamp px-4 py-2'}>
             <Text className={revealed ? 'text-sm font-bold uppercase text-ink' : 'text-sm font-bold uppercase text-stamp'}>
               {revealed ? 'Hero #1 confirmed' : 'Panic — then something fizzes'}
             </Text>
@@ -77,7 +77,7 @@ export function FirstAwakeningScreen({
                   className="min-h-24 flex-row items-center border-2 border-ink/30 bg-white p-3"
                   style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
                 >
-                  <View className="mr-3 h-14 w-14 -rotate-2 items-center justify-center border-2 border-signal bg-signal">
+                  <View className="mr-3 h-14 w-14 -rotate-2 items-center justify-center border-2 border-gold bg-gold">
                     <Text className="font-mono text-base font-bold text-ink">{ORIGIN_MARK[choice.origin]}</Text>
                   </View>
                   <View className="flex-1">
@@ -89,7 +89,7 @@ export function FirstAwakeningScreen({
             </View>
           </>
         ) : (
-          <PaperPanel kicker="Origin revealed" title={powerName} stamp="Awakened" className="bg-signal">
+          <PaperPanel kicker="Origin revealed" title={powerName} stamp="Awakened" className="bg-gold">
             <Text className="text-base leading-6 text-ink">
               {selectedCopy ? fillName(selectedCopy.reveal, playerName) : `${playerName} awakens.`}
             </Text>
@@ -105,7 +105,7 @@ export function FirstAwakeningScreen({
       </ScrollView>
 
       {revealed ? (
-        <View className="border-t-2 border-signal bg-white p-3">
+        <View className="border-t-2 border-gold bg-white p-3">
           <ActionButton
             label="Bring on match two  ▸"
             accessibilityLabel="Finish first awakening"

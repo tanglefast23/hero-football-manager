@@ -7,6 +7,7 @@ import { isActive, teamPowerBusy } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState, TeamDef } from '../sim/types';
+import type { HudSide } from '../persistence';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
 import { spriteKeyForMatchSlot } from './sprites/slot-key';
 import { snapshotFrame, type PitchFrame } from './interpolate';
@@ -24,6 +25,7 @@ import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-co
 import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
 import { Pitch } from './Pitch';
 import { DebugOverlay } from './DebugOverlay';
+import { playHapticForEvent } from './haptics';
 import { FormationDiagram } from '../ui/components/FormationDiagram';
 import {
   DEFAULT_FORMATION_PRESETS,
@@ -133,6 +135,8 @@ export function MatchScreen({
   controlledTeam = 0,
   formationPresets = DEFAULT_FORMATION_PRESETS,
   autoPowers = false,
+  reduceMotion = false,
+  hudSide = 'left',
   pausedExternally = false,
   onDone,
 }: {
@@ -142,6 +146,8 @@ export function MatchScreen({
   controlledTeam?: 0 | 1;
   formationPresets?: readonly [FormationId, FormationId, FormationId];
   autoPowers?: boolean;
+  reduceMotion?: boolean;
+  hudSide?: HudSide;
   pausedExternally?: boolean;
   onDone: (state: MatchState) => void;
 }) {
@@ -175,7 +181,7 @@ export function MatchScreen({
   }
 
   const trailRef = useRef<Array<{ x: number; y: number }>>([]);
-  const bannerRef = useRef<{ text: string; untilTick: number; tone: 'gold' | 'red' }>({
+  const bannerRef = useRef<{ text: string; untilTick: number; tone: 'gold' | 'red' | 'blue' }>({
     text: '',
     untilTick: 0,
     tone: 'gold',
@@ -202,7 +208,7 @@ export function MatchScreen({
     score: [0, 0] as [number, number],
     tick: 0,
     banner: '',
-    bannerTone: 'gold' as 'gold' | 'red',
+    bannerTone: 'gold' as 'gold' | 'red' | 'blue',
     scoreFlash: false,
     visualTick: 0,
   });
@@ -351,11 +357,13 @@ export function MatchScreen({
         }
 
         const speedster = s.players.find((p, i) => nextRef.current!.statuses[i] === 'active' && p.def.power === 'SUPER_SPEED');
-        trailRef.current = speedster ? [{ ...speedster.pos }, ...trailRef.current].slice(0, 7) : [];
+        trailRef.current = !reduceMotion && speedster
+          ? [{ ...speedster.pos }, ...trailRef.current].slice(0, 7)
+          : [];
 
         // Shot-ball motion trail — recent ball positions while it's a live
         // shot; cleared the instant it stops being one (goal/save/miss).
-        shotTrailRef.current = nextRef.current!.ballShooting
+        shotTrailRef.current = !reduceMotion && nextRef.current!.ballShooting
           ? [{ ...nextRef.current!.ball }, ...shotTrailRef.current].slice(0, SHOT_TRAIL_LEN)
           : [];
 
@@ -369,10 +377,11 @@ export function MatchScreen({
       let torchCasterPos: { x: number; y: number } | null = null;
       for (const e of newEvents) {
         playForEvent(e);
+        playHapticForEvent(e, controlledTeam);
         if (e.kind === 'POWER_FIRED' && e.power === 'FIRE_TORCH') {
           torchCasterPos = { ...nextRef.current!.players[e.player] };
         }
-        if (e.kind === 'SHOT' && e.by >= 0 && e.by < 22) {
+        if (!reduceMotion && e.kind === 'SHOT' && e.by >= 0 && e.by < 22) {
           // Kick up a dust puff at the striker's feet — the visual "he hit it".
           const o = s.players[e.by].pos;
           puffRef.current = { x: o.x, y: o.y, tick: e.t };
@@ -381,7 +390,7 @@ export function MatchScreen({
         if (e.kind === 'GOAL') {
           const scorerName = e.by >= 0 && e.by < 22 ? s.players[e.by].def.name : 'Unknown';
           bannerRef.current = { text: `⚡ GOAL! ${scorerName}`, untilTick: e.t + FLASH_TICKS, tone: 'gold' };
-          scoreFlashUntilRef.current = e.t + FLASH_TICKS;
+          scoreFlashUntilRef.current = reduceMotion ? e.t : e.t + FLASH_TICKS;
         }
         if (e.kind === 'POWER_FIRED') {
           bannerRef.current = {
@@ -391,25 +400,25 @@ export function MatchScreen({
           };
         }
         if (e.kind === 'HALF_TIME') {
-          bannerRef.current = { text: '⚡ HALF TIME', untilTick: e.t + FLASH_TICKS, tone: 'gold' };
+          bannerRef.current = { text: 'HALF TIME', untilTick: e.t + FLASH_TICKS, tone: 'blue' };
         }
         if (e.kind === 'FULL_TIME') {
           // Sim ticks freeze at fulltime, so `s.tick <= untilTick` below
           // holds and this banner stays up for the whole end-of-match hold.
-          bannerRef.current = { text: '⚡ FULL TIME', untilTick: e.t + FLASH_TICKS, tone: 'gold' };
+          bannerRef.current = { text: 'FULL TIME', untilTick: e.t + FLASH_TICKS, tone: 'blue' };
         }
         if (e.kind === 'FORMATION_CHANGED' && e.team === controlledTeam) {
           bannerRef.current = {
             text: `${e.formation} · ${FORMATION_LABELS[e.formation].toUpperCase()}`,
             untilTick: e.t + FLASH_TICKS,
-            tone: 'gold',
+            tone: 'blue',
           };
         }
         if (e.kind === 'MENTALITY_CHANGED' && e.team === controlledTeam) {
           bannerRef.current = {
             text: `MENTALITY · ${e.mentality}`,
             untilTick: e.t + FLASH_TICKS,
-            tone: 'gold',
+            tone: 'blue',
           };
         }
         if (e.kind === 'SUBSTITUTION' && e.team === controlledTeam) {
@@ -417,10 +426,10 @@ export function MatchScreen({
           bannerRef.current = {
             text: `SUBSTITUTION · ${incoming} ON`,
             untilTick: e.t + FLASH_TICKS,
-            tone: 'gold',
+            tone: 'blue',
           };
         }
-        if (e.kind === 'SLIDE_STARTED') {
+        if (!reduceMotion && e.kind === 'SLIDE_STARTED') {
           const rotation = e.direction.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
           actionRef.current[e.by] = {
             kind: 'slide',
@@ -430,7 +439,7 @@ export function MatchScreen({
             untilTick: e.untilTick + SLIDE_SUCCESS_RECOVERY_TICKS,
           };
         }
-        if (e.kind === 'TACKLE') {
+        if (!reduceMotion && e.kind === 'TACKLE') {
           const byPos = nextRef.current!.players[e.by];
           const onPos = nextRef.current!.players[e.on];
           const dx = onPos.x - byPos.x;
@@ -468,7 +477,7 @@ export function MatchScreen({
             };
           }
         }
-        if (e.kind === 'IGNITED') {
+        if (!reduceMotion && e.kind === 'IGNITED') {
           const victimPos = nextRef.current!.players[e.player];
           const rotation = torchCasterPos
             ? (victimPos.x - torchCasterPos.x >= 0 ? Math.PI / 2 : -Math.PI / 2)
@@ -547,7 +556,7 @@ export function MatchScreen({
           tick: s.tick,
           banner: s.tick <= bannerRef.current.untilTick ? bannerRef.current.text : '',
           bannerTone: bannerRef.current.tone,
-          scoreFlash: s.tick <= scoreFlashUntilRef.current,
+          scoreFlash: !reduceMotion && s.tick <= scoreFlashUntilRef.current,
           visualTick: s.tick,
         });
       }
@@ -559,7 +568,9 @@ export function MatchScreen({
         // stop at fulltime — until the deadline passes, then hand off once.
         // `now` is the RAF timestamp: the same performance.now() timebase
         // the rest of the loop uses.
-        if (fulltimeDeadlineRef.current === null) fulltimeDeadlineRef.current = now + FULLTIME_HOLD_MS;
+        if (fulltimeDeadlineRef.current === null) {
+          fulltimeDeadlineRef.current = now + (reduceMotion ? 0 : FULLTIME_HOLD_MS);
+        }
         if (now >= fulltimeDeadlineRef.current) {
           onDone(s);
           return;
@@ -572,7 +583,7 @@ export function MatchScreen({
       cancelAnimationFrame(raf);
       sub.remove();
     };
-  }, [onDone, publishAtlasFrame]);
+  }, [controlledTeam, onDone, publishAtlasFrame, reduceMotion]);
 
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
   // takes priority, followed by the far-ball GK ready loop, then locomotion.
@@ -604,7 +615,9 @@ export function MatchScreen({
     const tints = frame.statuses.map((st, i) => {
       if (st === 'ignited') return Skia.Color('#ff6a00'); // flame orange (matches Fire Torch FX)
       if (st === 'out') return Skia.Color('#6b6675'); // bible grey-dark
-      if (st === 'windup') return Skia.Color(hud.tick % 4 < 2 ? '#ffffff' : '#edb54a'); // hero gold
+      if (st === 'windup') {
+        return Skia.Color(reduceMotion || hud.tick % 4 < 2 ? '#ffffff' : '#edb54a');
+      }
       if (st === 'active') return Skia.Color('#edb54a'); // hero gold
       // 'ok' | 'zone' — zone is telegraphed by the glow ring, not a body tint.
       // In fallback mode there are no kit pixels to preserve, so tint the
@@ -613,7 +626,7 @@ export function MatchScreen({
     });
     tints.push(Skia.Color('#ffffff')); // ball — no tint
     return tints;
-  }, [frame, hud.tick, atlas]);
+  }, [frame, hud.tick, atlas, reduceMotion]);
 
   const minute = Math.min(90, Math.ceil((hud.tick / TOTAL_TICKS) * 90));
   const stoppage =
@@ -692,7 +705,7 @@ export function MatchScreen({
   return (
     <View style={styles.root}>
       <Pressable
-        style={styles.scorebar}
+        style={[styles.scorebar, hudSide === 'right' ? styles.scorebarFlipped : null]}
         onPress={() => {
           automaticPauseReasonsRef.current.delete('background');
           userPausedRef.current = !pausedRef.current;
@@ -828,13 +841,17 @@ export function MatchScreen({
           markerYOffset={MARKER_Y_OFFSET}
           markerHalfWidth={MARKER_HALF_W}
           markerHeight={MARKER_H}
+          reduceMotion={reduceMotion}
         />
         {debugGrid ? <DebugOverlay state={match} scale={scale} /> : null}
         </Canvas>
         {carrier ? (
           <View
             pointerEvents="none"
-            style={styles.carrierCard}
+            style={[
+              styles.carrierCard,
+              hudSide === 'left' ? styles.carrierCardLeft : styles.carrierCardRight,
+            ]}
           >
             <View style={styles.carrierLine}>
               <Text numberOfLines={1} style={styles.carrierName}>{carrier.def.name}</Text>
@@ -871,7 +888,15 @@ export function MatchScreen({
         }) : null}
       </View>
       {hud.banner ? (
-        <Text style={[styles.banner, hud.bannerTone === 'red' ? styles.bannerThreat : null]}>{hud.banner}</Text>
+        <Text
+          style={[
+            styles.banner,
+            hud.bannerTone === 'red' ? styles.bannerThreat : null,
+            hud.bannerTone === 'blue' ? styles.bannerAction : null,
+          ]}
+        >
+          {hud.banner}
+        </Text>
       ) : null}
       <View style={styles.coachBar}>
         <Pressable
@@ -882,8 +907,8 @@ export function MatchScreen({
             const formation = nextFormation(displayedFormation, formationPresets);
             queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
             const text = `${formation} · ${FORMATION_LABELS[formation].toUpperCase()}`;
-            bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'gold' };
-            setHud((current) => ({ ...current, banner: text, bannerTone: 'gold' }));
+            bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'blue' };
+            setHud((current) => ({ ...current, banner: text, bannerTone: 'blue' }));
           }}
         >
           <FormationDiagram formation={displayedFormation} compact inverted />
@@ -900,8 +925,8 @@ export function MatchScreen({
             const mentality = nextMentality(displayedMentality);
             queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
             const text = `MENTALITY · ${mentality}`;
-            bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'gold' };
-            setHud((current) => ({ ...current, banner: text, bannerTone: 'gold' }));
+            bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'blue' };
+            setHud((current) => ({ ...current, banner: text, bannerTone: 'blue' }));
           }}
         >
           <Text style={styles.mentalityIcon}>{displayedMentality === 'ATTACK' ? '▲' : displayedMentality === 'PROTECT' ? '▼' : '◆'}</Text>
@@ -1055,6 +1080,7 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 12,
   },
+  scorebarFlipped: { flexDirection: 'row-reverse' },
   // Scoreboard "bug": a lighter ink-soft pill on the ink canvas, outlined in
   // ink with a thicker bottom lip for a raised, pressable-panel read.
   scoreBug: {
@@ -1100,10 +1126,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   bannerThreat: { color: '#f4f1ea', borderColor: '#d94f52', backgroundColor: '#3a1512ee' },
+  bannerAction: { color: '#f4f1ea', borderColor: '#77a4d8', backgroundColor: '#214566ee' },
   carrierCard: {
     position: 'absolute',
     zIndex: 4,
-    left: 8,
     bottom: 8,
     width: 150,
     backgroundColor: '#241f2eee',
@@ -1113,6 +1139,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 5,
   },
+  carrierCardLeft: { left: 8 },
+  carrierCardRight: { right: 8 },
   carrierLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   carrierName: { flex: 1, color: '#f4f1ea', fontSize: 11, fontWeight: 'bold' },
   carrierEnergy: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
@@ -1281,11 +1309,11 @@ const styles = StyleSheet.create({
     minHeight: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#35618e',
+    backgroundColor: '#76509f',
     borderWidth: 2,
-    borderColor: '#77a4d8',
+    borderColor: '#b189d9',
     borderBottomWidth: 4,
-    borderBottomColor: '#214566',
+    borderBottomColor: '#563779',
   },
   confirmButtonDisabled: { opacity: 0.3 },
   confirmText: { color: '#f4f1ea', fontSize: 12, fontWeight: 'bold' },

@@ -57,7 +57,46 @@ describe('default two-season career journey', () => {
     expect(seasonEndViewModel(released, content, 1).canContinue).toBe(true);
     expect(startNextSeason(released)).toMatchObject({ season: 2, week: 1, phase: 'manage' });
   });
+
+  it('keeps the shipped weekly training plan deterministic for all 60 weeks', () => {
+    const first = runTwoSeasonTrainingJourney();
+    const second = runTwoSeasonTrainingJourney();
+
+    expect(JSON.stringify(second)).toBe(JSON.stringify(first));
+    expect(first.ledgers).toHaveLength(60);
+    expect(first.trainingPlan).toMatchObject({
+      assignedPlayerIds: ['bramble-rovers-p13'],
+      drills: [{ id: 'sprints' }],
+    });
+    expect(first.ledgers.every(ledger =>
+      ledger.lines.filter(line => line.kind === 'training').length <= 1,
+    )).toBe(true);
+    expect(first.ledgers.filter(ledger =>
+      ledger.lines.some(line => line.kind === 'training'),
+    ).length).toBeGreaterThan(0);
+    expect(first.players.find(player => player.id === 'bramble-rovers-p13')?.attrs)
+      .toMatchObject({ pac: 99, sta: 99 });
+  });
 });
+
+function runTwoSeasonTrainingJourney(): GameState {
+  const content = loadLaunchContent();
+  const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
+  let state = beginStoryOnboarding(createCareer(createLaunchCareerSetup(314159)));
+  state = addCreatedPlayer(state, {
+    name: 'Jo Rook',
+    ratings: { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50 },
+  });
+  state = buildTrainingGround(state);
+  state = applyCareerTraining(state, ['bramble-rovers-p13'], [sprint]);
+  state = playToSeasonBoundary(state);
+  const expired = state.players.find(player =>
+    player.clubId === state.userClubId && player.contractSeasonsRemaining === 0,
+  );
+  if (expired === undefined) throw new Error('expected the created player renewal');
+  state = startNextSeason(renewCareerPlayer(state, expired.id, 4, 1));
+  return playToSeasonBoundary(state);
+}
 
 function playToSeasonBoundary(initial: GameState): GameState {
   let state = initial;

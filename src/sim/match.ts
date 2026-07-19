@@ -6,9 +6,10 @@ import { powerTick } from './powers';
 import { isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.1 adds committed slide-tackle movement and recovery to m1.0's replayable
-// formations, mentality, substitutions, and STA-driven condition model.
-export const ENGINE_VERSION = 'm1.1';
+// m1.2 adds SHO/Resolve scoring-tail tuning to m1.1's committed slide-tackle
+// movement and recovery. Shot decisions and save rolls share the same formula,
+// so this changes replay outcomes and deliberately invalidates older envelopes.
+export const ENGINE_VERSION = 'm1.2';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one

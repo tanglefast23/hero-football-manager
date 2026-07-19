@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { Modal, PanResponder, Pressable, Text, View } from 'react-native';
 import { ActionButton } from './components/Scorecard';
-import { DEV_VOLUME_LEVELS, devVolumePercent, type DevVolume } from '../render/dev-volume';
+import { adjustDevVolume, DEV_VOLUME_LEVELS, devVolumePercent, type DevVolume } from '../render/dev-volume';
+import type { HudSide } from '../persistence';
 
 /** Snap a raw 0–1 gesture position to the nearest supported volume level. */
 function snapVolume(raw: number): DevVolume {
@@ -13,7 +14,7 @@ function snapVolume(raw: number): DevVolume {
   return nearest;
 }
 
-/** A chunky pixel volume slider — track + gold fill + thumb, draggable via PanResponder. */
+/** A chunky pixel volume slider — track + violet fill + thumb, draggable via PanResponder. */
 function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: DevVolume) => void }) {
   const widthRef = useRef(0);
   const responder = useRef(
@@ -37,18 +38,32 @@ function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: Dev
         <Text className="font-mono text-lg font-bold text-ink">{devVolumePercent(value)}%</Text>
       </View>
       <View
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel="Master volume"
+        accessibilityHint="Swipe up or down to adjust in 25 percent steps"
+        accessibilityValue={{ min: 0, max: 100, now: devVolumePercent(value), text: `${devVolumePercent(value)} percent` }}
+        accessibilityActions={[
+          { name: 'increment', label: 'Increase volume' },
+          { name: 'decrement', label: 'Decrease volume' },
+        ]}
+        onAccessibilityAction={event => {
+          if (event.nativeEvent.actionName === 'increment' || event.nativeEvent.actionName === 'decrement') {
+            onChange(adjustDevVolume(value, event.nativeEvent.actionName));
+          }
+        }}
         {...responder.panHandlers}
         onLayout={e => {
           widthRef.current = e.nativeEvent.layout.width;
         }}
-        className="h-10 justify-center"
+        className="h-12 justify-center"
       >
         <View className="h-5 justify-center overflow-hidden rounded-full border-2 border-ink bg-grey-light">
-          <View className="h-full bg-gold" style={{ width: pct }} />
+          <View className="h-full bg-violet" style={{ width: pct }} />
         </View>
         <View
           pointerEvents="none"
-          className="absolute top-1.5 -ml-4 h-7 w-7 rounded-full border-2 border-b-4 border-ink bg-gold-light"
+          className="absolute top-2.5 -ml-4 h-7 w-7 rounded-full border-2 border-b-4 border-ink bg-violet-light"
           style={{ left: pct }}
         />
       </View>
@@ -63,12 +78,24 @@ function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: Dev
 
 export interface SettingsOverlayProps {
   volume: DevVolume;
+  reduceMotion: boolean;
+  hudSide: HudSide;
   onVolumeChange: (v: DevVolume) => void;
+  onToggleReduceMotion: () => void;
+  onToggleHudSide: () => void;
   onOpenChange?: (open: boolean) => void;
 }
 
 /** Global top-left settings button + its modal. Rendered once, appears on every screen. */
-export function SettingsOverlay({ volume, onVolumeChange, onOpenChange }: SettingsOverlayProps) {
+export function SettingsOverlay({
+  volume,
+  reduceMotion,
+  hudSide,
+  onVolumeChange,
+  onToggleReduceMotion,
+  onToggleHudSide,
+  onOpenChange,
+}: SettingsOverlayProps) {
   const [open, setOpen] = useState(false);
   const setOpenState = (next: boolean) => {
     setOpen(next);
@@ -88,7 +115,12 @@ export function SettingsOverlay({ volume, onVolumeChange, onOpenChange }: Settin
         <Text className="text-xl">⚙︎</Text>
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpenState(false)}>
+      <Modal
+        visible={open}
+        transparent
+        animationType={reduceMotion ? 'none' : 'fade'}
+        onRequestClose={() => setOpenState(false)}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close settings"
@@ -101,6 +133,29 @@ export function SettingsOverlay({ volume, onVolumeChange, onOpenChange }: Settin
             <Text className="font-pixel text-2xl uppercase text-ink">Settings</Text>
             <View className="my-4 h-0.5 bg-ink/15" />
             <VolumeSlider value={volume} onChange={onVolumeChange} />
+            <View className="mt-5 gap-3 border-t border-ink/15 pt-5">
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityLabel="Reduce motion"
+                accessibilityState={{ checked: reduceMotion }}
+                onPress={onToggleReduceMotion}
+                className={reduceMotion
+                  ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-violet-light px-3 py-2'
+                  : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}
+              >
+                <Text className="font-mono text-sm font-bold uppercase text-ink">Reduce motion</Text>
+                <Text className="font-mono text-base font-bold text-ink">{reduceMotion ? 'ON' : 'OFF'}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Match information HUD on the ${hudSide}. Tap to move it.`}
+                onPress={onToggleHudSide}
+                className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
+              >
+                <Text className="font-mono text-sm font-bold uppercase text-ink">Match HUD</Text>
+                <Text className="font-mono text-base font-bold uppercase text-violet-dark">{hudSide}</Text>
+              </Pressable>
+            </View>
             <View className="mt-6">
               <ActionButton label="Done" accessibilityLabel="Close settings" onPress={() => setOpenState(false)} variant="primary" />
             </View>

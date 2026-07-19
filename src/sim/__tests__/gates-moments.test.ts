@@ -1,4 +1,4 @@
-import { createMatch, queueInput, runMatch, tick } from '../match';
+import { createMatch, queueInput, tick } from '../match';
 import { activatePower, ZONE_WINDOW_TICKS } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import { GOAL_CENTER_X, PITCH_H } from '../geometry';
@@ -70,19 +70,17 @@ describe('M0 acceptance suite (Task 13)', () => {
       expect(fires(false)).toBe(false);
     });
 
-    it('SUPER_STRENGTH (structural note): every rival POWER_FIRED is context-locked at 0.85 across seeds 1-40 — a targetless fire cannot exist', () => {
-      let fires = 0;
-      for (let seed = 1; seed <= 40; seed++) {
-        const r = runMatch(seed, ROVERS, UNITED);
-        for (const e of r.events) {
-          if (e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL) {
-            fires++;
-            expect((e as { strength: number }).strength).toBe(0.85);
-          }
-        }
-      }
-      console.log(`GATE-2 SUPER_STRENGTH: ${fires} rival fires across seeds 1-40, all locked at 0.85`);
-      expect(fires).toBeGreaterThan(0);
-    }, 15000);
+    it('SUPER_STRENGTH (structural note): a contextual auto-fire locks a target at 0.85 — the separate no-target gate proves it cannot lapse-fire', () => {
+      const m = createMatch(42, ROVERS, UNITED);
+      m.ball = { kind: 'held', by: SPEEDSTER };
+      m.players[SPEEDSTER].pos = { x: GOAL_CENTER_X, y: PITCH_H / 2 };
+      m.players[RIVAL].pos = { ...m.players[SPEEDSTER].pos };
+      m.players[RIVAL].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+
+      tickUntil(m, () => m.events.some(e => e.kind === 'POWER_FIRED' && e.player === RIVAL), 60);
+
+      const fired = m.events.find(e => e.kind === 'POWER_FIRED' && e.player === RIVAL);
+      expect(fired).toMatchObject({ player: RIVAL, power: 'SUPER_STRENGTH', strength: 0.85 });
+    });
   });
 });

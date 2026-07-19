@@ -7,7 +7,11 @@ export const TAP_STRENGTH = 1.0;
 export const CONTEXT_AUTO_STRENGTH = 0.85;
 export const LAPSE_STRENGTH = 0.75;
 export const GAUGE_TRICKLE = 0.02;
-const DEFENSIVE_ENGAGEMENT_TRICKLE = 0.08;
+// Defensive heroes touch the ball less than attacking heroes, so nearby
+// opposition must be a real Heat source or their powers disappear from natural
+// matches. At 0.35, a defender needs roughly seventeen seconds of active engagement
+// to earn one Zone before any tackle/possession rewards are counted.
+const DEFENSIVE_ENGAGEMENT_TRICKLE = 0.35;
 const DEFENSIVE_ENGAGEMENT_RANGE = 2000;
 
 // In-the-Zone activation model (2026-07-17, replaces the fixed READY window):

@@ -46,6 +46,7 @@ import {
   TitleSettingsScreen,
 } from './src/ui';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
+import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useM1Store } from './src/application/store';
 import {
   currentAssistantObjective,
@@ -77,6 +78,7 @@ export default function App() {
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const devVolume = preferences.masterVolume as DevVolume;
+  const reduceMotion = useReducedMotion(preferences.reduceMotion);
 
   const savePreferences = useCallback((next: AppPreferences) => {
     setPreferences(next);
@@ -88,6 +90,12 @@ export default function App() {
   const cycleVolume = useCallback(() => {
     savePreferences({ ...preferences, masterVolume: nextDevVolume(devVolume) });
   }, [devVolume, preferences, savePreferences]);
+  const toggleReduceMotion = useCallback(() => {
+    savePreferences({ ...preferences, reduceMotion: !preferences.reduceMotion });
+  }, [preferences, savePreferences]);
+  const toggleHudSide = useCallback(() => {
+    savePreferences({ ...preferences, hudSide: preferences.hudSide === 'left' ? 'right' : 'left' });
+  }, [preferences, savePreferences]);
 
   useEffect(() => {
     setMasterVolume(devVolume);
@@ -238,6 +246,8 @@ export default function App() {
         onCycleVolume={cycleVolume}
         onCycleFormation={slot => savePreferences(replaceFormationPreset(preferences, slot))}
         onToggleAutoPowers={() => savePreferences({ ...preferences, autoPowers: !preferences.autoPowers })}
+        onToggleReduceMotion={toggleReduceMotion}
+        onToggleHudSide={toggleHudSide}
         onBack={() => setLandingView('title')}
       />
     );
@@ -279,6 +289,8 @@ export default function App() {
         controlledTeam={store.watchedMatch.controlledTeam}
         formationPresets={preferences.formationPresets}
         autoPowers={preferences.autoPowers}
+        reduceMotion={reduceMotion}
+        hudSide={preferences.hudSide}
         pausedExternally={globalSettingsOpen}
         onDone={finishWatchedMatch}
       />
@@ -301,6 +313,8 @@ export default function App() {
         onCycleVolume={cycleVolume}
         onCycleFormation={slot => savePreferences(replaceFormationPreset(preferences, slot))}
         onToggleAutoPowers={() => savePreferences({ ...preferences, autoPowers: !preferences.autoPowers })}
+        onToggleReduceMotion={toggleReduceMotion}
+        onToggleHudSide={toggleHudSide}
         onBack={() => setManagementSettingsOpen(false)}
         backLabel="Back to club"
       />
@@ -309,6 +323,7 @@ export default function App() {
     screen = (
       <PostMatchLedgerScreen
         viewModel={store.postMatch}
+        reduceMotion={reduceMotion}
         onContinue={store.continueAfterMatch}
       />
     );
@@ -404,13 +419,25 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar
+        style={(
+          (!fontsLoaded && !fontError && bootError === null)
+          || bootError !== null
+          || !store.persistenceReady
+          || store.persistenceLoadError !== null
+          || store.screen === 'watched'
+        ) ? 'light' : 'dark'}
+      />
       <View className="flex-1 bg-ink">
         {screen}
         {store.error ? <ErrorNotice message={store.error} onDismiss={store.clearError} /> : null}
         <SettingsOverlay
           volume={devVolume}
+          reduceMotion={preferences.reduceMotion}
+          hudSide={preferences.hudSide}
           onVolumeChange={volume => savePreferences({ ...preferences, masterVolume: volume })}
+          onToggleReduceMotion={toggleReduceMotion}
+          onToggleHudSide={toggleHudSide}
           onOpenChange={setGlobalSettingsOpen}
         />
         {assistantSequenceId !== null ? (

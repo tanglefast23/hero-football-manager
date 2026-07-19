@@ -21,6 +21,7 @@ interface WorkletMatchOverlaysProps {
   markerYOffset: number;
   markerHalfWidth: number;
   markerHeight: number;
+  reduceMotion: boolean;
 }
 
 interface FlameLayer {
@@ -53,6 +54,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
     markerYOffset,
     markerHalfWidth,
     markerHeight,
+    reduceMotion,
   } = props;
 
   const possession = usePathValue((builder) => {
@@ -83,6 +85,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           markerYOffset={markerYOffset}
           markerHalfWidth={markerHalfWidth}
           markerHeight={markerHeight}
+          reduceMotion={reduceMotion}
         />
       ))}
       {FLAME_LAYERS.map((layer) => (
@@ -96,6 +99,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           fireTorchPlayers={fireTorchPlayers}
           scale={scale}
           ringRadius={ringRadius}
+          reduceMotion={reduceMotion}
         />
       ))}
       <Path path={possession} color="#ffffff" style="stroke" strokeWidth={2} />
@@ -116,6 +120,7 @@ function WorkletZoneIndicator({
   markerYOffset,
   markerHalfWidth,
   markerHeight,
+  reduceMotion,
 }: {
   playerIndex: number;
   visualPositions: SharedValue<Float32Array>;
@@ -129,6 +134,7 @@ function WorkletZoneIndicator({
   markerYOffset: number;
   markerHalfWidth: number;
   markerHeight: number;
+  reduceMotion: boolean;
 }) {
   const playerTeam = playerIndex < 11 ? 0 : 1;
   const isControlled = playerTeam === controlledTeam;
@@ -159,7 +165,7 @@ function WorkletZoneIndicator({
   const opacity = useDerivedValue(() => {
     if (statuses.value[playerIndex] !== STATUS_ZONE) return 0;
     const visualTick = Math.max(0, simTick.value - 1 + progress.value);
-    const pulse = Math.floor(visualTick) % 20 < 10 ? 1 : 0.55;
+    const pulse = reduceMotion || Math.floor(visualTick) % 20 < 10 ? 1 : 0.55;
     return zoneFractions.value[playerIndex] * pulse;
   });
 
@@ -186,6 +192,7 @@ function WorkletFlameLayer({
   fireTorchPlayers,
   scale,
   ringRadius,
+  reduceMotion,
 }: {
   layer: FlameLayer;
   visualPositions: SharedValue<Float32Array>;
@@ -195,6 +202,7 @@ function WorkletFlameLayer({
   fireTorchPlayers: readonly number[];
   scale: number;
   ringRadius: number;
+  reduceMotion: boolean;
 }) {
   const path = usePathValue((builder) => {
     'worklet';
@@ -210,13 +218,15 @@ function WorkletFlameLayer({
       const baseY = visualPositions.value[player * 2 + 1] * scale + ringRadius * 0.35;
       for (let tongue = 0; tongue < count; tongue += 1) {
         const bx = cx - width / 2 + (width / (count - 1)) * tongue;
-        const flick = 0.5 * (
+        const flick = reduceMotion ? 0 : 0.5 * (
           Math.sin((visualTick + player * 2) * 1.1 + tongue * 1.7)
           + Math.sin((visualTick + player * 2) * 0.7 + tongue * 2.3)
         );
         const flameHeight = height * layer.heightScale * (0.7 + 0.3 * flick);
         const flameWidth = (width / count) * layer.widthScale;
-        const tipX = bx + Math.sin((visualTick + player * 2) * 0.9 + tongue) * flameWidth * 0.5;
+        const tipX = reduceMotion
+          ? bx
+          : bx + Math.sin((visualTick + player * 2) * 0.9 + tongue) * flameWidth * 0.5;
         builder.moveTo(bx - flameWidth / 2, baseY);
         builder.quadTo(bx - flameWidth * 0.3, baseY - flameHeight * 0.6, tipX, baseY - flameHeight);
         builder.quadTo(bx + flameWidth * 0.3, baseY - flameHeight * 0.6, bx + flameWidth / 2, baseY);

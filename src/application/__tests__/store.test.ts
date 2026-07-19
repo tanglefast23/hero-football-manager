@@ -1,8 +1,14 @@
 import { useM1Store } from '../store';
-import type { CareerRepository, ReplayRepository } from '../../persistence';
+import {
+  createCareerRepository,
+  createReplayRepository,
+  type CareerRepository,
+  type ReplayRepository,
+} from '../../persistence';
 import type { ReplayEnvelope } from '../../sim/types';
-import { createMatch } from '../../sim/match';
+import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
 import { DEFAULT_CREATION_RATINGS } from '../../game';
+import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {
@@ -243,6 +249,128 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career).toMatchObject({ season: 2, phase: 'complete' });
   });
 
+  it('survives a save/kill/relaunch checkpoint after every persisted journey boundary', async () => {
+    const database = new FakePersistenceDatabase();
+    const careerRepository = await createCareerRepository(database);
+    const replayRepository = await createReplayRepository(database);
+    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+
+    useM1Store.getState().startNewCareer(97531);
+    let checkpoints = await relaunchCheckpoint(careerRepository, replayRepository);
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
+    useM1Store.getState().buildFacility();
+    checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
+    useM1Store.getState().toggleDrill('sprints');
+    useM1Store.getState().applyTraining();
+    checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
+
+    let watchedMatches = 0;
+    for (let step = 0; step < 400; step += 1) {
+      const current = useM1Store.getState();
+      const career = current.career;
+      if (career === null) throw new Error('career disappeared during persisted journey');
+      if (career.phase === 'complete') break;
+
+      if (current.screen === 'first-awakening') {
+        if (career.onboarding?.stage === 'collapse') current.chooseFirstAwakening('CHEMICAL');
+        else current.continueFirstAwakening();
+      } else if (current.screen === 'event') {
+        const pending = career.pendingEvent;
+        if (pending === undefined) throw new Error('event screen lost its pending event');
+        if (pending.resolvedChoiceId !== undefined) {
+          if (pending.eventId === 'license-pressure-awakening') {
+            const selected = pending.selectedPlayerId;
+            const selectedHero = userHeroes().find(player => player.id === selected);
+            if (selectedHero !== undefined && !selectedHero.licensed) {
+              const licensed = userHeroes().find(player => player.licensed);
+              if (licensed === undefined) throw new Error('expected a licensed hero to swap');
+              current.toggleHeroLicense(licensed.id);
+              useM1Store.getState().toggleHeroLicense(selectedHero.id);
+            } else {
+              current.continueAfterEvent();
+            }
+          } else {
+            current.continueAfterEvent();
+          }
+        } else if (pending.eventId === 'giant-spider-arrives') {
+          current.chooseEvent('adopt-spider');
+        } else if (pending.selectedPlayerId === undefined) {
+          current.selectEventPlayer();
+        } else if (pending.eventId === 'spider-training-day') {
+          current.chooseEvent('approach-spider');
+        } else if (pending.eventId === 'license-pressure-awakening') {
+          current.chooseEvent('trust-their-instincts');
+        } else {
+          throw new Error(`unexpected journey event ${pending.eventId}`);
+        }
+      } else if (current.screen === 'matchday') {
+        if (watchedMatches === 0) {
+          current.watchMatch();
+          const watched = useM1Store.getState().watchedMatch;
+          if (watched === null) throw new Error('watched match context was not created');
+          const match = createMatch(
+            watched.fixture.matchSeed,
+            watched.home,
+            watched.away,
+            {
+              controlledTeam: watched.controlledTeam,
+              homePolicy: watched.controlledTeam === 0 ? 'SAVE_FOR_TAP' : 'FIRE_WHEN_READY',
+              awayPolicy: watched.controlledTeam === 1 ? 'SAVE_FOR_TAP' : 'FIRE_WHEN_READY',
+            },
+          );
+          queueInput(match, { tick: 1, kind: 'SET_FORMATION', formation: '4-3-3' });
+          queueInput(match, { tick: 1, kind: 'SET_MENTALITY', mentality: 'ATTACK' });
+          while (match.phase !== 'fulltime') tick(match);
+          useM1Store.getState().finishWatchedMatch(match);
+          watchedMatches += 1;
+        } else {
+          current.quickResult();
+        }
+      } else if (current.screen === 'season-end') {
+        if (career.phase === 'season-end') {
+          const expired = career.players.find(player =>
+            player.clubId === career.userClubId && player.contractSeasonsRemaining === 0,
+          );
+          if (expired !== undefined) current.renewPlayer(expired.id, 1);
+          else current.advanceCareer();
+        } else {
+          break;
+        }
+      } else if (current.screen === 'management' || current.screen === 'postmatch') {
+        if (current.screen === 'postmatch') current.continueAfterMatch();
+        else current.advanceCareer();
+      } else {
+        throw new Error(`unexpected persisted journey screen ${current.screen}`);
+      }
+
+      checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
+    }
+
+    const completed = useM1Store.getState().career!;
+    expect(completed).toMatchObject({ season: 2, phase: 'complete' });
+    expect(completed.ledgers).toHaveLength(60);
+    expect(userHeroes()).toHaveLength(3);
+    expect(userHeroes().filter(player => player.licensed)).toHaveLength(2);
+    expect(watchedMatches).toBe(1);
+    expect(checkpoints).toBeGreaterThan(80);
+
+    const replays = await replayRepository.listForCareer(`m1-career-${completed.careerSeed}`);
+    expect(replays.length).toBeGreaterThan(20);
+    expect(replays.some(replay => replay.envelope.inputs.some(input => input.kind === 'SET_FORMATION')))
+      .toBe(true);
+    for (const replay of replays) {
+      const fixture = completed.fixtures.find(candidate => candidate.id === replay.fixtureId);
+      if (fixture?.score === undefined) throw new Error(`missing played fixture ${replay.fixtureId}`);
+      const recovered = runReplay(replay.envelope);
+      expect(recovered.score).toEqual([fixture.score.homeGoals, fixture.score.awayGoals]);
+    }
+  }, 120000);
+
   it('blocks a new career after a load failure without overwriting the save', async () => {
     let careerSaveCalls = 0;
     let replayResetCalls = 0;
@@ -415,6 +543,19 @@ async function waitFor(predicate: () => boolean): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 0));
   }
   throw new Error('timed out waiting for queued save');
+}
+
+async function relaunchCheckpoint(
+  careerRepository: CareerRepository,
+  replayRepository: ReplayRepository,
+): Promise<number> {
+  await waitFor(() => !useM1Store.getState().saving);
+  const expected = structuredClone(useM1Store.getState().career);
+  useM1Store.setState(useM1Store.getInitialState(), true);
+  await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+  expect(useM1Store.getState().career).toEqual(expected);
+  useM1Store.getState().continueCareer();
+  return 1;
 }
 
 function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) => boolean): void {
