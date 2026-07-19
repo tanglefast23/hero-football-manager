@@ -24,6 +24,14 @@ describe('launch career adapter', () => {
     expect(first.players.filter(player =>
       player.clubId === DEFAULT_USER_CLUB_ID && player.licensed,
     )).toHaveLength(0);
+    expect(first.players.every(player =>
+      player.age !== undefined
+      && player.archetype !== undefined
+      && player.potential !== undefined
+      && player.personality !== undefined
+      && player.condition === 100
+      && player.retirementAge !== undefined,
+    )).toBe(true);
   });
 
   it('derives club wage totals from the content roster', () => {
@@ -78,5 +86,19 @@ describe('launch career adapter', () => {
       .reduce((sum, player) => sum + player.weeklyWage, 0);
     expect(migrated.clubs.find(club => club.id === DEFAULT_USER_CLUB_ID)?.weeklyWages).toBe(bramblePayroll);
     expect(reconcileLaunchRoster(migrated, content)).toBe(migrated);
+  });
+
+  it('reconciles full careers saved before immediate cash history existed', () => {
+    const current = createCareer(createLaunchCareerSetup(
+      8,
+      DEFAULT_USER_CLUB_ID,
+      loadLaunchContent(),
+      'full',
+    ));
+    const { cashTransactions: _history, ...legacy } = current;
+
+    const reconciled = reconcileLaunchRoster(legacy as typeof current, loadLaunchContent(), true);
+
+    expect(reconciled.cashTransactions).toEqual([]);
   });
 });

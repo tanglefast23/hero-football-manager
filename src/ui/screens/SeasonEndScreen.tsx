@@ -1,14 +1,19 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ContractOffer, PitchCard } from '../../game/market';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
 import type { SeasonEndViewModel } from '../models';
 import { SettingsButton } from '../SettingsOverlay';
+import { NegotiationPanel } from './MarketScreen';
 
 export interface SeasonEndScreenProps {
   viewModel: SeasonEndViewModel;
   onSelectContractTerm: (playerId: string, term: 1 | 2 | 3) => void;
   onRenewContract: (playerId: string, term: 1 | 2 | 3) => void;
   onReleaseContract: (playerId: string) => void;
+  onStartRenewal: (playerId: string) => void;
+  onSubmitRenewalOffer: (offer: ContractOffer, pitchCard?: PitchCard) => void;
+  onCloseRenewal: () => void;
   onPrimaryAction: () => void;
   onOpenSettings: () => void;
 }
@@ -18,6 +23,9 @@ export function SeasonEndScreen({
   onSelectContractTerm,
   onRenewContract,
   onReleaseContract,
+  onStartRenewal,
+  onSubmitRenewalOffer,
+  onCloseRenewal,
   onPrimaryAction,
   onOpenSettings,
 }: SeasonEndScreenProps) {
@@ -87,7 +95,13 @@ export function SeasonEndScreen({
 
         {contract ? (
           <View className="mt-6">
-            <SectionLabel eyebrow="Before the doors close" title="Expired contract" right={<StatusChip label={contract.decision} tone={contract.decision === 'pending' ? 'danger' : 'success'} />} />
+            <SectionLabel
+              eyebrow="Before the doors close"
+              title={contract.remainingExpiredCount === 1
+                ? 'Expired contract'
+                : `${contract.remainingExpiredCount} expired contracts`}
+              right={<StatusChip label={contract.decision} tone={contract.decision === 'pending' ? 'danger' : 'success'} />}
+            />
             <PaperPanel
               kicker={contract.powerName ? 'Hero agent meeting' : 'Renewal meeting'}
               title={contract.playerName}
@@ -123,7 +137,7 @@ export function SeasonEndScreen({
                 </View>
               ) : null}
 
-              {contract.decision === 'pending' ? (
+              {contract.decision === 'pending' && !contract.requiresNegotiation ? (
                 <>
                   <Text className="mt-4 text-sm font-bold uppercase tracking-wide text-ink/50">Contract length</Text>
                   <View className="mt-2 flex-row gap-2">
@@ -164,13 +178,41 @@ export function SeasonEndScreen({
                     Renewal raises weekly payroll; it does not require an upfront fee.
                   </Text>
                 </>
-              ) : (
+              ) : contract.requiresNegotiation && viewModel.renewalNegotiation === undefined ? (
+                <>
+                  <View className="mt-4">
+                    <ActionButton
+                      label="Meet the agent  ▸"
+                      accessibilityLabel={`Start renewal talks with ${contract.playerName}`}
+                      onPress={() => onStartRenewal(contract.playerId)}
+                    />
+                  </View>
+                  <View className="mt-2">
+                    <ActionButton
+                      label="Let player leave"
+                      accessibilityLabel={`Let ${contract.playerName} leave on a free transfer`}
+                      onPress={() => onReleaseContract(contract.playerId)}
+                      variant="danger"
+                    />
+                  </View>
+                  <Text className="mt-2 text-center text-sm text-ink/50">
+                    Three negotiation rounds. Mood, promises, and one-use pitch cards all matter.
+                  </Text>
+                </>
+              ) : viewModel.renewalNegotiation === undefined ? (
                 <View className="mt-3 flex-row gap-2">
                   <Metric label="Decision" value="Renewed" />
                   <Metric label="Next wage" value={formatCompactNumber(contract.quotedWeeklyWage)} />
                 </View>
-              )}
+              ) : null}
             </PaperPanel>
+            {viewModel.renewalNegotiation ? (
+              <NegotiationPanel
+                viewModel={viewModel.renewalNegotiation}
+                onSubmitContractOffer={onSubmitRenewalOffer}
+                onClose={onCloseRenewal}
+              />
+            ) : null}
           </View>
         ) : null}
       </ScrollView>

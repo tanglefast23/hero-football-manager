@@ -32,10 +32,20 @@ The second existential question — "does *managing heroes* stay fun across seas
 
 **Gate**: play both seasons twice. If the license-slot competition, the wage cliff, and the surprise awakening cadence don't generate "one more season" pull, fix the loop before widening it.
 
+> **✅ GATE PASSED — 2026-07-19** (owner's verdict after completing the M1
+> management loop: "M1 gating done. I like it."). The two-season slice now
+> clears the management-fun gate, so the wider M2 systems are unblocked.
+
 ## M2 — The management game (4 weeks)
 
 - Facilities grid + adjacency, scouting + transfers + valuations, contracts + mood-meter negotiation + Pitch Cards, coach system, morale/condition, aging + retirement + legacy.
 - All five divisions + National Cup; opposing squads generated with division-appropriate strength.
+
+> **✅ CODE COMPLETE — 2026-07-19.** The endless five-division career, playable
+> National Cup ties, grounds/staff/market loops, negotiated renewals, youth and
+> legend decisions, M2 save reconciliation, transaction history, and multi-season
+> deterministic balance rails are integrated. This records implementation status,
+> not a substitute for the next owner playtest verdict.
 
 ## M3 — Heroes at full depth (3 weeks)
 
@@ -46,6 +56,7 @@ The second existential question — "does *managing heroes* stay fun across seas
 ## M4 — Content & polish (3–4 weeks)
 
 - ~30 events, portrait paper-doll system + customization variety, comic cut-in art pass, sound + haptics, tutorial/onboarding fiction, accessibility settings, Cozy/Chairman difficulty, season awards + recap.
+- Create a bespoke success cutscene for every successful risky chance-event outcome so the payoff is shown as a memorable story rather than only a reward total. Briefly animate the earned bonuses over the portrait cutscene, then dismiss them and return to Home. For the Giant Spider's 35% success, show the spider becoming the club's famous mascot: supporters sharing spider memes, fans celebrating it, and its tiny club scarf becoming recognizable around the ground. Reuse the live match's `assets/audio/sfx/crowd-cheer.wav` when the success artwork and reward text appear; do not reuse the goal fanfare.
 - Balance passes driven by harness + human playtests.
 
 ## M5 — Beta & launch (2 weeks)

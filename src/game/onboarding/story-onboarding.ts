@@ -56,6 +56,16 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
     contractSeasonsRemaining: 1,
     morale: 50,
     injuryWeeks: 0,
+    age: 18,
+    archetype: 'All-Rounder',
+    potential: 4,
+    consistency: 70,
+    personality: 'Professional',
+    condition: 100,
+    seasonsAtClub: 0,
+    fame: 0,
+    retirementAge: 36,
+    retirementAnnounced: false,
   };
   return {
     ...state,

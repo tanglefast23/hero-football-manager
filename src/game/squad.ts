@@ -1,4 +1,4 @@
-import type { TeamDef } from '../sim/types';
+import type { PowerId, TeamDef } from '../sim/types';
 import { buildTeamDef } from './lineup';
 import {
   renewContract,
@@ -6,10 +6,27 @@ import {
   type FocusDrill,
 } from './progression';
 import { setCareerTrainingPlan } from './training';
+import { buildFacility as placeFacility, createFacilityGrid } from './facilities';
+import { currentUserDivision } from './m2-career';
+import { applyLowMoraleToStat } from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
 const DEFAULT_HERO_LIMIT = 2;
 const TRAINING_GROUND_COST = 8000;
+const CUP_POWER_ROTATION: readonly PowerId[] = [
+  'SUPER_SPEED',
+  'SUPER_STRENGTH',
+  'FIRE_TORCH',
+];
+
+/** Hero License field cap earned by climbing the national pyramid. */
+export function careerHeroLimit(state: GameState): number {
+  if (state.careerMode !== 'full' || state.m2 === undefined) return DEFAULT_HERO_LIMIT;
+  const division = currentUserDivision(state.m2);
+  if (division === 1) return 4;
+  if (division <= 3) return 3;
+  return DEFAULT_HERO_LIMIT;
+}
 
 export function rosterForClub(state: GameState, clubId: string): CareerPlayer[] {
   if (!state.clubs.some(club => club.id === clubId)) {
@@ -27,18 +44,158 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
   const lineup = state.lineups.find(candidate => candidate.clubId === clubId);
   if (lineup === undefined) throw new Error(`missing lineup for club ${clubId}`);
 
-  const injured = rosterForClub(state, clubId).find(
+  const roster = rosterForClub(state, clubId);
+  const injured = roster.find(
     player => lineup.playerIds.includes(player.id) && player.injuryWeeks > 0,
   );
   if (injured !== undefined) throw new Error(`injured player ${injured.id} must be replaced in the lineup`);
 
-  return buildTeamDef(club, rosterForClub(state, clubId), lineup.playerIds, DEFAULT_HERO_LIMIT);
+  // M2's wellbeing model defines morale as a low-morale penalty with a neutral
+  // band at 30+. Normalize the legacy match adapter's separate morale scaling
+  // after applying that rule so the penalty is neither doubled nor turned into
+  // a high-morale stat bonus. The finite M1 slice keeps its established adapter.
+  const matchRoster = state.careerMode === 'full'
+    ? roster.map(player => ({
+        ...player,
+        morale: 50,
+        attrs: {
+          pac: applyLowMoraleToStat(player.attrs.pac, player.morale),
+          sho: applyLowMoraleToStat(player.attrs.sho, player.morale),
+          pas: applyLowMoraleToStat(player.attrs.pas, player.morale),
+          def: applyLowMoraleToStat(player.attrs.def, player.morale),
+          tec: applyLowMoraleToStat(player.attrs.tec, player.morale),
+          sta: applyLowMoraleToStat(player.attrs.sta, player.morale),
+          ref: applyLowMoraleToStat(player.attrs.ref, player.morale),
+        },
+      }))
+    : roster;
+
+  return buildTeamDef(club, matchRoster, lineup.playerIds, careerHeroLimit(state));
 }
 
 export function buildCareerTeams(state: GameState): Readonly<Record<string, TeamDef>> {
   return Object.fromEntries(
     state.clubs.map(club => [club.id, buildCareerTeamDef(state, club.id)]),
   );
+}
+
+/** Builds active-division or pyramid opposition through the production match boundary. */
+export function buildCareerMatchTeams(
+  state: GameState,
+  clubIds: readonly string[],
+): Readonly<Record<string, TeamDef>> {
+  return Object.fromEntries(clubIds.map(clubId => [clubId, buildCareerMatchTeamDef(state, clubId)]));
+}
+
+export function buildCareerMatchTeamDef(state: GameState, clubId: string): TeamDef {
+  if (state.clubs.some(club => club.id === clubId)) return buildCareerTeamDef(state, clubId);
+  const division = state.m2?.pyramid.divisions.find(candidate => (
+    candidate.clubs.some(club => club.id === clubId)
+  ));
+  const club = division?.clubs.find(candidate => candidate.id === clubId);
+  if (club === undefined || division === undefined) throw new Error(`unknown career club ${clubId}`);
+  const heroLimit = division.level === 1 ? 4 : division.level <= 3 ? 3 : 2;
+  let licensedHeroes = 0;
+  const roster = club.squad.map(player => {
+    const heroEligible = (player.role === 'MID' || player.role === 'FWD')
+      && licensedHeroes < heroLimit;
+    const power = heroEligible
+      ? CUP_POWER_ROTATION[licensedHeroes % CUP_POWER_ROTATION.length]
+      : undefined;
+    if (power !== undefined) licensedHeroes += 1;
+    return {
+      ...player,
+      weeklyWage: 0,
+      onHeroWage: power !== undefined,
+      contractSeasonsRemaining: 1,
+      licensed: power !== undefined,
+      injuryWeeks: 0,
+      morale: 50,
+      attrs: {
+        pac: applyLowMoraleToStat(player.attrs.pac, player.morale),
+        sho: applyLowMoraleToStat(player.attrs.sho, player.morale),
+        pas: applyLowMoraleToStat(player.attrs.pas, player.morale),
+        def: applyLowMoraleToStat(player.attrs.def, player.morale),
+        tec: applyLowMoraleToStat(player.attrs.tec, player.morale),
+        sta: applyLowMoraleToStat(player.attrs.sta, player.morale),
+        ref: applyLowMoraleToStat(player.attrs.ref, player.morale),
+      },
+      ...(power === undefined ? {} : { power }),
+    };
+  });
+  const take = (role: CareerPlayer['role'], count: number) => roster
+    .filter(player => player.role === role)
+    .slice(0, count)
+    .map(player => player.id);
+  const lineupIds = [
+    ...take('GK', 1),
+    ...take('DEF', 4),
+    ...take('MID', 4),
+    ...take('FWD', 2),
+  ];
+  return buildTeamDef(club, roster, lineupIds, heroLimit);
+}
+
+/**
+ * Deterministically benches injured starters after weekly settlement. The
+ * selection preserves the starter's role when possible, never introduces an
+ * unlicensed hero, and validates the repaired eleven through the same match
+ * boundary used on match day.
+ */
+export function repairCareerLineupForInjuries(
+  state: GameState,
+  clubId = state.userClubId,
+): GameState {
+  const lineup = state.lineups.find(candidate => candidate.clubId === clubId);
+  if (lineup === undefined) throw new Error(`missing lineup for club ${clubId}`);
+
+  const roster = rosterForClub(state, clubId);
+  const playerById = new Map(roster.map(player => [player.id, player]));
+  const playerIds = [...lineup.playerIds];
+  const selected = new Set(playerIds);
+  const heroLimit = careerHeroLimit(state);
+
+  for (let slot = 0; slot < playerIds.length; slot += 1) {
+    const starter = playerById.get(playerIds[slot]);
+    if (starter === undefined || starter.injuryWeeks === 0) continue;
+
+    selected.delete(starter.id);
+    const licensedCount = playerIds.reduce((count, playerId, playerSlot) => {
+      if (playerSlot === slot) return count;
+      const player = playerById.get(playerId);
+      return count + (player?.licensed === true ? 1 : 0);
+    }, 0);
+    const replacement = roster
+      .filter(candidate => (
+        !selected.has(candidate.id)
+        && candidate.injuryWeeks === 0
+        && !(candidate.power !== undefined && !candidate.licensed)
+        && (!candidate.licensed || licensedCount < heroLimit)
+        && (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK')
+      ))
+      .sort((left, right) => {
+        const leftRolePenalty = left.role === starter.role ? 0 : 1;
+        const rightRolePenalty = right.role === starter.role ? 0 : 1;
+        if (leftRolePenalty !== rightRolePenalty) return leftRolePenalty - rightRolePenalty;
+        if (left.licensed !== right.licensed) return left.licensed ? 1 : -1;
+        return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+      })[0];
+    if (replacement === undefined) {
+      throw new Error(`injured starter ${starter.id} has no eligible lineup replacement`);
+    }
+    playerIds[slot] = replacement.id;
+    selected.add(replacement.id);
+  }
+
+  if (playerIds.every((playerId, index) => playerId === lineup.playerIds[index])) return state;
+  const repaired: GameState = {
+    ...state,
+    lineups: state.lineups.map(candidate => candidate.clubId === clubId
+      ? { ...candidate, playerIds }
+      : candidate),
+  };
+  buildCareerTeamDef(repaired, clubId);
+  return repaired;
 }
 
 export function setCareerLineup(state: GameState, playerIds: readonly string[]): GameState {
@@ -61,7 +218,7 @@ export function selectCareerLicensedHeroes(
 ): GameState {
   assertManagementChoicePhase(state, 'hero licenses');
   const userRoster = rosterForClub(state, state.userClubId);
-  const selected = selectLicensedHeroes(userRoster, selectedPlayerIds, DEFAULT_HERO_LIMIT);
+  const selected = selectLicensedHeroes(userRoster, selectedPlayerIds, careerHeroLimit(state));
   const selectedById = new Map(selected.map(player => [player.id, player]));
 
   return {
@@ -105,7 +262,16 @@ export function buildTrainingGround(
     clubs: state.clubs.map(candidate =>
       candidate.id === state.userClubId ? { ...candidate, cash: candidate.cash - cost } : candidate,
     ),
-    facilities: { ...state.facilities, trainingGroundBuilt: true },
+    facilities: {
+      ...state.facilities,
+      trainingGroundBuilt: true,
+      grid: placeFacility(
+        state.facilities.grid ?? createFacilityGrid(),
+        'training-pitch',
+        { x: 0, y: 0 },
+        TRAINING_GROUND_COST,
+      ).grid,
+    },
   };
 }
 
@@ -217,6 +383,9 @@ export function releaseCareerPlayer(state: GameState, playerId: string): GameSta
     onboarding: state.onboarding?.createdPlayerId === playerId
       ? undefined
       : state.onboarding,
+    ...(state.market?.renewalTalks?.playerId === playerId
+      ? { market: { ...state.market, renewalTalks: undefined } }
+      : {}),
   };
 }
 

@@ -182,6 +182,11 @@ export function SquadTrainingScreen({
             />
             <Metric label="Wage / wk" value={formatCompactNumber(selectedPlayer.weeklyWage)} />
           </View>
+          <View className="mt-2 flex-row gap-2">
+            <Metric label="Age" value={String(selectedPlayer.age)} />
+            <Metric label="Potential" value={`${selectedPlayer.potential}★`} tone="positive" />
+            <Metric label="Morale" value={`${selectedPlayer.morale}%`} />
+          </View>
           <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/20 pt-3">
             <View className="flex-1">
               <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Contract</Text>
@@ -189,10 +194,19 @@ export function SquadTrainingScreen({
             </View>
             {selectedPlayer.powerName ? <StatusChip label={selectedPlayer.powerName} tone="hero" /> : null}
           </View>
-          <View className="mt-3 border border-ink/20 bg-paper-dark/40 px-3 py-2">
-            <Text className="text-center text-sm font-bold uppercase tracking-wide text-ink/50">
-              Full player card expands with M2
-            </Text>
+          <View className="mt-3 border border-ink/20 bg-paper-dark/40 px-3 py-3">
+            <View className="flex-row items-center justify-between gap-3">
+              <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Archetype</Text>
+              <Text className="text-base font-bold text-ink">{selectedPlayer.archetype}</Text>
+            </View>
+            <View className="mt-2 flex-row items-center justify-between gap-3">
+              <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Personality</Text>
+              <Text className="text-base font-bold text-ink">{selectedPlayer.personality}</Text>
+            </View>
+            <View className="mt-2 flex-row items-center justify-between gap-3">
+              <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Fame</Text>
+              <Text className="font-mono text-base font-bold text-ink">{selectedPlayer.fame}</Text>
+            </View>
           </View>
         </PaperPanel>
       ) : null}

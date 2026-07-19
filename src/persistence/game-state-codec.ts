@@ -79,7 +79,16 @@ const fixtureSchema = z
 
 const ledgerLineSchema = z
   .object({
-    kind: z.enum(['tickets', 'sponsor', 'prize', 'training', 'wages', 'subsidy']),
+    kind: z.enum([
+      'tickets',
+      'sponsor',
+      'prize',
+      'merch',
+      'training',
+      'facilities',
+      'wages',
+      'subsidy',
+    ]),
     label: nonemptyString,
     amount: safeInteger,
   })
@@ -93,6 +102,26 @@ const ledgerSchema = z
     balanceAfter: safeInteger,
   })
   .passthrough();
+
+const cashTransactionSchema = z.object({
+  id: nonemptyString,
+  season: positiveInteger,
+  week: positiveInteger,
+  kind: z.enum([
+    'facility-build',
+    'facility-upgrade',
+    'facility-relocation',
+    'scouting',
+    'transfer-buy',
+    'transfer-sell',
+    'youth-signing',
+    'coach-hiring',
+  ]),
+  label: nonemptyString,
+  amount: safeInteger.refine(value => value !== 0, 'must be non-zero'),
+  balanceAfter: nonnegativeInteger,
+  referenceId: nonemptyString.optional(),
+}).passthrough();
 
 const attributesSchema = z
   .object({
@@ -123,6 +152,24 @@ const playerSchema = z
       'must be at most 100',
     ),
     injuryWeeks: nonnegativeInteger,
+    age: positiveInteger.refine((value) => value <= 99, 'must be at most 99').optional(),
+    archetype: z.enum([
+      'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
+    ]).optional(),
+    potential: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
+    consistency: nonnegativeInteger.refine((value) => value <= 100, 'must be at most 100').optional(),
+    personality: z.enum(['Fiery', 'Loyal', 'Greedy', 'Joker', 'Professional', 'Timid']).optional(),
+    condition: nonnegativeInteger.refine((value) => value <= 100, 'must be at most 100').optional(),
+    seasonsAtClub: nonnegativeInteger.optional(),
+    fame: nonnegativeInteger.optional(),
+    retirementAge: positiveInteger.refine((value) => value >= 33 && value <= 38, 'must be from 33 to 38').optional(),
+    retirementAnnounced: z.boolean().optional(),
+    retirementAnnouncementSeason: positiveInteger.optional(),
+    consecutiveLowMoraleWeeks: nonnegativeInteger.optional(),
+    facilityStaBonusRemainder: nonnegativeInteger.refine(
+      (value) => value < 100,
+      'must be at most 99',
+    ).optional(),
   })
   .passthrough();
 
@@ -133,9 +180,32 @@ const lineupSchema = z
   })
   .passthrough();
 
+const facilityGridSchema = z
+  .object({
+    width: z.literal(8),
+    height: z.literal(6),
+    nextBuildingId: positiveInteger,
+    buildings: z.array(z.object({
+      id: nonemptyString,
+      type: z.enum([
+        'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
+        'medical-bay', 'dorm', 'scout-office', 'coaching-office', 'youth-field',
+        'fan-shop', 'stadium-stand', 'hero-lab',
+      ]),
+      level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      x: nonnegativeInteger,
+      y: nonnegativeInteger,
+    }).passthrough()),
+    discoveredAdjacencies: z.array(z.enum([
+      'gym-dorm', 'fan-shop-stadium', 'medical-training-pitch',
+    ])),
+  })
+  .passthrough();
+
 const facilitiesSchema = z
   .object({
     trainingGroundBuilt: z.boolean(),
+    grid: facilityGridSchema.optional(),
   })
   .passthrough();
 
@@ -240,6 +310,178 @@ const seasonGoalTallySchema = z
   })
   .passthrough();
 
+const divisionLevelSchema = z.union([
+  z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5),
+]);
+const pyramidPlayerSchema = z.object({
+  id: nonemptyString,
+  clubId: nonemptyString,
+  name: nonemptyString,
+  role: z.enum(['GK', 'DEF', 'MID', 'FWD']),
+  attrs: attributesSchema,
+  archetype: z.enum([
+    'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
+  ]),
+  personality: z.enum(['Fiery', 'Loyal', 'Greedy', 'Joker', 'Professional', 'Timid']),
+  age: positiveInteger,
+  fame: nonnegativeInteger,
+  seasonsAtClub: nonnegativeInteger,
+  morale: nonnegativeInteger.refine(value => value <= 100, 'must be at most 100'),
+  condition: nonnegativeInteger.refine(value => value <= 100, 'must be at most 100'),
+  consecutiveLowMoraleWeeks: nonnegativeInteger,
+  retirementAnnouncementSeason: positiveInteger.optional(),
+}).passthrough();
+const pyramidClubSchema = z.object({
+  id: nonemptyString,
+  name: nonemptyString,
+  division: divisionLevelSchema,
+  squadStrength: positiveInteger.refine(value => value <= 99, 'must be at most 99'),
+  squad: z.array(pyramidPlayerSchema),
+}).passthrough();
+const cupFixtureSchema = z.object({
+  id: nonemptyString,
+  season: positiveInteger,
+  round: positiveInteger,
+  homeClubId: nonemptyString,
+  awayClubId: nonemptyString,
+  matchSeed: uint32,
+  status: z.enum(['scheduled', 'played']),
+  score: scoreSchema.optional(),
+  winnerClubId: nonemptyString.optional(),
+}).passthrough();
+const nationalCupSchema = z.object({
+  careerSeed: uint32,
+  season: positiveInteger,
+  rounds: z.array(z.object({
+    number: positiveInteger,
+    label: z.enum(['Play-in', 'Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final']),
+    entrantClubIds: z.array(nonemptyString),
+    byeClubIds: z.array(nonemptyString),
+    fixtures: z.array(cupFixtureSchema),
+  }).passthrough()).min(1),
+  championClubId: nonemptyString.optional(),
+}).passthrough();
+const m2CareerSchema = z.object({
+  schemaVersion: z.literal(1),
+  careerSeed: uint32,
+  userClubId: nonemptyString,
+  pyramid: z.object({
+    careerSeed: uint32,
+    divisions: z.array(z.object({
+      level: divisionLevelSchema,
+      clubs: z.array(pyramidClubSchema).length(10),
+    }).passthrough()).length(5),
+  }).passthrough(),
+  nationalCups: z.array(nationalCupSchema),
+}).passthrough();
+
+const marketPersonalitySchema = z.enum([
+  'FIERY', 'LOYAL', 'GREEDY', 'JOKER', 'PROFESSIONAL', 'TIMID',
+]);
+const scoutFocusSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('POSITION'), role: z.enum(['GK', 'DEF', 'MID', 'FWD']) }),
+  z.object({ kind: z.literal('AGE'), minimumAge: positiveInteger, maximumAge: positiveInteger }),
+  z.object({ kind: z.literal('RUMORED_HERO') }),
+]);
+const scoutMissionSchema = z.object({
+  id: nonemptyString,
+  missionSeed: uint32,
+  startWeek: positiveInteger,
+  dueWeek: positiveInteger,
+  cost: nonnegativeInteger,
+  region: z.enum(['LOCAL', 'EUROPE', 'SOUTH_AMERICA', 'AFRICA', 'ASIA']),
+  focus: scoutFocusSchema,
+  scoutOfficeLevel: divisionLevelSchema.refine(value => value <= 3, 'must be at most 3'),
+}).passthrough();
+const scoutedRangeSchema = z.object({ minimum: positiveInteger, maximum: positiveInteger }).passthrough();
+const scoutReportSchema = z.object({
+  playerId: nonemptyString,
+  role: z.enum(['GK', 'DEF', 'MID', 'FWD']),
+  age: positiveInteger,
+  statRanges: z.object({
+    pac: scoutedRangeSchema,
+    sho: scoutedRangeSchema,
+    pas: scoutedRangeSchema,
+    def: scoutedRangeSchema,
+    tec: scoutedRangeSchema,
+    sta: scoutedRangeSchema,
+    ref: scoutedRangeSchema,
+  }).passthrough(),
+  potentialRange: scoutedRangeSchema,
+  power: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']).optional(),
+}).passthrough();
+const coachCandidateSchema = z.object({
+  id: nonemptyString,
+  name: nonemptyString,
+  specialties: z.tuple([z.enum([
+    'ATTACK', 'DEFENSE', 'FITNESS', 'TECHNIQUE', 'GOALKEEPING', 'MOTIVATOR',
+  ]), z.enum([
+    'ATTACK', 'DEFENSE', 'FITNESS', 'TECHNIQUE', 'GOALKEEPING', 'MOTIVATOR',
+  ])]),
+  level: divisionLevelSchema,
+  weeklyWage: nonnegativeInteger,
+  personality: marketPersonalitySchema,
+  requiredDivision: divisionLevelSchema,
+  requiredFame: nonnegativeInteger,
+  loyaltyDiscountPercent: nonnegativeInteger.refine(value => value <= 100, 'must be at most 100'),
+  unlockId: nonemptyString.optional(),
+  retiredLegendPlayerId: nonemptyString.optional(),
+}).passthrough();
+const contractOfferSchema = z.object({
+  weeklyWage: positiveInteger,
+  termSeasons: positiveInteger.refine(value => value <= 3, 'must be at most 3'),
+  perk: z.enum(['GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10']),
+}).passthrough();
+const negotiationSchema = z.object({
+  id: nonemptyString,
+  playerId: nonemptyString,
+  personality: marketPersonalitySchema,
+  weeklyAsk: positiveInteger,
+  round: nonnegativeInteger.refine(value => value <= 3, 'must be at most 3'),
+  mood: z.enum(['ANGRY', 'UNHAPPY', 'NEUTRAL', 'PLEASED', 'THRILLED']),
+  pitchInfluencePercent: safeInteger,
+  pitchCards: z.array(z.enum(['FLATTERY', 'TROPHY_PROMISE', 'HOMETOWN_TIES', 'MONEY_TALKS', 'STRAIGHT_TALK'])),
+  usedPitchCards: z.array(z.enum(['FLATTERY', 'TROPHY_PROMISE', 'HOMETOWN_TIES', 'MONEY_TALKS', 'STRAIGHT_TALK'])),
+  status: z.enum(['OPEN', 'ACCEPTED', 'REJECTED']),
+  history: z.array(z.object({ round: positiveInteger, offer: contractOfferSchema }).passthrough()),
+  acceptedOffer: contractOfferSchema.optional(),
+}).passthrough();
+const careerMarketSchema = z.object({
+  nextMissionNumber: positiveInteger,
+  activeScoutMission: scoutMissionSchema.optional(),
+  scoutReports: z.array(scoutReportSchema),
+  coachCandidates: z.array(coachCandidateSchema),
+  headCoach: coachCandidateSchema.optional(),
+  headCoachSeasonsEmployed: nonnegativeInteger.optional(),
+  unlockedCoachContentIds: z.array(nonemptyString).optional(),
+  transferTalks: z.object({
+    playerId: nonemptyString,
+    transferQuote: z.object({
+      playerId: nonemptyString,
+      valuation: nonnegativeInteger,
+      fee: nonnegativeInteger,
+      bandPercent: nonnegativeInteger,
+    }).passthrough(),
+    negotiation: negotiationSchema,
+  }).passthrough().optional(),
+  renewalTalks: z.object({
+    playerId: nonemptyString,
+    negotiation: negotiationSchema,
+  }).passthrough().optional(),
+}).passthrough();
+
+const youthIntakeSchema = z.object({
+  schemaVersion: z.literal(1),
+  season: positiveInteger,
+  status: z.enum(['OPEN', 'CLOSED']),
+  offers: z.array(z.object({
+    player: playerSchema,
+    signingBonus: nonnegativeInteger,
+  }).passthrough()).max(2),
+  signedPlayerIds: z.array(nonemptyString),
+  declined: z.boolean(),
+}).passthrough();
+
 const gameStateSchema = z
   .object({
     schemaVersion: z.literal(GAME_SCHEMA_VERSION),
@@ -266,10 +508,86 @@ const gameStateSchema = z
     trainingPoints: nonnegativeInteger,
     heroEssence: nonnegativeInteger,
     ledgers: z.array(ledgerSchema),
+    cashTransactions: z.array(cashTransactionSchema).optional(),
     seasonGoalTallies: z.array(seasonGoalTallySchema).optional(),
+    careerMode: z.enum(['m1-slice', 'full']).optional(),
+    m2: m2CareerSchema.optional(),
+    market: careerMarketSchema.optional(),
+    youthIntake: youthIntakeSchema.optional(),
+    retiredPlayers: z.array(playerSchema).optional(),
+    pendingLegacyPlayerIds: z.array(nonemptyString).optional(),
   })
   .passthrough()
   .superRefine((state, context) => {
+    if (state.careerMode === 'full' && (state.m2 === undefined || state.market === undefined)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['careerMode'],
+        message: 'full careers require M2 pyramid and market state',
+      });
+    }
+    if (state.m2 !== undefined && state.m2.userClubId !== state.userClubId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['m2', 'userClubId'],
+        message: 'must match the active user club',
+      });
+    }
+    if (state.youthIntake !== undefined) {
+      if (state.youthIntake.season !== state.season) {
+        context.addIssue({
+          code: 'custom',
+          path: ['youthIntake', 'season'],
+          message: 'must match the active season',
+        });
+      }
+      if (state.youthIntake.status === 'OPEN' && state.youthIntake.offers.length === 0) {
+        context.addIssue({
+          code: 'custom',
+          path: ['youthIntake', 'offers'],
+          message: 'open youth intake needs an offer',
+        });
+      }
+      if (state.youthIntake.status === 'CLOSED' && state.youthIntake.offers.length > 0) {
+        context.addIssue({
+          code: 'custom',
+          path: ['youthIntake', 'offers'],
+          message: 'closed youth intake cannot retain offers',
+        });
+      }
+      const youthOfferIds = new Set<string>();
+      for (let index = 0; index < state.youthIntake.offers.length; index += 1) {
+        const offer = state.youthIntake.offers[index];
+        if (youthOfferIds.has(offer.player.id)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['youthIntake', 'offers', index, 'player', 'id'],
+            message: 'youth offer player ID must be unique',
+          });
+        }
+        youthOfferIds.add(offer.player.id);
+        if (offer.player.clubId !== state.userClubId) {
+          context.addIssue({
+            code: 'custom',
+            path: ['youthIntake', 'offers', index, 'player', 'clubId'],
+            message: 'must match the active user club',
+          });
+        }
+      }
+    }
+    const cashTransactionIds = new Set<string>();
+    for (let index = 0; index < (state.cashTransactions ?? []).length; index += 1) {
+      const transaction = state.cashTransactions![index];
+      if (cashTransactionIds.has(transaction.id)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['cashTransactions', index, 'id'],
+          message: 'cash transaction ID must be unique',
+        });
+      }
+      cashTransactionIds.add(transaction.id);
+    }
+
     const clubIds = new Set<string>();
     for (let index = 0; index < state.clubs.length; index += 1) {
       const clubId = state.clubs[index].id;

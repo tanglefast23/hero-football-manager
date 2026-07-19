@@ -1,4 +1,7 @@
 import { applyTrainingPlan, type FocusDrill } from './progression';
+import { facilityEffects } from './facilities';
+import { trainingMultiplierForAge } from './pyramid';
+import { careerCoachTrainingModifiers } from './coach-weekly';
 import type {
   CareerPlayer,
   CareerTrainingDrill,
@@ -59,6 +62,9 @@ export function setCareerTrainingPlan(
 export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResolution {
   const roster = userRoster(state);
   const base = state.trainingRules?.baseConditioning;
+  const coachModifiers = state.market === undefined
+    ? undefined
+    : careerCoachTrainingModifiers(state.market);
   const conditioned = base === undefined
     ? roster
     : applyTrainingPlan(
@@ -87,8 +93,25 @@ export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResol
         resources: { money: Math.max(0, club.cash), tp: state.trainingPoints },
       };
 
+  const growthAdjusted = state.careerMode === 'full'
+    ? applyM2TrainingGrowthModifiers(
+        state,
+        roster,
+        focused.players as CareerPlayer[],
+        coachModifiers,
+      )
+    : focused.players as CareerPlayer[];
+  const staminaBonusPercent = state.facilities.grid === undefined
+    ? 0
+    : facilityEffects(state.facilities.grid).staminaTrainingBonusPercent;
+  const facilityBoosted = applyFacilityStaminaBonus(
+    roster,
+    growthAdjusted,
+    staminaBonusPercent,
+  );
+
   const trainedById = new Map(
-    focused.players.map(player => [player.id, player]),
+    facilityBoosted.map(player => [player.id, player]),
   );
   return {
     players: state.players.map(player => {
@@ -101,6 +124,133 @@ export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResol
     moneyCost: canAffordFocus ? focusCost.money : 0,
     focusApplied: canAffordFocus,
   };
+}
+
+/**
+ * Applies M2's player-specific growth curve after the shared training plan has
+ * established the actual gains. M1 keeps its accepted integer tuning exactly.
+ */
+function applyM2TrainingGrowthModifiers(
+  state: GameState,
+  original: readonly CareerPlayer[],
+  trained: readonly CareerPlayer[],
+  coachModifiers: ReturnType<typeof careerCoachTrainingModifiers> | undefined,
+): CareerPlayer[] {
+  const originalById = new Map(original.map(player => [player.id, player]));
+  return trained.map(player => {
+    const before = originalById.get(player.id);
+    if (before === undefined) throw new Error(`unknown trained player ${player.id}`);
+    const attrs = { ...player.attrs };
+    for (const attribute of Object.keys(attrs) as Array<keyof CareerPlayer['attrs']>) {
+      const realizedGain = player.attrs[attribute] - before.attrs[attribute];
+      if (realizedGain <= 0) continue;
+      const multiplier = trainingMultiplierForAge(player.age ?? 24)
+        * archetypeTrainingMultiplier(player.archetype, attribute)
+        * facilityTrainingMultiplier(state, attribute)
+        * ((coachModifiers?.gainScalePercentByAttribute[attribute] ?? 100) / 100)
+        * diminishingTrainingMultiplier(before.attrs[attribute]);
+      attrs[attribute] = Math.min(
+        99,
+        before.attrs[attribute] + Math.max(1, Math.round(realizedGain * multiplier)),
+      );
+    }
+    return { ...player, attrs };
+  });
+}
+
+function archetypeTrainingMultiplier(
+  archetype: CareerPlayer['archetype'],
+  attribute: keyof CareerPlayer['attrs'],
+): number {
+  if (archetype === 'Prodigy') return 1.2;
+  if (archetype === 'All-Rounder') return 1.05;
+  const specialties: Partial<Record<NonNullable<CareerPlayer['archetype']>, readonly (keyof CareerPlayer['attrs'])[]>> = {
+    Speedster: ['pac'],
+    Sniper: ['sho'],
+    Playmaker: ['pas', 'tec'],
+    Anchor: ['def', 'sta'],
+    Wall: ['ref', 'def'],
+    Engine: ['sta', 'pac'],
+  };
+  return archetype !== undefined && specialties[archetype]?.includes(attribute) ? 1.15 : 1;
+}
+
+function facilityTrainingMultiplier(
+  state: GameState,
+  attribute: keyof CareerPlayer['attrs'],
+): number {
+  const facilityType = attribute === 'sho'
+    ? 'shooting-range'
+    : attribute === 'ref'
+      ? 'keeper-court'
+      : attribute === 'pas' || attribute === 'tec'
+        ? 'tech-center'
+        : attribute === 'pac' || attribute === 'sta'
+          ? 'gym'
+          : 'training-pitch';
+  const level = state.facilities.grid?.buildings
+    .filter(building => building.type === facilityType)
+    .reduce((maximum, building) => Math.max(maximum, building.level), 0) ?? 0;
+  return level === 0 ? 1 : 1 + (level - 1) / 2;
+}
+
+function diminishingTrainingMultiplier(currentStat: number): number {
+  if (currentStat >= 90) return 0.5;
+  if (currentStat >= 80) return 0.75;
+  return 1;
+}
+
+/**
+ * Carries percentage points between weeks so a 10% bonus remains exact even
+ * when weekly integer gains are small. Only gains that survived the 99 cap
+ * earn bonus credit.
+ */
+function applyFacilityStaminaBonus(
+  original: readonly CareerPlayer[],
+  trained: readonly CareerPlayer[],
+  bonusPercent: number,
+): CareerPlayer[] {
+  if (!Number.isSafeInteger(bonusPercent) || bonusPercent < 0) {
+    throw new Error('facility stamina bonus must be a non-negative safe integer percent');
+  }
+  if (bonusPercent === 0) return [...trained];
+
+  const originalById = new Map(original.map(player => [player.id, player]));
+  return trained.map(player => {
+    const before = originalById.get(player.id);
+    if (before === undefined) throw new Error(`unknown trained player ${player.id}`);
+    const realizedGain = player.attrs.sta - before.attrs.sta;
+    if (realizedGain <= 0) return player;
+
+    const previousRemainder = player.facilityStaBonusRemainder ?? 0;
+    if (!Number.isSafeInteger(previousRemainder)
+      || previousRemainder < 0
+      || previousRemainder >= 100) {
+      throw new Error(`player ${player.id} facility stamina remainder must be from 0 to 99`);
+    }
+    const earnedPercentagePoints = checkedMultiply(
+      realizedGain,
+      bonusPercent,
+      'facility stamina bonus progress',
+    );
+    const totalPercentagePoints = checkedAdd(
+      previousRemainder,
+      earnedPercentagePoints,
+      'facility stamina bonus progress',
+    );
+    const extraGain = Math.floor(totalPercentagePoints / 100);
+    const facilityStaBonusRemainder = totalPercentagePoints % 100;
+    const sta = Math.min(
+      99,
+      checkedAdd(player.attrs.sta, extraGain, 'facility stamina attribute'),
+    );
+
+    return {
+      ...player,
+      attrs: { ...player.attrs, sta },
+      facilityStaBonusRemainder,
+    };
+  });
 }
 
 function userRoster(state: GameState): CareerPlayer[] {
@@ -129,4 +279,16 @@ function cloneDrill(drill: FocusDrill | CareerTrainingDrill): CareerTrainingDril
     tpCost: drill.tpCost,
     gains: { ...drill.gains },
   };
+}
+
+function checkedAdd(left: number, right: number, label: string): number {
+  const result = left + right;
+  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  return result;
+}
+
+function checkedMultiply(left: number, right: number, label: string): number {
+  const result = left * right;
+  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
+  return result;
 }

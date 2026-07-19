@@ -1,4 +1,8 @@
 import type { Attrs, PowerId, Role } from '../sim/types';
+import type { FacilityGridState } from './facilities';
+import type { CareerMarketState } from './market-career';
+import type { M2CareerState } from './m2-career';
+import type { YouthIntakeState } from './youth-intake';
 
 export const GAME_SCHEMA_VERSION = 1;
 export const M1_SEASONS = 2;
@@ -24,6 +28,8 @@ export interface CareerSetup {
   players?: CareerPlayer[];
   lineups?: ClubLineupState[];
   trainingRules?: TrainingRules;
+  /** Omitted setups retain the finite M1 harness; the shipped app opts into full. */
+  careerMode?: 'm1-slice' | 'full';
 }
 
 export interface CareerTrainingDrill {
@@ -43,6 +49,24 @@ export interface TrainingRules {
   maxFocusDrillsPerWeek: number;
 }
 
+export type PlayerArchetype =
+  | 'Speedster'
+  | 'Sniper'
+  | 'Playmaker'
+  | 'Anchor'
+  | 'Wall'
+  | 'Engine'
+  | 'All-Rounder'
+  | 'Prodigy';
+
+export type PlayerPersonality =
+  | 'Fiery'
+  | 'Loyal'
+  | 'Greedy'
+  | 'Joker'
+  | 'Professional'
+  | 'Timid';
+
 export interface CareerPlayer {
   id: string;
   clubId: string;
@@ -56,6 +80,21 @@ export interface CareerPlayer {
   contractSeasonsRemaining: number;
   morale: number;
   injuryWeeks: number;
+  /** M2 metadata stays optional so schema-1 M1 saves remain readable. */
+  age?: number;
+  archetype?: PlayerArchetype;
+  potential?: 1 | 2 | 3 | 4 | 5;
+  consistency?: number;
+  personality?: PlayerPersonality;
+  condition?: number;
+  seasonsAtClub?: number;
+  fame?: number;
+  retirementAge?: number;
+  retirementAnnounced?: boolean;
+  retirementAnnouncementSeason?: number;
+  consecutiveLowMoraleWeeks?: number;
+  /** Percentage-point carry for exact integer Gym + Dorm stamina bonuses. */
+  facilityStaBonusRemainder?: number;
 }
 
 export interface ClubLineupState {
@@ -65,6 +104,8 @@ export interface ClubLineupState {
 
 export interface FacilityState {
   trainingGroundBuilt: boolean;
+  /** Optional only while schema-1 M1 saves are reconciled into M2. */
+  grid?: FacilityGridState;
 }
 
 export interface CareerEventState {
@@ -138,7 +179,9 @@ export type LedgerLineKind =
   | 'tickets'
   | 'sponsor'
   | 'prize'
+  | 'merch'
   | 'training'
+  | 'facilities'
   | 'wages'
   | 'subsidy';
 
@@ -153,6 +196,31 @@ export interface WeeklyLedger {
   week: number;
   lines: LedgerLine[];
   balanceAfter: number;
+}
+
+export type CashTransactionKind =
+  | 'facility-build'
+  | 'facility-upgrade'
+  | 'facility-relocation'
+  | 'scouting'
+  | 'transfer-buy'
+  | 'transfer-sell'
+  | 'youth-signing'
+  | 'coach-hiring';
+
+/**
+ * Immediate M2 cash movements live beside weekly ledgers so buying something
+ * never fabricates or changes a settled week. This is deliberately plain JSON.
+ */
+export interface CashTransaction {
+  id: string;
+  season: number;
+  week: number;
+  kind: CashTransactionKind;
+  label: string;
+  amount: number;
+  balanceAfter: number;
+  referenceId?: string;
 }
 
 export interface PlayerSeasonGoalTally {
@@ -185,8 +253,18 @@ export interface GameState {
   trainingPoints: number;
   heroEssence: number;
   ledgers: WeeklyLedger[];
+  /** Immediate M2 purchases and sales; weekly settlement remains in ledgers. */
+  cashTransactions?: CashTransaction[];
   /** Optional so careers saved before Golden Boot tracking remain loadable. */
   seasonGoalTallies?: PlayerSeasonGoalTally[];
+  /** Optional so deterministic M1 tests and schema-1 saves remain valid. */
+  careerMode?: 'm1-slice' | 'full';
+  /** M2 sidecars are plain data and defaulted during application reconciliation. */
+  m2?: M2CareerState;
+  market?: CareerMarketState;
+  youthIntake?: YouthIntakeState;
+  retiredPlayers?: CareerPlayer[];
+  pendingLegacyPlayerIds?: string[];
 }
 
 export interface LeagueStanding {

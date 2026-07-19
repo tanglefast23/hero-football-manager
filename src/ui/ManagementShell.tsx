@@ -51,7 +51,7 @@ const TABS: ReadonlyArray<{ id: ManagementTab; label: string; glyph: string; ava
   { id: 'home', label: 'Home', glyph: '⌂', available: true },
   { id: 'squad', label: 'Squad', glyph: '11', available: true },
   { id: 'club', label: 'Club', glyph: '▦', available: true },
-  { id: 'market', label: 'Market', glyph: 'M2', available: false },
+  { id: 'market', label: 'Market', glyph: '⇄', available: true },
   { id: 'league', label: 'League', glyph: '≡', available: true },
 ];
 

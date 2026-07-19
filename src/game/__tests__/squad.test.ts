@@ -85,6 +85,37 @@ describe('career squad integration', () => {
     expect(buildCareerTeamDef(swapped, CLUB_IDS[0]).players.filter(player => player.power)).toHaveLength(2);
   });
 
+  it('uses M2 low-morale penalties without changing the M1 match adapter', () => {
+    const playerId = `${CLUB_IDS[0]}-p0`;
+    const lowMorale = (state: GameState): GameState => ({
+      ...state,
+      players: state.players.map(player => player.id === playerId
+        ? { ...player, morale: 0 }
+        : player),
+    });
+    const m1 = lowMorale(career());
+    const m2 = lowMorale(createCareer({ ...setup(), careerMode: 'full' }));
+
+    expect(buildCareerTeamDef(m1, CLUB_IDS[0]).players[0].attrs.pac).toBe(45);
+    expect(buildCareerTeamDef(m2, CLUB_IDS[0]).players[0].attrs.pac).toBe(45);
+    expect(m2.players.find(player => player.id === playerId)?.attrs.pac).toBe(50);
+
+    const highMoraleM1 = {
+      ...m1,
+      players: m1.players.map(player => player.id === playerId
+        ? { ...player, morale: 100 }
+        : player),
+    };
+    const highMoraleM2 = {
+      ...m2,
+      players: m2.players.map(player => player.id === playerId
+        ? { ...player, morale: 100 }
+        : player),
+    };
+    expect(buildCareerTeamDef(highMoraleM1, CLUB_IDS[0]).players[0].attrs.pac).toBe(55);
+    expect(buildCareerTeamDef(highMoraleM2, CLUB_IDS[0]).players[0].attrs.pac).toBe(50);
+  });
+
   it('stores one weekly plan and applies every drill to every assigned player once', () => {
     const planned = applyCareerTraining(
       career(),

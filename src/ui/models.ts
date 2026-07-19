@@ -1,3 +1,5 @@
+import type { MarketNegotiationViewModel } from './market-models';
+
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
 
 export interface ResourceSummaryViewModel {
@@ -193,6 +195,12 @@ export interface SquadPlayerViewModel {
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   overall: number;
   condition: number;
+  age: number;
+  archetype: string;
+  potential: 1 | 2 | 3 | 4 | 5;
+  personality: string;
+  morale: number;
+  fame: number;
   weeklyWage: number;
   contractLabel: string;
   powerName?: string;
@@ -230,14 +238,77 @@ export interface TrainingGroundDecisionViewModel {
   weeklyTrainingPoints: number;
 }
 
+export type FacilityTypeViewModel =
+  | 'training-pitch'
+  | 'gym'
+  | 'tech-center'
+  | 'shooting-range'
+  | 'keeper-court'
+  | 'medical-bay'
+  | 'dorm'
+  | 'scout-office'
+  | 'coaching-office'
+  | 'youth-field'
+  | 'fan-shop'
+  | 'stadium-stand'
+  | 'hero-lab';
+
+export interface ClubFacilityBuildingViewModel {
+  id: string;
+  type: FacilityTypeViewModel;
+  name: string;
+  level: 1 | 2 | 3;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  weeklyUpkeep: number;
+  upgradeCost?: number;
+  relocationFee: number;
+}
+
+export interface ClubFacilityCatalogViewModel {
+  type: FacilityTypeViewModel;
+  name: string;
+  buildCost: number;
+  width: number;
+  height: number;
+  available: boolean;
+  affordable: boolean;
+}
+
+export interface ClubFacilityGridViewModel {
+  width: 8;
+  height: 6;
+  buildings: readonly ClubFacilityBuildingViewModel[];
+  catalog: readonly ClubFacilityCatalogViewModel[];
+  weeklyUpkeep: number;
+  activeAdjacencies: readonly string[];
+  discoveredAdjacencies: readonly string[];
+}
+
 export interface ClubFinancesViewModel {
   periodLabel: string;
   resources: ResourceSummaryViewModel;
   ledger: readonly LedgerLineViewModel[];
+  recentTransactions: readonly (LedgerLineViewModel & {
+    periodLabel: string;
+    balanceAfter: number;
+  })[];
   weeklyNet: number;
   projectedBalance: number;
   wageSubsidyLabel?: string;
   trainingGround: TrainingGroundDecisionViewModel;
+  legacyTrainingGroundVisible: boolean;
+  headCoach?: {
+    id: string;
+    name: string;
+    level: number;
+    specialtyLabels: readonly [string, string];
+    weeklyWage: number;
+    seasonsEmployed: number;
+  };
+  facilities: ClubFacilityGridViewModel;
 }
 
 export interface StoryEventPlayerViewModel {
@@ -328,6 +399,8 @@ export interface ExpiredContractViewModel {
   termOptions: readonly (1 | 2 | 3)[];
   selectedTerm: 1 | 2 | 3;
   decision: 'pending' | 'renewed';
+  requiresNegotiation: boolean;
+  remainingExpiredCount: number;
 }
 
 export interface SeasonEndViewModel {
@@ -339,8 +412,28 @@ export interface SeasonEndViewModel {
   prizeMoney: number;
   table: readonly SeasonTableRowViewModel[];
   expiredContract?: ExpiredContractViewModel;
+  renewalNegotiation?: MarketNegotiationViewModel;
   sliceComplete: boolean;
   canContinue: boolean;
+}
+
+export interface ClubLegacyChoiceViewModel {
+  id: 'coach-candidate' | 'mentor-youth';
+  label: string;
+  detail: string;
+  outcome: string;
+}
+
+export interface ClubLegacyViewModel {
+  seasonLabel: string;
+  queueLabel: string;
+  playerName: string;
+  role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  archetype: string;
+  personality: string;
+  fame: number;
+  seasonsAtClub: number;
+  choices: readonly ClubLegacyChoiceViewModel[];
 }
 
 export interface ChampionshipCelebrationPlayerViewModel {

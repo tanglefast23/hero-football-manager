@@ -1,10 +1,25 @@
 import { loadLaunchContent, type LaunchContent } from '../content';
 import type { CareerSetup, GameState } from '../game';
+import type { PlayerPersonality } from '../game';
+import {
+  buildFacility as placeFacility,
+  createFacilityGrid,
+  enableFullCareer,
+} from '../game';
 
 export const DEFAULT_CAREER_SEED = 20260718;
 export const DEFAULT_USER_CLUB_ID = 'bramble-rovers';
 let careerSeedNonce = 0;
 let lastGeneratedCareerSeed: number | undefined;
+
+const PLAYER_PERSONALITIES: readonly PlayerPersonality[] = [
+  'Fiery',
+  'Loyal',
+  'Greedy',
+  'Joker',
+  'Professional',
+  'Timid',
+];
 
 /** Produces a fresh uint32 seed without importing nondeterminism into the sim. */
 export function generateCareerSeed(now = Date.now()): number {
@@ -19,6 +34,7 @@ export function createLaunchCareerSetup(
   seed = DEFAULT_CAREER_SEED,
   userClubId = DEFAULT_USER_CLUB_ID,
   content: LaunchContent = loadLaunchContent(),
+  careerMode?: CareerSetup['careerMode'],
 ): CareerSetup {
   return {
     seed,
@@ -42,7 +58,7 @@ export function createLaunchCareerSetup(
       sponsorMonthlyFee: club.sponsorMonthlyFee,
       weeklyWages: club.players.reduce((sum, player) => sum + player.weeklyWage, 0),
     })),
-    players: content.clubs.clubs.flatMap(club => club.players.map(player => ({
+    players: content.clubs.clubs.flatMap((club, clubIndex) => club.players.map((player, playerIndex) => ({
       id: player.id,
       clubId: club.id,
       name: player.name,
@@ -60,18 +76,54 @@ export function createLaunchCareerSetup(
         : player.contractSeasonsRemaining,
       morale: 50,
       injuryWeeks: 0,
+      age: player.age,
+      archetype: player.archetype,
+      potential: deterministicPotential(seed, clubIndex, playerIndex),
+      consistency: 55 + deterministicPlayerValue(seed, clubIndex, playerIndex, 1) % 31,
+      personality: PLAYER_PERSONALITIES[
+        deterministicPlayerValue(seed, clubIndex, playerIndex, 2) % PLAYER_PERSONALITIES.length
+      ],
+      condition: 100,
+      seasonsAtClub: 0,
+      fame: player.powerId === null ? 0 : 12,
+      retirementAge: 33 + deterministicPlayerValue(seed, clubIndex, playerIndex, 3) % 6,
+      retirementAnnounced: false,
     }))),
     lineups: content.clubs.clubs.map(club => ({
       clubId: club.id,
       playerIds: [...club.startingLineup],
     })),
+    ...(careerMode === undefined ? {} : { careerMode }),
   };
+}
+
+function deterministicPlayerValue(
+  seed: number,
+  clubIndex: number,
+  playerIndex: number,
+  channel: number,
+): number {
+  let value = (seed ^ ((clubIndex + 1) * 0x9e3779b1)) >>> 0;
+  value = (value ^ ((playerIndex + 1) * 0x85ebca6b)) >>> 0;
+  value = (value ^ ((channel + 1) * 0xc2b2ae35)) >>> 0;
+  value = Math.imul(value ^ (value >>> 16), 0x7feb352d) >>> 0;
+  value = Math.imul(value ^ (value >>> 15), 0x846ca68b) >>> 0;
+  return (value ^ (value >>> 16)) >>> 0;
+}
+
+function deterministicPotential(
+  seed: number,
+  clubIndex: number,
+  playerIndex: number,
+): 1 | 2 | 3 | 4 | 5 {
+  return (1 + deterministicPlayerValue(seed, clubIndex, playerIndex, 0) % 5) as 1 | 2 | 3 | 4 | 5;
 }
 
 /** Adds content-pack reserve players to careers created before 16-player clubs. */
 export function reconcileLaunchRoster(
   state: GameState,
   content: LaunchContent = loadLaunchContent(),
+  enableM2 = false,
 ): GameState {
   const savedAwakening = (state as Omit<GameState, 'awakening'> & {
     awakening?: Omit<GameState['awakening'], 'usedTriggerIds'> & { usedTriggerIds?: string[] };
@@ -94,7 +146,8 @@ export function reconcileLaunchRoster(
   let changed = missing.length > 0
     || state.trainingRules === undefined
     || savedAwakening === undefined
-    || savedAwakening.usedTriggerIds === undefined;
+    || savedAwakening.usedTriggerIds === undefined
+    || state.facilities.grid === undefined;
   const players = [
     ...state.players.map(player => {
       const current = launchById.get(player.id);
@@ -137,9 +190,11 @@ export function reconcileLaunchRoster(
     wageByClub.set(player.clubId, (wageByClub.get(player.clubId) ?? 0) + player.weeklyWage);
   }
 
-  if (!changed) return state;
+  if (!changed) return enableM2 || state.careerMode === 'full'
+    ? enableFullCareer(state)
+    : state;
 
-  return {
+  const reconciled: GameState = {
     ...state,
     awakening: savedAwakening === undefined
       ? { matchesSinceLastAwakening: 0, usedTriggerIds: [] }
@@ -147,6 +202,19 @@ export function reconcileLaunchRoster(
           ...savedAwakening,
           usedTriggerIds: savedAwakening.usedTriggerIds ?? [],
         },
+    facilities: state.facilities.grid === undefined
+      ? {
+          ...state.facilities,
+          grid: state.facilities.trainingGroundBuilt
+            ? placeFacility(
+                createFacilityGrid(),
+                'training-pitch',
+                { x: 0, y: 0 },
+                8_000,
+              ).grid
+            : createFacilityGrid(),
+        }
+      : state.facilities,
     players,
     ...(state.trainingRules === undefined && launch.trainingRules !== undefined
       ? {
@@ -164,4 +232,7 @@ export function reconcileLaunchRoster(
       weeklyWages: wageByClub.get(club.id) ?? club.weeklyWages,
     })),
   };
+  return enableM2 || state.careerMode === 'full'
+    ? enableFullCareer(reconciled)
+    : reconciled;
 }

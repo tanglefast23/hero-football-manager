@@ -1,5 +1,14 @@
 import { generateSeasonFixtures } from './schedule';
+import { createFacilityGrid, facilityEffects, weeklyFacilityUpkeep } from './facilities';
 import { resolveCareerTrainingWeek } from './training';
+import { enableFullCareer, startNextFullCareerSeason } from './full-career';
+import { careerCoachWageLedgerAmount } from './coach-weekly';
+import { resolveCareerScoutClock } from './market-career';
+import { resolveNextM2NationalCupRound } from './m2-career';
+import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
+import type { NationalCupFixture, NationalCupResult } from './pyramid';
+import { repairCareerLineupForInjuries } from './squad';
+import { expireYouthIntakeWindow } from './youth-intake';
 import {
   GAME_SCHEMA_VERSION,
   M1_SEASONS,
@@ -16,13 +25,29 @@ import {
 
 const CLUB_COUNT = 10;
 const UINT32_MAX = 4294967295;
+const CUP_SETTLEMENT_WEEKS = [5, 10, 15, 20, 25, 30] as const;
+
+type NationalCupRoundLabel =
+  | 'Play-in'
+  | 'Round of 32'
+  | 'Round of 16'
+  | 'Quarter-final'
+  | 'Semi-final'
+  | 'Final';
+
+export interface ActiveCareerMatchday {
+  kind: 'league' | 'national-cup';
+  fixture: LeagueFixture;
+  fixtures: LeagueFixture[];
+  cupRoundLabel?: NationalCupRoundLabel;
+}
 
 export function createCareer(setup: CareerSetup): GameState {
   validateSetup(setup);
 
   const clubs = setup.clubs.map(club => ({ ...club }));
 
-  return {
+  const state: GameState = {
     schemaVersion: GAME_SCHEMA_VERSION,
     careerSeed: setup.seed,
     userClubId: setup.userClubId,
@@ -36,7 +61,7 @@ export function createCareer(setup: CareerSetup): GameState {
       clubId: lineup.clubId,
       playerIds: [...lineup.playerIds],
     })),
-    facilities: { trainingGroundBuilt: false },
+    facilities: { trainingGroundBuilt: false, grid: createFacilityGrid() },
     ...(setup.trainingRules === undefined ? {} : {
       trainingRules: {
         maxFocusDrillsPerWeek: setup.trainingRules.maxFocusDrillsPerWeek,
@@ -54,7 +79,9 @@ export function createCareer(setup: CareerSetup): GameState {
     heroEssence: 0,
     ledgers: [],
     seasonGoalTallies: [],
+    ...(setup.careerMode === undefined ? {} : { careerMode: setup.careerMode }),
   };
+  return setup.careerMode === 'full' ? enableFullCareer(state) : state;
 }
 
 export function fixturesForCurrentWeek(state: GameState): LeagueFixture[] {
@@ -68,12 +95,43 @@ export function fixturesForCurrentWeek(state: GameState): LeagueFixture[] {
     .map(cloneFixture);
 }
 
+/** The one player-controlled match for the current Match Day, league first on double-header weeks. */
+export function activeCareerMatchday(state: GameState): ActiveCareerMatchday | undefined {
+  const leagueFixtures = fixturesForCurrentWeek(state);
+  const leagueFixture = leagueFixtures.find(fixture => (
+    fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
+  ));
+  if (leagueFixture !== undefined) {
+    return { kind: 'league', fixture: leagueFixture, fixtures: leagueFixtures };
+  }
+
+  const cup = nationalCupUserFixtureForCurrentWeek(state);
+  if (cup === undefined) return undefined;
+  const fixture = nationalCupFixtureAsLeagueFixture(cup.fixture, state.week);
+  return {
+    kind: 'national-cup',
+    fixture,
+    fixtures: [fixture],
+    cupRoundLabel: cup.roundLabel,
+  };
+}
+
+export function nationalCupFixtureById(
+  state: GameState,
+  fixtureId: string,
+): NationalCupFixture | undefined {
+  return state.m2?.nationalCups
+    .flatMap(cup => cup.rounds)
+    .flatMap(round => round.fixtures)
+    .find(fixture => fixture.id === fixtureId);
+}
+
 export function advanceWeek(state: GameState): GameState {
   if (state.phase !== 'manage') {
     throw new Error('a week can only advance from the manage phase');
   }
 
-  if (fixturesForCurrentWeek(state).length > 0) {
+  if (activeCareerMatchday(state) !== undefined) {
     return { ...state, phase: 'matchday' };
   }
 
@@ -86,6 +144,9 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
   }
 
   const scheduledFixtures = fixturesForCurrentWeek(state);
+  if (scheduledFixtures.length === 0) {
+    return completeNationalCupMatchday(state, results);
+  }
   validateResults(state, scheduledFixtures, results);
 
   const resultByFixtureId = new Map(results.map(result => [result.fixtureId, result]));
@@ -116,7 +177,21 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
 
   const seasonGoalTallies = recordSeasonGoals(state, scheduledFixtures, resultByFixtureId);
 
-  return settleCurrentWeek({ ...state, fixtures, trainingPoints, seasonGoalTallies });
+  const players = state.careerMode === 'full'
+    ? resolveCareerMatchFame(state, scheduledFixtures, resultByFixtureId)
+    : state.players;
+
+  const playedLeagueState: GameState = {
+    ...state,
+    fixtures,
+    players,
+    trainingPoints,
+    seasonGoalTallies,
+  };
+  if (nationalCupUserFixtureForCurrentWeek(playedLeagueState) !== undefined) {
+    return { ...playedLeagueState, phase: 'matchday' };
+  }
+  return settleCurrentWeek(playedLeagueState);
 }
 
 export function leagueStandings(state: GameState, season = state.season): LeagueStanding[] {
@@ -199,6 +274,15 @@ export function startNextSeason(state: GameState): GameState {
   if (state.phase !== 'season-end') {
     throw new Error('the next season can only start from the season-end phase');
   }
+  if (state.careerMode === 'full') {
+    const expired = state.players.filter(player => (
+      player.clubId === state.userClubId && player.contractSeasonsRemaining === 0
+    ));
+    if (expired.length > 0) {
+      throw new Error(`${expired.length} expired contract${expired.length === 1 ? '' : 's'} must be resolved before the next season`);
+    }
+    return startNextFullCareerSeason(state, leagueStandings(state));
+  }
   if (state.season >= M1_SEASONS) {
     throw new Error('the M1 career has no additional season');
   }
@@ -219,16 +303,27 @@ export function startNextSeason(state: GameState): GameState {
   };
 }
 
-function settleCurrentWeek(state: GameState): GameState {
+function settleCurrentWeek(
+  state: GameState,
+  cupAlreadyResolved = false,
+  additionalMatchOutcomes: readonly WeeklyMatchOutcome[] = [],
+): GameState {
   const userClub = state.clubs.find(club => club.id === state.userClubId);
   if (userClub === undefined) {
     throw new Error(`user club ${state.userClubId} does not exist`);
   }
 
   const training = resolveCareerTrainingWeek(state);
+  const weeklyPlayers = state.careerMode === 'full'
+      ? resolveWeeklyPlayerWellbeing(state, {
+          trainedPlayers: training.players,
+          focusApplied: training.focusApplied,
+          additionalMatchOutcomes,
+        }).players
+    : training.players;
   const trainedState = {
     ...state,
-    players: training.players,
+    players: weeklyPlayers,
     trainingPoints: training.trainingPoints,
   };
   const lines = settlementLines(trainedState, userClub, training.moneyCost);
@@ -240,7 +335,7 @@ function settleCurrentWeek(state: GameState): GameState {
   const clubs = state.clubs.map(club =>
     club.id === state.userClubId ? { ...club, cash: balanceAfter } : club,
   );
-  const ambientTrainingPoints = state.facilities.trainingGroundBuilt ? 5 : 0;
+  const ambientTrainingPoints = hasAmbientTrainingPitch(state) ? 5 : 0;
   const trainingPoints = checkedAdd(
     training.trainingPoints,
     ambientTrainingPoints,
@@ -256,29 +351,55 @@ function settleCurrentWeek(state: GameState): GameState {
     },
   ];
 
-  const recoveredPlayers = training.players.map(player => ({
-    ...player,
-    injuryWeeks: player.injuryWeeks > 0 ? player.injuryWeeks - 1 : 0,
-  }));
+  const injuryWeeksBeforeSettlement = new Map(
+    state.players.map(player => [player.id, player.injuryWeeks]),
+  );
+  const recoveredPlayers = weeklyPlayers.map(player => {
+    const injuryWeeksBefore = injuryWeeksBeforeSettlement.get(player.id);
+    if (injuryWeeksBefore === undefined) {
+      throw new Error(`weekly wellbeing returned unknown player ${player.id}`);
+    }
+    // An existing injury advances by one recovery week. A new overtraining
+    // injury begins now and must retain its full deterministic recovery time.
+    const shouldRecover = state.careerMode === 'full'
+      ? injuryWeeksBefore > 0
+      : player.injuryWeeks > 0;
+    return {
+      ...player,
+      injuryWeeks: shouldRecover ? Math.max(0, player.injuryWeeks - 1) : player.injuryWeeks,
+    };
+  });
 
   if (state.week === SEASON_WEEKS) {
-    const players = recoveredPlayers.map(player => ({
+    const seasonFamePlayers = state.careerMode === 'full'
+      ? resolveCareerSeasonFame({ ...state, players: recoveredPlayers })
+      : recoveredPlayers;
+    const players = seasonFamePlayers.map(player => ({
       ...player,
       contractSeasonsRemaining: player.contractSeasonsRemaining > 0
         ? player.contractSeasonsRemaining - 1
         : 0,
     }));
-    return {
+    const settledState: GameState = {
       ...state,
       clubs,
       ledgers,
       players,
       trainingPoints,
-      phase: state.season === M1_SEASONS ? 'complete' : 'season-end',
+      phase: state.careerMode === 'full'
+        ? 'season-end'
+        : state.season === M1_SEASONS ? 'complete' : 'season-end',
     };
+    return advanceM2WeeklySidecars(
+      state.careerMode === 'full'
+        ? repairCareerLineupForInjuries(settledState)
+        : settledState,
+      state.week,
+      cupAlreadyResolved,
+    );
   }
 
-  return {
+  const settledState: GameState = {
     ...state,
     clubs,
     ledgers,
@@ -287,6 +408,65 @@ function settleCurrentWeek(state: GameState): GameState {
     week: checkedAdd(state.week, 1, 'career week'),
     phase: 'manage',
   };
+  return advanceM2WeeklySidecars(
+    state.careerMode === 'full'
+      ? repairCareerLineupForInjuries(settledState)
+      : settledState,
+    state.week,
+    cupAlreadyResolved,
+  );
+}
+
+/**
+ * Awards fame only from a player's real first-team appearance, the club result,
+ * and goals recorded by the simulation. No RNG is consumed.
+ */
+export function resolveCareerMatchFame(
+  state: GameState,
+  fixtures: readonly LeagueFixture[],
+  resultByFixtureId: ReadonlyMap<string, FixtureResult>,
+): CareerPlayer[] {
+  if (state.careerMode !== 'full') return state.players.map(clonePlayer);
+  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  if (lineup === undefined) throw new Error('the user club has no lineup');
+  const gains = new Map<string, number>();
+
+  for (const fixture of fixtures) {
+    if (fixture.homeClubId !== state.userClubId && fixture.awayClubId !== state.userClubId) continue;
+    const result = resultByFixtureId.get(fixture.id);
+    if (result === undefined) continue;
+    const userIsHome = fixture.homeClubId === state.userClubId;
+    const goalsFor = userIsHome ? result.homeGoals : result.awayGoals;
+    const goalsAgainst = userIsHome ? result.awayGoals : result.homeGoals;
+    const resultGain = goalsFor > goalsAgainst ? 2 : goalsFor === goalsAgainst ? 1 : 0;
+    for (const playerId of lineup.playerIds) gains.set(playerId, 1 + resultGain);
+    for (const scorerId of result.scorerPlayerIds ?? []) {
+      const scorer = state.players.find(player => player.id === scorerId);
+      if (scorer?.clubId !== state.userClubId) continue;
+      gains.set(scorerId, (gains.get(scorerId) ?? 0) + 2);
+    }
+  }
+
+  return state.players.map(player => {
+    const gain = gains.get(player.id);
+    if (gain === undefined) return clonePlayer(player);
+    return { ...clonePlayer(player), fame: Math.min(99, (player.fame ?? 0) + gain) };
+  });
+}
+
+/** Small club-wide recognition bonus for a real top-two league finish. */
+export function resolveCareerSeasonFame(state: GameState): CareerPlayer[] {
+  if (state.careerMode !== 'full') return state.players.map(clonePlayer);
+  const finish = leagueStandings(state).find(row => row.clubId === state.userClubId)?.position;
+  const leagueBonus = finish === 1 ? 5 : finish === 2 ? 3 : 0;
+  const cupWon = state.m2?.nationalCups.some(cup => (
+    cup.season === state.season && cup.championClubId === state.userClubId
+  )) ?? false;
+  const bonus = leagueBonus + (cupWon ? 5 : 0);
+  if (bonus === 0) return state.players.map(clonePlayer);
+  return state.players.map(player => player.clubId === state.userClubId
+    ? { ...clonePlayer(player), fame: Math.min(99, (player.fame ?? 0) + bonus) }
+    : clonePlayer(player));
 }
 
 function settlementLines(
@@ -340,11 +520,40 @@ function settlementLines(
     });
   }
 
+  const merchandiseIncome = weeklyMerchandiseIncome(state, userClub);
+  if (merchandiseIncome > 0) {
+    lines.push({
+      kind: 'merch',
+      label: 'Fan Shop merchandise',
+      amount: merchandiseIncome,
+    });
+  }
+
+  const facilityUpkeep = state.careerMode !== 'full' || state.facilities.grid === undefined
+    ? 0
+    : weeklyFacilityUpkeep(state.facilities.grid);
+  if (facilityUpkeep > 0) {
+    lines.push({
+      kind: 'facilities',
+      label: 'Facility upkeep',
+      amount: checkedMultiply(facilityUpkeep, -1, 'weekly facility expense'),
+    });
+  }
+
   lines.push({
     kind: 'wages',
     label: 'Weekly wages',
     amount: checkedMultiply(userClub.weeklyWages, -1, 'weekly wage expense'),
   });
+
+  const coachWage = state.market === undefined ? 0 : careerCoachWageLedgerAmount(state.market);
+  if (coachWage !== 0) {
+    lines.push({
+      kind: 'wages',
+      label: 'Head coach wage',
+      amount: coachWage,
+    });
+  }
 
   if (state.season === 1) {
     lines.push({
@@ -358,6 +567,197 @@ function settlementLines(
   }
 
   return lines;
+}
+
+/** A small recurring return for building a Fan Shop, with the documented adjacency bonus. */
+export function weeklyMerchandiseIncome(state: GameState, userClub: ClubState): number {
+  const grid = state.facilities.grid;
+  if (state.careerMode !== 'full' || grid === undefined) return 0;
+  let combinedFanShopLevel = 0;
+  for (const building of grid.buildings) {
+    if (building.type !== 'fan-shop') continue;
+    combinedFanShopLevel = checkedAdd(
+      combinedFanShopLevel,
+      building.level,
+      'combined Fan Shop level',
+    );
+  }
+  if (combinedFanShopLevel === 0) return 0;
+
+  // One merchandise unit per five fans per shop level keeps this a useful
+  // trickle rather than a second gate-breaking sponsor payment.
+  const fanLevelProduct = checkedMultiply(
+    requireSafeInteger(userClub.fans, 'club fans'),
+    combinedFanShopLevel,
+    'Fan Shop merchandise base',
+  );
+  const baseIncome = Math.floor(fanLevelProduct / 5);
+  const bonusPercent = facilityEffects(grid).merchIncomeBonusPercent;
+  const bonus = Math.floor(checkedMultiply(
+    baseIncome,
+    bonusPercent,
+    'Fan Shop merchandise adjacency bonus',
+  ) / 100);
+  return checkedAdd(baseIncome, bonus, 'Fan Shop merchandise income');
+}
+
+function advanceM2WeeklySidecars(
+  state: GameState,
+  settledWeek: number,
+  cupAlreadyResolved = false,
+): GameState {
+  let next = state;
+  if (
+    next.m2 !== undefined
+    && !cupAlreadyResolved
+    && CUP_SETTLEMENT_WEEKS.includes(settledWeek as typeof CUP_SETTLEMENT_WEEKS[number])
+  ) {
+    const activeCup = next.m2.nationalCups.find(cup => cup.championClubId === undefined);
+    if (activeCup !== undefined) {
+      const round = activeCup.rounds[activeCup.rounds.length - 1];
+      const progressedM2 = resolveNextM2NationalCupRound(next.m2);
+      next = { ...next, m2: progressedM2 };
+      const resolvedCup = progressedM2.nationalCups.find(cup => cup.season === activeCup.season)!;
+      const resolvedRound = resolvedCup.rounds.find(candidate => candidate.number === round.number)!;
+      const userWon = resolvedRound.fixtures.some(fixture => (
+        (fixture.homeClubId === next.userClubId || fixture.awayClubId === next.userClubId)
+        && fixture.winnerClubId === next.userClubId
+      ));
+      if (userWon) next = awardNationalCupPrize(next, resolvedRound.label);
+    }
+  }
+  if (next.market !== undefined) {
+    next = { ...next, market: resolveCareerScoutClock(next, next.market) };
+  }
+  return expireYouthIntakeWindow(next);
+}
+
+function completeNationalCupMatchday(state: GameState, results: FixtureResult[]): GameState {
+  const cupMatchday = activeCareerMatchday(state);
+  if (cupMatchday?.kind !== 'national-cup' || cupMatchday.cupRoundLabel === undefined) {
+    throw new Error('the matchday has no scheduled league or National Cup fixture');
+  }
+  validateResults(state, cupMatchday.fixtures, results);
+  const result = results[0];
+  const cupFixture = nationalCupFixtureById(state, cupMatchday.fixture.id);
+  if (cupFixture === undefined || state.m2 === undefined) {
+    throw new Error(`unknown National Cup fixture ${cupMatchday.fixture.id}`);
+  }
+  const winnerClubId = result.homeGoals > result.awayGoals
+    ? cupFixture.homeClubId
+    : result.homeGoals < result.awayGoals
+      ? cupFixture.awayClubId
+      : deterministicPenaltyWinner(state, cupFixture);
+  const cupResult: NationalCupResult = {
+    fixtureId: result.fixtureId,
+    homeGoals: result.homeGoals,
+    awayGoals: result.awayGoals,
+    winnerClubId,
+  };
+  const resultByFixtureId = new Map([[result.fixtureId, result]]);
+  const trainingPoints = checkedAdd(
+    state.trainingPoints,
+    trainingPointsForUser(
+      state.userClubId,
+      cupMatchday.fixtures,
+      resultByFixtureId,
+    ),
+    'National Cup training point balance',
+  );
+  const progressed: GameState = {
+    ...state,
+    m2: resolveNextM2NationalCupRound(state.m2, cupResult),
+    players: resolveCareerMatchFame(state, cupMatchday.fixtures, resultByFixtureId),
+    trainingPoints,
+    seasonGoalTallies: recordSeasonGoals(state, cupMatchday.fixtures, resultByFixtureId),
+  };
+  const cupOutcome: WeeklyMatchOutcome = winnerClubId === state.userClubId ? 'win' : 'loss';
+  const settled = settleCurrentWeek(progressed, true, [cupOutcome]);
+  return winnerClubId === state.userClubId
+    ? awardNationalCupPrize(settled, cupMatchday.cupRoundLabel)
+    : settled;
+}
+
+function nationalCupUserFixtureForCurrentWeek(state: GameState): {
+  fixture: NationalCupFixture;
+  roundLabel: NationalCupRoundLabel;
+} | undefined {
+  if (state.careerMode !== 'full' || state.m2 === undefined) return undefined;
+  const activeCup = state.m2.nationalCups.find(cup => cup.championClubId === undefined);
+  if (activeCup === undefined || activeCup.season !== state.season) return undefined;
+  const round = activeCup.rounds[activeCup.rounds.length - 1];
+  if (round === undefined || CUP_SETTLEMENT_WEEKS[round.number - 1] !== state.week) return undefined;
+  const fixture = round.fixtures.find(candidate => (
+    candidate.status === 'scheduled'
+    && (candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId)
+  ));
+  return fixture === undefined ? undefined : { fixture, roundLabel: round.label };
+}
+
+function nationalCupFixtureAsLeagueFixture(
+  fixture: NationalCupFixture,
+  week: number,
+): LeagueFixture {
+  return {
+    id: fixture.id,
+    season: fixture.season,
+    round: fixture.round,
+    week,
+    homeClubId: fixture.homeClubId,
+    awayClubId: fixture.awayClubId,
+    matchSeed: fixture.matchSeed,
+    status: fixture.status,
+    ...(fixture.score === undefined ? {} : { score: { ...fixture.score } }),
+  };
+}
+
+function deterministicPenaltyWinner(state: GameState, fixture: NationalCupFixture): string {
+  const homeWins = (
+    (fixture.matchSeed ^ state.careerSeed ^ Math.imul(fixture.round, 0x9e3779b1)) >>> 0
+  ) % 2 === 0;
+  return homeWins ? fixture.homeClubId : fixture.awayClubId;
+}
+
+function awardNationalCupPrize(
+  state: GameState,
+  roundLabel: 'Play-in' | 'Round of 32' | 'Round of 16' | 'Quarter-final' | 'Semi-final' | 'Final',
+): GameState {
+  const prizeByRound = {
+    'Play-in': 2_000,
+    'Round of 32': 3_000,
+    'Round of 16': 4_000,
+    'Quarter-final': 6_000,
+    'Semi-final': 8_000,
+    Final: 25_000,
+  } as const;
+  const prize = prizeByRound[roundLabel];
+  const latestLedger = state.ledgers[state.ledgers.length - 1];
+  if (latestLedger === undefined) throw new Error('National Cup prize requires a weekly ledger');
+  const balanceAfter = checkedAdd(latestLedger.balanceAfter, prize, 'National Cup prize balance');
+  return {
+    ...state,
+    clubs: state.clubs.map(club => club.id === state.userClubId
+      ? { ...club, cash: checkedAdd(club.cash, prize, 'National Cup prize cash') }
+      : club),
+    ledgers: state.ledgers.map((ledger, index) => index === state.ledgers.length - 1
+      ? {
+          ...ledger,
+          lines: [...ledger.lines, {
+            kind: 'prize' as const,
+            label: roundLabel === 'Final'
+              ? 'National Cup champions'
+              : `National Cup ${roundLabel} win`,
+            amount: prize,
+          }],
+          balanceAfter,
+        }
+      : ledger),
+  };
+}
+
+function hasAmbientTrainingPitch(state: GameState): boolean {
+  return state.facilities.trainingGroundBuilt
+    || state.facilities.grid?.buildings.some(building => building.type === 'training-pitch') === true;
 }
 
 function trainingPointsForUser(
@@ -488,6 +888,11 @@ function validateResults(
   const expectedIds = new Set(fixtures.map(fixture => fixture.id));
   const fixtureById = new Map(fixtures.map(fixture => [fixture.id, fixture]));
   const playerClubById = new Map(state.players.map(player => [player.id, player.clubId]));
+  for (const player of state.m2?.pyramid.divisions.flatMap(division => (
+    division.clubs.flatMap(club => club.squad)
+  )) ?? []) {
+    if (!playerClubById.has(player.id)) playerClubById.set(player.id, player.clubId);
+  }
   const receivedIds = new Set<string>();
 
   for (const result of results) {

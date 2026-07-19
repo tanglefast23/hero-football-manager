@@ -1,13 +1,24 @@
 import type { GameEvent, LaunchContent, TrainingDrill } from '../content';
 import {
+  FACILITY_CATALOG,
+  activeCareerMatchday,
+  activeFacilityAdjacencies,
+  careerHeroLimit,
+  careerCoachWageLedgerAmount,
+  createFacilityGrid,
+  currentUserDivision,
   fixturesForCurrentWeek,
   leagueStandings,
+  nextPendingClubLegend,
+  reconcilePendingClubLegends,
   renewalQuote,
   rosterForClub,
+  weeklyFacilityUpkeep,
   type GameState,
 } from '../game';
 import type {
   AwakeningCutsceneViewModel,
+  ClubLegacyViewModel,
   ClubFinancesViewModel,
   FixtureViewModel,
   HomeViewModel,
@@ -20,8 +31,40 @@ import type {
   SquadTrainingViewModel,
   WeeklyReviewViewModel,
 } from '../ui';
+import { marketNegotiationViewModel } from './market-view-model';
 
 const REVIEW_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
+
+export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
+  const reconciled = reconcilePendingClubLegends(state);
+  const legend = nextPendingClubLegend(reconciled);
+  if (legend === undefined) throw new Error('there is no pending club-legend decision');
+  const pendingCount = reconciled.pendingLegacyPlayerIds?.length ?? 0;
+  return {
+    seasonLabel: `Season ${state.season}`,
+    queueLabel: pendingCount === 1 ? 'Final legacy decision' : `${pendingCount} legacy decisions remain`,
+    playerName: legend.name,
+    role: legend.role,
+    archetype: legend.archetype ?? 'All-Rounder',
+    personality: legend.personality ?? 'Professional',
+    fame: legend.fame ?? 0,
+    seasonsAtClub: legend.seasonsAtClub ?? 0,
+    choices: [
+      {
+        id: 'coach-candidate',
+        label: 'Join the staff',
+        detail: `${legend.name} begins a new career on the touchline, carrying hard-earned club knowledge into every session.`,
+        outcome: 'Adds a loyalty-discounted candidate to the coach market.',
+      },
+      {
+        id: 'mentor-youth',
+        label: 'Mentor a prospect',
+        detail: `${legend.name} personally selects a teenage player and passes on the habits that made a club legend.`,
+        outcome: 'Adds one boosted youth player to the first-team squad.',
+      },
+    ],
+  };
+}
 
 export function awakeningCutsceneViewModel(
   state: GameState,
@@ -74,8 +117,22 @@ export function awakeningCutsceneViewModel(
 export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
   const club = requireUserClub(state);
   const latest = state.ledgers[state.ledgers.length - 1];
+  const facilityUpkeep = state.careerMode !== 'full' || state.facilities.grid === undefined
+    ? 0
+    : weeklyFacilityUpkeep(state.facilities.grid);
+  const coachWage = state.market === undefined ? 0 : careerCoachWageLedgerAmount(state.market);
   const projectedLines = latest?.lines ?? [
     { kind: 'wages' as const, label: 'Weekly wages', amount: -club.weeklyWages },
+    ...(coachWage === 0 ? [] : [{
+      kind: 'wages' as const,
+      label: 'Head coach wage',
+      amount: coachWage,
+    }]),
+    ...(facilityUpkeep === 0 ? [] : [{
+      kind: 'facilities' as const,
+      label: 'Facility upkeep',
+      amount: -facilityUpkeep,
+    }]),
     ...(state.season === 1 ? [{
       kind: 'subsidy' as const,
       label: 'Season 1 wage subsidy',
@@ -96,6 +153,17 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       amount: line.amount,
       kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
     })),
+    recentTransactions: [...(state.cashTransactions ?? [])]
+      .slice(-8)
+      .reverse()
+      .map(transaction => ({
+        id: transaction.id,
+        periodLabel: `S${transaction.season} · W${transaction.week}`,
+        label: transaction.label,
+        amount: transaction.amount,
+        balanceAfter: transaction.balanceAfter,
+        kind: transaction.amount > 0 ? 'income' as const : 'expense' as const,
+      })),
     weeklyNet,
     projectedBalance: club.cash + weeklyNet,
     ...(state.season === 1 ? { wageSubsidyLabel: 'Season 1 support covers half of weekly wages' } : {}),
@@ -105,6 +173,57 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       cost: 8000,
       weeklyTrainingPoints: 5,
     },
+    legacyTrainingGroundVisible: state.careerMode !== 'full',
+    ...(state.market?.headCoach === undefined ? {} : {
+      headCoach: {
+        id: state.market.headCoach.id,
+        name: state.market.headCoach.name,
+        level: state.market.headCoach.level,
+        specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
+        weeklyWage: state.market.headCoach.weeklyWage,
+        seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
+      },
+    }),
+    facilities: facilityGridViewModel(state),
+  };
+}
+
+function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilities'] {
+  const grid = state.facilities.grid ?? createFacilityGrid();
+  const club = requireUserClub(state);
+  return {
+    width: grid.width,
+    height: grid.height,
+    buildings: grid.buildings.map(building => {
+      const definition = FACILITY_CATALOG[building.type];
+      return {
+        id: building.id,
+        type: building.type,
+        name: definition.name,
+        level: building.level,
+        x: building.x,
+        y: building.y,
+        width: definition.footprint.width,
+        height: definition.footprint.height,
+        weeklyUpkeep: definition.weeklyUpkeep[building.level - 1],
+        ...(building.level < 3
+          ? { upgradeCost: definition.upgradeCosts[building.level - 1] }
+          : {}),
+        relocationFee: definition.relocationFee,
+      };
+    }),
+    catalog: Object.values(FACILITY_CATALOG).map(definition => ({
+      type: definition.type,
+      name: definition.name,
+      buildCost: definition.buildCost,
+      width: definition.footprint.width,
+      height: definition.footprint.height,
+      available: definition.available,
+      affordable: definition.available && club.cash >= definition.buildCost,
+    })),
+    weeklyUpkeep: weeklyFacilityUpkeep(grid),
+    activeAdjacencies: activeFacilityAdjacencies(grid),
+    discoveredAdjacencies: [...grid.discoveredAdjacencies],
   };
 }
 
@@ -167,19 +286,48 @@ export function seasonEndViewModel(
   const user = standings.find(row => row.clubId === state.userClubId);
   if (user === undefined) throw new Error('the user club has no final standing');
   const sliceComplete = state.phase === 'complete';
-  const expiredHero = sliceComplete ? undefined : rosterForClub(state, state.userClubId)
-    .find(player => player.power !== undefined && player.contractSeasonsRemaining === 0);
+  const division = careerDivision(state);
+  const outcomeLabel = state.careerMode === 'full'
+    ? user.position === 1 && division === 1
+      ? 'CHAMPIONS' as const
+      : user.position <= 2 && division > 1
+        ? 'PROMOTED' as const
+        : user.position >= 9 && division < 5
+          ? 'RELEGATED' as const
+          : 'SAFE' as const
+    : user.position === 1 ? 'CHAMPIONS' as const : 'SAFE' as const;
+  const expiredPlayers = sliceComplete ? [] : rosterForClub(state, state.userClubId)
+    .filter(player => player.contractSeasonsRemaining === 0)
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const expiredPlayer = state.careerMode === 'full'
+    ? expiredPlayers[0]
+    : expiredPlayers.find(player => player.power !== undefined);
+  const renewalTalks = state.careerMode === 'full' ? state.market?.renewalTalks : undefined;
   const prizeMoney = state.ledgers[state.ledgers.length - 1]?.lines
     .filter(line => line.kind === 'prize')
     .reduce((sum, line) => sum + line.amount, 0) ?? 0;
 
   return {
-    seasonLabel: `Season ${state.season} of 2`,
-    outcomeLabel: user.position === 1 ? 'CHAMPIONS' : 'SAFE',
-    headline: user.position === 1 ? 'The little club owns the division.' : 'The board signs off on another year.',
-    summary: sliceComplete
-      ? 'Two seasons are complete. The M1 loop is ready for the full gate playthrough.'
-      : 'Before Season 2 begins, the awakened bargain contract finally reaches the agent’s desk.',
+    seasonLabel: state.careerMode === 'full'
+      ? `Season ${state.season} · Division ${division}`
+      : `Season ${state.season} of 2`,
+    outcomeLabel,
+    headline: outcomeLabel === 'CHAMPIONS'
+      ? 'The club owns the country.'
+      : outcomeLabel === 'PROMOTED'
+        ? 'The climb continues.'
+        : outcomeLabel === 'RELEGATED'
+          ? 'A hard landing. The rebuild starts now.'
+          : 'The board signs off on another year.',
+    summary: state.careerMode === 'full'
+      ? outcomeLabel === 'PROMOTED'
+        ? `A place in Division ${division - 1} is secured. Contracts and retirements resolve before the new fixtures arrive.`
+        : outcomeLabel === 'RELEGATED'
+          ? `The club drops to Division ${division + 1}, but the endless career continues.`
+          : 'Contracts, player aging, retirement announcements, and the next national campaign now resolve.'
+      : sliceComplete
+        ? 'Two seasons are complete. The M1 loop is ready for the full gate playthrough.'
+        : 'Before Season 2 begins, the awakened bargain contract finally reaches the agent’s desk.',
     finalPosition: user.position,
     prizeMoney,
     table: standings.map(row => ({
@@ -190,24 +338,38 @@ export function seasonEndViewModel(
       goalDifference: row.goalDifference,
       points: row.points,
       isUserClub: row.clubId === state.userClubId,
-      promoted: row.position <= 2,
+      promoted: row.position <= 2 && (state.careerMode !== 'full' || division > 1),
     })),
-    ...(expiredHero ? {
+    ...(expiredPlayer ? {
       expiredContract: {
-        playerId: expiredHero.id,
-        playerName: expiredHero.name,
-        role: expiredHero.role,
-        powerName: content.powers.powers.find(power => power.id === expiredHero.power)?.name,
-        currentWeeklyWage: expiredHero.weeklyWage,
-        quotedWeeklyWage: renewalQuote(expiredHero, 4),
-        isHeroWageCliff: !expiredHero.onHeroWage,
+        playerId: expiredPlayer.id,
+        playerName: expiredPlayer.name,
+        role: expiredPlayer.role,
+        powerName: content.powers.powers.find(power => power.id === expiredPlayer.power)?.name,
+        currentWeeklyWage: expiredPlayer.weeklyWage,
+        quotedWeeklyWage: renewalTalks?.playerId === expiredPlayer.id
+          ? renewalTalks.negotiation.weeklyAsk
+          : renewalQuote(expiredPlayer, 4),
+        isHeroWageCliff: expiredPlayer.power !== undefined && !expiredPlayer.onHeroWage,
         termOptions: [1, 2, 3] as const,
         selectedTerm,
         decision: 'pending' as const,
+        requiresNegotiation: state.careerMode === 'full',
+        remainingExpiredCount: expiredPlayers.length,
       },
     } : {}),
+    ...(renewalTalks === undefined || expiredPlayer === undefined
+      ? {}
+      : {
+          renewalNegotiation: marketNegotiationViewModel({
+            state: renewalTalks.negotiation,
+            playerName: expiredPlayer.name,
+            openingWeeklyWage: expiredPlayer.weeklyWage,
+            wageStep: 50,
+          }),
+        }),
     sliceComplete,
-    canContinue: sliceComplete || expiredHero === undefined,
+    canContinue: sliceComplete || expiredPlayer === undefined,
   };
 }
 
@@ -251,7 +413,9 @@ export function homeViewModel(state: GameState): HomeViewModel {
   return {
     clubName: userClub.name,
     managerName: 'Boss',
-    seasonLabel: `Season ${state.season} / 2`,
+    seasonLabel: state.careerMode === 'full'
+      ? `Season ${state.season} · Division ${careerDivision(state)}`
+      : `Season ${state.season} / 2`,
     weekLabel: `Week ${state.week} / 30`,
     nextMatchTimingLabel: nextFixture === undefined
       ? state.phase === 'complete' ? 'Complete' : 'Season end'
@@ -266,7 +430,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
       ? {
           id: 'season-complete',
           weekLabel: state.phase === 'complete' ? 'Complete' : 'Season end',
-          competition: 'Division Five',
+          competition: careerDivisionLabel(state),
           homeTeam: userClub.name,
           awayTeam: 'Season review',
           venueLabel: 'Boardroom',
@@ -286,8 +450,10 @@ export function leagueTableViewModel(state: GameState): LeagueTableViewModel {
   const seasonFixtures = state.fixtures.filter(fixture => fixture.season === state.season);
 
   return {
-    divisionLabel: 'Division Five',
-    seasonLabel: `Season ${state.season} / 2`,
+    divisionLabel: careerDivisionLabel(state),
+    seasonLabel: state.careerMode === 'full'
+      ? `Season ${state.season}`
+      : `Season ${state.season} / 2`,
     weekLabel: `Week ${state.week} / 30`,
     matchesPlayed: seasonFixtures.filter(fixture => fixture.status === 'played').length,
     matchesTotal: seasonFixtures.length,
@@ -311,11 +477,9 @@ export function leagueTableViewModel(state: GameState): LeagueTableViewModel {
 }
 
 export function matchDayViewModel(state: GameState, content: LaunchContent): MatchDayViewModel {
-  const fixtures = fixturesForCurrentWeek(state);
-  const fixture = fixtures.find(candidate =>
-    candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId,
-  );
-  if (fixture === undefined) throw new Error('the current matchday has no user fixture');
+  const matchday = activeCareerMatchday(state);
+  if (matchday === undefined) throw new Error('the current matchday has no user fixture');
+  const fixture = matchday.fixture;
 
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
   if (lineup === undefined) throw new Error('the user club has no lineup');
@@ -329,7 +493,13 @@ export function matchDayViewModel(state: GameState, content: LaunchContent): Mat
   });
 
   return {
-    fixture: fixtureViewModel(state, fixture),
+    fixture: fixtureViewModel(
+      state,
+      fixture,
+      matchday.kind === 'national-cup'
+        ? `National Cup · ${matchday.cupRoundLabel ?? 'Knockout tie'}`
+        : undefined,
+    ),
     selectedTacticId: 'balanced',
     tactics: [{ id: 'balanced', label: 'Balanced', detail: 'The M1 match engine’s proven default shape.' }],
     lineup: lineupPlayers.map((player, index) => {
@@ -341,7 +511,7 @@ export function matchDayViewModel(state: GameState, content: LaunchContent): Mat
         isHero: player.power !== undefined,
       };
     }),
-    heroLimit: 2,
+    heroLimit: careerHeroLimit(state),
     heroes: roster.filter(player => player.power !== undefined).map(player => ({
       playerId: player.id,
       playerName: player.name,
@@ -349,7 +519,7 @@ export function matchDayViewModel(state: GameState, content: LaunchContent): Mat
       licensed: player.licensed,
     })),
     licenseReady: lineupPlayers.every(player => player.power === undefined || player.licensed)
-      && lineupPlayers.filter(player => player.licensed).length <= 2,
+      && lineupPlayers.filter(player => player.licensed).length <= careerHeroLimit(state),
   };
 }
 
@@ -378,7 +548,13 @@ export function squadTrainingViewModel(
       name: player.name,
       role: player.role,
       overall: overall(player.attrs),
-      condition: 100,
+      condition: player.condition ?? 100,
+      age: player.age ?? 24,
+      archetype: player.archetype ?? 'All-Rounder',
+      potential: player.potential ?? 3,
+      personality: player.personality ?? 'Professional',
+      morale: player.morale,
+      fame: player.fame ?? 0,
       weeklyWage: player.weeklyWage,
       contractLabel: player.contractSeasonsRemaining === 0
         ? 'Expired — renewal due'
@@ -456,36 +632,57 @@ export function postMatchViewModel(
   score: { homeGoals: number; awayGoals: number },
   highlights: PostMatchViewModel['highlights'] = [],
 ): PostMatchViewModel {
-  const fixture = before.fixtures.find(candidate => candidate.id === fixtureId);
+  const leagueFixture = before.fixtures.find(candidate => candidate.id === fixtureId);
+  const cupRound = before.m2?.nationalCups
+    .flatMap(cup => cup.rounds)
+    .find(round => round.fixtures.some(fixture => fixture.id === fixtureId));
+  const fixture = leagueFixture ?? cupRound?.fixtures.find(candidate => candidate.id === fixtureId);
   if (fixture === undefined) throw new Error(`unknown fixture ${fixtureId}`);
   const isHome = fixture.homeClubId === before.userClubId;
   const goalsFor = isHome ? score.homeGoals : score.awayGoals;
   const goalsAgainst = isHome ? score.awayGoals : score.homeGoals;
-  const ledger = after.ledgers[after.ledgers.length - 1];
-  if (ledger === undefined) throw new Error('completed matchday has no weekly ledger');
+  const latestLedger = after.ledgers[after.ledgers.length - 1];
+  const ledger = latestLedger?.season === before.season && latestLedger.week === before.week
+    ? latestLedger
+    : undefined;
+  const cupWinnerClubId = cupRound === undefined
+    ? undefined
+    : after.m2?.nationalCups
+      .flatMap(cup => cup.rounds)
+      .flatMap(round => round.fixtures)
+      .find(candidate => candidate.id === fixtureId)?.winnerClubId;
+  const outcomeLabel = cupWinnerClubId === undefined
+    ? goalsFor > goalsAgainst ? 'WIN' : goalsFor < goalsAgainst ? 'LOSS' : 'DRAW'
+    : cupWinnerClubId === before.userClubId ? 'WIN' : 'LOSS';
 
   return {
     result: {
       fixtureId,
-      competition: 'Division Five',
+      competition: cupRound === undefined
+        ? careerDivisionLabel(before)
+        : `National Cup · ${cupRound.label}`,
       homeTeam: clubName(before, fixture.homeClubId),
       awayTeam: clubName(before, fixture.awayClubId),
       homeScore: score.homeGoals,
       awayScore: score.awayGoals,
-      outcomeLabel: goalsFor > goalsAgainst ? 'WIN' : goalsFor < goalsAgainst ? 'LOSS' : 'DRAW',
-      headline: goalsFor > goalsAgainst
+      outcomeLabel,
+      headline: cupRound !== undefined
+        ? outcomeLabel === 'WIN'
+          ? 'Cup dream alive. You are through.'
+          : 'The cup run ends here. The league keeps moving.'
+        : goalsFor > goalsAgainst
         ? 'The office will be loud tonight.'
         : goalsFor < goalsAgainst
           ? 'Plenty for the training board tomorrow.'
           : 'A point banked. The work continues.',
     },
-    ledger: ledger.lines.map((line, index) => ({
-      id: `${ledger.season}-${ledger.week}-${index}`,
+    ledger: (ledger?.lines ?? []).map((line, index) => ({
+      id: `${before.season}-${before.week}-${index}`,
       label: line.label,
       amount: line.amount,
       kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
     })),
-    netAmount: ledger.lines.reduce((sum, line) => sum + line.amount, 0),
+    netAmount: (ledger?.lines ?? []).reduce((sum, line) => sum + line.amount, 0),
     trainingPointsGained: after.trainingPoints - before.trainingPoints,
     fanDelta: requireUserClub(after).fans - requireUserClub(before).fans,
     heroEssenceGained: after.heroEssence - before.heroEssence,
@@ -616,7 +813,11 @@ function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel
   return updates;
 }
 
-function fixtureViewModel(state: GameState, fixture: GameState['fixtures'][number]): FixtureViewModel {
+function fixtureViewModel(
+  state: GameState,
+  fixture: GameState['fixtures'][number],
+  competition = careerDivisionLabel(state),
+): FixtureViewModel {
   const isHome = fixture.homeClubId === state.userClubId;
   const opponentId = isHome ? fixture.awayClubId : fixture.homeClubId;
   const isPowerlessOpening = state.onboarding?.stage === 'first-match'
@@ -624,7 +825,7 @@ function fixtureViewModel(state: GameState, fixture: GameState['fixtures'][numbe
   return {
     id: fixture.id,
     weekLabel: `W${fixture.week}`,
-    competition: 'Division Five',
+    competition,
     homeTeam: clubName(state, fixture.homeClubId),
     awayTeam: clubName(state, fixture.awayClubId),
     venueLabel: isHome ? 'Home' : 'Away',
@@ -635,6 +836,14 @@ function fixtureViewModel(state: GameState, fixture: GameState['fixtures'][numbe
         ).length,
     matchdayReady: state.phase === 'matchday' && fixture.week === state.week,
   };
+}
+
+function careerDivision(state: GameState): 1 | 2 | 3 | 4 | 5 {
+  return state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+}
+
+function careerDivisionLabel(state: GameState): string {
+  return `Division ${careerDivision(state)}`;
 }
 
 function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
@@ -683,12 +892,20 @@ function overall(attrs: GameState['players'][number]['attrs']): number {
 
 function clubName(state: GameState, clubId: string): string {
   const club = state.clubs.find(candidate => candidate.id === clubId);
-  if (club === undefined) throw new Error(`unknown club ${clubId}`);
-  return club.name;
+  if (club !== undefined) return club.name;
+  const pyramidClub = state.m2?.pyramid.divisions
+    .flatMap(division => division.clubs)
+    .find(candidate => candidate.id === clubId);
+  if (pyramidClub === undefined) throw new Error(`unknown club ${clubId}`);
+  return pyramidClub.name;
 }
 
 function requireUserClub(state: GameState) {
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
   return club;
+}
+
+function readableLabel(value: string): string {
+  return value.charAt(0) + value.slice(1).toLowerCase();
 }

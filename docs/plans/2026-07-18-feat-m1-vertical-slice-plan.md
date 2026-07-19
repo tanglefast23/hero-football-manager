@@ -82,7 +82,7 @@ list is not authoritative where it conflicts.
 - [x] Add Node and Hermes golden replay checks.
 - [x] Add season bankruptcy, TP affordability, and awakening-cadence harness rails.
 - [x] Complete the one-kit vertical-pitch visual pass and required mockups.
-- [ ] Play both seasons twice and record the M1 gate verdict.
+- [x] Play both seasons twice and record the M1 gate verdict: passed 2026-07-19 (owner: "I like it").
 
 ## Phase 1 Acceptance Criteria
 

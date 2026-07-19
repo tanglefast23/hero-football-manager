@@ -2,39 +2,63 @@ import { create } from 'zustand';
 import { loadLaunchContent } from '../content';
 import {
   advanceWeek,
+  activeCareerMatchday,
   addCreatedPlayer,
   applyCareerEventOutcome,
   applyCareerTraining,
   beginStoryOnboarding,
-  buildCareerTeams,
+  beginCareerTransferTalks,
+  beginCareerRenewalTalks,
+  careerHeroLimit,
+  buildCareerMatchTeams,
+  buildCareerFacility,
   buildTrainingGround,
   completeFirstOnboardingMatch,
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
   completeMatchday,
   completePostMatchAwakening,
+  completeCareerTransfer,
+  completeCareerRenewal,
   createCareer,
+  currentUserDivision,
   deterministicCareerEventRoll,
+  declineYouthIntakeOffers,
   dismissCareerEvent,
-  fixturesForCurrentWeek,
+  hireCareerCoach,
   hasAssistantGuideMilestone,
   isFirstOnboardingFixture,
   offerCareerEvent,
+  nextPendingClubLegend,
   quickMatchForFixture,
+  reconcilePendingClubLegends,
+  relocateCareerFacility,
   renewCareerPlayer,
   releaseCareerPlayer,
+  sellCareerPlayer,
+  closeCareerRenewalTalks,
+  signYouthIntakeOffer,
   resolvePostMatchAwakening,
+  resolveNextClubLegendLegacy,
   resolveMatchday,
   selectCareerEventPlayer,
   selectCareerLicensedHeroes,
   setCareerLineup,
   startNextSeason,
+  startCareerScoutMission,
+  submitCareerTransferOffer,
+  submitCareerRenewalOffer,
+  upgradeCareerFacility,
   withoutPowers,
   type CreatedPlayerDraft,
+  type CareerLegendLegacyChoice,
   type AssistantGuideSequenceId,
   type GameState,
+  type FacilityPosition,
+  type FacilityType,
   type LeagueFixture,
 } from '../game';
+import type { ContractOffer, PitchCard } from '../game/market';
 import type { CareerRepository, ReplayRepository } from '../persistence';
 import { HALF_TICKS } from '../sim/geometry';
 import { envelopeFrom } from '../sim/match';
@@ -42,6 +66,7 @@ import { mulberry32 } from '../sim/rng';
 import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
 import type { ManagementTab, PostMatchViewModel, WeeklyReviewViewModel } from '../ui';
 import { createLaunchCareerSetup, generateCareerSeed, reconcileLaunchRoster } from './launch';
+import { careerMarketScoutOptions } from './market-source-adapter';
 import { postMatchViewModel, weeklyReviewViewModel } from './view-models';
 import {
   completeChampionshipCelebration as markChampionshipCelebrationComplete,
@@ -68,6 +93,7 @@ export type M1Screen =
   | 'watched'
   | 'postmatch'
   | 'week-review'
+  | 'legacy'
   | 'championship-celebration'
   | 'season-end';
 
@@ -103,14 +129,16 @@ interface M1Store {
   initializePersistence: (
     repository: CareerRepository,
     replayRepository?: ReplayRepository,
+    enableM2?: boolean,
   ) => Promise<void>;
-  startNewCareer: (seed?: number) => void;
+  startNewCareer: (seed?: number, careerMode?: 'm1-slice' | 'full') => void;
   continueCareer: () => void;
   completePlayerCreation: (draft: CreatedPlayerDraft) => void;
   continueAfterAwakening: () => void;
   setActiveTab: (tab: ManagementTab) => void;
   completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
   openMatchday: () => void;
+  openCupFixture: (fixtureId: string) => void;
   advanceCareer: () => void;
   quickResult: () => void;
   watchMatch: () => void;
@@ -120,6 +148,7 @@ interface M1Store {
   dismissPostMatchDevelopment: () => void;
   continueWeekReview: () => void;
   completeChampionshipCelebration: () => void;
+  chooseLegacy: (choice: CareerLegendLegacyChoice) => void;
   selectEventPlayer: () => void;
   chooseEvent: (choiceId: string) => void;
   continueAfterEvent: () => void;
@@ -129,9 +158,23 @@ interface M1Store {
   toggleDrill: (drillId: string) => void;
   applyTraining: () => void;
   buildFacility: () => void;
+  buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
+  upgradeClubFacility: (buildingId: string) => void;
+  relocateClubFacility: (buildingId: string, position: FacilityPosition) => void;
+  startScoutMission: (optionId: string) => void;
+  openScoutReport: (playerId: string) => void;
+  actOnTransfer: (playerId: string, direction: 'BUY' | 'SELL') => void;
+  hireCoach: (coachId: string) => void;
+  signYouth: (playerId: string) => void;
+  declineYouth: () => void;
+  submitTransferOffer: (offer: ContractOffer, pitchCard?: PitchCard) => void;
+  closeTransferTalks: () => void;
   setContractTerm: (term: 1 | 2 | 3) => void;
   renewPlayer: (playerId: string, term?: 1 | 2 | 3) => void;
   releasePlayer: (playerId: string) => void;
+  startRenewal: (playerId: string) => void;
+  submitRenewalOffer: (offer: ContractOffer, pitchCard?: PitchCard) => void;
+  closeRenewal: () => void;
   notify: (message: string) => void;
   clearError: () => void;
 }
@@ -155,10 +198,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
   selectedContractTerm: 1,
   error: null,
 
-  async initializePersistence(repository, replayRepository) {
+  async initializePersistence(repository, replayRepository, enableM2 = false) {
     try {
       const loadedCareer = await repository.load();
-      const reconciled = loadedCareer === null ? null : reconcileLaunchRoster(loadedCareer, launchContent);
+      const reconciled = loadedCareer === null
+        ? null
+        : reconcileLaunchRoster(loadedCareer, launchContent, enableM2);
       const career = reconciled === null ? null : reconcileLegacyFirstAwakening(reconciled);
       if (career !== null && career !== loadedCareer) await repository.save(career);
       set({
@@ -185,13 +230,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
     }
   },
 
-  startNewCareer(seed) {
+  startNewCareer(seed, careerMode = 'm1-slice') {
     guarded(set, () => {
       if (get().persistenceLoadError !== null) {
         throw new Error('Resolve the save-load error before replacing this career.');
       }
       const career = beginStoryOnboarding(createCareer(createLaunchCareerSetup(
         seed ?? generateCareerSeed(),
+        undefined,
+        launchContent,
+        careerMode === 'full' ? 'full' : undefined,
       )));
       set({
         career,
@@ -240,14 +288,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const pending = career.awakening.pending;
       if (pending === undefined) throw new Error('there is no awakening cutscene to finish');
       const next = completePostMatchAwakening(career);
-      const returnToPostMatch = !pending.firstHero
-        && career.phase === 'manage'
-        && get().postMatch !== null;
+      const returnToPostMatch = !pending.firstHero && get().postMatch !== null;
       const screen: M1Screen = returnToPostMatch
         ? 'postmatch'
         : career.phase === 'season-end' || career.phase === 'complete'
           ? seasonBoundaryScreen(next)
-          : 'management';
+          : career.phase === 'matchday' ? 'matchday' : 'management';
       set({
         career: next,
         screen,
@@ -263,8 +309,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   setActiveTab(activeTab) {
     if (activeTab === 'market') {
-      set({ error: 'The transfer market arrives in M2.' });
-      return;
+      const career = get().career;
+      if (career?.market === undefined) {
+        set({ error: 'The transfer market is unavailable in this career.' });
+        return;
+      }
     }
     set({ activeTab, screen: 'management', error: null });
   },
@@ -284,6 +333,24 @@ export const useM1Store = create<M1Store>((set, get) => ({
       return;
     }
     set({ screen: 'matchday', error: null });
+  },
+
+  openCupFixture(fixtureId) {
+    const career = get().career;
+    if (career === null) {
+      set({ error: 'Start or load a career first.' });
+      return;
+    }
+    const matchday = activeCareerMatchday(career);
+    if (
+      career.phase !== 'matchday'
+      || matchday?.kind !== 'national-cup'
+      || matchday.fixture.id !== fixtureId
+    ) {
+      set({ error: 'This tie becomes playable on its Cup Match Day after any league fixture.' });
+      return;
+    }
+    set({ screen: 'matchday', activeTab: 'league', error: null });
   },
 
   advanceCareer() {
@@ -331,8 +398,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
         return;
       }
       if (career.phase === 'season-end') {
-        const next = startNextSeason(career);
-        set({ career: next, screen: 'management', activeTab: 'home', weekReview: null, error: null });
+        const next = reconcilePendingClubLegends(startNextSeason(career));
+        set({
+          career: next,
+          screen: nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
+          activeTab: 'home',
+          weekReview: null,
+          error: null,
+        });
         queueCareerSave(get, set, next);
         return;
       }
@@ -380,9 +453,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
   quickResult() {
     guarded(set, () => {
       const before = requireCareer(get());
-      const { fixture, fixtures, teams } = currentMatchday(before);
+      const { kind, fixture, fixtures, teams } = currentMatchday(before);
       const quickMatch = quickMatchForFixture(fixture, teams);
-      const results = resolveMatchday(fixtures, teams, [quickMatch.result]);
+      const results = kind === 'league'
+        ? resolveMatchday(fixtures, teams, [quickMatch.result])
+        : [quickMatch.result];
       const userResult = results.find(result => result.fixtureId === fixture.id);
       if (userResult === undefined) throw new Error('the user fixture did not produce a result');
       const after = completeMatchday(before, results);
@@ -390,14 +465,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const completed = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)
         : after;
-      const awakening = resolvePostMatchAwakening(
-        completed,
-        fixture.id,
-        userReplayParticipantIds(quickMatch.replay, fixture, before.userClubId),
-        awakeningPowerIds,
-        awakeningTriggerIds,
-        awakeningTuning,
-      );
+      const awakening = kind === 'league'
+        ? resolvePostMatchAwakening(
+            completed,
+            fixture.id,
+            userReplayParticipantIds(quickMatch.replay, fixture, before.userClubId),
+            awakeningPowerIds,
+            awakeningTriggerIds,
+            awakeningTuning,
+          )
+        : { state: completed, awakened: false };
       const next = awakening.state;
       const postMatch = isOnboardingMatch
         ? null
@@ -438,7 +515,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   finishWatchedMatch(result) {
     guarded(set, () => {
       const before = requireCareer(get());
-      const { fixture, fixtures, teams } = currentMatchday(before);
+      const { kind, fixture, fixtures, teams } = currentMatchday(before);
       const watchedMatch = get().watchedMatch;
       if (watchedMatch === null || watchedMatch.fixture.id !== fixture.id) {
         throw new Error('the watched fixture context is missing');
@@ -455,7 +532,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
           ? { scorerPlayerIds }
           : {}),
       };
-      const results = resolveMatchday(fixtures, teams, [supplied]);
+      const results = kind === 'league'
+        ? resolveMatchday(fixtures, teams, [supplied])
+        : [supplied];
       const after = completeMatchday(before, results);
       const highlights = result.events
         .filter(event => event.kind === 'GOAL')
@@ -470,14 +549,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const completed = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)
         : after;
-      const awakening = resolvePostMatchAwakening(
-        completed,
-        fixture.id,
-        userMatchParticipantIds(result, fixture, before.userClubId),
-        awakeningPowerIds,
-        awakeningTriggerIds,
-        awakeningTuning,
-      );
+      const awakening = kind === 'league'
+        ? resolvePostMatchAwakening(
+            completed,
+            fixture.id,
+            userMatchParticipantIds(result, fixture, before.userClubId),
+            awakeningPowerIds,
+            awakeningTriggerIds,
+            awakeningTuning,
+          )
+        : { state: completed, awakened: false };
       const next = awakening.state;
       const postMatch = isOnboardingMatch
         ? null
@@ -500,11 +581,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
     const career = get().career;
     const atSeasonBoundary = career !== null
       && (career.phase === 'season-end' || career.phase === 'complete');
+    const hasSecondMatch = career?.phase === 'matchday';
     set({
-      postMatch: atSeasonBoundary ? null : get().postMatch,
+      postMatch: atSeasonBoundary || hasSecondMatch ? null : get().postMatch,
       weekReview: null,
-      postMatchOverlay: atSeasonBoundary || get().postMatch === null ? null : 'summary',
-      screen: atSeasonBoundary ? seasonBoundaryScreen(career) : 'management',
+      postMatchOverlay: atSeasonBoundary || hasSecondMatch || get().postMatch === null ? null : 'summary',
+      screen: atSeasonBoundary
+        ? seasonBoundaryScreen(career)
+        : hasSecondMatch ? 'matchday' : 'management',
       activeTab: 'home',
       error: null,
     });
@@ -543,6 +627,20 @@ export const useM1Store = create<M1Store>((set, get) => ({
       }
       const next = markChampionshipCelebrationComplete(career);
       set({ career: next, screen: 'season-end', error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  chooseLegacy(choice) {
+    guarded(set, () => {
+      const transaction = resolveNextClubLegendLegacy(requireCareer(get()), choice);
+      const next = reconcilePendingClubLegends(transaction.state);
+      set({
+        career: next,
+        screen: nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
+        activeTab: 'home',
+        error: null,
+      });
       queueCareerSave(get, set, next);
     });
   },
@@ -616,7 +714,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         .map(candidate => candidate.id)
         .filter(id => id !== playerId);
       if (!player.licensed) {
-        if (selected.length >= 2) {
+        if (selected.length >= careerHeroLimit(career)) {
           throw new Error('Unlicense one hero before assigning this permit.');
         }
         selected.push(playerId);
@@ -718,6 +816,158 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
+  buildClubFacility(type, position) {
+    guarded(set, () => {
+      const transaction = buildCareerFacility(requireCareer(get()), type, position);
+      set({ career: transaction.state, error: null });
+      queueCareerSave(get, set, transaction.state);
+    });
+  },
+
+  upgradeClubFacility(buildingId) {
+    guarded(set, () => {
+      const transaction = upgradeCareerFacility(requireCareer(get()), buildingId);
+      set({ career: transaction.state, error: null });
+      queueCareerSave(get, set, transaction.state);
+    });
+  },
+
+  relocateClubFacility(buildingId, position) {
+    guarded(set, () => {
+      const transaction = relocateCareerFacility(
+        requireCareer(get()),
+        buildingId,
+        position,
+      );
+      set({ career: transaction.state, error: null });
+      queueCareerSave(get, set, transaction.state);
+    });
+  },
+
+  startScoutMission(optionId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const market = requireMarket(career);
+      const option = careerMarketScoutOptions(career).find(candidate => candidate.id === optionId);
+      if (option === undefined) throw new Error(`unknown scouting brief ${optionId}`);
+      const transaction = startCareerScoutMission(
+        career,
+        market,
+        option.region,
+        option.focus,
+        currentCareerDivision(career),
+      );
+      const next = { ...transaction.state, market: transaction.market };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  openScoutReport(playerId) {
+    const career = get().career;
+    if (career?.market?.scoutReports.some(report => report.playerId === playerId) !== true) {
+      set({ error: 'That scouting report is no longer available.' });
+      return;
+    }
+    set({ error: 'The full scout ranges are shown on this dossier.' });
+  },
+
+  actOnTransfer(playerId, direction) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const market = requireMarket(career);
+      if (direction === 'BUY') {
+        const nextMarket = beginCareerTransferTalks(
+          career,
+          market,
+          playerId,
+          currentCareerDivision(career),
+        );
+        const next = { ...career, market: nextMarket };
+        set({ career: next, error: null });
+        queueCareerSave(get, set, next);
+        return;
+      }
+      const buyer = career.clubs
+        .filter(club => club.id !== career.userClubId)
+        .slice()
+        .sort((left, right) => left.id.localeCompare(right.id))[0];
+      if (buyer === undefined) throw new Error('no buying club is available');
+      const transaction = sellCareerPlayer(
+        career,
+        market,
+        playerId,
+        buyer.id,
+        currentCareerDivision(career),
+      );
+      const next = { ...transaction.state, market: transaction.market };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  hireCoach(coachId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = { ...career, market: hireCareerCoach(requireMarket(career), coachId) };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  signYouth(playerId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      if (career.youthIntake === undefined) throw new Error('there is no youth intake available');
+      const transaction = signYouthIntakeOffer(career, career.youthIntake, playerId);
+      const next = { ...transaction.state, youthIntake: transaction.intake };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  declineYouth() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      if (career.youthIntake === undefined) throw new Error('there is no youth intake available');
+      const transaction = declineYouthIntakeOffers(career, career.youthIntake);
+      const next = { ...transaction.state, youthIntake: transaction.intake };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  submitTransferOffer(offer, pitchCard) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const negotiatedMarket = submitCareerTransferOffer(
+        requireMarket(career),
+        offer,
+        pitchCard,
+      );
+      if (negotiatedMarket.transferTalks?.negotiation.status === 'ACCEPTED') {
+        const transaction = completeCareerTransfer(career, negotiatedMarket);
+        const next = { ...transaction.state, market: transaction.market };
+        set({ career: next, error: 'Transfer complete. The player has joined the squad.' });
+        queueCareerSave(get, set, next);
+        return;
+      }
+      const next = { ...career, market: negotiatedMarket };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  closeTransferTalks() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const market = requireMarket(career);
+      const next = { ...career, market: { ...market, transferTalks: undefined } };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
   setContractTerm(selectedContractTerm) {
     set({ selectedContractTerm, error: null });
   },
@@ -730,6 +980,44 @@ export const useM1Store = create<M1Store>((set, get) => ({
         4,
         term ?? get().selectedContractTerm,
       );
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  startRenewal(playerId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = {
+        ...career,
+        market: beginCareerRenewalTalks(career, requireMarket(career), playerId),
+      };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  submitRenewalOffer(offer, pitchCard) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const negotiated = submitCareerRenewalOffer(requireMarket(career), offer, pitchCard);
+      if (negotiated.renewalTalks?.negotiation.status === 'ACCEPTED') {
+        const transaction = completeCareerRenewal(career, negotiated);
+        const next = { ...transaction.state, market: transaction.market };
+        set({ career: next, selectedContractTerm: 1, error: 'Contract renewed.' });
+        queueCareerSave(get, set, next);
+        return;
+      }
+      const next = { ...career, market: negotiated };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  closeRenewal() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = { ...career, market: closeCareerRenewalTalks(requireMarket(career)) };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -754,12 +1042,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
 function currentMatchday(state: GameState) {
   if (state.phase !== 'matchday') throw new Error('there is no active matchday');
-  const fixtures = fixturesForCurrentWeek(state);
-  const fixture = fixtures.find(candidate =>
-    candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId,
+  const matchday = activeCareerMatchday(state);
+  if (matchday === undefined) throw new Error('the matchday has no user fixture');
+  const { fixture, fixtures } = matchday;
+  const builtTeams = buildCareerMatchTeams(
+    state,
+    [...new Set(fixtures.flatMap(candidate => [candidate.homeClubId, candidate.awayClubId]))],
   );
-  if (fixture === undefined) throw new Error('the matchday has no user fixture');
-  const builtTeams = buildCareerTeams(state);
   const teams = isFirstOnboardingFixture(state, fixture.id)
     ? {
         ...builtTeams,
@@ -767,7 +1056,16 @@ function currentMatchday(state: GameState) {
         [fixture.awayClubId]: withoutPowers(builtTeams[fixture.awayClubId]),
       }
     : builtTeams;
-  return { fixture, fixtures, teams };
+  return { kind: matchday.kind, fixture, fixtures, teams };
+}
+
+function requireMarket(state: GameState): NonNullable<GameState['market']> {
+  if (state.market === undefined) throw new Error('the career market is unavailable');
+  return state.market;
+}
+
+function currentCareerDivision(state: GameState): number {
+  return state.m2 === undefined ? 5 : currentUserDivision(state.m2);
 }
 
 function scheduledEventId(state: GameState): string | undefined {
@@ -894,6 +1192,7 @@ function resumeScreen(career: GameState): M1Screen {
   if (career.phase === 'season-end' || career.phase === 'complete') {
     return seasonBoundaryScreen(career);
   }
+  if (nextPendingClubLegend(career) !== undefined) return 'legacy';
   return 'management';
 }
 
@@ -1003,7 +1302,8 @@ function queueReplaySave(
   const repository = get().replayRepository;
   if (repository === null) return;
   const careerId = `m1-career-${career.careerSeed}`;
-  const sortOrder = (fixture.season - 1) * 100 + fixture.week;
+  const sortOrder = (fixture.season - 1) * 100
+    + (fixture.id.includes('-cup-') ? 50 + fixture.round : fixture.week);
   enqueueSave(
     set,
     async () => {

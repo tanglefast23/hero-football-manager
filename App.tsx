@@ -44,13 +44,16 @@ import type { MatchState } from './src/sim/types';
 import {
   ClubFinancesScreen,
   ClubHomeScreen,
+  ClubLegacyScreen,
   AssistantGuideOverlay,
   CharacterCreationScreen,
   AwakeningCutsceneScreen,
   ChampionshipCelebrationScreen,
   FixtureMatchDayScreen,
   LeagueTableScreen,
+  M2LeagueScreen,
   ManagementShell,
+  MarketScreen,
   NewGameWelcomeScreen,
   PlanLockedConfirmation,
   PostMatchDevelopmentOverlay,
@@ -65,6 +68,8 @@ import {
   type LockedPlanConfirmation,
   shouldShowOpeningBrief,
 } from './src/ui';
+import { leagueStandings } from './src/game';
+import type { DivisionLevel } from './src/game/pyramid';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import type { TutorialAnchorLayout } from './src/ui/tutorial-cue-position';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
@@ -80,6 +85,7 @@ import {
 import { loadPreferencesFailSoft } from './src/application/preferences';
 import {
   awakeningCutsceneViewModel,
+  clubLegacyViewModel,
   clubFinancesViewModel,
   homeViewModel,
   leagueTableViewModel,
@@ -91,6 +97,9 @@ import {
 import type { AwakeningCutsceneViewModel } from './src/ui/models';
 import { AwakeningArtQaScreen } from './src/ui/screens/AwakeningArtQaScreen';
 import { championshipCelebrationViewModel } from './src/application/championship-celebration';
+import { m2LeagueViewModel } from './src/application/m2-league-view-model';
+import { marketViewModel } from './src/application/market-view-model';
+import { careerMarketViewModelSource } from './src/application/market-source-adapter';
 
 const DATABASE_NAME = 'hero-football-manager.db';
 type LandingView = 'title' | 'story' | 'settings';
@@ -150,6 +159,8 @@ function GameApp() {
   const [trainingTransition, setTrainingTransition] = useState<TrainingTransitionScene | null>(null);
   const [lockedPlanConfirmation, setLockedPlanConfirmation] = useState<LockedPlanConfirmation | null>(null);
   const [awakeningBeat, setAwakeningBeat] = useState<1 | 2 | 3>(1);
+  const [selectedLeagueDivision, setSelectedLeagueDivision] = useState<DivisionLevel | undefined>();
+  const [selectedCupSeason, setSelectedCupSeason] = useState<number | undefined>();
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const devVolume = preferences.masterVolume as DevVolume;
   const reduceMotion = useReducedMotion(preferences.reduceMotion);
@@ -234,7 +245,8 @@ function GameApp() {
       ? 'opening'
       : store.screen === 'management'
         ? 'management'
-        : store.screen === 'event' || (store.screen === 'awakening' && awakeningBeat >= 2)
+        : store.screen === 'event' || store.screen === 'legacy'
+          || (store.screen === 'awakening' && awakeningBeat >= 2)
           ? 'event'
           : null
     : null;
@@ -295,6 +307,7 @@ function GameApp() {
         await store.initializePersistence(
           repositories.careerRepository,
           repositories.replayRepository,
+          true,
         );
         if (active && repositories.warning !== undefined) {
           store.notify(repositories.warning);
@@ -315,7 +328,7 @@ function GameApp() {
 
   const startNewCareer = useCallback(() => {
     if (!store.hasSavedCareer) {
-      store.startNewCareer();
+      store.startNewCareer(undefined, 'full');
       return;
     }
     Alert.alert(
@@ -326,7 +339,7 @@ function GameApp() {
         {
           text: 'Erase and start over',
           style: 'destructive',
-          onPress: () => store.startNewCareer(),
+          onPress: () => store.startNewCareer(undefined, 'full'),
         },
       ],
     );
@@ -475,6 +488,14 @@ function GameApp() {
         onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
     );
+  } else if (store.screen === 'legacy') {
+    screen = (
+      <ClubLegacyScreen
+        viewModel={clubLegacyViewModel(store.career)}
+        onChoose={store.chooseLegacy}
+        onOpenSettings={() => setGlobalSettingsOpen(true)}
+      />
+    );
   } else if (store.screen === 'championship-celebration') {
     screen = (
       <ChampionshipCelebrationScreen
@@ -493,6 +514,9 @@ function GameApp() {
         viewModel={season}
         onSelectContractTerm={(_playerId, term) => store.setContractTerm(term)}
         onRenewContract={(playerId, term) => store.renewPlayer(playerId, term)}
+        onStartRenewal={store.startRenewal}
+        onSubmitRenewalOffer={store.submitRenewalOffer}
+        onCloseRenewal={store.closeRenewal}
         onReleaseContract={playerId => Alert.alert(
           'Let this player leave?',
           `${season.expiredContract?.playerName ?? 'This player'} will leave the club immediately. This cannot be undone.`,
@@ -552,7 +576,40 @@ function GameApp() {
           <ClubFinancesScreen
             viewModel={clubFinancesViewModel(store.career)}
             onBuildTrainingGround={store.buildFacility}
+            onBuildFacility={(type, x, y) => store.buildClubFacility(type, { x, y })}
+            onUpgradeFacility={store.upgradeClubFacility}
+            onRelocateFacility={(buildingId, x, y) => (
+              store.relocateClubFacility(buildingId, { x, y })
+            )}
+            onOpenCoachMarket={() => store.setActiveTab('market')}
             guideTrainingGround={assistantObjective?.target === 'training-ground-facility'}
+          />
+        ) : store.activeTab === 'market' && store.career.market !== undefined ? (
+          <MarketScreen
+            viewModel={marketViewModel(careerMarketViewModelSource(store.career))}
+            onStartScoutMission={store.startScoutMission}
+            onOpenScoutReport={store.openScoutReport}
+            onTransferAction={store.actOnTransfer}
+            onHireCoach={store.hireCoach}
+            onSignYouth={store.signYouth}
+            onDeclineYouth={store.declineYouth}
+            onSubmitContractOffer={store.submitTransferOffer}
+            onCloseNegotiation={store.closeTransferTalks}
+          />
+        ) : store.activeTab === 'league' && store.career.m2 !== undefined ? (
+          <M2LeagueScreen
+            viewModel={m2LeagueViewModel({
+              career: store.career.m2,
+              season: store.career.season,
+              activeStandings: leagueStandings(store.career),
+              selectedDivision: selectedLeagueDivision,
+              selectedCupSeason,
+              week: store.career.week,
+              phase: store.career.phase,
+            })}
+            onSelectDivision={setSelectedLeagueDivision}
+            onSelectCupSeason={setSelectedCupSeason}
+            onOpenCupFixture={store.openCupFixture}
           />
         ) : store.activeTab === 'league' ? (
           <LeagueTableScreen viewModel={leagueTableViewModel(store.career)} />
