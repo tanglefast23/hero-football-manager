@@ -1,7 +1,7 @@
 {
   "name": "hero-football-manager",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "index",
   "dependencies": {
     "@expo-google-fonts/silkscreen": "^0.4.2",
     "@shopify/react-native-skia": "2.6.2",
@@ -14,9 +14,11 @@
     "expo-status-bar": "~57.0.1",
     "nativewind": "^4.2.6",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.0",
     "react-native-reanimated": "4.5.0",
     "react-native-safe-area-context": "~5.7.0",
+    "react-native-web": "^0.21.2",
     "react-native-worklets": "0.10.0",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
@@ -36,6 +38,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "export:web": "expo export --platform web && node scripts/web/fix-worker-bundles.mjs",
+    "postinstall": "setup-skia-web",
     "test": "jest"
   },
   "private": true

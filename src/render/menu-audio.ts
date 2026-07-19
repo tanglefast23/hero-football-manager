@@ -19,6 +19,7 @@ const MENU_SFX_SOURCES: Record<MenuSfx, AudioSource> = {
 };
 
 const MUSIC_VOLUME = 0.5;
+const IS_WEB = typeof document !== 'undefined';
 
 const players = new Map<Exclude<MenuTheme, null>, AudioPlayer>();
 const sfxPlayers = new Map<MenuSfx, AudioPlayer>();
@@ -27,6 +28,8 @@ let activeTheme: MenuTheme = null;
 let masterVolume = 1;
 let ready = false;
 let initAttempted = false;
+let webPlaybackUnlocked = !IS_WEB;
+let removeWebUnlockListeners: (() => void) | null = null;
 
 function warnOnce(context: string, error: unknown): void {
   if (warned.has(context)) return;
@@ -49,6 +52,38 @@ function applyMasterVolume(): void {
       warnOnce(`${key} volume failed`, error);
     }
   }
+}
+
+function playActiveTheme(): void {
+  if (!ready || activeTheme === null) return;
+  try {
+    players.get(activeTheme)?.play();
+  } catch (error) {
+    warnOnce(`${activeTheme} playback failed`, error);
+  }
+}
+
+function armWebAudioUnlock(): void {
+  if (
+    !IS_WEB
+    || webPlaybackUnlocked
+    || removeWebUnlockListeners !== null
+    || typeof document === 'undefined'
+  ) return;
+
+  const unlock = () => {
+    webPlaybackUnlocked = true;
+    removeWebUnlockListeners?.();
+    removeWebUnlockListeners = null;
+    initMenuAudio();
+    playActiveTheme();
+  };
+  document.addEventListener('pointerdown', unlock, { once: true });
+  document.addEventListener('keydown', unlock, { once: true });
+  removeWebUnlockListeners = () => {
+    document.removeEventListener('pointerdown', unlock);
+    document.removeEventListener('keydown', unlock);
+  };
 }
 
 export function setMenuMasterVolume(volume: number): void {
@@ -126,16 +161,18 @@ export function setMenuTheme(theme: MenuTheme): void {
   activeTheme = theme;
   if (theme === null) return;
 
-  initMenuAudio();
-  if (!ready) return;
-  try {
-    players.get(theme)?.play();
-  } catch (error) {
-    warnOnce(`${theme} playback failed`, error);
+  if (!webPlaybackUnlocked) {
+    armWebAudioUnlock();
+    return;
   }
+
+  initMenuAudio();
+  playActiveTheme();
 }
 
 export function teardownMenuAudio(): void {
+  removeWebUnlockListeners?.();
+  removeWebUnlockListeners = null;
   for (const [theme, player] of players) {
     try {
       player.pause();

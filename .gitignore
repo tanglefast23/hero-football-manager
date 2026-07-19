@@ -8,6 +8,7 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+/public/canvaskit.wasm
 
 # Native
 .kotlin/
@@ -43,3 +44,5 @@ yarn-error.*
 /ios
 /android
 .worktrees
+.vercel
+.env*

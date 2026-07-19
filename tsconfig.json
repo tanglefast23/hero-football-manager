@@ -4,5 +4,6 @@
     "strict": true,
     "resolveJsonModule": true,
     "types": ["jest", "node"]
-  }
+  },
+  "exclude": ["dist"]
 }
