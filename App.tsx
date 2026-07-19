@@ -372,11 +372,7 @@ export default function App() {
         guideFocus={assistantPage?.focus === 'money' || assistantPage?.focus === 'navigation'
           ? assistantPage.focus
           : undefined}
-        guideObjective={assistantObjective?.text}
-        onGuideObjectivePress={assistantObjective?.targetTab !== undefined
-          && assistantObjective.targetTab !== store.activeTab
-          ? () => store.setActiveTab(assistantObjective.targetTab!)
-          : undefined}
+        guideTarget={assistantObjective?.target}
       >
         {store.activeTab === 'squad' ? (
           <SquadTrainingScreen
@@ -391,6 +387,7 @@ export default function App() {
             onTogglePlayerAssignment={store.toggleTrainingPlayer}
             onToggleDrill={store.toggleDrill}
             onApplyTraining={store.applyTraining}
+            guideTraining={assistantObjective?.target === 'training-plan'}
           />
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen

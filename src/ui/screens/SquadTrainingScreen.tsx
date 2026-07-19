@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
 import type { FocusDrillViewModel, SquadTrainingViewModel } from '../models';
+import { TutorialTapCue } from '../TutorialTapCue';
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
@@ -8,6 +9,7 @@ export interface SquadTrainingScreenProps {
   onTogglePlayerAssignment: (playerId: string) => void;
   onToggleDrill: (drillId: string) => void;
   onApplyTraining: () => void;
+  guideTraining?: boolean;
 }
 
 function drillSelectionClass(drill: FocusDrillViewModel): string {
@@ -22,12 +24,14 @@ export function SquadTrainingScreen({
   onTogglePlayerAssignment,
   onToggleDrill,
   onApplyTraining,
+  guideTraining = false,
 }: SquadTrainingScreenProps) {
   const selectedPlayer = viewModel.players.find(player => player.id === viewModel.selectedPlayerId);
   const assigned = new Set(viewModel.assignedPlayerIds);
 
   return (
-    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
+    <View className="flex-1">
+      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
       <View>
         <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Squad room</Text>
         <Text className="mt-1 text-xl font-bold uppercase text-ink">Roster & training</Text>
@@ -47,9 +51,10 @@ export function SquadTrainingScreen({
             <Text className="w-16 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Fit</Text>
             <Text className="w-12 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Plan</Text>
           </View>
-          {viewModel.players.map(player => {
+          {viewModel.players.map((player, playerIndex) => {
             const selected = player.id === viewModel.selectedPlayerId;
             const isAssigned = assigned.has(player.id);
+            const guidePlayer = guideTraining && viewModel.assignedPlayerIds.length === 0 && playerIndex === 0;
             return (
               <View
                 key={player.id}
@@ -79,9 +84,16 @@ export function SquadTrainingScreen({
                   accessibilityLabel={`Assign ${player.name} to selected focus drills`}
                   accessibilityState={{ checked: isAssigned }}
                   onPress={() => onTogglePlayerAssignment(player.id)}
-                  className={isAssigned ? 'ml-2 h-10 w-10 items-center justify-center border-2 border-ink bg-signal' : 'ml-2 h-10 w-10 items-center justify-center border border-ink/30'}
+                  className={guidePlayer
+                    ? 'relative ml-2 h-10 w-10 items-center justify-center border-2 border-blue-dark bg-blue-light'
+                    : isAssigned
+                      ? 'ml-2 h-10 w-10 items-center justify-center border-2 border-ink bg-signal'
+                      : 'ml-2 h-10 w-10 items-center justify-center border border-ink/30'}
                   style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
                 >
+                  {guidePlayer ? (
+                    <TutorialTapCue detail="Add one player" style={{ right: -4, top: -72 }} />
+                  ) : null}
                   <Text className={isAssigned ? 'font-mono text-base font-bold text-ink' : 'font-mono text-base text-ink/40'}>{isAssigned ? '✓' : '+'}</Text>
                 </Pressable>
               </View>
@@ -131,7 +143,13 @@ export function SquadTrainingScreen({
           Pick up to {viewModel.maxDrills}. Each selected drill charges once and trains every assigned player. The plan repeats weekly until changed.
         </Text>
         <View className="gap-2">
-          {viewModel.drills.map(drill => (
+          {viewModel.drills.map((drill, drillIndex) => {
+            const guideDrill = guideTraining
+              && viewModel.assignedPlayerIds.length > 0
+              && viewModel.selectedDrillCount === 0
+              && drill.available
+              && drillIndex === viewModel.drills.findIndex(candidate => candidate.available);
+            return (
             <Pressable
               key={drill.id}
               accessibilityRole="checkbox"
@@ -139,9 +157,12 @@ export function SquadTrainingScreen({
               accessibilityState={{ checked: drill.selected, disabled: !drill.available }}
               disabled={!drill.available}
               onPress={() => onToggleDrill(drill.id)}
-              className={`min-h-16 flex-row items-center border-2 p-3 ${drillSelectionClass(drill)}`}
+              className={`relative min-h-16 flex-row items-center border-2 p-3 ${guideDrill ? 'border-blue-dark bg-blue-light' : drillSelectionClass(drill)}`}
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
             >
+              {guideDrill ? (
+                <TutorialTapCue detail="Pick a drill" style={{ right: 8, top: -70 }} />
+              ) : null}
               <View className={drill.selected ? 'mr-3 h-9 w-9 items-center justify-center border-2 border-ink bg-paper' : 'mr-3 h-9 w-9 items-center justify-center border border-ink/30'}>
                 <Text className={drill.selected ? 'font-mono text-base font-bold text-ink' : 'font-mono text-base text-ink/40'}>{drill.selected ? '✓' : '+'}</Text>
               </View>
@@ -154,7 +175,8 @@ export function SquadTrainingScreen({
                 <Text className={drill.selected ? 'mt-1 font-mono text-sm font-bold text-ink' : 'mt-1 font-mono text-sm text-blue-dark'} numberOfLines={1}>{drill.trainingPointCost} TP</Text>
               </View>
             </Pressable>
-          ))}
+            );
+          })}
         </View>
       </View>
 
@@ -164,7 +186,10 @@ export function SquadTrainingScreen({
           <Metric label="Money cost" value={formatCompactNumber(viewModel.totalMoneyCost)} tone="negative" />
           <Metric label="TP cost" value={formatCompactNumber(viewModel.totalTrainingPointCost)} tone="negative" />
         </View>
-        <View className="mt-3">
+        <View className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>
+          {guideTraining && viewModel.selectedDrillCount > 0 ? (
+            <TutorialTapCue detail="Lock the plan" style={{ right: 4, top: -74 }} />
+          ) : null}
           <ActionButton
             label="Lock weekly plan"
             accessibilityLabel="Save the repeating weekly training plan"
@@ -173,6 +198,14 @@ export function SquadTrainingScreen({
           />
         </View>
       </PaperPanel>
-    </ScrollView>
+      </ScrollView>
+      {guideTraining && viewModel.assignedPlayerIds.length > 0 ? (
+        <TutorialTapCue
+          label="Scroll down"
+          detail={viewModel.selectedDrillCount === 0 ? 'Pick a drill' : 'Lock the plan'}
+          style={{ bottom: 10, right: 10 }}
+        />
+      ) : null}
+    </View>
   );
 }

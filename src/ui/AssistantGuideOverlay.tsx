@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { AssistantGuideContent, AssistantGuideSequenceId } from '../content';
 import { ActionButton } from './components/Scorecard';
+import { TutorialTapCue } from './TutorialTapCue';
 
 export interface AssistantGuideOverlayProps {
   content: AssistantGuideContent;
@@ -24,175 +25,259 @@ export function AssistantGuideOverlay({
     <View
       accessibilityViewIsModal
       accessibilityLabel={`${content.assistant.name}, ${content.assistant.role}. ${page.title}`}
-      className="absolute inset-0 z-50 justify-center bg-ink/70 px-4"
-      style={{ paddingBottom: page.focus === 'navigation' ? 112 : 16, paddingTop: 16 }}
+      className="absolute inset-0 z-50 justify-center bg-ink/60 px-3 py-5"
+      style={{ paddingBottom: page.focus === 'navigation' ? 94 : 20 }}
     >
-      {page.focus === 'money' ? <FocusTag label="WEEKLY MONEY" placement="top" /> : null}
-      <View className="max-h-full w-full self-center border-2 border-b-4 border-ink bg-paper" style={styles.cardShadow}>
-        <View className="h-3 bg-blue-light" />
-        <ScrollView
-          bounces={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: 16 }}
-        >
-          <View className="flex-row items-center gap-4">
-            <BertPortrait />
-            <View className="min-w-0 flex-1">
-              <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{page.kicker}</Text>
-              <Text className="mt-1 font-pixel text-xl uppercase text-ink">{page.title}</Text>
-              <View className="mt-2 self-start border-2 border-ink bg-white px-2 py-1">
-                <Text className="font-mono text-xs font-bold uppercase text-ink">
-                  {content.assistant.name} · {content.assistant.role}
+      {page.focus === 'money' ? (
+        <TutorialTapCue label="Look here" detail="Weekly money" direction="up" style={styles.moneyCue} />
+      ) : null}
+
+      <View className="max-h-full w-full self-center" style={styles.windowShadow}>
+        <View style={styles.windowFrame}>
+          <View style={styles.titleHighlight} />
+          <View style={styles.titleBar}>
+            <Text className="font-pixel text-sm uppercase text-white" numberOfLines={1}>
+              {page.kicker}
+            </Text>
+            <Text className="font-mono text-[10px] uppercase text-white/80">
+              Bert's briefing
+            </Text>
+          </View>
+
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.windowContent}
+          >
+            <View style={styles.speechBubble}>
+              <View className="min-w-0 flex-1 pr-1">
+                <Text className="font-pixel text-lg uppercase text-ink">{page.title}</Text>
+                <View className="mt-2 h-0.5 bg-grey-light" />
+                <View className="mt-3 gap-3">
+                  {page.body.map((paragraph, index) => (
+                    <Text key={index} className="text-base leading-6 text-ink">
+                      {paragraph}
+                    </Text>
+                  ))}
+                </View>
+
+                {page.navItems ? (
+                  <View className="mt-4 border-y-2 border-grey-light py-1">
+                    {page.navItems.map(item => (
+                      <View key={item.tab} className="flex-row border-b border-grey-light/70 py-1.5 last:border-b-0">
+                        <Text className="w-16 font-mono text-[10px] font-bold text-blue-dark">{item.tab}</Text>
+                        <Text className="min-w-0 flex-1 text-xs leading-4 text-ink/70">{item.detail}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {page.objective ? (
+                  <View className="mt-4 border-2 border-blue-dark bg-blue-light px-3 py-2">
+                    <Text className="font-mono text-[10px] font-bold uppercase text-blue-dark">Your next move</Text>
+                    <Text className="mt-1 font-pixel text-sm uppercase text-ink">{page.objective}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.bertColumn}>
+                <BertFullBody pointing={page.focus !== 'assistant'} />
+                <Text className="mt-1 text-center font-pixel text-xs uppercase text-ink">
+                  {content.assistant.name}
+                </Text>
+                <Text className="mt-0.5 text-center font-mono text-[9px] uppercase text-blue-dark">
+                  {content.assistant.role}
                 </Text>
               </View>
+              <View style={styles.bubbleTailBorder} />
+              <View style={styles.bubbleTail} />
             </View>
-          </View>
 
-          <View className="my-4 h-0.5 bg-ink/20" />
-
-          <View className="gap-3">
-            {page.body.map((paragraph, index) => (
-              <Text key={index} className="text-base leading-6 text-ink">
-                {paragraph}
-              </Text>
-            ))}
-          </View>
-
-          {page.navItems ? (
-            <View className="mt-4 flex-row flex-wrap justify-between gap-y-2">
-              {page.navItems.map((item, index) => {
-                const unavailable = item.tab === 'MARKET';
-                return (
+            <View className="mt-4 flex-row items-center gap-3">
+              <View
+                className="flex-row gap-1.5"
+                accessibilityLabel={`Page ${pageIndex + 1} of ${sequence.pages.length}`}
+              >
+                {sequence.pages.map((_, index) => (
                   <View
-                    key={item.tab}
-                    className={unavailable
-                      ? 'border-2 border-grey-dark bg-grey-light p-2 opacity-70'
-                      : 'border-2 border-blue-dark bg-blue-light p-2'}
-                    style={{ width: index === page.navItems!.length - 1 ? '100%' : '48.5%' }}
-                  >
-                    <Text className="font-mono text-xs font-bold text-ink">{item.tab}</Text>
-                    <Text className="mt-1 text-sm leading-4 text-ink/70">{item.detail}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          ) : null}
-
-          {page.objective ? (
-            <View className="mt-4 border-2 border-b-4 border-blue-dark bg-blue-light p-3">
-              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">Bert's one job</Text>
-              <Text className="mt-1 font-pixel text-base uppercase text-ink">{page.objective}</Text>
-            </View>
-          ) : null}
-
-          <View className="mt-5 flex-row items-center gap-3">
-            <View className="flex-row gap-1.5" accessibilityLabel={`Page ${pageIndex + 1} of ${sequence.pages.length}`}>
-              {sequence.pages.map((_, index) => (
-                <View
-                  key={index}
-                  className={index === pageIndex ? 'h-2.5 w-2.5 bg-blue-dark' : 'h-2.5 w-2.5 bg-grey-light'}
+                    key={index}
+                    className={index === pageIndex
+                      ? 'h-2.5 w-2.5 border border-ink bg-gold'
+                      : 'h-2.5 w-2.5 border border-ink/30 bg-white'}
+                  />
+                ))}
+              </View>
+              <View className="flex-1">
+                <ActionButton
+                  label={page.buttonLabel}
+                  accessibilityLabel={lastPage ? `Finish ${page.title} guide` : `Continue, page ${pageIndex + 2}`}
+                  onPress={onAdvance}
+                  variant="action"
+                  compact
                 />
-              ))}
+              </View>
             </View>
-            <View className="flex-1">
-              <ActionButton
-                label={page.buttonLabel}
-                accessibilityLabel={lastPage ? `Finish ${page.title} guide` : `Continue, page ${pageIndex + 2}`}
-                onPress={onAdvance}
-                variant="action"
-                compact
-              />
-            </View>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </View>
       </View>
-      {page.focus === 'navigation' ? <FocusTag label="THE BOTTOM RAIL  ↓" placement="bottom" /> : null}
+
+      {page.focus === 'navigation' ? (
+        <TutorialTapCue label="Look here" detail="The bottom rail" style={styles.navigationCue} />
+      ) : null}
     </View>
   );
 }
 
-function FocusTag({ label, placement }: { label: string; placement: 'top' | 'bottom' }) {
+/** Original full-body Gaffer: bald crown, heavy brow, moustache and old club suit. */
+function BertFullBody({ pointing }: { pointing: boolean }) {
   return (
-    <View
-      pointerEvents="none"
-      className="absolute z-10 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
-      style={placement === 'top' ? styles.topFocus : styles.bottomFocus}
-    >
-      <Text className="font-mono text-xs font-bold uppercase text-ink">{label}</Text>
-    </View>
-  );
-}
-
-/** Block-built Gaffer portrait: bald crown, heavy brow, bulbous nose and moustache. */
-function BertPortrait() {
-  return (
-    <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.portraitFrame}>
-      <View style={styles.portraitSky} />
-      <View style={styles.shoulderLeft} />
-      <View style={styles.shoulderRight} />
-      <View style={styles.shirt} />
-      <View style={styles.tie} />
-      <View style={styles.leftEar} />
-      <View style={styles.rightEar} />
-      <View style={styles.headTop} />
-      <View style={styles.headFace} />
-      <View style={styles.headJaw} />
-      <View style={styles.leftHair} />
-      <View style={styles.rightHair} />
-      <View style={styles.baldHighlight} />
-      <View style={styles.leftBrow} />
-      <View style={styles.rightBrow} />
-      <View style={styles.leftEye} />
-      <View style={styles.rightEye} />
-      <View style={styles.nose} />
-      <View style={styles.noseLight} />
-      <View style={styles.moustacheLeft} />
-      <View style={styles.moustacheRight} />
-      <View style={styles.mouth} />
+    <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.bertSprite}>
+      <View style={styles.bertGroundShadow} />
+      <View style={styles.bertLeftShoe} />
+      <View style={styles.bertRightShoe} />
+      <View style={styles.bertLeftLeg} />
+      <View style={styles.bertRightLeg} />
+      <View style={styles.bertJacket} />
+      <View style={styles.bertShirt} />
+      <View style={styles.bertTie} />
+      <View style={styles.bertLeftLapelle} />
+      <View style={styles.bertRightLapelle} />
+      {pointing ? (
+        <>
+          <View style={styles.bertPointingArm} />
+          <View style={styles.bertPointingHand} />
+          <View style={styles.bertPointingFinger} />
+        </>
+      ) : (
+        <>
+          <View style={styles.bertLeftArm} />
+          <View style={styles.bertLeftHand} />
+        </>
+      )}
+      <View style={styles.bertRightArm} />
+      <View style={styles.bertRightHand} />
+      <View style={styles.bertLeftEar} />
+      <View style={styles.bertRightEar} />
+      <View style={styles.bertHeadTop} />
+      <View style={styles.bertHeadFace} />
+      <View style={styles.bertHeadJaw} />
+      <View style={styles.bertLeftHair} />
+      <View style={styles.bertRightHair} />
+      <View style={styles.bertBaldHighlight} />
+      <View style={styles.bertLeftBrow} />
+      <View style={styles.bertRightBrow} />
+      <View style={styles.bertLeftEye} />
+      <View style={styles.bertRightEye} />
+      <View style={styles.bertNose} />
+      <View style={styles.bertNoseLight} />
+      <View style={styles.bertMoustacheLeft} />
+      <View style={styles.bertMoustacheRight} />
+      <View style={styles.bertMouth} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  cardShadow: {
-    maxWidth: 520,
-    shadowColor: '#241f2e',
-    shadowOffset: { width: 8, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 0,
-    elevation: 14,
+  windowShadow: {
+    maxWidth: 540,
+    paddingBottom: 7,
+    paddingRight: 7,
+    backgroundColor: '#241f2e',
   },
-  topFocus: { right: 12, top: 82, transform: [{ rotate: '2deg' }] },
-  bottomFocus: { bottom: 62, left: 24, transform: [{ rotate: '-2deg' }] },
-  portraitFrame: {
-    width: 104,
-    height: 116,
+  windowFrame: {
     overflow: 'hidden',
-    borderWidth: 2,
-    borderBottomWidth: 4,
+    borderWidth: 3,
     borderColor: '#241f2e',
-    backgroundColor: '#a3c8f0',
+    backgroundColor: '#d9d3e0',
   },
-  portraitSky: { position: 'absolute', inset: 0, backgroundColor: '#a3c8f0' },
-  shoulderLeft: { position: 'absolute', left: 8, bottom: 0, width: 44, height: 30, backgroundColor: '#3a3350' },
-  shoulderRight: { position: 'absolute', right: 8, bottom: 0, width: 44, height: 30, backgroundColor: '#3a3350' },
-  shirt: { position: 'absolute', left: 38, bottom: 0, width: 28, height: 28, backgroundColor: '#f4f1ea' },
-  tie: { position: 'absolute', left: 47, bottom: 0, width: 10, height: 25, backgroundColor: '#d94f52' },
-  leftEar: { position: 'absolute', left: 12, top: 42, width: 14, height: 30, backgroundColor: '#cf9268' },
-  rightEar: { position: 'absolute', right: 12, top: 42, width: 14, height: 30, backgroundColor: '#cf9268' },
-  headTop: { position: 'absolute', left: 28, top: 13, width: 48, height: 22, backgroundColor: '#eab48c' },
-  headFace: { position: 'absolute', left: 22, top: 27, width: 60, height: 48, backgroundColor: '#eab48c' },
-  headJaw: { position: 'absolute', left: 29, top: 68, width: 46, height: 23, backgroundColor: '#cf9268' },
-  leftHair: { position: 'absolute', left: 20, top: 23, width: 9, height: 23, backgroundColor: '#7d7887' },
-  rightHair: { position: 'absolute', right: 20, top: 23, width: 9, height: 23, backgroundColor: '#7d7887' },
-  baldHighlight: { position: 'absolute', left: 38, top: 17, width: 22, height: 5, backgroundColor: '#f7d7ba' },
-  leftBrow: { position: 'absolute', left: 28, top: 41, width: 16, height: 7, backgroundColor: '#6a4326', transform: [{ rotate: '8deg' }] },
-  rightBrow: { position: 'absolute', right: 28, top: 41, width: 16, height: 7, backgroundColor: '#6a4326', transform: [{ rotate: '-8deg' }] },
-  leftEye: { position: 'absolute', left: 35, top: 50, width: 5, height: 5, backgroundColor: '#241f2e' },
-  rightEye: { position: 'absolute', right: 35, top: 50, width: 5, height: 5, backgroundColor: '#241f2e' },
-  nose: { position: 'absolute', left: 42, top: 48, width: 26, height: 24, backgroundColor: '#cf9268' },
-  noseLight: { position: 'absolute', left: 46, top: 51, width: 13, height: 7, backgroundColor: '#f7d7ba' },
-  moustacheLeft: { position: 'absolute', left: 30, top: 70, width: 23, height: 10, backgroundColor: '#6a4326', transform: [{ rotate: '8deg' }] },
-  moustacheRight: { position: 'absolute', right: 30, top: 70, width: 23, height: 10, backgroundColor: '#6a4326', transform: [{ rotate: '-8deg' }] },
-  mouth: { position: 'absolute', left: 45, top: 82, width: 14, height: 4, backgroundColor: '#a83440' },
+  titleHighlight: { height: 5, backgroundColor: '#a3c8f0' },
+  titleBar: {
+    minHeight: 47,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderBottomWidth: 3,
+    borderBottomColor: '#241f2e',
+    backgroundColor: '#3f6fb5',
+  },
+  windowContent: { padding: 12 },
+  speechBubble: {
+    minHeight: 236,
+    flexDirection: 'row',
+    gap: 7,
+    paddingBottom: 14,
+    paddingLeft: 14,
+    paddingRight: 8,
+    paddingTop: 14,
+    borderWidth: 3,
+    borderColor: '#9a95a4',
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+  },
+  bertColumn: {
+    width: 104,
+    alignSelf: 'flex-end',
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  bubbleTailBorder: {
+    position: 'absolute',
+    right: 69,
+    bottom: -11,
+    width: 24,
+    height: 24,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderColor: '#9a95a4',
+    backgroundColor: '#ffffff',
+    transform: [{ rotate: '45deg' }],
+  },
+  bubbleTail: {
+    position: 'absolute',
+    right: 75,
+    bottom: -3,
+    width: 20,
+    height: 10,
+    backgroundColor: '#ffffff',
+  },
+  moneyCue: { right: 14, top: 30 },
+  navigationCue: { bottom: 26, left: 18 },
+  bertSprite: { width: 104, height: 180 },
+  bertGroundShadow: { position: 'absolute', left: 14, bottom: 1, width: 78, height: 9, backgroundColor: '#c9c5d0' },
+  bertLeftShoe: { position: 'absolute', left: 26, bottom: 6, width: 25, height: 10, backgroundColor: '#241f2e' },
+  bertRightShoe: { position: 'absolute', right: 22, bottom: 6, width: 25, height: 10, backgroundColor: '#241f2e' },
+  bertLeftLeg: { position: 'absolute', left: 31, bottom: 15, width: 18, height: 37, backgroundColor: '#3a3350' },
+  bertRightLeg: { position: 'absolute', right: 26, bottom: 15, width: 18, height: 37, backgroundColor: '#3a3350' },
+  bertJacket: { position: 'absolute', left: 23, top: 88, width: 60, height: 51, backgroundColor: '#3a3350' },
+  bertShirt: { position: 'absolute', left: 43, top: 91, width: 20, height: 43, backgroundColor: '#f4f1ea' },
+  bertTie: { position: 'absolute', left: 49, top: 96, width: 9, height: 35, backgroundColor: '#d94f52' },
+  bertLeftLapelle: { position: 'absolute', left: 31, top: 93, width: 18, height: 26, backgroundColor: '#5b3a91', transform: [{ rotate: '18deg' }] },
+  bertRightLapelle: { position: 'absolute', right: 30, top: 93, width: 18, height: 26, backgroundColor: '#5b3a91', transform: [{ rotate: '-18deg' }] },
+  bertPointingArm: { position: 'absolute', left: 3, top: 101, width: 33, height: 13, backgroundColor: '#3a3350', transform: [{ rotate: '-8deg' }] },
+  bertPointingHand: { position: 'absolute', left: 0, top: 98, width: 15, height: 14, backgroundColor: '#cf9268' },
+  bertPointingFinger: { position: 'absolute', left: -8, top: 101, width: 13, height: 6, backgroundColor: '#eab48c' },
+  bertLeftArm: { position: 'absolute', left: 16, top: 101, width: 13, height: 42, backgroundColor: '#3a3350', transform: [{ rotate: '5deg' }] },
+  bertLeftHand: { position: 'absolute', left: 17, top: 137, width: 13, height: 15, backgroundColor: '#cf9268' },
+  bertRightArm: { position: 'absolute', right: 14, top: 101, width: 13, height: 42, backgroundColor: '#3a3350', transform: [{ rotate: '-5deg' }] },
+  bertRightHand: { position: 'absolute', right: 15, top: 137, width: 13, height: 15, backgroundColor: '#cf9268' },
+  bertLeftEar: { position: 'absolute', left: 17, top: 42, width: 13, height: 28, backgroundColor: '#cf9268' },
+  bertRightEar: { position: 'absolute', right: 17, top: 42, width: 13, height: 28, backgroundColor: '#cf9268' },
+  bertHeadTop: { position: 'absolute', left: 31, top: 12, width: 44, height: 23, backgroundColor: '#eab48c' },
+  bertHeadFace: { position: 'absolute', left: 24, top: 27, width: 58, height: 48, backgroundColor: '#eab48c' },
+  bertHeadJaw: { position: 'absolute', left: 31, top: 68, width: 44, height: 24, backgroundColor: '#cf9268' },
+  bertLeftHair: { position: 'absolute', left: 22, top: 22, width: 10, height: 27, backgroundColor: '#7d7887' },
+  bertRightHair: { position: 'absolute', right: 21, top: 22, width: 10, height: 27, backgroundColor: '#7d7887' },
+  bertBaldHighlight: { position: 'absolute', left: 40, top: 17, width: 21, height: 5, backgroundColor: '#f7d7ba' },
+  bertLeftBrow: { position: 'absolute', left: 30, top: 41, width: 15, height: 7, backgroundColor: '#6a4326', transform: [{ rotate: '8deg' }] },
+  bertRightBrow: { position: 'absolute', right: 29, top: 41, width: 15, height: 7, backgroundColor: '#6a4326', transform: [{ rotate: '-8deg' }] },
+  bertLeftEye: { position: 'absolute', left: 36, top: 50, width: 5, height: 5, backgroundColor: '#241f2e' },
+  bertRightEye: { position: 'absolute', right: 35, top: 50, width: 5, height: 5, backgroundColor: '#241f2e' },
+  bertNose: { position: 'absolute', left: 42, top: 48, width: 25, height: 24, backgroundColor: '#cf9268' },
+  bertNoseLight: { position: 'absolute', left: 46, top: 51, width: 13, height: 7, backgroundColor: '#f7d7ba' },
+  bertMoustacheLeft: { position: 'absolute', left: 31, top: 70, width: 22, height: 10, backgroundColor: '#6a4326', transform: [{ rotate: '8deg' }] },
+  bertMoustacheRight: { position: 'absolute', right: 29, top: 70, width: 22, height: 10, backgroundColor: '#6a4326', transform: [{ rotate: '-8deg' }] },
+  bertMouth: { position: 'absolute', left: 46, top: 82, width: 13, height: 4, backgroundColor: '#a83440' },
 });

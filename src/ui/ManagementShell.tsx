@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, formatCompactNumber } from './components/Scorecard';
 import type { ManagementTab, ResourceSummaryViewModel } from './models';
+import { TutorialTapCue } from './TutorialTapCue';
 
 const TABS: ReadonlyArray<{ id: ManagementTab; label: string; glyph: string; available: boolean }> = [
   { id: 'home', label: 'Home', glyph: '⌂', available: true },
@@ -59,8 +60,7 @@ export interface ManagementShellProps {
   advanceWeekLabel?: string;
   advanceWeekDisabled?: boolean;
   guideFocus?: 'money' | 'navigation';
-  guideObjective?: string;
-  onGuideObjectivePress?: () => void;
+  guideTarget?: 'home-tab' | 'squad-tab' | 'training-plan' | 'advance-week';
 }
 
 export function ManagementShell({
@@ -77,8 +77,7 @@ export function ManagementShell({
   advanceWeekLabel = 'Advance Week  ▸',
   advanceWeekDisabled = false,
   guideFocus,
-  guideObjective,
-  onGuideObjectivePress,
+  guideTarget,
 }: ManagementShellProps) {
   const resourceCluster = (
     <View className={guideFocus === 'money'
@@ -132,37 +131,23 @@ export function ManagementShell({
       <View className="flex-1">{children}</View>
 
       <View className="border-t-2 border-ink bg-paper-dark px-3 pt-2">
-        {guideObjective ? (
-          onGuideObjectivePress ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Bert's current job: ${guideObjective}`}
-              onPress={onGuideObjectivePress}
-              className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
-              style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
-            >
-              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">Bert's job</Text>
-              <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">{guideObjective}</Text>
-              <Text className="font-mono text-lg font-bold text-ink">›</Text>
-            </Pressable>
-          ) : (
-            <View
-              accessible
-              accessibilityLabel={`Bert's current job: ${guideObjective}`}
-              className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
-            >
-              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">Bert's job</Text>
-              <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">{guideObjective}</Text>
-            </View>
-          )
-        ) : null}
-        <ActionButton
-          label={advanceWeekLabel}
-          accessibilityLabel={advanceWeekLabel.replace('▸', '').trim()}
-          onPress={onAdvanceWeek}
-          disabled={advanceWeekDisabled}
-          compact
-        />
+        <View className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
+          {guideTarget === 'advance-week' ? (
+            <TutorialTapCue
+              detail="Advance week"
+              style={styles.advanceCue}
+            />
+          ) : null}
+          <ActionButton
+            label={advanceWeekLabel}
+            accessibilityLabel={guideTarget === 'advance-week'
+              ? `Bert says: read the desk, then ${advanceWeekLabel.replace('▸', '').trim()}`
+              : advanceWeekLabel.replace('▸', '').trim()}
+            onPress={onAdvanceWeek}
+            disabled={advanceWeekDisabled}
+            compact
+          />
+        </View>
         <View
           className={guideFocus === 'navigation'
             ? 'mt-2 flex-row border-2 border-blue-dark bg-blue-light/40'
@@ -171,6 +156,12 @@ export function ManagementShell({
         >
           {TABS.map(tab => {
             const selected = tab.id === activeTab;
+            const guideTab = guideTarget === 'home-tab'
+              ? 'home'
+              : guideTarget === 'squad-tab'
+                ? 'squad'
+                : undefined;
+            const guided = guideTab === tab.id;
             return (
               <Pressable
                 key={tab.id}
@@ -179,9 +170,17 @@ export function ManagementShell({
                 accessibilityState={{ selected, disabled: !tab.available }}
                 disabled={!tab.available}
                 onPress={() => onTabChange(tab.id)}
-                className="min-h-12 flex-1 items-center justify-center"
+                className={guided
+                  ? 'relative min-h-12 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light'
+                  : 'relative min-h-12 flex-1 items-center justify-center'}
                 style={({ pressed }) => ({ opacity: !tab.available ? 0.35 : pressed ? 0.7 : undefined })}
               >
+                {guided ? (
+                  <TutorialTapCue
+                    detail={tab.id === 'squad' ? 'Open squad' : 'Return home'}
+                    style={styles.tabCue}
+                  />
+                ) : null}
                 <Text className={selected ? 'font-mono text-lg font-bold text-ink' : 'font-mono text-lg text-ink/50'}>
                   {tab.glyph}
                 </Text>
@@ -196,3 +195,8 @@ export function ManagementShell({
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  advanceCue: { left: '50%', marginLeft: -73, top: -78 },
+  tabCue: { bottom: 54, left: '50%', marginLeft: -73 },
+});

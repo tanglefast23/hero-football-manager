@@ -17,22 +17,25 @@ describe('assistant guide application flow', () => {
 
     state = completeAssistantGuideSequence(state, 'management-intro');
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
-    expect(currentAssistantObjective(state)).toEqual({ text: 'OPEN SQUAD.', targetTab: 'squad' });
+    expect(currentAssistantObjective(state)).toEqual({ text: 'OPEN SQUAD.', target: 'squad-tab' });
     expect(pendingAssistantGuideSequence(state, 'squad')).toBe('squad-intro');
 
     state = completeAssistantGuideSequence(state, 'squad-intro');
     expect(currentAssistantObjective(state)).toEqual({
       text: 'TRAIN ONE PLAYER ONCE.',
-      targetTab: 'squad',
+      target: 'training-plan',
     });
 
     state = completeAssistantGuideMilestone(state, 'first-training-complete');
-    expect(currentAssistantObjective(state)).toEqual({ text: 'RETURN HOME.', targetTab: 'home' });
+    expect(currentAssistantObjective(state)).toEqual({ text: 'RETURN HOME.', target: 'home-tab' });
     expect(pendingAssistantGuideSequence(state, 'squad')).toBeNull();
     expect(pendingAssistantGuideSequence(state, 'home')).toBe('desk-intro');
 
     state = completeAssistantGuideSequence(state, 'desk-intro');
-    expect(currentAssistantObjective(state)?.text).toBe('READ THE DESK. THEN ADVANCE WEEK.');
+    expect(currentAssistantObjective(state)).toEqual({
+      text: 'READ THE DESK. THEN ADVANCE WEEK.',
+      target: 'advance-week',
+    });
     state = completeAssistantGuideMilestone(state, 'first-week-advanced');
     expect(currentAssistantObjective(state)).toBeNull();
   });
