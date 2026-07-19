@@ -150,6 +150,19 @@ describe('match skeleton', () => {
     expect(() => queueInput(m, { tick: 1, kind: 'SET_AUTO_POWERS', enabled: true }))
       .toThrow('controlled team');
   });
+
+  it('restores exactly 10 condition at halftime and clamps at 100', () => {
+    const m = createMatch(42, ROVERS, UNITED, { controlledTeam: 0 });
+    m.tick = HALF_TICKS - 1;
+    m.players[1].condition = 42;
+    m.players[2].condition = 95;
+    m.players[1].outUntilTick = Number.MAX_SAFE_INTEGER;
+    m.players[2].outUntilTick = Number.MAX_SAFE_INTEGER;
+    tick(m);
+    expect(m.half).toBe(2);
+    expect(m.players[1].condition).toBe(52);
+    expect(m.players[2].condition).toBe(100);
+  });
 });
 
 describe('validateEnvelope', () => {
@@ -172,6 +185,22 @@ describe('validateEnvelope', () => {
     env.opts = { ...env.opts, controlledTeam: 0 };
     env.inputs = [{ tick: 5, kind: 'SET_AUTO_POWERS', enabled: true }];
     expect(() => validateEnvelope(env)).not.toThrow();
+  });
+
+  it('accepts a replay-recorded Energy Use change', () => {
+    const env = makeValidEnvelope();
+    env.opts = { ...env.opts, controlledTeam: 0 };
+    env.inputs = [{ tick: 5, kind: 'SET_ENERGY_USE', energyUse: 'SAVE_ENERGY' }];
+    expect(() => validateEnvelope(env)).not.toThrow();
+  });
+
+  it('rejects an invalid Energy Use change or one without a controlled team', () => {
+    const env = makeValidEnvelope();
+    env.inputs = [{ tick: 5, kind: 'SET_ENERGY_USE', energyUse: 'BALANCED' }];
+    expect(() => validateEnvelope(env)).toThrow('energy use');
+    env.opts = { ...env.opts, controlledTeam: 0 };
+    env.inputs = [{ tick: 5, kind: 'SET_ENERGY_USE', energyUse: 'MAX' as 'BALANCED' }];
+    expect(() => validateEnvelope(env)).toThrow('energy use');
   });
 
   it('rejects a non-boolean automatic-power mode', () => {

@@ -21,9 +21,25 @@ export const DEFAULT_FORMATION_PRESETS: readonly [FormationId, FormationId, Form
 export const MENTALITIES = ['BALANCED', 'ATTACK', 'PROTECT'] as const;
 export type Mentality = typeof MENTALITIES[number];
 
+export const ENERGY_USE_MODES = ['SAVE_ENERGY', 'BALANCED', 'ALL_OUT'] as const;
+export type EnergyUse = typeof ENERGY_USE_MODES[number];
+
+export const ENERGY_DRAIN_MULTIPLIER: Readonly<Record<EnergyUse, number>> = {
+  SAVE_ENERGY: 0.60,
+  BALANCED: 1.00,
+  ALL_OUT: 1.65,
+};
+
+export const ENERGY_MOVEMENT_MULTIPLIER: Readonly<Record<EnergyUse, number>> = {
+  SAVE_ENERGY: 0.90,
+  BALANCED: 1.00,
+  ALL_OUT: 1.12,
+};
+
 export interface TeamTactics {
   formation: FormationId;
   mentality: Mentality;
+  energyUse: EnergyUse;
 }
 
 export const FORMATION_LABELS: Readonly<Record<FormationId, string>> = {
@@ -110,6 +126,21 @@ export function isFormationId(value: unknown): value is FormationId {
 
 export function isMentality(value: unknown): value is Mentality {
   return typeof value === 'string' && MENTALITIES.includes(value as Mentality);
+}
+
+export function isEnergyUse(value: unknown): value is EnergyUse {
+  return typeof value === 'string' && ENERGY_USE_MODES.includes(value as EnergyUse);
+}
+
+export function energyDrainMultiplier(mode: EnergyUse): number {
+  return ENERGY_DRAIN_MULTIPLIER[mode];
+}
+
+export function energyMovementMultiplier(mode: EnergyUse, condition: number): number {
+  if (mode === 'ALL_OUT') {
+    return 1 + (ENERGY_MOVEMENT_MULTIPLIER.ALL_OUT - 1) * clamp(condition, 0, 100) / 100;
+  }
+  return ENERGY_MOVEMENT_MULTIPLIER[mode];
 }
 
 export function nextMentality(current: Mentality): Mentality {

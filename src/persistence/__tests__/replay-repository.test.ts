@@ -26,6 +26,7 @@ describe('replay repository', () => {
       { tick: 25, kind: 'SET_AUTO_POWERS', enabled: true },
       { tick: 25, kind: 'SET_FORMATION', formation: '4-3-3' },
       { tick: 25, kind: 'SET_MENTALITY', mentality: 'ATTACK' },
+      { tick: 25, kind: 'SET_ENERGY_USE', energyUse: 'ALL_OUT' },
       { tick: 30, kind: 'SUBSTITUTE', player: 8, replacementId: 'rovers-bench-1' },
       { tick: 40, kind: 'POWER_TAP', player: 9 },
     ]);
@@ -225,6 +226,7 @@ function makeEnvelope(): ReplayEnvelope {
       { tick: 25, kind: 'SET_AUTO_POWERS', enabled: true },
       { tick: 25, kind: 'SET_FORMATION', formation: '4-3-3' },
       { tick: 25, kind: 'SET_MENTALITY', mentality: 'ATTACK' },
+      { tick: 25, kind: 'SET_ENERGY_USE', energyUse: 'ALL_OUT' },
       { tick: 30, kind: 'SUBSTITUTE', player: 8, replacementId: 'rovers-bench-1' },
       { tick: 40, kind: 'POWER_TAP', player: 9 },
     ],

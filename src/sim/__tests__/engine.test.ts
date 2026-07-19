@@ -234,4 +234,49 @@ describe('condition and STA', () => {
     drainStamina(high, true);
     expect(low.condition).toBeLessThan(high.condition);
   });
+
+  it('applies Energy Use to real off-ball movement but never to carrier speed', () => {
+    const movement = (energyUse: 'SAVE_ENERGY' | 'BALANCED' | 'ALL_OUT', condition: number, playerIndex: number) => {
+      const m = createMatch(42, ROVERS, UNITED);
+      m.tactics[0].energyUse = energyUse;
+      m.players[playerIndex].condition = condition;
+      const before = { ...m.players[playerIndex].pos };
+      movementTick(m);
+      return Math.hypot(
+        m.players[playerIndex].pos.x - before.x,
+        m.players[playerIndex].pos.y - before.y,
+      );
+    };
+
+    const saved = movement('SAVE_ENERGY', 100, 5);
+    const balanced = movement('BALANCED', 100, 5);
+    const allOut = movement('ALL_OUT', 100, 5);
+    expect(saved).toBeLessThan(balanced);
+    expect(balanced).toBeLessThan(allOut);
+    expect(movement('ALL_OUT', 0, 5)).toBeCloseTo(movement('BALANCED', 0, 5), 5);
+    expect(movement('SAVE_ENERGY', 100, 9)).toBeCloseTo(movement('ALL_OUT', 100, 9), 5);
+  });
+
+  it('applies the selected Energy Use multiplier to slide-tackle condition cost', () => {
+    const slideLoss = (energyUse: 'SAVE_ENERGY' | 'BALANCED' | 'ALL_OUT') => {
+      const m = createMatch(42, ROVERS, UNITED);
+      const carrierIdx = 9;
+      const tacklerIdx = 13;
+      m.tactics[1].energyUse = energyUse;
+      m.ball = { kind: 'held', by: carrierIdx };
+      m.players[carrierIdx].pos = { x: 3400, y: 3000 };
+      m.players[tacklerIdx].pos = { x: 3400, y: 2600 };
+      m.players[tacklerIdx].condition = 90;
+      for (let index = 11; index < 22; index += 1) {
+        if (index !== tacklerIdx) m.players[index].pos = { x: 200, y: 9000 };
+      }
+      const before = m.players[tacklerIdx].condition;
+      tackleTick(m);
+      expect(m.players[tacklerIdx].slideTackle).toBeDefined();
+      return before - m.players[tacklerIdx].condition;
+    };
+
+    expect(slideLoss('SAVE_ENERGY')).toBeLessThan(slideLoss('BALANCED'));
+    expect(slideLoss('BALANCED')).toBeLessThan(slideLoss('ALL_OUT'));
+  });
 });

@@ -11,7 +11,7 @@ The match is a live simulation: 22 agents making stat-driven decisions, with a d
 - Same seed + same inputs → byte-identical match. This buys replays that match reality, identical behavior across iPhone/Android/PC, reproducible bugs, and the Monte Carlo balance harness (doc 09).
 - Same seed + different tap timing → a genuinely different match. Involvement is real.
 
-**Quick Result** runs the same engine with every hero on their pre-set auto behavior and no manual taps — a fair playing-out of the match, not a prediction of what watching would have produced. Watching and tapping well earns a modest edge (better power timing), by design: attention is rewarded; simming only forgoes that edge, never gets punished beyond it.
+**Quick Result** runs the same engine with every hero on their pre-set auto behavior and no manual taps — a fair playing-out of the match, not a prediction of what watching would have produced. Both teams also use the engine's deterministic automatic substitutions and Energy Use decisions; in a watched match, only the opponent is auto-coached. Watching and tapping well earns a modest edge (better power timing), by design: attention is rewarded; simming only forgoes that edge, never gets punished beyond it.
 
 ## Simulation core
 
@@ -24,7 +24,7 @@ The match is a live simulation: 22 agents making stat-driven decisions, with a d
 
 Each of the 22 agents runs a small role state machine every few ticks:
 
-- **Ball carrier**: choose dribble / pass / shoot, weighted by stats, position, pressure, formation, and mentality (Balanced / Attack / Protect).
+- **Ball carrier**: choose dribble / pass / shoot, weighted by stats, position, pressure, formation, and Playstyle (Balanced / Attack / Protect; called `Mentality` internally).
 - **Teammates**: make runs, offer passing lanes (formation anchors + ball-side drift).
 - **Defenders**: mark, press, attempt tackles when in range.
 - **GK**: positioning, save attempts, distribution.
@@ -44,7 +44,21 @@ P(success) = 1 / (1 + e^(-(attacker_stat − defender_stat + situation_mod) / 12
 - **Dribble past**: TEC (+PAC bonus if sprinting) vs. DEF.
 - **Pass**: PAS vs. distance/pressure threshold; interception check vs. nearest defender's DEF.
 - **Shot**: SHO vs. a difficulty score (distance, angle, pressure) produces shot power → GK save roll (REF) modified by **GK Resolve** (below).
-- **Stamina**: drains per sprint/action; low STA scales all stats down up to −25% late in the match. Carries over partially between matches — rotation matters.
+- **Stamina**: condition drains through movement and exhausting actions; low STA multiplies that cost, so weak beginner players tire materially faster. Low condition scales all stats down by up to −25% late in the match. In the opening squads, an unchanged starting XI playing on Balanced is tuned to finish across **0–60%**, with its worst player reaching approximately zero only late in the match. Between-match condition carryover remains a separate career-layer feature and is not part of m1.4.
+
+### Playstyle, Energy Use, and fatigue
+
+These are independent coaching axes. **Playstyle** controls tactical intent — Attack, Balanced, or Protect — while **Energy Use** controls how hard the team works to execute it. Energy Use changes off-ball movement, pressing, recovery and support effort; it never directly improves passing, shooting, action selection, raw attributes, or formation targets.
+
+| Energy Use | Off-ball movement | Condition drain |
+|---|---:|---:|
+| Save Energy | ×0.90 | ×0.60 |
+| Balanced | ×1.00 | ×1.00 |
+| All Out | up to ×1.12 | ×1.65 |
+
+The All Out movement bonus fades with current condition and reaches no bonus at zero, so an exhausted player cannot keep a free speed advantage. Every match starts Balanced. User changes in watched matches are timestamped replay inputs; automatic teams make deterministic, RNG-free choices from the current score, time, lineups, bench, substitutions used, and team condition.
+
+Each team retains the three-substitution limit. The watched player's substitutions remain manual. The opponent evaluates at roughly 55, 70, and 80 minutes and may make at most one same-role outfield substitution at each checkpoint. It selects the most tired eligible outfielder at or below 60%, then substitutes only when the best fresh reserve in that role is worth at least three more condition-adjusted role points. It never spends a routine fatigue substitution on the goalkeeper. Quick Result applies this same policy to both teams. Automatic Energy Use is reconsidered at roughly 65, 75, and 85 minutes: a team averaging 35% condition or less chooses Save Energy whenever no usable automatic fatigue substitution remains — whether the limit is reached or bench, role, or value constraints prevent one. Otherwise a trailing team chooses All Out, a leader chooses Save Energy from minute 75 onward, and a level team stays Balanced. Automatic coaching is regenerated from match state during replay rather than recorded as a fake user input.
 
 ### GK Resolve (the anti-frustration keystone)
 
@@ -69,11 +83,11 @@ A power is a **timed modifier burst** the sim applies to one agent (details in d
 - All cut-ins are **tap-to-skip after first viewing per power** (three games got the same review complaint about unskippable spectacle; we won't).
 - Speed controls: ×1 / ×2, pause. **Quick Result** available for every match from day one (Retro Bowl's per-match Sim pattern) — produces the same result as watching, plus a highlights ticker and optional "watch goals only" replay.
 - Goal celebration: 2s banner + crowd burst, skippable. Broadcast dressing: scoreboard bug top-center, match clock, division-colored lower third.
-- Match HUD: a fixed bottom-left name + live energy card shows the current carrier and retains the last carrier while the ball travels; glowing home heroes are tapped directly on the pitch; bottom coaching bar cycles the three selected formations, cycles mentality, and opens Swap; speed/pause remain by the scoreboard. Rival heroes always run automatically.
+- Match HUD: a fixed bottom-left name + live energy card shows the current carrier and retains the last carrier while the ball travels; glowing home heroes are tapped directly on the pitch. The first coaching row exposes Formation, Playstyle, and Swap; a second full-width row directly selects Save Energy, Balanced, or All Out and shows Team Energy. Swap cards show numeric energy with green (`>60`), amber (`31–60`), and red (`0–30`) states. Its dynamic `N TIRED` prompt counts current on-field players at or below **40%** — for example, `3 TIRED · 0/3` — so exhausted off-ball players are visible before opening Swap. The count is only a UI prompt, not a separate mechanic or the AI's 60% substitution threshold. Speed/pause remain by the scoreboard. Rival heroes always run automatically.
 
 ## Halftime
 
-15-second interstitial (skippable): score, shot count, Resolve status, and hero gauges. Coaching is not limited to halftime: formation, mentality, and up to three substitutions can be changed during live play, and every change is recorded in the deterministic replay input stream.
+15-second interstitial (skippable): score, shot count, Resolve status, and hero gauges. Every on-field player recovers exactly **+10 condition**, capped at 100. Coaching is not limited to halftime: Formation, Playstyle, Energy Use, and up to three substitutions can be changed during live play, and every user change is recorded in the deterministic replay input stream.
 
 ## Outputs
 

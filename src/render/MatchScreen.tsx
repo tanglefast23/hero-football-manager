@@ -29,11 +29,18 @@ import { playHapticForEvent } from './haptics';
 import { FormationDiagram } from '../ui/components/FormationDiagram';
 import {
   DEFAULT_FORMATION_PRESETS,
+  ENERGY_USE_MODES,
   FORMATION_LABELS,
   nextFormation,
   nextMentality,
   type FormationId,
 } from '../sim/tactics';
+import {
+  ENERGY_USE_ACCESSIBILITY,
+  ENERGY_USE_LABELS,
+  energyBand,
+  summarizeTeamEnergy,
+} from './match-energy-ui';
 import {
   initAudio,
   playForEvent,
@@ -149,8 +156,19 @@ export function MatchScreen({
   pausedExternally?: boolean;
   onDone: (state: MatchState) => void;
 }) {
-  const { width } = useWindowDimensions();
-  const scale = width / PITCH_W;
+  const { width, height } = useWindowDimensions();
+  const compactHeight = height < 760;
+  const narrowWidth = width < 375;
+  // Keep the pitch and both coaching rows visible on short phones. Decorative
+  // chrome compresses first; all controls retain at least a 44pt touch target.
+  // FormationDiagram's compact artwork is 62pt tall, so that first row is
+  // taller than coachButtonCompact's 52pt minimum. Reserve the rows' measured
+  // content height rather than their minimums or the Energy Use row can fall
+  // below the viewport on short phones.
+  const reservedChromeHeight = compactHeight ? 226 : 286;
+  const availablePitchHeight = Math.max(280, height - reservedChromeHeight);
+  const pitchWidth = Math.min(width, availablePitchHeight * PITCH_W / PITCH_H);
+  const scale = pitchWidth / PITCH_W;
   const pitchH = PITCH_H * scale;
   const homeCode = scoreCode(home);
   const awayCode = scoreCode(away);
@@ -415,7 +433,14 @@ export function MatchScreen({
         }
         if (e.kind === 'MENTALITY_CHANGED' && e.team === controlledTeam) {
           bannerRef.current = {
-            text: `MENTALITY · ${e.mentality}`,
+            text: `PLAYSTYLE · ${e.mentality}`,
+            untilTick: e.t + FLASH_TICKS,
+            tone: 'blue',
+          };
+        }
+        if (e.kind === 'ENERGY_USE_CHANGED' && e.team === controlledTeam) {
+          bannerRef.current = {
+            text: `ENERGY USE · ${ENERGY_USE_LABELS[e.energyUse]}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
           };
@@ -644,6 +669,9 @@ export function MatchScreen({
 
   const teamOffset = controlledTeam === 0 ? 0 : 11;
   const onFieldIndices = Array.from({ length: 11 }, (_, slot) => teamOffset + slot);
+  const activeOnFieldIndices = onFieldIndices.filter(
+    (index) => match.players[index].outReason !== 'redcard',
+  );
   const currentTactics = match.tactics[controlledTeam];
   const pendingFormation = [...match.pendingInputs].reverse().find(
     (input) => input.kind === 'SET_FORMATION',
@@ -651,12 +679,18 @@ export function MatchScreen({
   const pendingMentality = [...match.pendingInputs].reverse().find(
     (input) => input.kind === 'SET_MENTALITY',
   );
+  const pendingEnergyUse = [...match.pendingInputs].reverse().find(
+    (input) => input.kind === 'SET_ENERGY_USE',
+  );
   const displayedFormation = pendingFormation?.kind === 'SET_FORMATION'
     ? pendingFormation.formation
     : currentTactics.formation;
   const displayedMentality = pendingMentality?.kind === 'SET_MENTALITY'
     ? pendingMentality.mentality
     : currentTactics.mentality;
+  const displayedEnergyUse = pendingEnergyUse?.kind === 'SET_ENERGY_USE'
+    ? pendingEnergyUse.energyUse
+    : currentTactics.energyUse;
   const carrierIndex = retainedCarrierIndex(frame.carrier, lastCarrierRef.current);
   useEffect(() => {
     if (frame.carrier >= 0) lastCarrierRef.current = frame.carrier;
@@ -668,6 +702,16 @@ export function MatchScreen({
     : match.bench[controlledTeam].find((player) => player.id === selectedIncoming) ?? null;
   const bench = match.bench[controlledTeam];
   const substitutionsUsed = match.substitutionsUsed[controlledTeam];
+  const substitutionsRemaining = Math.max(0, 3 - substitutionsUsed);
+  const { average: teamEnergy, tiredCount } = summarizeTeamEnergy(
+    activeOnFieldIndices.map((index) => match.players[index].condition),
+  );
+  const teamEnergyBand = energyBand(teamEnergy);
+  const swapDisabled = match.phase === 'fulltime' || substitutionsUsed >= 3 || bench.length === 0;
+  const coachingDisabled = match.phase === 'fulltime';
+  const swapSecondary = tiredCount > 0
+    ? `${tiredCount} TIRED · ${substitutionsUsed}/3`
+    : `${substitutionsUsed}/3 USED`;
 
   const surname = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -676,7 +720,7 @@ export function MatchScreen({
   const initials = (name: string) => name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
   const openSwap = () => {
-    if (substitutionsUsed >= 3 || bench.length === 0) return;
+    if (match.phase === 'fulltime' || substitutionsUsed >= 3 || bench.length === 0) return;
     setSelectedOutgoing(null);
     setSelectedIncoming(null);
     setSwapOpen(true);
@@ -702,6 +746,7 @@ export function MatchScreen({
   };
 
   const toggleAutoPowers = () => {
+    if (match.phase === 'fulltime') return;
     const enabled = !autoPowers;
     queueInput(match, {
       tick: match.tick + 1,
@@ -717,7 +762,11 @@ export function MatchScreen({
   return (
     <View style={styles.root}>
       <Pressable
-        style={[styles.scorebar, hudSide === 'right' ? styles.scorebarFlipped : null]}
+        style={[
+          styles.scorebar,
+          compactHeight ? styles.scorebarCompact : null,
+          hudSide === 'right' ? styles.scorebarFlipped : null,
+        ]}
         onPress={() => {
           automaticPauseReasonsRef.current.delete('background');
           userPausedRef.current = !pausedRef.current;
@@ -735,10 +784,11 @@ export function MatchScreen({
         </View>
         <View style={styles.controls}>
           <Pressable
-            style={styles.ctrlButton}
+            style={[styles.ctrlButton, coachingDisabled ? styles.coachButtonDisabled : null]}
             accessibilityRole="switch"
             accessibilityLabel={`Superpower control ${autoPowers ? 'automatic' : 'manual'}. Tap for ${autoPowers ? 'manual' : 'automatic'}.`}
-            accessibilityState={{ checked: autoPowers }}
+            accessibilityState={{ checked: autoPowers, disabled: coachingDisabled }}
+            disabled={coachingDisabled}
             hitSlop={10}
             onPress={toggleAutoPowers}
           >
@@ -765,8 +815,8 @@ export function MatchScreen({
           ) : null}
         </View>
       </Pressable>
-      <View style={{ width, height: pitchH }}>
-        <Canvas style={{ width, height: pitchH }}>
+      <View style={{ width: pitchWidth, height: pitchH, alignSelf: 'center' }}>
+        <Canvas style={{ width: pitchWidth, height: pitchH }}>
         {/* Pitch base = pixel-bible pitch-dark (#3f8a4a); Pitch.tsx paints the
             brighter base #5cb85c on alternating mow bands over it. */}
         <Fill color="#3f8a4a" />
@@ -882,7 +932,8 @@ export function MatchScreen({
             <View style={styles.energyTrack}>
               <View style={[
                 styles.energyFill,
-                carrier.condition <= 30 ? styles.energyFillLow : null,
+                energyBand(carrier.condition) === 'amber' ? styles.energyFillMedium : null,
+                energyBand(carrier.condition) === 'red' ? styles.energyFillLow : null,
                 { width: `${Math.max(0, Math.min(100, carrier.condition))}%` },
               ]} />
             </View>
@@ -920,56 +971,127 @@ export function MatchScreen({
           {hud.banner}
         </Text>
       ) : null}
-      <View style={styles.coachBar}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Formation ${displayedFormation}. Tap for next match formation.`}
-          style={styles.coachButton}
-          onPress={() => {
-            const formation = nextFormation(displayedFormation, formationPresets);
-            queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
-            const text = `${formation} · ${FORMATION_LABELS[formation].toUpperCase()}`;
-            bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'blue' };
-            setHud((current) => ({ ...current, banner: text, bannerTone: 'blue' }));
-          }}
-        >
-          <FormationDiagram formation={displayedFormation} compact inverted />
-          <View style={styles.coachCopy}>
-            <Text style={styles.coachLabel}>FORMATION</Text>
-            <Text style={styles.coachValue}>{displayedFormation}</Text>
+      <View style={[styles.coachingDock, compactHeight ? styles.coachingDockCompact : null]}>
+        <View style={styles.coachBar}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Formation ${displayedFormation}. Tap for next match formation.`}
+            accessibilityState={{ disabled: coachingDisabled }}
+            disabled={coachingDisabled}
+            style={[
+              styles.coachButton,
+              compactHeight ? styles.coachButtonCompact : null,
+              coachingDisabled ? styles.coachButtonDisabled : null,
+            ]}
+            onPress={() => {
+              const formation = nextFormation(displayedFormation, formationPresets);
+              queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
+              const text = `${formation} · ${FORMATION_LABELS[formation].toUpperCase()}`;
+              bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'blue' };
+              setHud((current) => ({ ...current, banner: text, bannerTone: 'blue' }));
+            }}
+          >
+            <FormationDiagram formation={displayedFormation} compact inverted />
+            <View style={styles.coachCopy}>
+              <Text style={styles.coachLabel}>FORMATION</Text>
+              <Text style={styles.coachValue}>{displayedFormation}</Text>
+            </View>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Playstyle ${displayedMentality}. Tap for next playstyle.`}
+            accessibilityState={{ disabled: coachingDisabled }}
+            disabled={coachingDisabled}
+            style={[
+              styles.coachButton,
+              compactHeight ? styles.coachButtonCompact : null,
+              coachingDisabled ? styles.coachButtonDisabled : null,
+            ]}
+            onPress={() => {
+              const mentality = nextMentality(displayedMentality);
+              queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
+              const text = `PLAYSTYLE · ${mentality}`;
+              bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'blue' };
+              setHud((current) => ({ ...current, banner: text, bannerTone: 'blue' }));
+            }}
+          >
+            <Text style={styles.mentalityIcon}>{displayedMentality === 'ATTACK' ? '▲' : displayedMentality === 'PROTECT' ? '▼' : '◆'}</Text>
+            <View style={styles.coachCopy}>
+              <Text style={styles.coachLabel}>PLAYSTYLE</Text>
+              <Text style={styles.coachValue}>{displayedMentality}</Text>
+            </View>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Swap players. ${tiredCount === 0 ? 'No tired players.' : `${tiredCount} tired players.`} ${substitutionsRemaining} substitutions remaining.`}
+            accessibilityState={{ disabled: swapDisabled }}
+            disabled={swapDisabled}
+            style={[
+              styles.coachButton,
+              compactHeight ? styles.coachButtonCompact : null,
+              swapDisabled
+                ? (tiredCount > 0 ? styles.coachButtonDisabledReadable : styles.coachButtonDisabled)
+                : null,
+            ]}
+            onPress={openSwap}
+          >
+            <Text style={styles.swapIcon}>⇄</Text>
+            <View style={styles.coachCopy}>
+              <Text style={styles.coachLabel}>SWAP</Text>
+              <Text numberOfLines={1} style={[styles.coachValue, tiredCount > 0 ? styles.tiredValue : null]}>
+                {swapSecondary}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+        <View style={[styles.energyUseRow, compactHeight ? styles.energyUseRowCompact : null]}>
+          <View style={styles.energyUseHeader}>
+            <Text style={styles.energyUseTitle}>ENERGY USE</Text>
+            <Text
+              style={[
+                styles.teamEnergy,
+                teamEnergyBand === 'amber' ? styles.energyTextMedium : null,
+                teamEnergyBand === 'red' ? styles.energyTextLow : null,
+              ]}
+            >
+              TEAM ENERGY {teamEnergy}%
+            </Text>
           </View>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Mentality ${displayedMentality}. Tap for next mentality.`}
-          style={styles.coachButton}
-          onPress={() => {
-            const mentality = nextMentality(displayedMentality);
-            queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
-            const text = `MENTALITY · ${mentality}`;
-            bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'blue' };
-            setHud((current) => ({ ...current, banner: text, bannerTone: 'blue' }));
-          }}
-        >
-          <Text style={styles.mentalityIcon}>{displayedMentality === 'ATTACK' ? '▲' : displayedMentality === 'PROTECT' ? '▼' : '◆'}</Text>
-          <View style={styles.coachCopy}>
-            <Text style={styles.coachLabel}>MENTALITY</Text>
-            <Text style={styles.coachValue}>{displayedMentality}</Text>
+          <View style={styles.energySegments}>
+            {ENERGY_USE_MODES.map((mode) => {
+              const selected = displayedEnergyUse === mode;
+              return (
+                <Pressable
+                  key={mode}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${ENERGY_USE_LABELS[mode]}. ${ENERGY_USE_ACCESSIBILITY[mode]}`}
+                  accessibilityState={{ selected, disabled: coachingDisabled }}
+                  disabled={coachingDisabled}
+                  style={[
+                    styles.energySegment,
+                    narrowWidth ? styles.energySegmentNarrow : null,
+                    selected ? styles.energySegmentSelected : null,
+                    selected && mode === 'SAVE_ENERGY' ? styles.energySegmentSave : null,
+                    selected && mode === 'BALANCED' ? styles.energySegmentBalanced : null,
+                    selected && mode === 'ALL_OUT' ? styles.energySegmentAllOut : null,
+                    coachingDisabled ? styles.coachButtonDisabled : null,
+                  ]}
+                  onPress={() => {
+                    if (mode === displayedEnergyUse) return;
+                    queueInput(match, { tick: match.tick + 1, kind: 'SET_ENERGY_USE', energyUse: mode });
+                    const text = `ENERGY USE · ${ENERGY_USE_LABELS[mode]}`;
+                    bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'blue' };
+                    setHud((current) => ({ ...current, banner: text, bannerTone: 'blue' }));
+                  }}
+                >
+                  <Text style={[styles.energySegmentText, selected ? styles.energySegmentTextSelected : null]}>
+                    {ENERGY_USE_LABELS[mode]}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Swap players. ${substitutionsUsed} of 3 substitutions used.`}
-          disabled={substitutionsUsed >= 3 || bench.length === 0}
-          style={[styles.coachButton, substitutionsUsed >= 3 || bench.length === 0 ? styles.coachButtonDisabled : null]}
-          onPress={openSwap}
-        >
-          <Text style={styles.swapIcon}>⇄</Text>
-          <View style={styles.coachCopy}>
-            <Text style={styles.coachLabel}>SWAP</Text>
-            <Text style={styles.coachValue}>{substitutionsUsed}/3 USED</Text>
-          </View>
-        </Pressable>
+        </View>
       </View>
       {swapOpen ? (
         <View style={styles.swapOverlay}>
@@ -987,12 +1109,20 @@ export function MatchScreen({
               {onFieldIndices.map((index, slot) => {
                 const player = match.players[index];
                 const selected = selectedOutgoing === index;
+                const sentOff = player.outReason === 'redcard';
                 return (
                   <Pressable
                     key={player.def.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${player.def.name}, ${Math.round(player.condition)} percent energy`}
-                    style={[styles.playerCard, selected ? styles.playerCardSelected : null]}
+                    accessibilityLabel={sentOff
+                      ? `${player.def.name}, sent off and unavailable`
+                      : `${player.def.name}, ${Math.round(player.condition)} percent energy`}
+                    disabled={sentOff}
+                    style={[
+                      styles.playerCard,
+                      selected ? styles.playerCardSelected : null,
+                      sentOff ? styles.benchCardDisabled : null,
+                    ]}
                     onPress={() => {
                       setSelectedOutgoing(index);
                       setSelectedIncoming(null);
@@ -1006,10 +1136,18 @@ export function MatchScreen({
                     <View style={styles.cardEnergyTrack}>
                       <View style={[
                         styles.cardEnergyFill,
-                        player.condition <= 30 ? styles.energyFillLow : null,
+                        energyBand(player.condition) === 'amber' ? styles.energyFillMedium : null,
+                        energyBand(player.condition) === 'red' ? styles.energyFillLow : null,
                         { width: `${Math.max(0, Math.min(100, player.condition))}%` },
                       ]} />
                     </View>
+                    <Text style={[
+                      styles.cardEnergyText,
+                      energyBand(player.condition) === 'amber' ? styles.energyTextMedium : null,
+                      energyBand(player.condition) === 'red' ? styles.energyTextLow : null,
+                    ]}>
+                      {Math.round(player.condition)}%
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -1039,6 +1177,7 @@ export function MatchScreen({
                     </View>
                     <Text numberOfLines={1} style={styles.playerSurname}>{surname(player.name)}</Text>
                     <Text style={styles.roleLabel}>{player.role}</Text>
+                    <Text style={[styles.cardEnergyText, styles.benchEnergyText]}>100%</Text>
                   </Pressable>
                 );
               })}
@@ -1050,7 +1189,15 @@ export function MatchScreen({
                 <Text numberOfLines={1} style={styles.selectionName}>
                   {selectedOutgoingPlayer?.def.name ?? 'Select player'}
                 </Text>
-                <Text style={styles.selectionEnergy}>
+                <Text style={[
+                  styles.selectionEnergy,
+                  selectedOutgoingPlayer && energyBand(selectedOutgoingPlayer.condition) === 'amber'
+                    ? styles.energyTextMedium
+                    : null,
+                  selectedOutgoingPlayer && energyBand(selectedOutgoingPlayer.condition) === 'red'
+                    ? styles.energyTextLow
+                    : null,
+                ]}>
                   {selectedOutgoingPlayer ? `${Math.round(selectedOutgoingPlayer.condition)}% ENERGY` : '—'}
                 </Text>
               </View>
@@ -1102,6 +1249,7 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 12,
   },
+  scorebarCompact: { paddingTop: 24, paddingBottom: 6 },
   scorebarFlipped: { flexDirection: 'row-reverse' },
   // Scoreboard "bug": a lighter ink-soft pill on the ink canvas, outlined in
   // ink with a thicker bottom lip for a raised, pressable-panel read.
@@ -1168,7 +1316,10 @@ const styles = StyleSheet.create({
   carrierEnergy: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
   energyTrack: { height: 4, backgroundColor: '#3a3350', marginTop: 4, overflow: 'hidden' },
   energyFill: { height: 4, backgroundColor: '#65b96e' },
+  energyFillMedium: { backgroundColor: '#edb54a' },
   energyFillLow: { backgroundColor: '#d94f52' },
+  energyTextMedium: { color: '#edb54a' },
+  energyTextLow: { color: '#f06b6e' },
   heroTapTarget: {
     position: 'absolute',
     zIndex: 6,
@@ -1187,17 +1338,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
+  coachingDock: {
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
+    backgroundColor: '#241f2e',
+  },
+  coachingDockCompact: { paddingTop: 4, paddingBottom: 6, gap: 4 },
   coachBar: {
     flexDirection: 'row',
     gap: 6,
-    paddingHorizontal: 8,
-    paddingTop: 10,
-    paddingBottom: 16,
-    backgroundColor: '#241f2e',
   },
   coachButton: {
     flex: 1,
-    minHeight: 76,
+    minHeight: 64,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1211,12 +1366,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 5,
   },
+  coachButtonCompact: { minHeight: 52, borderBottomWidth: 4, paddingVertical: 2 },
   coachButtonDisabled: { opacity: 0.38 },
+  coachButtonDisabledReadable: { opacity: 0.68 },
   coachCopy: { flexShrink: 1, alignItems: 'flex-start' },
   coachLabel: { color: '#bcb7c4', fontSize: 8, fontWeight: 'bold' },
   coachValue: { color: '#f4f1ea', fontSize: 11, fontWeight: 'bold', marginTop: 3 },
   mentalityIcon: { color: '#70b879', fontSize: 28, fontWeight: 'bold' },
   swapIcon: { color: '#77a4d8', fontSize: 30, fontWeight: 'bold' },
+  tiredValue: { color: '#edb54a', fontSize: 9 },
+  energyUseRow: {
+    backgroundColor: '#2d283c',
+    borderWidth: 2,
+    borderColor: '#6b6675',
+    borderBottomWidth: 4,
+    borderBottomColor: '#16121f',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingTop: 4,
+    paddingBottom: 5,
+  },
+  energyUseRowCompact: { paddingTop: 2, paddingBottom: 3 },
+  energyUseHeader: {
+    minHeight: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+    marginBottom: 3,
+  },
+  energyUseTitle: { color: '#bcb7c4', fontSize: 8, fontWeight: 'bold', letterSpacing: 0.6 },
+  teamEnergy: {
+    color: '#65b96e',
+    fontSize: 9,
+    fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
+  },
+  energySegments: { flexDirection: 'row', gap: 4 },
+  energySegment: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3a3350',
+    borderWidth: 2,
+    borderColor: '#49415f',
+    borderBottomWidth: 3,
+    borderBottomColor: '#16121f',
+    borderRadius: 3,
+    paddingHorizontal: 4,
+  },
+  energySegmentNarrow: { paddingHorizontal: 1 },
+  energySegmentSelected: { borderColor: '#f4f1ea', borderBottomColor: '#f4f1ea' },
+  energySegmentSave: { backgroundColor: '#35618e' },
+  energySegmentBalanced: { backgroundColor: '#4f6753' },
+  energySegmentAllOut: { backgroundColor: '#a83440' },
+  energySegmentText: { color: '#bcb7c4', fontSize: 9, fontWeight: 'bold', textAlign: 'center' },
+  energySegmentTextSelected: { color: '#f4f1ea' },
   swapOverlay: {
     position: 'absolute',
     top: 0,
@@ -1298,6 +1504,14 @@ const styles = StyleSheet.create({
   roleLabel: { color: '#77a4d8', fontSize: 7, fontWeight: 'bold', marginTop: 1 },
   cardEnergyTrack: { width: 38, height: 3, backgroundColor: '#16121f', marginTop: 3, overflow: 'hidden' },
   cardEnergyFill: { height: 3, backgroundColor: '#65b96e' },
+  cardEnergyText: {
+    color: '#65b96e',
+    fontSize: 7,
+    fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
+    marginTop: 2,
+  },
+  benchEnergyText: { color: '#65b96e' },
   swapSelection: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -216,6 +216,9 @@ export function homeViewModel(state: GameState): HomeViewModel {
     managerName: 'Boss',
     seasonLabel: `Season ${state.season} / 2`,
     weekLabel: `Week ${state.week} / 30`,
+    nextMatchTimingLabel: nextFixture === undefined
+      ? state.phase === 'complete' ? 'Complete' : 'Season end'
+      : `In ${nextFixture.week} week${nextFixture.week === 1 ? '' : 's'}`,
     form: recentForm(state),
     resources: {
       money: userClub.cash,

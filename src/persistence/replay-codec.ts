@@ -108,6 +108,11 @@ const inputSchema = z.discriminatedUnion('kind', [
   }).passthrough(),
   z.object({
     tick: positiveInteger,
+    kind: z.literal('SET_ENERGY_USE'),
+    energyUse: z.enum(['SAVE_ENERGY', 'BALANCED', 'ALL_OUT']),
+  }).passthrough(),
+  z.object({
+    tick: positiveInteger,
     kind: z.literal('SUBSTITUTE'),
     player: nonnegativeInteger,
     replacementId: nonemptyString,

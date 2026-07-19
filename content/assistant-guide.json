@@ -49,7 +49,7 @@
           "kicker": "Your main desk",
           "title": "Read it first",
           "body": [
-            "When you're unsure, come HOME. Read NEXT ASSIGNMENT and NEEDS YOUR CALL. That desk tells you what matters today.",
+            "When you're unsure, come HOME. Read NEXT MATCH and NEEDS YOUR CALL. That desk tells you what matters today.",
             "Someone like you should manage that much. Probably."
           ],
           "focus": "desk",
@@ -80,7 +80,7 @@
           "kicker": "Bert returns",
           "title": "Back to your desk",
           "body": [
-            "Not hopeless. Read NEXT ASSIGNMENT and NEEDS YOUR CALL. If the desk is clear, ADVANCE WEEK.",
+            "Not hopeless. Read NEXT MATCH and NEEDS YOUR CALL. If the desk is clear, ADVANCE WEEK.",
             "For someone like you, reading the desk before touching things will save us all a great deal of paperwork."
           ],
           "focus": "desk",

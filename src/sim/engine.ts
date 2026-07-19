@@ -3,7 +3,7 @@ import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, HALF_TICKS, PITC
 import { emit } from './events';
 import { contest, contestProbability } from './contest';
 import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut, STRENGTH_LOCK_RANGE } from './powers';
-import { formationTarget, mentalityTarget } from './tactics';
+import { energyDrainMultiplier, energyMovementMultiplier, formationTarget, mentalityTarget, type EnergyUse } from './tactics';
 import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 
 export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut };
@@ -57,17 +57,26 @@ export function ballPos(state: MatchState): Vec {
   return b.kind === 'held' ? state.players[b.by].pos : b.pos;
 }
 
-export function drainStamina(p: SimPlayer, movedFar: boolean): void {
+export const ORDINARY_CONDITION_COST = 0.0205;
+export const SPRINT_CONDITION_COST = 0.058;
+
+export function drainStamina(p: SimPlayer, movedFar: boolean, energyUse: EnergyUse = 'BALANCED'): void {
   // The design-pinned comparison is STA 40 => 1.36x drain and STA 80 =>
   // 1.12x. Condition affects speed plus every contested action exactly once.
   const enduranceScale = 1.6 - p.def.attrs.sta * 0.006;
-  const cost = (movedFar ? 0.02 : 0.005) * enduranceScale;
+  const cost = (movedFar ? SPRINT_CONDITION_COST : ORDINARY_CONDITION_COST)
+    * enduranceScale
+    * energyDrainMultiplier(energyUse);
   p.condition = Math.max(0, p.condition - cost);
 }
 
-function drainSlideCondition(p: SimPlayer): void {
+function drainSlideCondition(p: SimPlayer, energyUse: EnergyUse): void {
   const drainMultiplier = 1 + 0.6 * (100 - p.def.attrs.sta) / 100;
-  p.condition = clamp(p.condition - SLIDE_TACKLE_CONDITION_COST * drainMultiplier, 0, 100);
+  p.condition = clamp(
+    p.condition - SLIDE_TACKLE_CONDITION_COST * drainMultiplier * energyDrainMultiplier(energyUse),
+    0,
+    100,
+  );
 }
 
 export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
@@ -225,9 +234,11 @@ export function movementTick(state: MatchState): void {
     // sprint. The slower dribble also gives pressing and passing decisions time
     // to read on a 3-4 minute match instead of producing a shot every few seconds.
     const carrying = state.ball.kind === 'held' && state.ball.by === i;
-    const movementSpeed = carrying ? Math.round(speedFor(state, i) * CARRIER_SPEED_SCALE) : speedFor(state, i);
+    const movementSpeed = carrying
+      ? Math.round(speedFor(state, i) * CARRIER_SPEED_SCALE)
+      : Math.round(speedFor(state, i) * energyMovementMultiplier(state.tactics[p.team].energyUse, p.condition));
     p.pos = moveToward(p.pos, target, movementSpeed);
-    drainStamina(p, dist2(before, p.pos) > 6400);
+    drainStamina(p, dist2(before, p.pos) > 6400, state.tactics[p.team].energyUse);
   }
 }
 
@@ -748,7 +759,7 @@ function startSlide(state: MatchState, tacklerIdx: number, carrierIdx: number, d
     targetPreviousPos: { ...carrier.pos },
   };
   tackler.tackleCooldownUntil = state.tick + SLIDE_TACKLE_COOLDOWN_TICKS;
-  drainSlideCondition(tackler);
+  drainSlideCondition(tackler, state.tactics[tackler.team].energyUse);
   addGauge(state, tacklerIdx, 3);
   emit(state, { t: state.tick, kind: 'SLIDE_STARTED', by: tacklerIdx, on: carrierIdx, direction: { ...direction }, untilTick });
 }

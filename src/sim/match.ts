@@ -3,12 +3,14 @@ import { HALF_TICKS } from './geometry';
 import { emit } from './events';
 import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTick } from './engine';
 import { powerTick } from './powers';
-import { isFormationId, isMentality } from './tactics';
+import { applyAutomaticCoaching } from './auto-coaching';
+import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
+import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.3 adds replayable live manual/automatic power-mode switching to m1.2's
-// SHO/Resolve scoring-tail tuning, committed slide tackles, and coaching inputs.
-export const ENGINE_VERSION = 'm1.3';
+// m1.4 adds replayable Energy Use, materially stronger stamina drain, and
+// deterministic automatic coaching/substitutions for uncontrolled teams.
+export const ENGINE_VERSION = 'm1.4';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -20,7 +22,7 @@ const VALID_ROLES: ReadonlySet<Role> = new Set(['GK', 'DEF', 'MID', 'FWD']);
 const VALID_POWER_IDS: ReadonlySet<string> = new Set(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']);
 const VALID_FIRE_POLICIES: ReadonlySet<string> = new Set(['SAVE_FOR_TAP', 'FIRE_WHEN_READY']);
 const ATTR_KEYS: ReadonlyArray<keyof Attrs> = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'];
-export const MAX_SUBSTITUTIONS = 3;
+export { MAX_SUBSTITUTIONS } from './substitutions';
 
 function deepCopyTeam(t: TeamDef): TeamDef {
   return {
@@ -65,8 +67,8 @@ export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: Ma
     // resets it properly for the opening kickoff.
     movement: { phase: 0, blendFrom: 0, blendStartTick: 0, presserIdx: -1, presserSinceTick: 0 },
     tactics: [
-      { formation: optsCopy.homeFormation ?? '4-4-2', mentality: 'BALANCED' },
-      { formation: optsCopy.awayFormation ?? '4-4-2', mentality: 'BALANCED' },
+      { formation: optsCopy.homeFormation ?? '4-4-2', mentality: 'BALANCED', energyUse: 'BALANCED' },
+      { formation: optsCopy.awayFormation ?? '4-4-2', mentality: 'BALANCED', energyUse: 'BALANCED' },
     ],
     bench: [teams[0].bench?.map(deepCopyPlayerDef) ?? [], teams[1].bench?.map(deepCopyPlayerDef) ?? []],
     substitutionsUsed: [0, 0],
@@ -105,6 +107,9 @@ export function queueInput(state: MatchState, input: MatchInput): void {
   } else if (input.kind === 'SET_MENTALITY') {
     requireControlledTeam(state);
     if (!isMentality(input.mentality)) throw new Error(`invalid mentality ${String(input.mentality)}`);
+  } else if (input.kind === 'SET_ENERGY_USE') {
+    requireControlledTeam(state);
+    if (!isEnergyUse(input.energyUse)) throw new Error(`invalid energy use ${String(input.energyUse)}`);
   } else if (input.kind === 'SUBSTITUTE') {
     validateSubstitutionInput(state, input);
   }
@@ -137,6 +142,9 @@ function validateSubstitutionInput(
   const replacement = state.bench[controlled].find(player => player.id === input.replacementId);
   if (replacement === undefined) throw new Error(`substitution replacement ${input.replacementId} is not available`);
   const outgoing = state.players[input.player];
+  if (outgoing.outReason === 'redcard') {
+    throw new Error('a sent-off player cannot be substituted');
+  }
   if ((outgoing.def.role === 'GK') !== (replacement.role === 'GK')) {
     throw new Error('goalkeepers may only be swapped with another goalkeeper');
   }
@@ -176,39 +184,13 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
     emit(state, { t: state.tick, kind: 'MENTALITY_CHANGED', team, mentality: input.mentality });
     return;
   }
+  if (input.kind === 'SET_ENERGY_USE') {
+    state.tactics[team].energyUse = input.energyUse;
+    emit(state, { t: state.tick, kind: 'ENERGY_USE_CHANGED', team, energyUse: input.energyUse });
+    return;
+  }
 
-  const benchIndex = state.bench[team].findIndex(player => player.id === input.replacementId);
-  if (benchIndex < 0 || state.substitutionsUsed[team] >= MAX_SUBSTITUTIONS) return;
-  const replacement = state.bench[team][benchIndex];
-  const outgoing = state.players[input.player];
-  if (outgoing.team !== team || (outgoing.def.role === 'GK') !== (replacement.role === 'GK')) return;
-
-  state.bench[team].splice(benchIndex, 1);
-  const outPlayerId = outgoing.def.id;
-  state.players[input.player] = {
-    def: deepCopyPlayerDef(replacement),
-    team,
-    pos: { ...outgoing.pos },
-    condition: 100,
-    gauge: 0,
-    powerState: { kind: 'idle' },
-    // A substitute inherits the live M/A setting, not merely the match's
-    // starting policy recorded in opts.
-    firePolicy: state.players[team * 11].firePolicy,
-    outUntilTick: 0,
-    tackleRecoveryUntil: 0,
-    tackleCooldownUntil: state.tick,
-    cards: 0,
-  };
-  state.substitutionsUsed[team] += 1;
-  emit(state, {
-    t: state.tick,
-    kind: 'SUBSTITUTION',
-    team,
-    player: input.player,
-    outPlayerId,
-    inPlayerId: replacement.id,
-  });
+  performSubstitution(state, team, input.player, input.replacementId);
 }
 
 export function tick(state: MatchState): void {
@@ -229,6 +211,7 @@ export function tick(state: MatchState): void {
   }
   state.pendingInputs = remainingInputs;
   for (const input of dueInputs) processCoachingInput(state, input);
+  applyAutomaticCoaching(state);
   powerTick(state, dueInputs);
   movementTick(state);
   possessionTick(state);
@@ -239,7 +222,7 @@ export function tick(state: MatchState): void {
     state.half = 2;
     emit(state, { t: state.tick, kind: 'HALF_TIME' });
     state.resolve = [Math.min(100, state.resolve[0] + 30), Math.min(100, state.resolve[1] + 30)];
-    for (const p of state.players) p.condition = Math.min(100, p.condition + 15);
+    for (const p of state.players) p.condition = Math.min(100, p.condition + 10);
     restartKickoff(state, 1);
     emit(state, { t: state.tick, kind: 'KICKOFF', half: 2 });
   } else if (state.half === 2 && state.tick >= TOTAL_TICKS && (ballSettled(state) || state.tick >= TOTAL_TICKS + STOPPAGE_CAP)) {
@@ -402,6 +385,12 @@ export function validateEnvelope(env: ReplayEnvelope): void {
     if (input.kind === 'SET_MENTALITY') {
       if (env.opts?.controlledTeam === undefined || !isMentality(input.mentality)) {
         throw new Error('replay envelope: mentality input needs a controlled team and valid mentality');
+      }
+      continue;
+    }
+    if (input.kind === 'SET_ENERGY_USE') {
+      if (env.opts?.controlledTeam === undefined || !isEnergyUse(input.energyUse)) {
+        throw new Error('replay envelope: energy use input needs a controlled team and valid mode');
       }
       continue;
     }

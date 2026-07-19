@@ -63,6 +63,7 @@ export interface HomeViewModel {
   managerName: string;
   seasonLabel: string;
   weekLabel: string;
+  nextMatchTimingLabel: string;
   form: readonly ('W' | 'D' | 'L')[];
   resources: ResourceSummaryViewModel;
   nextFixture: FixtureViewModel;

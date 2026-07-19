@@ -48,7 +48,7 @@ export function ClubHomeScreen({
       {/* pixel divider */}
       <View className="my-5 h-0.5 bg-ink/15" />
 
-      <PaperPanel kicker="Next assignment" title={fixture.competition} stamp={fixture.weekLabel}>
+      <PaperPanel kicker="Next match" title={fixture.competition} stamp={viewModel.nextMatchTimingLabel}>
         <View className="border-y-2 border-ink py-4">
           <View className="flex-row items-center justify-between gap-2">
             <Text className="flex-1 text-right text-xl font-bold uppercase text-ink" numberOfLines={2}>

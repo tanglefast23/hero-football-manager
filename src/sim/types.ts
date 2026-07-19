@@ -1,6 +1,6 @@
 import type { Vec } from './geometry';
 import type { Rng } from './rng';
-import type { FormationId, TeamTactics, Mentality } from './tactics';
+import type { EnergyUse, FormationId, TeamTactics, Mentality } from './tactics';
 
 export type PowerId = 'SUPER_SPEED' | 'SUPER_STRENGTH' | 'FIRE_TORCH';
 export type Role = 'GK' | 'DEF' | 'MID' | 'FWD';
@@ -86,6 +86,7 @@ export type MatchEvent =
   | { t: number; kind: 'RECOVERED'; player: number }
   | { t: number; kind: 'FORMATION_CHANGED'; team: 0 | 1; formation: FormationId }
   | { t: number; kind: 'MENTALITY_CHANGED'; team: 0 | 1; mentality: Mentality }
+  | { t: number; kind: 'ENERGY_USE_CHANGED'; team: 0 | 1; energyUse: EnergyUse }
   | { t: number; kind: 'SUBSTITUTION'; team: 0 | 1; player: number; outPlayerId: string; inPlayerId: string }
   | { t: number; kind: 'HALF_TIME' }
   | { t: number; kind: 'FULL_TIME' };
@@ -95,6 +96,7 @@ export type MatchInput =
   | { tick: number; kind: 'SET_AUTO_POWERS'; enabled: boolean }
   | { tick: number; kind: 'SET_FORMATION'; formation: FormationId }
   | { tick: number; kind: 'SET_MENTALITY'; mentality: Mentality }
+  | { tick: number; kind: 'SET_ENERGY_USE'; energyUse: EnergyUse }
   | { tick: number; kind: 'SUBSTITUTE'; player: number; replacementId: string };
 
 export interface MatchOpts {
