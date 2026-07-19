@@ -39,4 +39,15 @@ describe('assistant guide application flow', () => {
     state = completeAssistantGuideMilestone(state, 'first-week-advanced');
     expect(currentAssistantObjective(state)).toBeNull();
   });
+
+  test('never resurrects onboarding hints after the first career week', () => {
+    const fresh = createCareer(createLaunchCareerSetup(933));
+    const staleWeekTwoSave = { ...fresh, week: 2 };
+    const staleLaterSeasonSave = { ...fresh, season: 2 };
+
+    expect(pendingAssistantGuideSequence(staleWeekTwoSave, 'home')).toBeNull();
+    expect(currentAssistantObjective(staleWeekTwoSave)).toBeNull();
+    expect(pendingAssistantGuideSequence(staleLaterSeasonSave, 'home')).toBeNull();
+    expect(currentAssistantObjective(staleLaterSeasonSave)).toBeNull();
+  });
 });

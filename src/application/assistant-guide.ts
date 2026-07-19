@@ -14,6 +14,7 @@ export function pendingAssistantGuideSequence(
   state: GameState,
   activeTab: ManagementTab,
 ): AssistantGuideSequenceId | null {
+  if (!isFirstCareerWeek(state)) return null;
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) {
     return 'management-intro';
   }
@@ -34,6 +35,7 @@ export function pendingAssistantGuideSequence(
 }
 
 export function currentAssistantObjective(state: GameState): AssistantObjective | null {
+  if (!isFirstCareerWeek(state)) return null;
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) return null;
   if (!hasAssistantGuideMilestone(state, 'squad-intro-complete')) {
     return { text: 'OPEN SQUAD.', target: 'squad-tab' };
@@ -48,4 +50,8 @@ export function currentAssistantObjective(state: GameState): AssistantObjective 
     return { text: 'READ THE DESK. THEN ADVANCE WEEK.', target: 'advance-week' };
   }
   return null;
+}
+
+function isFirstCareerWeek(state: Pick<GameState, 'season' | 'week'>): boolean {
+  return state.season === 1 && state.week === 1;
 }

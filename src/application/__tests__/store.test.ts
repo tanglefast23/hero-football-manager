@@ -9,6 +9,7 @@ import type { ReplayEnvelope } from '../../sim/types';
 import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
 import { DEFAULT_CREATION_RATINGS } from '../../game';
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
+import type { PostMatchViewModel } from '../../ui';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {
@@ -245,6 +246,31 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState()).toMatchObject({ screen: 'management', weekReview: null });
   });
 
+  it('returns Home beneath the statement, then celebrates player development', () => {
+    const postMatch = examplePostMatch();
+    useM1Store.setState({ screen: 'postmatch', postMatch, postMatchOverlay: null });
+
+    useM1Store.getState().continueAfterMatch();
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'management',
+      activeTab: 'home',
+      postMatch,
+      postMatchOverlay: 'summary',
+    });
+
+    useM1Store.getState().dismissPostMatchSummary();
+    expect(useM1Store.getState()).toMatchObject({
+      postMatch,
+      postMatchOverlay: 'development',
+    });
+
+    useM1Store.getState().dismissPostMatchDevelopment();
+    expect(useM1Store.getState()).toMatchObject({
+      postMatch: null,
+      postMatchOverlay: null,
+    });
+  });
+
   it('persists Bert guide progress and clears his first-week objective after advancing', () => {
     startCreatedCareer(790);
     useM1Store.getState().completeAssistantGuide('management-intro');
@@ -390,6 +416,8 @@ describe('M1 app store integration', () => {
       ) {
         if (current.screen === 'postmatch') current.continueAfterMatch();
         else if (current.screen === 'week-review') current.continueWeekReview();
+        else if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
+        else if (current.postMatchOverlay === 'development') current.dismissPostMatchDevelopment();
         else current.advanceCareer();
       } else {
         throw new Error(`unexpected persisted journey screen ${current.screen}`);
@@ -658,7 +686,9 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
       continue;
     }
     if (current.screen === 'management') {
-      current.advanceCareer();
+      if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
+      else if (current.postMatchOverlay === 'development') current.dismissPostMatchDevelopment();
+      else current.advanceCareer();
       continue;
     }
     throw new Error(`unexpected journey screen ${current.screen}`);
@@ -672,6 +702,36 @@ function startCreatedCareer(seed: number): void {
     name: 'Jo Rook',
     ratings: DEFAULT_CREATION_RATINGS,
   });
+}
+
+function examplePostMatch(): PostMatchViewModel {
+  return {
+    result: {
+      fixtureId: 'fixture-1',
+      competition: 'Division Five',
+      homeTeam: 'Bramble Rovers',
+      awayTeam: 'Ferrous United',
+      homeScore: 1,
+      awayScore: 0,
+      outcomeLabel: 'WIN',
+      headline: 'The office will be loud tonight.',
+    },
+    ledger: [{ id: 'tickets', label: 'Home match tickets', amount: 1200, kind: 'income' }],
+    netAmount: 1200,
+    trainingPointsGained: 7,
+    fanDelta: 10,
+    heroEssenceGained: 0,
+    highlights: [],
+    development: {
+      focusedTrainees: [{
+        id: 'player-1',
+        name: 'Joe',
+        role: 'FWD',
+        gains: [{ id: 'player-1-pac', label: 'PAC', before: 92, after: 95, delta: 3 }],
+      }],
+      conditioning: [{ id: 'conditioning-sta', attributeLabel: 'STA', gain: 1, playerCount: 17 }],
+    },
+  };
 }
 
 function startAwakenedCareer(seed: number): void {

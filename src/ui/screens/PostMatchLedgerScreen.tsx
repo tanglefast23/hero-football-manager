@@ -1,10 +1,7 @@
-import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
-import { PlayerDevelopmentSpotlight } from '../components/PlayerDevelopmentSpotlight';
+import { ActionButton, SectionLabel, StatusChip } from '../components/Scorecard';
 import type { PostMatchViewModel } from '../models';
-import { countUpValue } from '../count-up';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
@@ -13,59 +10,12 @@ export interface PostMatchLedgerScreenProps {
   reduceMotion?: boolean;
 }
 
-function CountUpAmount({
-  amount,
-  delay,
-  reduceMotion,
-  className,
-}: {
-  amount: number;
-  delay: number;
-  reduceMotion: boolean;
-  className: string;
-}) {
-  const [displayAmount, setDisplayAmount] = useState(reduceMotion ? amount : 0);
-
-  useEffect(() => {
-    if (reduceMotion) {
-      setDisplayAmount(amount);
-      return undefined;
-    }
-    let frame = 0;
-    let startedAt: number | null = null;
-    const duration = 450;
-    const timeout = setTimeout(() => {
-      const animate = (timestamp: number) => {
-        if (startedAt === null) startedAt = timestamp;
-        const progress = (timestamp - startedAt) / duration;
-        setDisplayAmount(countUpValue(amount, progress));
-        if (progress < 1) frame = requestAnimationFrame(animate);
-      };
-      frame = requestAnimationFrame(animate);
-    }, delay);
-    return () => {
-      clearTimeout(timeout);
-      cancelAnimationFrame(frame);
-    };
-  }, [amount, delay, reduceMotion]);
-
-  const finalLabel = `${amount > 0 ? 'plus ' : amount < 0 ? 'minus ' : ''}${formatCompactNumber(Math.abs(amount))}`;
-  return (
-    <Text accessible accessibilityLabel={finalLabel} className={className}>
-      {displayAmount > 0 ? '+' : ''}{formatCompactNumber(displayAmount)}
-    </Text>
-  );
-}
-
 export function PostMatchLedgerScreen({
   viewModel,
   onContinue,
   onReplayHighlight,
-  reduceMotion = false,
 }: PostMatchLedgerScreenProps) {
   const { result } = viewModel;
-  const [animationsComplete, setAnimationsComplete] = useState(reduceMotion);
-  const motionOff = reduceMotion || animationsComplete;
   const resultTone = result.outcomeLabel === 'WIN'
     ? 'success'
     : result.outcomeLabel === 'LOSS'
@@ -73,11 +23,7 @@ export function PostMatchLedgerScreen({
       : 'normal';
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-paper"
-      edges={['top', 'left', 'right', 'bottom']}
-      onTouchStart={() => setAnimationsComplete(true)}
-    >
+    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
         <View className="items-center py-3">
           <StatusChip label="Full time" tone={resultTone} />
@@ -95,60 +41,6 @@ export function PostMatchLedgerScreen({
             <Text className="text-xl font-bold uppercase text-stamp">{result.outcomeLabel}</Text>
           </View>
           <Text className="mt-4 text-center text-base text-ink/70">{result.headline}</Text>
-        </View>
-
-        <PaperPanel kicker="Accounts office" title="Match statement" stamp="Filed" className="mt-5">
-          <View className="border-y border-ink/30">
-            {viewModel.ledger.map((line, index) => {
-              const color = line.kind === 'income'
-                ? 'text-emerald-700'
-                : line.kind === 'expense'
-                  ? 'text-stamp'
-                  : 'text-ink';
-              return (
-                <View key={line.id} className="flex-row items-center border-b border-ink/10 py-3 last:border-b-0">
-                  <Text className="flex-1 text-base text-ink">{line.label}</Text>
-                  <CountUpAmount
-                    amount={line.amount}
-                    delay={index * 120}
-                    reduceMotion={motionOff}
-                    className={`font-mono text-base font-bold ${color}`}
-                  />
-                </View>
-              );
-            })}
-          </View>
-          <View className="mt-3 flex-row items-center justify-between bg-ink px-3 py-3">
-            <Text className="text-base font-bold uppercase text-paper">Net movement</Text>
-            <CountUpAmount
-              amount={viewModel.netAmount}
-              delay={viewModel.ledger.length * 120}
-              reduceMotion={motionOff}
-              className={viewModel.netAmount < 0 ? 'font-mono text-xl font-bold text-red-300' : 'font-mono text-xl font-bold text-emerald-300'}
-            />
-          </View>
-        </PaperPanel>
-
-        <View className="mt-6">
-          <SectionLabel eyebrow="Dressing room" title="What moved" />
-          <View className="flex-row gap-2">
-            <Metric label="TP earned" value={`+${formatCompactNumber(viewModel.trainingPointsGained)}`} tone="positive" />
-            <Metric
-              label="Fans"
-              value={`${viewModel.fanDelta > 0 ? '+' : ''}${formatCompactNumber(viewModel.fanDelta)}`}
-              tone={viewModel.fanDelta < 0 ? 'negative' : 'positive'}
-            />
-            <Metric label="Essence" value={`+${formatCompactNumber(viewModel.heroEssenceGained)}`} tone="hero" />
-          </View>
-        </View>
-
-        <View className="mt-7 min-h-96 justify-center">
-          <SectionLabel eyebrow="Training ground" title="Player development" />
-          <PlayerDevelopmentSpotlight
-            development={viewModel.development}
-            reduceMotion={reduceMotion}
-            forceComplete={motionOff}
-          />
         </View>
 
         {viewModel.highlights.length ? (
@@ -178,7 +70,7 @@ export function PostMatchLedgerScreen({
       <View className="border-t-2 border-ink/20 bg-white p-3">
         <ActionButton
           label="Back to the office  ▸"
-          accessibilityLabel="Continue to club management"
+          accessibilityLabel="Continue to the Home screen and review the match summary"
           onPress={onContinue}
         />
       </View>

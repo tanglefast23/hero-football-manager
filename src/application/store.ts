@@ -73,6 +73,8 @@ export interface WatchedMatch {
   controlledTeam: 0 | 1;
 }
 
+export type PostMatchOverlay = 'summary' | 'development' | null;
+
 interface M1Store {
   career: GameState | null;
   repository: CareerRepository | null;
@@ -88,6 +90,7 @@ interface M1Store {
   selectedDrillIds: string[];
   watchedMatch: WatchedMatch | null;
   postMatch: PostMatchViewModel | null;
+  postMatchOverlay: PostMatchOverlay;
   weekReview: WeeklyReviewViewModel | null;
   selectedContractTerm: 1 | 2 | 3;
   error: string | null;
@@ -108,6 +111,8 @@ interface M1Store {
   watchMatch: () => void;
   finishWatchedMatch: (result: MatchState) => void;
   continueAfterMatch: () => void;
+  dismissPostMatchSummary: () => void;
+  dismissPostMatchDevelopment: () => void;
   continueWeekReview: () => void;
   selectEventPlayer: () => void;
   chooseEvent: (choiceId: string) => void;
@@ -139,6 +144,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   selectedDrillIds: [],
   watchedMatch: null,
   postMatch: null,
+  postMatchOverlay: null,
   weekReview: null,
   selectedContractTerm: 1,
   error: null,
@@ -156,6 +162,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         assignedPlayerIds: career?.trainingPlan?.assignedPlayerIds ?? [],
         selectedDrillIds: career?.trainingPlan?.drills.map(drill => drill.id) ?? [],
         hasSavedCareer: career !== null,
+        postMatch: null,
+        postMatchOverlay: null,
+        weekReview: null,
         persistenceLoadError: null,
         error: null,
       });
@@ -187,6 +196,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         selectedDrillIds: [],
         watchedMatch: null,
         postMatch: null,
+        postMatchOverlay: null,
         weekReview: null,
         error: null,
       });
@@ -202,6 +212,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
     const career = get().career!;
     set({
       screen: resumeScreen(career),
+      postMatch: null,
+      postMatchOverlay: null,
       weekReview: null,
       error: null,
     });
@@ -236,6 +248,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         screen: 'management',
         activeTab: 'home',
         postMatch: null,
+        postMatchOverlay: null,
         weekReview: null,
         error: null,
       });
@@ -348,6 +361,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({
         career: next,
         postMatch,
+        postMatchOverlay: null,
         weekReview: null,
         screen: isOnboardingMatch ? 'first-awakening' : 'postmatch',
         watchedMatch: null,
@@ -411,6 +425,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({
         career: next,
         postMatch,
+        postMatchOverlay: null,
         weekReview: null,
         screen: isOnboardingMatch ? 'first-awakening' : 'postmatch',
         watchedMatch: null,
@@ -422,7 +437,26 @@ export const useM1Store = create<M1Store>((set, get) => ({
   },
 
   continueAfterMatch() {
-    set({ postMatch: null, weekReview: null, screen: 'management', activeTab: 'home', error: null });
+    set({
+      weekReview: null,
+      postMatchOverlay: get().postMatch === null ? null : 'summary',
+      screen: 'management',
+      activeTab: 'home',
+      error: null,
+    });
+  },
+
+  dismissPostMatchSummary() {
+    const postMatch = get().postMatch;
+    if (postMatch !== null && hasDevelopmentToShow(postMatch)) {
+      set({ postMatchOverlay: 'development', error: null });
+      return;
+    }
+    set({ postMatch: null, postMatchOverlay: null, error: null });
+  },
+
+  dismissPostMatchDevelopment() {
+    set({ postMatch: null, postMatchOverlay: null, error: null });
   },
 
   continueWeekReview() {
@@ -858,6 +892,12 @@ function resumeScreen(career: GameState): M1Screen {
   if (career.phase === 'matchday') return 'matchday';
   if (career.phase === 'season-end' || career.phase === 'complete') return 'season-end';
   return 'management';
+}
+
+function hasDevelopmentToShow(postMatch: PostMatchViewModel): boolean {
+  return postMatch.development.focusedTrainees.length > 0
+    || postMatch.development.conditioning.length > 0
+    || postMatch.development.trainingSkippedWarning !== undefined;
 }
 
 function licenseSecondHero(state: GameState, playerId: string): GameState {

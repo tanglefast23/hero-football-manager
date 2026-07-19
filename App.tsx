@@ -26,6 +26,10 @@ import {
   teardownMenuAudio,
   type MenuTheme,
 } from './src/render/menu-audio';
+import {
+  setManagementSfxMasterVolume,
+  teardownManagementSfx,
+} from './src/render/management-sfx';
 import { assertRuntimeGoldenReplay, runtimeGoldenFingerprint } from './src/sim/runtime-golden';
 import type { MatchState } from './src/sim/types';
 import {
@@ -38,7 +42,9 @@ import {
   LeagueTableScreen,
   ManagementShell,
   NewGameWelcomeScreen,
+  PostMatchDevelopmentOverlay,
   PostMatchLedgerScreen,
+  PostMatchSummaryModal,
   SeasonEndScreen,
   SquadTrainingScreen,
   StoryEventScreen,
@@ -101,6 +107,7 @@ export default function App() {
   useEffect(() => {
     setMasterVolume(devVolume);
     setMenuMasterVolume(devVolume);
+    setManagementSfxMasterVolume(devVolume);
   }, [devVolume]);
 
   const menuTheme: MenuTheme = bootError === null
@@ -117,7 +124,10 @@ export default function App() {
     setMenuTheme(menuTheme);
   }, [menuTheme]);
 
-  useEffect(() => () => teardownMenuAudio(), []);
+  useEffect(() => () => {
+    teardownMenuAudio();
+    teardownManagementSfx();
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -451,6 +461,24 @@ export default function App() {
             onAdvance={advanceAssistantGuide}
           />
         ) : null}
+        {store.screen === 'management'
+          && store.postMatch !== null
+          && store.postMatchOverlay === 'summary' ? (
+            <PostMatchSummaryModal
+              viewModel={store.postMatch}
+              reduceMotion={reduceMotion}
+              onDismiss={store.dismissPostMatchSummary}
+            />
+          ) : null}
+        {store.screen === 'management'
+          && store.postMatch !== null
+          && store.postMatchOverlay === 'development' ? (
+            <PostMatchDevelopmentOverlay
+              development={store.postMatch.development}
+              reduceMotion={reduceMotion}
+              onDismiss={store.dismissPostMatchDevelopment}
+            />
+          ) : null}
       </View>
     </SafeAreaProvider>
   );

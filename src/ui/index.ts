@@ -1,5 +1,7 @@
 export * from './AssistantGuideOverlay';
 export * from './ManagementShell';
+export * from './PostMatchSummaryModal';
+export * from './PostMatchDevelopmentOverlay';
 export * from './TutorialTapCue';
 export * from './models';
 export * from './components/Scorecard';
