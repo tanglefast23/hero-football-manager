@@ -101,14 +101,16 @@ export function ClubFinancesScreen({
           <Text className="mt-3 text-sm font-bold uppercase tracking-wide text-ink/50">
             M1 offer: 8,000 cost · +5 TP every week
           </Text>
-          <View className="mt-3">
-            <ActionButton
-              label={facility.built ? 'Training Ground built' : 'Approve build · 8,000'}
-              accessibilityLabel={facility.built ? 'Training Ground is already built' : 'Build the Training Ground for 8,000 money'}
-              onPress={onBuildTrainingGround}
-              disabled={facility.built || !facility.affordable}
-            />
-          </View>
+          {!facility.built ? (
+            <View className="mt-3">
+              <ActionButton
+                label="Build Training Ground · 8,000"
+                accessibilityLabel="Build the Training Ground for 8,000 money"
+                onPress={onBuildTrainingGround}
+                disabled={!facility.affordable}
+              />
+            </View>
+          ) : null}
           {!facility.built && !facility.affordable ? (
             <Text className="mt-2 text-center text-sm font-bold uppercase tracking-wide text-stamp">
               Insufficient balance
