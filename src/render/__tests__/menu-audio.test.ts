@@ -1,6 +1,7 @@
 const mockPlayers: Array<{
   volume: number;
   loop: boolean;
+  seekTo: jest.Mock;
   play: jest.Mock;
   pause: jest.Mock;
   remove: jest.Mock;
@@ -15,6 +16,7 @@ jest.mock('expo-audio', () => ({
     const player = {
       volume: -1,
       loop: false,
+      seekTo: jest.fn(() => Promise.resolve()),
       play: jest.fn(),
       pause: jest.fn(),
       remove: jest.fn(),
@@ -26,6 +28,7 @@ jest.mock('expo-audio', () => ({
 }));
 
 import {
+  playAdvanceWeekSfx,
   setMenuMasterVolume,
   setMenuTheme,
   teardownMenuAudio,
@@ -46,8 +49,9 @@ describe('opening and management music ownership', () => {
   it('starts the opening theme and hands off exclusively to management', () => {
     setMenuTheme('opening');
 
-    expect(mockPlayers).toHaveLength(2);
-    expect(mockPlayers.every(player => player.loop)).toBe(true);
+    expect(mockPlayers).toHaveLength(3);
+    expect(mockPlayers.slice(0, 2).every(player => player.loop)).toBe(true);
+    expect(mockPlayers[2].loop).toBe(false);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
 
@@ -64,10 +68,21 @@ describe('opening and management music ownership', () => {
     setMenuMasterVolume(0.5);
     setMenuTheme('opening');
 
-    expect(mockPlayers.every(player => player.volume === 0.25)).toBe(true);
+    expect(mockPlayers.slice(0, 2).every(player => player.volume === 0.25)).toBe(true);
+    expect(mockPlayers[2].volume).toBe(0.5);
     expect(setAudioModeAsync).toHaveBeenCalledWith({ playsInSilentMode: false });
 
     setMenuMasterVolume(0);
     expect(mockPlayers.every(player => player.volume === 0)).toBe(true);
+  });
+
+  it('rewinds and plays the advance-week SFX on demand', async () => {
+    setMenuTheme('management');
+
+    playAdvanceWeekSfx();
+    await Promise.resolve();
+
+    expect(mockPlayers[2].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers[2].play).toHaveBeenCalledTimes(1);
   });
 });

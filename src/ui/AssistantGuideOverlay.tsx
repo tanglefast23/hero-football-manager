@@ -1,12 +1,19 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { AssistantGuideContent, AssistantGuideSequenceId } from '../content';
 import { ActionButton } from './components/Scorecard';
 import { TutorialTapCue } from './TutorialTapCue';
+import {
+  tutorialCuePosition,
+  tutorialCuePositionAbove,
+  type TutorialAnchorLayout,
+} from './tutorial-cue-position';
 
 export interface AssistantGuideOverlayProps {
   content: AssistantGuideContent;
   sequenceId: AssistantGuideSequenceId;
   pageIndex: number;
+  moneyAnchor?: TutorialAnchorLayout | null;
+  navigationAnchor?: TutorialAnchorLayout | null;
   onAdvance: () => void;
 }
 
@@ -14,26 +21,49 @@ export function AssistantGuideOverlay({
   content,
   sequenceId,
   pageIndex,
+  moneyAnchor,
+  navigationAnchor,
   onAdvance,
 }: AssistantGuideOverlayProps) {
+  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const sequence = content.sequences.find(candidate => candidate.id === sequenceId);
   if (sequence === undefined) return null;
   const page = sequence.pages[Math.min(pageIndex, sequence.pages.length - 1)];
   const lastPage = pageIndex >= sequence.pages.length - 1;
+  const moneyCuePosition = moneyAnchor
+    ? tutorialCuePosition(moneyAnchor, viewportWidth)
+    : null;
+  const navigationCuePosition = navigationAnchor
+    ? tutorialCuePositionAbove(navigationAnchor, viewportWidth, viewportHeight)
+    : null;
+  const spotlightAnchor = page.focus === 'money'
+    ? moneyAnchor
+    : page.focus === 'navigation'
+      ? navigationAnchor
+      : null;
 
   return (
     <View
       accessibilityViewIsModal
       accessibilityLabel={`${content.assistant.name}, ${content.assistant.role}. ${page.title}`}
-      className="absolute inset-0 z-50 justify-center bg-ink/60 px-3 py-5"
-      style={{ paddingBottom: page.focus === 'navigation' ? 94 : 20 }}
+      className="absolute inset-0 z-50"
     >
-      {page.focus === 'money' ? (
-        <TutorialTapCue label="Look here" detail="Weekly money" direction="up" style={styles.moneyCue} />
+      <TutorialSpotlight
+        anchor={spotlightAnchor}
+        viewportWidth={viewportWidth}
+        viewportHeight={viewportHeight}
+      />
+
+      {page.focus === 'money' && moneyCuePosition ? (
+        <TutorialTapCue label="Look here" detail="Weekly money" direction="up" style={moneyCuePosition} />
       ) : null}
 
-      <View className="max-h-full w-full self-center" style={styles.windowShadow}>
-        <View style={styles.windowFrame}>
+      <View
+        className="flex-1 justify-center px-3 py-5"
+        style={{ paddingBottom: page.focus === 'navigation' ? 94 : 20 }}
+      >
+        <View className="max-h-full w-full self-center" style={styles.windowShadow}>
+          <View style={styles.windowFrame}>
           <View style={styles.titleHighlight} />
           <View style={styles.titleBar}>
             <Text className="font-pixel text-sm uppercase text-white" numberOfLines={1}>
@@ -49,7 +79,7 @@ export function AssistantGuideOverlay({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.windowContent}
           >
-            <View style={styles.speechBubble}>
+            <View style={styles.briefingPanel}>
               <View className="min-w-0 flex-1 pr-1">
                 <Text className="font-pixel text-lg uppercase text-ink">{page.title}</Text>
                 <View className="mt-2 h-0.5 bg-grey-light" />
@@ -89,8 +119,6 @@ export function AssistantGuideOverlay({
                   {content.assistant.role}
                 </Text>
               </View>
-              <View style={styles.bubbleTailBorder} />
-              <View style={styles.bubbleTail} />
             </View>
 
             <View className="mt-4 flex-row items-center gap-3">
@@ -118,12 +146,43 @@ export function AssistantGuideOverlay({
               </View>
             </View>
           </ScrollView>
+          </View>
         </View>
       </View>
 
-      {page.focus === 'navigation' ? (
-        <TutorialTapCue label="Look here" detail="The bottom rail" style={styles.navigationCue} />
+      {page.focus === 'navigation' && navigationCuePosition ? (
+        <TutorialTapCue label="Look here" detail="The bottom rail" style={navigationCuePosition} />
       ) : null}
+    </View>
+  );
+}
+
+function TutorialSpotlight({
+  anchor,
+  viewportWidth,
+  viewportHeight,
+}: {
+  anchor?: TutorialAnchorLayout | null;
+  viewportWidth: number;
+  viewportHeight: number;
+}) {
+  if (!anchor) {
+    return <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dimPane]} />;
+  }
+
+  const padding = 4;
+  const left = Math.max(0, anchor.x - padding);
+  const top = Math.max(0, anchor.y - padding);
+  const right = Math.min(viewportWidth, anchor.x + anchor.width + padding);
+  const bottom = Math.min(viewportHeight, anchor.y + anchor.height + padding);
+  const spotlightHeight = Math.max(0, bottom - top);
+
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <View style={[styles.dimPane, { left: 0, top: 0, right: 0, height: top }]} />
+      <View style={[styles.dimPane, { left: 0, top, width: left, height: spotlightHeight }]} />
+      <View style={[styles.dimPane, { left: right, top, right: 0, height: spotlightHeight }]} />
+      <View style={[styles.dimPane, { left: 0, top: bottom, right: 0, bottom: 0 }]} />
     </View>
   );
 }
@@ -178,6 +237,10 @@ function BertFullBody({ pointing }: { pointing: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  dimPane: {
+    position: 'absolute',
+    backgroundColor: 'rgba(36,31,46,0.6)',
+  },
   windowShadow: {
     maxWidth: 540,
     paddingBottom: 7,
@@ -204,7 +267,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#3f6fb5',
   },
   windowContent: { padding: 12 },
-  speechBubble: {
+  briefingPanel: {
     minHeight: 236,
     flexDirection: 'row',
     gap: 7,
@@ -223,28 +286,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 4,
   },
-  bubbleTailBorder: {
-    position: 'absolute',
-    right: 69,
-    bottom: -11,
-    width: 24,
-    height: 24,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderColor: '#9a95a4',
-    backgroundColor: '#ffffff',
-    transform: [{ rotate: '45deg' }],
-  },
-  bubbleTail: {
-    position: 'absolute',
-    right: 75,
-    bottom: -3,
-    width: 20,
-    height: 10,
-    backgroundColor: '#ffffff',
-  },
-  moneyCue: { right: 14, top: 30 },
-  navigationCue: { bottom: 26, left: 18 },
   bertSprite: { width: 104, height: 180 },
   bertGroundShadow: { position: 'absolute', left: 14, bottom: 1, width: 78, height: 9, backgroundColor: '#c9c5d0' },
   bertLeftShoe: { position: 'absolute', left: 26, bottom: 6, width: 25, height: 10, backgroundColor: '#241f2e' },

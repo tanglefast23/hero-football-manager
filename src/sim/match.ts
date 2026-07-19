@@ -6,9 +6,9 @@ import { powerTick } from './powers';
 import { isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.3 adds replayable live manual/automatic power-mode switching to m1.2's
-// SHO/Resolve scoring-tail tuning, committed slide tackles, and coaching inputs.
-export const ENGINE_VERSION = 'm1.3';
+// m1.4 adds deterministic 2.5D shot/keeper-distribution flight, a readable
+// goalkeeper catch hold, and pre-goal-line save resolution.
+export const ENGINE_VERSION = 'm1.4';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -36,7 +36,10 @@ function deepCopyPlayerDef(player: PlayerDef): PlayerDef {
 }
 
 function ballSettled(state: MatchState): boolean {
-  return state.ball.kind === 'held' || state.ball.kind === 'loose';
+  if (state.ball.kind === 'held') return true;
+  if (state.ball.kind !== 'loose') return false;
+  return state.ball.z === 0 && state.ball.vz === 0
+    && Math.abs(state.ball.vel.x) < 5 && Math.abs(state.ball.vel.y) < 5;
 }
 
 function makePlayers(home: TeamDef, away: TeamDef, opts: MatchOpts): SimPlayer[] {

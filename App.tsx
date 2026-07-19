@@ -18,9 +18,11 @@ import {
   type PreferencesRepository,
 } from './src/persistence';
 import { MatchScreen } from './src/render/MatchScreen';
+import { TrainingTransitionOverlay } from './src/render/TrainingTransitionOverlay';
 import { setMasterVolume } from './src/render/audio';
 import { nextDevVolume, type DevVolume } from './src/render/dev-volume';
 import {
+  playAdvanceWeekSfx,
   setMenuMasterVolume,
   setMenuTheme,
   teardownMenuAudio,
@@ -46,8 +48,13 @@ import {
   TitleSettingsScreen,
 } from './src/ui';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
+import type { TutorialAnchorLayout } from './src/ui/tutorial-cue-position';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useM1Store } from './src/application/store';
+import {
+  trainingTransitionScene,
+  type TrainingTransitionScene,
+} from './src/application/training-transition';
 import {
   currentAssistantObjective,
   pendingAssistantGuideSequence,
@@ -74,8 +81,10 @@ export default function App() {
   const [landingView, setLandingView] = useState<LandingView>('title');
   const [assistantPageIndex, setAssistantPageIndex] = useState(0);
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
-  const [managementSettingsOpen, setManagementSettingsOpen] = useState(false);
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
+  const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
+  const [navigationGuideAnchor, setNavigationGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
+  const [trainingTransition, setTrainingTransition] = useState<TrainingTransitionScene | null>(null);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const devVolume = preferences.masterVolume as DevVolume;
   const reduceMotion = useReducedMotion(preferences.reduceMotion);
@@ -96,6 +105,27 @@ export default function App() {
   const toggleHudSide = useCallback(() => {
     savePreferences({ ...preferences, hudSide: preferences.hudSide === 'left' ? 'right' : 'left' });
   }, [preferences, savePreferences]);
+
+  const advanceCareerWithSfx = useCallback(() => {
+    if (trainingTransition !== null) return;
+    // Zustand updates synchronously here. Only a real week change gets the
+    // cue, so tutorial-blocked taps and event redirects stay silent.
+    const careerBefore = useM1Store.getState().career;
+    const before = careerBefore?.week;
+    const transitionScene = careerBefore === null
+      ? null
+      : trainingTransitionScene(careerBefore, content);
+    useM1Store.getState().advanceCareer();
+    const after = useM1Store.getState().career?.week;
+    if (before !== undefined && after !== undefined && after !== before) {
+      playAdvanceWeekSfx();
+      if (transitionScene !== null) setTrainingTransition(transitionScene);
+    }
+  }, [content, trainingTransition]);
+
+  const dismissTrainingTransition = useCallback(() => {
+    setTrainingTransition(null);
+  }, []);
 
   useEffect(() => {
     setMasterVolume(devVolume);
@@ -207,7 +237,7 @@ export default function App() {
   ];
   const assistantObjective = store.career === null
     ? null
-    : currentAssistantObjective(store.career);
+    : currentAssistantObjective(store.career, store.activeTab);
 
   useEffect(() => {
     setAssistantPageIndex(0);
@@ -258,10 +288,16 @@ export default function App() {
         onStartNewCareer={startNewCareer}
         onContinueCareer={store.hasSavedCareer ? store.continueCareer : undefined}
         onBackToTitle={() => setLandingView('title')}
+        onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
     );
   } else if (store.screen === 'create-player' && store.career !== null) {
-    screen = <CharacterCreationScreen onComplete={store.completePlayerCreation} />;
+    screen = (
+      <CharacterCreationScreen
+        onComplete={store.completePlayerCreation}
+        onOpenSettings={() => setGlobalSettingsOpen(true)}
+      />
+    );
   } else if (
     store.screen === 'first-awakening'
     && store.career !== null
@@ -275,6 +311,7 @@ export default function App() {
         powerName={onboardingPowerName}
         onChoose={store.chooseFirstAwakening}
         onContinue={store.continueFirstAwakening}
+        onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
     );
   } else if (store.career === null) {
@@ -290,6 +327,7 @@ export default function App() {
         reduceMotion={reduceMotion}
         hudSide={preferences.hudSide}
         pausedExternally={globalSettingsOpen}
+        onOpenSettings={() => setGlobalSettingsOpen(true)}
         onDone={finishWatchedMatch}
       />
     );
@@ -302,18 +340,7 @@ export default function App() {
         onToggleHeroLicense={store.toggleHeroLicense}
         onWatchMatch={store.watchMatch}
         onQuickResult={store.quickResult}
-      />
-    );
-  } else if (store.screen === 'management' && managementSettingsOpen) {
-    screen = (
-      <TitleSettingsScreen
-        preferences={preferences}
-        onCycleVolume={cycleVolume}
-        onCycleFormation={slot => savePreferences(replaceFormationPreset(preferences, slot))}
-        onToggleReduceMotion={toggleReduceMotion}
-        onToggleHudSide={toggleHudSide}
-        onBack={() => setManagementSettingsOpen(false)}
-        backLabel="Back to club"
+        onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
     );
   } else if (store.screen === 'postmatch' && store.postMatch !== null) {
@@ -322,6 +349,7 @@ export default function App() {
         viewModel={store.postMatch}
         reduceMotion={reduceMotion}
         onContinue={store.continueAfterMatch}
+        onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
     );
   } else if (store.screen === 'event' && store.career.pendingEvent !== undefined) {
@@ -331,6 +359,7 @@ export default function App() {
         onChoose={store.chooseEvent}
         onSelectPlayer={store.selectEventPlayer}
         onContinue={store.continueAfterEvent}
+        onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
     );
   } else if (store.screen === 'season-end') {
@@ -353,6 +382,7 @@ export default function App() {
           ],
         )}
         onPrimaryAction={() => season.sliceComplete ? store.setActiveTab('home') : store.advanceCareer()}
+        onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
     );
   } else {
@@ -365,14 +395,19 @@ export default function App() {
         resources={home.resources}
         activeTab={store.activeTab}
         onTabChange={store.setActiveTab}
-        onAdvanceWeek={store.advanceCareer}
+        onAdvanceWeek={advanceCareerWithSfx}
         onOpenLedger={() => store.setActiveTab('club')}
-        onOpenSettings={() => setManagementSettingsOpen(true)}
+        onOpenSettings={() => setGlobalSettingsOpen(true)}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
+        advanceWeekDisabled={store.saving
+          || trainingTransition !== null
+          || (assistantObjective !== null && assistantObjective.target !== 'advance-week')}
         guideFocus={assistantPage?.focus === 'money' || assistantPage?.focus === 'navigation'
           ? assistantPage.focus
           : undefined}
         guideTarget={assistantObjective?.target}
+        onMoneyGuideAnchorChange={setMoneyGuideAnchor}
+        onNavigationGuideAnchorChange={setNavigationGuideAnchor}
       >
         {store.activeTab === 'squad' ? (
           <SquadTrainingScreen
@@ -393,6 +428,7 @@ export default function App() {
           <ClubFinancesScreen
             viewModel={clubFinancesViewModel(store.career)}
             onBuildTrainingGround={store.buildFacility}
+            guideTrainingGround={assistantObjective?.target === 'training-ground-facility'}
           />
         ) : store.activeTab === 'league' ? (
           <LeagueTableScreen viewModel={leagueTableViewModel(store.career)} />
@@ -405,6 +441,9 @@ export default function App() {
               else store.notify('This alert is resolved from the season review.');
             }}
             onOpenLeague={() => store.setActiveTab('league')}
+            guideAlertId={assistantObjective?.target === 'training-ground-alert'
+              ? 'training-ground'
+              : undefined}
           />
         )}
       </ManagementShell>
@@ -426,6 +465,7 @@ export default function App() {
         {screen}
         {store.error ? <ErrorNotice message={store.error} onDismiss={store.clearError} /> : null}
         <SettingsOverlay
+          open={globalSettingsOpen}
           volume={devVolume}
           reduceMotion={preferences.reduceMotion}
           hudSide={preferences.hudSide}
@@ -439,7 +479,16 @@ export default function App() {
             content={content.assistantGuide}
             sequenceId={assistantSequenceId}
             pageIndex={assistantPageIndex}
+            moneyAnchor={moneyGuideAnchor}
+            navigationAnchor={navigationGuideAnchor}
             onAdvance={advanceAssistantGuide}
+          />
+        ) : null}
+        {trainingTransition !== null ? (
+          <TrainingTransitionOverlay
+            scene={trainingTransition}
+            reduceMotion={reduceMotion}
+            onComplete={dismissTrainingTransition}
           />
         ) : null}
       </View>

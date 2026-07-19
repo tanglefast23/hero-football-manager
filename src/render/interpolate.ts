@@ -1,6 +1,6 @@
 // Pure TS render-frame math: no React Native / Skia / Expo imports, no
 // Math.random / Date.now — safe to unit test headless (same rule as src/sim/).
-import { ballPos } from '../sim/engine';
+import { ballHeight, ballPos } from '../sim/engine';
 import type { Vec } from '../sim/geometry';
 import { ZONE_WINDOW_TICKS } from '../sim/powers';
 import type { MatchState } from '../sim/types';
@@ -12,6 +12,7 @@ export type PlayerStatus = 'ok' | 'windup' | 'active' | 'out' | 'ignited' | 'zon
 export interface PitchFrame {
   players: Vec[];
   ball: Vec;
+  ballHeight: number; // centimetres above the pitch plane
   carrier: number; // -1 when ball not held
   statuses: PlayerStatus[];
   zoneFraction: number[]; // remainingTicks / ZONE_WINDOW_TICKS while in zone, else 0
@@ -36,6 +37,7 @@ export function snapshotFrame(state: MatchState, previous?: Pick<PitchFrame, 'pl
     // Copy, don't alias: a held ball's ballPos IS the carrier's live pos
     // object (and a loose/pass/shot ball's pos is live sim state too).
     ball: { ...ballPos(state) },
+    ballHeight: ballHeight(state),
     carrier: state.ball.kind === 'held' ? state.ball.by : -1,
     statuses: state.players.map((p): PlayerStatus => {
       if (p.outUntilTick > state.tick) return p.outReason === 'ignited' ? 'ignited' : 'out';
@@ -67,6 +69,7 @@ export function lerpFrame(prev: PitchFrame, next: PitchFrame, t: number): PitchF
   return {
     players: prev.players.map((p, i) => lerpVec(p, next.players[i], t)),
     ball: lerpVec(prev.ball, next.ball, t),
+    ballHeight: prev.ballHeight + (next.ballHeight - prev.ballHeight) * t,
     carrier: next.carrier,
     statuses: next.statuses,
     zoneFraction: next.zoneFraction,

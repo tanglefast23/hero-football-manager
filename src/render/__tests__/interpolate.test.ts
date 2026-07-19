@@ -23,6 +23,7 @@ describe('snapshotFrame', () => {
     expect(s.travel).toHaveLength(22);
     expect(typeof s.carrier).toBe('number');
     expect(s.ball).toBeDefined();
+    expect(s.ballHeight).toBe(0);
   });
 
   it('moved defaults to false for every player when no prev positions are given', () => {
@@ -114,7 +115,7 @@ describe('snapshotFrame', () => {
 
   it('carrier is -1 when the ball is not held', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    m.ball = { kind: 'loose', pos: { x: 100, y: 100 }, vel: { x: 0, y: 0 } };
+    m.ball = { kind: 'loose', pos: { x: 100, y: 100 }, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
     expect(snapshotFrame(m).carrier).toBe(-1);
   });
 
@@ -126,9 +127,21 @@ describe('snapshotFrame', () => {
     expect(snapshotFrame(m).ball).toEqual(carrierPos);
 
     const loosePos = { x: 100, y: 100 };
-    m.ball = { kind: 'loose', pos: loosePos, vel: { x: 0, y: 0 } };
+    m.ball = { kind: 'loose', pos: loosePos, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
     expect(snapshotFrame(m).ball).not.toBe(loosePos);
     expect(snapshotFrame(m).ball).toEqual(loosePos);
+  });
+
+  it('captures and interpolates airborne ball height', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const prev = snapshotFrame(m);
+    m.ball = {
+      kind: 'pass', pos: { x: 2000, y: 2000 }, from: 1, to: 2,
+      willSucceed: true, interceptor: -1, z: 180, vz: 20, speed: 250,
+    };
+    const next = snapshotFrame(m, prev);
+    expect(next.ballHeight).toBe(180);
+    expect(lerpFrame(prev, next, 0.5).ballHeight).toBe(90);
   });
 });
 
@@ -150,5 +163,6 @@ describe('lerpFrame', () => {
       expect(mid.players[i]).toEqual(lerpVec(prev.players[i], next.players[i], 0.5));
     }
     expect(mid.ball).toEqual(lerpVec(prev.ball, next.ball, 0.5));
+    expect(mid.ballHeight).toBeCloseTo((prev.ballHeight + next.ballHeight) / 2);
   });
 });

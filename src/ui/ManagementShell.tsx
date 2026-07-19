@@ -1,9 +1,51 @@
-import type { ReactNode } from 'react';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, formatCompactNumber } from './components/Scorecard';
 import type { ManagementTab, ResourceSummaryViewModel } from './models';
 import { TutorialTapCue } from './TutorialTapCue';
+import type { TutorialAnchorLayout } from './tutorial-cue-position';
+import { SettingsButton } from './SettingsOverlay';
+
+function useGuideAnchor(
+  enabled: boolean,
+  onAnchorChange?: (anchor: TutorialAnchorLayout | null) => void,
+) {
+  const anchorRef = useRef<View>(null);
+  const measurementFrameRef = useRef<number | null>(null);
+
+  const measureAnchor = useCallback(() => {
+    anchorRef.current?.measureInWindow((x, y, width, height) => {
+      if (width > 0 && height > 0) onAnchorChange?.({ x, y, width, height });
+    });
+  }, [onAnchorChange]);
+
+  const scheduleMeasurement = useCallback(() => {
+    if (!enabled || onAnchorChange === undefined) return;
+    if (measurementFrameRef.current !== null) cancelAnimationFrame(measurementFrameRef.current);
+    measurementFrameRef.current = requestAnimationFrame(() => {
+      measurementFrameRef.current = null;
+      measureAnchor();
+    });
+  }, [enabled, measureAnchor, onAnchorChange]);
+
+  useEffect(() => {
+    if (!enabled) {
+      onAnchorChange?.(null);
+      return;
+    }
+    scheduleMeasurement();
+    return () => {
+      if (measurementFrameRef.current !== null) {
+        cancelAnimationFrame(measurementFrameRef.current);
+        measurementFrameRef.current = null;
+      }
+      onAnchorChange?.(null);
+    };
+  }, [enabled, onAnchorChange, scheduleMeasurement]);
+
+  return { anchorRef, scheduleMeasurement };
+}
 
 const TABS: ReadonlyArray<{ id: ManagementTab; label: string; glyph: string; available: boolean }> = [
   { id: 'home', label: 'Home', glyph: '⌂', available: true },
@@ -60,7 +102,15 @@ export interface ManagementShellProps {
   advanceWeekLabel?: string;
   advanceWeekDisabled?: boolean;
   guideFocus?: 'money' | 'navigation';
-  guideTarget?: 'home-tab' | 'squad-tab' | 'training-plan' | 'advance-week';
+  guideTarget?:
+    | 'home-tab'
+    | 'squad-tab'
+    | 'training-plan'
+    | 'training-ground-alert'
+    | 'training-ground-facility'
+    | 'advance-week';
+  onMoneyGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
+  onNavigationGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
 }
 
 export function ManagementShell({
@@ -78,12 +128,25 @@ export function ManagementShell({
   advanceWeekDisabled = false,
   guideFocus,
   guideTarget,
+  onMoneyGuideAnchorChange,
+  onNavigationGuideAnchorChange,
 }: ManagementShellProps) {
+  const moneyGuideAnchor = useGuideAnchor(guideFocus === 'money', onMoneyGuideAnchorChange);
+  const navigationGuideAnchor = useGuideAnchor(
+    guideFocus === 'navigation',
+    onNavigationGuideAnchorChange,
+  );
+
   const resourceCluster = (
-    <View className={guideFocus === 'money'
-      ? 'flex-row gap-1.5 border-2 border-blue-dark bg-blue-light p-1'
-      : 'flex-row gap-1.5'}>
-      <ResourceChip glyph="G" name="Money" value={resources.money} />
+    <View className="flex-row gap-1.5">
+      <View
+        ref={moneyGuideAnchor.anchorRef}
+        collapsable={false}
+        onLayout={moneyGuideAnchor.scheduleMeasurement}
+        className={guideFocus === 'money' ? 'border-2 border-blue-dark bg-blue-light p-1' : undefined}
+      >
+        <ResourceChip glyph="G" name="Money" value={resources.money} />
+      </View>
       <ResourceChip glyph="TP" name="Training points" value={resources.trainingPoints} />
       <ResourceChip glyph="✦" name="Hero essence" value={resources.heroEssence} tone="hero" />
     </View>
@@ -92,7 +155,10 @@ export function ManagementShell({
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       {/* Persistent HUD bar — club + date on the left, resources on the right. */}
-      <View className="flex-row items-center justify-between gap-2 border-b-2 border-ink bg-paper-dark py-2.5 pl-16 pr-3">
+      <View
+        className="flex-row items-center justify-between gap-2 border-b-2 border-ink bg-paper-dark py-2.5 pl-16 pr-3"
+        onLayout={moneyGuideAnchor.scheduleMeasurement}
+      >
         <View className="flex-1 pr-1">
           <Text className="font-pixel text-base uppercase text-ink" numberOfLines={1}>
             {clubName}
@@ -115,15 +181,7 @@ export function ManagementShell({
             resourceCluster
           )}
           {onOpenSettings ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open settings"
-              onPress={onOpenSettings}
-              className="min-h-11 min-w-11 items-center justify-center border-2 border-ink bg-white"
-              style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
-            >
-              <Text className="font-mono text-lg font-bold text-blue-dark">⚙</Text>
-            </Pressable>
+            <SettingsButton onPress={onOpenSettings} />
           ) : null}
         </View>
       </View>
@@ -149,6 +207,9 @@ export function ManagementShell({
           />
         </View>
         <View
+          ref={navigationGuideAnchor.anchorRef}
+          collapsable={false}
+          onLayout={navigationGuideAnchor.scheduleMeasurement}
           className={guideFocus === 'navigation'
             ? 'mt-2 flex-row border-2 border-blue-dark bg-blue-light/40'
             : 'mt-2 flex-row'}
@@ -178,6 +239,7 @@ export function ManagementShell({
                 {guided ? (
                   <TutorialTapCue
                     detail={tab.id === 'squad' ? 'Open squad' : 'Return home'}
+                    labelOffsetX={tab.id === 'home' ? 42 : 0}
                     style={styles.tabCue}
                   />
                 ) : null}

@@ -34,7 +34,7 @@ describe('possession', () => {
 
   it('loose balls decay and get picked up by the nearest available player', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    m.ball = { kind: 'loose', pos: { x: 3400, y: 5250 }, vel: { x: 200, y: 0 } } as BallState;
+    m.ball = { kind: 'loose', pos: { x: 3400, y: 5250 }, vel: { x: 200, y: 0 }, z: 0, vz: 0 } as BallState;
     const before = m.ball.kind === 'loose' ? { ...m.ball.vel } : { x: 0, y: 0 };
     tick(m);
     if (m.ball.kind === 'loose') {
@@ -51,7 +51,7 @@ describe('possession', () => {
   it('out players cannot pick up a loose ball', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const nearIdx = 6;
-    m.ball = { kind: 'loose', pos: { ...m.players[nearIdx].pos }, vel: { x: 0, y: 0 } } as BallState;
+    m.ball = { kind: 'loose', pos: { ...m.players[nearIdx].pos }, vel: { x: 0, y: 0 }, z: 0, vz: 0 } as BallState;
     m.players[nearIdx].outUntilTick = m.tick + 500;
     m.players[nearIdx].outReason = 'ko';
     tick(m);
@@ -63,7 +63,10 @@ describe('possession', () => {
   it('a pass target KO\'d mid-flight cannot receive the ball unconscious (phantom-pass bug)', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const targetPos = { ...m.players[6].pos };
-    m.ball = { kind: 'pass', pos: { x: targetPos.x - 2000, y: targetPos.y }, from: 5, to: 6, willSucceed: true, interceptor: -1 } as BallState;
+    m.ball = {
+      kind: 'pass', pos: { x: targetPos.x - 2000, y: targetPos.y }, from: 5, to: 6,
+      willSucceed: true, interceptor: -1, z: 0, vz: 0, speed: 250,
+    } as BallState;
     m.players[6].outUntilTick = m.tick + 300;
     m.players[6].outReason = 'ko';
     let flying = true;

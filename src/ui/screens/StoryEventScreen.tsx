@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
+import { SettingsButton } from '../SettingsOverlay';
 import type { StoryEventChoiceViewModel, StoryEventViewModel } from '../models';
 
 export interface StoryEventScreenProps {
@@ -8,6 +9,7 @@ export interface StoryEventScreenProps {
   onChoose: (choiceId: string) => void;
   onSelectPlayer?: () => void;
   onContinue: () => void;
+  onOpenSettings: () => void;
 }
 
 function choiceClass(choice: StoryEventChoiceViewModel, resolvedChoiceId?: string): string {
@@ -22,6 +24,7 @@ export function StoryEventScreen({
   onChoose,
   onSelectPlayer,
   onContinue,
+  onOpenSettings,
 }: StoryEventScreenProps) {
   const resolved = Boolean(viewModel.resolvedChoiceId && viewModel.outcomeText);
   const needsPlayer = viewModel.playerSelectionRequired && !viewModel.selectedPlayer;
@@ -33,7 +36,10 @@ export function StoryEventScreen({
           <Text className="text-sm font-bold uppercase text-stamp">Story interruption</Text>
           <Text className="mt-1 text-base font-bold uppercase text-ink">{viewModel.categoryLabel}</Text>
         </View>
-        <StatusChip label={viewModel.weekLabel} tone="danger" />
+        <View className="flex-row items-center gap-2">
+          <StatusChip label={viewModel.weekLabel} tone="danger" />
+          <SettingsButton onPress={onOpenSettings} />
+        </View>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>

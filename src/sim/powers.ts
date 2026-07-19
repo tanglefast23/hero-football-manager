@@ -239,7 +239,7 @@ export function isActive(state: MatchState, idx: number): boolean {
 export function knockOut(state: MatchState, idx: number, untilTick: number, reason: OutReason): void {
   const p = state.players[idx];
   if (state.ball.kind === 'held' && state.ball.by === idx) {
-    state.ball = { kind: 'loose', pos: { ...p.pos }, vel: { x: 0, y: 0 } };
+    state.ball = { kind: 'loose', pos: { ...p.pos }, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
   }
   if (p.powerState.kind === 'winding') {
     interruptWindup(state, idx);

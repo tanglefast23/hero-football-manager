@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { OnboardingContent } from '../../content';
 import type { OnboardingOrigin } from '../../game';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
+import { SettingsButton } from '../SettingsOverlay';
 
 export interface FirstAwakeningScreenProps {
   playerName: string;
@@ -11,6 +12,7 @@ export interface FirstAwakeningScreenProps {
   powerName?: string;
   onChoose: (origin: OnboardingOrigin) => void;
   onContinue: () => void;
+  onOpenSettings: () => void;
 }
 
 const ORIGIN_MARK: Record<OnboardingOrigin, string> = {
@@ -30,6 +32,7 @@ export function FirstAwakeningScreen({
   powerName,
   onChoose,
   onContinue,
+  onOpenSettings,
 }: FirstAwakeningScreenProps) {
   const revealed = selectedOrigin !== undefined && powerName !== undefined;
   const selectedCopy = content.choices.find(choice => choice.origin === selectedOrigin);
@@ -37,12 +40,17 @@ export function FirstAwakeningScreen({
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <View className={revealed ? 'border-b-2 border-gold bg-white px-5 py-4' : 'border-b-2 border-stamp bg-white px-5 py-4'}>
-        <Text className={revealed ? 'text-sm font-bold uppercase text-gold-dark' : 'text-sm font-bold uppercase text-stamp'}>
-          Final whistle · incident report
-        </Text>
-        <Text className="mt-2 text-3xl font-bold uppercase leading-8 text-ink">
-          {revealed ? 'That was no injury.' : `${playerName} is down.`}
-        </Text>
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            <Text className={revealed ? 'text-sm font-bold uppercase text-gold-dark' : 'text-sm font-bold uppercase text-stamp'}>
+              Final whistle · incident report
+            </Text>
+            <Text className="mt-2 text-3xl font-bold uppercase leading-8 text-ink">
+              {revealed ? 'That was no injury.' : `${playerName} is down.`}
+            </Text>
+          </View>
+          <SettingsButton onPress={onOpenSettings} />
+        </View>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>

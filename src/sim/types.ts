@@ -62,17 +62,38 @@ export interface SimPlayer {
 }
 
 export type BallState =
-  | { kind: 'held'; by: number }
-  | { kind: 'loose'; pos: Vec; vel: Vec }
-  | { kind: 'pass'; pos: Vec; from: number; to: number; willSucceed: boolean; interceptor: number }
-  | { kind: 'shot'; pos: Vec; vel: Vec; by: number; power: number; targetX: number };
+  | { kind: 'held'; by: number; caught?: true; releaseAfterTick?: number }
+  | { kind: 'loose'; pos: Vec; vel: Vec; z: number; vz: number }
+  | {
+    kind: 'pass';
+    pos: Vec;
+    from: number;
+    to: number;
+    willSucceed: boolean;
+    interceptor: number;
+    z: number;
+    vz: number;
+    speed: number;
+  }
+  | {
+    kind: 'shot';
+    pos: Vec;
+    vel: Vec;
+    by: number;
+    power: number;
+    targetX: number;
+    z: number;
+    vz: number;
+    trajectory: 'driven' | 'lifted';
+    keeperChecked: boolean;
+  };
 
 export type MatchEvent =
   | { t: number; kind: 'KICKOFF'; half: 1 | 2 }
   | { t: number; kind: 'PASS'; from: number; to: number; ok: boolean }
   | { t: number; kind: 'SLIDE_STARTED'; by: number; on: number; direction: Vec; untilTick: number }
   | { t: number; kind: 'TACKLE'; by: number; on: number; won: boolean; style: 'standing' | 'slide' | 'power'; contact: boolean }
-  | { t: number; kind: 'SHOT'; by: number; power: number }
+  | { t: number; kind: 'SHOT'; by: number; power: number; trajectory: 'driven' | 'lifted' }
   | { t: number; kind: 'SAVE'; by: number; resolveLeft: number }
   | { t: number; kind: 'MISS'; by: number }
   | { t: number; kind: 'GOAL'; by: number; team: 0 | 1 }

@@ -1,22 +1,51 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import { Pressable, ScrollView, Text, View, type LayoutChangeEvent } from 'react-native';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
 import type { ClubFinancesViewModel } from '../models';
+import { TutorialTapCue } from '../TutorialTapCue';
+import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
 
 export interface ClubFinancesScreenProps {
   viewModel: ClubFinancesViewModel;
   onOpenLedgerLine?: (ledgerLineId: string) => void;
   onBuildTrainingGround: () => void;
+  guideTrainingGround?: boolean;
 }
 
 export function ClubFinancesScreen({
   viewModel,
   onOpenLedgerLine,
   onBuildTrainingGround,
+  guideTrainingGround = false,
 }: ClubFinancesScreenProps) {
   const facility = viewModel.trainingGround;
+  const scrollRef = useRef<ScrollView>(null);
+  const facilityYRef = useRef<number | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
+
+  const scrollToTrainingGround = useCallback(() => {
+    if (!guideTrainingGround || facilityYRef.current === null) return;
+    if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current);
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
+      scrollRef.current?.scrollTo({ y: Math.max(0, facilityYRef.current! - 12), animated: true });
+    });
+  }, [guideTrainingGround]);
+
+  useEffect(() => {
+    scrollToTrainingGround();
+    return () => {
+      if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current);
+    };
+  }, [scrollToTrainingGround]);
+
+  const onTrainingGroundLayout = useCallback((event: LayoutChangeEvent) => {
+    facilityYRef.current = event.nativeEvent.layout.y;
+    scrollToTrainingGround();
+  }, [scrollToTrainingGround]);
 
   return (
-    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
+    <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
       <View className="flex-row items-end justify-between">
         <View>
           <Text className="text-sm font-bold uppercase text-blue-dark">Accounts office</Text>
@@ -77,7 +106,7 @@ export function ClubFinancesScreen({
         </View>
       </View>
 
-      <View className="mt-6">
+      <View className="mt-6" onLayout={onTrainingGroundLayout}>
         <SectionLabel eyebrow="One big call" title="Training Ground" right={<StatusChip label="Facility 01" />} />
         <PaperPanel kicker="Works order" title="Turn mud into momentum" stamp={facility.built ? 'Built' : 'Decision'}>
           <View className="flex-row items-center gap-4 border-y-2 border-ink py-4">
@@ -101,7 +130,13 @@ export function ClubFinancesScreen({
           <Text className="mt-3 text-sm font-bold uppercase tracking-wide text-ink/50">
             M1 offer: 8,000 cost · +5 TP every week
           </Text>
-          <View className="mt-3">
+          <View className={guideTrainingGround ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>
+            {guideTrainingGround ? (
+              <TutorialTapCue
+                detail="Build the facility"
+                style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+              />
+            ) : null}
             <ActionButton
               label={facility.built ? 'Training Ground built' : 'Approve build · 8,000'}
               accessibilityLabel={facility.built ? 'Training Ground is already built' : 'Build the Training Ground for 8,000 money'}

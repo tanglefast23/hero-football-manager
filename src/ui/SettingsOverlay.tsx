@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Modal, PanResponder, Pressable, Text, View } from 'react-native';
 import { ActionButton } from './components/Scorecard';
 import { adjustDevVolume, DEV_VOLUME_LEVELS, devVolumePercent, type DevVolume } from '../render/dev-volume';
@@ -77,17 +77,46 @@ function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: Dev
 }
 
 export interface SettingsOverlayProps {
+  open: boolean;
   volume: DevVolume;
   reduceMotion: boolean;
   hudSide: HudSide;
   onVolumeChange: (v: DevVolume) => void;
   onToggleReduceMotion: () => void;
   onToggleHudSide: () => void;
-  onOpenChange?: (open: boolean) => void;
+  onOpenChange: (open: boolean) => void;
 }
 
-/** Global top-left settings button + its modal. Rendered once, appears on every screen. */
+export function SettingsButton({
+  onPress,
+  variant = 'paper',
+}: {
+  onPress: () => void;
+  variant?: 'paper' | 'match';
+}) {
+  const match = variant === 'match';
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Open settings"
+      hitSlop={8}
+      onPress={onPress}
+      className={match
+        ? 'h-11 w-11 items-center justify-center rounded border-2 border-b-4 border-ink bg-ink-soft'
+        : 'h-11 w-11 items-center justify-center border-2 border-b-4 border-ink bg-white'}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.72 : undefined,
+        transform: [{ translateY: pressed ? 1 : 0 }],
+      })}
+    >
+      <Text className={match ? 'font-mono text-xl font-bold text-paper' : 'font-mono text-xl font-bold text-blue-dark'}>⚙</Text>
+    </Pressable>
+  );
+}
+
+/** Controlled settings modal; each screen reserves its own top-right trigger slot. */
 export function SettingsOverlay({
+  open,
   volume,
   reduceMotion,
   hudSide,
@@ -96,26 +125,12 @@ export function SettingsOverlay({
   onToggleHudSide,
   onOpenChange,
 }: SettingsOverlayProps) {
-  const [open, setOpen] = useState(false);
   const setOpenState = (next: boolean) => {
-    setOpen(next);
-    onOpenChange?.(next);
+    onOpenChange(next);
   };
 
   return (
-    <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Open settings"
-        hitSlop={8}
-        onPress={() => setOpenState(true)}
-        className="absolute left-3 top-14 h-11 w-11 items-center justify-center rounded-lg border-2 border-b-4 border-ink bg-paper"
-        style={({ pressed }) => ({ opacity: pressed ? 0.8 : undefined, transform: [{ translateY: pressed ? 1 : 0 }] })}
-      >
-        <Text className="text-xl">⚙︎</Text>
-      </Pressable>
-
-      <Modal
+    <Modal
         visible={open}
         transparent
         animationType={reduceMotion ? 'none' : 'fade'}
@@ -162,6 +177,5 @@ export function SettingsOverlay({
           </Pressable>
         </Pressable>
       </Modal>
-    </>
   );
 }
