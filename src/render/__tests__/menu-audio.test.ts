@@ -31,7 +31,7 @@ import {
   teardownMenuAudio,
 } from '../menu-audio';
 
-describe('opening and management music ownership', () => {
+describe('non-match music ownership', () => {
   beforeEach(() => {
     teardownMenuAudio();
     mockPlayers.length = 0;
@@ -43,21 +43,27 @@ describe('opening and management music ownership', () => {
     teardownMenuAudio();
   });
 
-  it('starts the opening theme and hands off exclusively to management', () => {
+  it('hands off exclusively from opening to management to event music', () => {
     setMenuTheme('opening');
 
-    expect(mockPlayers).toHaveLength(2);
+    expect(mockPlayers).toHaveLength(3);
     expect(mockPlayers.every(player => player.loop)).toBe(true);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
+    expect(mockPlayers[2].play).not.toHaveBeenCalled();
 
     setMenuTheme('management');
 
     expect(mockPlayers[0].pause).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).toHaveBeenCalledTimes(1);
 
-    setMenuTheme(null);
+    setMenuTheme('event');
+
     expect(mockPlayers[1].pause).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[2].play).toHaveBeenCalledTimes(1);
+
+    setMenuTheme(null);
+    expect(mockPlayers[2].pause).toHaveBeenCalledTimes(1);
   });
 
   it('shares the selected master level while preserving the music mix', () => {

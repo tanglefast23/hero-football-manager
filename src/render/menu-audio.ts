@@ -4,11 +4,12 @@
 // still render the UI even when expo-audio is unavailable.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 
-export type MenuTheme = 'opening' | 'management' | null;
+export type MenuTheme = 'opening' | 'management' | 'event' | null;
 
 const MENU_SOURCES: Record<Exclude<MenuTheme, null>, AudioSource> = {
   opening: require('../../assets/audio/music/opening-theme.m4a'),
   management: require('../../assets/audio/music/management-theme.m4a'),
+  event: require('../../assets/audio/music/event-theme.m4a'),
 };
 
 const MUSIC_VOLUME = 0.5;
