@@ -34,7 +34,10 @@ export function pendingAssistantGuideSequence(
   return null;
 }
 
-export function currentAssistantObjective(state: GameState): AssistantObjective | null {
+export function currentAssistantObjective(
+  state: GameState,
+  _activeTab: ManagementTab = 'home',
+): AssistantObjective | null {
   if (!isFirstCareerWeek(state)) return null;
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) return null;
   if (!hasAssistantGuideMilestone(state, 'squad-intro-complete')) {

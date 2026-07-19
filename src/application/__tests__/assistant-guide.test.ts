@@ -46,8 +46,8 @@ describe('assistant guide application flow', () => {
     const staleLaterSeasonSave = { ...fresh, season: 2 };
 
     expect(pendingAssistantGuideSequence(staleWeekTwoSave, 'home')).toBeNull();
-    expect(currentAssistantObjective(staleWeekTwoSave)).toBeNull();
+    expect(currentAssistantObjective(staleWeekTwoSave, 'home')).toBeNull();
     expect(pendingAssistantGuideSequence(staleLaterSeasonSave, 'home')).toBeNull();
-    expect(currentAssistantObjective(staleLaterSeasonSave)).toBeNull();
+    expect(currentAssistantObjective(staleLaterSeasonSave, 'home')).toBeNull();
   });
 });
