@@ -134,7 +134,6 @@ export function MatchScreen({
   away = UNITED,
   controlledTeam = 0,
   formationPresets = DEFAULT_FORMATION_PRESETS,
-  autoPowers = false,
   reduceMotion = false,
   hudSide = 'left',
   pausedExternally = false,
@@ -145,7 +144,6 @@ export function MatchScreen({
   away?: TeamDef;
   controlledTeam?: 0 | 1;
   formationPresets?: readonly [FormationId, FormationId, FormationId];
-  autoPowers?: boolean;
   reduceMotion?: boolean;
   hudSide?: HudSide;
   pausedExternally?: boolean;
@@ -166,7 +164,7 @@ export function MatchScreen({
       seed,
       home,
       away,
-      matchPoliciesForControlledTeam(controlledTeam, autoPowers, formationPresets[0]),
+      matchPoliciesForControlledTeam(controlledTeam, formationPresets[0]),
     );
   }
   const match = stateRef.current;
@@ -213,6 +211,7 @@ export function MatchScreen({
     visualTick: 0,
   });
   const [speed, setSpeed] = useState<MatchSpeed>(1);
+  const [autoPowers, setAutoPowers] = useState(false);
   // Dev-only movement-table tuning instrument (movement spec's debug-overlay
   // deliverable; the toggle ships __DEV__-gated, never in release UI).
   const [debugGrid, setDebugGrid] = useState(false);
@@ -702,6 +701,19 @@ export function MatchScreen({
     closeSwap();
   };
 
+  const toggleAutoPowers = () => {
+    const enabled = !autoPowers;
+    queueInput(match, {
+      tick: match.tick + 1,
+      kind: 'SET_AUTO_POWERS',
+      enabled,
+    });
+    setAutoPowers(enabled);
+    const text = enabled ? 'AUTO SUPERPOWERS' : 'MANUAL SUPERPOWERS';
+    bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'gold' };
+    setHud((current) => ({ ...current, banner: text, bannerTone: 'gold' }));
+  };
+
   return (
     <View style={styles.root}>
       <Pressable
@@ -724,15 +736,25 @@ export function MatchScreen({
         <View style={styles.controls}>
           <Pressable
             style={styles.ctrlButton}
+            accessibilityRole="switch"
+            accessibilityLabel={`Superpower control ${autoPowers ? 'automatic' : 'manual'}. Tap for ${autoPowers ? 'manual' : 'automatic'}.`}
+            accessibilityState={{ checked: autoPowers }}
+            hitSlop={10}
+            onPress={toggleAutoPowers}
+          >
+            <Text style={styles.ctrlText}>{autoPowers ? 'A' : 'M'}</Text>
+          </Pressable>
+          <Pressable
+            style={styles.ctrlButton}
             accessibilityRole="button"
             accessibilityLabel={`Match speed ${speed} times. Tap for next speed.`}
             hitSlop={10}
-            onPress={() => setSpeed((current) => {
-              const next = nextMatchSpeed(current);
+            onPress={() => {
+              const next = nextMatchSpeed(speed);
               speedRef.current = next;
               if (!pausedRef.current) resumeAtlasFrame(next);
-              return next;
-            })}
+              setSpeed(next);
+            }}
           >
             <Text style={styles.ctrlText}>×{speed}</Text>
           </Pressable>

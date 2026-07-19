@@ -92,6 +92,7 @@ export type MatchEvent =
 
 export type MatchInput =
   | { tick: number; kind: 'POWER_TAP'; player: number }
+  | { tick: number; kind: 'SET_AUTO_POWERS'; enabled: boolean }
   | { tick: number; kind: 'SET_FORMATION'; formation: FormationId }
   | { tick: number; kind: 'SET_MENTALITY'; mentality: Mentality }
   | { tick: number; kind: 'SUBSTITUTE'; player: number; replacementId: string };

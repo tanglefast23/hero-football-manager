@@ -245,7 +245,6 @@ export default function App() {
         preferences={preferences}
         onCycleVolume={cycleVolume}
         onCycleFormation={slot => savePreferences(replaceFormationPreset(preferences, slot))}
-        onToggleAutoPowers={() => savePreferences({ ...preferences, autoPowers: !preferences.autoPowers })}
         onToggleReduceMotion={toggleReduceMotion}
         onToggleHudSide={toggleHudSide}
         onBack={() => setLandingView('title')}
@@ -288,7 +287,6 @@ export default function App() {
         away={store.watchedMatch.away}
         controlledTeam={store.watchedMatch.controlledTeam}
         formationPresets={preferences.formationPresets}
-        autoPowers={preferences.autoPowers}
         reduceMotion={reduceMotion}
         hudSide={preferences.hudSide}
         pausedExternally={globalSettingsOpen}
@@ -312,7 +310,6 @@ export default function App() {
         preferences={preferences}
         onCycleVolume={cycleVolume}
         onCycleFormation={slot => savePreferences(replaceFormationPreset(preferences, slot))}
-        onToggleAutoPowers={() => savePreferences({ ...preferences, autoPowers: !preferences.autoPowers })}
         onToggleReduceMotion={toggleReduceMotion}
         onToggleHudSide={toggleHudSide}
         onBack={() => setManagementSettingsOpen(false)}

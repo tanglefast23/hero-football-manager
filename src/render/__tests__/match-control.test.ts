@@ -33,10 +33,10 @@ describe('matchPoliciesForControlledTeam', () => {
     });
   });
 
-  it('keeps both teams automatic when the controlled side enables Auto Powers', () => {
-    expect(matchPoliciesForControlledTeam(1, true, '4-3-3')).toEqual({
+  it('starts every watched match manual with the selected opening formation', () => {
+    expect(matchPoliciesForControlledTeam(1, '4-3-3')).toEqual({
       homePolicy: 'FIRE_WHEN_READY',
-      awayPolicy: 'FIRE_WHEN_READY',
+      awayPolicy: 'SAVE_FOR_TAP',
       controlledTeam: 1,
       awayFormation: '4-3-3',
     });

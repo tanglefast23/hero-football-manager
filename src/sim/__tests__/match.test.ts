@@ -121,6 +121,35 @@ describe('match skeleton', () => {
     expect(() => queueInput(m, { tick: 5, kind: 'POWER_TAP', player: 10 })).toThrow('future-stamped');
     expect(m.inputLog).toHaveLength(0);
   });
+
+  it('records and applies live automatic-power mode to the controlled team', () => {
+    const m = createMatch(42, ROVERS, UNITED, {
+      controlledTeam: 1,
+      homePolicy: 'FIRE_WHEN_READY',
+      awayPolicy: 'SAVE_FOR_TAP',
+    });
+    queueInput(m, { tick: 1, kind: 'SET_AUTO_POWERS', enabled: true });
+
+    expect(m.inputLog).toEqual([{ tick: 1, kind: 'SET_AUTO_POWERS', enabled: true }]);
+    tick(m);
+    expect(m.players.slice(0, 11).every(player => player.firePolicy === 'FIRE_WHEN_READY')).toBe(true);
+    expect(m.players.slice(11).every(player => player.firePolicy === 'FIRE_WHEN_READY')).toBe(true);
+
+    queueInput(m, { tick: 2, kind: 'SET_AUTO_POWERS', enabled: false });
+    tick(m);
+    expect(m.players.slice(11).every(player => player.firePolicy === 'SAVE_FOR_TAP')).toBe(true);
+
+    while (m.phase !== 'fulltime') tick(m);
+    const replayed = runReplay(envelopeFrom(m));
+    expect(replayed.events).toEqual(m.events);
+    expect(replayed.score).toEqual(m.score);
+  });
+
+  it('requires a controlled team for live automatic-power mode', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    expect(() => queueInput(m, { tick: 1, kind: 'SET_AUTO_POWERS', enabled: true }))
+      .toThrow('controlled team');
+  });
 });
 
 describe('validateEnvelope', () => {
@@ -136,6 +165,20 @@ describe('validateEnvelope', () => {
 
   it('accepts a valid envelope produced by envelopeFrom', () => {
     expect(() => validateEnvelope(makeValidEnvelope())).not.toThrow();
+  });
+
+  it('accepts a replay-recorded automatic-power mode change', () => {
+    const env = makeValidEnvelope();
+    env.opts = { ...env.opts, controlledTeam: 0 };
+    env.inputs = [{ tick: 5, kind: 'SET_AUTO_POWERS', enabled: true }];
+    expect(() => validateEnvelope(env)).not.toThrow();
+  });
+
+  it('rejects a non-boolean automatic-power mode', () => {
+    const env = makeValidEnvelope();
+    env.opts = { ...env.opts, controlledTeam: 0 };
+    env.inputs = [{ tick: 5, kind: 'SET_AUTO_POWERS', enabled: 'yes' as unknown as boolean }];
+    expect(() => validateEnvelope(env)).toThrow('boolean');
   });
 
   it('rejects a string player index', () => {
