@@ -75,8 +75,8 @@ function ResourceChip({ glyph, name, value, tone }: {
       accessible
       accessibilityLabel={`${name}: ${formatCompactNumber(value)}`}
       className={hero
-        ? 'flex-row items-baseline gap-1 border-2 border-gold-dark bg-white px-2 py-1'
-        : 'flex-row items-baseline gap-1 border-2 border-ink bg-white px-2 py-1'}
+        ? 'h-11 flex-row items-center gap-1 border-2 border-gold-dark bg-white px-2'
+        : 'h-11 flex-row items-center gap-1 border-2 border-ink bg-white px-2'}
     >
       <Text className={hero ? 'font-mono text-xs font-bold text-gold-dark' : 'font-mono text-xs font-bold text-blue-dark'}>
         {glyph}
@@ -138,14 +138,14 @@ export function ManagementShell({
   );
 
   const resourceCluster = (
-    <View className="flex-row gap-1.5">
+    <View className="flex-row items-center gap-1.5">
       <View
         ref={moneyGuideAnchor.anchorRef}
         collapsable={false}
         onLayout={moneyGuideAnchor.scheduleMeasurement}
         className={guideFocus === 'money' ? 'border-2 border-blue-dark bg-blue-light p-1' : undefined}
       >
-        <ResourceChip glyph="G" name="Money" value={resources.money} />
+        <ResourceChip glyph="$" name="Money" value={resources.money} />
       </View>
       <ResourceChip glyph="TP" name="Training points" value={resources.trainingPoints} />
       <ResourceChip glyph="✦" name="Hero essence" value={resources.heroEssence} tone="hero" />
@@ -154,20 +154,12 @@ export function ManagementShell({
 
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
-      {/* Persistent HUD bar — club + date on the left, resources on the right. */}
+      {/* Persistent HUD bar — controls above, full-width club and date below. */}
       <View
-        className="flex-row items-center justify-between gap-2 border-b-2 border-ink bg-paper-dark py-2.5 pl-16 pr-3"
+        className="border-b-2 border-ink bg-paper-dark px-3 py-2.5"
         onLayout={moneyGuideAnchor.scheduleMeasurement}
       >
-        <View className="flex-1 pr-1">
-          <Text className="font-pixel text-base uppercase text-ink" numberOfLines={1}>
-            {clubName}
-          </Text>
-          <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark" numberOfLines={1}>
-            {seasonLabel} · {weekLabel}
-          </Text>
-        </View>
-        <View className="flex-row items-center gap-2">
+        <View className="flex-row items-center justify-end gap-2">
           {onOpenLedger ? (
             <Pressable
               accessibilityRole="button"
@@ -183,6 +175,14 @@ export function ManagementShell({
           {onOpenSettings ? (
             <SettingsButton onPress={onOpenSettings} />
           ) : null}
+        </View>
+        <View className="mt-2 border-t border-ink/15 pt-2">
+          <Text className="font-pixel text-base uppercase text-ink" numberOfLines={1}>
+            {clubName}
+          </Text>
+          <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark" numberOfLines={1}>
+            {seasonLabel} · {weekLabel}
+          </Text>
         </View>
       </View>
 
