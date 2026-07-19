@@ -1,6 +1,12 @@
 // Pure TS sprite-sheet loader + atlas layout math. No React Native / Skia / Expo imports,
 // no Math.random / Date.now — safe to unit test headless.
 import sheetData from './sprites.json';
+import {
+  SLIDE_TACKLE_CELL,
+  SLIDE_TACKLE_FRAME_COUNT,
+  slideTackleSpriteFrame,
+  withSlideTackleSprites,
+} from './slide-tackle';
 
 export interface SpriteSheet {
   cell: { w: number; h: number };
@@ -17,6 +23,7 @@ const GOALKEEPER_IDS = ['r0', 'u0'];
 const GOALKEEPER_FRAMES = ['ready0', 'ready1'];
 const BALL_KEY = 'ball';
 const BALL_SIZE = 6;
+const SLIDE_FRAME_PATTERN = /:slide\d+$/;
 
 // Keep every source rect away from its neighbours. This prevents transformed
 // sprites from ever sampling a shoe/hair pixel from the next atlas cell.
@@ -26,6 +33,11 @@ function requiredKeys(): string[] {
   const keys: string[] = [];
   for (const id of PLAYER_IDS) for (const frame of FRAMES) keys.push(`${id}:${frame}`);
   for (const id of GOALKEEPER_IDS) for (const frame of GOALKEEPER_FRAMES) keys.push(`${id}:${frame}`);
+  for (const id of PLAYER_IDS) {
+    for (let frame = 0; frame < SLIDE_TACKLE_FRAME_COUNT; frame += 1) {
+      keys.push(`${id}:${slideTackleSpriteFrame(frame)}`);
+    }
+  }
   keys.push(BALL_KEY);
   return keys;
 }
@@ -36,14 +48,39 @@ function requiredKeys(): string[] {
  * character used in a sprite row that isn't a palette key.
  */
 export function loadSpriteSheet(): SpriteSheet {
-  const sheet = sheetData as SpriteSheet;
+  const baseSheet = sheetData as SpriteSheet;
 
-  if (!sheet.cell || sheet.cell.w <= 0 || sheet.cell.h <= 0) {
+  if (!baseSheet.cell || baseSheet.cell.w <= 0 || baseSheet.cell.h <= 0) {
     throw new Error('loadSpriteSheet: sheet.cell must have positive w/h');
   }
-  if (!sheet.palette || !('.' in sheet.palette)) {
+  if (!baseSheet.palette || !('.' in baseSheet.palette)) {
     throw new Error('loadSpriteSheet: palette must define the transparent "." key');
   }
+
+  // Validate the authored pack before deriving action art so malformed source
+  // sprites fail at their own key rather than inside the pose generator.
+  for (const [key, rows] of Object.entries(baseSheet.sprites)) {
+    const isBall = key === BALL_KEY;
+    const expectedH = isBall ? BALL_SIZE : baseSheet.cell.h;
+    const expectedW = isBall ? BALL_SIZE : baseSheet.cell.w;
+    if (rows.length !== expectedH) {
+      throw new Error(`loadSpriteSheet: sprite "${key}" has ${rows.length} rows, expected ${expectedH}`);
+    }
+    rows.forEach((row, i) => {
+      if (row.length !== expectedW) {
+        throw new Error(
+          `loadSpriteSheet: sprite "${key}" row ${i} has width ${row.length}, expected ${expectedW}`
+        );
+      }
+      for (const ch of row) {
+        if (!(ch in baseSheet.palette)) {
+          throw new Error(`loadSpriteSheet: sprite "${key}" row ${i} uses char "${ch}" not present in palette`);
+        }
+      }
+    });
+  }
+
+  const sheet = withSlideTackleSprites(baseSheet);
 
   for (const key of requiredKeys()) {
     if (!(key in sheet.sprites)) {
@@ -53,8 +90,9 @@ export function loadSpriteSheet(): SpriteSheet {
 
   for (const [key, rows] of Object.entries(sheet.sprites)) {
     const isBall = key === BALL_KEY;
-    const expectedH = isBall ? BALL_SIZE : sheet.cell.h;
-    const expectedW = isBall ? BALL_SIZE : sheet.cell.w;
+    const isSlideFrame = SLIDE_FRAME_PATTERN.test(key);
+    const expectedH = isBall ? BALL_SIZE : isSlideFrame ? SLIDE_TACKLE_CELL.h : sheet.cell.h;
+    const expectedW = isBall ? BALL_SIZE : isSlideFrame ? SLIDE_TACKLE_CELL.w : sheet.cell.w;
 
     if (rows.length !== expectedH) {
       throw new Error(`loadSpriteSheet: sprite "${key}" has ${rows.length} rows, expected ${expectedH}`);
@@ -79,6 +117,8 @@ export function loadSpriteSheet(): SpriteSheet {
 export interface AtlasLayout {
   cols: number;
   rows: number;
+  slotW: number;
+  slotH: number;
   rectFor(key: string): { x: number; y: number; w: number; h: number };
 }
 
@@ -93,10 +133,10 @@ export function atlasLayout(sheet: SpriteSheet): AtlasLayout {
   const keys = Object.keys(sheet.sprites).sort();
   const cols = 8;
   const rows = Math.ceil(keys.length / cols);
-  const cellW = sheet.cell.w;
-  const cellH = sheet.cell.h;
-  const slotW = cellW + ATLAS_GUTTER * 2;
-  const slotH = cellH + ATLAS_GUTTER * 2;
+  const maxFrameWidth = Math.max(...Object.values(sheet.sprites).map(frame => frame[0]?.length ?? 0));
+  const maxFrameHeight = Math.max(...Object.values(sheet.sprites).map(frame => frame.length));
+  const slotW = maxFrameWidth + ATLAS_GUTTER * 2;
+  const slotH = maxFrameHeight + ATLAS_GUTTER * 2;
   const indexOf = new Map(keys.map((k, i) => [k, i]));
 
   function rectFor(key: string): { x: number; y: number; w: number; h: number } {
@@ -117,5 +157,5 @@ export function atlasLayout(sheet: SpriteSheet): AtlasLayout {
     };
   }
 
-  return { cols, rows, rectFor };
+  return { cols, rows, slotW, slotH, rectFor };
 }
