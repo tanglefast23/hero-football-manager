@@ -30,4 +30,11 @@ describe('assistant guide milestones', () => {
     ]);
     expect(twice).toBe(once);
   });
+
+  test('records dismissal of the final desk briefing', () => {
+    const state = createCareer(createLaunchCareerSetup(843));
+    const next = completeAssistantGuideSequence(state, 'desk-intro');
+
+    expect(hasAssistantGuideMilestone(next, 'desk-intro-complete')).toBe(true);
+  });
 });

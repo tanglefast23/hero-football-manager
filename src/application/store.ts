@@ -300,6 +300,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         if (activeTab !== 'home') {
           throw new Error('Return home before advancing the week.');
         }
+        if (!hasAssistantGuideMilestone(career, 'desk-intro-complete')) {
+          throw new Error("Finish Bert's briefing before advancing the week.");
+        }
       }
       if (career.phase === 'matchday') {
         set({ screen: 'matchday', error: null });

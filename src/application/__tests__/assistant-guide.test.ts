@@ -45,6 +45,12 @@ describe('assistant guide application flow', () => {
       facilities: { ...state.facilities, trainingGroundBuilt: true },
     };
     expect(currentAssistantObjective(state, 'club')).toEqual({ text: 'RETURN HOME.', target: 'home-tab' });
+    expect(pendingAssistantGuideSequence(state, 'club')).toBeNull();
+    expect(pendingAssistantGuideSequence(state, 'home')).toBe('desk-intro');
+    expect(currentAssistantObjective(state, 'home')).toBeNull();
+
+    state = completeAssistantGuideSequence(state, 'desk-intro');
+    expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'INBOX CLEAR. ADVANCE WEEK.',
       target: 'advance-week',

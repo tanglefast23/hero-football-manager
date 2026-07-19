@@ -257,11 +257,13 @@ describe('M1 app store integration', () => {
     useM1Store.getState().setActiveTab('club');
     useM1Store.getState().buildFacility();
     useM1Store.getState().setActiveTab('home');
+    useM1Store.getState().completeAssistantGuide('desk-intro');
 
     expect(useM1Store.getState().career?.eventFlags).toEqual(expect.arrayContaining([
       'guide:bert:intro-complete',
       'guide:bert:squad-intro-complete',
       'guide:bert:first-training-complete',
+      'guide:bert:desk-intro-complete',
     ]));
 
     useM1Store.getState().advanceCareer();
@@ -304,6 +306,13 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().error).toBe('Return home before advancing the week.');
 
     useM1Store.getState().setActiveTab('home');
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(weekBefore);
+    expect(useM1Store.getState().error).toBe(
+      "Finish Bert's briefing before advancing the week.",
+    );
+
+    useM1Store.getState().completeAssistantGuide('desk-intro');
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore + 1);
   });
