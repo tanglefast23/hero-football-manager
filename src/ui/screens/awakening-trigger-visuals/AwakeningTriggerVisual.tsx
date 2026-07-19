@@ -27,10 +27,12 @@ interface AwakeningTriggerVisualProps {
 }
 
 export function AwakeningTriggerVisual({ visual, x, y }: AwakeningTriggerVisualProps) {
+  if (visual === 'caterpillar') {
+    return <GlowingCaterpillarVisual x={x} y={y} />;
+  }
+
   const art = (() => {
     switch (visual) {
-    case 'caterpillar':
-      return <GlowingCaterpillarVisual x={x} y={y} />;
     case 'water':
       return <WaterBottleVisual x={x} y={y} />;
     case 'cpr':

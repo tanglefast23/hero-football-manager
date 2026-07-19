@@ -86,11 +86,15 @@ describe('awakening trigger pixel-art contract', () => {
     }
   });
 
-  it('places every enlarged scene on the same opaque beige square card', () => {
+  it('places later triggers on the opaque beige card but leaves the caterpillar unframed', () => {
     const source = readFileSync(join(ART_DIRECTORY, 'AwakeningTriggerVisual.tsx'), 'utf8');
+
     expect(source).toContain('const CARD_SIZE = 80');
     expect(source).toContain('color={P.ink}');
     expect(source).toContain('color={P.cream}');
     expect(source.match(/<Rect/g)).toHaveLength(2);
+    expect(source).toContain(
+      "if (visual === 'caterpillar') {\n    return <GlowingCaterpillarVisual x={x} y={y} />;",
+    );
   });
 });

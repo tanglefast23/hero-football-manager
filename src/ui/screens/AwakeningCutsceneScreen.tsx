@@ -56,6 +56,7 @@ const HUDDLE_PAUSE_MS = 1500;
 const TRIGGER_REVEAL_MS = 1900;
 const TRIGGER_ART_DELAY_MS = 350;
 const ASCENT_DURATION_MS = 2800;
+const CATERPILLAR_FACE_OFFSET = { x: 11, y: -13 } as const;
 
 const BEAT_LABELS = {
   1: { number: '01', kicker: 'THE HUSH', title: 'Something is wrong.' },
@@ -254,6 +255,9 @@ export function AwakeningCutsceneScreen({
   const current = beat === 2
     ? { number: '02', kicker: viewModel.triggerKicker, title: viewModel.triggerTitle }
     : BEAT_LABELS[beat];
+  const triggerOffset = viewModel.triggerVisual === 'caterpillar'
+    ? CATERPILLAR_FACE_OFFSET
+    : { x: 0, y: 0 };
   const copy = beat === 1
     ? null
     : beat === 2
@@ -301,8 +305,8 @@ export function AwakeningCutsceneScreen({
               {beat === 2 && triggerPropVisible ? (
                 <AwakeningTriggerVisual
                   visual={viewModel.triggerVisual}
-                  x={centerX}
-                  y={centerY}
+                  x={centerX + triggerOffset.x}
+                  y={centerY + triggerOffset.y}
                 />
               ) : null}
             </Group>
