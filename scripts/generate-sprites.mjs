@@ -21,12 +21,12 @@ const W = 24, H = 30;
 const PALETTE = {
   '.': null,
   K: '#241f2e',                                          // ink: outlines, pupils, boot outline
-  d: '#8a4f38', n: '#cf9268', S: '#eab48c', L: '#f7d7ba', // skin ramp
-  h: '#6a4326', H: '#8a5a30', J: '#a9743d',              // hair (brown)
+  d: '#8a4f38', m: '#a86a42', n: '#cf9268', S: '#eab48c', L: '#f7d7ba', // skin ramp (deep->light)
+  h: '#6a4326', H: '#8a5a30', J: '#a9743d',              // hair (brown); h doubles as deep-skin shadow
   g: '#7d7887', G: '#b9b4c2',                            // hair (grey)
   F: '#ff6a00',                                          // Flint fire tip
   o: '#7a2731', r: '#c22f2c', R: '#e8433f', E: '#f2938c', // red kit (Rovers)
-  q: '#2a4f9e', b: '#2f55b8', B: '#3f6fd8', C: '#a3c8f0', // blue kit (United)
+  b: '#2f55b8', B: '#3f6fd8', C: '#a3c8f0',              // blue kit (United; outline via ink)
   w: '#d9d5cf', W: '#ffffff',                            // white: shorts/socks/eyes/boots
   T: '#1d9e75', A: '#ba7517',                            // GK kits (teal / amber)
 };
@@ -51,7 +51,15 @@ function outline(g) {
   add.forEach(([x, y]) => (g[y][x] = 'K'));
 }
 
-const SKIN = { light: { sh: 'n', base: 'S', hi: 'L' }, deep: { sh: 'd', base: 'n', hi: 'S' } };
+// Four skin tones spanning the human range, built from a 6-step brown ramp
+// (deep-skin shadow reuses hair-dark 'h'). Ethnicity reads via skin + hair only
+// — never facial-feature caricature, which at 12px would be crude/stereotyping.
+const SKIN = {
+  fair:  { sh: 'n', base: 'S', hi: 'L' }, // European
+  warm:  { sh: 'm', base: 'n', hi: 'S' }, // East/SE Asian, Latino, Mediterranean
+  brown: { sh: 'd', base: 'm', hi: 'n' }, // South Asian, Middle Eastern
+  deep:  { sh: 'h', base: 'd', hi: 'm' }, // African, Afro-Caribbean
+};
 const HAIR = {
   brown: { d: 'h', b: 'H', l: 'J' }, dark: { d: 'K', b: 'h', l: 'H' },
   grey: { d: 'g', b: 'g', l: 'G' }, fire: { d: 'o', b: 'R', l: 'F' },
@@ -192,28 +200,28 @@ function player(spec, frame) {
 // are load-bearing (guarded by src/render/sprites/__tests__/sprites.test.ts):
 // r9 Flint fire hair, u3 Bould muscular build, r0/u0 distinct GK kits.
 const ROSTER = [
-  { id: 'r0', team: 'rovers', gk: true, skin: 'light', hair: 'brown', feature: 'gk' },      // Sam Mitts
-  { id: 'r1', team: 'rovers', skin: 'light', hair: 'dark', feature: 'flattop' },            // Ed Stone
+  { id: 'r0', team: 'rovers', gk: true, skin: 'fair', hair: 'brown', feature: 'gk' },       // Sam Mitts
+  { id: 'r1', team: 'rovers', skin: 'warm', hair: 'dark', feature: 'flattop' },             // Ed Stone
   { id: 'r2', team: 'rovers', skin: 'deep', hair: 'dark', feature: 'curls' },               // Bo Hedges
-  { id: 'r3', team: 'rovers', skin: 'light', hair: 'brown', feature: 'shaved' },            // Max Tanko
-  { id: 'r4', team: 'rovers', skin: 'light', hair: 'brown', feature: 'sidefringe' },        // Ty Brooks
-  { id: 'r5', team: 'rovers', skin: 'deep', hair: 'dark', feature: 'headband' },            // Gio Marsh
-  { id: 'r6', team: 'rovers', skin: 'light', hair: 'grey', feature: 'grey' },               // Ken Ash
-  { id: 'r7', team: 'rovers', skin: 'light', hair: 'brown', feature: 'spiky' },             // Leo Quick
-  { id: 'r8', team: 'rovers', skin: 'deep', hair: 'dark', feature: 'ponytail' },            // Ravi Chan
-  { id: 'r9', team: 'rovers', skin: 'light', hair: 'fire', feature: 'fire' },               // Dario Flint *
+  { id: 'r3', team: 'rovers', skin: 'brown', hair: 'dark', feature: 'shaved' },             // Max Tanko
+  { id: 'r4', team: 'rovers', skin: 'fair', hair: 'brown', feature: 'sidefringe' },         // Ty Brooks
+  { id: 'r5', team: 'rovers', skin: 'warm', hair: 'dark', feature: 'headband' },            // Gio Marsh
+  { id: 'r6', team: 'rovers', skin: 'fair', hair: 'grey', feature: 'grey' },                // Ken Ash
+  { id: 'r7', team: 'rovers', skin: 'warm', hair: 'dark', feature: 'spiky' },               // Leo Quick (E.Asian)
+  { id: 'r8', team: 'rovers', skin: 'brown', hair: 'dark', feature: 'ponytail' },           // Ravi Chan (S.Asian)
+  { id: 'r9', team: 'rovers', skin: 'fair', hair: 'fire', feature: 'fire' },                // Dario Flint *
   { id: 'r10', team: 'rovers', skin: 'deep', hair: 'dark', feature: 'swept', build: 'slim' }, // Zip Vela
-  { id: 'u0', team: 'united', gk: true, skin: 'deep', hair: 'dark', feature: 'gk' },        // Vic Palm
-  { id: 'u1', team: 'united', skin: 'light', hair: 'brown', feature: 'blondtips' },         // Ali Frost
-  { id: 'u2', team: 'united', skin: 'light', hair: 'brown', feature: 'beard' },             // Jon Crag
-  { id: 'u3', team: 'united', skin: 'light', hair: 'dark', feature: 'enforcer', build: 'muscular' }, // Rex Bould *
+  { id: 'u0', team: 'united', gk: true, skin: 'brown', hair: 'dark', feature: 'gk' },       // Vic Palm
+  { id: 'u1', team: 'united', skin: 'fair', hair: 'brown', feature: 'blondtips' },          // Ali Frost
+  { id: 'u2', team: 'united', skin: 'fair', hair: 'brown', feature: 'beard' },              // Jon Crag
+  { id: 'u3', team: 'united', skin: 'warm', hair: 'dark', feature: 'enforcer', build: 'muscular' }, // Rex Bould *
   { id: 'u4', team: 'united', skin: 'deep', hair: 'dark', feature: 'moustache' },           // Nik Vale
-  { id: 'u5', team: 'united', skin: 'light', hair: 'brown', feature: 'tuft', build: 'slim' }, // Oz Reeds
-  { id: 'u6', team: 'united', skin: 'light', hair: 'brown', feature: 'round' },             // Cal Dunn
-  { id: 'u7', team: 'united', skin: 'light', hair: 'grey', feature: 'slatecrop' },          // Ian Slate
-  { id: 'u8', team: 'united', skin: 'deep', hair: 'dark', feature: 'undercut' },            // Uri Kemp
-  { id: 'u9', team: 'united', skin: 'light', hair: 'dark', feature: 'bull', build: 'muscular' }, // Abe Torro
-  { id: 'u10', team: 'united', skin: 'deep', hair: 'dark', feature: 'mohawk' },             // Moe Lyle
+  { id: 'u5', team: 'united', skin: 'warm', hair: 'dark', feature: 'tuft', build: 'slim' }, // Oz Reeds
+  { id: 'u6', team: 'united', skin: 'fair', hair: 'brown', feature: 'round' },              // Cal Dunn
+  { id: 'u7', team: 'united', skin: 'fair', hair: 'grey', feature: 'slatecrop' },           // Ian Slate
+  { id: 'u8', team: 'united', skin: 'brown', hair: 'dark', feature: 'undercut' },           // Uri Kemp
+  { id: 'u9', team: 'united', skin: 'deep', hair: 'dark', feature: 'bull', build: 'muscular' }, // Abe Torro
+  { id: 'u10', team: 'united', skin: 'warm', hair: 'dark', feature: 'mohawk' },             // Moe Lyle (E.Asian)
 ];
 
 const sprites = {};
