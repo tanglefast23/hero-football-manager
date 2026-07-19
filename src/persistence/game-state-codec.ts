@@ -217,6 +217,14 @@ const onboardingSchema = z
     }
   });
 
+const seasonGoalTallySchema = z
+  .object({
+    season: positiveInteger,
+    playerId: nonemptyString,
+    goals: nonnegativeInteger,
+  })
+  .passthrough();
+
 const gameStateSchema = z
   .object({
     schemaVersion: z.literal(GAME_SCHEMA_VERSION),
@@ -240,6 +248,7 @@ const gameStateSchema = z
     trainingPoints: nonnegativeInteger,
     heroEssence: nonnegativeInteger,
     ledgers: z.array(ledgerSchema),
+    seasonGoalTallies: z.array(seasonGoalTallySchema).optional(),
   })
   .passthrough()
   .superRefine((state, context) => {
@@ -254,6 +263,20 @@ const gameStateSchema = z
         });
       }
       clubIds.add(clubId);
+    }
+
+    const goalTallyKeys = new Set<string>();
+    for (let index = 0; index < (state.seasonGoalTallies ?? []).length; index += 1) {
+      const tally = state.seasonGoalTallies![index];
+      const key = `${tally.season}:${tally.playerId}`;
+      if (goalTallyKeys.has(key)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['seasonGoalTallies', index],
+          message: 'season and player ID must be unique',
+        });
+      }
+      goalTallyKeys.add(key);
     }
     if (!clubIds.has(state.userClubId)) {
       context.addIssue({

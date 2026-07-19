@@ -12,6 +12,7 @@ import type {
   GameState,
   LeagueFixture,
 } from '../types';
+import { createLaunchCareerSetup } from '../../application/launch';
 
 function makeSetup(): CareerSetup {
   return {
@@ -52,6 +53,34 @@ function finishSeason(initialState: GameState): GameState {
 }
 
 describe('career season workflow', () => {
+  it('adds supplied scorer identities to the persistent season goal ledger', () => {
+    let state = createCareer(createLaunchCareerSetup(909));
+    while (state.phase !== 'matchday') state = advanceWeek(state);
+
+    const fixtures = fixturesForCurrentWeek(state);
+    const userFixture = fixtures.find(fixture =>
+      fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId,
+    )!;
+    const scorerId = state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds[1];
+    const userIsHome = userFixture.homeClubId === state.userClubId;
+    const results = fixtures.map(fixture => fixture.id === userFixture.id
+      ? {
+          fixtureId: fixture.id,
+          homeGoals: userIsHome ? 2 : 0,
+          awayGoals: userIsHome ? 0 : 2,
+          scorerPlayerIds: [scorerId, scorerId],
+        }
+      : { fixtureId: fixture.id, homeGoals: 0, awayGoals: 0 });
+
+    const settled = completeMatchday(state, results);
+
+    expect(settled.seasonGoalTallies).toContainEqual({
+      season: 1,
+      playerId: scorerId,
+      goals: 2,
+    });
+  });
+
   it('pauses a scheduled week at matchday, accepts every result, and settles it', () => {
     let state = createCareer(makeSetup());
 

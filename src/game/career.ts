@@ -52,6 +52,7 @@ export function createCareer(setup: CareerSetup): GameState {
     trainingPoints: setup.startingTrainingPoints ?? 0,
     heroEssence: 0,
     ledgers: [],
+    seasonGoalTallies: [],
   };
 }
 
@@ -84,7 +85,7 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
   }
 
   const scheduledFixtures = fixturesForCurrentWeek(state);
-  validateResults(scheduledFixtures, results);
+  validateResults(state, scheduledFixtures, results);
 
   const resultByFixtureId = new Map(results.map(result => [result.fixtureId, result]));
   const fixtures = state.fixtures.map(fixture => {
@@ -112,7 +113,9 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
     'training point balance',
   );
 
-  return settleCurrentWeek({ ...state, fixtures, trainingPoints });
+  const seasonGoalTallies = recordSeasonGoals(state, scheduledFixtures, resultByFixtureId);
+
+  return settleCurrentWeek({ ...state, fixtures, trainingPoints, seasonGoalTallies });
 }
 
 export function leagueStandings(state: GameState, season = state.season): LeagueStanding[] {
@@ -472,12 +475,18 @@ function validatePlayerSetup(setup: CareerSetup, clubIds: ReadonlySet<string>): 
   }
 }
 
-function validateResults(fixtures: LeagueFixture[], results: FixtureResult[]): void {
+function validateResults(
+  state: GameState,
+  fixtures: LeagueFixture[],
+  results: FixtureResult[],
+): void {
   if (results.length !== fixtures.length) {
     throw new Error(`matchday requires exactly ${fixtures.length} fixture results`);
   }
 
   const expectedIds = new Set(fixtures.map(fixture => fixture.id));
+  const fixtureById = new Map(fixtures.map(fixture => [fixture.id, fixture]));
+  const playerClubById = new Map(state.players.map(player => [player.id, player.clubId]));
   const receivedIds = new Set<string>();
 
   for (const result of results) {
@@ -490,7 +499,58 @@ function validateResults(fixtures: LeagueFixture[], results: FixtureResult[]): v
     receivedIds.add(result.fixtureId);
     validateNonnegativeInteger(result.homeGoals, `${result.fixtureId} home goals`);
     validateNonnegativeInteger(result.awayGoals, `${result.fixtureId} away goals`);
+    if (result.scorerPlayerIds === undefined) continue;
+
+    if (result.scorerPlayerIds.length !== result.homeGoals + result.awayGoals) {
+      throw new Error(`result ${result.fixtureId} scorer count must match the score`);
+    }
+    // The original headless M1 harness supports club-only careers with no
+    // persistent player roster. Their sim teams still have player IDs, but
+    // there is intentionally no career ledger to attach those scorers to.
+    if (playerClubById.size === 0) continue;
+    const fixture = fixtureById.get(result.fixtureId)!;
+    let homeScorers = 0;
+    let awayScorers = 0;
+    for (const playerId of result.scorerPlayerIds) {
+      const clubId = playerClubById.get(playerId);
+      if (clubId === fixture.homeClubId) homeScorers += 1;
+      else if (clubId === fixture.awayClubId) awayScorers += 1;
+      else throw new Error(`result ${result.fixtureId} has an unknown scorer ${playerId}`);
+    }
+    if (homeScorers !== result.homeGoals || awayScorers !== result.awayGoals) {
+      throw new Error(`result ${result.fixtureId} scorers must match each club's goals`);
+    }
   }
+}
+
+function recordSeasonGoals(
+  state: GameState,
+  fixtures: LeagueFixture[],
+  resultByFixtureId: ReadonlyMap<string, FixtureResult>,
+): GameState['seasonGoalTallies'] {
+  const knownPlayerIds = new Set(state.players.map(player => player.id));
+  const totals = new Map(
+    (state.seasonGoalTallies ?? []).map(tally => [
+      `${tally.season}:${tally.playerId}`,
+      { ...tally },
+    ]),
+  );
+
+  for (const fixture of fixtures) {
+    const result = resultByFixtureId.get(fixture.id);
+    for (const playerId of result?.scorerPlayerIds ?? []) {
+      if (!knownPlayerIds.has(playerId)) continue;
+      const key = `${state.season}:${playerId}`;
+      const previous = totals.get(key);
+      totals.set(key, {
+        season: state.season,
+        playerId,
+        goals: checkedAdd(previous?.goals ?? 0, 1, `${playerId} season goals`),
+      });
+    }
+  }
+
+  return [...totals.values()];
 }
 
 function validateNonnegativeInteger(value: number, label: string): void {

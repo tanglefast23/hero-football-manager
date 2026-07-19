@@ -9,6 +9,7 @@ export * from './components/PlayerDevelopmentSpotlight';
 export * from './screens/ClubHomeScreen';
 export * from './screens/ClubFinancesScreen';
 export * from './screens/CharacterCreationScreen';
+export * from './screens/ChampionshipCelebrationScreen';
 export * from './screens/FirstAwakeningScreen';
 export * from './screens/FixtureMatchDayScreen';
 export * from './screens/HirePitchScreen';

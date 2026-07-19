@@ -35,6 +35,7 @@ import {
   ClubHomeScreen,
   AssistantGuideOverlay,
   CharacterCreationScreen,
+  ChampionshipCelebrationScreen,
   FirstAwakeningScreen,
   FixtureMatchDayScreen,
   LeagueTableScreen,
@@ -70,6 +71,7 @@ import {
   squadTrainingViewModel,
   storyEventViewModel,
 } from './src/application/view-models';
+import { championshipCelebrationViewModel } from './src/application/championship-celebration';
 
 const DATABASE_NAME = 'hero-football-manager.db';
 type LandingView = 'title' | 'story' | 'settings';
@@ -371,6 +373,17 @@ export default function App() {
         onSelectPlayer={store.selectEventPlayer}
         onContinue={store.continueAfterEvent}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
+      />
+    );
+  } else if (store.screen === 'championship-celebration') {
+    screen = (
+      <ChampionshipCelebrationScreen
+        viewModel={championshipCelebrationViewModel(
+          store.career,
+          content.assistantGuide.assistant.name,
+        )}
+        reduceMotion={reduceMotion}
+        onComplete={store.completeChampionshipCelebration}
       />
     );
   } else if (store.screen === 'season-end') {

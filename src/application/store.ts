@@ -48,6 +48,10 @@ import type { MatchState, TeamDef } from '../sim/types';
 import type { ManagementTab, PostMatchViewModel, WeeklyReviewViewModel } from '../ui';
 import { createLaunchCareerSetup, generateCareerSeed, reconcileLaunchRoster } from './launch';
 import { postMatchViewModel, weeklyReviewViewModel } from './view-models';
+import {
+  completeChampionshipCelebration as markChampionshipCelebrationComplete,
+  hasPendingChampionshipCelebration,
+} from './championship-celebration';
 
 const launchContent = loadLaunchContent();
 let saveQueue = Promise.resolve();
@@ -63,6 +67,7 @@ export type M1Screen =
   | 'watched'
   | 'postmatch'
   | 'week-review'
+  | 'championship-celebration'
   | 'season-end';
 
 export interface WatchedMatch {
@@ -109,6 +114,7 @@ interface M1Store {
   finishWatchedMatch: (result: MatchState) => void;
   continueAfterMatch: () => void;
   continueWeekReview: () => void;
+  completeChampionshipCelebration: () => void;
   selectEventPlayer: () => void;
   chooseEvent: (choiceId: string) => void;
   continueAfterEvent: () => void;
@@ -305,6 +311,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         set({ screen: 'matchday', error: null });
         return;
       }
+      if (hasPendingChampionshipCelebration(career)) {
+        set({ screen: 'championship-celebration', error: null });
+        return;
+      }
       if (career.phase === 'season-end') {
         const next = startNextSeason(career);
         set({ career: next, screen: 'management', activeTab: 'home', weekReview: null, error: null });
@@ -312,7 +322,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         return;
       }
       if (career.phase === 'complete') {
-        set({ screen: 'season-end', error: null });
+        set({ screen: seasonBoundaryScreen(career), error: null });
         return;
       }
 
@@ -343,7 +353,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           : next.phase === 'matchday'
           ? 'matchday'
           : next.phase === 'season-end' || next.phase === 'complete'
-            ? 'season-end'
+            ? seasonBoundaryScreen(next)
             : 'management',
         weekReview,
         error: null,
@@ -408,10 +418,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (watchedMatch === null || watchedMatch.fixture.id !== fixture.id) {
         throw new Error('the watched fixture context is missing');
       }
+      const scorerPlayerIds = result.events
+        .filter(event => event.kind === 'GOAL')
+        .map(event => result.players[event.by]?.def.id)
+        .filter((playerId): playerId is string => playerId !== undefined);
       const supplied = {
         fixtureId: fixture.id,
         homeGoals: result.score[0],
         awayGoals: result.score[1],
+        ...(scorerPlayerIds.length === result.score[0] + result.score[1]
+          ? { scorerPlayerIds }
+          : {}),
       };
       const results = resolveMatchday(fixtures, teams, [supplied]);
       const after = completeMatchday(before, results);
@@ -445,11 +462,40 @@ export const useM1Store = create<M1Store>((set, get) => ({
   },
 
   continueAfterMatch() {
-    set({ postMatch: null, weekReview: null, screen: 'management', activeTab: 'home', error: null });
+    const career = requireCareer(get());
+    set({
+      postMatch: null,
+      weekReview: null,
+      screen: career.phase === 'season-end' || career.phase === 'complete'
+        ? seasonBoundaryScreen(career)
+        : 'management',
+      activeTab: 'home',
+      error: null,
+    });
   },
 
   continueWeekReview() {
-    set({ weekReview: null, screen: 'management', activeTab: 'home', error: null });
+    const career = requireCareer(get());
+    set({
+      weekReview: null,
+      screen: career.phase === 'season-end' || career.phase === 'complete'
+        ? seasonBoundaryScreen(career)
+        : 'management',
+      activeTab: 'home',
+      error: null,
+    });
+  },
+
+  completeChampionshipCelebration() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      if (!hasPendingChampionshipCelebration(career)) {
+        throw new Error('there is no league championship celebration to complete');
+      }
+      const next = markChampionshipCelebrationComplete(career);
+      set({ career: next, screen: 'season-end', error: null });
+      queueCareerSave(get, set, next);
+    });
   },
 
   selectEventPlayer() {
@@ -506,7 +552,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           : next.phase === 'matchday'
           ? 'matchday'
           : next.phase === 'season-end' || next.phase === 'complete'
-            ? 'season-end'
+            ? seasonBoundaryScreen(next)
             : 'management',
         weekReview,
         error: null,
@@ -879,8 +925,16 @@ function resumeScreen(career: GameState): M1Screen {
   }
   if (career.pendingEvent !== undefined) return 'event';
   if (career.phase === 'matchday') return 'matchday';
-  if (career.phase === 'season-end' || career.phase === 'complete') return 'season-end';
+  if (career.phase === 'season-end' || career.phase === 'complete') {
+    return seasonBoundaryScreen(career);
+  }
   return 'management';
+}
+
+function seasonBoundaryScreen(career: GameState): M1Screen {
+  return hasPendingChampionshipCelebration(career)
+    ? 'championship-celebration'
+    : 'season-end';
 }
 
 function licenseSecondHero(state: GameState, playerId: string): GameState {

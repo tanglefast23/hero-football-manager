@@ -306,3 +306,23 @@ export interface SeasonEndViewModel {
   sliceComplete: boolean;
   canContinue: boolean;
 }
+
+export interface ChampionshipCelebrationPlayerViewModel {
+  id: string;
+  name: string;
+  role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  isHero: boolean;
+  /** The exact atlas character used for this player in the final match. */
+  spriteKey: string;
+}
+
+export interface ChampionshipCelebrationViewModel {
+  seasonLabel: string;
+  clubName: string;
+  assistantName: string;
+  star: ChampionshipCelebrationPlayerViewModel & {
+    goals: number;
+    hasRecordedGoals: boolean;
+  };
+  squad: readonly ChampionshipCelebrationPlayerViewModel[];
+}

@@ -53,6 +53,31 @@ describe('quickResultForFixture', () => {
     }
   });
 
+  test('retains the simulated scorer identities for Golden Boot tracking', () => {
+    const runMatch = jest.spyOn(simMatch, 'runMatch').mockReturnValue({
+      score: [2, 1],
+      events: [
+        { t: 10, kind: 'GOAL', by: 1, team: 0 },
+        { t: 20, kind: 'GOAL', by: 1, team: 0 },
+        { t: 30, kind: 'GOAL', by: 12, team: 1 },
+      ],
+    });
+
+    try {
+      expect(quickResultForFixture(fixture('scorers'), TEAMS)).toMatchObject({
+        homeGoals: 2,
+        awayGoals: 1,
+        scorerPlayerIds: [
+          ROVERS.players[1].id,
+          ROVERS.players[1].id,
+          UNITED.players[1].id,
+        ],
+      });
+    } finally {
+      runMatch.mockRestore();
+    }
+  });
+
   test('validates fixture state, match seed, and both teams', () => {
     expect(() => quickResultForFixture({ ...fixture('played'), status: 'played' }, TEAMS)).toThrow('scheduled');
     expect(() => quickResultForFixture({ ...fixture('scored'), score: { homeGoals: 1, awayGoals: 0 } }, TEAMS))

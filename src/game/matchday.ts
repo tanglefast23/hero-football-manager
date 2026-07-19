@@ -14,10 +14,14 @@ export function quickResultForFixture(
     homePolicy: 'FIRE_WHEN_READY',
     awayPolicy: 'FIRE_WHEN_READY',
   });
+  const scorerPlayerIds = scorerIdsFromEvents(result.events, home, away);
   return {
     fixtureId: fixture.id,
     homeGoals: result.score[0],
     awayGoals: result.score[1],
+    ...(scorerPlayerIds.length === result.score[0] + result.score[1]
+      ? { scorerPlayerIds }
+      : {}),
   };
 }
 
@@ -38,12 +42,19 @@ export function quickMatchForFixture(
     awayPolicy: 'FIRE_WHEN_READY',
   });
   while (match.phase !== 'fulltime') simMatch.tick(match);
+  const scorerPlayerIds = match.events
+    .filter(event => event.kind === 'GOAL')
+    .map(event => match.players[event.by]?.def.id)
+    .filter((playerId): playerId is string => playerId !== undefined);
 
   return {
     result: {
       fixtureId: fixture.id,
       homeGoals: match.score[0],
       awayGoals: match.score[1],
+      ...(scorerPlayerIds.length === match.score[0] + match.score[1]
+        ? { scorerPlayerIds }
+        : {}),
     },
     replay: simMatch.envelopeFrom(match),
   };
@@ -137,6 +148,27 @@ function validateSuppliedResult(result: FixtureResult): void {
   if (!isValidGoalCount(result.homeGoals) || !isValidGoalCount(result.awayGoals)) {
     throw new Error(`supplied result for fixture ${result.fixtureId} must have non-negative integer goals`);
   }
+  if (result.scorerPlayerIds !== undefined) {
+    if (result.scorerPlayerIds.length !== result.homeGoals + result.awayGoals) {
+      throw new Error(`supplied result for fixture ${result.fixtureId} scorer count must match the score`);
+    }
+    if (result.scorerPlayerIds.some(playerId => typeof playerId !== 'string' || playerId.length === 0)) {
+      throw new Error(`supplied result for fixture ${result.fixtureId} has an invalid scorer ID`);
+    }
+  }
+}
+
+function scorerIdsFromEvents(
+  events: ReturnType<typeof simMatch.runMatch>['events'],
+  home: TeamDef,
+  away: TeamDef,
+): string[] {
+  return events
+    .filter(event => event.kind === 'GOAL')
+    .map(event => event.by < 11
+      ? home.players[event.by]?.id
+      : away.players[event.by - 11]?.id)
+    .filter((playerId): playerId is string => playerId !== undefined);
 }
 
 function isValidGoalCount(goals: number): boolean {

@@ -116,6 +116,8 @@ export interface LeagueFixture {
 
 export interface FixtureResult extends FixtureScore {
   fixtureId: string;
+  /** Ordered scorer IDs when the full simulation result is available. */
+  scorerPlayerIds?: string[];
 }
 
 export type LedgerLineKind =
@@ -137,6 +139,12 @@ export interface WeeklyLedger {
   week: number;
   lines: LedgerLine[];
   balanceAfter: number;
+}
+
+export interface PlayerSeasonGoalTally {
+  season: number;
+  playerId: string;
+  goals: number;
 }
 
 export interface GameState {
@@ -162,6 +170,8 @@ export interface GameState {
   trainingPoints: number;
   heroEssence: number;
   ledgers: WeeklyLedger[];
+  /** Optional so careers saved before Golden Boot tracking remain loadable. */
+  seasonGoalTallies?: PlayerSeasonGoalTally[];
 }
 
 export interface LeagueStanding {
