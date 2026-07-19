@@ -20,8 +20,9 @@ tuning, or RNG consumption changes.
 
 M1 includes one 10-team division, two 30-week seasons, 18 home-and-away league
 matches per season, created-player onboarding, a powerless opening match, the
-choice-driven tutorial awakening that makes the avatar hero #1, one later
-stat-weighted awakening that makes hero #2 and fills the two license slots, one
+choice-driven tutorial awakening that makes the avatar hero #1, a repeatable
+stat-weighted chase that makes hero #2, a guaranteed follow-on awakening that
+makes hero #3 compete for the two license slots, one
 hero-wage renewal, training v1, money v1, one facility decision, save/load, the
 balance harness, and the production renderer migration.
 
@@ -63,7 +64,7 @@ list is not authoritative where it conflicts.
 - [x] Add persistent player/contract state and the sim-team adapter.
 - [x] Add training plans, focus-drill costs, TP spending, and one facility choice.
 - [x] Add awakening event choices, pity tracking, and deterministic outcomes.
-- [x] Add two-slot match selection and the hero-#2 competition.
+- [x] Add a guaranteed third hero, two-slot match selection, and real license competition.
 - [x] Add contract expiry, renewal, and the hero wage cliff.
 
 ### Phase 3 — Persistence and management UI

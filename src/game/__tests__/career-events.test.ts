@@ -2,28 +2,43 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { advanceWeek, createCareer } from '../career';
 import {
   applyCareerEventOutcome,
-  chooseAwakeningPower,
+  awakeningPowerRollSize,
+  chooseStatWeightedAwakeningPower,
   dismissCareerEvent,
   offerCareerEvent,
   selectCareerEventPlayer,
 } from '../career-events';
 
 describe('content-driven awakening powers', () => {
-  it('selects deterministically from the content order without mutating it', () => {
+  it('selects deterministically from stat-weighted ranges without mutating content', () => {
     const powers = Object.freeze(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'] as const);
+    const attrs = { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50, ref: 50 };
 
-    expect(chooseAwakeningPower(powers, 0)).toBe('SUPER_SPEED');
-    expect(chooseAwakeningPower(powers, 1)).toBe('SUPER_STRENGTH');
-    expect(chooseAwakeningPower(powers, 2)).toBe('FIRE_TORCH');
+    expect(awakeningPowerRollSize(powers, attrs)).toBe(780);
+    expect(chooseStatWeightedAwakeningPower(powers, attrs, 0)).toBe('SUPER_SPEED');
+    expect(chooseStatWeightedAwakeningPower(powers, attrs, 260)).toBe('SUPER_STRENGTH');
+    expect(chooseStatWeightedAwakeningPower(powers, attrs, 520)).toBe('FIRE_TORCH');
     expect(powers).toEqual(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']);
   });
 
   it('rejects empty, duplicate, unknown, and out-of-range selections', () => {
-    expect(() => chooseAwakeningPower([], 0)).toThrow('at least one power');
-    expect(() => chooseAwakeningPower(['SUPER_SPEED', 'SUPER_SPEED'], 0)).toThrow('duplicate');
-    expect(() => chooseAwakeningPower(['NOT_A_POWER' as 'SUPER_SPEED'], 0)).toThrow('unknown');
-    expect(() => chooseAwakeningPower(['SUPER_SPEED'], -1)).toThrow('integer from 0 to 0');
-    expect(() => chooseAwakeningPower(['SUPER_SPEED'], 1)).toThrow('integer from 0 to 0');
+    const attrs = { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50, ref: 50 };
+    expect(() => chooseStatWeightedAwakeningPower([], attrs, 0)).toThrow('at least one power');
+    expect(() => chooseStatWeightedAwakeningPower(['SUPER_SPEED', 'SUPER_SPEED'], attrs, 0)).toThrow('duplicate');
+    expect(() => chooseStatWeightedAwakeningPower(['NOT_A_POWER' as 'SUPER_SPEED'], attrs, 0)).toThrow('unknown');
+    expect(() => chooseStatWeightedAwakeningPower(['SUPER_SPEED'], attrs, -1)).toThrow('integer from 0 to 259');
+    expect(() => chooseStatWeightedAwakeningPower(['SUPER_SPEED'], attrs, 260)).toThrow('integer from 0 to 259');
+  });
+
+  it('changes the likely power range when the player build changes', () => {
+    const powers = ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'] as const;
+    const speedBuild = { pac: 99, sho: 10, pas: 10, def: 10, tec: 10, sta: 10, ref: 10 };
+    const strengthBuild = { pac: 10, sho: 10, pas: 10, def: 99, tec: 10, sta: 99, ref: 10 };
+    const fireBuild = { pac: 10, sho: 99, pas: 10, def: 10, tec: 10, sta: 10, ref: 10 };
+
+    expect(chooseStatWeightedAwakeningPower(powers, speedBuild, 250)).toBe('SUPER_SPEED');
+    expect(chooseStatWeightedAwakeningPower(powers, strengthBuild, 250)).toBe('SUPER_STRENGTH');
+    expect(chooseStatWeightedAwakeningPower(powers, fireBuild, 250)).toBe('FIRE_TORCH');
   });
 });
 

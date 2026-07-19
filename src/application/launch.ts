@@ -3,6 +3,17 @@ import type { CareerSetup, GameState } from '../game';
 
 export const DEFAULT_CAREER_SEED = 20260718;
 export const DEFAULT_USER_CLUB_ID = 'bramble-rovers';
+let careerSeedNonce = 0;
+let lastGeneratedCareerSeed: number | undefined;
+
+/** Produces a fresh uint32 seed without importing nondeterminism into the sim. */
+export function generateCareerSeed(now = Date.now()): number {
+  careerSeedNonce = (careerSeedNonce + 0x9e3779b9) >>> 0;
+  let seed = ((Math.trunc(now) >>> 0) ^ careerSeedNonce) >>> 0;
+  if (seed === lastGeneratedCareerSeed) seed = (seed + 1) >>> 0;
+  lastGeneratedCareerSeed = seed;
+  return seed;
+}
 
 export function createLaunchCareerSetup(
   seed = DEFAULT_CAREER_SEED,
@@ -13,6 +24,15 @@ export function createLaunchCareerSetup(
     seed,
     userClubId,
     startingTrainingPoints: 30,
+    trainingRules: {
+      maxFocusDrillsPerWeek: content.training.maxFocusDrillsPerWeek,
+      baseConditioning: {
+        id: content.training.baseConditioning.id,
+        moneyCost: content.training.baseConditioning.moneyCost,
+        tpCost: content.training.baseConditioning.tpCost,
+        gains: { ...content.training.baseConditioning.gains },
+      },
+    },
     clubs: content.clubs.clubs.map(club => ({
       id: club.id,
       name: club.name,
@@ -32,7 +52,12 @@ export function createLaunchCareerSetup(
       licensed: club.id === userClubId ? false : player.licensed,
       weeklyWage: player.weeklyWage,
       onHeroWage: club.id === userClubId ? false : player.onHeroWage,
-      contractSeasonsRemaining: player.contractSeasonsRemaining,
+      // M1 intentionally contains one renewal: the created hero's wage cliff.
+      // Keep ordinary user-club contracts alive through Season 1 so they do not
+      // become unresolved transfer-market work before M2 exists.
+      contractSeasonsRemaining: club.id === userClubId
+        ? Math.max(2, player.contractSeasonsRemaining)
+        : player.contractSeasonsRemaining,
       morale: 50,
       injuryWeeks: 0,
     }))),
@@ -52,7 +77,6 @@ export function reconcileLaunchRoster(
   const launchPlayers = launch.players ?? [];
   const existingIds = new Set(state.players.map(player => player.id));
   const missing = launchPlayers.filter(player => !existingIds.has(player.id));
-  if (missing.length === 0) return state;
 
   const launchById = new Map(launchPlayers.map(player => [player.id, player]));
   const legacyReserveWages = new Map<string, number>();
@@ -64,6 +88,7 @@ export function reconcileLaunchRoster(
     legacyReserveWages.set(`${club.id}-p13`, 304 + index * 8);
   });
 
+  let changed = missing.length > 0 || state.trainingRules === undefined;
   const players = [
     ...state.players.map(player => {
       const current = launchById.get(player.id);
@@ -75,7 +100,27 @@ export function reconcileLaunchRoster(
         player.power === undefined &&
         !player.onHeroWage
       ) {
+        changed = true;
         return { ...player, weeklyWage: current.weeklyWage };
+      }
+      if (
+        state.season === 1
+        && player.clubId === state.userClubId
+        && player.power === undefined
+        && current !== undefined
+        && player.contractSeasonsRemaining < Math.max(
+          1,
+          current.contractSeasonsRemaining - (state.phase === 'season-end' ? 1 : 0),
+        )
+      ) {
+        changed = true;
+        return {
+          ...player,
+          contractSeasonsRemaining: Math.max(
+            1,
+            current.contractSeasonsRemaining - (state.phase === 'season-end' ? 1 : 0),
+          ),
+        };
       }
       return player;
     }),
@@ -86,9 +131,22 @@ export function reconcileLaunchRoster(
     wageByClub.set(player.clubId, (wageByClub.get(player.clubId) ?? 0) + player.weeklyWage);
   }
 
+  if (!changed) return state;
+
   return {
     ...state,
     players,
+    ...(state.trainingRules === undefined && launch.trainingRules !== undefined
+      ? {
+          trainingRules: {
+            maxFocusDrillsPerWeek: launch.trainingRules.maxFocusDrillsPerWeek,
+            baseConditioning: {
+              ...launch.trainingRules.baseConditioning,
+              gains: { ...launch.trainingRules.baseConditioning.gains },
+            },
+          },
+        }
+      : {}),
     clubs: state.clubs.map(club => ({
       ...club,
       weeklyWages: wageByClub.get(club.id) ?? club.weeklyWages,

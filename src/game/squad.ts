@@ -1,12 +1,12 @@
 import type { PowerId, TeamDef } from '../sim/types';
 import { buildTeamDef } from './lineup';
 import {
-  applyTrainingPlan,
   renewContract,
   resolveAwakening,
   selectLicensedHeroes,
   type FocusDrill,
 } from './progression';
+import { setCareerTrainingPlan } from './training';
 import type { CareerPlayer, GameState } from './types';
 
 const DEFAULT_HERO_LIMIT = 2;
@@ -74,51 +74,13 @@ export function selectCareerLicensedHeroes(
   };
 }
 
-/** Each focus drill is paired with one player at the same array index. */
+/** Stores a repeating weekly plan; gains and costs resolve at settlement. */
 export function applyCareerTraining(
   state: GameState,
   assignedPlayerIds: readonly string[],
   drills: readonly FocusDrill[],
 ): GameState {
-  if (state.phase !== 'manage') {
-    throw new Error('training can only be assigned during the manage phase');
-  }
-  if (assignedPlayerIds.length !== drills.length) {
-    throw new Error('each focus drill must be assigned to exactly one player');
-  }
-
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
-
-  let roster = rosterForClub(state, state.userClubId);
-  let resources = { money: club.cash, tp: state.trainingPoints };
-  for (let index = 0; index < drills.length; index += 1) {
-    const result = applyTrainingPlan(
-      roster,
-      [assignedPlayerIds[index]],
-      [drills[index]],
-      resources,
-    );
-    roster = result.players.map(player => {
-      const original = roster.find(candidate => candidate.id === player.id);
-      if (original === undefined) throw new Error(`training lost player ${player.id}`);
-      return { ...original, ...player, attrs: { ...player.attrs } };
-    });
-    resources = result.resources;
-  }
-
-  const trainedById = new Map(roster.map(player => [player.id, player]));
-  return {
-    ...state,
-    clubs: state.clubs.map(candidate =>
-      candidate.id === state.userClubId ? { ...candidate, cash: resources.money } : candidate,
-    ),
-    trainingPoints: resources.tp,
-    players: state.players.map(player => {
-      const trained = trainedById.get(player.id);
-      return trained === undefined ? player : { ...trained, attrs: { ...trained.attrs } };
-    }),
-  };
+  return setCareerTrainingPlan(state, assignedPlayerIds, drills);
 }
 
 export function buildTrainingGround(
@@ -219,6 +181,81 @@ export function renewCareerPlayer(
     players: state.players.map(candidate =>
       candidate.id === playerId ? { ...candidate, ...renewed, attrs: { ...renewed.attrs } } : candidate,
     ),
+  };
+}
+
+/** Lets an expired player leave and repairs the starting eleven immediately. */
+export function releaseCareerPlayer(state: GameState, playerId: string): GameState {
+  if (state.phase !== 'season-end') {
+    throw new Error('expired players can only leave at season end');
+  }
+  const player = state.players.find(candidate =>
+    candidate.id === playerId && candidate.clubId === state.userClubId,
+  );
+  if (player === undefined) throw new Error(`unknown user-club player ${playerId}`);
+  if (player.contractSeasonsRemaining !== 0) {
+    throw new Error('only an expired player can leave');
+  }
+
+  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  if (lineup === undefined) throw new Error('the user club has no lineup');
+  const needsReplacement = lineup.playerIds.includes(playerId);
+  const lineupIds = new Set(lineup.playerIds);
+  const replacement = needsReplacement
+    ? state.players.find(candidate =>
+        candidate.clubId === state.userClubId
+        && candidate.id !== playerId
+        && !lineupIds.has(candidate.id)
+        && candidate.contractSeasonsRemaining > 0
+        && candidate.injuryWeeks === 0
+        && candidate.role === player.role
+        && candidate.power === undefined,
+      ) ?? state.players.find(candidate =>
+        candidate.clubId === state.userClubId
+        && candidate.id !== playerId
+        && !lineupIds.has(candidate.id)
+        && candidate.contractSeasonsRemaining > 0
+        && candidate.injuryWeeks === 0
+        && player.role !== 'GK'
+        && candidate.role !== 'GK'
+        && candidate.power === undefined,
+      )
+    : undefined;
+  if (needsReplacement && replacement === undefined) {
+    throw new Error('the expired starter cannot leave without an eligible replacement');
+  }
+
+  const remainingTrainingAssignments = state.trainingPlan?.assignedPlayerIds
+    .filter(id => id !== playerId) ?? [];
+
+  return {
+    ...state,
+    clubs: state.clubs.map(club => {
+      if (club.id !== state.userClubId) return club;
+      const weeklyWages = club.weeklyWages - player.weeklyWage;
+      if (!Number.isSafeInteger(weeklyWages) || weeklyWages < 0) {
+        throw new Error('club weekly wages exceed the supported range');
+      }
+      return { ...club, weeklyWages };
+    }),
+    players: state.players.filter(candidate => candidate.id !== playerId),
+    lineups: state.lineups.map(candidate => candidate.clubId !== state.userClubId
+      ? candidate
+      : {
+          ...candidate,
+          playerIds: candidate.playerIds.map(id => id === playerId ? replacement!.id : id),
+        }),
+    trainingPlan: state.trainingPlan === undefined || remainingTrainingAssignments.length === 0
+      ? undefined
+      : {
+          ...state.trainingPlan,
+          assignedPlayerIds: remainingTrainingAssignments,
+        },
+    // After the tutorial is complete this record is historical only. Clearing
+    // it allows the created player to leave without leaving a dangling save ID.
+    onboarding: state.onboarding?.createdPlayerId === playerId
+      ? undefined
+      : state.onboarding,
   };
 }
 

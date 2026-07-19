@@ -91,25 +91,110 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.lineups.find(candidate =>
       candidate.clubId === useM1Store.getState().career?.userClubId,
     )?.playerIds).toContain(selectedId);
+
+    const afterSecondHero = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...afterSecondHero,
+        week: 10,
+        phase: 'manage',
+        pendingEvent: undefined,
+        resolvedEventIds: [...afterSecondHero.resolvedEventIds, 'spider-training-day'],
+      },
+      screen: 'management',
+    });
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.pendingEvent?.eventId)
+      .toBe('license-pressure-awakening');
+    useM1Store.getState().selectEventPlayer();
+    useM1Store.getState().chooseEvent('trust-their-instincts');
+
+    expect(userHeroes()).toHaveLength(3);
+    expect(userHeroes().filter(player => player.licensed)).toHaveLength(2);
+    const thirdHero = userHeroes().find(player => !player.licensed)!;
+    const heroToBench = userHeroes().find(player => player.licensed && player.id !== selectedId)!;
+    useM1Store.getState().toggleHeroLicense(heroToBench.id);
+    useM1Store.getState().toggleHeroLicense(thirdHero.id);
+    expect(userHeroes().filter(player => player.licensed).map(player => player.id))
+      .toContain(thirdHero.id);
+    expect(useM1Store.getState().career?.lineups.find(candidate =>
+      candidate.clubId === useM1Store.getState().career?.userClubId,
+    )?.playerIds).toContain(thirdHero.id);
   });
 
-  it('applies the facility decision and one-player-per-drill training plan', () => {
+  it('keeps the hero chase alive through both non-risky spider choices', () => {
+    startAwakenedCareer(457);
+    const career = useM1Store.getState().career!;
+    useM1Store.setState({ career: { ...career, week: 7, phase: 'manage' }, screen: 'management' });
+
+    useM1Store.getState().advanceCareer();
+    useM1Store.getState().chooseEvent('call-groundskeeper');
+    useM1Store.getState().continueAfterEvent();
+    expect(useM1Store.getState().career?.eventFlags).toContain('spider-chase');
+
+    const afterGroundskeeper = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: { ...afterGroundskeeper, week: 9, phase: 'manage' },
+      screen: 'management',
+    });
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe('spider-training-day');
+    useM1Store.getState().selectEventPlayer();
+    useM1Store.getState().chooseEvent('squash-training');
+    useM1Store.getState().continueAfterEvent();
+    expect(useM1Store.getState().career?.resolvedEventIds).not.toContain('spider-training-day');
+
+    const afterSafeDrill = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: { ...afterSafeDrill, week: 10, phase: 'manage' },
+      screen: 'management',
+    });
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe('spider-training-day');
+  });
+
+  it('stores a repeating weekly squad plan and settles it only once per week', () => {
     startCreatedCareer(789);
     const before = useM1Store.getState().career!;
     const playerId = 'bramble-rovers-p13';
+    const unassignedPlayerId = 'bramble-rovers-p14';
     const beforePac = before.players.find(player => player.id === playerId)!.attrs.pac;
+    const beforeUnassignedSta = before.players.find(player => player.id === unassignedPlayerId)!.attrs.sta;
 
     useM1Store.getState().buildFacility();
     useM1Store.getState().toggleTrainingPlayer(playerId);
     useM1Store.getState().toggleDrill('sprints');
     useM1Store.getState().applyTraining();
 
-    const after = useM1Store.getState().career!;
-    expect(after.facilities.trainingGroundBuilt).toBe(true);
-    expect(after.clubs[0].cash).toBe(before.clubs[0].cash - 8000 - 400);
-    expect(after.trainingPoints).toBe(before.trainingPoints - 10);
-    expect(after.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac + 3);
-    expect(after.eventFlags).toContain('guide:bert:first-training-complete');
+    const planned = useM1Store.getState().career!;
+    expect(planned.facilities.trainingGroundBuilt).toBe(true);
+    expect(planned.clubs[0].cash).toBe(before.clubs[0].cash - 8000);
+    expect(planned.trainingPoints).toBe(before.trainingPoints);
+    expect(planned.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac);
+    expect(planned.trainingPlan).toMatchObject({
+      assignedPlayerIds: [playerId],
+      drills: [{ id: 'sprints' }],
+    });
+
+    useM1Store.getState().applyTraining();
+    expect(useM1Store.getState().career?.clubs[0].cash).toBe(planned.clubs[0].cash);
+    expect(useM1Store.getState().career?.players.find(player => player.id === playerId)?.attrs.pac)
+      .toBe(beforePac);
+
+    useM1Store.getState().advanceCareer();
+    const settled = useM1Store.getState().career!;
+    expect(settled.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac + 3);
+    expect(settled.players.find(player => player.id === playerId)?.attrs.sta).toBe(
+      before.players.find(player => player.id === playerId)!.attrs.sta + 1,
+    );
+    expect(settled.players.find(player => player.id === unassignedPlayerId)?.attrs.sta)
+      .toBe(beforeUnassignedSta + 1);
+    expect(settled.ledgers[0].lines).toContainEqual({
+      kind: 'training',
+      label: 'Weekly focus training',
+      amount: -400,
+    });
+    expect(settled.eventFlags).toContain('guide:bert:first-training-complete');
   });
 
   it('persists Bert guide progress and clears his first-week objective after advancing', () => {
@@ -126,6 +211,36 @@ describe('M1 app store integration', () => {
 
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.eventFlags).toContain('guide:bert:first-week-advanced');
+  });
+
+  it('completes the real default two-season store flow through events, licenses, and renewal', () => {
+    startCreatedCareer(24680);
+    useM1Store.getState().buildFacility();
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
+    useM1Store.getState().toggleDrill('sprints');
+    useM1Store.getState().applyTraining();
+
+    driveStoreUntil(state => state.career?.phase === 'season-end');
+    const seasonOne = useM1Store.getState().career!;
+    expect(seasonOne.season).toBe(1);
+    expect(seasonOne.clubs.find(club => club.id === seasonOne.userClubId)?.cash)
+      .toBeGreaterThanOrEqual(0);
+    expect(userHeroes()).toHaveLength(3);
+    expect(userHeroes().filter(player => player.licensed)).toHaveLength(2);
+    expect(seasonOne.players.filter(player =>
+      player.clubId === seasonOne.userClubId && player.contractSeasonsRemaining === 0,
+    )).toHaveLength(1);
+
+    const expiredHero = seasonOne.players.find(player =>
+      player.clubId === seasonOne.userClubId
+      && player.power !== undefined
+      && player.contractSeasonsRemaining === 0,
+    )!;
+    useM1Store.getState().renewPlayer(expiredHero.id, 1);
+    useM1Store.getState().advanceCareer();
+    driveStoreUntil(state => state.career?.phase === 'complete');
+
+    expect(useM1Store.getState().career).toMatchObject({ season: 2, phase: 'complete' });
   });
 
   it('blocks a new career after a load failure without overwriting the save', async () => {
@@ -300,6 +415,63 @@ async function waitFor(predicate: () => boolean): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 0));
   }
   throw new Error('timed out waiting for queued save');
+}
+
+function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) => boolean): void {
+  for (let step = 0; step < 300; step += 1) {
+    const current = useM1Store.getState();
+    if (done(current)) return;
+    const career = current.career;
+    if (career === null) throw new Error('career disappeared during the default journey');
+
+    if (current.screen === 'first-awakening') {
+      if (career.onboarding?.stage === 'collapse') current.chooseFirstAwakening('CHEMICAL');
+      else current.continueFirstAwakening();
+      continue;
+    }
+    if (current.screen === 'event') {
+      const pending = career.pendingEvent;
+      if (pending === undefined) throw new Error('event screen lost its pending event');
+      if (pending.resolvedChoiceId !== undefined) {
+        current.continueAfterEvent();
+        continue;
+      }
+      if (pending.eventId === 'giant-spider-arrives') {
+        current.chooseEvent('adopt-spider');
+        continue;
+      }
+      current.selectEventPlayer();
+      if (pending.eventId === 'spider-training-day') {
+        current.chooseEvent('approach-spider');
+        continue;
+      }
+      if (pending.eventId === 'license-pressure-awakening') {
+        current.chooseEvent('trust-their-instincts');
+        const unlicensed = userHeroes().find(player => !player.licensed);
+        const licensed = userHeroes().find(player => player.licensed);
+        if (unlicensed !== undefined && licensed !== undefined) {
+          useM1Store.getState().toggleHeroLicense(licensed.id);
+          useM1Store.getState().toggleHeroLicense(unlicensed.id);
+        }
+        continue;
+      }
+      throw new Error(`unexpected journey event ${pending.eventId}`);
+    }
+    if (current.screen === 'matchday') {
+      current.quickResult();
+      continue;
+    }
+    if (current.screen === 'postmatch') {
+      current.continueAfterMatch();
+      continue;
+    }
+    if (current.screen === 'management') {
+      current.advanceCareer();
+      continue;
+    }
+    throw new Error(`unexpected journey screen ${current.screen}`);
+  }
+  throw new Error('default journey exceeded its step budget');
 }
 
 function startCreatedCareer(seed: number): void {

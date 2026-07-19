@@ -98,6 +98,7 @@ export interface MatchDayViewModel {
   lineup: readonly LineupPlayerViewModel[];
   heroLimit: number;
   heroes: readonly HeroLicenseViewModel[];
+  licenseReady: boolean;
 }
 
 export interface MatchResultViewModel {
@@ -240,7 +241,6 @@ export interface ExpiredContractViewModel {
   termOptions: readonly (1 | 2 | 3)[];
   selectedTerm: 1 | 2 | 3;
   decision: 'pending' | 'renewed';
-  canAfford: boolean;
 }
 
 export interface SeasonEndViewModel {

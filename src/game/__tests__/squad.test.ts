@@ -3,6 +3,7 @@ import {
   applyCareerTraining,
   buildCareerTeamDef,
   buildTrainingGround,
+  releaseCareerPlayer,
   renewCareerPlayer,
   resolveCareerAwakening,
   selectCareerLicensedHeroes,
@@ -85,8 +86,8 @@ describe('career squad integration', () => {
     expect(buildCareerTeamDef(swapped, CLUB_IDS[0]).players.filter(player => player.power)).toHaveLength(2);
   });
 
-  it('pairs each drill with one player and spends money plus TP once', () => {
-    const trained = applyCareerTraining(
+  it('stores one weekly plan and applies every drill to every assigned player once', () => {
+    const planned = applyCareerTraining(
       career(),
       [`${CLUB_IDS[0]}-p9`, `${CLUB_IDS[0]}-p1`],
       [
@@ -95,9 +96,21 @@ describe('career squad integration', () => {
       ],
     );
 
-    expect(trained.clubs[0].cash).toBe(48500);
+    expect(planned.clubs[0].cash).toBe(50000);
+    expect(planned.trainingPoints).toBe(100);
+    expect(planned.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(50);
+
+    const trained = advanceWeek(planned);
+    expect(trained.clubs[0].cash).toBe(47850);
     expect(trained.trainingPoints).toBe(82);
+    expect(trained.ledgers[0].lines).toContainEqual({
+      kind: 'training',
+      label: 'Weekly focus training',
+      amount: -1500,
+    });
     expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(52);
+    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.def).toBe(53);
+    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.pac).toBe(52);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(53);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p2`)?.attrs.def).toBe(50);
   });
@@ -111,6 +124,28 @@ describe('career squad integration', () => {
     const next = advanceWeek(built);
     expect(next.week).toBe(2);
     expect(next.trainingPoints).toBe(105);
+  });
+
+  it('skips an unaffordable repeating focus plan without blocking weekly settlement', () => {
+    const planned = applyCareerTraining(
+      career(),
+      [`${CLUB_IDS[0]}-p9`],
+      [{ id: 'sprint', moneyCost: 1000, tpCost: 10, gains: { pac: 2 } }],
+    );
+    const broke = {
+      ...planned,
+      trainingPoints: 0,
+      clubs: planned.clubs.map(club => club.id === planned.userClubId
+        ? { ...club, cash: 0 }
+        : club),
+    };
+
+    const settled = advanceWeek(broke);
+
+    expect(settled.week).toBe(2);
+    expect(settled.players.find(player => player.id === `${CLUB_IDS[0]}-p9`)?.attrs.pac).toBe(50);
+    expect(settled.trainingPlan).toEqual(planned.trainingPlan);
+    expect(settled.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
   });
 
   it('persists awakening pity and resets it when hero #2 awakens', () => {
@@ -140,5 +175,9 @@ describe('career squad integration', () => {
     expect(renewed.players.find(player => player.id === heroId)?.weeklyWage).toBe(400);
     expect(renewed.players.find(player => player.id === heroId)?.onHeroWage).toBe(true);
     expect(renewed.clubs[0].weeklyWages).toBe(1600);
+
+    const released = releaseCareerPlayer(ended, `${CLUB_IDS[0]}-p11`);
+    expect(released.players.some(player => player.id === `${CLUB_IDS[0]}-p11`)).toBe(false);
+    expect(released.clubs[0].weeklyWages).toBe(1200);
   });
 });

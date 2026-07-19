@@ -128,7 +128,7 @@ export function SquadTrainingScreen({
           right={<StatusChip label={`${viewModel.selectedDrillCount} / ${viewModel.maxDrills}`} selected={viewModel.selectedDrillCount > 0} />}
         />
         <Text className="mb-3 text-sm leading-5 text-ink/60">
-          Pick up to {viewModel.maxDrills}. Pair each selected drill with one assigned player.
+          Pick up to {viewModel.maxDrills}. Each selected drill charges once and trains every assigned player. The plan repeats weekly until changed.
         </Text>
         <View className="gap-2">
           {viewModel.drills.map(drill => (
@@ -167,7 +167,7 @@ export function SquadTrainingScreen({
         <View className="mt-3">
           <ActionButton
             label="Lock weekly plan"
-            accessibilityLabel="Apply the selected weekly training plan"
+            accessibilityLabel="Save the repeating weekly training plan"
             onPress={onApplyTraining}
             disabled={!viewModel.canApply}
           />

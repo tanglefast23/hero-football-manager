@@ -17,6 +17,10 @@ const nonnegativeInteger = safeInteger.refine(
   (value) => value >= 0,
   'must be nonnegative',
 );
+const positiveInteger = safeInteger.refine(
+  (value) => value >= 1,
+  'input tick must be positive',
+);
 const uint32 = nonnegativeInteger.refine(
   (value) => value <= 4294967295,
   'must fit uint32',
@@ -54,6 +58,7 @@ const teamSchema = z
     id: nonemptyString,
     name: nonemptyString,
     players: z.array(replayPlayerSchema).length(11),
+    bench: z.array(replayPlayerSchema).optional(),
   })
   .passthrough()
   .superRefine((team, context) => {
@@ -71,19 +76,47 @@ const teamSchema = z
     }
   });
 
-const inputSchema = z
-  .object({
-    tick: nonnegativeInteger,
+const formationSchema = z.enum([
+  '4-4-2',
+  '4-3-3',
+  '3-5-2',
+  '5-3-2',
+  '4-5-1',
+  '3-4-3',
+]);
+
+const inputSchema = z.discriminatedUnion('kind', [
+  z.object({
+    tick: positiveInteger,
     kind: z.literal('POWER_TAP'),
     player: nonnegativeInteger,
-  })
-  .passthrough();
+  }).passthrough(),
+  z.object({
+    tick: positiveInteger,
+    kind: z.literal('SET_FORMATION'),
+    formation: formationSchema,
+  }).passthrough(),
+  z.object({
+    tick: positiveInteger,
+    kind: z.literal('SET_MENTALITY'),
+    mentality: z.enum(['BALANCED', 'ATTACK', 'PROTECT']),
+  }).passthrough(),
+  z.object({
+    tick: positiveInteger,
+    kind: z.literal('SUBSTITUTE'),
+    player: nonnegativeInteger,
+    replacementId: nonemptyString,
+  }).passthrough(),
+]);
 
 const matchOptionsSchema = z
   .object({
     homePolicy: z.enum(['SAVE_FOR_TAP', 'FIRE_WHEN_READY']).optional(),
     awayPolicy: z.enum(['SAVE_FOR_TAP', 'FIRE_WHEN_READY']).optional(),
     blindAutoHome: z.boolean().optional(),
+    controlledTeam: z.union([z.literal(0), z.literal(1)]).optional(),
+    homeFormation: formationSchema.optional(),
+    awayFormation: formationSchema.optional(),
   })
   .passthrough();
 

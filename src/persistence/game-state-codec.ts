@@ -79,7 +79,7 @@ const fixtureSchema = z
 
 const ledgerLineSchema = z
   .object({
-    kind: z.enum(['tickets', 'sponsor', 'prize', 'wages', 'subsidy']),
+    kind: z.enum(['tickets', 'sponsor', 'prize', 'training', 'wages', 'subsidy']),
     label: nonemptyString,
     amount: safeInteger,
   })
@@ -139,6 +139,41 @@ const facilitiesSchema = z
   })
   .passthrough();
 
+const trainingGainsSchema = z
+  .strictObject({
+    pac: nonnegativeInteger.optional(),
+    sho: nonnegativeInteger.optional(),
+    pas: nonnegativeInteger.optional(),
+    def: nonnegativeInteger.optional(),
+    tec: nonnegativeInteger.optional(),
+    sta: nonnegativeInteger.optional(),
+    ref: nonnegativeInteger.optional(),
+  })
+  .refine(gains => Object.keys(gains).length > 0, 'must improve at least one attribute');
+
+const trainingDrillSchema = z
+  .object({
+    id: nonemptyString,
+    moneyCost: nonnegativeInteger,
+    tpCost: nonnegativeInteger,
+    gains: trainingGainsSchema,
+  })
+  .passthrough();
+
+const trainingRulesSchema = z
+  .object({
+    maxFocusDrillsPerWeek: positiveInteger,
+    baseConditioning: trainingDrillSchema,
+  })
+  .passthrough();
+
+const trainingPlanSchema = z
+  .object({
+    assignedPlayerIds: z.array(nonemptyString).min(1),
+    drills: z.array(trainingDrillSchema).min(1),
+  })
+  .passthrough();
+
 const eventClockSchema = z
   .object({
     weeksWithoutEvent: nonnegativeInteger,
@@ -195,6 +230,8 @@ const gameStateSchema = z
     players: z.array(playerSchema),
     lineups: z.array(lineupSchema),
     facilities: facilitiesSchema,
+    trainingRules: trainingRulesSchema.optional(),
+    trainingPlan: trainingPlanSchema.optional(),
     eventClock: eventClockSchema,
     eventFlags: z.array(nonemptyString),
     resolvedEventIds: z.array(nonemptyString),
@@ -390,6 +427,48 @@ const gameStateSchema = z
             message: 'lineup player belongs to another club',
           });
         }
+      }
+    }
+
+    if (state.trainingPlan !== undefined) {
+      const maxDrills = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
+      const assignedIds = new Set<string>();
+      const drillIds = new Set<string>();
+      if (state.trainingPlan.drills.length > maxDrills) {
+        context.addIssue({
+          code: 'custom',
+          path: ['trainingPlan', 'drills'],
+          message: `cannot contain more than ${maxDrills} drills`,
+        });
+      }
+      for (let index = 0; index < state.trainingPlan.assignedPlayerIds.length; index += 1) {
+        const playerId = state.trainingPlan.assignedPlayerIds[index];
+        if (assignedIds.has(playerId)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['trainingPlan', 'assignedPlayerIds', index],
+            message: 'assigned player ID must be unique',
+          });
+        }
+        assignedIds.add(playerId);
+        if (!playerIds.has(playerId) || playerClubById.get(playerId) !== state.userClubId) {
+          context.addIssue({
+            code: 'custom',
+            path: ['trainingPlan', 'assignedPlayerIds', index],
+            message: 'assigned player must belong to the user club',
+          });
+        }
+      }
+      for (let index = 0; index < state.trainingPlan.drills.length; index += 1) {
+        const drillId = state.trainingPlan.drills[index].id;
+        if (drillIds.has(drillId)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['trainingPlan', 'drills', index, 'id'],
+            message: 'training drill ID must be unique',
+          });
+        }
+        drillIds.add(drillId);
       }
     }
   });

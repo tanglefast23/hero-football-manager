@@ -163,6 +163,11 @@ export function FixtureMatchDayScreen({
               manual taps while watching, contextual auto-fire in Quick Result.
             </Text>
           ) : null}
+          {!viewModel.licenseReady ? (
+            <Text className="mt-3 text-center text-sm font-bold uppercase tracking-wide text-stamp">
+              Finish the two-license selection before starting the match
+            </Text>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -173,7 +178,7 @@ export function FixtureMatchDayScreen({
               label="Quick result"
               accessibilityLabel="Simulate this match with quick result"
               onPress={onQuickResult}
-              disabled={quickResultDisabled}
+              disabled={quickResultDisabled || !viewModel.licenseReady}
               variant="paper"
             />
           </View>
@@ -182,7 +187,7 @@ export function FixtureMatchDayScreen({
               label="Watch match  ▸"
               accessibilityLabel="Watch this match"
               onPress={onWatchMatch}
-              disabled={watchDisabled}
+              disabled={watchDisabled || !viewModel.licenseReady}
             />
           </View>
         </View>

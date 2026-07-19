@@ -64,11 +64,16 @@ function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: Dev
 export interface SettingsOverlayProps {
   volume: DevVolume;
   onVolumeChange: (v: DevVolume) => void;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /** Global top-left settings button + its modal. Rendered once, appears on every screen. */
-export function SettingsOverlay({ volume, onVolumeChange }: SettingsOverlayProps) {
+export function SettingsOverlay({ volume, onVolumeChange, onOpenChange }: SettingsOverlayProps) {
   const [open, setOpen] = useState(false);
+  const setOpenState = (next: boolean) => {
+    setOpen(next);
+    onOpenChange?.(next);
+  };
 
   return (
     <>
@@ -76,20 +81,20 @@ export function SettingsOverlay({ volume, onVolumeChange }: SettingsOverlayProps
         accessibilityRole="button"
         accessibilityLabel="Open settings"
         hitSlop={8}
-        onPress={() => setOpen(true)}
+        onPress={() => setOpenState(true)}
         className="absolute left-3 top-14 h-11 w-11 items-center justify-center rounded-lg border-2 border-b-4 border-ink bg-paper"
         style={({ pressed }) => ({ opacity: pressed ? 0.8 : undefined, transform: [{ translateY: pressed ? 1 : 0 }] })}
       >
         <Text className="text-xl">⚙︎</Text>
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpenState(false)}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close settings"
           className="flex-1 items-center justify-center px-6"
           style={{ backgroundColor: 'rgba(36,31,46,0.55)' }}
-          onPress={() => setOpen(false)}
+          onPress={() => setOpenState(false)}
         >
           {/* stop taps inside the panel from closing the modal */}
           <Pressable className="w-full max-w-sm border-2 border-b-4 border-ink bg-paper p-5" onPress={() => {}}>
@@ -97,7 +102,7 @@ export function SettingsOverlay({ volume, onVolumeChange }: SettingsOverlayProps
             <View className="my-4 h-0.5 bg-ink/15" />
             <VolumeSlider value={volume} onChange={onVolumeChange} />
             <View className="mt-6">
-              <ActionButton label="Done" accessibilityLabel="Close settings" onPress={() => setOpen(false)} variant="primary" />
+              <ActionButton label="Done" accessibilityLabel="Close settings" onPress={() => setOpenState(false)} variant="primary" />
             </View>
           </Pressable>
         </Pressable>

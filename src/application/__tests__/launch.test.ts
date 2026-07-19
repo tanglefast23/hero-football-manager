@@ -3,6 +3,7 @@ import { buildCareerTeams, createCareer } from '../../game';
 import {
   createLaunchCareerSetup,
   DEFAULT_USER_CLUB_ID,
+  generateCareerSeed,
   reconcileLaunchRoster,
 } from '../launch';
 
@@ -32,6 +33,17 @@ describe('launch career adapter', () => {
     const expected = bramble.players.reduce((sum, player) => sum + player.weeklyWage, 0);
 
     expect(setup.clubs.find(club => club.id === DEFAULT_USER_CLUB_ID)?.weeklyWages).toBe(expected);
+  });
+
+  it('generates distinct valid seeds even within one clock millisecond', () => {
+    const first = generateCareerSeed(123456789);
+    const second = generateCareerSeed(123456789);
+
+    expect(first).not.toBe(second);
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(first).toBeLessThanOrEqual(4294967295);
+    expect(second).toBeGreaterThanOrEqual(0);
+    expect(second).toBeLessThanOrEqual(4294967295);
   });
 
   it('upgrades legacy 13-player saves to 16-player clubs without inflating payroll', () => {
