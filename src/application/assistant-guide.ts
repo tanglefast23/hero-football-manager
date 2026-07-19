@@ -29,6 +29,16 @@ export function pendingAssistantGuideSequence(
   ) {
     return 'squad-intro';
   }
+  if (
+    activeTab === 'home'
+    && hasAssistantGuideMilestone(state, 'squad-intro-complete')
+    && hasAssistantGuideMilestone(state, 'first-training-complete')
+    && state.facilities.trainingGroundBuilt
+    && !hasAssistantGuideMilestone(state, 'desk-intro-complete')
+    && !hasAssistantGuideMilestone(state, 'first-week-advanced')
+  ) {
+    return 'desk-intro';
+  }
   return null;
 }
 
@@ -55,6 +65,7 @@ export function currentAssistantObjective(
   if (activeTab !== 'home') {
     return { text: 'RETURN HOME.', target: 'home-tab' };
   }
+  if (!hasAssistantGuideMilestone(state, 'desk-intro-complete')) return null;
   if (!hasAssistantGuideMilestone(state, 'first-week-advanced')) {
     return { text: 'INBOX CLEAR. ADVANCE WEEK.', target: 'advance-week' };
   }

@@ -166,5 +166,15 @@ describe('validated M1 launch content', () => {
       .find(sequence => sequence.id === 'management-intro')
       ?.pages.find(page => page.focus === 'navigation')
       ?.navItems).toHaveLength(5);
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'desk-intro')
+      ?.pages[0]).toMatchObject({
+        body: [
+          "You're done for this week.",
+          'Just remember to check your inbox to know what to do.',
+        ],
+        focus: 'assistant',
+        buttonLabel: 'Got it.',
+      });
   });
 });

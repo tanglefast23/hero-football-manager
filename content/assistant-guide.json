@@ -76,15 +76,14 @@
       "id": "desk-intro",
       "pages": [
         {
-          "kicker": "Bert returns",
-          "title": "Back to your desk",
+          "kicker": "Bert's last word",
+          "title": "That's your week",
           "body": [
-            "Not hopeless. Read NEXT ASSIGNMENT and NEEDS YOUR CALL. If the desk is clear, ADVANCE WEEK.",
-            "For someone like you, reading the desk before touching things will save us all a great deal of paperwork."
+            "You're done for this week.",
+            "Just remember to check your inbox to know what to do."
           ],
-          "focus": "desk",
-          "objective": "READ THE DESK. THEN ADVANCE WEEK.",
-          "buttonLabel": "Understood."
+          "focus": "assistant",
+          "buttonLabel": "Got it."
         }
       ]
     }
