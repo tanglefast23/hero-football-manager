@@ -6,7 +6,7 @@
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 
 export type MenuTheme = 'opening' | 'management' | 'event' | null;
-type MenuSfx = 'advance-week';
+type MenuSfx = 'advance-week' | 'plan-locked';
 
 const MENU_SOURCES: Record<Exclude<MenuTheme, null>, AudioSource> = {
   opening: require('../../assets/audio/music/opening-theme.m4a'),
@@ -15,6 +15,7 @@ const MENU_SOURCES: Record<Exclude<MenuTheme, null>, AudioSource> = {
 };
 const MENU_SFX_SOURCES: Record<MenuSfx, AudioSource> = {
   'advance-week': require('../../assets/audio/sfx/advance-week.m4a'),
+  'plan-locked': require('../../assets/audio/sfx/plan-locked-chime.m4a'),
 };
 
 const MUSIC_VOLUME = 0.5;
@@ -90,16 +91,24 @@ export function initMenuAudio(): void {
 }
 
 export function playAdvanceWeekSfx(): void {
+  playMenuSfx('advance-week');
+}
+
+export function playPlanLockedSfx(): void {
+  playMenuSfx('plan-locked');
+}
+
+function playMenuSfx(key: MenuSfx): void {
   initMenuAudio();
   if (!ready) return;
   try {
-    const player = sfxPlayers.get('advance-week');
+    const player = sfxPlayers.get(key);
     if (!player) return;
     player.seekTo(0)
       .then(() => player.play())
-      .catch((error: unknown) => warnOnce('advance-week seek/play failed', error));
+      .catch((error: unknown) => warnOnce(`${key} seek/play failed`, error));
   } catch (error) {
-    warnOnce('advance-week playback failed', error);
+    warnOnce(`${key} playback failed`, error);
   }
 }
 
