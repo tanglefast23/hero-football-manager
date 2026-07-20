@@ -31,27 +31,74 @@ export function ClubFinancesScreen({
   guideTrainingGround = false,
 }: ClubFinancesScreenProps) {
   const facility = viewModel.trainingGround;
+  const facilities = viewModel.facilities;
   const scrollRef = useRef<ScrollView>(null);
   const facilityYRef = useRef<number | null>(null);
   const scrollFrameRef = useRef<number | null>(null);
   const [selectedBuildType, setSelectedBuildType] = useState<FacilityTypeViewModel | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [relocatingBuildingId, setRelocatingBuildingId] = useState<string | null>(null);
-  const selectedBuilding = viewModel.facilities.buildings.find(
+  const [previewCell, setPreviewCell] = useState<{ x: number; y: number } | null>(null);
+  const selectedBuilding = facilities.buildings.find(
     building => building.id === selectedBuildingId,
   );
+  const relocatingBuilding = facilities.buildings.find(
+    building => building.id === relocatingBuildingId,
+  );
+  const selectedBuildEntry = selectedBuildType === null
+    ? undefined
+    : facilities.catalog.find(entry => entry.type === selectedBuildType);
+
+  const placementActive = selectedBuildType !== null || relocatingBuildingId !== null;
+  const activeFootprint = relocatingBuilding
+    ? { width: relocatingBuilding.width, height: relocatingBuilding.height }
+    : selectedBuildEntry
+      ? { width: selectedBuildEntry.width, height: selectedBuildEntry.height }
+      : null;
+  const activeLabel = relocatingBuilding?.name ?? selectedBuildEntry?.name ?? '';
+
+  const canPlaceAt = useCallback((x: number, y: number): boolean => {
+    if (activeFootprint === null) return false;
+    if (x + activeFootprint.width > facilities.width) return false;
+    if (y + activeFootprint.height > facilities.height) return false;
+    return !facilities.buildings.some(building => {
+      if (building.id === relocatingBuildingId) return false;
+      return x < building.x + building.width
+        && building.x < x + activeFootprint.width
+        && y < building.y + building.height
+        && building.y < y + activeFootprint.height;
+    });
+  }, [activeFootprint, facilities.buildings, facilities.height, facilities.width, relocatingBuildingId]);
+
+  const cellIsOccupied = useCallback((x: number, y: number): boolean => (
+    facilities.buildings.some(building => (
+      x >= building.x
+      && x < building.x + building.width
+      && y >= building.y
+      && y < building.y + building.height
+    ))
+  ), [facilities.buildings]);
+
+  const cancelPlacement = useCallback(() => {
+    setSelectedBuildType(null);
+    setRelocatingBuildingId(null);
+    setPreviewCell(null);
+  }, []);
 
   const handleGridCell = useCallback((x: number, y: number) => {
+    if (!canPlaceAt(x, y)) return;
     if (relocatingBuildingId !== null) {
       onRelocateFacility?.(relocatingBuildingId, x, y);
       setRelocatingBuildingId(null);
+      setPreviewCell(null);
       return;
     }
     if (selectedBuildType !== null) {
       onBuildFacility?.(selectedBuildType, x, y);
       setSelectedBuildType(null);
+      setPreviewCell(null);
     }
-  }, [onBuildFacility, onRelocateFacility, relocatingBuildingId, selectedBuildType]);
+  }, [canPlaceAt, onBuildFacility, onRelocateFacility, relocatingBuildingId, selectedBuildType]);
 
   const scrollToTrainingGround = useCallback(() => {
     if (!guideTrainingGround || facilityYRef.current === null) return;
@@ -210,81 +257,143 @@ export function ClubFinancesScreen({
           stamp={`${formatCompactNumber(viewModel.facilities.weeklyUpkeep)}/wk`}
         >
           <Text className="mb-3 text-sm leading-4 text-ink/60">
-            Pick a building, then tap its top-left tile. Put useful pairs edge-to-edge to discover bonuses.
+            Pick a building from the menu below, then tap a glowing square to drop it. Put useful pairs edge-to-edge to discover bonuses.
           </Text>
           <View
             className="relative overflow-hidden border-2 border-ink bg-emerald-50"
-            style={{ aspectRatio: viewModel.facilities.width / viewModel.facilities.height }}
+            style={{ aspectRatio: facilities.width / facilities.height }}
           >
-            {Array.from(
-              { length: viewModel.facilities.width * viewModel.facilities.height },
-              (_, index) => {
-                const x = index % viewModel.facilities.width;
-                const y = Math.floor(index / viewModel.facilities.width);
-                const placementActive = selectedBuildType !== null || relocatingBuildingId !== null;
+            <View style={{ flex: 1 }}>
+              {Array.from({ length: facilities.height }, (_, y) => (
+                <View key={`facility-row-${y}`} style={{ flex: 1, flexDirection: 'row' }}>
+                  {Array.from({ length: facilities.width }, (_, x) => {
+                    const occupied = cellIsOccupied(x, y);
+                    const buildable = placementActive && !occupied && canPlaceAt(x, y);
+                    return (
+                      <Pressable
+                        key={`facility-cell-${x}-${y}`}
+                        accessibilityRole={placementActive ? 'button' : 'none'}
+                        accessibilityLabel={placementActive
+                          ? `${buildable ? 'Build at' : 'Blocked at'} column ${x + 1}, row ${y + 1}`
+                          : undefined}
+                        disabled={!placementActive}
+                        onPress={() => handleGridCell(x, y)}
+                        onPressIn={() => setPreviewCell({ x, y })}
+                        onPressOut={() => setPreviewCell(null)}
+                        style={{
+                          flex: 1,
+                          borderRightWidth: x === facilities.width - 1 ? 0 : 1,
+                          borderBottomWidth: y === facilities.height - 1 ? 0 : 1,
+                          borderColor: 'rgba(36, 31, 46, 0.28)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: occupied
+                            ? undefined
+                            : placementActive
+                              ? (buildable ? 'rgba(237, 181, 74, 0.32)' : 'rgba(36, 31, 46, 0.05)')
+                              : 'rgba(92, 184, 92, 0.12)',
+                        }}
+                      >
+                        {buildable ? (
+                          <Text className="font-mono text-xs font-bold text-gold-dark">+</Text>
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+
+            <View
+              pointerEvents={placementActive ? 'none' : 'box-none'}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            >
+              {facilities.buildings.map(building => {
+                const selected = building.id === selectedBuildingId;
+                const moving = building.id === relocatingBuildingId;
                 return (
                   <Pressable
-                    key={`facility-cell-${x}-${y}`}
-                    accessibilityRole={placementActive ? 'button' : 'none'}
-                    accessibilityLabel={placementActive ? `Place at column ${x + 1}, row ${y + 1}` : undefined}
-                    disabled={!placementActive}
-                    onPress={() => handleGridCell(x, y)}
-                    style={({ pressed }) => ({
+                    key={building.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${building.name}, level ${building.level}`}
+                    disabled={placementActive}
+                    onPress={() => {
+                      setSelectedBuildingId(building.id);
+                      setSelectedBuildType(null);
+                    }}
+                    style={{
                       position: 'absolute',
-                      left: `${x * 100 / viewModel.facilities.width}%`,
-                      top: `${y * 100 / viewModel.facilities.height}%`,
-                      width: `${100 / viewModel.facilities.width}%`,
-                      height: `${100 / viewModel.facilities.height}%`,
-                      borderRightWidth: 1,
-                      borderBottomWidth: 1,
-                      borderColor: 'rgba(22, 45, 36, 0.18)',
-                      backgroundColor: pressed ? 'rgba(250, 204, 21, 0.45)' : undefined,
-                    })}
-                  />
+                      left: `${building.x * 100 / facilities.width}%`,
+                      top: `${building.y * 100 / facilities.height}%`,
+                      width: `${building.width * 100 / facilities.width}%`,
+                      height: `${building.height * 100 / facilities.height}%`,
+                      padding: 2,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flex: 1,
+                        borderWidth: selected ? 3 : 2,
+                        borderColor: selected ? '#c8862a' : '#241f2e',
+                        backgroundColor: moving ? '#f7d894' : facilityColor(building),
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: moving ? 0.55 : 1,
+                      }}
+                    >
+                      <Text className="font-mono text-sm font-bold text-ink">{facilityMark(building)}</Text>
+                      <Text className="mt-0.5 text-xs font-bold uppercase text-ink">L{building.level}</Text>
+                    </View>
+                  </Pressable>
                 );
-              },
-            )}
-            {viewModel.facilities.buildings.map(building => {
-              const selected = building.id === selectedBuildingId;
-              return (
-                <Pressable
-                  key={building.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${building.name}, level ${building.level}`}
-                  onPress={() => {
-                    setSelectedBuildingId(building.id);
-                    setSelectedBuildType(null);
-                  }}
-                  style={({ pressed }) => ({
-                    position: 'absolute',
-                    left: `${building.x * 100 / viewModel.facilities.width}%`,
-                    top: `${building.y * 100 / viewModel.facilities.height}%`,
-                    width: `${building.width * 100 / viewModel.facilities.width}%`,
-                    height: `${building.height * 100 / viewModel.facilities.height}%`,
-                    borderWidth: selected ? 3 : 2,
-                    borderColor: selected ? '#B45309' : '#162D24',
-                    backgroundColor: selected ? '#FDE68A' : facilityColor(building),
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: pressed ? 0.75 : 1,
-                    zIndex: 2,
-                  })}
-                >
-                  <Text className="font-mono text-sm font-bold text-ink">{facilityMark(building)}</Text>
-                  <Text className="mt-0.5 text-xs font-bold uppercase text-ink">L{building.level}</Text>
-                </Pressable>
-              );
-            })}
+              })}
+            </View>
+
+            {placementActive && previewCell && activeFootprint ? (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: `${previewCell.x * 100 / facilities.width}%`,
+                  top: `${previewCell.y * 100 / facilities.height}%`,
+                  width: `${activeFootprint.width * 100 / facilities.width}%`,
+                  height: `${activeFootprint.height * 100 / facilities.height}%`,
+                  borderWidth: 3,
+                  borderColor: canPlaceAt(previewCell.x, previewCell.y) ? '#3f8a4a' : '#a83440',
+                  backgroundColor: canPlaceAt(previewCell.x, previewCell.y)
+                    ? 'rgba(92, 184, 92, 0.45)'
+                    : 'rgba(217, 79, 82, 0.40)',
+                }}
+              />
+            ) : null}
           </View>
 
-          {selectedBuildType !== null || relocatingBuildingId !== null ? (
-            <View className="mt-3 border-2 border-amber-800 bg-amber-100 px-3 py-2">
-              <Text className="text-sm font-bold uppercase text-amber-900">
-                {relocatingBuildingId !== null ? 'Tap a destination tile' : 'Tap a build tile'}
-              </Text>
-              <Text className="mt-1 text-sm text-amber-900/70">The highlighted tile is the building’s top-left corner.</Text>
+          {placementActive ? (
+            <View className="mt-3 flex-row items-start justify-between gap-3 border-2 border-amber-800 bg-amber-100 px-3 py-2">
+              <View className="flex-1">
+                <Text className="text-sm font-bold uppercase text-amber-900">
+                  {relocatingBuildingId !== null ? `Moving · ${activeLabel}` : `Placing · ${activeLabel}`}
+                </Text>
+                <Text className="mt-1 text-sm text-amber-900/80">
+                  Tap a glowing square above. A green outline fits; red is blocked.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cancel placement"
+                onPress={cancelPlacement}
+                className="min-h-11 items-center justify-center border-2 border-amber-800 bg-white px-3"
+              >
+                <Text className="text-sm font-bold uppercase text-amber-900">Cancel</Text>
+              </Pressable>
             </View>
-          ) : null}
+          ) : (
+            <View className="mt-3 border-2 border-dashed border-ink/30 bg-paper px-3 py-2">
+              <Text className="text-sm text-ink/70">
+                Pick a building from the <Text className="font-bold text-ink">Build menu</Text> below to start — every open square will glow so you can see where it drops.
+              </Text>
+            </View>
+          )}
 
           {selectedBuilding ? (
             <View className="mt-3 border-2 border-ink bg-white p-3">
