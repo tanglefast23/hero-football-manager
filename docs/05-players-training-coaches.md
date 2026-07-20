@@ -4,7 +4,7 @@
 
 - **Identity**: procedurally generated name + look (skin tone, hair, facial hair, glasses/accessories, body type: slim/normal/heavy/muscular, height: short/normal/tall). Looks are cosmetic *flavor* except body type nudging awakening weights (doc 04).
 - **Stats**: PAC / SHO (REF for GKs) / PAS / DEF / TEC / STA, 1–99.
-- **Archetype** (visible): Speedster, Sniper, Playmaker, Anchor, Wall, Engine, All-Rounder, Prodigy — each has stat-growth multipliers and the **hard per-stat training caps** below (Pocket League Story 2's proven "build identity" pattern). Caps are shown to the player — informed investment, no wasted training. Existing exceptional or legacy players above a cap keep that rating but cannot train it higher.
+- **Archetype** (visible): Speedster, Sniper, Playmaker, Anchor, Wall, Engine, All-Rounder, Prodigy — each has stat-growth multipliers and the **cap shape** below (Pocket League Story 2's proven "build identity" pattern). Individual potential sets the height of a player's personal caps; archetype redistributes that ceiling so, for example, a Speedster still peaks higher in PAC than SHO. Actual personal caps are shown in the player file — informed investment, no wasted training. Existing exceptional or legacy players above a personal cap keep that rating but cannot train it higher.
 
 | Archetype | PAC | SHO | PAS | DEF | TEC | STA | REF |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -16,7 +16,20 @@
 | Engine | 90 | 80 | 88 | 84 | 86 | 95 | 65 |
 | All-Rounder | 88 | 88 | 88 | 88 | 88 | 88 | 88 |
 | Prodigy | 99 | 99 | 99 | 99 | 99 | 99 | 99 |
-- **Hidden**: potential (1–5★, revealed by scouting level), consistency, personality (see below).
+- **Current rating**: the rounded average of the six attributes the role can use. Outfield players use SHO and ignore REF; goalkeepers use REF and ignore SHO.
+- **Potential**: a permanent grade from **A+** through **F−** based on the role-aware overall the player reaches when every personal cap is full. Normal training raises the current rating toward that ceiling but never lowers or rerolls the grade. The player file also shows the exact projected maximum.
+
+| Grade | Projected max | Grade | Projected max | Grade | Projected max |
+|---|---:|---|---:|---|---:|
+| A+ | 97–99 | A | 94–96 | A− | 91–93 |
+| B+ | 88–90 | B | 85–87 | B− | 82–84 |
+| C+ | 79–81 | C | 76–78 | C− | 73–75 |
+| D+ | 70–72 | D | 67–69 | D− | 64–66 |
+| E+ | 61–63 | E | 58–60 | E− | 55–57 |
+| F+ | 52–54 | F | 49–51 | F− | 48 or below |
+
+- **Potential progression**: the scale is absolute across the whole game. Higher divisions and stronger scouting pools contain better potential distributions; promotion changes who can be found, not what an A or C means.
+- **Hidden**: the coarse scouting/valuation tier behind the grade, consistency, personality (see below).
 - **Personality** (visible after a few weeks): Fiery, Loyal, Greedy, Joker, Professional, Timid — drives event outcomes, negotiation behavior, morale swings.
 - **State**: age, morale, condition/stamina, injury status, contract (wage, seasons left), fame, power (or none).
 

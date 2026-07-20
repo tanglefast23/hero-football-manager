@@ -1,4 +1,5 @@
 import type { Attrs } from '../sim/types';
+import { roleOverall } from './archetype-caps';
 import {
   advanceNationalCup,
   createNationalCup,
@@ -506,12 +507,10 @@ export function clubSquadStrength(
   squad: readonly Pick<PyramidPlayer, 'role' | 'attrs'>[],
 ): number {
   if (squad.length === 0) throw new Error('club squad strength requires at least one player');
-  const total = squad.reduce((clubTotal, player) => {
-    const attrs = player.role === 'GK'
-      ? [player.attrs.ref, player.attrs.def, player.attrs.pas]
-      : [player.attrs.pac, player.attrs.sho, player.attrs.pas, player.attrs.def, player.attrs.tec, player.attrs.sta];
-    return clubTotal + Math.round(attrs.reduce((sum, value) => sum + value, 0) / attrs.length);
-  }, 0);
+  const total = squad.reduce(
+    (clubTotal, player) => clubTotal + roleOverall(player.role, player.attrs),
+    0,
+  );
   return Math.max(1, Math.min(99, Math.round(total / squad.length)));
 }
 

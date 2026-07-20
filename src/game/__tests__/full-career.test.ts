@@ -92,6 +92,21 @@ describe('full M2 career clock', () => {
     expect(relegated.m2?.highestDivisionReached).toBe(4);
   });
 
+  test('promotion exposes a deterministically stronger pool of player ceilings', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(78_002), careerMode: 'full' });
+    const promoted = startNextSeason(completeSeasonForUser(initial, 'win'));
+    const startingOpponents = initial.players.filter(player => player.clubId !== initial.userClubId);
+    const promotedOpponents = promoted.players.filter(player => player.clubId !== promoted.userClubId);
+    const averageCeiling = (players: typeof promotedOpponents) => players.reduce(
+      (sum, player) => sum + (player.potentialCeiling ?? 0),
+      0,
+    ) / players.length;
+
+    expect(currentUserDivision(promoted.m2!)).toBe(4);
+    expect(promotedOpponents.every(player => player.potentialCeiling !== undefined)).toBe(true);
+    expect(averageCeiling(promotedOpponents)).toBeGreaterThan(averageCeiling(startingOpponents));
+  });
+
   test('deterministically replenishes every position when a generation retires', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(79), careerMode: 'full' });
     const retiringPlayerIds = new Set(initial.players

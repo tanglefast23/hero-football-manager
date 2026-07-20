@@ -11,6 +11,7 @@ import {
   type PyramidPlayer,
 } from './pyramid';
 import type { CareerPlayer, GameState, PlayerPersonality } from './types';
+import { deterministicPotentialCeiling } from './archetype-caps';
 import { nextDistinctPlayerLook } from './player-appearance';
 import { assertUserCareerRosterSpace } from './youth-intake';
 
@@ -220,6 +221,7 @@ function legacyYouthToCareerPlayer(youth: PyramidPlayer, careerSeed: number): Ca
     age: youth.age,
     archetype: youth.archetype,
     potential: 4,
+    potentialCeiling: deterministicPotentialCeiling(youth.id, 4),
     consistency: 65,
     personality: youth.personality,
     condition: youth.condition,

@@ -1,5 +1,6 @@
 import { mulberry32, type Rng } from '../sim/rng';
 import type { Attrs, Role } from '../sim/types';
+import { deterministicPotentialCeiling } from './archetype-caps';
 import { nextDistinctPlayerLook } from './player-appearance';
 import type {
   CareerPlayer,
@@ -319,6 +320,7 @@ export function createEmergencyYouthReplacement(
     age: 17,
     archetype: 'All-Rounder',
     potential: 2,
+    potentialCeiling: deterministicPotentialCeiling(id, 2),
     consistency: 50 + integerRoll(random, 0, 10),
     personality: 'Professional',
     condition: 100,
@@ -361,6 +363,7 @@ function createOffer(
     age: integerRoll(random, 16, 17),
     archetype: ARCHETYPES[integerRoll(random, 0, ARCHETYPES.length - 1)],
     potential,
+    potentialCeiling: deterministicPotentialCeiling(id, potential),
     consistency: 45 + integerRoll(random, 0, 30),
     personality: PERSONALITIES[integerRoll(random, 0, PERSONALITIES.length - 1)],
     condition: 100,

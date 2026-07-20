@@ -1,5 +1,6 @@
 import type { MarketNegotiationViewModel } from './market-models';
 import type { AssistantGuideDestination, AssistantGuideSequenceId } from '../content';
+import type { PotentialGrade } from '../game/archetype-caps';
 
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
 
@@ -267,7 +268,8 @@ export interface SquadPlayerViewModel {
   isStarter: boolean;
   age: number;
   archetype: string;
-  remainingPotential: number;
+  projectedOverall: number;
+  potentialGrade: PotentialGrade;
   personality: string;
   morale: number;
   fame: number;

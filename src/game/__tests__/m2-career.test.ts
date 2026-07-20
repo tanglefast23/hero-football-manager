@@ -1,6 +1,7 @@
 import {
   advanceM2NationalCup,
   applyM2PromotionAndRelegation,
+  clubSquadStrength,
   currentUserDivision,
   deterministicM2FinishOrders,
   initializeM2Career,
@@ -52,6 +53,19 @@ function homeWins(state: M2CareerState): NationalCupResult[] {
 }
 
 describe('M2 career initialization', () => {
+  it('uses the same six role-aware attributes as the player current rating', () => {
+    expect(clubSquadStrength([
+      {
+        role: 'FWD',
+        attrs: { pac: 60, sho: 60, pas: 60, def: 60, tec: 60, sta: 60, ref: 1 },
+      },
+      {
+        role: 'GK',
+        attrs: { pac: 90, sho: 1, pas: 60, def: 60, tec: 90, sta: 90, ref: 60 },
+      },
+    ])).toBe(68);
+  });
+
   it('replaces one generated Division-5 slot with the real user identity and strength', () => {
     const first = initializeM2Career({ careerSeed: 9182, userClub: USER_CLUB });
     const second = initializeM2Career({ careerSeed: 9182, userClub: { ...USER_CLUB } });

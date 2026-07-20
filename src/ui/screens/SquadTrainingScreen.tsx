@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
@@ -48,6 +48,10 @@ export function SquadTrainingScreen({
   guideTraining = false,
   guideFocus,
 }: SquadTrainingScreenProps) {
+  const { width } = useWindowDimensions();
+  const wideColumns = width >= 600;
+  const currentColumnWidth = wideColumns ? 'w-20' : 'w-10';
+  const potentialColumnWidth = wideColumns ? 'w-24' : 'w-14';
   const selectedPlayer = viewModel.players.find(player => player.id === viewModel.selectedPlayerId);
   const selectedArchetype = selectedPlayer === undefined
     ? undefined
@@ -221,8 +225,8 @@ export function SquadTrainingScreen({
           <View className="flex-row items-center border-b border-ink/20 px-3">
             <SquadSortHeader label="Role" sortKey="role" sort={squadSort} widthClass="w-10" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
             <SquadSortHeader label="Player" sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-            <SquadSortHeader label="★" sortKey="overall" sort={squadSort} widthClass="w-8" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-            <SquadSortHeader label="Pot" sortKey="potential" sort={squadSort} widthClass="w-14" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label={wideColumns ? 'Current' : 'OVR'} sortKey="overall" sort={squadSort} widthClass={currentColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
             <SquadSortHeader label="Cond" sortKey="condition" sort={squadSort} widthClass="w-12" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
             <Text className="w-12 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Train</Text>
           </View>
@@ -279,8 +283,8 @@ export function SquadTrainingScreen({
                       <Text className="mt-0.5 text-sm font-bold uppercase text-gold-dark" numberOfLines={1}>★ {player.powerName}</Text>
                     ) : null}
                   </View>
-                  <Text className="w-8 text-right font-mono text-base font-bold text-ink" numberOfLines={1}>{player.overall}</Text>
-                  <Text className="w-14 pr-1 text-right font-mono text-sm font-bold text-gold-dark" numberOfLines={1}>+{player.remainingPotential}</Text>
+                  <Text className={`${currentColumnWidth} text-right font-mono text-base font-bold text-ink`} numberOfLines={1}>{player.overall}</Text>
+                  <Text className={`${potentialColumnWidth} pr-1 text-right font-mono text-base font-bold text-gold-dark`} numberOfLines={1}>{player.potentialGrade}</Text>
                   <Text className={player.condition < 30 ? 'w-12 text-right font-mono text-sm font-bold text-stamp' : 'w-12 text-right font-mono text-sm text-ink'} numberOfLines={1}>{player.condition}%</Text>
                 </Pressable>
                 <Pressable
@@ -336,7 +340,7 @@ export function SquadTrainingScreen({
             </View>
           ) : null}
           <View className="flex-row gap-2">
-            <Metric label="Rating" value={String(selectedPlayer.overall)} />
+            <Metric label="Current rating" value={String(selectedPlayer.overall)} />
             <Metric
               label="Condition"
               value={`${selectedPlayer.condition}%`}
@@ -346,7 +350,7 @@ export function SquadTrainingScreen({
           </View>
           <View className="mt-2 flex-row gap-2">
             <Metric label="Age" value={String(selectedPlayer.age)} />
-            <Metric label="Potential" value={`+${selectedPlayer.remainingPotential} pts`} tone="positive" />
+            <Metric label="Potential" value={`${selectedPlayer.potentialGrade} · Projected max ${selectedPlayer.projectedOverall}`} tone="positive" />
             <Metric label="Morale" value={`${selectedPlayer.morale}%`} />
           </View>
           <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/20 pt-3">
@@ -546,11 +550,9 @@ function SquadSortHeader({
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : undefined })}
     >
       <Text
-        className={label === '★'
-          ? 'text-base font-bold text-gold-dark'
-          : direction === null
-            ? 'text-sm font-bold uppercase text-ink/50'
-            : 'text-sm font-bold uppercase text-blue-dark'}
+        className={direction === null
+          ? 'text-sm font-bold uppercase text-ink/50'
+          : 'text-sm font-bold uppercase text-blue-dark'}
         numberOfLines={1}
       >
         {label}{direction === 'descending' ? ' ▼' : direction === 'ascending' ? ' ▲' : ''}

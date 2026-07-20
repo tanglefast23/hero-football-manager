@@ -1,9 +1,11 @@
 import type { PowerId } from '../sim/types';
+import { deterministicPotentialCeiling, potentialTierForDivision } from './archetype-caps';
 import { assignDistinctPlayerLooks, nextDistinctPlayerLook } from './player-appearance';
 import { generateSeasonFixtures } from './schedule';
 import { createCareerMarketState, refreshCareerMarketForNewSeason } from './market-career';
 import {
   applyM2PromotionAndRelegation,
+  clubSquadStrength,
   currentUserDivision,
   deterministicM2FinishOrders,
   initializeM2Career,
@@ -222,6 +224,7 @@ function opponentCareerPlayer(
     ? POWER_ROTATION[eligibleIndex % POWER_ROTATION.length]
     : undefined;
   const average = Object.values(player.attrs).reduce((sum, value) => sum + value, 0) / 7;
+  const potential = opponentPotential(player.id, division);
   return {
     id: player.id,
     clubId: player.clubId,
@@ -240,7 +243,8 @@ function opponentCareerPlayer(
     injuryWeeks: 0,
     age: player.age,
     archetype: player.archetype,
-    potential: opponentPotential(player.id, player.age),
+    potential,
+    potentialCeiling: deterministicPotentialCeiling(player.id, potential),
     consistency: 70,
     personality: player.personality,
     condition: player.condition,
@@ -253,13 +257,15 @@ function opponentCareerPlayer(
   };
 }
 
-function opponentPotential(playerId: string, age: number): 3 | 4 | 5 {
-  if (age > 23) return 3;
+function opponentPotential(
+  playerId: string,
+  division: DivisionLevel,
+): 1 | 2 | 3 | 4 | 5 {
   let value = 2166136261;
   for (let index = 0; index < playerId.length; index += 1) {
     value = Math.imul(value ^ playerId.charCodeAt(index), 16777619) >>> 0;
   }
-  return (3 + (value % 3)) as 3 | 4 | 5;
+  return potentialTierForDivision(division, value % 100);
 }
 
 function startingEleven(players: readonly CareerPlayer[]): string[] {
@@ -378,6 +384,7 @@ function academyPlayer(
     age: 17,
     archetype: role === 'GK' ? 'Wall' : role === 'DEF' ? 'Anchor' : role === 'MID' ? 'Playmaker' : 'Sniper',
     potential,
+    potentialCeiling: deterministicPotentialCeiling(id, potential),
     consistency: 55 + ((value >>> 9) % 21),
     personality: personalities[(value >>> 14) % personalities.length],
     condition: 100,
@@ -399,11 +406,7 @@ function stableYouthValue(careerSeed: number, season: number, id: string): numbe
 }
 
 function careerSquadStrength(players: readonly CareerPlayer[]): number {
-  const total = players.reduce((sum, player) => {
-    const values = Object.values(player.attrs);
-    return sum + Math.round(values.reduce((attrSum, value) => attrSum + value, 0) / values.length);
-  }, 0);
-  return Math.max(1, Math.min(99, Math.round(total / players.length)));
+  return clubSquadStrength(players);
 }
 
 function clubFame(state: GameState): number {

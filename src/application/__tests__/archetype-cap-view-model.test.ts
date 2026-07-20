@@ -1,15 +1,17 @@
 import { loadLaunchContent } from '../../content';
 import {
-  ARCHETYPE_ATTRIBUTE_CAPS,
   PLAYER_ARCHETYPES,
   createCareer,
-  remainingDevelopmentPotential,
+  playerAttributeCaps,
+  potentialGradeForOverall,
+  projectedPlayerOverall,
+  roleOverall,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { squadTrainingViewModel } from '../view-models';
 
-describe('archetype caps in the Squad desk', () => {
-  test('shows the real cap for every stat on every archetype', () => {
+describe('personal potential in the Squad desk', () => {
+  test('shows role-aware current ratings and fixed projected cap grades', () => {
     const content = loadLaunchContent();
     const initial = createCareer(createLaunchCareerSetup(73101, undefined, content, 'full'));
     const roster = initial.players.filter(player => player.clubId === initial.userClubId);
@@ -28,15 +30,15 @@ describe('archetype caps in the Squad desk', () => {
 
     for (const [playerId, archetype] of archetypeByPlayerId) {
       const player = viewModel.players.find(candidate => candidate.id === playerId)!;
+      const careerPlayer = state.players.find(candidate => candidate.id === playerId)!;
       expect(player.archetype).toBe(archetype);
       expect(Object.fromEntries(player.attributes.map(attribute => [
         attribute.label.toLowerCase(),
         attribute.cap,
-      ]))).toEqual(ARCHETYPE_ATTRIBUTE_CAPS[archetype]);
-      const careerPlayer = state.players.find(candidate => candidate.id === playerId)!;
-      expect(player.remainingPotential).toBe(
-        remainingDevelopmentPotential(archetype, careerPlayer.attrs),
-      );
+      ]))).toEqual(playerAttributeCaps(careerPlayer));
+      expect(player.overall).toBe(roleOverall(careerPlayer.role, careerPlayer.attrs));
+      expect(player.projectedOverall).toBe(projectedPlayerOverall(careerPlayer));
+      expect(player.potentialGrade).toBe(potentialGradeForOverall(player.projectedOverall));
     }
   });
 });

@@ -8,7 +8,8 @@ describe('launch glossary', () => {
     expect(definition('Archetype')).toContain('training cap');
     expect(definition('Personality')).toContain('wage demands');
     expect(definition('Fame')).toContain('club legend');
-    expect(definition('Potential')).toContain('development headroom');
+    expect(definition('Potential')).toContain('fully developed');
+    expect(definition('Potential')).toContain('A+');
     expect(definition('The Zone')).toContain('activation window');
     expect(definition('Energy Use')).toContain('condition');
     expect(entries.length).toBeGreaterThanOrEqual(40);

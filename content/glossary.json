@@ -6,12 +6,12 @@
       "title": "Players & development",
       "entries": [
         {
-          "term": "Rating (★)",
-          "definition": "A quick current-strength number: the rounded average of the player's seven stored attributes. Open the player file to see the individual stats and their caps."
+          "term": "Overall Rating",
+          "definition": "A quick current-strength number from the six attributes the player's role can use. Goalkeepers use REF instead of SHO. Open the player file to see the individual stats and personal caps."
         },
         {
           "term": "Potential",
-          "definition": "The total attribute points normal training can still add before the player's seven Archetype caps. It is the sum of each cap minus the current attribute, with above-cap attributes counting as zero remaining. A larger number means more development headroom, and the number falls as the player improves."
+          "definition": "A fixed A+ to F- grade for how good the player will be when fully developed. It comes from the role-aware rating they would have with every personal cap filled: A+ can reach the top of the game, while F- remains limited even after maximum training. Archetype shapes which attributes are strongest; normal training does not change the grade."
         },
         {
           "term": "Archetype",

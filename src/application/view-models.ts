@@ -4,7 +4,6 @@ import {
   FACILITY_CATALOG,
   activeCareerMatchday,
   activeFacilityAdjacencies,
-  archetypeAttributeCap,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
   createFacilityGrid,
@@ -13,10 +12,13 @@ import {
   isAssistantInboxOneShotProductVisible,
   leagueStandings,
   nextPendingClubLegend,
-  remainingDevelopmentPotential,
+  playerAttributeCaps,
+  potentialGradeForOverall,
+  projectedPlayerOverall,
   reconcilePendingClubLegends,
   renewalQuote,
   rosterForClub,
+  roleOverall,
   scheduleAssistantInboxWeek,
   weeklyFacilityUpkeep,
   weeklyMerchandiseIncome,
@@ -1000,7 +1002,7 @@ export function matchDayViewModel(
         lookId: player.lookId,
         shirtNumber: player.shirtNumber ?? index + 1,
         isHero: player.power !== undefined,
-        overall: overall(player.attrs),
+        overall: overall(player.role, player.attrs),
         condition: player.condition ?? 100,
       };
     }),
@@ -1013,7 +1015,7 @@ export function matchDayViewModel(
         lookId: player.lookId,
         shirtNumber: player.shirtNumber ?? roster.findIndex(candidate => candidate.id === player.id) + 1,
         isHero: player.power !== undefined,
-        overall: overall(player.attrs),
+        overall: overall(player.role, player.attrs),
         condition: player.condition ?? 100,
         injuryWeeks: player.injuryWeeks,
         licensed: player.licensed,
@@ -1076,42 +1078,47 @@ export function squadTrainingViewModel(
       money: club.cash,
       trainingPoints: state.trainingPoints,
     },
-    players: orderedRoster.map(player => ({
-      id: player.id,
-      name: player.name,
-      role: player.role,
-      lookId: player.lookId,
-      overall: overall(player.attrs),
-      condition: player.condition ?? 100,
-      injuryWeeks: player.injuryWeeks,
-      isStarter: starterIds.has(player.id),
-      age: player.age ?? 24,
-      archetype: player.archetype ?? 'All-Rounder',
-      remainingPotential: remainingDevelopmentPotential(player.archetype, player.attrs),
-      personality: player.personality ?? 'Professional',
-      morale: player.morale,
-      fame: player.fame ?? 0,
-      weeklyWage: player.weeklyWage,
-      contractLabel: player.contractSeasonsRemaining === 0
-        ? 'Expired — renewal due'
-        : `${player.contractSeasonsRemaining} season${player.contractSeasonsRemaining === 1 ? '' : 's'} left`,
-      ...(player.contractPromise === undefined ? {} : {
-        contractPromiseLabel: contractPromiseLabel(player.contractPromise.perk),
-      }),
-      ...(player.shirtNumber === undefined ? {} : { shirtNumber: player.shirtNumber }),
-      isCaptain: player.isCaptain === true,
-      ...(player.power ? {
-        powerName: `${content.powers.powers.find(power => power.id === player.power)?.name ?? player.power} · Tier ${player.powerTier ?? 1}`,
-      } : {}),
-      licensed: player.licensed,
-      attributes: (Object.entries(player.attrs) as Array<[keyof typeof player.attrs, number]>).map(
-        ([attribute, value]) => ({
-          label: attribute.toUpperCase() as 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF',
-          value,
-          cap: archetypeAttributeCap(player.archetype, attribute),
+    players: orderedRoster.map(player => {
+      const projectedOverall = projectedPlayerOverall(player);
+      const personalCaps = playerAttributeCaps(player);
+      return {
+        id: player.id,
+        name: player.name,
+        role: player.role,
+        lookId: player.lookId,
+        overall: overall(player.role, player.attrs),
+        projectedOverall,
+        potentialGrade: potentialGradeForOverall(projectedOverall),
+        condition: player.condition ?? 100,
+        injuryWeeks: player.injuryWeeks,
+        isStarter: starterIds.has(player.id),
+        age: player.age ?? 24,
+        archetype: player.archetype ?? 'All-Rounder',
+        personality: player.personality ?? 'Professional',
+        morale: player.morale,
+        fame: player.fame ?? 0,
+        weeklyWage: player.weeklyWage,
+        contractLabel: player.contractSeasonsRemaining === 0
+          ? 'Expired — renewal due'
+          : `${player.contractSeasonsRemaining} season${player.contractSeasonsRemaining === 1 ? '' : 's'} left`,
+        ...(player.contractPromise === undefined ? {} : {
+          contractPromiseLabel: contractPromiseLabel(player.contractPromise.perk),
         }),
-      ),
-    })),
+        ...(player.shirtNumber === undefined ? {} : { shirtNumber: player.shirtNumber }),
+        isCaptain: player.isCaptain === true,
+        ...(player.power ? {
+          powerName: `${content.powers.powers.find(power => power.id === player.power)?.name ?? player.power} · Tier ${player.powerTier ?? 1}`,
+        } : {}),
+        licensed: player.licensed,
+        attributes: (Object.entries(player.attrs) as Array<[keyof typeof player.attrs, number]>).map(
+          ([attribute, value]) => ({
+            label: attribute.toUpperCase() as 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF',
+            value,
+            cap: personalCaps[attribute],
+          }),
+        ),
+      };
+    }),
     coachingStaff: [
       ...(state.market?.headCoach === undefined ? [] : [{
         id: state.market.headCoach.id,
@@ -1561,8 +1568,11 @@ function describeEventEffects(
   return rewards.join(' and ') || 'an unknown reward';
 }
 
-function overall(attrs: GameState['players'][number]['attrs']): number {
-  return Math.round((attrs.pac + attrs.sho + attrs.pas + attrs.def + attrs.tec + attrs.sta + attrs.ref) / 7);
+function overall(
+  role: GameState['players'][number]['role'],
+  attrs: GameState['players'][number]['attrs'],
+): number {
+  return roleOverall(role, attrs);
 }
 
 function formatMoney(value: number, signed = false): string {
