@@ -52,5 +52,5 @@ function lookIndex(playerId: string, poolSize: number): number {
   const ordinal = Number(numberedId[2]);
   // Generated club squads end in p01, p02, ... . Walking the pool with a
   // step coprime to both shipped pool sizes prevents same-club collisions.
-  return (stableHash(prefix) + ordinal * 37) % poolSize;
+  return (stableHash(prefix) + ordinal * 47) % poolSize;
 }

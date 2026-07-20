@@ -13,11 +13,11 @@ const IDS = [...manifest.field, ...manifest.goalkeeper];
 const EXPRESSIONS = ['rest', 'joy', 'ko'] as const;
 
 describe('career player portrait roster', () => {
-  it('ships 96 distinct looks with all three expressions', () => {
-    expect(manifest.field).toHaveLength(72);
-    expect(manifest.goalkeeper).toHaveLength(24);
-    expect(IDS).toHaveLength(96);
-    expect(Object.keys(sheet.sprites)).toHaveLength(288);
+  it('ships 193 distinct looks with all three expressions', () => {
+    expect(manifest.field).toHaveLength(168);
+    expect(manifest.goalkeeper).toHaveLength(25);
+    expect(IDS).toHaveLength(193);
+    expect(Object.keys(sheet.sprites)).toHaveLength(579);
     const resting = IDS.map(id => JSON.stringify(sheet.sprites[`${id}:rest`]));
     expect(new Set(resting).size).toBe(IDS.length);
     for (const id of IDS) {
@@ -62,5 +62,49 @@ describe('career player portrait roster', () => {
     for (const expression of EXPRESSIONS) {
       expect(sheet.sprites[`f08:${expression}`].some(row => row.includes(fireToken!))).toBe(true);
     }
+  });
+
+  it('ships the six reviewed Asian redesigns with light skin and visible-tooth smiles', () => {
+    const reviewed = ['f05', 'f74', 'f81', 'f82', 'f110', 'f134'];
+    const toothSmiles = ['f05', 'f81', 'f82', 'f110'];
+    const resting = reviewed.map(id => sheet.sprites[`${id}:rest`]);
+    expect(new Set(resting.map(rows => JSON.stringify(rows))).size).toBe(reviewed.length);
+    for (const rows of resting) {
+      expect(rows.slice(3, 16).join('')).toMatch(/[SL]/);
+      expect(rows.slice(0, 7).join('')).not.toMatch(/[HJ]/);
+    }
+    for (const id of toothSmiles) {
+      expect(sheet.sprites[`${id}:rest`][12]).toContain('W');
+      expect(matchSheet.sprites[`r:${id}:run0`][12]).toContain('W');
+    }
+  });
+
+  it('keeps vivid dyes intentional and bleach-blond or silver treatments scarce', () => {
+    const head = (id: string) => sheet.sprites[`${id}:rest`].slice(0, 7).join('');
+    for (const id of ['f29', 'f75']) expect(head(id)).toMatch(/[BC]/);
+    for (const id of ['f33', 'f124']) expect(head(id)).toContain('T');
+    for (const id of ['f27', 'f92', 'f135']) expect(head(id)).toMatch(/[RE]/);
+    expect(head('f64')).toContain('F');
+    for (const id of ['f23', 'f65', 'f95']) expect(head(id)).toMatch(/[AJW]/);
+    for (const id of ['f45', 'f89', 'f125']) expect(head(id)).toMatch(/[gGW]/);
+  });
+
+  it('adds 20 historical and nine current-football silhouette homages', () => {
+    const historical = [
+      ...Array.from({ length: 19 }, (_, offset) => `f${140 + offset}`),
+      'g24',
+    ];
+    const current = Array.from({ length: 9 }, (_, offset) => `f${159 + offset}`);
+    expect(historical).toHaveLength(20);
+    expect(current).toHaveLength(9);
+    for (const id of [...historical, ...current]) {
+      expect(sheet.sprites).toHaveProperty(`${id}:rest`);
+      expect(sheet.sprites).toHaveProperty(`${id}:joy`);
+      expect(sheet.sprites).toHaveProperty(`${id}:ko`);
+    }
+    const resting = [...historical, ...current].map(id => JSON.stringify(sheet.sprites[`${id}:rest`]));
+    expect(new Set(resting).size).toBe(29);
+    expect(sheet.sprites['f157:rest'].slice(5, 16).join('')).toContain('W');
+    expect(sheet.sprites['f165:rest'].slice(0, 7).join('')).toMatch(/[AJW]/);
   });
 });

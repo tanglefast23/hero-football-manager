@@ -25,6 +25,7 @@
 - **Age curve**: 16–23 fast growth (training ×1.5), 24–29 prime (×1.0), 30+ decline (−1 to −3 PAC/STA per season, training ×0.6). Retirement announced at 33–38 (personality-weighted).
 - **Match XP**: minutes played grant small position-relevant gains — playing your kids matters.
 - **Legacy system**: when a club legend (5+ seasons, high fame) retires, choose one: they become a **coach candidate**, or they mentor a youth intake who arrives with +15% starting stats and the legend's archetype ("the new Flint kid"). Long-service investment pays forward (Game Dev Story's hall-of-fame snowball, adapted).
+- **Visual identity**: 193 stable player looks ship across portraits and match sprites (168 outfield, 25 goalkeeper). All 160 launch-league players are distinct; later youth, academy, and transfer players retain the same deterministic face everywhere they appear. The pool combines structural face/hair silhouettes with restrained skin, predominantly natural hair colour, a small curated set of vivid dyes and bleach treatments, jewellery, scars, facial hair, and hairline variants under [11-art-style.md](11-art-style.md). Twenty historical and nine present-day football silhouettes provide loose visual inspiration, but the shipped identities remain fictional and use no real names, badges, or exact portrait copies.
 
 ## Training (the TP loop)
 

@@ -34,8 +34,8 @@ describe('large career match-sprite roster', () => {
 
   it('loads every base and derived action frame', () => {
     const sheet = loadSpriteSheet();
-    expect(BASE_KEYS).toHaveLength(481);
-    expect(SLIDE_KEYS).toHaveLength(1920);
+    expect(BASE_KEYS).toHaveLength(873);
+    expect(SLIDE_KEYS).toHaveLength(3860);
     for (const key of [...BASE_KEYS, ...SLIDE_KEYS]) expect(sheet.sprites).toHaveProperty(key);
     expect(Object.keys(sheet.sprites)).toHaveLength(BASE_KEYS.length + SLIDE_KEYS.length);
   });

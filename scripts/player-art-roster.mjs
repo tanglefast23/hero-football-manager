@@ -27,10 +27,22 @@ const SKIN = {
 };
 
 const HAIR = {
+  // Natural black: a black mass with sparse warm highlights so it stays
+  // readable against the dark outline without appearing brown overall.
+  black: { d: 'K', b: 'K', l: 'h' },
   brown: { d: 'h', b: 'H', l: 'J' },
   dark: { d: 'K', b: 'h', l: 'H' },
   grey: { d: 'g', b: 'g', l: 'G' },
+  blond: { d: 'A', b: 'J', l: 'W' },
+  auburn: { d: 'o', b: 'H', l: 'J' },
+  platinum: { d: 'g', b: 'G', l: 'W' },
   fire: { d: 'o', b: 'R', l: 'F' },
+  electricblue: { d: 'b', b: 'B', l: 'C' },
+  teal: { d: 'b', b: 'T', l: 'C' },
+  hotpink: { d: 'o', b: 'R', l: 'E' },
+  neonorange: { d: 'o', b: 'F', l: 'J' },
+  bleachblond: { d: 'A', b: 'J', l: 'W' },
+  bleachsilver: { d: 'g', b: 'G', l: 'W' },
 };
 
 const FACE_VARIANTS = [
@@ -74,47 +86,171 @@ const EXTRA_FEATURES = [
   'braidcrown', 'sidepart', 'shag', 'microbraids', 'beadedlocs', 'wavecrest',
   'lowpony', 'templefade', 'bigfringe', 'softcrop', 'twists', 'baldstripe',
   'chinbeard', 'roundglasses', 'sportsvisor', 'hairclips', 'minibuns',
+  'earstud', 'hoopearring', 'browscar', 'cheekscar', 'eyebrowslit',
+  'bigforehead', 'highhairline', 'recedingtemples', 'shavedmohawk',
+  'braidedmohawk', 'handlebarmoustache', 'goatee', 'sideburns',
+  'browbandage', 'beautymark', 'thickheadband', 'cornrows', 'mullet',
+  'dreadhawk', 'asymfringe', 'hightop', 'chinstrap', 'nosebridge',
+  'doubleearstud',
 ];
 
-const SKIN_SEQUENCE = ['deep', 'warm', 'brown', 'fair', 'warm', 'deep', 'fair', 'brown'];
-const HAIR_SEQUENCE = ['dark', 'brown', 'dark', 'grey', 'brown', 'dark'];
-const BUILD_SEQUENCE = ['normal', 'slim', 'muscular', 'normal', 'normal', 'slim'];
+const SKIN_SEQUENCE = ['deep', 'warm', 'brown', 'fair'];
+// Career players default to believable natural colours. Statement dyes and
+// bleach jobs are deliberately assigned below so they remain memorable and
+// rare instead of appearing as random palette noise.
+const HAIR_SEQUENCE = ['dark', 'brown', 'dark', 'brown', 'dark', 'auburn', 'brown', 'dark'];
+const BUILD_SEQUENCE = ['normal', 'slim', 'muscular'];
+const GENERATED_FIELD_LOOK_COUNT = 140;
+const GENERATED_GOALKEEPER_LOOK_COUNT = 24;
 
-export const FIELD_PLAYER_LOOKS = [
+function generatedLook(index, role, featurePool, salt) {
+  const cycle = Math.floor(index / featurePool.length);
+  return {
+    role,
+    skin: SKIN_SEQUENCE[(index * 3 + cycle + salt) % SKIN_SEQUENCE.length],
+    hair: HAIR_SEQUENCE[(index * 5 + cycle * 2 + salt) % HAIR_SEQUENCE.length],
+    feature: featurePool[index % featurePool.length],
+    build: BUILD_SEQUENCE[(index * 7 + cycle + salt) % BUILD_SEQUENCE.length],
+    face: (index * 5 + cycle * 3 + salt) % FACE_VARIANTS.length,
+  };
+}
+
+function headDna(look) {
+  return `${look.skin}|${look.hair}|${look.feature}|${look.face}`;
+}
+
+const generatedFieldPlayerLooks = [
   ...LEGACY_FIELD_LOOKS.map(([skin, hair, feature, build, face], index) => ({
     id: `f${String(index).padStart(2, '0')}`,
     role: 'field', skin, hair, feature, build, face,
   })),
-  ...Array.from({ length: 52 }, (_, offset) => {
+  ...Array.from({ length: GENERATED_FIELD_LOOK_COUNT - LEGACY_FIELD_LOOKS.length }, (_, offset) => {
     const index = offset + LEGACY_FIELD_LOOKS.length;
     return {
+      ...generatedLook(offset, 'field', EXTRA_FEATURES, 0),
       id: `f${String(index).padStart(2, '0')}`,
-      role: 'field',
-      skin: SKIN_SEQUENCE[offset % SKIN_SEQUENCE.length],
-      hair: HAIR_SEQUENCE[(offset * 5 + 1) % HAIR_SEQUENCE.length],
-      feature: EXTRA_FEATURES[offset % EXTRA_FEATURES.length],
-      build: BUILD_SEQUENCE[(offset * 7 + 2) % BUILD_SEQUENCE.length],
-      face: (offset * 5 + Math.floor(offset / EXTRA_FEATURES.length)) % FACE_VARIANTS.length,
     };
   }),
 ];
 
-const GOALKEEPER_FEATURES = [
-  'cap', 'cap', 'curls', 'shaved', 'sidefringe', 'headband', 'ponytail',
-  'swept', 'undercut', 'afro', 'locs', 'boxbraids', 'topknot', 'waves',
-  'doublebun', 'quiff', 'headwrap', 'crewcut', 'highfade', 'braidcrown',
-  'sidepart', 'twists', 'roundglasses', 'sportsvisor',
+// Owner-reviewed replacements for six faces that read oddly in the roster
+// contact sheet. These stay in the shared generator so portrait expressions
+// and every match-day pose retain the exact same identity.
+const REVIEWED_ASIAN_FIELD_LOOKS = {
+  f05: {
+    skin: 'fair', hair: 'black', feature: 'bowlcut', build: 'normal', face: 2,
+    eyes: 'angled-small', mouth: 'toothsmile',
+  },
+  f74: {
+    skin: 'warm', hair: 'black', feature: 'longstraight', build: 'slim', face: 0,
+    eyes: 'angled', mouth: 'smile',
+  },
+  f81: {
+    skin: 'fair', hair: 'black', feature: 'sleeklong', build: 'normal', face: 3,
+    eyes: 'angled-small', mouth: 'toothsmile',
+  },
+  f82: {
+    skin: 'warm', hair: 'black', feature: 'topknot', build: 'slim', face: 5,
+    eyes: 'angled', mouth: 'toothsmile',
+  },
+  f110: {
+    skin: 'fair', hair: 'black', feature: 'softcrop', build: 'normal', face: 2,
+    eyes: 'angled-small', mouth: 'toothsmile',
+  },
+  f134: {
+    skin: 'fair', hair: 'black', feature: 'sidepart', build: 'muscular', face: 4,
+    eyes: 'angled', mouth: 'smile',
+  },
+};
+
+const CURATED_HAIR_COLOUR_BY_ID = {
+  // Bright, intentionally dyed looks.
+  f27: 'hotpink',
+  f29: 'electricblue',
+  f33: 'teal',
+  f64: 'neonorange',
+  f75: 'electricblue',
+  f92: 'hotpink',
+  f124: 'teal',
+  f135: 'hotpink',
+  // Scarcer bleach treatments.
+  f23: 'bleachblond',
+  f65: 'bleachblond',
+  f95: 'bleachblond',
+  f45: 'bleachsilver',
+  f89: 'bleachsilver',
+  f125: 'bleachsilver',
+};
+
+const baseFieldPlayerLooks = generatedFieldPlayerLooks.map(look => ({
+  ...look,
+  ...(REVIEWED_ASIAN_FIELD_LOOKS[look.id] ?? {}),
+  ...(CURATED_HAIR_COLOUR_BY_ID[look.id]
+    ? { hair: CURATED_HAIR_COLOUR_BY_ID[look.id] }
+    : {}),
+}));
+
+// Development references use famous football silhouettes, but the shipped
+// characters remain fictional: no real names, badges, kit designs, or exact
+// portrait copies. Each homage exaggerates one era-defining visual cue.
+const FOOTBALL_HOMAGE_FIELD_LOOKS = [
+  { id: 'f140', role: 'field', skin: 'fair', hair: 'brown', feature: 'icon-cropbeard', build: 'normal', face: 3, mouth: 'toothsmile' },
+  { id: 'f141', role: 'field', skin: 'deep', hair: 'black', feature: 'icon-closecurl', build: 'normal', face: 0, mouth: 'toothsmile' },
+  { id: 'f142', role: 'field', skin: 'warm', hair: 'black', feature: 'icon-volumecurls', build: 'muscular', face: 3, eyes: 'beady', mouth: 'toothsmile' },
+  { id: 'f143', role: 'field', skin: 'warm', hair: 'black', feature: 'icon-gelquiff', build: 'muscular', face: 4, eyes: 'narrow', mouth: 'toothsmile' },
+  { id: 'f144', role: 'field', skin: 'fair', hair: 'brown', feature: 'icon-shag70s', build: 'slim', face: 4, eyes: 'narrow' },
+  { id: 'f145', role: 'field', skin: 'fair', hair: 'brown', feature: 'icon-featherpart', build: 'normal', face: 0 },
+  { id: 'f146', role: 'field', skin: 'fair', hair: 'dark', feature: 'icon-slickback', build: 'muscular', face: 4 },
+  { id: 'f147', role: 'field', skin: 'brown', hair: 'black', feature: 'icon-crescentfringe', build: 'muscular', face: 3, eyes: 'normal', mouth: 'toothsmile' },
+  { id: 'f148', role: 'field', skin: 'warm', hair: 'black', feature: 'icon-cleanbald', build: 'normal', face: 4, eyes: 'beady' },
+  { id: 'f149', role: 'field', skin: 'fair', hair: 'dark', feature: 'icon-thickwave', build: 'muscular', face: 1 },
+  { id: 'f150', role: 'field', skin: 'brown', hair: 'black', feature: 'icon-sidewave', build: 'slim', face: 2 },
+  { id: 'f151', role: 'field', skin: 'fair', hair: 'brown', feature: 'icon-curlypart', build: 'normal', face: 4 },
+  { id: 'f152', role: 'field', skin: 'warm', hair: 'dark', feature: 'icon-centrelong', build: 'muscular', face: 4, eyes: 'narrow' },
+  { id: 'f153', role: 'field', skin: 'warm', hair: 'black', feature: 'icon-tidyfringe', build: 'normal', face: 0, eyes: 'beady' },
+  { id: 'f154', role: 'field', skin: 'fair', hair: 'brown', feature: 'icon-highbald', build: 'slim', face: 1, eyes: 'beady' },
+  { id: 'f155', role: 'field', skin: 'fair', hair: 'brown', feature: 'icon-heavy70s', build: 'muscular', face: 1 },
+  { id: 'f156', role: 'field', skin: 'deep', hair: 'black', feature: 'icon-tightcurl', build: 'muscular', face: 0, mouth: 'toothsmile' },
+  { id: 'f157', role: 'field', skin: 'brown', hair: 'black', feature: 'icon-headbandbraids', build: 'slim', face: 4, mouth: 'toothsmile' },
+  { id: 'f158', role: 'field', skin: 'fair', hair: 'brown', feature: 'icon-dutchsweep', build: 'slim', face: 4 },
+  { id: 'f159', role: 'field', skin: 'deep', hair: 'black', feature: 'star-closefade', build: 'slim', face: 2, mouth: 'toothsmile' },
+  { id: 'f160', role: 'field', skin: 'brown', hair: 'black', feature: 'star-youthcurlfade', build: 'slim', face: 3, eyes: 'big', mouth: 'toothsmile' },
+  { id: 'f161', role: 'field', skin: 'deep', hair: 'black', feature: 'star-cleanbuzz', build: 'muscular', face: 3, eyes: 'beady', mouth: 'toothsmile' },
+  { id: 'f162', role: 'field', skin: 'warm', hair: 'black', feature: 'star-curlybeard', build: 'muscular', face: 1, mouth: 'toothsmile' },
+  { id: 'f163', role: 'field', skin: 'brown', hair: 'bleachblond', feature: 'star-bleachcrop', build: 'slim', face: 2, mouth: 'toothsmile' },
+  { id: 'f164', role: 'field', skin: 'deep', hair: 'black', feature: 'star-highfadecurls', build: 'slim', face: 3, eyes: 'beady', mouth: 'toothsmile' },
+  { id: 'f165', role: 'field', skin: 'fair', hair: 'bleachblond', feature: 'star-blondlowpony', build: 'muscular', face: 4, eyes: 'narrow' },
+  { id: 'f166', role: 'field', skin: 'brown', hair: 'black', feature: 'star-texturedfade', build: 'muscular', face: 0, mouth: 'toothsmile' },
+  { id: 'f167', role: 'field', skin: 'fair', hair: 'brown', feature: 'star-sidecropstubble', build: 'muscular', face: 4 },
 ];
 
-export const GOALKEEPER_LOOKS = GOALKEEPER_FEATURES.map((feature, index) => ({
-  id: `g${String(index).padStart(2, '0')}`,
-  role: 'goalkeeper',
-  skin: index === 0 ? 'fair' : index === 1 ? 'brown' : SKIN_SEQUENCE[(index * 3) % SKIN_SEQUENCE.length],
-  hair: index === 0 ? 'brown' : index === 1 ? 'dark' : HAIR_SEQUENCE[(index * 5) % HAIR_SEQUENCE.length],
-  feature,
-  build: BUILD_SEQUENCE[index % BUILD_SEQUENCE.length],
-  face: (index * 5) % FACE_VARIANTS.length,
-}));
+export const FIELD_PLAYER_LOOKS = [
+  ...baseFieldPlayerLooks,
+  ...FOOTBALL_HOMAGE_FIELD_LOOKS,
+];
+
+const GOALKEEPER_EXTRA_FEATURES = [...new Set([
+  'curls', 'shaved', 'sidefringe', 'headband', 'ponytail', 'swept', 'undercut',
+  ...EXTRA_FEATURES,
+])];
+const goalkeeperLooks = [
+  { id: 'g00', role: 'goalkeeper', skin: 'fair', hair: 'brown', feature: 'cap', build: 'normal', face: 0 },
+  { id: 'g01', role: 'goalkeeper', skin: 'brown', hair: 'dark', feature: 'cap', build: 'slim', face: 5 },
+];
+const usedHeadDna = new Set([...FIELD_PLAYER_LOOKS, ...goalkeeperLooks].map(headDna));
+for (let offset = 0; goalkeeperLooks.length < GENERATED_GOALKEEPER_LOOK_COUNT; offset += 1) {
+  const candidate = generatedLook(offset, 'goalkeeper', GOALKEEPER_EXTRA_FEATURES, 11);
+  if (usedHeadDna.has(headDna(candidate))) continue;
+  usedHeadDna.add(headDna(candidate));
+  goalkeeperLooks.push({
+    ...candidate,
+    id: `g${String(goalkeeperLooks.length).padStart(2, '0')}`,
+  });
+}
+export const GOALKEEPER_LOOKS = [
+  ...goalkeeperLooks,
+  { id: 'g24', role: 'goalkeeper', skin: 'fair', hair: 'black', feature: 'icon-keepercap', build: 'normal', face: 4, eyes: 'beady' },
+];
 
 export const PLAYER_LOOK_MANIFEST = {
   field: FIELD_PLAYER_LOOKS.map(look => look.id),
@@ -140,6 +276,18 @@ function rect(g, x0, y0, x1, y1, value) {
   for (let y = y0; y <= y1; y += 1) for (let x = x0; x <= x1; x += 1) set(g, x, y, value);
 }
 
+function line(g, x0, y0, x1, y1, value) {
+  const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+  for (let index = 0; index <= steps; index += 1) {
+    set(
+      g,
+      Math.round(x0 + (x1 - x0) * index / steps),
+      Math.round(y0 + (y1 - y0) * index / steps),
+      value,
+    );
+  }
+}
+
 function outline(g) {
   const add = [];
   for (let y = 0; y < g.length; y += 1) for (let x = 0; x < PLAYER_CELL.w; x += 1) {
@@ -153,15 +301,16 @@ function outline(g) {
   add.forEach(([x, y]) => { g[y][x] = 'K'; });
 }
 
-function face(g, sk, variantIndex, expression = 'rest') {
+function face(g, sk, variantIndex, expression = 'rest', appearance = {}) {
   const variant = FACE_VARIANTS[variantIndex % FACE_VARIANTS.length];
-  const bounds = variant.shape === 'wide'
+  const shape = appearance.shape ?? variant.shape;
+  const bounds = shape === 'wide'
     ? { left: 5, right: 18, top: 5, bottom: 14 }
-    : variant.shape === 'narrow'
+    : shape === 'narrow'
       ? { left: 7, right: 16, top: 5, bottom: 13 }
-      : variant.shape === 'round'
+      : shape === 'round'
         ? { left: 6, right: 17, top: 4, bottom: 14 }
-        : variant.shape === 'long'
+        : shape === 'long'
           ? { left: 6, right: 17, top: 4, bottom: 15 }
           : { left: 6, right: 17, top: 5, bottom: 13 };
   rect(g, bounds.left, bounds.top, bounds.right, bounds.bottom, sk.base);
@@ -174,7 +323,11 @@ function face(g, sk, variantIndex, expression = 'rest') {
   set(g, 15, 13, sk.sh); set(g, 16, 13, sk.sh);
   rect(g, 10, Math.min(15, bounds.bottom + 1), 13, Math.min(15, bounds.bottom + 1), sk.sh);
 
-  const eyes = expression === 'joy' ? 'happy' : expression === 'ko' ? 'x' : variant.eyes;
+  const eyes = expression === 'joy'
+    ? 'happy'
+    : expression === 'ko'
+      ? 'x'
+      : appearance.eyes ?? variant.eyes;
   if (eyes === 'beady') {
     set(g, 9, 9, 'K'); set(g, 14, 9, 'K');
   } else if (eyes === 'narrow') {
@@ -182,6 +335,12 @@ function face(g, sk, variantIndex, expression = 'rest') {
   } else if (eyes === 'big') {
     rect(g, 7, 7, 9, 10, 'W'); rect(g, 14, 7, 16, 10, 'W');
     rect(g, 8, 9, 9, 10, 'K'); rect(g, 14, 9, 15, 10, 'K');
+  } else if (eyes === 'angled-small') {
+    set(g, 8, 8, 'K'); set(g, 9, 9, 'K');
+    set(g, 15, 8, 'K'); set(g, 14, 9, 'K');
+  } else if (eyes === 'angled') {
+    set(g, 7, 8, 'K'); set(g, 8, 9, 'K'); set(g, 9, 9, 'K');
+    set(g, 16, 8, 'K'); set(g, 15, 9, 'K'); set(g, 14, 9, 'K');
   } else if (eyes === 'happy') {
     set(g, 7, 9, 'K'); set(g, 8, 8, 'K'); set(g, 9, 9, 'K');
     set(g, 14, 9, 'K'); set(g, 15, 8, 'K'); set(g, 16, 9, 'K');
@@ -192,11 +351,18 @@ function face(g, sk, variantIndex, expression = 'rest') {
     set(g, 9, 9, 'K'); set(g, 14, 9, 'K');
   }
   set(g, 11, 11, sk.sh); set(g, 12, 11, sk.sh);
-  const mouth = expression === 'joy' ? 'grin' : expression === 'ko' ? 'grit' : variant.mouth;
+  const mouth = expression === 'joy'
+    ? 'grin'
+    : expression === 'ko'
+      ? 'grit'
+      : appearance.mouth ?? variant.mouth;
   if (mouth === 'grit') {
     rect(g, 9, 12, 14, 12, 'K'); set(g, 10, 12, 'W'); set(g, 12, 12, 'W');
   } else if (mouth === 'grin') {
     rect(g, 9, 12, 14, 12, 'K'); rect(g, 10, 12, 13, 12, 'W');
+  } else if (mouth === 'toothsmile') {
+    rect(g, 9, 12, 14, 13, 'K'); rect(g, 10, 12, 13, 12, 'W');
+    set(g, 11, 13, sk.sh); set(g, 12, 13, sk.sh);
   } else {
     rect(g, 10, 12, 13, 12, 'K');
   }
@@ -247,6 +413,9 @@ function feature(g, kind, hs, sk) {
     case 'locs': cap(g, hs); for (let x = 5; x <= 18; x += 3) rect(g, x, 5, x + 1, 13 + (x % 2), hs.b); break;
     case 'boxbraids': cap(g, hs); for (let x = 4; x <= 19; x += 3) { rect(g, x, 5, x, 14, hs.b); set(g, x, 8, hs.l); } break;
     case 'topknot': cap(g, hs); rect(g, 9, 0, 14, 3, hs.b); rect(g, 10, 0, 13, 1, hs.l); break;
+    case 'bowlcut': rect(g, 6, 1, 17, 6, hs.b); rect(g, 5, 4, 18, 7, hs.b); rect(g, 5, 7, 7, 11, hs.b); rect(g, 16, 7, 18, 11, hs.b); rect(g, 7, 6, 16, 7, hs.d); rect(g, 7, 2, 10, 3, hs.l); break;
+    case 'longstraight': cap(g, hs); rect(g, 4, 6, 6, 16, hs.b); rect(g, 17, 6, 19, 16, hs.b); rect(g, 5, 12, 7, 16, hs.d); rect(g, 16, 12, 18, 16, hs.d); set(g, 5, 7, hs.l); break;
+    case 'sleeklong': rect(g, 6, 2, 17, 6, hs.b); rect(g, 6, 2, 10, 3, hs.l); rect(g, 5, 5, 7, 15, hs.b); rect(g, 16, 5, 19, 16, hs.b); line(g, 11, 2, 14, 6, sk.base); set(g, 18, 10, hs.l); break;
     case 'buzzline': rect(g, 7, 3, 16, 6, hs.d); rect(g, 7, 3, 14, 4, hs.b); rect(g, 8, 5, 15, 5, sk.base); break;
     case 'curtains': cap(g, hs); rect(g, 10, 4, 10, 8, sk.base); rect(g, 13, 4, 13, 8, sk.base); rect(g, 7, 6, 9, 9, hs.b); rect(g, 14, 6, 16, 9, hs.b); break;
     case 'waves': rect(g, 6, 3, 17, 6, hs.b); for (let x = 7; x <= 16; x += 3) set(g, x, 4, hs.l); break;
@@ -279,6 +448,59 @@ function feature(g, kind, hs, sk) {
     case 'sportsvisor': cap(g, hs); rect(g, 6, 7, 17, 10, 'K'); rect(g, 7, 8, 16, 9, 'C'); break;
     case 'hairclips': cap(g, hs); set(g, 5, 6, 'W'); set(g, 6, 5, 'W'); set(g, 17, 4, 'W'); set(g, 18, 5, 'W'); break;
     case 'minibuns': cap(g, hs); rect(g, 5, 0, 8, 3, hs.b); rect(g, 15, 0, 18, 3, hs.b); break;
+    case 'earstud': cap(g, hs); set(g, 18, 10, 'W'); set(g, 19, 10, 'A'); break;
+    case 'hoopearring': cap(g, hs); set(g, 18, 10, 'A'); set(g, 19, 11, 'A'); set(g, 18, 12, 'A'); break;
+    case 'browscar': cap(g, hs); set(g, 8, 7, sk.sh); set(g, 9, 6, sk.hi); set(g, 10, 5, sk.sh); break;
+    case 'cheekscar': cap(g, hs); set(g, 15, 10, sk.hi); set(g, 16, 11, sk.sh); set(g, 17, 12, sk.hi); break;
+    case 'eyebrowslit': cap(g, hs); rect(g, 7, 7, 10, 7, hs.d); set(g, 9, 7, sk.base); break;
+    case 'bigforehead': rect(g, 7, 0, 16, 3, hs.b); rect(g, 8, 0, 11, 1, hs.l); set(g, 6, 4, hs.b); set(g, 17, 4, hs.b); break;
+    case 'highhairline': rect(g, 6, 1, 17, 4, hs.b); rect(g, 9, 4, 14, 6, sk.base); set(g, 6, 5, hs.d); set(g, 17, 5, hs.d); break;
+    case 'recedingtemples': rect(g, 8, 2, 15, 4, hs.b); rect(g, 5, 4, 8, 8, hs.b); rect(g, 15, 4, 18, 8, hs.b); rect(g, 9, 4, 14, 6, sk.base); break;
+    case 'shavedmohawk': rect(g, 10, 0, 13, 6, hs.b); rect(g, 11, 0, 12, 3, hs.l); set(g, 6, 6, hs.d); set(g, 17, 6, hs.d); break;
+    case 'braidedmohawk': for (let y = 0; y <= 6; y += 2) { rect(g, 10, y, 13, y + 1, hs.b); set(g, 11, y, hs.l); } set(g, 6, 6, hs.d); set(g, 17, 6, hs.d); break;
+    case 'handlebarmoustache': cap(g, hs); rect(g, 8, 11, 15, 11, hs.d); set(g, 7, 12, hs.b); set(g, 16, 12, hs.b); set(g, 6, 13, hs.l); set(g, 17, 13, hs.l); break;
+    case 'goatee': cap(g, hs); rect(g, 10, 13, 13, 15, hs.b); set(g, 9, 12, hs.d); set(g, 14, 12, hs.d); break;
+    case 'sideburns': cap(g, hs); rect(g, 5, 7, 6, 13, hs.b); rect(g, 17, 7, 18, 13, hs.b); break;
+    case 'browbandage': cap(g, hs); rect(g, 7, 7, 10, 8, 'W'); set(g, 8, 7, 'w'); break;
+    case 'beautymark': cap(g, hs); set(g, 16, 11, hs.d); break;
+    case 'thickheadband': cap(g, hs); rect(g, 5, 5, 18, 6, 'C'); set(g, 5, 6, 'B'); set(g, 18, 5, 'B'); break;
+    case 'cornrows': for (let x = 6; x <= 17; x += 2) { line(g, x, 1, x - 1, 7, hs.b); set(g, x, 2, hs.l); } rect(g, 5, 6, 18, 7, hs.d); break;
+    case 'mullet': cap(g, hs); rect(g, 4, 6, 6, 15, hs.b); rect(g, 17, 6, 19, 15, hs.b); rect(g, 6, 13, 8, 16, hs.l); break;
+    case 'dreadhawk': rect(g, 10, 0, 13, 6, hs.b); for (let x = 8; x <= 15; x += 3) rect(g, x, 4, x + 1, 12, hs.b); set(g, 9, 8, hs.l); set(g, 15, 10, hs.l); break;
+    case 'asymfringe': cap(g, hs); rect(g, 5, 5, 12, 9, hs.b); line(g, 6, 8, 11, 5, hs.l); break;
+    case 'hightop': rect(g, 6, 0, 17, 6, hs.b); rect(g, 7, 0, 10, 2, hs.l); rect(g, 6, 6, 17, 6, hs.d); break;
+    case 'chinstrap': cap(g, hs); rect(g, 6, 12, 7, 14, hs.b); rect(g, 16, 12, 17, 14, hs.b); rect(g, 8, 14, 15, 15, hs.b); break;
+    case 'nosebridge': cap(g, hs); rect(g, 7, 8, 10, 10, 'K'); rect(g, 13, 8, 16, 10, 'K'); rect(g, 11, 9, 12, 9, 'K'); set(g, 9, 9, 'C'); set(g, 14, 9, 'C'); break;
+    case 'doubleearstud': cap(g, hs); set(g, 5, 10, 'W'); set(g, 18, 10, 'W'); set(g, 5, 11, 'A'); set(g, 18, 11, 'A'); break;
+    case 'icon-cropbeard': cap(g, hs, 3); line(g, 8, 3, 14, 2, hs.l); rect(g, 6, 11, 7, 13, hs.d); rect(g, 16, 11, 17, 13, hs.d); rect(g, 8, 13, 15, 14, hs.b); break;
+    case 'icon-closecurl': curls(g, hs, 6, 17); set(g, 8, 1, hs.l); set(g, 12, 1, hs.l); set(g, 16, 2, hs.l); break;
+    case 'icon-volumecurls': curls(g, hs, 3, 20); rect(g, 3, 5, 5, 11, hs.b); rect(g, 18, 5, 20, 11, hs.b); set(g, 4, 12, hs.l); set(g, 19, 12, hs.l); break;
+    case 'icon-gelquiff': rect(g, 7, 4, 16, 6, hs.d); rect(g, 8, 1, 17, 5, hs.b); rect(g, 6, 0, 12, 3, hs.b); line(g, 7, 0, 12, 2, hs.l); break;
+    case 'icon-shag70s': cap(g, hs); rect(g, 4, 5, 6, 12, hs.b); rect(g, 17, 5, 19, 13, hs.b); set(g, 4, 13, hs.l); set(g, 18, 14, hs.l); break;
+    case 'icon-featherpart': cap(g, hs); line(g, 11, 2, 11, 6, sk.base); line(g, 7, 2, 10, 4, hs.l); line(g, 12, 3, 16, 2, hs.l); set(g, 18, 6, hs.b); break;
+    case 'icon-slickback': rect(g, 6, 2, 17, 6, hs.b); line(g, 6, 3, 14, 1, hs.l); rect(g, 15, 1, 18, 4, hs.b); rect(g, 6, 6, 17, 6, hs.d); break;
+    case 'icon-crescentfringe': rect(g, 8, 1, 15, 4, sk.base); rect(g, 7, 4, 16, 6, sk.base); set(g, 8, 1, '.'); set(g, 15, 1, '.'); rect(g, 8, 2, 10, 2, sk.hi); set(g, 6, 6, hs.d); set(g, 17, 6, hs.d); rect(g, 8, 4, 13, 4, hs.b); rect(g, 10, 5, 14, 5, hs.b); set(g, 13, 6, hs.b); break;
+    case 'icon-cleanbald': rect(g, 8, 2, 15, 4, sk.base); rect(g, 7, 4, 16, 6, sk.base); set(g, 8, 2, '.'); set(g, 15, 2, '.'); rect(g, 8, 3, 10, 3, sk.hi); set(g, 6, 6, hs.d); set(g, 17, 6, hs.d); break;
+    case 'icon-thickwave': cap(g, hs); rect(g, 5, 2, 12, 4, hs.b); line(g, 5, 2, 10, 1, hs.l); rect(g, 5, 6, 7, 10, hs.d); set(g, 18, 7, hs.b); break;
+    case 'icon-sidewave': rect(g, 6, 3, 17, 6, hs.b); rect(g, 5, 2, 11, 4, hs.b); line(g, 6, 2, 10, 3, hs.l); set(g, 6, 7, hs.d); set(g, 17, 7, hs.d); break;
+    case 'icon-curlypart': curls(g, hs, 5, 18); line(g, 11, 1, 12, 5, sk.base); set(g, 7, 2, hs.l); set(g, 16, 1, hs.l); break;
+    case 'icon-centrelong': cap(g, hs); rect(g, 4, 5, 6, 16, hs.b); rect(g, 17, 5, 19, 16, hs.b); line(g, 11, 2, 12, 7, sk.base); set(g, 5, 13, hs.l); set(g, 18, 11, hs.l); break;
+    case 'icon-tidyfringe': rect(g, 6, 2, 17, 6, hs.b); rect(g, 7, 2, 10, 3, hs.l); rect(g, 6, 6, 13, 7, hs.b); set(g, 13, 7, hs.d); break;
+    case 'icon-highbald': rect(g, 8, 1, 15, 4, sk.base); rect(g, 7, 4, 16, 6, sk.base); set(g, 8, 1, '.'); set(g, 15, 1, '.'); rect(g, 8, 2, 10, 2, sk.hi); rect(g, 6, 5, 6, 10, hs.d); rect(g, 17, 5, 17, 10, hs.d); break;
+    case 'icon-heavy70s': cap(g, hs); rect(g, 5, 5, 7, 12, hs.b); rect(g, 16, 5, 18, 12, hs.b); rect(g, 6, 12, 7, 14, hs.d); rect(g, 16, 12, 17, 14, hs.d); line(g, 7, 2, 12, 1, hs.l); break;
+    case 'icon-tightcurl': curls(g, hs, 6, 17); for (let x = 7; x <= 16; x += 3) set(g, x, 3, hs.d); rect(g, 6, 6, 17, 7, hs.d); break;
+    case 'icon-headbandbraids': cap(g, hs); rect(g, 5, 5, 18, 6, 'W'); for (let x = 4; x <= 19; x += 3) { rect(g, x, 6, x + 1, 15, hs.b); set(g, x, 10, hs.l); } break;
+    case 'icon-dutchsweep': rect(g, 6, 3, 17, 6, hs.b); rect(g, 4, 2, 13, 5, hs.b); line(g, 5, 2, 11, 1, hs.l); set(g, 4, 6, hs.b); set(g, 17, 7, hs.d); break;
+    case 'icon-keepercap': rect(g, 5, 2, 18, 6, hs.b); rect(g, 7, 0, 16, 3, hs.b); rect(g, 4, 6, 19, 7, hs.d); rect(g, 9, 1, 12, 1, 'W'); break;
+    case 'star-closefade': rect(g, 8, 2, 15, 5, hs.b); rect(g, 6, 5, 17, 6, hs.d); for (let x = 8; x <= 15; x += 2) set(g, x, 2, hs.l); set(g, 6, 7, sk.sh); set(g, 17, 7, sk.sh); break;
+    case 'star-youthcurlfade': curls(g, hs, 7, 16); rect(g, 6, 5, 7, 7, hs.d); rect(g, 16, 5, 17, 7, hs.d); set(g, 8, 1, hs.l); set(g, 12, 0, hs.b); set(g, 15, 1, hs.l); break;
+    case 'star-cleanbuzz': rect(g, 8, 2, 15, 4, sk.base); rect(g, 7, 4, 16, 6, sk.base); rect(g, 8, 2, 15, 2, hs.d); for (let x = 8; x <= 15; x += 2) set(g, x, 3, hs.d); set(g, 6, 6, hs.d); set(g, 17, 6, hs.d); break;
+    case 'star-curlybeard': curls(g, hs, 5, 18); rect(g, 6, 11, 7, 13, hs.d); rect(g, 16, 11, 17, 13, hs.d); rect(g, 8, 13, 15, 15, hs.b); rect(g, 9, 11, 14, 11, hs.d); break;
+    case 'star-bleachcrop': rect(g, 8, 1, 15, 5, hs.b); rect(g, 6, 5, 17, 6, hs.d); for (let x = 8; x <= 15; x += 2) set(g, x, 1, hs.l); set(g, 7, 4, hs.l); break;
+    case 'star-highfadecurls': curls(g, hs, 7, 16); rect(g, 6, 5, 7, 7, hs.d); rect(g, 16, 5, 17, 7, hs.d); for (let x = 8; x <= 15; x += 3) set(g, x, 2, hs.l); break;
+    case 'star-blondlowpony': cap(g, hs); rect(g, 18, 7, 20, 13, hs.b); rect(g, 19, 12, 21, 16, hs.b); rect(g, 20, 14, 21, 16, hs.l); line(g, 7, 2, 13, 1, hs.l); break;
+    case 'star-texturedfade': rect(g, 7, 4, 16, 6, hs.d); for (let x = 7; x <= 16; x += 3) { rect(g, x, 1, x + 1, 5, hs.b); set(g, x, 1, hs.l); } set(g, 6, 6, sk.sh); set(g, 17, 6, sk.sh); break;
+    case 'star-sidecropstubble': cap(g, hs); line(g, 11, 2, 11, 6, sk.base); line(g, 7, 2, 10, 3, hs.l); rect(g, 6, 12, 7, 13, hs.d); rect(g, 16, 12, 17, 13, hs.d); rect(g, 9, 14, 14, 14, hs.d); break;
     default: cap(g, hs); break;
   }
 }
@@ -343,7 +565,7 @@ function portraitBust(g, role) {
 export function makePortrait(look, expression) {
   const g = grid(PORTRAIT_CELL.h);
   const sk = SKIN[look.skin]; const hs = HAIR[look.hair];
-  face(g, sk, look.face, expression); feature(g, look.feature, hs, sk); portraitBust(g, look.role);
+  face(g, sk, look.face, expression, look); feature(g, look.feature, hs, sk); portraitBust(g, look.role);
   outline(g);
   return g.map(row => row.join(''));
 }
@@ -351,7 +573,7 @@ export function makePortrait(look, expression) {
 export function makeMatchPlayer(look, side, frame, ready) {
   const g = grid(PLAYER_CELL.h);
   const sk = SKIN[look.skin]; const hs = HAIR[look.hair];
-  face(g, sk, look.face); feature(g, look.feature, hs, sk);
+  face(g, sk, look.face, 'rest', look); feature(g, look.feature, hs, sk);
   if (look.role === 'goalkeeper') goalkeeperBody(g, side, frame, sk, ready);
   else fieldBody(g, side, look.build, frame, sk);
   outline(g);
