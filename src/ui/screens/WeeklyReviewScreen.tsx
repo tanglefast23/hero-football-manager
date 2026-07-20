@@ -82,13 +82,25 @@ export function WeeklyReviewScreen({
           <View className="flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
             <Text className="text-sm font-bold uppercase text-paper/70">Cash movement</Text>
             <Text className="font-mono text-base font-bold text-paper">
-              {formatCurrency(viewModel.cashBefore)} → {formatCurrency(viewModel.cashAfter)}
+              {formatCurrency(viewModel.cashBefore)} →{' '}
+              <AnimatedCount
+                from={viewModel.cashBefore}
+                to={viewModel.cashAfter}
+                complete={complete}
+                format={value => formatCurrency(value)}
+              />
             </Text>
           </View>
           <View className="flex-row items-center justify-between border-2 border-ink bg-blue-dark px-3 py-2.5">
             <Text className="text-sm font-bold uppercase text-paper/70">TP movement</Text>
             <Text className="font-mono text-base font-bold text-paper">
-              {formatCompactNumber(viewModel.trainingPointsBefore)} → {formatCompactNumber(viewModel.trainingPointsAfter)} TP
+              {formatCompactNumber(viewModel.trainingPointsBefore)} →{' '}
+              <AnimatedCount
+                from={viewModel.trainingPointsBefore}
+                to={viewModel.trainingPointsAfter}
+                complete={complete}
+                format={value => `${formatCompactNumber(value)} TP`}
+              />
             </Text>
           </View>
         </View>
@@ -250,4 +262,40 @@ function AnimatedNetAmount({
       {kind === 'training-points' ? ' TP' : ''}
     </Text>
   );
+}
+
+/** Spins an inline number from `from` to `to` (used for the cash/TP movement bars). */
+function AnimatedCount({
+  from,
+  to,
+  complete,
+  format,
+}: {
+  from: number;
+  to: number;
+  complete: boolean;
+  format: (value: number) => string;
+}) {
+  const [value, setValue] = useState(complete ? to : from);
+
+  useEffect(() => {
+    if (complete) {
+      setValue(to);
+      return undefined;
+    }
+    setValue(from);
+    let frame = 0;
+    let startedAt: number | null = null;
+    const animate = (timestamp: number) => {
+      if (startedAt === null) startedAt = timestamp;
+      const progress = Math.min(1, (timestamp - startedAt) / 900);
+      const eased = 1 - (1 - progress) ** 3;
+      setValue(Math.round(from + (to - from) * eased));
+      if (progress < 1) frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [complete, from, to]);
+
+  return <>{format(value)}</>;
 }
