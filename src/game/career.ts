@@ -94,7 +94,6 @@ export function createCareer(setup: CareerSetup): GameState {
     resolvedEventIds: [],
     awakening: { matchesSinceLastAwakening: 0, usedTriggerIds: [] },
     trainingPoints: setup.startingTrainingPoints ?? 0,
-    heroEssence: 0,
     ledgers: [],
     seasonGoalTallies: [],
     ...(setup.careerMode === undefined ? {} : { careerMode: setup.careerMode }),

@@ -10,6 +10,7 @@ import {
   type FacilityType,
 } from './facilities';
 import { recordCashTransaction } from './cash-transactions';
+import { facilityUpgradeBlockedReason } from './promotion-progression';
 import type { GameState } from './types';
 
 export interface CareerFacilityTransaction extends FacilityTransaction {
@@ -50,6 +51,13 @@ export function upgradeCareerFacility(
   buildingId: string,
 ): CareerFacilityTransaction {
   assertManagementPhase(state);
+  const current = state.facilities.grid?.buildings.find(candidate => candidate.id === buildingId);
+  if (current === undefined) throw new Error(`unknown facility ${buildingId}`);
+  if (current.level < 3) {
+    const targetLevel = (current.level + 1) as 2 | 3;
+    const blockedReason = facilityUpgradeBlockedReason(state, targetLevel);
+    if (blockedReason !== undefined) throw new Error(blockedReason);
+  }
   const transaction = upgradeFacility(
     state.facilities.grid ?? createFacilityGrid(),
     buildingId,

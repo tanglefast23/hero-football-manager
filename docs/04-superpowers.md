@@ -11,7 +11,6 @@ League lore: superpowered players require a registered Hero License, and license
 | Start (D5 · District League) | 2 |
 | Reach Div 3 | 3 |
 | Reach D1 · Global League | 4 |
-| Win Continental Hero Cup | 5 |
 
 You may *own* any number of heroes (bench/rotate them), but only licensed slots play.
 
@@ -64,8 +63,6 @@ Launch ships **at least 12** of these (final launch set chosen at M4 by playtest
 
 **Cut from the original twelve**: Sticky Feet, Iron Wall, Freeze Zone, Magnet Gloves — all stat-smears; the least fun shape a power can have. Superseded: Rocket Shot → Thunder Strike, Teleport Blink → Blink Run, Hawk Eye → Portal Pass, Time Slow → Time Skip, Clone Dash → Decoy Double.
 
-Power levels: Lv1 (as awakened) → Lv2 (+duration/magnitude) → Lv3 (+secondary effect). Upgrades cost Hero Essence (doc 06).
-
 ## Getting powers
 
 1. **Post-match awakening** (primary): after a completed user match, an eligible check has a flat **10% chance**. The first check cannot occur until the **third completed match after the previous awakening**. If it fires, one unpowered participant is selected deterministically from the match and is **guaranteed** to receive a stat-weighted power; there is no failure card and no weekly choice prompt. The awakened player's **wage stays locked until their contract expires**; at renewal their agent asks the hero rate (×3–5).
@@ -78,5 +75,5 @@ Which power a player awakens is weighted by their stats and body type (a PAC-hea
 ## Balance rails (design promises)
 
 - D5 · District League and D4 · County League are winnable with zero heroes; heroes accelerate, never gate.
-- Opposing hero density ramps: around 10% of D5 · District League teams field one → every D1 · Global League team fields 2–3 → Hero Cup teams field full hero squads.
-- Hero wages + license caps + Essence scarcity are the three tuning valves; the season-simulation harness (doc 09) verifies the flat 10% post-match cadence and three-match cooldown, plus — per the timing audit — that **attentive tapping measurably beats reasonable auto, which beats blind firing**, per power, with a predeclared confidence-interval-positive margin.
+- Opposing hero density ramps: around 10% of D5 · District League teams field one → every D1 · Global League team fields 2–3.
+- Hero wages + license caps are the tuning valves; the season-simulation harness (doc 09) verifies the flat 10% post-match cadence and three-match cooldown, plus — per the timing audit — that **attentive tapping measurably beats reasonable auto, which beats blind firing**, per power, with a predeclared confidence-interval-positive margin.

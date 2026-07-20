@@ -47,6 +47,41 @@ describe('facility game-state persistence', () => {
       .toBe(true);
   });
 
+  test('drops retired Hero Essence and Hero Lab data from older development saves', () => {
+    const current = createCareer(createLaunchCareerSetup(457));
+    const legacy = JSON.parse(serializeGameState(current)) as {
+      heroEssence?: number;
+      facilities: {
+        grid: {
+          buildings: Array<Record<string, unknown>>;
+          construction?: Record<string, unknown>;
+        };
+      };
+    };
+    legacy.heroEssence = 12;
+    legacy.facilities.grid.buildings.push({
+      id: 'facility-99',
+      type: 'hero-lab',
+      level: 1,
+      x: 6,
+      y: 4,
+    });
+    legacy.facilities.grid.construction = {
+      kind: 'BUILD',
+      buildingId: 'facility-99',
+      type: 'hero-lab',
+      targetLevel: 1,
+      weeksRemaining: 4,
+      totalWeeks: 4,
+    };
+
+    const restored = parseStoredGameState(JSON.stringify(legacy));
+
+    expect('heroEssence' in restored).toBe(false);
+    expect(restored.facilities.grid?.buildings).toEqual([]);
+    expect(restored.facilities.grid?.construction).toBeUndefined();
+  });
+
   test.each([
     ['outside the facility grid', { x: 7, y: 5 }],
     ['overlaps', { x: 0, y: 0 }],

@@ -19,7 +19,7 @@ const COACHES = JSON.parse(readFileSync(
 const FACILITIES = [
   'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
   'medical-bay', 'dorm', 'scout-office', 'coaching-office', 'youth-field',
-  'fan-shop', 'stadium-stand', 'hero-lab',
+  'fan-shop', 'stadium-stand',
 ];
 
 const COACH_WARDROBES = [
@@ -229,7 +229,6 @@ function facilityMark(g, type) {
   else if (type === 'coaching-office') { rect(g, 9, 16, 22, 23, 'G'); line(g, 11, 21, 20, 18, 'W'); set(g, 16, 19, 'Y'); }
   else if (type === 'fan-shop') { for (let x = 7; x <= 24; x += 4) rect(g, x, 16, x + 1, 20, x % 8 === 3 ? 'B' : 'R'); rect(g, 8, 21, 23, 24, 'Y'); }
   else if (type === 'stadium-stand') { for (let y = 17; y <= 24; y += 3) rect(g, 7, y, 24, y + 1, y % 2 ? 'B' : 'R'); line(g, 24, 16, 27, 7, 'k'); }
-  else if (type === 'hero-lab') { rect(g, 9, 15, 22, 25, 'P'); line(g, 15, 15, 12, 21, 'Y'); line(g, 12, 21, 18, 20, 'Y'); line(g, 18, 20, 15, 25, 'Y'); }
 }
 
 function worksite() {

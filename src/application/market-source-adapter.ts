@@ -11,6 +11,7 @@ import type {
 } from '../game/market';
 import type { CareerPlayer, GameState } from '../game/types';
 import { careerRosterCapacity } from '../game/youth-intake';
+import { highestDivisionReached } from '../game/promotion-progression';
 import {
   isStoryFeaturePacingActive,
   isStoryScoutingUnlocked,
@@ -25,11 +26,9 @@ import type {
 
 const ROTATING_REGIONS: readonly ScoutRegion[] = [
   'EUROPE',
-  'SOUTH_AMERICA',
   'AFRICA',
   'ASIA',
 ];
-const ROTATING_ROLES = ['GK', 'DEF', 'MID', 'FWD'] as const;
 
 /**
  * Plain adapter for the application boundary. It derives display inputs only;
@@ -152,6 +151,7 @@ export function careerMarketViewModelSource(
     week: state.week,
     currentCareerWeek: absoluteCareerWeek(state),
     division,
+    highestDivisionReached: highestDivisionReached(state),
     fame: clubFame(state),
     cash: userClub.cash,
     unlockedSections,
@@ -198,8 +198,10 @@ export function careerMarketViewModelSource(
   };
 }
 
-/** Four compact briefs cover age, position, and rumored-hero scouting. */
-export function careerMarketScoutOptions(state: Pick<GameState, 'careerSeed' | 'season' | 'week'>): ScoutMissionOptionSource[] {
+/** Promotion adds briefs without replacing the familiar searches below them. */
+export function careerMarketScoutOptions(
+  state: Pick<GameState, 'careerSeed' | 'season' | 'week'> & Partial<Pick<GameState, 'careerMode' | 'm2'>>,
+): ScoutMissionOptionSource[] {
   if (!Number.isInteger(state.careerSeed) || state.careerSeed < 0 || state.careerSeed > 4294967295) {
     throw new Error('market option career seed must be a uint32');
   }
@@ -210,12 +212,14 @@ export function careerMarketScoutOptions(state: Pick<GameState, 'careerSeed' | '
     throw new Error('market option week must be an integer from 1 to 30');
   }
   const cursor = marketCursor(state.careerSeed, state.season, state.week);
-  const firstRegion = ROTATING_REGIONS[cursor % ROTATING_REGIONS.length];
-  const secondRegion = ROTATING_REGIONS[(cursor + 1) % ROTATING_REGIONS.length];
-  const heroRegion = ROTATING_REGIONS[(cursor + 2) % ROTATING_REGIONS.length];
-  const firstRole = ROTATING_ROLES[(cursor >>> 3) % ROTATING_ROLES.length];
+  const secondRegion = ROTATING_REGIONS[cursor % ROTATING_REGIONS.length];
+  const heroRegion = ROTATING_REGIONS[(cursor + 1) % ROTATING_REGIONS.length];
+  const eliteRegion = ROTATING_REGIONS[(cursor + 2) % ROTATING_REGIONS.length];
+  const progressionDivision = state.careerMode === 'full' && state.m2 !== undefined
+    ? Math.min(currentUserDivision(state.m2), state.m2.highestDivisionReached ?? 5)
+    : 5;
 
-  return [
+  const options: ScoutMissionOptionSource[] = [
     {
       id: `scout-brief-s${state.season}-w${state.week}-local-youth`,
       region: 'LOCAL',
@@ -224,24 +228,35 @@ export function careerMarketScoutOptions(state: Pick<GameState, 'careerSeed' | '
       detail: 'A lower-cost sweep for young players with room to grow.',
     },
     {
-      id: `scout-brief-s${state.season}-w${state.week}-${firstRegion.toLowerCase()}-${firstRole.toLowerCase()}`,
-      region: firstRegion,
-      focus: { kind: 'POSITION', role: firstRole },
-      detail: `A focused search for a first-team ${firstRole}.`,
+      id: `scout-brief-s${state.season}-w${state.week}-south_america-def`,
+      region: 'SOUTH_AMERICA',
+      focus: { kind: 'POSITION', role: 'DEF' },
+      detail: 'A focused search for a first-team DEF.',
     },
+  ];
+  if (progressionDivision <= 4) options.push(
     {
       id: `scout-brief-s${state.season}-w${state.week}-${secondRegion.toLowerCase()}-prime`,
       region: secondRegion,
       focus: { kind: 'AGE', minimumAge: 22, maximumAge: 29 },
       detail: 'Look for players already entering their best football years.',
     },
+  );
+  if (progressionDivision <= 3) options.push(
     {
       id: `scout-brief-s${state.season}-w${state.week}-${heroRegion.toLowerCase()}-hero`,
       region: heroRegion,
       focus: { kind: 'RUMORED_HERO' },
       detail: 'Follow the expensive power rumor. Most trails lead nowhere.',
     },
-  ];
+  );
+  if (progressionDivision <= 2) options.push({
+    id: `scout-brief-s${state.season}-w${state.week}-${eliteRegion.toLowerCase()}-elite`,
+    region: eliteRegion,
+    focus: { kind: 'ELITE_PROSPECT' },
+    detail: 'Target an exceptional young player with four- or five-star potential.',
+  });
+  return options;
 }
 
 function currentScoutResult(

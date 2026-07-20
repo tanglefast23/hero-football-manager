@@ -6,7 +6,6 @@ export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
 export interface ResourceSummaryViewModel {
   money: number;
   trainingPoints: number;
-  heroEssence: number;
 }
 
 export interface FixtureViewModel {
@@ -251,7 +250,6 @@ export interface PostMatchViewModel {
   netAmount: number;
   trainingPointsGained: number;
   fanDelta: number;
-  heroEssenceGained: number;
   highlights: readonly HighlightViewModel[];
   development: PlayerDevelopmentViewModel;
   updates: readonly WeekUpdateViewModel[];
@@ -350,8 +348,7 @@ export type FacilityTypeViewModel =
   | 'coaching-office'
   | 'youth-field'
   | 'fan-shop'
-  | 'stadium-stand'
-  | 'hero-lab';
+  | 'stadium-stand';
 
 export interface ClubFacilityBuildingViewModel {
   id: string;
@@ -366,6 +363,7 @@ export interface ClubFacilityBuildingViewModel {
   effectLabel: string;
   nextLevelEffectLabel?: string;
   upgradeCost?: number;
+  upgradeBlockedReason?: string;
   canUpgrade: boolean;
   upgradeShortfall: number;
   relocationFee: number;
@@ -548,6 +546,13 @@ export interface SeasonEndViewModel {
   finalPosition: number;
   prizeMoney: number;
   table: readonly SeasonTableRowViewModel[];
+  promotionRewards?: {
+    divisionLabel: string;
+    items: readonly {
+      title: string;
+      detail: string;
+    }[];
+  };
   expiredContract?: ExpiredContractViewModel;
   renewalNegotiation?: MarketNegotiationViewModel;
   sliceComplete: boolean;

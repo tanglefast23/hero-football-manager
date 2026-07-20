@@ -7,7 +7,6 @@ import {
 } from './progression';
 import { setCareerTrainingPlan } from './training';
 import { buildFacility as placeFacility, createFacilityGrid } from './facilities';
-import { currentUserDivision } from './m2-career';
 import { applyLowMoraleToStat } from './pyramid';
 import {
   assertCareerLineupHonorsContractPromises,
@@ -15,6 +14,7 @@ import {
 } from './contract-promises';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { coachMotivatorBonusPercent } from './coach-weekly';
+import { highestDivisionReached } from './promotion-progression';
 import type { CareerPlayer, GameState } from './types';
 
 const DEFAULT_HERO_LIMIT = 2;
@@ -28,7 +28,7 @@ const CUP_POWER_ROTATION: readonly PowerId[] = [
 /** Hero License field cap earned by climbing the national pyramid. */
 export function careerHeroLimit(state: GameState): number {
   if (state.careerMode !== 'full' || state.m2 === undefined) return DEFAULT_HERO_LIMIT;
-  const division = currentUserDivision(state.m2);
+  const division = highestDivisionReached(state);
   if (division === 1) return 4;
   if (division <= 3) return 3;
   return DEFAULT_HERO_LIMIT;

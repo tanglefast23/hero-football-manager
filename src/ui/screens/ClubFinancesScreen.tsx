@@ -620,6 +620,8 @@ export function ClubFinancesScreen({
                       ? `Cannot upgrade ${selectedBuilding.name} while its project is active`
                       : viewModel.facilities.activeProject !== undefined
                         ? `Cannot upgrade ${selectedBuilding.name} while the construction crew is busy`
+                        : selectedBuilding.upgradeBlockedReason !== undefined
+                          ? selectedBuilding.upgradeBlockedReason
                         : selectedBuilding.canUpgrade
                           ? `Upgrade ${selectedBuilding.name} for ${formatCurrency(selectedBuilding.upgradeCost)}`
                           : `Cannot upgrade ${selectedBuilding.name}. Need ${formatCurrency(selectedBuilding.upgradeShortfall)} more`}
@@ -647,6 +649,8 @@ export function ClubFinancesScreen({
                       ? 'Project active'
                       : viewModel.facilities.activeProject !== undefined
                         ? 'Crew busy'
+                        : selectedBuilding.upgradeBlockedReason !== undefined
+                          ? `Locked · ${selectedBuilding.upgradeBlockedReason.match(/D[1-5]/)?.[0] ?? 'promotion'}`
                         : selectedBuilding.upgradeCost === undefined
                           ? 'Max level'
                           : selectedBuilding.canUpgrade
@@ -655,6 +659,11 @@ export function ClubFinancesScreen({
                   </Text>
                 </Pressable>
               </View>
+              {selectedBuilding.upgradeBlockedReason ? (
+                <Text className="mt-2 text-sm font-bold text-stamp">
+                  {selectedBuilding.upgradeBlockedReason}
+                </Text>
+              ) : null}
             </View>
           ) : null}
 
@@ -807,7 +816,6 @@ function facilityColor(building: ClubFacilityBuildingViewModel): string {
   if (building.type === 'training-pitch' || building.type === 'youth-field') return '#86C07A';
   if (building.type === 'medical-bay') return '#F8C7C7';
   if (building.type === 'fan-shop' || building.type === 'stadium-stand') return '#C8DDF0';
-  if (building.type === 'hero-lab') return '#E6D5F2';
   return '#F4E7C5';
 }
 

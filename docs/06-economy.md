@@ -1,14 +1,13 @@
 # 06 — Economy
 
-Design stance: **premium game, economy tuned purely for fun** (no monetization pressure). Three currencies, each with exactly one job — the research's clearest warning was currency sprawl, so every new resource idea must replace one of these, not join them.
+Design stance: **premium game, economy tuned purely for fun** (no monetization pressure). Two currencies, each with exactly one job — the research's clearest warning was currency sprawl, so every new resource idea must replace one of these, not join them.
 
 | Currency | One job | Earned | Spent |
 |---|---|---|---|
 | **Money** | Capacity | Sponsors, tickets, prizes, player sales | Wages, transfers, facilities, scouting, events |
 | **Training Points (TP)** | Improvement | Match results & performances (+small facility trickle) | Training drills, drill unlocks |
-| **Hero Essence (HE)** | Hero progression | Power events, first-time hero feats, season awards | Power upgrades (Lv2/Lv3), Hero Lab attempts, power reroll (rare) |
 
-Money is lumpy and stressful; TP flows steadily from playing; HE is precious (a few per season). That separation means a cash crisis never halts player development, and hero progression can't be bought with cash alone.
+Money is lumpy and stressful; TP flows steadily from playing. That separation means a cash crisis never halts player development. Heroes advance through awakenings and recruitment rather than a separate resource track.
 
 ## Income (all four, per user decision)
 
@@ -42,7 +41,9 @@ Numbers rule; the mini-game influences (user spec: helps, never fully decides).
 
 ## Facilities (the club grounds grid)
 
-An 8×6 tile grid (expandable). Buildings: Training Pitch, Gym, Tech Center, Shooting Range, Keeper Court, Medical Bay, Dorm, Scout Office, Coaching Office, Youth Field, Fan Shop, Stadium Stand tiers, Hero Lab (endgame). Each: build cost, up to Lv3, small weekly upkeep.
+An 8×6 tile grid (expandable). Buildings: Training Pitch, Gym, Tech Center, Shooting Range, Keeper Court, Medical Bay, Dorm, Scout Office, Coaching Office, Youth Field, Fan Shop, and Stadium Stand tiers. Each: build cost, up to Lv3, small weekly upkeep.
+
+Facility quality is promotion-gated: D5 clubs build Level 1, reaching D4 permanently unlocks Level 2, and reaching D2 permanently unlocks Level 3. Existing higher-level buildings from older saves remain operational, but further upgrades follow the earned ceiling.
 
 The club owns **one works crew**, so only one build or upgrade project may run at once. Paying for a building starts construction and occupies its tiles immediately, but it produces **no benefit and no upkeep until completion**. An upgrade keeps the facility's current level active while work proceeds; the higher level begins only on completion. Relocation is unavailable for the building under construction. Completion resolves at weekly settlement, appears in the Weekly Review with the finished building sprite, and uses the dedicated win fanfare.
 
@@ -51,9 +52,8 @@ The club owns **one works crew**, so only one build or upgrade project may run a
 | Training Pitch, Gym, Dorm, Scout Office, Coaching Office, Fan Shop | 1 week | 1 week | 2 weeks |
 | Tech Center, Shooting Range, Keeper Court, Medical Bay | 2 weeks | 2 weeks | 3 weeks |
 | Youth Field, Stadium Stand | 3 weeks | 2 weeks | 3 weeks |
-| Hero Lab | 4 weeks | 3 weeks | 4 weeks |
 
-**Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds; Hero Lab+anything: rumors…). Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.
+**Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds). Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.
 
 ## First-pass tuning table (D5 · District League baseline — all numbers subject to the balance harness, doc 09)
 
@@ -74,4 +74,4 @@ The club owns **one works crew**, so only one build or upgrade project may run a
 | Pre-powered hero signing | 100,000+ + 2,500+/wk (Div 3 era) |
 | Emergency loan | 20,000 once, 10%/season interest |
 
-**Pressure curve targets**: Season 1 wages ≈ 60–70% of baseline income (tight but survivable); mid-game surplus flows to facilities and transfers; late game hero wages + Hero Lab + stadium tiers keep money meaningful (Game Dev Story's "ultimate console" pattern — always one aspirational sink ahead of you).
+**Pressure curve targets**: Season 1 wages ≈ 60–70% of baseline income (tight but survivable); mid-game surplus flows to facilities and transfers; late game hero wages + stadium tiers keep money meaningful (Game Dev Story's "ultimate console" pattern — always one aspirational sink ahead of you).

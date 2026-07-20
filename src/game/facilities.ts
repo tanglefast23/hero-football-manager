@@ -14,8 +14,7 @@ export type FacilityType =
   | 'coaching-office'
   | 'youth-field'
   | 'fan-shop'
-  | 'stadium-stand'
-  | 'hero-lab';
+  | 'stadium-stand';
 
 export type FacilityLevel = 1 | 2 | 3;
 
@@ -53,7 +52,6 @@ export const FACILITY_CATALOG: Readonly<Record<FacilityType, FacilityCatalogEntr
   'youth-field': facility('youth-field', 'Youth Field', 2, 2, 12_000, 3, [12_000, 18_000], [2, 3], [150, 240, 360], 600),
   'fan-shop': facility('fan-shop', 'Fan Shop', 1, 1, 5_000, 1, [5_000, 7_500], [1, 2], [65, 105, 155], 250),
   'stadium-stand': facility('stadium-stand', 'Stadium Stand', 2, 2, 15_000, 3, [15_000, 22_500], [2, 3], [190, 300, 450], 750),
-  'hero-lab': facility('hero-lab', 'Hero Lab', 2, 2, 100_000, 4, [100_000, 150_000], [3, 4], [1_250, 2_000, 3_000], 5_000, false),
 };
 
 export type FacilityAdjacencyId =

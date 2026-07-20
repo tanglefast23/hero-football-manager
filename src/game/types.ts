@@ -347,7 +347,6 @@ export interface GameState {
   /** Optional only so pre-onboarding internal M1 saves remain loadable. */
   onboarding?: CareerOnboardingState;
   trainingPoints: number;
-  heroEssence: number;
   ledgers: WeeklyLedger[];
   /** Immediate M2 purchases and sales; weekly settlement remains in ledgers. */
   cashTransactions?: CashTransaction[];

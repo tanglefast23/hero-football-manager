@@ -12,7 +12,7 @@ const COACH_WARDROBES = [
 const FACILITIES = [
   'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
   'medical-bay', 'dorm', 'scout-office', 'coaching-office', 'youth-field',
-  'fan-shop', 'stadium-stand', 'hero-lab',
+  'fan-shop', 'stadium-stand',
 ];
 
 describe('management pixel sprites', () => {

@@ -889,7 +889,6 @@ function examplePostMatch(): PostMatchViewModel {
     netAmount: 1200,
     trainingPointsGained: 7,
     fanDelta: 10,
-    heroEssenceGained: 0,
     highlights: [],
     development: {
       focusedTrainees: [{

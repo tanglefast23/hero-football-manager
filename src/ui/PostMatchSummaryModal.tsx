@@ -164,7 +164,6 @@ export function PostMatchSummaryModal({
                     value={`${viewModel.fanDelta > 0 ? '+' : ''}${formatCompactNumber(viewModel.fanDelta)}`}
                     tone={viewModel.fanDelta < 0 ? 'negative' : 'positive'}
                   />
-                  <Metric label="Hero Essence" value={`+${formatCompactNumber(viewModel.heroEssenceGained)}`} tone="hero" />
                 </View>
               </View>
 

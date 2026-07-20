@@ -22,7 +22,7 @@ A cozy, Kairosoft-style soccer club management sim where some of your players ar
 | [docs/03-match-engine.md](docs/03-match-engine.md) | Deterministic sim design, stats math, match presentation |
 | [docs/04-superpowers.md](docs/04-superpowers.md) | Power catalog, Hero Gauge, acquisition, balance rails |
 | [docs/05-players-training-coaches.md](docs/05-players-training-coaches.md) | Player anatomy, growth, training, chemistry, coaches, scouting, aging |
-| [docs/06-economy.md](docs/06-economy.md) | Three currencies, income/expenses, salaries, negotiation, facilities, tuning tables |
+| [docs/06-economy.md](docs/06-economy.md) | Two currencies, income/expenses, salaries, negotiation, facilities, tuning tables |
 | [docs/07-events.md](docs/07-events.md) | Random event system, odds, launch event list, data schema |
 | [docs/08-ui-ux.md](docs/08-ui-ux.md) | Screen map, match screen layout, design language, onboarding |
 | [docs/09-tech-stack.md](docs/09-tech-stack.md) | Stack decision, architecture, determinism rules, save data, testing |
@@ -38,7 +38,7 @@ Research reports (source material, written by research agents):
 |---|---|
 | Match involvement | Hybrid: matches auto-play; tap glowing home heroes on the pitch to fire; live Formation, Playstyle, Swap, and Energy Use controls; persistent auto-power option |
 | Match effort | Playstyle controls tactical intent; Save Energy / Balanced / All Out controls physical effort, movement, and condition drain without directly changing passing or shooting |
-| Career structure | Climb from D5 · District League to D1 · Global League, then conquer the cups; endless play after winning it all; score recap after Season 10 |
+| Career structure | Climb from D5 · District League to D1 · Global League; win D1 to complete the main journey, then continue endlessly; score recap after Season 10 |
 | Business model | Paid app, ~$0.99, no IAP at launch; economy balanced purely for fun |
 | Art direction | B+ "heroic chibi" pixel art + comic FX layer + broadcast match dressing |
 | Opening music | **“Heroes Start Here”** — original 128 BPM title-screen fanfare and seamless chiptune loop |
@@ -46,10 +46,10 @@ Research reports (source material, written by research agents):
 | Management music | **“Clubhouse Dreams”** — original 112 BPM warm chiptune loop for training, squad, transfers, facilities, and finances |
 | Event / awakening music | **“The Big Call”** — original 136 BPM dramatic chiptune loop for story interruptions, player choices, and awakening reveals |
 | Income sources | All four: sponsors, tickets/fans, prize money, player sales |
-| Currencies | Money + Training Points (TP) + Hero Essence (HE) — each with exactly one job |
+| Currencies | Money + Training Points (TP) — each with exactly one job |
 | Contract talks | Offer/counter with mood meter; a light card mini-game influences (max ±20%) but never fully decides |
-| Superpower acquisition | Risky chance events (wage stays locked until renewal) + rare expensive pre-powered signings + endgame Hero Lab |
-| Hero field limit | "Hero License" slots: 2 on the pitch at start, up to 5 via club prestige; squad ownership uncapped |
+| Superpower acquisition | Risky chance events (wage stays locked until renewal) + rare expensive pre-powered signings |
+| Hero field limit | "Hero License" slots: 2 on the pitch at start, up to 4 via club prestige; squad ownership uncapped |
 | Salaries | Weekly wages for everyone; raises at contract renewal; hero-rate renewals (×3–5) after awakening |
 | Players | Fictional, procedurally generated (no licensing risk); gentle aging with retirement and a legacy system |
 | Stack | Expo/React Native + TypeScript + react-native-skia (Atlas API); deterministic pure-TS sim core |

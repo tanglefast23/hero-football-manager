@@ -144,16 +144,6 @@ const FACILITY_SPRITES: Readonly<Record<FacilityTypeViewModel, SpriteDefinition>
     'oddddddo',
     'oooooooo',
   ], '#3f6fb5', '#5a8fd6', '#a3c8f0', '#edb54a'),
-  'hero-lab': sprite([
-    '...oo...',
-    '..oaao..',
-    '.ollllo.',
-    'olwwwalo',
-    'olwawalo',
-    'olwwwalo',
-    '.oddddo.',
-    'oooooooo',
-  ], '#5b3a91', '#9a63d6', '#c9a6ec', '#edb54a'),
 };
 
 export function FacilitySprite({

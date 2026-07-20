@@ -32,7 +32,5 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
       return 'Earns weekly merchandise income — more per Level.';
     case 'stadium-stand':
       return 'Place next to a Fan Shop for +10% merchandise income.';
-    case 'hero-lab':
-      return 'Hero research is not available yet.';
   }
 }

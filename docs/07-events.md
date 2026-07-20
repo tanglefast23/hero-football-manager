@@ -47,4 +47,4 @@ type GameEvent = {
 };
 ```
 
-`Effect` is a small closed union (statDelta, injury, money, tp, essence, morale, fans, flag). New events ship as data — cheap post-launch content, and the balance harness can simulate event luck distributions.
+`Effect` is a small closed union (statDelta, injury, money, tp, morale, fans, flag). New events ship as data — cheap post-launch content, and the balance harness can simulate event luck distributions.

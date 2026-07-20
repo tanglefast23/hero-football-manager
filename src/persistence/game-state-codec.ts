@@ -236,7 +236,7 @@ const facilityGridSchema = z
       type: z.enum([
         'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
         'medical-bay', 'dorm', 'scout-office', 'coaching-office', 'youth-field',
-        'fan-shop', 'stadium-stand', 'hero-lab',
+        'fan-shop', 'stadium-stand',
       ]),
       level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
       x: nonnegativeInteger,
@@ -251,7 +251,7 @@ const facilityGridSchema = z
       type: z.enum([
         'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
         'medical-bay', 'dorm', 'scout-office', 'coaching-office', 'youth-field',
-        'fan-shop', 'stadium-stand', 'hero-lab',
+        'fan-shop', 'stadium-stand',
       ]),
       targetLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]),
       weeksRemaining: positiveInteger,
@@ -442,6 +442,7 @@ const m2CareerSchema = z.object({
   schemaVersion: z.literal(1),
   careerSeed: uint32,
   userClubId: nonemptyString,
+  highestDivisionReached: divisionLevelSchema.optional(),
   pyramid: z.object({
     careerSeed: uint32,
     divisions: z.array(z.object({
@@ -458,6 +459,7 @@ const marketPersonalitySchema = z.enum([
 const scoutFocusSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('POSITION'), role: z.enum(['GK', 'DEF', 'MID', 'FWD']) }),
   z.object({ kind: z.literal('AGE'), minimumAge: positiveInteger, maximumAge: positiveInteger }),
+  z.object({ kind: z.literal('ELITE_PROSPECT') }),
   z.object({ kind: z.literal('RUMORED_HERO') }),
 ]);
 const scoutMissionSchema = z.object({
@@ -652,7 +654,6 @@ const gameStateSchema = z
     awakening: awakeningSchema.optional(),
     onboarding: onboardingSchema.optional(),
     trainingPoints: nonnegativeInteger,
-    heroEssence: nonnegativeInteger,
     ledgers: z.array(ledgerSchema),
     cashTransactions: z.array(cashTransactionSchema).optional(),
     seasonGoalTallies: z.array(seasonGoalTallySchema).optional(),
@@ -1378,6 +1379,7 @@ export function parseStoredGameState(serialized: string): GameState {
     throw new CorruptCareerSaveError('state_json is not valid JSON');
   }
 
+  value = removeRetiredHeroSystems(value);
   assertSupportedSchema(value, true);
   let validation: z.ZodSafeParseResult<unknown>;
   try {
@@ -1399,6 +1401,40 @@ export function parseStoredGameState(serialized: string): GameState {
           ...parsed.awakening,
           usedTriggerIds: parsed.awakening.usedTriggerIds ?? [],
         },
+  };
+}
+
+/**
+ * Hero Essence and the unavailable Hero Lab were removed before either had a
+ * playable source or action. Strip their inert schema-v1 data so development
+ * saves made before the removal remain loadable.
+ */
+function removeRetiredHeroSystems(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+
+  const { heroEssence: _heroEssence, ...withoutEssence } = value;
+  const facilities = withoutEssence.facilities;
+  if (!isRecord(facilities) || !isRecord(facilities.grid)) return withoutEssence;
+
+  const grid = facilities.grid;
+  const buildings = Array.isArray(grid.buildings)
+    ? grid.buildings.filter(building => !isRecord(building) || building.type !== 'hero-lab')
+    : grid.buildings;
+  const construction = isRecord(grid.construction) && grid.construction.type === 'hero-lab'
+    ? undefined
+    : grid.construction;
+  const { construction: _construction, ...gridWithoutConstruction } = grid;
+
+  return {
+    ...withoutEssence,
+    facilities: {
+      ...facilities,
+      grid: {
+        ...gridWithoutConstruction,
+        buildings,
+        ...(construction === undefined ? {} : { construction }),
+      },
+    },
   };
 }
 

@@ -194,7 +194,7 @@
           "kicker": "Better bricks",
           "title": "Level up the grounds",
           "body": [
-            "Select an existing building to see its next level, price, and build time. Its current level stays active while the upgrade is built; the new benefits begin after a weekly settlement completes it.",
+            "Promotion has unlocked the next facility level. Select an existing building to see its price and build time. Its current level stays active while the upgrade is built; the new benefits begin after a weekly settlement completes it.",
             "Check the weekly upkeep before approving it. Shiny tiles have recurring opinions."
           ],
           "focus": "facility-upgrade",

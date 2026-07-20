@@ -1,6 +1,7 @@
 import { createLaunchCareerSetup, reconcileLaunchRoster } from '../../application/launch';
 import { createCareer, startNextSeason } from '../career';
 import { enableFullCareer } from '../full-career';
+import { currentUserDivision } from '../m2-career';
 import { runHeadlessFullCareer } from '../headless';
 import { buildCareerTeamDef } from '../squad';
 import type { GameState } from '../types';
@@ -70,6 +71,25 @@ describe('full M2 career clock', () => {
     expect(next.m2?.nationalCups.at(-1)?.season).toBe(2);
     expect(next.youthIntake).toMatchObject({ season: 2, status: 'OPEN' });
     expect(next.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('records a promotion permanently after a later relegation', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(78_001), careerMode: 'full' });
+    const promoted = startNextSeason(completeSeasonForUser(initial, 'win'));
+
+    expect(currentUserDivision(promoted.m2!)).toBe(4);
+    expect(promoted.m2?.highestDivisionReached).toBe(4);
+
+    const contractsReady = {
+      ...promoted,
+      players: promoted.players.map(player => player.clubId === promoted.userClubId
+        ? { ...player, contractSeasonsRemaining: Math.max(1, player.contractSeasonsRemaining) }
+        : player),
+    };
+    const relegated = startNextSeason(completeSeasonForUser(contractsReady, 'loss'));
+
+    expect(currentUserDivision(relegated.m2!)).toBe(5);
+    expect(relegated.m2?.highestDivisionReached).toBe(4);
   });
 
   test('deterministically replenishes every position when a generation retires', () => {
@@ -211,6 +231,27 @@ function completeSeason<T extends ReturnType<typeof createCareer>>(state: T): T 
           ...fixture,
           status: 'played' as const,
           score: { homeGoals: index % 3, awayGoals: (index + 1) % 2 },
+        }
+      : fixture),
+  } as T;
+}
+
+function completeSeasonForUser<T extends ReturnType<typeof createCareer>>(
+  state: T,
+  result: 'win' | 'loss',
+): T {
+  return {
+    ...state,
+    phase: 'season-end' as const,
+    fixtures: state.fixtures.map(fixture => fixture.season === state.season
+      ? {
+          ...fixture,
+          status: 'played' as const,
+          score: fixture.homeClubId === state.userClubId
+            ? result === 'win' ? { homeGoals: 3, awayGoals: 0 } : { homeGoals: 0, awayGoals: 3 }
+            : fixture.awayClubId === state.userClubId
+              ? result === 'win' ? { homeGoals: 0, awayGoals: 3 } : { homeGoals: 3, awayGoals: 0 }
+              : { homeGoals: 0, awayGoals: 0 },
         }
       : fixture),
   } as T;

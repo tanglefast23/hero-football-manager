@@ -51,7 +51,7 @@ Exactly **one head coach** may be employed at a time (assistant slot unlocks wit
 
 ## Scouting & transfers
 
-- **Scout missions**: pick a region + focus (position / age / "rumored hero"), pay 1,000–5,000, results in 2–3 weeks: a shortlist with fuzzy stats (ranges narrow with your Scout facility level). "Rumored hero" missions are expensive, Div 3+, and usually wrong — but sometimes find a pre-powered star.
+- **Scout missions**: pick a region + focus, pay 1,000–5,000, and receive a shortlist in 2–3 weeks. D5 starts with Local plus a South America DEF brief; D4 adds another rotating international brief; D3 adds expensive, usually-wrong Rumored Hero searches; D2 adds Elite Prospect searches for young players with 4–5★ potential. Scout Office level independently controls report accuracy. All earned briefs survive relegation.
 - **Buying**: transfer fee to the club + contract negotiation with the player (doc 06). Transfer windows: pre-season + 2 weeks mid-season.
 - **Selling**: list a player; AI clubs bid within a valuation band: `f(stats total, age curve, potential, power tier ×4–8, contract seasons left, your division)`. Trained-up players sold at peak age are a legitimate money engine (user-locked decision: player sales are a core income).
 - **Youth intake**: 1–2 random 16–17 year olds offered each pre-season for a small signing bonus; quality scales with your Youth Field facility.

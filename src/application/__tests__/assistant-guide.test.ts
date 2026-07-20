@@ -1,5 +1,7 @@
 import { createCareer } from '../../game/career';
 import { buildTrainingGround } from '../../game/squad';
+import { advanceFacilityConstruction } from '../../game/facilities';
+import { buildCareerFacility } from '../../game/management';
 import {
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
@@ -7,6 +9,7 @@ import {
 import { createLaunchCareerSetup } from '../launch';
 import {
   currentAssistantObjective,
+  dueAssistantInboxGuideSequences,
   pendingAssistantGuideSequence,
 } from '../assistant-guide';
 
@@ -85,5 +88,25 @@ describe('assistant guide application flow', () => {
       text: 'INBOX CLEAR. ADVANCE WEEK.',
       target: 'advance-week',
     });
+  });
+
+  test('waits for D4 before teaching the first facility upgrade', () => {
+    let state = createCareer(createLaunchCareerSetup(935, undefined, undefined, 'full'));
+    state = completeAssistantGuideSequence(state, 'facility-placement');
+    state = buildCareerFacility(state, 'gym', { x: 0, y: 0 }).state;
+    state = {
+      ...state,
+      facilities: {
+        ...state.facilities,
+        grid: advanceFacilityConstruction(state.facilities.grid!).grid,
+      },
+    };
+
+    expect(dueAssistantInboxGuideSequences(state)).not.toContain('facility-upgrade');
+    const reachedD4 = {
+      ...state,
+      m2: { ...state.m2!, highestDivisionReached: 4 as const },
+    };
+    expect(dueAssistantInboxGuideSequences(reachedD4)).toContain('facility-upgrade');
   });
 });
