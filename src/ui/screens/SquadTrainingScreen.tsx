@@ -331,7 +331,7 @@ export function SquadTrainingScreen({
           className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
         >
           {guideTraining && viewModel.selectedDrillCount > 0 ? (
-            <TutorialTapCue detail="Lock the plan" style={{ right: 4, top: -74 }} />
+            <TutorialTapCue detail="Lock the plan" style={{ left: 4, top: -74 }} />
           ) : null}
           <ActionButton
             label="Lock weekly plan"
