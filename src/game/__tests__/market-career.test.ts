@@ -1,9 +1,11 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { buildCareerFacility, createCareer } from '..';
 import {
+  applyCareerNegotiationConsequence,
   beginCareerTransferTalks,
   completeCareerTransfer,
   createCareerMarketState,
+  growthSinceSigningPercent,
   hireCareerCoach,
   refreshCareerMarketForNewSeason,
   resolveCareerScoutClock,
@@ -97,6 +99,9 @@ describe('career market integration', () => {
       amount: -talks.transferTalks!.transferQuote.fee,
     });
     expect(completed.state.ledgers).toHaveLength(0);
+
+    expect(() => completeCareerTransfer({ ...withRosterSpace, week: 19 }, talks))
+      .toThrow('window is closed');
   });
 
   test('itemizes a player sale without creating a weekly ledger', () => {
@@ -107,14 +112,23 @@ describe('career market integration', () => {
     ))!;
     const buyer = state.clubs.find(club => club.id !== state.userClubId)!;
     const result = sellCareerPlayer(state, state.market!, reserve.id, buyer.id);
+    const fee = result.state.cashTransactions!.at(-1)!.amount;
 
     expect(result.state.cashTransactions?.at(-1)).toMatchObject({
       kind: 'transfer-sell',
       label: `Sold ${reserve.name}`,
       amount: expect.any(Number),
     });
-    expect(result.state.cashTransactions!.at(-1)!.amount).toBeGreaterThan(0);
+    expect(fee).toBeGreaterThan(0);
+    expect(result.state.clubs.find(club => club.id === buyer.id)?.cash).toBe(buyer.cash - fee);
     expect(result.state.ledgers).toHaveLength(0);
+
+    const brokeBuyerState = {
+      ...state,
+      clubs: state.clubs.map(club => club.id === buyer.id ? { ...club, cash: 0 } : club),
+    };
+    expect(() => sellCareerPlayer(brokeBuyerState, state.market!, reserve.id, buyer.id))
+      .toThrow('cannot afford');
   });
 
   test('hires one deterministic preseason coach candidate', () => {
@@ -138,7 +152,56 @@ describe('career market integration', () => {
     expect(yearOne.headCoach?.level).toBe(hired.headCoach?.level);
     expect(yearOne.headCoachSeasonsEmployed).toBe(1);
     expect(yearTwo.headCoach?.level).toBe(Math.min(5, (hired.headCoach?.level ?? 0) + 1));
+    expect(yearTwo.headCoach?.weeklyWage).toBe(
+      Math.round(500 * yearTwo.headCoach!.level
+        * (100 - yearTwo.headCoach!.loyaltyDiscountPercent) / 100),
+    );
     expect(yearTwo.headCoachSeasonsEmployed).toBe(2);
+  });
+
+  test('measures contract growth from the stored signing attributes', () => {
+    const state = createCareer(createLaunchCareerSetup(821));
+    const player = state.players.find(candidate => candidate.clubId === state.userClubId)!;
+    const baseline = Object.values(player.attrs).reduce((sum, value) => sum + value, 0);
+
+    expect(growthSinceSigningPercent({
+      ...player,
+      signingStatTotal: baseline,
+      attrs: Object.fromEntries(Object.entries(player.attrs).map(([key, value]) => [key, value + 10])) as typeof player.attrs,
+    })).toBe(Math.floor((70 * 100) / baseline));
+    expect(growthSinceSigningPercent({ ...player, signingStatTotal: undefined })).toBe(0);
+  });
+
+  test('applies an insulting offer consequence exactly once in live career state', () => {
+    const state = createCareer(createLaunchCareerSetup(822, undefined, undefined, 'full'));
+    const target = state.players.find(player => player.clubId !== state.userClubId)!;
+    const market = {
+      ...state.market!,
+      scoutReports: [{
+        playerId: target.id,
+        role: target.role,
+        age: target.age ?? 24,
+        statRanges: Object.fromEntries(Object.keys(target.attrs).map(key => [
+          key,
+          { minimum: 1, maximum: 99 },
+        ])) as never,
+        potentialRange: { minimum: 1, maximum: 5 },
+      }],
+    };
+    const talks = beginCareerTransferTalks(state, market, target.id);
+    const insulted = submitCareerTransferOffer(talks, {
+      weeklyWage: 1,
+      termSeasons: 1,
+      perk: 'JERSEY_10',
+    });
+    const applied = applyCareerNegotiationConsequence(state, insulted, 'transfer');
+    const repeated = applyCareerNegotiationConsequence(applied.state, applied.market, 'transfer');
+
+    expect(applied.state.players.find(player => player.id === target.id)?.morale)
+      .toBe(Math.max(0, target.morale - 10));
+    expect(applied.market.clubFameAdjustment).toBe(-2);
+    expect(applied.market.transferTalks?.consequenceApplied).toBe(true);
+    expect(repeated).toEqual(applied);
   });
 
   test('retains paid scouting work when the preseason coach market refreshes', () => {

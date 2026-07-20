@@ -254,4 +254,40 @@ describe('weekly player wellbeing', () => {
     })).toThrow(/every career player/);
     expect(() => medicalBayRecoveryWeeks(0, 1)).toThrow(/positive/);
   });
+
+  test('drains an underpaid star, honors Motivator carry, and raises a transfer request', () => {
+    let state = createCareer(createLaunchCareerSetup(10, undefined, undefined, 'full'));
+    const player = userPlayers(state)[0];
+    const coach = state.market!.coachCandidates[0];
+    state = withUserPlayerChanges(state, candidate => candidate.id === player.id
+      ? {
+          ...candidate,
+          power: 'SUPER_SPEED',
+          onHeroWage: false,
+          personality: 'Greedy',
+          morale: 30,
+          consecutiveLowMoraleWeeks: 1,
+        }
+      : candidate);
+    state = {
+      ...state,
+      market: {
+        ...state.market!,
+        headCoach: { ...coach, level: 5, specialties: ['MOTIVATOR', 'ATTACK'] },
+      },
+    };
+
+    const first = resolveWeeklyPlayerWellbeing(state, {
+      trainedPlayers: state.players,
+      focusApplied: false,
+    });
+    const updated = first.players.find(candidate => candidate.id === player.id)!;
+
+    expect(updated).toMatchObject({
+      morale: 28,
+      consecutiveLowMoraleWeeks: 2,
+      motivatorMoraleRemainder: 50,
+      transferRequested: true,
+    });
+  });
 });

@@ -10,7 +10,7 @@ import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, 
 
 // m1.6 makes committed slide tackles launch and travel from visibly long range.
 // It retains m1.5's 2.5D ball flight, Energy Use, stamina, and auto coaching.
-export const ENGINE_VERSION = 'm1.6';
+export const ENGINE_VERSION = 'm1.7';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -29,6 +29,7 @@ function deepCopyTeam(t: TeamDef): TeamDef {
     id: t.id,
     name: t.name,
     players: t.players.map(deepCopyPlayerDef),
+    ...(t.heroGaugeRatePercent === undefined ? {} : { heroGaugeRatePercent: t.heroGaugeRatePercent }),
     ...(t.bench === undefined ? {} : { bench: t.bench.map(deepCopyPlayerDef) }),
   };
 }
@@ -281,6 +282,12 @@ export function validateTeamDef(team: TeamDef, label: string): void {
   }
   if (team.bench !== undefined && !Array.isArray(team.bench)) {
     throw new Error(`${label} bench must be an array when present`);
+  }
+  if (team.heroGaugeRatePercent !== undefined
+    && (!Number.isSafeInteger(team.heroGaugeRatePercent)
+      || team.heroGaugeRatePercent < 100
+      || team.heroGaugeRatePercent > 125)) {
+    throw new Error(`${label} hero gauge rate must be an integer from 100 to 125`);
   }
 
   const playerIds = new Set<string>();

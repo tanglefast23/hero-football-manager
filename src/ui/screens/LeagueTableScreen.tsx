@@ -29,7 +29,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
           <Metric label="Matches filed" value={`${viewModel.matchesPlayed}/${viewModel.matchesTotal}`} />
         </View>
         <Text className="mt-3 text-sm leading-4 text-ink/55">
-          Calculated from played fixtures only. Ties sort by goal difference, goals scored, then club ID.
+          Calculated from played fixtures only. Ties sort by goal difference, goals scored, then the league tiebreaker.
         </Text>
       </PaperPanel>
 

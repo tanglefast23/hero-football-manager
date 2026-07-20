@@ -30,6 +30,10 @@ export function enableFullCareer(state: GameState): GameState {
       ...state,
       ...(state.phase === 'complete' ? { phase: 'season-end' as const } : {}),
       cashTransactions: state.cashTransactions ?? [],
+      financialSafety: state.financialSafety ?? {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: false,
+      },
     };
     const withIntake = reconciled.youthIntake === undefined
       ? { ...reconciled, youthIntake: initializeSeasonYouthIntake(reconciled) }
@@ -60,6 +64,10 @@ export function enableFullCareer(state: GameState): GameState {
     retiredPlayers: state.retiredPlayers ?? [],
     pendingLegacyPlayerIds: state.pendingLegacyPlayerIds ?? [],
     cashTransactions: state.cashTransactions ?? [],
+    financialSafety: state.financialSafety ?? {
+      consecutiveNegativeWeeks: 0,
+      emergencyLoanUsed: false,
+    },
   };
   const withMarket: GameState = {
     ...fullState,
@@ -89,6 +97,7 @@ export function startNextFullCareerSeason(
   );
   m2 = applyM2PromotionAndRelegation(m2, finishOrders).state;
   const transition = planEndlessCareerSeasonTransition(m2, state.season);
+  m2 = transition.state;
 
   const userPlayers = state.players.filter(player => player.clubId === state.userClubId);
   const lifecycle = resolveM2CareerPlayerLifecycle(userPlayers, state.season, state.careerSeed);
@@ -213,7 +222,9 @@ function opponentCareerPlayer(
     name: player.name,
     role: player.role,
     attrs: { ...player.attrs },
-    ...(power === undefined ? {} : { power }),
+    ...(power === undefined
+      ? {}
+      : { power, powerTier: (division === 1 ? 3 : division <= 3 ? 2 : 1) as 1 | 2 | 3 }),
     licensed: power !== undefined,
     weeklyWage: Math.max(150, Math.round(average * (7 - division))),
     onHeroWage: power !== undefined,
@@ -231,6 +242,7 @@ function opponentCareerPlayer(
     retirementAge: 36,
     retirementAnnounced: false,
     consecutiveLowMoraleWeeks: player.consecutiveLowMoraleWeeks,
+    signingStatTotal: Object.values(player.attrs).reduce((sum, value) => sum + value, 0),
   };
 }
 
@@ -356,6 +368,7 @@ function academyPlayer(
     fame: 0,
     retirementAge: 35 + ((value >>> 17) % 3),
     retirementAnnounced: false,
+    signingStatTotal: Object.values(attrs).reduce((sum, rating) => sum + rating, 0),
   };
 }
 
@@ -377,9 +390,9 @@ function careerSquadStrength(players: readonly CareerPlayer[]): number {
 }
 
 function clubFame(state: GameState): number {
-  return Math.min(9999, state.players
+  return Math.max(0, Math.min(9999, state.players
     .filter(player => player.clubId === state.userClubId)
-    .reduce((sum, player) => sum + (player.fame ?? 0), 0));
+    .reduce((sum, player) => sum + (player.fame ?? 0), state.market?.clubFameAdjustment ?? 0)));
 }
 
 function checkedAdd(left: number, right: number, label: string): number {

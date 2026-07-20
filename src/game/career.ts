@@ -21,11 +21,12 @@ import {
   type LeagueFixture,
   type LeagueStanding,
   type LedgerLine,
+  type FinancialSafetyState,
 } from './types';
 
 const CLUB_COUNT = 10;
 const UINT32_MAX = 4294967295;
-const CUP_SETTLEMENT_WEEKS = [5, 10, 15, 20, 25, 30] as const;
+const CUP_SETTLEMENT_WEEKS = [5, 10, 15, 20, 24, 28] as const;
 
 type NationalCupRoundLabel =
   | 'Play-in'
@@ -327,11 +328,9 @@ function settleCurrentWeek(
     trainingPoints: training.trainingPoints,
   };
   const lines = settlementLines(trainedState, userClub, training.moneyCost);
-  let net = 0;
-  for (const line of lines) {
-    net = checkedAdd(net, line.amount, 'weekly ledger net');
-  }
-  const balanceAfter = checkedAdd(userClub.cash, net, 'club cash balance');
+  const safety = resolveFinancialSafety(state, userClub.cash, lines);
+  const settledLines = safety.lines;
+  const balanceAfter = safety.balanceAfter;
   const clubs = state.clubs.map(club =>
     club.id === state.userClubId ? { ...club, cash: balanceAfter } : club,
   );
@@ -346,7 +345,7 @@ function settleCurrentWeek(
     {
       season: state.season,
       week: state.week,
-      lines,
+      lines: settledLines,
       balanceAfter,
     },
   ];
@@ -386,6 +385,7 @@ function settleCurrentWeek(
       ledgers,
       players,
       trainingPoints,
+      financialSafety: safety.financialSafety,
       phase: state.careerMode === 'full'
         ? 'season-end'
         : state.season === M1_SEASONS ? 'complete' : 'season-end',
@@ -405,6 +405,7 @@ function settleCurrentWeek(
     ledgers,
     players: recoveredPlayers,
     trainingPoints,
+    financialSafety: safety.financialSafety,
     week: checkedAdd(state.week, 1, 'career week'),
     phase: 'manage',
   };
@@ -556,11 +557,16 @@ function settlementLines(
   }
 
   if (state.season === 1) {
+    const totalWageBill = checkedAdd(
+      userClub.weeklyWages,
+      Math.abs(coachWage),
+      'subsidized wage bill',
+    );
     lines.push({
       kind: 'subsidy',
       label: 'Season 1 wage subsidy',
       amount: requireSafeInteger(
-        Math.floor(requireSafeInteger(userClub.weeklyWages, 'weekly wages') / 2),
+        Math.floor(requireSafeInteger(totalWageBill, 'weekly wages') / 2),
         'wage subsidy',
       ),
     });
@@ -676,6 +682,84 @@ function completeNationalCupMatchday(state: GameState, results: FixtureResult[])
   return winnerClubId === state.userClubId
     ? awardNationalCupPrize(settled, cupMatchday.cupRoundLabel)
     : settled;
+}
+
+function resolveFinancialSafety(
+  state: GameState,
+  startingCash: number,
+  baseLines: readonly LedgerLine[],
+): {
+  lines: LedgerLine[];
+  balanceAfter: number;
+  financialSafety?: FinancialSafetyState;
+} {
+  if (state.careerMode !== 'full') {
+    const net = baseLines.reduce(
+      (total, line) => checkedAdd(total, line.amount, 'weekly ledger net'),
+      0,
+    );
+    const balanceAfter = checkedAdd(startingCash, net, 'club cash balance');
+    return { lines: [...baseLines], balanceAfter };
+  }
+
+  const previous = state.financialSafety ?? {
+    consecutiveNegativeWeeks: 0,
+    emergencyLoanUsed: false,
+  };
+  const lines = [...baseLines];
+  let loan = previous.loan === undefined ? undefined : { ...previous.loan };
+  if (loan !== undefined
+    && loan.remainingBalance > 0
+    && loan.remainingWeeks > 0
+    && state.season >= loan.repaymentStartsSeason) {
+    const repayment = Math.ceil(loan.remainingBalance / loan.remainingWeeks);
+    lines.push({
+      kind: 'loan-repayment',
+      label: 'Emergency loan repayment',
+      amount: -repayment,
+    });
+    loan = {
+      ...loan,
+      remainingBalance: loan.remainingBalance - repayment,
+      remainingWeeks: loan.remainingWeeks - 1,
+    };
+  }
+
+  const net = lines.reduce(
+    (total, line) => checkedAdd(total, line.amount, 'weekly ledger net'),
+    0,
+  );
+  let balanceAfter = checkedAdd(startingCash, net, 'club cash balance');
+  let consecutiveNegativeWeeks = balanceAfter < 0
+    ? checkedAdd(previous.consecutiveNegativeWeeks, 1, 'negative cash week count')
+    : 0;
+  let emergencyLoanUsed = previous.emergencyLoanUsed;
+  if (balanceAfter < 0 && consecutiveNegativeWeeks >= 4 && !emergencyLoanUsed) {
+    lines.push({
+      kind: 'emergency-loan',
+      label: 'Board emergency loan',
+      amount: 20_000,
+    });
+    balanceAfter = checkedAdd(balanceAfter, 20_000, 'emergency loan balance');
+    emergencyLoanUsed = true;
+    consecutiveNegativeWeeks = balanceAfter < 0 ? consecutiveNegativeWeeks : 0;
+    loan = {
+      originalAmount: 20_000,
+      remainingBalance: 22_000,
+      repaymentStartsSeason: checkedAdd(state.season, 1, 'loan repayment season'),
+      remainingWeeks: 30,
+    };
+  }
+
+  return {
+    lines,
+    balanceAfter,
+    financialSafety: {
+      consecutiveNegativeWeeks,
+      emergencyLoanUsed,
+      ...(loan === undefined ? {} : { loan }),
+    },
+  };
 }
 
 function nationalCupUserFixtureForCurrentWeek(state: GameState): {

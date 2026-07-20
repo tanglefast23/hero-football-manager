@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { validateFacilityGrid } from '../game/facilities';
 import { GAME_SCHEMA_VERSION, type GameState } from '../game/types';
 import {
   CorruptCareerSaveError,
@@ -88,6 +89,8 @@ const ledgerLineSchema = z
       'facilities',
       'wages',
       'subsidy',
+      'emergency-loan',
+      'loan-repayment',
     ]),
     label: nonemptyString,
     amount: safeInteger,
@@ -143,6 +146,7 @@ const playerSchema = z
     role: z.enum(['GK', 'DEF', 'MID', 'FWD']),
     attrs: attributesSchema,
     power: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']).optional(),
+    powerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     licensed: z.boolean(),
     weeklyWage: nonnegativeInteger,
     onHeroWage: z.boolean(),
@@ -166,6 +170,12 @@ const playerSchema = z
     retirementAnnounced: z.boolean().optional(),
     retirementAnnouncementSeason: positiveInteger.optional(),
     consecutiveLowMoraleWeeks: nonnegativeInteger.optional(),
+    transferRequested: z.boolean().optional(),
+    motivatorMoraleRemainder: nonnegativeInteger.refine(
+      (value) => value < 100,
+      'must be at most 99',
+    ).optional(),
+    signingStatTotal: positiveInteger.optional(),
     facilityStaBonusRemainder: nonnegativeInteger.refine(
       (value) => value < 100,
       'must be at most 99',
@@ -200,7 +210,17 @@ const facilityGridSchema = z
       'gym-dorm', 'fan-shop-stadium', 'medical-training-pitch',
     ])),
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((grid, context) => {
+    try {
+      validateFacilityGrid(grid);
+    } catch (error) {
+      context.addIssue({
+        code: 'custom',
+        message: error instanceof Error ? error.message : 'invalid facility grid',
+      });
+    }
+  });
 
 const facilitiesSchema = z
   .object({
@@ -409,6 +429,8 @@ const scoutReportSchema = z.object({
   }).passthrough(),
   potentialRange: scoutedRangeSchema,
   power: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']).optional(),
+  powerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  rumoredHeroLead: z.literal(true).optional(),
 }).passthrough();
 const coachCandidateSchema = z.object({
   id: nonemptyString,
@@ -445,6 +467,10 @@ const negotiationSchema = z.object({
   status: z.enum(['OPEN', 'ACCEPTED', 'REJECTED']),
   history: z.array(z.object({ round: positiveInteger, offer: contractOfferSchema }).passthrough()),
   acceptedOffer: contractOfferSchema.optional(),
+  consequence: z.object({
+    moraleDelta: safeInteger,
+    clubFameDelta: safeInteger,
+  }).passthrough().optional(),
 }).passthrough();
 const careerMarketSchema = z.object({
   nextMissionNumber: positiveInteger,
@@ -454,6 +480,7 @@ const careerMarketSchema = z.object({
   headCoach: coachCandidateSchema.optional(),
   headCoachSeasonsEmployed: nonnegativeInteger.optional(),
   unlockedCoachContentIds: z.array(nonemptyString).optional(),
+  clubFameAdjustment: safeInteger.optional(),
   transferTalks: z.object({
     playerId: nonemptyString,
     transferQuote: z.object({
@@ -463,10 +490,12 @@ const careerMarketSchema = z.object({
       bandPercent: nonnegativeInteger,
     }).passthrough(),
     negotiation: negotiationSchema,
+    consequenceApplied: z.boolean().optional(),
   }).passthrough().optional(),
   renewalTalks: z.object({
     playerId: nonemptyString,
     negotiation: negotiationSchema,
+    consequenceApplied: z.boolean().optional(),
   }).passthrough().optional(),
 }).passthrough();
 
@@ -516,6 +545,16 @@ const gameStateSchema = z
     youthIntake: youthIntakeSchema.optional(),
     retiredPlayers: z.array(playerSchema).optional(),
     pendingLegacyPlayerIds: z.array(nonemptyString).optional(),
+    financialSafety: z.object({
+      consecutiveNegativeWeeks: nonnegativeInteger,
+      emergencyLoanUsed: z.boolean(),
+      loan: z.object({
+        originalAmount: positiveInteger,
+        remainingBalance: nonnegativeInteger,
+        repaymentStartsSeason: positiveInteger,
+        remainingWeeks: nonnegativeInteger,
+      }).passthrough().optional(),
+    }).passthrough().optional(),
   })
   .passthrough()
   .superRefine((state, context) => {

@@ -1,6 +1,8 @@
 import { mulberry32 } from '../sim/rng';
 import { facilityEffects, type FacilityGridState } from './facilities';
-import { updatePlayerWellbeing } from './pyramid';
+import { growthSinceSigningPercent } from './market-career';
+import { renewalContractAsk } from './market';
+import { shouldRequestTransfer, updatePlayerWellbeing } from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
 export const WEEKLY_CONDITION_RECOVERY = 12;
@@ -75,15 +77,24 @@ export function resolveWeeklyPlayerWellbeing(
     ? 0
     : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
   const injuryChecks: OvertrainingInjuryCheck[] = [];
+  const motivatorLevel = state.market?.headCoach?.specialties.includes('MOTIVATOR') === true
+    ? state.market.headCoach.level
+    : 0;
 
   const players = context.trainedPlayers.map(player => {
     if (player.clubId !== state.userClubId) return player;
 
     const isFocused = focusedPlayerIds.has(player.id);
     const conditionDelta = WEEKLY_CONDITION_RECOVERY - (isFocused ? focusConditionCost : 0);
-    const moraleDelta = matchOutcomes.reduce(
+    const matchMoraleDelta = matchOutcomes.reduce(
       (total, outcome) => total + moraleDeltaForMatch(outcome, starters.has(player.id)),
       0,
+    );
+    const underpaidMoraleDelta = isUnderpaidPlayer(player) ? -2 : 0;
+    const motivation = applyMotivatorProtection(
+      matchMoraleDelta + underpaidMoraleDelta,
+      motivatorLevel,
+      player.motivatorMoraleRemainder ?? 0,
     );
     const updated = updatePlayerWellbeing(
       {
@@ -92,17 +103,24 @@ export function resolveWeeklyPlayerWellbeing(
         personality: player.personality ?? 'Professional',
         consecutiveLowMoraleWeeks: player.consecutiveLowMoraleWeeks ?? 0,
       },
-      { conditionDelta, moraleDelta },
+      { conditionDelta, moraleDelta: motivation.moraleDelta },
     );
+    const updatedCondition = updated.condition ?? 100;
+    const withMoraleState: CareerPlayer = {
+      ...updated,
+      condition: updatedCondition,
+      motivatorMoraleRemainder: motivation.remainder,
+      transferRequested: player.transferRequested === true || shouldRequestTransfer(updated),
+    };
 
     if (!isFocused
-      || updated.condition >= OVERTRAINING_CONDITION_THRESHOLD
-      || updated.injuryWeeks > 0) {
-      return updated;
+      || updatedCondition >= OVERTRAINING_CONDITION_THRESHOLD
+      || withMoraleState.injuryWeeks > 0) {
+      return withMoraleState;
     }
 
     const chancePercent = overtrainingInjuryChancePercent(
-      updated.condition,
+      updatedCondition,
       injuryRiskReductionPercent,
     );
     const rollPercent = deterministicWellbeingRoll(state, player.id, 0, 100);
@@ -110,26 +128,26 @@ export function resolveWeeklyPlayerWellbeing(
     if (!injured) {
       injuryChecks.push({
         playerId: player.id,
-        condition: updated.condition,
+        condition: updatedCondition,
         chancePercent,
         rollPercent,
         injured: false,
       });
-      return updated;
+      return withMoraleState;
     }
 
     const baseRecoveryWeeks = 2 + deterministicWellbeingRoll(state, player.id, 1, 5);
     const recoveryWeeks = medicalBayRecoveryWeeks(baseRecoveryWeeks, medicalBayLevel);
     injuryChecks.push({
       playerId: player.id,
-      condition: updated.condition,
+      condition: updatedCondition,
       chancePercent,
       rollPercent,
       injured: true,
       baseRecoveryWeeks,
       recoveryWeeks,
     });
-    return { ...updated, injuryWeeks: recoveryWeeks };
+    return { ...withMoraleState, injuryWeeks: recoveryWeeks };
   });
 
   return {
@@ -139,6 +157,31 @@ export function resolveWeeklyPlayerWellbeing(
       : { matchOutcome: matchOutcomes[matchOutcomes.length - 1] }),
     injuryChecks,
   };
+}
+
+function isUnderpaidPlayer(player: CareerPlayer): boolean {
+  const fairWage = renewalContractAsk({
+    weeklyWage: player.weeklyWage,
+    personality: (player.personality ?? 'Professional').toUpperCase().replace('-', '_') as Parameters<typeof renewalContractAsk>[0]['personality'],
+    ...(player.power === undefined ? {} : { power: player.power }),
+    onHeroWage: player.onHeroWage,
+  }, {
+    growthSinceSigningPercent: growthSinceSigningPercent(player),
+    famePercent: Math.min(100, player.fame ?? 0),
+    heroMultiplier: 4,
+  });
+  return player.weeklyWage * 100 < fairWage * 70;
+}
+
+function applyMotivatorProtection(
+  moraleDelta: number,
+  level: number,
+  remainder: number,
+): { moraleDelta: number; remainder: number } {
+  if (moraleDelta >= 0 || level === 0) return { moraleDelta, remainder };
+  const scaled = Math.abs(moraleDelta) * level * 5 + remainder;
+  const prevented = Math.floor(scaled / 100);
+  return { moraleDelta: moraleDelta + prevented, remainder: scaled % 100 };
 }
 
 /** Medical Bay levels remove one recovery week each, with a one-week floor. */

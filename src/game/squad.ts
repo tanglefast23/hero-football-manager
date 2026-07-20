@@ -70,7 +70,10 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
       }))
     : roster;
 
-  return buildTeamDef(club, matchRoster, lineup.playerIds, careerHeroLimit(state));
+  const team = buildTeamDef(club, matchRoster, lineup.playerIds, careerHeroLimit(state));
+  const coach = clubId === state.userClubId ? state.market?.headCoach : undefined;
+  if (coach?.specialties.includes('MOTIVATOR') !== true) return team;
+  return { ...team, heroGaugeRatePercent: 100 + coach.level * 5 };
 }
 
 export function buildCareerTeams(state: GameState): Readonly<Record<string, TeamDef>> {

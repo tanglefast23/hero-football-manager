@@ -252,6 +252,13 @@ describe('M2 promotion and endless season planning', () => {
       expect(opponent.squadStrength).toBe(unscaled.squadStrength + 1);
       expect(opponent.squad[0].attrs.pac).toBe(Math.min(99, unscaled.squad[0].attrs.pac + 1));
     }
+    const inactiveOpponent = promoted.state.pyramid.divisions[4].clubs
+      .find(club => club.id !== USER_CLUB.id)!;
+    const advancedInactive = plan.state.pyramid.divisions[4].clubs
+      .find(club => club.id === inactiveOpponent.id)!;
+    expect(advancedInactive.squadStrength).toBe(inactiveOpponent.squadStrength + 1);
+    expect(advancedInactive.squad[0].attrs.pac)
+      .toBe(Math.min(99, inactiveOpponent.squad[0].attrs.pac + 1));
     expect(JSON.stringify(initial)).toBe(frozen);
   });
 

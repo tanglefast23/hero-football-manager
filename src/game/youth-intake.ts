@@ -271,6 +271,7 @@ function createOffer(
     retirementAge,
     retirementAnnounced: false,
     consecutiveLowMoraleWeeks: 0,
+    signingStatTotal: Object.values(attrs).reduce((sum, value) => sum + value, 0),
   };
   return { player, signingBonus: youthSigningBonus(fieldLevel) };
 }

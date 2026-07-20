@@ -73,6 +73,9 @@ export interface ScoutReport {
   readonly potentialRange: ScoutedRange;
   /** Level 3 reports confirm a power; lower-level reports leave it unknown. */
   readonly power?: PowerId;
+  readonly powerTier?: number;
+  /** A rare hero-focus hit without revealing the exact power below office level 3. */
+  readonly rumoredHeroLead?: true;
 }
 
 export interface ScoutMissionResult {
@@ -149,12 +152,14 @@ export function resolveScoutMission(
     .slice()
     .sort((left, right) => left.id.localeCompare(right.id));
   const random = mulberry32(mixSeed(mission.missionSeed, 'shortlist'));
-  shuffleInPlace(eligible, random);
+  const shortlist = mission.focus.kind === 'RUMORED_HERO'
+    ? rumoredHeroShortlist(eligible, shortlistSize, mission.missionSeed, random)
+    : shuffledShortlist(eligible, shortlistSize, random);
 
   return {
     missionId: mission.id,
     completedWeek: currentWeek,
-    reports: eligible.slice(0, shortlistSize).map(candidate => ({
+    reports: shortlist.map(candidate => ({
       playerId: candidate.id,
       role: candidate.role,
       age: candidate.age,
@@ -171,10 +176,37 @@ export function resolveScoutMission(
         mixSeed(mission.missionSeed, `${candidate.id}:potential`),
       ),
       ...(mission.scoutOfficeLevel === 3 && candidate.power !== undefined
-        ? { power: candidate.power }
+        ? { power: candidate.power, powerTier: candidate.powerTier ?? 1 }
+        : {}),
+      ...(mission.focus.kind === 'RUMORED_HERO' && candidate.power !== undefined
+        ? { rumoredHeroLead: true as const }
         : {}),
     })),
   };
+}
+
+function shuffledShortlist(
+  eligible: ScoutablePlayer[],
+  shortlistSize: number,
+  random: () => number,
+): ScoutablePlayer[] {
+  shuffleInPlace(eligible, random);
+  return eligible.slice(0, shortlistSize);
+}
+
+function rumoredHeroShortlist(
+  eligible: ScoutablePlayer[],
+  shortlistSize: number,
+  missionSeed: number,
+  random: () => number,
+): ScoutablePlayer[] {
+  const heroes = eligible.filter(candidate => candidate.power !== undefined);
+  const ordinary = eligible.filter(candidate => candidate.power === undefined);
+  shuffleInPlace(heroes, random);
+  shuffleInPlace(ordinary, random);
+  const rumorIsReal = mulberry32(mixSeed(missionSeed, 'rumor-payoff'))() < 0.25;
+  if (!rumorIsReal || heroes.length === 0) return ordinary.slice(0, shortlistSize);
+  return [heroes[0], ...ordinary].slice(0, shortlistSize);
 }
 
 export function scoutAttributeRanges(

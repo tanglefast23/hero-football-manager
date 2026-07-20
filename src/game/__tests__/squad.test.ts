@@ -144,6 +144,21 @@ describe('career squad integration', () => {
     expect(buildCareerTeamDef(highMoraleM2, CLUB_IDS[0]).players[0].attrs.pac).toBe(50);
   });
 
+  it('carries a Motivator coach Heat bonus through the sim-team boundary', () => {
+    const state = createCareer({ ...setup(), careerMode: 'full' });
+    const coach = state.market!.coachCandidates[0];
+    const coached = {
+      ...state,
+      market: {
+        ...state.market!,
+        headCoach: { ...coach, level: 4 as const, specialties: ['MOTIVATOR', 'ATTACK'] as const },
+      },
+    };
+
+    expect(buildCareerTeamDef(coached, coached.userClubId).heroGaugeRatePercent).toBe(120);
+    expect(buildCareerTeamDef(coached, coached.clubs[1].id).heroGaugeRatePercent).toBeUndefined();
+  });
+
   it('stores one weekly plan and applies every drill to every assigned player once', () => {
     const planned = applyCareerTraining(
       career(),

@@ -388,9 +388,12 @@ export function homeViewModel(state: GameState): HomeViewModel {
   const injured = roster
     .filter(player => player.injuryWeeks > 0)
     .sort((left, right) => right.injuryWeeks - left.injuryWeeks || left.name.localeCompare(right.name));
+  const transferRequests = roster.filter(player => player.transferRequested === true);
+  const negativeCashWeeks = state.financialSafety?.consecutiveNegativeWeeks ?? 0;
+  const loan = state.financialSafety?.loan;
 
   const alerts = [
-    ...(!state.facilities.trainingGroundBuilt ? [{
+    ...(state.careerMode !== 'full' && !state.facilities.trainingGroundBuilt ? [{
       id: 'training-ground',
       title: 'Training Ground proposal',
       detail: 'Build once for 8,000 and earn +5 TP after every settled week.',
@@ -399,7 +402,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
     ...(expired.length > 0 ? [{
       id: 'renewals',
       title: `${expired.length} contract${expired.length === 1 ? '' : 's'} expired`,
-      detail: 'Awakened players now ask for hero wages. Review before Season 2.',
+      detail: 'Resolve these contracts before the next season can begin.',
       tone: 'urgent' as const,
     }] : []),
     ...injured.map(player => ({
@@ -408,6 +411,24 @@ export function homeViewModel(state: GameState): HomeViewModel {
       detail: `OUT · ${weekCountLabel(player.injuryWeeks)} — unavailable for selection.`,
       tone: 'urgent' as const,
     })),
+    ...transferRequests.map(player => ({
+      id: `transfer-request-${player.id}`,
+      title: `${player.name} wants to leave`,
+      detail: 'Low morale has become a transfer request. Review the player and decide whether to sell.',
+      tone: 'urgent' as const,
+    })),
+    ...(negativeCashWeeks > 0 ? [{
+      id: 'financial-warning',
+      title: 'Board financial warning',
+      detail: `Cash has stayed negative for ${negativeCashWeeks} week${negativeCashWeeks === 1 ? '' : 's'}. Transfers and building are locked until the balance recovers.`,
+      tone: 'urgent' as const,
+    }] : []),
+    ...(loan !== undefined && loan.remainingBalance > 0 ? [{
+      id: 'emergency-loan',
+      title: 'Emergency loan active',
+      detail: `${loan.remainingBalance.toLocaleString()} remains. Repayments begin in Season ${loan.repaymentStartsSeason}.`,
+      tone: 'info' as const,
+    }] : []),
   ];
 
   const standings = leagueStandings(state).map(row => ({
@@ -426,6 +447,9 @@ export function homeViewModel(state: GameState): HomeViewModel {
     seasonLabel: state.careerMode === 'full'
       ? `Season ${state.season} · Division ${careerDivision(state)}`
       : `Season ${state.season} / 2`,
+    divisionLabel: state.careerMode === 'full'
+      ? `Division ${careerDivision(state)}`
+      : 'Division five',
     weekLabel: `Week ${state.week} / 30`,
     nextMatchTimingLabel: nextFixture === undefined
       ? state.phase === 'complete' ? 'Complete' : 'Season end'
@@ -486,7 +510,11 @@ export function leagueTableViewModel(state: GameState): LeagueTableViewModel {
   };
 }
 
-export function matchDayViewModel(state: GameState, content: LaunchContent): MatchDayViewModel {
+export function matchDayViewModel(
+  state: GameState,
+  content: LaunchContent,
+  formationLabel = '4–4–2',
+): MatchDayViewModel {
   const matchday = activeCareerMatchday(state);
   if (matchday === undefined) throw new Error('the current matchday has no user fixture');
   const fixture = matchday.fixture;
@@ -511,8 +539,9 @@ export function matchDayViewModel(state: GameState, content: LaunchContent): Mat
         ? `National Cup · ${matchday.cupRoundLabel ?? 'Knockout tie'}`
         : undefined,
     ),
+    formationLabel,
     selectedTacticId: 'balanced',
-    tactics: [{ id: 'balanced', label: 'Balanced', detail: 'The M1 match engine’s proven default shape.' }],
+    tactics: [{ id: 'balanced', label: 'Balanced', detail: 'A steady shape with equal attacking and defensive intent.' }],
     lineup: lineupPlayers.map((player, index) => {
       return {
         id: player.id,
@@ -598,9 +627,16 @@ export function squadTrainingViewModel(
         ? 'Expired — renewal due'
         : `${player.contractSeasonsRemaining} season${player.contractSeasonsRemaining === 1 ? '' : 's'} left`,
       ...(player.power ? {
-        powerName: content.powers.powers.find(power => power.id === player.power)?.name ?? player.power,
+        powerName: `${content.powers.powers.find(power => power.id === player.power)?.name ?? player.power} · Tier ${player.powerTier ?? 1}`,
       } : {}),
       licensed: player.licensed,
+      attributes: (Object.entries(player.attrs) as Array<[keyof typeof player.attrs, number]>).map(
+        ([attribute, value]) => ({
+          label: attribute.toUpperCase() as 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF',
+          value,
+          cap: 99,
+        }),
+      ),
     })),
     selectedPlayerId,
     drills: drills.map(drill => drillViewModel(drill, selected.has(drill.id), state)),

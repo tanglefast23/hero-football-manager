@@ -4,6 +4,7 @@ import {
   advanceWeek,
   activeCareerMatchday,
   addCreatedPlayer,
+  applyCareerNegotiationConsequence,
   applyCareerEventOutcome,
   applyCareerTraining,
   beginStoryOnboarding,
@@ -901,7 +902,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const buyer = career.clubs
         .filter(club => club.id !== career.userClubId)
         .slice()
-        .sort((left, right) => left.id.localeCompare(right.id))[0];
+        .sort((left, right) => right.cash - left.cash || left.id.localeCompare(right.id))[0];
       if (buyer === undefined) throw new Error('no buying club is available');
       const transaction = sellCareerPlayer(
         career,
@@ -962,8 +963,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
         queueCareerSave(get, set, next);
         return;
       }
-      const next = { ...career, market: negotiatedMarket };
-      set({ career: next, error: null });
+      const consequence = applyCareerNegotiationConsequence(career, negotiatedMarket, 'transfer');
+      const next = { ...consequence.state, market: consequence.market };
+      set({
+        career: next,
+        error: consequence.market !== negotiatedMarket
+          ? 'The agent walked away. Player morale and club reputation fell.'
+          : null,
+      });
       queueCareerSave(get, set, next);
     });
   },
@@ -1018,8 +1025,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
         queueCareerSave(get, set, next);
         return;
       }
-      const next = { ...career, market: negotiated };
-      set({ career: next, error: null });
+      const consequence = applyCareerNegotiationConsequence(career, negotiated, 'renewal');
+      const next = { ...consequence.state, market: consequence.market };
+      set({
+        career: next,
+        error: consequence.market !== negotiated
+          ? 'The agent walked away. Player morale and club reputation fell.'
+          : null,
+      });
       queueCareerSave(get, set, next);
     });
   },

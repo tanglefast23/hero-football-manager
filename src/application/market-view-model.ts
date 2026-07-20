@@ -147,6 +147,9 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
           ...(report.power === undefined
             ? {}
             : { powerLabel: identity?.powerName ?? readableId(report.power) }),
+          ...(report.rumoredHeroLead === true && report.power === undefined
+            ? { rumorLabel: 'The hero rumor looks real' }
+            : {}),
           stats: stats.map(attribute => ({
             label: attribute.toUpperCase(),
             rangeLabel: `${report.statRanges[attribute].minimum}-${report.statRanges[attribute].maximum}`,

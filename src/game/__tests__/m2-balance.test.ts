@@ -55,6 +55,28 @@ describe('M2 deterministic management balance rails', () => {
     expect(seasonSeven.m2?.nationalCups.every(cup => cup.championClubId !== undefined)).toBe(true);
   });
 
+  test('samples passive four-season promotion and fail-soft outcomes across 40 seeds', () => {
+    const summaries = Array.from({ length: 40 }, (_, seed) => {
+      const state = runHeadlessFullCareer(
+        createLaunchCareerSetup(seed, undefined, undefined, 'full'),
+        4,
+      );
+      return { state, summary: summarizeFullCareerBalance(state) };
+    });
+    const divisionThreeOrHigher = summaries.filter(({ summary }) => summary.currentDivision <= 3);
+    const loanCount = summaries.filter(({ state }) => state.financialSafety?.emergencyLoanUsed).length;
+
+    // This runner is deliberately passive, so it is not the player-progression
+    // median promised by the design doc. It still guards distribution drift:
+    // some zero-hero clubs climb twice, every debt spiral receives the one loan,
+    // and no sampled balance escapes the long-run corridor.
+    expect(divisionThreeOrHigher.length / summaries.length).toBeGreaterThanOrEqual(0.1);
+    expect(loanCount).toBe(summaries.length);
+    expect(Math.min(...summaries.map(({ summary }) => summary.minimumBalance)))
+      .toBeGreaterThanOrEqual(-200_000);
+    expect(summaries.every(({ summary }) => Number.isSafeInteger(summary.endingCash))).toBe(true);
+  });
+
   test('rejects non-M2 and unsafe economic state instead of reporting false confidence', () => {
     const setup = createLaunchCareerSetup(44);
     const full = runHeadlessFullCareer(setup, 1);

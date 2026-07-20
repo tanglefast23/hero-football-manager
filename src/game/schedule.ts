@@ -5,7 +5,7 @@ const CLUB_COUNT = 10;
 const FIRST_LEG_ROUNDS = CLUB_COUNT - 1;
 const TOTAL_ROUNDS = FIRST_LEG_ROUNDS * 2;
 const FIRST_LEAGUE_WEEK = 5;
-const LAST_LEAGUE_WEEK = 27;
+const LAST_LEAGUE_WEEK = 28;
 const UINT32_RANGE = 4294967296;
 
 export function leagueWeekForRound(round: number): number {

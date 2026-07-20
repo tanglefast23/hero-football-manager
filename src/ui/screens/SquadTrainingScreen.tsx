@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { PixelPortrait } from '../components/PixelPortrait';
 import type { FocusDrillViewModel, SquadTrainingViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import {
@@ -147,7 +148,7 @@ export function SquadTrainingScreen({
                     ) : null}
                     <Text className="mt-1 text-sm text-ink/60" numberOfLines={1}>{player.contractLabel}</Text>
                     {player.powerName ? (
-                      <Text className="mt-0.5 text-sm font-bold uppercase text-amber-600" numberOfLines={1}>★ {player.powerName}</Text>
+                      <Text className="mt-0.5 text-sm font-bold uppercase text-gold-dark" numberOfLines={1}>★ {player.powerName}</Text>
                     ) : null}
                   </View>
                   <Text className="w-12 text-right font-mono text-base font-bold text-ink" numberOfLines={1}>{player.overall}</Text>
@@ -186,6 +187,16 @@ export function SquadTrainingScreen({
           stamp={selectedPlayer.injuryWeeks > 0 ? 'OUT' : selectedPlayer.licensed ? 'Licensed' : selectedPlayer.role}
           className="mt-5"
         >
+          <View className="mb-4 flex-row items-center gap-4">
+            <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
+              <PixelPortrait playerId={selectedPlayer.id} role={selectedPlayer.role} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Player identity</Text>
+              <Text className="mt-1 text-lg font-bold uppercase text-ink">{selectedPlayer.role} · {selectedPlayer.archetype}</Text>
+              <Text className="mt-1 text-sm text-ink/60">{selectedPlayer.personality} · Fame {selectedPlayer.fame}</Text>
+            </View>
+          </View>
           {selectedPlayer.injuryWeeks > 0 ? (
             <View className="mb-3 border-2 border-b-4 border-red-dark bg-red-light p-3">
               <Text className="font-mono text-base font-bold uppercase text-red-dark">
@@ -227,6 +238,23 @@ export function SquadTrainingScreen({
             <View className="mt-2 flex-row items-center justify-between gap-3">
               <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Fame</Text>
               <Text className="font-mono text-base font-bold text-ink">{selectedPlayer.fame}</Text>
+            </View>
+          </View>
+          <View className="mt-3 border-2 border-ink bg-white p-3">
+            <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">Attributes · current / cap</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {selectedPlayer.attributes
+                .filter(attribute => selectedPlayer.role === 'GK'
+                  ? attribute.label !== 'SHO'
+                  : attribute.label !== 'REF')
+                .map(attribute => (
+                  <View key={attribute.label} className="min-w-[29%] flex-1 border border-ink/20 bg-paper px-2 py-2">
+                    <Text className="text-sm font-bold uppercase text-ink/50">{attribute.label}</Text>
+                    <Text className="mt-1 font-mono text-base font-bold text-ink">
+                      {attribute.value} / {attribute.cap}
+                    </Text>
+                  </View>
+                ))}
             </View>
           </View>
         </PaperPanel>

@@ -78,6 +78,63 @@ describe('M2 weekly sidecars', () => {
       label: 'Head coach wage',
       amount: -market.headCoach!.weeklyWage,
     });
+    expect(settled.ledgers[0].lines).toContainEqual({
+      kind: 'subsidy',
+      label: 'Season 1 wage subsidy',
+      amount: Math.floor((initial.clubs.find(club => club.id === initial.userClubId)!.weeklyWages
+        + market.headCoach!.weeklyWage) / 2),
+    });
+  });
+
+  test('warns on negative cash, issues the one emergency loan, and schedules repayment', () => {
+    let state = fullCareer(504);
+    state = {
+      ...state,
+      clubs: state.clubs.map(club => club.id === state.userClubId
+        ? { ...club, cash: -50_000 }
+        : club),
+    };
+    for (let week = 0; week < 4; week += 1) state = advanceWeek(state);
+
+    expect(state.financialSafety).toMatchObject({
+      emergencyLoanUsed: true,
+      loan: {
+        originalAmount: 20_000,
+        remainingBalance: 22_000,
+        repaymentStartsSeason: 2,
+        remainingWeeks: 30,
+      },
+    });
+    expect(state.ledgers[3].lines).toContainEqual({
+      kind: 'emergency-loan',
+      label: 'Board emergency loan',
+      amount: 20_000,
+    });
+
+    const repaymentState: GameState = {
+      ...fullCareer(505),
+      season: 2,
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        loan: {
+          originalAmount: 20_000,
+          remainingBalance: 22_000,
+          repaymentStartsSeason: 2,
+          remainingWeeks: 30,
+        },
+      },
+    };
+    const repaid = advanceWeek(repaymentState);
+    expect(repaid.ledgers[0].lines).toContainEqual({
+      kind: 'loan-repayment',
+      label: 'Emergency loan repayment',
+      amount: -734,
+    });
+    expect(repaid.financialSafety?.loan).toMatchObject({
+      remainingBalance: 21_266,
+      remainingWeeks: 29,
+    });
   });
 
   test('applies full-career condition workload while leaving the M1 slice unchanged', () => {

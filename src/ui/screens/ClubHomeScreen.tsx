@@ -127,7 +127,7 @@ export function ClubHomeScreen({
 
       <View className="mt-6">
         <SectionLabel
-          eyebrow="Division five"
+          eyebrow={viewModel.divisionLabel}
           title="Table snapshot"
           right={<Text className="font-mono text-sm font-bold uppercase text-blue-dark">Table ›</Text>}
         />

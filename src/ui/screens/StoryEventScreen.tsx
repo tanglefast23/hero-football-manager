@@ -73,7 +73,7 @@ export function StoryEventScreen({
               accessibilityLabel={viewModel.selectedPlayer ? `Selected player ${viewModel.selectedPlayer.name}` : 'Choose a player for this event'}
               disabled={!onSelectPlayer || resolved}
               onPress={onSelectPlayer}
-              className={viewModel.selectedPlayer ? 'min-h-14 flex-row items-center border-2 border-amber-500 bg-amber-100 p-3' : 'min-h-14 items-center justify-center border-2 border-dashed border-ink/40 bg-white p-3'}
+              className={viewModel.selectedPlayer ? 'min-h-14 flex-row items-center border-2 border-gold bg-gold-light p-3' : 'min-h-14 items-center justify-center border-2 border-dashed border-ink/40 bg-white p-3'}
               style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
             >
               {viewModel.selectedPlayer ? (

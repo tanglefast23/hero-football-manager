@@ -459,7 +459,11 @@ function GameApp() {
       />
     );
   } else if (store.screen === 'matchday') {
-    const matchday = matchDayViewModel(store.career, content);
+    const matchday = matchDayViewModel(
+      store.career,
+      content,
+      preferences.formationPresets[0].replaceAll('-', '–'),
+    );
     screen = (
       <FixtureMatchDayScreen
         viewModel={matchday}
@@ -632,6 +636,14 @@ function GameApp() {
               else if (alertId.startsWith('injury-')) {
                 store.selectPlayer(alertId.slice('injury-'.length));
                 store.setActiveTab('squad');
+              }
+              else if (alertId.startsWith('transfer-request-')) {
+                store.selectPlayer(alertId.slice('transfer-request-'.length));
+                store.setActiveTab('squad');
+              }
+              else if (alertId === 'renewals') store.setActiveTab('squad');
+              else if (alertId === 'financial-warning' || alertId === 'emergency-loan') {
+                store.setActiveTab('club');
               }
               else store.notify('This alert is resolved from the season review.');
             }}

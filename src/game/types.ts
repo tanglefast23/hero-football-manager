@@ -74,6 +74,7 @@ export interface CareerPlayer {
   role: Role;
   attrs: Attrs;
   power?: PowerId;
+  powerTier?: 1 | 2 | 3;
   licensed: boolean;
   weeklyWage: number;
   onHeroWage: boolean;
@@ -93,6 +94,11 @@ export interface CareerPlayer {
   retirementAnnounced?: boolean;
   retirementAnnouncementSeason?: number;
   consecutiveLowMoraleWeeks?: number;
+  transferRequested?: boolean;
+  /** Percentage-point carry for exact Motivator morale protection. */
+  motivatorMoraleRemainder?: number;
+  /** Attribute total when the current contract began, used for earned wage growth. */
+  signingStatTotal?: number;
   /** Percentage-point carry for exact integer Gym + Dorm stamina bonuses. */
   facilityStaBonusRemainder?: number;
 }
@@ -183,7 +189,9 @@ export type LedgerLineKind =
   | 'training'
   | 'facilities'
   | 'wages'
-  | 'subsidy';
+  | 'subsidy'
+  | 'emergency-loan'
+  | 'loan-repayment';
 
 export interface LedgerLine {
   kind: LedgerLineKind;
@@ -229,6 +237,17 @@ export interface PlayerSeasonGoalTally {
   goals: number;
 }
 
+export interface FinancialSafetyState {
+  consecutiveNegativeWeeks: number;
+  emergencyLoanUsed: boolean;
+  loan?: {
+    originalAmount: number;
+    remainingBalance: number;
+    repaymentStartsSeason: number;
+    remainingWeeks: number;
+  };
+}
+
 export interface GameState {
   schemaVersion: number;
   careerSeed: number;
@@ -265,6 +284,7 @@ export interface GameState {
   youthIntake?: YouthIntakeState;
   retiredPlayers?: CareerPlayer[];
   pendingLegacyPlayerIds?: string[];
+  financialSafety?: FinancialSafetyState;
 }
 
 export interface LeagueStanding {

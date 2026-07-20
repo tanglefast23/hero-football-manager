@@ -43,11 +43,11 @@ describe('generateSeasonFixtures', () => {
     }
   });
 
-  test('spreads league rounds deterministically across weeks 5 through 27', () => {
+  test('spreads league rounds deterministically across weeks 5 through 28', () => {
     const weeks = Array.from({ length: 18 }, (_, index) => leagueWeekForRound(index + 1));
 
     expect(weeks[0]).toBe(5);
-    expect(weeks[17]).toBe(27);
+    expect(weeks[17]).toBe(28);
     expect(new Set(weeks).size).toBe(18);
     expect(weeks.every((week, index) => index === 0 || week > weeks[index - 1])).toBe(true);
 

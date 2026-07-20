@@ -28,11 +28,13 @@ export interface CareerTransferTalks {
   readonly playerId: string;
   readonly transferQuote: TransferQuote;
   readonly negotiation: ContractNegotiation;
+  readonly consequenceApplied?: boolean;
 }
 
 export interface CareerRenewalTalks {
   readonly playerId: string;
   readonly negotiation: ContractNegotiation;
+  readonly consequenceApplied?: boolean;
 }
 
 /** Plain M2 market state designed to live inside a schema-versioned career save. */
@@ -44,6 +46,8 @@ export interface CareerMarketState {
   readonly headCoach?: CoachCandidate;
   readonly headCoachSeasonsEmployed?: number;
   readonly unlockedCoachContentIds?: readonly string[];
+  /** Persistent reputation changes that are not owned by any one player. */
+  readonly clubFameAdjustment?: number;
   readonly transferTalks?: CareerTransferTalks;
   readonly renewalTalks?: CareerRenewalTalks;
 }
@@ -51,6 +55,41 @@ export interface CareerMarketState {
 export interface CareerMarketTransaction {
   readonly state: GameState;
   readonly market: CareerMarketState;
+}
+
+export function applyCareerNegotiationConsequence(
+  state: GameState,
+  market: CareerMarketState,
+  kind: 'transfer' | 'renewal',
+): CareerMarketTransaction {
+  const talks = kind === 'transfer' ? market.transferTalks : market.renewalTalks;
+  const consequence = talks?.negotiation.consequence;
+  if (talks === undefined || consequence === undefined || talks.consequenceApplied === true) {
+    return { state, market };
+  }
+  const player = state.players.find(candidate => candidate.id === talks.playerId);
+  if (player === undefined) throw new Error(`unknown negotiation player ${talks.playerId}`);
+  const nextState: GameState = {
+    ...state,
+    players: state.players.map(candidate => candidate.id === player.id
+      ? { ...candidate, morale: Math.max(0, Math.min(100, candidate.morale + consequence.moraleDelta)) }
+      : candidate),
+  };
+  const nextTalks = { ...talks, consequenceApplied: true };
+  return {
+    state: nextState,
+    market: {
+      ...market,
+      clubFameAdjustment: checkedAdd(
+        market.clubFameAdjustment ?? 0,
+        consequence.clubFameDelta,
+        'club fame adjustment',
+      ),
+      ...(kind === 'transfer'
+        ? { transferTalks: nextTalks as CareerTransferTalks }
+        : { renewalTalks: nextTalks as CareerRenewalTalks }),
+    },
+  };
 }
 
 export function createCareerMarketState(
@@ -190,6 +229,7 @@ export function completeCareerTransfer(
   market: CareerMarketState,
 ): CareerMarketTransaction {
   assertManagePhase(state);
+  if (!isTransferWindowOpen(state.week)) throw new Error('the transfer window is closed');
   const talks = market.transferTalks;
   if (talks?.negotiation.status !== 'ACCEPTED' || talks.negotiation.acceptedOffer === undefined) {
     throw new Error('a transfer requires an accepted player contract');
@@ -212,6 +252,7 @@ export function completeCareerTransfer(
     licensed: false,
     onHeroWage: player.power !== undefined,
     morale: Math.max(55, player.morale),
+    signingStatTotal: playerStatTotal(player),
   };
   const transferredState: GameState = {
       ...state,
@@ -266,7 +307,7 @@ export function beginCareerRenewalTalks(
     ...(player.power === undefined ? {} : { power: player.power }),
     onHeroWage: player.onHeroWage,
   }, {
-    growthSinceSigningPercent: 0,
+    growthSinceSigningPercent: growthSinceSigningPercent(player),
     famePercent: Math.min(100, player.fame ?? 0),
     heroMultiplier: 4,
   });
@@ -318,6 +359,8 @@ export function completeCareerRenewal(
     weeklyWage: accepted.weeklyWage,
     contractSeasonsRemaining: accepted.termSeasons,
     onHeroWage: player.power !== undefined || player.onHeroWage,
+    signingStatTotal: playerStatTotal(player),
+    transferRequested: false,
   };
   const renewedState: GameState = {
     ...state,
@@ -357,6 +400,7 @@ export function sellCareerPlayer(
     week: state.week,
     sellingClubDivision: division,
   });
+  if (buyer.cash < quote.fee) throw new Error('the buying club cannot afford the transfer fee');
   const lineups = replaceTransferredStarter(state, player);
   const transferredState: GameState = {
       ...state,
@@ -371,6 +415,7 @@ export function sellCareerPlayer(
         if (club.id === buyerClubId) {
           return {
             ...club,
+            cash: checkedSubtract(club.cash, quote.fee, 'buyer transfer cash'),
             weeklyWages: checkedAdd(club.weeklyWages, player.weeklyWage, 'buyer weekly wages'),
           };
         }
@@ -435,6 +480,7 @@ export function refreshCareerMarketForNewSeason(
       activeScoutMission: previous.activeScoutMission,
       scoutReports,
       unlockedCoachContentIds: [...(previous.unlockedCoachContentIds ?? [])],
+      clubFameAdjustment: previous.clubFameAdjustment ?? 0,
     };
   }
   const seasonsEmployed = checkedAdd(
@@ -445,14 +491,17 @@ export function refreshCareerMarketForNewSeason(
   const level = seasonsEmployed % 2 === 0
     ? Math.min(5, previous.headCoach.level + 1)
     : previous.headCoach.level;
+  const loyaltyPercent = 100 - previous.headCoach.loyaltyDiscountPercent;
+  const weeklyWage = Math.round((checkedMultiply(500, level, 'coach base wage') * loyaltyPercent) / 100);
   return {
     ...refreshed,
     nextMissionNumber: previous.nextMissionNumber,
     activeScoutMission: previous.activeScoutMission,
     scoutReports,
-    headCoach: { ...previous.headCoach, level },
+    headCoach: { ...previous.headCoach, level, weeklyWage },
     headCoachSeasonsEmployed: seasonsEmployed,
     unlockedCoachContentIds: [...(previous.unlockedCoachContentIds ?? [])],
+    clubFameAdjustment: previous.clubFameAdjustment ?? 0,
   };
 }
 
@@ -477,7 +526,9 @@ function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
       attrs: { ...player.attrs },
       potential: player.potential ?? 3,
       personality: marketPersonality(player.personality),
-      ...(player.power === undefined ? {} : { power: player.power, powerTier: 1 }),
+      ...(player.power === undefined
+        ? {}
+        : { power: player.power, powerTier: player.powerTier ?? 1 }),
       contractSeasonsRemaining: player.contractSeasonsRemaining,
     }));
 }
@@ -489,9 +540,29 @@ function valuationPlayer(player: CareerPlayer) {
     attrs: player.attrs,
     age: player.age ?? 24,
     potential: player.potential ?? 3,
-    ...(player.power === undefined ? {} : { power: player.power, powerTier: 1 }),
+    ...(player.power === undefined
+      ? {}
+      : { power: player.power, powerTier: player.powerTier ?? 1 }),
     contractSeasonsRemaining: player.contractSeasonsRemaining,
   };
+}
+
+export function growthSinceSigningPercent(player: CareerPlayer): number {
+  const currentTotal = playerStatTotal(player);
+  const baseline = player.signingStatTotal ?? currentTotal;
+  if (!Number.isSafeInteger(baseline) || baseline < 1) {
+    throw new Error('signing stat total must be a positive safe integer');
+  }
+  return Math.min(300, Math.max(0, Math.floor(((currentTotal - baseline) * 100) / baseline)));
+}
+
+function playerStatTotal(player: CareerPlayer): number {
+  const total = Object.values(player.attrs).reduce(
+    (sum, value) => checkedAdd(sum, value, 'player attribute total'),
+    0,
+  );
+  if (total < 1) throw new Error('player attribute total must be positive');
+  return total;
 }
 
 function replaceTransferredStarter(state: GameState, player: CareerPlayer) {
@@ -571,5 +642,11 @@ function checkedAdd(left: number, right: number, label: string): number {
 function checkedSubtract(left: number, right: number, label: string): number {
   const result = left - right;
   if (!Number.isSafeInteger(result) || result < 0) throw new Error(`${label} is invalid`);
+  return result;
+}
+
+function checkedMultiply(left: number, right: number, label: string): number {
+  const result = left * right;
+  if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
   return result;
 }

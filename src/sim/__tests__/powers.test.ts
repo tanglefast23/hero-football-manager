@@ -1,6 +1,6 @@
 import { createMatch, queueInput, tick } from '../match';
 import { speedFor } from '../engine';
-import { activatePower, inUsefulContext, interruptWindup, knockOut, ZONE_WINDOW_TICKS } from '../powers';
+import { activatePower, addGauge, inUsefulContext, interruptWindup, knockOut, ZONE_WINDOW_TICKS } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState } from '../types';
 
@@ -17,6 +17,12 @@ describe('hero gauge and firing', () => {
     for (let i = 0; i < 200; i++) tick(m);
     expect(m.players[1].gauge).toBe(0);
     expect(m.players[SPEEDSTER].gauge).toBeGreaterThan(0);
+  });
+
+  it('applies the team Heat-rate modifier to every gauge reward', () => {
+    const boosted = createMatch(42, { ...ROVERS, heroGaugeRatePercent: 125 }, UNITED);
+    addGauge(boosted, SPEEDSTER, 20);
+    expect(boosted.players[SPEEDSTER].gauge).toBe(25);
   });
 
   it('high heat rolls a Zone entry (POWER_READY, now meaning "entered the Zone")', () => {

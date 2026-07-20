@@ -106,7 +106,7 @@ export function SeasonEndScreen({
               kicker={contract.powerName ? 'Hero agent meeting' : 'Renewal meeting'}
               title={contract.playerName}
               stamp={contract.powerName ?? contract.role}
-              className={contract.isHeroWageCliff ? 'bg-amber-100' : undefined}
+              className={contract.isHeroWageCliff ? 'bg-gold-light' : undefined}
             >
               <View className="flex-row items-center gap-3 border-y-2 border-ink py-4">
                 <View className="h-14 w-14 items-center justify-center border-2 border-ink bg-ink">
@@ -130,7 +130,7 @@ export function SeasonEndScreen({
 
               {contract.isHeroWageCliff ? (
                 <View className="mt-3 border-2 border-gold-dark bg-gold/40 p-3">
-                  <Text className="text-sm font-bold uppercase tracking-wide text-amber-800">The bargain years are over</Text>
+                  <Text className="text-sm font-bold uppercase tracking-wide text-gold-dark">The bargain years are over</Text>
                   <Text className="mt-1 text-sm leading-5 text-ink/60">
                     The awakening never changed this contract. Renewal does—and the agent knows exactly what a hero is worth.
                   </Text>
@@ -219,8 +219,8 @@ export function SeasonEndScreen({
 
       <View className="border-t-2 border-ink/20 bg-white p-3">
         <ActionButton
-          label={viewModel.sliceComplete ? 'Finish M1 review  ▸' : 'Begin next season  ▸'}
-          accessibilityLabel={viewModel.sliceComplete ? 'Finish the two-season M1 review' : 'Begin the next season'}
+          label={viewModel.sliceComplete ? 'Finish career review  ▸' : 'Begin next season  ▸'}
+          accessibilityLabel={viewModel.sliceComplete ? 'Finish the career review' : 'Begin the next season'}
           onPress={onPrimaryAction}
           disabled={!viewModel.canContinue}
         />

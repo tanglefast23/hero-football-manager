@@ -139,7 +139,7 @@ export function buildFacility(
   position: FacilityPosition,
   availableCash: number,
 ): FacilityTransaction {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   validateCash(availableCash);
   const definition = definitionFor(type);
   if (!definition.available) throw new Error(`${definition.name} is not unlocked`);
@@ -174,7 +174,7 @@ export function upgradeFacility(
   buildingId: string,
   availableCash: number,
 ): FacilityTransaction {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   validateCash(availableCash);
   const building = findBuilding(grid, buildingId);
   if (building.level === MAX_FACILITY_LEVEL) {
@@ -202,7 +202,7 @@ export function relocateFacility(
   position: FacilityPosition,
   availableCash: number,
 ): FacilityTransaction {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   validateCash(availableCash);
   const building = findBuilding(grid, buildingId);
   if (building.x === position.x && building.y === position.y) {
@@ -226,7 +226,7 @@ export function relocateFacility(
 }
 
 export function weeklyFacilityUpkeep(grid: FacilityGridState): number {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   let total = 0;
   for (const building of grid.buildings) {
     const upkeep = FACILITY_CATALOG[building.type].weeklyUpkeep[building.level - 1];
@@ -238,7 +238,7 @@ export function weeklyFacilityUpkeep(grid: FacilityGridState): number {
 export function activeFacilityAdjacencies(
   grid: FacilityGridState,
 ): FacilityAdjacencyId[] {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   return activeAdjacenciesUnchecked(grid);
 }
 
@@ -322,7 +322,8 @@ function shareEdge(first: PlacedFacility, second: PlacedFacility): boolean {
   return (horizontalContact && verticalOverlap) || (verticalContact && horizontalOverlap);
 }
 
-function validateGrid(grid: FacilityGridState): void {
+/** Validates every persisted grid invariant, including bounds and overlap. */
+export function validateFacilityGrid(grid: FacilityGridState): void {
   if (grid.width !== FACILITY_GRID_WIDTH || grid.height !== FACILITY_GRID_HEIGHT) {
     throw new Error(`facility grid must be ${FACILITY_GRID_WIDTH}x${FACILITY_GRID_HEIGHT}`);
   }

@@ -127,7 +127,7 @@ describe('deterministic scouting', () => {
     }
   });
 
-  it('keeps rumored heroes rare-data driven, confirms them only at level 3, and gates the focus to Div 3+', () => {
+  it('makes rumored heroes a rare real lead, confirms exact powers only at level 3, and gates the focus to Div 3+', () => {
     expect(() => startScoutMission({
       careerSeed: 5,
       missionId: 'too-early',
@@ -138,8 +138,43 @@ describe('deterministic scouting', () => {
       division: 4,
     })).toThrow('Division 3');
 
-    const mission = startScoutMission({
-      careerSeed: 5,
+    let hits = 0;
+    for (let seed = 1; seed <= 100; seed += 1) {
+      const mission = startScoutMission({
+        careerSeed: seed,
+        missionId: 'hero-search',
+        startWeek: 1,
+        region: 'EUROPE',
+        focus: { kind: 'RUMORED_HERO' },
+        scoutOfficeLevel: 1,
+        division: 3,
+      });
+      const result = resolveScoutMission(mission, mission.dueWeek, candidates, 5);
+      const hero = result.reports.find(report => report.playerId === 'mid-c');
+      if (hero !== undefined) {
+        hits += 1;
+        expect(hero).toMatchObject({ rumoredHeroLead: true });
+        expect(hero.power).toBeUndefined();
+      }
+      expect(resolveScoutMission(mission, mission.dueWeek, candidates, 5)).toEqual(result);
+    }
+    expect(hits).toBeGreaterThanOrEqual(15);
+    expect(hits).toBeLessThanOrEqual(35);
+
+    const confirmingMission = startScoutMission({
+      careerSeed: Array.from({ length: 100 }, (_, index) => index + 1).find(seed => {
+        const mission = startScoutMission({
+          careerSeed: seed,
+          missionId: 'hero-search',
+          startWeek: 1,
+          region: 'EUROPE',
+          focus: { kind: 'RUMORED_HERO' },
+          scoutOfficeLevel: 3,
+          division: 3,
+        });
+        return resolveScoutMission(mission, mission.dueWeek, candidates, 5)
+          .reports.some(report => report.playerId === 'mid-c');
+      })!,
       missionId: 'hero-search',
       startWeek: 1,
       region: 'EUROPE',
@@ -147,11 +182,13 @@ describe('deterministic scouting', () => {
       scoutOfficeLevel: 3,
       division: 3,
     });
-    const result = resolveScoutMission(mission, mission.dueWeek, candidates, 5);
-    const hero = result.reports.find(report => report.playerId === 'mid-c');
-
-    expect(result.reports).toHaveLength(4);
-    expect(hero?.power).toBe('SUPER_SPEED');
+    const confirmed = resolveScoutMission(
+      confirmingMission,
+      confirmingMission.dueWeek,
+      candidates,
+      5,
+    ).reports.find(report => report.playerId === 'mid-c');
+    expect(confirmed?.power).toBe('SUPER_SPEED');
   });
 });
 

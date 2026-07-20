@@ -281,6 +281,11 @@ function ScoutingDesk({
                   <Text className="font-mono text-sm font-bold uppercase text-ink">★ Confirmed · {report.powerLabel}</Text>
                 </View>
               ) : null}
+              {report.rumorLabel ? (
+                <View className="mt-3 border-2 border-gold-dark bg-gold-light px-3 py-2">
+                  <Text className="font-mono text-sm font-bold uppercase text-ink">★ {report.rumorLabel}</Text>
+                </View>
+              ) : null}
               <View className="mt-3 flex-row flex-wrap gap-1.5">
                 {report.stats.map(stat => (
                   <View key={stat.label} className="min-w-[30%] flex-1 border border-ink/25 bg-paper px-2 py-1.5">
@@ -377,7 +382,7 @@ function TransferDesk({
                   <Text className="flex-1 text-sm text-ink/55">
                     {listing.blockedReason ?? (listing.direction === 'BUY'
                       ? 'Fee first. Player terms follow.'
-                      : 'The bid stays deterministic for this market week.')}
+                      : 'The buying club will hold this bid for the current market week.')}
                   </Text>
                   <SmallAction
                     label={listing.actionLabel}
@@ -503,7 +508,7 @@ export function NegotiationPanel({
       </View>
 
       {viewModel.lastOutcomeLabel ? (
-        <View className="mt-3 border-l-4 border-stamp bg-red-light/40 px-3 py-2">
+        <View className="mt-3 border-2 border-stamp bg-red-light px-3 py-2">
           <Text className="text-sm font-bold text-ink">{viewModel.lastOutcomeLabel}</Text>
         </View>
       ) : null}

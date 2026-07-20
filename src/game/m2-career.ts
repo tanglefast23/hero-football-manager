@@ -101,6 +101,8 @@ export interface M2CareerLifecycleResult {
 export interface EndlessCareerSeasonTransitionPlan {
   nextSeason: number;
   division: DivisionLevel;
+  /** Pyramid after every non-user club receives this season's single growth step. */
+  state: M2CareerState;
   activeClubs: PyramidClub[];
   activeClubIds: string[];
   generatedOpponentClubs: PyramidClub[];
@@ -373,12 +375,25 @@ export function planEndlessCareerSeasonTransition(
     throw new Error('completed season exceeds the supported range');
   }
   const nextSeason = completedSeason + 1;
-  const division = currentUserDivision(state);
-  const currentClubs = state.pyramid.divisions.find(candidate => candidate.level === division)!.clubs;
+  const advancedState: M2CareerState = {
+    ...state,
+    pyramid: {
+      ...state.pyramid,
+      divisions: state.pyramid.divisions.map(candidate => ({
+        ...candidate,
+        clubs: candidate.clubs.map(club => club.id === state.userClubId
+          ? cloneClub(club)
+          : scaleOpponentClub(club, nextSeason)),
+      })),
+    },
+  };
+  const division = currentUserDivision(advancedState);
+  const currentClubs = advancedState.pyramid.divisions
+    .find(candidate => candidate.level === division)!.clubs;
   const userClub = currentClubs.find(club => club.id === state.userClubId)!;
   const generatedOpponentClubs = currentClubs
     .filter(club => club.id !== state.userClubId)
-    .map(club => scaleOpponentClub(club, nextSeason))
+    .map(cloneClub)
     .sort((left, right) => stableIdCompare(left.id, right.id));
   if (generatedOpponentClubs.length !== 9) {
     throw new Error(`Division ${division} must provide exactly nine opponents`);
@@ -387,6 +402,7 @@ export function planEndlessCareerSeasonTransition(
   return {
     nextSeason,
     division,
+    state: advancedState,
     activeClubs,
     activeClubIds: activeClubs.map(club => club.id),
     generatedOpponentClubs,

@@ -71,7 +71,7 @@ export function careerMarketViewModelSource(
       name: player.name,
       ...(report.power === undefined || player.power === undefined
         ? {}
-        : { powerName: readableId(player.power) }),
+        : { powerName: `${readableId(player.power)} · Tier ${player.powerTier ?? 1}` }),
     };
   });
   const talks = market.transferTalks;
@@ -203,7 +203,7 @@ function transferListing(
       ...valuationPlayer(player),
       name: player.name,
       ...(revealPower && player.power !== undefined
-        ? { powerName: readableId(player.power) }
+        ? { powerName: `${readableId(player.power)} · Tier ${player.powerTier ?? 1}` }
         : {}),
     },
     direction,
@@ -218,7 +218,9 @@ function valuationPlayer(player: CareerPlayer): ValuationPlayer {
     attrs: { ...player.attrs },
     age: player.age ?? 24,
     potential: player.potential ?? 3,
-    ...(player.power === undefined ? {} : { power: player.power, powerTier: 1 }),
+    ...(player.power === undefined
+      ? {}
+      : { power: player.power, powerTier: player.powerTier ?? 1 }),
     contractSeasonsRemaining: player.contractSeasonsRemaining,
   };
 }
@@ -247,9 +249,9 @@ function divisionForClub(state: GameState, clubId: string, fallback: number): nu
 }
 
 function clubFame(state: GameState): number {
-  return Math.min(9999, state.players
+  return Math.max(0, Math.min(9999, state.players
     .filter(player => player.clubId === state.userClubId)
-    .reduce((total, player) => total + (player.fame ?? 0), 0));
+    .reduce((total, player) => total + (player.fame ?? 0), state.market?.clubFameAdjustment ?? 0)));
 }
 
 function scoutOfficeLevel(state: GameState): number {

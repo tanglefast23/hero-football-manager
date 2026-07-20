@@ -64,7 +64,9 @@ export function createLaunchCareerSetup(
       name: player.name,
       role: player.role,
       attrs: { ...player.ratings },
-      ...(club.id === userClubId || player.powerId === null ? {} : { power: player.powerId }),
+      ...(club.id === userClubId || player.powerId === null
+        ? {}
+        : { power: player.powerId, powerTier: 1 as const }),
       licensed: club.id === userClubId ? false : player.licensed,
       weeklyWage: player.weeklyWage,
       onHeroWage: club.id === userClubId ? false : player.onHeroWage,
@@ -88,6 +90,7 @@ export function createLaunchCareerSetup(
       fame: player.powerId === null ? 0 : 12,
       retirementAge: 33 + deterministicPlayerValue(seed, clubIndex, playerIndex, 3) % 6,
       retirementAnnounced: false,
+      signingStatTotal: Object.values(player.ratings).reduce((sum, value) => sum + value, 0),
     }))),
     lineups: content.clubs.clubs.map(club => ({
       clubId: club.id,

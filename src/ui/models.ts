@@ -64,6 +64,7 @@ export interface HomeViewModel {
   clubName: string;
   managerName: string;
   seasonLabel: string;
+  divisionLabel: string;
   weekLabel: string;
   nextMatchTimingLabel: string;
   form: readonly ('W' | 'D' | 'L')[];
@@ -105,6 +106,7 @@ export interface HeroLicenseViewModel {
 
 export interface MatchDayViewModel {
   fixture: FixtureViewModel;
+  formationLabel: string;
   selectedTacticId: string;
   tactics: readonly TacticViewModel[];
   lineup: readonly LineupPlayerViewModel[];
@@ -219,6 +221,11 @@ export interface SquadPlayerViewModel {
   contractLabel: string;
   powerName?: string;
   licensed: boolean;
+  attributes: readonly {
+    label: 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
+    value: number;
+    cap: number;
+  }[];
 }
 
 export interface FocusDrillViewModel {

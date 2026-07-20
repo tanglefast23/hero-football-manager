@@ -44,6 +44,7 @@ export interface ScoutReportViewModel {
   readonly ageLabel: string;
   readonly potentialLabel: string;
   readonly powerLabel?: string;
+  readonly rumorLabel?: string;
   readonly stats: readonly ScoutedStatViewModel[];
 }
 

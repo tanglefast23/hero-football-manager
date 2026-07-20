@@ -227,7 +227,7 @@ export function ManagementShell({
               <Pressable
                 key={tab.id}
                 accessibilityRole="tab"
-                accessibilityLabel={tab.available ? `${tab.label} tab` : `${tab.label} tab, available in M2`}
+                accessibilityLabel={tab.available ? `${tab.label} tab` : `${tab.label} tab, unavailable`}
                 accessibilityState={{ selected, disabled: !tab.available }}
                 disabled={!tab.available}
                 onPress={() => onTabChange(tab.id)}

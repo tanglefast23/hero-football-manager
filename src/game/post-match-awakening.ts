@@ -115,7 +115,7 @@ export function resolvePostMatchAwakening(
     ? [...state.awakening.usedTriggerIds, triggerId]
     : state.awakening.usedTriggerIds;
   const nextPlayers = state.players.map(candidate => candidate.id === playerId
-    ? { ...candidate, power, licensed: licensedCount < 2 }
+    ? { ...candidate, power, powerTier: 1 as const, licensed: licensedCount < 2 }
     : candidate);
   const nextLineups = licensedCount < 2
     ? state.lineups

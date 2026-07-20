@@ -44,4 +44,29 @@ describe('facility game-state persistence', () => {
     expect(restored.players.every(player => player.facilityStaBonusRemainder === undefined))
       .toBe(true);
   });
+
+  test.each([
+    ['outside the facility grid', { x: 7, y: 5 }],
+    ['overlaps', { x: 0, y: 0 }],
+  ])('rejects a persisted facility that %s', (_label, position) => {
+    const initial = createCareer(createLaunchCareerSetup(789));
+    const built = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
+    const stored = JSON.parse(serializeGameState(built)) as {
+      facilities: { grid: { buildings: Array<{ x: number; y: number }> } };
+    };
+    if (_label === 'outside the facility grid') {
+      stored.facilities.grid.buildings[0] = {
+        ...stored.facilities.grid.buildings[0],
+        ...position,
+      };
+    } else {
+      stored.facilities.grid.buildings.push({
+        ...stored.facilities.grid.buildings[0],
+        ...position,
+      });
+      Object.assign(stored.facilities.grid.buildings[1], { id: 'facility-2', type: 'gym' });
+    }
+
+    expect(() => parseStoredGameState(JSON.stringify(stored))).toThrow(_label);
+  });
 });

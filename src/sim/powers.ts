@@ -47,7 +47,8 @@ export function addGauge(state: MatchState, idx: number, amount: number): void {
   const p = state.players[idx];
   if (!p.def.power || p.powerState.kind !== 'idle') return;
   if (teamPowerBusy(state, p.team)) return; // heat freezes while a teammate's power is winding/active
-  p.gauge = Math.min(GAUGE_CAP, p.gauge + amount);
+  const ratePercent = state.teams[p.team].heroGaugeRatePercent ?? 100;
+  p.gauge = Math.min(GAUGE_CAP, p.gauge + amount * ratePercent / 100);
 }
 
 export function interruptWindup(state: MatchState, idx: number): void {

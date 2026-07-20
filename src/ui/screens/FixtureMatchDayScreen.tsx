@@ -87,11 +87,11 @@ export function FixtureMatchDayScreen({
         </PaperPanel>
 
         <View className="mt-6">
-          <SectionLabel eyebrow="Team sheet" title="Starting eleven" right={<StatusChip label="4–4–2" />} />
+          <SectionLabel eyebrow="Team sheet" title="Starting eleven" right={<StatusChip label={viewModel.formationLabel} />} />
           <Text className="mb-3 text-sm leading-5 text-ink/60">
             Tap a starter, then choose an available player in the same role. Every change is saved for future matches.
           </Text>
-          <View className="border-2 border-emerald-900 bg-pitch px-3 py-4">
+          <View className="border-2 border-pitch-dark bg-pitch px-3 py-4">
             <View className="absolute inset-x-3 top-1/2 h-px bg-paper/50" />
             <View className="absolute left-1/2 top-0 h-full w-px bg-paper/40" />
             {ROLE_ORDER.map(role => {
@@ -110,8 +110,8 @@ export function FixtureMatchDayScreen({
                         : 'w-14 items-center border-2 border-transparent p-1'}
                       style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
                     >
-                      <View className={player.isHero ? 'h-9 w-9 items-center justify-center border-2 border-amber-500 bg-ink' : 'h-9 w-9 items-center justify-center border-2 border-paper bg-ink'}>
-                        <Text className={player.isHero ? 'font-mono text-sm font-bold text-amber-400' : 'font-mono text-sm font-bold text-paper'}>
+                      <View className={player.isHero ? 'h-9 w-9 items-center justify-center border-2 border-gold bg-ink' : 'h-9 w-9 items-center justify-center border-2 border-paper bg-ink'}>
+                        <Text className={player.isHero ? 'font-mono text-sm font-bold text-gold' : 'font-mono text-sm font-bold text-paper'}>
                           {player.shirtNumber}
                         </Text>
                       </View>
@@ -172,7 +172,7 @@ export function FixtureMatchDayScreen({
         </View>
 
         <View className="mt-6">
-          <SectionLabel eyebrow="Touchline order" title="Tactic" right={<StatusChip label="Fixed in M1" />} />
+          <SectionLabel eyebrow="Touchline order" title="Tactic" right={<StatusChip label="Selected" />} />
           <View className="gap-2">
             {viewModel.tactics.map(tactic => {
               const selected = tactic.id === viewModel.selectedTacticId;
@@ -180,7 +180,7 @@ export function FixtureMatchDayScreen({
                 <View
                   key={tactic.id}
                   accessible
-                  accessibilityLabel={`${tactic.label} tactic. ${tactic.detail}. Tactics are fixed in M1.`}
+                  accessibilityLabel={`${tactic.label} tactic. ${tactic.detail}.`}
                   className={selected ? 'min-h-14 flex-row items-center border-2 border-ink bg-signal p-3' : 'min-h-14 flex-row items-center border-2 border-ink/30 bg-white p-3'}
                 >
                   <View className={selected ? 'mr-3 h-5 w-5 items-center justify-center border-2 border-ink' : 'mr-3 h-5 w-5 items-center justify-center border-2 border-ink/40'}>
@@ -210,7 +210,7 @@ export function FixtureMatchDayScreen({
                 </Text>
               </PaperPanel>
             ) : viewModel.heroes.map(hero => (
-              <PaperPanel key={hero.playerId} className={hero.licensed ? 'bg-amber-100' : undefined}>
+              <PaperPanel key={hero.playerId} className={hero.licensed ? 'bg-gold-light' : undefined}>
                 <View className="flex-row items-center gap-3">
                   <Pressable
                     accessibilityRole="checkbox"
@@ -224,7 +224,7 @@ export function FixtureMatchDayScreen({
                   </Pressable>
                   <View className="flex-1">
                     <Text className="text-base font-bold uppercase text-ink">{hero.playerName}</Text>
-                    <Text className="mt-1 text-sm font-bold uppercase tracking-wide text-amber-700">{hero.powerName}</Text>
+                    <Text className="mt-1 text-sm font-bold uppercase tracking-wide text-gold-dark">{hero.powerName}</Text>
                   </View>
                   <View
                     accessible
@@ -246,7 +246,7 @@ export function FixtureMatchDayScreen({
           ) : null}
           {!viewModel.licenseReady ? (
             <Text className="mt-3 text-center text-sm font-bold uppercase tracking-wide text-stamp">
-              Finish the two-license selection before starting the match
+              License every starting hero before starting the match · limit {viewModel.heroLimit}
             </Text>
           ) : null}
         </View>
