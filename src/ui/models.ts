@@ -252,6 +252,7 @@ export interface SquadTrainingViewModel {
   resources: ResourceSummaryViewModel;
   players: readonly SquadPlayerViewModel[];
   selectedPlayerId?: string;
+  createdPlayerId?: string;
   drills: readonly FocusDrillViewModel[];
   assignedPlayerIds: readonly string[];
   selectedDrillCount: number;

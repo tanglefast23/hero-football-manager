@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Canvas, Rect } from '@shopify/react-native-skia';
 import portraitData from '../../render/sprites/portraits.json';
+import { blinkRows } from '../portrait-blink';
+import { useReducedMotion } from '../use-reduced-motion';
 
 type PortraitExpression = 'rest' | 'joy' | 'ko';
 
@@ -25,6 +27,8 @@ export interface PixelPortraitProps {
   playerId: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   expression?: PortraitExpression;
+  /** App-level reduced-motion preference; merged with the OS setting. */
+  reduceMotion?: boolean;
 }
 
 /** A crisp, deterministic cast portrait selected from the shipped pixel sheet. */
@@ -32,12 +36,50 @@ export function PixelPortrait({
   playerId,
   role,
   expression = 'rest',
+  reduceMotion = false,
 }: PixelPortraitProps) {
   const spriteKey = useMemo(
     () => portraitKey(playerId, role, expression),
     [expression, playerId, role],
   );
-  const runs = useMemo(() => pixelRuns(spriteKey), [spriteKey]);
+  const blinkVariant = useMemo(() => {
+    const rows = sheet.sprites[spriteKey];
+    return rows === undefined ? null : blinkRows(rows);
+  }, [spriteKey]);
+
+  const reduce = useReducedMotion(reduceMotion);
+  const canBlink = blinkVariant !== null && !reduce;
+  const [blinking, setBlinking] = useState(false);
+
+  useEffect(() => {
+    if (!canBlink) {
+      setBlinking(false);
+      return undefined;
+    }
+    let openTimer: ReturnType<typeof setTimeout>;
+    let closeTimer: ReturnType<typeof setTimeout>;
+    const scheduleBlink = () => {
+      // Randomize per portrait so a screen full of faces doesn't blink in sync.
+      const delay = 2600 + Math.random() * 3400;
+      openTimer = setTimeout(() => {
+        setBlinking(true);
+        closeTimer = setTimeout(() => {
+          setBlinking(false);
+          scheduleBlink();
+        }, 120);
+      }, delay);
+    };
+    scheduleBlink();
+    return () => {
+      clearTimeout(openTimer);
+      clearTimeout(closeTimer);
+    };
+  }, [canBlink, spriteKey]);
+
+  const runs = useMemo(() => {
+    const rows = blinking && blinkVariant ? blinkVariant : spriteRows(spriteKey);
+    return pixelRuns(rows, blinking ? `${spriteKey}:blink` : spriteKey);
+  }, [spriteKey, blinking, blinkVariant]);
 
   return (
     <Canvas
@@ -79,9 +121,13 @@ function stableHash(value: string): number {
   return hash >>> 0;
 }
 
-function pixelRuns(spriteKey: string): PixelRun[] {
+function spriteRows(spriteKey: string): string[] {
   const rows = sheet.sprites[spriteKey];
   if (rows === undefined) throw new Error(`unknown portrait sprite ${spriteKey}`);
+  return rows;
+}
+
+function pixelRuns(rows: string[], idPrefix: string): PixelRun[] {
   const runs: PixelRun[] = [];
 
   rows.forEach((row, y) => {
@@ -96,7 +142,7 @@ function pixelRuns(spriteKey: string): PixelRun[] {
       let end = x + 1;
       while (end < row.length && row[end] === paletteKey) end += 1;
       runs.push({
-        id: `${spriteKey}-${y}-${x}`,
+        id: `${idPrefix}-${y}-${x}`,
         x,
         y,
         width: end - x,

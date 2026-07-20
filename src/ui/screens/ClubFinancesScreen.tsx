@@ -9,6 +9,7 @@ import type {
 import { TutorialTapCue } from '../TutorialTapCue';
 import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
 import { ManagementSprite } from '../components/ManagementSprite';
+import { facilityBenefit } from '../facility-benefit';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 
 export interface ClubFinancesScreenProps {
@@ -60,6 +61,8 @@ export function ClubFinancesScreen({
       ? { width: selectedBuildEntry.width, height: selectedBuildEntry.height }
       : null;
   const activeLabel = relocatingBuilding?.name ?? selectedBuildEntry?.name ?? '';
+  const placementType = relocatingBuilding?.type ?? selectedBuildEntry?.type;
+  const placementLevel = relocatingBuilding?.level ?? 1;
 
   const canPlaceAt = useCallback((x: number, y: number): boolean => {
     if (activeFootprint === null) return false;
@@ -437,6 +440,22 @@ export function ClubFinancesScreen({
               </Text>
             </View>
           )}
+
+          {placementActive && placementType ? (
+            <View className="mt-2 flex-row items-center gap-3 border-2 border-ink bg-white p-3">
+              <View className="border-2 border-ink/20 bg-paper p-1">
+                <ManagementSprite
+                  spriteKey={`facility:${placementType}:l${placementLevel}`}
+                  width={48}
+                  accessibilityLabel={activeLabel}
+                />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-bold uppercase text-ink">What it does</Text>
+                <Text className="mt-1 text-sm text-ink/80">{facilityBenefit(placementType)}</Text>
+              </View>
+            </View>
+          ) : null}
 
           {selectedBuilding ? (
             <View className="mt-3 border-2 border-ink bg-white p-3">

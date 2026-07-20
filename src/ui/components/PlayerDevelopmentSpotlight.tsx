@@ -173,36 +173,51 @@ export function PlayerDevelopmentSpotlight({
 
 function CountedStat({ gain, complete }: { gain: AttributeGainViewModel; complete: boolean }) {
   const [displayValue, setDisplayValue] = useState(complete ? gain.after : gain.before);
+  const pop = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (complete) {
       setDisplayValue(gain.after);
+      pop.setValue(1);
       return undefined;
     }
+    setDisplayValue(gain.before);
     let frame = 0;
+    let popped = false;
     let startedAt: number | null = null;
     const animate = (timestamp: number) => {
       if (startedAt === null) startedAt = timestamp;
       const progress = Math.min(1, (timestamp - startedAt) / 520);
       setDisplayValue(Math.round(gain.before + (gain.after - gain.before) * progress));
-      if (progress < 1) frame = requestAnimationFrame(animate);
+      if (progress < 1) {
+        frame = requestAnimationFrame(animate);
+      } else if (!popped) {
+        popped = true;
+        // Pop the chip as its number lands.
+        Animated.sequence([
+          Animated.spring(pop, { toValue: 1.18, damping: 6, stiffness: 260, mass: 0.6, useNativeDriver: true }),
+          Animated.spring(pop, { toValue: 1, damping: 7, stiffness: 220, mass: 0.6, useNativeDriver: true }),
+        ]).start();
+      }
     };
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
-  }, [complete, gain.after, gain.before, gain.id]);
+  }, [complete, gain.after, gain.before, gain.id, pop]);
 
   return (
-    <View
-      accessible
-      accessibilityLabel={`${gain.label} ${gain.before} to ${gain.after}, plus ${gain.delta}`}
-      className="border-2 border-b-4 border-ink bg-white px-3 py-2"
-    >
-      <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{gain.label}</Text>
-      <View className="mt-1 flex-row items-baseline gap-1">
-        <Text className="font-mono text-base text-ink/50">{gain.before} →</Text>
-        <Text className="font-mono text-xl font-bold text-pitch-dark">{displayValue}</Text>
-        <Text className="font-mono text-sm font-bold text-pitch-dark">(+{gain.delta})</Text>
+    <Animated.View style={{ transform: [{ scale: pop }] }}>
+      <View
+        accessible
+        accessibilityLabel={`${gain.label} ${gain.before} to ${gain.after}, plus ${gain.delta}`}
+        className="border-2 border-b-4 border-ink bg-white px-3 py-2"
+      >
+        <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{gain.label}</Text>
+        <View className="mt-1 flex-row items-baseline gap-1">
+          <Text className="font-mono text-base text-ink/50">{gain.before} →</Text>
+          <Text className="font-mono text-xl font-bold text-pitch-dark">{displayValue}</Text>
+          <Text className="font-mono text-sm font-bold text-pitch-dark">(+{gain.delta})</Text>
+        </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }

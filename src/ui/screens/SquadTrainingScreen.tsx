@@ -82,6 +82,13 @@ export function SquadTrainingScreen({
     && viewModel.assignedPlayerIds.length > 0
     && (viewModel.selectedDrillCount === 0 || !lockPlanVisible);
 
+  // Point the training cue at the player the user created during onboarding.
+  // Fall back to the first roster row if that hero is somehow absent, so the
+  // tutorial always has a target.
+  const guideTargetPlayerId = viewModel.players.some(player => player.id === viewModel.createdPlayerId)
+    ? viewModel.createdPlayerId
+    : viewModel.players[0]?.id;
+
   return (
     <View
       ref={scrollViewportRef}
@@ -115,10 +122,10 @@ export function SquadTrainingScreen({
             <Text className="w-16 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Fit</Text>
             <Text className="w-12 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Plan</Text>
           </View>
-          {viewModel.players.map((player, playerIndex) => {
+          {viewModel.players.map((player) => {
             const selected = player.id === viewModel.selectedPlayerId;
             const isAssigned = assigned.has(player.id);
-            const guidePlayer = guideTraining && viewModel.assignedPlayerIds.length === 0 && playerIndex === 0;
+            const guidePlayer = guideTraining && viewModel.assignedPlayerIds.length === 0 && player.id === guideTargetPlayerId;
             return (
               <View
                 key={player.id}
@@ -324,7 +331,7 @@ export function SquadTrainingScreen({
           className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
         >
           {guideTraining && viewModel.selectedDrillCount > 0 ? (
-            <TutorialTapCue detail="Lock the plan" style={{ right: 4, top: -74 }} />
+            <TutorialTapCue detail="Lock the plan" style={{ left: 4, top: -74 }} />
           ) : null}
           <ActionButton
             label="Lock weekly plan"

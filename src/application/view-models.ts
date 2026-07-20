@@ -435,7 +435,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
   const loan = state.financialSafety?.loan;
 
   const alerts = [
-    ...(state.careerMode !== 'full' && !state.facilities.trainingGroundBuilt ? [{
+    ...(!state.facilities.trainingGroundBuilt ? [{
       id: 'training-ground',
       title: 'Training Ground proposal',
       detail: 'Build once for 8,000 and earn +5 TP after every settled week.',
@@ -681,6 +681,7 @@ export function squadTrainingViewModel(
       ),
     })),
     selectedPlayerId,
+    createdPlayerId: state.onboarding?.createdPlayerId,
     drills: drills.map(drill => drillViewModel(drill, selected.has(drill.id), state)),
     assignedPlayerIds,
     selectedDrillCount: selectedDrills.length,
