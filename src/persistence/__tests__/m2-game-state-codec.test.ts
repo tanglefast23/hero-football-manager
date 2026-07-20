@@ -90,6 +90,19 @@ describe('M2 game-state codec', () => {
     expect(() => parseStoredGameState(JSON.stringify(stale))).toThrow(CorruptCareerSaveError);
   });
 
+  test('rejects a saved appearance from the wrong role pool', () => {
+    const state = createCareer(createLaunchCareerSetup(451, undefined, undefined, 'full'));
+    const invalid = {
+      ...state,
+      players: state.players.map((player, index) => index === 0
+        ? { ...player, lookId: player.role === 'GK' ? 'f00' : 'g00' }
+        : player),
+    };
+
+    expect(() => serializeGameState(invalid)).toThrow(InvalidGameStateError);
+    expect(() => parseStoredGameState(JSON.stringify(invalid))).toThrow(CorruptCareerSaveError);
+  });
+
   test('rejects duplicate or zero-value immediate cash transactions', () => {
     const initial = createCareer(createLaunchCareerSetup(46, undefined, undefined, 'full'));
     const state = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { validateFacilityGrid } from '../game/facilities';
 import { GAME_SCHEMA_VERSION, type GameState } from '../game/types';
+import { isPlayerLookIdForRole } from '../game/player-appearance';
 import {
   CorruptCareerSaveError,
   InvalidGameStateError,
@@ -146,6 +147,7 @@ const playerSchema = z
     clubId: nonemptyString,
     name: nonemptyString,
     role: z.enum(['GK', 'DEF', 'MID', 'FWD']),
+    lookId: nonemptyString.optional(),
     attrs: attributesSchema,
     power: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']).optional(),
     powerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
@@ -189,7 +191,16 @@ const playerSchema = z
       'must be at most 99',
     ).optional(),
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((player, context) => {
+    if (player.lookId !== undefined && !isPlayerLookIdForRole(player.lookId, player.role)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['lookId'],
+        message: `must be a valid ${player.role} appearance`,
+      });
+    }
+  });
 
 const lineupSchema = z
   .object({
@@ -358,6 +369,7 @@ const pyramidPlayerSchema = z.object({
   clubId: nonemptyString,
   name: nonemptyString,
   role: z.enum(['GK', 'DEF', 'MID', 'FWD']),
+  lookId: nonemptyString.optional(),
   attrs: attributesSchema,
   archetype: z.enum([
     'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
@@ -370,7 +382,15 @@ const pyramidPlayerSchema = z.object({
   condition: nonnegativeInteger.refine(value => value <= 100, 'must be at most 100'),
   consecutiveLowMoraleWeeks: nonnegativeInteger,
   retirementAnnouncementSeason: positiveInteger.optional(),
-}).passthrough();
+}).passthrough().superRefine((player, context) => {
+  if (player.lookId !== undefined && !isPlayerLookIdForRole(player.lookId, player.role)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['lookId'],
+      message: `must be a valid ${player.role} appearance`,
+    });
+  }
+});
 const pyramidClubSchema = z.object({
   id: nonemptyString,
   name: nonemptyString,

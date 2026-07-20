@@ -1,4 +1,5 @@
 import type { PowerId, TeamDef } from '../../sim/types';
+import { nextDistinctPlayerLook } from '../player-appearance';
 import type { CareerPlayer, GameState, LeagueFixture } from '../types';
 import {
   CREATED_PLAYER_ROOKIE_WAGE,
@@ -49,6 +50,7 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
     clubId: state.userClubId,
     name,
     role: 'FWD',
+    lookId: nextDistinctPlayerLook({ id: playerId, role: 'FWD' }, state.players),
     attrs,
     licensed: false,
     weeklyWage: CREATED_PLAYER_ROOKIE_WAGE,

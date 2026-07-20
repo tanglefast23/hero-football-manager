@@ -1,5 +1,6 @@
 import { mulberry32, type Rng } from '../sim/rng';
 import type { Attrs, Role } from '../sim/types';
+import { nextDistinctPlayerLook } from './player-appearance';
 import type {
   CareerPlayer,
   GameState,
@@ -99,13 +100,16 @@ export function createPreseasonYouthIntake(state: GameState): YouthIntakeState {
   const offeredCount = 1 + integerRoll(random, 0, 1);
   const fieldLevel = youthFieldLevel(state);
   const roles = youthRoles(roster, offeredCount, random);
-  const offers = roles.map((role, index) => createOffer(
-    state,
-    role,
-    index,
-    fieldLevel,
-    random,
-  ));
+  const appearancePool = [...state.players];
+  const offers = roles.map((role, index) => {
+    const offer = createOffer(state, role, index, fieldLevel, random);
+    const player = {
+      ...offer.player,
+      lookId: nextDistinctPlayerLook(offer.player, appearancePool),
+    };
+    appearancePool.push(player);
+    return { ...offer, player };
+  });
 
   return {
     schemaVersion: YOUTH_INTAKE_SCHEMA_VERSION,
@@ -167,7 +171,10 @@ export function signYouthIntakeOffer(
   const club = userClub(state);
   if (club.cash < offer.signingBonus) throw new Error('the youth signing bonus is not affordable');
 
-  const signedPlayer = clonePlayer(offer.player);
+  const signedPlayer = clonePlayer({
+    ...offer.player,
+    lookId: offer.player.lookId ?? nextDistinctPlayerLook(offer.player, state.players),
+  });
   const players = [...state.players, signedPlayer];
   const clubs = state.clubs.map(candidate => candidate.id === state.userClubId
     ? {
@@ -269,6 +276,7 @@ export function createEmergencyYouthReplacement(
     clubId: state.userClubId,
     name: `${FIRST_NAMES[integerRoll(random, 0, FIRST_NAMES.length - 1)]} ${LAST_NAMES[integerRoll(random, 0, LAST_NAMES.length - 1)]}`,
     role,
+    lookId: nextDistinctPlayerLook({ id, role }, state.players),
     attrs,
     licensed: false,
     weeklyWage: 75 + targetStrength * 2,

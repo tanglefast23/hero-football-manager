@@ -112,7 +112,7 @@ export function SeasonEndScreen({
             >
               <View className="flex-row items-center gap-3 border-y-2 border-ink py-4">
                 <View className="overflow-hidden border-2 border-ink bg-blue-light">
-                  <PixelPortrait playerId={contract.playerId} role={contract.role} expression={contract.isHeroWageCliff ? 'joy' : 'rest'} />
+                  <PixelPortrait playerId={contract.playerId} role={contract.role} lookId={contract.lookId} expression={contract.isHeroWageCliff ? 'joy' : 'rest'} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Weekly wage request</Text>

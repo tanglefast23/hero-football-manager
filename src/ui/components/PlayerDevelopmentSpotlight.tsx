@@ -102,6 +102,7 @@ export function PlayerDevelopmentSpotlight({
               <PixelPortrait
                 playerId={activeTrainee.id}
                 role={activeTrainee.role}
+                lookId={activeTrainee.lookId}
                 expression="joy"
               />
             </View>

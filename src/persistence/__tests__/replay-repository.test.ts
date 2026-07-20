@@ -31,6 +31,7 @@ describe('replay repository', () => {
       { tick: 40, kind: 'POWER_TAP', player: 9 },
     ]);
     expect(loaded?.home.bench?.map(player => player.id)).toEqual(['rovers-bench-1']);
+    expect(loaded?.home.players[0].lookId).toBe('g00');
     expect(loaded?.opts).toMatchObject({ controlledTeam: 0, homeFormation: '4-4-2' });
     expect(JSON.stringify(envelope)).toBe(original);
   });
@@ -157,6 +158,24 @@ describe('replay repository', () => {
     expect(database.replayRows.size).toBe(0);
   });
 
+  it('rejects a replay appearance from the wrong role pool', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createReplayRepository(database);
+    const envelope = makeEnvelope();
+    const invalid: ReplayEnvelope = {
+      ...envelope,
+      home: {
+        ...envelope.home,
+        players: envelope.home.players.map((player, index) => index === 0
+          ? { ...player, lookId: 'f00' }
+          : player),
+      },
+    };
+
+    await expect(repository.save('career-1', 'fixture-1', 0, invalid))
+      .rejects.toBeInstanceOf(InvalidReplayEnvelopeError);
+  });
+
   it('applies the same structural rules as runtime replay validation', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createReplayRepository(database);
@@ -213,6 +232,9 @@ describe('replay repository', () => {
 function makeEnvelope(): ReplayEnvelope {
   const home = {
     ...ROVERS,
+    players: ROVERS.players.map((player, index) => index === 0
+      ? { ...player, lookId: 'g00' }
+      : player),
     bench: [{ ...UNITED.players[9], id: 'rovers-bench-1' }],
   };
   return {

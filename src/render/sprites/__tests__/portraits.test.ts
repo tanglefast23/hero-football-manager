@@ -2,6 +2,7 @@ import portraitData from '../portraits.json';
 import spriteData from '../sprites.json';
 import manifest from '../player-look-manifest.json';
 import { playerLookId } from '../player-look';
+import { FIELD_PLAYER_LOOK_COUNT, GOALKEEPER_LOOK_COUNT } from '../../../game/player-appearance';
 
 const sheet = portraitData as {
   cell: { w: number; h: number };
@@ -16,6 +17,8 @@ describe('career player portrait roster', () => {
   it('ships 193 distinct looks with all three expressions', () => {
     expect(manifest.field).toHaveLength(168);
     expect(manifest.goalkeeper).toHaveLength(25);
+    expect(manifest.field).toHaveLength(FIELD_PLAYER_LOOK_COUNT);
+    expect(manifest.goalkeeper).toHaveLength(GOALKEEPER_LOOK_COUNT);
     expect(IDS).toHaveLength(193);
     expect(Object.keys(sheet.sprites)).toHaveLength(579);
     const resting = IDS.map(id => JSON.stringify(sheet.sprites[`${id}:rest`]));

@@ -216,7 +216,7 @@ export function SquadTrainingScreen({
         >
           <View className="mb-4 flex-row items-center gap-4">
             <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
-              <PixelPortrait playerId={selectedPlayer.id} role={selectedPlayer.role} />
+              <PixelPortrait playerId={selectedPlayer.id} role={selectedPlayer.role} lookId={selectedPlayer.lookId} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Player identity</Text>

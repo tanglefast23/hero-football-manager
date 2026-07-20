@@ -163,7 +163,7 @@ function YouthDesk({
             <View key={offer.playerId} className="border-2 border-b-4 border-ink bg-white p-3">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="overflow-hidden border-2 border-ink bg-blue-light">
-                  <PixelPortrait playerId={offer.playerId} role={offer.role} />
+                  <PixelPortrait playerId={offer.playerId} role={offer.role} lookId={offer.lookId} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{offer.playerName}</Text>
@@ -301,7 +301,7 @@ function ScoutingDesk({
               ) : null}
               <View className="flex-row items-start justify-between gap-3">
                 <View className="overflow-hidden border-2 border-ink bg-blue-light">
-                  <PixelPortrait playerId={report.playerId} role={report.role} />
+                  <PixelPortrait playerId={report.playerId} role={report.role} lookId={report.lookId} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{report.playerName}</Text>
@@ -402,7 +402,7 @@ function TransferDesk({
                 ? 'flex-row items-start justify-between gap-3 border-b-2 border-blue-dark bg-blue-light px-3 py-3'
                 : 'flex-row items-start justify-between gap-3 border-b-2 border-pitch-dark bg-pitch-light px-3 py-3'}>
                 <View className="overflow-hidden border-2 border-ink bg-white">
-                  <PixelPortrait playerId={listing.playerId} role={listing.role} />
+                  <PixelPortrait playerId={listing.playerId} role={listing.role} lookId={listing.lookId} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{listing.playerName}</Text>
@@ -607,6 +607,7 @@ export function NegotiationPanel({
           <PixelPortrait
             playerId={viewModel.playerId}
             role={viewModel.playerRole}
+            lookId={viewModel.lookId}
             expression={viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
               ? 'ko'
               : viewModel.mood === 'PLEASED' || viewModel.mood === 'THRILLED'

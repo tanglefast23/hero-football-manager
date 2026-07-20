@@ -35,12 +35,14 @@ export interface ScoutMissionOptionSource {
 export interface ScoutedPlayerIdentitySource {
   readonly id: string;
   readonly name: string;
+  readonly lookId?: string;
   readonly powerName?: string;
 }
 
 export interface TransferListingSource {
   readonly player: ValuationPlayer & {
     readonly name: string;
+    readonly lookId?: string;
     readonly powerName?: string;
   };
   readonly direction: 'BUY' | 'SELL';
@@ -58,6 +60,7 @@ export interface NegotiationViewSource {
   readonly state: ContractNegotiation;
   readonly playerName: string;
   readonly playerRole?: 'GK' | 'DEF' | 'MID' | 'FWD';
+  readonly lookId?: string;
   /** The visible starting number, normally current wage or the previous offer. */
   readonly openingWeeklyWage: number;
   readonly wageStep?: number;
@@ -73,6 +76,7 @@ export interface YouthIntakeViewSource {
       readonly id: string;
       readonly name: string;
       readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
+      readonly lookId?: string;
       readonly age: number;
       readonly potential: 1 | 2 | 3 | 4 | 5;
       readonly archetype: string;
@@ -155,6 +159,7 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
           playerId: report.playerId,
           playerName: identity?.name ?? report.playerId,
           role: report.role,
+          lookId: identity?.lookId,
           ageLabel: `Age ${report.age}`,
           potentialLabel: starRange(report.potentialRange.minimum, report.potentialRange.maximum),
           ...(report.power === undefined
@@ -259,6 +264,7 @@ function youthIntakeViewModel(
         playerId: offer.player.id,
         playerName: offer.player.name,
         role: offer.player.role,
+        lookId: offer.player.lookId,
         ageLabel: `Age ${offer.player.age}`,
         potentialLabel: `${'★'.repeat(offer.player.potential)}${'☆'.repeat(5 - offer.player.potential)} potential`,
         archetypeLabel: offer.player.archetype,
@@ -358,6 +364,7 @@ function transferListing(
     playerId: listing.player.id,
     playerName: listing.player.name,
     role: listing.player.role,
+    lookId: listing.player.lookId,
     age: listing.player.age,
     direction: listing.direction,
     ...(listing.player.powerName === undefined ? {} : { powerLabel: listing.player.powerName }),
@@ -398,6 +405,7 @@ export function marketNegotiationViewModel(
     playerId: negotiation.playerId,
     playerName: source.playerName,
     playerRole: source.playerRole ?? 'MID',
+    lookId: source.lookId,
     personality: negotiation.personality,
     personalityLabel: readableId(negotiation.personality),
     status: negotiation.status,

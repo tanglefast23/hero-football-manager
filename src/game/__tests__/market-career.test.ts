@@ -106,6 +106,7 @@ describe('career market integration', () => {
     });
     expect(completed.state.lineups.find(lineup => lineup.clubId === initial.userClubId)?.playerIds)
       .toContain(target.id);
+    expect(completed.state.players.find(player => player.id === target.id)?.lookId).toBe(target.lookId);
     expect(completed.market.transferTalks).toBeUndefined();
     expect(completed.state.lineups.every(lineup => lineup.playerIds.length === 11)).toBe(true);
     expect(completed.state.cashTransactions?.at(-1)).toMatchObject({
@@ -136,6 +137,7 @@ describe('career market integration', () => {
     });
     expect(fee).toBeGreaterThan(0);
     expect(result.state.clubs.find(club => club.id === buyer.id)?.cash).toBe(buyer.cash - fee);
+    expect(result.state.players.find(player => player.id === reserve.id)?.lookId).toBe(reserve.lookId);
     expect(result.state.ledgers).toHaveLength(0);
 
     const brokeBuyerState = {
@@ -235,6 +237,8 @@ describe('career market integration', () => {
     const accepted = acceptCareerTransferBid(state, first, bid.id);
     expect(accepted.state.players.find(player => player.id === reserve.id)?.clubId)
       .toBe(bid.buyerClubId);
+    expect(accepted.state.players.find(player => player.id === reserve.id)?.lookId)
+      .toBe(reserve.lookId);
     expect(accepted.state.cashTransactions?.at(-1)).toMatchObject({
       kind: 'transfer-sell',
       amount: bid.quote.fee,

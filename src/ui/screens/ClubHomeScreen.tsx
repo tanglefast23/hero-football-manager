@@ -150,7 +150,7 @@ export function ClubHomeScreen({
                 <View className="mt-4 flex-row items-center gap-3">
                   <View className="flex-1 items-center border-2 border-red-dark bg-red-light p-2">
                     <View className="overflow-hidden border-2 border-ink bg-white opacity-70">
-                      <PixelPortrait playerId={viewModel.boardResolution.soldPlayer.id} role={viewModel.boardResolution.soldPlayer.role} expression="rest" />
+                      <PixelPortrait playerId={viewModel.boardResolution.soldPlayer.id} role={viewModel.boardResolution.soldPlayer.role} lookId={viewModel.boardResolution.soldPlayer.lookId} expression="rest" />
                     </View>
                     <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.soldPlayer.name}</Text>
                     <Text className="mt-1 text-center font-mono text-sm text-stamp">Sold · {formatCompactNumber(viewModel.boardResolution.soldPlayer.fee)}</Text>
@@ -158,7 +158,7 @@ export function ClubHomeScreen({
                   <Text className="font-mono text-2xl font-bold text-ink">→</Text>
                   <View className="flex-1 items-center border-2 border-pitch-dark bg-white p-2">
                     <View className="overflow-hidden border-2 border-ink bg-violet-light">
-                      <PixelPortrait playerId={viewModel.boardResolution.replacementPlayer.id} role={viewModel.boardResolution.replacementPlayer.role} expression="joy" />
+                      <PixelPortrait playerId={viewModel.boardResolution.replacementPlayer.id} role={viewModel.boardResolution.replacementPlayer.role} lookId={viewModel.boardResolution.replacementPlayer.lookId} expression="joy" />
                     </View>
                     <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.replacementPlayer.name}</Text>
                     <Text className="mt-1 text-center font-mono text-sm text-pitch-dark">Age {viewModel.boardResolution.replacementPlayer.age} · {formatCompactNumber(viewModel.boardResolution.replacementPlayer.weeklyWage)}/wk</Text>
@@ -212,7 +212,7 @@ export function ClubHomeScreen({
                     style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
                   >
                     <View className="overflow-hidden border-2 border-ink bg-blue-light">
-                      <PixelPortrait playerId={candidate.playerId} role={candidate.role} />
+                      <PixelPortrait playerId={candidate.playerId} role={candidate.role} lookId={candidate.lookId} />
                     </View>
                     <View className="flex-1">
                       <View className="flex-row items-center gap-2">

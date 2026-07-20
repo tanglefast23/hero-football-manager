@@ -41,6 +41,7 @@ export interface ScoutReportViewModel {
   readonly playerId: string;
   readonly playerName: string;
   readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  readonly lookId?: string;
   readonly ageLabel: string;
   readonly potentialLabel: string;
   readonly powerLabel?: string;
@@ -60,6 +61,7 @@ export interface TransferListingViewModel {
   readonly playerId: string;
   readonly playerName: string;
   readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  readonly lookId?: string;
   readonly age: number;
   readonly direction: 'BUY' | 'SELL';
   readonly powerLabel?: string;
@@ -102,6 +104,7 @@ export interface YouthOfferViewModel {
   readonly playerId: string;
   readonly playerName: string;
   readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  readonly lookId?: string;
   readonly ageLabel: string;
   readonly potentialLabel: string;
   readonly archetypeLabel: string;
@@ -138,6 +141,7 @@ export interface MarketNegotiationViewModel {
   readonly playerId: string;
   readonly playerName: string;
   readonly playerRole: 'GK' | 'DEF' | 'MID' | 'FWD';
+  readonly lookId?: string;
   readonly personality: PlayerPersonality;
   readonly personalityLabel: string;
   readonly status: NegotiationStatus;

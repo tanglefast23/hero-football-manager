@@ -68,6 +68,10 @@ describe('pre-season youth intake', () => {
     expect(first.offers.every(offer => offer.player.age === 16 || offer.player.age === 17)).toBe(true);
     expect(first.offers.every(offer => offer.player.clubId === state.userClubId)).toBe(true);
     expect(first.offers.every(offer => offer.player.contractSeasonsRemaining === 3)).toBe(true);
+    expect(first.offers.every(offer => offer.player.lookId !== undefined)).toBe(true);
+    expect(first.offers.every(offer => !state.players.some(player => (
+      player.lookId === offer.player.lookId
+    )))).toBe(true);
     expect(first.offers.every(offer => offer.signingBonus === youthSigningBonus(0))).toBe(true);
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
     expect(JSON.stringify(state)).toBe(before);

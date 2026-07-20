@@ -11,7 +11,7 @@ export interface Attrs {
 }
 
 export interface PlayerDef {
-  id: string; name: string; role: Role; attrs: Attrs; power?: PowerId;
+  id: string; name: string; role: Role; attrs: Attrs; power?: PowerId; lookId?: string;
 }
 
 export interface TeamDef {

@@ -94,6 +94,7 @@ export function careerMarketViewModelSource(
     return {
       id: player.id,
       name: player.name,
+      lookId: player.lookId,
       ...(report.power === undefined || player.power === undefined
         ? {}
         : { powerName: `${readableId(player.power)} · Tier ${player.powerTier ?? 1}` }),
@@ -111,6 +112,7 @@ export function careerMarketViewModelSource(
           state: talks.negotiation,
           playerName: player.name,
           playerRole: player.role,
+          lookId: player.lookId,
           openingWeeklyWage: player.weeklyWage,
           wageStep: wageStepFor(player.weeklyWage),
         };
@@ -153,6 +155,7 @@ export function careerMarketViewModelSource(
                 id: offer.player.id,
                 name: offer.player.name,
                 role: offer.player.role,
+                lookId: offer.player.lookId,
                 age: offer.player.age ?? 16,
                 potential: offer.player.potential ?? 1,
                 archetype: offer.player.archetype ?? 'All-Rounder',
@@ -238,6 +241,7 @@ function transferListing(
     player: {
       ...valuationPlayer(player),
       name: player.name,
+      lookId: player.lookId,
       ...(revealPower && player.power !== undefined
         ? { powerName: `${readableId(player.power)} · Tier ${player.powerTier ?? 1}` }
         : {}),

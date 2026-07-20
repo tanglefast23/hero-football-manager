@@ -83,6 +83,8 @@ describe('board ultimatum domain', () => {
       .every(candidate => candidate.morale === 42)).toBe(true);
     expect(next.players.find(candidate => candidate.id === resolution.replacementPlayerId))
       .toMatchObject({ clubId: state.userClubId, role: player.role, age: 17, weeklyWage: expect.any(Number) });
+    expect(next.players.find(candidate => candidate.id === resolution.replacementPlayerId)?.lookId)
+      .toMatch(new RegExp(`^${player.role === 'GK' ? 'g' : 'f'}\\d+$`));
     expect(next.players.filter(candidate => candidate.clubId === state.userClubId)).toHaveLength(16);
     expect(() => buildCareerTeamDef(next, state.userClubId)).not.toThrow();
   });

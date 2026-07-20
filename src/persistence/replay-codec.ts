@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import type { ReplayEnvelope } from '../sim/types';
 import { validateEnvelope } from '../sim/match';
+import { isPlayerLookIdForRole } from '../game/player-appearance';
 import {
   CorruptReplayEnvelopeError,
   InvalidReplayEnvelopeError,
@@ -48,10 +49,20 @@ const replayPlayerSchema = z
     id: nonemptyString,
     name: nonemptyString,
     role: z.enum(['GK', 'DEF', 'MID', 'FWD']),
+    lookId: nonemptyString.optional(),
     attrs: attributesSchema,
     power: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']).optional(),
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((player, context) => {
+    if (player.lookId !== undefined && !isPlayerLookIdForRole(player.lookId, player.role)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['lookId'],
+        message: `must be a valid ${player.role} appearance`,
+      });
+    }
+  });
 
 const teamSchema = z
   .object({

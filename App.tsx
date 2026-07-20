@@ -385,6 +385,7 @@ function GameApp() {
           playerId: target.id,
           playerName: target.name,
           role: target.role,
+          lookId: target.lookId,
           source: 'transfer',
         });
       }
@@ -413,6 +414,7 @@ function GameApp() {
       playerId,
       playerName: offer.playerName,
       role: offer.role,
+      lookId: offer.lookId,
       source: 'academy',
     });
   }, []);

@@ -12,6 +12,7 @@ export function spriteKeyForMatchPlayer(
   playerId: string,
   role: PlayerVisualRole,
   frame: PlayerSpriteFrame,
+  lookId?: string,
 ): string {
   if (!Number.isInteger(matchPlayerIndex) || matchPlayerIndex < 0 || matchPlayerIndex >= 22) {
     throw new Error('match player sprite index must be an integer from 0 to 21');
@@ -19,17 +20,18 @@ export function spriteKeyForMatchPlayer(
   if ((frame === 'ready0' || frame === 'ready1') && role !== 'GK') {
     throw new Error('only goalkeepers have ready sprite frames');
   }
-  return `${visualIdForMatchPlayer(matchPlayerIndex, playerId, role)}:${frame}`;
+  return `${visualIdForMatchPlayer(matchPlayerIndex, playerId, role, lookId)}:${frame}`;
 }
 
 export function visualIdForMatchPlayer(
   matchPlayerIndex: number,
   playerId: string,
   role: PlayerVisualRole,
+  lookId?: string,
 ): string {
   if (!Number.isInteger(matchPlayerIndex) || matchPlayerIndex < 0 || matchPlayerIndex >= 22) {
     throw new Error('match player sprite index must be an integer from 0 to 21');
   }
   const side = matchPlayerIndex < 11 ? 'r' : 'u';
-  return `${side}:${playerLookId(playerId, role)}`;
+  return `${side}:${playerLookId(playerId, role, lookId)}`;
 }

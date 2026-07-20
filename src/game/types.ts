@@ -85,6 +85,8 @@ export interface CareerPlayer {
   clubId: string;
   name: string;
   role: Role;
+  /** Persisted presentation identity; optional for schema-1 save migration. */
+  lookId?: string;
   attrs: Attrs;
   power?: PowerId;
   powerTier?: 1 | 2 | 3;

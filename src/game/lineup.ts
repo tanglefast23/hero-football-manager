@@ -4,6 +4,7 @@ import type { ProgressionPlayer } from './progression';
 export type MatchSquadPlayer = ProgressionPlayer & {
   name: string;
   role: Role;
+  lookId?: string;
   morale: number;
   injuryWeeks?: number;
 };
@@ -110,6 +111,7 @@ export function buildTeamDef(
     id: player.id,
     name: player.name,
     role: player.role,
+    ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
     attrs: matchAttrsAtMorale(player.attrs, player.morale),
     ...(player.licensed && player.power ? { power: player.power } : {}),
   });

@@ -84,6 +84,7 @@ export interface HomeViewModel {
       playerId: string;
       playerName: string;
       role: 'GK' | 'DEF' | 'MID' | 'FWD';
+      lookId?: string;
       weeklyWage: number;
       marketValue: number;
       forcedSaleFee: number;
@@ -99,6 +100,7 @@ export interface HomeViewModel {
       id: string;
       name: string;
       role: 'GK' | 'DEF' | 'MID' | 'FWD';
+      lookId?: string;
       buyerName: string;
       fee: number;
     };
@@ -106,6 +108,7 @@ export interface HomeViewModel {
       id: string;
       name: string;
       role: 'GK' | 'DEF' | 'MID' | 'FWD';
+      lookId?: string;
       age: number;
       weeklyWage: number;
     };
@@ -125,6 +128,7 @@ export interface LineupPlayerViewModel {
   id: string;
   name: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
   shirtNumber: number;
   isHero: boolean;
   overall: number;
@@ -193,6 +197,7 @@ export interface FocusedTraineeViewModel {
   id: string;
   name: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
   gains: readonly AttributeGainViewModel[];
 }
 
@@ -257,6 +262,7 @@ export interface SquadPlayerViewModel {
   id: string;
   name: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
   overall: number;
   condition: number;
   injuryWeeks: number;
@@ -458,6 +464,7 @@ export interface AwakeningCutsceneViewModel {
   playerId: string;
   playerName: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
   powerId: 'SUPER_SPEED' | 'SUPER_STRENGTH' | 'FIRE_TORCH';
   powerName: string;
   limpCopy: string;
@@ -504,6 +511,7 @@ export interface ExpiredContractViewModel {
   playerId: string;
   playerName: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
   powerName?: string;
   currentWeeklyWage: number;
   quotedWeeklyWage: number;
@@ -542,6 +550,7 @@ export interface ClubLegacyViewModel {
   playerId: string;
   playerName: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
   archetype: string;
   personality: string;
   fame: number;

@@ -151,7 +151,7 @@ function TrainingAtlasStage({
   }, [reduceMotion]);
 
   const participantVisualIds = useMemo(() => scene.participants.map(participant => (
-    `r:${playerLookId(participant.playerId, participant.role)}`
+    `r:${playerLookId(participant.playerId, participant.role, participant.lookId)}`
   )), [scene.participants]);
 
   const atlas = useMemo(() => {

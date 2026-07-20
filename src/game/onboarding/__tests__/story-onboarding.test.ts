@@ -97,6 +97,7 @@ describe('story onboarding state machine', () => {
       licensed: false,
     });
     expect(avatar?.attrs.ref).toBe(10);
+    expect(avatar?.lookId).toMatch(/^f\d+$/);
     expect(created.clubs[0].weeklyWages).toBe(580);
     expect(created.lineups[0].playerIds).toContain(avatar?.id);
     expect(created.onboarding).toMatchObject({

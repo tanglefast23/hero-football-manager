@@ -27,6 +27,7 @@ const PIXEL_SCALE = 5;
 export interface PixelPortraitProps {
   playerId: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
   expression?: PortraitExpression;
   /** App-level reduced-motion preference; merged with the OS setting. */
   reduceMotion?: boolean;
@@ -36,12 +37,13 @@ export interface PixelPortraitProps {
 export function PixelPortrait({
   playerId,
   role,
+  lookId,
   expression = 'rest',
   reduceMotion = false,
 }: PixelPortraitProps) {
   const spriteKey = useMemo(
-    () => portraitKey(playerId, role, expression),
-    [expression, playerId, role],
+    () => portraitKey(playerId, role, expression, lookId),
+    [expression, lookId, playerId, role],
   );
   const blinkVariant = useMemo(() => {
     const rows = sheet.sprites[spriteKey];
@@ -107,8 +109,9 @@ function portraitKey(
   playerId: string,
   role: PixelPortraitProps['role'],
   expression: PortraitExpression,
+  lookId?: string,
 ): string {
-  return `${playerLookId(playerId, role)}:${expression}`;
+  return `${playerLookId(playerId, role, lookId)}:${expression}`;
 }
 
 function spriteRows(spriteKey: string): string[] {

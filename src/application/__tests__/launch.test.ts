@@ -2,6 +2,7 @@ import { loadLaunchContent } from '../../content';
 import { buildCareerTeams, createCareer } from '../../game';
 import { runHeadlessFullCareer } from '../../game/headless';
 import { serializeGameState } from '../../persistence/game-state-codec';
+import { playerLookId } from '../../render/sprites/player-look';
 import {
   createLaunchCareerSetup,
   DEFAULT_USER_CLUB_ID,
@@ -161,5 +162,47 @@ describe('launch career adapter', () => {
       // the app re-saves the reconciled state on load; this must not throw
       expect(() => serializeGameState(reconciled)).not.toThrow();
     }
+  });
+
+  it('backfills an old deep save while preserving non-colliding user faces', () => {
+    const past = runHeadlessFullCareer(
+      createLaunchCareerSetup(20260722, undefined, loadLaunchContent(), 'full'),
+      7,
+    );
+    const oldSave = {
+      ...past,
+      players: past.players.map(({ lookId: _lookId, ...player }) => player),
+    };
+    const expectedUserLooks = new Map(oldSave.players
+      .filter(player => player.clubId === oldSave.userClubId)
+      .map(player => [player.id, playerLookId(player.id, player.role)]));
+    const userIdsByOldLook = new Map<string, string[]>();
+    for (const [playerId, lookId] of expectedUserLooks) {
+      const playerIds = userIdsByOldLook.get(lookId) ?? [];
+      playerIds.push(playerId);
+      userIdsByOldLook.set(lookId, playerIds);
+    }
+
+    const reconciled = reconcileLaunchRoster(oldSave, loadLaunchContent(), true);
+    const reconciledUserPlayers = reconciled.players
+      .filter(player => player.clubId === reconciled.userClubId);
+    const changedPlayers = reconciledUserPlayers.filter(player => (
+      player.lookId !== expectedUserLooks.get(player.id)
+    ));
+
+    expect(new Set(reconciledUserPlayers.map(player => player.lookId)).size)
+      .toBe(reconciledUserPlayers.length);
+    for (const player of reconciledUserPlayers) {
+      const oldLookId = expectedUserLooks.get(player.id);
+      expect(oldLookId).toBeDefined();
+      if ((userIdsByOldLook.get(oldLookId ?? '')?.length ?? 0) === 1) {
+        expect(player.lookId).toBe(oldLookId);
+      }
+    }
+    expect(changedPlayers).toHaveLength(1);
+    expect(userIdsByOldLook.get(expectedUserLooks.get(changedPlayers[0].id) ?? ''))
+      .toHaveLength(2);
+    expect(reconcileLaunchRoster(reconciled, loadLaunchContent(), true))
+      .toStrictEqual(reconciled);
   });
 });

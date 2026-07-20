@@ -179,6 +179,7 @@ describe('career club-legend transactions', () => {
     expect(youth.age).toBeGreaterThanOrEqual(16);
     expect(youth.age).toBeLessThanOrEqual(17);
     expect(youth.name.endsWith(' Flint')).toBe(true);
+    expect(youth.lookId).toMatch(/^f\d+$/);
   });
 
   it('does not duplicate a youth or charge payroll twice after a partially applied save', () => {
@@ -193,6 +194,7 @@ describe('career club-legend transactions', () => {
     const retried = resolveNextClubLegendLegacy(partial, 'mentor-youth');
 
     expect(retried.state.players).toHaveLength(1);
+    expect(retried.youthPlayer?.lookId).toBe(youth.lookId);
     expect(retried.state.clubs[0].weeklyWages).toBe(first.state.clubs[0].weeklyWages);
     expect(retried.state.pendingLegacyPlayerIds).toEqual([]);
   });

@@ -249,9 +249,14 @@ export function MatchScreen({
   const userPausedRef = useRef(false);
   const automaticPauseReasonsRef = useRef(new Set<AutomaticMatchPauseReason>());
   speedRef.current = speed;
-  const matchVisualIds = useMemo(() => match.players.map((player, index) => (
-    visualIdForMatchPlayer(index, player.def.id, player.def.role)
-  )), [match]);
+  const matchVisualIds = useMemo(() => [
+    ...match.players.map((player, index) => (
+      visualIdForMatchPlayer(index, player.def.id, player.def.role, player.def.lookId)
+    )),
+    ...match.bench.flatMap((players, team) => players.map(player => (
+      visualIdForMatchPlayer(team === 0 ? 0 : 11, player.id, player.role, player.lookId)
+    ))),
+  ], [match]);
   // Ledger item 4 — build the atlas once at mount from the merged sprite pack.
   // If the pack fails to build (realistically: sprites.json failing loader
   // validation), fall back to a white square texture with team-color tints
@@ -631,13 +636,13 @@ export function MatchScreen({
     const action = actionRef.current[i];
     const pose = actionPose(action, hud.visualTick);
     if (pose.active && action?.kind === 'slide') {
-      return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, slideTackleSpriteFrameForAction(action, hud.visualTick));
+      return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, slideTackleSpriteFrameForAction(action, hud.visualTick), p.def.lookId);
     }
-    if (pose.active) return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, 'run0');
+    if (pose.active) return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, 'run0', p.def.lookId);
     if (p.def.role === 'GK' && isKeeperReady(dist2(frame.players[i], frame.ball))) {
-      return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, keeperReadyFrame(hud.visualTick));
+      return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, keeperReadyFrame(hud.visualTick), p.def.lookId);
     }
-    return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, runFrameForDistance(frame.travel[i], frame.moved[i]));
+    return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, runFrameForDistance(frame.travel[i], frame.moved[i]), p.def.lookId);
   }), [frame, hud.visualTick, match]);
 
   // All 22 players plus the ball still share one batched Atlas draw call.

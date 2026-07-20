@@ -11,6 +11,7 @@ import {
   type PyramidPlayer,
 } from './pyramid';
 import type { CareerPlayer, GameState, PlayerPersonality } from './types';
+import { nextDistinctPlayerLook } from './player-appearance';
 import { assertUserCareerRosterSpace } from './youth-intake';
 
 export type CareerLegendLegacyChoice = 'coach-candidate' | 'mentor-youth';
@@ -81,8 +82,21 @@ export function resolveNextClubLegendLegacy(
     };
   }
 
-  const youthPlayer = legacyYouthToCareerPlayer(legacy.youth, state.careerSeed);
-  const alreadyPresent = state.players.some(player => player.id === youthPlayer.id);
+  const generatedYouth = legacyYouthToCareerPlayer(legacy.youth, state.careerSeed);
+  const existingYouth = state.players.find(player => player.id === generatedYouth.id);
+  const youthPlayer = existingYouth === undefined
+    ? {
+        ...generatedYouth,
+        lookId: nextDistinctPlayerLook(generatedYouth, state.players),
+      }
+    : {
+        ...cloneCareerPlayer(existingYouth),
+        lookId: existingYouth.lookId ?? nextDistinctPlayerLook(
+          existingYouth,
+          state.players.filter(player => player.id !== existingYouth.id),
+        ),
+      };
+  const alreadyPresent = existingYouth !== undefined;
   if (!alreadyPresent) assertUserCareerRosterSpace(state);
   const weeklyWages = alreadyPresent
     ? undefined
@@ -195,6 +209,7 @@ function legacyYouthToCareerPlayer(youth: PyramidPlayer, careerSeed: number): Ca
     clubId: youth.clubId,
     name: youth.name,
     role: youth.role,
+    ...(youth.lookId === undefined ? {} : { lookId: youth.lookId }),
     attrs: { ...youth.attrs },
     licensed: false,
     weeklyWage: 240,

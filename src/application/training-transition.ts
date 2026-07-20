@@ -14,6 +14,7 @@ export interface TrainingTransitionParticipant {
   playerId: string;
   playerName: string;
   role: CareerPlayer['role'];
+  lookId?: string;
   activityId: TrainingActivityId;
   activityLabel: string;
 }
@@ -74,6 +75,7 @@ export function trainingTransitionScene(
         playerId: player.id,
         playerName: player.name,
         role: player.role,
+        lookId: player.lookId,
         activityId: activityIdFor(drill.id),
         activityLabel: drillsById.get(drill.id)?.name ?? drill.id,
       };
@@ -91,6 +93,7 @@ function genericScene(roster: readonly CareerPlayer[]): TrainingTransitionScene 
       playerId: player?.id ?? 'generic-player',
       playerName: player?.name ?? 'Rovers Player',
       role: player?.role ?? 'FWD',
+      lookId: player?.lookId,
       activityId: 'generic',
       activityLabel: 'Ball Work',
     }],

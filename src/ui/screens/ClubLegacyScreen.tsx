@@ -37,7 +37,7 @@ export function ClubLegacyScreen({
         <PaperPanel kicker="Retirement office" title={viewModel.playerName} stamp="Club legend">
           <View className="flex-row items-center gap-4">
             <View className="overflow-hidden border-2 border-b-4 border-gold-dark bg-gold-light">
-              <PixelPortrait playerId={viewModel.playerId} role={viewModel.role} expression="joy" />
+              <PixelPortrait playerId={viewModel.playerId} role={viewModel.role} lookId={viewModel.lookId} expression="joy" />
             </View>
             <View className="flex-1 flex-row flex-wrap gap-2">
               <StatusChip label={viewModel.role} />

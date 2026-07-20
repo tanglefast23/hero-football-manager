@@ -10,6 +10,7 @@ export interface PyramidPlayer {
   clubId: string;
   name: string;
   role: Role;
+  lookId?: string;
   attrs: Attrs;
   archetype: PlayerArchetype;
   personality: PlayerPersonality;

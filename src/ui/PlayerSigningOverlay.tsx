@@ -7,6 +7,7 @@ export interface PlayerSigningConfirmation {
   playerId: string;
   playerName: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
   source: 'transfer' | 'academy';
 }
 
@@ -36,7 +37,7 @@ export function PlayerSigningOverlay({
           >
             <View className="items-center border-y-2 border-ink bg-gold-light py-4">
               <View className="border-2 border-b-4 border-ink bg-white px-4 pt-3">
-                <PixelPortrait playerId={player.playerId} role={player.role} expression="joy" />
+                <PixelPortrait playerId={player.playerId} role={player.role} lookId={player.lookId} expression="joy" />
               </View>
               <Text className="mt-3 font-pixel text-xl uppercase text-ink">{player.playerName}</Text>
               <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">

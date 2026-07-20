@@ -6,6 +6,12 @@ import {
   createFacilityGrid,
   enableFullCareer,
 } from '../game';
+import {
+  assignDistinctPlayerLooks,
+  isPlayerLookIdForRole,
+  nextDistinctPlayerLook,
+} from '../game/player-appearance';
+import { playerLookId } from '../render/sprites/player-look';
 
 export const DEFAULT_CAREER_SEED = 20260718;
 export const DEFAULT_USER_CLUB_ID = 'bramble-rovers';
@@ -65,6 +71,7 @@ export function createLaunchCareerSetup(
       clubId: club.id,
       name: player.name,
       role: player.role,
+      lookId: playerLookId(player.id, player.role),
       attrs: { ...player.ratings },
       ...(club.id === userClubId || player.powerId === null
         ? {}
@@ -206,9 +213,12 @@ export function reconcileLaunchRoster(
     wageByClub.set(player.clubId, (wageByClub.get(player.clubId) ?? 0) + player.weeklyWage);
   }
 
-  if (!changed) return enableM2 || state.careerMode === 'full'
-    ? enableFullCareer(state)
-    : state;
+  if (!changed) {
+    const enabled = enableM2 || state.careerMode === 'full'
+      ? enableFullCareer(state)
+      : state;
+    return reconcileCareerPlayerLooks(enabled);
+  }
 
   const reconciled: GameState = {
     ...state,
@@ -249,9 +259,92 @@ export function reconcileLaunchRoster(
       weeklyWages: wageByClub.get(club.id) ?? club.weeklyWages,
     })),
   };
-  return enableM2 || state.careerMode === 'full'
+  const enabled = enableM2 || state.careerMode === 'full'
     ? enableFullCareer(reconciled)
     : reconciled;
+  return reconcileCareerPlayerLooks(enabled);
+}
+
+function reconcileCareerPlayerLooks(state: GameState): GameState {
+  const appearanceCandidates = state.players.map(player => (
+    player.clubId === state.userClubId && player.lookId === undefined
+      ? { ...player, lookId: playerLookId(player.id, player.role) }
+      : player
+  ));
+  const players = assignDistinctPlayerLooks(
+    appearanceCandidates,
+    player => playerLookId(player.id, player.role),
+  );
+  const playersChanged = players.some((player, index) => (
+    player.lookId !== state.players[index].lookId
+  ));
+  const activeLookById = new Map(players.map(player => [player.id, player.lookId]));
+  const retiredPlayers = state.retiredPlayers === undefined
+    ? undefined
+    : state.retiredPlayers.map(player => ({
+        ...player,
+        lookId: player.lookId !== undefined
+          && isPlayerLookIdForRole(player.lookId, player.role)
+          ? player.lookId
+          : playerLookId(player.id, player.role),
+      }));
+  const retiredPlayersChanged = retiredPlayers?.some((player, index) => (
+    player.lookId !== state.retiredPlayers?.[index]?.lookId
+  )) ?? false;
+
+  const appearancePool = [...players];
+  const offers = state.youthIntake?.offers.map(offer => {
+    const preservesAssignedLook = offer.player.lookId !== undefined
+      && isPlayerLookIdForRole(offer.player.lookId, offer.player.role)
+      && !appearancePool.some(player => player.lookId === offer.player.lookId);
+    const lookId = preservesAssignedLook
+      ? offer.player.lookId!
+      : nextDistinctPlayerLook(offer.player, appearancePool);
+    const player = { ...offer.player, lookId };
+    appearancePool.push(player);
+    return { ...offer, player };
+  });
+  const offersChanged = offers?.some((offer, index) => (
+    offer.player.lookId !== state.youthIntake?.offers[index]?.player.lookId
+  )) ?? false;
+
+  let pyramidChanged = false;
+  const divisions = state.m2?.pyramid.divisions.map(division => ({
+    ...division,
+    clubs: division.clubs.map(club => ({
+      ...club,
+      squad: club.squad.map(player => {
+        const lookId = activeLookById.get(player.id) ?? player.lookId;
+        if (lookId === undefined || lookId === player.lookId) return player;
+        pyramidChanged = true;
+        return { ...player, lookId };
+      }),
+    })),
+  }));
+
+  if (!playersChanged && !retiredPlayersChanged && !offersChanged && !pyramidChanged) {
+    return state;
+  }
+
+  return {
+    ...state,
+    players: playersChanged ? players : state.players,
+    ...(retiredPlayers === undefined || !retiredPlayersChanged ? {} : { retiredPlayers }),
+    ...(offers === undefined || state.youthIntake === undefined || !offersChanged
+      ? {}
+      : { youthIntake: { ...state.youthIntake, offers } }),
+    ...(state.m2 === undefined || divisions === undefined || !pyramidChanged
+      ? {}
+      : {
+          m2: {
+            ...state.m2,
+            pyramid: {
+              ...state.m2.pyramid,
+              divisions,
+            },
+          },
+        }),
+  };
 }
 
 function isLegacyThirteenPlayerLaunchRoster(

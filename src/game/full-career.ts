@@ -1,4 +1,5 @@
 import type { PowerId } from '../sim/types';
+import { assignDistinctPlayerLooks, nextDistinctPlayerLook } from './player-appearance';
 import { generateSeasonFixtures } from './schedule';
 import { createCareerMarketState, refreshCareerMarketForNewSeason } from './market-career';
 import {
@@ -126,7 +127,7 @@ export function startNextFullCareerSeason(
   };
   const season = transition.nextSeason;
   const clubs = [userClub, ...generated.clubs];
-  const players = [...activeUserPlayers, ...generated.players];
+  const players = assignDistinctPlayerLooks([...activeUserPlayers, ...generated.players]);
   const lineups = [userLineup, ...generated.lineups];
   const fixtures = generateSeasonFixtures(clubs.map(club => club.id), season, state.careerSeed);
   let nextM2 = synchronizeM2ActiveDivision(m2, { clubs, players }, transition.division);
@@ -224,6 +225,7 @@ function opponentCareerPlayer(
     clubId: player.clubId,
     name: player.name,
     role: player.role,
+    ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
     attrs: { ...player.attrs },
     ...(power === undefined
       ? {}
@@ -320,7 +322,8 @@ function replenishUserSquad(
         id = `${userClubId}-academy-s${season}-${role.toLowerCase()}-${intakeNumber}`;
       }
       existingIds.add(id);
-      result.push(academyPlayer(id, userClubId, role, season, careerSeed, intakeNumber));
+      const player = academyPlayer(id, userClubId, role, season, careerSeed, intakeNumber);
+      result.push({ ...player, lookId: nextDistinctPlayerLook(player, result) });
       roleCount += 1;
       intakeNumber += 1;
     }

@@ -62,7 +62,7 @@ export function championshipCelebrationViewModel(
       name: player.name,
       role: player.role,
       isHero: player.power !== undefined,
-      spriteKey: `${spriteSide}:${playerLookId(player.id, player.role)}:run0`,
+      spriteKey: `${spriteSide}:${playerLookId(player.id, player.role, player.lookId)}:run0`,
     };
   };
 

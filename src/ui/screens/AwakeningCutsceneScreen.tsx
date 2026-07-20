@@ -87,10 +87,10 @@ export function AwakeningCutsceneScreen({
     'r:f07',
     'r:f04',
     'u:f14',
-    `r:${playerLookId(viewModel.playerId, viewModel.role)}`,
+    `r:${playerLookId(viewModel.playerId, viewModel.role, viewModel.lookId)}`,
     'r:f06',
     'u:f16',
-  ], [viewModel.playerId, viewModel.role]);
+  ], [viewModel.lookId, viewModel.playerId, viewModel.role]);
   const cutsceneSpriteKeys = useMemo(() => cutsceneVisualIds.map(id => `${id}:run0`), [cutsceneVisualIds]);
 
   const atlas = useMemo(() => {
