@@ -1,10 +1,13 @@
+import coachIdentities from '../../../game/coach-identities.json';
 import data from '../management-sprites.json';
+import playerPortraits from '../portraits.json';
 
-const COACH_IDS = [
-  'amara-okafor', 'kenji-sato', 'valentina-cruz', 'imani-adeyemi',
-  'freja-lindholm', 'priya-nair', 'mateo-silva', 'hana-park',
-  'leila-haddad', 'nia-thompson', 'tomas-ferreira', 'aiko-tanaka',
-  'sibusiso-dlamini', 'sofia-rossi', 'jamal-rahman', 'mei-chen',
+const COACH_IDS = coachIdentities.map(coach => coach.id);
+const COACH_WARDROBES = [
+  'suit-tie', 'suit-open-collar', 'blazer-turtleneck', 'cardigan-shirt',
+  'sweater-shirt', 'quarter-zip', 'training-polo', 'club-tracksuit',
+  'training-shell', 'padded-gilet', 'padded-coat', 'rain-jacket',
+  'overcoat-scarf',
 ];
 const FACILITIES = [
   'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
@@ -13,15 +16,29 @@ const FACILITIES = [
 ];
 
 describe('management pixel sprites', () => {
-  test('ships unique resting and joyful portraits for all sixteen curated coaches', () => {
-    const portraits = COACH_IDS.map(id => data.sprites[`coach:${id}:rest` as keyof typeof data.sprites]);
+  test('ships unique resting and joyful portraits for all 32 curated coaches', () => {
+    expect(COACH_IDS).toHaveLength(32);
+    const resting = COACH_IDS.map(id => data.sprites[`coach:${id}:rest` as keyof typeof data.sprites]);
+    const playerArt = new Set(Object.values(playerPortraits.sprites).map(rows => JSON.stringify(rows)));
     for (const id of COACH_IDS) {
       expect(data.sprites).toHaveProperty(`coach:${id}:rest`);
       expect(data.sprites).toHaveProperty(`coach:${id}:joy`);
       expect(data.sprites[`coach:${id}:joy` as keyof typeof data.sprites])
         .not.toEqual(data.sprites[`coach:${id}:rest` as keyof typeof data.sprites]);
+      expect(playerArt.has(JSON.stringify(data.sprites[`coach:${id}:rest` as keyof typeof data.sprites]))).toBe(false);
     }
-    expect(new Set(portraits.map(rows => JSON.stringify(rows))).size).toBe(COACH_IDS.length);
+    expect(new Set(resting.map(rows => JSON.stringify(rows))).size).toBe(COACH_IDS.length);
+  });
+
+  test('keeps every curated coach age within the 30-60 hiring band', () => {
+    expect(coachIdentities.every(coach => Number.isInteger(coach.age) && coach.age >= 30 && coach.age <= 60)).toBe(true);
+    expect(Math.min(...coachIdentities.map(coach => coach.age))).toBe(31);
+    expect(Math.max(...coachIdentities.map(coach => coach.age))).toBe(60);
+  });
+
+  test('represents the complete formal, smart-casual, training, and weatherwear wardrobe', () => {
+    const wardrobes = new Set(coachIdentities.map(coach => coach.wardrobe));
+    expect([...wardrobes].sort()).toEqual([...COACH_WARDROBES].sort());
   });
 
   test('ships three hard-pixel levels for every facility plus a worksite', () => {

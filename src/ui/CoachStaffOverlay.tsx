@@ -6,6 +6,7 @@ import { ManagementSprite } from './components/ManagementSprite';
 export interface CoachOverlayCoach {
   portraitId: string;
   name: string;
+  age: number;
   level: number;
   specialtyLabels: readonly string[];
   weeklyWage: number;
@@ -64,7 +65,7 @@ export function CoachStaffOverlay({
               </View>
               <Text className="mt-3 font-pixel text-xl uppercase text-ink">{coach.name}</Text>
               <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
-                Head coach · Level {coach.level}
+                Head coach · Age {coach.age} · Level {coach.level}
               </Text>
             </View>
 

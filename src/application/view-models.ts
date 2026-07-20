@@ -89,6 +89,7 @@ export function awakeningCutsceneViewModel(
 
   return {
     fixtureLabel: `S${fixture.season} · W${fixture.week} · Full time`,
+    playerId: player.id,
     playerName: player.name,
     role: player.role,
     powerId: pending.power,
@@ -187,6 +188,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
         id: state.market.headCoach.id,
         portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
         name: state.market.headCoach.name,
+        age: state.market.headCoach.age ?? 45,
         level: state.market.headCoach.level,
         specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
         weeklyWage: state.market.headCoach.weeklyWage,

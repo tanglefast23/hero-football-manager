@@ -9,7 +9,7 @@ import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState, TeamDef } from '../sim/types';
 import type { HudSide } from '../persistence';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
-import { spriteKeyForMatchSlot } from './sprites/slot-key';
+import { spriteKeyForMatchPlayer, visualIdForMatchPlayer } from './sprites/slot-key';
 import { snapshotFrame, type PitchFrame } from './interpolate';
 import {
   actionPose,
@@ -249,21 +249,24 @@ export function MatchScreen({
   const userPausedRef = useRef(false);
   const automaticPauseReasonsRef = useRef(new Set<AutomaticMatchPauseReason>());
   speedRef.current = speed;
+  const matchVisualIds = useMemo(() => match.players.map((player, index) => (
+    visualIdForMatchPlayer(index, player.def.id, player.def.role)
+  )), [match]);
   // Ledger item 4 — build the atlas once at mount from the merged sprite pack.
   // If the pack fails to build (realistically: sprites.json failing loader
   // validation), fall back to a white square texture with team-color tints
   // (the plan's original placeholder look) instead of crashing the match.
   const atlas = useMemo(() => {
     try {
-      return { ...buildSpriteAtlas(Skia), fallbackMode: false };
+      return { ...buildSpriteAtlas(Skia, matchVisualIds), fallbackMode: false };
     } catch (err) {
       console.warn('MatchScreen: buildSpriteAtlas failed — rendering placeholder rects', err);
       return { ...buildFallbackAtlas(Skia, FALLBACK_SPRITE), fallbackMode: true };
     }
-  }, []);
+  }, [matchVisualIds]);
 
-  const playerCell = atlas.rectFor('r0:run0');
-  const actionCell = atlas.rectFor('r0:slide0');
+  const playerCell = atlas.rectFor(`${matchVisualIds[0]}:run0`);
+  const actionCell = atlas.rectFor(`${matchVisualIds[0]}:slide0`);
   const ballCell = atlas.rectFor('ball');
   const {
     transforms: workletTransforms,
@@ -628,13 +631,13 @@ export function MatchScreen({
     const action = actionRef.current[i];
     const pose = actionPose(action, hud.visualTick);
     if (pose.active && action?.kind === 'slide') {
-      return spriteKeyForMatchSlot(i, slideTackleSpriteFrameForAction(action, hud.visualTick));
+      return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, slideTackleSpriteFrameForAction(action, hud.visualTick));
     }
-    if (pose.active) return spriteKeyForMatchSlot(i, 'run0');
+    if (pose.active) return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, 'run0');
     if (p.def.role === 'GK' && isKeeperReady(dist2(frame.players[i], frame.ball))) {
-      return spriteKeyForMatchSlot(i, keeperReadyFrame(hud.visualTick));
+      return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, keeperReadyFrame(hud.visualTick));
     }
-    return spriteKeyForMatchSlot(i, runFrameForDistance(frame.travel[i], frame.moved[i]));
+    return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, runFrameForDistance(frame.travel[i], frame.moved[i]));
   }), [frame, hud.visualTick, match]);
 
   // All 22 players plus the ball still share one batched Atlas draw call.

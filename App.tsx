@@ -270,6 +270,7 @@ function GameApp() {
       coach: {
         portraitId: candidate.portraitId,
         name: candidate.name,
+        age: candidate.age,
         level: candidate.level,
         specialtyLabels: candidate.specialtyLabels,
         weeklyWage: candidate.weeklyWage,
@@ -287,6 +288,7 @@ function GameApp() {
       coach: {
         portraitId: coach.portraitId,
         name: coach.name,
+        age: coach.age,
         level: coach.level,
         specialtyLabels: coach.specialtyLabels,
         weeklyWage: coach.weeklyWage,
@@ -923,6 +925,7 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
 
   const viewModel: AwakeningCutsceneViewModel = {
     fixtureLabel: `Review ${triggerIndex + 1}/${content.onboarding.triggers.length} · Full time`,
+    playerId: 'r10',
     playerName: 'ZIP VELA',
     role: 'FWD',
     powerId: 'SUPER_STRENGTH',

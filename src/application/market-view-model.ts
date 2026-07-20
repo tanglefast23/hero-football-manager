@@ -167,6 +167,7 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
         id: candidate.id,
         portraitId: candidate.portraitId ?? candidate.id,
         name: candidate.name,
+        age: candidate.age ?? 45,
         level: candidate.level,
         levelLabel: `Lv${candidate.level}`,
         specialtyLabels: [

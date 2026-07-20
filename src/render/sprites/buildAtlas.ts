@@ -58,8 +58,11 @@ function pixelRect(x: number, y: number): SkiaRectLike {
  * snapshotted atlas image plus the same rectFor lookup atlasLayout produces,
  * ready to feed straight into Skia's <Atlas> component.
  */
-export function buildSpriteAtlas(Skia: SkiaApi): { image: unknown; rectFor: AtlasLayout['rectFor'] } {
-  const sheet: SpriteSheet = loadSpriteSheet();
+export function buildSpriteAtlas(
+  Skia: SkiaApi,
+  visualIds?: readonly string[],
+): { image: unknown; rectFor: AtlasLayout['rectFor'] } {
+  const sheet: SpriteSheet = loadSpriteSheet(visualIds);
   const layout = atlasLayout(sheet);
 
   const atlasW = layout.cols * layout.slotW;

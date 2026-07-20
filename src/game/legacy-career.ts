@@ -174,6 +174,7 @@ function legacyCoachToMarketCandidate(
   return {
     id: legacy.id,
     name: legacy.name,
+    age: legend.age,
     specialties: [
       marketCoachSpecialty(legacy.specialties[0]),
       marketCoachSpecialty(legacy.specialties[1]),

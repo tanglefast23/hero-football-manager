@@ -3,6 +3,7 @@ import { Canvas, Rect } from '@shopify/react-native-skia';
 import portraitData from '../../render/sprites/portraits.json';
 import { blinkRows } from '../portrait-blink';
 import { useReducedMotion } from '../use-reduced-motion';
+import { playerLookId } from '../../render/sprites/player-look';
 
 type PortraitExpression = 'rest' | 'joy' | 'ko';
 
@@ -107,18 +108,7 @@ function portraitKey(
   role: PixelPortraitProps['role'],
   expression: PortraitExpression,
 ): string {
-  if (role === 'GK') return `r0:${expression}`;
-  const slot = 1 + (stableHash(playerId) % 10);
-  return `r${slot}:${expression}`;
-}
-
-function stableHash(value: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
+  return `${playerLookId(playerId, role)}:${expression}`;
 }
 
 function spriteRows(spriteKey: string): string[] {

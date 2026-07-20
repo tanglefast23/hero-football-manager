@@ -449,6 +449,7 @@ const coachCandidateSchema = z.object({
   id: nonemptyString,
   portraitId: nonemptyString.optional(),
   name: nonemptyString,
+  age: z.number().int().min(30).max(60).optional(),
   specialties: z.tuple([z.enum([
     'ATTACK', 'DEFENSE', 'FITNESS', 'TECHNIQUE', 'GOALKEEPING', 'MOTIVATOR',
   ]), z.enum([

@@ -31,22 +31,12 @@ import { PITCH_H, PITCH_W } from '../../sim/geometry';
 import type { AwakeningCutsceneViewModel } from '../models';
 import { Pitch } from '../../render/Pitch';
 import { buildFallbackAtlas, buildSpriteAtlas } from '../../render/sprites/buildAtlas';
+import { playerLookId } from '../../render/sprites/player-look';
 import { PIXEL_ART_SAMPLING } from '../../render/pixel-art-sampling';
 import { AwakeningTriggerCalloutIcon } from './awakening-trigger-visuals/AwakeningTriggerCalloutIcon';
 import { AwakeningTriggerVisual } from './awakening-trigger-visuals/AwakeningTriggerVisual';
 import { awakeningViewportHeight, nextAwakeningAction } from './awakening-progression';
 
-const CUTSCENE_SPRITES = [
-  // Back-to-front painter order. Actors with higher feet on the pitch draw
-  // first; Vela draws between the rear and front rows of the huddle.
-  'u9:run0',
-  'r8:run0',
-  'r5:run0',
-  'u5:run0',
-  'r9:run0',
-  'r7:run0',
-  'u7:run0',
-] as const;
 const FOCUS_INDEX = 4;
 const DRAW_SCALE = 2.15;
 const FALLBACK_SPRITE = 24;
@@ -92,19 +82,29 @@ export function AwakeningCutsceneScreen({
   const burst = useSharedValue(0);
   const limp = useSharedValue(0);
   const limpTravel = useSharedValue(0);
+  const cutsceneVisualIds = useMemo(() => [
+    'u:f18',
+    'r:f07',
+    'r:f04',
+    'u:f14',
+    `r:${playerLookId(viewModel.playerId, viewModel.role)}`,
+    'r:f06',
+    'u:f16',
+  ], [viewModel.playerId, viewModel.role]);
+  const cutsceneSpriteKeys = useMemo(() => cutsceneVisualIds.map(id => `${id}:run0`), [cutsceneVisualIds]);
 
   const atlas = useMemo(() => {
     try {
-      return { ...buildSpriteAtlas(Skia), fallbackMode: false };
+      return { ...buildSpriteAtlas(Skia, cutsceneVisualIds), fallbackMode: false };
     } catch (error) {
       console.warn('AwakeningCutsceneScreen: sprite atlas failed, using fallback', error);
       return { ...buildFallbackAtlas(Skia, FALLBACK_SPRITE), fallbackMode: true };
     }
-  }, []);
-  const sprites: SkRect[] = useMemo(() => CUTSCENE_SPRITES.map(key => {
+  }, [cutsceneVisualIds]);
+  const sprites: SkRect[] = useMemo(() => cutsceneSpriteKeys.map(key => {
     const rect = atlas.rectFor(key);
     return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
-  }), [atlas]);
+  }), [atlas, cutsceneSpriteKeys]);
 
   const centerX = width / 2;
   const centerY = pitchHeight / 2;
@@ -128,7 +128,7 @@ export function AwakeningCutsceneScreen({
     [centerX + 38, centerY + 30],
   ], [centerX, centerY]);
 
-  const transforms = useRSXformBuffer(CUTSCENE_SPRITES.length, (transform, index) => {
+  const transforms = useRSXformBuffer(cutsceneSpriteKeys.length, (transform, index) => {
     'worklet';
     const focus = index === FOCUS_INDEX;
     const startX = starts[index][0];
@@ -161,11 +161,11 @@ export function AwakeningCutsceneScreen({
     );
   });
 
-  const colors: SkColor[] = useMemo(() => CUTSCENE_SPRITES.map((_, index) => {
+  const colors: SkColor[] = useMemo(() => cutsceneSpriteKeys.map((_, index) => {
     if (index === FOCUS_INDEX && beat === 3) return Skia.Color('#f7d894');
     if (atlas.fallbackMode) return Skia.Color(index < 4 ? '#d94f52' : '#5a8fd6');
     return Skia.Color('#ffffff');
-  }), [atlas.fallbackMode, beat]);
+  }), [atlas.fallbackMode, beat, cutsceneSpriteKeys]);
 
   useEffect(() => {
     onBeatChange?.(beat);

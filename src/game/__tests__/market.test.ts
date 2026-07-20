@@ -384,6 +384,7 @@ describe('contract negotiation', () => {
     expect(new Set(first.map(candidate => candidate.name)).size).toBe(first.length);
     expect(new Set(first.map(candidate => candidate.portraitId)).size).toBe(first.length);
     expect(first.every(candidate => !candidate.name.startsWith('Coach Prospect'))).toBe(true);
+    expect(first.every(candidate => candidate.age !== undefined && candidate.age >= 30 && candidate.age <= 60)).toBe(true);
   });
 
   it('gates coach quality by both division and fame and progresses one level per two seasons', () => {

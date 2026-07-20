@@ -13,7 +13,7 @@ export type TrainingActivityId =
 export interface TrainingTransitionParticipant {
   playerId: string;
   playerName: string;
-  spriteSlot: number;
+  role: CareerPlayer['role'];
   activityId: TrainingActivityId;
   activityLabel: string;
 }
@@ -55,11 +55,11 @@ export function trainingTransitionScene(
 
   if (!planIsActive || plan === undefined) return genericScene(roster);
 
-  const playersById = new Map(roster.map((player, index) => [player.id, { player, index }]));
+  const playersById = new Map(roster.map(player => [player.id, player]));
   const drillsById = new Map(content.training.focusDrills.map(drill => [drill.id, drill]));
   const assigned = plan.assignedPlayerIds
     .map(playerId => playersById.get(playerId))
-    .filter((entry): entry is { player: CareerPlayer; index: number } => entry !== undefined)
+    .filter((player): player is CareerPlayer => player !== undefined)
     .slice(0, 3);
 
   if (assigned.length === 0) return genericScene(roster);
@@ -68,12 +68,12 @@ export function trainingTransitionScene(
   return {
     mode: 'plan',
     drillLabels,
-    participants: assigned.map(({ player, index }, participantIndex) => {
+    participants: assigned.map((player, participantIndex) => {
       const drill = plan.drills[participantIndex % plan.drills.length];
       return {
         playerId: player.id,
         playerName: player.name,
-        spriteSlot: spriteSlotFor(player, index),
+        role: player.role,
         activityId: activityIdFor(drill.id),
         activityLabel: drillsById.get(drill.id)?.name ?? drill.id,
       };
@@ -90,16 +90,11 @@ function genericScene(roster: readonly CareerPlayer[]): TrainingTransitionScene 
     participants: [{
       playerId: player?.id ?? 'generic-player',
       playerName: player?.name ?? 'Rovers Player',
-      spriteSlot: player === undefined ? 9 : spriteSlotFor(player, index),
+      role: player?.role ?? 'FWD',
       activityId: 'generic',
       activityLabel: 'Ball Work',
     }],
   };
-}
-
-function spriteSlotFor(player: CareerPlayer, rosterIndex: number): number {
-  if (player.role === 'GK') return 0;
-  return Math.max(1, rosterIndex % 11);
 }
 
 function activityIdFor(drillId: string): TrainingActivityId {

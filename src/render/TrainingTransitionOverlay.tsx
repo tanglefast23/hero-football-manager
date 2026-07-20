@@ -16,6 +16,7 @@ import type {
   TrainingTransitionScene,
 } from '../application/training-transition';
 import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
+import { playerLookId } from './sprites/player-look';
 
 export const TRAINING_TRANSITION_MS = 3_000;
 const REDUCED_MOTION_MS = 650;
@@ -149,30 +150,34 @@ function TrainingAtlasStage({
     return () => clearInterval(timer);
   }, [reduceMotion]);
 
+  const participantVisualIds = useMemo(() => scene.participants.map(participant => (
+    `r:${playerLookId(participant.playerId, participant.role)}`
+  )), [scene.participants]);
+
   const atlas = useMemo(() => {
     try {
-      return buildSpriteAtlas(Skia);
+      return buildSpriteAtlas(Skia, participantVisualIds);
     } catch (error) {
       console.warn('TrainingTransitionOverlay: sprite atlas unavailable', error);
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, []);
+  }, [participantVisualIds]);
 
   const sprites: SkRect[] = useMemo(() => {
     const frame = spriteFrame % 2 === 0 ? 'run0' : 'run1';
     const ball = atlas.rectFor('ball');
     return [
-      ...scene.participants.map(participant => {
+      ...scene.participants.map((participant, index) => {
         const keeperFrame = participant.activityId === 'keeper-drills'
-          && participant.spriteSlot === 0
+          && participant.role === 'GK'
           ? spriteFrame % 2 === 0 ? 'ready0' : 'ready1'
           : frame;
-        const rect = atlas.rectFor(`r${participant.spriteSlot}:${keeperFrame}`);
+        const rect = atlas.rectFor(`${participantVisualIds[index]}:${keeperFrame}`);
         return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
       }),
       ...scene.participants.map(() => Skia.XYWHRect(ball.x, ball.y, ball.w, ball.h)),
     ];
-  }, [atlas, scene.participants, spriteFrame]);
+  }, [atlas, participantVisualIds, scene.participants, spriteFrame]);
 
   const onFrame = useCallback((info: FrameInfo) => {
     'worklet';

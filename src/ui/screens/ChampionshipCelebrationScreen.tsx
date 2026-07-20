@@ -56,14 +56,17 @@ export function ChampionshipCelebrationScreen({
   const fireworkProgress = useRef(new Animated.Value(0)).current;
   const finished = useRef(false);
   const confetti = useMemo(() => makeConfetti(width), [width]);
+  const celebrationVisualIds = useMemo(() => [viewModel.star, ...viewModel.squad].map(player => (
+    player.spriteKey.slice(0, -':run0'.length)
+  )), [viewModel.squad, viewModel.star]);
   const spriteAtlas = useMemo<CelebrationAtlas>(() => {
     try {
-      return buildSpriteAtlas(Skia);
+      return buildSpriteAtlas(Skia, celebrationVisualIds);
     } catch (error) {
       console.warn('ChampionshipCelebrationScreen: sprite atlas unavailable', error);
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);
     }
-  }, []);
+  }, [celebrationVisualIds]);
 
   const completeOnce = useCallback(() => {
     if (finished.current) return;

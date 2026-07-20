@@ -18,13 +18,14 @@ const MIN_SPEED = 60; // px/sec
 const MAX_SPEED = 220; // px/sec
 const DEFAULT_FRAME_MS = 1000 / 60; // assumed dt before Reanimated reports a real delta (first frame)
 
-// 23 of the pack's 45 sprites (see sprites/loader.ts's PLAYER_IDS: 22 ids ×
-// run0/run1 + 'ball' = 45 entries; we use each id's run0 plus the ball) —
-// cycled across all 2000 slots for atlas variety. Walk-cycle frame animation
-// (run0 vs run1) is a gameplay detail this screen has no need for.
+// A representative 22-player slice of the career pool plus the ball, cycled
+// across all 2000 slots for atlas variety.
+const STRESS_VISUAL_IDS = [
+  'r:g00', ...Array.from({ length: 10 }, (_, index) => `r:f${String(index).padStart(2, '0')}`),
+  'u:g01', ...Array.from({ length: 10 }, (_, index) => `u:f${String(index + 10).padStart(2, '0')}`),
+];
 const SPRITE_KEYS: string[] = [
-  ...Array.from({ length: 11 }, (_, i) => `r${i}:run0`),
-  ...Array.from({ length: 11 }, (_, i) => `u${i}:run0`),
+  ...STRESS_VISUAL_IDS.map(id => `${id}:run0`),
   'ball',
 ];
 
@@ -43,7 +44,7 @@ export function StressScreen({ onBack }: { onBack?: () => void }) {
   // screen never tints sprites, so there's no fallbackMode flag to track.)
   const atlas = useMemo(() => {
     try {
-      return buildSpriteAtlas(Skia);
+      return buildSpriteAtlas(Skia, STRESS_VISUAL_IDS);
     } catch (err) {
       console.warn('StressScreen: buildSpriteAtlas failed — rendering placeholder rects', err);
       return buildFallbackAtlas(Skia, FALLBACK_SPRITE);

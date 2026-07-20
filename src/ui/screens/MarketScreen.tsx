@@ -435,7 +435,7 @@ function CoachDesk({
                 <View className="min-w-0 flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
                   <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
-                    {coach.personalityLabel} · {coach.levelLabel}
+                    Age {coach.age} · {coach.personalityLabel} · {coach.levelLabel}
                   </Text>
                   {coach.retiredLegend ? (
                     <View className="mt-2 self-start -rotate-2 border-2 border-gold-dark bg-white px-2 py-1">

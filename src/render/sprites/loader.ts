@@ -1,6 +1,7 @@
 // Pure TS sprite-sheet loader + atlas layout math. No React Native / Skia / Expo imports,
 // no Math.random / Date.now — safe to unit test headless.
 import sheetData from './sprites.json';
+import { FIELD_PLAYER_LOOK_IDS, GOALKEEPER_LOOK_IDS } from './player-look';
 import {
   SLIDE_TACKLE_CELL,
   SLIDE_TACKLE_FRAME_COUNT,
@@ -14,12 +15,14 @@ export interface SpriteSheet {
   sprites: Record<string, string[]>;
 }
 
-const PLAYER_IDS = [
-  'r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10',
-  'u0', 'u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8', 'u9', 'u10',
-];
+const PLAYER_IDS = ['r', 'u'].flatMap(side => [
+  ...FIELD_PLAYER_LOOK_IDS.map(lookId => `${side}:${lookId}`),
+  ...GOALKEEPER_LOOK_IDS.map(lookId => `${side}:${lookId}`),
+]);
 const FRAMES = ['run0', 'run1'];
-const GOALKEEPER_IDS = ['r0', 'u0'];
+const GOALKEEPER_IDS = ['r', 'u'].flatMap(side => (
+  GOALKEEPER_LOOK_IDS.map(lookId => `${side}:${lookId}`)
+));
 const GOALKEEPER_FRAMES = ['ready0', 'ready1'];
 const BALL_KEY = 'ball';
 const BALL_SIZE = 6;
@@ -29,11 +32,13 @@ const SLIDE_FRAME_PATTERN = /:slide\d+$/;
 // sprites from ever sampling a shoe/hair pixel from the next atlas cell.
 export const ATLAS_GUTTER = 1;
 
-function requiredKeys(): string[] {
+function requiredKeys(playerIds: readonly string[]): string[] {
   const keys: string[] = [];
-  for (const id of PLAYER_IDS) for (const frame of FRAMES) keys.push(`${id}:${frame}`);
-  for (const id of GOALKEEPER_IDS) for (const frame of GOALKEEPER_FRAMES) keys.push(`${id}:${frame}`);
-  for (const id of PLAYER_IDS) {
+  for (const id of playerIds) for (const frame of FRAMES) keys.push(`${id}:${frame}`);
+  for (const id of playerIds.filter(candidate => GOALKEEPER_IDS.includes(candidate))) {
+    for (const frame of GOALKEEPER_FRAMES) keys.push(`${id}:${frame}`);
+  }
+  for (const id of playerIds) {
     for (let frame = 0; frame < SLIDE_TACKLE_FRAME_COUNT; frame += 1) {
       keys.push(`${id}:${slideTackleSpriteFrame(frame)}`);
     }
@@ -47,7 +52,7 @@ function requiredKeys(): string[] {
  * structural violation: missing required sprite, wrong row count/width, or a
  * character used in a sprite row that isn't a palette key.
  */
-export function loadSpriteSheet(): SpriteSheet {
+export function loadSpriteSheet(visualIds: readonly string[] = PLAYER_IDS): SpriteSheet {
   const baseSheet = sheetData as SpriteSheet;
 
   if (!baseSheet.cell || baseSheet.cell.w <= 0 || baseSheet.cell.h <= 0) {
@@ -80,9 +85,19 @@ export function loadSpriteSheet(): SpriteSheet {
     });
   }
 
-  const sheet = withSlideTackleSprites(baseSheet);
+  const uniqueVisualIds = [...new Set(visualIds)];
+  for (const id of uniqueVisualIds) {
+    if (!baseSheet.sprites[`${id}:run0`] || !baseSheet.sprites[`${id}:run1`]) {
+      throw new Error(`loadSpriteSheet: unknown player visual ID "${id}"`);
+    }
+  }
+  const selectedSprites: Record<string, string[]> = { [BALL_KEY]: baseSheet.sprites[BALL_KEY] };
+  for (const id of uniqueVisualIds) for (const [key, rows] of Object.entries(baseSheet.sprites)) {
+    if (key.startsWith(`${id}:`)) selectedSprites[key] = rows;
+  }
+  const sheet = withSlideTackleSprites({ ...baseSheet, sprites: selectedSprites });
 
-  for (const key of requiredKeys()) {
+  for (const key of requiredKeys(uniqueVisualIds)) {
     if (!(key in sheet.sprites)) {
       throw new Error(`loadSpriteSheet: missing required sprite "${key}"`);
     }

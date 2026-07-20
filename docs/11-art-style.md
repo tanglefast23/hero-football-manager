@@ -89,6 +89,8 @@ Players, coaches, staff, supporters, officials, and visitors must form an explic
 
 Caricature describes the **individual's personality**, never their ethnicity. Do not use skin tone, accent, religious clothing, or cultural hair as the joke or exaggeration. Avoid identical faces recolored into “diversity,” and avoid grouping traits into stereotypes. Check the full cast together before export: no coach should be mistaken for another at 1× or in silhouette.
 
+Coaches enter the staff pool at **age 30–60** and must read as staff rather than recycled players. Their staff-only wardrobe spans the real touchline spectrum: suit and tie, open-collar suit, blazer with turtleneck, cardigan over a shirt, collared sweater, quarter-zip, training polo, club tracksuit, technical shell, padded gilet, padded coat, rain jacket, and overcoat with scarf. Keep adult proportions and restrained age-band cues such as expression lines, grey temples, silver hair, or a mature hairline. Age and clothing are personality signals, never jokes or indicators of coaching quality.
+
 ### Characters — Rule 2: expression sets
 
 Faces are **eyes-and-mouth swaps over a fixed head**. Ship **resting / peak-joy / knocked-out** minimum. **X-for-eyes is the universal KO tell**; gritted teeth sell pain. One portrait reacts live — neutral on the ball → X-eyes injured → grin on a goal — no full redraw.

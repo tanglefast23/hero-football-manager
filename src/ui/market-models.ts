@@ -75,6 +75,7 @@ export interface CoachCandidateViewModel {
   readonly id: string;
   readonly portraitId: string;
   readonly name: string;
+  readonly age: number;
   readonly level: number;
   readonly levelLabel: string;
   readonly specialtyLabels: readonly [string, string];

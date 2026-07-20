@@ -1,5 +1,6 @@
 import { mulberry32 } from '../sim/rng';
 import type { Attrs, PowerId, Role } from '../sim/types';
+import coachIdentityData from './coach-identities.json';
 
 const UINT32_MAX = 4294967295;
 const ATTR_NAMES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
@@ -603,6 +604,7 @@ export interface RetiredLegendCoachInput {
   readonly personality: PlayerPersonality;
   readonly fame: number;
   readonly seasonsAtClub: number;
+  readonly age?: number;
   readonly specialties?: readonly [CoachSpecialty, CoachSpecialty];
 }
 
@@ -610,6 +612,7 @@ export interface CoachCandidate {
   readonly id: string;
   readonly portraitId?: string;
   readonly name: string;
+  readonly age?: number;
   readonly specialties: readonly [CoachSpecialty, CoachSpecialty];
   readonly level: number;
   readonly weeklyWage: number;
@@ -636,24 +639,9 @@ export interface CoachMarketSetup {
  * Curated identities keep staff memorable and deliberately multicultural.
  * Gameplay traits are rolled independently so appearance never encodes skill.
  */
-const COACH_IDENTITIES = [
-  { id: 'amara-okafor', name: 'Amara Okafor' },
-  { id: 'kenji-sato', name: 'Kenji Sato' },
-  { id: 'valentina-cruz', name: 'Valentina Cruz' },
-  { id: 'imani-adeyemi', name: 'Imani Adeyemi' },
-  { id: 'freja-lindholm', name: 'Freja Lindholm' },
-  { id: 'priya-nair', name: 'Priya Nair' },
-  { id: 'mateo-silva', name: 'Mateo Silva' },
-  { id: 'hana-park', name: 'Hana Park' },
-  { id: 'leila-haddad', name: 'Leila Haddad' },
-  { id: 'nia-thompson', name: 'Nia Thompson' },
-  { id: 'tomas-ferreira', name: 'Tomás Ferreira' },
-  { id: 'aiko-tanaka', name: 'Aiko Tanaka' },
-  { id: 'sibusiso-dlamini', name: 'Sibusiso Dlamini' },
-  { id: 'sofia-rossi', name: 'Sofia Rossi' },
-  { id: 'jamal-rahman', name: 'Jamal Rahman' },
-  { id: 'mei-chen', name: 'Mei Chen' },
-] as const;
+const COACH_IDENTITIES: readonly { id: string; name: string; age: number }[] = coachIdentityData.map(
+  identity => ({ id: identity.id, name: identity.name, age: identity.age }),
+);
 
 const COACH_SPECIALTIES: readonly CoachSpecialty[] = [
   'ATTACK',
@@ -717,6 +705,7 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
       id: `legend-${legend.playerId}`,
       portraitId: `legend-${legend.playerId}`,
       name: legend.name,
+      age: legend.age ?? 35,
       specialties,
       level,
       weeklyWage: scaleByPercent(baseWage, 75, 'legend loyalty wage'),
@@ -742,6 +731,7 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
       id: `coach-s${setup.season}-${identity.id}`,
       portraitId: identity.id,
       name: identity.name,
+      age: identity.age,
       specialties: pickCoachSpecialties(random),
       level,
       weeklyWage: checkedMultiply(500, level, 'coach weekly wage'),
@@ -994,6 +984,9 @@ function validateRetiredLegend(legend: RetiredLegendCoachInput): void {
   assertNonEmptyString(legend.name, 'retired legend name');
   validatePersonality(legend.personality);
   assertNonNegativeSafeInteger(legend.fame, 'retired legend fame');
+  if (legend.age !== undefined && (!Number.isSafeInteger(legend.age) || legend.age < 30 || legend.age > 60)) {
+    throw new Error('retired coach candidates must be age 30 to 60');
+  }
   if (!Number.isSafeInteger(legend.seasonsAtClub) || legend.seasonsAtClub < 5) {
     throw new Error('retired coach candidates must have at least 5 club seasons');
   }

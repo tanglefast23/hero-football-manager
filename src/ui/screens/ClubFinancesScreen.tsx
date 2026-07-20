@@ -232,7 +232,7 @@ export function ClubFinancesScreen({
                   />
                 </View>
                 <View className="min-w-0 flex-1 gap-2">
-                  <Metric label="Level" value={String(viewModel.headCoach.level)} />
+                  <Metric label="Age · level" value={`${viewModel.headCoach.age} · ${viewModel.headCoach.level}`} />
                   <Metric label="Wage / wk" value={formatCompactNumber(viewModel.headCoach.weeklyWage)} />
                 </View>
               </View>

@@ -1,5 +1,6 @@
 import { leagueStandings, rosterForClub, type CareerPlayer, type GameState } from '../game';
 import type { ChampionshipCelebrationViewModel } from '../ui';
+import { playerLookId } from '../render/sprites/player-look';
 
 const FLAG_PREFIX = 'celebration:league-title:season-';
 
@@ -56,19 +57,12 @@ export function championshipCelebrationViewModel(
   const star = sorted[0]!;
   const starGoals = goalsByPlayerId.get(star.id) ?? 0;
   const playerViewModel = (player: CareerPlayer) => {
-    const lineupSlot = lineup.playerIds.indexOf(player.id);
-    const rosterSlot = squad.findIndex(candidate => candidate.id === player.id);
-    const spriteSlot = lineupSlot >= 0
-      ? lineupSlot
-      : player.role === 'GK'
-        ? 0
-        : 1 + Math.max(0, rosterSlot - 1) % 10;
     return {
       id: player.id,
       name: player.name,
       role: player.role,
       isHero: player.power !== undefined,
-      spriteKey: `${spriteSide}${spriteSlot}:run0`,
+      spriteKey: `${spriteSide}:${playerLookId(player.id, player.role)}:run0`,
     };
   };
 

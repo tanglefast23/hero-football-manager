@@ -350,6 +350,7 @@ export interface ClubFinancesViewModel {
     id: string;
     portraitId: string;
     name: string;
+    age: number;
     level: number;
     specialtyLabels: readonly [string, string];
     weeklyWage: number;
@@ -392,6 +393,7 @@ export interface StoryEventViewModel {
 
 export interface AwakeningCutsceneViewModel {
   fixtureLabel: string;
+  playerId: string;
   playerName: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   powerId: 'SUPER_SPEED' | 'SUPER_STRENGTH' | 'FIRE_TORCH';

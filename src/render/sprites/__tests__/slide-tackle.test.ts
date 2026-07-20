@@ -8,8 +8,8 @@ import {
 } from '../slide-tackle';
 
 const CURRENT_IDS = [
-  'r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10',
-  'u0', 'u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8', 'u9', 'u10',
+  'r:g00', 'r:f00', 'r:f01', 'r:f02', 'r:f03', 'r:f04', 'r:f05', 'r:f06', 'r:f07', 'r:f08', 'r:f09',
+  'u:g01', 'u:f10', 'u:f11', 'u:f12', 'u:f13', 'u:f14', 'u:f15', 'u:f16', 'u:f17', 'u:f18', 'u:f19',
 ] as const;
 
 function paintedBounds(rows: readonly string[]) {
@@ -63,7 +63,7 @@ describe('derived slide-tackle sprites', () => {
         expect(bounds.height).toBeLessThanOrEqual(30);
       }
     }
-    expect(paintedBounds(sheet.sprites['r1:slide5']).width).toBeGreaterThanOrEqual(30);
+    expect(paintedBounds(sheet.sprites['r:f00:slide5']).width).toBeGreaterThanOrEqual(30);
   });
 
   it('keeps plant, crouch, knee-plant, rise, and stand silhouettes connected', () => {
@@ -82,9 +82,9 @@ describe('derived slide-tackle sprites', () => {
 
   it('preserves identity and kit palette tokens in the generated art', () => {
     const sheet = loadSpriteSheet();
-    expect(sheet.sprites['r1:slide5'].join('')).toContain('R');
-    expect(sheet.sprites['u1:slide5'].join('')).toContain('B');
-    expect(sheet.sprites['r9:slide5'].join('')).toContain('F');
+    expect(sheet.sprites['r:f00:slide5'].join('')).toContain('R');
+    expect(sheet.sprites['u:f10:slide5'].join('')).toContain('B');
+    expect(sheet.sprites['r:f08:slide5'].join('')).toContain('F');
   });
 
   it('uses positive head motion and reaches an almost-horizontal deepest slide', () => {
@@ -95,7 +95,7 @@ describe('derived slide-tackle sprites', () => {
   it('does not recreate the removed solid black neck bridge', () => {
     const sheet = loadSpriteSheet();
     for (const frame of [2, 3, 4, 5, 6]) {
-      const rows = sheet.sprites[`r1:${slideTackleSpriteFrame(frame)}`];
+      const rows = sheet.sprites[`r:f00:${slideTackleSpriteFrame(frame)}`];
       const neckTokens = rows.slice(10, 13).flatMap(row => [...row.slice(12, 15)]);
       expect(neckTokens.filter(token => token === 'K').length).toBeLessThan(5);
     }
@@ -107,12 +107,12 @@ describe('derived slide-tackle sprites', () => {
       cell: current.cell,
       palette: current.palette,
       sprites: {
-        'r11:run0': current.sprites['r1:run0'],
-        'r11:run1': current.sprites['r1:run1'],
+        'r:future:run0': current.sprites['r:f00:run0'],
+        'r:future:run1': current.sprites['r:f00:run1'],
       },
     });
     for (let frame = 0; frame < SLIDE_TACKLE_FRAME_COUNT; frame += 1) {
-      expect(future.sprites).toHaveProperty(`r11:${slideTackleSpriteFrame(frame)}`);
+      expect(future.sprites).toHaveProperty(`r:future:${slideTackleSpriteFrame(frame)}`);
     }
   });
 });

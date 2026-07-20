@@ -6,6 +6,7 @@ import {
   completeChampionshipCelebration,
   hasPendingChampionshipCelebration,
 } from '../championship-celebration';
+import { playerLookId } from '../../render/sprites/player-look';
 
 function championState() {
   const state = createCareer(createLaunchCareerSetup(777));
@@ -41,6 +42,7 @@ describe('league championship celebration', () => {
       .filter(fixture => fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
       .sort((left, right) => right.week - left.week)[0]!;
     const finalMatchSide = finalFixture.homeClubId === state.userClubId ? 'r' : 'u';
+    const leadingScorer = state.players.find(player => player.id === 'bramble-rovers-p10')!;
 
     expect(hasPendingChampionshipCelebration(state)).toBe(true);
     expect(championshipCelebrationViewModel(state, 'Bert Rudge')).toMatchObject({
@@ -50,7 +52,7 @@ describe('league championship celebration', () => {
         id: 'bramble-rovers-p10',
         goals: 12,
         hasRecordedGoals: true,
-        spriteKey: `${finalMatchSide}9:run0`,
+        spriteKey: `${finalMatchSide}:${playerLookId(leadingScorer.id, leadingScorer.role)}:run0`,
       },
       squad: expect.arrayContaining([
         expect.objectContaining({ id: 'bramble-rovers-p13' }),
@@ -70,9 +72,10 @@ describe('league championship celebration', () => {
       .sort((left, right) => right.week - left.week)[0]!;
     const side = finalFixture.homeClubId === state.userClubId ? 'r' : 'u';
 
-    lineup.playerIds.forEach((playerId, slot) => {
+    lineup.playerIds.forEach(playerId => {
+      const careerPlayer = state.players.find(player => player.id === playerId)!;
       expect(players.find(player => player.id === playerId)?.spriteKey)
-        .toBe(`${side}${slot}:run0`);
+        .toBe(`${side}:${playerLookId(careerPlayer.id, careerPlayer.role)}:run0`);
     });
   });
 
