@@ -120,7 +120,9 @@ function formatPlayerLookId(role: PlayerVisualRole, index: number): string {
 function lookIndex(playerId: string, poolSize: number): number {
   const numberedId = /^(.*?)(\d+)$/.exec(playerId);
   if (numberedId === null) return stablePlayerLookHash(playerId) % poolSize;
-  return (stablePlayerLookHash(numberedId[1]) + Number(numberedId[2]) * 47) % poolSize;
+  // Generated club squads end in p01, p02, ... . Walking the pool with a
+  // larger coprime step keeps new-season squads visually distinct.
+  return (stablePlayerLookHash(numberedId[1]) + Number(numberedId[2]) * 101) % poolSize;
 }
 
 function compareIds(left: string, right: string): number {
