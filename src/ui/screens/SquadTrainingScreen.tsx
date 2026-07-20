@@ -120,7 +120,11 @@ export function SquadTrainingScreen({
             return (
               <View
                 key={player.id}
-                className={selected ? 'flex-row items-center border-b border-ink/20 bg-paper-dark px-3 py-2' : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
+                className={selected
+                  ? 'flex-row items-center border-b border-ink/20 bg-paper-dark px-3 py-2'
+                  : player.injuryWeeks > 0
+                    ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
+                    : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
               >
                 <Pressable
                   accessibilityRole="button"
@@ -132,6 +136,15 @@ export function SquadTrainingScreen({
                   <Text className={selected ? 'w-12 font-mono text-sm font-bold text-ink' : 'w-12 font-mono text-sm font-bold text-blue-dark'} numberOfLines={1}>{player.role}</Text>
                   <View className="flex-1 pr-2">
                     <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
+                    {player.injuryWeeks > 0 ? (
+                      <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-red-dark" numberOfLines={1}>
+                        OUT · {player.injuryWeeks} {player.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
+                      </Text>
+                    ) : player.isStarter ? (
+                      <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-pitch-dark" numberOfLines={1}>
+                        Starting XI
+                      </Text>
+                    ) : null}
                     <Text className="mt-1 text-sm text-ink/60" numberOfLines={1}>{player.contractLabel}</Text>
                     {player.powerName ? (
                       <Text className="mt-0.5 text-sm font-bold uppercase text-amber-600" numberOfLines={1}>★ {player.powerName}</Text>
@@ -170,9 +183,17 @@ export function SquadTrainingScreen({
         <PaperPanel
           kicker="Player file"
           title={selectedPlayer.name}
-          stamp={selectedPlayer.licensed ? 'Licensed' : selectedPlayer.role}
+          stamp={selectedPlayer.injuryWeeks > 0 ? 'OUT' : selectedPlayer.licensed ? 'Licensed' : selectedPlayer.role}
           className="mt-5"
         >
+          {selectedPlayer.injuryWeeks > 0 ? (
+            <View className="mb-3 border-2 border-b-4 border-red-dark bg-red-light p-3">
+              <Text className="font-mono text-base font-bold uppercase text-red-dark">
+                OUT · {selectedPlayer.injuryWeeks} {selectedPlayer.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
+              </Text>
+              <Text className="mt-1 text-sm text-ink/70">Unavailable for match selection while recovering.</Text>
+            </View>
+          ) : null}
           <View className="flex-row gap-2">
             <Metric label="Overall" value={String(selectedPlayer.overall)} />
             <Metric

@@ -96,6 +96,27 @@ export function PostMatchSummaryModal({
                 <StatusChip label={viewModel.result.outcomeLabel} tone={resultTone} />
               </View>
 
+              {viewModel.updates.length > 0 ? (
+                <View className="mt-5">
+                  <SectionLabel eyebrow="Club desk" title="What needs attention" />
+                  <View className="gap-2">
+                    {viewModel.updates.map(update => (
+                      <View
+                        key={update.id}
+                        className={update.tone === 'warning'
+                          ? 'border-2 border-b-4 border-red-dark bg-red-light p-3'
+                          : update.tone === 'positive'
+                            ? 'border-2 border-b-4 border-pitch-dark bg-pitch-light p-3'
+                            : 'border-2 border-b-4 border-blue-dark bg-blue-light p-3'}
+                      >
+                        <Text className="text-base font-bold uppercase text-ink">{update.title}</Text>
+                        <Text className="mt-1 text-sm text-ink/70">{update.detail}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
               <PaperPanel kicker="Accounts office" title="Match statement" stamp="Filed" className="mt-5">
                 <View className="border-y border-ink/30">
                   {viewModel.ledger.map((line, index) => (

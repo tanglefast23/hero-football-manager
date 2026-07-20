@@ -456,6 +456,7 @@ function GameApp() {
         viewModel={matchday}
         onBack={() => store.setActiveTab('home')}
         onToggleHeroLicense={store.toggleHeroLicense}
+        onSwapStartingPlayer={store.swapStartingPlayer}
         onWatchMatch={store.watchMatch}
         onQuickResult={store.quickResult}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
@@ -619,6 +620,10 @@ function GameApp() {
             onOpenFixture={store.openMatchday}
             onOpenAlert={alertId => {
               if (alertId === 'training-ground') store.setActiveTab('club');
+              else if (alertId.startsWith('injury-')) {
+                store.selectPlayer(alertId.slice('injury-'.length));
+                store.setActiveTab('squad');
+              }
               else store.notify('This alert is resolved from the season review.');
             }}
             onOpenLeague={() => store.setActiveTab('league')}

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
@@ -8,6 +9,7 @@ export interface FixtureMatchDayScreenProps {
   viewModel: MatchDayViewModel;
   onBack: () => void;
   onToggleHeroLicense: (playerId: string) => void;
+  onSwapStartingPlayer: (starterId: string, replacementId: string) => void;
   onWatchMatch: () => void;
   onQuickResult: () => void;
   watchDisabled?: boolean;
@@ -21,6 +23,7 @@ export function FixtureMatchDayScreen({
   viewModel,
   onBack,
   onToggleHeroLicense,
+  onSwapStartingPlayer,
   onWatchMatch,
   onQuickResult,
   watchDisabled = false,
@@ -29,6 +32,18 @@ export function FixtureMatchDayScreen({
 }: FixtureMatchDayScreenProps) {
   const fixture = viewModel.fixture;
   const licensedCount = viewModel.heroes.filter(hero => hero.licensed).length;
+  const [selectedStarterId, setSelectedStarterId] = useState<string | null>(null);
+  const selectedStarter = viewModel.lineup.find(player => player.id === selectedStarterId);
+
+  useEffect(() => {
+    if (selectedStarterId !== null && selectedStarter === undefined) setSelectedStarterId(null);
+  }, [selectedStarter, selectedStarterId]);
+
+  const swapWithBenchPlayer = (replacementId: string) => {
+    if (selectedStarter === undefined) return;
+    onSwapStartingPlayer(selectedStarter.id, replacementId);
+    setSelectedStarterId(null);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
@@ -73,6 +88,9 @@ export function FixtureMatchDayScreen({
 
         <View className="mt-6">
           <SectionLabel eyebrow="Team sheet" title="Starting eleven" right={<StatusChip label="4–4–2" />} />
+          <Text className="mb-3 text-sm leading-5 text-ink/60">
+            Tap a starter, then choose an available player in the same role. Every change is saved for future matches.
+          </Text>
           <View className="border-2 border-emerald-900 bg-pitch px-3 py-4">
             <View className="absolute inset-x-3 top-1/2 h-px bg-paper/50" />
             <View className="absolute left-1/2 top-0 h-full w-px bg-paper/40" />
@@ -81,18 +99,75 @@ export function FixtureMatchDayScreen({
               return (
                 <View key={role} className="my-2 flex-row justify-center gap-2">
                   {players.map(player => (
-                    <View key={player.id} className="w-14 items-center">
+                    <Pressable
+                      key={player.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${player.name}, starting ${player.role}. Select to replace.`}
+                      accessibilityState={{ selected: player.id === selectedStarterId }}
+                      onPress={() => setSelectedStarterId(current => current === player.id ? null : player.id)}
+                      className={player.id === selectedStarterId
+                        ? 'w-14 items-center border-2 border-signal bg-ink/40 p-1'
+                        : 'w-14 items-center border-2 border-transparent p-1'}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
+                    >
                       <View className={player.isHero ? 'h-9 w-9 items-center justify-center border-2 border-amber-500 bg-ink' : 'h-9 w-9 items-center justify-center border-2 border-paper bg-ink'}>
                         <Text className={player.isHero ? 'font-mono text-sm font-bold text-amber-400' : 'font-mono text-sm font-bold text-paper'}>
                           {player.shirtNumber}
                         </Text>
                       </View>
                       <Text className="mt-1 text-center text-sm font-bold text-paper" numberOfLines={1}>{player.name}</Text>
-                    </View>
+                    </Pressable>
                   ))}
                 </View>
               );
             })}
+          </View>
+
+          <View className="mt-4">
+            <SectionLabel
+              eyebrow="Selection bench"
+              title={selectedStarter === undefined ? 'Choose a starter' : `Replace ${selectedStarter.name}`}
+              right={selectedStarter === undefined ? undefined : <StatusChip label={selectedStarter.role} selected />}
+            />
+            <View className="gap-2">
+              {viewModel.bench.map(player => {
+                const roleMismatch = selectedStarter !== undefined && player.role !== selectedStarter.role;
+                const disabled = selectedStarter === undefined || !player.canStart || roleMismatch;
+                const statusLabel = player.unavailableLabel
+                  ?? (roleMismatch ? `${selectedStarter?.role ?? player.role} only` : 'Ready');
+                return (
+                  <Pressable
+                    key={player.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${player.name}, bench ${player.role}, overall ${player.overall}. ${statusLabel}.`}
+                    accessibilityState={{ disabled }}
+                    disabled={disabled}
+                    onPress={() => swapWithBenchPlayer(player.id)}
+                    className={disabled
+                      ? 'min-h-14 flex-row items-center border-2 border-ink/20 bg-white p-3 opacity-50'
+                      : 'min-h-14 flex-row items-center border-2 border-b-4 border-ink bg-white p-3'}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
+                  >
+                    <View className={player.isHero
+                      ? 'mr-3 h-10 w-10 items-center justify-center border-2 border-gold-dark bg-gold'
+                      : 'mr-3 h-10 w-10 items-center justify-center border-2 border-ink bg-paper-dark'}
+                    >
+                      <Text className="font-mono text-sm font-bold text-ink">{player.shirtNumber}</Text>
+                    </View>
+                    <View className="flex-1 pr-2">
+                      <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{player.name}</Text>
+                      <Text className="mt-1 font-mono text-sm text-ink/60">
+                        {player.role} · OVR {player.overall} · FIT {player.condition}%
+                      </Text>
+                    </View>
+                    <StatusChip
+                      label={statusLabel}
+                      tone={player.injuryWeeks > 0 ? 'danger' : player.isHero && !player.licensed ? 'hero' : disabled ? 'normal' : 'success'}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         </View>
 

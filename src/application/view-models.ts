@@ -375,6 +375,7 @@ export function seasonEndViewModel(
 
 export function homeViewModel(state: GameState): HomeViewModel {
   const userClub = requireUserClub(state);
+  const roster = rosterForClub(state, state.userClubId);
   const nextFixture = state.fixtures
     .filter(fixture =>
       fixture.status === 'scheduled' &&
@@ -382,8 +383,11 @@ export function homeViewModel(state: GameState): HomeViewModel {
       (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId),
     )
     .sort((left, right) => left.week - right.week || left.round - right.round)[0];
-  const expired = rosterForClub(state, state.userClubId)
+  const expired = roster
     .filter(player => player.contractSeasonsRemaining === 0);
+  const injured = roster
+    .filter(player => player.injuryWeeks > 0)
+    .sort((left, right) => right.injuryWeeks - left.injuryWeeks || left.name.localeCompare(right.name));
 
   const alerts = [
     ...(!state.facilities.trainingGroundBuilt ? [{
@@ -398,6 +402,12 @@ export function homeViewModel(state: GameState): HomeViewModel {
       detail: 'Awakened players now ask for hero wages. Review before Season 2.',
       tone: 'urgent' as const,
     }] : []),
+    ...injured.map(player => ({
+      id: `injury-${player.id}`,
+      title: `${player.name} · OUT`,
+      detail: `OUT · ${weekCountLabel(player.injuryWeeks)} — unavailable for selection.`,
+      tone: 'urgent' as const,
+    })),
   ];
 
   const standings = leagueStandings(state).map(row => ({
@@ -491,6 +501,7 @@ export function matchDayViewModel(state: GameState, content: LaunchContent): Mat
     if (player === undefined) throw new Error(`lineup references unknown player ${playerId}`);
     return player;
   });
+  const lineupIds = new Set(lineup.playerIds);
 
   return {
     fixture: fixtureViewModel(
@@ -509,6 +520,28 @@ export function matchDayViewModel(state: GameState, content: LaunchContent): Mat
         role: player.role,
         shirtNumber: index + 1,
         isHero: player.power !== undefined,
+        overall: overall(player.attrs),
+        condition: player.condition ?? 100,
+      };
+    }),
+    bench: roster.filter(player => !lineupIds.has(player.id)).map(player => {
+      const unlicensedHero = player.power !== undefined && !player.licensed;
+      return {
+        id: player.id,
+        name: player.name,
+        role: player.role,
+        shirtNumber: roster.findIndex(candidate => candidate.id === player.id) + 1,
+        isHero: player.power !== undefined,
+        overall: overall(player.attrs),
+        condition: player.condition ?? 100,
+        injuryWeeks: player.injuryWeeks,
+        licensed: player.licensed,
+        canStart: player.injuryWeeks === 0 && !unlicensedHero,
+        ...(player.injuryWeeks > 0
+          ? { unavailableLabel: `OUT · ${weekCountLabel(player.injuryWeeks)}` }
+          : unlicensedHero
+            ? { unavailableLabel: 'Hero License required' }
+            : {}),
       };
     }),
     heroLimit: careerHeroLimit(state),
@@ -536,6 +569,9 @@ export function squadTrainingViewModel(
   const selectedDrills = drills.filter(drill => selected.has(drill.id));
   const totalMoneyCost = selectedDrills.reduce((sum, drill) => sum + drill.moneyCost, 0);
   const totalTrainingPointCost = selectedDrills.reduce((sum, drill) => sum + drill.tpCost, 0);
+  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  if (lineup === undefined) throw new Error('the user club has no starting lineup');
+  const starterIds = new Set(lineup.playerIds);
 
   return {
     resources: {
@@ -549,6 +585,8 @@ export function squadTrainingViewModel(
       role: player.role,
       overall: overall(player.attrs),
       condition: player.condition ?? 100,
+      injuryWeeks: player.injuryWeeks,
+      isStarter: starterIds.has(player.id),
       age: player.age ?? 24,
       archetype: player.archetype ?? 'All-Rounder',
       potential: player.potential ?? 3,
@@ -688,6 +726,7 @@ export function postMatchViewModel(
     heroEssenceGained: after.heroEssence - before.heroEssence,
     highlights,
     development: playerDevelopmentViewModel(before, after),
+    updates: weekUpdates(before, after),
   };
 }
 
@@ -772,11 +811,27 @@ function skippedTrainingWarning(before: GameState, after: GameState): string {
 
 function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel['updates'] {
   const afterPlayers = new Map(after.players.map(player => [player.id, player]));
+  const beforeLineup = before.lineups.find(lineup => lineup.clubId === before.userClubId);
+  const afterLineup = after.lineups.find(lineup => lineup.clubId === after.userClubId);
   const updates: WeeklyReviewViewModel['updates'][number][] = [];
   for (const playerBefore of before.players.filter(player => player.clubId === before.userClubId)) {
     const playerAfter = afterPlayers.get(playerBefore.id);
     if (playerAfter === undefined) continue;
-    if (playerBefore.injuryWeeks > playerAfter.injuryWeeks) {
+    if (playerBefore.injuryWeeks === 0 && playerAfter.injuryWeeks > 0) {
+      const starterSlot = beforeLineup?.playerIds.indexOf(playerBefore.id) ?? -1;
+      const replacementId = starterSlot >= 0 ? afterLineup?.playerIds[starterSlot] : undefined;
+      const replacement = replacementId === undefined || replacementId === playerBefore.id
+        ? undefined
+        : afterPlayers.get(replacementId);
+      updates.push({
+        id: `injury-${playerBefore.id}`,
+        title: `${playerBefore.name} ruled out`,
+        detail: `OUT · ${weekCountLabel(playerAfter.injuryWeeks)}.${replacement === undefined
+          ? ''
+          : ` ${replacement.name} has moved into the Starting XI.`}`,
+        tone: 'warning',
+      });
+    } else if (playerBefore.injuryWeeks > playerAfter.injuryWeeks) {
       updates.push({
         id: `injury-${playerBefore.id}`,
         title: playerAfter.injuryWeeks === 0 ? `${playerBefore.name} cleared to play` : `${playerBefore.name} recovering`,
@@ -811,6 +866,10 @@ function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel
     });
   }
   return updates;
+}
+
+function weekCountLabel(weeks: number): string {
+  return `${weeks} ${weeks === 1 ? 'WEEK' : 'WEEKS'}`;
 }
 
 function fixtureViewModel(

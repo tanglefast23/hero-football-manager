@@ -7,6 +7,7 @@ import {
   renewCareerPlayer,
   selectCareerLicensedHeroes,
   setCareerLineup,
+  swapCareerLineupPlayer,
 } from '../squad';
 import type { CareerPlayer, CareerSetup, GameState } from '../types';
 
@@ -83,6 +84,33 @@ describe('career squad integration', () => {
     );
     const swapped = setCareerLineup(relicensed, lineup);
     expect(buildCareerTeamDef(swapped, CLUB_IDS[0]).players.filter(player => player.power)).toHaveLength(2);
+  });
+
+  it('persists same-role bench swaps and rejects unavailable replacements', () => {
+    const initial = career();
+    const starterId = `${CLUB_IDS[0]}-p10`;
+    const replacementId = `${CLUB_IDS[0]}-p12`;
+
+    const swapped = swapCareerLineupPlayer(initial, starterId, replacementId);
+    const userLineup = swapped.lineups.find(lineup => lineup.clubId === swapped.userClubId)!;
+    expect(userLineup.playerIds).toContain(replacementId);
+    expect(userLineup.playerIds).not.toContain(starterId);
+    expect(buildCareerTeamDef(swapped, swapped.userClubId).players.map(player => player.id))
+      .toContain(replacementId);
+
+    expect(() => swapCareerLineupPlayer(swapped, `${CLUB_IDS[0]}-p8`, starterId))
+      .toThrow('preserve the formation');
+    expect(() => swapCareerLineupPlayer(initial, starterId, `${CLUB_IDS[0]}-p11`))
+      .toThrow('Hero License');
+
+    const injured = {
+      ...initial,
+      players: initial.players.map(player => player.id === replacementId
+        ? { ...player, injuryWeeks: 3 }
+        : player),
+    };
+    expect(() => swapCareerLineupPlayer(injured, starterId, replacementId))
+      .toThrow('injured and unavailable');
   });
 
   it('uses M2 low-morale penalties without changing the M1 match adapter', () => {

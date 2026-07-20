@@ -7,7 +7,7 @@ import {
 } from '../../persistence';
 import type { ReplayEnvelope } from '../../sim/types';
 import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
-import { DEFAULT_CREATION_RATINGS } from '../../game';
+import { DEFAULT_CREATION_RATINGS, type GameState } from '../../game';
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
 import type { PostMatchViewModel } from '../../ui';
 
@@ -128,6 +128,20 @@ describe('M1 app store integration', () => {
       amount: -400,
     });
     expect(settled.eventFlags).toContain('guide:bert:first-training-complete');
+  });
+
+  it('updates the Starting XI through the app store', () => {
+    startCreatedCareer(788);
+    const before = useM1Store.getState().career!;
+    const { starterId, replacementId } = firstAvailableLineupSwap(before);
+
+    useM1Store.getState().swapStartingPlayer(starterId, replacementId);
+
+    const after = useM1Store.getState().career!;
+    const nextLineup = after.lineups.find(candidate => candidate.clubId === after.userClubId)!;
+    expect(nextLineup.playerIds).toContain(replacementId);
+    expect(nextLineup.playerIds).not.toContain(starterId);
+    expect(useM1Store.getState().error).toBeNull();
   });
 
   it('shows why a repeating focus plan was skipped and returns to the new week', () => {
@@ -299,6 +313,12 @@ describe('M1 app store integration', () => {
       ratings: DEFAULT_CREATION_RATINGS,
     });
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
+    const { starterId, replacementId } = firstAvailableLineupSwap(useM1Store.getState().career!);
+    useM1Store.getState().swapStartingPlayer(starterId, replacementId);
+    checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
+    expect(useM1Store.getState().career?.lineups
+      .find(lineup => lineup.clubId === useM1Store.getState().career?.userClubId)?.playerIds)
+      .toContain(replacementId);
     useM1Store.getState().buildFacility();
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
     useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
@@ -682,6 +702,28 @@ function startCreatedCareer(seed: number): void {
   });
 }
 
+function firstAvailableLineupSwap(career: GameState): { starterId: string; replacementId: string } {
+  const lineup = career.lineups.find(candidate => candidate.clubId === career.userClubId)!;
+  const roster = career.players.filter(player => player.clubId === career.userClubId);
+  const starter = lineup.playerIds
+    .map(playerId => roster.find(player => player.id === playerId)!)
+    .find(player => roster.some(candidate => (
+      candidate.role === player.role
+      && !lineup.playerIds.includes(candidate.id)
+      && candidate.injuryWeeks === 0
+      && candidate.power === undefined
+    )));
+  if (starter === undefined) throw new Error('test career has no swappable starter');
+  const replacement = roster.find(player => (
+    player.role === starter.role
+    && !lineup.playerIds.includes(player.id)
+    && player.injuryWeeks === 0
+    && player.power === undefined
+  ));
+  if (replacement === undefined) throw new Error('test career has no eligible replacement');
+  return { starterId: starter.id, replacementId: replacement.id };
+}
+
 function examplePostMatch(): PostMatchViewModel {
   return {
     result: {
@@ -709,6 +751,7 @@ function examplePostMatch(): PostMatchViewModel {
       }],
       conditioning: [{ id: 'conditioning-sta', attributeLabel: 'STA', gain: 1, playerCount: 17 }],
     },
+    updates: [],
   };
 }
 

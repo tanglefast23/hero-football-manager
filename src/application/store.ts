@@ -44,6 +44,7 @@ import {
   selectCareerEventPlayer,
   selectCareerLicensedHeroes,
   setCareerLineup,
+  swapCareerLineupPlayer,
   startNextSeason,
   startCareerScoutMission,
   submitCareerTransferOffer,
@@ -153,6 +154,7 @@ interface M1Store {
   chooseEvent: (choiceId: string) => void;
   continueAfterEvent: () => void;
   toggleHeroLicense: (playerId: string) => void;
+  swapStartingPlayer: (starterId: string, replacementId: string) => void;
   selectPlayer: (playerId: string) => void;
   toggleTrainingPlayer: (playerId: string) => void;
   toggleDrill: (drillId: string) => void;
@@ -749,6 +751,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
           );
         }
       }
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  swapStartingPlayer(starterId, replacementId) {
+    guarded(set, () => {
+      const next = swapCareerLineupPlayer(requireCareer(get()), starterId, replacementId);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

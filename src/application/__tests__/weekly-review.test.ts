@@ -65,6 +65,41 @@ describe('weekly review view model', () => {
     expect(review.updates.some(update => update.id.startsWith('contract-'))).toBe(false);
     expect(review.updates.some(update => update.id.startsWith('event-'))).toBe(false);
   });
+
+  it('announces a new injury and names the automatic Starting XI replacement', () => {
+    const before = createCareer(createLaunchCareerSetup(6789));
+    const beforeLineup = before.lineups.find(lineup => lineup.clubId === before.userClubId)!;
+    const injuredId = beforeLineup.playerIds[1];
+    const injuredPlayer = before.players.find(player => player.id === injuredId)!;
+    const replacement = before.players.find(player => (
+      player.clubId === before.userClubId
+      && player.role === injuredPlayer.role
+      && !beforeLineup.playerIds.includes(player.id)
+      && player.power === undefined
+    ))!;
+    const settled = advanceWeek(before);
+    const after: GameState = {
+      ...settled,
+      players: settled.players.map(player => player.id === injuredId
+        ? { ...player, injuryWeeks: 4 }
+        : player),
+      lineups: settled.lineups.map(lineup => lineup.clubId === settled.userClubId
+        ? {
+            ...lineup,
+            playerIds: lineup.playerIds.map(playerId => playerId === injuredId ? replacement.id : playerId),
+          }
+        : lineup),
+    };
+
+    const review = weeklyReviewViewModel(before, after);
+
+    expect(review.updates).toContainEqual({
+      id: `injury-${injuredId}`,
+      title: `${injuredPlayer.name} ruled out`,
+      detail: `OUT · 4 WEEKS. ${replacement.name} has moved into the Starting XI.`,
+      tone: 'warning',
+    });
+  });
 });
 
 function requireUserClub(state: GameState) {

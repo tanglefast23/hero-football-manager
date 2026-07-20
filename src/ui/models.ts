@@ -85,6 +85,15 @@ export interface LineupPlayerViewModel {
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   shirtNumber: number;
   isHero: boolean;
+  overall: number;
+  condition: number;
+}
+
+export interface BenchPlayerViewModel extends LineupPlayerViewModel {
+  injuryWeeks: number;
+  licensed: boolean;
+  canStart: boolean;
+  unavailableLabel?: string;
 }
 
 export interface HeroLicenseViewModel {
@@ -99,6 +108,7 @@ export interface MatchDayViewModel {
   selectedTacticId: string;
   tactics: readonly TacticViewModel[];
   lineup: readonly LineupPlayerViewModel[];
+  bench: readonly BenchPlayerViewModel[];
   heroLimit: number;
   heroes: readonly HeroLicenseViewModel[];
   licenseReady: boolean;
@@ -187,6 +197,7 @@ export interface PostMatchViewModel {
   heroEssenceGained: number;
   highlights: readonly HighlightViewModel[];
   development: PlayerDevelopmentViewModel;
+  updates: readonly WeekUpdateViewModel[];
 }
 
 export interface SquadPlayerViewModel {
@@ -195,6 +206,8 @@ export interface SquadPlayerViewModel {
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   overall: number;
   condition: number;
+  injuryWeeks: number;
+  isStarter: boolean;
   age: number;
   archetype: string;
   potential: 1 | 2 | 3 | 4 | 5;

@@ -212,6 +212,48 @@ export function setCareerLineup(state: GameState, playerIds: readonly string[]):
   return candidate;
 }
 
+/**
+ * Replaces one starter with an eligible same-role bench player. Keeping the
+ * role fixed preserves the selected formation while the shared lineup boundary
+ * continues to enforce goalkeeper and hero-license rules.
+ */
+export function swapCareerLineupPlayer(
+  state: GameState,
+  starterId: string,
+  replacementId: string,
+): GameState {
+  assertManagementChoicePhase(state, 'the lineup');
+  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  if (lineup === undefined) throw new Error(`missing lineup for club ${state.userClubId}`);
+
+  const starterSlot = lineup.playerIds.indexOf(starterId);
+  if (starterSlot < 0) throw new Error('Select a player from the Starting XI first.');
+  if (lineup.playerIds.includes(replacementId)) {
+    throw new Error('The replacement must come from the bench.');
+  }
+
+  const roster = rosterForClub(state, state.userClubId);
+  const starter = roster.find(player => player.id === starterId);
+  const replacement = roster.find(player => player.id === replacementId);
+  if (starter === undefined || replacement === undefined) {
+    throw new Error('Both lineup players must belong to your club.');
+  }
+  if (starter.role !== replacement.role) {
+    throw new Error(`Choose another ${starter.role} to preserve the formation.`);
+  }
+  if (replacement.injuryWeeks > 0) {
+    throw new Error(`${replacement.name} is injured and unavailable for selection.`);
+  }
+  if (replacement.power !== undefined && !replacement.licensed) {
+    throw new Error(`${replacement.name} needs a Hero License before joining the Starting XI.`);
+  }
+
+  return setCareerLineup(
+    state,
+    lineup.playerIds.map(playerId => playerId === starterId ? replacementId : playerId),
+  );
+}
+
 export function selectCareerLicensedHeroes(
   state: GameState,
   selectedPlayerIds: readonly string[],
