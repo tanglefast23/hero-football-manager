@@ -25,6 +25,7 @@ import {
   deterministicCareerEventRoll,
   declineYouthIntakeOffers,
   dismissCareerEvent,
+  dismissCareerCoach,
   hireCareerCoach,
   hasAssistantGuideMilestone,
   isFirstOnboardingFixture,
@@ -167,6 +168,7 @@ interface M1Store {
   openScoutReport: (playerId: string) => void;
   actOnTransfer: (playerId: string, direction: 'BUY' | 'SELL') => void;
   hireCoach: (coachId: string) => void;
+  dismissCoach: () => void;
   signYouth: (playerId: string) => void;
   declineYouth: () => void;
   submitTransferOffer: (offer: ContractOffer, pitchCard?: PitchCard) => void;
@@ -381,7 +383,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
         if (activeTab !== 'home' && activeTab !== 'club') {
           throw new Error('Return home and check your inbox before advancing the week.');
         }
-        if (!career.facilities.trainingGroundBuilt) {
+        const trainingGroundStarted = career.facilities.trainingGroundBuilt
+          || (
+            career.facilities.grid?.construction?.kind === 'BUILD'
+            && career.facilities.grid.construction.type === 'training-pitch'
+          );
+        if (!trainingGroundStarted) {
           throw new Error('Build the Training Ground from your inbox before advancing the week.');
         }
         if (activeTab !== 'home') {
@@ -920,6 +927,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const next = { ...career, market: hireCareerCoach(requireMarket(career), coachId) };
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  dismissCoach() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const transaction = dismissCareerCoach(career, requireMarket(career));
+      const next = { ...transaction.state, market: transaction.market };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

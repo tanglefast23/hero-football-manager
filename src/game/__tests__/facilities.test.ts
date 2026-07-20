@@ -4,6 +4,7 @@ import {
   FACILITY_GRID_HEIGHT,
   FACILITY_GRID_WIDTH,
   activeFacilityAdjacencies,
+  advanceFacilityConstruction,
   buildFacility,
   createFacilityGrid,
   facilityEffects,
@@ -22,6 +23,12 @@ function build(
   cash = 1_000_000,
 ) {
   return buildFacility(grid, type, position, cash);
+}
+
+function finishConstruction(grid: FacilityGridState): FacilityGridState {
+  let next = grid;
+  while (next.construction !== undefined) next = advanceFacilityConstruction(next).grid;
+  return next;
 }
 
 describe('facility catalog and grid', () => {
@@ -45,7 +52,10 @@ describe('facility catalog and grid', () => {
       'hero-lab',
     ]);
     expect(Object.values(FACILITY_CATALOG).every(entry =>
-      entry.upgradeCosts.length === 2 && entry.weeklyUpkeep.length === 3,
+      entry.buildWeeks >= 1
+      && entry.upgradeCosts.length === 2
+      && entry.upgradeWeeks.length === 2
+      && entry.weeklyUpkeep.length === 3,
     )).toBe(true);
     expect(FACILITY_CATALOG['hero-lab'].available).toBe(false);
   });
@@ -53,7 +63,8 @@ describe('facility catalog and grid', () => {
   test('builds immutably, charges the catalog cost, and generates stable IDs', () => {
     const empty = createFacilityGrid();
     const first = build(empty, 'gym', { x: 2, y: 1 }, 20_000);
-    const second = build(first.grid, 'dorm', { x: 3, y: 1 }, first.cashAfter);
+    const completedFirst = finishConstruction(first.grid);
+    const second = build(completedFirst, 'dorm', { x: 3, y: 1 }, first.cashAfter);
 
     expect(empty.buildings).toEqual([]);
     expect(first).toMatchObject({ cost: 7_000, cashAfter: 13_000 });
@@ -62,9 +73,16 @@ describe('facility catalog and grid', () => {
       { id: 'facility-1', type: 'gym', level: 1, x: 2, y: 1 },
       { id: 'facility-2', type: 'dorm', level: 1, x: 3, y: 1 },
     ]);
+    expect(second.grid.construction).toMatchObject({
+      kind: 'BUILD',
+      buildingId: 'facility-2',
+      weeksRemaining: 1,
+    });
+    expect(() => build(first.grid, 'dorm', { x: 3, y: 1 }, first.cashAfter))
+      .toThrow(/only one facility construction project/);
 
     const replay = build(
-      build(createFacilityGrid(), 'gym', { x: 2, y: 1 }, 20_000).grid,
+      finishConstruction(build(createFacilityGrid(), 'gym', { x: 2, y: 1 }, 20_000).grid),
       'dorm',
       { x: 3, y: 1 },
       13_000,
@@ -74,7 +92,7 @@ describe('facility catalog and grid', () => {
   });
 
   test('rejects locked, unaffordable, out-of-bounds, fractional, and overlapping builds', () => {
-    const grid = build(createFacilityGrid(), 'training-pitch', { x: 0, y: 0 }).grid;
+    const grid = finishConstruction(build(createFacilityGrid(), 'training-pitch', { x: 0, y: 0 }).grid);
 
     expect(() => buildFacility(grid, 'hero-lab', { x: 3, y: 3 }, 1_000_000))
       .toThrow(/not unlocked/);
@@ -92,19 +110,24 @@ describe('facility catalog and grid', () => {
 describe('facility upgrades and upkeep', () => {
   test('upgrades through level 3, charges each level, and totals weekly upkeep', () => {
     const built = build(createFacilityGrid(), 'gym', { x: 0, y: 0 }, 30_000);
-    const levelTwo = upgradeFacility(built.grid, 'facility-1', built.cashAfter);
-    const levelThree = upgradeFacility(levelTwo.grid, 'facility-1', levelTwo.cashAfter);
+    const ready = finishConstruction(built.grid);
+    const levelTwoProject = upgradeFacility(ready, 'facility-1', built.cashAfter);
+    expect(levelTwoProject.grid.buildings[0].level).toBe(1);
+    expect(weeklyFacilityUpkeep(levelTwoProject.grid)).toBe(90);
+    const levelTwoGrid = finishConstruction(levelTwoProject.grid);
+    const levelThreeProject = upgradeFacility(levelTwoGrid, 'facility-1', levelTwoProject.cashAfter);
+    const levelThreeGrid = finishConstruction(levelThreeProject.grid);
 
-    expect(levelTwo).toMatchObject({ cost: 7_000, cashAfter: 16_000 });
-    expect(levelThree).toMatchObject({ cost: 10_500, cashAfter: 5_500 });
-    expect(levelThree.grid.buildings[0].level).toBe(3);
-    expect(weeklyFacilityUpkeep(levelThree.grid)).toBe(210);
-    expect(() => upgradeFacility(levelThree.grid, 'facility-1', 100_000))
+    expect(levelTwoProject).toMatchObject({ cost: 7_000, cashAfter: 16_000 });
+    expect(levelThreeProject).toMatchObject({ cost: 10_500, cashAfter: 5_500 });
+    expect(levelThreeGrid.buildings[0].level).toBe(3);
+    expect(weeklyFacilityUpkeep(levelThreeGrid)).toBe(210);
+    expect(() => upgradeFacility(levelThreeGrid, 'facility-1', 100_000))
       .toThrow(/already at level 3/);
   });
 
   test('validates upgrade identity and affordability', () => {
-    const grid = build(createFacilityGrid(), 'medical-bay', { x: 0, y: 0 }).grid;
+    const grid = finishConstruction(build(createFacilityGrid(), 'medical-bay', { x: 0, y: 0 }).grid);
 
     expect(() => upgradeFacility(grid, 'missing', 100_000)).toThrow(/unknown facility/);
     expect(() => upgradeFacility(grid, 'facility-1', 9_999)).toThrow(/not affordable/);
@@ -114,8 +137,10 @@ describe('facility upgrades and upkeep', () => {
 describe('facility relocation and adjacency', () => {
   test('relocates for the explicit fee without changing level or identity', () => {
     const built = build(createFacilityGrid(), 'shooting-range', { x: 0, y: 0 }, 10_000);
-    const upgraded = upgradeFacility(built.grid, 'facility-1', 20_000);
-    const moved = relocateFacility(upgraded.grid, 'facility-1', { x: 7, y: 4 }, 1_000);
+    const ready = finishConstruction(built.grid);
+    const upgraded = upgradeFacility(ready, 'facility-1', 20_000);
+    const upgradedGrid = finishConstruction(upgraded.grid);
+    const moved = relocateFacility(upgradedGrid, 'facility-1', { x: 7, y: 4 }, 1_000);
 
     expect(moved).toMatchObject({ cost: 375, cashAfter: 625 });
     expect(moved.grid.buildings[0]).toEqual({
@@ -133,15 +158,17 @@ describe('facility relocation and adjacency', () => {
 
   test('discovers all three orthogonal pairings, applies effects once, and remembers discoveries', () => {
     let grid = createFacilityGrid();
-    grid = build(grid, 'gym', { x: 0, y: 0 }).grid;
+    grid = finishConstruction(build(grid, 'gym', { x: 0, y: 0 }).grid);
     const gymDorm = build(grid, 'dorm', { x: 1, y: 0 });
-    expect(gymDorm.newlyDiscoveredAdjacencies).toEqual(['gym-dorm']);
-    grid = gymDorm.grid;
+    expect(gymDorm.newlyDiscoveredAdjacencies).toEqual([]);
+    const gymDormComplete = advanceFacilityConstruction(gymDorm.grid);
+    expect(gymDormComplete.newlyDiscoveredAdjacencies).toEqual(['gym-dorm']);
+    grid = gymDormComplete.grid;
 
-    grid = build(grid, 'fan-shop', { x: 0, y: 2 }).grid;
-    grid = build(grid, 'stadium-stand', { x: 1, y: 2 }).grid;
-    grid = build(grid, 'medical-bay', { x: 4, y: 0 }).grid;
-    grid = build(grid, 'training-pitch', { x: 5, y: 0 }).grid;
+    grid = finishConstruction(build(grid, 'fan-shop', { x: 0, y: 2 }).grid);
+    grid = finishConstruction(build(grid, 'stadium-stand', { x: 1, y: 2 }).grid);
+    grid = finishConstruction(build(grid, 'medical-bay', { x: 4, y: 0 }).grid);
+    grid = finishConstruction(build(grid, 'training-pitch', { x: 5, y: 0 }).grid);
 
     expect(activeFacilityAdjacencies(grid)).toEqual(FACILITY_ADJACENCIES.map(item => item.id));
     expect(grid.discoveredAdjacencies).toEqual(FACILITY_ADJACENCIES.map(item => item.id));
@@ -161,19 +188,19 @@ describe('facility relocation and adjacency', () => {
   });
 
   test('does not count diagonal corners as adjacent or stack duplicate pairs', () => {
-    let grid = build(createFacilityGrid(), 'gym', { x: 0, y: 0 }).grid;
-    grid = build(grid, 'dorm', { x: 1, y: 1 }).grid;
+    let grid = finishConstruction(build(createFacilityGrid(), 'gym', { x: 0, y: 0 }).grid);
+    grid = finishConstruction(build(grid, 'dorm', { x: 1, y: 1 }).grid);
     expect(activeFacilityAdjacencies(grid)).toEqual([]);
 
     grid = relocateFacility(grid, 'facility-2', { x: 1, y: 0 }, 1_000).grid;
-    grid = build(grid, 'gym', { x: 2, y: 0 }).grid;
+    grid = finishConstruction(build(grid, 'gym', { x: 2, y: 0 }).grid);
     expect(activeFacilityAdjacencies(grid)).toEqual(['gym-dorm']);
     expect(facilityEffects(grid).staminaTrainingBonusPercent).toBe(10);
   });
 
   test('rejects relocations that overlap another footprint or cannot be afforded', () => {
-    let grid = build(createFacilityGrid(), 'youth-field', { x: 0, y: 0 }).grid;
-    grid = build(grid, 'gym', { x: 3, y: 0 }).grid;
+    let grid = finishConstruction(build(createFacilityGrid(), 'youth-field', { x: 0, y: 0 }).grid);
+    grid = finishConstruction(build(grid, 'gym', { x: 3, y: 0 }).grid);
 
     expect(() => relocateFacility(grid, 'facility-2', { x: 1, y: 1 }, 1_000))
       .toThrow(/overlaps/);

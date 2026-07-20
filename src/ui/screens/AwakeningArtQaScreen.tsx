@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { Canvas, Fill, Group } from '@shopify/react-native-skia';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { AwakeningCutsceneViewModel } from '../models';

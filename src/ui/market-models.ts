@@ -72,6 +72,7 @@ export interface TransferListingViewModel {
 
 export interface CoachCandidateViewModel {
   readonly id: string;
+  readonly portraitId: string;
   readonly name: string;
   readonly level: number;
   readonly levelLabel: string;

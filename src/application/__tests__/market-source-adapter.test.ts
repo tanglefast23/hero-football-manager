@@ -7,6 +7,7 @@ import {
 import { createCareer } from '../../game/career';
 import { enableFullCareer } from '../../game/full-career';
 import { buildCareerFacility } from '../../game/management';
+import { advanceFacilityConstruction } from '../../game/facilities';
 import {
   beginCareerTransferTalks,
   startCareerScoutMission,
@@ -41,7 +42,14 @@ function exactReport(player: CareerPlayer): CareerMarketState['scoutReports'][nu
 describe('career market view-model source adapter', () => {
   it('derives deterministic scout briefs and live club context without mutating career state', () => {
     const initial = fullCareer(711);
-    const withOffice = buildCareerFacility(initial, 'scout-office', { x: 0, y: 0 }).state;
+    const officeProject = buildCareerFacility(initial, 'scout-office', { x: 0, y: 0 }).state;
+    const withOffice = {
+      ...officeProject,
+      facilities: {
+        ...officeProject.facilities,
+        grid: advanceFacilityConstruction(officeProject.facilities.grid!).grid,
+      },
+    };
     const before = JSON.stringify(withOffice);
     const first = careerMarketViewModelSource(withOffice);
     const second = careerMarketViewModelSource(withOffice, withOffice.market);
@@ -142,6 +150,7 @@ describe('career market view-model source adapter', () => {
     const source = careerMarketViewModelSource(state, market);
 
     expect(source.coachCandidates).toEqual(market.coachCandidates);
+    expect(source.headCoach).toBeUndefined();
     expect(source.negotiation).toMatchObject({
       playerName: target.name,
       openingWeeklyWage: target.weeklyWage,
@@ -153,6 +162,23 @@ describe('career market view-model source adapter', () => {
       status: 'OPEN',
       roundLabel: 'Round 1 of 3',
     });
+  });
+
+  it('passes the employed head coach through so the shortlist can lock replacement hires', () => {
+    const state = fullCareer(1015);
+    const headCoach = state.market!.coachCandidates[0];
+    const withCoach = {
+      ...state,
+      market: {
+        ...state.market!,
+        headCoach,
+        coachCandidates: state.market!.coachCandidates.slice(1),
+      },
+    };
+
+    const source = careerMarketViewModelSource(withCoach);
+    expect(source.headCoach).toEqual(headCoach);
+    expect(marketViewModel(source).coaches.every(coach => !coach.available)).toBe(true);
   });
 
   it('requires an initialized market and rejects stale reports instead of inventing players', () => {

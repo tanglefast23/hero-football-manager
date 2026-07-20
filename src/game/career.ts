@@ -1,5 +1,11 @@
 import { generateSeasonFixtures } from './schedule';
-import { createFacilityGrid, facilityEffects, weeklyFacilityUpkeep } from './facilities';
+import {
+  advanceFacilityConstruction,
+  createFacilityGrid,
+  facilityEffects,
+  isFacilityOperational,
+  weeklyFacilityUpkeep,
+} from './facilities';
 import { resolveCareerTrainingWeek } from './training';
 import { enableFullCareer, startNextFullCareerSeason } from './full-career';
 import { careerCoachWageLedgerAmount } from './coach-weekly';
@@ -576,6 +582,7 @@ export function weeklyMerchandiseIncome(state: GameState, userClub: ClubState): 
   let combinedFanShopLevel = 0;
   for (const building of grid.buildings) {
     if (building.type !== 'fan-shop') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
     combinedFanShopLevel = checkedAdd(
       combinedFanShopLevel,
       building.level,
@@ -607,6 +614,23 @@ function advanceM2WeeklySidecars(
   cupAlreadyResolved = false,
 ): GameState {
   let next = state;
+  const grid = next.facilities.grid;
+  if (grid !== undefined) {
+    const advanced = advanceFacilityConstruction(grid);
+    if (advanced.grid !== grid) {
+      next = {
+        ...next,
+        facilities: {
+          ...next.facilities,
+          grid: advanced.grid,
+          trainingGroundBuilt: advanced.grid.buildings.some(building => (
+            building.type === 'training-pitch'
+            && isFacilityOperational(advanced.grid, building.id)
+          )),
+        },
+      };
+    }
+  }
   if (
     next.m2 !== undefined
     && !cupAlreadyResolved
@@ -756,8 +780,11 @@ function awardNationalCupPrize(
 }
 
 function hasAmbientTrainingPitch(state: GameState): boolean {
-  return state.facilities.trainingGroundBuilt
-    || state.facilities.grid?.buildings.some(building => building.type === 'training-pitch') === true;
+  if (state.facilities.trainingGroundBuilt) return true;
+  const grid = state.facilities.grid;
+  return grid?.buildings.some(building => (
+    building.type === 'training-pitch' && isFacilityOperational(grid, building.id)
+  )) === true;
 }
 
 function trainingPointsForUser(

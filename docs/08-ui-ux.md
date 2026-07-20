@@ -38,6 +38,12 @@ Only relevant club notes appear below development: skipped focus training names 
 
 Haptics: power fired (heavy), goal (success), full gauge (light tick). Count-up tickers on money. Sprite squash-and-stretch on kicks. Confetti on promotion. No screen-shake spam; the comic cut-ins are the spectacle ration.
 
+### Interaction feedback contract
+
+Every tappable management control has three layers: a visible pressed-state change, a short semantic sound, and an immediate state/result message. Sounds are grouped by meaning rather than assigned randomly: ordinary navigation and selections share the short tap; player, academy, and coach signings share one transaction confirmation; construction starts use the works-order cue; coach dismissal uses the departure whistle; facility completion alone uses the full win fanfare. Disabled controls visibly explain why they are unavailable rather than silently accepting taps.
+
+Milestone transactions get a readable presentation rather than a transient toast: signings show the new player/coach sprite and name; coach dismissal shows severance before confirmation and a departure card afterward; facility starts say **“Sports facility in construction!”** with duration; completion appears at weekly settlement with the finished building sprite, **“Works complete!”**, and the win fanfare. Reduce Motion skips entrance movement but retains the final card, text, and sound.
+
 ## Onboarding (first 20 minutes, tutorialized by fiction)
 
 1. Create the manager's former high-school player with a bounded six-stat point buy. The campaign starts with **zero heroes**.

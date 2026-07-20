@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Animated, Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { playTrainingStatDing } from '../render/management-sfx';
 import { ActionButton, SectionLabel } from './components/Scorecard';
 import { PixelPortrait } from './components/PixelPortrait';
+import { FacilityCompletionCard } from './components/FacilityCompletionCard';
+import { SfxPressable as Pressable } from './components/SfxPressable';
 import type {
   AttributeGainViewModel,
+  FacilityCompletionViewModel,
   PlayerDevelopmentViewModel,
 } from './models';
 
@@ -13,6 +16,7 @@ export interface PostMatchDevelopmentOverlayProps {
   development: PlayerDevelopmentViewModel;
   onDismiss: () => void;
   reduceMotion?: boolean;
+  facilityCompletion?: FacilityCompletionViewModel;
 }
 
 interface RevealStep {
@@ -24,6 +28,7 @@ export function PostMatchDevelopmentOverlay({
   development,
   onDismiss,
   reduceMotion = false,
+  facilityCompletion,
 }: PostMatchDevelopmentOverlayProps) {
   const steps = useMemo<RevealStep[]>(() => development.focusedTrainees.flatMap(
     (trainee, traineeIndex) => trainee.gains.flatMap((gain, gainIndex) => (
@@ -129,6 +134,9 @@ export function PostMatchDevelopmentOverlay({
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 22 }}>
+            {facilityCompletion ? (
+              <FacilityCompletionCard completion={facilityCompletion} reduceMotion={reduceMotion} />
+            ) : null}
             <SectionLabel
               eyebrow="Player development"
               title={sequenceComplete ? 'Boosts complete' : 'Getting stronger'}

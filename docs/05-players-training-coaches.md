@@ -28,12 +28,14 @@ Weekly plan, set once and it repeats until changed:
 
 ## Coaches
 
-One head coach (assistant slot unlocks with the Coaching Office facility).
+Exactly **one head coach** may be employed at a time (assistant slot unlocks with the Coaching Office facility). The current coach must be dismissed before another Hire action is available. Dismissal is a deliberate two-step process and costs exactly **one week of that coach's wage** as severance, paid immediately.
 
 - **Profile**: two specialties from {Attack, Defense, Fitness, Technique, Goalkeeping, Motivator}, level 1–5, weekly wage, personality.
 - **Effects**: +10%/level training gains in specialty drills; tactic execution quality in matches (how tightly agents follow the chosen tactic); Motivator specialty slows morale decay and speeds Hero Gauge fill +5%/level.
 - **Unlocks**: each hired coach permanently teaches one formation or advanced drill (Pocket League Story's "coach = content gate" pattern).
 - **Market**: 3–5 candidates refresh each pre-season; better coaches gated by division + fame. Coaches gain 1 level per 2 full seasons employed. Retired club legends appear as candidates with loyalty discounts.
+- **Identity & portraits**: the launch pool is a curated multicultural cast—Amara Okafor, Kenji Sato, Valentina Cruz, Imani Adeyemi, Freja Lindholm, Priya Nair, Mateo Silva, Hana Park, Leila Haddad, Nia Thompson, Tomás Ferreira, Aiko Tanaka, Sibusiso Dlamini, Sofia Rossi, Jamal Rahman, and Mei Chen. Each has a deterministic resting/joy portrait and one unmistakable caricature trait under the respectful rules in [11-art-style.md](11-art-style.md). Gameplay specialties and quality remain deterministic and independent of ethnicity or appearance.
+- **Feedback contract**: a successful hire removes that candidate from the shortlist and opens a full staff card with portrait, name, level, specialties, and wage. Dismissal shows the exact severance before confirmation, then a filed departure card; only then does the vacancy accept another hire.
 
 ## Scouting & transfers
 

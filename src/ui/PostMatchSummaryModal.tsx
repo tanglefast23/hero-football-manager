@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   playMatchStatementSfx,
   stopMatchStatementSfx,
 } from '../render/management-sfx';
 import { countUpValue } from './count-up';
+import { SfxPressable as Pressable } from './components/SfxPressable';
 import type { PostMatchViewModel } from './models';
 import {
   ActionButton,

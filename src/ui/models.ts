@@ -167,6 +167,13 @@ export interface WeekUpdateViewModel {
   tone: 'positive' | 'warning' | 'info';
 }
 
+export interface FacilityCompletionViewModel {
+  type: FacilityTypeViewModel;
+  name: string;
+  level: 1 | 2 | 3;
+  kind: 'BUILD' | 'UPGRADE';
+}
+
 export interface PlayerDevelopmentViewModel {
   focusedTrainees: readonly FocusedTraineeViewModel[];
   conditioning: readonly SquadConditioningViewModel[];
@@ -186,6 +193,7 @@ export interface WeeklyReviewViewModel {
   ledger: readonly LedgerLineViewModel[];
   development: PlayerDevelopmentViewModel;
   updates: readonly WeekUpdateViewModel[];
+  facilityCompletion?: FacilityCompletionViewModel;
   nextFixture?: FixtureViewModel;
 }
 
@@ -199,6 +207,7 @@ export interface PostMatchViewModel {
   highlights: readonly HighlightViewModel[];
   development: PlayerDevelopmentViewModel;
   updates: readonly WeekUpdateViewModel[];
+  facilityCompletion?: FacilityCompletionViewModel;
 }
 
 export interface SquadPlayerViewModel {
@@ -247,6 +256,8 @@ export interface SquadTrainingViewModel {
 
 export interface TrainingGroundDecisionViewModel {
   built: boolean;
+  underConstruction: boolean;
+  weeksRemaining?: number;
   affordable: boolean;
   cost: number;
   weeklyTrainingPoints: number;
@@ -279,6 +290,9 @@ export interface ClubFacilityBuildingViewModel {
   weeklyUpkeep: number;
   upgradeCost?: number;
   relocationFee: number;
+  status: 'operational' | 'construction' | 'upgrading';
+  weeksRemaining?: number;
+  targetLevel?: 1 | 2 | 3;
 }
 
 export interface ClubFacilityCatalogViewModel {
@@ -289,6 +303,8 @@ export interface ClubFacilityCatalogViewModel {
   height: number;
   available: boolean;
   affordable: boolean;
+  buildWeeks: number;
+  blockedReason?: string;
 }
 
 export interface ClubFacilityGridViewModel {
@@ -299,6 +315,14 @@ export interface ClubFacilityGridViewModel {
   weeklyUpkeep: number;
   activeAdjacencies: readonly string[];
   discoveredAdjacencies: readonly string[];
+  activeProject?: {
+    buildingId: string;
+    name: string;
+    kind: 'BUILD' | 'UPGRADE';
+    weeksRemaining: number;
+    totalWeeks: number;
+    targetLevel: 1 | 2 | 3;
+  };
 }
 
 export interface ClubFinancesViewModel {
@@ -316,11 +340,13 @@ export interface ClubFinancesViewModel {
   legacyTrainingGroundVisible: boolean;
   headCoach?: {
     id: string;
+    portraitId: string;
     name: string;
     level: number;
     specialtyLabels: readonly [string, string];
     weeklyWage: number;
     seasonsEmployed: number;
+    severanceCost: number;
   };
   facilities: ClubFacilityGridViewModel;
 }

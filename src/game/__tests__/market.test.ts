@@ -332,7 +332,7 @@ describe('contract negotiation', () => {
   });
 });
 
-describe('coach market', () => {
+  describe('coach market', () => {
   it('generates 3-5 byte-identical eligible candidates with two distinct specialties', () => {
     const setup = { careerSeed: 444, season: 3, division: 3, fame: 300 };
     const first = generateCoachMarket(setup);
@@ -344,6 +344,9 @@ describe('coach market', () => {
     expect(first.every(candidate => candidate.specialties[0] !== candidate.specialties[1])).toBe(true);
     expect(first.every(candidate => isCoachCandidateEligible(candidate, 3, 300))).toBe(true);
     expect(first.every(candidate => candidate.level <= maxCoachLevelForClub(3, 300))).toBe(true);
+    expect(new Set(first.map(candidate => candidate.name)).size).toBe(first.length);
+    expect(new Set(first.map(candidate => candidate.portraitId)).size).toBe(first.length);
+    expect(first.every(candidate => !candidate.name.startsWith('Coach Prospect'))).toBe(true);
   });
 
   it('gates coach quality by both division and fame and progresses one level per two seasons', () => {

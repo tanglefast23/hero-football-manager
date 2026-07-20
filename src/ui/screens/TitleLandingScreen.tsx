@@ -1,8 +1,9 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { FormationDiagram } from '../components/FormationDiagram';
 import { FORMATION_LABELS } from '../../sim/tactics';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 import type { AppPreferences } from '../../persistence';
 
 export interface TitleLandingScreenProps {

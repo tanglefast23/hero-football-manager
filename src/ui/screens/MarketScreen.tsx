@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import type { ContractOffer, ContractPerk, PitchCard } from '../../game/market';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { ManagementSprite } from '../components/ManagementSprite';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 import type {
   MarketNegotiationViewModel,
   MarketSectionId,
@@ -417,18 +419,25 @@ function CoachDesk({
                 ? 'border-2 border-b-4 border-gold-dark bg-gold-light p-3'
                 : 'border-2 border-b-4 border-ink bg-white p-3'}
             >
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="flex-1">
+              <View className="flex-row items-start gap-3">
+                <View className="border-2 border-b-4 border-ink bg-blue-light px-2 pt-2">
+                  <ManagementSprite
+                    spriteKey={`coach:${coach.portraitId}:rest`}
+                    width={72}
+                    accessibilityLabel={`${coach.name} coach portrait`}
+                  />
+                </View>
+                <View className="min-w-0 flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
                   <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
                     {coach.personalityLabel} · {coach.levelLabel}
                   </Text>
+                  {coach.retiredLegend ? (
+                    <View className="mt-2 self-start -rotate-2 border-2 border-gold-dark bg-white px-2 py-1">
+                      <Text className="text-sm font-bold uppercase text-gold-dark">Club legend</Text>
+                    </View>
+                  ) : null}
                 </View>
-                {coach.retiredLegend ? (
-                  <View className="-rotate-2 border-2 border-gold-dark bg-white px-2 py-1">
-                    <Text className="text-sm font-bold uppercase text-gold-dark">Club legend</Text>
-                  </View>
-                ) : null}
               </View>
               <View className="mt-3 flex-row gap-2">
                 {coach.specialtyLabels.map(specialty => (

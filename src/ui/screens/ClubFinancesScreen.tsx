@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View, type LayoutChangeEvent } from 'react-native';
+import { ScrollView, Text, View, type LayoutChangeEvent } from 'react-native';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
 import type {
   ClubFacilityBuildingViewModel,
@@ -8,6 +8,8 @@ import type {
 } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
+import { ManagementSprite } from '../components/ManagementSprite';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 
 export interface ClubFinancesScreenProps {
   viewModel: ClubFinancesViewModel;
@@ -17,6 +19,7 @@ export interface ClubFinancesScreenProps {
   onUpgradeFacility?: (buildingId: string) => void;
   onRelocateFacility?: (buildingId: string, x: number, y: number) => void;
   onOpenCoachMarket?: () => void;
+  onDismissCoach?: () => void;
   guideTrainingGround?: boolean;
 }
 
@@ -28,6 +31,7 @@ export function ClubFinancesScreen({
   onUpgradeFacility,
   onRelocateFacility,
   onOpenCoachMarket,
+  onDismissCoach,
   guideTrainingGround = false,
 }: ClubFinancesScreenProps) {
   const facility = viewModel.trainingGround;
@@ -169,9 +173,18 @@ export function ClubFinancesScreen({
         >
           {viewModel.headCoach ? (
             <>
-              <View className="flex-row gap-2">
-                <Metric label="Level" value={String(viewModel.headCoach.level)} />
-                <Metric label="Wage / wk" value={formatCompactNumber(viewModel.headCoach.weeklyWage)} />
+              <View className="flex-row items-center gap-3 border-y-2 border-ink bg-blue-light p-3">
+                <View className="border-2 border-b-4 border-ink bg-white px-2 pt-2">
+                  <ManagementSprite
+                    spriteKey={`coach:${viewModel.headCoach.portraitId}:rest`}
+                    width={72}
+                    accessibilityLabel={`${viewModel.headCoach.name} coach portrait`}
+                  />
+                </View>
+                <View className="min-w-0 flex-1 gap-2">
+                  <Metric label="Level" value={String(viewModel.headCoach.level)} />
+                  <Metric label="Wage / wk" value={formatCompactNumber(viewModel.headCoach.weeklyWage)} />
+                </View>
               </View>
               <View className="mt-3 flex-row gap-2">
                 {viewModel.headCoach.specialtyLabels.map(specialty => (
@@ -187,12 +200,20 @@ export function ClubFinancesScreen({
             </Text>
           )}
           {onOpenCoachMarket ? (
-            <View className="mt-3">
+            <View className="mt-3 gap-2">
               <ActionButton
                 label={viewModel.headCoach ? 'Review coach market' : 'Hire a head coach'}
                 accessibilityLabel={viewModel.headCoach ? 'Review coach market' : 'Hire a head coach'}
                 onPress={onOpenCoachMarket}
               />
+              {viewModel.headCoach && onDismissCoach ? (
+                <ActionButton
+                  label={`Dismiss · ${formatCompactNumber(viewModel.headCoach.severanceCost)} severance`}
+                  accessibilityLabel={`Dismiss ${viewModel.headCoach.name} with one week severance`}
+                  variant="danger"
+                  onPress={onDismissCoach}
+                />
+              ) : null}
             </View>
           ) : null}
         </PaperPanel>
@@ -202,7 +223,7 @@ export function ClubFinancesScreen({
         <SectionLabel
           eyebrow="Club grounds"
           title="Build the place around the team"
-          right={<StatusChip label={`${viewModel.facilities.buildings.length} built`} />}
+          right={<StatusChip label={`${viewModel.facilities.buildings.filter(building => building.status === 'operational').length} open`} />}
         />
         <PaperPanel
           kicker="8 x 6 grounds"
@@ -212,6 +233,18 @@ export function ClubFinancesScreen({
           <Text className="mb-3 text-sm leading-4 text-ink/60">
             Pick a building, then tap its top-left tile. Put useful pairs edge-to-edge to discover bonuses.
           </Text>
+          {viewModel.facilities.activeProject ? (
+            <View className="mb-3 flex-row items-center gap-3 border-2 border-b-4 border-amber-800 bg-amber-100 p-3">
+              <ManagementSprite spriteKey="facility:worksite" width={54} accessibilityLabel="Active construction site" />
+              <View className="min-w-0 flex-1">
+                <Text className="font-mono text-sm font-bold uppercase text-amber-900">Works crew busy</Text>
+                <Text className="mt-1 text-base font-bold uppercase text-ink">
+                  {viewModel.facilities.activeProject.name} · {viewModel.facilities.activeProject.weeksRemaining}W left
+                </Text>
+                <Text className="mt-1 text-sm text-ink/60">Only one construction or upgrade project can run at a time.</Text>
+              </View>
+            </View>
+          ) : null}
           <View
             className="relative overflow-hidden border-2 border-ink bg-emerald-50"
             style={{ aspectRatio: viewModel.facilities.width / viewModel.facilities.height }}
@@ -270,8 +303,18 @@ export function ClubFinancesScreen({
                     zIndex: 2,
                   })}
                 >
-                  <Text className="font-mono text-sm font-bold text-ink">{facilityMark(building)}</Text>
-                  <Text className="mt-0.5 text-xs font-bold uppercase text-ink">L{building.level}</Text>
+                  <ManagementSprite
+                    spriteKey={building.status === 'construction'
+                      ? 'facility:worksite'
+                      : `facility:${building.type}:l${building.level}`}
+                    width={Math.min(42, building.width * 30)}
+                    accessibilityLabel={`${building.name} ${building.status}`}
+                  />
+                  <Text className="mt-0.5 text-center text-xs font-bold uppercase text-ink">
+                    {building.status === 'operational'
+                      ? `L${building.level}`
+                      : `${building.status === 'construction' ? 'BUILD' : 'UP'} · ${building.weeksRemaining}W`}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -294,7 +337,9 @@ export function ClubFinancesScreen({
                     {selectedBuilding.name} · Level {selectedBuilding.level}
                   </Text>
                   <Text className="mt-1 text-sm text-ink/60">
-                    {formatCompactNumber(selectedBuilding.weeklyUpkeep)}/wk upkeep · {formatCompactNumber(selectedBuilding.relocationFee)} to move
+                    {selectedBuilding.status === 'operational'
+                      ? `${formatCompactNumber(selectedBuilding.weeklyUpkeep)}/wk upkeep · ${formatCompactNumber(selectedBuilding.relocationFee)} to move`
+                      : `${selectedBuilding.status === 'construction' ? 'Building' : 'Upgrading'} · ${selectedBuilding.weeksRemaining} week${selectedBuilding.weeksRemaining === 1 ? '' : 's'} remaining`}
                   </Text>
                 </View>
                 <Pressable
@@ -313,24 +358,35 @@ export function ClubFinancesScreen({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Move ${selectedBuilding.name}`}
+                  disabled={selectedBuilding.status !== 'operational'}
                   onPress={() => setRelocatingBuildingId(selectedBuilding.id)}
-                  className="min-h-11 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-blue-light px-2"
+                  className={selectedBuilding.status !== 'operational'
+                    ? 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'
+                    : 'min-h-11 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-blue-light px-2'}
                 >
                   <Text className="text-sm font-bold uppercase text-ink">Move</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Upgrade ${selectedBuilding.name}`}
-                  disabled={selectedBuilding.upgradeCost === undefined}
+                  disabled={selectedBuilding.upgradeCost === undefined
+                    || selectedBuilding.status !== 'operational'
+                    || viewModel.facilities.activeProject !== undefined}
                   onPress={() => onUpgradeFacility?.(selectedBuilding.id)}
                   className={selectedBuilding.upgradeCost === undefined
+                    || selectedBuilding.status !== 'operational'
+                    || viewModel.facilities.activeProject !== undefined
                     ? 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'
                     : 'min-h-11 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-signal px-2'}
                 >
                   <Text className={selectedBuilding.upgradeCost === undefined
                     ? 'text-center text-sm font-bold uppercase text-ink/35'
                     : 'text-center text-sm font-bold uppercase text-ink'}>
-                    {selectedBuilding.upgradeCost === undefined
+                    {selectedBuilding.status !== 'operational'
+                      ? 'Project active'
+                      : viewModel.facilities.activeProject !== undefined
+                        ? 'Crew busy'
+                        : selectedBuilding.upgradeCost === undefined
                       ? 'Max level'
                       : `Upgrade · ${formatCompactNumber(selectedBuilding.upgradeCost)}`}
                   </Text>
@@ -370,9 +426,12 @@ export function ClubFinancesScreen({
                       ? 'mt-1 font-mono text-sm text-ink/60'
                       : 'mt-1 font-mono text-sm text-ink/30'}>
                       {entry.available
-                        ? `${entry.width}x${entry.height} · ${formatCompactNumber(entry.buildCost)}`
+                        ? `${entry.width}x${entry.height} · ${formatCompactNumber(entry.buildCost)} · ${entry.buildWeeks}W`
                         : 'Locked'}
                     </Text>
+                    {entry.blockedReason ? (
+                      <Text className="mt-1 text-xs font-bold text-stamp">{entry.blockedReason}</Text>
+                    ) : null}
                   </Pressable>
                 );
               })}
@@ -399,13 +458,18 @@ export function ClubFinancesScreen({
       {viewModel.legacyTrainingGroundVisible ? (
       <View className="mt-6" onLayout={onTrainingGroundLayout}>
         <SectionLabel eyebrow="One big call" title="Training Ground" right={<StatusChip label="Facility 01" />} />
-        <PaperPanel kicker="Works order" title="Turn mud into momentum" stamp={facility.built ? 'Built' : 'Decision'}>
+        <PaperPanel
+          kicker="Works order"
+          title="Turn mud into momentum"
+          stamp={facility.built ? 'Built' : facility.underConstruction ? `${facility.weeksRemaining}W LEFT` : 'Decision'}
+        >
           <View className="flex-row items-center gap-4 border-y-2 border-ink py-4">
-            <View className="h-16 w-16 items-center justify-center border-2 border-emerald-900 bg-pitch">
-              <View className="h-10 w-10 border-2 border-paper/80">
-                <View className="absolute left-1/2 top-0 h-full w-px bg-paper/70" />
-                <View className="absolute left-0 top-1/2 h-px w-full bg-paper/70" />
-              </View>
+            <View className="items-center justify-center border-2 border-emerald-900 bg-pitch p-2">
+              <ManagementSprite
+                spriteKey={facility.underConstruction ? 'facility:worksite' : 'facility:training-pitch:l1'}
+                width={58}
+                accessibilityLabel={facility.underConstruction ? 'Training Ground construction site' : 'Training Ground'}
+              />
             </View>
             <View className="flex-1">
               <Text className="text-base font-bold uppercase text-ink">Training Ground · Level 1</Text>
@@ -421,7 +485,7 @@ export function ClubFinancesScreen({
           <Text className="mt-3 text-sm font-bold uppercase tracking-wide text-ink/50">
             M1 offer: 8,000 cost · +5 TP every week
           </Text>
-          {!facility.built ? (
+          {!facility.built && !facility.underConstruction ? (
             <View className={guideTrainingGround ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>
               {guideTrainingGround ? (
                 <TutorialTapCue
@@ -430,14 +494,20 @@ export function ClubFinancesScreen({
                 />
               ) : null}
               <ActionButton
-                label="Approve build · 8,000"
+                label="Approve build · 8,000 · 1 week"
                 accessibilityLabel="Build the Training Ground for 8,000 money"
                 onPress={onBuildTrainingGround}
                 disabled={!facility.affordable}
               />
             </View>
           ) : null}
-          {!facility.built && !facility.affordable ? (
+          {facility.underConstruction ? (
+            <View className="mt-3 border-2 border-b-4 border-amber-800 bg-amber-100 p-3">
+              <Text className="text-center font-pixel text-base uppercase text-amber-900">Sports facility in construction!</Text>
+              <Text className="mt-2 text-center text-sm text-ink/65">Benefits start when the next weekly settlement completes the work.</Text>
+            </View>
+          ) : null}
+          {!facility.built && !facility.underConstruction && !facility.affordable ? (
             <Text className="mt-2 text-center text-sm font-bold uppercase tracking-wide text-stamp">
               Insufficient balance
             </Text>
@@ -447,15 +517,6 @@ export function ClubFinancesScreen({
       ) : null}
     </ScrollView>
   );
-}
-
-function facilityMark(building: ClubFacilityBuildingViewModel): string {
-  return building.name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
 }
 
 function facilityColor(building: ClubFacilityBuildingViewModel): string {

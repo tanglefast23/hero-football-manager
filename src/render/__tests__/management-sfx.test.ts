@@ -23,8 +23,13 @@ jest.mock('expo-audio', () => ({
 }));
 
 import {
+  playCoachDepartureSfx,
+  playFacilityCompleteSfx,
+  playFacilityStartSfx,
   playMatchStatementSfx,
   playTrainingStatDing,
+  playTransactionConfirmSfx,
+  playUiClickSfx,
   setManagementSfxMasterVolume,
   teardownManagementSfx,
 } from '../management-sfx';
@@ -46,7 +51,7 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(2);
+    expect(mockPlayers).toHaveLength(7);
     const trainingDing = mockPlayers[1];
     expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
@@ -61,9 +66,24 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(2);
+    expect(mockPlayers).toHaveLength(7);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
+  });
+
+  it('routes interaction families to stable semantic sounds', async () => {
+    playUiClickSfx();
+    playTransactionConfirmSfx();
+    playCoachDepartureSfx();
+    playFacilityStartSfx();
+    playFacilityCompleteSfx();
+    await Promise.resolve();
+
+    expect(mockPlayers[2].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[3].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[4].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[5].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[6].play).toHaveBeenCalledTimes(1);
   });
 });

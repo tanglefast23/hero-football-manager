@@ -1,8 +1,9 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, SectionLabel, StatusChip } from '../components/Scorecard';
 import type { PostMatchViewModel } from '../models';
 import { SettingsButton } from '../SettingsOverlay';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;

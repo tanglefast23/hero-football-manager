@@ -29,8 +29,11 @@ export interface FacilityCatalogEntry {
   readonly name: string;
   readonly footprint: FacilityFootprint;
   readonly buildCost: number;
+  readonly buildWeeks: number;
   /** Cost to move from the array index + 1 to the next level. */
   readonly upgradeCosts: readonly [number, number];
+  /** Weeks to reach levels 2 and 3. */
+  readonly upgradeWeeks: readonly [number, number];
   /** Weekly upkeep for levels 1, 2, and 3. */
   readonly weeklyUpkeep: readonly [number, number, number];
   readonly relocationFee: number;
@@ -38,19 +41,19 @@ export interface FacilityCatalogEntry {
 }
 
 export const FACILITY_CATALOG: Readonly<Record<FacilityType, FacilityCatalogEntry>> = {
-  'training-pitch': facility('training-pitch', 'Training Pitch', 2, 2, 8_000, [8_000, 12_000], [100, 160, 240], 400),
-  gym: facility('gym', 'Gym', 1, 1, 7_000, [7_000, 10_500], [90, 140, 210], 350),
-  'tech-center': facility('tech-center', 'Tech Center', 1, 1, 9_000, [9_000, 13_500], [110, 175, 260], 450),
-  'shooting-range': facility('shooting-range', 'Shooting Range', 1, 2, 7_500, [7_500, 11_250], [95, 150, 225], 375),
-  'keeper-court': facility('keeper-court', 'Keeper Court', 1, 2, 7_500, [7_500, 11_250], [95, 150, 225], 375),
-  'medical-bay': facility('medical-bay', 'Medical Bay', 1, 1, 10_000, [10_000, 15_000], [125, 200, 300], 500),
-  dorm: facility('dorm', 'Dorm', 1, 1, 6_000, [6_000, 9_000], [75, 120, 180], 300),
-  'scout-office': facility('scout-office', 'Scout Office', 1, 1, 6_000, [6_000, 9_000], [75, 120, 180], 300),
-  'coaching-office': facility('coaching-office', 'Coaching Office', 1, 1, 6_500, [6_500, 9_750], [80, 130, 195], 325),
-  'youth-field': facility('youth-field', 'Youth Field', 2, 2, 12_000, [12_000, 18_000], [150, 240, 360], 600),
-  'fan-shop': facility('fan-shop', 'Fan Shop', 1, 1, 5_000, [5_000, 7_500], [65, 105, 155], 250),
-  'stadium-stand': facility('stadium-stand', 'Stadium Stand', 2, 2, 15_000, [15_000, 22_500], [190, 300, 450], 750),
-  'hero-lab': facility('hero-lab', 'Hero Lab', 2, 2, 100_000, [100_000, 150_000], [1_250, 2_000, 3_000], 5_000, false),
+  'training-pitch': facility('training-pitch', 'Training Pitch', 2, 2, 8_000, 1, [8_000, 12_000], [1, 2], [100, 160, 240], 400),
+  gym: facility('gym', 'Gym', 1, 1, 7_000, 1, [7_000, 10_500], [1, 2], [90, 140, 210], 350),
+  'tech-center': facility('tech-center', 'Tech Center', 1, 1, 9_000, 2, [9_000, 13_500], [2, 3], [110, 175, 260], 450),
+  'shooting-range': facility('shooting-range', 'Shooting Range', 1, 2, 7_500, 2, [7_500, 11_250], [2, 3], [95, 150, 225], 375),
+  'keeper-court': facility('keeper-court', 'Keeper Court', 1, 2, 7_500, 2, [7_500, 11_250], [2, 3], [95, 150, 225], 375),
+  'medical-bay': facility('medical-bay', 'Medical Bay', 1, 1, 10_000, 2, [10_000, 15_000], [2, 3], [125, 200, 300], 500),
+  dorm: facility('dorm', 'Dorm', 1, 1, 6_000, 1, [6_000, 9_000], [1, 2], [75, 120, 180], 300),
+  'scout-office': facility('scout-office', 'Scout Office', 1, 1, 6_000, 1, [6_000, 9_000], [1, 2], [75, 120, 180], 300),
+  'coaching-office': facility('coaching-office', 'Coaching Office', 1, 1, 6_500, 1, [6_500, 9_750], [1, 2], [80, 130, 195], 325),
+  'youth-field': facility('youth-field', 'Youth Field', 2, 2, 12_000, 3, [12_000, 18_000], [2, 3], [150, 240, 360], 600),
+  'fan-shop': facility('fan-shop', 'Fan Shop', 1, 1, 5_000, 1, [5_000, 7_500], [1, 2], [65, 105, 155], 250),
+  'stadium-stand': facility('stadium-stand', 'Stadium Stand', 2, 2, 15_000, 3, [15_000, 22_500], [2, 3], [190, 300, 450], 750),
+  'hero-lab': facility('hero-lab', 'Hero Lab', 2, 2, 100_000, 4, [100_000, 150_000], [3, 4], [1_250, 2_000, 3_000], 5_000, false),
 };
 
 export type FacilityAdjacencyId =
@@ -107,6 +110,15 @@ export interface PlacedFacility extends FacilityPosition {
   readonly level: FacilityLevel;
 }
 
+export interface FacilityConstructionProject {
+  readonly kind: 'BUILD' | 'UPGRADE';
+  readonly buildingId: string;
+  readonly type: FacilityType;
+  readonly targetLevel: FacilityLevel;
+  readonly weeksRemaining: number;
+  readonly totalWeeks: number;
+}
+
 /** Plain save data: no Maps, Sets, class instances, or generated runtime state. */
 export interface FacilityGridState {
   readonly width: typeof FACILITY_GRID_WIDTH;
@@ -114,6 +126,13 @@ export interface FacilityGridState {
   readonly nextBuildingId: number;
   readonly buildings: readonly PlacedFacility[];
   readonly discoveredAdjacencies: readonly FacilityAdjacencyId[];
+  readonly construction?: FacilityConstructionProject;
+}
+
+export interface FacilityConstructionAdvance {
+  readonly grid: FacilityGridState;
+  readonly completed?: FacilityConstructionProject;
+  readonly newlyDiscoveredAdjacencies: readonly FacilityAdjacencyId[];
 }
 
 export interface FacilityTransaction {
@@ -141,6 +160,7 @@ export function buildFacility(
 ): FacilityTransaction {
   validateGrid(grid);
   validateCash(availableCash);
+  assertNoActiveConstruction(grid);
   const definition = definitionFor(type);
   if (!definition.available) throw new Error(`${definition.name} is not unlocked`);
   assertAffordable(availableCash, definition.buildCost);
@@ -163,6 +183,12 @@ export function buildFacility(
       ...grid,
       nextBuildingId: checkedAdd(grid.nextBuildingId, 1, 'next facility ID'),
       buildings: [...grid.buildings, building],
+      construction: constructionProject(
+        'BUILD',
+        building,
+        1,
+        definition.buildWeeks,
+      ),
     },
     definition.buildCost,
     availableCash,
@@ -176,6 +202,7 @@ export function upgradeFacility(
 ): FacilityTransaction {
   validateGrid(grid);
   validateCash(availableCash);
+  assertNoActiveConstruction(grid);
   const building = findBuilding(grid, buildingId);
   if (building.level === MAX_FACILITY_LEVEL) {
     throw new Error(`${buildingId} is already at level ${MAX_FACILITY_LEVEL}`);
@@ -184,12 +211,11 @@ export function upgradeFacility(
   assertAffordable(availableCash, cost);
 
   const nextLevel = (building.level + 1) as FacilityLevel;
+  const weeks = FACILITY_CATALOG[building.type].upgradeWeeks[building.level - 1];
   return transaction(
     {
       ...grid,
-      buildings: grid.buildings.map(candidate => candidate.id === buildingId
-        ? { ...candidate, level: nextLevel }
-        : candidate),
+      construction: constructionProject('UPGRADE', building, nextLevel, weeks),
     },
     cost,
     availableCash,
@@ -205,6 +231,9 @@ export function relocateFacility(
   validateGrid(grid);
   validateCash(availableCash);
   const building = findBuilding(grid, buildingId);
+  if (grid.construction?.buildingId === buildingId) {
+    throw new Error(`${buildingId} cannot move while construction is active`);
+  }
   if (building.x === position.x && building.y === position.y) {
     throw new Error(`${buildingId} is already at that position`);
   }
@@ -229,10 +258,62 @@ export function weeklyFacilityUpkeep(grid: FacilityGridState): number {
   validateGrid(grid);
   let total = 0;
   for (const building of grid.buildings) {
+    if (!isFacilityOperational(grid, building.id)) continue;
     const upkeep = FACILITY_CATALOG[building.type].weeklyUpkeep[building.level - 1];
     total = checkedAdd(total, upkeep, 'weekly facility upkeep');
   }
   return total;
+}
+
+export function isFacilityOperational(grid: FacilityGridState, buildingId: string): boolean {
+  const building = findBuilding(grid, buildingId);
+  return grid.construction?.kind !== 'BUILD' || grid.construction.buildingId !== building.id;
+}
+
+export function advanceFacilityConstruction(
+  grid: FacilityGridState,
+): FacilityConstructionAdvance {
+  validateGrid(grid);
+  const project = grid.construction;
+  if (project === undefined) {
+    return { grid, newlyDiscoveredAdjacencies: [] };
+  }
+  if (project.weeksRemaining > 1) {
+    return {
+      grid: {
+        ...grid,
+        construction: { ...project, weeksRemaining: project.weeksRemaining - 1 },
+      },
+      newlyDiscoveredAdjacencies: [],
+    };
+  }
+
+  const completedGrid: FacilityGridState = {
+    ...grid,
+    buildings: project.kind === 'UPGRADE'
+      ? grid.buildings.map(building => building.id === project.buildingId
+        ? { ...building, level: project.targetLevel }
+        : building)
+      : grid.buildings,
+    construction: undefined,
+  };
+  const active = activeAdjacenciesUnchecked(completedGrid);
+  const discovered = new Set(completedGrid.discoveredAdjacencies);
+  const newlyDiscoveredAdjacencies = active.filter(id => !discovered.has(id));
+  const nextGrid = newlyDiscoveredAdjacencies.length === 0
+    ? completedGrid
+    : {
+        ...completedGrid,
+        discoveredAdjacencies: [
+          ...completedGrid.discoveredAdjacencies,
+          ...newlyDiscoveredAdjacencies,
+        ],
+      };
+  return {
+    grid: nextGrid,
+    completed: project,
+    newlyDiscoveredAdjacencies,
+  };
 }
 
 export function activeFacilityAdjacencies(
@@ -296,10 +377,13 @@ function transaction(
 }
 
 function activeAdjacenciesUnchecked(grid: FacilityGridState): FacilityAdjacencyId[] {
+  const operational = grid.buildings.filter(building => (
+    grid.construction?.kind !== 'BUILD' || grid.construction.buildingId !== building.id
+  ));
   return FACILITY_ADJACENCIES
-    .filter(adjacency => grid.buildings.some(first =>
+    .filter(adjacency => operational.some(first =>
       first.type === adjacency.first
-      && grid.buildings.some(second =>
+      && operational.some(second =>
         second.id !== first.id
         && second.type === adjacency.second
         && shareEdge(first, second),
@@ -351,6 +435,25 @@ function validateGrid(grid: FacilityGridState): void {
     if (!validAdjacencyIds.has(id)) throw new Error(`unknown facility adjacency ${String(id)}`);
     if (discoveries.has(id)) throw new Error(`duplicate facility adjacency ${id}`);
     discoveries.add(id);
+  }
+
+  const project = grid.construction;
+  if (project !== undefined) {
+    const building = grid.buildings.find(candidate => candidate.id === project.buildingId);
+    if (building === undefined) throw new Error('facility construction references an unknown building');
+    if (project.type !== building.type) throw new Error('facility construction type does not match its building');
+    if (project.kind === 'BUILD' && (building.level !== 1 || project.targetLevel !== 1)) {
+      throw new Error('new facility construction must target level 1');
+    }
+    if (project.kind === 'UPGRADE' && project.targetLevel !== building.level + 1) {
+      throw new Error('facility upgrade must target the next level');
+    }
+    if (!Number.isSafeInteger(project.weeksRemaining)
+      || project.weeksRemaining < 1
+      || !Number.isSafeInteger(project.totalWeeks)
+      || project.totalWeeks < project.weeksRemaining) {
+      throw new Error('facility construction weeks must be positive safe integers');
+    }
   }
 }
 
@@ -411,6 +514,31 @@ function assertAffordable(availableCash: number, cost: number): void {
   if (cost > availableCash) throw new Error('facility transaction is not affordable');
 }
 
+function assertNoActiveConstruction(grid: FacilityGridState): void {
+  if (grid.construction !== undefined) {
+    throw new Error('only one facility construction project may be active at a time');
+  }
+}
+
+function constructionProject(
+  kind: FacilityConstructionProject['kind'],
+  building: PlacedFacility,
+  targetLevel: FacilityLevel,
+  weeks: number,
+): FacilityConstructionProject {
+  if (!Number.isSafeInteger(weeks) || weeks < 1) {
+    throw new Error('facility construction duration must be a positive safe integer');
+  }
+  return {
+    kind,
+    buildingId: building.id,
+    type: building.type,
+    targetLevel,
+    weeksRemaining: weeks,
+    totalWeeks: weeks,
+  };
+}
+
 function checkedAdd(left: number, right: number, label: string): number {
   const result = left + right;
   if (!Number.isSafeInteger(result)) throw new Error(`${label} exceeds the safe integer range`);
@@ -423,7 +551,9 @@ function facility(
   width: number,
   height: number,
   buildCost: number,
+  buildWeeks: number,
   upgradeCosts: readonly [number, number],
+  upgradeWeeks: readonly [number, number],
   weeklyUpkeep: readonly [number, number, number],
   relocationFee: number,
   available = true,
@@ -433,7 +563,9 @@ function facility(
     name,
     footprint: { width, height },
     buildCost,
+    buildWeeks,
     upgradeCosts,
+    upgradeWeeks,
     weeklyUpkeep,
     relocationFee,
     available,

@@ -2,11 +2,24 @@
 // native dev client can still render the review UI when expo-audio is absent.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 
-type ManagementSfxKey = 'match-statement' | 'training-ding';
+type ManagementSfxKey =
+  | 'match-statement'
+  | 'training-ding'
+  | 'ui-click'
+  | 'transaction-confirm'
+  | 'coach-departure'
+  | 'facility-start'
+  | 'facility-complete';
 
 const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   'match-statement': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'training-ding': require('../../assets/audio/sfx/training-stat-ding.m4a'),
+  'ui-click': require('../../assets/audio/sfx/tap-fire.wav'),
+  // Player and coach signings intentionally share this confirmation sound.
+  'transaction-confirm': require('../../assets/audio/sfx/match-statement-positive.m4a'),
+  'coach-departure': require('../../assets/audio/sfx/fulltime-whistle.wav'),
+  'facility-start': require('../../assets/audio/sfx/advance-week.m4a'),
+  'facility-complete': require('../../assets/audio/sfx/facility-complete.m4a'),
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
@@ -47,6 +60,26 @@ export function playTrainingStatDing(): void {
 
 export function playMatchStatementSfx(): void {
   playManagementSfx('match-statement');
+}
+
+export function playUiClickSfx(): void {
+  playManagementSfx('ui-click');
+}
+
+export function playTransactionConfirmSfx(): void {
+  playManagementSfx('transaction-confirm');
+}
+
+export function playCoachDepartureSfx(): void {
+  playManagementSfx('coach-departure');
+}
+
+export function playFacilityStartSfx(): void {
+  playManagementSfx('facility-start');
+}
+
+export function playFacilityCompleteSfx(): void {
+  playManagementSfx('facility-complete');
 }
 
 export function stopMatchStatementSfx(): void {

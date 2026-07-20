@@ -1,6 +1,7 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { advanceWeek, createCareer } from '../career';
 import { buildCareerFacility } from '../management';
+import { advanceFacilityConstruction } from '../facilities';
 import type { GameState } from '../types';
 
 function userCash(state: ReturnType<typeof createCareer>): number {
@@ -10,27 +11,35 @@ function userCash(state: ReturnType<typeof createCareer>): number {
 }
 
 describe('facility weekly integration', () => {
-  test('itemizes grid upkeep and awards ambient TP for a Training Pitch', () => {
+  test('starts without benefits, then activates upkeep and ambient TP after completion', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
     const built = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
     const cashBeforeSettlement = userCash(built);
 
-    const settled = advanceWeek(built);
+    const completionWeek = advanceWeek(built);
+    expect(completionWeek.trainingPoints).toBe(built.trainingPoints);
+    expect(completionWeek.ledgers[0].lines.some(line => line.kind === 'facilities')).toBe(false);
+    expect(completionWeek.facilities.grid?.construction).toBeUndefined();
+
+    const settled = advanceWeek(completionWeek);
 
     expect(settled.trainingPoints).toBe(built.trainingPoints + 5);
-    expect(settled.ledgers[0].lines).toContainEqual({
+    expect(settled.ledgers[1].lines).toContainEqual({
       kind: 'facilities',
       label: 'Facility upkeep',
       amount: -100,
     });
-    const net = settled.ledgers[0].lines.reduce((total, line) => total + line.amount, 0);
-    expect(userCash(settled)).toBe(cashBeforeSettlement + net);
+    const completionNet = completionWeek.ledgers[0].lines.reduce((total, line) => total + line.amount, 0);
+    const activeNet = settled.ledgers[1].lines.reduce((total, line) => total + line.amount, 0);
+    expect(userCash(settled)).toBe(cashBeforeSettlement + completionNet + activeNet);
   });
 
   test('carries the Gym + Dorm ten-percent bonus until small real gains earn +1 STA', () => {
     const initial = createCareer(createLaunchCareerSetup(77, undefined, undefined, 'full'));
-    const gym = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
-    const withAdjacency = buildCareerFacility(gym, 'dorm', { x: 1, y: 0 }).state;
+    const gymProject = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
+    const gym = completeConstruction(gymProject);
+    const dormProject = buildCareerFacility(gym, 'dorm', { x: 1, y: 0 }).state;
+    const withAdjacency = completeConstruction(dormProject);
     const playerId = withAdjacency.lineups
       .find(lineup => lineup.clubId === withAdjacency.userClubId)?.playerIds[0];
     if (playerId === undefined) throw new Error('missing user player');
@@ -74,3 +83,14 @@ describe('facility weekly integration', () => {
     expect(settled.ledgers[0].lines.some(line => line.kind === 'facilities')).toBe(false);
   });
 });
+
+function completeConstruction(state: GameState): GameState {
+  const grid = state.facilities.grid;
+  if (grid === undefined) throw new Error('missing facility grid');
+  let next = grid;
+  while (next.construction !== undefined) next = advanceFacilityConstruction(next).grid;
+  return {
+    ...state,
+    facilities: { ...state.facilities, grid: next },
+  };
+}

@@ -1,9 +1,10 @@
 import { createLaunchCareerSetup } from '../../application/launch';
-import { buildCareerFacility, createCareer } from '..';
+import { advanceFacilityConstruction, buildCareerFacility, createCareer } from '..';
 import {
   beginCareerTransferTalks,
   completeCareerTransfer,
   createCareerMarketState,
+  dismissCareerCoach,
   hireCareerCoach,
   refreshCareerMarketForNewSeason,
   resolveCareerScoutClock,
@@ -15,7 +16,14 @@ import {
 describe('career market integration', () => {
   test('charges for a mission and resolves deterministic reports on its due week', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
-    const withOffice = buildCareerFacility(initial, 'scout-office', { x: 0, y: 0 }).state;
+    const officeProject = buildCareerFacility(initial, 'scout-office', { x: 0, y: 0 }).state;
+    const withOffice = {
+      ...officeProject,
+      facilities: {
+        ...officeProject.facilities,
+        grid: advanceFacilityConstruction(officeProject.facilities.grid!).grid,
+      },
+    };
     const market = createCareerMarketState(withOffice);
     const started = startCareerScoutMission(
       withOffice,
@@ -124,6 +132,31 @@ describe('career market integration', () => {
 
     expect(hired.headCoach).toEqual(market.coachCandidates[0]);
     expect(hired.headCoachSeasonsEmployed).toBe(0);
+    expect(hired.coachCandidates).not.toContainEqual(market.coachCandidates[0]);
+    expect(() => hireCareerCoach(hired, hired.coachCandidates[0].id))
+      .toThrow('dismiss the current head coach');
+  });
+
+  test('dismisses a coach for exactly one weekly wage before another can be hired', () => {
+    const state = createCareer(createLaunchCareerSetup(810, undefined, undefined, 'full'));
+    const hired = hireCareerCoach(state.market!, state.market!.coachCandidates[0].id);
+    const coach = hired.headCoach!;
+    const cashBefore = state.clubs.find(club => club.id === state.userClubId)!.cash;
+
+    const dismissed = dismissCareerCoach(state, hired);
+
+    expect(dismissed.market.headCoach).toBeUndefined();
+    expect(dismissed.market.headCoachSeasonsEmployed).toBeUndefined();
+    expect(dismissed.state.clubs.find(club => club.id === state.userClubId)?.cash)
+      .toBe(cashBefore - coach.weeklyWage);
+    expect(dismissed.state.cashTransactions?.at(-1)).toMatchObject({
+      kind: 'coach-dismissal',
+      label: `Severance · ${coach.name}`,
+      amount: -coach.weeklyWage,
+      referenceId: coach.id,
+    });
+    expect(hireCareerCoach(dismissed.market, dismissed.market.coachCandidates[0].id).headCoach)
+      .toBeDefined();
   });
 
   test('retains a head coach and adds one level after every two full seasons', () => {

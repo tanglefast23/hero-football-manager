@@ -1,8 +1,9 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ContractOffer, PitchCard } from '../../game/market';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
 import type { SeasonEndViewModel } from '../models';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SettingsButton } from '../SettingsOverlay';
 import { NegotiationPanel } from './MarketScreen';
 

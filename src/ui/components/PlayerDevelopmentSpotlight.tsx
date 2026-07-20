@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, Text, View } from 'react-native';
+import { Animated, Text, View } from 'react-native';
+import { SfxPressable as Pressable } from './SfxPressable';
 import type {
   AttributeGainViewModel,
   PlayerDevelopmentViewModel,

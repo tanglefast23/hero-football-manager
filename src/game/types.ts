@@ -206,7 +206,8 @@ export type CashTransactionKind =
   | 'transfer-buy'
   | 'transfer-sell'
   | 'youth-signing'
-  | 'coach-hiring';
+  | 'coach-hiring'
+  | 'coach-dismissal';
 
 /**
  * Immediate M2 cash movements live beside weekly ledgers so buying something

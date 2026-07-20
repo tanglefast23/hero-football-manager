@@ -2,6 +2,7 @@ import {
   FACILITY_CATALOG,
   buildFacility,
   createFacilityGrid,
+  isFacilityOperational,
   relocateFacility,
   upgradeFacility,
   type FacilityPosition,
@@ -37,7 +38,7 @@ export function buildCareerFacility(
     ...applied,
     state: recordCashTransaction(applied.state, {
       kind: 'facility-build',
-      label: `Built ${FACILITY_CATALOG[type].name}`,
+      label: `${FACILITY_CATALOG[type].name} construction started`,
       amount: -transaction.cost,
       referenceId: building.id,
     }),
@@ -57,11 +58,13 @@ export function upgradeCareerFacility(
   const applied = applyFacilityTransaction(state, transaction);
   const building = transaction.grid.buildings.find(candidate => candidate.id === buildingId);
   if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
+  const targetLevel = transaction.grid.construction?.targetLevel;
+  if (targetLevel === undefined) throw new Error('facility upgrade did not start construction');
   return {
     ...applied,
     state: recordCashTransaction(applied.state, {
       kind: 'facility-upgrade',
-      label: `Upgraded ${FACILITY_CATALOG[building.type].name} to Level ${building.level}`,
+      label: `${FACILITY_CATALOG[building.type].name} Level ${targetLevel} upgrade started`,
       amount: -transaction.cost,
       referenceId: building.id,
     }),
@@ -105,9 +108,10 @@ function applyFacilityTransaction(
       : club),
     facilities: {
       ...state.facilities,
-      trainingGroundBuilt: transaction.grid.buildings.some(
-        building => building.type === 'training-pitch',
-      ),
+      trainingGroundBuilt: transaction.grid.buildings.some(building => (
+        building.type === 'training-pitch'
+        && isFacilityOperational(transaction.grid, building.id)
+      )),
       grid: transaction.grid,
     },
   };

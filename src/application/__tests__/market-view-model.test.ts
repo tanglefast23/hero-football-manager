@@ -162,6 +162,17 @@ describe('marketViewModel', () => {
     });
   });
 
+  it('locks every hire action while one head coach is employed', () => {
+    const source = baseSource();
+    const currentCoach = source.coachCandidates[0];
+    const viewModel = marketViewModel({ ...source, headCoach: currentCoach });
+
+    expect(viewModel.coaches.every(coach => !coach.available)).toBe(true);
+    expect(viewModel.coaches.every(coach => (
+      coach.blockedReason === `Dismiss ${currentCoach.name} first.`
+    ))).toBe(true);
+  });
+
   it('exposes a usable mood/card panel without leaking the hidden weekly ask', () => {
     const initial = startContractNegotiation({
       careerSeed: 55,

@@ -7,6 +7,7 @@ import type {
   PlayerPersonality,
 } from './types';
 import { recordCashTransaction } from './cash-transactions';
+import { isFacilityOperational } from './facilities';
 
 export const YOUTH_INTAKE_SCHEMA_VERSION = 1;
 export const BASE_ROSTER_CAPACITY = 16;
@@ -226,7 +227,10 @@ export function declineYouthIntakeOffers(
 }
 
 export function youthFieldLevel(state: Pick<GameState, 'facilities'>): 0 | 1 | 2 | 3 {
-  return state.facilities.grid?.buildings.find(building => building.type === 'youth-field')?.level ?? 0;
+  const grid = state.facilities.grid;
+  return grid?.buildings.find(building => (
+    building.type === 'youth-field' && isFacilityOperational(grid, building.id)
+  ))?.level ?? 0;
 }
 
 export function youthSigningBonus(fieldLevel: 0 | 1 | 2 | 3): number {
