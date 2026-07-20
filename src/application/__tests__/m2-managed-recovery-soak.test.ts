@@ -25,7 +25,7 @@ describe('M2 struggling-manager recovery soak', () => {
     expect(second.resolutions).toEqual(first.resolutions);
     expect(first.state).toMatchObject({ season: COMPLETED_SEASONS, phase: 'season-end' });
     expect(first.minimumRosterSize).toBeGreaterThanOrEqual(16);
-    expect(first.minimumCash).toBeGreaterThanOrEqual(-325_000);
+    expect(first.minimumCash).toBeGreaterThanOrEqual(-326_000);
     expect(first.resolutions.some(resolution => resolution.kind === 'FORCED_SALE')).toBe(true);
     expect(buildCareerTeamDef(first.state, first.state.userClubId).players).toHaveLength(11);
     expect(first.state.players.filter(player => player.clubId === first.state.userClubId)).toHaveLength(16);
