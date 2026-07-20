@@ -137,13 +137,75 @@ export const AssistantGuideSequenceIdSchema = z.enum([
   'management-intro',
   'squad-intro',
   'desk-intro',
+  'head-coach-market',
+  'head-coach-hire',
+  'coaching-office',
+  'assistant-coach-hire',
+  'facility-placement',
+  'facility-upgrade',
+  'facility-adjacency',
+  'scout-mission',
+  'scout-report',
+  'transfer-list',
+  'transfer-bid',
+  'transfer-negotiation',
+  'youth-intake',
+  'national-cup',
+  'first-injury',
+  'first-emergency-loan',
+  'first-transfer-request',
+  'retirement',
+  'club-legacy',
+  'board-ultimatum',
+  'board-protection',
+]);
+
+export const AssistantGuideFocusSchema = z.enum([
+  'assistant',
+  'money',
+  'navigation',
+  'desk',
+  'training',
+  'coach-market',
+  'coach-hire',
+  'coaching-office',
+  'assistant-coach-hire',
+  'facility-grid',
+  'facility-upgrade',
+  'facility-adjacency',
+  'scout-mission',
+  'scout-report',
+  'transfer-list',
+  'transfer-bid',
+  'transfer-negotiation',
+  'youth-intake',
+  'national-cup',
+  'injury-lineup',
+  'emergency-loan',
+  'transfer-request',
+  'retirement',
+  'club-legacy',
+  'board-ultimatum',
+  'board-protection',
+]);
+
+export const AssistantGuideDestinationSchema = z.enum([
+  'coach-market',
+  'club-facilities',
+  'market-scouting',
+  'market-transfers',
+  'youth-intake',
+  'league-cup',
+  'squad',
+  'club-legacy',
+  'club-finances',
 ]);
 
 const AssistantGuidePageSchema = z.strictObject({
   kicker: displayNameSchema,
   title: displayNameSchema,
   body: z.array(displayNameSchema).min(1).max(2),
-  focus: z.enum(['assistant', 'money', 'navigation', 'desk', 'training']),
+  focus: AssistantGuideFocusSchema,
   objective: displayNameSchema.optional(),
   buttonLabel: displayNameSchema,
   navItems: z.array(z.strictObject({
@@ -159,6 +221,26 @@ const AssistantGuidePageSchema = z.strictObject({
   }
 });
 
+const AssistantGuideSequenceSchema = z.strictObject({
+  id: AssistantGuideSequenceIdSchema,
+  inbox: z.strictObject({
+    title: displayNameSchema,
+    detail: displayNameSchema,
+  }).optional(),
+  destination: AssistantGuideDestinationSchema.optional(),
+  pages: z.array(AssistantGuidePageSchema).min(1).max(4),
+}).superRefine((sequence, context) => {
+  const m1Sequence = sequence.id === 'management-intro'
+    || sequence.id === 'squad-intro'
+    || sequence.id === 'desk-intro';
+  if (!m1Sequence && sequence.inbox === undefined) {
+    addIssue(context, ['inbox'], 'M2 assistant guides require inbox copy');
+  }
+  if (!m1Sequence && sequence.destination === undefined) {
+    addIssue(context, ['destination'], 'M2 assistant guides require a destination');
+  }
+});
+
 export const AssistantGuideContentSchema = z.strictObject({
   schemaVersion: ContentSchemaVersion,
   assistant: z.strictObject({
@@ -166,10 +248,7 @@ export const AssistantGuideContentSchema = z.strictObject({
     role: displayNameSchema,
     portraitArchetype: z.literal('GAFFER'),
   }),
-  sequences: z.array(z.strictObject({
-    id: AssistantGuideSequenceIdSchema,
-    pages: z.array(AssistantGuidePageSchema).min(1).max(4),
-  })).length(3),
+  sequences: z.array(AssistantGuideSequenceSchema).length(AssistantGuideSequenceIdSchema.options.length),
 }).superRefine((content, context) => {
   addDuplicateIssues(content.sequences.map(sequence => sequence.id), context, ['sequences'], 'guide sequence ID');
   for (const sequenceId of AssistantGuideSequenceIdSchema.options) {
@@ -359,6 +438,8 @@ export type PowerDefinition = z.infer<typeof PowerDefinitionSchema>;
 export type PowerCatalog = z.infer<typeof PowerCatalogSchema>;
 export type OnboardingContent = z.infer<typeof OnboardingContentSchema>;
 export type AssistantGuideSequenceId = z.infer<typeof AssistantGuideSequenceIdSchema>;
+export type AssistantGuideFocus = z.infer<typeof AssistantGuideFocusSchema>;
+export type AssistantGuideDestination = z.infer<typeof AssistantGuideDestinationSchema>;
 export type AssistantGuideContent = z.infer<typeof AssistantGuideContentSchema>;
 export type TrainingDrill = z.infer<typeof TrainingDrillSchema>;
 export type TrainingCatalog = z.infer<typeof TrainingCatalogSchema>;

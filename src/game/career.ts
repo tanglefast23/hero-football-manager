@@ -4,11 +4,19 @@ import { resolveCareerTrainingWeek } from './training';
 import { enableFullCareer, startNextFullCareerSeason } from './full-career';
 import { careerCoachWageLedgerAmount } from './coach-weekly';
 import { resolveCareerScoutClock } from './market-career';
-import { resolveNextM2NationalCupRound } from './m2-career';
+import { resolveNextM2NationalCupRound, willRetireAtSeasonTransition } from './m2-career';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
 import type { NationalCupFixture, NationalCupResult } from './pyramid';
 import { repairCareerLineupForInjuries } from './squad';
 import { expireYouthIntakeWindow } from './youth-intake';
+import {
+  applyBoardForcedSaleConsequences,
+  boardForcedSaleAtDeadline,
+  clearMetBoardUltimatum,
+  createBoardUltimatum,
+  targetMetResolution,
+  type BoardForcedSaleResolution,
+} from './board-ultimatum';
 import {
   GAME_SCHEMA_VERSION,
   M1_SEASONS,
@@ -50,6 +58,9 @@ export function createCareer(setup: CareerSetup): GameState {
 
   const state: GameState = {
     schemaVersion: GAME_SCHEMA_VERSION,
+    ...(setup.launchRosterVersion === undefined
+      ? {}
+      : { launchRosterVersion: setup.launchRosterVersion }),
     careerSeed: setup.seed,
     userClubId: setup.userClubId,
     season: 1,
@@ -277,7 +288,9 @@ export function startNextSeason(state: GameState): GameState {
   }
   if (state.careerMode === 'full') {
     const expired = state.players.filter(player => (
-      player.clubId === state.userClubId && player.contractSeasonsRemaining === 0
+      player.clubId === state.userClubId
+      && player.contractSeasonsRemaining === 0
+      && !willRetireAtSeasonTransition(player, state.season)
     ));
     if (expired.length > 0) {
       throw new Error(`${expired.length} expired contract${expired.length === 1 ? '' : 's'} must be resolved before the next season`);
@@ -328,10 +341,13 @@ function settleCurrentWeek(
     trainingPoints: training.trainingPoints,
   };
   const lines = settlementLines(trainedState, userClub, training.moneyCost);
-  const safety = resolveFinancialSafety(state, userClub.cash, lines);
+  const safety = resolveFinancialSafety(trainedState, userClub.cash, lines);
   const settledLines = safety.lines;
   const balanceAfter = safety.balanceAfter;
-  const clubs = state.clubs.map(club =>
+  const intervenedState = safety.forcedSale === undefined
+    ? trainedState
+    : applyBoardForcedSaleConsequences(trainedState, safety.forcedSale);
+  const clubs = intervenedState.clubs.map(club =>
     club.id === state.userClubId ? { ...club, cash: balanceAfter } : club,
   );
   const ambientTrainingPoints = hasAmbientTrainingPitch(state) ? 5 : 0;
@@ -353,9 +369,10 @@ function settleCurrentWeek(
   const injuryWeeksBeforeSettlement = new Map(
     state.players.map(player => [player.id, player.injuryWeeks]),
   );
-  const recoveredPlayers = weeklyPlayers.map(player => {
+  const recoveredPlayers = intervenedState.players.map(player => {
     const injuryWeeksBefore = injuryWeeksBeforeSettlement.get(player.id);
     if (injuryWeeksBefore === undefined) {
+      if (safety.forcedSale?.replacementPlayerId === player.id) return player;
       throw new Error(`weekly wellbeing returned unknown player ${player.id}`);
     }
     // An existing injury advances by one recovery week. A new overtraining
@@ -380,7 +397,7 @@ function settleCurrentWeek(
         : 0,
     }));
     const settledState: GameState = {
-      ...state,
+      ...intervenedState,
       clubs,
       ledgers,
       players,
@@ -400,7 +417,7 @@ function settleCurrentWeek(
   }
 
   const settledState: GameState = {
-    ...state,
+    ...intervenedState,
     clubs,
     ledgers,
     players: recoveredPlayers,
@@ -551,7 +568,7 @@ function settlementLines(
   if (coachWage !== 0) {
     lines.push({
       kind: 'wages',
-      label: 'Head coach wage',
+      label: 'Coaching staff wages',
       amount: coachWage,
     });
   }
@@ -692,6 +709,7 @@ function resolveFinancialSafety(
   lines: LedgerLine[];
   balanceAfter: number;
   financialSafety?: FinancialSafetyState;
+  forcedSale?: BoardForcedSaleResolution;
 } {
   if (state.careerMode !== 'full') {
     const net = baseLines.reduce(
@@ -751,6 +769,48 @@ function resolveFinancialSafety(
     };
   }
 
+  let boardUltimatum = previous.boardUltimatum === undefined
+    ? undefined
+    : {
+        ...previous.boardUltimatum,
+        candidates: previous.boardUltimatum.candidates.map(candidate => ({ ...candidate })),
+      };
+  let latestBoardResolution = previous.latestBoardResolution === undefined
+    ? undefined
+    : { ...previous.latestBoardResolution };
+  let forcedSale: BoardForcedSaleResolution | undefined;
+  if (boardUltimatum !== undefined) {
+    if (balanceAfter >= boardUltimatum.targetCash) {
+      latestBoardResolution = targetMetResolution(state, boardUltimatum);
+      boardUltimatum = undefined;
+    } else if (boardUltimatum.weeksRemaining > 1) {
+      boardUltimatum = {
+        ...boardUltimatum,
+        weeksRemaining: boardUltimatum.weeksRemaining - 1,
+      };
+    } else {
+      forcedSale = boardForcedSaleAtDeadline(state, boardUltimatum);
+      if (forcedSale === undefined) {
+        const refreshed = createBoardUltimatum(state);
+        boardUltimatum = refreshed === undefined
+          ? { ...boardUltimatum, weeksRemaining: 1 }
+          : { ...refreshed, id: `${boardUltimatum.id}-refresh-s${state.season}-w${state.week}` };
+      } else {
+        lines.push({
+          kind: 'board-sale',
+          label: `Board-enforced sale · ${forcedSale.playerId}`,
+          amount: forcedSale.fee,
+        });
+        balanceAfter = checkedAdd(balanceAfter, forcedSale.fee, 'board forced-sale balance');
+        consecutiveNegativeWeeks = 0;
+        latestBoardResolution = forcedSale;
+        boardUltimatum = undefined;
+      }
+    }
+  } else if (balanceAfter < 0 && consecutiveNegativeWeeks >= 4 && emergencyLoanUsed) {
+    boardUltimatum = createBoardUltimatum(state);
+  }
+
   return {
     lines,
     balanceAfter,
@@ -758,7 +818,10 @@ function resolveFinancialSafety(
       consecutiveNegativeWeeks,
       emergencyLoanUsed,
       ...(loan === undefined ? {} : { loan }),
+      ...(boardUltimatum === undefined ? {} : { boardUltimatum }),
+      ...(latestBoardResolution === undefined ? {} : { latestBoardResolution }),
     },
+    ...(forcedSale === undefined ? {} : { forcedSale }),
   };
 }
 
@@ -818,7 +881,7 @@ function awardNationalCupPrize(
   const latestLedger = state.ledgers[state.ledgers.length - 1];
   if (latestLedger === undefined) throw new Error('National Cup prize requires a weekly ledger');
   const balanceAfter = checkedAdd(latestLedger.balanceAfter, prize, 'National Cup prize balance');
-  return {
+  return clearMetBoardUltimatum({
     ...state,
     clubs: state.clubs.map(club => club.id === state.userClubId
       ? { ...club, cash: checkedAdd(club.cash, prize, 'National Cup prize cash') }
@@ -836,7 +899,7 @@ function awardNationalCupPrize(
           balanceAfter,
         }
       : ledger),
-  };
+  });
 }
 
 function hasAmbientTrainingPitch(state: GameState): boolean {

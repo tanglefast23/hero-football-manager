@@ -106,7 +106,7 @@ export function FixtureMatchDayScreen({
                       accessibilityState={{ selected: player.id === selectedStarterId }}
                       onPress={() => setSelectedStarterId(current => current === player.id ? null : player.id)}
                       className={player.id === selectedStarterId
-                        ? 'w-14 items-center border-2 border-signal bg-ink/40 p-1'
+                        ? 'w-14 items-center border-2 border-violet-dark bg-violet-light p-1'
                         : 'w-14 items-center border-2 border-transparent p-1'}
                       style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
                     >
@@ -115,7 +115,9 @@ export function FixtureMatchDayScreen({
                           {player.shirtNumber}
                         </Text>
                       </View>
-                      <Text className="mt-1 text-center text-sm font-bold text-paper" numberOfLines={1}>{player.name}</Text>
+                      <Text className={player.id === selectedStarterId
+                        ? 'mt-1 text-center text-sm font-bold text-ink'
+                        : 'mt-1 text-center text-sm font-bold text-paper'} numberOfLines={1}>{player.name}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -172,27 +174,12 @@ export function FixtureMatchDayScreen({
         </View>
 
         <View className="mt-6">
-          <SectionLabel eyebrow="Touchline order" title="Tactic" right={<StatusChip label="Selected" />} />
-          <View className="gap-2">
-            {viewModel.tactics.map(tactic => {
-              const selected = tactic.id === viewModel.selectedTacticId;
-              return (
-                <View
-                  key={tactic.id}
-                  accessible
-                  accessibilityLabel={`${tactic.label} tactic. ${tactic.detail}.`}
-                  className={selected ? 'min-h-14 flex-row items-center border-2 border-ink bg-signal p-3' : 'min-h-14 flex-row items-center border-2 border-ink/30 bg-white p-3'}
-                >
-                  <View className={selected ? 'mr-3 h-5 w-5 items-center justify-center border-2 border-ink' : 'mr-3 h-5 w-5 items-center justify-center border-2 border-ink/40'}>
-                    {selected ? <View className="h-2 w-2 bg-ink" /> : null}
-                  </View>
-                  <View className="flex-1">
-                    <Text className={selected ? 'text-base font-bold uppercase text-ink' : 'text-base font-bold uppercase text-ink'}>{tactic.label}</Text>
-                    <Text className={selected ? 'mt-1 text-sm text-ink/60' : 'mt-1 text-sm text-ink/50'}>{tactic.detail}</Text>
-                  </View>
-                </View>
-              );
-            })}
+          <SectionLabel eyebrow="Touchline order" title="Live coaching" right={<StatusChip label={viewModel.formationLabel} />} />
+          <View accessible accessibilityLabel="Tactics can be changed from the touchline during the match" className="border-2 border-blue-dark bg-blue-light p-3">
+            <Text className="text-base font-bold uppercase text-ink">Set the XI here. Shape the match live.</Text>
+            <Text className="mt-1 text-sm leading-5 text-ink/65">
+              Formation and tempo controls remain available on the touchline once kickoff begins.
+            </Text>
           </View>
         </View>
 

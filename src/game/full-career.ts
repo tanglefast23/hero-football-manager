@@ -14,6 +14,7 @@ import {
 } from './m2-career';
 import { isClubLegend, type DivisionLevel, type PyramidClub, type PyramidPlayer } from './pyramid';
 import { expireYouthIntakeWindow, initializeSeasonYouthIntake } from './youth-intake';
+import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import type {
   CareerPlayer,
   ClubLineupState,
@@ -137,6 +138,7 @@ export function startNextFullCareerSeason(
       .filter(player => isClubLegend({ seasonsAtClub: player.seasonsAtClub, fame: player.fame }))
       .map(player => player.id),
   ];
+  const retirementAnnouncements = lifecycle.announcements.map(announcement => ({ ...announcement }));
   const next: GameState = {
     ...state,
     season,
@@ -155,6 +157,7 @@ export function startNextFullCareerSeason(
     m2: nextM2,
     retiredPlayers,
     pendingLegacyPlayerIds,
+    retirementAnnouncements,
   };
   const withMarket: GameState = {
     ...next,
@@ -167,10 +170,10 @@ export function startNextFullCareerSeason(
           clubFame(next),
         ),
   };
-  return {
+  return reconcileBoardUltimatumCandidates({
     ...withMarket,
     youthIntake: initializeSeasonYouthIntake(withMarket),
-  };
+  });
 }
 
 function generatedActiveDivision(

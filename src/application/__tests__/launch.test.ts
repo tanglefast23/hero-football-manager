@@ -66,8 +66,9 @@ describe('launch career adapter', () => {
         if (player.id.endsWith('-p13')) return { ...player, weeklyWage: 304 + index * 8 };
         return player;
       });
+    const { launchRosterVersion: _rosterVersion, ...withoutRosterVersion } = current;
     const legacy = {
-      ...current,
+      ...withoutRosterVersion,
       players: legacyPlayers,
       clubs: current.clubs.map(club => ({
         ...club,
@@ -86,6 +87,47 @@ describe('launch career adapter', () => {
       .reduce((sum, player) => sum + player.weeklyWage, 0);
     expect(migrated.clubs.find(club => club.id === DEFAULT_USER_CLUB_ID)?.weeklyWages).toBe(bramblePayroll);
     expect(reconcileLaunchRoster(migrated, content)).toBe(migrated);
+  });
+
+  it('marks an established full career without restoring departed launch players', () => {
+    const content = loadLaunchContent();
+    const current = createCareer(createLaunchCareerSetup(
+      7,
+      DEFAULT_USER_CLUB_ID,
+      content,
+      'full',
+    ));
+    const established = {
+      ...current,
+      season: 2,
+      launchRosterVersion: undefined,
+      players: current.players.filter(player => player.id !== 'bramble-rovers-p14'),
+    };
+
+    const reconciled = reconcileLaunchRoster(established, content, true);
+
+    expect(reconciled.launchRosterVersion).toBe(1);
+    expect(reconciled.players.some(player => player.id === 'bramble-rovers-p14')).toBe(false);
+    expect(reconciled.players.every(player =>
+      reconciled.clubs.some(club => club.id === player.clubId),
+    )).toBe(true);
+  });
+
+  it('expands a recognizable legacy roster without restoring an earlier departure', () => {
+    const content = loadLaunchContent();
+    const current = createCareer(createLaunchCareerSetup(7, DEFAULT_USER_CLUB_ID, content));
+    const { launchRosterVersion: _version, ...preMarker } = current;
+    const legacy = {
+      ...preMarker,
+      players: preMarker.players.filter(player => (
+        !/-p1[456]$/.test(player.id) && player.id !== 'bramble-rovers-p13'
+      )),
+    };
+
+    const reconciled = reconcileLaunchRoster(legacy, content);
+
+    expect(reconciled.players.some(player => player.id === 'bramble-rovers-p13')).toBe(false);
+    expect(reconciled.players.filter(player => /-p1[456]$/.test(player.id))).toHaveLength(30);
   });
 
   it('reconciles full careers saved before immediate cash history existed', () => {

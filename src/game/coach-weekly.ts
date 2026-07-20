@@ -18,6 +18,7 @@ const SPECIALTY_BY_ATTRIBUTE: Readonly<Record<TrainingAttribute, CoachSpecialty>
 
 export interface CareerCoachTrainingModifiers {
   readonly coachId?: string;
+  readonly assistantCoachId?: string;
   readonly qualityLevel: number;
   /** Canonical +10% per coach level, applied only to matching specialties. */
   readonly specialtyBonusPercent: number;
@@ -43,7 +44,8 @@ export function careerCoachTrainingModifiers(
   market: CareerMarketState,
 ): CareerCoachTrainingModifiers {
   const coach = market.headCoach;
-  if (coach === undefined) {
+  const assistant = market.assistantCoach;
+  if (coach === undefined && assistant === undefined) {
     return {
       qualityLevel: 0,
       specialtyBonusPercent: 0,
@@ -52,28 +54,42 @@ export function careerCoachTrainingModifiers(
     };
   }
 
-  validateHeadCoach(coach.level, coach.specialties);
+  if (coach !== undefined) validateCoach(coach.level, coach.specialties, 'head coach');
+  if (assistant !== undefined) validateCoach(assistant.level, assistant.specialties, 'assistant coach');
   const specialtyBonusPercent = checkedMultiply(
-    coach.level,
+    coach?.level ?? 0,
     10,
     'head coach specialty bonus',
   );
-  const specialties = [...coach.specialties];
-  const specialtySet = new Set(specialties);
+  // The assistant contributes half strength so the second slot is meaningful
+  // without doubling the established M2 training curve.
+  const assistantBonusPercent = checkedMultiply(assistant?.level ?? 0, 5, 'assistant coach specialty bonus');
+  const specialties = Array.from(new Set([
+    ...(coach?.specialties ?? []),
+    ...(assistant?.specialties ?? []),
+  ]));
+  const gainScale = (attribute: TrainingAttribute): number => 100
+    + (coach?.specialties.includes(SPECIALTY_BY_ATTRIBUTE[attribute]) === true
+      ? specialtyBonusPercent
+      : 0)
+    + (assistant?.specialties.includes(SPECIALTY_BY_ATTRIBUTE[attribute]) === true
+      ? assistantBonusPercent
+      : 0);
 
   return {
-    coachId: coach.id,
-    qualityLevel: coach.level,
+    ...(coach === undefined ? {} : { coachId: coach.id }),
+    ...(assistant === undefined ? {} : { assistantCoachId: assistant.id }),
+    qualityLevel: coach?.level ?? 0,
     specialtyBonusPercent,
     specialties,
     gainScalePercentByAttribute: {
-      pac: specialtySet.has(SPECIALTY_BY_ATTRIBUTE.pac) ? 100 + specialtyBonusPercent : 100,
-      sho: specialtySet.has(SPECIALTY_BY_ATTRIBUTE.sho) ? 100 + specialtyBonusPercent : 100,
-      pas: specialtySet.has(SPECIALTY_BY_ATTRIBUTE.pas) ? 100 + specialtyBonusPercent : 100,
-      def: specialtySet.has(SPECIALTY_BY_ATTRIBUTE.def) ? 100 + specialtyBonusPercent : 100,
-      tec: specialtySet.has(SPECIALTY_BY_ATTRIBUTE.tec) ? 100 + specialtyBonusPercent : 100,
-      sta: specialtySet.has(SPECIALTY_BY_ATTRIBUTE.sta) ? 100 + specialtyBonusPercent : 100,
-      ref: specialtySet.has(SPECIALTY_BY_ATTRIBUTE.ref) ? 100 + specialtyBonusPercent : 100,
+      pac: gainScale('pac'),
+      sho: gainScale('sho'),
+      pas: gainScale('pas'),
+      def: gainScale('def'),
+      tec: gainScale('tec'),
+      sta: gainScale('sta'),
+      ref: gainScale('ref'),
     },
   };
 }
@@ -91,22 +107,23 @@ export function applyCareerCoachTrainingModifier(
     throw new Error(`unknown training attribute ${String(attribute)}`);
   }
   const scalePercent = modifiers.gainScalePercentByAttribute[attribute as TrainingAttribute];
-  if (!Number.isSafeInteger(scalePercent) || scalePercent < 100 || scalePercent > 150) {
-    throw new Error('coach training scale must be an integer percent from 100 to 150');
+  if (!Number.isSafeInteger(scalePercent) || scalePercent < 100 || scalePercent > 175) {
+    throw new Error('coach training scale must be an integer percent from 100 to 175');
   }
   const scaled = checkedMultiply(gain, scalePercent, 'coach-adjusted training gain');
   return Math.round(scaled / 100);
 }
 
-function validateHeadCoach(
+function validateCoach(
   level: number,
   specialties: readonly CoachSpecialty[],
+  label: string,
 ): void {
   if (!Number.isSafeInteger(level) || level < 1 || level > 5) {
-    throw new Error('head coach level must be an integer from 1 to 5');
+    throw new Error(`${label} level must be an integer from 1 to 5`);
   }
   if (specialties.length !== 2 || new Set(specialties).size !== 2) {
-    throw new Error('head coach must have two distinct specialties');
+    throw new Error(`${label} must have two distinct specialties`);
   }
 }
 

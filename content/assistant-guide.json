@@ -76,6 +76,447 @@
           "buttonLabel": "Got it."
         }
       ]
+    },
+    {
+      "id": "head-coach-market",
+      "inbox": {
+        "title": "Meet the coach market",
+        "detail": "Bert has found several adults with whistles and opinions."
+      },
+      "destination": "coach-market",
+      "pages": [
+        {
+          "kicker": "Bert's staff room",
+          "title": "Pick your football brain",
+          "body": [
+            "The coach market refreshes each pre-season. Better candidates want a bigger club, more fame and, naturally, more money.",
+            "Compare level, two specialties and weekly wage. A whistle is not evidence of competence."
+          ],
+          "focus": "coach-market",
+          "objective": "OPEN THE COACH MARKET.",
+          "buttonLabel": "Show me the whistles."
+        }
+      ]
+    },
+    {
+      "id": "head-coach-hire",
+      "inbox": {
+        "title": "Hire your first head coach",
+        "detail": "Choose specialties that fit how you want the squad to grow."
+      },
+      "destination": "coach-market",
+      "pages": [
+        {
+          "kicker": "The main tracksuit",
+          "title": "One chair. Choose well.",
+          "body": [
+            "A head coach boosts matching training and may permanently teach the club a formation or drill.",
+            "Their wage arrives every week, including weeks when their clipboard achieves very little."
+          ],
+          "focus": "coach-hire",
+          "objective": "HIRE A HEAD COACH.",
+          "buttonLabel": "Interview concluded."
+        }
+      ]
+    },
+    {
+      "id": "coaching-office",
+      "inbox": {
+        "title": "Make room for an assistant",
+        "detail": "A Coaching Office unlocks the second staff slot."
+      },
+      "destination": "club-facilities",
+      "pages": [
+        {
+          "kicker": "Two clipboards",
+          "title": "Build the Coaching Office",
+          "body": [
+            "The Coaching Office opens an assistant-coach desk. Until then, the second tracksuit has nowhere official to lean.",
+            "Place it on the grounds like any facility. The cost lands immediately, and upkeep starts each week."
+          ],
+          "focus": "coaching-office",
+          "objective": "PLACE A COACHING OFFICE.",
+          "buttonLabel": "Find the spare bricks."
+        }
+      ]
+    },
+    {
+      "id": "assistant-coach-hire",
+      "inbox": {
+        "title": "The assistant desk is open",
+        "detail": "Add a second set of specialties—and a second weekly wage."
+      },
+      "destination": "coach-market",
+      "pages": [
+        {
+          "kicker": "Staff expansion",
+          "title": "Hire the other assistant",
+          "body": [
+            "An assistant coach adds smaller specialty bonuses beside your head coach. Different strengths give the staff room more reach.",
+            "Yes, this technically makes me the assistant to the assistant. I shall survive."
+          ],
+          "focus": "assistant-coach-hire",
+          "objective": "HIRE AN ASSISTANT COACH.",
+          "buttonLabel": "Very brave, Bert."
+        }
+      ]
+    },
+    {
+      "id": "facility-placement",
+      "inbox": {
+        "title": "Place your first facility",
+        "detail": "Bert has the grounds plan and only one coffee ring on it."
+      },
+      "destination": "club-facilities",
+      "pages": [
+        {
+          "kicker": "The club grounds",
+          "title": "Build with a little plan",
+          "body": [
+            "Choose a building, then an empty patch on the 8 by 6 grid. If it fits and we can pay, it opens immediately.",
+            "Leave useful neighbours room to share an edge. Future you is an expensive contractor."
+          ],
+          "focus": "facility-grid",
+          "objective": "PLACE YOUR FIRST FACILITY.",
+          "buttonLabel": "Hard hat acquired."
+        }
+      ]
+    },
+    {
+      "id": "facility-upgrade",
+      "inbox": {
+        "title": "Upgrade a facility",
+        "detail": "More output and more upkeep, applied immediately."
+      },
+      "destination": "club-facilities",
+      "pages": [
+        {
+          "kicker": "Better bricks",
+          "title": "Level up the grounds",
+          "body": [
+            "Select an existing building to see its next level and price. Upgrades apply immediately, up to Level 3.",
+            "Check the weekly upkeep before approving it. Shiny tiles have recurring opinions."
+          ],
+          "focus": "facility-upgrade",
+          "objective": "REVIEW YOUR FIRST UPGRADE.",
+          "buttonLabel": "Show me the quote."
+        }
+      ]
+    },
+    {
+      "id": "facility-adjacency",
+      "inbox": {
+        "title": "You found an adjacency bonus",
+        "detail": "Some neighbouring facilities work better as a pair."
+      },
+      "destination": "club-facilities",
+      "pages": [
+        {
+          "kicker": "Good neighbours",
+          "title": "Edges make bonuses",
+          "body": [
+            "Certain facility pairs earn a bonus when they share an edge. Corners do not count; buildings are fussy like that.",
+            "Discovered pairings stay recorded, and you can relocate buildings when the puzzle needs another go."
+          ],
+          "focus": "facility-adjacency",
+          "objective": "CHECK THE DISCOVERED PAIR.",
+          "buttonLabel": "Neighbourly enough."
+        }
+      ]
+    },
+    {
+      "id": "scout-mission",
+      "inbox": {
+        "title": "Send your first scout",
+        "detail": "Pick a region and a focus, then let the binoculars work."
+      },
+      "destination": "market-scouting",
+      "pages": [
+        {
+          "kicker": "Boots on the road",
+          "title": "One mission at a time",
+          "body": [
+            "Choose a region and focus, pay the mission cost, then wait for the due week. A better Scout Office brings clearer reports.",
+            "We can send one scout at a time. Apparently they share the club binoculars."
+          ],
+          "focus": "scout-mission",
+          "objective": "START A SCOUT MISSION.",
+          "buttonLabel": "Pack the binoculars."
+        }
+      ]
+    },
+    {
+      "id": "scout-report",
+      "inbox": {
+        "title": "Your scout has reported back",
+        "detail": "Open the shortlist before calling any agents."
+      },
+      "destination": "market-scouting",
+      "pages": [
+        {
+          "kicker": "A muddy envelope",
+          "title": "Read the ranges",
+          "body": [
+            "Scout reports reveal a shortlist with estimated stat ranges. Better facilities tighten the guesswork.",
+            "A report lets you open transfer talks. It does not make the transfer fee disappear, sadly."
+          ],
+          "focus": "scout-report",
+          "objective": "OPEN YOUR FIRST SCOUT REPORT.",
+          "buttonLabel": "Let's see the handwriting."
+        }
+      ]
+    },
+    {
+      "id": "transfer-list",
+      "inbox": {
+        "title": "The transfer window is open",
+        "detail": "List a player only when the squad—and your heart—can spare them."
+      },
+      "destination": "market-transfers",
+      "pages": [
+        {
+          "kicker": "Selling season",
+          "title": "List, then listen",
+          "body": [
+            "During an open window, list one of your contracted players to invite real bids from other clubs.",
+            "A sale brings cash and removes the wage. Bert's rule: count the defenders before selling a defender."
+          ],
+          "focus": "transfer-list",
+          "objective": "REVIEW THE TRANSFER LIST.",
+          "buttonLabel": "Counted them twice."
+        }
+      ]
+    },
+    {
+      "id": "transfer-bid",
+      "inbox": {
+        "title": "A transfer bid has arrived",
+        "detail": "Compare the saved offers; accepting one completes the sale."
+      },
+      "destination": "market-transfers",
+      "pages": [
+        {
+          "kicker": "Someone brought money",
+          "title": "The bid is the bid",
+          "body": [
+            "Each bidder names an exact fee. Accepting moves the player, credits the cash and clears their wage from our books.",
+            "You may also walk away. An envelope is not a court summons, despite the chairman's stationery."
+          ],
+          "focus": "transfer-bid",
+          "objective": "REVIEW THE FIRST BID.",
+          "buttonLabel": "Open the envelope."
+        }
+      ]
+    },
+    {
+      "id": "transfer-negotiation",
+      "inbox": {
+        "title": "Your first contract negotiation",
+        "detail": "The club fee is only half the conversation. Now convince the player."
+      },
+      "destination": "market-transfers",
+      "pages": [
+        {
+          "kicker": "Agent on line two",
+          "title": "Numbers first. Pitch second.",
+          "body": [
+            "Set wage, term and any promise. You have up to three rounds; an insulting offer can end the call early.",
+            "A Pitch Card can sway the effective ask by at most 20 percent. Charm helps. Arithmetic still owns the building."
+          ],
+          "focus": "transfer-negotiation",
+          "objective": "MAKE YOUR FIRST OFFER.",
+          "buttonLabel": "Put the kettle on."
+        }
+      ]
+    },
+    {
+      "id": "youth-intake",
+      "inbox": {
+        "title": "Youth intake is ready",
+        "detail": "Meet this pre-season's academy prospects."
+      },
+      "destination": "youth-intake",
+      "pages": [
+        {
+          "kicker": "Fresh boots",
+          "title": "The kids have arrived",
+          "body": [
+            "Each pre-season offers one or two young players for a small signing bonus. A better Youth Field improves the crop.",
+            "Roster space and future wages still matter. Potential is exciting; payroll remains literate."
+          ],
+          "focus": "youth-intake",
+          "objective": "REVIEW THE YOUTH INTAKE.",
+          "buttonLabel": "Meet the youngsters."
+        }
+      ]
+    },
+    {
+      "id": "national-cup",
+      "inbox": {
+        "title": "Your first National Cup",
+        "detail": "Every division enters. One upset can change the season."
+      },
+      "destination": "league-cup",
+      "pages": [
+        {
+          "kicker": "Knockout football",
+          "title": "No table. No second chances.",
+          "body": [
+            "The National Cup mixes clubs from all five divisions in a knockout draw. Win and the next round brings more prize money and fame.",
+            "A giant-killing is wonderful. Being the giant is mostly admin and nerves."
+          ],
+          "focus": "national-cup",
+          "objective": "OPEN THE CUP DRAW.",
+          "buttonLabel": "Show me the bracket."
+        }
+      ]
+    },
+    {
+      "id": "first-injury",
+      "inbox": {
+        "title": "Your first injury",
+        "detail": "Open the player file and check the repaired Starting XI."
+      },
+      "destination": "squad",
+      "pages": [
+        {
+          "kicker": "The ice-pack department",
+          "title": "Out means out",
+          "body": [
+            "An injured player cannot train or play until the OUT counter reaches zero. The team sheet repairs itself with an eligible replacement.",
+            "Review the player and the replacement before match day. The physio has banned my miracle sponge again."
+          ],
+          "focus": "injury-lineup",
+          "objective": "REVIEW THE INJURY AND LINEUP REPAIR.",
+          "buttonLabel": "Put the sponge away, Bert."
+        }
+      ]
+    },
+    {
+      "id": "first-emergency-loan",
+      "inbox": {
+        "title": "The emergency loan arrived",
+        "detail": "One rescue only. Review repayments and recurring costs."
+      },
+      "destination": "club-finances",
+      "pages": [
+        {
+          "kicker": "The very last piggy bank",
+          "title": "A bridge, not a lifestyle",
+          "body": [
+            "The club received its one automatic emergency loan. Repayments begin next season and this rescue will not repeat.",
+            "Cut recurring costs now. The board owns another red folder and far too many pens."
+          ],
+          "focus": "emergency-loan",
+          "objective": "REVIEW THE LOAN AND WEEKLY COSTS.",
+          "buttonLabel": "Show me the expensive bridge."
+        }
+      ]
+    },
+    {
+      "id": "first-transfer-request",
+      "inbox": {
+        "title": "Your first transfer request",
+        "detail": "Low morale has become paperwork. Review the player before selling."
+      },
+      "destination": "squad",
+      "pages": [
+        {
+          "kicker": "An agent found a printer",
+          "title": "They want the door",
+          "body": [
+            "A transfer request comes from sustained low morale. Review their role, contract and the depth behind them before listing anyone.",
+            "The request is serious. The dramatic envelope is, regrettably, optional."
+          ],
+          "focus": "transfer-request",
+          "objective": "REVIEW THE UNHAPPY PLAYER.",
+          "buttonLabel": "Open the dramatic envelope."
+        }
+      ]
+    },
+    {
+      "id": "retirement",
+      "inbox": {
+        "title": "A player has announced retirement",
+        "detail": "They can finish the season before hanging up the boots."
+      },
+      "destination": "club-legacy",
+      "pages": [
+        {
+          "kicker": "One last season",
+          "title": "The boots have a date",
+          "body": [
+            "A retirement announcement gives you notice: the player can finish this season, then leaves the active squad.",
+            "Use the farewell well. Sentiment is free; replacing their position generally is not."
+          ],
+          "focus": "retirement",
+          "objective": "REVIEW THE RETIREMENT NOTICE.",
+          "buttonLabel": "Give them a proper finish."
+        }
+      ]
+    },
+    {
+      "id": "club-legacy",
+      "inbox": {
+        "title": "A club legend leaves a legacy",
+        "detail": "Choose a future coach candidate or a mentored youth player."
+      },
+      "destination": "club-legacy",
+      "pages": [
+        {
+          "kicker": "The shirt lives on",
+          "title": "Choose what comes next",
+          "body": [
+            "A long-serving, famous retiree can enter the coach market with a loyalty discount or mentor a special youth player.",
+            "One legend, one legacy. Even statues have budget limits."
+          ],
+          "focus": "club-legacy",
+          "objective": "CHOOSE THE LEGEND'S LEGACY.",
+          "buttonLabel": "A fine problem to have."
+        }
+      ]
+    },
+    {
+      "id": "board-ultimatum",
+      "inbox": {
+        "title": "Urgent: board cash ultimatum",
+        "detail": "Reach the cash target within four weeks or the board will force a sale."
+      },
+      "destination": "club-finances",
+      "pages": [
+        {
+          "kicker": "The red folder",
+          "title": "Four weeks to recover",
+          "body": [
+            "The board has set a cash target and a four-week deadline. Its three or four possible sale candidates are visible now.",
+            "Raise cash yourself and the threat clears. Miss it and the board chooses only from that list, at a discount."
+          ],
+          "focus": "board-ultimatum",
+          "objective": "REVIEW THE CASH TARGET.",
+          "buttonLabel": "Open the red folder."
+        }
+      ]
+    },
+    {
+      "id": "board-protection",
+      "inbox": {
+        "title": "Protect one player",
+        "detail": "Mark one visible board candidate as untouchable before the deadline."
+      },
+      "destination": "club-finances",
+      "pages": [
+        {
+          "kicker": "Your one shield",
+          "title": "Choose who cannot be sold",
+          "body": [
+            "Protect one player from the board's visible candidate list. You may change your choice while the ultimatum is active.",
+            "Your protected player is safe. No hidden names, no surprise sale, no chairman rifling through the whole squad."
+          ],
+          "focus": "board-protection",
+          "objective": "PROTECT ONE PLAYER.",
+          "buttonLabel": "Put the shield down."
+        }
+      ]
     }
   ]
 }

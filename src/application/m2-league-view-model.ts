@@ -8,11 +8,13 @@ import type {
   NationalCupFixture,
   NationalCupRound,
 } from '../game/pyramid';
-import type { LeagueStanding } from '../game/types';
+import type { LeagueFixture, LeagueStanding } from '../game/types';
 import type {
   M2CupFixtureViewModel,
+  M2CupRoundViewModel,
   M2CupRoundHistoryViewModel,
   M2DivisionSummaryViewModel,
+  M2LeagueFixtureViewModel,
   M2LeagueViewModel,
   M2NationalCupViewModel,
 } from '../ui/m2-league-models';
@@ -25,6 +27,8 @@ export interface M2LeagueViewModelSource {
   readonly selectedCupSeason?: number;
   readonly week?: number;
   readonly phase?: 'manage' | 'matchday' | 'season-end' | 'complete';
+  /** The full game schedule; the view model selects this club's current-season road. */
+  readonly leagueFixtures?: readonly LeagueFixture[];
 }
 
 /** Maps the sidecar pyramid and the live ten-club table into player-facing copy. */
@@ -66,6 +70,7 @@ export function m2LeagueViewModel(source: M2LeagueViewModelSource): M2LeagueView
       matchesPlayed: userRow.played,
       rows,
     },
+    leagueFixtures: leagueFixtureHistory(source, clubNames),
     cup: cupViewModel(source, clubNames),
   };
 }
@@ -159,6 +164,7 @@ function cupViewModel(
       statusLabel: 'Draw pending',
       currentRoundLabel: 'National Cup not drawn',
       currentRoundFixtures: [],
+      rounds: [],
       history: [],
     };
   }
@@ -168,6 +174,16 @@ function cupViewModel(
   const championName = selectedCup.championClubId === undefined
     ? undefined
     : requireClubName(clubNames, selectedCup.championClubId);
+  const roundIsPlayable = selectedCup.season === source.season
+    && source.week === [5, 10, 15, 20, 25, 30][currentRound.number - 1]
+    && source.phase === 'matchday';
+  const rounds = cupRoadToFinal(
+    selectedCup,
+    source.career.userClubId,
+    clubNames,
+    currentRound.number,
+    roundIsPlayable,
+  );
 
   return {
     available: true,
@@ -188,17 +204,61 @@ function cupViewModel(
       currentRound,
       source.career.userClubId,
       clubNames,
-      selectedCup.season === source.season
-        && source.week === [5, 10, 15, 20, 25, 30][currentRound.number - 1]
-        && source.phase === 'matchday',
+      roundIsPlayable,
     )),
-    history: selectedCup.rounds.map(round => cupRoundHistory(
-      round,
-      selectedCup,
-      source.career.userClubId,
-    )),
+    rounds,
+    history: rounds
+      .filter(round => round.drawn)
+      .map(({ fixtures: _fixtures, byes: _byes, active: _active, drawn: _drawn, ...history }) => history),
     ...(championName === undefined ? {} : { championName }),
   };
+}
+
+function leagueFixtureHistory(
+  source: M2LeagueViewModelSource,
+  clubNames: ReadonlyMap<string, string>,
+): M2LeagueFixtureViewModel[] {
+  return (source.leagueFixtures ?? [])
+    .filter(fixture => fixture.season === source.season && (
+      fixture.homeClubId === source.career.userClubId
+      || fixture.awayClubId === source.career.userClubId
+    ))
+    .slice()
+    .sort((left, right) => left.week - right.week || left.round - right.round || left.id.localeCompare(right.id))
+    .map(fixture => {
+      const userIsHome = fixture.homeClubId === source.career.userClubId;
+      const opponentId = userIsHome ? fixture.awayClubId : fixture.homeClubId;
+      const score = fixture.score;
+      if (fixture.status === 'played' && score === undefined) {
+        throw new Error(`played league fixture ${fixture.id} has no score`);
+      }
+      if (score !== undefined && (
+        !Number.isSafeInteger(score.homeGoals)
+        || score.homeGoals < 0
+        || !Number.isSafeInteger(score.awayGoals)
+        || score.awayGoals < 0
+      )) throw new Error(`league fixture ${fixture.id} has an invalid score`);
+
+      let result: M2LeagueFixtureViewModel['result'];
+      if (score !== undefined) {
+        const userGoals = userIsHome ? score.homeGoals : score.awayGoals;
+        const opponentGoals = userIsHome ? score.awayGoals : score.homeGoals;
+        result = userGoals > opponentGoals ? 'WIN' : userGoals < opponentGoals ? 'LOSS' : 'DRAW';
+      }
+      return {
+        id: fixture.id,
+        week: fixture.week,
+        weekLabel: `Week ${fixture.week}`,
+        homeClubName: requireClubName(clubNames, fixture.homeClubId),
+        awayClubName: requireClubName(clubNames, fixture.awayClubId),
+        opponentName: requireClubName(clubNames, opponentId),
+        venue: userIsHome ? 'HOME' : 'AWAY',
+        scoreLabel: score === undefined ? 'VS' : `${score.homeGoals}-${score.awayGoals}`,
+        status: fixture.status === 'played' ? 'PLAYED' : 'SCHEDULED',
+        ...(result === undefined ? {} : { result }),
+        currentWeek: fixture.week === source.week,
+      };
+    });
 }
 
 function selectCup(cups: readonly NationalCup[], selectedCupSeason?: number): NationalCup {
@@ -268,6 +328,76 @@ function cupRoundHistory(
     statusLabel: completedCount === round.fixtures.length ? 'Filed' : 'Live',
     ...(userOutcome === undefined ? {} : { userOutcome }),
   };
+}
+
+function cupRoundViewModel(
+  round: NationalCupRound,
+  cup: NationalCup,
+  userClubId: string,
+  clubNames: ReadonlyMap<string, string>,
+  roundIsPlayable: boolean,
+): M2CupRoundViewModel {
+  return {
+    ...cupRoundHistory(round, cup, userClubId),
+    drawn: true,
+    active: round.fixtures.some(fixture => fixture.status === 'scheduled'),
+    fixtures: round.fixtures.map(fixture => cupFixture(
+      fixture,
+      round,
+      userClubId,
+      clubNames,
+      roundIsPlayable,
+    )),
+    byes: round.byeClubIds.map(clubId => ({
+      clubName: requireClubName(clubNames, clubId),
+      involvesUserClub: clubId === userClubId,
+    })),
+  };
+}
+
+const CUP_ROAD: readonly {
+  number: number;
+  label: NationalCupRound['label'];
+  matchCount: number;
+}[] = [
+  { number: 1, label: 'Play-in', matchCount: 18 },
+  { number: 2, label: 'Round of 32', matchCount: 16 },
+  { number: 3, label: 'Round of 16', matchCount: 8 },
+  { number: 4, label: 'Quarter-final', matchCount: 4 },
+  { number: 5, label: 'Semi-final', matchCount: 2 },
+  { number: 6, label: 'Final', matchCount: 1 },
+];
+
+function cupRoadToFinal(
+  cup: NationalCup,
+  userClubId: string,
+  clubNames: ReadonlyMap<string, string>,
+  currentRoundNumber: number,
+  roundIsPlayable: boolean,
+): M2CupRoundViewModel[] {
+  return CUP_ROAD.map(stage => {
+    const round = cup.rounds.find(candidate => candidate.number === stage.number);
+    if (round !== undefined) {
+      return cupRoundViewModel(
+        round,
+        cup,
+        userClubId,
+        clubNames,
+        round.number === currentRoundNumber && roundIsPlayable,
+      );
+    }
+    return {
+      round: stage.number,
+      label: stage.label,
+      matchCount: stage.matchCount,
+      completedCount: 0,
+      statusLabel: 'Awaiting draw',
+      drawn: false,
+      active: false,
+      fixtures: [],
+      byes: [],
+    };
+  });
 }
 
 function movementRulesLabel(division: DivisionLevel): string {

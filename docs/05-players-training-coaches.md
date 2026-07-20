@@ -4,7 +4,18 @@
 
 - **Identity**: procedurally generated name + look (skin tone, hair, facial hair, glasses/accessories, body type: slim/normal/heavy/muscular, height: short/normal/tall). Looks are cosmetic *flavor* except body type nudging awakening weights (doc 04).
 - **Stats**: PAC / SHO (REF for GKs) / PAS / DEF / TEC / STA, 1–99.
-- **Archetype** (visible): Speedster, Sniper, Playmaker, Anchor, Wall, Engine, All-Rounder, Prodigy — each with stat-growth multipliers and **hard per-stat caps** (Pocket League Story 2's proven "build identity" pattern; e.g. a Speedster grows PAC ×2.0 capped 95, but SHO ×0.8 capped 70). Caps are shown to the player — informed investment, no wasted training.
+- **Archetype** (visible): Speedster, Sniper, Playmaker, Anchor, Wall, Engine, All-Rounder, Prodigy — each has stat-growth multipliers and the **hard per-stat training caps** below (Pocket League Story 2's proven "build identity" pattern). Caps are shown to the player — informed investment, no wasted training. Existing exceptional or legacy players above a cap keep that rating but cannot train it higher.
+
+| Archetype | PAC | SHO | PAS | DEF | TEC | STA | REF |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Speedster | 95 | 70 | 82 | 68 | 84 | 88 | 60 |
+| Sniper | 82 | 95 | 80 | 65 | 90 | 82 | 55 |
+| Playmaker | 82 | 78 | 95 | 74 | 95 | 86 | 65 |
+| Anchor | 76 | 68 | 84 | 95 | 82 | 90 | 75 |
+| Wall | 70 | 60 | 76 | 95 | 78 | 90 | 95 |
+| Engine | 90 | 80 | 88 | 84 | 86 | 95 | 65 |
+| All-Rounder | 88 | 88 | 88 | 88 | 88 | 88 | 88 |
+| Prodigy | 99 | 99 | 99 | 99 | 99 | 99 | 99 |
 - **Hidden**: potential (1–5★, revealed by scouting level), consistency, personality (see below).
 - **Personality** (visible after a few weeks): Fiery, Loyal, Greedy, Joker, Professional, Timid — drives event outcomes, negotiation behavior, morale swings.
 - **State**: age, morale, condition/stamina, injury status, contract (wage, seasons left), fame, power (or none).
@@ -32,7 +43,7 @@ One head coach (assistant slot unlocks with the Coaching Office facility).
 
 - **Profile**: two specialties from {Attack, Defense, Fitness, Technique, Goalkeeping, Motivator}, level 1–5, weekly wage, personality.
 - **Effects**: +10%/level training gains in specialty drills; tactic execution quality in matches (how tightly agents follow the chosen tactic); Motivator specialty slows morale decay and speeds Hero Gauge fill +5%/level.
-- **Unlocks**: each hired coach permanently teaches one formation or advanced drill (Pocket League Story's "coach = content gate" pattern).
+- **Unlocks**: selected coach candidates permanently teach one formation or advanced drill (Pocket League Story's "coach = content gate" pattern). The current validated tactical unlock is 4-3-3 and appears on only one candidate; after it is learned, later markets do not re-offer it. The engine-only 3-5-2 and 4-5-1 shapes remain hidden because the current balance sweep makes them trap choices.
 - **Market**: 3–5 candidates refresh each pre-season; better coaches gated by division + fame. Coaches gain 1 level per 2 full seasons employed. Retired club legends appear as candidates with loyalty discounts.
 
 ## Scouting & transfers

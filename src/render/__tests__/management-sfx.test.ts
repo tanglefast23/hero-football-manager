@@ -23,6 +23,7 @@ jest.mock('expo-audio', () => ({
 }));
 
 import {
+  playManagementActionSfx,
   playMatchStatementSfx,
   playTrainingStatDing,
   setManagementSfxMasterVolume,
@@ -46,7 +47,7 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(2);
+    expect(mockPlayers).toHaveLength(10);
     const trainingDing = mockPlayers[1];
     expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
@@ -61,9 +62,18 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(2);
+    expect(mockPlayers).toHaveLength(10);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
+  });
+
+  it('routes semantic management cues to their dedicated player', async () => {
+    playManagementActionSfx('success');
+    await Promise.resolve();
+
+    expect(mockPlayers).toHaveLength(10);
+    expect(mockPlayers[7].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers[7].play).toHaveBeenCalledTimes(1);
   });
 });

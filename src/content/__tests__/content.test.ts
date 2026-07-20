@@ -167,6 +167,27 @@ describe('validated M1 launch content', () => {
       'management-intro',
       'squad-intro',
       'desk-intro',
+      'head-coach-market',
+      'head-coach-hire',
+      'coaching-office',
+      'assistant-coach-hire',
+      'facility-placement',
+      'facility-upgrade',
+      'facility-adjacency',
+      'scout-mission',
+      'scout-report',
+      'transfer-list',
+      'transfer-bid',
+      'transfer-negotiation',
+      'youth-intake',
+      'national-cup',
+      'first-injury',
+      'first-emergency-loan',
+      'first-transfer-request',
+      'retirement',
+      'club-legacy',
+      'board-ultimatum',
+      'board-protection',
     ]);
     const managementIntroPages = content.assistantGuide.sequences
       .find(sequence => sequence.id === 'management-intro')
@@ -192,6 +213,43 @@ describe('validated M1 launch content', () => {
         ],
         focus: 'assistant',
         buttonLabel: 'Got it.',
+      });
+    const m2Sequences = content.assistantGuide.sequences.slice(3);
+    expect(m2Sequences).toHaveLength(21);
+    expect(m2Sequences.every(sequence => (
+      sequence.inbox !== undefined
+      && sequence.destination !== undefined
+      && sequence.pages.some(page => page.objective !== undefined)
+    ))).toBe(true);
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'assistant-coach-hire')).toMatchObject({
+        destination: 'coach-market',
+        pages: [{ focus: 'assistant-coach-hire', objective: 'HIRE AN ASSISTANT COACH.' }],
+      });
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'first-injury')).toMatchObject({
+        destination: 'squad',
+        pages: [{ focus: 'injury-lineup' }],
+      });
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'first-emergency-loan')).toMatchObject({
+        destination: 'club-finances',
+        pages: [{ focus: 'emergency-loan' }],
+      });
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'first-transfer-request')).toMatchObject({
+        destination: 'squad',
+        pages: [{ focus: 'transfer-request' }],
+      });
+    expect(JSON.stringify(content.assistantGuide.sequences.filter(sequence => (
+      sequence.id === 'coaching-office'
+      || sequence.id === 'facility-placement'
+      || sequence.id === 'facility-upgrade'
+    )))).not.toMatch(/build time|construction project|construction and upkeep/i);
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'board-protection')).toMatchObject({
+        destination: 'club-finances',
+        pages: [{ focus: 'board-protection', objective: 'PROTECT ONE PLAYER.' }],
       });
   });
 });

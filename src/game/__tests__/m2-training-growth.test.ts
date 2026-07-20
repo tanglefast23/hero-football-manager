@@ -95,4 +95,59 @@ describe('M2 player-specific training growth', () => {
     // 1 x Lv4 Attack 1.4 x Lv3 Shooting Range 2.0 = 2.8, rounded once.
     expect(player.attrs.sho).toBe(53);
   });
+
+  test('caps base and focus gains while preserving an exceptional above-cap rating', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(90213), careerMode: 'full' });
+    const roster = initial.players.filter(player => player.clubId === initial.userClubId);
+    const speedsterId = roster[0].id;
+    const exceptionalId = roster[1].id;
+    const wallId = roster[2].id;
+    const state = {
+      ...initial,
+      trainingPoints: 100,
+      players: initial.players.map(player => {
+        if (player.id === speedsterId) {
+          return {
+            ...player,
+            age: 20,
+            archetype: 'Speedster' as const,
+            attrs: { ...player.attrs, sho: 69, sta: 87 },
+          };
+        }
+        if (player.id === exceptionalId) {
+          return {
+            ...player,
+            age: 20,
+            archetype: 'Speedster' as const,
+            attrs: { ...player.attrs, sho: 74, sta: 91 },
+          };
+        }
+        if (player.id === wallId) {
+          return {
+            ...player,
+            age: 20,
+            archetype: 'Wall' as const,
+            attrs: { ...player.attrs, ref: 94 },
+          };
+        }
+        return player;
+      }),
+      trainingPlan: {
+        assignedPlayerIds: [speedsterId, exceptionalId, wallId],
+        drills: [
+          { id: 'finishing-cap-check', moneyCost: 0, tpCost: 0, gains: { sho: 3 } },
+          { id: 'keeper-cap-check', moneyCost: 0, tpCost: 0, gains: { ref: 3 } },
+        ],
+      },
+    };
+
+    const players = resolveCareerTrainingWeek(state).players;
+    const speedster = players.find(player => player.id === speedsterId)!;
+    const exceptional = players.find(player => player.id === exceptionalId)!;
+    const wall = players.find(player => player.id === wallId)!;
+
+    expect(speedster.attrs).toMatchObject({ sho: 70, sta: 88 });
+    expect(exceptional.attrs).toMatchObject({ sho: 74, sta: 91 });
+    expect(wall.attrs.ref).toBe(95);
+  });
 });

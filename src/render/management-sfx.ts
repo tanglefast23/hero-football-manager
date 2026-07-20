@@ -2,11 +2,29 @@
 // native dev client can still render the review UI when expo-audio is absent.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 
-type ManagementSfxKey = 'match-statement' | 'training-ding';
+export type ManagementActionCue =
+  | 'select'
+  | 'cash'
+  | 'build'
+  | 'dispatch'
+  | 'card'
+  | 'success'
+  | 'hero'
+  | 'warning';
+
+type ManagementSfxKey = 'match-statement' | 'training-ding' | ManagementActionCue;
 
 const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   'match-statement': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'training-ding': require('../../assets/audio/sfx/training-stat-ding.m4a'),
+  select: require('../../assets/audio/sfx/training-stat-ding.m4a'),
+  cash: require('../../assets/audio/sfx/save-slap.wav'),
+  build: require('../../assets/audio/sfx/tackle-thud.m4a'),
+  dispatch: require('../../assets/audio/sfx/save-slap.wav'),
+  card: require('../../assets/audio/sfx/save-slap.wav'),
+  success: require('../../assets/audio/sfx/plan-locked-chime.m4a'),
+  hero: require('../../assets/audio/sfx/zone-enter.m4a'),
+  warning: require('../../assets/audio/sfx/card-whistle.wav'),
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
@@ -47,6 +65,11 @@ export function playTrainingStatDing(): void {
 
 export function playMatchStatementSfx(): void {
   playManagementSfx('match-statement');
+}
+
+/** Short semantic cues shared by management screens; presentation-only and fail-soft. */
+export function playManagementActionSfx(cue: ManagementActionCue): void {
+  playManagementSfx(cue);
 }
 
 export function stopMatchStatementSfx(): void {

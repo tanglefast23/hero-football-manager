@@ -13,7 +13,7 @@ export interface StoryEventScreenProps {
 }
 
 function choiceClass(choice: StoryEventChoiceViewModel, resolvedChoiceId?: string): string {
-  if (resolvedChoiceId === choice.id) return 'border-ink bg-signal';
+  if (resolvedChoiceId === choice.id) return 'border-violet-dark bg-violet-light';
   if (resolvedChoiceId || choice.disabled) return 'border-ink/20 bg-white opacity-40';
   if (choice.tone === 'risky') return 'border-stamp bg-red-100';
   return 'border-ink/30 bg-white';

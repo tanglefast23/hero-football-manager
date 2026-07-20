@@ -2,6 +2,11 @@ import { applyTrainingPlan, type FocusDrill } from './progression';
 import { facilityEffects } from './facilities';
 import { trainingMultiplierForAge } from './pyramid';
 import { careerCoachTrainingModifiers } from './coach-weekly';
+import { capArchetypeTrainingGain } from './archetype-caps';
+import {
+  assertCareerTrainingHonorsContractPromises,
+  hasActiveCareerContractPromise,
+} from './contract-promises';
 import type {
   CareerPlayer,
   CareerTrainingDrill,
@@ -36,6 +41,7 @@ export function setCareerTrainingPlan(
   if (drills.length === 0 || drills.length > maxDrills) {
     throw new Error(`a training plan requires from 1 to ${maxDrills} focus drills`);
   }
+  assertCareerTrainingHonorsContractPromises(state, assignedPlayerIds);
 
   // applyTrainingPlan is the shared validation boundary for player IDs, drill
   // IDs, attributes, and cost integers. Use exact available resources here so
@@ -75,6 +81,17 @@ export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResol
       ).players as CareerPlayer[];
 
   const plan = state.trainingPlan;
+  const assignedPlayerIds = plan === undefined
+    ? []
+    : Array.from(new Set([
+        ...plan.assignedPlayerIds,
+        ...roster
+          .filter(player => (
+            player.injuryWeeks === 0
+            && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
+          ))
+          .map(player => player.id),
+      ]));
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
   const focusCost = plan === undefined ? { money: 0, tp: 0 } : planCost(plan);
@@ -84,7 +101,7 @@ export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResol
   const focused = canAffordFocus && plan !== undefined
     ? applyTrainingPlan(
         conditioned,
-        plan.assignedPlayerIds,
+        assignedPlayerIds,
         plan.drills,
         { money: Math.max(0, club.cash), tp: state.trainingPoints },
       )
@@ -149,8 +166,10 @@ function applyM2TrainingGrowthModifiers(
         * facilityTrainingMultiplier(state, attribute)
         * ((coachModifiers?.gainScalePercentByAttribute[attribute] ?? 100) / 100)
         * diminishingTrainingMultiplier(before.attrs[attribute]);
-      attrs[attribute] = Math.min(
-        99,
+      attrs[attribute] = capArchetypeTrainingGain(
+        player.archetype,
+        attribute,
+        before.attrs[attribute],
         before.attrs[attribute] + Math.max(1, Math.round(realizedGain * multiplier)),
       );
     }
@@ -240,8 +259,10 @@ function applyFacilityStaminaBonus(
     );
     const extraGain = Math.floor(totalPercentagePoints / 100);
     const facilityStaBonusRemainder = totalPercentagePoints % 100;
-    const sta = Math.min(
-      99,
+    const sta = capArchetypeTrainingGain(
+      player.archetype,
+      'sta',
+      before.attrs.sta,
       checkedAdd(player.attrs.sta, extraGain, 'facility stamina attribute'),
     );
 

@@ -1,8 +1,11 @@
 import {
+  hasAssistantGuideSequenceCompleted,
   hasAssistantGuideMilestone,
+  type AssistantInboxGuideSequenceId,
   type AssistantGuideSequenceId,
   type GameState,
 } from '../game';
+import { isTransferWindowOpen } from '../game/market';
 import type { ManagementTab } from '../ui/models';
 
 export interface AssistantObjective {
@@ -41,6 +44,87 @@ export function pendingAssistantGuideSequence(
     return 'desk-intro';
   }
   return null;
+}
+
+/**
+ * Finds newly relevant M2 "firsts" without marking them read. The queue layer
+ * persists these IDs and the weekly scheduler decides which three reach the
+ * desk now. Progressions are deliberately sequential: Bert explains the coach
+ * market before asking for a hire, and the board deadline before protection.
+ */
+export function dueAssistantInboxGuideSequences(
+  state: GameState,
+): AssistantInboxGuideSequenceId[] {
+  if (state.careerMode !== 'full' || state.market === undefined || state.m2 === undefined) {
+    return [];
+  }
+
+  const due: AssistantInboxGuideSequenceId[] = [];
+  const completed = (sequenceId: AssistantInboxGuideSequenceId) => (
+    hasAssistantGuideSequenceCompleted(state, sequenceId)
+  );
+  const buildings = state.facilities.grid?.buildings ?? [];
+  const hasCoachingOffice = buildings.some(building => building.type === 'coaching-office');
+
+  if (state.market.headCoach === undefined) {
+    due.push(completed('head-coach-market') ? 'head-coach-hire' : 'head-coach-market');
+  } else if (!hasCoachingOffice) {
+    due.push('coaching-office');
+  } else if (state.market.assistantCoach === undefined) {
+    due.push('assistant-coach-hire');
+  }
+
+  if (buildings.length === 0) {
+    due.push('facility-placement');
+  } else {
+    if (completed('facility-placement') && buildings.some(building => building.level < 3)) {
+      due.push('facility-upgrade');
+    }
+    if ((state.facilities.grid?.discoveredAdjacencies.length ?? 0) > 0) {
+      due.push('facility-adjacency');
+    }
+  }
+
+  if (state.market.scoutReports.length > 0) {
+    due.push('scout-report');
+  } else if (state.market.activeScoutMission === undefined) {
+    due.push('scout-mission');
+  }
+
+  const listings = state.market.transferListings ?? [];
+  if (state.market.transferTalks !== undefined) {
+    due.push('transfer-negotiation');
+  } else if (listings.some(listing => listing.bids.length > 0)) {
+    due.push('transfer-bid');
+  } else if (isTransferWindowOpen(state.week)) {
+    due.push('transfer-list');
+  }
+
+  if (state.youthIntake?.status === 'OPEN' && state.youthIntake.offers.length > 0) {
+    due.push('youth-intake');
+  }
+  if (state.m2.nationalCups.length > 0) due.push('national-cup');
+
+  if (state.players.some(player => player.clubId === state.userClubId && player.injuryWeeks > 0)) {
+    due.push('first-injury');
+  }
+  if (state.financialSafety?.loan !== undefined && state.financialSafety.loan.remainingBalance > 0) {
+    due.push('first-emergency-loan');
+  }
+  if (state.players.some(player => player.clubId === state.userClubId && player.transferRequested === true)) {
+    due.push('first-transfer-request');
+  }
+
+  const retirementVisible = (state.retirementAnnouncements ?? [])
+    .some(announcement => announcement.announcedInSeason === state.season - 1);
+  if (retirementVisible) due.push('retirement');
+  if ((state.pendingLegacyPlayerIds?.length ?? 0) > 0) due.push('club-legacy');
+
+  if (state.financialSafety?.boardUltimatum !== undefined) {
+    due.push(completed('board-ultimatum') ? 'board-protection' : 'board-ultimatum');
+  }
+
+  return due.filter(sequenceId => !completed(sequenceId));
 }
 
 export function currentAssistantObjective(

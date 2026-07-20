@@ -78,10 +78,10 @@ function ResourceChip({ glyph, name, value, tone }: {
         ? 'h-11 flex-row items-center gap-1 border-2 border-gold-dark bg-white px-2'
         : 'h-11 flex-row items-center gap-1 border-2 border-ink bg-white px-2'}
     >
-      <Text className={hero ? 'font-mono text-xs font-bold text-gold-dark' : 'font-mono text-xs font-bold text-blue-dark'}>
+      <Text maxFontSizeMultiplier={1.2} className={hero ? 'font-mono text-xs font-bold text-gold-dark' : 'font-mono text-xs font-bold text-blue-dark'}>
         {glyph}
       </Text>
-      <Text className={hero ? 'font-mono text-sm font-bold text-gold-dark' : 'font-mono text-sm font-bold text-ink'}>
+      <Text maxFontSizeMultiplier={1.2} adjustsFontSizeToFit numberOfLines={1} className={hero ? 'font-mono text-sm font-bold text-gold-dark' : 'font-mono text-sm font-bold text-ink'}>
         {abbrev(value)}
       </Text>
     </View>
@@ -138,7 +138,7 @@ export function ManagementShell({
   );
 
   const resourceCluster = (
-    <View className="flex-row items-center gap-1.5">
+    <View className="flex-shrink flex-row items-center gap-1.5">
       <View
         ref={moneyGuideAnchor.anchorRef}
         collapsable={false}

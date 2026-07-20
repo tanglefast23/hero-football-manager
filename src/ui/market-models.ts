@@ -67,6 +67,12 @@ export interface TransferListingViewModel {
   readonly quote: number;
   readonly quoteLabel: string;
   readonly actionLabel: string;
+  readonly listed: boolean;
+  readonly bids: readonly {
+    readonly id: string;
+    readonly buyerName: string;
+    readonly fee: number;
+  }[];
   readonly available: boolean;
   readonly blockedReason?: string;
 }
@@ -83,6 +89,10 @@ export interface CoachCandidateViewModel {
   readonly loyaltyLabel?: string;
   readonly unlockLabel?: string;
   readonly available: boolean;
+  readonly headAvailable: boolean;
+  readonly assistantAvailable: boolean;
+  readonly assistantSlotUnlocked: boolean;
+  readonly currentRole?: 'Head coach' | 'Assistant';
   readonly blockedReason?: string;
 }
 
@@ -125,6 +135,7 @@ export interface MarketNegotiationViewModel {
   readonly id: string;
   readonly playerId: string;
   readonly playerName: string;
+  readonly playerRole: 'GK' | 'DEF' | 'MID' | 'FWD';
   readonly personality: PlayerPersonality;
   readonly personalityLabel: string;
   readonly status: NegotiationStatus;

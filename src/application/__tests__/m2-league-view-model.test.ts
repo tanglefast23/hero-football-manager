@@ -5,7 +5,7 @@ import {
   type M2CareerState,
 } from '../../game/m2-career';
 import type { NationalCupResult } from '../../game/pyramid';
-import type { LeagueStanding } from '../../game/types';
+import type { LeagueFixture, LeagueStanding } from '../../game/types';
 import { m2LeagueViewModel } from '../m2-league-view-model';
 
 const USER_CLUB = { id: 'user-club', name: 'Caped Ball FC', squadStrength: 47 };
@@ -41,6 +41,42 @@ function homeWins(state: M2CareerState): NationalCupResult[] {
   }));
 }
 
+function userLeagueFixtures(state: M2CareerState, season = 2): LeagueFixture[] {
+  const opponent = state.pyramid.divisions
+    .flatMap(division => division.clubs)
+    .find(club => club.id !== state.userClubId)!;
+  return [{
+    id: `s${season}-r1-user`,
+    season,
+    round: 1,
+    week: 2,
+    homeClubId: state.userClubId,
+    awayClubId: opponent.id,
+    matchSeed: 77,
+    status: 'played',
+    score: { homeGoals: 3, awayGoals: 1 },
+  }, {
+    id: `s${season}-r2-user`,
+    season,
+    round: 2,
+    week: 6,
+    homeClubId: opponent.id,
+    awayClubId: state.userClubId,
+    matchSeed: 78,
+    status: 'scheduled',
+  }, {
+    id: `s${season - 1}-old-user`,
+    season: season - 1,
+    round: 18,
+    week: 29,
+    homeClubId: state.userClubId,
+    awayClubId: opponent.id,
+    matchSeed: 76,
+    status: 'played',
+    score: { homeGoals: 0, awayGoals: 1 },
+  }];
+}
+
 describe('m2LeagueViewModel', () => {
   it('maps the five-division ladder and truthful active table without mutating inputs', () => {
     const career = initializeM2Career({ careerSeed: 551, userClub: USER_CLUB });
@@ -49,8 +85,10 @@ describe('m2LeagueViewModel', () => {
     const view = m2LeagueViewModel({
       career,
       season: 2,
+      week: 6,
       activeStandings,
       selectedDivision: 2,
+      leagueFixtures: userLeagueFixtures(career),
     });
 
     expect(view).toMatchObject({
@@ -79,6 +117,22 @@ describe('m2LeagueViewModel', () => {
       movement: 'NONE',
     });
     expect(view.activeTable.rows.slice(0, 2).every(row => row.movement === 'PROMOTION')).toBe(true);
+    expect(view.leagueFixtures).toEqual([
+      expect.objectContaining({
+        weekLabel: 'Week 2',
+        venue: 'HOME',
+        scoreLabel: '3-1',
+        result: 'WIN',
+        currentWeek: false,
+      }),
+      expect.objectContaining({
+        weekLabel: 'Week 6',
+        venue: 'AWAY',
+        scoreLabel: 'VS',
+        status: 'SCHEDULED',
+        currentWeek: true,
+      }),
+    ]);
     expect(JSON.stringify({ career, activeStandings })).toBe(frozen);
     expect(JSON.parse(JSON.stringify(view))).toEqual(view);
   });
@@ -110,6 +164,32 @@ describe('m2LeagueViewModel', () => {
       matchCount: 16,
       completedCount: 0,
       statusLabel: 'Live',
+    });
+    expect(view.cup.rounds).toHaveLength(6);
+    expect(view.cup.rounds[0]).toMatchObject({
+      label: 'Play-in',
+      active: false,
+      fixtures: expect.arrayContaining([
+        expect.objectContaining({ status: 'PLAYED', winnerName: expect.any(String) }),
+      ]),
+      byes: expect.arrayContaining([
+        expect.objectContaining({ clubName: expect.any(String) }),
+      ]),
+    });
+    expect(view.cup.rounds[1]).toMatchObject({
+      label: 'Round of 32',
+      drawn: true,
+      active: true,
+      fixtures: expect.arrayContaining([
+        expect.objectContaining({ status: 'SCHEDULED', scoreLabel: 'VS' }),
+      ]),
+    });
+    expect(view.cup.rounds[2]).toMatchObject({
+      label: 'Round of 16',
+      drawn: false,
+      matchCount: 8,
+      statusLabel: 'Awaiting draw',
+      fixtures: [],
     });
   });
 
@@ -170,6 +250,15 @@ describe('m2LeagueViewModel', () => {
       championName: expect.any(String),
     });
     expect(archive.cup.currentRoundFixtures).toHaveLength(1);
+    expect(archive.cup.rounds.map(round => round.label)).toEqual([
+      'Play-in',
+      'Round of 32',
+      'Round of 16',
+      'Quarter-final',
+      'Semi-final',
+      'Final',
+    ]);
+    expect(archive.cup.rounds.flatMap(round => round.fixtures)).toHaveLength(49);
   });
 
   it('shows a useful empty cup state and rejects standings from the wrong division', () => {

@@ -1,15 +1,22 @@
+import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import type {
+  M2CupFixtureViewModel,
+  M2CupRoundViewModel,
   M2DivisionLevelViewModel,
+  M2LeagueFixtureViewModel,
   M2LeagueViewModel,
 } from '../m2-league-models';
 import { Metric, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
+import { TutorialTapCue } from '../TutorialTapCue';
+import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
 
 export interface M2LeagueScreenProps {
   viewModel: M2LeagueViewModel;
   onSelectDivision: (division: M2DivisionLevelViewModel) => void;
   onSelectCupSeason?: (season: number) => void;
   onOpenCupFixture?: (fixtureId: string) => void;
+  guideNationalCup?: boolean;
 }
 
 export function M2LeagueScreen({
@@ -17,18 +24,29 @@ export function M2LeagueScreen({
   onSelectDivision,
   onSelectCupSeason,
   onOpenCupFixture,
+  guideNationalCup = false,
 }: M2LeagueScreenProps) {
   const summary = viewModel.selectedDivisionSummary;
+  const scrollRef = useRef<ScrollView>(null);
+  const cupYRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!guideNationalCup || cupYRef.current === null) return;
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({
+      y: Math.max(0, cupYRef.current! - 12),
+      animated: true,
+    }));
+  }, [guideNationalCup]);
 
   return (
-    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
       <View className="flex-row items-end justify-between gap-3">
         <View className="flex-1">
           <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Competition office</Text>
           <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.title}</Text>
         </View>
         <View className="items-end gap-1">
-          <StatusChip label={viewModel.userDivisionBadge} tone="hero" />
+          <StatusChip label={viewModel.userDivisionBadge} />
           <Text className="font-mono text-sm text-ink/50">{viewModel.seasonLabel}</Text>
         </View>
       </View>
@@ -44,10 +62,14 @@ export function M2LeagueScreen({
               accessibilityState={{ selected: division.selected }}
               onPress={() => onSelectDivision(division.level)}
               className={division.selected
-                ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-gold px-1 py-2'
+                ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light px-1 py-2'
                 : division.userDivision
                   ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1 py-2'
                   : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1 py-2'}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.82 : 1,
+                transform: [{ translateY: pressed ? 2 : 0 }],
+              })}
             >
               <Text className="font-pixel text-sm uppercase text-ink">{division.shortLabel}</Text>
               <Text className="mt-1 font-mono text-sm text-ink/60">{division.averageStrength}</Text>
@@ -94,7 +116,7 @@ export function M2LeagueScreen({
           </View>
           {viewModel.activeTable.rows.map(row => {
             const rowClass = row.isUserClub
-              ? 'bg-gold'
+              ? 'bg-blue-light'
               : row.movement === 'PROMOTION'
                 ? 'bg-pitch-light'
                 : row.movement === 'RELEGATION'
@@ -104,7 +126,7 @@ export function M2LeagueScreen({
               <View
                 key={row.clubId}
                 accessible
-                accessibilityLabel={`${row.position}. ${row.clubName}. Played ${row.played}, goal difference ${row.goalDifference}, ${row.points} points.`}
+                accessibilityLabel={`${row.position}. ${row.clubName}.${row.isUserClub ? ' Your club.' : ''} Played ${row.played}, goal difference ${row.goalDifference}, ${row.points} points.${row.movement === 'PROMOTION' ? ' Promotion place.' : row.movement === 'RELEGATION' ? ' Relegation place.' : ''}`}
                 className={`min-h-11 flex-row items-center border-b border-ink/10 px-2 py-2 ${rowClass}`}
               >
                 <Text className="w-7 font-mono text-base font-bold text-ink">{row.position}</Text>
@@ -112,6 +134,9 @@ export function M2LeagueScreen({
                   <Text className={row.isUserClub ? 'flex-1 text-base font-bold text-ink' : 'flex-1 text-base text-ink'} numberOfLines={1}>
                     {row.clubName}
                   </Text>
+                  {row.isUserClub ? (
+                    <Text className="mr-1 font-mono text-sm font-bold uppercase text-blue-dark">YOU</Text>
+                  ) : null}
                   {row.movement !== 'NONE' ? (
                     <Text className={row.movement === 'PROMOTION' ? 'text-sm font-bold text-pitch-dark' : 'text-sm font-bold text-stamp'}>
                       {row.movement === 'PROMOTION' ? '↑' : '↓'}
@@ -129,6 +154,47 @@ export function M2LeagueScreen({
 
       <View className="mt-7">
         <SectionLabel
+          eyebrow={viewModel.activeTable.divisionLabel}
+          title="Fixtures & results"
+          right={<StatusChip label={`${viewModel.leagueFixtures.length} matches`} />}
+        />
+        {viewModel.leagueFixtures.length === 0 ? (
+          <PaperPanel title="Schedule pending" kicker={viewModel.seasonLabel}>
+            <Text className="text-sm leading-5 text-ink/60">
+              Your league road will appear here as soon as the competition office files the schedule.
+            </Text>
+          </PaperPanel>
+        ) : (
+          <View className="gap-2">
+            {viewModel.leagueFixtures.map(fixture => (
+              <LeagueFixtureRow key={fixture.id} fixture={fixture} />
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View
+        className={guideNationalCup ? 'relative mt-7 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-7'}
+        onLayout={event => {
+          // React Native may release the synthetic event before the next frame.
+          // Snapshot the primitive now so the guided scroll never reads a pooled event.
+          const cupY = event.nativeEvent.layout.y;
+          cupYRef.current = cupY;
+          if (guideNationalCup) {
+            requestAnimationFrame(() => scrollRef.current?.scrollTo({
+              y: Math.max(0, cupY - 12),
+              animated: true,
+            }));
+          }
+        }}
+      >
+        {guideNationalCup ? (
+          <TutorialTapCue
+            detail="Open the Cup draw"
+            style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+          />
+        ) : null}
+        <SectionLabel
           eyebrow="All 50 clubs"
           title="National Cup"
           right={<StatusChip label={viewModel.cup.statusLabel} tone={viewModel.cup.championName ? 'hero' : 'normal'} />}
@@ -145,8 +211,12 @@ export function M2LeagueScreen({
                 disabled={onSelectCupSeason === undefined}
                 onPress={() => onSelectCupSeason?.(option.season)}
                 className={option.selected
-                  ? 'min-h-11 min-w-14 items-center justify-center border-2 border-b-4 border-ink bg-gold px-3'
+                  ? 'min-h-11 min-w-14 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light px-3'
                   : 'min-h-11 min-w-14 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-3'}
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.82 : 1,
+                  transform: [{ translateY: pressed ? 2 : 0 }],
+                })}
               >
                 <Text className="font-mono text-sm font-bold uppercase text-ink">{option.label}</Text>
               </Pressable>
@@ -162,63 +232,195 @@ export function M2LeagueScreen({
           </PaperPanel>
         ) : (
           <>
-            <PaperPanel
-              kicker={viewModel.cup.seasonLabel}
-              title={viewModel.cup.championName ?? viewModel.cup.currentRoundLabel}
-              stamp={viewModel.cup.championName ? 'CHAMPION' : 'LIVE'}
-            >
-              {viewModel.cup.championName ? (
-                <Text className="mb-3 text-base font-bold text-gold-dark">
-                  {viewModel.cup.championName} lifted the National Cup.
+            {viewModel.cup.championName ? (
+              <View className="mb-4 border-2 border-b-4 border-gold-dark bg-gold-light p-4">
+                <Text className="font-mono text-sm font-bold uppercase text-gold-dark">Cup champions</Text>
+                <Text className="mt-1 font-pixel text-xl uppercase text-ink">
+                  {viewModel.cup.championName}
                 </Text>
-              ) : null}
-              <View className="gap-2">
-                {viewModel.cup.currentRoundFixtures.map(fixture => (
-                  <Pressable
-                    key={fixture.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${fixture.homeClubName} ${fixture.scoreLabel} ${fixture.awayClubName}`}
-                    accessibilityState={{ disabled: onOpenCupFixture === undefined || !fixture.playableNow }}
-                    disabled={onOpenCupFixture === undefined || !fixture.playableNow}
-                    onPress={() => onOpenCupFixture?.(fixture.id)}
-                    className={fixture.playableNow
-                      ? 'min-h-14 flex-row items-center border-2 border-b-4 border-ink bg-gold px-3 py-2'
-                      : fixture.involvesUserClub
-                        ? 'min-h-14 flex-row items-center border-2 border-b-4 border-ink bg-gold/50 px-3 py-2'
-                      : 'min-h-14 flex-row items-center border-2 border-b-4 border-ink bg-paper px-3 py-2'}
-                  >
-                    <Text className={fixture.winnerName === fixture.homeClubName ? 'flex-1 text-base font-bold text-ink' : 'flex-1 text-base text-ink'} numberOfLines={1}>
-                      {fixture.homeClubName}
-                    </Text>
-                    <View className="mx-2 min-w-12 border-2 border-ink bg-white px-2 py-1">
-                      <Text className="text-center font-mono text-sm font-bold text-ink">{fixture.scoreLabel}</Text>
-                    </View>
-                    <Text className={fixture.winnerName === fixture.awayClubName ? 'flex-1 text-right text-base font-bold text-ink' : 'flex-1 text-right text-base text-ink'} numberOfLines={1}>
-                      {fixture.awayClubName}
-                    </Text>
-                  </Pressable>
-                ))}
+                <Text className="mt-2 text-sm leading-5 text-ink/65">
+                  Their road to the trophy is filed round by round below.
+                </Text>
               </View>
-            </PaperPanel>
+            ) : (
+              <View className="mb-4 border-2 border-b-4 border-blue-dark bg-blue-light p-3">
+                <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Current desk</Text>
+                <Text className="mt-1 text-base font-bold text-ink">{viewModel.cup.currentRoundLabel}</Text>
+              </View>
+            )}
 
-            <View className="mt-5">
-              <SectionLabel eyebrow="Cup archive" title="Round history" />
-              <View className="border-2 border-b-4 border-ink bg-white">
-                {viewModel.cup.history.map(round => (
-                  <View key={round.round} className="min-h-12 flex-row items-center border-b border-ink/10 px-3 py-2">
-                    <View className="flex-1">
-                      <Text className="text-base font-bold text-ink">{round.label}</Text>
-                      <Text className="mt-1 font-mono text-sm text-ink/50">{round.completedCount}/{round.matchCount} ties filed</Text>
-                    </View>
-                    {round.userOutcome ? <StatusChip label={round.userOutcome} tone={round.userOutcome === 'Eliminated' ? 'danger' : 'success'} /> : null}
-                    {!round.userOutcome ? <Text className="font-mono text-sm font-bold uppercase text-ink/50">{round.statusLabel}</Text> : null}
-                  </View>
-                ))}
-              </View>
+            <SectionLabel eyebrow={viewModel.cup.seasonLabel} title="Road to the final" />
+            <View
+              accessible
+              accessibilityLabel={`${viewModel.cup.seasonLabel} National Cup road to the final`}
+              className="gap-4"
+            >
+              {viewModel.cup.rounds.map(round => (
+                <CupRoundCard
+                  key={round.round}
+                  round={round}
+                  onOpenCupFixture={onOpenCupFixture}
+                />
+              ))}
             </View>
           </>
         )}
       </View>
     </ScrollView>
+  );
+}
+
+function LeagueFixtureRow({ fixture }: { fixture: M2LeagueFixtureViewModel }) {
+  const resultTone = fixture.result === 'WIN'
+    ? 'success' as const
+    : fixture.result === 'LOSS'
+      ? 'danger' as const
+      : 'normal' as const;
+  const resultLabel = fixture.result ?? (fixture.currentWeek ? 'NEXT' : fixture.venue);
+
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${fixture.weekLabel}, ${fixture.venue.toLowerCase()} against ${fixture.opponentName}, ${fixture.status === 'PLAYED' ? fixture.scoreLabel : 'scheduled'}`}
+      className={fixture.currentWeek
+        ? 'min-h-16 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
+        : 'min-h-16 flex-row items-center border-2 border-b-4 border-ink bg-white px-3 py-2'}
+    >
+      <View className="w-16 pr-2">
+        <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{fixture.weekLabel}</Text>
+        <Text className="mt-1 font-mono text-sm uppercase text-ink/50">{fixture.venue}</Text>
+      </View>
+      <View className="flex-1 border-l border-ink/20 pl-3">
+        <Text className="text-sm text-ink/50" numberOfLines={1}>{fixture.venue === 'HOME' ? 'Hosts' : 'Visits'}</Text>
+        <Text className="mt-0.5 text-base font-bold text-ink" numberOfLines={1}>{fixture.opponentName}</Text>
+      </View>
+      <View className="items-end gap-1 pl-2">
+        <Text className="font-mono text-base font-bold text-ink">{fixture.scoreLabel}</Text>
+        <StatusChip label={resultLabel} tone={resultTone} />
+      </View>
+    </View>
+  );
+}
+
+function CupRoundCard({
+  round,
+  onOpenCupFixture,
+}: {
+  round: M2CupRoundViewModel;
+  onOpenCupFixture?: (fixtureId: string) => void;
+}) {
+  const filed = round.completedCount === round.matchCount;
+  const outcomeTone = round.userOutcome === 'Eliminated'
+    ? 'danger' as const
+    : round.userOutcome === 'Champion'
+      ? 'hero' as const
+      : 'success' as const;
+  const railClass = !round.drawn ? 'bg-grey-light' : filed ? 'bg-grey' : 'bg-blue';
+
+  return (
+    <View className="relative pl-4">
+      <View className={`absolute bottom-0 left-0 top-0 w-1 ${railClass}`} />
+      <View className={!round.drawn
+        ? 'border-2 border-b-4 border-ink/30 bg-white p-3'
+        : round.active
+          ? 'border-2 border-b-4 border-blue-dark bg-blue-light p-3'
+          : 'border-2 border-b-4 border-ink bg-paper p-3'}
+      >
+        <View className="mb-3 flex-row items-center justify-between gap-2">
+          <View className="flex-1">
+            <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Round {round.round}</Text>
+            <Text className="mt-1 font-pixel text-lg uppercase text-ink">{round.label}</Text>
+            <Text className="mt-1 font-mono text-sm text-ink/50">
+              {round.completedCount}/{round.matchCount} ties filed
+            </Text>
+          </View>
+          {round.userOutcome ? <StatusChip label={round.userOutcome} tone={outcomeTone} /> : <StatusChip label={round.statusLabel} />}
+        </View>
+
+        {round.byes.length > 0 ? (
+          <View className="mb-3 border-2 border-dashed border-ink/30 bg-white p-2">
+            <Text className="font-mono text-sm font-bold uppercase text-ink/50">
+              Through with a bye · {round.byes.length}
+            </Text>
+            <View className="mt-2 flex-row flex-wrap gap-1">
+              {round.byes.map(bye => (
+                <View
+                  key={bye.clubName}
+                  className={bye.involvesUserClub
+                    ? 'border border-blue-dark bg-blue-light px-2 py-1'
+                    : 'border border-ink/20 bg-paper px-2 py-1'}
+                >
+                  <Text className={bye.involvesUserClub ? 'text-sm font-bold text-ink' : 'text-sm text-ink/60'}>
+                    {bye.clubName}{bye.involvesUserClub ? ' · YOU' : ''}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {!round.drawn ? (
+          <View className="border-2 border-dashed border-ink/20 bg-paper px-3 py-3">
+            <Text className="text-sm leading-5 text-ink/50">
+              {round.matchCount} {round.matchCount === 1 ? 'tie' : 'ties'} · opponents confirmed after the previous round
+            </Text>
+          </View>
+        ) : (
+          <View className="gap-2">
+            {round.fixtures.map(fixture => (
+              <CupTie
+                key={fixture.id}
+                fixture={fixture}
+                onOpenCupFixture={onOpenCupFixture}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function CupTie({
+  fixture,
+  onOpenCupFixture,
+}: {
+  fixture: M2CupFixtureViewModel;
+  onOpenCupFixture?: (fixtureId: string) => void;
+}) {
+  const disabled = onOpenCupFixture === undefined || !fixture.playableNow;
+  return (
+    <Pressable
+      accessibilityRole={fixture.playableNow ? 'button' : 'text'}
+      accessibilityLabel={`${fixture.homeClubName} ${fixture.scoreLabel} ${fixture.awayClubName}${fixture.winnerName ? `, ${fixture.winnerName} advanced` : ''}`}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={() => onOpenCupFixture?.(fixture.id)}
+      className={fixture.playableNow
+        ? 'min-h-14 flex-row items-center border-2 border-b-4 border-violet-dark bg-violet-light px-2 py-2'
+        : fixture.involvesUserClub
+          ? 'min-h-14 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-2 py-2'
+          : 'min-h-14 flex-row items-center border-2 border-b-4 border-ink/50 bg-white px-2 py-2'}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.82 : 1,
+        transform: [{ translateY: pressed ? 2 : 0 }],
+      })}
+    >
+      <Text
+        className={fixture.winnerName === fixture.homeClubName ? 'flex-1 text-sm font-bold text-ink' : 'flex-1 text-sm text-ink'}
+        numberOfLines={2}
+      >
+        {fixture.homeClubName}{fixture.winnerName === fixture.homeClubName ? '  ✓' : ''}
+      </Text>
+      <View className="mx-2 min-w-12 border-2 border-ink bg-paper px-2 py-1">
+        <Text className="text-center font-mono text-sm font-bold text-ink">{fixture.scoreLabel}</Text>
+      </View>
+      <Text
+        className={fixture.winnerName === fixture.awayClubName ? 'flex-1 text-right text-sm font-bold text-ink' : 'flex-1 text-right text-sm text-ink'}
+        numberOfLines={2}
+      >
+        {fixture.winnerName === fixture.awayClubName ? '✓  ' : ''}{fixture.awayClubName}
+      </Text>
+    </Pressable>
   );
 }

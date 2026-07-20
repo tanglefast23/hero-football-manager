@@ -1,8 +1,10 @@
-import { createLaunchCareerSetup } from '../../application/launch';
+import { createLaunchCareerSetup, reconcileLaunchRoster } from '../../application/launch';
 import { createCareer, startNextSeason } from '../career';
 import { enableFullCareer } from '../full-career';
 import { runHeadlessFullCareer } from '../headless';
 import { buildCareerTeamDef } from '../squad';
+import type { GameState } from '../types';
+import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 
 describe('full M2 career clock', () => {
   test('initializes all divisions, market, cup, and youth intake only when full mode is requested', () => {
@@ -108,6 +110,83 @@ describe('full M2 career clock', () => {
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
   });
 
+  test('cold-relaunches multiple season transitions without restoring launch rosters', () => {
+    const current = createCareer({ ...createLaunchCareerSetup(80), careerMode: 'full' });
+    const { launchRosterVersion: _version, ...preMarker } = current;
+    let relaunched: GameState = preMarker;
+
+    for (let expectedSeason = 2; expectedSeason <= 5; expectedSeason += 1) {
+      const next = startNextSeason(completeSeason(relaunched));
+      const loaded = parseStoredGameState(serializeGameState(next));
+      relaunched = reconcileLaunchRoster(loaded, undefined, true);
+
+      expect(relaunched.season).toBe(expectedSeason);
+      expect(relaunched.players).toHaveLength(next.players.length);
+      expect(relaunched.players.map(player => player.id)).toEqual(next.players.map(player => player.id));
+      expect(relaunched.players.every(player =>
+        relaunched.clubs.some(club => club.id === player.clubId),
+      )).toBe(true);
+      expect(relaunched.launchRosterVersion).toBe(1);
+      expect(parseStoredGameState(serializeGameState(relaunched))).toEqual(relaunched);
+    }
+  });
+
+  test('retires an expired-contract legend without requiring a pointless renewal', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(81), careerMode: 'full' });
+    const firstSeasonEnd = completeSeason(initial);
+    const seasonTwo = startNextSeason(firstSeasonEnd);
+    const legendId = seasonTwo.players.find(player => player.clubId === seasonTwo.userClubId)!.id;
+    const seasonTwoEnd = {
+      ...completeSeason(seasonTwo),
+      players: seasonTwo.players.map(player => player.id === legendId
+        ? {
+            ...player,
+            contractSeasonsRemaining: 0,
+            retirementAnnounced: true,
+            retirementAnnouncementSeason: 1,
+            seasonsAtClub: 6,
+            fame: 90,
+          }
+        : player),
+    };
+
+    const seasonThree = startNextSeason(seasonTwoEnd);
+
+    expect(seasonThree.players.some(player => player.id === legendId)).toBe(false);
+    expect(seasonThree.retiredPlayers?.find(player => player.id === legendId)).toBeDefined();
+    expect(seasonThree.pendingLegacyPlayerIds).toContain(legendId);
+    expect(parseStoredGameState(serializeGameState(seasonThree))).toEqual(seasonThree);
+  });
+
+  test('persists deterministic retirement announcements for presentation after transition', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(82), careerMode: 'full' });
+    const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
+    const announcing = {
+      ...completeSeason(initial),
+      players: initial.players.map(player => player.id === playerId
+        ? {
+            ...player,
+            age: 80,
+            retirementAnnounced: false,
+            retirementAnnouncementSeason: undefined,
+          }
+        : player),
+    };
+
+    const first = startNextSeason(announcing);
+    const second = startNextSeason(announcing);
+
+    expect(first.retirementAnnouncements).toContainEqual(expect.objectContaining({
+      playerId,
+      announcedInSeason: 1,
+    }));
+    expect(first.players.find(player => player.id === playerId)).toMatchObject({
+      retirementAnnounced: true,
+      retirementAnnouncementSeason: 1,
+    });
+    expect(first.retirementAnnouncements).toEqual(second.retirementAnnouncements);
+  });
+
   test('runs four complete seasons through the endless management clock deterministically', () => {
     const setup = createLaunchCareerSetup(20260719, undefined, undefined, 'full');
     const first = runHeadlessFullCareer(setup, 4);
@@ -122,3 +201,17 @@ describe('full M2 career clock', () => {
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
   });
 });
+
+function completeSeason<T extends ReturnType<typeof createCareer>>(state: T): T {
+  return {
+    ...state,
+    phase: 'season-end' as const,
+    fixtures: state.fixtures.map((fixture, index) => fixture.season === state.season
+      ? {
+          ...fixture,
+          status: 'played' as const,
+          score: { homeGoals: index % 3, awayGoals: (index + 1) % 2 },
+        }
+      : fixture),
+  } as T;
+}

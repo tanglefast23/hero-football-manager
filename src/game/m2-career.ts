@@ -109,6 +109,20 @@ export interface EndlessCareerSeasonTransitionPlan {
   generatedOpponentPlayers: PyramidPlayer[];
 }
 
+/** True when the player has completed their announced final season. */
+export function willRetireAtSeasonTransition(
+  player: Pick<StructuralCareerPlayer, 'retirementAnnounced' | 'retirementAnnouncementSeason'>,
+  completedSeason: number,
+): boolean {
+  validateSeason(completedSeason);
+  if (player.retirementAnnouncementSeason !== undefined) {
+    return player.retirementAnnouncementSeason < completedSeason;
+  }
+  // Legacy schema-1 saves recorded only the boolean. Lifecycle normalization
+  // treats those announcements as coming from the previous season.
+  return player.retirementAnnounced === true;
+}
+
 /**
  * Builds all five divisions and uses one generated Division-5 slot for the real
  * user club. The user's actual squad remains in GameState rather than being

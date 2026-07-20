@@ -17,7 +17,7 @@ The match is a live simulation: 22 agents making stat-driven decisions, with a d
 
 - **Tick-based**: fixed 100ms logical ticks. A match is 2 halves × ~100 seconds of play at 1× speed (≈ 2,000 ticks), presenting as "90 minutes" on the match clock. Total watched runtime with cut-ins and halftime: **3–4 real minutes** (research: the sweet spot across every comparable game).
 - **Seeded randomness**: one seed per match stored in the save; user inputs (power taps, subs, tactic changes) are recorded as a timestamped input stream alongside it. Seed + input stream = byte-identical replay. No `Math.random`, no `Date.now` inside the sim — ever.
-- **11v11**, positions grouped GK / DEF / MID / FWD by formation. The coaching UI currently exposes the four statistically validated shapes: 4-4-2, 4-3-3, 5-3-2, and 3-4-3. The engine retains 3-5-2 and 4-5-1 for replay compatibility, but they stay hidden until balance sweeps show they are real choices rather than traps.
+- **11v11**, positions grouped GK / DEF / MID / FWD by formation. The coaching UI starts with three statistically validated shapes: 4-4-2, 5-3-2, and 3-4-3. A coach can permanently teach the fourth validated shape, 4-3-3. The engine retains 3-5-2 and 4-5-1 for replay and old-save compatibility, but they stay hidden from new unlocks until balance sweeps show they are real choices rather than traps.
 - **Simplifications** (Pocket League Story precedent): no offside, no throw-in ceremony (ball wraps), fouls exist *only* as superpower side effects.
 
 ## Player agents

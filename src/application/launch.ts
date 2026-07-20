@@ -9,6 +9,7 @@ import {
 
 export const DEFAULT_CAREER_SEED = 20260718;
 export const DEFAULT_USER_CLUB_ID = 'bramble-rovers';
+export const LAUNCH_ROSTER_VERSION = 1;
 let careerSeedNonce = 0;
 let lastGeneratedCareerSeed: number | undefined;
 
@@ -39,6 +40,7 @@ export function createLaunchCareerSetup(
   return {
     seed,
     userClubId,
+    launchRosterVersion: LAUNCH_ROSTER_VERSION,
     startingTrainingPoints: 30,
     trainingRules: {
       maxFocusDrillsPerWeek: content.training.maxFocusDrillsPerWeek,
@@ -134,7 +136,11 @@ export function reconcileLaunchRoster(
   const launch = createLaunchCareerSetup(state.careerSeed, state.userClubId, content);
   const launchPlayers = launch.players ?? [];
   const existingIds = new Set(state.players.map(player => player.id));
-  const missing = launchPlayers.filter(player => !existingIds.has(player.id));
+  const needsLegacyRosterExpansion = state.launchRosterVersion === undefined
+    && isLegacyThirteenPlayerLaunchRoster(state, launchPlayers);
+  const missing = needsLegacyRosterExpansion
+    ? launchPlayers.filter(player => isExpansionReserve(player.id) && !existingIds.has(player.id))
+    : [];
 
   const launchById = new Map(launchPlayers.map(player => [player.id, player]));
   const legacyReserveWages = new Map<string, number>();
@@ -146,7 +152,8 @@ export function reconcileLaunchRoster(
     legacyReserveWages.set(`${club.id}-p13`, 304 + index * 8);
   });
 
-  let changed = missing.length > 0
+  let changed = state.launchRosterVersion !== LAUNCH_ROSTER_VERSION
+    || missing.length > 0
     || state.trainingRules === undefined
     || savedAwakening === undefined
     || savedAwakening.usedTriggerIds === undefined
@@ -156,6 +163,7 @@ export function reconcileLaunchRoster(
       const current = launchById.get(player.id);
       const legacyWage = legacyReserveWages.get(player.id);
       if (
+        needsLegacyRosterExpansion &&
         current !== undefined &&
         legacyWage !== undefined &&
         player.weeklyWage === legacyWage &&
@@ -199,6 +207,7 @@ export function reconcileLaunchRoster(
 
   const reconciled: GameState = {
     ...state,
+    launchRosterVersion: LAUNCH_ROSTER_VERSION,
     awakening: savedAwakening === undefined
       ? { matchesSinceLastAwakening: 0, usedTriggerIds: [] }
       : {
@@ -238,4 +247,44 @@ export function reconcileLaunchRoster(
   return enableM2 || state.careerMode === 'full'
     ? enableFullCareer(reconciled)
     : reconciled;
+}
+
+function isLegacyThirteenPlayerLaunchRoster(
+  state: GameState,
+  launchPlayers: readonly NonNullable<CareerSetup['players']>[number][],
+): boolean {
+  const activeClubIds = new Set(state.clubs.map(club => club.id));
+  const launchClubIds = new Set(launchPlayers.map(player => player.clubId));
+  if (activeClubIds.size !== launchClubIds.size
+    || [...activeClubIds].some(clubId => !launchClubIds.has(clubId))) {
+    return false;
+  }
+
+  const savedIds = new Set(state.players.map(player => player.id));
+  const savedBasePlayerCountByClub = new Map<string, number>();
+  for (const player of launchPlayers) {
+    const reserveNumber = launchReserveNumber(player.id);
+    if (reserveNumber === undefined) return false;
+    if (reserveNumber <= 13 && savedIds.has(player.id)) {
+      savedBasePlayerCountByClub.set(
+        player.clubId,
+        (savedBasePlayerCountByClub.get(player.clubId) ?? 0) + 1,
+      );
+    }
+    if (reserveNumber >= 14 && savedIds.has(player.id)) return false;
+  }
+  return [...activeClubIds].every(clubId => (
+    (savedBasePlayerCountByClub.get(clubId) ?? 0) >= 11
+  ));
+}
+
+function isExpansionReserve(playerId: string): boolean {
+  const reserveNumber = launchReserveNumber(playerId);
+  return reserveNumber !== undefined && reserveNumber >= 14;
+}
+
+function launchReserveNumber(playerId: string): number | undefined {
+  const match = /-p(\d+)$/.exec(playerId);
+  if (match === null) return undefined;
+  return Number(match[1]);
 }

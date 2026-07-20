@@ -90,6 +90,7 @@ const ledgerLineSchema = z
       'wages',
       'subsidy',
       'emergency-loan',
+      'board-sale',
       'loan-repayment',
     ]),
     label: nonemptyString,
@@ -151,6 +152,12 @@ const playerSchema = z
     weeklyWage: nonnegativeInteger,
     onHeroWage: z.boolean(),
     contractSeasonsRemaining: nonnegativeInteger,
+    contractPromise: z.object({
+      perk: z.enum(['GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10']),
+      agreedSeason: positiveInteger,
+    }).passthrough().optional(),
+    shirtNumber: positiveInteger.refine(value => value <= 99, 'must be at most 99').optional(),
+    isCaptain: z.boolean().optional(),
     morale: nonnegativeInteger.refine(
       (value) => value <= 100,
       'must be at most 100',
@@ -454,6 +461,12 @@ const contractOfferSchema = z.object({
   termSeasons: positiveInteger.refine(value => value <= 3, 'must be at most 3'),
   perk: z.enum(['GUARANTEED_STARTER', 'CAPTAINCY', 'TRAINING_PRIORITY', 'JERSEY_10']),
 }).passthrough();
+const transferQuoteSchema = z.object({
+  playerId: nonemptyString,
+  valuation: nonnegativeInteger,
+  fee: nonnegativeInteger,
+  bandPercent: nonnegativeInteger,
+}).passthrough();
 const negotiationSchema = z.object({
   id: nonemptyString,
   playerId: nonemptyString,
@@ -479,16 +492,26 @@ const careerMarketSchema = z.object({
   coachCandidates: z.array(coachCandidateSchema),
   headCoach: coachCandidateSchema.optional(),
   headCoachSeasonsEmployed: nonnegativeInteger.optional(),
+  assistantCoach: coachCandidateSchema.optional(),
+  assistantCoachSeasonsEmployed: nonnegativeInteger.optional(),
   unlockedCoachContentIds: z.array(nonemptyString).optional(),
+  transferListings: z.array(z.object({
+    playerId: nonemptyString,
+    listedSeason: positiveInteger,
+    listedWeek: positiveInteger,
+    bids: z.array(z.object({
+      id: nonemptyString,
+      playerId: nonemptyString,
+      buyerClubId: nonemptyString,
+      quote: transferQuoteSchema,
+      madeSeason: positiveInteger,
+      madeWeek: positiveInteger,
+    }).passthrough()),
+  }).passthrough()).optional(),
   clubFameAdjustment: safeInteger.optional(),
   transferTalks: z.object({
     playerId: nonemptyString,
-    transferQuote: z.object({
-      playerId: nonemptyString,
-      valuation: nonnegativeInteger,
-      fee: nonnegativeInteger,
-      bandPercent: nonnegativeInteger,
-    }).passthrough(),
+    transferQuote: transferQuoteSchema,
     negotiation: negotiationSchema,
     consequenceApplied: z.boolean().optional(),
   }).passthrough().optional(),
@@ -511,9 +534,51 @@ const youthIntakeSchema = z.object({
   declined: z.boolean(),
 }).passthrough();
 
+const boardSaleCandidateSchema = z.object({
+  playerId: nonemptyString,
+  marketValue: positiveInteger,
+  forcedSaleFee: positiveInteger,
+  discountPercent: z.literal(30),
+}).passthrough();
+
+const boardUltimatumSchema = z.object({
+  id: nonemptyString,
+  issuedSeason: positiveInteger,
+  issuedWeek: positiveInteger.refine(value => value <= 30, 'must be at most 30'),
+  weeksRemaining: positiveInteger.refine(value => value <= 4, 'must be at most 4'),
+  targetCash: nonnegativeInteger,
+  candidates: z.array(boardSaleCandidateSchema).min(3).max(4),
+  protectedPlayerId: nonemptyString.optional(),
+}).passthrough();
+
+const boardUltimatumResolutionSchema = z.discriminatedUnion('kind', [
+  z.object({
+    id: nonemptyString,
+    kind: z.literal('TARGET_MET'),
+    resolvedSeason: positiveInteger,
+    resolvedWeek: positiveInteger.refine(value => value <= 30, 'must be at most 30'),
+    targetCash: nonnegativeInteger,
+  }).passthrough(),
+  z.object({
+    id: nonemptyString,
+    kind: z.literal('FORCED_SALE'),
+    resolvedSeason: positiveInteger,
+    resolvedWeek: positiveInteger.refine(value => value <= 30, 'must be at most 30'),
+    targetCash: nonnegativeInteger,
+    playerId: nonemptyString,
+    buyerClubId: nonemptyString,
+    replacementPlayerId: nonemptyString,
+    fee: positiveInteger,
+    discountPercent: z.literal(30),
+    moraleDelta: z.literal(-8),
+    fansLost: nonnegativeInteger,
+  }).passthrough(),
+]);
+
 const gameStateSchema = z
   .object({
     schemaVersion: z.literal(GAME_SCHEMA_VERSION),
+    launchRosterVersion: positiveInteger.optional(),
     careerSeed: uint32,
     userClubId: nonemptyString,
     season: positiveInteger,
@@ -545,6 +610,12 @@ const gameStateSchema = z
     youthIntake: youthIntakeSchema.optional(),
     retiredPlayers: z.array(playerSchema).optional(),
     pendingLegacyPlayerIds: z.array(nonemptyString).optional(),
+    retirementAnnouncements: z.array(z.object({
+      playerId: nonemptyString,
+      playerName: nonemptyString,
+      announcedInSeason: positiveInteger,
+      retirementAge: positiveInteger.refine(value => value >= 33 && value <= 38, 'must be from 33 to 38'),
+    }).passthrough()).optional(),
     financialSafety: z.object({
       consecutiveNegativeWeeks: nonnegativeInteger,
       emergencyLoanUsed: z.boolean(),
@@ -554,6 +625,8 @@ const gameStateSchema = z
         repaymentStartsSeason: positiveInteger,
         remainingWeeks: nonnegativeInteger,
       }).passthrough().optional(),
+      boardUltimatum: boardUltimatumSchema.optional(),
+      latestBoardResolution: boardUltimatumResolutionSchema.optional(),
     }).passthrough().optional(),
   })
   .passthrough()
@@ -571,6 +644,176 @@ const gameStateSchema = z
         path: ['m2', 'userClubId'],
         message: 'must match the active user club',
       });
+    }
+    if (state.m2 !== undefined) {
+      if (state.m2.careerSeed !== state.careerSeed
+        || state.m2.pyramid.careerSeed !== state.careerSeed) {
+        context.addIssue({
+          code: 'custom',
+          path: ['m2', 'careerSeed'],
+          message: 'M2 career, pyramid, and active career seeds must match',
+        });
+      }
+
+      const divisionLevels = new Set<number>();
+      const pyramidClubIds = new Set<string>();
+      const pyramidPlayerIds = new Set<string>();
+      let userDivisionClubIds: Set<string> | undefined;
+      let userClubAppearances = 0;
+      for (let divisionIndex = 0; divisionIndex < state.m2.pyramid.divisions.length; divisionIndex += 1) {
+        const division = state.m2.pyramid.divisions[divisionIndex];
+        if (divisionLevels.has(division.level)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['m2', 'pyramid', 'divisions', divisionIndex, 'level'],
+            message: 'division level must be unique',
+          });
+        }
+        divisionLevels.add(division.level);
+        const currentDivisionClubIds = new Set<string>();
+        for (let clubIndex = 0; clubIndex < division.clubs.length; clubIndex += 1) {
+          const club = division.clubs[clubIndex];
+          currentDivisionClubIds.add(club.id);
+          if (club.division !== division.level) {
+            context.addIssue({
+              code: 'custom',
+              path: ['m2', 'pyramid', 'divisions', divisionIndex, 'clubs', clubIndex, 'division'],
+              message: 'club division must match its containing tier',
+            });
+          }
+          if (pyramidClubIds.has(club.id)) {
+            context.addIssue({
+              code: 'custom',
+              path: ['m2', 'pyramid', 'divisions', divisionIndex, 'clubs', clubIndex, 'id'],
+              message: 'pyramid club ID must be unique',
+            });
+          }
+          pyramidClubIds.add(club.id);
+          if (club.id === state.userClubId) {
+            userClubAppearances += 1;
+            userDivisionClubIds = currentDivisionClubIds;
+          }
+          for (let playerIndex = 0; playerIndex < club.squad.length; playerIndex += 1) {
+            const player = club.squad[playerIndex];
+            if (player.clubId !== club.id) {
+              context.addIssue({
+                code: 'custom',
+                path: ['m2', 'pyramid', 'divisions', divisionIndex, 'clubs', clubIndex, 'squad', playerIndex, 'clubId'],
+                message: 'pyramid player must belong to the containing club',
+              });
+            }
+            if (pyramidPlayerIds.has(player.id)) {
+              context.addIssue({
+                code: 'custom',
+                path: ['m2', 'pyramid', 'divisions', divisionIndex, 'clubs', clubIndex, 'squad', playerIndex, 'id'],
+                message: 'pyramid player ID must be unique',
+              });
+            }
+            pyramidPlayerIds.add(player.id);
+          }
+        }
+        if (currentDivisionClubIds.has(state.userClubId)) {
+          userDivisionClubIds = currentDivisionClubIds;
+        }
+      }
+      if (divisionLevels.size !== 5 || [1, 2, 3, 4, 5].some(level => !divisionLevels.has(level))) {
+        context.addIssue({
+          code: 'custom',
+          path: ['m2', 'pyramid', 'divisions'],
+          message: 'pyramid must contain Divisions 1 through 5 exactly once',
+        });
+      }
+      if (userClubAppearances !== 1) {
+        context.addIssue({
+          code: 'custom',
+          path: ['m2', 'userClubId'],
+          message: 'user club must appear in exactly one pyramid division',
+        });
+      }
+
+      const activeClubIds = new Set(state.clubs.map(club => club.id));
+      if (userDivisionClubIds === undefined
+        || userDivisionClubIds.size !== activeClubIds.size
+        || [...activeClubIds].some(clubId => !userDivisionClubIds?.has(clubId))) {
+        context.addIssue({
+          code: 'custom',
+          path: ['clubs'],
+          message: 'active clubs must match the user pyramid division',
+        });
+      }
+
+      const cupSeasons = new Set<number>();
+      let activeCupCount = 0;
+      const cupFixtureIds = new Set<string>();
+      for (let cupIndex = 0; cupIndex < state.m2.nationalCups.length; cupIndex += 1) {
+        const cup = state.m2.nationalCups[cupIndex];
+        if (cup.careerSeed !== state.careerSeed) {
+          context.addIssue({
+            code: 'custom',
+            path: ['m2', 'nationalCups', cupIndex, 'careerSeed'],
+            message: 'National Cup seed must match the career seed',
+          });
+        }
+        if (cupSeasons.has(cup.season) || cup.season > state.season) {
+          context.addIssue({
+            code: 'custom',
+            path: ['m2', 'nationalCups', cupIndex, 'season'],
+            message: 'National Cup season must be unique and not be in the future',
+          });
+        }
+        cupSeasons.add(cup.season);
+        if (cup.championClubId === undefined) activeCupCount += 1;
+        else if (!pyramidClubIds.has(cup.championClubId)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['m2', 'nationalCups', cupIndex, 'championClubId'],
+            message: 'National Cup champion must exist in the pyramid',
+          });
+        }
+        for (let roundIndex = 0; roundIndex < cup.rounds.length; roundIndex += 1) {
+          const round = cup.rounds[roundIndex];
+          const entrantClubIds = new Set(round.entrantClubIds);
+          const byeClubIds = new Set(round.byeClubIds);
+          if (entrantClubIds.size !== round.entrantClubIds.length
+            || byeClubIds.size !== round.byeClubIds.length
+            || round.entrantClubIds.some(clubId => !pyramidClubIds.has(clubId))
+            || round.byeClubIds.some(clubId => !entrantClubIds.has(clubId))) {
+            context.addIssue({
+              code: 'custom',
+              path: ['m2', 'nationalCups', cupIndex, 'rounds', roundIndex],
+              message: 'Cup entrants must be unique pyramid clubs and byes must be entrants',
+            });
+          }
+          for (let fixtureIndex = 0; fixtureIndex < round.fixtures.length; fixtureIndex += 1) {
+            const fixture = round.fixtures[fixtureIndex];
+            const fixturePath = ['m2', 'nationalCups', cupIndex, 'rounds', roundIndex, 'fixtures', fixtureIndex] as const;
+            if (cupFixtureIds.has(fixture.id)) {
+              context.addIssue({ code: 'custom', path: [...fixturePath, 'id'], message: 'Cup fixture ID must be unique' });
+            }
+            cupFixtureIds.add(fixture.id);
+            const participants = new Set([fixture.homeClubId, fixture.awayClubId]);
+            if (fixture.season !== cup.season
+              || fixture.round !== round.number
+              || participants.size !== 2
+              || [...participants].some(clubId => !entrantClubIds.has(clubId) || byeClubIds.has(clubId))) {
+              context.addIssue({ code: 'custom', path: [...fixturePath], message: 'Cup fixture must match its round and pyramid clubs' });
+            }
+            const played = fixture.status === 'played';
+            if (played !== (fixture.score !== undefined)
+              || played !== (fixture.winnerClubId !== undefined)
+              || (fixture.winnerClubId !== undefined && !participants.has(fixture.winnerClubId))) {
+              context.addIssue({ code: 'custom', path: [...fixturePath, 'status'], message: 'Cup fixture status, score, and winner must agree' });
+            }
+          }
+        }
+      }
+      if (activeCupCount > 1) {
+        context.addIssue({
+          code: 'custom',
+          path: ['m2', 'nationalCups'],
+          message: 'only one National Cup may be active',
+        });
+      }
     }
     if (state.youthIntake !== undefined) {
       if (state.youthIntake.season !== state.season) {
@@ -693,6 +936,8 @@ const gameStateSchema = z
 
     const playerIds = new Set<string>();
     const playerClubById = new Map<string, string>();
+    const shirtNumbersByClub = new Map<string, Set<number>>();
+    const captainCountByClub = new Map<string, number>();
     for (let index = 0; index < state.players.length; index += 1) {
       const player = state.players[index];
       if (playerIds.has(player.id)) {
@@ -710,6 +955,168 @@ const gameStateSchema = z
           path: ['players', index, 'clubId'],
           message: 'player references an unknown club',
         });
+      }
+      if (player.contractPromise !== undefined
+        && player.contractPromise.agreedSeason > state.season) {
+        context.addIssue({
+          code: 'custom',
+          path: ['players', index, 'contractPromise', 'agreedSeason'],
+          message: 'contract promise cannot be agreed in a future season',
+        });
+      }
+      if (player.shirtNumber !== undefined) {
+        const assigned = shirtNumbersByClub.get(player.clubId) ?? new Set<number>();
+        if (assigned.has(player.shirtNumber)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['players', index, 'shirtNumber'],
+            message: 'shirt number must be unique within a club',
+          });
+        }
+        assigned.add(player.shirtNumber);
+        shirtNumbersByClub.set(player.clubId, assigned);
+      }
+      if (player.isCaptain === true) {
+        captainCountByClub.set(player.clubId, (captainCountByClub.get(player.clubId) ?? 0) + 1);
+        if (captainCountByClub.get(player.clubId)! > 1) {
+          context.addIssue({
+            code: 'custom',
+            path: ['players', index, 'isCaptain'],
+            message: 'a club can have only one captain',
+          });
+        }
+      }
+    }
+
+    const retiredPlayerIds = new Set<string>();
+    for (let index = 0; index < (state.retiredPlayers ?? []).length; index += 1) {
+      const player = state.retiredPlayers![index];
+      if (retiredPlayerIds.has(player.id) || playerIds.has(player.id)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['retiredPlayers', index, 'id'],
+          message: 'retired player ID must be unique and absent from active players',
+        });
+      }
+      retiredPlayerIds.add(player.id);
+    }
+    const retirementAnnouncementKeys = new Set<string>();
+    for (let index = 0; index < (state.retirementAnnouncements ?? []).length; index += 1) {
+      const announcement = state.retirementAnnouncements![index];
+      const key = `${announcement.announcedInSeason}:${announcement.playerId}`;
+      if (retirementAnnouncementKeys.has(key)
+        || announcement.announcedInSeason > state.season) {
+        context.addIssue({
+          code: 'custom',
+          path: ['retirementAnnouncements', index],
+          message: 'retirement announcement must be unique and come from a completed season',
+        });
+      }
+      retirementAnnouncementKeys.add(key);
+    }
+    const safety = state.financialSafety;
+    const ultimatum = safety?.boardUltimatum;
+    if (ultimatum !== undefined) {
+      if (state.careerMode !== 'full' || ultimatum.issuedSeason > state.season) {
+        context.addIssue({
+          code: 'custom',
+          path: ['financialSafety', 'boardUltimatum', 'issuedSeason'],
+          message: 'board ultimatum must belong to a current full career',
+        });
+      }
+      const candidateIds = new Set<string>();
+      for (let index = 0; index < ultimatum.candidates.length; index += 1) {
+        const candidate = ultimatum.candidates[index];
+        if (candidateIds.has(candidate.playerId)
+          || candidate.forcedSaleFee > candidate.marketValue) {
+          context.addIssue({
+            code: 'custom',
+            path: ['financialSafety', 'boardUltimatum', 'candidates', index],
+            message: 'board candidates must be unique and priced below market value',
+          });
+        }
+        candidateIds.add(candidate.playerId);
+      }
+      if (ultimatum.protectedPlayerId !== undefined
+        && !candidateIds.has(ultimatum.protectedPlayerId)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['financialSafety', 'boardUltimatum', 'protectedPlayerId'],
+          message: 'protected player must come from the visible board candidates',
+        });
+      }
+    }
+    const boardResolution = safety?.latestBoardResolution;
+    if (boardResolution !== undefined && boardResolution.resolvedSeason > state.season) {
+      context.addIssue({
+        code: 'custom',
+        path: ['financialSafety', 'latestBoardResolution', 'resolvedSeason'],
+        message: 'board resolution cannot come from a future season',
+      });
+    }
+    if (state.market !== undefined) {
+      if (state.market.headCoach !== undefined
+        && state.market.assistantCoach?.id === state.market.headCoach.id) {
+        context.addIssue({
+          code: 'custom',
+          path: ['market', 'assistantCoach', 'id'],
+          message: 'head and assistant coach must be different people',
+        });
+      }
+      const listingPlayerIds = new Set<string>();
+      const bidIds = new Set<string>();
+      for (let listingIndex = 0; listingIndex < (state.market.transferListings ?? []).length; listingIndex += 1) {
+        const listing = state.market.transferListings![listingIndex];
+        if (listingPlayerIds.has(listing.playerId)
+          || playerClubById.get(listing.playerId) !== state.userClubId
+          || listing.listedSeason > state.season) {
+          context.addIssue({
+            code: 'custom',
+            path: ['market', 'transferListings', listingIndex, 'playerId'],
+            message: 'listing must uniquely reference a current user-club player',
+          });
+        }
+        listingPlayerIds.add(listing.playerId);
+        for (let bidIndex = 0; bidIndex < listing.bids.length; bidIndex += 1) {
+          const bid = listing.bids[bidIndex];
+          if (bidIds.has(bid.id)
+            || bid.playerId !== listing.playerId
+            || bid.quote.playerId !== listing.playerId
+            || !clubIds.has(bid.buyerClubId)
+            || bid.buyerClubId === state.userClubId
+            || bid.madeSeason > state.season) {
+            context.addIssue({
+              code: 'custom',
+              path: ['market', 'transferListings', listingIndex, 'bids', bidIndex],
+              message: 'transfer bid must uniquely match its listing and an active buying club',
+            });
+          }
+          bidIds.add(bid.id);
+        }
+      }
+      if (state.market.transferTalks !== undefined) {
+        const talks = state.market.transferTalks;
+        if (playerClubById.get(talks.playerId) === state.userClubId
+          || !playerIds.has(talks.playerId)
+          || talks.transferQuote.playerId !== talks.playerId
+          || talks.negotiation.playerId !== talks.playerId) {
+          context.addIssue({
+            code: 'custom',
+            path: ['market', 'transferTalks', 'playerId'],
+            message: 'transfer talks must consistently reference an active target from another club',
+          });
+        }
+      }
+      if (state.market.renewalTalks !== undefined) {
+        const talks = state.market.renewalTalks;
+        if (playerClubById.get(talks.playerId) !== state.userClubId
+          || talks.negotiation.playerId !== talks.playerId) {
+          context.addIssue({
+            code: 'custom',
+            path: ['market', 'renewalTalks', 'playerId'],
+            message: 'renewal talks must consistently reference a current user-club player',
+          });
+        }
       }
     }
 

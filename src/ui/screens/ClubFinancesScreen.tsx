@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View, type LayoutChangeEvent } from 'react-native';
+import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { FacilitySprite } from '../components/FacilitySprite';
 import type {
   ClubFacilityBuildingViewModel,
   ClubFinancesViewModel,
@@ -8,6 +10,7 @@ import type {
 } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
+import { firstGuidedFacilityUpgradeId } from '../concierge-targets';
 
 export interface ClubFinancesScreenProps {
   viewModel: ClubFinancesViewModel;
@@ -18,6 +21,7 @@ export interface ClubFinancesScreenProps {
   onRelocateFacility?: (buildingId: string, x: number, y: number) => void;
   onOpenCoachMarket?: () => void;
   guideTrainingGround?: boolean;
+  guideFocus?: AssistantGuideFocus;
 }
 
 export function ClubFinancesScreen({
@@ -29,11 +33,13 @@ export function ClubFinancesScreen({
   onRelocateFacility,
   onOpenCoachMarket,
   guideTrainingGround = false,
+  guideFocus,
 }: ClubFinancesScreenProps) {
   const facility = viewModel.trainingGround;
   const facilities = viewModel.facilities;
   const scrollRef = useRef<ScrollView>(null);
   const facilityYRef = useRef<number | null>(null);
+  const groundsYRef = useRef<number | null>(null);
   const scrollFrameRef = useRef<number | null>(null);
   const [selectedBuildType, setSelectedBuildType] = useState<FacilityTypeViewModel | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
@@ -50,6 +56,10 @@ export function ClubFinancesScreen({
     : facilities.catalog.find(entry => entry.type === selectedBuildType);
 
   const placementActive = selectedBuildType !== null || relocatingBuildingId !== null;
+  const guideGrounds = guideFocus === 'coaching-office'
+    || guideFocus === 'facility-grid'
+    || guideFocus === 'facility-upgrade'
+    || guideFocus === 'facility-adjacency';
   const activeFootprint = relocatingBuilding
     ? { width: relocatingBuilding.width, height: relocatingBuilding.height }
     : selectedBuildEntry
@@ -116,6 +126,25 @@ export function ClubFinancesScreen({
     };
   }, [scrollToTrainingGround]);
 
+  useEffect(() => {
+    if (!guideGrounds) return;
+    if (guideFocus === 'coaching-office') {
+      setSelectedBuildType('coaching-office');
+      setSelectedBuildingId(null);
+    } else if (guideFocus === 'facility-grid' && facilities.buildings.length === 0) {
+      const firstAffordable = facilities.catalog.find(entry => entry.available && entry.affordable);
+      if (firstAffordable) setSelectedBuildType(firstAffordable.type);
+    } else if (guideFocus === 'facility-upgrade' && facilities.buildings.length > 0) {
+      setSelectedBuildingId(firstGuidedFacilityUpgradeId(facilities.buildings) ?? null);
+      setSelectedBuildType(null);
+    }
+    if (groundsYRef.current !== null) {
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ y: Math.max(0, groundsYRef.current! - 12), animated: true });
+      });
+    }
+  }, [facilities.buildings, facilities.catalog, guideFocus, guideGrounds]);
+
   const onTrainingGroundLayout = useCallback((event: LayoutChangeEvent) => {
     facilityYRef.current = event.nativeEvent.layout.y;
     scrollToTrainingGround();
@@ -131,24 +160,36 @@ export function ClubFinancesScreen({
         <StatusChip label={viewModel.periodLabel} />
       </View>
 
-      <PaperPanel kicker="Cash position" title="The board’s bottom line" stamp="Current" className="mt-5">
-        <View className="flex-row gap-2">
-          <Metric label="Balance" value={formatCompactNumber(viewModel.resources.money)} />
-          <Metric
-            label="Weekly net"
-            value={`${viewModel.weeklyNet > 0 ? '+' : ''}${formatCompactNumber(viewModel.weeklyNet)}`}
-            tone={viewModel.weeklyNet < 0 ? 'negative' : 'positive'}
+      <View className={guideFocus === 'emergency-loan' ? 'relative mt-5 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-5'}>
+        {guideFocus === 'emergency-loan' ? (
+          <TutorialTapCue
+            label="Bert says"
+            detail="Review the loan and recurring costs"
+            style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
           />
-          <Metric label="Projected" value={formatCompactNumber(viewModel.projectedBalance)} />
-        </View>
-        {viewModel.wageSubsidyLabel ? (
-          <View className="mt-3 border border-emerald-700 bg-emerald-100 px-3 py-2">
-            <Text className="text-sm font-bold uppercase tracking-wide text-emerald-800">
-              {viewModel.wageSubsidyLabel}
-            </Text>
-          </View>
         ) : null}
-      </PaperPanel>
+        <PaperPanel kicker="Cash position" title="The board’s bottom line" stamp="Current">
+          <View className="flex-row gap-2">
+            <Metric label="Balance" value={formatCompactNumber(viewModel.resources.money)} />
+            <Metric
+              label="Recurring net"
+              value={`${viewModel.weeklyNet > 0 ? '+' : ''}${formatCompactNumber(viewModel.weeklyNet)}`}
+              tone={viewModel.weeklyNet < 0 ? 'negative' : 'positive'}
+            />
+            <Metric label="After recurring" value={formatCompactNumber(viewModel.projectedBalance)} />
+          </View>
+          <Text className="mt-3 text-xs font-bold uppercase leading-4 tracking-wide text-ink/45">
+            Forward estimate · known weekly commitments and steady merchandise · match, sponsor and prize income excluded
+          </Text>
+          {viewModel.wageSubsidyLabel ? (
+            <View className="mt-3 border border-pitch-dark bg-pitch-light px-3 py-2">
+              <Text className="text-sm font-bold uppercase tracking-wide text-ink">
+                {viewModel.wageSubsidyLabel}
+              </Text>
+            </View>
+          ) : null}
+        </PaperPanel>
+      </View>
 
       <View className="mt-6">
         <SectionLabel eyebrow="Itemized statement" title="Every coin accounted for" />
@@ -233,6 +274,20 @@ export function ClubFinancesScreen({
               Coaches improve their specialist drills and charge a separate weekly wage.
             </Text>
           )}
+          {viewModel.assistantCoach ? (
+            <View className="mt-3 border-2 border-violet-dark bg-violet-light p-3">
+              <View className="flex-row items-center justify-between gap-3">
+                <View className="flex-1">
+                  <Text className="font-mono text-sm font-bold uppercase text-violet-dark">Assistant coach</Text>
+                  <Text className="mt-1 text-base font-bold text-ink">{viewModel.assistantCoach.name} · Lv{viewModel.assistantCoach.level}</Text>
+                </View>
+                <Text className="font-mono text-sm font-bold text-ink">{formatCompactNumber(viewModel.assistantCoach.weeklyWage)}/wk</Text>
+              </View>
+              <Text className="mt-2 text-sm text-ink/65">
+                {viewModel.assistantCoach.specialtyLabels.join(' · ')} · {viewModel.assistantCoach.seasonsEmployed} season{viewModel.assistantCoach.seasonsEmployed === 1 ? '' : 's'} employed
+              </Text>
+            </View>
+          ) : null}
           {onOpenCoachMarket ? (
             <View className="mt-3">
               <ActionButton
@@ -245,7 +300,28 @@ export function ClubFinancesScreen({
         </PaperPanel>
       </View>
 
-      <View className="mt-6">
+      <View
+        className={guideGrounds ? 'relative mt-6 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-6'}
+        onLayout={event => {
+          // React Native may release the synthetic event before the next frame.
+          // Snapshot the primitive now so the guided scroll never reads a pooled event.
+          const groundsY = event.nativeEvent.layout.y;
+          groundsYRef.current = groundsY;
+          if (guideGrounds) {
+            requestAnimationFrame(() => scrollRef.current?.scrollTo({
+              y: Math.max(0, groundsY - 12),
+              animated: true,
+            }));
+          }
+        }}
+      >
+        {guideGrounds ? (
+          <TutorialTapCue
+            label="Bert says"
+            detail={guideFocus === 'facility-upgrade' ? 'Review the upgrade' : 'Use the club grounds'}
+            style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+          />
+        ) : null}
         <SectionLabel
           eyebrow="Club grounds"
           title="Build the place around the team"
@@ -259,8 +335,16 @@ export function ClubFinancesScreen({
           <Text className="mb-3 text-sm leading-4 text-ink/60">
             Pick a building from the menu below, then tap a glowing square to drop it. Put useful pairs edge-to-edge to discover bonuses.
           </Text>
+          {facilities.activeAdjacencies.length > 0 ? (
+            <View className="mb-3 border-2 border-pitch-dark bg-pitch-light px-3 py-2">
+              <Text className="font-pixel text-sm uppercase text-ink">Combo live!</Text>
+              <Text className="mt-1 text-sm leading-4 text-ink/70">
+                {facilities.activeAdjacencies.map(adjacencyLabel).join(' · ')}
+              </Text>
+            </View>
+          ) : null}
           <View
-            className="relative overflow-hidden border-2 border-ink bg-emerald-50"
+            className="relative overflow-hidden border-2 border-ink bg-pitch-light"
             style={{ aspectRatio: facilities.width / facilities.height }}
           >
             <View style={{ flex: 1 }}>
@@ -290,12 +374,12 @@ export function ClubFinancesScreen({
                           backgroundColor: occupied
                             ? undefined
                             : placementActive
-                              ? (buildable ? 'rgba(237, 181, 74, 0.32)' : 'rgba(36, 31, 46, 0.05)')
+                              ? (buildable ? 'rgba(154, 99, 214, 0.32)' : 'rgba(36, 31, 46, 0.05)')
                               : 'rgba(92, 184, 92, 0.12)',
                         }}
                       >
                         {buildable ? (
-                          <Text className="font-mono text-xs font-bold text-gold-dark">+</Text>
+                          <Text className="font-mono text-xs font-bold text-violet-dark">+</Text>
                         ) : null}
                       </Pressable>
                     );
@@ -311,11 +395,12 @@ export function ClubFinancesScreen({
               {facilities.buildings.map(building => {
                 const selected = building.id === selectedBuildingId;
                 const moving = building.id === relocatingBuildingId;
+                const comboActive = building.activeAdjacencyIds.length > 0;
                 return (
                   <Pressable
                     key={building.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${building.name}, level ${building.level}`}
+                    accessibilityLabel={`${building.name}, level ${building.level}. ${building.effectLabel}${comboActive ? '. Active adjacency bonus' : ''}`}
                     disabled={placementActive}
                     onPress={() => {
                       setSelectedBuildingId(building.id);
@@ -328,21 +413,28 @@ export function ClubFinancesScreen({
                       width: `${building.width * 100 / facilities.width}%`,
                       height: `${building.height * 100 / facilities.height}%`,
                       padding: 2,
+                      backgroundColor: comboActive ? '#8fd98f' : undefined,
+                      shadowColor: comboActive ? '#3f8a4a' : undefined,
+                      shadowOpacity: comboActive ? 0.9 : 0,
+                      shadowRadius: comboActive ? 5 : 0,
                     }}
                   >
                     <View
                       style={{
                         flex: 1,
-                        borderWidth: selected ? 3 : 2,
-                        borderColor: selected ? '#c8862a' : '#241f2e',
-                        backgroundColor: moving ? '#f7d894' : facilityColor(building),
+                        borderWidth: selected || comboActive ? 3 : 2,
+                        borderColor: selected ? '#5b3a91' : comboActive ? '#3f8a4a' : '#241f2e',
+                        backgroundColor: moving ? '#c9a6ec' : facilityColor(building),
                         alignItems: 'center',
                         justifyContent: 'center',
                         opacity: moving ? 0.55 : 1,
                       }}
                     >
-                      <Text className="font-mono text-sm font-bold text-ink">{facilityMark(building)}</Text>
-                      <Text className="mt-0.5 text-xs font-bold uppercase text-ink">L{building.level}</Text>
+                      <FacilitySprite
+                        type={building.type}
+                        level={building.level}
+                        size={32}
+                      />
                     </View>
                   </Pressable>
                 );
@@ -359,9 +451,9 @@ export function ClubFinancesScreen({
                   width: `${activeFootprint.width * 100 / facilities.width}%`,
                   height: `${activeFootprint.height * 100 / facilities.height}%`,
                   borderWidth: 3,
-                  borderColor: canPlaceAt(previewCell.x, previewCell.y) ? '#3f8a4a' : '#a83440',
+                  borderColor: canPlaceAt(previewCell.x, previewCell.y) ? '#5b3a91' : '#a83440',
                   backgroundColor: canPlaceAt(previewCell.x, previewCell.y)
-                    ? 'rgba(92, 184, 92, 0.45)'
+                    ? 'rgba(154, 99, 214, 0.45)'
                     : 'rgba(217, 79, 82, 0.40)',
                 }}
               />
@@ -369,22 +461,22 @@ export function ClubFinancesScreen({
           </View>
 
           {placementActive ? (
-            <View className="mt-3 flex-row items-start justify-between gap-3 border-2 border-amber-800 bg-amber-100 px-3 py-2">
+            <View className="mt-3 flex-row items-start justify-between gap-3 border-2 border-violet-dark bg-violet-light px-3 py-2">
               <View className="flex-1">
-                <Text className="text-sm font-bold uppercase text-amber-900">
+                <Text className="text-sm font-bold uppercase text-violet-dark">
                   {relocatingBuildingId !== null ? `Moving · ${activeLabel}` : `Placing · ${activeLabel}`}
                 </Text>
-                <Text className="mt-1 text-sm text-amber-900/80">
-                  Tap a glowing square above. A green outline fits; red is blocked.
+                <Text className="mt-1 text-sm text-ink/70">
+                  Tap a glowing square above. A violet outline fits; red is blocked.
                 </Text>
               </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Cancel placement"
                 onPress={cancelPlacement}
-                className="min-h-11 items-center justify-center border-2 border-amber-800 bg-white px-3"
+                className="min-h-11 items-center justify-center border-2 border-violet-dark bg-white px-3"
               >
-                <Text className="text-sm font-bold uppercase text-amber-900">Cancel</Text>
+                <Text className="text-sm font-bold uppercase text-violet-dark">Cancel</Text>
               </Pressable>
             </View>
           ) : (
@@ -398,6 +490,9 @@ export function ClubFinancesScreen({
           {selectedBuilding ? (
             <View className="mt-3 border-2 border-ink bg-white p-3">
               <View className="flex-row items-start justify-between gap-3">
+                <View className="border-2 border-ink bg-paper p-1">
+                  <FacilitySprite type={selectedBuilding.type} level={selectedBuilding.level} size={48} />
+                </View>
                 <View className="flex-1">
                   <Text className="text-base font-bold uppercase text-ink">
                     {selectedBuilding.name} · Level {selectedBuilding.level}
@@ -405,6 +500,19 @@ export function ClubFinancesScreen({
                   <Text className="mt-1 text-sm text-ink/60">
                     {formatCompactNumber(selectedBuilding.weeklyUpkeep)}/wk upkeep · {formatCompactNumber(selectedBuilding.relocationFee)} to move
                   </Text>
+                  <Text className="mt-2 text-sm font-bold leading-4 text-violet-dark">
+                    {selectedBuilding.effectLabel}
+                  </Text>
+                  {selectedBuilding.nextLevelEffectLabel ? (
+                    <Text className="mt-1 text-xs font-bold uppercase leading-4 text-ink/45">
+                      Next level · {selectedBuilding.nextLevelEffectLabel}
+                    </Text>
+                  ) : null}
+                  {selectedBuilding.activeAdjacencyIds.length > 0 ? (
+                    <Text className="mt-2 text-xs font-bold uppercase text-pitch-dark">
+                      Active combo · {selectedBuilding.activeAdjacencyIds.map(adjacencyLabel).join(' · ')}
+                    </Text>
+                  ) : null}
                 </View>
                 <Pressable
                   accessibilityRole="button"
@@ -413,7 +521,7 @@ export function ClubFinancesScreen({
                     setSelectedBuildingId(null);
                     setRelocatingBuildingId(null);
                   }}
-                  className="h-8 w-8 items-center justify-center border-2 border-ink bg-paper"
+                  className="h-11 w-11 items-center justify-center border-2 border-ink bg-paper"
                 >
                   <Text className="font-mono text-base font-bold text-ink">×</Text>
                 </Pressable>
@@ -421,27 +529,46 @@ export function ClubFinancesScreen({
               <View className="mt-3 flex-row gap-2">
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Move ${selectedBuilding.name}`}
+                  accessibilityLabel={selectedBuilding.canRelocate
+                    ? `Move ${selectedBuilding.name} for ${formatCompactNumber(selectedBuilding.relocationFee)}`
+                    : `Cannot move ${selectedBuilding.name}. Need ${formatCompactNumber(selectedBuilding.relocationShortfall)} more`}
+                  accessibilityState={{ disabled: !selectedBuilding.canRelocate }}
+                  disabled={!selectedBuilding.canRelocate}
                   onPress={() => setRelocatingBuildingId(selectedBuilding.id)}
-                  className="min-h-11 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-blue-light px-2"
+                  className={selectedBuilding.canRelocate
+                    ? 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-blue-light px-2'
+                    : 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'}
                 >
-                  <Text className="text-sm font-bold uppercase text-ink">Move</Text>
+                  <Text className={selectedBuilding.canRelocate
+                    ? 'text-center text-sm font-bold uppercase text-ink'
+                    : 'text-center text-sm font-bold uppercase text-ink/35'}>
+                    {selectedBuilding.canRelocate
+                      ? `Move · ${formatCompactNumber(selectedBuilding.relocationFee)}`
+                      : `Need ${formatCompactNumber(selectedBuilding.relocationShortfall)}`}
+                  </Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Upgrade ${selectedBuilding.name}`}
-                  disabled={selectedBuilding.upgradeCost === undefined}
+                  accessibilityLabel={selectedBuilding.upgradeCost === undefined
+                    ? `${selectedBuilding.name} is at maximum level`
+                    : selectedBuilding.canUpgrade
+                      ? `Upgrade ${selectedBuilding.name} for ${formatCompactNumber(selectedBuilding.upgradeCost)}`
+                      : `Cannot upgrade ${selectedBuilding.name}. Need ${formatCompactNumber(selectedBuilding.upgradeShortfall)} more`}
+                  accessibilityState={{ disabled: !selectedBuilding.canUpgrade }}
+                  disabled={!selectedBuilding.canUpgrade}
                   onPress={() => onUpgradeFacility?.(selectedBuilding.id)}
-                  className={selectedBuilding.upgradeCost === undefined
-                    ? 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'
-                    : 'min-h-11 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-signal px-2'}
+                  className={!selectedBuilding.canUpgrade
+                    ? 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'
+                    : 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-violet px-2'}
                 >
-                  <Text className={selectedBuilding.upgradeCost === undefined
+                  <Text className={!selectedBuilding.canUpgrade
                     ? 'text-center text-sm font-bold uppercase text-ink/35'
-                    : 'text-center text-sm font-bold uppercase text-ink'}>
+                    : 'text-center text-sm font-bold uppercase text-white'}>
                     {selectedBuilding.upgradeCost === undefined
                       ? 'Max level'
-                      : `Upgrade · ${formatCompactNumber(selectedBuilding.upgradeCost)}`}
+                      : selectedBuilding.canUpgrade
+                        ? `Upgrade · ${formatCompactNumber(selectedBuilding.upgradeCost)}`
+                        : `Need ${formatCompactNumber(selectedBuilding.upgradeShortfall)}`}
                   </Text>
                 </Pressable>
               </View>
@@ -457,7 +584,13 @@ export function ClubFinancesScreen({
                   <Pressable
                     key={entry.type}
                     accessibilityRole="button"
-                    accessibilityLabel={`${entry.name}, build cost ${formatCompactNumber(entry.buildCost)}`}
+                    accessibilityLabel={`${entry.name}. ${entry.effectLabel}. ${entry.available
+                      ? `Build cost ${formatCompactNumber(entry.buildCost)}. ${entry.weeklyUpkeep} per week upkeep${entry.affordable ? '' : `. Need ${formatCompactNumber(entry.affordabilityShortfall)} more`}`
+                      : 'Locked'}`}
+                    accessibilityState={{
+                      disabled: !entry.available || !entry.affordable,
+                      selected,
+                    }}
                     disabled={!entry.available || !entry.affordable}
                     onPress={() => {
                       setSelectedBuildType(selected ? null : entry.type);
@@ -465,23 +598,38 @@ export function ClubFinancesScreen({
                       setRelocatingBuildingId(null);
                     }}
                     className={selected
-                      ? 'w-[48%] border-2 border-b-4 border-amber-800 bg-amber-100 p-2'
+                      ? 'min-h-36 w-[48%] border-2 border-b-4 border-violet-dark bg-violet-light/30 p-2'
                       : entry.available && entry.affordable
-                        ? 'w-[48%] border-2 border-b-4 border-ink bg-white p-2'
-                        : 'w-[48%] border-2 border-ink/20 bg-ink/5 p-2'}
+                        ? 'min-h-36 w-[48%] border-2 border-b-4 border-ink bg-white p-2'
+                        : 'min-h-36 w-[48%] border-2 border-ink/20 bg-ink/5 p-2'}
                   >
+                    <View className="mb-2 flex-row items-start gap-2">
+                      <View style={{ opacity: entry.available ? 1 : 0.35 }}>
+                        <FacilitySprite type={entry.type} size={32} showLevel={false} />
+                      </View>
+                      <Text className={entry.available && entry.affordable
+                        ? 'flex-1 text-sm font-bold uppercase leading-4 text-ink'
+                        : 'flex-1 text-sm font-bold uppercase leading-4 text-ink/35'}>
+                        {entry.name}
+                      </Text>
+                    </View>
                     <Text className={entry.available && entry.affordable
-                      ? 'text-sm font-bold uppercase text-ink'
-                      : 'text-sm font-bold uppercase text-ink/35'}>
-                      {entry.name}
+                      ? 'text-xs font-bold leading-4 text-violet-dark'
+                      : 'text-xs font-bold leading-4 text-ink/35'}>
+                      {entry.effectLabel}
                     </Text>
                     <Text className={entry.available && entry.affordable
                       ? 'mt-1 font-mono text-sm text-ink/60'
                       : 'mt-1 font-mono text-sm text-ink/30'}>
                       {entry.available
-                        ? `${entry.width}x${entry.height} · ${formatCompactNumber(entry.buildCost)}`
+                        ? `${entry.width}x${entry.height} · ${formatCompactNumber(entry.buildCost)} · ${formatCompactNumber(entry.weeklyUpkeep)}/wk`
                         : 'Locked'}
                     </Text>
+                    {entry.available && !entry.affordable ? (
+                      <Text className="mt-1 text-xs font-bold uppercase text-red-dark">
+                        Need {formatCompactNumber(entry.affordabilityShortfall)} more
+                      </Text>
+                    ) : null}
                   </Pressable>
                 );
               })}
@@ -510,7 +658,7 @@ export function ClubFinancesScreen({
         <SectionLabel eyebrow="One big call" title="Training Ground" right={<StatusChip label="Facility 01" />} />
         <PaperPanel kicker="Works order" title="Turn mud into momentum" stamp={facility.built ? 'Built' : 'Decision'}>
           <View className="flex-row items-center gap-4 border-y-2 border-ink py-4">
-            <View className="h-16 w-16 items-center justify-center border-2 border-emerald-900 bg-pitch">
+            <View className="h-16 w-16 items-center justify-center border-2 border-pitch-dark bg-pitch">
               <View className="h-10 w-10 border-2 border-paper/80">
                 <View className="absolute left-1/2 top-0 h-full w-px bg-paper/70" />
                 <View className="absolute left-0 top-1/2 h-px w-full bg-paper/70" />
@@ -556,15 +704,6 @@ export function ClubFinancesScreen({
       ) : null}
     </ScrollView>
   );
-}
-
-function facilityMark(building: ClubFacilityBuildingViewModel): string {
-  return building.name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
 }
 
 function facilityColor(building: ClubFacilityBuildingViewModel): string {

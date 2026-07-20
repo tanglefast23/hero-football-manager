@@ -96,7 +96,7 @@ export function CharacterCreationScreen({ onComplete, onOpenSettings }: Characte
             <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Six visible stats</Text>
             <Text className="mt-1 text-2xl font-bold uppercase text-ink">Balance your way</Text>
           </View>
-          <View className={pointsRemaining === 0 ? 'border-2 border-pitch-dark bg-pitch-light px-3 py-2' : 'border-2 border-signal bg-signal px-3 py-2'}>
+          <View className={pointsRemaining === 0 ? 'border-2 border-pitch-dark bg-pitch-light px-3 py-2' : 'border-2 border-violet-dark bg-violet-light px-3 py-2'}>
             <Text className="text-center font-mono text-2xl font-bold text-ink">{pointsRemaining}</Text>
             <Text className="text-sm font-bold uppercase text-ink/60">left</Text>
           </View>
@@ -145,7 +145,7 @@ export function CharacterCreationScreen({ onComplete, onOpenSettings }: Characte
                     playImpact(Haptics.ImpactFeedbackStyle.Light);
                     adjust(stat, 1);
                   }}
-                  className="h-11 w-11 items-center justify-center border-2 border-signal bg-signal"
+                  className="h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light"
                   style={({ pressed }) => ({
                     opacity: pressed ? 0.65 : value >= CREATION_STAT_MAX || pointsRemaining <= 0 ? 0.3 : 1,
                   })}
