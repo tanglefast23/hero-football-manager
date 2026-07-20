@@ -15,11 +15,13 @@ import {
   upgradeFacility,
   type FacilityGridState,
 } from '../facilities';
+import { buildCareerFacility } from '../management';
 import {
   hireCareerCoach,
   startCareerScoutMission,
 } from '../market-career';
 import type { FixtureResult, GameState } from '../types';
+import { protectBoardUltimatumPlayer } from '../board-ultimatum';
 
 function fullCareer(seed: number) {
   return createCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'));
@@ -35,6 +37,19 @@ function completeLeagueAndCupWeek(state: GameState, leagueResults: FixtureResult
     homeGoals: userIsHome ? 1 : 0,
     awayGoals: userIsHome ? 0 : 1,
   }]);
+}
+
+function settleScheduledWeek(state: GameState): GameState {
+  let next = advanceWeek(state);
+  while (next.phase === 'matchday') {
+    const matchday = activeCareerMatchday(next)!;
+    next = completeMatchday(next, matchday.fixtures.map(fixture => ({
+      fixtureId: fixture.id,
+      homeGoals: 1,
+      awayGoals: 1,
+    })));
+  }
+  return next;
 }
 
 describe('M2 weekly sidecars', () => {
@@ -74,21 +89,32 @@ describe('M2 weekly sidecars', () => {
     expect(state.market?.scoutReports).toBeDefined();
   });
 
-  test('itemizes the employed head coach wage', () => {
+  test('itemizes the employed coaching staff wage', () => {
     const initial = fullCareer(503);
-    const market = hireCareerCoach(initial.market!, initial.market!.coachCandidates[0].id);
-    const settled = advanceWeek({ ...initial, market });
+    const officeProject = buildCareerFacility(initial, 'coaching-office', { x: 0, y: 0 }).state;
+    const withOffice: GameState = {
+      ...officeProject,
+      facilities: {
+        ...officeProject.facilities,
+        grid: completeFacilityProject(officeProject.facilities.grid!),
+      },
+    };
+    const head = withOffice.market!.coachCandidates[0];
+    const assistant = withOffice.market!.coachCandidates.find(candidate => candidate.id !== head.id)!;
+    let market = hireCareerCoach(withOffice, withOffice.market!, head.id);
+    market = hireCareerCoach(withOffice, market, assistant.id, 'ASSISTANT');
+    const settled = advanceWeek({ ...withOffice, market });
 
     expect(settled.ledgers[0].lines).toContainEqual({
       kind: 'wages',
-      label: 'Head coach wage',
-      amount: -market.headCoach!.weeklyWage,
+      label: 'Coaching staff wages',
+      amount: -(market.headCoach!.weeklyWage + market.assistantCoach!.weeklyWage),
     });
     expect(settled.ledgers[0].lines).toContainEqual({
       kind: 'subsidy',
       label: 'Season 1 wage subsidy',
-      amount: Math.floor((initial.clubs.find(club => club.id === initial.userClubId)!.weeklyWages
-        + market.headCoach!.weeklyWage) / 2),
+      amount: Math.floor((withOffice.clubs.find(club => club.id === initial.userClubId)!.weeklyWages
+        + market.headCoach!.weeklyWage + market.assistantCoach!.weeklyWage) / 2),
     });
   });
 
@@ -141,6 +167,47 @@ describe('M2 weekly sidecars', () => {
       remainingBalance: 21_266,
       remainingWeeks: 29,
     });
+  });
+
+  test('runs a persistent four-week protected-player ultimatum and forced sale', () => {
+    let state = fullCareer(5051);
+    state = {
+      ...state,
+      clubs: state.clubs.map(club => club.id === state.userClubId
+        ? { ...club, cash: -500_000 }
+        : club),
+    };
+    for (let week = 0; week < 4; week += 1) state = settleScheduledWeek(state);
+    const ultimatum = state.financialSafety?.boardUltimatum;
+
+    expect(ultimatum).toMatchObject({ weeksRemaining: 4, targetCash: 0 });
+    expect(ultimatum?.candidates).toHaveLength(4);
+    const protectedId = ultimatum!.candidates[0].playerId;
+    state = protectBoardUltimatumPlayer(state, protectedId);
+    for (let week = 0; week < 3; week += 1) state = settleScheduledWeek(state);
+    expect(state.financialSafety?.boardUltimatum?.weeksRemaining).toBe(1);
+
+    const candidateIds = ultimatum!.candidates.map(candidate => candidate.playerId);
+    state = settleScheduledWeek(state);
+    const resolution = state.financialSafety?.latestBoardResolution;
+
+    expect(resolution).toMatchObject({
+      kind: 'FORCED_SALE',
+      discountPercent: 30,
+      moraleDelta: -8,
+    });
+    if (resolution?.kind !== 'FORCED_SALE') throw new Error('expected a board forced sale');
+    expect(candidateIds).toContain(resolution.playerId);
+    expect(resolution.playerId).not.toBe(protectedId);
+    expect(state.players.find(player => player.id === protectedId)?.clubId).toBe(state.userClubId);
+    expect(state.players.find(player => player.id === resolution.playerId)?.clubId)
+      .toBe(resolution.buyerClubId);
+    expect(state.ledgers.at(-1)?.lines).toContainEqual({
+      kind: 'board-sale',
+      label: `Board-enforced sale · ${resolution.playerId}`,
+      amount: resolution.fee,
+    });
+    expect(state.financialSafety?.boardUltimatum).toBeUndefined();
   });
 
   test('applies full-career condition workload while leaving the M1 slice unchanged', () => {

@@ -1,6 +1,7 @@
 import {
   buyingTransferQuote,
   generateCoachMarket,
+  isCoachCandidateEligible,
   isTransferWindowOpen,
   renewalContractAsk,
   resolveScoutMission,
@@ -24,6 +25,37 @@ import type { CareerPlayer, GameState, PlayerPersonality } from './types';
 import { recordCashTransaction } from './cash-transactions';
 import { isFacilityOperational } from './facilities';
 import { assertUserCareerRosterSpace } from './youth-intake';
+import {
+  applyCareerContractPromise,
+  clearCareerContractPromise,
+} from './contract-promises';
+import { currentUserDivision } from './m2-career';
+import {
+  clearMetBoardUltimatum,
+  reconcileBoardUltimatumCandidates,
+} from './board-ultimatum';
+
+export const DEFAULT_COACH_CONTENT_UNLOCK_IDS = [
+  'formation:4-3-3',
+] as const;
+
+export type CareerCoachRole = 'HEAD' | 'ASSISTANT';
+
+export interface CareerTransferBid {
+  readonly id: string;
+  readonly playerId: string;
+  readonly buyerClubId: string;
+  readonly quote: TransferQuote;
+  readonly madeSeason: number;
+  readonly madeWeek: number;
+}
+
+export interface CareerTransferListing {
+  readonly playerId: string;
+  readonly listedSeason: number;
+  readonly listedWeek: number;
+  readonly bids: readonly CareerTransferBid[];
+}
 
 export interface CareerTransferTalks {
   readonly playerId: string;
@@ -46,7 +78,10 @@ export interface CareerMarketState {
   readonly coachCandidates: readonly CoachCandidate[];
   readonly headCoach?: CoachCandidate;
   readonly headCoachSeasonsEmployed?: number;
+  readonly assistantCoach?: CoachCandidate;
+  readonly assistantCoachSeasonsEmployed?: number;
   readonly unlockedCoachContentIds?: readonly string[];
+  readonly transferListings?: readonly CareerTransferListing[];
   /** Persistent reputation changes that are not owned by any one player. */
   readonly clubFameAdjustment?: number;
   readonly transferTalks?: CareerTransferTalks;
@@ -98,6 +133,7 @@ export function createCareerMarketState(
   division = 5,
   clubFame = 0,
   excludedPortraitIds: readonly string[] = [],
+  coachUnlockIds: readonly string[] = DEFAULT_COACH_CONTENT_UNLOCK_IDS,
 ): CareerMarketState {
   return {
     nextMissionNumber: 1,
@@ -109,6 +145,7 @@ export function createCareerMarketState(
       division,
       fame: clubFame,
       excludedPortraitIds,
+      unlockIds: coachUnlockIds,
     }),
   };
 }
@@ -160,18 +197,30 @@ export function resolveCareerScoutClock(
   state: GameState,
   market: CareerMarketState,
 ): CareerMarketState {
-  const mission = market.activeScoutMission;
-  if (mission === undefined || absoluteCareerWeek(state) < mission.dueWeek) return market;
+  const currentMarket = expireCareerTransferListings(state, market);
+  const mission = currentMarket.activeScoutMission;
+  if (mission === undefined || absoluteCareerWeek(state) < mission.dueWeek) return currentMarket;
   const result = resolveScoutMission(
     mission,
     absoluteCareerWeek(state),
     scoutableCareerPlayers(state),
   );
   return {
-    ...market,
+    ...currentMarket,
     activeScoutMission: undefined,
     scoutReports: result.reports,
   };
+}
+
+/** Removes saved bids as soon as their exact registration window ends. */
+export function expireCareerTransferListings(
+  state: Pick<GameState, 'season' | 'week'>,
+  market: CareerMarketState,
+): CareerMarketState {
+  const listings = market.transferListings ?? [];
+  const active = listings.filter(listing => listingBelongsToCurrentWindow(state, listing));
+  if (active.length === listings.length) return market;
+  return { ...market, transferListings: active };
 }
 
 export function beginCareerTransferTalks(
@@ -279,13 +328,14 @@ export function completeCareerTransfer(
       players: state.players.map(candidate => candidate.id === player.id ? transferred : candidate),
       lineups,
     };
-  return {
-    state: recordCashTransaction(transferredState, {
+  const recordedState = recordCashTransaction(transferredState, {
       kind: 'transfer-buy',
       label: `Signed ${player.name}`,
       amount: -talks.transferQuote.fee,
       referenceId: player.id,
-    }),
+    });
+  return {
+    state: applyCareerContractPromise(recordedState, player.id, offer.perk),
     market: {
       ...market,
       scoutReports: market.scoutReports.filter(report => report.playerId !== player.id),
@@ -373,7 +423,7 @@ export function completeCareerRenewal(
     players: state.players.map(candidate => candidate.id === player.id ? renewed : candidate),
   };
   return {
-    state: renewedState,
+    state: applyCareerContractPromise(renewedState, player.id, accepted.perk),
     market: { ...market, renewalTalks: undefined },
   };
 }
@@ -382,6 +432,104 @@ export function closeCareerRenewalTalks(market: CareerMarketState): CareerMarket
   return { ...market, renewalTalks: undefined };
 }
 
+/** Lists a player and creates deterministic, club-specific AI bids. */
+export function listCareerPlayer(
+  state: GameState,
+  market: CareerMarketState,
+  playerId: string,
+  division = 5,
+): CareerMarketState {
+  assertManagePhase(state);
+  if (!isTransferWindowOpen(state.week)) throw new Error('the transfer window is closed');
+  const currentMarket = expireCareerTransferListings(state, market);
+  const player = userCareerPlayer(state, playerId);
+  if (player.contractSeasonsRemaining < 1) {
+    throw new Error('an expired player cannot be transfer-listed');
+  }
+  if ((currentMarket.transferListings ?? []).some(listing => listing.playerId === playerId)) {
+    throw new Error(`${player.name} is already transfer-listed`);
+  }
+  // Validate that accepting a future bid cannot strand the starting eleven.
+  replaceTransferredStarter(state, player);
+  const bids = state.clubs
+    .filter(club => club.id !== state.userClubId)
+    .map(club => ({ club, quote: sellingQuoteForBuyer(state, player, club.id, division) }))
+    .filter(candidate => candidate.club.cash >= candidate.quote.fee)
+    .sort((left, right) => (
+      right.quote.fee - left.quote.fee || left.club.id.localeCompare(right.club.id)
+    ))
+    .slice(0, 3)
+    .map(({ club, quote }) => ({
+      id: `bid-s${state.season}-w${state.week}-${player.id}-${club.id}`,
+      playerId: player.id,
+      buyerClubId: club.id,
+      quote,
+      madeSeason: state.season,
+      madeWeek: state.week,
+    }));
+  if (bids.length === 0) throw new Error('no club can afford to bid for this player');
+  return {
+    ...currentMarket,
+    transferListings: [
+      ...(currentMarket.transferListings ?? []),
+      {
+        playerId,
+        listedSeason: state.season,
+        listedWeek: state.week,
+        bids,
+      },
+    ],
+  };
+}
+
+export function unlistCareerPlayer(
+  market: CareerMarketState,
+  playerId: string,
+): CareerMarketState {
+  const listings = market.transferListings ?? [];
+  if (!listings.some(listing => listing.playerId === playerId)) {
+    throw new Error(`player ${playerId} is not transfer-listed`);
+  }
+  return {
+    ...market,
+    transferListings: listings.filter(listing => listing.playerId !== playerId),
+  };
+}
+
+/** Accepts the exact saved bid; callers cannot choose or manufacture a buyer. */
+export function acceptCareerTransferBid(
+  state: GameState,
+  market: CareerMarketState,
+  bidId: string,
+): CareerMarketTransaction {
+  assertManagePhase(state);
+  if (!isTransferWindowOpen(state.week)) throw new Error('the transfer window is closed');
+  const listing = (market.transferListings ?? []).find(candidate => (
+    candidate.bids.some(bid => bid.id === bidId)
+  ));
+  const bid = listing?.bids.find(candidate => candidate.id === bidId);
+  if (listing === undefined || bid === undefined) throw new Error(`unknown transfer bid ${bidId}`);
+  if (!listingBelongsToCurrentWindow(state, listing)) {
+    throw new Error('the transfer bid has expired');
+  }
+  const result = completeCareerPlayerSale(
+    state,
+    market,
+    listing.playerId,
+    bid.buyerClubId,
+    bid.quote,
+  );
+  return {
+    state: result.state,
+    market: {
+      ...result.market,
+      transferListings: (result.market.transferListings ?? [])
+        .filter(candidate => candidate.playerId !== listing.playerId),
+    },
+  };
+}
+
+/** @deprecated Prefer listCareerPlayer followed by acceptCareerTransferBid. */
 export function sellCareerPlayer(
   state: GameState,
   market: CareerMarketState,
@@ -397,12 +545,21 @@ export function sellCareerPlayer(
   if (player === undefined) throw new Error(`unknown user-club player ${playerId}`);
   const buyer = state.clubs.find(club => club.id === buyerClubId && club.id !== state.userClubId);
   if (buyer === undefined) throw new Error(`unknown buying club ${buyerClubId}`);
-  const quote = sellingTransferQuote(valuationPlayer(player), {
-    careerSeed: state.careerSeed,
-    season: state.season,
-    week: state.week,
-    sellingClubDivision: division,
-  });
+  const quote = sellingQuoteForBuyer(state, player, buyerClubId, division);
+  return completeCareerPlayerSale(state, market, playerId, buyerClubId, quote);
+}
+
+function completeCareerPlayerSale(
+  state: GameState,
+  market: CareerMarketState,
+  playerId: string,
+  buyerClubId: string,
+  quote: TransferQuote,
+): CareerMarketTransaction {
+  const player = userCareerPlayer(state, playerId);
+  const buyer = state.clubs.find(club => club.id === buyerClubId && club.id !== state.userClubId);
+  if (buyer === undefined) throw new Error(`unknown buying club ${buyerClubId}`);
+  if (quote.playerId !== playerId) throw new Error('the transfer bid does not match the listed player');
   if (buyer.cash < quote.fee) throw new Error('the buying club cannot afford the transfer fee');
   const lineups = replaceTransferredStarter(state, player);
   const transferredState: GameState = {
@@ -425,7 +582,7 @@ export function sellCareerPlayer(
         return club;
       }),
       players: state.players.map(candidate => candidate.id === player.id
-        ? { ...candidate, clubId: buyerClubId, licensed: false }
+        ? { ...clearCareerContractPromise(candidate), clubId: buyerClubId, licensed: false }
         : candidate),
       lineups,
       trainingPlan: state.trainingPlan === undefined
@@ -435,45 +592,91 @@ export function sellCareerPlayer(
             assignedPlayerIds: state.trainingPlan.assignedPlayerIds.filter(id => id !== playerId),
           },
     };
-  return {
-    state: recordCashTransaction(transferredState, {
+  const recordedState = recordCashTransaction(transferredState, {
       kind: 'transfer-sell',
       label: `Sold ${player.name}`,
       amount: quote.fee,
       referenceId: player.id,
-    }),
-    market,
+    });
+  return {
+    state: clearMetBoardUltimatum(reconcileBoardUltimatumCandidates(recordedState)),
+    market: {
+      ...market,
+      transferListings: (market.transferListings ?? [])
+        .filter(listing => listing.playerId !== playerId),
+    },
   };
+}
+
+function listingBelongsToCurrentWindow(
+  state: Pick<GameState, 'season' | 'week'>,
+  listing: Pick<CareerTransferListing, 'listedSeason' | 'listedWeek'>,
+): boolean {
+  if (state.season !== listing.listedSeason) return false;
+  return transferWindowNumber(state.week) !== undefined
+    && transferWindowNumber(state.week) === transferWindowNumber(listing.listedWeek);
+}
+
+function transferWindowNumber(week: number): 1 | 2 | undefined {
+  if (week >= 1 && week <= 4) return 1;
+  if (week >= 17 && week <= 18) return 2;
+  return undefined;
 }
 
 export function hireCareerCoach(
+  state: GameState,
   market: CareerMarketState,
   coachId: string,
+  role: CareerCoachRole = 'HEAD',
 ): CareerMarketState {
-  if (market.headCoach !== undefined) {
-    throw new Error('dismiss the current head coach before hiring another');
-  }
+  assertManagePhase(state);
   const candidate = market.coachCandidates.find(coach => coach.id === coachId);
   if (candidate === undefined) throw new Error(`unknown coach candidate ${coachId}`);
+  const currentCoach = role === 'HEAD' ? market.headCoach : market.assistantCoach;
+  if (currentCoach !== undefined && currentCoach.id !== candidate.id) {
+    throw new Error(`dismiss the current ${role === 'HEAD' ? 'head' : 'assistant'} coach before hiring another`);
+  }
+  if (currentCoach?.id === candidate.id) {
+    throw new Error(`${candidate.name} already fills that coaching role`);
+  }
+  const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+  const fame = careerClubFame(state, market);
+  if (!isCoachCandidateEligible(candidate, division, fame)) {
+    throw new Error(`${candidate.name} is not eligible for this club`);
+  }
+  if (userClub(state).cash < candidate.weeklyWage) {
+    throw new Error('the club cannot cover the coach weekly wage');
+  }
+  if (role === 'ASSISTANT' && !hasCoachingOffice(state)) {
+    throw new Error('an assistant coach requires the Coaching Office');
+  }
+  const otherCoach = role === 'HEAD' ? market.assistantCoach : market.headCoach;
+  if (otherCoach?.id === candidate.id) {
+    throw new Error('the same coach cannot fill both staff roles');
+  }
+  const unlocks = candidate.unlockId === undefined
+    ? [...(market.unlockedCoachContentIds ?? [])]
+    : Array.from(new Set([...(market.unlockedCoachContentIds ?? []), candidate.unlockId]));
   return {
     ...market,
     coachCandidates: market.coachCandidates.filter(coach => coach.id !== coachId),
-    headCoach: candidate,
-    headCoachSeasonsEmployed: 0,
-    unlockedCoachContentIds: candidate.unlockId === undefined
-      ? [...(market.unlockedCoachContentIds ?? [])]
-      : Array.from(new Set([...(market.unlockedCoachContentIds ?? []), candidate.unlockId])),
+    ...(role === 'HEAD'
+      ? { headCoach: candidate, headCoachSeasonsEmployed: 0 }
+      : { assistantCoach: candidate, assistantCoachSeasonsEmployed: 0 }),
+    unlockedCoachContentIds: unlocks,
   };
 }
 
-/** Dismisses the head coach and charges the agreed one-week severance. */
+/** Dismisses one employed coach and charges the agreed one-week severance. */
 export function dismissCareerCoach(
   state: GameState,
   market: CareerMarketState,
+  role: CareerCoachRole = 'HEAD',
 ): CareerMarketTransaction {
   assertManagePhase(state);
-  const coach = market.headCoach;
-  if (coach === undefined) throw new Error('there is no head coach to dismiss');
+  const coach = role === 'HEAD' ? market.headCoach : market.assistantCoach;
+  const roleLabel = role === 'HEAD' ? 'head' : 'assistant';
+  if (coach === undefined) throw new Error(`there is no ${roleLabel} coach to dismiss`);
   const club = userClub(state);
   const severance = coach.weeklyWage;
   if (club.cash < severance) throw new Error('the club cannot afford the coach severance');
@@ -492,10 +695,27 @@ export function dismissCareerCoach(
     }),
     market: {
       ...market,
-      headCoach: undefined,
-      headCoachSeasonsEmployed: undefined,
+      ...(role === 'HEAD'
+        ? { headCoach: undefined, headCoachSeasonsEmployed: undefined }
+        : { assistantCoach: undefined, assistantCoachSeasonsEmployed: undefined }),
     },
   };
+}
+
+export function careerCoachHasUnlockedContent(
+  market: CareerMarketState,
+  contentId: string,
+): boolean {
+  if (typeof contentId !== 'string' || contentId.length === 0) {
+    throw new Error('coach content ID must be a non-empty string');
+  }
+  return (market.unlockedCoachContentIds ?? []).includes(contentId);
+}
+
+export function careerCoachUnlockedFormationIds(market: CareerMarketState): string[] {
+  return (market.unlockedCoachContentIds ?? [])
+    .filter(id => id.startsWith('formation:'))
+    .map(id => id.slice('formation:'.length));
 }
 
 /** Refreshes candidates while retaining and progressing the employed head coach. */
@@ -505,11 +725,15 @@ export function refreshCareerMarketForNewSeason(
   division = 5,
   clubFame = 0,
 ): CareerMarketState {
+  const unlockedContent = new Set(previous.unlockedCoachContentIds ?? []);
+  const employedPortraitIds = [previous.headCoach?.portraitId, previous.assistantCoach?.portraitId]
+    .filter((portraitId): portraitId is string => portraitId !== undefined);
   const refreshed = createCareerMarketState(
     state,
     division,
     clubFame,
-    previous.headCoach?.portraitId === undefined ? [] : [previous.headCoach.portraitId],
+    employedPortraitIds,
+    DEFAULT_COACH_CONTENT_UNLOCK_IDS.filter(id => !unlockedContent.has(id)),
   );
   const currentTransferTargetIds = new Set(state.players
     .filter(player => player.clubId !== state.userClubId)
@@ -517,33 +741,30 @@ export function refreshCareerMarketForNewSeason(
   const scoutReports = previous.scoutReports.filter(report => (
     currentTransferTargetIds.has(report.playerId)
   ));
-  if (previous.headCoach === undefined) {
-    return {
-      ...refreshed,
-      nextMissionNumber: previous.nextMissionNumber,
-      activeScoutMission: previous.activeScoutMission,
-      scoutReports,
-      unlockedCoachContentIds: [...(previous.unlockedCoachContentIds ?? [])],
-      clubFameAdjustment: previous.clubFameAdjustment ?? 0,
-    };
-  }
-  const seasonsEmployed = checkedAdd(
-    previous.headCoachSeasonsEmployed ?? 0,
-    1,
-    'head coach seasons employed',
+  const head = progressEmployedCoach(
+    previous.headCoach,
+    previous.headCoachSeasonsEmployed,
+    'head coach',
   );
-  const level = seasonsEmployed % 2 === 0
-    ? Math.min(5, previous.headCoach.level + 1)
-    : previous.headCoach.level;
-  const loyaltyPercent = 100 - previous.headCoach.loyaltyDiscountPercent;
-  const weeklyWage = Math.round((checkedMultiply(500, level, 'coach base wage') * loyaltyPercent) / 100);
+  const assistant = progressEmployedCoach(
+    previous.assistantCoach,
+    previous.assistantCoachSeasonsEmployed,
+    'assistant coach',
+  );
   return {
     ...refreshed,
     nextMissionNumber: previous.nextMissionNumber,
     activeScoutMission: previous.activeScoutMission,
     scoutReports,
-    headCoach: { ...previous.headCoach, level, weeklyWage },
-    headCoachSeasonsEmployed: seasonsEmployed,
+    ...(head === undefined
+      ? {}
+      : { headCoach: head.coach, headCoachSeasonsEmployed: head.seasonsEmployed }),
+    ...(assistant === undefined
+      ? {}
+      : {
+          assistantCoach: assistant.coach,
+          assistantCoachSeasonsEmployed: assistant.seasonsEmployed,
+        }),
     unlockedCoachContentIds: [...(previous.unlockedCoachContentIds ?? [])],
     clubFameAdjustment: previous.clubFameAdjustment ?? 0,
   };
@@ -556,7 +777,11 @@ function readableRegion(region: ScoutRegion): string {
 }
 
 export function careerCoachWeeklyWage(market: CareerMarketState): number {
-  return market.headCoach?.weeklyWage ?? 0;
+  return checkedAdd(
+    market.headCoach?.weeklyWage ?? 0,
+    market.assistantCoach?.weeklyWage ?? 0,
+    'coaching staff weekly wage',
+  );
 }
 
 function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
@@ -661,6 +886,66 @@ function userClub(state: GameState) {
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
   return club;
+}
+
+function userCareerPlayer(state: GameState, playerId: string): CareerPlayer {
+  const player = state.players.find(candidate => (
+    candidate.id === playerId && candidate.clubId === state.userClubId
+  ));
+  if (player === undefined) throw new Error(`unknown user-club player ${playerId}`);
+  return player;
+}
+
+function sellingQuoteForBuyer(
+  state: GameState,
+  player: CareerPlayer,
+  buyerClubId: string,
+  division: number,
+): TransferQuote {
+  const quote = sellingTransferQuote(
+    { ...valuationPlayer(player), id: `${player.id}@${buyerClubId}` },
+    {
+      careerSeed: state.careerSeed,
+      season: state.season,
+      week: state.week,
+      sellingClubDivision: division,
+    },
+  );
+  return { ...quote, playerId: player.id };
+}
+
+function hasCoachingOffice(state: GameState): boolean {
+  const grid = state.facilities.grid;
+  return grid?.buildings.some(building => (
+    building.type === 'coaching-office' && isFacilityOperational(grid, building.id)
+  )) === true;
+}
+
+function careerClubFame(state: GameState, market: CareerMarketState): number {
+  return Math.max(0, Math.min(9999, state.players
+    .filter(player => player.clubId === state.userClubId)
+    .reduce((sum, player) => checkedAdd(sum, player.fame ?? 0, 'club fame'), market.clubFameAdjustment ?? 0)));
+}
+
+function progressEmployedCoach(
+  coach: CoachCandidate | undefined,
+  previousSeasonsEmployed: number | undefined,
+  label: string,
+): { coach: CoachCandidate; seasonsEmployed: number } | undefined {
+  if (coach === undefined) return undefined;
+  const seasonsEmployed = checkedAdd(
+    previousSeasonsEmployed ?? 0,
+    1,
+    `${label} seasons employed`,
+  );
+  const level = seasonsEmployed % 2 === 0
+    ? Math.min(5, coach.level + 1)
+    : coach.level;
+  const loyaltyPercent = 100 - coach.loyaltyDiscountPercent;
+  const weeklyWage = Math.round(
+    (checkedMultiply(500, level, `${label} base wage`) * loyaltyPercent) / 100,
+  );
+  return { coach: { ...coach, level, weeklyWage }, seasonsEmployed };
 }
 
 function assertManagePhase(state: GameState): void {

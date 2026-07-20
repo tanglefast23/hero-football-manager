@@ -2,12 +2,16 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { advanceFacilityConstruction, buildCareerFacility, createCareer } from '..';
 import {
   applyCareerNegotiationConsequence,
+  acceptCareerTransferBid,
   beginCareerTransferTalks,
+  careerCoachUnlockedFormationIds,
   completeCareerTransfer,
   createCareerMarketState,
   dismissCareerCoach,
+  expireCareerTransferListings,
   growthSinceSigningPercent,
   hireCareerCoach,
+  listCareerPlayer,
   refreshCareerMarketForNewSeason,
   resolveCareerScoutClock,
   sellCareerPlayer,
@@ -98,7 +102,10 @@ describe('career market integration', () => {
       clubId: initial.userClubId,
       weeklyWage: ask,
       contractSeasonsRemaining: 2,
+      contractPromise: { perk: 'GUARANTEED_STARTER', agreedSeason: initial.season },
     });
+    expect(completed.state.lineups.find(lineup => lineup.clubId === initial.userClubId)?.playerIds)
+      .toContain(target.id);
     expect(completed.market.transferTalks).toBeUndefined();
     expect(completed.state.lineups.every(lineup => lineup.playerIds.length === 11)).toBe(true);
     expect(completed.state.cashTransactions?.at(-1)).toMatchObject({
@@ -142,18 +149,20 @@ describe('career market integration', () => {
   test('hires one deterministic preseason coach candidate', () => {
     const state = createCareer(createLaunchCareerSetup(81));
     const market = createCareerMarketState(state);
-    const hired = hireCareerCoach(market, market.coachCandidates[0].id);
+    const hired = hireCareerCoach(state, market, market.coachCandidates[0].id);
 
     expect(hired.headCoach).toEqual(market.coachCandidates[0]);
     expect(hired.headCoachSeasonsEmployed).toBe(0);
     expect(hired.coachCandidates).not.toContainEqual(market.coachCandidates[0]);
-    expect(() => hireCareerCoach(hired, hired.coachCandidates[0].id))
+    expect(careerCoachUnlockedFormationIds(hired))
+      .toContain(market.coachCandidates[0].unlockId?.replace('formation:', ''));
+    expect(() => hireCareerCoach(state, hired, hired.coachCandidates[0].id))
       .toThrow('dismiss the current head coach');
   });
 
   test('dismisses a coach for exactly one weekly wage before another can be hired', () => {
     const state = createCareer(createLaunchCareerSetup(810, undefined, undefined, 'full'));
-    const hired = hireCareerCoach(state.market!, state.market!.coachCandidates[0].id);
+    const hired = hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id);
     const coach = hired.headCoach!;
     const cashBefore = state.clubs.find(club => club.id === state.userClubId)!.cash;
 
@@ -169,13 +178,18 @@ describe('career market integration', () => {
       amount: -coach.weeklyWage,
       referenceId: coach.id,
     });
-    expect(hireCareerCoach(dismissed.market, dismissed.market.coachCandidates[0].id).headCoach)
+    expect(hireCareerCoach(
+      dismissed.state,
+      dismissed.market,
+      dismissed.market.coachCandidates[0].id,
+    ).headCoach)
       .toBeDefined();
   });
 
   test('retains a head coach and adds one level after every two full seasons', () => {
     const state = createCareer(createLaunchCareerSetup(82));
     const hired = hireCareerCoach(
+      state,
       createCareerMarketState(state),
       createCareerMarketState(state).coachCandidates[0].id,
     );
@@ -190,6 +204,85 @@ describe('career market integration', () => {
         * (100 - yearTwo.headCoach!.loyaltyDiscountPercent) / 100),
     );
     expect(yearTwo.headCoachSeasonsEmployed).toBe(2);
+  });
+
+  test('does not re-offer coach content that the club already learned', () => {
+    const state = createCareer(createLaunchCareerSetup(821));
+    const market = createCareerMarketState(state);
+    const hired = hireCareerCoach(state, market, market.coachCandidates[0].id);
+    const refreshed = refreshCareerMarketForNewSeason({ ...state, season: 2 }, hired);
+
+    expect(hired.unlockedCoachContentIds).toContain('formation:4-3-3');
+    expect(refreshed.coachCandidates.every(candidate => candidate.unlockId === undefined)).toBe(true);
+  });
+
+  test('lists a player, creates repeatable AI bids, and accepts only a saved bid', () => {
+    const state = createCareer(createLaunchCareerSetup(824, undefined, undefined, 'full'));
+    const starters = new Set(state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds);
+    const reserve = state.players.find(player => (
+      player.clubId === state.userClubId && !starters.has(player.id)
+    ))!;
+    const first = listCareerPlayer(state, state.market!, reserve.id);
+    const second = listCareerPlayer(state, state.market!, reserve.id);
+
+    expect(first.transferListings).toEqual(second.transferListings);
+    expect(first.transferListings?.[0].bids.length).toBeGreaterThan(0);
+    expect(new Set(first.transferListings?.[0].bids.map(bid => bid.buyerClubId)).size)
+      .toBe(first.transferListings?.[0].bids.length);
+    expect(() => acceptCareerTransferBid(state, first, 'invented-bid')).toThrow('unknown transfer bid');
+
+    const bid = first.transferListings![0].bids[0];
+    const accepted = acceptCareerTransferBid(state, first, bid.id);
+    expect(accepted.state.players.find(player => player.id === reserve.id)?.clubId)
+      .toBe(bid.buyerClubId);
+    expect(accepted.state.cashTransactions?.at(-1)).toMatchObject({
+      kind: 'transfer-sell',
+      amount: bid.quote.fee,
+    });
+    expect(accepted.market.transferListings).toEqual([]);
+  });
+
+  test('expires listings at the end of their registration window and rejects a saved bid later', () => {
+    const initial = createCareer(createLaunchCareerSetup(826, undefined, undefined, 'full'));
+    const weekFour = { ...initial, week: 4 };
+    const starters = new Set(weekFour.lineups
+      .find(lineup => lineup.clubId === weekFour.userClubId)!.playerIds);
+    const reserve = weekFour.players.find(player => (
+      player.clubId === weekFour.userClubId && !starters.has(player.id)
+    ))!;
+    const listed = listCareerPlayer(weekFour, weekFour.market!, reserve.id);
+    const bidId = listed.transferListings![0].bids[0].id;
+
+    expect(expireCareerTransferListings({ ...weekFour, week: 5 }, listed).transferListings)
+      .toEqual([]);
+    expect(() => acceptCareerTransferBid({ ...weekFour, week: 17 }, listed, bidId))
+      .toThrow('transfer bid has expired');
+    expect(() => acceptCareerTransferBid({ ...weekFour, season: 2, week: 1 }, listed, bidId))
+      .toThrow('transfer bid has expired');
+  });
+
+  test('enforces coach eligibility and gates an assistant behind the Coaching Office', () => {
+    const initial = createCareer(createLaunchCareerSetup(825, undefined, undefined, 'full'));
+    const market = createCareerMarketState(initial);
+    const candidate = market.coachCandidates.find(coach => coach.requiredDivision === 5)!;
+    const hired = hireCareerCoach(initial, market, candidate.id);
+
+    expect(hired.headCoach?.id).toBe(candidate.id);
+    expect(hired.unlockedCoachContentIds).toContain(candidate.unlockId);
+    expect(() => hireCareerCoach(initial, market, candidate.id, 'ASSISTANT'))
+      .toThrow('Coaching Office');
+
+    const officeProject = buildCareerFacility(initial, 'coaching-office', { x: 0, y: 0 }).state;
+    const withOffice = {
+      ...officeProject,
+      facilities: {
+        ...officeProject.facilities,
+        grid: advanceFacilityConstruction(officeProject.facilities.grid!).grid,
+      },
+    };
+    const other = market.coachCandidates.find(coach => coach.id !== candidate.id)!;
+    const withAssistant = hireCareerCoach(withOffice, hired, other.id, 'ASSISTANT');
+    expect(withAssistant.assistantCoach?.id).toBe(other.id);
   });
 
   test('measures contract growth from the stored signing attributes', () => {

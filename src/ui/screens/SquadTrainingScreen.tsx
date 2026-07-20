@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type { FocusDrillViewModel, SquadTrainingViewModel } from '../models';
@@ -17,11 +18,12 @@ export interface SquadTrainingScreenProps {
   onToggleDrill: (drillId: string) => void;
   onApplyTraining: () => void;
   guideTraining?: boolean;
+  guideFocus?: AssistantGuideFocus;
 }
 
 function drillSelectionClass(drill: FocusDrillViewModel): string {
   if (!drill.available) return 'border-ink/20 bg-white opacity-40';
-  if (drill.selected) return 'border-ink bg-signal';
+  if (drill.selected) return 'border-violet-dark bg-violet-light';
   return 'border-ink/30 bg-white';
 }
 
@@ -32,6 +34,7 @@ export function SquadTrainingScreen({
   onToggleDrill,
   onApplyTraining,
   guideTraining = false,
+  guideFocus,
 }: SquadTrainingScreenProps) {
   const selectedPlayer = viewModel.players.find(player => player.id === viewModel.selectedPlayerId);
   const assigned = new Set(viewModel.assignedPlayerIds);
@@ -126,6 +129,10 @@ export function SquadTrainingScreen({
             const selected = player.id === viewModel.selectedPlayerId;
             const isAssigned = assigned.has(player.id);
             const guidePlayer = guideTraining && viewModel.assignedPlayerIds.length === 0 && player.id === guideTargetPlayerId;
+            const guideConciergePlayer = player.id === viewModel.selectedPlayerId && (
+              (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
+              || guideFocus === 'transfer-request'
+            );
             return (
               <View
                 key={player.id}
@@ -135,6 +142,13 @@ export function SquadTrainingScreen({
                     ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
                     : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
               >
+                {guideConciergePlayer ? (
+                  <TutorialTapCue
+                    label="Bert says"
+                    detail={guideFocus === 'injury-lineup' ? 'Review injury and replacement' : 'Review this player'}
+                    style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+                  />
+                ) : null}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Open summary for ${player.name}`}
@@ -154,6 +168,11 @@ export function SquadTrainingScreen({
                         Starting XI
                       </Text>
                     ) : null}
+                    {player.isCaptain || player.contractPromiseLabel ? (
+                      <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-violet-dark" numberOfLines={1}>
+                        {[player.isCaptain ? 'Captain' : undefined, player.shirtNumber ? `#${player.shirtNumber}` : undefined, player.contractPromiseLabel].filter(Boolean).join(' · ')}
+                      </Text>
+                    ) : null}
                     <Text className="mt-1 text-sm text-ink/60" numberOfLines={1}>{player.contractLabel}</Text>
                     {player.powerName ? (
                       <Text className="mt-0.5 text-sm font-bold uppercase text-gold-dark" numberOfLines={1}>★ {player.powerName}</Text>
@@ -168,10 +187,10 @@ export function SquadTrainingScreen({
                   accessibilityState={{ checked: isAssigned }}
                   onPress={() => onTogglePlayerAssignment(player.id)}
                   className={guidePlayer
-                    ? 'relative ml-2 h-10 w-10 items-center justify-center border-2 border-blue-dark bg-blue-light'
+                    ? 'relative ml-2 h-11 w-11 items-center justify-center border-2 border-blue-dark bg-blue-light'
                     : isAssigned
-                      ? 'ml-2 h-10 w-10 items-center justify-center border-2 border-ink bg-signal'
-                      : 'ml-2 h-10 w-10 items-center justify-center border border-ink/30'}
+                      ? 'ml-2 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light'
+                      : 'ml-2 h-11 w-11 items-center justify-center border border-ink/30'}
                   style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
                 >
                   {guidePlayer ? (
@@ -234,6 +253,13 @@ export function SquadTrainingScreen({
             </View>
             {selectedPlayer.powerName ? <StatusChip label={selectedPlayer.powerName} tone="hero" /> : null}
           </View>
+          {selectedPlayer.contractPromiseLabel || selectedPlayer.isCaptain || selectedPlayer.shirtNumber ? (
+            <View className="mt-3 flex-row flex-wrap gap-2">
+              {selectedPlayer.isCaptain ? <StatusChip label="Captain" selected /> : null}
+              {selectedPlayer.shirtNumber ? <StatusChip label={`Shirt #${selectedPlayer.shirtNumber}`} /> : null}
+              {selectedPlayer.contractPromiseLabel ? <StatusChip label={selectedPlayer.contractPromiseLabel} selected /> : null}
+            </View>
+          ) : null}
           <View className="mt-3 border border-ink/20 bg-paper-dark/40 px-3 py-3">
             <View className="flex-row items-center justify-between gap-3">
               <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Archetype</Text>

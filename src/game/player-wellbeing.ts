@@ -77,9 +77,13 @@ export function resolveWeeklyPlayerWellbeing(
     ? 0
     : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
   const injuryChecks: OvertrainingInjuryCheck[] = [];
-  const motivatorLevel = state.market?.headCoach?.specialties.includes('MOTIVATOR') === true
+  const headMotivatorLevel = state.market?.headCoach?.specialties.includes('MOTIVATOR') === true
     ? state.market.headCoach.level
     : 0;
+  const assistantMotivatorLevel = state.market?.assistantCoach?.specialties.includes('MOTIVATOR') === true
+    ? Math.floor(state.market.assistantCoach.level / 2)
+    : 0;
+  const motivatorLevel = headMotivatorLevel + assistantMotivatorLevel;
 
   const players = context.trainedPlayers.map(player => {
     if (player.clubId !== state.userClubId) return player;

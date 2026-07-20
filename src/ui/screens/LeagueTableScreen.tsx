@@ -56,7 +56,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
           </View>
           {viewModel.rows.map(row => {
             const rowClass = row.isUserClub
-              ? 'bg-signal'
+              ? 'bg-violet-light'
               : row.inPromotionPlaces
                 ? 'bg-pitch-light'
                 : '';
@@ -90,7 +90,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
 
       <View className="mt-4 flex-row items-center gap-4 border-2 border-ink bg-white px-3 py-3">
         <View className="flex-row items-center gap-2">
-          <View className="h-3 w-3 bg-signal" />
+          <View className="h-3 w-3 bg-violet" />
           <Text className="text-sm text-ink/60">Your club</Text>
         </View>
         <View className="flex-row items-center gap-2">

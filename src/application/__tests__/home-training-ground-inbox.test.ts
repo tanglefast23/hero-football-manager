@@ -12,7 +12,12 @@ describe('training-ground inbox letter', () => {
     expect(fresh.facilities.trainingGroundBuilt).toBe(false);
 
     const beforeBuild = homeViewModel(fresh);
-    expect(beforeBuild.alerts.some(alert => alert.id === 'training-ground')).toBe(true);
+    const proposal = beforeBuild.alerts.find(alert => alert.id === 'training-ground');
+    expect(beforeBuild.alerts).toHaveLength(3);
+    expect(proposal).toMatchObject({
+      guideSequenceId: 'facility-placement',
+      destination: 'club-facilities',
+    });
 
     const built: GameState = {
       ...fresh,

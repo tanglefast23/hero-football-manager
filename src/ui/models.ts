@@ -1,4 +1,5 @@
 import type { MarketNegotiationViewModel } from './market-models';
+import type { AssistantGuideDestination, AssistantGuideSequenceId } from '../content';
 
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
 
@@ -24,6 +25,8 @@ export interface ClubAlertViewModel {
   title: string;
   detail: string;
   tone: 'urgent' | 'event' | 'info';
+  guideSequenceId?: AssistantGuideSequenceId;
+  destination?: AssistantGuideDestination;
 }
 
 export interface LeagueSnippetViewModel {
@@ -71,6 +74,44 @@ export interface HomeViewModel {
   resources: ResourceSummaryViewModel;
   nextFixture: FixtureViewModel;
   alerts: readonly ClubAlertViewModel[];
+  boardUltimatum?: {
+    id: string;
+    weeksRemaining: number;
+    targetCash: number;
+    cashNeeded: number;
+    protectedPlayerId?: string;
+    candidates: readonly {
+      playerId: string;
+      playerName: string;
+      role: 'GK' | 'DEF' | 'MID' | 'FWD';
+      weeklyWage: number;
+      marketValue: number;
+      forcedSaleFee: number;
+      discountPercent: number;
+      isHero: boolean;
+    }[];
+  };
+  boardResolution?: {
+    kind: 'TARGET_MET' | 'FORCED_SALE';
+    headline: string;
+    detail: string;
+    soldPlayer?: {
+      id: string;
+      name: string;
+      role: 'GK' | 'DEF' | 'MID' | 'FWD';
+      buyerName: string;
+      fee: number;
+    };
+    replacementPlayer?: {
+      id: string;
+      name: string;
+      role: 'GK' | 'DEF' | 'MID' | 'FWD';
+      age: number;
+      weeklyWage: number;
+    };
+    fansLost?: number;
+    moraleDelta?: number;
+  };
   table: readonly LeagueSnippetViewModel[];
 }
 
@@ -228,6 +269,9 @@ export interface SquadPlayerViewModel {
   fame: number;
   weeklyWage: number;
   contractLabel: string;
+  contractPromiseLabel?: string;
+  shirtNumber?: number;
+  isCaptain: boolean;
   powerName?: string;
   licensed: boolean;
   attributes: readonly {
@@ -296,11 +340,18 @@ export interface ClubFacilityBuildingViewModel {
   width: number;
   height: number;
   weeklyUpkeep: number;
+  effectLabel: string;
+  nextLevelEffectLabel?: string;
   upgradeCost?: number;
+  canUpgrade: boolean;
+  upgradeShortfall: number;
   relocationFee: number;
   status: 'operational' | 'construction' | 'upgrading';
   weeksRemaining?: number;
   targetLevel?: 1 | 2 | 3;
+  canRelocate: boolean;
+  relocationShortfall: number;
+  activeAdjacencyIds: readonly string[];
 }
 
 export interface ClubFacilityCatalogViewModel {
@@ -309,10 +360,13 @@ export interface ClubFacilityCatalogViewModel {
   buildCost: number;
   width: number;
   height: number;
+  weeklyUpkeep: number;
+  effectLabel: string;
   available: boolean;
   affordable: boolean;
   buildWeeks: number;
   blockedReason?: string;
+  affordabilityShortfall: number;
 }
 
 export interface ClubFacilityGridViewModel {
@@ -356,6 +410,14 @@ export interface ClubFinancesViewModel {
     weeklyWage: number;
     seasonsEmployed: number;
     severanceCost: number;
+  };
+  assistantCoach?: {
+    id: string;
+    name: string;
+    level: number;
+    specialtyLabels: readonly [string, string];
+    weeklyWage: number;
+    seasonsEmployed: number;
   };
   facilities: ClubFacilityGridViewModel;
 }
@@ -477,6 +539,7 @@ export interface ClubLegacyChoiceViewModel {
 export interface ClubLegacyViewModel {
   seasonLabel: string;
   queueLabel: string;
+  playerId: string;
   playerName: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   archetype: string;

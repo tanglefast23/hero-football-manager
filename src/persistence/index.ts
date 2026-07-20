@@ -28,6 +28,7 @@ export {
 export { REPLAY_SCHEMA_VERSION } from './replay-codec';
 export {
   createPreferencesRepository,
+  availableFormationIds,
   DEFAULT_APP_PREFERENCES,
   replaceFormationPreset,
   type AppPreferences,

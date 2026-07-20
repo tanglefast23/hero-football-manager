@@ -1,13 +1,34 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../../game/career';
 import { buildCareerFacility } from '../../game/management';
+import { listCareerPlayer } from '../../game/market-career';
+import { createBoardUltimatum, protectBoardUltimatumPlayer } from '../../game/board-ultimatum';
 import { InvalidGameStateError, CorruptCareerSaveError } from '../errors';
 import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 
 describe('M2 game-state codec', () => {
   test('round-trips the full pyramid, cup, market, youth intake, facilities, and lifecycle metadata', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
-    const state = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
+    const built = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
+    const listedPlayer = built.players.find(player => (
+      player.clubId === built.userClubId
+      && !built.lineups.find(lineup => lineup.clubId === built.userClubId)?.playerIds.includes(player.id)
+    ))!;
+    const transferListings = listCareerPlayer(
+      built,
+      built.market!,
+      listedPlayer.id,
+    ).transferListings;
+    const assistantCoach = built.market!.coachCandidates[0];
+    const state = {
+      ...built,
+      market: {
+        ...built.market!,
+        assistantCoach,
+        assistantCoachSeasonsEmployed: 0,
+        transferListings,
+      },
+    };
 
     const restored = parseStoredGameState(serializeGameState(state));
 
@@ -27,6 +48,35 @@ describe('M2 game-state codec', () => {
 
     expect(() => serializeGameState(withoutMarket as typeof state)).toThrow(InvalidGameStateError);
     expect(() => parseStoredGameState(JSON.stringify(withoutMarket))).toThrow(CorruptCareerSaveError);
+  });
+
+  test('round-trips a protected board ultimatum and rejects hidden protection', () => {
+    const initial = createCareer(createLaunchCareerSetup(445, undefined, undefined, 'full'));
+    const ultimatum = createBoardUltimatum(initial)!;
+    const active = {
+      ...initial,
+      financialSafety: {
+        consecutiveNegativeWeeks: 4,
+        emergencyLoanUsed: true,
+        boardUltimatum: ultimatum,
+      },
+    };
+    const protectedState = protectBoardUltimatumPlayer(active, ultimatum.candidates[1].playerId);
+
+    expect(parseStoredGameState(serializeGameState(protectedState))).toEqual(protectedState);
+
+    const invalid = {
+      ...protectedState,
+      financialSafety: {
+        ...protectedState.financialSafety!,
+        boardUltimatum: {
+          ...protectedState.financialSafety!.boardUltimatum!,
+          protectedPlayerId: 'hidden-player',
+        },
+      },
+    };
+    expect(() => serializeGameState(invalid)).toThrow(InvalidGameStateError);
+    expect(() => parseStoredGameState(JSON.stringify(invalid))).toThrow(CorruptCareerSaveError);
   });
 
   test('rejects stale youth intake data from another season', () => {
@@ -53,5 +103,84 @@ describe('M2 game-state codec', () => {
     expect(() => serializeGameState(duplicate)).toThrow(InvalidGameStateError);
     expect(() => serializeGameState(zero)).toThrow(InvalidGameStateError);
     expect(() => parseStoredGameState(JSON.stringify(duplicate))).toThrow(CorruptCareerSaveError);
+  });
+
+  test.each([
+    {
+      label: 'career seed mismatch',
+      mutate: (state: ReturnType<typeof createCareer>) => ({
+        ...state,
+        m2: { ...state.m2!, careerSeed: state.careerSeed + 1 },
+      }),
+    },
+    {
+      label: 'duplicate pyramid division level',
+      mutate: (state: ReturnType<typeof createCareer>) => ({
+        ...state,
+        m2: {
+          ...state.m2!,
+          pyramid: {
+            ...state.m2!.pyramid,
+            divisions: state.m2!.pyramid.divisions.map((division, index) => index === 1
+              ? { ...division, level: 1 as const }
+              : division),
+          },
+        },
+      }),
+    },
+    {
+      label: 'pyramid player in the wrong club',
+      mutate: (state: ReturnType<typeof createCareer>) => {
+        const firstDivision = state.m2!.pyramid.divisions[0];
+        const sourceClub = firstDivision.clubs.find(club => club.squad.length > 0)!;
+        return {
+          ...state,
+          m2: {
+            ...state.m2!,
+            pyramid: {
+              ...state.m2!.pyramid,
+              divisions: state.m2!.pyramid.divisions.map(division => division.level === firstDivision.level
+                ? {
+                    ...division,
+                    clubs: division.clubs.map(club => club.id === sourceClub.id
+                      ? {
+                          ...club,
+                          squad: club.squad.map((player, index) => index === 0
+                            ? { ...player, clubId: 'not-the-containing-club' }
+                            : player),
+                        }
+                      : club),
+                  }
+                : division),
+            },
+          },
+        };
+      },
+    },
+    {
+      label: 'future retirement announcement',
+      mutate: (state: ReturnType<typeof createCareer>) => ({
+        ...state,
+        retirementAnnouncements: [{
+          playerId: state.players[0].id,
+          playerName: state.players[0].name,
+          announcedInSeason: state.season + 1,
+          retirementAge: 36,
+        }],
+      }),
+    },
+    {
+      label: 'retired player still active',
+      mutate: (state: ReturnType<typeof createCareer>) => ({
+        ...state,
+        retiredPlayers: [state.players[0]],
+      }),
+    },
+  ])('rejects inconsistent M2 relationships: $label', ({ mutate }) => {
+    const state = createCareer(createLaunchCareerSetup(47, undefined, undefined, 'full'));
+    const invalid = mutate(state);
+
+    expect(() => serializeGameState(invalid)).toThrow(InvalidGameStateError);
+    expect(() => parseStoredGameState(JSON.stringify(invalid))).toThrow(CorruptCareerSaveError);
   });
 });

@@ -85,6 +85,37 @@ describe('career coach weekly effects', () => {
     expect(JSON.parse(JSON.stringify(modifiers))).toEqual(modifiers);
   });
 
+  test('adds an assistant at half strength and includes both weekly wages', () => {
+    const market = marketWithCoach(['ATTACK', 'FITNESS'], 4, 2_000);
+    const assistant: CoachCandidate = {
+      id: 'assistant-test',
+      name: 'Assistant Test',
+      specialties: ['ATTACK', 'TECHNIQUE'],
+      level: 2,
+      weeklyWage: 1_000,
+      personality: 'LOYAL',
+      requiredDivision: 5,
+      requiredFame: 0,
+      loyaltyDiscountPercent: 0,
+    };
+    const staffed = { ...market, assistantCoach: assistant };
+
+    expect(careerCoachWageLedgerAmount(staffed)).toBe(-3_000);
+    expect(careerCoachTrainingModifiers(staffed)).toMatchObject({
+      coachId: 'coach-test',
+      assistantCoachId: 'assistant-test',
+      gainScalePercentByAttribute: {
+        pac: 140,
+        sho: 150,
+        pas: 110,
+        def: 100,
+        tec: 110,
+        sta: 140,
+        ref: 100,
+      },
+    });
+  });
+
   test.each<[
     CoachSpecialty,
     readonly string[],

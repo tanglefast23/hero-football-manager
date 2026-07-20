@@ -2,6 +2,8 @@ import * as Haptics from 'expo-haptics';
 import type { MatchEvent } from '../sim/types';
 import { hapticCueForEvent } from './haptic-cues';
 
+export type ManagementHapticCue = 'select' | 'commit' | 'success' | 'warning' | 'hero';
+
 /** Native feedback is presentation-only and always fails soft. */
 export function playHapticForEvent(event: MatchEvent, controlledTeam: 0 | 1): void {
   const cue = hapticCueForEvent(event, controlledTeam);
@@ -12,4 +14,18 @@ export function playHapticForEvent(event: MatchEvent, controlledTeam: 0 | 1): vo
   else if (cue === 'goal') feedback = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   else if (cue === 'conceded') feedback = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   void feedback?.catch(() => undefined);
+}
+
+/** Management feedback is never part of simulation state and always fails soft. */
+export function playManagementHaptic(cue: ManagementHapticCue): void {
+  const feedback = cue === 'select'
+    ? Haptics.selectionAsync()
+    : cue === 'success'
+      ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      : cue === 'warning'
+        ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+        : Haptics.impactAsync(
+          cue === 'hero' ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Medium,
+        );
+  void feedback.catch(() => undefined);
 }

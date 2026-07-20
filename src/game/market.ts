@@ -690,6 +690,8 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
 
   const marketSeed = mixSeed(setup.careerSeed, `coach-market:${setup.season}`);
   const random = mulberry32(marketSeed);
+  const shuffledUnlockIds = unlockIds.slice();
+  shuffleInPlace(shuffledUnlockIds, mulberry32(mixSeed(marketSeed, 'coach-unlocks')));
   const targetCount = 3 + randomInteger(random, 3);
   const maxLevel = maxCoachLevelForClub(setup.division, setup.fame);
   const result: CoachCandidate[] = [];
@@ -713,9 +715,9 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
       requiredDivision: 6 - level,
       requiredFame: COACH_FAME_GATES[level],
       loyaltyDiscountPercent: 25,
-      ...(unlockIds.length === 0
+      ...(result.length >= shuffledUnlockIds.length
         ? {}
-        : { unlockId: unlockIds[randomInteger(random, unlockIds.length)] }),
+        : { unlockId: shuffledUnlockIds[result.length] }),
       retiredLegendPlayerId: legend.playerId,
     });
   }
@@ -739,9 +741,9 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
       requiredDivision: 6 - level,
       requiredFame: COACH_FAME_GATES[level],
       loyaltyDiscountPercent: 0,
-      ...(unlockIds.length === 0
+      ...(result.length >= shuffledUnlockIds.length
         ? {}
-        : { unlockId: unlockIds[randomInteger(random, unlockIds.length)] }),
+        : { unlockId: shuffledUnlockIds[result.length] }),
     });
   }
   return result;

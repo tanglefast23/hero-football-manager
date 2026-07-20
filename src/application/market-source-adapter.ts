@@ -41,6 +41,10 @@ export function careerMarketViewModelSource(
   const reportByPlayerId = new Map(market.scoutReports.map(report => [report.playerId, report]));
   const playerById = new Map(state.players.map(player => [player.id, player]));
   const scoutResult = currentScoutResult(state, market);
+  const savedSellListings = new Map((market.transferListings ?? []).map(listing => [
+    listing.playerId,
+    listing,
+  ]));
   const buyListings = market.scoutReports
     .map(report => {
       const player = playerById.get(report.playerId);
@@ -60,7 +64,27 @@ export function careerMarketViewModelSource(
       && player.contractSeasonsRemaining > 0
       && hasTransferReplacement(state, player)
     ))
-    .map(player => transferListing(player, 'SELL', division, true));
+    .map(player => {
+      const saved = savedSellListings.get(player.id);
+      const bestBid = saved === undefined
+        ? undefined
+        : [...saved.bids].sort((left, right) => (
+          right.quote.fee - left.quote.fee || left.id.localeCompare(right.id)
+        ))[0];
+      return transferListing(
+        player,
+        'SELL',
+        division,
+        true,
+        saved !== undefined,
+        bestBid?.quote,
+        saved?.bids.map(bid => ({
+          id: bid.id,
+          buyerName: state.clubs.find(club => club.id === bid.buyerClubId)?.name ?? bid.buyerClubId,
+          quote: bid.quote,
+        })),
+      );
+    });
   const transferListings = [...buyListings, ...sellListings].sort((left, right) => {
     if (left.direction !== right.direction) return left.direction === 'BUY' ? -1 : 1;
     return stableTextCompare(left.player.id, right.player.id);
@@ -86,6 +110,7 @@ export function careerMarketViewModelSource(
         return {
           state: talks.negotiation,
           playerName: player.name,
+          playerRole: player.role,
           openingWeeklyWage: player.weeklyWage,
           wageStep: wageStepFor(player.weeklyWage),
         };
@@ -109,6 +134,12 @@ export function careerMarketViewModelSource(
     transferListings,
     coachCandidates: market.coachCandidates.map(cloneCoachCandidate),
     ...(market.headCoach === undefined ? {} : { headCoach: cloneCoachCandidate(market.headCoach) }),
+    assistantSlotUnlocked: state.facilities.grid?.buildings.some(building => (
+      building.type === 'coaching-office'
+      && isFacilityOperational(state.facilities.grid!, building.id)
+    )) === true,
+    ...(market.headCoach === undefined ? {} : { headCoachId: market.headCoach.id }),
+    ...(market.assistantCoach === undefined ? {} : { assistantCoachId: market.assistantCoach.id }),
     ...(state.youthIntake === undefined
       ? {}
       : {
@@ -199,6 +230,9 @@ function transferListing(
   direction: 'BUY' | 'SELL',
   sellingClubDivision: number,
   revealPower: boolean,
+  listed = false,
+  savedQuote?: NonNullable<CareerMarketState['transferListings']>[number]['bids'][number]['quote'],
+  bids?: TransferListingSource['bids'],
 ): TransferListingSource {
   return {
     player: {
@@ -210,6 +244,9 @@ function transferListing(
     },
     direction,
     sellingClubDivision,
+    listed,
+    ...(savedQuote === undefined ? {} : { savedQuote }),
+    ...(bids === undefined ? {} : { bids }),
   };
 }
 

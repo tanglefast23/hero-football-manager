@@ -113,6 +113,32 @@ export function NewGameWelcomeScreen({
                   Build the club they will talk about for decades.
                 </Text>
               </>
+            ) : hasSavedCareer ? (
+              <>
+                <View className="flex-row items-start justify-between">
+                  <View className="relative h-14 w-14 rotate-1 items-center justify-center overflow-hidden border-2 border-ink bg-paper">
+                    <View pointerEvents="none" className="absolute left-0 right-0 top-0 h-1.5 bg-white" />
+                    <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-1.5 bg-paper-dark" />
+                    <Text className="font-mono text-3xl font-bold text-ink">HF</Text>
+                  </View>
+                  <View className="-rotate-2 border-2 border-b-4 border-pitch-dark bg-pitch-light/30 px-3 py-1.5">
+                    <Text className="font-mono text-sm font-bold uppercase text-pitch-dark">File ready</Text>
+                  </View>
+                </View>
+
+                <View className="my-5 h-0.5 bg-ink/20" />
+
+                <Text className="text-sm font-bold uppercase tracking-[3px] text-blue-dark">The touchline kept your coat</Text>
+
+                <View className="mt-4 gap-1">
+                  <MastheadLine text="WELCOME" />
+                  <MastheadLine text="BACK." tone="gold" />
+                </View>
+
+                <Text className="mt-5 max-w-sm text-base leading-5 text-ink/70">
+                  The squad has been pretending not to watch the clock. Your club is exactly where you left it.
+                </Text>
+              </>
             ) : null}
           </View>
 
@@ -130,6 +156,23 @@ export function NewGameWelcomeScreen({
                 </BriefRow>
               </View>
             </PaperPanel>
+          ) : hasSavedCareer ? (
+            <View className="my-5 border-2 border-ink bg-white p-4">
+              <View className="flex-row items-center justify-between gap-3">
+                <View className="flex-1">
+                  <Text className="font-mono text-xs font-bold uppercase tracking-[2px] text-red-dark">Saved career</Text>
+                  <Text className="mt-1 font-mono text-lg font-bold uppercase text-ink">
+                    {savedCareerLabel ?? 'Club file ready'}
+                  </Text>
+                </View>
+                <StatusChip label="Verified" tone="success" />
+              </View>
+              <View className="mt-3 border-t-2 border-ink/15 pt-3">
+                <Text className="text-sm leading-4 text-ink/65">
+                  Bert is on duty. The inbox will surface the three things worth your attention.
+                </Text>
+              </View>
+            </View>
           ) : null}
 
           <View className="gap-3">

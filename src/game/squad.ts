@@ -9,6 +9,11 @@ import { setCareerTrainingPlan } from './training';
 import { buildFacility as placeFacility, createFacilityGrid } from './facilities';
 import { currentUserDivision } from './m2-career';
 import { applyLowMoraleToStat } from './pyramid';
+import {
+  assertCareerLineupHonorsContractPromises,
+  restoreCareerContractPromiseLineup,
+} from './contract-promises';
+import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import type { CareerPlayer, GameState } from './types';
 
 const DEFAULT_HERO_LIMIT = 2;
@@ -190,19 +195,24 @@ export function repairCareerLineupForInjuries(
     selected.add(replacement.id);
   }
 
-  if (playerIds.every((playerId, index) => playerId === lineup.playerIds[index])) return state;
-  const repaired: GameState = {
+  const repaired: GameState = playerIds.every((playerId, index) => playerId === lineup.playerIds[index])
+    ? state
+    : {
     ...state,
     lineups: state.lineups.map(candidate => candidate.clubId === clubId
       ? { ...candidate, playerIds }
       : candidate),
   };
-  buildCareerTeamDef(repaired, clubId);
-  return repaired;
+  const restored = clubId === state.userClubId
+    ? restoreCareerContractPromiseLineup(repaired)
+    : repaired;
+  buildCareerTeamDef(restored, clubId);
+  return restored;
 }
 
 export function setCareerLineup(state: GameState, playerIds: readonly string[]): GameState {
   assertManagementChoicePhase(state, 'the lineup');
+  assertCareerLineupHonorsContractPromises(state, playerIds);
   const nextLineups = state.lineups.map(lineup =>
     lineup.clubId === state.userClubId ? { ...lineup, playerIds: [...playerIds] } : lineup,
   );
@@ -402,7 +412,7 @@ export function releaseCareerPlayer(state: GameState, playerId: string): GameSta
   const remainingTrainingAssignments = state.trainingPlan?.assignedPlayerIds
     .filter(id => id !== playerId) ?? [];
 
-  return {
+  return reconcileBoardUltimatumCandidates({
     ...state,
     clubs: state.clubs.map(club => {
       if (club.id !== state.userClubId) return club;
@@ -433,7 +443,7 @@ export function releaseCareerPlayer(state: GameState, playerId: string): GameSta
     ...(state.market?.renewalTalks?.playerId === playerId
       ? { market: { ...state.market, renewalTalks: undefined } }
       : {}),
-  };
+  });
 }
 
 function assertManagementChoicePhase(state: GameState, choice: string): void {

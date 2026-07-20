@@ -23,6 +23,8 @@ export interface ClubState {
 export interface CareerSetup {
   seed: number;
   userClubId: string;
+  /** Omitted by non-launch fixtures and saves created before roster expansion. */
+  launchRosterVersion?: number;
   clubs: ClubState[];
   startingTrainingPoints?: number;
   players?: CareerPlayer[];
@@ -67,6 +69,17 @@ export type PlayerPersonality =
   | 'Professional'
   | 'Timid';
 
+export type CareerContractPerk =
+  | 'GUARANTEED_STARTER'
+  | 'CAPTAINCY'
+  | 'TRAINING_PRIORITY'
+  | 'JERSEY_10';
+
+export interface CareerContractPromise {
+  perk: CareerContractPerk;
+  agreedSeason: number;
+}
+
 export interface CareerPlayer {
   id: string;
   clubId: string;
@@ -79,6 +92,9 @@ export interface CareerPlayer {
   weeklyWage: number;
   onHeroWage: boolean;
   contractSeasonsRemaining: number;
+  contractPromise?: CareerContractPromise;
+  shirtNumber?: number;
+  isCaptain?: boolean;
   morale: number;
   injuryWeeks: number;
   /** M2 metadata stays optional so schema-1 M1 saves remain readable. */
@@ -191,6 +207,7 @@ export type LedgerLineKind =
   | 'wages'
   | 'subsidy'
   | 'emergency-loan'
+  | 'board-sale'
   | 'loan-repayment';
 
 export interface LedgerLine {
@@ -247,10 +264,63 @@ export interface FinancialSafetyState {
     repaymentStartsSeason: number;
     remainingWeeks: number;
   };
+  /** Active four-week fail-soft intervention. Optional for all pre-M2 saves. */
+  boardUltimatum?: BoardUltimatumState;
+  /** Most recent outcome, retained so the office can explain what happened. */
+  latestBoardResolution?: BoardUltimatumResolution;
+}
+
+export interface BoardSaleCandidate {
+  playerId: string;
+  marketValue: number;
+  forcedSaleFee: number;
+  discountPercent: 30;
+}
+
+export interface BoardUltimatumState {
+  id: string;
+  issuedSeason: number;
+  issuedWeek: number;
+  weeksRemaining: number;
+  targetCash: number;
+  candidates: BoardSaleCandidate[];
+  protectedPlayerId?: string;
+}
+
+export type BoardUltimatumResolution =
+  | {
+      id: string;
+      kind: 'TARGET_MET';
+      resolvedSeason: number;
+      resolvedWeek: number;
+      targetCash: number;
+    }
+  | {
+      id: string;
+      kind: 'FORCED_SALE';
+      resolvedSeason: number;
+      resolvedWeek: number;
+      targetCash: number;
+      playerId: string;
+      buyerClubId: string;
+      replacementPlayerId: string;
+      fee: number;
+      discountPercent: 30;
+      moraleDelta: -8;
+      fansLost: number;
+    };
+
+export interface CareerRetirementAnnouncement {
+  playerId: string;
+  playerName: string;
+  announcedInSeason: number;
+  retirementAge: number;
 }
 
 export interface GameState {
   schemaVersion: number;
+  /** Marks launch-content roster migrations that have already been applied. */
+  launchRosterVersion?: number;
   careerSeed: number;
   userClubId: string;
   season: number;
@@ -285,6 +355,8 @@ export interface GameState {
   youthIntake?: YouthIntakeState;
   retiredPlayers?: CareerPlayer[];
   pendingLegacyPlayerIds?: string[];
+  /** Current final-season notices presented after a season transition. */
+  retirementAnnouncements?: CareerRetirementAnnouncement[];
   financialSafety?: FinancialSafetyState;
 }
 

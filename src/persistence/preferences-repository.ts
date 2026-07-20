@@ -3,6 +3,7 @@ import {
   COACHING_FORMATION_IDS,
   DEFAULT_FORMATION_PRESETS,
   FORMATION_IDS,
+  isFormationId,
   type FormationId,
 } from '../sim/tactics';
 import type { PersistenceDatabase } from './database';
@@ -123,14 +124,40 @@ function clonePreferences(preferences: AppPreferences): AppPreferences {
 export function replaceFormationPreset(
   preferences: AppPreferences,
   slot: number,
+  coachUnlockedFormationIds: readonly string[] = [],
 ): AppPreferences {
   if (!Number.isInteger(slot) || slot < 0 || slot > 2) return preferences;
+  const available = availableFormationIds(preferences, coachUnlockedFormationIds);
   const current = preferences.formationPresets[slot];
-  const occupied = new Set(preferences.formationPresets.filter((_, index) => index !== slot));
-  let index = COACHING_FORMATION_IDS.indexOf(current);
-  do index = (index + 1) % COACHING_FORMATION_IDS.length;
-  while (occupied.has(COACHING_FORMATION_IDS[index]));
+  let index = available.indexOf(current);
+  index = (index + 1) % available.length;
+  const next = available[index];
   const formationPresets: [FormationId, FormationId, FormationId] = [...preferences.formationPresets];
-  formationPresets[slot] = COACHING_FORMATION_IDS[index];
+  const occupiedSlot = formationPresets.indexOf(next);
+  formationPresets[slot] = next;
+  // When every available base formation already occupies one of the three
+  // slots, tapping still reorders the live-match cycle instead of doing
+  // nothing. A newly taught fourth shape simply replaces the selected slot.
+  if (occupiedSlot >= 0 && occupiedSlot !== slot) formationPresets[occupiedSlot] = current;
   return { ...preferences, formationPresets };
+}
+
+/**
+ * Settings exposes the proven base shapes plus formations taught by a hired
+ * coach. A formation already present in an older settings row is retained as
+ * a grandfathered choice so loading a save never silently rewrites its match
+ * tactics. Unknown content IDs are ignored at this pure persistence boundary.
+ */
+export function availableFormationIds(
+  preferences: AppPreferences,
+  coachUnlockedFormationIds: readonly string[] = [],
+): FormationId[] {
+  const available = new Set<FormationId>(DEFAULT_FORMATION_PRESETS);
+  for (const formation of coachUnlockedFormationIds) {
+    if (isFormationId(formation) && COACHING_FORMATION_IDS.includes(formation)) {
+      available.add(formation);
+    }
+  }
+  for (const formation of preferences.formationPresets) available.add(formation);
+  return FORMATION_IDS.filter(formation => available.has(formation));
 }

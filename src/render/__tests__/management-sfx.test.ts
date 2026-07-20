@@ -26,6 +26,7 @@ import {
   playCoachDepartureSfx,
   playFacilityCompleteSfx,
   playFacilityStartSfx,
+  playManagementActionSfx,
   playMatchStatementSfx,
   playTrainingStatDing,
   playTransactionConfirmSfx,
@@ -51,7 +52,7 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(7);
+    expect(mockPlayers).toHaveLength(15);
     const trainingDing = mockPlayers[1];
     expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
@@ -66,7 +67,7 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(7);
+    expect(mockPlayers).toHaveLength(15);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
@@ -85,5 +86,14 @@ describe('management feedback sounds', () => {
     expect(mockPlayers[4].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[5].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[6].play).toHaveBeenCalledTimes(1);
+  });
+
+  it('routes semantic management cues to their dedicated player', async () => {
+    playManagementActionSfx('success');
+    await Promise.resolve();
+
+    expect(mockPlayers).toHaveLength(15);
+    expect(mockPlayers[12].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers[12].play).toHaveBeenCalledTimes(1);
   });
 });

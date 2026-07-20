@@ -78,6 +78,29 @@ describe('default two-season career journey', () => {
   });
 });
 
+describe('full-career retirement boundary', () => {
+  it('does not ask a player who completed their announced final season to renew', () => {
+    const content = loadLaunchContent();
+    const initial = createCareer(createLaunchCareerSetup(24_681, undefined, content, 'full'));
+    const retiringPlayerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
+    const seasonEnd: GameState = {
+      ...initial,
+      phase: 'season-end',
+      players: initial.players.map(player => player.id === retiringPlayerId
+        ? {
+            ...player,
+            contractSeasonsRemaining: 0,
+            retirementAnnounced: true,
+          }
+        : player),
+    };
+
+    const viewModel = seasonEndViewModel(seasonEnd, content, 1);
+    expect(viewModel.canContinue).toBe(true);
+    expect(viewModel.expiredContract).toBeUndefined();
+  });
+});
+
 function runTwoSeasonTrainingJourney(): GameState {
   const content = loadLaunchContent();
   const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;

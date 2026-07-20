@@ -3,6 +3,11 @@ import {
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
   hasAssistantGuideMilestone,
+  hasAssistantGuideSequenceCompleted,
+  pendingAssistantInboxGuideSequences,
+  queueAssistantGuideSequence,
+  queueAssistantGuideSequences,
+  scheduleAssistantInboxWeek,
 } from '../assistant-guide';
 import { createLaunchCareerSetup } from '../../application/launch';
 
@@ -36,5 +41,145 @@ describe('assistant guide milestones', () => {
     const next = completeAssistantGuideSequence(state, 'desk-intro');
 
     expect(hasAssistantGuideMilestone(next, 'desk-intro-complete')).toBe(true);
+  });
+
+  test('persists M2 firsts in insertion order and completes them idempotently', () => {
+    const state = createCareer(createLaunchCareerSetup(844));
+    const queued = queueAssistantGuideSequences(state, [
+      'scout-mission',
+      'head-coach-market',
+      'scout-mission',
+    ]);
+    const queuedAgain = queueAssistantGuideSequence(queued, 'head-coach-market');
+
+    expect(queuedAgain).toBe(queued);
+    expect(pendingAssistantInboxGuideSequences(queued)).toEqual([
+      'scout-mission',
+      'head-coach-market',
+    ]);
+
+    const completed = completeAssistantGuideSequence(queued, 'scout-mission');
+    const completedAgain = completeAssistantGuideSequence(completed, 'scout-mission');
+    expect(hasAssistantGuideSequenceCompleted(completed, 'scout-mission')).toBe(true);
+    expect(pendingAssistantInboxGuideSequences(completed)).toEqual(['head-coach-market']);
+    expect(completedAgain).toBe(completed);
+  });
+
+  test('delivers at most three firsts and holds the fourth for a later week', () => {
+    const state = createCareer(createLaunchCareerSetup(845));
+    const firstWeek = scheduleAssistantInboxWeek(state, {
+      dueGuideSequenceIds: [
+        'head-coach-market',
+        'facility-placement',
+        'scout-mission',
+        'transfer-list',
+      ],
+    });
+
+    expect(firstWeek.guideSequenceIds).toEqual([
+      'head-coach-market',
+      'facility-placement',
+      'scout-mission',
+    ]);
+    expect(firstWeek.deferredGuideSequenceIds).toEqual(['transfer-list']);
+
+    const afterThreeReads = firstWeek.guideSequenceIds.reduce(
+      (career, sequenceId) => completeAssistantGuideSequence(career, sequenceId),
+      firstWeek.state,
+    );
+    const stillSameWeek = scheduleAssistantInboxWeek(afterThreeReads);
+    expect(stillSameWeek.guideSequenceIds).toEqual([]);
+    expect(stillSameWeek.deferredGuideSequenceIds).toEqual(['transfer-list']);
+
+    const nextWeek = scheduleAssistantInboxWeek({ ...stillSameWeek.state, week: 2 });
+    expect(nextWeek.guideSequenceIds).toEqual(['transfer-list']);
+    expect(nextWeek.deferredGuideSequenceIds).toEqual([]);
+    expect(nextWeek.state.eventFlags.some(flag => flag.includes(':w1:'))).toBe(false);
+  });
+
+  test('gives urgent product alerts priority and remains byte-idempotent', () => {
+    const state = createCareer(createLaunchCareerSetup(846));
+    const options = {
+      dueGuideSequenceIds: [
+        'head-coach-market',
+        'facility-placement',
+        'scout-mission',
+      ] as const,
+      productAlerts: [
+        { id: 'injury-captain', priority: 'urgent' as const },
+        { id: 'board-warning', priority: 'urgent' as const },
+        { id: 'loan-reminder', priority: 'normal' as const },
+      ],
+    };
+    const planned = scheduleAssistantInboxWeek(state, options);
+    const plannedAgain = scheduleAssistantInboxWeek(planned.state, options);
+
+    expect(planned.productAlertIds).toEqual(['injury-captain', 'board-warning']);
+    expect(planned.guideSequenceIds).toEqual(['head-coach-market']);
+    expect(planned.deferredProductAlertIds).toEqual(['loan-reminder']);
+    expect(planned.deferredGuideSequenceIds).toEqual([
+      'facility-placement',
+      'scout-mission',
+    ]);
+    expect(plannedAgain).toEqual({ ...planned, state: planned.state });
+    expect(plannedAgain.state).toBe(planned.state);
+  });
+
+  test('lets a newly urgent alert displace, but not erase, a scheduled guide', () => {
+    const state = createCareer(createLaunchCareerSetup(847));
+    const guides = scheduleAssistantInboxWeek(state, {
+      dueGuideSequenceIds: ['facility-placement', 'facility-upgrade', 'facility-adjacency'],
+    });
+    const interrupted = scheduleAssistantInboxWeek(guides.state, {
+      productAlerts: [{ id: 'board-ultimatum', priority: 'urgent' }],
+    });
+
+    expect(interrupted.productAlertIds).toEqual(['board-ultimatum']);
+    expect(interrupted.guideSequenceIds).toEqual(['facility-placement', 'facility-upgrade']);
+    expect(interrupted.deferredGuideSequenceIds).toEqual(['facility-adjacency']);
+    expect(pendingAssistantInboxGuideSequences(interrupted.state)).toEqual([
+      'facility-placement',
+      'facility-upgrade',
+      'facility-adjacency',
+    ]);
+  });
+
+  test('persists a one-shot product notice through the weekly cap and save/load', () => {
+    const state = createCareer(createLaunchCareerSetup(848));
+    const crowded = scheduleAssistantInboxWeek(state, {
+      productAlerts: [
+        { id: 'injury-one', priority: 'urgent' },
+        { id: 'injury-two', priority: 'urgent' },
+        { id: 'transfer-request', priority: 'urgent' },
+        { id: 'board-resolution:board-s1-w1', priority: 'normal', oneShot: true },
+      ],
+    });
+
+    expect(crowded.productAlertIds).toEqual(['injury-one', 'injury-two', 'transfer-request']);
+    expect(crowded.deferredProductAlertIds).toEqual(['board-resolution:board-s1-w1']);
+
+    const reloaded = JSON.parse(JSON.stringify(crowded.state)) as typeof crowded.state;
+    const nextWeek = scheduleAssistantInboxWeek({ ...reloaded, week: 2 });
+    expect(nextWeek.productAlertIds).toEqual(['board-resolution:board-s1-w1']);
+    expect(nextWeek.deferredProductAlertIds).toEqual([]);
+    expect(nextWeek.state.eventFlags.some(flag => (
+      flag.includes('acknowledged-product:board-resolution%3Aboard-s1-w1')
+    ))).toBe(true);
+  });
+
+  test('bounds persisted one-shot queue and acknowledgement flags', () => {
+    let state = createCareer(createLaunchCareerSetup(849));
+    for (let week = 1; week <= 12; week += 1) {
+      const planned = scheduleAssistantInboxWeek({ ...state, week }, {
+        productAlerts: Array.from({ length: 5 }, (_, index) => ({
+          id: `notice-${week}-${index}`,
+          priority: 'normal' as const,
+          oneShot: true,
+        })),
+      });
+      state = planned.state;
+    }
+    expect(state.eventFlags.filter(flag => flag.includes('pending-product:')).length).toBeLessThanOrEqual(24);
+    expect(state.eventFlags.filter(flag => flag.includes('acknowledged-product:')).length).toBeLessThanOrEqual(24);
   });
 });

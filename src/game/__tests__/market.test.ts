@@ -435,4 +435,31 @@ describe('contract negotiation', () => {
     });
     expect(legend?.unlockId).toBeDefined();
   });
+
+  it('offers distinct content unlocks across one coach market when enough IDs exist', () => {
+    const market = generateCoachMarket({
+      careerSeed: 2027,
+      season: 2,
+      division: 1,
+      fame: 900,
+      unlockIds: ['formation:a', 'formation:b', 'formation:c', 'formation:d', 'formation:e'],
+    });
+    const unlocks = market.map(candidate => candidate.unlockId);
+
+    expect(unlocks.every(id => id !== undefined)).toBe(true);
+    expect(new Set(unlocks).size).toBe(unlocks.length);
+  });
+
+  it('assigns a scarce content unlock to only one coach candidate', () => {
+    const market = generateCoachMarket({
+      careerSeed: 2028,
+      season: 2,
+      division: 1,
+      fame: 900,
+      unlockIds: ['formation:4-3-3'],
+    });
+
+    expect(market.filter(candidate => candidate.unlockId === 'formation:4-3-3')).toHaveLength(1);
+    expect(market.filter(candidate => candidate.unlockId !== undefined)).toHaveLength(1);
+  });
 });

@@ -1,5 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
-import { ActionButton, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { PixelPortrait } from '../components/PixelPortrait';
 import type { ClubAlertViewModel, HomeViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
@@ -17,7 +18,9 @@ export interface ClubHomeScreenProps {
   onOpenFixture: (fixtureId: string) => void;
   onOpenAlert: (alertId: string) => void;
   onOpenLeague: () => void;
+  onProtectBoardCandidate: (playerId: string) => void;
   guideAlertId?: string;
+  guideBoard?: boolean;
 }
 
 export function ClubHomeScreen({
@@ -25,7 +28,9 @@ export function ClubHomeScreen({
   onOpenFixture,
   onOpenAlert,
   onOpenLeague,
+  onProtectBoardCandidate,
   guideAlertId,
+  guideBoard = false,
 }: ClubHomeScreenProps) {
   const fixture = viewModel.nextFixture;
 
@@ -126,6 +131,111 @@ export function ClubHomeScreen({
         </View>
       </View>
 
+      {viewModel.boardResolution ? (
+        <View className="mt-6">
+          <SectionLabel
+            eyebrow="Boardroom aftermath"
+            title={viewModel.boardResolution.headline}
+            right={<StatusChip label={viewModel.boardResolution.kind === 'TARGET_MET' ? 'Resolved' : 'Squad rebuilt'} tone="success" />}
+          />
+          <PaperPanel
+            kicker={viewModel.boardResolution.kind === 'TARGET_MET' ? 'Intervention closed' : 'Academy relief promotion'}
+            title={viewModel.boardResolution.kind === 'TARGET_MET' ? 'No sale required' : viewModel.boardResolution.replacementPlayer?.name}
+            stamp={viewModel.boardResolution.kind === 'TARGET_MET' ? 'Safe' : 'New youth'}
+            className="bg-pitch-light"
+          >
+            <Text className="text-sm leading-5 text-ink/70">{viewModel.boardResolution.detail}</Text>
+            {viewModel.boardResolution.soldPlayer && viewModel.boardResolution.replacementPlayer ? (
+              <>
+                <View className="mt-4 flex-row items-center gap-3">
+                  <View className="flex-1 items-center border-2 border-red-dark bg-red-light p-2">
+                    <View className="overflow-hidden border-2 border-ink bg-white opacity-70">
+                      <PixelPortrait playerId={viewModel.boardResolution.soldPlayer.id} role={viewModel.boardResolution.soldPlayer.role} expression="rest" />
+                    </View>
+                    <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.soldPlayer.name}</Text>
+                    <Text className="mt-1 text-center font-mono text-sm text-stamp">Sold · {formatCompactNumber(viewModel.boardResolution.soldPlayer.fee)}</Text>
+                  </View>
+                  <Text className="font-mono text-2xl font-bold text-ink">→</Text>
+                  <View className="flex-1 items-center border-2 border-pitch-dark bg-white p-2">
+                    <View className="overflow-hidden border-2 border-ink bg-violet-light">
+                      <PixelPortrait playerId={viewModel.boardResolution.replacementPlayer.id} role={viewModel.boardResolution.replacementPlayer.role} expression="joy" />
+                    </View>
+                    <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.replacementPlayer.name}</Text>
+                    <Text className="mt-1 text-center font-mono text-sm text-pitch-dark">Age {viewModel.boardResolution.replacementPlayer.age} · {formatCompactNumber(viewModel.boardResolution.replacementPlayer.weeklyWage)}/wk</Text>
+                  </View>
+                </View>
+                <View className="mt-3 flex-row gap-2">
+                  <Metric label="Fans" value={`−${viewModel.boardResolution.fansLost ?? 0}`} tone="negative" />
+                  <Metric label="Squad morale" value={`${viewModel.boardResolution.moraleDelta ?? 0}`} tone="negative" />
+                </View>
+              </>
+            ) : null}
+          </PaperPanel>
+        </View>
+      ) : null}
+
+      {viewModel.boardUltimatum ? (
+        <View className={guideBoard ? 'relative mt-6 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-6'}>
+          {guideBoard ? (
+            <TutorialTapCue
+              label="Bert says"
+              detail="Protect one player"
+              style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+            />
+          ) : null}
+          <SectionLabel
+            eyebrow="Board intervention"
+            title="Protect one player"
+            right={<StatusChip label={`${viewModel.boardUltimatum.weeksRemaining} ${viewModel.boardUltimatum.weeksRemaining === 1 ? 'week' : 'weeks'}`} tone="danger" />}
+          />
+          <PaperPanel kicker="Fail-soft deadline" title="Balance the books—never lose the club" stamp="No game over" className="bg-red-light">
+            <Text className="text-sm leading-5 text-ink/70">
+              Reach {formatCompactNumber(viewModel.boardUltimatum.targetCash)} cash before the deadline. If you miss it, the board sells one candidate shown below at a {viewModel.boardUltimatum.candidates[0]?.discountPercent ?? 30}% discount. Your protected player is untouchable.
+            </Text>
+            <View className="mt-3 flex-row gap-2">
+              <Metric label="Cash needed" value={formatCompactNumber(viewModel.boardUltimatum.cashNeeded)} tone="negative" />
+              <Metric label="Deadline" value={`${viewModel.boardUltimatum.weeksRemaining} wk`} />
+            </View>
+            <View className="mt-4 gap-2">
+              {viewModel.boardUltimatum.candidates.map(candidate => {
+                const protectedPlayer = candidate.playerId === viewModel.boardUltimatum?.protectedPlayerId;
+                return (
+                  <Pressable
+                    key={candidate.playerId}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`${candidate.playerName}, ${candidate.role}, wage ${candidate.weeklyWage}, forced sale fee ${candidate.forcedSaleFee}. ${protectedPlayer ? 'Protected' : 'Protect this player'}.`}
+                    accessibilityState={{ selected: protectedPlayer }}
+                    onPress={() => onProtectBoardCandidate(candidate.playerId)}
+                    className={protectedPlayer
+                      ? 'min-h-14 flex-row items-center gap-3 border-2 border-b-4 border-violet-dark bg-violet-light p-2'
+                      : 'min-h-14 flex-row items-center gap-3 border-2 border-ink bg-white p-2'}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
+                  >
+                    <View className="overflow-hidden border-2 border-ink bg-blue-light">
+                      <PixelPortrait playerId={candidate.playerId} role={candidate.role} />
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-2">
+                        <Text className="flex-1 text-base font-bold text-ink" numberOfLines={1}>{candidate.playerName}</Text>
+                        {candidate.isHero ? <StatusChip label="Hero" tone="hero" /> : null}
+                      </View>
+                      <Text className="mt-1 font-mono text-sm text-ink/65">
+                        {candidate.role} · {formatCompactNumber(candidate.weeklyWage)}/wk · board fee {formatCompactNumber(candidate.forcedSaleFee)}
+                      </Text>
+                    </View>
+                    <Text className={protectedPlayer
+                      ? 'font-mono text-sm font-bold uppercase text-violet-dark'
+                      : 'font-mono text-sm font-bold uppercase text-ink/45'}>
+                      {protectedPlayer ? 'Protected' : 'Protect'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </PaperPanel>
+        </View>
+      ) : null}
+
       <View className="mt-6">
         <SectionLabel
           eyebrow={viewModel.divisionLabel}
@@ -151,7 +261,7 @@ export function ClubHomeScreen({
             return (
               <View
                 key={row.clubName}
-                className={isUser ? 'flex-row bg-signal px-3 py-2' : 'flex-row px-3 py-2'}
+                className={isUser ? 'flex-row bg-violet-light px-3 py-2' : 'flex-row px-3 py-2'}
               >
                 <Text className={isUser ? 'w-8 font-mono text-base font-bold text-ink' : 'w-8 font-mono text-base text-ink'}>{row.position}</Text>
                 <Text className={isUser ? 'flex-1 text-base font-bold text-ink' : 'flex-1 text-base text-ink'} numberOfLines={1}>{row.clubName}</Text>

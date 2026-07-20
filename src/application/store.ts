@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { loadLaunchContent } from '../content';
 import {
   advanceWeek,
+  FACILITY_ADJACENCIES,
   activeCareerMatchday,
   addCreatedPlayer,
   applyCareerNegotiationConsequence,
@@ -28,16 +29,18 @@ import {
   dismissCareerEvent,
   dismissCareerCoach,
   hireCareerCoach,
+  listCareerPlayer,
+  acceptCareerTransferBid,
   hasAssistantGuideMilestone,
   isFirstOnboardingFixture,
   offerCareerEvent,
   nextPendingClubLegend,
   quickMatchForFixture,
+  protectBoardUltimatumPlayer,
   reconcilePendingClubLegends,
   relocateCareerFacility,
   renewCareerPlayer,
   releaseCareerPlayer,
-  sellCareerPlayer,
   closeCareerRenewalTalks,
   signYouthIntakeOffer,
   resolvePostMatchAwakening,
@@ -70,7 +73,11 @@ import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
 import type { ManagementTab, PostMatchViewModel, WeeklyReviewViewModel } from '../ui';
 import { createLaunchCareerSetup, generateCareerSeed, reconcileLaunchRoster } from './launch';
 import { careerMarketScoutOptions } from './market-source-adapter';
-import { postMatchViewModel, weeklyReviewViewModel } from './view-models';
+import {
+  postMatchViewModel,
+  reconcileHomeAssistantInbox,
+  weeklyReviewViewModel,
+} from './view-models';
 import {
   completeChampionshipCelebration as markChampionshipCelebrationComplete,
   hasPendingChampionshipCelebration,
@@ -110,6 +117,13 @@ export interface WatchedMatch {
 
 export type PostMatchOverlay = 'summary' | 'development' | null;
 
+export type StoreNoticeTone = 'info' | 'success';
+
+export interface StoreNotice {
+  readonly message: string;
+  readonly tone: StoreNoticeTone;
+}
+
 interface M1Store {
   career: GameState | null;
   repository: CareerRepository | null;
@@ -129,6 +143,7 @@ interface M1Store {
   weekReview: WeeklyReviewViewModel | null;
   selectedContractTerm: 1 | 2 | 3;
   error: string | null;
+  notice: StoreNotice | null;
   initializePersistence: (
     repository: CareerRepository,
     replayRepository?: ReplayRepository,
@@ -139,6 +154,7 @@ interface M1Store {
   completePlayerCreation: (draft: CreatedPlayerDraft) => void;
   continueAfterAwakening: () => void;
   setActiveTab: (tab: ManagementTab) => void;
+  reconcileAssistantInbox: () => void;
   completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
@@ -167,9 +183,10 @@ interface M1Store {
   relocateClubFacility: (buildingId: string, position: FacilityPosition) => void;
   startScoutMission: (optionId: string) => void;
   openScoutReport: (playerId: string) => void;
-  actOnTransfer: (playerId: string, direction: 'BUY' | 'SELL') => void;
-  hireCoach: (coachId: string) => void;
+  actOnTransfer: (playerId: string, direction: 'BUY' | 'SELL', bidId?: string) => void;
+  hireCoach: (coachId: string, role?: 'HEAD' | 'ASSISTANT') => void;
   dismissCoach: () => void;
+  protectBoardCandidate: (playerId: string) => void;
   signYouth: (playerId: string) => void;
   declineYouth: () => void;
   submitTransferOffer: (offer: ContractOffer, pitchCard?: PitchCard) => void;
@@ -180,8 +197,9 @@ interface M1Store {
   startRenewal: (playerId: string) => void;
   submitRenewalOffer: (offer: ContractOffer, pitchCard?: PitchCard) => void;
   closeRenewal: () => void;
-  notify: (message: string) => void;
+  notify: (message: string, tone?: StoreNoticeTone) => void;
   clearError: () => void;
+  clearNotice: () => void;
 }
 
 export const useM1Store = create<M1Store>((set, get) => ({
@@ -202,6 +220,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   weekReview: null,
   selectedContractTerm: 1,
   error: null,
+  notice: null,
 
   async initializePersistence(repository, replayRepository, enableM2 = false) {
     try {
@@ -321,6 +340,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
       }
     }
     set({ activeTab, screen: 'management', error: null });
+  },
+
+  reconcileAssistantInbox() {
+    const career = get().career;
+    if (career === null) return;
+    const next = reconcileHomeAssistantInbox(career);
+    if (next === career) return;
+    set({ career: next });
+    queueCareerSave(get, set, next);
   },
 
   completeAssistantGuide(sequenceId) {
@@ -837,7 +865,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
   buildClubFacility(type, position) {
     guarded(set, () => {
       const transaction = buildCareerFacility(requireCareer(get()), type, position);
-      set({ career: transaction.state, error: null });
+      const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
+        ? ''
+        : ` Adjacency discovered: ${transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', ')}.`;
+      set({
+        career: transaction.state,
+        error: null,
+        notice: { tone: 'success', message: `Facility built.${discovery}` },
+      });
       queueCareerSave(get, set, transaction.state);
     });
   },
@@ -845,7 +880,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
   upgradeClubFacility(buildingId) {
     guarded(set, () => {
       const transaction = upgradeCareerFacility(requireCareer(get()), buildingId);
-      set({ career: transaction.state, error: null });
+      const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
+        ? ''
+        : ` Adjacency discovered: ${transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', ')}.`;
+      set({
+        career: transaction.state,
+        error: null,
+        notice: { tone: 'success', message: `Facility upgraded.${discovery}` },
+      });
       queueCareerSave(get, set, transaction.state);
     });
   },
@@ -857,7 +899,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
         buildingId,
         position,
       );
-      set({ career: transaction.state, error: null });
+      const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
+        ? ''
+        : ` Adjacency discovered: ${transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', ')}.`;
+      set({
+        career: transaction.state,
+        error: null,
+        notice: { tone: 'success', message: `Facility moved.${discovery}` },
+      });
       queueCareerSave(get, set, transaction.state);
     });
   },
@@ -887,10 +936,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({ error: 'That scouting report is no longer available.' });
       return;
     }
-    set({ error: 'The full scout ranges are shown on this dossier.' });
+    set({ notice: { tone: 'info', message: 'The full scout ranges are shown on this dossier.' } });
   },
 
-  actOnTransfer(playerId, direction) {
+  actOnTransfer(playerId, direction, bidId) {
     guarded(set, () => {
       const career = requireCareer(get());
       const market = requireMarket(career);
@@ -906,29 +955,68 @@ export const useM1Store = create<M1Store>((set, get) => ({
         queueCareerSave(get, set, next);
         return;
       }
-      const buyer = career.clubs
-        .filter(club => club.id !== career.userClubId)
-        .slice()
-        .sort((left, right) => right.cash - left.cash || left.id.localeCompare(right.id))[0];
-      if (buyer === undefined) throw new Error('no buying club is available');
-      const transaction = sellCareerPlayer(
-        career,
-        market,
-        playerId,
-        buyer.id,
-        currentCareerDivision(career),
-      );
+      const listing = (market.transferListings ?? []).find(candidate => candidate.playerId === playerId);
+      if (listing === undefined) {
+        const nextMarket = listCareerPlayer(
+          career,
+          market,
+          playerId,
+          currentCareerDivision(career),
+        );
+        const next = { ...career, market: nextMarket };
+        const bidCount = nextMarket.transferListings?.find(candidate => candidate.playerId === playerId)
+          ?.bids.length ?? 0;
+        set({
+          career: next,
+          error: null,
+          notice: {
+            tone: 'info',
+            message: `Player listed. ${bidCount} bid${bidCount === 1 ? '' : 's'} arrived on the transfer wire.`,
+          },
+        });
+        queueCareerSave(get, set, next);
+        return;
+      }
+      if (bidId === undefined) throw new Error('choose a club bid before accepting the transfer');
+      const bid = listing.bids.find(candidate => candidate.id === bidId);
+      if (bid === undefined) throw new Error('that transfer bid is no longer available');
+      const buyer = career.clubs.find(club => club.id === bid.buyerClubId);
+      const transaction = acceptCareerTransferBid(career, market, bidId);
       const next = { ...transaction.state, market: transaction.market };
-      set({ career: next, error: null });
+      set({
+        career: next,
+        error: null,
+        notice: {
+          tone: 'success',
+          message: `${buyer?.name ?? 'The buying club'} signed the player for ${bid.quote.fee.toLocaleString()}.`,
+        },
+      });
       queueCareerSave(get, set, next);
     });
   },
 
-  hireCoach(coachId) {
+  hireCoach(coachId, role = 'HEAD') {
     guarded(set, () => {
       const career = requireCareer(get());
-      const next = { ...career, market: hireCareerCoach(requireMarket(career), coachId) };
-      set({ career: next, error: null });
+      const next = { ...career, market: hireCareerCoach(career, requireMarket(career), coachId, role) };
+      set({
+        career: next,
+        error: null,
+        notice: { tone: 'success', message: role === 'HEAD' ? 'Head coach hired.' : 'Assistant coach hired.' },
+      });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  protectBoardCandidate(playerId) {
+    guarded(set, () => {
+      const next = protectBoardUltimatumPlayer(requireCareer(get()), playerId);
+      const player = next.players.find(candidate => candidate.id === playerId);
+      set({
+        career: next,
+        error: null,
+        notice: { tone: 'info', message: `${player?.name ?? 'Player'} is protected from a board sale.` },
+      });
       queueCareerSave(get, set, next);
     });
   },
@@ -976,7 +1064,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (negotiatedMarket.transferTalks?.negotiation.status === 'ACCEPTED') {
         const transaction = completeCareerTransfer(career, negotiatedMarket);
         const next = { ...transaction.state, market: transaction.market };
-        set({ career: next, error: 'Transfer complete. The player has joined the squad.' });
+        set({
+          career: next,
+          error: null,
+          notice: { tone: 'success', message: 'Transfer complete. The player has joined the squad.' },
+        });
         queueCareerSave(get, set, next);
         return;
       }
@@ -1038,7 +1130,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (negotiated.renewalTalks?.negotiation.status === 'ACCEPTED') {
         const transaction = completeCareerRenewal(career, negotiated);
         const next = { ...transaction.state, market: transaction.market };
-        set({ career: next, selectedContractTerm: 1, error: 'Contract renewed.' });
+        set({
+          career: next,
+          selectedContractTerm: 1,
+          error: null,
+          notice: { tone: 'success', message: 'Contract renewed.' },
+        });
         queueCareerSave(get, set, next);
         return;
       }
@@ -1071,12 +1168,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  notify(message) {
-    set({ error: message });
+  notify(message, tone = 'info') {
+    set({ notice: { message, tone } });
   },
 
   clearError() {
     set({ error: null });
+  },
+
+  clearNotice() {
+    set({ notice: null });
   },
 }));
 
@@ -1420,4 +1521,8 @@ function guarded(set: (partial: Partial<M1Store>) => void, action: () => void): 
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function adjacencyDescription(value: string): string {
+  return FACILITY_ADJACENCIES.find(adjacency => adjacency.id === value)?.description ?? value;
 }

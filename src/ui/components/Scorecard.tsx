@@ -52,11 +52,12 @@ export function PaperPanel({ children, title, kicker, stamp, className }: PaperP
 }
 
 // Beveled button ramps — full literal class strings so NativeWind can extract them.
-type ButtonVariant = 'primary' | 'confirm' | 'action' | 'danger' | 'paper';
+type ButtonVariant = 'primary' | 'confirm' | 'action' | 'hero' | 'danger' | 'paper';
 const BUTTON_RAMP: Record<ButtonVariant, { face: string; light: string; lip: string; text: string }> = {
-  primary: { face: 'bg-gold', light: 'bg-gold-light', lip: 'bg-gold-dark', text: 'text-ink' },
+  primary: { face: 'bg-violet', light: 'bg-violet-light', lip: 'bg-violet-dark', text: 'text-paper' },
   confirm: { face: 'bg-violet', light: 'bg-violet-light', lip: 'bg-violet-dark', text: 'text-paper' },
   action: { face: 'bg-blue', light: 'bg-blue-light', lip: 'bg-blue-dark', text: 'text-paper' },
+  hero: { face: 'bg-gold', light: 'bg-gold-light', lip: 'bg-gold-dark', text: 'text-ink' },
   danger: { face: 'bg-red', light: 'bg-red-light', lip: 'bg-red-dark', text: 'text-paper' },
   paper: { face: 'bg-paper', light: 'bg-white', lip: 'bg-paper-dark', text: 'text-ink' },
 };
@@ -179,7 +180,7 @@ interface StatusChipProps {
 
 export function StatusChip({ label, selected = false, tone = 'normal' }: StatusChipProps) {
   const palette = selected
-    ? 'border-ink bg-gold text-ink'
+    ? 'border-violet-dark bg-violet-light text-ink'
     : tone === 'hero'
       ? 'border-gold-dark bg-gold-light text-ink'
       : tone === 'success'

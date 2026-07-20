@@ -2,6 +2,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ContractOffer, PitchCard } from '../../game/market';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { PixelPortrait } from '../components/PixelPortrait';
 import type { SeasonEndViewModel } from '../models';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SettingsButton } from '../SettingsOverlay';
@@ -73,7 +74,7 @@ export function SeasonEndScreen({
             </View>
             {viewModel.table.map(row => {
               const rowClass = row.isUserClub
-                ? 'bg-signal'
+                ? 'bg-violet-light'
                 : row.promoted
                   ? 'bg-pitch-light'
                   : '';
@@ -110,8 +111,8 @@ export function SeasonEndScreen({
               className={contract.isHeroWageCliff ? 'bg-gold-light' : undefined}
             >
               <View className="flex-row items-center gap-3 border-y-2 border-ink py-4">
-                <View className="h-14 w-14 items-center justify-center border-2 border-ink bg-ink">
-                  <Text className="font-mono text-base font-bold text-paper">{contract.role}</Text>
+                <View className="overflow-hidden border-2 border-ink bg-blue-light">
+                  <PixelPortrait playerId={contract.playerId} role={contract.role} expression={contract.isHeroWageCliff ? 'joy' : 'rest'} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Weekly wage request</Text>
@@ -151,7 +152,7 @@ export function SeasonEndScreen({
                           accessibilityLabel={`${term} season contract`}
                           accessibilityState={{ selected }}
                           onPress={() => onSelectContractTerm(contract.playerId, term)}
-                          className={selected ? 'min-h-11 flex-1 items-center justify-center border-2 border-ink bg-signal' : 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-paper-dark'}
+                          className={selected ? 'min-h-11 flex-1 items-center justify-center border-2 border-violet-dark bg-violet-light' : 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-paper-dark'}
                           style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
                         >
                           <Text className="font-mono text-base font-bold text-ink">{term}</Text>

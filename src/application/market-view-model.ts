@@ -10,6 +10,7 @@ import {
   type ScoutMission,
   type ScoutMissionResult,
   type ScoutRegion,
+  type TransferQuote,
   type ValuationPlayer,
 } from '../game/market';
 import type {
@@ -44,11 +45,19 @@ export interface TransferListingSource {
   };
   readonly direction: 'BUY' | 'SELL';
   readonly sellingClubDivision: number;
+  readonly listed?: boolean;
+  readonly savedQuote?: TransferQuote;
+  readonly bids?: readonly {
+    readonly id: string;
+    readonly buyerName: string;
+    readonly quote: TransferQuote;
+  }[];
 }
 
 export interface NegotiationViewSource {
   readonly state: ContractNegotiation;
   readonly playerName: string;
+  readonly playerRole?: 'GK' | 'DEF' | 'MID' | 'FWD';
   /** The visible starting number, normally current wage or the previous offer. */
   readonly openingWeeklyWage: number;
   readonly wageStep?: number;
@@ -89,6 +98,9 @@ export interface MarketViewModelSource {
   readonly transferListings: readonly TransferListingSource[];
   readonly coachCandidates: readonly CoachCandidate[];
   readonly headCoach?: CoachCandidate;
+  readonly assistantSlotUnlocked?: boolean;
+  readonly headCoachId?: string;
+  readonly assistantCoachId?: string;
   readonly youthIntake?: YouthIntakeViewSource;
   readonly negotiation?: NegotiationViewSource;
 }
@@ -162,7 +174,15 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
     coaches: source.coachCandidates.map(candidate => {
       const eligible = isCoachCandidateEligible(candidate, source.division, source.fame);
       const affordable = source.cash >= candidate.weeklyWage;
-      const slotOpen = source.headCoach === undefined;
+      const headCoachId = source.headCoachId ?? source.headCoach?.id;
+      const legacySingleHeadSource = source.headCoach !== undefined && source.headCoachId === undefined;
+      const alreadyOnStaff = candidate.id === headCoachId || candidate.id === source.assistantCoachId;
+      const assistantSlotUnlocked = source.assistantSlotUnlocked === true;
+      const generallyAvailable = eligible && affordable && !alreadyOnStaff;
+      const headAvailable = generallyAvailable && headCoachId === undefined;
+      const assistantAvailable = generallyAvailable
+        && assistantSlotUnlocked
+        && source.assistantCoachId === undefined;
       return {
         id: candidate.id,
         portraitId: candidate.portraitId ?? candidate.id,
@@ -183,14 +203,28 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
         ...(candidate.unlockId === undefined
           ? {}
           : { unlockLabel: `Teaches ${readableId(candidate.unlockId)}` }),
-        available: eligible && affordable && slotOpen,
-        ...(!slotOpen
+        available: headAvailable || assistantAvailable,
+        headAvailable,
+        assistantAvailable,
+        assistantSlotUnlocked,
+        ...(candidate.id === headCoachId
+          ? { currentRole: 'Head coach' as const }
+          : candidate.id === source.assistantCoachId
+            ? { currentRole: 'Assistant' as const }
+            : {}),
+        ...(legacySingleHeadSource
           ? { blockedReason: `Dismiss ${source.headCoach?.name ?? 'the current coach'} first.` }
+          : alreadyOnStaff
+          ? { blockedReason: 'Already on the coaching staff.' }
           : !eligible
             ? { blockedReason: 'Raise division and fame to make contact.' }
             : !affordable
               ? { blockedReason: 'Cannot cover the first weekly wage.' }
-              : {}),
+              : headAvailable || assistantAvailable
+                ? {}
+                : headCoachId !== undefined && !assistantSlotUnlocked
+                  ? { blockedReason: `Dismiss ${source.headCoach?.name ?? 'the current coach'} first.` }
+                  : { blockedReason: 'Both coaching roles are already filled.' }),
       };
     }),
     ...(source.youthIntake === undefined
@@ -316,9 +350,9 @@ function transferListing(
     week: source.week,
     sellingClubDivision: listing.sellingClubDivision,
   };
-  const quote = listing.direction === 'BUY'
+  const quote = listing.savedQuote ?? (listing.direction === 'BUY'
     ? buyingTransferQuote(listing.player, context)
-    : sellingTransferQuote(listing.player, context);
+    : sellingTransferQuote(listing.player, context));
   const affordable = listing.direction === 'SELL' || source.cash >= quote.fee;
   return {
     playerId: listing.player.id,
@@ -330,7 +364,17 @@ function transferListing(
     valuation: quote.valuation,
     quote: quote.fee,
     quoteLabel: listing.direction === 'BUY' ? 'Club asking' : 'Best bid',
-    actionLabel: listing.direction === 'BUY' ? 'Open talks' : 'Accept bid',
+    actionLabel: listing.direction === 'BUY'
+      ? 'Open talks'
+      : listing.listed === true
+        ? 'Accept bid'
+        : 'List player',
+    listed: listing.listed === true,
+    bids: (listing.bids ?? []).map(bid => ({
+      id: bid.id,
+      buyerName: bid.buyerName,
+      fee: bid.quote.fee,
+    })),
     available: windowOpen && affordable,
     ...(!windowOpen
       ? { blockedReason: 'Registration window closed.' }
@@ -353,6 +397,7 @@ export function marketNegotiationViewModel(
     id: negotiation.id,
     playerId: negotiation.playerId,
     playerName: source.playerName,
+    playerRole: source.playerRole ?? 'MID',
     personality: negotiation.personality,
     personalityLabel: readableId(negotiation.personality),
     status: negotiation.status,

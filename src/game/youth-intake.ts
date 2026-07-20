@@ -237,6 +237,60 @@ export function youthSigningBonus(fieldLevel: 0 | 1 | 2 | 3): number {
   return SIGNING_BONUS_BY_FIELD_LEVEL[fieldLevel];
 }
 
+/**
+ * Fail-soft academy relief after a board sale. It is deliberately weaker and
+ * cheaper than a normal intake prospect, but preserves the canonical roster
+ * size and the sold player's positional cover without charging a signing fee.
+ */
+export function createEmergencyYouthReplacement(
+  state: GameState,
+  role: Role,
+  sourceId: string,
+): CareerPlayer {
+  validateSeed(state.careerSeed);
+  if (!ROLES.includes(role)) throw new Error(`unknown emergency youth role ${String(role)}`);
+  if (typeof sourceId !== 'string' || sourceId.length === 0) {
+    throw new Error('emergency youth source ID must be a non-empty string');
+  }
+  const random = mulberry32(mixSeed(
+    state.careerSeed,
+    state.season,
+    `board-relief:${state.week}:${sourceId}:${role}`,
+  ));
+  const fieldLevel = youthFieldLevel(state);
+  const targetStrength = 27 + fieldLevel * 3 + integerRoll(random, 0, 4);
+  const attrs = generateAttributes(targetStrength, role, random);
+  const id = `board-relief-s${state.season}-w${state.week}-${hashString(`${sourceId}:${role}`).toString(16)}`;
+  if (state.players.some(player => player.id === id)) {
+    throw new Error(`player ID ${id} is already in the career`);
+  }
+  return {
+    id,
+    clubId: state.userClubId,
+    name: `${FIRST_NAMES[integerRoll(random, 0, FIRST_NAMES.length - 1)]} ${LAST_NAMES[integerRoll(random, 0, LAST_NAMES.length - 1)]}`,
+    role,
+    attrs,
+    licensed: false,
+    weeklyWage: 75 + targetStrength * 2,
+    onHeroWage: false,
+    contractSeasonsRemaining: 2,
+    morale: 55,
+    injuryWeeks: 0,
+    age: 17,
+    archetype: 'All-Rounder',
+    potential: 2,
+    consistency: 50 + integerRoll(random, 0, 10),
+    personality: 'Professional',
+    condition: 100,
+    seasonsAtClub: 0,
+    fame: 0,
+    retirementAge: 35,
+    retirementAnnounced: false,
+    consecutiveLowMoraleWeeks: 0,
+    signingStatTotal: Object.values(attrs).reduce((sum, value) => sum + value, 0),
+  };
+}
+
 function createOffer(
   state: GameState,
   role: Role,

@@ -32,6 +32,20 @@ export interface M2ActiveLeagueTableViewModel {
   readonly rows: readonly M2LeagueTableRowViewModel[];
 }
 
+export interface M2LeagueFixtureViewModel {
+  readonly id: string;
+  readonly week: number;
+  readonly weekLabel: string;
+  readonly homeClubName: string;
+  readonly awayClubName: string;
+  readonly opponentName: string;
+  readonly venue: 'HOME' | 'AWAY';
+  readonly scoreLabel: string;
+  readonly status: 'SCHEDULED' | 'PLAYED';
+  readonly result?: 'WIN' | 'DRAW' | 'LOSS';
+  readonly currentWeek: boolean;
+}
+
 export interface M2CupSeasonOptionViewModel {
   readonly season: number;
   readonly label: string;
@@ -62,6 +76,18 @@ export interface M2CupRoundHistoryViewModel {
   readonly userOutcome?: string;
 }
 
+export interface M2CupByeViewModel {
+  readonly clubName: string;
+  readonly involvesUserClub: boolean;
+}
+
+export interface M2CupRoundViewModel extends M2CupRoundHistoryViewModel {
+  readonly drawn: boolean;
+  readonly active: boolean;
+  readonly fixtures: readonly M2CupFixtureViewModel[];
+  readonly byes: readonly M2CupByeViewModel[];
+}
+
 export interface M2NationalCupViewModel {
   readonly available: boolean;
   readonly seasonOptions: readonly M2CupSeasonOptionViewModel[];
@@ -69,6 +95,9 @@ export interface M2NationalCupViewModel {
   readonly statusLabel: string;
   readonly currentRoundLabel: string;
   readonly currentRoundFixtures: readonly M2CupFixtureViewModel[];
+  /** Every drawn round, in bracket order, for the portrait road-to-final. */
+  readonly rounds: readonly M2CupRoundViewModel[];
+  /** Retained for compact consumers; the League screen renders `rounds`. */
   readonly history: readonly M2CupRoundHistoryViewModel[];
   readonly championName?: string;
 }
@@ -81,5 +110,6 @@ export interface M2LeagueViewModel {
   readonly divisions: readonly M2DivisionSummaryViewModel[];
   readonly selectedDivisionSummary: M2DivisionSummaryViewModel;
   readonly activeTable: M2ActiveLeagueTableViewModel;
+  readonly leagueFixtures: readonly M2LeagueFixtureViewModel[];
   readonly cup: M2NationalCupViewModel;
 }

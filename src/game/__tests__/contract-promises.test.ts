@@ -1,0 +1,94 @@
+import { createLaunchCareerSetup } from '../../application/launch';
+import { createCareer } from '../career';
+import {
+  applyCareerContractPromise,
+  hasActiveCareerContractPromise,
+} from '../contract-promises';
+import { setCareerLineup } from '../squad';
+import { setCareerTrainingPlan } from '../training';
+
+function career(seed: number) {
+  return createCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'));
+}
+
+describe('career contract promises', () => {
+  test('a guaranteed starter is inserted and cannot be benched while fit', () => {
+    const state = career(9401);
+    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+    const starterSet = new Set(lineup.playerIds);
+    const reserve = state.players.find(player => (
+      player.clubId === state.userClubId
+      && !starterSet.has(player.id)
+      && player.role !== 'GK'
+    ))!;
+    const promised = applyCareerContractPromise(state, reserve.id, 'GUARANTEED_STARTER');
+    const promisedLineup = promised.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+
+    expect(promisedLineup.playerIds).toContain(reserve.id);
+    expect(hasActiveCareerContractPromise(
+      promised.players.find(player => player.id === reserve.id)!,
+      'GUARANTEED_STARTER',
+    )).toBe(true);
+    expect(() => setCareerLineup(promised, lineup.playerIds))
+      .toThrow(`${reserve.name} was promised a place in the starting XI`);
+
+    const injured = {
+      ...promised,
+      players: promised.players.map(player => player.id === reserve.id
+        ? { ...player, injuryWeeks: 2 }
+        : player),
+    };
+    expect(setCareerLineup(injured, lineup.playerIds)
+      .lineups.find(candidate => candidate.clubId === state.userClubId)?.playerIds)
+      .toEqual(lineup.playerIds);
+  });
+
+  test('captaincy and shirt ten are unique, persisted player roles', () => {
+    const state = career(9402);
+    const roster = state.players.filter(player => player.clubId === state.userClubId);
+    const captain = applyCareerContractPromise(state, roster[0].id, 'CAPTAINCY');
+    const shirtTen = applyCareerContractPromise(captain, roster[1].id, 'JERSEY_10');
+    const replacedCaptain = applyCareerContractPromise(shirtTen, roster[2].id, 'CAPTAINCY');
+
+    expect(replacedCaptain.players.filter(player => player.isCaptain === true).map(player => player.id))
+      .toEqual([roster[2].id]);
+    expect(replacedCaptain.players.filter(player => player.shirtNumber === 10).map(player => player.id))
+      .toEqual([roster[1].id]);
+    expect(replacedCaptain.players.find(player => player.id === roster[1].id)?.contractPromise)
+      .toEqual({ perk: 'JERSEY_10', agreedSeason: state.season });
+  });
+
+  test('training priority is enforced by the repeating-plan boundary', () => {
+    const state = career(9403);
+    const roster = state.players.filter(player => player.clubId === state.userClubId);
+    const priority = applyCareerContractPromise(state, roster[0].id, 'TRAINING_PRIORITY');
+    const drill = { id: 'promise-focus', moneyCost: 0, tpCost: 0, gains: { sta: 1 } };
+
+    expect(() => setCareerTrainingPlan(priority, [roster[1].id], [drill]))
+      .toThrow(`${roster[0].name} was promised training priority`);
+    expect(setCareerTrainingPlan(priority, [roster[0].id, roster[1].id], [drill]).trainingPlan)
+      .toMatchObject({ assignedPlayerIds: [roster[0].id, roster[1].id] });
+  });
+
+  test('a promised hero uses an available license and never creates an invalid lineup', () => {
+    const state = career(9404);
+    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+    const starters = new Set(lineup.playerIds);
+    const reserve = state.players.find(player => (
+      player.clubId === state.userClubId
+      && !starters.has(player.id)
+      && player.role !== 'GK'
+    ))!;
+    const powered = {
+      ...state,
+      players: state.players.map(player => player.id === reserve.id
+        ? { ...player, power: 'SUPER_SPEED' as const, licensed: false }
+        : { ...player, licensed: false }),
+    };
+    const promised = applyCareerContractPromise(powered, reserve.id, 'GUARANTEED_STARTER');
+
+    expect(promised.players.find(player => player.id === reserve.id)?.licensed).toBe(true);
+    expect(promised.lineups.find(candidate => candidate.clubId === state.userClubId)?.playerIds)
+      .toContain(reserve.id);
+  });
+});

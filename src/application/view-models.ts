@@ -1,25 +1,36 @@
-import type { GameEvent, LaunchContent, TrainingDrill } from '../content';
+import { loadLaunchContent, type GameEvent, type LaunchContent, type TrainingDrill } from '../content';
 import {
+  FACILITY_ADJACENCIES,
   FACILITY_CATALOG,
   activeCareerMatchday,
   activeFacilityAdjacencies,
+  archetypeAttributeCap,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
   createFacilityGrid,
   currentUserDivision,
   fixturesForCurrentWeek,
+  isAssistantInboxOneShotProductVisible,
   leagueStandings,
   nextPendingClubLegend,
   reconcilePendingClubLegends,
   renewalQuote,
   rosterForClub,
+  scheduleAssistantInboxWeek,
   weeklyFacilityUpkeep,
+  weeklyMerchandiseIncome,
+  willRetireAtSeasonTransition,
+  type FacilityLevel,
+  type FacilityType,
   type GameState,
+  type PlacedFacility,
+  type AssistantInboxGuideSequenceId,
 } from '../game';
 import type {
   AwakeningCutsceneViewModel,
   ClubLegacyViewModel,
   ClubFinancesViewModel,
+  ClubAlertViewModel,
   FixtureViewModel,
   HomeViewModel,
   LeagueTableViewModel,
@@ -32,8 +43,10 @@ import type {
   WeeklyReviewViewModel,
 } from '../ui';
 import { marketNegotiationViewModel } from './market-view-model';
+import { dueAssistantInboxGuideSequences } from './assistant-guide';
 
 const REVIEW_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
+const ASSISTANT_GUIDE_CONTENT = loadLaunchContent().assistantGuide;
 
 export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
   const reconciled = reconcilePendingClubLegends(state);
@@ -43,6 +56,7 @@ export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
   return {
     seasonLabel: `Season ${state.season}`,
     queueLabel: pendingCount === 1 ? 'Final legacy decision' : `${pendingCount} legacy decisions remain`,
+    playerId: legend.id,
     playerName: legend.name,
     role: legend.role,
     archetype: legend.archetype ?? 'All-Rounder',
@@ -122,11 +136,26 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     ? 0
     : weeklyFacilityUpkeep(state.facilities.grid);
   const coachWage = state.market === undefined ? 0 : careerCoachWageLedgerAmount(state.market);
-  const projectedLines = latest?.lines ?? [
+  const trainingMoneyCost = state.trainingPlan?.drills.reduce(
+    (sum, drill) => sum + drill.moneyCost,
+    0,
+  ) ?? 0;
+  const merchandiseIncome = weeklyMerchandiseIncome(state, club);
+  const recurringProjectionLines = [
+    ...(trainingMoneyCost === 0 ? [] : [{
+      kind: 'training' as const,
+      label: 'Planned focus training',
+      amount: -trainingMoneyCost,
+    }]),
+    ...(merchandiseIncome === 0 ? [] : [{
+      kind: 'merch' as const,
+      label: 'Fan Shop merchandise',
+      amount: merchandiseIncome,
+    }]),
     { kind: 'wages' as const, label: 'Weekly wages', amount: -club.weeklyWages },
     ...(coachWage === 0 ? [] : [{
       kind: 'wages' as const,
-      label: 'Head coach wage',
+      label: 'Coaching staff wages',
       amount: coachWage,
     }]),
     ...(facilityUpkeep === 0 ? [] : [{
@@ -137,10 +166,11 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     ...(state.season === 1 ? [{
       kind: 'subsidy' as const,
       label: 'Season 1 wage subsidy',
-      amount: Math.floor(club.weeklyWages / 2),
+      amount: Math.floor((club.weeklyWages + Math.abs(coachWage)) / 2),
     }] : []),
   ];
-  const weeklyNet = projectedLines.reduce((sum, line) => sum + line.amount, 0);
+  const weeklyNet = recurringProjectionLines.reduce((sum, line) => sum + line.amount, 0);
+  const displayLines = latest?.lines ?? recurringProjectionLines;
   const trainingGroundProject = state.facilities.grid?.construction?.type === 'training-pitch'
     && state.facilities.grid.construction.kind === 'BUILD'
     ? state.facilities.grid.construction
@@ -152,7 +182,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       trainingPoints: state.trainingPoints,
       heroEssence: state.heroEssence,
     },
-    ledger: projectedLines.map((line, index) => ({
+    ledger: displayLines.map((line, index) => ({
       id: `finance-${state.season}-${state.week}-${index}`,
       label: line.label,
       amount: line.amount,
@@ -196,6 +226,16 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
         severanceCost: state.market.headCoach.weeklyWage,
       },
     }),
+    ...(state.market?.assistantCoach === undefined ? {} : {
+      assistantCoach: {
+        id: state.market.assistantCoach.id,
+        name: state.market.assistantCoach.name,
+        level: state.market.assistantCoach.level,
+        specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
+        weeklyWage: state.market.assistantCoach.weeklyWage,
+        seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
+      },
+    }),
     facilities: facilityGridViewModel(state),
   };
 }
@@ -203,6 +243,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
 function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilities'] {
   const grid = state.facilities.grid ?? createFacilityGrid();
   const club = requireUserClub(state);
+  const activeAdjacencies = activeFacilityAdjacencies(grid);
   return {
     width: grid.width,
     height: grid.height,
@@ -210,6 +251,12 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
       const definition = FACILITY_CATALOG[building.type];
       const project = grid.construction?.buildingId === building.id
         ? grid.construction
+        : undefined;
+      const upgradeCost = building.level < 3
+        ? definition.upgradeCosts[building.level - 1]
+        : undefined;
+      const nextLevelEffectLabel = building.level < 3
+        ? facilityNextLevelEffectLabel(building.type, (building.level + 1) as FacilityLevel)
         : undefined;
       return {
         id: building.id,
@@ -221,10 +268,17 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         width: definition.footprint.width,
         height: definition.footprint.height,
         weeklyUpkeep: project?.kind === 'BUILD' ? 0 : definition.weeklyUpkeep[building.level - 1],
-        ...(building.level < 3
-          ? { upgradeCost: definition.upgradeCosts[building.level - 1] }
-          : {}),
+        effectLabel: facilityEffectLabel(building.type, building.level),
+        ...(upgradeCost === undefined ? {} : { upgradeCost }),
+        ...(nextLevelEffectLabel === undefined ? {} : { nextLevelEffectLabel }),
+        canUpgrade: grid.construction === undefined
+          && upgradeCost !== undefined
+          && club.cash >= upgradeCost,
+        upgradeShortfall: upgradeCost === undefined ? 0 : Math.max(0, upgradeCost - club.cash),
         relocationFee: definition.relocationFee,
+        canRelocate: grid.construction === undefined && club.cash >= definition.relocationFee,
+        relocationShortfall: Math.max(0, definition.relocationFee - club.cash),
+        activeAdjacencyIds: activeAdjacencyIdsForBuilding(grid.buildings, building, activeAdjacencies),
         status: project?.kind === 'BUILD'
           ? 'construction' as const
           : project?.kind === 'UPGRADE'
@@ -242,10 +296,15 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
       buildCost: definition.buildCost,
       width: definition.footprint.width,
       height: definition.footprint.height,
+      weeklyUpkeep: definition.weeklyUpkeep[0],
+      effectLabel: facilityEffectLabel(definition.type, 1),
       available: definition.available,
       affordable: definition.available
         && grid.construction === undefined
         && club.cash >= definition.buildCost,
+      affordabilityShortfall: definition.available
+        ? Math.max(0, definition.buildCost - club.cash)
+        : 0,
       buildWeeks: definition.buildWeeks,
       ...(!definition.available
         ? { blockedReason: 'Locked.' }
@@ -256,7 +315,7 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
             : {}),
     })),
     weeklyUpkeep: weeklyFacilityUpkeep(grid),
-    activeAdjacencies: activeFacilityAdjacencies(grid),
+    activeAdjacencies,
     discoveredAdjacencies: [...grid.discoveredAdjacencies],
     ...(grid.construction === undefined ? {} : {
       activeProject: {
@@ -269,6 +328,79 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
       },
     }),
   };
+}
+
+function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
+  const trainingEffect = (attributes: string): string => level === 1
+    ? `${attributes} training site · upgrades add +50%/+100%`
+    : `${level === 2 ? '+50%' : '+100%'} ${attributes} focus training`;
+  if (type === 'training-pitch') return trainingEffect('DEF');
+  if (type === 'gym') return trainingEffect('PAC + STA');
+  if (type === 'tech-center') return trainingEffect('PAS + TEC');
+  if (type === 'shooting-range') return trainingEffect('SHO');
+  if (type === 'keeper-court') return trainingEffect('REF');
+  if (type === 'medical-bay') {
+    return `Injury recovery -${level} week${level === 1 ? '' : 's'}`;
+  }
+  if (type === 'dorm') return 'Pairs with Gym for +10% STA gains';
+  if (type === 'scout-office') {
+    return level === 1
+      ? 'Scout intel desk · upgrades narrow stat ranges'
+      : level === 2
+        ? 'Scout reports show tighter stat ranges'
+        : 'Precise reports reveal confirmed powers';
+  }
+  if (type === 'coaching-office') return 'Unlocks the coach market and assistant desk';
+  if (type === 'youth-field') {
+    return `Youth intake quality +${level * 5}${level >= 2 ? ' · higher potential' : ''}`;
+  }
+  if (type === 'fan-shop') return `Weekly merchandise scales with fans · x${level}`;
+  if (type === 'stadium-stand') return 'Pairs with Fan Shop for +10% merchandise';
+  return 'Hero research site · not yet available';
+}
+
+function facilityNextLevelEffectLabel(
+  type: FacilityType,
+  nextLevel: FacilityLevel,
+): string | undefined {
+  if (type === 'dorm'
+    || type === 'coaching-office'
+    || type === 'stadium-stand'
+    || type === 'hero-lab') {
+    return undefined;
+  }
+  return facilityEffectLabel(type, nextLevel);
+}
+
+function activeAdjacencyIdsForBuilding(
+  buildings: readonly PlacedFacility[],
+  building: PlacedFacility,
+  activeAdjacencies: readonly string[],
+): string[] {
+  const active = new Set(activeAdjacencies);
+  return FACILITY_ADJACENCIES.filter(adjacency => (
+    active.has(adjacency.id)
+    && (building.type === adjacency.first || building.type === adjacency.second)
+    && buildings.some(other => (
+      other.id !== building.id
+      && other.type === (building.type === adjacency.first ? adjacency.second : adjacency.first)
+      && facilitiesShareEdge(building, other)
+    ))
+  )).map(adjacency => adjacency.id);
+}
+
+function facilitiesShareEdge(first: PlacedFacility, second: PlacedFacility): boolean {
+  const firstFootprint = FACILITY_CATALOG[first.type].footprint;
+  const secondFootprint = FACILITY_CATALOG[second.type].footprint;
+  const horizontalContact = first.x + firstFootprint.width === second.x
+    || second.x + secondFootprint.width === first.x;
+  const verticalContact = first.y + firstFootprint.height === second.y
+    || second.y + secondFootprint.height === first.y;
+  const verticalOverlap = first.y < second.y + secondFootprint.height
+    && second.y < first.y + firstFootprint.height;
+  const horizontalOverlap = first.x < second.x + secondFootprint.width
+    && second.x < first.x + firstFootprint.width;
+  return (horizontalContact && verticalOverlap) || (verticalContact && horizontalOverlap);
 }
 
 export function storyEventViewModel(state: GameState, content: LaunchContent): StoryEventViewModel {
@@ -341,7 +473,8 @@ export function seasonEndViewModel(
           : 'SAFE' as const
     : user.position === 1 ? 'CHAMPIONS' as const : 'SAFE' as const;
   const expiredPlayers = sliceComplete ? [] : rosterForClub(state, state.userClubId)
-    .filter(player => player.contractSeasonsRemaining === 0)
+    .filter(player => player.contractSeasonsRemaining === 0
+      && !willRetireAtSeasonTransition(player, state.season))
     .sort((left, right) => left.id.localeCompare(right.id));
   const expiredPlayer = state.careerMode === 'full'
     ? expiredPlayers[0]
@@ -417,26 +550,28 @@ export function seasonEndViewModel(
   };
 }
 
-export function homeViewModel(state: GameState): HomeViewModel {
-  const userClub = requireUserClub(state);
+/** Live, uncapped product alerts before Bert's weekly desk scheduler. */
+export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
   const roster = rosterForClub(state, state.userClubId);
-  const nextFixture = state.fixtures
-    .filter(fixture =>
-      fixture.status === 'scheduled' &&
-      fixture.season === state.season &&
-      (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId),
-    )
-    .sort((left, right) => left.week - right.week || left.round - right.round)[0];
-  const expired = roster
-    .filter(player => player.contractSeasonsRemaining === 0);
+  const expired = roster.filter(player => player.contractSeasonsRemaining === 0);
   const injured = roster
     .filter(player => player.injuryWeeks > 0)
     .sort((left, right) => right.injuryWeeks - left.injuryWeeks || left.name.localeCompare(right.name));
   const transferRequests = roster.filter(player => player.transferRequested === true);
+  const retirementAnnouncements = (state.retirementAnnouncements ?? [])
+    .filter(announcement => announcement.announcedInSeason === state.season - 1)
+    .sort((left, right) => left.playerName.localeCompare(right.playerName));
   const negativeCashWeeks = state.financialSafety?.consecutiveNegativeWeeks ?? 0;
   const loan = state.financialSafety?.loan;
+  const boardUltimatum = state.financialSafety?.boardUltimatum;
+  const latestBoardResolution = state.financialSafety?.latestBoardResolution;
+  const boardResolutionAlertId = latestBoardResolution === undefined
+    ? undefined
+    : `board-resolution:${latestBoardResolution.id}`;
+  const showBoardResolution = boardResolutionAlertId !== undefined
+    && isAssistantInboxOneShotProductVisible(state, boardResolutionAlertId);
 
-  const alerts = [
+  return [
     ...(!state.facilities.trainingGroundBuilt ? [{
       id: 'training-ground',
       title: 'Training Ground proposal',
@@ -461,6 +596,12 @@ export function homeViewModel(state: GameState): HomeViewModel {
       detail: 'Low morale has become a transfer request. Review the player and decide whether to sell.',
       tone: 'urgent' as const,
     })),
+    ...retirementAnnouncements.map(announcement => ({
+      id: `retirement-announcement-${announcement.announcedInSeason}-${announcement.playerId}`,
+      title: `${announcement.playerName} announces final season`,
+      detail: `Age ${announcement.retirementAge} · retires after Season ${state.season}.`,
+      tone: 'info' as const,
+    })),
     ...(negativeCashWeeks > 0 ? [{
       id: 'financial-warning',
       title: 'Board financial warning',
@@ -473,7 +614,171 @@ export function homeViewModel(state: GameState): HomeViewModel {
       detail: `${loan.remainingBalance.toLocaleString()} remains. Repayments begin in Season ${loan.repaymentStartsSeason}.`,
       tone: 'info' as const,
     }] : []),
+    ...(boardUltimatum === undefined ? [] : [{
+      id: 'board-ultimatum',
+      title: `Board deadline · ${boardUltimatum.weeksRemaining} week${boardUltimatum.weeksRemaining === 1 ? '' : 's'}`,
+      detail: `Reach ${boardUltimatum.targetCash.toLocaleString()} cash or the board will sell one visible, unprotected candidate.`,
+      tone: 'urgent' as const,
+    }]),
+    ...(!showBoardResolution || latestBoardResolution === undefined ? [] : [{
+      id: boardResolutionAlertId!,
+      title: latestBoardResolution.kind === 'TARGET_MET'
+        ? 'Board cash target met'
+        : 'Board sale completed',
+      detail: latestBoardResolution.kind === 'TARGET_MET'
+        ? 'The intervention is closed. No player was sold.'
+        : `${state.players.find(player => player.id === latestBoardResolution.playerId)?.name ?? 'A player'} joined ${clubName(state, latestBoardResolution.buyerClubId)} for ${latestBoardResolution.fee.toLocaleString()}.`,
+      tone: latestBoardResolution.kind === 'TARGET_MET' ? 'info' as const : 'urgent' as const,
+    }]),
   ];
+}
+
+export function reconcileHomeAssistantInbox(state: GameState): GameState {
+  return homeAssistantInboxPlan(state).state;
+}
+
+function homeAssistantInboxPlan(state: GameState) {
+  const productAlerts = homeProductAlerts(state);
+  const dueGuides = dueAssistantInboxGuideSequences(state);
+  return scheduleAssistantInboxWeek(state, {
+    dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
+    productAlerts: productAlerts.map(alert => ({
+      id: alert.id,
+      priority: assistantProductPriority(alert, dueGuides),
+      oneShot: alert.id.startsWith('board-resolution:'),
+    })),
+  });
+}
+
+function assistantProductPriority(
+  alert: ClubAlertViewModel,
+  dueGuides: readonly AssistantInboxGuideSequenceId[],
+): 'urgent' | 'normal' {
+  // The guided first week cannot advance until this project starts, so reserve
+  // it a slot without presenting the calm proposal as a red emergency card.
+  if (alert.id === 'training-ground') return 'urgent';
+  if (alert.tone === 'urgent') return 'urgent';
+  if (dueGuides.includes('retirement') && alert.id.startsWith('retirement-announcement-')) {
+    return 'urgent';
+  }
+  return 'normal';
+}
+
+function standaloneInboxGuides(
+  dueGuides: readonly AssistantInboxGuideSequenceId[],
+  productAlerts: readonly ClubAlertViewModel[],
+): AssistantInboxGuideSequenceId[] {
+  const trainingGroundCarriesFacilityGuide = productAlerts.some(alert => alert.id === 'training-ground')
+    && dueGuides.includes('facility-placement');
+  return dueGuides.filter(sequenceId => (
+    sequenceId !== 'board-ultimatum'
+    && sequenceId !== 'board-protection'
+    && sequenceId !== 'retirement'
+    && sequenceId !== 'first-injury'
+    && sequenceId !== 'first-emergency-loan'
+    && sequenceId !== 'first-transfer-request'
+    && (!trainingGroundCarriesFacilityGuide || sequenceId !== 'facility-placement')
+  ));
+}
+
+export function homeViewModel(state: GameState): HomeViewModel {
+  const userClub = requireUserClub(state);
+  const roster = rosterForClub(state, state.userClubId);
+  const nextFixture = state.fixtures
+    .filter(fixture =>
+      fixture.status === 'scheduled' &&
+      fixture.season === state.season &&
+      (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId),
+    )
+    .sort((left, right) => left.week - right.week || left.round - right.round)[0];
+  const boardUltimatum = state.financialSafety?.boardUltimatum;
+  const rosterById = new Map(roster.map(player => [player.id, player]));
+  const latestBoardResolution = state.financialSafety?.latestBoardResolution;
+  const showBoardResolution = latestBoardResolution !== undefined
+    && isAssistantInboxOneShotProductVisible(
+      state,
+      `board-resolution:${latestBoardResolution.id}`,
+    );
+  const productAlerts = homeProductAlerts(state);
+  const dueGuides = dueAssistantInboxGuideSequences(state);
+  const inboxPlan = scheduleAssistantInboxWeek(state, {
+    dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
+    productAlerts: productAlerts.map(alert => ({
+      id: alert.id,
+      priority: assistantProductPriority(alert, dueGuides),
+      oneShot: alert.id.startsWith('board-resolution:'),
+    })),
+  });
+  const selectedProductIds = new Set(inboxPlan.productAlertIds);
+  const boardGuide = dueGuides.find(sequenceId => (
+    sequenceId === 'board-ultimatum' || sequenceId === 'board-protection'
+  ));
+  let retirementGuideAssigned = false;
+  let injuryGuideAssigned = false;
+  let loanGuideAssigned = false;
+  let transferRequestGuideAssigned = false;
+  let facilityGuideAssigned = false;
+  const selectedProducts = productAlerts
+    .filter(alert => selectedProductIds.has(alert.id))
+    .map(alert => {
+      const guideSequenceId = alert.id === 'board-ultimatum'
+        ? boardGuide
+        : !facilityGuideAssigned
+          && dueGuides.includes('facility-placement')
+          && alert.id === 'training-ground'
+          ? 'facility-placement' as const
+        : !injuryGuideAssigned
+          && dueGuides.includes('first-injury')
+          && alert.id.startsWith('injury-')
+          ? 'first-injury' as const
+          : !loanGuideAssigned
+            && dueGuides.includes('first-emergency-loan')
+            && alert.id === 'emergency-loan'
+            ? 'first-emergency-loan' as const
+            : !transferRequestGuideAssigned
+              && dueGuides.includes('first-transfer-request')
+              && alert.id.startsWith('transfer-request-')
+              ? 'first-transfer-request' as const
+        : !retirementGuideAssigned
+          && dueGuides.includes('retirement')
+          && alert.id.startsWith('retirement-announcement-')
+          ? 'retirement' as const
+          : undefined;
+      if (guideSequenceId === undefined) return alert;
+      if (guideSequenceId === 'retirement') retirementGuideAssigned = true;
+      if (guideSequenceId === 'first-injury') injuryGuideAssigned = true;
+      if (guideSequenceId === 'first-emergency-loan') loanGuideAssigned = true;
+      if (guideSequenceId === 'first-transfer-request') transferRequestGuideAssigned = true;
+      if (guideSequenceId === 'facility-placement') facilityGuideAssigned = true;
+      const sequence = ASSISTANT_GUIDE_CONTENT.sequences.find(candidate => candidate.id === guideSequenceId);
+      if (sequence?.destination === undefined) throw new Error(`assistant guide ${guideSequenceId} is missing routing`);
+      return {
+        ...alert,
+        guideSequenceId,
+        destination: sequence.destination,
+      };
+    });
+  const guideAlerts: ClubAlertViewModel[] = inboxPlan.guideSequenceIds.map(sequenceId => {
+    const sequence = ASSISTANT_GUIDE_CONTENT.sequences.find(candidate => candidate.id === sequenceId);
+    if (sequence?.inbox === undefined || sequence.destination === undefined) {
+      throw new Error(`assistant guide ${sequenceId} is missing inbox routing`);
+    }
+    return {
+      id: `assistant-guide:${sequenceId}`,
+      title: sequence.inbox.title,
+      detail: sequence.inbox.detail,
+      tone: sequenceId === 'board-ultimatum' || sequenceId === 'board-protection'
+        ? 'urgent'
+        : 'event',
+      guideSequenceId: sequenceId,
+      destination: sequence.destination,
+    };
+  });
+  const alerts = [
+    ...selectedProducts.filter(alert => alert.tone === 'urgent'),
+    ...guideAlerts,
+    ...selectedProducts.filter(alert => alert.tone !== 'urgent'),
+  ].slice(0, 3);
 
   const standings = leagueStandings(state).map(row => ({
     position: row.position,
@@ -517,6 +822,68 @@ export function homeViewModel(state: GameState): HomeViewModel {
         }
       : fixtureViewModel(state, nextFixture),
     alerts,
+    ...(boardUltimatum === undefined ? {} : {
+      boardUltimatum: {
+        id: boardUltimatum.id,
+        weeksRemaining: boardUltimatum.weeksRemaining,
+        targetCash: boardUltimatum.targetCash,
+        cashNeeded: Math.max(0, boardUltimatum.targetCash - userClub.cash),
+        ...(boardUltimatum.protectedPlayerId === undefined
+          || !rosterById.has(boardUltimatum.protectedPlayerId)
+          ? {}
+          : { protectedPlayerId: boardUltimatum.protectedPlayerId }),
+        candidates: boardUltimatum.candidates.flatMap(candidate => {
+          const player = rosterById.get(candidate.playerId);
+          if (player === undefined) return [];
+          return [{
+            playerId: player.id,
+            playerName: player.name,
+            role: player.role,
+            weeklyWage: player.weeklyWage,
+            marketValue: candidate.marketValue,
+            forcedSaleFee: candidate.forcedSaleFee,
+            discountPercent: candidate.discountPercent,
+            isHero: player.power !== undefined,
+          }];
+        }),
+      },
+    }),
+    ...(!showBoardResolution || latestBoardResolution === undefined ? {} : {
+      boardResolution: latestBoardResolution.kind === 'TARGET_MET'
+        ? {
+            kind: 'TARGET_MET' as const,
+            headline: 'Cash target met',
+            detail: 'The board closes the intervention. The squad stays together.',
+          }
+        : (() => {
+            const sold = state.players.find(player => player.id === latestBoardResolution.playerId);
+            const replacement = state.players.find(player => player.id === latestBoardResolution.replacementPlayerId);
+            if (sold === undefined || replacement === undefined) {
+              throw new Error('board resolution references missing players');
+            }
+            return {
+              kind: 'FORCED_SALE' as const,
+              headline: 'A hard sale—and a new chance',
+              detail: `${sold.name} joined ${clubName(state, latestBoardResolution.buyerClubId)}. The academy promoted ${replacement.name} to keep a complete 16-player squad.`,
+              soldPlayer: {
+                id: sold.id,
+                name: sold.name,
+                role: sold.role,
+                buyerName: clubName(state, latestBoardResolution.buyerClubId),
+                fee: latestBoardResolution.fee,
+              },
+              replacementPlayer: {
+                id: replacement.id,
+                name: replacement.name,
+                role: replacement.role,
+                age: replacement.age ?? 17,
+                weeklyWage: replacement.weeklyWage,
+              },
+              fansLost: latestBoardResolution.fansLost,
+              moraleDelta: latestBoardResolution.moraleDelta,
+            };
+          })(),
+    }),
     table: standings.slice(tableStart, tableStart + 5),
   };
 }
@@ -591,7 +958,7 @@ export function matchDayViewModel(
         id: player.id,
         name: player.name,
         role: player.role,
-        shirtNumber: index + 1,
+        shirtNumber: player.shirtNumber ?? index + 1,
         isHero: player.power !== undefined,
         overall: overall(player.attrs),
         condition: player.condition ?? 100,
@@ -603,7 +970,7 @@ export function matchDayViewModel(
         id: player.id,
         name: player.name,
         role: player.role,
-        shirtNumber: roster.findIndex(candidate => candidate.id === player.id) + 1,
+        shirtNumber: player.shirtNumber ?? roster.findIndex(candidate => candidate.id === player.id) + 1,
         isHero: player.power !== undefined,
         overall: overall(player.attrs),
         condition: player.condition ?? 100,
@@ -670,6 +1037,11 @@ export function squadTrainingViewModel(
       contractLabel: player.contractSeasonsRemaining === 0
         ? 'Expired — renewal due'
         : `${player.contractSeasonsRemaining} season${player.contractSeasonsRemaining === 1 ? '' : 's'} left`,
+      ...(player.contractPromise === undefined ? {} : {
+        contractPromiseLabel: contractPromiseLabel(player.contractPromise.perk),
+      }),
+      ...(player.shirtNumber === undefined ? {} : { shirtNumber: player.shirtNumber }),
+      isCaptain: player.isCaptain === true,
       ...(player.power ? {
         powerName: `${content.powers.powers.find(power => power.id === player.power)?.name ?? player.power} · Tier ${player.powerTier ?? 1}`,
       } : {}),
@@ -678,7 +1050,7 @@ export function squadTrainingViewModel(
         ([attribute, value]) => ({
           label: attribute.toUpperCase() as 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF',
           value,
-          cap: 99,
+          cap: archetypeAttributeCap(player.archetype, attribute),
         }),
       ),
     })),
@@ -696,6 +1068,13 @@ export function squadTrainingViewModel(
       totalMoneyCost <= club.cash &&
       totalTrainingPointCost <= state.trainingPoints,
   };
+}
+
+function contractPromiseLabel(perk: 'GUARANTEED_STARTER' | 'CAPTAINCY' | 'TRAINING_PRIORITY' | 'JERSEY_10'): string {
+  if (perk === 'GUARANTEED_STARTER') return 'Promise · Starting XI';
+  if (perk === 'CAPTAINCY') return 'Promise · Captaincy';
+  if (perk === 'TRAINING_PRIORITY') return 'Promise · Training priority';
+  return 'Promise · Shirt #10';
 }
 
 export function weeklyReviewViewModel(

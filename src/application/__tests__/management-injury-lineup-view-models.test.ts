@@ -1,10 +1,24 @@
 import { loadLaunchContent } from '../../content';
-import { createCareer, type GameState } from '../../game';
+import {
+  acceptCareerTransferBid,
+  applyBoardForcedSaleConsequences,
+  boardForcedSaleAtDeadline,
+  completeAssistantGuideSequence,
+  createBoardUltimatum,
+  createCareer,
+  M2_ASSISTANT_GUIDE_SEQUENCE_IDS,
+  listCareerPlayer,
+  protectBoardUltimatumPlayer,
+  releaseCareerPlayer,
+  startNextSeason,
+  type GameState,
+} from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import {
   homeViewModel,
   matchDayViewModel,
   postMatchViewModel,
+  reconcileHomeAssistantInbox,
   squadTrainingViewModel,
 } from '../view-models';
 
@@ -24,12 +38,14 @@ describe('management injury and lineup presentation', () => {
         : player),
     };
 
-    expect(homeViewModel(injured).alerts).toContainEqual({
+    expect(homeViewModel(injured).alerts).toContainEqual(expect.objectContaining({
       id: `injury-${benchPlayer.id}`,
       title: `${benchPlayer.name} · OUT`,
       detail: 'OUT · 2 WEEKS — unavailable for selection.',
       tone: 'urgent',
-    });
+      guideSequenceId: 'first-injury',
+      destination: 'squad',
+    }));
 
     const squadPlayer = squadTrainingViewModel(injured, content, benchPlayer.id, [], [])
       .players.find(player => player.id === benchPlayer.id);
@@ -85,5 +101,263 @@ describe('management injury and lineup presentation', () => {
       detail: `OUT · 3 WEEKS. ${replacement.name} has moved into the Starting XI.`,
       tone: 'warning',
     }));
+  });
+
+  it('guides the first emergency loan and transfer request to the correct desk', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260726, undefined, content, 'full'));
+    const requester = initial.players.find(player => player.clubId === initial.userClubId)!;
+    let guided = M2_ASSISTANT_GUIDE_SEQUENCE_IDS
+      .filter(sequenceId => (
+        sequenceId !== 'first-emergency-loan' && sequenceId !== 'first-transfer-request'
+      ))
+      .reduce((state, sequenceId) => completeAssistantGuideSequence(state, sequenceId), initial);
+    guided = {
+      ...guided,
+      players: guided.players.map(player => player.id === requester.id
+        ? { ...player, transferRequested: true }
+        : player),
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        loan: {
+          originalAmount: 20_000,
+          remainingBalance: 22_000,
+          repaymentStartsSeason: 2,
+          remainingWeeks: 30,
+        },
+      },
+    };
+
+    expect(homeViewModel(guided).alerts).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: `transfer-request-${requester.id}`,
+        guideSequenceId: 'first-transfer-request',
+        destination: 'squad',
+      }),
+      expect.objectContaining({
+        id: 'emergency-loan',
+        guideSequenceId: 'first-emergency-loan',
+        destination: 'club-finances',
+      }),
+    ]));
+  });
+
+  it('keeps a retirement announcement visible during the player final season', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260722, undefined, content, 'full'));
+    const player = initial.players.find(candidate => candidate.clubId === initial.userClubId)!;
+    const finalSeason: GameState = {
+      ...initial,
+      season: 2,
+      retirementAnnouncements: [{
+        playerId: player.id,
+        playerName: player.name,
+        announcedInSeason: 1,
+        retirementAge: 36,
+      }],
+    };
+
+    expect(homeViewModel(finalSeason).alerts).toContainEqual(expect.objectContaining({
+      id: `retirement-announcement-1-${player.id}`,
+      title: `${player.name} announces final season`,
+      detail: 'Age 36 · retires after Season 2.',
+      tone: 'info',
+      guideSequenceId: 'retirement',
+      destination: 'club-legacy',
+    }));
+  });
+
+  it('shows the exact board candidates and retained protected-player choice', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260723, undefined, content, 'full'));
+    const ultimatum = createBoardUltimatum(initial)!;
+    const active = protectBoardUltimatumPlayer({
+      ...initial,
+      financialSafety: {
+        consecutiveNegativeWeeks: 4,
+        emergencyLoanUsed: true,
+        boardUltimatum: ultimatum,
+      },
+    }, ultimatum.candidates[0].playerId);
+
+    const viewModel = homeViewModel(active);
+    expect(viewModel.boardUltimatum).toMatchObject({
+      id: ultimatum.id,
+      weeksRemaining: 4,
+      protectedPlayerId: ultimatum.candidates[0].playerId,
+      candidates: expect.arrayContaining([
+        expect.objectContaining({ playerId: ultimatum.candidates[0].playerId }),
+      ]),
+    });
+    expect(viewModel.alerts).toContainEqual(expect.objectContaining({ id: 'board-ultimatum' }));
+  });
+
+  it('reconciles a below-target manual sale before Home renders the remaining board choices', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260726, undefined, content, 'full'));
+    const ultimatum = { ...createBoardUltimatum(initial)!, targetCash: 1_000_000 };
+    const active: GameState = {
+      ...initial,
+      financialSafety: {
+        consecutiveNegativeWeeks: 4,
+        emergencyLoanUsed: true,
+        boardUltimatum: ultimatum,
+      },
+    };
+    const soldId = ultimatum.candidates[0].playerId;
+    const listed = listCareerPlayer(active, active.market!, soldId);
+    const bid = listed.transferListings![0].bids[0];
+    const sold = acceptCareerTransferBid(active, listed, bid.id).state;
+
+    expect(sold.clubs.find(club => club.id === sold.userClubId)!.cash)
+      .toBeLessThan(ultimatum.targetCash);
+    expect(sold.financialSafety?.boardUltimatum?.candidates)
+      .not.toContainEqual(expect.objectContaining({ playerId: soldId }));
+    expect(() => homeViewModel(sold)).not.toThrow();
+  });
+
+  it('reconciles a released candidate before the season-end Home renders', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260727, undefined, content, 'full'));
+    const ultimatum = createBoardUltimatum(initial)!;
+    const releasedId = ultimatum.candidates[0].playerId;
+    const seasonEnd: GameState = {
+      ...initial,
+      phase: 'season-end',
+      players: initial.players.map(player => player.id === releasedId
+        ? { ...player, contractSeasonsRemaining: 0 }
+        : player),
+      financialSafety: {
+        consecutiveNegativeWeeks: 4,
+        emergencyLoanUsed: true,
+        boardUltimatum: { ...ultimatum, targetCash: 1_000_000 },
+      },
+    };
+    const released = releaseCareerPlayer(seasonEnd, releasedId);
+
+    expect(released.financialSafety?.boardUltimatum?.candidates)
+      .not.toContainEqual(expect.objectContaining({ playerId: releasedId }));
+    expect(() => homeViewModel(released)).not.toThrow();
+  });
+
+  it('reconciles a retiring candidate during the full-career season transition', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260728, undefined, content, 'full'));
+    const ultimatum = createBoardUltimatum(initial)!;
+    const retiringId = ultimatum.candidates[0].playerId;
+    const seasonEnd: GameState = {
+      ...initial,
+      season: 2,
+      phase: 'season-end',
+      players: initial.players.map(player => player.id === retiringId
+        ? {
+            ...player,
+            age: 45,
+            retirementAnnounced: true,
+            retirementAnnouncementSeason: 1,
+          }
+        : player),
+      financialSafety: {
+        consecutiveNegativeWeeks: 4,
+        emergencyLoanUsed: true,
+        boardUltimatum: { ...ultimatum, targetCash: 1_000_000 },
+      },
+    };
+    const nextSeason = startNextSeason(seasonEnd);
+
+    expect(nextSeason.players.some(player => player.id === retiringId)).toBe(false);
+    expect(nextSeason.financialSafety?.boardUltimatum?.candidates)
+      .not.toContainEqual(expect.objectContaining({ playerId: retiringId }));
+    expect(() => homeViewModel(nextSeason)).not.toThrow();
+  });
+
+  it('renders an older save defensively when its protected board candidate is already stale', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260729, undefined, content, 'full'));
+    const ultimatum = createBoardUltimatum(initial)!;
+    const staleId = ultimatum.candidates[0].playerId;
+    const stale: GameState = {
+      ...initial,
+      players: initial.players.filter(player => player.id !== staleId),
+      financialSafety: {
+        consecutiveNegativeWeeks: 4,
+        emergencyLoanUsed: true,
+        boardUltimatum: { ...ultimatum, protectedPlayerId: staleId },
+      },
+    };
+
+    const viewModel = homeViewModel(stale);
+    expect(viewModel.boardUltimatum?.protectedPlayerId).toBeUndefined();
+    expect(viewModel.boardUltimatum?.candidates)
+      .not.toContainEqual(expect.objectContaining({ playerId: staleId }));
+  });
+
+  it('presents the forced sale and its replacement youth as one truthful aftermath', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260724, undefined, content, 'full'));
+    const ultimatum = createBoardUltimatum(initial)!;
+    const resolution = boardForcedSaleAtDeadline(initial, ultimatum)!;
+    const afterSale = applyBoardForcedSaleConsequences(initial, resolution);
+    const visible: GameState = {
+      ...afterSale,
+      ledgers: [{
+        season: resolution.resolvedSeason,
+        week: resolution.resolvedWeek,
+        lines: [{ kind: 'board-sale', label: 'Board sale', amount: resolution.fee }],
+        balanceAfter: resolution.fee,
+      }],
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        latestBoardResolution: resolution,
+      },
+    };
+
+    expect(homeViewModel(visible).boardResolution).toMatchObject({
+      kind: 'FORCED_SALE',
+      soldPlayer: { id: resolution.playerId, fee: resolution.fee },
+      replacementPlayer: { id: resolution.replacementPlayerId, age: 17 },
+      fansLost: resolution.fansLost,
+      moraleDelta: -8,
+    });
+  });
+
+  it('never shows more than three inbox cards and defers the remaining firsts', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260725, undefined, content, 'full'));
+    const inbox = homeViewModel(initial).alerts;
+
+    expect(inbox).toHaveLength(3);
+    expect(inbox.map(alert => alert.guideSequenceId)).toEqual([
+      'head-coach-market',
+      'scout-mission',
+      'facility-placement',
+    ]);
+  });
+
+  it('delivers a crowded one-shot board resolution in the following week', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260727, undefined, content, 'full'));
+    const injuredIds = initial.players
+      .filter(player => player.clubId === initial.userClubId)
+      .slice(0, 3)
+      .map(player => player.id);
+    const resolutionId = 'board-ultimatum-s1-w1';
+    const crowded: GameState = {
+      ...initial,
+      players: initial.players.map(player => injuredIds.includes(player.id)
+        ? { ...player, injuryWeeks: 3 }
+        : player),
+      financialSafety: {
+        consecutiveNegativeWeeks: 0,
+        emergencyLoanUsed: true,
+        latestBoardResolution: {
+          id: resolutionId,
+          kind: 'TARGET_MET',
+          resolvedSeason: 1,
+          resolvedWeek: 1,
+          targetCash: 0,
+        },
+      },
+    };
+
+    expect(homeViewModel(crowded).alerts.map(alert => alert.id)).not.toContain(`board-resolution:${resolutionId}`);
+    const persisted = reconcileHomeAssistantInbox(crowded);
+    const nextWeek = { ...persisted, week: 2 };
+    expect(homeViewModel(nextWeek).alerts.map(alert => alert.id)).toContain(`board-resolution:${resolutionId}`);
+    const scheduled = reconcileHomeAssistantInbox(nextWeek);
+    expect(homeViewModel(scheduled).alerts.map(alert => alert.id)).toContain(`board-resolution:${resolutionId}`);
+    expect(reconcileHomeAssistantInbox(scheduled)).toBe(scheduled);
   });
 });
