@@ -4,7 +4,6 @@ import { ActionButton } from './components/Scorecard';
 import { TutorialTapCue } from './TutorialTapCue';
 import {
   tutorialCuePosition,
-  tutorialCuePositionAbove,
   type TutorialAnchorLayout,
 } from './tutorial-cue-position';
 
@@ -33,14 +32,33 @@ export function AssistantGuideOverlay({
   const moneyCuePosition = moneyAnchor
     ? tutorialCuePosition(moneyAnchor, viewportWidth)
     : null;
-  const navigationCuePosition = navigationAnchor
-    ? tutorialCuePositionAbove(navigationAnchor, viewportWidth, viewportHeight)
-    : null;
-  const spotlightAnchor = page.focus === 'money'
-    ? moneyAnchor
-    : page.focus === 'navigation'
-      ? navigationAnchor
-      : null;
+  if (page.focus === 'navigation') {
+    return (
+      <View
+        accessibilityViewIsModal
+        accessibilityLabel="Bottom navigation guide"
+        className="absolute inset-0 z-50"
+      >
+        <TutorialSpotlight
+          anchor={navigationAnchor}
+          viewportWidth={viewportWidth}
+          viewportHeight={viewportHeight}
+        />
+        {navigationAnchor && page.navItems ? (
+          <NavigationGuidePage
+            items={page.navItems}
+            anchor={navigationAnchor}
+            viewportWidth={viewportWidth}
+            viewportHeight={viewportHeight}
+            buttonLabel={page.buttonLabel}
+            onAdvance={onAdvance}
+          />
+        ) : null}
+      </View>
+    );
+  }
+
+  const spotlightAnchor = page.focus === 'money' ? moneyAnchor : null;
 
   return (
     <View
@@ -58,10 +76,7 @@ export function AssistantGuideOverlay({
         <TutorialTapCue label="Look here" detail="Weekly money" direction="up" style={moneyCuePosition} />
       ) : null}
 
-      <View
-        className="flex-1 justify-center px-3 py-5"
-        style={{ paddingBottom: page.focus === 'navigation' ? 94 : 20 }}
-      >
+      <View className="flex-1 justify-center px-3 py-5">
         <View className="max-h-full w-full self-center" style={styles.windowShadow}>
           <View style={styles.windowFrame}>
           <View style={styles.titleHighlight} />
@@ -90,17 +105,6 @@ export function AssistantGuideOverlay({
                     </Text>
                   ))}
                 </View>
-
-                {page.navItems ? (
-                  <View className="mt-4 border-y-2 border-grey-light py-1">
-                    {page.navItems.map(item => (
-                      <View key={item.tab} className="flex-row border-b border-grey-light/70 py-1.5 last:border-b-0">
-                        <Text className="w-16 font-mono text-[10px] font-bold text-blue-dark">{item.tab}</Text>
-                        <Text className="min-w-0 flex-1 text-xs leading-4 text-ink/70">{item.detail}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
 
                 {page.objective ? (
                   <View className="mt-4 border-2 border-blue-dark bg-blue-light px-3 py-2">
@@ -150,9 +154,70 @@ export function AssistantGuideOverlay({
         </View>
       </View>
 
-      {page.focus === 'navigation' && navigationCuePosition ? (
-        <TutorialTapCue label="Look here" detail="The bottom rail" style={navigationCuePosition} />
-      ) : null}
+    </View>
+  );
+}
+
+function NavigationGuidePage({
+  items,
+  anchor,
+  viewportWidth,
+  viewportHeight,
+  buttonLabel,
+  onAdvance,
+}: {
+  items: ReadonlyArray<{ tab: string; detail: string }>;
+  anchor: TutorialAnchorLayout;
+  viewportWidth: number;
+  viewportHeight: number;
+  buttonLabel: string;
+  onAdvance: () => void;
+}) {
+  const left = Math.max(8, anchor.x);
+  const width = Math.max(0, Math.min(anchor.width, viewportWidth - left - 8));
+  const bottom = Math.max(8, viewportHeight - anchor.y + 8);
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[styles.navigationCalloutArea, { left, width, bottom }]}
+    >
+      <View style={styles.navigationAdvanceButton}>
+        <ActionButton
+          label={buttonLabel}
+          accessibilityLabel="Finish bottom navigation guide"
+          onPress={onAdvance}
+          variant="action"
+          compact
+        />
+      </View>
+      <View style={styles.navigationCalloutRow}>
+        {items.map(item => (
+          <View key={item.tab} style={styles.navigationCalloutShadow}>
+            <View
+              accessible
+              accessibilityRole="text"
+              accessibilityLabel={`${item.tab}. ${item.detail}`}
+              style={styles.navigationCalloutBox}
+            >
+              <Text
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                className="text-center font-pixel text-[11px] uppercase text-white"
+              >
+                {item.tab}
+              </Text>
+              <Text
+                adjustsFontSizeToFit
+                numberOfLines={4}
+                className="mt-1 text-center font-mono text-[10px] leading-3 text-white/90"
+              >
+                {item.detail}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -240,6 +305,41 @@ const styles = StyleSheet.create({
   dimPane: {
     position: 'absolute',
     backgroundColor: 'rgba(36,31,46,0.6)',
+  },
+  navigationCalloutArea: {
+    position: 'absolute',
+    gap: 10,
+    zIndex: 40,
+  },
+  navigationAdvanceButton: {
+    width: '50%',
+    minWidth: 170,
+    maxWidth: 280,
+    alignSelf: 'center',
+  },
+  navigationCalloutRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  navigationCalloutShadow: {
+    minWidth: 0,
+    flex: 1,
+    paddingRight: 3,
+    paddingBottom: 4,
+    borderRadius: 7,
+    backgroundColor: '#241f2e',
+  },
+  navigationCalloutBox: {
+    minHeight: 88,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 7,
+    borderWidth: 2,
+    borderColor: '#f4f1ea',
+    borderRadius: 6,
+    backgroundColor: '#3f6fb5',
   },
   windowShadow: {
     maxWidth: 540,

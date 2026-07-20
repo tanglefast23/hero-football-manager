@@ -4,9 +4,19 @@
 // Kept fail-soft so headless Jest and an out-of-date native dev client can
 // still render the UI even when expo-audio is unavailable.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
+import type { M1Screen } from '../application/store';
 
 export type MenuTheme = 'opening' | 'management' | 'event' | null;
 type MenuSfx = 'advance-week' | 'plan-locked' | 'league-champions';
+
+export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): MenuTheme {
+  if (screen === 'welcome') return 'opening';
+  if (screen === 'create-player' || screen === 'management') return 'management';
+  if (screen === 'event' || screen === 'legacy' || (screen === 'awakening' && awakeningBeat >= 2)) {
+    return 'event';
+  }
+  return null;
+}
 
 const MENU_SOURCES: Record<Exclude<MenuTheme, null>, AudioSource> = {
   opening: require('../../assets/audio/music/opening-theme.m4a'),

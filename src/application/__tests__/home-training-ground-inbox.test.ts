@@ -1,5 +1,5 @@
 import { loadLaunchContent } from '../../content';
-import { createCareer, type GameState } from '../../game';
+import { buildTrainingGround, createCareer, type GameState } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { homeViewModel } from '../view-models';
 
@@ -18,6 +18,14 @@ describe('training-ground inbox letter', () => {
       guideSequenceId: 'facility-placement',
       destination: 'club-facilities',
     });
+
+    const underConstruction = buildTrainingGround(fresh);
+    expect(underConstruction.facilities.trainingGroundBuilt).toBe(false);
+    expect(underConstruction.facilities.grid?.construction).toMatchObject({
+      kind: 'BUILD',
+      type: 'training-pitch',
+    });
+    expect(homeViewModel(underConstruction).alerts.some(alert => alert.id === 'training-ground')).toBe(false);
 
     const built: GameState = {
       ...fresh,

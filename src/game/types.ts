@@ -103,6 +103,8 @@ export interface CareerPlayer {
   age?: number;
   archetype?: PlayerArchetype;
   potential?: 1 | 2 | 3 | 4 | 5;
+  /** Fixed role-aware projected overall after every personal training cap is filled. */
+  potentialCeiling?: number;
   consistency?: number;
   personality?: PlayerPersonality;
   condition?: number;

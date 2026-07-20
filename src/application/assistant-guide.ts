@@ -165,6 +165,7 @@ export function currentAssistantObjective(
     return { text: 'RETURN HOME.', target: 'home-tab' };
   }
   if (!hasAssistantGuideMilestone(state, 'desk-intro-complete')) return null;
+  if (state.market !== undefined && state.market.headCoach === undefined) return null;
   if (!hasAssistantGuideMilestone(state, 'first-week-advanced')) {
     return { text: 'INBOX CLEAR. ADVANCE WEEK.', target: 'advance-week' };
   }

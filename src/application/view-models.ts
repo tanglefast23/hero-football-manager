@@ -605,9 +605,11 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     : `board-resolution:${latestBoardResolution.id}`;
   const showBoardResolution = boardResolutionAlertId !== undefined
     && isAssistantInboxOneShotProductVisible(state, boardResolutionAlertId);
+  const trainingGroundUnderConstruction = state.facilities.grid?.construction?.kind === 'BUILD'
+    && state.facilities.grid.construction.type === 'training-pitch';
 
   return [
-    ...(!state.facilities.trainingGroundBuilt ? [{
+    ...(!state.facilities.trainingGroundBuilt && !trainingGroundUnderConstruction ? [{
       id: 'training-ground',
       title: 'Training Ground proposal',
       detail: 'Build once for $8,000 and earn +5 TP after every settled week.',
@@ -1048,6 +1050,13 @@ export function squadTrainingViewModel(
   const selectedDrills = drills.filter(drill => selected.has(drill.id));
   const totalMoneyCost = selectedDrills.reduce((sum, drill) => sum + drill.moneyCost, 0);
   const totalTrainingPointCost = selectedDrills.reduce((sum, drill) => sum + drill.tpCost, 0);
+  const savedPlan = state.trainingPlan;
+  const savedDrillIds = savedPlan?.drills.map(drill => drill.id) ?? [];
+  const selectionMatchesSavedPlan = savedPlan !== undefined
+    && savedPlan.assignedPlayerIds.length === assignedPlayerIds.length
+    && savedPlan.assignedPlayerIds.every(playerId => assignedPlayerIds.includes(playerId))
+    && savedDrillIds.length === selectedDrillIds.length
+    && savedDrillIds.every(drillId => selectedDrillIds.includes(drillId));
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
   if (lineup === undefined) throw new Error('the user club has no starting lineup');
   const starterIds = new Set(lineup.playerIds);
@@ -1060,6 +1069,7 @@ export function squadTrainingViewModel(
   const orderedRoster = createdPlayer === undefined
     ? roster
     : [createdPlayer, ...roster.filter(player => player.id !== createdPlayerId)];
+  const playerNameById = new Map(roster.map(player => [player.id, player.name]));
 
   return {
     resources: {
@@ -1147,6 +1157,16 @@ export function squadTrainingViewModel(
       selectedDrills.length > 0 &&
       totalMoneyCost <= club.cash &&
       totalTrainingPointCost <= state.trainingPoints,
+    ...(selectionMatchesSavedPlan && savedPlan !== undefined ? {
+      lockedPlan: {
+        playerNames: savedPlan.assignedPlayerIds.map(playerId => playerNameById.get(playerId) ?? playerId),
+        drillNames: savedPlan.drills.map(savedDrill => (
+          drills.find(drill => drill.id === savedDrill.id)?.name ?? savedDrill.id
+        )),
+        moneyCost: savedPlan.drills.reduce((sum, drill) => sum + drill.moneyCost, 0),
+        trainingPointCost: savedPlan.drills.reduce((sum, drill) => sum + drill.tpCost, 0),
+      },
+    } : {}),
   };
 }
 

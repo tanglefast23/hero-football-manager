@@ -17,10 +17,10 @@ export function guidedFirstFacilityAllowsBuildType(type: FacilityTypeViewModel):
 
 export function guidedFirstFacilityAllowsPlacement(
   selectedBuildType: FacilityTypeViewModel | null,
-  x: number,
-  y: number,
+  _x: number,
+  _y: number,
 ): boolean {
-  return selectedBuildType === GUIDED_FIRST_FACILITY_TYPE && x === 0 && y === 0;
+  return selectedBuildType === GUIDED_FIRST_FACILITY_TYPE;
 }
 
 export function firstGuidedCoachCandidateId(

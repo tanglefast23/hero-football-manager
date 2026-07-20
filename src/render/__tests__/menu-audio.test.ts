@@ -28,6 +28,7 @@ jest.mock('expo-audio', () => ({
 }));
 
 import {
+  menuThemeForScreen,
   playAdvanceWeekSfx,
   playPlanLockedSfx,
   playLeagueChampionsSfx,
@@ -47,6 +48,10 @@ describe('non-match music ownership', () => {
 
   afterEach(() => {
     teardownMenuAudio();
+  });
+
+  it('uses the normal management music while creating the first player', () => {
+    expect(menuThemeForScreen('create-player', 1)).toBe('management');
   });
 
   it('hands off exclusively from opening to management to event music', () => {

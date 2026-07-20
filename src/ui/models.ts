@@ -325,6 +325,12 @@ export interface SquadTrainingViewModel {
   totalMoneyCost: number;
   totalTrainingPointCost: number;
   canApply: boolean;
+  lockedPlan?: {
+    playerNames: readonly string[];
+    drillNames: readonly string[];
+    moneyCost: number;
+    trainingPointCost: number;
+  };
 }
 
 export interface TrainingGroundDecisionViewModel {

@@ -1,4 +1,5 @@
 import { createLaunchCareerSetup } from '../../application/launch';
+import { playerAttributeCaps } from '../archetype-caps';
 import { createCareer } from '../career';
 import { resolveCareerTrainingWeek } from '../training';
 
@@ -28,7 +29,13 @@ describe('M2 player-specific training growth', () => {
     const state = {
       ...initial,
       players: initial.players.map(player => player.id === playerId
-        ? { ...player, age: 25, archetype: 'Engine' as const, attrs: { ...player.attrs, sta: 90 } }
+        ? {
+            ...player,
+            age: 25,
+            archetype: 'Engine' as const,
+            potentialCeiling: 99,
+            attrs: { ...player.attrs, sta: 90 },
+          }
         : player),
       facilities: {
         ...initial.facilities,
@@ -63,7 +70,13 @@ describe('M2 player-specific training growth', () => {
     const state = {
       ...initial,
       players: initial.players.map(player => player.id === playerId
-        ? { ...player, age: 25, archetype: 'Anchor' as const, attrs: { ...player.attrs, sho: 50 } }
+        ? {
+            ...player,
+            age: 25,
+            archetype: 'Anchor' as const,
+            potentialCeiling: 99,
+            attrs: { ...player.attrs, sho: 50 },
+          }
         : player),
       facilities: {
         ...initial.facilities,
@@ -120,7 +133,13 @@ describe('M2 player-specific training growth', () => {
     let state = {
       ...initial,
       players: initial.players.map(player => player.id === playerId
-        ? { ...player, age: 25, archetype: 'Anchor' as const, attrs: { ...player.attrs, sho: 50 } }
+        ? {
+            ...player,
+            age: 25,
+            archetype: 'Anchor' as const,
+            potentialCeiling: 99,
+            attrs: { ...player.attrs, sho: 50 },
+          }
         : player),
       market: { ...initial.market!, headCoach: coach },
       trainingPlan: {
@@ -143,58 +162,50 @@ describe('M2 player-specific training growth', () => {
       .toBe(20);
   });
 
-  test('caps base and focus gains while preserving an exceptional above-cap rating', () => {
+  test('caps gains at each player personal ceiling while preserving an above-cap rating', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90213), careerMode: 'full' });
     const roster = initial.players.filter(player => player.clubId === initial.userClubId);
-    const speedsterId = roster[0].id;
+    const cappedId = roster[0].id;
     const exceptionalId = roster[1].id;
-    const wallId = roster[2].id;
+    const baseAttrs = { pac: 40, sho: 40, pas: 40, def: 40, tec: 40, sta: 40, ref: 40 };
+    const profile = {
+      ...roster[0],
+      role: 'FWD' as const,
+      archetype: 'Sniper' as const,
+      potential: 2 as const,
+      potentialCeiling: 60,
+      attrs: baseAttrs,
+    };
+    const personalShootingCap = playerAttributeCaps(profile).sho;
     const state = {
       ...initial,
       trainingPoints: 100,
       players: initial.players.map(player => {
-        if (player.id === speedsterId) {
-          return {
-            ...player,
-            age: 20,
-            archetype: 'Speedster' as const,
-            attrs: { ...player.attrs, sho: 69, sta: 87 },
-          };
-        }
+        if (player.id === cappedId) return { ...profile, age: 20 };
         if (player.id === exceptionalId) {
           return {
-            ...player,
+            ...profile,
+            id: exceptionalId,
             age: 20,
-            archetype: 'Speedster' as const,
-            attrs: { ...player.attrs, sho: 74, sta: 91 },
-          };
-        }
-        if (player.id === wallId) {
-          return {
-            ...player,
-            age: 20,
-            archetype: 'Wall' as const,
-            attrs: { ...player.attrs, ref: 94 },
+            attrs: { ...baseAttrs, sho: personalShootingCap + 1 },
           };
         }
         return player;
       }),
       trainingPlan: {
-        assignedPlayerIds: [speedsterId, exceptionalId, wallId],
+        assignedPlayerIds: [cappedId, exceptionalId],
         drills: [
-          { id: 'finishing-cap-check', moneyCost: 0, tpCost: 0, gains: { sho: 3 } },
-          { id: 'keeper-cap-check', moneyCost: 0, tpCost: 0, gains: { ref: 3 } },
+          { id: 'personal-cap-check', moneyCost: 0, tpCost: 0, gains: { sho: 99 } },
         ],
       },
     };
 
     const players = resolveCareerTrainingWeek(state).players;
-    const speedster = players.find(player => player.id === speedsterId)!;
+    const capped = players.find(player => player.id === cappedId)!;
     const exceptional = players.find(player => player.id === exceptionalId)!;
-    const wall = players.find(player => player.id === wallId)!;
 
-    expect(speedster.attrs).toMatchObject({ sho: 70, sta: 88 });
-    expect(exceptional.attrs).toMatchObject({ sho: 74, sta: 91 });
-    expect(wall.attrs.ref).toBe(95);
+    expect(personalShootingCap).toBeLessThan(95);
+    expect(capped.attrs.sho).toBe(personalShootingCap);
+    expect(exceptional.attrs.sho).toBe(personalShootingCap + 1);
   });
 });

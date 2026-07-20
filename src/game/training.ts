@@ -2,7 +2,7 @@ import { applyTrainingPlan, type FocusDrill } from './progression';
 import { facilityEffects } from './facilities';
 import { trainingMultiplierForAge } from './pyramid';
 import { careerCoachTrainingModifiers } from './coach-weekly';
-import { capArchetypeTrainingGain } from './archetype-caps';
+import { capPlayerTrainingGain } from './archetype-caps';
 import {
   assertCareerTrainingHonorsContractPromises,
   hasActiveCareerContractPromise,
@@ -189,8 +189,8 @@ function applyM2TrainingGrowthModifiers(
         checkedAdd(baseGain, extraGain, 'coach-adjusted training gain'),
         'coach-adjusted training attribute',
       );
-      const cappedValue = capArchetypeTrainingGain(
-        player.archetype,
+      const cappedValue = capPlayerTrainingGain(
+        before,
         attribute,
         before.attrs[attribute],
         proposedValue,
@@ -303,8 +303,8 @@ function applyFacilityStaminaBonus(
     );
     const extraGain = Math.floor(totalPercentagePoints / 100);
     const facilityStaBonusRemainder = totalPercentagePoints % 100;
-    const sta = capArchetypeTrainingGain(
-      player.archetype,
+    const sta = capPlayerTrainingGain(
+      before,
       'sta',
       before.attrs.sta,
       checkedAdd(player.attrs.sta, extraGain, 'facility stamina attribute'),

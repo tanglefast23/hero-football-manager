@@ -22,7 +22,7 @@ describe('concierge actionable targets', () => {
     expect(firstGuidedFacilityUpgradeId([maxed, upgradeable])).toBe('level-two');
   });
 
-  it('locks the first facility guide to Training Grounds in the top-left grid cell', () => {
+  it('locks the first facility guide to Training Grounds but allows any valid grid cell', () => {
     expect(GUIDED_FIRST_FACILITY_TYPE).toBe('training-pitch');
     expect(guidedFirstFacilityPhase(null)).toBe('build-menu');
     expect(guidedFirstFacilityPhase('gym')).toBe('build-menu');
@@ -30,7 +30,8 @@ describe('concierge actionable targets', () => {
     expect(guidedFirstFacilityAllowsBuildType('training-pitch')).toBe(true);
     expect(guidedFirstFacilityAllowsBuildType('gym')).toBe(false);
     expect(guidedFirstFacilityAllowsPlacement('training-pitch', 0, 0)).toBe(true);
-    expect(guidedFirstFacilityAllowsPlacement('training-pitch', 1, 0)).toBe(false);
+    expect(guidedFirstFacilityAllowsPlacement('training-pitch', 1, 0)).toBe(true);
+    expect(guidedFirstFacilityAllowsPlacement('training-pitch', 6, 4)).toBe(true);
     expect(guidedFirstFacilityAllowsPlacement('gym', 0, 0)).toBe(false);
   });
 });

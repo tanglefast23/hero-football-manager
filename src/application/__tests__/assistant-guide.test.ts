@@ -2,6 +2,7 @@ import { createCareer } from '../../game/career';
 import { buildTrainingGround } from '../../game/squad';
 import { advanceFacilityConstruction } from '../../game/facilities';
 import { buildCareerFacility } from '../../game/management';
+import { hireCareerCoach } from '../../game/market-career';
 import {
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
@@ -81,6 +82,26 @@ describe('assistant guide application flow', () => {
     expect(state.facilities.trainingGroundBuilt).toBe(false);
     expect(pendingAssistantGuideSequence(state, 'home')).toBe('desk-intro');
     state = completeAssistantGuideSequence(state, 'desk-intro');
+    expect(currentAssistantObjective(state, 'home')).toEqual({
+      text: 'INBOX CLEAR. ADVANCE WEEK.',
+      target: 'advance-week',
+    });
+  });
+
+  test('waits for both first-week inbox jobs before pointing to Advance Week', () => {
+    let state = createCareer(createLaunchCareerSetup(936, undefined, undefined, 'full'));
+    state = completeAssistantGuideSequence(state, 'management-intro');
+    state = completeAssistantGuideMilestone(state, 'first-training-complete');
+    state = buildTrainingGround(state);
+    state = completeAssistantGuideSequence(state, 'desk-intro');
+
+    expect(state.market?.headCoach).toBeUndefined();
+    expect(currentAssistantObjective(state, 'home')).toBeNull();
+
+    state = {
+      ...state,
+      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+    };
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'INBOX CLEAR. ADVANCE WEEK.',
       target: 'advance-week',

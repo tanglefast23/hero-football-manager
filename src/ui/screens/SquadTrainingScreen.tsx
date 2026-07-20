@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
@@ -229,6 +229,7 @@ export function SquadTrainingScreen({
           {sortedPlayers.map((player) => {
             const selected = player.id === viewModel.selectedPlayerId;
             const isAssigned = assigned.has(player.id);
+            const glowAssignmentButton = guidePlayers && !isAssigned;
             const guideConciergePlayer = player.id === viewModel.selectedPlayerId && (
               (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
               || guideFocus === 'transfer-request'
@@ -289,10 +290,19 @@ export function SquadTrainingScreen({
                   onPress={() => onTogglePlayerAssignment(player.id)}
                   className={isAssigned
                     ? 'ml-1 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light'
-                    : 'ml-1 h-11 w-11 items-center justify-center border border-ink/30'}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                    : glowAssignmentButton
+                      ? 'ml-1 h-11 w-11 items-center justify-center border-2 border-gold-dark bg-gold-light'
+                      : 'ml-1 h-11 w-11 items-center justify-center border border-ink/30'}
+                  style={({ pressed }) => [
+                    { opacity: pressed ? 0.65 : undefined },
+                    glowAssignmentButton ? styles.assignmentButtonGlow : null,
+                  ]}
                 >
-                  <Text className={isAssigned ? 'font-mono text-base font-bold text-ink' : 'font-mono text-base text-ink/40'}>{isAssigned ? '✓' : '+'}</Text>
+                  <Text className={isAssigned || glowAssignmentButton
+                    ? 'font-mono text-base font-bold text-ink'
+                    : 'font-mono text-base text-ink/40'}>
+                    {isAssigned ? '✓' : '+'}
+                  </Text>
                 </Pressable>
               </View>
             );
@@ -444,29 +454,56 @@ export function SquadTrainingScreen({
         </View>
       </View>
 
-      <PaperPanel kicker="Plan total" title="Ready for the whistle?" className="mt-5">
-        <View className="flex-row gap-2">
-          <Metric label="Players" value={String(viewModel.assignedPlayerIds.length)} />
-          <Metric label="Money cost" value={formatCurrency(viewModel.totalMoneyCost)} tone="negative" />
-          <Metric label="TP cost" value={formatCompactNumber(viewModel.totalTrainingPointCost)} tone="negative" />
-        </View>
-        <View
-          ref={lockPlanRef}
-          collapsable={false}
-          onLayout={scheduleLockPlanVisibility}
-          className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
-        >
-          {guideTraining && viewModel.selectedDrillCount > 0 ? (
-            <TutorialTapCue detail="Save the plan" style={{ left: 4, top: -74 }} />
-          ) : null}
-          <ActionButton
-            label="Save weekly plan"
-            accessibilityLabel="Save the repeating weekly training plan"
-            onPress={onApplyTraining}
-            disabled={!viewModel.canApply}
-          />
-        </View>
-      </PaperPanel>
+      {viewModel.lockedPlan === undefined ? (
+        <PaperPanel kicker="Plan total" title="Ready for the whistle?" className="mt-5">
+          <View className="flex-row gap-2">
+            <Metric label="Players" value={String(viewModel.assignedPlayerIds.length)} />
+            <Metric label="Money cost" value={formatCurrency(viewModel.totalMoneyCost)} tone="negative" />
+            <Metric label="TP cost" value={formatCompactNumber(viewModel.totalTrainingPointCost)} tone="negative" />
+          </View>
+          <View
+            ref={lockPlanRef}
+            collapsable={false}
+            onLayout={scheduleLockPlanVisibility}
+            className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
+          >
+            {guideTraining && viewModel.selectedDrillCount > 0 ? (
+              <TutorialTapCue detail="Save the plan" style={{ left: 4, top: -74 }} />
+            ) : null}
+            <ActionButton
+              label="Save weekly plan"
+              accessibilityLabel="Save the repeating weekly training plan"
+              onPress={onApplyTraining}
+              disabled={!viewModel.canApply}
+            />
+          </View>
+        </PaperPanel>
+      ) : (
+        <PaperPanel kicker="The weekly plan" title="Locked in" stamp="SAVED" className="mt-5">
+          <View className="gap-3">
+            <View className="border-2 border-ink bg-white p-3">
+              <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Players</Text>
+              <View className="mt-2 gap-1">
+                {viewModel.lockedPlan.playerNames.map((playerName, index) => (
+                  <Text key={`${playerName}-${index}`} className="text-base font-bold text-ink">✓ {playerName}</Text>
+                ))}
+              </View>
+            </View>
+            <View className="border-2 border-ink bg-white p-3">
+              <Text className="font-mono text-sm font-bold uppercase text-violet-dark">Training exercises</Text>
+              <View className="mt-2 gap-1">
+                {viewModel.lockedPlan.drillNames.map(drillName => (
+                  <Text key={drillName} className="text-base font-bold text-ink">✓ {drillName}</Text>
+                ))}
+              </View>
+            </View>
+          </View>
+          <View className="mt-3 flex-row gap-2">
+            <Metric label="Money cost" value={formatCurrency(viewModel.lockedPlan.moneyCost)} tone="negative" />
+            <Metric label="TP cost" value={formatCompactNumber(viewModel.lockedPlan.trainingPointCost)} tone="negative" />
+          </View>
+        </PaperPanel>
+      )}
       </ScrollView>
       {showScrollCue ? (
         <TutorialTapCue
@@ -521,3 +558,14 @@ function SquadSortHeader({
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  assignmentButtonGlow: {
+    boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',
+    shadowColor: '#edb54a',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 9,
+    elevation: 10,
+  },
+});

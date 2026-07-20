@@ -195,10 +195,13 @@ describe('validated M1 launch content', () => {
     expect(managementIntroPages).toHaveLength(3);
     expect(managementIntroPages?.find(page => page.focus === 'navigation')).toMatchObject({
       buttonLabel: 'Right. Off I go.',
-      navItems: expect.arrayContaining([
-        { tab: 'HOME', detail: "Your desk and today's work." },
-        { tab: 'SQUAD', detail: 'Pick players and train them.' },
-      ]),
+      navItems: [
+        { tab: 'HOME', detail: "Today's work." },
+        { tab: 'SQUAD', detail: 'Your team and training.' },
+        { tab: 'CLUB', detail: 'Wages, books and facilities.' },
+        { tab: 'MARKET', detail: 'Scout, sign, sell and hire.' },
+        { tab: 'LEAGUE', detail: 'Leagues and rivals.' },
+      ],
     });
     expect(managementIntroPages?.some(page => page.title === 'Read it first')).toBe(false);
     expect(content.assistantGuide.sequences
@@ -212,6 +215,9 @@ describe('validated M1 launch content', () => {
         focus: 'assistant',
         buttonLabel: 'Got it.',
       });
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'head-coach-market')
+      ?.inbox?.title).toBe('HIRE A COACH');
     const m2Sequences = content.assistantGuide.sequences.slice(2);
     expect(m2Sequences).toHaveLength(22);
     expect(m2Sequences.every(sequence => (

@@ -183,6 +183,10 @@ const playerSchema = z
       'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
     ]).optional(),
     potential: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
+    potentialCeiling: positiveInteger.refine(
+      (value) => value >= 46 && value <= 99,
+      'must be from 46 to 99',
+    ).optional(),
     consistency: nonnegativeInteger.refine((value) => value <= 100, 'must be at most 100').optional(),
     personality: z.enum(['Fiery', 'Loyal', 'Greedy', 'Joker', 'Professional', 'Timid']).optional(),
     condition: nonnegativeInteger.refine((value) => value <= 100, 'must be at most 100').optional(),

@@ -38,11 +38,11 @@
           "focus": "navigation",
           "buttonLabel": "Right. Off I go.",
           "navItems": [
-            { "tab": "HOME", "detail": "Your desk and today's work." },
-            { "tab": "SQUAD", "detail": "Pick players and train them." },
+            { "tab": "HOME", "detail": "Today's work." },
+            { "tab": "SQUAD", "detail": "Your team and training." },
             { "tab": "CLUB", "detail": "Wages, books and facilities." },
-            { "tab": "LEAGUE", "detail": "Table, fixtures and rivals." },
-            { "tab": "MARKET", "detail": "Scout, sign, sell, and hire." }
+            { "tab": "MARKET", "detail": "Scout, sign, sell and hire." },
+            { "tab": "LEAGUE", "detail": "Leagues and rivals." }
           ]
         }
       ]
@@ -65,7 +65,7 @@
     {
       "id": "head-coach-market",
       "inbox": {
-        "title": "Meet the coach market",
+        "title": "HIRE A COACH",
         "detail": "Bert has found several adults with whistles and opinions."
       },
       "destination": "coach-market",

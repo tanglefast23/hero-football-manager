@@ -4,7 +4,9 @@ import type { PlayerPersonality } from '../game';
 import {
   buildFacility as placeFacility,
   createFacilityGrid,
+  deterministicPotentialCeiling,
   enableFullCareer,
+  potentialTierForDivision,
 } from '../game';
 import {
   assignDistinctPlayerLooks,
@@ -90,6 +92,10 @@ export function createLaunchCareerSetup(
       age: player.age,
       archetype: player.archetype,
       potential: deterministicPotential(seed, clubIndex, playerIndex),
+      potentialCeiling: deterministicPotentialCeiling(
+        player.id,
+        deterministicPotential(seed, clubIndex, playerIndex),
+      ),
       consistency: 55 + deterministicPlayerValue(seed, clubIndex, playerIndex, 1) % 31,
       personality: PLAYER_PERSONALITIES[
         deterministicPlayerValue(seed, clubIndex, playerIndex, 2) % PLAYER_PERSONALITIES.length
@@ -128,7 +134,10 @@ function deterministicPotential(
   clubIndex: number,
   playerIndex: number,
 ): 1 | 2 | 3 | 4 | 5 {
-  return (1 + deterministicPlayerValue(seed, clubIndex, playerIndex, 0) % 5) as 1 | 2 | 3 | 4 | 5;
+  return potentialTierForDivision(
+    5,
+    deterministicPlayerValue(seed, clubIndex, playerIndex, 0) % 100,
+  );
 }
 
 /** Adds content-pack reserve players to careers created before 16-player clubs. */

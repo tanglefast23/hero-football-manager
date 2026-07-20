@@ -33,6 +33,7 @@ import {
 } from './src/render/awakening-audio';
 import { nextDevVolume, type DevVolume } from './src/render/dev-volume';
 import {
+  menuThemeForScreen,
   playAdvanceWeekSfx,
   playPlanLockedSfx,
   setMenuMasterVolume,
@@ -484,14 +485,7 @@ function GameApp() {
   const menuTheme: MenuTheme = bootError === null
     && store.persistenceReady
     && store.persistenceLoadError === null
-    ? store.screen === 'welcome'
-      ? 'opening'
-      : store.screen === 'management'
-        ? 'management'
-        : store.screen === 'event' || store.screen === 'legacy'
-          || (store.screen === 'awakening' && awakeningBeat >= 2)
-          ? 'event'
-          : null
+    ? menuThemeForScreen(store.screen, awakeningBeat)
     : null;
 
   useEffect(() => {

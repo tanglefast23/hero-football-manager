@@ -31,6 +31,9 @@ describe('launch career adapter', () => {
       player.age !== undefined
       && player.archetype !== undefined
       && player.potential !== undefined
+      && player.potentialCeiling !== undefined
+      && player.potentialCeiling >= 46
+      && player.potentialCeiling <= 99
       && player.personality !== undefined
       && player.condition === 100
       && player.retirementAge !== undefined,

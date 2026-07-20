@@ -476,13 +476,11 @@ export function ClubFinancesScreen({
           >
             {guidedFirstFacility && guidedFacilityPhase === 'grid' && facilityGridWidth > 0 ? (
               <TutorialTapCue
-                detail="Training Grounds · top left"
-                labelOffsetX={Math.max(
-                  0,
-                  TUTORIAL_TAP_CUE_WIDTH / 2 - facilityGridWidth / (facilities.width * 2),
-                )}
+                label="Bert says"
+                detail="Tap where you’d like to build the Training Grounds"
                 style={{
-                  left: facilityGridWidth / (facilities.width * 2) - TUTORIAL_TAP_CUE_WIDTH / 2,
+                  left: '50%',
+                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
                   top: -72,
                 }}
               />
