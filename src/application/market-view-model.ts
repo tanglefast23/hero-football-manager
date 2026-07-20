@@ -13,9 +13,11 @@ import {
   type TransferQuote,
   type ValuationPlayer,
 } from '../game/market';
+import { divisionTierLabel, type DivisionLevel } from '../game/pyramid';
 import type {
   ContractPerkViewModel,
   MarketNegotiationViewModel,
+  MarketSectionId,
   MarketViewModel,
   PitchCardViewModel,
   ScoutMissionChoiceViewModel,
@@ -23,6 +25,7 @@ import type {
   TransferListingViewModel,
   YouthIntakeViewModel,
 } from '../ui/market-models';
+import { coachRoleEffectLabels } from './coach-effects';
 
 export interface ScoutMissionOptionSource {
   readonly id: string;
@@ -91,9 +94,10 @@ export interface MarketViewModelSource {
   readonly season: number;
   readonly week: number;
   readonly currentCareerWeek: number;
-  readonly division: number;
+  readonly division: DivisionLevel;
   readonly fame: number;
   readonly cash: number;
+  readonly unlockedSections?: readonly MarketSectionId[];
   readonly scoutOfficeLevel: number;
   readonly scoutOptions: readonly ScoutMissionOptionSource[];
   readonly activeScoutMission?: ScoutMission;
@@ -126,13 +130,15 @@ const CARD_COPY: Readonly<Record<string, { label: string; detail: string }>> = {
 
 export function marketViewModel(source: MarketViewModelSource): MarketViewModel {
   const transferWindowOpen = isTransferWindowOpen(source.week);
+  const unlockedSections = source.unlockedSections ?? ['YOUTH', 'SCOUT', 'TRANSFERS', 'COACHES'];
   const identities = new Map(
     (source.scoutedPlayerIdentities ?? []).map(player => [player.id, player]),
   );
 
   return {
+    sections: [...unlockedSections],
     periodLabel: `S${source.season} · W${source.week}`,
-    divisionLabel: `Division ${source.division}`,
+    divisionLabel: divisionTierLabel(source.division),
     cash: source.cash,
     window: {
       open: transferWindowOpen,
@@ -199,6 +205,8 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
           readableId(candidate.specialties[0]),
           readableId(candidate.specialties[1]),
         ],
+        headEffectLabels: coachRoleEffectLabels(candidate, 'HEAD'),
+        assistantEffectLabels: coachRoleEffectLabels(candidate, 'ASSISTANT'),
         personalityLabel: readableId(candidate.personality),
         weeklyWage: candidate.weeklyWage,
         retiredLegend: candidate.retiredLegendPlayerId !== undefined,
@@ -232,7 +240,7 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
                   : { blockedReason: 'Both coaching roles are already filled.' }),
       };
     }),
-    ...(source.youthIntake === undefined
+    ...(source.youthIntake === undefined || !unlockedSections.includes('YOUTH')
       ? {}
       : { youth: youthIntakeViewModel(source.youthIntake, source.cash) }),
     ...(source.negotiation === undefined
@@ -289,8 +297,8 @@ function scoutingStatus(source: MarketViewModelSource): MarketViewModel['scoutin
     return {
       kind: 'COMPLETED',
       headline: `${source.scoutResult.reports.length} reports on the desk`,
-      detail: 'Open a dossier to compare the scout ranges with the transfer quote.',
-      progressLabel: 'Filed',
+      detail: 'Open a scouting report to compare the estimated ability with the transfer price.',
+      progressLabel: 'Complete',
     };
   }
   const mission = source.activeScoutMission;
@@ -307,7 +315,7 @@ function scoutingStatus(source: MarketViewModelSource): MarketViewModel['scoutin
     return {
       kind: 'READY',
       headline: 'The scout is back',
-      detail: 'Resolve this week to place the new dossiers on the desk.',
+      detail: 'Finish this week to receive the new scouting reports.',
       progressLabel: 'Report due',
     };
   }
@@ -336,9 +344,9 @@ function scoutingChoice(
     durationLabel: '2-3 weeks',
     available: !busy && !heroLocked && affordable,
     ...(busy
-      ? { blockedReason: 'Scout already away.' }
+      ? { blockedReason: 'Scout Sent' }
       : heroLocked
-        ? { blockedReason: 'Rumored heroes unlock in Division 3.' }
+        ? { blockedReason: `Rumored heroes unlock in ${divisionTierLabel(3)}.` }
         : !affordable
           ? { blockedReason: 'Not enough money.' }
           : {}),
@@ -418,10 +426,10 @@ export function marketNegotiationViewModel(
         ? 'Deal agreed'
         : 'Talks ended',
     pitchLeverageLabel: leverage < 0
-      ? `Pitch helping · ${Math.abs(leverage)}%`
+      ? `Pitch lowers wage demand by ${Math.abs(leverage)}%`
       : leverage > 0
-        ? `Agent resistance · ${leverage}%`
-        : 'Pitch neutral · 0%',
+        ? `Pitch raises wage demand by ${leverage}%`
+        : 'Pitch does not change wage demand',
     cards: negotiation.pitchCards.map(card => ({
       id: card,
       label: CARD_COPY[card].label,
@@ -483,5 +491,5 @@ function readableId(value: string): string {
 }
 
 function formatMoney(value: number): string {
-  return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `$${String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 }

@@ -18,7 +18,7 @@ Bottom tab bar, 5 tabs; a persistent **Advance Week ▸** button lives above it 
 2. **Squad** — roster list (sortable chips) → Player Card (large portrait with customization/paper-doll layers, stats + archetype caps, contract, morale, power panel with gauge history & upgrade button).
 3. **Club** — facilities grid (build/upgrade/move with adjacency glows), staff (coach card, hire market), finances (ledger, sponsors, loan status).
 4. **Market** — scouting missions, transfer listings, negotiation flow (mood face + Pitch Cards), youth intake.
-5. **League** — table, fixtures/results, cup brackets, season awards, Chemistry/adjacency Codex.
+5. **League** — named five-division ladder, current standings, fixtures/results, cup progress, and a live comparison between your squad strength and each division's club strength range.
 
 Events interrupt as full-screen cards on Advance Week (never mid-match). Match Day replaces the shell entirely.
 
@@ -48,9 +48,9 @@ Milestone transactions get a readable presentation rather than a transient toast
 
 1. Create the manager's former high-school player with a bounded six-stat point buy. The campaign starts with **zero heroes**.
 2. In the first club-office visit, assistant manager **Bert Rudge** establishes the step up from a national-championship high-school team to a professional club. He points out weekly wages, summarizes the five bottom-nav areas, and makes Home the player's reliable "what do I do next?" desk.
-3. Bert follows the Kairosoft cadence: one short return, one relevant system, one concrete objective. The guided quick start is **Open Squad → train one player once → return Home → read the desk and Advance Week**. Each milestone is saved and never repeats after completion; all navigation cues are hard-limited to Season 1, Week 1 so an incomplete older save cannot resurrect them later. The guide does not hard-block other choices.
+3. Bert follows the Kairosoft cadence: one short return, one relevant system, one concrete objective. The guided quick start is **Open Squad → choose players and drills → save the first weekly plan → return Home → read the desk and Advance Week**. Each milestone is saved and never repeats after completion; all navigation cues are hard-limited to Season 1, Week 1 so an incomplete older save cannot resurrect them later. The guide does not hard-block other choices.
 4. Match 1 has no powers. At the final whistle the created player limps, collapses, and automatically becomes hero #1 through the shared three-beat cutscene. There is no origin choice and no failure result. Match 2 introduces using the new power. Later matches use the same cutscene when their eligible 10% post-match check fires.
-5. Contracts, facilities, scouting and later systems are introduced only when their decisions become relevant. Tutorial text never attempts to explain the full game in advance and never blocks Quick Result.
+5. Recruitment is deliberately staggered. The story begins at **15/17 players**; Youth Intake appears in Week 3 and lets the manager choose one prospect, the National Cup briefing waits until Week 5, and scouting appears in Week 15 so its 2–3 week report lands for the Week 17–18 registration window. Signing that scout target fills 17/17, then Bert explains that future signings require a safe sale or release; the sale earns a fee and clears the departing wage. Hidden systems do not appear as disabled tabs before their reveal. Tutorial text never attempts to explain the full game in advance and never blocks Quick Result.
 
 The approved Bert design and full copy cadence live in [the assistant-manager brainstorm](brainstorms/2026-07-19-assistant-manager-tutorial-brainstorm.md).
 

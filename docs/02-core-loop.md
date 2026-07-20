@@ -21,9 +21,9 @@ Session math: a match week ≈ 3–6 minutes (watched) or ~90 seconds (simmed). 
 
 ## The pyramid (long-term goal ladder)
 
-- **Division 5 → Division 1**: 10 teams each; top 2 promoted, bottom 2 relegated. Each division up means better sponsors, bigger gates, stronger opponents — and more opposing heroes.
+- **D5 · District League → D4 · County League → D3 · Regional League → D2 · National Championship → D1 · Global League**: 10 teams each; top 2 promoted, bottom 2 relegated. Each division up means better sponsors, bigger gates, stronger opponents — and more opposing heroes. Global League clubs begin around 84–92 strength and can rise toward 92–99 across a long career; 100 remains exceptional rather than routine.
 - **National Cup**: all-divisions knockout, entered every season. Giant-killing = big prize + fame spikes.
-- **Continental Hero Cup**: unlocked while in Division 1. Opponents field full hero squads.
+- **Continental Hero Cup**: unlocked while in D1 · Global League. Opponents field full hero squads.
 - **World Club Crown**: one-off final vs. the world champion after winning the Hero Cup. Winning it = "you've won the game."
 - **After the Crown**: endless play continues. A score recap (Kairosoft-style) shows after Season 10 regardless of progress; nothing ends.
 

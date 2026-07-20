@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActionButton, formatCompactNumber } from './components/Scorecard';
+import { ActionButton, formatCompactNumber, formatCurrency } from './components/Scorecard';
 import type { ManagementTab, ResourceSummaryViewModel } from './models';
 import { TutorialTapCue } from './TutorialTapCue';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
@@ -74,7 +74,7 @@ function ResourceChip({ glyph, name, value, tone }: {
   return (
     <View
       accessible
-      accessibilityLabel={`${name}: ${formatCompactNumber(value)}`}
+      accessibilityLabel={`${name}: ${name === 'Money' ? formatCurrency(value) : formatCompactNumber(value)}`}
       className={hero
         ? 'h-11 flex-row items-center gap-1 border-2 border-gold-dark bg-white px-2'
         : 'h-11 flex-row items-center gap-1 border-2 border-ink bg-white px-2'}
@@ -112,6 +112,7 @@ export interface ManagementShellProps {
     | 'advance-week';
   onMoneyGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
   onNavigationGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
+  onDismissGuidance?: () => void;
 }
 
 export function ManagementShell({
@@ -131,6 +132,7 @@ export function ManagementShell({
   guideTarget,
   onMoneyGuideAnchorChange,
   onNavigationGuideAnchorChange,
+  onDismissGuidance,
 }: ManagementShellProps) {
   const moneyGuideAnchor = useGuideAnchor(guideFocus === 'money', onMoneyGuideAnchorChange);
   const navigationGuideAnchor = useGuideAnchor(
@@ -154,7 +156,11 @@ export function ManagementShell({
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      className="flex-1 bg-paper"
+      edges={['top', 'left', 'right', 'bottom']}
+      onPointerDown={onDismissGuidance}
+    >
       {/* Persistent HUD bar — controls above, full-width club and date below. */}
       <View
         className="border-b-2 border-ink bg-paper-dark px-3 py-2.5"

@@ -42,7 +42,9 @@ import type {
   SquadTrainingViewModel,
   WeeklyReviewViewModel,
 } from '../ui';
+import { divisionTierLabel } from '../game/pyramid';
 import { marketNegotiationViewModel } from './market-view-model';
+import { coachRoleEffectLabels } from './coach-effects';
 import { dueAssistantInboxGuideSequences } from './assistant-guide';
 
 const REVIEW_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
@@ -292,7 +294,7 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         }),
       };
     }),
-    catalog: Object.values(FACILITY_CATALOG).map(definition => ({
+    catalog: Object.values(FACILITY_CATALOG).filter(definition => definition.available).map(definition => ({
       type: definition.type,
       name: definition.name,
       buildCost: definition.buildCost,
@@ -334,15 +336,19 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
 
 function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
   const trainingEffect = (attributes: string): string => level === 1
-    ? `${attributes} training site · upgrades add +50%/+100%`
-    : `${level === 2 ? '+50%' : '+100%'} ${attributes} focus training`;
-  if (type === 'training-pitch') return trainingEffect('DEF');
+    ? `Level 1: no ${attributes} bonus · upgrades add +50%/+100%`
+    : `${level === 2 ? '+50%' : '+100%'} ${attributes} training`;
+  if (type === 'training-pitch') {
+    return level === 1
+      ? '+5 TP weekly · upgrades boost DEF training'
+      : `+5 TP weekly · ${level === 2 ? '+50%' : '+100%'} DEF training`;
+  }
   if (type === 'gym') return trainingEffect('PAC + STA');
   if (type === 'tech-center') return trainingEffect('PAS + TEC');
   if (type === 'shooting-range') return trainingEffect('SHO');
   if (type === 'keeper-court') return trainingEffect('REF');
   if (type === 'medical-bay') {
-    return `Injury recovery -${level} week${level === 1 ? '' : 's'}`;
+    return `Recovery -${level} week${level === 1 ? '' : 's'} · pair with Training Pitch for -20% injury risk`;
   }
   if (type === 'dorm') return 'Pairs with Gym for +10% STA gains';
   if (type === 'scout-office') {
@@ -352,9 +358,9 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
         ? 'Scout reports show tighter stat ranges'
         : 'Precise reports reveal confirmed powers';
   }
-  if (type === 'coaching-office') return 'Unlocks the coach market and assistant desk';
+  if (type === 'coaching-office') return 'Unlocks the assistant coach position';
   if (type === 'youth-field') {
-    return `Youth intake quality +${level * 5}${level >= 2 ? ' · higher potential' : ''}`;
+    return `Youth starting strength +${level * 5}${level >= 2 ? ' · higher potential' : ''}`;
   }
   if (type === 'fan-shop') return `Weekly merchandise scales with fans · x${level}`;
   if (type === 'stadium-stand') return 'Pairs with Fan Shop for +10% merchandise';
@@ -440,9 +446,9 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
         id: choice.id,
         label: choice.label,
         detail: choice.risky
-          ? 'Take the unusual club-culture response.'
-          : 'Take the sensible groundskeeping response.',
-        consequenceHint: describeSafeOutcome(choice.outcomes[0]?.effects ?? []),
+          ? 'Back the spider as the club’s new mascot.'
+          : 'Remove it safely and take the guaranteed reward.',
+        consequenceHint: describeEventChoiceOutcome(choice),
         tone: choice.risky ? 'risky' as const : 'safe' as const,
         disabled: pending.resolvedChoiceId !== undefined,
       };
@@ -488,7 +494,7 @@ export function seasonEndViewModel(
 
   return {
     seasonLabel: state.careerMode === 'full'
-      ? `Season ${state.season} · Division ${division}`
+      ? `Season ${state.season} · ${divisionTierLabel(division)}`
       : `Season ${state.season} of 2`,
     outcomeLabel,
     headline: outcomeLabel === 'CHAMPIONS'
@@ -500,12 +506,12 @@ export function seasonEndViewModel(
           : 'The board signs off on another year.',
     summary: state.careerMode === 'full'
       ? outcomeLabel === 'PROMOTED'
-        ? `A place in Division ${division - 1} is secured. Contracts and retirements resolve before the new fixtures arrive.`
+        ? `A place in ${divisionTierLabel((division - 1) as 1 | 2 | 3 | 4)} is secured. Contracts and retirements resolve before the new fixtures arrive.`
         : outcomeLabel === 'RELEGATED'
-          ? `The club drops to Division ${division + 1}, but the endless career continues.`
+          ? `The club drops to ${divisionTierLabel((division + 1) as 2 | 3 | 4 | 5)}, but the endless career continues.`
           : 'Contracts, player aging, retirement announcements, and the next national campaign now resolve.'
       : sliceComplete
-        ? 'Two seasons are complete. The M1 loop is ready for the full gate playthrough.'
+        ? 'Two seasons are complete. Your club is ready for the full career.'
         : 'Before Season 2 begins, the awakened bargain contract finally reaches the agent’s desk.',
     finalPosition: user.position,
     prizeMoney,
@@ -580,7 +586,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     ...(!state.facilities.trainingGroundBuilt ? [{
       id: 'training-ground',
       title: 'Training Ground proposal',
-      detail: 'Build once for 8,000 and earn +5 TP after every settled week.',
+      detail: 'Build once for $8,000 and earn +5 TP after every settled week.',
       tone: 'info' as const,
     }] : []),
     ...(expired.length > 0 ? [{
@@ -616,13 +622,13 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     ...(loan !== undefined && loan.remainingBalance > 0 ? [{
       id: 'emergency-loan',
       title: 'Emergency loan active',
-      detail: `${loan.remainingBalance.toLocaleString()} remains. Repayments begin in Season ${loan.repaymentStartsSeason}.`,
+      detail: `${formatMoney(loan.remainingBalance)} remains. Repayments begin in Season ${loan.repaymentStartsSeason}.`,
       tone: 'info' as const,
     }] : []),
     ...(boardUltimatum === undefined ? [] : [{
       id: 'board-ultimatum',
       title: `Board deadline · ${boardUltimatum.weeksRemaining} week${boardUltimatum.weeksRemaining === 1 ? '' : 's'}`,
-      detail: `Reach ${boardUltimatum.targetCash.toLocaleString()} cash or the board will sell one visible, unprotected candidate.`,
+      detail: `Reach ${formatMoney(boardUltimatum.targetCash)} cash or the board will sell one visible, unprotected candidate.`,
       tone: 'urgent' as const,
     }]),
     ...(!showBoardResolution || latestBoardResolution === undefined ? [] : [{
@@ -632,7 +638,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
         : 'Board sale completed',
       detail: latestBoardResolution.kind === 'TARGET_MET'
         ? 'The intervention is closed. No player was sold.'
-        : `${state.players.find(player => player.id === latestBoardResolution.playerId)?.name ?? 'A player'} joined ${clubName(state, latestBoardResolution.buyerClubId)} for ${latestBoardResolution.fee.toLocaleString()}.`,
+        : `${state.players.find(player => player.id === latestBoardResolution.playerId)?.name ?? 'A player'} joined ${clubName(state, latestBoardResolution.buyerClubId)} for ${formatMoney(latestBoardResolution.fee)}.`,
       tone: latestBoardResolution.kind === 'TARGET_MET' ? 'info' as const : 'urgent' as const,
     }]),
   ];
@@ -799,11 +805,11 @@ export function homeViewModel(state: GameState): HomeViewModel {
     clubName: userClub.name,
     managerName: 'Boss',
     seasonLabel: state.careerMode === 'full'
-      ? `Season ${state.season} · Division ${careerDivision(state)}`
+      ? `Season ${state.season} · ${divisionTierLabel(careerDivision(state))}`
       : `Season ${state.season} / 2`,
     divisionLabel: state.careerMode === 'full'
-      ? `Division ${careerDivision(state)}`
-      : 'Division five',
+      ? divisionTierLabel(careerDivision(state))
+      : divisionTierLabel(5),
     weekLabel: `Week ${state.week} / 30`,
     nextMatchTimingLabel: nextFixture === undefined
       ? state.phase === 'complete' ? 'Complete' : 'Season end'
@@ -1065,6 +1071,38 @@ export function squadTrainingViewModel(
         }),
       ),
     })),
+    coachingStaff: [
+      ...(state.market?.headCoach === undefined ? [] : [{
+        id: state.market.headCoach.id,
+        role: 'HEAD' as const,
+        roleLabel: 'Head coach' as const,
+        portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
+        name: state.market.headCoach.name,
+        age: state.market.headCoach.age ?? 45,
+        personalityLabel: readableLabel(state.market.headCoach.personality),
+        level: state.market.headCoach.level,
+        specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
+        effectLabels: coachRoleEffectLabels(state.market.headCoach, 'HEAD'),
+        weeklyWage: state.market.headCoach.weeklyWage,
+        seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
+        severanceCost: state.market.headCoach.weeklyWage,
+      }]),
+      ...(state.market?.assistantCoach === undefined ? [] : [{
+        id: state.market.assistantCoach.id,
+        role: 'ASSISTANT' as const,
+        roleLabel: 'Assistant coach' as const,
+        portraitId: state.market.assistantCoach.portraitId ?? state.market.assistantCoach.id,
+        name: state.market.assistantCoach.name,
+        age: state.market.assistantCoach.age ?? 45,
+        personalityLabel: readableLabel(state.market.assistantCoach.personality),
+        level: state.market.assistantCoach.level,
+        specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
+        effectLabels: coachRoleEffectLabels(state.market.assistantCoach, 'ASSISTANT'),
+        weeklyWage: state.market.assistantCoach.weeklyWage,
+        seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
+        severanceCost: state.market.assistantCoach.weeklyWage,
+      }]),
+    ],
     selectedPlayerId,
     createdPlayerId: state.onboarding?.createdPlayerId,
     drills: drills.map(drill => drillViewModel(drill, selected.has(drill.id), state)),
@@ -1408,7 +1446,7 @@ function careerDivision(state: GameState): 1 | 2 | 3 | 4 | 5 {
 }
 
 function careerDivisionLabel(state: GameState): string {
-  return `Division ${careerDivision(state)}`;
+  return divisionTierLabel(careerDivision(state));
 }
 
 function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
@@ -1444,15 +1482,42 @@ function drillViewModel(drill: TrainingDrill, selected: boolean, state: GameStat
   };
 }
 
+function describeEventChoiceOutcome(choice: GameEvent['choices'][number]): string {
+  if (!choice.risky) return describeSafeOutcome(choice.outcomes[0]?.effects ?? []);
+  const success = choice.outcomes.find(outcome => outcome.effects.some(effect => effect.type !== 'flag'));
+  if (success === undefined) return 'Risky choice with no guaranteed reward';
+  const reward = describeEventEffects(success.effects);
+  const hasEmptyFailure = choice.outcomes.some(outcome => outcome.effects.length === 0);
+  return `${success.weight}% chance: ${reward}.${hasEmptyFailure ? ' Failure gives no reward.' : ''}`;
+}
+
 function describeSafeOutcome(effects: GameEvent['choices'][number]['outcomes'][number]['effects']): string {
   const effect = effects[0];
-  if (effect?.type === 'tp') return `${effect.amount >= 0 ? '+' : ''}${effect.amount} TP, guaranteed`;
-  if (effect?.type === 'money') return `${effect.amount >= 0 ? '+' : ''}${effect.amount} money, guaranteed`;
-  return 'Guaranteed steady outcome';
+  if (effect?.type === 'tp') return `Guaranteed: ${effect.amount >= 0 ? '+' : ''}${effect.amount} TP`;
+  if (effect?.type === 'money') return `Guaranteed: ${formatMoney(effect.amount, true)}`;
+  return 'Guaranteed reward';
+}
+
+function describeEventEffects(
+  effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
+): string {
+  const rewards: string[] = [];
+  const morale = effects.reduce((sum, effect) => effect.type === 'morale' ? sum + effect.amount : sum, 0);
+  const fans = effects.reduce((sum, effect) => effect.type === 'fans' ? sum + effect.amount : sum, 0);
+  const trainingPoints = effects.reduce((sum, effect) => effect.type === 'tp' ? sum + effect.amount : sum, 0);
+  if (morale !== 0) rewards.push(`${morale > 0 ? '+' : ''}${morale} squad morale`);
+  if (fans !== 0) rewards.push(`${fans > 0 ? '+' : ''}${fans} fans`);
+  if (trainingPoints !== 0) rewards.push(`${trainingPoints > 0 ? '+' : ''}${trainingPoints} TP`);
+  return rewards.join(' and ') || 'an unknown reward';
 }
 
 function overall(attrs: GameState['players'][number]['attrs']): number {
   return Math.round((attrs.pac + attrs.sho + attrs.pas + attrs.def + attrs.tec + attrs.sta + attrs.ref) / 7);
+}
+
+function formatMoney(value: number, signed = false): string {
+  const sign = value < 0 ? '−' : signed && value > 0 ? '+' : '';
+  return `${sign}$${Math.abs(Math.trunc(value)).toLocaleString('en-US')}`;
 }
 
 function clubName(state: GameState, clubId: string): string {

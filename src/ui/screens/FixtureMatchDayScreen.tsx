@@ -142,7 +142,7 @@ export function FixtureMatchDayScreen({
                   <Pressable
                     key={player.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${player.name}, bench ${player.role}, overall ${player.overall}. ${statusLabel}.`}
+                    accessibilityLabel={`${player.name}, bench ${player.role}, rating ${player.overall}. ${statusLabel}.`}
                     accessibilityState={{ disabled }}
                     disabled={disabled}
                     onPress={() => swapWithBenchPlayer(player.id)}
@@ -160,7 +160,7 @@ export function FixtureMatchDayScreen({
                     <View className="flex-1 pr-2">
                       <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{player.name}</Text>
                       <Text className="mt-1 font-mono text-sm text-ink/60">
-                        {player.role} · OVR {player.overall} · FIT {player.condition}%
+                        {player.role} · Rating {player.overall} · Condition {player.condition}%
                       </Text>
                     </View>
                     <StatusChip
@@ -175,11 +175,11 @@ export function FixtureMatchDayScreen({
         </View>
 
         <View className="mt-6">
-          <SectionLabel eyebrow="Touchline order" title="Live coaching" right={<StatusChip label={viewModel.formationLabel} />} />
+          <SectionLabel eyebrow="Match setup" title="Live coaching" right={<StatusChip label={viewModel.formationLabel} />} />
           <View accessible accessibilityLabel="Tactics can be changed from the touchline during the match" className="border-2 border-blue-dark bg-blue-light p-3">
             <Text className="text-base font-bold uppercase text-ink">Set the XI here. Shape the match live.</Text>
             <Text className="mt-1 text-sm leading-5 text-ink/65">
-              Formation and tempo controls remain available on the touchline once kickoff begins.
+              Formation, playstyle, energy use, and player swaps remain available after kickoff.
             </Text>
           </View>
         </View>

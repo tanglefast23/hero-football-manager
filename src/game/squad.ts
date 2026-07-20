@@ -14,6 +14,7 @@ import {
   restoreCareerContractPromiseLineup,
 } from './contract-promises';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
+import { coachMotivatorBonusPercent } from './coach-weekly';
 import type { CareerPlayer, GameState } from './types';
 
 const DEFAULT_HERO_LIMIT = 2;
@@ -76,9 +77,19 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
     : roster;
 
   const team = buildTeamDef(club, matchRoster, lineup.playerIds, careerHeroLimit(state));
-  const coach = clubId === state.userClubId ? state.market?.headCoach : undefined;
-  if (coach?.specialties.includes('MOTIVATOR') !== true) return team;
-  return { ...team, heroGaugeRatePercent: 100 + coach.level * 5 };
+  if (clubId !== state.userClubId) return team;
+  const headCoach = state.market?.headCoach;
+  const assistantCoach = state.market?.assistantCoach;
+  const headBonus = headCoach?.specialties.includes('MOTIVATOR') === true
+    ? coachMotivatorBonusPercent(headCoach.level, 'HEAD')
+    : 0;
+  const assistantBonus = assistantCoach?.specialties.includes('MOTIVATOR') === true
+    ? coachMotivatorBonusPercent(assistantCoach.level, 'ASSISTANT')
+    : 0;
+  const heroGaugeBonusPercent = headBonus + assistantBonus;
+  return heroGaugeBonusPercent === 0
+    ? team
+    : { ...team, heroGaugeRatePercent: 100 + heroGaugeBonusPercent };
 }
 
 export function buildCareerTeams(state: GameState): Readonly<Record<string, TeamDef>> {

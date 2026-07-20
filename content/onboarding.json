@@ -152,7 +152,7 @@
     {
       "powerId": "SUPER_STRENGTH",
       "omen": "The turf dents beneath {name}'s palm. Everyone in the huddle feels the shock before they hear it.",
-      "reveal": "KRAK! {name} floats upright as the ground shudders. He is, quite suddenly, enormous."
+      "reveal": "KRAK! {name} floats upright as the ground shudders. {name} is, quite suddenly, enormous."
     }
   ]
 }

@@ -46,8 +46,8 @@ export function PlayerSigningOverlay({
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
               {player.source === 'academy'
-                ? 'The contract is filed and the player has joined your squad.'
-                : 'The fee and contract are filed. Your new player is ready for selection.'}
+                ? 'The contract is complete, and the player has joined your squad.'
+                : 'The transfer is complete. Your new player is ready for selection.'}
             </Text>
             <View className="mt-4">
               <ActionButton

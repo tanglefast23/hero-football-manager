@@ -14,7 +14,7 @@ import {
   synchronizeM2ActiveDivision,
 } from './m2-career';
 import { isClubLegend, type DivisionLevel, type PyramidClub, type PyramidPlayer } from './pyramid';
-import { expireYouthIntakeWindow, initializeSeasonYouthIntake } from './youth-intake';
+import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import type {
   CareerPlayer,
@@ -40,7 +40,7 @@ export function enableFullCareer(state: GameState): GameState {
     const withIntake = reconciled.youthIntake === undefined
       ? { ...reconciled, youthIntake: initializeSeasonYouthIntake(reconciled) }
       : reconciled;
-    return expireYouthIntakeWindow(withIntake);
+    return reconcileStoryYouthIntake(withIntake);
   }
   const userClub = state.clubs.find(club => club.id === state.userClubId);
   if (userClub === undefined) throw new Error(`unknown user club ${state.userClubId}`);

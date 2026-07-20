@@ -1,6 +1,10 @@
 import {
   hasAssistantGuideSequenceCompleted,
   hasAssistantGuideMilestone,
+  careerRosterCapacity,
+  isStoryCupGuideUnlocked,
+  isStoryFeaturePacingActive,
+  isStoryScoutingUnlocked,
   type AssistantInboxGuideSequenceId,
   type AssistantGuideSequenceId,
   type GameState,
@@ -65,6 +69,13 @@ export function dueAssistantInboxGuideSequences(
   );
   const buildings = state.facilities.grid?.buildings ?? [];
   const hasCoachingOffice = buildings.some(building => building.type === 'coaching-office');
+  const scoutingUnlocked = isStoryScoutingUnlocked(state)
+    || state.market.activeScoutMission !== undefined
+    || state.market.scoutReports.length > 0;
+  const rosterFull = state.players.filter(player => player.clubId === state.userClubId).length
+    >= careerRosterCapacity(state);
+  const playerSalesUnlocked = !isStoryFeaturePacingActive(state)
+    || (scoutingUnlocked && rosterFull);
 
   if (state.market.headCoach === undefined) {
     due.push(completed('head-coach-market') ? 'head-coach-hire' : 'head-coach-market');
@@ -85,10 +96,12 @@ export function dueAssistantInboxGuideSequences(
     }
   }
 
-  if (state.market.scoutReports.length > 0) {
-    due.push('scout-report');
-  } else if (state.market.activeScoutMission === undefined) {
-    due.push('scout-mission');
+  if (scoutingUnlocked) {
+    if (state.market.scoutReports.length > 0) {
+      due.push('scout-report');
+    } else if (state.market.activeScoutMission === undefined) {
+      due.push('scout-mission');
+    }
   }
 
   const listings = state.market.transferListings ?? [];
@@ -96,14 +109,16 @@ export function dueAssistantInboxGuideSequences(
     due.push('transfer-negotiation');
   } else if (listings.some(listing => listing.bids.length > 0)) {
     due.push('transfer-bid');
-  } else if (isTransferWindowOpen(state.week)) {
-    due.push('transfer-list');
+  } else if (playerSalesUnlocked && isTransferWindowOpen(state.week)) {
+    due.push(isStoryFeaturePacingActive(state) ? 'roster-cap' : 'transfer-list');
   }
 
   if (state.youthIntake?.status === 'OPEN' && state.youthIntake.offers.length > 0) {
     due.push('youth-intake');
   }
-  if (state.m2.nationalCups.length > 0) due.push('national-cup');
+  if (state.m2.nationalCups.length > 0 && isStoryCupGuideUnlocked(state)) {
+    due.push('national-cup');
+  }
 
   if (state.players.some(player => player.clubId === state.userClubId && player.injuryWeeks > 0)) {
     due.push('first-injury');
@@ -137,7 +152,7 @@ export function currentAssistantObjective(
     return { text: 'OPEN SQUAD.', target: 'squad-tab' };
   }
   if (!hasAssistantGuideMilestone(state, 'first-training-complete')) {
-    return { text: 'TRAIN ONE PLAYER ONCE.', target: 'training-plan' };
+    return { text: 'SAVE YOUR FIRST WEEKLY PLAN.', target: 'training-plan' };
   }
   if (!state.facilities.trainingGroundBuilt && !isTrainingGroundUnderConstruction(state)) {
     if (activeTab === 'home') {

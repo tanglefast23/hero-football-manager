@@ -136,7 +136,7 @@ describe('deterministic scouting', () => {
       focus: { kind: 'RUMORED_HERO' },
       scoutOfficeLevel: 1,
       division: 4,
-    })).toThrow('Division 3');
+    })).toThrow('D3 · Regional League');
 
     let hits = 0;
     for (let seed = 1; seed <= 100; seed += 1) {

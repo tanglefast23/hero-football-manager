@@ -1,5 +1,8 @@
 import {
   applyCareerCoachTrainingModifier,
+  coachMotivatorBonusPercent,
+  coachMotivatorStrengthHalfLevels,
+  coachTrainingBonusPercent,
   careerCoachTrainingModifiers,
   careerCoachWageLedgerAmount,
 } from '../coach-weekly';
@@ -31,6 +34,23 @@ function marketWithCoach(
 }
 
 describe('career coach weekly effects', () => {
+  test('defines exact head and half-strength assistant percentages', () => {
+    expect(coachTrainingBonusPercent(1, 'HEAD')).toBe(10);
+    expect(coachTrainingBonusPercent(1, 'ASSISTANT')).toBe(5);
+    expect(coachMotivatorBonusPercent(1, 'HEAD')).toBe(5);
+    expect(coachMotivatorBonusPercent(1, 'ASSISTANT')).toBe(2.5);
+
+    const market = marketWithCoach(['MOTIVATOR', 'ATTACK'], 1);
+    expect(coachMotivatorStrengthHalfLevels({
+      ...market,
+      assistantCoach: {
+        ...market.headCoach!,
+        id: 'assistant-motivator',
+        level: 1,
+      },
+    })).toBe(3);
+  });
+
   test('returns zero-cost, neutral training data before a head coach is hired', () => {
     const market: CareerMarketState = {
       nextMissionNumber: 1,

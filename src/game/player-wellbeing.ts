@@ -1,4 +1,5 @@
 import { mulberry32 } from '../sim/rng';
+import { coachMotivatorStrengthHalfLevels } from './coach-weekly';
 import { facilityEffects, type FacilityGridState } from './facilities';
 import { growthSinceSigningPercent } from './market-career';
 import { renewalContractAsk } from './market';
@@ -77,13 +78,9 @@ export function resolveWeeklyPlayerWellbeing(
     ? 0
     : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
   const injuryChecks: OvertrainingInjuryCheck[] = [];
-  const headMotivatorLevel = state.market?.headCoach?.specialties.includes('MOTIVATOR') === true
-    ? state.market.headCoach.level
-    : 0;
-  const assistantMotivatorLevel = state.market?.assistantCoach?.specialties.includes('MOTIVATOR') === true
-    ? Math.floor(state.market.assistantCoach.level / 2)
-    : 0;
-  const motivatorLevel = headMotivatorLevel + assistantMotivatorLevel;
+  const motivatorStrengthHalfLevels = state.market === undefined
+    ? 0
+    : coachMotivatorStrengthHalfLevels(state.market);
 
   const players = context.trainedPlayers.map(player => {
     if (player.clubId !== state.userClubId) return player;
@@ -97,8 +94,9 @@ export function resolveWeeklyPlayerWellbeing(
     const underpaidMoraleDelta = isUnderpaidPlayer(player) ? -2 : 0;
     const motivation = applyMotivatorProtection(
       matchMoraleDelta + underpaidMoraleDelta,
-      motivatorLevel,
-      player.motivatorMoraleRemainder ?? 0,
+      motivatorStrengthHalfLevels,
+      player.motivatorMoraleRemainderHalfPoints
+        ?? (player.motivatorMoraleRemainder ?? 0) * 2,
     );
     const updated = updatePlayerWellbeing(
       {
@@ -110,10 +108,11 @@ export function resolveWeeklyPlayerWellbeing(
       { conditionDelta, moraleDelta: motivation.moraleDelta },
     );
     const updatedCondition = updated.condition ?? 100;
+    const { motivatorMoraleRemainder: _legacyMotivatorRemainder, ...withoutLegacyRemainder } = updated;
     const withMoraleState: CareerPlayer = {
-      ...updated,
+      ...withoutLegacyRemainder,
       condition: updatedCondition,
-      motivatorMoraleRemainder: motivation.remainder,
+      motivatorMoraleRemainderHalfPoints: motivation.remainderHalfPoints,
       transferRequested: player.transferRequested === true || shouldRequestTransfer(updated),
     };
 
@@ -179,13 +178,25 @@ function isUnderpaidPlayer(player: CareerPlayer): boolean {
 
 function applyMotivatorProtection(
   moraleDelta: number,
-  level: number,
-  remainder: number,
-): { moraleDelta: number; remainder: number } {
-  if (moraleDelta >= 0 || level === 0) return { moraleDelta, remainder };
-  const scaled = Math.abs(moraleDelta) * level * 5 + remainder;
-  const prevented = Math.floor(scaled / 100);
-  return { moraleDelta: moraleDelta + prevented, remainder: scaled % 100 };
+  strengthHalfLevels: number,
+  remainderHalfPoints: number,
+): { moraleDelta: number; remainderHalfPoints: number } {
+  if (!Number.isSafeInteger(strengthHalfLevels) || strengthHalfLevels < 0 || strengthHalfLevels > 15) {
+    throw new Error('Motivator strength must be from 0 to 15 half-levels');
+  }
+  if (!Number.isSafeInteger(remainderHalfPoints)
+    || remainderHalfPoints < 0
+    || remainderHalfPoints >= 200) {
+    throw new Error('Motivator morale remainder must be from 0 to 199 half-points');
+  }
+  if (moraleDelta >= 0 || strengthHalfLevels === 0) {
+    return { moraleDelta, remainderHalfPoints };
+  }
+  // One half-level is 2.5%. A denominator of 200 keeps assistant effects exact
+  // without introducing floating-point morale or fractional player ratings.
+  const scaled = Math.abs(moraleDelta) * strengthHalfLevels * 5 + remainderHalfPoints;
+  const prevented = Math.floor(scaled / 200);
+  return { moraleDelta: moraleDelta + prevented, remainderHalfPoints: scaled % 200 };
 }
 
 /** Medical Bay levels remove one recovery week each, with a one-week floor. */

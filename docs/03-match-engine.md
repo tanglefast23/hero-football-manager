@@ -73,7 +73,7 @@ A power is a **timed modifier burst** the sim applies to one agent (details in d
 - **The Zone window** lasts ~7 seconds, glow fading as it runs out. Tap the glowing on-pitch hero during it to fire at **100%**, aimed at the current situation. A manual hero's expired window **decays heat to half — no auto-fire**: the attention premium is catching windows, not a stat bonus. Every watched match starts in manual `M`; the live `M`/`A` button can switch home heroes to automatic fire at the next useful context at **85%**, or at **75%** in the window's final seconds if no context appears (hands-off play and Quick Result stay respectable; rival heroes always run this policy). Powers that require a victim never fire targetless — those windows expire instead, making an opponent's glow a threat you can starve.
 - **One power active per team at a time**; while one is active or winding, teammates' zones and heat freeze (paused, never wasted). No stacking — and the spectacle cut-in only ever has one thing to show.
 - **Wind-up**: 1.5s telegraph (glow + rising jingle) during which a tackle can interrupt the power (Mario Strikers rule — the counterplay that stops power-snowballing).
-- **Opposing heroes** use powers on their own AI priorities. They appear rarely in Div 5–4, commonly from Div 2 up.
+- **Opposing heroes** use powers on their own AI priorities. They appear rarely in D5 · District League and D4 · County League, then commonly from D2 · National Championship upward.
 - Power vs. power in the same moment → contested roll with a special clash cut-in.
 
 ## Presentation (renderer)

@@ -159,6 +159,20 @@ describe('career squad integration', () => {
     expect(buildCareerTeamDef(coached, coached.clubs[1].id).heroGaugeRatePercent).toBeUndefined();
   });
 
+  it('gives a Level 1 assistant Motivator a half-strength Hero Gauge bonus', () => {
+    const state = createCareer({ ...setup(), careerMode: 'full' });
+    const assistant = state.market!.coachCandidates[0];
+    const coached = {
+      ...state,
+      market: {
+        ...state.market!,
+        assistantCoach: { ...assistant, level: 1 as const, specialties: ['MOTIVATOR', 'ATTACK'] as const },
+      },
+    };
+
+    expect(buildCareerTeamDef(coached, coached.userClubId).heroGaugeRatePercent).toBe(102.5);
+  });
+
   it('stores one weekly plan and applies every drill to every assigned player once', () => {
     const planned = applyCareerTraining(
       career(),

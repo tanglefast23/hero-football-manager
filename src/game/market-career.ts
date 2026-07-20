@@ -25,6 +25,7 @@ import type { CareerPlayer, GameState, PlayerPersonality } from './types';
 import { recordCashTransaction } from './cash-transactions';
 import { isFacilityOperational } from './facilities';
 import { assertUserCareerRosterSpace } from './youth-intake';
+import { isStoryScoutingUnlocked } from './story-progression';
 import {
   applyCareerContractPromise,
   clearCareerContractPromise,
@@ -158,6 +159,9 @@ export function startCareerScoutMission(
   division = 5,
 ): CareerMarketTransaction {
   assertManagePhase(state);
+  if (!isStoryScoutingUnlocked(state)) {
+    throw new Error('Scouting unlocks in Week 15 of the first season');
+  }
   if (market.activeScoutMission !== undefined) {
     throw new Error('only one scouting mission may run at a time');
   }

@@ -88,11 +88,12 @@ describe('club finances immediate transaction history', () => {
     const gymBuilding = viewModel.facilities.buildings.find(building => building.type === 'gym');
     const dormBuilding = viewModel.facilities.buildings.find(building => building.type === 'dorm');
 
-    expect(viewModel.facilities.catalog).toHaveLength(13);
+    expect(viewModel.facilities.catalog).toHaveLength(12);
+    expect(viewModel.facilities.catalog.some(entry => entry.type === 'hero-lab')).toBe(false);
     expect(viewModel.facilities.catalog.every(entry => entry.effectLabel.length > 0)).toBe(true);
     expect(viewModel.facilities.activeAdjacencies).toEqual(['gym-dorm']);
     expect(gymBuilding).toMatchObject({
-      effectLabel: 'PAC + STA training site · upgrades add +50%/+100%',
+      effectLabel: 'Level 1: no PAC + STA bonus · upgrades add +50%/+100%',
       canUpgrade: false,
       upgradeShortfall: 7_000,
       canRelocate: false,

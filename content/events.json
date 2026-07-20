@@ -16,16 +16,22 @@
       "choices": [
         {
           "id": "adopt-spider",
-          "label": "Let the squad adopt it",
+          "label": "Adopt the spider",
           "risky": true,
           "outcomes": [
             {
-              "weight": 100,
-              "text": "The spider accepts a locker and demands extra training cones.",
+              "weight": 35,
+              "text": "The spider becomes the club's famous mascot. Supporters share spider memes, pack the stands, and copy its tiny scarf.",
               "effects": [
-                { "type": "morale", "amount": 5 },
+                { "type": "morale", "amount": 10 },
+                { "type": "fans", "amount": 100 },
                 { "type": "flag", "flag": "spider-adopted", "value": true }
               ]
+            },
+            {
+              "weight": 65,
+              "text": "The spider vanishes before its mascot debut. The internet remains unmoved.",
+              "effects": []
             }
           ]
         },
@@ -36,7 +42,7 @@
           "outcomes": [
             {
               "weight": 100,
-              "text": "The clubhouse is safe, but the tiny scarf remains unexplained.",
+              "text": "The groundskeeper calmly relocates the spider and shares a few useful training tips.",
               "effects": [{ "type": "tp", "amount": 10 }]
             }
           ]

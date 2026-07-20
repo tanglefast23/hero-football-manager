@@ -58,7 +58,7 @@ export function StoryEventScreen({
             {viewModel.title}
           </Text>
           <View className="mt-3 -rotate-2 border-2 border-stamp px-3 py-2">
-            <Text className="text-sm font-bold uppercase text-stamp">Giant spider on the pitch</Text>
+            <Text className="text-sm font-bold uppercase text-stamp">Giant spider in the clubhouse</Text>
           </View>
         </View>
 
@@ -134,7 +134,7 @@ export function StoryEventScreen({
             ) : null}
           </View>
         ) : (
-          <PaperPanel kicker="Incident outcome" title={viewModel.outcomeTitle ?? 'Decision resolved'} stamp="Filed" className="mt-6 bg-signal">
+          <PaperPanel kicker="Incident outcome" title={viewModel.outcomeTitle ?? 'Decision resolved'} stamp="Resolved" className="mt-6 bg-signal">
             <Text className="text-base leading-6 text-ink">{viewModel.outcomeText}</Text>
           </PaperPanel>
         )}

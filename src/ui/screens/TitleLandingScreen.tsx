@@ -32,7 +32,7 @@ export function TitleLandingScreen({
             <View className="flex-row items-start justify-between">
               <View className="-rotate-3 border-2 border-signal bg-ink px-3 py-2">
                 <Text className="font-mono text-sm font-bold uppercase text-signal">
-                  HFM · Story build
+                  Small club · Big heroes
                 </Text>
               </View>
               <View className="h-12 w-12 rotate-3 items-center justify-center border-2 border-stamp bg-paper">
@@ -179,13 +179,13 @@ export function TitleSettingsScreen({
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Match information HUD on the ${preferences.hudSide}. Tap to move it.`}
+                  accessibilityLabel={`Match information panel is on the ${preferences.hudSide}. Tap to move it.`}
                   onPress={onToggleHudSide}
                   className="min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3"
                   style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
                 >
                   <View className="flex-1 pr-3">
-                    <Text className="font-mono text-base font-bold uppercase text-ink">Match HUD side</Text>
+                    <Text className="font-mono text-base font-bold uppercase text-ink">Match info position</Text>
                     <Text className="mt-1 text-sm text-ink/60">Moves the carrier card and top controls together.</Text>
                   </View>
                   <Text className="font-mono text-lg font-bold uppercase text-violet-dark">{preferences.hudSide}</Text>

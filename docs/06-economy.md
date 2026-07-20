@@ -55,22 +55,22 @@ The club owns **one works crew**, so only one build or upgrade project may run a
 
 **Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds; Hero Lab+anything: rumors…). Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.
 
-## First-pass tuning table (Div 5 baseline — all numbers subject to the balance harness, doc 09)
+## First-pass tuning table (D5 · District League baseline — all numbers subject to the balance harness, doc 09)
 
 | Item | Value |
 |---|---|
 | Starting cash / squad | 25,000 · 13 players; head-coach vacancy filled through the market |
-| Player wage (Div 5) | 150–400/wk (squad ≈ 3,200/wk) |
+| Player wage (D5) | 150–400/wk (squad ≈ 3,200/wk) |
 | Coach wage | 500/wk (Lv1) |
 | Season 1 subsidy | League pays 50% of wages |
-| Sponsor (Div 5, 1 slot) | 2,000/mo + 3,000–5,000 objective |
+| Sponsor (D5, 1 slot) | 2,000/mo + 3,000–5,000 objective |
 | Home gate (500 fans) | ≈ 1,200/match |
-| Prize: Div 5 champion / runner-up | 20,000 / 10,000 |
+| Prize: D5 champion / runner-up | 20,000 / 10,000 |
 | Cup: per round win / trophy | 2,000–8,000 / 25,000 |
 | Facility Lv1 build | 5,000–15,000 |
 | Focus drill (squad-wide, max 3/week) | 400–1,200 + 10–25 TP each |
 | TP income per match | win 30 · draw 20 · loss 14 (+2/goal, +10 MOTM, +5 ambient/wk) |
-| Transfer (decent Div 5 player) | 5,000–15,000 |
+| Transfer (decent D5 player) | 5,000–15,000 |
 | Pre-powered hero signing | 100,000+ + 2,500+/wk (Div 3 era) |
 | Emergency loan | 20,000 once, 10%/season interest |
 

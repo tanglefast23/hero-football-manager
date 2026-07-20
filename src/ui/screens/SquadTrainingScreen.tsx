@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
+import { ManagementSprite } from '../components/ManagementSprite';
 import type { FocusDrillViewModel, SquadTrainingViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -10,6 +11,12 @@ import {
   isTutorialTargetVisible,
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
+import {
+  nextSquadSort,
+  sortSquadPlayers,
+  type SquadSort,
+  type SquadSortKey,
+} from '../squad-sort';
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
@@ -17,6 +24,8 @@ export interface SquadTrainingScreenProps {
   onTogglePlayerAssignment: (playerId: string) => void;
   onToggleDrill: (drillId: string) => void;
   onApplyTraining: () => void;
+  onOpenCoachMarket?: () => void;
+  onDismissCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
   guideTraining?: boolean;
   guideFocus?: AssistantGuideFocus;
 }
@@ -33,6 +42,8 @@ export function SquadTrainingScreen({
   onTogglePlayerAssignment,
   onToggleDrill,
   onApplyTraining,
+  onOpenCoachMarket,
+  onDismissCoach,
   guideTraining = false,
   guideFocus,
 }: SquadTrainingScreenProps) {
@@ -42,6 +53,11 @@ export function SquadTrainingScreen({
   const lockPlanRef = useRef<View>(null);
   const visibilityFrameRef = useRef<number | null>(null);
   const [lockPlanVisible, setLockPlanVisible] = useState(false);
+  const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
+  const sortedPlayers = useMemo(
+    () => sortSquadPlayers(viewModel.players, squadSort),
+    [squadSort, viewModel.players],
+  );
   const guideLockPlan = guideTraining
     && viewModel.assignedPlayerIds.length > 0
     && viewModel.selectedDrillCount > 0;
@@ -113,19 +129,93 @@ export function SquadTrainingScreen({
 
       <View className="mt-6">
         <SectionLabel
+          eyebrow="Backroom staff"
+          title="Coaching staff"
+          right={<StatusChip label={`${viewModel.coachingStaff.length} / 2`} selected={viewModel.coachingStaff.length > 0} />}
+        />
+        {viewModel.coachingStaff.length === 0 ? (
+          <PaperPanel kicker="Vacancy" title="The touchline needs a voice" stamp="OPEN">
+            <Text className="text-sm leading-5 text-ink/60">
+              Hire a head coach to improve specialist training and guide Hero Gauge growth.
+            </Text>
+            {onOpenCoachMarket ? (
+              <View className="mt-3">
+                <ActionButton label="Open coach market" accessibilityLabel="Open the coach market" onPress={onOpenCoachMarket} />
+              </View>
+            ) : null}
+          </PaperPanel>
+        ) : (
+          <View className="gap-3">
+            {viewModel.coachingStaff.map(coach => (
+              <View key={coach.id} className="border-2 border-b-4 border-ink bg-white p-3">
+                <View className="flex-row items-start gap-3">
+                  <View className="border-2 border-b-4 border-ink bg-blue-light px-2 pt-2">
+                    <ManagementSprite
+                      spriteKey={`coach:${coach.portraitId}:rest`}
+                      width={72}
+                      accessibilityLabel={`${coach.name} coach portrait`}
+                    />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{coach.roleLabel}</Text>
+                    <Text className="mt-1 text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
+                    <Text className="mt-1 text-sm text-ink/60">
+                      Age {coach.age} · {coach.personalityLabel} · Level {coach.level}
+                    </Text>
+                    <Text className="mt-1 font-mono text-sm font-bold text-ink">
+                      {formatCurrency(coach.weeklyWage)} / week
+                    </Text>
+                  </View>
+                </View>
+                <View className="mt-3 flex-row gap-2">
+                  {coach.specialtyLabels.map(specialty => (
+                    <View key={specialty} className="flex-1 border-2 border-ink bg-paper px-2 py-2">
+                      <Text className="text-center text-sm font-bold uppercase text-ink">{specialty}</Text>
+                    </View>
+                  ))}
+                </View>
+                <View className="mt-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
+                  {coach.effectLabels.map(effect => (
+                    <Text key={effect} className="text-sm font-bold text-ink">{effect}</Text>
+                  ))}
+                </View>
+                <Text className="mt-2 text-sm text-ink/55">
+                  Employed {coach.seasonsEmployed} season{coach.seasonsEmployed === 1 ? '' : 's'} · Dismissal costs one weekly wage.
+                </Text>
+                {onDismissCoach ? (
+                  <View className="mt-3">
+                    <ActionButton
+                      label={`Dismiss · ${formatCurrency(coach.severanceCost)} severance`}
+                      accessibilityLabel={`Dismiss ${coach.name} with one week severance`}
+                      variant="danger"
+                      onPress={() => onDismissCoach(coach.role)}
+                    />
+                  </View>
+                ) : null}
+              </View>
+            ))}
+            {onOpenCoachMarket ? (
+              <ActionButton label="Review coach market" accessibilityLabel="Review the coach market" onPress={onOpenCoachMarket} />
+            ) : null}
+          </View>
+        )}
+      </View>
+
+      <View className="mt-6">
+        <SectionLabel
           eyebrow="Team register"
           title={`${viewModel.players.length} players`}
           right={<StatusChip label={`${viewModel.assignedPlayerIds.length} assigned`} />}
         />
         <View className="border-2 border-ink bg-white">
-          <View className="flex-row border-b border-ink/20 px-3 py-2">
-            <Text className="w-12 text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Role</Text>
-            <Text className="flex-1 text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Player</Text>
-            <Text className="w-12 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>OVR</Text>
-            <Text className="w-16 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Fit</Text>
-            <Text className="w-12 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Plan</Text>
+          <View className="flex-row items-center border-b border-ink/20 px-3">
+            <SquadSortHeader label="Role" sortKey="role" sort={squadSort} widthClass="w-12" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label="Player" sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label="Rating" sortKey="overall" sort={squadSort} widthClass="w-14" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label="Condition" sortKey="condition" sort={squadSort} widthClass="w-20" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <Text className="w-12 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Train</Text>
           </View>
-          {viewModel.players.map((player) => {
+          {sortedPlayers.map((player) => {
             const selected = player.id === viewModel.selectedPlayerId;
             const isAssigned = assigned.has(player.id);
             const guidePlayer = guideTraining && viewModel.assignedPlayerIds.length === 0 && player.id === guideTargetPlayerId;
@@ -178,8 +268,8 @@ export function SquadTrainingScreen({
                       <Text className="mt-0.5 text-sm font-bold uppercase text-gold-dark" numberOfLines={1}>★ {player.powerName}</Text>
                     ) : null}
                   </View>
-                  <Text className="w-12 text-right font-mono text-base font-bold text-ink" numberOfLines={1}>{player.overall}</Text>
-                  <Text className={player.condition < 30 ? 'w-16 text-right font-mono text-base font-bold text-stamp' : 'w-16 text-right font-mono text-base text-ink'} numberOfLines={1}>{player.condition}%</Text>
+                  <Text className="w-14 text-right font-mono text-base font-bold text-ink" numberOfLines={1}>{player.overall}</Text>
+                  <Text className={player.condition < 30 ? 'w-20 text-right font-mono text-base font-bold text-stamp' : 'w-20 text-right font-mono text-base text-ink'} numberOfLines={1}>{player.condition}%</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="checkbox"
@@ -233,13 +323,13 @@ export function SquadTrainingScreen({
             </View>
           ) : null}
           <View className="flex-row gap-2">
-            <Metric label="Overall" value={String(selectedPlayer.overall)} />
+            <Metric label="Rating" value={String(selectedPlayer.overall)} />
             <Metric
               label="Condition"
               value={`${selectedPlayer.condition}%`}
               tone={selectedPlayer.condition < 30 ? 'negative' : 'positive'}
             />
-            <Metric label="Wage / wk" value={formatCompactNumber(selectedPlayer.weeklyWage)} />
+            <Metric label="Wage / wk" value={formatCurrency(selectedPlayer.weeklyWage)} />
           </View>
           <View className="mt-2 flex-row gap-2">
             <Metric label="Age" value={String(selectedPlayer.age)} />
@@ -276,6 +366,9 @@ export function SquadTrainingScreen({
           </View>
           <View className="mt-3 border-2 border-ink bg-white p-3">
             <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">Attributes · current / cap</Text>
+            <Text className="mb-3 text-xs leading-4 text-ink/55">
+              PAC pace · SHO shooting · PAS passing · DEF defense · TEC technique · STA stamina · REF goalkeeping
+            </Text>
             <View className="flex-row flex-wrap gap-2">
               {selectedPlayer.attributes
                 .filter(attribute => selectedPlayer.role === 'GK'
@@ -301,7 +394,7 @@ export function SquadTrainingScreen({
           right={<StatusChip label={`${viewModel.selectedDrillCount} / ${viewModel.maxDrills}`} selected={viewModel.selectedDrillCount > 0} />}
         />
         <Text className="mb-3 text-sm leading-5 text-ink/60">
-          Pick up to {viewModel.maxDrills}. Each selected drill charges once and trains every assigned player. The plan repeats weekly until changed.
+          Pick up to {viewModel.maxDrills}. Each selected drill is charged once per week and trains every assigned player. The plan repeats weekly until changed.
         </Text>
         <View className="gap-2">
           {viewModel.drills.map((drill, drillIndex) => {
@@ -314,7 +407,7 @@ export function SquadTrainingScreen({
             <Pressable
               key={drill.id}
               accessibilityRole="checkbox"
-              accessibilityLabel={`${drill.name}. ${drill.gainLabel}. Costs ${drill.moneyCost} money and ${drill.trainingPointCost} training points.`}
+              accessibilityLabel={`${drill.name}. ${drill.gainLabel}. Costs ${formatCurrency(drill.moneyCost)} and ${drill.trainingPointCost} training points.`}
               accessibilityState={{ checked: drill.selected, disabled: !drill.available }}
               disabled={!drill.available}
               onPress={() => onToggleDrill(drill.id)}
@@ -335,7 +428,7 @@ export function SquadTrainingScreen({
                 <Text className={drill.selected ? 'mt-1 text-sm text-ink/70' : 'mt-1 text-sm text-ink/60'}>{drill.focusLabel} · {drill.gainLabel}</Text>
               </View>
               <View className="items-end">
-                <Text className="font-mono text-sm font-bold text-ink" numberOfLines={1}>{formatCompactNumber(drill.moneyCost)} M</Text>
+                <Text className="font-mono text-sm font-bold text-ink" numberOfLines={1}>{formatCurrency(drill.moneyCost)}</Text>
                 <Text className={drill.selected ? 'mt-1 font-mono text-sm font-bold text-ink' : 'mt-1 font-mono text-sm text-blue-dark'} numberOfLines={1}>{drill.trainingPointCost} TP</Text>
               </View>
             </Pressable>
@@ -347,7 +440,7 @@ export function SquadTrainingScreen({
       <PaperPanel kicker="Plan total" title="Ready for the whistle?" className="mt-5">
         <View className="flex-row gap-2">
           <Metric label="Players" value={String(viewModel.assignedPlayerIds.length)} />
-          <Metric label="Money cost" value={formatCompactNumber(viewModel.totalMoneyCost)} tone="negative" />
+          <Metric label="Money cost" value={formatCurrency(viewModel.totalMoneyCost)} tone="negative" />
           <Metric label="TP cost" value={formatCompactNumber(viewModel.totalTrainingPointCost)} tone="negative" />
         </View>
         <View
@@ -357,10 +450,10 @@ export function SquadTrainingScreen({
           className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
         >
           {guideTraining && viewModel.selectedDrillCount > 0 ? (
-            <TutorialTapCue detail="Lock the plan" style={{ left: 4, top: -74 }} />
+            <TutorialTapCue detail="Save the plan" style={{ left: 4, top: -74 }} />
           ) : null}
           <ActionButton
-            label="Lock weekly plan"
+            label="Save weekly plan"
             accessibilityLabel="Save the repeating weekly training plan"
             onPress={onApplyTraining}
             disabled={!viewModel.canApply}
@@ -371,10 +464,51 @@ export function SquadTrainingScreen({
       {showScrollCue ? (
         <TutorialTapCue
           label="Scroll down"
-          detail={viewModel.selectedDrillCount === 0 ? 'Pick a drill' : 'Lock the plan'}
+          detail={viewModel.selectedDrillCount === 0 ? 'Pick a drill' : 'Save the plan'}
           style={{ bottom: 10, right: 10 }}
         />
       ) : null}
     </View>
+  );
+}
+
+function SquadSortHeader({
+  label,
+  sortKey,
+  sort,
+  widthClass,
+  align = 'left',
+  onSort,
+}: {
+  label: string;
+  sortKey: SquadSortKey;
+  sort: SquadSort | null;
+  widthClass: string;
+  align?: 'left' | 'right';
+  onSort: (key: SquadSortKey) => void;
+}) {
+  const direction = sort?.key === sortKey ? sort.direction : null;
+  const nextDirection = direction === null
+    ? 'descending'
+    : direction === 'descending'
+      ? 'ascending'
+      : 'default order';
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Sort by ${label}, ${direction ?? 'default order'}. Next: ${nextDirection}.`}
+      onPress={() => onSort(sortKey)}
+      className={`min-h-11 flex-row items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'} ${widthClass}`}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : undefined })}
+    >
+      <Text
+        className={direction === null
+          ? 'text-sm font-bold uppercase text-ink/50'
+          : 'text-sm font-bold uppercase text-blue-dark'}
+        numberOfLines={1}
+      >
+        {label}{direction === 'descending' ? ' ▼' : direction === 'ascending' ? ' ▲' : ''}
+      </Text>
+    </Pressable>
   );
 }

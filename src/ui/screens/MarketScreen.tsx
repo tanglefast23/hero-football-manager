@@ -1,8 +1,14 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import {
+  ScrollView,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import type { ContractOffer, ContractPerk, PitchCard } from '../../game/market';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { ManagementSprite } from '../components/ManagementSprite';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -25,7 +31,19 @@ export interface MarketScreenProps {
   readonly onDeclineYouth: () => void;
   readonly onSubmitContractOffer: (offer: ContractOffer, pitchCard?: PitchCard) => void;
   readonly onCloseNegotiation: () => void;
+  readonly onDismissGuideFocus?: () => void;
   readonly guideFocus?: AssistantGuideFocus;
+}
+
+const MIN_GUIDE_SCROLL_DISTANCE = 24;
+
+function initialSection(viewModel: MarketViewModel): MarketSectionId {
+  if (viewModel.negotiation !== undefined && viewModel.sections.includes('TRANSFERS')) {
+    return 'TRANSFERS';
+  }
+  if (viewModel.youth?.status === 'OPEN' && viewModel.sections.includes('YOUTH')) return 'YOUTH';
+  if (viewModel.sections.includes('SCOUT')) return 'SCOUT';
+  return viewModel.sections[0] ?? 'COACHES';
 }
 
 export function MarketScreen({
@@ -38,19 +56,70 @@ export function MarketScreen({
   onDeclineYouth,
   onSubmitContractOffer,
   onCloseNegotiation,
+  onDismissGuideFocus,
   guideFocus,
 }: MarketScreenProps) {
-  const [section, setSection] = useState<MarketSectionId>(
-    viewModel.negotiation !== undefined
-      ? 'TRANSFERS'
-      : viewModel.youth?.status === 'OPEN'
-        ? 'YOUTH'
-        : 'SCOUT',
-  );
+  const [section, setSection] = useState<MarketSectionId>(() => initialSection(viewModel));
+  const [scrollDismissedGuideFocus, setScrollDismissedGuideFocus] = useState<AssistantGuideFocus>();
+  const visibleGuideFocus = scrollDismissedGuideFocus === guideFocus ? undefined : guideFocus;
+  const marketViewportRef = useRef<View>(null);
+  const southAmericaScoutActionRef = useRef<View>(null);
+  const latestScrollOffsetRef = useRef(0);
+  const scoutDragStartOffsetRef = useRef(0);
+
+  const dismissScrollGuide = (focus: AssistantGuideFocus) => {
+    setScrollDismissedGuideFocus(focus);
+    onDismissGuideFocus?.();
+  };
+
+  const handleScrollBeginDrag = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (guideFocus === 'transfer-list') {
+      dismissScrollGuide('transfer-list');
+      return;
+    }
+    if (guideFocus === 'scout-mission') {
+      scoutDragStartOffsetRef.current = event.nativeEvent.contentOffset.y;
+    }
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    latestScrollOffsetRef.current = currentOffset;
+    if (guideFocus === 'transfer-list') {
+      dismissScrollGuide('transfer-list');
+      return;
+    }
+    if (guideFocus !== 'scout-mission' || scrollDismissedGuideFocus === 'scout-mission') return;
+    const dragStartOffset = scoutDragStartOffsetRef.current;
+    if (
+      currentOffset < dragStartOffset + MIN_GUIDE_SCROLL_DISTANCE
+    ) return;
+
+    const viewport = marketViewportRef.current;
+    const target = southAmericaScoutActionRef.current;
+    if (viewport === null || target === null) return;
+    viewport.measureInWindow((_viewportX, viewportY, _viewportWidth, viewportHeight) => {
+      target.measureInWindow((_targetX, targetY, _targetWidth, targetHeight) => {
+        const targetFullyVisible = targetY >= viewportY
+          && targetY + targetHeight <= viewportY + viewportHeight;
+        if (targetFullyVisible) dismissScrollGuide('scout-mission');
+      });
+    });
+  };
 
   useEffect(() => {
     if (viewModel.negotiation !== undefined) setSection('TRANSFERS');
   }, [viewModel.negotiation?.id]);
+
+  useEffect(() => {
+    if (!viewModel.sections.includes(section)) setSection(initialSection(viewModel));
+  }, [section, viewModel]);
+
+  useEffect(() => {
+    if (guideFocus === 'scout-mission') {
+      scoutDragStartOffsetRef.current = latestScrollOffsetRef.current;
+    }
+  }, [guideFocus]);
 
   useEffect(() => {
     if (guideFocus === 'youth-intake') setSection('YOUTH');
@@ -60,7 +129,14 @@ export function MarketScreen({
   }, [guideFocus]);
 
   return (
-    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
+    <View ref={marketViewportRef} collapsable={false} className="flex-1">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        onScrollBeginDrag={handleScrollBeginDrag}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
       <View className="flex-row items-end justify-between gap-3">
         <View className="flex-1">
           <Text className="font-mono text-sm font-bold uppercase tracking-[2px] text-blue-dark">
@@ -78,7 +154,7 @@ export function MarketScreen({
         className="mt-5"
       >
         <View className="flex-row gap-2">
-          <Metric label="Cash" value={formatCompactNumber(viewModel.cash)} />
+          <Metric label="Cash" value={formatCurrency(viewModel.cash)} />
           <Metric label="Level" value={viewModel.divisionLabel} />
           <Metric
             label="Window"
@@ -94,17 +170,23 @@ export function MarketScreen({
           viewModel={viewModel.negotiation}
           onSubmitContractOffer={onSubmitContractOffer}
           onClose={onCloseNegotiation}
-          guided={guideFocus === 'transfer-negotiation'}
+          guided={visibleGuideFocus === 'transfer-negotiation'}
         />
       ) : null}
 
       <View className="mt-6 flex-row border-2 border-b-4 border-ink bg-paper-dark p-1">
-        {viewModel.youth ? (
+        {viewModel.sections.includes('YOUTH') && viewModel.youth ? (
           <DocketTab id="YOUTH" label="Youth" glyph="★" selected={section === 'YOUTH'} onPress={setSection} />
         ) : null}
-        <DocketTab id="SCOUT" label="Scout" glyph="⌖" selected={section === 'SCOUT'} onPress={setSection} />
-        <DocketTab id="TRANSFERS" label="Deals" glyph="⇄" selected={section === 'TRANSFERS'} onPress={setSection} />
-        <DocketTab id="COACHES" label="Coaches" glyph="▣" selected={section === 'COACHES'} onPress={setSection} />
+        {viewModel.sections.includes('SCOUT') ? (
+          <DocketTab id="SCOUT" label="Scout" glyph="⌖" selected={section === 'SCOUT'} onPress={setSection} />
+        ) : null}
+        {viewModel.sections.includes('TRANSFERS') ? (
+          <DocketTab id="TRANSFERS" label="Deals" glyph="⇄" selected={section === 'TRANSFERS'} onPress={setSection} />
+        ) : null}
+        {viewModel.sections.includes('COACHES') ? (
+          <DocketTab id="COACHES" label="Coaches" glyph="▣" selected={section === 'COACHES'} onPress={setSection} />
+        ) : null}
       </View>
 
       {section === 'YOUTH' && viewModel.youth ? (
@@ -112,21 +194,23 @@ export function MarketScreen({
           viewModel={viewModel}
           onSignYouth={onSignYouth}
           onDeclineYouth={onDeclineYouth}
-          guideFocus={guideFocus}
+          guideFocus={visibleGuideFocus}
         />
       ) : section === 'SCOUT' ? (
         <ScoutingDesk
           viewModel={viewModel}
           onStartScoutMission={onStartScoutMission}
           onOpenScoutReport={onOpenScoutReport}
-          guideFocus={guideFocus}
+          southAmericaScoutActionRef={southAmericaScoutActionRef}
+          guideFocus={visibleGuideFocus}
         />
       ) : section === 'TRANSFERS' ? (
-        <TransferDesk viewModel={viewModel} onTransferAction={onTransferAction} guideFocus={guideFocus} />
+        <TransferDesk viewModel={viewModel} onTransferAction={onTransferAction} guideFocus={visibleGuideFocus} />
       ) : (
-        <CoachDesk viewModel={viewModel} onHireCoach={onHireCoach} guideFocus={guideFocus} />
+        <CoachDesk viewModel={viewModel} onHireCoach={onHireCoach} guideFocus={visibleGuideFocus} />
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -179,8 +263,8 @@ function YouthDesk({
                 {offer.potentialLabel}
               </Text>
               <View className="mt-3 flex-row gap-2">
-                <Metric label="Signing" value={formatCompactNumber(offer.signingBonus)} tone="negative" />
-                <Metric label="Weekly wage" value={formatCompactNumber(offer.weeklyWage)} />
+                <Metric label="Signing" value={formatCurrency(offer.signingBonus)} tone="negative" />
+                <Metric label="Weekly wage" value={formatCurrency(offer.weeklyWage)} />
               </View>
               <View className="mt-3 flex-row items-center justify-between gap-3">
                 <Text className="flex-1 text-sm text-stamp">
@@ -250,9 +334,15 @@ function ScoutingDesk({
   viewModel,
   onStartScoutMission,
   onOpenScoutReport,
+  southAmericaScoutActionRef,
   guideFocus,
-}: Pick<MarketScreenProps, 'viewModel' | 'onStartScoutMission' | 'onOpenScoutReport' | 'guideFocus'>) {
+}: Pick<MarketScreenProps, 'viewModel' | 'onStartScoutMission' | 'onOpenScoutReport' | 'guideFocus'> & {
+  southAmericaScoutActionRef: RefObject<View | null>;
+}) {
   const status = viewModel.scouting.status;
+  const scrollDismissTargetId = viewModel.scouting.choices.find(choice => (
+    choice.regionLabel === 'South America'
+  ))?.id ?? viewModel.scouting.choices[1]?.id;
   const statusClass = status.kind === 'COMPLETED' || status.kind === 'READY'
     ? 'border-pitch-dark bg-pitch-light'
     : status.kind === 'IN_PROGRESS'
@@ -281,12 +371,12 @@ function ScoutingDesk({
 
       {viewModel.scouting.reports.length > 0 ? (
         <View className="mt-5 gap-3">
-          <Text className="font-mono text-sm font-bold uppercase tracking-wide text-stamp">Fresh dossiers</Text>
+          <Text className="font-mono text-sm font-bold uppercase tracking-wide text-stamp">Scouting reports</Text>
           {viewModel.scouting.reports.map((report, index) => (
             <Pressable
               key={report.playerId}
               accessibilityRole="button"
-              accessibilityLabel={`Full scouting dossier for ${report.playerName}`}
+              accessibilityLabel={`Full scouting report for ${report.playerName}`}
               onPress={() => onOpenScoutReport(report.playerId)}
               className={guideFocus === 'scout-report' && index === 0
                 ? 'relative border-2 border-b-4 border-blue-dark bg-blue-light p-3'
@@ -331,7 +421,7 @@ function ScoutingDesk({
                   </View>
                 ))}
               </View>
-              <Text className="mt-3 text-right font-mono text-sm font-bold uppercase text-blue-dark">Full dossier · ranges shown</Text>
+              <Text className="mt-3 text-right font-mono text-sm font-bold uppercase text-blue-dark">Full report · ranges shown</Text>
             </Pressable>
           ))}
         </View>
@@ -350,12 +440,16 @@ function ScoutingDesk({
                   <Text className="text-base font-bold uppercase text-ink">{choice.regionLabel}</Text>
                   <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">{choice.focusLabel}</Text>
                 </View>
-                <Text className="font-mono text-base font-bold text-ink">{formatCompactNumber(choice.cost)}</Text>
+                <Text className="font-mono text-base font-bold text-ink">{formatCurrency(choice.cost)}</Text>
               </View>
               <Text className="mt-2 text-sm leading-5 text-ink/60">{choice.detail}</Text>
               <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
                 <Text className="font-mono text-sm uppercase text-ink/50">{choice.durationLabel}</Text>
-                <GuidedAction enabled={guideFocus === 'scout-mission' && index === 0} detail="Send the scout">
+                <GuidedAction
+                  enabled={guideFocus === 'scout-mission' && index === 0}
+                  detail="Send the scout"
+                  targetRef={choice.id === scrollDismissTargetId ? southAmericaScoutActionRef : undefined}
+                >
                   <SmallAction
                     label="Send scout"
                     accessibilityLabel={`Send scout to ${choice.regionLabel} for ${choice.focusLabel}`}
@@ -388,12 +482,12 @@ function TransferDesk({
   return (
     <View className="mt-6">
       <SectionLabel
-        eyebrow="Transfer wire"
-        title="Buy promise · sell peaks"
+        eyebrow="Transfers"
+        title="Buy players · sell your own"
         right={<StatusChip label={viewModel.window.label} tone={viewModel.window.open ? 'success' : 'danger'} />}
       />
       {viewModel.transfers.length === 0 ? (
-        <EmptyDocket title="No offers filed" detail="Scout reports and listed players will appear here." />
+        <EmptyDocket title="No transfer activity" detail="Scouted players and listed players will appear here." />
       ) : (
         <View className="gap-3">
           {viewModel.transfers.map(listing => (
@@ -419,10 +513,10 @@ function TransferDesk({
               <View className="p-3">
                 {listing.powerLabel ? <StatusChip label={`★ ${listing.powerLabel}`} tone="hero" /> : null}
                 <View className={listing.powerLabel ? 'mt-3 flex-row gap-2' : 'flex-row gap-2'}>
-                  <Metric label="Valuation" value={formatCompactNumber(listing.valuation)} />
+                  <Metric label="Valuation" value={formatCurrency(listing.valuation)} />
                   <Metric
                     label={listing.quoteLabel}
-                    value={formatCompactNumber(listing.quote)}
+                    value={formatCurrency(listing.quote)}
                     tone={listing.direction === 'BUY' ? 'negative' : 'positive'}
                   />
                 </View>
@@ -452,13 +546,13 @@ function TransferDesk({
                         <View className="flex-1">
                           <Text className="font-bold text-ink">{index + 1}. {bid.buyerName}</Text>
                           <Text className="mt-1 font-mono text-sm font-bold text-pitch-dark">
-                            {formatCompactNumber(bid.fee)} fee
+                            {formatCurrency(bid.fee)} fee
                           </Text>
                         </View>
                         <GuidedAction enabled={guideFocus === 'transfer-bid' && listing === guidedListing && index === 0} detail="Review this bid">
                           <SmallAction
                             label="Accept"
-                            accessibilityLabel={`Accept ${bid.buyerName} bid of ${bid.fee} for ${listing.playerName}`}
+                            accessibilityLabel={`Accept ${bid.buyerName} bid of ${formatCurrency(bid.fee)} for ${listing.playerName}`}
                             disabled={!listing.available}
                             onPress={() => onTransferAction(listing.playerId, 'SELL', bid.id)}
                           />
@@ -530,14 +624,28 @@ function CoachDesk({
               </View>
               <View className="mt-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
                 <Text className="font-mono text-sm font-bold uppercase text-ink">
-                  {formatCompactNumber(coach.weeklyWage)} / week
+                  {formatCurrency(coach.weeklyWage)} / week
                 </Text>
+                <View className="mt-2 border-t border-blue-dark/25 pt-2">
+                  <Text className="font-mono text-sm font-bold uppercase text-blue-dark">As head coach</Text>
+                  {coach.headEffectLabels.map(effect => (
+                    <Text key={`head-${effect}`} className="mt-1 text-sm font-bold text-ink">{effect}</Text>
+                  ))}
+                </View>
+                {coach.assistantSlotUnlocked ? (
+                  <View className="mt-2 border-t border-blue-dark/25 pt-2">
+                    <Text className="font-mono text-sm font-bold uppercase text-violet-dark">As assistant</Text>
+                    {coach.assistantEffectLabels.map(effect => (
+                      <Text key={`assistant-${effect}`} className="mt-1 text-sm text-ink/75">{effect}</Text>
+                    ))}
+                  </View>
+                ) : null}
                 {coach.unlockLabel ? <Text className="mt-1 text-sm text-ink/65">{coach.unlockLabel}</Text> : null}
                 {coach.loyaltyLabel ? <Text className="mt-1 text-sm font-bold text-gold-dark">{coach.loyaltyLabel}</Text> : null}
               </View>
               <View className="mt-3 gap-2">
                 <Text className="text-sm text-stamp">
-                  {coach.currentRole ?? coach.blockedReason ?? 'Ready to hear the club pitch.'}
+                  {coach.currentRole ?? coach.blockedReason ?? 'Available to hire.'}
                 </Text>
                 {!coach.assistantSlotUnlocked ? (
                   <Text className="text-sm font-bold text-blue-dark">Build the Coaching Office to open the assistant desk.</Text>
@@ -545,18 +653,18 @@ function CoachDesk({
                 <View className="flex-row justify-end gap-2">
                   <GuidedAction
                     enabled={(guideFocus === 'coach-market' || guideFocus === 'coach-hire') && coach.id === guidedHeadCoachId}
-                    detail="Hire the head coach"
+                    detail="If you want to hire this coach"
                   >
                     <SmallAction
-                      label="Head"
+                      label="Hire as head"
                       accessibilityLabel={`Hire ${coach.name} as head coach`}
                       disabled={!coach.headAvailable}
                       onPress={() => onHireCoach(coach.id, 'HEAD')}
                     />
                   </GuidedAction>
-                  <GuidedAction enabled={guideFocus === 'assistant-coach-hire' && coach.id === guidedAssistantCoachId} detail="Hire the assistant">
+                  <GuidedAction enabled={guideFocus === 'assistant-coach-hire' && coach.id === guidedAssistantCoachId} detail="If you want to hire this coach">
                     <SmallAction
-                      label="Assistant"
+                      label="Hire as assistant"
                       accessibilityLabel={`Hire ${coach.name} as assistant coach`}
                       disabled={!coach.assistantAvailable}
                       onPress={() => onHireCoach(coach.id, 'ASSISTANT')}
@@ -637,18 +745,18 @@ export function NegotiationPanel({
             <View className="mt-2 flex-row items-stretch gap-2">
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Reduce weekly wage by ${viewModel.wageStep}`}
+                accessibilityLabel={`Reduce weekly wage by ${formatCurrency(viewModel.wageStep)}`}
                 onPress={() => setWeeklyWage(value => Math.max(viewModel.wageStep, value - viewModel.wageStep))}
                 className="h-12 w-12 items-center justify-center border-2 border-b-4 border-ink bg-paper-dark"
               >
                 <Text className="font-mono text-2xl font-bold text-ink">−</Text>
               </Pressable>
               <View className="h-12 flex-1 items-center justify-center border-2 border-ink bg-white">
-                <Text className="font-mono text-xl font-bold text-ink">{formatCompactNumber(weeklyWage)} / wk</Text>
+                <Text className="font-mono text-xl font-bold text-ink">{formatCurrency(weeklyWage)} / wk</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Increase weekly wage by ${viewModel.wageStep}`}
+                accessibilityLabel={`Increase weekly wage by ${formatCurrency(viewModel.wageStep)}`}
                 onPress={() => setWeeklyWage(value => value + viewModel.wageStep)}
                 className="h-12 w-12 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light"
               >
@@ -739,7 +847,7 @@ export function NegotiationPanel({
             ) : null}
             <ActionButton
               label="Make the offer  ▸"
-              accessibilityLabel={`Offer ${weeklyWage} per week for ${termSeasons} seasons`}
+              accessibilityLabel={`Offer ${formatCurrency(weeklyWage)} per week for ${termSeasons} seasons`}
               variant="confirm"
               onPress={() => onSubmitContractOffer({ weeklyWage, termSeasons, perk }, pitchCard)}
             />
@@ -765,14 +873,16 @@ export function NegotiationPanel({
 function GuidedAction({
   enabled,
   detail,
+  targetRef,
   children,
 }: {
   enabled: boolean;
   detail: string;
+  targetRef?: RefObject<View | null>;
   children: ReactNode;
 }) {
   return (
-    <View className={enabled ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
+    <View ref={targetRef} className={enabled ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
       {enabled ? (
         <TutorialTapCue
           detail={detail}

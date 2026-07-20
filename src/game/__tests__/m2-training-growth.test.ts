@@ -46,7 +46,7 @@ describe('M2 player-specific training growth', () => {
     expect(player.attrs.sta).toBe(91);
   });
 
-  test('combines coach and facility percentages before the one final rounding step', () => {
+  test('banks the fractional coach bonus after other growth multipliers', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90212), careerMode: 'full' });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     const coach = {
@@ -90,10 +90,57 @@ describe('M2 player-specific training growth', () => {
       },
     };
 
-    const player = resolveCareerTrainingWeek(state).players.find(candidate => candidate.id === playerId)!;
+    const firstWeek = resolveCareerTrainingWeek(state);
+    const firstPlayer = firstWeek.players.find(candidate => candidate.id === playerId)!;
+    const secondWeek = resolveCareerTrainingWeek({ ...state, players: firstWeek.players });
+    const secondPlayer = secondWeek.players.find(candidate => candidate.id === playerId)!;
 
-    // 1 x Lv4 Attack 1.4 x Lv3 Shooting Range 2.0 = 2.8, rounded once.
-    expect(player.attrs.sho).toBe(53);
+    // Each week has +2 base growth and +0.8 from the coach. The fractional
+    // coach portion carries, so two weeks award five whole points and retain .6.
+    expect(firstPlayer.attrs.sho).toBe(52);
+    expect(firstPlayer.coachTrainingBonusRemainders?.sho).toBe(80);
+    expect(secondPlayer.attrs.sho).toBe(55);
+    expect(secondPlayer.coachTrainingBonusRemainders?.sho).toBe(60);
+  });
+
+  test('turns a Level 1 Attack coach into one exact extra point over repeated +3 drills', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(90214), careerMode: 'full' });
+    const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
+    const coach = {
+      id: 'level-one-coach',
+      name: 'Level One Coach',
+      specialties: ['ATTACK', 'MOTIVATOR'] as const,
+      level: 1,
+      weeklyWage: 500,
+      personality: 'PROFESSIONAL' as const,
+      requiredDivision: 5,
+      requiredFame: 0,
+      loyaltyDiscountPercent: 0,
+    };
+    let state = {
+      ...initial,
+      players: initial.players.map(player => player.id === playerId
+        ? { ...player, age: 25, archetype: 'Anchor' as const, attrs: { ...player.attrs, sho: 50 } }
+        : player),
+      market: { ...initial.market!, headCoach: coach },
+      trainingPlan: {
+        assignedPlayerIds: [playerId],
+        drills: [{ id: 'finishing-carry', moneyCost: 0, tpCost: 0, gains: { sho: 3 } }],
+      },
+    };
+    const weeklyGains: number[] = [];
+
+    for (let week = 0; week < 4; week += 1) {
+      const before = state.players.find(player => player.id === playerId)!.attrs.sho;
+      const result = resolveCareerTrainingWeek(state);
+      const after = result.players.find(player => player.id === playerId)!.attrs.sho;
+      weeklyGains.push(after - before);
+      state = { ...state, players: result.players };
+    }
+
+    expect(weeklyGains).toEqual([3, 3, 3, 4]);
+    expect(state.players.find(player => player.id === playerId)?.coachTrainingBonusRemainders?.sho)
+      .toBe(20);
   });
 
   test('caps base and focus gains while preserving an exceptional above-cap rating', () => {

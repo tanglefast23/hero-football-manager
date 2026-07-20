@@ -9,30 +9,30 @@ import type { FacilityTypeViewModel } from './models';
 export function facilityBenefit(type: FacilityTypeViewModel): string {
   switch (type) {
     case 'training-pitch':
-      return 'Adds +5 Training Points every week and powers your general training.';
+      return 'Adds +5 Training Points every week. Upgrades boost defense training.';
     case 'gym':
-      return 'Speeds up speed (PAC) & stamina (STA) training — bigger boost at Level 2+.';
+      return 'Level 1 has no training bonus. Level 2+ boosts pace and stamina training.';
     case 'tech-center':
-      return 'Speeds up passing (PAS) & technique (TEC) training — bigger boost at Level 2+.';
+      return 'Level 1 has no training bonus. Level 2+ boosts passing and technique training.';
     case 'shooting-range':
-      return 'Speeds up shooting (SHO) training — bigger boost at Level 2+.';
+      return 'Level 1 has no training bonus. Level 2+ boosts shooting training.';
     case 'keeper-court':
-      return 'Speeds up goalkeeping (REF) training — bigger boost at Level 2+.';
+      return 'Level 1 has no training bonus. Level 2+ boosts goalkeeping training.';
     case 'medical-bay':
-      return 'Heals injuries faster and lowers weekly injury risk.';
+      return 'Shortens injuries by one week. Pair it with a Training Pitch for 20% lower injury risk.';
     case 'dorm':
       return 'Place next to a Gym for +10% stamina training every week.';
     case 'scout-office':
-      return 'Improves transfer scouting — better targets at higher levels.';
+      return 'Narrows player rating estimates. Level 3 confirms reported powers.';
     case 'coaching-office':
-      return 'Home base for your coaching staff.';
+      return 'Unlocks the assistant coach position.';
     case 'youth-field':
-      return 'Unlocks youth intake and bigger youth signing bonuses.';
+      return 'Improves youth ratings and potential. Better prospects cost larger signing bonuses.';
     case 'fan-shop':
       return 'Earns weekly merchandise income — more per Level.';
     case 'stadium-stand':
       return 'Place next to a Fan Shop for +10% merchandise income.';
     case 'hero-lab':
-      return 'Advanced hero research facility.';
+      return 'Hero research is not available yet.';
   }
 }

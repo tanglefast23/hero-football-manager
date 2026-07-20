@@ -292,9 +292,43 @@ describe('weekly player wellbeing', () => {
     expect(updated).toMatchObject({
       morale: 28,
       consecutiveLowMoraleWeeks: 2,
-      motivatorMoraleRemainder: 50,
+      motivatorMoraleRemainderHalfPoints: 100,
       transferRequested: true,
     });
+  });
+
+  test('gives a Level 1 assistant Motivator an exact 2.5% morale effect', () => {
+    let state = createCareer(createLaunchCareerSetup(11, undefined, undefined, 'full'));
+    const player = userPlayers(state)[0];
+    const assistant = state.market!.coachCandidates[0];
+    state = withUserPlayerChanges(state, candidate => candidate.id === player.id
+      ? {
+          ...candidate,
+          power: 'SUPER_SPEED',
+          onHeroWage: false,
+          personality: 'Greedy',
+          morale: 100,
+        }
+      : candidate);
+    state = {
+      ...state,
+      market: {
+        ...state.market!,
+        assistantCoach: { ...assistant, level: 1, specialties: ['MOTIVATOR', 'ATTACK'] },
+      },
+    };
+
+    for (let week = 0; week < 20; week += 1) {
+      const result = resolveWeeklyPlayerWellbeing(state, {
+        trainedPlayers: state.players,
+        focusApplied: false,
+      });
+      state = { ...state, players: result.players };
+    }
+
+    const updated = state.players.find(candidate => candidate.id === player.id)!;
+    expect(updated.morale).toBe(61);
+    expect(updated.motivatorMoraleRemainderHalfPoints).toBe(0);
   });
 });
 

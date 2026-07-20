@@ -158,23 +158,67 @@ function applyM2TrainingGrowthModifiers(
     const before = originalById.get(player.id);
     if (before === undefined) throw new Error(`unknown trained player ${player.id}`);
     const attrs = { ...player.attrs };
+    const coachTrainingBonusRemainders = { ...(player.coachTrainingBonusRemainders ?? {}) };
+    let hasCoachRemainderChange = false;
     for (const attribute of Object.keys(attrs) as Array<keyof CareerPlayer['attrs']>) {
       const realizedGain = player.attrs[attribute] - before.attrs[attribute];
       if (realizedGain <= 0) continue;
-      const multiplier = trainingMultiplierForAge(player.age ?? 24)
+      const baseMultiplier = trainingMultiplierForAge(player.age ?? 24)
         * archetypeTrainingMultiplier(player.archetype, attribute)
         * facilityTrainingMultiplier(state, attribute)
-        * ((coachModifiers?.gainScalePercentByAttribute[attribute] ?? 100) / 100)
         * diminishingTrainingMultiplier(before.attrs[attribute]);
-      attrs[attribute] = capArchetypeTrainingGain(
+      const baseGain = Math.max(1, Math.round(realizedGain * baseMultiplier));
+      const coachBonusPercent = (coachModifiers?.gainScalePercentByAttribute[attribute] ?? 100) - 100;
+      const previousRemainder = coachTrainingBonusRemainders[attribute] ?? 0;
+      validateCoachTrainingRemainder(previousRemainder, player.id, attribute);
+      // Bank hundredths instead of rounding a small coach bonus away every week.
+      // Example: a +3 drill with a +10% coach earns 30 hundredths; the fourth
+      // identical session awards +1 and carries the remaining 20 hundredths.
+      const earnedHundredths = coachBonusPercent === 0
+        ? 0
+        : Math.round(realizedGain * baseMultiplier * coachBonusPercent);
+      const totalHundredths = checkedAdd(
+        previousRemainder,
+        earnedHundredths,
+        'coach training bonus progress',
+      );
+      const extraGain = Math.floor(totalHundredths / 100);
+      const nextRemainder = totalHundredths % 100;
+      const proposedValue = checkedAdd(
+        before.attrs[attribute],
+        checkedAdd(baseGain, extraGain, 'coach-adjusted training gain'),
+        'coach-adjusted training attribute',
+      );
+      const cappedValue = capArchetypeTrainingGain(
         player.archetype,
         attribute,
         before.attrs[attribute],
-        before.attrs[attribute] + Math.max(1, Math.round(realizedGain * multiplier)),
+        proposedValue,
       );
+      attrs[attribute] = cappedValue;
+      if (coachBonusPercent > 0) {
+        coachTrainingBonusRemainders[attribute] = cappedValue < proposedValue ? 0 : nextRemainder;
+        hasCoachRemainderChange = true;
+      }
     }
-    return { ...player, attrs };
+    return {
+      ...player,
+      attrs,
+      ...(hasCoachRemainderChange || player.coachTrainingBonusRemainders !== undefined
+        ? { coachTrainingBonusRemainders }
+        : {}),
+    };
   });
+}
+
+function validateCoachTrainingRemainder(
+  remainder: number,
+  playerId: string,
+  attribute: keyof CareerPlayer['attrs'],
+): void {
+  if (!Number.isSafeInteger(remainder) || remainder < 0 || remainder >= 100) {
+    throw new Error(`player ${playerId} ${attribute} coach training remainder must be from 0 to 99`);
+  }
 }
 
 function archetypeTrainingMultiplier(

@@ -10,6 +10,8 @@ import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
 import { DEFAULT_CREATION_RATINGS, type GameState } from '../../game';
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
 import type { PostMatchViewModel } from '../../ui';
+import { loadLaunchContent } from '../../content';
+import { storyEventViewModel } from '../view-models';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {
@@ -25,7 +27,7 @@ describe('M1 app store integration', () => {
       ratings: DEFAULT_CREATION_RATINGS,
     });
     expect(useM1Store.getState().screen).toBe('management');
-    expect(useM1Store.getState().career?.players).toHaveLength(161);
+    expect(useM1Store.getState().career?.players).toHaveLength(159);
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('first-match');
     for (let week = 1; week < 5; week += 1) useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(5);
@@ -103,24 +105,76 @@ describe('M1 app store integration', () => {
     });
   });
 
-  it('offers and resolves the one-time giant-spider club event without awakening anyone', () => {
-    startAwakenedCareer(456);
+  it('awards the spider mascot success bonuses without awakening anyone', () => {
+    startAwakenedCareer(3);
     const career = useM1Store.getState().career!;
     useM1Store.setState({ career: { ...career, week: 7, phase: 'manage' }, screen: 'management' });
 
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe('giant-spider-arrives');
+    const beforeChoice = useM1Store.getState().career!;
+    const userClub = beforeChoice.clubs.find(club => club.id === beforeChoice.userClubId)!;
+    const moraleBefore = beforeChoice.players
+      .filter(player => player.clubId === beforeChoice.userClubId)
+      .map(player => ({ id: player.id, morale: player.morale }));
+    expect(storyEventViewModel(beforeChoice, loadLaunchContent()).choices).toEqual([
+      expect.objectContaining({
+        id: 'adopt-spider',
+        consequenceHint: '35% chance: +10 squad morale and +100 fans. Failure gives no reward.',
+        tone: 'risky',
+      }),
+      expect.objectContaining({
+        id: 'call-groundskeeper',
+        consequenceHint: 'Guaranteed: +10 TP',
+        tone: 'safe',
+      }),
+    ]);
+
     useM1Store.getState().chooseEvent('adopt-spider');
-    expect(useM1Store.getState().career?.eventFlags).toContain('spider-adopted');
+    const resolved = useM1Store.getState().career!;
+    expect(resolved.eventFlags).toContain('spider-adopted');
+    expect(resolved.clubs.find(club => club.id === resolved.userClubId)?.fans).toBe(userClub.fans + 100);
+    for (const player of moraleBefore) {
+      expect(resolved.players.find(candidate => candidate.id === player.id)?.morale)
+        .toBe(Math.min(100, player.morale + 10));
+    }
     expect(userHeroes()).toHaveLength(1);
     useM1Store.getState().continueAfterEvent();
     expect(useM1Store.getState().career?.resolvedEventIds).toContain('giant-spider-arrives');
   });
 
+  it('gives no reward when the spider mascot gamble fails', () => {
+    startAwakenedCareer(456);
+    const career = useM1Store.getState().career!;
+    useM1Store.setState({ career: { ...career, week: 7, phase: 'manage' }, screen: 'management' });
+    useM1Store.getState().advanceCareer();
+    const beforeChoice = useM1Store.getState().career!;
+
+    useM1Store.getState().chooseEvent('adopt-spider');
+    const resolved = useM1Store.getState().career!;
+    expect(resolved.eventFlags).not.toContain('spider-adopted');
+    expect(resolved.clubs).toEqual(beforeChoice.clubs);
+    expect(resolved.players).toEqual(beforeChoice.players);
+    expect(resolved.trainingPoints).toBe(beforeChoice.trainingPoints);
+  });
+
+  it('always awards the safe spider-event training points', () => {
+    startAwakenedCareer(456);
+    const career = useM1Store.getState().career!;
+    useM1Store.setState({ career: { ...career, week: 7, phase: 'manage' }, screen: 'management' });
+    useM1Store.getState().advanceCareer();
+    const beforeChoice = useM1Store.getState().career!;
+
+    useM1Store.getState().chooseEvent('call-groundskeeper');
+    const resolved = useM1Store.getState().career!;
+    expect(resolved.trainingPoints).toBe(beforeChoice.trainingPoints + 10);
+    expect(resolved.eventFlags).not.toContain('spider-adopted');
+  });
+
   it('stores a repeating weekly squad plan and settles it only once per week', () => {
     startCreatedCareer(789);
     const before = useM1Store.getState().career!;
-    const playerId = 'bramble-rovers-p13';
+    const playerId = 'bramble-rovers-created-player';
     const unassignedPlayerId = 'bramble-rovers-p14';
     const beforePac = before.players.find(player => player.id === playerId)!.attrs.pac;
     const beforeUnassignedSta = before.players.find(player => player.id === unassignedPlayerId)!.attrs.sta;
@@ -201,7 +255,7 @@ describe('M1 app store integration', () => {
 
   it('shows why a repeating focus plan was skipped and returns to the new week', () => {
     startCreatedCareer(791);
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
     useM1Store.getState().toggleDrill('sprints');
     useM1Store.getState().applyTraining();
     const planned = useM1Store.getState().career!;
@@ -258,7 +312,7 @@ describe('M1 app store integration', () => {
     useM1Store.getState().completeAssistantGuide('management-intro');
     useM1Store.getState().completeAssistantGuide('squad-intro');
     useM1Store.getState().setActiveTab('squad');
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
     useM1Store.getState().toggleDrill('sprints');
     useM1Store.getState().applyTraining();
     useM1Store.getState().setActiveTab('home');
@@ -291,7 +345,7 @@ describe('M1 app store integration', () => {
       'Finish your first training plan before advancing the week.',
     );
 
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
     useM1Store.getState().toggleDrill('sprints');
     useM1Store.getState().applyTraining();
     useM1Store.getState().advanceCareer();
@@ -328,7 +382,7 @@ describe('M1 app store integration', () => {
   it('completes the real default two-season store flow through events, licenses, and renewal', () => {
     startCreatedCareer(24680);
     useM1Store.getState().buildFacility();
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
     useM1Store.getState().toggleDrill('sprints');
     useM1Store.getState().applyTraining();
 
@@ -376,7 +430,7 @@ describe('M1 app store integration', () => {
       .toContain(replacementId);
     useM1Store.getState().buildFacility();
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-p13');
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
     useM1Store.getState().toggleDrill('sprints');
     useM1Store.getState().applyTraining();
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
@@ -575,6 +629,38 @@ describe('M1 app store integration', () => {
     expect(operations).toEqual([
       'reset:m1-career-20260718',
       'save:20260718',
+    ]);
+  });
+
+  it('erases the replaced career replay namespace before saving a new career', async () => {
+    useM1Store.getState().startNewCareer(111);
+    const existingCareer = useM1Store.getState().career!;
+    useM1Store.setState(useM1Store.getInitialState(), true);
+
+    const operations: string[] = [];
+    const careerRepository: CareerRepository = {
+      async load() { return existingCareer; },
+      async save(career) { operations.push(`save:${career.careerSeed}`); },
+      async delete() {},
+    };
+    const replayRepository: ReplayRepository = {
+      async save() {},
+      async load() { return null; },
+      async listForCareer() { return []; },
+      async delete() {},
+      async deleteAllForCareer(careerId) {
+        operations.push(`reset:${careerId}`);
+      },
+    };
+    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+
+    useM1Store.getState().startNewCareer(222);
+    await waitFor(() => operations.length === 3);
+
+    expect(operations).toEqual([
+      'reset:m1-career-111',
+      'reset:m1-career-222',
+      'save:222',
     ]);
   });
 

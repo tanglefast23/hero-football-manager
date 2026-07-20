@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { loadLaunchContent } from '../content';
 import {
   advanceWeek,
+  FACILITY_CATALOG,
   FACILITY_ADJACENCIES,
   activeCareerMatchday,
   addCreatedPlayer,
@@ -185,7 +186,7 @@ interface M1Store {
   openScoutReport: (playerId: string) => void;
   actOnTransfer: (playerId: string, direction: 'BUY' | 'SELL', bidId?: string) => void;
   hireCoach: (coachId: string, role?: 'HEAD' | 'ASSISTANT') => void;
-  dismissCoach: () => void;
+  dismissCoach: (role?: 'HEAD' | 'ASSISTANT') => void;
   protectBoardCandidate: (playerId: string) => void;
   signYouth: (playerId: string) => void;
   declineYouth: () => void;
@@ -259,6 +260,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (get().persistenceLoadError !== null) {
         throw new Error('Resolve the save-load error before replacing this career.');
       }
+      const replacedCareerId = get().career === null
+        ? null
+        : `m1-career-${get().career!.careerSeed}`;
       const career = beginStoryOnboarding(createCareer(createLaunchCareerSetup(
         seed ?? generateCareerSeed(),
         undefined,
@@ -279,7 +283,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         weekReview: null,
         error: null,
       });
-      queueNewCareerSave(get, set, career);
+      queueNewCareerSave(get, set, career, replacedCareerId);
     });
   },
 
@@ -380,7 +384,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       || matchday?.kind !== 'national-cup'
       || matchday.fixture.id !== fixtureId
     ) {
-      set({ error: 'This tie becomes playable on its Cup Match Day after any league fixture.' });
+      set({ error: 'Finish this week’s league match first. Then the Cup Match Day will open.' });
       return;
     }
     set({ screen: 'matchday', activeTab: 'league', error: null });
@@ -871,7 +875,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({
         career: transaction.state,
         error: null,
-        notice: { tone: 'success', message: `Facility built.${discovery}` },
+        notice: { tone: 'success', message: `${FACILITY_CATALOG[type].name} construction started.${discovery}` },
       });
       queueCareerSave(get, set, transaction.state);
     });
@@ -879,14 +883,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   upgradeClubFacility(buildingId) {
     guarded(set, () => {
-      const transaction = upgradeCareerFacility(requireCareer(get()), buildingId);
+      const career = requireCareer(get());
+      const building = career.facilities.grid?.buildings.find(candidate => candidate.id === buildingId);
+      if (building === undefined) throw new Error(`unknown facility ${buildingId}`);
+      const transaction = upgradeCareerFacility(career, buildingId);
       const discovery = transaction.newlyDiscoveredAdjacencies.length === 0
         ? ''
         : ` Adjacency discovered: ${transaction.newlyDiscoveredAdjacencies.map(adjacencyDescription).join(', ')}.`;
       set({
         career: transaction.state,
         error: null,
-        notice: { tone: 'success', message: `Facility upgraded.${discovery}` },
+        notice: { tone: 'success', message: `${FACILITY_CATALOG[building.type].name} upgrade started.${discovery}` },
       });
       queueCareerSave(get, set, transaction.state);
     });
@@ -936,7 +943,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({ error: 'That scouting report is no longer available.' });
       return;
     }
-    set({ notice: { tone: 'info', message: 'The full scout ranges are shown on this dossier.' } });
+    set({ notice: { tone: 'info', message: 'This scouting report shows the full estimated ranges.' } });
   },
 
   actOnTransfer(playerId, direction, bidId) {
@@ -971,7 +978,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           error: null,
           notice: {
             tone: 'info',
-            message: `Player listed. ${bidCount} bid${bidCount === 1 ? '' : 's'} arrived on the transfer wire.`,
+            message: `Player listed. ${bidCount} bid${bidCount === 1 ? '' : 's'} arrived in Transfers.`,
           },
         });
         queueCareerSave(get, set, next);
@@ -988,7 +995,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         error: null,
         notice: {
           tone: 'success',
-          message: `${buyer?.name ?? 'The buying club'} signed the player for ${bid.quote.fee.toLocaleString()}.`,
+          message: `${buyer?.name ?? 'The buying club'} signed the player for $${bid.quote.fee.toLocaleString()}.`,
         },
       });
       queueCareerSave(get, set, next);
@@ -1021,10 +1028,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  dismissCoach() {
+  dismissCoach(role = 'HEAD') {
     guarded(set, () => {
       const career = requireCareer(get());
-      const transaction = dismissCareerCoach(career, requireMarket(career));
+      const transaction = dismissCareerCoach(career, requireMarket(career), role);
       const next = { ...transaction.state, market: transaction.market };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
@@ -1067,7 +1074,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         set({
           career: next,
           error: null,
-          notice: { tone: 'success', message: 'Transfer complete. The player has joined the squad.' },
+          notice: {
+            tone: 'success',
+            message: 'Transfer complete. The squad is now full; Bert has left a note about future signings.',
+          },
         });
         queueCareerSave(get, set, next);
         return;
@@ -1465,6 +1475,7 @@ function queueNewCareerSave(
   get: () => M1Store,
   set: (partial: Partial<M1Store>) => void,
   career: GameState,
+  replacedCareerId: string | null,
 ): void {
   const careerRepository = get().repository;
   const replayRepository = get().replayRepository;
@@ -1473,6 +1484,9 @@ function queueNewCareerSave(
   enqueueSave(
     set,
     async () => {
+      if (replacedCareerId !== null && replacedCareerId !== careerId) {
+        await replayRepository?.deleteAllForCareer(replacedCareerId);
+      }
       await replayRepository?.deleteAllForCareer(careerId);
       await careerRepository?.save(career);
     },

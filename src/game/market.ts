@@ -112,7 +112,7 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
     throw new Error(`unknown scouting region ${String(setup.region)}`);
   }
   if (setup.focus.kind === 'RUMORED_HERO' && setup.division > 3) {
-    throw new Error('rumored hero scouting unlocks in Division 3');
+    throw new Error('rumored hero scouting unlocks in D3 · Regional League');
   }
 
   const missionSeed = mixSeed(

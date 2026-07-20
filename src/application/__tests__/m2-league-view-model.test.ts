@@ -93,15 +93,15 @@ describe('m2LeagueViewModel', () => {
 
     expect(view).toMatchObject({
       seasonLabel: 'Season 2',
-      userDivisionBadge: 'DIVISION 5 · #3',
+      userDivisionBadge: 'D5 · #3',
       selectedDivision: 2,
       selectedDivisionSummary: {
-        label: 'Division 2',
+        label: 'D2 · National Championship',
         selected: true,
         userDivision: false,
       },
       activeTable: {
-        divisionLabel: 'Division 5',
+        divisionLabel: 'D5 · District League',
         rulesLabel: 'Top 2 promoted',
         matchesPlayed: 8,
       },
@@ -109,6 +109,11 @@ describe('m2LeagueViewModel', () => {
     expect(view.divisions.map(division => division.level)).toEqual([1, 2, 3, 4, 5]);
     expect(view.divisions.map(division => division.averageStrength)[0])
       .toBeGreaterThan(view.divisions.map(division => division.averageStrength)[4]);
+    expect(view.selectedDivisionSummary).toMatchObject({
+      userSquadStrength: 47,
+      comparisonTone: 'below',
+    });
+    expect(view.selectedDivisionSummary.comparisonLabel).toMatch(/^\d+ below range$/);
     expect(view.activeTable.rows).toHaveLength(10);
     expect(view.activeTable.rows[2]).toMatchObject({
       clubId: USER_CLUB.id,
@@ -137,7 +142,26 @@ describe('m2LeagueViewModel', () => {
     expect(JSON.parse(JSON.stringify(view))).toEqual(view);
   });
 
-  it('shows the current cup draw, filed round history, and resolved club names', () => {
+  it('uses the live squad rating when comparing the club with a division', () => {
+    const career = initializeM2Career({ careerSeed: 551, userClub: USER_CLUB });
+    const district = career.pyramid.divisions.find(division => division.level === 5)!;
+    const minimum = Math.min(...district.clubs.map(club => club.squadStrength));
+    const view = m2LeagueViewModel({
+      career,
+      season: 2,
+      activeStandings: standings(career),
+      selectedDivision: 5,
+      userSquadStrength: minimum,
+    });
+
+    expect(view.selectedDivisionSummary).toMatchObject({
+      userSquadStrength: minimum,
+      comparisonLabel: 'Within range',
+      comparisonTone: 'competitive',
+    });
+  });
+
+  it('shows the current cup draw, completed round history, and resolved club names', () => {
     let career = startM2NationalCup(
       initializeM2Career({ careerSeed: 82, userClub: USER_CLUB }),
       3,
@@ -157,7 +181,7 @@ describe('m2LeagueViewModel', () => {
       label: 'Play-in',
       matchCount: 18,
       completedCount: 18,
-      statusLabel: 'Filed',
+      statusLabel: 'Complete',
     });
     expect(view.cup.history[1]).toMatchObject({
       label: 'Round of 32',

@@ -6,6 +6,7 @@ import {
   createLegendLegacy,
   createNationalCup,
   generateLeaguePyramid,
+  divisionTierLabel,
   isClubLegend,
   lowMoraleStatModifier,
   opponentStrengthForSeason,
@@ -54,6 +55,20 @@ function winResults(cup: NationalCup): NationalCupResult[] {
 }
 
 describe('five-division pyramid generation', () => {
+  it('uses recognizable football tier names and a genuinely elite Global League', () => {
+    expect([5, 4, 3, 2, 1].map(level => divisionTierLabel(level as 1 | 2 | 3 | 4 | 5))).toEqual([
+      'D5 · District League',
+      'D4 · County League',
+      'D3 · Regional League',
+      'D2 · National Championship',
+      'D1 · Global League',
+    ]);
+    const globalLeagueStrengths = generateLeaguePyramid(88_421).divisions[0].clubs
+      .map(club => club.squadStrength);
+    expect(Math.min(...globalLeagueStrengths)).toBeGreaterThanOrEqual(84);
+    expect(Math.max(...globalLeagueStrengths)).toBeLessThanOrEqual(94);
+  });
+
   it('generates 50 persistent clubs and correctly shaped 16-player squads deterministically', () => {
     const first = generateLeaguePyramid(88421);
     const second = generateLeaguePyramid(88421);

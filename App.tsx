@@ -1,7 +1,7 @@
 import './global.css';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Text, View } from 'react-native';
+import { Modal, Text, View } from 'react-native';
 import { openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -82,10 +82,12 @@ import {
   type CoachOverlayCoach,
   type FacilityProjectNoticeModel,
   type PlayerSigningConfirmation,
+  formatCurrency,
   shouldShowOpeningBrief,
 } from './src/ui';
 import {
   careerCoachUnlockedFormationIds,
+  clubSquadStrength,
   hasAssistantGuideSequenceCompleted,
   leagueStandings,
 } from './src/game';
@@ -185,6 +187,7 @@ function GameApp() {
   const [conciergeFocus, setConciergeFocus] = useState<AssistantGuideFocus | null>(null);
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
+  const [settingsSaveError, setSettingsSaveError] = useState<string | null>(null);
   const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [trainingTransition, setTrainingTransition] = useState<TrainingTransitionScene | null>(null);
@@ -206,8 +209,10 @@ function GameApp() {
 
   const savePreferences = useCallback((next: AppPreferences) => {
     setPreferences(next);
+    setSettingsSaveError(null);
     void preferencesRepositoryRef.current?.save(next).catch(error => {
-      Alert.alert('Settings were not saved', error instanceof Error ? error.message : String(error));
+      const detail = error instanceof Error ? error.message : String(error);
+      setSettingsSaveError(`Settings were not saved. ${detail}`);
     });
   }, []);
 
@@ -326,40 +331,49 @@ function GameApp() {
     setCoachOverlay({
       mode: 'hired',
       coach: {
+        role,
         portraitId: candidate.portraitId,
         name: candidate.name,
         age: candidate.age,
         level: candidate.level,
         specialtyLabels: candidate.specialtyLabels,
+        effectLabels: role === 'HEAD' ? candidate.headEffectLabels : candidate.assistantEffectLabels,
         weeklyWage: candidate.weeklyWage,
       },
     });
   }, []);
 
-  const beginCoachDismissal = useCallback(() => {
+  const beginCoachDismissal = useCallback((role: 'HEAD' | 'ASSISTANT' = 'HEAD') => {
     const career = useM1Store.getState().career;
     if (career === null) return;
-    const coach = clubFinancesViewModel(career).headCoach;
+    const staff = squadTrainingViewModel(career, content, undefined, [], []).coachingStaff;
+    const coach = staff.find(candidate => candidate.role === role);
     if (coach === undefined) return;
     setCoachOverlay({
       mode: 'confirm-dismiss',
       coach: {
+        role,
         portraitId: coach.portraitId,
         name: coach.name,
         age: coach.age,
         level: coach.level,
         specialtyLabels: coach.specialtyLabels,
+        effectLabels: coach.effectLabels,
         weeklyWage: coach.weeklyWage,
         severanceCost: coach.severanceCost,
       },
     });
-  }, []);
+  }, [content]);
 
   const confirmCoachDismissal = useCallback(() => {
     if (coachOverlay?.mode !== 'confirm-dismiss') return;
     const dismissedCoach = coachOverlay.coach;
-    useM1Store.getState().dismissCoach();
-    if (useM1Store.getState().career?.market?.headCoach !== undefined) return;
+    useM1Store.getState().dismissCoach(dismissedCoach.role);
+    const marketAfter = useM1Store.getState().career?.market;
+    const roleStillFilled = dismissedCoach.role === 'HEAD'
+      ? marketAfter?.headCoach !== undefined
+      : marketAfter?.assistantCoach !== undefined;
+    if (roleStillFilled) return;
     playCoachDepartureSfx();
     playManagementHaptic('warning');
     setCoachOverlay({ mode: 'dismissed', coach: dismissedCoach });
@@ -552,19 +566,14 @@ function GameApp() {
       store.startNewCareer(undefined, 'full');
       return;
     }
-    Alert.alert(
-      'Replace saved career?',
-      'Starting over permanently erases the current career and its match replays.',
-      [
-        { text: 'Keep saved career', style: 'cancel' },
-        {
-          text: 'Erase and start over',
-          style: 'destructive',
-          onPress: () => store.startNewCareer(undefined, 'full'),
-        },
-      ],
-    );
-  }, [store.hasSavedCareer, store.startNewCareer]);
+    requestConfirmation({
+      title: 'Replace saved career?',
+      detail: 'Starting over permanently erases the current career and its match replays.',
+      confirmLabel: 'Erase and start over',
+      tone: 'danger',
+      onConfirm: () => store.startNewCareer(undefined, 'full'),
+    });
+  }, [requestConfirmation, store.hasSavedCareer, store.startNewCareer]);
 
   useEffect(() => {
     if (store.career !== null) store.reconcileAssistantInbox();
@@ -886,6 +895,7 @@ function GameApp() {
         guideTarget={assistantObjective?.target}
         onMoneyGuideAnchorChange={setMoneyGuideAnchor}
         onNavigationGuideAnchorChange={setNavigationGuideAnchor}
+        onDismissGuidance={conciergeFocus === null ? undefined : () => setConciergeFocus(null)}
       >
         {store.activeTab === 'squad' ? (
           <SquadTrainingScreen
@@ -905,6 +915,8 @@ function GameApp() {
             onTogglePlayerAssignment={store.toggleTrainingPlayer}
             onToggleDrill={store.toggleDrill}
             onApplyTraining={lockTrainingPlanWithFeedback}
+            onOpenCoachMarket={() => store.setActiveTab('market')}
+            onDismissCoach={beginCoachDismissal}
             guideTraining={assistantObjective?.target === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
           />
@@ -918,7 +930,7 @@ function GameApp() {
               const building = finances.facilities.buildings.find(candidate => candidate.id === buildingId);
               requestConfirmation({
                 title: `Upgrade ${building?.name ?? 'facility'}?`,
-                detail: `Spend ${building?.upgradeCost?.toLocaleString() ?? 'the shown cost'} now. Weekly upkeep will rise with the new level.`,
+                detail: `Spend ${building?.upgradeCost === undefined ? 'the shown cost' : formatCurrency(building.upgradeCost)} now. Weekly upkeep will rise with the new level.`,
                 confirmLabel: 'Approve upgrade',
                 onConfirm: () => upgradeClubFacilityWithFeedback(buildingId),
               });
@@ -961,7 +973,7 @@ function GameApp() {
                   ? `Accept ${bid?.buyerName ?? 'this club'} bid?`
                   : `List ${listing?.playerName ?? 'this player'}?`,
                 detail: acceptingBid
-                  ? `Receive ${bid?.fee.toLocaleString() ?? 'the shown fee'} for ${listing?.playerName ?? 'the player'}. The player leaves immediately and will be removed from the Starting XI and training plan.`
+                  ? `Receive ${bid === undefined ? 'the shown fee' : formatCurrency(bid.fee)} for ${listing?.playerName ?? 'the player'}. The player leaves immediately and will be removed from the Starting XI and training plan.`
                   : 'The transfer office will request up to three club bids. Listing does not sell the player; you will compare every offer first.',
                 confirmLabel: acceptingBid ? 'Accept bid' : 'Request bids',
                 tone: acceptingBid ? 'danger' : 'normal',
@@ -980,7 +992,7 @@ function GameApp() {
               const roleLabel = role === 'HEAD' ? 'head coach' : 'assistant coach';
               requestConfirmation({
                 title: current ? `Replace ${current.name}?` : `Hire ${coach?.name ?? 'this coach'}?`,
-                detail: `${coach?.name ?? 'The coach'} will become ${roleLabel} and costs ${coach?.weeklyWage.toLocaleString() ?? 'the shown wage'} each week.${current ? ` The current ${roleLabel} leaves immediately.` : ''}`,
+                detail: `${coach?.name ?? 'The coach'} will become ${roleLabel} and costs ${coach === undefined ? 'the shown wage' : formatCurrency(coach.weeklyWage)} each week.${current ? ` The current ${roleLabel} leaves immediately.` : ''}`,
                 confirmLabel: current ? 'Replace coach' : 'Hire coach',
                 tone: current ? 'danger' : 'normal',
                 onConfirm: () => hireCoachWithFeedback(coachId, role),
@@ -1005,6 +1017,7 @@ function GameApp() {
             })}
             onSubmitContractOffer={submitTransferOfferWithFeedback}
             onCloseNegotiation={store.closeTransferTalks}
+            onDismissGuideFocus={() => setConciergeFocus(null)}
             guideFocus={conciergeFocus ?? undefined}
           />
         ) : store.activeTab === 'league' && store.career.m2 !== undefined ? (
@@ -1013,6 +1026,9 @@ function GameApp() {
               career: store.career.m2,
               season: store.career.season,
               activeStandings: leagueStandings(store.career),
+              userSquadStrength: clubSquadStrength(store.career.players.filter(
+                player => player.clubId === store.career?.userClubId,
+              )),
               selectedDivision: selectedLeagueDivision,
               selectedCupSeason,
               leagueFixtures: store.career.fixtures,
@@ -1125,10 +1141,14 @@ function GameApp() {
           volume={devVolume}
           reduceMotion={preferences.reduceMotion}
           hudSide={preferences.hudSide}
+          saveError={settingsSaveError}
           onVolumeChange={volume => savePreferences({ ...preferences, masterVolume: volume })}
           onToggleReduceMotion={toggleReduceMotion}
           onToggleHudSide={toggleHudSide}
-          onOpenChange={setGlobalSettingsOpen}
+          onOpenChange={open => {
+            setGlobalSettingsOpen(open);
+            if (!open) setSettingsSaveError(null);
+          }}
         />
         {assistantSequenceId !== null ? (
           <AssistantGuideOverlay
@@ -1244,7 +1264,7 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
     triggerDetail: trigger.detail,
     triggerCopy: trigger.copy.split('{name}').join('ZIP VELA'),
     omenCopy: 'The turf dents beneath ZIP VELA’s palm. Everyone in the huddle feels the shock before they hear it.',
-    revealCopy: 'KRAK! ZIP VELA floats upright as the ground shudders. He is, quite suddenly, enormous.',
+    revealCopy: 'KRAK! ZIP VELA floats upright as the ground shudders. ZIP VELA is, quite suddenly, enormous.',
     firstHero: true,
     licenseLabel: 'Hero license active',
     continueLabel: triggerIndex === content.onboarding.triggers.length - 1
@@ -1289,8 +1309,9 @@ function BootFailure({ message, onRetry }: { message: string; onRetry: () => voi
   return (
     <SafeAreaView className="flex-1 items-center justify-center bg-ink px-6">
       <View className="w-full border-2 border-stamp bg-paper p-5">
-        <Text className="text-lg font-bold uppercase text-stamp">The club files would not open</Text>
-        <Text className="mt-3 text-sm leading-5 text-ink/70">{message}</Text>
+        <Text className="text-lg font-bold uppercase text-stamp">We could not open your club</Text>
+        <Text className="mt-3 text-sm leading-5 text-ink/70">Your saved career has not been changed. Try again.</Text>
+        <Text className="mt-2 text-xs leading-4 text-ink/50">Technical detail: {message}</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Retry opening club files"

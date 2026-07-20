@@ -10,8 +10,9 @@ describe('facilityBenefit', () => {
 
   it('describes the gym as speed and stamina training', () => {
     const gym = facilityBenefit('gym');
-    expect(gym).toMatch(/PAC/);
-    expect(gym).toMatch(/STA/);
+    expect(gym).toMatch(/pace/);
+    expect(gym).toMatch(/stamina/);
+    expect(gym).toMatch(/Level 2\+/);
   });
 
   it('states the training pitch training-point bonus', () => {

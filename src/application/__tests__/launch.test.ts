@@ -199,9 +199,12 @@ describe('launch career adapter', () => {
         expect(player.lookId).toBe(oldLookId);
       }
     }
-    expect(changedPlayers).toHaveLength(1);
-    expect(userIdsByOldLook.get(expectedUserLooks.get(changedPlayers[0].id) ?? ''))
-      .toHaveLength(2);
+    const duplicateOverflow = [...userIdsByOldLook.values()]
+      .reduce((count, playerIds) => count + Math.max(0, playerIds.length - 1), 0);
+    expect(changedPlayers).toHaveLength(duplicateOverflow);
+    expect(changedPlayers.every(player => (
+      (userIdsByOldLook.get(expectedUserLooks.get(player.id) ?? '')?.length ?? 0) > 1
+    ))).toBe(true);
     expect(reconcileLaunchRoster(reconciled, loadLaunchContent(), true))
       .toStrictEqual(reconciled);
   });

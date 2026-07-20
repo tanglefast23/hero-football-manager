@@ -298,9 +298,26 @@ export interface FocusDrillViewModel {
   available: boolean;
 }
 
+export interface CoachStaffMemberViewModel {
+  id: string;
+  role: 'HEAD' | 'ASSISTANT';
+  roleLabel: 'Head coach' | 'Assistant coach';
+  portraitId: string;
+  name: string;
+  age: number;
+  personalityLabel: string;
+  level: number;
+  specialtyLabels: readonly [string, string];
+  effectLabels: readonly string[];
+  weeklyWage: number;
+  seasonsEmployed: number;
+  severanceCost: number;
+}
+
 export interface SquadTrainingViewModel {
   resources: ResourceSummaryViewModel;
   players: readonly SquadPlayerViewModel[];
+  coachingStaff: readonly CoachStaffMemberViewModel[];
   selectedPlayerId?: string;
   createdPlayerId?: string;
   drills: readonly FocusDrillViewModel[];

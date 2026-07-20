@@ -206,7 +206,7 @@ export function synchronizeM2ActiveDivision(
       id: club.id,
       name: club.name,
       division,
-      squadStrength: squadStrength(squad),
+      squadStrength: clubSquadStrength(squad),
       squad,
     };
   });
@@ -494,7 +494,11 @@ function careerPlayerToPyramid(player: StructuralCareerPlayer): PyramidPlayer {
   };
 }
 
-function squadStrength(squad: readonly PyramidPlayer[]): number {
+/** Live full-squad rating used by the pyramid and its player-facing comparison. */
+export function clubSquadStrength(
+  squad: readonly Pick<PyramidPlayer, 'role' | 'attrs'>[],
+): number {
+  if (squad.length === 0) throw new Error('club squad strength requires at least one player');
   const total = squad.reduce((clubTotal, player) => {
     const attrs = player.role === 'GK'
       ? [player.attrs.ref, player.attrs.def, player.attrs.pas]

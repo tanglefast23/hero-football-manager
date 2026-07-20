@@ -1,6 +1,8 @@
 import type { PowerId, TeamDef } from '../../sim/types';
 import { nextDistinctPlayerLook } from '../player-appearance';
 import type { CareerPlayer, GameState, LeagueFixture } from '../types';
+import { STORY_STARTING_ROSTER_SIZE } from '../story-progression';
+import { reconcileStoryYouthIntake } from '../youth-intake';
 import {
   CREATED_PLAYER_ROOKIE_WAGE,
   validateCreatedPlayerDraft,
@@ -15,12 +17,46 @@ export function beginStoryOnboarding(state: GameState): GameState {
   }
   const userPlayers = state.players.filter(player => player.clubId === state.userClubId);
   if (userPlayers.length === 0) throw new Error('Story onboarding requires a user-club roster');
-  return {
-    ...state,
-    players: state.players.map(player => player.clubId === state.userClubId
+  const prepared = trimStoryLaunchRoster(state, userPlayers);
+  return reconcileStoryYouthIntake({
+    ...prepared,
+    players: prepared.players.map(player => player.clubId === state.userClubId
       ? { ...player, power: undefined, licensed: false, onHeroWage: false }
       : player),
     onboarding: { stage: 'create-player' },
+  });
+}
+
+function trimStoryLaunchRoster(state: GameState, userPlayers: readonly CareerPlayer[]): GameState {
+  const targetBeforeCreatedPlayer = STORY_STARTING_ROSTER_SIZE - 1;
+  const removalCount = Math.max(0, userPlayers.length - targetBeforeCreatedPlayer);
+  if (removalCount === 0) return state;
+
+  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  if (lineup === undefined) throw new Error('Story onboarding requires a user-club lineup');
+  const starters = new Set(lineup.playerIds);
+  const removable = userPlayers
+    .filter(player => !starters.has(player.id) && player.role !== 'GK')
+    .slice()
+    .sort((left, right) => (
+      Number(right.role === 'FWD') - Number(left.role === 'FWD')
+      || left.weeklyWage - right.weeklyWage
+      || left.id.localeCompare(right.id)
+    ));
+  if (removable.length < removalCount) {
+    throw new Error('Story onboarding needs enough reserve outfield players to open two roster slots');
+  }
+
+  const removed = new Set(removable.slice(0, removalCount).map(player => player.id));
+  const removedWages = removable
+    .slice(0, removalCount)
+    .reduce((total, player) => total + player.weeklyWage, 0);
+  return {
+    ...state,
+    players: state.players.filter(player => !removed.has(player.id)),
+    clubs: state.clubs.map(club => club.id === state.userClubId
+      ? { ...club, weeklyWages: club.weeklyWages - removedWages }
+      : club),
   };
 }
 

@@ -30,7 +30,7 @@ export function PostMatchLedgerScreen({
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
         <View>
-          <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Match filed</Text>
+          <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Match complete</Text>
           <Text className="mt-1 text-base font-bold uppercase text-ink">Full-time report</Text>
         </View>
         <SettingsButton onPress={onOpenSettings} />

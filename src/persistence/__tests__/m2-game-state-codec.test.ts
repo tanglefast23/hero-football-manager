@@ -22,6 +22,13 @@ describe('M2 game-state codec', () => {
     const assistantCoach = built.market!.coachCandidates[0];
     const state = {
       ...built,
+      players: built.players.map((player, index) => index === 0
+        ? {
+            ...player,
+            motivatorMoraleRemainderHalfPoints: 125,
+            coachTrainingBonusRemainders: { sho: 30, sta: 75 },
+          }
+        : player),
       market: {
         ...built.market!,
         assistantCoach,
@@ -40,6 +47,10 @@ describe('M2 game-state codec', () => {
     expect(restored.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
     expect(restored.cashTransactions).toEqual(state.cashTransactions);
     expect(restored.cashTransactions).toHaveLength(1);
+    expect(restored.players[0]).toMatchObject({
+      motivatorMoraleRemainderHalfPoints: 125,
+      coachTrainingBonusRemainders: { sho: 30, sta: 75 },
+    });
   });
 
   test('rejects a full career whose required M2 market sidecar is missing', () => {

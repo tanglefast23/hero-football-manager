@@ -15,6 +15,7 @@ import {
   SectionLabel,
   StatusChip,
   formatCompactNumber,
+  formatCurrency,
 } from './components/Scorecard';
 
 export interface PostMatchSummaryModalProps {
@@ -118,7 +119,7 @@ export function PostMatchSummaryModal({
                 </View>
               ) : null}
 
-              <PaperPanel kicker="Accounts office" title="Match statement" stamp="Filed" className="mt-5">
+              <PaperPanel kicker="Accounts office" title="Match statement" stamp="Recorded" className="mt-5">
                 <View className="border-y border-ink/30">
                   {viewModel.ledger.map((line, index) => (
                     <View key={line.id} className="flex-row items-center border-b border-ink/10 py-3 last:border-b-0">
@@ -142,7 +143,7 @@ export function PostMatchSummaryModal({
                     : viewModel.netAmount > 0
                       ? 'text-base font-bold uppercase text-pitch-dark'
                       : 'text-base font-bold uppercase text-blue-dark'}>
-                    Net movement
+                    Net cash change
                   </Text>
                   <CountUpAmount
                     amount={viewModel.netAmount}
@@ -163,7 +164,7 @@ export function PostMatchSummaryModal({
                     value={`${viewModel.fanDelta > 0 ? '+' : ''}${formatCompactNumber(viewModel.fanDelta)}`}
                     tone={viewModel.fanDelta < 0 ? 'negative' : 'positive'}
                   />
-                  <Metric label="Essence" value={`+${formatCompactNumber(viewModel.heroEssenceGained)}`} tone="hero" />
+                  <Metric label="Hero Essence" value={`+${formatCompactNumber(viewModel.heroEssenceGained)}`} tone="hero" />
                 </View>
               </View>
 
@@ -223,11 +224,11 @@ function CountUpAmount({
   return (
     <Text
       accessible
-      accessibilityLabel={`${amount > 0 ? 'plus ' : amount < 0 ? 'minus ' : ''}${formatCompactNumber(Math.abs(amount))}`}
+      accessibilityLabel={`${amount > 0 ? 'plus ' : amount < 0 ? 'minus ' : ''}${formatCurrency(Math.abs(amount))}`}
       className={large ? 'font-mono text-xl font-bold' : 'font-mono text-base font-bold'}
       style={{ color }}
     >
-      {displayAmount > 0 ? '+' : ''}{formatCompactNumber(displayAmount)}
+      {formatCurrency(displayAmount, true)}
     </Text>
   );
 }

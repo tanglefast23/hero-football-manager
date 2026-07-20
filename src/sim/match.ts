@@ -8,9 +8,9 @@ import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.6 makes committed slide tackles launch and travel from visibly long range.
-// It retains m1.5's 2.5D ball flight, Energy Use, stamina, and auto coaching.
-export const ENGINE_VERSION = 'm1.7';
+// m1.8 lets assistant Motivators contribute their exact half-strength Hero
+// Gauge bonus. It retains m1.7's replay validation and match behavior otherwise.
+export const ENGINE_VERSION = 'm1.8';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -284,10 +284,11 @@ export function validateTeamDef(team: TeamDef, label: string): void {
     throw new Error(`${label} bench must be an array when present`);
   }
   if (team.heroGaugeRatePercent !== undefined
-    && (!Number.isSafeInteger(team.heroGaugeRatePercent)
+    && (!Number.isFinite(team.heroGaugeRatePercent)
+      || !Number.isSafeInteger(team.heroGaugeRatePercent * 2)
       || team.heroGaugeRatePercent < 100
-      || team.heroGaugeRatePercent > 125)) {
-    throw new Error(`${label} hero gauge rate must be an integer from 100 to 125`);
+      || team.heroGaugeRatePercent > 137.5)) {
+    throw new Error(`${label} hero gauge rate must use half-percent steps from 100 to 137.5`);
   }
 
   const playerIds = new Set<string>();

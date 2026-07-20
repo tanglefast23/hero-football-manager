@@ -1,0 +1,23 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+describe('market scroll guidance', () => {
+  it('dismisses the request-bids cue when the player starts dragging the market', () => {
+    const source = readFileSync(join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'), 'utf8');
+
+    expect(source).toContain('onScrollBeginDrag={handleScrollBeginDrag}');
+    expect(source).toContain("if (guideFocus === 'transfer-list') {");
+    expect(source).toContain("dismissScrollGuide('transfer-list');");
+    expect(source).toContain('onScroll={handleScroll}');
+    expect(source).toContain('guideFocus={visibleGuideFocus}');
+  });
+
+  it('keeps the scout cue until a real downward scroll reveals the South America action', () => {
+    const source = readFileSync(join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'), 'utf8');
+
+    expect(source).toContain('MIN_GUIDE_SCROLL_DISTANCE = 24');
+    expect(source).toContain("choice.regionLabel === 'South America'");
+    expect(source).toContain('const targetFullyVisible = targetY >= viewportY');
+    expect(source).toContain("if (targetFullyVisible) dismissScrollGuide('scout-mission');");
+  });
+});

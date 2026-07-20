@@ -819,7 +819,7 @@ export function MatchScreen({
             hitSlop={10}
             onPress={toggleAutoPowers}
           >
-            <Text style={styles.ctrlText}>{autoPowers ? 'A' : 'M'}</Text>
+            <Text style={styles.powerModeText}>{autoPowers ? 'AUTO' : 'MANUAL'}</Text>
           </Pressable>
           <Pressable
             style={styles.ctrlButton}
@@ -1342,6 +1342,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   ctrlText: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold' },
+  powerModeText: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold' },
   banner: {
     position: 'absolute',
     zIndex: 8,

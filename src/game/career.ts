@@ -14,7 +14,7 @@ import { resolveNextM2NationalCupRound, willRetireAtSeasonTransition } from './m
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
 import type { NationalCupFixture, NationalCupResult } from './pyramid';
 import { repairCareerLineupForInjuries } from './squad';
-import { expireYouthIntakeWindow } from './youth-intake';
+import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import {
   applyBoardForcedSaleConsequences,
   boardForcedSaleAtDeadline,
@@ -314,13 +314,16 @@ export function startNextSeason(state: GameState): GameState {
     state.careerSeed,
   );
 
-  return {
+  const next: GameState = {
     ...state,
     season,
     week: 1,
     phase: 'manage',
     fixtures: [...state.fixtures, ...nextFixtures],
   };
+  return state.youthIntake === undefined
+    ? next
+    : { ...next, youthIntake: initializeSeasonYouthIntake(next) };
 }
 
 function settleCurrentWeek(
@@ -676,7 +679,7 @@ function advanceM2WeeklySidecars(
   if (next.market !== undefined) {
     next = { ...next, market: resolveCareerScoutClock(next, next.market) };
   }
-  return expireYouthIntakeWindow(next);
+  return reconcileStoryYouthIntake(next);
 }
 
 function completeNationalCupMatchday(state: GameState, results: FixtureResult[]): GameState {

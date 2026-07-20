@@ -176,6 +176,7 @@ describe('validated M1 launch content', () => {
       'facility-adjacency',
       'scout-mission',
       'scout-report',
+      'roster-cap',
       'transfer-list',
       'transfer-bid',
       'transfer-negotiation',
@@ -203,7 +204,7 @@ describe('validated M1 launch content', () => {
     expect(managementIntroPages?.some(page => page.title === 'Read it first')).toBe(false);
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'squad-intro')
-      ?.pages[0].body[0]).toContain('Training costs TP (Training Points) and money');
+      ?.pages[0].body[0]).toContain('Training costs Training Points (TP) and money');
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'desk-intro')
       ?.pages[0]).toMatchObject({
@@ -215,7 +216,7 @@ describe('validated M1 launch content', () => {
         buttonLabel: 'Got it.',
       });
     const m2Sequences = content.assistantGuide.sequences.slice(3);
-    expect(m2Sequences).toHaveLength(21);
+    expect(m2Sequences).toHaveLength(22);
     expect(m2Sequences.every(sequence => (
       sequence.inbox !== undefined
       && sequence.destination !== undefined
@@ -241,11 +242,12 @@ describe('validated M1 launch content', () => {
         destination: 'squad',
         pages: [{ focus: 'transfer-request' }],
       });
-    expect(JSON.stringify(content.assistantGuide.sequences.filter(sequence => (
-      sequence.id === 'coaching-office'
-      || sequence.id === 'facility-placement'
-      || sequence.id === 'facility-upgrade'
-    )))).not.toMatch(/build time|construction project|construction and upkeep/i);
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'facility-placement')
+      ?.pages[0].body[0]).toContain('opens when a weekly settlement finishes the work');
+    expect(content.assistantGuide.sequences
+      .find(sequence => sequence.id === 'facility-upgrade')
+      ?.pages[0].body[0]).toContain('current level stays active while the upgrade is built');
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'board-protection')).toMatchObject({
         destination: 'club-finances',

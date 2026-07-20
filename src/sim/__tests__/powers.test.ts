@@ -25,6 +25,12 @@ describe('hero gauge and firing', () => {
     expect(boosted.players[SPEEDSTER].gauge).toBe(25);
   });
 
+  it('accepts an assistant Motivator half-percent Heat modifier', () => {
+    const boosted = createMatch(42, { ...ROVERS, heroGaugeRatePercent: 102.5 }, UNITED);
+    addGauge(boosted, SPEEDSTER, 20);
+    expect(boosted.players[SPEEDSTER].gauge).toBe(20.5);
+  });
+
   it('high heat rolls a Zone entry (POWER_READY, now meaning "entered the Zone")', () => {
     const m = createMatch(42, ROVERS, UNITED);
     m.players[SPEEDSTER].gauge = 199; // near the heat cap maximizes the per-tick entry roll

@@ -287,6 +287,15 @@ describe('career market integration', () => {
     const other = market.coachCandidates.find(coach => coach.id !== candidate.id)!;
     const withAssistant = hireCareerCoach(withOffice, hired, other.id, 'ASSISTANT');
     expect(withAssistant.assistantCoach?.id).toBe(other.id);
+
+    const dismissed = dismissCareerCoach(withOffice, withAssistant, 'ASSISTANT');
+    expect(dismissed.market.headCoach?.id).toBe(candidate.id);
+    expect(dismissed.market.assistantCoach).toBeUndefined();
+    expect(dismissed.state.cashTransactions?.at(-1)).toMatchObject({
+      kind: 'coach-dismissal',
+      amount: -other.weeklyWage,
+      referenceId: other.id,
+    });
   });
 
   test('measures contract growth from the stored signing attributes', () => {

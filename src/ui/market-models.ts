@@ -87,6 +87,8 @@ export interface CoachCandidateViewModel {
   readonly level: number;
   readonly levelLabel: string;
   readonly specialtyLabels: readonly [string, string];
+  readonly headEffectLabels: readonly string[];
+  readonly assistantEffectLabels: readonly string[];
   readonly personalityLabel: string;
   readonly weeklyWage: number;
   readonly retiredLegend: boolean;
@@ -158,6 +160,7 @@ export interface MarketNegotiationViewModel {
 }
 
 export interface MarketViewModel {
+  readonly sections: readonly MarketSectionId[];
   readonly periodLabel: string;
   readonly divisionLabel: string;
   readonly cash: number;

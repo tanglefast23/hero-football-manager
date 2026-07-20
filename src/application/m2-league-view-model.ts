@@ -8,6 +8,7 @@ import type {
   NationalCupFixture,
   NationalCupRound,
 } from '../game/pyramid';
+import { divisionTierLabel } from '../game/pyramid';
 import type { LeagueFixture, LeagueStanding } from '../game/types';
 import type {
   M2CupFixtureViewModel,
@@ -23,6 +24,7 @@ export interface M2LeagueViewModelSource {
   readonly career: M2CareerState;
   readonly season: number;
   readonly activeStandings: readonly LeagueStanding[];
+  readonly userSquadStrength?: number;
   readonly selectedDivision?: DivisionLevel;
   readonly selectedCupSeason?: number;
   readonly week?: number;
@@ -35,6 +37,11 @@ export interface M2LeagueViewModelSource {
 export function m2LeagueViewModel(source: M2LeagueViewModelSource): M2LeagueViewModel {
   validateSeason(source.season);
   const userDivision = currentUserDivision(source.career);
+  const userSquadStrength = source.userSquadStrength ?? source.career.pyramid.divisions
+    .find(division => division.level === userDivision)!
+    .clubs.find(club => club.id === source.career.userClubId)!
+    .squadStrength;
+  validateStrength(userSquadStrength, 'user squad strength');
   const selectedDivision = source.selectedDivision ?? userDivision;
   const selectedExists = source.career.pyramid.divisions.some(division =>
     division.level === selectedDivision,
@@ -51,6 +58,7 @@ export function m2LeagueViewModel(source: M2LeagueViewModelSource): M2LeagueView
       division.clubs.map(club => club.squadStrength),
       selectedDivision,
       userDivision,
+      userSquadStrength,
     ));
   const selectedDivisionSummary = divisions.find(division => division.level === selectedDivision)!;
   const rows = activeTableRows(source, userDivision, clubNames);
@@ -60,12 +68,12 @@ export function m2LeagueViewModel(source: M2LeagueViewModelSource): M2LeagueView
   return {
     title: 'League & Cup',
     seasonLabel: `Season ${source.season}`,
-    userDivisionBadge: `DIVISION ${userDivision} · #${userRow.position}`,
+    userDivisionBadge: `D${userDivision} · #${userRow.position}`,
     selectedDivision,
     divisions,
     selectedDivisionSummary,
     activeTable: {
-      divisionLabel: `Division ${userDivision}`,
+      divisionLabel: divisionTierLabel(userDivision),
       rulesLabel: movementRulesLabel(userDivision),
       matchesPlayed: userRow.played,
       rows,
@@ -80,6 +88,7 @@ function divisionSummary(
   strengths: readonly number[],
   selectedDivision: DivisionLevel,
   userDivision: DivisionLevel,
+  userSquadStrength: number,
 ): M2DivisionSummaryViewModel {
   if (strengths.length !== 10 || strengths.some(strength =>
     !Number.isInteger(strength) || strength < 1 || strength > 99
@@ -89,16 +98,40 @@ function divisionSummary(
   const total = strengths.reduce((sum, strength) => sum + strength, 0);
   const minimum = Math.min(...strengths);
   const maximum = Math.max(...strengths);
+  const comparison = strengthComparison(userSquadStrength, minimum, maximum);
   return {
     level,
     shortLabel: `D${level}`,
-    label: `Division ${level}`,
+    label: divisionTierLabel(level),
     clubCount: strengths.length,
     averageStrength: Math.round(total / strengths.length),
-    strengthRangeLabel: `${minimum}-${maximum}`,
+    strengthRangeLabel: `${minimum}–${maximum}`,
+    userSquadStrength,
+    comparisonLabel: comparison.label,
+    comparisonTone: comparison.tone,
     selected: level === selectedDivision,
     userDivision: level === userDivision,
   };
+}
+
+function strengthComparison(
+  userSquadStrength: number,
+  minimum: number,
+  maximum: number,
+): { label: string; tone: M2DivisionSummaryViewModel['comparisonTone'] } {
+  if (userSquadStrength < minimum) {
+    return { label: `${minimum - userSquadStrength} below range`, tone: 'below' };
+  }
+  if (userSquadStrength > maximum) {
+    return { label: `${userSquadStrength - maximum} above range`, tone: 'above' };
+  }
+  return { label: 'Within range', tone: 'competitive' };
+}
+
+function validateStrength(value: number, label: string): void {
+  if (!Number.isInteger(value) || value < 1 || value > 99) {
+    throw new Error(`${label} must be an integer from 1 to 99`);
+  }
 }
 
 function activeTableRows(
@@ -325,7 +358,7 @@ function cupRoundHistory(
     label: round.label,
     matchCount: round.fixtures.length,
     completedCount,
-    statusLabel: completedCount === round.fixtures.length ? 'Filed' : 'Live',
+    statusLabel: completedCount === round.fixtures.length ? 'Complete' : 'Live',
     ...(userOutcome === undefined ? {} : { userOutcome }),
   };
 }

@@ -30,7 +30,7 @@ describe('default two-season career journey', () => {
       ratings: { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50 },
     });
     state = buildTrainingGround(state);
-    state = applyCareerTraining(state, ['bramble-rovers-p13'], [sprint]);
+    state = applyCareerTraining(state, ['bramble-rovers-created-player'], [sprint]);
     state = playToSeasonBoundary(state);
 
     const userClub = state.clubs.find(club => club.id === state.userClubId)!;
@@ -64,7 +64,7 @@ describe('default two-season career journey', () => {
     expect(JSON.stringify(second)).toBe(JSON.stringify(first));
     expect(first.ledgers).toHaveLength(60);
     expect(first.trainingPlan).toMatchObject({
-      assignedPlayerIds: ['bramble-rovers-p13'],
+      assignedPlayerIds: ['bramble-rovers-created-player'],
       drills: [{ id: 'sprints' }],
     });
     expect(first.ledgers.every(ledger =>
@@ -73,7 +73,7 @@ describe('default two-season career journey', () => {
     expect(first.ledgers.filter(ledger =>
       ledger.lines.some(line => line.kind === 'training'),
     ).length).toBeGreaterThan(0);
-    expect(first.players.find(player => player.id === 'bramble-rovers-p13')?.attrs)
+    expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
       .toMatchObject({ pac: 99, sta: 99 });
   });
 });
@@ -110,7 +110,7 @@ function runTwoSeasonTrainingJourney(): GameState {
     ratings: { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50 },
   });
   state = buildTrainingGround(state);
-  state = applyCareerTraining(state, ['bramble-rovers-p13'], [sprint]);
+  state = applyCareerTraining(state, ['bramble-rovers-created-player'], [sprint]);
   state = playToSeasonBoundary(state);
   const expired = state.players.find(player =>
     player.clubId === state.userClubId && player.contractSeasonsRemaining === 0,

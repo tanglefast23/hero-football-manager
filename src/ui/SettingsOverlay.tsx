@@ -82,6 +82,7 @@ export interface SettingsOverlayProps {
   volume: DevVolume;
   reduceMotion: boolean;
   hudSide: HudSide;
+  saveError?: string | null;
   onVolumeChange: (v: DevVolume) => void;
   onToggleReduceMotion: () => void;
   onToggleHudSide: () => void;
@@ -121,6 +122,7 @@ export function SettingsOverlay({
   volume,
   reduceMotion,
   hudSide,
+  saveError,
   onVolumeChange,
   onToggleReduceMotion,
   onToggleHudSide,
@@ -147,6 +149,16 @@ export function SettingsOverlay({
           {/* stop taps inside the panel from closing the modal */}
           <Pressable className="w-full max-w-sm border-2 border-b-4 border-ink bg-paper p-5" onPress={() => {}}>
             <Text className="font-pixel text-2xl uppercase text-ink">Settings</Text>
+            {saveError ? (
+              <View
+                accessible
+                accessibilityRole="alert"
+                accessibilityLiveRegion="assertive"
+                className="mt-4 border-2 border-stamp bg-red-light px-3 py-2"
+              >
+                <Text className="text-sm font-bold leading-5 text-ink">{saveError}</Text>
+              </View>
+            ) : null}
             <View className="my-4 h-0.5 bg-ink/15" />
             <VolumeSlider value={volume} onChange={onVolumeChange} />
             <View className="mt-5 gap-3 border-t border-ink/15 pt-5">
@@ -164,11 +176,11 @@ export function SettingsOverlay({
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Match information HUD on the ${hudSide}. Tap to move it.`}
+                accessibilityLabel={`Match information panel is on the ${hudSide}. Tap to move it.`}
                 onPress={onToggleHudSide}
                 className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
               >
-                <Text className="font-mono text-sm font-bold uppercase text-ink">Match HUD</Text>
+                <Text className="font-mono text-sm font-bold uppercase text-ink">Match info</Text>
                 <Text className="font-mono text-base font-bold uppercase text-violet-dark">{hudSide}</Text>
               </Pressable>
             </View>

@@ -141,6 +141,18 @@ const attributesSchema = z
   })
   .passthrough();
 
+const trainingRemaindersSchema = z
+  .object({
+    pac: nonnegativeInteger.refine(value => value < 100, 'must be at most 99').optional(),
+    sho: nonnegativeInteger.refine(value => value < 100, 'must be at most 99').optional(),
+    pas: nonnegativeInteger.refine(value => value < 100, 'must be at most 99').optional(),
+    def: nonnegativeInteger.refine(value => value < 100, 'must be at most 99').optional(),
+    tec: nonnegativeInteger.refine(value => value < 100, 'must be at most 99').optional(),
+    sta: nonnegativeInteger.refine(value => value < 100, 'must be at most 99').optional(),
+    ref: nonnegativeInteger.refine(value => value < 100, 'must be at most 99').optional(),
+  })
+  .passthrough();
+
 const playerSchema = z
   .object({
     id: nonemptyString,
@@ -185,11 +197,16 @@ const playerSchema = z
       (value) => value < 100,
       'must be at most 99',
     ).optional(),
+    motivatorMoraleRemainderHalfPoints: nonnegativeInteger.refine(
+      (value) => value < 200,
+      'must be at most 199',
+    ).optional(),
     signingStatTotal: positiveInteger.optional(),
     facilityStaBonusRemainder: nonnegativeInteger.refine(
       (value) => value < 100,
       'must be at most 99',
     ).optional(),
+    coachTrainingBonusRemainders: trainingRemaindersSchema.optional(),
   })
   .passthrough()
   .superRefine((player, context) => {

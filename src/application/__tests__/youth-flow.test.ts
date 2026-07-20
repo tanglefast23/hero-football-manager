@@ -1,30 +1,26 @@
 import { useM1Store } from '../store';
+import { DEFAULT_CREATION_RATINGS } from '../../game/onboarding/player-creation';
+import { reconcileStoryYouthIntake } from '../../game/youth-intake';
 
 describe('M2 youth intake store flow', () => {
   beforeEach(() => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
-  test('blocks a full roster, then signs an offer after space is made', () => {
+  test('reveals the Week 3 choice, signs one prospect, and preserves the scout slot', () => {
     useM1Store.getState().startNewCareer(91_001, 'full');
-    const initial = useM1Store.getState().career!;
-    const offer = initial.youthIntake!.offers[0];
-    const roster = initial.players.filter(player => player.clubId === initial.userClubId);
-
-    useM1Store.getState().signYouth(offer.player.id);
-    expect(useM1Store.getState().error).toBe('the 16-player roster is full');
-
-    const released = roster.at(-1)!;
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    const beforeReveal = useM1Store.getState().career!;
+    expect(beforeReveal.youthIntake).toMatchObject({ status: 'CLOSED', offers: [] });
     useM1Store.setState({
-      career: {
-        ...initial,
-        players: initial.players.filter(player => player.id !== released.id),
-        clubs: initial.clubs.map(club => club.id === initial.userClubId
-          ? { ...club, weeklyWages: club.weeklyWages - released.weeklyWage }
-          : club),
-      },
+      career: reconcileStoryYouthIntake({ ...beforeReveal, week: 3 }),
       error: null,
     });
+    const initial = useM1Store.getState().career!;
+    const offer = initial.youthIntake!.offers[0];
     const cashBefore = useM1Store.getState().career!.clubs.find(
       club => club.id === initial.userClubId,
     )!.cash;
@@ -36,11 +32,21 @@ describe('M2 youth intake store flow', () => {
     expect(signed.clubs.find(club => club.id === signed.userClubId)?.cash)
       .toBe(cashBefore - offer.signingBonus);
     expect(signed.youthIntake?.signedPlayerIds).toContain(offer.player.id);
+    expect(signed.youthIntake).toMatchObject({ status: 'CLOSED', offers: [] });
+    expect(signed.players.filter(player => player.clubId === signed.userClubId)).toHaveLength(16);
     expect(useM1Store.getState().error).toBeNull();
   });
 
   test('declines every remaining offer and keeps the decision in career state', () => {
     useM1Store.getState().startNewCareer(91_002, 'full');
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    const beforeReveal = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: reconcileStoryYouthIntake({ ...beforeReveal, week: 3 }),
+    });
     expect(useM1Store.getState().career?.youthIntake?.status).toBe('OPEN');
 
     useM1Store.getState().declineYouth();

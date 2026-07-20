@@ -9,6 +9,10 @@ import type {
 } from './types';
 import { recordCashTransaction } from './cash-transactions';
 import { isFacilityOperational } from './facilities';
+import {
+  isStoryFeaturePacingActive,
+  isStoryYouthUnlocked,
+} from './story-progression';
 
 export const YOUTH_INTAKE_SCHEMA_VERSION = 1;
 export const BASE_ROSTER_CAPACITY = 16;
@@ -129,6 +133,33 @@ export function initializeSeasonYouthIntake(state: GameState): YouthIntakeState 
   return closedYouthIntake(state.season);
 }
 
+/** Keeps the first academy choice off the desk until Bert introduces it in Week 3. */
+export function reconcileStoryYouthIntake(state: GameState): GameState {
+  if (!isStoryFeaturePacingActive(state)) return expireYouthIntakeWindow(state);
+  const intake = state.youthIntake;
+  if (!isStoryYouthUnlocked(state)) {
+    if (intake?.status === 'CLOSED'
+      && intake.offers.length === 0
+      && intake.signedPlayerIds.length === 0
+      && !intake.declined) {
+      return state;
+    }
+    return { ...state, youthIntake: closedYouthIntake(state.season) };
+  }
+  if (
+    state.week <= 4
+    && (intake === undefined || (
+      intake.status === 'CLOSED'
+      && intake.offers.length === 0
+      && intake.signedPlayerIds.length === 0
+      && !intake.declined
+    ))
+  ) {
+    return { ...state, youthIntake: createPreseasonYouthIntake(state) };
+  }
+  return expireYouthIntakeWindow(state);
+}
+
 /** Clears stale offers as soon as the career moves beyond pre-season Week 4. */
 export function expireYouthIntakeWindow(state: GameState): GameState {
   const intake = state.youthIntake;
@@ -188,7 +219,8 @@ export function signYouthIntakeOffer(
       }
     : candidate);
   const remainingSlots = rosterCapacity - (roster.length + 1);
-  const remainingOffers = remainingSlots > 0
+  const storyChoiceComplete = isStoryFeaturePacingActive(state);
+  const remainingOffers = remainingSlots > 0 && !storyChoiceComplete
     ? intake.offers.filter(candidate => candidate.player.id !== playerId).map(cloneOffer)
     : [];
   const nextIntake: YouthIntakeState = {

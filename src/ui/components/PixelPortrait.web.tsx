@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Canvas, Rect } from '@shopify/react-native-skia';
 import { blinkRows } from '../portrait-blink';
-import { useReducedMotion } from '../use-reduced-motion';
 import {
   PIXEL_PORTRAIT_SCALE,
   portraitPixelRuns,
@@ -11,6 +9,7 @@ import {
   type PortraitExpression,
   type PortraitRole,
 } from '../pixel-portrait-model';
+import { useReducedMotion } from '../use-reduced-motion';
 
 export interface PixelPortraitProps {
   playerId: string;
@@ -21,7 +20,7 @@ export interface PixelPortraitProps {
   reduceMotion?: boolean;
 }
 
-/** A crisp, deterministic cast portrait selected from the shipped pixel sheet. */
+/** Web portraits avoid one WebGL context per card, which can blank long rosters. */
 export function PixelPortrait({
   playerId,
   role,
@@ -50,7 +49,6 @@ export function PixelPortrait({
     let openTimer: ReturnType<typeof setTimeout>;
     let closeTimer: ReturnType<typeof setTimeout>;
     const scheduleBlink = () => {
-      // Randomize per portrait so a screen full of faces doesn't blink in sync.
       const delay = 2600 + Math.random() * 3400;
       openTimer = setTimeout(() => {
         setBlinking(true);
@@ -67,28 +65,32 @@ export function PixelPortrait({
     };
   }, [canBlink, spriteKey]);
 
-  const runs = useMemo(() => {
+  const colorPaths = useMemo(() => {
     const rows = blinking && blinkVariant ? blinkVariant : portraitSpriteRows(spriteKey);
-    return portraitPixelRuns(rows, blinking ? `${spriteKey}:blink` : spriteKey);
-  }, [spriteKey, blinking, blinkVariant]);
+    const runs = portraitPixelRuns(rows, blinking ? `${spriteKey}:blink` : spriteKey);
+    const commandsByColor = new Map<string, string[]>();
+    for (const run of runs) {
+      const commands = commandsByColor.get(run.color) ?? [];
+      commands.push(`M${run.x} ${run.y}h${run.width}v1h-${run.width}z`);
+      commandsByColor.set(run.color, commands);
+    }
+    return Array.from(commandsByColor, ([color, commands]) => ({
+      color,
+      path: commands.join(''),
+    }));
+  }, [blinkVariant, blinking, spriteKey]);
 
   return (
-    <Canvas
-      style={{
-        width: portraitSheet.cell.w * PIXEL_PORTRAIT_SCALE,
-        height: portraitSheet.cell.h * PIXEL_PORTRAIT_SCALE,
-      }}
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width={portraitSheet.cell.w * PIXEL_PORTRAIT_SCALE}
+      height={portraitSheet.cell.h * PIXEL_PORTRAIT_SCALE}
+      viewBox={`0 0 ${portraitSheet.cell.w} ${portraitSheet.cell.h}`}
+      shapeRendering="crispEdges"
+      style={{ display: 'block' }}
     >
-      {runs.map(run => (
-        <Rect
-          key={run.id}
-          x={run.x * PIXEL_PORTRAIT_SCALE}
-          y={run.y * PIXEL_PORTRAIT_SCALE}
-          width={run.width * PIXEL_PORTRAIT_SCALE}
-          height={PIXEL_PORTRAIT_SCALE}
-          color={run.color}
-        />
-      ))}
-    </Canvas>
+      {colorPaths.map(({ color, path }) => <path key={color} d={path} fill={color} />)}
+    </svg>
   );
 }

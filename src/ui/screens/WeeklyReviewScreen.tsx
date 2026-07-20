@@ -8,6 +8,7 @@ import {
   SectionLabel,
   StatusChip,
   formatCompactNumber,
+  formatCurrency,
 } from '../components/Scorecard';
 import { PlayerDevelopmentSpotlight } from '../components/PlayerDevelopmentSpotlight';
 import { FacilityCompletionCard } from '../components/FacilityCompletionCard';
@@ -114,7 +115,7 @@ export function WeeklyReviewScreen({
           />
         </View>
 
-        <PaperPanel kicker="Accounts office" title="Weekly statement" stamp="Filed" className="mt-5">
+        <PaperPanel kicker="Accounts office" title="Weekly statement" stamp="Recorded" className="mt-5">
           {viewModel.ledger.map(line => (
             <View key={line.id} className="flex-row items-center border-b border-ink/10 py-2.5 last:border-b-0">
               <Text className="flex-1 text-base text-ink">{line.label}</Text>
@@ -174,11 +175,6 @@ export function WeeklyReviewScreen({
       </View>
     </SafeAreaView>
   );
-}
-
-function formatCurrency(amount: number, signed = false): string {
-  const sign = amount < 0 ? '−' : signed && amount > 0 ? '+' : '';
-  return `${sign}$${formatCompactNumber(Math.abs(amount))}`;
 }
 
 type WeeklyBalanceKind = 'money' | 'training-points';

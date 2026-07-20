@@ -159,6 +159,17 @@ export const CLUB_LEGEND_MIN_SEASONS = 5;
 export const CLUB_LEGEND_MIN_FAME = 70;
 export const LOW_MORALE_THRESHOLD = 30;
 export const LEGACY_YOUTH_STAT_BOOST_PERCENT = 15;
+export const DIVISION_NAMES: Readonly<Record<DivisionLevel, string>> = {
+  1: 'Global League',
+  2: 'National Championship',
+  3: 'Regional League',
+  4: 'County League',
+  5: 'District League',
+};
+
+export function divisionTierLabel(level: DivisionLevel): string {
+  return `D${level} · ${DIVISION_NAMES[level]}`;
+}
 
 const UINT32_RANGE = 4294967296;
 const SQUAD_ROLES: readonly Role[] = [
@@ -168,7 +179,7 @@ const SQUAD_ROLES: readonly Role[] = [
   'FWD', 'FWD', 'FWD', 'FWD',
 ];
 const DIVISION_BASE_STRENGTH: Readonly<Record<DivisionLevel, number>> = {
-  1: 76,
+  1: 84,
   2: 68,
   3: 60,
   4: 52,

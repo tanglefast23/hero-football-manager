@@ -81,7 +81,7 @@ describe('marketViewModel', () => {
     expect(viewModel.scouting.status.kind).toBe('IN_PROGRESS');
     expect(viewModel.scouting.status.progressLabel).toMatch(/week/);
     expect(viewModel.scouting.choices.every(choice => !choice.available)).toBe(true);
-    expect(viewModel.scouting.choices[0].blockedReason).toBe('Scout already away.');
+    expect(viewModel.scouting.choices[0].blockedReason).toBe('Scout Sent');
   });
 
   it('turns resolved fuzzy reports into compact, serializable player dossiers', () => {
@@ -159,6 +159,14 @@ describe('marketViewModel', () => {
       name: 'Ari Flint',
       loyaltyLabel: '25% loyalty discount',
       available: true,
+      headEffectLabels: [
+        'SHO training +40%',
+        'Morale loss −20% · Hero Gauge +20%',
+      ],
+      assistantEffectLabels: [
+        'SHO training +20%',
+        'Morale loss −10% · Hero Gauge +10%',
+      ],
     });
   });
 

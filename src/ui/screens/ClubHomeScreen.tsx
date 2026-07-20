@@ -1,5 +1,5 @@
 import { ScrollView, Text, View } from 'react-native';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type { ClubAlertViewModel, HomeViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
@@ -153,7 +153,7 @@ export function ClubHomeScreen({
                       <PixelPortrait playerId={viewModel.boardResolution.soldPlayer.id} role={viewModel.boardResolution.soldPlayer.role} lookId={viewModel.boardResolution.soldPlayer.lookId} expression="rest" />
                     </View>
                     <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.soldPlayer.name}</Text>
-                    <Text className="mt-1 text-center font-mono text-sm text-stamp">Sold · {formatCompactNumber(viewModel.boardResolution.soldPlayer.fee)}</Text>
+                    <Text className="mt-1 text-center font-mono text-sm text-stamp">Sold · {formatCurrency(viewModel.boardResolution.soldPlayer.fee)}</Text>
                   </View>
                   <Text className="font-mono text-2xl font-bold text-ink">→</Text>
                   <View className="flex-1 items-center border-2 border-pitch-dark bg-white p-2">
@@ -161,7 +161,7 @@ export function ClubHomeScreen({
                       <PixelPortrait playerId={viewModel.boardResolution.replacementPlayer.id} role={viewModel.boardResolution.replacementPlayer.role} lookId={viewModel.boardResolution.replacementPlayer.lookId} expression="joy" />
                     </View>
                     <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.replacementPlayer.name}</Text>
-                    <Text className="mt-1 text-center font-mono text-sm text-pitch-dark">Age {viewModel.boardResolution.replacementPlayer.age} · {formatCompactNumber(viewModel.boardResolution.replacementPlayer.weeklyWage)}/wk</Text>
+                    <Text className="mt-1 text-center font-mono text-sm text-pitch-dark">Age {viewModel.boardResolution.replacementPlayer.age} · {formatCurrency(viewModel.boardResolution.replacementPlayer.weeklyWage)}/wk</Text>
                   </View>
                 </View>
                 <View className="mt-3 flex-row gap-2">
@@ -188,12 +188,12 @@ export function ClubHomeScreen({
             title="Protect one player"
             right={<StatusChip label={`${viewModel.boardUltimatum.weeksRemaining} ${viewModel.boardUltimatum.weeksRemaining === 1 ? 'week' : 'weeks'}`} tone="danger" />}
           />
-          <PaperPanel kicker="Fail-soft deadline" title="Balance the books—never lose the club" stamp="No game over" className="bg-red-light">
+          <PaperPanel kicker="Board deadline" title="Reach the target. Avoid a forced sale." stamp="Career continues" className="bg-red-light">
             <Text className="text-sm leading-5 text-ink/70">
-              Reach {formatCompactNumber(viewModel.boardUltimatum.targetCash)} cash before the deadline. If you miss it, the board sells one candidate shown below at a {viewModel.boardUltimatum.candidates[0]?.discountPercent ?? 30}% discount. Your protected player is untouchable.
+              Reach {formatCurrency(viewModel.boardUltimatum.targetCash)} cash before the deadline. If you miss it, the board sells one candidate shown below at a {viewModel.boardUltimatum.candidates[0]?.discountPercent ?? 30}% discount. Your protected player is untouchable, and your career continues either way.
             </Text>
             <View className="mt-3 flex-row gap-2">
-              <Metric label="Cash needed" value={formatCompactNumber(viewModel.boardUltimatum.cashNeeded)} tone="negative" />
+              <Metric label="Cash needed" value={formatCurrency(viewModel.boardUltimatum.cashNeeded)} tone="negative" />
               <Metric label="Deadline" value={`${viewModel.boardUltimatum.weeksRemaining} wk`} />
             </View>
             <View className="mt-4 gap-2">
@@ -203,7 +203,7 @@ export function ClubHomeScreen({
                   <Pressable
                     key={candidate.playerId}
                     accessibilityRole="radio"
-                    accessibilityLabel={`${candidate.playerName}, ${candidate.role}, wage ${candidate.weeklyWage}, forced sale fee ${candidate.forcedSaleFee}. ${protectedPlayer ? 'Protected' : 'Protect this player'}.`}
+                    accessibilityLabel={`${candidate.playerName}, ${candidate.role}, wage ${formatCurrency(candidate.weeklyWage)}, forced sale fee ${formatCurrency(candidate.forcedSaleFee)}. ${protectedPlayer ? 'Protected' : 'Protect this player'}.`}
                     accessibilityState={{ selected: protectedPlayer }}
                     onPress={() => onProtectBoardCandidate(candidate.playerId)}
                     className={protectedPlayer
@@ -220,7 +220,7 @@ export function ClubHomeScreen({
                         {candidate.isHero ? <StatusChip label="Hero" tone="hero" /> : null}
                       </View>
                       <Text className="mt-1 font-mono text-sm text-ink/65">
-                        {candidate.role} · {formatCompactNumber(candidate.weeklyWage)}/wk · board fee {formatCompactNumber(candidate.forcedSaleFee)}
+                        {candidate.role} · {formatCurrency(candidate.weeklyWage)}/wk · forced-sale fee {formatCurrency(candidate.forcedSaleFee)}
                       </Text>
                     </View>
                     <Text className={protectedPlayer

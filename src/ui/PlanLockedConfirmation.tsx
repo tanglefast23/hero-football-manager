@@ -60,7 +60,7 @@ export function PlanLockedConfirmation({
   }, [onComplete, opacity, reduceMotion, scale]);
 
   const playerLabel = `${confirmation.playerCount} player${confirmation.playerCount === 1 ? '' : 's'} assigned`;
-  const accessibilityLabel = `Weekly plan locked. ${confirmation.drillNames.join(', ')}. ${playerLabel}.`;
+  const accessibilityLabel = `Weekly plan saved. ${confirmation.drillNames.join(', ')}. ${playerLabel}.`;
 
   return (
     <Animated.View
@@ -74,10 +74,10 @@ export function PlanLockedConfirmation({
           <View style={styles.highlight} />
           <View style={styles.titleBar}>
             <Text style={styles.kicker}>WEEKLY PLAN</Text>
-            <Text style={styles.status}>LOCKED</Text>
+            <Text style={styles.status}>SAVED</Text>
           </View>
           <View style={styles.body}>
-            <Text style={styles.title}>PLAN LOCKED!</Text>
+            <Text style={styles.title}>PLAN SAVED!</Text>
             <View style={styles.rule} />
             <View style={styles.drillList}>
               {confirmation.drillNames.map(drillName => (

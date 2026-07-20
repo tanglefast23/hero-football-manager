@@ -42,7 +42,7 @@
             { "tab": "SQUAD", "detail": "Pick players and train them." },
             { "tab": "CLUB", "detail": "Wages, books and facilities." },
             { "tab": "LEAGUE", "detail": "Table, fixtures and rivals." },
-            { "tab": "MARKET", "detail": "Coming soon." }
+            { "tab": "MARKET", "detail": "Scout, sign, sell, and hire." }
           ]
         }
       ]
@@ -52,12 +52,12 @@
       "pages": [
         {
           "kicker": "Bert's next job",
-          "title": "One player. One drill.",
+          "title": "Build your weekly plan",
           "body": [
-            "Choose a player, assign a drill, then run the session. Training costs TP (Training Points) and money, so don't scatter it around because a button looks cheerful."
+            "Choose players, pick up to three drills, then save the weekly plan. Training costs Training Points (TP) and money each week, so don't scatter it around because a button looks cheerful."
           ],
           "focus": "training",
-          "objective": "TRAIN ONE PLAYER ONCE.",
+          "objective": "SAVE YOUR FIRST WEEKLY PLAN.",
           "buttonLabel": "I'll handle it."
         }
       ]
@@ -173,7 +173,7 @@
           "kicker": "The club grounds",
           "title": "Build with a little plan",
           "body": [
-            "Choose a building, then an empty patch on the 8 by 6 grid. If it fits and we can pay, it opens immediately.",
+            "Choose a building, then an empty patch on the 8 by 6 grid. If it fits and we can pay, construction starts immediately. The facility opens when a weekly settlement finishes the work.",
             "Leave useful neighbours room to share an edge. Future you is an expensive contractor."
           ],
           "focus": "facility-grid",
@@ -186,7 +186,7 @@
       "id": "facility-upgrade",
       "inbox": {
         "title": "Upgrade a facility",
-        "detail": "More output and more upkeep, applied immediately."
+        "detail": "More output and more upkeep after construction finishes."
       },
       "destination": "club-facilities",
       "pages": [
@@ -194,7 +194,7 @@
           "kicker": "Better bricks",
           "title": "Level up the grounds",
           "body": [
-            "Select an existing building to see its next level and price. Upgrades apply immediately, up to Level 3.",
+            "Select an existing building to see its next level, price, and build time. Its current level stays active while the upgrade is built; the new benefits begin after a weekly settlement completes it.",
             "Check the weekly upkeep before approving it. Shiny tiles have recurring opinions."
           ],
           "focus": "facility-upgrade",
@@ -267,6 +267,27 @@
       ]
     },
     {
+      "id": "roster-cap",
+      "inbox": {
+        "title": "Your 17-player squad is full",
+        "detail": "Future signings need a safe sale or release first."
+      },
+      "destination": "market-transfers",
+      "pages": [
+        {
+          "kicker": "Seventeen shirts",
+          "title": "Sell to make room",
+          "body": [
+            "We're at 17/17. To sign someone else, sell or release a player the squad can safely replace.",
+            "A sale brings in the bid fee and removes that weekly wage. Only players with a legal XI replacement appear on this list."
+          ],
+          "focus": "transfer-list",
+          "objective": "REVIEW WHO CAN BE SOLD.",
+          "buttonLabel": "Count the cover."
+        }
+      ]
+    },
+    {
       "id": "transfer-list",
       "inbox": {
         "title": "The transfer window is open",
@@ -333,7 +354,7 @@
       "id": "youth-intake",
       "inbox": {
         "title": "Youth intake is ready",
-        "detail": "Meet this pre-season's academy prospects."
+        "detail": "Choose one academy prospect for the open squad place."
       },
       "destination": "youth-intake",
       "pages": [
@@ -341,8 +362,8 @@
           "kicker": "Fresh boots",
           "title": "The kids have arrived",
           "body": [
-            "Each pre-season offers one or two young players for a small signing bonus. A better Youth Field improves the crop.",
-            "Roster space and future wages still matter. Potential is exciting; payroll remains literate."
+            "This pre-season offers one or two young players, but we have room to choose one. A better Youth Field improves the crop.",
+            "The signing bonus is small; the weekly wage stays on the books. Potential is exciting. Payroll remains literate."
           ],
           "focus": "youth-intake",
           "objective": "REVIEW THE YOUTH INTAKE.",
@@ -383,7 +404,7 @@
           "kicker": "The ice-pack department",
           "title": "Out means out",
           "body": [
-            "An injured player cannot train or play until the OUT counter reaches zero. The team sheet repairs itself with an eligible replacement.",
+            "An injured player cannot train or play. The OUT label shows how many recovery weeks remain, and the team sheet replaces them with an eligible player.",
             "Review the player and the replacement before match day. The physio has banned my miracle sponge again."
           ],
           "focus": "injury-lineup",

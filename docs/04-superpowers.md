@@ -8,9 +8,9 @@ League lore: superpowered players require a registered Hero License, and license
 
 | Club prestige | Heroes on the pitch |
 |---|---|
-| Start (Div 5) | 2 |
+| Start (D5 · District League) | 2 |
 | Reach Div 3 | 3 |
-| Reach Div 1 | 4 |
+| Reach D1 · Global League | 4 |
 | Win Continental Hero Cup | 5 |
 
 You may *own* any number of heroes (bench/rotate them), but only licensed slots play.
@@ -77,6 +77,6 @@ Which power a player awakens is weighted by their stats and body type (a PAC-hea
 
 ## Balance rails (design promises)
 
-- Div 5–4 are winnable with zero heroes; heroes accelerate, never gate.
-- Opposing hero density ramps: Div 5 ~10% of teams field one → Div 1 all field 2–3 → Hero Cup full squads.
+- D5 · District League and D4 · County League are winnable with zero heroes; heroes accelerate, never gate.
+- Opposing hero density ramps: around 10% of D5 · District League teams field one → every D1 · Global League team fields 2–3 → Hero Cup teams field full hero squads.
 - Hero wages + license caps + Essence scarcity are the three tuning valves; the season-simulation harness (doc 09) verifies the flat 10% post-match cadence and three-match cooldown, plus — per the timing audit — that **attentive tapping measurably beats reasonable auto, which beats blind firing**, per power, with a predeclared confidence-interval-positive margin.

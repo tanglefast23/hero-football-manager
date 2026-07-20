@@ -7,6 +7,9 @@ export interface M2DivisionSummaryViewModel {
   readonly clubCount: number;
   readonly averageStrength: number;
   readonly strengthRangeLabel: string;
+  readonly userSquadStrength: number;
+  readonly comparisonLabel: string;
+  readonly comparisonTone: 'below' | 'competitive' | 'above';
   readonly selected: boolean;
   readonly userDivision: boolean;
 }

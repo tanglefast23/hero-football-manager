@@ -23,7 +23,7 @@ describe('assistant guide application flow', () => {
 
     state = completeAssistantGuideSequence(state, 'squad-intro');
     expect(currentAssistantObjective(state, 'squad')).toEqual({
-      text: 'TRAIN ONE PLAYER ONCE.',
+      text: 'SAVE YOUR FIRST WEEKLY PLAN.',
       target: 'training-plan',
     });
 

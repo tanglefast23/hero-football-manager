@@ -146,6 +146,7 @@ export const AssistantGuideSequenceIdSchema = z.enum([
   'facility-adjacency',
   'scout-mission',
   'scout-report',
+  'roster-cap',
   'transfer-list',
   'transfer-bid',
   'transfer-negotiation',

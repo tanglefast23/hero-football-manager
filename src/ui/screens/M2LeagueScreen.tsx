@@ -59,7 +59,7 @@ export function M2LeagueScreen({
             <Pressable
               key={division.level}
               accessibilityRole="button"
-              accessibilityLabel={`${division.label}, average strength ${division.averageStrength}${division.userDivision ? ', your division' : ''}`}
+              accessibilityLabel={`${division.label}, average club strength ${division.averageStrength}${division.userDivision ? ', your division' : ''}`}
               accessibilityState={{ selected: division.selected }}
               onPress={() => onSelectDivision(division.level)}
               className={division.selected
@@ -73,34 +73,45 @@ export function M2LeagueScreen({
               })}
             >
               <Text className="font-pixel text-sm uppercase text-ink">{division.shortLabel}</Text>
-              <Text className="mt-1 font-mono text-sm text-ink/60">{division.averageStrength}</Text>
+              <Text className="mt-1 font-mono text-xs text-ink/60">AVG {division.averageStrength}</Text>
             </Pressable>
           ))}
         </View>
       </View>
 
       <PaperPanel
-        kicker={summary.userDivision ? 'Your division' : 'League scout report'}
+        kicker={summary.userDivision ? 'Your division' : 'Division preview'}
         title={summary.label}
         stamp={summary.userDivision ? 'ACTIVE' : `AVG ${summary.averageStrength}`}
         className="mt-4"
       >
         <View className="flex-row gap-2">
           <Metric label="Clubs" value={String(summary.clubCount)} />
-          <Metric label="Average" value={String(summary.averageStrength)} />
-          <Metric label="Strength band" value={summary.strengthRangeLabel} />
+          <Metric label="Average club strength" value={String(summary.averageStrength)} />
+          <Metric label="Club strength range" value={summary.strengthRangeLabel} />
+        </View>
+        <View className="mt-2 flex-row gap-2">
+          <Metric label="Your squad strength" value={String(summary.userSquadStrength)} />
+          <Metric
+            label="Comparison"
+            value={summary.comparisonLabel}
+            tone={summary.comparisonTone === 'below' ? 'negative' : 'positive'}
+          />
         </View>
         <Text className="mt-3 text-sm leading-5 text-ink/60">
           {summary.userDivision
-            ? 'Your live results are filed below. Promotion and relegation move whole clubs without rewriting their squads.'
-            : `This is the season-level scouting view. Your live fixtures remain in ${viewModel.activeTable.divisionLabel}.`}
+            ? 'You currently play here. Finish in the top two to earn promotion.'
+            : `Preview only. Your fixtures and table remain in ${viewModel.activeTable.divisionLabel}.`}
+        </Text>
+        <Text className="mt-2 text-xs leading-4 text-ink/50">
+          Squad strength uses player attributes only. Form, condition, tactics, coaches, and hero powers can still change results.
         </Text>
       </PaperPanel>
 
       <View className="mt-6">
         <SectionLabel
           eyebrow={viewModel.activeTable.divisionLabel}
-          title="Your live table"
+          title="Current standings"
           right={<StatusChip label={viewModel.activeTable.rulesLabel} tone="success" />}
         />
         <View
@@ -151,6 +162,7 @@ export function M2LeagueScreen({
             );
           })}
         </View>
+        <Text className="mt-2 text-xs text-ink/50">P played · GD goal difference · Pts points</Text>
       </View>
 
       <View className="mt-7">
@@ -162,7 +174,7 @@ export function M2LeagueScreen({
         {viewModel.leagueFixtures.length === 0 ? (
           <PaperPanel title="Schedule pending" kicker={viewModel.seasonLabel}>
             <Text className="text-sm leading-5 text-ink/60">
-              Your league road will appear here as soon as the competition office files the schedule.
+              Your league schedule will appear here when the competition office publishes it.
             </Text>
           </PaperPanel>
         ) : (
@@ -240,7 +252,7 @@ export function M2LeagueScreen({
                   {viewModel.cup.championName}
                 </Text>
                 <Text className="mt-2 text-sm leading-5 text-ink/65">
-                  Their road to the trophy is filed round by round below.
+                  Their road to the trophy is recorded round by round below.
                 </Text>
               </View>
             ) : (
@@ -310,13 +322,13 @@ function CupRoundCard({
   round: M2CupRoundViewModel;
   onOpenCupFixture?: (fixtureId: string) => void;
 }) {
-  const filed = round.completedCount === round.matchCount;
+  const complete = round.completedCount === round.matchCount;
   const outcomeTone = round.userOutcome === 'Eliminated'
     ? 'danger' as const
     : round.userOutcome === 'Champion'
       ? 'hero' as const
       : 'success' as const;
-  const railClass = !round.drawn ? 'bg-grey-light' : filed ? 'bg-grey' : 'bg-blue';
+  const railClass = !round.drawn ? 'bg-grey-light' : complete ? 'bg-grey' : 'bg-blue';
 
   return (
     <View className="relative pl-4">
@@ -332,7 +344,7 @@ function CupRoundCard({
             <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Round {round.round}</Text>
             <Text className="mt-1 font-pixel text-lg uppercase text-ink">{round.label}</Text>
             <Text className="mt-1 font-mono text-sm text-ink/50">
-              {round.completedCount}/{round.matchCount} ties filed
+              {round.completedCount}/{round.matchCount} matches complete
             </Text>
           </View>
           {round.userOutcome ? <StatusChip label={round.userOutcome} tone={outcomeTone} /> : <StatusChip label={round.statusLabel} />}

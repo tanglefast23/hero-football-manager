@@ -11,6 +11,12 @@ import type {
 } from '../game/market';
 import type { CareerPlayer, GameState } from '../game/types';
 import { careerRosterCapacity } from '../game/youth-intake';
+import {
+  isStoryFeaturePacingActive,
+  isStoryScoutingUnlocked,
+  isStoryYouthUnlocked,
+} from '../game/story-progression';
+import type { MarketSectionId } from '../ui/market-models';
 import type {
   MarketViewModelSource,
   ScoutMissionOptionSource,
@@ -38,13 +44,33 @@ export function careerMarketViewModelSource(
   const userClub = state.clubs.find(club => club.id === state.userClubId);
   if (userClub === undefined) throw new Error(`unknown user club ${state.userClubId}`);
   const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
-  const reportByPlayerId = new Map(market.scoutReports.map(report => [report.playerId, report]));
-  const playerById = new Map(state.players.map(player => [player.id, player]));
-  const scoutResult = currentScoutResult(state, market);
+  const storyPacing = isStoryFeaturePacingActive(state);
+  const youthUnlocked = isStoryYouthUnlocked(state);
+  const scoutingUnlocked = isStoryScoutingUnlocked(state)
+    || market.activeScoutMission !== undefined
+    || market.scoutReports.length > 0;
+  const rosterCount = state.players.filter(player => player.clubId === state.userClubId).length;
+  const rosterCapacity = careerRosterCapacity(state);
   const savedSellListings = new Map((market.transferListings ?? []).map(listing => [
     listing.playerId,
     listing,
   ]));
+  const playerSalesUnlocked = !storyPacing
+    || savedSellListings.size > 0
+    || (scoutingUnlocked && rosterCount >= rosterCapacity);
+  const transferDealsUnlocked = !storyPacing
+    || market.scoutReports.length > 0
+    || market.transferTalks !== undefined
+    || playerSalesUnlocked;
+  const unlockedSections: MarketSectionId[] = [
+    ...(youthUnlocked ? ['YOUTH' as const] : []),
+    ...(scoutingUnlocked ? ['SCOUT' as const] : []),
+    ...(transferDealsUnlocked ? ['TRANSFERS' as const] : []),
+    'COACHES',
+  ];
+  const reportByPlayerId = new Map(market.scoutReports.map(report => [report.playerId, report]));
+  const playerById = new Map(state.players.map(player => [player.id, player]));
+  const scoutResult = currentScoutResult(state, market);
   const buyListings = market.scoutReports
     .map(report => {
       const player = playerById.get(report.playerId);
@@ -60,6 +86,8 @@ export function careerMarketViewModelSource(
     });
   const sellListings = state.players
     .filter(player => (
+      playerSalesUnlocked
+      &&
       player.clubId === state.userClubId
       && player.contractSeasonsRemaining > 0
       && hasTransferReplacement(state, player)
@@ -126,8 +154,9 @@ export function careerMarketViewModelSource(
     division,
     fame: clubFame(state),
     cash: userClub.cash,
+    unlockedSections,
     scoutOfficeLevel: scoutOfficeLevel(state),
-    scoutOptions: careerMarketScoutOptions(state),
+    scoutOptions: scoutingUnlocked ? careerMarketScoutOptions(state) : [],
     ...(market.activeScoutMission === undefined
       ? {}
       : { activeScoutMission: cloneScoutMission(market.activeScoutMission) }),
@@ -142,14 +171,14 @@ export function careerMarketViewModelSource(
     )) === true,
     ...(market.headCoach === undefined ? {} : { headCoachId: market.headCoach.id }),
     ...(market.assistantCoach === undefined ? {} : { assistantCoachId: market.assistantCoach.id }),
-    ...(state.youthIntake === undefined
+    ...(state.youthIntake === undefined || !youthUnlocked
       ? {}
       : {
           youthIntake: {
             status: state.youthIntake.status,
             declined: state.youthIntake.declined,
-            rosterCount: state.players.filter(player => player.clubId === state.userClubId).length,
-            rosterCapacity: careerRosterCapacity(state),
+            rosterCount,
+            rosterCapacity,
             offers: state.youthIntake.offers.map(offer => ({
               player: {
                 id: offer.player.id,

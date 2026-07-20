@@ -18,7 +18,7 @@ export interface TeamDef {
   id: string;
   name: string;
   players: PlayerDef[];
-  /** Integer Heat gain scale. Career coaches may raise this above the 100 baseline. */
+  /** Heat gain scale in whole or half percentages. Career coaches may raise it above 100. */
   heroGaugeRatePercent?: number;
   /** Match-eligible substitutes. They remain outside the fixed 22 render slots until used. */
   bench?: PlayerDef[];

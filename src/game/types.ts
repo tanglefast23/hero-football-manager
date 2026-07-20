@@ -115,10 +115,14 @@ export interface CareerPlayer {
   transferRequested?: boolean;
   /** Percentage-point carry for exact Motivator morale protection. */
   motivatorMoraleRemainder?: number;
+  /** Half-percentage-point carry used once assistant Motivators are present. */
+  motivatorMoraleRemainderHalfPoints?: number;
   /** Attribute total when the current contract began, used for earned wage growth. */
   signingStatTotal?: number;
   /** Percentage-point carry for exact integer Gym + Dorm stamina bonuses. */
   facilityStaBonusRemainder?: number;
+  /** Hundredths of coach-earned growth banked until each attribute reaches a full point. */
+  coachTrainingBonusRemainders?: Partial<Record<keyof Attrs, number>>;
 }
 
 export interface ClubLineupState {
