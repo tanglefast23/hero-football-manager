@@ -14,6 +14,11 @@ import { ManagementSprite } from '../components/ManagementSprite';
 import { facilityBenefit } from '../facility-benefit';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { firstGuidedFacilityUpgradeId } from '../concierge-targets';
+import {
+  facilityAdjacencyClue,
+  facilityAdjacencyLabel,
+  facilityAdjacencyPresentation,
+} from '../facility-adjacency';
 
 export interface ClubFinancesScreenProps {
   viewModel: ClubFinancesViewModel;
@@ -375,7 +380,7 @@ export function ClubFinancesScreen({
             <View className="mb-3 border-2 border-pitch-dark bg-pitch-light px-3 py-2">
               <Text className="font-pixel text-sm uppercase text-ink">Combo live!</Text>
               <Text className="mt-1 text-sm leading-4 text-ink/70">
-                {facilities.activeAdjacencies.map(adjacencyLabel).join(' · ')}
+                {facilities.activeAdjacencies.map(facilityAdjacencyLabel).join(' · ')}
               </Text>
             </View>
           ) : null}
@@ -571,7 +576,7 @@ export function ClubFinancesScreen({
                   ) : null}
                   {selectedBuilding.activeAdjacencyIds.length > 0 ? (
                     <Text className="mt-2 text-xs font-bold uppercase text-pitch-dark">
-                      Active combo · {selectedBuilding.activeAdjacencyIds.map(adjacencyLabel).join(' · ')}
+                      Active combo · {selectedBuilding.activeAdjacencyIds.map(facilityAdjacencyLabel).join(' · ')}
                     </Text>
                   ) : null}
                 </View>
@@ -663,11 +668,22 @@ export function ClubFinancesScreen({
             <View className="flex-row flex-wrap gap-2">
               {viewModel.facilities.catalog.map(entry => {
                 const selected = selectedBuildType === entry.type;
+                const adjacencyClue = facilityAdjacencyClue(entry.type);
+                const knownAdjacency = adjacencyClue !== undefined
+                  && viewModel.facilities.discoveredAdjacencies.includes(adjacencyClue.adjacencyId)
+                  ? facilityAdjacencyPresentation(adjacencyClue.adjacencyId)
+                  : undefined;
+                const adjacencyGuidance = knownAdjacency === undefined
+                  ? adjacencyClue?.text
+                  : `${knownAdjacency.pairLabel} · ${knownAdjacency.effectLabel}`;
+                const adjacencyAccessibility = adjacencyGuidance === undefined
+                  ? ''
+                  : ` ${knownAdjacency === undefined ? 'Neighbour clue' : 'Known combo'}: ${adjacencyGuidance}${adjacencyGuidance.endsWith('.') ? '' : '.'}`;
                 return (
                   <Pressable
                     key={entry.type}
                     accessibilityRole="button"
-                    accessibilityLabel={`${entry.name}. ${entry.effectLabel}. ${entry.available
+                    accessibilityLabel={`${entry.name}. ${entry.effectLabel}.${adjacencyAccessibility} ${entry.available
                       ? `Build cost ${formatCompactNumber(entry.buildCost)}. ${entry.weeklyUpkeep} per week upkeep${entry.affordable ? '' : `. Need ${formatCompactNumber(entry.affordabilityShortfall)} more`}`
                       : 'Locked'}`}
                     accessibilityState={{
@@ -708,6 +724,20 @@ export function ClubFinancesScreen({
                         ? `${entry.width}x${entry.height} · ${formatCompactNumber(entry.buildCost)} · ${entry.buildWeeks}W · ${formatCompactNumber(entry.weeklyUpkeep)}/wk`
                         : 'Locked'}
                     </Text>
+                    {adjacencyGuidance !== undefined && entry.available ? (
+                      <View className={knownAdjacency === undefined
+                        ? 'mt-2 border-t border-blue-dark/25 pt-2'
+                        : 'mt-2 border-t border-pitch-dark/25 pt-2'}>
+                        <Text className={knownAdjacency === undefined
+                          ? 'text-xs font-bold uppercase tracking-wide text-blue-dark'
+                          : 'text-xs font-bold uppercase tracking-wide text-pitch-dark'}>
+                          {knownAdjacency === undefined ? 'Neighbour clue' : 'Known combo'}
+                        </Text>
+                        <Text className="mt-1 text-xs leading-4 text-ink/65">
+                          {adjacencyGuidance}
+                        </Text>
+                      </View>
+                    ) : null}
                     {entry.blockedReason ? (
                       <Text className="mt-1 text-xs font-bold text-stamp">{entry.blockedReason}</Text>
                     ) : null}
@@ -725,16 +755,36 @@ export function ClubFinancesScreen({
           <View className="mt-4 border-t-2 border-ink/20 pt-3">
             <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Adjacency codex</Text>
             {viewModel.facilities.discoveredAdjacencies.length === 0 ? (
-              <Text className="mt-2 text-sm text-ink/55">No pairings discovered yet.</Text>
-            ) : viewModel.facilities.discoveredAdjacencies.map(adjacency => (
-              <View key={adjacency} className="mt-2 flex-row items-center justify-between border border-ink/20 bg-white px-2 py-2">
-                <Text className="text-sm font-bold uppercase text-ink">{adjacencyLabel(adjacency)}</Text>
-                <StatusChip
-                  label={viewModel.facilities.activeAdjacencies.includes(adjacency) ? 'Active' : 'Known'}
-                  tone={viewModel.facilities.activeAdjacencies.includes(adjacency) ? 'success' : 'normal'}
-                />
-              </View>
-            ))}
+              <Text className="mt-2 text-sm leading-4 text-ink/55">
+                No pairings discovered yet. Six buildings carry neighbour clues in the build menu. Place the right two edge-to-edge — corners do not count.
+              </Text>
+            ) : viewModel.facilities.discoveredAdjacencies.map(adjacency => {
+              const presentation = facilityAdjacencyPresentation(adjacency);
+              const active = viewModel.facilities.activeAdjacencies.includes(adjacency);
+              return (
+                <View key={adjacency} className="mt-2 flex-row items-start gap-3 border border-ink/20 bg-white px-3 py-3">
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-sm font-bold uppercase text-ink">
+                      {presentation?.pairLabel ?? adjacency}
+                    </Text>
+                    {presentation ? (
+                      <>
+                        <Text className="mt-1 text-sm font-bold text-violet-dark">
+                          {presentation.effectLabel}
+                        </Text>
+                        <Text className="mt-1 text-sm leading-4 text-ink/60">
+                          Why it works: {presentation.rationale}
+                        </Text>
+                      </>
+                    ) : null}
+                  </View>
+                  <StatusChip
+                    label={active ? 'Active' : 'Known'}
+                    tone={active ? 'success' : 'normal'}
+                  />
+                </View>
+              );
+            })}
           </View>
         </PaperPanel>
       </View>
@@ -809,11 +859,4 @@ function facilityColor(building: ClubFacilityBuildingViewModel): string {
   if (building.type === 'fan-shop' || building.type === 'stadium-stand') return '#C8DDF0';
   if (building.type === 'hero-lab') return '#E6D5F2';
   return '#F4E7C5';
-}
-
-function adjacencyLabel(id: string): string {
-  if (id === 'gym-dorm') return 'Gym + Dorm · STA +10%';
-  if (id === 'fan-shop-stadium') return 'Shop + Stand · Merch +10%';
-  if (id === 'medical-training-pitch') return 'Medical + Pitch · Injury -20%';
-  return id;
 }

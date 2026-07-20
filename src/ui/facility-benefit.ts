@@ -21,7 +21,7 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
     case 'medical-bay':
       return 'Heals injuries faster and lowers weekly injury risk.';
     case 'dorm':
-      return 'Place next to a Gym for +10% stamina training every week.';
+      return 'Player accommodation built for rest and recovery. Its value comes from the right neighbour.';
     case 'scout-office':
       return 'Improves transfer scouting — better targets at higher levels.';
     case 'coaching-office':
@@ -31,7 +31,7 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
     case 'fan-shop':
       return 'Earns weekly merchandise income — more per Level.';
     case 'stadium-stand':
-      return 'Place next to a Fan Shop for +10% merchandise income.';
+      return 'Creates a matchday crowd route. Its value comes from the right neighbour.';
     case 'hero-lab':
       return 'Advanced hero research facility.';
   }

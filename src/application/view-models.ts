@@ -342,7 +342,7 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
   if (type === 'medical-bay') {
     return `Injury recovery -${level} week${level === 1 ? '' : 's'}`;
   }
-  if (type === 'dorm') return 'Pairs with Gym for +10% STA gains';
+  if (type === 'dorm') return 'Rest quarters · adjacency bonus only';
   if (type === 'scout-office') {
     return level === 1
       ? 'Scout intel desk · upgrades narrow stat ranges'
@@ -355,7 +355,7 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
     return `Youth intake quality +${level * 5}${level >= 2 ? ' · higher potential' : ''}`;
   }
   if (type === 'fan-shop') return `Weekly merchandise scales with fans · x${level}`;
-  if (type === 'stadium-stand') return 'Pairs with Fan Shop for +10% merchandise';
+  if (type === 'stadium-stand') return 'Matchday crowd route · adjacency bonus only';
   return 'Hero research site · not yet available';
 }
 
