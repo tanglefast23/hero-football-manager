@@ -681,6 +681,7 @@ export function squadTrainingViewModel(
       ),
     })),
     selectedPlayerId,
+    createdPlayerId: state.onboarding?.createdPlayerId,
     drills: drills.map(drill => drillViewModel(drill, selected.has(drill.id), state)),
     assignedPlayerIds,
     selectedDrillCount: selectedDrills.length,
