@@ -1,5 +1,7 @@
 import { loadLaunchContent } from '../../content';
 import { buildCareerTeams, createCareer } from '../../game';
+import { runHeadlessFullCareer } from '../../game/headless';
+import { serializeGameState } from '../../persistence/game-state-codec';
 import {
   createLaunchCareerSetup,
   DEFAULT_USER_CLUB_ID,
@@ -100,5 +102,22 @@ describe('launch career adapter', () => {
     const reconciled = reconcileLaunchRoster(legacy as typeof current, loadLaunchContent(), true);
 
     expect(reconciled.cashTransactions).toEqual([]);
+  });
+
+  it('reloads a full career past season 1 without adding orphan launch players', () => {
+    // Regression: the league reshuffles each season via promotion/relegation, so
+    // launch-roster players for departed clubs must not be re-added on reload — doing
+    // so referenced clubs absent from state.clubs and made the save unrecoverable.
+    for (const seed of [8, 77, generateCareerSeed(1)]) {
+      const past = runHeadlessFullCareer(
+        createLaunchCareerSetup(seed, undefined, loadLaunchContent(), 'full'),
+        2,
+      );
+      const reconciled = reconcileLaunchRoster(past, loadLaunchContent(), true);
+      const clubIds = new Set(reconciled.clubs.map(club => club.id));
+      expect(reconciled.players.every(player => clubIds.has(player.clubId))).toBe(true);
+      // the app re-saves the reconciled state on load; this must not throw
+      expect(() => serializeGameState(reconciled)).not.toThrow();
+    }
   });
 });

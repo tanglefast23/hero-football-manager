@@ -134,7 +134,15 @@ export function reconcileLaunchRoster(
   const launch = createLaunchCareerSetup(state.careerSeed, state.userClubId, content);
   const launchPlayers = launch.players ?? [];
   const existingIds = new Set(state.players.map(player => player.id));
-  const missing = launchPlayers.filter(player => !existingIds.has(player.id));
+  const clubIds = new Set(state.clubs.map(club => club.id));
+  // Only top up rosters for clubs still present in this career. A full (M2) career
+  // reshuffles its league each season via promotion/relegation, so launch-roster
+  // players for clubs that have left must NOT be re-added — doing so appends players
+  // referencing clubs absent from state.clubs and makes the save fail validation on
+  // reload (career becomes unrecoverable after season 1).
+  const missing = launchPlayers.filter(
+    player => !existingIds.has(player.id) && clubIds.has(player.clubId),
+  );
 
   const launchById = new Map(launchPlayers.map(player => [player.id, player]));
   const legacyReserveWages = new Map<string, number>();
