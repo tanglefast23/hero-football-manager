@@ -578,6 +578,38 @@ describe('M1 app store integration', () => {
     ]);
   });
 
+  it('erases the replaced career replay namespace before saving a new career', async () => {
+    useM1Store.getState().startNewCareer(111);
+    const existingCareer = useM1Store.getState().career!;
+    useM1Store.setState(useM1Store.getInitialState(), true);
+
+    const operations: string[] = [];
+    const careerRepository: CareerRepository = {
+      async load() { return existingCareer; },
+      async save(career) { operations.push(`save:${career.careerSeed}`); },
+      async delete() {},
+    };
+    const replayRepository: ReplayRepository = {
+      async save() {},
+      async load() { return null; },
+      async listForCareer() { return []; },
+      async delete() {},
+      async deleteAllForCareer(careerId) {
+        operations.push(`reset:${careerId}`);
+      },
+    };
+    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+
+    useM1Store.getState().startNewCareer(222);
+    await waitFor(() => operations.length === 3);
+
+    expect(operations).toEqual([
+      'reset:m1-career-111',
+      'reset:m1-career-222',
+      'save:222',
+    ]);
+  });
+
   it('does not overwrite the career when replay reset fails', async () => {
     let careerSaveCalls = 0;
     const careerRepository: CareerRepository = {

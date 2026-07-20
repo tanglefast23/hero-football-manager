@@ -15,6 +15,7 @@ import {
   SectionLabel,
   StatusChip,
   formatCompactNumber,
+  formatCurrency,
 } from './components/Scorecard';
 
 export interface PostMatchSummaryModalProps {
@@ -223,11 +224,11 @@ function CountUpAmount({
   return (
     <Text
       accessible
-      accessibilityLabel={`${amount > 0 ? 'plus ' : amount < 0 ? 'minus ' : ''}${formatCompactNumber(Math.abs(amount))}`}
+      accessibilityLabel={`${amount > 0 ? 'plus ' : amount < 0 ? 'minus ' : ''}${formatCurrency(Math.abs(amount))}`}
       className={large ? 'font-mono text-xl font-bold' : 'font-mono text-base font-bold'}
       style={{ color }}
     >
-      {displayAmount > 0 ? '+' : ''}{formatCompactNumber(displayAmount)}
+      {formatCurrency(displayAmount, true)}
     </Text>
   );
 }

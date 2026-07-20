@@ -1,6 +1,6 @@
 import { Modal, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActionButton, Metric, PaperPanel } from './components/Scorecard';
+import { ActionButton, Metric, PaperPanel, formatCurrency } from './components/Scorecard';
 import { ManagementSprite } from './components/ManagementSprite';
 
 export interface CoachOverlayCoach {
@@ -70,11 +70,11 @@ export function CoachStaffOverlay({
             </View>
 
             <View className="mt-3 flex-row gap-2">
-              <Metric label="Weekly wage" value={formatMoney(coach.weeklyWage)} />
+              <Metric label="Weekly wage" value={formatCurrency(coach.weeklyWage)} />
               <Metric
                 label={isDismissConfirmation ? 'Severance' : 'Specialties'}
                 value={isDismissConfirmation
-                  ? formatMoney(coach.severanceCost ?? coach.weeklyWage)
+                  ? formatCurrency(coach.severanceCost ?? coach.weeklyWage)
                   : String(coach.specialtyLabels.length)}
                 tone={isDismissConfirmation ? 'negative' : 'positive'}
               />
@@ -93,14 +93,14 @@ export function CoachStaffOverlay({
                 ? `${coach.name} is now your one and only head coach.`
                 : mode === 'dismissed'
                   ? 'The head-coach position is vacant. You may now hire a replacement.'
-                  : `The club will pay one week of wages (${formatMoney(coach.severanceCost ?? coach.weeklyWage)}) immediately.`}
+                  : `The club will pay one week of wages (${formatCurrency(coach.severanceCost ?? coach.weeklyWage)}) immediately.`}
             </Text>
 
             <View className="mt-4 gap-2">
               {isDismissConfirmation ? (
                 <>
                   <ActionButton
-                    label={`Pay ${formatMoney(coach.severanceCost ?? coach.weeklyWage)} & dismiss`}
+                    label={`Pay ${formatCurrency(coach.severanceCost ?? coach.weeklyWage)} & dismiss`}
                     accessibilityLabel={`Pay one week severance and dismiss ${coach.name}`}
                     variant="danger"
                     onPress={() => onConfirm?.()}
@@ -125,8 +125,4 @@ export function CoachStaffOverlay({
       </SafeAreaView>
     </Modal>
   );
-}
-
-function formatMoney(amount: number): string {
-  return `$${Math.abs(Math.trunc(amount)).toLocaleString('en-US')}`;
 }

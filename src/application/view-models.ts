@@ -575,7 +575,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     ...(!state.facilities.trainingGroundBuilt ? [{
       id: 'training-ground',
       title: 'Training Ground proposal',
-      detail: 'Build once for 8,000 and earn +5 TP after every settled week.',
+      detail: 'Build once for $8,000 and earn +5 TP after every settled week.',
       tone: 'info' as const,
     }] : []),
     ...(expired.length > 0 ? [{
@@ -611,13 +611,13 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     ...(loan !== undefined && loan.remainingBalance > 0 ? [{
       id: 'emergency-loan',
       title: 'Emergency loan active',
-      detail: `${loan.remainingBalance.toLocaleString()} remains. Repayments begin in Season ${loan.repaymentStartsSeason}.`,
+      detail: `${formatMoney(loan.remainingBalance)} remains. Repayments begin in Season ${loan.repaymentStartsSeason}.`,
       tone: 'info' as const,
     }] : []),
     ...(boardUltimatum === undefined ? [] : [{
       id: 'board-ultimatum',
       title: `Board deadline · ${boardUltimatum.weeksRemaining} week${boardUltimatum.weeksRemaining === 1 ? '' : 's'}`,
-      detail: `Reach ${boardUltimatum.targetCash.toLocaleString()} cash or the board will sell one visible, unprotected candidate.`,
+      detail: `Reach ${formatMoney(boardUltimatum.targetCash)} cash or the board will sell one visible, unprotected candidate.`,
       tone: 'urgent' as const,
     }]),
     ...(!showBoardResolution || latestBoardResolution === undefined ? [] : [{
@@ -627,7 +627,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
         : 'Board sale completed',
       detail: latestBoardResolution.kind === 'TARGET_MET'
         ? 'The intervention is closed. No player was sold.'
-        : `${state.players.find(player => player.id === latestBoardResolution.playerId)?.name ?? 'A player'} joined ${clubName(state, latestBoardResolution.buyerClubId)} for ${latestBoardResolution.fee.toLocaleString()}.`,
+        : `${state.players.find(player => player.id === latestBoardResolution.playerId)?.name ?? 'A player'} joined ${clubName(state, latestBoardResolution.buyerClubId)} for ${formatMoney(latestBoardResolution.fee)}.`,
       tone: latestBoardResolution.kind === 'TARGET_MET' ? 'info' as const : 'urgent' as const,
     }]),
   ];
@@ -1435,12 +1435,17 @@ function drillViewModel(drill: TrainingDrill, selected: boolean, state: GameStat
 function describeSafeOutcome(effects: GameEvent['choices'][number]['outcomes'][number]['effects']): string {
   const effect = effects[0];
   if (effect?.type === 'tp') return `${effect.amount >= 0 ? '+' : ''}${effect.amount} TP, guaranteed`;
-  if (effect?.type === 'money') return `${effect.amount >= 0 ? '+' : ''}${effect.amount} money, guaranteed`;
+  if (effect?.type === 'money') return `${formatMoney(effect.amount, true)}, guaranteed`;
   return 'Guaranteed steady outcome';
 }
 
 function overall(attrs: GameState['players'][number]['attrs']): number {
   return Math.round((attrs.pac + attrs.sho + attrs.pas + attrs.def + attrs.tec + attrs.sta + attrs.ref) / 7);
+}
+
+function formatMoney(value: number, signed = false): string {
+  const sign = value < 0 ? '−' : signed && value > 0 ? '+' : '';
+  return `${sign}$${Math.abs(Math.trunc(value)).toLocaleString('en-US')}`;
 }
 
 function clubName(state: GameState, clubId: string): string {

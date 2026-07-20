@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, View, type LayoutChangeEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { FacilitySprite } from '../components/FacilitySprite';
 import type {
   ClubFacilityBuildingViewModel,
@@ -177,13 +177,13 @@ export function ClubFinancesScreen({
         ) : null}
         <PaperPanel kicker="Cash position" title="The board’s bottom line" stamp="Current">
           <View className="flex-row gap-2">
-            <Metric label="Balance" value={formatCompactNumber(viewModel.resources.money)} />
+            <Metric label="Balance" value={formatCurrency(viewModel.resources.money)} />
             <Metric
               label="Recurring net"
-              value={`${viewModel.weeklyNet > 0 ? '+' : ''}${formatCompactNumber(viewModel.weeklyNet)}`}
+              value={formatCurrency(viewModel.weeklyNet, true)}
               tone={viewModel.weeklyNet < 0 ? 'negative' : 'positive'}
             />
-            <Metric label="After recurring" value={formatCompactNumber(viewModel.projectedBalance)} />
+            <Metric label="After recurring" value={formatCurrency(viewModel.projectedBalance)} />
           </View>
           <Text className="mt-3 text-xs font-bold uppercase leading-4 tracking-wide text-ink/45">
             Forward estimate · known weekly commitments and steady merchandise · match, sponsor and prize income excluded
@@ -215,7 +215,7 @@ export function ClubFinancesScreen({
               <Pressable
                 key={line.id}
                 accessibilityRole={onOpenLedgerLine ? 'button' : 'text'}
-                accessibilityLabel={`${line.label}, ${line.amount > 0 ? 'plus ' : ''}${formatCompactNumber(line.amount)}`}
+                accessibilityLabel={`${line.label}, ${line.amount > 0 ? 'plus ' : ''}${formatCurrency(line.amount)}`}
                 disabled={!onOpenLedgerLine}
                 onPress={() => onOpenLedgerLine?.(line.id)}
                 className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
@@ -223,7 +223,7 @@ export function ClubFinancesScreen({
               >
                 <Text className="flex-1 text-base text-ink">{line.label}</Text>
                 <Text className={`font-mono text-base font-bold ${amountClass}`}>
-                  {line.amount > 0 ? '+' : ''}{formatCompactNumber(line.amount)}
+                  {formatCurrency(line.amount, true)}
                 </Text>
               </Pressable>
             );
@@ -243,11 +243,11 @@ export function ClubFinancesScreen({
                 <View className="flex-1 pr-3">
                   <Text className="text-base font-bold text-ink">{transaction.label}</Text>
                   <Text className="font-mono text-xs uppercase text-ink/50">
-                    {transaction.periodLabel} · Balance {formatCompactNumber(transaction.balanceAfter)}
+                    {transaction.periodLabel} · Balance {formatCurrency(transaction.balanceAfter)}
                   </Text>
                 </View>
                 <Text className={`font-mono text-base font-bold ${transaction.kind === 'income' ? 'text-pitch-dark' : 'text-red-dark'}`}>
-                  {transaction.amount > 0 ? '+' : ''}{formatCompactNumber(transaction.amount)}
+                  {formatCurrency(transaction.amount, true)}
                 </Text>
               </View>
             ))}
@@ -274,7 +274,7 @@ export function ClubFinancesScreen({
                 </View>
                 <View className="min-w-0 flex-1 gap-2">
                   <Metric label="Age · level" value={`${viewModel.headCoach.age} · ${viewModel.headCoach.level}`} />
-                  <Metric label="Wage / wk" value={formatCompactNumber(viewModel.headCoach.weeklyWage)} />
+                  <Metric label="Wage / wk" value={formatCurrency(viewModel.headCoach.weeklyWage)} />
                 </View>
               </View>
               <View className="mt-3 flex-row gap-2">
@@ -297,7 +297,7 @@ export function ClubFinancesScreen({
                   <Text className="font-mono text-sm font-bold uppercase text-violet-dark">Assistant coach</Text>
                   <Text className="mt-1 text-base font-bold text-ink">{viewModel.assistantCoach.name} · Lv{viewModel.assistantCoach.level}</Text>
                 </View>
-                <Text className="font-mono text-sm font-bold text-ink">{formatCompactNumber(viewModel.assistantCoach.weeklyWage)}/wk</Text>
+                <Text className="font-mono text-sm font-bold text-ink">{formatCurrency(viewModel.assistantCoach.weeklyWage)}/wk</Text>
               </View>
               <Text className="mt-2 text-sm text-ink/65">
                 {viewModel.assistantCoach.specialtyLabels.join(' · ')} · {viewModel.assistantCoach.seasonsEmployed} season{viewModel.assistantCoach.seasonsEmployed === 1 ? '' : 's'} employed
@@ -313,7 +313,7 @@ export function ClubFinancesScreen({
               />
               {viewModel.headCoach && onDismissCoach ? (
                 <ActionButton
-                  label={`Dismiss · ${formatCompactNumber(viewModel.headCoach.severanceCost)} severance`}
+                  label={`Dismiss · ${formatCurrency(viewModel.headCoach.severanceCost)} severance`}
                   accessibilityLabel={`Dismiss ${viewModel.headCoach.name} with one week severance`}
                   variant="danger"
                   onPress={onDismissCoach}
@@ -354,7 +354,7 @@ export function ClubFinancesScreen({
         <PaperPanel
           kicker="8 x 6 grounds"
           title="Facilities grid"
-          stamp={`${formatCompactNumber(viewModel.facilities.weeklyUpkeep)}/wk`}
+          stamp={`${formatCurrency(viewModel.facilities.weeklyUpkeep)}/wk`}
         >
           <Text className="mb-3 text-sm leading-4 text-ink/60">
             Pick a building from the menu below, then tap a glowing square to drop it. Put useful pairs edge-to-edge to discover bonuses.
@@ -558,7 +558,7 @@ export function ClubFinancesScreen({
                   </Text>
                   <Text className="mt-1 text-sm text-ink/60">
                     {selectedBuilding.status === 'operational'
-                      ? `${formatCompactNumber(selectedBuilding.weeklyUpkeep)}/wk upkeep · ${formatCompactNumber(selectedBuilding.relocationFee)} to move`
+                      ? `${formatCurrency(selectedBuilding.weeklyUpkeep)}/wk upkeep · ${formatCurrency(selectedBuilding.relocationFee)} to move`
                       : `${selectedBuilding.status === 'construction' ? 'Building' : 'Upgrading'} · ${selectedBuilding.weeksRemaining} week${selectedBuilding.weeksRemaining === 1 ? '' : 's'} remaining`}
                   </Text>
                   <Text className="mt-2 text-sm font-bold leading-4 text-violet-dark">
@@ -593,8 +593,8 @@ export function ClubFinancesScreen({
                   accessibilityLabel={selectedBuilding.status !== 'operational'
                     ? `Cannot move ${selectedBuilding.name} while its project is active`
                     : selectedBuilding.canRelocate
-                      ? `Move ${selectedBuilding.name} for ${formatCompactNumber(selectedBuilding.relocationFee)}`
-                      : `Cannot move ${selectedBuilding.name}. Need ${formatCompactNumber(selectedBuilding.relocationShortfall)} more`}
+                      ? `Move ${selectedBuilding.name} for ${formatCurrency(selectedBuilding.relocationFee)}`
+                      : `Cannot move ${selectedBuilding.name}. Need ${formatCurrency(selectedBuilding.relocationShortfall)} more`}
                   accessibilityState={{ disabled: selectedBuilding.status !== 'operational' || !selectedBuilding.canRelocate }}
                   disabled={selectedBuilding.status !== 'operational' || !selectedBuilding.canRelocate}
                   onPress={() => setRelocatingBuildingId(selectedBuilding.id)}
@@ -608,8 +608,8 @@ export function ClubFinancesScreen({
                     {selectedBuilding.status !== 'operational'
                       ? 'Project active'
                       : selectedBuilding.canRelocate
-                        ? `Move · ${formatCompactNumber(selectedBuilding.relocationFee)}`
-                        : `Need ${formatCompactNumber(selectedBuilding.relocationShortfall)}`}
+                        ? `Move · ${formatCurrency(selectedBuilding.relocationFee)}`
+                        : `Need ${formatCurrency(selectedBuilding.relocationShortfall)}`}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -621,8 +621,8 @@ export function ClubFinancesScreen({
                       : viewModel.facilities.activeProject !== undefined
                         ? `Cannot upgrade ${selectedBuilding.name} while the construction crew is busy`
                         : selectedBuilding.canUpgrade
-                          ? `Upgrade ${selectedBuilding.name} for ${formatCompactNumber(selectedBuilding.upgradeCost)}`
-                          : `Cannot upgrade ${selectedBuilding.name}. Need ${formatCompactNumber(selectedBuilding.upgradeShortfall)} more`}
+                          ? `Upgrade ${selectedBuilding.name} for ${formatCurrency(selectedBuilding.upgradeCost)}`
+                          : `Cannot upgrade ${selectedBuilding.name}. Need ${formatCurrency(selectedBuilding.upgradeShortfall)} more`}
                   accessibilityState={{
                     disabled: !selectedBuilding.canUpgrade
                       || selectedBuilding.status !== 'operational'
@@ -650,8 +650,8 @@ export function ClubFinancesScreen({
                         : selectedBuilding.upgradeCost === undefined
                           ? 'Max level'
                           : selectedBuilding.canUpgrade
-                            ? `Upgrade · ${formatCompactNumber(selectedBuilding.upgradeCost)}`
-                            : `Need ${formatCompactNumber(selectedBuilding.upgradeShortfall)}`}
+                            ? `Upgrade · ${formatCurrency(selectedBuilding.upgradeCost)}`
+                            : `Need ${formatCurrency(selectedBuilding.upgradeShortfall)}`}
                   </Text>
                 </Pressable>
               </View>
@@ -668,7 +668,7 @@ export function ClubFinancesScreen({
                     key={entry.type}
                     accessibilityRole="button"
                     accessibilityLabel={`${entry.name}. ${entry.effectLabel}. ${entry.available
-                      ? `Build cost ${formatCompactNumber(entry.buildCost)}. ${entry.weeklyUpkeep} per week upkeep${entry.affordable ? '' : `. Need ${formatCompactNumber(entry.affordabilityShortfall)} more`}`
+                      ? `Build cost ${formatCurrency(entry.buildCost)}. ${formatCurrency(entry.weeklyUpkeep)} per week upkeep${entry.affordable ? '' : `. Need ${formatCurrency(entry.affordabilityShortfall)} more`}`
                       : 'Locked'}`}
                     accessibilityState={{
                       disabled: !entry.available || !entry.affordable,
@@ -705,7 +705,7 @@ export function ClubFinancesScreen({
                       ? 'mt-1 font-mono text-sm text-ink/60'
                       : 'mt-1 font-mono text-sm text-ink/30'}>
                       {entry.available
-                        ? `${entry.width}x${entry.height} · ${formatCompactNumber(entry.buildCost)} · ${entry.buildWeeks}W · ${formatCompactNumber(entry.weeklyUpkeep)}/wk`
+                        ? `${entry.width}x${entry.height} · ${formatCurrency(entry.buildCost)} · ${entry.buildWeeks}W · ${formatCurrency(entry.weeklyUpkeep)}/wk`
                         : 'Locked'}
                     </Text>
                     {entry.blockedReason ? (
@@ -713,7 +713,7 @@ export function ClubFinancesScreen({
                     ) : null}
                     {entry.available && !entry.affordable && entry.affordabilityShortfall > 0 ? (
                       <Text className="mt-1 text-xs font-bold uppercase text-red-dark">
-                        Need {formatCompactNumber(entry.affordabilityShortfall)} more
+                        Need {formatCurrency(entry.affordabilityShortfall)} more
                       </Text>
                     ) : null}
                   </Pressable>
@@ -763,11 +763,11 @@ export function ClubFinancesScreen({
             </View>
           </View>
           <View className="mt-3 flex-row gap-2">
-            <Metric label="Build cost" value={formatCompactNumber(facility.cost)} tone="negative" />
+            <Metric label="Build cost" value={formatCurrency(facility.cost)} tone="negative" />
             <Metric label="Weekly return" value={`+${facility.weeklyTrainingPoints} TP`} tone="positive" />
           </View>
           <Text className="mt-3 text-sm font-bold uppercase tracking-wide text-ink/50">
-            M1 offer: 8,000 cost · +5 TP every week
+            M1 offer: $8,000 cost · +5 TP every week
           </Text>
           {!facility.built && !facility.underConstruction ? (
             <View className={guideTrainingGround ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>
@@ -778,8 +778,8 @@ export function ClubFinancesScreen({
                 />
               ) : null}
               <ActionButton
-                label="Approve build · 8,000 · 1 week"
-                accessibilityLabel="Build the Training Ground for 8,000 money"
+                label="Approve build · $8,000 · 1 week"
+                accessibilityLabel="Build the Training Ground for $8,000"
                 onPress={onBuildTrainingGround}
                 disabled={!facility.affordable}
               />

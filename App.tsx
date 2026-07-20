@@ -1,7 +1,7 @@
 import './global.css';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Text, View } from 'react-native';
+import { Modal, Text, View } from 'react-native';
 import { openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -82,6 +82,7 @@ import {
   type CoachOverlayCoach,
   type FacilityProjectNoticeModel,
   type PlayerSigningConfirmation,
+  formatCurrency,
   shouldShowOpeningBrief,
 } from './src/ui';
 import {
@@ -185,6 +186,7 @@ function GameApp() {
   const [conciergeFocus, setConciergeFocus] = useState<AssistantGuideFocus | null>(null);
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
+  const [settingsSaveError, setSettingsSaveError] = useState<string | null>(null);
   const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [trainingTransition, setTrainingTransition] = useState<TrainingTransitionScene | null>(null);
@@ -206,8 +208,10 @@ function GameApp() {
 
   const savePreferences = useCallback((next: AppPreferences) => {
     setPreferences(next);
+    setSettingsSaveError(null);
     void preferencesRepositoryRef.current?.save(next).catch(error => {
-      Alert.alert('Settings were not saved', error instanceof Error ? error.message : String(error));
+      const detail = error instanceof Error ? error.message : String(error);
+      setSettingsSaveError(`Settings were not saved. ${detail}`);
     });
   }, []);
 
@@ -550,19 +554,14 @@ function GameApp() {
       store.startNewCareer(undefined, 'full');
       return;
     }
-    Alert.alert(
-      'Replace saved career?',
-      'Starting over permanently erases the current career and its match replays.',
-      [
-        { text: 'Keep saved career', style: 'cancel' },
-        {
-          text: 'Erase and start over',
-          style: 'destructive',
-          onPress: () => store.startNewCareer(undefined, 'full'),
-        },
-      ],
-    );
-  }, [store.hasSavedCareer, store.startNewCareer]);
+    requestConfirmation({
+      title: 'Replace saved career?',
+      detail: 'Starting over permanently erases the current career and its match replays.',
+      confirmLabel: 'Erase and start over',
+      tone: 'danger',
+      onConfirm: () => store.startNewCareer(undefined, 'full'),
+    });
+  }, [requestConfirmation, store.hasSavedCareer, store.startNewCareer]);
 
   useEffect(() => {
     if (store.career !== null) store.reconcileAssistantInbox();
@@ -884,6 +883,7 @@ function GameApp() {
         guideTarget={assistantObjective?.target}
         onMoneyGuideAnchorChange={setMoneyGuideAnchor}
         onNavigationGuideAnchorChange={setNavigationGuideAnchor}
+        onDismissGuidance={conciergeFocus === null ? undefined : () => setConciergeFocus(null)}
       >
         {store.activeTab === 'squad' ? (
           <SquadTrainingScreen
@@ -916,7 +916,7 @@ function GameApp() {
               const building = finances.facilities.buildings.find(candidate => candidate.id === buildingId);
               requestConfirmation({
                 title: `Upgrade ${building?.name ?? 'facility'}?`,
-                detail: `Spend ${building?.upgradeCost?.toLocaleString() ?? 'the shown cost'} now. Weekly upkeep will rise with the new level.`,
+                detail: `Spend ${building?.upgradeCost === undefined ? 'the shown cost' : formatCurrency(building.upgradeCost)} now. Weekly upkeep will rise with the new level.`,
                 confirmLabel: 'Approve upgrade',
                 onConfirm: () => upgradeClubFacilityWithFeedback(buildingId),
               });
@@ -959,7 +959,7 @@ function GameApp() {
                   ? `Accept ${bid?.buyerName ?? 'this club'} bid?`
                   : `List ${listing?.playerName ?? 'this player'}?`,
                 detail: acceptingBid
-                  ? `Receive ${bid?.fee.toLocaleString() ?? 'the shown fee'} for ${listing?.playerName ?? 'the player'}. The player leaves immediately and will be removed from the Starting XI and training plan.`
+                  ? `Receive ${bid === undefined ? 'the shown fee' : formatCurrency(bid.fee)} for ${listing?.playerName ?? 'the player'}. The player leaves immediately and will be removed from the Starting XI and training plan.`
                   : 'The transfer office will request up to three club bids. Listing does not sell the player; you will compare every offer first.',
                 confirmLabel: acceptingBid ? 'Accept bid' : 'Request bids',
                 tone: acceptingBid ? 'danger' : 'normal',
@@ -978,7 +978,7 @@ function GameApp() {
               const roleLabel = role === 'HEAD' ? 'head coach' : 'assistant coach';
               requestConfirmation({
                 title: current ? `Replace ${current.name}?` : `Hire ${coach?.name ?? 'this coach'}?`,
-                detail: `${coach?.name ?? 'The coach'} will become ${roleLabel} and costs ${coach?.weeklyWage.toLocaleString() ?? 'the shown wage'} each week.${current ? ` The current ${roleLabel} leaves immediately.` : ''}`,
+                detail: `${coach?.name ?? 'The coach'} will become ${roleLabel} and costs ${coach === undefined ? 'the shown wage' : formatCurrency(coach.weeklyWage)} each week.${current ? ` The current ${roleLabel} leaves immediately.` : ''}`,
                 confirmLabel: current ? 'Replace coach' : 'Hire coach',
                 tone: current ? 'danger' : 'normal',
                 onConfirm: () => hireCoachWithFeedback(coachId, role),
@@ -1123,10 +1123,14 @@ function GameApp() {
           volume={devVolume}
           reduceMotion={preferences.reduceMotion}
           hudSide={preferences.hudSide}
+          saveError={settingsSaveError}
           onVolumeChange={volume => savePreferences({ ...preferences, masterVolume: volume })}
           onToggleReduceMotion={toggleReduceMotion}
           onToggleHudSide={toggleHudSide}
-          onOpenChange={setGlobalSettingsOpen}
+          onOpenChange={open => {
+            setGlobalSettingsOpen(open);
+            if (!open) setSettingsSaveError(null);
+          }}
         />
         {assistantSequenceId !== null ? (
           <AssistantGuideOverlay

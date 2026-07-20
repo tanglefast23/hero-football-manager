@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import type { ContractOffer, ContractPerk, PitchCard } from '../../game/market';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { ManagementSprite } from '../components/ManagementSprite';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -78,7 +78,7 @@ export function MarketScreen({
         className="mt-5"
       >
         <View className="flex-row gap-2">
-          <Metric label="Cash" value={formatCompactNumber(viewModel.cash)} />
+          <Metric label="Cash" value={formatCurrency(viewModel.cash)} />
           <Metric label="Level" value={viewModel.divisionLabel} />
           <Metric
             label="Window"
@@ -179,8 +179,8 @@ function YouthDesk({
                 {offer.potentialLabel}
               </Text>
               <View className="mt-3 flex-row gap-2">
-                <Metric label="Signing" value={formatCompactNumber(offer.signingBonus)} tone="negative" />
-                <Metric label="Weekly wage" value={formatCompactNumber(offer.weeklyWage)} />
+                <Metric label="Signing" value={formatCurrency(offer.signingBonus)} tone="negative" />
+                <Metric label="Weekly wage" value={formatCurrency(offer.weeklyWage)} />
               </View>
               <View className="mt-3 flex-row items-center justify-between gap-3">
                 <Text className="flex-1 text-sm text-stamp">
@@ -350,7 +350,7 @@ function ScoutingDesk({
                   <Text className="text-base font-bold uppercase text-ink">{choice.regionLabel}</Text>
                   <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">{choice.focusLabel}</Text>
                 </View>
-                <Text className="font-mono text-base font-bold text-ink">{formatCompactNumber(choice.cost)}</Text>
+                <Text className="font-mono text-base font-bold text-ink">{formatCurrency(choice.cost)}</Text>
               </View>
               <Text className="mt-2 text-sm leading-5 text-ink/60">{choice.detail}</Text>
               <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
@@ -419,10 +419,10 @@ function TransferDesk({
               <View className="p-3">
                 {listing.powerLabel ? <StatusChip label={`★ ${listing.powerLabel}`} tone="hero" /> : null}
                 <View className={listing.powerLabel ? 'mt-3 flex-row gap-2' : 'flex-row gap-2'}>
-                  <Metric label="Valuation" value={formatCompactNumber(listing.valuation)} />
+                  <Metric label="Valuation" value={formatCurrency(listing.valuation)} />
                   <Metric
                     label={listing.quoteLabel}
-                    value={formatCompactNumber(listing.quote)}
+                    value={formatCurrency(listing.quote)}
                     tone={listing.direction === 'BUY' ? 'negative' : 'positive'}
                   />
                 </View>
@@ -452,13 +452,13 @@ function TransferDesk({
                         <View className="flex-1">
                           <Text className="font-bold text-ink">{index + 1}. {bid.buyerName}</Text>
                           <Text className="mt-1 font-mono text-sm font-bold text-pitch-dark">
-                            {formatCompactNumber(bid.fee)} fee
+                            {formatCurrency(bid.fee)} fee
                           </Text>
                         </View>
                         <GuidedAction enabled={guideFocus === 'transfer-bid' && listing === guidedListing && index === 0} detail="Review this bid">
                           <SmallAction
                             label="Accept"
-                            accessibilityLabel={`Accept ${bid.buyerName} bid of ${bid.fee} for ${listing.playerName}`}
+                            accessibilityLabel={`Accept ${bid.buyerName} bid of ${formatCurrency(bid.fee)} for ${listing.playerName}`}
                             disabled={!listing.available}
                             onPress={() => onTransferAction(listing.playerId, 'SELL', bid.id)}
                           />
@@ -530,7 +530,7 @@ function CoachDesk({
               </View>
               <View className="mt-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
                 <Text className="font-mono text-sm font-bold uppercase text-ink">
-                  {formatCompactNumber(coach.weeklyWage)} / week
+                  {formatCurrency(coach.weeklyWage)} / week
                 </Text>
                 {coach.unlockLabel ? <Text className="mt-1 text-sm text-ink/65">{coach.unlockLabel}</Text> : null}
                 {coach.loyaltyLabel ? <Text className="mt-1 text-sm font-bold text-gold-dark">{coach.loyaltyLabel}</Text> : null}
@@ -545,7 +545,7 @@ function CoachDesk({
                 <View className="flex-row justify-end gap-2">
                   <GuidedAction
                     enabled={(guideFocus === 'coach-market' || guideFocus === 'coach-hire') && coach.id === guidedHeadCoachId}
-                    detail="Hire the head coach"
+                    detail="If you want to hire this coach"
                   >
                     <SmallAction
                       label="Head"
@@ -554,7 +554,7 @@ function CoachDesk({
                       onPress={() => onHireCoach(coach.id, 'HEAD')}
                     />
                   </GuidedAction>
-                  <GuidedAction enabled={guideFocus === 'assistant-coach-hire' && coach.id === guidedAssistantCoachId} detail="Hire the assistant">
+                  <GuidedAction enabled={guideFocus === 'assistant-coach-hire' && coach.id === guidedAssistantCoachId} detail="If you want to hire this coach">
                     <SmallAction
                       label="Assistant"
                       accessibilityLabel={`Hire ${coach.name} as assistant coach`}
@@ -636,18 +636,18 @@ export function NegotiationPanel({
             <View className="mt-2 flex-row items-stretch gap-2">
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Reduce weekly wage by ${viewModel.wageStep}`}
+                accessibilityLabel={`Reduce weekly wage by ${formatCurrency(viewModel.wageStep)}`}
                 onPress={() => setWeeklyWage(value => Math.max(viewModel.wageStep, value - viewModel.wageStep))}
                 className="h-12 w-12 items-center justify-center border-2 border-b-4 border-ink bg-paper-dark"
               >
                 <Text className="font-mono text-2xl font-bold text-ink">−</Text>
               </Pressable>
               <View className="h-12 flex-1 items-center justify-center border-2 border-ink bg-white">
-                <Text className="font-mono text-xl font-bold text-ink">{formatCompactNumber(weeklyWage)} / wk</Text>
+                <Text className="font-mono text-xl font-bold text-ink">{formatCurrency(weeklyWage)} / wk</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Increase weekly wage by ${viewModel.wageStep}`}
+                accessibilityLabel={`Increase weekly wage by ${formatCurrency(viewModel.wageStep)}`}
                 onPress={() => setWeeklyWage(value => value + viewModel.wageStep)}
                 className="h-12 w-12 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light"
               >
@@ -738,7 +738,7 @@ export function NegotiationPanel({
             ) : null}
             <ActionButton
               label="Make the offer  ▸"
-              accessibilityLabel={`Offer ${weeklyWage} per week for ${termSeasons} seasons`}
+              accessibilityLabel={`Offer ${formatCurrency(weeklyWage)} per week for ${termSeasons} seasons`}
               variant="confirm"
               onPress={() => onSubmitContractOffer({ weeklyWage, termSeasons, perk }, pitchCard)}
             />

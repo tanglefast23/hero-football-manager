@@ -1,7 +1,7 @@
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ContractOffer, PitchCard } from '../../game/market';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type { SeasonEndViewModel } from '../models';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -58,7 +58,7 @@ export function SeasonEndScreen({
           <Text className="mt-2 max-w-sm text-center text-base leading-6 text-ink/60">{viewModel.summary}</Text>
           <View className="mt-4 flex-row gap-2">
             <StatusChip label={`Finished #${viewModel.finalPosition}`} tone={outcomeTone} />
-            <StatusChip label={`Prize ${formatCompactNumber(viewModel.prizeMoney)}`} />
+            <StatusChip label={`Prize ${formatCurrency(viewModel.prizeMoney)}`} />
           </View>
         </View>
 
@@ -119,11 +119,11 @@ export function SeasonEndScreen({
                   <View className="mt-2 flex-row items-center gap-2">
                     {contract.isHeroWageCliff ? (
                       <Text className="font-mono text-base font-bold text-ink/40 line-through">
-                        {formatCompactNumber(contract.currentWeeklyWage)}
+                        {formatCurrency(contract.currentWeeklyWage)}
                       </Text>
                     ) : null}
                     <Text className="font-mono text-xl font-bold text-stamp">
-                      {formatCompactNumber(contract.quotedWeeklyWage)}
+                      {formatCurrency(contract.quotedWeeklyWage)}
                     </Text>
                     {contract.isHeroWageCliff ? <StatusChip label="Hero rate" tone="hero" /> : null}
                   </View>
@@ -204,7 +204,7 @@ export function SeasonEndScreen({
               ) : viewModel.renewalNegotiation === undefined ? (
                 <View className="mt-3 flex-row gap-2">
                   <Metric label="Decision" value="Renewed" />
-                  <Metric label="Next wage" value={formatCompactNumber(contract.quotedWeeklyWage)} />
+                  <Metric label="Next wage" value={formatCurrency(contract.quotedWeeklyWage)} />
                 </View>
               ) : null}
             </PaperPanel>

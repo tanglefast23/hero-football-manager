@@ -475,5 +475,5 @@ function readableId(value: string): string {
 }
 
 function formatMoney(value: number): string {
-  return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `$${String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 }

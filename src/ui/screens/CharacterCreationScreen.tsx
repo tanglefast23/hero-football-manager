@@ -88,7 +88,7 @@ export function CharacterCreationScreen({ onComplete, onOpenSettings }: Characte
           />
           <View className="mt-3 flex-row items-center justify-between">
             <StatusChip label="Position: FWD" selected />
-            <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">180 / week · 1 season</Text>
+            <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">$180 / week · 1 season</Text>
           </View>
         </PaperPanel>
 

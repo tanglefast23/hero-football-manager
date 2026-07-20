@@ -12,6 +12,11 @@ export function formatCompactNumber(value: number): string {
   return `${sign}${digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 }
 
+export function formatCurrency(value: number, signed = false): string {
+  const sign = value < 0 ? '−' : signed && value > 0 ? '+' : '';
+  return `${sign}$${formatCompactNumber(Math.abs(value))}`;
+}
+
 export interface PaperPanelProps {
   children: ReactNode;
   title?: string;

@@ -259,6 +259,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (get().persistenceLoadError !== null) {
         throw new Error('Resolve the save-load error before replacing this career.');
       }
+      const replacedCareerId = get().career === null
+        ? null
+        : `m1-career-${get().career!.careerSeed}`;
       const career = beginStoryOnboarding(createCareer(createLaunchCareerSetup(
         seed ?? generateCareerSeed(),
         undefined,
@@ -279,7 +282,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         weekReview: null,
         error: null,
       });
-      queueNewCareerSave(get, set, career);
+      queueNewCareerSave(get, set, career, replacedCareerId);
     });
   },
 
@@ -988,7 +991,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         error: null,
         notice: {
           tone: 'success',
-          message: `${buyer?.name ?? 'The buying club'} signed the player for ${bid.quote.fee.toLocaleString()}.`,
+          message: `${buyer?.name ?? 'The buying club'} signed the player for $${bid.quote.fee.toLocaleString()}.`,
         },
       });
       queueCareerSave(get, set, next);
@@ -1465,6 +1468,7 @@ function queueNewCareerSave(
   get: () => M1Store,
   set: (partial: Partial<M1Store>) => void,
   career: GameState,
+  replacedCareerId: string | null,
 ): void {
   const careerRepository = get().repository;
   const replayRepository = get().replayRepository;
@@ -1473,6 +1477,9 @@ function queueNewCareerSave(
   enqueueSave(
     set,
     async () => {
+      if (replacedCareerId !== null && replacedCareerId !== careerId) {
+        await replayRepository?.deleteAllForCareer(replacedCareerId);
+      }
       await replayRepository?.deleteAllForCareer(careerId);
       await careerRepository?.save(career);
     },
