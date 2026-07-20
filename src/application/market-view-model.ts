@@ -88,6 +88,7 @@ export interface MarketViewModelSource {
   readonly scoutedPlayerIdentities?: readonly ScoutedPlayerIdentitySource[];
   readonly transferListings: readonly TransferListingSource[];
   readonly coachCandidates: readonly CoachCandidate[];
+  readonly headCoach?: CoachCandidate;
   readonly youthIntake?: YouthIntakeViewSource;
   readonly negotiation?: NegotiationViewSource;
 }
@@ -161,8 +162,10 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
     coaches: source.coachCandidates.map(candidate => {
       const eligible = isCoachCandidateEligible(candidate, source.division, source.fame);
       const affordable = source.cash >= candidate.weeklyWage;
+      const slotOpen = source.headCoach === undefined;
       return {
         id: candidate.id,
+        portraitId: candidate.portraitId ?? candidate.id,
         name: candidate.name,
         level: candidate.level,
         levelLabel: `Lv${candidate.level}`,
@@ -179,12 +182,14 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
         ...(candidate.unlockId === undefined
           ? {}
           : { unlockLabel: `Teaches ${readableId(candidate.unlockId)}` }),
-        available: eligible && affordable,
-        ...(!eligible
-          ? { blockedReason: 'Raise division and fame to make contact.' }
-          : !affordable
-            ? { blockedReason: 'Cannot cover the first weekly wage.' }
-            : {}),
+        available: eligible && affordable && slotOpen,
+        ...(!slotOpen
+          ? { blockedReason: `Dismiss ${source.headCoach?.name ?? 'the current coach'} first.` }
+          : !eligible
+            ? { blockedReason: 'Raise division and fame to make contact.' }
+            : !affordable
+              ? { blockedReason: 'Cannot cover the first weekly wage.' }
+              : {}),
       };
     }),
     ...(source.youthIntake === undefined

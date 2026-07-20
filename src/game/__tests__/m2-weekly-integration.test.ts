@@ -8,7 +8,13 @@ import {
   weeklyMerchandiseIncome,
 } from '../career';
 import { buildCareerTeamDef } from '../squad';
-import { buildFacility, createFacilityGrid, upgradeFacility } from '../facilities';
+import {
+  advanceFacilityConstruction,
+  buildFacility,
+  createFacilityGrid,
+  upgradeFacility,
+  type FacilityGridState,
+} from '../facilities';
 import {
   hireCareerCoach,
   startCareerScoutMission,
@@ -260,10 +266,14 @@ describe('M2 weekly sidecars', () => {
       { x: 0, y: 0 },
       100_000,
     ).grid;
+    grid = completeFacilityProject(grid);
     grid = upgradeFacility(grid, 'facility-1', 100_000).grid;
+    grid = completeFacilityProject(grid);
     grid = upgradeFacility(grid, 'facility-1', 100_000).grid;
+    grid = completeFacilityProject(grid);
     const fanShopOnly = grid;
     grid = buildFacility(grid, 'stadium-stand', { x: 1, y: 0 }, 100_000).grid;
+    grid = completeFacilityProject(grid);
     const initial = fullCareer(506);
     const club = initial.clubs.find(candidate => candidate.id === initial.userClubId)!;
     const baseState: GameState = {
@@ -292,3 +302,9 @@ describe('M2 weekly sidecars', () => {
     }, m1.clubs.find(candidate => candidate.id === m1.userClubId)!)).toBe(0);
   });
 });
+
+function completeFacilityProject(grid: FacilityGridState): FacilityGridState {
+  let next = grid;
+  while (next.construction !== undefined) next = advanceFacilityConstruction(next).grid;
+  return next;
+}

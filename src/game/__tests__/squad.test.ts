@@ -188,15 +188,23 @@ describe('career squad integration', () => {
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p2`)?.attrs.def).toBe(50);
   });
 
-  it('makes the one-time training-ground decision pay five ambient TP each settled week', () => {
+  it('starts the one-week training-ground build before paying ambient TP', () => {
     const built = buildTrainingGround(career());
     expect(built.clubs[0].cash).toBe(42000);
-    expect(built.facilities.trainingGroundBuilt).toBe(true);
-    expect(() => buildTrainingGround(built)).toThrow('already built');
+    expect(built.facilities.trainingGroundBuilt).toBe(false);
+    expect(built.facilities.grid?.construction).toMatchObject({
+      type: 'training-pitch',
+      weeksRemaining: 1,
+    });
+    expect(() => buildTrainingGround(built)).toThrow(/construction project/);
 
-    const next = advanceWeek(built);
-    expect(next.week).toBe(2);
-    expect(next.trainingPoints).toBe(105);
+    const completed = advanceWeek(built);
+    expect(completed.week).toBe(2);
+    expect(completed.trainingPoints).toBe(100);
+    expect(completed.facilities.trainingGroundBuilt).toBe(true);
+
+    const activeWeek = advanceWeek(completed);
+    expect(activeWeek.trainingPoints).toBe(105);
   });
 
   it('skips an unaffordable repeating focus plan without blocking weekly settlement', () => {

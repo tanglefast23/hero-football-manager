@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
   Easing,
-  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Atlas,

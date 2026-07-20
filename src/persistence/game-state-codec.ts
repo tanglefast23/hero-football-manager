@@ -119,6 +119,7 @@ const cashTransactionSchema = z.object({
     'transfer-sell',
     'youth-signing',
     'coach-hiring',
+    'coach-dismissal',
   ]),
   label: nonemptyString,
   amount: safeInteger.refine(value => value !== 0, 'must be non-zero'),
@@ -209,6 +210,18 @@ const facilityGridSchema = z
     discoveredAdjacencies: z.array(z.enum([
       'gym-dorm', 'fan-shop-stadium', 'medical-training-pitch',
     ])),
+    construction: z.object({
+      kind: z.enum(['BUILD', 'UPGRADE']),
+      buildingId: nonemptyString,
+      type: z.enum([
+        'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court',
+        'medical-bay', 'dorm', 'scout-office', 'coaching-office', 'youth-field',
+        'fan-shop', 'stadium-stand', 'hero-lab',
+      ]),
+      targetLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      weeksRemaining: positiveInteger,
+      totalWeeks: positiveInteger,
+    }).passthrough().optional(),
   })
   .passthrough()
   .superRefine((grid, context) => {
@@ -434,6 +447,7 @@ const scoutReportSchema = z.object({
 }).passthrough();
 const coachCandidateSchema = z.object({
   id: nonemptyString,
+  portraitId: nonemptyString.optional(),
   name: nonemptyString,
   specialties: z.tuple([z.enum([
     'ATTACK', 'DEFENSE', 'FITNESS', 'TECHNIQUE', 'GOALKEEPING', 'MOTIVATOR',

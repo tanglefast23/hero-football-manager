@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 import type {
   M2DivisionLevelViewModel,
   M2LeagueViewModel,

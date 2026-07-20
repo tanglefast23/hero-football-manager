@@ -309,7 +309,9 @@ export function buildTrainingGround(
     ),
     facilities: {
       ...state.facilities,
-      trainingGroundBuilt: true,
+      // The works order occupies the site immediately, but benefits begin
+      // only after weekly settlement completes the construction project.
+      trainingGroundBuilt: false,
       grid: placeFacility(
         state.facilities.grid ?? createFacilityGrid(),
         'training-pitch',

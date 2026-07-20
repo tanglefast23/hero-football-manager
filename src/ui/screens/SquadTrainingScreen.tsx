@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type { FocusDrillViewModel, SquadTrainingViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
   isTutorialTargetVisible,
   TUTORIAL_TAP_CUE_WIDTH,

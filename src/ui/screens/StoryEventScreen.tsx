@@ -1,8 +1,9 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { SettingsButton } from '../SettingsOverlay';
 import type { StoryEventChoiceViewModel, StoryEventViewModel } from '../models';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 
 export interface StoryEventScreenProps {
   viewModel: StoryEventViewModel;

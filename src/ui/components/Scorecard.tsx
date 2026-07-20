@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { playUiClickSfx } from '../../render/management-sfx';
 
 function cx(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
@@ -91,7 +92,10 @@ export function ActionButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPress={onPress}
+      onPress={() => {
+        playUiClickSfx();
+        onPress();
+      }}
       className={cx(
         'relative min-h-12 items-center justify-center overflow-hidden rounded-lg border-2 border-ink px-4',
         ramp.face,

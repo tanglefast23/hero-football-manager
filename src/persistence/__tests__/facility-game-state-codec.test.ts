@@ -1,13 +1,15 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../../game/career';
 import { buildCareerFacility } from '../../game/management';
+import { advanceFacilityConstruction } from '../../game/facilities';
+import type { GameState } from '../../game/types';
 import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 
 describe('facility game-state persistence', () => {
   test('round-trips the grid, adjacency discoveries, and facility ledger lines', () => {
     const initial = createCareer(createLaunchCareerSetup(123));
-    const gym = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
-    const dorm = buildCareerFacility(gym, 'dorm', { x: 1, y: 0 }).state;
+    const gym = completeProject(buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state);
+    const dorm = completeProject(buildCareerFacility(gym, 'dorm', { x: 1, y: 0 }).state);
     const state = {
       ...dorm,
       players: dorm.players.map((player, index) => index === 0
@@ -70,3 +72,10 @@ describe('facility game-state persistence', () => {
     expect(() => parseStoredGameState(JSON.stringify(stored))).toThrow(_label);
   });
 });
+
+function completeProject(state: GameState): GameState {
+  let grid = state.facilities.grid;
+  if (grid === undefined) throw new Error('missing facility grid');
+  while (grid.construction !== undefined) grid = advanceFacilityConstruction(grid).grid;
+  return { ...state, facilities: { ...state.facilities, grid } };
+}

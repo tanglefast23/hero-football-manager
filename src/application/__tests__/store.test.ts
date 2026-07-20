@@ -131,7 +131,11 @@ describe('M1 app store integration', () => {
     useM1Store.getState().applyTraining();
 
     const planned = useM1Store.getState().career!;
-    expect(planned.facilities.trainingGroundBuilt).toBe(true);
+    expect(planned.facilities.trainingGroundBuilt).toBe(false);
+    expect(planned.facilities.grid?.construction).toMatchObject({
+      type: 'training-pitch',
+      weeksRemaining: 1,
+    });
     expect(planned.clubs[0].cash).toBe(before.clubs[0].cash - 8000);
     expect(planned.trainingPoints).toBe(before.trainingPoints);
     expect(planned.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac);
@@ -166,6 +170,13 @@ describe('M1 app store integration', () => {
     );
     expect(settled.players.find(player => player.id === unassignedPlayerId)?.attrs.sta)
       .toBe(beforeUnassignedSta + 1);
+    expect(settled.facilities.trainingGroundBuilt).toBe(true);
+    expect(review.facilityCompletion).toMatchObject({
+      type: 'training-pitch',
+      name: 'Training Pitch',
+      level: 1,
+      kind: 'BUILD',
+    });
     expect(settled.ledgers[0].lines).toContainEqual({
       kind: 'training',
       label: 'Weekly focus training',

@@ -1,7 +1,7 @@
 import './global.css';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import { openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -36,6 +36,9 @@ import {
   type MenuTheme,
 } from './src/render/menu-audio';
 import {
+  playCoachDepartureSfx,
+  playFacilityStartSfx,
+  playTransactionConfirmSfx,
   setManagementSfxMasterVolume,
   teardownManagementSfx,
 } from './src/render/management-sfx';
@@ -43,6 +46,9 @@ import { assertRuntimeGoldenReplay, runtimeGoldenFingerprint } from './src/sim/r
 import type { MatchState } from './src/sim/types';
 import {
   ClubFinancesScreen,
+  CoachStaffOverlay,
+  FacilityProjectNotice,
+  PlayerSigningOverlay,
   ClubHomeScreen,
   ClubLegacyScreen,
   AssistantGuideOverlay,
@@ -66,6 +72,9 @@ import {
   TitleSettingsScreen,
   WeeklyReviewScreen,
   type LockedPlanConfirmation,
+  type CoachOverlayCoach,
+  type FacilityProjectNoticeModel,
+  type PlayerSigningConfirmation,
   shouldShowOpeningBrief,
 } from './src/ui';
 import { leagueStandings } from './src/game';
@@ -73,6 +82,7 @@ import type { DivisionLevel } from './src/game/pyramid';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import type { TutorialAnchorLayout } from './src/ui/tutorial-cue-position';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
+import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { useM1Store } from './src/application/store';
 import {
   trainingTransitionScene,
@@ -158,6 +168,12 @@ function GameApp() {
   const [navigationGuideAnchor, setNavigationGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [trainingTransition, setTrainingTransition] = useState<TrainingTransitionScene | null>(null);
   const [lockedPlanConfirmation, setLockedPlanConfirmation] = useState<LockedPlanConfirmation | null>(null);
+  const [coachOverlay, setCoachOverlay] = useState<{
+    mode: 'hired' | 'confirm-dismiss' | 'dismissed';
+    coach: CoachOverlayCoach;
+  } | null>(null);
+  const [facilityProjectNotice, setFacilityProjectNotice] = useState<FacilityProjectNoticeModel | null>(null);
+  const [playerSigning, setPlayerSigning] = useState<PlayerSigningConfirmation | null>(null);
   const [awakeningBeat, setAwakeningBeat] = useState<1 | 2 | 3>(1);
   const [selectedLeagueDivision, setSelectedLeagueDivision] = useState<DivisionLevel | undefined>();
   const [selectedCupSeason, setSelectedCupSeason] = useState<number | undefined>();
@@ -199,13 +215,136 @@ function GameApp() {
     }
   }, [content, trainingTransition]);
 
+  const showStartedFacilityProject = useCallback(() => {
+    const career = useM1Store.getState().career;
+    if (career === null) return;
+    const activeProject = clubFinancesViewModel(career).facilities.activeProject;
+    const building = career.facilities.grid?.buildings.find(candidate => (
+      candidate.id === activeProject?.buildingId
+    ));
+    if (activeProject === undefined || building === undefined) return;
+    playFacilityStartSfx();
+    setFacilityProjectNotice({
+      type: building.type,
+      name: activeProject.name,
+      kind: activeProject.kind,
+      targetLevel: activeProject.targetLevel,
+      weeks: activeProject.totalWeeks,
+    });
+  }, []);
+
   const buildTrainingGroundWithSfx = useCallback(() => {
-    const builtBefore = useM1Store.getState().career?.facilities.trainingGroundBuilt;
+    const before = useM1Store.getState().career?.facilities.grid?.construction;
     useM1Store.getState().buildFacility();
-    const builtAfter = useM1Store.getState().career?.facilities.trainingGroundBuilt;
-    if (builtBefore === false && builtAfter === true) {
-      playAdvanceWeekSfx();
+    const after = useM1Store.getState().career?.facilities.grid?.construction;
+    if (after !== undefined && after !== before) showStartedFacilityProject();
+  }, [showStartedFacilityProject]);
+
+  const buildClubFacilityWithFeedback = useCallback((type: FacilityProjectNoticeModel['type'], x: number, y: number) => {
+    const before = useM1Store.getState().career?.facilities.grid?.construction;
+    useM1Store.getState().buildClubFacility(type, { x, y });
+    const after = useM1Store.getState().career?.facilities.grid?.construction;
+    if (after !== undefined && after !== before) showStartedFacilityProject();
+  }, [showStartedFacilityProject]);
+
+  const upgradeClubFacilityWithFeedback = useCallback((buildingId: string) => {
+    const before = useM1Store.getState().career?.facilities.grid?.construction;
+    useM1Store.getState().upgradeClubFacility(buildingId);
+    const after = useM1Store.getState().career?.facilities.grid?.construction;
+    if (after !== undefined && after !== before) showStartedFacilityProject();
+  }, [showStartedFacilityProject]);
+
+  const hireCoachWithFeedback = useCallback((coachId: string) => {
+    const careerBefore = useM1Store.getState().career;
+    if (careerBefore === null || careerBefore.market === undefined) return;
+    const candidate = marketViewModel(careerMarketViewModelSource(careerBefore)).coaches.find(
+      coach => coach.id === coachId,
+    );
+    if (candidate === undefined) return;
+    useM1Store.getState().hireCoach(coachId);
+    const hired = useM1Store.getState().career?.market?.headCoach;
+    if (hired?.id !== coachId) return;
+    playTransactionConfirmSfx();
+    setCoachOverlay({
+      mode: 'hired',
+      coach: {
+        portraitId: candidate.portraitId,
+        name: candidate.name,
+        level: candidate.level,
+        specialtyLabels: candidate.specialtyLabels,
+        weeklyWage: candidate.weeklyWage,
+      },
+    });
+  }, []);
+
+  const beginCoachDismissal = useCallback(() => {
+    const career = useM1Store.getState().career;
+    if (career === null) return;
+    const coach = clubFinancesViewModel(career).headCoach;
+    if (coach === undefined) return;
+    setCoachOverlay({
+      mode: 'confirm-dismiss',
+      coach: {
+        portraitId: coach.portraitId,
+        name: coach.name,
+        level: coach.level,
+        specialtyLabels: coach.specialtyLabels,
+        weeklyWage: coach.weeklyWage,
+        severanceCost: coach.severanceCost,
+      },
+    });
+  }, []);
+
+  const confirmCoachDismissal = useCallback(() => {
+    if (coachOverlay?.mode !== 'confirm-dismiss') return;
+    const dismissedCoach = coachOverlay.coach;
+    useM1Store.getState().dismissCoach();
+    if (useM1Store.getState().career?.market?.headCoach !== undefined) return;
+    playCoachDepartureSfx();
+    setCoachOverlay({ mode: 'dismissed', coach: dismissedCoach });
+  }, [coachOverlay]);
+
+  const submitTransferOfferWithFeedback = useCallback((offer: Parameters<typeof store.submitTransferOffer>[0], pitchCard?: Parameters<typeof store.submitTransferOffer>[1]) => {
+    const before = useM1Store.getState().career;
+    const targetId = before?.market?.transferTalks?.playerId;
+    const target = before?.players.find(player => player.id === targetId);
+    useM1Store.getState().submitTransferOffer(offer, pitchCard);
+    const after = useM1Store.getState().career;
+    if (targetId !== undefined && after?.players.some(player => (
+      player.id === targetId && player.clubId === after.userClubId
+    ))) {
+      playTransactionConfirmSfx();
+      if (target !== undefined) {
+        useM1Store.getState().clearError();
+        setPlayerSigning({
+          playerId: target.id,
+          playerName: target.name,
+          role: target.role,
+          source: 'transfer',
+        });
+      }
     }
+  }, []);
+
+  const signYouthWithFeedback = useCallback((playerId: string) => {
+    const careerBefore = useM1Store.getState().career;
+    const offer = careerBefore?.market === undefined
+      ? undefined
+      : marketViewModel(careerMarketViewModelSource(careerBefore)).youth?.offers.find(candidate => (
+        candidate.playerId === playerId
+      ));
+    useM1Store.getState().signYouth(playerId);
+    const after = useM1Store.getState().career;
+    if (offer === undefined || after?.players.some(player => (
+      player.id === playerId && player.clubId === after.userClubId
+    )) !== true) return;
+    playTransactionConfirmSfx();
+    setPlayerSigning({
+      playerId,
+      playerName: offer.playerName,
+      role: offer.role,
+      source: 'academy',
+    });
   }, []);
 
   const dismissTrainingTransition = useCallback(() => {
@@ -590,12 +729,13 @@ function GameApp() {
           <ClubFinancesScreen
             viewModel={clubFinancesViewModel(store.career)}
             onBuildTrainingGround={buildTrainingGroundWithSfx}
-            onBuildFacility={(type, x, y) => store.buildClubFacility(type, { x, y })}
-            onUpgradeFacility={store.upgradeClubFacility}
+            onBuildFacility={buildClubFacilityWithFeedback}
+            onUpgradeFacility={upgradeClubFacilityWithFeedback}
             onRelocateFacility={(buildingId, x, y) => (
               store.relocateClubFacility(buildingId, { x, y })
             )}
             onOpenCoachMarket={() => store.setActiveTab('market')}
+            onDismissCoach={beginCoachDismissal}
             guideTrainingGround={assistantObjective?.target === 'training-ground-facility'}
           />
         ) : store.activeTab === 'market' && store.career.market !== undefined ? (
@@ -604,10 +744,10 @@ function GameApp() {
             onStartScoutMission={store.startScoutMission}
             onOpenScoutReport={store.openScoutReport}
             onTransferAction={store.actOnTransfer}
-            onHireCoach={store.hireCoach}
-            onSignYouth={store.signYouth}
+            onHireCoach={hireCoachWithFeedback}
+            onSignYouth={signYouthWithFeedback}
             onDeclineYouth={store.declineYouth}
-            onSubmitContractOffer={store.submitTransferOffer}
+            onSubmitContractOffer={submitTransferOfferWithFeedback}
             onCloseNegotiation={store.closeTransferTalks}
           />
         ) : store.activeTab === 'league' && store.career.m2 !== undefined ? (
@@ -706,6 +846,29 @@ function GameApp() {
             onComplete={dismissLockedPlanConfirmation}
           />
         ) : null}
+        {coachOverlay !== null ? (
+          <CoachStaffOverlay
+            mode={coachOverlay.mode}
+            coach={coachOverlay.coach}
+            reduceMotion={reduceMotion}
+            onConfirm={coachOverlay.mode === 'confirm-dismiss' ? confirmCoachDismissal : undefined}
+            onClose={() => setCoachOverlay(null)}
+          />
+        ) : null}
+        {facilityProjectNotice !== null ? (
+          <FacilityProjectNotice
+            project={facilityProjectNotice}
+            reduceMotion={reduceMotion}
+            onClose={() => setFacilityProjectNotice(null)}
+          />
+        ) : null}
+        {playerSigning !== null ? (
+          <PlayerSigningOverlay
+            player={playerSigning}
+            reduceMotion={reduceMotion}
+            onClose={() => setPlayerSigning(null)}
+          />
+        ) : null}
         {store.screen === 'management'
           && store.postMatch !== null
           && store.postMatchOverlay === 'summary' ? (
@@ -720,6 +883,7 @@ function GameApp() {
           && store.postMatchOverlay === 'development' ? (
             <PostMatchDevelopmentOverlay
               development={store.postMatch.development}
+              facilityCompletion={store.postMatch.facilityCompletion}
               reduceMotion={reduceMotion}
               onDismiss={store.dismissPostMatchDevelopment}
              />

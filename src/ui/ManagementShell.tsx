@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, formatCompactNumber } from './components/Scorecard';
 import type { ManagementTab, ResourceSummaryViewModel } from './models';
 import { TutorialTapCue } from './TutorialTapCue';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import { SettingsButton } from './SettingsOverlay';
+import { SfxPressable as Pressable } from './components/SfxPressable';
 
 function useGuideAnchor(
   enabled: boolean,

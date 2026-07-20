@@ -83,6 +83,12 @@ A normal face splits into even thirds (hairline→brow, brow→nose, nose→chin
 
 Archetypes: **Wonderkid** (eyes eat the face, whole eye = pupil, one sparkle) · **Enforcer** (huge jaw + gritted mouth, 1px beady pupils) · **Gaffer** (bald tiny upper third, bulbous nose + heavy brow + moustache, deep-set dots).
 
+### Characters — Rule 1B: the club world is multicultural
+
+Players, coaches, staff, supporters, officials, and visitors must form an explicitly **multicultural cast**. A staff shortlist cannot read as one ethnicity with palette swaps: vary skin-tone ramps, hair textures, hair traditions, ages, gender presentation, face shapes, and names across the whole roster. Every recurring coach gets an individual silhouette and **one unique caricature move**—for example a braid crown, round glasses, high ponytail, headwrap, blunt bob, loc bun, giant beard, silver pixie cut, strong brows, wild curls, or hair pins.
+
+Caricature describes the **individual's personality**, never their ethnicity. Do not use skin tone, accent, religious clothing, or cultural hair as the joke or exaggeration. Avoid identical faces recolored into “diversity,” and avoid grouping traits into stereotypes. Check the full cast together before export: no coach should be mistaken for another at 1× or in silhouette.
+
 ### Characters — Rule 2: expression sets
 
 Faces are **eyes-and-mouth swaps over a fixed head**. Ship **resting / peak-joy / knocked-out** minimum. **X-for-eyes is the universal KO tell**; gritted teeth sell pain. One portrait reacts live — neutral on the ball → X-eyes injured → grin on a goal — no full redraw.
@@ -119,6 +125,6 @@ Buildings, goals, and items obey the same outline + 4-value shading as character
 
 ## Do / don't
 
-**Do** — cream canvas, vibrant chunky buttons; thick 2px outlines and rounded corners on UI; Silkscreen pixel-font labels; on art, coloured outlines + 4-value bands + one character-giving exaggeration + a ground contact shadow; break the thirds on faces; ship resting/joy/KO sets.
+**Do** — cream canvas, vibrant chunky buttons; thick 2px outlines and rounded corners on UI; Silkscreen pixel-font labels; on art, coloured outlines + 4-value bands + one character-giving exaggeration + a ground contact shadow; build an explicitly multicultural cast; break the thirds on faces; ship resting/joy/KO sets.
 
-**Don't** — flat square tinted-rectangle buttons; thin 1px UI outlines; system font on labels; `#000000` outlines; smooth gradients or anti-aliasing; blueprint-flat sterile props; literal every-hole nets; mixed perspective in the menu set; bevel/gloss on sprites; one-off colours outside the palette.
+**Don't** — flat square tinted-rectangle buttons; thin 1px UI outlines; system font on labels; `#000000` outlines; smooth gradients or anti-aliasing; ethnicity-as-caricature or recolored clone faces; blueprint-flat sterile props; literal every-hole nets; mixed perspective in the menu set; bevel/gloss on sprites; one-off colours outside the palette.

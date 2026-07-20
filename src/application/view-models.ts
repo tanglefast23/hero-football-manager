@@ -140,6 +140,10 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     }] : []),
   ];
   const weeklyNet = projectedLines.reduce((sum, line) => sum + line.amount, 0);
+  const trainingGroundProject = state.facilities.grid?.construction?.type === 'training-pitch'
+    && state.facilities.grid.construction.kind === 'BUILD'
+    ? state.facilities.grid.construction
+    : undefined;
   return {
     periodLabel: latest ? `S${latest.season} · W${latest.week}` : `S${state.season} · W${state.week}`,
     resources: {
@@ -169,7 +173,11 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     ...(state.season === 1 ? { wageSubsidyLabel: 'Season 1 support covers half of weekly wages' } : {}),
     trainingGround: {
       built: state.facilities.trainingGroundBuilt,
-      affordable: club.cash >= 8000,
+      underConstruction: trainingGroundProject !== undefined,
+      ...(trainingGroundProject === undefined
+        ? {}
+        : { weeksRemaining: trainingGroundProject.weeksRemaining }),
+      affordable: club.cash >= 8000 && trainingGroundProject === undefined,
       cost: 8000,
       weeklyTrainingPoints: 5,
     },
@@ -177,11 +185,13 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     ...(state.market?.headCoach === undefined ? {} : {
       headCoach: {
         id: state.market.headCoach.id,
+        portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
         name: state.market.headCoach.name,
         level: state.market.headCoach.level,
         specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
         weeklyWage: state.market.headCoach.weeklyWage,
         seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
+        severanceCost: state.market.headCoach.weeklyWage,
       },
     }),
     facilities: facilityGridViewModel(state),
@@ -196,6 +206,9 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
     height: grid.height,
     buildings: grid.buildings.map(building => {
       const definition = FACILITY_CATALOG[building.type];
+      const project = grid.construction?.buildingId === building.id
+        ? grid.construction
+        : undefined;
       return {
         id: building.id,
         type: building.type,
@@ -205,11 +218,20 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         y: building.y,
         width: definition.footprint.width,
         height: definition.footprint.height,
-        weeklyUpkeep: definition.weeklyUpkeep[building.level - 1],
+        weeklyUpkeep: project?.kind === 'BUILD' ? 0 : definition.weeklyUpkeep[building.level - 1],
         ...(building.level < 3
           ? { upgradeCost: definition.upgradeCosts[building.level - 1] }
           : {}),
         relocationFee: definition.relocationFee,
+        status: project?.kind === 'BUILD'
+          ? 'construction' as const
+          : project?.kind === 'UPGRADE'
+            ? 'upgrading' as const
+            : 'operational' as const,
+        ...(project === undefined ? {} : {
+          weeksRemaining: project.weeksRemaining,
+          targetLevel: project.targetLevel,
+        }),
       };
     }),
     catalog: Object.values(FACILITY_CATALOG).map(definition => ({
@@ -219,11 +241,31 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
       width: definition.footprint.width,
       height: definition.footprint.height,
       available: definition.available,
-      affordable: definition.available && club.cash >= definition.buildCost,
+      affordable: definition.available
+        && grid.construction === undefined
+        && club.cash >= definition.buildCost,
+      buildWeeks: definition.buildWeeks,
+      ...(!definition.available
+        ? { blockedReason: 'Locked.' }
+        : grid.construction !== undefined
+          ? { blockedReason: 'Construction crew is already assigned.' }
+          : club.cash < definition.buildCost
+            ? { blockedReason: 'Insufficient balance.' }
+            : {}),
     })),
     weeklyUpkeep: weeklyFacilityUpkeep(grid),
     activeAdjacencies: activeFacilityAdjacencies(grid),
     discoveredAdjacencies: [...grid.discoveredAdjacencies],
+    ...(grid.construction === undefined ? {} : {
+      activeProject: {
+        buildingId: grid.construction.buildingId,
+        name: FACILITY_CATALOG[grid.construction.type].name,
+        kind: grid.construction.kind,
+        weeksRemaining: grid.construction.weeksRemaining,
+        totalWeeks: grid.construction.totalWeeks,
+        targetLevel: grid.construction.targetLevel,
+      },
+    }),
   };
 }
 
@@ -675,6 +717,7 @@ export function weeklyReviewViewModel(
       && fixture.week === after.week
       && (fixture.homeClubId === after.userClubId || fixture.awayClubId === after.userClubId),
     )[0];
+  const completedFacility = facilityCompletion(before, after);
 
   return {
     completedWeekLabel: `Week ${before.week} complete`,
@@ -696,6 +739,7 @@ export function weeklyReviewViewModel(
     })),
     development: playerDevelopmentViewModel(before, after),
     updates: weekUpdates(before, after),
+    ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
     ...(nextFixture === undefined ? {} : { nextFixture: fixtureViewModel(after, nextFixture) }),
   };
 }
@@ -729,6 +773,7 @@ export function postMatchViewModel(
   const outcomeLabel = cupWinnerClubId === undefined
     ? goalsFor > goalsAgainst ? 'WIN' : goalsFor < goalsAgainst ? 'LOSS' : 'DRAW'
     : cupWinnerClubId === before.userClubId ? 'WIN' : 'LOSS';
+  const completedFacility = facilityCompletion(before, after);
 
   return {
     result: {
@@ -764,6 +809,7 @@ export function postMatchViewModel(
     highlights,
     development: playerDevelopmentViewModel(before, after),
     updates: weekUpdates(before, after),
+    ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
   };
 }
 
@@ -851,6 +897,17 @@ function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel
   const beforeLineup = before.lineups.find(lineup => lineup.clubId === before.userClubId);
   const afterLineup = after.lineups.find(lineup => lineup.clubId === after.userClubId);
   const updates: WeeklyReviewViewModel['updates'][number][] = [];
+  const completedFacility = facilityCompletion(before, after);
+  if (completedFacility !== undefined) {
+    updates.push({
+      id: `facility-complete-${completedFacility.type}-${completedFacility.level}`,
+      title: `${completedFacility.name} complete!`,
+      detail: completedFacility.kind === 'BUILD'
+        ? `The Level ${completedFacility.level} facility is now open.`
+        : `The Level ${completedFacility.level} upgrade is now active.`,
+      tone: 'positive',
+    });
+  }
   for (const playerBefore of before.players.filter(player => player.clubId === before.userClubId)) {
     const playerAfter = afterPlayers.get(playerBefore.id);
     if (playerAfter === undefined) continue;
@@ -903,6 +960,24 @@ function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel
     });
   }
   return updates;
+}
+
+function facilityCompletion(
+  before: GameState,
+  after: GameState,
+): WeeklyReviewViewModel['facilityCompletion'] {
+  const project = before.facilities.grid?.construction;
+  if (project === undefined || project.weeksRemaining !== 1) return undefined;
+  const afterProject = after.facilities.grid?.construction;
+  if (afterProject?.buildingId === project.buildingId) return undefined;
+  const building = after.facilities.grid?.buildings.find(candidate => candidate.id === project.buildingId);
+  if (building === undefined) return undefined;
+  return {
+    type: building.type,
+    name: FACILITY_CATALOG[building.type].name,
+    level: building.level,
+    kind: project.kind,
+  };
 }
 
 function weekCountLabel(weeks: number): string {

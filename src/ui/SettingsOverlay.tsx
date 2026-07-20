@@ -1,6 +1,7 @@
 import { useRef } from 'react';
-import { Modal, PanResponder, Pressable, Text, View } from 'react-native';
+import { Modal, PanResponder, Text, View } from 'react-native';
 import { ActionButton } from './components/Scorecard';
+import { SfxPressable as Pressable } from './components/SfxPressable';
 import { adjustDevVolume, DEV_VOLUME_LEVELS, devVolumePercent, type DevVolume } from '../render/dev-volume';
 import type { HudSide } from '../persistence';
 

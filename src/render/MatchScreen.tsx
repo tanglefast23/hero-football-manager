@@ -34,6 +34,7 @@ import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playHapticForEvent } from './haptics';
 import { FormationDiagram } from '../ui/components/FormationDiagram';
 import { SettingsButton } from '../ui/SettingsOverlay';
+import { playUiClickSfx } from './management-sfx';
 import {
   DEFAULT_FORMATION_PRESETS,
   ENERGY_USE_MODES,
@@ -763,6 +764,7 @@ export function MatchScreen({
 
   const toggleAutoPowers = () => {
     if (match.phase === 'fulltime') return;
+    playUiClickSfx();
     const enabled = !autoPowers;
     queueInput(match, {
       tick: match.tick + 1,
@@ -784,6 +786,7 @@ export function MatchScreen({
           hudSide === 'right' ? styles.scorebarFlipped : null,
         ]}
         onPress={() => {
+          playUiClickSfx();
           automaticPauseReasonsRef.current.delete('background');
           userPausedRef.current = !pausedRef.current;
           syncPauseReasons();
@@ -816,6 +819,7 @@ export function MatchScreen({
             accessibilityLabel={`Match speed ${speed} times. Tap for next speed.`}
             hitSlop={10}
             onPress={() => {
+              playUiClickSfx();
               const next = nextMatchSpeed(speed);
               speedRef.current = next;
               if (!pausedRef.current) resumeAtlasFrame(next);
@@ -1019,6 +1023,7 @@ export function MatchScreen({
               coachingDisabled ? styles.coachButtonDisabled : null,
             ]}
             onPress={() => {
+              playUiClickSfx();
               const formation = nextFormation(displayedFormation, formationPresets);
               queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
               const text = `${formation} · ${FORMATION_LABELS[formation].toUpperCase()}`;
@@ -1043,6 +1048,7 @@ export function MatchScreen({
               coachingDisabled ? styles.coachButtonDisabled : null,
             ]}
             onPress={() => {
+              playUiClickSfx();
               const mentality = nextMentality(displayedMentality);
               queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
               const text = `PLAYSTYLE · ${mentality}`;
@@ -1068,7 +1074,10 @@ export function MatchScreen({
                 ? (tiredCount > 0 ? styles.coachButtonDisabledReadable : styles.coachButtonDisabled)
                 : null,
             ]}
-            onPress={openSwap}
+            onPress={() => {
+              playUiClickSfx();
+              openSwap();
+            }}
           >
             <Text style={styles.swapIcon}>⇄</Text>
             <View style={styles.coachCopy}>
@@ -1112,6 +1121,7 @@ export function MatchScreen({
                     coachingDisabled ? styles.coachButtonDisabled : null,
                   ]}
                   onPress={() => {
+                    playUiClickSfx();
                     if (mode === displayedEnergyUse) return;
                     queueInput(match, { tick: match.tick + 1, kind: 'SET_ENERGY_USE', energyUse: mode });
                     const text = `ENERGY USE · ${ENERGY_USE_LABELS[mode]}`;
@@ -1159,6 +1169,7 @@ export function MatchScreen({
                       sentOff ? styles.benchCardDisabled : null,
                     ]}
                     onPress={() => {
+                      playUiClickSfx();
                       setSelectedOutgoing(index);
                       setSelectedIncoming(null);
                     }}
@@ -1205,7 +1216,10 @@ export function MatchScreen({
                       selected ? styles.playerCardSelected : null,
                       !compatible ? styles.benchCardDisabled : null,
                     ]}
-                    onPress={() => setSelectedIncoming(player.id)}
+                    onPress={() => {
+                      playUiClickSfx();
+                      setSelectedIncoming(player.id);
+                    }}
                   >
                     <View style={[styles.playerHead, styles.benchHead, selected ? styles.playerHeadSelected : null]}>
                       <Text style={styles.playerInitials}>{initials(player.name)}</Text>
@@ -1247,7 +1261,10 @@ export function MatchScreen({
             </View>
 
             <View style={styles.swapActions}>
-              <Pressable style={styles.cancelButton} onPress={closeSwap}>
+              <Pressable style={styles.cancelButton} onPress={() => {
+                playUiClickSfx();
+                closeSwap();
+              }}>
                 <Text style={styles.cancelText}>CANCEL</Text>
               </Pressable>
               <Pressable
@@ -1256,7 +1273,10 @@ export function MatchScreen({
                   styles.confirmButton,
                   selectedOutgoing === null || selectedIncoming === null ? styles.confirmButtonDisabled : null,
                 ]}
-                onPress={confirmSwap}
+                onPress={() => {
+                  playUiClickSfx();
+                  confirmSwap();
+                }}
               >
                 <Text style={styles.confirmText}>MAKE SWAP</Text>
               </Pressable>

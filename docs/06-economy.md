@@ -44,13 +44,22 @@ Numbers rule; the mini-game influences (user spec: helps, never fully decides).
 
 An 8×6 tile grid (expandable). Buildings: Training Pitch, Gym, Tech Center, Shooting Range, Keeper Court, Medical Bay, Dorm, Scout Office, Coaching Office, Youth Field, Fan Shop, Stadium Stand tiers, Hero Lab (endgame). Each: build cost, up to Lv3, small weekly upkeep.
 
+The club owns **one works crew**, so only one build or upgrade project may run at once. Paying for a building starts construction and occupies its tiles immediately, but it produces **no benefit and no upkeep until completion**. An upgrade keeps the facility's current level active while work proceeds; the higher level begins only on completion. Relocation is unavailable for the building under construction. Completion resolves at weekly settlement, appears in the Weekly Review with the finished building sprite, and uses the dedicated win fanfare.
+
+| Facility group | Lv1 build | Lv2 upgrade | Lv3 upgrade |
+|---|---:|---:|---:|
+| Training Pitch, Gym, Dorm, Scout Office, Coaching Office, Fan Shop | 1 week | 1 week | 2 weeks |
+| Tech Center, Shooting Range, Keeper Court, Medical Bay | 2 weeks | 2 weeks | 3 weeks |
+| Youth Field, Stadium Stand | 3 weeks | 2 weeks | 3 weeks |
+| Hero Lab | 4 weeks | 3 weeks | 4 weeks |
+
 **Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds; Hero Lab+anything: rumors…). Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.
 
 ## First-pass tuning table (Div 5 baseline — all numbers subject to the balance harness, doc 09)
 
 | Item | Value |
 |---|---|
-| Starting cash / squad | 25,000 · 13 players + 1 coach |
+| Starting cash / squad | 25,000 · 13 players; head-coach vacancy filled through the market |
 | Player wage (Div 5) | 150–400/wk (squad ≈ 3,200/wk) |
 | Coach wage | 500/wk (Lv1) |
 | Season 1 subsidy | League pays 50% of wages |

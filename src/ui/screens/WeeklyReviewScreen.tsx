@@ -10,6 +10,7 @@ import {
   formatCompactNumber,
 } from '../components/Scorecard';
 import { PlayerDevelopmentSpotlight } from '../components/PlayerDevelopmentSpotlight';
+import { FacilityCompletionCard } from '../components/FacilityCompletionCard';
 
 export interface WeeklyReviewScreenProps {
   viewModel: WeeklyReviewViewModel;
@@ -52,6 +53,13 @@ export function WeeklyReviewScreen({
           <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.completedWeekLabel}</Text>
           <Text className="mt-2 text-sm font-bold uppercase text-ink/50">{viewModel.clubName}</Text>
         </View>
+
+        {viewModel.facilityCompletion ? (
+          <FacilityCompletionCard
+            completion={viewModel.facilityCompletion}
+            reduceMotion={reduceMotion}
+          />
+        ) : null}
 
         <View className="mt-3 flex-row gap-2">
           <WeeklyBalanceCard

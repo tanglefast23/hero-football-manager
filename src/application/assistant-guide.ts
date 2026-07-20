@@ -34,7 +34,7 @@ export function pendingAssistantGuideSequence(
     activeTab === 'home'
     && hasAssistantGuideMilestone(state, 'squad-intro-complete')
     && hasAssistantGuideMilestone(state, 'first-training-complete')
-    && state.facilities.trainingGroundBuilt
+    && (state.facilities.trainingGroundBuilt || isTrainingGroundUnderConstruction(state))
     && !hasAssistantGuideMilestone(state, 'desk-intro-complete')
     && !hasAssistantGuideMilestone(state, 'first-week-advanced')
   ) {
@@ -55,7 +55,7 @@ export function currentAssistantObjective(
   if (!hasAssistantGuideMilestone(state, 'first-training-complete')) {
     return { text: 'TRAIN ONE PLAYER ONCE.', target: 'training-plan' };
   }
-  if (!state.facilities.trainingGroundBuilt) {
+  if (!state.facilities.trainingGroundBuilt && !isTrainingGroundUnderConstruction(state)) {
     if (activeTab === 'home') {
       return { text: 'CHECK YOUR INBOX.', target: 'training-ground-alert' };
     }
@@ -72,6 +72,11 @@ export function currentAssistantObjective(
     return { text: 'INBOX CLEAR. ADVANCE WEEK.', target: 'advance-week' };
   }
   return null;
+}
+
+function isTrainingGroundUnderConstruction(state: GameState): boolean {
+  return state.facilities.grid?.construction?.kind === 'BUILD'
+    && state.facilities.grid.construction.type === 'training-pitch';
 }
 
 function isFirstCareerWeek(state: Pick<GameState, 'season' | 'week'>): boolean {

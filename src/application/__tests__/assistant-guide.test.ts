@@ -1,4 +1,5 @@
 import { createCareer } from '../../game/career';
+import { buildTrainingGround } from '../../game/squad';
 import {
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
@@ -68,5 +69,21 @@ describe('assistant guide application flow', () => {
     expect(currentAssistantObjective(staleWeekTwoSave, 'home')).toBeNull();
     expect(pendingAssistantGuideSequence(staleLaterSeasonSave, 'home')).toBeNull();
     expect(currentAssistantObjective(staleLaterSeasonSave, 'home')).toBeNull();
+  });
+
+  test('treats a started Training Ground as progress and points to Advance Week', () => {
+    let state = createCareer(createLaunchCareerSetup(934));
+    state = completeAssistantGuideSequence(state, 'management-intro');
+    state = completeAssistantGuideSequence(state, 'squad-intro');
+    state = completeAssistantGuideMilestone(state, 'first-training-complete');
+    state = buildTrainingGround(state);
+
+    expect(state.facilities.trainingGroundBuilt).toBe(false);
+    expect(pendingAssistantGuideSequence(state, 'home')).toBe('desk-intro');
+    state = completeAssistantGuideSequence(state, 'desk-intro');
+    expect(currentAssistantObjective(state, 'home')).toEqual({
+      text: 'INBOX CLEAR. ADVANCE WEEK.',
+      target: 'advance-week',
+    });
   });
 });

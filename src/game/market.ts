@@ -608,6 +608,7 @@ export interface RetiredLegendCoachInput {
 
 export interface CoachCandidate {
   readonly id: string;
+  readonly portraitId?: string;
   readonly name: string;
   readonly specialties: readonly [CoachSpecialty, CoachSpecialty];
   readonly level: number;
@@ -628,7 +629,31 @@ export interface CoachMarketSetup {
   readonly retiredLegends?: readonly RetiredLegendCoachInput[];
   /** Content-owned formation/drill IDs may be supplied without importing content here. */
   readonly unlockIds?: readonly string[];
+  readonly excludedPortraitIds?: readonly string[];
 }
+
+/**
+ * Curated identities keep staff memorable and deliberately multicultural.
+ * Gameplay traits are rolled independently so appearance never encodes skill.
+ */
+const COACH_IDENTITIES = [
+  { id: 'amara-okafor', name: 'Amara Okafor' },
+  { id: 'kenji-sato', name: 'Kenji Sato' },
+  { id: 'valentina-cruz', name: 'Valentina Cruz' },
+  { id: 'imani-adeyemi', name: 'Imani Adeyemi' },
+  { id: 'freja-lindholm', name: 'Freja Lindholm' },
+  { id: 'priya-nair', name: 'Priya Nair' },
+  { id: 'mateo-silva', name: 'Mateo Silva' },
+  { id: 'hana-park', name: 'Hana Park' },
+  { id: 'leila-haddad', name: 'Leila Haddad' },
+  { id: 'nia-thompson', name: 'Nia Thompson' },
+  { id: 'tomas-ferreira', name: 'Tomás Ferreira' },
+  { id: 'aiko-tanaka', name: 'Aiko Tanaka' },
+  { id: 'sibusiso-dlamini', name: 'Sibusiso Dlamini' },
+  { id: 'sofia-rossi', name: 'Sofia Rossi' },
+  { id: 'jamal-rahman', name: 'Jamal Rahman' },
+  { id: 'mei-chen', name: 'Mei Chen' },
+] as const;
 
 const COACH_SPECIALTIES: readonly CoachSpecialty[] = [
   'ATTACK',
@@ -668,6 +693,7 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
   assertNonNegativeSafeInteger(setup.fame, 'club fame');
   const unlockIds = setup.unlockIds ?? [];
   assertUniqueStrings(unlockIds, 'coach unlock ID');
+  const excludedPortraitIds = new Set(setup.excludedPortraitIds ?? []);
   const legends = (setup.retiredLegends ?? []).slice().sort((left, right) =>
     left.playerId.localeCompare(right.playerId),
   );
@@ -679,6 +705,7 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
   const targetCount = 3 + randomInteger(random, 3);
   const maxLevel = maxCoachLevelForClub(setup.division, setup.fame);
   const result: CoachCandidate[] = [];
+  const availableIdentities = COACH_IDENTITIES.filter(identity => !excludedPortraitIds.has(identity.id));
 
   for (const legend of legends.slice(0, targetCount)) {
     const level = Math.min(5, maxLevel, 1 + Math.floor(legend.fame / 250));
@@ -688,6 +715,7 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
     const baseWage = checkedMultiply(500, level, 'legend coach wage');
     result.push({
       id: `legend-${legend.playerId}`,
+      portraitId: `legend-${legend.playerId}`,
       name: legend.name,
       specialties,
       level,
@@ -705,12 +733,15 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
 
   while (result.length < targetCount) {
     const genericIndex = result.length;
+    if (availableIdentities.length === 0) break;
+    const identity = availableIdentities.splice(randomInteger(random, availableIdentities.length), 1)[0];
     const level = genericIndex === legends.length
       ? maxLevel
       : 1 + randomInteger(random, maxLevel);
     result.push({
-      id: `coach-s${setup.season}-${genericIndex + 1}`,
-      name: `Coach Prospect ${setup.season}-${genericIndex + 1}`,
+      id: `coach-s${setup.season}-${identity.id}`,
+      portraitId: identity.id,
+      name: identity.name,
       specialties: pickCoachSpecialties(random),
       level,
       weeklyWage: checkedMultiply(500, level, 'coach weekly wage'),

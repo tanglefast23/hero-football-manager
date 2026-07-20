@@ -22,6 +22,7 @@ import {
 } from './market';
 import type { CareerPlayer, GameState, PlayerPersonality } from './types';
 import { recordCashTransaction } from './cash-transactions';
+import { isFacilityOperational } from './facilities';
 import { assertUserCareerRosterSpace } from './youth-intake';
 
 export interface CareerTransferTalks {
@@ -96,6 +97,7 @@ export function createCareerMarketState(
   state: GameState,
   division = 5,
   clubFame = 0,
+  excludedPortraitIds: readonly string[] = [],
 ): CareerMarketState {
   return {
     nextMissionNumber: 1,
@@ -106,6 +108,7 @@ export function createCareerMarketState(
       season: state.season,
       division,
       fame: clubFame,
+      excludedPortraitIds,
     }),
   };
 }
@@ -447,15 +450,51 @@ export function hireCareerCoach(
   market: CareerMarketState,
   coachId: string,
 ): CareerMarketState {
+  if (market.headCoach !== undefined) {
+    throw new Error('dismiss the current head coach before hiring another');
+  }
   const candidate = market.coachCandidates.find(coach => coach.id === coachId);
   if (candidate === undefined) throw new Error(`unknown coach candidate ${coachId}`);
   return {
     ...market,
+    coachCandidates: market.coachCandidates.filter(coach => coach.id !== coachId),
     headCoach: candidate,
     headCoachSeasonsEmployed: 0,
     unlockedCoachContentIds: candidate.unlockId === undefined
       ? [...(market.unlockedCoachContentIds ?? [])]
       : Array.from(new Set([...(market.unlockedCoachContentIds ?? []), candidate.unlockId])),
+  };
+}
+
+/** Dismisses the head coach and charges the agreed one-week severance. */
+export function dismissCareerCoach(
+  state: GameState,
+  market: CareerMarketState,
+): CareerMarketTransaction {
+  assertManagePhase(state);
+  const coach = market.headCoach;
+  if (coach === undefined) throw new Error('there is no head coach to dismiss');
+  const club = userClub(state);
+  const severance = coach.weeklyWage;
+  if (club.cash < severance) throw new Error('the club cannot afford the coach severance');
+  const dismissedState: GameState = {
+    ...state,
+    clubs: state.clubs.map(candidate => candidate.id === state.userClubId
+      ? { ...candidate, cash: checkedSubtract(candidate.cash, severance, 'coach severance') }
+      : candidate),
+  };
+  return {
+    state: recordCashTransaction(dismissedState, {
+      kind: 'coach-dismissal',
+      label: `Severance · ${coach.name}`,
+      amount: -severance,
+      referenceId: coach.id,
+    }),
+    market: {
+      ...market,
+      headCoach: undefined,
+      headCoachSeasonsEmployed: undefined,
+    },
   };
 }
 
@@ -466,7 +505,12 @@ export function refreshCareerMarketForNewSeason(
   division = 5,
   clubFame = 0,
 ): CareerMarketState {
-  const refreshed = createCareerMarketState(state, division, clubFame);
+  const refreshed = createCareerMarketState(
+    state,
+    division,
+    clubFame,
+    previous.headCoach?.portraitId === undefined ? [] : [previous.headCoach.portraitId],
+  );
   const currentTransferTargetIds = new Set(state.players
     .filter(player => player.clubId !== state.userClubId)
     .map(player => player.id));
@@ -590,7 +634,10 @@ function replaceTransferredStarter(state: GameState, player: CareerPlayer) {
 }
 
 function scoutOfficeLevel(state: GameState): number {
-  return state.facilities.grid?.buildings.find(building => building.type === 'scout-office')?.level ?? 1;
+  const grid = state.facilities.grid;
+  return grid?.buildings.find(building => (
+    building.type === 'scout-office' && isFacilityOperational(grid, building.id)
+  ))?.level ?? 1;
 }
 
 function absoluteCareerWeek(state: Pick<GameState, 'season' | 'week'>): number {

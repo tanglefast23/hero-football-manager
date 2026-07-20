@@ -1,8 +1,9 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { ActionButton, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
 import type { ClubAlertViewModel, HomeViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 
 /** Full-card tint per alert tone — bible palette only, never off-palette Tailwind hues. */
 function alertPalette(tone: ClubAlertViewModel['tone']): string {

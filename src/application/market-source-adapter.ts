@@ -1,4 +1,5 @@
 import { currentUserDivision } from '../game/m2-career';
+import { isFacilityOperational } from '../game/facilities';
 import type { CareerMarketState } from '../game/market-career';
 import type {
   CoachCandidate,
@@ -107,6 +108,7 @@ export function careerMarketViewModelSource(
     ...(identities.length === 0 ? {} : { scoutedPlayerIdentities: identities }),
     transferListings,
     coachCandidates: market.coachCandidates.map(cloneCoachCandidate),
+    ...(market.headCoach === undefined ? {} : { headCoach: cloneCoachCandidate(market.headCoach) }),
     ...(state.youthIntake === undefined
       ? {}
       : {
@@ -255,7 +257,10 @@ function clubFame(state: GameState): number {
 }
 
 function scoutOfficeLevel(state: GameState): number {
-  return state.facilities.grid?.buildings.find(building => building.type === 'scout-office')?.level ?? 1;
+  const grid = state.facilities.grid;
+  return grid?.buildings.find(building => (
+    building.type === 'scout-office' && isFacilityOperational(grid, building.id)
+  ))?.level ?? 1;
 }
 
 function absoluteCareerWeek(state: Pick<GameState, 'season' | 'week'>): number {

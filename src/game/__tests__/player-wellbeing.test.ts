@@ -1,6 +1,7 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../career';
 import {
+  advanceFacilityConstruction,
   buildFacility,
   createFacilityGrid,
   upgradeFacility,
@@ -189,10 +190,15 @@ describe('weekly player wellbeing', () => {
       { x: 0, y: 0 },
       1_000_000,
     ).grid;
+    grid = completeFacilityProject(grid);
     grid = upgradeFacility(grid, 'facility-1', 1_000_000).grid;
+    grid = completeFacilityProject(grid);
     grid = upgradeFacility(grid, 'facility-1', 1_000_000).grid;
+    grid = completeFacilityProject(grid);
     const medicalOnly = grid;
-    const adjacent = buildFacility(grid, 'training-pitch', { x: 1, y: 0 }, 1_000_000).grid;
+    const adjacent = completeFacilityProject(
+      buildFacility(grid, 'training-pitch', { x: 1, y: 0 }, 1_000_000).grid,
+    );
 
     expect(medicalBayRecoveryWeeks(6, 3)).toBe(3);
     expect(medicalBayRecoveryWeeks(2, 3)).toBe(1);
@@ -291,3 +297,9 @@ describe('weekly player wellbeing', () => {
     });
   });
 });
+
+function completeFacilityProject(grid: FacilityGridState): FacilityGridState {
+  let next = grid;
+  while (next.construction !== undefined) next = advanceFacilityConstruction(next).grid;
+  return next;
+}

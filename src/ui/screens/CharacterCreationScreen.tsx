@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
   CREATION_STAT_MAX,
   CREATION_STAT_MIN,
