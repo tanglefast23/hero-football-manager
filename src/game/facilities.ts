@@ -158,7 +158,7 @@ export function buildFacility(
   position: FacilityPosition,
   availableCash: number,
 ): FacilityTransaction {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   validateCash(availableCash);
   assertNoActiveConstruction(grid);
   const definition = definitionFor(type);
@@ -200,7 +200,7 @@ export function upgradeFacility(
   buildingId: string,
   availableCash: number,
 ): FacilityTransaction {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   validateCash(availableCash);
   assertNoActiveConstruction(grid);
   const building = findBuilding(grid, buildingId);
@@ -228,7 +228,7 @@ export function relocateFacility(
   position: FacilityPosition,
   availableCash: number,
 ): FacilityTransaction {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   validateCash(availableCash);
   const building = findBuilding(grid, buildingId);
   if (grid.construction?.buildingId === buildingId) {
@@ -255,7 +255,7 @@ export function relocateFacility(
 }
 
 export function weeklyFacilityUpkeep(grid: FacilityGridState): number {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   let total = 0;
   for (const building of grid.buildings) {
     if (!isFacilityOperational(grid, building.id)) continue;
@@ -273,7 +273,7 @@ export function isFacilityOperational(grid: FacilityGridState, buildingId: strin
 export function advanceFacilityConstruction(
   grid: FacilityGridState,
 ): FacilityConstructionAdvance {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   const project = grid.construction;
   if (project === undefined) {
     return { grid, newlyDiscoveredAdjacencies: [] };
@@ -319,7 +319,7 @@ export function advanceFacilityConstruction(
 export function activeFacilityAdjacencies(
   grid: FacilityGridState,
 ): FacilityAdjacencyId[] {
-  validateGrid(grid);
+  validateFacilityGrid(grid);
   return activeAdjacenciesUnchecked(grid);
 }
 
@@ -406,7 +406,8 @@ function shareEdge(first: PlacedFacility, second: PlacedFacility): boolean {
   return (horizontalContact && verticalOverlap) || (verticalContact && horizontalOverlap);
 }
 
-function validateGrid(grid: FacilityGridState): void {
+/** Validates every persisted grid invariant, including bounds and overlap. */
+export function validateFacilityGrid(grid: FacilityGridState): void {
   if (grid.width !== FACILITY_GRID_WIDTH || grid.height !== FACILITY_GRID_HEIGHT) {
     throw new Error(`facility grid must be ${FACILITY_GRID_WIDTH}x${FACILITY_GRID_HEIGHT}`);
   }
