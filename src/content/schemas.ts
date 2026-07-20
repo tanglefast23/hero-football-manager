@@ -135,7 +135,6 @@ export const OnboardingContentSchema = z.strictObject({
 
 export const AssistantGuideSequenceIdSchema = z.enum([
   'management-intro',
-  'squad-intro',
   'desk-intro',
   'head-coach-market',
   'head-coach-hire',
@@ -232,7 +231,6 @@ const AssistantGuideSequenceSchema = z.strictObject({
   pages: z.array(AssistantGuidePageSchema).min(1).max(4),
 }).superRefine((sequence, context) => {
   const m1Sequence = sequence.id === 'management-intro'
-    || sequence.id === 'squad-intro'
     || sequence.id === 'desk-intro';
   if (!m1Sequence && sequence.inbox === undefined) {
     addIssue(context, ['inbox'], 'M2 assistant guides require inbox copy');
@@ -351,9 +349,30 @@ export const EventCatalogSchema = z.strictObject({
   addDuplicateIssues(catalog.events.map(event => event.id), context, ['events'], 'event ID');
 });
 
+const GlossaryEntrySchema = z.strictObject({
+  term: displayNameSchema,
+  definition: z.string().trim().min(1).max(500),
+});
+
+const GlossaryCategorySchema = z.strictObject({
+  id: idSchema,
+  title: displayNameSchema,
+  entries: z.array(GlossaryEntrySchema).min(1),
+}).superRefine((category, context) => {
+  addDuplicateIssues(category.entries.map(entry => entry.term), context, ['entries'], 'glossary term');
+});
+
+export const GlossaryCatalogSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  categories: z.array(GlossaryCategorySchema).min(1),
+}).superRefine((catalog, context) => {
+  addDuplicateIssues(catalog.categories.map(category => category.id), context, ['categories'], 'glossary category');
+});
+
 export const LaunchContentSchema = z.strictObject({
   assistantGuide: AssistantGuideContentSchema,
   clubs: ClubCatalogSchema,
+  glossary: GlossaryCatalogSchema,
   onboarding: OnboardingContentSchema,
   powers: PowerCatalogSchema,
   training: TrainingCatalogSchema,
@@ -446,6 +465,7 @@ export type TrainingDrill = z.infer<typeof TrainingDrillSchema>;
 export type TrainingCatalog = z.infer<typeof TrainingCatalogSchema>;
 export type GameEvent = z.infer<typeof GameEventSchema>;
 export type EventCatalog = z.infer<typeof EventCatalogSchema>;
+export type GlossaryCatalog = z.infer<typeof GlossaryCatalogSchema>;
 export type LaunchContent = z.infer<typeof LaunchContentSchema>;
 
 function addDuplicateIssues(

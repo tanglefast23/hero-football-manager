@@ -1028,6 +1028,15 @@ export function squadTrainingViewModel(
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
   if (lineup === undefined) throw new Error('the user club has no starting lineup');
   const starterIds = new Set(lineup.playerIds);
+  const roster = rosterForClub(state, state.userClubId);
+  const createdPlayerId = state.onboarding?.createdPlayerId;
+  // Keep the first-training cue and its created-player target above the fold.
+  const createdPlayer = createdPlayerId === undefined
+    ? undefined
+    : roster.find(player => player.id === createdPlayerId);
+  const orderedRoster = createdPlayer === undefined
+    ? roster
+    : [createdPlayer, ...roster.filter(player => player.id !== createdPlayerId)];
 
   return {
     resources: {
@@ -1035,7 +1044,7 @@ export function squadTrainingViewModel(
       trainingPoints: state.trainingPoints,
       heroEssence: state.heroEssence,
     },
-    players: rosterForClub(state, state.userClubId).map(player => ({
+    players: orderedRoster.map(player => ({
       id: player.id,
       name: player.name,
       role: player.role,
@@ -1104,7 +1113,7 @@ export function squadTrainingViewModel(
       }]),
     ],
     selectedPlayerId,
-    createdPlayerId: state.onboarding?.createdPlayerId,
+    createdPlayerId,
     drills: drills.map(drill => drillViewModel(drill, selected.has(drill.id), state)),
     assignedPlayerIds,
     selectedDrillCount: selectedDrills.length,

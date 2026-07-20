@@ -109,14 +109,14 @@ export function CharacterCreationScreen({ onComplete, onOpenSettings }: Characte
             const value = ratings[stat];
             return (
               <View key={stat} className="min-h-20 flex-row items-center border-2 border-ink bg-white p-3">
-                <View className="w-24">
-                  <Text className="font-mono text-lg text-blue-dark">
+                <View className="w-28 shrink-0">
+                  <Text className="font-mono text-base text-blue-dark" numberOfLines={1} adjustsFontSizeToFit>
                     <Text className="font-bold">{copy.label.slice(0, 3)}</Text>
                     <Text className="font-normal">{copy.label.slice(3)}</Text>
                   </Text>
                   <Text className="mt-1 text-sm leading-4 text-ink/45">{copy.detail}</Text>
                 </View>
-                <View className="mx-3 h-2 flex-1 overflow-hidden border border-ink/20 bg-ink/15">
+                <View className="mx-2 h-2 flex-1 overflow-hidden border border-ink/20 bg-ink/15">
                   <View
                     className="h-full bg-blue-dark"
                     style={{ width: `${((value - CREATION_STAT_MIN) / (CREATION_STAT_MAX - CREATION_STAT_MIN)) * 100}%` }}

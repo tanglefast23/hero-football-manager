@@ -8,7 +8,7 @@ import { squadTrainingViewModel } from '../view-models';
 describe('squad training tutorial targeting', () => {
   const content = loadLaunchContent();
 
-  it('exposes the user-created player id so the tutorial can point at the created hero, not the first roster player', () => {
+  it('lists the user-created player first so the tutorial cue is visible at the top of the roster', () => {
     const fresh = createCareer(createLaunchCareerSetup(20260720, undefined, content));
     const withHero = addCreatedPlayer(beginStoryOnboarding(fresh), {
       name: 'Jo Rook',
@@ -20,9 +20,7 @@ describe('squad training tutorial targeting', () => {
 
     expect(createdPlayerId).toBeDefined();
     expect(viewModel.createdPlayerId).toBe(createdPlayerId);
-    // The created hero is appended to the end of the roster, so the old
-    // "point at the first row" cue would have highlighted the wrong player.
-    expect(viewModel.players[0]?.id).not.toBe(createdPlayerId);
+    expect(viewModel.players[0]?.id).toBe(createdPlayerId);
     expect(viewModel.players.some(player => player.id === createdPlayerId)).toBe(true);
   });
 });

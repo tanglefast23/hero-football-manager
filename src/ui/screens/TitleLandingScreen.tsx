@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
@@ -5,6 +6,8 @@ import { FormationDiagram } from '../components/FormationDiagram';
 import { FORMATION_LABELS } from '../../sim/tactics';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import type { AppPreferences } from '../../persistence';
+import type { GlossaryCatalog } from '../../content';
+import { GlossaryPanel } from '../GlossaryPanel';
 
 export interface TitleLandingScreenProps {
   hasSavedCareer: boolean;
@@ -99,6 +102,7 @@ export function TitleLandingScreen({
 
 export interface TitleSettingsScreenProps {
   preferences: AppPreferences;
+  glossary: GlossaryCatalog;
   onCycleVolume: () => void;
   onCycleFormation: (slot: number) => void;
   onToggleReduceMotion: () => void;
@@ -109,6 +113,7 @@ export interface TitleSettingsScreenProps {
 
 export function TitleSettingsScreen({
   preferences,
+  glossary,
   onCycleVolume,
   onCycleFormation,
   onToggleReduceMotion,
@@ -116,7 +121,17 @@ export function TitleSettingsScreen({
   onBack,
   backLabel = 'Back to title',
 }: TitleSettingsScreenProps) {
+  const [showGlossary, setShowGlossary] = useState(false);
   const volumePercent = Math.round(preferences.masterVolume * 100);
+  if (showGlossary) {
+    return (
+      <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+        <View className="flex-1 px-5 py-6">
+          <GlossaryPanel content={glossary} onBack={() => setShowGlossary(false)} />
+        </View>
+      </SafeAreaView>
+    );
+  }
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
@@ -229,6 +244,20 @@ export function TitleSettingsScreen({
                   <Text className="text-sm font-bold uppercase tracking-wide text-ink/60">Match day</Text>
                   <StatusChip label="Match Day Heroes" />
                 </View>
+              </View>
+            </PaperPanel>
+
+            <PaperPanel kicker="Club handbook" title="Glossary" stamp="A–Z" className="mt-6">
+              <Text className="text-base leading-5 text-ink/65">
+                Look up football terms, player development, club systems, match controls, and hero mechanics.
+              </Text>
+              <View className="mt-4">
+                <ActionButton
+                  label="Open glossary"
+                  accessibilityLabel="Open glossary"
+                  onPress={() => setShowGlossary(true)}
+                  variant="paper"
+                />
               </View>
             </PaperPanel>
           </View>

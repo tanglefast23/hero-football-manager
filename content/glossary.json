@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "categories": [
+    {
+      "id": "players",
+      "title": "Players & development",
+      "entries": [
+        {
+          "term": "Rating (★)",
+          "definition": "A quick current-strength number: the rounded average of the player's seven stored attributes. Open the player file to see the individual stats and their caps."
+        },
+        {
+          "term": "Potential",
+          "definition": "A 1–5★ promise rating used by scouts, youth generation, and the transfer market. It is separate from attribute caps; Archetype currently decides those caps."
+        },
+        {
+          "term": "Archetype",
+          "definition": "The player's development identity. It speeds growth in favored attributes and sets each attribute's training cap. The + and − labels show the strongest and weakest development areas."
+        },
+        {
+          "term": "Personality",
+          "definition": "Changes career behavior: wage demands, preferred negotiation pitches, patience before requesting a transfer, and likely retirement timing. It does not directly add match stats."
+        },
+        {
+          "term": "Fame",
+          "definition": "Personal renown earned from playing, results, goals, strong league finishes, and cups. Fame raises renewal demands, adds to club fame, helps unlock stronger coaches, and can qualify a long-serving player as a club legend."
+        },
+        {
+          "term": "Condition (COND)",
+          "definition": "The player's week-to-week physical readiness. Matches and hard Energy Use drain it; rest and recovery restore it. Low condition weakens performance and raises injury risk."
+        },
+        {
+          "term": "Morale",
+          "definition": "The player's mood. Very low morale reduces effective match stats; repeated low-morale weeks can trigger a transfer request, with patience depending on Personality."
+        },
+        {
+          "term": "Contract",
+          "definition": "How many seasons the player remains employed. An expired deal must be renewed or the player can leave."
+        },
+        {
+          "term": "Wage",
+          "definition": "Money paid every week. Improved, famous, greedy, or newly awakened players usually ask for more when their contract is renewed."
+        },
+        {
+          "term": "Starting XI",
+          "definition": "The eleven players selected to begin the next match: one goalkeeper and ten outfield players in the active formation."
+        }
+      ]
+    },
+    {
+      "id": "attributes",
+      "title": "Player attributes",
+      "entries": [
+        { "term": "PAC · Pace", "definition": "Running speed and the ability to reach space, support attacks, and recover defensively." },
+        { "term": "SHO · Shooting", "definition": "Shot quality and power for outfield players. Goalkeepers store SHO but do not use it as a visible role stat." },
+        { "term": "PAS · Passing", "definition": "Pass selection and execution, especially when pressure or distance makes the ball difficult." },
+        { "term": "DEF · Defending", "definition": "Marking, tackling, interceptions, and resisting attacking actions." },
+        { "term": "TEC · Technique", "definition": "Close control, dribbling, and keeping useful possession in traffic." },
+        { "term": "STA · Stamina", "definition": "How well a player handles physical effort and condition drain across a match." },
+        { "term": "REF · Reflexes", "definition": "Goalkeeping reactions and save strength. Outfield players store REF but do not use it as a visible role stat." },
+        { "term": "Attribute cap", "definition": "The maximum value normal training can reach for one attribute. Caps come from Archetype; a player already above a cap is never reduced." }
+      ]
+    },
+    {
+      "id": "training",
+      "title": "Training & staff",
+      "entries": [
+        { "term": "Weekly plan", "definition": "The players and focus drills trained at weekly settlement. A saved plan repeats until you change it." },
+        { "term": "Focus drill", "definition": "A targeted training choice that costs Money and Training Points once per week and gives its listed gains to every assigned player." },
+        { "term": "Training Points (TP)", "definition": "The improvement currency. Earn TP through matches and facilities; spend it on focus drills and drill unlocks." },
+        { "term": "Training Ground", "definition": "The first required training facility. Building and upgrading facilities improves development and may unlock related systems." },
+        { "term": "Coach specialty", "definition": "The areas a coach improves. Matching a specialty to a drill or attribute increases training gains over time." },
+        { "term": "Head coach", "definition": "The primary coach, with the strongest specialty bonuses and a weekly wage." },
+        { "term": "Assistant coach", "definition": "A second, smaller set of specialty bonuses unlocked by building a Coaching Office." }
+      ]
+    },
+    {
+      "id": "matches",
+      "title": "Match day",
+      "entries": [
+        { "term": "Formation", "definition": "The team's positional shape. Settings holds three presets; the first starts watched matches and the live Formation control cycles them." },
+        { "term": "Playstyle", "definition": "Tactical intent: Attack seeks more forward play, Protect values safety, and Balanced sits between them. It is separate from physical effort." },
+        { "term": "Energy Use", "definition": "How hard the team works off the ball. Save Energy reduces movement and condition drain; All Out increases movement but drains condition much faster." },
+        { "term": "Team Energy", "definition": "A live summary of the on-field team's remaining condition. It helps judge Energy Use and substitutions." },
+        { "term": "Substitution", "definition": "Swap an on-field player for an eligible bench player. Each team has at most three substitutions per match." },
+        { "term": "Quick Result", "definition": "Runs the same deterministic match engine instantly with automatic hero timing, substitutions, and Energy Use. Watching can earn an edge through better manual power timing." },
+        { "term": "GK Resolve", "definition": "A goalkeeper's pressure bar. Saves and power shots damage Resolve, making later saves weaker; it partially recovers at halftime." }
+      ]
+    },
+    {
+      "id": "heroes",
+      "title": "Heroes & powers",
+      "entries": [
+        { "term": "Power", "definition": "A hero's visible, moment-specific super ability. Powers change possession or geometry rather than giving a hidden permanent stat smear." },
+        { "term": "Heat", "definition": "Momentum earned from touches, tackles, shots, saves, and time on the pitch. Above the threshold, more Heat means a better chance to enter the Zone." },
+        { "term": "The Zone", "definition": "A short glowing activation window. Tap a glowing home hero in Manual mode to fire at full strength before the window fades." },
+        { "term": "Manual power (M)", "definition": "You tap a glowing home hero during the Zone to activate at 100%. A missed window does not auto-fire and leaves half Heat." },
+        { "term": "Fire when ready (A)", "definition": "The engine fires at the next useful context at reduced strength. Rival heroes and Quick Result always use automatic timing." },
+        { "term": "Wind-up", "definition": "The visible delay before a power starts. Many wind-ups can be interrupted, which returns half the hero's Heat." },
+        { "term": "Hero License", "definition": "A permit allowing a powered player to use their power in the next match. You may own more heroes than the number you can license at once." },
+        { "term": "Hero Essence (HE)", "definition": "The hero-progression currency. It comes from power events, first-time hero feats, and season awards, and is spent on power growth and rare Hero Lab actions." }
+      ]
+    },
+    {
+      "id": "club",
+      "title": "Club & competitions",
+      "entries": [
+        { "term": "Money", "definition": "The club-capacity currency used for wages, transfers, facilities, scouting, and events. It is earned from sponsors, tickets, prizes, and player sales." },
+        { "term": "Fans", "definition": "Supporters who affect home attendance and ticket income. Results, promotions, and memorable heroes can grow the fanbase." },
+        { "term": "Facility", "definition": "A building placed on club grounds that adds a lasting benefit and usually a weekly upkeep cost." },
+        { "term": "Upkeep", "definition": "The recurring weekly Money cost of running a facility." },
+        { "term": "Adjacency", "definition": "A bonus discovered when compatible facilities touch on the grounds grid." },
+        { "term": "Scouting", "definition": "A timed search for recruits. Better scouting narrows hidden ranges such as Potential before you decide whether to negotiate." },
+        { "term": "Transfer window", "definition": "The registration period when players may be bought, sold, or listed through the market." },
+        { "term": "Youth Intake", "definition": "A periodic choice of young prospects. Better youth facilities improve their starting strength and Potential odds." },
+        { "term": "D5–D1", "definition": "The five-division league pyramid, from D5 District League to D1 Global League. Strong finishes earn promotion upward." },
+        { "term": "National Cup", "definition": "A knockout competition played alongside the league. Cup progress brings prizes, Fame, and a route to silverware." },
+        { "term": "Advance Week", "definition": "Locks in the current management choices and moves the calendar forward to training settlement, events, or match day." }
+      ]
+    }
+  ]
+}

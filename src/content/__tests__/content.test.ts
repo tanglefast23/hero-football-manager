@@ -165,7 +165,6 @@ describe('validated M1 launch content', () => {
     });
     expect(content.assistantGuide.sequences.map(sequence => sequence.id)).toEqual([
       'management-intro',
-      'squad-intro',
       'desk-intro',
       'head-coach-market',
       'head-coach-hire',
@@ -203,19 +202,17 @@ describe('validated M1 launch content', () => {
     });
     expect(managementIntroPages?.some(page => page.title === 'Read it first')).toBe(false);
     expect(content.assistantGuide.sequences
-      .find(sequence => sequence.id === 'squad-intro')
-      ?.pages[0].body[0]).toContain('Training costs Training Points (TP) and money');
-    expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'desk-intro')
       ?.pages[0]).toMatchObject({
+        title: 'Back to your inbox',
         body: [
-          "You're done for this week.",
-          'Just remember to check your inbox to know what to do.',
+          "You've still got two jobs waiting in your inbox.",
+          "Check it every week for the pressing work that needs doing. That's all from me. Bye, boss.",
         ],
         focus: 'assistant',
         buttonLabel: 'Got it.',
       });
-    const m2Sequences = content.assistantGuide.sequences.slice(3);
+    const m2Sequences = content.assistantGuide.sequences.slice(2);
     expect(m2Sequences).toHaveLength(22);
     expect(m2Sequences.every(sequence => (
       sequence.inbox !== undefined

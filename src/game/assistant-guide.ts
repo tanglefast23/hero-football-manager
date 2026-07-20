@@ -29,13 +29,11 @@ export type AssistantInboxGuideSequenceId = typeof M2_ASSISTANT_GUIDE_SEQUENCE_I
 
 export type AssistantGuideSequenceId =
   | 'management-intro'
-  | 'squad-intro'
   | 'desk-intro'
   | AssistantInboxGuideSequenceId;
 
 export type AssistantGuideMilestone =
   | 'intro-complete'
-  | 'squad-intro-complete'
   | 'first-training-complete'
   | 'desk-intro-complete'
   | 'first-week-advanced';
@@ -70,7 +68,6 @@ export const MAX_ASSISTANT_INBOX_ITEMS_PER_WEEK = 3;
 
 const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'intro-complete': 'guide:bert:intro-complete',
-  'squad-intro-complete': 'guide:bert:squad-intro-complete',
   'first-training-complete': 'guide:bert:first-training-complete',
   'desk-intro-complete': 'guide:bert:desk-intro-complete',
   'first-week-advanced': 'guide:bert:first-week-advanced',
@@ -78,7 +75,6 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
 
 const MILESTONE_BY_SEQUENCE: Readonly<Partial<Record<AssistantGuideSequenceId, AssistantGuideMilestone>>> = {
   'management-intro': 'intro-complete',
-  'squad-intro': 'squad-intro-complete',
   'desk-intro': 'desk-intro-complete',
 };
 

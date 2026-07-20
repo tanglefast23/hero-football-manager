@@ -1,10 +1,10 @@
 import { nextSquadSort, sortSquadPlayers, type SquadSort } from '../squad-sort';
 
 const players = [
-  { id: '1', name: 'Sam Mitts', role: 'GK' as const, overall: 43, condition: 100 },
-  { id: '2', name: 'Ed Stone', role: 'DEF' as const, overall: 45, condition: 75 },
-  { id: '3', name: 'Bo Hedges', role: 'DEF' as const, overall: 45, condition: 100 },
-  { id: '4', name: 'Gio Marsh', role: 'MID' as const, overall: 50, condition: 60 },
+  { id: '1', name: 'Sam Mitts', role: 'GK' as const, overall: 43, potential: 2, condition: 100 },
+  { id: '2', name: 'Ed Stone', role: 'DEF' as const, overall: 45, potential: 4, condition: 75 },
+  { id: '3', name: 'Bo Hedges', role: 'DEF' as const, overall: 45, potential: 3, condition: 100 },
+  { id: '4', name: 'Gio Marsh', role: 'MID' as const, overall: 50, potential: 5, condition: 60 },
 ];
 
 describe('squad table sorting', () => {
@@ -19,6 +19,7 @@ describe('squad table sorting', () => {
 
   it.each<[SquadSort, string[]]>([
     [{ key: 'overall', direction: 'descending' }, ['Gio Marsh', 'Ed Stone', 'Bo Hedges', 'Sam Mitts']],
+    [{ key: 'potential', direction: 'descending' }, ['Gio Marsh', 'Ed Stone', 'Bo Hedges', 'Sam Mitts']],
     [{ key: 'condition', direction: 'ascending' }, ['Gio Marsh', 'Ed Stone', 'Sam Mitts', 'Bo Hedges']],
     [{ key: 'player', direction: 'ascending' }, ['Bo Hedges', 'Ed Stone', 'Gio Marsh', 'Sam Mitts']],
     [{ key: 'role', direction: 'ascending' }, ['Ed Stone', 'Bo Hedges', 'Sam Mitts', 'Gio Marsh']],

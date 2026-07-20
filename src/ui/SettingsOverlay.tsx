@@ -4,6 +4,8 @@ import { ActionButton } from './components/Scorecard';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { adjustDevVolume, DEV_VOLUME_LEVELS, devVolumePercent, type DevVolume } from '../render/dev-volume';
 import type { HudSide } from '../persistence';
+import type { GlossaryCatalog } from '../content';
+import { GlossaryPanel } from './GlossaryPanel';
 
 /** Snap a raw 0–1 gesture position to the nearest supported volume level. */
 function snapVolume(raw: number): DevVolume {
@@ -79,6 +81,8 @@ function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: Dev
 
 export interface SettingsOverlayProps {
   open: boolean;
+  glossary: GlossaryCatalog;
+  glossaryOpen: boolean;
   volume: DevVolume;
   reduceMotion: boolean;
   hudSide: HudSide;
@@ -86,6 +90,7 @@ export interface SettingsOverlayProps {
   onVolumeChange: (v: DevVolume) => void;
   onToggleReduceMotion: () => void;
   onToggleHudSide: () => void;
+  onGlossaryOpenChange: (open: boolean) => void;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -119,6 +124,8 @@ export function SettingsButton({
 /** Controlled settings modal; each screen reserves its own top-right trigger slot. */
 export function SettingsOverlay({
   open,
+  glossary,
+  glossaryOpen,
   volume,
   reduceMotion,
   hudSide,
@@ -126,6 +133,7 @@ export function SettingsOverlay({
   onVolumeChange,
   onToggleReduceMotion,
   onToggleHudSide,
+  onGlossaryOpenChange,
   onOpenChange,
 }: SettingsOverlayProps) {
   const setOpenState = (next: boolean) => {
@@ -147,7 +155,17 @@ export function SettingsOverlay({
           onPress={() => setOpenState(false)}
         >
           {/* stop taps inside the panel from closing the modal */}
-          <Pressable className="w-full max-w-sm border-2 border-b-4 border-ink bg-paper p-5" onPress={() => {}}>
+          <Pressable
+            className={glossaryOpen
+              ? 'w-full max-w-lg border-2 border-b-4 border-ink bg-paper p-5'
+              : 'w-full max-w-sm border-2 border-b-4 border-ink bg-paper p-5'}
+            style={glossaryOpen ? { height: '88%' } : undefined}
+            onPress={() => {}}
+          >
+            {glossaryOpen ? (
+              <GlossaryPanel content={glossary} onBack={() => onGlossaryOpenChange(false)} />
+            ) : (
+            <>
             <Text className="font-pixel text-2xl uppercase text-ink">Settings</Text>
             {saveError ? (
               <View
@@ -183,10 +201,21 @@ export function SettingsOverlay({
                 <Text className="font-mono text-sm font-bold uppercase text-ink">Match info</Text>
                 <Text className="font-mono text-base font-bold uppercase text-violet-dark">{hudSide}</Text>
               </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open glossary"
+                onPress={() => onGlossaryOpenChange(true)}
+                className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
+              >
+                <Text className="font-mono text-sm font-bold uppercase text-ink">Glossary</Text>
+                <Text className="font-mono text-base font-bold text-violet-dark">A–Z ›</Text>
+              </Pressable>
             </View>
             <View className="mt-6">
               <ActionButton label="Done" accessibilityLabel="Close settings" onPress={() => setOpenState(false)} variant="primary" />
             </View>
+            </>
+            )}
           </Pressable>
         </Pressable>
       </Modal>

@@ -1,4 +1,4 @@
-export type SquadSortKey = 'role' | 'player' | 'overall' | 'condition';
+export type SquadSortKey = 'role' | 'player' | 'overall' | 'potential' | 'condition';
 export type SquadSortDirection = 'descending' | 'ascending';
 
 export interface SquadSort {
@@ -11,6 +11,7 @@ interface SortableSquadPlayer {
   name: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   overall: number;
+  potential: number;
   condition: number;
 }
 
@@ -45,5 +46,6 @@ function comparePlayers(
   if (key === 'player') return left.name.localeCompare(right.name);
   if (key === 'role') return left.role.localeCompare(right.role);
   if (key === 'overall') return left.overall - right.overall;
+  if (key === 'potential') return left.potential - right.potential;
   return left.condition - right.condition;
 }

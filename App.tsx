@@ -94,6 +94,7 @@ import {
 import type { DivisionLevel } from './src/game/pyramid';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import type { TutorialAnchorLayout } from './src/ui/tutorial-cue-position';
+import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { useM1Store } from './src/application/store';
@@ -187,6 +188,7 @@ function GameApp() {
   const [conciergeFocus, setConciergeFocus] = useState<AssistantGuideFocus | null>(null);
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
+  const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
   const [settingsSaveError, setSettingsSaveError] = useState<string | null>(null);
   const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
@@ -301,11 +303,18 @@ function GameApp() {
   }, [showStartedFacilityProject]);
 
   const buildClubFacilityWithFeedback = useCallback((type: FacilityProjectNoticeModel['type'], x: number, y: number) => {
+    if (
+      conciergeFocus === 'facility-grid'
+      && !guidedFirstFacilityAllowsPlacement(type, x, y)
+    ) return;
     const before = useM1Store.getState().career?.facilities.grid?.construction;
     useM1Store.getState().buildClubFacility(type, { x, y });
     const after = useM1Store.getState().career?.facilities.grid?.construction;
-    if (after !== undefined && after !== before) showStartedFacilityProject();
-  }, [showStartedFacilityProject]);
+    if (after !== undefined && after !== before) {
+      setConciergeFocus(null);
+      showStartedFacilityProject();
+    }
+  }, [conciergeFocus, showStartedFacilityProject]);
 
   const upgradeClubFacilityWithFeedback = useCallback((buildingId: string) => {
     const before = useM1Store.getState().career?.facilities.grid?.construction;
@@ -678,6 +687,7 @@ function GameApp() {
     screen = (
       <TitleSettingsScreen
         preferences={preferences}
+        glossary={content.glossary}
         onCycleVolume={cycleVolume}
         onCycleFormation={slot => savePreferences(replaceFormationPreset(
           preferences,
@@ -1138,6 +1148,8 @@ function GameApp() {
         />
         <SettingsOverlay
           open={globalSettingsOpen}
+          glossary={content.glossary}
+          glossaryOpen={globalGlossaryOpen}
           volume={devVolume}
           reduceMotion={preferences.reduceMotion}
           hudSide={preferences.hudSide}
@@ -1145,9 +1157,13 @@ function GameApp() {
           onVolumeChange={volume => savePreferences({ ...preferences, masterVolume: volume })}
           onToggleReduceMotion={toggleReduceMotion}
           onToggleHudSide={toggleHudSide}
+          onGlossaryOpenChange={setGlobalGlossaryOpen}
           onOpenChange={open => {
             setGlobalSettingsOpen(open);
-            if (!open) setSettingsSaveError(null);
+            if (!open) {
+              setGlobalGlossaryOpen(false);
+              setSettingsSaveError(null);
+            }
           }}
         />
         {assistantSequenceId !== null ? (

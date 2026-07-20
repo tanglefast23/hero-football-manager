@@ -402,13 +402,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
       }
       if (
         hasAssistantGuideMilestone(career, 'intro-complete')
-        && hasAssistantGuideMilestone(career, 'squad-intro-complete')
         && !hasAssistantGuideMilestone(career, 'first-training-complete')
       ) {
         throw new Error('Finish your first training plan before advancing the week.');
       }
       const guidedFirstWeek = hasAssistantGuideMilestone(career, 'intro-complete')
-        && hasAssistantGuideMilestone(career, 'squad-intro-complete')
         && hasAssistantGuideMilestone(career, 'first-training-complete')
         && !hasAssistantGuideMilestone(career, 'first-week-advanced');
       if (guidedFirstWeek) {

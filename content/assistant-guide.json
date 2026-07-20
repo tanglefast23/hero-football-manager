@@ -48,29 +48,14 @@
       ]
     },
     {
-      "id": "squad-intro",
-      "pages": [
-        {
-          "kicker": "Bert's next job",
-          "title": "Build your weekly plan",
-          "body": [
-            "Choose players, pick up to three drills, then save the weekly plan. Training costs Training Points (TP) and money each week, so don't scatter it around because a button looks cheerful."
-          ],
-          "focus": "training",
-          "objective": "SAVE YOUR FIRST WEEKLY PLAN.",
-          "buttonLabel": "I'll handle it."
-        }
-      ]
-    },
-    {
       "id": "desk-intro",
       "pages": [
         {
           "kicker": "Bert's last word",
-          "title": "That's your week",
+          "title": "Back to your inbox",
           "body": [
-            "You're done for this week.",
-            "Just remember to check your inbox to know what to do."
+            "You've still got two jobs waiting in your inbox.",
+            "Check it every week for the pressing work that needs doing. That's all from me. Bye, boss."
           ],
           "focus": "assistant",
           "buttonLabel": "Got it."

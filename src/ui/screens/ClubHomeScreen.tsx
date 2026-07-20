@@ -116,7 +116,7 @@ export function ClubHomeScreen({
               >
                 {guided ? (
                   <TutorialTapCue
-                    detail="Check your inbox"
+                    detail="Build the facility"
                     style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
                   />
                 ) : null}

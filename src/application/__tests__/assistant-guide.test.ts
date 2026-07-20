@@ -19,9 +19,7 @@ describe('assistant guide application flow', () => {
     state = completeAssistantGuideSequence(state, 'management-intro');
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
     expect(currentAssistantObjective(state, 'home')).toEqual({ text: 'OPEN SQUAD.', target: 'squad-tab' });
-    expect(pendingAssistantGuideSequence(state, 'squad')).toBe('squad-intro');
-
-    state = completeAssistantGuideSequence(state, 'squad-intro');
+    expect(pendingAssistantGuideSequence(state, 'squad')).toBeNull();
     expect(currentAssistantObjective(state, 'squad')).toEqual({
       text: 'SAVE YOUR FIRST WEEKLY PLAN.',
       target: 'training-plan',
@@ -74,7 +72,6 @@ describe('assistant guide application flow', () => {
   test('treats a started Training Ground as progress and points to Advance Week', () => {
     let state = createCareer(createLaunchCareerSetup(934));
     state = completeAssistantGuideSequence(state, 'management-intro');
-    state = completeAssistantGuideSequence(state, 'squad-intro');
     state = completeAssistantGuideMilestone(state, 'first-training-complete');
     state = buildTrainingGround(state);
 

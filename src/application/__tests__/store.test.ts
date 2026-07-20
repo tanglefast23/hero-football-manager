@@ -310,7 +310,6 @@ describe('M1 app store integration', () => {
   it('persists Bert guide progress and clears his first-week objective after advancing', () => {
     startCreatedCareer(790);
     useM1Store.getState().completeAssistantGuide('management-intro');
-    useM1Store.getState().completeAssistantGuide('squad-intro');
     useM1Store.getState().setActiveTab('squad');
     useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
     useM1Store.getState().toggleDrill('sprints');
@@ -323,7 +322,6 @@ describe('M1 app store integration', () => {
 
     expect(useM1Store.getState().career?.eventFlags).toEqual(expect.arrayContaining([
       'guide:bert:intro-complete',
-      'guide:bert:squad-intro-complete',
       'guide:bert:first-training-complete',
       'guide:bert:desk-intro-complete',
     ]));
@@ -335,7 +333,6 @@ describe('M1 app store integration', () => {
   it('blocks advancing until the first guided training plan is finished', () => {
     startCreatedCareer(791);
     useM1Store.getState().completeAssistantGuide('management-intro');
-    useM1Store.getState().completeAssistantGuide('squad-intro');
     useM1Store.getState().setActiveTab('squad');
     const weekBefore = useM1Store.getState().career!.week;
 

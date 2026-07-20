@@ -17,6 +17,7 @@ import {
   type SquadSort,
   type SquadSortKey,
 } from '../squad-sort';
+import { archetypeDevelopmentSummary } from '../archetype-development';
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
@@ -48,6 +49,9 @@ export function SquadTrainingScreen({
   guideFocus,
 }: SquadTrainingScreenProps) {
   const selectedPlayer = viewModel.players.find(player => player.id === viewModel.selectedPlayerId);
+  const selectedArchetype = selectedPlayer === undefined
+    ? undefined
+    : archetypeDevelopmentSummary(selectedPlayer.archetype);
   const assigned = new Set(viewModel.assignedPlayerIds);
   const scrollViewportRef = useRef<View>(null);
   const lockPlanRef = useRef<View>(null);
@@ -61,6 +65,10 @@ export function SquadTrainingScreen({
   const guideLockPlan = guideTraining
     && viewModel.assignedPlayerIds.length > 0
     && viewModel.selectedDrillCount > 0;
+  const guidePlayers = guideTraining && viewModel.assignedPlayerIds.length === 0;
+  const guideDrills = guideTraining
+    && viewModel.assignedPlayerIds.length > 0
+    && viewModel.selectedDrillCount === 0;
 
   const measureLockPlanVisibility = useCallback(() => {
     scrollViewportRef.current?.measureInWindow((viewportX, viewportY, viewportWidth, viewportHeight) => {
@@ -100,13 +108,6 @@ export function SquadTrainingScreen({
   const showScrollCue = guideTraining
     && viewModel.assignedPlayerIds.length > 0
     && (viewModel.selectedDrillCount === 0 || !lockPlanVisible);
-
-  // Point the training cue at the player the user created during onboarding.
-  // Fall back to the first roster row if that hero is somehow absent, so the
-  // tutorial always has a target.
-  const guideTargetPlayerId = viewModel.players.some(player => player.id === viewModel.createdPlayerId)
-    ? viewModel.createdPlayerId
-    : viewModel.players[0]?.id;
 
   return (
     <View
@@ -207,18 +208,27 @@ export function SquadTrainingScreen({
           title={`${viewModel.players.length} players`}
           right={<StatusChip label={`${viewModel.assignedPlayerIds.length} assigned`} />}
         />
-        <View className="border-2 border-ink bg-white">
+        <View className={guidePlayers
+          ? 'relative border-4 border-blue-dark bg-blue-light p-1'
+          : 'border-2 border-ink bg-white'}>
+          {guidePlayers ? (
+            <TutorialTapCue
+              label="Tap in here"
+              detail="Add up to 3 players."
+              style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+            />
+          ) : null}
           <View className="flex-row items-center border-b border-ink/20 px-3">
             <SquadSortHeader label="Role" sortKey="role" sort={squadSort} widthClass="w-12" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
             <SquadSortHeader label="Player" sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-            <SquadSortHeader label="Rating" sortKey="overall" sort={squadSort} widthClass="w-14" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-            <SquadSortHeader label="Condition" sortKey="condition" sort={squadSort} widthClass="w-20" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label="★" sortKey="overall" sort={squadSort} widthClass="w-10" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label="Potential" sortKey="potential" sort={squadSort} widthClass="w-20" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label="Cond" sortKey="condition" sort={squadSort} widthClass="w-14" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
             <Text className="w-12 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Train</Text>
           </View>
           {sortedPlayers.map((player) => {
             const selected = player.id === viewModel.selectedPlayerId;
             const isAssigned = assigned.has(player.id);
-            const guidePlayer = guideTraining && viewModel.assignedPlayerIds.length === 0 && player.id === guideTargetPlayerId;
             const guideConciergePlayer = player.id === viewModel.selectedPlayerId && (
               (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
               || guideFocus === 'transfer-request'
@@ -268,27 +278,20 @@ export function SquadTrainingScreen({
                       <Text className="mt-0.5 text-sm font-bold uppercase text-gold-dark" numberOfLines={1}>★ {player.powerName}</Text>
                     ) : null}
                   </View>
-                  <Text className="w-14 text-right font-mono text-base font-bold text-ink" numberOfLines={1}>{player.overall}</Text>
-                  <Text className={player.condition < 30 ? 'w-20 text-right font-mono text-base font-bold text-stamp' : 'w-20 text-right font-mono text-base text-ink'} numberOfLines={1}>{player.condition}%</Text>
+                  <Text className="w-10 text-right font-mono text-base font-bold text-ink" numberOfLines={1}>{player.overall}</Text>
+                  <Text className="w-20 text-right font-mono text-base font-bold text-gold-dark" numberOfLines={1}>{player.potential}★</Text>
+                  <Text className={player.condition < 30 ? 'w-14 text-right font-mono text-base font-bold text-stamp' : 'w-14 text-right font-mono text-base text-ink'} numberOfLines={1}>{player.condition}%</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="checkbox"
                   accessibilityLabel={`Assign ${player.name} to selected focus drills`}
                   accessibilityState={{ checked: isAssigned }}
                   onPress={() => onTogglePlayerAssignment(player.id)}
-                  className={guidePlayer
-                    ? 'relative ml-2 h-11 w-11 items-center justify-center border-2 border-blue-dark bg-blue-light'
-                    : isAssigned
-                      ? 'ml-2 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light'
-                      : 'ml-2 h-11 w-11 items-center justify-center border border-ink/30'}
+                  className={isAssigned
+                    ? 'ml-2 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light'
+                    : 'ml-2 h-11 w-11 items-center justify-center border border-ink/30'}
                   style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
                 >
-                  {guidePlayer ? (
-                    <TutorialTapCue
-                      detail="Add one player"
-                      style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
-                    />
-                  ) : null}
                   <Text className={isAssigned ? 'font-mono text-base font-bold text-ink' : 'font-mono text-base text-ink/40'}>{isAssigned ? '✓' : '+'}</Text>
                 </Pressable>
               </View>
@@ -353,7 +356,13 @@ export function SquadTrainingScreen({
           <View className="mt-3 border border-ink/20 bg-paper-dark/40 px-3 py-3">
             <View className="flex-row items-center justify-between gap-3">
               <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Archetype</Text>
-              <Text className="text-base font-bold text-ink">{selectedPlayer.archetype}</Text>
+              <View className="min-w-0 flex-1 items-end">
+                <Text className="text-base font-bold text-ink">{selectedPlayer.archetype}</Text>
+                <View className="mt-1 flex-row flex-wrap justify-end gap-x-2">
+                  <Text className="font-mono text-sm font-bold text-pitch-dark">{selectedArchetype?.strengths}</Text>
+                  <Text className="font-mono text-sm font-bold text-red-dark">{selectedArchetype?.weaknesses}</Text>
+                </View>
+              </View>
             </View>
             <View className="mt-2 flex-row items-center justify-between gap-3">
               <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Personality</Text>
@@ -396,13 +405,17 @@ export function SquadTrainingScreen({
         <Text className="mb-3 text-sm leading-5 text-ink/60">
           Pick up to {viewModel.maxDrills}. Each selected drill is charged once per week and trains every assigned player. The plan repeats weekly until changed.
         </Text>
-        <View className="gap-2">
-          {viewModel.drills.map((drill, drillIndex) => {
-            const guideDrill = guideTraining
-              && viewModel.assignedPlayerIds.length > 0
-              && viewModel.selectedDrillCount === 0
-              && drill.available
-              && drillIndex === viewModel.drills.findIndex(candidate => candidate.available);
+        <View className={guideDrills
+          ? 'relative gap-2 border-4 border-blue-dark bg-blue-light p-1'
+          : 'gap-2'}>
+          {guideDrills ? (
+            <TutorialTapCue
+              label="Tap in here"
+              detail="Add up to 3 drills."
+              style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+            />
+          ) : null}
+          {viewModel.drills.map((drill) => {
             return (
             <Pressable
               key={drill.id}
@@ -411,21 +424,15 @@ export function SquadTrainingScreen({
               accessibilityState={{ checked: drill.selected, disabled: !drill.available }}
               disabled={!drill.available}
               onPress={() => onToggleDrill(drill.id)}
-              className={`relative min-h-16 flex-row items-center border-2 p-3 ${guideDrill ? 'border-blue-dark bg-blue-light' : drillSelectionClass(drill)}`}
+              className={`relative min-h-16 flex-row items-center border-2 p-3 ${drillSelectionClass(drill)}`}
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
             >
-              {guideDrill ? (
-                <TutorialTapCue
-                  detail="Pick a drill"
-                  style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -70 }}
-                />
-              ) : null}
               <View className={drill.selected ? 'mr-3 h-9 w-9 items-center justify-center border-2 border-ink bg-paper' : 'mr-3 h-9 w-9 items-center justify-center border border-ink/30'}>
                 <Text className={drill.selected ? 'font-mono text-base font-bold text-ink' : 'font-mono text-base text-ink/40'}>{drill.selected ? '✓' : '+'}</Text>
               </View>
               <View className="flex-1 pr-3">
                 <Text className="text-base font-bold uppercase text-ink">{drill.name}</Text>
-                <Text className={drill.selected ? 'mt-1 text-sm text-ink/70' : 'mt-1 text-sm text-ink/60'}>{drill.focusLabel} · {drill.gainLabel}</Text>
+                <Text className={drill.selected ? 'mt-1 text-sm text-ink/70' : 'mt-1 text-sm text-ink/60'}>{drill.gainLabel}</Text>
               </View>
               <View className="items-end">
                 <Text className="font-mono text-sm font-bold text-ink" numberOfLines={1}>{formatCurrency(drill.moneyCost)}</Text>
@@ -464,7 +471,7 @@ export function SquadTrainingScreen({
       {showScrollCue ? (
         <TutorialTapCue
           label="Scroll down"
-          detail={viewModel.selectedDrillCount === 0 ? 'Pick a drill' : 'Save the plan'}
+          detail={viewModel.selectedDrillCount === 0 ? 'Add up to 3 drills.' : 'Save the plan'}
           style={{ bottom: 10, right: 10 }}
         />
       ) : null}
@@ -502,9 +509,11 @@ function SquadSortHeader({
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : undefined })}
     >
       <Text
-        className={direction === null
-          ? 'text-sm font-bold uppercase text-ink/50'
-          : 'text-sm font-bold uppercase text-blue-dark'}
+        className={label === '★'
+          ? 'text-base font-bold text-gold-dark'
+          : direction === null
+            ? 'text-sm font-bold uppercase text-ink/50'
+            : 'text-sm font-bold uppercase text-blue-dark'}
         numberOfLines={1}
       >
         {label}{direction === 'descending' ? ' ▼' : direction === 'ascending' ? ' ▲' : ''}

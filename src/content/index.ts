@@ -3,6 +3,7 @@ export {
   parseAssistantGuideContent,
   parseClubCatalog,
   parseEventCatalog,
+  parseGlossaryCatalog,
   parseLaunchContent,
   parseOnboardingContent,
   parsePowerCatalog,

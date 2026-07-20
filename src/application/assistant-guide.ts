@@ -32,14 +32,7 @@ export function pendingAssistantGuideSequence(
     return 'management-intro';
   }
   if (
-    activeTab === 'squad'
-    && !hasAssistantGuideMilestone(state, 'squad-intro-complete')
-  ) {
-    return 'squad-intro';
-  }
-  if (
     activeTab === 'home'
-    && hasAssistantGuideMilestone(state, 'squad-intro-complete')
     && hasAssistantGuideMilestone(state, 'first-training-complete')
     && (state.facilities.trainingGroundBuilt || isTrainingGroundUnderConstruction(state))
     && !hasAssistantGuideMilestone(state, 'desk-intro-complete')
@@ -148,11 +141,11 @@ export function currentAssistantObjective(
 ): AssistantObjective | null {
   if (!isFirstCareerWeek(state)) return null;
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) return null;
-  if (!hasAssistantGuideMilestone(state, 'squad-intro-complete')) {
-    return { text: 'OPEN SQUAD.', target: 'squad-tab' };
-  }
   if (!hasAssistantGuideMilestone(state, 'first-training-complete')) {
-    return { text: 'SAVE YOUR FIRST WEEKLY PLAN.', target: 'training-plan' };
+    if (activeTab === 'squad') {
+      return { text: 'SAVE YOUR FIRST WEEKLY PLAN.', target: 'training-plan' };
+    }
+    return { text: 'OPEN SQUAD.', target: 'squad-tab' };
   }
   if (!state.facilities.trainingGroundBuilt && !isTrainingGroundUnderConstruction(state)) {
     if (activeTab === 'home') {
