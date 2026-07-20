@@ -9,16 +9,17 @@ import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut };
 
 export const STANDING_TACKLE_RANGE = 200;
-export const SLIDE_TACKLE_MAX_RANGE = 450;
+export const SLIDE_TACKLE_MIN_RANGE = 800;
+export const SLIDE_TACKLE_MAX_RANGE = 1100;
 export const SLIDE_TACKLE_TICKS = 4;
-export const SLIDE_TACKLE_SPEED_MULTIPLIER = 1.8;
+export const SLIDE_TACKLE_SPEED_MULTIPLIER = 4.2;
 export const SLIDE_TACKLE_CONDITION_FLOOR = 30;
 export const SLIDE_TACKLE_PREFERRED_CONDITION = 80;
 export const SLIDE_TACKLE_CONDITION_COST = 0.4;
-export const SLIDE_TACKLE_COOLDOWN_TICKS = 25;
+export const SLIDE_TACKLE_COOLDOWN_TICKS = 40;
 export const SLIDE_SUCCESS_RECOVERY_TICKS = 6;
 export const SLIDE_MISS_RECOVERY_TICKS = 12;
-const SLIDE_CONTACT_RANGE = 150;
+const SLIDE_CONTACT_RANGE = 50;
 
 export function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;
@@ -709,10 +710,6 @@ function inOwnDefensiveThird(team: 0 | 1, pos: Vec): boolean {
   return team === 0 ? pos.y >= PITCH_H * 2 / 3 : pos.y <= PITCH_H / 3;
 }
 
-function inOwnHalf(team: 0 | 1, pos: Vec): boolean {
-  return team === 0 ? pos.y >= PITCH_H / 2 : pos.y <= PITCH_H / 2;
-}
-
 function isGoalSideOfCarrier(tackler: SimPlayer, carrier: SimPlayer): boolean {
   const carrierAttackY = carrier.team === 0 ? -1 : 1;
   return (tackler.pos.y - carrier.pos.y) * carrierAttackY >= 0;
@@ -725,19 +722,16 @@ function isGoalSideOfCarrier(tackler: SimPlayer, carrier: SimPlayer): boolean {
  */
 function slideLaunchRange(state: MatchState, tacklerIdx: number, carrierIdx: number): number {
   const tackler = state.players[tacklerIdx];
-  // Sliding is principally the committed defender tool. Midfielders only use
-  // it as shorter cover in their own half; forwards keep pressing into
-  // standing-tackle range instead of repeatedly going to ground.
+  // An 8-11 metre slide is a spectacular committed defender tool. Midfielders
+  // and forwards keep pressing into standing-tackle range instead of repeatedly
+  // abandoning the team shape with the exaggerated long lunge.
   if (tackler.condition < SLIDE_TACKLE_CONDITION_FLOOR) return 0;
   const ownThird = inOwnDefensiveThird(tackler.team, state.players[carrierIdx].pos);
-  const midfieldCover = tackler.def.role === 'MID'
-    && (tackler.condition >= 50 ? inOwnHalf(tackler.team, state.players[carrierIdx].pos) : ownThird);
-  if (tackler.def.role !== 'DEF' && !midfieldCover) return 0;
+  if (tackler.def.role !== 'DEF') return 0;
   if (!isGoalSideOfCarrier(tackler, state.players[carrierIdx])) return 0;
-  const roleMax = tackler.def.role === 'DEF' ? SLIDE_TACKLE_MAX_RANGE : 320;
-  if (tackler.condition >= SLIDE_TACKLE_PREFERRED_CONDITION) return roleMax;
-  if (tackler.condition >= 50) return Math.min(roleMax, tackler.def.role === 'DEF' ? 380 : 320);
-  return ownThird ? Math.min(roleMax, tackler.def.role === 'DEF' ? 320 : 280) : 0;
+  if (tackler.condition >= SLIDE_TACKLE_PREFERRED_CONDITION) return SLIDE_TACKLE_MAX_RANGE;
+  if (tackler.condition >= 50) return 1000;
+  return ownThird ? 900 : 0;
 }
 
 function finishSlide(state: MatchState, tacklerIdx: number, won: boolean, contact: boolean): void {
@@ -777,14 +771,11 @@ function resolveActiveSlide(state: MatchState): boolean {
   const slide = tackler.slideTackle!;
   const carrierStillTargeted = state.ball.kind === 'held' && state.ball.by === slide.targetIdx
     && isConscious(state, slide.targetIdx);
-  if (!carrierStillTargeted) {
-    finishSlide(state, tacklerIdx, false, false);
-    return true;
-  }
-
   const target = state.players[slide.targetIdx];
-  const contactFraction = sweptContactFraction(slide.previousPos, tackler.pos, slide.targetPreviousPos, target.pos);
-  if (contactFraction !== null) {
+  const contactFraction = carrierStillTargeted
+    ? sweptContactFraction(slide.previousPos, tackler.pos, slide.targetPreviousPos, target.pos)
+    : null;
+  if (carrierStillTargeted && contactFraction !== null) {
     // Stop at the collision point. The coordinate persists through recovery;
     // the renderer no longer offsets the sprite and snaps it back afterward.
     tackler.pos = {
@@ -805,6 +796,9 @@ function resolveActiveSlide(state: MatchState): boolean {
     finishSlide(state, tacklerIdx, false, false);
     return true;
   }
+  // A committed miss still travels its locked path after the target releases
+  // the ball. Stopping on the release tick made far-away slides look like a
+  // one-step stumble even though the launch itself came from 8-11 metres.
   slide.targetPreviousPos = { ...target.pos };
   return true;
 }
@@ -824,7 +818,10 @@ function startSlide(state: MatchState, tacklerIdx: number, carrierIdx: number, d
     startTick: state.tick,
     untilTick,
     direction,
-    remainingDistance: Math.min(SLIDE_TACKLE_MAX_RANGE, Math.max(300, distance + SLIDE_CONTACT_RANGE)),
+    remainingDistance: Math.min(
+      SLIDE_TACKLE_MAX_RANGE,
+      Math.max(SLIDE_TACKLE_MIN_RANGE, distance + SLIDE_CONTACT_RANGE),
+    ),
     previousPos: { ...tackler.pos },
     targetPreviousPos: { ...carrier.pos },
   };
@@ -876,7 +873,12 @@ export function tackleTick(state: MatchState): void {
     }
     if (defender.def.role === 'GK') continue;
     const launchRange = slideLaunchRange(state, i, carrierIdx);
-    if (launchRange === 0 || d2 > launchRange * launchRange || d2 >= slideD2) continue;
+    if (
+      launchRange === 0
+      || d2 < SLIDE_TACKLE_MIN_RANGE * SLIDE_TACKLE_MIN_RANGE
+      || d2 > launchRange * launchRange
+      || d2 >= slideD2
+    ) continue;
     slideIdx = i;
     slideD2 = d2;
     slideDistance = Math.sqrt(d2);

@@ -26,6 +26,9 @@ describe('weekly review view model', () => {
       cashBefore: requireUserClub(before).cash,
       cashAfter: requireUserClub(after).cash,
       netAmount: requireUserClub(after).cash - requireUserClub(before).cash,
+      trainingPointsBefore: before.trainingPoints,
+      trainingPointsAfter: after.trainingPoints,
+      netTrainingPoints: after.trainingPoints - before.trainingPoints,
     });
     expect(review.ledger.some(line => line.label === 'Weekly wages')).toBe(true);
     expect(review.development.focusedTrainees).toHaveLength(1);

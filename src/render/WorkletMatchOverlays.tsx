@@ -3,6 +3,11 @@ import { Path, usePathValue } from '@shopify/react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { WORKLET_ACTION_SLIDE, WORKLET_ACTION_STRIDE } from './worklet-atlas-frame';
 import {
+  BALL_AIRBORNE_THRESHOLD_CM,
+  ballShadowOpacity,
+  ballShadowRadius,
+} from './ball-flight-visuals';
+import {
   TACKLE_DUST_COLOR,
   TACKLE_DUST_OPACITY,
   TACKLE_DUST_PIXELS,
@@ -143,18 +148,18 @@ export function WorkletBallShadow({
 }) {
   const shadow = usePathValue((builder) => {
     'worklet';
-    if (ballHeight.value < 2) return;
-    const radius = 3.5 + Math.min(3, ballHeight.value / 80);
-    builder.addCircle(
-      ballGroundPosition.value[0] * scale,
-      ballGroundPosition.value[1] * scale,
-      radius,
-    );
+    if (ballHeight.value < BALL_AIRBORNE_THRESHOLD_CM) return;
+    const radius = ballShadowRadius(ballHeight.value);
+    const cx = ballGroundPosition.value[0] * scale;
+    const cy = ballGroundPosition.value[1] * scale;
+    builder.addOval({
+      x: cx - radius,
+      y: cy - radius * 0.42,
+      width: radius * 2,
+      height: radius * 0.84,
+    });
   });
-  const opacity = useDerivedValue(() => {
-    const heightFraction = Math.max(0, Math.min(1, ballHeight.value / 180));
-    return 0.34 - heightFraction * 0.16;
-  });
+  const opacity = useDerivedValue(() => ballShadowOpacity(ballHeight.value));
 
   return <Path path={shadow} color="#17371d" opacity={opacity} />;
 }

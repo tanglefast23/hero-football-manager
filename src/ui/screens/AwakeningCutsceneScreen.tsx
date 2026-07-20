@@ -34,6 +34,7 @@ import { buildFallbackAtlas, buildSpriteAtlas } from '../../render/sprites/build
 import { PIXEL_ART_SAMPLING } from '../../render/pixel-art-sampling';
 import { AwakeningTriggerCalloutIcon } from './awakening-trigger-visuals/AwakeningTriggerCalloutIcon';
 import { AwakeningTriggerVisual } from './awakening-trigger-visuals/AwakeningTriggerVisual';
+import { awakeningViewportHeight, nextAwakeningAction } from './awakening-progression';
 
 const CUTSCENE_SPRITES = [
   // Back-to-front painter order. Actors with higher feet on the pitch draw
@@ -78,10 +79,10 @@ export function AwakeningCutsceneScreen({
   onBeatChange,
   onContinue,
 }: AwakeningCutsceneScreenProps) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const pitchScale = width / PITCH_W;
   const pitchHeight = PITCH_H * pitchScale;
-  const viewportHeight = Math.min(440, pitchHeight * 0.72);
+  const viewportHeight = awakeningViewportHeight(width, height);
   const [beat, setBeat] = useState<1 | 2 | 3>(initialBeat);
   const [advanceReady, setAdvanceReady] = useState(false);
   const [triggerPropVisible, setTriggerPropVisible] = useState(false);
@@ -271,6 +272,15 @@ export function AwakeningCutsceneScreen({
     : advanceReady
       ? 'TAP TEXT TO CONTINUE'
       : beat === 1 ? 'SCENE PLAYING…' : 'REVEALING…';
+  const advanceStory = () => {
+    if (!advanceReady) return;
+    const action = nextAwakeningAction(beat);
+    if (action === 'continue') {
+      onContinue();
+      return;
+    }
+    setBeat(action);
+  };
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right', 'bottom']}>
@@ -326,11 +336,13 @@ export function AwakeningCutsceneScreen({
         </View>
 
         <Pressable
-          accessibilityRole={beat < 3 ? 'button' : undefined}
-          accessibilityLabel={beat < 3 ? `Awakening beat ${beat} of 3. Tap the story text to continue.` : undefined}
-          accessibilityState={beat < 3 ? { disabled: !advanceReady } : undefined}
-          disabled={beat === 3 || !advanceReady}
-          onPress={() => setBeat(currentBeat => currentBeat === 1 ? 2 : 3)}
+          accessibilityRole="button"
+          accessibilityLabel={beat < 3
+            ? `Awakening beat ${beat} of 3. Tap the story text to continue.`
+            : 'Continue after the hero awakening'}
+          accessibilityState={{ disabled: !advanceReady }}
+          disabled={!advanceReady}
+          onPress={advanceStory}
           style={[styles.storyPanel, beat === 3 ? styles.storyPanelHero : null]}
         >
           <View style={styles.storyTopline}>

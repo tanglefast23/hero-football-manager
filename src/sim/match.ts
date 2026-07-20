@@ -8,9 +8,9 @@ import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.5 combines m1.4's deterministic 2.5D shot/keeper flight with replayable
-// Energy Use, stronger stamina drain, and deterministic automatic coaching.
-export const ENGINE_VERSION = 'm1.5';
+// m1.6 makes committed slide tackles launch and travel from visibly long range.
+// It retains m1.5's 2.5D ball flight, Energy Use, stamina, and auto coaching.
+export const ENGINE_VERSION = 'm1.6';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one

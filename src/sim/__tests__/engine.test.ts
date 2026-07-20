@@ -116,8 +116,8 @@ describe('tackling', () => {
     expect(m.players[tacklerIdx].slideTackle).toBeUndefined();
   });
 
-  it('launches from range, moves the real sim coordinate faster than running, and recovers where it lands', () => {
-    const { m, carrierIdx, tacklerIdx } = rigChallenge(400, 90);
+  it('launches a visibly long slide from range, moves the real sim coordinate faster than running, and recovers where it lands', () => {
+    const { m, carrierIdx, tacklerIdx } = rigChallenge(1000, 90);
     m.players[tacklerIdx].def.attrs.def = 99;
     m.players[carrierIdx].def.attrs.tec = 1;
     const ordinarySpeed = speedFor(m, tacklerIdx);
@@ -138,7 +138,7 @@ describe('tackling', () => {
     );
     expect(firstStep).toBeGreaterThan(ordinarySpeed);
     tackleTick(m);
-    if (m.players[tacklerIdx].slideTackle) {
+    for (let i = 0; i < 5 && m.players[tacklerIdx].slideTackle; i++) {
       m.tick++;
       movementTick(m);
       tackleTick(m);
@@ -150,10 +150,36 @@ describe('tackling', () => {
     expect(m.players[tacklerIdx].tackleRecoveryUntil).toBeGreaterThan(m.tick);
 
     const landingPos = { ...m.players[tacklerIdx].pos };
+    expect(Math.hypot(landingPos.x - launchPos.x, landingPos.y - launchPos.y)).toBeGreaterThanOrEqual(800);
     m.tick++;
     movementTick(m);
     expect(m.players[tacklerIdx].pos).toEqual(landingPos);
     expect(m.players[tacklerIdx].pos).not.toEqual(launchPos);
+  });
+
+  it('finishes the committed long travel when the target releases the ball', () => {
+    const { m, tacklerIdx } = rigChallenge(1000, 90);
+    tackleTick(m);
+    const launchPos = { ...m.players[tacklerIdx].pos };
+    m.ball = { kind: 'held', by: 8 };
+
+    for (let i = 0; i < 8 && m.players[tacklerIdx].slideTackle; i++) {
+      m.tick++;
+      movementTick(m);
+      tackleTick(m);
+    }
+
+    expect(Math.hypot(
+      m.players[tacklerIdx].pos.x - launchPos.x,
+      m.players[tacklerIdx].pos.y - launchPos.y,
+    )).toBeGreaterThanOrEqual(800);
+    expect(m.events.at(-1)).toMatchObject({
+      kind: 'TACKLE',
+      by: tacklerIdx,
+      won: false,
+      style: 'slide',
+      contact: false,
+    });
   });
 
   it('treats 80% as the preferred slide band, narrows reach below it, and keeps a 30% hard floor', () => {
@@ -161,21 +187,21 @@ describe('tackling', () => {
     tackleTick(tired.m);
     expect(tired.m.players[tired.tacklerIdx].slideTackle).toBeUndefined();
 
-    const middling = rigChallenge(400, 60);
+    const middling = rigChallenge(1050, 60);
     middling.m.players[middling.tacklerIdx].def.attrs.def = 1;
     middling.m.players[middling.carrierIdx].def.attrs.tec = 99;
     tackleTick(middling.m);
     expect(middling.m.players[middling.tacklerIdx].slideTackle).toBeUndefined();
 
-    const closerMiddling = rigChallenge(350, 60);
+    const closerMiddling = rigChallenge(950, 60);
     closerMiddling.m.players[closerMiddling.tacklerIdx].def.attrs.def = 1;
     closerMiddling.m.players[closerMiddling.carrierIdx].def.attrs.tec = 99;
     tackleTick(closerMiddling.m);
     expect(closerMiddling.m.players[closerMiddling.tacklerIdx].slideTackle).toBeDefined();
 
-    const emergency = rigChallenge(400, 40);
+    const emergency = rigChallenge(900, 40);
     emergency.m.players[emergency.carrierIdx].pos = { x: 3400, y: 1000 };
-    emergency.m.players[emergency.tacklerIdx].pos = { x: 3400, y: 700 };
+    emergency.m.players[emergency.tacklerIdx].pos = { x: 3400, y: 100 };
     emergency.m.players[emergency.tacklerIdx].def.attrs.def = 99;
     emergency.m.players[emergency.carrierIdx].def.attrs.tec = 1;
     tackleTick(emergency.m);
@@ -268,7 +294,7 @@ describe('condition and STA', () => {
       m.tactics[1].energyUse = energyUse;
       m.ball = { kind: 'held', by: carrierIdx };
       m.players[carrierIdx].pos = { x: 3400, y: 3000 };
-      m.players[tacklerIdx].pos = { x: 3400, y: 2600 };
+      m.players[tacklerIdx].pos = { x: 3400, y: 2100 };
       m.players[tacklerIdx].condition = 90;
       for (let index = 11; index < 22; index += 1) {
         if (index !== tacklerIdx) m.players[index].pos = { x: 200, y: 9000 };

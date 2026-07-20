@@ -26,6 +26,7 @@ import {
   WorkletMatchOverlays,
   WorkletSlideTackleEffects,
 } from './WorkletMatchOverlays';
+import { BALL_AIRBORNE_THRESHOLD_CM, ballVisualOffset } from './ball-flight-visuals';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
 import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
 import { Pitch } from './Pitch';
@@ -84,9 +85,9 @@ const SNAP_DIST2 = (2 * MAX_SPEED_PER_TICK) ** 2;
 // duration — ledger item 5 ("flash the chip dim for ~30 ticks").
 const FLASH_TICKS = 30;
 
-// Shot presentation (render-only) — a shot reads differently from a pass via a
-// fading motion trail on the ball plus a dust puff kicked up at the strike.
-const SHOT_TRAIL_LEN = 6; // recent ball positions kept while a shot is in flight
+// Ball-flight presentation (render-only) — lifted kicks show a curved history;
+// shots also retain the dust puff kicked up at the strike.
+const BALL_FLIGHT_TRAIL_LEN = 8; // longer arc history makes lifted kicks read at a glance
 const PUFF_TICKS = 16; // how long the kick-origin dust puff lingers, in sim ticks
 const PUFF_RINGS = 3; // concentric expanding dust rings
 
@@ -112,7 +113,6 @@ const PLAYER_CELL_W = 24;
 const BALL_FOOT_FORWARD_FRACTION = 0.35; // of the player sprite's drawn half-width
 const BALL_FOOT_DOWN_PX = 3; // feet sit toward the sprite's bottom half, not its center
 const BALL_FOOT_DEADZONE_PX = 0.5; // tick-to-tick screen-px delta below this reads as "stationary"
-const BALL_HEIGHT_VISUAL_SCALE = 0.7;
 
 // Side of the plain white square drawn when the sprite pack fails to build
 // (matches the player cell width so the placeholder keeps sane proportions).
@@ -212,9 +212,9 @@ export function MatchScreen({
     tone: 'gold',
   });
   const scoreFlashUntilRef = useRef<number>(0);
-  // Shot presentation — recent ball positions while a shot flies (motion
-  // trail), and the last kick origin + tick (dust puff). Render-only.
-  const shotTrailRef = useRef<Array<{ x: number; y: number; z: number }>>([]);
+  // Ball-flight presentation — recent positions while a shot or lifted pass
+  // flies, and the last kick origin + tick (dust puff). Render-only.
+  const ballFlightTrailRef = useRef<Array<{ x: number; y: number; z: number }>>([]);
   const puffRef = useRef<{ x: number; y: number; tick: number } | null>(null);
   // End-of-match hold deadline (RAF/performance.now() timebase), set once
   // when the loop first sees phase === 'fulltime' — see FULLTIME_HOLD_MS.
@@ -389,10 +389,11 @@ export function MatchScreen({
           ? [{ ...speedster.pos }, ...trailRef.current].slice(0, 7)
           : [];
 
-        // Shot-ball motion trail — recent ball positions while it's a live
-        // shot; cleared the instant it stops being one (goal/save/miss).
-        shotTrailRef.current = !reduceMotion && nextRef.current!.ballShooting
-          ? [{ ...nextRef.current!.ball, z: nextRef.current!.ballHeight }, ...shotTrailRef.current].slice(0, SHOT_TRAIL_LEN)
+        // A longer curved trail makes lifted shots and keeper distributions
+        // read as airborne; driven shots retain their existing speed streak.
+        ballFlightTrailRef.current = !reduceMotion
+          && (nextRef.current!.ballShooting || nextRef.current!.ballHeight >= BALL_AIRBORNE_THRESHOLD_CM)
+          ? [{ ...nextRef.current!.ball, z: nextRef.current!.ballHeight }, ...ballFlightTrailRef.current].slice(0, BALL_FLIGHT_TRAIL_LEN)
           : [];
 
         acc -= TICK_MS;
@@ -842,15 +843,15 @@ export function MatchScreen({
             opacity={0.55 * (1 - i / trailRef.current.length)}
           />
         ))}
-        {/* Shot motion trail — a fading streak behind the ball while it flies. */}
-        {shotTrailRef.current.map((t, i) => (
+        {/* Fading arc history behind driven shots and every lifted kick. */}
+        {ballFlightTrailRef.current.map((t, i) => (
           <Circle
             key={`shot-${i}`}
             cx={t.x * scale}
-            cy={t.y * scale - t.z * scale * BALL_HEIGHT_VISUAL_SCALE}
+            cy={t.y * scale - ballVisualOffset(t.z, scale)}
             r={Math.max(1.5, 6.5 - i)}
             color="#f4f7fa"
-            opacity={0.6 * (1 - i / SHOT_TRAIL_LEN)}
+            opacity={0.64 * (1 - i / BALL_FLIGHT_TRAIL_LEN)}
           />
         ))}
         {/* Dust puff at the strike origin — a soft filled smoke body plus
