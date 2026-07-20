@@ -4,6 +4,7 @@ import {
   PLAYER_ARCHETYPES,
   archetypeAttributeCap,
   capArchetypeTrainingGain,
+  remainingDevelopmentPotential,
 } from '../archetype-caps';
 
 const ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
@@ -47,5 +48,22 @@ describe('archetype training caps', () => {
     if (cap < 99) {
       expect(capArchetypeTrainingGain(archetype, attribute, cap + 1, 99)).toBe(cap + 1);
     }
+  });
+
+  test('sums every remaining cap point and never subtracts above-cap attributes', () => {
+    const attrs: Attrs = { pac: 60, sho: 61, pas: 70, def: 96, tec: 71, sta: 80, ref: 90 };
+    expect(remainingDevelopmentPotential('Wall', attrs)).toBe(
+      (70 - 60)
+      + 0
+      + (76 - 70)
+      + 0
+      + (78 - 71)
+      + (90 - 80)
+      + (95 - 90),
+    );
+  });
+
+  test('reaches zero when every attribute is at its archetype cap', () => {
+    expect(remainingDevelopmentPotential('Anchor', ARCHETYPE_ATTRIBUTE_CAPS.Anchor)).toBe(0);
   });
 });

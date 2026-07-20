@@ -3,6 +3,7 @@ import {
   ARCHETYPE_ATTRIBUTE_CAPS,
   PLAYER_ARCHETYPES,
   createCareer,
+  remainingDevelopmentPotential,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { squadTrainingViewModel } from '../view-models';
@@ -32,6 +33,10 @@ describe('archetype caps in the Squad desk', () => {
         attribute.label.toLowerCase(),
         attribute.cap,
       ]))).toEqual(ARCHETYPE_ATTRIBUTE_CAPS[archetype]);
+      const careerPlayer = state.players.find(candidate => candidate.id === playerId)!;
+      expect(player.remainingPotential).toBe(
+        remainingDevelopmentPotential(archetype, careerPlayer.attrs),
+      );
     }
   });
 });

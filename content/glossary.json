@@ -11,7 +11,7 @@
         },
         {
           "term": "Potential",
-          "definition": "A 1–5★ promise rating used by scouts, youth generation, and the transfer market. It is separate from attribute caps; Archetype currently decides those caps."
+          "definition": "The total attribute points normal training can still add before the player's seven Archetype caps. It is the sum of each cap minus the current attribute, with above-cap attributes counting as zero remaining. A larger number means more development headroom, and the number falls as the player improves."
         },
         {
           "term": "Archetype",
@@ -110,9 +110,9 @@
         { "term": "Facility", "definition": "A building placed on club grounds that adds a lasting benefit and usually a weekly upkeep cost." },
         { "term": "Upkeep", "definition": "The recurring weekly Money cost of running a facility." },
         { "term": "Adjacency", "definition": "A bonus discovered when compatible facilities touch on the grounds grid." },
-        { "term": "Scouting", "definition": "A timed search for recruits. Better scouting narrows hidden ranges such as Potential before you decide whether to negotiate." },
+        { "term": "Scouting", "definition": "A timed search for recruits. Better scouting narrows hidden attribute ranges before you decide whether to negotiate." },
         { "term": "Transfer window", "definition": "The registration period when players may be bought, sold, or listed through the market." },
-        { "term": "Youth Intake", "definition": "A periodic choice of young prospects. Better youth facilities improve their starting strength and Potential odds." },
+        { "term": "Youth Intake", "definition": "A periodic choice of young prospects. Better youth facilities improve their starting strength." },
         { "term": "D5–D1", "definition": "The five-division league pyramid, from D5 District League to D1 Global League. Strong finishes earn promotion upward." },
         { "term": "National Cup", "definition": "A knockout competition played alongside the league. Cup progress brings prizes, Fame, and a route to silverware." },
         { "term": "Advance Week", "definition": "Locks in the current management choices and moves the calendar forward to training settlement, events, or match day." }

@@ -167,7 +167,6 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
           role: report.role,
           lookId: identity?.lookId,
           ageLabel: `Age ${report.age}`,
-          potentialLabel: starRange(report.potentialRange.minimum, report.potentialRange.maximum),
           ...(report.power === undefined
             ? {}
             : { powerLabel: identity?.powerName ?? readableId(report.power) }),
@@ -274,7 +273,6 @@ function youthIntakeViewModel(
         role: offer.player.role,
         lookId: offer.player.lookId,
         ageLabel: `Age ${offer.player.age}`,
-        potentialLabel: `${'★'.repeat(offer.player.potential)}${'☆'.repeat(5 - offer.player.potential)} potential`,
         archetypeLabel: offer.player.archetype,
         signingBonus: offer.signingBonus,
         weeklyWage: offer.player.weeklyWage,
@@ -474,10 +472,6 @@ function focusDetail(focus: ScoutFocus): string {
 
 function regionLabel(region: ScoutRegion): string {
   return readableId(region);
-}
-
-function starRange(minimum: number, maximum: number): string {
-  return minimum === maximum ? `${minimum}★ potential` : `${minimum}-${maximum}★ potential`;
 }
 
 function readableId(value: string): string {

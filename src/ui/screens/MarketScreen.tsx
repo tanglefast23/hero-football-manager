@@ -259,9 +259,6 @@ function YouthDesk({
                   <Text className="text-sm font-bold uppercase text-violet-dark">Academy</Text>
                 </View>
               </View>
-              <Text className="mt-3 font-mono text-sm font-bold uppercase text-ink">
-                {offer.potentialLabel}
-              </Text>
               <View className="mt-3 flex-row gap-2">
                 <Metric label="Signing" value={formatCurrency(offer.signingBonus)} tone="negative" />
                 <Metric label="Weekly wage" value={formatCurrency(offer.weeklyWage)} />
@@ -398,9 +395,6 @@ function ScoutingDesk({
                   <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
                     {report.role} · {report.ageLabel}
                   </Text>
-                </View>
-                <View className="-rotate-2 border-2 border-stamp px-2 py-1">
-                  <Text className="text-sm font-bold uppercase text-stamp">{report.potentialLabel}</Text>
                 </View>
               </View>
               {report.powerLabel ? (

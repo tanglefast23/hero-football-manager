@@ -219,11 +219,11 @@ export function SquadTrainingScreen({
             />
           ) : null}
           <View className="flex-row items-center border-b border-ink/20 px-3">
-            <SquadSortHeader label="Role" sortKey="role" sort={squadSort} widthClass="w-12" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label="Role" sortKey="role" sort={squadSort} widthClass="w-10" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
             <SquadSortHeader label="Player" sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-            <SquadSortHeader label="★" sortKey="overall" sort={squadSort} widthClass="w-10" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-            <SquadSortHeader label="Potential" sortKey="potential" sort={squadSort} widthClass="w-20" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-            <SquadSortHeader label="Cond" sortKey="condition" sort={squadSort} widthClass="w-14" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label="★" sortKey="overall" sort={squadSort} widthClass="w-8" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label="Pot" sortKey="potential" sort={squadSort} widthClass="w-14" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <SquadSortHeader label="Cond" sortKey="condition" sort={squadSort} widthClass="w-12" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
             <Text className="w-12 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Train</Text>
           </View>
           {sortedPlayers.map((player) => {
@@ -256,7 +256,7 @@ export function SquadTrainingScreen({
                   className="min-h-11 flex-1 flex-row items-center"
                   style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
                 >
-                  <Text className={selected ? 'w-12 font-mono text-sm font-bold text-ink' : 'w-12 font-mono text-sm font-bold text-blue-dark'} numberOfLines={1}>{player.role}</Text>
+                  <Text className={selected ? 'w-10 font-mono text-sm font-bold text-ink' : 'w-10 font-mono text-sm font-bold text-blue-dark'} numberOfLines={1}>{player.role}</Text>
                   <View className="flex-1 pr-2">
                     <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
                     {player.injuryWeeks > 0 ? (
@@ -278,9 +278,9 @@ export function SquadTrainingScreen({
                       <Text className="mt-0.5 text-sm font-bold uppercase text-gold-dark" numberOfLines={1}>★ {player.powerName}</Text>
                     ) : null}
                   </View>
-                  <Text className="w-10 text-right font-mono text-base font-bold text-ink" numberOfLines={1}>{player.overall}</Text>
-                  <Text className="w-20 text-right font-mono text-base font-bold text-gold-dark" numberOfLines={1}>{player.potential}★</Text>
-                  <Text className={player.condition < 30 ? 'w-14 text-right font-mono text-base font-bold text-stamp' : 'w-14 text-right font-mono text-base text-ink'} numberOfLines={1}>{player.condition}%</Text>
+                  <Text className="w-8 text-right font-mono text-base font-bold text-ink" numberOfLines={1}>{player.overall}</Text>
+                  <Text className="w-14 pr-1 text-right font-mono text-sm font-bold text-gold-dark" numberOfLines={1}>+{player.remainingPotential}</Text>
+                  <Text className={player.condition < 30 ? 'w-12 text-right font-mono text-sm font-bold text-stamp' : 'w-12 text-right font-mono text-sm text-ink'} numberOfLines={1}>{player.condition}%</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="checkbox"
@@ -288,8 +288,8 @@ export function SquadTrainingScreen({
                   accessibilityState={{ checked: isAssigned }}
                   onPress={() => onTogglePlayerAssignment(player.id)}
                   className={isAssigned
-                    ? 'ml-2 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light'
-                    : 'ml-2 h-11 w-11 items-center justify-center border border-ink/30'}
+                    ? 'ml-1 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light'
+                    : 'ml-1 h-11 w-11 items-center justify-center border border-ink/30'}
                   style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
                 >
                   <Text className={isAssigned ? 'font-mono text-base font-bold text-ink' : 'font-mono text-base text-ink/40'}>{isAssigned ? '✓' : '+'}</Text>
@@ -336,7 +336,7 @@ export function SquadTrainingScreen({
           </View>
           <View className="mt-2 flex-row gap-2">
             <Metric label="Age" value={String(selectedPlayer.age)} />
-            <Metric label="Potential" value={`${selectedPlayer.potential}★`} tone="positive" />
+            <Metric label="Potential" value={`+${selectedPlayer.remainingPotential} pts`} tone="positive" />
             <Metric label="Morale" value={`${selectedPlayer.morale}%`} />
           </View>
           <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/20 pt-3">

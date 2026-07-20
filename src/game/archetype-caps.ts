@@ -1,6 +1,8 @@
 import type { Attrs } from '../sim/types';
 import type { PlayerArchetype } from './types';
 
+const ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const satisfies readonly (keyof Attrs)[];
+
 export const PLAYER_ARCHETYPES = [
   'Speedster',
   'Sniper',
@@ -34,6 +36,18 @@ export function archetypeAttributeCap(
   attribute: keyof Attrs,
 ): number {
   return ARCHETYPE_ATTRIBUTE_CAPS[archetype ?? 'All-Rounder'][attribute];
+}
+
+/** Total attribute points normal training can still add before every cap. */
+export function remainingDevelopmentPotential(
+  archetype: PlayerArchetype | undefined,
+  attrs: Readonly<Attrs>,
+): number {
+  return ATTRIBUTES.reduce((total, attribute) => {
+    const currentValue = attrs[attribute];
+    assertAttributeValue(currentValue, `current ${attribute} attribute`);
+    return total + Math.max(0, archetypeAttributeCap(archetype, attribute) - currentValue);
+  }, 0);
 }
 
 /**

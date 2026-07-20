@@ -19,19 +19,19 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
     case 'keeper-court':
       return 'Level 1 has no training bonus. Level 2+ boosts goalkeeping training.';
     case 'medical-bay':
-      return 'Shortens injuries by one week. Pair it with a Training Pitch for 20% lower injury risk.';
+      return 'Shortens injuries by one week. Its placement can also unlock a safety bonus.';
     case 'dorm':
-      return 'Place next to a Gym for +10% stamina training every week.';
+      return 'Player accommodation built for rest and recovery. Its value comes from the right neighbour.';
     case 'scout-office':
       return 'Narrows player rating estimates. Level 3 confirms reported powers.';
     case 'coaching-office':
       return 'Unlocks the assistant coach position.';
     case 'youth-field':
-      return 'Improves youth ratings and potential. Better prospects cost larger signing bonuses.';
+      return 'Improves the starting ratings of future youth intakes. Better prospects cost larger signing bonuses.';
     case 'fan-shop':
       return 'Earns weekly merchandise income — more per Level.';
     case 'stadium-stand':
-      return 'Place next to a Fan Shop for +10% merchandise income.';
+      return 'Creates a matchday crowd route. Its value comes from the right neighbour.';
     case 'hero-lab':
       return 'Hero research is not available yet.';
   }

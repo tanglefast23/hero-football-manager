@@ -109,8 +109,8 @@ describe('marketViewModel', () => {
       playerName: 'Nico Haze',
       role: 'MID',
       ageLabel: 'Age 22',
-      potentialLabel: expect.stringContaining('potential'),
     });
+    expect(viewModel.scouting.reports[0]).not.toHaveProperty('potentialLabel');
     expect(viewModel.scouting.reports[0].stats).toHaveLength(6);
     expect(JSON.parse(JSON.stringify(viewModel))).toEqual(viewModel);
   });

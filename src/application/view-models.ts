@@ -13,6 +13,7 @@ import {
   isAssistantInboxOneShotProductVisible,
   leagueStandings,
   nextPendingClubLegend,
+  remainingDevelopmentPotential,
   reconcilePendingClubLegends,
   renewalQuote,
   rosterForClub,
@@ -348,9 +349,9 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
   if (type === 'shooting-range') return trainingEffect('SHO');
   if (type === 'keeper-court') return trainingEffect('REF');
   if (type === 'medical-bay') {
-    return `Recovery -${level} week${level === 1 ? '' : 's'} · pair with Training Pitch for -20% injury risk`;
+    return `Recovery -${level} week${level === 1 ? '' : 's'} · adjacency bonus available`;
   }
-  if (type === 'dorm') return 'Pairs with Gym for +10% STA gains';
+  if (type === 'dorm') return 'Rest quarters · adjacency bonus only';
   if (type === 'scout-office') {
     return level === 1
       ? 'Scout intel desk · upgrades narrow stat ranges'
@@ -360,10 +361,10 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
   }
   if (type === 'coaching-office') return 'Unlocks the assistant coach position';
   if (type === 'youth-field') {
-    return `Youth starting strength +${level * 5}${level >= 2 ? ' · higher potential' : ''}`;
+    return `Youth starting strength +${level * 5}`;
   }
   if (type === 'fan-shop') return `Weekly merchandise scales with fans · x${level}`;
-  if (type === 'stadium-stand') return 'Pairs with Fan Shop for +10% merchandise';
+  if (type === 'stadium-stand') return 'Matchday crowd route · adjacency bonus only';
   return 'Hero research site · not yet available';
 }
 
@@ -1055,7 +1056,7 @@ export function squadTrainingViewModel(
       isStarter: starterIds.has(player.id),
       age: player.age ?? 24,
       archetype: player.archetype ?? 'All-Rounder',
-      potential: player.potential ?? 3,
+      remainingPotential: remainingDevelopmentPotential(player.archetype, player.attrs),
       personality: player.personality ?? 'Professional',
       morale: player.morale,
       fame: player.fame ?? 0,

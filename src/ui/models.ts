@@ -269,7 +269,7 @@ export interface SquadPlayerViewModel {
   isStarter: boolean;
   age: number;
   archetype: string;
-  potential: 1 | 2 | 3 | 4 | 5;
+  remainingPotential: number;
   personality: string;
   morale: number;
   fame: number;
