@@ -13,6 +13,7 @@ import {
   beginCareerTransferTalks,
   beginCareerRenewalTalks,
   careerHeroLimit,
+  highestDivisionReached,
   buildCareerMatchTeams,
   buildCareerFacility,
   buildTrainingGround,
@@ -927,7 +928,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         market,
         option.region,
         option.focus,
-        currentCareerDivision(career),
+        highestDivisionReached(career),
       );
       const next = { ...transaction.state, market: transaction.market };
       set({ career: next, error: null });

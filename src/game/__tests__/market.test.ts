@@ -190,6 +190,36 @@ describe('deterministic scouting', () => {
     ).reports.find(report => report.playerId === 'mid-c');
     expect(confirmed?.power).toBe('SUPER_SPEED');
   });
+
+  it('unlocks Elite Prospect searches in D2 and returns only young 4-5 star players', () => {
+    expect(() => startScoutMission({
+      careerSeed: 9,
+      missionId: 'elite-too-early',
+      startWeek: 1,
+      region: 'EUROPE',
+      focus: { kind: 'ELITE_PROSPECT' },
+      scoutOfficeLevel: 2,
+      division: 3,
+    })).toThrow('D2 · National Championship');
+
+    const mission = startScoutMission({
+      careerSeed: 9,
+      missionId: 'elite-search',
+      startWeek: 1,
+      region: 'EUROPE',
+      focus: { kind: 'ELITE_PROSPECT' },
+      scoutOfficeLevel: 2,
+      division: 2,
+    });
+    const result = resolveScoutMission(mission, mission.dueWeek, [
+      marketPlayer('elite-a', { age: 19, potential: 5 }),
+      marketPlayer('elite-b', { age: 23, potential: 4 }),
+      marketPlayer('too-old', { age: 24, potential: 5 }),
+      marketPlayer('too-low', { age: 20, potential: 3 }),
+    ]);
+
+    expect(result.reports.map(report => report.playerId).sort()).toEqual(['elite-a', 'elite-b']);
+  });
 });
 
 describe('transfer rules and valuations', () => {

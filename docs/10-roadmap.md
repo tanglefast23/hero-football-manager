@@ -50,7 +50,7 @@ The second existential question — "does *managing heroes* stay fun across seas
 ## M3 — Heroes at full depth (3 weeks)
 
 - Event system fully data-driven + ~15 events; guaranteed Season-1 second-hero chain.
-- Full 12-power catalog with per-power contexts, Hero Essence + upgrades, license slot growth, pre-powered scouted heroes.
+- Full 12-power catalog with per-power contexts, license slot growth, and pre-powered scouted heroes.
 - Balance harness expanded to the full doc-09 assertion set.
 
 ## M4 — Content & polish (3–4 weeks)
@@ -71,11 +71,11 @@ The second existential question — "does *managing heroes* stay fun across seas
 |---|---|
 | **Match isn't fun to watch** (the existential one) | M0 gate before any management work; Aura/Inazuma precedents say the mechanic works — our job is pacing + readability |
 | Art volume (customization × animation) | Paper-doll layers on chibi frame counts (chosen for exactly this); portraits carry detail, pitch sprites stay simple |
-| Balance sprawl (3 currencies, powers, wages) | Deterministic harness makes tuning measurable; tuning tables live in one content file |
+| Balance sprawl (2 currencies, powers, wages) | Deterministic harness makes tuning measurable; tuning tables live in one content file |
 | Skia perf trap (per-sprite components) | Atlas-first architecture + real-device stress test inside M0 |
 | Solo-dev scope creep | Pillars test every feature; power count hard-capped at 12 for launch; "Explicitly out" list in doc 09 |
 | PC port uncertainty | Deferred by design; sim/game purity guarantees worst case is re-hosting the renderer, not a rewrite |
 
 ## Post-launch candidates (unordered, earn their way in)
 
-Android release · PC/Steam spike · New Game+ (legacy carryover) · power expansion packs (events + powers as content drops) · async friend leagues · Hero Essence sinks (cosmetic power colors) · localization.
+Android release · PC/Steam spike · New Game+ (legacy carryover) · power expansion packs (events + powers as content drops) · async friend leagues · localization.

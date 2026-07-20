@@ -38,7 +38,7 @@ describe('facility adjacency guidance', () => {
   });
 
   it('does not invent clues or labels for facilities without a shipped pairing', () => {
-    expect(facilityAdjacencyClue('hero-lab')).toBeUndefined();
+    expect(facilityAdjacencyClue('scout-office')).toBeUndefined();
     expect(facilityAdjacencyPresentation('future-combo')).toBeUndefined();
     expect(facilityAdjacencyPresentation('toString')).toBeUndefined();
     expect(facilityAdjacencyLabel('future-combo')).toBe('future-combo');

@@ -42,6 +42,8 @@ export interface M2CareerState {
   schemaVersion: number;
   careerSeed: number;
   userClubId: string;
+  /** Best tier ever reached; lower division numbers are stronger tiers. */
+  highestDivisionReached?: DivisionLevel;
   pyramid: LeaguePyramid;
   nationalCups: NationalCup[];
 }
@@ -160,6 +162,7 @@ export function initializeM2Career(input: M2CareerInitialization): M2CareerState
     schemaVersion: M2_CAREER_SCHEMA_VERSION,
     careerSeed: input.careerSeed,
     userClubId: input.userClub.id,
+    highestDivisionReached: 5,
     pyramid: { careerSeed: input.careerSeed, divisions },
     nationalCups: [],
   };
@@ -212,6 +215,10 @@ export function synchronizeM2ActiveDivision(
   });
   return {
     ...state,
+    highestDivisionReached: Math.min(
+      state.highestDivisionReached ?? division,
+      division,
+    ) as DivisionLevel,
     pyramid: {
       ...state.pyramid,
       divisions: state.pyramid.divisions.map(candidate => candidate.level === division

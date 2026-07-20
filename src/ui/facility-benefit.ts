@@ -32,7 +32,5 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
       return 'Earns weekly merchandise income — more per Level.';
     case 'stadium-stand':
       return 'Creates a matchday crowd route. Its value comes from the right neighbour.';
-    case 'hero-lab':
-      return 'Hero research is not available yet.';
   }
 }

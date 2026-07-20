@@ -5,6 +5,7 @@ import {
   isStoryCupGuideUnlocked,
   isStoryFeaturePacingActive,
   isStoryScoutingUnlocked,
+  maxCareerFacilityLevel,
   type AssistantInboxGuideSequenceId,
   type AssistantGuideSequenceId,
   type GameState,
@@ -81,7 +82,11 @@ export function dueAssistantInboxGuideSequences(
   if (buildings.length === 0) {
     due.push('facility-placement');
   } else {
-    if (completed('facility-placement') && buildings.some(building => building.level < 3)) {
+    if (completed('facility-placement')
+      && state.facilities.grid?.construction === undefined
+      && buildings.some(
+        building => building.level < maxCareerFacilityLevel(state),
+      )) {
       due.push('facility-upgrade');
     }
     if ((state.facilities.grid?.discoveredAdjacencies.length ?? 0) > 0) {

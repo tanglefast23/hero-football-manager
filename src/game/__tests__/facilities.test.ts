@@ -49,7 +49,6 @@ describe('facility catalog and grid', () => {
       'youth-field',
       'fan-shop',
       'stadium-stand',
-      'hero-lab',
     ]);
     expect(Object.values(FACILITY_CATALOG).every(entry =>
       entry.buildWeeks >= 1
@@ -57,7 +56,6 @@ describe('facility catalog and grid', () => {
       && entry.upgradeWeeks.length === 2
       && entry.weeklyUpkeep.length === 3,
     )).toBe(true);
-    expect(FACILITY_CATALOG['hero-lab'].available).toBe(false);
   });
 
   test('builds immutably, charges the catalog cost, and generates stable IDs', () => {
@@ -94,8 +92,6 @@ describe('facility catalog and grid', () => {
   test('rejects locked, unaffordable, out-of-bounds, fractional, and overlapping builds', () => {
     const grid = finishConstruction(build(createFacilityGrid(), 'training-pitch', { x: 0, y: 0 }).grid);
 
-    expect(() => buildFacility(grid, 'hero-lab', { x: 3, y: 3 }, 1_000_000))
-      .toThrow(/not unlocked/);
     expect(() => buildFacility(grid, 'gym', { x: 3, y: 3 }, 6_999))
       .toThrow(/not affordable/);
     expect(() => buildFacility(grid, 'youth-field', { x: 7, y: 5 }, 1_000_000))

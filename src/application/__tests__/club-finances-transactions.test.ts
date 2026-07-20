@@ -87,10 +87,16 @@ describe('club finances immediate transaction history', () => {
     const viewModel = clubFinancesViewModel(broke);
     const gymBuilding = viewModel.facilities.buildings.find(building => building.type === 'gym');
     const dormBuilding = viewModel.facilities.buildings.find(building => building.type === 'dorm');
+    const d5Gym = clubFinancesViewModel(gym).facilities.buildings.find(
+      building => building.type === 'gym',
+    );
 
     expect(viewModel.facilities.catalog).toHaveLength(12);
-    expect(viewModel.facilities.catalog.some(entry => entry.type === 'hero-lab')).toBe(false);
     expect(viewModel.facilities.catalog.every(entry => entry.effectLabel.length > 0)).toBe(true);
+    expect(d5Gym).toMatchObject({
+      canUpgrade: false,
+      upgradeBlockedReason: 'Level 2 facilities unlock in D4 · County League.',
+    });
     expect(viewModel.facilities.activeAdjacencies).toEqual(['gym-dorm']);
     expect(gymBuilding).toMatchObject({
       effectLabel: 'Level 1: no PAC + STA bonus · upgrades add +50%/+100%',

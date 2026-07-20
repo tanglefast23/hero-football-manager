@@ -30,11 +30,11 @@ import {
   applyCareerContractPromise,
   clearCareerContractPromise,
 } from './contract-promises';
-import { currentUserDivision } from './m2-career';
 import {
   clearMetBoardUltimatum,
   reconcileBoardUltimatumCandidates,
 } from './board-ultimatum';
+import { highestDivisionReached } from './promotion-progression';
 
 export const DEFAULT_COACH_CONTENT_UNLOCK_IDS = [
   'formation:4-3-3',
@@ -643,7 +643,7 @@ export function hireCareerCoach(
   if (currentCoach?.id === candidate.id) {
     throw new Error(`${candidate.name} already fills that coaching role`);
   }
-  const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+  const division = highestDivisionReached(state);
   const fame = careerClubFame(state, market);
   if (!isCoachCandidateEligible(candidate, division, fame)) {
     throw new Error(`${candidate.name} is not eligible for this club`);

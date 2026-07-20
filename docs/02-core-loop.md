@@ -23,9 +23,16 @@ Session math: a match week ≈ 3–6 minutes (watched) or ~90 seconds (simmed). 
 
 - **D5 · District League → D4 · County League → D3 · Regional League → D2 · National Championship → D1 · Global League**: 10 teams each; top 2 promoted, bottom 2 relegated. Each division up means better sponsors, bigger gates, stronger opponents — and more opposing heroes. Global League clubs begin around 84–92 strength and can rise toward 92–99 across a long career; 100 remains exceptional rather than routine.
 - **National Cup**: all-divisions knockout, entered every season. Giant-killing = big prize + fame spikes.
-- **Continental Hero Cup**: unlocked while in D1 · Global League. Opponents field full hero squads.
-- **World Club Crown**: one-off final vs. the world champion after winning the Hero Cup. Winning it = "you've won the game."
-- **After the Crown**: endless play continues. A score recap (Kairosoft-style) shows after Season 10 regardless of progress; nothing ends.
+- **Career victory**: win D1 · Global League to complete the main climb. Endless play continues afterward, and a score recap (Kairosoft-style) shows after Season 10 regardless of progress; nothing ends.
+
+Promotion rewards are permanent: relegation changes the current opposition, not the club knowledge and infrastructure already earned.
+
+| First reach | Permanent club rewards currently wired |
+|---|---|
+| D4 · County League | Level 2 facilities, expanded international scouting, Level 2 coach access (Fame still required) |
+| D3 · Regional League | Rumored Hero scouting, third Hero License, Level 3 coach access |
+| D2 · National Championship | Level 3 facilities, Elite Prospect scouting, Level 4 coach access |
+| D1 · Global League | Fourth Hero License, Level 5 coach access |
 
 Opposing club strength scales with division and season count (slow, season-level scaling — never instant rubber-banding, and never "you won too big so they get stronger," which research showed players hate).
 

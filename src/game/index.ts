@@ -21,6 +21,7 @@ export * from './onboarding/story-onboarding';
 export * from './post-match-awakening';
 export * from './player-wellbeing';
 export * from './progression';
+export * from './promotion-progression';
 export * from './pyramid';
 export * from './schedule';
 export * from './squad';

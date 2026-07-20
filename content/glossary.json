@@ -97,8 +97,7 @@
         { "term": "Manual power (M)", "definition": "You tap a glowing home hero during the Zone to activate at 100%. A missed window does not auto-fire and leaves half Heat." },
         { "term": "Fire when ready (A)", "definition": "The engine fires at the next useful context at reduced strength. Rival heroes and Quick Result always use automatic timing." },
         { "term": "Wind-up", "definition": "The visible delay before a power starts. Many wind-ups can be interrupted, which returns half the hero's Heat." },
-        { "term": "Hero License", "definition": "A permit allowing a powered player to use their power in the next match. You may own more heroes than the number you can license at once." },
-        { "term": "Hero Essence (HE)", "definition": "The hero-progression currency. It comes from power events, first-time hero feats, and season awards, and is spent on power growth and rare Hero Lab actions." }
+        { "term": "Hero License", "definition": "A permit allowing a powered player to use their power in the next match. You may own more heroes than the number you can license at once." }
       ]
     },
     {

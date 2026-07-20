@@ -95,6 +95,8 @@ export interface MarketViewModelSource {
   readonly week: number;
   readonly currentCareerWeek: number;
   readonly division: DivisionLevel;
+  /** Best division reached; promotion unlocks survive relegation. */
+  readonly highestDivisionReached?: DivisionLevel;
   readonly fame: number;
   readonly cash: number;
   readonly unlockedSections?: readonly MarketSectionId[];
@@ -182,7 +184,11 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
     },
     transfers: source.transferListings.map(listing => transferListing(source, listing, transferWindowOpen)),
     coaches: source.coachCandidates.map(candidate => {
-      const eligible = isCoachCandidateEligible(candidate, source.division, source.fame);
+      const eligible = isCoachCandidateEligible(
+        candidate,
+        source.highestDivisionReached ?? source.division,
+        source.fame,
+      );
       const affordable = source.cash >= candidate.weeklyWage;
       const headCoachId = source.headCoachId ?? source.headCoach?.id;
       const legacySingleHeadSource = source.headCoach !== undefined && source.headCoachId === undefined;
@@ -330,7 +336,9 @@ function scoutingChoice(
   option: ScoutMissionOptionSource,
 ): ScoutMissionChoiceViewModel {
   const cost = scoutMissionCost(option.region, option.focus);
-  const heroLocked = option.focus.kind === 'RUMORED_HERO' && source.division > 3;
+  const progressionDivision = source.highestDivisionReached ?? source.division;
+  const heroLocked = option.focus.kind === 'RUMORED_HERO' && progressionDivision > 3;
+  const eliteLocked = option.focus.kind === 'ELITE_PROSPECT' && progressionDivision > 2;
   const busy = source.activeScoutMission !== undefined;
   const affordable = source.cash >= cost;
   return {
@@ -340,11 +348,13 @@ function scoutingChoice(
     detail: option.detail ?? focusDetail(option.focus),
     cost,
     durationLabel: '2-3 weeks',
-    available: !busy && !heroLocked && affordable,
+    available: !busy && !heroLocked && !eliteLocked && affordable,
     ...(busy
       ? { blockedReason: 'Scout Sent' }
       : heroLocked
         ? { blockedReason: `Rumored heroes unlock in ${divisionTierLabel(3)}.` }
+        : eliteLocked
+          ? { blockedReason: `Elite prospects unlock in ${divisionTierLabel(2)}.` }
         : !affordable
           ? { blockedReason: 'Not enough money.' }
           : {}),
@@ -461,12 +471,14 @@ function outcomeLabel(outcome: ContractNegotiation['history'][number]['outcome']
 function focusLabel(focus: ScoutFocus): string {
   if (focus.kind === 'POSITION') return `${focus.role} search`;
   if (focus.kind === 'AGE') return `Age ${focus.minimumAge}-${focus.maximumAge}`;
+  if (focus.kind === 'ELITE_PROSPECT') return 'Elite prospect';
   return 'Rumored hero';
 }
 
 function focusDetail(focus: ScoutFocus): string {
   if (focus.kind === 'POSITION') return `Look only for players who can fill ${focus.role}.`;
   if (focus.kind === 'AGE') return 'Hunt within a specific point of the age curve.';
+  if (focus.kind === 'ELITE_PROSPECT') return 'Target young players with four- or five-star potential.';
   return 'Expensive and usually wrong—but the rare hit arrives powered.';
 }
 

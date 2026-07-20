@@ -101,6 +101,41 @@ describe('full-career retirement boundary', () => {
   });
 });
 
+describe('promotion reward presentation', () => {
+  it('shows newly earned permanent systems once on the season review', () => {
+    const content = loadLaunchContent();
+    const initial = createCareer(createLaunchCareerSetup(24_682, undefined, content, 'full'));
+    const promoted: GameState = {
+      ...initial,
+      phase: 'season-end',
+      fixtures: initial.fixtures.map(fixture => ({
+        ...fixture,
+        status: 'played' as const,
+        score: fixture.homeClubId === initial.userClubId
+          ? { homeGoals: 3, awayGoals: 0 }
+          : fixture.awayClubId === initial.userClubId
+            ? { homeGoals: 0, awayGoals: 3 }
+            : { homeGoals: 0, awayGoals: 0 },
+      })),
+    };
+
+    expect(seasonEndViewModel(promoted, content, 1).promotionRewards).toMatchObject({
+      divisionLabel: 'D4 · County League',
+      items: [
+        { title: 'Level 2 facilities' },
+        { title: 'International scouting' },
+        { title: 'Level 2 coaches' },
+      ],
+    });
+
+    const previouslyEarned = {
+      ...promoted,
+      m2: { ...promoted.m2!, highestDivisionReached: 4 as const },
+    };
+    expect(seasonEndViewModel(previouslyEarned, content, 1).promotionRewards).toBeUndefined();
+  });
+});
+
 function runTwoSeasonTrainingJourney(): GameState {
   const content = loadLaunchContent();
   const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;

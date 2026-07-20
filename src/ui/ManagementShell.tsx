@@ -151,7 +151,6 @@ export function ManagementShell({
         <ResourceChip glyph="$" name="Money" value={resources.money} />
       </View>
       <ResourceChip glyph="TP" name="Training points" value={resources.trainingPoints} />
-      <ResourceChip glyph="✦" name="Hero essence" value={resources.heroEssence} tone="hero" />
     </View>
   );
 

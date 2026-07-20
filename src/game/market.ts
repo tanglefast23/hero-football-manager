@@ -20,6 +20,7 @@ export type ScoutRegion = 'LOCAL' | 'EUROPE' | 'SOUTH_AMERICA' | 'AFRICA' | 'ASI
 export type ScoutFocus =
   | { kind: 'POSITION'; role: Role }
   | { kind: 'AGE'; minimumAge: number; maximumAge: number }
+  | { kind: 'ELITE_PROSPECT' }
   | { kind: 'RUMORED_HERO' };
 
 export interface ScoutablePlayer {
@@ -97,7 +98,13 @@ export function scoutMissionCost(region: ScoutRegion, focus: ScoutFocus): number
   validateScoutFocus(focus);
   const regionCost = REGION_COST[region];
   if (regionCost === undefined) throw new Error(`unknown scouting region ${String(region)}`);
-  const focusCost = focus.kind === 'RUMORED_HERO' ? 2500 : focus.kind === 'AGE' ? 500 : 0;
+  const focusCost = focus.kind === 'RUMORED_HERO'
+    ? 2500
+    : focus.kind === 'ELITE_PROSPECT'
+      ? 1500
+      : focus.kind === 'AGE'
+        ? 500
+        : 0;
   return Math.min(5000, regionCost + focusCost);
 }
 
@@ -113,6 +120,9 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
   }
   if (setup.focus.kind === 'RUMORED_HERO' && setup.division > 3) {
     throw new Error('rumored hero scouting unlocks in D3 · Regional League');
+  }
+  if (setup.focus.kind === 'ELITE_PROSPECT' && setup.division > 2) {
+    throw new Error('elite prospect scouting unlocks in D2 · National Championship');
   }
 
   const missionSeed = mixSeed(
@@ -795,6 +805,9 @@ function matchesScoutFocus(candidate: ScoutablePlayer, focus: ScoutFocus): boole
   if (focus.kind === 'AGE') {
     return candidate.age >= focus.minimumAge && candidate.age <= focus.maximumAge;
   }
+  if (focus.kind === 'ELITE_PROSPECT') {
+    return candidate.age <= 23 && candidate.potential >= 4;
+  }
   // A rumor mission searches the whole region. It does not manufacture a hero;
   // pre-powered finds remain rare because only real candidates can be reported.
   return true;
@@ -887,7 +900,9 @@ function validateScoutFocus(focus: ScoutFocus): void {
     }
     return;
   }
-  if (focus.kind !== 'RUMORED_HERO') throw new Error('unknown scouting focus');
+  if (focus.kind !== 'RUMORED_HERO' && focus.kind !== 'ELITE_PROSPECT') {
+    throw new Error('unknown scouting focus');
+  }
 }
 
 function scoutFocusKey(focus: ScoutFocus): string {

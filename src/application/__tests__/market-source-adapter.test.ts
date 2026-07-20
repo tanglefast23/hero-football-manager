@@ -10,6 +10,7 @@ import { buildCareerFacility } from '../../game/management';
 import { advanceFacilityConstruction } from '../../game/facilities';
 import {
   beginCareerTransferTalks,
+  hireCareerCoach,
   startCareerScoutMission,
   type CareerMarketState,
 } from '../../game/market-career';
@@ -65,22 +66,39 @@ describe('career market view-model source adapter', () => {
       cash: withOffice.clubs.find(club => club.id === withOffice.userClubId)?.cash,
       scoutOfficeLevel: 1,
     });
-    expect(first.scoutOptions).toHaveLength(4);
+    expect(first.scoutOptions).toHaveLength(2);
     expect(first.youthIntake).toMatchObject({
       status: 'OPEN',
       rosterCapacity: 16,
     });
     expect(first.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
-    expect(new Set(first.scoutOptions.map(option => option.id)).size).toBe(4);
-    expect(new Set(first.scoutOptions.map(option => option.focus.kind))).toEqual(
-      new Set(['AGE', 'POSITION', 'RUMORED_HERO']),
-    );
+    expect(new Set(first.scoutOptions.map(option => option.id)).size).toBe(2);
+    expect(new Set(first.scoutOptions.map(option => option.focus.kind)))
+      .toEqual(new Set(['AGE', 'POSITION']));
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
     expect(marketViewModel(first).youth).toMatchObject({
       status: 'OPEN',
       rosterLabel: '16/16 rostered',
       offers: [expect.objectContaining({ available: false, blockedReason: expect.stringContaining('Roster full') })],
     });
+  });
+
+  it('adds scouting briefs at permanent promotion milestones', () => {
+    const initial = fullCareer(712);
+    const withBestDivision = (division: 1 | 2 | 3 | 4 | 5): GameState => ({
+      ...initial,
+      m2: { ...initial.m2!, highestDivisionReached: division },
+    });
+
+    expect(careerMarketScoutOptions(withBestDivision(5)).map(option => option.focus.kind))
+      .toEqual(['AGE', 'POSITION']);
+    expect(careerMarketScoutOptions(withBestDivision(4)).map(option => option.focus.kind))
+      .toEqual(['AGE', 'POSITION', 'AGE']);
+    expect(careerMarketScoutOptions(withBestDivision(3)).map(option => option.focus.kind))
+      .toEqual(['AGE', 'POSITION', 'AGE', 'RUMORED_HERO']);
+    expect(careerMarketScoutOptions(withBestDivision(2)).map(option => option.focus.kind))
+      .toEqual(['AGE', 'POSITION', 'AGE', 'RUMORED_HERO', 'ELITE_PROSPECT']);
+    expect(careerMarketScoutOptions(withBestDivision(1))).toHaveLength(5);
   });
 
   it('exposes an active mission, its charged cash, and the same deterministic option mapping', () => {
@@ -179,6 +197,25 @@ describe('career market view-model source adapter', () => {
     const source = careerMarketViewModelSource(withCoach);
     expect(source.headCoach).toEqual(headCoach);
     expect(marketViewModel(source).coaches.every(coach => !coach.available)).toBe(true);
+  });
+
+  it('keeps earned coach access after relegation', () => {
+    const initial = fullCareer(1016);
+    const candidate = {
+      ...initial.market!.coachCandidates[0],
+      level: 2 as const,
+      requiredDivision: 4 as const,
+      requiredFame: 0,
+    };
+    const relegated: GameState = {
+      ...initial,
+      m2: { ...initial.m2!, highestDivisionReached: 4 },
+      market: { ...initial.market!, coachCandidates: [candidate] },
+    };
+
+    expect(marketViewModel(careerMarketViewModelSource(relegated)).coaches[0].available).toBe(true);
+    expect(hireCareerCoach(relegated, relegated.market!, candidate.id).headCoach?.id)
+      .toBe(candidate.id);
   });
 
   it('requires an initialized market and rejects stale reports instead of inventing players', () => {

@@ -62,6 +62,37 @@ export function SeasonEndScreen({
           </View>
         </View>
 
+        {viewModel.promotionRewards ? (
+          <View className="mt-6">
+            <SectionLabel eyebrow="Promotion rewards" title="New doors are open" />
+            <PaperPanel
+              kicker="Permanent club progress"
+              title={viewModel.promotionRewards.divisionLabel}
+              stamp={`${viewModel.promotionRewards.items.length} unlocked`}
+              className="bg-gold-light"
+            >
+              <Text className="text-sm leading-5 text-ink/60">
+                These rewards stay unlocked even if the club is relegated later.
+              </Text>
+              <View className="mt-3 gap-2">
+                {viewModel.promotionRewards.items.map((reward, index) => (
+                  <View key={reward.title} className="border-2 border-ink bg-white p-3">
+                    <View className="flex-row items-start gap-3">
+                      <View className="h-7 w-7 items-center justify-center border-2 border-ink bg-gold">
+                        <Text className="font-mono text-sm font-bold text-ink">{index + 1}</Text>
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-base font-bold uppercase text-ink">{reward.title}</Text>
+                        <Text className="mt-1 text-sm leading-5 text-ink/60">{reward.detail}</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </PaperPanel>
+          </View>
+        ) : null}
+
         <View className="mt-6">
           <SectionLabel eyebrow="Final whistle" title="League table" />
           <View className="border-2 border-ink/20 bg-white">

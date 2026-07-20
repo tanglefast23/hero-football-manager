@@ -44,6 +44,11 @@ import type {
   WeeklyReviewViewModel,
 } from '../ui';
 import { divisionTierLabel } from '../game/pyramid';
+import {
+  facilityUpgradeBlockedReason,
+  highestDivisionReached,
+  promotionRewardsForDivision,
+} from '../game/promotion-progression';
 import { marketNegotiationViewModel } from './market-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
 import { dueAssistantInboxGuideSequences } from './assistant-guide';
@@ -185,7 +190,6 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     resources: {
       money: club.cash,
       trainingPoints: state.trainingPoints,
-      heroEssence: state.heroEssence,
     },
     ledger: displayLines.map((line, index) => ({
       id: `finance-${state.season}-${state.week}-${index}`,
@@ -263,6 +267,9 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
       const nextLevelEffectLabel = building.level < 3
         ? facilityNextLevelEffectLabel(building.type, (building.level + 1) as FacilityLevel)
         : undefined;
+      const upgradeBlockedReason = building.level < 3
+        ? facilityUpgradeBlockedReason(state, (building.level + 1) as FacilityLevel)
+        : undefined;
       return {
         id: building.id,
         type: building.type,
@@ -276,8 +283,10 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
         effectLabel: facilityEffectLabel(building.type, building.level),
         ...(upgradeCost === undefined ? {} : { upgradeCost }),
         ...(nextLevelEffectLabel === undefined ? {} : { nextLevelEffectLabel }),
+        ...(upgradeBlockedReason === undefined ? {} : { upgradeBlockedReason }),
         canUpgrade: grid.construction === undefined
           && upgradeCost !== undefined
+          && upgradeBlockedReason === undefined
           && club.cash >= upgradeCost,
         upgradeShortfall: upgradeCost === undefined ? 0 : Math.max(0, upgradeCost - club.cash),
         relocationFee: definition.relocationFee,
@@ -365,7 +374,7 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
   }
   if (type === 'fan-shop') return `Weekly merchandise scales with fans · x${level}`;
   if (type === 'stadium-stand') return 'Matchday crowd route · adjacency bonus only';
-  return 'Hero research site · not yet available';
+  throw new Error(`missing facility effect copy for ${type}`);
 }
 
 function facilityNextLevelEffectLabel(
@@ -374,8 +383,7 @@ function facilityNextLevelEffectLabel(
 ): string | undefined {
   if (type === 'dorm'
     || type === 'coaching-office'
-    || type === 'stadium-stand'
-    || type === 'hero-lab') {
+    || type === 'stadium-stand') {
     return undefined;
   }
   return facilityEffectLabel(type, nextLevel);
@@ -492,6 +500,13 @@ export function seasonEndViewModel(
   const prizeMoney = state.ledgers[state.ledgers.length - 1]?.lines
     .filter(line => line.kind === 'prize')
     .reduce((sum, line) => sum + line.amount, 0) ?? 0;
+  const promotedDivision = outcomeLabel === 'PROMOTED'
+    ? (division - 1) as 1 | 2 | 3 | 4
+    : undefined;
+  const newlyUnlockedRewards = promotedDivision !== undefined
+    && promotedDivision < highestDivisionReached(state)
+    ? promotionRewardsForDivision(promotedDivision)
+    : [];
 
   return {
     seasonLabel: state.careerMode === 'full'
@@ -526,6 +541,14 @@ export function seasonEndViewModel(
       isUserClub: row.clubId === state.userClubId,
       promoted: row.position <= 2 && (state.careerMode !== 'full' || division > 1),
     })),
+    ...(promotedDivision === undefined || newlyUnlockedRewards.length === 0
+      ? {}
+      : {
+          promotionRewards: {
+            divisionLabel: divisionTierLabel(promotedDivision),
+            items: newlyUnlockedRewards.map(reward => ({ ...reward })),
+          },
+        }),
     ...(expiredPlayer ? {
       expiredContract: {
         playerId: expiredPlayer.id,
@@ -819,7 +842,6 @@ export function homeViewModel(state: GameState): HomeViewModel {
     resources: {
       money: userClub.cash,
       trainingPoints: state.trainingPoints,
-      heroEssence: state.heroEssence,
     },
     nextFixture: nextFixture === undefined
       ? {
@@ -1043,7 +1065,6 @@ export function squadTrainingViewModel(
     resources: {
       money: club.cash,
       trainingPoints: state.trainingPoints,
-      heroEssence: state.heroEssence,
     },
     players: orderedRoster.map(player => ({
       id: player.id,
@@ -1246,7 +1267,6 @@ export function postMatchViewModel(
     netAmount: (ledger?.lines ?? []).reduce((sum, line) => sum + line.amount, 0),
     trainingPointsGained: after.trainingPoints - before.trainingPoints,
     fanDelta: requireUserClub(after).fans - requireUserClub(before).fans,
-    heroEssenceGained: after.heroEssence - before.heroEssence,
     highlights,
     development: playerDevelopmentViewModel(before, after),
     updates: weekUpdates(before, after),

@@ -16,6 +16,7 @@ import {
 import { isClubLegend, type DivisionLevel, type PyramidClub, type PyramidPlayer } from './pyramid';
 import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
+import { highestDivisionReached, recordHighestDivisionReached } from './promotion-progression';
 import type {
   CareerPlayer,
   ClubLineupState,
@@ -30,6 +31,7 @@ export function enableFullCareer(state: GameState): GameState {
   if (state.careerMode === 'full' && state.m2 !== undefined && state.market !== undefined) {
     const reconciled = {
       ...state,
+      m2: recordHighestDivisionReached(state.m2),
       ...(state.phase === 'complete' ? { phase: 'season-end' as const } : {}),
       cashTransactions: state.cashTransactions ?? [],
       financialSafety: state.financialSafety ?? {
@@ -163,11 +165,11 @@ export function startNextFullCareerSeason(
   const withMarket: GameState = {
     ...next,
     market: state.market === undefined
-      ? createCareerMarketState(next, transition.division, clubFame(next))
+      ? createCareerMarketState(next, highestDivisionReached(next), clubFame(next))
       : refreshCareerMarketForNewSeason(
           next,
           state.market,
-          transition.division,
+          highestDivisionReached(next),
           clubFame(next),
         ),
   };
@@ -238,7 +240,7 @@ function opponentCareerPlayer(
     injuryWeeks: 0,
     age: player.age,
     archetype: player.archetype,
-    potential: 3,
+    potential: opponentPotential(player.id, player.age),
     consistency: 70,
     personality: player.personality,
     condition: player.condition,
@@ -249,6 +251,15 @@ function opponentCareerPlayer(
     consecutiveLowMoraleWeeks: player.consecutiveLowMoraleWeeks,
     signingStatTotal: Object.values(player.attrs).reduce((sum, value) => sum + value, 0),
   };
+}
+
+function opponentPotential(playerId: string, age: number): 3 | 4 | 5 {
+  if (age > 23) return 3;
+  let value = 2166136261;
+  for (let index = 0; index < playerId.length; index += 1) {
+    value = Math.imul(value ^ playerId.charCodeAt(index), 16777619) >>> 0;
+  }
+  return (3 + (value % 3)) as 3 | 4 | 5;
 }
 
 function startingEleven(players: readonly CareerPlayer[]): string[] {

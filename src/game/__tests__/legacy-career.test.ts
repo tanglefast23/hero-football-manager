@@ -74,7 +74,6 @@ function state(overrides: Partial<GameState> = {}): GameState {
     resolvedEventIds: [],
     awakening: { matchesSinceLastAwakening: 0, usedTriggerIds: [] },
     trainingPoints: 0,
-    heroEssence: 0,
     ledgers: [],
     market: market(),
     retiredPlayers: [legend],
