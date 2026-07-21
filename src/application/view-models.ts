@@ -55,7 +55,10 @@ import {
 } from '../game/promotion-progression';
 import { marketNegotiationViewModel } from './market-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
-import { dueAssistantInboxGuideSequences } from './assistant-guide';
+import {
+  dueAssistantInboxGuideSequences,
+  reconcileSatisfiedAssistantGuideSequences,
+} from './assistant-guide';
 import { eventChoiceUnavailableReason } from './event-selection';
 
 const REVIEW_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
@@ -754,6 +757,7 @@ export function reconcileHomeAssistantInbox(state: GameState): GameState {
 }
 
 function homeAssistantInboxPlan(state: GameState) {
+  state = reconcileSatisfiedAssistantGuideSequences(state);
   const productAlerts = homeProductAlerts(state);
   const dueGuides = dueAssistantInboxGuideSequences(state);
   return scheduleAssistantInboxWeek(state, {
@@ -819,9 +823,10 @@ export function homeViewModel(state: GameState): HomeViewModel {
       state,
       `board-resolution:${latestBoardResolution.id}`,
     );
-  const productAlerts = homeProductAlerts(state);
-  const dueGuides = dueAssistantInboxGuideSequences(state);
-  const inboxPlan = scheduleAssistantInboxWeek(state, {
+  const assistantState = reconcileSatisfiedAssistantGuideSequences(state);
+  const productAlerts = homeProductAlerts(assistantState);
+  const dueGuides = dueAssistantInboxGuideSequences(assistantState);
+  const inboxPlan = scheduleAssistantInboxWeek(assistantState, {
     dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
     productAlerts: productAlerts.map(alert => ({
       id: alert.id,
@@ -922,7 +927,9 @@ export function homeViewModel(state: GameState): HomeViewModel {
     weekLabel: `Week ${state.week} / 30`,
     nextMatchTimingLabel: nextFixture === undefined
       ? state.phase === 'complete' ? 'Complete' : 'Season end'
-      : `In ${nextFixture.week} week${nextFixture.week === 1 ? '' : 's'}`,
+      : nextFixture.week <= state.week
+        ? 'This week'
+        : `In ${weekCountLabel(nextFixture.week - state.week).toLowerCase()}`,
     form: recentForm(state),
     resources: {
       money: userClub.cash,

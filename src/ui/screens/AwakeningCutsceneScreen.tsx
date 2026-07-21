@@ -359,22 +359,10 @@ export function AwakeningCutsceneScreen({
           {beat === 3 ? (
             <View style={styles.heroFooter}>
               <Text style={styles.license}>{viewModel.licenseLabel}</Text>
+              <Text style={styles.continueInline}>{viewModel.continueLabel} ›</Text>
             </View>
           ) : null}
         </Pressable>
-
-        {beat === 3 && advanceReady ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Continue after the hero awakening"
-            onPress={onContinue}
-            style={({ pressed }) => [styles.continueButton, pressed ? styles.pressed : null]}
-          >
-            <Text style={styles.continueText}>
-              {viewModel.continueLabel}
-            </Text>
-          </Pressable>
-        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -539,18 +527,5 @@ const styles = StyleSheet.create({
   heroCopy: { color: '#241f2e' },
   heroFooter: { marginTop: 14, paddingTop: 12, borderTopWidth: 2, borderTopColor: '#241f2e55', flexDirection: 'row', justifyContent: 'space-between' },
   license: { color: '#241f2e', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  continueButton: {
-    marginHorizontal: 14,
-    marginTop: 'auto',
-    marginBottom: 14,
-    minHeight: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#edb54a',
-    borderWidth: 3,
-    borderColor: '#f7d894',
-    borderBottomWidth: 7,
-  },
-  pressed: { opacity: 0.72, transform: [{ translateY: 2 }] },
-  continueText: { color: '#241f2e', fontSize: 15, fontWeight: '900', letterSpacing: 1.1 },
+  continueInline: { color: '#241f2e', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
 });

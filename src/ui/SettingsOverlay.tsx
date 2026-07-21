@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Modal, PanResponder, ScrollView, Text, View } from 'react-native';
 import { ActionButton } from './components/Scorecard';
 import { SfxPressable as Pressable } from './components/SfxPressable';
@@ -6,6 +6,7 @@ import { adjustDevVolume, DEV_VOLUME_LEVELS, devVolumePercent, type DevVolume } 
 import type { CutInMode, HudSide, TextScale } from '../persistence';
 import type { GlossaryCatalog } from '../content';
 import { GlossaryPanel } from './GlossaryPanel';
+import { volumeThumbLeft } from './volume-slider-thumb';
 
 /** Snap a raw 0–1 gesture position to the nearest supported volume level. */
 function snapVolume(raw: number): DevVolume {
@@ -20,6 +21,7 @@ function snapVolume(raw: number): DevVolume {
 /** A chunky pixel volume slider — track + violet fill + thumb, draggable via PanResponder. */
 function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: DevVolume) => void }) {
   const widthRef = useRef(0);
+  const [trackWidth, setTrackWidth] = useState(0);
   const responder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -58,6 +60,7 @@ function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: Dev
         {...responder.panHandlers}
         onLayout={e => {
           widthRef.current = e.nativeEvent.layout.width;
+          setTrackWidth(e.nativeEvent.layout.width);
         }}
         className="h-12 justify-center"
       >
@@ -66,8 +69,8 @@ function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: Dev
         </View>
         <View
           pointerEvents="none"
-          className="absolute top-2.5 -ml-4 h-7 w-7 rounded-full border-2 border-b-4 border-ink bg-violet-light"
-          style={{ left: pct }}
+          className="absolute top-2.5 h-7 w-7 rounded-full border-2 border-b-4 border-ink bg-violet-light"
+          style={{ left: volumeThumbLeft(trackWidth, value) }}
         />
       </View>
       <View className="mt-2 flex-row justify-between">

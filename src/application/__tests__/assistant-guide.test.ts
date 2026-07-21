@@ -12,6 +12,7 @@ import {
   currentAssistantObjective,
   dueAssistantInboxGuideSequences,
   pendingAssistantGuideSequence,
+  reconcileSatisfiedAssistantGuideSequences,
 } from '../assistant-guide';
 
 describe('assistant guide application flow', () => {
@@ -106,6 +107,24 @@ describe('assistant guide application flow', () => {
       text: 'INBOX CLEAR. ADVANCE WEEK.',
       target: 'advance-week',
     });
+  });
+
+  test('retires queued coach help once the hiring objective is already complete', () => {
+    let state = createCareer(createLaunchCareerSetup(937, undefined, undefined, 'full'));
+    state = completeAssistantGuideSequence(state, 'head-coach-market');
+    state = {
+      ...state,
+      eventFlags: [
+        ...state.eventFlags,
+        'guide:bert:inbox:queued:head-coach-hire',
+      ],
+      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+    };
+
+    const reconciled = reconcileSatisfiedAssistantGuideSequences(state);
+
+    expect(dueAssistantInboxGuideSequences(reconciled)).not.toContain('head-coach-hire');
+    expect(reconciled.eventFlags).toContain('guide:bert:sequence-complete:head-coach-hire');
   });
 
   test('waits for D4 before teaching the first facility upgrade', () => {

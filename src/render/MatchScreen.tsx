@@ -1490,7 +1490,7 @@ const styles = StyleSheet.create({
   powerCutInCopy: { minWidth: 0, flex: 1, paddingLeft: 12 },
   powerCutInPlayer: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' },
   powerCutInName: { marginTop: 6, fontSize: 34, lineHeight: 38, fontWeight: '900', textTransform: 'uppercase' },
-  powerCutInHint: { marginTop: 12, color: '#bcb7c4', fontSize: 10, fontWeight: 'bold', letterSpacing: 2 },
+  powerCutInHint: { marginTop: 12, color: '#c9c5d0', fontSize: 10, fontWeight: 'bold', letterSpacing: 2 },
   carrierCard: {
     position: 'absolute',
     zIndex: 4,

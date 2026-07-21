@@ -46,7 +46,7 @@ describe('management UI truthfulness view models', () => {
       .toBe(true);
   });
 
-  it('spells out the next match week on the home desk', () => {
+  it('shows how far away the next match is on the home desk', () => {
     const career = createCareer(createLaunchCareerSetup(924));
     const firstFixture = career.fixtures.find(fixture =>
       fixture.season === 1 &&
@@ -67,6 +67,11 @@ describe('management UI truthfulness view models', () => {
         : fixture),
     };
 
-    expect(homeViewModel(afterOpeningMatch).nextMatchTimingLabel).toBe('In 6 weeks');
+    expect(homeViewModel(afterOpeningMatch).nextMatchTimingLabel).toBe('In 1 week');
+    expect(homeViewModel({
+      ...career,
+      week: firstFixture.week,
+      phase: 'matchday',
+    }).nextMatchTimingLabel).toBe('This week');
   });
 });

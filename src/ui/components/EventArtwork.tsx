@@ -1,5 +1,6 @@
 import type { ImageSourcePropType } from 'react-native';
 import { ImageBackground, Text, View } from 'react-native';
+import { eventSuccessMotif, type EventSuccessPalette } from '../event-success-art';
 
 export type EventArtCategory = 'mystery' | 'club' | 'media' | 'sponsor' | 'player' | 'medical' | 'fan';
 
@@ -13,7 +14,14 @@ const CATEGORY_ART: Record<EventArtCategory, ImageSourcePropType> = {
   fan: require('../../../assets/art/events/event-category-fan.jpg'),
 };
 
-const SPIDER_SUCCESS = require('../../../assets/art/events/event-giant-spider-success.jpg') as ImageSourcePropType;
+/**
+ * Painted risky-success artwork, keyed by the event's `<art>-success` key.
+ * Metro needs literal `require` paths. The remaining events use their authored
+ * comic composition from `event-success-art.ts` over the category painting.
+ */
+const SUCCESS_ART: Record<string, ImageSourcePropType> = {
+  'event-giant-spider-success': require('../../../assets/art/events/event-giant-spider-success.jpg'),
+};
 
 interface EventArtworkProps {
   artKey: string;
@@ -31,10 +39,10 @@ export function EventArtwork({
   className,
   children,
 }: EventArtworkProps) {
-  const source = success && artKey === 'event-giant-spider-success'
-    ? SPIDER_SUCCESS
-    : CATEGORY_ART[category];
+  const source = (success ? SUCCESS_ART[artKey] : undefined) ?? CATEGORY_ART[category];
   const motif = eventMotif(artKey);
+  const successMotif = success ? eventSuccessMotif(artKey) : undefined;
+  const palette = successMotif === undefined ? undefined : successPalette(successMotif.palette);
 
   return (
     <ImageBackground
@@ -46,18 +54,52 @@ export function EventArtwork({
       <View className="absolute inset-0 bg-ink/20" />
       <View
         pointerEvents="none"
-        className="absolute h-24 w-24 rounded-full border-4 border-gold/70"
-        style={{ left: `${motif.left}%`, top: `${motif.top}%`, transform: [{ rotate: `${motif.rotation}deg` }] }}
+        className={successMotif === undefined
+          ? 'absolute h-24 w-24 rounded-full border-4 border-gold/70'
+          : 'absolute h-36 w-36 border-4'}
+        style={{
+          left: `${motif.left}%`,
+          top: `${motif.top}%`,
+          transform: [{ rotate: `${motif.rotation}deg` }],
+          ...(palette === undefined ? {} : {
+            backgroundColor: palette.dark,
+            borderColor: palette.light,
+          }),
+        }}
       >
-        <View className="absolute left-1/2 top-0 h-full w-1 bg-gold/50" />
-        <View className="absolute left-0 top-1/2 h-1 w-full bg-gold/50" />
-        <View className="absolute inset-0 items-center justify-center">
-          <Text className="font-mono text-2xl font-bold text-paper">{eventGlyph(artKey)}</Text>
+        <View
+          className="absolute left-1/2 top-0 h-full w-1"
+          style={palette === undefined ? { backgroundColor: '#edb54a88' } : { backgroundColor: palette.base }}
+        />
+        <View
+          className="absolute left-0 top-1/2 h-1 w-full"
+          style={palette === undefined ? { backgroundColor: '#edb54a88' } : { backgroundColor: palette.base }}
+        />
+        <View className="absolute inset-0 items-center justify-center px-2">
+          <Text className={successMotif === undefined
+            ? 'font-mono text-2xl font-bold text-paper'
+            : 'font-mono text-3xl font-bold text-paper'}>
+            {successMotif?.symbol ?? eventGlyph(artKey)}
+          </Text>
+          {successMotif === undefined ? null : (
+            <Text className="mt-2 text-center font-mono text-xs font-bold uppercase text-paper">
+              {successMotif.caption}
+            </Text>
+          )}
         </View>
       </View>
       {children}
     </ImageBackground>
   );
+}
+
+function successPalette(palette: EventSuccessPalette): { dark: string; base: string; light: string } {
+  if (palette === 'red') return { dark: '#a83440', base: '#d94f52', light: '#f2938c' };
+  if (palette === 'blue') return { dark: '#3f6fb5', base: '#5a8fd6', light: '#a3c8f0' };
+  if (palette === 'gold') return { dark: '#c8862a', base: '#edb54a', light: '#f7d894' };
+  if (palette === 'pitch') return { dark: '#3f8a4a', base: '#5cb85c', light: '#8fd98f' };
+  if (palette === 'grey') return { dark: '#6b6675', base: '#9a95a4', light: '#c9c5d0' };
+  return { dark: '#5b3a91', base: '#9a63d6', light: '#c9a6ec' };
 }
 
 function eventGlyph(key: string): string {

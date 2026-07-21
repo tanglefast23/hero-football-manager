@@ -2,6 +2,7 @@ import {
   hasAssistantGuideSequenceCompleted,
   hasAssistantGuideMilestone,
   careerRosterCapacity,
+  completeAssistantGuideSequence,
   isStoryCupGuideUnlocked,
   isStoryFeaturePacingActive,
   isStoryScoutingUnlocked,
@@ -138,6 +139,28 @@ export function dueAssistantInboxGuideSequences(
   }
 
   return due.filter(sequenceId => !completed(sequenceId));
+}
+
+/**
+ * Removes coach tutorials whose objective was already completed directly.
+ * This also heals saves where the follow-up was queued between opening the
+ * market and signing the coach, so Bert never asks for a hire that exists.
+ */
+export function reconcileSatisfiedAssistantGuideSequences(state: GameState): GameState {
+  let next = state;
+  if (state.market?.headCoach !== undefined) {
+    next = completeAssistantGuideSequence(next, 'head-coach-market');
+    next = completeAssistantGuideSequence(next, 'head-coach-hire');
+  }
+
+  const hasCoachingOffice = state.facilities.grid?.buildings.some(
+    building => building.type === 'coaching-office',
+  ) ?? false;
+  if (hasCoachingOffice) next = completeAssistantGuideSequence(next, 'coaching-office');
+  if (state.market?.assistantCoach !== undefined) {
+    next = completeAssistantGuideSequence(next, 'assistant-coach-hire');
+  }
+  return next;
 }
 
 export function currentAssistantObjective(
