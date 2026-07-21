@@ -183,6 +183,26 @@ export function reconcileLaunchRoster(
     ...state.players.map(player => {
       const current = launchById.get(player.id);
       const legacyWage = legacyReserveWages.get(player.id);
+      const correctsLaunchPotential = (
+        state.season === 1
+        && current !== undefined
+        && (
+          player.potential !== current.potential
+          || player.potentialCeiling !== current.potentialCeiling
+        )
+      );
+      const potentialPatch = correctsLaunchPotential && current !== undefined
+        ? {
+            potential: current.potential,
+            potentialCeiling: current.potentialCeiling,
+          }
+        : {};
+      if (correctsLaunchPotential) {
+        // Correct launch-player potential saved before the D5 curve was
+        // restricted to E/F grades. Non-launch players (including the hired
+        // main player) are absent from launchById and remain untouched.
+        changed = true;
+      }
       if (
         needsLegacyRosterExpansion &&
         current !== undefined &&
@@ -192,7 +212,7 @@ export function reconcileLaunchRoster(
         !player.onHeroWage
       ) {
         changed = true;
-        return { ...player, weeklyWage: current.weeklyWage };
+        return { ...player, ...potentialPatch, weeklyWage: current.weeklyWage };
       }
       if (
         state.season === 1
@@ -207,13 +227,14 @@ export function reconcileLaunchRoster(
         changed = true;
         return {
           ...player,
+          ...potentialPatch,
           contractSeasonsRemaining: Math.max(
             1,
             current.contractSeasonsRemaining - (state.phase === 'season-end' ? 1 : 0),
           ),
         };
       }
-      return player;
+      return correctsLaunchPotential ? { ...player, ...potentialPatch } : player;
     }),
     ...missing.map(player => ({ ...player, attrs: { ...player.attrs } })),
   ];

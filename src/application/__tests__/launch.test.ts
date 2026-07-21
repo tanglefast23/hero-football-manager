@@ -1,5 +1,12 @@
 import { loadLaunchContent } from '../../content';
-import { buildCareerTeams, createCareer } from '../../game';
+import {
+  addCreatedPlayer,
+  beginStoryOnboarding,
+  buildCareerTeams,
+  createCareer,
+  potentialGradeForOverall,
+  projectedPlayerOverall,
+} from '../../game';
 import { runHeadlessFullCareer } from '../../game/headless';
 import { serializeGameState } from '../../persistence/game-state-codec';
 import { playerLookId } from '../../render/sprites/player-look';
@@ -47,6 +54,46 @@ describe('launch career adapter', () => {
     const expected = bramble.players.reduce((sum, player) => sum + player.weeklyWage, 0);
 
     expect(setup.clubs.find(club => club.id === DEFAULT_USER_CLUB_ID)?.weeklyWages).toBe(expected);
+  });
+
+  it('starts the Division 5 user squad with only E and F potential grades', () => {
+    const career = createCareer(createLaunchCareerSetup(20260718, undefined, undefined, 'full'));
+    const grades = career.players
+      .filter(player => player.clubId === career.userClubId)
+      .map(player => potentialGradeForOverall(projectedPlayerOverall(player)));
+
+    expect(grades).toHaveLength(16);
+    expect(grades.every(grade => grade.startsWith('E') || grade.startsWith('F'))).toBe(true);
+  });
+
+  it('repairs old Division 5 launch-player potential without changing the hired main player', () => {
+    const content = loadLaunchContent();
+    const initial = beginStoryOnboarding(createCareer(createLaunchCareerSetup(
+      20260718,
+      DEFAULT_USER_CLUB_ID,
+      content,
+      'full',
+    )));
+    const withHero = addCreatedPlayer(initial, {
+      name: 'Jo Rook',
+      ratings: { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50 },
+    });
+    const heroBefore = withHero.players.find(player => player.id === withHero.onboarding?.createdPlayerId)!;
+    const stale = {
+      ...withHero,
+      players: withHero.players.map(player => player.id === 'bramble-rovers-p08'
+        ? { ...player, potential: 4 as const, potentialCeiling: 93 }
+        : player),
+    };
+
+    const repaired = reconcileLaunchRoster(stale, content, true);
+    const ordinaryPlayer = repaired.players.find(player => player.id === 'bramble-rovers-p08')!;
+    const heroAfter = repaired.players.find(player => player.id === heroBefore.id)!;
+
+    expect(ordinaryPlayer.potential).toBe(1);
+    expect(potentialGradeForOverall(projectedPlayerOverall(ordinaryPlayer))).toMatch(/^[EF]/);
+    expect(heroAfter.potential).toBe(heroBefore.potential);
+    expect(heroAfter.potentialCeiling).toBe(heroBefore.potentialCeiling);
   });
 
   it('generates distinct valid seeds even within one clock millisecond', () => {

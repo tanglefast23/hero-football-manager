@@ -171,7 +171,10 @@ export function potentialTierForDivision(
     2: [35, 80, 98, 100],
     3: [15, 50, 85, 98],
     4: [5, 25, 60, 90],
-    5: [1, 8, 30, 65],
+    // Division 5 is the starting amateur pool: ordinary players stay in the
+    // 46–57 ceiling band (F through E−). The hired story player remains the
+    // deliberate high-potential exception, and A-range prospects begin in D4.
+    5: [0, 0, 0, 0],
   };
   const [tier5, tier4, tier3, tier2] = thresholds[division];
   if (roll < tier5) return 5;

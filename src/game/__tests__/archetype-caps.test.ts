@@ -118,6 +118,16 @@ describe('archetype training caps', () => {
     expect(averages[3]).toBeGreaterThan(averages[4]);
   });
 
+  test('Division 5 contains only F and E potential while A potential first appears in Division 4', () => {
+    const divisionFiveTiers = Array.from(
+      { length: 100 },
+      (_, roll) => potentialTierForDivision(5, roll),
+    );
+
+    expect(new Set(divisionFiveTiers)).toEqual(new Set([1]));
+    expect(potentialTierForDivision(4, 0)).toBe(5);
+  });
+
   test('personal caps preserve archetype shape while landing on the fixed projected overall', () => {
     const attrs: Attrs = { pac: 30, sho: 30, pas: 30, def: 30, tec: 30, sta: 30, ref: 30 };
     const player = {
