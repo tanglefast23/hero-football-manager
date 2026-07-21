@@ -44,10 +44,11 @@ describe('validated M1 launch content', () => {
 
     expect(new Set(clubIds).size).toBe(clubIds.length);
     expect(new Set(playerIds).size).toBe(playerIds.length);
-    expect(content.powers.powers).toHaveLength(12);
+    // Magnet Touch was cut at M4; the schema now allows 11-12 so a twelfth
+    // can be chosen later without another save migration.
+    expect(content.powers.powers).toHaveLength(11);
     expect(content.powers.powers.filter(power => power.requiresTarget).map(power => power.id)).toEqual([
       'PORTAL_PASS',
-      'MAGNET_TOUCH',
       'DECOY_DOUBLE',
       'FUTURE_SIGHT',
       'SUPER_STRENGTH',
@@ -216,7 +217,6 @@ describe('validated M1 launch content', () => {
       'ELASTIC_KEEPER',
       'FIRE_TORCH',
       'FUTURE_SIGHT',
-      'MAGNET_TOUCH',
       'PHASE_RUN',
       'PORTAL_PASS',
       'SUPER_SPEED',

@@ -1457,6 +1457,7 @@ export function parseStoredGameState(serialized: string): GameState {
   }
 
   value = removeRetiredHeroSystems(value);
+  value = migrateRetiredPowers(value);
   assertSupportedSchema(value, true);
   let validation: z.ZodSafeParseResult<unknown>;
   try {
@@ -1486,6 +1487,34 @@ export function parseStoredGameState(serialized: string): GameState {
  * playable source or action. Strip their inert schema-v1 data so development
  * saves made before the removal remain loadable.
  */
+/**
+ * Magnet Touch was cut from the launch catalog: its trigger is a loose ball
+ * near the hero, which almost never coincided with the Zone window, so it
+ * measured 3.4 Zones and 0 fires per match. The id stays legal in this codec so
+ * a save written before the cut still loads — retiring content out from under a
+ * persisted reference is how you brick a career. Affected heroes inherit Portal
+ * Pass, the nearest surviving utility power.
+ */
+const RETIRED_POWER_REPLACEMENT: Readonly<Record<string, string>> = {
+  MAGNET_TOUCH: 'PORTAL_PASS',
+};
+
+function migrateRetiredPowers(value: unknown): unknown {
+  const walk = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(walk);
+    if (!isRecord(node)) return node;
+    const next: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(node)) {
+      const replacement = typeof child === 'string' ? RETIRED_POWER_REPLACEMENT[child] : undefined;
+      next[key] = replacement !== undefined && (key === 'power' || key === 'awakenedPower')
+        ? replacement
+        : walk(child);
+    }
+    return next;
+  };
+  return walk(value);
+}
+
 function removeRetiredHeroSystems(value: unknown): unknown {
   if (!isRecord(value)) return value;
 

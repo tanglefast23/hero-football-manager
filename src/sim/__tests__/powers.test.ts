@@ -50,18 +50,22 @@ describe('hero gauge and firing', () => {
   });
 
   it('lets an auto target power fire late on a usable target instead of lapsing', () => {
-    // Magnet Touch earned the most Zones of any power in the M4 gate (4.13/match)
-    // and converted none: its ideal context is a loose ball within 1800, which
-    // never coincided with the 70-tick window. Late in the window it should take
-    // a reachable-but-not-ideal ball rather than waste the Zone entirely.
+    // Target-requiring powers used to be excluded from the late-window fallback
+    // outright, so a Zone they could not perfectly convert was simply wasted
+    // (M4 gate: seven of twelve powers firing in 0-17% of matches). Portal Pass
+    // is usable whenever its hero carries the ball; its ideal context also wants
+    // an opponent within 1100, so an unmarked carrier is usable-but-not-ideal.
     const m = createMatch(42, { ...ROVERS, players: ROVERS.players.map((pl, i) => (
-      i === SPEEDSTER ? { ...pl, power: 'MAGNET_TOUCH' as const } : { ...pl, power: undefined }
+      i === SPEEDSTER ? { ...pl, power: 'PORTAL_PASS' as const } : { ...pl, power: undefined }
     )) }, UNITED, { homePolicy: 'FIRE_WHEN_READY' });
     const hero = m.players[SPEEDSTER];
     hero.powerState = { kind: 'zone', remainingTicks: 3 };
-    // Outside the 1800 ideal radius, still clearly reachable.
-    m.ball = { kind: 'loose', pos: { x: hero.pos.x + 2200, y: hero.pos.y }, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
+    hero.pos = { x: 2250, y: 3500 };
+    m.ball = { kind: 'held', by: SPEEDSTER };
+    // Push every opponent well clear so the ideal context cannot be satisfied.
+    for (let i = 11; i < 22; i += 1) m.players[i].pos = { x: 200, y: 9000 };
 
+    expect(inUsefulContext(m, SPEEDSTER)).toBe(false);
     tick(m);
 
     expect(m.players[SPEEDSTER].powerState.kind).not.toBe('zone');

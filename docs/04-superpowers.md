@@ -32,7 +32,7 @@ Replaces the earlier fixed READY-window design (decision 2026-07-17, after stati
 
 ## The catalog: 20 designed powers
 
-Launch ships **at least 12** of these (final launch set chosen at M4 by playtest popularity; the rest become post-launch content drops — powers are data files). ⚙ = implemented in M0. ★ = legendary, one use per match.
+Launch ships **11** of these (Magnet Touch was cut at M4, see below; a twelfth may be chosen later) (final launch set chosen at M4 by playtest popularity; the rest become post-launch content drops — powers are data files). ⚙ = implemented in M0. ★ = legendary, one use per match.
 
 | Power | Effect | The timing decision |
 |---|---|---|
@@ -45,7 +45,7 @@ Launch ships **at least 12** of these (final launch set chosen at M4 by playtest
 | Bend It | Curve your own shot mid-flight around the keeper | Tap **while the ball flies** — the purest window in the game |
 | Portal Pass | Ball drops out of a portal onto the best forward runner | When the lane is blocked and a runner is home free |
 | **Midfield / utility** | | |
-| Magnet Touch | The next loose ball in range snaps to you | Fire as a 50/50 drops |
+| ~~Magnet Touch~~ ✂ | The next loose ball in range snaps to you | **Cut at M4** — measured 3.4 Zones and 0 fires per match across 24 seeds. Its trigger is a loose ball near the hero, which almost never coincides with the 7s window |
 | Decoy Double | A hologram runner drags one marker away | Trigger just before the through ball |
 | Gravity Well | Briefly pulls nearby opponents toward you — lanes open elsewhere | Centrally, right before releasing wide |
 | Future Sight | Predict and auto-intercept the next eligible pass | Read the through-ball before it's played |

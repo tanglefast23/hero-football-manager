@@ -415,7 +415,7 @@ function PowerOmen({
       </>
     );
   }
-  if (powerId === 'FUTURE_SIGHT' || powerId === 'MAGNET_TOUCH' || powerId === 'DECOY_DOUBLE') {
+  if (powerId === 'FUTURE_SIGHT' || powerId === 'DECOY_DOUBLE') {
     const spread = reveal ? 42 : 24;
     return (
       <>

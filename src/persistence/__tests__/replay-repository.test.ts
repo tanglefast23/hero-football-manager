@@ -234,7 +234,7 @@ describe('replay repository', () => {
     const envelope = makeEnvelope();
     const powerIds = [
       'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-      'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+      'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
     ] as const;
     const expanded: ReplayEnvelope = {
       ...envelope,

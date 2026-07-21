@@ -39,7 +39,7 @@ describe('filesForEvent: event → SFX wiring', () => {
   it('gives every M4 power an activation sound', () => {
     const powers: PowerId[] = [
       'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-      'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+      'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
     ];
     for (const power of powers) {
       expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power, strength: 0.85 })).not.toEqual([]);

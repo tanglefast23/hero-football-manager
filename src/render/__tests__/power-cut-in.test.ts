@@ -5,7 +5,7 @@ describe('M4 power cut-in policy', () => {
   it('has readable comic presentation for every shipped power', () => {
     const powers: PowerId[] = [
       'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-      'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+      'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
     ];
     for (const power of powers) {
       expect(powerCutInPresentation(power)).toMatchObject({
@@ -19,7 +19,7 @@ describe('M4 power cut-in policy', () => {
   it('uses only colors from the locked master art palette', () => {
     const powers: PowerId[] = [
       'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-      'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+      'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
     ];
     const allowed = new Set([
       '#5b3a91', '#9a63d6', '#c9a6ec',

@@ -13,7 +13,6 @@ const PRESENTATION: Record<PowerId, PowerCutInPresentation> = {
   FIRE_TORCH: { name: 'Fire Torch', glyph: '▲', color: '#d94f52' },
   PHASE_RUN: { name: 'Phase Run', glyph: '◌', color: '#c9a6ec' },
   PORTAL_PASS: { name: 'Portal Pass', glyph: '◎', color: '#a3c8f0' },
-  MAGNET_TOUCH: { name: 'Magnet Touch', glyph: '∪', color: '#d94f52' },
   DECOY_DOUBLE: { name: 'Decoy Double', glyph: '×2', color: '#c9a6ec' },
   FUTURE_SIGHT: { name: 'Future Sight', glyph: '◉', color: '#f7d894' },
   SUPER_STRENGTH: { name: 'Super Strength', glyph: '✹', color: '#edb54a' },

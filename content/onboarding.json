@@ -8,8 +8,8 @@
       "kicker": "THE BITE",
       "title": "It already happened.",
       "callout": "BITE CONFIRMED",
-      "detail": "Tiny · glowing · already gone",
-      "copy": "There—a tiny caterpillar glowing against {name}'s skin. It has already bitten. Something impossible is leaking out."
+      "detail": "Tiny \u00b7 glowing \u00b7 already gone",
+      "copy": "There\u2014a tiny caterpillar glowing against {name}'s skin. It has already bitten. Something impossible is leaking out."
     },
     {
       "id": "overenthusiastic-water-bottle",
@@ -17,7 +17,7 @@
       "kicker": "THE SPLASH",
       "title": "One drop goes the wrong way.",
       "callout": "WATER REACTION",
-      "detail": "Cold · glowing · absorbed",
+      "detail": "Cold \u00b7 glowing \u00b7 absorbed",
       "copy": "A teammate pours water over {name}'s face. One shining droplet stops in midair, turns, and sinks into their forehead."
     },
     {
@@ -26,7 +26,7 @@
       "kicker": "THE RHYTHM",
       "title": "The chant finds a heartbeat.",
       "callout": "CPR IN RHYTHM",
-      "detail": "One · two · thunder",
+      "detail": "One \u00b7 two \u00b7 thunder",
       "copy": "The physio's compressions fall into time with the crowd. On the final beat, a pulse of light rolls out from {name}."
     },
     {
@@ -35,7 +35,7 @@
       "kicker": "THE SPONGE",
       "title": "That is not standard equipment.",
       "callout": "SPONGE ACTIVE",
-      "detail": "Ancient · damp · sparkling",
+      "detail": "Ancient \u00b7 damp \u00b7 sparkling",
       "copy": "The groundskeeper dabs {name} with a battered old sponge. It wrings itself out, releasing a shower of impossible sparks."
     },
     {
@@ -44,7 +44,7 @@
       "kicker": "THE SNEEZE",
       "title": "Everyone should stand back.",
       "callout": "SNEEZE DETECTED",
-      "detail": "Sharp · sudden · stadium-wide",
+      "detail": "Sharp \u00b7 sudden \u00b7 stadium-wide",
       "copy": "The smelling salts reach {name}. The resulting sneeze ripples every nearby shirt and makes the scoreboard blink."
     },
     {
@@ -53,7 +53,7 @@
       "kicker": "THE CHILL",
       "title": "The ice refuses to stay put.",
       "callout": "ICE IN ORBIT",
-      "detail": "Three cubes · zero gravity",
+      "detail": "Three cubes \u00b7 zero gravity",
       "copy": "An ice pack touches {name}'s head. The cubes escape and begin circling like tiny frozen moons."
     },
     {
@@ -62,7 +62,7 @@
       "kicker": "THE DRINK",
       "title": "STRONG MAN STRONG DRINK.",
       "callout": "STRONG MAN STRONG DRINK",
-      "detail": "One sip · alarming results",
+      "detail": "One sip \u00b7 alarming results",
       "copy": "Someone gives {name} a bottle of STRONG MAN STRONG DRINK. The liquid changes color, bubbles upward, and glows through their cheeks."
     },
     {
@@ -71,7 +71,7 @@
       "kicker": "THE SPRINKLER",
       "title": "Its aim is suspiciously good.",
       "callout": "DIRECT HIT",
-      "detail": "One stream · perfect accuracy",
+      "detail": "One stream \u00b7 perfect accuracy",
       "copy": "A sprinkler swivels toward the huddle and fires one precise stream at {name}. Then it politely shuts itself off."
     },
     {
@@ -80,7 +80,7 @@
       "kicker": "THE SIGNAL",
       "title": "The shin guard has a message.",
       "callout": "SIGNAL RECEIVED",
-      "detail": "Vibrating · scrolling · unreadable",
+      "detail": "Vibrating \u00b7 scrolling \u00b7 unreadable",
       "copy": "The physio removes {name}'s buzzing shin guard. Glowing symbols race across its inner surface."
     },
     {
@@ -89,7 +89,7 @@
       "kicker": "THE STONE",
       "title": "That was not here at kickoff.",
       "callout": "FOREIGN OBJECT",
-      "detail": "Warm · sparkling · not local",
+      "detail": "Warm \u00b7 sparkling \u00b7 not local",
       "copy": "A teammate empties {name}'s boot. A warm, sparkling pebble drops onto the grass and hums."
     },
     {
@@ -98,7 +98,7 @@
       "kicker": "THE BALL",
       "title": "It is rolling uphill.",
       "callout": "BALL APPROACHING",
-      "detail": "No slope · no touch · one eye",
+      "detail": "No slope \u00b7 no touch \u00b7 one eye",
       "copy": "The match ball rolls uphill, nudges {name}'s head, and opens one glowing eye before becoming perfectly ordinary again."
     },
     {
@@ -116,7 +116,7 @@
       "kicker": "THE FEATHER",
       "title": "A selection has been made.",
       "callout": "PIGEON APPROVED",
-      "detail": "Iridescent · official · unexplained",
+      "detail": "Iridescent \u00b7 official \u00b7 unexplained",
       "copy": "An iridescent feather drifts onto {name}'s chest. Somewhere above the stand, a pigeon gives one solemn salute."
     },
     {
@@ -134,7 +134,7 @@
       "kicker": "THE CHARGE",
       "title": "The paddles fire themselves.",
       "callout": "STAR PULSE",
-      "detail": "No contact · full charge",
+      "detail": "No contact \u00b7 full charge",
       "copy": "The defibrillator activates before touching {name}. Energy crosses the gap in the shape of a brilliant star."
     }
   ],
@@ -142,7 +142,7 @@
     {
       "powerId": "SUPER_SPEED",
       "omen": "The grass around {name}'s boots bends backward. The stadium lights seem a fraction too slow.",
-      "reveal": "FWOOSH! {name} floats upright—and the world blurs around a brand-new hero."
+      "reveal": "FWOOSH! {name} floats upright\u2014and the world blurs around a brand-new hero."
     },
     {
       "powerId": "BLINK_RUN",
@@ -168,11 +168,6 @@
       "powerId": "PORTAL_PASS",
       "omen": "A tiny violet doorway opens under the match ball and politely waits beside {name}.",
       "reveal": "WHOOP! {name} rises as the ball drops out of a second doorway behind the huddle."
-    },
-    {
-      "powerId": "MAGNET_TOUCH",
-      "omen": "Loose studs, coins and one whistle slide across the grass toward {name}.",
-      "reveal": "CLACK! Every ball in the stadium rolls to {name}'s feet at once."
     },
     {
       "powerId": "DECOY_DOUBLE",

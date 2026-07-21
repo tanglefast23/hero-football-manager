@@ -101,7 +101,12 @@ resolves. Web-trapping empty grass is not a fallback, it is a no-op.
 
 ## Acceptance
 
-- Every power fires **1.5–2.5 times per match** on auto, averaged over ≥24 seeds.
+- No shipped power is **dead**: each fires at least 0.35 times per match and in at
+  least 40% of matches, over 20 seeds on its designed carrier. Powers are
+  deliberately *not* held to one uniform rate — some are meant to be rarer and
+  bigger than others, and one firing more often than another is a design choice.
+- The five reliable attacking powers stay reliable: ≥1.0 fires per match, in
+  every match.
 - Manual strength stays 100% and auto 85%; the visible window stays 70 ticks.
 - No power fires more often on auto than the count of zones it entered.
 - A new harness assertion measures fires/match **per carrier role**. The existing

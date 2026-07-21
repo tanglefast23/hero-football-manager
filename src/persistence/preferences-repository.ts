@@ -50,10 +50,14 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
 };
 
 const FormationSchema = z.enum(FORMATION_IDS);
+// Retired ids stay parseable so an older install's settings row still loads;
+// they are dropped on the way through rather than rejected.
+const RETIRED_POWER_IDS = ['MAGNET_TOUCH'] as const;
 const PowerIdSchema = z.enum([
   'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-  'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+  'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
 ]);
+const StoredPowerIdSchema = z.enum([...PowerIdSchema.options, ...RETIRED_POWER_IDS]);
 const PreferencesSchema = z.strictObject({
   formationPresets: z.tuple([FormationSchema, FormationSchema, FormationSchema])
     .refine(values => new Set(values).size === 3, 'formation presets must be unique'),
@@ -66,7 +70,10 @@ const PreferencesSchema = z.strictObject({
   highContrast: z.boolean(),
   colorSafeKits: z.boolean(),
   cutInMode: z.enum(['full', 'banner']),
-  seenPowerCutIns: z.array(PowerIdSchema).max(12)
+  seenPowerCutIns: z.array(StoredPowerIdSchema).max(12)
+    .transform(ids => ids.filter((id): id is z.infer<typeof PowerIdSchema> => (
+      !(RETIRED_POWER_IDS as readonly string[]).includes(id)
+    )))
     .refine(values => new Set(values).size === values.length, 'seen power cut-ins must be unique'),
 });
 const LegacyPreferencesSchema = PreferencesSchema.pick({

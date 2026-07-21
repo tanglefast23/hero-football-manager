@@ -9,7 +9,6 @@ export const PowerIdSchema = z.enum([
   'FIRE_TORCH',
   'PHASE_RUN',
   'PORTAL_PASS',
-  'MAGNET_TOUCH',
   'DECOY_DOUBLE',
   'FUTURE_SIGHT',
   'SUPER_STRENGTH',
@@ -111,7 +110,7 @@ export const PowerCatalogSchema = z.strictObject({
     postMatchChancePercent: z.literal(10),
     minimumMatchesBetween: z.literal(3),
   }),
-  powers: z.array(PowerDefinitionSchema).length(12),
+  powers: z.array(PowerDefinitionSchema).min(11).max(12),
 }).superRefine((catalog, context) => {
   addDuplicateIssues(catalog.powers.map(power => power.id), context, ['powers'], 'power ID');
 });
@@ -148,7 +147,7 @@ export const OnboardingContentSchema = z.strictObject({
     powerId: PowerIdSchema,
     omen: displayNameSchema,
     reveal: displayNameSchema,
-  })).length(12),
+  })).min(11).max(12),
 }).superRefine((content, context) => {
   addDuplicateIssues(content.triggers.map(trigger => trigger.id), context, ['triggers'], 'awakening trigger');
   addDuplicateIssues(content.powers.map(power => power.powerId), context, ['powers'], 'power');

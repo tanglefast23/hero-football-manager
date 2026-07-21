@@ -51,10 +51,12 @@ const replayPlayerSchema = z
     role: z.enum(['GK', 'DEF', 'MID', 'FWD']),
     lookId: nonemptyString.optional(),
     attrs: attributesSchema,
+    // MAGNET_TOUCH was retired at M4; an envelope taped before the cut must
+    // still parse, so it maps to the surviving utility power it became.
     power: z.enum([
       'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
       'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
-    ]).optional(),
+    ]).optional().transform(power => (power === 'MAGNET_TOUCH' ? 'PORTAL_PASS' as const : power)),
   })
   .passthrough()
   .superRefine((player, context) => {

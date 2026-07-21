@@ -102,7 +102,6 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
   // Sight target, so settling can never select a target the windup would drop.
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
   if (power === 'WEB_TRAP' || power === 'FUTURE_SIGHT') return oppCarrierNear(1900);
-  if (power === 'MAGNET_TOUCH') return b.kind === 'loose' && dist2(b.pos, p.pos) < 2600 * 2600;
   if (power === 'PORTAL_PASS' || power === 'DECOY_DOUBLE') return isCarrier;
   if (power === 'ELASTIC_KEEPER') {
     if (p.def.role !== 'GK') return false;
@@ -114,7 +113,6 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
 
 function requiresTarget(power: PowerId): boolean {
   return power === 'PORTAL_PASS'
-    || power === 'MAGNET_TOUCH'
     || power === 'DECOY_DOUBLE'
     || power === 'FUTURE_SIGHT'
     || power === 'SUPER_STRENGTH'
@@ -163,9 +161,6 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
     const carrier = state.players[b.by];
     const attackingProgress = carrier.team === 0 ? PITCH_H - carrier.pos.y : carrier.pos.y;
     return attackingProgress > PITCH_H * 0.72;
-  }
-  if (power === 'MAGNET_TOUCH') {
-    return b.kind === 'loose' && dist2(b.pos, p.pos) < 1800 * 1800;
   }
   if (power === 'SUPER_SPEED') {
     // Self-carrier value is directional: a speedster in their own defensive half
@@ -297,7 +292,6 @@ const DUR: Record<PowerId, number> = {
   FIRE_TORCH: 80,
   PHASE_RUN: 70,
   PORTAL_PASS: 35,
-  MAGNET_TOUCH: 35,
   DECOY_DOUBLE: 70,
   FUTURE_SIGHT: 60,
   SUPER_STRENGTH: 110,
@@ -408,10 +402,6 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     if (state.ball.kind === 'held' && state.ball.by === idx) {
       const teammate = bestForwardTeammate(state, idx);
       if (teammate !== -1) state.ball = { kind: 'held', by: teammate };
-    }
-  } else if (power === 'MAGNET_TOUCH') {
-    if (state.ball.kind === 'loose' && dist2(state.ball.pos, p.pos) < 2000 * 2000) {
-      state.ball = { kind: 'held', by: idx };
     }
   } else if (power === 'DECOY_DOUBLE') {
     const marker = nearestOpponentIndex(state, idx, 1300);

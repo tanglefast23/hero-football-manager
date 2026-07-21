@@ -9,7 +9,6 @@ export type PowerId =
   | 'FIRE_TORCH'
   | 'PHASE_RUN'
   | 'PORTAL_PASS'
-  | 'MAGNET_TOUCH'
   | 'DECOY_DOUBLE'
   | 'FUTURE_SIGHT'
   | 'SUPER_STRENGTH'

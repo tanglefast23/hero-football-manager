@@ -14,7 +14,7 @@ import type { MatchState, PowerId, TeamDef } from '../types';
 
 const POWER_IDS: readonly PowerId[] = [
   'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-  'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+  'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
 ];
 
 function matchWith(power: PowerId): { match: MatchState; hero: number } {
@@ -53,12 +53,6 @@ describe('M4 twelve-power catalog', () => {
     activatePower(portal.match, portal.hero, 1);
     expect(portal.match.ball).toMatchObject({ kind: 'held' });
     expect(portal.match.ball.kind === 'held' ? portal.match.ball.by : portal.hero).not.toBe(portal.hero);
-
-    const magnet = matchWith('MAGNET_TOUCH');
-    magnet.match.players[magnet.hero].pos = { x: 3000, y: 5000 };
-    magnet.match.ball = { kind: 'loose', pos: { x: 3100, y: 5000 }, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
-    activatePower(magnet.match, magnet.hero, 1);
-    expect(magnet.match.ball).toEqual({ kind: 'held', by: magnet.hero });
 
     const decoy = matchWith('DECOY_DOUBLE');
     decoy.match.players[decoy.hero].pos = { x: 3000, y: 5000 };
@@ -126,7 +120,7 @@ describe('M4 twelve-power catalog', () => {
   });
 
   it.each([
-    'PORTAL_PASS', 'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT',
+    'PORTAL_PASS', 'DECOY_DOUBLE', 'FUTURE_SIGHT',
     'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
   ] as const)('%s expires rather than auto-firing without its useful target', power => {
     const { match, hero } = matchWith(power);
@@ -140,7 +134,7 @@ describe('M4 twelve-power catalog', () => {
   });
 
   it.each([
-    'PORTAL_PASS', 'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT',
+    'PORTAL_PASS', 'DECOY_DOUBLE', 'FUTURE_SIGHT',
     'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
   ] as const)('%s does not consume a manual tap without its useful context', power => {
     const { match, hero } = matchWith(power);
@@ -162,9 +156,7 @@ describe('M4 twelve-power catalog', () => {
     match.players[hero].pos = { x: 2250, y: heroY };
     match.players[opponent].pos = { x: 2350, y: power === 'ELASTIC_KEEPER' ? 8000 : heroY };
 
-    if (power === 'MAGNET_TOUCH') {
-      match.ball = { kind: 'loose', pos: { x: 2300, y: 3500 }, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
-    } else if (power === 'FUTURE_SIGHT' || power === 'SUPER_STRENGTH' || power === 'WEB_TRAP' || power === 'ELASTIC_KEEPER') {
+    if (power === 'FUTURE_SIGHT' || power === 'SUPER_STRENGTH' || power === 'WEB_TRAP' || power === 'ELASTIC_KEEPER') {
       match.ball = { kind: 'held', by: opponent };
     } else {
       match.ball = { kind: 'held', by: hero };

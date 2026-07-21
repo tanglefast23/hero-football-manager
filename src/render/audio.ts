@@ -99,7 +99,6 @@ const POWER_SFX: Record<PowerId, SfxKey> = {
   THUNDER_STRIKE: 'kick-shot',
   PHASE_RUN: 'zone-enter',
   PORTAL_PASS: 'kick-pass',
-  MAGNET_TOUCH: 'save-slap',
   DECOY_DOUBLE: 'zone-enter',
   FUTURE_SIGHT: 'save-slap',
   SUPER_STRENGTH: 'super-strength-boom',

@@ -66,16 +66,6 @@
       "windupTicks": 15
     },
     {
-      "id": "MAGNET_TOUCH",
-      "name": "Magnet Touch",
-      "tier": "starter",
-      "category": "attack",
-      "description": "Snap the next loose ball in range directly under control.",
-      "usefulContext": "LOOSE_BALL",
-      "requiresTarget": true,
-      "windupTicks": 15
-    },
-    {
       "id": "DECOY_DOUBLE",
       "name": "Decoy Double",
       "tier": "standard",
