@@ -2,7 +2,7 @@ import { BLEND_TICKS, blendedTableTarget, gkTarget, kickoffPos } from './movemen
 import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, HALF_TICKS, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest, contestProbability } from './contest';
-import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, STRENGTH_LOCK_RANGE, futureSightInterceptor } from './powers';
+import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, STRENGTH_LOCK_RANGE, futureSightInterceptor, iceRinkSlow, isShadowMarked } from './powers';
 import { energyDrainMultiplier, energyMovementMultiplier, formationTarget, mentalityTarget, type EnergyUse } from './tactics';
 import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 
@@ -61,7 +61,7 @@ export function effectiveStat(state: MatchState, idx: number, stat: keyof Attrs)
 
 /** Authoritative speed: reads power state internally (Task 12 supplies the multiplier). */
 export function speedFor(state: MatchState, idx: number): number {
-  return Math.round((40 + effectiveStat(state, idx, 'pac')) * speedMultiplier(state, idx));
+  return Math.round((40 + effectiveStat(state, idx, 'pac')) * speedMultiplier(state, idx) * iceRinkSlow(state, idx));
 }
 
 export function ballPos(state: MatchState): Vec {
@@ -519,7 +519,9 @@ function passContestInputs(state: MatchState, from: number, to: number): { proba
   // the approved emergent pass-flight resolver replaces pre-rolled outcomes.
   const spaceRelief = clamp(Math.trunc((receiverSpace - 300) / 80), 0, 15);
   const laneRelief = clamp(Math.trunc((clearance - 200) / 80), 0, 8);
-  const interceptStat = Math.max(1, effectiveStat(state, interceptor, 'def') - spaceRelief - laneRelief);
+  const hidden = isShadowMarked(state, interceptor);
+  const interceptStat = Math.max(1, effectiveStat(state, interceptor, 'def')
+    - (hidden ? 0 : spaceRelief + laneRelief));
   return {
     probability: contestProbability(effectiveStat(state, from, 'pas'), interceptStat, 10),
     interceptor,

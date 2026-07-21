@@ -12,11 +12,33 @@ export const LAUNCH_POWER_IDS: readonly PowerId[] = [
   'SUPER_STRENGTH',
   'WEB_TRAP',
   'ELASTIC_KEEPER',
+  'RALLY_CRY',
+  'ICE_RINK',
+  'SHADOW_MARK',
+  'GRAVITY_WELL',
+  'GIANT_GK',
 ];
+
+/**
+ * Which roles may awaken which power. Before this, every outfielder could
+ * awaken any non-keeper power, so a defender drew a carrier-only striker power
+ * roughly 47% of the time and could almost never fire it. Membership here is by
+ * what the trigger actually needs, not by flavour.
+ */
+const ROLE_POOL: Readonly<Record<Role, readonly PowerId[]>> = {
+  GK: ['ELASTIC_KEEPER', 'GIANT_GK', 'FIRE_TORCH'],
+  DEF: ['FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ICE_RINK', 'SHADOW_MARK',
+    'SUPER_SPEED', 'FIRE_TORCH', 'RALLY_CRY'],
+  MID: ['PORTAL_PASS', 'DECOY_DOUBLE', 'PHASE_RUN', 'BLINK_RUN', 'FUTURE_SIGHT',
+    'WEB_TRAP', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'SUPER_SPEED',
+    'FIRE_TORCH', 'RALLY_CRY'],
+  FWD: ['SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'PHASE_RUN', 'PORTAL_PASS',
+    'GRAVITY_WELL', 'FIRE_TORCH', 'RALLY_CRY'],
+};
 
 /** Gives generated clubs a stable slice of the full launch catalog. */
 export function powerIsCompatibleWithRole(power: PowerId, role: Role): boolean {
-  return power === 'ELASTIC_KEEPER' ? role === 'GK' : role !== 'GK';
+  return ROLE_POOL[role].includes(power);
 }
 
 export function generatedClubPower(clubId: string, heroIndex: number, role: Role): PowerId {

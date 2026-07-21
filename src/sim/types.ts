@@ -13,7 +13,15 @@ export type PowerId =
   | 'FUTURE_SIGHT'
   | 'SUPER_STRENGTH'
   | 'WEB_TRAP'
-  | 'ELASTIC_KEEPER';
+  | 'ELASTIC_KEEPER'
+  // m1.13 additions. Every one triggers from a sustained situation rather than
+  // from carrying the ball, which is what kept Magnet Touch (cut) and the two
+  // midfield powers from ever firing.
+  | 'RALLY_CRY'
+  | 'ICE_RINK'
+  | 'SHADOW_MARK'
+  | 'GRAVITY_WELL'
+  | 'GIANT_GK';
 export type Role = 'GK' | 'DEF' | 'MID' | 'FWD';
 export type FirePolicy = 'SAVE_FOR_TAP' | 'FIRE_WHEN_READY';
 

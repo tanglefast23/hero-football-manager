@@ -105,6 +105,12 @@ const POWER_SFX: Record<PowerId, SfxKey> = {
   WEB_TRAP: 'tackle-thud',
   ELASTIC_KEEPER: 'save-slap',
   FIRE_TORCH: 'flame-up', // Flint bursting into flames as the power switches on
+  // m1.13 powers reuse existing cues until their own audio is authored.
+  RALLY_CRY: 'crowd-cheer',
+  ICE_RINK: 'zone-enter',
+  SHADOW_MARK: 'zone-enter',
+  GRAVITY_WELL: 'super-strength-boom',
+  GIANT_GK: 'save-slap',
 };
 
 // -- Event -> file table ------------------------------------------------

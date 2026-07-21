@@ -40,7 +40,8 @@
     "web": "expo start --web",
     "export:web": "expo export --platform web && node scripts/web/fix-worker-bundles.mjs",
     "postinstall": "setup-skia-web",
-    "test": "jest"
+    "test": "jest",
+    "test:probe": "jest --runInBand --testPathIgnorePatterns='^$' --runTestsByPath"
   },
   "private": true
 }

@@ -30,6 +30,18 @@ Replaces the earlier fixed READY-window design (decision 2026-07-17, after stati
 
 **Decision record — banked charges rejected**: "3 stored uses" was considered and cut. Banking rewards hoarding: a late-game squad of 4–5 heroes could pool 10+ activations into one siege for a near-guaranteed goal, collapsing every match into the same solve. Zones can't be hoarded by construction.
 
+**Decision record — the Hero License card exemption (adopted, ENGINE_VERSION m1.12)**: firing a licensed power **never books its user**, and the exemption is **symmetric** — rival heroes get the same free pass. Previously Fire Torch rolled a 15% yellow and Super Strength rolled 25% yellow / 5% straight red on every activation.
+
+Three reasons:
+
+1. **The License already says this.** Hero Licenses are the in-world institution that caps how many powers a club may field (2 → 3 → 4 by division). If the authority licenses a power, using it is sanctioned play; booking a player for it has the rulebook contradicting itself.
+2. **The cost was invisible before committing.** Fire Torch's card at least bought a huge effect (an opponent removed for ~9% of the match). Super Strength's 30% card chance — a twentieth of it a straight red with **no substitute keeper or outfielder** — was a hidden tax the player never agreed to, and one sending-off per season traceable to a single power.
+3. **It unblocks measurement.** With cards gone, whatever remains of the defensive powers' measured deficit is positional (Future Sight teleporting a defender out of shape, Web Trap anchoring them), which is a far more useful thing to tune.
+
+**What replaces the risk**: nothing yet. Super Strength keeps its telegraphed wind-up and its "deny the target" counterplay, and it still wastes the zone on a miss. If that proves too consequence-free, the intended lever is a **miss penalty** (a whiffed charge costs the zone and leaves the defender out of position), never a return to cards.
+
+`SimPlayer.cards`, the `CARD` event and the `'redcard'` out-reason remain in the schema so saved replays and their UI still deserialize, but nothing in the sim can now produce them.
+
 ## The catalog: 20 designed powers
 
 Launch ships **11** of these (Magnet Touch was cut at M4, see below; a twelfth may be chosen later) (final launch set chosen at M4 by playtest popularity; the rest become post-launch content drops — powers are data files). ⚙ = implemented in M0. ★ = legendary, one use per match.
@@ -40,7 +52,7 @@ Launch ships **11** of these (Magnet Touch was cut at M4, see below; a twelfth m
 | Super Speed ⚙ | Breakaway burst with the ball (boosts the hero's movement, on or off the ball) | Fire at the start of a dangerous break, not in traffic |
 | Blink Run | Teleport past the final defender | The last man is the only man worth blinking past |
 | Thunder Strike | Shot heavily damages keeper Resolve *even if saved* | Save it for a clean central strike — it pays off next shot too |
-| Fire Torch ⚙ | Flaming run — defenders shy from challenging the carrier; one marker ignites until the ref extinguishes them | Fire when a marker is glued to you in the final third |
+| Fire Torch ⚙ | Flaming run — defenders shy from challenging the carrier; one marker ignites until the ref extinguishes them. Licensed — never booked | Fire when a marker is glued to you in the final third |
 | Phase Run | Ghost through one tackle — but cannot shoot while phased | Escape midfield pressure; never at the goalmouth |
 | Bend It | Curve your own shot mid-flight around the keeper | Tap **while the ball flies** — the purest window in the game |
 | Portal Pass | Ball drops out of a portal onto the best forward runner | When the lane is blocked and a runner is home free |
@@ -53,7 +65,7 @@ Launch ships **11** of these (Magnet Touch was cut at M4, see below; a twelfth m
 | Time Skip ★ | Everyone freezes for one second except the hero | The one moment that decides the match |
 | **Defense** | | |
 | Shadow Mark | Invisible to enemy *decision-making* until the next challenge — carriers don't avoid you, passers don't respect you; ends after challenging | Cloak before the striker commits to a lane; a wasted ambush is a wasted zone |
-| Super Strength ⚙ | Locks the carrier at wind-up, charges, and flattens (steal only if they still hold it) | The counterplay is theirs: dump the ball fast |
+| Super Strength ⚙ | Locks the carrier at wind-up, charges, and flattens (steal only if they still hold it). Licensed — never booked | The counterplay is theirs: dump the ball fast |
 | Web Trap | First opponent entering the marked zone is rooted | Place it in the expected dribbling lane |
 | Gust | Shove an opponent's in-flight shot or pass off course | A defensive *reaction* — tap during their shot |
 | Ice Rink | An area turns slick; opponents entering slip | Siege defense in front of your own box |

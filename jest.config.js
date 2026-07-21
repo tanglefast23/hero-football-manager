@@ -21,4 +21,7 @@ module.exports = {
   moduleNameMapper: {
     '\\.(wav|m4a)$': '<rootDir>/src/render/__tests__/__mocks__/assetStub.js',
   },
+  // Long-running measurement probes are opt-in via `npm run test:probe -- <path>`.
+  // Keep the acceptance-seed audit test in the normal suite.
+  testPathIgnorePatterns: ['<rootDir>/src/audit/__tests__/.*-probe\\.test\\.ts$'],
 };
