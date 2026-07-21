@@ -166,6 +166,12 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
   if (state.market?.assistantCoach !== undefined) {
     next = completeAssistantGuideSequence(next, 'assistant-coach-hire');
   }
+  if (
+    state.market?.activeScoutMission !== undefined
+    || (state.market?.scoutReports.length ?? 0) > 0
+  ) {
+    next = completeAssistantGuideSequence(next, 'scout-mission');
+  }
 
   if (!isStoryFeaturePacingActive(next)) return next;
   const premature: AssistantInboxGuideSequenceId[] = [];

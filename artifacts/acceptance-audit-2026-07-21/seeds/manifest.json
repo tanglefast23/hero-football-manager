@@ -1,0 +1,274 @@
+[
+  {
+    "id": "fresh-cozy",
+    "expectedScreen": "create-player",
+    "season": 1,
+    "week": 1,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "fresh-chairman",
+    "expectedScreen": "create-player",
+    "season": 1,
+    "week": 1,
+    "phase": "manage",
+    "difficulty": "CHAIRMAN"
+  },
+  {
+    "id": "onboarding-first-match",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 1,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "onboarding-collapse",
+    "expectedScreen": "awakening",
+    "season": 1,
+    "week": 1,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "onboarding-reveal",
+    "expectedScreen": "awakening",
+    "season": 1,
+    "week": 1,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "onboarding-complete",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 1,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "week-2",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 2,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "week-3",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 3,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "week-5",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 5,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "week-15",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 15,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "transfer-window-week-17",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 17,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "transfer-window-week-18",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 18,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "match-week",
+    "expectedScreen": "matchday",
+    "season": 1,
+    "week": 5,
+    "phase": "matchday",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "full-roster",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 18,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "one-slot-free",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 18,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "zero-tp",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 1,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "zero-money",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 1,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "negative-cash",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 8,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "emergency-loan-active",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 12,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "board-ultimatum",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 20,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "board-deadline",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 20,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "injured-squad",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 8,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "capped-players",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 8,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "active-construction",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 8,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "active-scout-mission",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 15,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "pending-negotiation",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 18,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "pending-event",
+    "expectedScreen": "event",
+    "season": 1,
+    "week": 7,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "season-end",
+    "expectedScreen": "season-end",
+    "season": 1,
+    "week": 30,
+    "phase": "season-end",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "promotion",
+    "expectedScreen": "championship-celebration",
+    "season": 1,
+    "week": 30,
+    "phase": "season-end",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "relegation",
+    "expectedScreen": "season-end",
+    "season": 2,
+    "week": 30,
+    "phase": "season-end",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "late-career-season",
+    "expectedScreen": "management",
+    "season": 9,
+    "week": 15,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "retirement-legacy",
+    "expectedScreen": "legacy",
+    "season": 1,
+    "week": 6,
+    "phase": "manage",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "completed-career",
+    "expectedScreen": "championship-celebration",
+    "season": 5,
+    "week": 30,
+    "phase": "complete",
+    "difficulty": "COZY"
+  },
+  {
+    "id": "migrated-save",
+    "expectedScreen": "management",
+    "season": 1,
+    "week": 6,
+    "phase": "manage",
+    "difficulty": "COZY"
+  }
+]

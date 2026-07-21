@@ -1259,6 +1259,7 @@ const gameStateSchema = z
       });
     }
     if (state.onboarding?.firstFixtureId !== undefined
+      && state.onboarding.stage !== 'complete'
       && !fixtureIds.has(state.onboarding.firstFixtureId)) {
       context.addIssue({
         code: 'custom',

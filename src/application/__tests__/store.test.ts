@@ -950,7 +950,7 @@ function examplePostMatch(): PostMatchViewModel {
       outcomeLabel: 'WIN',
       headline: 'The office will be loud tonight.',
     },
-    ledger: [{ id: 'tickets', label: 'Home match tickets', amount: 1200, kind: 'income' }],
+    ledger: [{ id: 'tickets', label: 'League home gate', amount: 1200, kind: 'income' }],
     netAmount: 1200,
     trainingPointsGained: 7,
     fanDelta: 10,

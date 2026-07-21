@@ -281,6 +281,9 @@ export function AwakeningCutsceneScreen({
     }
     setBeat(action);
   };
+  const storyAccessibilityLabel = beat < 3
+    ? `Awakening beat ${beat} of 3. Tap the story text to continue.`
+    : `${viewModel.playerName} awakened with ${viewModel.powerName}. ${viewModel.revealCopy} ${viewModel.licenseLabel}. ${viewModel.continueLabel}.`;
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right', 'bottom']}>
@@ -337,31 +340,33 @@ export function AwakeningCutsceneScreen({
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={beat < 3
-            ? `Awakening beat ${beat} of 3. Tap the story text to continue.`
-            : 'Continue after the hero awakening'}
+          accessibilityLabel={storyAccessibilityLabel}
           accessibilityState={{ disabled: !advanceReady }}
           disabled={!advanceReady}
           onPress={advanceStory}
-          style={[styles.storyPanel, beat === 3 ? styles.storyPanelHero : null]}
         >
-          <View style={styles.storyTopline}>
-            <Text style={[styles.beatKicker, beat === 3 ? styles.heroInk : null]}>{current.kicker}</Text>
-            <Text style={[styles.tapHint, beat === 3 ? styles.heroInk : null]}>{tapHint}</Text>
-          </View>
-          <Text style={[styles.beatTitle, beat === 3 ? styles.heroInk : null]}>
-            {beat === 3 ? viewModel.playerName : current.title}
-          </Text>
-          {beat === 3 ? <Text style={styles.powerName}>{viewModel.powerName}</Text> : null}
-          {copy !== null ? (
-            <Text style={[styles.storyCopy, beat === 3 ? styles.heroCopy : null]}>{copy}</Text>
-          ) : null}
-          {beat === 3 ? (
-            <View style={styles.heroFooter}>
-              <Text style={styles.license}>{viewModel.licenseLabel}</Text>
-              <Text style={styles.continueInline}>{viewModel.continueLabel} ›</Text>
+          <View style={[
+            styles.storyPanel,
+            beat === 3 ? styles.storyPanelHero : null,
+          ]}>
+            <View style={styles.storyTopline}>
+              <Text style={[styles.beatKicker, beat === 3 ? styles.heroInk : null]}>{current.kicker}</Text>
+              <Text style={[styles.tapHint, beat === 3 ? styles.heroInk : null]}>{tapHint}</Text>
             </View>
-          ) : null}
+            <Text style={[styles.beatTitle, beat === 3 ? styles.heroInk : null]}>
+              {beat === 3 ? viewModel.playerName : current.title}
+            </Text>
+            {beat === 3 ? <Text style={styles.powerName}>{viewModel.powerName}</Text> : null}
+            {copy !== null ? (
+              <Text style={[styles.storyCopy, beat === 3 ? styles.heroCopy : null]}>{copy}</Text>
+            ) : null}
+            {beat === 3 ? (
+              <View style={styles.heroFooter}>
+                <Text style={styles.license}>{viewModel.licenseLabel}</Text>
+                <Text style={styles.continueInline}>{viewModel.continueLabel} ›</Text>
+              </View>
+            ) : null}
+          </View>
         </Pressable>
       </View>
     </SafeAreaView>

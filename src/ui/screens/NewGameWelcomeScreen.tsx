@@ -145,7 +145,7 @@ export function NewGameWelcomeScreen({
           {showOpeningBrief ? (
             <PaperPanel kicker="Incoming file" title="Week one brief" stamp="Urgent" className="my-7">
               <View className="gap-3">
-                <BriefRow index="01" title="Meet the squad" note="Sixteen hopefuls. One empty shirt. Zero heroes." />
+                <BriefRow index="01" title="Meet the squad" note="Fifteen players. Two open shirts. Zero heroes." />
                 <View className="h-0.5 bg-ink/15" />
                 <BriefRow index="02" title="Survive the books" note="Every ticket, wage, and training point matters." />
                 <View className="h-0.5 bg-ink/15" />

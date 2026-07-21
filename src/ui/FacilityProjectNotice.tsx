@@ -69,7 +69,7 @@ export function FacilityProjectNotice({
             <View className="mt-4">
               <ActionButton
                 label="Let them build  ▸"
-                accessibilityLabel="Close construction confirmation"
+                accessibilityLabel="Let them build. Close construction confirmation"
                 onPress={onClose}
               />
             </View>

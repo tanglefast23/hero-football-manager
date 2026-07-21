@@ -125,7 +125,7 @@ describe('career season workflow', () => {
     expect(settled.fixtures.filter(fixture => fixture.status === 'played')).toHaveLength(5);
     expect(settled.trainingPoints).toBe(41);
     expect(settled.ledgers.at(-1)?.lines).toEqual([
-      { kind: 'tickets', label: 'Home match tickets', amount: 1200 },
+      { kind: 'tickets', label: 'League home gate', amount: 1200 },
       { kind: 'wages', label: 'Weekly wages', amount: -3200 },
       { kind: 'subsidy', label: 'Season 1 wage subsidy', amount: 1600 },
     ]);

@@ -22,6 +22,7 @@ import { PixelPortrait } from '../components/PixelPortrait';
 import { playManagementHaptic } from '../../render/haptics';
 
 export interface CharacterCreationScreenProps {
+  initialDifficulty: DifficultyMode;
   onComplete: (draft: CreatedPlayerDraft) => void;
   onOpenSettings: () => void;
 }
@@ -36,6 +37,7 @@ const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }>
 };
 
 export function CharacterCreationScreen({
+  initialDifficulty,
   onComplete,
   onOpenSettings,
 }: CharacterCreationScreenProps) {
@@ -44,7 +46,7 @@ export function CharacterCreationScreen({
     ...DEFAULT_CREATION_RATINGS,
   });
   const [appearance, setAppearance] = useState<CreatedPlayerAppearance>({ ...DEFAULT_CREATED_APPEARANCE });
-  const [difficulty, setDifficulty] = useState<DifficultyMode>('COZY');
+  const [difficulty, setDifficulty] = useState<DifficultyMode>(initialDifficulty);
   const pointsRemaining = useMemo(() => creationPointsRemaining(ratings), [ratings]);
   const canSubmit = name.trim().length >= 2 && pointsRemaining >= 0;
 

@@ -12,6 +12,11 @@ export function formatCompactNumber(value: number): string {
   return `${sign}${digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 }
 
+export function formatSignedCompactNumber(value: number): string {
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${formatCompactNumber(value)}`;
+}
+
 export function formatCurrency(value: number, signed = false): string {
   const sign = value < 0 ? '−' : signed && value > 0 ? '+' : '';
   return `${sign}$${formatCompactNumber(Math.abs(value))}`;
@@ -74,6 +79,7 @@ interface ActionButtonProps {
   disabled?: boolean;
   variant?: ButtonVariant;
   compact?: boolean;
+  maxFontSizeMultiplier?: number;
 }
 
 /**
@@ -87,6 +93,7 @@ export function ActionButton({
   disabled = false,
   variant = 'primary',
   compact = false,
+  maxFontSizeMultiplier,
 }: ActionButtonProps) {
   const ramp = disabled
     ? { face: 'bg-grey', light: 'bg-grey-light', lip: 'bg-grey-dark', text: 'text-paper' }
@@ -123,6 +130,7 @@ export function ActionButton({
           <Text
             numberOfLines={1}
             adjustsFontSizeToFit
+            maxFontSizeMultiplier={maxFontSizeMultiplier}
             className={cx('font-pixel text-sm uppercase', ramp.text)}
             style={{ textShadowColor: 'rgba(36,31,46,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 0 }}
           >

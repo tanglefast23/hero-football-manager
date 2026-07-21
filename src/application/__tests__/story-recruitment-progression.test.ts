@@ -12,6 +12,7 @@ import {
 } from '../../game/onboarding/story-onboarding';
 import { DEFAULT_CREATION_RATINGS } from '../../game/onboarding/player-creation';
 import { STORY_STARTING_ROSTER_SIZE } from '../../game/story-progression';
+import { hasAssistantGuideSequenceCompleted } from '../../game/assistant-guide';
 import {
   careerRosterCapacity,
   reconcileStoryYouthIntake,
@@ -175,5 +176,31 @@ describe('story recruitment pacing', () => {
     expect(market.transfers.some(listing => listing.direction === 'SELL')).toBe(true);
     expect(dueAssistantInboxGuideSequences(fullStory)).toContain('roster-cap');
     expect(fullStory.cashTransactions?.at(-1)).toMatchObject({ kind: 'transfer-buy' });
+  });
+
+  it('retires a queued first-scout objective as soon as the mission starts', () => {
+    const weekFifteen = { ...createdStory(13579), week: 15 };
+    const brief = careerMarketScoutOptions(weekFifteen)[0];
+    const queued = {
+      ...weekFifteen,
+      eventFlags: [
+        ...(weekFifteen.eventFlags ?? []),
+        'guide:bert:inbox:queued:scout-mission',
+        'guide:bert:inbox:delivered:s1:w15:guide:scout-mission',
+      ],
+    };
+    const started = startCareerScoutMission(
+      queued,
+      queued.market!,
+      brief.region,
+      brief.focus,
+    );
+    const reconciled = reconcileSatisfiedAssistantGuideSequences({
+      ...started.state,
+      market: started.market,
+    });
+
+    expect(hasAssistantGuideSequenceCompleted(reconciled, 'scout-mission')).toBe(true);
+    expect(dueAssistantInboxGuideSequences(reconciled)).not.toContain('scout-mission');
   });
 });

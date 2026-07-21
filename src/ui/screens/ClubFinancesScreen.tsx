@@ -250,7 +250,7 @@ export function ClubFinancesScreen({
         <StatusChip label={viewModel.periodLabel} />
       </View>
 
-      <View className={guideFocus === 'emergency-loan' ? 'relative mt-5 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-5'}>
+      <View className={guideFocus === 'emergency-loan' ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-5'}>
         {guideFocus === 'emergency-loan' ? (
           <TutorialTapCue
             label="Bert says"
@@ -294,20 +294,38 @@ export function ClubFinancesScreen({
               : line.kind === 'expense'
                 ? 'text-red-dark'
                 : 'text-ink';
-            return (
-              <Pressable
-                key={line.id}
-                accessibilityRole={onOpenLedgerLine ? 'button' : 'text'}
-                accessibilityLabel={`${line.label}, ${line.amount > 0 ? 'plus ' : ''}${formatCurrency(line.amount)}`}
-                disabled={!onOpenLedgerLine}
-                onPress={() => onOpenLedgerLine?.(line.id)}
-                className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
-                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
-              >
+            const accessibilityLabel = `${line.label}, ${line.amount > 0 ? 'plus ' : ''}${formatCurrency(line.amount)}`;
+            const content = (
+              <>
                 <Text className="flex-1 text-base text-ink">{line.label}</Text>
                 <Text className={`font-mono text-base font-bold ${amountClass}`}>
                   {formatCurrency(line.amount, true)}
                 </Text>
+              </>
+            );
+            if (onOpenLedgerLine === undefined) {
+              return (
+                <View
+                  key={line.id}
+                  accessible
+                  accessibilityRole="text"
+                  accessibilityLabel={accessibilityLabel}
+                  className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
+                >
+                  {content}
+                </View>
+              );
+            }
+            return (
+              <Pressable
+                key={line.id}
+                accessibilityRole="button"
+                accessibilityLabel={accessibilityLabel}
+                onPress={() => onOpenLedgerLine(line.id)}
+                className="min-h-11 flex-row items-center border-b border-ink/10 px-3 py-2"
+                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+              >
+                {content}
               </Pressable>
             );
           })}
@@ -408,7 +426,7 @@ export function ClubFinancesScreen({
       </View>
 
       <View
-        className={guideGrounds ? 'relative mt-6 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-6'}
+        className={guideGrounds ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-6'}
         onLayout={event => {
           // React Native may release the synthetic event before the next frame.
           // Snapshot the primitive now so the guided scroll never reads a pooled event.
@@ -485,7 +503,13 @@ export function ClubFinancesScreen({
                 }}
               />
             ) : null}
-            <View style={{ flex: 1 }}>
+            <View
+              style={{
+                position: 'relative',
+                flex: 1,
+                zIndex: placementActive ? 2 : 0,
+              }}
+            >
               {Array.from({ length: facilities.height }, (_, y) => (
                 <View key={`facility-row-${y}`} style={{ flex: 1, flexDirection: 'row' }}>
                   {Array.from({ length: facilities.width }, (_, x) => {
@@ -504,6 +528,7 @@ export function ClubFinancesScreen({
                         }}
                       >
                         <Pressable
+                          accessible={placementActive}
                           accessibilityRole={placementActive ? 'button' : 'none'}
                           accessibilityLabel={placementActive
                             ? `${buildable ? 'Build at' : 'Blocked at'} column ${x + 1}, row ${y + 1}`
@@ -521,7 +546,7 @@ export function ClubFinancesScreen({
                             alignItems: 'center',
                             justifyContent: 'center',
                             backgroundColor: occupied
-                              ? undefined
+                              ? (placementActive ? 'rgba(217, 79, 82, 0.30)' : undefined)
                               : placementActive
                                 ? (buildable ? 'rgba(154, 99, 214, 0.32)' : 'rgba(36, 31, 46, 0.05)')
                                 : 'rgba(92, 184, 92, 0.12)',
@@ -529,6 +554,8 @@ export function ClubFinancesScreen({
                         >
                           {buildable ? (
                             <Text className="font-mono text-xs font-bold text-violet-dark">+</Text>
+                          ) : placementActive && occupied ? (
+                            <Text accessible={false} className="font-mono text-xs font-bold text-red-dark">×</Text>
                           ) : null}
                         </Pressable>
                       </View>
@@ -540,7 +567,16 @@ export function ClubFinancesScreen({
 
             <View
               pointerEvents={placementActive ? 'none' : 'box-none'}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              accessibilityElementsHidden={placementActive}
+              importantForAccessibility={placementActive ? 'no-hide-descendants' : 'auto'}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: placementActive ? 0 : 1,
+              }}
             >
               {facilities.buildings.map(building => {
                 const selected = building.id === selectedBuildingId;
@@ -827,9 +863,13 @@ export function ClubFinancesScreen({
                       accessibilityRole="button"
                       accessibilityLabel={guideBlocked
                         ? `${entry.name}. Build Training Grounds first.`
-                        : `${entry.name}. ${entry.effectLabel}.${adjacencyAccessibility} ${entry.available
-                          ? `Build cost ${formatCurrency(entry.buildCost)}. ${formatCurrency(entry.weeklyUpkeep)} per week upkeep${entry.affordable ? '' : `. Need ${formatCurrency(entry.affordabilityShortfall)} more`}`
-                          : 'Locked'}`}
+                        : `${entry.name}. ${entry.effectLabel}. ${entry.width} by ${entry.height} footprint. Build time ${entry.buildWeeks} week${entry.buildWeeks === 1 ? '' : 's'}.${adjacencyAccessibility} ${entry.available
+                          ? `Build cost ${formatCurrency(entry.buildCost)}. ${formatCurrency(entry.weeklyUpkeep)} per week upkeep.${entry.blockedReason
+                            ? ` ${entry.blockedReason}`
+                            : !entry.affordable && entry.affordabilityShortfall > 0
+                              ? ` Need ${formatCurrency(entry.affordabilityShortfall)} more.`
+                              : ''}`
+                          : `Locked.${entry.blockedReason ? ` ${entry.blockedReason}` : ''}`}`}
                       accessibilityState={{ disabled: !entryEnabled, selected }}
                       disabled={!entryEnabled}
                       onPress={() => {

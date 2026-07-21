@@ -530,8 +530,24 @@ function settlementLines(
     const attendance = sixtyPercentOf(userClub.fans);
     lines.push({
       kind: 'tickets',
-      label: 'Home match tickets',
+      label: 'League home gate',
       amount: checkedMultiply(attendance, userClub.ticketPrice, 'ticket revenue'),
+    });
+  }
+
+  const currentCup = state.m2?.nationalCups.find(cup => cup.season === state.season);
+  const currentCupRound = currentCup?.rounds.find(round => (
+    CUP_SETTLEMENT_WEEKS[round.number - 1] === state.week
+  ));
+  const homeCupFixture = currentCupRound?.fixtures.find(fixture => (
+    fixture.homeClubId === state.userClubId && fixture.status === 'played'
+  ));
+  if (currentCupRound !== undefined && homeCupFixture !== undefined) {
+    const attendance = sixtyPercentOf(userClub.fans);
+    lines.push({
+      kind: 'tickets',
+      label: `National Cup ${currentCupRound.label} home gate`,
+      amount: checkedMultiply(attendance, userClub.ticketPrice, 'National Cup ticket revenue'),
     });
   }
 

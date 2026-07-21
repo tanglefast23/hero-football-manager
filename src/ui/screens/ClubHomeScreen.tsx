@@ -39,6 +39,7 @@ export function ClubHomeScreen({
   textScale = 1,
 }: ClubHomeScreenProps) {
   const fixture = viewModel.nextFixture;
+  const fixtureIsThisWeek = viewModel.nextMatchTimingLabel === 'This week';
 
   return (
     <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
@@ -67,13 +68,23 @@ export function ClubHomeScreen({
       <PaperPanel kicker="Next match" title={fixture.competition} stamp={viewModel.nextMatchTimingLabel}>
         <View className="border-y-2 border-ink py-4">
           <View className="flex-row items-center justify-between gap-2">
-            <Text className="flex-1 text-right text-xl font-bold uppercase text-ink" numberOfLines={2}>
+            <Text
+              className="flex-1 text-right text-xl font-bold uppercase text-ink"
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.65}
+            >
               {fixture.homeTeam}
             </Text>
             <View className="border-2 border-ink bg-ink px-3 py-2">
               <Text className="font-mono text-base font-bold text-paper">VS</Text>
             </View>
-            <Text className="flex-1 text-xl font-bold uppercase text-ink" numberOfLines={2}>
+            <Text
+              className="flex-1 text-xl font-bold uppercase text-ink"
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.65}
+            >
               {fixture.awayTeam}
             </Text>
           </View>
@@ -87,10 +98,14 @@ export function ClubHomeScreen({
         </View>
         <View className="mt-4">
           <ActionButton
-            label={fixture.matchdayReady ? 'Prepare match day  ▸' : 'Advance to fixture week'}
+            label={fixture.matchdayReady
+              ? 'Prepare match day  ▸'
+              : fixtureIsThisWeek ? 'Use Advance Week below' : 'Advance to fixture week'}
             accessibilityLabel={fixture.matchdayReady
               ? `Open match day for ${fixture.homeTeam} versus ${fixture.awayTeam}`
-              : `Next fixture is ${fixture.homeTeam} versus ${fixture.awayTeam}. Advance to its match week to prepare.`}
+              : fixtureIsThisWeek
+                ? `This week's fixture is ${fixture.homeTeam} versus ${fixture.awayTeam}. Use Advance Week below to prepare Match Day.`
+                : `Next fixture is ${fixture.homeTeam} versus ${fixture.awayTeam}. Advance to its match week to prepare.`}
             onPress={() => onOpenFixture(fixture.id)}
             disabled={!fixture.matchdayReady}
             variant="action"

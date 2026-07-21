@@ -9,7 +9,8 @@ describe('first training guidance', () => {
 
     expect(source).toContain("const guidePlayers = guideTraining && viewModel.assignedPlayerIds.length === 0;");
     expect(source).toContain("const guideDrills = guideTraining");
-    expect(source).toContain("'relative border-4 border-blue-dark bg-blue-light p-1'");
+    expect(source).toContain("'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'");
+    expect(source).toContain("'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'");
     expect(source).toContain('label="Tap in here"');
     expect(source).toContain('detail="Add up to 3 players."');
     expect(source).toContain('onTouchStart={rememberPlayerGuideTouch}');

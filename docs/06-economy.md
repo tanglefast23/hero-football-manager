@@ -12,7 +12,7 @@ Money is lumpy and stressful; TP flows steadily from playing. That separation me
 ## Income (all four, per user decision)
 
 1. **Sponsors** — the backbone. 1 slot at start → 3 by fame tier. Each sponsor: monthly fee + season objective bonus ("finish top 3": +5,000) + a signing perk (cash advance, or unlocks a scout region/drill). Offers refresh each pre-season; better divisions and fame unlock better sponsors. A **Buzz meter** (goals, wins, hero moments) settles into a sponsor bonus twice per season (Grand Prix Story's twice-yearly settlement — two financial "paydays" beat a flat trickle).
-2. **Tickets & fans** — home gate = fans × attendance rate × ticket price. Fans grow on wins, star heroes fielded, promotions; shrink slowly on losing streaks. Ticket price is settable (too high = attendance drops — a gentle lever, not a spreadsheet).
+2. **Tickets & fans** — every home match, league or Cup, earns its own gate: fans × attendance rate × ticket price. A double-header week can therefore show separate League and National Cup gate lines. Fans grow on wins, star heroes fielded, promotions; shrink slowly on losing streaks. Ticket price is settable (too high = attendance drops — a gentle lever, not a spreadsheet).
 3. **Prize money** — league placement paid at season end + per-round cup prizes. Promotion pays a bonus.
 4. **Player sales** — doc 05. The "training facilities print money" loop.
 
@@ -59,7 +59,7 @@ The club owns **one works crew**, so only one build or upgrade project may run a
 
 | Item | Value |
 |---|---|
-| Starting cash / squad | 25,000 · 13 players; head-coach vacancy filled through the market |
+| Starting cash / squad | 45,000 · 15/17 players after creating the rookie; head-coach vacancy filled through the market |
 | Player wage (D5) | 150–400/wk (squad ≈ 3,200/wk) |
 | Coach wage | 500/wk (Lv1) |
 | Season 1 subsidy | League pays 50% of wages |

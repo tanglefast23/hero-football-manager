@@ -8,7 +8,7 @@ import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.10 ships M4's canonical target handling: early manual taps wait for a
+// m1.11 ships M4's canonical target handling: early manual taps wait for a
 // useful context, Future Sight consumes the next eligible pass, and Web Trap
 // springs from a fixed pitch point. These behaviors change replay bytes.
 export const ENGINE_VERSION = 'm1.11';

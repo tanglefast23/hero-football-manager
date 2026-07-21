@@ -56,6 +56,11 @@ const TABS: ReadonlyArray<{ id: ManagementTab; label: string; glyph: string; ava
   { id: 'league', label: 'League', glyph: '≡', available: true },
 ];
 
+// Persistent chrome must not consume the screen when iOS Dynamic Type is at
+// its accessibility maximum. The full names remain available to assistive
+// technology through accessibilityLabel.
+const CHROME_MAX_FONT_SIZE_MULTIPLIER = 1.3;
+
 /** Compact top-bar numerals: commas under 10k, then k / M so three fit on one row. */
 function abbrev(n: number): string {
   const abs = Math.abs(n);
@@ -192,7 +197,12 @@ export function ManagementShell({
           </View>
         </View>
         <View className="mt-2 border-t border-ink/15 pt-2">
-          <Text className="font-mono text-sm font-bold uppercase text-blue-dark" numberOfLines={1}>
+          <Text
+            className="font-mono text-sm font-bold uppercase text-blue-dark"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
+          >
             {seasonLabel} · {weekLabel}
           </Text>
         </View>
@@ -216,6 +226,7 @@ export function ManagementShell({
             onPress={onAdvanceWeek}
             disabled={advanceWeekDisabled}
             compact
+            maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
           />
         </View>
         <View
@@ -239,7 +250,9 @@ export function ManagementShell({
               <Pressable
                 key={tab.id}
                 accessibilityRole="tab"
-                accessibilityLabel={tab.available ? `${tab.label} tab` : `${tab.label} tab, unavailable`}
+                accessibilityLabel={guided
+                  ? `${tab.label} tab. Bert says: ${tab.id === 'squad' ? 'open Squad' : 'return Home'}`
+                  : tab.available ? `${tab.label} tab` : `${tab.label} tab, unavailable`}
                 accessibilityState={{ selected, disabled: !tab.available }}
                 disabled={!tab.available}
                 onPress={() => onTabChange(tab.id)}
@@ -255,10 +268,20 @@ export function ManagementShell({
                     style={styles.tabCue}
                   />
                 ) : null}
-                <Text className={selected ? 'font-mono text-lg font-bold text-ink' : 'font-mono text-lg text-ink/50'}>
+                <Text
+                  className={selected ? 'font-mono text-lg font-bold text-ink' : 'font-mono text-lg text-ink/50'}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
+                >
                   {tab.glyph}
                 </Text>
-                <Text className={selected ? 'mt-1 text-sm font-bold uppercase text-ink' : 'mt-1 text-sm uppercase text-ink/50'}>
+                <Text
+                  className={selected ? 'mt-1 text-sm font-bold uppercase text-ink' : 'mt-1 text-sm uppercase text-ink/50'}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
+                >
                   {tab.label}
                 </Text>
               </Pressable>

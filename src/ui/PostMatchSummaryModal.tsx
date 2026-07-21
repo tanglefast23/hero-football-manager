@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, ScrollView, Text, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   playMatchStatementSfx,
@@ -16,6 +16,7 @@ import {
   StatusChip,
   formatCompactNumber,
   formatCurrency,
+  formatSignedCompactNumber,
 } from './components/Scorecard';
 
 export interface PostMatchSummaryModalProps {
@@ -51,18 +52,18 @@ export function PostMatchSummaryModal({
       statusBarTranslucent
     >
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right', 'bottom']}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close match summary"
-          className="flex-1 justify-end px-3 pb-3"
-          style={{ backgroundColor: 'rgba(36,31,46,0.62)' }}
-          onPress={onDismiss}
-        >
+        <View className="flex-1 justify-end px-3 pb-3">
           <Pressable
+            accessible={false}
+            style={StyleSheet.absoluteFill}
+            onPress={onDismiss}
+          >
+            <View className="flex-1" style={{ backgroundColor: 'rgba(36,31,46,0.62)' }} />
+          </Pressable>
+          <View
             accessibilityViewIsModal
             className="w-full overflow-hidden border-2 border-b-4 border-ink bg-paper"
             style={{ maxHeight: '92%' }}
-            onPress={() => {}}
             onTouchStart={() => setAnimationsComplete(true)}
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
@@ -122,7 +123,13 @@ export function PostMatchSummaryModal({
               <PaperPanel kicker="Accounts office" title="Match statement" stamp="Recorded" className="mt-5">
                 <View className="border-y border-ink/30">
                   {viewModel.ledger.map((line, index) => (
-                    <View key={line.id} className="flex-row items-center border-b border-ink/10 py-3 last:border-b-0">
+                    <View
+                      key={line.id}
+                      accessible
+                      accessibilityRole="text"
+                      accessibilityLabel={`${line.label}, ${line.amount > 0 ? 'plus ' : line.amount < 0 ? 'minus ' : ''}${formatCurrency(Math.abs(line.amount))}`}
+                      className="flex-row items-center border-b border-ink/10 py-3 last:border-b-0"
+                    >
                       <Text className="flex-1 text-base text-ink">{line.label}</Text>
                       <CountUpAmount
                         amount={line.amount}
@@ -158,7 +165,11 @@ export function PostMatchSummaryModal({
               <View className="mt-6">
                 <SectionLabel eyebrow="Dressing room" title="What moved" />
                 <View className="flex-row gap-2">
-                  <Metric label="TP earned" value={`+${formatCompactNumber(viewModel.trainingPointsGained)}`} tone="positive" />
+                  <Metric
+                    label="TP change"
+                    value={formatSignedCompactNumber(viewModel.trainingPointsGained)}
+                    tone={viewModel.trainingPointsGained < 0 ? 'negative' : 'positive'}
+                  />
                   <Metric
                     label="Fans"
                     value={`${viewModel.fanDelta > 0 ? '+' : ''}${formatCompactNumber(viewModel.fanDelta)}`}
@@ -176,8 +187,8 @@ export function PostMatchSummaryModal({
                 onPress={onDismiss}
               />
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </SafeAreaView>
     </Modal>
   );

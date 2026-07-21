@@ -254,7 +254,7 @@ export function FixtureMatchDayScreen({
           <View className="flex-1">
             <ActionButton
               label="Watch match  ▸"
-              accessibilityLabel="Watch this match"
+              accessibilityLabel="Watch match"
               onPress={onWatchMatch}
               disabled={watchDisabled || !viewModel.licenseReady}
             />

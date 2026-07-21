@@ -128,6 +128,19 @@ import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
 import { careerMarketViewModelSource } from './src/application/market-source-adapter';
 
+// Dynamic Type still grows every player-facing label, but the simulator's
+// largest accessibility category is more than 3x and makes the fixed-width
+// management cards collapse into single letters. Keep a generous global cap;
+// individual compact chrome controls use a tighter cap in ManagementShell.
+const APP_MAX_FONT_SIZE_MULTIPLIER = 1.6;
+const appText = Text as typeof Text & {
+  defaultProps?: { maxFontSizeMultiplier?: number };
+};
+appText.defaultProps = {
+  ...appText.defaultProps,
+  maxFontSizeMultiplier: APP_MAX_FONT_SIZE_MULTIPLIER,
+};
+
 const DATABASE_NAME = 'hero-football-manager.db';
 type LandingView = 'title' | 'story' | 'settings';
 
@@ -808,6 +821,7 @@ function GameApp() {
   } else if (store.screen === 'create-player' && store.career !== null) {
     screen = (
       <CharacterCreationScreen
+        initialDifficulty={store.career.difficulty ?? 'COZY'}
         onComplete={completeRookieCreation}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
@@ -1481,6 +1495,12 @@ function FeedbackNotice({
   tone: 'error' | 'info' | 'success';
   onDismiss: () => void;
 }) {
+  useEffect(() => {
+    if (tone === 'error') return undefined;
+    const timer = setTimeout(onDismiss, 4_000);
+    return () => clearTimeout(timer);
+  }, [message, onDismiss, tone]);
+
   const palette = tone === 'success'
     ? 'border-pitch-dark bg-pitch-light'
     : tone === 'info'
@@ -1491,7 +1511,7 @@ function FeedbackNotice({
     <Pressable
       accessibilityRole={tone === 'error' ? 'alert' : 'button'}
       accessibilityLiveRegion={tone === 'error' ? 'assertive' : 'polite'}
-      accessibilityLabel={`${message}. Tap to dismiss.`}
+      accessibilityLabel={feedbackNoticeAccessibilityLabel(message)}
       onPress={onDismiss}
       className={`absolute left-4 right-4 top-16 border-2 px-4 py-3 shadow-lg shadow-black/40 ${palette}`}
     >
@@ -1502,6 +1522,12 @@ function FeedbackNotice({
       </View>
     </Pressable>
   );
+}
+
+function feedbackNoticeAccessibilityLabel(message: string): string {
+  const trimmed = message.trim();
+  const sentence = /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+  return `${sentence} Tap to dismiss.`;
 }
 
 function ConfirmationSheet({

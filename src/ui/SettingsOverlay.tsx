@@ -217,7 +217,7 @@ export function SettingsOverlay({
             ) : null}
             <View className="my-4 h-0.5 bg-ink/15" />
             {difficultyLabel ? (
-              <View accessible accessibilityLabel={`Career difficulty ${difficultyLabel}`} className="mb-4 flex-row items-center justify-between border-2 border-gold-dark bg-gold-light px-3 py-2">
+              <View accessible accessibilityRole="text" accessibilityLabel={`Career difficulty ${difficultyLabel}`} className="mb-4 flex-row items-center justify-between border-2 border-gold-dark bg-gold-light px-3 py-2">
                 <Text className="font-mono text-sm font-bold uppercase text-ink">Career difficulty</Text>
                 <Text className="font-mono text-base font-bold text-gold-dark">{difficultyLabel}</Text>
               </View>

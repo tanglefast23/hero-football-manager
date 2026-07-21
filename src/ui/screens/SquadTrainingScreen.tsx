@@ -300,7 +300,7 @@ export function SquadTrainingScreen({
           right={<StatusChip label={`${viewModel.assignedPlayerIds.length} assigned`} />}
         />
         <View className={guidePlayers
-          ? 'relative border-4 border-blue-dark bg-blue-light p-1'
+          ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
           : 'border-2 border-ink bg-white'}>
           {guidePlayers && !playerGuideDismissed ? (
             <TutorialTapCue
@@ -507,7 +507,7 @@ export function SquadTrainingScreen({
           Pick up to {viewModel.maxDrills}. Each selected drill is charged once per week and trains every assigned player. The plan repeats weekly until changed.
         </Text>
         <View className={guideDrills
-          ? 'relative gap-2 border-4 border-blue-dark bg-blue-light p-1'
+          ? 'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'
           : 'gap-2'}
           ref={drillListRef}
           collapsable={false}
@@ -568,14 +568,14 @@ export function SquadTrainingScreen({
             ref={lockPlanRef}
             collapsable={false}
             onLayout={scheduleTrainingGuideVisibility}
-            className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
+            className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
           >
             {guideTraining && viewModel.selectedDrillCount > 0 ? (
               <TutorialTapCue detail="Save the plan" style={{ left: 4, top: -74 }} />
             ) : null}
             <ActionButton
               label="Save weekly plan"
-              accessibilityLabel="Save the repeating weekly training plan"
+              accessibilityLabel="Save weekly plan. Save the repeating weekly training plan"
               onPress={onApplyTraining}
               disabled={!viewModel.canApply}
             />
