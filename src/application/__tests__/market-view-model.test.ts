@@ -170,6 +170,18 @@ describe('marketViewModel', () => {
     });
   });
 
+  it('never presents more than three coach choices', () => {
+    const source = baseSource();
+    const expanded = Array.from({ length: 5 }, (_, index) => ({
+      ...source.coachCandidates[index % source.coachCandidates.length],
+      id: `shortlist-${index}`,
+      name: `Coach ${index}`,
+    }));
+
+    expect(marketViewModel({ ...source, coachCandidates: expanded }).coaches.map(coach => coach.id))
+      .toEqual(['shortlist-0', 'shortlist-1', 'shortlist-2']);
+  });
+
   it('locks every hire action while one head coach is employed', () => {
     const source = baseSource();
     const currentCoach = source.coachCandidates[0];

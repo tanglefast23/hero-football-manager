@@ -22,6 +22,7 @@ export interface ClubHomeScreenProps {
   onOpenLeague: () => void;
   onProtectBoardCandidate: (playerId: string) => void;
   guideAlertId?: string;
+  lockOtherAlerts?: boolean;
   guideBoard?: boolean;
   textScale?: TextScale;
 }
@@ -33,6 +34,7 @@ export function ClubHomeScreen({
   onOpenLeague,
   onProtectBoardCandidate,
   guideAlertId,
+  lockOtherAlerts = false,
   guideBoard = false,
   textScale = 1,
 }: ClubHomeScreenProps) {
@@ -109,14 +111,17 @@ export function ClubHomeScreen({
             </View>
           ) : viewModel.alerts.map(alert => {
             const guided = alert.id === guideAlertId;
+            const locked = lockOtherAlerts && guideAlertId !== undefined && !guided;
             return (
               <Pressable
                 key={alert.id}
                 accessibilityRole="button"
                 accessibilityLabel={`${alert.title}. ${alert.detail}`}
+                accessibilityState={{ disabled: locked }}
+                disabled={locked}
                 onPress={() => onOpenAlert(alert.id)}
                 className={`relative min-h-14 flex-row items-center justify-between border-2 border-b-4 p-3 ${alertPalette(alert.tone)}`}
-                style={({ pressed }) => ({ opacity: pressed ? 0.75 : undefined })}
+                style={({ pressed }) => ({ opacity: locked ? 0.45 : pressed ? 0.75 : undefined })}
               >
                 {guided ? (
                   <TutorialTapCue

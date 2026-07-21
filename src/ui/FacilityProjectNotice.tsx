@@ -7,6 +7,7 @@ import { ManagementSprite } from './components/ManagementSprite';
 export interface FacilityProjectNoticeModel {
   type: FacilityTypeViewModel;
   name: string;
+  benefitLabel: string;
   kind: 'BUILD' | 'UPGRADE';
   targetLevel: 1 | 2 | 3;
   weeks: number;
@@ -52,6 +53,14 @@ export function FacilityProjectNotice({
               <Text className="mt-3 font-pixel text-lg uppercase text-ink">{project.name}</Text>
               <View className="mt-2">
                 <StatusChip label={`Level ${project.targetLevel} · ${weekLabel(project.weeks)}`} tone="hero" />
+              </View>
+              <View className="mx-3 mt-4 self-stretch border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-3">
+                <Text className="text-center font-mono text-xs font-bold uppercase tracking-widest text-blue-dark">
+                  When complete
+                </Text>
+                <Text className="mt-2 text-center font-pixel text-base uppercase leading-5 text-ink">
+                  {project.benefitLabel}
+                </Text>
               </View>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">

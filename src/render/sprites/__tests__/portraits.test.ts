@@ -2,7 +2,7 @@ import portraitData from '../portraits.json';
 import spriteData from '../sprites.json';
 import manifest from '../player-look-manifest.json';
 import { playerLookId } from '../player-look';
-import { FIELD_PLAYER_LOOK_COUNT, GOALKEEPER_LOOK_COUNT } from '../../../game/player-appearance';
+import { CREATED_PLAYER_LOOK_COUNT, FIELD_PLAYER_LOOK_COUNT, GOALKEEPER_LOOK_COUNT } from '../../../game/player-appearance';
 
 const sheet = portraitData as {
   cell: { w: number; h: number };
@@ -10,23 +10,52 @@ const sheet = portraitData as {
   sprites: Record<string, string[]>;
 };
 const matchSheet = spriteData as { sprites: Record<string, string[]> };
-const IDS = [...manifest.field, ...manifest.goalkeeper];
+const IDS = [...manifest.field, ...manifest.goalkeeper, ...manifest.created];
 const EXPRESSIONS = ['rest', 'joy', 'ko'] as const;
 
 describe('career player portrait roster', () => {
-  it('ships 193 distinct looks with all three expressions', () => {
+  it('ships 193 roster looks plus every paper-doll combination with all three expressions', () => {
     expect(manifest.field).toHaveLength(168);
     expect(manifest.goalkeeper).toHaveLength(25);
+    expect(manifest.created).toHaveLength(168);
     expect(manifest.field).toHaveLength(FIELD_PLAYER_LOOK_COUNT);
     expect(manifest.goalkeeper).toHaveLength(GOALKEEPER_LOOK_COUNT);
-    expect(IDS).toHaveLength(193);
-    expect(Object.keys(sheet.sprites)).toHaveLength(579);
+    expect(manifest.created).toHaveLength(CREATED_PLAYER_LOOK_COUNT);
+    expect(IDS).toHaveLength(361);
+    expect(Object.keys(sheet.sprites)).toHaveLength(1083);
     const resting = IDS.map(id => JSON.stringify(sheet.sprites[`${id}:rest`]));
     expect(new Set(resting).size).toBe(IDS.length);
     for (const id of IDS) {
       const expressions = EXPRESSIONS.map(expression => sheet.sprites[`${id}:${expression}`]);
       expect(expressions.every(Boolean)).toBe(true);
       expect(new Set(expressions.map(rows => JSON.stringify(rows))).size).toBe(3);
+    }
+  });
+
+  it('changes only the selected paper-doll layer', () => {
+    const rows = (id: string) => sheet.sprites[`${id}:joy`];
+    const paintedMask = (value: string[]) => value.map(row => row.replace(/[^.]/g, '#'));
+    const faceCore = (value: string[]) => value.slice(8, 16).map(row => row.slice(7, 17));
+    const createdId = (skinTone: number, hairstyle: number, kitAccent: number) => (
+      `c${String(skinTone * 28 + hairstyle * 4 + kitAccent).padStart(3, '0')}`
+    );
+
+    const base = rows('c000');
+    for (let skinTone = 1; skinTone < 6; skinTone += 1) {
+      const nextSkin = rows(createdId(skinTone, 0, 0));
+      expect(paintedMask(nextSkin)).toEqual(paintedMask(base));
+      expect(nextSkin).not.toEqual(base);
+    }
+    for (let hairstyle = 1; hairstyle < 7; hairstyle += 1) {
+      const nextHair = rows(createdId(0, hairstyle, 0));
+      expect(faceCore(nextHair)).toEqual(faceCore(base));
+      expect(nextHair.slice(16)).toEqual(base.slice(16));
+      expect(nextHair).not.toEqual(base);
+    }
+    for (let kitAccent = 1; kitAccent < 4; kitAccent += 1) {
+      const nextAccent = rows(createdId(0, 0, kitAccent));
+      expect(nextAccent.slice(0, 16)).toEqual(base.slice(0, 16));
+      expect(nextAccent.slice(16)).not.toEqual(base.slice(16));
     }
   });
 

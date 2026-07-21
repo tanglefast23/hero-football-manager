@@ -4,8 +4,11 @@ import {
   beginStoryOnboarding,
   buildCareerTeams,
   createCareer,
+  minimumDevelopmentHeadroom,
+  playerAttributeCaps,
   potentialGradeForOverall,
   projectedPlayerOverall,
+  roleOverall,
 } from '../../game';
 import { runHeadlessFullCareer } from '../../game/headless';
 import { serializeGameState } from '../../persistence/game-state-codec';
@@ -64,6 +67,25 @@ describe('launch career adapter', () => {
 
     expect(grades).toHaveLength(16);
     expect(grades.every(grade => grade.startsWith('E') || grade.startsWith('F'))).toBe(true);
+  });
+
+  it('gives every starting player age-scaled room across multiple useful attributes', () => {
+    const career = createCareer(createLaunchCareerSetup(20260718, undefined, undefined, 'full'));
+    const players = career.players.filter(player => player.clubId === career.userClubId);
+
+    for (const player of players) {
+      const current = roleOverall(player.role, player.attrs);
+      const projected = projectedPlayerOverall(player);
+      const expectedRoom = Math.min(99 - current, minimumDevelopmentHeadroom(player.age ?? 24));
+      const caps = playerAttributeCaps(player);
+      const relevant = player.role === 'GK'
+        ? ['pac', 'pas', 'def', 'tec', 'sta', 'ref'] as const
+        : ['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const;
+      const trainableAttributes = relevant.filter(attribute => caps[attribute] > player.attrs[attribute]);
+
+      expect(projected - current).toBeGreaterThanOrEqual(expectedRoom);
+      expect(trainableAttributes.length).toBeGreaterThanOrEqual(2);
+    }
   });
 
   it('repairs old Division 5 launch-player potential without changing the hired main player', () => {
@@ -159,7 +181,7 @@ describe('launch career adapter', () => {
 
     const reconciled = reconcileLaunchRoster(established, content, true);
 
-    expect(reconciled.launchRosterVersion).toBe(1);
+    expect(reconciled.launchRosterVersion).toBe(2);
     expect(reconciled.players.some(player => player.id === 'bramble-rovers-p14')).toBe(false);
     expect(reconciled.players.every(player =>
       reconciled.clubs.some(club => club.id === player.clubId),

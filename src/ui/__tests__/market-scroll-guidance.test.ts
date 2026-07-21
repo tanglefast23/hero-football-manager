@@ -20,4 +20,19 @@ describe('market scroll guidance', () => {
     expect(source).toContain('const targetFullyVisible = targetY >= viewportY');
     expect(source).toContain("if (targetFullyVisible) dismissScrollGuide('scout-mission');");
   });
+
+  it('routes every market inbox destination to its exact docket section', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    const market = readFileSync(join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'), 'utf8');
+
+    expect(app).toContain("destination === 'youth-intake'");
+    expect(app).toContain("destination === 'market-scouting'");
+    expect(app).toContain("destination === 'market-transfers'");
+    expect(app).toContain("destination === 'coach-market'");
+    expect(app).toContain('requestedSection={marketSectionRequest?.section}');
+    expect(market).toContain("requestedSection === 'YOUTH'");
+    expect(market).toContain("requestedSection === 'SCOUT'");
+    expect(market).toContain("requestedSection === 'TRANSFERS'");
+    expect(market).toContain("requestedSection === 'COACHES'");
+  });
 });

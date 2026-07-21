@@ -83,6 +83,7 @@ import {
   type CoachOverlayCoach,
   type FacilityProjectNoticeModel,
   type PlayerSigningConfirmation,
+  type MarketSectionId,
   formatCurrency,
   shouldShowOpeningBrief,
 } from './src/ui';
@@ -194,6 +195,10 @@ function GameApp() {
   const [assistantPageIndex, setAssistantPageIndex] = useState(0);
   const [requestedAssistantSequenceId, setRequestedAssistantSequenceId] = useState<AssistantGuideSequenceId | null>(null);
   const [conciergeFocus, setConciergeFocus] = useState<AssistantGuideFocus | null>(null);
+  const [marketSectionRequest, setMarketSectionRequest] = useState<{
+    section: MarketSectionId;
+    token: number;
+  } | null>(null);
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
@@ -315,6 +320,7 @@ function GameApp() {
     setFacilityProjectNotice({
       type: building.type,
       name: activeProject.name,
+      benefitLabel: activeProject.benefitLabel,
       kind: activeProject.kind,
       targetLevel: activeProject.targetLevel,
       weeks: activeProject.totalWeeks,
@@ -483,6 +489,20 @@ function GameApp() {
       role: offer.role,
       lookId: offer.lookId,
       source: 'academy',
+    });
+  }, []);
+
+  const completeRookieCreation = useCallback((draft: Parameters<typeof store.completePlayerCreation>[0]) => {
+    useM1Store.getState().completePlayerCreation(draft);
+    const career = useM1Store.getState().career;
+    const rookie = career?.players.find(player => player.createdAppearance !== undefined);
+    if (rookie === undefined) return;
+    setPlayerSigning({
+      playerId: rookie.id,
+      playerName: rookie.name,
+      role: rookie.role,
+      lookId: rookie.lookId,
+      source: 'rookie',
     });
   }, []);
 
@@ -692,6 +712,21 @@ function GameApp() {
     setAssistantPageIndex(0);
     setConciergeFocus(null);
     setRequestedAssistantSequenceId(sequenceId);
+    const requestedMarketSection: MarketSectionId | undefined = destination === 'youth-intake'
+      ? 'YOUTH'
+      : destination === 'market-scouting'
+        ? 'SCOUT'
+        : destination === 'market-transfers'
+          ? 'TRANSFERS'
+          : destination === 'coach-market'
+            ? 'COACHES'
+            : undefined;
+    if (requestedMarketSection !== undefined) {
+      setMarketSectionRequest(current => ({
+        section: requestedMarketSection,
+        token: (current?.token ?? 0) + 1,
+      }));
+    }
     const tab = sequenceId === 'board-ultimatum' || sequenceId === 'board-protection'
       ? 'home'
       : destination === 'coach-market'
@@ -773,11 +808,8 @@ function GameApp() {
   } else if (store.screen === 'create-player' && store.career !== null) {
     screen = (
       <CharacterCreationScreen
-        onComplete={store.completePlayerCreation}
+        onComplete={completeRookieCreation}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
-        guideCopy={content.assistantGuide.m4Fiction.creation}
-        difficultyCopy={content.assistantGuide.m4Fiction.difficulty}
-        textScale={preferences.textScale}
       />
     );
   } else if (
@@ -965,6 +997,7 @@ function GameApp() {
         activeTab={store.activeTab}
         onTabChange={tab => {
           setConciergeFocus(null);
+          setMarketSectionRequest(null);
           store.setActiveTab(tab);
         }}
         onAdvanceWeek={advanceCareerWithSfx}
@@ -1104,6 +1137,8 @@ function GameApp() {
             onCloseNegotiation={store.closeTransferTalks}
             onDismissGuideFocus={() => setConciergeFocus(null)}
             guideFocus={conciergeFocus ?? undefined}
+            requestedSection={marketSectionRequest?.section}
+            requestedSectionToken={marketSectionRequest?.token}
           />
         ) : store.activeTab === 'league' && store.career.m2 !== undefined ? (
           <M2LeagueScreen
@@ -1139,6 +1174,10 @@ function GameApp() {
             textScale={preferences.textScale}
             onOpenFixture={store.openMatchday}
             onOpenAlert={alertId => {
+              if (
+                assistantObjective?.target === 'training-ground-alert'
+                && alertId !== 'training-ground'
+              ) return;
               const alert = home.alerts.find(candidate => candidate.id === alertId);
               if (alert?.guideSequenceId !== undefined && alert.destination !== undefined) {
                 if (alertId.startsWith('injury-')) {
@@ -1183,6 +1222,7 @@ function GameApp() {
               : conciergeFocus === 'retirement'
                 ? home.alerts.find(alert => alert.id.startsWith('retirement-announcement-'))?.id
                 : undefined}
+            lockOtherAlerts={assistantObjective?.target === 'training-ground-alert'}
             guideBoard={conciergeFocus === 'board-ultimatum' || conciergeFocus === 'board-protection'}
           />
         )}
@@ -1256,7 +1296,7 @@ function GameApp() {
             }
           }}
         />
-        {assistantSequenceId !== null ? (
+        {assistantSequenceId !== null && playerSigning?.source !== 'rookie' ? (
           <AssistantGuideOverlay
             content={content.assistantGuide}
             sequenceId={assistantSequenceId}

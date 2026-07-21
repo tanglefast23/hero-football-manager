@@ -13,7 +13,11 @@ describe('training-ground inbox letter', () => {
 
     const beforeBuild = homeViewModel(fresh);
     const proposal = beforeBuild.alerts.find(alert => alert.id === 'training-ground');
-    expect(beforeBuild.alerts).toHaveLength(3);
+    expect(beforeBuild.alerts).toHaveLength(2);
+    expect(beforeBuild.alerts.map(alert => alert.guideSequenceId)).toEqual([
+      'head-coach-market',
+      'facility-placement',
+    ]);
     expect(proposal).toMatchObject({
       guideSequenceId: 'facility-placement',
       destination: 'club-facilities',

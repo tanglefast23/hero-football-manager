@@ -8,6 +8,7 @@ export interface PlayerAppearanceIdentity {
 
 export const FIELD_PLAYER_LOOK_COUNT = 168;
 export const GOALKEEPER_LOOK_COUNT = 25;
+export const CREATED_PLAYER_LOOK_COUNT = 168;
 
 export interface CreatedAppearanceChoice {
   readonly skinTone: 0 | 1 | 2 | 3 | 4 | 5;
@@ -15,10 +16,10 @@ export interface CreatedAppearanceChoice {
   readonly kitAccent: 0 | 1 | 2 | 3;
 }
 
-/** Maps the editable paper-doll controls onto the shipped 168-look outfield atlas. */
+/** Maps the editable paper-doll controls onto the dedicated 168-look paper-doll atlas. */
 export function createdAppearanceLookId(appearance: CreatedAppearanceChoice): string {
   const index = appearance.skinTone * 28 + appearance.hairstyle * 4 + appearance.kitAccent;
-  return formatPlayerLookId('FWD', index);
+  return `c${String(index).padStart(3, '0')}`;
 }
 
 /**
@@ -31,6 +32,14 @@ export function generatedPlayerLookId(playerId: string, role: PlayerVisualRole):
 }
 
 export function isPlayerLookIdForRole(lookId: string, role: PlayerVisualRole): boolean {
+  const createdMatch = /^c(\d{3})$/.exec(lookId);
+  if (createdMatch !== null) {
+    const index = Number(createdMatch[1]);
+    return role !== 'GK'
+      && index >= 0
+      && index < CREATED_PLAYER_LOOK_COUNT
+      && lookId === `c${String(index).padStart(3, '0')}`;
+  }
   const match = /^(f|g)(\d+)$/.exec(lookId);
   if (match === null || match[1] !== (role === 'GK' ? 'g' : 'f')) return false;
   const index = Number(match[2]);

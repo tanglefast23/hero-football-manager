@@ -3,9 +3,11 @@ import {
   hasAssistantGuideMilestone,
   careerRosterCapacity,
   completeAssistantGuideSequence,
+  deferAssistantGuideSequencesUntilUnlock,
   isStoryCupGuideUnlocked,
   isStoryFeaturePacingActive,
   isStoryScoutingUnlocked,
+  isStoryYouthUnlocked,
   maxCareerFacilityLevel,
   type AssistantInboxGuideSequenceId,
   type AssistantGuideSequenceId,
@@ -112,7 +114,11 @@ export function dueAssistantInboxGuideSequences(
     due.push(isStoryFeaturePacingActive(state) ? 'roster-cap' : 'transfer-list');
   }
 
-  if (state.youthIntake?.status === 'OPEN' && state.youthIntake.offers.length > 0) {
+  if (
+    isStoryYouthUnlocked(state)
+    && state.youthIntake?.status === 'OPEN'
+    && state.youthIntake.offers.length > 0
+  ) {
     due.push('youth-intake');
   }
   if (state.m2.nationalCups.length > 0 && isStoryCupGuideUnlocked(state)) {
@@ -160,7 +166,26 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
   if (state.market?.assistantCoach !== undefined) {
     next = completeAssistantGuideSequence(next, 'assistant-coach-hire');
   }
-  return next;
+
+  if (!isStoryFeaturePacingActive(next)) return next;
+  const premature: AssistantInboxGuideSequenceId[] = [];
+  if (!isStoryYouthUnlocked(next)) premature.push('youth-intake');
+  if (!isStoryCupGuideUnlocked(next)) premature.push('national-cup');
+  if (
+    !isStoryScoutingUnlocked(next)
+    && next.market?.activeScoutMission === undefined
+    && (next.market?.scoutReports.length ?? 0) === 0
+  ) {
+    premature.push(
+      'scout-mission',
+      'scout-report',
+      'roster-cap',
+      'transfer-list',
+      'transfer-bid',
+      'transfer-negotiation',
+    );
+  }
+  return deferAssistantGuideSequencesUntilUnlock(next, premature);
 }
 
 export function currentAssistantObjective(

@@ -286,6 +286,25 @@ describe('M1 app store integration', () => {
     expect(settled.eventFlags).toContain('guide:bert:first-training-complete');
   });
 
+  it('warns and refuses a drill that would put the weekly plan over available TP', () => {
+    startCreatedCareer(790);
+    useM1Store.setState(state => ({
+      career: state.career === null ? null : { ...state.career, trainingPoints: 30 },
+    }));
+
+    useM1Store.getState().toggleDrill('sprints');
+    useM1Store.getState().toggleDrill('rondo');
+    useM1Store.getState().toggleDrill('duels');
+
+    expect(useM1Store.getState().selectedDrillIds).toEqual(['sprints', 'rondo']);
+    expect(useM1Store.getState().error).toBe(
+      'Duels would make this plan cost 36 TP, but you only have 30 TP. Choose a cheaper drill.',
+    );
+
+    useM1Store.getState().toggleDrill('rondo');
+    expect(useM1Store.getState()).toMatchObject({ selectedDrillIds: ['sprints'], error: null });
+  });
+
   it('updates the Starting XI through the app store', () => {
     startCreatedCareer(788);
     const before = useM1Store.getState().career!;

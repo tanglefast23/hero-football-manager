@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WeeklyReviewViewModel } from '../models';
 import {
@@ -14,6 +14,7 @@ import { PlayerDevelopmentSpotlight } from '../components/PlayerDevelopmentSpotl
 import { FacilityCompletionCard } from '../components/FacilityCompletionCard';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
+import { countUpValue } from '../count-up';
 
 export interface WeeklyReviewScreenProps {
   viewModel: WeeklyReviewViewModel;
@@ -37,10 +38,6 @@ export function WeeklyReviewScreen({
     return () => clearTimeout(timeout);
   }, [complete]);
 
-  const finishAnimations = () => {
-    if (!complete) setAnimationsComplete(true);
-  };
-
   const continueOrFinish = () => {
     if (complete) onContinue();
     else setAnimationsComplete(true);
@@ -51,7 +48,6 @@ export function WeeklyReviewScreen({
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
-        onTouchStart={finishAnimations}
       >
         <View className="border-b-2 border-ink pb-3">
           <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Weekly review</Text>
@@ -69,6 +65,7 @@ export function WeeklyReviewScreen({
         <View className="mt-3 flex-row gap-2">
           <WeeklyBalanceCard
             label="Money"
+            startingAmount={viewModel.cashBefore}
             currentAmount={viewModel.cashAfter}
             netAmount={viewModel.netAmount}
             complete={complete}
@@ -76,6 +73,7 @@ export function WeeklyReviewScreen({
           />
           <WeeklyBalanceCard
             label="TP"
+            startingAmount={viewModel.trainingPointsBefore}
             currentAmount={viewModel.trainingPointsAfter}
             netAmount={viewModel.netTrainingPoints}
             complete={complete}
@@ -185,12 +183,14 @@ type WeeklyBalanceKind = 'money' | 'training-points';
 
 function WeeklyBalanceCard({
   label,
+  startingAmount,
   currentAmount,
   netAmount,
   complete,
   kind,
 }: {
   label: string;
+  startingAmount: number;
   currentAmount: number;
   netAmount: number;
   complete: boolean;
@@ -199,15 +199,12 @@ function WeeklyBalanceCard({
   return (
     <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-3 py-2">
       <Text className="text-right text-sm font-bold uppercase text-ink/50">{label}</Text>
-      <Text
-        className="mt-1 text-right font-mono text-xl font-bold text-ink"
-        numberOfLines={1}
-        adjustsFontSizeToFit
-      >
-        {kind === 'money'
-          ? formatCurrency(currentAmount)
-          : `${formatCompactNumber(currentAmount)} TP`}
-      </Text>
+      <AnimatedBalanceAmount
+        from={startingAmount}
+        to={currentAmount}
+        complete={complete}
+        kind={kind}
+      />
       <View className="mt-2 border-t border-ink/20 pt-2">
         <Text className="text-right text-sm font-bold uppercase text-ink/50">
           {kind === 'money' ? 'Net' : 'Net TP'}
@@ -227,40 +224,70 @@ function AnimatedNetAmount({
   complete: boolean;
   kind: WeeklyBalanceKind;
 }) {
-  const [displayAmount, setDisplayAmount] = useState(complete ? amount : 0);
-
-  useEffect(() => {
-    if (complete) {
-      setDisplayAmount(amount);
-      return undefined;
-    }
-    let frame = 0;
-    let startedAt: number | null = null;
-    const animate = (timestamp: number) => {
-      if (startedAt === null) startedAt = timestamp;
-      const progress = Math.min(1, (timestamp - startedAt) / 850);
-      setDisplayAmount(Math.round(amount * progress));
-      if (progress < 1) frame = requestAnimationFrame(animate);
-    };
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, [amount, complete]);
+  const { value: displayAmount, impact } = useCelebratoryNumber(0, amount, complete, 850);
 
   return (
-    <Text
-      accessible
-      accessibilityLabel={`Net ${amount < 0 ? 'minus' : amount > 0 ? 'plus' : ''} ${Math.abs(amount)} ${kind === 'money' ? 'dollars' : 'training points'}`}
-      className={amount < 0
-        ? 'mt-1 text-right font-mono text-xl font-bold text-stamp'
-        : 'mt-1 text-right font-mono text-xl font-bold text-pitch-dark'}
-      numberOfLines={1}
-      adjustsFontSizeToFit
+    <Animated.View
+      style={{
+        alignSelf: 'stretch',
+        transform: [{
+          scale: impact.interpolate({ inputRange: [0, 1], outputRange: [1, 1.13] }),
+        }],
+      }}
     >
-      {displayAmount > 0 ? '+' : displayAmount < 0 ? '−' : ''}
-      {kind === 'money' ? '$' : ''}
-      {formatCompactNumber(Math.abs(displayAmount))}
-      {kind === 'training-points' ? ' TP' : ''}
-    </Text>
+      <Text
+        accessible
+        accessibilityLabel={`Net ${amount < 0 ? 'minus' : amount > 0 ? 'plus' : ''} ${Math.abs(amount)} ${kind === 'money' ? 'dollars' : 'training points'}`}
+        className={amount < 0
+          ? 'mt-1 text-right font-mono text-xl font-bold text-stamp'
+          : 'mt-1 text-right font-mono text-xl font-bold text-pitch-dark'}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {displayAmount > 0 ? '+' : displayAmount < 0 ? '−' : ''}
+        {kind === 'money' ? '$' : ''}
+        {formatCompactNumber(Math.abs(displayAmount))}
+        {kind === 'training-points' ? ' TP' : ''}
+      </Text>
+    </Animated.View>
+  );
+}
+
+function AnimatedBalanceAmount({
+  from,
+  to,
+  complete,
+  kind,
+}: {
+  from: number;
+  to: number;
+  complete: boolean;
+  kind: WeeklyBalanceKind;
+}) {
+  const { value, impact } = useCelebratoryNumber(from, to, complete, 1050);
+  const movementClass = to < from
+    ? 'text-stamp'
+    : to > from
+      ? 'text-pitch-dark'
+      : 'text-ink';
+  return (
+    <Animated.View
+      style={{
+        transform: [
+          { scale: impact.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) },
+          { translateY: impact.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) },
+        ],
+      }}
+    >
+      <Text
+        accessibilityLabel={`${kind === 'money' ? 'Money' : 'Training points'} ${from} to ${to}`}
+        className={`mt-1 text-right font-mono text-xl font-bold ${movementClass}`}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {kind === 'money' ? formatCurrency(value) : `${formatCompactNumber(value)} TP`}
+      </Text>
+    </Animated.View>
   );
 }
 
@@ -276,26 +303,57 @@ function AnimatedCount({
   complete: boolean;
   format: (value: number) => string;
 }) {
+  const { value } = useCelebratoryNumber(from, to, complete, 900);
+
+  return <>{format(value)}</>;
+}
+
+function useCelebratoryNumber(
+  from: number,
+  to: number,
+  complete: boolean,
+  durationMs: number,
+): { value: number; impact: Animated.Value } {
   const [value, setValue] = useState(complete ? to : from);
+  const impact = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (complete) {
       setValue(to);
+      impact.setValue(0);
       return undefined;
     }
     setValue(from);
+    impact.setValue(0);
     let frame = 0;
+    let landingAnimation: Animated.CompositeAnimation | undefined;
     let startedAt: number | null = null;
     const animate = (timestamp: number) => {
       if (startedAt === null) startedAt = timestamp;
-      const progress = Math.min(1, (timestamp - startedAt) / 900);
-      const eased = 1 - (1 - progress) ** 3;
-      setValue(Math.round(from + (to - from) * eased));
-      if (progress < 1) frame = requestAnimationFrame(animate);
+      const progress = Math.min(1, (timestamp - startedAt) / durationMs);
+      setValue(from + countUpValue(to - from, progress));
+      if (progress < 1) {
+        frame = requestAnimationFrame(animate);
+        return;
+      }
+      landingAnimation = Animated.sequence([
+        Animated.timing(impact, { toValue: 1, duration: 90, useNativeDriver: true }),
+        Animated.spring(impact, {
+          toValue: 0,
+          damping: 7,
+          stiffness: 230,
+          mass: 0.55,
+          useNativeDriver: true,
+        }),
+      ]);
+      landingAnimation.start();
     };
     frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, [complete, from, to]);
+    return () => {
+      cancelAnimationFrame(frame);
+      landingAnimation?.stop();
+    };
+  }, [complete, durationMs, from, impact, to]);
 
-  return <>{format(value)}</>;
+  return { value, impact };
 }

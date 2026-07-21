@@ -11,6 +11,7 @@ export type { PlayerVisualRole } from '../../game/player-appearance';
 interface PlayerLookManifest {
   readonly field: readonly string[];
   readonly goalkeeper: readonly string[];
+  readonly created: readonly string[];
   readonly legacy: Readonly<Record<string, string>>;
 }
 
@@ -18,6 +19,7 @@ const manifest = manifestData as PlayerLookManifest;
 
 export const FIELD_PLAYER_LOOK_IDS = manifest.field;
 export const GOALKEEPER_LOOK_IDS = manifest.goalkeeper;
+export const CREATED_PLAYER_LOOK_IDS = manifest.created;
 
 /**
  * A career player keeps the same visual identity everywhere. The original

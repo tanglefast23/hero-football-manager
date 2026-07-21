@@ -6,7 +6,9 @@ import {
   archetypeAttributeCap,
   capArchetypeTrainingGain,
   capPlayerTrainingGain,
+  developmentPotentialCeiling,
   deterministicPotentialCeiling,
+  minimumDevelopmentHeadroom,
   playerAttributeCaps,
   potentialTierForDivision,
   potentialGradeForOverall,
@@ -105,6 +107,23 @@ describe('archetype training caps', () => {
     expect(deterministicPotentialCeiling('player-1', 1)).toBeLessThanOrEqual(57);
     expect(deterministicPotentialCeiling('player-1', 5)).toBeGreaterThanOrEqual(94);
     expect(deterministicPotentialCeiling('player-1', 5)).toBeLessThanOrEqual(99);
+  });
+
+  test('keeps age-scaled growth room without raising current match strength', () => {
+    const attrs: Attrs = { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50, ref: 50 };
+    const youngCeiling = developmentPotentialCeiling({
+      id: 'young-d5-player', role: 'MID', attrs, age: 20, potential: 1,
+    });
+    const veteranCeiling = developmentPotentialCeiling({
+      id: 'veteran-d5-player', role: 'MID', attrs, age: 32, potential: 1,
+    });
+
+    expect(roleOverall('MID', attrs)).toBe(50);
+    expect(minimumDevelopmentHeadroom(20)).toBe(8);
+    expect(minimumDevelopmentHeadroom(32)).toBe(3);
+    expect(youngCeiling).toBeGreaterThanOrEqual(58);
+    expect(veteranCeiling).toBeGreaterThanOrEqual(53);
+    expect(youngCeiling).toBeGreaterThan(veteranCeiling);
   });
 
   test('higher divisions have deterministically stronger potential-tier distributions', () => {

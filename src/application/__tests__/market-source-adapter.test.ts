@@ -42,7 +42,7 @@ function exactReport(player: CareerPlayer): CareerMarketState['scoutReports'][nu
 
 describe('career market view-model source adapter', () => {
   it('derives deterministic scout briefs and live club context without mutating career state', () => {
-    const initial = fullCareer(711);
+    const initial = { ...fullCareer(711), week: 15 };
     const officeProject = buildCareerFacility(initial, 'scout-office', { x: 0, y: 0 }).state;
     const withOffice = {
       ...officeProject,
@@ -60,8 +60,8 @@ describe('career market view-model source adapter', () => {
     expect(first).toMatchObject({
       careerSeed: 711,
       season: 1,
-      week: 1,
-      currentCareerWeek: 1,
+      week: 15,
+      currentCareerWeek: 15,
       division: 5,
       cash: withOffice.clubs.find(club => club.id === withOffice.userClubId)?.cash,
       scoutOfficeLevel: 1,
@@ -102,7 +102,7 @@ describe('career market view-model source adapter', () => {
   });
 
   it('exposes an active mission, its charged cash, and the same deterministic option mapping', () => {
-    const state = fullCareer(812);
+    const state = { ...fullCareer(812), week: 15 };
     const options = careerMarketScoutOptions(state);
     const selected = options[0];
     const started = startCareerScoutMission(

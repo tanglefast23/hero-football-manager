@@ -28,6 +28,7 @@ describe('large career match-sprite roster', () => {
     expect(spriteKeyForMatchPlayer(11, 'r9', 'FWD', 'run1')).toBe('u:f08:run1');
     const generatedLook = playerLookId('academy-s3-7', 'MID');
     expect(spriteKeyForMatchPlayer(4, 'academy-s3-7', 'MID', 'run0')).toBe(`r:${generatedLook}:run0`);
+    expect(spriteKeyForMatchPlayer(4, 'created-player', 'FWD', 'run0', 'c167')).toBe('r:c167:run0');
     expect(() => spriteKeyForMatchPlayer(22, 'player', 'MID', 'run0')).toThrow('0 to 21');
     expect(() => spriteKeyForMatchPlayer(1, 'player', 'MID', 'ready0')).toThrow('only goalkeepers');
   });
@@ -41,11 +42,13 @@ describe('large career match-sprite roster', () => {
   });
 
   it('builds a match-sized sheet from only the active visual identities', () => {
-    const sheet = loadSpriteSheet(['r:f00', 'u:g01', 'r:f00']);
-    expect(Object.keys(sheet.sprites)).toHaveLength(27);
+    const sheet = loadSpriteSheet(['r:f00', 'u:g01', 'r:c167', 'r:f00']);
+    expect(Object.keys(sheet.sprites)).toHaveLength(39);
     expect(sheet.sprites).toHaveProperty('r:f00:run0');
     expect(sheet.sprites).toHaveProperty('u:g01:ready1');
     expect(sheet.sprites).toHaveProperty('u:g01:slide9');
+    expect(sheet.sprites).toHaveProperty('r:c167:run0');
+    expect(sheet.sprites).toHaveProperty('r:c167:slide9');
     expect(sheet.sprites).not.toHaveProperty('r:f01:run0');
   });
 

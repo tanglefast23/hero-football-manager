@@ -104,7 +104,10 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('guides the first emergency loan and transfer request to the correct desk', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260726, undefined, content, 'full'));
+    const initial = {
+      ...createCareer(createLaunchCareerSetup(20260726, undefined, content, 'full')),
+      season: 2,
+    };
     const requester = initial.players.find(player => player.clubId === initial.userClubId)!;
     let guided = M2_ASSISTANT_GUIDE_SEQUENCE_IDS
       .filter(sequenceId => (
@@ -316,7 +319,10 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('never shows more than three inbox cards and defers the remaining firsts', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260725, undefined, content, 'full'));
+    const initial = {
+      ...createCareer(createLaunchCareerSetup(20260725, undefined, content, 'full')),
+      week: 15,
+    };
     const inbox = homeViewModel(initial).alerts;
 
     expect(inbox).toHaveLength(3);

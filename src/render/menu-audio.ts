@@ -30,6 +30,7 @@ const MENU_SFX_SOURCES: Record<MenuSfx, AudioSource> = {
 };
 
 const MUSIC_VOLUME = 0.5;
+const LOOP_WATCHDOG_MS = 500;
 const IS_WEB = typeof document !== 'undefined';
 
 const players = new Map<Exclude<MenuTheme, null>, AudioPlayer>();
@@ -41,6 +42,8 @@ let ready = false;
 let initAttempted = false;
 let webPlaybackUnlocked = !IS_WEB;
 let removeWebUnlockListeners: (() => void) | null = null;
+let loopWatchdog: ReturnType<typeof setInterval> | null = null;
+const recoveringThemes = new Set<Exclude<MenuTheme, null>>();
 
 function warnOnce(context: string, error: unknown): void {
   if (warned.has(context)) return;
@@ -72,6 +75,47 @@ function playActiveTheme(): void {
   } catch (error) {
     warnOnce(`${activeTheme} playback failed`, error);
   }
+}
+
+function startLoopWatchdog(): void {
+  if (loopWatchdog !== null) return;
+  loopWatchdog = setInterval(() => {
+    const theme = activeTheme;
+    if (!ready || theme === null || recoveringThemes.has(theme)) return;
+    const player = players.get(theme);
+    if (player === undefined) return;
+    try {
+      // Expo Audio should loop natively. Reassert the flag and recover if a
+      // platform player still lands at the end instead of wrapping around.
+      player.loop = true;
+      const duration = player.duration;
+      const ended = player.isLoaded
+        && !player.playing
+        && Number.isFinite(duration)
+        && duration > 0
+        && player.currentTime >= duration - 0.05;
+      if (!ended) return;
+      recoveringThemes.add(theme);
+      player.seekTo(0)
+        .then(() => {
+          if (ready && activeTheme === theme) {
+            player.loop = true;
+            player.play();
+          }
+        })
+        .catch((error: unknown) => warnOnce(`${theme} loop recovery failed`, error))
+        .finally(() => recoveringThemes.delete(theme));
+    } catch (error) {
+      recoveringThemes.delete(theme);
+      warnOnce(`${theme} loop watchdog failed`, error);
+    }
+  }, LOOP_WATCHDOG_MS);
+}
+
+function stopLoopWatchdog(): void {
+  if (loopWatchdog !== null) clearInterval(loopWatchdog);
+  loopWatchdog = null;
+  recoveringThemes.clear();
 }
 
 function armWebAudioUnlock(): void {
@@ -128,6 +172,7 @@ export function initMenuAudio(): void {
     }
     ready = true;
     applyMasterVolume();
+    startLoopWatchdog();
   } catch (error) {
     players.clear();
     sfxPlayers.clear();
@@ -196,6 +241,7 @@ export function setMenuTheme(theme: MenuTheme): void {
 }
 
 export function teardownMenuAudio(): void {
+  stopLoopWatchdog();
   removeWebUnlockListeners?.();
   removeWebUnlockListeners = null;
   for (const [theme, player] of players) {

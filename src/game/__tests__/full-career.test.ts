@@ -161,7 +161,7 @@ describe('full M2 career clock', () => {
       expect(relaunched.players.every(player =>
         relaunched.clubs.some(club => club.id === player.clubId),
       )).toBe(true);
-      expect(relaunched.launchRosterVersion).toBe(1);
+      expect(relaunched.launchRosterVersion).toBe(2);
       expect(parseStoredGameState(serializeGameState(relaunched))).toEqual(relaunched);
     }
   });

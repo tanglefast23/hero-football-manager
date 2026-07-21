@@ -160,33 +160,39 @@ export function ManagementShell({
       edges={['top', 'left', 'right', 'bottom']}
       onPointerDown={onDismissGuidance}
     >
-      {/* Persistent HUD bar — controls above, full-width club and date below. */}
+      {/* Persistent HUD bar — club and controls share the top row. */}
       <View
         className="border-b-2 border-ink bg-paper-dark px-3 py-2.5"
         onLayout={moneyGuideAnchor.scheduleMeasurement}
       >
-        <View className="flex-row items-center justify-end gap-2">
-          {onOpenLedger ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open the club ledger"
-              onPress={onOpenLedger}
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
-            >
-              {resourceCluster}
-            </Pressable>
-          ) : (
-            resourceCluster
-          )}
-          {onOpenSettings ? (
-            <SettingsButton onPress={onOpenSettings} />
-          ) : null}
-        </View>
-        <View className="mt-2 border-t border-ink/15 pt-2">
-          <Text className="font-pixel text-base uppercase text-ink" numberOfLines={1}>
+        <View className="flex-row items-center gap-2">
+          <Text
+            className="min-w-0 flex-1 font-pixel text-sm uppercase text-ink"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {clubName}
           </Text>
-          <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark" numberOfLines={1}>
+          <View className="flex-row items-center gap-2">
+            {onOpenLedger ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open the club ledger"
+                onPress={onOpenLedger}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
+              >
+                {resourceCluster}
+              </Pressable>
+            ) : (
+              resourceCluster
+            )}
+            {onOpenSettings ? (
+              <SettingsButton onPress={onOpenSettings} />
+            ) : null}
+          </View>
+        </View>
+        <View className="mt-2 border-t border-ink/15 pt-2">
+          <Text className="font-mono text-sm font-bold uppercase text-blue-dark" numberOfLines={1}>
             {seasonLabel} · {weekLabel}
           </Text>
         </View>

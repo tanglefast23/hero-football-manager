@@ -9,6 +9,8 @@ describe('bottom navigation guide', () => {
     expect(source).toContain('<NavigationGuidePage');
     expect(source).toContain('styles.navigationCalloutRow');
     expect(source).toContain('styles.navigationCalloutBox');
+    expect(source).toContain('styles.navigationCalloutArrow');
+    expect(source).toContain('>▼</Text>');
     expect(source).not.toContain('detail="The bottom rail"');
   });
 

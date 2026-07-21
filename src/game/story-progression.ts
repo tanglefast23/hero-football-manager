@@ -5,27 +5,27 @@ export const STORY_YOUTH_UNLOCK_WEEK = 3;
 export const STORY_CUP_GUIDE_WEEK = 5;
 export const STORY_SCOUT_UNLOCK_WEEK = 15;
 
-/** Story-only pacing disappears after Season 1; established and headless careers keep every system. */
+/** Every full Season 1 career uses the story pace, including migrated saves without onboarding state. */
 export function isStoryFeaturePacingActive(
-  state: Pick<GameState, 'onboarding' | 'season'>,
+  state: Pick<GameState, 'careerMode' | 'season'>,
 ): boolean {
-  return state.onboarding !== undefined && state.season === 1;
+  return state.careerMode === 'full' && state.season === 1;
 }
 
 export function isStoryYouthUnlocked(
-  state: Pick<GameState, 'onboarding' | 'season' | 'week'>,
+  state: Pick<GameState, 'careerMode' | 'season' | 'week'>,
 ): boolean {
   return !isStoryFeaturePacingActive(state) || state.week >= STORY_YOUTH_UNLOCK_WEEK;
 }
 
 export function isStoryCupGuideUnlocked(
-  state: Pick<GameState, 'onboarding' | 'season' | 'week'>,
+  state: Pick<GameState, 'careerMode' | 'season' | 'week'>,
 ): boolean {
   return !isStoryFeaturePacingActive(state) || state.week >= STORY_CUP_GUIDE_WEEK;
 }
 
 export function isStoryScoutingUnlocked(
-  state: Pick<GameState, 'onboarding' | 'season' | 'week'>,
+  state: Pick<GameState, 'careerMode' | 'season' | 'week'>,
 ): boolean {
   return !isStoryFeaturePacingActive(state) || state.week >= STORY_SCOUT_UNLOCK_WEEK;
 }

@@ -410,6 +410,7 @@ export interface ClubFacilityGridViewModel {
   activeProject?: {
     buildingId: string;
     name: string;
+    benefitLabel: string;
     kind: 'BUILD' | 'UPGRADE';
     weeksRemaining: number;
     totalWeeks: number;

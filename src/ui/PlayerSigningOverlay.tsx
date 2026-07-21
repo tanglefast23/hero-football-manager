@@ -1,14 +1,16 @@
+import { useEffect } from 'react';
 import { Modal, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel } from './components/Scorecard';
 import { PixelPortrait } from './components/PixelPortrait';
+import { playEventSuccessSfx } from '../render/management-sfx';
 
 export interface PlayerSigningConfirmation {
   playerId: string;
   playerName: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   lookId?: string;
-  source: 'transfer' | 'academy';
+  source: 'rookie' | 'transfer' | 'academy';
 }
 
 export function PlayerSigningOverlay({
@@ -20,6 +22,12 @@ export function PlayerSigningOverlay({
   reduceMotion?: boolean;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    if (player.source === 'rookie') playEventSuccessSfx();
+  }, [player.source]);
+
+  const isRookie = player.source === 'rookie';
+
   return (
     <Modal
       visible
@@ -31,7 +39,9 @@ export function PlayerSigningOverlay({
       <SafeAreaView className="flex-1 justify-center bg-ink/60 px-4 py-6" edges={['top', 'left', 'right', 'bottom']}>
         <View accessibilityViewIsModal>
           <PaperPanel
-            kicker={player.source === 'academy' ? 'Academy contract signed' : 'Transfer complete'}
+            kicker={isRookie
+              ? 'First contract signed'
+              : player.source === 'academy' ? 'Academy contract signed' : 'Transfer complete'}
             title="Welcome to the club!"
             stamp="SIGNED"
           >
@@ -41,18 +51,24 @@ export function PlayerSigningOverlay({
               </View>
               <Text className="mt-3 font-pixel text-xl uppercase text-ink">{player.playerName}</Text>
               <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
-                {player.role} · {player.source === 'academy' ? 'Academy graduate' : 'First-team signing'}
+                {player.role} · {isRookie
+                  ? 'Your first hire'
+                  : player.source === 'academy' ? 'Academy graduate' : 'First-team signing'}
               </Text>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
-              {player.source === 'academy'
+              {isRookie
+                ? '“Thanks for the opportunity, boss! I’m going to score so many goals they’ll need a second scoreboard.”'
+                : player.source === 'academy'
                 ? 'The contract is complete, and the player has joined your squad.'
                 : 'The transfer is complete. Your new player is ready for selection.'}
             </Text>
             <View className="mt-4">
               <ActionButton
-                label="Meet the squad  ▸"
-                accessibilityLabel="Close player signing confirmation"
+                label={isRookie ? 'Meet Bert  ▸' : 'Meet the squad  ▸'}
+                accessibilityLabel={isRookie
+                  ? 'Close rookie signing celebration and meet Bert'
+                  : 'Close player signing confirmation'}
                 onPress={onClose}
               />
             </View>

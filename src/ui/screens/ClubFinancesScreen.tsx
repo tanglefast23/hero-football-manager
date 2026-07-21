@@ -494,34 +494,44 @@ export function ClubFinancesScreen({
                       || guidedFirstFacilityAllowsPlacement(selectedBuildType, x, y);
                     const buildable = placementActive && guideAllowsCell && !occupied && canPlaceAt(x, y);
                     return (
-                      <Pressable
+                      <View
                         key={`facility-cell-${x}-${y}`}
-                        accessibilityRole={placementActive ? 'button' : 'none'}
-                        accessibilityLabel={placementActive
-                          ? `${buildable ? 'Build at' : 'Blocked at'} column ${x + 1}, row ${y + 1}`
-                          : undefined}
-                        disabled={!placementActive || !guideAllowsCell}
-                        onPress={() => handleGridCell(x, y)}
-                        onPressIn={() => setPreviewCell({ x, y })}
-                        onPressOut={() => setPreviewCell(null)}
                         style={{
                           flex: 1,
                           borderRightWidth: x === facilities.width - 1 ? 0 : 1,
                           borderBottomWidth: y === facilities.height - 1 ? 0 : 1,
                           borderColor: 'rgba(36, 31, 46, 0.28)',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: occupied
-                            ? undefined
-                            : placementActive
-                              ? (buildable ? 'rgba(154, 99, 214, 0.32)' : 'rgba(36, 31, 46, 0.05)')
-                              : 'rgba(92, 184, 92, 0.12)',
                         }}
                       >
-                        {buildable ? (
-                          <Text className="font-mono text-xs font-bold text-violet-dark">+</Text>
-                        ) : null}
-                      </Pressable>
+                        <Pressable
+                          accessibilityRole={placementActive ? 'button' : 'none'}
+                          accessibilityLabel={placementActive
+                            ? `${buildable ? 'Build at' : 'Blocked at'} column ${x + 1}, row ${y + 1}`
+                            : undefined}
+                          disabled={!placementActive || !guideAllowsCell}
+                          onPress={() => handleGridCell(x, y)}
+                          onPressIn={() => setPreviewCell({ x, y })}
+                          onPressOut={() => setPreviewCell(null)}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: occupied
+                              ? undefined
+                              : placementActive
+                                ? (buildable ? 'rgba(154, 99, 214, 0.32)' : 'rgba(36, 31, 46, 0.05)')
+                                : 'rgba(92, 184, 92, 0.12)',
+                          }}
+                        >
+                          {buildable ? (
+                            <Text className="font-mono text-xs font-bold text-violet-dark">+</Text>
+                          ) : null}
+                        </Pressable>
+                      </View>
                     );
                   })}
                 </View>

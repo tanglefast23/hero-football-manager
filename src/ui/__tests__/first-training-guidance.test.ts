@@ -12,7 +12,16 @@ describe('first training guidance', () => {
     expect(source).toContain("'relative border-4 border-blue-dark bg-blue-light p-1'");
     expect(source).toContain('label="Tap in here"');
     expect(source).toContain('detail="Add up to 3 players."');
+    expect(source).toContain('onTouchStart={rememberPlayerGuideTouch}');
+    expect(source).toContain('onTouchMove={dismissPlayerGuideAfterDrag}');
+    expect(source).toContain('{guidePlayers && !playerGuideDismissed ? (');
+    expect(source).toContain('const showScrollCue = (guideDrills && !drillListVisible)');
+    expect(source).toContain('ref={drillListRef}');
     expect(source).toContain('detail="Add up to 3 drills."');
+    expect(source).not.toContain('<SquadSortHeader label="Role"');
+    expect(source).toContain('label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16"');
+    expect(source).toContain('className="w-14 text-right text-sm font-bold uppercase text-ink/50"');
+    expect(source).toContain('ellipsizeMode="clip"');
     expect(source).toContain('const glowAssignmentButton = guidePlayers && !isAssigned;');
     expect(source).toContain('glowAssignmentButton ? styles.assignmentButtonGlow : null');
     expect(source).toContain('assignmentButtonGlow:');

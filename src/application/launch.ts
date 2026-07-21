@@ -4,7 +4,7 @@ import type { PlayerPersonality } from '../game';
 import {
   buildFacility as placeFacility,
   createFacilityGrid,
-  deterministicPotentialCeiling,
+  developmentPotentialCeiling,
   enableFullCareer,
   potentialTierForDivision,
 } from '../game';
@@ -17,7 +17,7 @@ import { playerLookId } from '../render/sprites/player-look';
 
 export const DEFAULT_CAREER_SEED = 20260718;
 export const DEFAULT_USER_CLUB_ID = 'bramble-rovers';
-export const LAUNCH_ROSTER_VERSION = 1;
+export const LAUNCH_ROSTER_VERSION = 2;
 let careerSeedNonce = 0;
 let lastGeneratedCareerSeed: number | undefined;
 
@@ -93,10 +93,13 @@ export function createLaunchCareerSetup(
       age: player.age,
       archetype: player.archetype,
       potential: deterministicPotential(seed, clubIndex, playerIndex),
-      potentialCeiling: deterministicPotentialCeiling(
-        player.id,
-        deterministicPotential(seed, clubIndex, playerIndex),
-      ),
+      potentialCeiling: developmentPotentialCeiling({
+        id: player.id,
+        role: player.role,
+        attrs: player.ratings,
+        age: player.age,
+        potential: deterministicPotential(seed, clubIndex, playerIndex),
+      }),
       consistency: 55 + deterministicPlayerValue(seed, clubIndex, playerIndex, 1) % 31,
       personality: PLAYER_PERSONALITIES[
         deterministicPlayerValue(seed, clubIndex, playerIndex, 2) % PLAYER_PERSONALITIES.length
@@ -157,6 +160,7 @@ export function reconcileLaunchRoster(
   const clubIds = new Set(state.clubs.map(club => club.id));
   const needsLegacyRosterExpansion = state.launchRosterVersion === undefined
     && isLegacyThirteenPlayerLaunchRoster(state, launchPlayers);
+  const needsDevelopmentHeadroomUpgrade = (state.launchRosterVersion ?? 0) < 2;
   const missing = needsLegacyRosterExpansion
     ? launchPlayers.filter(player => (
         isExpansionReserve(player.id)
@@ -198,11 +202,21 @@ export function reconcileLaunchRoster(
             potential: current.potential,
             potentialCeiling: current.potentialCeiling,
           }
-        : {};
+        : needsDevelopmentHeadroomUpgrade
+          ? (() => {
+              const potentialCeiling = Math.max(
+                player.potentialCeiling ?? 0,
+                developmentPotentialCeiling(player),
+              );
+              if (potentialCeiling === player.potentialCeiling) return {};
+              changed = true;
+              return { potentialCeiling };
+            })()
+          : {};
       if (correctsLaunchPotential) {
-        // Correct launch-player potential saved before the D5 curve was
-        // restricted to E/F grades. Non-launch players (including the hired
-        // main player) are absent from launchById and remain untouched.
+        // Correct launch-player potential saved before the D5 curve and
+        // development-headroom floor were aligned. Non-launch players use the
+        // one-time headroom migration above without changing their talent tier.
         changed = true;
       }
       if (

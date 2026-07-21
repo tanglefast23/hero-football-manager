@@ -17,8 +17,6 @@ import {
   type OutfieldCreationStat,
 } from '../../game';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
-import { scaledBody } from '../text-scale';
-import type { TextScale } from '../../persistence';
 import { SettingsButton } from '../SettingsOverlay';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { playManagementHaptic } from '../../render/haptics';
@@ -26,9 +24,6 @@ import { playManagementHaptic } from '../../render/haptics';
 export interface CharacterCreationScreenProps {
   onComplete: (draft: CreatedPlayerDraft) => void;
   onOpenSettings: () => void;
-  guideCopy?: { title: string; body: string };
-  difficultyCopy?: { title: string; body: string };
-  textScale?: TextScale;
 }
 
 const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }> = {
@@ -43,9 +38,6 @@ const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }>
 export function CharacterCreationScreen({
   onComplete,
   onOpenSettings,
-  guideCopy,
-  difficultyCopy,
-  textScale = 1,
 }: CharacterCreationScreenProps) {
   const [name, setName] = useState('');
   const [ratings, setRatings] = useState<OutfieldCreationRatings>({
@@ -88,12 +80,7 @@ export function CharacterCreationScreen({
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
-        {guideCopy ? (
-          <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="No stat effect">
-            <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
-          </PaperPanel>
-        ) : null}
-        <PaperPanel kicker="Paper doll" title="Choose their look" stamp="Saved" className="mt-5">
+        <PaperPanel kicker="Paper doll" title="Choose their look" stamp="Saved">
           <View className="flex-row items-center gap-4">
             <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
               <PixelPortrait
@@ -124,29 +111,27 @@ export function CharacterCreationScreen({
         </PaperPanel>
 
         <PaperPanel kicker="Career pressure" title="Choose difficulty" stamp={difficulty} className="mt-5">
-          {difficultyCopy ? <Text className="mb-4 text-ink/70" style={scaledBody(textScale)}>{difficultyCopy.body}</Text> : null}
           <View className="gap-3">
             {([
-              ['COZY', 'First-season wage subsidy, full sponsor terms, slower board intervention.'],
-              ['CHAIRMAN', 'No wage subsidy, 15% lower sponsor income, earlier and smaller emergency loan.'],
-            ] as const).map(([mode, detail]) => {
+              ['COZY', 'Casual mode'],
+              ['CHAIRMAN', 'Expert mode'],
+            ] as const).map(([mode, label]) => {
               const selected = difficulty === mode;
               return (
                 <Pressable
                   key={mode}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
-                  accessibilityLabel={`${mode}. ${detail}`}
+                  accessibilityLabel={`${mode} (${label})`}
                   onPress={() => {
                     playManagementHaptic('select');
                     setDifficulty(mode);
                   }}
                   className={selected
-                    ? 'min-h-16 border-2 border-violet-dark bg-violet-light px-3 py-3'
-                    : 'min-h-16 border-2 border-ink/30 bg-white px-3 py-3'}
+                    ? 'min-h-14 border-2 border-violet-dark bg-violet-light px-3 py-3'
+                    : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-3'}
                 >
-                  <Text className="font-mono text-base font-bold text-ink">{selected ? '●' : '○'} {mode}</Text>
-                  <Text className="mt-1 text-sm leading-5 text-ink/60">{detail}</Text>
+                  <Text className="font-mono text-base font-bold text-ink">{selected ? '●' : '○'} {mode} ({label})</Text>
                 </Pressable>
               );
             })}

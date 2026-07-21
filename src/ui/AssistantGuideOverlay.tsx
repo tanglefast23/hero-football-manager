@@ -214,6 +214,7 @@ function NavigationGuidePage({
               >
                 {item.detail}
               </Text>
+              <Text accessible={false} style={styles.navigationCalloutArrow}>▼</Text>
             </View>
           </View>
         ))}
@@ -335,11 +336,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
-    paddingVertical: 7,
+    paddingTop: 7,
+    paddingBottom: 20,
     borderWidth: 2,
     borderColor: '#f4f1ea',
     borderRadius: 6,
     backgroundColor: '#3f6fb5',
+  },
+  navigationCalloutArrow: {
+    position: 'absolute',
+    bottom: 3,
+    alignSelf: 'center',
+    color: '#ffffff',
+    fontSize: 13,
+    lineHeight: 14,
   },
   windowShadow: {
     maxWidth: 540,

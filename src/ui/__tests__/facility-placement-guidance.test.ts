@@ -11,6 +11,9 @@ describe('first facility placement guidance', () => {
     expect(source).not.toContain('Training Grounds · top left');
     expect(source).toContain('scrollRef.current?.scrollTo({ y: targetY, animated: true });');
     expect(source).toContain('disabled={!placementActive || !guideAllowsCell}');
+    expect(source).toContain('key={`facility-cell-${x}-${y}`}');
+    expect(source).toContain("position: 'absolute',");
+    expect(source).toContain("right: 0,\n                            bottom: 0,");
     expect(appSource).toContain("conciergeFocus === 'facility-grid'");
     expect(appSource).toContain('!guidedFirstFacilityAllowsPlacement(type, x, y)');
   });

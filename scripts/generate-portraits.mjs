@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  CREATED_PLAYER_LOOKS,
   FIELD_PLAYER_LOOKS,
   GOALKEEPER_LOOKS,
   PLAYER_LOOK_MANIFEST,
@@ -12,7 +13,8 @@ import {
   makePortrait,
 } from './player-art-roster.mjs';
 
-const looks = [...FIELD_PLAYER_LOOKS, ...GOALKEEPER_LOOKS];
+const careerLooks = [...FIELD_PLAYER_LOOKS, ...GOALKEEPER_LOOKS];
+const looks = [...careerLooks, ...CREATED_PLAYER_LOOKS];
 const expressions = ['rest', 'joy', 'ko'];
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const launchClubs = JSON.parse(readFileSync(resolve(scriptDirectory, '../content/clubs.json'), 'utf8')).clubs;
@@ -57,10 +59,10 @@ function launchLookAssignments(clubs) {
 
 function validateSprites(candidateSprites) {
   if (Object.keys(PLAYER_PALETTE).length > 24) throw new Error('player palette exceeds 24 keys');
-  const structuralLooks = looks.map(look => (
+  const structuralLooks = careerLooks.map(look => (
     `${look.role}|${look.feature}|${look.face}|${look.build}|${look.eyes ?? ''}|${look.mouth ?? ''}`
   ));
-  if (new Set(structuralLooks).size !== looks.length) {
+  if (new Set(structuralLooks).size !== careerLooks.length) {
     throw new Error('a palette swap alone cannot count as a unique player look');
   }
   const uniqueResting = new Set();

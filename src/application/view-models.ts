@@ -349,6 +349,10 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
       activeProject: {
         buildingId: grid.construction.buildingId,
         name: FACILITY_CATALOG[grid.construction.type].name,
+        benefitLabel: facilityEffectLabel(
+          grid.construction.type,
+          grid.construction.targetLevel,
+        ),
         kind: grid.construction.kind,
         weeksRemaining: grid.construction.weeksRemaining,
         totalWeeks: grid.construction.totalWeeks,

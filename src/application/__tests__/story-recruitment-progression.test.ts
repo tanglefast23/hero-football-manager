@@ -17,7 +17,10 @@ import {
   reconcileStoryYouthIntake,
   signYouthIntakeOffer,
 } from '../../game/youth-intake';
-import { dueAssistantInboxGuideSequences } from '../assistant-guide';
+import {
+  dueAssistantInboxGuideSequences,
+  reconcileSatisfiedAssistantGuideSequences,
+} from '../assistant-guide';
 import { createLaunchCareerSetup } from '../launch';
 import {
   careerMarketScoutOptions,
@@ -99,6 +102,39 @@ describe('story recruitment pacing', () => {
     expect(marketViewModel(careerMarketViewModelSource(weekFifteen)).sections)
       .toEqual(['YOUTH', 'SCOUT', 'COACHES']);
     expect(dueAssistantInboxGuideSequences(weekFifteen)).toContain('scout-mission');
+  });
+
+  it('keeps the Season 1 pacing gates after an old save loses its onboarding marker', () => {
+    const migratedWeekTwo = {
+      ...createdStory(20260722),
+      week: 2,
+      onboarding: undefined,
+      eventFlags: [
+        'guide:bert:inbox:queued:youth-intake',
+        'guide:bert:inbox:delivered:s1:w2:guide:youth-intake',
+        'guide:bert:sequence-complete:youth-intake',
+        'guide:bert:inbox:queued:scout-mission',
+        'guide:bert:inbox:queued:transfer-list',
+      ],
+    };
+
+    const repaired = reconcileSatisfiedAssistantGuideSequences(migratedWeekTwo);
+    expect(repaired.eventFlags.some(flag => (
+      flag.includes('youth-intake')
+      || flag.includes('scout-mission')
+      || flag.includes('transfer-list')
+    ))).toBe(false);
+    expect(marketViewModel(careerMarketViewModelSource(repaired)).sections).toEqual(['COACHES']);
+    expect(dueAssistantInboxGuideSequences(repaired)).not.toEqual(expect.arrayContaining([
+      'youth-intake',
+      'scout-mission',
+      'transfer-list',
+    ]));
+
+    const weekThree = reconcileStoryYouthIntake({ ...repaired, week: 3 });
+    expect(marketViewModel(careerMarketViewModelSource(weekThree)).sections)
+      .toEqual(['YOUTH', 'COACHES']);
+    expect(dueAssistantInboxGuideSequences(weekThree)).toContain('youth-intake');
   });
 
   it('allows one youth, times the first scout for the window, then teaches the 17-player cap', () => {

@@ -1,5 +1,5 @@
 import type { PowerId, TeamDef } from '../../sim/types';
-import { deterministicPotentialCeiling } from '../archetype-caps';
+import { developmentPotentialCeiling } from '../archetype-caps';
 import { assignDistinctPlayerLooks, createdAppearanceLookId } from '../player-appearance';
 import type { CareerPlayer, GameState, LeagueFixture } from '../types';
 import { STORY_STARTING_ROSTER_SIZE } from '../story-progression';
@@ -99,7 +99,13 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
     age: 18,
     archetype: 'All-Rounder',
     potential: 4,
-    potentialCeiling: deterministicPotentialCeiling(playerId, 4),
+    potentialCeiling: developmentPotentialCeiling({
+      id: playerId,
+      role: 'FWD',
+      attrs,
+      age: 18,
+      potential: 4,
+    }),
     consistency: 70,
     personality: 'Professional',
     condition: 100,

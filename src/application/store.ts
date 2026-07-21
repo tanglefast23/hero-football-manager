@@ -853,14 +853,32 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   toggleDrill(drillId) {
     const selected = get().selectedDrillIds;
-    set({
-      selectedDrillIds: selected.includes(drillId)
-        ? selected.filter(id => id !== drillId)
-        : selected.length >= 3 ? selected : [...selected, drillId],
-      error: selected.length >= 3 && !selected.includes(drillId)
-        ? 'A weekly plan can contain at most three focus drills.'
-        : null,
-    });
+    if (selected.includes(drillId)) {
+      set({ selectedDrillIds: selected.filter(id => id !== drillId), error: null });
+      return;
+    }
+    if (selected.length >= 3) {
+      set({ error: 'A weekly plan can contain at most three focus drills.' });
+      return;
+    }
+    const drillById = new Map(launchContent.training.focusDrills.map(drill => [drill.id, drill]));
+    const drill = drillById.get(drillId);
+    if (drill === undefined) {
+      set({ error: 'That focus drill is not available.' });
+      return;
+    }
+    const requiredTrainingPoints = selected.reduce(
+      (total, id) => total + (drillById.get(id)?.tpCost ?? 0),
+      drill.tpCost,
+    );
+    const availableTrainingPoints = requireCareer(get()).trainingPoints;
+    if (requiredTrainingPoints > availableTrainingPoints) {
+      set({
+        error: `${drill.name} would make this plan cost ${requiredTrainingPoints} TP, but you only have ${availableTrainingPoints} TP. Choose a cheaper drill.`,
+      });
+      return;
+    }
+    set({ selectedDrillIds: [...selected, drillId], error: null });
   },
 
   applyTraining() {

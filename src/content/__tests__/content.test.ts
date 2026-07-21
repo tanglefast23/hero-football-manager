@@ -262,7 +262,7 @@ describe('validated M1 launch content', () => {
       ?.pages;
     expect(managementIntroPages).toHaveLength(3);
     expect(managementIntroPages?.find(page => page.focus === 'navigation')).toMatchObject({
-      buttonLabel: 'Your navigation buttons.',
+      buttonLabel: 'Got it!',
       navItems: [
         { tab: 'HOME', detail: "Today's work." },
         { tab: 'SQUAD', detail: 'Team and training.' },
@@ -277,8 +277,7 @@ describe('validated M1 launch content', () => {
       ?.pages[0]).toMatchObject({
         title: 'Back to your inbox',
         body: [
-          "You've still got two jobs waiting in your inbox.",
-          "Check it every week for the pressing work that needs doing. That's all from me. Bye, boss.",
+          "You've still got one job waiting in your inbox.",
         ],
         focus: 'assistant',
         buttonLabel: 'Got it.',
@@ -293,6 +292,10 @@ describe('validated M1 launch content', () => {
       && sequence.destination !== undefined
       && sequence.pages.some(page => page.objective !== undefined)
     ))).toBe(true);
+    const conciseBriefings = content.assistantGuide.sequences.slice(1)
+      .flatMap(sequence => sequence.pages);
+    expect(conciseBriefings.every(page => page.body.length === 1)).toBe(true);
+    expect(conciseBriefings.every(page => page.body[0].length <= 160)).toBe(true);
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'assistant-coach-hire')).toMatchObject({
         destination: 'coach-market',
@@ -315,10 +318,10 @@ describe('validated M1 launch content', () => {
       });
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'facility-placement')
-      ?.pages[0].body[0]).toContain('opens when a weekly settlement finishes the work');
+      ?.pages[0].body[0]).toContain('opens after construction');
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'facility-upgrade')
-      ?.pages[0].body[0]).toContain('current level stays active while the upgrade is built');
+      ?.pages[0].body[0]).toContain('current level stays active until construction finishes');
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'board-protection')).toMatchObject({
         destination: 'club-finances',

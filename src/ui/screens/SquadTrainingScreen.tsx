@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
@@ -18,6 +19,10 @@ import {
   type SquadSortKey,
 } from '../squad-sort';
 import { archetypeDevelopmentSummary } from '../archetype-development';
+import {
+  shouldDismissTutorialForDrag,
+  type TutorialTouchPoint,
+} from '../tutorial-drag-dismiss';
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
@@ -84,9 +89,13 @@ export function SquadTrainingScreen({
     : archetypeDevelopmentSummary(selectedPlayer.archetype);
   const assigned = new Set(viewModel.assignedPlayerIds);
   const scrollViewportRef = useRef<View>(null);
+  const drillListRef = useRef<View>(null);
   const lockPlanRef = useRef<View>(null);
   const visibilityFrameRef = useRef<number | null>(null);
+  const playerGuideTouchStartRef = useRef<TutorialTouchPoint | null>(null);
+  const [drillListVisible, setDrillListVisible] = useState(false);
   const [lockPlanVisible, setLockPlanVisible] = useState(false);
+  const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
@@ -100,57 +109,109 @@ export function SquadTrainingScreen({
     && viewModel.assignedPlayerIds.length > 0
     && viewModel.selectedDrillCount === 0;
 
-  const measureLockPlanVisibility = useCallback(() => {
-    scrollViewportRef.current?.measureInWindow((viewportX, viewportY, viewportWidth, viewportHeight) => {
-      lockPlanRef.current?.measureInWindow((targetX, targetY, targetWidth, targetHeight) => {
-        const visible = isTutorialTargetVisible(
-          { x: targetX, y: targetY, width: targetWidth, height: targetHeight },
-          { x: viewportX, y: viewportY, width: viewportWidth, height: viewportHeight },
-        );
-        setLockPlanVisible(current => current === visible ? current : visible);
-      });
-    });
+  const dismissPlayerGuide = useCallback(() => {
+    if (guidePlayers) setPlayerGuideDismissed(true);
+  }, [guidePlayers]);
+
+  const rememberPlayerGuideTouch = useCallback((event: GestureResponderEvent) => {
+    if (!guidePlayers || playerGuideDismissed) return;
+    playerGuideTouchStartRef.current = {
+      x: event.nativeEvent.pageX,
+      y: event.nativeEvent.pageY,
+    };
+  }, [guidePlayers, playerGuideDismissed]);
+
+  const dismissPlayerGuideAfterDrag = useCallback((event: GestureResponderEvent) => {
+    const start = playerGuideTouchStartRef.current;
+    if (!guidePlayers || playerGuideDismissed || start === null) return;
+    if (shouldDismissTutorialForDrag(start, {
+      x: event.nativeEvent.pageX,
+      y: event.nativeEvent.pageY,
+    })) {
+      dismissPlayerGuide();
+      playerGuideTouchStartRef.current = null;
+    }
+  }, [dismissPlayerGuide, guidePlayers, playerGuideDismissed]);
+
+  const forgetPlayerGuideTouch = useCallback(() => {
+    playerGuideTouchStartRef.current = null;
   }, []);
 
-  const scheduleLockPlanVisibility = useCallback(() => {
-    if (!guideLockPlan) return;
+  const measureTrainingGuideVisibility = useCallback(() => {
+    scrollViewportRef.current?.measureInWindow((viewportX, viewportY, viewportWidth, viewportHeight) => {
+      const viewport = { x: viewportX, y: viewportY, width: viewportWidth, height: viewportHeight };
+      if (guideDrills) {
+        drillListRef.current?.measureInWindow((targetX, targetY, targetWidth, targetHeight) => {
+          const visible = isTutorialTargetVisible(
+            { x: targetX, y: targetY, width: targetWidth, height: targetHeight },
+            viewport,
+          );
+          setDrillListVisible(current => current === visible ? current : visible);
+        });
+      }
+      if (guideLockPlan) {
+        lockPlanRef.current?.measureInWindow((targetX, targetY, targetWidth, targetHeight) => {
+          const visible = isTutorialTargetVisible(
+            { x: targetX, y: targetY, width: targetWidth, height: targetHeight },
+            viewport,
+          );
+          setLockPlanVisible(current => current === visible ? current : visible);
+        });
+      }
+    });
+  }, [guideDrills, guideLockPlan]);
+
+  const scheduleTrainingGuideVisibility = useCallback(() => {
+    if (!guideDrills && !guideLockPlan) return;
     if (visibilityFrameRef.current !== null) cancelAnimationFrame(visibilityFrameRef.current);
     visibilityFrameRef.current = requestAnimationFrame(() => {
       visibilityFrameRef.current = null;
-      measureLockPlanVisibility();
+      measureTrainingGuideVisibility();
     });
-  }, [guideLockPlan, measureLockPlanVisibility]);
+  }, [guideDrills, guideLockPlan, measureTrainingGuideVisibility]);
 
   useEffect(() => {
-    if (!guideLockPlan) {
-      setLockPlanVisible(false);
+    if (!guideDrills) setDrillListVisible(false);
+    if (!guideLockPlan) setLockPlanVisible(false);
+    if (!guideDrills && !guideLockPlan) {
       return;
     }
-    scheduleLockPlanVisibility();
+    scheduleTrainingGuideVisibility();
     return () => {
       if (visibilityFrameRef.current !== null) {
         cancelAnimationFrame(visibilityFrameRef.current);
         visibilityFrameRef.current = null;
       }
     };
-  }, [guideLockPlan, scheduleLockPlanVisibility]);
+  }, [guideDrills, guideLockPlan, scheduleTrainingGuideVisibility]);
 
-  const showScrollCue = guideTraining
-    && viewModel.assignedPlayerIds.length > 0
-    && (viewModel.selectedDrillCount === 0 || !lockPlanVisible);
+  useEffect(() => {
+    if (!guideTraining) {
+      setDrillListVisible(false);
+      setLockPlanVisible(false);
+    }
+  }, [guideTraining]);
+
+  const showScrollCue = (guideDrills && !drillListVisible)
+    || (guideLockPlan && !lockPlanVisible);
 
   return (
     <View
       ref={scrollViewportRef}
       collapsable={false}
       className="flex-1"
-      onLayout={scheduleLockPlanVisibility}
+      onLayout={scheduleTrainingGuideVisibility}
     >
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
-        onLayout={scheduleLockPlanVisibility}
-        onScroll={scheduleLockPlanVisibility}
+        onLayout={scheduleTrainingGuideVisibility}
+        onScroll={scheduleTrainingGuideVisibility}
+        onScrollBeginDrag={dismissPlayerGuide}
+        onTouchStart={rememberPlayerGuideTouch}
+        onTouchMove={dismissPlayerGuideAfterDrag}
+        onTouchEnd={forgetPlayerGuideTouch}
+        onTouchCancel={forgetPlayerGuideTouch}
         scrollEventThrottle={16}
       >
       <View>
@@ -241,7 +302,7 @@ export function SquadTrainingScreen({
         <View className={guidePlayers
           ? 'relative border-4 border-blue-dark bg-blue-light p-1'
           : 'border-2 border-ink bg-white'}>
-          {guidePlayers ? (
+          {guidePlayers && !playerGuideDismissed ? (
             <TutorialTapCue
               label="Tap in here"
               detail="Add up to 3 players."
@@ -249,12 +310,12 @@ export function SquadTrainingScreen({
             />
           ) : null}
           <View className="flex-row items-center border-b border-ink/20 px-3">
-            <SquadSortHeader label="Role" sortKey="role" sort={squadSort} widthClass="w-10" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-            <SquadSortHeader label="Player" sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <View className="w-10" />
+            <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
             <SquadSortHeader label={wideColumns ? 'Current' : 'OVR'} sortKey="overall" sort={squadSort} widthClass={currentColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
             <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-            <SquadSortHeader label="Cond" sortKey="condition" sort={squadSort} widthClass="w-12" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-            <Text className="w-12 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1}>Train</Text>
+            <SquadSortHeader label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+            <Text className="w-14 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1} ellipsizeMode="clip">Train</Text>
           </View>
           {sortedPlayers.map((player) => {
             const selected = player.id === viewModel.selectedPlayerId;
@@ -311,7 +372,7 @@ export function SquadTrainingScreen({
                   </View>
                   <Text className={`${currentColumnWidth} text-right font-mono text-base font-bold text-ink`} numberOfLines={1}>{player.overall}</Text>
                   <Text className={`${potentialColumnWidth} pr-1 text-right font-mono text-base font-bold text-gold-dark`} numberOfLines={1}>{player.potentialGrade}</Text>
-                  <Text className={player.condition < 30 ? 'w-12 text-right font-mono text-sm font-bold text-stamp' : 'w-12 text-right font-mono text-sm text-ink'} numberOfLines={1}>{player.condition}%</Text>
+                  <Text className={player.condition < 30 ? 'w-16 text-right font-mono text-sm font-bold text-stamp' : 'w-16 text-right font-mono text-sm text-ink'} numberOfLines={1}>{player.condition}%</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="checkbox"
@@ -319,10 +380,10 @@ export function SquadTrainingScreen({
                   accessibilityState={{ checked: isAssigned }}
                   onPress={() => onTogglePlayerAssignment(player.id)}
                   className={isAssigned
-                    ? 'ml-1 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light'
+                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-violet-dark bg-violet-light'
                     : glowAssignmentButton
-                      ? 'ml-1 h-11 w-11 items-center justify-center border-2 border-gold-dark bg-gold-light'
-                      : 'ml-1 h-11 w-11 items-center justify-center border border-ink/30'}
+                      ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
+                      : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
                   style={({ pressed }) => [
                     { opacity: pressed ? 0.65 : undefined },
                     glowAssignmentButton ? styles.assignmentButtonGlow : null,
@@ -447,7 +508,11 @@ export function SquadTrainingScreen({
         </Text>
         <View className={guideDrills
           ? 'relative gap-2 border-4 border-blue-dark bg-blue-light p-1'
-          : 'gap-2'}>
+          : 'gap-2'}
+          ref={drillListRef}
+          collapsable={false}
+          onLayout={scheduleTrainingGuideVisibility}
+        >
           {guideDrills ? (
             <TutorialTapCue
               label="Tap in here"
@@ -502,7 +567,7 @@ export function SquadTrainingScreen({
           <View
             ref={lockPlanRef}
             collapsable={false}
-            onLayout={scheduleLockPlanVisibility}
+            onLayout={scheduleTrainingGuideVisibility}
             className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
           >
             {guideTraining && viewModel.selectedDrillCount > 0 ? (
@@ -596,6 +661,7 @@ function SquadSortHeader({
           ? 'text-sm font-bold uppercase text-ink/50'
           : 'text-sm font-bold uppercase text-blue-dark'}
         numberOfLines={1}
+        ellipsizeMode="clip"
       >
         {label}{direction === 'descending' ? ' ▼' : direction === 'ascending' ? ' ▲' : ''}
       </Text>

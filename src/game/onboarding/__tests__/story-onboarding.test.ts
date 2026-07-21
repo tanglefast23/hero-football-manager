@@ -88,7 +88,7 @@ describe('story onboarding state machine', () => {
     const avatar = createdPlayer(created);
     if (avatar === undefined) throw new Error('expected the created player');
 
-    expect(avatar.lookId).toBe('f00');
+    expect(avatar.lookId).toBe('c000');
     expect(avatar.createdAppearance).toEqual({ skinTone: 0, hairstyle: 0, kitAccent: 0 });
     expect(created.difficulty).toBe('CHAIRMAN');
     expect(new Set(created.players.map(player => player.lookId)).size).toBe(created.players.length);
@@ -113,7 +113,7 @@ describe('story onboarding state machine', () => {
       licensed: false,
     });
     expect(avatar?.attrs.ref).toBe(10);
-    expect(avatar?.lookId).toMatch(/^f\d+$/);
+    expect(avatar?.lookId).toMatch(/^c\d{3}$/);
     expect(created.clubs[0].weeklyWages).toBe(580);
     expect(created.lineups[0].playerIds).toContain(avatar?.id);
     expect(created.onboarding).toMatchObject({

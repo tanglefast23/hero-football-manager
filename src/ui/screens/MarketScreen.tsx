@@ -33,6 +33,8 @@ export interface MarketScreenProps {
   readonly onCloseNegotiation: () => void;
   readonly onDismissGuideFocus?: () => void;
   readonly guideFocus?: AssistantGuideFocus;
+  readonly requestedSection?: MarketSectionId;
+  readonly requestedSectionToken?: number;
 }
 
 const MIN_GUIDE_SCROLL_DISTANCE = 24;
@@ -58,6 +60,8 @@ export function MarketScreen({
   onCloseNegotiation,
   onDismissGuideFocus,
   guideFocus,
+  requestedSection,
+  requestedSectionToken,
 }: MarketScreenProps) {
   const [section, setSection] = useState<MarketSectionId>(() => initialSection(viewModel));
   const [scrollDismissedGuideFocus, setScrollDismissedGuideFocus] = useState<AssistantGuideFocus>();
@@ -66,6 +70,10 @@ export function MarketScreen({
   const southAmericaScoutActionRef = useRef<View>(null);
   const latestScrollOffsetRef = useRef(0);
   const scoutDragStartOffsetRef = useRef(0);
+  const youthSectionVisible = viewModel.sections.includes('YOUTH') && viewModel.youth !== undefined;
+  const scoutSectionVisible = viewModel.sections.includes('SCOUT');
+  const transferSectionVisible = viewModel.sections.includes('TRANSFERS');
+  const coachSectionVisible = viewModel.sections.includes('COACHES');
 
   const dismissScrollGuide = (focus: AssistantGuideFocus) => {
     setScrollDismissedGuideFocus(focus);
@@ -122,11 +130,25 @@ export function MarketScreen({
   }, [guideFocus]);
 
   useEffect(() => {
-    if (guideFocus === 'youth-intake') setSection('YOUTH');
-    else if (guideFocus === 'scout-mission' || guideFocus === 'scout-report') setSection('SCOUT');
-    else if (guideFocus === 'transfer-list' || guideFocus === 'transfer-bid' || guideFocus === 'transfer-negotiation') setSection('TRANSFERS');
-    else if (guideFocus === 'coach-market' || guideFocus === 'coach-hire' || guideFocus === 'assistant-coach-hire') setSection('COACHES');
-  }, [guideFocus]);
+    if (guideFocus === 'youth-intake' && youthSectionVisible) setSection('YOUTH');
+    else if ((guideFocus === 'scout-mission' || guideFocus === 'scout-report') && scoutSectionVisible) setSection('SCOUT');
+    else if ((guideFocus === 'transfer-list' || guideFocus === 'transfer-bid' || guideFocus === 'transfer-negotiation') && transferSectionVisible) setSection('TRANSFERS');
+    else if ((guideFocus === 'coach-market' || guideFocus === 'coach-hire' || guideFocus === 'assistant-coach-hire') && coachSectionVisible) setSection('COACHES');
+  }, [coachSectionVisible, guideFocus, scoutSectionVisible, transferSectionVisible, youthSectionVisible]);
+
+  useEffect(() => {
+    if (requestedSection === 'YOUTH' && youthSectionVisible) setSection('YOUTH');
+    else if (requestedSection === 'SCOUT' && scoutSectionVisible) setSection('SCOUT');
+    else if (requestedSection === 'TRANSFERS' && transferSectionVisible) setSection('TRANSFERS');
+    else if (requestedSection === 'COACHES' && coachSectionVisible) setSection('COACHES');
+  }, [
+    coachSectionVisible,
+    requestedSection,
+    requestedSectionToken,
+    scoutSectionVisible,
+    transferSectionVisible,
+    youthSectionVisible,
+  ]);
 
   return (
     <View ref={marketViewportRef} collapsable={false} className="flex-1">

@@ -1,4 +1,6 @@
 import { countUpValue } from '../count-up';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 describe('countUpValue', () => {
   it('clamps progress and reaches positive and negative targets exactly', () => {
@@ -12,5 +14,17 @@ describe('countUpValue', () => {
     const frames = [0, 0.25, 0.5, 0.75, 1].map(progress => countUpValue(1_000, progress));
     expect(frames).toEqual([...frames].sort((left, right) => left - right));
     expect(frames[2]).toBeGreaterThan(500);
+  });
+
+  it('keeps weekly money, TP, and stat feedback animated until it lands or is skipped', () => {
+    const review = readFileSync(join(process.cwd(), 'src/ui/screens/WeeklyReviewScreen.tsx'), 'utf8');
+    const development = readFileSync(join(process.cwd(), 'src/ui/components/PlayerDevelopmentSpotlight.tsx'), 'utf8');
+
+    expect(review).toContain('AnimatedBalanceAmount');
+    expect(review).toContain('useCelebratoryNumber');
+    expect(review).toContain('countUpValue(to - from, progress)');
+    expect(review).not.toContain('onTouchStart={finishAnimations}');
+    expect(development).toContain('function CountedStat');
+    expect(development).toContain('toValue: 1.18');
   });
 });

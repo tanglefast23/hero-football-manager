@@ -72,7 +72,7 @@ describe('M2 weekly sidecars', () => {
   });
 
   test('resolves the scouting clock through normal week advancement', () => {
-    const initial = fullCareer(502);
+    const initial = { ...fullCareer(502), week: 15 };
     const started = startCareerScoutMission(
       initial,
       initial.market!,
@@ -83,7 +83,7 @@ describe('M2 weekly sidecars', () => {
     let state: GameState = { ...started.state, market: started.market };
     const dueWeek = started.market.activeScoutMission!.dueWeek;
 
-    while (state.week < dueWeek) state = advanceWeek(state);
+    while (state.week < dueWeek) state = settleScheduledWeek(state);
 
     expect(state.market?.activeScoutMission).toBeUndefined();
     expect(state.market?.scoutReports).toBeDefined();

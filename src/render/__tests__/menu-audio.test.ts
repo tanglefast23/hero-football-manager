@@ -6,6 +6,10 @@ const mockPlayers: Array<{
   pause: jest.Mock;
   remove: jest.Mock;
   release: jest.Mock;
+  duration: number;
+  currentTime: number;
+  isLoaded: boolean;
+  playing: boolean;
 }> = [];
 
 const setAudioModeAsync = jest.fn(() => Promise.resolve());
@@ -21,6 +25,10 @@ jest.mock('expo-audio', () => ({
       pause: jest.fn(),
       remove: jest.fn(),
       release: jest.fn(),
+      duration: 120,
+      currentTime: 0,
+      isLoaded: true,
+      playing: true,
     };
     mockPlayers.push(player);
     return player;
@@ -40,6 +48,7 @@ import {
 
 describe('non-match music ownership', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     teardownMenuAudio();
     mockPlayers.length = 0;
     setAudioModeAsync.mockClear();
@@ -48,6 +57,7 @@ describe('non-match music ownership', () => {
 
   afterEach(() => {
     teardownMenuAudio();
+    jest.useRealTimers();
   });
 
   it('uses the normal management music while creating the first player', () => {
@@ -87,6 +97,22 @@ describe('non-match music ownership', () => {
 
     setMenuMasterVolume(0);
     expect(mockPlayers.every(player => player.volume === 0)).toBe(true);
+  });
+
+  it('recovers the active theme if a native player stops at the end', async () => {
+    setMenuTheme('management');
+    const management = mockPlayers[1];
+    management.play.mockClear();
+    management.playing = false;
+    management.currentTime = management.duration;
+
+    jest.advanceTimersByTime(500);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(management.loop).toBe(true);
+    expect(management.seekTo).toHaveBeenCalledWith(0);
+    expect(management.play).toHaveBeenCalledTimes(1);
   });
 
   it('rewinds and plays the advance-week SFX on demand', async () => {

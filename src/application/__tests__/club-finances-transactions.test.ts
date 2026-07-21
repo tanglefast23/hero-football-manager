@@ -132,4 +132,17 @@ describe('club finances immediate transaction history', () => {
       affordabilityShortfall: 5_000,
     });
   });
+
+  test('puts the completed benefit on every facility construction notice model', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260722, undefined, undefined, 'full'));
+    const catalog = clubFinancesViewModel(initial).facilities.catalog;
+
+    for (const entry of catalog) {
+      const started = buildCareerFacility(initial, entry.type, { x: 0, y: 0 }).state;
+      expect(clubFinancesViewModel(started).facilities.activeProject).toMatchObject({
+        name: entry.name,
+        benefitLabel: entry.effectLabel,
+      });
+    }
+  });
 });

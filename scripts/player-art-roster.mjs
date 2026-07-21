@@ -24,6 +24,12 @@ const SKIN = {
   warm: { sh: 'm', base: 'n', hi: 'S' },
   brown: { sh: 'd', base: 'm', hi: 'n' },
   deep: { sh: 'h', base: 'd', hi: 'm' },
+  created0: { sh: 'S', base: 'L', hi: 'L' },
+  created1: { sh: 'n', base: 'S', hi: 'L' },
+  created2: { sh: 'm', base: 'n', hi: 'S' },
+  created3: { sh: 'd', base: 'm', hi: 'n' },
+  created4: { sh: 'h', base: 'd', hi: 'm' },
+  created5: { sh: 'h', base: 'h', hi: 'd' },
 };
 
 const HAIR = {
@@ -229,6 +235,32 @@ export const FIELD_PLAYER_LOOKS = [
   ...FOOTBALL_HOMAGE_FIELD_LOOKS,
 ];
 
+const CREATED_HAIRSTYLES = [
+  'flattop', 'curls', 'shaved', 'sidefringe', 'ponytail', 'afro', 'mohawk',
+];
+const CREATED_KIT_ACCENT_COUNT = 4;
+
+// The first-hire paper doll is deliberately separate from the career roster.
+// Every combination keeps the same face and body; only the selected skin,
+// hairstyle, or kit accent is allowed to change.
+export const CREATED_PLAYER_LOOKS = Array.from({ length: 6 * CREATED_HAIRSTYLES.length * CREATED_KIT_ACCENT_COUNT }, (_, index) => {
+  const skinTone = Math.floor(index / (CREATED_HAIRSTYLES.length * CREATED_KIT_ACCENT_COUNT));
+  const hairstyle = Math.floor((index % (CREATED_HAIRSTYLES.length * CREATED_KIT_ACCENT_COUNT)) / CREATED_KIT_ACCENT_COUNT);
+  const kitAccent = index % CREATED_KIT_ACCENT_COUNT;
+  return {
+    id: `c${String(index).padStart(3, '0')}`,
+    role: 'field',
+    skin: `created${skinTone}`,
+    hair: 'black',
+    feature: CREATED_HAIRSTYLES[hairstyle],
+    build: 'normal',
+    face: 0,
+    eyes: 'normal',
+    mouth: 'smile',
+    kitAccent,
+  };
+});
+
 const GOALKEEPER_EXTRA_FEATURES = [...new Set([
   'curls', 'shaved', 'sidefringe', 'headband', 'ponytail', 'swept', 'undercut',
   ...EXTRA_FEATURES,
@@ -255,6 +287,7 @@ export const GOALKEEPER_LOOKS = [
 export const PLAYER_LOOK_MANIFEST = {
   field: FIELD_PLAYER_LOOKS.map(look => look.id),
   goalkeeper: GOALKEEPER_LOOKS.map(look => look.id),
+  created: CREATED_PLAYER_LOOKS.map(look => look.id),
   legacy: {
     r0: 'g00', u0: 'g01',
     r1: 'f00', r2: 'f01', r3: 'f02', r4: 'f03', r5: 'f04',
@@ -514,7 +547,9 @@ function legs(g, frame, sk) {
   set(g, left - 1, 29, 'w'); set(g, right + 2, 29, 'w');
 }
 
-function fieldBody(g, side, build, frame, sk) {
+const CREATED_KIT_ACCENTS = ['W', 'C', 'A', 'T'];
+
+function fieldBody(g, side, build, frame, sk, kitAccent) {
   const kit = side === 'r' ? { sh: 'r', base: 'R', hi: 'E' } : { sh: 'b', base: 'B', hi: 'C' };
   let left = 7; let right = 16;
   if (build === 'muscular') { left = 6; right = 17; }
@@ -525,6 +560,11 @@ function fieldBody(g, side, build, frame, sk) {
   rect(g, left - 1, 16, left - 1, 18, kit.base); rect(g, right + 1, 16, right + 1, 18, kit.base);
   rect(g, left - 1, 19, left - 1, 21, sk.base); rect(g, right + 1, 19, right + 1, 21, sk.base);
   if (build === 'muscular') { set(g, left - 2, 17, kit.base); set(g, right + 2, 17, kit.base); set(g, left - 2, 18, sk.base); set(g, right + 2, 18, sk.base); }
+  const accent = CREATED_KIT_ACCENTS[kitAccent];
+  if (accent !== undefined) {
+    rect(g, left, 16, right, 16, accent);
+    rect(g, left, 17, left + 1, 22, accent);
+  }
   rect(g, 11, 19, 12, 20, 'W'); rect(g, left, 24, right, 25, 'W'); rect(g, left, 25, right, 25, 'w');
   legs(g, frame, sk);
 }
@@ -550,7 +590,7 @@ function goalkeeperBody(g, side, frame, sk, ready) {
   }
 }
 
-function portraitBust(g, role) {
+function portraitBust(g, role, kitAccent) {
   const kit = role === 'goalkeeper'
     ? { sh: 'K', base: 'T', hi: 'T' }
     : { sh: 'r', base: 'R', hi: 'E' };
@@ -560,12 +600,18 @@ function portraitBust(g, role) {
   rect(g, 20, 21, 21, 28, kit.sh); rect(g, 2, 28, 21, 28, kit.sh);
   rect(g, 10, 16, 13, 17, kit.sh); rect(g, 10, 24, 13, 26, 'W');
   set(g, 11, 25, kit.sh); set(g, 12, 25, kit.sh);
+  const accent = CREATED_KIT_ACCENTS[kitAccent];
+  if (accent !== undefined) {
+    rect(g, 7, 17, 16, 17, accent);
+    rect(g, 2, 20, 3, 27, accent);
+    set(g, 11, 25, accent); set(g, 12, 25, accent);
+  }
 }
 
 export function makePortrait(look, expression) {
   const g = grid(PORTRAIT_CELL.h);
   const sk = SKIN[look.skin]; const hs = HAIR[look.hair];
-  face(g, sk, look.face, expression, look); feature(g, look.feature, hs, sk); portraitBust(g, look.role);
+  face(g, sk, look.face, expression, look); feature(g, look.feature, hs, sk); portraitBust(g, look.role, look.kitAccent);
   outline(g);
   return g.map(row => row.join(''));
 }
@@ -575,7 +621,7 @@ export function makeMatchPlayer(look, side, frame, ready) {
   const sk = SKIN[look.skin]; const hs = HAIR[look.hair];
   face(g, sk, look.face, 'rest', look); feature(g, look.feature, hs, sk);
   if (look.role === 'goalkeeper') goalkeeperBody(g, side, frame, sk, ready);
-  else fieldBody(g, side, look.build, frame, sk);
+  else fieldBody(g, side, look.build, frame, sk, look.kitAccent);
   outline(g);
   return g.map(row => row.join(''));
 }

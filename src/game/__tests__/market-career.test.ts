@@ -21,7 +21,10 @@ import {
 
 describe('career market integration', () => {
   test('charges for a mission and resolves deterministic reports on its due week', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
+    const initial = {
+      ...createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full')),
+      week: 15,
+    };
     const officeProject = buildCareerFacility(initial, 'scout-office', { x: 0, y: 0 }).state;
     const withOffice = {
       ...officeProject,
@@ -344,7 +347,10 @@ describe('career market integration', () => {
   });
 
   test('retains paid scouting work when the preseason coach market refreshes', () => {
-    const state = createCareer(createLaunchCareerSetup(83, undefined, undefined, 'full'));
+    const state = {
+      ...createCareer(createLaunchCareerSetup(83, undefined, undefined, 'full')),
+      week: 15,
+    };
     const started = startCareerScoutMission(
       state,
       state.market!,

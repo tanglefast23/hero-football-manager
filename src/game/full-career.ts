@@ -1,4 +1,4 @@
-import { deterministicPotentialCeiling, potentialTierForDivision } from './archetype-caps';
+import { developmentPotentialCeiling, potentialTierForDivision } from './archetype-caps';
 import { assignDistinctPlayerLooks, nextDistinctPlayerLook } from './player-appearance';
 import { generateSeasonFixtures } from './schedule';
 import { createCareerMarketState, refreshCareerMarketForNewSeason } from './market-career';
@@ -244,7 +244,13 @@ function opponentCareerPlayer(
     age: player.age,
     archetype: player.archetype,
     potential,
-    potentialCeiling: deterministicPotentialCeiling(player.id, potential),
+    potentialCeiling: developmentPotentialCeiling({
+      id: player.id,
+      role: player.role,
+      attrs: player.attrs,
+      age: player.age,
+      potential,
+    }),
     consistency: 70,
     personality: player.personality,
     condition: player.condition,
@@ -384,7 +390,7 @@ function academyPlayer(
     age: 17,
     archetype: role === 'GK' ? 'Wall' : role === 'DEF' ? 'Anchor' : role === 'MID' ? 'Playmaker' : 'Sniper',
     potential,
-    potentialCeiling: deterministicPotentialCeiling(id, potential),
+    potentialCeiling: developmentPotentialCeiling({ id, role, attrs, age: 17, potential }),
     consistency: 55 + ((value >>> 9) % 21),
     personality: personalities[(value >>> 14) % personalities.length],
     condition: 100,

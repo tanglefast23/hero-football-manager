@@ -274,8 +274,6 @@ export const AssistantGuideContentSchema = z.strictObject({
     portraitArchetype: z.literal('GAFFER'),
   }),
   m4Fiction: z.strictObject({
-    creation: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
-    difficulty: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
     accessibility: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
     events: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
     seasonRecap: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),

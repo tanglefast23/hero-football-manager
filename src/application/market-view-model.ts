@@ -183,7 +183,7 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
       }),
     },
     transfers: source.transferListings.map(listing => transferListing(source, listing, transferWindowOpen)),
-    coaches: source.coachCandidates.map(candidate => {
+    coaches: source.coachCandidates.slice(0, 3).map(candidate => {
       const eligible = isCoachCandidateEligible(
         candidate,
         source.highestDivisionReached ?? source.division,

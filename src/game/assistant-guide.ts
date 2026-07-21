@@ -150,6 +150,26 @@ export function queueAssistantGuideSequence(
   return queueAssistantGuideSequences(state, [sequenceId]);
 }
 
+/** Repairs guides that were exposed before their feature unlock. */
+export function deferAssistantGuideSequencesUntilUnlock(
+  state: GameState,
+  sequenceIds: readonly AssistantInboxGuideSequenceId[],
+): GameState {
+  const ids = new Set(sequenceIds);
+  for (const sequenceId of ids) assertM2SequenceId(sequenceId);
+  const nextFlags = state.eventFlags.filter(flag => {
+    for (const sequenceId of ids) {
+      if (flag === queuedSequenceFlag(sequenceId)) return false;
+      if (flag === sequenceCompletionFlag(sequenceId)) return false;
+      if (flag.startsWith(INBOX_DELIVERED_PREFIX) && flag.endsWith(`guide:${sequenceId}`)) return false;
+    }
+    return true;
+  });
+  return arraysEqual(nextFlags, state.eventFlags)
+    ? state
+    : { ...state, eventFlags: nextFlags };
+}
+
 export function pendingAssistantInboxGuideSequences(
   state: Pick<GameState, 'eventFlags'>,
 ): AssistantInboxGuideSequenceId[] {

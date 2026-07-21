@@ -6,14 +6,6 @@
     "portraitArchetype": "GAFFER"
   },
   "m4Fiction": {
-    "creation": {
-      "title": "Bert's registration note",
-      "body": "Pick the face, hair and kit accent you'll recognize from the cheap seats. These choices are cosmetic; the six ratings decide the footballer."
-    },
-    "difficulty": {
-      "title": "Choose the boardroom",
-      "body": "Cozy keeps the first-season wage cushion. Chairman removes it, trims sponsor patience and intervenes sooner—but the club can still recover."
-    },
     "accessibility": {
       "title": "Your touchline, your setup",
       "body": "Motion, haptics, text size, contrast, kit safety, cut-ins and HUD side can change at any time without changing a result."
@@ -58,7 +50,7 @@
             "These are the only doors you need today. I'll explain the machinery behind them when it can actually hurt us."
           ],
           "focus": "navigation",
-          "buttonLabel": "Your navigation buttons.",
+          "buttonLabel": "Got it!",
           "navItems": [
             { "tab": "HOME", "detail": "Today's work." },
             { "tab": "SQUAD", "detail": "Team and training." },
@@ -76,8 +68,7 @@
           "kicker": "Bert's last word",
           "title": "Back to your inbox",
           "body": [
-            "You've still got two jobs waiting in your inbox.",
-            "Check it every week for the pressing work that needs doing. That's all from me. Bye, boss."
+            "You've still got one job waiting in your inbox."
           ],
           "focus": "assistant",
           "buttonLabel": "Got it."
@@ -96,8 +87,7 @@
           "kicker": "Bert's staff room",
           "title": "Pick your football brain",
           "body": [
-            "The coach market refreshes each pre-season. Better candidates want a bigger club, more fame and, naturally, more money.",
-            "Compare level, two specialties and weekly wage. A whistle is not evidence of competence."
+            "The coach market refreshes each pre-season. Better candidates want a bigger club, more fame and, naturally, more money."
           ],
           "focus": "coach-market",
           "objective": "OPEN THE COACH MARKET.",
@@ -117,8 +107,7 @@
           "kicker": "The main tracksuit",
           "title": "One chair. Choose well.",
           "body": [
-            "A head coach boosts matching training and may permanently teach the club a formation or drill.",
-            "Their wage arrives every week, including weeks when their clipboard achieves very little."
+            "A head coach boosts training that matches their two specialties and may teach the club a formation or drill. Their wage is paid every week."
           ],
           "focus": "coach-hire",
           "objective": "HIRE A HEAD COACH.",
@@ -138,8 +127,7 @@
           "kicker": "Two clipboards",
           "title": "Build the Coaching Office",
           "body": [
-            "The Coaching Office opens an assistant-coach desk. Until then, the second tracksuit has nowhere official to lean.",
-            "Place it on the grounds like any facility. The cost lands immediately, and upkeep starts each week."
+            "Build a Coaching Office to unlock the assistant-coach slot. The cost lands now; upkeep starts after it opens."
           ],
           "focus": "coaching-office",
           "objective": "PLACE A COACHING OFFICE.",
@@ -159,8 +147,7 @@
           "kicker": "Staff expansion",
           "title": "Hire the other assistant",
           "body": [
-            "An assistant coach adds smaller specialty bonuses beside your head coach. Different strengths give the staff room more reach.",
-            "Yes, this technically makes me the assistant to the assistant. I shall survive."
+            "An assistant coach adds smaller bonuses from two specialties and brings a second weekly wage. Different strengths give the staff more reach."
           ],
           "focus": "assistant-coach-hire",
           "objective": "HIRE AN ASSISTANT COACH.",
@@ -180,8 +167,7 @@
           "kicker": "The club grounds",
           "title": "Build with a little plan",
           "body": [
-            "Choose a building, then an empty patch on the 8 by 6 grid. If it fits and we can pay, construction starts immediately. The facility opens when a weekly settlement finishes the work.",
-            "Leave useful neighbours room to share an edge. Future you is an expensive contractor."
+            "Choose a building, then an empty patch on the 8 by 6 grid. It opens after construction; shared edges can unlock pairing bonuses."
           ],
           "focus": "facility-grid",
           "objective": "PLACE YOUR FIRST FACILITY.",
@@ -201,8 +187,7 @@
           "kicker": "Better bricks",
           "title": "Level up the grounds",
           "body": [
-            "Promotion has unlocked the next facility level. Select an existing building to see its price and build time. Its current level stays active while the upgrade is built; the new benefits begin after a weekly settlement completes it.",
-            "Check the weekly upkeep before approving it. Shiny tiles have recurring opinions."
+            "Select a building to review its upgrade cost, build time and new benefit. The current level stays active until construction finishes."
           ],
           "focus": "facility-upgrade",
           "objective": "REVIEW YOUR FIRST UPGRADE.",
@@ -222,8 +207,7 @@
           "kicker": "Good neighbours",
           "title": "Edges make bonuses",
           "body": [
-            "Certain facility pairs earn a bonus when they share an edge. Corners do not count; buildings are fussy like that.",
-            "Discovered pairings stay recorded, and you can relocate buildings when the puzzle needs another go."
+            "Some facility pairs earn a bonus when they share an edge. Corners do not count, because buildings are fussy."
           ],
           "focus": "facility-adjacency",
           "objective": "CHECK THE DISCOVERED PAIR.",
@@ -243,8 +227,7 @@
           "kicker": "Boots on the road",
           "title": "One mission at a time",
           "body": [
-            "Choose a region and focus, pay the mission cost, then wait for the due week. A better Scout Office brings clearer reports.",
-            "We can send one scout at a time. Apparently they share the club binoculars."
+            "Choose a region and focus, pay the fee, then wait for the due week. A better Scout Office gives clearer reports."
           ],
           "focus": "scout-mission",
           "objective": "START A SCOUT MISSION.",
@@ -264,8 +247,7 @@
           "kicker": "A muddy envelope",
           "title": "Read the ranges",
           "body": [
-            "Scout reports reveal a shortlist with estimated stat ranges. Better facilities tighten the guesswork.",
-            "A report lets you open transfer talks. It does not make the transfer fee disappear, sadly."
+            "Reports show estimated stat ranges; better Scout Offices narrow them. Open a player to begin transfer talks."
           ],
           "focus": "scout-report",
           "objective": "OPEN YOUR FIRST SCOUT REPORT.",
@@ -285,8 +267,7 @@
           "kicker": "Seventeen shirts",
           "title": "Sell to make room",
           "body": [
-            "We're at 17/17. To sign someone else, sell or release a player the squad can safely replace.",
-            "A sale brings in the bid fee and removes that weekly wage. Only players with a legal XI replacement appear on this list."
+            "The squad is full at 17. Sell or release a safely replaceable player before signing anyone else."
           ],
           "focus": "transfer-list",
           "objective": "REVIEW WHO CAN BE SOLD.",
@@ -306,8 +287,7 @@
           "kicker": "Selling season",
           "title": "List, then listen",
           "body": [
-            "During an open window, list one of your contracted players to invite real bids from other clubs.",
-            "A sale brings cash and removes the wage. Bert's rule: count the defenders before selling a defender."
+            "During an open window, list a player to invite bids. A sale adds cash and removes their weekly wage."
           ],
           "focus": "transfer-list",
           "objective": "REVIEW THE TRANSFER LIST.",
@@ -327,8 +307,7 @@
           "kicker": "Someone brought money",
           "title": "The bid is the bid",
           "body": [
-            "Each bidder names an exact fee. Accepting moves the player, credits the cash and clears their wage from our books.",
-            "You may also walk away. An envelope is not a court summons, despite the chairman's stationery."
+            "Each bid is an exact fee. Accepting it moves the player, adds the cash and removes their wage; rejecting it costs nothing."
           ],
           "focus": "transfer-bid",
           "objective": "REVIEW THE FIRST BID.",
@@ -348,8 +327,7 @@
           "kicker": "Agent on line two",
           "title": "Numbers first. Pitch second.",
           "body": [
-            "Set wage, term and any promise. You have up to three rounds; an insulting offer can end the call early.",
-            "A Pitch Card can sway the effective ask by at most 20 percent. Charm helps. Arithmetic still owns the building."
+            "Set wage, term and a promise. You have up to three rounds, and a Pitch Card can reduce the effective ask by at most 20 percent."
           ],
           "focus": "transfer-negotiation",
           "objective": "MAKE YOUR FIRST OFFER.",
@@ -369,8 +347,7 @@
           "kicker": "Fresh boots",
           "title": "The kids have arrived",
           "body": [
-            "This pre-season offers one or two young players, but we have room to choose one. A better Youth Field improves the crop.",
-            "The signing bonus is small; the weekly wage stays on the books. Check their current attributes and archetype before investing."
+            "Choose one academy prospect for the open squad place. Check their ratings, archetype, signing bonus and weekly wage."
           ],
           "focus": "youth-intake",
           "objective": "REVIEW THE YOUTH INTAKE.",
@@ -390,8 +367,7 @@
           "kicker": "Knockout football",
           "title": "No table. No second chances.",
           "body": [
-            "The National Cup mixes clubs from all five divisions in a knockout draw. Win and the next round brings more prize money and fame.",
-            "A giant-killing is wonderful. Being the giant is mostly admin and nerves."
+            "Every division enters the National Cup knockout draw. Win to reach the next round and earn more prize money and fame."
           ],
           "focus": "national-cup",
           "objective": "OPEN THE CUP DRAW.",
@@ -411,8 +387,7 @@
           "kicker": "The ice-pack department",
           "title": "Out means out",
           "body": [
-            "An injured player cannot train or play. The OUT label shows how many recovery weeks remain, and the team sheet replaces them with an eligible player.",
-            "Review the player and the replacement before match day. The physio has banned my miracle sponge again."
+            "An injured player cannot train or play. Check the OUT timer and confirm the automatic Starting XI replacement."
           ],
           "focus": "injury-lineup",
           "objective": "REVIEW THE INJURY AND LINEUP REPAIR.",
@@ -432,8 +407,7 @@
           "kicker": "The very last piggy bank",
           "title": "A bridge, not a lifestyle",
           "body": [
-            "The club received its one automatic emergency loan. Repayments begin next season and this rescue will not repeat.",
-            "Cut recurring costs now. The board owns another red folder and far too many pens."
+            "This is the club's only automatic emergency loan, and repayments begin next season. Cut recurring costs now."
           ],
           "focus": "emergency-loan",
           "objective": "REVIEW THE LOAN AND WEEKLY COSTS.",
@@ -453,8 +427,7 @@
           "kicker": "An agent found a printer",
           "title": "They want the door",
           "body": [
-            "A transfer request comes from sustained low morale. Review their role, contract and the depth behind them before listing anyone.",
-            "The request is serious. The dramatic envelope is, regrettably, optional."
+            "Sustained low morale caused this transfer request. Check the player's role, contract and squad cover before listing them."
           ],
           "focus": "transfer-request",
           "objective": "REVIEW THE UNHAPPY PLAYER.",
@@ -474,8 +447,7 @@
           "kicker": "One last season",
           "title": "The boots have a date",
           "body": [
-            "A retirement announcement gives you notice: the player can finish this season, then leaves the active squad.",
-            "Use the farewell well. Sentiment is free; replacing their position generally is not."
+            "The player can finish this season, then leaves the active squad. Plan the farewell and their replacement now."
           ],
           "focus": "retirement",
           "objective": "REVIEW THE RETIREMENT NOTICE.",
@@ -495,8 +467,7 @@
           "kicker": "The shirt lives on",
           "title": "Choose what comes next",
           "body": [
-            "A long-serving, famous retiree can enter the coach market with a loyalty discount or mentor a special youth player.",
-            "One legend, one legacy. Even statues have budget limits."
+            "Choose one legacy: a discounted future coach candidate or a mentored youth player."
           ],
           "focus": "club-legacy",
           "objective": "CHOOSE THE LEGEND'S LEGACY.",
@@ -516,8 +487,7 @@
           "kicker": "The red folder",
           "title": "Four weeks to recover",
           "body": [
-            "The board has set a cash target and a four-week deadline. Its three or four possible sale candidates are visible now.",
-            "Raise cash yourself and the threat clears. Miss it and the board chooses only from that list, at a discount."
+            "Reach the board's cash target within four weeks or it will sell one visible candidate at a discount."
           ],
           "focus": "board-ultimatum",
           "objective": "REVIEW THE CASH TARGET.",
@@ -537,8 +507,7 @@
           "kicker": "Your one shield",
           "title": "Choose who cannot be sold",
           "body": [
-            "Protect one player from the board's visible candidate list. You may change your choice while the ultimatum is active.",
-            "Your protected player is safe. No hidden names, no surprise sale, no chairman rifling through the whole squad."
+            "Protect one player from the board's visible candidate list. You can change the choice while the ultimatum is active."
           ],
           "focus": "board-protection",
           "objective": "PROTECT ONE PLAYER.",

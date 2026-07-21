@@ -26,4 +26,15 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(market).toContain('detail="If you want to hire this coach"');
     expect(shell).toContain('onPointerDown={onDismissGuidance}');
   });
+
+  it('keeps the club name on the compact resource row', () => {
+    const shell = readFileSync(join(process.cwd(), 'src/ui/ManagementShell.tsx'), 'utf8');
+    const clubName = shell.indexOf('{clubName}');
+    const resources = shell.indexOf('{resourceCluster}', clubName);
+    const period = shell.indexOf('{seasonLabel} · {weekLabel}');
+
+    expect(clubName).toBeGreaterThan(0);
+    expect(resources).toBeGreaterThan(clubName);
+    expect(period).toBeGreaterThan(resources);
+  });
 });

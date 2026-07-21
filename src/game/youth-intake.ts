@@ -1,6 +1,6 @@
 import { mulberry32, type Rng } from '../sim/rng';
 import type { Attrs, Role } from '../sim/types';
-import { deterministicPotentialCeiling } from './archetype-caps';
+import { developmentPotentialCeiling } from './archetype-caps';
 import { nextDistinctPlayerLook } from './player-appearance';
 import type {
   CareerPlayer,
@@ -320,7 +320,7 @@ export function createEmergencyYouthReplacement(
     age: 17,
     archetype: 'All-Rounder',
     potential: 2,
-    potentialCeiling: deterministicPotentialCeiling(id, 2),
+    potentialCeiling: developmentPotentialCeiling({ id, role, attrs, age: 17, potential: 2 }),
     consistency: 50 + integerRoll(random, 0, 10),
     personality: 'Professional',
     condition: 100,
@@ -347,6 +347,7 @@ function createOffer(
     throw new Error(`player ID ${id} is already in the career`);
   }
   const potential = Math.min(5, 1 + integerRoll(random, 0, 3) + Math.floor(fieldLevel / 2)) as 1 | 2 | 3 | 4 | 5;
+  const age = integerRoll(random, 16, 17);
   const retirementAge = 33 + integerRoll(random, 0, 5);
   const player: CareerPlayer = {
     id,
@@ -360,10 +361,16 @@ function createOffer(
     contractSeasonsRemaining: 3,
     morale: 65,
     injuryWeeks: 0,
-    age: integerRoll(random, 16, 17),
+    age,
     archetype: ARCHETYPES[integerRoll(random, 0, ARCHETYPES.length - 1)],
     potential,
-    potentialCeiling: deterministicPotentialCeiling(id, potential),
+    potentialCeiling: developmentPotentialCeiling({
+      id,
+      role,
+      attrs,
+      age,
+      potential,
+    }),
     consistency: 45 + integerRoll(random, 0, 30),
     personality: PERSONALITIES[integerRoll(random, 0, PERSONALITIES.length - 1)],
     condition: 100,

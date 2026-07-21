@@ -5,6 +5,7 @@ import { writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  CREATED_PLAYER_LOOKS,
   FIELD_PLAYER_LOOKS,
   GOALKEEPER_LOOKS,
   PLAYER_CELL,
@@ -25,12 +26,16 @@ for (const side of ['r', 'u']) {
     sprites[`${side}:${look.id}:ready1`] = makeMatchPlayer(look, side, 0, 1);
   }
 }
+for (const side of ['r', 'u']) for (const look of CREATED_PLAYER_LOOKS) {
+  sprites[`${side}:${look.id}:run0`] = makeMatchPlayer(look, side, 0);
+  sprites[`${side}:${look.id}:run1`] = makeMatchPlayer(look, side, 1);
+}
 sprites.ball = ['.KKKK.', 'KWWWWK', 'KWKKWK', 'KWWWWK', 'KWWWWK', '.KKKK.'];
 
 validateSprites();
 const out = resolve(dirname(fileURLToPath(import.meta.url)), '../src/render/sprites/sprites.json');
 writeFileSync(out, `${JSON.stringify({ cell: PLAYER_CELL, palette: PLAYER_PALETTE, sprites }, null, 2)}\n`);
-console.log(`wrote ${Object.keys(sprites).length} base sprites for ${FIELD_PLAYER_LOOKS.length + GOALKEEPER_LOOKS.length} unique player looks`);
+console.log(`wrote ${Object.keys(sprites).length} base sprites for ${FIELD_PLAYER_LOOKS.length + GOALKEEPER_LOOKS.length + CREATED_PLAYER_LOOKS.length} unique player looks`);
 
 function validateSprites() {
   if (Object.keys(PLAYER_PALETTE).length > 24) throw new Error('player palette exceeds 24 keys');

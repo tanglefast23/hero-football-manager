@@ -52,6 +52,7 @@ export interface PotentialProfile {
   readonly id: string;
   readonly role: Role;
   readonly attrs: Readonly<Attrs>;
+  readonly age?: number;
   readonly archetype?: PlayerArchetype;
   readonly potential?: 1 | 2 | 3 | 4 | 5;
   readonly potentialCeiling?: number;
@@ -153,6 +154,37 @@ export function deterministicPotentialCeiling(
   }
   hash = Math.imul(hash ^ potential, 16777619) >>> 0;
   return range[0] + hash % (range[1] - range[0] + 1);
+}
+
+/** Minimum projected-overall room retained when a player is created or migrated. */
+export function minimumDevelopmentHeadroom(age: number): number {
+  if (!Number.isSafeInteger(age) || age < 1 || age > 99) {
+    throw new Error('player age must be an integer from 1 to 99');
+  }
+  if (age <= 21) return 8;
+  if (age <= 24) return 7;
+  if (age <= 27) return 6;
+  if (age <= 30) return 5;
+  return 3;
+}
+
+/**
+ * Fixes a player's ceiling at creation time. Division-scaled potential supplies
+ * the baseline; age guarantees that even ordinary veterans retain some useful
+ * development room without changing their current match rating.
+ */
+export function developmentPotentialCeiling(
+  player: Pick<PotentialProfile, 'id' | 'role' | 'attrs' | 'age' | 'potential'>,
+): number {
+  const currentOverall = roleOverall(player.role, player.attrs);
+  const headroomFloor = Math.min(
+    99,
+    currentOverall + minimumDevelopmentHeadroom(player.age ?? 24),
+  );
+  return Math.max(
+    deterministicPotentialCeiling(player.id, player.potential ?? 3),
+    headroomFloor,
+  );
 }
 
 /** Division 1 is strongest. A stable 0–99 roll selects from its fixed tier curve. */
