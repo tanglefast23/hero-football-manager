@@ -74,6 +74,44 @@ const STRENGTH_LAND_RANGE = 500;
  * Task 12.2 follow-up). Their fires come only from a tap or a useful context —
  * and a Super Strength context inside STRENGTH_LOCK_RANGE guarantees the lock.
  */
+/** Ticks left in the Zone at which auto stops holding out for the ideal moment. */
+export const LATE_WINDOW_TICKS = 20;
+
+/**
+ * The low bar for auto-fire: "can this power do anything at all right now?", as
+ * opposed to inUsefulContext's "is this the moment I would pick?".
+ *
+ * Auto holds out for the ideal context for most of the Zone, then late in the
+ * window settles for a usable one rather than wasting the window. Manual keeps
+ * the same 70 ticks and full strength, so a tapping player is never worse off —
+ * they can still wait for the perfect moment and hit at 100%.
+ *
+ * Target-requiring powers may only settle when a target genuinely resolves;
+ * web-trapping empty grass is a no-op, not a fallback.
+ */
+function hasUsableTarget(state: MatchState, idx: number): boolean {
+  const p = state.players[idx];
+  const power = p.def.power;
+  if (!power) return false;
+  const b = state.ball;
+  const oppCarrierNear = (range: number) =>
+    b.kind === 'held' && state.players[b.by].team !== p.team && dist2(state.players[b.by].pos, p.pos) < range * range;
+  const isCarrier = b.kind === 'held' && b.by === idx;
+
+  // 1900 is the range startWindup already uses to lock a Web Trap / Future
+  // Sight target, so settling can never select a target the windup would drop.
+  if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
+  if (power === 'WEB_TRAP' || power === 'FUTURE_SIGHT') return oppCarrierNear(1900);
+  if (power === 'MAGNET_TOUCH') return b.kind === 'loose' && dist2(b.pos, p.pos) < 2600 * 2600;
+  if (power === 'PORTAL_PASS' || power === 'DECOY_DOUBLE') return isCarrier;
+  if (power === 'ELASTIC_KEEPER') {
+    if (p.def.role !== 'GK') return false;
+    if (b.kind === 'shot') return state.players[b.by].team !== p.team;
+    return b.kind === 'held' && state.players[b.by].team !== p.team;
+  }
+  return true;
+}
+
 function requiresTarget(power: PowerId): boolean {
   return power === 'PORTAL_PASS'
     || power === 'MAGNET_TOUCH'
@@ -220,9 +258,12 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
       if (p.firePolicy === 'FIRE_WHEN_READY') {
         const blind = p.team === 0 && state.blindAutoHome;
         if (blind || inUsefulContext(state, idx)) startWindup(state, idx, CONTEXT_AUTO_STRENGTH);
-        // Target-requiring powers skip the targetless late-window fallback: their
-        // window expires like a manual miss instead (POWER_EXPIRED, heat 50).
-        else if (p.powerState.remainingTicks <= 20 && !requiresTarget(p.def.power)) startWindup(state, idx, LAPSE_STRENGTH);
+        // Late in the window, settle for a usable target rather than waste the
+        // Zone. Target-requiring powers still only fire when one resolves, so a
+        // power with nothing to act on expires like a manual miss.
+        else if (p.powerState.remainingTicks <= LATE_WINDOW_TICKS && hasUsableTarget(state, idx)) {
+          startWindup(state, idx, LAPSE_STRENGTH);
+        }
       }
       // SAVE_FOR_TAP heroes never auto-fire — a missed window only decays heat.
       if (p.powerState.kind === 'zone') {

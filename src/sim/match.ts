@@ -11,7 +11,7 @@ import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, 
 // m1.10 ships M4's canonical target handling: early manual taps wait for a
 // useful context, Future Sight consumes the next eligible pass, and Web Trap
 // springs from a fixed pitch point. These behaviors change replay bytes.
-export const ENGINE_VERSION = 'm1.10';
+export const ENGINE_VERSION = 'm1.11';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one

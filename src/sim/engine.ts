@@ -21,6 +21,17 @@ export const SLIDE_SUCCESS_RECOVERY_TICKS = 6;
 export const SLIDE_MISS_RECOVERY_TICKS = 12;
 const SLIDE_CONTACT_RANGE = 50;
 
+// Heat rewards, one table so each role's decisive act is worth about a shot.
+// Frequent actions stay cheap on purpose: a completed pass paid even 3 Heat
+// would let a midfielder making 40 passes out-charge every striker.
+export const SHOT_GAUGE = 20;
+export const SAVE_GAUGE = 20;
+export const TACKLE_WON_GAUGE = 18;
+export const INTERCEPTION_GAUGE = 12;
+export const LOOSE_BALL_GAUGE = 8;
+export const TACKLE_ATTEMPT_GAUGE = 3;
+export const PASS_RECEIVED_GAUGE = 2;
+
 export function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;
 }
@@ -626,7 +637,7 @@ export function possessionTick(state: MatchState): void {
       const p = state.players[i];
       if (dist2(p.pos, b.pos) < 150 * 150) {
         state.ball = { kind: 'held', by: i };
-        addGauge(state, i, 8);
+        addGauge(state, i, LOOSE_BALL_GAUGE);
         return;
       }
     }
@@ -647,7 +658,11 @@ export function possessionTick(state: MatchState): void {
       // point instead, same as a failed pass with no interceptor.
       if ((b.willSucceed || b.interceptor !== -1) && isAvailable(state, targetIdx)) {
         state.ball = { kind: 'held', by: targetIdx };
-        addGauge(state, targetIdx, 2);
+        // Reading and cutting out a pass is a midfielder's decisive act, the way
+        // a shot is a forward's. Paying it the same 2 Heat as simply being passed
+        // to left MID carriers permanently short of ZONE_HEAT_THRESHOLD.
+        const intercepted = !b.willSucceed && b.interceptor === targetIdx;
+        addGauge(state, targetIdx, intercepted ? INTERCEPTION_GAUGE : PASS_RECEIVED_GAUGE);
       } else {
         state.ball = { kind: 'loose', pos: { ...b.pos }, vel: { x: 0, y: 0 }, z: b.z, vz: b.vz };
       }
@@ -749,7 +764,7 @@ function finishSlide(state: MatchState, tacklerIdx: number, won: boolean, contac
   emit(state, { t: state.tick, kind: 'TACKLE', by: tacklerIdx, on: targetIdx, won, style: 'slide', contact });
   if (won) {
     state.ball = { kind: 'held', by: tacklerIdx };
-    addGauge(state, tacklerIdx, 12); // launch + clean win preserves the existing 15-Heat reward
+    addGauge(state, tacklerIdx, TACKLE_WON_GAUGE);
     interruptWindup(state, targetIdx);
   }
 }
@@ -832,14 +847,14 @@ function startSlide(state: MatchState, tacklerIdx: number, carrierIdx: number, d
   };
   tackler.tackleCooldownUntil = state.tick + SLIDE_TACKLE_COOLDOWN_TICKS;
   drainSlideCondition(tackler, state.tactics[tackler.team].energyUse);
-  addGauge(state, tacklerIdx, 3);
+  addGauge(state, tacklerIdx, TACKLE_ATTEMPT_GAUGE);
   emit(state, { t: state.tick, kind: 'SLIDE_STARTED', by: tacklerIdx, on: carrierIdx, direction: { ...direction }, untilTick });
 }
 
 function standingTackle(state: MatchState, tacklerIdx: number, carrierIdx: number): void {
   const tackler = state.players[tacklerIdx];
   tackler.tackleCooldownUntil = state.tick + 10;
-  addGauge(state, tacklerIdx, 3);
+  addGauge(state, tacklerIdx, TACKLE_ATTEMPT_GAUGE);
   const won = contest(
     state.rng,
     effectiveStat(state, tacklerIdx, 'def') + defenseBonus(state, tacklerIdx),
@@ -849,7 +864,7 @@ function standingTackle(state: MatchState, tacklerIdx: number, carrierIdx: numbe
   emit(state, { t: state.tick, kind: 'TACKLE', by: tacklerIdx, on: carrierIdx, won, style: 'standing', contact: true });
   if (won) {
     state.ball = { kind: 'held', by: tacklerIdx };
-    addGauge(state, tacklerIdx, 12);
+    addGauge(state, tacklerIdx, TACKLE_WON_GAUGE);
     interruptWindup(state, carrierIdx);
   }
 }
@@ -911,7 +926,7 @@ export function attemptShot(state: MatchState, by: number, distToGoal: number): 
   // shots too easy to save; halving it targets goals/match ~2-3 and save rate ~70-80%.
   const power = shotPowerAt(state, by, distToGoal);
   emit(state, { t: state.tick, kind: 'SHOT', by, power, trajectory });
-  addGauge(state, by, 20);
+  addGauge(state, by, SHOT_GAUGE);
   const dir = gy === 0 ? -1 : 1;
   const flightTicks = Math.max(1, Math.ceil(Math.abs(gy - shooter.pos.y) / 300));
   state.ball = {
@@ -959,7 +974,7 @@ export function shotFlightTick(state: MatchState): void {
           state.resolve[defendingTeam] - Math.round(b.power / RESOLVE_DAMAGE_DIVISOR),
         );
         emit(state, { t: state.tick, kind: 'SAVE', by: gkIdx, resolveLeft: state.resolve[defendingTeam] });
-        addGauge(state, gkIdx, 12);
+        addGauge(state, gkIdx, SAVE_GAUGE);
         state.ball = {
           kind: 'held',
           by: gkIdx,

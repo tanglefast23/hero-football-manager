@@ -25,6 +25,49 @@ describe('hero gauge and firing', () => {
     expect(boosted.players[SPEEDSTER].gauge).toBe(25);
   });
 
+  it('rewards an interception far above a routine pass reception', () => {
+    // A midfielder's decisive act is winning the ball in flight. Crediting it
+    // the same 2 Heat as being passed to is why MID carriers never reach the
+    // Zone threshold at all (M4 gate: 0.00 zones/match).
+    const received = createMatch(42, ROVERS, UNITED);
+    received.ball = {
+      kind: 'pass', from: 9, to: SPEEDSTER, pos: { ...received.players[SPEEDSTER].pos },
+      speed: 200, willSucceed: true, interceptor: -1, z: 0, vz: 0,
+    };
+    tick(received);
+    const receptionHeat = received.players[SPEEDSTER].gauge;
+
+    const stolen = createMatch(42, ROVERS, UNITED);
+    stolen.ball = {
+      kind: 'pass', from: 14, to: 15, pos: { ...stolen.players[SPEEDSTER].pos },
+      speed: 200, willSucceed: false, interceptor: SPEEDSTER, z: 0, vz: 0,
+    };
+    tick(stolen);
+    const interceptionHeat = stolen.players[SPEEDSTER].gauge;
+
+    expect(receptionHeat).toBeGreaterThan(0);
+    expect(interceptionHeat).toBeGreaterThanOrEqual(receptionHeat * 4);
+  });
+
+  it('lets an auto target power fire late on a usable target instead of lapsing', () => {
+    // Magnet Touch earned the most Zones of any power in the M4 gate (4.13/match)
+    // and converted none: its ideal context is a loose ball within 1800, which
+    // never coincided with the 70-tick window. Late in the window it should take
+    // a reachable-but-not-ideal ball rather than waste the Zone entirely.
+    const m = createMatch(42, { ...ROVERS, players: ROVERS.players.map((pl, i) => (
+      i === SPEEDSTER ? { ...pl, power: 'MAGNET_TOUCH' as const } : { ...pl, power: undefined }
+    )) }, UNITED, { homePolicy: 'FIRE_WHEN_READY' });
+    const hero = m.players[SPEEDSTER];
+    hero.powerState = { kind: 'zone', remainingTicks: 3 };
+    // Outside the 1800 ideal radius, still clearly reachable.
+    m.ball = { kind: 'loose', pos: { x: hero.pos.x + 2200, y: hero.pos.y }, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
+
+    tick(m);
+
+    expect(m.players[SPEEDSTER].powerState.kind).not.toBe('zone');
+    expect(m.events.some(e => e.kind === 'POWER_EXPIRED')).toBe(false);
+  });
+
   it('accepts an assistant Motivator half-percent Heat modifier', () => {
     const boosted = createMatch(42, { ...ROVERS, heroGaugeRatePercent: 102.5 }, UNITED);
     addGauge(boosted, SPEEDSTER, 20);
