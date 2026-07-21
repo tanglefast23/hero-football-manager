@@ -7,6 +7,7 @@ import {
   resolvePostMatchAwakening,
 } from '../post-match-awakening';
 import type { GameState } from '../types';
+import { LAUNCH_POWER_IDS } from '../power-catalog';
 
 const POWERS = ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'] as const;
 const TRIGGERS = ['glowing-caterpillar', 'magic-sponge', 'runaway-sprinkler'] as const;
@@ -174,6 +175,22 @@ describe('automatic post-match awakenings', () => {
     });
     expect(userLineup(result.state)).not.toContain(targetId);
     expect(() => buildCareerTeamDef(result.state, result.state.userClubId)).not.toThrow();
+  });
+
+  it('only gives the goalkeeper the keeper-only launch power', () => {
+    const initial = playedUserFixture(createCareer(createLaunchCareerSetup(63)));
+    const goalkeeperId = userLineup(initial)[0];
+    const result = resolvePostMatchAwakening(
+      { ...initial, awakening: { matchesSinceLastAwakening: 2, usedTriggerIds: [] } },
+      userFixture(initial).id,
+      [goalkeeperId],
+      LAUNCH_POWER_IDS,
+      TRIGGERS,
+      { chancePercent: 100, minimumMatchesBetween: 3 },
+    );
+
+    expect(result.state.players.find(player => player.id === goalkeeperId)?.power)
+      .toBe('ELASTIC_KEEPER');
   });
 });
 

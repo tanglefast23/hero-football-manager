@@ -1,6 +1,6 @@
 import type { PowerId, TeamDef } from '../../sim/types';
 import { deterministicPotentialCeiling } from '../archetype-caps';
-import { nextDistinctPlayerLook } from '../player-appearance';
+import { assignDistinctPlayerLooks, createdAppearanceLookId } from '../player-appearance';
 import type { CareerPlayer, GameState, LeagueFixture } from '../types';
 import { STORY_STARTING_ROSTER_SIZE } from '../story-progression';
 import { reconcileStoryYouthIntake } from '../youth-intake';
@@ -65,7 +65,7 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
   if (state.onboarding?.stage !== 'create-player') {
     throw new Error('A player can only be created at the start of onboarding');
   }
-  const { name, attrs } = validateCreatedPlayerDraft(draft);
+  const { name, attrs, appearance, difficulty } = validateCreatedPlayerDraft(draft);
   const playerId = `${state.userClubId}-${CREATED_PLAYER_ID_SUFFIX}`;
   if (state.players.some(player => player.id === playerId)) {
     throw new Error('The created player already exists');
@@ -87,7 +87,8 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
     clubId: state.userClubId,
     name,
     role: 'FWD',
-    lookId: nextDistinctPlayerLook({ id: playerId, role: 'FWD' }, state.players),
+    lookId: createdAppearanceLookId(appearance),
+    createdAppearance: appearance,
     attrs,
     licensed: false,
     weeklyWage: CREATED_PLAYER_ROOKIE_WAGE,
@@ -107,12 +108,20 @@ export function addCreatedPlayer(state: GameState, draft: CreatedPlayerDraft): G
     retirementAge: 36,
     retirementAnnounced: false,
   };
+  // The explicit paper-doll choice owns its atlas slot. Move a colliding
+  // generated player instead of silently changing the selected appearance.
+  const assignedLooks = assignDistinctPlayerLooks([created, ...state.players]);
+  const assignedById = new Map(assignedLooks.map(player => [player.id, player]));
   return {
     ...state,
+    difficulty,
     clubs: state.clubs.map(club => club.id === state.userClubId
       ? { ...club, weeklyWages: safeAdd(club.weeklyWages, CREATED_PLAYER_ROOKIE_WAGE) }
       : club),
-    players: [...state.players, created],
+    players: [
+      ...state.players.map(player => assignedById.get(player.id)!),
+      assignedById.get(created.id)!,
+    ],
     lineups: state.lineups.map(candidate => candidate.clubId === state.userClubId
       ? {
           ...candidate,

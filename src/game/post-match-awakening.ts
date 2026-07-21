@@ -5,6 +5,7 @@ import {
   chooseStatWeightedAwakeningPower,
 } from './career-events';
 import type { GameState } from './types';
+import { powerIsCompatibleWithRole } from './power-catalog';
 
 export interface PostMatchAwakeningTuning {
   chancePercent: number;
@@ -77,6 +78,7 @@ export function resolvePostMatchAwakening(
       player.id === id
       && player.clubId === state.userClubId
       && player.power === undefined
+      && powerIds.some(power => powerIsCompatibleWithRole(power, player.role))
       && canSafelyAwaken(state, id, licensedCount),
     ));
     if (eligible.length === 0) return nextWithoutAwakening();
@@ -96,9 +98,13 @@ export function resolvePostMatchAwakening(
     throw new Error('the created player must be the campaign first hero');
   }
 
-  const powerRollSize = awakeningPowerRollSize(powerIds, player.attrs);
+  const compatiblePowerIds = powerIds.filter(power => powerIsCompatibleWithRole(power, player.role));
+  if (compatiblePowerIds.length === 0) {
+    throw new Error(`no awakening power is compatible with ${player.role}`);
+  }
+  const powerRollSize = awakeningPowerRollSize(compatiblePowerIds, player.attrs);
   const power = chooseStatWeightedAwakeningPower(
-    powerIds,
+    compatiblePowerIds,
     player.attrs,
     deterministicPostMatchAwakeningRoll(state.careerSeed, fixtureId, 2, powerRollSize),
   );

@@ -1,4 +1,4 @@
-export type AutomaticMatchPauseReason = 'background' | 'settings' | 'swap';
+export type AutomaticMatchPauseReason = 'background' | 'settings' | 'swap' | 'cut-in';
 
 export function shouldPauseMatch(
   userPaused: boolean,

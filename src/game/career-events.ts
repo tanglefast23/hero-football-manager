@@ -1,11 +1,8 @@
 import type { Attrs, PowerId } from '../sim/types';
 import type { GameState } from './types';
+import { LAUNCH_POWER_IDS } from './power-catalog';
 
-const POWER_IDS: ReadonlySet<PowerId> = new Set([
-  'SUPER_SPEED',
-  'SUPER_STRENGTH',
-  'FIRE_TORCH',
-]);
+const POWER_IDS: ReadonlySet<PowerId> = new Set(LAUNCH_POWER_IDS);
 
 export interface CareerEventPlayerEffect {
   playerId: string;
@@ -21,6 +18,13 @@ export interface CareerEventOutcomeApplication {
   fanDelta?: number;
   flags?: readonly string[];
   playerEffect?: CareerEventPlayerEffect;
+}
+
+export interface CareerEventResolutionPresentation {
+  outcomeIndex: number;
+  risky: boolean;
+  success: boolean;
+  nextEventId?: string;
 }
 
 /**
@@ -75,8 +79,17 @@ function awakeningPowerWeight(powerId: PowerId, attrs: Readonly<Attrs>): number 
     throw new Error('awakening attributes must be integers from 1 to 99');
   }
   if (powerId === 'SUPER_SPEED') return 10 + attrs.pac * 3 + attrs.tec + attrs.pas;
+  if (powerId === 'BLINK_RUN') return 10 + attrs.pac * 2 + attrs.tec * 2 + attrs.sho;
+  if (powerId === 'THUNDER_STRIKE') return 10 + attrs.sho * 3 + attrs.tec + attrs.sta;
+  if (powerId === 'FIRE_TORCH') return 10 + attrs.sho * 3 + attrs.tec + attrs.pas;
+  if (powerId === 'PHASE_RUN') return 10 + attrs.tec * 3 + attrs.pac + attrs.def;
+  if (powerId === 'PORTAL_PASS') return 10 + attrs.pas * 3 + attrs.tec + attrs.pac;
+  if (powerId === 'MAGNET_TOUCH') return 10 + attrs.tec * 2 + attrs.pac + attrs.pas + attrs.def;
+  if (powerId === 'DECOY_DOUBLE') return 10 + attrs.pas * 2 + attrs.tec * 2 + attrs.pac;
+  if (powerId === 'FUTURE_SIGHT') return 10 + attrs.def * 2 + attrs.pas * 2 + attrs.tec;
   if (powerId === 'SUPER_STRENGTH') return 10 + attrs.def * 2 + attrs.sta * 2 + attrs.pac;
-  return 10 + attrs.sho * 3 + attrs.tec + attrs.pas;
+  if (powerId === 'WEB_TRAP') return 10 + attrs.def * 3 + attrs.tec + attrs.sta;
+  return 10 + attrs.ref * 4 + attrs.sta;
 }
 
 export function offerCareerEvent(state: GameState, eventId: string): GameState {
@@ -108,6 +121,7 @@ export function applyCareerEventOutcome(
   choiceId: string,
   outcomeText: string,
   application: CareerEventOutcomeApplication,
+  presentation?: CareerEventResolutionPresentation,
 ): GameState {
   if (state.pendingEvent === undefined) throw new Error('there is no pending event');
   if (state.pendingEvent.resolvedChoiceId !== undefined) {
@@ -115,6 +129,10 @@ export function applyCareerEventOutcome(
   }
   if (choiceId.trim().length === 0 || outcomeText.trim().length === 0) {
     throw new Error('resolved event choice and outcome text must be non-empty');
+  }
+  if (presentation !== undefined
+    && (!Number.isSafeInteger(presentation.outcomeIndex) || presentation.outcomeIndex < 0)) {
+    throw new Error('resolved event outcome index must be a nonnegative safe integer');
   }
 
   const moneyDelta = safeDelta(application.moneyDelta ?? 0, 'event money');
@@ -148,6 +166,14 @@ export function applyCareerEventOutcome(
       ...state.pendingEvent,
       resolvedChoiceId: choiceId,
       outcomeText,
+      ...(presentation === undefined ? {} : {
+        resolvedOutcomeIndex: presentation.outcomeIndex,
+        resolvedRisky: presentation.risky,
+        resolvedSuccess: presentation.success,
+        ...(presentation.nextEventId === undefined
+          ? {}
+          : { resolvedNextEventId: presentation.nextEventId }),
+      }),
     },
   };
 }
@@ -160,6 +186,10 @@ export function dismissCareerEvent(state: GameState, markResolved = true): GameS
   return {
     ...state,
     pendingEvent: undefined,
+    resolvedEventHistory: [
+      ...(state.resolvedEventHistory ?? []),
+      { eventId: pending.eventId, season: state.season, week: state.week },
+    ],
     resolvedEventIds: !markResolved || state.resolvedEventIds.includes(pending.eventId)
       ? state.resolvedEventIds
       : [...state.resolvedEventIds, pending.eventId],

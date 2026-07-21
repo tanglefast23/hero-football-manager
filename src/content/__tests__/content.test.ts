@@ -44,9 +44,43 @@ describe('validated M1 launch content', () => {
 
     expect(new Set(clubIds).size).toBe(clubIds.length);
     expect(new Set(playerIds).size).toBe(playerIds.length);
-    expect(content.powers.powers).toHaveLength(3);
-    expect(content.powers.powers.every(power => power.tier === 'starter')).toBe(true);
+    expect(content.powers.powers).toHaveLength(12);
+    expect(content.powers.powers.filter(power => power.requiresTarget).map(power => power.id)).toEqual([
+      'PORTAL_PASS',
+      'MAGNET_TOUCH',
+      'DECOY_DOUBLE',
+      'FUTURE_SIGHT',
+      'SUPER_STRENGTH',
+      'WEB_TRAP',
+      'ELASTIC_KEEPER',
+    ]);
+    expect(content.powers.powers.filter(power => power.tier === 'starter').length).toBeGreaterThanOrEqual(3);
     expect(content.training.focusDrills).toHaveLength(6);
+    expect(content.events.events).toHaveLength(30);
+    expect(new Set(content.events.events.map(event => event.category))).toEqual(new Set([
+      'mystery',
+      'club',
+      'media',
+      'sponsor',
+      'player',
+      'medical',
+      'fan',
+    ]));
+    expect(content.events.events.every(event => event.choices.some(choice => choice.risky))).toBe(true);
+    for (const event of content.events.events) {
+      for (const choice of event.choices.filter(choice => choice.risky)) {
+        expect(choice.outcomes[0].effects).toContainEqual(expect.objectContaining({ type: 'flag', value: true }));
+      }
+    }
+    expect(content.events.events.some(event => event.trigger.repeatable)).toBe(true);
+    expect(content.events.events.some(event => event.trigger.requiresPlayer)).toBe(true);
+    expect(content.events.events.some(event => event.trigger.requiredFacility)).toBe(true);
+    expect(content.events.events.some(event => event.trigger.requiredPersonality)).toBe(true);
+    expect(content.events.events.some(event => event.trigger.requiresHero)).toBe(true);
+    expect(content.events.events.some(event => event.choices.some(choice => choice.requires?.minMoney))).toBe(true);
+    expect(content.events.events.some(event => event.choices.some(choice => (
+      choice.outcomes.some(outcome => outcome.nextEventId !== undefined)
+    )))).toBe(true);
 
     for (const player of players) {
       expect(['GK', 'DEF', 'MID', 'FWD']).toContain(player.role);
@@ -120,6 +154,20 @@ describe('validated M1 launch content', () => {
     const missingPower = cloneContent(loadLaunchContent());
     missingPower.powers.powers[1].id = 'SUPER_SPEED';
     expect(() => parseLaunchContent(missingPower)).toThrow(/power IDs must be unique|unknown power ID/);
+
+    const ambiguousRiskyOutcome = cloneContent(loadLaunchContent());
+    ambiguousRiskyOutcome.events.events[0].choices[0].outcomes = [{
+      ...ambiguousRiskyOutcome.events.events[0].choices[0].outcomes[0],
+      weight: 100,
+    }];
+    expect(() => parseLaunchContent(ambiguousRiskyOutcome)).toThrow(/risky event choices must define success first/);
+
+    const unmarkedRiskySuccess = cloneContent(loadLaunchContent());
+    unmarkedRiskySuccess.events.events[0].choices[0].outcomes[0].effects =
+      unmarkedRiskySuccess.events.events[0].choices[0].outcomes[0].effects.filter(
+        effect => effect.type !== 'flag',
+      );
+    expect(() => parseLaunchContent(unmarkedRiskySuccess)).toThrow(/mark its first outcome as the authored success/);
   });
 
   test('captures the locked M1 training and post-match awakening tuning', () => {
@@ -152,9 +200,18 @@ describe('validated M1 launch content', () => {
       'var-future-flash',
     ]));
     expect(content.onboarding.powers.map(power => power.powerId).sort()).toEqual([
+      'BLINK_RUN',
+      'DECOY_DOUBLE',
+      'ELASTIC_KEEPER',
       'FIRE_TORCH',
+      'FUTURE_SIGHT',
+      'MAGNET_TOUCH',
+      'PHASE_RUN',
+      'PORTAL_PASS',
       'SUPER_SPEED',
       'SUPER_STRENGTH',
+      'THUNDER_STRIKE',
+      'WEB_TRAP',
     ]);
     expect(content.onboarding.powers.every(power =>
       power.omen.includes('{name}') && power.reveal.includes('{name}'))).toBe(true);
@@ -194,12 +251,12 @@ describe('validated M1 launch content', () => {
       ?.pages;
     expect(managementIntroPages).toHaveLength(3);
     expect(managementIntroPages?.find(page => page.focus === 'navigation')).toMatchObject({
-      buttonLabel: 'Right. Off I go.',
+      buttonLabel: 'Your navigation buttons.',
       navItems: [
         { tab: 'HOME', detail: "Today's work." },
-        { tab: 'SQUAD', detail: 'Your team and training.' },
-        { tab: 'CLUB', detail: 'Wages, books and facilities.' },
-        { tab: 'MARKET', detail: 'Scout, sign, sell and hire.' },
+        { tab: 'SQUAD', detail: 'Team and training.' },
+        { tab: 'CLUB', detail: 'Wages and facilities.' },
+        { tab: 'MARKET', detail: 'Scout, hire and fire.' },
         { tab: 'LEAGUE', detail: 'Leagues and rivals.' },
       ],
     });

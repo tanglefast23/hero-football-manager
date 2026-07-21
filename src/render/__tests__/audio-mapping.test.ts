@@ -1,5 +1,6 @@
 import { filesForEvent } from '../audio';
 import type { MatchEvent } from '../../sim/types';
+import type { PowerId } from '../../sim/types';
 
 // Guards the event → SFX wiring in audio.ts (audit finding 1: several events
 // with matching assets were silently unmapped). Asset requires are stubbed via
@@ -33,6 +34,16 @@ describe('filesForEvent: event → SFX wiring', () => {
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 0.85 })).toEqual(['flame-up']);
     // A manual tap-confirm still layers the tap click on top.
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 })).toEqual(['tap-fire', 'flame-up']);
+  });
+
+  it('gives every M4 power an activation sound', () => {
+    const powers: PowerId[] = [
+      'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
+      'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+    ];
+    for (const power of powers) {
+      expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power, strength: 0.85 })).not.toEqual([]);
+    }
   });
 
   it('leaves RECOVERED intentionally silent (no matching asset)', () => {

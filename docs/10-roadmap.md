@@ -53,6 +53,13 @@ The second existential question — "does *managing heroes* stay fun across seas
 - Full 12-power catalog with per-power contexts, license slot growth, and pre-powered scouted heroes.
 - Balance harness expanded to the full doc-09 assertion set.
 
+> **✅ OWNER GATE ACCEPTED — 2026-07-21.** Joe confirmed that all M3 gating
+> questions passed and approved the current M3 working tree as the baseline for
+> M4. During M4 implementation, repository checks found that several roadmap
+> breadth deliverables (notably the 12-power and event counts) still needed to be
+> completed in code; those prerequisites are tracked inside the M4 workstream
+> rather than being silently treated as shipped.
+
 ## M4 — Content & polish (3–4 weeks)
 
 - ~30 events, portrait paper-doll system + customization variety, comic cut-in art pass, sound + haptics, tutorial/onboarding fiction, accessibility settings, Cozy/Chairman difficulty, season awards + recap.

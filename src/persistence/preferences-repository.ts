@@ -7,14 +7,19 @@ import {
   type FormationId,
 } from '../sim/tactics';
 import type { PersistenceDatabase } from './database';
+import type { PowerId } from '../sim/types';
 import { migrateDatabase } from './migrations';
 
-const PREFERENCES_SCHEMA_VERSION = 2;
+const PREFERENCES_SCHEMA_VERSION = 4;
 const LEGACY_PREFERENCES_SCHEMA_VERSION = 1;
+const M2_PREFERENCES_SCHEMA_VERSION = 2;
+const M4_PREFERENCES_SCHEMA_VERSION = 3;
 const PRIMARY_SLOT = 1;
 
 export type MasterVolume = 0 | 0.25 | 0.5 | 0.75 | 1;
 export type HudSide = 'left' | 'right';
+export type TextScale = 1 | 1.15 | 1.3;
+export type CutInMode = 'full' | 'banner';
 
 export interface AppPreferences {
   formationPresets: [FormationId, FormationId, FormationId];
@@ -22,6 +27,12 @@ export interface AppPreferences {
   masterVolume: MasterVolume;
   reduceMotion: boolean;
   hudSide: HudSide;
+  hapticsEnabled: boolean;
+  textScale: TextScale;
+  highContrast: boolean;
+  colorSafeKits: boolean;
+  cutInMode: CutInMode;
+  seenPowerCutIns: PowerId[];
 }
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
@@ -30,9 +41,19 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   masterVolume: 1,
   reduceMotion: false,
   hudSide: 'left',
+  hapticsEnabled: true,
+  textScale: 1,
+  highContrast: false,
+  colorSafeKits: true,
+  cutInMode: 'full',
+  seenPowerCutIns: [],
 };
 
 const FormationSchema = z.enum(FORMATION_IDS);
+const PowerIdSchema = z.enum([
+  'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
+  'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+]);
 const PreferencesSchema = z.strictObject({
   formationPresets: z.tuple([FormationSchema, FormationSchema, FormationSchema])
     .refine(values => new Set(values).size === 3, 'formation presets must be unique'),
@@ -40,12 +61,27 @@ const PreferencesSchema = z.strictObject({
   masterVolume: z.union([z.literal(0), z.literal(0.25), z.literal(0.5), z.literal(0.75), z.literal(1)]),
   reduceMotion: z.boolean(),
   hudSide: z.enum(['left', 'right']),
+  hapticsEnabled: z.boolean(),
+  textScale: z.union([z.literal(1), z.literal(1.15), z.literal(1.3)]),
+  highContrast: z.boolean(),
+  colorSafeKits: z.boolean(),
+  cutInMode: z.enum(['full', 'banner']),
+  seenPowerCutIns: z.array(PowerIdSchema).max(12)
+    .refine(values => new Set(values).size === values.length, 'seen power cut-ins must be unique'),
 });
 const LegacyPreferencesSchema = PreferencesSchema.pick({
   formationPresets: true,
   autoPowers: true,
   masterVolume: true,
 });
+const M2PreferencesSchema = PreferencesSchema.pick({
+  formationPresets: true,
+  autoPowers: true,
+  masterVolume: true,
+  reduceMotion: true,
+  hudSide: true,
+});
+const M4PreferencesSchema = PreferencesSchema.omit({ seenPowerCutIns: true });
 
 const UPSERT_SQL = `
   INSERT INTO app_preferences (slot, schema_version, preferences_json)
@@ -92,6 +128,51 @@ export async function createPreferencesRepository(
           formationPresets: [...legacy.data.formationPresets],
           reduceMotion: DEFAULT_APP_PREFERENCES.reduceMotion,
           hudSide: DEFAULT_APP_PREFERENCES.hudSide,
+          hapticsEnabled: DEFAULT_APP_PREFERENCES.hapticsEnabled,
+          textScale: DEFAULT_APP_PREFERENCES.textScale,
+          highContrast: DEFAULT_APP_PREFERENCES.highContrast,
+          colorSafeKits: DEFAULT_APP_PREFERENCES.colorSafeKits,
+          cutInMode: DEFAULT_APP_PREFERENCES.cutInMode,
+          seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
+        };
+        await database.runAsync(UPSERT_SQL, [
+          PRIMARY_SLOT,
+          PREFERENCES_SCHEMA_VERSION,
+          JSON.stringify(migrated),
+        ]);
+        return migrated;
+      }
+      if (row.schema_version === M2_PREFERENCES_SCHEMA_VERSION) {
+        const legacy = M2PreferencesSchema.safeParse(decoded);
+        if (!legacy.success) {
+          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+        }
+        const migrated: AppPreferences = {
+          ...legacy.data,
+          formationPresets: [...legacy.data.formationPresets],
+          hapticsEnabled: DEFAULT_APP_PREFERENCES.hapticsEnabled,
+          textScale: DEFAULT_APP_PREFERENCES.textScale,
+          highContrast: DEFAULT_APP_PREFERENCES.highContrast,
+          colorSafeKits: DEFAULT_APP_PREFERENCES.colorSafeKits,
+          cutInMode: DEFAULT_APP_PREFERENCES.cutInMode,
+          seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
+        };
+        await database.runAsync(UPSERT_SQL, [
+          PRIMARY_SLOT,
+          PREFERENCES_SCHEMA_VERSION,
+          JSON.stringify(migrated),
+        ]);
+        return migrated;
+      }
+      if (row.schema_version === M4_PREFERENCES_SCHEMA_VERSION) {
+        const legacy = M4PreferencesSchema.safeParse(decoded);
+        if (!legacy.success) {
+          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+        }
+        const migrated: AppPreferences = {
+          ...legacy.data,
+          formationPresets: [...legacy.data.formationPresets],
+          seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -118,6 +199,7 @@ function clonePreferences(preferences: AppPreferences): AppPreferences {
   return {
     ...preferences,
     formationPresets: [...preferences.formationPresets],
+    seenPowerCutIns: [...preferences.seenPowerCutIns],
   };
 }
 

@@ -407,6 +407,59 @@ function PowerOmen({
       </>
     );
   }
+  if (powerId === 'PORTAL_PASS' || powerId === 'PHASE_RUN' || powerId === 'ELASTIC_KEEPER') {
+    const color = powerId === 'PORTAL_PASS' ? '#b189d9' : powerId === 'PHASE_RUN' ? '#77a4d8' : '#65b96e';
+    const stretch = powerId === 'ELASTIC_KEEPER' ? 1.55 : 1;
+    return (
+      <>
+        {[24, 39, 56].map((radius, index) => (
+          <Circle
+            key={radius}
+            cx={x}
+            cy={y}
+            r={radius * (reveal ? stretch : 0.72)}
+            color={color}
+            style="stroke"
+            strokeWidth={Math.max(2, 5 - index)}
+            opacity={0.72 - index * 0.16}
+          />
+        ))}
+      </>
+    );
+  }
+  if (powerId === 'FUTURE_SIGHT' || powerId === 'MAGNET_TOUCH' || powerId === 'DECOY_DOUBLE') {
+    const spread = reveal ? 42 : 24;
+    return (
+      <>
+        <Circle cx={x - spread} cy={y} r={reveal ? 24 : 14} color="#b189d9" opacity={0.35} />
+        <Circle cx={x + spread} cy={y} r={reveal ? 24 : 14} color="#77a4d8" opacity={0.35} />
+        <Line p1={{ x: x - spread, y }} p2={{ x: x + spread, y }} color="#f7d894" strokeWidth={reveal ? 6 : 3} opacity={0.8} />
+      </>
+    );
+  }
+  if (powerId === 'WEB_TRAP') {
+    const radius = reveal ? 66 : 38;
+    return (
+      <>
+        {[0, 45, 90, 135].map(angle => {
+          const radians = angle * Math.PI / 180;
+          return <Line key={angle} p1={{ x: x - Math.cos(radians) * radius, y: y - Math.sin(radians) * radius }} p2={{ x: x + Math.cos(radians) * radius, y: y + Math.sin(radians) * radius }} color="#f4f1ea" strokeWidth={2} opacity={0.7} />;
+        })}
+        <Circle cx={x} cy={y} r={radius * 0.58} color="#f4f1ea" style="stroke" strokeWidth={2} opacity={0.55} />
+      </>
+    );
+  }
+  if (powerId === 'THUNDER_STRIKE') {
+    const radius = reveal ? 72 : 42;
+    return (
+      <>
+        {[-1, 1].map(direction => (
+          <Line key={direction} p1={{ x: x + direction * radius, y: y - radius }} p2={{ x: x - direction * 10, y: y + radius }} color="#edb54a" strokeWidth={reveal ? 7 : 4} opacity={0.85} />
+        ))}
+        <Circle cx={x} cy={y} r={reveal ? 22 : 13} color="#f7d894" opacity={0.48} />
+      </>
+    );
+  }
   return (
     <>
       {[-26, -13, 0, 13, 26].map((offset, index) => (

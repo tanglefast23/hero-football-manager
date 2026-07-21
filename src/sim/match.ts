@@ -8,9 +8,10 @@ import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.8 lets assistant Motivators contribute their exact half-strength Hero
-// Gauge bonus. It retains m1.7's replay validation and match behavior otherwise.
-export const ENGINE_VERSION = 'm1.8';
+// m1.10 ships M4's canonical target handling: early manual taps wait for a
+// useful context, Future Sight consumes the next eligible pass, and Web Trap
+// springs from a fixed pitch point. These behaviors change replay bytes.
+export const ENGINE_VERSION = 'm1.10';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -19,7 +20,11 @@ const STOPPAGE_CAP = 50;
 const MAX_REPLAY_TICK = TOTAL_TICKS + STOPPAGE_CAP;
 const MAX_REPLAY_INPUTS = MAX_REPLAY_TICK;
 const VALID_ROLES: ReadonlySet<Role> = new Set(['GK', 'DEF', 'MID', 'FWD']);
-const VALID_POWER_IDS: ReadonlySet<string> = new Set(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']);
+const VALID_POWER_IDS: ReadonlySet<string> = new Set([
+  'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH',
+  'PHASE_RUN', 'PORTAL_PASS', 'MAGNET_TOUCH', 'DECOY_DOUBLE',
+  'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+]);
 const VALID_FIRE_POLICIES: ReadonlySet<string> = new Set(['SAVE_FOR_TAP', 'FIRE_WHEN_READY']);
 const ATTR_KEYS: ReadonlyArray<keyof Attrs> = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'];
 export { MAX_SUBSTITUTIONS } from './substitutions';

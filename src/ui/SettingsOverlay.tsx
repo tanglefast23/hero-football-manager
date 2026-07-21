@@ -1,9 +1,9 @@
 import { useRef } from 'react';
-import { Modal, PanResponder, Text, View } from 'react-native';
+import { Modal, PanResponder, ScrollView, Text, View } from 'react-native';
 import { ActionButton } from './components/Scorecard';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { adjustDevVolume, DEV_VOLUME_LEVELS, devVolumePercent, type DevVolume } from '../render/dev-volume';
-import type { HudSide } from '../persistence';
+import type { CutInMode, HudSide, TextScale } from '../persistence';
 import type { GlossaryCatalog } from '../content';
 import { GlossaryPanel } from './GlossaryPanel';
 
@@ -86,10 +86,22 @@ export interface SettingsOverlayProps {
   volume: DevVolume;
   reduceMotion: boolean;
   hudSide: HudSide;
+  hapticsEnabled: boolean;
+  textScale: TextScale;
+  highContrast: boolean;
+  colorSafeKits: boolean;
+  cutInMode: CutInMode;
+  accessibilityCopy?: { title: string; body: string };
+  difficultyLabel?: 'COZY' | 'CHAIRMAN';
   saveError?: string | null;
   onVolumeChange: (v: DevVolume) => void;
   onToggleReduceMotion: () => void;
   onToggleHudSide: () => void;
+  onToggleHaptics: () => void;
+  onCycleTextScale: () => void;
+  onToggleHighContrast: () => void;
+  onToggleColorSafeKits: () => void;
+  onToggleCutInMode: () => void;
   onGlossaryOpenChange: (open: boolean) => void;
   onOpenChange: (open: boolean) => void;
 }
@@ -129,10 +141,22 @@ export function SettingsOverlay({
   volume,
   reduceMotion,
   hudSide,
+  hapticsEnabled,
+  textScale,
+  highContrast,
+  colorSafeKits,
+  cutInMode,
+  accessibilityCopy,
+  difficultyLabel,
   saveError,
   onVolumeChange,
   onToggleReduceMotion,
   onToggleHudSide,
+  onToggleHaptics,
+  onCycleTextScale,
+  onToggleHighContrast,
+  onToggleColorSafeKits,
+  onToggleCutInMode,
   onGlossaryOpenChange,
   onOpenChange,
 }: SettingsOverlayProps) {
@@ -147,26 +171,37 @@ export function SettingsOverlay({
         animationType={reduceMotion ? 'none' : 'fade'}
         onRequestClose={() => setOpenState(false)}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close settings"
+        <View
           className="flex-1 items-center justify-center px-6"
           style={{ backgroundColor: 'rgba(36,31,46,0.55)' }}
-          onPress={() => setOpenState(false)}
         >
-          {/* stop taps inside the panel from closing the modal */}
           <Pressable
+            accessible={false}
+            className="absolute inset-0"
+            onPress={() => setOpenState(false)}
+          />
+          {/* The panel is a sibling of the backdrop so taps and accessibility
+              focus on its controls never bubble into the close target. */}
+          <View
+            accessible={false}
+            accessibilityViewIsModal
+            importantForAccessibility="yes"
             className={glossaryOpen
               ? 'w-full max-w-lg border-2 border-b-4 border-ink bg-paper p-5'
               : 'w-full max-w-sm border-2 border-b-4 border-ink bg-paper p-5'}
-            style={glossaryOpen ? { height: '88%' } : undefined}
-            onPress={() => {}}
+            style={{ height: '88%' }}
           >
             {glossaryOpen ? (
               <GlossaryPanel content={glossary} onBack={() => onGlossaryOpenChange(false)} />
             ) : (
-            <>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4 }}>
             <Text className="font-pixel text-2xl uppercase text-ink">Settings</Text>
+            {accessibilityCopy ? (
+              <View className="mt-3 border-l-4 border-violet-dark bg-violet-light px-3 py-2">
+                <Text className="text-sm font-bold uppercase text-violet-dark">{accessibilityCopy.title}</Text>
+                <Text className="mt-1 text-sm leading-5 text-ink/65">{accessibilityCopy.body}</Text>
+              </View>
+            ) : null}
             {saveError ? (
               <View
                 accessible
@@ -178,6 +213,12 @@ export function SettingsOverlay({
               </View>
             ) : null}
             <View className="my-4 h-0.5 bg-ink/15" />
+            {difficultyLabel ? (
+              <View accessible accessibilityLabel={`Career difficulty ${difficultyLabel}`} className="mb-4 flex-row items-center justify-between border-2 border-gold-dark bg-gold-light px-3 py-2">
+                <Text className="font-mono text-sm font-bold uppercase text-ink">Career difficulty</Text>
+                <Text className="font-mono text-base font-bold text-gold-dark">{difficultyLabel}</Text>
+              </View>
+            ) : null}
             <VolumeSlider value={volume} onChange={onVolumeChange} />
             <View className="mt-5 gap-3 border-t border-ink/15 pt-5">
               <Pressable
@@ -191,6 +232,29 @@ export function SettingsOverlay({
               >
                 <Text className="font-mono text-sm font-bold uppercase text-ink">Reduce motion</Text>
                 <Text className="font-mono text-base font-bold text-ink">{reduceMotion ? 'ON' : 'OFF'}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityLabel="Haptics"
+                accessibilityState={{ checked: hapticsEnabled }}
+                onPress={onToggleHaptics}
+                className={hapticsEnabled ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-violet-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}
+              >
+                <Text className="font-mono text-sm font-bold uppercase text-ink">Haptics</Text>
+                <Text className="font-mono text-base font-bold text-ink">{hapticsEnabled ? 'ON' : 'OFF'}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Text size ${Math.round(textScale * 100)} percent`} onPress={onCycleTextScale} className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2">
+                <Text className="font-mono text-sm font-bold uppercase text-ink">Text size</Text>
+                <Text className="font-mono text-base font-bold text-violet-dark">{textScale === 1 ? 'SYSTEM' : textScale === 1.15 ? 'ROOMY' : 'LARGE'}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="switch" accessibilityLabel="High contrast" accessibilityState={{ checked: highContrast }} onPress={onToggleHighContrast} className={highContrast ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-violet-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}>
+                <Text className="font-mono text-sm font-bold uppercase text-ink">High contrast</Text><Text className="font-mono text-base font-bold text-ink">{highContrast ? 'ON' : 'OFF'}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="switch" accessibilityLabel="Color-safe kits" accessibilityState={{ checked: colorSafeKits }} onPress={onToggleColorSafeKits} className={colorSafeKits ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-violet-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}>
+                <Text className="font-mono text-sm font-bold uppercase text-ink">Color-safe kits</Text><Text className="font-mono text-base font-bold text-ink">{colorSafeKits ? 'ON' : 'OFF'}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Power cut-ins ${cutInMode}`} onPress={onToggleCutInMode} className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2">
+                <Text className="font-mono text-sm font-bold uppercase text-ink">Power cut-ins</Text><Text className="font-mono text-base font-bold uppercase text-violet-dark">{cutInMode}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -214,10 +278,10 @@ export function SettingsOverlay({
             <View className="mt-6">
               <ActionButton label="Done" accessibilityLabel="Close settings" onPress={() => setOpenState(false)} variant="primary" />
             </View>
-            </>
+            </ScrollView>
             )}
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
   );
 }

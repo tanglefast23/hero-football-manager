@@ -227,6 +227,30 @@ describe('replay repository', () => {
       repository.load('career-1', 'away-fixture'),
     ).resolves.toEqual(awayControlled);
   });
+
+  it('round-trips every M4 power ID in a replay team', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createReplayRepository(database);
+    const envelope = makeEnvelope();
+    const powerIds = [
+      'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
+      'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+    ] as const;
+    const expanded: ReplayEnvelope = {
+      ...envelope,
+      home: {
+        ...envelope.home,
+        players: envelope.home.players.map((player, index) => ({
+          ...player,
+          power: powerIds[index % powerIds.length],
+        })),
+        bench: envelope.home.bench?.map(player => ({ ...player, power: 'ELASTIC_KEEPER' as const })),
+      },
+    };
+
+    await repository.save('career-1', 'm4-powers', 3, expanded);
+    await expect(repository.load('career-1', 'm4-powers')).resolves.toEqual(expanded);
+  });
 });
 
 function makeEnvelope(): ReplayEnvelope {

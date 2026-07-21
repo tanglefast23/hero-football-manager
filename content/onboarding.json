@@ -145,14 +145,59 @@
       "reveal": "FWOOSH! {name} floats upright—and the world blurs around a brand-new hero."
     },
     {
+      "powerId": "BLINK_RUN",
+      "omen": "For one impossible frame, {name} is standing in two places at once.",
+      "reveal": "ZIP! The first {name} vanishes. The second waves from ten yards away."
+    },
+    {
+      "powerId": "THUNDER_STRIKE",
+      "omen": "Static crawls over {name}'s boots and the nearby match ball starts to hum.",
+      "reveal": "KRA-KOOM! {name} rises behind a crackling ball of bottled thunder."
+    },
+    {
       "powerId": "FIRE_TORCH",
       "omen": "A red glow pulses beneath {name}'s kit. Heat ripples through the huddle.",
       "reveal": "WHUMPF! {name} floats upright in a crown of flame. The referee reaches for the extinguisher."
     },
     {
+      "powerId": "PHASE_RUN",
+      "omen": "The physio's hand passes through {name}'s shoulder and both of them stare at it.",
+      "reveal": "SHIMMER! {name} stands, briefly transparent, and steps through the treatment table."
+    },
+    {
+      "powerId": "PORTAL_PASS",
+      "omen": "A tiny violet doorway opens under the match ball and politely waits beside {name}.",
+      "reveal": "WHOOP! {name} rises as the ball drops out of a second doorway behind the huddle."
+    },
+    {
+      "powerId": "MAGNET_TOUCH",
+      "omen": "Loose studs, coins and one whistle slide across the grass toward {name}.",
+      "reveal": "CLACK! Every ball in the stadium rolls to {name}'s feet at once."
+    },
+    {
+      "powerId": "DECOY_DOUBLE",
+      "omen": "A translucent copy of {name} sits up half a second before the real one.",
+      "reveal": "TA-DA! Two versions of {name} stand. Only one remembers the team talk."
+    },
+    {
+      "powerId": "FUTURE_SIGHT",
+      "omen": "{name} answers three questions before anyone has asked them.",
+      "reveal": "FLASH! {name} opens shining eyes and points exactly where the next pass will go."
+    },
+    {
       "powerId": "SUPER_STRENGTH",
       "omen": "The turf dents beneath {name}'s palm. Everyone in the huddle feels the shock before they hear it.",
       "reveal": "KRAK! {name} floats upright as the ground shudders. {name} is, quite suddenly, enormous."
+    },
+    {
+      "powerId": "WEB_TRAP",
+      "omen": "Silver threads stitch themselves between {name}'s fingers.",
+      "reveal": "THWIP! {name} rises inside a perfect web shaped like the club crest."
+    },
+    {
+      "powerId": "ELASTIC_KEEPER",
+      "omen": "{name}'s fingertips reach the water bottle from several feet away.",
+      "reveal": "SPROING! {name} stands, stretches across the entire goalmouth, and snaps cheerfully back."
     }
   ]
 }

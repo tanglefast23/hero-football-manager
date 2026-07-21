@@ -80,6 +80,7 @@ import {
   reconcileHomeAssistantInbox,
   weeklyReviewViewModel,
 } from './view-models';
+import { eventChoiceUnavailableReason, eventOfferForWeek } from './event-selection';
 import {
   completeChampionshipCelebration as markChampionshipCelebrationComplete,
   hasPendingChampionshipCelebration,
@@ -439,7 +440,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
         return;
       }
       if (career.phase === 'season-end') {
-        const next = reconcilePendingClubLegends(startNextSeason(career));
+        const guidedCareer = career.eventFlags.includes('m4:season-recap-guide-seen')
+          ? career
+          : { ...career, eventFlags: [...career.eventFlags, 'm4:season-recap-guide-seen'] };
+        const next = reconcilePendingClubLegends(startNextSeason(guidedCareer));
         set({
           career: next,
           screen: nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
@@ -459,15 +463,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
         set({ screen: 'event', error: null });
         return;
       }
-      const eventId = scheduledEventId(career);
-      if (eventId !== undefined) {
-        const next = offerCareerEvent(career, eventId);
+      const eventOffer = eventOfferForWeek(career, launchContent.events);
+      if (eventOffer.eventId !== undefined) {
+        const next = offerCareerEvent(
+          { ...career, eventClock: eventOffer.eventClock },
+          eventOffer.eventId,
+        );
         set({ career: next, screen: 'event', error: null });
         queueCareerSave(get, set, next);
         return;
       }
 
-      const advanced = advanceWeek(career);
+      const careerForAdvance = { ...career, eventClock: eventOffer.eventClock };
+      const advanced = advanceWeek(careerForAdvance);
       const next = advanced.week !== career.week
         && hasAssistantGuideMilestone(career, 'first-training-complete')
         ? completeAssistantGuideMilestone(advanced, 'first-week-advanced')
@@ -694,12 +702,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (lineup === undefined) throw new Error('the user club has no lineup');
       const candidates = career.players
         .filter(player =>
-          player.clubId === career.userClubId &&
-          player.power === undefined &&
-          !lineup.playerIds.includes(player.id),
+          player.clubId === career.userClubId,
         )
-        .sort((left, right) => (left.role === 'FWD' ? -1 : 1) - (right.role === 'FWD' ? -1 : 1));
-      if (candidates.length === 0) throw new Error('no eligible unpowered bench player is available');
+        .sort((left, right) => (
+          Number(!lineup.playerIds.includes(left.id)) - Number(!lineup.playerIds.includes(right.id))
+          || left.name.localeCompare(right.name)
+        ));
+      if (candidates.length === 0) throw new Error('no eligible user-club player is available');
       const currentIndex = candidates.findIndex(player => player.id === career.pendingEvent?.selectedPlayerId);
       const player = candidates[(currentIndex + 1) % candidates.length];
       const next = selectCareerEventPlayer(career, player.id);
@@ -722,7 +731,23 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const career = requireCareer(get());
       const pending = career.pendingEvent;
       if (pending?.resolvedChoiceId === undefined) throw new Error('resolve the event before continuing');
-      const dismissed = dismissCareerEvent(career, true);
+      const event = launchContent.events.events.find(candidate => candidate.id === pending.eventId);
+      const guidedCareer = career.eventFlags.includes('m4:event-guide-seen')
+        ? career
+        : { ...career, eventFlags: [...career.eventFlags, 'm4:event-guide-seen'] };
+      const dismissed = dismissCareerEvent(guidedCareer, event?.trigger.repeatable !== true);
+      if (pending.resolvedNextEventId !== undefined) {
+        const followUp = launchContent.events.events.find(
+          candidate => candidate.id === pending.resolvedNextEventId,
+        );
+        if (followUp === undefined) throw new Error(`unknown chained event ${pending.resolvedNextEventId}`);
+        if (followUp.trigger.repeatable === true || !dismissed.resolvedEventIds.includes(followUp.id)) {
+          const next = offerCareerEvent(dismissed, followUp.id);
+          set({ career: next, screen: 'event', weekReview: null, error: null });
+          queueCareerSave(get, set, next);
+          return;
+        }
+      }
       const next = advanceWeek(dismissed);
       const weekReview = next.phase === 'manage' && next.week !== dismissed.week
         ? weeklyReviewViewModel(dismissed, next)
@@ -1218,18 +1243,6 @@ function currentCareerDivision(state: GameState): number {
   return state.m2 === undefined ? 5 : currentUserDivision(state.m2);
 }
 
-function scheduledEventId(state: GameState): string | undefined {
-  if (
-    state.season === 1 &&
-    state.week >= 7 &&
-    state.week <= 12 &&
-    !state.resolvedEventIds.includes('giant-spider-arrives')
-  ) {
-    return 'giant-spider-arrives';
-  }
-  return undefined;
-}
-
 function resolveContentEvent(state: GameState, choiceId: string): GameState {
   const pending = state.pendingEvent;
   if (pending === undefined) throw new Error('there is no active event');
@@ -1237,14 +1250,18 @@ function resolveContentEvent(state: GameState, choiceId: string): GameState {
   if (event === undefined) throw new Error(`unknown event ${pending.eventId}`);
   const choice = event.choices.find(candidate => candidate.id === choiceId);
   if (choice === undefined) throw new Error(`unknown event choice ${choiceId}`);
+  if (event.trigger.requiresPlayer === true && pending.selectedPlayerId === undefined) {
+    throw new Error('choose a player before resolving this event');
+  }
+  const unavailableReason = eventChoiceUnavailableReason(state, choice);
+  if (unavailableReason !== undefined) throw new Error(unavailableReason);
 
   const total = choice.outcomes.reduce((sum, candidate) => sum + candidate.weight, 0);
-  const outcome = choice.outcomes[
-    weightedIndex(
-      choice.outcomes.map(candidate => candidate.weight),
-      careerEventRoll(state, choiceId, 0, total),
-    )
-  ];
+  const outcomeIndex = weightedIndex(
+    choice.outcomes.map(candidate => candidate.weight),
+    careerEventRoll(state, choiceId, 0, total),
+  );
+  const outcome = choice.outcomes[outcomeIndex];
   let working = state;
   if (choice.risky) {
     if (working.eventClock.riskyChoices === Number.MAX_SAFE_INTEGER) {
@@ -1267,6 +1284,9 @@ function resolveContentEvent(state: GameState, choiceId: string): GameState {
   const flags = outcome.effects
     .filter(effect => effect.type === 'flag' && effect.value)
     .map(effect => effect.type === 'flag' ? effect.flag : '');
+  // Every authored risky branch stores its success first and its comic setback
+  // second. Persisting the outcome index makes the cutscene save/reload safe.
+  const riskySuccess = choice.risky && outcomeIndex === 0;
   const hasPlayerEffect = playerId !== undefined && (morale || injury || stat);
   let next = applyCareerEventOutcome(working, choice.id, outcome.text, {
     moneyDelta,
@@ -1284,6 +1304,11 @@ function resolveContentEvent(state: GameState, choiceId: string): GameState {
         } : {}),
       },
     } : {}),
+  }, {
+    outcomeIndex,
+    risky: choice.risky,
+    success: riskySuccess,
+    ...(outcome.nextEventId === undefined ? {} : { nextEventId: outcome.nextEventId }),
   });
   if (morale?.type === 'morale' && playerId === undefined) {
     next = {

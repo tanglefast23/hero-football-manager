@@ -3,6 +3,7 @@ import {
   type AppPreferences,
   type PreferencesRepository,
 } from '../persistence';
+import type { PowerId } from '../sim/types';
 
 export interface LoadedPreferences {
   preferences: AppPreferences;
@@ -13,6 +14,7 @@ function defaultPreferences(): AppPreferences {
   return {
     ...DEFAULT_APP_PREFERENCES,
     formationPresets: [...DEFAULT_APP_PREFERENCES.formationPresets],
+    seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
   };
 }
 
@@ -37,4 +39,13 @@ export async function loadPreferencesFailSoft(
       };
     }
   }
+}
+
+export function markPowerCutInSeen(preferences: AppPreferences, power: PowerId): AppPreferences {
+  if (preferences.seenPowerCutIns.includes(power)) return preferences;
+  return {
+    ...preferences,
+    formationPresets: [...preferences.formationPresets],
+    seenPowerCutIns: [...preferences.seenPowerCutIns, power],
+  };
 }

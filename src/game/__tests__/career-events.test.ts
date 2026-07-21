@@ -60,12 +60,17 @@ describe('career event state', () => {
         flags: ['spider-adopted'],
         playerEffect: { playerId, injuryWeeks: 2, moraleDelta: 5, attribute: 'pac', attributeDelta: 2 },
       },
+      { outcomeIndex: 0, risky: true, success: true, nextEventId: 'community-mural' },
     );
 
     expect(resolved.pendingEvent).toMatchObject({
       eventId: 'giant-spider-arrives',
       selectedPlayerId: playerId,
       resolvedChoiceId: 'adopt-spider',
+      resolvedOutcomeIndex: 0,
+      resolvedRisky: true,
+      resolvedSuccess: true,
+      resolvedNextEventId: 'community-mural',
     });
     expect(resolved.players.find(player => player.id === playerId)).toMatchObject({
       injuryWeeks: 2,
@@ -77,6 +82,9 @@ describe('career event state', () => {
     const dismissed = dismissCareerEvent(resolved);
     expect(dismissed.pendingEvent).toBeUndefined();
     expect(dismissed.resolvedEventIds).toContain('giant-spider-arrives');
+    expect(dismissed.resolvedEventHistory).toEqual([
+      { eventId: 'giant-spider-arrives', season: 1, week: 1 },
+    ]);
     expect(() => offerCareerEvent(dismissed, 'giant-spider-arrives')).toThrow('already resolved');
   });
 

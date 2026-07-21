@@ -1,24 +1,32 @@
 import { useMemo, useState } from 'react';
-import * as Haptics from 'expo-haptics';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
   CREATION_STAT_MAX,
   CREATION_STAT_MIN,
+  DEFAULT_CREATED_APPEARANCE,
   DEFAULT_CREATION_RATINGS,
   OUTFIELD_CREATION_STATS,
   creationPointsRemaining,
+  createdAppearanceLookId,
+  type CreatedPlayerAppearance,
+  type DifficultyMode,
   type CreatedPlayerDraft,
   type OutfieldCreationRatings,
   type OutfieldCreationStat,
 } from '../../game';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { SettingsButton } from '../SettingsOverlay';
+import { PixelPortrait } from '../components/PixelPortrait';
+import { playManagementHaptic } from '../../render/haptics';
 
 export interface CharacterCreationScreenProps {
   onComplete: (draft: CreatedPlayerDraft) => void;
   onOpenSettings: () => void;
+  guideCopy?: { title: string; body: string };
+  difficultyCopy?: { title: string; body: string };
+  textScale?: number;
 }
 
 const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }> = {
@@ -30,15 +38,19 @@ const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }>
   sta: { label: 'STAMINA', detail: 'Late-match engine' },
 };
 
-function playImpact(style: Haptics.ImpactFeedbackStyle): void {
-  void Haptics.impactAsync(style).catch(() => undefined);
-}
-
-export function CharacterCreationScreen({ onComplete, onOpenSettings }: CharacterCreationScreenProps) {
+export function CharacterCreationScreen({
+  onComplete,
+  onOpenSettings,
+  guideCopy,
+  difficultyCopy,
+  textScale = 1,
+}: CharacterCreationScreenProps) {
   const [name, setName] = useState('');
   const [ratings, setRatings] = useState<OutfieldCreationRatings>({
     ...DEFAULT_CREATION_RATINGS,
   });
+  const [appearance, setAppearance] = useState<CreatedPlayerAppearance>({ ...DEFAULT_CREATED_APPEARANCE });
+  const [difficulty, setDifficulty] = useState<DifficultyMode>('COZY');
   const pointsRemaining = useMemo(() => creationPointsRemaining(ratings), [ratings]);
   const canSubmit = name.trim().length >= 2 && pointsRemaining >= 0;
 
@@ -74,7 +86,72 @@ export function CharacterCreationScreen({ onComplete, onOpenSettings }: Characte
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
-        <PaperPanel kicker="Registration card" title="Name on the shirt" stamp="Required">
+        {guideCopy ? (
+          <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="No stat effect">
+            <Text className="text-base leading-6 text-ink/70" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{guideCopy.body}</Text>
+          </PaperPanel>
+        ) : null}
+        <PaperPanel kicker="Paper doll" title="Choose their look" stamp="Saved" className="mt-5">
+          <View className="flex-row items-center gap-4">
+            <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
+              <PixelPortrait
+                playerId="created-player-preview"
+                role="FWD"
+                lookId={createdAppearanceLookId(appearance)}
+                expression="joy"
+              />
+            </View>
+            <View className="min-w-0 flex-1 gap-2">
+              <AppearanceChoice
+                label="Skin tone"
+                value={`${appearance.skinTone + 1} / 6`}
+                onPress={() => setAppearance(current => ({ ...current, skinTone: ((current.skinTone + 1) % 6) as CreatedPlayerAppearance['skinTone'] }))}
+              />
+              <AppearanceChoice
+                label="Hair"
+                value={`${appearance.hairstyle + 1} / 7`}
+                onPress={() => setAppearance(current => ({ ...current, hairstyle: ((current.hairstyle + 1) % 7) as CreatedPlayerAppearance['hairstyle'] }))}
+              />
+              <AppearanceChoice
+                label="Kit accent"
+                value={`${appearance.kitAccent + 1} / 4`}
+                onPress={() => setAppearance(current => ({ ...current, kitAccent: ((current.kitAccent + 1) % 4) as CreatedPlayerAppearance['kitAccent'] }))}
+              />
+            </View>
+          </View>
+        </PaperPanel>
+
+        <PaperPanel kicker="Career pressure" title="Choose difficulty" stamp={difficulty} className="mt-5">
+          {difficultyCopy ? <Text className="mb-4 text-base leading-6 text-ink/70" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{difficultyCopy.body}</Text> : null}
+          <View className="gap-3">
+            {([
+              ['COZY', 'First-season wage subsidy, full sponsor terms, slower board intervention.'],
+              ['CHAIRMAN', 'No wage subsidy, 15% lower sponsor income, earlier and smaller emergency loan.'],
+            ] as const).map(([mode, detail]) => {
+              const selected = difficulty === mode;
+              return (
+                <Pressable
+                  key={mode}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`${mode}. ${detail}`}
+                  onPress={() => {
+                    playManagementHaptic('select');
+                    setDifficulty(mode);
+                  }}
+                  className={selected
+                    ? 'min-h-16 border-2 border-violet-dark bg-violet-light px-3 py-3'
+                    : 'min-h-16 border-2 border-ink/30 bg-white px-3 py-3'}
+                >
+                  <Text className="font-mono text-base font-bold text-ink">{selected ? '●' : '○'} {mode}</Text>
+                  <Text className="mt-1 text-sm leading-5 text-ink/60">{detail}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </PaperPanel>
+
+        <PaperPanel kicker="Registration card" title="Name on the shirt" stamp="Required" className="mt-5">
           <TextInput
             accessibilityLabel="Created player name"
             value={name}
@@ -128,7 +205,7 @@ export function CharacterCreationScreen({ onComplete, onOpenSettings }: Characte
                   accessibilityState={{ disabled: value <= CREATION_STAT_MIN }}
                   disabled={value <= CREATION_STAT_MIN}
                   onPress={() => {
-                    playImpact(Haptics.ImpactFeedbackStyle.Light);
+                    playManagementHaptic('select');
                     adjust(stat, -1);
                   }}
                   className="h-11 w-11 items-center justify-center border-2 border-ink/40"
@@ -143,7 +220,7 @@ export function CharacterCreationScreen({ onComplete, onOpenSettings }: Characte
                   accessibilityState={{ disabled: value >= CREATION_STAT_MAX || pointsRemaining <= 0 }}
                   disabled={value >= CREATION_STAT_MAX || pointsRemaining <= 0}
                   onPress={() => {
-                    playImpact(Haptics.ImpactFeedbackStyle.Light);
+                    playManagementHaptic('select');
                     adjust(stat, 1);
                   }}
                   className="h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light"
@@ -169,11 +246,37 @@ export function CharacterCreationScreen({ onComplete, onOpenSettings }: Characte
           accessibilityLabel="Finish creating player"
           disabled={!canSubmit}
           onPress={() => {
-            playImpact(Haptics.ImpactFeedbackStyle.Medium);
-            onComplete({ name, ratings });
+            playManagementHaptic('commit');
+            onComplete({ name, ratings, appearance, difficulty });
           }}
         />
       </View>
     </SafeAreaView>
+  );
+}
+
+function AppearanceChoice({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${value}. Tap for next.`}
+      onPress={() => {
+        playManagementHaptic('select');
+        onPress();
+      }}
+      className="min-h-11 flex-row items-center justify-between border-2 border-ink/30 bg-white px-3 py-2"
+      style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
+    >
+      <Text className="text-sm font-bold uppercase text-ink">{label}</Text>
+      <Text className="font-mono text-sm font-bold text-violet-dark">{value} ›</Text>
+    </Pressable>
   );
 }

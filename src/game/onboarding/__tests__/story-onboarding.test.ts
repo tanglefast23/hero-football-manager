@@ -77,6 +77,23 @@ function state(): GameState {
 }
 
 describe('story onboarding state machine', () => {
+  it('preserves the exact paper-doll look even when a generated player used that slot', () => {
+    const initial = beginStoryOnboarding(state());
+    const created = addCreatedPlayer(initial, {
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+      appearance: { skinTone: 0, hairstyle: 0, kitAccent: 0 },
+      difficulty: 'CHAIRMAN',
+    });
+    const avatar = createdPlayer(created);
+    if (avatar === undefined) throw new Error('expected the created player');
+
+    expect(avatar.lookId).toBe('f00');
+    expect(avatar.createdAppearance).toEqual({ skinTone: 0, hairstyle: 0, kitAccent: 0 });
+    expect(created.difficulty).toBe('CHAIRMAN');
+    expect(new Set(created.players.map(player => player.lookId)).size).toBe(created.players.length);
+  });
+
   it('starts with zero user heroes, adds the created forward, and locks a rookie wage', () => {
     const begun = beginStoryOnboarding(state());
     expect(begun.players.filter(player => player.power)).toHaveLength(0);

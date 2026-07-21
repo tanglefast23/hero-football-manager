@@ -9,6 +9,18 @@ export interface PlayerAppearanceIdentity {
 export const FIELD_PLAYER_LOOK_COUNT = 168;
 export const GOALKEEPER_LOOK_COUNT = 25;
 
+export interface CreatedAppearanceChoice {
+  readonly skinTone: 0 | 1 | 2 | 3 | 4 | 5;
+  readonly hairstyle: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  readonly kitAccent: 0 | 1 | 2 | 3;
+}
+
+/** Maps the editable paper-doll controls onto the shipped 168-look outfield atlas. */
+export function createdAppearanceLookId(appearance: CreatedAppearanceChoice): string {
+  const index = appearance.skinTone * 28 + appearance.hairstyle * 4 + appearance.kitAccent;
+  return formatPlayerLookId('FWD', index);
+}
+
 /**
  * Stable fallback for generated players. Career state persists the chosen ID;
  * this hash is only the first candidate before collision probing.
@@ -78,6 +90,17 @@ export function nextDistinctPlayerLook(
     .filter(candidate => candidate.lookId !== undefined)
     .map(candidate => candidate.lookId!));
   return firstAvailableLook(generatedPlayerLookId(player.id, player.role), player.role, used);
+}
+
+export function nextDistinctPlayerLookFromPreferred(
+  player: Pick<PlayerAppearanceIdentity, 'id' | 'role'>,
+  preferredLookId: string,
+  activePlayers: readonly PlayerAppearanceIdentity[],
+): string {
+  const used = new Set(activePlayers
+    .filter(candidate => candidate.lookId !== undefined)
+    .map(candidate => candidate.lookId!));
+  return firstAvailableLook(preferredLookId, player.role, used);
 }
 
 export function stablePlayerLookHash(value: string): number {

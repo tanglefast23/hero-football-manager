@@ -2,7 +2,19 @@ import type { Vec } from './geometry';
 import type { Rng } from './rng';
 import type { EnergyUse, FormationId, TeamTactics, Mentality } from './tactics';
 
-export type PowerId = 'SUPER_SPEED' | 'SUPER_STRENGTH' | 'FIRE_TORCH';
+export type PowerId =
+  | 'SUPER_SPEED'
+  | 'BLINK_RUN'
+  | 'THUNDER_STRIKE'
+  | 'FIRE_TORCH'
+  | 'PHASE_RUN'
+  | 'PORTAL_PASS'
+  | 'MAGNET_TOUCH'
+  | 'DECOY_DOUBLE'
+  | 'FUTURE_SIGHT'
+  | 'SUPER_STRENGTH'
+  | 'WEB_TRAP'
+  | 'ELASTIC_KEEPER';
 export type Role = 'GK' | 'DEF' | 'MID' | 'FWD';
 export type FirePolicy = 'SAVE_FOR_TAP' | 'FIRE_WHEN_READY';
 
@@ -54,6 +66,8 @@ export interface SimPlayer {
   condition: number;
   gauge: number; // this is HEAT (In-the-Zone model, 2026-07-17) — field name kept as `gauge` to limit churn
   powerState: PowerState;
+  /** Fixed pitch point for place-and-spring effects such as Web Trap. */
+  powerAnchor?: Vec;
   firePolicy: FirePolicy;
   outUntilTick: number;       // 0 = fine
   outReason?: OutReason;

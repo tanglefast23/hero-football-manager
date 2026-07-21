@@ -1,4 +1,4 @@
-import type { PowerId, TeamDef } from '../sim/types';
+import type { TeamDef } from '../sim/types';
 import { buildTeamDef } from './lineup';
 import {
   renewContract,
@@ -16,15 +16,10 @@ import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { coachMotivatorBonusPercent } from './coach-weekly';
 import { highestDivisionReached } from './promotion-progression';
 import type { CareerPlayer, GameState } from './types';
+import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
 
 const DEFAULT_HERO_LIMIT = 2;
 const TRAINING_GROUND_COST = 8000;
-const CUP_POWER_ROTATION: readonly PowerId[] = [
-  'SUPER_SPEED',
-  'SUPER_STRENGTH',
-  'FIRE_TORCH',
-];
-
 /** Hero License field cap earned by climbing the national pyramid. */
 export function careerHeroLimit(state: GameState): number {
   if (state.careerMode !== 'full' || state.m2 === undefined) return DEFAULT_HERO_LIMIT;
@@ -113,13 +108,13 @@ export function buildCareerMatchTeamDef(state: GameState, clubId: string): TeamD
   ));
   const club = division?.clubs.find(candidate => candidate.id === clubId);
   if (club === undefined || division === undefined) throw new Error(`unknown career club ${clubId}`);
-  const heroLimit = division.level === 1 ? 4 : division.level <= 3 ? 3 : 2;
+  const heroLimit = generatedClubHeroCount(club.id, division.level);
   let licensedHeroes = 0;
   const roster = club.squad.map(player => {
     const heroEligible = (player.role === 'MID' || player.role === 'FWD')
       && licensedHeroes < heroLimit;
     const power = heroEligible
-      ? CUP_POWER_ROTATION[licensedHeroes % CUP_POWER_ROTATION.length]
+      ? generatedClubPower(club.id, licensedHeroes, player.role)
       : undefined;
     if (power !== undefined) licensedHeroes += 1;
     return {

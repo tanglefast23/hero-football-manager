@@ -52,7 +52,7 @@ describe('facility weekly integration', () => {
       // Neutralize the other M2 growth multipliers so this assertion isolates
       // the adjacency's exact percentage carry.
       players: withAdjacency.players.map(player => player.id === playerId
-        ? { ...player, age: 25, archetype: 'Sniper' }
+        ? { ...player, age: 25, archetype: 'Sniper', potentialCeiling: 99 }
         : player),
     };
     const startingSta = withoutMatches.players.find(player => player.id === playerId)?.attrs.sta;

@@ -2,7 +2,20 @@ import { z } from 'zod';
 
 export const ContentSchemaVersion = z.literal(1);
 export const RoleSchema = z.enum(['GK', 'DEF', 'MID', 'FWD']);
-export const PowerIdSchema = z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']);
+export const PowerIdSchema = z.enum([
+  'SUPER_SPEED',
+  'BLINK_RUN',
+  'THUNDER_STRIKE',
+  'FIRE_TORCH',
+  'PHASE_RUN',
+  'PORTAL_PASS',
+  'MAGNET_TOUCH',
+  'DECOY_DOUBLE',
+  'FUTURE_SIGHT',
+  'SUPER_STRENGTH',
+  'WEB_TRAP',
+  'ELASTIC_KEEPER',
+]);
 export const AttributeSchema = z.enum(['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref']);
 export const ArchetypeSchema = z.enum([
   'Speedster',
@@ -74,7 +87,20 @@ export const PowerDefinitionSchema = z.strictObject({
   tier: z.enum(['starter', 'standard', 'legendary']),
   category: z.enum(['attack', 'defense']),
   description: displayNameSchema,
-  usefulContext: z.enum(['BREAKAWAY', 'MARKED_FINAL_THIRD', 'DANGEROUS_CARRIER']),
+  usefulContext: z.enum([
+    'BREAKAWAY',
+    'LAST_DEFENDER',
+    'CLEAN_SHOT',
+    'MARKED_FINAL_THIRD',
+    'UNDER_PRESSURE',
+    'BLOCKED_LANE',
+    'LOOSE_BALL',
+    'PASS_SETUP',
+    'EXPECTED_PASS',
+    'DANGEROUS_CARRIER',
+    'DRIBBLE_LANE',
+    'SHOT_INCOMING',
+  ]),
   requiresTarget: z.boolean(),
   windupTicks: z.number().int().min(1).max(100),
 });
@@ -85,7 +111,7 @@ export const PowerCatalogSchema = z.strictObject({
     postMatchChancePercent: z.literal(10),
     minimumMatchesBetween: z.literal(3),
   }),
-  powers: z.array(PowerDefinitionSchema).length(3),
+  powers: z.array(PowerDefinitionSchema).length(12),
 }).superRefine((catalog, context) => {
   addDuplicateIssues(catalog.powers.map(power => power.id), context, ['powers'], 'power ID');
 });
@@ -122,7 +148,7 @@ export const OnboardingContentSchema = z.strictObject({
     powerId: PowerIdSchema,
     omen: displayNameSchema,
     reveal: displayNameSchema,
-  })).length(3),
+  })).length(12),
 }).superRefine((content, context) => {
   addDuplicateIssues(content.triggers.map(trigger => trigger.id), context, ['triggers'], 'awakening trigger');
   addDuplicateIssues(content.powers.map(power => power.powerId), context, ['powers'], 'power');
@@ -247,6 +273,13 @@ export const AssistantGuideContentSchema = z.strictObject({
     role: displayNameSchema,
     portraitArchetype: z.literal('GAFFER'),
   }),
+  m4Fiction: z.strictObject({
+    creation: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
+    difficulty: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
+    accessibility: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
+    events: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
+    seasonRecap: z.strictObject({ title: displayNameSchema, body: displayNameSchema }),
+  }),
   sequences: z.array(AssistantGuideSequenceSchema).length(AssistantGuideSequenceIdSchema.options.length),
 }).superRefine((content, context) => {
   addDuplicateIssues(content.sequences.map(sequence => sequence.id), context, ['sequences'], 'guide sequence ID');
@@ -310,14 +343,33 @@ const EventOutcomeSchema = z.strictObject({
   nextEventId: idSchema.optional(),
 });
 
+const EventRequirementSchema = z.strictObject({
+  minMoney: safeNonnegativeIntegerSchema.optional(),
+  requiredFacility: z.enum([
+    'training-pitch', 'gym', 'tech-center', 'shooting-range', 'keeper-court', 'medical-bay',
+    'dorm', 'scout-office', 'coaching-office', 'youth-field', 'fan-shop', 'stadium-stand',
+  ]).optional(),
+  requiredPersonality: z.enum(['Fiery', 'Loyal', 'Greedy', 'Joker', 'Professional', 'Timid']).optional(),
+  requiresHero: z.boolean().optional(),
+});
+
 const EventChoiceSchema = z.strictObject({
   id: idSchema,
   label: displayNameSchema,
   risky: z.boolean(),
+  requires: EventRequirementSchema.optional(),
   outcomes: z.array(EventOutcomeSchema).min(1),
 }).refine(
   choice => choice.outcomes.reduce((sum, outcome) => sum + outcome.weight, 0) === 100,
   'event outcome weights must total 100',
+).refine(
+  choice => !choice.risky || choice.outcomes.length === 2,
+  'risky event choices must define success first and setback second',
+).refine(
+  choice => !choice.risky || choice.outcomes[0]?.effects.some(
+    effect => effect.type === 'flag' && effect.value,
+  ) === true,
+  'a risky event choice must mark its first outcome as the authored success',
 );
 
 export const GameEventSchema = z.strictObject({
@@ -332,7 +384,20 @@ export const GameEventSchema = z.strictObject({
     minWeek: z.number().int().min(1).max(30),
     maxWeek: z.number().int().min(1).max(30),
     requiredFlag: idSchema.optional(),
-  }).refine(trigger => trigger.minWeek <= trigger.maxWeek, 'event minWeek must not exceed maxWeek'),
+    minDivision: z.number().int().min(1).max(5).optional(),
+    maxDivision: z.number().int().min(1).max(5).optional(),
+    minMoney: safeNonnegativeIntegerSchema.optional(),
+    requiredFacility: EventRequirementSchema.shape.requiredFacility,
+    requiredPersonality: EventRequirementSchema.shape.requiredPersonality,
+    requiresHero: z.boolean().optional(),
+    requiresPlayer: z.boolean().optional(),
+    repeatable: z.boolean().optional(),
+  }).superRefine((trigger, context) => {
+    if (trigger.minWeek > trigger.maxWeek) addIssue(context, ['minWeek'], 'event minWeek must not exceed maxWeek');
+    if (trigger.minDivision !== undefined && trigger.maxDivision !== undefined && trigger.minDivision > trigger.maxDivision) {
+      addIssue(context, ['minDivision'], 'event minDivision must not exceed maxDivision');
+    }
+  }),
   choices: z.array(EventChoiceSchema).min(2).max(3),
 }).superRefine((event, context) => {
   addDuplicateIssues(event.choices.map(choice => choice.id), context, ['choices'], 'choice ID');

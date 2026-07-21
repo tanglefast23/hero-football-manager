@@ -9,6 +9,13 @@ export const M1_SEASONS = 2;
 export const SEASON_WEEKS = 30;
 
 export type GamePhase = 'manage' | 'matchday' | 'season-end' | 'complete';
+export type DifficultyMode = 'COZY' | 'CHAIRMAN';
+
+export interface CreatedPlayerAppearance {
+  skinTone: 0 | 1 | 2 | 3 | 4 | 5;
+  hairstyle: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  kitAccent: 0 | 1 | 2 | 3;
+}
 
 export interface ClubState {
   id: string;
@@ -32,6 +39,8 @@ export interface CareerSetup {
   trainingRules?: TrainingRules;
   /** Omitted setups retain the finite M1 harness; the shipped app opts into full. */
   careerMode?: 'm1-slice' | 'full';
+  /** Defaults to Cozy for old fixtures and saves. */
+  difficulty?: DifficultyMode;
 }
 
 export interface CareerTrainingDrill {
@@ -44,6 +53,17 @@ export interface CareerTrainingDrill {
 export interface CareerTrainingPlan {
   assignedPlayerIds: string[];
   drills: CareerTrainingDrill[];
+}
+
+export interface CareerTrainingCapNotice {
+  id: string;
+  season: number;
+  week: number;
+  playerId: string;
+  playerName: string;
+  attribute: keyof Attrs;
+  cap: number;
+  drillId: string;
 }
 
 export interface TrainingRules {
@@ -87,6 +107,8 @@ export interface CareerPlayer {
   role: Role;
   /** Persisted presentation identity; optional for schema-1 save migration. */
   lookId?: string;
+  /** Only the user-created player carries editable paper-doll choices. */
+  createdAppearance?: CreatedPlayerAppearance;
   attrs: Attrs;
   power?: PowerId;
   powerTier?: 1 | 2 | 3;
@@ -143,11 +165,23 @@ export interface CareerEventState {
   riskyChoices: number;
 }
 
+export interface ResolvedCareerEvent {
+  eventId: string;
+  season: number;
+  week: number;
+}
+
 export interface PendingCareerEvent {
   eventId: string;
   selectedPlayerId?: string;
   resolvedChoiceId?: string;
   outcomeText?: string;
+  /** Stable content outcome identity for save/reload-safe success presentation. */
+  resolvedOutcomeIndex?: number;
+  resolvedRisky?: boolean;
+  resolvedSuccess?: boolean;
+  /** Optional content-authored follow-up offered before the management week advances. */
+  resolvedNextEventId?: string;
 }
 
 export interface PendingCareerAwakening {
@@ -325,6 +359,34 @@ export interface CareerRetirementAnnouncement {
   retirementAge: number;
 }
 
+export interface SeasonRecapAward {
+  playerId: string;
+  playerName: string;
+  label: string;
+  detail: string;
+}
+
+export interface SeasonRecap {
+  season: number;
+  division: number;
+  finalPosition: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  cashChange: number;
+  closingCash: number;
+  trainingCapsReached: number;
+  cupResult: string;
+  memorableEventId?: string;
+  topScorer?: SeasonRecapAward;
+  playerOfSeason?: SeasonRecapAward;
+  youngPlayer?: SeasonRecapAward;
+  heroOfSeason?: SeasonRecapAward;
+}
+
 export interface GameState {
   schemaVersion: number;
   /** Marks launch-content roster migrations that have already been applied. */
@@ -334,6 +396,8 @@ export interface GameState {
   season: number;
   week: number;
   phase: GamePhase;
+  /** Old saves omit this and are treated as Cozy. */
+  difficulty?: DifficultyMode;
   clubs: ClubState[];
   fixtures: LeagueFixture[];
   players: CareerPlayer[];
@@ -341,15 +405,21 @@ export interface GameState {
   facilities: FacilityState;
   trainingRules?: TrainingRules;
   trainingPlan?: CareerTrainingPlan;
+  /** One-shot inbox receipts created when focused training fills a personal attribute cap. */
+  trainingCapNotices?: CareerTrainingCapNotice[];
   eventClock: CareerEventState;
   eventFlags: string[];
   resolvedEventIds: string[];
+  /** Season-stamped history used by recaps; absent on pre-M4 saves. */
+  resolvedEventHistory?: ResolvedCareerEvent[];
   pendingEvent?: PendingCareerEvent;
   awakening: CareerAwakeningState;
   /** Optional only so pre-onboarding internal M1 saves remain loadable. */
   onboarding?: CareerOnboardingState;
   trainingPoints: number;
   ledgers: WeeklyLedger[];
+  /** User-club cash when the active season began, for an exact season recap delta. */
+  seasonOpeningCash?: number;
   /** Immediate M2 purchases and sales; weekly settlement remains in ledgers. */
   cashTransactions?: CashTransaction[];
   /** Optional so careers saved before Golden Boot tracking remain loadable. */
@@ -364,6 +434,8 @@ export interface GameState {
   pendingLegacyPlayerIds?: string[];
   /** Current final-season notices presented after a season transition. */
   retirementAnnouncements?: CareerRetirementAnnouncement[];
+  /** Immutable snapshots used by the season-review presentation. */
+  seasonRecaps?: SeasonRecap[];
   financialSafety?: FinancialSafetyState;
 }
 

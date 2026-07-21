@@ -107,6 +107,13 @@ export interface TitleSettingsScreenProps {
   onCycleFormation: (slot: number) => void;
   onToggleReduceMotion: () => void;
   onToggleHudSide: () => void;
+  onToggleHaptics: () => void;
+  onCycleTextScale: () => void;
+  onToggleHighContrast: () => void;
+  onToggleColorSafeKits: () => void;
+  onToggleCutInMode: () => void;
+  accessibilityCopy?: { title: string; body: string };
+  difficultyLabel?: 'COZY' | 'CHAIRMAN';
   onBack: () => void;
   backLabel?: string;
 }
@@ -118,6 +125,13 @@ export function TitleSettingsScreen({
   onCycleFormation,
   onToggleReduceMotion,
   onToggleHudSide,
+  onToggleHaptics,
+  onCycleTextScale,
+  onToggleHighContrast,
+  onToggleColorSafeKits,
+  onToggleCutInMode,
+  accessibilityCopy,
+  difficultyLabel,
   onBack,
   backLabel = 'Back to title',
 }: TitleSettingsScreenProps) {
@@ -173,7 +187,7 @@ export function TitleSettingsScreen({
 
             <PaperPanel kicker="Accessibility" title="Comfort and reach" stamp="Saved" className="mt-6">
               <Text className="text-base leading-5 text-ink/65">
-                Reduce animated flourishes and put the live-match information where it is easiest to read.
+                {accessibilityCopy?.body ?? 'Reduce animated flourishes and put the live-match information where it is easiest to read.'}
               </Text>
               <View className="mt-5 gap-3">
                 <Pressable
@@ -205,8 +219,20 @@ export function TitleSettingsScreen({
                   </View>
                   <Text className="font-mono text-lg font-bold uppercase text-violet-dark">{preferences.hudSide}</Text>
                 </Pressable>
+                <AccessibilityToggle label="Haptics" detail="Turns all touch feedback on or off." enabled={preferences.hapticsEnabled} onPress={onToggleHaptics} />
+                <AccessibilityChoice label="Text size" detail="Adds extra room to important story and review copy." value={preferences.textScale === 1 ? 'System' : preferences.textScale === 1.15 ? 'Roomy' : 'Large'} onPress={onCycleTextScale} />
+                <AccessibilityToggle label="High contrast" detail="Darkens match chrome and strengthens live-match contrast." enabled={preferences.highContrast} onPress={onToggleHighContrast} />
+                <AccessibilityToggle label="Color-safe kits" detail="Uses a high-separation blue and amber match pairing." enabled={preferences.colorSafeKits} onPress={onToggleColorSafeKits} />
+                <AccessibilityChoice label="Power cut-ins" detail="Choose full comic panels or compact match banners." value={preferences.cutInMode} onPress={onToggleCutInMode} />
               </View>
             </PaperPanel>
+            {difficultyLabel ? (
+              <PaperPanel kicker="Current career" title="Boardroom pressure" stamp={difficultyLabel} className="mt-6">
+                <Text className="text-base leading-5 text-ink/65">
+                  Difficulty is chosen when the career begins. It changes economy pressure, never match replay rules.
+                </Text>
+              </PaperPanel>
+            ) : null}
             <PaperPanel kicker="Master mix" title="Game audio" stamp={`${volumePercent}%`} className="mt-6">
               <Text className="text-base leading-5 text-ink/65">
                 One master level keeps the opening, clubhouse, match music, and sound effects balanced together.
@@ -273,5 +299,23 @@ export function TitleSettingsScreen({
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function AccessibilityToggle({ label, detail, enabled, onPress }: { label: string; detail: string; enabled: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: enabled }} onPress={onPress} className={enabled ? 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-violet-light px-4 py-3' : 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3'}>
+      <View className="flex-1 pr-3"><Text className="font-mono text-base font-bold uppercase text-ink">{label}</Text><Text className="mt-1 text-sm text-ink/60">{detail}</Text></View>
+      <Text className="font-mono text-lg font-bold text-ink">{enabled ? 'ON' : 'OFF'}</Text>
+    </Pressable>
+  );
+}
+
+function AccessibilityChoice({ label, detail, value, onPress }: { label: string; detail: string; value: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${value}`} onPress={onPress} className="min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3">
+      <View className="flex-1 pr-3"><Text className="font-mono text-base font-bold uppercase text-ink">{label}</Text><Text className="mt-1 text-sm text-ink/60">{detail}</Text></View>
+      <Text className="font-mono text-lg font-bold uppercase text-violet-dark">{value}</Text>
+    </Pressable>
   );
 }

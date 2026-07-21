@@ -32,7 +32,9 @@ export {
   DEFAULT_APP_PREFERENCES,
   replaceFormationPreset,
   type AppPreferences,
+  type CutInMode,
   type HudSide,
   type MasterVolume,
   type PreferencesRepository,
+  type TextScale,
 } from './preferences-repository';

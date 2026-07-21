@@ -10,6 +10,7 @@ import {
   currentUserDivision,
   fixturesForCurrentWeek,
   isAssistantInboxOneShotProductVisible,
+  latestSeasonRecap,
   leagueStandings,
   nextPendingClubLegend,
   playerAttributeCaps,
@@ -54,9 +55,11 @@ import {
 import { marketNegotiationViewModel } from './market-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
 import { dueAssistantInboxGuideSequences } from './assistant-guide';
+import { eventChoiceUnavailableReason } from './event-selection';
 
 const REVIEW_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
-const ASSISTANT_GUIDE_CONTENT = loadLaunchContent().assistantGuide;
+const LAUNCH_CONTENT = loadLaunchContent();
+const ASSISTANT_GUIDE_CONTENT = LAUNCH_CONTENT.assistantGuide;
 
 export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
   const reconciled = reconcilePendingClubLegends(state);
@@ -430,10 +433,20 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
   const selected = pending.selectedPlayerId === undefined
     ? undefined
     : state.players.find(player => player.id === pending.selectedPlayerId);
-  const requiresPlayer = false;
+  const selectedIsStarter = selected === undefined ? false : state.lineups
+    .find(lineup => lineup.clubId === state.userClubId)?.playerIds.includes(selected.id) === true;
+  const requiresPlayer = event.trigger.requiresPlayer === true;
+  const resolvedChoice = pending.resolvedChoiceId === undefined
+    ? undefined
+    : event.choices.find(choice => choice.id === pending.resolvedChoiceId);
+  const resolvedOutcome = pending.resolvedOutcomeIndex === undefined
+    ? undefined
+    : resolvedChoice?.outcomes[pending.resolvedOutcomeIndex];
 
   return {
     id: event.id,
+    artKey: event.art,
+    category: event.category,
     weekLabel: `S${state.season} · W${state.week}`,
     categoryLabel: `${event.rarity} ${event.category}`,
     title: event.title,
@@ -445,7 +458,9 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
         role: selected.role,
         detail: selected.injuryWeeks > 0
           ? `Injured for ${selected.injuryWeeks} more week${selected.injuryWeeks === 1 ? '' : 's'}`
-          : 'No power yet — the perfect risky candidate.',
+          : selected.power !== undefined
+            ? `Licensed hero · ${selectedIsStarter ? 'Starting XI' : 'Squad player'}`
+            : selectedIsStarter ? 'Starting XI' : 'Squad player',
         ...(selected.power ? {
           powerName: content.powers.powers.find(power => power.id === selected.power)?.name ?? selected.power,
         } : {}),
@@ -453,19 +468,33 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
     } : {}),
     playerSelectionRequired: requiresPlayer,
     choices: event.choices.map(choice => {
+      const disabledReason = eventChoiceUnavailableReason(state, choice);
       return {
         id: choice.id,
         label: choice.label,
         detail: choice.risky
-          ? 'Back the spider as the club’s new mascot.'
-          : 'Remove it safely and take the guaranteed reward.',
+          ? 'An unusual choice with a bigger upside and a real chance of disappointment.'
+          : 'The steadier option with a guaranteed outcome.',
         consequenceHint: describeEventChoiceOutcome(choice),
         tone: choice.risky ? 'risky' as const : 'safe' as const,
-        disabled: pending.resolvedChoiceId !== undefined,
+        disabled: pending.resolvedChoiceId !== undefined || disabledReason !== undefined,
+        ...(disabledReason === undefined ? {} : { disabledReason }),
       };
     }),
     ...(pending.resolvedChoiceId ? { resolvedChoiceId: pending.resolvedChoiceId } : {}),
     ...(pending.outcomeText ? { outcomeTitle: 'The choice is made', outcomeText: pending.outcomeText } : {}),
+    ...(pending.resolvedRisky === true && pending.resolvedSuccess === true && resolvedOutcome !== undefined
+      ? {
+          successCutscene: {
+            artKey: `${event.art}-success`,
+            headline: event.id === 'giant-spider-arrives'
+              ? 'A mascot is born!'
+              : `${event.title.replace(/[!?]+$/, '')}: success!`,
+            rewards: eventRewardLabels(resolvedOutcome.effects),
+            ...(pending.resolvedNextEventId === undefined ? {} : { hasFollowUp: true as const }),
+          },
+        }
+      : {}),
   };
 }
 
@@ -509,6 +538,22 @@ export function seasonEndViewModel(
     && promotedDivision < highestDivisionReached(state)
     ? promotionRewardsForDivision(promotedDivision)
     : [];
+  const recap = latestSeasonRecap(state);
+  const recapAwards = recap === undefined
+    ? []
+    : [recap.playerOfSeason, recap.topScorer, recap.youngPlayer, recap.heroOfSeason]
+      .filter((award): award is NonNullable<typeof award> => award !== undefined)
+      .flatMap(award => {
+        const player = state.players.find(candidate => candidate.id === award.playerId);
+        return player === undefined ? [] : [{
+          ...award,
+          role: player.role,
+          ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+        }];
+      });
+  const memorableEventTitle = recap?.memorableEventId === undefined
+    ? undefined
+    : content.events.events.find(event => event.id === recap.memorableEventId)?.title;
 
   return {
     seasonLabel: state.careerMode === 'full'
@@ -533,6 +578,19 @@ export function seasonEndViewModel(
         : 'Before Season 2 begins, the awakened bargain contract finally reaches the agent’s desk.',
     finalPosition: user.position,
     prizeMoney,
+    difficultyLabel: state.difficulty ?? 'COZY',
+    ...(recap === undefined ? {} : {
+      recap: {
+        record: `${recap.won}W · ${recap.drawn}D · ${recap.lost}L`,
+        goals: `${recap.goalsFor} for · ${recap.goalsAgainst} against`,
+        cashChange: recap.cashChange,
+        closingCash: recap.closingCash,
+        trainingCapsReached: recap.trainingCapsReached,
+        cupResult: recap.cupResult,
+        ...(memorableEventTitle === undefined ? {} : { memorableEventTitle }),
+        awards: recapAwards,
+      },
+    }),
     table: standings.map(row => ({
       position: row.position,
       clubId: row.clubId,
@@ -609,8 +667,23 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     && isAssistantInboxOneShotProductVisible(state, boardResolutionAlertId);
   const trainingGroundUnderConstruction = state.facilities.grid?.construction?.kind === 'BUILD'
     && state.facilities.grid.construction.type === 'training-pitch';
+  const trainingCapAlerts = (state.trainingCapNotices ?? [])
+    .filter(notice => isAssistantInboxOneShotProductVisible(state, notice.id))
+    .map(notice => {
+      const drillName = LAUNCH_CONTENT.training.focusDrills
+        .find(drill => drill.id === notice.drillId)?.name
+        ?? notice.drillId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      const attribute = notice.attribute.toUpperCase();
+      return {
+        id: notice.id,
+        title: `${notice.playerName} reached their ${attribute} maximum`,
+        detail: `${drillName} took ${attribute} to its personal maximum of ${notice.cap}. Pick another player for this drill next week.`,
+        tone: 'info' as const,
+      };
+    });
 
   return [
+    ...trainingCapAlerts,
     ...(!state.facilities.trainingGroundBuilt && !trainingGroundUnderConstruction ? [{
       id: 'training-ground',
       title: 'Training Ground proposal',
@@ -684,7 +757,7 @@ function homeAssistantInboxPlan(state: GameState) {
     productAlerts: productAlerts.map(alert => ({
       id: alert.id,
       priority: assistantProductPriority(alert, dueGuides),
-      oneShot: alert.id.startsWith('board-resolution:'),
+      oneShot: isOneShotProductAlert(alert.id),
     })),
   });
 }
@@ -701,6 +774,10 @@ function assistantProductPriority(
     return 'urgent';
   }
   return 'normal';
+}
+
+function isOneShotProductAlert(alertId: string): boolean {
+  return alertId.startsWith('board-resolution:') || alertId.startsWith('training-cap:');
 }
 
 function standaloneInboxGuides(
@@ -745,7 +822,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
     productAlerts: productAlerts.map(alert => ({
       id: alert.id,
       priority: assistantProductPriority(alert, dueGuides),
-      oneShot: alert.id.startsWith('board-resolution:'),
+      oneShot: isOneShotProductAlert(alert.id),
     })),
   });
   const selectedProductIds = new Set(inboxPlan.productAlertIds);
@@ -1071,7 +1148,7 @@ export function squadTrainingViewModel(
   const orderedRoster = createdPlayer === undefined
     ? roster
     : [createdPlayer, ...roster.filter(player => player.id !== createdPlayerId)];
-  const playerNameById = new Map(roster.map(player => [player.id, player.name]));
+  const playerById = new Map(roster.map(player => [player.id, player]));
 
   return {
     resources: {
@@ -1166,10 +1243,19 @@ export function squadTrainingViewModel(
       totalTrainingPointCost <= state.trainingPoints,
     ...(selectionMatchesSavedPlan && savedPlan !== undefined ? {
       lockedPlan: {
-        playerNames: savedPlan.assignedPlayerIds.map(playerId => playerNameById.get(playerId) ?? playerId),
-        drillNames: savedPlan.drills.map(savedDrill => (
-          drills.find(drill => drill.id === savedDrill.id)?.name ?? savedDrill.id
-        )),
+        players: savedPlan.assignedPlayerIds.flatMap(playerId => {
+          const player = playerById.get(playerId);
+          return player === undefined ? [] : [{
+            id: player.id,
+            name: player.name,
+            role: player.role,
+            ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+          }];
+        }),
+        drills: savedPlan.drills.map(savedDrill => ({
+          id: savedDrill.id,
+          name: drills.find(drill => drill.id === savedDrill.id)?.name ?? savedDrill.id,
+        })),
         moneyCost: savedPlan.drills.reduce((sum, drill) => sum + drill.moneyCost, 0),
         trainingPointCost: savedPlan.drills.reduce((sum, drill) => sum + drill.tpCost, 0),
       },
@@ -1558,14 +1644,22 @@ function describeSafeOutcome(effects: GameEvent['choices'][number]['outcomes'][n
 function describeEventEffects(
   effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
 ): string {
+  return eventRewardLabels(effects).join(' and ') || 'an unknown reward';
+}
+
+function eventRewardLabels(
+  effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
+): string[] {
   const rewards: string[] = [];
+  const money = effects.reduce((sum, effect) => effect.type === 'money' ? sum + effect.amount : sum, 0);
   const morale = effects.reduce((sum, effect) => effect.type === 'morale' ? sum + effect.amount : sum, 0);
   const fans = effects.reduce((sum, effect) => effect.type === 'fans' ? sum + effect.amount : sum, 0);
   const trainingPoints = effects.reduce((sum, effect) => effect.type === 'tp' ? sum + effect.amount : sum, 0);
+  if (money !== 0) rewards.push(formatMoney(money, true));
   if (morale !== 0) rewards.push(`${morale > 0 ? '+' : ''}${morale} squad morale`);
   if (fans !== 0) rewards.push(`${fans > 0 ? '+' : ''}${fans} fans`);
   if (trainingPoints !== 0) rewards.push(`${trainingPoints > 0 ? '+' : ''}${trainingPoints} TP`);
-  return rewards.join(' and ') || 'an unknown reward';
+  return rewards;
 }
 
 function overall(

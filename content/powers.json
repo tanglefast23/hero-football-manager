@@ -16,6 +16,26 @@
       "windupTicks": 15
     },
     {
+      "id": "BLINK_RUN",
+      "name": "Blink Run",
+      "tier": "standard",
+      "category": "attack",
+      "description": "Blink beyond the last defender and pull the ball through the gap.",
+      "usefulContext": "LAST_DEFENDER",
+      "requiresTarget": false,
+      "windupTicks": 15
+    },
+    {
+      "id": "THUNDER_STRIKE",
+      "name": "Thunder Strike",
+      "tier": "standard",
+      "category": "attack",
+      "description": "Charge the next clean shot with enough force to batter keeper Resolve.",
+      "usefulContext": "CLEAN_SHOT",
+      "requiresTarget": false,
+      "windupTicks": 15
+    },
+    {
       "id": "FIRE_TORCH",
       "name": "Fire Torch",
       "tier": "starter",
@@ -26,12 +46,82 @@
       "windupTicks": 15
     },
     {
+      "id": "PHASE_RUN",
+      "name": "Phase Run",
+      "tier": "standard",
+      "category": "attack",
+      "description": "Ghost through the next tackle, but wait to become solid before shooting.",
+      "usefulContext": "UNDER_PRESSURE",
+      "requiresTarget": false,
+      "windupTicks": 15
+    },
+    {
+      "id": "PORTAL_PASS",
+      "name": "Portal Pass",
+      "tier": "standard",
+      "category": "attack",
+      "description": "Drop the ball through a portal onto the best forward runner.",
+      "usefulContext": "BLOCKED_LANE",
+      "requiresTarget": true,
+      "windupTicks": 15
+    },
+    {
+      "id": "MAGNET_TOUCH",
+      "name": "Magnet Touch",
+      "tier": "starter",
+      "category": "attack",
+      "description": "Snap the next loose ball in range directly under control.",
+      "usefulContext": "LOOSE_BALL",
+      "requiresTarget": true,
+      "windupTicks": 15
+    },
+    {
+      "id": "DECOY_DOUBLE",
+      "name": "Decoy Double",
+      "tier": "standard",
+      "category": "attack",
+      "description": "Send a hologram runner forward to drag a marker out of the passing lane.",
+      "usefulContext": "PASS_SETUP",
+      "requiresTarget": true,
+      "windupTicks": 15
+    },
+    {
+      "id": "FUTURE_SIGHT",
+      "name": "Future Sight",
+      "tier": "standard",
+      "category": "defense",
+      "description": "Read the next dangerous pass and arrive before the receiver.",
+      "usefulContext": "EXPECTED_PASS",
+      "requiresTarget": true,
+      "windupTicks": 15
+    },
+    {
       "id": "SUPER_STRENGTH",
       "name": "Super Strength",
       "tier": "starter",
       "category": "defense",
       "description": "Lock onto a dangerous carrier, charge, and flatten them.",
       "usefulContext": "DANGEROUS_CARRIER",
+      "requiresTarget": true,
+      "windupTicks": 15
+    },
+    {
+      "id": "WEB_TRAP",
+      "name": "Web Trap",
+      "tier": "starter",
+      "category": "defense",
+      "description": "String a web across the carrier's lane and root the first opponent through it.",
+      "usefulContext": "DRIBBLE_LANE",
+      "requiresTarget": true,
+      "windupTicks": 15
+    },
+    {
+      "id": "ELASTIC_KEEPER",
+      "name": "Elastic Keeper",
+      "tier": "standard",
+      "category": "defense",
+      "description": "Stretch across the whole goal against the next dangerous shot.",
+      "usefulContext": "SHOT_INCOMING",
       "requiresTarget": true,
       "windupTicks": 15
     }

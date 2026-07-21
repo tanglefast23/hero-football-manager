@@ -49,7 +49,7 @@ import {
   setManagementSfxMasterVolume,
   teardownManagementSfx,
 } from './src/render/management-sfx';
-import { playManagementHaptic } from './src/render/haptics';
+import { playManagementHaptic, setHapticsEnabled } from './src/render/haptics';
 import { assertRuntimeGoldenReplay, runtimeGoldenFingerprint } from './src/sim/runtime-golden';
 import type { MatchState } from './src/sim/types';
 import {
@@ -107,7 +107,7 @@ import {
   currentAssistantObjective,
   pendingAssistantGuideSequence,
 } from './src/application/assistant-guide';
-import { loadPreferencesFailSoft } from './src/application/preferences';
+import { loadPreferencesFailSoft, markPowerCutInSeen } from './src/application/preferences';
 import {
   awakeningCutsceneViewModel,
   clubLegacyViewModel,
@@ -207,16 +207,27 @@ function GameApp() {
   const [bootAttempt, setBootAttempt] = useState(0);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
+  const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const preferencesRef = useRef(preferences);
+  preferencesRef.current = preferences;
+  const lastSeasonReviewCueRef = useRef<string | null>(null);
   const devVolume = preferences.masterVolume as DevVolume;
   const reduceMotion = useReducedMotion(preferences.reduceMotion);
 
   const savePreferences = useCallback((next: AppPreferences) => {
     setPreferences(next);
     setSettingsSaveError(null);
-    void preferencesRepositoryRef.current?.save(next).catch(error => {
-      const detail = error instanceof Error ? error.message : String(error);
-      setSettingsSaveError(`Settings were not saved. ${detail}`);
-    });
+    const repository = preferencesRepositoryRef.current;
+    if (repository === null) return;
+    preferencesSaveQueueRef.current = preferencesSaveQueueRef.current
+      .then(async () => {
+        await repository.save(next);
+        setSettingsSaveError(null);
+      })
+      .catch(error => {
+        const detail = error instanceof Error ? error.message : String(error);
+        setSettingsSaveError(`Settings were not saved. ${detail}`);
+      });
   }, []);
 
   const cycleVolume = useCallback(() => {
@@ -228,6 +239,31 @@ function GameApp() {
   const toggleHudSide = useCallback(() => {
     savePreferences({ ...preferences, hudSide: preferences.hudSide === 'left' ? 'right' : 'left' });
   }, [preferences, savePreferences]);
+  const toggleHaptics = useCallback(() => {
+    savePreferences({ ...preferences, hapticsEnabled: !preferences.hapticsEnabled });
+  }, [preferences, savePreferences]);
+  const cycleTextScale = useCallback(() => {
+    const textScale = preferences.textScale === 1 ? 1.15 : preferences.textScale === 1.15 ? 1.3 : 1;
+    savePreferences({ ...preferences, textScale });
+  }, [preferences, savePreferences]);
+  const toggleHighContrast = useCallback(() => {
+    savePreferences({ ...preferences, highContrast: !preferences.highContrast });
+  }, [preferences, savePreferences]);
+  const toggleColorSafeKits = useCallback(() => {
+    savePreferences({ ...preferences, colorSafeKits: !preferences.colorSafeKits });
+  }, [preferences, savePreferences]);
+  const toggleCutInMode = useCallback(() => {
+    savePreferences({ ...preferences, cutInMode: preferences.cutInMode === 'full' ? 'banner' : 'full' });
+  }, [preferences, savePreferences]);
+  const recordSeenPowerCutIn = useCallback((power: AppPreferences['seenPowerCutIns'][number]) => {
+    const current = preferencesRef.current;
+    const next = markPowerCutInSeen(current, power);
+    if (next === current) return;
+    // Compose two first-time fires from one event batch instead of allowing
+    // the latter persistence write to replace the former.
+    preferencesRef.current = next;
+    savePreferences(next);
+  }, [savePreferences]);
 
   const advanceCareerWithSfx = useCallback(() => {
     if (trainingTransition !== null) return;
@@ -482,6 +518,19 @@ function GameApp() {
     setAwakeningMasterVolume(devVolume);
   }, [devVolume]);
 
+  useEffect(() => {
+    setHapticsEnabled(preferences.hapticsEnabled);
+  }, [preferences.hapticsEnabled]);
+
+  useEffect(() => {
+    if (store.screen !== 'season-end' || store.career === null) return;
+    const cueKey = `${store.career.careerSeed}:${store.career.season}:${store.career.phase}`;
+    if (lastSeasonReviewCueRef.current === cueKey) return;
+    lastSeasonReviewCueRef.current = cueKey;
+    playManagementActionSfx('success');
+    playManagementHaptic('success');
+  }, [store.career, store.screen]);
+
   const menuTheme: MenuTheme = bootError === null
     && store.persistenceReady
     && store.persistenceLoadError === null
@@ -692,6 +741,13 @@ function GameApp() {
         ))}
         onToggleReduceMotion={toggleReduceMotion}
         onToggleHudSide={toggleHudSide}
+        onToggleHaptics={toggleHaptics}
+        onCycleTextScale={cycleTextScale}
+        onToggleHighContrast={toggleHighContrast}
+        onToggleColorSafeKits={toggleColorSafeKits}
+        onToggleCutInMode={toggleCutInMode}
+        accessibilityCopy={content.assistantGuide.m4Fiction.accessibility}
+        difficultyLabel={store.career?.difficulty ?? (store.career ? 'COZY' : undefined)}
         onBack={() => setLandingView('title')}
       />
     );
@@ -712,6 +768,9 @@ function GameApp() {
       <CharacterCreationScreen
         onComplete={store.completePlayerCreation}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
+        guideCopy={content.assistantGuide.m4Fiction.creation}
+        difficultyCopy={content.assistantGuide.m4Fiction.difficulty}
+        textScale={preferences.textScale}
       />
     );
   } else if (
@@ -745,6 +804,11 @@ function GameApp() {
         formationPresets={preferences.formationPresets}
         reduceMotion={reduceMotion}
         hudSide={preferences.hudSide}
+        cutInMode={preferences.cutInMode}
+        seenPowerCutIns={preferences.seenPowerCutIns}
+        onPowerCutInSeen={recordSeenPowerCutIn}
+        highContrast={preferences.highContrast}
+        colorSafeKits={preferences.colorSafeKits}
         pausedExternally={globalSettingsOpen}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         onDone={finishWatchedMatch}
@@ -816,6 +880,11 @@ function GameApp() {
         onSelectPlayer={store.selectEventPlayer}
         onContinue={store.continueAfterEvent}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
+        reduceMotion={reduceMotion}
+        guideCopy={store.career.eventFlags.includes('m4:event-guide-seen')
+          ? undefined
+          : content.assistantGuide.m4Fiction.events}
+        textScale={preferences.textScale}
       />
     );
   } else if (store.screen === 'legacy') {
@@ -871,6 +940,10 @@ function GameApp() {
         })}
         onPrimaryAction={() => season.sliceComplete ? store.setActiveTab('home') : store.advanceCareer()}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
+        guideCopy={store.career.eventFlags.includes('m4:season-recap-guide-seen')
+          ? undefined
+          : content.assistantGuide.m4Fiction.seasonRecap}
+        textScale={preferences.textScale}
       />
     );
   } else {
@@ -1147,10 +1220,24 @@ function GameApp() {
           volume={devVolume}
           reduceMotion={preferences.reduceMotion}
           hudSide={preferences.hudSide}
+          hapticsEnabled={preferences.hapticsEnabled}
+          textScale={preferences.textScale}
+          highContrast={preferences.highContrast}
+          colorSafeKits={preferences.colorSafeKits}
+          cutInMode={preferences.cutInMode}
+          accessibilityCopy={content.assistantGuide.m4Fiction.accessibility}
+          difficultyLabel={store.career?.onboarding?.stage === 'create-player'
+            ? undefined
+            : store.career?.difficulty ?? (store.career ? 'COZY' : undefined)}
           saveError={settingsSaveError}
           onVolumeChange={volume => savePreferences({ ...preferences, masterVolume: volume })}
           onToggleReduceMotion={toggleReduceMotion}
           onToggleHudSide={toggleHudSide}
+          onToggleHaptics={toggleHaptics}
+          onCycleTextScale={cycleTextScale}
+          onToggleHighContrast={toggleHighContrast}
+          onToggleColorSafeKits={toggleColorSafeKits}
+          onToggleCutInMode={toggleCutInMode}
           onGlossaryOpenChange={setGlobalGlossaryOpen}
           onOpenChange={open => {
             setGlobalSettingsOpen(open);

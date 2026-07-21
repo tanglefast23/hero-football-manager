@@ -24,6 +24,7 @@ jest.mock('expo-audio', () => ({
 
 import {
   playCoachDepartureSfx,
+  playEventSuccessSfx,
   playFacilityCompleteSfx,
   playFacilityStartSfx,
   playManagementActionSfx,
@@ -52,7 +53,7 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(15);
+    expect(mockPlayers).toHaveLength(16);
     const trainingDing = mockPlayers[1];
     expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
@@ -67,7 +68,7 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(15);
+    expect(mockPlayers).toHaveLength(16);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
@@ -79,6 +80,7 @@ describe('management feedback sounds', () => {
     playCoachDepartureSfx();
     playFacilityStartSfx();
     playFacilityCompleteSfx();
+    playEventSuccessSfx();
     await Promise.resolve();
 
     expect(mockPlayers[2].play).toHaveBeenCalledTimes(1);
@@ -86,14 +88,15 @@ describe('management feedback sounds', () => {
     expect(mockPlayers[4].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[5].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[6].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[7].play).toHaveBeenCalledTimes(1);
   });
 
   it('routes semantic management cues to their dedicated player', async () => {
     playManagementActionSfx('success');
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(15);
-    expect(mockPlayers[12].seekTo).toHaveBeenCalledWith(0);
-    expect(mockPlayers[12].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers).toHaveLength(16);
+    expect(mockPlayers[13].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers[13].play).toHaveBeenCalledTimes(1);
   });
 });

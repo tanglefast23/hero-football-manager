@@ -12,7 +12,13 @@ describe('M2 player-specific training growth', () => {
     const prepare = (state: typeof full) => ({
       ...state,
       players: state.players.map(player => player.id === playerId
-        ? { ...player, age: 20, archetype: 'All-Rounder' as const, attrs: { ...player.attrs, sta: 50 } }
+        ? {
+            ...player,
+            age: 20,
+            archetype: 'All-Rounder' as const,
+            potentialCeiling: 99,
+            attrs: { ...player.attrs, sta: 50 },
+          }
         : player),
     });
 

@@ -2,7 +2,7 @@ import { BLEND_TICKS, blendedTableTarget, gkTarget, kickoffPos } from './movemen
 import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, HALF_TICKS, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest, contestProbability } from './contest';
-import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut, STRENGTH_LOCK_RANGE } from './powers';
+import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, STRENGTH_LOCK_RANGE, futureSightInterceptor } from './powers';
 import { energyDrainMultiplier, energyMovementMultiplier, formationTarget, mentalityTarget, type EnergyUse } from './tactics';
 import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 
@@ -573,13 +573,15 @@ export function attackingDecision(state: MatchState, carrierIdx: number): Attack
   const shotBias = mentality === 'ATTACK' ? 1.25 : mentality === 'PROTECT' ? 0.82 : 1;
   const carryBias = mentality === 'ATTACK' ? 1.08 : mentality === 'PROTECT' ? 0.86 : 1;
   const passBias = mentality === 'ATTACK' ? 0.94 : mentality === 'PROTECT' ? 1.14 : 1;
-  const shot = (carrier.def.role === 'GK' ? 0 : shotExpectedValue(state, carrierIdx, carrier.pos)) * shotBias;
+  const shot = (carrier.def.role === 'GK' || phaseRunPreventsShot(state, carrierIdx)
+    ? 0
+    : shotExpectedValue(state, carrierIdx, carrier.pos)) * shotBias;
   const carry = carryExpectedValue(state, carrierIdx) * carryBias;
   const passOption = bestPassOption(state, carrierIdx);
   const pass = passOption === null ? -1 : passOption.value * passBias;
   const values = { shot, carry, pass };
   const corridorQuality = shotCorridorQuality(state, carrierIdx, carrier.pos);
-  const obviousShot = carrier.def.role !== 'GK'
+  const obviousShot = carrier.def.role !== 'GK' && !phaseRunPreventsShot(state, carrierIdx)
     && dist(carrier.pos, goal) <= OBVIOUS_SHOT_DISTANCE
     && goalFacingQuality(carrier.pos, goal.y) >= 0.6
     && corridorQuality >= 0.72;
@@ -679,11 +681,14 @@ export function possessionTick(state: MatchState): void {
   }
 }
 
-function launchPass(state: MatchState, from: number, to: number, lofted: boolean): void {
+export function launchPass(state: MatchState, from: number, to: number, lofted: boolean): void {
   const passer = state.players[from];
   const inputs = passContestInputs(state, from, to);
-  const ok = contest(state.rng, effectiveStat(state, from, 'pas'), inputs.interceptStat, 10);
-  const targetIdx = ok ? to : (inputs.interceptor !== -1 ? inputs.interceptor : to);
+  const rolledOk = contest(state.rng, effectiveStat(state, from, 'pas'), inputs.interceptStat, 10);
+  const predictedInterceptor = futureSightInterceptor(state, passer.team, to);
+  const ok = predictedInterceptor === -1 ? rolledOk : false;
+  const interceptor = predictedInterceptor === -1 ? inputs.interceptor : predictedInterceptor;
+  const targetIdx = ok ? to : (interceptor !== -1 ? interceptor : to);
   const target = state.players[targetIdx].pos;
   const horizontalDistance = dist(passer.pos, target);
   const flightTicks = lofted
@@ -699,7 +704,7 @@ function launchPass(state: MatchState, from: number, to: number, lofted: boolean
     from,
     to,
     willSucceed: ok,
-    interceptor: inputs.interceptor,
+    interceptor,
     z: 0,
     vz: lofted ? verticalLaunchSpeed(flightTicks, 0) : 0,
     speed,
@@ -888,8 +893,13 @@ export function tackleTick(state: MatchState): void {
   else if (slideIdx !== -1) startSlide(state, slideIdx, carrierIdx, slideDistance);
 }
 
-/** Hook for future shot-boosting powers (none among the M0 three). */
-export function shotBonus(_state: MatchState, _by: number): number { return 0; }
+/** Moment-based shot spikes. Thunder Strike also drains Resolve through the normal save path. */
+export function shotBonus(state: MatchState, by: number): number {
+  const player = state.players[by];
+  return player.powerState.kind === 'active' && player.def.power === 'THUNDER_STRIKE'
+    ? Math.round(65 * player.powerState.strength)
+    : 0;
+}
 
 export function attemptShot(state: MatchState, by: number, distToGoal: number): void {
   const shooter = state.players[by];
@@ -937,7 +947,12 @@ export function shotFlightTick(state: MatchState): void {
     b.keeperChecked = true;
     if (isAvailable(state, gkIdx)) {
       const resolveScale = keeperResolveScale(state.resolve[defendingTeam]);
-      const saved = contest(state.rng, effectiveStat(state, gkIdx, 'ref') * resolveScale, b.power, SHOT_KEEPER_MOD);
+      const saved = contest(
+        state.rng,
+        effectiveStat(state, gkIdx, 'ref') * resolveScale + keeperSaveBonus(state, gkIdx),
+        b.power,
+        SHOT_KEEPER_MOD,
+      );
       if (saved) {
         state.resolve[defendingTeam] = Math.max(
           0,

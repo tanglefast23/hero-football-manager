@@ -2,7 +2,7 @@ import { applyTrainingPlan, type FocusDrill } from './progression';
 import { facilityEffects } from './facilities';
 import { trainingMultiplierForAge } from './pyramid';
 import { careerCoachTrainingModifiers } from './coach-weekly';
-import { capPlayerTrainingGain } from './archetype-caps';
+import { capPlayerTrainingGain, playerAttributeCaps } from './archetype-caps';
 import {
   assertCareerTrainingHonorsContractPromises,
   hasActiveCareerContractPromise,
@@ -19,6 +19,23 @@ export interface WeeklyTrainingResolution {
   trainingPoints: number;
   moneyCost: number;
   focusApplied: boolean;
+  reachedCaps: TrainingCapReached[];
+}
+
+export interface TrainingPlanCapConflict {
+  playerId: string;
+  playerName: string;
+  drillId: string;
+  drillName: string;
+  attributes: (keyof CareerPlayer['attrs'])[];
+}
+
+export interface TrainingCapReached {
+  playerId: string;
+  playerName: string;
+  drillId: string;
+  attribute: keyof CareerPlayer['attrs'];
+  cap: number;
 }
 
 /**
@@ -54,6 +71,12 @@ export function setCareerTrainingPlan(
     drills,
     { money: Math.max(0, club.cash), tp: state.trainingPoints },
   );
+  const conflict = trainingPlanCapConflicts(state, assignedPlayerIds, drills)[0];
+  if (conflict !== undefined) {
+    throw new Error(
+      `${conflict.playerName} is already at their ${attributeList(conflict.attributes)} maximum for ${conflict.drillName}. Pick another player.`,
+    );
+  }
 
   return {
     ...state,
@@ -130,6 +153,14 @@ export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResol
   const trainedById = new Map(
     facilityBoosted.map(player => [player.id, player]),
   );
+  const reachedCaps = findReachedTrainingCaps(
+    state,
+    roster,
+    facilityBoosted,
+    assignedPlayerIds,
+    plan?.drills ?? [],
+    canAffordFocus,
+  );
   return {
     players: state.players.map(player => {
       const trained = trainedById.get(player.id);
@@ -140,7 +171,92 @@ export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResol
     trainingPoints: focused.resources.tp,
     moneyCost: canAffordFocus ? focusCost.money : 0,
     focusApplied: canAffordFocus,
+    reachedCaps,
   };
+}
+
+/** Returns player/drill pairs that cannot add any of that drill's attributes. */
+export function trainingPlanCapConflicts(
+  state: GameState,
+  assignedPlayerIds: readonly string[],
+  drills: readonly FocusDrill[],
+): TrainingPlanCapConflict[] {
+  if (state.careerMode !== 'full') return [];
+  const roster = new Map(userRoster(state).map(player => [player.id, player]));
+  return assignedPlayerIds.flatMap(playerId => {
+    const player = roster.get(playerId);
+    if (player === undefined) return [];
+    const caps = playerAttributeCaps(player);
+    return drills.flatMap(drill => {
+      const attributes = trainingAttributes(drill);
+      if (attributes.length === 0 || attributes.some(attribute => player.attrs[attribute] < caps[attribute])) {
+        return [];
+      }
+      return [{
+        playerId,
+        playerName: player.name,
+        drillId: drill.id,
+        drillName: drillDisplayName(drill),
+        attributes,
+      }];
+    });
+  });
+}
+
+function findReachedTrainingCaps(
+  state: GameState,
+  original: readonly CareerPlayer[],
+  trained: readonly CareerPlayer[],
+  assignedPlayerIds: readonly string[],
+  drills: readonly CareerTrainingDrill[],
+  focusApplied: boolean,
+): TrainingCapReached[] {
+  if (state.careerMode !== 'full' || !focusApplied) return [];
+  const assigned = new Set(assignedPlayerIds);
+  const trainedById = new Map(trained.map(player => [player.id, player]));
+  const reached: TrainingCapReached[] = [];
+  const reportedPlayerAttributes = new Set<string>();
+  for (const player of original) {
+    if (!assigned.has(player.id)) continue;
+    const after = trainedById.get(player.id);
+    if (after === undefined) continue;
+    const caps = playerAttributeCaps(player);
+    for (const drill of drills) {
+      for (const attribute of trainingAttributes(drill)) {
+        const reportKey = `${player.id}:${attribute}`;
+        if (!reportedPlayerAttributes.has(reportKey)
+          && player.attrs[attribute] < caps[attribute]
+          && after.attrs[attribute] >= caps[attribute]) {
+          reportedPlayerAttributes.add(reportKey);
+          reached.push({
+            playerId: player.id,
+            playerName: player.name,
+            drillId: drill.id,
+            attribute,
+            cap: caps[attribute],
+          });
+        }
+      }
+    }
+  }
+  return reached;
+}
+
+function trainingAttributes(drill: FocusDrill | CareerTrainingDrill): (keyof CareerPlayer['attrs'])[] {
+  return (Object.entries(drill.gains) as Array<[keyof CareerPlayer['attrs'], number | undefined]>)
+    .flatMap(([attribute, gain]) => gain === undefined || gain <= 0 ? [] : [attribute]);
+}
+
+function drillDisplayName(drill: FocusDrill): string {
+  const authoredName = (drill as FocusDrill & { readonly name?: string }).name;
+  if (authoredName !== undefined) return authoredName;
+  return drill.id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+function attributeList(attributes: readonly (keyof CareerPlayer['attrs'])[]): string {
+  const labels = attributes.map(attribute => attribute.toUpperCase());
+  if (labels.length <= 1) return labels[0] ?? 'attribute';
+  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
 }
 
 /**

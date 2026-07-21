@@ -1,5 +1,5 @@
 import { emit } from './events';
-import { dist2, PITCH_H } from './geometry';
+import { dist2, PITCH_H, PITCH_W } from './geometry';
 import type { MatchInput, MatchState, OutReason, PowerId } from './types';
 
 export const WINDUP_TICKS = 15;
@@ -75,7 +75,13 @@ const STRENGTH_LAND_RANGE = 500;
  * and a Super Strength context inside STRENGTH_LOCK_RANGE guarantees the lock.
  */
 function requiresTarget(power: PowerId): boolean {
-  return power === 'SUPER_STRENGTH';
+  return power === 'PORTAL_PASS'
+    || power === 'MAGNET_TOUCH'
+    || power === 'DECOY_DOUBLE'
+    || power === 'FUTURE_SIGHT'
+    || power === 'SUPER_STRENGTH'
+    || power === 'WEB_TRAP'
+    || power === 'ELASTIC_KEEPER';
 }
 
 // FIRE_TORCH's ignite radius. inUsefulContext references this SAME constant for
@@ -83,6 +89,8 @@ function requiresTarget(power: PowerId): boolean {
 // and "someone is close enough to catch fire" can never drift apart, the same
 // guarantee STRENGTH_LOCK_RANGE gives Super Strength.
 const TORCH_IGNITE_RANGE = 800;
+export const WEB_TRAP_TRIGGER_RANGE = 650;
+const FUTURE_SIGHT_INTERCEPT_RANGE = 2400;
 // SUPER_SPEED's useful context distance to a loose ball worth a sprint for.
 const SPEED_LOOSE_BALL_RANGE = 1500;
 
@@ -108,6 +116,19 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
     b.kind === 'held' && state.players[b.by].team !== p.team && dist2(state.players[b.by].pos, p.pos) < range * range;
 
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
+  if (power === 'WEB_TRAP') return oppCarrierNear(1500);
+  if (power === 'FUTURE_SIGHT') return oppCarrierNear(1900);
+  if (power === 'ELASTIC_KEEPER') {
+    if (p.def.role !== 'GK') return false;
+    if (b.kind === 'shot') return state.players[b.by].team !== p.team;
+    if (b.kind !== 'held' || state.players[b.by].team === p.team) return false;
+    const carrier = state.players[b.by];
+    const attackingProgress = carrier.team === 0 ? PITCH_H - carrier.pos.y : carrier.pos.y;
+    return attackingProgress > PITCH_H * 0.72;
+  }
+  if (power === 'MAGNET_TOUCH') {
+    return b.kind === 'loose' && dist2(b.pos, p.pos) < 1800 * 1800;
+  }
   if (power === 'SUPER_SPEED') {
     // Self-carrier value is directional: a speedster in their own defensive half
     // is not breaking anything by sprinting, so only the attacking half counts.
@@ -116,6 +137,16 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
     return (b.kind === 'held' && b.by === idx && inAttackingHalf) ||
       (b.kind === 'loose' && dist2(b.pos, p.pos) < SPEED_LOOSE_BALL_RANGE * SPEED_LOOSE_BALL_RANGE);
   }
+  const isCarrier = b.kind === 'held' && b.by === idx;
+  const attackingProgress = p.team === 0 ? PITCH_H - p.pos.y : p.pos.y;
+  if (power === 'BLINK_RUN') return isCarrier && attackingProgress > PITCH_H * 0.55;
+  if (power === 'THUNDER_STRIKE') return isCarrier && attackingProgress > PITCH_H * 0.68
+    && Math.abs(p.pos.x - 2250) < 1400;
+  if (power === 'PHASE_RUN') return isCarrier && opponentWithin(state, idx, 700)
+    && attackingProgress < PITCH_H * 0.82;
+  if (power === 'PORTAL_PASS') return isCarrier && opponentWithin(state, idx, 1100);
+  if (power === 'DECOY_DOUBLE') return isCarrier && attackingProgress > PITCH_H * 0.5
+    && opponentWithin(state, idx, 1200);
   // FIRE_TORCH fires when its carrier has a close marker, or when it can directly
   // ignite the opposing carrier. The effect and context share one radius.
   return (b.kind === 'held' && b.by === idx && opponentWithin(state, idx, TORCH_IGNITE_RANGE)) ||
@@ -125,9 +156,11 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
 function startWindup(state: MatchState, idx: number, strength: number): void {
   const p = state.players[idx];
   let targetIdx: number | undefined;
-  if (p.def.power === 'SUPER_STRENGTH' && state.ball.kind === 'held') {
+  if ((p.def.power === 'SUPER_STRENGTH' || p.def.power === 'WEB_TRAP' || p.def.power === 'FUTURE_SIGHT')
+    && state.ball.kind === 'held') {
     const carrier = state.players[state.ball.by];
-    if (carrier.team !== p.team && dist2(carrier.pos, p.pos) < STRENGTH_LOCK_RANGE * STRENGTH_LOCK_RANGE) {
+    const range = p.def.power === 'SUPER_STRENGTH' ? STRENGTH_LOCK_RANGE : 1900;
+    if (carrier.team !== p.team && dist2(carrier.pos, p.pos) < range * range) {
       targetIdx = state.ball.by;
     }
   }
@@ -147,7 +180,8 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
     // windup that the out-check below would instantly interrupt (spurious
     // POWER_INTERRUPTED).
     if (p.powerState.kind === 'zone' && p.outUntilTick <= state.tick
-      && p.slideTackle === undefined && p.tackleRecoveryUntil <= state.tick && !teamPowerBusy(state, p.team)) {
+      && p.slideTackle === undefined && p.tackleRecoveryUntil <= state.tick && !teamPowerBusy(state, p.team)
+      && (!requiresTarget(p.def.power!) || inUsefulContext(state, input.player))) {
       startWindup(state, input.player, TAP_STRENGTH);
     }
   }
@@ -202,8 +236,10 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
     } else if (p.powerState.kind === 'winding') {
       if (state.tick >= p.powerState.untilTick) activatePower(state, idx, p.powerState.strength, p.powerState.targetIdx);
     } else if (p.powerState.kind === 'active') {
-      if (state.tick >= p.powerState.untilTick) {
+      if (p.def.power === 'WEB_TRAP') springWebTrap(state, idx);
+      if (p.powerState.kind === 'active' && state.tick >= p.powerState.untilTick) {
         p.powerState = { kind: 'idle' };
+        p.powerAnchor = undefined;
         p.gauge = 0;
       }
     }
@@ -213,7 +249,20 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
 // Tuning round 1 (Task 13 decision record): 40/80/50 → 70/110/80. GATE-1 measured
 // the original durations at +0.065 goals/match — real but imperceptible against
 // docs/09's 15-25% hero-uplift target.
-const DUR = { SUPER_SPEED: 70, SUPER_STRENGTH: 110, FIRE_TORCH: 80 } as const;
+const DUR: Record<PowerId, number> = {
+  SUPER_SPEED: 70,
+  BLINK_RUN: 35,
+  THUNDER_STRIKE: 90,
+  FIRE_TORCH: 80,
+  PHASE_RUN: 70,
+  PORTAL_PASS: 35,
+  MAGNET_TOUCH: 35,
+  DECOY_DOUBLE: 70,
+  FUTURE_SIGHT: 60,
+  SUPER_STRENGTH: 110,
+  WEB_TRAP: 70,
+  ELASTIC_KEEPER: 90,
+};
 
 export function isActive(state: MatchState, idx: number): boolean {
   const ps = state.players[idx].powerState;
@@ -245,6 +294,7 @@ export function knockOut(state: MatchState, idx: number, untilTick: number, reas
     interruptWindup(state, idx);
   } else if (p.powerState.kind === 'active') {
     p.powerState = { kind: 'idle' };
+    p.powerAnchor = undefined;
     p.gauge = 0;
   }
   p.slideTackle = undefined;
@@ -277,6 +327,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
   const power = p.def.power!;
   emit(state, { t: state.tick, kind: 'POWER_FIRED', player: idx, power, strength });
   p.powerState = { kind: 'active', untilTick: state.tick + Math.round(DUR[power] * strength), strength };
+  p.powerAnchor = power === 'WEB_TRAP' ? { ...p.pos } : undefined;
   p.gauge = 0;
 
   if (power === 'FIRE_TORCH') {
@@ -306,7 +357,112 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
         emit(state, { t: state.tick, kind: 'TACKLE', by: idx, on: targetIdx, won: hadBall, style: 'power', contact: true });
       }
     }
+  } else if (power === 'BLINK_RUN') {
+    const direction = p.team === 0 ? -1 : 1;
+    p.pos = {
+      x: Math.max(150, Math.min(PITCH_W - 150, p.pos.x)),
+      y: Math.max(300, Math.min(PITCH_H - 300, p.pos.y + direction * Math.round(1050 * strength))),
+    };
+  } else if (power === 'PORTAL_PASS') {
+    if (state.ball.kind === 'held' && state.ball.by === idx) {
+      const teammate = bestForwardTeammate(state, idx);
+      if (teammate !== -1) state.ball = { kind: 'held', by: teammate };
+    }
+  } else if (power === 'MAGNET_TOUCH') {
+    if (state.ball.kind === 'loose' && dist2(state.ball.pos, p.pos) < 2000 * 2000) {
+      state.ball = { kind: 'held', by: idx };
+    }
+  } else if (power === 'DECOY_DOUBLE') {
+    const marker = nearestOpponentIndex(state, idx, 1300);
+    if (marker !== -1) {
+      const opponent = state.players[marker];
+      const direction = opponent.pos.x <= p.pos.x ? -1 : 1;
+      opponent.pos = {
+        x: Math.max(0, Math.min(PITCH_W, opponent.pos.x + direction * Math.round(650 * strength))),
+        y: opponent.pos.y,
+      };
+    }
   }
+}
+
+/** Consumes the first active Future Sight that can arrive at the next receiver. */
+export function futureSightInterceptor(
+  state: MatchState,
+  passingTeam: 0 | 1,
+  receiverIdx: number,
+): number {
+  const first = passingTeam === 0 ? 11 : 0;
+  const receiver = state.players[receiverIdx];
+  for (let idx = first; idx < first + 11; idx += 1) {
+    const hero = state.players[idx];
+    if (hero.def.power !== 'FUTURE_SIGHT' || !isActive(state, idx)
+      || hero.outUntilTick > state.tick
+      || hero.slideTackle !== undefined
+      || hero.tackleRecoveryUntil > state.tick
+      || dist2(hero.pos, receiver.pos) > FUTURE_SIGHT_INTERCEPT_RANGE * FUTURE_SIGHT_INTERCEPT_RANGE) continue;
+    hero.pos = { ...receiver.pos };
+    hero.powerState = { kind: 'idle' };
+    hero.gauge = 0;
+    return idx;
+  }
+  return -1;
+}
+
+function springWebTrap(state: MatchState, idx: number): void {
+  const hero = state.players[idx];
+  const anchor = hero.powerAnchor;
+  if (anchor === undefined || hero.powerState.kind !== 'active') return;
+  let victim = -1;
+  let nearestDistance = WEB_TRAP_TRIGGER_RANGE * WEB_TRAP_TRIGGER_RANGE;
+  for (let candidate = 0; candidate < 22; candidate += 1) {
+    const player = state.players[candidate];
+    if (player.team === hero.team || player.outUntilTick > state.tick) continue;
+    const distance = dist2(player.pos, anchor);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      victim = candidate;
+    }
+  }
+  if (victim === -1) return;
+  const strength = hero.powerState.strength;
+  const hadBall = state.ball.kind === 'held' && state.ball.by === victim;
+  knockOut(state, victim, state.tick + Math.round(50 * strength), 'ko');
+  emit(state, { t: state.tick, kind: 'TACKLE', by: idx, on: victim, won: hadBall, style: 'power', contact: false });
+  hero.powerState = { kind: 'idle' };
+  hero.powerAnchor = undefined;
+  hero.gauge = 0;
+}
+
+function bestForwardTeammate(state: MatchState, idx: number): number {
+  const player = state.players[idx];
+  let best = -1;
+  let bestProgress = -Infinity;
+  for (let candidate = 0; candidate < 22; candidate += 1) {
+    const teammate = state.players[candidate];
+    if (candidate === idx || teammate.team !== player.team || teammate.outUntilTick > state.tick) continue;
+    const progress = teammate.team === 0 ? PITCH_H - teammate.pos.y : teammate.pos.y;
+    if (progress > bestProgress) {
+      best = candidate;
+      bestProgress = progress;
+    }
+  }
+  return best;
+}
+
+function nearestOpponentIndex(state: MatchState, idx: number, range: number): number {
+  const player = state.players[idx];
+  let best = -1;
+  let bestDistance = range * range;
+  for (let candidate = 0; candidate < 22; candidate += 1) {
+    const opponent = state.players[candidate];
+    if (opponent.team === player.team || opponent.outUntilTick > state.tick) continue;
+    const distance = dist2(player.pos, opponent.pos);
+    if (distance < bestDistance) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  }
+  return best;
 }
 
 export function speedMultiplier(state: MatchState, idx: number): number {
@@ -314,7 +470,10 @@ export function speedMultiplier(state: MatchState, idx: number): number {
   // Charging a locked Super Strength target accelerates the pursuit — the windup
   // telegraph is the counterplay, not a guaranteed whiff (Task 12.1/12.2 landing-rate fix).
   if (p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined) return PURSUIT_MULT;
-  return isActive(state, idx) && p.def.power === 'SUPER_SPEED' ? 2.2 : 1;
+  if (!isActive(state, idx)) return 1;
+  if (p.def.power === 'SUPER_SPEED') return 2.2;
+  if (p.def.power === 'BLINK_RUN') return 1.35;
+  return 1;
 }
 
 export function dribbleBonus(state: MatchState, carrierIdx: number): number {
@@ -324,13 +483,32 @@ export function dribbleBonus(state: MatchState, carrierIdx: number): number {
   if (player.powerState.kind === 'winding' && player.def.power === 'SUPER_SPEED') return 25;
   if (!isActive(state, carrierIdx)) return 0;
   const power = player.def.power;
-  return power === 'SUPER_SPEED' ? 15 : power === 'FIRE_TORCH' ? 25 : 0;
+  if (power === 'SUPER_SPEED') return 15;
+  if (power === 'FIRE_TORCH') return 25;
+  if (power === 'PHASE_RUN') return 70;
+  if (power === 'BLINK_RUN' || power === 'DECOY_DOUBLE') return 20;
+  return 0;
 }
 
 export function fireSuppressed(state: MatchState, _tacklerIdx: number, carrierIdx: number): boolean {
-  return isActive(state, carrierIdx) && state.players[carrierIdx].def.power === 'FIRE_TORCH';
+  return isActive(state, carrierIdx)
+    && (state.players[carrierIdx].def.power === 'FIRE_TORCH'
+      || state.players[carrierIdx].def.power === 'PHASE_RUN');
 }
 
 export function defenseBonus(state: MatchState, idx: number): number {
-  return isActive(state, idx) && state.players[idx].def.power === 'SUPER_STRENGTH' ? 35 : 0;
+  if (!isActive(state, idx)) return 0;
+  const power = state.players[idx].def.power;
+  if (power === 'SUPER_STRENGTH') return 35;
+  if (power === 'FUTURE_SIGHT') return 45;
+  if (power === 'WEB_TRAP') return 30;
+  return 0;
+}
+
+export function keeperSaveBonus(state: MatchState, idx: number): number {
+  return isActive(state, idx) && state.players[idx].def.power === 'ELASTIC_KEEPER' ? 70 : 0;
+}
+
+export function phaseRunPreventsShot(state: MatchState, idx: number): boolean {
+  return isActive(state, idx) && state.players[idx].def.power === 'PHASE_RUN';
 }

@@ -48,6 +48,412 @@
           ]
         }
       ]
+    },
+    {
+      "id": "meteor-shard-center-circle", "category": "mystery", "rarity": "rare", "art": "event-meteor-shard",
+      "title": "A Meteor Shard!", "body": "A warm blue stone is humming in the center circle. The groundskeeper insists it was not there yesterday.",
+      "trigger": { "season": 1, "minWeek": 9, "maxWeek": 30 },
+      "choices": [
+        { "id": "display-meteor", "label": "Put it in the trophy case", "risky": true, "outcomes": [
+          { "weight": 40, "text": "The shard becomes a glittering local attraction and fans queue around the block.", "effects": [{ "type": "fans", "amount": 140 }, { "type": "flag", "flag": "meteor-museum", "value": true }] },
+          { "weight": 60, "text": "It cools into a perfectly ordinary rock. The trophy cabinet looks embarrassed.", "effects": [] }
+        ] },
+        { "id": "sell-meteor", "label": "Sell it to the university", "risky": false, "outcomes": [
+          { "weight": 100, "text": "A delighted geology department pays promptly and promises not to ask about the scorch mark.", "effects": [{ "type": "money", "amount": 1800 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "lightning-storm-training", "category": "mystery", "rarity": "rare", "art": "event-lightning-training",
+      "title": "Training in a Lightning Storm", "body": "The squad votes to keep training while purple lightning marches toward the ground.",
+      "trigger": { "season": 1, "minWeek": 10, "maxWeek": 30 },
+      "choices": [
+        { "id": "train-through-storm", "label": "One last drill", "risky": true, "outcomes": [
+          { "weight": 45, "text": "Every strike lands in rhythm with the drill. The squad finishes crackling with confidence.", "effects": [{ "type": "tp", "amount": 18 }, { "type": "morale", "amount": 6 }, { "type": "flag", "flag": "storm-drill", "value": true }] },
+          { "weight": 55, "text": "The floodlights explode. Training ends with eleven people hiding under one tiny dugout.", "effects": [{ "type": "money", "amount": -500 }] }
+        ] },
+        { "id": "cancel-storm-training", "label": "Get everyone inside", "risky": false, "outcomes": [
+          { "weight": 100, "text": "Bert serves tea while the storm waters the pitch for free.", "effects": [{ "type": "morale", "amount": 3 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "mysterious-energy-salesman", "category": "mystery", "rarity": "rare", "art": "event-energy-salesman",
+      "title": "Mysterious Energy Drink", "body": "A salesman in mirrored glasses offers one unlabelled crate and refuses to blink.",
+      "trigger": { "season": 1, "minWeek": 12, "maxWeek": 30 },
+      "choices": [
+        { "id": "sample-mystery-drink", "label": "Let the squad sample it", "risky": true, "outcomes": [
+          { "weight": 35, "text": "The squad trains at impossible speed and alphabetizes the cones before cooling down.", "effects": [{ "type": "tp", "amount": 24 }, { "type": "flag", "flag": "mystery-drink-hit", "value": true }] },
+          { "weight": 65, "text": "It tastes like warm cucumber. Everyone spends the afternoon burping in unison.", "effects": [{ "type": "morale", "amount": -4 }] }
+        ] },
+        { "id": "decline-mystery-drink", "label": "Ask for proper labels", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The salesman vanishes. One useful cooler remains behind.", "effects": [{ "type": "tp", "amount": 6 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "abandoned-lab-field-trip", "category": "mystery", "rarity": "legendary", "art": "event-abandoned-lab",
+      "title": "The Abandoned Lab", "body": "A team-building bus takes a wrong turn and stops outside a laboratory marked DEFINITELY EMPTY.",
+      "trigger": { "season": 2, "minWeek": 4, "maxWeek": 26 },
+      "choices": [
+        { "id": "tour-abandoned-lab", "label": "Take the educational tour", "risky": true, "outcomes": [
+          { "weight": 30, "text": "The motion sensors wake up and award the club a research grant for excellent footwork.", "effects": [{ "type": "money", "amount": 4200 }, { "type": "tp", "amount": 20 }, { "type": "flag", "flag": "lab-grant", "value": true }] },
+          { "weight": 70, "text": "The only discovery is a vending machine that accepts coins but gives nothing back.", "effects": [{ "type": "money", "amount": -300 }] }
+        ] },
+        { "id": "leave-abandoned-lab", "label": "Stay on the bus", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The driver finds the training camp. Nobody mentions the moving curtains.", "effects": [{ "type": "morale", "amount": 4 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "radioactive-pitch-repaint", "category": "mystery", "rarity": "rare", "art": "event-radioactive-paint",
+      "title": "Radioactive Pitch Repaint", "body": "The bargain line-marking paint glows beautifully after sunset and faintly during lunch.",
+      "trigger": { "season": 2, "minWeek": 2, "maxWeek": 30 },
+      "choices": [
+        { "id": "keep-glowing-lines", "label": "Keep the glowing lines", "risky": true, "outcomes": [
+          { "weight": 45, "text": "Night matches become famous. Supporters arrive in glow paint and never miss a line call.", "effects": [{ "type": "fans", "amount": 180 }, { "type": "flag", "flag": "glowing-pitch", "value": true }] },
+          { "weight": 55, "text": "The league inspector arrives wearing three dosimeters. Emergency repainting is not cheap.", "effects": [{ "type": "money", "amount": -1200 }] }
+        ] },
+        { "id": "replace-glowing-lines", "label": "Repaint it properly", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The pitch returns to an entirely reassuring shade of green.", "effects": [{ "type": "tp", "amount": 5 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "very-old-boot", "category": "mystery", "rarity": "rare", "art": "event-old-boot",
+      "title": "A Very Old Boot", "body": "A mud-caked boot falls from a sealed loft. It fits every player perfectly.",
+      "trigger": { "season": 1, "minWeek": 8, "maxWeek": 30 },
+      "choices": [
+        { "id": "wear-old-boot", "label": "Use it for shooting practice", "risky": true, "outcomes": [
+          { "weight": 40, "text": "Every shot curls into the top corner. The boot earns its own velvet cushion.", "effects": [{ "type": "tp", "amount": 20 }, { "type": "morale", "amount": 5 }, { "type": "flag", "flag": "lucky-boot", "value": true }] },
+          { "weight": 60, "text": "Every shot hits the same corner flag. The boot is returned to the loft facing the wall.", "effects": [{ "type": "morale", "amount": -3 }] }
+        ] },
+        { "id": "archive-old-boot", "label": "Archive it safely", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The club historian identifies it as old, important, and extremely smelly.", "effects": [{ "type": "fans", "amount": 35 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "team-bbq", "category": "club", "rarity": "common", "art": "event-team-bbq",
+      "title": "Team BBQ", "body": "The captain volunteers to cook for everyone despite owning a single enormous spatula and no thermometer.",
+      "trigger": { "season": 1, "minWeek": 3, "maxWeek": 30, "repeatable": true },
+      "choices": [
+        { "id": "captain-cooks-bbq", "label": "Let the captain cook", "risky": true, "outcomes": [
+          { "weight": 65, "text": "The feast is magnificent. Even the substitutes receive ceremonial grilled onions.", "effects": [{ "type": "morale", "amount": 9 }, { "type": "flag", "flag": "legendary-bbq", "value": true }] },
+          { "weight": 35, "text": "The burgers are technically charcoal. Team bonding happens over takeaway menus.", "effects": [{ "type": "money", "amount": -450 }] }
+        ] },
+        { "id": "hire-bbq-caterer", "label": "Hire a local caterer", "risky": false, "outcomes": [
+          { "weight": 100, "text": "Nobody gets famous, sick, or hungry. A professional success.", "effects": [{ "type": "money", "amount": -250 }, { "type": "morale", "amount": 5 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "prank-war", "category": "club", "rarity": "common", "art": "event-prank-war",
+      "title": "Prank War", "body": "Every training cone has been replaced by a tiny traffic cone wearing a moustache.",
+      "trigger": { "season": 1, "minWeek": 4, "maxWeek": 30, "requiredPersonality": "Joker" },
+      "choices": [
+        { "id": "manager-joins-pranks", "label": "Join the prank war", "risky": true, "outcomes": [
+          { "weight": 55, "text": "Your remote-controlled tactics board wins the war and the dressing room erupts.", "effects": [{ "type": "morale", "amount": 10 }, { "type": "flag", "flag": "prank-champion", "value": true }] },
+          { "weight": 45, "text": "Your fake team sheet reaches the local paper. Bert spends all morning making corrections.", "effects": [{ "type": "fans", "amount": -20 }] }
+        ] },
+        { "id": "end-prank-war", "label": "Call a truce", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The moustached cones are retained for morale purposes.", "effects": [{ "type": "morale", "amount": 3 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "lost-mascot-costume", "category": "club", "rarity": "common", "art": "event-lost-mascot",
+      "title": "The Mascot Is Missing", "body": "The mascot costume is gone. A trail of oversized footprints leads toward the high street.",
+      "trigger": { "season": 1, "minWeek": 5, "maxWeek": 30 },
+      "choices": [
+        { "id": "chase-mascot", "label": "Launch a club-wide search", "risky": true, "outcomes": [
+          { "weight": 70, "text": "The mascot leads a spontaneous parade back to the ground with hundreds of new supporters.", "effects": [{ "type": "fans", "amount": 120 }, { "type": "flag", "flag": "mascot-parade", "value": true }] },
+          { "weight": 30, "text": "It was in the laundry room. The search party still submits mileage claims.", "effects": [{ "type": "money", "amount": -300 }] }
+        ] },
+        { "id": "borrow-mascot", "label": "Borrow the school mascot", "risky": false, "outcomes": [
+          { "weight": 100, "text": "A giant pencil entertains the crowd and asks to keep the shirt.", "effects": [{ "type": "fans", "amount": 30 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "kit-clash-fan-vote", "category": "club", "rarity": "common", "art": "event-kit-clash",
+      "title": "Kit Clash", "body": "Both teams arrive in almost identical colors. The supporters demand the right to design an emergency strip.",
+      "trigger": { "season": 1, "minWeek": 6, "maxWeek": 30 },
+      "choices": [
+        { "id": "fan-designed-kit", "label": "Let the fans design it", "risky": true, "outcomes": [
+          { "weight": 60, "text": "The lightning-and-turnip pattern becomes an instant cult classic.", "effects": [{ "type": "fans", "amount": 150 }, { "type": "money", "amount": 900 }, { "type": "flag", "flag": "cult-kit", "value": true }] },
+          { "weight": 40, "text": "The winning design has seventeen colors and cannot legally be printed.", "effects": [{ "type": "money", "amount": -350 }] }
+        ] },
+        { "id": "plain-emergency-kit", "label": "Use plain white shirts", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The match proceeds. The laundry manager receives a quiet round of applause.", "effects": [{ "type": "morale", "amount": 2 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "rat-trophy-cabinet", "category": "club", "rarity": "common", "art": "event-trophy-rat",
+      "title": "Rat in the Trophy Cabinet", "body": "A very confident rat has moved into the empty space reserved for future silverware.",
+      "trigger": { "season": 1, "minWeek": 2, "maxWeek": 30 },
+      "choices": [
+        { "id": "appoint-rat-curator", "label": "Appoint it club curator", "risky": true, "outcomes": [
+          { "weight": 50, "text": "The rat poses for photos in a tiny blazer and doubles museum attendance.", "effects": [{ "type": "fans", "amount": 90 }, { "type": "flag", "flag": "rat-curator", "value": true }] },
+          { "weight": 50, "text": "It steals the ticket float and retires under the west stand.", "effects": [{ "type": "money", "amount": -420 }] }
+        ] },
+        { "id": "relocate-trophy-rat", "label": "Relocate it humanely", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The rat accepts a transfer to the groundskeeper's shed.", "effects": [{ "type": "tp", "amount": 4 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "local-paper-hero-expose", "category": "media", "rarity": "rare", "art": "event-hero-expose",
+      "title": "Hero Exposé", "body": "The local paper wants a behind-the-scenes day with the club's most unusual players.",
+      "trigger": { "season": 2, "minWeek": 3, "maxWeek": 30 },
+      "choices": [
+        { "id": "grant-hero-access", "label": "Grant full access", "risky": true, "outcomes": [
+          { "weight": 55, "text": "The feature is warm, funny, and shared everywhere. Sponsors start calling before breakfast.", "effects": [{ "type": "fans", "amount": 220 }, { "type": "money", "amount": 1600 }, { "type": "flag", "flag": "hero-expose-hit", "value": true }] },
+          { "weight": 45, "text": "The headline focuses entirely on the dressing-room fire extinguisher budget.", "effects": [{ "type": "morale", "amount": -4 }] }
+        ] },
+        { "id": "controlled-hero-interview", "label": "Offer a short interview", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The captain says all the right things and only one slightly strange thing.", "effects": [{ "type": "fans", "amount": 60 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "viral-goal-clip", "category": "media", "rarity": "common", "art": "event-viral-goal",
+      "title": "The Goal Goes Viral", "body": "A blurry clip of last weekend's goal has reached three million views and one confused astronomy forum.",
+      "trigger": { "season": 1, "minWeek": 7, "maxWeek": 30 },
+      "choices": [
+        { "id": "remix-viral-goal", "label": "Release the official remix", "risky": true, "outcomes": [
+          { "weight": 65, "text": "The remix becomes a terrace anthem. Even the referee hums it.", "effects": [{ "type": "fans", "amount": 170 }, { "type": "money", "amount": 1100 }, { "type": "flag", "flag": "viral-anthem", "value": true }] },
+          { "weight": 35, "text": "The assistant coach's dance becomes the only part anyone remembers.", "effects": [{ "type": "morale", "amount": 2 }] }
+        ] },
+        { "id": "thank-viral-fans", "label": "Post a simple thank-you", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The supporters appreciate the message and ask for fewer hashtags next time.", "effects": [{ "type": "fans", "amount": 55 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "pundit-slams-tactics", "category": "media", "rarity": "common", "art": "event-pundit-tactics",
+      "title": "Pundit Slams Your Tactics", "body": "A television pundit calls your formation 'a cupboard falling down a staircase.'",
+      "trigger": { "season": 1, "minWeek": 8, "maxWeek": 30 },
+      "choices": [
+        { "id": "clap-back-pundit", "label": "Clap back live on air", "risky": true, "outcomes": [
+          { "weight": 50, "text": "Your magnetic-board demonstration wins the studio and becomes the clip of the week.", "effects": [{ "type": "fans", "amount": 100 }, { "type": "morale", "amount": 5 }, { "type": "flag", "flag": "pundit-owned", "value": true }] },
+          { "weight": 50, "text": "The magnets fall off. One rolls under the host's chair and remains there all segment.", "effects": [{ "type": "morale", "amount": -3 }] }
+        ] },
+        { "id": "ignore-pundit", "label": "Pin it on the team-room wall", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The squad uses the quote as motivation and improves the cupboard.", "effects": [{ "type": "tp", "amount": 7 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "popup-sponsor", "category": "sponsor", "rarity": "common", "art": "event-popup-sponsor",
+      "title": "A Pop-up Sponsor", "body": "A local mattress shop offers quick cash if the team celebrates the next win by pretending to nap.",
+      "trigger": { "season": 1, "minWeek": 4, "maxWeek": 30 },
+      "choices": [
+        { "id": "accept-nap-sponsor", "label": "Accept the nap challenge", "risky": true, "outcomes": [
+          { "weight": 60, "text": "The synchronized celebration is perfect. Mattress sales and club shirts both surge.", "effects": [{ "type": "money", "amount": 2400 }, { "type": "fans", "amount": 70 }, { "type": "flag", "flag": "nap-celebration", "value": true }] },
+          { "weight": 40, "text": "The team performs it after a draw. Nobody is certain whether the sponsor still owes you.", "effects": [{ "type": "money", "amount": 600 }] }
+        ] },
+        { "id": "decline-nap-sponsor", "label": "Keep celebrations normal", "risky": false, "outcomes": [
+          { "weight": 100, "text": "Bert files the offer under SOMETIMES MONEY IS TOO STRANGE.", "effects": [{ "type": "morale", "amount": 2 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "hero-commercial", "category": "sponsor", "rarity": "rare", "art": "event-hero-commercial",
+      "title": "Your Hero Gets a Commercial", "body": "The sponsor wants a hero to advertise cereal by blasting open an indestructible breakfast box.",
+      "trigger": { "season": 2, "minWeek": 5, "maxWeek": 30, "maxDivision": 4, "requiresHero": true },
+      "choices": [
+        { "id": "film-hero-commercial", "label": "Film the big stunt", "risky": true, "outcomes": [
+          { "weight": 70, "text": "The box explodes into harmless golden flakes. The catchphrase is on every playground by Monday.", "effects": [{ "type": "money", "amount": 3500 }, { "type": "fans", "amount": 130 }, { "type": "flag", "flag": "cereal-hero", "value": true }] },
+          { "weight": 30, "text": "The box survives. The spoon does not. The sponsor still pays the appearance fee.", "effects": [{ "type": "money", "amount": 900 }, { "type": "morale", "amount": -2 }] }
+        ] },
+        { "id": "voiceover-hero-commercial", "label": "Offer a calm voice-over", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The hero says 'crunch' with tremendous authority.", "effects": [{ "type": "money", "amount": 1200 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "player-slump", "category": "player", "rarity": "common", "art": "event-player-slump",
+      "title": "A Player in a Slump", "body": "One player stays behind after training, taking the same tired shot again and again.",
+      "trigger": { "season": 1, "minWeek": 5, "maxWeek": 30, "requiresPlayer": true },
+      "choices": [
+        { "id": "invent-slump-drill", "label": "Invent a ridiculous confidence drill", "risky": true, "outcomes": [
+          { "weight": 65, "text": "Shooting through a cardboard dragon works. The whole squad demands a turn.", "effects": [{ "type": "morale", "amount": 8 }, { "type": "tp", "amount": 8 }, { "type": "flag", "flag": "dragon-drill", "value": true }] },
+          { "weight": 35, "text": "The dragon falls over before the first shot. At least everyone laughs.", "effects": [{ "type": "morale", "amount": 2 }] }
+        ] },
+        { "id": "rest-slumping-player", "label": "Give them a quiet reset", "risky": false, "outcomes": [
+          { "weight": 100, "text": "A day away from the noise restores some perspective.", "effects": [{ "type": "morale", "amount": 4 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "homesick-youth", "category": "player", "rarity": "common", "art": "event-homesick-youth",
+      "title": "Homesick Youth", "body": "A young player admits they miss home, their dog, and a very specific bakery.",
+      "trigger": { "season": 1, "minWeek": 6, "maxWeek": 30, "requiresPlayer": true },
+      "choices": [
+        { "id": "bring-home-to-club", "label": "Bring home to the clubhouse", "risky": true, "outcomes": [
+          { "weight": 75, "text": "The family, dog, and bakery arrive together. The whole club adopts the pastry.", "effects": [{ "type": "morale", "amount": 9 }, { "type": "fans", "amount": 40 }, { "type": "flag", "flag": "bakery-day", "value": true }] },
+          { "weight": 25, "text": "The dog steals the tactics board. Training becomes an unusually joyful chase.", "effects": [{ "type": "morale", "amount": 4 }] }
+        ] },
+        { "id": "grant-home-visit", "label": "Pay for a weekend home", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The player returns smiling and carrying enough pastries for the bench.", "effects": [{ "type": "money", "amount": -300 }, { "type": "morale", "amount": 6 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "lottery-win", "category": "player", "rarity": "rare", "art": "event-lottery-win",
+      "title": "A Player Wins the Lottery", "body": "A squad member arrives in a limousine that is far too long for the training-ground car park.",
+      "trigger": { "season": 2, "minWeek": 3, "maxWeek": 30, "requiresPlayer": true },
+      "choices": [
+        { "id": "lottery-team-gift", "label": "Suggest one team gift", "risky": true, "outcomes": [
+          { "weight": 60, "text": "They buy a recovery lounge and insist every chair has a name.", "effects": [{ "type": "tp", "amount": 25 }, { "type": "morale", "amount": 8 }, { "type": "flag", "flag": "lottery-lounge", "value": true }] },
+          { "weight": 40, "text": "They buy a golden foghorn. It is powerful, useless, and now part of warmups.", "effects": [{ "type": "morale", "amount": 3 }] }
+        ] },
+        { "id": "lottery-financial-advice", "label": "Recommend financial advice", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The limousine is returned. The player keeps one tasteful velvet tracksuit.", "effects": [{ "type": "morale", "amount": 4 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "two-player-feud", "category": "player", "rarity": "common", "art": "event-player-feud",
+      "title": "Two Players Feud", "body": "Two lockers are now separated by a line of cones and a handwritten border checkpoint.",
+      "trigger": { "season": 1, "minWeek": 9, "maxWeek": 30, "requiresPlayer": true },
+      "choices": [
+        { "id": "feud-duet-challenge", "label": "Enter them in a duet challenge", "risky": true, "outcomes": [
+          { "weight": 55, "text": "Their terrible club anthem wins the room and the border checkpoint comes down.", "effects": [{ "type": "morale", "amount": 10 }, { "type": "flag", "flag": "locker-duet", "value": true }] },
+          { "weight": 45, "text": "They argue about the chorus. Bert confiscates the microphone.", "effects": [{ "type": "morale", "amount": -4 }] }
+        ] },
+        { "id": "feud-team-building", "label": "Run a team-building drill", "risky": false, "outcomes": [
+          { "weight": 100, "text": "They cooperate long enough to move a giant tire and forget the original argument.", "effects": [{ "type": "tp", "amount": 8 }, { "type": "morale", "amount": 3 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "agent-whispers", "category": "player", "rarity": "rare", "art": "event-agent-whispers",
+      "title": "Agent Whispers", "body": "An agent has been seen measuring curtains in the away dressing room and complimenting your best players.",
+      "trigger": { "season": 2, "minWeek": 8, "maxWeek": 30, "requiresPlayer": true },
+      "choices": [
+        { "id": "bait-whispering-agent", "label": "Feed the agent a ridiculous rumor", "risky": true, "outcomes": [
+          { "weight": 65, "text": "Rivals waste a week scouting your fictional seven-foot winger. Your squad finds it hilarious.", "effects": [{ "type": "morale", "amount": 7 }, { "type": "tp", "amount": 7 }, { "type": "flag", "flag": "phantom-winger", "value": true }] },
+          { "weight": 35, "text": "The rumor appears in print with your name attached. The agent sends flowers.", "effects": [{ "type": "fans", "amount": -25 }] }
+        ] },
+        { "id": "warn-squad-about-agent", "label": "Warn the squad directly", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The dressing room closes ranks and the curtain measurements stop.", "effects": [{ "type": "morale", "amount": 4 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "flu-wave", "category": "medical", "rarity": "common", "art": "event-flu-wave",
+      "title": "Flu Wave", "body": "Half the squad sounds like a brass band tuning up inside a cupboard.",
+      "trigger": { "season": 1, "minWeek": 7, "maxWeek": 26 },
+      "choices": [
+        { "id": "experimental-flu-soup", "label": "Try the physio's legendary soup", "risky": true, "outcomes": [
+          { "weight": 60, "text": "The soup clears every nose and one blocked drain. Training resumes by lunch.", "effects": [{ "type": "tp", "amount": 14 }, { "type": "morale", "amount": 5 }, { "type": "flag", "flag": "miracle-soup", "value": true }] },
+          { "weight": 40, "text": "It is mostly pepper. Everyone can breathe, but nobody can stop crying.", "effects": [{ "type": "morale", "amount": -2 }] }
+        ] },
+        { "id": "send-flu-squad-home", "label": "Send everyone home", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The club closes for a quiet recovery day and comes back steadier.", "effects": [{ "type": "morale", "amount": 3 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "miracle-physio", "category": "medical", "rarity": "rare", "art": "event-miracle-physio",
+      "title": "The Miracle Physio", "body": "A traveling physio offers a one-day clinic using tape, tuning forks, and a small gong.",
+      "trigger": { "season": 2, "minWeek": 4, "maxWeek": 28 },
+      "choices": [
+        { "id": "book-miracle-clinic", "label": "Book the full strange clinic", "risky": true, "requires": { "minMoney": 700 }, "outcomes": [
+          { "weight": 50, "text": "The gong rings and the treatment room empties at a jog. Nobody understands it.", "effects": [{ "type": "tp", "amount": 22 }, { "type": "morale", "amount": 7 }, { "type": "flag", "flag": "gong-clinic", "value": true }] },
+          { "weight": 50, "text": "The gong startles the kit manager and achieves little else.", "effects": [{ "type": "money", "amount": -700 }] }
+        ] },
+        { "id": "book-standard-physio", "label": "Book a standard check-up", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The physio writes a sensible report with no musical notation.", "effects": [{ "type": "money", "amount": -250 }, { "type": "tp", "amount": 8 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "ultras-ticket-prices", "category": "fan", "rarity": "common", "art": "event-ultras-tickets",
+      "title": "Ultras Want Cheaper Tickets", "body": "The supporters' group arrives with a banner, a spreadsheet, and surprisingly good handwriting.",
+      "trigger": { "season": 1, "minWeek": 3, "maxWeek": 30 },
+      "choices": [
+        { "id": "ultras-community-day", "label": "Offer one huge community day", "risky": true, "outcomes": [
+          { "weight": 70, "text": "The ground fills with families, songs, and enough scarves to wrap the stand twice.", "effects": [{ "type": "fans", "amount": 160 }, { "type": "money", "amount": 500 }, { "type": "flag", "flag": "community-stand", "value": true }] },
+          { "weight": 30, "text": "Rain arrives sideways. The few who stay sing even louder.", "effects": [{ "type": "fans", "amount": 25 }, { "type": "money", "amount": -400 }] }
+        ] },
+        { "id": "ultras-price-freeze", "label": "Promise a price freeze", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The banner comes down and the spreadsheet receives a respectful nod from Bert.", "effects": [{ "type": "fans", "amount": 70 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "hero-school-visit", "category": "fan", "rarity": "common", "art": "event-school-visit",
+      "title": "A Kid Asks for a Hero", "body": "A handwritten letter asks whether a club hero can visit the local school and rescue sports day.",
+      "trigger": { "season": 2, "minWeek": 2, "maxWeek": 30 },
+      "choices": [
+        { "id": "hero-runs-sports-day", "label": "Let the hero run sports day", "risky": true, "outcomes": [
+          { "weight": 80, "text": "The hero loses the egg-and-spoon race on purpose and wins every heart in the playground.", "effects": [{ "type": "fans", "amount": 190 }, { "type": "morale", "amount": 8 }, { "type": "flag", "flag": "school-day-hero", "value": true }] },
+          { "weight": 20, "text": "One enthusiastic demonstration launches the beanbag onto the roof. The children call it brilliant.", "effects": [{ "type": "fans", "amount": 90 }, { "type": "money", "amount": -150 }] }
+        ] },
+        { "id": "send-school-kit", "label": "Send a signed kit bundle", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The class sends back a team photo and thirty-seven tactical suggestions.", "effects": [{ "type": "fans", "amount": 75 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "hundredth-fan", "category": "fan", "rarity": "common", "art": "event-hundredth-fan",
+      "title": "The Hundredth Fan", "body": "The ticket system identifies supporter number one hundred. They are extremely surprised by the marching band.",
+      "trigger": { "season": 1, "minWeek": 2, "maxWeek": 18 },
+      "choices": [
+        { "id": "hundredth-fan-parade", "label": "Hold the full parade", "risky": true, "outcomes": [
+          { "weight": 75, "text": "The tiny parade blocks one roundabout and gains the club hundreds of curious followers.", "effects": [{ "type": "fans", "amount": 110 }, { "type": "flag", "flag": "hundredth-parade", "value": true }], "nextEventId": "community-mural" },
+          { "weight": 25, "text": "The band arrives at the wrong house. That household becomes supporters anyway.", "effects": [{ "type": "fans", "amount": 25 }, { "type": "money", "amount": -120 }] }
+        ] },
+        { "id": "hundredth-fan-shirt", "label": "Present a signed shirt", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The supporter promises to bring ninety-nine friends eventually.", "effects": [{ "type": "fans", "amount": 40 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "training-drone", "category": "club", "rarity": "rare", "art": "event-training-drone",
+      "title": "The Training Drone", "body": "A sponsor demo drone starts collecting cones, bibs, and anything else that stops moving.",
+      "trigger": { "season": 2, "minWeek": 5, "maxWeek": 30, "requiredFacility": "training-pitch" },
+      "choices": [
+        { "id": "race-training-drone", "label": "Turn it into a pressing drill", "risky": true, "outcomes": [
+          { "weight": 65, "text": "The squad learns to swarm the drone and wins back every bib in record time.", "effects": [{ "type": "tp", "amount": 24 }, { "type": "flag", "flag": "drone-press", "value": true }] },
+          { "weight": 35, "text": "The drone escapes with the captain's boot and invoices the club for delivery.", "effects": [{ "type": "money", "amount": -500 }] }
+        ] },
+        { "id": "return-training-drone", "label": "Return it to the sponsor", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The sponsor apologizes and sends a box of normal, non-flying cones.", "effects": [{ "type": "tp", "amount": 6 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "haunted-scoreboard", "category": "mystery", "rarity": "legendary", "art": "event-haunted-scoreboard",
+      "title": "The Scoreboard Predicts Tomorrow", "body": "At midnight the scoreboard displays a result for a match that has not happened yet.",
+      "trigger": { "season": 2, "minWeek": 10, "maxWeek": 28 },
+      "choices": [
+        { "id": "trust-scoreboard", "label": "Train for the predicted match", "risky": true, "outcomes": [
+          { "weight": 35, "text": "Every predicted moment arrives. The club's preparation looks like magic.", "effects": [{ "type": "tp", "amount": 30 }, { "type": "morale", "amount": 8 }, { "type": "flag", "flag": "scoreboard-prophecy", "value": true }] },
+          { "weight": 65, "text": "The display was tomorrow's maintenance date. The tactical session becomes a useful laugh.", "effects": [{ "type": "morale", "amount": 2 }] }
+        ] },
+        { "id": "unplug-scoreboard", "label": "Unplug it until morning", "risky": false, "outcomes": [
+          { "weight": 100, "text": "It continues glowing for six seconds, then behaves perfectly forever.", "effects": [{ "type": "tp", "amount": 5 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "community-mural", "category": "fan", "rarity": "common", "art": "event-community-mural",
+      "title": "The Community Mural", "body": "Local artists offer to paint the stadium wall if the club supplies paint and one brave subject.",
+      "trigger": { "season": 1, "minWeek": 2, "maxWeek": 30 },
+      "choices": [
+        { "id": "living-community-mural", "label": "Paint the whole heroic story", "risky": true, "outcomes": [
+          { "weight": 70, "text": "The finished mural seems to move in the evening light. Supporters make it a match-day landmark.", "effects": [{ "type": "fans", "amount": 175 }, { "type": "money", "amount": 650 }, { "type": "flag", "flag": "living-mural", "value": true }] },
+          { "weight": 30, "text": "Rain turns the hero into a purple cloud. The artists promise this is still powerful.", "effects": [{ "type": "money", "amount": -500 }, { "type": "fans", "amount": 20 }] }
+        ] },
+        { "id": "simple-community-mural", "label": "Paint the club crest", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The crisp new crest becomes the most photographed wall in the district.", "effects": [{ "type": "fans", "amount": 65 }] }
+        ] }
+      ]
     }
   ]
 }

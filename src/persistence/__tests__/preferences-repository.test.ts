@@ -16,12 +16,14 @@ describe('app preferences repository', () => {
   it('persists formation presets, automatic powers, master volume, and accessibility options', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createPreferencesRepository(database);
-    const preferences = {
+    const preferences: AppPreferences = {
+      ...DEFAULT_APP_PREFERENCES,
       formationPresets: ['3-5-2', '4-5-1', '3-4-3'] as ['3-5-2', '4-5-1', '3-4-3'],
       autoPowers: true,
       masterVolume: 0.5 as const,
       reduceMotion: true,
       hudSide: 'right' as const,
+      seenPowerCutIns: ['SUPER_SPEED', 'WEB_TRAP'],
     };
     await repository.save(preferences);
     await expect(repository.load()).resolves.toEqual(preferences);
@@ -40,13 +42,52 @@ describe('app preferences repository', () => {
     const repository = await createPreferencesRepository(database);
 
     await expect(repository.load()).resolves.toEqual({
+      ...DEFAULT_APP_PREFERENCES,
       formationPresets: ['4-4-2', '3-4-3', '5-3-2'],
       autoPowers: true,
       masterVolume: 0.75,
-      reduceMotion: false,
-      hudSide: 'left',
     });
-    expect(database.preferencesRow?.schema_version).toBe(2);
+    expect(database.preferencesRow?.schema_version).toBe(4);
+  });
+
+  it('migrates schema-2 preferences with M4 accessibility defaults', async () => {
+    const database = new FakePersistenceDatabase();
+    database.preferencesRow = {
+      schema_version: 2,
+      preferences_json: JSON.stringify({
+        formationPresets: ['4-4-2', '3-4-3', '5-3-2'],
+        autoPowers: false,
+        masterVolume: 0.5,
+        reduceMotion: true,
+        hudSide: 'right',
+      }),
+    };
+    const repository = await createPreferencesRepository(database);
+
+    await expect(repository.load()).resolves.toEqual({
+      ...DEFAULT_APP_PREFERENCES,
+      formationPresets: ['4-4-2', '3-4-3', '5-3-2'],
+      masterVolume: 0.5,
+      reduceMotion: true,
+      hudSide: 'right',
+    });
+    expect(database.preferencesRow?.schema_version).toBe(4);
+  });
+
+  it('migrates schema-3 M4 preferences with an empty persistent cut-in history', async () => {
+    const database = new FakePersistenceDatabase();
+    const { seenPowerCutIns: _seenPowerCutIns, ...m4Preferences } = DEFAULT_APP_PREFERENCES;
+    database.preferencesRow = {
+      schema_version: 3,
+      preferences_json: JSON.stringify({ ...m4Preferences, cutInMode: 'banner' }),
+    };
+    const repository = await createPreferencesRepository(database);
+
+    await expect(repository.load()).resolves.toEqual({
+      ...DEFAULT_APP_PREFERENCES,
+      cutInMode: 'banner',
+    });
+    expect(database.preferencesRow?.schema_version).toBe(4);
   });
 
   it('cycles one preset without introducing duplicates', () => {

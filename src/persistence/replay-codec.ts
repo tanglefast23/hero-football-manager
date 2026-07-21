@@ -51,7 +51,10 @@ const replayPlayerSchema = z
     role: z.enum(['GK', 'DEF', 'MID', 'FWD']),
     lookId: nonemptyString.optional(),
     attrs: attributesSchema,
-    power: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']).optional(),
+    power: z.enum([
+      'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
+      'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+    ]).optional(),
   })
   .passthrough()
   .superRefine((player, context) => {

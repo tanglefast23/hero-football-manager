@@ -1,4 +1,3 @@
-import type { PowerId } from '../sim/types';
 import { deterministicPotentialCeiling, potentialTierForDivision } from './archetype-caps';
 import { assignDistinctPlayerLooks, nextDistinctPlayerLook } from './player-appearance';
 import { generateSeasonFixtures } from './schedule';
@@ -19,6 +18,7 @@ import { isClubLegend, type DivisionLevel, type PyramidClub, type PyramidPlayer 
 import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { highestDivisionReached, recordHighestDivisionReached } from './promotion-progression';
+import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
 import type {
   CareerPlayer,
   ClubLineupState,
@@ -26,8 +26,6 @@ import type {
   GameState,
   LeagueStanding,
 } from './types';
-
-const POWER_ROTATION: readonly PowerId[] = ['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH'];
 
 export function enableFullCareer(state: GameState): GameState {
   if (state.careerMode === 'full' && state.m2 !== undefined && state.market !== undefined) {
@@ -153,6 +151,8 @@ export function startNextFullCareerSeason(
     fixtures,
     players,
     lineups,
+    seasonOpeningCash: userClub.cash,
+    trainingCapNotices: [],
     trainingPlan: state.trainingPlan === undefined
       ? undefined
       : {
@@ -217,11 +217,11 @@ function opponentCareerPlayer(
   division: DivisionLevel,
   squadIndex: number,
 ): CareerPlayer {
-  const heroCount = division === 1 ? 4 : division <= 3 ? 3 : 2;
+  const heroCount = generatedClubHeroCount(player.clubId, division);
   const heroEligible = player.role === 'MID' || player.role === 'FWD';
   const eligibleIndex = heroEligible ? Math.max(0, squadIndex - 7) : -1;
   const power = heroEligible && eligibleIndex < heroCount
-    ? POWER_ROTATION[eligibleIndex % POWER_ROTATION.length]
+    ? generatedClubPower(player.clubId, eligibleIndex, player.role)
     : undefined;
   const average = Object.values(player.attrs).reduce((sum, value) => sum + value, 0) / 7;
   const potential = opponentPotential(player.id, division);

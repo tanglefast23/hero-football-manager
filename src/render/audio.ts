@@ -95,7 +95,16 @@ let masterVolume = 1;
 // (see filesForEvent: a manual tap additionally layers 'tap-fire' on top).
 const POWER_SFX: Record<PowerId, SfxKey> = {
   SUPER_SPEED: 'super-speed-whoosh',
+  BLINK_RUN: 'super-speed-whoosh',
+  THUNDER_STRIKE: 'kick-shot',
+  PHASE_RUN: 'zone-enter',
+  PORTAL_PASS: 'kick-pass',
+  MAGNET_TOUCH: 'save-slap',
+  DECOY_DOUBLE: 'zone-enter',
+  FUTURE_SIGHT: 'save-slap',
   SUPER_STRENGTH: 'super-strength-boom',
+  WEB_TRAP: 'tackle-thud',
+  ELASTIC_KEEPER: 'save-slap',
   FIRE_TORCH: 'flame-up', // Flint bursting into flames as the power switches on
 };
 

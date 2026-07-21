@@ -18,6 +18,8 @@ export interface SeasonEndScreenProps {
   onCloseRenewal: () => void;
   onPrimaryAction: () => void;
   onOpenSettings: () => void;
+  guideCopy?: { title: string; body: string };
+  textScale?: number;
 }
 
 export function SeasonEndScreen({
@@ -30,6 +32,8 @@ export function SeasonEndScreen({
   onCloseRenewal,
   onPrimaryAction,
   onOpenSettings,
+  guideCopy,
+  textScale = 1,
 }: SeasonEndScreenProps) {
   const contract = viewModel.expiredContract;
   const outcomeTone = viewModel.outcomeLabel === 'CHAMPIONS' || viewModel.outcomeLabel === 'PROMOTED'
@@ -55,12 +59,58 @@ export function SeasonEndScreen({
             <Text className="text-xl font-bold uppercase text-stamp">{viewModel.outcomeLabel}</Text>
           </View>
           <Text className="mt-5 text-center text-xl font-bold uppercase text-ink">{viewModel.headline}</Text>
-          <Text className="mt-2 max-w-sm text-center text-base leading-6 text-ink/60">{viewModel.summary}</Text>
+          <Text className="mt-2 max-w-sm text-center text-base leading-6 text-ink/60" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{viewModel.summary}</Text>
           <View className="mt-4 flex-row gap-2">
             <StatusChip label={`Finished #${viewModel.finalPosition}`} tone={outcomeTone} />
             <StatusChip label={`Prize ${formatCurrency(viewModel.prizeMoney)}`} />
+            <StatusChip label={viewModel.difficultyLabel} tone="hero" />
           </View>
         </View>
+
+        {viewModel.recap ? (
+          <View className="mt-6">
+            <SectionLabel eyebrow="Season in numbers" title="The year in the cabinet" />
+            {guideCopy ? (
+              <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="Filed">
+                <Text className="text-base leading-6 text-ink/70" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{guideCopy.body}</Text>
+              </PaperPanel>
+            ) : null}
+            <View className="mt-3 flex-row gap-2">
+              <Metric label="Record" value={viewModel.recap.record} />
+              <Metric label="Goals" value={viewModel.recap.goals} />
+            </View>
+            <View className="mt-2 flex-row gap-2">
+              <Metric label="Cash change" value={`${viewModel.recap.cashChange >= 0 ? '+' : ''}${formatCurrency(viewModel.recap.cashChange)}`} />
+              <Metric label="Closing cash" value={formatCurrency(viewModel.recap.closingCash)} />
+            </View>
+            <PaperPanel kicker="Cup and development" title={viewModel.recap.cupResult} stamp={`${viewModel.recap.trainingCapsReached} caps reached`} className="mt-3">
+              <Text className="text-sm leading-5 text-ink/60">
+                {viewModel.recap.memorableEventTitle
+                  ? `Club story of the year: ${viewModel.recap.memorableEventTitle}.`
+                  : 'No single club story took over the season.'}
+              </Text>
+            </PaperPanel>
+            {viewModel.recap.awards.length > 0 ? (
+              <View className="mt-5">
+                <SectionLabel eyebrow="Club honours" title="Season awards" />
+                <View className="gap-3">
+                  {viewModel.recap.awards.map(award => (
+                    <View key={`${award.label}-${award.playerId}`} className="flex-row items-center gap-3 border-2 border-gold-dark bg-gold-light p-3">
+                      <View className="overflow-hidden border-2 border-ink bg-blue-light">
+                        <PixelPortrait playerId={award.playerId} role={award.role} lookId={award.lookId} expression="joy" />
+                      </View>
+                      <View className="min-w-0 flex-1">
+                        <Text className="font-mono text-sm font-bold uppercase tracking-wide text-gold-dark">{award.label}</Text>
+                        <Text className="mt-1 text-lg font-bold uppercase text-ink">{award.playerName}</Text>
+                        <Text className="mt-1 text-sm leading-5 text-ink/60">{award.detail}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         {viewModel.promotionRewards ? (
           <View className="mt-6">

@@ -7,6 +7,8 @@ import {
   weeklyFacilityUpkeep,
 } from './facilities';
 import { resolveCareerTrainingWeek } from './training';
+import { difficultyRules } from './difficulty';
+import { recordSeasonRecap } from './season-recap';
 import { enableFullCareer, startNextFullCareerSeason } from './full-career';
 import { careerCoachWageLedgerAmount } from './coach-weekly';
 import { resolveCareerScoutClock } from './market-career';
@@ -72,6 +74,7 @@ export function createCareer(setup: CareerSetup): GameState {
     season: 1,
     week: 1,
     phase: 'manage',
+    ...(setup.difficulty === undefined ? {} : { difficulty: setup.difficulty }),
     clubs,
     fixtures: generateSeasonFixtures(clubs.map(club => club.id), 1, setup.seed),
     players: (setup.players ?? []).map(clonePlayer),
@@ -95,6 +98,7 @@ export function createCareer(setup: CareerSetup): GameState {
     awakening: { matchesSinceLastAwakening: 0, usedTriggerIds: [] },
     trainingPoints: setup.startingTrainingPoints ?? 0,
     ledgers: [],
+    seasonOpeningCash: clubs.find(club => club.id === setup.userClubId)!.cash,
     seasonGoalTallies: [],
     ...(setup.careerMode === undefined ? {} : { careerMode: setup.careerMode }),
   };
@@ -319,6 +323,8 @@ export function startNextSeason(state: GameState): GameState {
     week: 1,
     phase: 'manage',
     fixtures: [...state.fixtures, ...nextFixtures],
+    seasonOpeningCash: state.clubs.find(club => club.id === state.userClubId)!.cash,
+    trainingCapNotices: [],
   };
   return state.youthIntake === undefined
     ? next
@@ -336,6 +342,15 @@ function settleCurrentWeek(
   }
 
   const training = resolveCareerTrainingWeek(state);
+  const trainingCapNotices = [
+    ...(state.trainingCapNotices ?? []),
+    ...training.reachedCaps.map(reached => ({
+      id: `training-cap:s${state.season}-w${state.week}:${reached.playerId}:${reached.attribute}:${reached.drillId}`,
+      season: state.season,
+      week: state.week,
+      ...reached,
+    })),
+  ];
   const weeklyPlayers = state.careerMode === 'full'
       ? resolveWeeklyPlayerWellbeing(state, {
           trainedPlayers: training.players,
@@ -347,6 +362,7 @@ function settleCurrentWeek(
     ...state,
     players: weeklyPlayers,
     trainingPoints: training.trainingPoints,
+    trainingCapNotices,
   };
   const lines = settlementLines(trainedState, userClub, training.moneyCost);
   const safety = resolveFinancialSafety(trainedState, userClub.cash, lines);
@@ -415,10 +431,11 @@ function settleCurrentWeek(
         ? 'season-end'
         : state.season === M1_SEASONS ? 'complete' : 'season-end',
     };
+    const withRecap = recordSeasonRecap(settledState);
     return advanceM2WeeklySidecars(
       state.careerMode === 'full'
-        ? repairCareerLineupForInjuries(settledState)
-        : settledState,
+        ? repairCareerLineupForInjuries(withRecap)
+        : withRecap,
       state.week,
       cupAlreadyResolved,
     );
@@ -519,10 +536,15 @@ function settlementLines(
   }
 
   if (state.week % 4 === 0) {
+    const sponsorIncome = Math.floor(
+      requireSafeInteger(userClub.sponsorMonthlyFee, 'monthly sponsor fee')
+      * difficultyRules(state).sponsorIncomePercent
+      / 100,
+    );
     lines.push({
       kind: 'sponsor',
-      label: 'Monthly sponsor fee',
-      amount: requireSafeInteger(userClub.sponsorMonthlyFee, 'monthly sponsor fee'),
+      label: state.difficulty === 'CHAIRMAN' ? 'Chairman sponsor target' : 'Monthly sponsor fee',
+      amount: sponsorIncome,
     });
   }
 
@@ -581,7 +603,8 @@ function settlementLines(
     });
   }
 
-  if (state.season === 1) {
+  const subsidyPercent = difficultyRules(state).seasonOneWageSubsidyPercent;
+  if (state.season === 1 && subsidyPercent > 0) {
     const totalWageBill = checkedAdd(
       userClub.weeklyWages,
       Math.abs(coachWage),
@@ -591,7 +614,7 @@ function settlementLines(
       kind: 'subsidy',
       label: 'Season 1 wage subsidy',
       amount: requireSafeInteger(
-        Math.floor(requireSafeInteger(totalWageBill, 'weekly wages') / 2),
+        Math.floor(requireSafeInteger(totalWageBill, 'weekly wages') * subsidyPercent / 100),
         'wage subsidy',
       ),
     });
@@ -778,18 +801,19 @@ function resolveFinancialSafety(
     ? checkedAdd(previous.consecutiveNegativeWeeks, 1, 'negative cash week count')
     : 0;
   let emergencyLoanUsed = previous.emergencyLoanUsed;
-  if (balanceAfter < 0 && consecutiveNegativeWeeks >= 4 && !emergencyLoanUsed) {
+  const rules = difficultyRules(state);
+  if (balanceAfter < 0 && consecutiveNegativeWeeks >= rules.negativeWeeksBeforeIntervention && !emergencyLoanUsed) {
     lines.push({
       kind: 'emergency-loan',
       label: 'Board emergency loan',
-      amount: 20_000,
+      amount: rules.emergencyLoanAmount,
     });
-    balanceAfter = checkedAdd(balanceAfter, 20_000, 'emergency loan balance');
+    balanceAfter = checkedAdd(balanceAfter, rules.emergencyLoanAmount, 'emergency loan balance');
     emergencyLoanUsed = true;
     consecutiveNegativeWeeks = balanceAfter < 0 ? consecutiveNegativeWeeks : 0;
     loan = {
-      originalAmount: 20_000,
-      remainingBalance: 22_000,
+      originalAmount: rules.emergencyLoanAmount,
+      remainingBalance: Math.ceil(rules.emergencyLoanAmount * 1.1),
       repaymentStartsSeason: checkedAdd(state.season, 1, 'loan repayment season'),
       remainingWeeks: 30,
     };
@@ -833,7 +857,7 @@ function resolveFinancialSafety(
         boardUltimatum = undefined;
       }
     }
-  } else if (balanceAfter < 0 && consecutiveNegativeWeeks >= 4 && emergencyLoanUsed) {
+  } else if (balanceAfter < 0 && consecutiveNegativeWeeks >= rules.negativeWeeksBeforeIntervention && emergencyLoanUsed) {
     boardUltimatum = createBoardUltimatum(state);
   }
 
@@ -965,6 +989,9 @@ function validateSetup(setup: CareerSetup): void {
   }
   if (setup.clubs.length !== CLUB_COUNT) {
     throw new Error(`a career requires exactly ${CLUB_COUNT} clubs`);
+  }
+  if (setup.difficulty !== undefined && setup.difficulty !== 'COZY' && setup.difficulty !== 'CHAIRMAN') {
+    throw new Error(`unknown career difficulty ${String(setup.difficulty)}`);
   }
 
   const ids = new Set<string>();

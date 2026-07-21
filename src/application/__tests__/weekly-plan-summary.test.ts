@@ -31,8 +31,13 @@ describe('saved weekly-plan summary', () => {
     );
 
     expect(viewModel.lockedPlan).toEqual({
-      playerNames: players.map(player => player.name),
-      drillNames: drills.map(drill => drill.name),
+      players: players.map(player => ({
+        id: player.id,
+        name: player.name,
+        role: player.role,
+        ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+      })),
+      drills: drills.map(drill => ({ id: drill.id, name: drill.name })),
       moneyCost: drills.reduce((sum, drill) => sum + drill.moneyCost, 0),
       trainingPointCost: drills.reduce((sum, drill) => sum + drill.tpCost, 0),
     });
@@ -67,8 +72,30 @@ describe('saved weekly-plan summary', () => {
     expect(source).toContain('viewModel.lockedPlan === undefined');
     expect(source).toContain('kicker="The weekly plan"');
     expect(source).toContain('title="Locked in"');
-    expect(source).toContain('viewModel.lockedPlan.playerNames');
-    expect(source).toContain('viewModel.lockedPlan.drillNames');
+    expect(source).toContain('viewModel.lockedPlan.players');
+    expect(source).toContain('viewModel.lockedPlan.drills');
+    expect(source).toContain('<PixelPortrait');
+    expect(source).toContain('<DrillIcon drillId={drill.id}');
+    expect(source).not.toContain('>✓ {playerName}</Text>');
+    expect(source).not.toContain('>✓ {drillName}</Text>');
     expect(source).toContain('label="Save weekly plan"');
+  });
+
+  it('puts drill icons on the left and the add/remove control on the far right', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),
+      'utf8',
+    );
+    const pickerStart = source.indexOf('{viewModel.drills.map');
+    const pickerEnd = source.indexOf('{viewModel.lockedPlan === undefined');
+    const picker = source.slice(pickerStart, pickerEnd);
+
+    expect(picker.indexOf('<DrillIcon drillId={drill.id}')).toBeGreaterThanOrEqual(0);
+    expect(picker.indexOf('<DrillIcon drillId={drill.id}')).toBeLessThan(picker.indexOf('{drill.name}'));
+    expect(picker.indexOf('{drill.name}')).toBeLessThan(picker.indexOf('{formatCurrency(drill.moneyCost)}'));
+    expect(picker.indexOf('{formatCurrency(drill.moneyCost)}')).toBeLessThan(
+      picker.indexOf('accessibilityLabel={drill.selected ? `Remove ${drill.name}` : `Add ${drill.name}`}'),
+    );
+    expect(picker).not.toContain("drill.selected ? '✓' : '+'");
   });
 });

@@ -3,10 +3,10 @@ import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from
 import { Atlas, Canvas, Circle, Fill, Skia, type SkColor, type SkImage, type SkRect } from '@shopify/react-native-skia';
 import { createMatch, queueInput, tick } from '../sim/match';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
-import { isActive, teamPowerBusy } from '../sim/powers';
+import { isActive, teamPowerBusy, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
-import type { MatchState, TeamDef } from '../sim/types';
+import type { MatchState, PowerId, TeamDef } from '../sim/types';
 import type { HudSide } from '../persistence';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
 import { spriteKeyForMatchPlayer, visualIdForMatchPlayer } from './sprites/slot-key';
@@ -29,6 +29,7 @@ import {
 import { BALL_AIRBORNE_THRESHOLD_CM, ballVisualOffset } from './ball-flight-visuals';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
 import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
+import { powerCutInDurationMs, powerCutInPresentation, shouldShowFullPowerCutIn } from './power-cut-in';
 import { Pitch } from './Pitch';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playHapticForEvent } from './haptics';
@@ -134,6 +135,12 @@ const RIVAL_ZONE_BANNER_TICKS = 20;
 const MARKER_Y_OFFSET = 14; // pt above the sprite's center, before the triangle's own height
 const MARKER_HALF_W = 5;
 const MARKER_H = 7;
+const COLOR_SAFE_HOME_KIT = {
+  o: '#6d4510',
+  r: '#ba7517',
+  R: '#edb54a',
+  E: '#f7d894',
+} as const;
 function scoreCode(team: TeamDef): string {
   const words = team.name.trim().split(/\s+/);
   const last = words[words.length - 1];
@@ -151,6 +158,11 @@ export function MatchScreen({
   formationPresets = DEFAULT_FORMATION_PRESETS,
   reduceMotion = false,
   hudSide = 'left',
+  cutInMode = 'full',
+  seenPowerCutIns = [],
+  onPowerCutInSeen,
+  highContrast = false,
+  colorSafeKits = true,
   pausedExternally = false,
   onOpenSettings,
   onDone,
@@ -162,10 +174,19 @@ export function MatchScreen({
   formationPresets?: readonly [FormationId, FormationId, FormationId];
   reduceMotion?: boolean;
   hudSide?: HudSide;
+  cutInMode?: 'full' | 'banner';
+  seenPowerCutIns?: readonly PowerId[];
+  onPowerCutInSeen?: (power: PowerId) => void;
+  highContrast?: boolean;
+  colorSafeKits?: boolean;
   pausedExternally?: boolean;
   onOpenSettings: () => void;
   onDone: (state: MatchState) => void;
 }) {
+  const seenPowerCutInsRef = useRef(new Set<PowerId>(seenPowerCutIns));
+  for (const power of seenPowerCutIns) seenPowerCutInsRef.current.add(power);
+  const onPowerCutInSeenRef = useRef(onPowerCutInSeen);
+  onPowerCutInSeenRef.current = onPowerCutInSeen;
   const { width, height } = useWindowDimensions();
   const compactHeight = height < 760;
   const narrowWidth = width < 375;
@@ -244,6 +265,13 @@ export function MatchScreen({
   const [swapOpen, setSwapOpen] = useState(false);
   const [selectedOutgoing, setSelectedOutgoing] = useState<number | null>(null);
   const [selectedIncoming, setSelectedIncoming] = useState<string | null>(null);
+  const [powerCutIn, setPowerCutIn] = useState<{
+    id: string;
+    power: PowerId;
+    playerName: string;
+    team: 0 | 1;
+    skippable: boolean;
+  } | null>(null);
   const speedRef = useRef<MatchSpeed>(1);
   const pausedRef = useRef(false);
   const userPausedRef = useRef(false);
@@ -257,18 +285,22 @@ export function MatchScreen({
       visualIdForMatchPlayer(team === 0 ? 0 : 11, player.id, player.role, player.lookId)
     ))),
   ], [match]);
-  // Ledger item 4 — build the atlas once at mount from the merged sprite pack.
+  // Ledger item 4 — build the atlas from the merged sprite pack. Color-safe
+  // mode remaps only the home-kit palette tokens, preserving faces and hair.
   // If the pack fails to build (realistically: sprites.json failing loader
   // validation), fall back to a white square texture with team-color tints
   // (the plan's original placeholder look) instead of crashing the match.
   const atlas = useMemo(() => {
     try {
-      return { ...buildSpriteAtlas(Skia, matchVisualIds), fallbackMode: false };
+      return {
+        ...buildSpriteAtlas(Skia, matchVisualIds, colorSafeKits ? COLOR_SAFE_HOME_KIT : undefined),
+        fallbackMode: false,
+      };
     } catch (err) {
       console.warn('MatchScreen: buildSpriteAtlas failed — rendering placeholder rects', err);
       return { ...buildFallbackAtlas(Skia, FALLBACK_SPRITE), fallbackMode: true };
     }
-  }, [matchVisualIds]);
+  }, [colorSafeKits, matchVisualIds]);
 
   const playerCell = atlas.rectFor(`${matchVisualIds[0]}:run0`);
   const actionCell = atlas.rectFor(`${matchVisualIds[0]}:slide0`);
@@ -319,6 +351,18 @@ export function MatchScreen({
     else automaticPauseReasonsRef.current.delete('settings');
     syncPauseReasons();
   }, [pausedExternally]);
+
+  useEffect(() => {
+    if (powerCutIn === null) return undefined;
+    automaticPauseReasonsRef.current.add('cut-in');
+    syncPauseReasons();
+    const timer = setTimeout(() => {
+      automaticPauseReasonsRef.current.delete('cut-in');
+      syncPauseReasons();
+      setPowerCutIn(null);
+    }, powerCutInDurationMs(powerCutIn.skippable));
+    return () => clearTimeout(timer);
+  }, [powerCutIn?.id]);
 
   // Audio lifecycle — own effect, separate from the RAF loop below: starts
   // the match theme on mount, tears everything down on unmount. No pause
@@ -436,6 +480,20 @@ export function MatchScreen({
             untilTick: e.t + FLASH_TICKS,
             tone: 'gold',
           };
+          if (shouldShowFullPowerCutIn(cutInMode, reduceMotion)) {
+            const skippable = seenPowerCutInsRef.current.has(e.power);
+            if (!skippable) {
+              seenPowerCutInsRef.current.add(e.power);
+              onPowerCutInSeenRef.current?.(e.power);
+            }
+            setPowerCutIn({
+              id: `${e.t}:${e.player}:${e.power}`,
+              power: e.power,
+              playerName: s.players[e.player].def.name,
+              team: s.players[e.player].team,
+              skippable,
+            });
+          }
         }
         if (e.kind === 'HALF_TIME') {
           bannerRef.current = { text: 'HALF TIME', untilTick: e.t + FLASH_TICKS, tone: 'blue' };
@@ -628,7 +686,7 @@ export function MatchScreen({
       cancelAnimationFrame(raf);
       sub.remove();
     };
-  }, [controlledTeam, onDone, publishAtlasFrame, reduceMotion]);
+  }, [controlledTeam, cutInMode, onDone, publishAtlasFrame, reduceMotion]);
 
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
   // takes priority, followed by the far-ball GK ready loop, then locomotion.
@@ -671,11 +729,13 @@ export function MatchScreen({
       // 'ok' | 'zone' — zone is telegraphed by the glow ring, not a body tint.
       // In fallback mode there are no kit pixels to preserve, so tint the
       // white placeholder rects with bible team colors (red / blue) instead.
-      return atlas.fallbackMode ? Skia.Color(i < 11 ? '#d94f52' : '#5a8fd6') : Skia.Color('#ffffff');
+      return atlas.fallbackMode
+        ? Skia.Color(i < 11 ? (colorSafeKits ? '#edb54a' : '#d94f52') : '#5a8fd6')
+        : Skia.Color('#ffffff');
     });
     tints.push(Skia.Color('#ffffff')); // ball — no tint
     return tints;
-  }, [frame, hud.tick, atlas, reduceMotion]);
+  }, [frame, hud.tick, atlas, colorSafeKits, reduceMotion]);
 
   const minute = Math.min(90, Math.ceil((hud.tick / TOTAL_TICKS) * 90));
   const stoppage =
@@ -691,6 +751,16 @@ export function MatchScreen({
     if (player.team === controlledTeam) userHeroes.push(index);
     if (player.def.power === 'FIRE_TORCH') fireTorchPlayers.push(index);
   });
+  const activeWebTraps = match.players.flatMap((player, index) => (
+    player.def.power === 'WEB_TRAP' && isActive(match, index) && player.powerAnchor !== undefined
+      ? [{
+          key: `${index}:${player.powerState.kind === 'active' ? player.powerState.untilTick : match.tick}`,
+          x: player.powerAnchor.x,
+          y: player.powerAnchor.y,
+          color: player.team === controlledTeam ? '#edb54a' : '#d94f52',
+        }]
+      : []
+  ));
 
   const teamOffset = controlledTeam === 0 ? 0 : 11;
   const onFieldIndices = Array.from({ length: 11 }, (_, slot) => teamOffset + slot);
@@ -786,7 +856,7 @@ export function MatchScreen({
   };
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, highContrast ? styles.rootHighContrast : null]}>
       <Pressable
         style={[
           styles.scorebar,
@@ -845,6 +915,20 @@ export function MatchScreen({
             brighter base #5cb85c on alternating mow bands over it. */}
         <Fill color="#3f8a4a" />
         <Pitch scale={scale} />
+        {/* Web Trap is simulation geometry, so keep its fixed trigger circle
+            visible after the caster moves. Rival traps use the threat palette. */}
+        {activeWebTraps.map(trap => (
+          <Circle
+            key={trap.key}
+            cx={trap.x * scale}
+            cy={trap.y * scale}
+            r={WEB_TRAP_TRIGGER_RANGE * scale}
+            color={trap.color}
+            style="stroke"
+            strokeWidth={3}
+            opacity={reduceMotion || hud.tick % 20 < 10 ? 0.88 : 0.55}
+          />
+        ))}
         {trailRef.current.map((t, i) => (
           <Circle
             key={i}
@@ -1017,6 +1101,27 @@ export function MatchScreen({
         >
           {hud.banner}
         </Text>
+      ) : null}
+      {powerCutIn ? (
+        <Pressable
+          accessibilityRole={powerCutIn.skippable ? 'button' : 'text'}
+          accessibilityLabel={`${powerCutInPresentation(powerCutIn.power).name}, ${powerCutIn.playerName}${powerCutIn.skippable ? '. Tap to skip.' : ''}`}
+          disabled={!powerCutIn.skippable}
+          style={[styles.powerCutIn, powerCutIn.team === controlledTeam ? styles.powerCutInHome : styles.powerCutInRival]}
+          onPress={() => {
+            automaticPauseReasonsRef.current.delete('cut-in');
+            syncPauseReasons();
+            setPowerCutIn(null);
+          }}
+        >
+          <View style={styles.powerCutInSlash} />
+          <Text style={[styles.powerCutInGlyph, { color: powerCutInPresentation(powerCutIn.power).color }]}>{powerCutInPresentation(powerCutIn.power).glyph}</Text>
+          <View style={styles.powerCutInCopy}>
+            <Text style={styles.powerCutInPlayer}>{powerCutIn.playerName}</Text>
+            <Text style={[styles.powerCutInName, { color: powerCutInPresentation(powerCutIn.power).color }]}>{powerCutInPresentation(powerCutIn.power).name}</Text>
+            <Text style={styles.powerCutInHint}>{powerCutIn.skippable ? 'TAP TO SKIP' : 'FIRST REVEAL'}</Text>
+          </View>
+        </Pressable>
       ) : null}
       <View style={[styles.coachingDock, compactHeight ? styles.coachingDockCompact : null]}>
         <View style={styles.coachBar}>
@@ -1304,6 +1409,7 @@ export function MatchScreen({
 // raised "lip"; gold is reserved for hero/power moments per docs/08.
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#241f2e' },
+  rootHighContrast: { backgroundColor: '#09070d' },
   scorebar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1361,6 +1467,30 @@ const styles = StyleSheet.create({
   },
   bannerThreat: { color: '#f4f1ea', borderColor: '#d94f52', backgroundColor: '#3a1512ee' },
   bannerAction: { color: '#f4f1ea', borderColor: '#77a4d8', backgroundColor: '#214566ee' },
+  powerCutIn: {
+    position: 'absolute',
+    zIndex: 30,
+    top: '28%',
+    left: 0,
+    right: 0,
+    minHeight: 210,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderTopWidth: 5,
+    borderBottomWidth: 5,
+    borderColor: '#edb54a',
+    backgroundColor: '#16121ff5',
+    paddingHorizontal: 20,
+  },
+  powerCutInHome: { borderColor: '#edb54a' },
+  powerCutInRival: { borderColor: '#d94f52' },
+  powerCutInSlash: { position: 'absolute', left: '42%', top: -70, width: 70, height: 360, backgroundColor: '#f4f1ea12', transform: [{ rotate: '18deg' }] },
+  powerCutInGlyph: { width: 120, fontSize: 72, fontWeight: 'bold', textAlign: 'center' },
+  powerCutInCopy: { minWidth: 0, flex: 1, paddingLeft: 12 },
+  powerCutInPlayer: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' },
+  powerCutInName: { marginTop: 6, fontSize: 34, lineHeight: 38, fontWeight: '900', textTransform: 'uppercase' },
+  powerCutInHint: { marginTop: 12, color: '#bcb7c4', fontSize: 10, fontWeight: 'bold', letterSpacing: 2 },
   carrierCard: {
     position: 'absolute',
     zIndex: 4,

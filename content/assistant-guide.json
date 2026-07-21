@@ -5,6 +5,28 @@
     "role": "Assistant Manager",
     "portraitArchetype": "GAFFER"
   },
+  "m4Fiction": {
+    "creation": {
+      "title": "Bert's registration note",
+      "body": "Pick the face, hair and kit accent you'll recognize from the cheap seats. These choices are cosmetic; the six ratings decide the footballer."
+    },
+    "difficulty": {
+      "title": "Choose the boardroom",
+      "body": "Cozy keeps the first-season wage cushion. Chairman removes it, trims sponsor patience and intervenes sooner—but the club can still recover."
+    },
+    "accessibility": {
+      "title": "Your touchline, your setup",
+      "body": "Motion, haptics, text size, contrast, kit safety, cut-ins and HUD side can change at any time without changing a result."
+    },
+    "events": {
+      "title": "Safe or strange",
+      "body": "Safe choices bank a modest result. Risky choices can become a proper club story—or a very expensive Bert anecdote. Powers never depend on these events."
+    },
+    "seasonRecap": {
+      "title": "Put the year in the cabinet",
+      "body": "The table is only half the story. Check the record, books, development, cup run and awards before contracts open the next season."
+    }
+  },
   "sequences": [
     {
       "id": "management-intro",
@@ -36,12 +58,12 @@
             "These are the only doors you need today. I'll explain the machinery behind them when it can actually hurt us."
           ],
           "focus": "navigation",
-          "buttonLabel": "Right. Off I go.",
+          "buttonLabel": "Your navigation buttons.",
           "navItems": [
             { "tab": "HOME", "detail": "Today's work." },
-            { "tab": "SQUAD", "detail": "Your team and training." },
-            { "tab": "CLUB", "detail": "Wages, books and facilities." },
-            { "tab": "MARKET", "detail": "Scout, sign, sell and hire." },
+            { "tab": "SQUAD", "detail": "Team and training." },
+            { "tab": "CLUB", "detail": "Wages and facilities." },
+            { "tab": "MARKET", "detail": "Scout, hire and fire." },
             { "tab": "LEAGUE", "detail": "Leagues and rivals." }
           ]
         }

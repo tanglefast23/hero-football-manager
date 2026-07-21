@@ -7,7 +7,7 @@ import {
 } from '../../persistence';
 import type { ReplayEnvelope } from '../../sim/types';
 import { createMatch, queueInput, runReplay, tick } from '../../sim/match';
-import { DEFAULT_CREATION_RATINGS, type GameState } from '../../game';
+import { DEFAULT_CREATION_RATINGS, offerCareerEvent, type GameState } from '../../game';
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
 import type { PostMatchViewModel } from '../../ui';
 import { loadLaunchContent } from '../../content';
@@ -43,8 +43,10 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.ledgers).toHaveLength(5);
     expect(useM1Store.getState().career?.onboarding).toMatchObject({
       stage: 'reveal',
-      awakenedPower: expect.stringMatching(/SUPER_SPEED|SUPER_STRENGTH|FIRE_TORCH/),
+      awakenedPower: expect.any(String),
     });
+    expect(loadLaunchContent().powers.powers.map(power => power.id))
+      .toContain(useM1Store.getState().career?.onboarding?.awakenedPower);
     expect(useM1Store.getState().career?.awakening.pending).toMatchObject({
       firstHero: true,
       triggerId: 'glowing-caterpillar',
@@ -138,20 +140,29 @@ describe('M1 app store integration', () => {
       expect(resolved.players.find(candidate => candidate.id === player.id)?.morale)
         .toBe(Math.min(100, player.morale + 10));
     }
+    expect(storyEventViewModel(resolved, loadLaunchContent()).successCutscene).toEqual({
+      artKey: 'event-giant-spider-success',
+      headline: 'A mascot is born!',
+      rewards: ['+10 squad morale', '+100 fans'],
+    });
     expect(userHeroes()).toHaveLength(1);
     useM1Store.getState().continueAfterEvent();
     expect(useM1Store.getState().career?.resolvedEventIds).toContain('giant-spider-arrives');
+    expect(useM1Store.getState().career?.eventFlags).toContain('m4:event-guide-seen');
   });
 
   it('gives no reward when the spider mascot gamble fails', () => {
     startAwakenedCareer(456);
     const career = useM1Store.getState().career!;
-    useM1Store.setState({ career: { ...career, week: 7, phase: 'manage' }, screen: 'management' });
-    useM1Store.getState().advanceCareer();
+    useM1Store.setState({
+      career: offerCareerEvent({ ...career, week: 7, phase: 'manage', pendingEvent: undefined }, 'giant-spider-arrives'),
+      screen: 'event',
+    });
     const beforeChoice = useM1Store.getState().career!;
 
     useM1Store.getState().chooseEvent('adopt-spider');
     const resolved = useM1Store.getState().career!;
+    expect(useM1Store.getState().error).toBeNull();
     expect(resolved.eventFlags).not.toContain('spider-adopted');
     expect(resolved.clubs).toEqual(beforeChoice.clubs);
     expect(resolved.players).toEqual(beforeChoice.players);
@@ -161,14 +172,50 @@ describe('M1 app store integration', () => {
   it('always awards the safe spider-event training points', () => {
     startAwakenedCareer(456);
     const career = useM1Store.getState().career!;
-    useM1Store.setState({ career: { ...career, week: 7, phase: 'manage' }, screen: 'management' });
-    useM1Store.getState().advanceCareer();
+    useM1Store.setState({
+      career: offerCareerEvent({ ...career, week: 7, phase: 'manage', pendingEvent: undefined }, 'giant-spider-arrives'),
+      screen: 'event',
+    });
     const beforeChoice = useM1Store.getState().career!;
 
     useM1Store.getState().chooseEvent('call-groundskeeper');
     const resolved = useM1Store.getState().career!;
+    expect(useM1Store.getState().error).toBeNull();
     expect(resolved.trainingPoints).toBe(beforeChoice.trainingPoints + 10);
     expect(resolved.eventFlags).not.toContain('spider-adopted');
+  });
+
+  it('offers an authored follow-up event before advancing the week', () => {
+    startAwakenedCareer(456);
+    const career = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...career,
+        phase: 'manage',
+        week: 8,
+        pendingEvent: {
+          eventId: 'hundredth-fan',
+          resolvedChoiceId: 'hundredth-fan-parade',
+          outcomeText: 'The parade inspires a new stadium mural.',
+          resolvedOutcomeIndex: 0,
+          resolvedRisky: true,
+          resolvedSuccess: true,
+          resolvedNextEventId: 'community-mural',
+        },
+      },
+      screen: 'event',
+    });
+
+    useM1Store.getState().continueAfterEvent();
+
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'event',
+      career: {
+        week: 8,
+        pendingEvent: { eventId: 'community-mural' },
+        resolvedEventIds: expect.arrayContaining(['hundredth-fan']),
+      },
+    });
   });
 
   it('stores a repeating weekly squad plan and settles it only once per week', () => {
@@ -442,15 +489,7 @@ describe('M1 app store integration', () => {
       if (current.screen === 'awakening') {
         current.continueAfterAwakening();
       } else if (current.screen === 'event') {
-        const pending = career.pendingEvent;
-        if (pending === undefined) throw new Error('event screen lost its pending event');
-        if (pending.resolvedChoiceId !== undefined) {
-          current.continueAfterEvent();
-        } else if (pending.eventId === 'giant-spider-arrives') {
-          current.chooseEvent('adopt-spider');
-        } else {
-          throw new Error(`unexpected journey event ${pending.eventId}`);
-        }
+        progressJourneyEvent(current);
       } else if (current.screen === 'matchday') {
         if (watchedMatches === 0) {
           current.watchMatch();
@@ -797,17 +836,8 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
       continue;
     }
     if (current.screen === 'event') {
-      const pending = career.pendingEvent;
-      if (pending === undefined) throw new Error('event screen lost its pending event');
-      if (pending.resolvedChoiceId !== undefined) {
-        current.continueAfterEvent();
-        continue;
-      }
-      if (pending.eventId === 'giant-spider-arrives') {
-        current.chooseEvent('adopt-spider');
-        continue;
-      }
-      throw new Error(`unexpected journey event ${pending.eventId}`);
+      progressJourneyEvent(current);
+      continue;
     }
     if (current.screen === 'matchday') {
       current.quickResult();
@@ -838,6 +868,25 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
     throw new Error(`unexpected journey screen ${current.screen}`);
   }
   throw new Error('default journey exceeded its step budget');
+}
+
+function progressJourneyEvent(current: ReturnType<typeof useM1Store.getState>): void {
+  const career = current.career;
+  const pending = career?.pendingEvent;
+  if (career === null || pending === undefined) throw new Error('event screen lost its pending event');
+  if (pending.resolvedChoiceId !== undefined) {
+    current.continueAfterEvent();
+    return;
+  }
+  const viewModel = storyEventViewModel(career, loadLaunchContent());
+  if (viewModel.playerSelectionRequired && viewModel.selectedPlayer === undefined) {
+    current.selectEventPlayer();
+    return;
+  }
+  const choice = viewModel.choices.find(candidate => !candidate.disabled && candidate.tone === 'safe')
+    ?? viewModel.choices.find(candidate => !candidate.disabled);
+  if (choice === undefined) throw new Error(`journey event ${pending.eventId} has no available choice`);
+  current.chooseEvent(choice.id);
 }
 
 function startCreatedCareer(seed: number): void {

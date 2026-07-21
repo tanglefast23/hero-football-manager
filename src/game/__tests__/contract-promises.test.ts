@@ -1,5 +1,6 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../career';
+import { playerAttributeCaps } from '../archetype-caps';
 import {
   applyCareerContractPromise,
   hasActiveCareerContractPromise,
@@ -61,13 +62,16 @@ describe('career contract promises', () => {
   test('training priority is enforced by the repeating-plan boundary', () => {
     const state = career(9403);
     const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const priority = applyCareerContractPromise(state, roster[0].id, 'TRAINING_PRIORITY');
+    const trainable = roster.find(player => player.attrs.sta < playerAttributeCaps(player).sta);
+    if (trainable === undefined) throw new Error('expected a player below their STA ceiling');
+    const other = roster.find(player => player.id !== trainable.id)!;
+    const priority = applyCareerContractPromise(state, trainable.id, 'TRAINING_PRIORITY');
     const drill = { id: 'promise-focus', moneyCost: 0, tpCost: 0, gains: { sta: 1 } };
 
-    expect(() => setCareerTrainingPlan(priority, [roster[1].id], [drill]))
-      .toThrow(`${roster[0].name} was promised training priority`);
-    expect(setCareerTrainingPlan(priority, [roster[0].id, roster[1].id], [drill]).trainingPlan)
-      .toMatchObject({ assignedPlayerIds: [roster[0].id, roster[1].id] });
+    expect(() => setCareerTrainingPlan(priority, [other.id], [drill]))
+      .toThrow(`${trainable.name} was promised training priority`);
+    expect(setCareerTrainingPlan(priority, [trainable.id], [drill]).trainingPlan)
+      .toMatchObject({ assignedPlayerIds: [trainable.id] });
   });
 
   test('a promised hero uses an available license and never creates an invalid lineup', () => {

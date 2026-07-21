@@ -9,7 +9,8 @@ type ExplicitManagementSfxKey =
   | 'transaction-confirm'
   | 'coach-departure'
   | 'facility-start'
-  | 'facility-complete';
+  | 'facility-complete'
+  | 'event-success';
 
 export type ManagementActionCue =
   | 'select'
@@ -32,6 +33,7 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   'coach-departure': require('../../assets/audio/sfx/fulltime-whistle.wav'),
   'facility-start': require('../../assets/audio/sfx/advance-week.m4a'),
   'facility-complete': require('../../assets/audio/sfx/facility-complete.m4a'),
+  'event-success': require('../../assets/audio/sfx/crowd-cheer.wav'),
   select: require('../../assets/audio/sfx/training-stat-ding.m4a'),
   cash: require('../../assets/audio/sfx/save-slap.wav'),
   build: require('../../assets/audio/sfx/tackle-thud.m4a'),
@@ -100,6 +102,10 @@ export function playFacilityStartSfx(): void {
 
 export function playFacilityCompleteSfx(): void {
   playManagementSfx('facility-complete');
+}
+
+export function playEventSuccessSfx(): void {
+  playManagementSfx('event-success');
 }
 
 /** Short semantic cues shared by management screens; presentation-only and fail-soft. */

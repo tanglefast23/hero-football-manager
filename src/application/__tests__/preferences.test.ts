@@ -1,5 +1,5 @@
-import type { AppPreferences, PreferencesRepository } from '../../persistence';
-import { loadPreferencesFailSoft } from '../preferences';
+import { DEFAULT_APP_PREFERENCES, type AppPreferences, type PreferencesRepository } from '../../persistence';
+import { loadPreferencesFailSoft, markPowerCutInSeen } from '../preferences';
 
 describe('fail-soft app preferences', () => {
   it('resets damaged preferences without blocking the career boot', async () => {
@@ -17,6 +17,12 @@ describe('fail-soft app preferences', () => {
       masterVolume: 1,
       reduceMotion: false,
       hudSide: 'left',
+      hapticsEnabled: true,
+      textScale: 1,
+      highContrast: false,
+      colorSafeKits: true,
+      cutInMode: 'full',
+      seenPowerCutIns: [],
     });
     expect(saved).toEqual(result.preferences);
     expect(result.warning).toContain('reset to defaults');
@@ -32,5 +38,13 @@ describe('fail-soft app preferences', () => {
 
     expect(result.preferences.masterVolume).toBe(1);
     expect(result.warning).toContain('this session');
+  });
+
+  it('composes first-view cut-in history without duplicates', () => {
+    const first = markPowerCutInSeen(DEFAULT_APP_PREFERENCES, 'SUPER_SPEED');
+    const second = markPowerCutInSeen(first, 'WEB_TRAP');
+
+    expect(second.seenPowerCutIns).toEqual(['SUPER_SPEED', 'WEB_TRAP']);
+    expect(markPowerCutInSeen(second, 'SUPER_SPEED')).toBe(second);
   });
 });

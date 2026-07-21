@@ -44,6 +44,7 @@ export function createLaunchCareerSetup(
   userClubId = DEFAULT_USER_CLUB_ID,
   content: LaunchContent = loadLaunchContent(),
   careerMode?: CareerSetup['careerMode'],
+  difficulty?: CareerSetup['difficulty'],
 ): CareerSetup {
   return {
     seed,
@@ -112,6 +113,7 @@ export function createLaunchCareerSetup(
       playerIds: [...club.startingLineup],
     })),
     ...(careerMode === undefined ? {} : { careerMode }),
+    ...(difficulty === undefined ? {} : { difficulty }),
   };
 }
 

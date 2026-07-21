@@ -61,6 +61,7 @@ function pixelRect(x: number, y: number): SkiaRectLike {
 export function buildSpriteAtlas(
   Skia: SkiaApi,
   visualIds?: readonly string[],
+  paletteOverrides?: Readonly<Record<string, string>>,
 ): { image: unknown; rectFor: AtlasLayout['rectFor'] } {
   const sheet: SpriteSheet = loadSpriteSheet(visualIds);
   const layout = atlasLayout(sheet);
@@ -79,7 +80,7 @@ export function buildSpriteAtlas(
     for (let row = 0; row < rows.length; row++) {
       const line = rows[row];
       for (let col = 0; col < line.length; col++) {
-        const color = sheet.palette[line[col]];
+        const color = paletteOverrides?.[line[col]] ?? sheet.palette[line[col]];
         if (!color) continue; // "." (or any null palette entry) is transparent — leave unpainted
         const paint = Skia.Paint();
         paint.setColor(Skia.Color(color));

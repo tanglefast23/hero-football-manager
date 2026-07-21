@@ -1,6 +1,7 @@
 import type { MarketNegotiationViewModel } from './market-models';
 import type { AssistantGuideDestination, AssistantGuideSequenceId } from '../content';
 import type { PotentialGrade } from '../game/archetype-caps';
+import type { PowerId } from '../sim/types';
 
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
 
@@ -328,8 +329,8 @@ export interface SquadTrainingViewModel {
   totalTrainingPointCost: number;
   canApply: boolean;
   lockedPlan?: {
-    playerNames: readonly string[];
-    drillNames: readonly string[];
+    players: readonly Pick<SquadPlayerViewModel, 'id' | 'name' | 'role' | 'lookId'>[];
+    drills: readonly Pick<FocusDrillViewModel, 'id' | 'name'>[];
     moneyCost: number;
     trainingPointCost: number;
   };
@@ -466,10 +467,13 @@ export interface StoryEventChoiceViewModel {
   consequenceHint: string;
   tone: 'safe' | 'risky';
   disabled?: boolean;
+  disabledReason?: string;
 }
 
 export interface StoryEventViewModel {
   id: string;
+  artKey: string;
+  category: 'mystery' | 'club' | 'media' | 'sponsor' | 'player' | 'medical' | 'fan';
   weekLabel: string;
   categoryLabel: string;
   title: string;
@@ -480,6 +484,12 @@ export interface StoryEventViewModel {
   resolvedChoiceId?: string;
   outcomeTitle?: string;
   outcomeText?: string;
+  successCutscene?: {
+    artKey: string;
+    headline: string;
+    rewards: readonly string[];
+    hasFollowUp?: true;
+  };
 }
 
 export interface AwakeningCutsceneViewModel {
@@ -488,7 +498,7 @@ export interface AwakeningCutsceneViewModel {
   playerName: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   lookId?: string;
-  powerId: 'SUPER_SPEED' | 'SUPER_STRENGTH' | 'FIRE_TORCH';
+  powerId: PowerId;
   powerName: string;
   limpCopy: string;
   triggerVisual:
@@ -553,6 +563,24 @@ export interface SeasonEndViewModel {
   summary: string;
   finalPosition: number;
   prizeMoney: number;
+  difficultyLabel: 'COZY' | 'CHAIRMAN';
+  recap?: {
+    record: string;
+    goals: string;
+    cashChange: number;
+    closingCash: number;
+    trainingCapsReached: number;
+    cupResult: string;
+    memorableEventTitle?: string;
+    awards: readonly {
+      playerId: string;
+      playerName: string;
+      role: 'GK' | 'DEF' | 'MID' | 'FWD';
+      lookId?: string;
+      label: string;
+      detail: string;
+    }[];
+  };
   table: readonly SeasonTableRowViewModel[];
   promotionRewards?: {
     divisionLabel: string;

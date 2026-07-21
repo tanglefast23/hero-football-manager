@@ -37,6 +37,32 @@ function drillSelectionClass(drill: FocusDrillViewModel): string {
   return 'border-ink/30 bg-white';
 }
 
+const DRILL_GLYPHS: Readonly<Record<string, string>> = {
+  sprints: '»',
+  finishing: '◎',
+  rondo: '↻',
+  duels: '×',
+  circuit: '↯',
+  'keeper-drills': '▥',
+};
+
+function DrillIcon({ drillId, selected = false }: { drillId: string; selected?: boolean }) {
+  return (
+    <View
+      accessible={false}
+      className={selected
+        ? 'h-11 w-11 items-center justify-center border-2 border-violet-dark bg-paper'
+        : 'h-11 w-11 items-center justify-center border-2 border-ink bg-paper'}
+    >
+      <Text className={selected
+        ? 'font-pixel text-xl text-violet-dark'
+        : 'font-pixel text-xl text-blue-dark'}>
+        {DRILL_GLYPHS[drillId] ?? '•'}
+      </Text>
+    </View>
+  );
+}
+
 export function SquadTrainingScreen({
   viewModel,
   onSelectPlayer,
@@ -429,22 +455,13 @@ export function SquadTrainingScreen({
               style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
             />
           ) : null}
-          {viewModel.drills.map((drill) => {
-            return (
-            <Pressable
+          {viewModel.drills.map(drill => (
+            <View
               key={drill.id}
-              accessibilityRole="checkbox"
-              accessibilityLabel={`${drill.name}. ${drill.gainLabel}. Costs ${formatCurrency(drill.moneyCost)} and ${drill.trainingPointCost} training points.`}
-              accessibilityState={{ checked: drill.selected, disabled: !drill.available }}
-              disabled={!drill.available}
-              onPress={() => onToggleDrill(drill.id)}
               className={`relative min-h-16 flex-row items-center border-2 p-3 ${drillSelectionClass(drill)}`}
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
             >
-              <View className={drill.selected ? 'mr-3 h-9 w-9 items-center justify-center border-2 border-ink bg-paper' : 'mr-3 h-9 w-9 items-center justify-center border border-ink/30'}>
-                <Text className={drill.selected ? 'font-mono text-base font-bold text-ink' : 'font-mono text-base text-ink/40'}>{drill.selected ? '✓' : '+'}</Text>
-              </View>
-              <View className="flex-1 pr-3">
+              <DrillIcon drillId={drill.id} selected={drill.selected} />
+              <View className="min-w-0 flex-1 px-3">
                 <Text className="text-base font-bold uppercase text-ink">{drill.name}</Text>
                 <Text className={drill.selected ? 'mt-1 text-sm text-ink/70' : 'mt-1 text-sm text-ink/60'}>{drill.gainLabel}</Text>
               </View>
@@ -452,9 +469,26 @@ export function SquadTrainingScreen({
                 <Text className="font-mono text-sm font-bold text-ink" numberOfLines={1}>{formatCurrency(drill.moneyCost)}</Text>
                 <Text className={drill.selected ? 'mt-1 font-mono text-sm font-bold text-ink' : 'mt-1 font-mono text-sm text-blue-dark'} numberOfLines={1}>{drill.trainingPointCost} TP</Text>
               </View>
-            </Pressable>
-            );
-          })}
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityLabel={drill.selected ? `Remove ${drill.name}` : `Add ${drill.name}`}
+                accessibilityHint={`${drill.gainLabel}. Costs ${formatCurrency(drill.moneyCost)} and ${drill.trainingPointCost} training points.`}
+                accessibilityState={{ checked: drill.selected, disabled: !drill.available }}
+                disabled={!drill.available}
+                onPress={() => onToggleDrill(drill.id)}
+                className={drill.selected
+                  ? 'ml-3 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-paper'
+                  : 'ml-3 h-11 w-11 items-center justify-center border border-ink/30 bg-white'}
+                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+              >
+                <Text className={drill.selected
+                  ? 'font-mono text-xl font-bold text-violet-dark'
+                  : 'font-mono text-xl text-ink/40'}>
+                  {drill.selected ? '−' : '+'}
+                </Text>
+              </Pressable>
+            </View>
+          ))}
         </View>
       </View>
 
@@ -487,17 +521,25 @@ export function SquadTrainingScreen({
           <View className="gap-3">
             <View className="border-2 border-ink bg-white p-3">
               <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Players</Text>
-              <View className="mt-2 gap-1">
-                {viewModel.lockedPlan.playerNames.map((playerName, index) => (
-                  <Text key={`${playerName}-${index}`} className="text-base font-bold text-ink">✓ {playerName}</Text>
+              <View className="mt-2 gap-2">
+                {viewModel.lockedPlan.players.map(player => (
+                  <View key={player.id} className="flex-row items-center gap-3 border border-ink/20 bg-paper px-2 py-2">
+                    <View className="border-2 border-b-4 border-ink bg-blue-light px-1 pt-1">
+                      <PixelPortrait playerId={player.id} role={player.role} lookId={player.lookId} />
+                    </View>
+                    <Text className="min-w-0 flex-1 text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
+                  </View>
                 ))}
               </View>
             </View>
             <View className="border-2 border-ink bg-white p-3">
               <Text className="font-mono text-sm font-bold uppercase text-violet-dark">Training exercises</Text>
-              <View className="mt-2 gap-1">
-                {viewModel.lockedPlan.drillNames.map(drillName => (
-                  <Text key={drillName} className="text-base font-bold text-ink">✓ {drillName}</Text>
+              <View className="mt-2 gap-2">
+                {viewModel.lockedPlan.drills.map(drill => (
+                  <View key={drill.id} className="flex-row items-center gap-3 border border-ink/20 bg-paper px-2 py-2">
+                    <DrillIcon drillId={drill.id} selected />
+                    <Text className="min-w-0 flex-1 text-base font-bold uppercase text-ink" numberOfLines={1}>{drill.name}</Text>
+                  </View>
                 ))}
               </View>
             </View>

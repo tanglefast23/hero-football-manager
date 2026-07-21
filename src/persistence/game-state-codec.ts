@@ -25,6 +25,20 @@ const uint32 = nonnegativeInteger.refine(
   'must fit uint32',
 );
 const nonemptyString = z.string().min(1);
+const powerIdSchema = z.enum([
+  'SUPER_SPEED',
+  'BLINK_RUN',
+  'THUNDER_STRIKE',
+  'FIRE_TORCH',
+  'PHASE_RUN',
+  'PORTAL_PASS',
+  'MAGNET_TOUCH',
+  'DECOY_DOUBLE',
+  'FUTURE_SIGHT',
+  'SUPER_STRENGTH',
+  'WEB_TRAP',
+  'ELASTIC_KEEPER',
+]);
 const playerAttribute = positiveInteger.refine(
   (value) => value <= 99,
   'must be at most 99',
@@ -160,8 +174,13 @@ const playerSchema = z
     name: nonemptyString,
     role: z.enum(['GK', 'DEF', 'MID', 'FWD']),
     lookId: nonemptyString.optional(),
+    createdAppearance: z.object({
+      skinTone: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+      hairstyle: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
+      kitAccent: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
+    }).passthrough().optional(),
     attrs: attributesSchema,
-    power: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']).optional(),
+    power: powerIdSchema.optional(),
     powerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     licensed: z.boolean(),
     weeklyWage: nonnegativeInteger,
@@ -316,6 +335,19 @@ const trainingPlanSchema = z
   })
   .passthrough();
 
+const trainingCapNoticeSchema = z
+  .object({
+    id: nonemptyString,
+    season: positiveInteger,
+    week: positiveInteger,
+    playerId: nonemptyString,
+    playerName: nonemptyString,
+    attribute: z.enum(['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref']),
+    cap: positiveInteger.refine(value => value <= 99, 'must be at most 99'),
+    drillId: nonemptyString,
+  })
+  .passthrough();
+
 const eventClockSchema = z
   .object({
     weeksWithoutEvent: nonnegativeInteger,
@@ -329,6 +361,10 @@ const pendingEventSchema = z
     selectedPlayerId: nonemptyString.optional(),
     resolvedChoiceId: nonemptyString.optional(),
     outcomeText: nonemptyString.optional(),
+    resolvedOutcomeIndex: nonnegativeInteger.optional(),
+    resolvedRisky: z.boolean().optional(),
+    resolvedSuccess: z.boolean().optional(),
+    resolvedNextEventId: nonemptyString.optional(),
   })
   .passthrough();
 
@@ -336,7 +372,7 @@ const pendingAwakeningSchema = z
   .object({
     fixtureId: nonemptyString,
     playerId: nonemptyString,
-    power: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']),
+    power: powerIdSchema,
     triggerId: nonemptyString,
     firstHero: z.boolean(),
   })
@@ -356,7 +392,7 @@ const onboardingSchema = z
     createdPlayerId: nonemptyString.optional(),
     firstFixtureId: nonemptyString.optional(),
     selectedOrigin: z.enum(['CHEMICAL', 'CREATURE', 'SERUM']).optional(),
-    awakenedPower: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']).optional(),
+    awakenedPower: powerIdSchema.optional(),
   })
   .passthrough()
   .superRefine((onboarding, context) => {
@@ -491,7 +527,7 @@ const scoutReportSchema = z.object({
     ref: scoutedRangeSchema,
   }).passthrough(),
   potentialRange: scoutedRangeSchema,
-  power: z.enum(['SUPER_SPEED', 'SUPER_STRENGTH', 'FIRE_TORCH']).optional(),
+  power: powerIdSchema.optional(),
   powerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
   rumoredHeroLead: z.literal(true).optional(),
 }).passthrough();
@@ -633,6 +669,34 @@ const boardUltimatumResolutionSchema = z.discriminatedUnion('kind', [
   }).passthrough(),
 ]);
 
+const seasonRecapAwardSchema = z.object({
+  playerId: nonemptyString,
+  playerName: nonemptyString,
+  label: nonemptyString,
+  detail: nonemptyString,
+}).passthrough();
+
+const seasonRecapSchema = z.object({
+  season: positiveInteger,
+  division: positiveInteger.refine(value => value <= 5, 'must be at most 5'),
+  finalPosition: positiveInteger.refine(value => value <= 10, 'must be at most 10'),
+  played: nonnegativeInteger,
+  won: nonnegativeInteger,
+  drawn: nonnegativeInteger,
+  lost: nonnegativeInteger,
+  goalsFor: nonnegativeInteger,
+  goalsAgainst: nonnegativeInteger,
+  cashChange: safeInteger,
+  closingCash: safeInteger,
+  trainingCapsReached: nonnegativeInteger,
+  cupResult: nonemptyString,
+  memorableEventId: nonemptyString.optional(),
+  topScorer: seasonRecapAwardSchema.optional(),
+  playerOfSeason: seasonRecapAwardSchema.optional(),
+  youngPlayer: seasonRecapAwardSchema.optional(),
+  heroOfSeason: seasonRecapAwardSchema.optional(),
+}).passthrough();
+
 const gameStateSchema = z
   .object({
     schemaVersion: z.literal(GAME_SCHEMA_VERSION),
@@ -642,6 +706,7 @@ const gameStateSchema = z
     season: positiveInteger,
     week: positiveInteger,
     phase: z.enum(['manage', 'matchday', 'season-end', 'complete']),
+    difficulty: z.enum(['COZY', 'CHAIRMAN']).optional(),
     clubs: z.array(clubSchema).length(10),
     fixtures: z.array(fixtureSchema),
     players: z.array(playerSchema),
@@ -649,9 +714,15 @@ const gameStateSchema = z
     facilities: facilitiesSchema,
     trainingRules: trainingRulesSchema.optional(),
     trainingPlan: trainingPlanSchema.optional(),
+    trainingCapNotices: z.array(trainingCapNoticeSchema).optional(),
     eventClock: eventClockSchema,
     eventFlags: z.array(nonemptyString),
     resolvedEventIds: z.array(nonemptyString),
+    resolvedEventHistory: z.array(z.object({
+      eventId: nonemptyString,
+      season: positiveInteger,
+      week: positiveInteger,
+    }).passthrough()).optional(),
     pendingEvent: pendingEventSchema.optional(),
     // Optional at decode time so pre-cutscene schema-1 saves can be upgraded
     // by the application reconciliation pass without being treated as corrupt.
@@ -659,6 +730,7 @@ const gameStateSchema = z
     onboarding: onboardingSchema.optional(),
     trainingPoints: nonnegativeInteger,
     ledgers: z.array(ledgerSchema),
+    seasonOpeningCash: safeInteger.optional(),
     cashTransactions: z.array(cashTransactionSchema).optional(),
     seasonGoalTallies: z.array(seasonGoalTallySchema).optional(),
     careerMode: z.enum(['m1-slice', 'full']).optional(),
@@ -673,6 +745,7 @@ const gameStateSchema = z
       announcedInSeason: positiveInteger,
       retirementAge: positiveInteger.refine(value => value >= 33 && value <= 38, 'must be from 33 to 38'),
     }).passthrough()).optional(),
+    seasonRecaps: z.array(seasonRecapSchema).optional(),
     financialSafety: z.object({
       consecutiveNegativeWeeks: nonnegativeInteger,
       emergencyLoanUsed: z.boolean(),

@@ -1,0 +1,119 @@
+import { createLaunchCareerSetup } from '../../application/launch';
+import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
+import { activeCareerMatchday, advanceWeek, completeMatchday, createCareer, startNextSeason } from '../career';
+import { difficultyRules } from '../difficulty';
+import type { DifficultyMode, GameState } from '../types';
+
+function career(difficulty: DifficultyMode): GameState {
+  return createCareer(createLaunchCareerSetup(20260721, undefined, undefined, 'full', difficulty));
+}
+
+function settleThroughWeekFour(state: GameState): GameState {
+  let next = state;
+  while (next.week <= 4) next = advanceWeek(next);
+  return next;
+}
+
+function finishSeason(state: GameState): GameState {
+  let next = state;
+  while (next.phase !== 'season-end' && next.phase !== 'complete') {
+    if (next.phase === 'manage') {
+      next = advanceWeek(next);
+    } else if (next.phase === 'matchday') {
+      const matchday = activeCareerMatchday(next);
+      if (matchday === undefined) throw new Error('expected an active fixture');
+      next = completeMatchday(next, matchday.fixtures.map(fixture => ({
+        fixtureId: fixture.id,
+        homeGoals: fixture.homeClubId === next.userClubId ? 2 : 0,
+        awayGoals: fixture.awayClubId === next.userClubId ? 2 : 0,
+      })));
+    } else {
+      throw new Error(`unexpected season phase ${String(next.phase)}`);
+    }
+  }
+  return next;
+}
+
+describe('M4 difficulty and season recap', () => {
+  it('keeps Cozy fail-soft while Chairman removes subsidy and trims sponsors', () => {
+    const cozy = settleThroughWeekFour(career('COZY'));
+    const chairman = settleThroughWeekFour(career('CHAIRMAN'));
+    const cozyLines = cozy.ledgers.find(ledger => ledger.week === 4)!.lines;
+    const chairmanLines = chairman.ledgers.find(ledger => ledger.week === 4)!.lines;
+
+    expect(cozyLines.find(line => line.kind === 'subsidy')?.amount).toBeGreaterThan(0);
+    expect(chairmanLines.some(line => line.kind === 'subsidy')).toBe(false);
+    expect(chairmanLines.find(line => line.kind === 'sponsor')?.amount)
+      .toBe(Math.floor((cozyLines.find(line => line.kind === 'sponsor')?.amount ?? 0) * 0.85));
+    expect(difficultyRules(cozy).negativeWeeksBeforeIntervention).toBe(4);
+    expect(difficultyRules(chairman).negativeWeeksBeforeIntervention).toBe(3);
+    expect(difficultyRules(chairman).emergencyLoanAmount).toBeLessThan(difficultyRules(cozy).emergencyLoanAmount);
+  });
+
+  it('records and reloads the complete deterministic season cabinet', () => {
+    const finished = finishSeason(career('COZY'));
+    const recap = finished.seasonRecaps?.[0];
+
+    expect(recap).toMatchObject({
+      season: 1,
+      division: 5,
+      played: 18,
+      won: 18,
+      drawn: 0,
+      lost: 0,
+      goalsFor: 36,
+      goalsAgainst: 0,
+      cupResult: expect.any(String),
+      closingCash: expect.any(Number),
+      cashChange: expect.any(Number),
+    });
+    expect(recap?.playerOfSeason).toBeDefined();
+    expect(recap?.topScorer).toBeDefined();
+    expect(parseStoredGameState(serializeGameState(finished)).seasonRecaps).toEqual(finished.seasonRecaps);
+  });
+
+  it('includes immediate event and transfer-style cash movement in the recap', () => {
+    const initial = career('COZY');
+    const userClub = initial.clubs.find(club => club.id === initial.userClubId)!;
+    const changed: GameState = {
+      ...initial,
+      clubs: initial.clubs.map(club => club.id === initial.userClubId
+        ? { ...club, cash: club.cash + 1_250 }
+        : club),
+      cashTransactions: [{
+        id: 'm4-recap-test',
+        season: 1,
+        week: 1,
+        kind: 'transfer-sell',
+        amount: 1_000,
+        label: 'Test transfer',
+        balanceAfter: userClub.cash + 1_250,
+      }],
+    };
+    const finished = finishSeason(changed);
+    const recap = finished.seasonRecaps?.[0];
+
+    expect(recap?.closingCash).toBe(userClub.cash + recap!.cashChange);
+    expect(recap!.cashChange).toBe(finished.clubs.find(club => club.id === initial.userClubId)!.cash - initial.seasonOpeningCash!);
+  });
+
+  it('clears delivered cap receipts after their season recap is recorded', () => {
+    const initial = career('COZY');
+    const finished = finishSeason({
+      ...initial,
+      trainingCapNotices: [{
+        id: 'training-cap:s1-w1:test:pac:sprints',
+        season: 1,
+        week: 1,
+        playerId: initial.players[0].id,
+        playerName: initial.players[0].name,
+        drillId: 'sprints',
+        attribute: 'pac',
+        cap: 50,
+      }],
+    });
+
+    expect(finished.seasonRecaps?.[0]?.trainingCapsReached).toBe(1);
+    expect(startNextSeason(finished).trainingCapNotices).toEqual([]);
+  });
+});

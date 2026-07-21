@@ -1,4 +1,6 @@
 import type { Attrs } from '../../sim/types';
+import type { CreatedPlayerAppearance, DifficultyMode } from '../types';
+import { DEFAULT_DIFFICULTY, validateDifficulty } from '../difficulty';
 
 export const OUTFIELD_CREATION_STATS = [
   'pac',
@@ -33,7 +35,15 @@ export const DEFAULT_CREATION_RATINGS: Readonly<OutfieldCreationRatings> = Objec
 export interface CreatedPlayerDraft {
   name: string;
   ratings: Readonly<OutfieldCreationRatings>;
+  appearance?: Readonly<CreatedPlayerAppearance>;
+  difficulty?: DifficultyMode;
 }
+
+export const DEFAULT_CREATED_APPEARANCE: Readonly<CreatedPlayerAppearance> = Object.freeze({
+  skinTone: 2,
+  hairstyle: 2,
+  kitAccent: 0,
+});
 
 export function creationPointsRemaining(ratings: Readonly<OutfieldCreationRatings>): number {
   validateRatingsShape(ratings);
@@ -47,6 +57,8 @@ export function creationPointsRemaining(ratings: Readonly<OutfieldCreationRating
 export function validateCreatedPlayerDraft(draft: CreatedPlayerDraft): {
   name: string;
   attrs: Attrs;
+  appearance: CreatedPlayerAppearance;
+  difficulty: DifficultyMode;
 } {
   const name = draft.name.trim().replace(/\s+/g, ' ');
   if (name.length < 2 || name.length > 24) {
@@ -68,7 +80,22 @@ export function validateCreatedPlayerDraft(draft: CreatedPlayerDraft): {
   return {
     name,
     attrs: { ...draft.ratings, ref: CREATED_PLAYER_REF },
+    appearance: validateCreatedAppearance(draft.appearance ?? DEFAULT_CREATED_APPEARANCE),
+    difficulty: validateDifficulty(draft.difficulty ?? DEFAULT_DIFFICULTY),
   };
+}
+
+function validateCreatedAppearance(value: Readonly<CreatedPlayerAppearance>): CreatedPlayerAppearance {
+  if (!Number.isSafeInteger(value.skinTone) || value.skinTone < 0 || value.skinTone > 5) {
+    throw new Error('Skin tone choice must be from 0 to 5');
+  }
+  if (!Number.isSafeInteger(value.hairstyle) || value.hairstyle < 0 || value.hairstyle > 6) {
+    throw new Error('Hairstyle choice must be from 0 to 6');
+  }
+  if (!Number.isSafeInteger(value.kitAccent) || value.kitAccent < 0 || value.kitAccent > 3) {
+    throw new Error('Kit accent choice must be from 0 to 3');
+  }
+  return { ...value };
 }
 
 function validateRatingsShape(ratings: Readonly<OutfieldCreationRatings>): void {
