@@ -1,8 +1,5 @@
-import { useEffect, useRef } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { playManagementActionSfx } from '../../render/management-sfx';
-import { playManagementHaptic } from '../../render/haptics';
 import type { ContractOffer, PitchCard } from '../../game/market';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
@@ -41,17 +38,8 @@ export function SeasonEndScreen({
   textScale = 1,
 }: SeasonEndScreenProps) {
   const contract = viewModel.expiredContract;
-  const hasAwards = (viewModel.recap?.awards.length ?? 0) > 0;
-  const announced = useRef(false);
-
-  // One cabinet fanfare per visit, when there is silverware to announce.
-  useEffect(() => {
-    if (!hasAwards || announced.current) return;
-    announced.current = true;
-    playManagementActionSfx('success');
-    playManagementHaptic('success');
-  }, [hasAwards]);
-
+  // The season-end fanfare is owned by App.tsx, keyed per career/season so it
+  // fires exactly once. Do not add a second cue here.
   const outcomeTone = viewModel.outcomeLabel === 'CHAMPIONS' || viewModel.outcomeLabel === 'PROMOTED'
     ? 'success'
     : viewModel.outcomeLabel === 'RELEGATED'

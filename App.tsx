@@ -99,6 +99,7 @@ import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { useM1Store } from './src/application/store';
+import { ScreenErrorBoundary } from './src/ui/ScreenErrorBoundary';
 import {
   trainingTransitionScene,
   type TrainingTransitionScene,
@@ -145,7 +146,13 @@ export default function App() {
   if (__DEV__ && previewTriggerId) {
     return <AwakeningReviewApp triggerId={previewTriggerId} />;
   }
-  return <GameApp />;
+  return (
+    <ScreenErrorBoundary
+      onRecover={() => useM1Store.setState({ screen: 'welcome', error: null, activeTab: 'home' })}
+    >
+      <GameApp />
+    </ScreenErrorBoundary>
+  );
 }
 
 function AwakeningArtQaApp({ triggerId }: { triggerId: string }) {

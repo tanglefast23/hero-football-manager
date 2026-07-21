@@ -99,6 +99,22 @@ export function eventOfferForWeek(
   };
 }
 
+/**
+ * Drops a pending story whose event the shipped catalog no longer contains.
+ * Content is data, so a later drop can retire or rename an event while a player
+ * has it on screen. Without this the story screen throws while rendering, and
+ * because the pending event is persisted it would throw again on every relaunch.
+ */
+export function reconcilePendingStoryEvent(
+  state: GameState,
+  catalog: EventCatalog,
+): GameState {
+  const pending = state.pendingEvent;
+  if (pending === undefined) return state;
+  if (catalog.events.some(event => event.id === pending.eventId)) return state;
+  return { ...state, pendingEvent: undefined };
+}
+
 export function eventIsEligible(
   state: GameState,
   event: EventCatalog['events'][number],

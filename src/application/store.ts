@@ -80,7 +80,11 @@ import {
   reconcileHomeAssistantInbox,
   weeklyReviewViewModel,
 } from './view-models';
-import { eventChoiceUnavailableReason, eventOfferForWeek } from './event-selection';
+import {
+  eventChoiceUnavailableReason,
+  eventOfferForWeek,
+  reconcilePendingStoryEvent,
+} from './event-selection';
 import {
   completeChampionshipCelebration as markChampionshipCelebrationComplete,
   hasPendingChampionshipCelebration,
@@ -231,7 +235,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const reconciled = loadedCareer === null
         ? null
         : reconcileLaunchRoster(loadedCareer, launchContent, enableM2);
-      const career = reconciled === null ? null : reconcileLegacyFirstAwakening(reconciled);
+      const career = reconciled === null
+        ? null
+        : reconcilePendingStoryEvent(
+          reconcileLegacyFirstAwakening(reconciled),
+          launchContent.events,
+        );
       if (career !== null && career !== loadedCareer) await repository.save(career);
       set({
         repository,

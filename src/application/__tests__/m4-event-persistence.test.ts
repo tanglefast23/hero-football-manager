@@ -1,6 +1,7 @@
 import { loadLaunchContent } from '../../content';
 import { offerCareerEvent, type GameState } from '../../game';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
+import { reconcilePendingStoryEvent } from '../event-selection';
 import { useM1Store } from '../store';
 import { storyEventViewModel } from '../view-models';
 
@@ -74,6 +75,30 @@ describe('M4 resolved events survive a reload without rerolling or double-paying
       { ...reloaded, phase: 'manage', pendingEvent: undefined },
       'giant-spider-arrives',
     )).toThrow('already resolved');
+  });
+
+  it('drops a pending story the shipped catalog no longer contains', () => {
+    const staged = awakenedCareerAtEvent(456, 'giant-spider-arrives');
+    // A content update that renames or retires an event must not brick the save
+    // of a player who had it on screen when they updated.
+    const orphaned: GameState = {
+      ...staged,
+      pendingEvent: { eventId: 'retired-in-a-later-content-drop' },
+    };
+
+    const recovered = reconcilePendingStoryEvent(orphaned, content.events);
+
+    expect(recovered.pendingEvent).toBeUndefined();
+    expect(() => storyEventViewModel(recovered, content)).toThrow('no pending story event');
+  });
+
+  it('keeps a pending story the catalog still contains', () => {
+    const staged = awakenedCareerAtEvent(456, 'giant-spider-arrives');
+
+    const recovered = reconcilePendingStoryEvent(staged, content.events);
+
+    expect(recovered).toBe(staged);
+    expect(recovered.pendingEvent?.eventId).toBe('giant-spider-arrives');
   });
 
   it('resolves every risky choice to the identical authored outcome on reload', () => {

@@ -7,6 +7,7 @@ export * from './CoachStaffOverlay';
 export * from './FacilityProjectNotice';
 export * from './PlayerSigningOverlay';
 export * from './TutorialTapCue';
+export * from './ScreenErrorBoundary';
 export * from './models';
 export * from './market-models';
 export * from './m2-league-models';
