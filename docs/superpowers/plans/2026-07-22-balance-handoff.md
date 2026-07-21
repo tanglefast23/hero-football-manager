@@ -157,8 +157,21 @@ hand-authored launch clubs at 49–55 — **a full division too strong for its s
 Attacking powers waste **0.00** windows/match. Defensive powers waste 49–61%.
 Decoy Double wastes 3.85 per match and is **0% usable manually**.
 
-**A hero is currently worth +0.3 to +0.6 squad points.** `docs/09` targets a
-15–25% win-rate uplift ≈ +0.7 to +1.2, so powers are *below the existing target*.
+**A hero is currently worth +0.3 to +0.6 squad points** — roughly a 6–12%
+win-rate uplift, i.e. below even the old `docs/09` bar.
+
+**The target was rewritten on 2026-07-22.** `docs/09-tech-stack.md` now carries a
+"Hero uplift target" section replacing the old "15–25% win-rate uplift" line:
+
+| Case | Target worth |
+|---|---|
+| **Tier 1, auto-fired** — balance the leagues against this | **+2** |
+| Tier 1, tapped well | +2.5 – 3 |
+| Tier 3, tapped well (endgame, D1) | **+4** |
+
+Near an even match, **1 squad point ≈ 8 percentage points of win rate**. Assert
+uplift at **1,000 seeds minimum** — at 200 the standard error is ~0.09, so any
+difference under ~0.19 is noise. Firing counts are reliable at 200; worth is not.
 
 ### Heat sources
 
