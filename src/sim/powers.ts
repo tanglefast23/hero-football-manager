@@ -46,9 +46,25 @@ export function teamPowerBusy(state: MatchState, team: 0 | 1): boolean {
 export function addGauge(state: MatchState, idx: number, amount: number): void {
   const p = state.players[idx];
   if (!p.def.power || p.powerState.kind !== 'idle') return;
-  if (teamPowerBusy(state, p.team)) return; // heat freezes while a teammate's power is winding/active
+  // Rally Cry exists to charge teammates, so it is the one power whose own
+  // activity must not freeze their heat — otherwise it cancels itself out.
+  const rally = rallyCryMultiplier(state, idx);
+  if (rally === 1 && teamPowerBusy(state, p.team)) return;
   const ratePercent = state.teams[p.team].heroGaugeRatePercent ?? 100;
-  p.gauge = Math.min(GAUGE_CAP, p.gauge + amount * ratePercent / 100);
+  p.gauge = Math.min(GAUGE_CAP, p.gauge + amount * rally * ratePercent / 100);
+}
+
+/** Heat multiplier from a nearby teammate's active Rally Cry. */
+function rallyCryMultiplier(state: MatchState, idx: number): number {
+  const p = state.players[idx];
+  for (let candidate = 0; candidate < 22; candidate += 1) {
+    if (candidate === idx) continue;
+    const mate = state.players[candidate];
+    if (mate.team !== p.team || mate.def.power !== 'RALLY_CRY') continue;
+    if (!isActive(state, candidate)) continue;
+    if (dist2(p.pos, mate.pos) < RALLY_CRY_RANGE * RALLY_CRY_RANGE) return RALLY_CRY_MULTIPLIER;
+  }
+  return 1;
 }
 
 export function interruptWindup(state: MatchState, idx: number): void {
@@ -102,6 +118,14 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
   // Sight target, so settling can never select a target the windup would drop.
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
   if (power === 'WEB_TRAP' || power === 'FUTURE_SIGHT') return oppCarrierNear(1900);
+  if (power === 'ICE_RINK' || power === 'GRAVITY_WELL' || power === 'SHADOW_MARK') {
+    return oppCarrierNear(1900);
+  }
+  if (power === 'GIANT_GK') {
+    if (p.def.role !== 'GK') return false;
+    if (b.kind === 'shot') return state.players[b.by].team !== p.team;
+    return b.kind === 'held' && state.players[b.by].team !== p.team;
+  }
   if (power === 'PORTAL_PASS' || power === 'DECOY_DOUBLE') return isCarrier;
   if (power === 'ELASTIC_KEEPER') {
     if (p.def.role !== 'GK') return false;
@@ -112,7 +136,11 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
 }
 
 function requiresTarget(power: PowerId): boolean {
-  return power === 'PORTAL_PASS'
+  return power === 'ICE_RINK'
+    || power === 'GRAVITY_WELL'
+    || power === 'SHADOW_MARK'
+    || power === 'GIANT_GK'
+    || power === 'PORTAL_PASS'
     || power === 'DECOY_DOUBLE'
     || power === 'FUTURE_SIGHT'
     || power === 'SUPER_STRENGTH'
@@ -125,6 +153,16 @@ function requiresTarget(power: PowerId): boolean {
 // and "someone is close enough to catch fire" can never drift apart, the same
 // guarantee STRENGTH_LOCK_RANGE gives Super Strength.
 const TORCH_IGNITE_RANGE = 800;
+/** m1.13 ranges, sized against the existing proximity powers (Web Trap 1500, Future Sight 1900). */
+const ICE_RINK_RANGE = 1500;
+const ICE_RINK_SLOW_RADIUS = 900;
+const ICE_RINK_SLOW = 0.55;
+const GRAVITY_WELL_RANGE = 1500;
+const GRAVITY_WELL_PULL = 260;
+const SHADOW_MARK_RANGE = 1900;
+const RALLY_CRY_RANGE = 2600;
+const RALLY_CRY_TEAMMATE_HEAT = 35;
+const RALLY_CRY_MULTIPLIER = 3;
 export const WEB_TRAP_TRIGGER_RANGE = 650;
 const FUTURE_SIGHT_INTERCEPT_RANGE = 2400;
 // SUPER_SPEED's useful context distance to a loose ball worth a sprint for.
@@ -154,6 +192,22 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
   if (power === 'WEB_TRAP') return oppCarrierNear(1500);
   if (power === 'FUTURE_SIGHT') return oppCarrierNear(1900);
+  // m1.13 powers: every trigger is a sustained situation, never "hold the ball
+  // this instant", so they stay usable from any outfield position.
+  if (power === 'RALLY_CRY') {
+    // Worth firing once a teammate is genuinely close to their own window.
+    return state.players.some((mate, i) => i !== idx && mate.team === p.team
+      && mate.def.power !== undefined && mate.powerState.kind === 'idle'
+      && mate.gauge >= RALLY_CRY_TEAMMATE_HEAT);
+  }
+  if (power === 'ICE_RINK') return oppCarrierNear(ICE_RINK_RANGE);
+  if (power === 'GRAVITY_WELL') return oppCarrierNear(GRAVITY_WELL_RANGE);
+  if (power === 'SHADOW_MARK') return oppCarrierNear(SHADOW_MARK_RANGE);
+  if (power === 'GIANT_GK') {
+    if (p.def.role !== 'GK') return false;
+    if (b.kind === 'shot') return state.players[b.by].team !== p.team;
+    return b.kind === 'held' && state.players[b.by].team !== p.team;
+  }
   if (power === 'ELASTIC_KEEPER') {
     if (p.def.role !== 'GK') return false;
     if (b.kind === 'shot') return state.players[b.by].team !== p.team;
@@ -297,6 +351,11 @@ const DUR: Record<PowerId, number> = {
   SUPER_STRENGTH: 110,
   WEB_TRAP: 70,
   ELASTIC_KEEPER: 90,
+  RALLY_CRY: 120,
+  ICE_RINK: 90,
+  SHADOW_MARK: 100,
+  GRAVITY_WELL: 50,
+  GIANT_GK: 90,
 };
 
 export function isActive(state: MatchState, idx: number): boolean {
@@ -339,34 +398,21 @@ export function knockOut(state: MatchState, idx: number, untilTick: number, reas
   p.outReason = reason;
 }
 
-function sendOff(state: MatchState, idx: number): void {
-  knockOut(state, idx, Number.MAX_SAFE_INTEGER, 'redcard');
-  emit(state, { t: state.tick, kind: 'CARD', player: idx, color: 'red' });
-}
-
-function rollCard(state: MatchState, idx: number, yellowP: number, redP: number): void {
-  const r = state.rng();
-  const p = state.players[idx];
-  if (r < redP) {
-    p.cards = 2;
-    sendOff(state, idx);
-  } else if (r < redP + yellowP) {
-    p.cards = Math.min(2, p.cards + 1) as 0 | 1 | 2;
-    emit(state, { t: state.tick, kind: 'CARD', player: idx, color: 'yellow' });
-    if (p.cards === 2) sendOff(state, idx); // second yellow = red, real soccer rules (Task 5 review ruling)
-  }
-}
+// Hero License canon (docs/04): a licensed power is sanctioned play, so firing
+// one never books its user. Fire Torch and Super Strength were the only sources
+// of cards in the sim, so sendOff/rollCard went with them. SimPlayer.cards, the
+// CARD event and the 'redcard' out-reason remain in the schema but are now
+// unreachable — kept so saved replays and their UI still deserialize.
 
 export function activatePower(state: MatchState, idx: number, strength: number, targetIdx?: number): void {
   const p = state.players[idx];
   const power = p.def.power!;
   emit(state, { t: state.tick, kind: 'POWER_FIRED', player: idx, power, strength });
   p.powerState = { kind: 'active', untilTick: state.tick + Math.round(DUR[power] * strength), strength };
-  p.powerAnchor = power === 'WEB_TRAP' ? { ...p.pos } : undefined;
+  p.powerAnchor = power === 'WEB_TRAP' || power === 'ICE_RINK' ? { ...p.pos } : undefined;
   p.gauge = 0;
 
   if (power === 'FIRE_TORCH') {
-    rollCard(state, idx, 0.15, 0);
     let nearest = -1, nearestD2 = TORCH_IGNITE_RANGE * TORCH_IGNITE_RANGE;
     for (let i = 0; i < 22; i++) {
       const o = state.players[i];
@@ -382,7 +428,6 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       emit(state, { t: state.tick, kind: 'IGNITED', player: nearest });
     }
   } else if (power === 'SUPER_STRENGTH') {
-    rollCard(state, idx, 0.25, 0.05);
     if (p.outUntilTick <= state.tick && targetIdx !== undefined) {
       const target = state.players[targetIdx];
       if (target.outUntilTick <= state.tick && dist2(target.pos, p.pos) < STRENGTH_LAND_RANGE * STRENGTH_LAND_RANGE) {
@@ -402,6 +447,18 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     if (state.ball.kind === 'held' && state.ball.by === idx) {
       const teammate = bestForwardTeammate(state, idx);
       if (teammate !== -1) state.ball = { kind: 'held', by: teammate };
+    }
+  } else if (power === 'GRAVITY_WELL') {
+    // Drags every nearby opponent toward the hero, opening lanes elsewhere.
+    for (let candidate = 0; candidate < 22; candidate += 1) {
+      const opponent = state.players[candidate];
+      if (opponent.team === p.team || opponent.outUntilTick > state.tick) continue;
+      if (dist2(opponent.pos, p.pos) >= GRAVITY_WELL_RANGE * GRAVITY_WELL_RANGE) continue;
+      const pull = Math.round(GRAVITY_WELL_PULL * strength);
+      opponent.pos = {
+        x: opponent.pos.x + Math.sign(p.pos.x - opponent.pos.x) * pull,
+        y: opponent.pos.y + Math.sign(p.pos.y - opponent.pos.y) * pull,
+      };
     }
   } else if (power === 'DECOY_DOUBLE') {
     const marker = nearestOpponentIndex(state, idx, 1300);
@@ -507,6 +564,24 @@ export function speedMultiplier(state: MatchState, idx: number): number {
   return 1;
 }
 
+/** Opponents crossing an active enemy Ice Rink lose their footing. */
+export function iceRinkSlow(state: MatchState, idx: number): number {
+  const p = state.players[idx];
+  for (let candidate = 0; candidate < 22; candidate += 1) {
+    const hero = state.players[candidate];
+    if (hero.team === p.team || hero.def.power !== 'ICE_RINK') continue;
+    const anchor = hero.powerAnchor;
+    if (anchor === undefined || !isActive(state, candidate)) continue;
+    if (dist2(p.pos, anchor) < ICE_RINK_SLOW_RADIUS * ICE_RINK_SLOW_RADIUS) return ICE_RINK_SLOW;
+  }
+  return 1;
+}
+
+/** Shadow Mark: passers stop accounting for this defender while it is active. */
+export function isShadowMarked(state: MatchState, idx: number): boolean {
+  return isActive(state, idx) && state.players[idx].def.power === 'SHADOW_MARK';
+}
+
 export function dribbleBonus(state: MatchState, carrierIdx: number): number {
   const player = state.players[carrierIdx];
   // Super Speed visibly spools up during its interruptible wind-up. The bonus is
@@ -537,7 +612,11 @@ export function defenseBonus(state: MatchState, idx: number): number {
 }
 
 export function keeperSaveBonus(state: MatchState, idx: number): number {
-  return isActive(state, idx) && state.players[idx].def.power === 'ELASTIC_KEEPER' ? 70 : 0;
+  if (!isActive(state, idx)) return 0;
+  const power = state.players[idx].def.power;
+  if (power === 'ELASTIC_KEEPER') return 70;
+  // Giant GK covers less than a full stretch but holds it for a whole attack.
+  return power === 'GIANT_GK' ? 55 : 0;
 }
 
 export function phaseRunPreventsShot(state: MatchState, idx: number): boolean {

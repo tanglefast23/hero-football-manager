@@ -2,7 +2,7 @@ import { createMatch, queueInput, tick } from '../match';
 import { speedFor } from '../engine';
 import { activatePower, addGauge, inUsefulContext, interruptWindup, knockOut, ZONE_WINDOW_TICKS } from '../powers';
 import { ROVERS, UNITED } from '../teams';
-import type { MatchState } from '../types';
+import type { MatchState, PowerId } from '../types';
 
 const SPEEDSTER = 10; // Zip Vela (SAVE_FOR_TAP by default)
 const RIVAL = 14;     // Rex Bould, United SUPER_STRENGTH (FIRE_WHEN_READY by default)
@@ -283,27 +283,23 @@ describe('power effects', () => {
     expect(m.players[SPEEDSTER].gauge).toBe(0);
   });
 
-  it('FIRE_TORCH applies its seeded 15% yellow-card boundary', () => {
-    const card = createMatch(42, ROVERS, UNITED);
-    card.rng = () => 0.149;
-    activatePower(card, 9, 1);
-    expect(card.events).toContainEqual(expect.objectContaining({ kind: 'CARD', player: 9, color: 'yellow' }));
-
-    const clean = createMatch(42, ROVERS, UNITED);
-    clean.rng = () => 0.15;
-    activatePower(clean, 9, 1);
-    expect(clean.events.some(e => e.kind === 'CARD')).toBe(false);
-  });
-
-  it('a second yellow card sends the player off (red + permanent out)', () => {
-    const m = createMatch(42, ROVERS, UNITED);
-    m.players[9].cards = 1;
-    m.rng = () => 0.10; // forces the yellow branch for FIRE_TORCH (redP 0, yellowP 0.15)
-    activatePower(m, 9, 1);
-    const cards = m.events.filter(e => e.kind === 'CARD' && (e as { player: number }).player === 9) as Array<{ color: string }>;
-    expect(cards.map(c => c.color)).toEqual(['yellow', 'red']);
-    expect(m.players[9].outUntilTick).toBe(Number.MAX_SAFE_INTEGER);
-    expect(m.players[9].outReason).toBe('redcard');
+  // Hero License canon (docs/04): a licensed power is legal play, so using one
+  // can never book its user. Both teams get the same free pass.
+  it.each([
+    ['FIRE_TORCH', 9],
+    ['SUPER_STRENGTH', 2],
+  ])('%s never books its user, at any roll', (power, slot) => {
+    for (const roll of [0, 0.04, 0.1, 0.149, 0.24, 0.29, 0.99]) {
+      const home = { ...ROVERS, players: ROVERS.players.map((p, i) => (
+        i === slot ? { ...p, power: power as PowerId } : { ...p, power: undefined }
+      )) };
+      const m = createMatch(42, home, UNITED);
+      m.rng = () => roll;
+      activatePower(m, slot, 1);
+      expect(m.events.some(e => e.kind === 'CARD')).toBe(false);
+      expect(m.players[slot].outReason).not.toBe('redcard');
+      expect(m.players[slot].cards).toBe(0);
+    }
   });
 });
 
@@ -388,12 +384,14 @@ describe('frozen-team bug: knockOut clears an active/winding power instead of fr
     expect(ready).toBe(true);
   });
 
-  it('a second-yellow activation frees the team so Zip can still enter the Zone', () => {
+  // Cards no longer exist (Hero License free pass), so a permanent removal is
+  // now reached by being ignited rather than sent off. The team-freeing
+  // behaviour under test is unchanged.
+  it('a permanently removed hero frees the team so Zip can still enter the Zone', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    m.players[9].cards = 1;
-    m.rng = () => 0.10; // FIRE_TORCH yellow branch; the existing yellow becomes red
     activatePower(m, 9, 1);
-    expect(m.players[9].outReason).toBe('redcard');
+    knockOut(m, 9, Number.MAX_SAFE_INTEGER, 'ignited');
+    expect(m.players[9].outReason).toBe('ignited');
     expect(m.players[9].powerState.kind).toBe('idle');
 
     m.players[SPEEDSTER].gauge = 199;

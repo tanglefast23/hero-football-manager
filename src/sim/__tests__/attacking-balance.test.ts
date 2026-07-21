@@ -60,14 +60,15 @@ describe('attacking decision balance', () => {
     expect(zoneEntriesPerMatch).toBeGreaterThanOrEqual(3);
     expect(zoneEntriesPerMatch).toBeLessThanOrEqual(14);
     // Natural-match reachability matters as much as the rigged power contracts:
-    // the launch rival must regularly threaten Super Strength and its seeded
-    // discipline risk must surface without a test-only activation.
+    // the launch rival must regularly threaten Super Strength without a
+    // test-only activation.
     expect(zoneEntriesByPlayer[14] / matches).toBeGreaterThanOrEqual(1.5);
     expect(zoneEntriesByPlayer[14] / matches).toBeLessThanOrEqual(3.5);
     expect(powerFiresByPlayer[14] / matches).toBeGreaterThanOrEqual(0.5);
     expect(powerFiresByPlayer[14] / matches).toBeLessThanOrEqual(1.5);
-    expect(matchesWithRivalCard / matches).toBeGreaterThanOrEqual(0.1);
-    expect(matchesWithRivalCard / matches).toBeLessThanOrEqual(0.5);
+    // Hero License canon (docs/04, m1.12): the exemption is symmetric, so a
+    // rival firing Super Strength all match is never booked for it either.
+    expect(matchesWithRivalCard).toBe(0);
   }, 60000);
 
   it('keeps unpressured attacking-third backpasses exceptional across seeds', () => {

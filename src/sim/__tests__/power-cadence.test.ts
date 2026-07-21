@@ -31,6 +31,11 @@ const CARRIER_SLOT: Record<PowerId, number> = {
   SUPER_STRENGTH: 2,
   WEB_TRAP: 2,
   ELASTIC_KEEPER: 0,
+  RALLY_CRY: 6,
+  ICE_RINK: 2,
+  SHADOW_MARK: 2,
+  GRAVITY_WELL: 6,
+  GIANT_GK: 0,
 };
 
 /** Powers that carry the match and must never quietly stop firing. */

@@ -18,6 +18,11 @@ const PRESENTATION: Record<PowerId, PowerCutInPresentation> = {
   SUPER_STRENGTH: { name: 'Super Strength', glyph: '✹', color: '#edb54a' },
   WEB_TRAP: { name: 'Web Trap', glyph: '#', color: '#f4f1ea' },
   ELASTIC_KEEPER: { name: 'Elastic Keeper', glyph: '↔', color: '#8fd98f' },
+  RALLY_CRY: { name: 'Rally Cry', glyph: '!!', color: '#edb54a' },
+  ICE_RINK: { name: 'Ice Rink', glyph: '❄', color: '#a3c8f0' },
+  SHADOW_MARK: { name: 'Shadow Mark', glyph: '◑', color: '#8a7fb0' },
+  GRAVITY_WELL: { name: 'Gravity Well', glyph: '◍', color: '#c9a6ec' },
+  GIANT_GK: { name: 'Giant GK', glyph: '⬆', color: '#8fd98f' },
 };
 
 export function powerCutInPresentation(power: PowerId): PowerCutInPresentation {

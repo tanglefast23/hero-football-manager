@@ -44,9 +44,9 @@ describe('validated M1 launch content', () => {
 
     expect(new Set(clubIds).size).toBe(clubIds.length);
     expect(new Set(playerIds).size).toBe(playerIds.length);
-    // Magnet Touch was cut at M4; the schema now allows 11-12 so a twelfth
-    // can be chosen later without another save migration.
-    expect(content.powers.powers).toHaveLength(11);
+    // Magnet Touch was cut at M4. m1.13 added five position-friendly powers,
+    // so the schema now allows 16-20 and a further four can ship as data.
+    expect(content.powers.powers).toHaveLength(16);
     expect(content.powers.powers.filter(power => power.requiresTarget).map(power => power.id)).toEqual([
       'PORTAL_PASS',
       'DECOY_DOUBLE',
@@ -54,6 +54,10 @@ describe('validated M1 launch content', () => {
       'SUPER_STRENGTH',
       'WEB_TRAP',
       'ELASTIC_KEEPER',
+      'ICE_RINK',
+      'SHADOW_MARK',
+      'GRAVITY_WELL',
+      'GIANT_GK',
     ]);
     expect(content.powers.powers.filter(power => power.tier === 'starter').length).toBeGreaterThanOrEqual(3);
     expect(content.training.focusDrills).toHaveLength(6);
@@ -217,8 +221,13 @@ describe('validated M1 launch content', () => {
       'ELASTIC_KEEPER',
       'FIRE_TORCH',
       'FUTURE_SIGHT',
+      'GIANT_GK',
+      'GRAVITY_WELL',
+      'ICE_RINK',
       'PHASE_RUN',
       'PORTAL_PASS',
+      'RALLY_CRY',
+      'SHADOW_MARK',
       'SUPER_SPEED',
       'SUPER_STRENGTH',
       'THUNDER_STRIKE',

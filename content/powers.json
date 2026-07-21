@@ -114,6 +114,56 @@
       "usefulContext": "SHOT_INCOMING",
       "requiresTarget": true,
       "windupTicks": 15
+    },
+    {
+      "id": "RALLY_CRY",
+      "name": "Rally Cry",
+      "tier": "standard",
+      "category": "attack",
+      "description": "Roar the nearby squad forward — their power meters fill far faster.",
+      "usefulContext": "TEAMMATES_READY",
+      "requiresTarget": false,
+      "windupTicks": 15
+    },
+    {
+      "id": "ICE_RINK",
+      "name": "Ice Rink",
+      "tier": "standard",
+      "category": "defense",
+      "description": "Freeze the turf underfoot; opponents crossing it lose their footing.",
+      "usefulContext": "DRIBBLE_LANE",
+      "requiresTarget": true,
+      "windupTicks": 15
+    },
+    {
+      "id": "SHADOW_MARK",
+      "name": "Shadow Mark",
+      "tier": "standard",
+      "category": "defense",
+      "description": "Slip out of the passer's read until you make your challenge.",
+      "usefulContext": "DANGEROUS_CARRIER",
+      "requiresTarget": true,
+      "windupTicks": 15
+    },
+    {
+      "id": "GRAVITY_WELL",
+      "name": "Gravity Well",
+      "tier": "standard",
+      "category": "attack",
+      "description": "Drag nearby opponents toward you and tear a lane open elsewhere.",
+      "usefulContext": "DANGEROUS_CARRIER",
+      "requiresTarget": true,
+      "windupTicks": 15
+    },
+    {
+      "id": "GIANT_GK",
+      "name": "Giant GK",
+      "tier": "standard",
+      "category": "defense",
+      "description": "Swell to fill the goalmouth for the whole attack.",
+      "usefulContext": "SHOT_INCOMING",
+      "requiresTarget": true,
+      "windupTicks": 15
     }
   ]
 }

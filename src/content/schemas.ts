@@ -14,6 +14,11 @@ export const PowerIdSchema = z.enum([
   'SUPER_STRENGTH',
   'WEB_TRAP',
   'ELASTIC_KEEPER',
+  'RALLY_CRY',
+  'ICE_RINK',
+  'SHADOW_MARK',
+  'GRAVITY_WELL',
+  'GIANT_GK',
 ]);
 export const AttributeSchema = z.enum(['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref']);
 export const ArchetypeSchema = z.enum([
@@ -99,6 +104,7 @@ export const PowerDefinitionSchema = z.strictObject({
     'DANGEROUS_CARRIER',
     'DRIBBLE_LANE',
     'SHOT_INCOMING',
+    'TEAMMATES_READY',
   ]),
   requiresTarget: z.boolean(),
   windupTicks: z.number().int().min(1).max(100),
@@ -110,7 +116,7 @@ export const PowerCatalogSchema = z.strictObject({
     postMatchChancePercent: z.literal(10),
     minimumMatchesBetween: z.literal(3),
   }),
-  powers: z.array(PowerDefinitionSchema).min(11).max(12),
+  powers: z.array(PowerDefinitionSchema).min(16).max(20),
 }).superRefine((catalog, context) => {
   addDuplicateIssues(catalog.powers.map(power => power.id), context, ['powers'], 'power ID');
 });
@@ -147,7 +153,7 @@ export const OnboardingContentSchema = z.strictObject({
     powerId: PowerIdSchema,
     omen: displayNameSchema,
     reveal: displayNameSchema,
-  })).min(11).max(12),
+  })).min(16).max(20),
 }).superRefine((content, context) => {
   addDuplicateIssues(content.triggers.map(trigger => trigger.id), context, ['triggers'], 'awakening trigger');
   addDuplicateIssues(content.powers.map(power => power.powerId), context, ['powers'], 'power');
