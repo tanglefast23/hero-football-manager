@@ -8,6 +8,7 @@ import {
   careerCoachWageLedgerAmount,
   createFacilityGrid,
   currentUserDivision,
+  difficultyRules,
   fixturesForCurrentWeek,
   isAssistantInboxOneShotProductVisible,
   latestSeasonRecap,
@@ -146,6 +147,7 @@ export function awakeningCutsceneViewModel(
 
 export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
   const club = requireUserClub(state);
+  const wageSubsidyPercent = difficultyRules(state).seasonOneWageSubsidyPercent;
   const latest = state.ledgers[state.ledgers.length - 1];
   const facilityUpkeep = state.careerMode !== 'full' || state.facilities.grid === undefined
     ? 0
@@ -178,10 +180,12 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       label: 'Facility upkeep',
       amount: -facilityUpkeep,
     }]),
-    ...(state.season === 1 ? [{
+    ...(state.season === 1 && wageSubsidyPercent > 0 ? [{
       kind: 'subsidy' as const,
       label: 'Season 1 wage subsidy',
-      amount: Math.floor((club.weeklyWages + Math.abs(coachWage)) / 2),
+      amount: Math.floor(
+        (club.weeklyWages + Math.abs(coachWage)) * wageSubsidyPercent / 100,
+      ),
     }] : []),
   ];
   const weeklyNet = recurringProjectionLines.reduce((sum, line) => sum + line.amount, 0);
@@ -215,7 +219,9 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       })),
     weeklyNet,
     projectedBalance: club.cash + weeklyNet,
-    ...(state.season === 1 ? { wageSubsidyLabel: 'Season 1 support covers half of weekly wages' } : {}),
+    ...(state.season === 1 && wageSubsidyPercent > 0
+      ? { wageSubsidyLabel: `Season 1 support covers ${wageSubsidyPercent}% of weekly wages` }
+      : {}),
     trainingGround: {
       built: state.facilities.trainingGroundBuilt,
       underConstruction: trainingGroundProject !== undefined,
@@ -487,9 +493,7 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
       ? {
           successCutscene: {
             artKey: `${event.art}-success`,
-            headline: event.id === 'giant-spider-arrives'
-              ? 'A mascot is born!'
-              : `${event.title.replace(/[!?]+$/, '')}: success!`,
+            headline: resolvedOutcome.successHeadline ?? event.title.replace(/[!?]+$/, ''),
             rewards: eventRewardLabels(resolvedOutcome.effects),
             ...(pending.resolvedNextEventId === undefined ? {} : { hasFollowUp: true as const }),
           },
@@ -1659,6 +1663,14 @@ function eventRewardLabels(
   if (morale !== 0) rewards.push(`${morale > 0 ? '+' : ''}${morale} squad morale`);
   if (fans !== 0) rewards.push(`${fans > 0 ? '+' : ''}${fans} fans`);
   if (trainingPoints !== 0) rewards.push(`${trainingPoints > 0 ? '+' : ''}${trainingPoints} TP`);
+  for (const effect of effects) {
+    if (effect.type === 'statDelta' && effect.amount !== 0) {
+      rewards.push(`${effect.amount > 0 ? '+' : ''}${effect.amount} ${effect.attribute.toUpperCase()}`);
+    }
+    if (effect.type === 'injury') {
+      rewards.push(`${effect.weeks} week${effect.weeks === 1 ? '' : 's'} out injured`);
+    }
+  }
   return rewards;
 }
 

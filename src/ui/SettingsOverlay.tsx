@@ -197,7 +197,7 @@ export function SettingsOverlay({
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4 }}>
             <Text className="font-pixel text-2xl uppercase text-ink">Settings</Text>
             {accessibilityCopy ? (
-              <View className="mt-3 border-l-4 border-violet-dark bg-violet-light px-3 py-2">
+              <View className="mt-3 border-2 border-violet-dark bg-violet-light px-3 py-2">
                 <Text className="text-sm font-bold uppercase text-violet-dark">{accessibilityCopy.title}</Text>
                 <Text className="mt-1 text-sm leading-5 text-ink/65">{accessibilityCopy.body}</Text>
               </View>

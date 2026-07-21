@@ -339,6 +339,8 @@ const EventEffectSchema = z.discriminatedUnion('type', [
 const EventOutcomeSchema = z.strictObject({
   weight: z.number().int().min(1).max(1000),
   text: displayNameSchema,
+  /** Bespoke banner for the risky-success cutscene; required on every risky win. */
+  successHeadline: displayNameSchema.optional(),
   effects: z.array(EventEffectSchema),
   nextEventId: idSchema.optional(),
 });
@@ -370,6 +372,9 @@ const EventChoiceSchema = z.strictObject({
     effect => effect.type === 'flag' && effect.value,
   ) === true,
   'a risky event choice must mark its first outcome as the authored success',
+).refine(
+  choice => !choice.risky || (choice.outcomes[0]?.successHeadline?.trim().length ?? 0) > 0,
+  'a risky event choice must author a bespoke success headline for its cutscene',
 );
 
 export const GameEventSchema = z.strictObject({
@@ -406,8 +411,8 @@ export const GameEventSchema = z.strictObject({
 export const EventCatalogSchema = z.strictObject({
   schemaVersion: ContentSchemaVersion,
   tuning: z.strictObject({
-    weeklyChancePercent: z.literal(18),
-    guaranteeAfterDryWeeks: z.literal(8),
+    weeklyChancePercent: z.number().int().min(1).max(100),
+    guaranteeAfterDryWeeks: z.number().int().min(1).max(30),
   }),
   events: z.array(GameEventSchema).min(1),
 }).superRefine((catalog, context) => {

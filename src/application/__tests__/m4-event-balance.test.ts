@@ -1,7 +1,46 @@
 import { loadLaunchContent } from '../../content';
-import { createCareer } from '../../game';
+import { applyCareerEventOutcome, createCareer, offerCareerEvent } from '../../game';
 import { eventOfferForWeek } from '../event-selection';
 import { createLaunchCareerSetup } from '../launch';
+import { storyEventViewModel } from '../view-models';
+
+describe('M4 risky-success cutscene rewards', () => {
+  it('names every kind of earned bonus, including squad development', () => {
+    const content = loadLaunchContent();
+    const spider = content.events.events.find(event => event.id === 'giant-spider-arrives')!;
+    const withDevelopment = {
+      ...content,
+      events: {
+        ...content.events,
+        events: content.events.events.map(event => event.id !== spider.id ? event : {
+          ...event,
+          choices: event.choices.map(choice => choice.id !== 'adopt-spider' ? choice : {
+            ...choice,
+            outcomes: choice.outcomes.map((outcome, index) => index !== 0 ? outcome : {
+              ...outcome,
+              effects: [
+                ...outcome.effects,
+                { type: 'statDelta' as const, attribute: 'tec' as const, amount: 2 },
+                { type: 'injury' as const, weeks: 2 },
+              ],
+            }),
+          }),
+        }),
+      },
+    };
+    const initial = createCareer(createLaunchCareerSetup());
+    const resolved = applyCareerEventOutcome(
+      offerCareerEvent(initial, spider.id),
+      'adopt-spider',
+      'The spider becomes the mascot.',
+      { moraleDelta: 10, fanDelta: 100 } as never,
+      { outcomeIndex: 0, risky: true, success: true },
+    );
+
+    expect(storyEventViewModel(resolved, withDevelopment).successCutscene?.rewards)
+      .toEqual(['+10 squad morale', '+100 fans', '+2 TEC', '2 weeks out injured']);
+  });
+});
 
 describe('M4 event balance rails', () => {
   const catalog = loadLaunchContent().events;

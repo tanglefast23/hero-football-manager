@@ -4,12 +4,14 @@ import { ActionButton, SectionLabel, StatusChip } from '../components/Scorecard'
 import type { PostMatchViewModel } from '../models';
 import { SettingsButton } from '../SettingsOverlay';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
+import { scaledBody } from '../text-scale';
+import type { TextScale } from '../../persistence';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
   onContinue: () => void;
   onReplayHighlight?: (highlightId: string) => void;
-  reduceMotion?: boolean;
+  textScale?: TextScale;
   onOpenSettings: () => void;
 }
 
@@ -18,6 +20,7 @@ export function PostMatchLedgerScreen({
   onContinue,
   onReplayHighlight,
   onOpenSettings,
+  textScale = 1,
 }: PostMatchLedgerScreenProps) {
   const { result } = viewModel;
   const resultTone = result.outcomeLabel === 'WIN'
@@ -51,7 +54,7 @@ export function PostMatchLedgerScreen({
           <View className="mt-4 -rotate-2 border-2 border-stamp px-4 py-2">
             <Text className="text-xl font-bold uppercase text-stamp">{result.outcomeLabel}</Text>
           </View>
-          <Text className="mt-4 text-center text-base text-ink/70">{result.headline}</Text>
+          <Text className="mt-4 text-center text-ink/70" style={scaledBody(textScale)}>{result.headline}</Text>
         </View>
 
         {viewModel.highlights.length ? (
@@ -69,7 +72,7 @@ export function PostMatchLedgerScreen({
                   style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
                 >
                   <Text className="w-12 font-mono text-base font-bold text-gold-dark">{highlight.minuteLabel}</Text>
-                  <Text className="flex-1 text-base text-ink">{highlight.description}</Text>
+                  <Text className="flex-1 text-ink" style={scaledBody(textScale)}>{highlight.description}</Text>
                   {onReplayHighlight ? <Text className="font-mono text-base text-blue-dark">▶</Text> : null}
                 </Pressable>
               ))}

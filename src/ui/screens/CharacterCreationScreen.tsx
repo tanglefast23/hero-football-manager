@@ -17,6 +17,8 @@ import {
   type OutfieldCreationStat,
 } from '../../game';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
+import { scaledBody } from '../text-scale';
+import type { TextScale } from '../../persistence';
 import { SettingsButton } from '../SettingsOverlay';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { playManagementHaptic } from '../../render/haptics';
@@ -26,7 +28,7 @@ export interface CharacterCreationScreenProps {
   onOpenSettings: () => void;
   guideCopy?: { title: string; body: string };
   difficultyCopy?: { title: string; body: string };
-  textScale?: number;
+  textScale?: TextScale;
 }
 
 const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }> = {
@@ -88,7 +90,7 @@ export function CharacterCreationScreen({
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
         {guideCopy ? (
           <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="No stat effect">
-            <Text className="text-base leading-6 text-ink/70" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{guideCopy.body}</Text>
+            <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
           </PaperPanel>
         ) : null}
         <PaperPanel kicker="Paper doll" title="Choose their look" stamp="Saved" className="mt-5">
@@ -122,7 +124,7 @@ export function CharacterCreationScreen({
         </PaperPanel>
 
         <PaperPanel kicker="Career pressure" title="Choose difficulty" stamp={difficulty} className="mt-5">
-          {difficultyCopy ? <Text className="mb-4 text-base leading-6 text-ink/70" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{difficultyCopy.body}</Text> : null}
+          {difficultyCopy ? <Text className="mb-4 text-ink/70" style={scaledBody(textScale)}>{difficultyCopy.body}</Text> : null}
           <View className="gap-3">
             {([
               ['COZY', 'First-season wage subsidy, full sponsor terms, slower board intervention.'],

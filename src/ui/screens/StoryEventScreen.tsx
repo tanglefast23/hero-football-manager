@@ -8,6 +8,8 @@ import { EventArtwork } from '../components/EventArtwork';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SettingsButton } from '../SettingsOverlay';
 import type { StoryEventChoiceViewModel, StoryEventViewModel } from '../models';
+import { scaledBody } from '../text-scale';
+import type { TextScale } from '../../persistence';
 
 export interface StoryEventScreenProps {
   viewModel: StoryEventViewModel;
@@ -17,12 +19,11 @@ export interface StoryEventScreenProps {
   onOpenSettings: () => void;
   reduceMotion?: boolean;
   guideCopy?: { title: string; body: string };
-  textScale?: number;
+  textScale?: TextScale;
 }
 
-function choiceClass(choice: StoryEventChoiceViewModel, resolvedChoiceId?: string): string {
-  if (resolvedChoiceId === choice.id) return 'border-violet-dark bg-violet-light';
-  if (resolvedChoiceId || choice.disabled) return 'border-ink/20 bg-white opacity-40';
+function choiceClass(choice: StoryEventChoiceViewModel): string {
+  if (choice.disabled) return 'border-ink/20 bg-white opacity-40';
   return choice.tone === 'risky' ? 'border-stamp bg-red-100' : 'border-ink/30 bg-white';
 }
 
@@ -39,6 +40,7 @@ export function StoryEventScreen({
   const resolved = Boolean(viewModel.resolvedChoiceId && viewModel.outcomeText);
   const needsPlayer = viewModel.playerSelectionRequired && !viewModel.selectedPlayer;
   const reveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const rewardReveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const playedSuccessKey = useRef<string | null>(null);
   const successKey = viewModel.successCutscene === undefined
     ? null
@@ -53,18 +55,31 @@ export function StoryEventScreen({
     }
     if (reduceMotion) {
       reveal.setValue(1);
+      rewardReveal.setValue(1);
       return undefined;
     }
-    const animation = Animated.spring(reveal, {
-      toValue: 1,
-      damping: 10,
-      stiffness: 120,
-      mass: 0.7,
-      useNativeDriver: true,
-    });
+    reveal.setValue(0);
+    rewardReveal.setValue(0);
+    const animation = Animated.parallel([
+      Animated.spring(reveal, {
+        toValue: 1,
+        damping: 10,
+        stiffness: 120,
+        mass: 0.7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(rewardReveal, {
+        toValue: 1,
+        delay: 180,
+        damping: 9,
+        stiffness: 150,
+        mass: 0.65,
+        useNativeDriver: true,
+      }),
+    ]);
     animation.start();
     return () => animation.stop();
-  }, [reduceMotion, reveal, successKey]);
+  }, [reduceMotion, reveal, rewardReveal, successKey]);
 
   if (viewModel.successCutscene !== undefined) {
     const cutscene = viewModel.successCutscene;
@@ -81,12 +96,23 @@ export function StoryEventScreen({
           >
             <Text className="font-mono text-sm font-bold uppercase tracking-[3px] text-gold">Risky success</Text>
             <Text className="mt-2 text-4xl font-bold uppercase leading-10 text-paper">{cutscene.headline}</Text>
-            <Text className="mt-3 text-base leading-6 text-paper/80" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{viewModel.outcomeText}</Text>
-            <View className="mt-4 flex-row flex-wrap gap-2">
-              {cutscene.rewards.length === 0
-                ? <StatusChip label="Club story secured" tone="success" />
-                : cutscene.rewards.map(reward => <StatusChip key={reward} label={reward} tone="success" />)}
-            </View>
+            <Text className="mt-3 text-paper/80" style={scaledBody(textScale)}>{viewModel.outcomeText}</Text>
+            <Animated.View
+              className="mt-4"
+              style={{
+                opacity: rewardReveal,
+                transform: [
+                  { translateY: rewardReveal.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
+                  { scale: rewardReveal.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) },
+                ],
+              }}
+            >
+              <View className="flex-row flex-wrap gap-2">
+                {cutscene.rewards.length === 0
+                  ? <StatusChip label="Club story secured" tone="success" />
+                  : cutscene.rewards.map(reward => <StatusChip key={reward} label={reward} tone="success" />)}
+              </View>
+            </Animated.View>
             <View className="mt-5">
               <ActionButton
                 label={cutscene.hasFollowUp ? 'Continue the story  ▸' : 'Return to the office  ▸'}
@@ -124,11 +150,11 @@ export function StoryEventScreen({
         <View className="p-4">
           {guideCopy ? (
             <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="No power effect">
-              <Text className="text-base leading-6 text-ink/70" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{guideCopy.body}</Text>
+              <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
             </PaperPanel>
           ) : null}
           <PaperPanel kicker="Club report" title="Something needs your call" stamp="One shot" className="mt-4">
-            <Text className="text-base leading-6 text-ink/70" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{viewModel.body}</Text>
+            <Text className="text-ink/70" style={scaledBody(textScale)}>{viewModel.body}</Text>
           </PaperPanel>
 
           {viewModel.playerSelectionRequired || viewModel.selectedPlayer ? (

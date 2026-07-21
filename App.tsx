@@ -859,7 +859,7 @@ function GameApp() {
     screen = (
       <PostMatchLedgerScreen
         viewModel={store.postMatch}
-        reduceMotion={reduceMotion}
+        textScale={preferences.textScale}
         onContinue={store.continueAfterMatch}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
@@ -869,6 +869,7 @@ function GameApp() {
       <WeeklyReviewScreen
         viewModel={store.weekReview}
         reduceMotion={reduceMotion}
+        textScale={preferences.textScale}
         onContinue={store.continueWeekReview}
       />
     );
@@ -1128,6 +1129,7 @@ function GameApp() {
         ) : (
           <ClubHomeScreen
             viewModel={home}
+            textScale={preferences.textScale}
             onOpenFixture={store.openMatchday}
             onOpenAlert={alertId => {
               const alert = home.alerts.find(candidate => candidate.id === alertId);

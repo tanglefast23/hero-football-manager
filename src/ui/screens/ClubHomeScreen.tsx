@@ -2,6 +2,8 @@ import { ScrollView, Text, View } from 'react-native';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type { ClubAlertViewModel, HomeViewModel } from '../models';
+import { scaledBody } from '../text-scale';
+import type { TextScale } from '../../persistence';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -21,6 +23,7 @@ export interface ClubHomeScreenProps {
   onProtectBoardCandidate: (playerId: string) => void;
   guideAlertId?: string;
   guideBoard?: boolean;
+  textScale?: TextScale;
 }
 
 export function ClubHomeScreen({
@@ -31,6 +34,7 @@ export function ClubHomeScreen({
   onProtectBoardCandidate,
   guideAlertId,
   guideBoard = false,
+  textScale = 1,
 }: ClubHomeScreenProps) {
   const fixture = viewModel.nextFixture;
 
@@ -101,7 +105,7 @@ export function ClubHomeScreen({
         <View className="gap-2">
           {viewModel.alerts.length === 0 ? (
             <View className="border-2 border-b-4 border-ink bg-white p-4">
-              <Text className="text-base text-ink/60">Desk clear. The board is suspiciously quiet.</Text>
+              <Text className="text-ink/60" style={scaledBody(textScale)}>Desk clear. The board is suspiciously quiet.</Text>
             </View>
           ) : viewModel.alerts.map(alert => {
             const guided = alert.id === guideAlertId;
@@ -122,7 +126,7 @@ export function ClubHomeScreen({
                 ) : null}
                 <View className="flex-1 pr-3">
                   <Text className="text-base font-bold uppercase text-ink">{alert.title}</Text>
-                  <Text className="mt-1 text-sm leading-4 text-ink/70" numberOfLines={2}>{alert.detail}</Text>
+                  <Text className="mt-1 text-ink/70" style={scaledBody(textScale, 14, 18)} numberOfLines={2}>{alert.detail}</Text>
                 </View>
                 <Text className="font-mono text-xl font-bold text-ink">›</Text>
               </Pressable>
@@ -144,7 +148,7 @@ export function ClubHomeScreen({
             stamp={viewModel.boardResolution.kind === 'TARGET_MET' ? 'Safe' : 'New youth'}
             className="bg-pitch-light"
           >
-            <Text className="text-sm leading-5 text-ink/70">{viewModel.boardResolution.detail}</Text>
+            <Text className="text-ink/70" style={scaledBody(textScale, 14, 20)}>{viewModel.boardResolution.detail}</Text>
             {viewModel.boardResolution.soldPlayer && viewModel.boardResolution.replacementPlayer ? (
               <>
                 <View className="mt-4 flex-row items-center gap-3">
@@ -189,7 +193,7 @@ export function ClubHomeScreen({
             right={<StatusChip label={`${viewModel.boardUltimatum.weeksRemaining} ${viewModel.boardUltimatum.weeksRemaining === 1 ? 'week' : 'weeks'}`} tone="danger" />}
           />
           <PaperPanel kicker="Board deadline" title="Reach the target. Avoid a forced sale." stamp="Career continues" className="bg-red-light">
-            <Text className="text-sm leading-5 text-ink/70">
+            <Text className="text-ink/70" style={scaledBody(textScale, 14, 20)}>
               Reach {formatCurrency(viewModel.boardUltimatum.targetCash)} cash before the deadline. If you miss it, the board sells one candidate shown below at a {viewModel.boardUltimatum.candidates[0]?.discountPercent ?? 30}% discount. Your protected player is untouchable, and your career continues either way.
             </Text>
             <View className="mt-3 flex-row gap-2">

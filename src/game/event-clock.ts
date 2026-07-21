@@ -1,12 +1,20 @@
 import { mulberry32 } from '../sim/rng';
 
-const WEEKLY_EVENT_PERCENT = 18;
-const GUARANTEED_EVENT_WEEK = 8;
-
 export interface EventClockState {
   weeksWithoutEvent: number;
   riskyChoices: number;
 }
+
+/** Story pacing knobs; the launch values live in `content/events.json`. */
+export interface EventClockTuning {
+  weeklyChancePercent: number;
+  guaranteeAfterDryWeeks: number;
+}
+
+export const DEFAULT_EVENT_CLOCK_TUNING: EventClockTuning = {
+  weeklyChancePercent: 18,
+  guaranteeAfterDryWeeks: 8,
+};
 
 export interface WeeklyEventRoll {
   offered: boolean;
@@ -20,15 +28,20 @@ export interface CareerEventRollContext {
   riskyChoices: number;
 }
 
-export function rollWeeklyEvent(state: EventClockState, rollPercent: number): WeeklyEventRoll {
+export function rollWeeklyEvent(
+  state: EventClockState,
+  rollPercent: number,
+  tuning: EventClockTuning = DEFAULT_EVENT_CLOCK_TUNING,
+): WeeklyEventRoll {
   validateState(state);
+  validateTuning(tuning);
   if (!Number.isInteger(rollPercent) || rollPercent < 0 || rollPercent > 99) {
     throw new Error('event roll must be an integer from 0 to 99');
   }
 
   const offered =
-    state.weeksWithoutEvent >= GUARANTEED_EVENT_WEEK - 1 ||
-    rollPercent < WEEKLY_EVENT_PERCENT;
+    state.weeksWithoutEvent >= tuning.guaranteeAfterDryWeeks - 1 ||
+    rollPercent < tuning.weeklyChancePercent;
 
   return {
     offered,
@@ -112,6 +125,19 @@ export function deterministicCareerEventRoll(
     Math.imul(hashString(choiceId), stream + 1)
   ) >>> 0;
   return Math.floor(mulberry32(seed)() * upperExclusive);
+}
+
+function validateTuning(tuning: EventClockTuning): void {
+  if (!Number.isInteger(tuning.weeklyChancePercent)
+    || tuning.weeklyChancePercent < 1
+    || tuning.weeklyChancePercent > 100) {
+    throw new Error('weekly event chance must be an integer from 1 to 100');
+  }
+  if (!Number.isInteger(tuning.guaranteeAfterDryWeeks)
+    || tuning.guaranteeAfterDryWeeks < 1
+    || tuning.guaranteeAfterDryWeeks > 30) {
+    throw new Error('dry-week guarantee must be an integer from 1 to 30');
+  }
 }
 
 function validateState(state: EventClockState): void {

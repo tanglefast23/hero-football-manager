@@ -12,17 +12,21 @@ import {
 } from '../components/Scorecard';
 import { PlayerDevelopmentSpotlight } from '../components/PlayerDevelopmentSpotlight';
 import { FacilityCompletionCard } from '../components/FacilityCompletionCard';
+import { scaledBody } from '../text-scale';
+import type { TextScale } from '../../persistence';
 
 export interface WeeklyReviewScreenProps {
   viewModel: WeeklyReviewViewModel;
   onContinue: () => void;
   reduceMotion?: boolean;
+  textScale?: TextScale;
 }
 
 export function WeeklyReviewScreen({
   viewModel,
   onContinue,
   reduceMotion = false,
+  textScale = 1,
 }: WeeklyReviewScreenProps) {
   const [animationsComplete, setAnimationsComplete] = useState(reduceMotion);
   const complete = reduceMotion || animationsComplete;
@@ -118,7 +122,7 @@ export function WeeklyReviewScreen({
         <PaperPanel kicker="Accounts office" title="Weekly statement" stamp="Recorded" className="mt-5">
           {viewModel.ledger.map(line => (
             <View key={line.id} className="flex-row items-center border-b border-ink/10 py-2.5 last:border-b-0">
-              <Text className="flex-1 text-base text-ink">{line.label}</Text>
+              <Text className="flex-1 text-ink" style={scaledBody(textScale)}>{line.label}</Text>
               <Text className={line.amount < 0
                 ? 'font-mono text-base font-bold text-stamp'
                 : line.amount > 0

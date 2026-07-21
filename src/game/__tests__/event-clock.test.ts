@@ -46,6 +46,25 @@ describe('weekly event clock', () => {
       'integer from 0 to 99',
     );
   });
+
+  it('takes its chance and dry-week guarantee from authored content tuning', () => {
+    const state = { weeksWithoutEvent: 0, riskyChoices: 0 };
+    const generous = { weeklyChancePercent: 40, guaranteeAfterDryWeeks: 3 };
+
+    expect(rollWeeklyEvent(state, 39, generous).offered).toBe(true);
+    expect(rollWeeklyEvent(state, 40, generous).offered).toBe(false);
+    expect(rollWeeklyEvent({ weeksWithoutEvent: 1, riskyChoices: 0 }, 99, generous).offered).toBe(false);
+    expect(rollWeeklyEvent({ weeksWithoutEvent: 2, riskyChoices: 0 }, 99, generous).offered).toBe(true);
+  });
+
+  it('rejects content tuning outside the supported range', () => {
+    const state = { weeksWithoutEvent: 0, riskyChoices: 0 };
+
+    expect(() => rollWeeklyEvent(state, 0, { weeklyChancePercent: 0, guaranteeAfterDryWeeks: 4 }))
+      .toThrow('weekly event chance');
+    expect(() => rollWeeklyEvent(state, 0, { weeklyChancePercent: 20, guaranteeAfterDryWeeks: 0 }))
+      .toThrow('dry-week guarantee');
+  });
 });
 
 describe('event choice risk count', () => {

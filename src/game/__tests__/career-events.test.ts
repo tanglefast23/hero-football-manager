@@ -8,6 +8,7 @@ import {
   offerCareerEvent,
   selectCareerEventPlayer,
 } from '../career-events';
+import type { GameState } from '../types';
 
 describe('content-driven awakening powers', () => {
   it('selects deterministically from stat-weighted ranges without mutating content', () => {
@@ -86,6 +87,35 @@ describe('career event state', () => {
       { eventId: 'giant-spider-arrives', season: 1, week: 1 },
     ]);
     expect(() => offerCareerEvent(dismissed, 'giant-spider-arrives')).toThrow('already resolved');
+  });
+
+  it('floors a fan setback at zero instead of blocking a nearly abandoned club', () => {
+    const initial = createCareer(createLaunchCareerSetup());
+    const abandoned: GameState = {
+      ...initial,
+      clubs: initial.clubs.map(club => club.id === initial.userClubId
+        ? { ...club, fans: 10 }
+        : club),
+    };
+    const resolved = applyCareerEventOutcome(
+      offerCareerEvent(abandoned, 'test-event'),
+      'bait-whispering-agent',
+      'The agent leaves with a grudge and takes some supporters with him.',
+      { fanDelta: -25 },
+    );
+
+    expect(resolved.clubs.find(club => club.id === resolved.userClubId)?.fans).toBe(0);
+  });
+
+  it('still refuses a training-point setback that outruns the balance', () => {
+    const initial = createCareer(createLaunchCareerSetup());
+
+    expect(() => applyCareerEventOutcome(
+      offerCareerEvent(initial, 'test-event'),
+      'reckless',
+      'That cost more than the club had.',
+      { trainingPointDelta: -(initial.trainingPoints + 1) },
+    )).toThrow('cannot make TP negative');
   });
 
   it('recovers one injury week whenever a management week settles', () => {

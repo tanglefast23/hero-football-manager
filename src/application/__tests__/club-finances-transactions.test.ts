@@ -59,6 +59,25 @@ describe('club finances immediate transaction history', () => {
     );
   });
 
+  test('does not advertise or project the Cozy wage subsidy on Chairman difficulty', () => {
+    const chairman = createCareer(createLaunchCareerSetup(
+      20260721,
+      undefined,
+      undefined,
+      'full',
+      'CHAIRMAN',
+    ));
+
+    const viewModel = clubFinancesViewModel(chairman);
+    const userClub = chairman.clubs.find(club => club.id === chairman.userClubId)!;
+
+    expect(viewModel.wageSubsidyLabel).toBeUndefined();
+    expect(viewModel.ledger).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Season 1 wage subsidy' }),
+    ]));
+    expect(viewModel.weeklyNet).toBe(-userClub.weeklyWages);
+  });
+
   test('describes facility effects, affordability, and the exact buildings in an active combo', () => {
     const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
     const gymProject = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;

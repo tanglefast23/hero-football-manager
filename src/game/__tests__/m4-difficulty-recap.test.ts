@@ -2,6 +2,7 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 import { activeCareerMatchday, advanceWeek, completeMatchday, createCareer, startNextSeason } from '../career';
 import { difficultyRules } from '../difficulty';
+import { buildSeasonRecap } from '../season-recap';
 import type { DifficultyMode, GameState } from '../types';
 
 function career(difficulty: DifficultyMode): GameState {
@@ -68,7 +69,9 @@ describe('M4 difficulty and season recap', () => {
       cashChange: expect.any(Number),
     });
     expect(recap?.playerOfSeason).toBeDefined();
-    expect(recap?.topScorer).toBeDefined();
+    // These fixtures are settled with fabricated scores and no scorer
+    // attribution, so the season has goals but no creditable Golden Boot.
+    expect(recap?.topScorer).toBeUndefined();
     expect(parseStoredGameState(serializeGameState(finished)).seasonRecaps).toEqual(finished.seasonRecaps);
   });
 
@@ -95,6 +98,24 @@ describe('M4 difficulty and season recap', () => {
 
     expect(recap?.closingCash).toBe(userClub.cash + recap!.cashChange);
     expect(recap!.cashChange).toBe(finished.clubs.find(club => club.id === initial.userClubId)!.cash - initial.seasonOpeningCash!);
+  });
+
+  it('withholds the Golden Boot when nobody on the roster scored', () => {
+    const recap = buildSeasonRecap(career('COZY'));
+
+    expect(recap.topScorer).toBeUndefined();
+    expect(recap.playerOfSeason).toBeDefined();
+  });
+
+  it('awards the Golden Boot to the season top scorer', () => {
+    const initial = career('COZY');
+    const scorer = initial.players.find(player => player.clubId === initial.userClubId)!;
+    const recap = buildSeasonRecap({
+      ...initial,
+      seasonGoalTallies: [{ season: 1, playerId: scorer.id, goals: 7 }],
+    });
+
+    expect(recap.topScorer).toMatchObject({ playerId: scorer.id, detail: '7 goals' });
   });
 
   it('clears delivered cap receipts after their season recap is recorded', () => {

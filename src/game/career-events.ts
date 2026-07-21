@@ -143,8 +143,10 @@ export function applyCareerEventOutcome(
 
   const cash = safeAdd(club.cash, moneyDelta, 'event cash balance');
   const trainingPoints = safeAdd(state.trainingPoints, trainingPointDelta, 'event TP balance');
-  const fans = safeAdd(club.fans, fanDelta, 'event fan balance');
-  if (trainingPoints < 0 || fans < 0) throw new Error('event effects cannot make TP or fans negative');
+  if (trainingPoints < 0) throw new Error('event effects cannot make TP negative');
+  // A fan setback floors at zero the same way a board forced sale does. A club
+  // the league has nearly abandoned must still be able to resolve its story.
+  const fans = Math.max(0, safeAdd(club.fans, fanDelta, 'event fan balance'));
 
   const flags = [...state.eventFlags];
   for (const flag of application.flags ?? []) {

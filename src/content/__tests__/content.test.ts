@@ -73,6 +73,17 @@ describe('validated M1 launch content', () => {
       }
     }
     expect(content.events.events.some(event => event.trigger.repeatable)).toBe(true);
+    // M4 requires a bespoke success cutscene for every risky outcome, not a
+    // generated "<title>: success!" restatement of the choice the player made.
+    const successHeadlines = content.events.events.flatMap(event => event.choices
+      .filter(choice => choice.risky)
+      .map(choice => ({ event: event.title, headline: choice.outcomes[0].successHeadline })));
+    expect(successHeadlines).toHaveLength(30);
+    for (const { event, headline } of successHeadlines) {
+      expect(headline).toEqual(expect.any(String));
+      expect(headline).not.toContain(event);
+    }
+    expect(new Set(successHeadlines.map(entry => entry.headline)).size).toBe(30);
     expect(content.events.events.some(event => event.trigger.requiresPlayer)).toBe(true);
     expect(content.events.events.some(event => event.trigger.requiredFacility)).toBe(true);
     expect(content.events.events.some(event => event.trigger.requiredPersonality)).toBe(true);

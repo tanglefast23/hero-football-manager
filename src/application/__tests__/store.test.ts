@@ -142,7 +142,7 @@ describe('M1 app store integration', () => {
     }
     expect(storyEventViewModel(resolved, loadLaunchContent()).successCutscene).toEqual({
       artKey: 'event-giant-spider-success',
-      headline: 'A mascot is born!',
+      headline: 'A mascot is born',
       rewards: ['+10 squad morale', '+100 fans'],
     });
     expect(userHeroes()).toHaveLength(1);

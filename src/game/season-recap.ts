@@ -42,6 +42,9 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     playerSeasonScore(right, goalsByPlayer) - playerSeasonScore(left, goalsByPlayer)
     || left.id.localeCompare(right.id)
   ));
+  const topScorerGoals = sortedScorers[0] === undefined
+    ? 0
+    : goalsByPlayer.get(sortedScorers[0].id) ?? 0;
   const young = sortedPlayers.filter(player => (player.age ?? 99) <= 21)[0];
   const hero = sortedPlayers.filter(player => player.power !== undefined)[0];
   const position = finalPosition(state);
@@ -64,8 +67,9 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     trainingCapsReached: (state.trainingCapNotices ?? []).filter(notice => notice.season === state.season).length,
     cupResult: cupResult(state),
     ...(latestResolvedEvent === undefined ? {} : { memorableEventId: latestResolvedEvent }),
-    ...(sortedScorers[0] === undefined ? {} : {
-      topScorer: award(sortedScorers[0], 'Golden Boot', `${goalsByPlayer.get(sortedScorers[0].id) ?? 0} goals`),
+    // A Golden Boot for nobody is worse than no Golden Boot at all.
+    ...(topScorerGoals === 0 || sortedScorers[0] === undefined ? {} : {
+      topScorer: award(sortedScorers[0], 'Golden Boot', `${topScorerGoals} goals`),
     }),
     ...(sortedPlayers[0] === undefined ? {} : {
       playerOfSeason: award(sortedPlayers[0], 'Player of the Season', 'Goals, form, morale, and development'),

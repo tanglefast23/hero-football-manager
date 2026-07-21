@@ -60,7 +60,7 @@ export function eventOfferForWeek(
     0,
     100,
   );
-  const weekly = rollWeeklyEvent(state.eventClock, weeklyRoll);
+  const weekly = rollWeeklyEvent(state.eventClock, weeklyRoll, catalog.tuning);
   if (!weekly.offered) return { eventClock: weekly.state };
 
   const candidates = catalog.events

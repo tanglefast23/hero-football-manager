@@ -1,9 +1,14 @@
+import { useEffect, useRef } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { playManagementActionSfx } from '../../render/management-sfx';
+import { playManagementHaptic } from '../../render/haptics';
 import type { ContractOffer, PitchCard } from '../../game/market';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type { SeasonEndViewModel } from '../models';
+import { scaledBody } from '../text-scale';
+import type { TextScale } from '../../persistence';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SettingsButton } from '../SettingsOverlay';
 import { NegotiationPanel } from './MarketScreen';
@@ -19,7 +24,7 @@ export interface SeasonEndScreenProps {
   onPrimaryAction: () => void;
   onOpenSettings: () => void;
   guideCopy?: { title: string; body: string };
-  textScale?: number;
+  textScale?: TextScale;
 }
 
 export function SeasonEndScreen({
@@ -36,6 +41,17 @@ export function SeasonEndScreen({
   textScale = 1,
 }: SeasonEndScreenProps) {
   const contract = viewModel.expiredContract;
+  const hasAwards = (viewModel.recap?.awards.length ?? 0) > 0;
+  const announced = useRef(false);
+
+  // One cabinet fanfare per visit, when there is silverware to announce.
+  useEffect(() => {
+    if (!hasAwards || announced.current) return;
+    announced.current = true;
+    playManagementActionSfx('success');
+    playManagementHaptic('success');
+  }, [hasAwards]);
+
   const outcomeTone = viewModel.outcomeLabel === 'CHAMPIONS' || viewModel.outcomeLabel === 'PROMOTED'
     ? 'success'
     : viewModel.outcomeLabel === 'RELEGATED'
@@ -59,7 +75,7 @@ export function SeasonEndScreen({
             <Text className="text-xl font-bold uppercase text-stamp">{viewModel.outcomeLabel}</Text>
           </View>
           <Text className="mt-5 text-center text-xl font-bold uppercase text-ink">{viewModel.headline}</Text>
-          <Text className="mt-2 max-w-sm text-center text-base leading-6 text-ink/60" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{viewModel.summary}</Text>
+          <Text className="mt-2 max-w-sm text-center text-ink/60" style={scaledBody(textScale)}>{viewModel.summary}</Text>
           <View className="mt-4 flex-row gap-2">
             <StatusChip label={`Finished #${viewModel.finalPosition}`} tone={outcomeTone} />
             <StatusChip label={`Prize ${formatCurrency(viewModel.prizeMoney)}`} />
@@ -72,7 +88,7 @@ export function SeasonEndScreen({
             <SectionLabel eyebrow="Season in numbers" title="The year in the cabinet" />
             {guideCopy ? (
               <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="Filed">
-                <Text className="text-base leading-6 text-ink/70" style={{ fontSize: 16 * textScale, lineHeight: 24 * textScale }}>{guideCopy.body}</Text>
+                <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
               </PaperPanel>
             ) : null}
             <View className="mt-3 flex-row gap-2">
