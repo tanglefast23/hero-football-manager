@@ -1297,8 +1297,9 @@ export function squadTrainingViewModel(
  * Builds the locked-plan summary, resolving the real training-week outcome
  * once for the whole panel (not once per player) so the shown gains are
  * exactly what settlement will deliver. Only reached once a plan is saved and
- * the editor selection still matches it — the far more common mid-edit state
- * skips this resolution entirely.
+ * the editor selection still matches it — locked is the common state (the
+ * tutorial pushes a saved plan in Week 1, and it repeats weekly), so this
+ * resolution runs on most renders; the caller memoizes it.
  */
 function lockedPlanViewModel(
   state: GameState,

@@ -701,6 +701,25 @@ function GameApp() {
     ? null
     : currentAssistantObjective(store.career, store.activeTab);
 
+  // Locked is the common state (the tutorial pushes a saved plan in Week 1,
+  // and it repeats weekly), so this resolves the real training week on
+  // every render that touches it. Memoized so unrelated re-renders of the
+  // squad tab (scroll cues, drag-dismiss touch handling, selection changes)
+  // don't redo base conditioning, M2 growth, facility effects, and cap
+  // scanning across the whole roster.
+  const squadTrainingVm = useMemo(
+    () => (store.career === null
+      ? null
+      : squadTrainingViewModel(
+          store.career,
+          content,
+          store.selectedPlayerId,
+          store.assignedPlayerIds,
+          store.selectedDrillIds,
+        )),
+    [store.career, content, store.selectedPlayerId, store.assignedPlayerIds, store.selectedDrillIds],
+  );
+
   useEffect(() => {
     setAssistantPageIndex(0);
   }, [assistantSequenceId]);
@@ -1031,13 +1050,7 @@ function GameApp() {
       >
         {store.activeTab === 'squad' ? (
           <SquadTrainingScreen
-            viewModel={squadTrainingViewModel(
-              store.career,
-              content,
-              store.selectedPlayerId,
-              store.assignedPlayerIds,
-              store.selectedDrillIds,
-            )}
+            viewModel={squadTrainingVm!}
             onSelectPlayer={playerId => {
               store.selectPlayer(playerId);
               if (conciergeFocus === 'injury-lineup' || conciergeFocus === 'transfer-request') {
