@@ -1236,7 +1236,10 @@ function gravityPullDestination(
     x: goalDirection.x + runnerDirection.x,
     y: goalDirection.y + runnerDirection.y,
   };
-  const combinedLength = Math.max(1, Math.hypot(combined.x, combined.y));
+  const combinedLength = Math.max(
+    1,
+    Math.sqrt(combined.x * combined.x + combined.y * combined.y),
+  );
   const sideways = { x: -combined.y / combinedLength, y: combined.x / combinedLength };
   const candidates = [900, 1200].flatMap(distance => [-1, 1].map(side => ({
     x: Math.round(clampEffect(blocker.pos.x + sideways.x * distance * side, 200, PITCH_W - 200)),
