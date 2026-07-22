@@ -1,6 +1,11 @@
 import { createLaunchCareerSetup } from '../../application/launch';
-import { createCareer } from '../career';
-import { buildCareerTeamDef } from '../squad';
+import { advanceWeek, createCareer } from '../career';
+import { applyCareerContractPromise } from '../contract-promises';
+import {
+  buildCareerMatchTeamDef,
+  buildCareerTeamDef,
+  repairCareerLineupForInjuries,
+} from '../squad';
 import {
   completePostMatchAwakening,
   deterministicPostMatchAwakeningRoll,
@@ -175,6 +180,104 @@ describe('automatic post-match awakenings', () => {
     });
     expect(userLineup(result.state)).not.toContain(targetId);
     expect(() => buildCareerTeamDef(result.state, result.state.userClubId)).not.toThrow();
+  });
+
+  it('skips a fit promised starter when every Hero License is already in use', () => {
+    const initial = playedUserFixture(createCareer(
+      createLaunchCareerSetup(54, undefined, undefined, 'full'),
+    ));
+    const lineup = userLineup(initial);
+    const promisedId = lineup[2];
+    const withFullLicenses: GameState = {
+      ...initial,
+      players: initial.players.map(player => player.id === lineup[9]
+        ? { ...player, power: 'SUPER_SPEED' as const, licensed: true }
+        : player.id === lineup[10]
+          ? { ...player, power: 'FIRE_TORCH' as const, licensed: true }
+          : player),
+      awakening: { matchesSinceLastAwakening: 2, usedTriggerIds: [] },
+    };
+    const promised = applyCareerContractPromise(
+      withFullLicenses,
+      promisedId,
+      'GUARANTEED_STARTER',
+    );
+
+    const result = resolvePostMatchAwakening(
+      promised,
+      userFixture(promised).id,
+      [promisedId],
+      POWERS,
+      TRIGGERS,
+      { chancePercent: 100, minimumMatchesBetween: 3 },
+    );
+
+    expect(result.awakened).toBe(false);
+    expect(result.state.awakening.pending).toBeUndefined();
+    expect(result.state.players.find(player => player.id === promisedId)?.power).toBeUndefined();
+    expect(userLineup(result.state)).toContain(promisedId);
+    expect(() => buildCareerTeamDef(result.state, result.state.userClubId)).not.toThrow();
+  });
+
+  it('awakens a safe alternative and remains buildable through Cup, injury repair, and settlement', () => {
+    const initial = playedUserFixture(createCareer(
+      createLaunchCareerSetup(55, undefined, undefined, 'full'),
+    ));
+    const lineup = userLineup(initial);
+    const promisedId = lineup[2];
+    const safeId = lineup[5];
+    const injuredId = lineup[6];
+    const withFullLicenses: GameState = {
+      ...initial,
+      players: initial.players.map(player => player.id === lineup[9]
+        ? { ...player, power: 'SUPER_SPEED' as const, licensed: true }
+        : player.id === lineup[10]
+          ? { ...player, power: 'FIRE_TORCH' as const, licensed: true }
+          : player),
+      awakening: { matchesSinceLastAwakening: 2, usedTriggerIds: [] },
+    };
+    const promised = applyCareerContractPromise(withFullLicenses, promisedId, 'CAPTAINCY');
+
+    const awakening = resolvePostMatchAwakening(
+      promised,
+      userFixture(promised).id,
+      [promisedId, safeId],
+      POWERS,
+      TRIGGERS,
+      { chancePercent: 100, minimumMatchesBetween: 3 },
+    );
+
+    expect(awakening.awakened).toBe(true);
+    expect(awakening.state.awakening.pending?.playerId).toBe(safeId);
+    expect(awakening.state.players.find(player => player.id === promisedId)?.power).toBeUndefined();
+    expect(awakening.state.players.find(player => player.id === safeId)).toMatchObject({
+      power: expect.any(String),
+      licensed: false,
+    });
+
+    const revealed = completePostMatchAwakening(awakening.state);
+    const cupFixture = revealed.m2!.nationalCups[0].rounds[0].fixtures.find(fixture => (
+      fixture.homeClubId === revealed.userClubId || fixture.awayClubId === revealed.userClubId
+    ));
+    expect(cupFixture).toBeDefined();
+    const cupClubId = cupFixture!.homeClubId === revealed.userClubId
+      ? cupFixture!.awayClubId
+      : cupFixture!.homeClubId;
+    expect(() => buildCareerMatchTeamDef(revealed, revealed.userClubId)).not.toThrow();
+    expect(() => buildCareerMatchTeamDef(revealed, cupClubId)).not.toThrow();
+
+    const injured: GameState = {
+      ...revealed,
+      players: revealed.players.map(player => player.id === injuredId
+        ? { ...player, injuryWeeks: 2 }
+        : player),
+    };
+    const repaired = repairCareerLineupForInjuries(injured);
+    expect(userLineup(repaired)).toContain(promisedId);
+    expect(() => buildCareerTeamDef(repaired, repaired.userClubId)).not.toThrow();
+
+    const settled = advanceWeek({ ...repaired, phase: 'manage' });
+    expect(() => buildCareerTeamDef(settled, settled.userClubId)).not.toThrow();
   });
 
   it('only gives the goalkeeper the keeper-only launch power', () => {
