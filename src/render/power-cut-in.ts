@@ -39,13 +39,17 @@ export function powerCutInPresentation(power: PowerId): PowerCutInPresentation {
 }
 
 export function shouldShowFullPowerCutIn(mode: 'full' | 'banner', reduceMotion: boolean): boolean {
-  return mode === 'full' && !reduceMotion;
+  // Full-pitch comic panels failed live playtesting: they hid the match and
+  // the pause/resume transition made the action harder to follow. "Full" now
+  // means the complete compact player/power card; "banner" remains the
+  // minimal text-only alternative. Neither pauses or covers the pitch.
+  void reduceMotion;
+  return mode === 'full';
 }
 
 export type PowerOverlayPath = 'tile' | 'banner';
 
-/** Own heroes receive tiles when full cut-ins are enabled; every rival fire and
- * every reduced/banner-mode fire follows the compact banner path. */
+/** Own heroes use the compact player-name callout; rivals remain threats. */
 export function powerOverlayPath(
   mode: 'full' | 'banner',
   reduceMotion: boolean,
@@ -58,7 +62,7 @@ export function powerOverlayPath(
 }
 
 export function powerCutInDurationMs(skippable: boolean): number {
-  return skippable ? 1000 : 1550;
+  return skippable ? 900 : 1200;
 }
 
 export function appendNewestFour<T>(items: readonly T[], item: T): T[] {
@@ -71,14 +75,12 @@ export interface PowerCutInGroupPolicy {
   durationMs: number;
 }
 
-/** A mixed group retains first-reveal protection: it pauses and cannot be
- * skipped until every tile in that group has been seen before. */
+/** Compact activation labels never pause the match. */
 export function powerCutInGroupPolicy(
   entries: readonly { skippable: boolean }[],
 ): PowerCutInGroupPolicy {
-  const shouldPause = entries.length > 0;
-  const skippable = shouldPause && entries.every(entry => entry.skippable);
-  return { shouldPause, skippable, durationMs: powerCutInDurationMs(skippable) };
+  const skippable = entries.length > 0 && entries.every(entry => entry.skippable);
+  return { shouldPause: false, skippable, durationMs: powerCutInDurationMs(skippable) };
 }
 
 export function powerCutInAccessibilityLabel(entries: readonly PowerCutInLabelEntry[]): string {

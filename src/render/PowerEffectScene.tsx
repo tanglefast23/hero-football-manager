@@ -10,6 +10,7 @@ import {
 } from '@shopify/react-native-skia';
 import type { PowerId } from '../sim/types';
 import { powerEffectFrame } from './power-effect-descriptors';
+import { POWER_EFFECT_RENDER_STYLE } from './power-effect-render-style';
 
 export interface PowerEffectPoint {
   x: number;
@@ -29,6 +30,8 @@ export interface PowerEffectSceneProps {
   reduceMotion?: boolean;
   /** The showcase adds simple actors; MatchScreen already has Atlas sprites. */
   showDemoActors?: boolean;
+  /** Demo-only block figures. Watched matches use real batched player sprites. */
+  showPlaceholderActors?: boolean;
 }
 
 const INK = '#161321';
@@ -175,8 +178,9 @@ function DemoActors({
 }
 
 /**
- * Shared Skia art used by the live match and the one-power showcase. It adds
- * no sprite draw calls; the 22 match players and ball stay in the single Atlas.
+ * Shared Skia geometry used by the live match and the one-power showcase.
+ * Watched matches supply real player copies in one separate batched Atlas;
+ * the lightweight mock showcase can still opt into simple block figures.
  */
 export function PowerEffectScene({
   power,
@@ -190,12 +194,16 @@ export function PowerEffectScene({
   direction = -1,
   reduceMotion = false,
   showDemoActors = false,
+  showPlaceholderActors = showDemoActors,
 }: PowerEffectSceneProps) {
   const frame = powerEffectFrame(power, elapsedMs, reduceMotion);
   const palette = frame.descriptor;
   const p = frame.progress;
   const pulse = reduceMotion ? 1 : 0.76 + 0.24 * Math.sin(elapsedMs / 105);
-  const unit = Math.max(5, Math.min(width, height) / 18);
+  // Match FX support the actors; they do not become a second full-screen
+  // layer. Keep production geometry close to the 24x30 player footprint.
+  const unit = Math.max(4, Math.min(width, height) / 28);
+  const demoUnit = Math.max(5, Math.min(width, height) / 18);
   const origin = originProp ?? { x: width * 0.33, y: height * 0.61 };
   const defaults = [
     { x: width * 0.67, y: height * 0.43 },
@@ -238,10 +246,10 @@ export function PowerEffectScene({
       art = (
         <Fragment>
           <Path path={streak} color={palette.secondary} style="stroke" strokeWidth={unit * 0.28} opacity={0.75} />
-          {[0.12, 0.24, 0.38].map((lag, index) => (
+          {showPlaceholderActors ? [0.12, 0.24, 0.38].map((lag, index) => (
             <PixelActor key={index} at={pointAlong(origin, runner, Math.max(0, burst - lag))} color={palette.primary} unit={unit} opacity={(0.18 + index * 0.12) * pulse} />
-          ))}
-          <PixelActor at={runner} color={palette.highlight} unit={unit} opacity={0.9} />
+          )) : null}
+          {showPlaceholderActors ? <PixelActor at={runner} color={palette.highlight} unit={unit} opacity={0.9} /> : null}
           {[0, 1, 2].map(index => (
             <Line key={index} p1={{ x: origin.x - unit * (2 + index), y: origin.y - unit + index * unit }} p2={{ x: runner.x - unit * 0.8, y: runner.y - unit + index * unit }} color={palette.primary} strokeWidth={Math.max(2, unit * 0.18)} opacity={0.7 - index * 0.15} />
           ))}
@@ -277,7 +285,7 @@ export function PowerEffectScene({
               antiAlias={false}
             />
           ))}
-          {arrive > 0 ? <PixelActor at={destination} color={palette.primary} unit={unit} opacity={arrive} /> : null}
+          {showPlaceholderActors && arrive > 0 ? <PixelActor at={destination} color={palette.primary} unit={unit} opacity={arrive} /> : null}
         </Fragment>
       );
       break;
@@ -324,10 +332,10 @@ export function PowerEffectScene({
       const phased = pointAlong(origin, target, easeInOut(phase));
       art = (
         <Fragment>
-          {[0, 1, 2].map(index => (
+          {showPlaceholderActors ? [0, 1, 2].map(index => (
             <PixelActor key={index} at={{ x: phased.x - unit * (index + 1) * 0.7, y: phased.y + unit * index * 0.25 }} color={palette.secondary} unit={unit} opacity={(0.16 + index * 0.12) * pulse} outline={palette.primary} />
-          ))}
-          <PixelActor at={phased} color={palette.primary} unit={unit} opacity={0.45 + segment(p, 0.7, 1) * 0.55} outline={palette.highlight} />
+          )) : null}
+          {showPlaceholderActors ? <PixelActor at={phased} color={palette.primary} unit={unit} opacity={0.45 + segment(p, 0.7, 1) * 0.55} outline={palette.highlight} /> : null}
           {[0, 1, 2, 3].map(index => (
             <Line key={index} p1={{ x: phased.x - unit * 1.8, y: phased.y - unit * 1.7 + index * unit }} p2={{ x: phased.x + unit * 1.8, y: phased.y - unit * 1.7 + index * unit }} color={palette.highlight} strokeWidth={unit * 0.12} opacity={0.7 - index * 0.1} />
           ))}
@@ -339,7 +347,6 @@ export function PowerEffectScene({
     case 'PORTAL_PASS': {
       const transfer = segment(p, 0.22, 0.6);
       const shield = segment(p, 0.58, 0.82);
-      const ball = pointAlong(origin, target, easeInOut(transfer));
       art = (
         <Fragment>
           {[1, 1.45, 1.9].map((radius, index) => (
@@ -348,7 +355,7 @@ export function PowerEffectScene({
               <Circle cx={target.x} cy={target.y} r={unit * radius} color={index % 2 ? palette.primary : palette.secondary} style="stroke" strokeWidth={unit * 0.18} opacity={0.88 - index * 0.18} />
             </Fragment>
           ))}
-          <Circle cx={ball.x} cy={ball.y} r={unit * 0.42} color={palette.highlight} opacity={0.95} />
+          <Path path={makeBolt(origin, target, unit * 0.42)} color={palette.highlight} style="stroke" strokeWidth={unit * 0.16} opacity={transfer * (1 - shield)} antiAlias={false} />
           <Circle cx={target.x} cy={target.y} r={unit * (2.25 + shield * 0.45)} color={palette.secondary} style="stroke" strokeWidth={unit * 0.32} opacity={shield * (1 - segment(p, 0.84, 1))} />
           <Path path={makeStar(target, unit * (0.9 + shield * 0.7), unit * 0.35, 8)} color={palette.highlight} opacity={shield * 0.4} />
         </Fragment>
@@ -368,8 +375,8 @@ export function PowerEffectScene({
           <Circle cx={runnerStart.x} cy={runnerStart.y} r={unit * (0.8 + project * 1.7)} color={palette.secondary} style="stroke" strokeWidth={unit * 0.18} opacity={project * 0.8} />
           <Path path={makeCurve(runnerStart, anchor, realEnd)} color={palette.primary} style="stroke" strokeWidth={unit * 0.2} opacity={0.72} />
           <Path path={makeCurve(runnerStart, { x: anchor.x + unit * 2, y: anchor.y }, cloneEnd)} color={palette.secondary} style="stroke" strokeWidth={unit * 0.18} opacity={0.72 * pulse} />
-          <PixelActor at={real} color={palette.primary} unit={unit} opacity={0.9} />
-          <PixelActor at={clone} color={palette.secondary} unit={unit} opacity={(0.42 + 0.35 * pulse) * project} outline={palette.highlight} />
+          {showPlaceholderActors ? <PixelActor at={real} color={palette.primary} unit={unit} opacity={0.9} /> : null}
+          {showPlaceholderActors ? <PixelActor at={clone} color={palette.secondary} unit={unit} opacity={(0.42 + 0.35 * pulse) * project} outline={palette.highlight} /> : null}
           {[0, 1, 2, 3].map(index => (
             <Line key={index} p1={{ x: clone.x - unit * 1.5, y: clone.y - unit * 1.8 + index * unit }} p2={{ x: clone.x + unit * 1.5, y: clone.y - unit * 1.8 + index * unit }} color={palette.highlight} strokeWidth={unit * 0.1} opacity={0.55} />
           ))}
@@ -393,11 +400,10 @@ export function PowerEffectScene({
           <Circle cx={origin.x} cy={origin.y - unit * 2.4} r={unit * (0.35 + predict * 0.3)} color={palette.secondary} />
           <Path path={makeCurve(secondary, anchor, target)} color={palette.primary} style="stroke" strokeWidth={unit * 0.18} opacity={predict * 0.75} />
           <Path path={makeBolt(origin, target, unit * 0.65)} color={palette.highlight} style="stroke" strokeWidth={unit * 0.2} opacity={intercept * (1 - outlet * 0.5)} />
-          <PixelActor at={pointAlong(origin, target, intercept)} color={palette.primary} unit={unit} opacity={Math.max(0.35, intercept)} />
+          {showPlaceholderActors ? <PixelActor at={pointAlong(origin, target, intercept)} color={palette.primary} unit={unit} opacity={Math.max(0.35, intercept)} /> : null}
           <Path path={makeCurve(target, { x: width * 0.56, y: target.y + direction * unit * 3 }, third)} color={palette.primary} style="stroke" strokeWidth={unit * 0.42} opacity={outlet * 0.34} />
           <Path path={makeCurve(target, { x: width * 0.56, y: target.y + direction * unit * 3 }, third)} color={palette.highlight} style="stroke" strokeWidth={unit * 0.17} opacity={outlet} />
           <Path path={makeArrowHead(third, target, unit * 1.1)} color={palette.highlight} opacity={outlet} />
-          <Circle cx={pointAlong(target, third, outlet).x} cy={pointAlong(target, third, outlet).y} r={unit * 0.38} color={palette.highlight} opacity={outlet} />
         </Fragment>
       );
       break;
@@ -425,7 +431,7 @@ export function PowerEffectScene({
             const crackEnd = { x: origin.x + Math.cos(angle) * unit * (1.5 + charge), y: origin.y + Math.sin(angle) * unit * (0.8 + charge) + unit * 1.4 };
             return <Path key={`crack-${index}`} path={makeBolt(crackStart, crackEnd, unit * 0.2)} color={palette.secondary} style="stroke" strokeWidth={unit * 0.15} opacity={charge * pulse} />;
           })}
-          <PixelActor at={charger} color={palette.primary} unit={unit} opacity={0.95} scale={1 + charge * 0.18} />
+          {showPlaceholderActors ? <PixelActor at={charger} color={palette.primary} unit={unit} opacity={0.95} scale={1 + charge * 0.18} /> : null}
           <Circle cx={target.x} cy={target.y} r={unit * (0.5 + impact * 3.6)} color={palette.primary} style="stroke" strokeWidth={unit * 0.34} opacity={impact * (1 - segment(p, 0.7, 1))} />
           <Path path={makeStar(target, unit * (0.8 + impact * 2.5), unit * 0.45, 7)} color={palette.highlight} opacity={impact * (1 - segment(p, 0.72, 1))} />
         </Fragment>
@@ -433,50 +439,82 @@ export function PowerEffectScene({
       break;
     }
     case 'WEB_TRAP': {
-      const snap = easeOut(segment(p, 0.12, 0.36));
-      const hold = segment(p, 0.33, 0.56);
-      const radius = unit * (3.4 - snap * 1.3);
-      const web = Skia.Path.Make();
-      for (let ray = 0; ray < 8; ray += 1) {
-        const angle = ray * Math.PI / 4;
-        web.moveTo(target.x, target.y);
-        web.lineTo(target.x + Math.cos(angle) * radius, target.y + Math.sin(angle) * radius);
-      }
-      for (let ring = 1; ring <= 3; ring += 1) web.addCircle(target.x, target.y, radius * ring / 3);
+      // The body itself turns fully grey through the sprite atlas. Keep the FX
+      // deliberately small: one snapped cast line and four hard pixel bands
+      // hugging the actual victim. No giant radial web, smooth rings or timer
+      // dots competing with the cause-and-effect read.
+      const bind = easeOut(segment(p, 0.12, 0.36));
+      const rooted = segment(p, 0.3, 0.46);
+      const pixel = Math.max(2, Math.round(unit * 0.14));
+      const halfWidth = unit * 0.8;
+      const halfHeight = unit * 1.1;
       art = (
         <Fragment>
-          <Path path={makeCurve(origin, anchor, target)} color={palette.secondary} style="stroke" strokeWidth={unit * 0.18} opacity={snap} />
-          <Path path={web} color={palette.primary} style="stroke" strokeWidth={unit * 0.16} opacity={snap * 0.95} />
-          <RoundedRect x={target.x - unit * 1.35} y={target.y - unit * 2.6} width={unit * 2.7} height={unit * 5.1} r={unit * 1.2} color={palette.secondary} style="stroke" strokeWidth={unit * 0.3} opacity={hold * pulse} />
-          {[0, 1, 2, 3].map(index => (
-            <Line key={index} p1={{ x: target.x - unit * 1.2, y: target.y - unit * 1.8 + index * unit * 1.15 }} p2={{ x: target.x + unit * 1.2, y: target.y - unit * 1.1 + index * unit * 1.15 }} color={palette.highlight} strokeWidth={unit * 0.16} opacity={hold * 0.9} />
-          ))}
+          <Path
+            path={makeBolt(origin, target, pixel * 1.5)}
+            color={palette.secondary}
+            style="stroke"
+            strokeWidth={pixel}
+            opacity={bind * (1 - rooted)}
+            antiAlias={false}
+          />
           {[0, 1, 2].map(index => (
-            <Circle
-              key={`web-count-${index}`}
-              cx={target.x + (index - 1) * unit * 0.72}
-              cy={target.y - unit * 3.35}
-              r={unit * 0.22}
-              color={index <= Math.floor((1 - segment(p, 0.53, 1)) * 2) ? palette.highlight : '#6b6675'}
-              opacity={hold}
+            <Line
+              key={index}
+              p1={{
+                x: target.x - halfWidth,
+                y: target.y - halfHeight + index * halfHeight,
+              }}
+              p2={{
+                x: target.x + halfWidth,
+                y: target.y - halfHeight * 0.55 + index * halfHeight,
+              }}
+              color={index % 2 === 0 ? palette.highlight : palette.secondary}
+              strokeWidth={pixel}
+              opacity={rooted}
+              antiAlias={false}
             />
           ))}
-          <Circle cx={target.x + unit * 2.7} cy={target.y + unit * 1.6} r={unit * 0.42} color={palette.highlight} opacity={hold} />
+          <Rect x={target.x - pixel} y={target.y - pixel} width={pixel * 2} height={pixel * 2} color={palette.highlight} opacity={rooted} antiAlias={false} />
         </Fragment>
       );
       break;
     }
     case 'ELASTIC_KEEPER': {
-      const stretch = easeOut(segment(p, 0.25, 0.68));
-      const hand = pointAlong(origin, target, stretch);
-      const arm = makeCurve(origin, { x: mix(origin.x, target.x, 0.5), y: origin.y - unit * 2.2 }, hand);
+      // A single real match ball already flies into the save. This layer only
+      // draws the elastic arm and glove: reach, catch flash, then retract.
+      // Stepped hard-edged bands match the pixel bible and cannot be mistaken
+      // for a second ball or a keeper distribution.
+      const reach = easeOut(segment(p, 0.18, 0.58));
+      const retract = easeInOut(segment(p, 0.68, 1));
+      const extension = reach * (1 - retract);
+      const catchFlash = segment(p, 0.5, 0.62) * (1 - segment(p, 0.68, 0.82));
+      const pixel = Math.max(2, Math.round(unit * 0.14));
+      const quantize = (value: number) => Math.round(value / pixel) * pixel;
+      const hand = {
+        x: quantize(mix(origin.x, target.x, extension)),
+        y: quantize(mix(origin.y, target.y, extension)),
+      };
+      const arm = makePolyline([
+        { x: quantize(origin.x), y: quantize(origin.y - pixel) },
+        {
+          x: quantize(mix(origin.x, hand.x, 0.42)),
+          y: quantize(mix(origin.y, hand.y, 0.42) - pixel * 2),
+        },
+        {
+          x: quantize(mix(origin.x, hand.x, 0.72)),
+          y: quantize(mix(origin.y, hand.y, 0.72) + pixel),
+        },
+        hand,
+      ]);
       art = (
         <Fragment>
-          <Path path={arm} color={palette.primary} style="stroke" strokeWidth={unit * 0.7} opacity={0.92} />
-          <Path path={arm} color={palette.secondary} style="stroke" strokeWidth={unit * 0.26} opacity={0.9} />
-          <Circle cx={hand.x} cy={hand.y} r={unit * (0.8 + stretch * 0.25)} color={palette.highlight} />
-          <Circle cx={target.x} cy={target.y} r={unit * (0.6 + segment(p, 0.58, 1) * 2.3)} color={palette.primary} style="stroke" strokeWidth={unit * 0.25} opacity={1 - segment(p, 0.75, 1)} />
-          <Path path={makeStar(target, unit * (0.7 + stretch * 1.2), unit * 0.32, 8)} color={palette.secondary} opacity={stretch * (1 - segment(p, 0.78, 1))} />
+          <Path path={arm} color="#6b6675" style="stroke" strokeWidth={pixel * 3} opacity={0.95} antiAlias={false} />
+          <Path path={arm} color={palette.primary} style="stroke" strokeWidth={pixel * 2} opacity={0.98} antiAlias={false} />
+          <Rect x={hand.x - pixel * 1.5} y={hand.y - pixel * 1.5} width={pixel * 3} height={pixel * 3} color="#6b6675" opacity={reach} antiAlias={false} />
+          <Rect x={hand.x - pixel} y={hand.y - pixel} width={pixel * 2} height={pixel * 2} color={palette.highlight} opacity={reach} antiAlias={false} />
+          <Rect x={target.x - pixel * 3} y={target.y - pixel / 2} width={pixel * 6} height={pixel} color={palette.secondary} opacity={catchFlash} antiAlias={false} />
+          <Rect x={target.x - pixel / 2} y={target.y - pixel * 3} width={pixel} height={pixel * 6} color={palette.secondary} opacity={catchFlash} antiAlias={false} />
         </Fragment>
       );
       break;
@@ -519,11 +557,9 @@ export function PowerEffectScene({
           {[0, 1, 2, 3].map(index => (
             <Path key={index} path={makeStar({ x: mix(target.x, back.x, index / 3), y: mix(target.y, back.y, index / 3) + (index % 2 ? unit : -unit) }, unit * 0.55, unit * 0.16, 6)} color={index % 2 ? palette.secondary : palette.highlight} opacity={freeze * pulse} />
           ))}
-          <PixelActor at={sliding} color={RIVAL} unit={unit} opacity={0.92} />
+          {showPlaceholderActors ? <PixelActor at={sliding} color={RIVAL} unit={unit} opacity={0.92} /> : null}
           <Line p1={{ x: target.x - unit * 1.1, y: target.y + unit * 1.5 }} p2={{ x: sliding.x - unit * 1.1, y: sliding.y + unit * 1.5 }} color={palette.secondary} strokeWidth={unit * 0.22} opacity={skid} />
-          {/* The ball stays visibly tethered to the carrier throughout the
-              backslide, then settles at their foot for the attack reset. */}
-          <Circle cx={sliding.x + unit * 1.45} cy={sliding.y + unit * 1.25} r={unit * 0.42} color={palette.highlight} opacity={freeze} />
+          {/* The real Atlas ball stays visibly tethered to the carrier. */}
         </Fragment>
       );
       break;
@@ -555,7 +591,7 @@ export function PowerEffectScene({
             return <Rect key={index} x={crumb.x - unit * 0.18} y={crumb.y - unit * 0.18} width={unit * 0.36} height={unit * 0.36} color={palette.secondary} opacity={hunt * (0.35 + index * 0.12)} antiAlias={false} />;
           })}
           <Circle cx={below.x} cy={below.y + unit * 1.4} r={unit * (0.85 + pop * 1.15)} color={INK} opacity={hunt} />
-          <PixelActor at={{ x: target.x, y: target.y + unit * (2.2 - pop * 2.2) }} color={palette.primary} unit={unit} opacity={pop} outline={palette.highlight} />
+          {showPlaceholderActors ? <PixelActor at={{ x: target.x, y: target.y + unit * (2.2 - pop * 2.2) }} color={palette.primary} unit={unit} opacity={pop} outline={palette.highlight} /> : null}
           <Path path={makeStar(target, unit * (0.7 + pop * 2.3), unit * 0.35, 7)} color={palette.secondary} opacity={pop * (1 - segment(p, 0.9, 1))} />
         </Fragment>
       );
@@ -576,7 +612,7 @@ export function PowerEffectScene({
             return (
               <Fragment key={index}>
                 <Path path={makeCurve(defender, { x: mix(defender.x, singularity.x, 0.5) + (index ? unit : -unit), y: mix(defender.y, singularity.y, 0.5) }, singularity)} color={palette.primary} style="stroke" strokeWidth={unit * 0.2} opacity={pull * pulse} />
-                <PixelActor at={pulled} color={RIVAL} unit={unit} opacity={0.9} />
+                {showPlaceholderActors ? <PixelActor at={pulled} color={RIVAL} unit={unit} opacity={0.9} /> : null}
               </Fragment>
             );
           })}
@@ -593,7 +629,7 @@ export function PowerEffectScene({
       art = (
         <Fragment>
           <RoundedRect x={origin.x - unit * (2.2 + grow * 1.3)} y={origin.y - unit * (3.2 + grow * 1.8)} width={unit * (4.4 + grow * 2.6)} height={unit * (5.5 + grow * 3.6)} r={unit * 0.7} color={palette.primary} opacity={0.18 + grow * 0.26} />
-          <PixelActor at={origin} color={palette.primary} unit={unit} scale={1 + grow * 1.05} opacity={0.95} outline={palette.highlight} />
+          {showPlaceholderActors ? <PixelActor at={origin} color={palette.primary} unit={unit} scale={1 + grow * 1.05} opacity={0.95} outline={palette.highlight} /> : null}
           <Circle cx={origin.x - unit * (2 + grow * 2.2)} cy={origin.y - unit * (0.8 + grow)} r={unit * (0.7 + grow * 0.65)} color={palette.highlight} style="stroke" strokeWidth={unit * 0.32} opacity={grow} />
           <Circle cx={origin.x + unit * (2 + grow * 2.2)} cy={origin.y - unit * (0.8 + grow)} r={unit * (0.7 + grow * 0.65)} color={palette.highlight} style="stroke" strokeWidth={unit * 0.32} opacity={grow} />
           {[1, 1.55, 2.2].map((radius, index) => (
@@ -613,18 +649,14 @@ export function PowerEffectScene({
       const keeper = origin;
       const control = { x: width * 0.55, y: height * 0.14 };
       const puntTarget = targetProps && targetProps.length > 1 ? secondary : third;
-      const bentBall = pointAlong(incoming, keeper, bend);
-      const puntBall = pointAlong(keeper, puntTarget, punt);
       art = (
         <Fragment>
           {[0, 1, 2].map(index => (
             <Path key={index} path={makeCurve({ x: incoming.x, y: incoming.y + (index - 1) * unit * 0.8 }, { x: control.x + index * unit, y: control.y + index * unit * 0.4 }, { x: keeper.x, y: keeper.y + (index - 1) * unit * 0.5 })} color={index === 1 ? palette.highlight : palette.primary} style="stroke" strokeWidth={unit * (0.12 + index * 0.06)} opacity={(0.75 - index * 0.12) * bend * pulse} />
           ))}
-          <Circle cx={bentBall.x} cy={bentBall.y} r={unit * 0.42} color={palette.highlight} opacity={1 - punt} />
           <Circle cx={keeper.x} cy={keeper.y} r={unit * (1.4 + receive * 0.75)} color={palette.secondary} style="stroke" strokeWidth={unit * 0.24} opacity={receive * (1 - punt)} />
           <Path path={makeCurve(keeper, { x: width * 0.75, y: height * 0.46 }, puntTarget)} color={palette.highlight} style="stroke" strokeWidth={unit * 0.3} opacity={punt} />
           <Path path={makeCurve(keeper, { x: width * 0.75, y: height * 0.46 }, puntTarget)} color={palette.primary} style="stroke" strokeWidth={unit * 0.75} opacity={punt * 0.28} />
-          <Circle cx={puntBall.x} cy={puntBall.y} r={unit * 0.48} color={palette.highlight} opacity={punt} />
           <Path path={makeArrowHead(puntTarget, keeper, unit * 1.45)} color={palette.highlight} opacity={punt} />
         </Fragment>
       );
@@ -638,8 +670,10 @@ export function PowerEffectScene({
 
   return (
     <Fragment>
-      {showDemoActors ? <DemoActors origin={origin} targets={targets.slice(0, demoTargetCount[power])} unit={unit} power={power} /> : null}
-      {art}
+      {showDemoActors ? <DemoActors origin={origin} targets={targets.slice(0, demoTargetCount[power])} unit={demoUnit} power={power} /> : null}
+      <Group {...POWER_EFFECT_RENDER_STYLE}>
+        {art}
+      </Group>
     </Fragment>
   );
 }

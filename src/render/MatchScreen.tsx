@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Atlas, Canvas, Circle, Fill, Skia, type SkColor, type SkImage, type SkRect } from '@shopify/react-native-skia';
+import { Atlas, Canvas, Circle, Fill, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
 import { createMatch, queueInput, tick } from '../sim/match';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
@@ -9,6 +9,8 @@ import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState, PowerId, TeamDef } from '../sim/types';
 import type { HudSide } from '../persistence';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
+import { keeperReadyFrameForTeam, runFrameForTeam } from './sprites/facing';
+import { webbedSpriteKey } from './sprites/loader';
 import { spriteKeyForMatchPlayer, visualIdForMatchPlayer } from './sprites/slot-key';
 import { snapshotFrame, type PitchFrame } from './interpolate';
 import {
@@ -29,10 +31,15 @@ import {
 import { BALL_AIRBORNE_THRESHOLD_CM, ballVisualOffset } from './ball-flight-visuals';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
 import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
-import { appendNewestFour, powerCutInAccessibilityLabel, powerCutInGroupPolicy, powerCutInPresentation, powerCutInTileWidth, powerOverlayPath } from './power-cut-in';
+import { appendNewestFour, powerCutInAccessibilityLabel, powerCutInGroupPolicy, powerCutInPresentation, powerOverlayPath } from './power-cut-in';
 import { appendBannerNewestFour, type MatchBannerSubject } from './match-banners';
 import { PowerEffectScene, type PowerEffectPoint } from './PowerEffectScene';
 import { powerEffectDescriptor } from './power-effect-descriptors';
+import { livePowerEffectActors, superSpeedAfterimageActors } from './live-power-effect-actors';
+import {
+  advancePowerMatchShowcaseReady,
+  initializePowerMatchShowcase,
+} from './power-match-showcase';
 import { AUTO_SUBSTITUTION_TICKS, automaticSubstitutionChoice } from '../sim/auto-coaching';
 import { Pitch } from './Pitch';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
@@ -190,6 +197,11 @@ function appendPowerEffect(
 
 export type PowerCutInQaEntry = PowerCutInEntry;
 
+export interface PowerMatchQaConfig {
+  readonly power: PowerId;
+  readonly readyTicks: number;
+}
+
 function scoreCode(team: TeamDef): string {
   const words = team.name.trim().split(/\s+/);
   const last = words[words.length - 1];
@@ -214,6 +226,7 @@ export function MatchScreen({
   colorSafeKits = true,
   pausedExternally = false,
   powerCutInQaEntries,
+  powerMatchQa,
   onOpenSettings,
   onDone,
 }: {
@@ -232,6 +245,8 @@ export function MatchScreen({
   pausedExternally?: boolean;
   /** Dev-only held fixture for visual QA. Ignored by production bundles. */
   powerCutInQaEntries?: readonly PowerCutInQaEntry[];
+  /** Dev-only live match scenario. It still fires through the real engine. */
+  powerMatchQa?: PowerMatchQaConfig;
   onOpenSettings: () => void;
   onDone: (state: MatchState) => void;
 }) {
@@ -267,6 +282,13 @@ export function MatchScreen({
       away,
       matchPoliciesForControlledTeam(controlledTeam, formationPresets[0]),
     );
+    if (powerMatchQa !== undefined) {
+      initializePowerMatchShowcase(
+        stateRef.current,
+        powerMatchQa.power,
+        powerMatchQa.readyTicks,
+      );
+    }
   }
   const match = stateRef.current;
 
@@ -406,21 +428,14 @@ export function MatchScreen({
   }, [pausedExternally]);
 
   useEffect(() => {
-    if (!powerCutInPolicy.shouldPause) return undefined;
-    automaticPauseReasonsRef.current.add('cut-in');
-    syncPauseReasons();
-    if (powerCutInQaActive) {
-      return () => {
-        automaticPauseReasonsRef.current.delete('cut-in');
-      };
-    }
+    // A paused match is a still inspection frame; keep its activation label
+    // visible until play resumes instead of expiring against wall-clock time.
+    if (powerCutIns.length === 0 || powerCutInQaActive || paused) return undefined;
     const timer = setTimeout(() => {
-      automaticPauseReasonsRef.current.delete('cut-in');
-      syncPauseReasons();
       setPowerCutIns([]);
     }, powerCutInPolicy.durationMs);
     return () => clearTimeout(timer);
-  }, [powerCutInQaActive, powerCutIns.map(entry => entry.id).join('|')]);
+  }, [paused, powerCutInQaActive, powerCutIns.map(entry => entry.id).join('|')]);
 
   // Audio lifecycle — own effect, separate from the RAF loop below: starts
   // the match theme on mount, tears everything down on unmount. No pause
@@ -481,7 +496,9 @@ export function MatchScreen({
       while (acc >= TICK_MS && s.phase !== 'fulltime') {
         const before = nextRef.current!;
         prevRef.current = before;
-        tick(s);
+        const heldForPowerReview = powerMatchQa !== undefined
+          && advancePowerMatchShowcaseReady(s, powerMatchQa.power);
+        if (!heldForPowerReview) tick(s);
         advanced = true;
         nextRef.current = snapshotFrame(s, before);
 
@@ -578,6 +595,23 @@ export function MatchScreen({
           }
           if (e.power === 'PORTAL_PASS' && s.ball.kind === 'held') {
             targets.splice(0, targets.length, { player: s.ball.by });
+          }
+          if (e.power === 'ELASTIC_KEEPER') {
+            // Aim the glove at the real shot's goal-plane destination. The
+            // ball remains the one ball in the main Atlas; the FX must never
+            // invent a second projectile or follow the later distribution.
+            const catchX = s.ball.kind === 'shot'
+              ? s.ball.targetX
+              : prevRef.current!.ball.x;
+            targets.splice(0, targets.length, {
+              point: { x: catchX, y: firingPlayer.pos.y },
+            });
+          }
+          if (e.power === 'BLINK_RUN') {
+            effectOrigin = { point: { ...prevRef.current!.players[e.player] } };
+            targets.splice(0, targets.length, {
+              point: { ...nextRef.current!.players[e.player] },
+            });
           }
           if (e.power === 'DECOY_DOUBLE') {
             const clone = firingPlayer.decoyClone;
@@ -688,8 +722,10 @@ export function MatchScreen({
         }
         if (e.kind === 'TACKLE' && e.style === 'power') {
           const power = s.players[e.by].def.power;
-          if (power === 'SUPER_STRENGTH' || power === 'WEB_TRAP'
-            || power === 'ICE_RINK' || power === 'SHADOW_MARK') {
+          // Web and Ice already have state-backed persistent art while the
+          // victim is rooted/sliding. Recording another event copy here drew
+          // two effects over the same player and made both read as clutter.
+          if (power === 'SUPER_STRENGTH' || power === 'SHADOW_MARK') {
             const descriptor = powerEffectDescriptor(power);
             const placedAnchor = s.players[e.by].powerAnchor;
             const offset = power === 'SUPER_STRENGTH'
@@ -948,22 +984,51 @@ export function MatchScreen({
       cancelAnimationFrame(raf);
       sub.remove();
     };
-  }, [controlledTeam, cutInMode, onDone, publishAtlasFrame, reduceMotion]);
+  }, [controlledTeam, cutInMode, onDone, powerMatchQa, publishAtlasFrame, reduceMotion]);
 
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
   // takes priority, followed by the far-ball GK ready loop, then locomotion.
   const playerSpriteKeys = useMemo(() => match.players.map((p, i) => {
+    const withBodyState = (key: string) => (
+      (p.webbedUntilTick ?? 0) > hud.tick ? webbedSpriteKey(key) : key
+    );
     const action = actionRef.current[i];
     const pose = actionPose(action, hud.visualTick);
     if (pose.active && action?.kind === 'slide') {
-      return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, slideTackleSpriteFrameForAction(action, hud.visualTick), p.def.lookId);
+      return withBodyState(spriteKeyForMatchPlayer(
+        i,
+        p.def.id,
+        p.def.role,
+        slideTackleSpriteFrameForAction(action, hud.visualTick),
+        p.def.lookId,
+      ));
     }
-    if (pose.active) return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, 'run0', p.def.lookId);
+    if (pose.active) {
+      return withBodyState(spriteKeyForMatchPlayer(
+        i,
+        p.def.id,
+        p.def.role,
+        runFrameForTeam(p.team, 'run0'),
+        p.def.lookId,
+      ));
+    }
     if (p.def.role === 'GK' && isKeeperReady(dist2(frame.players[i], frame.ball))) {
-      return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, keeperReadyFrame(hud.visualTick), p.def.lookId);
+      return withBodyState(spriteKeyForMatchPlayer(
+        i,
+        p.def.id,
+        p.def.role,
+        keeperReadyFrameForTeam(p.team, keeperReadyFrame(hud.visualTick)),
+        p.def.lookId,
+      ));
     }
-    return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, runFrameForDistance(frame.travel[i], frame.moved[i]), p.def.lookId);
-  }), [frame, hud.visualTick, match]);
+    return withBodyState(spriteKeyForMatchPlayer(
+      i,
+      p.def.id,
+      p.def.role,
+      runFrameForTeam(p.team, runFrameForDistance(frame.travel[i], frame.moved[i])),
+      p.def.lookId,
+    ));
+  }), [frame, hud.tick, hud.visualTick, match]);
 
   // All 22 players plus the ball still share one batched Atlas draw call.
   const sprites: SkRect[] = useMemo(() => {
@@ -991,7 +1056,9 @@ export function MatchScreen({
       if (player.def.power === 'PHASE_RUN' && player.powerState.kind === 'active') {
         return Skia.Color(reduceMotion ? '#c9a6ec' : 'rgba(201,166,236,0.48)');
       }
-      if ((player.webbedUntilTick ?? 0) > hud.tick) return Skia.Color('#c9c5d0');
+      // Webbed players use an authored four-step grey sprite variant above;
+      // keep its palette intact instead of multiplying another tint over it.
+      if ((player.webbedUntilTick ?? 0) > hud.tick) return Skia.Color('#ffffff');
       if ((player.portalProtectedUntilTick ?? 0) > hud.tick) return Skia.Color('#a3c8f0');
       if ((player.forcedMovement?.untilTick ?? 0) > hud.tick) return Skia.Color('#a3c8f0');
       if ((player.actionLockedUntilTick ?? 0) > hud.tick) return Skia.Color('#d94f52');
@@ -1054,6 +1121,7 @@ export function MatchScreen({
     anchor?: PowerEffectPoint;
     tier: 1 | 2 | 3;
     direction: -1 | 1;
+    sourcePlayer: number;
   }> = powerEffectsRef.current.map(effect => ({
     id: effect.id,
     power: effect.power,
@@ -1063,6 +1131,7 @@ export function MatchScreen({
     anchor: effect.anchor === undefined ? undefined : screenPoint(effect.anchor),
     tier: effect.tier,
     direction: match.players[effect.player].team === 0 ? -1 : 1,
+    sourcePlayer: effect.origin.player ?? effect.player,
   }));
 
   const addPersistentPowerEffect = (
@@ -1073,6 +1142,7 @@ export function MatchScreen({
     origin: PowerEffectPoint,
     targets: PowerEffectPoint[],
     anchor?: PowerEffectPoint,
+    sourcePlayer = player,
   ) => {
     drawablePowerEffects.push({
       id,
@@ -1083,6 +1153,7 @@ export function MatchScreen({
       anchor,
       tier: match.players[player].def.powerTier ?? 1,
       direction: match.players[player].team === 0 ? -1 : 1,
+      sourcePlayer,
     });
   };
 
@@ -1183,6 +1254,7 @@ export function MatchScreen({
         playerPoint(player.decoyClone.receiverIdx),
         [marker, screenPoint(player.decoyClone.pos)],
         player.powerAnchor === undefined ? undefined : screenPoint(player.powerAnchor),
+        player.decoyClone.receiverIdx,
       );
     }
 
@@ -1199,6 +1271,45 @@ export function MatchScreen({
       );
     }
   });
+
+  const activeSpeedster = match.players.findIndex(player => (
+    player.def.power === 'SUPER_SPEED' && player.powerState.kind === 'active'
+  ));
+  const powerEffectActors = [
+    ...drawablePowerEffects.flatMap(effect => livePowerEffectActors({
+      id: effect.id,
+      power: effect.power,
+      player: effect.sourcePlayer,
+      elapsedMs: effect.elapsedMs,
+      width: pitchWidth,
+      height: pitchH,
+      origin: effect.origin,
+      targets: effect.targets,
+      direction: effect.direction,
+      reduceMotion,
+    })),
+    ...(activeSpeedster === -1 ? [] : superSpeedAfterimageActors(
+      activeSpeedster,
+      trailRef.current.map(screenPoint),
+    )),
+  ];
+  const powerActorSprites: SkRect[] = powerEffectActors.map(actor => {
+    const rect = atlas.rectFor(playerSpriteKeys[actor.player]);
+    return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
+  });
+  const powerActorTransforms: SkRSXform[] = powerEffectActors.map(actor => {
+    const rect = atlas.rectFor(playerSpriteKeys[actor.player]);
+    const actorScale = scale * PLAYER_DRAW_SCALE * actor.scale;
+    return Skia.RSXform(
+      actorScale,
+      0,
+      actor.at.x - rect.w * actorScale / 2,
+      actor.at.y - rect.h * actorScale / 2,
+    );
+  });
+  const powerActorColors: SkColor[] = powerEffectActors.map(actor => (
+    Skia.Color(`rgba(255,255,255,${actor.opacity})`)
+  ));
 
   const teamOffset = controlledTeam === 0 ? 0 : 11;
   const onFieldIndices = Array.from({ length: 11 }, (_, slot) => teamOffset + slot);
@@ -1485,8 +1596,19 @@ export function MatchScreen({
             tier={effect.tier}
             direction={effect.direction}
             reduceMotion={reduceMotion}
+            showPlaceholderActors={false}
           />
         ))}
+        {powerEffectActors.length > 0 ? (
+          <Atlas
+            image={atlas.image as SkImage}
+            sprites={powerActorSprites}
+            transforms={powerActorTransforms}
+            colors={powerActorColors}
+            colorBlendMode="modulate"
+            sampling={PIXEL_ART_SAMPLING}
+          />
+        ) : null}
         <WorkletMatchOverlays
           visualPositions={workletVisualPositions}
           statuses={workletStatuses}
@@ -1505,7 +1627,7 @@ export function MatchScreen({
           reduceMotion={reduceMotion}
         />
         </Canvas>
-        {carrier ? (
+        {carrier && powerCutIns.length === 0 ? (
           <View
             pointerEvents="none"
             style={[
@@ -1538,14 +1660,51 @@ export function MatchScreen({
               key={`hero-tap-${index}`}
               accessibilityRole="button"
               accessibilityLabel={`Activate ${player.def.name}'s ${powerEffectDescriptor(player.def.power!).name}. ${powerEffectDescriptor(player.def.power!).accessibilityLabel}`}
-              hitSlop={8}
-              style={[styles.heroTapTarget, { left: position.x * scale - 27, top: position.y * scale - 30 }]}
+              hitSlop={16}
+              style={[styles.heroTapTarget, { left: position.x * scale - 54, top: position.y * scale - 60 }]}
               onPress={() => queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: index })}
             >
               <Text style={styles.heroTapLabel}>TAP</Text>
             </Pressable>
           );
         }) : null}
+        {powerCutIns.length > 0 ? (
+          <Pressable
+            accessibilityRole={powerCutInPolicy.skippable ? 'button' : 'text'}
+            accessibilityLabel={powerCutInAccessibilityLabel(powerCutIns)}
+            disabled={!powerCutInPolicy.skippable}
+            style={[
+              styles.powerActivationStack,
+              hudSide === 'left'
+                ? styles.powerActivationStackLeft
+                : styles.powerActivationStackRight,
+            ]}
+            onPress={() => setPowerCutIns([])}
+          >
+            {powerCutIns.slice(-2).map((entry) => {
+              const presentation = powerCutInPresentation(entry.power);
+              return (
+                <View key={entry.id} style={styles.powerActivationCard}>
+                  <View style={styles.powerActivationHighlight} />
+                  <Text style={[styles.powerActivationGlyph, { color: presentation.color }]}>
+                    {presentation.glyph}
+                  </Text>
+                  <View style={styles.powerActivationCopy}>
+                    <Text numberOfLines={1} style={styles.powerActivationPlayer}>
+                      {entry.playerName}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.powerActivationName, { color: presentation.color }]}
+                    >
+                      {presentation.name}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </Pressable>
+        ) : null}
       </View>
       {hud.banners.length > 0 ? (
         <View pointerEvents="none" style={styles.bannerStack}>
@@ -1562,50 +1721,6 @@ export function MatchScreen({
             </Text>
           ))}
         </View>
-      ) : null}
-      {powerCutIns.length > 0 ? (
-        <Pressable
-          accessibilityRole={powerCutInPolicy.skippable ? 'button' : 'text'}
-          accessibilityLabel={powerCutInAccessibilityLabel(powerCutIns)}
-          disabled={!powerCutInPolicy.skippable}
-          style={styles.powerCutInGrid}
-          onPress={() => {
-            automaticPauseReasonsRef.current.delete('cut-in');
-            syncPauseReasons();
-            setPowerCutIns([]);
-          }}
-        >
-          {powerCutIns.map((entry, index) => {
-            const presentation = powerCutInPresentation(entry.power);
-            return (
-              <View
-                key={entry.id}
-                style={[
-                  styles.powerCutInTile,
-                  styles.powerCutInHome,
-                  powerCutIns.length === 1 ? styles.powerCutInTileSolo : styles.powerCutInTileCompact,
-                  { width: powerCutInTileWidth(powerCutIns.length, index) },
-                ]}
-              >
-                <View style={styles.powerCutInSlash} />
-                <Text style={[
-                  styles.powerCutInGlyph,
-                  powerCutIns.length > 1 ? styles.powerCutInGlyphCompact : null,
-                  { color: presentation.color },
-                ]}>{presentation.glyph}</Text>
-                <View style={styles.powerCutInCopy}>
-                  <Text style={styles.powerCutInPlayer}>{entry.playerName}</Text>
-                  <Text style={[
-                    styles.powerCutInName,
-                    powerCutIns.length > 1 ? styles.powerCutInNameCompact : null,
-                    { color: presentation.color },
-                  ]}>{presentation.name}</Text>
-                  <Text style={styles.powerCutInHint}>{entry.skippable ? 'TAP TO SKIP' : 'FIRST REVEAL'}</Text>
-                </View>
-              </View>
-            );
-          })}
-        </Pressable>
       ) : null}
       <View style={[styles.coachingDock, compactHeight ? styles.coachingDockCompact : null]}>
         <View style={styles.coachBar}>
@@ -2003,35 +2118,58 @@ const styles = StyleSheet.create({
   },
   bannerThreat: { color: '#f4f1ea', borderColor: '#d94f52', backgroundColor: '#3a1512ee' },
   bannerAction: { color: '#f4f1ea', borderColor: '#77a4d8', backgroundColor: '#214566ee' },
-  powerCutInGrid: {
+  powerActivationStack: {
     position: 'absolute',
-    zIndex: 30,
-    top: '18%',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    zIndex: 7,
+    bottom: 8,
+    width: 230,
+    gap: 4,
   },
-  powerCutInTile: {
+  powerActivationStackLeft: { left: 8 },
+  powerActivationStackRight: { right: 8 },
+  powerActivationCard: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
-    borderWidth: 3,
+    backgroundColor: '#241f2ef2',
+    borderWidth: 2,
     borderColor: '#edb54a',
-    backgroundColor: '#16121ff5',
-    paddingHorizontal: 12,
+    borderBottomWidth: 4,
+    borderBottomColor: '#c8862a',
+    borderRadius: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
-  powerCutInTileSolo: { minHeight: 210, paddingHorizontal: 20 },
-  powerCutInTileCompact: { minHeight: 132 },
-  powerCutInHome: { borderColor: '#edb54a' },
-  powerCutInSlash: { position: 'absolute', left: '42%', top: -70, width: 70, height: 360, backgroundColor: '#f4f1ea12', transform: [{ rotate: '18deg' }] },
-  powerCutInGlyph: { width: 120, fontSize: 72, fontWeight: 'bold', textAlign: 'center' },
-  powerCutInGlyphCompact: { width: 54, fontSize: 38 },
-  powerCutInCopy: { minWidth: 0, flex: 1, paddingLeft: 12 },
-  powerCutInPlayer: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' },
-  powerCutInName: { marginTop: 6, fontSize: 34, lineHeight: 38, fontWeight: '900', textTransform: 'uppercase' },
-  powerCutInNameCompact: { fontSize: 20, lineHeight: 24 },
-  powerCutInHint: { marginTop: 12, color: '#c9c5d0', fontSize: 10, fontWeight: 'bold', letterSpacing: 2 },
+  powerActivationHighlight: {
+    position: 'absolute',
+    left: 2,
+    right: 2,
+    top: 2,
+    height: 4,
+    backgroundColor: '#f7d89455',
+  },
+  powerActivationGlyph: {
+    width: 38,
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  powerActivationCopy: { minWidth: 0, flex: 1, paddingLeft: 6 },
+  powerActivationPlayer: {
+    color: '#f4f1ea',
+    fontSize: 9,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  powerActivationName: {
+    marginTop: 2,
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
   carrierCard: {
     position: 'absolute',
     zIndex: 4,
@@ -2058,8 +2196,8 @@ const styles = StyleSheet.create({
   heroTapTarget: {
     position: 'absolute',
     zIndex: 6,
-    width: 54,
-    height: 60,
+    width: 108,
+    height: 120,
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
@@ -2067,11 +2205,11 @@ const styles = StyleSheet.create({
     color: '#f4f1ea',
     backgroundColor: '#a83440',
     borderColor: '#f4f1ea',
-    borderWidth: 1,
-    fontSize: 9,
+    borderWidth: 2,
+    fontSize: 18,
     fontWeight: 'bold',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
   coachingDock: {
     gap: 6,

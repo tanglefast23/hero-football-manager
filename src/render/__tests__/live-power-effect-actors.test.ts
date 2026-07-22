@@ -1,0 +1,66 @@
+import { livePowerEffectActors, superSpeedAfterimageActors } from '../live-power-effect-actors';
+import { powerEffectDescriptor } from '../power-effect-descriptors';
+
+const base = {
+  id: 'effect',
+  player: 7,
+  width: 500,
+  height: 800,
+  origin: { x: 240, y: 600 },
+  targets: [{ x: 260, y: 420 }, { x: 340, y: 360 }],
+  direction: -1 as const,
+};
+
+describe('live power effect actors', () => {
+  it('uses the exact source player for phase afterimages and the decoy clone', () => {
+    const phase = livePowerEffectActors({
+      ...base,
+      power: 'PHASE_RUN',
+      elapsedMs: 2100,
+    });
+    expect(phase).toHaveLength(3);
+    expect(phase.every(actor => actor.player === 7)).toBe(true);
+
+    const decoy = livePowerEffectActors({
+      ...base,
+      power: 'DECOY_DOUBLE',
+      elapsedMs: 2100,
+    });
+    expect(decoy).toHaveLength(1);
+    expect(decoy[0]).toMatchObject({ player: 7, scale: 1 });
+  });
+
+  it('uses the real hero for the Shadow Mark pop-up and giant goalkeeper', () => {
+    const shadow = livePowerEffectActors({
+      ...base,
+      power: 'SHADOW_MARK',
+      elapsedMs: powerEffectDescriptor('SHADOW_MARK').beats[2].startMs + 300,
+    });
+    expect(shadow).toHaveLength(1);
+    expect(shadow[0].player).toBe(7);
+
+    const giant = livePowerEffectActors({
+      ...base,
+      power: 'GIANT_GK',
+      elapsedMs: 2000,
+    });
+    expect(giant).toHaveLength(1);
+    expect(giant[0].player).toBe(7);
+    expect(giant[0].scale).toBeGreaterThan(1.9);
+  });
+
+  it('leaves ordinary moving bodies to the main player atlas', () => {
+    for (const power of ['BLINK_RUN', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'ICE_RINK', 'GRAVITY_WELL'] as const) {
+      expect(livePowerEffectActors({ ...base, power, elapsedMs: 2100 })).toEqual([]);
+    }
+  });
+
+  it('builds speed afterimages from the real movement trail without duplicating the live player', () => {
+    const actors = superSpeedAfterimageActors(4, [
+      { x: 10, y: 10 }, { x: 10, y: 20 }, { x: 10, y: 30 }, { x: 10, y: 40 },
+    ]);
+    expect(actors).toHaveLength(3);
+    expect(actors[0]).toMatchObject({ player: 4, at: { x: 10, y: 20 } });
+    expect(actors.some(actor => actor.at.y === 10)).toBe(false);
+  });
+});

@@ -10,9 +10,10 @@ const VISUAL_IDS = SIDES.flatMap(side => [
   ...manifest.goalkeeper.map(id => `${side}:${id}`),
 ]);
 const BASE_KEYS = [
-  ...VISUAL_IDS.flatMap(id => [`${id}:run0`, `${id}:run1`]),
+  ...VISUAL_IDS.flatMap(id => [`${id}:run0`, `${id}:run1`, `${id}:back0`, `${id}:back1`]),
   ...SIDES.flatMap(side => manifest.goalkeeper.flatMap(id => [
     `${side}:${id}:ready0`, `${side}:${id}:ready1`,
+    `${side}:${id}:backReady0`, `${side}:${id}:backReady1`,
   ])),
   'ball',
 ];
@@ -35,7 +36,7 @@ describe('large career match-sprite roster', () => {
 
   it('loads every base and derived action frame', () => {
     const sheet = loadSpriteSheet();
-    expect(BASE_KEYS).toHaveLength(873);
+    expect(BASE_KEYS).toHaveLength(1745);
     expect(SLIDE_KEYS).toHaveLength(3860);
     for (const key of [...BASE_KEYS, ...SLIDE_KEYS]) expect(sheet.sprites).toHaveProperty(key);
     expect(Object.keys(sheet.sprites)).toHaveLength(BASE_KEYS.length + SLIDE_KEYS.length);
@@ -43,7 +44,7 @@ describe('large career match-sprite roster', () => {
 
   it('builds a match-sized sheet from only the active visual identities', () => {
     const sheet = loadSpriteSheet(['r:f00', 'u:g01', 'r:c167', 'r:f00']);
-    expect(Object.keys(sheet.sprites)).toHaveLength(39);
+    expect(Object.keys(sheet.sprites)).toHaveLength(47);
     expect(sheet.sprites).toHaveProperty('r:f00:run0');
     expect(sheet.sprites).toHaveProperty('u:g01:ready1');
     expect(sheet.sprites).toHaveProperty('u:g01:slide9');

@@ -4,8 +4,17 @@ import {
   powerEffectDescriptor,
   powerEffectFrame,
 } from '../power-effect-descriptors';
+import { POWER_EFFECT_RENDER_STYLE } from '../power-effect-render-style';
 
 describe('launch power effect direction', () => {
+  it('renders production FX as hard-edged pixel art', () => {
+    expect(POWER_EFFECT_RENDER_STYLE).toEqual({
+      antiAlias: false,
+      strokeCap: 'butt',
+      strokeJoin: 'miter',
+    });
+  });
+
   it('gives every launch power a unique, accessible three-beat animation', () => {
     expect(Object.keys(POWER_EFFECT_DESCRIPTORS).sort()).toEqual([...LAUNCH_POWER_IDS].sort());
     const signatures = new Set<string>();
@@ -64,4 +73,3 @@ describe('launch power effect direction', () => {
     expect(powerEffectFrame('FUTURE_SIGHT', 0, true).beatIndex).toBe(2);
   });
 });
-
