@@ -18,15 +18,15 @@ const DEFAULT_AWAKENING_SEEDS = 2000;
 /**
  * M1 CI rails, taken directly from the design promises:
  * - docs/09: Season-1 Cozy bankruptcy stays below 2%.
- * - docs/05: a completed Level-1 Training Pitch supplies almost 5 TP/week
+ * - docs/05: a completed Level-1 Training Pitch supplies almost 10 TP/week
  *   across the season (Week 1 is its construction week).
  * - Post-match awakenings average roughly one per ten eligible matches after
  *   their three-match cooldown, without silently adding a pity guarantee.
  */
 export const MINI_BALANCE_RAILS = Object.freeze({
   maximumSeasonOneBankruptcyRate: 0.02,
-  minimumMeanAmbientTrainingPointsPerWeek: 4.5,
-  maximumMeanAmbientTrainingPointsPerWeek: 5,
+  minimumMeanAmbientTrainingPointsPerWeek: 9,
+  maximumMeanAmbientTrainingPointsPerWeek: 10,
   minimumMeanAwakeningMatch: 10,
   maximumMeanAwakeningMatch: 14,
   minimumAwakeningBySeasonEndRate: 0.75,

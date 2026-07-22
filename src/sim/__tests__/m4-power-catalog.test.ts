@@ -1,4 +1,4 @@
-import { launchPass, shotBonus } from '../engine';
+import { launchPass, movementTick, shotBonus } from '../engine';
 import { createMatch } from '../match';
 import {
   activatePower,
@@ -85,10 +85,13 @@ describe('M4 twelve-power catalog', () => {
     decoy.match.players[decoy.hero].pos = { x: 3000, y: 5000 };
     decoy.match.players[11].pos = { x: 3100, y: 5000 };
     activatePower(decoy.match, decoy.hero, 1);
-    expect(decoy.match.players[11].pos.x).not.toBe(3100);
+    const beforeDecoyMove = { ...decoy.match.players[11].pos };
+    movementTick(decoy.match);
+    expect(decoy.match.players[11].pos).not.toEqual(beforeDecoyMove);
 
     const future = matchWith('FUTURE_SIGHT');
     future.match.players[future.hero].pos = { x: 3000, y: 5000 };
+    future.match.players[9].pos = { x: 2600, y: 3500 };
     future.match.players[11].pos = { x: 3100, y: 5000 };
     future.match.players[12].pos = { x: 3200, y: 5000 };
     future.match.ball = { kind: 'held', by: 11 };
@@ -104,10 +107,9 @@ describe('M4 twelve-power catalog', () => {
     });
     expect(future.match.players[future.hero].pos).toEqual(future.match.players[12].pos);
     expect(future.match.players[future.hero].powerState.kind).toBe('active');
-    future.match.players[13].pos = { x: 3300, y: 5000 };
-    future.match.ball = { kind: 'held', by: 11 };
-    launchPass(future.match, 11, 13, false);
-    expect(future.match.ball).toMatchObject({ willSucceed: false, interceptor: future.hero });
+    expect(future.match.players[future.hero].powerState).toMatchObject({
+      kind: 'active', commitment: 'FUTURE_OUTLET',
+    });
 
     const web = matchWith('WEB_TRAP');
     web.match.players[web.hero].pos = { x: 3000, y: 5000 };
@@ -147,6 +149,7 @@ describe('M4 twelve-power catalog', () => {
 
     expect(inUsefulContext(decoy.match, decoy.hero)).toBe(true);
     activatePower(decoy.match, decoy.hero, 1);
+    movementTick(decoy.match);
     expect(decoy.match.players[marker].pos.x).not.toBe(markerX);
   });
 
@@ -161,7 +164,7 @@ describe('M4 twelve-power catalog', () => {
 
     const phase = matchWith('PHASE_RUN');
     activatePower(phase.match, phase.hero, 1);
-    expect(phaseRunPreventsShot(phase.match, phase.hero)).toBe(true);
+    expect(phaseRunPreventsShot(phase.match, phase.hero)).toBe(false);
     expect(dribbleBonus(phase.match, phase.hero)).toBeGreaterThan(75);
 
     const keeper = matchWith('ELASTIC_KEEPER');

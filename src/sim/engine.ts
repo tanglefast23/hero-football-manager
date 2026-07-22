@@ -2,7 +2,7 @@ import { BLEND_TICKS, blendedTableTarget, gkTarget, kickoffPos } from './movemen
 import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, HALF_TICKS, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest, contestProbability } from './contest';
-import { addGauge, consumeShadowMark, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, STRENGTH_LOCK_RANGE, futureSightInterceptor, gustDisruptsPass, iceRinkSlow, isShadowMarked } from './powers';
+import { addGauge, clearPowerCommitment, consumeKeeperShotCharge, consumePhaseChallenge, consumeShadowMark, decoyPursuitTarget, finishMomentPower, gustRecoveryVelocity, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, STRENGTH_LOCK_RANGE, futureSightInterceptor, gustDisruptsPass, iceRinkSlow, isShadowMarked } from './powers';
 import { energyDrainMultiplier, energyMovementMultiplier, formationTarget, mentalityTarget, type EnergyUse } from './tactics';
 import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 
@@ -208,12 +208,13 @@ function targetFor(state: MatchState, i: number, mv: MovementState, presserIdx: 
     ? state.players[state.ball.by].pos : null;
   const isPassReceiver = state.ball.kind === 'pass' && state.ball.to === i;
   const chaseLoose = state.ball.kind === 'loose' && dist2(p.pos, ball) < 1500 * 1500;
+  const decoyTarget = decoyPursuitTarget(state, i);
   return isCarrier
     ? carryTarget(state, i)
     : chargeTarget ? chargeTarget
     : strengthZoneTarget ? strengthZoneTarget
-    : i === presserIdx || isPassReceiver || chaseLoose ? ball
-    : fallbackTarget(state, i, mv, ball);
+    : decoyTarget ?? (i === presserIdx || isPassReceiver || chaseLoose ? ball
+      : fallbackTarget(state, i, mv, ball));
 }
 
 function slideMovementTick(state: MatchState, idx: number): void {
@@ -665,6 +666,24 @@ export function attackingDecision(state: MatchState, carrierIdx: number): Attack
     && goalFacingQuality(carrier.pos, goal.y) >= 0.6
     && corridorQuality >= 0.7;
 
+  if (carrier.powerState.kind === 'winding' && carrier.def.power === 'THUNDER_STRIKE') {
+    return { kind: 'carry', values };
+  }
+  if (carrier.powerState.kind === 'active' && carrier.powerState.commitment === 'THUNDER_SHOT') {
+    return { kind: 'shoot', values };
+  }
+  if (carrier.powerState.kind === 'active' && carrier.powerState.commitment === 'FUTURE_OUTLET'
+    && carrier.powerState.targetIdx !== undefined
+    && isAvailable(state, carrier.powerState.targetIdx)
+    && state.players[carrier.powerState.targetIdx].team === carrier.team) {
+    return { kind: 'pass', to: carrier.powerState.targetIdx, values };
+  }
+  if (carrier.powerState.kind === 'active' && carrier.powerState.commitment === 'BLINK_ACTION') {
+    return dist(carrier.pos, goal) <= 2600
+      ? { kind: 'shoot', values }
+      : { kind: 'carry', values };
+  }
+
   if (obviousShot || speedBreakShot) {
     return { kind: 'shoot', values };
   }
@@ -760,15 +779,29 @@ export function possessionTick(state: MatchState): void {
   const carrierIdx = b.by;
   const carrier = state.players[carrierIdx];
   const goal = { x: GOAL_CENTER_X, y: goalYFor(carrier.team) };
+  const commitment = carrier.powerState.kind === 'active' ? carrier.powerState.commitment : undefined;
   const decision = attackingDecision(state, carrierIdx);
 
   if (decision.kind === 'shoot') {
     attemptShot(state, carrierIdx, dist(carrier.pos, goal));
+    if (carrier.def.power === 'THUNDER_STRIKE') finishMomentPower(state, carrierIdx);
+    else if (carrier.def.power === 'FUTURE_SIGHT' && commitment === 'FUTURE_OUTLET') {
+      finishMomentPower(state, carrierIdx);
+    }
+    else clearPowerCommitment(state, carrierIdx);
     return;
   }
 
   if (decision.kind === 'pass') {
     launchPass(state, carrierIdx, decision.to, false);
+    if (carrier.def.power === 'FUTURE_SIGHT' && commitment === 'FUTURE_OUTLET') finishMomentPower(state, carrierIdx);
+    else clearPowerCommitment(state, carrierIdx);
+    return;
+  }
+  if (carrier.def.power === 'FUTURE_SIGHT' && commitment === 'FUTURE_OUTLET') {
+    finishMomentPower(state, carrierIdx);
+  } else {
+    clearPowerCommitment(state, carrierIdx);
   }
 }
 
@@ -776,7 +809,8 @@ export function launchPass(state: MatchState, from: number, to: number, lofted: 
   const passer = state.players[from];
   const inputs = passContestInputs(state, from, to);
   const rolledOk = contest(state.rng, effectiveStat(state, from, 'pas'), inputs.interceptStat, 10);
-  const gusted = gustDisruptsPass(state, passer.team);
+  const gustHero = gustDisruptsPass(state, passer.team);
+  const gusted = gustHero !== -1;
   const predictedInterceptor = gusted ? -1 : futureSightInterceptor(state, passer.team, to);
   const ok = !gusted && predictedInterceptor === -1 ? rolledOk : false;
   const interceptor = gusted ? -1 : (predictedInterceptor === -1 ? inputs.interceptor : predictedInterceptor);
@@ -804,7 +838,10 @@ export function launchPass(state: MatchState, from: number, to: number, lofted: 
     vz: lofted ? verticalLaunchSpeed(flightTicks, 0) : 0,
     speed,
     looseOnArrival,
-    deflectionVel: looseOnArrival ? passDeflectionVelocity(passer.pos, target, from, to, state.tick) : undefined,
+    deflectionVel: looseOnArrival
+      ? (gusted ? gustRecoveryVelocity(state, gustHero, target)
+        : passDeflectionVelocity(passer.pos, target, from, to, state.tick))
+      : undefined,
   };
 }
 
@@ -984,9 +1021,10 @@ export function tackleTick(state: MatchState): void {
     const defender = state.players[i];
     if (defender.team === carrier.team || !isAvailable(state, i)) continue;
     if (state.tick < defender.tackleCooldownUntil || defender.powerState.kind === 'winding') continue;
-    if (fireSuppressed(state, i, carrierIdx)) continue;
     const d2 = dist2(defender.pos, carrier.pos);
+    if (fireSuppressed(state, i, carrierIdx)) continue;
     if (d2 <= STANDING_TACKLE_RANGE * STANDING_TACKLE_RANGE && d2 < standingD2) {
+      if (consumePhaseChallenge(state, carrierIdx)) return;
       standingIdx = i;
       standingD2 = d2;
       continue;
@@ -999,6 +1037,7 @@ export function tackleTick(state: MatchState): void {
       || d2 > launchRange * launchRange
       || d2 >= slideD2
     ) continue;
+    if (consumePhaseChallenge(state, carrierIdx)) return;
     slideIdx = i;
     slideD2 = d2;
     slideDistance = Math.sqrt(d2);
@@ -1064,12 +1103,14 @@ export function shotFlightTick(state: MatchState): void {
     b.keeperChecked = true;
     if (isAvailable(state, gkIdx)) {
       const resolveScale = keeperResolveScale(state.resolve[defendingTeam]);
+      const powerSaveBonus = keeperSaveBonus(state, gkIdx);
       const saved = contest(
         state.rng,
-        effectiveStat(state, gkIdx, 'ref') * resolveScale + keeperSaveBonus(state, gkIdx),
+        effectiveStat(state, gkIdx, 'ref') * resolveScale + powerSaveBonus,
         b.power,
         SHOT_KEEPER_MOD,
       );
+      consumeKeeperShotCharge(state, gkIdx);
       if (saved) {
         state.resolve[defendingTeam] = Math.max(
           0,

@@ -45,7 +45,9 @@ describe('M1 mini balance harness', () => {
   test('keeps Season-1 Cozy bankruptcy below the two-percent design promise', () => {
     const metrics = runMiniBalanceHarness(LAUNCH_SCENARIO);
 
-    expect(metrics.meanSeasonOneDiscretionarySpend).toBe(14800);
+    // A Level-1 pitch now funds the 10-TP basic drill through all 30 weeks:
+    // $8,000 pitch + 30 weekly $400 trainee charges.
+    expect(metrics.meanSeasonOneDiscretionarySpend).toBe(20000);
     expect(metrics.seasonOneBankruptcyRate)
       .toBeLessThan(MINI_BALANCE_RAILS.maximumSeasonOneBankruptcyRate);
   });

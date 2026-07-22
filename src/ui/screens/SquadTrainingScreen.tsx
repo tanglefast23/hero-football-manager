@@ -505,7 +505,7 @@ export function SquadTrainingScreen({
           right={<StatusChip label={`${viewModel.selectedDrillCount} / ${viewModel.maxDrills}`} selected={viewModel.selectedDrillCount > 0} />}
         />
         <Text className="mb-3 text-sm leading-5 text-ink/60">
-          Your Level 1 Training Pitch adds 5 TP after each weekly settlement. Money prices are per eligible trainee; TP is charged once per selected drill. The plan repeats weekly until changed.
+          Your Level 1 Training Pitch adds 10 TP after each weekly settlement. Money prices are per eligible trainee; TP is charged once per selected drill. The plan repeats weekly until changed.
         </Text>
         <View className={guideDrills
           ? 'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'

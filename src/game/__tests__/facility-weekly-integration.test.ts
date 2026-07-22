@@ -16,11 +16,14 @@ describe('facility weekly integration', () => {
   test('starts a full career with an open Level 1 pitch and bridges four basic training weeks', () => {
     const content = loadLaunchContent();
     const fresh = createCareer(createLaunchCareerSetup(20260718, undefined, content, 'full'));
-    const player = fresh.players.find(candidate => candidate.clubId === fresh.userClubId)!;
+    const players = fresh.players
+      .filter(candidate => candidate.clubId === fresh.userClubId)
+      .slice(0, 2);
+    expect(players).toHaveLength(2);
     const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
     let state = setCareerTrainingPlan({
       ...fresh,
-      players: fresh.players.map(candidate => candidate.id === player.id
+      players: fresh.players.map(candidate => players.some(player => player.id === candidate.id)
         ? {
             ...candidate,
             age: 25,
@@ -30,7 +33,7 @@ describe('facility weekly integration', () => {
             attrs: { ...candidate.attrs, pac: 20 },
           }
         : candidate),
-    }, [player.id], [sprint]);
+    }, players.map(player => player.id), [sprint]);
 
     expect(state.trainingPoints).toBe(30);
     expect(state.facilities).toMatchObject({
@@ -47,10 +50,11 @@ describe('facility weekly integration', () => {
       balances.push(state.trainingPoints);
     }
 
-    // Sprints I costs 10 TP once, then the open pitch adds 5 TP.
-    expect(balances).toEqual([30, 25, 20, 15, 10]);
+    // Sprints I costs 10 TP once, then the open pitch restores all 10 TP.
+    expect(balances).toEqual([30, 30, 30, 30, 30]);
+    // TP is charged once for the selected drill; Money remains per eligible trainee.
     expect(state.ledgers.map(ledger => ledger.lines.find(line => line.kind === 'training')?.amount))
-      .toEqual([-400, -400, -400, -400]);
+      .toEqual([-800, -800, -800, -800]);
   });
 
   test('starts without benefits, then activates upkeep and ambient TP after completion', () => {
@@ -67,7 +71,7 @@ describe('facility weekly integration', () => {
 
     const settled = advanceWeek(completionWeek);
 
-    expect(settled.trainingPoints).toBe(built.trainingPoints + 5);
+    expect(settled.trainingPoints).toBe(built.trainingPoints + 10);
     expect(settled.ledgers[1].lines).toContainEqual({
       kind: 'facilities',
       label: 'Facility upkeep',
@@ -98,7 +102,7 @@ describe('facility weekly integration', () => {
       },
     };
 
-    expect(advanceWeek(levelThree).trainingPoints).toBe(levelThree.trainingPoints + 15);
+    expect(advanceWeek(levelThree).trainingPoints).toBe(levelThree.trainingPoints + 30);
   });
 
   test('carries the Gym + Dorm ten-percent bonus until small real gains earn +1 STA', () => {
@@ -148,7 +152,7 @@ describe('facility weekly integration', () => {
 
     const settled = advanceWeek(legacy);
 
-    expect(settled.trainingPoints).toBe(legacy.trainingPoints + 5);
+    expect(settled.trainingPoints).toBe(legacy.trainingPoints + 10);
     expect(settled.ledgers[0].lines.some(line => line.kind === 'facilities')).toBe(false);
   });
 });

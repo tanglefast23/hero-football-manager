@@ -190,7 +190,7 @@ describe('possession', () => {
     expect(m.ball).toEqual({ kind: 'held', by: receiver });
   });
 
-  it('lets Gust keep knocking enemy passes loose during its active window', () => {
+  it('lets Gust bend the next enemy pass loose toward a recovery lane, then consumes', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const passer = 5;
     const receiver = 6;
@@ -208,16 +208,19 @@ describe('possession', () => {
       interceptor: -1,
       looseOnArrival: true,
     });
-    expect(m.players[gustHero].powerState.kind).toBe('active');
+    expect(m.players[gustHero].powerState.kind).toBe('idle');
     const gustFlight = m.ball as BallState;
     if (gustFlight.kind !== 'pass') throw new Error('pass did not launch');
+    expect(gustFlight.deflectionVel).toBeDefined();
     gustFlight.pos = { ...m.players[receiver].pos };
     possessionTick(m);
     expect(m.ball).toMatchObject({ kind: 'loose' });
 
     m.ball = { kind: 'held', by: passer };
     launchPass(m, passer, receiver, false);
-    expect(m.ball).toMatchObject({ kind: 'pass', looseOnArrival: true });
+    expect(m.ball).toMatchObject({ kind: 'pass' });
+    const ordinaryFlight = m.ball as unknown as Extract<BallState, { kind: 'pass' }>;
+    expect(ordinaryFlight.looseOnArrival).not.toBe(true);
   });
 
   it('remains deterministic', () => {

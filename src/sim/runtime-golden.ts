@@ -4,10 +4,11 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
-// Rebaselined deliberately for m1.16: Shadow Mark is hidden from the pass-choice
-// model and is consumed by its first challenge. This is an intended replay
-// break matching the authored one-ambush contract, not drift.
-const EXPECTED_RUNTIME_GOLDEN = '6240cc68';
+// Rebaselined deliberately for m1.17: hero powers now cash out as authored
+// one-moment actions (committed shots/outlets, recoverable spills, attack-scoped
+// keeper charges, and persistent visible movement). This is intended replay
+// change, not quiet drift.
+const EXPECTED_RUNTIME_GOLDEN = 'd359b3ea';
 
 export function runtimeGoldenFingerprint(): string {
   const result = runMatch(42, ROVERS, UNITED, [], {

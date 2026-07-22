@@ -16,6 +16,6 @@ describe('facilityBenefit', () => {
   });
 
   it('states the training pitch training-point bonus', () => {
-    expect(facilityBenefit('training-pitch')).toMatch(/\+5/);
+    expect(facilityBenefit('training-pitch')).toMatch(/\+10/);
   });
 });

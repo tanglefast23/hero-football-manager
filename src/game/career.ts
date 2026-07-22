@@ -987,7 +987,7 @@ export function weeklyAmbientTrainingPoints(state: GameState): number {
         building.type === 'training-pitch' && isFacilityOperational(grid, building.id)
       ))
       .reduce((maximum, building) => Math.max(maximum, building.level), 0);
-  const facilityPoints = checkedMultiply(trainingPitchLevel, 5, 'facility training points');
+  const facilityPoints = checkedMultiply(trainingPitchLevel, 10, 'facility training points');
   const coachPoints = state.market === undefined ? 0 : careerCoachWeeklyTrainingPoints(state.market);
   return checkedAdd(facilityPoints, coachPoints, 'ambient training points');
 }

@@ -9,7 +9,7 @@ import type { FacilityTypeViewModel } from './models';
 export function facilityBenefit(type: FacilityTypeViewModel): string {
   switch (type) {
     case 'training-pitch':
-      return 'Adds +5 Training Points per Level every week. Upgrades also boost defense training.';
+      return 'Adds +10 Training Points per Level every week. Upgrades also boost defense training.';
     case 'gym':
       return 'Level 1 has no training bonus. Level 2+ boosts pace and stamina training.';
     case 'tech-center':

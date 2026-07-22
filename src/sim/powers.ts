@@ -107,7 +107,7 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
   // Sight target, so settling can never select a target the windup would drop.
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
   if (power === 'WEB_TRAP' || power === 'FUTURE_SIGHT') return oppCarrierNear(1900);
-  if (power === 'ICE_RINK' || power === 'GRAVITY_WELL' || power === 'SHADOW_MARK') {
+  if (power === 'ICE_RINK' || power === 'SHADOW_MARK') {
     return oppCarrierNear(1900);
   }
   if (power === 'GIANT_GK') {
@@ -115,7 +115,7 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
     if (b.kind === 'shot') return state.players[b.by].team !== p.team;
     return b.kind === 'held' && state.players[b.by].team !== p.team;
   }
-  if (power === 'PORTAL_PASS') return friendlyCarrier !== -1;
+  if (power === 'PORTAL_PASS') return friendlyCarrier !== -1 && portalDestination(state, friendlyCarrier, 1) !== null;
   if (power === 'DECOY_DOUBLE') {
     return friendlyCarrier !== -1
       && nearestOpponentIndex(state, friendlyCarrier, DECOY_MARKER_RANGE) !== -1;
@@ -126,6 +126,8 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
     if (b.kind === 'shot') return state.players[b.by].team !== p.team;
     return b.kind === 'held' && state.players[b.by].team !== p.team;
   }
+  if (power === 'GRAVITY_WELL') return gravityWellContext(state, idx);
+  if (power === 'FIRE_TORCH') return relevantTorchMarker(state, idx) !== -1;
   return true;
 }
 
@@ -183,7 +185,7 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
       && mate.gauge >= RALLY_CRY_TEAMMATE_HEAT);
   }
   if (power === 'ICE_RINK') return oppCarrierNear(ICE_RINK_RANGE);
-  if (power === 'GRAVITY_WELL') return oppCarrierNear(GRAVITY_WELL_RANGE);
+  if (power === 'GRAVITY_WELL') return gravityWellContext(state, idx);
   if (power === 'SHADOW_MARK') return oppCarrierNear(SHADOW_MARK_RANGE);
   if (power === 'GIANT_GK') {
     if (p.def.role !== 'GK') return false;
@@ -218,7 +220,8 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
   if (power === 'PHASE_RUN') return isCarrier && opponentWithin(state, idx, 700)
     && attackingProgress < PITCH_H * 0.82;
   if (power === 'PORTAL_PASS') {
-    return friendlyCarrier !== -1 && opponentWithin(state, friendlyCarrier, 1100);
+    return friendlyCarrier !== -1 && opponentWithin(state, friendlyCarrier, 1100)
+      && portalDestination(state, friendlyCarrier, 1) !== null;
   }
   if (power === 'DECOY_DOUBLE') {
     if (friendlyCarrier === -1) return false;
@@ -227,11 +230,9 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
     return carrierProgress > PITCH_H * 0.38
       && nearestOpponentIndex(state, friendlyCarrier, DECOY_MARKER_RANGE) !== -1;
   }
-  // Fire Torch's instant effect ignites the nearest opponent to the hero, so
-  // its useful context must be the same condition. Requiring the hero to carry
-  // here made contextual auto pass up valuable removals that blind firing got
-  // by accident. The effect and context share one radius.
-  return opponentWithin(state, idx, TORCH_IGNITE_RANGE);
+  // Fire Torch cashes out an attacking run by removing the marker between the
+  // carrier and goal. A nearby defender behind the play is not useful.
+  return relevantTorchMarker(state, idx) !== -1;
 }
 
 function startWindup(state: MatchState, idx: number, strength: number): void {
@@ -245,6 +246,7 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
       targetIdx = state.ball.by;
     }
   }
+  if (p.def.power === 'FIRE_TORCH') targetIdx = relevantTorchMarker(state, idx);
   p.powerState = { kind: 'winding', untilTick: state.tick + WINDUP_TICKS, strength, targetIdx };
 }
 
@@ -337,11 +339,16 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
       if (state.tick >= p.powerState.untilTick) activatePower(state, idx, p.powerState.strength, p.powerState.targetIdx);
     } else if (p.powerState.kind === 'active') {
       if (p.def.power === 'WEB_TRAP') springWebTrap(state, idx);
-      if (p.powerState.kind === 'active' && p.def.power === 'GRAVITY_WELL'
-        && state.tick % 5 === 0) {
-        applyGravityWell(state, idx);
+      if (p.powerState.kind === 'active' && p.def.power === 'ICE_RINK') springIceRink(state, idx);
+      if (p.powerState.kind === 'active'
+        && (p.def.power === 'GIANT_GK' || p.def.power === 'ELASTIC_KEEPER')
+        && state.ball.kind === 'held' && state.players[state.ball.by].team === p.team) {
+        finishMomentPower(state, idx);
       }
-      if (p.powerState.kind === 'active' && state.tick >= p.powerState.untilTick) {
+      const attackScopedKeeper = p.powerState.kind === 'active'
+        && (p.def.power === 'GIANT_GK' || p.def.power === 'ELASTIC_KEEPER')
+        && !(state.ball.kind === 'held' && state.players[state.ball.by].team === p.team);
+      if (p.powerState.kind === 'active' && !attackScopedKeeper && state.tick >= p.powerState.untilTick) {
         p.powerState = { kind: 'idle' };
         p.powerAnchor = undefined;
         p.gauge = 0;
@@ -480,6 +487,9 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     kind: 'active',
     untilTick: state.tick + Math.round(DUR[power] * durationStrength),
     strength: effectStrength,
+    ...(power === 'THUNDER_STRIKE' ? { commitment: 'THUNDER_SHOT' as const }
+      : power === 'BLINK_RUN' ? { commitment: 'BLINK_ACTION' as const }
+        : {}),
   };
   p.powerAnchor = power === 'WEB_TRAP' && targetIdx !== undefined
     ? { ...state.players[targetIdx].pos }
@@ -491,24 +501,20 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
   p.gauge = 0;
 
   if (power === 'FIRE_TORCH') {
-    let nearest = -1, nearestD2 = TORCH_IGNITE_RANGE * TORCH_IGNITE_RANGE;
-    for (let i = 0; i < 22; i++) {
-      const o = state.players[i];
-      if (o.team === p.team || o.outUntilTick > state.tick) continue;
-      const d2 = dist2(o.pos, p.pos);
-      if (d2 < nearestD2) { nearestD2 = d2; nearest = i; }
-    }
-    if (nearest !== -1) {
+    const marker = targetIdx !== undefined && isRelevantTorchMarker(state, idx, targetIdx)
+      ? targetIdx : relevantTorchMarker(state, idx);
+    if (marker !== -1) {
       // Stronger match fatigue otherwise made useful-context auto-fire lose to
       // blind immediate firing. The longer visible removal restores timing value
       // while keeping the approved contextual trigger and 0.85 strength intact.
-      knockOut(state, nearest, state.tick + Math.round(230 * effectStrength), 'ignited');
-      emit(state, { t: state.tick, kind: 'IGNITED', player: nearest });
+      knockOut(state, marker, state.tick + Math.round(230 * effectStrength), 'ignited');
+      emit(state, { t: state.tick, kind: 'IGNITED', player: marker });
     }
   } else if (power === 'SUPER_STRENGTH') {
     if (p.outUntilTick <= state.tick && targetIdx !== undefined) {
       const target = state.players[targetIdx];
-      if (target.outUntilTick <= state.tick && dist2(target.pos, p.pos) < STRENGTH_LAND_RANGE * STRENGTH_LAND_RANGE) {
+      const landingRange = strengthLandingRange(p, strength);
+      if (target.outUntilTick <= state.tick && dist2(target.pos, p.pos) < landingRange * landingRange) {
         const hadBall = state.ball.kind === 'held' && state.ball.by === targetIdx;
         knockOut(state, targetIdx, state.tick + Math.round(150 * effectStrength), 'ko');
         if (hadBall) state.ball = { kind: 'held', by: idx };
@@ -516,23 +522,13 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       }
     }
   } else if (power === 'BLINK_RUN') {
-    const direction = p.team === 0 ? -1 : 1;
-    p.pos = {
-      x: Math.max(150, Math.min(PITCH_W - 150, p.pos.x)),
-      y: Math.max(300, Math.min(PITCH_H - 300, p.pos.y + direction * Math.round(1150 * effectStrength))),
-    };
+    p.pos = blinkDestination(state, idx, effectStrength);
   } else if (power === 'PORTAL_PASS') {
     if (state.ball.kind === 'held' && state.players[state.ball.by].team === p.team) {
-      const teammate = bestForwardTeammate(state, state.ball.by);
-      if (teammate !== -1) {
-        const receiver = state.players[teammate];
-        const direction = receiver.team === 0 ? -1 : 1;
-        receiver.pos = {
-          x: receiver.pos.x,
-          y: Math.max(300, Math.min(PITCH_H - 300,
-            receiver.pos.y + direction * Math.round(450 * effectStrength))),
-        };
-        state.ball = { kind: 'held', by: teammate };
+      const destination = portalDestination(state, state.ball.by, effectStrength);
+      if (destination !== null) {
+        state.players[destination.receiver].pos = destination.pos;
+        state.ball = { kind: 'held', by: destination.receiver };
       }
     }
   } else if (power === 'GRAVITY_WELL') {
@@ -544,12 +540,14 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     if (marker !== -1) {
       const opponent = state.players[marker];
       const carrierPlayer = state.players[carrier];
-      const direction = opponent.pos.x <= carrierPlayer.pos.x ? -1 : 1;
-      opponent.pos = {
-        x: Math.max(0, Math.min(PITCH_W,
-          opponent.pos.x + direction * Math.round(600 * effectStrength))),
-        y: opponent.pos.y,
+      const laneDirection = opponent.pos.x <= carrierPlayer.pos.x ? -1 : 1;
+      p.powerAnchor = {
+        x: Math.max(150, Math.min(PITCH_W - 150,
+          carrierPlayer.pos.x + laneDirection * Math.round(700 * effectStrength))),
+        y: Math.max(300, Math.min(PITCH_H - 300,
+          carrierPlayer.pos.y + (carrierPlayer.team === 0 ? -1 : 1) * 350)),
       };
+      if (p.powerState.kind === 'active') p.powerState.targetIdx = marker;
     }
   }
 }
@@ -569,6 +567,42 @@ function applyGravityWell(state: MatchState, idx: number): void {
   }
 }
 
+function gravityWellContext(state: MatchState, idx: number): boolean {
+  const hero = state.players[idx];
+  if (state.ball.kind !== 'held' || state.players[state.ball.by].team !== hero.team
+    || state.ball.by === idx) return false;
+  // The hero plants centrally while a teammate attacks a different lane. The
+  // single pull opens the carrier's side instead of compressing the defence
+  // around an opponent who already has the ball.
+  return Math.abs(hero.pos.x - PITCH_W / 2) <= 1200
+    && Math.abs(state.players[state.ball.by].pos.x - hero.pos.x) >= 450;
+}
+
+function isRelevantTorchMarker(state: MatchState, heroIdx: number, markerIdx: number): boolean {
+  const hero = state.players[heroIdx];
+  const marker = state.players[markerIdx];
+  if (marker.team === hero.team || marker.outUntilTick > state.tick
+    || state.ball.kind !== 'held' || state.ball.by !== heroIdx) return false;
+  const attackingHalf = hero.team === 0 ? hero.pos.y < PITCH_H / 2 : hero.pos.y > PITCH_H / 2;
+  const markerGoalSide = hero.team === 0 ? marker.pos.y <= hero.pos.y : marker.pos.y >= hero.pos.y;
+  return attackingHalf && markerGoalSide
+    && dist2(marker.pos, hero.pos) < TORCH_IGNITE_RANGE * TORCH_IGNITE_RANGE;
+}
+
+function relevantTorchMarker(state: MatchState, heroIdx: number): number {
+  let best = -1;
+  let bestScore = Infinity;
+  for (let idx = 0; idx < 22; idx += 1) {
+    if (!isRelevantTorchMarker(state, heroIdx, idx)) continue;
+    const marker = state.players[idx];
+    const hero = state.players[heroIdx];
+    // Prefer the closest marker who is also aligned with the hero's route to goal.
+    const score = dist2(marker.pos, hero.pos) + Math.abs(marker.pos.x - hero.pos.x) * 500;
+    if (score < bestScore) { best = idx; bestScore = score; }
+  }
+  return best;
+}
+
 /** Consumes the first active Future Sight that can arrive at the next receiver. */
 export function futureSightInterceptor(
   state: MatchState,
@@ -580,11 +614,17 @@ export function futureSightInterceptor(
   for (let idx = first; idx < first + 11; idx += 1) {
     const hero = state.players[idx];
     if (hero.def.power !== 'FUTURE_SIGHT' || !isActive(state, idx)
+      || (hero.powerState.kind === 'active' && hero.powerState.commitment === 'FUTURE_OUTLET')
       || hero.outUntilTick > state.tick
       || hero.slideTackle !== undefined
       || hero.tackleRecoveryUntil > state.tick
       || dist2(hero.pos, receiver.pos) > FUTURE_SIGHT_INTERCEPT_RANGE * FUTURE_SIGHT_INTERCEPT_RANGE) continue;
     hero.pos = { ...receiver.pos };
+    const outlet = bestForwardTeammate(state, idx);
+    if (hero.powerState.kind === 'active') {
+      if (outlet !== -1) hero.powerState.targetIdx = outlet;
+      hero.powerState.commitment = 'FUTURE_OUTLET';
+    }
     return idx;
   }
   return -1;
@@ -593,7 +633,7 @@ export function futureSightInterceptor(
 /** Consumes the first active enemy Gust. Unlike Future Sight, it does not give
  * a defender possession; the pass continues toward its receiver and breaks
  * loose on arrival. */
-export function gustDisruptsPass(state: MatchState, passingTeam: 0 | 1): boolean {
+export function gustDisruptsPass(state: MatchState, passingTeam: 0 | 1): number {
   const first = passingTeam === 0 ? 11 : 0;
   for (let idx = first; idx < first + 11; idx += 1) {
     const hero = state.players[idx];
@@ -601,9 +641,10 @@ export function gustDisruptsPass(state: MatchState, passingTeam: 0 | 1): boolean
       || hero.outUntilTick > state.tick
       || hero.slideTackle !== undefined
       || hero.tackleRecoveryUntil > state.tick) continue;
-    return true;
+    finishMomentPower(state, idx);
+    return idx;
   }
-  return false;
+  return -1;
 }
 
 function springWebTrap(state: MatchState, idx: number): void {
@@ -624,20 +665,51 @@ function springWebTrap(state: MatchState, idx: number): void {
   if (victim === -1) return;
   const strength = hero.powerState.strength;
   const hadBall = state.ball.kind === 'held' && state.ball.by === victim;
+  const ballPos = { ...state.players[victim].pos };
   knockOut(state, victim, state.tick + Math.round(100 * strength), 'ko');
+  if (hadBall) {
+    const recoverer = nearestAvailableTeammate(state, idx, ballPos);
+    state.ball = {
+      kind: 'loose',
+      pos: ballPos,
+      vel: recoveryVelocity(ballPos, state.players[recoverer].pos),
+      z: 0,
+      vz: 0,
+    };
+  }
   emit(state, { t: state.tick, kind: 'TACKLE', by: idx, on: victim, won: hadBall, style: 'power', contact: false });
-  hero.powerState = { kind: 'idle' };
-  hero.powerAnchor = undefined;
-  hero.gauge = 0;
+  finishMomentPower(state, idx);
+}
+
+function springIceRink(state: MatchState, idx: number): void {
+  const hero = state.players[idx];
+  if (hero.powerState.kind !== 'active' || hero.powerAnchor === undefined
+    || state.ball.kind !== 'held') return;
+  const victim = state.ball.by;
+  const carrier = state.players[victim];
+  if (carrier.team === hero.team
+    || dist2(carrier.pos, hero.powerAnchor) >= ICE_RINK_SLOW_RADIUS * ICE_RINK_SLOW_RADIUS) return;
+  const recoverer = nearestAvailableTeammate(state, idx, carrier.pos);
+  state.ball = {
+    kind: 'loose',
+    pos: { ...carrier.pos },
+    vel: recoveryVelocity(carrier.pos, state.players[recoverer].pos),
+    z: 0,
+    vz: 0,
+  };
+  emit(state, { t: state.tick, kind: 'TACKLE', by: idx, on: victim, won: true, style: 'power', contact: false });
+  finishMomentPower(state, idx);
 }
 
 function bestForwardTeammate(state: MatchState, idx: number): number {
   const player = state.players[idx];
   let best = -1;
-  let bestProgress = -Infinity;
+  const playerProgress = player.team === 0 ? PITCH_H - player.pos.y : player.pos.y;
+  let bestProgress = playerProgress;
   for (let candidate = 0; candidate < 22; candidate += 1) {
     const teammate = state.players[candidate];
-    if (candidate === idx || teammate.team !== player.team || teammate.outUntilTick > state.tick) continue;
+    if (candidate === idx || teammate.team !== player.team || teammate.outUntilTick > state.tick
+      || teammate.def.role === 'GK') continue;
     const progress = teammate.team === 0 ? PITCH_H - teammate.pos.y : teammate.pos.y;
     if (progress > bestProgress) {
       best = candidate;
@@ -645,6 +717,100 @@ function bestForwardTeammate(state: MatchState, idx: number): number {
     }
   }
   return best;
+}
+
+function attackingProgress(team: 0 | 1, pos: { x: number; y: number }): number {
+  return team === 0 ? PITCH_H - pos.y : pos.y;
+}
+
+function openSpaceAt(state: MatchState, team: 0 | 1, pos: { x: number; y: number }): number {
+  let space = 1800;
+  for (let idx = 0; idx < 22; idx += 1) {
+    const opponent = state.players[idx];
+    if (opponent.team === team || opponent.outUntilTick > state.tick) continue;
+    space = Math.min(space, Math.sqrt(dist2(opponent.pos, pos)));
+  }
+  return space;
+}
+
+/** Portal's receiver and exit are selected together. Every valid exit is ahead
+ * of the current carrier; score rewards both gained threat and room to act. */
+function portalDestination(
+  state: MatchState,
+  carrierIdx: number,
+  effectStrength: number,
+): { receiver: number; pos: { x: number; y: number } } | null {
+  const carrier = state.players[carrierIdx];
+  const carrierProgress = attackingProgress(carrier.team, carrier.pos);
+  const direction = carrier.team === 0 ? -1 : 1;
+  let best: { receiver: number; pos: { x: number; y: number }; score: number } | null = null;
+  for (let idx = carrier.team === 0 ? 0 : 11; idx < (carrier.team === 0 ? 11 : 22); idx += 1) {
+    const teammate = state.players[idx];
+    if (idx === carrierIdx || teammate.outUntilTick > state.tick || teammate.def.role === 'GK') continue;
+    for (const laneX of [teammate.pos.x - 450, teammate.pos.x, teammate.pos.x + 450]) {
+      const pos = {
+        x: Math.max(150, Math.min(PITCH_W - 150, Math.round(laneX))),
+        y: Math.max(300, Math.min(PITCH_H - 300,
+          carrier.pos.y + direction * Math.round(350 + 450 * effectStrength))),
+      };
+      const exitProgress = attackingProgress(teammate.team, pos);
+      if (exitProgress <= carrierProgress) continue;
+      const threatGain = exitProgress - carrierProgress;
+      const space = openSpaceAt(state, teammate.team, pos);
+      const centrality = PITCH_W / 2 - Math.abs(pos.x - PITCH_W / 2);
+      const score = threatGain * 1.5 + space + centrality * 0.1;
+      if (best === null || score > best.score) best = { receiver: idx, pos, score };
+    }
+  }
+  return best === null ? null : { receiver: best.receiver, pos: best.pos };
+}
+
+function blinkDestination(state: MatchState, heroIdx: number, effectStrength: number): { x: number; y: number } {
+  const hero = state.players[heroIdx];
+  const defendingTeam: 0 | 1 = hero.team === 0 ? 1 : 0;
+  let lastDefenderY = hero.team === 0 ? PITCH_H : 0;
+  let found = false;
+  for (let idx = defendingTeam === 0 ? 0 : 11; idx < (defendingTeam === 0 ? 11 : 22); idx += 1) {
+    const defender = state.players[idx];
+    if (defender.def.role === 'GK' || defender.outUntilTick > state.tick) continue;
+    if (!found || (hero.team === 0 ? defender.pos.y < lastDefenderY : defender.pos.y > lastDefenderY)) {
+      lastDefenderY = defender.pos.y;
+      found = true;
+    }
+  }
+  const direction = hero.team === 0 ? -1 : 1;
+  const beyond = found
+    ? lastDefenderY + direction * Math.round(220 + 80 * effectStrength)
+    : hero.pos.y + direction * Math.round(900 * effectStrength);
+  const y = Math.max(300, Math.min(PITCH_H - 300, beyond));
+  let bestX = hero.pos.x;
+  let bestSpace = -1;
+  for (const x of [hero.pos.x - 700, hero.pos.x, hero.pos.x + 700, PITCH_W / 2]) {
+    const candidateX = Math.max(150, Math.min(PITCH_W - 150, Math.round(x)));
+    const space = openSpaceAt(state, hero.team, { x: candidateX, y });
+    if (space > bestSpace) { bestX = candidateX; bestSpace = space; }
+  }
+  return { x: bestX, y };
+}
+
+function nearestAvailableTeammate(state: MatchState, idx: number, from: { x: number; y: number }): number {
+  const player = state.players[idx];
+  let best = idx;
+  let bestDistance = dist2(player.pos, from);
+  for (let candidate = player.team === 0 ? 0 : 11; candidate < (player.team === 0 ? 11 : 22); candidate += 1) {
+    const teammate = state.players[candidate];
+    if (teammate.outUntilTick > state.tick || teammate.slideTackle !== undefined) continue;
+    const distance = dist2(teammate.pos, from);
+    if (distance < bestDistance) { best = candidate; bestDistance = distance; }
+  }
+  return best;
+}
+
+function recoveryVelocity(from: { x: number; y: number }, to: { x: number; y: number }): { x: number; y: number } {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+  return { x: Math.round(dx / length * 240), y: Math.round(dy / length * 240) };
 }
 
 function nearestOpponentIndex(state: MatchState, idx: number, range: number): number {
@@ -667,13 +833,65 @@ export function speedMultiplier(state: MatchState, idx: number): number {
   const p = state.players[idx];
   // Charging a locked Super Strength target accelerates the pursuit — the windup
   // telegraph is the counterplay, not a guaranteed whiff (Task 12.1/12.2 landing-rate fix).
-  if (p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined) return PURSUIT_MULT;
+  if (p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined) {
+    const timing = manualTimingScale(p.powerState.strength);
+    return 1 + (PURSUIT_MULT - 1) * p.powerState.strength * timing * tierEffectScale(p.def.powerTier);
+  }
   if (!isActive(state, idx)) return 1;
   if (p.powerState.kind !== 'active') return 1;
   if (p.def.power === 'SUPER_SPEED') return 1 + 1.3 * p.powerState.strength;
   if (p.def.power === 'BLINK_RUN') return 1 + 0.4 * p.powerState.strength;
   if (p.def.power === 'SHADOW_MARK') return 1 + 0.3 * p.powerState.strength;
   return 1;
+}
+
+function strengthLandingRange(player: MatchState['players'][number], strength: number): number {
+  return Math.round(STRENGTH_LAND_RANGE
+    + 120 * strength * manualTimingScale(strength) * tierEffectScale(player.def.powerTier));
+}
+
+/** A marked defender follows Decoy's persistent false lane for the active moment. */
+export function decoyPursuitTarget(state: MatchState, markerIdx: number): { x: number; y: number } | null {
+  const marker = state.players[markerIdx];
+  const first = marker.team === 0 ? 11 : 0;
+  for (let heroIdx = first; heroIdx < first + 11; heroIdx += 1) {
+    const hero = state.players[heroIdx];
+    if (hero.def.power !== 'DECOY_DOUBLE' || hero.powerState.kind !== 'active'
+      || hero.powerState.targetIdx !== markerIdx || hero.powerAnchor === undefined
+      || !isActive(state, heroIdx)) continue;
+    return { ...hero.powerAnchor };
+  }
+  return null;
+}
+
+/** Clears a one-moment effect while retaining the ordinary Heat reset rules. */
+export function finishMomentPower(state: MatchState, idx: number): void {
+  const player = state.players[idx];
+  player.powerState = { kind: 'idle' };
+  player.powerAnchor = undefined;
+  player.gauge = 0;
+}
+
+export function clearPowerCommitment(state: MatchState, idx: number): void {
+  const powerState = state.players[idx].powerState;
+  if (powerState.kind === 'active') powerState.commitment = undefined;
+}
+
+/** Elastic is a banked one-shot charge; Giant remains through the whole attack. */
+export function consumeKeeperShotCharge(state: MatchState, idx: number): void {
+  const player = state.players[idx];
+  if (player.def.power === 'ELASTIC_KEEPER' && isActive(state, idx)) finishMomentPower(state, idx);
+}
+
+/** Recovery direction for Gust: its deflection bends toward the closest
+ * available defender, not an arbitrary left/right hash. */
+export function gustRecoveryVelocity(
+  state: MatchState,
+  gustHeroIdx: number,
+  arrival: { x: number; y: number },
+): { x: number; y: number } {
+  const recoverer = nearestAvailableTeammate(state, gustHeroIdx, arrival);
+  return recoveryVelocity(arrival, state.players[recoverer].pos);
 }
 
 /** Opponents crossing an active enemy Ice Rink lose their footing. */
@@ -720,17 +938,8 @@ export function dribbleBonus(state: MatchState, carrierIdx: number): number {
     if (power === 'SUPER_SPEED') bonus = Math.round(20 * player.powerState.strength);
     if (power === 'FIRE_TORCH') bonus = Math.round(30 * player.powerState.strength);
     if (power === 'PHASE_RUN') bonus = Math.round(75 * player.powerState.strength);
-    if (power === 'BLINK_RUN' || power === 'DECOY_DOUBLE') {
+    if (power === 'BLINK_RUN') {
       bonus = Math.round(25 * player.powerState.strength);
-    }
-  }
-  // Decoy Double distracts the marker from whoever actually has the ball; the
-  // hero does not need to be the carrier for the visible fake to pay off.
-  for (let idx = player.team === 0 ? 0 : 11; idx < (player.team === 0 ? 11 : 22); idx += 1) {
-    const hero = state.players[idx];
-    if (hero.def.power === 'DECOY_DOUBLE' && isActive(state, idx)
-      && hero.powerState.kind === 'active') {
-      bonus = Math.max(bonus, Math.round(35 * hero.powerState.strength));
     }
   }
   return bonus;
@@ -738,8 +947,15 @@ export function dribbleBonus(state: MatchState, carrierIdx: number): number {
 
 export function fireSuppressed(state: MatchState, _tacklerIdx: number, carrierIdx: number): boolean {
   return isActive(state, carrierIdx)
-    && (state.players[carrierIdx].def.power === 'FIRE_TORCH'
-      || state.players[carrierIdx].def.power === 'PHASE_RUN');
+    && state.players[carrierIdx].def.power === 'FIRE_TORCH';
+}
+
+/** Phase Run pays for exactly one avoided challenge, then ends immediately. */
+export function consumePhaseChallenge(state: MatchState, carrierIdx: number): boolean {
+  const carrier = state.players[carrierIdx];
+  if (!isActive(state, carrierIdx) || carrier.def.power !== 'PHASE_RUN') return false;
+  finishMomentPower(state, carrierIdx);
+  return true;
 }
 
 export function defenseBonus(state: MatchState, idx: number): number {
@@ -765,5 +981,7 @@ export function keeperSaveBonus(state: MatchState, idx: number): number {
 }
 
 export function phaseRunPreventsShot(state: MatchState, idx: number): boolean {
-  return isActive(state, idx) && state.players[idx].def.power === 'PHASE_RUN';
+  // Retained as a compatibility query for overlays/tests. Phasing prevents one
+  // challenge; it never suppresses its own carrier's shot.
+  return false;
 }

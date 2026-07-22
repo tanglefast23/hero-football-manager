@@ -161,7 +161,7 @@ describe('hero gauge and firing', () => {
     expect(m.players[RIVAL].gauge).toBe(50);
   });
 
-  it('recognizes decisive carries, nearby loose balls, and a nearby Torch target as useful contexts', () => {
+  it('recognizes decisive carries, nearby loose balls, and a goal-side Torch marker during an attacking run', () => {
     const m = createMatch(42, ROVERS, UNITED);
     m.players[SPEEDSTER].pos = { x: 3400, y: 4000 };
     m.ball = { kind: 'held', by: SPEEDSTER };
@@ -179,12 +179,16 @@ describe('hero gauge and firing', () => {
     m.players[SPEEDSTER].pos = { x: 3400, y: 4500 };
     expect(inUsefulContext(m, SPEEDSTER)).toBe(true);
 
-    m.ball = { kind: 'held', by: 11 };
-    m.players[9].pos = { x: 3400, y: 5000 };
-    m.players[11].pos = { x: 3400, y: 5600 };
+    m.ball = { kind: 'held', by: 9 };
+    m.players[9].pos = { x: 3400, y: 4000 };
+    for (let index = 12; index < 22; index += 1) m.players[index].pos = { x: 200, y: 9000 };
+    m.players[11].pos = { x: 3400, y: 3500 };
     expect(inUsefulContext(m, 9)).toBe(true);
     m.ball = { kind: 'held', by: 8 };
-    expect(inUsefulContext(m, 9)).toBe(true);
+    expect(inUsefulContext(m, 9)).toBe(false);
+    m.ball = { kind: 'held', by: 9 };
+    m.players[11].pos = { x: 3400, y: 4600 };
+    expect(inUsefulContext(m, 9)).toBe(false);
     m.players[11].pos = { x: 3400, y: 9000 };
     for (let index = 12; index < 22; index += 1) m.players[index].pos = { x: 200, y: 9000 };
     expect(inUsefulContext(m, 9)).toBe(false);
@@ -250,14 +254,11 @@ describe('power effects', () => {
   it('FIRE_TORCH ignites the nearest opponent, who is later extinguished', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const torch = 9;
-    // Rig at midfield: Dario already carries the kickoff at center (far from a valuable shot);
-    // a presser starts just outside tackle range and pressing keeps him inside 1400
-    // through the windup.
+    // Rig an attacking carry with a marker between Dario and goal.
     m.ball = { kind: 'held', by: torch };
-    m.players[17].pos = { x: 3400, y: 5550 };
-    m.players[torch].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
-    queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: torch });
-    tickUntil(m, () => m.events.some(e => e.kind === 'IGNITED'), 300);
+    m.players[torch].pos = { x: 3400, y: 4000 };
+    m.players[17].pos = { x: 3400, y: 3400 };
+    activatePower(m, torch, 1);
     const ignited = m.events.find(e => e.kind === 'IGNITED') as { player: number };
     expect(ignited.player).toBeGreaterThanOrEqual(11);
     tickUntil(m, () => m.events.some(e => e.kind === 'EXTINGUISHED'), 600);
@@ -268,8 +269,9 @@ describe('power effects', () => {
     const firesAt = (distance: number) => {
       const m = createMatch(42, ROVERS, UNITED);
       const torch = 9;
-      m.players[torch].pos = { x: 2000, y: 5000 };
-      m.players[11].pos = { x: 2000 + distance, y: 5000 };
+      m.ball = { kind: 'held', by: torch };
+      m.players[torch].pos = { x: 2000, y: 4000 };
+      m.players[11].pos = { x: 2000 + distance, y: 4000 };
       for (let index = 12; index < 22; index++) m.players[index].pos = { x: 200, y: 9000 };
       activatePower(m, torch, 1);
       return m.events.some(event => event.kind === 'IGNITED');
@@ -279,18 +281,13 @@ describe('power effects', () => {
     expect(firesAt(1500)).toBe(false);
   });
 
-  it('igniting the ball carrier releases the ball (knockOut) instead of freezing possession', () => {
+  it('knocking out the ball carrier releases the ball instead of freezing possession', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    const torch = 9;
     const oppCarrier = 11;
     const pos = { x: 3400, y: 5250 };
     m.ball = { kind: 'held', by: oppCarrier };
-    m.players[torch].pos = { ...pos };
     m.players[oppCarrier].pos = { ...pos }; // co-located with torch: guaranteed "nearest opponent"
-    for (const idx of [12, 13, 14, 15, 16, 17, 18, 19, 20, 21]) m.players[idx].pos = { x: 200, y: 9000 };
-    activatePower(m, torch, 1); // direct call — no tick() pipeline, so nothing can re-pick-up the ball before we assert
-    const ignited = m.events.find(e => e.kind === 'IGNITED') as { player: number } | undefined;
-    expect(ignited?.player).toBe(oppCarrier);
+    knockOut(m, oppCarrier, m.tick + 100, 'ko');
     expect(m.ball).toEqual({ kind: 'loose', pos, vel: { x: 0, y: 0 }, z: 0, vz: 0 });
   });
 

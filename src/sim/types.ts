@@ -50,7 +50,15 @@ export type PowerState =
   | { kind: 'zone'; remainingTicks: number }
   | { kind: 'armed'; remainingTicks: number }
   | { kind: 'winding'; untilTick: number; strength: number; targetIdx?: number }
-  | { kind: 'active'; untilTick: number; strength: number };
+  | {
+    kind: 'active';
+    untilTick: number;
+    strength: number;
+    /** Locked one-moment target, such as Decoy's marker or Future Sight's outlet. */
+    targetIdx?: number;
+    /** Ensures a power's authored next action happens once instead of smearing across its duration. */
+    commitment?: 'THUNDER_SHOT' | 'BLINK_ACTION' | 'FUTURE_OUTLET';
+  };
 
 export type OutReason = 'ko' | 'ignited' | 'redcard';
 

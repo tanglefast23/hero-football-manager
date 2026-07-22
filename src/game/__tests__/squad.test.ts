@@ -218,7 +218,7 @@ describe('career squad integration', () => {
     expect(completed.facilities.trainingGroundBuilt).toBe(true);
 
     const activeWeek = advanceWeek(completed);
-    expect(activeWeek.trainingPoints).toBe(105);
+    expect(activeWeek.trainingPoints).toBe(110);
   });
 
   it('skips an unaffordable repeating focus plan without blocking weekly settlement', () => {

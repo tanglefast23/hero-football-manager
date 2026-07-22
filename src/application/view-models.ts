@@ -236,7 +236,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
         : { weeksRemaining: trainingGroundProject.weeksRemaining }),
       affordable: club.cash >= 8000 && trainingGroundProject === undefined,
       cost: 8000,
-      weeklyTrainingPoints: 5,
+      weeklyTrainingPoints: 10,
     },
     legacyTrainingGroundVisible: state.careerMode !== 'full',
     ...(state.market?.headCoach === undefined ? {} : {
@@ -371,8 +371,8 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
     : `${level === 2 ? '+50%' : '+100%'} ${attributes} training`;
   if (type === 'training-pitch') {
     return level === 1
-      ? '+5 TP weekly · upgrades boost DEF training'
-      : `+${level * 5} TP weekly · ${level === 2 ? '+50%' : '+100%'} DEF training`;
+      ? '+10 TP weekly · upgrades boost DEF training'
+      : `+${level * 10} TP weekly · ${level === 2 ? '+50%' : '+100%'} DEF training`;
   }
   if (type === 'gym') return trainingEffect('PAC + STA');
   if (type === 'tech-center') return trainingEffect('PAS + TEC');
@@ -709,7 +709,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     ...(!state.facilities.trainingGroundBuilt && !trainingGroundUnderConstruction ? [{
       id: 'training-ground',
       title: 'Training Ground proposal',
-      detail: 'Build once for $8,000 and earn +5 TP after every settled week.',
+      detail: 'Build once for $8,000 and earn +10 TP after every settled week.',
       tone: 'info' as const,
     }] : []),
     ...(expired.length > 0 ? [{

@@ -10,7 +10,7 @@ import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, 
 
 // m1.16 makes Shadow Mark genuinely invisible to pass choice, then consumes
 // the cloak on its first challenge as the authored one-ambush contract says.
-export const ENGINE_VERSION = 'm1.16';
+export const ENGINE_VERSION = 'm1.17';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one

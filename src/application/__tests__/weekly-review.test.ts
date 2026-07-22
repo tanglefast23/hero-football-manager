@@ -125,11 +125,12 @@ describe('weekly review view model', () => {
     const after = advanceWeek(before);
     const review = weeklyReviewViewModel(before, after);
 
-    expect(after.trainingPoints).toBe(21);
+    expect(after.trainingPoints).toBe(26);
     expect(review.development).toMatchObject({
       focusedTrainees: [],
       trainingSkippedWarning: `${player.name} skipped Sprints I — already at their PAC maximum of ${cap}.`,
     });
+    expect(after.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
   });
 
   it('uses the real facility and coach TP when explaining an unfunded plan', () => {
@@ -158,7 +159,7 @@ describe('weekly review view model', () => {
     };
     const after = advanceWeek(before);
 
-    expect(after.trainingPoints).toBe(21);
+    expect(after.trainingPoints).toBe(26);
     expect(weeklyReviewViewModel(before, after).development.trainingSkippedWarning)
       .toBe('Focused training skipped — not enough TP.');
   });
