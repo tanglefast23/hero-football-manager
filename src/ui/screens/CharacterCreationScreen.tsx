@@ -144,7 +144,7 @@ export function CharacterCreationScreen({
           </View>
         </PaperPanel>
 
-        <PaperPanel kicker="Registration card" title="Name on the shirt" stamp="Required" className="mt-5">
+        <PaperPanel kicker="Registration card" title="Name" stamp="Required" className="mt-5">
           <TextInput
             accessibilityLabel="Created player name"
             value={name}

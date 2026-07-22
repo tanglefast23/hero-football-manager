@@ -19,4 +19,9 @@ describe('first-hire screen copy', () => {
     expect(source.match(/onPrevious=/g)?.length).toBe(3);
     expect(source.match(/onNext=/g)?.length).toBe(3);
   });
+
+  it('labels the registration panel simply', () => {
+    expect(source).toContain('title="Name"');
+    expect(source).not.toContain('Name on the shirt');
+  });
 });
