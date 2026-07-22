@@ -20,8 +20,8 @@ import {
   withoutPowers,
 } from '../../game';
 import { createMatch, queueInput, tick } from '../../sim/match';
-import { inUsefulContext, LATE_WINDOW_TICKS } from '../../sim/powers';
 import type { PowerId, TeamDef } from '../../sim/types';
+import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 
 const content = loadLaunchContent();
 const POWERS = content.powers.powers.map(power => power.id) as PowerId[];
@@ -146,10 +146,7 @@ function run(home: TeamDef, away: TeamDef, contextTaps: boolean): Sample {
             tappedThisWindow[slot] = false;
             continue;
           }
-          // A real player taps when the power is useful, and settles for a late
-          // tap rather than letting the window drain away for nothing.
-          const windowClosing = player.powerState.remainingTicks <= LATE_WINDOW_TICKS;
-          if (!tappedThisWindow[slot] && (inUsefulContext(match, slot) || windowClosing)) {
+          if (!tappedThisWindow[slot] && shouldQueueWellTappedPower(match, slot)) {
             queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: slot });
             tappedThisWindow[slot] = true;
           }

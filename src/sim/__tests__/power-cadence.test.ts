@@ -77,7 +77,9 @@ function measure(power: PowerId): { firesPerMatch: number; matchShare: number } 
       guard += 1;
     }
     const fired = match.events.filter(event => (
-      event.kind === 'POWER_FIRED' && (event as { power?: string }).power === power
+      power === 'PORTAL_PASS'
+        ? event.kind === 'POWER_IMPACT' && event.power === power
+        : event.kind === 'POWER_FIRED' && (event as { power?: string }).power === power
     )).length;
     fires += fired;
     if (fired > 0) matchesWithAFire += 1;

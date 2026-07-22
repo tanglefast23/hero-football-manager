@@ -112,6 +112,6 @@ describe('player-facing acceptance audit regressions', () => {
   });
 
   test('keeps the README engine marker synchronized with the replay version', () => {
-    expect(source('README.md')).toContain('Current engine: **m1.19**.');
+    expect(source('README.md')).toContain('Current engine: **m1.20**.');
   });
 });

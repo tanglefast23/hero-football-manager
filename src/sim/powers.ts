@@ -231,7 +231,10 @@ function dangerousKeeperPossession(state: MatchState, idx: number): boolean {
   const carrier = requirePlayerAt(state, state.ball.by);
   if (carrier.team === keeper.team) return false;
   const progress = carrier.team === 0 ? PITCH_H - carrier.pos.y : carrier.pos.y;
-  return progress > PITCH_H * 0.72;
+  // Open while the attack is genuinely in shooting range. The old 72% line
+  // spent too many of a keeper's three windows on harmless build-ups that
+  // turned back before a shot; on-target shots still open a Zone directly.
+  return progress > PITCH_H * 0.82;
 }
 
 function enemyOnTargetShot(state: MatchState, idx: number): boolean {
@@ -244,17 +247,6 @@ function enemyOnTargetShot(state: MatchState, idx: number): boolean {
 }
 
 /** True if any available opponent of idx is within `range`. */
-function opponentWithin(state: MatchState, idx: number, range: number): boolean {
-  const p = requirePlayerAt(state, idx);
-  const r2 = range * range;
-  for (let i = 0; i < 22; i++) {
-    const o = state.players[i];
-    if (o.team === p.team || o.outUntilTick > state.tick) continue;
-    if (dist2(o.pos, p.pos) < r2) return true;
-  }
-  return false;
-}
-
 /** The next available defender genuinely between a Phase runner and goal. */
 function phaseChallenger(state: MatchState, idx: number, range = 700): number {
   const runner = requirePlayerAt(state, idx);
@@ -320,7 +312,7 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
     && attackingProgress < PITCH_H * 0.82;
   if (power === 'PORTAL_PASS') {
     const portalStrength = p.firePolicy === 'SAVE_FOR_TAP' ? TAP_STRENGTH : CONTEXT_AUTO_STRENGTH;
-    return friendlyCarrier !== -1 && opponentWithin(state, friendlyCarrier, 1100)
+    return friendlyCarrier !== -1
       && portalDestination(state, friendlyCarrier, projectedEffectStrength(p, portalStrength)) !== null;
   }
   if (power === 'DECOY_DOUBLE') {
@@ -371,6 +363,19 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
   if (p.def.power === 'PHASE_RUN' && state.ball.kind === 'held' && state.ball.by === idx) {
     const challenger = phaseChallenger(state, idx, PHASE_REVALIDATE_RANGE);
     if (challenger !== -1) targetIdx = challenger;
+  }
+  if (p.def.power === 'PORTAL_PASS' && state.ball.kind === 'held'
+    && requirePlayerAt(state, state.ball.by).team === p.team) {
+    const destination = portalDestination(
+      state,
+      state.ball.by,
+      projectedEffectStrength(p, strength),
+    );
+    if (destination !== null) {
+      carrierIdx = state.ball.by;
+      targetIdx = destination.receiver;
+      p.powerAnchor = { ...destination.pos };
+    }
   }
   if (p.def.power === 'DECOY_DOUBLE' && state.ball.kind === 'held'
     && requirePlayerAt(state, state.ball.by).team === p.team) {
@@ -508,8 +513,11 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
       // This runs before movement/possession in ascending player order, so the
       // context and event remain byte-identical for the same replay inputs.
       const zoneThreshold = p.def.role === 'GK' ? GK_ZONE_HEAT_THRESHOLD : ZONE_HEAT_THRESHOLD;
-      const keeperAutoShot = p.def.role === 'GK' && p.firePolicy === 'FIRE_WHEN_READY';
-      const entryContext = keeperAutoShot ? enemyOnTargetShot(state, idx) : zoneEntryContext(state, idx);
+      // Watched and automatic keepers must enter the same visible danger
+      // window. Previously auto waited for a shot while watched play spent its
+      // limited Zones on build-ups that could fizzle, making tapping worse even
+      // though its save bonus was stronger.
+      const entryContext = zoneEntryContext(state, idx);
       if (p.zonesOpened < zoneLimit(p) && p.gauge >= zoneThreshold && entryContext) {
         p.powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
         p.zonesOpened++;
@@ -867,6 +875,12 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
   const effectStrength = projectedEffectStrength(p, strength);
   const friendlyCarrier = state.ball.kind === 'held' && requirePlayerAt(state, state.ball.by).team === p.team
     ? state.ball.by : -1;
+  const hasPortalCapture = power === 'PORTAL_PASS' && winding !== undefined
+    && capturedTargetIdx !== undefined && capturedAnchor !== undefined;
+  const capturedPortalReceiverValid = hasPortalCapture && capturedTargetIdx !== undefined
+    && friendlyTargetAvailable(state, p.team, capturedTargetIdx, capturedTargetPlayerId);
+  const immediatePortalDestination = power === 'PORTAL_PASS' && !hasPortalCapture && friendlyCarrier !== -1
+    ? portalDestination(state, friendlyCarrier, effectStrength) : null;
   const hasDecoyCapture = power === 'DECOY_DOUBLE'
     && capturedCarrierIdx !== undefined
     && capturedTargetIdx !== undefined
@@ -933,6 +947,8 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
   const staleOffBallContext = (power === 'DECOY_DOUBLE'
       && (decoyCarrier === -1 || decoyMarker === -1 || decoyRunner === -1
         || decoyCloneAnchor === undefined))
+    || (power === 'PORTAL_PASS' && hasPortalCapture
+      && (friendlyCarrier === -1 || !capturedPortalReceiverValid))
     || (power === 'GRAVITY_WELL'
       && (gravityCaptured
         ? friendlyCarrier === -1
@@ -940,7 +956,8 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
           || !capturedGravityRunnerValid
         : !gravityWellContext(state, idx)));
   const targetlessMoment = (power === 'FIRE_TORCH' && fireMarkers.length === 0)
-    || (power === 'RALLY_CRY' && rallyTarget === -1);
+    || (power === 'RALLY_CRY' && rallyTarget === -1)
+    || (power === 'PORTAL_PASS' && !hasPortalCapture && immediatePortalDestination === null);
   if (staleOffBallContext || targetlessMoment) {
     // These powers promise a live team attack. If the situation disappears
     // during the wind-up, refund the canonical half Heat instead of animating
@@ -1046,10 +1063,12 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     p.pos = blinkDestination(state, idx, effectStrength);
     emit(state, { t: state.tick, kind: 'POWER_IMPACT', player: idx, power, target: idx });
   } else if (power === 'PORTAL_PASS') {
-    if (state.ball.kind === 'held' && requirePlayerAt(state, state.ball.by).team === p.team) {
-      const destination = portalDestination(state, state.ball.by, effectStrength);
+    if (friendlyCarrier !== -1) {
+      const destination = hasPortalCapture && capturedTargetIdx !== undefined && capturedAnchor !== undefined
+        ? { receiver: capturedTargetIdx, pos: capturedAnchor }
+        : immediatePortalDestination;
       if (destination !== null) {
-        state.players[destination.receiver].pos = destination.pos;
+        state.players[destination.receiver].pos = { ...destination.pos };
         state.players[destination.receiver].portalProtectedUntilTick = state.tick + PORTAL_PROTECTION_TICKS;
         state.ball = { kind: 'held', by: destination.receiver };
         emit(state, {
@@ -1107,9 +1126,6 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       if (p.powerState.kind === 'active') {
         p.powerState.targetIdx = marker;
         p.powerState.carrierIdx = carrier;
-        const grade = activeActivationGrade(p);
-        const reactionStep = Math.round(260 + 320 * grade + 700 * upgradeLift(grade));
-        state.players[marker].pos = moveToward(state.players[marker].pos, p.powerAnchor, reactionStep);
         spawnDecoyClone(state, idx, decoyRunner, decoyCloneAnchor!, p.powerState.untilTick);
       }
     } else {
@@ -1221,7 +1237,9 @@ function gravityPullDestination(
   const blocker = state.players[blockerIdx];
   const maxPulse = Math.round(anchoredEffect(grade, 1200, 1400, 1600));
   const distance = Math.sqrt(dist2(blocker.pos, carrier.pos));
-  const travel = Math.min(maxPulse, Math.max(0, distance - 220));
+  // Leave enough room that the next ordinary movement tick cannot turn the
+  // helpful pull into an immediate standing tackle on the carrier.
+  const travel = Math.min(maxPulse, Math.max(0, distance - 600));
   return moveToward(blocker.pos, carrier.pos, travel);
 }
 
@@ -1692,7 +1710,10 @@ function portalDestination(
   const carrierGoalDistance = Math.sqrt(dist2(carrier.pos, goal));
   const grade = effectStrength / familyEffectScale('PORTAL_PASS');
   const desiredGoalDistance = Math.round(anchoredEffect(grade, 2100, 1900, 1600));
-  const maxForwardStep = Math.round(anchoredEffect(grade, 2600, 2800, 3200));
+  // Portal must be available during normal midfield build-up, not only after
+  // the attack has already reached the final third. Timing and tiers still
+  // earn progressively longer exits.
+  const maxForwardStep = Math.round(anchoredEffect(grade, 3400, 3800, 4400));
   const lateralReach = Math.round(350 + 180 * grade);
   let best: { receiver: number; pos: { x: number; y: number }; score: number } | null = null;
   for (let idx = carrier.team === 0 ? 0 : 11; idx < (carrier.team === 0 ? 11 : 22); idx += 1) {
@@ -1899,21 +1920,6 @@ export function speedMultiplier(state: MatchState, idx: number): number {
 function strengthLandingRange(player: MatchState['players'][number], strength: number): number {
   return Math.round(STRENGTH_LAND_RANGE
     + 350 * strength * manualTimingScale(strength) * tierEffectScale(player.def.powerTier));
-}
-
-/** A marked defender follows Decoy's persistent false lane for the active moment. */
-export function decoyPursuitTarget(state: MatchState, markerIdx: number): { x: number; y: number } | null {
-  const marker = playerAt(state, markerIdx);
-  if (marker === undefined || markerIdx >= 22) return null;
-  const first = marker.team === 0 ? 11 : 0;
-  for (let heroIdx = first; heroIdx < first + 11; heroIdx += 1) {
-    const hero = state.players[heroIdx];
-    if (hero.def.power !== 'DECOY_DOUBLE' || hero.powerState.kind !== 'active'
-      || hero.powerState.targetIdx !== markerIdx || hero.powerAnchor === undefined
-      || !isActive(state, heroIdx)) continue;
-    return { ...hero.powerAnchor };
-  }
-  return null;
 }
 
 /** The real reserved Decoy player offered to a friendly carrier. */

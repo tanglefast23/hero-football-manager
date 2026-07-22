@@ -135,6 +135,27 @@ describe('m1.18 approved power contracts', () => {
     expect(match.events.some(event => event.kind === 'PASS' || event.kind === 'SHOT')).toBe(false);
   });
 
+  it('allows ordinary defenders to tackle an Ice-sliding carrier', () => {
+    const match = matchWith('ICE_RINK', 2);
+    const hero = 2;
+    const victim = 11;
+    const defender = 3;
+    match.players[hero].pos = { x: 2200, y: 5000 };
+    match.players[victim].pos = { x: 2300, y: 5000 };
+    match.ball = { kind: 'held', by: victim };
+    activatePower(match, hero, 1, victim);
+    powerTick(match);
+    match.players[defender].pos = { x: 2350, y: 5000 };
+    match.rng = () => 0;
+
+    tackleTick(match);
+
+    expect(match.events).toContainEqual(expect.objectContaining({
+      kind: 'TACKLE', by: defender, on: victim, won: true,
+    }));
+    expect(match.ball).toEqual({ kind: 'held', by: defender });
+  });
+
   it('Ice slides farther with a well-timed tap and an upgraded power without crossing the goal line', () => {
     function slideDistance(strength: number, tier: 1 | 3): number {
       const match = matchWith('ICE_RINK', 2);
@@ -374,6 +395,45 @@ describe('m1.18 approved power contracts', () => {
     expect(match.players[receiver].portalProtectedUntilTick).toBeUndefined();
   });
 
+  it('Portal remembers its valid receiver and exit through the full windup', () => {
+    const match = matchWith('PORTAL_PASS', 5);
+    const hero = 5;
+    const carrier = 6;
+    match.ball = { kind: 'held', by: carrier };
+    match.players[carrier].pos = { x: 2250, y: 4200 };
+    for (let idx = 0; idx < 11; idx += 1) {
+      if (idx !== carrier && idx !== hero) match.players[idx].pos = { x: 3400, y: 6500 };
+    }
+    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 500, y: 8500 };
+    match.players[12].pos = { x: 2300, y: 4200 };
+    match.players[hero].firePolicy = 'FIRE_WHEN_READY';
+    match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
+
+    powerTick(match);
+    const winding = match.players[hero].powerState as PowerState;
+    if (winding.kind !== 'winding' || winding.targetIdx === undefined
+      || match.players[hero].powerAnchor === undefined) {
+      throw new Error('expected a captured Portal destination');
+    }
+    const receiver = winding.targetIdx;
+    const exit = { ...match.players[hero].powerAnchor };
+    match.ball = { kind: 'held', by: 8 };
+    for (let idx = 0; idx < 11; idx += 1) {
+      if (idx !== 8) match.players[idx].pos = { x: 100, y: 10000 };
+    }
+    match.tick = winding.untilTick;
+
+    powerTick(match);
+
+    expect(match.ball).toEqual({ kind: 'held', by: receiver });
+    expect(match.players[receiver].pos).toEqual(exit);
+    expect(match.players[receiver].portalProtectedUntilTick).toBeGreaterThan(match.tick);
+    expect(match.events.filter(event => event.kind === 'POWER_FIRED' && event.power === 'PORTAL_PASS'))
+      .toHaveLength(1);
+    expect(match.events.filter(event => event.kind === 'POWER_IMPACT' && event.power === 'PORTAL_PASS'))
+      .toHaveLength(1);
+  });
+
   it('Gravity pulls defenders toward the carrier and commits a runner into the abandoned lane', () => {
     const match = matchWith('GRAVITY_WELL', 5);
     const hero = 5;
@@ -407,6 +467,11 @@ describe('m1.18 approved power contracts', () => {
     movementTick(match);
     expect(Math.hypot(match.players[9].pos.x - runnerAnchor.x, match.players[9].pos.y - runnerAnchor.y))
       .toBeLessThan(Math.hypot(before.x - runnerAnchor.x, before.y - runnerAnchor.y));
+    tackleTick(match);
+    expect(match.events).not.toContainEqual(expect.objectContaining({
+      kind: 'TACKLE', on: carrier,
+    }));
+    expect(match.ball).toEqual({ kind: 'held', by: carrier });
     expect(attackingDecision(match, carrier)).toMatchObject({ kind: 'pass', to: 9 });
     possessionTick(match);
     expect(match.ball).toMatchObject({ kind: 'pass', from: carrier, to: 9 });

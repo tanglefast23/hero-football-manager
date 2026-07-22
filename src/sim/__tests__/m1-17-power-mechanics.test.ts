@@ -141,7 +141,7 @@ describe('m1.18 authored one-moment powers', () => {
     expect(attackingDecision(match, receiver).kind).not.toBe('pass');
   });
 
-  it('Decoy Double holds one marker in a persistent false lane without a teamwide dribble bonus', () => {
+  it('Decoy Double creates a genuine extra forward without relocating an opponent', () => {
     const { match, hero } = matchWith('DECOY_DOUBLE');
     const carrier = 6;
     const marker = 12;
@@ -152,20 +152,16 @@ describe('m1.18 authored one-moment powers', () => {
     for (let idx = 11; idx < 22; idx += 1) {
       if (idx !== marker) match.players[idx].pos = { x: 6000, y: 8000 };
     }
-    activatePower(match, hero, 1);
     const before = { ...match.players[marker].pos };
-    movementTick(match);
-    expect(match.players[marker].pos).not.toEqual(before);
-    expect(Math.abs(match.players[marker].pos.x - match.players[carrier].pos.x))
-      .toBeGreaterThan(Math.abs(before.x - match.players[carrier].pos.x));
-    expect(match.players[marker].pos.y).toBeGreaterThan(before.y);
+    activatePower(match, hero, 1);
+    expect(match.players[marker].pos).toEqual(before);
     expect(dribbleBonus(match, carrier)).toBe(0);
     expect(match.decoyClones[0]).toMatchObject({ ownerIdx: hero, sourceIdx: 9 });
     expect(match.decoyClones[0]?.def.role).toBe('FWD');
     expect(match.decoyClones[0]?.def.attrs).toEqual(match.players[9].def.attrs);
   });
 
-  it('ends a Decoy lure immediately when possession turns over', () => {
+  it('ends the Decoy extra player immediately when possession turns over', () => {
     const { match, hero } = matchWith('DECOY_DOUBLE');
     const carrier = 6;
     const marker = 12;
@@ -183,7 +179,7 @@ describe('m1.18 authored one-moment powers', () => {
     expect(match.players[hero].powerState.kind).toBe('idle');
   });
 
-  it.each(['DECOY_DOUBLE', 'GRAVITY_WELL'] as const)(
+  it.each(['PORTAL_PASS', 'DECOY_DOUBLE', 'GRAVITY_WELL'] as const)(
     '%s refunds a stale windup without emitting a fake fire',
     power => {
       const { match, hero } = matchWith(power, 6);
@@ -203,7 +199,7 @@ describe('m1.18 authored one-moment powers', () => {
     },
   );
 
-  it('lands Decoy Double on the marker and false lane shown when its full windup began', () => {
+  it('lands Decoy Double at the extra-forward spot shown when its full windup began', () => {
     const { match, hero } = matchWith('DECOY_DOUBLE', 6);
     const carrier = 9;
     const marker = 12;
@@ -225,14 +221,12 @@ describe('m1.18 authored one-moment powers', () => {
     if (winding.kind !== 'winding' || match.players[hero].powerAnchor === undefined) {
       throw new Error('expected a placed Decoy windup');
     }
-    const anchor = { ...match.players[hero].powerAnchor };
+    if (winding.runnerAnchor === undefined) throw new Error('expected a placed Decoy runner');
+    const cloneAnchor = { ...winding.runnerAnchor };
     const newCarrier = 8;
     match.ball = { kind: 'held', by: newCarrier };
     match.players[marker].pos = { x: 1500, y: 5200 };
-    const beforeDistance = Math.hypot(
-      match.players[marker].pos.x - anchor.x,
-      match.players[marker].pos.y - anchor.y,
-    );
+    const movedMarker = { ...match.players[marker].pos };
     match.tick = winding.untilTick;
 
     powerTick(match);
@@ -243,10 +237,8 @@ describe('m1.18 authored one-moment powers', () => {
     expect(match.players[hero].powerState).toMatchObject({
       kind: 'active', carrierIdx: newCarrier, targetIdx: marker,
     });
-    expect(Math.hypot(
-      match.players[marker].pos.x - anchor.x,
-      match.players[marker].pos.y - anchor.y,
-    )).toBeLessThan(beforeDistance);
+    expect(match.players[marker].pos).toEqual(movedMarker);
+    expect(match.decoyClones[0]?.pos).toEqual(cloneAnchor);
   });
 
   it('refunds a placed Decoy windup when possession turns over', () => {
@@ -381,8 +373,8 @@ describe('m1.18 authored one-moment powers', () => {
     });
   });
 
-  it('pulls Decoy\'s single marker farther with a tap and an upgrade', () => {
-    function markerTravel(strength: number, tier: 1 | 3): number {
+  it('places Decoy\'s extra forward farther ahead with a tap and an upgrade', () => {
+    function cloneProgress(strength: number, tier: 1 | 3): number {
       const { match, hero } = matchWith('DECOY_DOUBLE');
       const carrier = 6;
       const marker = 12;
@@ -393,15 +385,15 @@ describe('m1.18 authored one-moment powers', () => {
       for (let idx = 11; idx < 22; idx += 1) {
         if (idx !== marker) match.players[idx].pos = { x: 6000, y: 9000 };
       }
-      const before = { ...match.players[marker].pos };
       activatePower(match, hero, strength);
-      const after = match.players[marker].pos;
-      return Math.hypot(after.x - before.x, after.y - before.y);
+      const clone = match.decoyClones[0];
+      if (clone === null) throw new Error('expected Decoy clone');
+      return 10500 - clone.pos.y;
     }
 
-    const auto = markerTravel(0.85, 1);
-    const manual = markerTravel(1, 1);
-    const tier3 = markerTravel(1, 3);
+    const auto = cloneProgress(0.85, 1);
+    const manual = cloneProgress(1, 1);
+    const tier3 = cloneProgress(1, 3);
     expect(manual).toBeGreaterThan(auto);
     expect(tier3).toBeGreaterThan(manual);
   });
@@ -906,10 +898,19 @@ describe('m1.18 authored one-moment powers', () => {
   it('keeper Zones open on danger but fire on the current on-target shot without a windup', () => {
     for (const power of ['ELASTIC_KEEPER', 'GIANT_GK'] as const) {
       const { match, hero } = matchWith(power, 0);
-      match.players[20].pos = { x: 3400, y: 8000 };
+      match.players[20].pos = { x: 3400, y: 9000 };
       match.ball = { kind: 'held', by: 20 };
       expect(zoneEntryContext(match, hero)).toBe(true);
       expect(inUsefulContext(match, hero)).toBe(false);
+
+      for (const policy of ['FIRE_WHEN_READY', 'SAVE_FOR_TAP'] as const) {
+        match.players[hero].firePolicy = policy;
+        match.players[hero].powerState = { kind: 'idle' };
+        match.players[hero].gauge = 5;
+        match.players[hero].zonesOpened = 0;
+        powerTick(match);
+        expect(match.players[hero].powerState).toEqual({ kind: 'zone', remainingTicks: 70 });
+      }
 
       match.players[hero].firePolicy = 'FIRE_WHEN_READY';
       match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
@@ -1054,7 +1055,7 @@ describe('m1.18 authored one-moment powers', () => {
     const carrier = 6;
     match.players[hero].pos = { x: 2250, y: 5000 };
     match.players[carrier].pos = { x: 3300, y: 4800 };
-    match.players[12].pos = { x: 3200, y: 4500 };
+    match.players[12].pos = { x: 3000, y: 3900 };
     for (let idx = 11; idx < 22; idx += 1) {
       if (idx !== 12) match.players[idx].pos = { x: 6000, y: 9000 };
     }
@@ -1102,7 +1103,7 @@ describe('m1.18 authored one-moment powers', () => {
       match.ball = { kind: 'held', by: carrier };
       match.players[hero].pos = { x: 2250, y: 5000 };
       match.players[carrier].pos = { x: 3400, y: 4800 };
-      match.players[blocker].pos = { x: 3300, y: 4400 };
+      match.players[blocker].pos = { x: 3000, y: 3900 };
       for (let idx = 11; idx < 22; idx += 1) {
         if (idx !== blocker) match.players[idx].pos = { x: 6000, y: 9000 };
       }
@@ -1122,7 +1123,7 @@ describe('m1.18 authored one-moment powers', () => {
     const tier3 = pulse(1, 3);
     for (const result of [auto, manual, tier3]) {
       expect(result.after).toBeLessThan(result.before);
-      expect(result.after).toBeGreaterThanOrEqual(219);
+      expect(result.after).toBeGreaterThanOrEqual(599);
     }
   });
 });

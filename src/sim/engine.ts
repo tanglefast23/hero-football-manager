@@ -2,7 +2,7 @@ import { BLEND_TICKS, blendedTableTarget, gkTarget, kickoffPos } from './movemen
 import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, HALF_TICKS, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest, contestProbability } from './contest';
-import { addGauge, clearPowerCommitment, clearRestartPowerState, consumeDecoyAction, consumeKeeperShotCharge, consumePhaseChallenge, consumePortalProtection, consumeShadowMark, decoyPursuitTarget, finishMomentPower, futureSightInterceptor, gravityPriorityTarget, gravityRunnerTarget, gustDisruptsPass, gustPuntDestination, interruptWindup, isShadowMarked, powerActionBlocked, powerInteractionBlocked, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, powerFinishShotProfile, STRENGTH_LOCK_RANGE } from './powers';
+import { addGauge, clearPowerCommitment, clearRestartPowerState, consumeDecoyAction, consumeKeeperShotCharge, consumePhaseChallenge, consumePortalProtection, consumeShadowMark, finishMomentPower, futureSightInterceptor, gravityPriorityTarget, gravityRunnerTarget, gustDisruptsPass, gustPuntDestination, interruptWindup, isShadowMarked, powerActionBlocked, powerInteractionBlocked, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, powerFinishShotProfile, STRENGTH_LOCK_RANGE } from './powers';
 import { energyDrainMultiplier, energyMovementMultiplier, formationTarget, mentalityTarget, type EnergyUse } from './tactics';
 import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 import {
@@ -229,13 +229,12 @@ function targetFor(state: MatchState, i: number, mv: MovementState, presserIdx: 
   const isPassReceiver = passReceiverIdx === i
     && state.ball.kind === 'pass' && state.ball.decoyReceiverPlayerId === undefined;
   const chaseLoose = state.ball.kind === 'loose' && dist2(p.pos, ball) < 1500 * 1500;
-  const decoyTarget = decoyPursuitTarget(state, i);
   const gravityTarget = gravityRunnerTarget(state, i);
   return isCarrier
     ? carryTarget(state, i)
     : chargeTarget ? chargeTarget
     : strengthZoneTarget ? strengthZoneTarget
-    : decoyTarget ?? gravityTarget ?? (i === presserIdx || isPassReceiver || chaseLoose ? ball
+    : gravityTarget ?? (i === presserIdx || isPassReceiver || chaseLoose ? ball
       : fallbackTarget(state, i, mv, ball));
 }
 
@@ -1192,9 +1191,16 @@ function standingTackle(state: MatchState, tacklerIdx: number, carrierIdx: numbe
 
 export function tackleTick(state: MatchState): void {
   if (resolveActiveSlide(state)) return;
-  if (state.ball.kind !== 'held' || !isAvailable(state, state.ball.by)) return;
+  if (state.ball.kind !== 'held') return;
   const carrierIdx = state.ball.by;
   const carrier = requirePlayerAt(state, carrierIdx);
+  const iceSliding = carrier.forcedMovement?.kind === 'ICE_SLIDE'
+    && carrier.forcedMovement.untilTick > state.tick
+    && carrier.outUntilTick <= state.tick
+    && carrier.slideTackle === undefined
+    && carrier.tackleRecoveryUntil <= state.tick
+    && (carrier.webbedUntilTick ?? 0) <= state.tick;
+  if (!isAvailable(state, carrierIdx) && !iceSliding) return;
   if ((carrier.actionLockedUntilTick ?? 0) > state.tick) return;
   if ((carrier.portalProtectedUntilTick ?? 0) > state.tick) return;
 
