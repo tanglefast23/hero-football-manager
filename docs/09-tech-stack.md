@@ -52,7 +52,7 @@ Version policy: pin per EAS milestone; upgrade quarterly, never continuously (st
 - **Unit**: sim actions (tackles, shots, gauge math), economy functions, negotiation math — Jest, TDD for sim/ and game/.
 - **Balance harness** (the deterministic core's superpower): headless Monte Carlo — simulate 1,000 seasons per candidate tuning table in CI, assert the design promises: "zero-hero club reaches Div 3 by season 4 (median)", "season-1 bankruptcy rate < 2% on Cozy", the hero-uplift band below, and the shipped 10% eligible post-match awakening cadence after its three-match cooldown. Balance changes become measurable, not vibes.
 
-### Hero uplift target (revised 2026-07-22, supersedes "15–25%")
+### Hero uplift acceptance band (revised 2026-07-22, supersedes "15–25%")
 
 The old assertion was **15–25% win-rate uplift**. It was written before anyone
 measured the shipped catalog, and measurement found powers sitting *below* even
@@ -65,15 +65,17 @@ percentage moves with whatever baseline you measure against, the equivalence
 does not. Near an even match, **1 squad point ≈ 8 percentage points of win
 rate** (measured: even = 40% W / 23% D / 37% L; two points stronger = 23% W).
 
-| Case | Target worth | ≈ win rate | ≈ relative uplift |
-|---|---|---|---|
-| **Tier 1, auto-fired** (Quick Result) | **+2** | ~56% | ~40% |
-| Tier 1, tapped well | +2.5 – 3 | ~62–66% | ~55–65% |
-| Tier 3, tapped well (endgame, D1) | **+4** | ~76% | ~90% |
+The initial calibration center was +2 for Tier-1 automatic play, +2.5–3 for a
+good tap, and +4 for an upgraded good tap. The owner broadened the closeout
+acceptance band after seeing the measured catalog: an individual power may be
+worth roughly **+1 to +6 squad points** if it is clearly useful, reliably fires,
+and performs its advertised football moment. No power may have a demonstrated
+negative effect. Manual activation and upgrades must not have a statistically
+established harmful reversal; they do not need to hit one exact number.
 
-**Balance the leagues against the Tier 1 auto-fired corner.** That is the player
-who never watches a match and never upgrades a power; everything above it is
-earned. A club that engages should feel rewarded, never required.
+League and opening-run probes therefore test the real randomized first-hero
+path instead of assuming every basic automatic power is exactly +2. The +2
+value remains a useful design center, not a per-power release gate.
 
 **Measurement discipline — two mistakes that produced confident wrong numbers:**
 

@@ -20,6 +20,7 @@ import { performSubstitution } from '../substitutions';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState, PlayerDef, PowerId, PowerState, TeamDef } from '../types';
 import { playerAt } from '../entities';
+import { loadLaunchContent } from '../../content';
 
 function matchWith(power: PowerId, slot: number, bench: PlayerDef[] = []): MatchState {
   const home: TeamDef = {
@@ -50,6 +51,34 @@ function forceArrival(match: MatchState): void {
 }
 
 describe('m1.18 approved power contracts', () => {
+  it('keeps the authored next-tick wind-ups synchronized with the simulator', () => {
+    const windups = Object.fromEntries(
+      loadLaunchContent().powers.powers.map(power => [power.id, power.windupTicks]),
+    );
+    expect(windups).toMatchObject({ PORTAL_PASS: 1, DECOY_DOUBLE: 1, GRAVITY_WELL: 1 });
+
+    for (const [power, slot] of [
+      ['PORTAL_PASS', 5],
+      ['DECOY_DOUBLE', 5],
+      ['GRAVITY_WELL', 5],
+    ] as const) {
+      const match = matchWith(power, slot);
+      const carrier = 6;
+      match.ball = { kind: 'held', by: carrier };
+      match.players[slot].pos = { x: 2250, y: 4400 };
+      match.players[carrier].pos = { x: 1200, y: 4200 };
+      match.players[9].pos = { x: 2000, y: 3000 };
+      match.players[12].pos = { x: 1500, y: 3400 };
+      for (let idx = 11; idx < 22; idx += 1) {
+        if (idx !== 12) match.players[idx].pos = { x: 6500, y: 9000 };
+      }
+      match.players[slot].firePolicy = 'FIRE_WHEN_READY';
+      match.players[slot].powerState = { kind: 'zone', remainingTicks: 70 };
+      powerTick(match);
+      expect(match.players[slot].powerState).toMatchObject({ kind: 'winding', untilTick: 1 });
+    }
+  });
+
   it('Strength suppresses the carrier decision without freezing movement, then lands', () => {
     const match = matchWith('SUPER_STRENGTH', 2);
     const hero = 2;
@@ -76,7 +105,7 @@ describe('m1.18 approved power contracts', () => {
     expect(match.players[hero].powerState.kind).toBe('idle');
   });
 
-  it('Web drops the ball and roots only its victim for about two seconds', () => {
+  it('Web drops the ball and roots only its victim for its tuned duration', () => {
     const match = matchWith('WEB_TRAP', 2);
     const hero = 2;
     const victim = 11;
@@ -87,13 +116,13 @@ describe('m1.18 approved power contracts', () => {
     powerTick(match);
 
     expect(match.ball).toMatchObject({ kind: 'loose', pos: { x: 2200, y: 5000 } });
-    expect(match.players[victim].webbedUntilTick).toBe(70);
+    expect(match.players[victim].webbedUntilTick).toBe(200);
     const before = { ...match.players[victim].pos };
     movementTick(match);
     possessionTick(match);
     expect(match.players[victim].pos).toEqual(before);
     expect(match.ball.kind !== 'held' || match.ball.by).not.toBe(victim);
-    match.tick = 70;
+    match.tick = 200;
     powerTick(match);
     expect(match.players[victim].webbedUntilTick).toBeUndefined();
   });
@@ -113,9 +142,9 @@ describe('m1.18 approved power contracts', () => {
     const auto = rootUntil(0.85, 1);
     const manual = rootUntil(1, 1);
     const tier3 = rootUntil(1, 3);
-    expect(auto).toBe(60);
-    expect(manual).toBe(70);
-    expect(tier3).toBe(80);
+    expect(auto).toBe(120);
+    expect(manual).toBe(200);
+    expect(tier3).toBe(200);
   });
 
   it('Ice keeps carrier and ball together while sliding toward the carrier own goal', () => {
@@ -240,6 +269,25 @@ describe('m1.18 approved power contracts', () => {
     powerTick(match);
     expect(match.players[2].powerState.kind).toBe('idle');
     expect(match.players[2].pos).toEqual(origin);
+  });
+
+  it('Shadow hunts the wider danger area but still waits outside it', () => {
+    const match = matchWith('SHADOW_MARK', 2);
+    const hero = 2;
+    const victim = 12;
+    match.players[hero].pos = { x: 1000, y: 5000 };
+    match.players[victim].pos = { x: 4700, y: 5000 };
+    match.ball = { kind: 'held', by: victim };
+    activatePower(match, hero, 1);
+    match.tick = 20;
+    powerTick(match);
+    expect(match.ball).toEqual({ kind: 'held', by: victim });
+    expect(match.players[hero].powerState.kind).toBe('active');
+
+    match.players[victim].pos = { x: 4500, y: 5000 };
+    powerTick(match);
+    expect(match.ball).toEqual({ kind: 'held', by: hero });
+    expect(match.players[hero].powerState.kind).toBe('idle');
   });
 
   it('Rally queues one refill for a ready hero and never grants a fifth Zone', () => {
@@ -415,6 +463,7 @@ describe('m1.18 approved power contracts', () => {
       || match.players[hero].powerAnchor === undefined) {
       throw new Error('expected a captured Portal destination');
     }
+    expect(winding.untilTick - match.tick).toBe(1);
     const receiver = winding.targetIdx;
     const exit = { ...match.players[hero].powerAnchor };
     match.ball = { kind: 'held', by: 8 };
@@ -477,6 +526,7 @@ describe('m1.18 approved power contracts', () => {
     }));
     expect(match.ball).toEqual({ kind: 'held', by: carrier });
     expect(attackingDecision(match, carrier)).toMatchObject({ kind: 'pass', to: 9 });
+    match.tick = 5;
     possessionTick(match);
     expect(match.ball).toMatchObject({ kind: 'pass', from: carrier, to: 9 });
     expect(match.players[hero].powerState.kind).toBe('active');
@@ -513,6 +563,47 @@ describe('m1.18 approved power contracts', () => {
     match.ball = { kind: 'held', by: 11 };
     powerTick(match);
     expect(match.players[5].powerState.kind).toBe('idle');
+  });
+
+  it('lets a planted Gravity well follow the current lane when the carrier shifts formation', () => {
+    const match = matchWith('GRAVITY_WELL', 5);
+    const hero = 5;
+    const carrier = 6;
+    const blocker = 12;
+    match.ball = { kind: 'held', by: carrier };
+    match.players[hero].pos = { x: 2250, y: 4400 };
+    match.players[carrier].pos = { x: 1200, y: 4200 };
+    match.players[9].pos = { x: 2000, y: 3000 };
+    match.players[blocker].pos = { x: 1500, y: 3400 };
+    for (let idx = 11; idx < 22; idx += 1) {
+      if (idx !== blocker) match.players[idx].pos = { x: 6500, y: 9000 };
+    }
+    match.players[hero].firePolicy = 'FIRE_WHEN_READY';
+    match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
+    powerTick(match);
+    const winding = match.players[hero].powerState as PowerState;
+    if (winding.kind !== 'winding') throw new Error('expected planted Gravity well');
+    expect(winding.untilTick - match.tick).toBe(1);
+
+    // The carrier moves beside the planter, so the original planting pose is
+    // gone. Its blocker also advances beyond the strict 1500-unit planting
+    // radius, but remains inside the 2200-unit landing buffer.
+    match.players[carrier].pos.x = 2150;
+    match.players[blocker].pos = { x: 2250, y: 2400 };
+    const landingDistance = Math.hypot(
+      match.players[blocker].pos.x - match.players[hero].pos.x,
+      match.players[blocker].pos.y - match.players[hero].pos.y,
+    );
+    expect(landingDistance).toBeGreaterThan(1500);
+    expect(landingDistance).toBeLessThan(2200);
+    expect(inUsefulContext(match, hero)).toBe(false);
+    match.tick = winding.untilTick;
+    powerTick(match);
+
+    expect(match.players[hero].powerState.kind).toBe('active');
+    expect(match.events).toContainEqual(expect.objectContaining({
+      kind: 'POWER_FIRED', player: hero, power: 'GRAVITY_WELL',
+    }));
   });
 
   it('pushes a point-blank Gravity blocker out to a safe rim without conceding a tackle', () => {

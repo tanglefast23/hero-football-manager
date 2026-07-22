@@ -17,12 +17,14 @@ export const ARM_WINDOW_TICKS = 20;
 export const GAUGE_TRICKLE = 0.02;
 export const MAX_ZONES_PER_PLAYER = 3;
 const STRENGTH_WINDUP_TICKS = 5;
-const GRAVITY_WINDUP_TICKS = 5;
+const PORTAL_WINDUP_TICKS = 1;
+const GRAVITY_WINDUP_TICKS = 1;
+const DECOY_WINDUP_TICKS = 1;
 const PORTAL_PROTECTION_TICKS = 20;
 const ICE_SLIDE_STEP = 110;
 const SHADOW_BURROW_TICKS = 20;
 const SHADOW_HUNT_TICKS = 100;
-const SHADOW_HUNT_RADIUS = 1900;
+const SHADOW_HUNT_RADIUS = 3600;
 // Defensive heroes touch the ball less than attacking heroes, so nearby
 // opposition must be a real Heat source or their powers disappear from natural
 // matches. The role trickles below close the remaining natural-touch gap while
@@ -128,11 +130,12 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
     b.kind === 'held' && requirePlayerAt(state, b.by).team !== p.team && dist2(requirePlayerAt(state, b.by).pos, p.pos) < range * range;
   const friendlyCarrier = b.kind === 'held' && requirePlayerAt(state, b.by).team === p.team ? b.by : -1;
 
-  // 1900 is the range startWindup already uses to lock a Web Trap / Future
-  // Sight target, so settling can never select a target the windup would drop.
+  // Targeted defensive powers settle only when a real opponent is inside the
+  // same authored preparation range their wind-up uses.
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
-  if (power === 'WEB_TRAP' || power === 'FUTURE_SIGHT') return oppCarrierNear(1900);
-  if (power === 'ICE_RINK') return oppCarrierNear(1900);
+  if (power === 'WEB_TRAP') return oppCarrierNear(WEB_TRAP_TRIGGER_RANGE);
+  if (power === 'FUTURE_SIGHT') return oppCarrierNear(FUTURE_SIGHT_CONTEXT_RANGE);
+  if (power === 'ICE_RINK') return oppCarrierNear(ICE_RINK_RANGE);
   if (power === 'SHADOW_MARK') return b.kind === 'held'
     && requirePlayerAt(state, b.by).team !== p.team
     && requirePlayerAt(state, b.by).def.role !== 'GK'
@@ -141,10 +144,12 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
   if (power === 'PORTAL_PASS') return friendlyCarrier !== -1
     && portalDestination(state, friendlyCarrier, projectedEffectStrength(p, LAPSE_STRENGTH)) !== null;
   if (power === 'DECOY_DOUBLE') {
-    return friendlyCarrier !== -1
-      && bestDecoyMarker(state, friendlyCarrier, DECOY_MARKER_RANGE,
-        projectedEffectStrength(p, LAPSE_STRENGTH)) !== -1
-      && bestDecoyForward(state, idx, friendlyCarrier) !== -1;
+    if (friendlyCarrier === -1 || bestDecoyForward(state, idx, friendlyCarrier) === -1) return false;
+    return decoyClonePosition(
+      state,
+      friendlyCarrier,
+      projectedEffectStrength(p, LAPSE_STRENGTH),
+    ) !== null;
   }
   if (power === 'GUST') return b.kind === 'held' && requirePlayerAt(state, b.by).team !== p.team;
   if (power === 'ELASTIC_KEEPER') return enemyOnTargetShot(state, idx);
@@ -176,16 +181,17 @@ export const TORCH_IGNITE_RANGE = 1400;
 const FIRE_FULL_MATCHUP_ADVANTAGE = 4;
 const FIRE_SATURATED_MATCHUP_ADVANTAGE = 15;
 const FIRE_MIN_MARKER_TICKS = 4;
-/** m1.13 ranges, sized against the existing proximity powers (Web Trap 1500, Future Sight 1900). */
-const ICE_RINK_RANGE = 1500;
-const ICE_RINK_TRIGGER_RANGE = 1300;
-const GRAVITY_WELL_RANGE = 1500;
+/** Current defensive planning and landing ranges in deterministic pitch units. */
+const ICE_RINK_RANGE = 2400;
+const ICE_RINK_TRIGGER_RANGE = 2400;
+const FUTURE_SIGHT_CONTEXT_RANGE = 2600;
+const GRAVITY_WELL_ENTRY_RANGE = 1500;
+const GRAVITY_WELL_RANGE = 2200;
 const SHADOW_MARK_RANGE = 1900;
 const PHASE_REVALIDATE_RANGE = 1400;
 const RALLY_CRY_RANGE = 2600;
 const RALLY_CRY_TEAMMATE_HEAT = 35;
-const DECOY_MARKER_RANGE = 1900;
-export const WEB_TRAP_TRIGGER_RANGE = 1500;
+export const WEB_TRAP_TRIGGER_RANGE = 2600;
 // SUPER_SPEED's useful context distance to a loose ball worth a sprint for.
 const SPEED_LOOSE_BALL_RANGE = 1500;
 
@@ -218,7 +224,7 @@ export function zoneEntryContext(state: MatchState, idx: number): boolean {
       ) !== null;
   }
   if (power === 'GRAVITY_WELL') {
-    return gravityWellContext(state, idx);
+    return gravityWellContext(state, idx, GRAVITY_WELL_ENTRY_RANGE, 900, 1200, 450);
   }
   if (power === 'ELASTIC_KEEPER' || power === 'GIANT_GK') {
     return dangerousKeeperPossession(state, idx) || enemyOnTargetShot(state, idx);
@@ -277,8 +283,8 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
     b.kind === 'held' && requirePlayerAt(state, b.by).team !== p.team && dist2(requirePlayerAt(state, b.by).pos, p.pos) < range * range;
 
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
-  if (power === 'WEB_TRAP') return oppCarrierNear(1500);
-  if (power === 'FUTURE_SIGHT') return oppCarrierNear(1900);
+  if (power === 'WEB_TRAP') return oppCarrierNear(WEB_TRAP_TRIGGER_RANGE);
+  if (power === 'FUTURE_SIGHT') return oppCarrierNear(FUTURE_SIGHT_CONTEXT_RANGE);
   // m1.13 powers: every trigger is a sustained situation, never "hold the ball
   // this instant", so they stay usable from any outfield position.
   if (power === 'RALLY_CRY') {
@@ -318,13 +324,13 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
   }
   if (power === 'DECOY_DOUBLE') {
     if (friendlyCarrier === -1) return false;
-    const carrier = requirePlayerAt(state, friendlyCarrier);
-    const carrierProgress = carrier.team === 0 ? PITCH_H - carrier.pos.y : carrier.pos.y;
     const decoyStrength = p.firePolicy === 'SAVE_FOR_TAP' ? TAP_STRENGTH : CONTEXT_AUTO_STRENGTH;
-    return carrierProgress > PITCH_H * 0.38
-      && bestDecoyMarker(state, friendlyCarrier, DECOY_MARKER_RANGE,
-        projectedEffectStrength(p, decoyStrength)) !== -1
-      && bestDecoyForward(state, idx, friendlyCarrier) !== -1;
+    return bestDecoyForward(state, idx, friendlyCarrier) !== -1
+      && decoyClonePosition(
+        state,
+        friendlyCarrier,
+        projectedEffectStrength(p, decoyStrength),
+      ) !== null;
   }
   // Fire Torch cashes out an attacking run by removing the marker between the
   // carrier and goal. A nearby defender behind the play is not useful.
@@ -348,7 +354,7 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
     const carrier = requirePlayerAt(state, state.ball.by);
     const range = p.def.power === 'SUPER_STRENGTH' ? STRENGTH_LOCK_RANGE
       : p.def.power === 'ICE_RINK' ? ICE_RINK_RANGE
-        : 1900;
+        : WEB_TRAP_TRIGGER_RANGE;
     if (carrier.team !== p.team && dist2(carrier.pos, p.pos) < range * range) {
       targetIdx = state.ball.by;
       if (p.def.power === 'SUPER_STRENGTH') {
@@ -381,16 +387,13 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
   if (p.def.power === 'DECOY_DOUBLE' && state.ball.kind === 'held'
     && requirePlayerAt(state, state.ball.by).team === p.team) {
     const effectStrength = projectedEffectStrength(p, strength);
-    const marker = bestDecoyMarker(state, state.ball.by, DECOY_MARKER_RANGE, effectStrength);
-    if (marker !== -1) {
-      carrierIdx = state.ball.by;
-      targetIdx = marker;
-      p.powerAnchor = decoyFalseLane(state, carrierIdx, marker, effectStrength);
-      const receiver = bestDecoyForward(state, idx, carrierIdx);
-      if (receiver !== -1) {
-        runnerIdx = receiver;
-        runnerAnchor = decoyClonePosition(state, carrierIdx, marker, effectStrength);
-      }
+    carrierIdx = state.ball.by;
+    const receiver = bestDecoyForward(state, idx, carrierIdx);
+    const spawn = decoyClonePosition(state, carrierIdx, effectStrength);
+    if (receiver !== -1 && spawn !== null) {
+      runnerIdx = receiver;
+      runnerAnchor = spawn;
+      p.powerAnchor = spawn;
     }
   }
   if (p.def.power === 'GRAVITY_WELL' && state.ball.kind === 'held'
@@ -427,7 +430,9 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
     kind: 'winding',
     untilTick: state.tick + (p.def.power === 'SUPER_STRENGTH'
       ? STRENGTH_WINDUP_TICKS
-      : p.def.power === 'GRAVITY_WELL' ? GRAVITY_WINDUP_TICKS : WINDUP_TICKS),
+      : p.def.power === 'PORTAL_PASS' ? PORTAL_WINDUP_TICKS
+        : p.def.power === 'GRAVITY_WELL' ? GRAVITY_WINDUP_TICKS
+          : p.def.power === 'DECOY_DOUBLE' ? DECOY_WINDUP_TICKS : WINDUP_TICKS),
     strength,
     targetIdx,
     targetPlayerId: targetIdx === undefined ? undefined : playerAt(state, targetIdx)?.def.id,
@@ -597,7 +602,7 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
         if (!validClone) {
           finishMomentPower(state, idx, 'invalid');
         } else if ((state.ball.kind === 'held' || state.ball.kind === 'pass')
-          && requirePlayerAt(state, state.ball.kind === 'held' ? state.ball.by : state.ball.from).team !== p.team) {
+          && decoyFriendlyCarrier(state, p.team) === -1) {
           finishMomentPower(state, idx, 'turnover');
         }
       }
@@ -884,39 +889,22 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     ? portalDestination(state, friendlyCarrier, effectStrength) : null;
   const hasDecoyCapture = power === 'DECOY_DOUBLE'
     && capturedCarrierIdx !== undefined
-    && capturedTargetIdx !== undefined
-    && capturedAnchor !== undefined
     && capturedRunnerIdx !== undefined
     && capturedRunnerAnchor !== undefined;
-  const capturedDecoyTargetValid = hasDecoyCapture && capturedTargetIdx !== undefined
-    && capturedTargetAvailable(
-      state,
-      p.team,
-      capturedTargetIdx,
-      capturedTargetPlayerId,
-    );
   // A friendly pass may carry the placed support play forward, but a turnover
-  // cancels it. Moving an opponent according to a stale attacking lane can
-  // improve their counterattack, so captured geometry never survives a change
-  // of team possession.
-  const decoyCarrier = power === 'DECOY_DOUBLE' ? friendlyCarrier : -1;
-  const decoyMarker = hasDecoyCapture
-    ? (capturedDecoyTargetValid ? capturedTargetIdx! : -1)
-    : power === 'DECOY_DOUBLE' && decoyCarrier !== -1
-    ? bestDecoyMarker(state, friendlyCarrier, DECOY_MARKER_RANGE, effectStrength) : -1;
+  // cancels it. Decoy re-reads that live friendly carrier so a normal one-tick
+  // pass cannot erase the extra forward before it appears.
+  const decoyCarrier = power === 'DECOY_DOUBLE' ? decoyFriendlyCarrier(state, p.team) : -1;
   const capturedDecoyRunnerValid = hasDecoyCapture && capturedRunnerIdx !== undefined
     && friendlyTargetAvailable(state, p.team, capturedRunnerIdx, capturedRunnerPlayerId)
     && capturedRunnerIdx !== decoyCarrier
     && playerAt(state, capturedRunnerIdx)?.def.role === 'FWD';
-  const decoyRunner = hasDecoyCapture
-    ? (capturedDecoyRunnerValid ? capturedRunnerIdx! : -1)
-    : power === 'DECOY_DOUBLE' && decoyCarrier !== -1
-      ? bestDecoyForward(state, idx, decoyCarrier) : -1;
-  const decoyCloneAnchor = hasDecoyCapture
-    ? capturedRunnerAnchor
-    : power === 'DECOY_DOUBLE' && decoyCarrier !== -1 && decoyMarker !== -1
-      ? decoyClonePosition(state, decoyCarrier, decoyMarker, effectStrength)
-      : undefined;
+  const decoyRunner = power === 'DECOY_DOUBLE' && decoyCarrier !== -1
+    ? (capturedDecoyRunnerValid ? capturedRunnerIdx! : bestDecoyForward(state, idx, decoyCarrier))
+    : -1;
+  const decoyCloneAnchor = power === 'DECOY_DOUBLE' && decoyCarrier !== -1
+    ? decoyClonePosition(state, decoyCarrier, effectStrength)
+    : null;
   // Gravity is a current-lane power: passing during the wind-up moves its
   // danger area. Captured anchors remain presentation-only; the landing must
   // re-read the current carrier, blockers, and runner or safely refund.
@@ -933,12 +921,11 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     : [];
   const rallyTarget = power === 'RALLY_CRY' ? bestEncoreCandidate(state, idx) : -1;
   const staleOffBallContext = (power === 'DECOY_DOUBLE'
-      && (decoyCarrier === -1 || decoyMarker === -1 || decoyRunner === -1
-        || decoyCloneAnchor === undefined))
+      && (decoyCarrier === -1 || decoyRunner === -1 || decoyCloneAnchor === null))
     || (power === 'PORTAL_PASS' && hasPortalCapture
       && (friendlyCarrier === -1 || !capturedPortalReceiverValid))
     || (power === 'GRAVITY_WELL'
-      && (!gravityWellContext(state, idx) || gravityCurrentRunner === null));
+      && (friendlyCarrier === -1 || gravityPrimary === undefined || gravityCurrentRunner === null));
   const targetlessMoment = (power === 'FIRE_TORCH' && fireMarkers.length === 0)
     || (power === 'RALLY_CRY' && rallyTarget === -1)
     || (power === 'PORTAL_PASS' && !hasPortalCapture && immediatePortalDestination === null)
@@ -966,6 +953,10 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     ? Math.round(anchoredEffect(durationStrength, 80, 90, 100))
     : power === 'FUTURE_SIGHT'
       ? Math.round(anchoredEffect(durationStrength, 180, 200, 240))
+    : power === 'DECOY_DOUBLE'
+      ? Math.round(anchoredEffect(durationStrength, 120, 140, 140))
+    : power === 'WEB_TRAP'
+      ? Math.round(anchoredEffect(durationStrength, 80, 100, 100))
     : power === 'SHADOW_MARK'
       ? SHADOW_BURROW_TICKS + SHADOW_HUNT_TICKS
     : Math.round(DUR[power] * durationStrength);
@@ -1110,18 +1101,12 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       }
     } else finishMomentPower(state, idx);
   } else if (power === 'DECOY_DOUBLE') {
-    // The visible wind-up places a false run. Once placed, a later pass cannot
-    // erase the telegraphed lure before it lands; the original attack still
-    // owns only the single captured marker and destination.
     const carrier = decoyCarrier;
-    const marker = decoyMarker;
-    if (carrier !== -1 && marker !== -1) {
-      p.powerAnchor = capturedAnchor
-        ?? decoyFalseLane(state, carrier, marker, effectStrength);
+    if (carrier !== -1 && decoyCloneAnchor !== null) {
+      p.powerAnchor = decoyCloneAnchor;
       if (p.powerState.kind === 'active') {
-        p.powerState.targetIdx = marker;
         p.powerState.carrierIdx = carrier;
-        spawnDecoyClone(state, idx, decoyRunner, decoyCloneAnchor!, p.powerState.untilTick);
+        spawnDecoyClone(state, idx, decoyRunner, decoyCloneAnchor, p.powerState.untilTick);
       }
     } else {
       finishMomentPower(state, idx);
@@ -1146,7 +1131,14 @@ function spawnDecoyClone(
   const owner = state.players[ownerIdx];
   const source = state.players[sourceIdx];
   const team = owner.team;
-  if (state.decoyClones[team] !== null) dismissDecoyClone(state, team, 'invalid');
+  const existing = state.decoyClones[team];
+  if (existing !== null) {
+    if (existing.ownerIdx !== ownerIdx || existing.ownerPlayerId !== owner.def.id) {
+      finishMomentPower(state, existing.ownerIdx, 'invalid');
+    } else {
+      dismissDecoyClone(state, team, 'invalid');
+    }
+  }
   const clone: DecoyCloneState = {
     def: {
       ...source.def,
@@ -1341,7 +1333,12 @@ function gravityRunner(
   return best === -1 ? null : { idx: best, pos: anchor };
 }
 
-function gravityLaneBlockers(state: MatchState, heroIdx: number): number[] {
+function gravityLaneBlockers(
+  state: MatchState,
+  heroIdx: number,
+  range = GRAVITY_WELL_RANGE,
+  laneClearance = 900,
+): number[] {
   const hero = state.players[heroIdx];
   if (state.ball.kind !== 'held' || requirePlayerAt(state, state.ball.by).team !== hero.team) return [];
   const carrier = requirePlayerAt(state, state.ball.by);
@@ -1353,28 +1350,35 @@ function gravityLaneBlockers(state: MatchState, heroIdx: number): number[] {
     if (opponent.team === carrier.team || opponent.def.role === 'GK'
       || opponent.outUntilTick > state.tick || opponent.slideTackle !== undefined
       || opponent.tackleRecoveryUntil > state.tick
-      || dist2(opponent.pos, hero.pos) >= GRAVITY_WELL_RANGE * GRAVITY_WELL_RANGE) continue;
+      || dist2(opponent.pos, hero.pos) >= range * range) continue;
     const t = dy === 0 ? -1 : (opponent.pos.y - carrier.pos.y) / dy;
     if (t <= 0 || t >= 1) continue;
     const laneX = carrier.pos.x + (PITCH_W / 2 - carrier.pos.x) * t;
     const clearance = Math.abs(opponent.pos.x - laneX);
-    if (clearance >= 900) continue;
+    if (clearance >= laneClearance) continue;
     candidates.push({ idx, score: clearance + Math.sqrt(dist2(opponent.pos, carrier.pos)) * 0.2 });
   }
   candidates.sort((left, right) => left.score - right.score || left.idx - right.idx);
   return candidates.map(candidate => candidate.idx);
 }
 
-function gravityWellContext(state: MatchState, idx: number): boolean {
+function gravityWellContext(
+  state: MatchState,
+  idx: number,
+  range = GRAVITY_WELL_RANGE,
+  laneClearance = 900,
+  centralRange = 1600,
+  carrierSeparation = 300,
+): boolean {
   const hero = state.players[idx];
   if (state.ball.kind !== 'held' || requirePlayerAt(state, state.ball.by).team !== hero.team
     || state.ball.by === idx) return false;
   // The hero plants centrally while a teammate attacks a different lane. The
   // single pull opens the carrier's side instead of compressing the defence
   // around an opponent who already has the ball.
-  const blockers = gravityLaneBlockers(state, idx);
-  return Math.abs(hero.pos.x - PITCH_W / 2) <= 1200
-    && Math.abs(requirePlayerAt(state, state.ball.by).pos.x - hero.pos.x) >= 450
+  const blockers = gravityLaneBlockers(state, idx, range, laneClearance);
+  return Math.abs(hero.pos.x - PITCH_W / 2) <= centralRange
+    && Math.abs(requirePlayerAt(state, state.ball.by).pos.x - hero.pos.x) >= carrierSeparation
     && blockers.length > 0
     && gravityRunner(state, idx, state.ball.by, blockers[0]) !== null;
 }
@@ -1460,7 +1464,7 @@ function springWebTrap(state: MatchState, heroIdx: number): void {
   if (carrier.team === hero.team || carrier.outUntilTick > state.tick
     || dist2(carrier.pos, hero.powerAnchor) >= WEB_TRAP_TRIGGER_RANGE * WEB_TRAP_TRIGGER_RANGE) return;
   const grade = activeActivationGrade(hero);
-  const rootTicks = Math.round(anchoredEffect(grade, 60, 70, 80));
+  const rootTicks = Math.round(anchoredEffect(grade, 120, 200, 200));
   carrier.webbedUntilTick = state.tick + rootTicks;
   carrier.slideTackle = undefined;
   carrier.tackleRecoveryUntil = 0;
@@ -1479,7 +1483,7 @@ function springIceRink(state: MatchState, heroIdx: number): void {
     || dist2(carrier.pos, hero.powerAnchor) >= ICE_RINK_TRIGGER_RANGE * ICE_RINK_TRIGGER_RANGE) return;
   const backward = carrier.team === 0 ? 1 : -1;
   const grade = activeActivationGrade(hero);
-  const slideDistance = Math.round(anchoredEffect(grade, 2200, 2500, 3000));
+  const slideDistance = Math.round(anchoredEffect(grade, 2800, 3800, 4800));
   const slideTicks = Math.ceil(slideDistance / ICE_SLIDE_STEP);
   carrier.forcedMovement = {
     kind: 'ICE_SLIDE',
@@ -1803,41 +1807,62 @@ function nearestOpponentIndex(state: MatchState, idx: number, range: number): nu
   return best;
 }
 
-function decoyFalseLane(
-  state: MatchState,
-  carrierIdx: number,
-  markerIdx: number,
-  effectStrength: number,
-): { x: number; y: number } {
-  const carrier = requirePlayerAt(state, carrierIdx);
-  const marker = state.players[markerIdx];
-  const attackingDirection = carrier.team === 0 ? -1 : 1;
-  const side = marker.pos.x === carrier.pos.x
-    ? (carrier.pos.x <= PITCH_W / 2 ? -1 : 1)
-    : Math.sign(marker.pos.x - carrier.pos.x);
-  return {
-    x: Math.max(150, Math.min(PITCH_W - 150,
-      carrier.pos.x + side * Math.round(550 + 300 * effectStrength))),
-    y: Math.max(300, Math.min(PITCH_H - 300,
-      carrier.pos.y - attackingDirection * Math.round(350 + 50 * effectStrength))),
-  };
-}
-
 function decoyClonePosition(
   state: MatchState,
   carrierIdx: number,
-  markerIdx: number,
   effectStrength: number,
-): { x: number; y: number } {
+): { x: number; y: number } | null {
   const carrier = requirePlayerAt(state, carrierIdx);
-  const marker = state.players[markerIdx];
   const direction = carrier.team === 0 ? -1 : 1;
-  const side = Math.sign(carrier.pos.x - marker.pos.x)
-    || (carrier.pos.x <= PITCH_W / 2 ? 1 : -1);
-  return {
-    x: Math.round(clampEffect(carrier.pos.x + side * (500 + 120 * effectStrength), 200, PITCH_W - 200)),
-    y: Math.round(clampEffect(carrier.pos.y + direction * (850 + 180 * effectStrength), 900, PITCH_H - 900)),
-  };
+  const grade = effectStrength / familyEffectScale('DECOY_DOUBLE');
+  // Timing and tiers improve lifetime, not the hard spawn geometry. Reusing
+  // the exact candidates prevents a well-timed tap from crossing the 450-unit
+  // safety boundary and becoming unusable where automatic play would succeed.
+  const forward = anchoredEffect(grade, 1375, 1375, 1375);
+  const lateral = anchoredEffect(grade, 900, 900, 900);
+  const y = Math.round(clampEffect(carrier.pos.y + direction * forward, 900, PITCH_H - 900));
+  const candidates = [0, -lateral, lateral, -lateral * 1.6, lateral * 1.6]
+    .map(offset => ({
+      x: Math.round(clampEffect(carrier.pos.x + offset, 200, PITCH_W - 200)),
+      y,
+    }));
+  let best: { x: number; y: number } | null = null;
+  let bestScore = -Infinity;
+  for (const candidate of candidates) {
+    let nearestOpponent = Infinity;
+    for (const idx of activePlayerIndices(state)) {
+      const opponent = requirePlayerAt(state, idx);
+      if (opponent.team === carrier.team || opponent.outUntilTick > state.tick) continue;
+      nearestOpponent = Math.min(nearestOpponent, dist2(candidate, opponent.pos));
+    }
+    if (nearestOpponent < 450 * 450) continue;
+    const centrality = GOAL_CENTER_X - Math.abs(candidate.x - GOAL_CENTER_X);
+    const score = nearestOpponent + attackingProgress(carrier.team, candidate) * 500 + centrality * 200;
+    if (score > bestScore) {
+      best = candidate;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+/** Same-team passing keeps Decoy's setup alive. The intended receiver becomes
+ * the current carrier for copy/spawn selection; a later interception still
+ * dismisses the active clone through the ordinary turnover rule. */
+function decoyFriendlyCarrier(state: MatchState, team: 0 | 1): number {
+  if (state.ball.kind === 'held') {
+    return playerAt(state, state.ball.by)?.team === team ? state.ball.by : -1;
+  }
+  if (state.ball.kind === 'pass') {
+    const passer = playerAt(state, state.ball.from);
+    const receiver = playerAt(state, state.ball.to);
+    if (passer?.team === team) return receiver?.team === team ? state.ball.to : state.ball.from;
+    // A Decoy can pop after releasing the ball. Its reserved slot disappears,
+    // but the already-launched same-team pass remains a valid attack.
+    if (passer === undefined && state.ball.from === decoyIndexForTeam(team)
+      && receiver?.team === team) return state.ball.to;
+  }
+  return -1;
 }
 
 function bestDecoyForward(state: MatchState, heroIdx: number, carrierIdx: number): number {
@@ -1854,48 +1879,6 @@ function bestDecoyForward(state: MatchState, heroIdx: number, carrierIdx: number
       best = idx;
       bestScore = score;
     }
-  }
-  return best;
-}
-
-function decoyCorridorGain(
-  state: MatchState,
-  carrierIdx: number,
-  markerIdx: number,
-  falseLane: { x: number; y: number },
-): number {
-  const carrier = requirePlayerAt(state, carrierIdx);
-  const goal = { x: PITCH_W / 2, y: carrier.team === 0 ? 0 : PITCH_H };
-  return segmentDistance(falseLane, carrier.pos, goal)
-    - segmentDistance(state.players[markerIdx].pos, carrier.pos, goal);
-}
-
-/** The defender actually between the carrier and goal, weighted toward the
- * carrier's lane. The false run must materially improve that corridor. */
-function bestDecoyMarker(
-  state: MatchState,
-  carrierIdx: number,
-  range: number,
-  effectStrength: number,
-): number {
-  const carrier = requirePlayerAt(state, carrierIdx);
-  const goal = { x: PITCH_W / 2, y: carrier.team === 0 ? 0 : PITCH_H };
-  let best = -1;
-  let bestScore = Infinity;
-  for (let idx = 0; idx < 22; idx += 1) {
-    const opponent = state.players[idx];
-    if (opponent.team === carrier.team || opponent.def.role === 'GK'
-      || opponent.outUntilTick > state.tick || opponent.slideTackle !== undefined
-      || opponent.tackleRecoveryUntil > state.tick) continue;
-    const goalSide = carrier.team === 0 ? opponent.pos.y <= carrier.pos.y : opponent.pos.y >= carrier.pos.y;
-    const distance = dist2(carrier.pos, opponent.pos);
-    if (!goalSide || distance >= range * range) continue;
-    const corridorDistance = segmentDistance(opponent.pos, carrier.pos, goal);
-    const falseLane = decoyFalseLane(state, carrierIdx, idx, effectStrength);
-    const gain = decoyCorridorGain(state, carrierIdx, idx, falseLane);
-    if (corridorDistance >= 900 || gain < 300) continue;
-    const score = distance + corridorDistance * 1200 - gain * 400;
-    if (score < bestScore) { best = idx; bestScore = score; }
   }
   return best;
 }

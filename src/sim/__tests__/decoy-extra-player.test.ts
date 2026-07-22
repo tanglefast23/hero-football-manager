@@ -80,7 +80,7 @@ describe('Decoy Double genuine temporary player', () => {
     expect(playerAt(match, HOME_DECOY_INDEX)).toBe(clone);
   });
 
-  it('keeps the caster in formation during Decoy wind-up instead of charging its marker', () => {
+  it('keeps the caster in formation during its open-position Decoy wind-up', () => {
     const powered = createMatch(1818, ...decoyTeams());
     const control = createMatch(1818, ...decoyTeams());
     placeHomeDecoyContext(powered);
@@ -89,7 +89,10 @@ describe('Decoy Double genuine temporary player', () => {
     powered.players[5].powerState = { kind: 'zone', remainingTicks: 70 };
 
     powerTick(powered);
-    expect(powered.players[5].powerState).toMatchObject({ kind: 'winding', targetIdx: 12 });
+    expect(powered.players[5].powerState).toMatchObject({
+      kind: 'winding', carrierIdx: 6, runnerIdx: 9,
+    });
+    expect(powered.players[5].powerState).toHaveProperty('targetIdx', undefined);
     movementTick(powered);
     movementTick(control);
 
@@ -223,6 +226,38 @@ describe('Decoy Double genuine temporary player', () => {
     expect(match.events).toContainEqual(expect.objectContaining({
       kind: 'DECOY_POP', clone: HOME_DECOY_INDEX, reason: 'turnover',
     }));
+  });
+
+  it('retires the previous owner when a teammate creates a replacement clone', () => {
+    const match = createMatch(1818, ...decoyTeams());
+    spawnHomeDecoy(match);
+    match.players[6].def = { ...match.players[6].def, power: 'DECOY_DOUBLE' };
+    match.ball = { kind: 'held', by: 9 };
+    match.players[9].pos = { x: 2600, y: 4000 };
+
+    activatePower(match, 6, 1);
+
+    expect(match.players[5].powerState.kind).toBe('idle');
+    expect(match.players[6].powerState.kind).toBe('active');
+    expect(match.decoyClones[0]).toMatchObject({ ownerIdx: 6, sourceIdx: 10 });
+    powerTick(match);
+    expect(match.decoyClones[0]).toMatchObject({ ownerIdx: 6 });
+  });
+
+  it('can create a new clone after the old clone expires during its own pass', () => {
+    const match = createMatch(1818, ...decoyTeams());
+    spawnHomeDecoy(match);
+    const oldClone = match.decoyClones[0]!;
+    match.ball = { kind: 'held', by: HOME_DECOY_INDEX };
+    launchPass(match, HOME_DECOY_INDEX, 9, false, true);
+    match.tick = oldClone.untilTick;
+    powerTick(match);
+    expect(match.decoyClones[0]).toBeNull();
+    expect(match.ball).toMatchObject({ kind: 'pass', from: HOME_DECOY_INDEX, to: 9 });
+
+    match.players[6].def = { ...match.players[6].def, power: 'DECOY_DOUBLE' };
+    expect(() => activatePower(match, 6, 1)).not.toThrow();
+    expect(match.decoyClones[0]).toMatchObject({ ownerIdx: 6 });
   });
 
   it('clears safely on restart and invalid identity without shifting base slots', () => {

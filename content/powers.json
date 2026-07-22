@@ -60,20 +60,20 @@
       "name": "Portal Pass",
       "tier": "standard",
       "category": "attack",
-      "description": "Drop the ball through a portal onto the best forward runner, protected for their first touch.",
+      "description": "Drop the ball through a portal onto the best forward runner, protected until they pass, shoot, or the shield fades.",
       "usefulContext": "BLOCKED_LANE",
       "requiresTarget": true,
-      "windupTicks": 15
+      "windupTicks": 1
     },
     {
       "id": "DECOY_DOUBLE",
       "name": "Decoy Double",
       "tier": "standard",
       "category": "attack",
-      "description": "Create an extra hologram forward; pass to it and the double becomes the real runner.",
+      "description": "Create an extra hologram forward that can carry, pass, and shoot until it pops.",
       "usefulContext": "PASS_SETUP",
       "requiresTarget": true,
-      "windupTicks": 15
+      "windupTicks": 1
     },
     {
       "id": "FUTURE_SIGHT",
@@ -151,9 +151,9 @@
       "tier": "standard",
       "category": "attack",
       "description": "Pull one or two defenders away, send a runner into the abandoned lane, and feed them next.",
-      "usefulContext": "DANGEROUS_CARRIER",
+      "usefulContext": "BLOCKED_LANE",
       "requiresTarget": true,
-      "windupTicks": 5
+      "windupTicks": 1
     },
     {
       "id": "GIANT_GK",

@@ -24,7 +24,7 @@ Replaces the earlier fixed READY-window design (decision 2026-07-17, after stati
 - **Fire-when-ready policy** (live match-wide `A` mode): auto-fires at the next useful context at **85%**, or at **75%** in the window's final seconds if no context appears — hands-off play and Quick Result stay respectable. Rival heroes always run this policy. **Exception: powers that require a victim (Super Strength, Shadow Mark's ambush, Web Trap's springing) never fire targetless** — their windows simply expire. A rival's glow is therefore a threat you can play around: keep the ball away from him and you starve the zone. That's counterplay, not a bug.
 - **Watched-match power control** (match-wide, manual by default): every watched match starts on `M`, where tapping a glowing home hero either fires at **100%** in useful context or arms the fixed 2-second **90%** window. The top-bar `M`/`A` button switches live between manual and the contextual **85%** Fire-when-ready policy (and **75%** final-seconds lapse) used by Quick Result; direct tapping is disabled while `A` is active. Rival heroes are always automatic. Mode changes are replay-recorded and never bypass knockouts.
 - **Powers can stack.** Every hero's Heat, Zone, wind-up, and active effect advances independently, including while a teammate's power is running. This makes multi-hero squads feel additive instead of spending roughly a tenth of the match frozen behind the first activation.
-- **Wind-up** 1.5s, interruptible by a tackle (hero keeps half their heat). Some powers lock a target at wind-up start and *charge* at them (Super Strength) — the telegraph is the counterplay window. Tackle-interruption applies to a wind-up by the **ball carrier** (Super Speed, Fire Torch): a defender takes the ball, which cancels the charge. A charging Super Strength defender holds no ball, so there is nothing to tackle off them — its counterplay is denying the target (dodge, or pass the ball away) plus the visible telegraph, not a tackle. (audit finding 9: this is intended, not a missing interrupt.)
+- **Wind-up** is normally 1.5s and interruptible (hero keeps half their heat). Super Strength is the visible 0.5s exception: it locks the current enemy carrier, prevents that target passing or shooting, then lands the charge. Portal Pass, Decoy Double, and Gravity Well resolve on the next simulation tick (0.1s) because they re-check a live receiver, carrier, or lane instead of chasing stale geometry. Tackle-interruption still applies to a wind-up by the **ball carrier** (Super Speed, Fire Torch): taking the ball cancels the charge.
 - **A knocked-down hero stays hot**: going out mid-zone pauses the window and resumes it on recovery (confirmed design intent, audit round 2) — getting flattened doesn't extinguish your flow state, and firing the moment you're back up is exactly the comic-book beat. Wind-ups interrupt on knockout (half heat back); already-active powers simply end.
 - Every power declares a **useful context** in its content JSON (the auto-AI's trigger and the chip-glow hint). Contexts encode *value moments* — a breakaway, the final third, a dangerous carrier near our box — not mere usability.
 
@@ -52,23 +52,23 @@ Launch ships **17** of these. Magnet Touch was cut at M4; Bend It and Time Skip 
 | Super Speed ⚙ | Breakaway burst with the ball (boosts the hero's movement, on or off the ball) | Fire at the start of a dangerous break, not in traffic |
 | Blink Run | Teleport past the final defender | The last man is the only man worth blinking past |
 | Thunder Strike | Shot heavily damages keeper Resolve *even if saved* | Save it for a clean central strike — it pays off next shot too |
-| Fire Torch ⚙ | Flaming run — the nearest opponent within roughly 14m ignites and is knocked out of play briefly; if the hero carries, defenders also shy from challenging. Licensed — never booked | Fire when an opponent closes on the hero, ideally while the hero carries |
+| Fire Torch ⚙ | Flaming run — burns past one, two, or three relevant goal-side defenders at tiers 1–3. Licensed — never booked | Fire when the final-third route to goal is marked |
 | Phase Run | Ghost through one tackle — but cannot shoot while phased | Escape midfield pressure; never at the goalmouth |
 | Bend It | Curve your own shot mid-flight around the keeper | Tap **while the ball flies** — the purest window in the game |
-| Portal Pass | The team's current carrier drops the ball through a portal onto the best forward runner | When any teammate's lane is blocked and a runner is home free |
+| Portal Pass | The current carrier drops the ball through a portal onto the best forward runner, protected for up to two seconds or until they pass or shoot | When any teammate's lane is blocked and a runner is home free |
 | **Midfield / utility** | | |
 | ~~Magnet Touch~~ ✂ | The next loose ball in range snaps to you | **Cut at M4** — measured 3.4 Zones and 0 fires per match across 24 seeds. Its trigger is a loose ball near the hero, which almost never coincides with the 7s window |
-| Decoy Double | A hologram runner drags one marker away while your team has possession | Trigger just before the through ball; the hero need not carry it |
-| Gravity Well | Briefly pulls nearby opponents toward you — lanes open elsewhere | Centrally, right before releasing wide |
-| Future Sight | Predict and auto-intercept the next eligible pass | Read the through-ball before it's played |
-| Rally Cry | Nearby teammates' heat fills faster while active | When two teammates are near the zone threshold |
+| Decoy Double | Creates a temporary extra forward with the copied forward's stats; the clone can receive, carry, pass, and shoot until it pops on expiry, turnover, or restart | Add the extra passing option while your team owns the attack |
+| Gravity Well | Moves one or two blockers to a safe rim, sends a suitable attacker into the abandoned lane, and prioritizes the pass | Plant it centrally when a teammate's route is blocked |
+| Future Sight | Predicts and steals the next eligible pass, then guarantees an outlet to the furthest-forward onside teammate | Read the through-ball before it's played |
+| Rally Cry | Gives one nearby powered teammate one Encore activation beyond the normal cap | Use it where a second hero can cash in the bonus |
 | Time Skip ★ | Everyone freezes for one second except the hero | The one moment that decides the match |
 | **Defense** | | |
-| Shadow Mark | Invisible to enemy *decision-making* until the next challenge — carriers don't avoid you, passers don't respect you; ends after challenging | Cloak before the striker commits to a lane; a wasted ambush is a wasted zone |
-| Super Strength ⚙ | Locks the carrier at wind-up, charges, and flattens (steal only if they still hold it). Licensed — never booked | The counterplay is theirs: dump the ball fast |
-| Web Trap | First opponent entering the marked zone is rooted | Place it in the expected dribbling lane |
-| Gust | The opponent's next pass breaks loose on arrival instead of reaching a clean receiver or interceptor | Arm it while the opponent shapes to pass; the loose ball stays contestable |
-| Ice Rink | An area turns slick; opponents entering slip | Siege defense in front of your own box |
+| Shadow Mark | Burrows for two seconds, then waits up to ten seconds for an enemy field carrier in the hunt area before erupting for a guaranteed steal | Hide before the opposition's next dangerous possession |
+| Super Strength ⚙ | Locks the carrier for a visible half-second, prevents their action, then flattens them and wins the ball. Licensed — never booked | Fire when a dangerous carrier enters charge range |
+| Web Trap | Drops the current carrier's ball and roots that victim while everyone else races for it | Place it in the expected dribbling lane |
+| Gust | Bends the opponent's next good pass safely to your goalkeeper, who guarantees a long punt to a teammate | Arm it while the opponent shapes to pass |
+| Ice Rink | Slides the current carrier and ball backward toward their own goal while actions are locked | Stop a dribble and push the whole attack backward |
 | **Goalkeeper** | | |
 | Elastic Keeper | Arms stretch to cover the whole goal for the next shot | Hold it for the one-on-one |
 | Giant GK | Keeper grows huge for one attack | The corner-kick chaos moment |
@@ -77,11 +77,11 @@ Launch ships **17** of these. Magnet Touch was cut at M4; Bend It and Time Skip 
 
 ### Power tiers
 
-Every licensed hero carries their career **Tier 1–3** into the deterministic match definition. Tier 1 is balanced at the weakest control policy: about **+2 squad-strength points** under automatic firing. A well-placed manual tap receives an internal 15% timing reward and targets **+2.5–3 points** while the replayed `POWER_FIRED.strength` remains the honest timing grade (100% tap, 90% armed, 85% context auto, 75% lapse). Tier 2 scales effect magnitude and duration to 1.2×. Tier 3 scales them to 1.45× each, producing close to twice Tier 1's sustained influence and targeting **+4 points**. Family calibration changes only each power's visible authored effect, never unrelated actions by the hero.
+Every licensed hero carries their career **Tier 1–3** into the deterministic match definition. The accepted playtest band is intentionally broad: a power may be worth roughly **+1 to +6 squad-strength points** as long as it is useful rather than harmful, fires reliably, and performs the visible action it promises. Manual activation must never punish the player, and an upgrade must never make a power weaker. Timing and tier rewards are family-specific visible changes—duration, reach, targets, or destination quality—not hidden unrelated stat boosts.
 
 ### Pass spills
 
-A failed ordinary pass no longer always lands cleanly on the selected interceptor. When a pass contest is lost, a seeded 35% spill can deflect it into a loose-ball race; passes with no eligible interceptor also arrive loose. Gust uses this same visible loose-ball outcome deliberately, while Future Sight remains the clean-steal power.
+A failed ordinary pass no longer always lands cleanly on the selected interceptor. When a pass contest is lost, a seeded 35% spill can deflect it into a loose-ball race; passes with no eligible interceptor also arrive loose. Gust is deliberately different: it redirects the pass to the goalkeeper for a guaranteed teammate punt, while Future Sight remains the clean-steal-and-outlet power.
 
 ## Getting powers
 
@@ -95,5 +95,5 @@ Which power a player awakens is weighted by their stats and body type (a PAC-hea
 ## Balance rails (design promises)
 
 - D5 · District League and D4 · County League are winnable with zero heroes; heroes accelerate, never gate.
-- Opposing hero density ramps: around 10% of D5 · District League teams field one → every D1 · Global League team fields 2–3.
-- Hero wages + license caps are the tuning valves; the season-simulation harness (doc 09) verifies the flat 10% post-match cadence and three-match cooldown, plus — per the timing audit — that **attentive tapping measurably beats reasonable auto, which beats blind firing**, per power, with a predeclared confidence-interval-positive margin.
+- Opposing hero density ramps from zero in D5 · District League—your awakened player is the division's only hero—toward every D1 · Global League team fielding 2–3.
+- Hero wages + license caps are the tuning valves; the season-simulation harness (doc 09) verifies the flat 10% post-match cadence and three-match cooldown. The 1,000-seed power harness verifies that tapping and upgrading do not create a statistically established harmful reversal.

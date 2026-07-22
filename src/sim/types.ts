@@ -76,13 +76,13 @@ export type PowerState =
     kind: 'active';
     untilTick: number;
     strength: number;
-    /** Locked one-moment target, such as Decoy's marker or Future Sight's outlet. */
+    /** Locked one-moment target, such as Future Sight's outlet. */
     targetIdx?: number;
     /** Optional second locked target for a single multi-blocker moment. */
     secondaryTargetIdx?: number;
     /** Destination paired with the second locked target. */
     secondaryAnchor?: Vec;
-    /** Original friendly carrier for an off-ball one-moment attack such as Decoy. */
+    /** Friendly carrier for an off-ball one-moment attack such as Decoy or Gravity. */
     carrierIdx?: number;
     /** Stable target identity for one-action commitments across substitutions. */
     targetPlayerId?: string;

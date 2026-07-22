@@ -25,6 +25,7 @@ import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 const content = loadLaunchContent();
 const POWERS = content.powers.powers.map(power => power.id) as PowerId[];
 const SOLO_POWERS = POWERS.filter(power => power !== 'RALLY_CRY');
+const FILTERED_POWERS = selectedPowerFilter(process.env.HERO_VALUE_ONLY, SOLO_POWERS);
 const SEEDS = positiveIntegerEnv('HERO_VALUE_SEEDS', 1000);
 const BOOTSTRAP_RESAMPLES = 400;
 /** Engine slot for each power's designed carrier: 0 GK, 2 DEF, 6 MID, 9 FWD. */
@@ -47,8 +48,22 @@ const CARRIER_SLOT: Record<PowerId, number> = {
   GIANT_GK: 0,
   GUST: 2,
 };
-const SHARD = parseShard(process.env.HERO_VALUE_SHARD, SOLO_POWERS.length);
-const SELECTED_POWERS = SOLO_POWERS.filter((_, index) => index % SHARD.count === SHARD.index);
+const SHARD = parseShard(process.env.HERO_VALUE_SHARD, FILTERED_POWERS.length);
+const SELECTED_POWERS = FILTERED_POWERS.filter((_, index) => index % SHARD.count === SHARD.index);
+
+function selectedPowerFilter(value: string | undefined, available: readonly PowerId[]): PowerId[] {
+  if (value === undefined) return [...available];
+  const requested = value.split(',').map(power => power.trim()).filter(Boolean);
+  if (requested.length === 0) throw new Error('HERO_VALUE_ONLY must name at least one solo power');
+  const availableIds: ReadonlySet<string> = new Set(available);
+  for (const power of requested) {
+    if (!availableIds.has(power)) {
+      throw new Error(`HERO_VALUE_ONLY contains unknown or non-solo power: ${power}`);
+    }
+  }
+  const selected = new Set(requested);
+  return available.filter(power => selected.has(power));
+}
 
 interface LadderRow {
   readonly delta: number;

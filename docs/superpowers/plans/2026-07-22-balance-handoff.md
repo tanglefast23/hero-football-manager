@@ -1,13 +1,14 @@
 # Handoff — hero powers, training and league balance (2026-07-22)
 
 Written at the end of the original measurement session, then updated after the
-approved implementation and post-build audit. Sections 1–5 preserve the
-starting evidence and decision record; sections 6–9 are the current status.
+approved implementation and post-build audit. Sections 1–9 preserve that
+chronological evidence trail. Section 10 is the owner-approved m1.22 contract;
+the final m1.22 evidence and release decision belong in section 11.
 
 **Historical branch at the start of this handoff:**
 `feature/hero-power-balance-m1-13`. The active closeout branch is now
 `codex/balance-closeout-m1-18`, and the replay version under verification is
-**m1.21**. Sections 1–9 remain the historical evidence trail; section 10 is the
+**m1.22**. Sections 1–9 remain the historical evidence trail; section 10 is the
 owner-approved closeout contract and is authoritative when an older target or
 proposal conflicts with it.
 
@@ -513,14 +514,14 @@ The multi-hero marginal-value probe passed 4/4 tests at 1,000 paired seeds per
 sample in 2,797 seconds. Decoy Double retained 27% of its solo value, Future
 Sight 63%, and Giant GK 102%; Rally Cry's marginal value was +0.2.
 
-All requested implementation and measurement work is complete. Do not merge to
-`main` until the approval-required balance work has been accepted or explicitly
-deferred by the owner: hero value, manual advantage, weekly TP/cash pressure,
-and second/third-hero stacking still miss their targets.
+This was the pre-m1.22 gate result. The owner subsequently accepted the broader
++1-to-+6 power band and approved the mechanic/tuning changes in section 10.
+Use the final evidence in section 11—not this historical block—for the merge
+decision.
 
 ---
 
-## 10. Owner-approved m1.18 closeout contract
+## 10. Owner-approved m1.22 closeout contract
 
 The owner replaced the narrow +2 / +2.5–3 / +4 power curve with a broader fun
 band. A power passes when it is worth **+1 to +6 squad-strength points**, does
@@ -537,15 +538,16 @@ animations:
   forward's stats. The double remains a separate player for its full duration,
   can receive, carry, pass, and shoot, and does not disappear merely because it
   receives the ball. It pops on expiry, turnover, or restart; if it is carrying
-  at expiry, the ball stays loose where it vanished. The pop has an audible cue.
+  at expiry, the ball stays loose where it vanished. Automatic clones last 12
+  seconds and well-tapped/upgraded clones last 14. The pop has an audible cue.
 - **Future Sight:** after the predicted interception, immediately complete a
   controlled pass to the furthest-forward onside teammate.
 - **Super Strength:** lock the current carrier into a visible 0.5-second charge
   window in which they cannot pass or shoot; the charge then lands and wins the
   ball.
-- **Web Trap:** the victim drops the ball and remains visibly webbed for six,
-  seven, or eight seconds by activation grade, unable to move, tackle, or
-  recover the loose ball.
+- **Web Trap:** the victim drops the ball and remains visibly webbed for 12
+  seconds automatically or 20 seconds when well tapped/upgraded, unable to
+  move, tackle, or recover the loose ball.
 - **Ice Rink:** if the existing version remains below the accepted band, slide
   the carrier and ball backward toward their own goal, preventing actions
   during the slide and never forcing the ball across the goal line.
@@ -562,9 +564,9 @@ animations:
   Encore queues and refills it after use. A hero can hold and receive only one
   Encore per match.
 - **Portal Pass:** protect the receiving forward from tackles and
-  dispossessions for about one second, ending the protection on their pass or
+  dispossessions for up to two seconds, ending the protection on their pass or
   shot; goalkeepers can still save normally.
-- **Gravity Well:** after a 0.5-second readable wind-up, move one or two
+- **Gravity Well:** after a next-tick wind-up, move one or two
   opposing defenders to a non-harmful safe rim around the current carrier,
   direct the nearest suitable attacker into the abandoned lane, and prioritize
   the carrier's next pass to that runner. Re-check the current lane when the
