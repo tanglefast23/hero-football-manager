@@ -205,6 +205,32 @@ function genBallBounce(seed) {
   return mix([{ buf: click, gain: 0.7 }, { buf: tick, gain: 0.5 }]);
 }
 
+function genDecoyPop(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.22);
+  // A tiny high click supplies the comic "p", while a very short downward
+  // bubble glide makes it read as a magical double vanishing rather than a
+  // football bouncing on turf.
+  const clickN = secondsToSamples(0.025);
+  const click = resize(
+    applyEnv(highpass(noiseWhite(clickN, rng), 1800), decayEnv(clickN, { attack: 0.0005, decay: 0.018 })),
+    n,
+  );
+  const bubble = applyEnv(
+    oscSine(n, expGlide(920, 170, 0.12)),
+    decayEnv(n, { attack: 0.001, decay: 0.16 }),
+  );
+  const sparkle = applyEnv(
+    oscTriangle(n, expGlide(1500, 900, 0.08)),
+    decayEnv(n, { attack: 0.001, decay: 0.07 }),
+  );
+  return softClip(mix([
+    { buf: click, gain: 0.85 },
+    { buf: bubble, gain: 0.9 },
+    { buf: sparkle, gain: 0.18 },
+  ]), 1.1);
+}
+
 function genPostDing() {
   const n = secondsToSamples(0.7);
   return metallicPing(n, 1400, [1, 2.4, 4.2, 6.1]);
@@ -507,6 +533,7 @@ const GENERATORS = {
   'fire-torch-ignite': genFireTorchIgnite,
   'extinguisher-spray': genExtinguisherSpray,
   'match-end-sting': genMatchEndSting,
+  'decoy-pop': genDecoyPop,
 };
 
 export function generateAllSfx(outDir = OUT_DIR) {

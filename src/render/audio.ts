@@ -45,7 +45,8 @@ type SfxKey =
   | 'save-slap'
   | 'crowd-ooh'
   | 'power-interrupt'
-  | 'zone-expire';
+  | 'zone-expire'
+  | 'decoy-pop';
 
 const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'kickoff-whistle': require('../../assets/audio/sfx/kickoff-whistle.m4a'),
@@ -71,6 +72,7 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'crowd-ooh': require('../../assets/audio/sfx/crowd-ooh.wav'),
   'power-interrupt': require('../../assets/audio/sfx/power-interrupt.wav'),
   'zone-expire': require('../../assets/audio/sfx/zone-expire.wav'),
+  'decoy-pop': require('../../assets/audio/sfx/decoy-pop.wav'),
 };
 
 const THEME_SOURCE: AudioSource = require('../../assets/audio/music/match-theme.m4a');
@@ -167,6 +169,8 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       return ['super-speed-whoosh']; // the incoming pass audibly bends on the wind
     case 'GUST_PUNT':
       return ['kick-shot']; // a full-blooded keeper clearance, not an ordinary pass tap
+    case 'DECOY_POP':
+      return ['decoy-pop'];
     case 'IGNITED':
       return ['flame-hit']; // a defender catches fire (distinct from the caster's flame-up)
     // RECOVERED (a player getting back up) has no matching asset — deliberately

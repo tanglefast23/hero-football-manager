@@ -18,8 +18,9 @@ import {
   type PlayerActionAnimation,
 } from './animation';
 import { ballHeightScale, ballVisualOffset } from './ball-flight-visuals';
+import { HOME_DECOY_INDEX, RENDER_PLAYER_COUNT } from '../sim/entities';
 
-const PLAYER_COUNT = 22;
+const PLAYER_COUNT = RENDER_PLAYER_COUNT;
 const ATLAS_SLOT_COUNT = PLAYER_COUNT + 1;
 const BALL_SLOT = PLAYER_COUNT;
 export const WORKLET_ACTION_STRIDE = 6;
@@ -198,7 +199,7 @@ function actionPoseWorklet(
 
 /**
  * Drives the Atlas transform buffer on Reanimated's UI runtime. The JS match
- * loop publishes only tick-boundary snapshots; interpolation and the 23
+ * loop publishes only tick-boundary snapshots; interpolation and the 25
  * per-slot RSXform updates happen inside this worklet mapper, so a 60/120 Hz
  * display no longer rebuilds transform objects or React state every frame.
  */
@@ -218,6 +219,12 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
 
   const previousPositions = useSharedValue<Float32Array>(() => packPositions(initialFrame));
   const nextPositions = useSharedValue<Float32Array>(() => packPositions(initialFrame));
+  const previousVisibility = useSharedValue<Float32Array>(() => (
+    Float32Array.from(initialFrame.visible, value => value ? 1 : 0)
+  ));
+  const nextVisibility = useSharedValue<Float32Array>(() => (
+    Float32Array.from(initialFrame.visible, value => value ? 1 : 0)
+  ));
   const previousBallHeight = useSharedValue(initialFrame.ballHeight);
   const nextBallHeight = useSharedValue(initialFrame.ballHeight);
   const actionData = useSharedValue<Float32Array>(() => new Float32Array(PLAYER_COUNT * ACTION_STRIDE));
@@ -239,8 +246,13 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     const visualTick = Math.max(0, simTick.value - 1 + t);
     for (let index = 0; index < PLAYER_COUNT; index += 1) {
       const packedOffset = index * 2;
-      const x = prev[packedOffset] + (next[packedOffset] - prev[packedOffset]) * t;
-      const y = prev[packedOffset + 1] + (next[packedOffset + 1] - prev[packedOffset + 1]) * t;
+      const newlyVisible = previousVisibility.value[index] === 0 && nextVisibility.value[index] === 1;
+      const x = newlyVisible
+        ? next[packedOffset]
+        : prev[packedOffset] + (next[packedOffset] - prev[packedOffset]) * t;
+      const y = newlyVisible
+        ? next[packedOffset + 1]
+        : prev[packedOffset + 1] + (next[packedOffset + 1] - prev[packedOffset + 1]) * t;
       const pose = actionPoseWorklet(packedActions, index, visualTick);
       const actionOffset = index * ACTION_STRIDE;
       const kind = packedActions[actionOffset];
@@ -300,7 +312,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
         const dy = next[playerOffset + 1] - prev[playerOffset + 1];
         const magnitude = Math.sqrt(dx * dx + dy * dy);
         let ux = 0;
-        let uy = heldBy < 11 ? -1 : 1;
+        let uy = heldBy < 11 || heldBy === HOME_DECOY_INDEX ? -1 : 1;
         if (magnitude * scale >= ballFootDeadzonePx && magnitude > 0) {
           ux = dx / magnitude;
           uy = dy / magnitude;
@@ -324,7 +336,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     const usesActionCell = pose.active && actionData.value[actionOffset] === ACTION_SLIDE;
     const sourceWidth = usesActionCell ? actionCell.width : playerCell.width;
     const sourceHeight = usesActionCell ? actionCell.height : playerCell.height;
-    const playerScale = scale * playerDrawScale;
+    const playerScale = nextVisibility.value[index] === 1 ? scale * playerDrawScale : 0;
     const scos = Math.cos(pose.rotation) * playerScale;
     const ssin = Math.sin(pose.rotation) * playerScale;
     xf.set(
@@ -344,6 +356,8 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
   ) => {
     previousPositions.value = packPositions(previous);
     nextPositions.value = packPositions(next);
+    previousVisibility.value = Float32Array.from(previous.visible, value => value ? 1 : 0);
+    nextVisibility.value = Float32Array.from(next.visible, value => value ? 1 : 0);
     previousBallHeight.value = previous.ballHeight;
     nextBallHeight.value = next.ballHeight;
     actionData.value = packActions(actions);
@@ -356,7 +370,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
       duration: TICK_MS / Math.max(1, speed),
       easing: Easing.linear,
     });
-  }, [previousPositions, nextPositions, previousBallHeight, nextBallHeight, actionData, statuses, zoneFractions, carrier, simTick, progress]);
+  }, [previousPositions, nextPositions, previousVisibility, nextVisibility, previousBallHeight, nextBallHeight, actionData, statuses, zoneFractions, carrier, simTick, progress]);
 
   const pause = useCallback(() => {
     cancelAnimation(progress);

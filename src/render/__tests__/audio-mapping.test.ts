@@ -30,6 +30,18 @@ describe('filesForEvent: event → SFX wiring', () => {
     ]);
   });
 
+  it('plays the Decoy disappearance pop exactly from its explicit event', () => {
+    expect(filesForEvent({
+      t: 80,
+      kind: 'DECOY_POP',
+      player: 5,
+      clone: 22,
+      source: 9,
+      pos: { x: 3100, y: 2700 },
+      reason: 'expired',
+    })).toEqual(['decoy-pop']);
+  });
+
   it('layers tap-fire only on a manual (strength 1.0) power fire', () => {
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 1 })).toEqual(['tap-fire', 'super-speed-whoosh']);
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 0.85 })).toEqual(['super-speed-whoosh']);
@@ -69,6 +81,7 @@ describe('filesForEvent: event → SFX wiring', () => {
       { t: 0, kind: 'POWER_FIRED', player: 10, power: 'FIRE_TORCH', strength: 0.85 },
       { t: 0, kind: 'POWER_INTERRUPTED', player: 10 },
       { t: 0, kind: 'POWER_EXPIRED', player: 10 },
+      { t: 0, kind: 'DECOY_POP', player: 5, clone: 22, source: 9, pos: { x: 1, y: 2 }, reason: 'expired' },
       { t: 0, kind: 'GUST_REDIRECT', player: 2, from: 12, to: 0 },
       { t: 0, kind: 'GUST_PUNT', player: 2, from: 0, to: 9 },
       { t: 0, kind: 'CARD', player: 5, color: 'yellow' },

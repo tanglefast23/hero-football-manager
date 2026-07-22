@@ -1,5 +1,6 @@
 import {
   attackingDecision,
+  attemptShot,
   launchPass,
   movementTick,
   possessionTick,
@@ -10,6 +11,7 @@ import {
   activatePower,
   decoyPassOption,
   gravityRunnerTarget,
+  gustPuntDestination,
   inUsefulContext,
   powerTick,
   cancelPowerReferencesForSubstitution,
@@ -17,6 +19,7 @@ import {
 import { performSubstitution } from '../substitutions';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState, PlayerDef, PowerId, PowerState, TeamDef } from '../types';
+import { playerAt } from '../entities';
 
 function matchWith(power: PowerId, slot: number, bench: PlayerDef[] = []): MatchState {
   const home: TeamDef = {
@@ -37,9 +40,9 @@ function matchWith(power: PowerId, slot: number, bench: PlayerDef[] = []): Match
 
 function forceArrival(match: MatchState): void {
   if (match.ball.kind !== 'pass') throw new Error('expected pass flight');
-  const target = match.ball.arrivalPos ?? match.players[
-    match.ball.willSucceed ? match.ball.to : match.ball.interceptor
-  ].pos;
+  const targetIdx = match.ball.willSucceed ? match.ball.to : match.ball.interceptor;
+  const target = match.ball.arrivalPos ?? playerAt(match, targetIdx)?.pos;
+  if (target === undefined) throw new Error('expected pass target');
   match.ball.pos = { ...target };
   match.ball.z = 0;
   match.ball.vz = 0;
@@ -84,15 +87,35 @@ describe('m1.18 approved power contracts', () => {
     powerTick(match);
 
     expect(match.ball).toMatchObject({ kind: 'loose', pos: { x: 2200, y: 5000 } });
-    expect(match.players[victim].webbedUntilTick).toBe(20);
+    expect(match.players[victim].webbedUntilTick).toBe(70);
     const before = { ...match.players[victim].pos };
     movementTick(match);
     possessionTick(match);
     expect(match.players[victim].pos).toEqual(before);
     expect(match.ball.kind !== 'held' || match.ball.by).not.toBe(victim);
-    match.tick = 20;
+    match.tick = 70;
     powerTick(match);
     expect(match.players[victim].webbedUntilTick).toBeUndefined();
+  });
+
+  it('Web roots longer with a well-timed tap and an upgraded power', () => {
+    function rootUntil(strength: number, tier: 1 | 3): number {
+      const match = matchWith('WEB_TRAP', 2);
+      match.players[2].def.powerTier = tier;
+      match.players[2].pos = { x: 2000, y: 5000 };
+      match.players[11].pos = { x: 2200, y: 5000 };
+      match.ball = { kind: 'held', by: 11 };
+      activatePower(match, 2, strength, 11);
+      powerTick(match);
+      return match.players[11].webbedUntilTick ?? -1;
+    }
+
+    const auto = rootUntil(0.85, 1);
+    const manual = rootUntil(1, 1);
+    const tier3 = rootUntil(1, 3);
+    expect(auto).toBe(60);
+    expect(manual).toBe(70);
+    expect(tier3).toBe(80);
   });
 
   it('Ice keeps carrier and ball together while sliding toward the carrier own goal', () => {
@@ -112,14 +135,51 @@ describe('m1.18 approved power contracts', () => {
     expect(match.events.some(event => event.kind === 'PASS' || event.kind === 'SHOT')).toBe(false);
   });
 
-  it('Shadow arms after two seconds, steals inside its hunt, and returns on friendly possession', () => {
+  it('Ice slides farther with a well-timed tap and an upgraded power without crossing the goal line', () => {
+    function slideDistance(strength: number, tier: 1 | 3): number {
+      const match = matchWith('ICE_RINK', 2);
+      const hero = 2;
+      const victim = 11;
+      match.players[hero].def.powerTier = tier;
+      match.players[hero].pos = { x: 2200, y: 6000 };
+      match.players[victim].pos = { x: 2300, y: 6000 };
+      match.ball = { kind: 'held', by: victim };
+      activatePower(match, hero, strength, victim);
+      powerTick(match);
+      const beforeY = match.players[victim].pos.y;
+      const untilTick = match.players[victim].forcedMovement?.untilTick;
+      if (untilTick === undefined) throw new Error('expected Ice slide');
+
+      for (let tick = match.tick; tick < untilTick; tick += 1) {
+        match.tick = tick;
+        movementTick(match);
+        possessionTick(match);
+      }
+      expect(match.ball).toEqual({ kind: 'held', by: victim });
+      expect(match.events.some(event => event.kind === 'PASS' || event.kind === 'SHOT')).toBe(false);
+      expect(match.players[victim].pos.y).toBeGreaterThanOrEqual(300);
+      match.tick = untilTick;
+      powerTick(match);
+      expect(match.players[victim].forcedMovement).toBeUndefined();
+      return beforeY - match.players[victim].pos.y;
+    }
+
+    const auto = slideDistance(0.85, 1);
+    const manual = slideDistance(1, 1);
+    const tier3 = slideDistance(1, 3);
+    expect(auto).toBeGreaterThanOrEqual(2200);
+    expect(manual).toBeGreaterThan(auto);
+    expect(tier3).toBeGreaterThan(manual);
+  });
+
+  it('Shadow arms after two seconds, waits through friendly possession, and steals a field carrier', () => {
     const hunt = matchWith('SHADOW_MARK', 2);
     hunt.players[2].pos = { x: 2200, y: 5000 };
-    hunt.players[11].pos = { x: 2500, y: 5000 };
-    hunt.ball = { kind: 'held', by: 11 };
+    hunt.players[12].pos = { x: 2500, y: 5000 };
+    hunt.ball = { kind: 'held', by: 12 };
     activatePower(hunt, 2, 1);
     powerTick(hunt);
-    expect(hunt.ball).toEqual({ kind: 'held', by: 11 });
+    expect(hunt.ball).toEqual({ kind: 'held', by: 12 });
     hunt.tick = 20;
     powerTick(hunt);
     expect(hunt.ball).toEqual({ kind: 'held', by: 2 });
@@ -128,13 +188,37 @@ describe('m1.18 approved power contracts', () => {
     const cancel = matchWith('SHADOW_MARK', 2);
     const origin = { x: 2200, y: 5000 };
     cancel.players[2].pos = origin;
-    cancel.ball = { kind: 'held', by: 11 };
+    cancel.ball = { kind: 'held', by: 12 };
     activatePower(cancel, 2, 1);
     cancel.players[2].pos = { x: 100, y: 100 };
     cancel.ball = { kind: 'held', by: 6 };
     powerTick(cancel);
+    expect(cancel.players[2].powerState.kind).toBe('active');
+    expect(cancel.players[2].pos).toEqual({ x: 100, y: 100 });
+    cancel.tick = 20;
+    cancel.players[12].pos = { x: 2250, y: 5000 };
+    cancel.ball = { kind: 'held', by: 12 };
+    powerTick(cancel);
+    expect(cancel.ball).toEqual({ kind: 'held', by: 2 });
     expect(cancel.players[2].powerState.kind).toBe('idle');
-    expect(cancel.players[2].pos).toEqual(origin);
+  });
+
+  it('Shadow ignores a goalkeeper carrier and returns home when its hunt expires', () => {
+    const match = matchWith('SHADOW_MARK', 2);
+    const origin = { x: 2200, y: 5000 };
+    match.players[2].pos = origin;
+    match.players[11].pos = { x: 2250, y: 5000 };
+    match.ball = { kind: 'held', by: 11 };
+    activatePower(match, 2, 1);
+    match.players[2].pos = { x: 100, y: 100 };
+    match.tick = 20;
+    powerTick(match);
+    expect(match.ball).toEqual({ kind: 'held', by: 11 });
+    expect(match.players[2].powerState.kind).toBe('active');
+    match.tick = 120;
+    powerTick(match);
+    expect(match.players[2].powerState.kind).toBe('idle');
+    expect(match.players[2].pos).toEqual(origin);
   });
 
   it('Rally queues one refill for a ready hero and never grants a fifth Zone', () => {
@@ -167,7 +251,7 @@ describe('m1.18 approved power contracts', () => {
     expect(match.players[recipient].powerState.kind).toBe('idle');
   });
 
-  it('Decoy creates a separate forward receiver and materializes that forward on arrival', () => {
+  it('Decoy creates a separate forward receiver that receives without replacing the original', () => {
     const match = matchWith('DECOY_DOUBLE', 5);
     const caster = 5;
     const carrier = 6;
@@ -183,16 +267,17 @@ describe('m1.18 approved power contracts', () => {
     activatePower(match, caster, 1);
     const clone = decoyPassOption(match, carrier);
     expect(clone).not.toBeNull();
-    expect(clone?.receiver).toBe(9);
+    expect(clone?.receiver).toBe(22);
     expect(clone?.receiver).not.toBe(caster);
     match.rng = () => 0;
     launchPass(match, carrier, clone!.receiver, false);
-    expect(match.ball).toMatchObject({ kind: 'pass', arrivalPos: clone!.pos, decoyReceiverPlayerId: 'r9' });
+    expect(match.ball).toMatchObject({ kind: 'pass', to: 22, decoyReceiverPlayerId: match.decoyClones[0]!.def.id });
     forceArrival(match);
-    expect(match.ball).toEqual({ kind: 'held', by: 9 });
-    expect(match.players[9].pos).toEqual(clone!.pos);
+    expect(match.ball).toEqual({ kind: 'held', by: 22 });
+    expect(match.decoyClones[0]?.pos).toEqual(clone!.pos);
+    expect(match.players[9].pos).not.toEqual(clone!.pos);
     expect(match.players[caster].pos).toEqual(casterBefore);
-    expect(match.players[caster].powerState.kind).toBe('idle');
+    expect(match.players[caster].powerState.kind).toBe('active');
   });
 
   it('Decoy fails soft with no forward and cancels if its captured forward is substituted', () => {
@@ -216,12 +301,12 @@ describe('m1.18 approved power contracts', () => {
     sub.players[10].pos = { x: 3500, y: 3600 };
     sub.players[12].pos = { x: 2700, y: 3700 };
     activatePower(sub, 5, 1);
-    expect(sub.players[5].decoyClone?.receiverIdx).toBe(9);
+    expect(sub.decoyClones[0]?.sourceIdx).toBe(9);
     expect(performSubstitution(
       sub, 0, 9, replacement.id, cancelPowerReferencesForSubstitution,
     )).toBe(true);
     expect(sub.players[5].powerState.kind).toBe('idle');
-    expect(sub.players[5].decoyClone).toBeUndefined();
+    expect(sub.decoyClones[0]).toBeNull();
   });
 
   it('Future steals then immediately guarantees the furthest-forward onside outlet', () => {
@@ -274,11 +359,18 @@ describe('m1.18 approved power contracts', () => {
     activatePower(match, 5, 1);
     if (match.ball.kind !== 'held') throw new Error('expected portal receiver');
     const receiver = match.ball.by;
-    expect(match.players[receiver].portalProtectedUntilTick).toBe(10);
+    expect(match.players[receiver].portalProtectedUntilTick).toBe(20);
     match.players[12].pos = { x: match.players[receiver].pos.x + 50, y: match.players[receiver].pos.y };
+    match.tick = 19;
+    powerTick(match);
     tackleTick(match);
     expect(match.ball).toEqual({ kind: 'held', by: receiver });
     launchPass(match, receiver, receiver === 9 ? 10 : 9, false, true);
+    expect(match.players[receiver].portalProtectedUntilTick).toBeUndefined();
+
+    match.players[receiver].portalProtectedUntilTick = match.tick + 20;
+    match.ball = { kind: 'held', by: receiver };
+    attemptShot(match, receiver, 1900);
     expect(match.players[receiver].portalProtectedUntilTick).toBeUndefined();
   });
 
@@ -316,6 +408,42 @@ describe('m1.18 approved power contracts', () => {
     expect(Math.hypot(match.players[9].pos.x - runnerAnchor.x, match.players[9].pos.y - runnerAnchor.y))
       .toBeLessThan(Math.hypot(before.x - runnerAnchor.x, before.y - runnerAnchor.y));
     expect(attackingDecision(match, carrier)).toMatchObject({ kind: 'pass', to: 9 });
+    possessionTick(match);
+    expect(match.ball).toMatchObject({ kind: 'pass', from: carrier, to: 9 });
+    expect(match.players[hero].powerState.kind).toBe('active');
+    expect(gravityRunnerTarget(match, 9)).toEqual(runnerAnchor);
+
+    const inFlight = { ...match.players[9].pos };
+    match.tick = 16;
+    powerTick(match);
+    movementTick(match);
+    expect(Math.hypot(match.players[9].pos.x - runnerAnchor.x, match.players[9].pos.y - runnerAnchor.y))
+      .toBeLessThan(Math.hypot(inFlight.x - runnerAnchor.x, inFlight.y - runnerAnchor.y));
+    const flight = match.ball as unknown as Extract<MatchState['ball'], { kind: 'pass' }>;
+    if (flight.kind !== 'pass') throw new Error('expected Gravity pass flight');
+    flight.willSucceed = true;
+    flight.interceptor = -1;
+    forceArrival(match);
+    expect(match.ball).toEqual({ kind: 'held', by: 9 });
+    match.tick = 17;
+    powerTick(match);
+    expect(match.players[hero].powerState.kind).toBe('idle');
+  });
+
+  it('clears Gravity safely when its committed attack turns over', () => {
+    const match = matchWith('GRAVITY_WELL', 5);
+    match.players[5].powerState = {
+      kind: 'active',
+      untilTick: 60,
+      strength: 1,
+      carrierIdx: 6,
+      runnerIdx: 9,
+      runnerPlayerId: match.players[9].def.id,
+      runnerAnchor: { x: 2200, y: 3000 },
+    };
+    match.ball = { kind: 'held', by: 11 };
+    powerTick(match);
+    expect(match.players[5].powerState.kind).toBe('idle');
   });
 
   it.each([[1, 1], [2, 2], [3, 3]] as const)(
@@ -337,7 +465,7 @@ describe('m1.18 approved power contracts', () => {
     },
   );
 
-  it('Gust guarantees the redirect to its GK but leaves the huge punt contestable', () => {
+  it('Gust guarantees the redirect and open-forward punt while grade improves its landing', () => {
     const match = matchWith('GUST', 2);
     match.players[2].pos = { x: 2200, y: 5000 };
     match.players[11].pos = { x: 2300, y: 5000 };
@@ -346,15 +474,37 @@ describe('m1.18 approved power contracts', () => {
     activatePower(match, 2, 1);
     match.rng = () => 0;
     launchPass(match, 11, 12, false);
-    expect(match.ball).toMatchObject({ kind: 'pass', to: 0, willSucceed: true, gustRedirect: true });
+    expect(match.ball).toMatchObject({
+      kind: 'pass', to: 0, willSucceed: true, gustRedirect: true, gustGrade: 1.15,
+    });
     forceArrival(match);
-    expect(match.ball).toMatchObject({ kind: 'held', by: 0, gustPunt: true });
+    expect(match.ball).toMatchObject({ kind: 'held', by: 0, gustPunt: true, gustGrade: 1.15 });
+    match.players[9].pos = { x: 2200, y: 1800 };
+    match.players[10].pos = { x: 3400, y: 2500 };
+    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 6500, y: 9000 };
+    match.players[12].pos = { ...match.players[9].pos };
+    const autoLanding = gustPuntDestination(match, 0, 0.85);
+    const manualLanding = gustPuntDestination(match, 0, 1.15);
+    const tier3Landing = gustPuntDestination(match, 0, 1.15 * 1.45);
+    expect(autoLanding?.receiver).toBe(10);
+    expect(manualLanding?.receiver).toBe(10);
+    expect(tier3Landing?.receiver).toBe(10);
+    expect(manualLanding!.pos.y).toBeLessThan(autoLanding!.pos.y);
+    expect(tier3Landing!.pos.y).toBeLessThan(manualLanding!.pos.y);
     match.tick += 3;
     match.rng = () => 0.99;
     possessionTick(match);
-    expect(match.ball).toMatchObject({ kind: 'pass', from: 0, gustPunt: true, willSucceed: false });
+    expect(match.ball).toMatchObject({
+      kind: 'pass', from: 0, to: 10, gustPunt: true, gustGrade: 1.15,
+      willSucceed: true, arrivalPos: manualLanding!.pos,
+    });
     expect(match.events).toContainEqual(expect.objectContaining({ kind: 'GUST_REDIRECT', player: 2 }));
-    expect(match.events).toContainEqual(expect.objectContaining({ kind: 'GUST_PUNT', player: 2, from: 0 }));
+    expect(match.events).toContainEqual(expect.objectContaining({
+      kind: 'GUST_PUNT', player: 2, from: 0, to: 10,
+    }));
+    forceArrival(match);
+    expect(match.ball).toEqual({ kind: 'held', by: 10 });
+    expect(match.players[10].pos).toEqual(manualLanding!.pos);
   });
 
   it('targetless defensive placements remain banked instead of harming their own team', () => {

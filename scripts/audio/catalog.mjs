@@ -35,6 +35,7 @@ export const SFX_CATALOG = [
   { name: 'fire-torch-ignite', group: 'Zone & Powers', minMs: 350, maxMs: 600, targetDb: -3, desc: 'Crackle + low whoomp' },
   { name: 'extinguisher-spray', group: 'Zone & Powers', minMs: 450, maxMs: 800, targetDb: -3, desc: 'Sputtering noise spray — the ref gag sound' },
   { name: 'match-end-sting', group: 'Zone & Powers', minMs: 700, maxMs: 1200, targetDb: -3, desc: 'Short resolving cadence in key' },
+  { name: 'decoy-pop', group: 'Zone & Powers', minMs: 180, maxMs: 260, targetDb: -4, desc: 'Light comic bubble-pop when a Decoy disappears' },
 ];
 
 export const MUSIC_CATALOG = [

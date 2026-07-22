@@ -129,14 +129,6 @@ export interface SimPlayer {
   powerState: PowerState;
   /** Fixed pitch point for place-and-spring effects such as Web Trap. */
   powerAnchor?: Vec;
-  /** A virtual Decoy body. Passing here materializes it as the real hero. */
-  decoyClone?: {
-    pos: Vec;
-    carrierIdx: number;
-    receiverIdx: number;
-    receiverPlayerId: string;
-    untilTick: number;
-  };
   /** Rally may grant one fourth Zone exactly once per hero per match. */
   encoreState?: 'BANKED' | 'CONSUMED';
   /** One queued threshold refill after Rally catches a hero already ready/busy. */
@@ -160,8 +152,30 @@ export interface SimPlayer {
   cards: 0 | 1 | 2;
 }
 
+/**
+ * A real temporary Decoy player. The two reserved identities (22 home, 23
+ * away) never move or splice the starting-XI array, so replays and base player
+ * indices stay stable even when both teams have a clone at once.
+ */
+export interface DecoyCloneState extends SimPlayer {
+  ownerIdx: number;
+  ownerPlayerId: string;
+  sourceIdx: number;
+  sourcePlayerId: string;
+  formationSlot: number;
+  untilTick: number;
+}
+
 export type BallState =
-  | { kind: 'held'; by: number; caught?: true; releaseAfterTick?: number; gustPunt?: true; gustHeroIdx?: number }
+  | {
+    kind: 'held';
+    by: number;
+    caught?: true;
+    releaseAfterTick?: number;
+    gustPunt?: true;
+    gustHeroIdx?: number;
+    gustGrade?: number;
+  }
   | { kind: 'loose'; pos: Vec; vel: Vec; z: number; vz: number }
   | {
     kind: 'pass';
@@ -183,10 +197,14 @@ export type BallState =
     gustPunt?: true;
     /** Gust owner retained across redirect flight for deterministic FX events. */
     gustHeroIdx?: number;
-    /** A Decoy pass flies to the clone's fixed point, not the real body. */
+    /** Gust activation grade retained through the redirect and contestable punt. */
+    gustGrade?: number;
+    /** An authored pass flies to a fixed landing point, not the receiver's old body. */
     arrivalPos?: Vec;
     /** Stable identity required before a successful clone can materialize. */
     decoyReceiverPlayerId?: string;
+    /** Stable identity required before Gust moves its receiver into the landing lane. */
+    gustPuntReceiverPlayerId?: string;
     /** A power-read interception cannot be inherited by a substitute. */
     powerInterceptorPlayerId?: string;
   }
@@ -208,7 +226,16 @@ export type MatchEvent =
   | { t: number; kind: 'PASS'; from: number; to: number; ok: boolean }
   | { t: number; kind: 'SLIDE_STARTED'; by: number; on: number; direction: Vec; untilTick: number }
   | { t: number; kind: 'TACKLE'; by: number; on: number; won: boolean; style: 'standing' | 'slide' | 'power'; contact: boolean }
-  | { t: number; kind: 'SHOT'; by: number; power: number; trajectory: 'driven' | 'lifted' }
+  | {
+    t: number;
+    kind: 'SHOT';
+    /** Stable base player credited in match reports. */
+    by: number;
+    /** Temporary entity that physically struck it, when different from `by`. */
+    actor?: number;
+    power: number;
+    trajectory: 'driven' | 'lifted';
+  }
   | { t: number; kind: 'SAVE'; by: number; resolveLeft: number }
   | { t: number; kind: 'MISS'; by: number }
   | { t: number; kind: 'GOAL'; by: number; team: 0 | 1 }
@@ -216,6 +243,15 @@ export type MatchEvent =
   | { t: number; kind: 'POWER_FIRED'; player: number; power: PowerId; strength: number }
   | { t: number; kind: 'POWER_INTERRUPTED'; player: number }
   | { t: number; kind: 'POWER_EXPIRED'; player: number }
+  | {
+    t: number;
+    kind: 'DECOY_POP';
+    player: number;
+    clone: number;
+    source: number;
+    pos: Vec;
+    reason: 'expired' | 'turnover' | 'restart' | 'substitution' | 'invalid';
+  }
   | { t: number; kind: 'GUST_REDIRECT'; player: number; from: number; to: number }
   | { t: number; kind: 'GUST_PUNT'; player: number; from: number; to: number }
   | { t: number; kind: 'CARD'; player: number; color: 'yellow' | 'red' }
@@ -265,6 +301,8 @@ export interface MatchState {
   phase: 'play' | 'fulltime';
   score: [number, number];
   players: SimPlayer[];      // 22; 0-10 team 0 (attacks toward y=0), 11-21 team 1
+  /** Fixed optional clone slots: team 0 is entity 22, team 1 is entity 23. */
+  decoyClones: [DecoyCloneState | null, DecoyCloneState | null];
   ball: BallState;
   movement: MovementState;
   tactics: [TeamTactics, TeamTactics];

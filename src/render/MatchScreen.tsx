@@ -7,6 +7,13 @@ import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState, PowerId, TeamDef } from '../sim/types';
+import {
+  BASE_PLAYER_COUNT,
+  decoyCloneAt,
+  HOME_DECOY_INDEX,
+  playerAt,
+  RENDER_PLAYER_COUNT,
+} from '../sim/entities';
 import type { HudSide } from '../persistence';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
 import { keeperReadyFrameForTeam, runFrameForTeam } from './sprites/facing';
@@ -502,7 +509,7 @@ export function MatchScreen({
         advanced = true;
         nextRef.current = snapshotFrame(s, before);
 
-        for (let i = 0; i < 22; i++) {
+        for (let i = 0; i < RENDER_PLAYER_COUNT; i++) {
           if (dist2(prevRef.current!.players[i], nextRef.current.players[i]) > SNAP_DIST2) {
             // A restart teleport is not locomotion. Keep the accumulated
             // stride distance unchanged so a kickoff cannot arbitrarily flip
@@ -565,14 +572,15 @@ export function MatchScreen({
         if (e.kind === 'POWER_FIRED' && e.power === 'FIRE_TORCH') {
           torchCasterPos = { ...nextRef.current!.players[e.player] };
         }
-        if (!reduceMotion && e.kind === 'SHOT' && e.by >= 0 && e.by < 22) {
+        const shotActor = e.kind === 'SHOT' ? e.actor ?? e.by : -1;
+        if (!reduceMotion && e.kind === 'SHOT' && playerAt(s, shotActor) !== undefined) {
           // Kick up a dust puff at the striker's feet — the visual "he hit it".
-          const o = s.players[e.by].pos;
+          const o = playerAt(s, shotActor)!.pos;
           puffRef.current = { x: o.x, y: o.y, tick: e.t };
         }
         if (e.kind === 'GOAL' || e.kind === 'MISS' || e.kind === 'HALF_TIME' || e.kind === 'KICKOFF') snap = true;
         if (e.kind === 'GOAL') {
-          const scorerName = e.by >= 0 && e.by < 22 ? s.players[e.by].def.name : 'Unknown';
+          const scorerName = e.by >= 0 && e.by < BASE_PLAYER_COUNT ? s.players[e.by].def.name : 'Unknown';
           bannerRef.current = appendNewestFour(bannerRef.current, {
             id: `goal:${e.t}:${e.by}`,
             text: `⚡ GOAL! ${scorerName}`,
@@ -614,8 +622,8 @@ export function MatchScreen({
             });
           }
           if (e.power === 'DECOY_DOUBLE') {
-            const clone = firingPlayer.decoyClone;
-            if (clone !== undefined) {
+            const clone = s.decoyClones[firingPlayer.team];
+            if (clone !== null) {
               const marker = state.kind === 'active' ? state.targetIdx : undefined;
               targets.splice(
                 0,
@@ -623,7 +631,7 @@ export function MatchScreen({
                 ...(marker === undefined ? [] : [{ player: marker } as MatchPowerEffectTarget]),
                 { point: { ...clone.pos } },
               );
-              effectOrigin = { player: clone.receiverIdx };
+              effectOrigin = { point: { ...clone.pos } };
             }
           }
           if (e.power === 'GRAVITY_WELL' && state.kind === 'active'
@@ -682,7 +690,7 @@ export function MatchScreen({
           // the exact causal marker for forecast -> intercept -> outlet art.
           const future = s.players.findIndex((candidate) => (
             candidate.def.power === 'FUTURE_SIGHT'
-            && candidate.team !== s.players[e.from].team
+            && candidate.team !== playerAt(s, e.from)?.team
             && candidate.powerState.kind === 'active'
             && candidate.powerState.commitment === 'POWER_OUTLET'
           ));
@@ -720,14 +728,18 @@ export function MatchScreen({
             timelineOffsetMs: powerEffectDescriptor('GUST').beats[2].startMs,
           });
         }
+        if (e.kind === 'DECOY_POP') {
+          puffRef.current = { x: e.pos.x, y: e.pos.y, tick: e.t };
+        }
         if (e.kind === 'TACKLE' && e.style === 'power') {
-          const power = s.players[e.by].def.power;
+          const source = playerAt(s, e.by);
+          const power = source?.def.power;
           // Web and Ice already have state-backed persistent art while the
           // victim is rooted/sliding. Recording another event copy here drew
           // two effects over the same player and made both read as clutter.
           if (power === 'SUPER_STRENGTH' || power === 'SHADOW_MARK') {
             const descriptor = powerEffectDescriptor(power);
-            const placedAnchor = s.players[e.by].powerAnchor;
+            const placedAnchor = source?.powerAnchor;
             const offset = power === 'SUPER_STRENGTH'
               ? descriptor.beats[2].startMs
               : power === 'SHADOW_MARK'
@@ -811,25 +823,26 @@ export function MatchScreen({
           const magnitude = Math.hypot(dx, dy);
           const direction = magnitude > 0
             ? { x: dx / magnitude, y: dy / magnitude }
-            : { x: 0, y: s.players[e.by].team === 0 ? -1 : 1 };
+            : { x: 0, y: playerAt(s, e.by)?.team === 0 ? -1 : 1 };
           const rotation = direction.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
           const startTick = e.t - 1;
           if (e.style === 'slide') {
             const current = actionRef.current[e.by];
             if (current?.kind === 'slide') {
-              current.untilTick = Math.max(current.untilTick, s.players[e.by].tackleRecoveryUntil);
+              current.untilTick = Math.max(current.untilTick, playerAt(s, e.by)?.tackleRecoveryUntil ?? current.untilTick);
             }
           }
           // Super Strength knocks the target OUT (outUntilTick in the future):
           // hold them flat until they recover and punch up an impact burst. An
           // ordinary tackle only dispossesses — the quick fall-and-recover.
-          if (s.players[e.on].outUntilTick > s.tick) {
+          const tackled = playerAt(s, e.on);
+          if (tackled !== undefined && tackled.outUntilTick > s.tick) {
             actionRef.current[e.on] = {
               kind: 'knockdown',
               startTick,
               anchor: { ...onPos },
               rotation: -rotation,
-              untilTick: s.players[e.on].outUntilTick,
+              untilTick: tackled.outUntilTick,
             };
             impactRef.current = { x: onPos.x, y: onPos.y, tick: e.t };
           } else if (e.won && e.contact) {
@@ -942,7 +955,7 @@ export function MatchScreen({
           return elapsed <= end;
         });
         // Publish one immutable tick pair. Reanimated interpolates it and
-        // updates all 23 Atlas transforms on the UI thread; React only receives
+        // updates all 25 Atlas transforms on the UI thread; React only receives
         // the discrete state used by HUD, chips, and event overlays.
         publishAtlasFrame(
           prevRef.current!,
@@ -988,7 +1001,18 @@ export function MatchScreen({
 
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
   // takes priority, followed by the far-ball GK ready loop, then locomotion.
-  const playerSpriteKeys = useMemo(() => match.players.map((p, i) => {
+  const playerSpriteKeys = useMemo(() => Array.from({ length: RENDER_PLAYER_COUNT }, (_, i) => {
+    const entity = playerAt(match, i);
+    const clone = decoyCloneAt(match, i);
+    const sourceIndex = clone?.sourceIdx ?? (i < BASE_PLAYER_COUNT
+      ? i
+      : i === HOME_DECOY_INDEX ? 9 : 20);
+    const p = entity ?? match.players[sourceIndex];
+    // Clone IDs are intentionally unique replay identities. The visual must
+    // still use the copied forward's stable ID whenever no explicit lookId is
+    // authored, or playerLookId() would derive a different face and request a
+    // sprite that was never included in the match Atlas.
+    const visualPlayerId = clone?.sourcePlayerId ?? p.def.id;
     const withBodyState = (key: string) => (
       (p.webbedUntilTick ?? 0) > hud.tick ? webbedSpriteKey(key) : key
     );
@@ -997,7 +1021,7 @@ export function MatchScreen({
     if (pose.active && action?.kind === 'slide') {
       return withBodyState(spriteKeyForMatchPlayer(
         i,
-        p.def.id,
+        visualPlayerId,
         p.def.role,
         slideTackleSpriteFrameForAction(action, hud.visualTick),
         p.def.lookId,
@@ -1006,7 +1030,7 @@ export function MatchScreen({
     if (pose.active) {
       return withBodyState(spriteKeyForMatchPlayer(
         i,
-        p.def.id,
+        visualPlayerId,
         p.def.role,
         runFrameForTeam(p.team, 'run0'),
         p.def.lookId,
@@ -1015,7 +1039,7 @@ export function MatchScreen({
     if (p.def.role === 'GK' && isKeeperReady(dist2(frame.players[i], frame.ball))) {
       return withBodyState(spriteKeyForMatchPlayer(
         i,
-        p.def.id,
+        visualPlayerId,
         p.def.role,
         keeperReadyFrameForTeam(p.team, keeperReadyFrame(hud.visualTick)),
         p.def.lookId,
@@ -1023,19 +1047,19 @@ export function MatchScreen({
     }
     return withBodyState(spriteKeyForMatchPlayer(
       i,
-      p.def.id,
+      visualPlayerId,
       p.def.role,
       runFrameForTeam(p.team, runFrameForDistance(frame.travel[i], frame.moved[i])),
       p.def.lookId,
     ));
   }), [frame, hud.tick, hud.visualTick, match]);
 
-  // All 22 players plus the ball still share one batched Atlas draw call.
+  // The 22 starters, two reserved Decoy slots, and ball share one batched Atlas draw call.
   const sprites: SkRect[] = useMemo(() => {
     const ball = atlas.rectFor('ball');
     return [
-      ...match.players.map((_p, i) => {
-        const r = atlas.rectFor(playerSpriteKeys[i]);
+      ...playerSpriteKeys.map((spriteKey) => {
+        const r = atlas.rectFor(spriteKey);
         return Skia.XYWHRect(r.x, r.y, r.w, r.h);
       }),
       Skia.XYWHRect(ball.x, ball.y, ball.w, ball.h),
@@ -1047,7 +1071,8 @@ export function MatchScreen({
   // of being flattened to a solid team-color block.
   const colors: SkColor[] = useMemo(() => {
     const tints = frame.statuses.map((st, i) => {
-      const player = match.players[i];
+      const player = playerAt(match, i);
+      if (player === undefined || !frame.visible[i]) return Skia.Color('rgba(255,255,255,0)');
       if (player.def.power === 'SHADOW_MARK'
         && player.powerState.kind === 'active'
         && player.powerState.commitment === 'SHADOW_HUNT') {
@@ -1072,8 +1097,9 @@ export function MatchScreen({
       // In fallback mode there are no kit pixels to preserve, so tint the
       // white placeholder rects with bible team colors (red / blue) instead.
       return atlas.fallbackMode
-        ? Skia.Color(i < 11 ? (colorSafeKits ? '#edb54a' : '#d94f52') : '#5a8fd6')
-        : Skia.Color('#ffffff');
+        ? Skia.Color(i < 11 || i === HOME_DECOY_INDEX
+          ? (colorSafeKits ? '#edb54a' : '#d94f52') : '#5a8fd6')
+        : Skia.Color(i >= BASE_PLAYER_COUNT ? 'rgba(185,235,255,0.78)' : '#ffffff');
     });
     tints.push(Skia.Color('#ffffff')); // ball — no tint
     return tints;
@@ -1229,7 +1255,7 @@ export function MatchScreen({
         ? Math.max(0, hud.tick - burrowStartTick) / 20 * 1250
         : 1250 + Math.min(1, (hud.tick - state.armedAtTick) / 100) * 1900;
       const carrier = match.ball.kind === 'held'
-        && match.players[match.ball.by].team !== player.team
+        && playerAt(match, match.ball.by)?.team !== player.team
         ? playerPoint(match.ball.by)
         : screenPoint(player.powerAnchor);
       addPersistentPowerEffect(
@@ -1243,16 +1269,19 @@ export function MatchScreen({
       );
     }
 
-    if (player.decoyClone !== undefined) {
+    const decoyClone = player.def.power === 'DECOY_DOUBLE'
+      ? match.decoyClones[player.team] : null;
+    if (decoyClone !== null && decoyClone.ownerIdx === index) {
+      const cloneIndex = player.team === 0 ? 22 : 23;
       const marker = state.kind === 'active' && state.targetIdx !== undefined
-        ? playerPoint(state.targetIdx) : screenPoint(player.decoyClone.pos);
+        ? playerPoint(state.targetIdx) : screenPoint(decoyClone.pos);
       addPersistentPowerEffect(
         `decoy-clone:${index}`,
         'DECOY_DOUBLE',
         index,
         2100,
-        playerPoint(player.decoyClone.receiverIdx),
-        [marker, screenPoint(player.decoyClone.pos)],
+        playerPoint(cloneIndex),
+        [marker, screenPoint(decoyClone.pos)],
         player.powerAnchor === undefined ? undefined : screenPoint(player.powerAnchor),
         player.decoyClone.receiverIdx,
       );
@@ -1339,7 +1368,7 @@ export function MatchScreen({
   useEffect(() => {
     if (frame.carrier >= 0) lastCarrierRef.current = frame.carrier;
   }, [frame.carrier]);
-  const carrier = carrierIndex === null ? null : match.players[carrierIndex];
+  const carrier = carrierIndex === null ? null : playerAt(match, carrierIndex) ?? null;
   const selectedOutgoingPlayer = selectedOutgoing === null ? null : match.players[selectedOutgoing];
   const selectedIncomingPlayer = selectedIncoming === null
     ? null

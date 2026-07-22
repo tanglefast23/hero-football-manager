@@ -1,7 +1,8 @@
 import { lerpVec, lerpFrame, snapshotFrame } from '../interpolate';
 import { createMatch, tick } from '../../sim/match';
 import { ROVERS, UNITED } from '../../sim/teams';
-import { ZONE_WINDOW_TICKS } from '../../sim/powers';
+import { activatePower, ZONE_WINDOW_TICKS } from '../../sim/powers';
+import { HOME_DECOY_INDEX } from '../../sim/entities';
 
 describe('lerpVec', () => {
   it('blends between two points', () => {
@@ -16,11 +17,12 @@ describe('snapshotFrame', () => {
     const m = createMatch(42, ROVERS, UNITED);
     tick(m);
     const s = snapshotFrame(m);
-    expect(s.players).toHaveLength(22);
-    expect(s.statuses).toHaveLength(22);
-    expect(s.zoneFraction).toHaveLength(22);
-    expect(s.moved).toHaveLength(22);
-    expect(s.travel).toHaveLength(22);
+    expect(s.players).toHaveLength(24);
+    expect(s.statuses).toHaveLength(24);
+    expect(s.zoneFraction).toHaveLength(24);
+    expect(s.moved).toHaveLength(24);
+    expect(s.travel).toHaveLength(24);
+    expect(s.visible).toEqual([...new Array(22).fill(true), false, false]);
     expect(typeof s.carrier).toBe('number');
     expect(s.ball).toBeDefined();
     expect(s.ballHeight).toBe(0);
@@ -60,7 +62,8 @@ describe('snapshotFrame', () => {
   it('statuses report "ok" for an untouched player at kickoff', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const s = snapshotFrame(m);
-    expect(s.statuses.every((st) => st === 'ok')).toBe(true);
+    expect(s.statuses.slice(0, 22).every((st) => st === 'ok')).toBe(true);
+    expect(s.statuses.slice(22)).toEqual(['out', 'out']);
   });
 
   it('statuses report "zone" (not "ready") for a hero in the zone window, with zoneFraction = remainingTicks / 70', () => {
@@ -142,6 +145,37 @@ describe('snapshotFrame', () => {
     const next = snapshotFrame(m, prev);
     expect(next.ballHeight).toBe(180);
     expect(lerpFrame(prev, next, 0.5).ballHeight).toBe(90);
+  });
+
+  it('exposes the reserved Decoy Atlas slot only while the real clone exists', () => {
+    const home = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => ({
+        ...player,
+        attrs: { ...player.attrs },
+        power: index === 5 ? 'DECOY_DOUBLE' as const : undefined,
+      })),
+    };
+    const m = createMatch(1818, home, UNITED);
+    const hidden = snapshotFrame(m);
+    m.ball = { kind: 'held', by: 6 };
+    m.players[6].pos = { x: 2600, y: 4000 };
+    m.players[5].pos = { x: 3400, y: 4300 };
+    m.players[9].pos = { x: 2200, y: 3100 };
+    m.players[10].pos = { x: 3500, y: 3600 };
+    m.players[12].pos = { x: 2700, y: 3700 };
+    for (let index = 11; index < 22; index += 1) {
+      if (index !== 12) m.players[index].pos = { x: 6500, y: 9000 };
+    }
+    activatePower(m, 5, 1);
+    const visible = snapshotFrame(m, hidden);
+
+    expect(m.decoyClones[0]).not.toBeNull();
+    expect(visible.visible[HOME_DECOY_INDEX]).toBe(true);
+    expect(visible.players[HOME_DECOY_INDEX]).toEqual(m.decoyClones[0]!.pos);
+    expect(visible.moved[HOME_DECOY_INDEX]).toBe(false);
+    expect(visible.travel[HOME_DECOY_INDEX]).toBe(0);
+    expect(lerpFrame(hidden, visible, 0.5).visible[HOME_DECOY_INDEX]).toBe(true);
   });
 });
 

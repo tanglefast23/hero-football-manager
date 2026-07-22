@@ -10,7 +10,7 @@ import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, 
 
 // m1.18 separates broad Zone opportunities from strict cash-out contexts and
 // makes attack-power geometry/timing produce only forward, useful outcomes.
-export const ENGINE_VERSION = 'm1.18';
+export const ENGINE_VERSION = 'm1.19';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -71,6 +71,7 @@ export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: Ma
   const state: MatchState = {
     tick: 0, half: 1, phase: 'play', score: [0, 0],
     players: makePlayers(teams[0], teams[1], optsCopy),
+    decoyClones: [null, null],
     ball: { kind: 'held', by: 9 },
     // Inert placeholder (blendFrom === phase → no blend); restartKickoff below
     // resets it properly for the opening kickoff.

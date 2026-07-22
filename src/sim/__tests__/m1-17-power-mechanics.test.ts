@@ -160,11 +160,9 @@ describe('m1.18 authored one-moment powers', () => {
       .toBeGreaterThan(Math.abs(before.x - match.players[carrier].pos.x));
     expect(match.players[marker].pos.y).toBeGreaterThan(before.y);
     expect(dribbleBonus(match, carrier)).toBe(0);
-    expect(match.players[hero].decoyClone).toMatchObject({ carrierIdx: carrier });
-    const receiver = match.players[hero].decoyClone?.receiverIdx;
-    expect(receiver).toBeDefined();
-    expect(match.players[receiver!].def.role).toBe('FWD');
-    expect(receiver).not.toBe(hero);
+    expect(match.decoyClones[0]).toMatchObject({ ownerIdx: hero, sourceIdx: 9 });
+    expect(match.decoyClones[0]?.def.role).toBe('FWD');
+    expect(match.decoyClones[0]?.def.attrs).toEqual(match.players[9].def.attrs);
   });
 
   it('ends a Decoy lure immediately when possession turns over', () => {
@@ -179,7 +177,7 @@ describe('m1.18 authored one-moment powers', () => {
     }
     activatePower(match, hero, 1);
     expect(match.players[hero].powerState.kind).toBe('active');
-    const newCarrier = 8;
+    const newCarrier = 13;
     match.ball = { kind: 'held', by: newCarrier };
     powerTick(match);
     expect(match.players[hero].powerState.kind).toBe('idle');
@@ -611,6 +609,8 @@ describe('m1.18 authored one-moment powers', () => {
     const auto = exitProgress(0.85, 1);
     const manual = exitProgress(1, 1);
     const tier3 = exitProgress(1, 3);
+    expect(10500 - auto).toBeGreaterThanOrEqual(1800);
+    expect(10500 - auto).toBeLessThanOrEqual(2100);
     expect(manual).toBeGreaterThan(auto);
     expect(tier3).toBeGreaterThan(manual);
   });
@@ -750,11 +750,11 @@ describe('m1.18 authored one-moment powers', () => {
 
     const web = spring('WEB_TRAP');
     expect(web.match.ball).toMatchObject({ kind: 'loose', pos: web.match.players[web.victim].pos });
-    expect(web.match.players[web.victim].webbedUntilTick).toBe(20);
+    expect(web.match.players[web.victim].webbedUntilTick).toBe(70);
 
     const ice = spring('ICE_RINK');
     expect(ice.match.ball).toEqual({ kind: 'held', by: ice.victim });
-    expect(ice.match.players[ice.victim].forcedMovement).toMatchObject({ kind: 'ICE_SLIDE', untilTick: 10 });
+    expect(ice.match.players[ice.victim].forcedMovement).toMatchObject({ kind: 'ICE_SLIDE', untilTick: 23 });
   });
 
   it.each([
@@ -774,7 +774,7 @@ describe('m1.18 authored one-moment powers', () => {
 
     const insideMatch = triggerAt(inside);
     expect(insideMatch.ball.kind).toBe(power === 'WEB_TRAP' ? 'loose' : 'held');
-    if (power === 'WEB_TRAP') expect(insideMatch.players[11].webbedUntilTick).toBe(20);
+    if (power === 'WEB_TRAP') expect(insideMatch.players[11].webbedUntilTick).toBe(70);
     else expect(insideMatch.players[11].forcedMovement?.kind).toBe('ICE_SLIDE');
     expect(insideMatch.players[2].powerState.kind).toBe('idle');
 
@@ -827,7 +827,7 @@ describe('m1.18 authored one-moment powers', () => {
 
   it('Shadow Mark stays burrowed for two seconds before its guaranteed hunt', () => {
     const { match, hero } = matchWith('SHADOW_MARK', 2);
-    const carrier = 11;
+    const carrier = 12;
     match.players[hero].pos = { x: 2000, y: 5000 };
     match.players[carrier].pos = { x: 2100, y: 5000 };
     match.ball = { kind: 'held', by: carrier };

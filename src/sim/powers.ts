@@ -1,6 +1,12 @@
 import { emit } from './events';
 import { dist2, moveToward, GOAL_CENTER_X, GOAL_W, PITCH_H, PITCH_W } from './geometry';
-import type { MatchInput, MatchState, OutReason, PowerId } from './types';
+import type { DecoyCloneState, MatchInput, MatchState, OutReason, PowerId, SimPlayer } from './types';
+import {
+  activePlayerIndices,
+  decoyIndexForTeam,
+  playerAt,
+  requirePlayerAt,
+} from './entities';
 
 export const WINDUP_TICKS = 15;
 export const TAP_STRENGTH = 1.0;
@@ -11,9 +17,8 @@ export const ARM_WINDOW_TICKS = 20;
 export const GAUGE_TRICKLE = 0.02;
 export const MAX_ZONES_PER_PLAYER = 3;
 const STRENGTH_WINDUP_TICKS = 5;
-const PORTAL_PROTECTION_TICKS = 10;
-const WEB_ROOT_TICKS = 20;
-const ICE_SLIDE_TICKS = 10;
+const PORTAL_PROTECTION_TICKS = 20;
+const ICE_SLIDE_STEP = 110;
 const SHADOW_BURROW_TICKS = 20;
 const SHADOW_HUNT_TICKS = 100;
 const SHADOW_HUNT_RADIUS = 1900;
@@ -42,19 +47,21 @@ export const PURSUIT_MULT = 1.65;
 const GAUGE_CAP = 200;
 
 export function addGauge(state: MatchState, idx: number, amount: number): void {
-  const p = state.players[idx];
+  const p = playerAt(state, idx);
+  if (p === undefined) return;
   if (!p.def.power || p.powerState.kind !== 'idle' || p.zonesOpened >= zoneLimit(p)) return;
   const ratePercent = state.teams[p.team].heroGaugeRatePercent ?? 100;
   p.gauge = Math.min(GAUGE_CAP, p.gauge + amount * ratePercent / 100);
 }
 
-function zoneLimit(player: MatchState['players'][number]): number {
+function zoneLimit(player: SimPlayer): number {
   return MAX_ZONES_PER_PLAYER + (player.encoreState === 'BANKED' ? 1 : 0);
 }
 
 /** Power-authored states that suspend ordinary movement and interaction. */
 export function powerInteractionBlocked(state: MatchState, idx: number): boolean {
-  const player = state.players[idx];
+  const player = playerAt(state, idx);
+  if (player === undefined) return true;
   return (player.webbedUntilTick ?? 0) > state.tick
     || (player.forcedMovement?.untilTick ?? 0) > state.tick
     || (player.powerState.kind === 'active'
@@ -64,12 +71,15 @@ export function powerInteractionBlocked(state: MatchState, idx: number): boolean
 /** Ordinary decisions are also suppressed during Strength's visible charge,
  * while the locked carrier remains free to keep moving with the ball. */
 export function powerActionBlocked(state: MatchState, idx: number): boolean {
+  const player = playerAt(state, idx);
+  if (player === undefined) return true;
   return powerInteractionBlocked(state, idx)
-    || (state.players[idx].actionLockedUntilTick ?? 0) > state.tick;
+    || (player.actionLockedUntilTick ?? 0) > state.tick;
 }
 
 export function interruptWindup(state: MatchState, idx: number): void {
-  const p = state.players[idx];
+  const p = playerAt(state, idx);
+  if (p === undefined) return;
   if (p.powerState.kind !== 'winding') return;
   clearStrengthLock(state, idx, p.powerState.targetIdx);
   p.powerState = { kind: 'idle' };
@@ -114,16 +124,18 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
   if (!power) return false;
   const b = state.ball;
   const oppCarrierNear = (range: number) =>
-    b.kind === 'held' && state.players[b.by].team !== p.team && dist2(state.players[b.by].pos, p.pos) < range * range;
-  const friendlyCarrier = b.kind === 'held' && state.players[b.by].team === p.team ? b.by : -1;
+    b.kind === 'held' && requirePlayerAt(state, b.by).team !== p.team && dist2(requirePlayerAt(state, b.by).pos, p.pos) < range * range;
+  const friendlyCarrier = b.kind === 'held' && requirePlayerAt(state, b.by).team === p.team ? b.by : -1;
 
   // 1900 is the range startWindup already uses to lock a Web Trap / Future
   // Sight target, so settling can never select a target the windup would drop.
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
   if (power === 'WEB_TRAP' || power === 'FUTURE_SIGHT') return oppCarrierNear(1900);
-  if (power === 'ICE_RINK' || power === 'SHADOW_MARK') {
-    return oppCarrierNear(1900);
-  }
+  if (power === 'ICE_RINK') return oppCarrierNear(1900);
+  if (power === 'SHADOW_MARK') return b.kind === 'held'
+    && requirePlayerAt(state, b.by).team !== p.team
+    && requirePlayerAt(state, b.by).def.role !== 'GK'
+    && dist2(requirePlayerAt(state, b.by).pos, p.pos) < SHADOW_MARK_RANGE * SHADOW_MARK_RANGE;
   if (power === 'GIANT_GK') return enemyOnTargetShot(state, idx);
   if (power === 'PORTAL_PASS') return friendlyCarrier !== -1
     && portalDestination(state, friendlyCarrier, projectedEffectStrength(p, LAPSE_STRENGTH)) !== null;
@@ -133,7 +145,7 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
         projectedEffectStrength(p, LAPSE_STRENGTH)) !== -1
       && bestDecoyForward(state, idx, friendlyCarrier) !== -1;
   }
-  if (power === 'GUST') return b.kind === 'held' && state.players[b.by].team !== p.team;
+  if (power === 'GUST') return b.kind === 'held' && requirePlayerAt(state, b.by).team !== p.team;
   if (power === 'ELASTIC_KEEPER') return enemyOnTargetShot(state, idx);
   if (power === 'GRAVITY_WELL') return gravityWellContext(state, idx);
   if (power === 'FIRE_TORCH') {
@@ -194,7 +206,7 @@ export function zoneEntryContext(state: MatchState, idx: number): boolean {
   }
   if (power === 'FIRE_TORCH') return carrying && progress > PITCH_H * 0.52;
   if (power === 'PORTAL_PASS' && state.ball.kind === 'held') {
-    const carrier = state.players[state.ball.by];
+    const carrier = requirePlayerAt(state, state.ball.by);
     const portalStrength = player.firePolicy === 'SAVE_FOR_TAP'
       ? TAP_STRENGTH : CONTEXT_AUTO_STRENGTH;
     return carrier.team === player.team
@@ -216,7 +228,7 @@ export function zoneEntryContext(state: MatchState, idx: number): boolean {
 function dangerousKeeperPossession(state: MatchState, idx: number): boolean {
   const keeper = state.players[idx];
   if (keeper.def.role !== 'GK' || state.ball.kind !== 'held') return false;
-  const carrier = state.players[state.ball.by];
+  const carrier = requirePlayerAt(state, state.ball.by);
   if (carrier.team === keeper.team) return false;
   const progress = carrier.team === 0 ? PITCH_H - carrier.pos.y : carrier.pos.y;
   return progress > PITCH_H * 0.72;
@@ -226,14 +238,14 @@ function enemyOnTargetShot(state: MatchState, idx: number): boolean {
   const keeper = state.players[idx];
   const ball = state.ball;
   return keeper.def.role === 'GK' && ball.kind === 'shot'
-    && state.players[ball.by].team !== keeper.team
+    && requirePlayerAt(state, ball.by).team !== keeper.team
     && !ball.keeperChecked
     && Math.abs(ball.targetX - GOAL_CENTER_X) <= GOAL_W / 2;
 }
 
 /** True if any available opponent of idx is within `range`. */
 function opponentWithin(state: MatchState, idx: number, range: number): boolean {
-  const p = state.players[idx];
+  const p = requirePlayerAt(state, idx);
   const r2 = range * range;
   for (let i = 0; i < 22; i++) {
     const o = state.players[i];
@@ -245,7 +257,7 @@ function opponentWithin(state: MatchState, idx: number, range: number): boolean 
 
 /** The next available defender genuinely between a Phase runner and goal. */
 function phaseChallenger(state: MatchState, idx: number, range = 700): number {
-  const runner = state.players[idx];
+  const runner = requirePlayerAt(state, idx);
   const direction = runner.team === 0 ? -1 : 1;
   let best = -1;
   let bestDistance = range * range;
@@ -269,7 +281,7 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
   if (!power) return false;
   const b = state.ball;
   const oppCarrierNear = (range: number) =>
-    b.kind === 'held' && state.players[b.by].team !== p.team && dist2(state.players[b.by].pos, p.pos) < range * range;
+    b.kind === 'held' && requirePlayerAt(state, b.by).team !== p.team && dist2(requirePlayerAt(state, b.by).pos, p.pos) < range * range;
 
   if (power === 'SUPER_STRENGTH') return oppCarrierNear(STRENGTH_LOCK_RANGE);
   if (power === 'WEB_TRAP') return oppCarrierNear(1500);
@@ -281,10 +293,13 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
   }
   if (power === 'ICE_RINK') return oppCarrierNear(ICE_RINK_RANGE);
   if (power === 'GRAVITY_WELL') return gravityWellContext(state, idx);
-  if (power === 'SHADOW_MARK') return oppCarrierNear(SHADOW_MARK_RANGE);
+  if (power === 'SHADOW_MARK') return b.kind === 'held'
+    && requirePlayerAt(state, b.by).team !== p.team
+    && requirePlayerAt(state, b.by).def.role !== 'GK'
+    && dist2(requirePlayerAt(state, b.by).pos, p.pos) < SHADOW_MARK_RANGE * SHADOW_MARK_RANGE;
   if (power === 'GIANT_GK') return enemyOnTargetShot(state, idx);
   if (power === 'GUST') {
-    return b.kind === 'held' && state.players[b.by].team !== p.team;
+    return b.kind === 'held' && requirePlayerAt(state, b.by).team !== p.team;
   }
   if (power === 'ELASTIC_KEEPER') return enemyOnTargetShot(state, idx);
   if (power === 'SUPER_SPEED') {
@@ -296,7 +311,7 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
       (b.kind === 'loose' && dist2(b.pos, p.pos) < SPEED_LOOSE_BALL_RANGE * SPEED_LOOSE_BALL_RANGE);
   }
   const isCarrier = b.kind === 'held' && b.by === idx;
-  const friendlyCarrier = b.kind === 'held' && state.players[b.by].team === p.team ? b.by : -1;
+  const friendlyCarrier = b.kind === 'held' && requirePlayerAt(state, b.by).team === p.team ? b.by : -1;
   const attackingProgress = p.team === 0 ? PITCH_H - p.pos.y : p.pos.y;
   if (power === 'BLINK_RUN') return isCarrier && attackingProgress > PITCH_H * 0.55;
   if (power === 'THUNDER_STRIKE') return isCarrier && attackingProgress > PITCH_H * 0.62
@@ -310,7 +325,7 @@ export function inUsefulContext(state: MatchState, idx: number): boolean {
   }
   if (power === 'DECOY_DOUBLE') {
     if (friendlyCarrier === -1) return false;
-    const carrier = state.players[friendlyCarrier];
+    const carrier = requirePlayerAt(state, friendlyCarrier);
     const carrierProgress = carrier.team === 0 ? PITCH_H - carrier.pos.y : carrier.pos.y;
     const decoyStrength = p.firePolicy === 'SAVE_FOR_TAP' ? TAP_STRENGTH : CONTEXT_AUTO_STRENGTH;
     return carrierProgress > PITCH_H * 0.38
@@ -337,7 +352,7 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
   if ((p.def.power === 'SUPER_STRENGTH' || p.def.power === 'WEB_TRAP'
     || p.def.power === 'ICE_RINK')
     && state.ball.kind === 'held') {
-    const carrier = state.players[state.ball.by];
+    const carrier = requirePlayerAt(state, state.ball.by);
     const range = p.def.power === 'SUPER_STRENGTH' ? STRENGTH_LOCK_RANGE
       : p.def.power === 'ICE_RINK' ? ICE_RINK_RANGE
         : 1900;
@@ -358,7 +373,7 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
     if (challenger !== -1) targetIdx = challenger;
   }
   if (p.def.power === 'DECOY_DOUBLE' && state.ball.kind === 'held'
-    && state.players[state.ball.by].team === p.team) {
+    && requirePlayerAt(state, state.ball.by).team === p.team) {
     const effectStrength = projectedEffectStrength(p, strength);
     const marker = bestDecoyMarker(state, state.ball.by, DECOY_MARKER_RANGE, effectStrength);
     if (marker !== -1) {
@@ -373,7 +388,7 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
     }
   }
   if (p.def.power === 'GRAVITY_WELL' && state.ball.kind === 'held'
-    && state.players[state.ball.by].team === p.team) {
+    && requirePlayerAt(state, state.ball.by).team === p.team) {
     const [blocker, secondBlocker] = gravityLaneBlockers(state, idx).slice(0, 2);
     if (blocker !== undefined) {
       carrierIdx = state.ball.by;
@@ -433,7 +448,8 @@ function beginPower(state: MatchState, idx: number, strength: number): boolean {
 }
 
 export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = []): void {
-  for (const player of state.players) {
+  for (const idx of activePlayerIndices(state)) {
+    const player = requirePlayerAt(state, idx);
     if ((player.webbedUntilTick ?? 0) <= state.tick) player.webbedUntilTick = undefined;
     if ((player.portalProtectedUntilTick ?? 0) <= state.tick) player.portalProtectedUntilTick = undefined;
     if (player.forcedMovement !== undefined && player.forcedMovement.untilTick <= state.tick) {
@@ -480,8 +496,8 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
 
     if (p.powerState.kind === 'idle') {
       const defensiveEngagement = p.def.role === 'DEF' && state.ball.kind === 'held'
-        && state.players[state.ball.by].team !== p.team
-        && dist2(state.players[state.ball.by].pos, p.pos) < DEFENSIVE_ENGAGEMENT_RANGE * DEFENSIVE_ENGAGEMENT_RANGE;
+        && requirePlayerAt(state, state.ball.by).team !== p.team
+        && dist2(requirePlayerAt(state, state.ball.by).pos, p.pos) < DEFENSIVE_ENGAGEMENT_RANGE * DEFENSIVE_ENGAGEMENT_RANGE;
       const roleTrickle = p.def.role === 'GK' ? 0.04
         : p.def.role === 'DEF' ? 0.06
           : p.def.role === 'MID' ? 0.035
@@ -521,7 +537,7 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
       if (p.powerState.kind === 'zone') {
         const keeperPower = p.def.power === 'ELASTIC_KEEPER' || p.def.power === 'GIANT_GK';
         const liveEnemyAttack = state.ball.kind === 'held'
-          && state.players[state.ball.by].team !== p.team;
+          && requirePlayerAt(state, state.ball.by).team !== p.team;
         // A keeper Zone earned during danger waits for that attack's shot instead
         // of expiring between passes. Watched play still matters because the tap
         // must land on the shot (or arm a 20-tick placement); the underlying Zone
@@ -561,12 +577,20 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
       if (p.def.power === 'WEB_TRAP') springWebTrap(state, idx);
       if (p.powerState.kind === 'active' && p.def.power === 'ICE_RINK') springIceRink(state, idx);
       if (p.powerState.kind === 'active' && p.def.power === 'SHADOW_MARK') springShadowHunt(state, idx);
-      if (p.powerState.kind === 'active' && p.def.power === 'SHADOW_MARK'
-        && state.ball.kind === 'held' && state.players[state.ball.by].team === p.team) {
-        finishMomentPower(state, idx);
+      if (p.powerState.kind === 'active' && p.def.power === 'DECOY_DOUBLE') {
+        const clone = state.decoyClones[p.team];
+        const validClone = clone !== null
+          && clone.ownerIdx === idx
+          && clone.ownerPlayerId === p.def.id
+          && clone.sourcePlayerId === state.players[clone.sourceIdx]?.def.id;
+        if (!validClone) {
+          finishMomentPower(state, idx, 'invalid');
+        } else if ((state.ball.kind === 'held' || state.ball.kind === 'pass')
+          && requirePlayerAt(state, state.ball.kind === 'held' ? state.ball.by : state.ball.from).team !== p.team) {
+          finishMomentPower(state, idx, 'turnover');
+        }
       }
-      if (p.powerState.kind === 'active'
-        && (p.def.power === 'DECOY_DOUBLE' || p.def.power === 'GRAVITY_WELL')) {
+      if (p.powerState.kind === 'active' && p.def.power === 'GRAVITY_WELL') {
         const carrierIdx = p.powerState.carrierIdx;
         const friendlyAttack = state.ball.kind === 'held'
           ? carrierIdx !== undefined && state.ball.by === carrierIdx
@@ -586,14 +610,14 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
       }
       if (p.powerState.kind === 'active'
         && (p.def.power === 'GIANT_GK' || p.def.power === 'ELASTIC_KEEPER')
-        && state.ball.kind === 'held' && state.players[state.ball.by].team === p.team) {
+        && state.ball.kind === 'held' && requirePlayerAt(state, state.ball.by).team === p.team) {
         finishMomentPower(state, idx);
       }
       const attackScopedKeeper = p.powerState.kind === 'active'
         && (p.def.power === 'GIANT_GK' || p.def.power === 'ELASTIC_KEEPER')
-        && !(state.ball.kind === 'held' && state.players[state.ball.by].team === p.team);
+        && !(state.ball.kind === 'held' && requirePlayerAt(state, state.ball.by).team === p.team);
       if (p.powerState.kind === 'active' && !attackScopedKeeper && state.tick >= p.powerState.untilTick) {
-        finishMomentPower(state, idx);
+        finishMomentPower(state, idx, p.def.power === 'DECOY_DOUBLE' ? 'expired' : 'invalid');
       }
     }
   }
@@ -733,7 +757,8 @@ export function powerFinishShotProfile(
   state: MatchState,
   idx: number,
 ): { aimScale: number; powerBonus: number } | null {
-  const player = state.players[idx];
+  const player = playerAt(state, idx);
+  if (player === undefined) return null;
   if (!isActive(state, idx) || player.powerState.kind !== 'active') return null;
   const grade = activeActivationGrade(player);
   const commitment = player.powerState.commitment;
@@ -772,7 +797,9 @@ function projectedEffectStrength(
 }
 
 export function isActive(state: MatchState, idx: number): boolean {
-  const ps = state.players[idx].powerState;
+  const player = playerAt(state, idx);
+  if (player === undefined) return false;
+  const ps = player.powerState;
   return ps.kind === 'active' && state.tick < ps.untilTick;
 }
 
@@ -790,7 +817,8 @@ export function isActive(state: MatchState, idx: number): boolean {
  * Number.MAX_SAFE_INTEGER straight through.
  */
 export function knockOut(state: MatchState, idx: number, untilTick: number, reason: OutReason): void {
-  const p = state.players[idx];
+  const p = playerAt(state, idx);
+  if (p === undefined) return;
   if (state.ball.kind === 'held' && state.ball.by === idx) {
     state.ball = { kind: 'loose', pos: { ...p.pos }, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
   }
@@ -799,7 +827,6 @@ export function knockOut(state: MatchState, idx: number, untilTick: number, reas
   } else if (p.powerState.kind === 'active') {
     finishMomentPower(state, idx);
   }
-  p.decoyClone = undefined;
   p.webbedUntilTick = undefined;
   p.portalProtectedUntilTick = undefined;
   p.forcedMovement = undefined;
@@ -838,7 +865,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
   const tierScale = tierEffectScale(p.def.powerTier);
   const timingScale = manualTimingScale(strength);
   const effectStrength = projectedEffectStrength(p, strength);
-  const friendlyCarrier = state.ball.kind === 'held' && state.players[state.ball.by].team === p.team
+  const friendlyCarrier = state.ball.kind === 'held' && requirePlayerAt(state, state.ball.by).team === p.team
     ? state.ball.by : -1;
   const hasDecoyCapture = power === 'DECOY_DOUBLE'
     && capturedCarrierIdx !== undefined
@@ -1018,7 +1045,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
   } else if (power === 'BLINK_RUN') {
     p.pos = blinkDestination(state, idx, effectStrength);
   } else if (power === 'PORTAL_PASS') {
-    if (state.ball.kind === 'held' && state.players[state.ball.by].team === p.team) {
+    if (state.ball.kind === 'held' && requirePlayerAt(state, state.ball.by).team === p.team) {
       const destination = portalDestination(state, state.ball.by, effectStrength);
       if (destination !== null) {
         state.players[destination.receiver].pos = destination.pos;
@@ -1056,7 +1083,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
         && capturedSecondaryAnchor !== undefined) {
         state.players[capturedSecondaryTargetIdx].pos = capturedSecondaryAnchor;
       }
-    } else if (state.ball.kind === 'held' && state.players[state.ball.by].team === p.team) {
+    } else if (state.ball.kind === 'held' && requirePlayerAt(state, state.ball.by).team === p.team) {
       if (p.powerState.kind === 'active') p.powerState.carrierIdx = state.ball.by;
       applyGravityWell(state, idx);
     } else finishMomentPower(state, idx);
@@ -1075,13 +1102,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
         const grade = activeActivationGrade(p);
         const reactionStep = Math.round(260 + 320 * grade + 700 * upgradeLift(grade));
         state.players[marker].pos = moveToward(state.players[marker].pos, p.powerAnchor, reactionStep);
-        p.decoyClone = {
-          pos: { ...decoyCloneAnchor! },
-          carrierIdx: carrier,
-          receiverIdx: decoyRunner,
-          receiverPlayerId: state.players[decoyRunner].def.id,
-          untilTick: p.powerState.untilTick,
-        };
+        spawnDecoyClone(state, idx, decoyRunner, decoyCloneAnchor!, p.powerState.untilTick);
       }
     } else {
       finishMomentPower(state, idx);
@@ -1096,11 +1117,79 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
   }
 }
 
+function spawnDecoyClone(
+  state: MatchState,
+  ownerIdx: number,
+  sourceIdx: number,
+  pos: { x: number; y: number },
+  untilTick: number,
+): void {
+  const owner = state.players[ownerIdx];
+  const source = state.players[sourceIdx];
+  const team = owner.team;
+  if (state.decoyClones[team] !== null) dismissDecoyClone(state, team, 'invalid');
+  const clone: DecoyCloneState = {
+    def: {
+      ...source.def,
+      id: `${source.def.id}:decoy:${owner.def.id}:${state.tick}`,
+      name: `${source.def.name} Double`,
+      attrs: { ...source.def.attrs },
+      power: undefined,
+      powerTier: undefined,
+    },
+    team,
+    pos: { ...pos },
+    condition: source.condition,
+    gauge: 0,
+    zonesOpened: 0,
+    powerState: { kind: 'idle' },
+    firePolicy: source.firePolicy,
+    outUntilTick: 0,
+    tackleRecoveryUntil: 0,
+    tackleCooldownUntil: 0,
+    cards: 0,
+    ownerIdx,
+    ownerPlayerId: owner.def.id,
+    sourceIdx,
+    sourcePlayerId: source.def.id,
+    formationSlot: sourceIdx % 11,
+    untilTick,
+  };
+  state.decoyClones[team] = clone;
+}
+
+export type DecoyPopReason = Extract<MatchState['events'][number], { kind: 'DECOY_POP' }>['reason'];
+
+/** Removes a reserved clone exactly once and leaves a carried ball loose. */
+export function dismissDecoyClone(
+  state: MatchState,
+  team: 0 | 1,
+  reason: DecoyPopReason,
+): boolean {
+  const clone = state.decoyClones[team];
+  if (clone === null) return false;
+  const cloneIndex = decoyIndexForTeam(team);
+  const pos = { ...clone.pos };
+  if (state.ball.kind === 'held' && state.ball.by === cloneIndex) {
+    state.ball = { kind: 'loose', pos, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
+  }
+  state.decoyClones[team] = null;
+  emit(state, {
+    t: state.tick,
+    kind: 'DECOY_POP',
+    player: clone.ownerIdx,
+    clone: cloneIndex,
+    source: clone.sourceIdx,
+    pos,
+    reason,
+  });
+  return true;
+}
+
 function applyGravityWell(state: MatchState, idx: number): void {
   const hero = state.players[idx];
   if (hero.powerState.kind !== 'active' || state.ball.kind !== 'held'
-    || state.players[state.ball.by].team !== hero.team) return;
-  const carrier = state.players[state.ball.by];
+    || requirePlayerAt(state, state.ball.by).team !== hero.team) return;
   const grade = activeActivationGrade(hero);
   for (const candidate of gravityLaneBlockers(state, idx).slice(0, 2)) {
     state.players[candidate].pos = gravityPullDestination(
@@ -1120,7 +1209,7 @@ function gravityPullDestination(
   blockerIdx: number,
   grade: number,
 ): { x: number; y: number } {
-  const carrier = state.players[carrierIdx];
+  const carrier = requirePlayerAt(state, carrierIdx);
   const blocker = state.players[blockerIdx];
   const maxPulse = Math.round(anchoredEffect(grade, 1200, 1400, 1600));
   const distance = Math.sqrt(dist2(blocker.pos, carrier.pos));
@@ -1134,7 +1223,7 @@ function capturedTargetAvailable(
   targetIdx: number,
   expectedPlayerId?: string,
 ): boolean {
-  const target = state.players[targetIdx];
+  const target = playerAt(state, targetIdx);
   return target !== undefined
     && target.team !== heroTeam
     && target.def.role !== 'GK'
@@ -1150,7 +1239,7 @@ function friendlyTargetAvailable(
   targetIdx: number,
   expectedPlayerId?: string,
 ): boolean {
-  const target = state.players[targetIdx];
+  const target = playerAt(state, targetIdx);
   return target !== undefined
     && target.team === team
     && (expectedPlayerId === undefined || target.def.id === expectedPlayerId)
@@ -1161,7 +1250,7 @@ function friendlyTargetAvailable(
 
 function clearStrengthLock(state: MatchState, sourceIdx: number, targetIdx?: number): void {
   const clear = (idx: number) => {
-    const target = state.players[idx];
+    const target = playerAt(state, idx);
     if (target?.actionLockSourceIdx !== sourceIdx) return;
     target.actionLockedUntilTick = undefined;
     target.actionLockSourceIdx = undefined;
@@ -1197,7 +1286,7 @@ function gravityRunner(
   blockerIdx: number,
 ): { idx: number; pos: { x: number; y: number } } | null {
   const hero = state.players[heroIdx];
-  const carrier = state.players[carrierIdx];
+  const carrier = requirePlayerAt(state, carrierIdx);
   const blocker = state.players[blockerIdx];
   const direction = carrier.team === 0 ? -1 : 1;
   const anchor = {
@@ -1225,8 +1314,8 @@ function gravityRunner(
 
 function gravityLaneBlockers(state: MatchState, heroIdx: number): number[] {
   const hero = state.players[heroIdx];
-  if (state.ball.kind !== 'held' || state.players[state.ball.by].team !== hero.team) return [];
-  const carrier = state.players[state.ball.by];
+  if (state.ball.kind !== 'held' || requirePlayerAt(state, state.ball.by).team !== hero.team) return [];
+  const carrier = requirePlayerAt(state, state.ball.by);
   const goalY = carrier.team === 0 ? 0 : PITCH_H;
   const dy = goalY - carrier.pos.y;
   const candidates: Array<{ idx: number; score: number }> = [];
@@ -1249,14 +1338,14 @@ function gravityLaneBlockers(state: MatchState, heroIdx: number): number[] {
 
 function gravityWellContext(state: MatchState, idx: number): boolean {
   const hero = state.players[idx];
-  if (state.ball.kind !== 'held' || state.players[state.ball.by].team !== hero.team
+  if (state.ball.kind !== 'held' || requirePlayerAt(state, state.ball.by).team !== hero.team
     || state.ball.by === idx) return false;
   // The hero plants centrally while a teammate attacks a different lane. The
   // single pull opens the carrier's side instead of compressing the defence
   // around an opponent who already has the ball.
   const blockers = gravityLaneBlockers(state, idx);
   return Math.abs(hero.pos.x - PITCH_W / 2) <= 1200
-    && Math.abs(state.players[state.ball.by].pos.x - hero.pos.x) >= 450
+    && Math.abs(requirePlayerAt(state, state.ball.by).pos.x - hero.pos.x) >= 450
     && blockers.length > 0
     && gravityRunner(state, idx, state.ball.by, blockers[0]) !== null;
 }
@@ -1328,10 +1417,12 @@ function springWebTrap(state: MatchState, heroIdx: number): void {
   if (hero.powerState.kind !== 'active' || hero.powerAnchor === undefined
     || state.ball.kind !== 'held') return;
   const victim = state.ball.by;
-  const carrier = state.players[victim];
+  const carrier = requirePlayerAt(state, victim);
   if (carrier.team === hero.team || carrier.outUntilTick > state.tick
     || dist2(carrier.pos, hero.powerAnchor) >= WEB_TRAP_TRIGGER_RANGE * WEB_TRAP_TRIGGER_RANGE) return;
-  carrier.webbedUntilTick = state.tick + WEB_ROOT_TICKS;
+  const grade = activeActivationGrade(hero);
+  const rootTicks = Math.round(anchoredEffect(grade, 60, 70, 80));
+  carrier.webbedUntilTick = state.tick + rootTicks;
   carrier.slideTackle = undefined;
   carrier.tackleRecoveryUntil = 0;
   state.ball = { kind: 'loose', pos: { ...carrier.pos }, vel: { x: 0, y: 0 }, z: 0, vz: 0 };
@@ -1344,14 +1435,17 @@ function springIceRink(state: MatchState, heroIdx: number): void {
   if (hero.powerState.kind !== 'active' || hero.powerAnchor === undefined
     || state.ball.kind !== 'held') return;
   const victim = state.ball.by;
-  const carrier = state.players[victim];
+  const carrier = requirePlayerAt(state, victim);
   if (carrier.team === hero.team || carrier.outUntilTick > state.tick
     || dist2(carrier.pos, hero.powerAnchor) >= ICE_RINK_TRIGGER_RANGE * ICE_RINK_TRIGGER_RANGE) return;
   const backward = carrier.team === 0 ? 1 : -1;
+  const grade = activeActivationGrade(hero);
+  const slideDistance = Math.round(anchoredEffect(grade, 2200, 2500, 3000));
+  const slideTicks = Math.ceil(slideDistance / ICE_SLIDE_STEP);
   carrier.forcedMovement = {
     kind: 'ICE_SLIDE',
-    untilTick: state.tick + ICE_SLIDE_TICKS,
-    step: { x: 0, y: backward * 110 },
+    untilTick: state.tick + slideTicks,
+    step: { x: 0, y: backward * ICE_SLIDE_STEP },
   };
   carrier.slideTackle = undefined;
   emit(state, {
@@ -1375,8 +1469,8 @@ function springShadowHunt(state: MatchState, heroIdx: number): void {
     || hero.powerAnchor === undefined
     || state.ball.kind !== 'held') return;
   const victimIdx = state.ball.by;
-  const victim = state.players[victimIdx];
-  if (victim.team === hero.team || victim.outUntilTick > state.tick
+  const victim = requirePlayerAt(state, victimIdx);
+  if (victim.team === hero.team || victim.def.role === 'GK' || victim.outUntilTick > state.tick
     || dist2(victim.pos, hero.powerAnchor) > SHADOW_HUNT_RADIUS * SHADOW_HUNT_RADIUS) return;
   const direction = hero.team === 0 ? 1 : -1;
   hero.pos = {
@@ -1412,7 +1506,7 @@ function furthestForwardOnsideTeammate(state: MatchState, heroIdx: number): numb
     .map(opponent => opponent.pos.y)
     .sort((a, b) => hero.team === 0 ? a - b : b - a);
   const secondLast = opponentYs[1] ?? (hero.team === 0 ? 0 : PITCH_H);
-  const ballY = state.ball.kind === 'held' ? state.players[state.ball.by].pos.y : state.ball.pos.y;
+  const ballY = state.ball.kind === 'held' ? requirePlayerAt(state, state.ball.by).pos.y : state.ball.pos.y;
   const line = hero.team === 0 ? Math.min(ballY, secondLast) : Math.max(ballY, secondLast);
   let best = -1;
   let bestProgress = -Infinity;
@@ -1440,7 +1534,7 @@ export function futureSightInterceptor(
   receiverIdx: number,
 ): number {
   const first = passingTeam === 0 ? 11 : 0;
-  const receiver = state.players[receiverIdx];
+  const receiver = requirePlayerAt(state, receiverIdx);
   for (let idx = first; idx < first + 11; idx += 1) {
     const hero = state.players[idx];
     if (hero.def.power !== 'FUTURE_SIGHT' || !isActive(state, idx)
@@ -1469,7 +1563,7 @@ export function gustDisruptsPass(
   state: MatchState,
   passingTeam: 0 | 1,
   passerIdx: number,
-): { hero: number; goalkeeper: number } | null {
+): { hero: number; goalkeeper: number; grade: number } | null {
   const first = passingTeam === 0 ? 11 : 0;
   for (let idx = first; idx < first + 11; idx += 1) {
     const hero = state.players[idx];
@@ -1479,9 +1573,10 @@ export function gustDisruptsPass(
       || hero.tackleRecoveryUntil > state.tick) continue;
     const goalkeeper = hero.team === 0 ? 0 : 11;
     if (!friendlyTargetAvailable(state, hero.team, goalkeeper)) continue;
+    const grade = activeActivationGrade(hero);
     emit(state, { t: state.tick, kind: 'GUST_REDIRECT', player: idx, from: passerIdx, to: goalkeeper });
     finishMomentPower(state, idx);
-    return { hero: idx, goalkeeper };
+    return { hero: idx, goalkeeper, grade };
   }
   return null;
 }
@@ -1492,8 +1587,8 @@ function attackingProgress(team: 0 | 1, pos: { x: number; y: number }): number {
 
 function openSpaceAt(state: MatchState, team: 0 | 1, pos: { x: number; y: number }): number {
   let space = 1800;
-  for (let idx = 0; idx < 22; idx += 1) {
-    const opponent = state.players[idx];
+  for (const idx of activePlayerIndices(state)) {
+    const opponent = requirePlayerAt(state, idx);
     if (opponent.team === team || opponent.outUntilTick > state.tick) continue;
     space = Math.min(space, Math.sqrt(dist2(opponent.pos, pos)));
   }
@@ -1522,8 +1617,8 @@ function attackLaneClearance(
   to: { x: number; y: number },
 ): number {
   let clearance = 1800;
-  for (let idx = 0; idx < 22; idx += 1) {
-    const opponent = state.players[idx];
+  for (const idx of activePlayerIndices(state)) {
+    const opponent = requirePlayerAt(state, idx);
     if (opponent.team === team || opponent.def.role === 'GK'
       || opponent.outUntilTick > state.tick) continue;
     clearance = Math.min(clearance, segmentDistance(opponent.pos, from, to));
@@ -1536,7 +1631,7 @@ function portalReceiverThreat(
   idx: number,
   pos: { x: number; y: number },
 ): number {
-  const player = state.players[idx];
+  const player = requirePlayerAt(state, idx);
   const progress = attackingProgress(player.team, pos) / PITCH_H;
   const centrality = 1 - Math.abs(pos.x - PITCH_W / 2) / (PITCH_W / 2);
   const technique = player.def.attrs.sho * 8 + player.def.attrs.tec * 4 + player.def.attrs.pas * 2;
@@ -1551,7 +1646,7 @@ function portalChanceScore(
   idx: number,
   pos: { x: number; y: number },
 ): number {
-  const player = state.players[idx];
+  const player = requirePlayerAt(state, idx);
   const goal = { x: PITCH_W / 2, y: player.team === 0 ? 0 : PITCH_H };
   return portalReceiverThreat(state, idx, pos)
     + attackLaneClearance(state, player.team, pos, goal) * 0.5
@@ -1565,15 +1660,14 @@ function portalDestination(
   carrierIdx: number,
   effectStrength: number,
 ): { receiver: number; pos: { x: number; y: number } } | null {
-  const carrier = state.players[carrierIdx];
+  const carrier = requirePlayerAt(state, carrierIdx);
   const carrierProgress = attackingProgress(carrier.team, carrier.pos);
   const carrierChance = portalChanceScore(state, carrierIdx, carrier.pos);
-  const direction = carrier.team === 0 ? -1 : 1;
   const goal = { x: PITCH_W / 2, y: carrier.team === 0 ? 0 : PITCH_H };
   const carrierGoalDistance = Math.sqrt(dist2(carrier.pos, goal));
   const grade = effectStrength / familyEffectScale('PORTAL_PASS');
-  const forwardStep = Math.min(2600,
-    Math.round(1550 + 650 * grade + 650 * upgradeLift(grade)));
+  const desiredGoalDistance = Math.round(anchoredEffect(grade, 2100, 1900, 1600));
+  const maxForwardStep = Math.round(anchoredEffect(grade, 2600, 2800, 3200));
   const lateralReach = Math.round(350 + 180 * grade);
   let best: { receiver: number; pos: { x: number; y: number }; score: number } | null = null;
   for (let idx = carrier.team === 0 ? 0 : 11; idx < (carrier.team === 0 ? 11 : 22); idx += 1) {
@@ -1582,7 +1676,9 @@ function portalDestination(
       || teammate.slideTackle !== undefined || teammate.tackleRecoveryUntil > state.tick
       || (teammate.def.role !== 'MID' && teammate.def.role !== 'FWD')) continue;
     for (const laneX of [teammate.pos.x - lateralReach, teammate.pos.x, teammate.pos.x + lateralReach]) {
-      const rawY = carrier.pos.y + direction * forwardStep;
+      const rawY = carrier.team === 0
+        ? Math.max(desiredGoalDistance, carrier.pos.y - maxForwardStep)
+        : Math.min(PITCH_H - desiredGoalDistance, carrier.pos.y + maxForwardStep);
       const pos = {
         x: Math.max(150, Math.min(PITCH_W - 150, Math.round(laneX))),
         y: carrier.team === 0
@@ -1643,11 +1739,11 @@ function blinkDestination(state: MatchState, heroIdx: number, effectStrength: nu
 }
 
 function nearestOpponentIndex(state: MatchState, idx: number, range: number): number {
-  const player = state.players[idx];
+  const player = requirePlayerAt(state, idx);
   let best = -1;
   let bestDistance = range * range;
-  for (let candidate = 0; candidate < 22; candidate += 1) {
-    const opponent = state.players[candidate];
+  for (const candidate of activePlayerIndices(state)) {
+    const opponent = requirePlayerAt(state, candidate);
     if (opponent.team === player.team || opponent.outUntilTick > state.tick) continue;
     const distance = dist2(player.pos, opponent.pos);
     if (distance < bestDistance) {
@@ -1664,7 +1760,7 @@ function decoyFalseLane(
   markerIdx: number,
   effectStrength: number,
 ): { x: number; y: number } {
-  const carrier = state.players[carrierIdx];
+  const carrier = requirePlayerAt(state, carrierIdx);
   const marker = state.players[markerIdx];
   const attackingDirection = carrier.team === 0 ? -1 : 1;
   const side = marker.pos.x === carrier.pos.x
@@ -1684,7 +1780,7 @@ function decoyClonePosition(
   markerIdx: number,
   effectStrength: number,
 ): { x: number; y: number } {
-  const carrier = state.players[carrierIdx];
+  const carrier = requirePlayerAt(state, carrierIdx);
   const marker = state.players[markerIdx];
   const direction = carrier.team === 0 ? -1 : 1;
   const side = Math.sign(carrier.pos.x - marker.pos.x)
@@ -1719,7 +1815,7 @@ function decoyCorridorGain(
   markerIdx: number,
   falseLane: { x: number; y: number },
 ): number {
-  const carrier = state.players[carrierIdx];
+  const carrier = requirePlayerAt(state, carrierIdx);
   const goal = { x: PITCH_W / 2, y: carrier.team === 0 ? 0 : PITCH_H };
   return segmentDistance(falseLane, carrier.pos, goal)
     - segmentDistance(state.players[markerIdx].pos, carrier.pos, goal);
@@ -1733,7 +1829,7 @@ function bestDecoyMarker(
   range: number,
   effectStrength: number,
 ): number {
-  const carrier = state.players[carrierIdx];
+  const carrier = requirePlayerAt(state, carrierIdx);
   const goal = { x: PITCH_W / 2, y: carrier.team === 0 ? 0 : PITCH_H };
   let best = -1;
   let bestScore = Infinity;
@@ -1756,7 +1852,8 @@ function bestDecoyMarker(
 }
 
 export function speedMultiplier(state: MatchState, idx: number): number {
-  const p = state.players[idx];
+  const p = playerAt(state, idx);
+  if (p === undefined) return 1;
   // Charging a locked Super Strength target accelerates the pursuit — the windup
   // telegraph is the counterplay, not a guaranteed whiff (Task 12.1/12.2 landing-rate fix).
   if (p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined) {
@@ -1781,7 +1878,8 @@ function strengthLandingRange(player: MatchState['players'][number], strength: n
 
 /** A marked defender follows Decoy's persistent false lane for the active moment. */
 export function decoyPursuitTarget(state: MatchState, markerIdx: number): { x: number; y: number } | null {
-  const marker = state.players[markerIdx];
+  const marker = playerAt(state, markerIdx);
+  if (marker === undefined || markerIdx >= 22) return null;
   const first = marker.team === 0 ? 11 : 0;
   for (let heroIdx = first; heroIdx < first + 11; heroIdx += 1) {
     const hero = state.players[heroIdx];
@@ -1793,66 +1891,20 @@ export function decoyPursuitTarget(state: MatchState, markerIdx: number): { x: n
   return null;
 }
 
-/** Virtual Decoy receiver offered to the current friendly carrier. */
+/** The real reserved Decoy player offered to a friendly carrier. */
 export function decoyPassOption(
   state: MatchState,
   carrierIdx: number,
 ): { receiver: number; pos: { x: number; y: number }; receiverPlayerId: string } | null {
-  const first = state.players[carrierIdx].team === 0 ? 0 : 11;
-  for (let heroIdx = first; heroIdx < first + 11; heroIdx += 1) {
-    const hero = state.players[heroIdx];
-    const clone = hero.decoyClone;
-    if (hero.def.power !== 'DECOY_DOUBLE' || hero.powerState.kind !== 'active'
-      || clone === undefined || clone.carrierIdx !== carrierIdx || clone.untilTick <= state.tick
-      || !friendlyTargetAvailable(state, hero.team, clone.receiverIdx, clone.receiverPlayerId)) continue;
-    return {
-      receiver: clone.receiverIdx,
-      pos: { ...clone.pos },
-      receiverPlayerId: clone.receiverPlayerId,
-    };
-  }
-  return null;
-}
-
-/** Successful arrival makes the clone the real hero. A stale/substituted slot
- * fails soft and leaves the original body untouched. */
-export function materializeDecoyReceiver(
-  state: MatchState,
-  receiverIdx: number,
-  receiverPlayerId: string,
-  arrival: { x: number; y: number },
-): boolean {
-  const receiver = state.players[receiverIdx];
-  if (receiver.def.id !== receiverPlayerId) return false;
-  const first = receiver.team === 0 ? 0 : 11;
-  let owner = -1;
-  for (let heroIdx = first; heroIdx < first + 11; heroIdx += 1) {
-    const clone = state.players[heroIdx].decoyClone;
-    if (state.players[heroIdx].def.power === 'DECOY_DOUBLE'
-      && state.players[heroIdx].powerState.kind === 'active'
-      && clone?.receiverIdx === receiverIdx && clone.receiverPlayerId === receiverPlayerId
-      && clone.untilTick > state.tick) {
-      owner = heroIdx;
-      break;
-    }
-  }
-  if (owner === -1) return false;
-  receiver.pos = { ...arrival };
-  finishMomentPower(state, owner);
-  return true;
-}
-
-export function cancelDecoyReceiver(
-  state: MatchState,
-  receiverIdx: number,
-  receiverPlayerId: string,
-): void {
-  const first = state.players[receiverIdx]?.team === 0 ? 0 : 11;
-  for (let heroIdx = first; heroIdx < first + 11; heroIdx += 1) {
-    const owner = state.players[heroIdx];
-    if (owner.decoyClone?.receiverIdx === receiverIdx
-      && owner.decoyClone.receiverPlayerId === receiverPlayerId) finishMomentPower(state, heroIdx);
-  }
+  const carrier = playerAt(state, carrierIdx);
+  if (carrier === undefined) return null;
+  const clone = state.decoyClones[carrier.team];
+  if (clone === null || clone.untilTick <= state.tick || !isActive(state, clone.ownerIdx)) return null;
+  return {
+    receiver: decoyIndexForTeam(carrier.team),
+    pos: { ...clone.pos },
+    receiverPlayerId: clone.def.id,
+  };
 }
 
 /** Gravity's selected runner moves visibly into the opened lane. */
@@ -1860,13 +1912,15 @@ export function gravityRunnerTarget(
   state: MatchState,
   runnerIdx: number,
 ): { x: number; y: number } | null {
-  const team = state.players[runnerIdx].team;
+  const runner = playerAt(state, runnerIdx);
+  if (runner === undefined) return null;
+  const team = runner.team;
   const first = team === 0 ? 0 : 11;
   for (let heroIdx = first; heroIdx < first + 11; heroIdx += 1) {
     const hero = state.players[heroIdx];
     if (hero.def.power !== 'GRAVITY_WELL' || hero.powerState.kind !== 'active'
       || hero.powerState.runnerIdx !== runnerIdx
-      || hero.powerState.runnerPlayerId !== state.players[runnerIdx].def.id
+      || hero.powerState.runnerPlayerId !== runner.def.id
       || hero.powerState.runnerAnchor === undefined || !isActive(state, heroIdx)) continue;
     return { ...hero.powerState.runnerAnchor };
   }
@@ -1875,7 +1929,7 @@ export function gravityRunnerTarget(
 
 /** The current carrier's next pass is deliberately aimed at Gravity's runner. */
 export function gravityPriorityTarget(state: MatchState, carrierIdx: number): number {
-  const team = state.players[carrierIdx].team;
+  const team = requirePlayerAt(state, carrierIdx).team;
   const first = team === 0 ? 0 : 11;
   for (let heroIdx = first; heroIdx < first + 11; heroIdx += 1) {
     const hero = state.players[heroIdx];
@@ -1889,24 +1943,58 @@ export function gravityPriorityTarget(state: MatchState, carrierIdx: number): nu
 }
 
 export function consumePortalProtection(state: MatchState, idx: number): void {
-  state.players[idx].portalProtectedUntilTick = undefined;
+  const player = playerAt(state, idx);
+  if (player !== undefined) player.portalProtectedUntilTick = undefined;
 }
 
-export function gustPuntTarget(state: MatchState, goalkeeperIdx: number): number {
+export function gustPuntDestination(
+  state: MatchState,
+  goalkeeperIdx: number,
+  grade: number | undefined,
+): { receiver: number; pos: { x: number; y: number } } | null {
   const goalkeeper = state.players[goalkeeperIdx];
-  let best = -1;
-  let bestProgress = -Infinity;
-  for (let idx = 0; idx < 22; idx += 1) {
-    const mate = state.players[idx];
-    if (idx === goalkeeperIdx || mate.team !== goalkeeper.team || mate.def.role === 'GK'
-      || !friendlyTargetAvailable(state, goalkeeper.team, idx)) continue;
-    const progress = attackingProgress(mate.team, mate.pos);
-    if (progress > bestProgress || (progress === bestProgress && idx < best)) {
-      best = idx;
-      bestProgress = progress;
+  let receiver = -1;
+  for (const role of ['FWD', 'MID', 'DEF'] as const) {
+    const candidates: Array<{ idx: number; progress: number; space: number }> = [];
+    for (let idx = 0; idx < 22; idx += 1) {
+      const mate = state.players[idx];
+      if (idx === goalkeeperIdx || mate.team !== goalkeeper.team || mate.def.role !== role
+        || !friendlyTargetAvailable(state, goalkeeper.team, idx)) continue;
+      candidates.push({
+        idx,
+        progress: attackingProgress(mate.team, mate.pos),
+        space: openSpaceAt(state, mate.team, mate.pos),
+      });
+    }
+    if (candidates.length === 0) continue;
+    const open = candidates.filter(candidate => candidate.space >= 600);
+    const pool = open.length > 0 ? open : candidates;
+    pool.sort((left, right) => right.progress - left.progress
+      || right.space - left.space || left.idx - right.idx);
+    receiver = pool[0].idx;
+    break;
+  }
+  if (receiver === -1) return null;
+
+  const resolvedGrade = grade ?? AUTO_ACTIVATION_GRADE;
+  const forwardStep = Math.round(anchoredEffect(resolvedGrade, 250, 500, 800));
+  const lateralReach = Math.round(anchoredEffect(resolvedGrade, 180, 300, 450));
+  const player = state.players[receiver];
+  const direction = player.team === 0 ? -1 : 1;
+  const y = Math.round(clampEffect(player.pos.y + direction * forwardStep, 900, PITCH_H - 900));
+  const goal = { x: PITCH_W / 2, y: player.team === 0 ? 0 : PITCH_H };
+  let bestPos = { x: player.pos.x, y };
+  let bestScore = -Infinity;
+  for (const rawX of [player.pos.x - lateralReach, player.pos.x, player.pos.x + lateralReach]) {
+    const pos = { x: Math.round(clampEffect(rawX, 200, PITCH_W - 200)), y };
+    const score = openSpaceAt(state, player.team, pos)
+      + attackLaneClearance(state, player.team, pos, goal) * 0.4;
+    if (score > bestScore) {
+      bestPos = pos;
+      bestScore = score;
     }
   }
-  return best;
+  return { receiver, pos: bestPos };
 }
 
 /** Off-ball attack support lasts through the current carrier's next decision,
@@ -1914,23 +2002,31 @@ export function gustPuntTarget(state: MatchState, goalkeeperIdx: number): number
 export function consumeDecoyAction(
   state: MatchState,
   carrierIdx: number,
-  preserveDecoyReceiver = -1,
 ): void {
-  const first = state.players[carrierIdx].team === 0 ? 0 : 11;
+  const carrier = playerAt(state, carrierIdx);
+  if (carrier === undefined) return;
+  const first = carrier.team === 0 ? 0 : 11;
   for (let heroIdx = first; heroIdx < first + 11; heroIdx += 1) {
     const hero = state.players[heroIdx];
-    if ((hero.def.power === 'DECOY_DOUBLE' || hero.def.power === 'GRAVITY_WELL')
+    if (hero.def.power === 'GRAVITY_WELL'
       && hero.powerState.kind === 'active'
       && hero.powerState.carrierIdx === carrierIdx) {
-      if (hero.def.power === 'DECOY_DOUBLE'
-        && hero.decoyClone?.receiverIdx === preserveDecoyReceiver) continue;
+      if (hero.powerState.runnerIdx !== undefined
+        && hero.powerState.runnerPlayerId === playerAt(state, hero.powerState.runnerIdx)?.def.id
+        && state.ball.kind === 'pass'
+        && state.ball.from === carrierIdx
+        && state.ball.to === hero.powerState.runnerIdx) continue;
       finishMomentPower(state, heroIdx);
     }
   }
 }
 
 /** Clears a one-moment effect while retaining the ordinary Heat reset rules. */
-export function finishMomentPower(state: MatchState, idx: number): void {
+export function finishMomentPower(
+  state: MatchState,
+  idx: number,
+  decoyReason: DecoyPopReason = 'invalid',
+): void {
   const player = state.players[idx];
   const encoreRefill = player.encoreQueuedRefill === true;
   if (player.powerState.kind === 'active'
@@ -1938,8 +2034,8 @@ export function finishMomentPower(state: MatchState, idx: number): void {
     && player.powerAnchor !== undefined) {
     player.pos = { ...player.powerAnchor };
   }
+  if (player.def.power === 'DECOY_DOUBLE') dismissDecoyClone(state, player.team, decoyReason);
   clearStrengthLock(state, idx);
-  player.decoyClone = undefined;
   player.powerState = { kind: 'idle' };
   player.powerAnchor = undefined;
   player.gauge = encoreRefill
@@ -1956,21 +2052,27 @@ export function cancelPowerReferencesForSubstitution(
 ): void {
   const outgoing = state.players[idx];
   if (outgoing.powerState.kind === 'winding') interruptWindup(state, idx);
-  else if (outgoing.powerState.kind === 'active') finishMomentPower(state, idx);
+  else if (outgoing.powerState.kind === 'active') finishMomentPower(state, idx, 'substitution');
+  for (const team of [0, 1] as const) {
+    const clone = state.decoyClones[team];
+    if (clone !== null
+      && ((clone.ownerIdx === idx && clone.ownerPlayerId === outgoingPlayerId)
+        || (clone.sourceIdx === idx && clone.sourcePlayerId === outgoingPlayerId))) {
+      finishMomentPower(state, clone.ownerIdx, 'substitution');
+    }
+  }
   for (let ownerIdx = 0; ownerIdx < 22; ownerIdx += 1) {
     if (ownerIdx === idx) continue;
     const owner = state.players[ownerIdx];
     const ps = owner.powerState;
-    const ownsDecoyReceiver = owner.decoyClone?.receiverIdx === idx
-      && owner.decoyClone.receiverPlayerId === outgoingPlayerId;
-    if (ownsDecoyReceiver || ((ps.kind === 'winding' || ps.kind === 'active')
+    if ((ps.kind === 'winding' || ps.kind === 'active')
       && ((ps.targetIdx === idx && ('targetPlayerId' in ps ? ps.targetPlayerId : undefined) === outgoingPlayerId)
         || (ps.kind === 'winding' && ps.secondaryTargetIdx === idx
           && ps.secondaryTargetPlayerId === outgoingPlayerId)
         || (ps.runnerIdx === idx && ps.runnerPlayerId === outgoingPlayerId)
-        || ps.carrierIdx === idx))) {
+        || ps.carrierIdx === idx)) {
       if (ps.kind === 'winding') interruptWindup(state, ownerIdx);
-      else finishMomentPower(state, ownerIdx);
+      else finishMomentPower(state, ownerIdx, 'substitution');
     }
   }
   clearStrengthLock(state, idx);
@@ -1978,6 +2080,10 @@ export function cancelPowerReferencesForSubstitution(
 
 /** Kickoffs cancel pitch-local choreography and temporary receiver protections. */
 export function clearRestartPowerState(state: MatchState): void {
+  for (const team of [0, 1] as const) {
+    const clone = state.decoyClones[team];
+    if (clone !== null) finishMomentPower(state, clone.ownerIdx, 'restart');
+  }
   for (let idx = 0; idx < 22; idx += 1) {
     const player = state.players[idx];
     player.webbedUntilTick = undefined;
@@ -1985,12 +2091,11 @@ export function clearRestartPowerState(state: MatchState): void {
     player.forcedMovement = undefined;
     player.actionLockedUntilTick = undefined;
     player.actionLockSourceIdx = undefined;
-    player.decoyClone = undefined;
     if (player.powerState.kind === 'winding') interruptWindup(state, idx);
     else if (player.powerState.kind === 'active'
       && (player.def.power === 'DECOY_DOUBLE' || player.def.power === 'GRAVITY_WELL'
         || player.def.power === 'SHADOW_MARK' || player.def.power === 'GUST')) {
-      finishMomentPower(state, idx);
+      finishMomentPower(state, idx, 'restart');
     }
   }
 }
@@ -1999,7 +2104,7 @@ export function clearRestartPowerState(state: MatchState): void {
  * contest still sees the defender, and that first pass/shot/tackle challenge
  * consumes the cloak. */
 export function isShadowMarked(state: MatchState, idx: number): boolean {
-  return isActive(state, idx) && state.players[idx].def.power === 'SHADOW_MARK';
+  return isActive(state, idx) && playerAt(state, idx)?.def.power === 'SHADOW_MARK';
 }
 
 export function consumeShadowMark(state: MatchState, idx: number): boolean {
@@ -2009,18 +2114,21 @@ export function consumeShadowMark(state: MatchState, idx: number): boolean {
 }
 
 export function clearPowerCommitment(state: MatchState, idx: number): void {
-  const powerState = state.players[idx].powerState;
+  const powerState = playerAt(state, idx)?.powerState;
+  if (powerState === undefined) return;
   if (powerState.kind === 'active') powerState.commitment = undefined;
 }
 
 /** Elastic is a banked one-shot charge; Giant remains through the whole attack. */
 export function consumeKeeperShotCharge(state: MatchState, idx: number): void {
-  const player = state.players[idx];
+  const player = playerAt(state, idx);
+  if (player === undefined) return;
   if (player.def.power === 'ELASTIC_KEEPER' && isActive(state, idx)) finishMomentPower(state, idx);
 }
 
 export function dribbleBonus(state: MatchState, carrierIdx: number): number {
-  const player = state.players[carrierIdx];
+  const player = playerAt(state, carrierIdx);
+  if (player === undefined) return 0;
   // Attacking wind-ups preserve the authored run without granting immunity.
   // A clean tackle can still cancel every one of them.
   if (player.powerState.kind === 'winding') {
@@ -2065,9 +2173,11 @@ export function consumePhaseChallenge(
   carrierIdx: number,
   challengerIdx: number,
 ): boolean {
-  const carrier = state.players[carrierIdx];
+  const carrier = playerAt(state, carrierIdx);
+  if (carrier === undefined) return false;
   if (!isActive(state, carrierIdx) || carrier.def.power !== 'PHASE_RUN') return false;
-  const challenger = state.players[challengerIdx];
+  const challenger = playerAt(state, challengerIdx);
+  if (challenger === undefined) return false;
   const direction = carrier.team === 0 ? -1 : 1;
   const grade = activeActivationGrade(carrier);
   const clearDistance = Math.round(anchoredEffect(grade, 300, 650, 800));
@@ -2094,7 +2204,8 @@ export function consumePhaseChallenge(
 
 export function defenseBonus(state: MatchState, idx: number): number {
   if (!isActive(state, idx)) return 0;
-  const player = state.players[idx];
+  const player = playerAt(state, idx);
+  if (player === undefined) return 0;
   if (player.powerState.kind !== 'active') return 0;
   const power = player.def.power;
   if (power === 'SUPER_STRENGTH') return Math.round(40 * player.powerState.strength);

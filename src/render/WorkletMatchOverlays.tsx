@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { Path, usePathValue } from '@shopify/react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { WORKLET_ACTION_SLIDE, WORKLET_ACTION_STRIDE } from './worklet-atlas-frame';
+import { RENDER_PLAYER_COUNT } from '../sim/entities';
 import {
   BALL_AIRBORNE_THRESHOLD_CM,
   ballShadowOpacity,
@@ -76,7 +77,7 @@ export function WorkletSlideTackleEffects({
     'worklet';
     const visualTick = Math.max(0, simTick.value - 1 + progress.value);
     const pixel = scale * playerDrawScale;
-    for (let player = 0; player < 22; player += 1) {
+    for (let player = 0; player < RENDER_PLAYER_COUNT; player += 1) {
       const offset = player * WORKLET_ACTION_STRIDE;
       if (actionData.value[offset] !== WORKLET_ACTION_SLIDE) continue;
       const startTick = actionData.value[offset + 1];

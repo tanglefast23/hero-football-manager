@@ -19,8 +19,8 @@ import {
   withoutPowers,
 } from '../../game';
 import { createMatch, queueInput, tick } from '../../sim/match';
-import { inUsefulContext, LATE_WINDOW_TICKS } from '../../sim/powers';
 import type { PowerId, TeamDef } from '../../sim/types';
+import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 
 const content = loadLaunchContent();
 const POWERS = content.powers.powers.map(power => power.id) as PowerId[];
@@ -302,8 +302,7 @@ function sampleMatches(home: TeamDef, away: TeamDef, wellTapped: boolean): Match
           // Tap at full strength in a useful context. If none arrives, commit
           // the closing Zone to the fixed two-second armed window rather than
           // silently letting it expire.
-          const windowClosing = player.powerState.remainingTicks <= LATE_WINDOW_TICKS;
-          if (!tappedThisWindow[slot] && (inUsefulContext(match, slot) || windowClosing)) {
+          if (!tappedThisWindow[slot] && shouldQueueWellTappedPower(match, slot)) {
             queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: slot });
             tappedThisWindow[slot] = true;
           }

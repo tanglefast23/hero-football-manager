@@ -27,10 +27,12 @@ describe('large career match-sprite roster', () => {
     expect(spriteKeyForMatchPlayer(9, 'r9', 'FWD', 'run1')).toBe('r:f08:run1');
     expect(spriteKeyForMatchPlayer(10, 'r9', 'FWD', 'run1')).toBe('r:f08:run1');
     expect(spriteKeyForMatchPlayer(11, 'r9', 'FWD', 'run1')).toBe('u:f08:run1');
+    expect(spriteKeyForMatchPlayer(22, 'r9', 'FWD', 'run1')).toBe('r:f08:run1');
+    expect(spriteKeyForMatchPlayer(23, 'r9', 'FWD', 'run1')).toBe('u:f08:run1');
     const generatedLook = playerLookId('academy-s3-7', 'MID');
     expect(spriteKeyForMatchPlayer(4, 'academy-s3-7', 'MID', 'run0')).toBe(`r:${generatedLook}:run0`);
     expect(spriteKeyForMatchPlayer(4, 'created-player', 'FWD', 'run0', 'c167')).toBe('r:c167:run0');
-    expect(() => spriteKeyForMatchPlayer(22, 'player', 'MID', 'run0')).toThrow('0 to 21');
+    expect(() => spriteKeyForMatchPlayer(24, 'player', 'MID', 'run0')).toThrow('0 to 23');
     expect(() => spriteKeyForMatchPlayer(1, 'player', 'MID', 'ready0')).toThrow('only goalkeepers');
   });
 
