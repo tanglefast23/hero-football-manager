@@ -19,9 +19,7 @@ import {
 } from '../facility-adjacency';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
-  GUIDED_FIRST_FACILITY_TYPE,
   firstGuidedFacilityUpgradeId,
-  guidedFirstFacilityAllowsBuildType,
   guidedFirstFacilityAllowsPlacement,
   guidedFirstFacilityPhase,
   type GuidedFirstFacilityPhase,
@@ -86,7 +84,7 @@ export function ClubFinancesScreen({
     || guideFocus === 'facility-grid'
     || guideFocus === 'facility-upgrade'
     || guideFocus === 'facility-adjacency';
-  const guidedFirstFacility = guideFocus === 'facility-grid' && facilities.buildings.length === 0;
+  const guidedFirstFacility = guideFocus === 'facility-grid';
   const guidedFacilityPhase = guidedFirstFacilityPhase(selectedBuildType);
   const activeFootprint = relocatingBuilding
     ? { width: relocatingBuilding.width, height: relocatingBuilding.height }
@@ -495,7 +493,7 @@ export function ClubFinancesScreen({
             {guidedFirstFacility && guidedFacilityPhase === 'grid' && facilityGridWidth > 0 ? (
               <TutorialTapCue
                 label="Bert says"
-                detail="Tap where you’d like to build the Training Grounds"
+                detail="Tap a glowing square to build"
                 style={{
                   left: '50%',
                   marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -817,7 +815,23 @@ export function ClubFinancesScreen({
             </View>
           ) : null}
 
-          <View className="mt-4">
+          <View
+            ref={facilityGuideBuildTargetRef}
+            collapsable={false}
+            className="relative mt-4"
+            onLayout={() => {
+              if (guidedFirstFacility && guidedFacilityPhase === 'build-menu') {
+                scrollFacilityGuideTargetIntoView('build-menu');
+              }
+            }}
+          >
+            {guidedFirstFacility && guidedFacilityPhase === 'build-menu' ? (
+              <TutorialTapCue
+                label="Bert says"
+                detail="Choose a building to place"
+                style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+              />
+            ) : null}
             <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">Build menu</Text>
             <View className="flex-row flex-wrap gap-2">
               {viewModel.facilities.catalog.map(entry => {
@@ -833,49 +847,25 @@ export function ClubFinancesScreen({
                 const adjacencyAccessibility = adjacencyGuidance === undefined
                   ? ''
                   : ` ${knownAdjacency === undefined ? 'Neighbour clue' : 'Known combo'}: ${adjacencyGuidance}${adjacencyGuidance.endsWith('.') ? '' : '.'}`;
-                const guideTarget = guidedFirstFacility
-                  && entry.type === GUIDED_FIRST_FACILITY_TYPE;
-                const guideBlocked = guidedFirstFacility
-                  && !guidedFirstFacilityAllowsBuildType(entry.type);
-                const entryEnabled = entry.available && entry.affordable && !guideBlocked;
+                const entryEnabled = entry.available && entry.affordable;
                 return (
                   <View
                     key={entry.type}
-                    ref={entry.type === GUIDED_FIRST_FACILITY_TYPE
-                      ? facilityGuideBuildTargetRef
-                      : undefined}
-                    collapsable={false}
                     className="relative w-[48%]"
-                    onLayout={() => {
-                      if (guideTarget && guidedFacilityPhase === 'build-menu') {
-                        scrollFacilityGuideTargetIntoView('build-menu');
-                      }
-                    }}
                   >
-                    {guideTarget && guidedFacilityPhase === 'build-menu' ? (
-                      <TutorialTapCue
-                        label="Bert says"
-                        detail="Build Training Grounds"
-                        style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
-                      />
-                    ) : null}
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={guideBlocked
-                        ? `${entry.name}. Build Training Grounds first.`
-                        : `${entry.name}. ${entry.effectLabel}. ${entry.width} by ${entry.height} footprint. Build time ${entry.buildWeeks} week${entry.buildWeeks === 1 ? '' : 's'}.${adjacencyAccessibility} ${entry.available
-                          ? `Build cost ${formatCurrency(entry.buildCost)}. ${formatCurrency(entry.weeklyUpkeep)} per week upkeep.${entry.blockedReason
-                            ? ` ${entry.blockedReason}`
-                            : !entry.affordable && entry.affordabilityShortfall > 0
-                              ? ` Need ${formatCurrency(entry.affordabilityShortfall)} more.`
-                              : ''}`
-                          : `Locked.${entry.blockedReason ? ` ${entry.blockedReason}` : ''}`}`}
+                      accessibilityLabel={`${entry.name}. ${entry.effectLabel}. ${entry.width} by ${entry.height} footprint. Build time ${entry.buildWeeks} week${entry.buildWeeks === 1 ? '' : 's'}.${adjacencyAccessibility} ${entry.available
+                        ? `Build cost ${formatCurrency(entry.buildCost)}. ${formatCurrency(entry.weeklyUpkeep)} per week upkeep.${entry.blockedReason
+                          ? ` ${entry.blockedReason}`
+                          : !entry.affordable && entry.affordabilityShortfall > 0
+                            ? ` Need ${formatCurrency(entry.affordabilityShortfall)} more.`
+                            : ''}`
+                        : `Locked.${entry.blockedReason ? ` ${entry.blockedReason}` : ''}`}`}
                       accessibilityState={{ disabled: !entryEnabled, selected }}
                       disabled={!entryEnabled}
                       onPress={() => {
-                        setSelectedBuildType(guidedFirstFacility
-                          ? GUIDED_FIRST_FACILITY_TYPE
-                          : selected ? null : entry.type);
+                        setSelectedBuildType(selected ? null : entry.type);
                         setSelectedBuildingId(null);
                         setRelocatingBuildingId(null);
                       }}
@@ -921,9 +911,7 @@ export function ClubFinancesScreen({
                           </Text>
                         </View>
                       ) : null}
-                      {guideBlocked ? (
-                        <Text className="mt-1 text-xs font-bold text-stamp">Build Training Grounds first.</Text>
-                      ) : entry.blockedReason ? (
+                      {entry.blockedReason ? (
                         <Text className="mt-1 text-xs font-bold text-stamp">{entry.blockedReason}</Text>
                       ) : null}
                       {entry.available && !entry.affordable && entry.affordabilityShortfall > 0 ? (

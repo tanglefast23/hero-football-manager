@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { loadLaunchContent } from '../../content';
-import { applyCareerTraining, createCareer } from '../../game';
+import { applyCareerTraining, createCareer, setCareerTrainingPlan } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { squadTrainingViewModel } from '../view-models';
 
@@ -49,8 +49,18 @@ describe('saved weekly-plan summary', () => {
         name: player.name,
         role: player.role,
         ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+        trainingProgress: [
+          { label: 'PAC', value: 20, cap: 99, weeklyGain: 3, atCap: false },
+          { label: 'SHO', value: 20, cap: 99, weeklyGain: 3, atCap: false },
+        ],
       })),
-      drills: drills.map(drill => ({ id: drill.id, name: drill.name })),
+      drills: drills.map(drill => ({
+        id: drill.id,
+        name: drill.name,
+        gainLabel: Object.entries(drill.gains)
+          .map(([attribute, gain]) => `+${gain} ${attribute.toUpperCase()}`)
+          .join(' · '),
+      })),
       moneyCost: drills.reduce((sum, drill) => sum + drill.moneyCost, 0) * players.length,
       trainingPointCost: drills.reduce((sum, drill) => sum + drill.tpCost, 0),
     });
@@ -110,5 +120,19 @@ describe('saved weekly-plan summary', () => {
       picker.indexOf('accessibilityLabel={drill.selected ? `Remove ${drill.name}` : `Add ${drill.name}`}'),
     );
     expect(picker).not.toContain("drill.selected ? '✓' : '+'");
+  });
+
+  it('carries each locked drill gain label into the saved plan panel', () => {
+    let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
+    const roster = state.players.filter(player => player.clubId === state.userClubId);
+    const trainee = roster[0];
+    const drill = content.training.focusDrills[0];
+    state = setCareerTrainingPlan(state, [trainee.id], [drill]);
+
+    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
+
+    // guard first: a bare `lockedPlan?.` chain would hide a missing panel
+    expect(model.lockedPlan).toBeDefined();
+    expect(model.lockedPlan?.drills[0]?.gainLabel).toMatch(/^\+\d+ [A-Z]{3}/);
   });
 });

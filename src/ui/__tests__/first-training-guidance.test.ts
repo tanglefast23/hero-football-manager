@@ -49,7 +49,7 @@ describe('first training guidance', () => {
 
     // Second cue only appears once phase is 'grid'
     expect(finances).toContain("guidedFacilityPhase === 'grid'");
-    expect(finances).toContain('detail="Tap where you’d like to build the Training Grounds"');
+    expect(finances).toContain('detail="Tap a glowing square to build"');
 
     // Phase helper switches on selection
     expect(targets).toContain('guidedFirstFacilityPhase');

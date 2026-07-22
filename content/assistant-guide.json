@@ -44,6 +44,16 @@
           "buttonLabel": "Got it"
         },
         {
+          "kicker": "What you inherited",
+          "title": "One pitch, already yours",
+          "body": [
+            "The board left you a Level 1 Training Pitch. It's built, it's paid for, and it hands you 10 Training Points every week.",
+            "That's what pays for drills. Everything else on the grounds, you build yourself."
+          ],
+          "focus": "assistant",
+          "buttonLabel": "Good to know"
+        },
+        {
           "kicker": "The bottom rail",
           "title": "Know your doors",
           "body": [

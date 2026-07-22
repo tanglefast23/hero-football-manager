@@ -7,6 +7,7 @@ import {
   completeAssistantGuideSequence,
   createCareer,
   playerAttributeCaps,
+  setCareerTrainingPlan,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
@@ -231,5 +232,79 @@ describe('training cap feedback', () => {
     expect(after.trainingCapNotices?.filter(notice => (
       notice.playerId === player.id && notice.attribute === 'pac'
     ))).toHaveLength(1);
+  });
+
+  it('projects a healthy trainee gain from the real resolver, with atCap false', () => {
+    let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
+    const roster = state.players.filter(player => player.clubId === state.userClubId);
+    const trainee = roster[0];
+    const drill = content.training.focusDrills.find(candidate => candidate.id === 'sprints')!;
+    const trainedAttribute = Object.keys(drill.gains)[0] as 'pac';
+
+    state = setCareerTrainingPlan(state, [trainee.id], [drill]);
+    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
+
+    expect(model.lockedPlan).toBeDefined();
+    const progress = model.lockedPlan?.players[0]?.trainingProgress ?? [];
+
+    // only attributes the plan raises appear
+    expect(progress).toHaveLength(Object.keys(drill.gains).length);
+
+    const line = progress.find(entry => entry.label === trainedAttribute.toUpperCase());
+    expect(line).toBeDefined();
+    expect(line?.value).toBe(25);
+    expect(line?.cap).toBe(41);
+    // Hardcoded, not re-derived from the resolver, so a formula change trips this test.
+    expect(line?.weeklyGain).toBe(5);
+    expect(line?.atCap).toBe(false);
+  });
+
+  it('reports atCap only when the player is genuinely at their personal cap', () => {
+    let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
+    const roster = state.players.filter(player => player.clubId === state.userClubId);
+    const trainee = roster[0];
+    const drill = content.training.focusDrills.find(candidate => candidate.id === 'sprints')!;
+    const trainedAttribute = Object.keys(drill.gains)[0] as 'pac';
+    const cap = playerAttributeCaps(trainee)[trainedAttribute];
+
+    state = {
+      ...state,
+      players: state.players.map(player => player.id === trainee.id
+        ? { ...player, attrs: { ...player.attrs, [trainedAttribute]: cap } }
+        : player),
+    };
+    state = setCareerTrainingPlan(state, [trainee.id], [drill]);
+
+    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
+    const progress = model.lockedPlan?.players[0]?.trainingProgress ?? [];
+    const line = progress.find(entry => entry.label === trainedAttribute.toUpperCase());
+
+    expect(line?.value).toBe(cap);
+    expect(line?.weeklyGain).toBe(0);
+    expect(line?.atCap).toBe(true);
+  });
+
+  it('does not report atCap when the club simply cannot afford the plan (regression)', () => {
+    let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
+    const roster = state.players.filter(player => player.clubId === state.userClubId);
+    const trainee = roster[0];
+    const drill = content.training.focusDrills.find(candidate => candidate.id === 'sprints')!;
+    const trainedAttribute = Object.keys(drill.gains)[0] as 'pac';
+    const cap = playerAttributeCaps(trainee)[trainedAttribute];
+
+    // Sanity: this player is nowhere near their cap.
+    expect(trainee.attrs[trainedAttribute]).toBeLessThan(cap);
+
+    state = setCareerTrainingPlan(state, [trainee.id], [drill]);
+    // Zero training points makes the drill unaffordable, so settlement grants
+    // no gain this week even though the player is not capped.
+    state = { ...state, trainingPoints: 0 };
+
+    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
+    const progress = model.lockedPlan?.players[0]?.trainingProgress ?? [];
+    const line = progress.find(entry => entry.label === trainedAttribute.toUpperCase());
+
+    expect(line?.weeklyGain).toBe(0);
+    expect(line?.atCap).toBe(false);
   });
 });

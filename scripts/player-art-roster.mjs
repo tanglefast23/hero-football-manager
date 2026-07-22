@@ -237,6 +237,7 @@ export const FIELD_PLAYER_LOOKS = [
 
 const CREATED_HAIRSTYLES = [
   'flattop', 'curls', 'shaved', 'sidefringe', 'ponytail', 'afro', 'mohawk',
+  'braidcrown', 'twists', 'topknot',
 ];
 const CREATED_KIT_ACCENT_COUNT = 4;
 

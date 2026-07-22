@@ -182,7 +182,10 @@ const playerSchema = z
     lookId: nonemptyString.optional(),
     createdAppearance: z.object({
       skinTone: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
-      hairstyle: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
+      hairstyle: z.union([
+        z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4),
+        z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9),
+      ]),
       kitAccent: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
     }).passthrough().optional(),
     attrs: attributesSchema,
@@ -270,6 +273,7 @@ const facilityGridSchema = z
       level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
       x: nonnegativeInteger,
       y: nonnegativeInteger,
+      seeded: z.literal(true).optional(),
     }).passthrough()),
     discoveredAdjacencies: z.array(z.enum([
       'gym-dorm', 'fan-shop-stadium', 'medical-training-pitch',

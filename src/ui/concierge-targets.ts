@@ -1,18 +1,21 @@
 import type { CoachCandidateViewModel } from './market-models';
 import type { ClubFacilityBuildingViewModel, FacilityTypeViewModel } from './models';
 
-export const GUIDED_FIRST_FACILITY_TYPE: FacilityTypeViewModel = 'training-pitch';
-
 export type GuidedFirstFacilityPhase = 'build-menu' | 'grid';
 
+/**
+ * The club always starts with a seeded Training Pitch, so the first facility
+ * a player *builds* can be anything — there is no reason to force a second
+ * pitch. Any selected type advances the guide to the grid step.
+ */
 export function guidedFirstFacilityPhase(
   selectedBuildType: FacilityTypeViewModel | null,
 ): GuidedFirstFacilityPhase {
-  return selectedBuildType === GUIDED_FIRST_FACILITY_TYPE ? 'grid' : 'build-menu';
+  return selectedBuildType === null ? 'build-menu' : 'grid';
 }
 
-export function guidedFirstFacilityAllowsBuildType(type: FacilityTypeViewModel): boolean {
-  return type === GUIDED_FIRST_FACILITY_TYPE;
+export function guidedFirstFacilityAllowsBuildType(_type: FacilityTypeViewModel): boolean {
+  return true;
 }
 
 export function guidedFirstFacilityAllowsPlacement(
@@ -20,7 +23,7 @@ export function guidedFirstFacilityAllowsPlacement(
   _x: number,
   _y: number,
 ): boolean {
-  return selectedBuildType === GUIDED_FIRST_FACILITY_TYPE;
+  return selectedBuildType !== null;
 }
 
 export function firstGuidedCoachCandidateId(
