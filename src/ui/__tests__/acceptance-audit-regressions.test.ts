@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { ENGINE_VERSION } from '../../sim/match';
 
 function source(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -112,6 +113,6 @@ describe('player-facing acceptance audit regressions', () => {
   });
 
   test('keeps the README engine marker synchronized with the replay version', () => {
-    expect(source('README.md')).toContain('Current engine: **m1.22**.');
+    expect(source('README.md')).toContain(`Current engine: **${ENGINE_VERSION}**.`);
   });
 });

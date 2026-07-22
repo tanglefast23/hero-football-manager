@@ -344,6 +344,7 @@ describe('m1.18 authored one-moment powers', () => {
     match.ball = { kind: 'held', by: carrier };
     match.players[hero].pos = { x: 2250, y: 5000 };
     match.players[carrier].pos = { x: 3400, y: 4800 };
+    match.players[10].pos = { x: 3200, y: 3300 };
     match.players[blocker].pos = { x: 3200, y: 4100 };
     match.players[secondBlocker].pos = { x: 3000, y: 3800 };
     for (let idx = 11; idx < 22; idx += 1) {
@@ -399,6 +400,7 @@ describe('m1.18 authored one-moment powers', () => {
     match.ball = { kind: 'held', by: carrier };
     match.players[hero].pos = { x: 2250, y: 5000 };
     match.players[carrier].pos = { x: 3400, y: 4800 };
+    match.players[10].pos = { x: 3200, y: 3300 };
     match.players[primary].pos = { x: 3200, y: 4100 };
     match.players[secondary].pos = { x: 3000, y: 3800 };
     for (let idx = 11; idx < 22; idx += 1) {
@@ -1220,6 +1222,7 @@ describe('m1.18 authored one-moment powers', () => {
     const carrier = 6;
     match.players[hero].pos = { x: 2250, y: 5000 };
     match.players[carrier].pos = { x: 3300, y: 4800 };
+    match.players[9].pos = { x: 3000, y: 3200 };
     match.players[12].pos = { x: 3000, y: 3900 };
     for (let idx = 11; idx < 22; idx += 1) {
       if (idx !== 12) match.players[idx].pos = { x: 6000, y: 9000 };
@@ -1254,6 +1257,7 @@ describe('m1.18 authored one-moment powers', () => {
     match.ball = { kind: 'held', by: carrier };
     match.players[hero].pos = { x: 2250, y: 5000 };
     match.players[carrier].pos = { x: 3400, y: 4800 };
+    match.players[10].pos = { x: 3200, y: 3400 };
     match.players[hero].gauge = 60;
     for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 6000, y: 9000 };
 
@@ -1277,6 +1281,7 @@ describe('m1.18 authored one-moment powers', () => {
       match.ball = { kind: 'held', by: carrier };
       match.players[hero].pos = { x: 2250, y: 5000 };
       match.players[carrier].pos = { x: 3400, y: 4800 };
+      match.players[10].pos = { x: 3000, y: 3200 };
       match.players[blocker].pos = { x: 3000, y: 3900 };
       for (let idx = 11; idx < 22; idx += 1) {
         if (idx !== blocker) match.players[idx].pos = { x: 6000, y: 9000 };

@@ -187,6 +187,11 @@ const ICE_RINK_TRIGGER_RANGE = 2400;
 const FUTURE_SIGHT_CONTEXT_RANGE = 2600;
 const GRAVITY_WELL_ENTRY_RANGE = 1500;
 const GRAVITY_WELL_RANGE = 2200;
+// Mirrors engine.ts bestPassOption. Gravity may prioritize an ordinary pass,
+// but it never expands the set of teammates that an ordinary pass can reach.
+const ORDINARY_PASS_MIN_DISTANCE = 400;
+const ORDINARY_PASS_MAX_DISTANCE = 3500;
+const GRAVITY_RUNNER_MAX_ANCHOR_TRAVEL = 1800;
 const SHADOW_MARK_RANGE = 1900;
 const PHASE_REVALIDATE_RANGE = 1400;
 const RALLY_CRY_RANGE = 2600;
@@ -1348,13 +1353,18 @@ function gravityRunner(
   let bestTravel = Infinity;
   for (let idx = 0; idx < 22; idx += 1) {
     const mate = state.players[idx];
+    const ordinaryPassDistance2 = dist2(mate.pos, carrier.pos);
+    const anchorTravel2 = dist2(mate.pos, anchor);
     if (idx === heroIdx || idx === carrierIdx || mate.team !== hero.team
       || (mate.def.role !== 'MID' && mate.def.role !== 'FWD')
-      || !friendlyTargetAvailable(state, hero.team, idx)) continue;
+      || !friendlyTargetAvailable(state, hero.team, idx)
+      || ordinaryPassDistance2 < ORDINARY_PASS_MIN_DISTANCE * ORDINARY_PASS_MIN_DISTANCE
+      || ordinaryPassDistance2 > ORDINARY_PASS_MAX_DISTANCE * ORDINARY_PASS_MAX_DISTANCE
+      || anchorTravel2 > GRAVITY_RUNNER_MAX_ANCHOR_TRAVEL * GRAVITY_RUNNER_MAX_ANCHOR_TRAVEL) continue;
     // Prefer the runner who is already hardest to mark, then use travel to the
     // same opened-lane anchor as a deterministic tie-breaker.
     const space = openSpaceAt(state, hero.team, mate.pos);
-    const travel = dist2(mate.pos, anchor);
+    const travel = anchorTravel2;
     if (space > bestSpace || (space === bestSpace && travel < bestTravel)
       || (space === bestSpace && travel === bestTravel && idx < best)) {
       best = idx;
@@ -1986,10 +1996,16 @@ export function gravityPriorityTarget(state: MatchState, carrierIdx: number): nu
     const hero = state.players[heroIdx];
     if (hero.def.power !== 'GRAVITY_WELL' || hero.powerState.kind !== 'active'
       || hero.powerState.carrierIdx !== carrierIdx || hero.powerState.runnerIdx === undefined
+      || hero.powerState.runnerAnchor === undefined
       || hero.powerState.runnerPlayerId !== state.players[hero.powerState.runnerIdx]?.def.id
       || !friendlyTargetAvailable(state, team, hero.powerState.runnerIdx)) continue;
     const carrier = requirePlayerAt(state, carrierIdx);
     const runner = requirePlayerAt(state, hero.powerState.runnerIdx);
+    const ordinaryPassDistance2 = dist2(runner.pos, carrier.pos);
+    if (ordinaryPassDistance2 < ORDINARY_PASS_MIN_DISTANCE * ORDINARY_PASS_MIN_DISTANCE
+      || ordinaryPassDistance2 > ORDINARY_PASS_MAX_DISTANCE * ORDINARY_PASS_MAX_DISTANCE
+      || dist2(runner.pos, hero.powerState.runnerAnchor)
+        > GRAVITY_RUNNER_MAX_ANCHOR_TRAVEL * GRAVITY_RUNNER_MAX_ANCHOR_TRAVEL) continue;
     let laneClearance = 1800;
     for (const idx of activePlayerIndices(state)) {
       const opponent = requirePlayerAt(state, idx);

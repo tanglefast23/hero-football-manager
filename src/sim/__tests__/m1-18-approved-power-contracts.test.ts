@@ -492,9 +492,13 @@ describe('m1.18 approved power contracts', () => {
     match.ball = { kind: 'held', by: carrier };
     match.players[hero].pos = { x: 2250, y: 4400 };
     match.players[carrier].pos = { x: 1200, y: 4200 };
+    match.players[carrier].def.attrs.pas = 100;
     match.players[9].pos = { x: 2000, y: 3000 };
     match.players[blocker].pos = { x: 1500, y: 3400 };
-    for (let idx = 11; idx < 22; idx += 1) if (idx !== blocker) match.players[idx].pos = { x: 6500, y: 9000 };
+    for (let idx = 11; idx < 22; idx += 1) {
+      match.players[idx].def.attrs.def = 1;
+      if (idx !== blocker) match.players[idx].pos = { x: 6500, y: 9000 };
+    }
     match.players[hero].firePolicy = 'FIRE_WHEN_READY';
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
     powerTick(match);
@@ -543,8 +547,7 @@ describe('m1.18 approved power contracts', () => {
       .toBeLessThan(Math.hypot(inFlight.x - runnerAnchor.x, inFlight.y - runnerAnchor.y));
     const flight = match.ball as unknown as Extract<MatchState['ball'], { kind: 'pass' }>;
     if (flight.kind !== 'pass') throw new Error('expected Gravity pass flight');
-    flight.willSucceed = true;
-    flight.interceptor = -1;
+    expect(flight.willSucceed).toBe(true);
     forceArrival(match);
     expect(match.ball).toEqual({ kind: 'held', by: runner });
     match.tick = 17;
@@ -580,6 +583,51 @@ describe('m1.18 approved power contracts', () => {
     expect(match.players[hero].powerState).toMatchObject({
       kind: 'winding', runnerIdx: openRunner,
     });
+  });
+
+  it('never selects or forces an open runner outside ordinary pass and anchor reach', () => {
+    const match = matchWith('GRAVITY_WELL', 5);
+    const hero = 5;
+    const carrier = 6;
+    const eligibleRunner = 9;
+    const distantRunner = 10;
+    const distantFromAnchor = 8;
+    const blocker = 12;
+    const marker = 13;
+    const runnerAnchor = { x: 1500, y: 2600 };
+    match.ball = { kind: 'held', by: carrier };
+    match.players[hero].pos = { x: 2250, y: 4400 };
+    match.players[carrier].pos = { x: 1200, y: 4200 };
+    match.players[eligibleRunner].pos = { x: 2100, y: 3000 };
+    match.players[distantRunner].pos = { x: 4200, y: 6200 };
+    match.players[distantFromAnchor].pos = { x: 4000, y: 3200 };
+    match.players[7].outUntilTick = 100;
+    match.players[blocker].pos = { x: 1500, y: 3400 };
+    match.players[marker].pos = { x: 2150, y: 3050 };
+    for (let idx = 11; idx < 22; idx += 1) {
+      if (idx !== blocker && idx !== marker) match.players[idx].pos = { x: 6500, y: 9000 };
+    }
+    match.players[hero].firePolicy = 'FIRE_WHEN_READY';
+    match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
+
+    powerTick(match);
+
+    expect(match.players[hero].powerState).toMatchObject({
+      kind: 'winding', runnerIdx: eligibleRunner,
+    });
+
+    for (const invalidRunner of [distantRunner, distantFromAnchor]) {
+      match.players[hero].powerState = {
+        kind: 'active',
+        untilTick: 60,
+        strength: 1,
+        carrierIdx: carrier,
+        runnerIdx: invalidRunner,
+        runnerPlayerId: match.players[invalidRunner].def.id,
+        runnerAnchor,
+      };
+      expect(gravityPriorityTarget(match, carrier)).toBe(-1);
+    }
   });
 
   it('does not force Gravity\'s pass after another defender closes the lane', () => {
@@ -675,6 +723,7 @@ describe('m1.18 approved power contracts', () => {
     const blocker = 12;
     match.players[hero].pos = { x: 2250, y: 4400 };
     match.players[carrier].pos = { x: 1200, y: 4200 };
+    match.players[9].pos = { x: 1800, y: 3400 };
     match.players[blocker].pos = { x: 1300, y: 4100 };
     for (let idx = 11; idx < 22; idx += 1) {
       if (idx !== blocker) match.players[idx].pos = { x: 6500, y: 9000 };
