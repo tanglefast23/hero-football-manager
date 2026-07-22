@@ -604,8 +604,8 @@ export function SquadTrainingScreen({
                           numberOfLines={1}
                         >
                           {entry.label} {entry.value}/{entry.cap}{' '}
-                          <Text className={entry.atCap ? 'text-stamp' : 'text-pitch-dark'}>
-                            {entry.atCap ? '· At cap' : `+${entry.weeklyGain}/week`}
+                          <Text className={entry.atCap ? 'text-stamp' : entry.weeklyGain === 0 ? 'text-stamp' : 'text-pitch-dark'}>
+                            {entry.atCap ? '· At cap' : entry.weeklyGain === 0 ? '· None this week' : `+${entry.weeklyGain}/week`}
                           </Text>
                         </Text>
                       ))}

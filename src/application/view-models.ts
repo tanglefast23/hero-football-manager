@@ -1734,7 +1734,7 @@ function lockedTrainingProgress(
       value,
       cap: caps[attribute],
       weeklyGain,
-      atCap: weeklyGain === 0,
+      atCap: value >= caps[attribute],
     };
   });
 }
