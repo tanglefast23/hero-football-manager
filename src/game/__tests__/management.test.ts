@@ -16,16 +16,19 @@ describe('career facility transactions', () => {
       ...builtReady,
       m2: { ...builtReady.m2!, highestDivisionReached: 4 as const },
     };
-    const upgraded = upgradeCareerFacility(levelTwoUnlocked, 'facility-1');
+    const upgraded = upgradeCareerFacility(levelTwoUnlocked, 'facility-2');
     const upgradedReady = completeProject(upgraded.state);
-    const moved = relocateCareerFacility(upgradedReady, 'facility-1', { x: 4, y: 3 });
+    const moved = relocateCareerFacility(upgradedReady, 'facility-2', { x: 4, y: 3 });
 
-    expect(initial.facilities.grid?.buildings).toEqual([]);
+    expect(initial.facilities.grid?.buildings).toEqual([
+      expect.objectContaining({ id: 'facility-1', type: 'training-pitch', level: 1 }),
+    ]);
     expect(built.state.clubs.find(club => club.id === initial.userClubId)?.cash)
       .toBe(38_000);
-    expect(upgraded.state.facilities.grid?.buildings[0].level).toBe(1);
-    expect(upgradedReady.facilities.grid?.buildings[0].level).toBe(2);
-    expect(moved.state.facilities.grid?.buildings[0]).toMatchObject({ x: 4, y: 3 });
+    expect(upgraded.state.facilities.grid?.buildings.find(building => building.id === 'facility-2')?.level).toBe(1);
+    expect(upgradedReady.facilities.grid?.buildings.find(building => building.id === 'facility-2')?.level).toBe(2);
+    expect(moved.state.facilities.grid?.buildings.find(building => building.id === 'facility-2'))
+      .toMatchObject({ x: 4, y: 3 });
     expect(moved.state.clubs.find(club => club.id === initial.userClubId)?.cash)
       .toBe(30_650);
     expect(moved.state.cashTransactions).toEqual([
@@ -57,18 +60,18 @@ describe('career facility transactions', () => {
     const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
     const built = completeProject(buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state);
 
-    expect(() => upgradeCareerFacility(built, 'facility-1'))
+    expect(() => upgradeCareerFacility(built, 'facility-2'))
       .toThrow('Level 2 facilities unlock in D4 · County League');
 
     const d4 = { ...built, m2: { ...built.m2!, highestDivisionReached: 4 as const } };
-    const levelTwo = completeProject(upgradeCareerFacility(d4, 'facility-1').state);
-    expect(levelTwo.facilities.grid?.buildings[0].level).toBe(2);
-    expect(() => upgradeCareerFacility(levelTwo, 'facility-1'))
+    const levelTwo = completeProject(upgradeCareerFacility(d4, 'facility-2').state);
+    expect(levelTwo.facilities.grid?.buildings.find(building => building.id === 'facility-2')?.level).toBe(2);
+    expect(() => upgradeCareerFacility(levelTwo, 'facility-2'))
       .toThrow('Level 3 facilities unlock in D2 · National Championship');
 
     const d2 = { ...levelTwo, m2: { ...levelTwo.m2!, highestDivisionReached: 2 as const } };
-    const levelThree = completeProject(upgradeCareerFacility(d2, 'facility-1').state);
-    expect(levelThree.facilities.grid?.buildings[0].level).toBe(3);
+    const levelThree = completeProject(upgradeCareerFacility(d2, 'facility-2').state);
+    expect(levelThree.facilities.grid?.buildings.find(building => building.id === 'facility-2')?.level).toBe(3);
   });
 
   test('keeps M1 training-ground compatibility while storing the M2 grid', () => {

@@ -56,7 +56,9 @@ const replayPlayerSchema = z
     power: z.enum([
       'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
       'MAGNET_TOUCH', 'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+      'RALLY_CRY', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'GIANT_GK', 'GUST',
     ]).optional().transform(power => (power === 'MAGNET_TOUCH' ? 'PORTAL_PASS' as const : power)),
+    powerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
   })
   .passthrough()
   .superRefine((player, context) => {

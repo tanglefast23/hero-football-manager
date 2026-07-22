@@ -4,6 +4,7 @@ import {
   coachMotivatorStrengthHalfLevels,
   coachTrainingBonusPercent,
   careerCoachTrainingModifiers,
+  careerCoachWeeklyTrainingPoints,
   careerCoachWageLedgerAmount,
 } from '../coach-weekly';
 import type { CareerMarketState } from '../market-career';
@@ -79,6 +80,16 @@ describe('career coach weekly effects', () => {
     const market = marketWithCoach(['ATTACK', 'FITNESS'], 3, 1_500);
 
     expect(careerCoachWageLedgerAmount(market)).toBe(-1_500);
+  });
+
+  test('creates stable weekly TP from employed head and assistant coaches', () => {
+    const market = marketWithCoach(['ATTACK', 'FITNESS'], 3);
+    expect(careerCoachWeeklyTrainingPoints(market)).toBe(16);
+    expect(careerCoachWeeklyTrainingPoints({
+      ...market,
+      assistantCoach: { ...market.headCoach!, id: 'assistant-test', level: 2 },
+    })).toBe(23);
+    expect(careerCoachWeeklyTrainingPoints({ ...market, headCoach: undefined })).toBe(0);
   });
 
   test('applies +10% per quality level only to attributes in either specialty', () => {

@@ -15,14 +15,14 @@ Session math: a match week ≈ 3–6 minutes (watched) or ~90 seconds (simmed). 
 
 | Phase | Weeks | What happens |
 |---|---|---|
-| Pre-season | 4 | Contract renewals, sponsor negotiations, friendlies (small income, safe TP), 1–2 scouting windows |
+| Pre-season | 4 | Contract renewals, sponsor negotiations, friendlies, 1–2 scouting windows |
 | League + Cup | 24 | 18 league matches (10-team division, home/away) + National Cup knockout rounds woven between; transfer window mid-season (2 weeks) |
 | Post-season | 2 | Prize money, awards (Golden Boot, Hero of the Season), aging & retirements, promotion/relegation, season recap |
 
 ## The pyramid (long-term goal ladder)
 
-- **D5 · District League → D4 · County League → D3 · Regional League → D2 · National Championship → D1 · Global League**: 10 teams each; top 2 promoted, bottom 2 relegated. Each division up means better sponsors, bigger gates, stronger opponents — and more opposing heroes. Global League clubs begin around 84–92 strength and can rise toward 92–99 across a long career; 100 remains exceptional rather than routine.
-- **National Cup**: all-divisions knockout, entered every season. Giant-killing = big prize + fame spikes.
+- **D5 · District League → D4 · County League → D3 · Regional League → D2 · National Championship → D1 · Global League**: 10 teams each; top 2 promoted, bottom 2 relegated. Opening strength bands are contiguous: D5 40–50, D4 50–60, D3 60–70, D2 70–80, and D1 80–90. A new club begins at 40, at the bottom of D5, against opponents spread from 42–50. The first five league opponents deliberately bend the curve toward the player: 50 at home, 45 away, 46 at home, 43 away, then 42 at home. The apparent one-point rise in match three accounts for the alternating venue, avoiding the old weakest-opponent spike and match-four rebound. Each division up means better sponsors, bigger gates, stronger opponents — and more opposing heroes.
+- **National Cup**: all-divisions knockout, entered every season. Its first settlement is around Week 10, after the opening league run. The draw is seeded by division: higher-division clubs are separated where possible and the strongest clubs receive the opening byes. Giant-killing = big prize + fame spikes.
 - **Career victory**: win D1 · Global League to complete the main climb. Endless play continues afterward, and a score recap (Kairosoft-style) shows after Season 10 regardless of progress; nothing ends.
 
 Promotion rewards are permanent: relegation changes the current opposition, not the club knowledge and infrastructure already earned.

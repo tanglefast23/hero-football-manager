@@ -48,16 +48,13 @@ describe('watch-match AUTO power control', () => {
     expect(match.inputLog).toEqual([{ tick: 1, kind: 'POWER_TAP', player: SPEEDSTER }]);
   });
 
-  it('waits behind a busy teammate, then queues the frozen Zone as soon as the team is free', () => {
+  it('queues a second teammate while another power is active', () => {
     const match = createMatch(42, ROVERS, UNITED);
     match.players[TORCH].powerState = { kind: 'active', untilTick: 1, strength: 1 };
     match.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
 
-    expect(queueAutoPowerTap(match)).toBeNull();
-    tick(match);
-    expect(match.players[TORCH].powerState.kind).toBe('idle');
     expect(queueAutoPowerTap(match)).toBe(SPEEDSTER);
-    expect(match.inputLog.at(-1)).toEqual({ tick: 2, kind: 'POWER_TAP', player: SPEEDSTER });
+    expect(match.inputLog.at(-1)).toEqual({ tick: 1, kind: 'POWER_TAP', player: SPEEDSTER });
   });
 
   it('skips a knocked-down zoned hero and activates the next available teammate', () => {

@@ -9,7 +9,7 @@ import type { FixtureResult, GameState } from '../types';
 
 function fullCareerAtPlayIn(seed = 2): GameState {
   const career = createCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'));
-  return { ...career, week: 5, phase: 'matchday' };
+  return { ...career, week: 10, phase: 'matchday' };
 }
 
 function leagueDraws(state: GameState): FixtureResult[] {
@@ -48,7 +48,7 @@ describe('player-controlled National Cup match flow', () => {
     const afterLeague = completeMatchday(initial, leagueDraws(initial));
     const cupMatchday = activeCareerMatchday(afterLeague);
 
-    expect(afterLeague).toMatchObject({ week: 5, phase: 'matchday', ledgers: [] });
+    expect(afterLeague).toMatchObject({ week: 10, phase: 'matchday', ledgers: [] });
     expect(cupMatchday).toMatchObject({
       kind: 'national-cup',
       cupRoundLabel: 'Play-in',
@@ -68,7 +68,7 @@ describe('player-controlled National Cup match flow', () => {
     const settled = completeMatchday(afterLeague, [userWin]);
     const resolvedRound = settled.m2!.nationalCups[0].rounds[0];
 
-    expect(settled).toMatchObject({ week: 6, phase: 'manage' });
+    expect(settled).toMatchObject({ week: 11, phase: 'manage' });
     expect(resolvedRound.fixtures.every(fixture => fixture.status === 'played')).toBe(true);
     expect(resolvedRound.fixtures.find(fixture => fixture.id === cupFixture.id)).toMatchObject({
       winnerClubId: settled.userClubId,

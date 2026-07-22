@@ -1,5 +1,5 @@
 import type { LaunchContent } from '../content';
-import type { CareerPlayer, GameState } from '../game';
+import { chargeableCareerTrainingPlan, type CareerPlayer, type GameState } from '../game';
 
 export type TrainingActivityId =
   | 'sprints'
@@ -45,11 +45,16 @@ export function trainingTransitionScene(
   const roster = state.players.filter(player => player.clubId === state.userClubId);
   const plan = state.trainingPlan;
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  const moneyCost = plan?.drills.reduce((sum, drill) => sum + drill.moneyCost, 0) ?? 0;
-  const trainingPointCost = plan?.drills.reduce((sum, drill) => sum + drill.tpCost, 0) ?? 0;
+  const chargeable = plan === undefined
+    ? undefined
+    : chargeableCareerTrainingPlan(state, plan.assignedPlayerIds, plan.drills);
+  const activeDrills = chargeable?.drills ?? [];
+  const moneyCost = chargeable?.moneyCost ?? 0;
+  const trainingPointCost = chargeable?.trainingPointCost ?? 0;
   const planIsActive = plan !== undefined
     && plan.assignedPlayerIds.length > 0
     && plan.drills.length > 0
+    && activeDrills.length > 0
     && club !== undefined
     && moneyCost <= Math.max(0, club.cash)
     && trainingPointCost <= state.trainingPoints;
@@ -65,12 +70,12 @@ export function trainingTransitionScene(
 
   if (assigned.length === 0) return genericScene(roster);
 
-  const drillLabels = plan.drills.map(drill => drillsById.get(drill.id)?.name ?? drill.id);
+  const drillLabels = activeDrills.map(drill => drillsById.get(drill.id)?.name ?? drill.id);
   return {
     mode: 'plan',
     drillLabels,
     participants: assigned.map((player, participantIndex) => {
-      const drill = plan.drills[participantIndex % plan.drills.length];
+      const drill = activeDrills[participantIndex % activeDrills.length];
       return {
         playerId: player.id,
         playerName: player.name,
@@ -101,7 +106,9 @@ function genericScene(roster: readonly CareerPlayer[]): TrainingTransitionScene 
 }
 
 function activityIdFor(drillId: string): TrainingActivityId {
-  return ACTIVITY_IDS.has(drillId as TrainingActivityId)
-    ? drillId as TrainingActivityId
+  const pathId = drillId.replace(/-(?:ii|iii)$/, '');
+  if (pathId === 'first-touch') return 'rondo';
+  return ACTIVITY_IDS.has(pathId as TrainingActivityId)
+    ? pathId as TrainingActivityId
     : 'generic';
 }

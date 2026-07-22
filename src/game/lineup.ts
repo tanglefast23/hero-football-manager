@@ -85,6 +85,10 @@ export function buildTeamDef(
     if (player.licensed && !player.power) {
       throw new Error(`Licensed player ${player.id} must own a power`);
     }
+    if (player.powerTier !== undefined
+      && (!Number.isSafeInteger(player.powerTier) || player.powerTier < 1 || player.powerTier > 3)) {
+      throw new Error(`Player ${player.id} power tier must be an integer from 1 to 3`);
+    }
   }
 
   const goalkeepers = lineup.filter(player => player.role === 'GK');
@@ -113,7 +117,9 @@ export function buildTeamDef(
     role: player.role,
     ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
     attrs: matchAttrsAtMorale(player.attrs, player.morale),
-    ...(player.licensed && player.power ? { power: player.power } : {}),
+    ...(player.licensed && player.power
+      ? { power: player.power, powerTier: player.powerTier ?? 1 as const }
+      : {}),
   });
   const bench = roster.filter(player =>
     !lineupIdSet.has(player.id)

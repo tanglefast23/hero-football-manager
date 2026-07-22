@@ -120,7 +120,7 @@
       "name": "Rally Cry",
       "tier": "standard",
       "category": "attack",
-      "description": "Roar the nearby squad forward — their power meters fill far faster.",
+      "description": "Roar the nearby squad forward — their power meters fill far faster. Awakens only once the club has another powered teammate.",
       "usefulContext": "TEAMMATES_READY",
       "requiresTarget": false,
       "windupTicks": 15
@@ -162,6 +162,16 @@
       "category": "defense",
       "description": "Swell to fill the goalmouth for the whole attack.",
       "usefulContext": "SHOT_INCOMING",
+      "requiresTarget": true,
+      "windupTicks": 15
+    },
+    {
+      "id": "GUST",
+      "name": "Gust",
+      "tier": "standard",
+      "category": "defense",
+      "description": "Whip the opponent's next pass off course and leave the ball loose.",
+      "usefulContext": "EXPECTED_PASS",
       "requiresTarget": true,
       "windupTicks": 15
     }

@@ -1,10 +1,9 @@
 import { queueInput } from '../sim/match';
-import { teamPowerBusy } from '../sim/powers';
 import type { MatchState } from '../sim/types';
 
 /** Queue the earliest legal controlled-team Zone as a normal, replay-recorded tap. */
 export function queueAutoPowerTap(state: MatchState, controlledTeam: 0 | 1 = 0): number | null {
-  if (state.phase === 'fulltime' || teamPowerBusy(state, controlledTeam)) return null;
+  if (state.phase === 'fulltime') return null;
 
   // A manual tap already queued for the next tick wins. This also prevents
   // AUTO from adding duplicate replay inputs between render frames.

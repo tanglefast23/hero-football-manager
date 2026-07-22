@@ -2,7 +2,7 @@ import { BLEND_TICKS, blendedTableTarget, gkTarget, kickoffPos } from './movemen
 import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, HALF_TICKS, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest, contestProbability } from './contest';
-import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, STRENGTH_LOCK_RANGE, futureSightInterceptor, iceRinkSlow, isShadowMarked } from './powers';
+import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, STRENGTH_LOCK_RANGE, futureSightInterceptor, gustDisruptsPass, iceRinkSlow, isShadowMarked } from './powers';
 import { energyDrainMultiplier, energyMovementMultiplier, formationTarget, mentalityTarget, type EnergyUse } from './tactics';
 import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 
@@ -25,12 +25,16 @@ const SLIDE_CONTACT_RANGE = 50;
 // Frequent actions stay cheap on purpose: a completed pass paid even 3 Heat
 // would let a midfielder making 40 passes out-charge every striker.
 export const SHOT_GAUGE = 20;
-export const SAVE_GAUGE = 20;
+export const SAVE_GAUGE = 30;
+export const MISS_GAUGE = 10;
+export const GOALKEEPER_DISTRIBUTION_GAUGE = 5;
 export const TACKLE_WON_GAUGE = 18;
 export const INTERCEPTION_GAUGE = 12;
 export const LOOSE_BALL_GAUGE = 8;
 export const TACKLE_ATTEMPT_GAUGE = 3;
 export const PASS_RECEIVED_GAUGE = 2;
+export const FAILED_PASS_LOOSE_CHANCE = 0.35;
+const FAILED_PASS_DEFLECTION_SPEED = 240;
 
 export function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;
@@ -197,7 +201,8 @@ function targetFor(state: MatchState, i: number, mv: MovementState, presserIdx: 
   const isCarrier = state.ball.kind === 'held' && state.ball.by === i;
   const chargeTarget = p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined
     ? state.players[p.powerState.targetIdx].pos : null;
-  const strengthZoneTarget = p.powerState.kind === 'zone' && p.def.power === 'SUPER_STRENGTH'
+  const strengthZoneTarget = (p.powerState.kind === 'zone' || p.powerState.kind === 'armed')
+    && p.def.power === 'SUPER_STRENGTH'
     && state.ball.kind === 'held' && state.players[state.ball.by].team !== p.team
     && dist2(state.players[state.ball.by].pos, p.pos) < STRENGTH_ZONE_APPROACH_RANGE * STRENGTH_ZONE_APPROACH_RANGE
     ? state.players[state.ball.by].pos : null;
@@ -521,6 +526,7 @@ function passContestInputs(state: MatchState, from: number, to: number): { proba
   const laneRelief = clamp(Math.trunc((clearance - 200) / 80), 0, 8);
   const hidden = isShadowMarked(state, interceptor);
   const interceptStat = Math.max(1, effectiveStat(state, interceptor, 'def')
+    + defenseBonus(state, interceptor)
     - (hidden ? 0 : spaceRelief + laneRelief));
   return {
     probability: contestProbability(effectiveStat(state, from, 'pas'), interceptStat, 10),
@@ -658,7 +664,15 @@ export function possessionTick(state: MatchState): void {
       // A recipient (or interceptor) knocked out mid-flight can't receive the ball
       // unconscious (the audit's phantom-pass bug) — it goes loose at the arrival
       // point instead, same as a failed pass with no interceptor.
-      if ((b.willSucceed || b.interceptor !== -1) && isAvailable(state, targetIdx)) {
+      if (b.looseOnArrival) {
+        state.ball = {
+          kind: 'loose',
+          pos: { ...b.pos },
+          vel: b.deflectionVel === undefined ? { x: 0, y: 0 } : { ...b.deflectionVel },
+          z: b.z,
+          vz: b.vz,
+        };
+      } else if ((b.willSucceed || b.interceptor !== -1) && isAvailable(state, targetIdx)) {
         state.ball = { kind: 'held', by: targetIdx };
         // Reading and cutting out a pass is a midfielder's decisive act, the way
         // a shot is a forward's. Paying it the same 2 Heat as simply being passed
@@ -677,7 +691,10 @@ export function possessionTick(state: MatchState): void {
   if (b.releaseAfterTick !== undefined) {
     if (state.tick < b.releaseAfterTick) return;
     const option = bestPassOption(state, b.by);
-    if (option !== null) launchPass(state, b.by, option.to, true);
+    if (option !== null) {
+      addGauge(state, b.by, GOALKEEPER_DISTRIBUTION_GAUGE);
+      launchPass(state, b.by, option.to, true);
+    }
     else state.ball = { kind: 'held', by: b.by };
     return;
   }
@@ -702,9 +719,13 @@ export function launchPass(state: MatchState, from: number, to: number, lofted: 
   const passer = state.players[from];
   const inputs = passContestInputs(state, from, to);
   const rolledOk = contest(state.rng, effectiveStat(state, from, 'pas'), inputs.interceptStat, 10);
-  const predictedInterceptor = futureSightInterceptor(state, passer.team, to);
-  const ok = predictedInterceptor === -1 ? rolledOk : false;
-  const interceptor = predictedInterceptor === -1 ? inputs.interceptor : predictedInterceptor;
+  const gusted = gustDisruptsPass(state, passer.team);
+  const predictedInterceptor = gusted ? -1 : futureSightInterceptor(state, passer.team, to);
+  const ok = !gusted && predictedInterceptor === -1 ? rolledOk : false;
+  const interceptor = gusted ? -1 : (predictedInterceptor === -1 ? inputs.interceptor : predictedInterceptor);
+  const ordinaryLoose = !ok && !gusted && predictedInterceptor === -1
+    && interceptor !== -1 && state.rng() < FAILED_PASS_LOOSE_CHANCE;
+  const looseOnArrival = gusted || (!ok && (interceptor === -1 || ordinaryLoose));
   const targetIdx = ok ? to : (interceptor !== -1 ? interceptor : to);
   const target = state.players[targetIdx].pos;
   const horizontalDistance = dist(passer.pos, target);
@@ -725,6 +746,19 @@ export function launchPass(state: MatchState, from: number, to: number, lofted: 
     z: 0,
     vz: lofted ? verticalLaunchSpeed(flightTicks, 0) : 0,
     speed,
+    looseOnArrival,
+    deflectionVel: looseOnArrival ? passDeflectionVelocity(passer.pos, target, from, to, state.tick) : undefined,
+  };
+}
+
+function passDeflectionVelocity(from: Vec, target: Vec, fromIdx: number, toIdx: number, tick: number): Vec {
+  const dx = target.x - from.x;
+  const dy = target.y - from.y;
+  const length = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+  const side = (fromIdx + toIdx + tick) % 2 === 0 ? 1 : -1;
+  return {
+    x: Math.round((-dy / length) * FAILED_PASS_DEFLECTION_SPEED * side),
+    y: Math.round((dx / length) * FAILED_PASS_DEFLECTION_SPEED * side),
   };
 }
 
@@ -914,7 +948,7 @@ export function tackleTick(state: MatchState): void {
 export function shotBonus(state: MatchState, by: number): number {
   const player = state.players[by];
   return player.powerState.kind === 'active' && player.def.power === 'THUNDER_STRIKE'
-    ? Math.round(65 * player.powerState.strength)
+    ? Math.round(70 * player.powerState.strength)
     : 0;
 }
 
@@ -993,6 +1027,7 @@ export function shotFlightTick(state: MatchState): void {
 
   if (!onTarget) {
     emit(state, { t: state.tick, kind: 'MISS', by: b.by });
+    if (isAvailable(state, gkIdx)) addGauge(state, gkIdx, MISS_GAUGE);
     restartKickoff(state, defendingTeam);
     return;
   }

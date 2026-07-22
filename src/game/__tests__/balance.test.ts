@@ -18,7 +18,9 @@ const LAUNCH_SCENARIO: MiniBalanceScenario = {
         + (club.id === 'bramble-rovers' ? CREATED_PLAYER_ROOKIE_WAGE : 0),
     })),
   },
-  representativeDrills: content.training.focusDrills.slice(0, 3),
+  representativeDrills: content.training.focusDrills.filter(drill =>
+    ['sprints', 'finishing', 'rondo'].includes(drill.id),
+  ),
   spendingPolicy: {
     trainingGroundCost: 8000,
     assignedPlayerIds: ['bramble-rovers-p13'],
@@ -43,18 +45,18 @@ describe('M1 mini balance harness', () => {
   test('keeps Season-1 Cozy bankruptcy below the two-percent design promise', () => {
     const metrics = runMiniBalanceHarness(LAUNCH_SCENARIO);
 
-    expect(metrics.meanSeasonOneDiscretionarySpend).toBe(20000);
+    expect(metrics.meanSeasonOneDiscretionarySpend).toBe(14800);
     expect(metrics.seasonOneBankruptcyRate)
       .toBeLessThan(MINI_BALANCE_RAILS.maximumSeasonOneBankruptcyRate);
   });
 
-  test('keeps match-week TP income near two representative focus drills', () => {
+  test('creates the Level-1 Training Pitch TP every settled week after construction', () => {
     const metrics = runMiniBalanceHarness(LAUNCH_SCENARIO);
 
-    expect(metrics.meanAffordableFocusDrillsPerMatchWeek)
-      .toBeGreaterThanOrEqual(MINI_BALANCE_RAILS.minimumAffordableFocusDrillsPerMatchWeek);
-    expect(metrics.meanAffordableFocusDrillsPerMatchWeek)
-      .toBeLessThanOrEqual(MINI_BALANCE_RAILS.maximumAffordableFocusDrillsPerMatchWeek);
+    expect(metrics.meanAmbientTrainingPointsPerWeek)
+      .toBeGreaterThanOrEqual(MINI_BALANCE_RAILS.minimumMeanAmbientTrainingPointsPerWeek);
+    expect(metrics.meanAmbientTrainingPointsPerWeek)
+      .toBeLessThanOrEqual(MINI_BALANCE_RAILS.maximumMeanAmbientTrainingPointsPerWeek);
   });
 
   test('models the shipped post-match chance without a hidden pity guarantee', () => {

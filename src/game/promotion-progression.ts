@@ -102,6 +102,33 @@ export function facilityUpgradeBlockedReason(
   return `Level ${targetLevel} facilities unlock in ${divisionTierLabel(facilityLevelUnlockDivision(targetLevel))}.`;
 }
 
+export type TrainingDrillTier = 1 | 2 | 3;
+
+export function trainingDrillTier(drillId: string): TrainingDrillTier {
+  if (drillId.endsWith('-iii')) return 3;
+  if (drillId.endsWith('-ii')) return 2;
+  return 1;
+}
+
+export function trainingDrillUnlockDivision(tier: TrainingDrillTier): DivisionLevel {
+  if (tier === 1) return 5;
+  return tier === 2 ? 4 : 2;
+}
+
+/** Drill unlocks are permanent once their division has been reached. */
+export function trainingDrillBlockedReason(
+  state: GameState,
+  drillId: string,
+): string | undefined {
+  // The short M1 slice predates the league pyramid and retains its authored
+  // training catalog. The shipped full career uses permanent division unlocks.
+  if (state.careerMode !== 'full' || state.m2 === undefined) return undefined;
+  const tier = trainingDrillTier(drillId);
+  const requiredDivision = trainingDrillUnlockDivision(tier);
+  if (highestDivisionReached(state) <= requiredDivision) return undefined;
+  return `Tier ${tier} drills unlock in ${divisionTierLabel(requiredDivision)}.`;
+}
+
 export function promotionRewardsForDivision(
   division: DivisionLevel,
 ): readonly PromotionReward[] {

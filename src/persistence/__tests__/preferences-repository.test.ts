@@ -23,7 +23,7 @@ describe('app preferences repository', () => {
       masterVolume: 0.5 as const,
       reduceMotion: true,
       hudSide: 'right' as const,
-      seenPowerCutIns: ['SUPER_SPEED', 'WEB_TRAP'],
+      seenPowerCutIns: ['SUPER_SPEED', 'WEB_TRAP', 'GUST'],
     };
     await repository.save(preferences);
     await expect(repository.load()).resolves.toEqual(preferences);

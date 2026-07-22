@@ -1,13 +1,9 @@
-import { powerCutInDurationMs, powerCutInPresentation, shouldShowFullPowerCutIn } from '../power-cut-in';
-import type { PowerId } from '../../sim/types';
+import { appendNewestFour, powerCutInDurationMs, powerCutInGroupPolicy, powerCutInPresentation, powerCutInTileWidth, powerOverlayPath, shouldShowFullPowerCutIn } from '../power-cut-in';
+import { LAUNCH_POWER_IDS } from '../../game/power-catalog';
 
 describe('M4 power cut-in policy', () => {
   it('has readable comic presentation for every shipped power', () => {
-    const powers: PowerId[] = [
-      'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-      'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
-    ];
-    for (const power of powers) {
+    for (const power of LAUNCH_POWER_IDS) {
       expect(powerCutInPresentation(power)).toMatchObject({
         name: expect.any(String),
         glyph: expect.any(String),
@@ -17,10 +13,6 @@ describe('M4 power cut-in policy', () => {
   });
 
   it('uses only colors from the locked master art palette', () => {
-    const powers: PowerId[] = [
-      'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-      'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
-    ];
     const allowed = new Set([
       '#5b3a91', '#9a63d6', '#c9a6ec',
       '#a83440', '#d94f52', '#f2938c',
@@ -31,7 +23,7 @@ describe('M4 power cut-in policy', () => {
       '#241f2e', '#f4f1ea', '#ffffff',
     ]);
 
-    for (const power of powers) {
+    for (const power of LAUNCH_POWER_IDS) {
       expect(allowed.has(powerCutInPresentation(power).color)).toBe(true);
     }
   });
@@ -41,5 +33,42 @@ describe('M4 power cut-in policy', () => {
     expect(shouldShowFullPowerCutIn('banner', false)).toBe(false);
     expect(shouldShowFullPowerCutIn('full', true)).toBe(false);
     expect(powerCutInDurationMs(false)).toBeGreaterThan(powerCutInDurationMs(true));
+  });
+
+  it('lays out one full tile, two halves, two-up-one-down, and a 2x2 grid', () => {
+    expect([powerCutInTileWidth(1, 0)]).toEqual(['100%']);
+    expect([0, 1].map(index => powerCutInTileWidth(2, index))).toEqual(['50%', '50%']);
+    expect([0, 1, 2].map(index => powerCutInTileWidth(3, index))).toEqual(['50%', '50%', '100%']);
+    expect([0, 1, 2, 3].map(index => powerCutInTileWidth(4, index))).toEqual(['50%', '50%', '50%', '50%']);
+  });
+
+  it('selects own-team tiles and routes rivals or reduced presentation to banners', () => {
+    expect(powerOverlayPath('full', false, 0, 0)).toBe('tile');
+    expect(powerOverlayPath('full', false, 1, 0)).toBe('banner');
+    expect(powerOverlayPath('banner', false, 0, 0)).toBe('banner');
+    expect(powerOverlayPath('full', true, 0, 0)).toBe('banner');
+  });
+
+  it('keeps the newest four overlays', () => {
+    const result = [1, 2, 3, 4, 5].reduce<number[]>(appendNewestFour, []);
+    expect(result).toEqual([2, 3, 4, 5]);
+  });
+
+  it('keeps a mixed first-reveal group paused and unskippable', () => {
+    expect(powerCutInGroupPolicy([])).toEqual({
+      shouldPause: false,
+      skippable: false,
+      durationMs: powerCutInDurationMs(false),
+    });
+    expect(powerCutInGroupPolicy([{ skippable: true }, { skippable: false }])).toEqual({
+      shouldPause: true,
+      skippable: false,
+      durationMs: powerCutInDurationMs(false),
+    });
+    expect(powerCutInGroupPolicy([{ skippable: true }, { skippable: true }])).toEqual({
+      shouldPause: true,
+      skippable: true,
+      durationMs: powerCutInDurationMs(true),
+    });
   });
 });

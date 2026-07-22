@@ -168,6 +168,15 @@ describe('M2 National Cup integration', () => {
     expect(initial.nationalCups).toEqual([]);
     expect(started.nationalCups[0].rounds[0].entrantClubIds).toContain(USER_CLUB.id);
     expect(started.nationalCups[0].rounds[0].entrantClubIds).toHaveLength(50);
+    const seededCup = started.nationalCups[0];
+    const divisionByClubId = seededCup.seedDivisionByClubId!;
+    expect(seededCup.rounds[0].byeClubIds.map(clubId => divisionByClubId[clubId]).sort())
+      .toEqual([...Array(10).fill(1), ...Array(4).fill(2)]);
+    expect(seededCup.rounds[0].byeClubIds).not.toContain(USER_CLUB.id);
+    for (const fixture of seededCup.rounds[0].fixtures) {
+      const divisions = [divisionByClubId[fixture.homeClubId], divisionByClubId[fixture.awayClubId]];
+      expect(Math.max(...divisions) - Math.min(...divisions)).toBeLessThanOrEqual(1);
+    }
     expect(advanced.nationalCups[0].rounds).toHaveLength(2);
     expect(JSON.stringify(started)).toBe(before);
 

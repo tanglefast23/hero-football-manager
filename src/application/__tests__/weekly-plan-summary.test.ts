@@ -7,16 +7,29 @@ import { squadTrainingViewModel } from '../view-models';
 
 describe('saved weekly-plan summary', () => {
   const content = loadLaunchContent();
-  const drills = content.training.focusDrills.slice(0, 2);
+  const drills = content.training.focusDrills.filter(drill => (
+    drill.id === 'sprints' || drill.id === 'finishing'
+  ));
 
   function plannedCareer() {
     const initial = createCareer(createLaunchCareerSetup(20260720, undefined, content));
     const players = initial.players
       .filter(player => player.clubId === initial.userClubId)
       .slice(0, 2);
+    const prepared = {
+      ...initial,
+      players: initial.players.map(player => players.some(trainee => trainee.id === player.id)
+        ? {
+            ...player,
+            potential: 5 as const,
+            potentialCeiling: 99,
+            attrs: { ...player.attrs, pac: 20, sho: 20 },
+          }
+        : player),
+    };
     return {
       players,
-      state: applyCareerTraining(initial, players.map(player => player.id), drills),
+      state: applyCareerTraining(prepared, players.map(player => player.id), drills),
     };
   }
 
@@ -38,7 +51,7 @@ describe('saved weekly-plan summary', () => {
         ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
       })),
       drills: drills.map(drill => ({ id: drill.id, name: drill.name })),
-      moneyCost: drills.reduce((sum, drill) => sum + drill.moneyCost, 0),
+      moneyCost: drills.reduce((sum, drill) => sum + drill.moneyCost, 0) * players.length,
       trainingPointCost: drills.reduce((sum, drill) => sum + drill.tpCost, 0),
     });
   });

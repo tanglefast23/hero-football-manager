@@ -4,6 +4,7 @@ export interface ProgressionPlayer {
   readonly id: string;
   readonly attrs: Readonly<Attrs>;
   readonly power?: PowerId;
+  readonly powerTier?: 1 | 2 | 3;
   readonly licensed: boolean;
   readonly weeklyWage: number;
   readonly onHeroWage: boolean;

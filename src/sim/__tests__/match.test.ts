@@ -79,6 +79,29 @@ describe('match skeleton', () => {
       )),
     };
     expect(() => createMatch(1, extraGoalkeeper, UNITED)).toThrow('exactly one goalkeeper');
+
+    const invalidPowerTier = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => (
+        index === 10 ? { ...player, powerTier: 4 as 3 } : player
+      )),
+    };
+    expect(() => createMatch(1, invalidPowerTier, UNITED)).toThrow('invalid power tier');
+  });
+
+  it('preserves power tiers in a valid, runnable replay envelope', () => {
+    const home = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => (
+        index === 10 ? { ...player, powerTier: 3 as const } : player
+      )),
+    };
+    const match = createMatch(12, home, UNITED);
+    const envelope = envelopeFrom(match);
+
+    expect(envelope.home.players[10].powerTier).toBe(3);
+    expect(() => validateEnvelope(envelope)).not.toThrow();
+    expect(() => runReplay(envelope)).not.toThrow();
   });
 
   it('createMatch deep-copies teams: mutating the source cannot affect a running match', () => {

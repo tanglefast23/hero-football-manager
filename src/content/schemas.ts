@@ -19,6 +19,7 @@ export const PowerIdSchema = z.enum([
   'SHADOW_MARK',
   'GRAVITY_WELL',
   'GIANT_GK',
+  'GUST',
 ]);
 export const AttributeSchema = z.enum(['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref']);
 export const ArchetypeSchema = z.enum([
@@ -301,7 +302,30 @@ const DrillGainsSchema = z.strictObject({
   tec: z.number().int().min(1).max(9).optional(),
   sta: z.number().int().min(1).max(9).optional(),
   ref: z.number().int().min(1).max(9).optional(),
-}).refine(gains => Object.keys(gains).length > 0, 'a drill must improve at least one attribute');
+}).refine(gains => Object.keys(gains).length === 1, 'a drill must improve exactly one attribute');
+
+const FOCUS_DRILL_PATHS = [
+  { id: 'sprints', name: 'Sprints', attribute: 'pac' },
+  { id: 'finishing', name: 'Finishing', attribute: 'sho' },
+  { id: 'rondo', name: 'Rondo', attribute: 'pas' },
+  { id: 'duels', name: 'Duels', attribute: 'def' },
+  { id: 'first-touch', name: 'First Touch', attribute: 'tec' },
+  { id: 'circuit', name: 'Circuit', attribute: 'sta' },
+  { id: 'keeper-drills', name: 'Keeper Drills', attribute: 'ref' },
+] as const;
+const FOCUS_DRILL_TIERS = [
+  { suffix: '', label: 'I', gain: 3 },
+  { suffix: '-ii', label: 'II', gain: 5 },
+  { suffix: '-iii', label: 'III', gain: 8 },
+] as const;
+const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap(path => (
+  FOCUS_DRILL_TIERS.map(tier => ({
+    id: `${path.id}${tier.suffix}`,
+    name: `${path.name} ${tier.label}`,
+    attribute: path.attribute,
+    gain: tier.gain,
+  }))
+));
 
 export const TrainingDrillSchema = z.strictObject({
   id: idSchema,
@@ -315,7 +339,7 @@ export const TrainingCatalogSchema = z.strictObject({
   schemaVersion: ContentSchemaVersion,
   maxFocusDrillsPerWeek: z.literal(3),
   baseConditioning: TrainingDrillSchema,
-  focusDrills: z.array(TrainingDrillSchema).length(6),
+  focusDrills: z.array(TrainingDrillSchema).length(21),
 }).superRefine((catalog, context) => {
   addDuplicateIssues(
     [catalog.baseConditioning.id, ...catalog.focusDrills.map(drill => drill.id)],
@@ -323,6 +347,40 @@ export const TrainingCatalogSchema = z.strictObject({
     ['focusDrills'],
     'drill ID',
   );
+  const expectedById = new Map(EXPECTED_FOCUS_DRILLS.map(drill => [drill.id, drill]));
+  catalog.focusDrills.forEach((drill, index) => {
+    const expected = expectedById.get(drill.id);
+    if (expected === undefined) {
+      addIssue(
+        context,
+        ['focusDrills', index, 'id'],
+        'focus drill ID must identify one of the seven I/II/III drill paths',
+      );
+      return;
+    }
+    if (drill.name !== expected.name) {
+      addIssue(
+        context,
+        ['focusDrills', index, 'name'],
+        `${drill.id} must be named ${expected.name}`,
+      );
+    }
+    const gains = Object.entries(drill.gains);
+    if (gains.length === 1 && (
+      gains[0][0] !== expected.attribute || gains[0][1] !== expected.gain
+    )) {
+      addIssue(
+        context,
+        ['focusDrills', index, 'gains'],
+        `${drill.id} must grant exactly +${expected.gain} ${expected.attribute.toUpperCase()}`,
+      );
+    }
+  });
+  for (const expected of EXPECTED_FOCUS_DRILLS) {
+    if (!catalog.focusDrills.some(drill => drill.id === expected.id)) {
+      addIssue(context, ['focusDrills'], `missing focus drill ${expected.id}`);
+    }
+  }
 });
 
 const EventEffectSchema = z.discriminatedUnion('type', [

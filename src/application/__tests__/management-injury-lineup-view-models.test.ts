@@ -329,7 +329,7 @@ describe('management injury and lineup presentation', () => {
     expect(inbox.map(alert => alert.guideSequenceId)).toEqual([
       'head-coach-market',
       'scout-mission',
-      'facility-placement',
+      'youth-intake',
     ]);
   });
 

@@ -1,7 +1,9 @@
 import { createLaunchCareerSetup } from '../../application/launch';
+import { loadLaunchContent } from '../../content';
 import { advanceWeek, createCareer } from '../career';
 import { buildCareerFacility } from '../management';
-import { advanceFacilityConstruction } from '../facilities';
+import { advanceFacilityConstruction, createFacilityGrid } from '../facilities';
+import { setCareerTrainingPlan } from '../training';
 import type { GameState } from '../types';
 
 function userCash(state: ReturnType<typeof createCareer>): number {
@@ -11,8 +13,50 @@ function userCash(state: ReturnType<typeof createCareer>): number {
 }
 
 describe('facility weekly integration', () => {
+  test('starts a full career with an open Level 1 pitch and bridges four basic training weeks', () => {
+    const content = loadLaunchContent();
+    const fresh = createCareer(createLaunchCareerSetup(20260718, undefined, content, 'full'));
+    const player = fresh.players.find(candidate => candidate.clubId === fresh.userClubId)!;
+    const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
+    let state = setCareerTrainingPlan({
+      ...fresh,
+      players: fresh.players.map(candidate => candidate.id === player.id
+        ? {
+            ...candidate,
+            age: 25,
+            archetype: 'Speedster' as const,
+            potential: 5 as const,
+            potentialCeiling: 99,
+            attrs: { ...candidate.attrs, pac: 20 },
+          }
+        : candidate),
+    }, [player.id], [sprint]);
+
+    expect(state.trainingPoints).toBe(30);
+    expect(state.facilities).toMatchObject({
+      trainingGroundBuilt: true,
+      grid: {
+        buildings: [{ type: 'training-pitch', level: 1 }],
+      },
+    });
+    expect(state.facilities.grid?.construction).toBeUndefined();
+
+    const balances = [state.trainingPoints];
+    for (let week = 0; week < 4; week += 1) {
+      state = advanceWeek(state);
+      balances.push(state.trainingPoints);
+    }
+
+    // Sprints I costs 10 TP once, then the open pitch adds 5 TP.
+    expect(balances).toEqual([30, 25, 20, 15, 10]);
+    expect(state.ledgers.map(ledger => ledger.lines.find(line => line.kind === 'training')?.amount))
+      .toEqual([-400, -400, -400, -400]);
+  });
+
   test('starts without benefits, then activates upkeep and ambient TP after completion', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
+    const initial = withoutStartingPitch(
+      createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full')),
+    );
     const built = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
     const cashBeforeSettlement = userCash(built);
 
@@ -34,8 +78,33 @@ describe('facility weekly integration', () => {
     expect(userCash(settled)).toBe(cashBeforeSettlement + completionNet + activeNet);
   });
 
+  test('scales Training Pitch TP with the completed facility level', () => {
+    const initial = withoutStartingPitch(
+      createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full')),
+    );
+    const built = completeConstruction(
+      buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state,
+    );
+    const levelThree: GameState = {
+      ...built,
+      facilities: {
+        ...built.facilities,
+        grid: {
+          ...built.facilities.grid!,
+          buildings: built.facilities.grid!.buildings.map(building => (
+            building.type === 'training-pitch' ? { ...building, level: 3 as const } : building
+          )),
+        },
+      },
+    };
+
+    expect(advanceWeek(levelThree).trainingPoints).toBe(levelThree.trainingPoints + 15);
+  });
+
   test('carries the Gym + Dorm ten-percent bonus until small real gains earn +1 STA', () => {
-    const initial = createCareer(createLaunchCareerSetup(77, undefined, undefined, 'full'));
+    const initial = withoutStartingPitch(
+      createCareer(createLaunchCareerSetup(77, undefined, undefined, 'full')),
+    );
     const gymProject = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
     const gym = completeConstruction(gymProject);
     const dormProject = buildCareerFacility(gym, 'dorm', { x: 1, y: 0 }).state;
@@ -92,5 +161,15 @@ function completeConstruction(state: GameState): GameState {
   return {
     ...state,
     facilities: { ...state.facilities, grid: next },
+  };
+}
+
+function withoutStartingPitch(state: GameState): GameState {
+  return {
+    ...state,
+    facilities: {
+      trainingGroundBuilt: false,
+      grid: createFacilityGrid(),
+    },
   };
 }

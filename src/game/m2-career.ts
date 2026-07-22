@@ -272,9 +272,15 @@ export function startM2NationalCup(state: M2CareerState, season: number): M2Care
   const clubIds = state.pyramid.divisions.flatMap(division =>
     division.clubs.map(club => club.id),
   );
+  const seedDivisionByClubId = Object.fromEntries(state.pyramid.divisions.flatMap(division => (
+    division.clubs.map(club => [club.id, division.level] as const)
+  )));
   return {
     ...state,
-    nationalCups: [...state.nationalCups, createNationalCup(clubIds, season, state.careerSeed)],
+    nationalCups: [
+      ...state.nationalCups,
+      createNationalCup(clubIds, season, state.careerSeed, seedDivisionByClubId),
+    ],
   };
 }
 

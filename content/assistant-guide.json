@@ -359,7 +359,7 @@
       "id": "national-cup",
       "inbox": {
         "title": "Your first National Cup",
-        "detail": "Every division enters. One upset can change the season."
+        "detail": "Every division enters from around Week 10. One upset can change the season."
       },
       "destination": "league-cup",
       "pages": [
@@ -367,7 +367,7 @@
           "kicker": "Knockout football",
           "title": "No table. No second chances.",
           "body": [
-            "Every division enters the National Cup knockout draw. Win to reach the next round and earn more prize money and fame."
+            "Every division enters the seeded Cup around Week 10. Stronger clubs receive opening byes and are kept apart where possible; win to advance."
           ],
           "focus": "national-cup",
           "objective": "OPEN THE CUP DRAW.",

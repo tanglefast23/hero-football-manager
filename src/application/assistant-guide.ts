@@ -162,6 +162,9 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
   const hasCoachingOffice = state.facilities.grid?.buildings.some(
     building => building.type === 'coaching-office',
   ) ?? false;
+  if ((state.facilities.grid?.buildings.length ?? 0) > 0) {
+    next = completeAssistantGuideSequence(next, 'facility-placement');
+  }
   if (hasCoachingOffice) next = completeAssistantGuideSequence(next, 'coaching-office');
   if (state.market?.assistantCoach !== undefined) {
     next = completeAssistantGuideSequence(next, 'assistant-coach-hire');

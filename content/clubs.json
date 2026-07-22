@@ -454,9 +454,9 @@
           },
           "weeklyWage": 219,
           "contractSeasonsRemaining": 1,
-          "powerId": "SUPER_STRENGTH",
-          "licensed": true,
-          "onHeroWage": true
+          "powerId": null,
+          "licensed": false,
+          "onHeroWage": false
         },
         {
           "id": "ferrous-united-p05",

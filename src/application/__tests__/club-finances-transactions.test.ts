@@ -5,7 +5,7 @@ import { advanceFacilityConstruction, buildCareerFacility, createCareer, relocat
 describe('club finances immediate transaction history', () => {
   test('shows newest M2 purchases separately from the weekly statement', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
-    const building = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
+    const building = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
     const built = {
       ...building,
       facilities: {
@@ -13,7 +13,7 @@ describe('club finances immediate transaction history', () => {
         grid: advanceFacilityConstruction(building.facilities.grid!).grid,
       },
     };
-    const moved = relocateCareerFacility(built, 'facility-1', { x: 2, y: 2 }).state;
+    const moved = relocateCareerFacility(built, 'facility-2', { x: 2, y: 2 }).state;
 
     const viewModel = clubFinancesViewModel(moved);
 
@@ -75,12 +75,12 @@ describe('club finances immediate transaction history', () => {
     expect(viewModel.ledger).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Season 1 wage subsidy' }),
     ]));
-    expect(viewModel.weeklyNet).toBe(-userClub.weeklyWages);
+    expect(viewModel.weeklyNet).toBe(-userClub.weeklyWages - 100);
   });
 
   test('describes facility effects, affordability, and the exact buildings in an active combo', () => {
     const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
-    const gymProject = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
+    const gymProject = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
     const gym = {
       ...gymProject,
       facilities: {
@@ -88,7 +88,7 @@ describe('club finances immediate transaction history', () => {
         grid: advanceFacilityConstruction(gymProject.facilities.grid!).grid,
       },
     };
-    const dormProject = buildCareerFacility(gym, 'dorm', { x: 1, y: 0 }).state;
+    const dormProject = buildCareerFacility(gym, 'dorm', { x: 3, y: 0 }).state;
     const paired = {
       ...dormProject,
       facilities: {
@@ -138,7 +138,7 @@ describe('club finances immediate transaction history', () => {
     const catalog = clubFinancesViewModel(initial).facilities.catalog;
 
     for (const entry of catalog) {
-      const started = buildCareerFacility(initial, entry.type, { x: 0, y: 0 }).state;
+      const started = buildCareerFacility(initial, entry.type, { x: 2, y: 0 }).state;
       expect(clubFinancesViewModel(started).facilities.activeProject).toMatchObject({
         name: entry.name,
         benefitLabel: entry.effectLabel,

@@ -1,6 +1,6 @@
 import { createMatch, queueInput, tick } from '../match';
 import { speedFor } from '../engine';
-import { activatePower, addGauge, inUsefulContext, interruptWindup, knockOut, ZONE_WINDOW_TICKS } from '../powers';
+import { activatePower, addGauge, ARM_WINDOW_TICKS, inUsefulContext, interruptWindup, knockOut, powerTick, ZONE_WINDOW_TICKS } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState, PowerId } from '../types';
 
@@ -78,10 +78,17 @@ describe('hero gauge and firing', () => {
     expect(boosted.players[SPEEDSTER].gauge).toBe(20.5);
   });
 
-  it('high heat rolls a Zone entry (POWER_READY, now meaning "entered the Zone")', () => {
+  it('banked Heat converts immediately when an authored context appears', () => {
     const m = createMatch(42, ROVERS, UNITED);
-    m.players[SPEEDSTER].gauge = 199; // near the heat cap maximizes the per-tick entry roll
-    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER), 300);
+    m.players[SPEEDSTER].gauge = 199;
+    m.ball = { kind: 'held', by: 9 };
+    powerTick(m);
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('idle');
+    expect(m.players[SPEEDSTER].gauge).toBe(199.02);
+
+    m.players[SPEEDSTER].pos = { x: 2250, y: 3500 };
+    m.ball = { kind: 'held', by: SPEEDSTER };
+    powerTick(m);
     expect(m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER)).toBe(true);
     expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
     expect(m.players[SPEEDSTER].gauge).toBe(0); // heat resets on entry
@@ -90,11 +97,27 @@ describe('hero gauge and firing', () => {
   it('a tap fires at strength 1.0 after the windup (rigged directly into the Zone)', () => {
     const m = createMatch(42, ROVERS, UNITED);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+    m.players[SPEEDSTER].pos = { x: 2250, y: 3500 };
+    m.ball = { kind: 'held', by: SPEEDSTER };
     queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
     tickUntil(m, () => m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER));
     const fired = m.events.find(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER) as { strength: number; power: string };
     expect(fired.power).toBe('SUPER_SPEED');
     expect(fired.strength).toBe(1);
+  });
+
+  it('an early tap commits to a fixed two-second arm window and fires later at reduced strength', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: 5 };
+    m.ball = { kind: 'held', by: 9 };
+
+    powerTick(m, [{ tick: m.tick, kind: 'POWER_TAP', player: SPEEDSTER }]);
+    expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'armed', remainingTicks: 20 });
+
+    m.players[SPEEDSTER].pos = { x: 2250, y: 3500 };
+    m.ball = { kind: 'held', by: SPEEDSTER };
+    powerTick(m);
+    expect(m.players[SPEEDSTER].powerState).toMatchObject({ kind: 'winding', strength: 0.9 });
   });
 
   it('a SAVE_FOR_TAP hero who is not tapped in time gets POWER_EXPIRED, decays to 50 heat, and never auto-fires', () => {
@@ -138,7 +161,7 @@ describe('hero gauge and firing', () => {
     expect(m.players[RIVAL].gauge).toBe(50);
   });
 
-  it('recognizes decisive carries, nearby loose balls, and carrier pressure as useful contexts', () => {
+  it('recognizes decisive carries, nearby loose balls, and a nearby Torch target as useful contexts', () => {
     const m = createMatch(42, ROVERS, UNITED);
     m.players[SPEEDSTER].pos = { x: 3400, y: 4000 };
     m.ball = { kind: 'held', by: SPEEDSTER };
@@ -161,7 +184,7 @@ describe('hero gauge and firing', () => {
     m.players[11].pos = { x: 3400, y: 5600 };
     expect(inUsefulContext(m, 9)).toBe(true);
     m.ball = { kind: 'held', by: 8 };
-    expect(inUsefulContext(m, 9)).toBe(false);
+    expect(inUsefulContext(m, 9)).toBe(true);
     m.players[11].pos = { x: 3400, y: 9000 };
     for (let index = 12; index < 22; index += 1) m.players[index].pos = { x: 200, y: 9000 };
     expect(inUsefulContext(m, 9)).toBe(false);
@@ -221,14 +244,14 @@ describe('power effects', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const base = speedFor(m, SPEEDSTER);
     m.players[SPEEDSTER].powerState = { kind: 'active', untilTick: m.tick + 40, strength: 1 };
-    expect(speedFor(m, SPEEDSTER)).toBe(Math.round((base / 1) * 2.2));
+    expect(speedFor(m, SPEEDSTER)).toBe(Math.round((base / 1) * 2.3));
   });
 
   it('FIRE_TORCH ignites the nearest opponent, who is later extinguished', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const torch = 9;
     // Rig at midfield: Dario already carries the kickoff at center (far from a valuable shot);
-    // a presser starts just outside tackle range and pressing keeps him inside 800
+    // a presser starts just outside tackle range and pressing keeps him inside 1400
     // through the windup.
     m.ball = { kind: 'held', by: torch };
     m.players[17].pos = { x: 3400, y: 5550 };
@@ -237,8 +260,23 @@ describe('power effects', () => {
     tickUntil(m, () => m.events.some(e => e.kind === 'IGNITED'), 300);
     const ignited = m.events.find(e => e.kind === 'IGNITED') as { player: number };
     expect(ignited.player).toBeGreaterThanOrEqual(11);
-    tickUntil(m, () => m.events.some(e => e.kind === 'EXTINGUISHED'), 300);
+    tickUntil(m, () => m.events.some(e => e.kind === 'EXTINGUISHED'), 600);
     expect(m.events.some(e => e.kind === 'EXTINGUISHED')).toBe(true);
+  });
+
+  it('FIRE_TORCH reaches a marker 13m away but not one beyond 14m', () => {
+    const firesAt = (distance: number) => {
+      const m = createMatch(42, ROVERS, UNITED);
+      const torch = 9;
+      m.players[torch].pos = { x: 2000, y: 5000 };
+      m.players[11].pos = { x: 2000 + distance, y: 5000 };
+      for (let index = 12; index < 22; index++) m.players[index].pos = { x: 200, y: 9000 };
+      activatePower(m, torch, 1);
+      return m.events.some(event => event.kind === 'IGNITED');
+    };
+
+    expect(firesAt(1300)).toBe(true);
+    expect(firesAt(1500)).toBe(false);
   });
 
   it('igniting the ball carrier releases the ball (knockOut) instead of freezing possession', () => {
@@ -271,7 +309,7 @@ describe('power effects', () => {
     expect(m.events.some(e => e.kind === 'TACKLE' && (e as { by: number }).by === RIVAL)).toBe(true);
   });
 
-  it('one-active-per-team: a winding/active teammate freezes the others Zone timer and heat', () => {
+  it('simultaneous teammate powers do not freeze another hero\'s Zone or Heat', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const torch = 9;
     m.players[torch].powerState = { kind: 'winding', untilTick: m.tick + 200, strength: 1 };
@@ -279,8 +317,11 @@ describe('power effects', () => {
     m.players[SPEEDSTER].gauge = 0;
     for (let i = 0; i < 30; i++) tick(m);
     expect(m.players[torch].powerState.kind).toBe('winding'); // still busy — untilTick (200) not reached
-    expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS });
+    expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS - 30 });
     expect(m.players[SPEEDSTER].gauge).toBe(0);
+    m.players[SPEEDSTER].powerState = { kind: 'idle' };
+    addGauge(m, SPEEDSTER, 20);
+    expect(m.players[SPEEDSTER].gauge).toBe(20);
   });
 
   // Hero License canon (docs/04): a licensed power is legal play, so using one
@@ -314,9 +355,7 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     expect(m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
     expect(m.players[SPEEDSTER].gauge).toBe(0);
 
-    // A queued tap while still down does nothing (can't fire unconscious) and the
-    // frozen window does not tick down.
-    queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
+    // Before any press, the frozen Zone does not tick down.
     tick(m);
     expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS });
     expect(m.events.some(e => e.kind === 'POWER_INTERRUPTED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
@@ -337,32 +376,81 @@ describe('zone/knockout (canon docs/04: a knocked-down hero stays hot — the Zo
     expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(true);
   });
 
-  it('the tap loop itself refuses a downed hero (zone + out rigged directly, bypassing knockOut)', () => {
+  it('a due press commits a downed hero to the fixed arm window without a spurious interrupt', () => {
     const m = createMatch(42, ROVERS, UNITED);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     m.players[SPEEDSTER].outUntilTick = m.tick + 200;
     m.players[SPEEDSTER].outReason = 'ko';
     queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
     tick(m);
-    // pre-fix: the tap started a windup that the out-check instantly interrupted (spurious POWER_INTERRUPTED)
-    expect(m.players[SPEEDSTER].powerState.kind).toBe('zone'); // untouched frozen zone, not a windup
+    expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'armed', remainingTicks: ARM_WINDOW_TICKS });
+    expect(m.pendingInputs).toHaveLength(0);
     expect(m.events.some(e => e.kind === 'POWER_INTERRUPTED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
     expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
   });
 
-  it('remembers a legal Zone tap through tackle recovery and starts the windup afterward', () => {
+  it('places the arm window on its stamped tick during recovery instead of deferring the input', () => {
     const m = createMatch(42, ROVERS, UNITED);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     m.players[SPEEDSTER].tackleRecoveryUntil = m.tick + 2;
     queueInput(m, { tick: m.tick + 1, kind: 'POWER_TAP', player: SPEEDSTER });
 
     tick(m);
-    expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
-    expect(m.pendingInputs).toHaveLength(1);
+    expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'armed', remainingTicks: ARM_WINDOW_TICKS });
+    expect(m.pendingInputs).toHaveLength(0);
+  });
+
+  it('expires exactly 20 ticks after placement even when recovery outlasts the arm window', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
+    m.players[SPEEDSTER].tackleRecoveryUntil = 100;
+    queueInput(m, { tick: 1, kind: 'POWER_TAP', player: SPEEDSTER });
+
+    tick(m); // placement tick: the next 20 ticks are the armed window
+    for (let elapsed = 1; elapsed < ARM_WINDOW_TICKS; elapsed++) tick(m);
+    expect(m.tick).toBe(ARM_WINDOW_TICKS);
+    expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'armed', remainingTicks: 1 });
+    expect(m.events).not.toContainEqual(expect.objectContaining({ kind: 'POWER_EXPIRED', player: SPEEDSTER }));
 
     tick(m);
-    expect(m.players[SPEEDSTER].powerState.kind).toBe('winding');
-    expect(m.pendingInputs).toHaveLength(0);
+    expect(m.tick).toBe(ARM_WINDOW_TICKS + 1);
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('idle');
+    expect(m.events).toContainEqual(expect.objectContaining({
+      t: ARM_WINDOW_TICKS + 1,
+      kind: 'POWER_EXPIRED',
+      player: SPEEDSTER,
+    }));
+  });
+
+  it.each(['out', 'sliding'] as const)('continues the armed countdown while %s', state => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const player = m.players[SPEEDSTER];
+    player.powerState = { kind: 'armed', remainingTicks: ARM_WINDOW_TICKS };
+    if (state === 'out') {
+      player.outUntilTick = 100;
+      player.outReason = 'ko';
+    } else {
+      player.slideTackle = {
+        targetIdx: 11,
+        startTick: 0,
+        untilTick: 100,
+        direction: { x: 1, y: 0 },
+        remainingDistance: 1000,
+        previousPos: { ...player.pos },
+        targetPreviousPos: { ...m.players[11].pos },
+      };
+    }
+
+    for (let elapsed = 1; elapsed < ARM_WINDOW_TICKS; elapsed++) {
+      m.tick++;
+      powerTick(m);
+    }
+    expect(player.powerState).toEqual({ kind: 'armed', remainingTicks: 1 });
+
+    m.tick++;
+    powerTick(m);
+    expect(player.powerState.kind).toBe('idle');
+    expect(m.events.at(-1)).toMatchObject({ t: ARM_WINDOW_TICKS, kind: 'POWER_EXPIRED', player: SPEEDSTER });
   });
 });
 
@@ -374,8 +462,10 @@ describe('frozen-team bug: knockOut clears an active/winding power instead of fr
     expect(m.players[9].powerState.kind).toBe('idle');
 
     // Pre-fix, player 9 stuck 'active' forever would hold teamPowerBusy true,
-    // so player 10 (same team) could never even roll a Zone entry.
+    // so player 10 (same team) could never enter a Zone.
     m.players[SPEEDSTER].gauge = 99.9;
+    m.players[SPEEDSTER].pos = { x: 2250, y: 3500 };
+    m.ball = { kind: 'held', by: SPEEDSTER };
     let ready = false;
     for (let i = 0; i < 100 && !ready; i++) {
       tick(m);
@@ -395,6 +485,8 @@ describe('frozen-team bug: knockOut clears an active/winding power instead of fr
     expect(m.players[9].powerState.kind).toBe('idle');
 
     m.players[SPEEDSTER].gauge = 199;
+    m.players[SPEEDSTER].pos = { x: 2250, y: 3500 };
+    m.ball = { kind: 'held', by: SPEEDSTER };
     tickUntil(m, () => m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER), 100);
     expect(m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER)).toBe(true);
   });

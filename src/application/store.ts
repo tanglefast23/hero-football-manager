@@ -17,6 +17,7 @@ import {
   buildCareerMatchTeams,
   buildCareerFacility,
   buildTrainingGround,
+  chargeableCareerTrainingPlan,
   completeFirstOnboardingMatch,
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
@@ -56,6 +57,8 @@ import {
   startCareerScoutMission,
   submitCareerTransferOffer,
   submitCareerRenewalOffer,
+  trainingDrillBlockedReason,
+  trainingDrillPathId,
   upgradeCareerFacility,
   withoutPowers,
   type CreatedPlayerDraft,
@@ -867,11 +870,30 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({ error: 'That focus drill is not available.' });
       return;
     }
-    const requiredTrainingPoints = selected.reduce(
-      (total, id) => total + (drillById.get(id)?.tpCost ?? 0),
-      drill.tpCost,
-    );
-    const availableTrainingPoints = requireCareer(get()).trainingPoints;
+    const selectedSamePath = selected.find(id => (
+      trainingDrillPathId(id) === trainingDrillPathId(drillId)
+    ));
+    if (selectedSamePath !== undefined) {
+      const selectedName = drillById.get(selectedSamePath)?.name ?? selectedSamePath;
+      set({ error: `Replace ${selectedName} before choosing another level from that drill path.` });
+      return;
+    }
+    const career = requireCareer(get());
+    const blockedReason = trainingDrillBlockedReason(career, drillId);
+    if (blockedReason !== undefined) {
+      set({ error: blockedReason });
+      return;
+    }
+    const prospectiveDrills = [...selected, drillId].map(id => drillById.get(id)!);
+    const assignedPlayerIds = get().assignedPlayerIds;
+    const requiredTrainingPoints = assignedPlayerIds.length === 0
+      ? prospectiveDrills.reduce((total, selectedDrill) => total + selectedDrill.tpCost, 0)
+      : chargeableCareerTrainingPlan(
+          career,
+          assignedPlayerIds,
+          prospectiveDrills,
+        ).trainingPointCost;
+    const availableTrainingPoints = career.trainingPoints;
     if (requiredTrainingPoints > availableTrainingPoints) {
       set({
         error: `${drill.name} would make this plan cost ${requiredTrainingPoints} TP, but you only have ${availableTrainingPoints} TP. Choose a cheaper drill.`,

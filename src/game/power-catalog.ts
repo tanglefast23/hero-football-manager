@@ -17,6 +17,7 @@ export const LAUNCH_POWER_IDS: readonly PowerId[] = [
   'SHADOW_MARK',
   'GRAVITY_WELL',
   'GIANT_GK',
+  'GUST',
 ];
 
 /**
@@ -27,9 +28,9 @@ export const LAUNCH_POWER_IDS: readonly PowerId[] = [
  */
 const ROLE_POOL: Readonly<Record<Role, readonly PowerId[]>> = {
   GK: ['ELASTIC_KEEPER', 'GIANT_GK', 'FIRE_TORCH'],
-  DEF: ['FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ICE_RINK', 'SHADOW_MARK',
+  DEF: ['FUTURE_SIGHT', 'GUST', 'SUPER_STRENGTH', 'WEB_TRAP', 'ICE_RINK', 'SHADOW_MARK',
     'SUPER_SPEED', 'FIRE_TORCH', 'RALLY_CRY'],
-  MID: ['PORTAL_PASS', 'DECOY_DOUBLE', 'PHASE_RUN', 'BLINK_RUN', 'FUTURE_SIGHT',
+  MID: ['PORTAL_PASS', 'DECOY_DOUBLE', 'PHASE_RUN', 'BLINK_RUN', 'FUTURE_SIGHT', 'GUST',
     'WEB_TRAP', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'SUPER_SPEED',
     'FIRE_TORCH', 'RALLY_CRY'],
   FWD: ['SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'PHASE_RUN', 'PORTAL_PASS',
@@ -51,12 +52,12 @@ export function generatedClubPower(clubId: string, heroIndex: number, role: Role
 }
 
 /**
- * Canonical generated-opponent hero ramp. D5 and D4 heroes remain rare enough
- * that a powerless club can compete, while every D1 opponent fields 2-3.
+ * Canonical generated-opponent hero ramp. D5 has no generated heroes so the
+ * player's first awakening is unique, while every D1 opponent fields 2-3.
  */
 export function generatedClubHeroCount(clubId: string, division: 1 | 2 | 3 | 4 | 5): number {
   const hash = stableClubHash(clubId);
-  if (division === 5) return hash % 10 === 0 ? 1 : 0;
+  if (division === 5) return 0;
   if (division === 4) return hash % 3 === 0 ? 1 : 0;
   if (division === 3) return 1 + (hash % 2);
   if (division === 2) return 2 + (hash % 3 === 0 ? 1 : 0);

@@ -201,7 +201,7 @@ describe('deterministic automatic coaching', () => {
   it.each([
     ['watched home', { controlledTeam: 0 as const }, [0, 3]],
     ['watched away', { controlledTeam: 1 as const }, [3, 0]],
-    ['Quick Result', {}, [3, 3]],
+    ['Quick Result', {}, [3, 2]],
   ])('regenerates %s automatic coaching during replay without fake inputs', (_label, opts, expectedSubs) => {
     const match = createMatch(77, withBench(ROVERS, 'h'), withBench(UNITED, 'a'), opts);
     runToFullTime(match);

@@ -1,6 +1,7 @@
 import {
   coachMotivatorBonusPercent,
   coachTrainingBonusPercent,
+  coachWeeklyTrainingPoints,
 } from '../game/coach-weekly';
 import type { CoachCandidate, CoachSpecialty } from '../game/market';
 import type { CareerCoachRole } from '../game/market-career';
@@ -20,9 +21,14 @@ export function coachRoleEffectLabels(
 ): string[] {
   const trainingBonusPercent = coachTrainingBonusPercent(coach.level, role);
   const motivatorBonusPercent = coachMotivatorBonusPercent(coach.level, role);
-  return coach.specialties.map(specialty => specialty === 'MOTIVATOR'
-    ? `Morale loss −${formatPercent(motivatorBonusPercent)} · Hero Gauge +${formatPercent(motivatorBonusPercent)}`
-    : `${TRAINING_LABELS[specialty]} training +${formatPercent(trainingBonusPercent)}`);
+  return [
+    ...coach.specialties.map(specialty => (
+      specialty === 'MOTIVATOR'
+        ? `Morale loss −${formatPercent(motivatorBonusPercent)} · Hero Gauge +${formatPercent(motivatorBonusPercent)}`
+        : `${TRAINING_LABELS[specialty]} training +${formatPercent(trainingBonusPercent)}`
+    )),
+    `+${coachWeeklyTrainingPoints(coach.level, role)} TP weekly`,
+  ];
 }
 
 function formatPercent(value: number): string {

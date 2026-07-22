@@ -25,7 +25,7 @@ describe('career market integration', () => {
       ...createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full')),
       week: 15,
     };
-    const officeProject = buildCareerFacility(initial, 'scout-office', { x: 0, y: 0 }).state;
+    const officeProject = buildCareerFacility(initial, 'scout-office', { x: 2, y: 0 }).state;
     const withOffice = {
       ...officeProject,
       facilities: {
@@ -279,7 +279,7 @@ describe('career market integration', () => {
     expect(() => hireCareerCoach(initial, market, candidate.id, 'ASSISTANT'))
       .toThrow('Coaching Office');
 
-    const officeProject = buildCareerFacility(initial, 'coaching-office', { x: 0, y: 0 }).state;
+    const officeProject = buildCareerFacility(initial, 'coaching-office', { x: 2, y: 0 }).state;
     const withOffice = {
       ...officeProject,
       facilities: {

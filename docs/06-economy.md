@@ -5,9 +5,9 @@ Design stance: **premium game, economy tuned purely for fun** (no monetization p
 | Currency | One job | Earned | Spent |
 |---|---|---|---|
 | **Money** | Capacity | Sponsors, tickets, prizes, player sales | Wages, transfers, facilities, scouting, events |
-| **Training Points (TP)** | Improvement | Match results & performances (+small facility trickle) | Training drills, drill unlocks |
+| **Training Points (TP)** | Improvement | Weekly facilities and coaches, plus explicit events | Focus drills |
 
-Money is lumpy and stressful; TP flows steadily from playing. That separation means a cash crisis never halts player development. Heroes advance through awakenings and recruitment rather than a separate resource track.
+Money is lumpy and stressful; TP flows steadily from investments in staff and grounds rather than match results. That separation keeps a losing run from starving player development. Heroes advance through awakenings and recruitment rather than a separate resource track.
 
 ## Income (all four, per user decision)
 
@@ -45,7 +45,7 @@ An 8×6 tile grid (expandable). Buildings: Training Pitch, Gym, Tech Center, Sho
 
 Facility quality is promotion-gated: D5 clubs build Level 1, reaching D4 permanently unlocks Level 2, and reaching D2 permanently unlocks Level 3. Existing higher-level buildings from older saves remain operational, but further upgrades follow the earned ceiling.
 
-The club owns **one works crew**, so only one build or upgrade project may run at once. Paying for a building starts construction and occupies its tiles immediately, but it produces **no benefit and no upkeep until completion**. An upgrade keeps the facility's current level active while work proceeds; the higher level begins only on completion. Relocation is unavailable for the building under construction. Completion resolves at weekly settlement, appears in the Weekly Review with the finished building sprite, and uses the dedicated win fanfare.
+The club owns **one works crew**, so only one build or upgrade project may run at once. Paying for a building starts construction and occupies its tiles immediately, but it produces **no benefit and no upkeep until completion**. An upgrade keeps the facility's current level active while work proceeds; the higher level begins only on completion. A completed Training Pitch creates **+5 TP per level each week**. Relocation is unavailable for the building under construction. Completion resolves at weekly settlement, appears in the Weekly Review with the finished building sprite, and uses the dedicated win fanfare.
 
 | Facility group | Lv1 build | Lv2 upgrade | Lv3 upgrade |
 |---|---:|---:|---:|
@@ -68,8 +68,8 @@ The club owns **one works crew**, so only one build or upgrade project may run a
 | Prize: D5 champion / runner-up | 20,000 / 10,000 |
 | Cup: per round win / trophy | 2,000–8,000 / 25,000 |
 | Facility Lv1 build | 5,000–15,000 |
-| Focus drill (squad-wide, max 3/week) | 400–1,200 + 10–25 TP each |
-| TP income per match | win 30 · draw 20 · loss 14 (+2/goal, +10 MOTM, +5 ambient/wk) |
+| Focus drill (single-stat, max 3/week) | Tier I +3: 350–600 + 9–15 TP; Tier II +5: 700–1,000 + 18–25 TP; Tier III +8: 1,100–1,500 + 28–38 TP |
+| Weekly TP income | Training Pitch +5/level; head coach 10 + 2× level; assistant 5 + level; match result +0 |
 | Transfer (decent D5 player) | 5,000–15,000 |
 | Pre-powered hero signing | 100,000+ + 2,500+/wk (Div 3 era) |
 | Emergency loan | 20,000 once, 10%/season interest |

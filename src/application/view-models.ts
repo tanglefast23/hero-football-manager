@@ -6,6 +6,7 @@ import {
   activeFacilityAdjacencies,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
+  chargeableCareerTrainingPlan,
   createFacilityGrid,
   currentUserDivision,
   difficultyRules,
@@ -23,6 +24,7 @@ import {
   roleOverall,
   scheduleAssistantInboxWeek,
   weeklyFacilityUpkeep,
+  weeklyAmbientTrainingPoints,
   weeklyMerchandiseIncome,
   willRetireAtSeasonTransition,
   type FacilityLevel,
@@ -52,6 +54,7 @@ import {
   facilityUpgradeBlockedReason,
   highestDivisionReached,
   promotionRewardsForDivision,
+  trainingDrillBlockedReason,
 } from '../game/promotion-progression';
 import { marketNegotiationViewModel } from './market-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
@@ -369,7 +372,7 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
   if (type === 'training-pitch') {
     return level === 1
       ? '+5 TP weekly · upgrades boost DEF training'
-      : `+5 TP weekly · ${level === 2 ? '+50%' : '+100%'} DEF training`;
+      : `+${level * 5} TP weekly · ${level === 2 ? '+50%' : '+100%'} DEF training`;
   }
   if (type === 'gym') return trainingEffect('PAC + STA');
   if (type === 'tech-center') return trainingEffect('PAS + TEC');
@@ -685,6 +688,14 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
         .find(drill => drill.id === notice.drillId)?.name
         ?? notice.drillId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       const attribute = notice.attribute.toUpperCase();
+      if (notice.kind === 'skipped') {
+        return {
+          id: notice.id,
+          title: `${notice.playerName} skipped ${drillName}`,
+          detail: `${notice.playerName} is already at their ${attribute} maximum of ${notice.cap}. Pick another player or drill for next week.`,
+          tone: 'info' as const,
+        };
+      }
       return {
         id: notice.id,
         title: `${notice.playerName} reached their ${attribute} maximum`,
@@ -1142,8 +1153,13 @@ export function squadTrainingViewModel(
   const selected = new Set(selectedDrillIds);
   const drills = content.training.focusDrills;
   const selectedDrills = drills.filter(drill => selected.has(drill.id));
-  const totalMoneyCost = selectedDrills.reduce((sum, drill) => sum + drill.moneyCost, 0);
-  const totalTrainingPointCost = selectedDrills.reduce((sum, drill) => sum + drill.tpCost, 0);
+  const chargeablePlan = assignedPlayerIds.length === 0
+    ? undefined
+    : chargeableCareerTrainingPlan(state, assignedPlayerIds, selectedDrills);
+  const totalMoneyCost = chargeablePlan?.moneyCost
+    ?? 0;
+  const totalTrainingPointCost = chargeablePlan?.trainingPointCost
+    ?? selectedDrills.reduce((sum, drill) => sum + drill.tpCost, 0);
   const savedPlan = state.trainingPlan;
   const savedDrillIds = savedPlan?.drills.map(drill => drill.id) ?? [];
   const selectionMatchesSavedPlan = savedPlan !== undefined
@@ -1245,7 +1261,12 @@ export function squadTrainingViewModel(
     ],
     selectedPlayerId,
     createdPlayerId,
-    drills: drills.map(drill => drillViewModel(drill, selected.has(drill.id), state)),
+    drills: drills.map(drill => drillViewModel(
+      drill,
+      selected.has(drill.id),
+      state,
+      assignedPlayerIds,
+    )),
     assignedPlayerIds,
     selectedDrillCount: selectedDrills.length,
     maxDrills: content.training.maxFocusDrillsPerWeek,
@@ -1254,6 +1275,7 @@ export function squadTrainingViewModel(
     canApply:
       assignedPlayerIds.length > 0 &&
       selectedDrills.length > 0 &&
+      selectedDrills.every(drill => trainingDrillBlockedReason(state, drill.id) === undefined) &&
       totalMoneyCost <= club.cash &&
       totalTrainingPointCost <= state.trainingPoints,
     ...(selectionMatchesSavedPlan && savedPlan !== undefined ? {
@@ -1271,8 +1293,16 @@ export function squadTrainingViewModel(
           id: savedDrill.id,
           name: drills.find(drill => drill.id === savedDrill.id)?.name ?? savedDrill.id,
         })),
-        moneyCost: savedPlan.drills.reduce((sum, drill) => sum + drill.moneyCost, 0),
-        trainingPointCost: savedPlan.drills.reduce((sum, drill) => sum + drill.tpCost, 0),
+        moneyCost: chargeableCareerTrainingPlan(
+          state,
+          savedPlan.assignedPlayerIds,
+          savedPlan.drills,
+        ).moneyCost,
+        trainingPointCost: chargeableCareerTrainingPlan(
+          state,
+          savedPlan.assignedPlayerIds,
+          savedPlan.drills,
+        ).trainingPointCost,
       },
     } : {}),
   };
@@ -1466,9 +1496,26 @@ function playerDevelopmentViewModel(
 function skippedTrainingWarning(before: GameState, after: GameState): string {
   const plan = before.trainingPlan;
   if (plan === undefined) return 'Focused training was skipped.';
-  const moneyCost = plan.drills.reduce((sum, drill) => sum + drill.moneyCost, 0);
-  const trainingPointCost = plan.drills.reduce((sum, drill) => sum + drill.tpCost, 0);
-  const ambientTrainingPoints = before.facilities.trainingGroundBuilt ? 5 : 0;
+  const chargeable = chargeableCareerTrainingPlan(
+    before,
+    plan.assignedPlayerIds,
+    plan.drills,
+  );
+  if (chargeable.drills.length === 0 && chargeable.capConflicts.length > 0) {
+    const conflict = chargeable.capConflicts[0];
+    const attribute = conflict.attributes[0];
+    const player = before.players.find(candidate => candidate.id === conflict.playerId);
+    const cap = player === undefined ? undefined : playerAttributeCaps(player)[attribute];
+    const drillName = LAUNCH_CONTENT.training.focusDrills
+      .find(drill => drill.id === conflict.drillId)?.name
+      ?? conflict.drillName;
+    return cap === undefined
+      ? `${conflict.playerName} skipped ${drillName} — already at their ${attribute.toUpperCase()} maximum.`
+      : `${conflict.playerName} skipped ${drillName} — already at their ${attribute.toUpperCase()} maximum of ${cap}.`;
+  }
+  const moneyCost = chargeable.moneyCost;
+  const trainingPointCost = chargeable.trainingPointCost;
+  const ambientTrainingPoints = weeklyAmbientTrainingPoints(before);
   const availableTrainingPoints = Math.max(before.trainingPoints, after.trainingPoints - ambientTrainingPoints);
   const lacksMoney = moneyCost > requireUserClub(before).cash;
   const lacksTrainingPoints = trainingPointCost > availableTrainingPoints;
@@ -1624,10 +1671,19 @@ function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
     });
 }
 
-function drillViewModel(drill: TrainingDrill, selected: boolean, state: GameState) {
+function drillViewModel(
+  drill: TrainingDrill,
+  selected: boolean,
+  state: GameState,
+  assignedPlayerIds: readonly string[],
+) {
   const gainLabel = Object.entries(drill.gains)
     .map(([attribute, gain]) => `+${gain} ${attribute.toUpperCase()}`)
     .join(' · ');
+  const lockedReason = trainingDrillBlockedReason(state, drill.id);
+  const chargeable = assignedPlayerIds.length === 0
+    ? { moneyCost: 0, trainingPointCost: drill.tpCost }
+    : chargeableCareerTrainingPlan(state, assignedPlayerIds, [drill]);
   return {
     id: drill.id,
     name: drill.name,
@@ -1636,7 +1692,10 @@ function drillViewModel(drill: TrainingDrill, selected: boolean, state: GameStat
     moneyCost: drill.moneyCost,
     trainingPointCost: drill.tpCost,
     selected,
-    available: drill.moneyCost <= requireUserClub(state).cash && drill.tpCost <= state.trainingPoints,
+    available: lockedReason === undefined
+      && chargeable.moneyCost <= requireUserClub(state).cash
+      && chargeable.trainingPointCost <= state.trainingPoints,
+    ...(lockedReason === undefined ? {} : { lockedReason }),
   };
 }
 

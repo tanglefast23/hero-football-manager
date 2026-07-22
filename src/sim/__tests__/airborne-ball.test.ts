@@ -58,6 +58,7 @@ describe('deterministic 2.5D ball flight', () => {
     const keeper = 11;
     m.tick = 100;
     m.players[keeper].pos = { x: GOAL_CENTER_X, y: 300 };
+    m.players[keeper].def.power = 'ELASTIC_KEEPER';
     m.ball = {
       kind: 'shot',
       pos: { x: GOAL_CENTER_X, y: 600 },
@@ -82,6 +83,7 @@ describe('deterministic 2.5D ball flight', () => {
     });
     expect(ballPos(m).y).toBe(300);
     expect(ballPos(m).y).toBeGreaterThan(0);
+    expect(m.players[keeper].gauge).toBe(30);
 
     m.tick = 100 + GOALKEEPER_CATCH_HOLD_TICKS - 1;
     possessionTick(m);
@@ -93,6 +95,31 @@ describe('deterministic 2.5D ball flight', () => {
     const distribution = m.ball as unknown as Extract<BallState, { kind: 'pass' }>;
     expect(distribution.vz).toBeGreaterThan(0);
     expect(distribution.speed).toBeGreaterThan(0);
+    expect(m.players[keeper].gauge).toBe(35);
+  });
+
+  it('awards the defending hero goalkeeper Heat when a shot misses', () => {
+    const m = createMatch(7, ROVERS, UNITED);
+    const shooter = 9;
+    const keeper = 11;
+    m.players[keeper].def.power = 'ELASTIC_KEEPER';
+    m.ball = {
+      kind: 'shot',
+      pos: { x: 0, y: 100 },
+      vel: { x: 0, y: -300 },
+      by: shooter,
+      power: 1,
+      targetX: 0,
+      z: 0,
+      vz: 0,
+      trajectory: 'driven',
+      keeperChecked: false,
+    };
+
+    shotFlightTick(m);
+
+    expect(m.events).toContainEqual(expect.objectContaining({ kind: 'MISS', by: shooter }));
+    expect(m.players[keeper].gauge).toBe(10);
   });
 
   it('uses the intended 70/30 driven-to-lifted shot mix over a large seeded sample', () => {

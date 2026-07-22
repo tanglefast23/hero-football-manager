@@ -1,6 +1,8 @@
 import { generateSeasonFixtures } from './schedule';
 import {
+  FACILITY_CATALOG,
   advanceFacilityConstruction,
+  buildFacility,
   createFacilityGrid,
   facilityEffects,
   isFacilityOperational,
@@ -10,7 +12,10 @@ import { resolveCareerTrainingWeek } from './training';
 import { difficultyRules } from './difficulty';
 import { recordSeasonRecap } from './season-recap';
 import { enableFullCareer, startNextFullCareerSeason } from './full-career';
-import { careerCoachWageLedgerAmount } from './coach-weekly';
+import {
+  careerCoachWageLedgerAmount,
+  careerCoachWeeklyTrainingPoints,
+} from './coach-weekly';
 import { resolveCareerScoutClock } from './market-career';
 import { resolveNextM2NationalCupRound, willRetireAtSeasonTransition } from './m2-career';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
@@ -42,7 +47,7 @@ import {
 
 const CLUB_COUNT = 10;
 const UINT32_MAX = 4294967295;
-const CUP_SETTLEMENT_WEEKS = [5, 10, 15, 20, 24, 28] as const;
+export const CUP_SETTLEMENT_WEEKS = [10, 14, 18, 22, 26, 29] as const;
 
 type NationalCupRoundLabel =
   | 'Play-in'
@@ -102,7 +107,27 @@ export function createCareer(setup: CareerSetup): GameState {
     seasonGoalTallies: [],
     ...(setup.careerMode === undefined ? {} : { careerMode: setup.careerMode }),
   };
-  return setup.careerMode === 'full' ? enableFullCareer(state) : state;
+  const career = setup.careerMode === 'full' ? enableFullCareer(state) : state;
+  return setup.careerMode === 'full' && setup.launchRosterVersion !== undefined
+    ? addStartingTrainingPitch(career)
+    : career;
+}
+
+function addStartingTrainingPitch(state: GameState): GameState {
+  const project = buildFacility(
+    createFacilityGrid(),
+    'training-pitch',
+    { x: 0, y: 0 },
+    FACILITY_CATALOG['training-pitch'].buildCost,
+  ).grid;
+  const grid = advanceFacilityConstruction(project).grid;
+  return {
+    ...state,
+    facilities: {
+      trainingGroundBuilt: true,
+      grid,
+    },
+  };
 }
 
 export function fixturesForCurrentWeek(state: GameState): LeagueFixture[] {
@@ -185,17 +210,6 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
     };
   });
 
-  const earnedTrainingPoints = trainingPointsForUser(
-    state.userClubId,
-    scheduledFixtures,
-    resultByFixtureId,
-  );
-  const trainingPoints = checkedAdd(
-    state.trainingPoints,
-    earnedTrainingPoints,
-    'training point balance',
-  );
-
   const seasonGoalTallies = recordSeasonGoals(state, scheduledFixtures, resultByFixtureId);
 
   const players = state.careerMode === 'full'
@@ -206,7 +220,6 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
     ...state,
     fixtures,
     players,
-    trainingPoints,
     seasonGoalTallies,
   };
   if (nationalCupUserFixtureForCurrentWeek(playedLeagueState) !== undefined) {
@@ -342,14 +355,21 @@ function settleCurrentWeek(
   }
 
   const training = resolveCareerTrainingWeek(state);
+  const existingTrainingCapNoticeIds = new Set(
+    (state.trainingCapNotices ?? []).map(notice => notice.id),
+  );
   const trainingCapNotices = [
     ...(state.trainingCapNotices ?? []),
-    ...training.reachedCaps.map(reached => ({
-      id: `training-cap:s${state.season}-w${state.week}:${reached.playerId}:${reached.attribute}:${reached.drillId}`,
-      season: state.season,
-      week: state.week,
-      ...reached,
-    })),
+    ...[...training.reachedCaps, ...training.skippedCaps]
+      .map(reached => ({
+        id: reached.kind === 'skipped'
+          ? `training-cap:skipped:s${state.season}-w${state.week}:${reached.playerId}:${reached.attribute}:${reached.drillId}`
+          : `training-cap:s${state.season}-w${state.week}:${reached.playerId}:${reached.attribute}:${reached.drillId}`,
+        season: state.season,
+        week: state.week,
+        ...reached,
+      }))
+      .filter(notice => !existingTrainingCapNoticeIds.has(notice.id)),
   ];
   const weeklyPlayers = state.careerMode === 'full'
       ? resolveWeeklyPlayerWellbeing(state, {
@@ -374,7 +394,7 @@ function settleCurrentWeek(
   const clubs = intervenedState.clubs.map(club =>
     club.id === state.userClubId ? { ...club, cash: balanceAfter } : club,
   );
-  const ambientTrainingPoints = hasAmbientTrainingPitch(state) ? 5 : 0;
+  const ambientTrainingPoints = weeklyAmbientTrainingPoints(state);
   const trainingPoints = checkedAdd(
     training.trainingPoints,
     ambientTrainingPoints,
@@ -743,20 +763,10 @@ function completeNationalCupMatchday(state: GameState, results: FixtureResult[])
     winnerClubId,
   };
   const resultByFixtureId = new Map([[result.fixtureId, result]]);
-  const trainingPoints = checkedAdd(
-    state.trainingPoints,
-    trainingPointsForUser(
-      state.userClubId,
-      cupMatchday.fixtures,
-      resultByFixtureId,
-    ),
-    'National Cup training point balance',
-  );
   const progressed: GameState = {
     ...state,
     m2: resolveNextM2NationalCupRound(state.m2, cupResult),
     players: resolveCareerMatchFame(state, cupMatchday.fixtures, resultByFixtureId),
-    trainingPoints,
     seasonGoalTallies: recordSeasonGoals(state, cupMatchday.fixtures, resultByFixtureId),
   };
   const cupOutcome: WeeklyMatchOutcome = winnerClubId === state.userClubId ? 'win' : 'loss';
@@ -968,35 +978,18 @@ function awardNationalCupPrize(
   });
 }
 
-function hasAmbientTrainingPitch(state: GameState): boolean {
-  if (state.facilities.trainingGroundBuilt) return true;
+export function weeklyAmbientTrainingPoints(state: GameState): number {
   const grid = state.facilities.grid;
-  return grid?.buildings.some(building => (
-    building.type === 'training-pitch' && isFacilityOperational(grid, building.id)
-  )) === true;
-}
-
-function trainingPointsForUser(
-  userClubId: string,
-  fixtures: LeagueFixture[],
-  resultByFixtureId: Map<string, FixtureResult>,
-): number {
-  const fixture = fixtures.find(
-    candidate => candidate.homeClubId === userClubId || candidate.awayClubId === userClubId,
-  );
-  if (fixture === undefined) return 0;
-
-  const result = resultByFixtureId.get(fixture.id);
-  if (result === undefined) {
-    throw new Error(`missing result for user fixture ${fixture.id}`);
-  }
-
-  const isHome = fixture.homeClubId === userClubId;
-  const goalsFor = isHome ? result.homeGoals : result.awayGoals;
-  const goalsAgainst = isHome ? result.awayGoals : result.homeGoals;
-  const resultPoints = goalsFor > goalsAgainst ? 30 : goalsFor === goalsAgainst ? 20 : 14;
-  const goalBonus = checkedMultiply(goalsFor, 2, 'match training point goal bonus');
-  return checkedAdd(resultPoints, goalBonus, 'match training points earned');
+  const trainingPitchLevel = grid === undefined
+    ? (state.facilities.trainingGroundBuilt ? 1 : 0)
+    : grid.buildings
+      .filter(building => (
+        building.type === 'training-pitch' && isFacilityOperational(grid, building.id)
+      ))
+      .reduce((maximum, building) => Math.max(maximum, building.level), 0);
+  const facilityPoints = checkedMultiply(trainingPitchLevel, 5, 'facility training points');
+  const coachPoints = state.market === undefined ? 0 : careerCoachWeeklyTrainingPoints(state.market);
+  return checkedAdd(facilityPoints, coachPoints, 'ambient training points');
 }
 
 function validateSetup(setup: CareerSetup): void {

@@ -86,6 +86,7 @@ function awakeningPowerWeight(powerId: PowerId, attrs: Readonly<Attrs>): number 
   if (powerId === 'PORTAL_PASS') return 10 + attrs.pas * 3 + attrs.tec + attrs.pac;
   if (powerId === 'DECOY_DOUBLE') return 10 + attrs.pas * 2 + attrs.tec * 2 + attrs.pac;
   if (powerId === 'FUTURE_SIGHT') return 10 + attrs.def * 2 + attrs.pas * 2 + attrs.tec;
+  if (powerId === 'GUST') return 10 + attrs.def * 2 + attrs.pac + attrs.pas * 2;
   if (powerId === 'SUPER_STRENGTH') return 10 + attrs.def * 2 + attrs.sta * 2 + attrs.pac;
   if (powerId === 'WEB_TRAP') return 10 + attrs.def * 3 + attrs.tec + attrs.sta;
   if (powerId === 'RALLY_CRY') return 10 + attrs.sta * 3 + attrs.pas + attrs.tec;

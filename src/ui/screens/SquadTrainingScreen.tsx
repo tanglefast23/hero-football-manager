@@ -47,6 +47,7 @@ const DRILL_GLYPHS: Readonly<Record<string, string>> = {
   finishing: '◎',
   rondo: '↻',
   duels: '×',
+  'first-touch': '◇',
   circuit: '↯',
   'keeper-drills': '▥',
 };
@@ -62,7 +63,7 @@ function DrillIcon({ drillId, selected = false }: { drillId: string; selected?: 
       <Text className={selected
         ? 'font-pixel text-xl text-violet-dark'
         : 'font-pixel text-xl text-blue-dark'}>
-        {DRILL_GLYPHS[drillId] ?? '•'}
+        {DRILL_GLYPHS[drillId.replace(/-(?:ii|iii)$/, '')] ?? '•'}
       </Text>
     </View>
   );
@@ -504,7 +505,7 @@ export function SquadTrainingScreen({
           right={<StatusChip label={`${viewModel.selectedDrillCount} / ${viewModel.maxDrills}`} selected={viewModel.selectedDrillCount > 0} />}
         />
         <Text className="mb-3 text-sm leading-5 text-ink/60">
-          Pick up to {viewModel.maxDrills}. Each selected drill is charged once per week and trains every assigned player. The plan repeats weekly until changed.
+          Your Level 1 Training Pitch adds 5 TP after each weekly settlement. Money prices are per eligible trainee; TP is charged once per selected drill. The plan repeats weekly until changed.
         </Text>
         <View className={guideDrills
           ? 'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'
@@ -528,16 +529,18 @@ export function SquadTrainingScreen({
               <DrillIcon drillId={drill.id} selected={drill.selected} />
               <View className="min-w-0 flex-1 px-3">
                 <Text className="text-base font-bold uppercase text-ink">{drill.name}</Text>
-                <Text className={drill.selected ? 'mt-1 text-sm text-ink/70' : 'mt-1 text-sm text-ink/60'}>{drill.gainLabel}</Text>
+                <Text className={drill.selected ? 'mt-1 text-sm text-ink/70' : 'mt-1 text-sm text-ink/60'}>
+                  {drill.lockedReason ?? drill.gainLabel}
+                </Text>
               </View>
               <View className="items-end">
-                <Text className="font-mono text-sm font-bold text-ink" numberOfLines={1}>{formatCurrency(drill.moneyCost)}</Text>
-                <Text className={drill.selected ? 'mt-1 font-mono text-sm font-bold text-ink' : 'mt-1 font-mono text-sm text-blue-dark'} numberOfLines={1}>{drill.trainingPointCost} TP</Text>
+                <Text className="font-mono text-sm font-bold text-ink" numberOfLines={1}>{formatCurrency(drill.moneyCost)} each</Text>
+                <Text className={drill.selected ? 'mt-1 font-mono text-sm font-bold text-ink' : 'mt-1 font-mono text-sm text-blue-dark'} numberOfLines={1}>{drill.trainingPointCost} TP / drill</Text>
               </View>
               <Pressable
                 accessibilityRole="checkbox"
                 accessibilityLabel={drill.selected ? `Remove ${drill.name}` : `Add ${drill.name}`}
-                accessibilityHint={`${drill.gainLabel}. Costs ${formatCurrency(drill.moneyCost)} and ${drill.trainingPointCost} training points.`}
+                accessibilityHint={drill.lockedReason ?? `${drill.gainLabel}. Costs ${formatCurrency(drill.moneyCost)} per eligible trainee and ${drill.trainingPointCost} training points once per drill.`}
                 accessibilityState={{ checked: drill.selected, disabled: !drill.available }}
                 disabled={!drill.available}
                 onPress={() => onToggleDrill(drill.id)}

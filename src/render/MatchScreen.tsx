@@ -3,7 +3,7 @@ import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from
 import { Atlas, Canvas, Circle, Fill, Skia, type SkColor, type SkImage, type SkRect } from '@shopify/react-native-skia';
 import { createMatch, queueInput, tick } from '../sim/match';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
-import { isActive, teamPowerBusy, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
+import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState, PowerId, TeamDef } from '../sim/types';
@@ -29,7 +29,7 @@ import {
 import { BALL_AIRBORNE_THRESHOLD_CM, ballVisualOffset } from './ball-flight-visuals';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
 import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
-import { powerCutInDurationMs, powerCutInPresentation, shouldShowFullPowerCutIn } from './power-cut-in';
+import { appendNewestFour, powerCutInGroupPolicy, powerCutInPresentation, powerCutInTileWidth, powerOverlayPath } from './power-cut-in';
 import { Pitch } from './Pitch';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playHapticForEvent } from './haptics';
@@ -141,6 +141,21 @@ const COLOR_SAFE_HOME_KIT = {
   R: '#edb54a',
   E: '#f7d894',
 } as const;
+
+type MatchBanner = {
+  id: string;
+  text: string;
+  untilTick: number;
+  tone: 'gold' | 'red' | 'blue';
+};
+
+type PowerCutInEntry = {
+  id: string;
+  power: PowerId;
+  playerName: string;
+  skippable: boolean;
+};
+
 function scoreCode(team: TeamDef): string {
   const words = team.name.trim().split(/\s+/);
   const last = words[words.length - 1];
@@ -228,11 +243,7 @@ export function MatchScreen({
   }
 
   const trailRef = useRef<Array<{ x: number; y: number }>>([]);
-  const bannerRef = useRef<{ text: string; untilTick: number; tone: 'gold' | 'red' | 'blue' }>({
-    text: '',
-    untilTick: 0,
-    tone: 'gold',
-  });
+  const bannerRef = useRef<MatchBanner[]>([]);
   const scoreFlashUntilRef = useRef<number>(0);
   // Ball-flight presentation — recent positions while a shot or lifted pass
   // flies, and the last kick origin + tick (dust puff). Render-only.
@@ -254,8 +265,7 @@ export function MatchScreen({
   const [hud, setHud] = useState({
     score: [0, 0] as [number, number],
     tick: 0,
-    banner: '',
-    bannerTone: 'gold' as 'gold' | 'red' | 'blue',
+    banners: [] as MatchBanner[],
     scoreFlash: false,
     visualTick: 0,
   });
@@ -265,13 +275,8 @@ export function MatchScreen({
   const [swapOpen, setSwapOpen] = useState(false);
   const [selectedOutgoing, setSelectedOutgoing] = useState<number | null>(null);
   const [selectedIncoming, setSelectedIncoming] = useState<string | null>(null);
-  const [powerCutIn, setPowerCutIn] = useState<{
-    id: string;
-    power: PowerId;
-    playerName: string;
-    team: 0 | 1;
-    skippable: boolean;
-  } | null>(null);
+  const [powerCutIns, setPowerCutIns] = useState<PowerCutInEntry[]>([]);
+  const powerCutInPolicy = powerCutInGroupPolicy(powerCutIns);
   const speedRef = useRef<MatchSpeed>(1);
   const pausedRef = useRef(false);
   const userPausedRef = useRef(false);
@@ -353,16 +358,16 @@ export function MatchScreen({
   }, [pausedExternally]);
 
   useEffect(() => {
-    if (powerCutIn === null) return undefined;
+    if (!powerCutInPolicy.shouldPause) return undefined;
     automaticPauseReasonsRef.current.add('cut-in');
     syncPauseReasons();
     const timer = setTimeout(() => {
       automaticPauseReasonsRef.current.delete('cut-in');
       syncPauseReasons();
-      setPowerCutIn(null);
-    }, powerCutInDurationMs(powerCutIn.skippable));
+      setPowerCutIns([]);
+    }, powerCutInPolicy.durationMs);
     return () => clearTimeout(timer);
-  }, [powerCutIn?.id]);
+  }, [powerCutIns.map(entry => entry.id).join('|')]);
 
   // Audio lifecycle — own effect, separate from the RAF loop below: starts
   // the match theme on mount, tears everything down on unmount. No pause
@@ -471,66 +476,81 @@ export function MatchScreen({
         if (e.kind === 'GOAL' || e.kind === 'MISS' || e.kind === 'HALF_TIME' || e.kind === 'KICKOFF') snap = true;
         if (e.kind === 'GOAL') {
           const scorerName = e.by >= 0 && e.by < 22 ? s.players[e.by].def.name : 'Unknown';
-          bannerRef.current = { text: `⚡ GOAL! ${scorerName}`, untilTick: e.t + FLASH_TICKS, tone: 'gold' };
+          bannerRef.current = appendNewestFour(bannerRef.current, {
+            id: `goal:${e.t}:${e.by}`,
+            text: `⚡ GOAL! ${scorerName}`,
+            untilTick: e.t + FLASH_TICKS,
+            tone: 'gold',
+          });
           scoreFlashUntilRef.current = reduceMotion ? e.t : e.t + FLASH_TICKS;
         }
         if (e.kind === 'POWER_FIRED') {
-          bannerRef.current = {
-            text: `⚡ ${e.power.replace(/_/g, ' ')} — ${s.players[e.player].def.name}`,
-            untilTick: e.t + FLASH_TICKS,
-            tone: 'gold',
-          };
-          if (shouldShowFullPowerCutIn(cutInMode, reduceMotion)) {
+          const firingPlayer = s.players[e.player];
+          if (powerOverlayPath(cutInMode, reduceMotion, firingPlayer.team, controlledTeam) === 'tile') {
             const skippable = seenPowerCutInsRef.current.has(e.power);
             if (!skippable) {
               seenPowerCutInsRef.current.add(e.power);
               onPowerCutInSeenRef.current?.(e.power);
             }
-            setPowerCutIn({
+            setPowerCutIns(current => appendNewestFour(current, {
               id: `${e.t}:${e.player}:${e.power}`,
               power: e.power,
-              playerName: s.players[e.player].def.name,
-              team: s.players[e.player].team,
+              playerName: firingPlayer.def.name,
               skippable,
+            }));
+          } else {
+            bannerRef.current = appendNewestFour(bannerRef.current, {
+              id: `power:${e.t}:${e.player}:${e.power}`,
+              text: `⚡ ${e.power.replace(/_/g, ' ')} — ${firingPlayer.def.name}`,
+              untilTick: e.t + FLASH_TICKS,
+              tone: firingPlayer.team === controlledTeam ? 'gold' : 'red',
             });
           }
         }
         if (e.kind === 'HALF_TIME') {
-          bannerRef.current = { text: 'HALF TIME', untilTick: e.t + FLASH_TICKS, tone: 'blue' };
+          bannerRef.current = appendNewestFour(bannerRef.current, {
+            id: `half:${e.t}`, text: 'HALF TIME', untilTick: e.t + FLASH_TICKS, tone: 'blue',
+          });
         }
         if (e.kind === 'FULL_TIME') {
           // Sim ticks freeze at fulltime, so `s.tick <= untilTick` below
           // holds and this banner stays up for the whole end-of-match hold.
-          bannerRef.current = { text: 'FULL TIME', untilTick: e.t + FLASH_TICKS, tone: 'blue' };
+          bannerRef.current = appendNewestFour(bannerRef.current, {
+            id: `full:${e.t}`, text: 'FULL TIME', untilTick: e.t + FLASH_TICKS, tone: 'blue',
+          });
         }
         if (e.kind === 'FORMATION_CHANGED' && e.team === controlledTeam) {
-          bannerRef.current = {
+          bannerRef.current = appendNewestFour(bannerRef.current, {
+            id: `formation:${e.t}`,
             text: `${e.formation} · ${FORMATION_LABELS[e.formation].toUpperCase()}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
-          };
+          });
         }
         if (e.kind === 'MENTALITY_CHANGED' && e.team === controlledTeam) {
-          bannerRef.current = {
+          bannerRef.current = appendNewestFour(bannerRef.current, {
+            id: `mentality:${e.t}`,
             text: `PLAYSTYLE · ${e.mentality}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
-          };
+          });
         }
         if (e.kind === 'ENERGY_USE_CHANGED' && e.team === controlledTeam) {
-          bannerRef.current = {
+          bannerRef.current = appendNewestFour(bannerRef.current, {
+            id: `energy:${e.t}`,
             text: `ENERGY USE · ${ENERGY_USE_LABELS[e.energyUse]}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
-          };
+          });
         }
         if (e.kind === 'SUBSTITUTION' && e.team === controlledTeam) {
           const incoming = s.players[e.player].def.name;
-          bannerRef.current = {
+          bannerRef.current = appendNewestFour(bannerRef.current, {
+            id: `sub:${e.t}:${e.player}`,
             text: `SUBSTITUTION · ${incoming} ON`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
-          };
+          });
         }
         if (!reduceMotion && e.kind === 'SLIDE_STARTED') {
           const rotation = Math.atan2(e.direction.y, e.direction.x);
@@ -603,24 +623,26 @@ export function MatchScreen({
         if (e.kind === 'POWER_READY') {
           const firstName = s.players[e.player].def.name.split(' ')[0];
           if (s.players[e.player].team === controlledTeam) {
-            bannerRef.current = {
+            bannerRef.current = appendNewestFour(bannerRef.current, {
+              id: `zone:${e.t}:${e.player}`,
               text: `⚡ ${firstName} IS IN THE ZONE — TAP!`,
               untilTick: e.t + ZONE_BANNER_TICKS,
               tone: 'gold',
-            };
+            });
           } else {
-            bannerRef.current = {
+            bannerRef.current = appendNewestFour(bannerRef.current, {
+              id: `rival-zone:${e.t}:${e.player}`,
               text: `⚠ ${firstName} IS HOT — KEEP THE BALL AWAY`,
               untilTick: e.t + RIVAL_ZONE_BANNER_TICKS,
               tone: 'red',
-            };
+            });
           }
         }
       }
       // Fire crackle loop follows the caster's active window: on while any Fire
       // Torch hero is ablaze, off once none are. Reconciled from state each
-      // frame (not off an event) so it also stops on a KO, interrupt, or the
-      // half-time freeze — none of which emit a "power ended" event.
+      // frame (not off an event) so it also stops on a KO, interruption, or
+      // natural expiry — none of which emit a "power ended" event.
       const fireActive = s.players.some((p, i) => p.def.power === 'FIRE_TORCH' && isActive(s, i));
       if (fireActive && !fireLoopOnRef.current) {
         startFireAmbience();
@@ -654,11 +676,11 @@ export function MatchScreen({
           actionRef.current
         );
         setFrame(nextRef.current!);
+        bannerRef.current = bannerRef.current.filter(banner => s.tick <= banner.untilTick);
         setHud({
           score: [...s.score] as [number, number],
           tick: s.tick,
-          banner: s.tick <= bannerRef.current.untilTick ? bannerRef.current.text : '',
-          bannerTone: bannerRef.current.tone,
+          banners: [...bannerRef.current],
           scoreFlash: !reduceMotion && s.tick <= scoreFlashUntilRef.current,
           visualTick: s.tick,
         });
@@ -851,8 +873,10 @@ export function MatchScreen({
     });
     setAutoPowers(enabled);
     const text = enabled ? 'AUTO SUPERPOWERS' : 'MANUAL SUPERPOWERS';
-    bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'gold' };
-    setHud((current) => ({ ...current, banner: text, bannerTone: 'gold' }));
+    bannerRef.current = appendNewestFour(bannerRef.current, {
+      id: `power-mode:${match.tick}:${enabled}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'gold',
+    });
+    setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
   };
 
   return (
@@ -1073,8 +1097,7 @@ export function MatchScreen({
         {!autoPowers ? userHeroes.map((index) => {
           const player = match.players[index];
           const ready = player.outUntilTick <= match.tick
-            && player.powerState.kind === 'zone'
-            && !teamPowerBusy(match, controlledTeam);
+            && player.powerState.kind === 'zone';
           if (!ready) return null;
           const position = frame.players[index];
           return (
@@ -1091,36 +1114,64 @@ export function MatchScreen({
           );
         }) : null}
       </View>
-      {hud.banner ? (
-        <Text
-          style={[
-            styles.banner,
-            hud.bannerTone === 'red' ? styles.bannerThreat : null,
-            hud.bannerTone === 'blue' ? styles.bannerAction : null,
-          ]}
-        >
-          {hud.banner}
-        </Text>
+      {hud.banners.length > 0 ? (
+        <View pointerEvents="none" style={styles.bannerStack}>
+          {hud.banners.map(banner => (
+            <Text
+              key={banner.id}
+              style={[
+                styles.banner,
+                banner.tone === 'red' ? styles.bannerThreat : null,
+                banner.tone === 'blue' ? styles.bannerAction : null,
+              ]}
+            >
+              {banner.text}
+            </Text>
+          ))}
+        </View>
       ) : null}
-      {powerCutIn ? (
+      {powerCutIns.length > 0 ? (
         <Pressable
-          accessibilityRole={powerCutIn.skippable ? 'button' : 'text'}
-          accessibilityLabel={`${powerCutInPresentation(powerCutIn.power).name}, ${powerCutIn.playerName}${powerCutIn.skippable ? '. Tap to skip.' : ''}`}
-          disabled={!powerCutIn.skippable}
-          style={[styles.powerCutIn, powerCutIn.team === controlledTeam ? styles.powerCutInHome : styles.powerCutInRival]}
+          accessibilityRole={powerCutInPolicy.skippable ? 'button' : 'text'}
+          accessibilityLabel={`${powerCutIns.map(entry => `${powerCutInPresentation(entry.power).name}, ${entry.playerName}`).join('. ')}${powerCutInPolicy.skippable ? '. Tap to skip.' : ''}`}
+          disabled={!powerCutInPolicy.skippable}
+          style={styles.powerCutInGrid}
           onPress={() => {
             automaticPauseReasonsRef.current.delete('cut-in');
             syncPauseReasons();
-            setPowerCutIn(null);
+            setPowerCutIns([]);
           }}
         >
-          <View style={styles.powerCutInSlash} />
-          <Text style={[styles.powerCutInGlyph, { color: powerCutInPresentation(powerCutIn.power).color }]}>{powerCutInPresentation(powerCutIn.power).glyph}</Text>
-          <View style={styles.powerCutInCopy}>
-            <Text style={styles.powerCutInPlayer}>{powerCutIn.playerName}</Text>
-            <Text style={[styles.powerCutInName, { color: powerCutInPresentation(powerCutIn.power).color }]}>{powerCutInPresentation(powerCutIn.power).name}</Text>
-            <Text style={styles.powerCutInHint}>{powerCutIn.skippable ? 'TAP TO SKIP' : 'FIRST REVEAL'}</Text>
-          </View>
+          {powerCutIns.map((entry, index) => {
+            const presentation = powerCutInPresentation(entry.power);
+            return (
+              <View
+                key={entry.id}
+                style={[
+                  styles.powerCutInTile,
+                  styles.powerCutInHome,
+                  powerCutIns.length === 1 ? styles.powerCutInTileSolo : styles.powerCutInTileCompact,
+                  { width: powerCutInTileWidth(powerCutIns.length, index) },
+                ]}
+              >
+                <View style={styles.powerCutInSlash} />
+                <Text style={[
+                  styles.powerCutInGlyph,
+                  powerCutIns.length > 1 ? styles.powerCutInGlyphCompact : null,
+                  { color: presentation.color },
+                ]}>{presentation.glyph}</Text>
+                <View style={styles.powerCutInCopy}>
+                  <Text style={styles.powerCutInPlayer}>{entry.playerName}</Text>
+                  <Text style={[
+                    styles.powerCutInName,
+                    powerCutIns.length > 1 ? styles.powerCutInNameCompact : null,
+                    { color: presentation.color },
+                  ]}>{presentation.name}</Text>
+                  <Text style={styles.powerCutInHint}>{entry.skippable ? 'TAP TO SKIP' : 'FIRST REVEAL'}</Text>
+                </View>
+              </View>
+            );
+          })}
         </Pressable>
       ) : null}
       <View style={[styles.coachingDock, compactHeight ? styles.coachingDockCompact : null]}>
@@ -1140,8 +1191,10 @@ export function MatchScreen({
               const formation = nextFormation(displayedFormation, formationPresets);
               queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
               const text = `${formation} · ${FORMATION_LABELS[formation].toUpperCase()}`;
-              bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'blue' };
-              setHud((current) => ({ ...current, banner: text, bannerTone: 'blue' }));
+              bannerRef.current = appendNewestFour(bannerRef.current, {
+                id: `formation-input:${match.tick}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'blue',
+              });
+              setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
             }}
           >
             <FormationDiagram formation={displayedFormation} compact inverted />
@@ -1165,8 +1218,10 @@ export function MatchScreen({
               const mentality = nextMentality(displayedMentality);
               queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
               const text = `PLAYSTYLE · ${mentality}`;
-              bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'blue' };
-              setHud((current) => ({ ...current, banner: text, bannerTone: 'blue' }));
+              bannerRef.current = appendNewestFour(bannerRef.current, {
+                id: `mentality-input:${match.tick}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'blue',
+              });
+              setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
             }}
           >
             <Text style={styles.mentalityIcon}>{displayedMentality === 'ATTACK' ? '▲' : displayedMentality === 'PROTECT' ? '▼' : '◆'}</Text>
@@ -1238,8 +1293,10 @@ export function MatchScreen({
                     if (mode === displayedEnergyUse) return;
                     queueInput(match, { tick: match.tick + 1, kind: 'SET_ENERGY_USE', energyUse: mode });
                     const text = `ENERGY USE · ${ENERGY_USE_LABELS[mode]}`;
-                    bannerRef.current = { text, untilTick: match.tick + FLASH_TICKS, tone: 'blue' };
-                    setHud((current) => ({ ...current, banner: text, bannerTone: 'blue' }));
+                    bannerRef.current = appendNewestFour(bannerRef.current, {
+                      id: `energy-input:${match.tick}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'blue',
+                    });
+                    setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
                   }}
                 >
                   <Text style={[styles.energySegmentText, selected ? styles.energySegmentTextSelected : null]}>
@@ -1449,12 +1506,15 @@ const styles = StyleSheet.create({
   },
   ctrlText: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold' },
   powerModeText: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold' },
-  banner: {
+  bannerStack: {
     position: 'absolute',
     zIndex: 8,
-    top: '46%',
+    top: '40%',
     left: 18,
     right: 18,
+    gap: 4,
+  },
+  banner: {
     textAlign: 'center',
     color: '#edb54a',
     fontSize: 18,
@@ -1467,29 +1527,34 @@ const styles = StyleSheet.create({
   },
   bannerThreat: { color: '#f4f1ea', borderColor: '#d94f52', backgroundColor: '#3a1512ee' },
   bannerAction: { color: '#f4f1ea', borderColor: '#77a4d8', backgroundColor: '#214566ee' },
-  powerCutIn: {
+  powerCutInGrid: {
     position: 'absolute',
     zIndex: 30,
-    top: '28%',
+    top: '18%',
     left: 0,
     right: 0,
-    minHeight: 210,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  powerCutInTile: {
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
-    borderTopWidth: 5,
-    borderBottomWidth: 5,
+    borderWidth: 3,
     borderColor: '#edb54a',
     backgroundColor: '#16121ff5',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
   },
+  powerCutInTileSolo: { minHeight: 210, paddingHorizontal: 20 },
+  powerCutInTileCompact: { minHeight: 132 },
   powerCutInHome: { borderColor: '#edb54a' },
-  powerCutInRival: { borderColor: '#d94f52' },
   powerCutInSlash: { position: 'absolute', left: '42%', top: -70, width: 70, height: 360, backgroundColor: '#f4f1ea12', transform: [{ rotate: '18deg' }] },
   powerCutInGlyph: { width: 120, fontSize: 72, fontWeight: 'bold', textAlign: 'center' },
+  powerCutInGlyphCompact: { width: 54, fontSize: 38 },
   powerCutInCopy: { minWidth: 0, flex: 1, paddingLeft: 12 },
   powerCutInPlayer: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' },
   powerCutInName: { marginTop: 6, fontSize: 34, lineHeight: 38, fontWeight: '900', textTransform: 'uppercase' },
+  powerCutInNameCompact: { fontSize: 20, lineHeight: 24 },
   powerCutInHint: { marginTop: 12, color: '#c9c5d0', fontSize: 10, fontWeight: 'bold', letterSpacing: 2 },
   carrierCard: {
     position: 'absolute',

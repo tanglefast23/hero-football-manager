@@ -59,9 +59,9 @@ describe('M0 acceptance suite (Task 13)', () => {
         m.ball = { kind: 'held', by: TORCH };
         m.players[TORCH].pos = { x: GOAL_CENTER_X, y: 5250 }; // midfield, far from a valuable shot
         if (markerNearby) {
-          m.players[17].pos = { x: GOAL_CENTER_X, y: 5250 }; // co-located opponent, well inside the 800 ignite radius
+          m.players[17].pos = { x: GOAL_CENTER_X, y: 5250 }; // co-located opponent, well inside the 1400 ignite radius
         } else {
-          for (const idx of [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]) m.players[idx].pos = { x: 200, y: 9000 }; // all far outside 800
+          for (const idx of [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]) m.players[idx].pos = { x: 200, y: 9000 }; // all far outside 1400
         }
         activatePower(m, TORCH, 1);
         return m.events.some(e => e.kind === 'IGNITED');

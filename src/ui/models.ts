@@ -297,6 +297,7 @@ export interface FocusDrillViewModel {
   trainingPointCost: number;
   selected: boolean;
   available: boolean;
+  lockedReason?: string;
 }
 
 export interface CoachStaffMemberViewModel {

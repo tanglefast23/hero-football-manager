@@ -1,7 +1,7 @@
 import { createLaunchCareerSetup, reconcileLaunchRoster } from '../../application/launch';
 import { createCareer, startNextSeason } from '../career';
 import { enableFullCareer } from '../full-career';
-import { currentUserDivision } from '../m2-career';
+import { clubSquadStrength, currentUserDivision } from '../m2-career';
 import { runHeadlessFullCareer } from '../headless';
 import { buildCareerTeamDef } from '../squad';
 import type { GameState } from '../types';
@@ -21,6 +21,37 @@ describe('full M2 career clock', () => {
     expect(m1.youthIntake).toBeUndefined();
     expect(full.youthIntake).toMatchObject({ season: 1, status: 'OPEN' });
     expect(full.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('starts the user at the bottom of D5 with a venue-aware first-five curve', () => {
+    const full = createCareer({ ...createLaunchCareerSetup(77_003), careerMode: 'full' });
+    const strengths = new Map(full.clubs.map(club => [
+      club.id,
+      clubSquadStrength(full.players.filter(player => player.clubId === club.id)),
+    ] as const));
+    const openingOpponents = [1, 2, 3, 4, 5].map(round => {
+      const fixture = full.fixtures.find(candidate => candidate.round === round && (
+        candidate.homeClubId === full.userClubId || candidate.awayClubId === full.userClubId
+      ))!;
+      const userIsHome = fixture.homeClubId === full.userClubId;
+      return {
+        strength: strengths.get(userIsHome ? fixture.awayClubId : fixture.homeClubId),
+        userIsHome,
+      };
+    });
+
+    expect(strengths.get(full.userClubId)).toBe(40);
+    expect(Math.min(...strengths.values())).toBe(40);
+    expect(Math.max(...strengths.values())).toBe(50);
+    expect(openingOpponents).toEqual([
+      { strength: 50, userIsHome: true },
+      { strength: 45, userIsHome: false },
+      { strength: 46, userIsHome: true },
+      { strength: 43, userIsHome: false },
+      { strength: 42, userIsHome: true },
+    ]);
+    expect(full.players.filter(player => player.clubId !== full.userClubId && player.power !== undefined))
+      .toHaveLength(0);
   });
 
   test.each([

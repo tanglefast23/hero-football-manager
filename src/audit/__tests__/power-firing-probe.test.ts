@@ -25,7 +25,7 @@ import type { PowerId, TeamDef } from '../../sim/types';
 
 const content = loadLaunchContent();
 const POWERS = content.powers.powers.map(power => power.id) as PowerId[];
-const SEEDS = 200;
+const SEEDS = positiveIntegerEnv('POWER_FIRING_SEEDS', 200);
 
 /**
  * Each power's designed carrier slot, matching src/sim/__tests__/power-cadence.
@@ -49,6 +49,7 @@ const CARRIER_SLOT: Record<PowerId, number> = {
   SHADOW_MARK: 2,
   GRAVITY_WELL: 6,
   GIANT_GK: 0,
+  GUST: 2,
 };
 /** The baseline opponent is 2 points stronger, so -2 is a genuinely even match. */
 const EVEN_DELTA = -2;
@@ -62,6 +63,14 @@ interface Sample {
 }
 
 describe('power firing diagnostic', () => {
+  it('assigns every power to its intended compatible carrier', () => {
+    const { user } = openingTeams();
+    expect(Object.keys(CARRIER_SLOT).sort()).toEqual([...POWERS].sort());
+    for (const power of POWERS) {
+      expect(grantPower(user, power).players[CARRIER_SLOT[power]].power).toBe(power);
+    }
+  });
+
   it('reports zones, fires and value for every power', () => {
     const { user, opponent } = openingTeams();
     const evenOpponent = scale(opponent, EVEN_DELTA);
@@ -241,4 +250,13 @@ function grantPower(team: TeamDef, power: PowerId): TeamDef {
       index === slot ? { ...player, power } : { ...player, power: undefined }
     )),
   };
+}
+
+function positiveIntegerEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  if (!/^[1-9]\d*$/.test(raw)) throw new Error(`${name} must be a positive integer`);
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value)) throw new Error(`${name} must be a safe positive integer`);
+  return value;
 }

@@ -1,7 +1,8 @@
 import { createMatch, runMatch, tick } from '../match';
-import { drainStamina, effectiveStat, movementTick, speedFor, tackleTick } from '../engine';
+import { drainStamina, effectiveStat, launchPass, movementTick, possessionTick, speedFor, tackleTick } from '../engine';
 import { ROVERS, UNITED } from '../teams';
 import type { BallState } from '../types';
+import { activatePower } from '../powers';
 
 describe('possession', () => {
   it('passes happen and both teams touch the ball', () => {
@@ -26,6 +27,93 @@ describe('possession', () => {
       if (m.ball.kind === 'pass') sawFlight = true;
     }
     expect(sawFlight).toBe(true);
+  });
+
+  it('can turn an ordinary failed pass into a deterministic loose-ball contest', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const passer = 5;
+    const receiver = 6;
+    const interceptor = 13;
+    m.ball = { kind: 'held', by: passer };
+    m.players[passer].pos = { x: 1000, y: 5000 };
+    m.players[receiver].pos = { x: 3000, y: 5000 };
+    for (let index = 11; index < 22; index++) m.players[index].pos = { x: 6500, y: 10000 };
+    m.players[interceptor].pos = { ...m.players[receiver].pos };
+    m.players[passer].def.attrs.pas = 1;
+    m.players[interceptor].def.attrs.def = 99;
+    const rolls = [0.99, 0];
+    m.rng = () => rolls.shift() ?? 0;
+
+    launchPass(m, passer, receiver, false);
+
+    expect(m.ball).toMatchObject({
+      kind: 'pass',
+      willSucceed: false,
+      interceptor,
+      looseOnArrival: true,
+    });
+    const failedFlight = m.ball as BallState;
+    if (failedFlight.kind !== 'pass') throw new Error('pass did not launch');
+    failedFlight.pos = { ...m.players[interceptor].pos };
+    possessionTick(m);
+    expect(m.ball).toMatchObject({ kind: 'loose' });
+  });
+
+  it('delivers a successful pass cleanly when there is no eligible interceptor', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const passer = 5;
+    const receiver = 6;
+    m.ball = { kind: 'held', by: passer };
+    for (let index = 11; index < 22; index++) {
+      m.players[index].outUntilTick = 100;
+      m.players[index].outReason = 'ko';
+    }
+    m.rng = () => 0;
+
+    launchPass(m, passer, receiver, false);
+
+    expect(m.events.at(-1)).toMatchObject({ kind: 'PASS', from: passer, to: receiver, ok: true });
+    expect(m.ball).toMatchObject({
+      kind: 'pass',
+      willSucceed: true,
+      interceptor: -1,
+      looseOnArrival: false,
+    });
+    const flight = m.ball as BallState;
+    if (flight.kind !== 'pass') throw new Error('pass did not launch');
+    flight.pos = { ...m.players[receiver].pos };
+    possessionTick(m);
+    expect(m.ball).toEqual({ kind: 'held', by: receiver });
+  });
+
+  it('lets Gust keep knocking enemy passes loose during its active window', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const passer = 5;
+    const receiver = 6;
+    const gustHero = 13;
+    m.players[gustHero].def.power = 'GUST';
+    activatePower(m, gustHero, 1);
+    m.ball = { kind: 'held', by: passer };
+    m.rng = () => 0;
+
+    launchPass(m, passer, receiver, false);
+
+    expect(m.ball).toMatchObject({
+      kind: 'pass',
+      willSucceed: false,
+      interceptor: -1,
+      looseOnArrival: true,
+    });
+    expect(m.players[gustHero].powerState.kind).toBe('active');
+    const gustFlight = m.ball as BallState;
+    if (gustFlight.kind !== 'pass') throw new Error('pass did not launch');
+    gustFlight.pos = { ...m.players[receiver].pos };
+    possessionTick(m);
+    expect(m.ball).toMatchObject({ kind: 'loose' });
+
+    m.ball = { kind: 'held', by: passer };
+    launchPass(m, passer, receiver, false);
+    expect(m.ball).toMatchObject({ kind: 'pass', looseOnArrival: true });
   });
 
   it('remains deterministic', () => {

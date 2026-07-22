@@ -22,7 +22,7 @@ describe('training transition scene', () => {
 
     expect(trainingTransitionScene(state, content)).toMatchObject({
       mode: 'plan',
-      drillLabels: ['Sprints', 'Finishing', 'Rondo'],
+      drillLabels: ['Sprints I', 'Finishing I', 'Rondo I'],
       participants: [
         { playerId: 'bramble-rovers-p01', activityId: 'sprints' },
         { playerId: 'bramble-rovers-p02', activityId: 'finishing' },
@@ -58,6 +58,25 @@ describe('training transition scene', () => {
     expect(trainingTransitionScene(state, content).participants.map(participant =>
       participant.activityId,
     )).toEqual(['duels', 'circuit', 'keeper-drills']);
+  });
+
+  it('maps upgraded drill tiers to their path activity', () => {
+    const initial = {
+      ...createCareer(createLaunchCareerSetup(655)),
+      trainingPoints: 100,
+    };
+    const drills = content.training.focusDrills.filter(drill =>
+      ['sprints-ii', 'first-touch-iii'].includes(drill.id),
+    );
+    const state = applyCareerTraining(
+      initial,
+      ['bramble-rovers-p01', 'bramble-rovers-p02'],
+      drills,
+    );
+
+    expect(trainingTransitionScene(state, content).participants.map(participant =>
+      participant.activityId,
+    )).toEqual(['sprints', 'rondo']);
   });
 
   it('does not present an unaffordable repeating plan as completed training', () => {

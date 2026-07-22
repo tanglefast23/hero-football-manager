@@ -195,9 +195,11 @@ Division potential ceilings already scale correctly: D5 is 100% tier-1
 
 ---
 
-## 4. Agreed backlog, not started
+## 4. Agreed implementation backlog
 
-Ordered as recommended. Every item was explicitly approved by the owner.
+Ordered as recommended. Every item was explicitly approved by the owner. The
+original wording is retained here as the implementation record; current status
+is summarized in §6.
 
 ### Do first — verification
 1. **Rebaseline m1.13**: runtime golden hash, parity replay snapshot, and the
@@ -249,7 +251,9 @@ Ordered as recommended. Every item was explicitly approved by the owner.
     D3 60–70, D2 70–80, D1 80–90 — with the player's club at the **bottom** of
     D5. Widen within-division spread from `±3` (`pyramid.ts:222`). This is what
     delivers the ~90% first-match loss naturally.
-14. **Pin the first three opponents**: hardest, then lower-mid, then weakest.
+14. **Pin the first five opponents on a venue-aware easing curve**: 50 home,
+    45 away, 46 home, 43 away, then 42 home. This keeps the first two authored
+    shocks while removing the weakest-match spike and harder-match rebound.
 15. **Cup out of the opening** — `CUP_SETTLEMENT_WEEKS` (`career.ts:45`) starts
     at week 5, same week as the league opener, and the draw is a blind shuffle of
     all 50 clubs across every division. Move to ~week 10 *and* seed by division.
@@ -301,5 +305,34 @@ above and are the tool for verifying items 3–19. They are **slow (10–17 min)
 and must not go into CI as-is. Either keep them excluded via
 `--testPathIgnorePatterns="src/audit"` or move them behind an explicit script.
 
-`hero-value-probe.test.ts` still has the `controlledTeam` bug described above —
-fix or delete it. `power-firing-probe.test.ts` is the corrected one.
+`hero-value-probe.test.ts` now avoids `controlledTeam`, runs 1,000 seeds by
+default, supports deterministic shards, and measures Tier-1 auto, Tier-1
+well-tapped, and Tier-3 well-tapped cases. `power-firing-probe.test.ts` remains
+the cadence/conversion probe.
+
+---
+
+## 6. Implementation status — 2026-07-22
+
+A checked item means the approved behavior and its focused coverage were built.
+It does **not** mean the post-build balance target passed; those results are kept
+separate so tuning misses cannot hide behind a green implementation checklist.
+
+- [x] Items 1–3: deliberate m1.14 replay rebaseline, role-pool coverage, and
+  opt-in firing measurement.
+- [x] Items 4–6: career tiers reach the match engine, power opportunities were
+  expanded, and the first effect-strength pass was applied.
+- [x] Items 7–11: fixed press-to-arm timing, independent hero powers, multi-tile
+  cut-ins, loose-ball Gust, and Fire Torch's wider context.
+- [x] Items 12–16: capped-player skipping with named warnings, contiguous league
+  bands, authored opening opponents, a week-10 division-seeded Cup, and a
+  hero-free Division 5.
+- [x] Items 17–19: weekly facility/coach TP sources, single-stat drill tiers,
+  and an ordinary loose-ball outcome for failed passes.
+- [x] Post-build audit: 1,000-seed tiered hero-worth runs, a 300-career opening
+  comparison, all-power cadence measurement, full deterministic gates, and a
+  clean web production export.
+
+The remaining misses are tuning or game-design decisions, except for the Cup
+play-in pairing bug found by the audit and fixed so opponents are at most one
+division apart.

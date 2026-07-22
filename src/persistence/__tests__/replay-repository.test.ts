@@ -7,6 +7,7 @@ import {
   UnsupportedReplaySchemaError,
 } from '../errors';
 import { REPLAY_SCHEMA_VERSION } from '../replay-codec';
+import { LAUNCH_POWER_IDS } from '../../game/power-catalog';
 import { createReplayRepository } from '../replay-repository';
 import { FakePersistenceDatabase } from './fake-database';
 
@@ -232,19 +233,21 @@ describe('replay repository', () => {
     const database = new FakePersistenceDatabase();
     const repository = await createReplayRepository(database);
     const envelope = makeEnvelope();
-    const powerIds = [
-      'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
-      'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
-    ] as const;
     const expanded: ReplayEnvelope = {
       ...envelope,
       home: {
         ...envelope.home,
         players: envelope.home.players.map((player, index) => ({
           ...player,
-          power: powerIds[index % powerIds.length],
+          power: LAUNCH_POWER_IDS[index],
+          powerTier: index === 0 ? 3 : undefined,
         })),
-        bench: envelope.home.bench?.map(player => ({ ...player, power: 'ELASTIC_KEEPER' as const })),
+        bench: LAUNCH_POWER_IDS.slice(11).map((power, index) => ({
+          ...UNITED.players[9],
+          id: index === 0 ? 'rovers-bench-1' : `rovers-power-bench-${index}`,
+          power,
+          powerTier: 2 as const,
+        })),
       },
     };
 

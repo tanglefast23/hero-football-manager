@@ -64,6 +64,8 @@ export interface CareerTrainingCapNotice {
   attribute: keyof Attrs;
   cap: number;
   drillId: string;
+  /** Absent on older saves, which means the player reached the cap that week. */
+  kind?: 'reached' | 'skipped';
 }
 
 export interface TrainingRules {
