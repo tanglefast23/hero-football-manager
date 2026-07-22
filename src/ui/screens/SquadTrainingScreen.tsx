@@ -602,7 +602,21 @@ export function SquadTrainingScreen({
                     <View className="border-2 border-b-4 border-ink bg-blue-light px-1 pt-1">
                       <PixelPortrait playerId={player.id} role={player.role} lookId={player.lookId} />
                     </View>
-                    <Text className="min-w-0 flex-1 text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
+                      {player.trainingProgress.map(entry => (
+                        <Text
+                          key={entry.label}
+                          className="mt-1 font-mono text-sm font-bold text-ink/70"
+                          numberOfLines={1}
+                        >
+                          {entry.label} {entry.value}/{entry.cap}{' '}
+                          <Text className={entry.atCap ? 'text-stamp' : entry.weeklyGain === 0 ? 'text-stamp' : 'text-pitch-dark'}>
+                            {entry.atCap ? '· At cap' : entry.weeklyGain === 0 ? '· None this week' : `+${entry.weeklyGain}/week`}
+                          </Text>
+                        </Text>
+                      ))}
+                    </View>
                   </View>
                 ))}
               </View>
@@ -613,7 +627,10 @@ export function SquadTrainingScreen({
                 {viewModel.lockedPlan.drills.map(drill => (
                   <View key={drill.id} className="flex-row items-center gap-3 border border-ink/20 bg-paper px-2 py-2">
                     <DrillIcon drillId={drill.id} selected />
-                    <Text className="min-w-0 flex-1 text-base font-bold uppercase text-ink" numberOfLines={1}>{drill.name}</Text>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{drill.name}</Text>
+                      <Text className="mt-1 font-mono text-sm font-bold text-violet-dark" numberOfLines={1}>{drill.gainLabel}</Text>
+                    </View>
                   </View>
                 ))}
               </View>

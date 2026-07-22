@@ -89,8 +89,8 @@ function validateCreatedAppearance(value: Readonly<CreatedPlayerAppearance>): Cr
   if (!Number.isSafeInteger(value.skinTone) || value.skinTone < 0 || value.skinTone > 5) {
     throw new Error('Skin tone choice must be from 0 to 5');
   }
-  if (!Number.isSafeInteger(value.hairstyle) || value.hairstyle < 0 || value.hairstyle > 6) {
-    throw new Error('Hairstyle choice must be from 0 to 6');
+  if (!Number.isSafeInteger(value.hairstyle) || value.hairstyle < 0 || value.hairstyle > 9) {
+    throw new Error('Hairstyle choice must be from 0 to 9');
   }
   if (!Number.isSafeInteger(value.kitAccent) || value.kitAccent < 0 || value.kitAccent > 3) {
     throw new Error('Kit accent choice must be from 0 to 3');

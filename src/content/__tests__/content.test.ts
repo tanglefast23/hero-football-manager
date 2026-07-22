@@ -301,7 +301,7 @@ describe('validated M1 launch content', () => {
     const managementIntroPages = content.assistantGuide.sequences
       .find(sequence => sequence.id === 'management-intro')
       ?.pages;
-    expect(managementIntroPages).toHaveLength(3);
+    expect(managementIntroPages).toHaveLength(4);
     expect(managementIntroPages?.find(page => page.focus === 'navigation')).toMatchObject({
       buttonLabel: 'Got it!',
       navItems: [
@@ -370,5 +370,13 @@ describe('validated M1 launch content', () => {
         destination: 'club-finances',
         pages: [{ focus: 'board-protection', objective: 'PROTECT ONE PLAYER.' }],
       });
+  });
+
+  test('explains the founding training pitch during the opening sequence', () => {
+    const intro = loadLaunchContent().assistantGuide.sequences
+      .find(sequence => sequence.id === 'management-intro');
+    const bodies = intro?.pages.flatMap(page => page.body) ?? [];
+
+    expect(bodies.some(line => line.includes('Training Pitch'))).toBe(true);
   });
 });

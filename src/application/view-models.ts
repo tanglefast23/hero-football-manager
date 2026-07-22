@@ -20,6 +20,7 @@ import {
   projectedPlayerOverall,
   reconcilePendingClubLegends,
   renewalQuote,
+  resolveCareerTrainingWeek,
   rosterForClub,
   roleOverall,
   scheduleAssistantInboxWeek,
@@ -27,6 +28,9 @@ import {
   weeklyAmbientTrainingPoints,
   weeklyMerchandiseIncome,
   willRetireAtSeasonTransition,
+  type CareerPlayer,
+  type CareerTrainingDrill,
+  type CareerTrainingPlan,
   type FacilityLevel,
   type FacilityType,
   type GameState,
@@ -41,6 +45,7 @@ import type {
   FixtureViewModel,
   HomeViewModel,
   LeagueTableViewModel,
+  LockedTrainingProgressViewModel,
   MatchDayViewModel,
   PostMatchViewModel,
   PlayerDevelopmentViewModel,
@@ -1261,12 +1266,16 @@ export function squadTrainingViewModel(
     ],
     selectedPlayerId,
     createdPlayerId,
-    drills: drills.map(drill => drillViewModel(
-      drill,
-      selected.has(drill.id),
-      state,
-      assignedPlayerIds,
-    )),
+    // Division-locked tiers stay hidden until the club can actually reach them.
+    // Drills the club merely cannot afford this week stay visible on purpose.
+    drills: drills
+      .map(drill => drillViewModel(
+        drill,
+        selected.has(drill.id),
+        state,
+        assignedPlayerIds,
+      ))
+      .filter(drill => drill.lockedReason === undefined),
     assignedPlayerIds,
     selectedDrillCount: selectedDrills.length,
     maxDrills: content.training.maxFocusDrillsPerWeek,
@@ -1279,32 +1288,54 @@ export function squadTrainingViewModel(
       totalMoneyCost <= club.cash &&
       totalTrainingPointCost <= state.trainingPoints,
     ...(selectionMatchesSavedPlan && savedPlan !== undefined ? {
-      lockedPlan: {
-        players: savedPlan.assignedPlayerIds.flatMap(playerId => {
-          const player = playerById.get(playerId);
-          return player === undefined ? [] : [{
-            id: player.id,
-            name: player.name,
-            role: player.role,
-            ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
-          }];
-        }),
-        drills: savedPlan.drills.map(savedDrill => ({
-          id: savedDrill.id,
-          name: drills.find(drill => drill.id === savedDrill.id)?.name ?? savedDrill.id,
-        })),
-        moneyCost: chargeableCareerTrainingPlan(
-          state,
-          savedPlan.assignedPlayerIds,
-          savedPlan.drills,
-        ).moneyCost,
-        trainingPointCost: chargeableCareerTrainingPlan(
-          state,
-          savedPlan.assignedPlayerIds,
-          savedPlan.drills,
-        ).trainingPointCost,
-      },
+      lockedPlan: lockedPlanViewModel(state, savedPlan, playerById, drills),
     } : {}),
+  };
+}
+
+/**
+ * Builds the locked-plan summary, resolving the real training-week outcome
+ * once for the whole panel (not once per player) so the shown gains are
+ * exactly what settlement will deliver. Only reached once a plan is saved and
+ * the editor selection still matches it — locked is the common state (the
+ * tutorial pushes a saved plan in Week 1, and it repeats weekly), so this
+ * resolution runs on most renders; the caller memoizes it.
+ */
+function lockedPlanViewModel(
+  state: GameState,
+  savedPlan: CareerTrainingPlan,
+  playerById: Map<string, CareerPlayer>,
+  drills: readonly TrainingDrill[],
+) {
+  const resolvedRoster = resolveCareerTrainingWeek(state).players;
+  return {
+    players: savedPlan.assignedPlayerIds.flatMap(playerId => {
+      const player = playerById.get(playerId);
+      return player === undefined ? [] : [{
+        id: player.id,
+        name: player.name,
+        role: player.role,
+        ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+        trainingProgress: lockedTrainingProgress(resolvedRoster, player, savedPlan.drills),
+      }];
+    }),
+    drills: savedPlan.drills.map(savedDrill => ({
+      id: savedDrill.id,
+      name: drills.find(drill => drill.id === savedDrill.id)?.name ?? savedDrill.id,
+      gainLabel: Object.entries(savedDrill.gains)
+        .map(([attribute, gain]) => `+${gain} ${attribute.toUpperCase()}`)
+        .join(' · '),
+    })),
+    moneyCost: chargeableCareerTrainingPlan(
+      state,
+      savedPlan.assignedPlayerIds,
+      savedPlan.drills,
+    ).moneyCost,
+    trainingPointCost: chargeableCareerTrainingPlan(
+      state,
+      savedPlan.assignedPlayerIds,
+      savedPlan.drills,
+    ).trainingPointCost,
   };
 }
 
@@ -1669,6 +1700,44 @@ function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
       const goalsAgainst = isHome ? fixture.score!.awayGoals : fixture.score!.homeGoals;
       return goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'D';
     });
+}
+
+/**
+ * Projects next week's training by diffing the real resolver's output, so the
+ * number shown is exactly the number weekly settlement will deliver. Copying
+ * the growth formula here would silently drift from src/game/training.ts,
+ * where age, archetype, facility, diminishing-returns and coach-bonus
+ * multipliers all reshape a drill's nominal gain.
+ *
+ * Takes the already-resolved roster so the caller resolves once per locked
+ * plan, not once per player.
+ */
+function lockedTrainingProgress(
+  resolvedRoster: readonly CareerPlayer[],
+  player: CareerPlayer,
+  drills: readonly CareerTrainingDrill[],
+): LockedTrainingProgressViewModel[] {
+  const trainedAttributes = new Set(
+    drills.flatMap(drill => Object.keys(drill.gains)),
+  ) as Set<keyof CareerPlayer['attrs']>;
+  if (trainedAttributes.size === 0) return [];
+
+  const resolvedPlayer = resolvedRoster.find(candidate => candidate.id === player.id);
+  const caps = playerAttributeCaps(player);
+
+  return [...trainedAttributes].map(attribute => {
+    const value = player.attrs[attribute];
+    const weeklyGain = resolvedPlayer === undefined
+      ? 0
+      : Math.max(0, resolvedPlayer.attrs[attribute] - value);
+    return {
+      label: attribute.toUpperCase() as LockedTrainingProgressViewModel['label'],
+      value,
+      cap: caps[attribute],
+      weeklyGain,
+      atCap: value >= caps[attribute],
+    };
+  });
 }
 
 function drillViewModel(

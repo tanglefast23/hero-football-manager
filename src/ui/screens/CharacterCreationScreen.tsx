@@ -20,6 +20,7 @@ import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { SettingsButton } from '../SettingsOverlay';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { playManagementHaptic } from '../../render/haptics';
+import { stepChoice } from '../appearance-stepper';
 
 export interface CharacterCreationScreenProps {
   initialDifficulty: DifficultyMode;
@@ -59,6 +60,17 @@ export function CharacterCreationScreen({
     });
   }
 
+  function cycleAppearance(
+    key: keyof CreatedPlayerAppearance,
+    delta: -1 | 1,
+    count: number,
+  ): void {
+    setAppearance(current => ({
+      ...current,
+      [key]: stepChoice(current[key], delta, count),
+    }) as CreatedPlayerAppearance);
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <View className="border-b-2 border-ink bg-white px-5 py-4">
@@ -96,17 +108,20 @@ export function CharacterCreationScreen({
               <AppearanceChoice
                 label="Skin tone"
                 value={`${appearance.skinTone + 1} / 6`}
-                onPress={() => setAppearance(current => ({ ...current, skinTone: ((current.skinTone + 1) % 6) as CreatedPlayerAppearance['skinTone'] }))}
+                onPrevious={() => cycleAppearance('skinTone', -1, 6)}
+                onNext={() => cycleAppearance('skinTone', 1, 6)}
               />
               <AppearanceChoice
                 label="Hair"
-                value={`${appearance.hairstyle + 1} / 7`}
-                onPress={() => setAppearance(current => ({ ...current, hairstyle: ((current.hairstyle + 1) % 7) as CreatedPlayerAppearance['hairstyle'] }))}
+                value={`${appearance.hairstyle + 1} / 10`}
+                onPrevious={() => cycleAppearance('hairstyle', -1, 10)}
+                onNext={() => cycleAppearance('hairstyle', 1, 10)}
               />
               <AppearanceChoice
                 label="Kit accent"
                 value={`${appearance.kitAccent + 1} / 4`}
-                onPress={() => setAppearance(current => ({ ...current, kitAccent: ((current.kitAccent + 1) % 4) as CreatedPlayerAppearance['kitAccent'] }))}
+                onPrevious={() => cycleAppearance('kitAccent', -1, 4)}
+                onNext={() => cycleAppearance('kitAccent', 1, 4)}
               />
             </View>
           </View>
@@ -140,7 +155,7 @@ export function CharacterCreationScreen({
           </View>
         </PaperPanel>
 
-        <PaperPanel kicker="Registration card" title="Name on the shirt" stamp="Required" className="mt-5">
+        <PaperPanel kicker="Registration card" title="Name" stamp="Required" className="mt-5">
           <TextInput
             accessibilityLabel="Created player name"
             value={name}
@@ -190,7 +205,7 @@ export function CharacterCreationScreen({
                 </View>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Decrease ${copy.label}`}
+                  accessibilityLabel={`Decrease ${copy.label}, currently ${value}`}
                   accessibilityState={{ disabled: value <= CREATION_STAT_MIN }}
                   disabled={value <= CREATION_STAT_MIN}
                   onPress={() => {
@@ -205,7 +220,7 @@ export function CharacterCreationScreen({
                 <Text className="w-12 text-center font-mono text-2xl font-bold text-ink">{value}</Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Increase ${copy.label}`}
+                  accessibilityLabel={`Increase ${copy.label}, currently ${value}`}
                   accessibilityState={{ disabled: value >= CREATION_STAT_MAX || pointsRemaining <= 0 }}
                   disabled={value >= CREATION_STAT_MAX || pointsRemaining <= 0}
                   onPress={() => {
@@ -254,25 +269,42 @@ export function CharacterCreationScreen({
 function AppearanceChoice({
   label,
   value,
-  onPress,
+  onPrevious,
+  onNext,
 }: {
   label: string;
   value: string;
-  onPress: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}, ${value}. Tap for next.`}
-      onPress={() => {
-        playManagementHaptic('select');
-        onPress();
-      }}
-      className="min-h-11 flex-row items-center justify-between border-2 border-ink/30 bg-white px-3 py-2"
-      style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
-    >
-      <Text className="text-sm font-bold uppercase text-ink">{label}</Text>
-      <Text className="font-mono text-sm font-bold text-violet-dark">{value} ›</Text>
-    </Pressable>
+    <View className="min-h-11 flex-row items-center justify-between gap-2 border-2 border-ink/30 bg-white px-2 py-2">
+      <Text className="min-w-0 flex-1 text-sm font-bold uppercase text-ink" numberOfLines={1}>{label}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Previous ${label}, currently ${value}`}
+        onPress={() => {
+          playManagementHaptic('select');
+          onPrevious();
+        }}
+        className="h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light"
+        style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+      >
+        <Text className="font-mono text-xl font-bold text-ink">‹</Text>
+      </Pressable>
+      <Text className="w-16 text-center font-mono text-sm font-bold text-violet-dark">{value}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Next ${label}, currently ${value}`}
+        onPress={() => {
+          playManagementHaptic('select');
+          onNext();
+        }}
+        className="h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light"
+        style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+      >
+        <Text className="font-mono text-xl font-bold text-ink">›</Text>
+      </Pressable>
+    </View>
   );
 }

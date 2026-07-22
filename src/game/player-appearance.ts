@@ -8,17 +8,17 @@ export interface PlayerAppearanceIdentity {
 
 export const FIELD_PLAYER_LOOK_COUNT = 168;
 export const GOALKEEPER_LOOK_COUNT = 25;
-export const CREATED_PLAYER_LOOK_COUNT = 168;
+export const CREATED_PLAYER_LOOK_COUNT = 240;
 
 export interface CreatedAppearanceChoice {
   readonly skinTone: 0 | 1 | 2 | 3 | 4 | 5;
-  readonly hairstyle: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  readonly hairstyle: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   readonly kitAccent: 0 | 1 | 2 | 3;
 }
 
-/** Maps the editable paper-doll controls onto the dedicated 168-look paper-doll atlas. */
+/** Maps the editable paper-doll controls onto the dedicated 240-look paper-doll atlas. */
 export function createdAppearanceLookId(appearance: CreatedAppearanceChoice): string {
-  const index = appearance.skinTone * 28 + appearance.hairstyle * 4 + appearance.kitAccent;
+  const index = appearance.skinTone * 40 + appearance.hairstyle * 4 + appearance.kitAccent;
   return `c${String(index).padStart(3, '0')}`;
 }
 

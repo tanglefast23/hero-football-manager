@@ -6,7 +6,7 @@ import { squadTrainingViewModel } from '../view-models';
 describe('training drill tier unlocks', () => {
   const content = loadLaunchContent();
 
-  test('shows locked tiers and keeps earned tiers after relegation', () => {
+  test('hides locked tiers and keeps earned tiers after relegation', () => {
     const divisionFive = createCareer(createLaunchCareerSetup(
       20260722,
       undefined,
@@ -26,23 +26,17 @@ describe('training drill tier unlocks', () => {
     );
 
     const tierOne = viewAt(5).drills.find(drill => drill.id === 'sprints')!;
-    const tierTwoLocked = viewAt(5).drills.find(drill => drill.id === 'sprints-ii')!;
+    const tierTwoLocked = viewAt(5).drills.find(drill => drill.id === 'sprints-ii');
     const tierTwoEarned = viewAt(4).drills.find(drill => drill.id === 'sprints-ii')!;
-    const tierThreeLocked = viewAt(4).drills.find(drill => drill.id === 'sprints-iii')!;
+    const tierThreeLocked = viewAt(4).drills.find(drill => drill.id === 'sprints-iii');
     const tierThreeEarned = viewAt(2).drills.find(drill => drill.id === 'sprints-iii')!;
 
     expect(tierOne.available).toBe(true);
     expect(tierOne.lockedReason).toBeUndefined();
-    expect(tierTwoLocked).toMatchObject({
-      available: false,
-      lockedReason: 'Tier 2 drills unlock in D4 · County League.',
-    });
+    expect(tierTwoLocked).toBeUndefined();
     expect(tierTwoEarned.available).toBe(true);
     expect(tierTwoEarned.lockedReason).toBeUndefined();
-    expect(tierThreeLocked).toMatchObject({
-      available: false,
-      lockedReason: 'Tier 3 drills unlock in D2 · National Championship.',
-    });
+    expect(tierThreeLocked).toBeUndefined();
     expect(tierThreeEarned.available).toBe(true);
     expect(tierThreeEarned.lockedReason).toBeUndefined();
   });
@@ -77,5 +71,14 @@ describe('training drill tier unlocks', () => {
       totalTrainingPointCost: 10,
       canApply: true,
     });
+  });
+
+  it('hides division-locked drills instead of listing them greyed', () => {
+    const state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
+    const model = squadTrainingViewModel(state, content, undefined, [], []);
+
+    expect(model.drills.length).toBeGreaterThan(0);
+    expect(model.drills.every(drill => drill.lockedReason === undefined)).toBe(true);
+    expect(model.drills.some(drill => drill.name.includes('II'))).toBe(false);
   });
 });

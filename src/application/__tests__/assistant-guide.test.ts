@@ -145,4 +145,14 @@ describe('assistant guide application flow', () => {
     };
     expect(dueAssistantInboxGuideSequences(reachedD4)).toContain('facility-upgrade');
   });
+
+  it('still asks the player to place their first facility despite the seeded pitch', () => {
+    const state = createCareer(createLaunchCareerSetup(413, undefined, undefined, 'full'));
+    const seeded = state.facilities.grid?.buildings ?? [];
+
+    expect(seeded).toHaveLength(1);
+    expect(seeded[0]?.type).toBe('training-pitch');
+    expect(seeded[0]?.seeded).toBe(true);
+    expect(dueAssistantInboxGuideSequences(state)).toContain('facility-placement');
+  });
 });

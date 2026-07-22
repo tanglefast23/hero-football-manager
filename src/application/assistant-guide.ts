@@ -82,12 +82,21 @@ export function dueAssistantInboxGuideSequences(
     due.push('assistant-coach-hire');
   }
 
-  if (buildings.length === 0) {
+  if (
+    isStoryYouthUnlocked(state)
+    && state.youthIntake?.status === 'OPEN'
+    && state.youthIntake.offers.length > 0
+  ) {
+    due.push('youth-intake');
+  }
+
+  const playerBuilt = buildings.filter(building => building.seeded !== true);
+  if (playerBuilt.length === 0) {
     due.push('facility-placement');
   } else {
     if (completed('facility-placement')
       && state.facilities.grid?.construction === undefined
-      && buildings.some(
+      && playerBuilt.some(
         building => building.level < maxCareerFacilityLevel(state),
       )) {
       due.push('facility-upgrade');
@@ -114,13 +123,6 @@ export function dueAssistantInboxGuideSequences(
     due.push(isStoryFeaturePacingActive(state) ? 'roster-cap' : 'transfer-list');
   }
 
-  if (
-    isStoryYouthUnlocked(state)
-    && state.youthIntake?.status === 'OPEN'
-    && state.youthIntake.offers.length > 0
-  ) {
-    due.push('youth-intake');
-  }
   if (state.m2.nationalCups.length > 0 && isStoryCupGuideUnlocked(state)) {
     due.push('national-cup');
   }
@@ -162,7 +164,7 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
   const hasCoachingOffice = state.facilities.grid?.buildings.some(
     building => building.type === 'coaching-office',
   ) ?? false;
-  if ((state.facilities.grid?.buildings.length ?? 0) > 0) {
+  if ((state.facilities.grid?.buildings.filter(building => building.seeded !== true).length ?? 0) > 0) {
     next = completeAssistantGuideSequence(next, 'facility-placement');
   }
   if (hasCoachingOffice) next = completeAssistantGuideSequence(next, 'coaching-office');
