@@ -36,6 +36,11 @@ const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }>
   sta: { label: 'STAMINA', detail: 'Late-match engine' },
 };
 
+/** Wraps in both directions so ‹ from the first option lands on the last. */
+function stepChoice(current: number, delta: -1 | 1, count: number): number {
+  return (current + delta + count) % count;
+}
+
 export function CharacterCreationScreen({
   initialDifficulty,
   onComplete,
@@ -96,17 +101,20 @@ export function CharacterCreationScreen({
               <AppearanceChoice
                 label="Skin tone"
                 value={`${appearance.skinTone + 1} / 6`}
-                onPress={() => setAppearance(current => ({ ...current, skinTone: ((current.skinTone + 1) % 6) as CreatedPlayerAppearance['skinTone'] }))}
+                onPrevious={() => setAppearance(current => ({ ...current, skinTone: stepChoice(current.skinTone, -1, 6) as CreatedPlayerAppearance['skinTone'] }))}
+                onNext={() => setAppearance(current => ({ ...current, skinTone: stepChoice(current.skinTone, 1, 6) as CreatedPlayerAppearance['skinTone'] }))}
               />
               <AppearanceChoice
                 label="Hair"
                 value={`${appearance.hairstyle + 1} / 7`}
-                onPress={() => setAppearance(current => ({ ...current, hairstyle: ((current.hairstyle + 1) % 7) as CreatedPlayerAppearance['hairstyle'] }))}
+                onPrevious={() => setAppearance(current => ({ ...current, hairstyle: stepChoice(current.hairstyle, -1, 7) as CreatedPlayerAppearance['hairstyle'] }))}
+                onNext={() => setAppearance(current => ({ ...current, hairstyle: stepChoice(current.hairstyle, 1, 7) as CreatedPlayerAppearance['hairstyle'] }))}
               />
               <AppearanceChoice
                 label="Kit accent"
                 value={`${appearance.kitAccent + 1} / 4`}
-                onPress={() => setAppearance(current => ({ ...current, kitAccent: ((current.kitAccent + 1) % 4) as CreatedPlayerAppearance['kitAccent'] }))}
+                onPrevious={() => setAppearance(current => ({ ...current, kitAccent: stepChoice(current.kitAccent, -1, 4) as CreatedPlayerAppearance['kitAccent'] }))}
+                onNext={() => setAppearance(current => ({ ...current, kitAccent: stepChoice(current.kitAccent, 1, 4) as CreatedPlayerAppearance['kitAccent'] }))}
               />
             </View>
           </View>
@@ -247,25 +255,42 @@ export function CharacterCreationScreen({
 function AppearanceChoice({
   label,
   value,
-  onPress,
+  onPrevious,
+  onNext,
 }: {
   label: string;
   value: string;
-  onPress: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}, ${value}. Tap for next.`}
-      onPress={() => {
-        playManagementHaptic('select');
-        onPress();
-      }}
-      className="min-h-11 flex-row items-center justify-between border-2 border-ink/30 bg-white px-3 py-2"
-      style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
-    >
-      <Text className="text-sm font-bold uppercase text-ink">{label}</Text>
-      <Text className="font-mono text-sm font-bold text-violet-dark">{value} ›</Text>
-    </Pressable>
+    <View className="min-h-11 flex-row items-center justify-between gap-2 border-2 border-ink/30 bg-white px-2 py-2">
+      <Text className="min-w-0 flex-1 text-sm font-bold uppercase text-ink" numberOfLines={1}>{label}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Previous ${label}`}
+        onPress={() => {
+          playManagementHaptic('select');
+          onPrevious();
+        }}
+        className="h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light"
+        style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+      >
+        <Text className="font-mono text-xl font-bold text-ink">‹</Text>
+      </Pressable>
+      <Text className="w-16 text-center font-mono text-sm font-bold text-violet-dark">{value}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Next ${label}`}
+        onPress={() => {
+          playManagementHaptic('select');
+          onNext();
+        }}
+        className="h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light"
+        style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+      >
+        <Text className="font-mono text-xl font-bold text-ink">›</Text>
+      </Pressable>
+    </View>
   );
 }
