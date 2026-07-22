@@ -95,7 +95,9 @@ describe('m1.19 authored power audio events', () => {
 
   it('emits Shadow only after the burrow finishes and the steal lands', () => {
     const { match, hero } = matchWith('SHADOW_MARK', 2);
-    const victim = 11;
+    // Shadow ignores goalkeepers; use a normal outfield carrier so this test
+    // exercises the approved burrow-and-emerge steal rather than a non-target.
+    const victim = 12;
     match.players[hero].pos = { x: 2200, y: 5000 };
     match.players[victim].pos = { x: 2250, y: 5000 };
     match.ball = { kind: 'held', by: victim };

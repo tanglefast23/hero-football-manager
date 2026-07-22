@@ -4,10 +4,10 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
-// Rebaselined deliberately for the approved m1.18 power identities: placed
-// traps, visible charge/hunt states, virtual Decoy/Gravity runs, controlled
-// Future/Gust sequences, and one-use Rally Encore all alter replay state.
-const EXPECTED_RUNTIME_GOLDEN = '49cdf6bd';
+// Rebaselined deliberately for m1.19: the seven approved power corrections,
+// genuine reserved-slot Decoy player, and deterministic POWER_IMPACT lifecycle
+// events all belong to the same replay-affecting semantic version.
+const EXPECTED_RUNTIME_GOLDEN = 'c3110912';
 
 export function runtimeGoldenFingerprint(): string {
   const result = runMatch(42, ROVERS, UNITED, [], {
