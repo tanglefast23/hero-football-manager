@@ -1013,22 +1013,11 @@ export function MatchScreen({
     // authored, or playerLookId() would derive a different face and request a
     // sprite that was never included in the match Atlas.
     const visualPlayerId = clone?.sourcePlayerId ?? p.def.id;
-    const withBodyState = (key: string) => (
-      (p.webbedUntilTick ?? 0) > hud.tick ? webbedSpriteKey(key) : key
-    );
-    const action = actionRef.current[i];
-    const pose = actionPose(action, hud.visualTick);
-    if (pose.active && action?.kind === 'slide') {
-      return withBodyState(spriteKeyForMatchPlayer(
-        i,
-        visualPlayerId,
-        p.def.role,
-        slideTackleSpriteFrameForAction(action, hud.visualTick),
-        p.def.lookId,
-      ));
-    }
-    if (pose.active) {
-      return withBodyState(spriteKeyForMatchPlayer(
+    const webbed = (p.webbedUntilTick ?? 0) > hud.tick;
+    if (webbed) {
+      // Web Trap roots the whole body. Hold the authored grey standing pose
+      // even if a stale pre-trap slide animation still exists in the UI ref.
+      return webbedSpriteKey(spriteKeyForMatchPlayer(
         i,
         visualPlayerId,
         p.def.role,
@@ -1036,22 +1025,42 @@ export function MatchScreen({
         p.def.lookId,
       ));
     }
+    const action = actionRef.current[i];
+    const pose = actionPose(action, hud.visualTick);
+    if (pose.active && action?.kind === 'slide') {
+      return spriteKeyForMatchPlayer(
+        i,
+        visualPlayerId,
+        p.def.role,
+        slideTackleSpriteFrameForAction(action, hud.visualTick),
+        p.def.lookId,
+      );
+    }
+    if (pose.active) {
+      return spriteKeyForMatchPlayer(
+        i,
+        visualPlayerId,
+        p.def.role,
+        runFrameForTeam(p.team, 'run0'),
+        p.def.lookId,
+      );
+    }
     if (p.def.role === 'GK' && isKeeperReady(dist2(frame.players[i], frame.ball))) {
-      return withBodyState(spriteKeyForMatchPlayer(
+      return spriteKeyForMatchPlayer(
         i,
         visualPlayerId,
         p.def.role,
         keeperReadyFrameForTeam(p.team, keeperReadyFrame(hud.visualTick)),
         p.def.lookId,
-      ));
+      );
     }
-    return withBodyState(spriteKeyForMatchPlayer(
+    return spriteKeyForMatchPlayer(
       i,
       visualPlayerId,
       p.def.role,
       runFrameForTeam(p.team, runFrameForDistance(frame.travel[i], frame.moved[i])),
       p.def.lookId,
-    ));
+    );
   }), [frame, hud.tick, hud.visualTick, match]);
 
   // The 22 starters, two reserved Decoy slots, and ball share one batched Atlas draw call.
@@ -1283,7 +1292,7 @@ export function MatchScreen({
         playerPoint(cloneIndex),
         [marker, screenPoint(decoyClone.pos)],
         player.powerAnchor === undefined ? undefined : screenPoint(player.powerAnchor),
-        player.decoyClone.receiverIdx,
+        cloneIndex,
       );
     }
 

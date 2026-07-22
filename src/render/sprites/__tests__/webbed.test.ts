@@ -14,20 +14,21 @@ describe('webbed player sprite state', () => {
     expect(frame).toHaveLength(1);
     expect(frame[0][0]).toBe('.');
     expect(frame[0].at(-1)).toBe('.');
-    expect([...frame[0]].every(token => '.KqQvW'.includes(token))).toBe(true);
+    expect([...frame[0]].every(token => '.KgGwW'.includes(token))).toBe(true);
     expect(frame[0]).not.toMatch(/[RS]/);
   });
 
-  it('ships a webbed copy of every real match pose, including rear and slide frames', () => {
+  it('ships rooted front/rear poses without impossible slide variants', () => {
     const sheet = loadSpriteSheet(['r:f00']);
-    for (const frame of ['run0', 'back0', 'slide0'] as const) {
+    for (const frame of ['run0', 'back0'] as const) {
       const ordinary = `r:f00:${frame}`;
       const webbed = webbedSpriteKey(ordinary);
       expect(sheet.sprites[webbed]).toBeDefined();
       expect(sheet.sprites[webbed]).toHaveLength(sheet.sprites[ordinary].length);
       expect(sheet.sprites[webbed].every(row => (
-        [...row].every(token => '.KqQvW'.includes(token))
+        [...row].every(token => '.KgGwW'.includes(token))
       ))).toBe(true);
     }
+    expect(sheet.sprites[webbedSpriteKey('r:f00:slide0')]).toBeUndefined();
   });
 });

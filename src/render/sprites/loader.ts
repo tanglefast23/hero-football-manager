@@ -94,11 +94,6 @@ function withBackFacingSprites(sheet: SpriteSheet): SpriteSheet {
 }
 
 const WEBBED_SUFFIX = ':webbed';
-const WEBBED_GREY_PALETTE = {
-  q: '#6b6675',
-  Q: '#9a95a4',
-  v: '#c9c5d0',
-} as const;
 
 /**
  * Web Trap is a body state, not a translucent wash. Build a palette-locked
@@ -118,9 +113,9 @@ function greyTokenFor(color: string | null): string {
   const blue = Number.parseInt(match[3], 16);
   const luminance = (299 * red + 587 * green + 114 * blue) / 1000;
   if (luminance < 70) return 'K';
-  if (luminance < 125) return 'q';
-  if (luminance < 190) return 'Q';
-  if (luminance < 235) return 'v';
+  if (luminance < 125) return 'g';
+  if (luminance < 190) return 'G';
+  if (luminance < 235) return 'w';
   return 'W';
 }
 
@@ -134,13 +129,15 @@ export function deriveWebbedFrame(
 }
 
 function withWebbedSprites(sheet: SpriteSheet): SpriteSheet {
-  const palette = { ...sheet.palette, ...WEBBED_GREY_PALETTE };
   const sprites = { ...sheet.sprites };
   for (const [key, rows] of Object.entries(sheet.sprites)) {
-    if (key === BALL_KEY || key.endsWith(WEBBED_SUFFIX)) continue;
+    // A webbed player is rooted in the standing pose. Generating thousands of
+    // impossible webbed slide frames bloats every match Atlas and the full
+    // roster contract without adding a state the renderer can legitimately use.
+    if (key === BALL_KEY || key.endsWith(WEBBED_SUFFIX) || SLIDE_FRAME_PATTERN.test(key)) continue;
     sprites[webbedSpriteKey(key)] = deriveWebbedFrame(rows, sheet.palette);
   }
-  return { ...sheet, palette, sprites };
+  return { ...sheet, sprites };
 }
 
 // Keep every source rect away from its neighbours. This prevents transformed

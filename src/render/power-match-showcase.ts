@@ -152,10 +152,15 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
       break;
     case 'SUPER_STRENGTH':
     case 'ICE_RINK':
-    case 'SHADOW_MARK':
       place(match, hero, 2_200, 5_000);
       place(match, 11, 2_300, 5_000);
       holdBall(match, 11);
+      break;
+    case 'SHADOW_MARK':
+      place(match, hero, 2_200, 5_000);
+      // Shadow correctly ignores goalkeepers, so stage a nearby outfielder.
+      place(match, 12, 2_300, 5_000);
+      holdBall(match, 12);
       break;
     case 'WEB_TRAP':
       // Keep caster and victim visually separate while remaining inside the
