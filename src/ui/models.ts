@@ -331,7 +331,7 @@ export interface SquadTrainingViewModel {
   canApply: boolean;
   lockedPlan?: {
     players: readonly Pick<SquadPlayerViewModel, 'id' | 'name' | 'role' | 'lookId'>[];
-    drills: readonly Pick<FocusDrillViewModel, 'id' | 'name'>[];
+    drills: readonly Pick<FocusDrillViewModel, 'id' | 'name' | 'gainLabel'>[];
     moneyCost: number;
     trainingPointCost: number;
   };

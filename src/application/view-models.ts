@@ -1296,6 +1296,9 @@ export function squadTrainingViewModel(
         drills: savedPlan.drills.map(savedDrill => ({
           id: savedDrill.id,
           name: drills.find(drill => drill.id === savedDrill.id)?.name ?? savedDrill.id,
+          gainLabel: Object.entries(savedDrill.gains)
+            .map(([attribute, gain]) => `+${gain} ${attribute.toUpperCase()}`)
+            .join(' · '),
         })),
         moneyCost: chargeableCareerTrainingPlan(
           state,

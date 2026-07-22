@@ -606,7 +606,10 @@ export function SquadTrainingScreen({
                 {viewModel.lockedPlan.drills.map(drill => (
                   <View key={drill.id} className="flex-row items-center gap-3 border border-ink/20 bg-paper px-2 py-2">
                     <DrillIcon drillId={drill.id} selected />
-                    <Text className="min-w-0 flex-1 text-base font-bold uppercase text-ink" numberOfLines={1}>{drill.name}</Text>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{drill.name}</Text>
+                      <Text className="mt-1 font-mono text-sm font-bold text-violet-dark" numberOfLines={1}>{drill.gainLabel}</Text>
+                    </View>
                   </View>
                 ))}
               </View>
