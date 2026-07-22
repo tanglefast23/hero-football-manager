@@ -4,6 +4,7 @@ import {
   completeMatchday,
   createCareer,
   fixturesForCurrentWeek,
+  weeklyAmbientTrainingPoints,
 } from './career';
 import { deterministicPostMatchAwakeningRoll } from './post-match-awakening';
 import { buildTrainingGround } from './squad';
@@ -17,14 +18,15 @@ const DEFAULT_AWAKENING_SEEDS = 2000;
 /**
  * M1 CI rails, taken directly from the design promises:
  * - docs/09: Season-1 Cozy bankruptcy stays below 2%.
- * - docs/05: a typical match-week TP award buys about two of three focus drills.
+ * - docs/05: a completed Level-1 Training Pitch supplies almost 10 TP/week
+ *   across the season (Week 1 is its construction week).
  * - Post-match awakenings average roughly one per ten eligible matches after
  *   their three-match cooldown, without silently adding a pity guarantee.
  */
 export const MINI_BALANCE_RAILS = Object.freeze({
   maximumSeasonOneBankruptcyRate: 0.02,
-  minimumAffordableFocusDrillsPerMatchWeek: 1.5,
-  maximumAffordableFocusDrillsPerMatchWeek: 2.5,
+  minimumMeanAmbientTrainingPointsPerWeek: 9,
+  maximumMeanAmbientTrainingPointsPerWeek: 10,
   minimumMeanAwakeningMatch: 10,
   maximumMeanAwakeningMatch: 14,
   minimumAwakeningBySeasonEndRate: 0.75,
@@ -58,7 +60,7 @@ export interface MiniBalanceMetrics {
   readonly meanSeasonOneEndingCash: number;
   readonly meanSeasonOneDiscretionarySpend: number;
   readonly meanTrainingPointsPerSeason: number;
-  readonly meanAffordableFocusDrillsPerMatchWeek: number;
+  readonly meanAmbientTrainingPointsPerWeek: number;
   readonly meanAwakeningMatch: number;
   readonly meanAwakeningAttempts: number;
   readonly awakeningByDeadlineRate: number;
@@ -83,9 +85,8 @@ export function runMiniBalanceHarness(
   let bankruptCareers = 0;
   let endingCashTotal = 0;
   let trainingPointsTotal = 0;
+  let ambientTrainingPointsTotal = 0;
   let discretionarySpendTotal = 0;
-  let affordableDrillTotal = 0;
-  let matchWeekTotal = 0;
 
   for (let seed = 1; seed <= careerSeeds; seed += 1) {
     const result = simulateSeasonOne(
@@ -96,9 +97,8 @@ export function runMiniBalanceHarness(
     if (result.minimumBalance < 0) bankruptCareers += 1;
     endingCashTotal += result.endingCash;
     trainingPointsTotal += result.trainingPoints;
+    ambientTrainingPointsTotal += result.ambientTrainingPoints;
     discretionarySpendTotal += result.discretionarySpend;
-    affordableDrillTotal += result.affordableDrills;
-    matchWeekTotal += result.matchWeeks;
   }
 
   const awakening = scenario.awakening;
@@ -124,7 +124,7 @@ export function runMiniBalanceHarness(
     meanSeasonOneEndingCash: endingCashTotal / careerSeeds,
     meanSeasonOneDiscretionarySpend: discretionarySpendTotal / careerSeeds,
     meanTrainingPointsPerSeason: trainingPointsTotal / careerSeeds,
-    meanAffordableFocusDrillsPerMatchWeek: affordableDrillTotal / matchWeekTotal,
+    meanAmbientTrainingPointsPerWeek: ambientTrainingPointsTotal / careerSeeds / 30,
     meanAwakeningMatch: awakeningMatchTotal / awakeningSeeds,
     meanAwakeningAttempts: awakeningAttemptTotal / awakeningSeeds,
     awakeningByDeadlineRate: awakeningsByDeadline / awakeningSeeds,
@@ -161,8 +161,7 @@ interface SeasonOneResult {
   endingCash: number;
   minimumBalance: number;
   trainingPoints: number;
-  affordableDrills: number;
-  matchWeeks: number;
+  ambientTrainingPoints: number;
   discretionarySpend: number;
 }
 
@@ -181,26 +180,20 @@ function simulateSeasonOne(
   });
   state = setCareerTrainingPlan(state, spendingPolicy.assignedPlayerIds, weeklyDrills);
 
-  let affordableDrills = 0;
-  let matchWeeks = 0;
-  const representativeDrillCosts = representativeDrills.map(drill => drill.tpCost);
+  let ambientTrainingPoints = 0;
   const initialCash = setup.clubs.find(club => club.id === setup.userClubId)?.cash ?? 0;
   let minimumBalance = initialCash - spendingPolicy.trainingGroundCost;
 
   while (state.phase !== 'season-end') {
+    const beforeAdvance = state;
     state = advanceWeek(state);
-    if (state.phase !== 'matchday') continue;
-
-    const fixtures = fixturesForCurrentWeek(state);
-    const results = fixtures.map(scoreFixture);
-    const earnedTrainingPoints = trainingPointsForUserResult(
-      state.userClubId,
-      fixtures,
-      results,
-    );
-    state = completeMatchday(state, results);
-    affordableDrills += affordablePrefixCount(earnedTrainingPoints, representativeDrillCosts);
-    matchWeeks += 1;
+    if (state.phase === 'matchday') {
+      ambientTrainingPoints += weeklyAmbientTrainingPoints(state);
+      const fixtures = fixturesForCurrentWeek(state);
+      state = completeMatchday(state, fixtures.map(scoreFixture));
+    } else {
+      ambientTrainingPoints += weeklyAmbientTrainingPoints(beforeAdvance);
+    }
   }
 
   const userClub = state.clubs.find(club => club.id === state.userClubId);
@@ -213,8 +206,7 @@ function simulateSeasonOne(
       minimumBalance,
     ),
     trainingPoints: state.trainingPoints,
-    affordableDrills,
-    matchWeeks,
+    ambientTrainingPoints,
     discretionarySpend: spendingPolicy.trainingGroundCost + state.ledgers.reduce(
       (sum, ledger) => sum + ledger.lines
         .filter(line => line.kind === 'training')
@@ -222,24 +214,6 @@ function simulateSeasonOne(
       0,
     ),
   };
-}
-
-function trainingPointsForUserResult(
-  userClubId: string,
-  fixtures: readonly LeagueFixture[],
-  results: readonly FixtureResult[],
-): number {
-  const fixture = fixtures.find(candidate =>
-    candidate.homeClubId === userClubId || candidate.awayClubId === userClubId,
-  );
-  if (fixture === undefined) return 0;
-  const result = results.find(candidate => candidate.fixtureId === fixture.id);
-  if (result === undefined) throw new Error(`balance harness lost result ${fixture.id}`);
-  const isHome = fixture.homeClubId === userClubId;
-  const goalsFor = isHome ? result.homeGoals : result.awayGoals;
-  const goalsAgainst = isHome ? result.awayGoals : result.homeGoals;
-  return (goalsFor > goalsAgainst ? 30 : goalsFor === goalsAgainst ? 20 : 14)
-    + goalsFor * 2;
 }
 
 function scoreFixture(fixture: LeagueFixture): FixtureResult {
@@ -261,17 +235,6 @@ function goalRoll(roll: number): number {
   if (roll < 0.88) return 2;
   if (roll < 0.97) return 3;
   return 4;
-}
-
-function affordablePrefixCount(budget: number, drillCosts: readonly number[]): number {
-  let remaining = budget;
-  let count = 0;
-  for (const cost of drillCosts) {
-    if (cost > remaining) break;
-    remaining -= cost;
-    count += 1;
-  }
-  return count;
 }
 
 function validateSampleSize(value: number, label: string): void {

@@ -9,7 +9,7 @@ import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 describe('M2 game-state codec', () => {
   test('round-trips the full pyramid, cup, market, youth intake, facilities, and lifecycle metadata', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
-    const built = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
+    const built = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
     const listedPlayer = built.players.find(player => (
       player.clubId === built.userClubId
       && !built.lineups.find(lineup => lineup.clubId === built.userClubId)?.playerIds.includes(player.id)
@@ -116,7 +116,7 @@ describe('M2 game-state codec', () => {
 
   test('rejects duplicate or zero-value immediate cash transactions', () => {
     const initial = createCareer(createLaunchCareerSetup(46, undefined, undefined, 'full'));
-    const state = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
+    const state = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
     const transaction = state.cashTransactions![0];
     const duplicate = { ...state, cashTransactions: [transaction, transaction] };
     const zero = {

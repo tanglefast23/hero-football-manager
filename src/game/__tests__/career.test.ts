@@ -123,7 +123,7 @@ describe('career season workflow', () => {
     expect(settled.phase).toBe('manage');
     expect(settled.week).toBe(6);
     expect(settled.fixtures.filter(fixture => fixture.status === 'played')).toHaveLength(5);
-    expect(settled.trainingPoints).toBe(41);
+    expect(settled.trainingPoints).toBe(7);
     expect(settled.ledgers.at(-1)?.lines).toEqual([
       { kind: 'tickets', label: 'League home gate', amount: 1200 },
       { kind: 'wages', label: 'Weekly wages', amount: -3200 },
@@ -275,44 +275,36 @@ describe('finances and two-season boundary', () => {
     );
   });
 
-  it('rejects a training point balance that exceeds the safe integer range', () => {
+  it('rejects ambient training points that exceed the safe integer range', () => {
     const setup = makeSetup();
     setup.startingTrainingPoints = Number.MAX_SAFE_INTEGER;
-    const matchday = advanceWeek({ ...createCareer(setup), week: 5 });
+    const state = {
+      ...createCareer(setup),
+      facilities: { trainingGroundBuilt: true },
+    };
 
-    expect(() => completeMatchday(matchday, allDraws(matchday))).toThrow(
-      'training point balance exceeds the safe integer range',
+    expect(() => advanceWeek(state)).toThrow(
+      'facility training point balance exceeds the safe integer range',
     );
   });
 
-  it('rejects an earned training point goal bonus that exceeds the safe integer range', () => {
+  it('does not award training points for wins, draws, losses, or goals', () => {
     const matchday = advanceWeek({ ...createCareer(makeSetup()), week: 5 });
-    const results = allDraws(matchday);
     const userFixture = fixturesForCurrentWeek(matchday).find(
       fixture =>
         fixture.homeClubId === matchday.userClubId || fixture.awayClubId === matchday.userClubId,
     );
     expect(userFixture).toBeDefined();
     if (userFixture === undefined) throw new Error('expected a user fixture');
-    const extremeResults = results.map(result =>
-      result.fixtureId === userFixture.id
-        ? {
-            ...result,
-            homeGoals:
-              userFixture.homeClubId === matchday.userClubId
-                ? Number.MAX_SAFE_INTEGER
-                : result.homeGoals,
-            awayGoals:
-              userFixture.awayClubId === matchday.userClubId
-                ? Number.MAX_SAFE_INTEGER
-                : result.awayGoals,
-          }
-        : result,
-    );
+    const results = allDraws(matchday).map(result => result.fixtureId === userFixture.id
+      ? {
+          ...result,
+          homeGoals: userFixture.homeClubId === matchday.userClubId ? 8 : 0,
+          awayGoals: userFixture.awayClubId === matchday.userClubId ? 8 : 0,
+        }
+      : result);
 
-    expect(() => completeMatchday(matchday, extremeResults)).toThrow(
-      'match training point goal bonus exceeds the safe integer range',
-    );
+    expect(completeMatchday(matchday, results).trainingPoints).toBe(matchday.trainingPoints);
   });
 
   it('rolls Season 1 into a deterministic Season 2 and completes the M1 slice', () => {

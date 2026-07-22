@@ -98,7 +98,12 @@ export function resolvePostMatchAwakening(
     throw new Error('the created player must be the campaign first hero');
   }
 
-  const compatiblePowerIds = powerIds.filter(power => powerIsCompatibleWithRole(power, player.role));
+  const hasPoweredTeammate = state.players.some(candidate => candidate.id !== playerId
+    && candidate.clubId === state.userClubId && candidate.power !== undefined);
+  // Rally Cry is intentionally a squad-synergy power. It cannot be the first
+  // or only awakening because there would be nobody for it to accelerate.
+  const compatiblePowerIds = powerIds.filter(power => powerIsCompatibleWithRole(power, player.role)
+    && (power !== 'RALLY_CRY' || hasPoweredTeammate));
   if (compatiblePowerIds.length === 0) {
     throw new Error(`no awakening power is compatible with ${player.role}`);
   }

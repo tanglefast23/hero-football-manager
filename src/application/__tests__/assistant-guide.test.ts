@@ -93,7 +93,6 @@ describe('assistant guide application flow', () => {
     let state = createCareer(createLaunchCareerSetup(936, undefined, undefined, 'full'));
     state = completeAssistantGuideSequence(state, 'management-intro');
     state = completeAssistantGuideMilestone(state, 'first-training-complete');
-    state = buildTrainingGround(state);
     state = completeAssistantGuideSequence(state, 'desk-intro');
 
     expect(state.market?.headCoach).toBeUndefined();
@@ -130,7 +129,7 @@ describe('assistant guide application flow', () => {
   test('waits for D4 before teaching the first facility upgrade', () => {
     let state = createCareer(createLaunchCareerSetup(935, undefined, undefined, 'full'));
     state = completeAssistantGuideSequence(state, 'facility-placement');
-    state = buildCareerFacility(state, 'gym', { x: 0, y: 0 }).state;
+    state = buildCareerFacility(state, 'gym', { x: 2, y: 0 }).state;
     state = {
       ...state,
       facilities: {

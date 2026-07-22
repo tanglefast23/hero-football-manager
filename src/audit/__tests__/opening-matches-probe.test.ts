@@ -15,6 +15,7 @@ import {
   advanceWeek,
   beginStoryOnboarding,
   buildCareerMatchTeams,
+  chargeableCareerTrainingPlan,
   completeFirstOnboardingMatch,
   completeMatchday,
   completePostMatchAwakening,
@@ -41,8 +42,8 @@ const tuning = {
 };
 const SPRINTS = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
 
-const SEEDS = 300;
-const MATCHES_TRACKED = 4;
+const SEEDS = positiveIntegerEnv('OPENING_MATCHES_SEEDS', 300);
+const MATCHES_TRACKED = positiveIntegerEnv('OPENING_MATCHES_TRACKED', 5);
 const TRAINED_PLAYERS = 3;
 
 interface PlayedMatch {
@@ -64,6 +65,9 @@ interface CareerRun {
   weeksBlockedByTp: number;
   weeksBlockedByCash: number;
   weeksBlockedByCaps: number;
+  eligibleTraineeSessions: number;
+  focusCashCommitted: number;
+  focusTpCommitted: number;
 }
 
 describe('opening-match balance probe', () => {
@@ -103,6 +107,9 @@ function runCareer(seed: number, train: boolean): CareerRun {
     weeksBlockedByTp: 0,
     weeksBlockedByCash: 0,
     weeksBlockedByCaps: 0,
+    eligibleTraineeSessions: 0,
+    focusCashCommitted: 0,
+    focusTpCommitted: 0,
   };
 
   let guard = 0;
@@ -125,9 +132,9 @@ function runCareer(seed: number, train: boolean): CareerRun {
 }
 
 /**
- * Models a player keeping a 3-player Sprints template running. Only players
- * with real PAC headroom are assigned, because one capped player rejects the
- * entire plan (training.ts trainingPlanCapConflicts).
+ * Models a player keeping a 3-player Sprints template running. Capped
+ * player/drill pairs are skipped by production training; this probe selects
+ * only players with PAC headroom so every counted trainee session is real.
  */
 function planWeeklyTraining(state: GameState, run: CareerRun): GameState {
   const club = state.clubs.find(candidate => candidate.id === state.userClubId)!;
@@ -151,19 +158,30 @@ function planWeeklyTraining(state: GameState, run: CareerRun): GameState {
 
   if (candidates.length === 0) {
     run.weeksBlockedByCaps += 1;
-    return state;
+    return clearPlan(state);
   }
-  if (state.trainingPoints < SPRINTS.tpCost) {
+  const assignedPlayerIds = candidates.map(player => player.id);
+  const chargeable = chargeableCareerTrainingPlan(state, assignedPlayerIds, [SPRINTS]);
+  if (chargeable.drills.length === 0) {
+    run.weeksBlockedByCaps += 1;
+    return clearPlan(state);
+  }
+  if (state.trainingPoints < chargeable.trainingPointCost) {
     run.weeksBlockedByTp += 1;
     return clearPlan(state);
   }
-  if (club.cash < SPRINTS.moneyCost) {
+  if (club.cash < chargeable.moneyCost) {
     run.weeksBlockedByCash += 1;
     return clearPlan(state);
   }
 
-  const next = setCareerTrainingPlan(state, candidates.map(player => player.id), [SPRINTS]);
+  // Do not catch this: a planner/settlement pricing mismatch invalidates the
+  // cohort and must fail the probe loudly.
+  const next = setCareerTrainingPlan(state, assignedPlayerIds, [SPRINTS]);
   run.weeksTrained += 1;
+  run.eligibleTraineeSessions += assignedPlayerIds.length;
+  run.focusCashCommitted += chargeable.moneyCost;
+  run.focusTpCommitted += chargeable.trainingPointCost;
   return next;
 }
 
@@ -171,6 +189,16 @@ function clearPlan(state: GameState): GameState {
   if (state.trainingPlan === undefined) return state;
   const { trainingPlan: _dropped, ...rest } = state;
   return rest as GameState;
+}
+
+function positiveIntegerEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return parsed;
 }
 
 function playMatchday(state: GameState): { state: GameState; match: PlayedMatch } {
@@ -255,6 +283,11 @@ function report(label: string, runs: CareerRun[]): void {
     + `  blocked: TP ${avgOf(r => r.weeksBlockedByTp)}`
     + ` cash ${avgOf(r => r.weeksBlockedByCash)}`
     + ` caps ${avgOf(r => r.weeksBlockedByCaps)}`,
+  );
+  lines.push(
+    `training commitments: trainee sessions ${avgOf(r => r.eligibleTraineeSessions)}`
+    + `  cash ${avgOf(r => r.focusCashCommitted)}`
+    + `  TP ${avgOf(r => r.focusTpCommitted)}`,
   );
 
   for (let index = 0; index < MATCHES_TRACKED; index += 1) {

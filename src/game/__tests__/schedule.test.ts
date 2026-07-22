@@ -1,4 +1,8 @@
-import { generateSeasonFixtures, leagueWeekForRound } from '../schedule';
+import {
+  generateSeasonFixtures,
+  leagueWeekForRound,
+  pinOpeningLeagueOpponents,
+} from '../schedule';
 
 const CLUB_IDS = Array.from({ length: 10 }, (_, index) => `club-${index + 1}`);
 
@@ -78,6 +82,28 @@ describe('generateSeasonFixtures', () => {
 
     expect(otherCareer).not.toEqual(base);
     expect(otherSeason).not.toEqual(base);
+  });
+
+  test('pins a venue-aware first-five curve without the weak-then-hard rebound', () => {
+    const strengths = new Map(CLUB_IDS.map((clubId, index) => [clubId, 40 + index]));
+    const ordered = pinOpeningLeagueOpponents(CLUB_IDS, CLUB_IDS[0], strengths);
+    const fixtures = generateSeasonFixtures(ordered, 1, 12345);
+    const opening = [1, 2, 3, 4, 5].map(round => {
+      const fixture = fixtures.find(candidate => candidate.round === round && (
+        candidate.homeClubId === CLUB_IDS[0] || candidate.awayClubId === CLUB_IDS[0]
+      ))!;
+      const userIsHome = fixture.homeClubId === CLUB_IDS[0];
+      const opponentId = userIsHome ? fixture.awayClubId : fixture.homeClubId;
+      return { strength: strengths.get(opponentId), userIsHome };
+    });
+
+    expect(opening).toEqual([
+      { strength: 49, userIsHome: true },
+      { strength: 44, userIsHome: false },
+      { strength: 45, userIsHome: true },
+      { strength: 42, userIsHome: false },
+      { strength: 41, userIsHome: true },
+    ]);
   });
 
   test('rejects malformed schedule inputs', () => {

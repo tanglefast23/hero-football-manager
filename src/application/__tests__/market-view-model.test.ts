@@ -162,10 +162,12 @@ describe('marketViewModel', () => {
       headEffectLabels: [
         'SHO training +40%',
         'Morale loss −20% · Hero Gauge +20%',
+        '+18 TP weekly',
       ],
       assistantEffectLabels: [
         'SHO training +20%',
         'Morale loss −10% · Hero Gauge +10%',
+        '+9 TP weekly',
       ],
     });
   });

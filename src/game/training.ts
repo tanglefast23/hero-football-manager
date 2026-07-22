@@ -3,6 +3,7 @@ import { facilityEffects } from './facilities';
 import { trainingMultiplierForAge } from './pyramid';
 import { careerCoachTrainingModifiers } from './coach-weekly';
 import { capPlayerTrainingGain, playerAttributeCaps } from './archetype-caps';
+import { trainingDrillBlockedReason } from './promotion-progression';
 import {
   assertCareerTrainingHonorsContractPromises,
   hasActiveCareerContractPromise,
@@ -10,7 +11,6 @@ import {
 import type {
   CareerPlayer,
   CareerTrainingDrill,
-  CareerTrainingPlan,
   GameState,
 } from './types';
 
@@ -20,6 +20,7 @@ export interface WeeklyTrainingResolution {
   moneyCost: number;
   focusApplied: boolean;
   reachedCaps: TrainingCapReached[];
+  skippedCaps: TrainingCapReached[];
 }
 
 export interface TrainingPlanCapConflict {
@@ -30,12 +31,20 @@ export interface TrainingPlanCapConflict {
   attributes: (keyof CareerPlayer['attrs'])[];
 }
 
+export interface ChargeableCareerTrainingPlan {
+  drills: FocusDrill[];
+  capConflicts: TrainingPlanCapConflict[];
+  moneyCost: number;
+  trainingPointCost: number;
+}
+
 export interface TrainingCapReached {
   playerId: string;
   playerName: string;
   drillId: string;
   attribute: keyof CareerPlayer['attrs'];
   cap: number;
+  kind?: 'reached' | 'skipped';
 }
 
 /**
@@ -58,25 +67,39 @@ export function setCareerTrainingPlan(
   if (drills.length === 0 || drills.length > maxDrills) {
     throw new Error(`a training plan requires from 1 to ${maxDrills} focus drills`);
   }
+  assertDistinctTrainingDrillPaths(drills);
+  assertCareerTrainingDrillsUnlocked(state, drills);
   assertCareerTrainingHonorsContractPromises(state, assignedPlayerIds);
 
   // applyTrainingPlan is the shared validation boundary for player IDs, drill
-  // IDs, attributes, and cost integers. Use exact available resources here so
-  // an unaffordable template cannot be locked from the UI.
+  // IDs, attributes, and cost integers. Validate the full authored plan first,
+  // then use exact resources only for drills with at least one eligible player.
+  // A fully capped plan is allowed so it can be saved with actionable warnings
+  // without requiring resources that will never be charged.
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const roster = userRoster(state);
   applyTrainingPlan(
-    userRoster(state),
+    roster,
     assignedPlayerIds,
     drills,
-    { money: Math.max(0, club.cash), tp: state.trainingPoints },
+    { money: Number.MAX_SAFE_INTEGER, tp: Number.MAX_SAFE_INTEGER },
   );
-  const conflict = trainingPlanCapConflicts(state, assignedPlayerIds, drills)[0];
-  if (conflict !== undefined) {
-    throw new Error(
-      `${conflict.playerName} is already at their ${attributeList(conflict.attributes)} maximum for ${conflict.drillName}. Pick another player.`,
-    );
+  const chargeable = chargeableCareerTrainingPlan(state, assignedPlayerIds, drills);
+  if (
+    chargeable.moneyCost > Math.max(0, club.cash)
+    || chargeable.trainingPointCost > state.trainingPoints
+  ) {
+    throw new Error('Training plan is not affordable');
   }
+  const skippedCaps = capConflictsAsSkippedCaps(state, chargeable.capConflicts);
+  const existingNoticeIds = new Set((state.trainingCapNotices ?? []).map(notice => notice.id));
+  const trainingCapNotices = [
+    ...(state.trainingCapNotices ?? []),
+    ...skippedCaps
+      .map(skipped => trainingCapNotice(state, skipped))
+      .filter(notice => !existingNoticeIds.has(notice.id)),
+  ];
 
   return {
     ...state,
@@ -84,6 +107,7 @@ export function setCareerTrainingPlan(
       assignedPlayerIds: [...assignedPlayerIds],
       drills: drills.map(cloneDrill),
     },
+    trainingCapNotices,
   };
 }
 
@@ -117,21 +141,53 @@ export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResol
       ]));
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
-  const focusCost = plan === undefined ? { money: 0, tp: 0 } : planCost(plan);
-  const canAffordFocus = plan !== undefined
+  const chargeable = plan === undefined
+    ? { drills: [], capConflicts: [], moneyCost: 0, trainingPointCost: 0 }
+    : chargeableCareerTrainingPlan(state, assignedPlayerIds, plan.drills);
+  const capConflicts = chargeable.capConflicts;
+  const blockedPlayerDrills = new Set(
+    capConflicts.map(conflict => `${conflict.playerId}:${conflict.drillId}`),
+  );
+  const executableDrills = plan === undefined
+    ? []
+    : chargeable.drills.flatMap(drill => {
+        const eligiblePlayerIds = assignedPlayerIds.filter(playerId => (
+          !blockedPlayerDrills.has(`${playerId}:${drill.id}`)
+        ));
+        return eligiblePlayerIds.length === 0 ? [] : [{ drill, eligiblePlayerIds }];
+      });
+  const focusCost = {
+    money: chargeable.moneyCost,
+    tp: chargeable.trainingPointCost,
+  };
+  const canAffordFocus = executableDrills.length > 0
     && focusCost.money <= Math.max(0, club.cash)
     && focusCost.tp <= state.trainingPoints;
-  const focused = canAffordFocus && plan !== undefined
-    ? applyTrainingPlan(
-        conditioned,
-        assignedPlayerIds,
-        plan.drills,
-        { money: Math.max(0, club.cash), tp: state.trainingPoints },
-      )
-    : {
-        players: conditioned,
-        resources: { money: Math.max(0, club.cash), tp: state.trainingPoints },
+  let focused = {
+    players: conditioned as CareerPlayer[],
+    resources: { money: Math.max(0, club.cash), tp: state.trainingPoints },
+  };
+  if (canAffordFocus) {
+    for (const execution of executableDrills) {
+      const applied = applyTrainingPlan(
+        focused.players,
+        execution.eligiblePlayerIds,
+        [{
+          ...execution.drill,
+          moneyCost: checkedMultiply(
+            execution.drill.moneyCost,
+            execution.eligiblePlayerIds.length,
+            'weekly training money cost',
+          ),
+        }],
+        focused.resources,
+      );
+      focused = {
+        players: applied.players as CareerPlayer[],
+        resources: applied.resources,
       };
+    }
+  }
 
   const growthAdjusted = state.careerMode === 'full'
     ? applyM2TrainingGrowthModifiers(
@@ -172,6 +228,49 @@ export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResol
     moneyCost: canAffordFocus ? focusCost.money : 0,
     focusApplied: canAffordFocus,
     reachedCaps,
+    skippedCaps: canAffordFocus || executableDrills.length === 0
+      ? capConflictsAsSkippedCaps(state, capConflicts)
+      : [],
+  };
+}
+
+/**
+ * Prices exactly the drills that weekly settlement can execute. Money is
+ * charged once per eligible assigned trainee; TP is charged once per
+ * selected drill. A player/drill pairing is free for that week only when that
+ * player is already capped on every attribute the drill improves.
+ */
+export function chargeableCareerTrainingPlan(
+  state: GameState,
+  assignedPlayerIds: readonly string[],
+  drills: readonly FocusDrill[],
+): ChargeableCareerTrainingPlan {
+  const unlockedDrills = drills.filter(drill => trainingDrillBlockedReason(state, drill.id) === undefined);
+  const capConflicts = trainingPlanCapConflicts(state, assignedPlayerIds, unlockedDrills);
+  const blockedPlayerDrills = new Set(
+    capConflicts.map(conflict => `${conflict.playerId}:${conflict.drillId}`),
+  );
+  const chargeableDrills = unlockedDrills.filter(drill => assignedPlayerIds.some(playerId => (
+    !blockedPlayerDrills.has(`${playerId}:${drill.id}`)
+  )));
+  let moneyCost = 0;
+  let trainingPointCost = 0;
+  for (const drill of chargeableDrills) {
+    const eligibleTraineeCount = assignedPlayerIds.filter(playerId => (
+      !blockedPlayerDrills.has(`${playerId}:${drill.id}`)
+    )).length;
+    moneyCost = checkedAdd(
+      moneyCost,
+      checkedMultiply(drill.moneyCost, eligibleTraineeCount, 'weekly training money cost'),
+      'weekly training money cost',
+    );
+    trainingPointCost = checkedAdd(trainingPointCost, drill.tpCost, 'weekly training point cost');
+  }
+  return {
+    drills: chargeableDrills.map(cloneDrill),
+    capConflicts,
+    moneyCost,
+    trainingPointCost,
   };
 }
 
@@ -251,12 +350,6 @@ function drillDisplayName(drill: FocusDrill): string {
   const authoredName = (drill as FocusDrill & { readonly name?: string }).name;
   if (authoredName !== undefined) return authoredName;
   return drill.id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-}
-
-function attributeList(attributes: readonly (keyof CareerPlayer['attrs'])[]): string {
-  const labels = attributes.map(attribute => attribute.toUpperCase());
-  if (labels.length <= 1) return labels[0] ?? 'attribute';
-  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
 }
 
 /**
@@ -440,17 +533,62 @@ function userRoster(state: GameState): CareerPlayer[] {
     .map(player => ({ ...player, attrs: { ...player.attrs } }));
 }
 
-function planCost(plan: CareerTrainingPlan): { money: number; tp: number } {
-  let money = 0;
-  let tp = 0;
-  for (const drill of plan.drills) {
-    money += drill.moneyCost;
-    tp += drill.tpCost;
-    if (!Number.isSafeInteger(money) || !Number.isSafeInteger(tp)) {
-      throw new Error('weekly training cost exceeds the safe integer range');
-    }
+export function trainingDrillPathId(drillId: string): string {
+  return drillId.replace(/-(ii|iii)$/, '');
+}
+
+function assertDistinctTrainingDrillPaths(drills: readonly FocusDrill[]): void {
+  const paths = drills.map(drill => trainingDrillPathId(drill.id));
+  if (new Set(paths).size !== paths.length) {
+    throw new Error('a training plan can use only one level from each drill path');
   }
-  return { money, tp };
+}
+
+function assertCareerTrainingDrillsUnlocked(
+  state: GameState,
+  drills: readonly FocusDrill[],
+): void {
+  for (const drill of drills) {
+    const blockedReason = trainingDrillBlockedReason(state, drill.id);
+    if (blockedReason !== undefined) throw new Error(blockedReason);
+  }
+}
+
+function capConflictsAsSkippedCaps(
+  state: GameState,
+  conflicts: readonly TrainingPlanCapConflict[],
+): TrainingCapReached[] {
+  const existingSkipped = new Set(
+    (state.trainingCapNotices ?? [])
+      .filter(notice => notice.kind === 'skipped')
+      .map(notice => `${notice.playerId}:${notice.drillId}:${notice.attribute}`),
+  );
+  return conflicts.flatMap(conflict => conflict.attributes.flatMap(attribute => {
+    const key = `${conflict.playerId}:${conflict.drillId}:${attribute}`;
+    if (existingSkipped.has(key)) return [];
+    const player = state.players.find(candidate => candidate.id === conflict.playerId);
+    if (player === undefined) return [];
+    return [{
+      playerId: conflict.playerId,
+      playerName: conflict.playerName,
+      drillId: conflict.drillId,
+      attribute,
+      cap: playerAttributeCaps(player)[attribute],
+      kind: 'skipped' as const,
+    }];
+  }));
+}
+
+function trainingCapNotice(state: GameState, cap: TrainingCapReached) {
+  const kind = cap.kind ?? 'reached';
+  return {
+    id: kind === 'skipped'
+      ? `training-cap:skipped:s${state.season}-w${state.week}:${cap.playerId}:${cap.attribute}:${cap.drillId}`
+      : `training-cap:s${state.season}-w${state.week}:${cap.playerId}:${cap.attribute}:${cap.drillId}`,
+    season: state.season,
+    week: state.week,
+    ...cap,
+  };
 }
 
 function cloneDrill(drill: FocusDrill | CareerTrainingDrill): CareerTrainingDrill {

@@ -218,6 +218,11 @@
       "powerId": "GIANT_GK",
       "omen": "{name}'s gloves are suddenly too small for {name}'s hands.",
       "reveal": "UP! {name} unfolds until the goalmouth looks like a letterbox."
+    },
+    {
+      "powerId": "GUST",
+      "omen": "A tight spiral of wind circles {name}'s boots and steals every loose team sheet.",
+      "reveal": "WHOOSH! {name} rises inside a spinning wall of air that sends the match ball skittering away."
     }
   ]
 }

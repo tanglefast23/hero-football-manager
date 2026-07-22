@@ -14,6 +14,7 @@ import { useM1Store } from '../store';
 import {
   homeViewModel,
   reconcileHomeAssistantInbox,
+  squadTrainingViewModel,
 } from '../view-models';
 
 describe('training cap feedback', () => {
@@ -24,7 +25,7 @@ describe('training cap feedback', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
-  it('warns instead of locking a plan when a selected drill cannot improve the player', () => {
+  it('locks the plan and adds an inbox warning when a selected drill cannot improve the player', () => {
     useM1Store.getState().startNewCareer(20260721, 'full');
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
@@ -42,14 +43,90 @@ describe('training cap feedback', () => {
       },
     });
 
+    expect(squadTrainingViewModel(
+      useM1Store.getState().career!,
+      content,
+      player.id,
+      [player.id],
+      ['sprints'],
+    )).toMatchObject({
+      totalMoneyCost: 0,
+      totalTrainingPointCost: 0,
+      canApply: true,
+    });
+
     useM1Store.getState().toggleTrainingPlayer(player.id);
     useM1Store.getState().toggleDrill('sprints');
     useM1Store.getState().applyTraining();
 
-    expect(useM1Store.getState().career?.trainingPlan).toBeUndefined();
-    expect(useM1Store.getState().error).toBe(
-      `${player.name} is already at their PAC maximum for Sprints. Pick another player.`,
+    const planned = useM1Store.getState().career!;
+    expect(planned.trainingPlan).toMatchObject({
+      assignedPlayerIds: [player.id],
+      drills: [{ id: 'sprints' }],
+    });
+    expect(useM1Store.getState().error).toBeNull();
+    expect(homeViewModel(planned).alerts).toContainEqual({
+      id: `training-cap:skipped:s1-w1:${player.id}:pac:sprints`,
+      title: `${player.name} skipped Sprints I`,
+      detail: `${player.name} is already at their PAC maximum of ${pacCap}. Pick another player or drill for next week.`,
+      tone: 'info',
+    });
+  });
+
+  it('prices only eligible drills in the editor, store guard, and locked-plan summary', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260724, undefined, content, 'full'));
+    const player = initial.players.find(candidate => (
+      candidate.clubId === initial.userClubId
+      && playerAttributeCaps(candidate).sho > candidate.attrs.sho
+    ))!;
+    const state = {
+      ...initial,
+      trainingPoints: 12,
+      players: initial.players.map(candidate => candidate.id === player.id
+        ? { ...candidate, attrs: { ...candidate.attrs, pac: playerAttributeCaps(candidate).pac } }
+        : candidate),
+    };
+    const selectedDrillIds = ['sprints', 'finishing'];
+    const editor = squadTrainingViewModel(
+      state,
+      content,
+      player.id,
+      [player.id],
+      selectedDrillIds,
     );
+
+    expect(editor).toMatchObject({
+      totalMoneyCost: 500,
+      totalTrainingPointCost: 12,
+      canApply: true,
+    });
+    expect(editor.drills.find(drill => drill.id === 'sprints')).toMatchObject({
+      available: true,
+    });
+
+    useM1Store.setState({
+      career: state,
+      assignedPlayerIds: [player.id],
+      selectedDrillIds: ['sprints'],
+    });
+    useM1Store.getState().toggleDrill('finishing');
+    expect(useM1Store.getState()).toMatchObject({
+      selectedDrillIds,
+      error: null,
+    });
+    useM1Store.getState().applyTraining();
+
+    const planned = useM1Store.getState().career!;
+    expect(squadTrainingViewModel(
+      planned,
+      content,
+      player.id,
+      [player.id],
+      selectedDrillIds,
+    ).lockedPlan).toMatchObject({
+      moneyCost: 500,
+      trainingPointCost: 12,
+    });
   });
 
   it('adds a one-shot inbox note naming the player, ability, and drill when the cap is reached', () => {
@@ -82,7 +159,7 @@ describe('training cap feedback', () => {
     expect(alert).toEqual({
       id: `training-cap:s1-w1:${player.id}:pac:sprints`,
       title: `${player.name} reached their PAC maximum`,
-      detail: `Sprints took PAC to its personal maximum of ${pacCap}. Pick another player for this drill next week.`,
+      detail: `Sprints I took PAC to its personal maximum of ${pacCap}. Pick another player for this drill next week.`,
       tone: 'info',
     });
     expect(parseStoredGameState(serializeGameState(after)).trainingCapNotices)

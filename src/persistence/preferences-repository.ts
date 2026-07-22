@@ -56,6 +56,7 @@ const RETIRED_POWER_IDS = ['MAGNET_TOUCH'] as const;
 const PowerIdSchema = z.enum([
   'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
   'DECOY_DOUBLE', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
+  'RALLY_CRY', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'GIANT_GK', 'GUST',
 ]);
 const StoredPowerIdSchema = z.enum([...PowerIdSchema.options, ...RETIRED_POWER_IDS]);
 const PreferencesSchema = z.strictObject({
@@ -70,7 +71,7 @@ const PreferencesSchema = z.strictObject({
   highContrast: z.boolean(),
   colorSafeKits: z.boolean(),
   cutInMode: z.enum(['full', 'banner']),
-  seenPowerCutIns: z.array(StoredPowerIdSchema).max(12)
+  seenPowerCutIns: z.array(StoredPowerIdSchema).max(20)
     .transform(ids => ids.filter((id): id is z.infer<typeof PowerIdSchema> => (
       !(RETIRED_POWER_IDS as readonly string[]).includes(id)
     )))

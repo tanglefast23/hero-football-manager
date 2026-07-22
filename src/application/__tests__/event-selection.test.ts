@@ -1,5 +1,5 @@
 import { loadLaunchContent } from '../../content';
-import { createCareer } from '../../game';
+import { createCareer, createFacilityGrid } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { eventChoiceUnavailableReason, eventIsEligible, eventOfferForWeek } from '../event-selection';
 
@@ -92,6 +92,7 @@ describe('M4 event selection', () => {
       ...initial,
       season: 2,
       week: 10,
+      facilities: { trainingGroundBuilt: false, grid: createFacilityGrid() },
       players: initial.players.map(player => ({ ...player, personality: 'Professional' as const })),
     };
     expect(eventIsEligible(noJoker, prank)).toBe(false);

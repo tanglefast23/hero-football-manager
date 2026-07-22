@@ -54,6 +54,50 @@ export function generateSeasonFixtures(
   return fixtures;
 }
 
+/**
+ * Places five rivals in the rotation slots that produce a steadily easing
+ * opening run. The user's venues alternate home/away, so the third opponent is
+ * one raw point stronger than the second: at home it is still the gentler
+ * fixture. The weakest rival waits until match five instead of creating an
+ * early dip followed by a difficulty rebound. Other clubs retain stable ID
+ * order so the result is deterministic for the same division.
+ */
+export function pinOpeningLeagueOpponents(
+  clubIds: readonly string[],
+  userClubId: string,
+  strengthByClubId: ReadonlyMap<string, number>,
+): string[] {
+  validateInputs([...clubIds], 1, 0);
+  if (!clubIds.includes(userClubId)) throw new Error('opening schedule must include the user club');
+  const opponents = clubIds
+    .filter(clubId => clubId !== userClubId)
+    .map(clubId => {
+      const strength = strengthByClubId.get(clubId);
+      if (!Number.isFinite(strength)) throw new Error(`opening schedule is missing strength for ${clubId}`);
+      return { clubId, strength: strength! };
+    })
+    .sort((left, right) => right.strength - left.strength || left.clubId.localeCompare(right.clubId));
+  const hardest = opponents[0].clubId;
+  const upperMid = opponents[4].clubId;
+  const lowerMid = opponents[5].clubId;
+  const secondWeakest = opponents[7].clubId;
+  const weakest = opponents[8].clubId;
+  const pinned = new Set([hardest, upperMid, lowerMid, secondWeakest, weakest]);
+  const remaining = opponents
+    .map(opponent => opponent.clubId)
+    .filter(clubId => !pinned.has(clubId))
+    .sort((left, right) => left.localeCompare(right));
+  return [
+    userClubId,
+    ...remaining,
+    weakest,
+    secondWeakest,
+    upperMid,
+    lowerMid,
+    hardest,
+  ];
+}
+
 function generateFirstLeg(clubIds: string[]): Array<Array<[string, string]>> {
   let rotation = clubIds.slice();
   const rounds: Array<Array<[string, string]>> = [];

@@ -8,12 +8,9 @@ import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.13 adds five powers whose triggers are sustained situations rather than
-// "hold the ball right now" (Rally Cry, Ice Rink, Shadow Mark, Gravity Well,
-// Giant GK), and locks awakening to role-appropriate pools. It also carries
-// m1.12's Hero License card exemption: firing a licensed power never books its
-// user, for either team. Both change replay bytes.
-export const ENGINE_VERSION = 'm1.13';
+// m1.16 makes Shadow Mark genuinely invisible to pass choice, then consumes
+// the cloak on its first challenge as the authored one-ambush contract says.
+export const ENGINE_VERSION = 'm1.17';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -26,7 +23,7 @@ const VALID_POWER_IDS: ReadonlySet<string> = new Set([
   'SUPER_SPEED', 'BLINK_RUN', 'THUNDER_STRIKE', 'FIRE_TORCH',
   'PHASE_RUN', 'PORTAL_PASS', 'DECOY_DOUBLE',
   'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER',
-  'RALLY_CRY', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'GIANT_GK',
+  'RALLY_CRY', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'GIANT_GK', 'GUST',
 ]);
 const VALID_FIRE_POLICIES: ReadonlySet<string> = new Set(['SAVE_FOR_TAP', 'FIRE_WHEN_READY']);
 const ATTR_KEYS: ReadonlyArray<keyof Attrs> = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'];
@@ -212,14 +209,7 @@ export function tick(state: MatchState): void {
   const dueInputs: MatchInput[] = [];
   const remainingInputs: MatchInput[] = [];
   for (const input of state.pendingInputs) {
-    const player = input.kind === 'POWER_TAP' ? state.players[input.player] : undefined;
-    // Preserve a legal Zone tap made during a committed slide/recovery. The
-    // replay keeps its original stamped tick; only deterministic consumption
-    // waits until the hero is back on their feet.
-    const tackleDeferred = input.kind === 'POWER_TAP' && input.tick <= state.tick
-      && player?.powerState.kind === 'zone'
-      && (player.slideTackle !== undefined || player.tackleRecoveryUntil > state.tick);
-    (input.tick <= state.tick && !tackleDeferred ? dueInputs : remainingInputs).push(input);
+    (input.tick <= state.tick ? dueInputs : remainingInputs).push(input);
   }
   state.pendingInputs = remainingInputs;
   for (const input of dueInputs) processCoachingInput(state, input);
@@ -330,6 +320,10 @@ export function validateTeamDef(team: TeamDef, label: string): void {
     }
     if (p.power !== undefined && !VALID_POWER_IDS.has(p.power)) {
       throw new Error(`${label} player ${p.id} has unknown power ${String(p.power)}`);
+    }
+    if (p.powerTier !== undefined
+      && (!Number.isSafeInteger(p.powerTier) || p.powerTier < 1 || p.powerTier > 3)) {
+      throw new Error(`${label} player ${p.id} has invalid power tier ${String(p.powerTier)}; expected 1, 2, or 3`);
     }
   }
   // Slot 0 is the goalkeeper by position (the engine reads index 0/11 as GK

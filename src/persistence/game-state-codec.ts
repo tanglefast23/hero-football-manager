@@ -38,6 +38,12 @@ const powerIdSchema = z.enum([
   'SUPER_STRENGTH',
   'WEB_TRAP',
   'ELASTIC_KEEPER',
+  'RALLY_CRY',
+  'ICE_RINK',
+  'SHADOW_MARK',
+  'GRAVITY_WELL',
+  'GIANT_GK',
+  'GUST',
 ]);
 const playerAttribute = positiveInteger.refine(
   (value) => value <= 99,
@@ -345,6 +351,7 @@ const trainingCapNoticeSchema = z
     attribute: z.enum(['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref']),
     cap: positiveInteger.refine(value => value <= 99, 'must be at most 99'),
     drillId: nonemptyString,
+    kind: z.enum(['reached', 'skipped']).optional(),
   })
   .passthrough();
 
@@ -477,6 +484,7 @@ const nationalCupSchema = z.object({
     fixtures: z.array(cupFixtureSchema),
   }).passthrough()).min(1),
   championClubId: nonemptyString.optional(),
+  seedDivisionByClubId: z.record(nonemptyString, divisionLevelSchema).optional(),
 }).passthrough();
 const m2CareerSchema = z.object({
   schemaVersion: z.literal(1),

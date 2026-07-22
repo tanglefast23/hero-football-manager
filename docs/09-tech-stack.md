@@ -50,7 +50,45 @@ Version policy: pin per EAS milestone; upgrade quarterly, never continuously (st
 ## Testing strategy
 
 - **Unit**: sim actions (tackles, shots, gauge math), economy functions, negotiation math — Jest, TDD for sim/ and game/.
-- **Balance harness** (the deterministic core's superpower): headless Monte Carlo — simulate 1,000 seasons per candidate tuning table in CI, assert the design promises: "zero-hero club reaches Div 3 by season 4 (median)", "season-1 bankruptcy rate < 2% on Cozy", "hero win-rate uplift 15–25%", and the shipped 10% eligible post-match awakening cadence after its three-match cooldown. Balance changes become measurable, not vibes.
+- **Balance harness** (the deterministic core's superpower): headless Monte Carlo — simulate 1,000 seasons per candidate tuning table in CI, assert the design promises: "zero-hero club reaches Div 3 by season 4 (median)", "season-1 bankruptcy rate < 2% on Cozy", the hero-uplift band below, and the shipped 10% eligible post-match awakening cadence after its three-match cooldown. Balance changes become measurable, not vibes.
+
+### Hero uplift target (revised 2026-07-22, supersedes "15–25%")
+
+The old assertion was **15–25% win-rate uplift**. It was written before anyone
+measured the shipped catalog, and measurement found powers sitting *below* even
+that: **+0.3 to +0.6 squad points**, roughly a 6–12% uplift. Raising the bar to
+15–25% would have locked in a hero you can barely feel, in a game named after
+having one.
+
+Express the target in **squad-point equivalence**, not a raw percentage — the
+percentage moves with whatever baseline you measure against, the equivalence
+does not. Near an even match, **1 squad point ≈ 8 percentage points of win
+rate** (measured: even = 40% W / 23% D / 37% L; two points stronger = 23% W).
+
+| Case | Target worth | ≈ win rate | ≈ relative uplift |
+|---|---|---|---|
+| **Tier 1, auto-fired** (Quick Result) | **+2** | ~56% | ~40% |
+| Tier 1, tapped well | +2.5 – 3 | ~62–66% | ~55–65% |
+| Tier 3, tapped well (endgame, D1) | **+4** | ~76% | ~90% |
+
+**Balance the leagues against the Tier 1 auto-fired corner.** That is the player
+who never watches a match and never upgrades a power; everything above it is
+earned. A club that engages should feel rewarded, never required.
+
+**Measurement discipline — two mistakes that produced confident wrong numbers:**
+
+1. **Put each power on its designed carrier slot.** `powerIsCompatibleWithRole`
+   only excludes keepers, so a "first eligible player" loop hands Super Speed to
+   a centre-back and reports a dead power that is merely misassigned. Use the
+   `CARRIER_SLOT` map in `src/sim/__tests__/power-cadence.test.ts`.
+2. **Never set `controlledTeam` in a measurement harness.** It disables that
+   team's automatic substitutions and energy management (`auto-coaching.ts`
+   `automaticTeams`), so the side plays 90 minutes on tired legs and the result
+   has nothing to do with what you were measuring.
+
+Points-per-match carries a standard error of ~0.09 at 200 matches, so **a worth
+difference under ~0.19 is noise.** Assert hero uplift at **1,000 seeds minimum**.
+Firing counts are reliable at 200; worth values are not.
 - **Render smoke**: Atlas stress scene on a real budget Android device at M0 (research risk #1) — gate before building more match UI.
 - Standard house rules apply: `npm test` after changes, lint before commit, both web and native checked for UI work.
 

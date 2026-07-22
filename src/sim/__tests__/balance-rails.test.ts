@@ -65,9 +65,17 @@ describe('M0 acceptance suite (Task 13)', () => {
       let homeStrongGoals = 0, awayStrongGoals = 0, weakGoals = 0;
       let strongShots = 0, strongPasses = 0;
       const goalMargins: number[] = [];
+      // Compare venues under the same production auto-fire policy. The
+      // default watched-match policies are intentionally asymmetric (home
+      // waits for taps; away auto-fires), which otherwise turns this venue
+      // rail into a hidden manual-vs-auto comparison.
+      const policies = {
+        homePolicy: 'FIRE_WHEN_READY' as const,
+        awayPolicy: 'FIRE_WHEN_READY' as const,
+      };
       for (let seed = 1; seed <= N; seed++) {
-        const home = runMatch(seed, strong, UNITED);
-        const away = runMatch(seed, UNITED, strong);
+        const home = runMatch(seed, strong, UNITED, [], policies);
+        const away = runMatch(seed, UNITED, strong, [], policies);
         if (home.score[0] > home.score[1]) homeStrongWins++;
         else if (home.score[1] > home.score[0]) homeWeakWins++;
         if (away.score[1] > away.score[0]) awayStrongWins++;

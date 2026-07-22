@@ -1,15 +1,20 @@
 # Handoff — hero powers, training and league balance (2026-07-22)
 
-Written at the end of a long measurement session. Everything below is either
-measured with a harness in `src/audit/__tests__/` or read directly out of the
-code — where something is a guess, it says so.
+Written at the end of the original measurement session, then updated after the
+approved implementation and post-build audit. Sections 1–5 preserve the
+starting evidence and decision record; sections 6–9 are the current status.
 
-**Nothing is committed.** 18 modified files, 7 new probe files, all in the
-working tree.
+**Current branch:** `feature/hero-power-balance-m1-13`. The implementation is
+committed in `3cbca1f`, and the Shadow Mark correctness fix is committed in
+`f0d0ef5`. Final acceptance evidence is committed in `bf7c8e6`. All three are
+pushed. The current replay version is **m1.16**.
 
 ---
 
-## 1. Repo state right now
+## 1. Starting repo state (historical)
+
+This section describes the state before the approved backlog was implemented.
+For the current branch and gate status, use sections 6–9.
 
 ### Engine version is m1.13 (was m1.11)
 
@@ -157,8 +162,21 @@ hand-authored launch clubs at 49–55 — **a full division too strong for its s
 Attacking powers waste **0.00** windows/match. Defensive powers waste 49–61%.
 Decoy Double wastes 3.85 per match and is **0% usable manually**.
 
-**A hero is currently worth +0.3 to +0.6 squad points.** `docs/09` targets a
-15–25% win-rate uplift ≈ +0.7 to +1.2, so powers are *below the existing target*.
+**A hero is currently worth +0.3 to +0.6 squad points** — roughly a 6–12%
+win-rate uplift, i.e. below even the old `docs/09` bar.
+
+**The target was rewritten on 2026-07-22.** `docs/09-tech-stack.md` now carries a
+"Hero uplift target" section replacing the old "15–25% win-rate uplift" line:
+
+| Case | Target worth |
+|---|---|
+| **Tier 1, auto-fired** — balance the leagues against this | **+2** |
+| Tier 1, tapped well | +2.5 – 3 |
+| Tier 3, tapped well (endgame, D1) | **+4** |
+
+Near an even match, **1 squad point ≈ 8 percentage points of win rate**. Assert
+uplift at **1,000 seeds minimum** — at 200 the standard error is ~0.09, so any
+difference under ~0.19 is noise. Firing counts are reliable at 200; worth is not.
 
 ### Heat sources
 
@@ -182,9 +200,11 @@ Division potential ceilings already scale correctly: D5 is 100% tier-1
 
 ---
 
-## 4. Agreed backlog, not started
+## 4. Agreed implementation backlog
 
-Ordered as recommended. Every item was explicitly approved by the owner.
+Ordered as recommended. Every item was explicitly approved by the owner. The
+original wording is retained here as the implementation record; current status
+is summarized in §6.
 
 ### Do first — verification
 1. **Rebaseline m1.13**: runtime golden hash, parity replay snapshot, and the
@@ -236,7 +256,9 @@ Ordered as recommended. Every item was explicitly approved by the owner.
     D3 60–70, D2 70–80, D1 80–90 — with the player's club at the **bottom** of
     D5. Widen within-division spread from `±3` (`pyramid.ts:222`). This is what
     delivers the ~90% first-match loss naturally.
-14. **Pin the first three opponents**: hardest, then lower-mid, then weakest.
+14. **Pin the first five opponents on a venue-aware easing curve**: 50 home,
+    45 away, 46 home, 43 away, then 42 home. This keeps the first two authored
+    shocks while removing the weakest-match spike and harder-match rebound.
 15. **Cup out of the opening** — `CUP_SETTLEMENT_WEEKS` (`career.ts:45`) starts
     at week 5, same week as the league opener, and the draw is a blind shuffle of
     all 50 clubs across every division. Move to ~week 10 *and* seed by division.
@@ -288,5 +310,208 @@ above and are the tool for verifying items 3–19. They are **slow (10–17 min)
 and must not go into CI as-is. Either keep them excluded via
 `--testPathIgnorePatterns="src/audit"` or move them behind an explicit script.
 
-`hero-value-probe.test.ts` still has the `controlledTeam` bug described above —
-fix or delete it. `power-firing-probe.test.ts` is the corrected one.
+`hero-value-probe.test.ts` now avoids `controlledTeam`, runs 1,000 seeds by
+default, supports deterministic shards, and measures Tier-1 auto, Tier-1
+well-tapped, and Tier-3 well-tapped cases. `power-firing-probe.test.ts` remains
+the cadence/conversion probe.
+
+---
+
+## 6. Implementation status — 2026-07-22
+
+A checked item means the approved behavior and its focused coverage were built.
+It does **not** mean the post-build balance target passed; those results are kept
+separate so tuning misses cannot hide behind a green implementation checklist.
+
+- [x] Items 1–3: deliberate replay rebaseline, role-pool coverage, and
+  opt-in firing measurement.
+- [x] Items 4–6: career tiers reach the match engine, power opportunities were
+  expanded, and the first effect-strength pass was applied.
+- [x] Items 7–11: fixed press-to-arm timing, independent hero powers, multi-tile
+  cut-ins, loose-ball Gust, and Fire Torch's wider context.
+- [x] Items 12–16: capped-player skipping with named warnings, contiguous league
+  bands, authored opening opponents, a week-10 division-seeded Cup, and a
+  hero-free Division 5.
+- [x] Items 17–19: weekly facility/coach TP sources, single-stat drill tiers,
+  and an ordinary loose-ball outcome for failed passes.
+- [x] Post-build audit: 1,000-seed tiered hero-worth runs, a 300-career opening
+  comparison, all-power cadence measurement, deterministic gates, and a clean
+  web production export. The final full-suite count is recorded in §9.
+
+The remaining misses are tuning or game-design decisions, except for the Cup
+play-in pairing bug found by the audit and fixed so opponents are at most one
+division apart.
+
+---
+
+## 7. Post-build measurements
+
+### Hero value — 1,000 paired seeds per case
+
+Targets are +2 for Tier-1 auto, +2.5–3 for Tier-1 well-tapped, and +4 for
+Tier-3 well-tapped. Rally Cry is not graded in isolation because the game now
+correctly prevents it from being a club's first or only power.
+
+| Power | T1 auto | T1 tapped | T3 tapped |
+|---|---:|---:|---:|
+| Super Speed | +1.7 | +1.9 | **+4.3** |
+| Fire Torch | +1.9 | +2.2 | +2.5 |
+| Decoy Double | +0.5 | +0.7 | +1.2 |
+| Web Trap | +0.5 | +0.9 | +0.9 |
+| Ice Rink | +0.9 | +0.8 | +1.2 |
+| Giant GK | +1.5 | +1.6 | +2.1 |
+| Blink Run | +0.5 | +0.8 | +1.3 |
+| Phase Run | +0.6 | +0.9 | +1.2 |
+| Future Sight | +1.5 | +1.7 | +1.8 |
+| Elastic Keeper | +0.8 | +1.0 | +1.3 |
+| Shadow Mark (m1.16) | +0.5 | +0.5 | +0.8 |
+| Gust | +1.1 | +1.6 | +2.2 |
+| Thunder Strike | +1.3 | +1.4 | +1.8 |
+| Portal Pass | +0.2 | +0.3 | +0.5 |
+| Super Strength | +1.0 | +0.5 | +0.8 |
+| Gravity Well | +0.5 | +0.1 | +0.5 |
+
+Only **1 of 48** graded cells clears its target. This is the primary reason the
+branch must not be merged as a finished balance pass. Shadow Mark's corrected
+ambush logic improved all three cases, but it still misses every value target.
+
+### Power opportunity and conversion — 200 seeds per mode
+
+- Portal Pass: 2.16 zones / 2.12 fires, **98% conversion**.
+- Decoy Double: 2.08 / 2.04, **98% conversion**.
+- Defensive powers: 2.04–3.00 zones and **87–99% conversion** in the measured
+  set, with only roughly 1–13% of chances wasted.
+- Blink Run and Thunder Strike remain below the intended conversion floor at
+  roughly **63–64%**; Phase Run is close at 78%.
+- Manual play is not reliably better: the 200-seed skill delta is positive for
+  some powers and negative for others. That is directional evidence; the
+  1,000-seed value table confirms that the manual target is not met.
+
+### Opening run — 300 careers
+
+The trained cohort used three trainees whenever resources allowed.
+
+| Match | Trained loss | Control loss | Intended read |
+|---|---:|---:|---|
+| 1 | **87.7%** | 89.7% | Authored heavy opening loss |
+| 2 | **59.3%** | 68.3% | Softer second shock |
+| 3 | **55.0%** | 70.0% | Curve starts bending |
+| 4 | **42.0%** | 54.3% | Near even |
+| 5 | **34.7%** | 42.3% | Player has moved past even |
+
+This passes the revised opening target in the intended, trained play path.
+Training also measurably changes results instead of producing the old 0% shift.
+
+### Training points and cash
+
+- The free operational Level-1 Training Pitch changes the pre-match TP trace
+  from the old dry spell to **30 → 25 → 20 → 15 → 10**, so a basic drill is
+  still available in week 4.
+- Across 300 careers through match 18, a three-player plan trained for 15 weeks
+  on average but was TP-blocked for 10.67 weeks and cash-blocked for 0 weeks.
+- The trained cohort committed about 17,684 cash and finished with about 10,286
+  cash versus 27,380 for the control cohort. Cash now matters, but does not yet
+  constrain the plan in the measured window.
+- Capped players are skipped individually with a named warning; they no longer
+  reject the whole plan. Drill tiers unlock by division and roster headroom
+  remains ample.
+
+### League, Cup, awakening, and match feel
+
+- Division content is contiguous at 40–50 / 50–60 / 60–70 / 70–80 / 80–90;
+  the user's launch XI is 41.1 and starts at the bottom of Division 5.
+- The Cup begins around week 10 and uses division-aware pairing. The play-in bug
+  found by the audit was fixed so the opponent is never more than one division
+  away.
+- Division 5 contains no rival heroes. Awakening respects role pools, Rally Cry
+  cannot be the first/only power, and keepers have at least three options.
+- Ordinary failed passes can become loose balls. Gust also produces a loose
+  ball rather than a Future Sight-style clean steal.
+
+### Multi-hero marginal value — 1,000 paired seeds per sample
+
+The representative order was Super Speed (forward), Decoy Double (midfielder),
+Future Sight (defender), and Giant GK. All used Tier-1 contextual auto-fire.
+
+| Hero added | Solo worth | Marginal worth | Retained value |
+|---|---:|---:|---:|
+| Super Speed | +1.7 | +1.7 | **100%** |
+| Decoy Double | +0.5 | +0.1 | **27%** |
+| Future Sight | +1.5 | +1.0 | **63%** |
+| Giant GK | +1.5 | +1.5 | **102%** |
+
+Cumulative prefix worth was **+1.7 → +1.8 → +2.8 → +4.3**. Rally Cry added
+only +0.2 beside Super Speed. Independent activation and the four-tile UI work,
+but heroes two and three do not yet retain close to their full solo value.
+
+---
+
+## 8. Approval-required follow-up packages
+
+These are proposals, not implemented behavior. They convert weak powers into
+visible football moments instead of multiplying hidden stats.
+
+1. **Finish the attack:** charged-shot commitment for Thunder Strike;
+   threat-aware forward exits for Portal Pass; a visible decoy-pursuit window;
+   Fire Torch marking the relevant goal-side defender; Blink Run appearing in
+   the clearest lane beyond the last defender.
+2. **One-moment defensive cash-out:** Phase Run ends after preventing the next
+   challenge; Future Sight turns its first dangerous read into a controlled
+   outlet; Web Trap and Gust deflect toward a recoverable lane; Ice Rink spends
+   itself on the first meaningful slip or spill.
+3. **Danger-scoped keepers:** Giant GK lasts for the current dangerous attack;
+   Elastic Keeper banks one stretch-save charge for the next on-target shot in
+   that possession.
+4. **Strength and Gravity:** tier/manual strength changes Super Strength's
+   pursuit and landing reach; Gravity Well fires during friendly possession as
+   one brief pull that opens the opposite lane.
+5. **Weekly training:** raise the operational Level-1 Training Pitch from +5 to
+   **+10 TP/week**. That funds one basic drill every week; because the existing
+   drill charge scales with selected trainees, the extra training should also
+   make cash become the natural limiter.
+6. **Small numeric close-out:** modest Super Speed tuning and power-family
+   radius/range/wind-up tuning after the mechanic packages, measured again at
+   1,000 seeds before setting final league assumptions.
+7. **Conditional stack independence:** first remeasure after packages 1–4. If
+   the second and third heroes are still being cannibalized, reserve distinct
+   targets or opportunities so one active effect cannot erase the next hero's
+   useful moment. Do not add a blanket hidden stack multiplier.
+
+---
+
+## 9. Final gate addendum
+
+The m1.16 Shadow-only rerun completed at 1,000 paired seeds: +0.5 Tier-1 auto,
++0.5 Tier-1 well-tapped, and +0.8 Tier-3 well-tapped. The targeted probe passed
+3/3 tests in 1,608 seconds.
+
+The first full run exposed nine stale or asymmetric test fixtures. They were
+fixed without changing gameplay:
+
+- gym fixtures moved away from the new starter Training Pitch;
+- 34 tracked acceptance saves were deliberately regenerated so the pitch is
+  present in current baselines;
+- m1.16 auto-coaching and README source expectations were re-recorded;
+- the Super Strength cadence ceiling now matches the approved 2–3 opportunity
+  band; and
+- the +20 mismatch rail now compares both venues under the same auto-fire
+  policy. Its scoring limits were **not** weakened.
+
+Final repaired-tree gates:
+
+- `npx tsc --noEmit` — pass;
+- `npm test -- --runInBand` — **159/159 suites, 1,098/1,098 tests, 3/3
+  snapshots**, pass in 785 seconds;
+- `npm run export:web` — pass (1,416 modules, 46 assets, 6 bundles, 3 files);
+- `git diff --check` — pass; and
+- all slow `*-probe.test.ts` measurement files remained outside the automated
+  run.
+
+The multi-hero marginal-value probe passed 4/4 tests at 1,000 paired seeds per
+sample in 2,797 seconds. Decoy Double retained 27% of its solo value, Future
+Sight 63%, and Giant GK 102%; Rally Cry's marginal value was +0.2.
+
+All requested implementation and measurement work is complete. Do not merge to
+`main` until the approval-required balance work has been accepted or explicitly
+deferred by the owner: hero value, manual advantage, weekly TP/cash pressure,
+and second/third-hero stacking still miss their targets.

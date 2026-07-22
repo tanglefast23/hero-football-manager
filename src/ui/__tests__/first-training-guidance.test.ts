@@ -29,7 +29,7 @@ describe('first training guidance', () => {
     expect(source).toContain("boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)'");
     expect(source).not.toContain('detail="Add one player"');
     expect(source).not.toContain('detail="Pick a drill"');
-    expect(source).toContain('>{drill.gainLabel}</Text>');
+    expect(source).toContain('{drill.lockedReason ?? drill.gainLabel}');
     expect(source).not.toContain('{drill.focusLabel} · {drill.gainLabel}');
     expect(homeSource).toContain('detail="Build the facility"');
     expect(guideContent).not.toContain('"id": "squad-intro"');

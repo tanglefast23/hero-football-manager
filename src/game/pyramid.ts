@@ -1,5 +1,6 @@
 import { mulberry32, type Rng } from '../sim/rng';
 import type { Attrs, Role } from '../sim/types';
+import { roleOverall } from './archetype-caps';
 import type { PlayerArchetype, PlayerPersonality } from './types';
 export type { PlayerArchetype, PlayerPersonality } from './types';
 
@@ -89,6 +90,8 @@ export interface NationalCup {
   season: number;
   rounds: NationalCupRound[];
   championClubId?: string;
+  /** Present on newly created cups; old saves without it keep their original blind draw. */
+  seedDivisionByClubId?: Record<string, DivisionLevel>;
 }
 
 export interface NationalCupResult extends CupScore {
@@ -178,12 +181,14 @@ const SQUAD_ROLES: readonly Role[] = [
   'MID', 'MID', 'MID', 'MID', 'MID',
   'FWD', 'FWD', 'FWD', 'FWD',
 ];
-const DIVISION_BASE_STRENGTH: Readonly<Record<DivisionLevel, number>> = {
-  1: 84,
-  2: 68,
-  3: 60,
-  4: 52,
-  5: 44,
+export const DIVISION_STRENGTH_BANDS: Readonly<
+  Record<DivisionLevel, readonly [minimum: number, maximum: number]>
+> = {
+  1: [80, 90],
+  2: [70, 80],
+  3: [60, 70],
+  4: [50, 60],
+  5: [40, 50],
 };
 const ARCHETYPES: readonly PlayerArchetype[] = [
   'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
@@ -217,10 +222,20 @@ export function generateLeaguePyramid(careerSeed: number): LeaguePyramid {
   for (let level = 1; level <= PYRAMID_DIVISION_COUNT; level += 1) {
     const division = level as DivisionLevel;
     const clubs: PyramidClub[] = [];
+    const [minimumStrength, maximumStrength] = DIVISION_STRENGTH_BANDS[division];
+    const targetStrengths = shuffled(
+      Array.from({ length: CLUBS_PER_DIVISION }, (_, index) => (
+        Math.round(minimumStrength + ((maximumStrength - minimumStrength) * index) / (CLUBS_PER_DIVISION - 1))
+      )),
+      random,
+    );
     for (let clubIndex = 0; clubIndex < CLUBS_PER_DIVISION; clubIndex += 1) {
       const id = `d${division}-club-${pad2(clubIndex + 1)}`;
-      const targetStrength = DIVISION_BASE_STRENGTH[division] + integerRoll(random, -3, 3);
-      const squad = generateSquad(id, division, targetStrength, random);
+      const targetStrength = targetStrengths[clubIndex];
+      const squad = tuneSquadToStrength(
+        generateSquad(id, division, targetStrength, random),
+        targetStrength,
+      );
       clubs.push({
         id,
         name: clubNames[(level - 1) * CLUBS_PER_DIVISION + clubIndex],
@@ -286,12 +301,22 @@ export function createNationalCup(
   clubIds: readonly string[],
   season: number,
   careerSeed: number,
+  seedDivisionByClubId?: Readonly<Record<string, DivisionLevel>>,
 ): NationalCup {
   validateClubIds(clubIds, NATIONAL_CUP_CLUB_COUNT, 'National Cup');
   validateSeason(season);
   validateSeed(careerSeed);
-  const firstRound = createCupRound([...clubIds].sort(stableIdCompare), season, 1, careerSeed);
-  return { careerSeed, season, rounds: [firstRound] };
+  const sortedClubIds = [...clubIds].sort(stableIdCompare);
+  const seedDivisions = seedDivisionByClubId === undefined
+    ? undefined
+    : validateCupSeedDivisions(sortedClubIds, seedDivisionByClubId);
+  const firstRound = createCupRound(sortedClubIds, season, 1, careerSeed, seedDivisions);
+  return {
+    careerSeed,
+    season,
+    rounds: [firstRound],
+    ...(seedDivisions === undefined ? {} : { seedDivisionByClubId: seedDivisions }),
+  };
 }
 
 /** Completes the current cup round and produces the next one, or names the champion. */
@@ -341,6 +366,7 @@ export function advanceNationalCup(
     cup.season,
     current.number + 1,
     cup.careerSeed,
+    cup.seedDivisionByClubId,
   );
   return { ...cup, rounds: [...rounds, nextRound] };
 }
@@ -592,16 +618,30 @@ function generateAttributes(target: number, role: Role, random: Rng): Attrs {
 }
 
 function averageSquadStrength(squad: readonly PyramidPlayer[]): number {
-  const total = squad.reduce((sum, player) => sum + playerStrength(player), 0);
+  const total = squad.reduce((sum, player) => sum + roleOverall(player.role, player.attrs), 0);
   return Math.round(total / squad.length);
 }
 
-function playerStrength(player: Pick<PyramidPlayer, 'role' | 'attrs'>): number {
-  const { attrs, role } = player;
-  if (role === 'GK') return Math.round((attrs.ref * 4 + attrs.def + attrs.pas) / 6);
-  if (role === 'DEF') return Math.round((attrs.def * 3 + attrs.pac + attrs.sta + attrs.pas) / 6);
-  if (role === 'MID') return Math.round((attrs.pas * 2 + attrs.tec * 2 + attrs.sta + attrs.def) / 6);
-  return Math.round((attrs.sho * 3 + attrs.pac + attrs.tec + attrs.pas) / 6);
+export function tuneSquadToStrength<T extends Pick<PyramidPlayer, 'role' | 'attrs'>>(
+  squad: readonly T[],
+  targetStrength: number,
+): T[] {
+  validateRating(targetStrength, 'target squad strength');
+  if (squad.length === 0) throw new Error('cannot tune an empty squad');
+  let tuned = squad.map(player => ({ ...player, attrs: { ...player.attrs } }));
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const current = Math.round(tuned.reduce(
+      (sum, player) => sum + roleOverall(player.role, player.attrs),
+      0,
+    ) / tuned.length);
+    const delta = targetStrength - current;
+    if (delta === 0) return tuned;
+    tuned = tuned.map(player => ({
+      ...player,
+      attrs: mapAttrs(player.attrs, value => clampRating(value + delta)),
+    }));
+  }
+  return tuned;
 }
 
 function createCupRound(
@@ -609,6 +649,7 @@ function createCupRound(
   season: number,
   round: number,
   careerSeed: number,
+  seedDivisionByClubId?: Readonly<Record<string, DivisionLevel>>,
 ): NationalCupRound {
   const entrantsByRound = [50, 32, 16, 8, 4, 2] as const;
   const expectedEntrants = entrantsByRound[round - 1];
@@ -617,18 +658,31 @@ function createCupRound(
     throw new Error(`National Cup round ${round} requires ${expectedEntrants} entrants`);
   }
   const random = mulberry32(mixSeed(careerSeed, season, round, 0xc09c0a));
-  const seededEntrants = shuffled(entrantClubIds, random);
+  const seededEntrants = seedDivisionByClubId === undefined
+    ? shuffled(entrantClubIds, random)
+    : divisionSeededEntrants(entrantClubIds, seedDivisionByClubId, random);
   const byeCount = round === 1 ? 14 : 0;
   const byeClubIds = seededEntrants.slice(0, byeCount);
-  const playingClubIds = seededEntrants.slice(byeCount);
+  const unpairedClubIds = seededEntrants.slice(byeCount);
+  const playingClubIds = seedDivisionByClubId === undefined
+    ? unpairedClubIds
+    // The play-in is the player's first Cup exposure. Division seeding means
+    // neighboring entrants play one another after the D1/D2 byes, rather than
+    // recreating the old D2-v-D5 worst case through a high/low draw.
+    : round === 1
+      ? unpairedClubIds
+      : highLowPairingOrder(unpairedClubIds);
   const fixtures: NationalCupFixture[] = [];
   for (let index = 0; index < playingClubIds.length; index += 2) {
+    const firstClubId = playingClubIds[index];
+    const secondClubId = playingClubIds[index + 1];
+    const firstIsHome = random() < 0.5;
     fixtures.push({
       id: `s${season}-cup-r${round}-m${pad2(index / 2 + 1)}`,
       season,
       round,
-      homeClubId: playingClubIds[index],
-      awayClubId: playingClubIds[index + 1],
+      homeClubId: firstIsHome ? firstClubId : secondClubId,
+      awayClubId: firstIsHome ? secondClubId : firstClubId,
       matchSeed: Math.floor(random() * UINT32_RANGE) >>> 0,
       status: 'scheduled',
     });
@@ -640,6 +694,40 @@ function createCupRound(
     byeClubIds,
     fixtures,
   };
+}
+
+function validateCupSeedDivisions(
+  clubIds: readonly string[],
+  seedDivisionByClubId: Readonly<Record<string, DivisionLevel>>,
+): Record<string, DivisionLevel> {
+  const result: Record<string, DivisionLevel> = {};
+  for (const clubId of clubIds) {
+    const division = seedDivisionByClubId[clubId];
+    if (division === undefined || !divisionLevels().includes(division)) {
+      throw new Error(`National Cup seed division is missing or invalid for ${clubId}`);
+    }
+    result[clubId] = division;
+  }
+  return result;
+}
+
+function divisionSeededEntrants(
+  entrantClubIds: readonly string[],
+  seedDivisionByClubId: Readonly<Record<string, DivisionLevel>>,
+  random: Rng,
+): string[] {
+  return divisionLevels().flatMap(division => shuffled(
+    entrantClubIds.filter(clubId => seedDivisionByClubId[clubId] === division),
+    random,
+  ));
+}
+
+function highLowPairingOrder(seededClubIds: readonly string[]): string[] {
+  if (seededClubIds.length % 2 !== 0) throw new Error('a seeded Cup draw requires an even entrant count');
+  const half = seededClubIds.length / 2;
+  const stronger = seededClubIds.slice(0, half);
+  const weaker = seededClubIds.slice(half).reverse();
+  return stronger.flatMap((clubId, index) => [clubId, weaker[index]]);
 }
 
 function cupRoundLabel(round: number): NationalCupRound['label'] {

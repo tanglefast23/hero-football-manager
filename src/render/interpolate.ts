@@ -2,7 +2,7 @@
 // Math.random / Date.now — safe to unit test headless (same rule as src/sim/).
 import { ballHeight, ballPos } from '../sim/engine';
 import type { Vec } from '../sim/geometry';
-import { ZONE_WINDOW_TICKS } from '../sim/powers';
+import { ARM_WINDOW_TICKS, ZONE_WINDOW_TICKS } from '../sim/powers';
 import type { MatchState } from '../sim/types';
 
 // No 'ready' state exists (Task 14 amendment ledger item 5) — a hero's
@@ -43,12 +43,16 @@ export function snapshotFrame(state: MatchState, previous?: Pick<PitchFrame, 'pl
       if (p.outUntilTick > state.tick) return p.outReason === 'ignited' ? 'ignited' : 'out';
       if (p.slideTackle) return 'sliding';
       if (p.tackleRecoveryUntil > state.tick) return 'recovering';
-      if (p.powerState.kind === 'zone') return 'zone';
+      if (p.powerState.kind === 'zone' || p.powerState.kind === 'armed') return 'zone';
       if (p.powerState.kind === 'winding') return 'windup';
       if (p.powerState.kind === 'active') return 'active';
       return 'ok';
     }),
-    zoneFraction: state.players.map((p) => (p.powerState.kind === 'zone' ? p.powerState.remainingTicks / ZONE_WINDOW_TICKS : 0)),
+    zoneFraction: state.players.map((p) => {
+      if (p.powerState.kind === 'zone') return p.powerState.remainingTicks / ZONE_WINDOW_TICKS;
+      if (p.powerState.kind === 'armed') return p.powerState.remainingTicks / ARM_WINDOW_TICKS;
+      return 0;
+    }),
     moved: state.players.map((p, i) => previous !== undefined && (p.pos.x !== previous.players[i].x || p.pos.y !== previous.players[i].y)),
     travel: state.players.map((p, i) => {
       if (!previous) return 0;

@@ -15,6 +15,14 @@ export function coachTrainingBonusPercent(level: number, role: CareerCoachRole):
   return checkedMultiply(level, role === 'HEAD' ? 10 : 5, `${role.toLowerCase()} training bonus`);
 }
 
+/** Stable weekly TP created by one employed coach. */
+export function coachWeeklyTrainingPoints(level: number, role: CareerCoachRole): number {
+  validateCoachLevel(level, role === 'HEAD' ? 'head coach' : 'assistant coach');
+  return role === 'HEAD'
+    ? 10 + checkedMultiply(level, 2, 'head coach TP')
+    : 5 + level;
+}
+
 /** Motivator strength in half-levels: a head level is 5%, an assistant level is 2.5%. */
 export function coachMotivatorStrengthHalfLevels(market: CareerMarketState): number {
   const head = market.headCoach?.specialties.includes('MOTIVATOR') === true
@@ -63,6 +71,19 @@ export function careerCoachWageLedgerAmount(market: CareerMarketState): number {
     throw new Error('head coach weekly wage must be a non-negative safe integer');
   }
   return wage === 0 ? 0 : -wage;
+}
+
+/** Stable weekly TP created by employed staff, independent of match results. */
+export function careerCoachWeeklyTrainingPoints(market: CareerMarketState): number {
+  const head = market.headCoach;
+  const assistant = market.assistantCoach;
+  if (head !== undefined) validateCoach(head.level, head.specialties, 'head coach');
+  if (assistant !== undefined) validateCoach(assistant.level, assistant.specialties, 'assistant coach');
+  const headPoints = head === undefined ? 0 : coachWeeklyTrainingPoints(head.level, 'HEAD');
+  const assistantPoints = assistant === undefined
+    ? 0
+    : coachWeeklyTrainingPoints(assistant.level, 'ASSISTANT');
+  return headPoints + assistantPoints;
 }
 
 /**

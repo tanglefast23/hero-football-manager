@@ -111,6 +111,7 @@ const POWER_SFX: Record<PowerId, SfxKey> = {
   SHADOW_MARK: 'zone-enter',
   GRAVITY_WELL: 'super-strength-boom',
   GIANT_GK: 'save-slap',
+  GUST: 'super-speed-whoosh',
 };
 
 // -- Event -> file table ------------------------------------------------

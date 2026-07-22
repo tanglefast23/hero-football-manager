@@ -2,7 +2,7 @@ import { BLEND_TICKS, blendedTableTarget, gkTarget, kickoffPos } from './movemen
 import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, HALF_TICKS, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
 import { contest, contestProbability } from './contest';
-import { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, STRENGTH_LOCK_RANGE, futureSightInterceptor, iceRinkSlow, isShadowMarked } from './powers';
+import { addGauge, clearPowerCommitment, consumeKeeperShotCharge, consumePhaseChallenge, consumeShadowMark, decoyPursuitTarget, finishMomentPower, gustRecoveryVelocity, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, STRENGTH_LOCK_RANGE, futureSightInterceptor, gustDisruptsPass, iceRinkSlow, isShadowMarked } from './powers';
 import { energyDrainMultiplier, energyMovementMultiplier, formationTarget, mentalityTarget, type EnergyUse } from './tactics';
 import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
 
@@ -25,12 +25,16 @@ const SLIDE_CONTACT_RANGE = 50;
 // Frequent actions stay cheap on purpose: a completed pass paid even 3 Heat
 // would let a midfielder making 40 passes out-charge every striker.
 export const SHOT_GAUGE = 20;
-export const SAVE_GAUGE = 20;
+export const SAVE_GAUGE = 30;
+export const MISS_GAUGE = 10;
+export const GOALKEEPER_DISTRIBUTION_GAUGE = 5;
 export const TACKLE_WON_GAUGE = 18;
 export const INTERCEPTION_GAUGE = 12;
 export const LOOSE_BALL_GAUGE = 8;
 export const TACKLE_ATTEMPT_GAUGE = 3;
 export const PASS_RECEIVED_GAUGE = 2;
+export const FAILED_PASS_LOOSE_CHANCE = 0.35;
+const FAILED_PASS_DEFLECTION_SPEED = 240;
 
 export function goalYFor(team: 0 | 1): number {
   return team === 0 ? 0 : PITCH_H;
@@ -197,18 +201,20 @@ function targetFor(state: MatchState, i: number, mv: MovementState, presserIdx: 
   const isCarrier = state.ball.kind === 'held' && state.ball.by === i;
   const chargeTarget = p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined
     ? state.players[p.powerState.targetIdx].pos : null;
-  const strengthZoneTarget = p.powerState.kind === 'zone' && p.def.power === 'SUPER_STRENGTH'
+  const strengthZoneTarget = (p.powerState.kind === 'zone' || p.powerState.kind === 'armed')
+    && p.def.power === 'SUPER_STRENGTH'
     && state.ball.kind === 'held' && state.players[state.ball.by].team !== p.team
     && dist2(state.players[state.ball.by].pos, p.pos) < STRENGTH_ZONE_APPROACH_RANGE * STRENGTH_ZONE_APPROACH_RANGE
     ? state.players[state.ball.by].pos : null;
   const isPassReceiver = state.ball.kind === 'pass' && state.ball.to === i;
   const chaseLoose = state.ball.kind === 'loose' && dist2(p.pos, ball) < 1500 * 1500;
+  const decoyTarget = decoyPursuitTarget(state, i);
   return isCarrier
     ? carryTarget(state, i)
     : chargeTarget ? chargeTarget
     : strengthZoneTarget ? strengthZoneTarget
-    : i === presserIdx || isPassReceiver || chaseLoose ? ball
-    : fallbackTarget(state, i, mv, ball);
+    : decoyTarget ?? (i === presserIdx || isPassReceiver || chaseLoose ? ball
+      : fallbackTarget(state, i, mv, ball));
 }
 
 function slideMovementTick(state: MatchState, idx: number): void {
@@ -350,6 +356,19 @@ export function nearestOpponent(state: MatchState, idx: number): number {
   return best;
 }
 
+/** Enemy decision-making cannot account for an active Shadow Mark. */
+function nearestVisibleOpponent(state: MatchState, idx: number): number {
+  const me = state.players[idx];
+  let best = -1, bestD2 = Infinity;
+  for (let i = 0; i < 22; i++) {
+    const opponent = state.players[i];
+    if (opponent.team === me.team || !isAvailable(state, i) || isShadowMarked(state, i)) continue;
+    const d2 = dist2(opponent.pos, me.pos);
+    if (d2 < bestD2) { bestD2 = d2; best = i; }
+  }
+  return best;
+}
+
 /** Forward carry vector with a small deterministic left/centre/right lane choice. */
 function carryTarget(state: MatchState, idx: number): Vec {
   const carrier = state.players[idx];
@@ -364,7 +383,7 @@ function carryTarget(state: MatchState, idx: number): Vec {
     let space = 1500;
     for (let i = 0; i < 22; i++) {
       const opponent = state.players[i];
-      if (opponent.team === carrier.team || !isAvailable(state, i)) continue;
+      if (opponent.team === carrier.team || !isAvailable(state, i) || isShadowMarked(state, i)) continue;
       space = Math.min(space, dist(opponent.pos, candidate));
     }
     const centrality = GOAL_CENTER_X - Math.abs(candidate.x - GOAL_CENTER_X);
@@ -392,11 +411,20 @@ function interiorSegmentDistance(p: Vec, a: Vec, b: Vec): number {
 }
 
 /** Nearest available opponent crossing the strict interior of a lane, capped at `openAt`. */
-function laneClearance(state: MatchState, team: 0 | 1, from: Vec, to: Vec, openAt: number, includeGoalkeeper: boolean): number {
+function laneClearance(
+  state: MatchState,
+  team: 0 | 1,
+  from: Vec,
+  to: Vec,
+  openAt: number,
+  includeGoalkeeper: boolean,
+  forDecision = false,
+): number {
   let clearance = openAt;
   for (let i = 0; i < 22; i++) {
     const opponent = state.players[i];
     if (opponent.team === team || !isAvailable(state, i)) continue;
+    if (forDecision && isShadowMarked(state, i)) continue;
     if (!includeGoalkeeper && opponent.def.role === 'GK') continue;
     clearance = Math.min(clearance, interiorSegmentDistance(opponent.pos, from, to));
   }
@@ -418,13 +446,13 @@ function shotCorridorQuality(state: MatchState, by: number, pos: Vec): number {
   const aimXs = [GOAL_CENTER_X - GOAL_W / 2 + 100, GOAL_CENTER_X, GOAL_CENTER_X + GOAL_W / 2 - 100];
   let total = 0;
   for (const x of aimXs) {
-    total += laneClearance(state, shooter.team, pos, { x, y: goalY }, OPEN_SHOT_CLEARANCE, false);
+    total += laneClearance(state, shooter.team, pos, { x, y: goalY }, OPEN_SHOT_CLEARANCE, false, true);
   }
   const openFraction = total / (aimXs.length * OPEN_SHOT_CLEARANCE);
   return 0.2 + openFraction * 0.8; // obstruction discourages; it never pretends physical blocks already exist
 }
 
-function hasFrontalPressure(state: MatchState, by: number, pos: Vec): boolean {
+function hasFrontalPressure(state: MatchState, by: number, pos: Vec, forDecision = false): boolean {
   const shooter = state.players[by];
   const goal = { x: GOAL_CENTER_X, y: goalYFor(shooter.team) };
   const goalDx = goal.x - pos.x;
@@ -432,6 +460,7 @@ function hasFrontalPressure(state: MatchState, by: number, pos: Vec): boolean {
   for (let i = 0; i < 22; i++) {
     const opponent = state.players[i];
     if (opponent.team === shooter.team || !isAvailable(state, i)) continue;
+    if (forDecision && isShadowMarked(state, i)) continue;
     if (dist2(opponent.pos, pos) >= 400 * 400) continue;
     const opponentDx = opponent.pos.x - pos.x;
     const opponentDy = opponent.pos.y - pos.y;
@@ -440,11 +469,27 @@ function hasFrontalPressure(state: MatchState, by: number, pos: Vec): boolean {
   return false;
 }
 
+function shadowFrontalPressure(state: MatchState, by: number, pos: Vec): number {
+  const shooter = state.players[by];
+  const goal = { x: GOAL_CENTER_X, y: goalYFor(shooter.team) };
+  const goalDx = goal.x - pos.x;
+  const goalDy = goal.y - pos.y;
+  for (let i = 0; i < 22; i++) {
+    const opponent = state.players[i];
+    if (opponent.team === shooter.team || !isAvailable(state, i) || !isShadowMarked(state, i)) continue;
+    if (dist2(opponent.pos, pos) >= 400 * 400) continue;
+    const opponentDx = opponent.pos.x - pos.x;
+    const opponentDy = opponent.pos.y - pos.y;
+    if (goalDx * opponentDx + goalDy * opponentDy > 0) return i;
+  }
+  return -1;
+}
+
 /** Aim error shared by decision quality and the actual launch. */
-function shotSpreadAt(state: MatchState, by: number, pos: Vec, distance: number): number {
+function shotSpreadAt(state: MatchState, by: number, pos: Vec, distance: number, forDecision = false): number {
   const sho = effectiveStat(state, by, 'sho');
   const base = 500 + (99 - sho) * 8 + Math.round(distance / 4);
-  return hasFrontalPressure(state, by, pos) ? Math.round(base * 1.25) : base;
+  return hasFrontalPressure(state, by, pos, forDecision) ? Math.round(base * 1.25) : base;
 }
 
 /**
@@ -472,7 +517,7 @@ function shotExpectedValue(state: MatchState, by: number, pos: Vec): number {
   const shooter = state.players[by];
   const goal = { x: GOAL_CENTER_X, y: goalYFor(shooter.team) };
   const distance = dist(pos, goal);
-  const spread = shotSpreadAt(state, by, pos, distance);
+  const spread = shotSpreadAt(state, by, pos, distance, true);
   const onTargetProbability = Math.min(1, (GOAL_W / 2) / spread);
   const power = shotPowerAt(state, by, distance);
   const defendingTeam: 0 | 1 = shooter.team === 0 ? 1 : 0;
@@ -505,15 +550,28 @@ function opponentTurnoverCost(state: MatchState, opponent: number): number {
 }
 
 /** Expected completion and the exact contest input used if this pass launches. */
-function passContestInputs(state: MatchState, from: number, to: number): { probability: number; interceptor: number; interceptStat: number } {
+function passContestInputs(
+  state: MatchState,
+  from: number,
+  to: number,
+  forDecision = false,
+): { probability: number; interceptor: number; interceptStat: number } {
   const passer = state.players[from];
   const receiver = state.players[to];
-  const interceptor = nearestOpponent(state, to);
+  const interceptor = forDecision ? nearestVisibleOpponent(state, to) : nearestOpponent(state, to);
   if (interceptor === -1) return { probability: 1, interceptor, interceptStat: 1 };
 
   const marker = state.players[interceptor];
   const receiverSpace = dist(marker.pos, receiver.pos);
-  const clearance = laneClearance(state, passer.team, passer.pos, receiver.pos, OPEN_LANE_CLEARANCE, true);
+  const clearance = laneClearance(
+    state,
+    passer.team,
+    passer.pos,
+    receiver.pos,
+    OPEN_LANE_CLEARANCE,
+    true,
+    forDecision,
+  );
   // Open receivers and clear lanes reduce the defender's effective interception
   // pressure. This aligns the launch contest with the opportunity model until
   // the approved emergent pass-flight resolver replaces pre-rolled outcomes.
@@ -521,6 +579,7 @@ function passContestInputs(state: MatchState, from: number, to: number): { proba
   const laneRelief = clamp(Math.trunc((clearance - 200) / 80), 0, 8);
   const hidden = isShadowMarked(state, interceptor);
   const interceptStat = Math.max(1, effectiveStat(state, interceptor, 'def')
+    + defenseBonus(state, interceptor)
     - (hidden ? 0 : spaceRelief + laneRelief));
   return {
     probability: contestProbability(effectiveStat(state, from, 'pas'), interceptStat, 10),
@@ -538,7 +597,7 @@ function bestPassOption(state: MatchState, from: number): PassOption | null {
     const distance2 = dist2(mate.pos, passer.pos);
     if (distance2 < 400 * 400 || distance2 > 3500 * 3500) continue;
 
-    const inputs = passContestInputs(state, from, i);
+    const inputs = passContestInputs(state, from, i, true);
     const value = inputs.probability * positionThreat(state, i, mate.pos)
       - (1 - inputs.probability) * opponentTurnoverCost(state, inputs.interceptor);
     if (best === null || value > best.value) {
@@ -553,7 +612,7 @@ function carryExpectedValue(state: MatchState, carrierIdx: number): number {
   const goal = { x: GOAL_CENTER_X, y: goalYFor(carrier.team) };
   const dribbleSpeed = Math.round(speedFor(state, carrierIdx) * CARRIER_SPEED_SCALE);
   const next = moveToward(carrier.pos, goal, dribbleSpeed * DECISION_TICKS);
-  const markerIdx = nearestOpponent(state, carrierIdx);
+  const markerIdx = nearestVisibleOpponent(state, carrierIdx);
   if (markerIdx === -1) return positionThreat(state, carrierIdx, next);
 
   const marker = state.players[markerIdx];
@@ -607,6 +666,24 @@ export function attackingDecision(state: MatchState, carrierIdx: number): Attack
     && goalFacingQuality(carrier.pos, goal.y) >= 0.6
     && corridorQuality >= 0.7;
 
+  if (carrier.powerState.kind === 'winding' && carrier.def.power === 'THUNDER_STRIKE') {
+    return { kind: 'carry', values };
+  }
+  if (carrier.powerState.kind === 'active' && carrier.powerState.commitment === 'THUNDER_SHOT') {
+    return { kind: 'shoot', values };
+  }
+  if (carrier.powerState.kind === 'active' && carrier.powerState.commitment === 'FUTURE_OUTLET'
+    && carrier.powerState.targetIdx !== undefined
+    && isAvailable(state, carrier.powerState.targetIdx)
+    && state.players[carrier.powerState.targetIdx].team === carrier.team) {
+    return { kind: 'pass', to: carrier.powerState.targetIdx, values };
+  }
+  if (carrier.powerState.kind === 'active' && carrier.powerState.commitment === 'BLINK_ACTION') {
+    return dist(carrier.pos, goal) <= 2600
+      ? { kind: 'shoot', values }
+      : { kind: 'carry', values };
+  }
+
   if (obviousShot || speedBreakShot) {
     return { kind: 'shoot', values };
   }
@@ -658,7 +735,20 @@ export function possessionTick(state: MatchState): void {
       // A recipient (or interceptor) knocked out mid-flight can't receive the ball
       // unconscious (the audit's phantom-pass bug) — it goes loose at the arrival
       // point instead, same as a failed pass with no interceptor.
-      if ((b.willSucceed || b.interceptor !== -1) && isAvailable(state, targetIdx)) {
+      const shadowChallenger = b.interceptor !== -1 && isAvailable(state, b.interceptor)
+        && isShadowMarked(state, b.interceptor)
+        ? b.interceptor
+        : -1;
+      if (shadowChallenger !== -1) consumeShadowMark(state, shadowChallenger);
+      if (b.looseOnArrival) {
+        state.ball = {
+          kind: 'loose',
+          pos: { ...b.pos },
+          vel: b.deflectionVel === undefined ? { x: 0, y: 0 } : { ...b.deflectionVel },
+          z: b.z,
+          vz: b.vz,
+        };
+      } else if ((b.willSucceed || b.interceptor !== -1) && isAvailable(state, targetIdx)) {
         state.ball = { kind: 'held', by: targetIdx };
         // Reading and cutting out a pass is a midfielder's decisive act, the way
         // a shot is a forward's. Paying it the same 2 Heat as simply being passed
@@ -677,7 +767,10 @@ export function possessionTick(state: MatchState): void {
   if (b.releaseAfterTick !== undefined) {
     if (state.tick < b.releaseAfterTick) return;
     const option = bestPassOption(state, b.by);
-    if (option !== null) launchPass(state, b.by, option.to, true);
+    if (option !== null) {
+      addGauge(state, b.by, GOALKEEPER_DISTRIBUTION_GAUGE);
+      launchPass(state, b.by, option.to, true);
+    }
     else state.ball = { kind: 'held', by: b.by };
     return;
   }
@@ -686,15 +779,29 @@ export function possessionTick(state: MatchState): void {
   const carrierIdx = b.by;
   const carrier = state.players[carrierIdx];
   const goal = { x: GOAL_CENTER_X, y: goalYFor(carrier.team) };
+  const commitment = carrier.powerState.kind === 'active' ? carrier.powerState.commitment : undefined;
   const decision = attackingDecision(state, carrierIdx);
 
   if (decision.kind === 'shoot') {
     attemptShot(state, carrierIdx, dist(carrier.pos, goal));
+    if (carrier.def.power === 'THUNDER_STRIKE') finishMomentPower(state, carrierIdx);
+    else if (carrier.def.power === 'FUTURE_SIGHT' && commitment === 'FUTURE_OUTLET') {
+      finishMomentPower(state, carrierIdx);
+    }
+    else clearPowerCommitment(state, carrierIdx);
     return;
   }
 
   if (decision.kind === 'pass') {
     launchPass(state, carrierIdx, decision.to, false);
+    if (carrier.def.power === 'FUTURE_SIGHT' && commitment === 'FUTURE_OUTLET') finishMomentPower(state, carrierIdx);
+    else clearPowerCommitment(state, carrierIdx);
+    return;
+  }
+  if (carrier.def.power === 'FUTURE_SIGHT' && commitment === 'FUTURE_OUTLET') {
+    finishMomentPower(state, carrierIdx);
+  } else {
+    clearPowerCommitment(state, carrierIdx);
   }
 }
 
@@ -702,9 +809,14 @@ export function launchPass(state: MatchState, from: number, to: number, lofted: 
   const passer = state.players[from];
   const inputs = passContestInputs(state, from, to);
   const rolledOk = contest(state.rng, effectiveStat(state, from, 'pas'), inputs.interceptStat, 10);
-  const predictedInterceptor = futureSightInterceptor(state, passer.team, to);
-  const ok = predictedInterceptor === -1 ? rolledOk : false;
-  const interceptor = predictedInterceptor === -1 ? inputs.interceptor : predictedInterceptor;
+  const gustHero = gustDisruptsPass(state, passer.team);
+  const gusted = gustHero !== -1;
+  const predictedInterceptor = gusted ? -1 : futureSightInterceptor(state, passer.team, to);
+  const ok = !gusted && predictedInterceptor === -1 ? rolledOk : false;
+  const interceptor = gusted ? -1 : (predictedInterceptor === -1 ? inputs.interceptor : predictedInterceptor);
+  const ordinaryLoose = !ok && !gusted && predictedInterceptor === -1
+    && interceptor !== -1 && state.rng() < FAILED_PASS_LOOSE_CHANCE;
+  const looseOnArrival = gusted || (!ok && (interceptor === -1 || ordinaryLoose));
   const targetIdx = ok ? to : (interceptor !== -1 ? interceptor : to);
   const target = state.players[targetIdx].pos;
   const horizontalDistance = dist(passer.pos, target);
@@ -725,6 +837,22 @@ export function launchPass(state: MatchState, from: number, to: number, lofted: 
     z: 0,
     vz: lofted ? verticalLaunchSpeed(flightTicks, 0) : 0,
     speed,
+    looseOnArrival,
+    deflectionVel: looseOnArrival
+      ? (gusted ? gustRecoveryVelocity(state, gustHero, target)
+        : passDeflectionVelocity(passer.pos, target, from, to, state.tick))
+      : undefined,
+  };
+}
+
+function passDeflectionVelocity(from: Vec, target: Vec, fromIdx: number, toIdx: number, tick: number): Vec {
+  const dx = target.x - from.x;
+  const dy = target.y - from.y;
+  const length = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+  const side = (fromIdx + toIdx + tick) % 2 === 0 ? 1 : -1;
+  return {
+    x: Math.round((-dy / length) * FAILED_PASS_DEFLECTION_SPEED * side),
+    y: Math.round((dx / length) * FAILED_PASS_DEFLECTION_SPEED * side),
   };
 }
 
@@ -806,7 +934,8 @@ function resolveActiveSlide(state: MatchState): boolean {
     };
     const won = contest(
       state.rng,
-      effectiveStat(state, tacklerIdx, 'def') + defenseBonus(state, tacklerIdx),
+      effectiveStat(state, tacklerIdx, 'def')
+        + (slide.shadowDefenseBonus ?? defenseBonus(state, tacklerIdx)),
       effectiveStat(state, slide.targetIdx, 'tec'),
       -dribbleBonus(state, slide.targetIdx),
     );
@@ -835,6 +964,9 @@ function startSlide(state: MatchState, tacklerIdx: number, carrierIdx: number, d
     ? { x: dx / magnitude, y: dy / magnitude }
     : { x: 0, y: carrier.team === 0 ? -1 : 1 };
   const untilTick = state.tick + SLIDE_TACKLE_TICKS;
+  const shadowDefenseBonus = isShadowMarked(state, tacklerIdx)
+    ? defenseBonus(state, tacklerIdx)
+    : undefined;
   tackler.slideTackle = {
     targetIdx: carrierIdx,
     startTick: state.tick,
@@ -846,9 +978,11 @@ function startSlide(state: MatchState, tacklerIdx: number, carrierIdx: number, d
     ),
     previousPos: { ...tackler.pos },
     targetPreviousPos: { ...carrier.pos },
+    ...(shadowDefenseBonus === undefined ? {} : { shadowDefenseBonus }),
   };
   tackler.tackleCooldownUntil = state.tick + SLIDE_TACKLE_COOLDOWN_TICKS;
   drainSlideCondition(tackler, state.tactics[tackler.team].energyUse);
+  if (shadowDefenseBonus !== undefined) consumeShadowMark(state, tacklerIdx);
   addGauge(state, tacklerIdx, TACKLE_ATTEMPT_GAUGE);
   emit(state, { t: state.tick, kind: 'SLIDE_STARTED', by: tacklerIdx, on: carrierIdx, direction: { ...direction }, untilTick });
 }
@@ -856,7 +990,6 @@ function startSlide(state: MatchState, tacklerIdx: number, carrierIdx: number, d
 function standingTackle(state: MatchState, tacklerIdx: number, carrierIdx: number): void {
   const tackler = state.players[tacklerIdx];
   tackler.tackleCooldownUntil = state.tick + 10;
-  addGauge(state, tacklerIdx, TACKLE_ATTEMPT_GAUGE);
   const won = contest(
     state.rng,
     effectiveStat(state, tacklerIdx, 'def') + defenseBonus(state, tacklerIdx),
@@ -864,6 +997,8 @@ function standingTackle(state: MatchState, tacklerIdx: number, carrierIdx: numbe
     -dribbleBonus(state, carrierIdx),
   );
   emit(state, { t: state.tick, kind: 'TACKLE', by: tacklerIdx, on: carrierIdx, won, style: 'standing', contact: true });
+  consumeShadowMark(state, tacklerIdx);
+  addGauge(state, tacklerIdx, TACKLE_ATTEMPT_GAUGE);
   if (won) {
     state.ball = { kind: 'held', by: tacklerIdx };
     addGauge(state, tacklerIdx, TACKLE_WON_GAUGE);
@@ -886,9 +1021,10 @@ export function tackleTick(state: MatchState): void {
     const defender = state.players[i];
     if (defender.team === carrier.team || !isAvailable(state, i)) continue;
     if (state.tick < defender.tackleCooldownUntil || defender.powerState.kind === 'winding') continue;
-    if (fireSuppressed(state, i, carrierIdx)) continue;
     const d2 = dist2(defender.pos, carrier.pos);
+    if (fireSuppressed(state, i, carrierIdx)) continue;
     if (d2 <= STANDING_TACKLE_RANGE * STANDING_TACKLE_RANGE && d2 < standingD2) {
+      if (consumePhaseChallenge(state, carrierIdx)) return;
       standingIdx = i;
       standingD2 = d2;
       continue;
@@ -901,6 +1037,7 @@ export function tackleTick(state: MatchState): void {
       || d2 > launchRange * launchRange
       || d2 >= slideD2
     ) continue;
+    if (consumePhaseChallenge(state, carrierIdx)) return;
     slideIdx = i;
     slideD2 = d2;
     slideDistance = Math.sqrt(d2);
@@ -914,19 +1051,21 @@ export function tackleTick(state: MatchState): void {
 export function shotBonus(state: MatchState, by: number): number {
   const player = state.players[by];
   return player.powerState.kind === 'active' && player.def.power === 'THUNDER_STRIKE'
-    ? Math.round(65 * player.powerState.strength)
+    ? Math.round(70 * player.powerState.strength)
     : 0;
 }
 
 export function attemptShot(state: MatchState, by: number, distToGoal: number): void {
   const shooter = state.players[by];
   const gy = goalYFor(shooter.team);
+  const shadowAmbusher = shadowFrontalPressure(state, by, shooter.pos);
   const spread = shotSpreadAt(state, by, shooter.pos, distToGoal);
   const targetX = Math.round(GOAL_CENTER_X + (state.rng() * 2 - 1) * spread);
   const trajectory = state.rng() < LIFTED_SHOT_CHANCE ? 'lifted' : 'driven';
   // distToGoal / 200 (Task 13 pre-flight Lever A, was / 100): the old penalty made
   // shots too easy to save; halving it targets goals/match ~2-3 and save rate ~70-80%.
   const power = shotPowerAt(state, by, distToGoal);
+  if (shadowAmbusher !== -1) consumeShadowMark(state, shadowAmbusher);
   emit(state, { t: state.tick, kind: 'SHOT', by, power, trajectory });
   addGauge(state, by, SHOT_GAUGE);
   const dir = gy === 0 ? -1 : 1;
@@ -964,12 +1103,14 @@ export function shotFlightTick(state: MatchState): void {
     b.keeperChecked = true;
     if (isAvailable(state, gkIdx)) {
       const resolveScale = keeperResolveScale(state.resolve[defendingTeam]);
+      const powerSaveBonus = keeperSaveBonus(state, gkIdx);
       const saved = contest(
         state.rng,
-        effectiveStat(state, gkIdx, 'ref') * resolveScale + keeperSaveBonus(state, gkIdx),
+        effectiveStat(state, gkIdx, 'ref') * resolveScale + powerSaveBonus,
         b.power,
         SHOT_KEEPER_MOD,
       );
+      consumeKeeperShotCharge(state, gkIdx);
       if (saved) {
         state.resolve[defendingTeam] = Math.max(
           0,
@@ -993,6 +1134,7 @@ export function shotFlightTick(state: MatchState): void {
 
   if (!onTarget) {
     emit(state, { t: state.tick, kind: 'MISS', by: b.by });
+    if (isAvailable(state, gkIdx)) addGauge(state, gkIdx, MISS_GAUGE);
     restartKickoff(state, defendingTeam);
     return;
   }

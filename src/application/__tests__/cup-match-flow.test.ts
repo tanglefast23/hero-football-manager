@@ -22,20 +22,37 @@ describe('National Cup app routing', () => {
     expect(useM1Store.getState().error).toBeNull();
     expect(useM1Store.getState()).toMatchObject({
       screen: 'awakening',
-      career: { week: 5, phase: 'matchday' },
+      career: { week: 6, phase: 'manage' },
     });
 
     useM1Store.getState().continueAfterAwakening();
     expect(useM1Store.getState()).toMatchObject({
+      screen: 'management',
+      career: { week: 6, phase: 'manage' },
+    });
+
+    const awakenedCareer = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: { ...awakenedCareer, week: 10, phase: 'matchday' },
       screen: 'matchday',
-      career: { week: 5, phase: 'matchday' },
+    });
+
+    useM1Store.getState().quickResult();
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'postmatch',
+      career: { week: 10, phase: 'matchday' },
+    });
+    useM1Store.getState().continueAfterMatch();
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'matchday',
+      career: { week: 10, phase: 'matchday' },
     });
 
     useM1Store.getState().quickResult();
     const final = useM1Store.getState();
     expect(final).toMatchObject({
       screen: 'postmatch',
-      career: { week: 6, phase: 'manage' },
+      career: { week: 11, phase: 'manage' },
       postMatch: {
         result: {
           fixtureId: expect.stringContaining('-cup-'),

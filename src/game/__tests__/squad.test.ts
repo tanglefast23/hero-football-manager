@@ -188,12 +188,12 @@ describe('career squad integration', () => {
     expect(planned.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(50);
 
     const trained = advanceWeek(planned);
-    expect(trained.clubs[0].cash).toBe(47850);
+    expect(trained.clubs[0].cash).toBe(46350);
     expect(trained.trainingPoints).toBe(82);
     expect(trained.ledgers[0].lines).toContainEqual({
       kind: 'training',
       label: 'Weekly focus training',
-      amount: -1500,
+      amount: -3000,
     });
     expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(52);
     expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.def).toBe(53);
@@ -218,7 +218,7 @@ describe('career squad integration', () => {
     expect(completed.facilities.trainingGroundBuilt).toBe(true);
 
     const activeWeek = advanceWeek(completed);
-    expect(activeWeek.trainingPoints).toBe(105);
+    expect(activeWeek.trainingPoints).toBe(110);
   });
 
   it('skips an unaffordable repeating focus plan without blocking weekly settlement', () => {

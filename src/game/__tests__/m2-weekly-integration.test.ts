@@ -55,20 +55,20 @@ function settleScheduledWeek(state: GameState): GameState {
 describe('M2 weekly sidecars', () => {
   test('advances exactly one National Cup round on each cup calendar week', () => {
     const initial = fullCareer(501);
-    const weekFive = { ...initial, week: 5, phase: 'matchday' as const };
-    const results = fixturesForCurrentWeek(weekFive).map(fixture => ({
+    const weekTen = { ...initial, week: 10, phase: 'matchday' as const };
+    const results = fixturesForCurrentWeek(weekTen).map(fixture => ({
       fixtureId: fixture.id,
       homeGoals: 1,
       awayGoals: 1,
     }));
 
-    const settled = completeLeagueAndCupWeek(weekFive, results);
+    const settled = completeLeagueAndCupWeek(weekTen, results);
     const cup = settled.m2?.nationalCups[0];
 
     expect(cup?.rounds).toHaveLength(2);
     expect(cup?.rounds[0].fixtures.every(fixture => fixture.status === 'played')).toBe(true);
     expect(cup?.rounds[1].fixtures.every(fixture => fixture.status === 'scheduled')).toBe(true);
-    expect(JSON.stringify(settled)).toBe(JSON.stringify(completeLeagueAndCupWeek(weekFive, results)));
+    expect(JSON.stringify(settled)).toBe(JSON.stringify(completeLeagueAndCupWeek(weekTen, results)));
   });
 
   test('resolves the scouting clock through normal week advancement', () => {
@@ -91,7 +91,7 @@ describe('M2 weekly sidecars', () => {
 
   test('itemizes the employed coaching staff wage', () => {
     const initial = fullCareer(503);
-    const officeProject = buildCareerFacility(initial, 'coaching-office', { x: 0, y: 0 }).state;
+    const officeProject = buildCareerFacility(initial, 'coaching-office', { x: 2, y: 0 }).state;
     const withOffice: GameState = {
       ...officeProject,
       facilities: {
@@ -268,8 +268,8 @@ describe('M2 weekly sidecars', () => {
 
     const settled = completeLeagueAndCupWeek(state, results);
 
-    expect(settled.players.find(player => player.id === starterId)?.morale).toBe(60);
-    expect(settled.players.find(player => player.id === benchId)?.morale).toBe(54);
+    expect(settled.players.find(player => player.id === starterId)?.morale).toBe(55);
+    expect(settled.players.find(player => player.id === benchId)?.morale).toBe(52);
   });
 
   test('auto-benches an overtrained starter before a consecutive match week', () => {

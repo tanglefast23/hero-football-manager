@@ -298,7 +298,7 @@ describe('M1 app store integration', () => {
 
     expect(useM1Store.getState().selectedDrillIds).toEqual(['sprints', 'rondo']);
     expect(useM1Store.getState().error).toBe(
-      'Duels would make this plan cost 36 TP, but you only have 30 TP. Choose a cheaper drill.',
+      'Duels I would make this plan cost 36 TP, but you only have 30 TP. Choose a cheaper drill.',
     );
 
     useM1Store.getState().toggleDrill('rondo');

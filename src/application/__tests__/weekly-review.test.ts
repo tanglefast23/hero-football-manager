@@ -3,6 +3,7 @@ import {
   advanceWeek,
   applyCareerTraining,
   createCareer,
+  playerAttributeCaps,
   type GameState,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
@@ -102,6 +103,65 @@ describe('weekly review view model', () => {
       detail: `OUT · 4 WEEKS. ${replacement.name} has moved into the Starting XI.`,
       tone: 'warning',
     });
+  });
+
+  it('names a fully capped drill instead of reporting a funding failure', () => {
+    const content = loadLaunchContent();
+    const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
+    const initial = createCareer(createLaunchCareerSetup(6790, undefined, content, 'full'));
+    const player = initial.players.find(candidate => candidate.clubId === initial.userClubId)!;
+    const cap = playerAttributeCaps(player).pac;
+    const headCoach = { ...initial.market!.coachCandidates[0], level: 3 };
+    const capped: GameState = {
+      ...initial,
+      trainingPoints: 0,
+      facilities: { trainingGroundBuilt: true },
+      market: { ...initial.market!, headCoach },
+      players: initial.players.map(candidate => candidate.id === player.id
+        ? { ...candidate, attrs: { ...candidate.attrs, pac: cap } }
+        : candidate),
+    };
+    const before = applyCareerTraining(capped, [player.id], [sprint]);
+    const after = advanceWeek(before);
+    const review = weeklyReviewViewModel(before, after);
+
+    expect(after.trainingPoints).toBe(26);
+    expect(review.development).toMatchObject({
+      focusedTrainees: [],
+      trainingSkippedWarning: `${player.name} skipped Sprints I — already at their PAC maximum of ${cap}.`,
+    });
+    expect(after.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
+  });
+
+  it('uses the real facility and coach TP when explaining an unfunded plan', () => {
+    const content = loadLaunchContent();
+    const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
+    const initial = createCareer(createLaunchCareerSetup(6791, undefined, content, 'full'));
+    const player = initial.players.find(candidate => (
+      candidate.clubId === initial.userClubId
+      && playerAttributeCaps(candidate).pac > candidate.attrs.pac
+    ))!;
+    const headCoach = { ...initial.market!.coachCandidates[0], level: 3 };
+    const before: GameState = {
+      ...initial,
+      trainingPoints: 0,
+      facilities: { trainingGroundBuilt: true },
+      market: { ...initial.market!, headCoach },
+      trainingPlan: {
+        assignedPlayerIds: [player.id],
+        drills: [{
+          id: sprint.id,
+          moneyCost: sprint.moneyCost,
+          tpCost: sprint.tpCost,
+          gains: { ...sprint.gains },
+        }],
+      },
+    };
+    const after = advanceWeek(before);
+
+    expect(after.trainingPoints).toBe(26);
+    expect(weeklyReviewViewModel(before, after).development.trainingSkippedWarning)
+      .toBe('Focused training skipped — not enough TP.');
   });
 });
 

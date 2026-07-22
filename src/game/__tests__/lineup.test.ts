@@ -16,6 +16,7 @@ function squadPlayer(
   role: Role,
   options: {
     power?: PowerId;
+    powerTier?: 1 | 2 | 3;
     licensed?: boolean;
     attrs?: Attrs;
     morale?: number;
@@ -27,6 +28,7 @@ function squadPlayer(
     role,
     attrs: options.attrs ?? { ...BASE_ATTRS },
     power: options.power,
+    powerTier: options.powerTier,
     licensed: options.licensed ?? false,
     morale: options.morale ?? 50,
     weeklyWage: 200,
@@ -82,6 +84,29 @@ describe('buildTeamDef', () => {
     expect(team.players[9].power).toBe('SUPER_SPEED');
     expect(team.players[10].power).toBe('FIRE_TORCH');
     expect(team.bench?.map(player => player.id)).toEqual(['bench-regular']);
+  });
+
+  it('carries a licensed hero tier into the deterministic match definition', () => {
+    const roster = validRoster().map(player => (
+      player.id === 'fwd-speed' ? { ...player, powerTier: 3 as const } : player
+    ));
+
+    const team = buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS);
+
+    expect(team.players[9]).toMatchObject({ power: 'SUPER_SPEED', powerTier: 3 });
+    expect(team.players[10]).toMatchObject({ power: 'FIRE_TORCH', powerTier: 1 });
+  });
+
+  it('rejects an invalid power tier before a squad reaches the match engine', () => {
+    const roster = validRoster().map(player => (
+      player.id === 'fwd-speed' ? { ...player, powerTier: 4 as 3 } : player
+    ));
+
+    expect(() => buildTeamDef(
+      { id: 'rovers', name: 'Hero Rovers' },
+      roster,
+      STARTING_IDS,
+    )).toThrow(/power tier must be an integer from 1 to 3/);
   });
 
   it('requires an owned hero to be licensed or benched', () => {

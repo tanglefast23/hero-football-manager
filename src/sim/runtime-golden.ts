@@ -4,10 +4,11 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
-// Rebaselined for m1.12 (Hero License card exemption). Removing the two card
-// rolls also removed their rng() draws, so the sequence diverges from the first
-// power activation onward — an intended replay break, not drift.
-const EXPECTED_RUNTIME_GOLDEN = '8f633963';
+// Rebaselined deliberately for m1.17: hero powers now cash out as authored
+// one-moment actions (committed shots/outlets, recoverable spills, attack-scoped
+// keeper charges, and persistent visible movement). This is intended replay
+// change, not quiet drift.
+const EXPECTED_RUNTIME_GOLDEN = 'd359b3ea';
 
 export function runtimeGoldenFingerprint(): string {
   const result = runMatch(42, ROVERS, UNITED, [], {

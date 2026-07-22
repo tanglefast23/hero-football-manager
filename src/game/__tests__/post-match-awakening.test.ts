@@ -192,6 +192,46 @@ describe('automatic post-match awakenings', () => {
     expect(result.state.players.find(player => player.id === goalkeeperId)?.power)
       .toBe('ELASTIC_KEEPER');
   });
+
+  it('keeps Rally Cry out of a solo awakening until another hero exists', () => {
+    const initial = playedUserFixture(createCareer(createLaunchCareerSetup(73)));
+    const playerId = userLineup(initial)[9];
+    const firstState: GameState = {
+      ...initial,
+      onboarding: {
+        stage: 'first-match',
+        createdPlayerId: playerId,
+        firstFixtureId: userFixture(initial).id,
+      },
+    };
+    const first = resolvePostMatchAwakening(
+      firstState,
+      userFixture(firstState).id,
+      userLineup(firstState),
+      ['RALLY_CRY', 'SUPER_SPEED'],
+      TRIGGERS,
+      TUNING,
+    );
+    expect(first.state.awakening.pending?.power).toBe('SUPER_SPEED');
+
+    const secondTarget = userLineup(initial)[10];
+    const withTeammate: GameState = {
+      ...initial,
+      players: initial.players.map(player => player.id === playerId
+        ? { ...player, power: 'SUPER_SPEED' as const, powerTier: 1 as const, licensed: true }
+        : player),
+      awakening: { matchesSinceLastAwakening: 3, usedTriggerIds: [] },
+    };
+    const second = resolvePostMatchAwakening(
+      withTeammate,
+      userFixture(withTeammate).id,
+      [secondTarget],
+      ['RALLY_CRY'],
+      TRIGGERS,
+      { chancePercent: 100, minimumMatchesBetween: 3 },
+    );
+    expect(second.state.awakening.pending?.power).toBe('RALLY_CRY');
+  });
 });
 
 function userFixture(state: GameState) {

@@ -1,6 +1,6 @@
 import { developmentPotentialCeiling, potentialTierForDivision } from './archetype-caps';
 import { assignDistinctPlayerLooks, nextDistinctPlayerLook } from './player-appearance';
-import { generateSeasonFixtures } from './schedule';
+import { generateSeasonFixtures, pinOpeningLeagueOpponents } from './schedule';
 import { createCareerMarketState, refreshCareerMarketForNewSeason } from './market-career';
 import {
   applyM2PromotionAndRelegation,
@@ -14,7 +14,13 @@ import {
   startM2NationalCup,
   synchronizeM2ActiveDivision,
 } from './m2-career';
-import { isClubLegend, type DivisionLevel, type PyramidClub, type PyramidPlayer } from './pyramid';
+import {
+  isClubLegend,
+  tuneSquadToStrength,
+  type DivisionLevel,
+  type PyramidClub,
+  type PyramidPlayer,
+} from './pyramid';
 import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { highestDivisionReached, recordHighestDivisionReached } from './promotion-progression';
@@ -44,30 +50,45 @@ export function enableFullCareer(state: GameState): GameState {
       : reconciled;
     return reconcileStoryYouthIntake(withIntake);
   }
-  const userClub = state.clubs.find(club => club.id === state.userClubId);
-  if (userClub === undefined) throw new Error(`unknown user club ${state.userClubId}`);
-  const userPlayers = state.players.filter(player => player.clubId === state.userClubId);
-  if (state.clubs.length !== 10 || userPlayers.length < 11) {
+  const balancedState = state.season === 1
+    && state.week === 1
+    && state.phase === 'manage'
+    // Only the authored launch division is deliberately retuned. Generic
+    // CareerSetup fixtures keep the ratings their caller supplied.
+    && state.userClubId === 'bramble-rovers'
+    && state.ledgers.length === 0
+    && (state.cashTransactions?.length ?? 0) === 0
+    && state.trainingPlan === undefined
+    && !state.facilities.trainingGroundBuilt
+    && (state.facilities.grid?.buildings.length ?? 0) === 0
+    && state.facilities.grid?.construction === undefined
+    && state.fixtures.every(fixture => fixture.status === 'scheduled')
+    ? balanceOpeningDivision(state)
+    : state;
+  const userClub = balancedState.clubs.find(club => club.id === balancedState.userClubId);
+  if (userClub === undefined) throw new Error(`unknown user club ${balancedState.userClubId}`);
+  const userPlayers = balancedState.players.filter(player => player.clubId === balancedState.userClubId);
+  if (balancedState.clubs.length !== 10 || userPlayers.length < 11) {
     throw new Error('the full career requires one complete ten-club active division');
   }
   let m2 = initializeM2Career({
-    careerSeed: state.careerSeed,
+    careerSeed: balancedState.careerSeed,
     userClub: {
       id: userClub.id,
       name: userClub.name,
       squadStrength: careerSquadStrength(userPlayers),
     },
   });
-  m2 = synchronizeM2ActiveDivision(m2, state, 5);
-  m2 = startM2NationalCup(m2, state.season);
+  m2 = synchronizeM2ActiveDivision(m2, balancedState, 5);
+  m2 = startM2NationalCup(m2, balancedState.season);
   const fullState: GameState = {
-    ...state,
-    phase: state.phase === 'complete' ? 'season-end' : state.phase,
+    ...balancedState,
+    phase: balancedState.phase === 'complete' ? 'season-end' : balancedState.phase,
     careerMode: 'full',
     m2,
-    retiredPlayers: state.retiredPlayers ?? [],
-    pendingLegacyPlayerIds: state.pendingLegacyPlayerIds ?? [],
-    cashTransactions: state.cashTransactions ?? [],
+    retiredPlayers: balancedState.retiredPlayers ?? [],
+    pendingLegacyPlayerIds: balancedState.pendingLegacyPlayerIds ?? [],
+    cashTransactions: balancedState.cashTransactions ?? [],
     financialSafety: state.financialSafety ?? {
       consecutiveNegativeWeeks: 0,
       emergencyLoanUsed: false,
@@ -131,7 +152,16 @@ export function startNextFullCareerSeason(
   const clubs = [userClub, ...generated.clubs];
   const players = assignDistinctPlayerLooks([...activeUserPlayers, ...generated.players]);
   const lineups = [userLineup, ...generated.lineups];
-  const fixtures = generateSeasonFixtures(clubs.map(club => club.id), season, state.careerSeed);
+  const strengthByClubId = new Map<string, number>([
+    [state.userClubId, clubSquadStrength(activeUserPlayers)],
+    ...transition.generatedOpponentClubs.map(club => [club.id, club.squadStrength] as const),
+  ]);
+  const scheduleClubIds = pinOpeningLeagueOpponents(
+    clubs.map(club => club.id),
+    state.userClubId,
+    strengthByClubId,
+  );
+  const fixtures = generateSeasonFixtures(scheduleClubIds, season, state.careerSeed);
   let nextM2 = synchronizeM2ActiveDivision(m2, { clubs, players }, transition.division);
   nextM2 = startM2NationalCup(nextM2, season);
   const retiredPlayers = [...(state.retiredPlayers ?? []), ...lifecycle.retiredPlayers];
@@ -179,6 +209,48 @@ export function startNextFullCareerSeason(
     ...withMarket,
     youthIntake: initializeSeasonYouthIntake(withMarket),
   });
+}
+
+function balanceOpeningDivision(state: GameState): GameState {
+  const currentStrengths = new Map(state.clubs.map(club => {
+    const squad = state.players.filter(player => player.clubId === club.id);
+    if (squad.length < 11) throw new Error(`club ${club.id} needs at least eleven players`);
+    return [club.id, clubSquadStrength(squad)] as const;
+  }));
+  const opponentsWeakestFirst = state.clubs
+    .filter(club => club.id !== state.userClubId)
+    .sort((left, right) => (
+      currentStrengths.get(left.id)! - currentStrengths.get(right.id)!
+      || left.id.localeCompare(right.id)
+    ));
+  const targetStrengthByClubId = new Map<string, number>([[state.userClubId, 40]]);
+  opponentsWeakestFirst.forEach((club, index) => {
+    targetStrengthByClubId.set(club.id, 42 + index);
+  });
+
+  const players = state.clubs.flatMap(club => {
+    const squad = state.players.filter(player => player.clubId === club.id);
+    const targetStrength = targetStrengthByClubId.get(club.id);
+    if (targetStrength === undefined) throw new Error(`missing opening strength for ${club.id}`);
+    return tuneSquadToStrength(squad, targetStrength).map(player => ({
+      ...player,
+      signingStatTotal: Object.values(player.attrs).reduce((sum, value) => sum + value, 0),
+    }));
+  });
+  const balancedStrengths = new Map(state.clubs.map(club => [
+    club.id,
+    clubSquadStrength(players.filter(player => player.clubId === club.id)),
+  ] as const));
+  const scheduleClubIds = pinOpeningLeagueOpponents(
+    state.clubs.map(club => club.id),
+    state.userClubId,
+    balancedStrengths,
+  );
+  return {
+    ...state,
+    players,
+    fixtures: generateSeasonFixtures(scheduleClubIds, state.season, state.careerSeed),
+  };
 }
 
 function generatedActiveDivision(

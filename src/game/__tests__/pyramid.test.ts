@@ -5,6 +5,7 @@ import {
   boostLegacyYouthAttributes,
   createLegendLegacy,
   createNationalCup,
+  DIVISION_STRENGTH_BANDS,
   generateLeaguePyramid,
   divisionTierLabel,
   isClubLegend,
@@ -65,8 +66,8 @@ describe('five-division pyramid generation', () => {
     ]);
     const globalLeagueStrengths = generateLeaguePyramid(88_421).divisions[0].clubs
       .map(club => club.squadStrength);
-    expect(Math.min(...globalLeagueStrengths)).toBeGreaterThanOrEqual(84);
-    expect(Math.max(...globalLeagueStrengths)).toBeLessThanOrEqual(94);
+    expect(Math.min(...globalLeagueStrengths)).toBe(80);
+    expect(Math.max(...globalLeagueStrengths)).toBe(90);
   });
 
   it('generates 50 persistent clubs and correctly shaped 16-player squads deterministically', () => {
@@ -100,6 +101,17 @@ describe('five-division pyramid generation', () => {
       expect(averages[2]).toBeGreaterThan(averages[3]);
       expect(averages[3]).toBeGreaterThan(averages[4]);
       expect(averages[0] - averages[4]).toBeGreaterThanOrEqual(25);
+    }
+  });
+
+  it('fills the five contiguous ten-point strength bands from D5 40-50 through D1 80-90', () => {
+    const pyramid = generateLeaguePyramid(20260722);
+    for (const division of pyramid.divisions) {
+      const strengths = division.clubs.map(club => club.squadStrength);
+      const [minimum, maximum] = DIVISION_STRENGTH_BANDS[division.level];
+      expect(Math.min(...strengths)).toBe(minimum);
+      expect(Math.max(...strengths)).toBe(maximum);
+      expect(strengths.every(strength => strength >= minimum && strength <= maximum)).toBe(true);
     }
   });
 });

@@ -21,7 +21,9 @@ export type PowerId =
   | 'ICE_RINK'
   | 'SHADOW_MARK'
   | 'GRAVITY_WELL'
-  | 'GIANT_GK';
+  | 'GIANT_GK'
+  // m1.14 pass-disruption power.
+  | 'GUST';
 export type Role = 'GK' | 'DEF' | 'MID' | 'FWD';
 export type FirePolicy = 'SAVE_FOR_TAP' | 'FIRE_WHEN_READY';
 
@@ -30,7 +32,7 @@ export interface Attrs {
 }
 
 export interface PlayerDef {
-  id: string; name: string; role: Role; attrs: Attrs; power?: PowerId; lookId?: string;
+  id: string; name: string; role: Role; attrs: Attrs; power?: PowerId; powerTier?: 1 | 2 | 3; lookId?: string;
 }
 
 export interface TeamDef {
@@ -46,8 +48,17 @@ export interface TeamDef {
 export type PowerState =
   | { kind: 'idle' }
   | { kind: 'zone'; remainingTicks: number }
+  | { kind: 'armed'; remainingTicks: number }
   | { kind: 'winding'; untilTick: number; strength: number; targetIdx?: number }
-  | { kind: 'active'; untilTick: number; strength: number };
+  | {
+    kind: 'active';
+    untilTick: number;
+    strength: number;
+    /** Locked one-moment target, such as Decoy's marker or Future Sight's outlet. */
+    targetIdx?: number;
+    /** Ensures a power's authored next action happens once instead of smearing across its duration. */
+    commitment?: 'THUNDER_SHOT' | 'BLINK_ACTION' | 'FUTURE_OUTLET';
+  };
 
 export type OutReason = 'ko' | 'ignited' | 'redcard';
 
@@ -64,6 +75,8 @@ export interface SlideTackleState {
   remainingDistance: number;
   previousPos: Vec;
   targetPreviousPos: Vec;
+  /** Shadow Mark is spent at slide launch; this preserves its contest bonus. */
+  shadowDefenseBonus?: number;
 }
 
 export interface SimPlayer {
@@ -97,6 +110,10 @@ export type BallState =
     z: number;
     vz: number;
     speed: number;
+    /** A disrupted pass becomes nobody's ball at its flight target. */
+    looseOnArrival?: boolean;
+    /** Deterministic roll-away applied when a disrupted pass lands loose. */
+    deflectionVel?: Vec;
   }
   | {
     kind: 'shot';
