@@ -67,6 +67,8 @@ export interface SlideTackleState {
   remainingDistance: number;
   previousPos: Vec;
   targetPreviousPos: Vec;
+  /** Shadow Mark is spent at slide launch; this preserves its contest bonus. */
+  shadowDefenseBonus?: number;
 }
 
 export interface SimPlayer {

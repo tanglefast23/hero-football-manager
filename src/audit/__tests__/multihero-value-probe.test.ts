@@ -40,6 +40,7 @@ const REPRESENTATIVE_HEROES: readonly RepresentativeHero[] = [
   { slot: 2, power: 'FUTURE_SIGHT' },
   { slot: 0, power: 'GIANT_GK' },
 ];
+const RALLY_HERO: RepresentativeHero = { slot: 6, power: 'RALLY_CRY' };
 
 interface LadderRow {
   readonly delta: number;
@@ -69,6 +70,7 @@ describe('multihero marginal value', () => {
     for (const hero of REPRESENTATIVE_HEROES) {
       expect(powerIsCompatibleWithRole(hero.power, user.players[hero.slot].role)).toBe(true);
     }
+    expect(powerIsCompatibleWithRole(RALLY_HERO.power, user.players[RALLY_HERO.slot].role)).toBe(true);
   });
 
   it('calculates each added hero relative to its own solo value', () => {
@@ -119,6 +121,15 @@ describe('multihero marginal value', () => {
       const ppm = pointsPerMatch(withHeroes(user, REPRESENTATIVE_HEROES.slice(0, index + 1)), evenOpponent);
       return { ppm, worth: estimateWorth(fittedLadder, ppm, evenDelta) };
     });
+    // Rally Cry is deliberately unavailable as a club's first or only power.
+    // Price it in its valid weakest case: Tier 1 contextual auto beside the
+    // first Super Speed hero, then subtract that hero's measured prefix worth.
+    const rallyPairPpm = pointsPerMatch(
+      withHeroes(user, [REPRESENTATIVE_HEROES[0], RALLY_HERO]),
+      evenOpponent,
+    );
+    const rallyPairWorth = estimateWorth(fittedLadder, rallyPairPpm, evenDelta);
+    const rallyMarginalWorth = rallyPairWorth.value - prefixSamples[0].worth.value;
     const summaries = summarizeWorths(
       soloSamples.map(sample => sample.worth.value),
       prefixSamples.map(sample => sample.worth.value),
@@ -167,12 +178,17 @@ describe('multihero marginal value', () => {
       '',
       'Efficiency = added marginal worth / that same hero\'s solo worth; 100% means no stacking loss.',
       'Bound markers mean the result reached the edge of the calibrated ladder.',
+      '',
+      '=== RALLY CRY VALID-CONTEXT VALUE ===',
+      `SUPER_SPEED + RALLY_CRY prefix: ${rallyPairPpm.toFixed(3)} / ${formatEstimate(rallyPairWorth)}`,
+      `RALLY_CRY marginal beside first hero: ${formatSigned(rallyMarginalWorth)}`,
     );
 
     // eslint-disable-next-line no-console
     console.log(lines.join('\n'));
     expect(soloSamples).toHaveLength(4);
     expect(prefixSamples).toHaveLength(4);
+    expect(Number.isFinite(rallyMarginalWorth)).toBe(true);
   }, 7_200_000);
 });
 

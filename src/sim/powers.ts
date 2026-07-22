@@ -697,6 +697,16 @@ export function isShadowMarked(state: MatchState, idx: number): boolean {
   return isActive(state, idx) && state.players[idx].def.power === 'SHADOW_MARK';
 }
 
+/** Shadow Mark's authored contract is one ambush, not a timed stat smear. */
+export function consumeShadowMark(state: MatchState, idx: number): boolean {
+  if (!isShadowMarked(state, idx)) return false;
+  const player = state.players[idx];
+  player.powerState = { kind: 'idle' };
+  player.powerAnchor = undefined;
+  player.gauge = 0;
+  return true;
+}
+
 export function dribbleBonus(state: MatchState, carrierIdx: number): number {
   const player = state.players[carrierIdx];
   // Super Speed visibly spools up during its interruptible wind-up. The bonus is

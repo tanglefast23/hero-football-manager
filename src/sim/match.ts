@@ -8,9 +8,9 @@ import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.15 banks Heat until a power has a usable situation, calibrates each
-// visible power family, and makes well-placed manual timing materially stronger.
-export const ENGINE_VERSION = 'm1.15';
+// m1.16 makes Shadow Mark genuinely invisible to pass choice, then consumes
+// the cloak on its first challenge as the authored one-ambush contract says.
+export const ENGINE_VERSION = 'm1.16';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
