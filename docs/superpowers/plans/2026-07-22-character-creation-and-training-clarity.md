@@ -988,6 +988,112 @@ git commit -m "feat: explain the founding training pitch in Bert's intro"
 
 ---
 
+### Task 9: Stepper consistency pass
+
+Added after Task 1's code review. Task 1 replaced one row-sized tap target with two buttons, which was correct, but it left the screen with two different stepper conventions and six near-duplicate closures. Resolve all three review findings **consistently across every stepper on the screen**, not just the paper-doll rows.
+
+**Must run after Task 3**, which rewrites the same three call sites.
+
+**Files:**
+- Modify: `src/ui/screens/CharacterCreationScreen.tsx`
+- Test: `src/ui/__tests__/character-creation-copy.test.ts`
+
+- [ ] **Step 1: Collapse the duplicated closures**
+
+The three paper-doll rows currently pass six near-identical inline closures of the shape
+`setAppearance(current => ({ ...current, key: stepChoice(current.key, delta, count) as Cast }))`.
+The file already solves this exact "same shape, different field" problem for the six numeric stats with a single `adjust(stat, delta)` function at `:58`. Add the matching helper inside `CharacterCreationScreen`, above `adjust`:
+
+```tsx
+  function cycleAppearance(
+    key: keyof CreatedPlayerAppearance,
+    delta: -1 | 1,
+    count: number,
+  ): void {
+    setAppearance(current => ({
+      ...current,
+      [key]: stepChoice(current[key], delta, count),
+    }) as CreatedPlayerAppearance);
+  }
+```
+
+Then reduce each call site to, for example:
+
+```tsx
+              <AppearanceChoice
+                label="Skin tone"
+                value={`${appearance.skinTone + 1} / 6`}
+                onPrevious={() => cycleAppearance('skinTone', -1, 6)}
+                onNext={() => cycleAppearance('skinTone', 1, 6)}
+              />
+```
+
+Use counts 6 (skin tone), **10** (hair — Task 3 has landed by now), 4 (kit accent).
+
+- [ ] **Step 2: Put the current value back into the accessible name**
+
+Task 1 traded a combined announcement ("Skin tone, 3 / 6. Tap for next.") for two bare labels ("Previous Skin tone"). A screen-reader user swiping directly onto a button no longer hears where they are. In `AppearanceChoice`, change the two labels to include the value:
+
+```tsx
+        accessibilityLabel={`Previous ${label}, currently ${value}`}
+```
+
+```tsx
+        accessibilityLabel={`Next ${label}, currently ${value}`}
+```
+
+Apply the same treatment to the six numeric stat steppers at `:191-221`, whose labels are currently `Decrease ${copy.label}` / `Increase ${copy.label}` with no value:
+
+```tsx
+                  accessibilityLabel={`Decrease ${copy.label}, currently ${value}`}
+```
+
+```tsx
+                  accessibilityLabel={`Increase ${copy.label}, currently ${value}`}
+```
+
+- [ ] **Step 3: Write the test**
+
+Append to `src/ui/__tests__/character-creation-copy.test.ts`:
+
+```ts
+  it('announces the current value on every stepper button', () => {
+    expect(source).toContain('currently ${value}');
+    expect(source).toContain('currently ${value}');
+    // no stepper may announce itself without its value
+    expect(source).not.toMatch(/accessibilityLabel=\{`(Previous|Next) \$\{label\}`\}/);
+    expect(source).not.toMatch(/accessibilityLabel=\{`(Decrease|Increase) \$\{copy\.label\}`\}/);
+  });
+
+  it('cycles appearance through one shared helper', () => {
+    expect(source).toContain('function cycleAppearance');
+    expect(source.match(/cycleAppearance\('/g)?.length).toBe(6);
+    // the duplicated inline spread closures are gone
+    expect(source).not.toContain('setAppearance(current => ({ ...current, skinTone:');
+  });
+```
+
+- [ ] **Step 4: Run the tests**
+
+Run: `npx jest src/ui/__tests__/character-creation-copy.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Decide the tap target deliberately**
+
+The third finding was that the row shrank from one large target to two 44pt buttons. Both buttons meet the 44-point minimum and this now matches the numeric steppers exactly, so **no change is required** — but confirm by eye on device that the rows do not feel fiddly. If they do, widen the buttons rather than restoring a whole-row `Pressable`, which would re-introduce an ambiguous tap zone between two directional controls.
+
+- [ ] **Step 6: Run the full suite and commit**
+
+Run: `npm test`
+Expected: PASS, except the known pre-existing README engine-marker failure.
+
+```bash
+git add src/ui/screens/CharacterCreationScreen.tsx src/ui/__tests__/character-creation-copy.test.ts
+git commit -m "refactor: one appearance cycler and value-bearing stepper labels"
+```
+
+---
+
 ## Final verification
 
 - [ ] **Run the full suite**
