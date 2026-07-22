@@ -82,6 +82,14 @@ export function dueAssistantInboxGuideSequences(
     due.push('assistant-coach-hire');
   }
 
+  if (
+    isStoryYouthUnlocked(state)
+    && state.youthIntake?.status === 'OPEN'
+    && state.youthIntake.offers.length > 0
+  ) {
+    due.push('youth-intake');
+  }
+
   const playerBuilt = buildings.filter(building => building.seeded !== true);
   if (playerBuilt.length === 0) {
     due.push('facility-placement');
@@ -115,13 +123,6 @@ export function dueAssistantInboxGuideSequences(
     due.push(isStoryFeaturePacingActive(state) ? 'roster-cap' : 'transfer-list');
   }
 
-  if (
-    isStoryYouthUnlocked(state)
-    && state.youthIntake?.status === 'OPEN'
-    && state.youthIntake.offers.length > 0
-  ) {
-    due.push('youth-intake');
-  }
   if (state.m2.nationalCups.length > 0 && isStoryCupGuideUnlocked(state)) {
     due.push('national-cup');
   }

@@ -13,6 +13,9 @@ import {
   startNextSeason,
   type GameState,
 } from '../../game';
+import { DEFAULT_CREATION_RATINGS } from '../../game/onboarding/player-creation';
+import { addCreatedPlayer, beginStoryOnboarding } from '../../game/onboarding/story-onboarding';
+import { reconcileStoryYouthIntake } from '../../game/youth-intake';
 import { createLaunchCareerSetup } from '../launch';
 import {
   homeViewModel,
@@ -327,12 +330,44 @@ describe('management injury and lineup presentation', () => {
 
     expect(inbox).toHaveLength(3);
     // The founding pitch is seeded, not player-built, so facility-placement is
-    // still due and takes a slot ahead of scout-mission/youth-intake.
+    // still due. youth-intake ranks ahead of it (its window has a hard
+    // deadline; facility-placement never expires), which pushes
+    // scout-mission out of this week's three slots.
     expect(inbox.map(alert => alert.guideSequenceId)).toEqual([
       'head-coach-market',
+      'youth-intake',
       'facility-placement',
-      'scout-mission',
     ]);
+  });
+
+  it('keeps the once-per-career youth intake in the capped inbox at Week 3 and Week 4', () => {
+    // facility-placement has no deadline; youth-intake's window closes for
+    // good after Week 4. When an urgent product (here, an injury) fills the
+    // fourth slot the same week both are due, youth-intake must survive the
+    // cut and facility-placement — not youth-intake — must be the one deferred.
+    const begun = beginStoryOnboarding(createCareer(createLaunchCareerSetup(20260718, undefined, content, 'full')));
+    let story = addCreatedPlayer(begun, { name: 'Jo Rook', ratings: DEFAULT_CREATION_RATINGS });
+    const injuredId = story.players.find(player => player.clubId === story.userClubId)!.id;
+    story = {
+      ...story,
+      players: story.players.map(player => player.id === injuredId
+        ? { ...player, injuryWeeks: 2 }
+        : player),
+    };
+
+    const weekThree = reconcileStoryYouthIntake({ ...story, week: 3 });
+    expect(weekThree.youthIntake).toMatchObject({ status: 'OPEN' });
+    const weekThreeAlerts = homeViewModel(weekThree).alerts;
+    expect(weekThreeAlerts).toHaveLength(3);
+    expect(weekThreeAlerts.map(alert => alert.guideSequenceId)).toContain('youth-intake');
+    expect(weekThreeAlerts.map(alert => alert.guideSequenceId)).not.toContain('facility-placement');
+
+    const weekFour = reconcileStoryYouthIntake({ ...weekThree, week: 4 });
+    expect(weekFour.youthIntake).toMatchObject({ status: 'OPEN' });
+    const weekFourAlerts = homeViewModel(weekFour).alerts;
+    expect(weekFourAlerts).toHaveLength(3);
+    expect(weekFourAlerts.map(alert => alert.guideSequenceId)).toContain('youth-intake');
+    expect(weekFourAlerts.map(alert => alert.guideSequenceId)).not.toContain('facility-placement');
   });
 
   it('delivers a crowded one-shot board resolution in the following week', () => {
