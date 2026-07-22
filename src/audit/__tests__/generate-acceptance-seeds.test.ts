@@ -173,7 +173,7 @@ function buildScenarios(): Scenario[] {
   const construction = buildFacility(
     constructionBase.facilities.grid!,
     'gym',
-    { x: 0, y: 0 },
+    { x: 2, y: 0 },
     userClub(constructionBase).cash,
   );
   const activeConstruction = {

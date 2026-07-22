@@ -65,7 +65,9 @@ describe('attacking decision balance', () => {
     expect(zoneEntriesByPlayer[14] / matches).toBeGreaterThanOrEqual(1.5);
     expect(zoneEntriesByPlayer[14] / matches).toBeLessThanOrEqual(3.5);
     expect(powerFiresByPlayer[14] / matches).toBeGreaterThanOrEqual(0.5);
-    expect(powerFiresByPlayer[14] / matches).toBeLessThanOrEqual(1.5);
+    // The approved role parity target is 2–3 useful opportunities per hero;
+    // contextual auto-fire may convert nearly all of Rex's opportunities.
+    expect(powerFiresByPlayer[14] / matches).toBeLessThanOrEqual(3);
     // Hero License canon (docs/04, m1.12): the exemption is symmetric, so a
     // rival firing Super Strength all match is never booked for it either.
     expect(matchesWithRivalCard).toBe(0);
