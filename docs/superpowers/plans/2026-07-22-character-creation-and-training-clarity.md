@@ -514,17 +514,23 @@ Append to `src/application/__tests__/weekly-plan-summary.test.ts`:
 
 ```ts
   it('carries each locked drill gain label into the saved plan panel', () => {
-    let state = createCareer(createLaunchCareerSetup(413));
+    let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
     const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const drill = trainingContent().drills[0];
-    state = setCareerTrainingPlan(state, [roster[0].id], [drill]);
+    const trainee = roster[0];
+    const drill = content.training.focusDrills[0];
+    state = setCareerTrainingPlan(state, [trainee.id], [drill]);
 
-    const model = squadTrainingViewModel(state);
+    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
+
+    // guard first: a bare `lockedPlan?.` chain would hide a missing panel
+    expect(model.lockedPlan).toBeDefined();
     expect(model.lockedPlan?.drills[0]?.gainLabel).toMatch(/^\+\d+ [A-Z]{3}/);
   });
 ```
 
-Match the existing imports in that file for `createCareer`, `createLaunchCareerSetup`, `setCareerTrainingPlan`, `squadTrainingViewModel`, and the training content accessor; add any that are missing.
+**Signature warning — this bit our Task 4 implementer.** `squadTrainingViewModel` takes **five** arguments (`state, content, selectedPlayerId, assignedPlayerIds, selectedDrillIds`), not one. And `createLaunchCareerSetup` must be given `'full'` career mode, because `trainingDrillBlockedReason` early-returns `undefined` for non-full careers — a fixture built without it produces a state where the behaviour under test cannot occur, so the test passes green whether or not the code works. Confirm the exact local convention by reading a neighbouring test in the same file before writing yours, and **verify your test fails before you implement**.
+
+Match the existing imports in that file for `createCareer`, `createLaunchCareerSetup`, `setCareerTrainingPlan`, `squadTrainingViewModel`, and the content accessor; add any that are missing.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -614,16 +620,20 @@ For every player in the locked plan, show the attributes the plan raises as `PAC
 
 Append to `src/application/__tests__/training-cap-feedback.test.ts`:
 
+**Signature warning — see Task 5.** `squadTrainingViewModel` takes five arguments and the career fixture must be built with `'full'` mode, or the behaviour under test cannot occur and the test passes regardless. Read a neighbouring test for the local convention, and **verify your test fails before implementing**.
+
 ```ts
   it('projects each trainee gain from the real resolver, and zeroes it at the cap', () => {
-    let state = createCareer(createLaunchCareerSetup(413));
+    let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
     const roster = state.players.filter(player => player.clubId === state.userClubId);
     const trainee = roster[0];
-    const drill = trainingContent().drills[0];
+    const drill = content.training.focusDrills[0];
     const trainedAttribute = Object.keys(drill.gains)[0] as 'pac';
 
     state = setCareerTrainingPlan(state, [trainee.id], [drill]);
-    const model = squadTrainingViewModel(state);
+    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
+
+    expect(model.lockedPlan).toBeDefined();
     const progress = model.lockedPlan?.players[0]?.trainingProgress ?? [];
 
     // only attributes the plan raises appear
