@@ -1261,12 +1261,16 @@ export function squadTrainingViewModel(
     ],
     selectedPlayerId,
     createdPlayerId,
-    drills: drills.map(drill => drillViewModel(
-      drill,
-      selected.has(drill.id),
-      state,
-      assignedPlayerIds,
-    )),
+    // Division-locked tiers stay hidden until the club can actually reach them.
+    // Drills the club merely cannot afford this week stay visible on purpose.
+    drills: drills
+      .map(drill => drillViewModel(
+        drill,
+        selected.has(drill.id),
+        state,
+        assignedPlayerIds,
+      ))
+      .filter(drill => drill.lockedReason === undefined),
     assignedPlayerIds,
     selectedDrillCount: selectedDrills.length,
     maxDrills: content.training.maxFocusDrillsPerWeek,
