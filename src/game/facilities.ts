@@ -106,6 +106,8 @@ export interface PlacedFacility extends FacilityPosition {
   readonly id: string;
   readonly type: FacilityType;
   readonly level: FacilityLevel;
+  /** True only for facilities the club was founded with, never player-built. */
+  readonly seeded?: true;
 }
 
 export interface FacilityConstructionProject {

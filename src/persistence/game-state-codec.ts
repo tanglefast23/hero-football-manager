@@ -273,6 +273,7 @@ const facilityGridSchema = z
       level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
       x: nonnegativeInteger,
       y: nonnegativeInteger,
+      seeded: z.literal(true).optional(),
     }).passthrough()),
     discoveredAdjacencies: z.array(z.enum([
       'gym-dorm', 'fan-shop-stadium', 'medical-training-pitch',

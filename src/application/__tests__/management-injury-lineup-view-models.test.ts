@@ -326,10 +326,12 @@ describe('management injury and lineup presentation', () => {
     const inbox = homeViewModel(initial).alerts;
 
     expect(inbox).toHaveLength(3);
+    // The founding pitch is seeded, not player-built, so facility-placement is
+    // still due and takes a slot ahead of scout-mission/youth-intake.
     expect(inbox.map(alert => alert.guideSequenceId)).toEqual([
       'head-coach-market',
+      'facility-placement',
       'scout-mission',
-      'youth-intake',
     ]);
   });
 

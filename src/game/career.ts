@@ -125,7 +125,10 @@ function addStartingTrainingPitch(state: GameState): GameState {
     ...state,
     facilities: {
       trainingGroundBuilt: true,
-      grid,
+      grid: {
+        ...grid,
+        buildings: grid.buildings.map(building => ({ ...building, seeded: true as const })),
+      },
     },
   };
 }
