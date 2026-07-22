@@ -220,7 +220,7 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
           : {}),
         ...(candidate.unlockId === undefined
           ? {}
-          : { unlockLabel: `Teaches ${readableId(candidate.unlockId)}` }),
+          : { unlockLabel: `Teaches ${unlockName(candidate.unlockId)}` }),
         available: headAvailable || assistantAvailable,
         headAvailable,
         assistantAvailable,
@@ -484,6 +484,12 @@ function focusDetail(focus: ScoutFocus): string {
 
 function regionLabel(region: ScoutRegion): string {
   return readableId(region);
+}
+
+/** Formation unlocks keep their shape ("4-3-3"); other unlocks read as words. */
+function unlockName(unlockId: string): string {
+  const formation = /^formation[-_:]?(.+)$/i.exec(unlockId);
+  return formation === null ? readableId(unlockId) : formation[1];
 }
 
 function readableId(value: string): string {

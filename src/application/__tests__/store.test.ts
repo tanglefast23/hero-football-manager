@@ -59,8 +59,13 @@ describe('M1 app store integration', () => {
       licensed: true,
     });
     useM1Store.getState().continueAfterAwakening();
-    expect(useM1Store.getState()).toMatchObject({ screen: 'management' });
+    // The first hero arrives at the final whistle, but the manager is still owed
+    // that match's accounts — the onboarding brief's own "survive the books" job.
+    expect(useM1Store.getState()).toMatchObject({ screen: 'postmatch' });
+    expect(useM1Store.getState().postMatch).not.toBeNull();
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('complete');
+    useM1Store.getState().continueAfterMatch();
+    expect(useM1Store.getState()).toMatchObject({ screen: 'management' });
   });
 
   it('still awakens the created player after they are substituted in the first match', () => {

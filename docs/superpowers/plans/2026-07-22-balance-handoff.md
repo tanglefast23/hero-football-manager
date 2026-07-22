@@ -4,10 +4,12 @@ Written at the end of the original measurement session, then updated after the
 approved implementation and post-build audit. Sections 1–5 preserve the
 starting evidence and decision record; sections 6–9 are the current status.
 
-**Current branch:** `feature/hero-power-balance-m1-13`. The implementation is
-committed in `3cbca1f`, and the Shadow Mark correctness fix is committed in
-`f0d0ef5`. Final acceptance evidence is committed in `bf7c8e6`. All three are
-pushed. The current replay version is **m1.16**.
+**Historical branch at the start of this handoff:**
+`feature/hero-power-balance-m1-13`. The active closeout branch is now
+`codex/balance-closeout-m1-18`, and the replay version under verification is
+**m1.18**. Sections 1–9 remain the historical evidence trail; section 10 is the
+owner-approved closeout contract and is authoritative when an older target or
+proposal conflicts with it.
 
 ---
 
@@ -515,3 +517,59 @@ All requested implementation and measurement work is complete. Do not merge to
 `main` until the approval-required balance work has been accepted or explicitly
 deferred by the owner: hero value, manual advantage, weekly TP/cash pressure,
 and second/third-hero stacking still miss their targets.
+
+---
+
+## 10. Owner-approved m1.18 closeout contract
+
+The owner replaced the narrow +2 / +2.5–3 / +4 power curve with a broader fun
+band. A power passes when it is worth **+1 to +6 squad-strength points**, does
+not make its team worse, fires reliably, and performs the visible action it
+advertises. Manual activation must not punish the player, and an upgrade must
+never make a power weaker. Powers already inside that band do not need tuning
+to an exact number. Decision-grade retained-value claims still use 1,000 paired
+seeds; smaller runs are directional diagnostics.
+
+The owner approved these mechanic replacements and the matching readable match
+animations:
+
+- **Decoy Double:** create one temporary hologram forward. The real forward and
+  double make separate runs; if a pass reaches the double, it becomes the real
+  forward at that location and the original image disappears. Safe expiry or a
+  turnover must not harm the team.
+- **Future Sight:** after the predicted interception, immediately complete a
+  controlled pass to the furthest-forward onside teammate.
+- **Super Strength:** lock the current carrier into a visible 0.5-second charge
+  window in which they cannot pass or shoot; the charge then lands and wins the
+  ball.
+- **Web Trap:** the victim drops the ball and remains visibly webbed for about
+  two seconds, unable to move, tackle, or recover the loose ball.
+- **Ice Rink:** if the existing version remains below the accepted band, slide
+  the carrier and ball backward toward their own goal, preventing actions
+  during the slide and never forcing the ball across the goal line.
+- **Shadow Mark:** burrow underground, arm after two seconds, and wait up to ten
+  seconds for an opposing field-player carrier to enter the visible hunting
+  area. Pop up for a guaranteed steal; safely return if possession changes or
+  no target arrives.
+- **Gust:** bend the opponent's next pass safely to the friendly goalkeeper,
+  who immediately punts far into attacking space.
+- **Rally Cry:** grant one nearby powered teammate an Encore: exactly one bonus
+  activation beyond the normal three-use cap. If a power is already ready, the
+  Encore queues and refills it after use. A hero can hold and receive only one
+  Encore per match.
+- **Portal Pass:** protect the receiving forward from tackles and
+  dispossessions for about one second, ending the protection on their pass or
+  shot; goalkeepers can still save normally.
+- **Gravity Well:** pull one or two opposing defenders toward the carrier,
+  direct the nearest suitable attacker into the abandoned lane, and prioritize
+  the carrier's next pass to that runner. Wait rather than fire without a real
+  lane.
+- **Fire Torch:** a short attacking window torches up to one, two, or three
+  relevant goal-side defenders at power tiers 1, 2, and 3 respectively. Measure
+  the upper tier against the +6 ceiling.
+- **Super Speed:** leave unchanged unless the 1,000-seed result falls below +1
+  or live playtesting shows that its visible duration feels too short. The
+  directional +1.6 auto / +2.5 manual / +4.8 upgraded result already passes.
+
+A developer-only browser showcase must queue every launch power one at a time,
+with Previous, Replay, and Next controls, before the art is considered approved.

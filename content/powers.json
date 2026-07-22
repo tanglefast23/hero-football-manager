@@ -40,7 +40,7 @@
       "name": "Fire Torch",
       "tier": "starter",
       "category": "attack",
-      "description": "A flaming run that makes nearby markers hesitate and may ignite one.",
+      "description": "Burn past one, two, or three nearby goal-side defenders as the power is upgraded.",
       "usefulContext": "MARKED_FINAL_THIRD",
       "requiresTarget": false,
       "windupTicks": 15
@@ -60,7 +60,7 @@
       "name": "Portal Pass",
       "tier": "standard",
       "category": "attack",
-      "description": "Drop the ball through a portal onto the best forward runner.",
+      "description": "Drop the ball through a portal onto the best forward runner, protected for their first touch.",
       "usefulContext": "BLOCKED_LANE",
       "requiresTarget": true,
       "windupTicks": 15
@@ -70,7 +70,7 @@
       "name": "Decoy Double",
       "tier": "standard",
       "category": "attack",
-      "description": "Send a hologram runner forward to drag a marker out of the passing lane.",
+      "description": "Create an extra hologram forward; pass to it and the double becomes the real runner.",
       "usefulContext": "PASS_SETUP",
       "requiresTarget": true,
       "windupTicks": 15
@@ -80,7 +80,7 @@
       "name": "Future Sight",
       "tier": "standard",
       "category": "defense",
-      "description": "Read the next dangerous pass and arrive before the receiver.",
+      "description": "Read the next pass, steal it, then guarantee an outlet to the furthest-forward onside teammate.",
       "usefulContext": "EXPECTED_PASS",
       "requiresTarget": true,
       "windupTicks": 15
@@ -90,17 +90,17 @@
       "name": "Super Strength",
       "tier": "starter",
       "category": "defense",
-      "description": "Lock onto a dangerous carrier, charge, and flatten them.",
+      "description": "Freeze a dangerous carrier for a half-second charge, then flatten them and win the ball.",
       "usefulContext": "DANGEROUS_CARRIER",
       "requiresTarget": true,
-      "windupTicks": 15
+      "windupTicks": 5
     },
     {
       "id": "WEB_TRAP",
       "name": "Web Trap",
       "tier": "starter",
       "category": "defense",
-      "description": "String a web across the carrier's lane and root the first opponent through it.",
+      "description": "Drop the carrier's ball and web them in place while everyone else can recover it.",
       "usefulContext": "DRIBBLE_LANE",
       "requiresTarget": true,
       "windupTicks": 15
@@ -120,7 +120,7 @@
       "name": "Rally Cry",
       "tier": "standard",
       "category": "attack",
-      "description": "Roar the nearby squad forward — their power meters fill far faster. Awakens only once the club has another powered teammate.",
+      "description": "Grant one nearby hero an Encore: exactly one extra power activation this match.",
       "usefulContext": "TEAMMATES_READY",
       "requiresTarget": false,
       "windupTicks": 15
@@ -130,7 +130,7 @@
       "name": "Ice Rink",
       "tier": "standard",
       "category": "defense",
-      "description": "Freeze the turf underfoot; opponents crossing it lose their footing.",
+      "description": "Freeze the carrier and ball into a backward slide toward their own goal.",
       "usefulContext": "DRIBBLE_LANE",
       "requiresTarget": true,
       "windupTicks": 15
@@ -140,7 +140,7 @@
       "name": "Shadow Mark",
       "tier": "standard",
       "category": "defense",
-      "description": "Slip out of the passer's read until you make your challenge.",
+      "description": "Burrow for two seconds, hunt the area for ten, then erupt for a guaranteed steal.",
       "usefulContext": "DANGEROUS_CARRIER",
       "requiresTarget": true,
       "windupTicks": 15
@@ -150,7 +150,7 @@
       "name": "Gravity Well",
       "tier": "standard",
       "category": "attack",
-      "description": "Drag nearby opponents toward you and tear a lane open elsewhere.",
+      "description": "Pull one or two defenders away, send a runner into the abandoned lane, and feed them next.",
       "usefulContext": "DANGEROUS_CARRIER",
       "requiresTarget": true,
       "windupTicks": 15
@@ -170,7 +170,7 @@
       "name": "Gust",
       "tier": "standard",
       "category": "defense",
-      "description": "Whip the opponent's next pass off course and leave the ball loose.",
+      "description": "Bend the opponent's next good pass safely to your keeper, who punts into attack.",
       "usefulContext": "EXPECTED_PASS",
       "requiresTarget": true,
       "windupTicks": 15

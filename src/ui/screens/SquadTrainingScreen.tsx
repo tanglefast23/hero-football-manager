@@ -10,6 +10,8 @@ import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
   isTutorialTargetVisible,
+  TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+  TUTORIAL_TAP_CUE_RESERVED_SPACE,
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
 import {
@@ -334,12 +336,17 @@ export function SquadTrainingScreen({
                   : player.injuryWeeks > 0
                     ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
                     : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
+                style={guideConciergePlayer ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
               >
                 {guideConciergePlayer ? (
                   <TutorialTapCue
                     label="Bert says"
                     detail={guideFocus === 'injury-lineup' ? 'Review injury and replacement' : 'Review this player'}
-                    style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+                    style={{
+                      left: '50%',
+                      marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                      top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                    }}
                   />
                 ) : null}
                 <Pressable

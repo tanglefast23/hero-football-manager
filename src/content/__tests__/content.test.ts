@@ -307,7 +307,9 @@ describe('validated M1 launch content', () => {
       navItems: [
         { tab: 'HOME', detail: "Today's work." },
         { tab: 'SQUAD', detail: 'Team and training.' },
-        { tab: 'CLUB', detail: 'Wages and facilities.' },
+        // "grounds" keeps the line short enough that the narrow cue chip never
+        // breaks it mid-word ("FACILITIE S.").
+        { tab: 'CLUB', detail: 'Wages and grounds.' },
         { tab: 'MARKET', detail: 'Scout, hire and fire.' },
         { tab: 'LEAGUE', detail: 'Leagues and rivals.' },
       ],

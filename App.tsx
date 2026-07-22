@@ -22,7 +22,8 @@ import {
   type AppPreferences,
   type PreferencesRepository,
 } from './src/persistence';
-import { MatchScreen } from './src/render/MatchScreen';
+import { MatchScreen, type PowerCutInQaEntry } from './src/render/MatchScreen';
+import { PowerEffectPreview } from './src/render/PowerEffectPreview';
 import { TrainingTransitionOverlay } from './src/render/TrainingTransitionOverlay';
 import { setMasterVolume } from './src/render/audio';
 import {
@@ -123,6 +124,7 @@ import {
 } from './src/application/view-models';
 import type { AwakeningCutsceneViewModel } from './src/ui/models';
 import { AwakeningArtQaScreen } from './src/ui/screens/AwakeningArtQaScreen';
+import { PowerArtQaScreen } from './src/ui/screens/PowerArtQaScreen';
 import { championshipCelebrationViewModel } from './src/application/championship-celebration';
 import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
@@ -154,6 +156,14 @@ interface PendingConfirmation {
 
 export default function App() {
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
+  if (__DEV__ && process.env.EXPO_PUBLIC_POWER_CUTIN_QA === '1') {
+    return <PowerCutInQaApp />;
+  }
+  // The explicit build flag also supports a static web export, so art review
+  // never depends on opening a saved career or matching its replay baseline.
+  if (process.env.EXPO_PUBLIC_POWER_ART_QA === '1') {
+    return <PowerArtQaApp />;
+  }
   if (__DEV__ && process.env.EXPO_PUBLIC_AWAKENING_ART_QA === '1') {
     return <AwakeningArtQaApp triggerId={previewTriggerId ?? 'magic-sponge'} />;
   }
@@ -166,6 +176,68 @@ export default function App() {
     >
       <GameApp />
     </ScreenErrorBoundary>
+  );
+}
+
+const POWER_CUT_IN_QA_ENTRIES: readonly PowerCutInQaEntry[] = [
+  { id: 'qa-fire', power: 'FIRE_TORCH', playerName: 'Dario Flint', skippable: false },
+  { id: 'qa-speed', power: 'SUPER_SPEED', playerName: 'Zip Vela', skippable: false },
+  { id: 'qa-gravity', power: 'GRAVITY_WELL', playerName: 'Leo Quick', skippable: false },
+  { id: 'qa-elastic', power: 'ELASTIC_KEEPER', playerName: 'Sam Mitts', skippable: false },
+];
+
+function PowerCutInQaApp() {
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  if (!fontsLoaded) return <LoadingScreen />;
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="light" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#16121f' }}>
+        <MatchScreen
+          seed={42}
+          reduceMotion={false}
+          cutInMode="full"
+          powerCutInQaEntries={POWER_CUT_IN_QA_ENTRIES}
+          onOpenSettings={() => undefined}
+          onDone={() => undefined}
+        />
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
+
+function PowerArtQaApp() {
+  const content = useMemo(loadLaunchContent, []);
+  const powers = content.powers.powers;
+  const [selectedPowerIndex, setSelectedPowerIndex] = useState(0);
+  const [replayKey, setReplayKey] = useState(0);
+  const powerCount = powers.length;
+  const powerIndex = selectedPowerIndex % powerCount;
+  const power = powers[powerIndex];
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+
+  return (
+    <SafeAreaProvider>
+      {!fontsLoaded ? <LoadingScreen /> : (
+        <>
+          <StatusBar style="light" />
+          <PowerArtQaScreen
+            index={powerIndex}
+            total={powerCount}
+            name={power.name}
+            description={power.description}
+            category={power.category}
+            tier={power.tier === 'starter' ? 'starter' : 'standard'}
+            preview={<PowerEffectPreview power={power.id} replayKey={replayKey} />}
+            onPrevious={() => setSelectedPowerIndex((
+              powerIndex - 1 + powerCount
+            ) % powerCount)}
+            onReplay={() => setReplayKey(key => key + 1)}
+            onNext={() => setSelectedPowerIndex((powerIndex + 1) % powerCount)}
+          />
+        </>
+      )}
+    </SafeAreaProvider>
   );
 }
 

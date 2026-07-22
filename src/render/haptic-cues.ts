@@ -12,6 +12,9 @@ export function hapticCueForEvent(
   if (event.kind === 'POWER_FIRED') {
     return teamForPlayer(event.player) === controlledTeam ? 'power' : 'rival-power';
   }
+  if (event.kind === 'GUST_REDIRECT' || event.kind === 'GUST_PUNT') {
+    return teamForPlayer(event.player) === controlledTeam ? 'power' : 'rival-power';
+  }
   if (event.kind === 'GOAL') return event.team === controlledTeam ? 'goal' : 'conceded';
   return null;
 }

@@ -7,6 +7,7 @@ Portrait, one-handed, thumb-first. The design language follows the house rules (
 - **60% neutral**: warm cream surfaces (dark mode: deep navy-charcoal) — the "clubhouse" canvas.
 - **30% structure**: dark ink text/borders; pitch-green reserved for match surfaces.
 - **10% accent**: **hero gold** — used *only* for hero/power elements (gauges, license slots, awakening moments, HE currency). The accent literally means "hero"; nothing else may use it. Semantic red/green only for money deltas and win/loss.
+- **Action colour carries meaning, not decoration** (the shared families live in [11-art-style.md](11-art-style.md)): **violet** confirm/primary · **red** cancel/destructive · **blue** neutral action · **gold** hero/reward only · **grey** disabled. Button faces are the one place the palette is allowed to shout against the calm cream canvas; violet is therefore the primary-action colour across management screens (Advance Week, confirms, guided cards) and is not a second brand accent competing with gold.
 - Pixel-art portraits and icons on clean flat UI (the Kairosoft contrast: crunchy sprites, calm chrome).
 - Type: one UI sans (4 sizes: 13/15/18/24) + monospace for numerals. Weights: regular + bold only.
 

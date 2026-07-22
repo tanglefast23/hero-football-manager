@@ -172,6 +172,21 @@ describe('marketViewModel', () => {
     });
   });
 
+  it('keeps a taught formation readable as a shape rather than loose digits', () => {
+    const source = baseSource();
+    const coachCandidates = generateCoachMarket({
+      careerSeed: 8,
+      season: 4,
+      division: 2,
+      fame: 800,
+      unlockIds: ['formation:4-3-3'],
+    });
+    const viewModel = marketViewModel({ ...source, division: 2, fame: 800, coachCandidates });
+    const teacher = viewModel.coaches.find(coach => coach.unlockLabel !== undefined);
+
+    expect(teacher?.unlockLabel).toBe('Teaches 4-3-3');
+  });
+
   it('never presents more than three coach choices', () => {
     const source = baseSource();
     const expanded = Array.from({ length: 5 }, (_, index) => ({

@@ -7,6 +7,14 @@ export interface TutorialAnchorLayout {
 
 export const TUTORIAL_TAP_CUE_WIDTH = 146;
 
+/** How far above its control an inline cue is floated. */
+export const TUTORIAL_TAP_CUE_ABOVE_OFFSET = 72;
+
+/** Vertical space a guided control reserves above itself while its cue is
+ * showing, so the cue lands in an empty gap instead of covering the row above
+ * it — the wage, cost or stat the cue is usually telling you to read. */
+export const TUTORIAL_TAP_CUE_RESERVED_SPACE = TUTORIAL_TAP_CUE_ABOVE_OFFSET + 6;
+
 function tutorialCueLeft(anchor: TutorialAnchorLayout, viewportWidth: number): number {
   const gutter = 8;
   const idealLeft = anchor.x + anchor.width / 2 - TUTORIAL_TAP_CUE_WIDTH / 2;

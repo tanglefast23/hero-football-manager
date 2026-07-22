@@ -190,6 +190,13 @@ export const DIVISION_STRENGTH_BANDS: Readonly<
   4: [50, 60],
   5: [40, 50],
 };
+/**
+ * Two survivable opponents installed for the user's D4 season. These
+ * full-squad targets produce roughly 46-49 effective starting-XI strength at
+ * the production match boundary, while leaving D4's established middle and
+ * top untouched.
+ */
+export const DIVISION_FOUR_RELEGATION_PACK_STRENGTHS = [47, 49] as const;
 const ARCHETYPES: readonly PlayerArchetype[] = [
   'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
 ];
@@ -248,6 +255,58 @@ export function generateLeaguePyramid(careerSeed: number): LeaguePyramid {
   }
 
   return { careerSeed, divisions };
+}
+
+/**
+ * Retunes only the two weakest non-user D4 clubs into the division's
+ * relegation pack. The selected club IDs are stable for identical pyramid
+ * state, and every other club and division keeps its authored strength.
+ */
+export function applyDivisionFourRelegationPack(
+  pyramid: LeaguePyramid,
+  userClubId: string,
+): LeaguePyramid {
+  validatePyramid(pyramid);
+  const division = pyramid.divisions.find(candidate => candidate.level === 4)!;
+  if (!division.clubs.some(club => club.id === userClubId)) {
+    throw new Error(`user club ${userClubId} must be in Division 4 for its relegation pack`);
+  }
+  const selected = division.clubs
+    .filter(club => club.id !== userClubId)
+    .slice()
+    .sort((left, right) => (
+      left.squadStrength - right.squadStrength
+      || stableIdCompare(left.id, right.id)
+    ))
+    .slice(0, DIVISION_FOUR_RELEGATION_PACK_STRENGTHS.length);
+  if (selected.length !== DIVISION_FOUR_RELEGATION_PACK_STRENGTHS.length) {
+    throw new Error('Division 4 requires two non-user clubs for its relegation pack');
+  }
+  const targetByClubId = new Map(selected.map((club, index) => (
+    [club.id, DIVISION_FOUR_RELEGATION_PACK_STRENGTHS[index]] as const
+  )));
+
+  return {
+    ...pyramid,
+    divisions: pyramid.divisions.map(candidate => candidate.level !== 4
+      ? candidate
+      : {
+          ...candidate,
+          clubs: candidate.clubs.map(club => {
+            const targetStrength = targetByClubId.get(club.id);
+            if (targetStrength === undefined) return club;
+            if (club.squad.length === 0) {
+              throw new Error(`Division 4 relegation club ${club.id} has no squad`);
+            }
+            const squad = tuneSquadToStrength(club.squad, targetStrength);
+            return {
+              ...club,
+              squadStrength: averageSquadStrength(squad),
+              squad,
+            };
+          }),
+        }),
+  };
 }
 
 /** Resolves top-two promotion and bottom-two relegation without changing squad strength. */

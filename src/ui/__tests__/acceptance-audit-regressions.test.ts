@@ -111,7 +111,7 @@ describe('player-facing acceptance audit regressions', () => {
     expect(home).toContain("Use Advance Week below to prepare Match Day.");
   });
 
-  test('keeps the README engine marker synchronized without a replay bump', () => {
-    expect(source('README.md')).toContain('Current engine: **m1.16**.');
+  test('keeps the README engine marker synchronized with the replay version', () => {
+    expect(source('README.md')).toContain('Current engine: **m1.18**.');
   });
 });

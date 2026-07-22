@@ -163,6 +163,10 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       return ['power-interrupt']; // wind-up tackled off
     case 'POWER_EXPIRED':
       return ['zone-expire'];     // an un-fired Zone window lapses
+    case 'GUST_REDIRECT':
+      return ['super-speed-whoosh']; // the incoming pass audibly bends on the wind
+    case 'GUST_PUNT':
+      return ['kick-shot']; // a full-blooded keeper clearance, not an ordinary pass tap
     case 'IGNITED':
       return ['flame-hit']; // a defender catches fire (distinct from the caster's flame-up)
     // RECOVERED (a player getting back up) has no matching asset — deliberately

@@ -1,4 +1,4 @@
-import { appendNewestFour, powerCutInDurationMs, powerCutInGroupPolicy, powerCutInPresentation, powerCutInTileWidth, powerOverlayPath, shouldShowFullPowerCutIn } from '../power-cut-in';
+import { appendNewestFour, powerCutInAccessibilityLabel, powerCutInDurationMs, powerCutInGroupPolicy, powerCutInPresentation, powerCutInTileWidth, powerOverlayPath, shouldShowFullPowerCutIn } from '../power-cut-in';
 import { LAUNCH_POWER_IDS } from '../../game/power-catalog';
 
 describe('M4 power cut-in policy', () => {
@@ -52,6 +52,19 @@ describe('M4 power cut-in policy', () => {
   it('keeps the newest four overlays', () => {
     const result = [1, 2, 3, 4, 5].reduce<number[]>(appendNewestFour, []);
     expect(result).toEqual([2, 3, 4, 5]);
+  });
+
+  it('announces every tile in a held four-power group', () => {
+    const label = powerCutInAccessibilityLabel([
+      { power: 'FIRE_TORCH', playerName: 'Dario Flint', skippable: false },
+      { power: 'SUPER_SPEED', playerName: 'Zip Vela', skippable: false },
+      { power: 'GRAVITY_WELL', playerName: 'Leo Quick', skippable: false },
+      { power: 'ELASTIC_KEEPER', playerName: 'Sam Mitts', skippable: false },
+    ]);
+    expect(label).toContain('Fire Torch, Dario Flint. A flaming run ignites one, two, or three');
+    expect(label).toContain('Super Speed, Zip Vela. A runner explodes into space');
+    expect(label).toContain('Gravity Well, Leo Quick. Gravity lines pull defenders inward');
+    expect(label).toContain('Elastic Keeper, Sam Mitts. The goalkeeper stretches across the goal');
   });
 
   it('keeps a mixed first-reveal group paused and unskippable', () => {

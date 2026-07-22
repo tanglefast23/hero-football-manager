@@ -66,7 +66,7 @@ export function NewGameWelcomeScreen({
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 justify-between px-5 py-6">
+        <View className="flex-1 px-5 pb-4 pt-6">
           <View>
             <View className="mb-5 flex-row items-center justify-between">
               {onBackToTitle ? (
@@ -174,36 +174,40 @@ export function NewGameWelcomeScreen({
               </View>
             </View>
           ) : null}
-
-          <View className="gap-3">
-            {hasSavedCareer && onContinueCareer ? (
-              <ActionButton
-                label={savedCareerLabel ? `Continue · ${savedCareerLabel}` : 'Continue career'}
-                accessibilityLabel="Continue saved career"
-                onPress={onContinueCareer}
-                variant="paper"
-              />
-            ) : null}
-            <ActionButton
-              label={hasSavedCareer ? 'Start over · erase save' : 'Take the keys  ▸'}
-              accessibilityLabel={hasSavedCareer ? 'Replace saved career' : 'Start a new career'}
-              onPress={onStartNewCareer}
-              variant={hasSavedCareer ? 'danger' : 'primary'}
-            />
-            {onOpenAccessibility ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open accessibility settings"
-                onPress={onOpenAccessibility}
-                className="min-h-11 items-center justify-center"
-                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
-              >
-                <Text className="text-sm font-bold uppercase tracking-widest text-blue-dark">Accessibility & controls</Text>
-              </Pressable>
-            ) : null}
-          </View>
         </View>
       </ScrollView>
+
+      {/* The entrance choice is pinned: on a short screen the brief scrolls, but
+          the button that starts the game is never below the fold. */}
+      <View className="border-t-2 border-ink/10 bg-paper px-5 pb-2 pt-3">
+        <View className="gap-3">
+          {hasSavedCareer && onContinueCareer ? (
+            <ActionButton
+              label={savedCareerLabel ? `Continue · ${savedCareerLabel}` : 'Continue career'}
+              accessibilityLabel="Continue saved career"
+              onPress={onContinueCareer}
+              variant="paper"
+            />
+          ) : null}
+          <ActionButton
+            label={hasSavedCareer ? 'Start over · erase save' : 'Take the keys  ▸'}
+            accessibilityLabel={hasSavedCareer ? 'Replace saved career' : 'Start a new career'}
+            onPress={onStartNewCareer}
+            variant={hasSavedCareer ? 'danger' : 'primary'}
+          />
+          {onOpenAccessibility ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open accessibility settings"
+              onPress={onOpenAccessibility}
+              className="min-h-11 items-center justify-center"
+              style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+            >
+              <Text className="text-sm font-bold uppercase tracking-widest text-blue-dark">Accessibility & controls</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
     </SafeAreaView>
   );
 }

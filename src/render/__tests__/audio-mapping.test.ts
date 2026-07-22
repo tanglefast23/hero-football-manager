@@ -21,6 +21,15 @@ describe('filesForEvent: event → SFX wiring', () => {
     expect(filesForEvent({ t: 0, kind: 'TACKLE', by: 3, on: 14, won: false, style: 'slide', contact: false })).toEqual([]);
   });
 
+  it('separates Gust\'s wind redirect from its huge keeper punt', () => {
+    expect(filesForEvent({ t: 8, kind: 'GUST_REDIRECT', player: 2, from: 12, to: 0 })).toEqual([
+      'super-speed-whoosh',
+    ]);
+    expect(filesForEvent({ t: 10, kind: 'GUST_PUNT', player: 2, from: 0, to: 9 })).toEqual([
+      'kick-shot',
+    ]);
+  });
+
   it('layers tap-fire only on a manual (strength 1.0) power fire', () => {
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 1 })).toEqual(['tap-fire', 'super-speed-whoosh']);
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 0.85 })).toEqual(['super-speed-whoosh']);
@@ -60,6 +69,8 @@ describe('filesForEvent: event → SFX wiring', () => {
       { t: 0, kind: 'POWER_FIRED', player: 10, power: 'FIRE_TORCH', strength: 0.85 },
       { t: 0, kind: 'POWER_INTERRUPTED', player: 10 },
       { t: 0, kind: 'POWER_EXPIRED', player: 10 },
+      { t: 0, kind: 'GUST_REDIRECT', player: 2, from: 12, to: 0 },
+      { t: 0, kind: 'GUST_PUNT', player: 2, from: 0, to: 9 },
       { t: 0, kind: 'CARD', player: 5, color: 'yellow' },
       { t: 0, kind: 'IGNITED', player: 5 },
       { t: 0, kind: 'EXTINGUISHED', player: 5 },

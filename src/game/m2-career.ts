@@ -2,6 +2,7 @@ import type { Attrs } from '../sim/types';
 import { roleOverall } from './archetype-caps';
 import {
   advanceNationalCup,
+  applyDivisionFourRelegationPack,
   createNationalCup,
   generateLeaguePyramid,
   resolvePromotionAndRelegation,
@@ -403,7 +404,7 @@ export function planEndlessCareerSeasonTransition(
     throw new Error('completed season exceeds the supported range');
   }
   const nextSeason = completedSeason + 1;
-  const advancedState: M2CareerState = {
+  let advancedState: M2CareerState = {
     ...state,
     pyramid: {
       ...state.pyramid,
@@ -416,6 +417,12 @@ export function planEndlessCareerSeasonTransition(
     },
   };
   const division = currentUserDivision(advancedState);
+  if (division === 4) {
+    advancedState = {
+      ...advancedState,
+      pyramid: applyDivisionFourRelegationPack(advancedState.pyramid, state.userClubId),
+    };
+  }
   const currentClubs = advancedState.pyramid.divisions
     .find(candidate => candidate.level === division)!.clubs;
   const userClub = currentClubs.find(club => club.id === state.userClubId)!;

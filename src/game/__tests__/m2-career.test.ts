@@ -14,7 +14,8 @@ import {
   type M2CareerState,
   type StructuralCareerPlayer,
 } from '../m2-career';
-import type { DivisionFinishOrder, NationalCupResult } from '../pyramid';
+import type { NationalCupResult } from '../pyramid';
+import { DIVISION_FOUR_RELEGATION_PACK_STRENGTHS } from '../pyramid';
 
 const USER_CLUB = { id: 'my-club', name: 'Caped Ball FC', squadStrength: 46 };
 
@@ -33,13 +34,6 @@ function careerPlayer(overrides: Partial<StructuralCareerPlayer> = {}): Structur
     injuryWeeks: 1,
     ...overrides,
   };
-}
-
-function finishOrders(state: M2CareerState): DivisionFinishOrder[] {
-  return state.pyramid.divisions.map(division => ({
-    division: division.level,
-    orderedClubIds: division.clubs.map(club => club.id),
-  }));
 }
 
 function homeWins(state: M2CareerState): NationalCupResult[] {
@@ -247,15 +241,15 @@ describe('M2 National Cup integration', () => {
 describe('M2 promotion and endless season planning', () => {
   it('promotes the user and plans the next ten-club season with nine scaled generated opponents', () => {
     const initial = initializeM2Career({ careerSeed: 808, userClub: USER_CLUB });
-    const orders = finishOrders(initial);
-    const divisionFive = orders.find(order => order.division === 5)!;
-    divisionFive.orderedClubIds = [
+    const divisionFive = initial.pyramid.divisions.find(division => division.level === 5)!;
+    const playedOrder = [
       USER_CLUB.id,
-      ...divisionFive.orderedClubIds.filter(id => id !== USER_CLUB.id),
+      ...divisionFive.clubs.map(club => club.id).filter(id => id !== USER_CLUB.id),
     ];
+    const orders = deterministicM2FinishOrders(initial, 2, 5, playedOrder);
     const frozen = JSON.stringify(initial);
     const promoted = applyM2PromotionAndRelegation(initial, orders);
-    const plan = planEndlessCareerSeasonTransition(promoted.state, 2);
+    const plan = planEndlessCareerSeasonTransition(promoted.state, 1);
 
     expect(currentUserDivision(promoted.state)).toBe(4);
     expect(promoted.movements).toContainEqual({
@@ -264,24 +258,41 @@ describe('M2 promotion and endless season planning', () => {
       toDivision: 4,
       kind: 'promoted',
     });
-    expect(plan).toMatchObject({ nextSeason: 3, division: 4 });
+    expect(plan).toMatchObject({ nextSeason: 2, division: 4 });
     expect(plan.activeClubs).toHaveLength(10);
     expect(plan.activeClubIds[0]).toBe(USER_CLUB.id);
     expect(plan.generatedOpponentClubs).toHaveLength(9);
     expect(plan.generatedOpponentPlayers).toHaveLength(144);
     expect(plan.generatedOpponentClubs.every(club => club.squad.length === 16)).toBe(true);
+    const minnowIds = new Set(plan.generatedOpponentClubs
+      .filter(club => DIVISION_FOUR_RELEGATION_PACK_STRENGTHS.some(
+        strength => strength === club.squadStrength,
+      ))
+      .map(club => club.id));
+    expect([...minnowIds]).toHaveLength(2);
+    expect(plan.generatedOpponentClubs.filter(club => minnowIds.has(club.id))
+      .map(club => club.squadStrength).sort((left, right) => left - right))
+      .toEqual(DIVISION_FOUR_RELEGATION_PACK_STRENGTHS);
     for (const opponent of plan.generatedOpponentClubs) {
       const unscaled = promoted.state.pyramid.divisions[3].clubs.find(club => club.id === opponent.id)!;
-      expect(opponent.squadStrength).toBe(unscaled.squadStrength + 1);
-      expect(opponent.squad[0].attrs.pac).toBe(Math.min(99, unscaled.squad[0].attrs.pac + 1));
+      if (!minnowIds.has(opponent.id)) {
+        expect(opponent.squadStrength).toBe(unscaled.squadStrength);
+        expect(opponent.squad[0].attrs.pac).toBe(unscaled.squad[0].attrs.pac);
+      }
     }
+    expect(Math.min(...plan.generatedOpponentClubs
+      .filter(club => !minnowIds.has(club.id))
+      .map(club => club.squadStrength))).toBeGreaterThanOrEqual(51);
+    expect(Math.max(...plan.generatedOpponentClubs.map(club => club.squadStrength)))
+      .toBeGreaterThanOrEqual(60);
+    expect(Math.max(...plan.generatedOpponentClubs.map(club => club.squadStrength)))
+      .toBeLessThanOrEqual(61);
     const inactiveOpponent = promoted.state.pyramid.divisions[4].clubs
       .find(club => club.id !== USER_CLUB.id)!;
     const advancedInactive = plan.state.pyramid.divisions[4].clubs
       .find(club => club.id === inactiveOpponent.id)!;
-    expect(advancedInactive.squadStrength).toBe(inactiveOpponent.squadStrength + 1);
-    expect(advancedInactive.squad[0].attrs.pac)
-      .toBe(Math.min(99, inactiveOpponent.squad[0].attrs.pac + 1));
+    expect(advancedInactive.squadStrength).toBe(inactiveOpponent.squadStrength);
+    expect(advancedInactive.squad[0].attrs.pac).toBe(inactiveOpponent.squad[0].attrs.pac);
     expect(JSON.stringify(initial)).toBe(frozen);
   });
 
