@@ -60,6 +60,17 @@ export function CharacterCreationScreen({
     });
   }
 
+  function cycleAppearance(
+    key: keyof CreatedPlayerAppearance,
+    delta: -1 | 1,
+    count: number,
+  ): void {
+    setAppearance(current => ({
+      ...current,
+      [key]: stepChoice(current[key], delta, count),
+    }) as CreatedPlayerAppearance);
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <View className="border-b-2 border-ink bg-white px-5 py-4">
@@ -97,20 +108,20 @@ export function CharacterCreationScreen({
               <AppearanceChoice
                 label="Skin tone"
                 value={`${appearance.skinTone + 1} / 6`}
-                onPrevious={() => setAppearance(current => ({ ...current, skinTone: stepChoice(current.skinTone, -1, 6) as CreatedPlayerAppearance['skinTone'] }))}
-                onNext={() => setAppearance(current => ({ ...current, skinTone: stepChoice(current.skinTone, 1, 6) as CreatedPlayerAppearance['skinTone'] }))}
+                onPrevious={() => cycleAppearance('skinTone', -1, 6)}
+                onNext={() => cycleAppearance('skinTone', 1, 6)}
               />
               <AppearanceChoice
                 label="Hair"
                 value={`${appearance.hairstyle + 1} / 10`}
-                onPrevious={() => setAppearance(current => ({ ...current, hairstyle: stepChoice(current.hairstyle, -1, 10) as CreatedPlayerAppearance['hairstyle'] }))}
-                onNext={() => setAppearance(current => ({ ...current, hairstyle: stepChoice(current.hairstyle, 1, 10) as CreatedPlayerAppearance['hairstyle'] }))}
+                onPrevious={() => cycleAppearance('hairstyle', -1, 10)}
+                onNext={() => cycleAppearance('hairstyle', 1, 10)}
               />
               <AppearanceChoice
                 label="Kit accent"
                 value={`${appearance.kitAccent + 1} / 4`}
-                onPrevious={() => setAppearance(current => ({ ...current, kitAccent: stepChoice(current.kitAccent, -1, 4) as CreatedPlayerAppearance['kitAccent'] }))}
-                onNext={() => setAppearance(current => ({ ...current, kitAccent: stepChoice(current.kitAccent, 1, 4) as CreatedPlayerAppearance['kitAccent'] }))}
+                onPrevious={() => cycleAppearance('kitAccent', -1, 4)}
+                onNext={() => cycleAppearance('kitAccent', 1, 4)}
               />
             </View>
           </View>
@@ -194,7 +205,7 @@ export function CharacterCreationScreen({
                 </View>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Decrease ${copy.label}`}
+                  accessibilityLabel={`Decrease ${copy.label}, currently ${value}`}
                   accessibilityState={{ disabled: value <= CREATION_STAT_MIN }}
                   disabled={value <= CREATION_STAT_MIN}
                   onPress={() => {
@@ -209,7 +220,7 @@ export function CharacterCreationScreen({
                 <Text className="w-12 text-center font-mono text-2xl font-bold text-ink">{value}</Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Increase ${copy.label}`}
+                  accessibilityLabel={`Increase ${copy.label}, currently ${value}`}
                   accessibilityState={{ disabled: value >= CREATION_STAT_MAX || pointsRemaining <= 0 }}
                   disabled={value >= CREATION_STAT_MAX || pointsRemaining <= 0}
                   onPress={() => {
@@ -264,7 +275,7 @@ function AppearanceChoice({
       <Text className="min-w-0 flex-1 text-sm font-bold uppercase text-ink" numberOfLines={1}>{label}</Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Previous ${label}`}
+        accessibilityLabel={`Previous ${label}, currently ${value}`}
         onPress={() => {
           playManagementHaptic('select');
           onPrevious();
@@ -277,7 +288,7 @@ function AppearanceChoice({
       <Text className="w-16 text-center font-mono text-sm font-bold text-violet-dark">{value}</Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Next ${label}`}
+        accessibilityLabel={`Next ${label}, currently ${value}`}
         onPress={() => {
           playManagementHaptic('select');
           onNext();

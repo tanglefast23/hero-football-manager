@@ -24,4 +24,18 @@ describe('first-hire screen copy', () => {
     expect(source).toContain('title="Name"');
     expect(source).not.toContain('Name on the shirt');
   });
+
+  it('announces the current value on every stepper button', () => {
+    expect(source).toContain('currently ${value}');
+    // no stepper may announce itself without its value
+    expect(source).not.toMatch(/accessibilityLabel=\{`(Previous|Next) \$\{label\}`\}/);
+    expect(source).not.toMatch(/accessibilityLabel=\{`(Decrease|Increase) \$\{copy\.label\}`\}/);
+  });
+
+  it('cycles appearance through one shared helper', () => {
+    expect(source).toContain('function cycleAppearance');
+    expect(source.match(/cycleAppearance\('/g)?.length).toBe(6);
+    // the duplicated inline spread closures are gone
+    expect(source).not.toContain('setAppearance(current => ({ ...current, skinTone:');
+  });
 });
