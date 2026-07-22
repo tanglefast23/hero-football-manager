@@ -153,7 +153,7 @@
       "description": "Pull one or two defenders away, send a runner into the abandoned lane, and feed them next.",
       "usefulContext": "DANGEROUS_CARRIER",
       "requiresTarget": true,
-      "windupTicks": 15
+      "windupTicks": 5
     },
     {
       "id": "GIANT_GK",

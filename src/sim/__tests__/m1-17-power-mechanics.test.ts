@@ -290,7 +290,7 @@ describe('m1.18 authored one-moment powers', () => {
     expect(match.players[hero].gauge).toBe(50);
   });
 
-  it('lands Gravity Well on the blocker and destination shown when its full windup began', () => {
+  it('recomputes Gravity against the current carrier and lane after a pass during wind-up', () => {
     const { match, hero } = matchWith('GRAVITY_WELL', 6);
     const carrier = 9;
     const blocker = 12;
@@ -298,8 +298,8 @@ describe('m1.18 authored one-moment powers', () => {
     match.ball = { kind: 'held', by: carrier };
     match.players[hero].pos = { x: 2250, y: 5000 };
     match.players[carrier].pos = { x: 3400, y: 4800 };
-    match.players[blocker].pos = { x: 3300, y: 4400 };
-    match.players[secondBlocker].pos = { x: 3250, y: 4100 };
+    match.players[blocker].pos = { x: 3200, y: 4100 };
+    match.players[secondBlocker].pos = { x: 3000, y: 3800 };
     for (let idx = 11; idx < 22; idx += 1) {
       if (idx !== blocker && idx !== secondBlocker) match.players[idx].pos = { x: 6000, y: 9000 };
     }
@@ -315,13 +315,12 @@ describe('m1.18 authored one-moment powers', () => {
     if (winding.kind !== 'winding' || match.players[hero].powerAnchor === undefined) {
       throw new Error('expected a placed Gravity windup');
     }
-    const anchor = { ...match.players[hero].powerAnchor };
-    const secondAnchor = winding.kind === 'winding' ? winding.secondaryAnchor : undefined;
-    if (secondAnchor === undefined) throw new Error('expected a second placed Gravity target');
+    const staleAnchor = { ...match.players[hero].powerAnchor };
     const newCarrier = 8;
     match.ball = { kind: 'held', by: newCarrier };
-    match.players[blocker].pos = { x: 5000, y: 4200 };
-    match.players[secondBlocker].pos = { x: 5100, y: 3900 };
+    match.players[newCarrier].pos = { ...staleAnchor };
+    match.players[blocker].pos = { x: 2900, y: 3700 };
+    match.players[secondBlocker].pos = { x: 2600, y: 3900 };
     match.tick = winding.untilTick;
 
     powerTick(match);
@@ -333,21 +332,28 @@ describe('m1.18 authored one-moment powers', () => {
       kind: 'active', carrierIdx: newCarrier, targetIdx: blocker,
       secondaryTargetIdx: secondBlocker,
     });
-    expect(match.players[blocker].pos).toEqual(anchor);
-    expect(match.players[secondBlocker].pos).toEqual(secondAnchor);
+    expect(match.players[hero].powerAnchor).not.toEqual(staleAnchor);
+    expect(Math.hypot(
+      match.players[blocker].pos.x - match.players[newCarrier].pos.x,
+      match.players[blocker].pos.y - match.players[newCarrier].pos.y,
+    )).toBeGreaterThanOrEqual(599);
+    movementTick(match);
+    tackleTick(match);
+    expect(match.events).not.toContainEqual(expect.objectContaining({
+      kind: 'TACKLE', on: newCarrier,
+    }));
   });
 
-  it('keeps Gravity on its valid second capture when the primary becomes unavailable', () => {
+  it('refunds Gravity when a pass leaves no valid current lane', () => {
     const { match, hero } = matchWith('GRAVITY_WELL', 6);
     const carrier = 9;
     const primary = 12;
     const secondary = 13;
-    const newcomer = 14;
     match.ball = { kind: 'held', by: carrier };
     match.players[hero].pos = { x: 2250, y: 5000 };
     match.players[carrier].pos = { x: 3400, y: 4800 };
-    match.players[primary].pos = { x: 3300, y: 4400 };
-    match.players[secondary].pos = { x: 3250, y: 4100 };
+    match.players[primary].pos = { x: 3200, y: 4100 };
+    match.players[secondary].pos = { x: 3000, y: 3800 };
     for (let idx = 11; idx < 22; idx += 1) {
       if (idx !== primary && idx !== secondary) match.players[idx].pos = { x: 6000, y: 9000 };
     }
@@ -355,22 +361,26 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
     powerTick(match);
     const winding = match.players[hero].powerState as PowerState;
-    if (winding.kind !== 'winding' || winding.secondaryAnchor === undefined) {
-      throw new Error('expected two captured Gravity targets');
-    }
-    const secondaryAnchor = { ...winding.secondaryAnchor };
-    match.players[primary].outUntilTick = winding.untilTick + 10;
-    match.players[newcomer].pos = { x: 3350, y: 4300 };
-    const newcomerBefore = { ...match.players[newcomer].pos };
+    if (winding.kind !== 'winding') throw new Error('expected a Gravity wind-up');
+    const primaryBefore = { ...match.players[primary].pos };
+    const secondaryBefore = { ...match.players[secondary].pos };
+    const newCarrier = 8;
+    match.ball = { kind: 'held', by: newCarrier };
+    match.players[newCarrier].pos = { x: 5600, y: 7200 };
     match.tick = winding.untilTick;
 
     powerTick(match);
 
-    expect(match.players[secondary].pos).toEqual(secondaryAnchor);
-    expect(match.players[newcomer].pos).toEqual(newcomerBefore);
-    expect(match.players[hero].powerState).toMatchObject({
-      kind: 'active', targetIdx: undefined, secondaryTargetIdx: secondary,
-    });
+    expect(match.players[primary].pos).toEqual(primaryBefore);
+    expect(match.players[secondary].pos).toEqual(secondaryBefore);
+    expect(match.players[hero].powerState).toEqual({ kind: 'idle' });
+    expect(match.players[hero].gauge).toBe(50);
+    expect(match.events).toContainEqual(expect.objectContaining({
+      kind: 'POWER_INTERRUPTED', player: hero,
+    }));
+    expect(match.events).not.toContainEqual(expect.objectContaining({
+      kind: 'POWER_FIRED', player: hero, power: 'GRAVITY_WELL',
+    }));
   });
 
   it('places Decoy\'s extra forward farther ahead with a tap and an upgrade', () => {
@@ -1050,7 +1060,7 @@ describe('m1.18 authored one-moment powers', () => {
     }
   });
 
-  it('Gravity Well only fires in friendly possession and pulls markers once toward the carrier', () => {
+  it('Gravity Well only fires in friendly possession and moves markers once to its safe rim', () => {
     const { match, hero } = matchWith('GRAVITY_WELL');
     const carrier = 6;
     match.players[hero].pos = { x: 2250, y: 5000 };
@@ -1067,6 +1077,8 @@ describe('m1.18 authored one-moment powers', () => {
     const after = { ...match.players[12].pos };
     expect(Math.hypot(after.x - match.players[carrier].pos.x, after.y - match.players[carrier].pos.y))
       .toBeLessThan(beforeDistance);
+    expect(Math.hypot(after.x - match.players[carrier].pos.x, after.y - match.players[carrier].pos.y))
+      .toBeGreaterThanOrEqual(899);
     expect(match.players[hero].powerState.kind).toBe('active');
     powerTick(match);
     expect(match.players[12].pos).toEqual(after);
@@ -1088,13 +1100,13 @@ describe('m1.18 authored one-moment powers', () => {
     expect(match.players[hero].powerState.kind).toBe('idle');
     expect(match.players[hero].gauge).toBeGreaterThanOrEqual(60);
 
-    match.players[12].pos = { x: 3300, y: 4400 };
+    match.players[12].pos = { x: 3200, y: 4100 };
     expect(zoneEntryContext(match, hero)).toBe(true);
     powerTick(match);
     expect(match.players[hero].powerState.kind).toBe('zone');
   });
 
-  it('keeps every Gravity grade safely short of crossing through the carrier', () => {
+  it('keeps every Gravity grade on the same non-harmful safe rim', () => {
     function pulse(strength: number, tier: 1 | 3): { before: number; after: number } {
       const { match, hero } = matchWith('GRAVITY_WELL', 6);
       const carrier = 9;
@@ -1121,9 +1133,9 @@ describe('m1.18 authored one-moment powers', () => {
     const auto = pulse(0.85, 1);
     const manual = pulse(1, 1);
     const tier3 = pulse(1, 3);
-    for (const result of [auto, manual, tier3]) {
-      expect(result.after).toBeLessThan(result.before);
-      expect(result.after).toBeGreaterThanOrEqual(599);
-    }
+    expect(auto.after).toBeLessThan(auto.before);
+    expect(auto.after).toBeGreaterThanOrEqual(899);
+    expect(manual.after).toBe(auto.after);
+    expect(tier3.after).toBe(auto.after);
   });
 });

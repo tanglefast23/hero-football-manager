@@ -9,7 +9,7 @@ import { HOME_DECOY_INDEX, AWAY_DECOY_INDEX, playerAt } from '../entities';
 import { createMatch, ENGINE_VERSION, runReplay } from '../match';
 import { activatePower, dismissDecoyClone, powerTick } from '../powers';
 import { ROVERS, UNITED } from '../teams';
-import type { MatchState, TeamDef } from '../types';
+import type { MatchState, PowerState, TeamDef } from '../types';
 
 function decoyTeams(both = false): [TeamDef, TeamDef] {
   return [
@@ -78,6 +78,48 @@ describe('Decoy Double genuine temporary player', () => {
     expect(match.players).toHaveLength(22);
     expect(match.players.every((player, index) => player === baseIdentities[index])).toBe(true);
     expect(playerAt(match, HOME_DECOY_INDEX)).toBe(clone);
+  });
+
+  it('keeps the caster in formation during Decoy wind-up instead of charging its marker', () => {
+    const powered = createMatch(1818, ...decoyTeams());
+    const control = createMatch(1818, ...decoyTeams());
+    placeHomeDecoyContext(powered);
+    placeHomeDecoyContext(control);
+    powered.players[5].firePolicy = 'FIRE_WHEN_READY';
+    powered.players[5].powerState = { kind: 'zone', remainingTicks: 70 };
+
+    powerTick(powered);
+    expect(powered.players[5].powerState).toMatchObject({ kind: 'winding', targetIdx: 12 });
+    movementTick(powered);
+    movementTick(control);
+
+    expect(powered.players[5].pos).toEqual(control.players[5].pos);
+  });
+
+  it('lets a rival power target and land on the clone as a real temporary player', () => {
+    const match = createMatch(1818, ...decoyTeams());
+    spawnHomeDecoy(match);
+    const clone = match.decoyClones[0]!;
+    const rival = 13;
+    match.players[rival].def = { ...match.players[rival].def, power: 'WEB_TRAP' };
+    match.players[rival].pos = { x: clone.pos.x + 300, y: clone.pos.y + 200 };
+    match.ball = { kind: 'held', by: HOME_DECOY_INDEX };
+    match.players[rival].firePolicy = 'FIRE_WHEN_READY';
+    match.players[rival].powerState = { kind: 'zone', remainingTicks: 70 };
+
+    powerTick(match);
+    expect(match.players[rival].powerState).toMatchObject({
+      kind: 'winding', targetIdx: HOME_DECOY_INDEX, targetPlayerId: clone.def.id,
+    });
+    const winding = match.players[rival].powerState as PowerState;
+    if (winding.kind !== 'winding') throw new Error('expected rival Web wind-up');
+    match.tick = winding.untilTick;
+    powerTick(match);
+    match.tick += 1;
+    powerTick(match);
+
+    expect(match.ball).toMatchObject({ kind: 'loose' });
+    expect(clone.webbedUntilTick).toBeGreaterThan(match.tick);
   });
 
   it('receives, carries, passes, and shoots through ordinary engine paths', () => {

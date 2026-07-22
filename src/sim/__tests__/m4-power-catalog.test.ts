@@ -271,8 +271,8 @@ describe('M4 twelve-power catalog', () => {
     const tier3 = matchWith('PORTAL_PASS');
     tier1.match.players[tier1.hero].def.powerTier = 1;
     tier3.match.players[tier3.hero].def.powerTier = 3;
-    tier1.match.ball = { kind: 'held', by: 6 };
-    tier3.match.ball = { kind: 'held', by: 6 };
+    prepareActivation(tier1.match, tier1.hero, 'PORTAL_PASS');
+    prepareActivation(tier3.match, tier3.hero, 'PORTAL_PASS');
 
     activatePower(tier1.match, tier1.hero, 1);
     activatePower(tier3.match, tier3.hero, 1);

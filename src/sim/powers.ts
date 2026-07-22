@@ -17,6 +17,7 @@ export const ARM_WINDOW_TICKS = 20;
 export const GAUGE_TRICKLE = 0.02;
 export const MAX_ZONES_PER_PLAYER = 3;
 const STRENGTH_WINDUP_TICKS = 5;
+const GRAVITY_WINDUP_TICKS = 5;
 const PORTAL_PROTECTION_TICKS = 20;
 const ICE_SLIDE_STEP = 110;
 const SHADOW_BURROW_TICKS = 20;
@@ -424,17 +425,19 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
   }
   p.powerState = {
     kind: 'winding',
-    untilTick: state.tick + (p.def.power === 'SUPER_STRENGTH' ? STRENGTH_WINDUP_TICKS : WINDUP_TICKS),
+    untilTick: state.tick + (p.def.power === 'SUPER_STRENGTH'
+      ? STRENGTH_WINDUP_TICKS
+      : p.def.power === 'GRAVITY_WELL' ? GRAVITY_WINDUP_TICKS : WINDUP_TICKS),
     strength,
     targetIdx,
-    targetPlayerId: targetIdx === undefined ? undefined : state.players[targetIdx].def.id,
+    targetPlayerId: targetIdx === undefined ? undefined : playerAt(state, targetIdx)?.def.id,
     secondaryTargetIdx,
     secondaryTargetPlayerId: secondaryTargetIdx === undefined
-      ? undefined : state.players[secondaryTargetIdx].def.id,
+      ? undefined : playerAt(state, secondaryTargetIdx)?.def.id,
     secondaryAnchor,
     carrierIdx,
     runnerIdx,
-    runnerPlayerId: runnerIdx === undefined ? undefined : state.players[runnerIdx].def.id,
+    runnerPlayerId: runnerIdx === undefined ? undefined : playerAt(state, runnerIdx)?.def.id,
     runnerAnchor,
   };
 }
@@ -859,10 +862,6 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
   const winding = p.powerState.kind === 'winding' ? p.powerState : undefined;
   const capturedTargetIdx = targetIdx ?? winding?.targetIdx;
   const capturedTargetPlayerId = winding?.targetPlayerId;
-  const capturedSecondaryTargetIdx = winding?.secondaryTargetIdx;
-  const capturedSecondaryTargetPlayerId = winding?.secondaryTargetPlayerId;
-  const capturedSecondaryAnchor = winding?.secondaryAnchor === undefined
-    ? undefined : { ...winding.secondaryAnchor };
   const capturedCarrierIdx = winding?.carrierIdx;
   const capturedRunnerIdx = winding?.runnerIdx;
   const capturedRunnerPlayerId = winding?.runnerPlayerId;
@@ -870,6 +869,8 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     ? undefined : { ...winding.runnerAnchor };
   const capturedAnchor = winding !== undefined && p.powerAnchor !== undefined
     ? { ...p.powerAnchor } : undefined;
+  const capturedTarget = capturedTargetIdx === undefined
+    ? undefined : playerAt(state, capturedTargetIdx);
   const tierScale = tierEffectScale(p.def.powerTier);
   const timingScale = manualTimingScale(strength);
   const effectStrength = projectedEffectStrength(p, strength);
@@ -906,7 +907,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
   const capturedDecoyRunnerValid = hasDecoyCapture && capturedRunnerIdx !== undefined
     && friendlyTargetAvailable(state, p.team, capturedRunnerIdx, capturedRunnerPlayerId)
     && capturedRunnerIdx !== decoyCarrier
-    && state.players[capturedRunnerIdx].def.role === 'FWD';
+    && playerAt(state, capturedRunnerIdx)?.def.role === 'FWD';
   const decoyRunner = hasDecoyCapture
     ? (capturedDecoyRunnerValid ? capturedRunnerIdx! : -1)
     : power === 'DECOY_DOUBLE' && decoyCarrier !== -1
@@ -916,30 +917,17 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     : power === 'DECOY_DOUBLE' && decoyCarrier !== -1 && decoyMarker !== -1
       ? decoyClonePosition(state, decoyCarrier, decoyMarker, effectStrength)
       : undefined;
-  const gravityCaptured = power === 'GRAVITY_WELL'
-    && capturedCarrierIdx !== undefined
-    && capturedTargetIdx !== undefined
-    && capturedAnchor !== undefined;
-  const capturedGravityPrimaryValid = gravityCaptured && capturedTargetIdx !== undefined
-    && capturedTargetAvailable(
-      state,
-      p.team,
-      capturedTargetIdx,
-      capturedTargetPlayerId,
-    );
-  const capturedGravitySecondaryValid = gravityCaptured
-    && capturedSecondaryTargetIdx !== undefined
-    && capturedSecondaryAnchor !== undefined
-    && capturedTargetAvailable(
-      state,
-      p.team,
-      capturedSecondaryTargetIdx,
-      capturedSecondaryTargetPlayerId,
-    );
-  const capturedGravityRunnerValid = power === 'GRAVITY_WELL'
-    && capturedRunnerIdx !== undefined
-    && capturedRunnerAnchor !== undefined
-    && friendlyTargetAvailable(state, p.team, capturedRunnerIdx, capturedRunnerPlayerId);
+  // Gravity is a current-lane power: passing during the wind-up moves its
+  // danger area. Captured anchors remain presentation-only; the landing must
+  // re-read the current carrier, blockers, and runner or safely refund.
+  const gravityBlockers = power === 'GRAVITY_WELL'
+    ? gravityLaneBlockers(state, idx).slice(0, 2) : [];
+  const gravityPrimary = gravityBlockers[0];
+  const gravitySecondary = gravityBlockers[1];
+  const gravityCurrentRunner = power === 'GRAVITY_WELL'
+    && friendlyCarrier !== -1
+    && gravityPrimary !== undefined
+    ? gravityRunner(state, idx, friendlyCarrier, gravityPrimary) : null;
   const fireMarkers = power === 'FIRE_TORCH'
     ? relevantTorchMarkers(state, idx, torchAcquisitionRange(p, strength), p.def.powerTier ?? 1)
     : [];
@@ -950,14 +938,13 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     || (power === 'PORTAL_PASS' && hasPortalCapture
       && (friendlyCarrier === -1 || !capturedPortalReceiverValid))
     || (power === 'GRAVITY_WELL'
-      && (gravityCaptured
-        ? friendlyCarrier === -1
-          || (!capturedGravityPrimaryValid && !capturedGravitySecondaryValid)
-          || !capturedGravityRunnerValid
-        : !gravityWellContext(state, idx)));
+      && (!gravityWellContext(state, idx) || gravityCurrentRunner === null));
   const targetlessMoment = (power === 'FIRE_TORCH' && fireMarkers.length === 0)
     || (power === 'RALLY_CRY' && rallyTarget === -1)
-    || (power === 'PORTAL_PASS' && !hasPortalCapture && immediatePortalDestination === null);
+    || (power === 'PORTAL_PASS' && !hasPortalCapture && immediatePortalDestination === null)
+    || (winding !== undefined && (power === 'WEB_TRAP' || power === 'ICE_RINK')
+      && (capturedTarget === undefined
+        || (capturedTargetPlayerId !== undefined && capturedTarget.def.id !== capturedTargetPlayerId)));
   if (staleOffBallContext || targetlessMoment) {
     // These powers promise a live team attack. If the situation disappears
     // during the wind-up, refund the canonical half Heat instead of animating
@@ -1001,10 +988,10 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       runnerAnchor: capturedRunnerAnchor,
     }),
   };
-  p.powerAnchor = power === 'WEB_TRAP' && capturedTargetIdx !== undefined
-    ? { ...state.players[capturedTargetIdx].pos }
-    : power === 'ICE_RINK' && capturedTargetIdx !== undefined
-      ? { ...state.players[capturedTargetIdx].pos }
+  p.powerAnchor = power === 'WEB_TRAP' && capturedTarget !== undefined
+    ? { ...capturedTarget.pos }
+    : power === 'ICE_RINK' && capturedTarget !== undefined
+      ? { ...capturedTarget.pos }
       : (power === 'DECOY_DOUBLE' || power === 'GRAVITY_WELL') && capturedAnchor !== undefined
         ? capturedAnchor
       : power === 'SHADOW_MARK' ? { ...p.pos }
@@ -1043,10 +1030,11 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
   } else if (power === 'SUPER_STRENGTH') {
     const stableTarget = capturedTargetIdx !== undefined
       && (capturedTargetPlayerId === undefined
-        || state.players[capturedTargetIdx]?.def.id === capturedTargetPlayerId)
+        || capturedTarget?.def.id === capturedTargetPlayerId)
       && state.ball.kind === 'held' && state.ball.by === capturedTargetIdx;
-    if (p.outUntilTick <= state.tick && stableTarget && capturedTargetIdx !== undefined) {
-      const target = state.players[capturedTargetIdx];
+    if (p.outUntilTick <= state.tick && stableTarget && capturedTargetIdx !== undefined
+      && capturedTarget !== undefined) {
+      const target = capturedTarget;
       if (target.outUntilTick <= state.tick) {
         p.pos = moveToward(p.pos, target.pos, strengthLandingRange(p, strength));
         const grade = activeActivationGrade(p);
@@ -1068,8 +1056,9 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
         ? { receiver: capturedTargetIdx, pos: capturedAnchor }
         : immediatePortalDestination;
       if (destination !== null) {
-        state.players[destination.receiver].pos = { ...destination.pos };
-        state.players[destination.receiver].portalProtectedUntilTick = state.tick + PORTAL_PROTECTION_TICKS;
+        const receiver = requirePlayerAt(state, destination.receiver);
+        receiver.pos = { ...destination.pos };
+        receiver.portalProtectedUntilTick = state.tick + PORTAL_PROTECTION_TICKS;
         state.ball = { kind: 'held', by: destination.receiver };
         emit(state, {
           t: state.tick,
@@ -1090,29 +1079,35 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     if (challenger !== -1) consumePhaseChallenge(state, idx, challenger);
     else finishMomentPower(state, idx);
   } else if (power === 'GRAVITY_WELL') {
-    if (gravityCaptured && capturedTargetIdx !== undefined && friendlyCarrier !== -1
-      && p.powerAnchor !== undefined) {
+    if (friendlyCarrier !== -1 && gravityPrimary !== undefined && gravityCurrentRunner !== null) {
+      const primaryAnchor = gravityPullDestination(
+        state,
+        idx,
+        friendlyCarrier,
+        gravityPrimary,
+        activeActivationGrade(p),
+      );
+      const secondaryAnchor = gravitySecondary === undefined ? undefined : gravityPullDestination(
+        state,
+        idx,
+        friendlyCarrier,
+        gravitySecondary,
+        activeActivationGrade(p),
+      );
+      p.powerAnchor = primaryAnchor;
       if (p.powerState.kind === 'active') {
         p.powerState.carrierIdx = friendlyCarrier;
-        p.powerState.targetIdx = capturedGravityPrimaryValid ? capturedTargetIdx : undefined;
-        p.powerState.secondaryTargetIdx = capturedGravitySecondaryValid
-          ? capturedSecondaryTargetIdx : undefined;
-        p.powerState.secondaryAnchor = capturedGravitySecondaryValid
-          ? capturedSecondaryAnchor : undefined;
-        p.powerState.runnerIdx = capturedGravityRunnerValid ? capturedRunnerIdx : undefined;
-        p.powerState.runnerPlayerId = capturedGravityRunnerValid ? capturedRunnerPlayerId : undefined;
-        p.powerState.runnerAnchor = capturedGravityRunnerValid ? capturedRunnerAnchor : undefined;
+        p.powerState.targetIdx = gravityPrimary;
+        p.powerState.secondaryTargetIdx = gravitySecondary;
+        p.powerState.secondaryAnchor = secondaryAnchor;
+        p.powerState.runnerIdx = gravityCurrentRunner.idx;
+        p.powerState.runnerPlayerId = state.players[gravityCurrentRunner.idx].def.id;
+        p.powerState.runnerAnchor = gravityCurrentRunner.pos;
       }
-      if (capturedGravityPrimaryValid) {
-        state.players[capturedTargetIdx].pos = { ...p.powerAnchor };
+      state.players[gravityPrimary].pos = primaryAnchor;
+      if (gravitySecondary !== undefined && secondaryAnchor !== undefined) {
+        state.players[gravitySecondary].pos = secondaryAnchor;
       }
-      if (capturedGravitySecondaryValid && capturedSecondaryTargetIdx !== undefined
-        && capturedSecondaryAnchor !== undefined) {
-        state.players[capturedSecondaryTargetIdx].pos = capturedSecondaryAnchor;
-      }
-    } else if (state.ball.kind === 'held' && requirePlayerAt(state, state.ball.by).team === p.team) {
-      if (p.powerState.kind === 'active') p.powerState.carrierIdx = state.ball.by;
-      applyGravityWell(state, idx);
     } else finishMomentPower(state, idx);
   } else if (power === 'DECOY_DOUBLE') {
     // The visible wind-up places a false run. Once placed, a later pass cannot
@@ -1210,36 +1205,44 @@ export function dismissDecoyClone(
   return true;
 }
 
-function applyGravityWell(state: MatchState, idx: number): void {
-  const hero = state.players[idx];
-  if (hero.powerState.kind !== 'active' || state.ball.kind !== 'held'
-    || requirePlayerAt(state, state.ball.by).team !== hero.team) return;
-  const grade = activeActivationGrade(hero);
-  for (const candidate of gravityLaneBlockers(state, idx).slice(0, 2)) {
-    state.players[candidate].pos = gravityPullDestination(
-      state,
-      idx,
-      state.ball.by,
-      candidate,
-      grade,
-    );
-  }
-}
-
 function gravityPullDestination(
   state: MatchState,
   _heroIdx: number,
   carrierIdx: number,
   blockerIdx: number,
-  grade: number,
+  _grade: number,
 ): { x: number; y: number } {
   const carrier = requirePlayerAt(state, carrierIdx);
   const blocker = state.players[blockerIdx];
-  const maxPulse = Math.round(anchoredEffect(grade, 1200, 1400, 1600));
+  // A larger rim is not monotonically stronger: it can throw a marker into the
+  // runner's new lane. Every grade therefore uses the same proven safe geometry
+  // rather than making a watched tap or upgrade capable of hurting the team.
+  const maxPulse = 1200;
+  const safeGap = 900;
   const distance = Math.sqrt(dist2(blocker.pos, carrier.pos));
+  if (distance < safeGap) {
+    // Point-blank defenders are already too close to pull inward safely. The
+    // same well throws them outward to its minimum safe rim instead, matching
+    // the authored promise that Gravity always opens the carrier's lane.
+    const fallbackX = blocker.pos.x <= PITCH_W / 2 ? -1 : 1;
+    const unitX = distance === 0 ? fallbackX : (blocker.pos.x - carrier.pos.x) / distance;
+    const unitY = distance === 0 ? 0 : (blocker.pos.y - carrier.pos.y) / distance;
+    return {
+      x: Math.round(clampEffect(
+        carrier.pos.x + unitX * safeGap,
+        0,
+        PITCH_W,
+      )),
+      y: Math.round(clampEffect(
+        carrier.pos.y + unitY * safeGap,
+        300,
+        PITCH_H - 300,
+      )),
+    };
+  }
   // Leave enough room that the next ordinary movement tick cannot turn the
   // helpful pull into an immediate standing tackle on the carrier.
-  const travel = Math.min(maxPulse, Math.max(0, distance - 600));
+  const travel = Math.min(maxPulse, Math.max(0, distance - safeGap));
   return moveToward(blocker.pos, carrier.pos, travel);
 }
 
@@ -1902,7 +1905,9 @@ export function speedMultiplier(state: MatchState, idx: number): number {
   if (p === undefined) return 1;
   // Charging a locked Super Strength target accelerates the pursuit — the windup
   // telegraph is the counterplay, not a guaranteed whiff (Task 12.1/12.2 landing-rate fix).
-  if (p.powerState.kind === 'winding' && p.powerState.targetIdx !== undefined) {
+  if (p.def.power === 'SUPER_STRENGTH'
+    && p.powerState.kind === 'winding'
+    && p.powerState.targetIdx !== undefined) {
     const timing = manualTimingScale(p.powerState.strength);
     return 1 + (PURSUIT_MULT - 1) * p.powerState.strength * timing * tierEffectScale(p.def.powerTier);
   }

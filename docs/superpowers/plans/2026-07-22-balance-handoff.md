@@ -7,7 +7,7 @@ starting evidence and decision record; sections 6–9 are the current status.
 **Historical branch at the start of this handoff:**
 `feature/hero-power-balance-m1-13`. The active closeout branch is now
 `codex/balance-closeout-m1-18`, and the replay version under verification is
-**m1.18**. Sections 1–9 remain the historical evidence trail; section 10 is the
+**m1.21**. Sections 1–9 remain the historical evidence trail; section 10 is the
 owner-approved closeout contract and is authoritative when an older target or
 proposal conflicts with it.
 
@@ -533,26 +533,30 @@ seeds; smaller runs are directional diagnostics.
 The owner approved these mechanic replacements and the matching readable match
 animations:
 
-- **Decoy Double:** create one temporary hologram forward. The real forward and
-  double make separate runs; if a pass reaches the double, it becomes the real
-  forward at that location and the original image disappears. Safe expiry or a
-  turnover must not harm the team.
+- **Decoy Double:** create one temporary hologram forward with the copied
+  forward's stats. The double remains a separate player for its full duration,
+  can receive, carry, pass, and shoot, and does not disappear merely because it
+  receives the ball. It pops on expiry, turnover, or restart; if it is carrying
+  at expiry, the ball stays loose where it vanished. The pop has an audible cue.
 - **Future Sight:** after the predicted interception, immediately complete a
   controlled pass to the furthest-forward onside teammate.
 - **Super Strength:** lock the current carrier into a visible 0.5-second charge
   window in which they cannot pass or shoot; the charge then lands and wins the
   ball.
-- **Web Trap:** the victim drops the ball and remains visibly webbed for about
-  two seconds, unable to move, tackle, or recover the loose ball.
+- **Web Trap:** the victim drops the ball and remains visibly webbed for six,
+  seven, or eight seconds by activation grade, unable to move, tackle, or
+  recover the loose ball.
 - **Ice Rink:** if the existing version remains below the accepted band, slide
   the carrier and ball backward toward their own goal, preventing actions
   during the slide and never forcing the ball across the goal line.
 - **Shadow Mark:** burrow underground, arm after two seconds, and wait up to ten
   seconds for an opposing field-player carrier to enter the visible hunting
-  area. Pop up for a guaranteed steal; safely return if possession changes or
-  no target arrives.
+  area. Friendly possession does not cancel the hunt and friendly carriers are
+  ignored. Pop up for a guaranteed steal when the opposition next qualifies;
+  safely return only if the full hunting window expires or play restarts.
 - **Gust:** bend the opponent's next pass safely to the friendly goalkeeper,
-  who immediately punts far into attacking space.
+  who immediately completes a long punt to a teammate. Higher activation
+  grades improve the punt destination.
 - **Rally Cry:** grant one nearby powered teammate an Encore: exactly one bonus
   activation beyond the normal three-use cap. If a power is already ready, the
   Encore queues and refills it after use. A hero can hold and receive only one
@@ -560,10 +564,11 @@ animations:
 - **Portal Pass:** protect the receiving forward from tackles and
   dispossessions for about one second, ending the protection on their pass or
   shot; goalkeepers can still save normally.
-- **Gravity Well:** pull one or two opposing defenders toward the carrier,
+- **Gravity Well:** after a 0.5-second readable wind-up, move one or two
+  opposing defenders to a non-harmful safe rim around the current carrier,
   direct the nearest suitable attacker into the abandoned lane, and prioritize
-  the carrier's next pass to that runner. Wait rather than fire without a real
-  lane.
+  the carrier's next pass to that runner. Re-check the current lane when the
+  wind-up lands and refund rather than fire without a real lane.
 - **Fire Torch:** a short attacking window torches up to one, two, or three
   relevant goal-side defenders at power tiers 1, 2, and 3 respectively. Measure
   the upper tier against the +6 ceiling.
@@ -571,5 +576,6 @@ animations:
   or live playtesting shows that its visible duration feels too short. The
   directional +1.6 auto / +2.5 manual / +4.8 upgraded result already passes.
 
-A developer-only browser showcase must queue every launch power one at a time,
-with Previous, Replay, and Next controls, before the art is considered approved.
+A developer-only browser showcase queues every launch power one at a time with
+Previous, Replay, and Next controls. It remains available for an owner-requested
+art review, but the closeout does not open additional browser windows.

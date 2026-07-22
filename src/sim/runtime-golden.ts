@@ -4,11 +4,12 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
-// Rebaselined deliberately for m1.20: Portal now resolves its promised exit,
+// Rebaselined deliberately for m1.21: Portal now resolves its promised exit,
 // watched and automatic keeper windows share one danger rule, and Decoy,
 // Gravity, and Ice no longer contain the harmful legacy interactions found by
-// the final directional audit.
-const EXPECTED_RUNTIME_GOLDEN = '7b4965d6';
+// the final directional audit. Only Super Strength receives charge movement
+// and charge speed during a target-bearing wind-up.
+const EXPECTED_RUNTIME_GOLDEN = 'e2e6f7dc';
 
 export function runtimeGoldenFingerprint(): string {
   const result = runMatch(42, ROVERS, UNITED, [], {

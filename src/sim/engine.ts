@@ -211,7 +211,8 @@ function fallbackTarget(state: MatchState, idx: number, mv: MovementState, ball:
 function targetFor(state: MatchState, i: number, mv: MovementState, presserIdx: number, ball: Vec): Vec {
   const p = requirePlayerAt(state, i);
   const isCarrier = state.ball.kind === 'held' && state.ball.by === i;
-  const chargeTarget = p.powerState.kind === 'winding'
+  const chargeTarget = p.def.power === 'SUPER_STRENGTH'
+    && p.powerState.kind === 'winding'
     && p.powerState.targetIdx !== undefined
     && p.powerState.targetIdx >= 0
     && playerAt(state, p.powerState.targetIdx) !== undefined

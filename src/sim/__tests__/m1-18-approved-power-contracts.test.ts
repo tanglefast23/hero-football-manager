@@ -434,7 +434,7 @@ describe('m1.18 approved power contracts', () => {
       .toHaveLength(1);
   });
 
-  it('Gravity pulls defenders toward the carrier and commits a runner into the abandoned lane', () => {
+  it('Gravity clears defenders to a safe rim and commits a runner into the abandoned lane', () => {
     const match = matchWith('GRAVITY_WELL', 5);
     const hero = 5;
     const carrier = 6;
@@ -456,12 +456,16 @@ describe('m1.18 approved power contracts', () => {
       match.players[blocker].pos.x - match.players[carrier].pos.x,
       match.players[blocker].pos.y - match.players[carrier].pos.y,
     );
-    match.tick = 15;
+    match.tick = winding.untilTick;
     powerTick(match);
     expect(Math.hypot(
       match.players[blocker].pos.x - match.players[carrier].pos.x,
       match.players[blocker].pos.y - match.players[carrier].pos.y,
-    )).toBeLessThan(blockerDistance);
+    )).toBeGreaterThan(blockerDistance);
+    expect(Math.hypot(
+      match.players[blocker].pos.x - match.players[carrier].pos.x,
+      match.players[blocker].pos.y - match.players[carrier].pos.y,
+    )).toBeGreaterThanOrEqual(899);
     expect(gravityRunnerTarget(match, 9)).toEqual(runnerAnchor);
     const before = { ...match.players[9].pos };
     movementTick(match);
@@ -509,6 +513,34 @@ describe('m1.18 approved power contracts', () => {
     match.ball = { kind: 'held', by: 11 };
     powerTick(match);
     expect(match.players[5].powerState.kind).toBe('idle');
+  });
+
+  it('pushes a point-blank Gravity blocker out to a safe rim without conceding a tackle', () => {
+    const match = matchWith('GRAVITY_WELL', 5);
+    const hero = 5;
+    const carrier = 6;
+    const blocker = 12;
+    match.players[hero].pos = { x: 2250, y: 4400 };
+    match.players[carrier].pos = { x: 1200, y: 4200 };
+    match.players[blocker].pos = { x: 1300, y: 4100 };
+    for (let idx = 11; idx < 22; idx += 1) {
+      if (idx !== blocker) match.players[idx].pos = { x: 6500, y: 9000 };
+    }
+    match.ball = { kind: 'held', by: carrier };
+    expect(inUsefulContext(match, hero)).toBe(true);
+    activatePower(match, hero, 1);
+    expect(Math.hypot(
+      match.players[blocker].pos.x - match.players[carrier].pos.x,
+      match.players[blocker].pos.y - match.players[carrier].pos.y,
+    )).toBeGreaterThanOrEqual(899);
+    movementTick(match);
+    tackleTick(match);
+    expect(match.events).toContainEqual(expect.objectContaining({
+      kind: 'POWER_FIRED', player: hero,
+    }));
+    expect(match.events).not.toContainEqual(expect.objectContaining({
+      kind: 'TACKLE', on: carrier,
+    }));
   });
 
   it.each([[1, 1], [2, 2], [3, 3]] as const)(

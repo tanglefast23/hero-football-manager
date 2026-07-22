@@ -8,9 +8,9 @@ import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.20 keeps every successful power outcome useful, including captured Portal
+// m1.21 keeps every successful power outcome useful, including captured Portal
 // exits and the final Decoy, Gravity, Ice, and keeper corrections.
-export const ENGINE_VERSION = 'm1.20';
+export const ENGINE_VERSION = 'm1.21';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one

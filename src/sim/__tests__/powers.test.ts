@@ -52,18 +52,16 @@ describe('hero gauge and firing', () => {
   it('lets an auto target power fire late on a usable target instead of lapsing', () => {
     // Target-requiring powers used to be excluded from the late-window fallback
     // outright, so a Zone they could not perfectly convert was simply wasted
-    // (M4 gate: seven of twelve powers firing in 0-17% of matches). Portal Pass
-    // is usable whenever its hero carries the ball; its ideal context also wants
-    // an opponent within 1100, so an unmarked carrier is usable-but-not-ideal.
+    // (M4 gate: seven of twelve powers firing in 0-17% of matches). Blink Run
+    // is usable from 45% attacking progress, while its ideal context waits for
+    // 55%, so this carrier is usable-but-not-ideal.
     const m = createMatch(42, { ...ROVERS, players: ROVERS.players.map((pl, i) => (
-      i === SPEEDSTER ? { ...pl, power: 'PORTAL_PASS' as const } : { ...pl, power: undefined }
+      i === SPEEDSTER ? { ...pl, power: 'BLINK_RUN' as const } : { ...pl, power: undefined }
     )) }, UNITED, { homePolicy: 'FIRE_WHEN_READY' });
     const hero = m.players[SPEEDSTER];
     hero.powerState = { kind: 'zone', remainingTicks: 3 };
-    hero.pos = { x: 2250, y: 3500 };
+    hero.pos = { x: 2250, y: 5500 };
     m.ball = { kind: 'held', by: SPEEDSTER };
-    // Push every opponent well clear so the ideal context cannot be satisfied.
-    for (let i = 11; i < 22; i += 1) m.players[i].pos = { x: 200, y: 9000 };
 
     expect(inUsefulContext(m, SPEEDSTER)).toBe(false);
     tick(m);
