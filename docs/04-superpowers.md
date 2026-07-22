@@ -59,7 +59,7 @@ Launch ships **17** of these. Magnet Touch was cut at M4; Bend It and Time Skip 
 | **Midfield / utility** | | |
 | ~~Magnet Touch~~ ✂ | The next loose ball in range snaps to you | **Cut at M4** — measured 3.4 Zones and 0 fires per match across 24 seeds. Its trigger is a loose ball near the hero, which almost never coincides with the 7s window |
 | Decoy Double | Creates a temporary extra forward with the copied forward's stats; the clone can receive, carry, pass, and shoot until it pops on expiry, turnover, or restart | Add the extra passing option while your team owns the attack |
-| Gravity Well | Moves one or two blockers to a safe rim, sends a suitable attacker into the abandoned lane, and prioritizes the pass | Plant it centrally when a teammate's route is blocked |
+| Gravity Well | Moves one or two blockers sideways out of the route to goal and the runner, sends the most open suitable attacker forward, and prioritizes the pass only while its lane stays open | Plant it centrally when a teammate's route is blocked |
 | Future Sight | Predicts and steals the next eligible pass, then guarantees an outlet to the furthest-forward onside teammate | Read the through-ball before it's played |
 | Rally Cry | Gives one nearby powered teammate one Encore activation beyond the normal cap | Use it where a second hero can cash in the bonus |
 | Time Skip ★ | Everyone freezes for one second except the hero | The one moment that decides the match |

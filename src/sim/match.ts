@@ -8,9 +8,9 @@ import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.22 lets the approved Decoy, Web, Ice, Shadow, Portal, Future Sight, and
-// Gravity moments land reliably without weakening their safe counterplay.
-export const ENGINE_VERSION = 'm1.22';
+// m1.23 keeps Gravity's lane-opening pulse from moving blockers toward the
+// carrier and abandons its priority pass if that lane closes before the kick.
+export const ENGINE_VERSION = 'm1.23';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one

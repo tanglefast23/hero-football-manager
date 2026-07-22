@@ -24,6 +24,23 @@ import {
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState, PowerId, PowerState } from '../types';
 
+function segmentDistance(
+  point: { x: number; y: number },
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+): number {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length2 = dx * dx + dy * dy;
+  if (length2 === 0) return Math.hypot(point.x - from.x, point.y - from.y);
+  const t = Math.max(0, Math.min(1,
+    ((point.x - from.x) * dx + (point.y - from.y) * dy) / length2));
+  return Math.hypot(
+    point.x - (from.x + dx * t),
+    point.y - (from.y + dy * t),
+  );
+}
+
 function matchWith(power: PowerId, slot = 10): { match: MatchState; hero: number } {
   const home = {
     ...ROVERS,
@@ -357,10 +374,11 @@ describe('m1.18 authored one-moment powers', () => {
     expect(match.events).toContainEqual(expect.objectContaining({
       kind: 'POWER_FIRED', player: hero, power: 'GRAVITY_WELL',
     }));
-    expect(match.players[hero].powerState).toMatchObject({
-      kind: 'active', carrierIdx: newCarrier, targetIdx: blocker,
-      secondaryTargetIdx: secondBlocker,
-    });
+    expect(match.players[hero].powerState).toMatchObject({ kind: 'active', carrierIdx: newCarrier });
+    const active = match.players[hero].powerState as PowerState;
+    if (active.kind !== 'active') throw new Error('expected active Gravity well');
+    expect(new Set([active.targetIdx, active.secondaryTargetIdx]))
+      .toEqual(new Set([blocker, secondBlocker]));
     expect(match.players[hero].powerAnchor).not.toEqual(staleAnchor);
     expect(Math.hypot(
       match.players[blocker].pos.x - match.players[newCarrier].pos.x,
@@ -1197,7 +1215,7 @@ describe('m1.18 authored one-moment powers', () => {
     }
   });
 
-  it('Gravity Well only fires in friendly possession and moves markers once to its safe rim', () => {
+  it('Gravity Well only fires in friendly possession and moves markers sideways out of both lanes', () => {
     const { match, hero } = matchWith('GRAVITY_WELL');
     const carrier = 6;
     match.players[hero].pos = { x: 2250, y: 5000 };
@@ -1212,10 +1230,17 @@ describe('m1.18 authored one-moment powers', () => {
     const beforeDistance = Math.hypot(before.x - match.players[carrier].pos.x, before.y - match.players[carrier].pos.y);
     activatePower(match, hero, 1);
     const after = { ...match.players[12].pos };
+    const active = match.players[hero].powerState;
+    if (active.kind !== 'active' || active.runnerAnchor === undefined) {
+      throw new Error('expected active Gravity runner');
+    }
+    const goal = { x: 2250, y: 0 };
+    expect(segmentDistance(after, match.players[carrier].pos, goal))
+      .toBeGreaterThan(segmentDistance(before, match.players[carrier].pos, goal));
+    expect(segmentDistance(after, match.players[carrier].pos, active.runnerAnchor))
+      .toBeGreaterThan(segmentDistance(before, match.players[carrier].pos, active.runnerAnchor));
     expect(Math.hypot(after.x - match.players[carrier].pos.x, after.y - match.players[carrier].pos.y))
-      .toBeLessThan(beforeDistance);
-    expect(Math.hypot(after.x - match.players[carrier].pos.x, after.y - match.players[carrier].pos.y))
-      .toBeGreaterThanOrEqual(899);
+      .toBeGreaterThan(beforeDistance);
     expect(match.players[hero].powerState.kind).toBe('active');
     powerTick(match);
     expect(match.players[12].pos).toEqual(after);
@@ -1243,7 +1268,7 @@ describe('m1.18 authored one-moment powers', () => {
     expect(match.players[hero].powerState.kind).toBe('zone');
   });
 
-  it('keeps every Gravity grade on the same non-harmful safe rim', () => {
+  it('keeps every Gravity grade on the same non-harmful outward pulse', () => {
     function pulse(strength: number, tier: 1 | 3): { before: number; after: number } {
       const { match, hero } = matchWith('GRAVITY_WELL', 6);
       const carrier = 9;
@@ -1270,8 +1295,7 @@ describe('m1.18 authored one-moment powers', () => {
     const auto = pulse(0.85, 1);
     const manual = pulse(1, 1);
     const tier3 = pulse(1, 3);
-    expect(auto.after).toBeLessThan(auto.before);
-    expect(auto.after).toBeGreaterThanOrEqual(899);
+    expect(auto.after).toBeGreaterThan(auto.before);
     expect(manual.after).toBe(auto.after);
     expect(tier3.after).toBe(auto.after);
   });

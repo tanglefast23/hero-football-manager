@@ -4,10 +4,9 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
-// Rebaselined deliberately for m1.22: Decoy, Web, Ice, Shadow, Portal, Future
-// Sight, and Gravity now use the approved timing, reach, and duration rules
-// selected for the final closeout probes.
-const EXPECTED_RUNTIME_GOLDEN = '6009c563';
+// Rebaselined deliberately for m1.23: Gravity now moves blockers sideways out
+// of the useful lanes and revalidates that its priority pass remains open.
+const EXPECTED_RUNTIME_GOLDEN = '518ea506';
 
 export function runtimeGoldenFingerprint(): string {
   const result = runMatch(42, ROVERS, UNITED, [], {

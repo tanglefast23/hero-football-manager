@@ -10,6 +10,7 @@ import { createMatch } from '../match';
 import {
   activatePower,
   decoyPassOption,
+  gravityPriorityTarget,
   gravityRunnerTarget,
   gustPuntDestination,
   inUsefulContext,
@@ -497,10 +498,12 @@ describe('m1.18 approved power contracts', () => {
     match.players[hero].firePolicy = 'FIRE_WHEN_READY';
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
     powerTick(match);
-    expect(match.players[hero].powerState).toMatchObject({ kind: 'winding', runnerIdx: 9 });
     const winding = match.players[hero].powerState as PowerState;
-    if (winding.kind !== 'winding' || winding.runnerAnchor === undefined) throw new Error('expected runner capture');
+    if (winding.kind !== 'winding' || winding.runnerIdx === undefined
+      || winding.runnerAnchor === undefined) throw new Error('expected runner capture');
+    const runner = winding.runnerIdx;
     const runnerAnchor = { ...winding.runnerAnchor };
+    expect(runnerAnchor.y).toBe(match.players[blocker].pos.y - 800);
     const blockerDistance = Math.hypot(
       match.players[blocker].pos.x - match.players[carrier].pos.x,
       match.players[blocker].pos.y - match.players[carrier].pos.y,
@@ -515,38 +518,97 @@ describe('m1.18 approved power contracts', () => {
       match.players[blocker].pos.x - match.players[carrier].pos.x,
       match.players[blocker].pos.y - match.players[carrier].pos.y,
     )).toBeGreaterThanOrEqual(899);
-    expect(gravityRunnerTarget(match, 9)).toEqual(runnerAnchor);
-    const before = { ...match.players[9].pos };
+    expect(gravityRunnerTarget(match, runner)).toEqual(runnerAnchor);
+    const before = { ...match.players[runner].pos };
     movementTick(match);
-    expect(Math.hypot(match.players[9].pos.x - runnerAnchor.x, match.players[9].pos.y - runnerAnchor.y))
+    expect(Math.hypot(match.players[runner].pos.x - runnerAnchor.x, match.players[runner].pos.y - runnerAnchor.y))
       .toBeLessThan(Math.hypot(before.x - runnerAnchor.x, before.y - runnerAnchor.y));
     tackleTick(match);
     expect(match.events).not.toContainEqual(expect.objectContaining({
       kind: 'TACKLE', on: carrier,
     }));
     expect(match.ball).toEqual({ kind: 'held', by: carrier });
-    expect(attackingDecision(match, carrier)).toMatchObject({ kind: 'pass', to: 9 });
+    expect(attackingDecision(match, carrier)).toMatchObject({ kind: 'pass', to: runner });
     match.tick = 5;
     possessionTick(match);
-    expect(match.ball).toMatchObject({ kind: 'pass', from: carrier, to: 9 });
+    expect(match.ball).toMatchObject({ kind: 'pass', from: carrier, to: runner });
     expect(match.players[hero].powerState.kind).toBe('active');
-    expect(gravityRunnerTarget(match, 9)).toEqual(runnerAnchor);
+    expect(gravityRunnerTarget(match, runner)).toEqual(runnerAnchor);
 
-    const inFlight = { ...match.players[9].pos };
+    const inFlight = { ...match.players[runner].pos };
     match.tick = 16;
     powerTick(match);
     movementTick(match);
-    expect(Math.hypot(match.players[9].pos.x - runnerAnchor.x, match.players[9].pos.y - runnerAnchor.y))
+    expect(Math.hypot(match.players[runner].pos.x - runnerAnchor.x, match.players[runner].pos.y - runnerAnchor.y))
       .toBeLessThan(Math.hypot(inFlight.x - runnerAnchor.x, inFlight.y - runnerAnchor.y));
     const flight = match.ball as unknown as Extract<MatchState['ball'], { kind: 'pass' }>;
     if (flight.kind !== 'pass') throw new Error('expected Gravity pass flight');
     flight.willSucceed = true;
     flight.interceptor = -1;
     forceArrival(match);
-    expect(match.ball).toEqual({ kind: 'held', by: 9 });
+    expect(match.ball).toEqual({ kind: 'held', by: runner });
     match.tick = 17;
     powerTick(match);
     expect(match.players[hero].powerState.kind).toBe('idle');
+  });
+
+  it('selects the most open compatible Gravity runner', () => {
+    const match = matchWith('GRAVITY_WELL', 5);
+    const hero = 5;
+    const carrier = 6;
+    const openRunner = 9;
+    const markedRunner = 10;
+    const blocker = 12;
+    const marker = 13;
+    match.ball = { kind: 'held', by: carrier };
+    match.players[hero].pos = { x: 2250, y: 4400 };
+    match.players[carrier].pos = { x: 1200, y: 4200 };
+    match.players[openRunner].pos = { x: 2100, y: 3000 };
+    match.players[markedRunner].pos = { x: 1500, y: 2700 };
+    match.players[7].outUntilTick = 100;
+    match.players[8].outUntilTick = 100;
+    match.players[blocker].pos = { x: 1500, y: 3400 };
+    match.players[marker].pos = { x: 1550, y: 2750 };
+    for (let idx = 11; idx < 22; idx += 1) {
+      if (idx !== blocker && idx !== marker) match.players[idx].pos = { x: 6500, y: 9000 };
+    }
+    match.players[hero].firePolicy = 'FIRE_WHEN_READY';
+    match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
+
+    powerTick(match);
+
+    expect(match.players[hero].powerState).toMatchObject({
+      kind: 'winding', runnerIdx: openRunner,
+    });
+  });
+
+  it('does not force Gravity\'s pass after another defender closes the lane', () => {
+    const match = matchWith('GRAVITY_WELL', 5);
+    const hero = 5;
+    const carrier = 6;
+    const runner = 9;
+    const closer = 12;
+    match.players[carrier].pos = { x: 1200, y: 4200 };
+    match.players[runner].pos = { x: 1800, y: 2800 };
+    match.players[closer].pos = { x: 1500, y: 3500 };
+    for (let idx = 11; idx < 22; idx += 1) {
+      if (idx !== closer) match.players[idx].pos = { x: 6500, y: 9000 };
+    }
+    match.players[hero].powerState = {
+      kind: 'active',
+      untilTick: 60,
+      strength: 1,
+      carrierIdx: carrier,
+      runnerIdx: runner,
+      runnerPlayerId: match.players[runner].def.id,
+      runnerAnchor: { ...match.players[runner].pos },
+    };
+    match.ball = { kind: 'held', by: carrier };
+
+    expect(gravityPriorityTarget(match, carrier)).toBe(-1);
+
+    match.players[closer].pos = { x: 4000, y: 7000 };
+    expect(gravityPriorityTarget(match, carrier)).toBe(runner);
   });
 
   it('clears Gravity safely when its committed attack turns over', () => {

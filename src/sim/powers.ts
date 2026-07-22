@@ -402,11 +402,13 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
     if (blocker !== undefined) {
       carrierIdx = state.ball.by;
       targetIdx = blocker;
+      const runner = gravityRunner(state, idx, carrierIdx, blocker);
       p.powerAnchor = gravityPullDestination(
         state,
         idx,
         carrierIdx,
         blocker,
+        runner?.pos,
         activationGrade(p, strength),
       );
       if (secondBlocker !== undefined) {
@@ -416,10 +418,10 @@ function startWindup(state: MatchState, idx: number, strength: number): void {
           idx,
           carrierIdx,
           secondBlocker,
+          runner?.pos,
           activationGrade(p, strength),
         );
       }
-      const runner = gravityRunner(state, idx, carrierIdx, blocker);
       if (runner !== null) {
         runnerIdx = runner.idx;
         runnerAnchor = runner.pos;
@@ -1076,6 +1078,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
         idx,
         friendlyCarrier,
         gravityPrimary,
+        gravityCurrentRunner.pos,
         activeActivationGrade(p),
       );
       const secondaryAnchor = gravitySecondary === undefined ? undefined : gravityPullDestination(
@@ -1083,6 +1086,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
         idx,
         friendlyCarrier,
         gravitySecondary,
+        gravityCurrentRunner.pos,
         activeActivationGrade(p),
       );
       p.powerAnchor = primaryAnchor;
@@ -1202,40 +1206,59 @@ function gravityPullDestination(
   _heroIdx: number,
   carrierIdx: number,
   blockerIdx: number,
+  runnerAnchor: { x: number; y: number } | undefined,
   _grade: number,
 ): { x: number; y: number } {
   const carrier = requirePlayerAt(state, carrierIdx);
   const blocker = state.players[blockerIdx];
-  // A larger rim is not monotonically stronger: it can throw a marker into the
-  // runner's new lane. Every grade therefore uses the same proven safe geometry
-  // rather than making a watched tap or upgrade capable of hurting the team.
-  const maxPulse = 1200;
-  const safeGap = 900;
-  const distance = Math.sqrt(dist2(blocker.pos, carrier.pos));
-  if (distance < safeGap) {
-    // Point-blank defenders are already too close to pull inward safely. The
-    // same well throws them outward to its minimum safe rim instead, matching
-    // the authored promise that Gravity always opens the carrier's lane.
-    const fallbackX = blocker.pos.x <= PITCH_W / 2 ? -1 : 1;
-    const unitX = distance === 0 ? fallbackX : (blocker.pos.x - carrier.pos.x) / distance;
-    const unitY = distance === 0 ? 0 : (blocker.pos.y - carrier.pos.y) / distance;
-    return {
-      x: Math.round(clampEffect(
-        carrier.pos.x + unitX * safeGap,
-        0,
-        PITCH_W,
-      )),
-      y: Math.round(clampEffect(
-        carrier.pos.y + unitY * safeGap,
-        300,
-        PITCH_H - 300,
-      )),
-    };
-  }
-  // Leave enough room that the next ordinary movement tick cannot turn the
-  // helpful pull into an immediate standing tackle on the carrier.
-  const travel = Math.min(maxPulse, Math.max(0, distance - safeGap));
-  return moveToward(blocker.pos, carrier.pos, travel);
+  const goal = { x: PITCH_W / 2, y: carrier.team === 0 ? 0 : PITCH_H };
+  const runner = runnerAnchor ?? goal;
+  const beforeCarrierDistance = Math.sqrt(dist2(blocker.pos, carrier.pos));
+  const beforeGoalClearance = segmentDistance(blocker.pos, carrier.pos, goal);
+  const beforeRunnerClearance = segmentDistance(blocker.pos, carrier.pos, runner);
+
+  // Gravity clears the two useful corridors sideways. The old implementation
+  // pulled ordinary-distance blockers toward the carrier until only a 900-unit
+  // rim remained, which could turn a helpful power into an immediate tackle.
+  // Both grades use the same conservative pulse so manual timing and upgrades
+  // cannot select a more dangerous destination.
+  const goalLength = Math.max(1, Math.sqrt(dist2(goal, carrier.pos)));
+  const runnerLength = Math.max(1, Math.sqrt(dist2(runner, carrier.pos)));
+  const goalDirection = {
+    x: (goal.x - carrier.pos.x) / goalLength,
+    y: (goal.y - carrier.pos.y) / goalLength,
+  };
+  const runnerDirection = {
+    x: (runner.x - carrier.pos.x) / runnerLength,
+    y: (runner.y - carrier.pos.y) / runnerLength,
+  };
+  const combined = {
+    x: goalDirection.x + runnerDirection.x,
+    y: goalDirection.y + runnerDirection.y,
+  };
+  const combinedLength = Math.max(1, Math.hypot(combined.x, combined.y));
+  const sideways = { x: -combined.y / combinedLength, y: combined.x / combinedLength };
+  const candidates = [900, 1200].flatMap(distance => [-1, 1].map(side => ({
+    x: Math.round(clampEffect(blocker.pos.x + sideways.x * distance * side, 200, PITCH_W - 200)),
+    y: Math.round(clampEffect(blocker.pos.y + sideways.y * distance * side, 300, PITCH_H - 300)),
+  })));
+  const scored = candidates.map((pos, order) => ({
+    pos,
+    order,
+    carrierDistance: Math.sqrt(dist2(pos, carrier.pos)),
+    goalClearance: segmentDistance(pos, carrier.pos, goal),
+    runnerClearance: segmentDistance(pos, carrier.pos, runner),
+  }));
+  const safe = scored.filter(candidate => candidate.carrierDistance >= beforeCarrierDistance
+    && candidate.goalClearance >= beforeGoalClearance
+    && candidate.runnerClearance >= beforeRunnerClearance);
+  if (safe.length === 0) return { ...blocker.pos };
+  safe.sort((left, right) => Math.min(right.goalClearance, right.runnerClearance)
+      - Math.min(left.goalClearance, left.runnerClearance)
+    || right.goalClearance + right.runnerClearance - left.goalClearance - left.runnerClearance
+    || right.carrierDistance - left.carrierDistance
+    || left.order - right.order);
+  return safe[0].pos;
 }
 
 function capturedTargetAvailable(
@@ -1312,22 +1335,28 @@ function gravityRunner(
   const direction = carrier.team === 0 ? -1 : 1;
   const anchor = {
     x: Math.round(clampEffect(blocker.pos.x, 200, PITCH_W - 200)),
-    y: Math.round(clampEffect(blocker.pos.y + direction * 350, 900, PITCH_H - 900)),
+    y: Math.round(clampEffect(blocker.pos.y + direction * 800, 900, PITCH_H - 900)),
   };
   if (attackingProgress(carrier.team, anchor) <= attackingProgress(carrier.team, carrier.pos) + 250) {
     return null;
   }
   let best = -1;
-  let bestScore = Infinity;
+  let bestSpace = -Infinity;
+  let bestTravel = Infinity;
   for (let idx = 0; idx < 22; idx += 1) {
     const mate = state.players[idx];
     if (idx === heroIdx || idx === carrierIdx || mate.team !== hero.team
       || (mate.def.role !== 'MID' && mate.def.role !== 'FWD')
       || !friendlyTargetAvailable(state, hero.team, idx)) continue;
-    const score = dist2(mate.pos, anchor);
-    if (score < bestScore || (score === bestScore && idx < best)) {
+    // Prefer the runner who is already hardest to mark, then use travel to the
+    // same opened-lane anchor as a deterministic tie-breaker.
+    const space = openSpaceAt(state, hero.team, mate.pos);
+    const travel = dist2(mate.pos, anchor);
+    if (space > bestSpace || (space === bestSpace && travel < bestTravel)
+      || (space === bestSpace && travel === bestTravel && idx < best)) {
       best = idx;
-      bestScore = score;
+      bestSpace = space;
+      bestTravel = travel;
     }
   }
   return best === -1 ? null : { idx: best, pos: anchor };
@@ -1956,6 +1985,20 @@ export function gravityPriorityTarget(state: MatchState, carrierIdx: number): nu
       || hero.powerState.carrierIdx !== carrierIdx || hero.powerState.runnerIdx === undefined
       || hero.powerState.runnerPlayerId !== state.players[hero.powerState.runnerIdx]?.def.id
       || !friendlyTargetAvailable(state, team, hero.powerState.runnerIdx)) continue;
+    const carrier = requirePlayerAt(state, carrierIdx);
+    const runner = requirePlayerAt(state, hero.powerState.runnerIdx);
+    let laneClearance = 1800;
+    for (const idx of activePlayerIndices(state)) {
+      const opponent = requirePlayerAt(state, idx);
+      if (opponent.team === team || opponent.outUntilTick > state.tick) continue;
+      laneClearance = Math.min(
+        laneClearance,
+        segmentDistance(opponent.pos, carrier.pos, runner.pos),
+      );
+    }
+    // Gravity suggests the opened pass; it does not force the carrier to throw
+    // into a lane that another defender has closed before the next decision.
+    if (laneClearance < 400 || openSpaceAt(state, team, runner.pos) < 450) continue;
     return hero.powerState.runnerIdx;
   }
   return -1;
