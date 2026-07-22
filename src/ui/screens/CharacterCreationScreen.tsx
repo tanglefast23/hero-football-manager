@@ -20,6 +20,7 @@ import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { SettingsButton } from '../SettingsOverlay';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { playManagementHaptic } from '../../render/haptics';
+import { stepChoice } from '../appearance-stepper';
 
 export interface CharacterCreationScreenProps {
   initialDifficulty: DifficultyMode;
@@ -35,11 +36,6 @@ const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }>
   tec: { label: 'TECHNIQUE', detail: 'Touch under pressure' },
   sta: { label: 'STAMINA', detail: 'Late-match engine' },
 };
-
-/** Wraps in both directions so ‹ from the first option lands on the last. */
-function stepChoice(current: number, delta: -1 | 1, count: number): number {
-  return (current + delta + count) % count;
-}
 
 export function CharacterCreationScreen({
   initialDifficulty,
