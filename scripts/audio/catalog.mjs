@@ -35,6 +35,21 @@ export const SFX_CATALOG = [
   { name: 'fire-torch-ignite', group: 'Zone & Powers', minMs: 350, maxMs: 600, targetDb: -3, desc: 'Crackle + low whoomp' },
   { name: 'extinguisher-spray', group: 'Zone & Powers', minMs: 450, maxMs: 800, targetDb: -3, desc: 'Sputtering noise spray — the ref gag sound' },
   { name: 'match-end-sting', group: 'Zone & Powers', minMs: 700, maxMs: 1200, targetDb: -3, desc: 'Short resolving cadence in key' },
+  // Append new assets so the legacy index-seeded generators remain byte-stable.
+  { name: 'blink-teleport', group: 'Zone & Powers', minMs: 350, maxMs: 500, targetDb: -3, desc: 'Two-point chirp and sparkle — runner teleports' },
+  { name: 'thunder-charge', group: 'Zone & Powers', minMs: 450, maxMs: 650, targetDb: -2, desc: 'Electrical rise and crackle — shot charged, not struck' },
+  { name: 'phase-shift', group: 'Zone & Powers', minMs: 350, maxMs: 550, targetDb: -3, desc: 'Hollow shimmer sweep — runner phases through a challenge' },
+  { name: 'portal-warp', group: 'Zone & Powers', minMs: 550, maxMs: 750, targetDb: -2.5, desc: 'Spatial whoomp and protected-arrival shimmer' },
+  { name: 'future-sight-read', group: 'Zone & Powers', minMs: 450, maxMs: 650, targetDb: -3, desc: 'Clock ticks and bright vision ping — pass read' },
+  { name: 'future-sight-intercept', group: 'Zone & Powers', minMs: 250, maxMs: 450, targetDb: -2.5, desc: 'Fast prediction sweep and clean catch — interception lands' },
+  { name: 'web-cast', group: 'Zone & Powers', minMs: 250, maxMs: 450, targetDb: -3, desc: 'Sticky filament flick — trap placed' },
+  { name: 'web-spring', group: 'Zone & Powers', minMs: 350, maxMs: 550, targetDb: -2.5, desc: 'Elastic web snap and cocoon rustle — carrier rooted' },
+  { name: 'keeper-stretch', group: 'Zone & Powers', minMs: 400, maxMs: 600, targetDb: -3, desc: 'Rubbery stretch boing — Elastic Keeper charges' },
+  { name: 'ice-freeze', group: 'Zone & Powers', minMs: 500, maxMs: 700, targetDb: -3, desc: 'Crystal pings and frost hiss — turf freezes' },
+  { name: 'ice-slide', group: 'Zone & Powers', minMs: 650, maxMs: 850, targetDb: -3, desc: 'Glass-smooth skid — carrier slides backward' },
+  { name: 'shadow-burrow', group: 'Zone & Powers', minMs: 550, maxMs: 750, targetDb: -3, desc: 'Descending muffled rumble — hero goes underground' },
+  { name: 'shadow-emerge', group: 'Zone & Powers', minMs: 400, maxMs: 600, targetDb: -2.5, desc: 'Rising dirt burst and steal snap — hero emerges' },
+  { name: 'giant-grow', group: 'Zone & Powers', minMs: 550, maxMs: 750, targetDb: -2.5, desc: 'Rising low body and heroic chord — goalkeeper grows' },
   { name: 'decoy-pop', group: 'Zone & Powers', minMs: 180, maxMs: 260, targetDb: -4, desc: 'Light comic bubble-pop when a Decoy disappears' },
 ];
 

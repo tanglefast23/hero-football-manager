@@ -427,6 +427,217 @@ function genSuperSpeedWhoosh(seed) {
   return applyEnv(swept, env);
 }
 
+function genBlinkTeleport(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.42);
+  const chirpN = secondsToSamples(0.22);
+  const depart = applyEnv(
+    oscSine(chirpN, expGlide(700, 2600, 0.18)),
+    decayEnv(chirpN, { attack: 0.002, decay: 0.18 }),
+  );
+  const arrive = applyEnv(
+    oscTriangle(chirpN, expGlide(2600, 900, 0.18)),
+    decayEnv(chirpN, { attack: 0.002, decay: 0.16 }),
+  );
+  const sparkle = applyEnv(
+    highpass(noiseWhite(n, rng), 5000),
+    decayEnv(n, { attack: 0.006, decay: 0.24 }),
+  );
+  return mix([
+    { buf: depart, gain: 0.75 },
+    { buf: arrive, gain: 0.6, offset: secondsToSamples(0.12) },
+    { buf: sparkle, gain: 0.16 },
+  ]);
+}
+
+function genThunderCharge(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.56);
+  const hum = applyEnv(
+    lowpass(oscSaw(n, expGlide(110, 620, 0.52)), 1800),
+    adsr(n, { attack: 0.04, decay: 0.05, sustain: 0.7, release: 0.08 }),
+  );
+  const crackles = [];
+  for (let i = 0; i < 12; i++) {
+    const crackN = secondsToSamples(0.018 + rng() * 0.018);
+    const crack = applyEnv(
+      highpass(noiseWhite(crackN, rng), 2800),
+      decayEnv(crackN, { attack: 0.0005, decay: 0.012 }),
+    );
+    crackles.push({
+      buf: crack,
+      gain: 0.35 + rng() * 0.4,
+      offset: Math.round(rng() * (n - crackN)),
+    });
+  }
+  return softClip(mix([{ buf: hum, gain: 0.65 }, ...crackles]), 1.25);
+}
+
+function genPhaseShift(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.44);
+  const swept = sweepBand(noiseWhite(n, rng), [3800, 500], [7000, 2600], 12);
+  const hollow = applyEnv(
+    oscSine(n, expGlide(900, 180, 0.4)),
+    adsr(n, { attack: 0.03, decay: 0.04, sustain: 0.45, release: 0.16 }),
+  );
+  const air = applyEnv(swept, adsr(n, { attack: 0.025, decay: 0.04, sustain: 0.55, release: 0.14 }));
+  return mix([{ buf: air, gain: 0.65 }, { buf: hollow, gain: 0.4 }]);
+}
+
+function genPortalWarp(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.65);
+  const swirl = sweepBand(noiseWhite(n, rng), [250, 1800], [1700, 6200], 14);
+  const swirlEnv = applyEnv(swirl, adsr(n, { attack: 0.06, decay: 0.05, sustain: 0.5, release: 0.22 }));
+  const whoomp = applyEnv(
+    oscSine(n, expGlide(150, 48, 0.5)),
+    decayEnv(n, { attack: 0.012, decay: 0.45 }),
+  );
+  const shield = chimeNote(n, note('C6'), 0.42);
+  return resize(mix([
+    { buf: swirlEnv, gain: 0.5 },
+    { buf: whoomp, gain: 0.7 },
+    { buf: shield, gain: 0.35, offset: secondsToSamples(0.16) },
+  ]), n);
+}
+
+function genFutureSightRead(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.55);
+  const tickN = secondsToSamples(0.035);
+  const layers = [];
+  for (let i = 0; i < 3; i++) {
+    const tick = applyEnv(
+      highpass(noiseWhite(tickN, rng), 3800),
+      decayEnv(tickN, { attack: 0.0005, decay: 0.02 }),
+    );
+    layers.push({ buf: tick, gain: 0.55 + i * 0.15, offset: secondsToSamples(0.1 * i) });
+  }
+  const visionPing = chimeNote(secondsToSamples(0.34), note('E6'), 0.3);
+  layers.push({ buf: visionPing, gain: 0.85, offset: secondsToSamples(0.21) });
+  return resize(mix(layers), n);
+}
+
+function genFutureSightIntercept(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.34);
+  const sweep = sweepBand(noiseWhite(n, rng), [5000, 500], [8500, 3000], 10);
+  const air = applyEnv(sweep, decayEnv(n, { attack: 0.012, decay: 0.24 }));
+  const catchPing = metallicPing(n, 920, [1, 2.6, 4.1]);
+  return mix([{ buf: air, gain: 0.55 }, { buf: catchPing, gain: 0.5 }]);
+}
+
+function genWebCast(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.34);
+  const filament = sweepBand(noiseWhite(n, rng), [900, 3800], [2600, 7200], 9);
+  const flick = applyEnv(filament, decayEnv(n, { attack: 0.001, decay: 0.18 }));
+  const twang = applyEnv(
+    oscTriangle(n, expGlide(780, 260, 0.28)),
+    decayEnv(n, { attack: 0.001, decay: 0.2 }),
+  );
+  return mix([{ buf: flick, gain: 0.5 }, { buf: twang, gain: 0.55 }]);
+}
+
+function genWebSpring(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.45);
+  const snap = applyEnv(
+    oscTriangle(n, expGlide(1100, 120, 0.34)),
+    decayEnv(n, { attack: 0.001, decay: 0.24 }),
+  );
+  const fibers = applyEnv(
+    bandpass(noiseWhite(n, rng), 900, 5500),
+    adsr(n, { attack: 0.005, decay: 0.06, sustain: 0.25, release: 0.22 }),
+  );
+  return mix([{ buf: snap, gain: 0.8 }, { buf: fibers, gain: 0.45 }]);
+}
+
+function genKeeperStretch(seed) {
+  const rng = mulberry32(seed);
+  const halfN = secondsToSamples(0.25);
+  const up = oscTriangle(halfN, expGlide(170, 680, 0.23));
+  const down = oscTriangle(halfN, expGlide(680, 220, 0.23));
+  const n = halfN * 2;
+  const rubber = applyEnv(concat([up, down]), adsr(n, { attack: 0.01, decay: 0.04, sustain: 0.55, release: 0.12 }));
+  const squeak = applyEnv(highpass(noiseWhite(n, rng), 3200), decayEnv(n, { attack: 0.004, decay: 0.25 }));
+  return mix([{ buf: rubber, gain: 0.75 }, { buf: squeak, gain: 0.12 }]);
+}
+
+function genIceFreeze(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.6);
+  const frost = applyEnv(
+    highpass(noiseWhite(n, rng), 4600),
+    adsr(n, { attack: 0.04, decay: 0.04, sustain: 0.4, release: 0.24 }),
+  );
+  const pings = ['C6', 'G6', 'E7'].map((name, i) => ({
+    buf: chimeNote(secondsToSamples(0.32), note(name), 0.28),
+    gain: 0.55 - i * 0.07,
+    offset: secondsToSamples(0.09 * i),
+  }));
+  return resize(mix([{ buf: frost, gain: 0.24 }, ...pings]), n);
+}
+
+function genIceSlide(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.75);
+  const scrape = sweepBand(noiseWhite(n, rng), [4200, 1600], [8200, 4800], 16);
+  const glide = applyEnv(scrape, adsr(n, { attack: 0.03, decay: 0.04, sustain: 0.55, release: 0.22 }));
+  const squeal = applyEnv(
+    oscSine(n, expGlide(1400, 520, 0.68)),
+    adsr(n, { attack: 0.05, decay: 0.06, sustain: 0.22, release: 0.22 }),
+  );
+  return mix([{ buf: glide, gain: 0.5 }, { buf: squeal, gain: 0.24 }]);
+}
+
+function genShadowBurrow(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.65);
+  const rumble = applyEnv(
+    oscSine(n, expGlide(180, 42, 0.58)),
+    adsr(n, { attack: 0.02, decay: 0.05, sustain: 0.55, release: 0.18 }),
+  );
+  const dirt = applyEnv(
+    lowpass(noisePink(n, rng), 900),
+    adsr(n, { attack: 0.01, decay: 0.07, sustain: 0.4, release: 0.2 }),
+  );
+  return highpass(mix([{ buf: rumble, gain: 0.7 }, { buf: dirt, gain: 0.55 }]), 28);
+}
+
+function genShadowEmerge(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.5);
+  const rise = applyEnv(
+    oscSine(n, expGlide(55, 520, 0.4)),
+    decayEnv(n, { attack: 0.008, decay: 0.38 }),
+  );
+  const burst = applyEnv(
+    bandpass(noiseWhite(n, rng), 280, 3600),
+    decayEnv(n, { attack: 0.001, decay: 0.2 }),
+  );
+  const steal = metallicPing(n, 760, [1, 2.2, 3.7]);
+  return mix([{ buf: rise, gain: 0.65 }, { buf: burst, gain: 0.55 }, { buf: steal, gain: 0.28 }]);
+}
+
+function genGiantGrow(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.65);
+  const body = applyEnv(
+    oscSaw(n, expGlide(58, 220, 0.58)),
+    adsr(n, { attack: 0.04, decay: 0.05, sustain: 0.6, release: 0.16 }),
+  );
+  const softened = lowpass(body, 1100);
+  const chord = chordHit(secondsToSamples(0.42), ['C3', 'G3', 'C4'], 0.38);
+  const air = applyEnv(lowpass(noiseWhite(n, rng), 600), decayEnv(n, { attack: 0.02, decay: 0.45 }));
+  return softClip(mix([
+    { buf: softened, gain: 0.65 },
+    { buf: chord, gain: 0.55, offset: secondsToSamples(0.18) },
+    { buf: air, gain: 0.16 },
+  ]), 1.15);
+}
+
 function genSuperStrengthBoom(seed) {
   const rng = mulberry32(seed);
   const stepDur = 0.5;
@@ -529,7 +740,21 @@ const GENERATORS = {
   'windup-riser': genWindupRiser,
   'power-interrupt': genPowerInterrupt,
   'super-speed-whoosh': genSuperSpeedWhoosh,
+  'blink-teleport': genBlinkTeleport,
+  'thunder-charge': genThunderCharge,
+  'phase-shift': genPhaseShift,
+  'portal-warp': genPortalWarp,
+  'future-sight-read': genFutureSightRead,
+  'future-sight-intercept': genFutureSightIntercept,
   'super-strength-boom': genSuperStrengthBoom,
+  'web-cast': genWebCast,
+  'web-spring': genWebSpring,
+  'keeper-stretch': genKeeperStretch,
+  'ice-freeze': genIceFreeze,
+  'ice-slide': genIceSlide,
+  'shadow-burrow': genShadowBurrow,
+  'shadow-emerge': genShadowEmerge,
+  'giant-grow': genGiantGrow,
   'fire-torch-ignite': genFireTorchIgnite,
   'extinguisher-spray': genExtinguisherSpray,
   'match-end-sting': genMatchEndSting,

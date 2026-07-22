@@ -20,7 +20,7 @@ import type { MatchEvent, PowerId } from '../sim/types';
 // 24 kHz mono AAC-LC .m4a files with silent tails trimmed; the procedural
 // catalog keeps its original .wav fixtures for deterministic audio-pipeline
 // checks. The match theme likewise uses its compressed .m4a build. See
-// scripts/audio/catalog.mjs for the full 27-SFX inventory — only the subset
+// scripts/audio/catalog.mjs for the full SFX inventory — only the subset
 // below has a wired trigger.
 type SfxKey =
   | 'kickoff-whistle'
@@ -39,7 +39,21 @@ type SfxKey =
   | 'tap-fire'
   | 'extinguisher-spray'
   | 'super-speed-whoosh'
+  | 'blink-teleport'
+  | 'thunder-charge'
+  | 'phase-shift'
+  | 'portal-warp'
+  | 'future-sight-read'
+  | 'future-sight-intercept'
   | 'super-strength-boom'
+  | 'web-cast'
+  | 'web-spring'
+  | 'keeper-stretch'
+  | 'ice-freeze'
+  | 'ice-slide'
+  | 'shadow-burrow'
+  | 'shadow-emerge'
+  | 'giant-grow'
   | 'flame-hit'
   | 'flame-up'
   | 'save-slap'
@@ -65,7 +79,21 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'tap-fire': require('../../assets/audio/sfx/tap-fire.wav'),
   'extinguisher-spray': require('../../assets/audio/sfx/extinguisher-spray.wav'),
   'super-speed-whoosh': require('../../assets/audio/sfx/super-speed-whoosh.wav'),
+  'blink-teleport': require('../../assets/audio/sfx/blink-teleport.wav'),
+  'thunder-charge': require('../../assets/audio/sfx/thunder-charge.wav'),
+  'phase-shift': require('../../assets/audio/sfx/phase-shift.wav'),
+  'portal-warp': require('../../assets/audio/sfx/portal-warp.wav'),
+  'future-sight-read': require('../../assets/audio/sfx/future-sight-read.wav'),
+  'future-sight-intercept': require('../../assets/audio/sfx/future-sight-intercept.wav'),
   'super-strength-boom': require('../../assets/audio/sfx/super-strength-boom.wav'),
+  'web-cast': require('../../assets/audio/sfx/web-cast.wav'),
+  'web-spring': require('../../assets/audio/sfx/web-spring.wav'),
+  'keeper-stretch': require('../../assets/audio/sfx/keeper-stretch.wav'),
+  'ice-freeze': require('../../assets/audio/sfx/ice-freeze.wav'),
+  'ice-slide': require('../../assets/audio/sfx/ice-slide.wav'),
+  'shadow-burrow': require('../../assets/audio/sfx/shadow-burrow.wav'),
+  'shadow-emerge': require('../../assets/audio/sfx/shadow-emerge.wav'),
+  'giant-grow': require('../../assets/audio/sfx/giant-grow.wav'),
   'flame-hit': require('../../assets/audio/sfx/flame-hit.wav'),
   'flame-up': require('../../assets/audio/sfx/flame-up.wav'),
   'save-slap': require('../../assets/audio/sfx/save-slap.wav'),
@@ -93,27 +121,30 @@ const FIRE_LOOP_VOLUME = 0.7;
 // the audio layer usable by a future release settings screen too.
 let masterVolume = 1;
 
-// Per-power "fire" sound — plays on every POWER_FIRED regardless of strength
-// (see filesForEvent: a manual tap additionally layers 'tap-fire' on top).
-const POWER_SFX: Record<PowerId, SfxKey> = {
-  SUPER_SPEED: 'super-speed-whoosh',
-  BLINK_RUN: 'super-speed-whoosh',
-  THUNDER_STRIKE: 'kick-shot',
-  PHASE_RUN: 'zone-enter',
-  PORTAL_PASS: 'kick-pass',
-  DECOY_DOUBLE: 'zone-enter',
-  FUTURE_SIGHT: 'save-slap',
-  SUPER_STRENGTH: 'super-strength-boom',
-  WEB_TRAP: 'tackle-thud',
-  ELASTIC_KEEPER: 'save-slap',
-  FIRE_TORCH: 'flame-up', // Flint bursting into flames as the power switches on
-  // m1.13 powers reuse existing cues until their own audio is authored.
-  RALLY_CRY: 'crowd-cheer',
-  ICE_RINK: 'zone-enter',
-  SHADOW_MARK: 'zone-enter',
-  GRAVITY_WELL: 'super-strength-boom',
-  GIANT_GK: 'save-slap',
-  GUST: 'super-speed-whoosh',
+// Activation and impact are separate so a power-up never impersonates the
+// later ball/body contact. Instant spatial powers intentionally sound only on
+// POWER_IMPACT; a manual activation still layers the tap confirmation.
+const POWER_AUDIO: Record<PowerId, {
+  readonly activation: readonly SfxKey[];
+  readonly impact: readonly SfxKey[];
+}> = {
+  SUPER_SPEED: { activation: ['super-speed-whoosh'], impact: [] },
+  BLINK_RUN: { activation: [], impact: ['blink-teleport'] },
+  THUNDER_STRIKE: { activation: ['thunder-charge'], impact: [] },
+  FIRE_TORCH: { activation: ['flame-up'], impact: [] },
+  PHASE_RUN: { activation: [], impact: ['phase-shift'] },
+  PORTAL_PASS: { activation: [], impact: ['portal-warp'] },
+  DECOY_DOUBLE: { activation: ['zone-enter'], impact: [] },
+  FUTURE_SIGHT: { activation: ['future-sight-read'], impact: ['future-sight-intercept'] },
+  SUPER_STRENGTH: { activation: ['super-strength-boom'], impact: [] },
+  WEB_TRAP: { activation: ['web-cast'], impact: ['web-spring'] },
+  ELASTIC_KEEPER: { activation: ['keeper-stretch'], impact: [] },
+  RALLY_CRY: { activation: ['crowd-cheer'], impact: [] },
+  ICE_RINK: { activation: ['ice-freeze'], impact: ['ice-slide'] },
+  SHADOW_MARK: { activation: ['shadow-burrow'], impact: ['shadow-emerge'] },
+  GRAVITY_WELL: { activation: ['super-strength-boom'], impact: [] },
+  GIANT_GK: { activation: ['giant-grow'], impact: [] },
+  GUST: { activation: ['super-speed-whoosh'], impact: [] },
 };
 
 // -- Event -> file table ------------------------------------------------
@@ -156,7 +187,11 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       // which layers the click on top of the power's own sound. Auto-fires
       // (CONTEXT_AUTO_STRENGTH 0.85 / LAPSE_STRENGTH 0.75) get just the
       // power sound.
-      return e.strength === 1 ? ['tap-fire', POWER_SFX[e.power]] : [POWER_SFX[e.power]];
+      return e.strength === 1
+        ? ['tap-fire', ...POWER_AUDIO[e.power].activation]
+        : POWER_AUDIO[e.power].activation;
+    case 'POWER_IMPACT':
+      return POWER_AUDIO[e.power].impact;
     case 'SAVE':
       return ['save-slap'];       // keeper stops it
     case 'MISS':

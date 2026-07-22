@@ -1044,6 +1044,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     finishMomentPower(state, idx);
   } else if (power === 'BLINK_RUN') {
     p.pos = blinkDestination(state, idx, effectStrength);
+    emit(state, { t: state.tick, kind: 'POWER_IMPACT', player: idx, power, target: idx });
   } else if (power === 'PORTAL_PASS') {
     if (state.ball.kind === 'held' && requirePlayerAt(state, state.ball.by).team === p.team) {
       const destination = portalDestination(state, state.ball.by, effectStrength);
@@ -1051,6 +1052,13 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
         state.players[destination.receiver].pos = destination.pos;
         state.players[destination.receiver].portalProtectedUntilTick = state.tick + PORTAL_PROTECTION_TICKS;
         state.ball = { kind: 'held', by: destination.receiver };
+        emit(state, {
+          t: state.tick,
+          kind: 'POWER_IMPACT',
+          player: idx,
+          power,
+          target: destination.receiver,
+        });
       }
     }
   } else if (power === 'PHASE_RUN') {
@@ -1399,6 +1407,16 @@ function relevantTorchMarker(state: MatchState, heroIdx: number, range = TORCH_I
 }
 
 function emitPowerTurnover(state: MatchState, heroIdx: number, victimIdx: number): void {
+  const power = state.players[heroIdx].def.power;
+  if (power !== undefined) {
+    emit(state, {
+      t: state.tick,
+      kind: 'POWER_IMPACT',
+      player: heroIdx,
+      power,
+      target: victimIdx,
+    });
+  }
   emit(state, {
     t: state.tick,
     kind: 'TACKLE',
@@ -1448,6 +1466,13 @@ function springIceRink(state: MatchState, heroIdx: number): void {
     step: { x: 0, y: backward * ICE_SLIDE_STEP },
   };
   carrier.slideTackle = undefined;
+  emit(state, {
+    t: state.tick,
+    kind: 'POWER_IMPACT',
+    player: heroIdx,
+    power: 'ICE_RINK',
+    target: victim,
+  });
   emit(state, {
     t: state.tick,
     kind: 'TACKLE',
@@ -2199,6 +2224,13 @@ export function consumePhaseChallenge(
     if (score > bestScore) { best = { x, y }; bestScore = score; }
   }
   carrier.pos = best;
+  emit(state, {
+    t: state.tick,
+    kind: 'POWER_IMPACT',
+    player: carrierIdx,
+    power: 'PHASE_RUN',
+    target: challengerIdx,
+  });
   return true;
 }
 

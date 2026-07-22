@@ -260,8 +260,10 @@ describe('M4 twelve-power catalog', () => {
     const tier1Strength = tier1State.kind === 'active' ? tier1State.strength : 0;
     const tier3Strength = tier3State.kind === 'active' ? tier3State.strength : 0;
     expect(tier3Strength).toBeCloseTo(tier1Strength * 1.45, 12);
-    expect(tier1.match.events.at(-1)).toMatchObject({ kind: 'POWER_FIRED', strength: 1 });
-    expect(tier3.match.events.at(-1)).toMatchObject({ kind: 'POWER_FIRED', strength: 1 });
+    expect(tier1.match.events.find(event => event.kind === 'POWER_FIRED'))
+      .toMatchObject({ kind: 'POWER_FIRED', strength: 1 });
+    expect(tier3.match.events.find(event => event.kind === 'POWER_FIRED'))
+      .toMatchObject({ kind: 'POWER_FIRED', strength: 1 });
   });
 
   it('keeps Portal Pass active cooldown constant across tiers', () => {

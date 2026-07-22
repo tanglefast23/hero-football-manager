@@ -241,6 +241,8 @@ export type MatchEvent =
   | { t: number; kind: 'GOAL'; by: number; team: 0 | 1 }
   | { t: number; kind: 'POWER_READY'; player: number }
   | { t: number; kind: 'POWER_FIRED'; player: number; power: PowerId; strength: number }
+  /** A power's authored on-pitch effect landing, distinct from ordinary ball/body contact. */
+  | { t: number; kind: 'POWER_IMPACT'; player: number; power: PowerId; target?: number }
   | { t: number; kind: 'POWER_INTERRUPTED'; player: number }
   | { t: number; kind: 'POWER_EXPIRED'; player: number }
   | {

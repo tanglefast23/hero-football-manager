@@ -47,6 +47,37 @@ describe('filesForEvent: event → SFX wiring', () => {
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 0.85 })).toEqual(['super-speed-whoosh']);
   });
 
+  it('times spatial powers on their real on-pitch impact instead of activation', () => {
+    for (const [power, sound] of [
+      ['BLINK_RUN', 'blink-teleport'],
+      ['PHASE_RUN', 'phase-shift'],
+      ['PORTAL_PASS', 'portal-warp'],
+    ] as const) {
+      expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power, strength: 0.85 })).toEqual([]);
+      expect(filesForEvent({ t: 1, kind: 'POWER_IMPACT', player: 10, power, target: 11 })).toEqual([sound]);
+    }
+  });
+
+  it('gives delayed defensive powers distinct setup and landing cues', () => {
+    for (const [power, setup, impact] of [
+      ['FUTURE_SIGHT', 'future-sight-read', 'future-sight-intercept'],
+      ['WEB_TRAP', 'web-cast', 'web-spring'],
+      ['ICE_RINK', 'ice-freeze', 'ice-slide'],
+      ['SHADOW_MARK', 'shadow-burrow', 'shadow-emerge'],
+    ] as const) {
+      expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 2, power, strength: 0.85 })).toEqual([setup]);
+      expect(filesForEvent({ t: 10, kind: 'POWER_IMPACT', player: 2, power, target: 11 })).toEqual([impact]);
+    }
+  });
+
+  it('keeps keeper and Thunder charge sounds distinct from the real ball impact', () => {
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'THUNDER_STRIKE', strength: 0.85 })).toEqual(['thunder-charge']);
+    expect(filesForEvent({ t: 1, kind: 'SHOT', by: 9, power: 80, trajectory: 'driven' })).toEqual(['kick-shot']);
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 0, power: 'ELASTIC_KEEPER', strength: 0.85 })).toEqual(['keeper-stretch']);
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 0, power: 'GIANT_GK', strength: 0.85 })).toEqual(['giant-grow']);
+    expect(filesForEvent({ t: 1, kind: 'SAVE', by: 0, resolveLeft: 80 })).toEqual(['save-slap']);
+  });
+
   it('plays the flame-hit sting when a defender catches fire (IGNITED)', () => {
     expect(filesForEvent({ t: 0, kind: 'IGNITED', player: 5 })).toEqual(['flame-hit']);
   });
@@ -57,9 +88,13 @@ describe('filesForEvent: event → SFX wiring', () => {
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 })).toEqual(['tap-fire', 'flame-up']);
   });
 
-  it('gives every M4 power an activation sound', () => {
+  it('gives every launch power a sound somewhere in its deterministic lifecycle', () => {
     for (const power of LAUNCH_POWER_IDS) {
-      expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power, strength: 0.85 })).not.toEqual([]);
+      const lifecycleSounds = [
+        ...filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power, strength: 0.85 }),
+        ...filesForEvent({ t: 1, kind: 'POWER_IMPACT', player: 10, power, target: 11 }),
+      ];
+      expect(lifecycleSounds).not.toEqual([]);
     }
   });
 
@@ -79,6 +114,7 @@ describe('filesForEvent: event → SFX wiring', () => {
       { t: 0, kind: 'GOAL', by: 9, team: 0 },
       { t: 0, kind: 'POWER_READY', player: 10 },
       { t: 0, kind: 'POWER_FIRED', player: 10, power: 'FIRE_TORCH', strength: 0.85 },
+      { t: 0, kind: 'POWER_IMPACT', player: 10, power: 'BLINK_RUN', target: 10 },
       { t: 0, kind: 'POWER_INTERRUPTED', player: 10 },
       { t: 0, kind: 'POWER_EXPIRED', player: 10 },
       { t: 0, kind: 'DECOY_POP', player: 5, clone: 22, source: 9, pos: { x: 1, y: 2 }, reason: 'expired' },

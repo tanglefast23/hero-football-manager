@@ -864,6 +864,13 @@ export function possessionTick(state: MatchState): void {
           && outlet.targetIdx !== undefined && isAvailable(state, outlet.targetIdx)
           && (outlet.targetPlayerId === undefined
             || requirePlayerAt(state, outlet.targetIdx).def.id === outlet.targetPlayerId)) {
+          emit(state, {
+            t: state.tick,
+            kind: 'POWER_IMPACT',
+            player: targetIdx,
+            power: 'FUTURE_SIGHT',
+            target: b.to,
+          });
           launchPass(state, targetIdx, outlet.targetIdx, true, true);
           finishMomentPower(state, targetIdx);
         }
