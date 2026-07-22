@@ -30,6 +30,7 @@ import {
   willRetireAtSeasonTransition,
   type CareerPlayer,
   type CareerTrainingDrill,
+  type CareerTrainingPlan,
   type FacilityLevel,
   type FacilityType,
   type GameState,
@@ -1154,8 +1155,6 @@ export function squadTrainingViewModel(
   selectedDrillIds: readonly string[],
 ): SquadTrainingViewModel {
   const club = requireUserClub(state);
-  // Resolved once per screen: the projection below diffs against it per player.
-  const resolvedRoster = resolveCareerTrainingWeek(state).players;
   const selected = new Set(selectedDrillIds);
   const drills = content.training.focusDrills;
   const selectedDrills = drills.filter(drill => selected.has(drill.id));
@@ -1289,36 +1288,53 @@ export function squadTrainingViewModel(
       totalMoneyCost <= club.cash &&
       totalTrainingPointCost <= state.trainingPoints,
     ...(selectionMatchesSavedPlan && savedPlan !== undefined ? {
-      lockedPlan: {
-        players: savedPlan.assignedPlayerIds.flatMap(playerId => {
-          const player = playerById.get(playerId);
-          return player === undefined ? [] : [{
-            id: player.id,
-            name: player.name,
-            role: player.role,
-            ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
-            trainingProgress: lockedTrainingProgress(resolvedRoster, player, savedPlan.drills),
-          }];
-        }),
-        drills: savedPlan.drills.map(savedDrill => ({
-          id: savedDrill.id,
-          name: drills.find(drill => drill.id === savedDrill.id)?.name ?? savedDrill.id,
-          gainLabel: Object.entries(savedDrill.gains)
-            .map(([attribute, gain]) => `+${gain} ${attribute.toUpperCase()}`)
-            .join(' · '),
-        })),
-        moneyCost: chargeableCareerTrainingPlan(
-          state,
-          savedPlan.assignedPlayerIds,
-          savedPlan.drills,
-        ).moneyCost,
-        trainingPointCost: chargeableCareerTrainingPlan(
-          state,
-          savedPlan.assignedPlayerIds,
-          savedPlan.drills,
-        ).trainingPointCost,
-      },
+      lockedPlan: lockedPlanViewModel(state, savedPlan, playerById, drills),
     } : {}),
+  };
+}
+
+/**
+ * Builds the locked-plan summary, resolving the real training-week outcome
+ * once for the whole panel (not once per player) so the shown gains are
+ * exactly what settlement will deliver. Only reached once a plan is saved and
+ * the editor selection still matches it — the far more common mid-edit state
+ * skips this resolution entirely.
+ */
+function lockedPlanViewModel(
+  state: GameState,
+  savedPlan: CareerTrainingPlan,
+  playerById: Map<string, CareerPlayer>,
+  drills: readonly TrainingDrill[],
+) {
+  const resolvedRoster = resolveCareerTrainingWeek(state).players;
+  return {
+    players: savedPlan.assignedPlayerIds.flatMap(playerId => {
+      const player = playerById.get(playerId);
+      return player === undefined ? [] : [{
+        id: player.id,
+        name: player.name,
+        role: player.role,
+        ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+        trainingProgress: lockedTrainingProgress(resolvedRoster, player, savedPlan.drills),
+      }];
+    }),
+    drills: savedPlan.drills.map(savedDrill => ({
+      id: savedDrill.id,
+      name: drills.find(drill => drill.id === savedDrill.id)?.name ?? savedDrill.id,
+      gainLabel: Object.entries(savedDrill.gains)
+        .map(([attribute, gain]) => `+${gain} ${attribute.toUpperCase()}`)
+        .join(' · '),
+    })),
+    moneyCost: chargeableCareerTrainingPlan(
+      state,
+      savedPlan.assignedPlayerIds,
+      savedPlan.drills,
+    ).moneyCost,
+    trainingPointCost: chargeableCareerTrainingPlan(
+      state,
+      savedPlan.assignedPlayerIds,
+      savedPlan.drills,
+    ).trainingPointCost,
   };
 }
 
@@ -1692,8 +1708,8 @@ function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
  * where age, archetype, facility, diminishing-returns and coach-bonus
  * multipliers all reshape a drill's nominal gain.
  *
- * Takes the already-resolved roster so the caller resolves once per screen,
- * not once per player.
+ * Takes the already-resolved roster so the caller resolves once per locked
+ * plan, not once per player.
  */
 function lockedTrainingProgress(
   resolvedRoster: readonly CareerPlayer[],
