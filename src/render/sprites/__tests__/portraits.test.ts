@@ -17,12 +17,12 @@ describe('career player portrait roster', () => {
   it('ships 193 roster looks plus every paper-doll combination with all three expressions', () => {
     expect(manifest.field).toHaveLength(168);
     expect(manifest.goalkeeper).toHaveLength(25);
-    expect(manifest.created).toHaveLength(168);
+    expect(manifest.created).toHaveLength(240);
     expect(manifest.field).toHaveLength(FIELD_PLAYER_LOOK_COUNT);
     expect(manifest.goalkeeper).toHaveLength(GOALKEEPER_LOOK_COUNT);
     expect(manifest.created).toHaveLength(CREATED_PLAYER_LOOK_COUNT);
-    expect(IDS).toHaveLength(361);
-    expect(Object.keys(sheet.sprites)).toHaveLength(1083);
+    expect(IDS).toHaveLength(433);
+    expect(Object.keys(sheet.sprites)).toHaveLength(1299);
     const resting = IDS.map(id => JSON.stringify(sheet.sprites[`${id}:rest`]));
     expect(new Set(resting).size).toBe(IDS.length);
     for (const id of IDS) {
@@ -37,7 +37,7 @@ describe('career player portrait roster', () => {
     const paintedMask = (value: string[]) => value.map(row => row.replace(/[^.]/g, '#'));
     const faceCore = (value: string[]) => value.slice(8, 16).map(row => row.slice(7, 17));
     const createdId = (skinTone: number, hairstyle: number, kitAccent: number) => (
-      `c${String(skinTone * 28 + hairstyle * 4 + kitAccent).padStart(3, '0')}`
+      `c${String(skinTone * 40 + hairstyle * 4 + kitAccent).padStart(3, '0')}`
     );
 
     const base = rows('c000');
@@ -46,7 +46,7 @@ describe('career player portrait roster', () => {
       expect(paintedMask(nextSkin)).toEqual(paintedMask(base));
       expect(nextSkin).not.toEqual(base);
     }
-    for (let hairstyle = 1; hairstyle < 7; hairstyle += 1) {
+    for (let hairstyle = 1; hairstyle < 10; hairstyle += 1) {
       const nextHair = rows(createdId(0, hairstyle, 0));
       expect(faceCore(nextHair)).toEqual(faceCore(base));
       expect(nextHair.slice(16)).toEqual(base.slice(16));

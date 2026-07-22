@@ -9,10 +9,10 @@ import {
 describe('persisted player appearances', () => {
   it('maps paper-doll choices to their dedicated visual identity', () => {
     expect(createdAppearanceLookId({ skinTone: 0, hairstyle: 0, kitAccent: 0 })).toBe('c000');
-    expect(createdAppearanceLookId({ skinTone: 5, hairstyle: 6, kitAccent: 3 })).toBe('c167');
+    expect(createdAppearanceLookId({ skinTone: 5, hairstyle: 9, kitAccent: 3 })).toBe('c239');
     expect(isPlayerLookIdForRole('c000', 'FWD')).toBe(true);
-    expect(isPlayerLookIdForRole('c167', 'MID')).toBe(true);
-    expect(isPlayerLookIdForRole('c168', 'FWD')).toBe(false);
+    expect(isPlayerLookIdForRole('c239', 'MID')).toBe(true);
+    expect(isPlayerLookIdForRole('c240', 'FWD')).toBe(false);
     expect(isPlayerLookIdForRole('c000', 'GK')).toBe(false);
   });
 

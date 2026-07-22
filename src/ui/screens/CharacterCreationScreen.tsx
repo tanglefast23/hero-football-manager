@@ -102,9 +102,9 @@ export function CharacterCreationScreen({
               />
               <AppearanceChoice
                 label="Hair"
-                value={`${appearance.hairstyle + 1} / 7`}
-                onPrevious={() => setAppearance(current => ({ ...current, hairstyle: stepChoice(current.hairstyle, -1, 7) as CreatedPlayerAppearance['hairstyle'] }))}
-                onNext={() => setAppearance(current => ({ ...current, hairstyle: stepChoice(current.hairstyle, 1, 7) as CreatedPlayerAppearance['hairstyle'] }))}
+                value={`${appearance.hairstyle + 1} / 10`}
+                onPrevious={() => setAppearance(current => ({ ...current, hairstyle: stepChoice(current.hairstyle, -1, 10) as CreatedPlayerAppearance['hairstyle'] }))}
+                onNext={() => setAppearance(current => ({ ...current, hairstyle: stepChoice(current.hairstyle, 1, 10) as CreatedPlayerAppearance['hairstyle'] }))}
               />
               <AppearanceChoice
                 label="Kit accent"
