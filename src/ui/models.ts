@@ -316,6 +316,17 @@ export interface CoachStaffMemberViewModel {
   severanceCost: number;
 }
 
+export interface LockedTrainingProgressViewModel {
+  label: 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
+  /** Attribute value before this week's settlement. */
+  value: number;
+  /** Personal archetype cap for this attribute. */
+  cap: number;
+  /** Exactly what weekly settlement will add. Zero when capped or ineligible. */
+  weeklyGain: number;
+  atCap: boolean;
+}
+
 export interface SquadTrainingViewModel {
   resources: ResourceSummaryViewModel;
   players: readonly SquadPlayerViewModel[];
@@ -330,7 +341,9 @@ export interface SquadTrainingViewModel {
   totalTrainingPointCost: number;
   canApply: boolean;
   lockedPlan?: {
-    players: readonly Pick<SquadPlayerViewModel, 'id' | 'name' | 'role' | 'lookId'>[];
+    players: readonly (Pick<SquadPlayerViewModel, 'id' | 'name' | 'role' | 'lookId'> & {
+      trainingProgress: readonly LockedTrainingProgressViewModel[];
+    })[];
     drills: readonly Pick<FocusDrillViewModel, 'id' | 'name' | 'gainLabel'>[];
     moneyCost: number;
     trainingPointCost: number;

@@ -49,6 +49,10 @@ describe('saved weekly-plan summary', () => {
         name: player.name,
         role: player.role,
         ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+        trainingProgress: [
+          { label: 'PAC', value: 20, cap: 99, weeklyGain: 3, atCap: false },
+          { label: 'SHO', value: 20, cap: 99, weeklyGain: 3, atCap: false },
+        ],
       })),
       drills: drills.map(drill => ({
         id: drill.id,

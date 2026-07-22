@@ -20,6 +20,7 @@ import {
   projectedPlayerOverall,
   reconcilePendingClubLegends,
   renewalQuote,
+  resolveCareerTrainingWeek,
   rosterForClub,
   roleOverall,
   scheduleAssistantInboxWeek,
@@ -27,6 +28,8 @@ import {
   weeklyAmbientTrainingPoints,
   weeklyMerchandiseIncome,
   willRetireAtSeasonTransition,
+  type CareerPlayer,
+  type CareerTrainingDrill,
   type FacilityLevel,
   type FacilityType,
   type GameState,
@@ -41,6 +44,7 @@ import type {
   FixtureViewModel,
   HomeViewModel,
   LeagueTableViewModel,
+  LockedTrainingProgressViewModel,
   MatchDayViewModel,
   PostMatchViewModel,
   PlayerDevelopmentViewModel,
@@ -1150,6 +1154,8 @@ export function squadTrainingViewModel(
   selectedDrillIds: readonly string[],
 ): SquadTrainingViewModel {
   const club = requireUserClub(state);
+  // Resolved once per screen: the projection below diffs against it per player.
+  const resolvedRoster = resolveCareerTrainingWeek(state).players;
   const selected = new Set(selectedDrillIds);
   const drills = content.training.focusDrills;
   const selectedDrills = drills.filter(drill => selected.has(drill.id));
@@ -1291,6 +1297,7 @@ export function squadTrainingViewModel(
             name: player.name,
             role: player.role,
             ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+            trainingProgress: lockedTrainingProgress(resolvedRoster, player, savedPlan.drills),
           }];
         }),
         drills: savedPlan.drills.map(savedDrill => ({
@@ -1676,6 +1683,44 @@ function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
       const goalsAgainst = isHome ? fixture.score!.awayGoals : fixture.score!.homeGoals;
       return goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'D';
     });
+}
+
+/**
+ * Projects next week's training by diffing the real resolver's output, so the
+ * number shown is exactly the number weekly settlement will deliver. Copying
+ * the growth formula here would silently drift from src/game/training.ts,
+ * where age, archetype, facility, diminishing-returns and coach-bonus
+ * multipliers all reshape a drill's nominal gain.
+ *
+ * Takes the already-resolved roster so the caller resolves once per screen,
+ * not once per player.
+ */
+function lockedTrainingProgress(
+  resolvedRoster: readonly CareerPlayer[],
+  player: CareerPlayer,
+  drills: readonly CareerTrainingDrill[],
+): LockedTrainingProgressViewModel[] {
+  const trainedAttributes = new Set(
+    drills.flatMap(drill => Object.keys(drill.gains)),
+  ) as Set<keyof CareerPlayer['attrs']>;
+  if (trainedAttributes.size === 0) return [];
+
+  const resolvedPlayer = resolvedRoster.find(candidate => candidate.id === player.id);
+  const caps = playerAttributeCaps(player);
+
+  return [...trainedAttributes].map(attribute => {
+    const value = player.attrs[attribute];
+    const weeklyGain = resolvedPlayer === undefined
+      ? 0
+      : Math.max(0, resolvedPlayer.attrs[attribute] - value);
+    return {
+      label: attribute.toUpperCase() as LockedTrainingProgressViewModel['label'],
+      value,
+      cap: caps[attribute],
+      weeklyGain,
+      atCap: weeklyGain === 0,
+    };
+  });
 }
 
 function drillViewModel(

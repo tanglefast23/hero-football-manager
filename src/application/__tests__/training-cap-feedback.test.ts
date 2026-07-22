@@ -7,6 +7,8 @@ import {
   completeAssistantGuideSequence,
   createCareer,
   playerAttributeCaps,
+  resolveCareerTrainingWeek,
+  setCareerTrainingPlan,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
@@ -231,5 +233,32 @@ describe('training cap feedback', () => {
     expect(after.trainingCapNotices?.filter(notice => (
       notice.playerId === player.id && notice.attribute === 'pac'
     ))).toHaveLength(1);
+  });
+
+  it('projects each trainee gain from the real resolver, and zeroes it at the cap', () => {
+    let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
+    const roster = state.players.filter(player => player.clubId === state.userClubId);
+    const trainee = roster[0];
+    const drill = content.training.focusDrills[0];
+    const trainedAttribute = Object.keys(drill.gains)[0] as 'pac';
+
+    state = setCareerTrainingPlan(state, [trainee.id], [drill]);
+    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
+
+    expect(model.lockedPlan).toBeDefined();
+    const progress = model.lockedPlan?.players[0]?.trainingProgress ?? [];
+
+    // only attributes the plan raises appear
+    expect(progress).toHaveLength(Object.keys(drill.gains).length);
+
+    const line = progress.find(entry => entry.label === trainedAttribute.toUpperCase());
+    expect(line).toBeDefined();
+    expect(line?.value).toBe(trainee.attrs[trainedAttribute]);
+
+    // the projection equals what settlement will actually deliver
+    const resolved = resolveCareerTrainingWeek(state).players
+      .find(player => player.id === trainee.id)!;
+    expect(line?.weeklyGain).toBe(resolved.attrs[trainedAttribute] - trainee.attrs[trainedAttribute]);
+    expect(line?.atCap).toBe(line?.weeklyGain === 0);
   });
 });
