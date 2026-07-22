@@ -6,7 +6,8 @@ starting evidence and decision record; sections 6–9 are the current status.
 
 **Current branch:** `feature/hero-power-balance-m1-13`. The implementation is
 committed in `3cbca1f`, and the Shadow Mark correctness fix is committed in
-`f0d0ef5`. Both commits are pushed. The current replay version is **m1.16**.
+`f0d0ef5`. Final acceptance evidence is committed in `bf7c8e6`. All three are
+pushed. The current replay version is **m1.16**.
 
 ---
 
