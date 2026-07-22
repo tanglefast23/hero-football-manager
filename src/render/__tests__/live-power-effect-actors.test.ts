@@ -12,7 +12,7 @@ const base = {
 };
 
 describe('live power effect actors', () => {
-  it('uses the exact source player for phase afterimages and the decoy clone', () => {
+  it('uses the exact source player for phase afterimages without duplicating the real Decoy', () => {
     const phase = livePowerEffectActors({
       ...base,
       power: 'PHASE_RUN',
@@ -26,8 +26,9 @@ describe('live power effect actors', () => {
       power: 'DECOY_DOUBLE',
       elapsedMs: 2100,
     });
-    expect(decoy).toHaveLength(1);
-    expect(decoy[0]).toMatchObject({ player: 7, scale: 1 });
+    // Decoy is a genuine reserved player in the main Atlas. The effect layer
+    // supplies comic FX only and must never draw a second fake player body.
+    expect(decoy).toEqual([]);
   });
 
   it('uses the real hero for the Shadow Mark pop-up and giant goalkeeper', () => {

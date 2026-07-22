@@ -72,8 +72,6 @@ export function livePowerEffectActors(input: LivePowerEffectActorInput): LivePow
     x: input.origin.x + input.width * 0.08,
     y: input.origin.y + input.direction * input.height * 0.38,
   };
-  const secondary = input.targets[1] ?? target;
-
   if (input.power === 'PHASE_RUN') {
     const phased = pointAlong(input.origin, target, easeInOut(segment(p, 0.18, 0.78)));
     return [0, 1, 2].map(index => ({
@@ -86,18 +84,6 @@ export function livePowerEffectActors(input: LivePowerEffectActorInput): LivePow
       opacity: 0.16 + index * 0.12,
       scale: 1,
     }));
-  }
-
-  if (input.power === 'DECOY_DOUBLE') {
-    const project = segment(p, 0.08, 0.28);
-    const run = easeInOut(segment(p, 0.26, 0.78));
-    return [{
-      id: `${input.id}:clone`,
-      player: input.player,
-      at: pointAlong(input.origin, secondary, run),
-      opacity: (0.42 + 0.35 * 0.88) * project,
-      scale: 1,
-    }];
   }
 
   if (input.power === 'SHADOW_MARK') {
