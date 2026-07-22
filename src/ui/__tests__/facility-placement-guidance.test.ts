@@ -6,8 +6,8 @@ describe('first facility placement guidance', () => {
     const source = readFileSync(join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'), 'utf8');
     const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
-    expect(source).toContain('detail="Build Training Grounds"');
-    expect(source).toContain('detail="Tap where you’d like to build the Training Grounds"');
+    expect(source).toContain('detail="Choose a building to place"');
+    expect(source).toContain('detail="Tap a glowing square to build"');
     expect(source).not.toContain('Training Grounds · top left');
     expect(source).toContain('scrollRef.current?.scrollTo({ y: targetY, animated: true });');
     expect(source).toContain('disabled={!placementActive || !guideAllowsCell}');
