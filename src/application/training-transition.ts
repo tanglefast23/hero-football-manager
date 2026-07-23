@@ -1,5 +1,11 @@
 import type { LaunchContent } from '../content';
-import { chargeableCareerTrainingPlan, type CareerPlayer, type GameState } from '../game';
+import {
+  pendingTrainingInterrupts,
+  resolveTrainingDrillForPath,
+  type CareerPlayer,
+  type CareerTrainingSlot,
+  type GameState,
+} from '../game';
 
 export type TrainingActivityId =
   | 'sprints'
@@ -43,48 +49,38 @@ export function trainingTransitionScene(
   content: LaunchContent,
 ): TrainingTransitionScene {
   const roster = state.players.filter(player => player.clubId === state.userClubId);
-  const plan = state.trainingPlan;
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  const chargeable = plan === undefined
-    ? undefined
-    : chargeableCareerTrainingPlan(state, plan.assignedPlayerIds, plan.drills);
-  const activeDrills = chargeable?.drills ?? [];
-  const moneyCost = chargeable?.moneyCost ?? 0;
-  const trainingPointCost = chargeable?.trainingPointCost ?? 0;
-  const planIsActive = plan !== undefined
-    && plan.assignedPlayerIds.length > 0
-    && plan.drills.length > 0
-    && activeDrills.length > 0
-    && club !== undefined
-    && moneyCost <= Math.max(0, club.cash)
-    && trainingPointCost <= state.trainingPoints;
+  const slots = state.trainingPlan?.slots ?? [];
+  const planIsActive = slots.length > 0
+    && pendingTrainingInterrupts(state, state.trainingPoints).tpShortfall === 0;
 
-  if (!planIsActive || plan === undefined) return genericScene(roster);
+  if (!planIsActive) return genericScene(roster);
 
   const playersById = new Map(roster.map(player => [player.id, player]));
   const drillsById = new Map(content.training.focusDrills.map(drill => [drill.id, drill]));
-  const assigned = plan.assignedPlayerIds
-    .map(playerId => playersById.get(playerId))
-    .filter((player): player is CareerPlayer => player !== undefined)
-    .slice(0, 3);
+  const assigned = slots
+    .map(slot => ({ slot, player: playersById.get(slot.playerId) }))
+    .filter((entry): entry is { slot: CareerTrainingSlot; player: CareerPlayer } =>
+      entry.player !== undefined,
+    );
 
   if (assigned.length === 0) return genericScene(roster);
 
-  const drillLabels = activeDrills.map(drill => drillsById.get(drill.id)?.name ?? drill.id);
+  const participants = assigned.map(({ slot, player }) => {
+    const drill = resolveTrainingDrillForPath(state, slot.pathId);
+    return {
+      playerId: player.id,
+      playerName: player.name,
+      role: player.role,
+      lookId: player.lookId,
+      activityId: activityIdFor(slot.pathId),
+      activityLabel: drillsById.get(drill.id)?.name ?? drill.id,
+    };
+  });
+
   return {
     mode: 'plan',
-    drillLabels,
-    participants: assigned.map((player, participantIndex) => {
-      const drill = activeDrills[participantIndex % activeDrills.length];
-      return {
-        playerId: player.id,
-        playerName: player.name,
-        role: player.role,
-        lookId: player.lookId,
-        activityId: activityIdFor(drill.id),
-        activityLabel: drillsById.get(drill.id)?.name ?? drill.id,
-      };
-    }),
+    drillLabels: participants.map(participant => participant.activityLabel),
+    participants,
   };
 }
 
@@ -105,8 +101,7 @@ function genericScene(roster: readonly CareerPlayer[]): TrainingTransitionScene 
   };
 }
 
-function activityIdFor(drillId: string): TrainingActivityId {
-  const pathId = drillId.replace(/-(?:ii|iii)$/, '');
+function activityIdFor(pathId: string): TrainingActivityId {
   if (pathId === 'first-touch') return 'rondo';
   return ACTIVITY_IDS.has(pathId as TrainingActivityId)
     ? pathId as TrainingActivityId

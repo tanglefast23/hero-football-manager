@@ -256,9 +256,7 @@ export function applyBoardForcedSaleConsequences(
     trainingPlan: state.trainingPlan === undefined
       ? undefined
       : {
-          ...state.trainingPlan,
-          assignedPlayerIds: state.trainingPlan.assignedPlayerIds
-            .filter(id => id !== player.id),
+          slots: state.trainingPlan.slots.filter(slot => slot.playerId !== player.id),
         },
     market: state.market === undefined
       ? undefined

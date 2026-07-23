@@ -26,7 +26,7 @@ describe('assistant guide application flow', () => {
     expect(currentAssistantObjective(state, 'home')).toEqual({ text: 'OPEN SQUAD.', target: 'squad-tab' });
     expect(pendingAssistantGuideSequence(state, 'squad')).toBeNull();
     expect(currentAssistantObjective(state, 'squad')).toEqual({
-      text: 'SAVE YOUR FIRST WEEKLY PLAN.',
+      text: 'PICK A PLAYER AND A STAT TO TRAIN.',
       target: 'training-plan',
     });
 

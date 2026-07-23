@@ -6,6 +6,7 @@ export * from './PostMatchDevelopmentOverlay';
 export * from './CoachStaffOverlay';
 export * from './FacilityProjectNotice';
 export * from './PlayerSigningOverlay';
+export * from './TrainingPromiseReaction';
 export * from './TutorialTapCue';
 export * from './ScreenErrorBoundary';
 export * from './models';

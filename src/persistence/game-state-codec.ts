@@ -335,13 +335,20 @@ const trainingRulesSchema = z
   .object({
     maxFocusDrillsPerWeek: positiveInteger,
     baseConditioning: trainingDrillSchema,
+    focusDrills: z.array(trainingDrillSchema),
+  })
+  .passthrough();
+
+const trainingSlotSchema = z
+  .object({
+    playerId: nonemptyString,
+    pathId: nonemptyString,
   })
   .passthrough();
 
 const trainingPlanSchema = z
   .object({
-    assignedPlayerIds: z.array(nonemptyString).min(1),
-    drills: z.array(trainingDrillSchema).min(1),
+    slots: z.array(trainingSlotSchema),
   })
   .passthrough();
 
@@ -356,6 +363,12 @@ const trainingCapNoticeSchema = z
     cap: positiveInteger.refine(value => value <= 99, 'must be at most 99'),
     drillId: nonemptyString,
     kind: z.enum(['reached', 'skipped']).optional(),
+  })
+  .passthrough();
+
+const pendingTrainingPromiseBumpSchema = z
+  .object({
+    promisedPlayerId: nonemptyString,
   })
   .passthrough();
 
@@ -727,6 +740,7 @@ const gameStateSchema = z
     trainingRules: trainingRulesSchema.optional(),
     trainingPlan: trainingPlanSchema.optional(),
     trainingCapNotices: z.array(trainingCapNoticeSchema).optional(),
+    pendingTrainingPromiseBump: pendingTrainingPromiseBumpSchema.optional(),
     eventClock: eventClockSchema,
     eventFlags: z.array(nonemptyString),
     resolvedEventIds: z.array(nonemptyString),
@@ -1402,44 +1416,43 @@ const gameStateSchema = z
     }
 
     if (state.trainingPlan !== undefined) {
-      const maxDrills = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
+      const maxSlots = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
       const assignedIds = new Set<string>();
-      const drillIds = new Set<string>();
-      if (state.trainingPlan.drills.length > maxDrills) {
+      if (state.trainingPlan.slots.length > maxSlots) {
         context.addIssue({
           code: 'custom',
-          path: ['trainingPlan', 'drills'],
-          message: `cannot contain more than ${maxDrills} drills`,
+          path: ['trainingPlan', 'slots'],
+          message: `cannot contain more than ${maxSlots} slots`,
         });
       }
-      for (let index = 0; index < state.trainingPlan.assignedPlayerIds.length; index += 1) {
-        const playerId = state.trainingPlan.assignedPlayerIds[index];
+      for (let index = 0; index < state.trainingPlan.slots.length; index += 1) {
+        const { playerId } = state.trainingPlan.slots[index];
         if (assignedIds.has(playerId)) {
           context.addIssue({
             code: 'custom',
-            path: ['trainingPlan', 'assignedPlayerIds', index],
-            message: 'assigned player ID must be unique',
+            path: ['trainingPlan', 'slots', index, 'playerId'],
+            message: 'a player can occupy only one training slot',
           });
         }
         assignedIds.add(playerId);
         if (!playerIds.has(playerId) || playerClubById.get(playerId) !== state.userClubId) {
           context.addIssue({
             code: 'custom',
-            path: ['trainingPlan', 'assignedPlayerIds', index],
+            path: ['trainingPlan', 'slots', index, 'playerId'],
             message: 'assigned player must belong to the user club',
           });
         }
       }
-      for (let index = 0; index < state.trainingPlan.drills.length; index += 1) {
-        const drillId = state.trainingPlan.drills[index].id;
-        if (drillIds.has(drillId)) {
-          context.addIssue({
-            code: 'custom',
-            path: ['trainingPlan', 'drills', index, 'id'],
-            message: 'training drill ID must be unique',
-          });
-        }
-        drillIds.add(drillId);
+    }
+
+    if (state.pendingTrainingPromiseBump !== undefined) {
+      const { promisedPlayerId } = state.pendingTrainingPromiseBump;
+      if (!playerIds.has(promisedPlayerId) || playerClubById.get(promisedPlayerId) !== state.userClubId) {
+        context.addIssue({
+          code: 'custom',
+          path: ['pendingTrainingPromiseBump', 'promisedPlayerId'],
+          message: 'promised player must belong to the user club',
+        });
       }
     }
   });

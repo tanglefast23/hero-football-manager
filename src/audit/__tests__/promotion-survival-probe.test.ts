@@ -31,7 +31,6 @@ import {
   buildCareerMatchTeamDef,
   careerHeroLimit,
   careerTransferTarget,
-  chargeableCareerTrainingPlan,
   completeCareerTransfer,
   completeFirstOnboardingMatch,
   completeMatchday,
@@ -43,6 +42,7 @@ import {
   leagueStandings,
   quickMatchForFixture,
   renewCareerPlayer,
+  resolveTrainingDrillForPath,
   restoreCareerContractPromiseLineup,
   resolvePostMatchAwakening,
   roleOverall,
@@ -50,13 +50,15 @@ import {
   selectCareerLicensedHeroes,
   setCareerLineup,
   setCareerTrainingPlan,
+  slotIsAtCap,
+  slotTrainingPointCost,
   startCareerScoutMission,
   startNextSeason,
   submitCareerTransferOffer,
   careerRosterCapacity,
   userCareerRosterCount,
+  TRAINING_PATHS,
   type CareerPlayer,
-  type FocusDrill,
   type GameState,
 } from '../../game';
 import type { ScoutReport } from '../../game/market';
@@ -672,48 +674,43 @@ function planUsefulTraining(
   state: GameState,
   maxTrainees: number,
 ): { state: GameState; planned: boolean } {
-  const clubCash = userCash(state);
   const lineupPlayers = userLineupIds(state)
     .map(id => state.players.find(player => player.id === id)!)
     .filter(player => player.injuryWeeks === 0);
-  const options = content.training.focusDrills.flatMap(drill => {
+  const options = TRAINING_PATHS.flatMap(path => {
     const eligible = lineupPlayers
-      .filter(player => (
-        chargeableCareerTrainingPlan(state, [player.id], [drill]).drills.length > 0
-      ))
+      .filter(player => !slotIsAtCap(state, { playerId: player.id, pathId: path.pathId }))
       .sort((left, right) => (
-        trainingGain(right, drill) - trainingGain(left, drill)
+        trainingGain(state, right, path.pathId) - trainingGain(state, left, path.pathId)
         || left.id.localeCompare(right.id)
       ))
       .slice(0, maxTrainees);
     if (eligible.length === 0) return [];
-    const assignedPlayerIds = eligible.map(player => player.id);
-    const chargeable = chargeableCareerTrainingPlan(state, assignedPlayerIds, [drill]);
-    if (chargeable.drills.length === 0
-      || chargeable.trainingPointCost > state.trainingPoints
-      || chargeable.moneyCost > clubCash) return [];
+    const slots = eligible.map(player => ({ playerId: player.id, pathId: path.pathId }));
+    const tpCost = slotTrainingPointCost(state, slots);
+    // Training money is always 0 now; TP is the only remaining constraint.
+    if (tpCost > state.trainingPoints) return [];
     return [{
-      drill,
-      assignedPlayerIds,
-      score: eligible.reduce((sum, player) => sum + trainingGain(player, drill), 0),
-      tpCost: chargeable.trainingPointCost,
-      moneyCost: chargeable.moneyCost,
+      pathId: path.pathId,
+      slots,
+      score: eligible.reduce((sum, player) => sum + trainingGain(state, player, path.pathId), 0),
+      tpCost,
     }];
   }).sort((left, right) => (
     right.score - left.score
     || left.tpCost - right.tpCost
-    || left.moneyCost - right.moneyCost
-    || left.drill.id.localeCompare(right.drill.id)
+    || left.pathId.localeCompare(right.pathId)
   ));
   const selected = options[0];
   if (selected === undefined) return { state: clearTrainingPlan(state), planned: false };
   return {
-    state: setCareerTrainingPlan(state, selected.assignedPlayerIds, [selected.drill]),
+    state: setCareerTrainingPlan(state, selected.slots),
     planned: true,
   };
 }
 
-function trainingGain(player: CareerPlayer, drill: FocusDrill): number {
+function trainingGain(state: GameState, player: CareerPlayer, pathId: string): number {
+  const drill = resolveTrainingDrillForPath(state, pathId);
   const attrs: Attrs = { ...player.attrs };
   for (const [key, gain] of Object.entries(drill.gains)) {
     const attribute = key as keyof Attrs;

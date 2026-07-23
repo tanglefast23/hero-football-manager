@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
+import { Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
-import type { FocusDrillViewModel, SquadTrainingViewModel } from '../models';
+import type { SquadTrainingViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
@@ -27,53 +27,26 @@ import {
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
+  /** The player currently focused for the profile card and stat picker (mirrors store.selectedPlayerId). */
+  selectedPlayerId?: string;
   onSelectPlayer: (playerId: string) => void;
   onTogglePlayerAssignment: (playerId: string) => void;
-  onToggleDrill: (drillId: string) => void;
-  onApplyTraining: () => void;
+  onSelectTrainingStat: (playerId: string, pathId: string) => void;
+  /** True right after a 4th player is tapped while all 3 slots are full. */
+  trainingSlotLimitHit?: boolean;
+  onDismissSlotLimit?: () => void;
   guideTraining?: boolean;
   guideFocus?: AssistantGuideFocus;
 }
 
-function drillSelectionClass(drill: FocusDrillViewModel): string {
-  if (!drill.available) return 'border-ink/20 bg-white opacity-40';
-  if (drill.selected) return 'border-violet-dark bg-violet-light';
-  return 'border-ink/30 bg-white';
-}
-
-const DRILL_GLYPHS: Readonly<Record<string, string>> = {
-  sprints: '»',
-  finishing: '◎',
-  rondo: '↻',
-  duels: '×',
-  'first-touch': '◇',
-  circuit: '↯',
-  'keeper-drills': '▥',
-};
-
-function DrillIcon({ drillId, selected = false }: { drillId: string; selected?: boolean }) {
-  return (
-    <View
-      accessible={false}
-      className={selected
-        ? 'h-11 w-11 items-center justify-center border-2 border-violet-dark bg-paper'
-        : 'h-11 w-11 items-center justify-center border-2 border-ink bg-paper'}
-    >
-      <Text className={selected
-        ? 'font-pixel text-xl text-violet-dark'
-        : 'font-pixel text-xl text-blue-dark'}>
-        {DRILL_GLYPHS[drillId.replace(/-(?:ii|iii)$/, '')] ?? '•'}
-      </Text>
-    </View>
-  );
-}
-
 export function SquadTrainingScreen({
   viewModel,
+  selectedPlayerId,
   onSelectPlayer,
   onTogglePlayerAssignment,
-  onToggleDrill,
-  onApplyTraining,
+  onSelectTrainingStat,
+  trainingSlotLimitHit = false,
+  onDismissSlotLimit,
   guideTraining = false,
   guideFocus,
 }: SquadTrainingScreenProps) {
@@ -81,31 +54,25 @@ export function SquadTrainingScreen({
   const wideColumns = width >= 600;
   const currentColumnWidth = wideColumns ? 'w-20' : 'w-10';
   const potentialColumnWidth = wideColumns ? 'w-24' : 'w-14';
-  const selectedPlayer = viewModel.players.find(player => player.id === viewModel.selectedPlayerId);
+  const selectedPlayer = viewModel.players.find(player => player.id === selectedPlayerId);
   const selectedArchetype = selectedPlayer === undefined
     ? undefined
     : archetypeDevelopmentSummary(selectedPlayer.archetype);
-  const assigned = new Set(viewModel.assignedPlayerIds);
   const scrollViewportRef = useRef<View>(null);
-  const drillListRef = useRef<View>(null);
-  const lockPlanRef = useRef<View>(null);
+  const statPickerRef = useRef<View>(null);
   const visibilityFrameRef = useRef<number | null>(null);
   const playerGuideTouchStartRef = useRef<TutorialTouchPoint | null>(null);
-  const [drillListVisible, setDrillListVisible] = useState(false);
-  const [lockPlanVisible, setLockPlanVisible] = useState(false);
+  const [statPickerVisible, setStatPickerVisible] = useState(false);
   const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
+  const [slotLimitToastVisible, setSlotLimitToastVisible] = useState(false);
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
     [squadSort, viewModel.players],
   );
-  const guideLockPlan = guideTraining
-    && viewModel.assignedPlayerIds.length > 0
-    && viewModel.selectedDrillCount > 0;
-  const guidePlayers = guideTraining && viewModel.assignedPlayerIds.length === 0;
-  const guideDrills = guideTraining
-    && viewModel.assignedPlayerIds.length > 0
-    && viewModel.selectedDrillCount === 0;
+  const assignedCount = viewModel.players.filter(player => player.slotNumber !== undefined).length;
+  const guidePlayers = guideTraining && assignedCount === 0;
+  const guideStat = guideTraining && assignedCount > 0 && viewModel.slots.length < assignedCount;
 
   const dismissPlayerGuide = useCallback(() => {
     if (guidePlayers) setPlayerGuideDismissed(true);
@@ -138,40 +105,30 @@ export function SquadTrainingScreen({
   const measureTrainingGuideVisibility = useCallback(() => {
     scrollViewportRef.current?.measureInWindow((viewportX, viewportY, viewportWidth, viewportHeight) => {
       const viewport = { x: viewportX, y: viewportY, width: viewportWidth, height: viewportHeight };
-      if (guideDrills) {
-        drillListRef.current?.measureInWindow((targetX, targetY, targetWidth, targetHeight) => {
+      if (guideStat) {
+        statPickerRef.current?.measureInWindow((targetX, targetY, targetWidth, targetHeight) => {
           const visible = isTutorialTargetVisible(
             { x: targetX, y: targetY, width: targetWidth, height: targetHeight },
             viewport,
           );
-          setDrillListVisible(current => current === visible ? current : visible);
-        });
-      }
-      if (guideLockPlan) {
-        lockPlanRef.current?.measureInWindow((targetX, targetY, targetWidth, targetHeight) => {
-          const visible = isTutorialTargetVisible(
-            { x: targetX, y: targetY, width: targetWidth, height: targetHeight },
-            viewport,
-          );
-          setLockPlanVisible(current => current === visible ? current : visible);
+          setStatPickerVisible(current => current === visible ? current : visible);
         });
       }
     });
-  }, [guideDrills, guideLockPlan]);
+  }, [guideStat]);
 
   const scheduleTrainingGuideVisibility = useCallback(() => {
-    if (!guideDrills && !guideLockPlan) return;
+    if (!guideStat) return;
     if (visibilityFrameRef.current !== null) cancelAnimationFrame(visibilityFrameRef.current);
     visibilityFrameRef.current = requestAnimationFrame(() => {
       visibilityFrameRef.current = null;
       measureTrainingGuideVisibility();
     });
-  }, [guideDrills, guideLockPlan, measureTrainingGuideVisibility]);
+  }, [guideStat, measureTrainingGuideVisibility]);
 
   useEffect(() => {
-    if (!guideDrills) setDrillListVisible(false);
-    if (!guideLockPlan) setLockPlanVisible(false);
-    if (!guideDrills && !guideLockPlan) {
+    if (!guideStat) setStatPickerVisible(false);
+    if (!guideStat) {
       return;
     }
     scheduleTrainingGuideVisibility();
@@ -181,17 +138,25 @@ export function SquadTrainingScreen({
         visibilityFrameRef.current = null;
       }
     };
-  }, [guideDrills, guideLockPlan, scheduleTrainingGuideVisibility]);
+  }, [guideStat, scheduleTrainingGuideVisibility]);
 
   useEffect(() => {
     if (!guideTraining) {
-      setDrillListVisible(false);
-      setLockPlanVisible(false);
+      setStatPickerVisible(false);
     }
   }, [guideTraining]);
 
-  const showScrollCue = (guideDrills && !drillListVisible)
-    || (guideLockPlan && !lockPlanVisible);
+  useEffect(() => {
+    if (!trainingSlotLimitHit) return undefined;
+    setSlotLimitToastVisible(true);
+    const timer = setTimeout(() => {
+      setSlotLimitToastVisible(false);
+      onDismissSlotLimit?.();
+    }, 2400);
+    return () => clearTimeout(timer);
+  }, [trainingSlotLimitHit, onDismissSlotLimit]);
+
+  const showScrollCue = guideStat && !statPickerVisible;
 
   return (
     <View
@@ -221,7 +186,7 @@ export function SquadTrainingScreen({
         <SectionLabel
           eyebrow="Team register"
           title={`${viewModel.players.length} players`}
-          right={<StatusChip label={`${viewModel.assignedPlayerIds.length} assigned`} />}
+          right={<StatusChip label={`${assignedCount} / ${viewModel.maxSlots} training`} />}
         />
         <View className={guidePlayers
           ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
@@ -242,10 +207,10 @@ export function SquadTrainingScreen({
             <Text className="w-14 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1} ellipsizeMode="clip">Train</Text>
           </View>
           {sortedPlayers.map((player) => {
-            const selected = player.id === viewModel.selectedPlayerId;
-            const isAssigned = assigned.has(player.id);
+            const selected = player.id === selectedPlayerId;
+            const isAssigned = player.slotNumber !== undefined;
             const glowAssignmentButton = guidePlayers && !isAssigned;
-            const guideConciergePlayer = player.id === viewModel.selectedPlayerId && (
+            const guideConciergePlayer = player.id === selectedPlayerId && (
               (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
               || guideFocus === 'transfer-request'
             );
@@ -305,23 +270,32 @@ export function SquadTrainingScreen({
                 </Pressable>
                 <Pressable
                   accessibilityRole="checkbox"
-                  accessibilityLabel={`Assign ${player.name} to selected focus drills`}
-                  accessibilityState={{ checked: isAssigned }}
+                  accessibilityLabel={player.trainingLocked
+                    ? `${player.name} is locked into training by a contract promise`
+                    : isAssigned
+                      ? `Remove ${player.name} from this week's training slots`
+                      : `Add ${player.name} to this week's training slots`}
+                  accessibilityState={{ checked: isAssigned, disabled: player.trainingLocked === true }}
+                  disabled={player.trainingLocked === true}
                   onPress={() => onTogglePlayerAssignment(player.id)}
-                  className={isAssigned
-                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-violet-dark bg-violet-light'
-                    : glowAssignmentButton
-                      ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
-                      : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
+                  className={player.trainingLocked
+                    ? 'ml-2 h-11 w-12 items-center justify-center border border-ink/20 bg-paper-dark'
+                    : isAssigned
+                      ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-violet-dark bg-violet-light'
+                      : glowAssignmentButton
+                        ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
+                        : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
                   style={({ pressed }) => [
-                    { opacity: pressed ? 0.65 : undefined },
+                    { opacity: pressed && !player.trainingLocked ? 0.65 : undefined },
                     glowAssignmentButton ? styles.assignmentButtonGlow : null,
                   ]}
                 >
-                  <Text className={isAssigned || glowAssignmentButton
-                    ? 'font-mono text-base font-bold text-ink'
-                    : 'font-mono text-base text-ink/40'}>
-                    {isAssigned ? '✓' : '+'}
+                  <Text className={player.trainingLocked
+                    ? 'font-mono text-base font-bold text-ink/30'
+                    : isAssigned || glowAssignmentButton
+                      ? 'font-mono text-base font-bold text-ink'
+                      : 'font-mono text-base text-ink/40'}>
+                    {player.trainingLocked ? '🔒' : player.slotNumber ?? '+'}
                   </Text>
                 </Pressable>
               </View>
@@ -429,151 +403,105 @@ export function SquadTrainingScreen({
       <View className="mt-6">
         <SectionLabel
           eyebrow="Weekly plan"
-          title="Focus drills"
-          right={<StatusChip label={`${viewModel.selectedDrillCount} / ${viewModel.maxDrills}`} selected={viewModel.selectedDrillCount > 0} />}
+          title="Training focus"
+          right={<StatusChip label={`${viewModel.weeklyTrainingPointCost} TP / wk`} selected={viewModel.weeklyTrainingPointCost > 0} />}
         />
-        <Text className="mb-3 text-sm leading-5 text-ink/60">
-          A completed Level 1 Training Pitch adds 10 TP after each weekly settlement. Money prices are per eligible trainee; TP is charged once per selected drill. The plan repeats weekly until changed.
-        </Text>
-        <View className={guideDrills
-          ? 'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'
-          : 'gap-2'}
-          ref={drillListRef}
-          collapsable={false}
-          onLayout={scheduleTrainingGuideVisibility}
-        >
-          {guideDrills ? (
-            <TutorialTapCue
-              label="Tap in here"
-              detail="Add up to 3 drills."
-              style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
-            />
-          ) : null}
-          {viewModel.drills.map(drill => (
-            <View
-              key={drill.id}
-              className={`relative min-h-16 flex-row items-center border-2 p-3 ${drillSelectionClass(drill)}`}
-            >
-              <DrillIcon drillId={drill.id} selected={drill.selected} />
-              <View className="min-w-0 flex-1 px-3">
-                <Text className="text-base font-bold uppercase text-ink">{drill.name}</Text>
-                <Text className={drill.selected ? 'mt-1 text-sm text-ink/70' : 'mt-1 text-sm text-ink/60'}>
-                  {drill.lockedReason ?? drill.gainLabel}
-                </Text>
-              </View>
-              <View className="items-end">
-                <Text className="font-mono text-sm font-bold text-ink" numberOfLines={1}>{formatCurrency(drill.moneyCost)} each</Text>
-                <Text className={drill.selected ? 'mt-1 font-mono text-sm font-bold text-ink' : 'mt-1 font-mono text-sm text-blue-dark'} numberOfLines={1}>{drill.trainingPointCost} TP / drill</Text>
-              </View>
-              <Pressable
-                accessibilityRole="checkbox"
-                accessibilityLabel={drill.selected ? `Remove ${drill.name}` : `Add ${drill.name}`}
-                accessibilityHint={drill.lockedReason ?? `${drill.gainLabel}. Costs ${formatCurrency(drill.moneyCost)} per eligible trainee and ${drill.trainingPointCost} training points once per drill.`}
-                accessibilityState={{ checked: drill.selected, disabled: !drill.available }}
-                disabled={!drill.available}
-                onPress={() => onToggleDrill(drill.id)}
-                className={drill.selected
-                  ? 'ml-3 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-paper'
-                  : 'ml-3 h-11 w-11 items-center justify-center border border-ink/30 bg-white'}
-                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
-              >
-                <Text className={drill.selected
-                  ? 'font-mono text-xl font-bold text-violet-dark'
-                  : 'font-mono text-xl text-ink/40'}>
-                  {drill.selected ? '−' : '+'}
-                </Text>
-              </Pressable>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {viewModel.lockedPlan === undefined ? (
-        <PaperPanel
-          kicker="Plan total"
-          title="Ready for the whistle?"
-          tone={viewModel.hasUnsavedChanges ? 'attention' : 'default'}
-          stamp={viewModel.hasUnsavedChanges ? 'Unsaved' : undefined}
-          className="mt-5"
-        >
-          <View className="flex-row gap-2">
-            <Metric label="Players" value={String(viewModel.assignedPlayerIds.length)} />
-            <Metric label="Money cost" value={formatCurrency(viewModel.totalMoneyCost)} tone="negative" />
-            <Metric label="TP cost" value={formatCompactNumber(viewModel.totalTrainingPointCost)} tone="negative" />
-          </View>
+        {selectedPlayer && viewModel.selectedPlayerStatOptions ? (
           <View
-            ref={lockPlanRef}
+            className={guideStat
+              ? 'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'
+              : 'gap-2'}
+            ref={statPickerRef}
             collapsable={false}
             onLayout={scheduleTrainingGuideVisibility}
-            className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
           >
-            {guideTraining && viewModel.selectedDrillCount > 0 ? (
-              <TutorialTapCue detail="Save the plan" style={{ left: 4, top: -74 }} />
+            {guideStat ? (
+              <TutorialTapCue
+                label="Tap in here"
+                detail="Pick a stat"
+                style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+              />
             ) : null}
-            <ActionButton
-              label={viewModel.hasUnsavedChanges ? 'Save changes' : 'Save weekly plan'}
-              accessibilityLabel="Save weekly plan. Save the repeating weekly training plan"
-              onPress={onApplyTraining}
-              disabled={!viewModel.canApply}
-            />
-          </View>
-        </PaperPanel>
-      ) : (
-        <PaperPanel kicker="The weekly plan" title="Locked in" stamp="SAVED" className="mt-5">
-          <View className="gap-3">
-            <View className="border-2 border-ink bg-white p-3">
-              <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Players</Text>
-              <View className="mt-2 gap-2">
-                {viewModel.lockedPlan.players.map(player => (
-                  <View key={player.id} className="flex-row items-center gap-3 border border-ink/20 bg-paper px-2 py-2">
-                    <View className="border-2 border-b-4 border-ink bg-blue-light px-1 pt-1">
-                      <PixelPortrait playerId={player.id} role={player.role} lookId={player.lookId} />
-                    </View>
-                    <View className="min-w-0 flex-1">
-                      <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
-                      {player.trainingProgress.map(entry => (
-                        <Text
-                          key={entry.label}
-                          className="mt-1 font-mono text-sm font-bold text-ink/70"
-                          numberOfLines={1}
-                        >
-                          {entry.label} {entry.value}/{entry.cap}{' '}
-                          <Text className={entry.atCap ? 'text-stamp' : entry.weeklyGain === 0 ? 'text-stamp' : 'text-pitch-dark'}>
-                            {entry.atCap ? '· At cap' : entry.weeklyGain === 0 ? '· None this week' : `+${entry.weeklyGain}/week`}
-                          </Text>
-                        </Text>
-                      ))}
-                    </View>
+            {viewModel.selectedPlayerStatOptions.map(option => {
+              const isCurrent = viewModel.slots.some(
+                slot => slot.playerId === selectedPlayer.id && slot.pathId === option.pathId,
+              );
+              return (
+                <Pressable
+                  key={option.pathId}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Train ${selectedPlayer.name} in ${option.label}`}
+                  accessibilityHint={`${option.drillName}. Gains ${option.gain} ${option.label}. ${option.atCap ? 'Already at cap.' : `${option.room} to cap.`}`}
+                  accessibilityState={{ checked: isCurrent, disabled: option.atCap }}
+                  disabled={option.atCap}
+                  onPress={() => onSelectTrainingStat(selectedPlayer.id, option.pathId)}
+                  className={option.atCap
+                    ? 'flex-row items-center justify-between border-2 border-ink/20 bg-white px-3 py-3 opacity-40'
+                    : isCurrent
+                      ? 'flex-row items-center justify-between border-2 border-violet-dark bg-violet-light px-3 py-3'
+                      : 'flex-row items-center justify-between border-2 border-ink/30 bg-white px-3 py-3'}
+                  style={({ pressed }) => ({ opacity: pressed && !option.atCap ? 0.65 : undefined })}
+                >
+                  <View className="min-w-0 flex-1 pr-2">
+                    <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{option.drillName}</Text>
+                    <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>
+                      {option.atCap ? 'At cap' : `${option.room} to cap`}
+                    </Text>
                   </View>
-                ))}
-              </View>
-            </View>
-            <View className="border-2 border-ink bg-white p-3">
-              <Text className="font-mono text-sm font-bold uppercase text-violet-dark">Training exercises</Text>
-              <View className="mt-2 gap-2">
-                {viewModel.lockedPlan.drills.map(drill => (
-                  <View key={drill.id} className="flex-row items-center gap-3 border border-ink/20 bg-paper px-2 py-2">
-                    <DrillIcon drillId={drill.id} selected />
-                    <View className="min-w-0 flex-1">
-                      <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{drill.name}</Text>
-                      <Text className="mt-1 font-mono text-sm font-bold text-violet-dark" numberOfLines={1}>{drill.gainLabel}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
+                  <Text
+                    className={isCurrent ? 'font-mono text-base font-bold text-violet-dark' : 'font-mono text-base font-bold text-ink'}
+                    numberOfLines={1}
+                  >
+                    +{option.gain} {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
-          <View className="mt-3 flex-row gap-2">
-            <Metric label="Money cost" value={formatCurrency(viewModel.lockedPlan.moneyCost)} tone="negative" />
-            <Metric label="TP cost" value={formatCompactNumber(viewModel.lockedPlan.trainingPointCost)} tone="negative" />
+        ) : (
+          <View className="border-2 border-ink bg-white p-4">
+            <Text className="text-sm text-ink/60">Select a player above to choose their training focus.</Text>
           </View>
-        </PaperPanel>
-      )}
+        )}
+      </View>
+
+      <PaperPanel kicker="This week" title="Training set" className="mt-5">
+        {viewModel.slots.length === 0 ? (
+          <Text className="text-sm text-ink/60">No players in training this week.</Text>
+        ) : (
+          <View className="gap-2">
+            {viewModel.slots.map(slot => (
+              <View
+                key={slot.playerId}
+                className="flex-row items-center justify-between border border-ink/20 bg-paper px-3 py-2"
+              >
+                <View className="min-w-0 flex-1 pr-2">
+                  <Text className="text-base font-bold text-ink" numberOfLines={1}>{slot.playerName}</Text>
+                  <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>{slot.drillName}</Text>
+                </View>
+                <Text className="font-mono text-sm font-bold text-pitch-dark" numberOfLines={1}>{slot.gainLabel}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+        <View className="mt-3 flex-row gap-2">
+          <Metric label="Players training" value={String(viewModel.slots.length)} />
+          <Metric label="TP cost / wk" value={formatCompactNumber(viewModel.weeklyTrainingPointCost)} tone="negative" />
+        </View>
+      </PaperPanel>
       </ScrollView>
+      {slotLimitToastVisible ? (
+        <View
+          pointerEvents="none"
+          className="absolute inset-x-4 top-4 border-2 border-stamp bg-red-light px-4 py-3 shadow-lg shadow-black/40"
+        >
+          <Text className="text-center text-sm font-bold text-ink">Only 3 players — remove one first.</Text>
+        </View>
+      ) : null}
       {showScrollCue ? (
         <TutorialTapCue
           label="Scroll down"
-          detail={viewModel.selectedDrillCount === 0 ? 'Add up to 3 drills.' : 'Save the plan'}
+          detail="Pick a stat"
           style={{ bottom: 10, right: 10 }}
         />
       ) : null}

@@ -1,47 +1,36 @@
 import { loadLaunchContent } from '../../content';
-import { createCareer } from '../../game';
+import { TRAINING_PATHS, createCareer, resolveTrainingDrillForPath } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { squadTrainingViewModel } from '../view-models';
 
 describe('training drill tier unlocks', () => {
   const content = loadLaunchContent();
 
-  test('hides locked tiers and keeps earned tiers after relegation', () => {
+  test('shows the best unlocked tier for a stat option and updates it as the club is promoted', () => {
     const divisionFive = createCareer(createLaunchCareerSetup(
       20260722,
       undefined,
       content,
       'full',
     ));
-    const viewAt = (highestDivisionReached: 5 | 4 | 2) => squadTrainingViewModel(
+    const player = divisionFive.players.find(candidate => candidate.clubId === divisionFive.userClubId)!;
+    const optionAt = (highestDivisionReached: 5 | 4 | 2) => squadTrainingViewModel(
       {
         ...divisionFive,
         trainingPoints: 100,
         m2: { ...divisionFive.m2!, highestDivisionReached },
       },
       content,
-      undefined,
+      player.id,
       [],
-      [],
-    );
+    ).selectedPlayerStatOptions?.find(option => option.pathId === 'sprints');
 
-    const tierOne = viewAt(5).drills.find(drill => drill.id === 'sprints')!;
-    const tierTwoLocked = viewAt(5).drills.find(drill => drill.id === 'sprints-ii');
-    const tierTwoEarned = viewAt(4).drills.find(drill => drill.id === 'sprints-ii')!;
-    const tierThreeLocked = viewAt(4).drills.find(drill => drill.id === 'sprints-iii');
-    const tierThreeEarned = viewAt(2).drills.find(drill => drill.id === 'sprints-iii')!;
-
-    expect(tierOne.available).toBe(true);
-    expect(tierOne.lockedReason).toBeUndefined();
-    expect(tierTwoLocked).toBeUndefined();
-    expect(tierTwoEarned.available).toBe(true);
-    expect(tierTwoEarned.lockedReason).toBeUndefined();
-    expect(tierThreeLocked).toBeUndefined();
-    expect(tierThreeEarned.available).toBe(true);
-    expect(tierThreeEarned.lockedReason).toBeUndefined();
+    expect(optionAt(5)).toMatchObject({ drillName: 'Sprints I' });
+    expect(optionAt(4)).toMatchObject({ drillName: 'Sprints II' });
+    expect(optionAt(2)).toMatchObject({ drillName: 'Sprints III' });
   });
 
-  test('totals Money per eligible trainee while charging TP once per drill', () => {
+  test('charges TP once per slot, independent of how many trainees share a stat', () => {
     const initial = createCareer(createLaunchCareerSetup(20260723, undefined, content, 'full'));
     const players = initial.players
       .filter(player => player.clubId === initial.userClubId)
@@ -58,27 +47,20 @@ describe('training drill tier unlocks', () => {
           }
         : player),
     };
-    const viewModel = squadTrainingViewModel(
-      state,
-      content,
-      undefined,
-      players.map(player => player.id),
-      ['sprints'],
-    );
+    const slots = players.map(player => ({ playerId: player.id, pathId: 'sprints' }));
+    const sprints = resolveTrainingDrillForPath(state, 'sprints');
 
-    expect(viewModel).toMatchObject({
-      totalMoneyCost: 800,
-      totalTrainingPointCost: 10,
-      canApply: true,
-    });
+    const viewModel = squadTrainingViewModel(state, content, undefined, slots);
+
+    expect(viewModel.weeklyTrainingPointCost).toBe(sprints.tpCost * players.length);
   });
 
-  it('hides division-locked drills instead of listing them greyed', () => {
+  it('resolves every stat path to its currently unlocked tier, never a locked one', () => {
     const state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
-    const model = squadTrainingViewModel(state, content, undefined, [], []);
+    const player = state.players.find(candidate => candidate.clubId === state.userClubId)!;
+    const model = squadTrainingViewModel(state, content, player.id, []);
 
-    expect(model.drills.length).toBeGreaterThan(0);
-    expect(model.drills.every(drill => drill.lockedReason === undefined)).toBe(true);
-    expect(model.drills.some(drill => drill.name.includes('II'))).toBe(false);
+    expect(model.selectedPlayerStatOptions).toHaveLength(TRAINING_PATHS.length);
+    expect(model.selectedPlayerStatOptions?.every(option => !option.drillName.includes('II'))).toBe(true);
   });
 });
