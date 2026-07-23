@@ -1,42 +1,88 @@
 import { LAUNCH_POWER_IDS } from '../../game/power-catalog';
-import { createMatch, queueInput, tick } from '../../sim/match';
-import { inUsefulContext } from '../../sim/powers';
+import { createMatch, tick } from '../../sim/match';
+import {
+  CONTEXT_AUTO_STRENGTH,
+  inUsefulContext,
+  ZONE_WINDOW_TICKS,
+} from '../../sim/powers';
+import type { MatchState, PowerId } from '../../sim/types';
 import {
   advancePowerMatchShowcaseReady,
   initializePowerMatchShowcase,
-  POWER_MATCH_SHOWCASE_READY_TICKS,
+  POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS,
   powerMatchShowcaseAway,
   powerMatchShowcaseHome,
 } from '../power-match-showcase';
 
+function advanceThroughAutoFire(match: MatchState, power: PowerId, hero: number): void {
+  for (let guard = 0; guard < 40; guard += 1) {
+    const state = match.players[hero].powerState;
+    if (state.kind !== 'zone' && state.kind !== 'winding') return;
+    expect(advancePowerMatchShowcaseReady(match, power)).toBe(true);
+  }
+  throw new Error(`${power} did not auto-fire in its authored showcase context`);
+}
+
 describe('live power match showcase', () => {
-  it.each(LAUNCH_POWER_IDS)('%s uses a real, useful match context with a 13-second tap window', power => {
+  it.each(LAUNCH_POWER_IDS)('%s auto-fires through the real best-context policy', power => {
     const match = createMatch(42, powerMatchShowcaseHome(power), powerMatchShowcaseAway());
     const hero = initializePowerMatchShowcase(match, power);
 
     expect(match.players[hero]).toMatchObject({
       def: { power },
-      firePolicy: 'SAVE_FOR_TAP',
-      powerState: { kind: 'zone', remainingTicks: POWER_MATCH_SHOWCASE_READY_TICKS },
+      firePolicy: 'FIRE_WHEN_READY',
+      powerState: { kind: 'zone' },
     });
     expect(inUsefulContext(match, hero)).toBe(true);
 
     const arrangedPositions = match.players.map(player => ({ ...player.pos }));
     const arrangedBall = JSON.parse(JSON.stringify(match.ball));
-    for (let heldTick = 1; heldTick < POWER_MATCH_SHOWCASE_READY_TICKS; heldTick += 1) {
+    for (let heldTick = 0; heldTick < POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS; heldTick += 1) {
       expect(advancePowerMatchShowcaseReady(match, power)).toBe(true);
     }
     expect(match.players.map(player => player.pos)).toEqual(arrangedPositions);
     expect(match.ball).toEqual(arrangedBall);
     expect(inUsefulContext(match, hero)).toBe(true);
+    expect(match.events).not.toContainEqual(expect.objectContaining({ kind: 'POWER_FIRED' }));
 
-    queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: hero });
-    expect(advancePowerMatchShowcaseReady(match, power)).toBe(true);
-    while (match.players[hero].powerState.kind === 'winding') {
+    advanceThroughAutoFire(match, power, hero);
+    expect(match.events).toContainEqual(expect.objectContaining({
+      kind: 'POWER_FIRED', player: hero, power, strength: CONTEXT_AUTO_STRENGTH,
+    }));
+    expect(match.inputLog).toEqual([]);
+  });
+
+  it('keeps an available power banked indefinitely until its best context exists', () => {
+    const power = 'SUPER_STRENGTH' as const;
+    const match = createMatch(42, powerMatchShowcaseHome(power), powerMatchShowcaseAway());
+    const hero = initializePowerMatchShowcase(match, power);
+    const victim = 11;
+    match.players[victim].pos = { x: 100, y: 100 };
+    expect(inUsefulContext(match, hero)).toBe(false);
+
+    for (let heldTick = 0; heldTick < 250; heldTick += 1) {
       expect(advancePowerMatchShowcaseReady(match, power)).toBe(true);
     }
+    expect(match.players[hero].powerState).toEqual({
+      kind: 'zone',
+      remainingTicks: ZONE_WINDOW_TICKS,
+    });
+    expect(match.events).not.toContainEqual(expect.objectContaining({
+      kind: 'POWER_EXPIRED',
+      player: hero,
+    }));
+
+    match.players[victim].pos = {
+      x: match.players[hero].pos.x + 500,
+      y: match.players[hero].pos.y,
+    };
+    expect(inUsefulContext(match, hero)).toBe(true);
+    advanceThroughAutoFire(match, power, hero);
     expect(match.events).toContainEqual(expect.objectContaining({
-      kind: 'POWER_FIRED', player: hero, power, strength: 1,
+      kind: 'POWER_FIRED',
+      player: hero,
+      power,
+      strength: CONTEXT_AUTO_STRENGTH,
     }));
   });
 
@@ -51,11 +97,7 @@ describe('live power match showcase', () => {
     const victim = 11;
     expect(Math.abs(match.players[hero].pos.x - match.players[victim].pos.x)).toBeGreaterThanOrEqual(1_000);
 
-    queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: hero });
-    advancePowerMatchShowcaseReady(match, power);
-    while (match.players[hero].powerState.kind === 'winding') {
-      advancePowerMatchShowcaseReady(match, power);
-    }
+    advanceThroughAutoFire(match, power, hero);
 
     for (let attempt = 0; attempt < 5 && match.players[victim].webbedUntilTick === undefined; attempt += 1) {
       tick(match);
@@ -74,11 +116,7 @@ describe('live power match showcase', () => {
     const hero = initializePowerMatchShowcase(match, power);
     expect(match.ball).toMatchObject({ kind: 'shot', targetX: 3_920 });
 
-    queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: hero });
-    advancePowerMatchShowcaseReady(match, power);
-    while (match.players[hero].powerState.kind === 'winding') {
-      advancePowerMatchShowcaseReady(match, power);
-    }
+    advanceThroughAutoFire(match, power, hero);
     for (let frame = 0; frame < 30 && !match.events.some(event => event.kind === 'SAVE'); frame += 1) {
       tick(match);
     }

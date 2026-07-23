@@ -25,7 +25,6 @@ import {
 import { MatchScreen, type PowerCutInQaEntry } from './src/render/MatchScreen';
 import { PowerEffectPreview } from './src/render/PowerEffectPreview';
 import {
-  POWER_MATCH_SHOWCASE_READY_TICKS,
   powerMatchShowcaseAway,
   powerMatchShowcaseHome,
 } from './src/render/power-match-showcase';
@@ -208,7 +207,6 @@ function PowerMatchQaApp() {
   const away = useMemo(powerMatchShowcaseAway, []);
   const powerMatchQa = useMemo(() => ({
     power: power.id,
-    readyTicks: POWER_MATCH_SHOWCASE_READY_TICKS,
   }), [power.id]);
   const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
 
@@ -235,7 +233,6 @@ function PowerMatchQaApp() {
                 Live match · {String(powerIndex + 1).padStart(2, '0')} / {String(powerCount).padStart(2, '0')}
               </Text>
               <Text numberOfLines={1} className="font-pixel text-base uppercase text-paper">{power.name}</Text>
-              <Text className="font-mono text-[10px] font-bold uppercase text-paper/70">13 sec to tap the glowing hero</Text>
             </View>
             <Pressable
               accessibilityRole="button"
@@ -257,6 +254,9 @@ function PowerMatchQaApp() {
               <Text className="font-pixel text-xs uppercase text-ink">Next ›</Text>
             </Pressable>
           </View>
+          <Text className="mt-1 text-center font-mono text-[10px] font-bold leading-4 text-paper/80">
+            {power.description}
+          </Text>
         </View>
         <View className="flex-1">
           <MatchScreen
