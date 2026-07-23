@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, Text, View, type LayoutChangeEvent } from 'react-native';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { FacilitySprite } from '../components/FacilitySprite';
@@ -7,6 +8,7 @@ import type {
   ClubFacilityBuildingViewModel,
   ClubFinancesViewModel,
   FacilityTypeViewModel,
+  TrainingGroundDecisionViewModel,
 } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
@@ -26,8 +28,31 @@ import {
   guidedFirstFacilityPhase,
   type GuidedFirstFacilityPhase,
 } from '../concierge-targets';
+import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
+import { useLayoutMode } from '../layout/use-layout-mode';
 
 const FACILITY_GUIDE_TARGET_TOP = 170;
+
+/** Scrolls the ScrollView so the given target (a rendered View) is margin px
+ * below the viewport top. Works regardless of column nesting because both
+ * measurements are in window coordinates. */
+function scrollToTarget(
+  scrollRef: RefObject<ScrollView | null>,
+  viewportRef: RefObject<View | null>,
+  targetRef: RefObject<View | null>,
+  latestScrollOffset: number,
+  margin = 12,
+) {
+  const viewport = viewportRef.current;
+  const target = targetRef.current;
+  if (viewport === null || target === null) return;
+  viewport.measureInWindow((vx, vy) => {
+    target.measureInWindow((tx, ty) => {
+      const y = Math.max(0, latestScrollOffset + (ty - vy) - margin);
+      scrollRef.current?.scrollTo({ y, animated: true });
+    });
+  });
+}
 
 export interface ClubFinancesScreenProps {
   viewModel: ClubFinancesViewModel;
@@ -58,8 +83,8 @@ export function ClubFinancesScreen({
   const facilities = viewModel.facilities;
   const scrollViewportRef = useRef<View>(null);
   const scrollRef = useRef<ScrollView>(null);
-  const facilityYRef = useRef<number | null>(null);
-  const groundsYRef = useRef<number | null>(null);
+  const groundsRef = useRef<View>(null);
+  const trainingGroundRef = useRef<View>(null);
   const scrollFrameRef = useRef<number | null>(null);
   const facilityGuideScrollFrameRef = useRef<number | null>(null);
   const facilityGuideScrolledPhaseRef = useRef<GuidedFirstFacilityPhase | null>(null);
@@ -180,11 +205,11 @@ export function ClubFinancesScreen({
   }, [guidedFirstFacility]);
 
   const scrollToTrainingGround = useCallback(() => {
-    if (!guideTrainingGround || facilityYRef.current === null) return;
+    if (!guideTrainingGround) return;
     if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current);
     scrollFrameRef.current = requestAnimationFrame(() => {
       scrollFrameRef.current = null;
-      scrollRef.current?.scrollTo({ y: Math.max(0, facilityYRef.current! - 12), animated: true });
+      scrollToTarget(scrollRef, scrollViewportRef, trainingGroundRef, latestScrollOffsetRef.current);
     });
   }, [guideTrainingGround]);
 
@@ -229,17 +254,94 @@ export function ClubFinancesScreen({
       setSelectedBuildingId(firstGuidedFacilityUpgradeId(facilities.buildings) ?? null);
       setSelectedBuildType(null);
     }
-    if (groundsYRef.current !== null) {
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ y: Math.max(0, groundsYRef.current! - 12), animated: true });
-      });
-    }
+    scrollToTarget(scrollRef, scrollViewportRef, groundsRef, latestScrollOffsetRef.current);
   }, [facilities.buildings, guideFocus, guideGrounds]);
 
-  const onTrainingGroundLayout = useCallback((event: LayoutChangeEvent) => {
-    facilityYRef.current = event.nativeEvent.layout.y;
+  const onTrainingGroundLayout = useCallback(() => {
     scrollToTrainingGround();
   }, [scrollToTrainingGround]);
+
+  const layoutMode = useLayoutMode();
+
+  const sections: FlowSection[] = [
+    {
+      key: 'cash-position',
+      weight: 6,
+      node: <CashPositionSection viewModel={viewModel} guideFocus={guideFocus} />,
+    },
+    {
+      key: 'itemized',
+      weight: 2 + viewModel.ledger.length,
+      node: <ItemizedStatementSection viewModel={viewModel} onOpenLedgerLine={onOpenLedgerLine} />,
+    },
+    ...(viewModel.recentTransactions.length > 0 ? [{
+      key: 'transactions',
+      weight: 2 + viewModel.recentTransactions.length,
+      node: <RecentTransactionsSection viewModel={viewModel} />,
+    }] : []),
+    {
+      key: 'coaching-staff',
+      weight: viewModel.coachingStaff.length === 0 ? 4 : 3 + 4 * viewModel.coachingStaff.length,
+      node: (
+        <CoachingStaffSection
+          viewModel={viewModel}
+          onOpenCoachMarket={onOpenCoachMarket}
+          onDismissCoach={onDismissCoach}
+        />
+      ),
+    },
+    {
+      key: 'grounds',
+      weight: 10 + viewModel.facilities.height * 2,
+      node: (
+        <GroundsSection
+          viewModel={viewModel}
+          groundsRef={groundsRef}
+          guideGrounds={guideGrounds}
+          guideFocus={guideFocus}
+          guidedFirstFacility={guidedFirstFacility}
+          guidedFacilityPhase={guidedFacilityPhase}
+          selectedBuildType={selectedBuildType}
+          setSelectedBuildType={setSelectedBuildType}
+          selectedBuildingId={selectedBuildingId}
+          setSelectedBuildingId={setSelectedBuildingId}
+          relocatingBuildingId={relocatingBuildingId}
+          setRelocatingBuildingId={setRelocatingBuildingId}
+          previewCell={previewCell}
+          setPreviewCell={setPreviewCell}
+          facilityGridWidth={facilityGridWidth}
+          setFacilityGridWidth={setFacilityGridWidth}
+          selectedBuilding={selectedBuilding}
+          placementActive={placementActive}
+          activeFootprint={activeFootprint}
+          activeLabel={activeLabel}
+          placementType={placementType}
+          placementLevel={placementLevel}
+          canPlaceAt={canPlaceAt}
+          cellIsOccupied={cellIsOccupied}
+          cancelPlacement={cancelPlacement}
+          handleGridCell={handleGridCell}
+          onUpgradeFacility={onUpgradeFacility}
+          facilityGuideGridTargetRef={facilityGuideGridTargetRef}
+          facilityGuideBuildTargetRef={facilityGuideBuildTargetRef}
+          scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
+        />
+      ),
+    },
+    ...(viewModel.legacyTrainingGroundVisible ? [{
+      key: 'training-ground',
+      weight: 5,
+      node: (
+        <LegacyTrainingGroundSection
+          facility={facility}
+          guideTrainingGround={guideTrainingGround}
+          trainingGroundRef={trainingGroundRef}
+          onTrainingGroundLayout={onTrainingGroundLayout}
+          onBuildTrainingGround={onBuildTrainingGround}
+        />
+      ),
+    }] : []),
+  ];
 
   return (
     <View ref={scrollViewportRef} collapsable={false} className="flex-1">
@@ -252,6 +354,9 @@ export function ClubFinancesScreen({
       }}
       scrollEventThrottle={16}
     >
+      <SectionFlow
+        mode={layoutMode}
+        header={
       <View className="flex-row items-end justify-between">
         <View>
           <Text className="text-sm font-bold uppercase text-blue-dark">Accounts office</Text>
@@ -259,8 +364,29 @@ export function ClubFinancesScreen({
         </View>
         <StatusChip label={viewModel.periodLabel} />
       </View>
+        }
+        sections={sections}
+      />
+    </ScrollView>
+    {pendingPlacement === null ? null : (
+      <FacilityPlacementConfirmation
+        placement={pendingPlacement}
+        onConfirm={confirmPendingPlacement}
+        onCancel={() => setPendingPlacement(null)}
+      />
+    )}
+    </View>
+  );
+}
 
-      <View className={guideFocus === 'emergency-loan' ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-5'}>
+interface CashPositionSectionProps {
+  viewModel: ClubFinancesViewModel;
+  guideFocus?: AssistantGuideFocus;
+}
+
+function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps) {
+  return (
+    <View className={guideFocus === 'emergency-loan' ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
         {guideFocus === 'emergency-loan' ? (
           <TutorialTapCue
             label="Bert says"
@@ -289,9 +415,18 @@ export function ClubFinancesScreen({
             </View>
           ) : null}
         </PaperPanel>
-      </View>
+    </View>
+  );
+}
 
-      <View className="mt-6">
+interface ItemizedStatementSectionProps {
+  viewModel: ClubFinancesViewModel;
+  onOpenLedgerLine?: (ledgerLineId: string) => void;
+}
+
+function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedStatementSectionProps) {
+  return (
+    <View>
         <SectionLabel eyebrow="Itemized statement" title="Every coin accounted for" />
         <View className="border-2 border-ink bg-white">
           <View className="flex-row border-b border-ink/20 px-3 py-2">
@@ -340,10 +475,17 @@ export function ClubFinancesScreen({
             );
           })}
         </View>
-      </View>
+    </View>
+  );
+}
 
-      {viewModel.recentTransactions.length > 0 ? (
-        <View className="mt-6">
+interface RecentTransactionsSectionProps {
+  viewModel: ClubFinancesViewModel;
+}
+
+function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps) {
+  return (
+    <View>
           <SectionLabel eyebrow="Cash activity" title="Recent club transactions" />
           <View className="border-2 border-ink bg-white">
             {viewModel.recentTransactions.map(transaction => (
@@ -363,10 +505,19 @@ export function ClubFinancesScreen({
               </View>
             ))}
           </View>
-        </View>
-      ) : null}
+    </View>
+  );
+}
 
-      <View className="mt-6">
+interface CoachingStaffSectionProps {
+  viewModel: ClubFinancesViewModel;
+  onOpenCoachMarket?: () => void;
+  onDismissCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
+}
+
+function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: CoachingStaffSectionProps) {
+  return (
+    <View>
         <SectionLabel
           eyebrow="Backroom staff"
           title="Coaching staff"
@@ -446,30 +597,89 @@ export function ClubFinancesScreen({
             ) : null}
           </View>
         )}
-      </View>
+    </View>
+  );
+}
 
-      <View
-        className={guideGrounds ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-6'}
-        onLayout={event => {
-          // React Native may release the synthetic event before the next frame.
-          // Snapshot the primitive now so the guided scroll never reads a pooled event.
-          const groundsY = event.nativeEvent.layout.y;
-          groundsYRef.current = groundsY;
-          if (guideGrounds && guideFocus !== 'facility-grid') {
-            requestAnimationFrame(() => scrollRef.current?.scrollTo({
-              y: Math.max(0, groundsY - 12),
-              animated: true,
-            }));
-          }
-        }}
-      >
-        {guideGrounds && guideFocus !== 'facility-grid' ? (
-          <TutorialTapCue
-            label="Bert says"
-            detail={guideFocus === 'facility-upgrade' ? 'Review the upgrade' : 'Use the club grounds'}
-            style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
-          />
-        ) : null}
+interface GroundsSectionProps {
+  viewModel: ClubFinancesViewModel;
+  groundsRef: RefObject<View | null>;
+  guideGrounds: boolean;
+  guideFocus?: AssistantGuideFocus;
+  guidedFirstFacility: boolean;
+  guidedFacilityPhase: GuidedFirstFacilityPhase;
+  selectedBuildType: FacilityTypeViewModel | null;
+  setSelectedBuildType: Dispatch<SetStateAction<FacilityTypeViewModel | null>>;
+  selectedBuildingId: string | null;
+  setSelectedBuildingId: Dispatch<SetStateAction<string | null>>;
+  relocatingBuildingId: string | null;
+  setRelocatingBuildingId: Dispatch<SetStateAction<string | null>>;
+  previewCell: { x: number; y: number } | null;
+  setPreviewCell: Dispatch<SetStateAction<{ x: number; y: number } | null>>;
+  facilityGridWidth: number;
+  setFacilityGridWidth: Dispatch<SetStateAction<number>>;
+  selectedBuilding?: ClubFacilityBuildingViewModel;
+  placementActive: boolean;
+  activeFootprint: { width: number; height: number } | null;
+  activeLabel: string;
+  placementType?: FacilityTypeViewModel;
+  placementLevel: number;
+  canPlaceAt: (x: number, y: number) => boolean;
+  cellIsOccupied: (x: number, y: number) => boolean;
+  cancelPlacement: () => void;
+  handleGridCell: (x: number, y: number) => void;
+  onUpgradeFacility?: (buildingId: string) => void;
+  facilityGuideGridTargetRef: RefObject<View | null>;
+  facilityGuideBuildTargetRef: RefObject<View | null>;
+  scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
+}
+
+function GroundsSection({
+  viewModel,
+  groundsRef,
+  guideGrounds,
+  guideFocus,
+  guidedFirstFacility,
+  guidedFacilityPhase,
+  selectedBuildType,
+  setSelectedBuildType,
+  selectedBuildingId,
+  setSelectedBuildingId,
+  relocatingBuildingId,
+  setRelocatingBuildingId,
+  previewCell,
+  setPreviewCell,
+  facilityGridWidth,
+  setFacilityGridWidth,
+  selectedBuilding,
+  placementActive,
+  activeFootprint,
+  activeLabel,
+  placementType,
+  placementLevel,
+  canPlaceAt,
+  cellIsOccupied,
+  cancelPlacement,
+  handleGridCell,
+  onUpgradeFacility,
+  facilityGuideGridTargetRef,
+  facilityGuideBuildTargetRef,
+  scrollFacilityGuideTargetIntoView,
+}: GroundsSectionProps) {
+  const facilities = viewModel.facilities;
+  return (
+    <View
+      ref={groundsRef}
+      collapsable={false}
+      className={guideGrounds ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
+    >
+      {guideGrounds && guideFocus !== 'facility-grid' ? (
+        <TutorialTapCue
+          label="Bert says"
+          detail={guideFocus === 'facility-upgrade' ? 'Review the upgrade' : 'Use the club grounds'}
+          style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+        />
+      ) : null}
         <SectionLabel
           eyebrow="Club grounds"
           title="Build the place around the team"
@@ -1021,10 +1231,27 @@ export function ClubFinancesScreen({
             })}
           </View>
         </PaperPanel>
-      </View>
+    </View>
+  );
+}
 
-      {viewModel.legacyTrainingGroundVisible ? (
-      <View className="mt-6" onLayout={onTrainingGroundLayout}>
+interface LegacyTrainingGroundSectionProps {
+  facility: TrainingGroundDecisionViewModel;
+  guideTrainingGround: boolean;
+  trainingGroundRef: RefObject<View | null>;
+  onTrainingGroundLayout: () => void;
+  onBuildTrainingGround: () => void;
+}
+
+function LegacyTrainingGroundSection({
+  facility,
+  guideTrainingGround,
+  trainingGroundRef,
+  onTrainingGroundLayout,
+  onBuildTrainingGround,
+}: LegacyTrainingGroundSectionProps) {
+  return (
+    <View ref={trainingGroundRef} collapsable={false} onLayout={onTrainingGroundLayout}>
         <SectionLabel eyebrow="One big call" title="Training Ground" right={<StatusChip label="Facility 01" />} />
         <PaperPanel
           kicker="Works order"
@@ -1081,16 +1308,6 @@ export function ClubFinancesScreen({
             </Text>
           ) : null}
         </PaperPanel>
-      </View>
-      ) : null}
-    </ScrollView>
-    {pendingPlacement === null ? null : (
-      <FacilityPlacementConfirmation
-        placement={pendingPlacement}
-        onConfirm={confirmPendingPlacement}
-        onCancel={() => setPendingPlacement(null)}
-      />
-    )}
     </View>
   );
 }
