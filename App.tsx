@@ -41,7 +41,6 @@ import { nextDevVolume, type DevVolume } from './src/render/dev-volume';
 import {
   menuThemeForScreen,
   playAdvanceWeekSfx,
-  playPlanLockedSfx,
   setMenuMasterVolume,
   setMenuTheme,
   teardownMenuAudio,
@@ -75,7 +74,6 @@ import {
   ManagementShell,
   MarketScreen,
   NewGameWelcomeScreen,
-  PlanLockedConfirmation,
   PostMatchDevelopmentOverlay,
   PostMatchLedgerScreen,
   PostMatchSummaryModal,
@@ -85,7 +83,6 @@ import {
   TitleLandingScreen,
   TitleSettingsScreen,
   WeeklyReviewScreen,
-  type LockedPlanConfirmation,
   type CoachOverlayCoach,
   type FacilityProjectNoticeModel,
   type PlayerSigningConfirmation,
@@ -128,7 +125,7 @@ import {
   squadTrainingViewModel,
   storyEventViewModel,
 } from './src/application/view-models';
-import type { AwakeningCutsceneViewModel } from './src/ui/models';
+import type { AwakeningCutsceneViewModel, SquadTrainingViewModel } from './src/ui/models';
 import { AwakeningArtQaScreen } from './src/ui/screens/AwakeningArtQaScreen';
 import { PowerArtQaScreen } from './src/ui/screens/PowerArtQaScreen';
 import { championshipCelebrationViewModel } from './src/application/championship-celebration';
@@ -382,7 +379,6 @@ function GameApp() {
   const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [trainingTransition, setTrainingTransition] = useState<TrainingTransitionScene | null>(null);
-  const [lockedPlanConfirmation, setLockedPlanConfirmation] = useState<LockedPlanConfirmation | null>(null);
   const [coachOverlay, setCoachOverlay] = useState<{
     mode: 'hired' | 'confirm-dismiss' | 'dismissed';
     coach: CoachOverlayCoach;
@@ -394,7 +390,8 @@ function GameApp() {
   const [selectedCupSeason, setSelectedCupSeason] = useState<number | undefined>();
   const [bootAttempt, setBootAttempt] = useState(0);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
-  const [advanceTrainingGuard, setAdvanceTrainingGuard] = useState<{ isEdit: boolean } | null>(null);
+  const [trainingCapInterrupt, setTrainingCapInterrupt] = useState(false);
+  const [trainingTpInterrupt, setTrainingTpInterrupt] = useState(false);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesRef = useRef(preferences);
@@ -686,34 +683,6 @@ function GameApp() {
     setTrainingTransition(null);
   }, []);
 
-  const lockTrainingPlanWithFeedback = useCallback(() => {
-    const before = useM1Store.getState();
-    const selectedDrillIds = [...before.selectedDrillIds];
-    const assignedPlayerIds = [...before.assignedPlayerIds];
-    before.applyTraining();
-
-    const after = useM1Store.getState();
-    const lockedPlan = after.career?.trainingPlan;
-    const planWasLocked = after.error === null
-      && lockedPlan !== undefined
-      && lockedPlan.drills.length === selectedDrillIds.length
-      && lockedPlan.drills.every((drill, index) => drill.id === selectedDrillIds[index])
-      && lockedPlan.assignedPlayerIds.length === assignedPlayerIds.length
-      && lockedPlan.assignedPlayerIds.every((playerId, index) => playerId === assignedPlayerIds[index]);
-    if (!planWasLocked) return;
-
-    const drillNamesById = new Map(content.training.focusDrills.map(drill => [drill.id, drill.name]));
-    playPlanLockedSfx();
-    setLockedPlanConfirmation({
-      drillNames: selectedDrillIds.map(id => drillNamesById.get(id) ?? id),
-      playerCount: assignedPlayerIds.length,
-    });
-  }, [content]);
-
-  const dismissLockedPlanConfirmation = useCallback(() => {
-    setLockedPlanConfirmation(null);
-  }, []);
-
   useEffect(() => {
     setMasterVolume(devVolume);
     setMenuMasterVolume(devVolume);
@@ -883,42 +852,51 @@ function GameApp() {
           store.career,
           content,
           store.selectedPlayerId,
-          store.assignedPlayerIds,
-          store.selectedDrillIds,
+          store.trainingSlots,
         )),
-    [store.career, content, store.selectedPlayerId, store.assignedPlayerIds, store.selectedDrillIds],
+    [store.career, content, store.selectedPlayerId, store.trainingSlots],
   );
 
-  // Advancing with a complete-but-unsaved training plan would silently run the
-  // last saved plan (or none) instead of the edits, so intercept and let the
-  // manager lock in first. lockedPlan === undefined && canApply means "a plan
-  // that could be saved but isn't the locked one" — covers first-time and edits.
+  // A capped stat or a training-point shortfall would silently run a training
+  // plan that can't pay off (or can't be afforded) this week, so intercept
+  // and let the manager resolve it first. Both interrupt modals read the live
+  // squadTrainingVm each render, so they clear themselves as soon as the
+  // manager's fix (swap a stat, stop training a player) resolves the issue.
   const handleAdvanceWeek = useCallback(() => {
     const vm = squadTrainingVm;
-    if (vm !== null && vm.lockedPlan === undefined && vm.canApply) {
-      playManagementActionSfx('select');
-      setAdvanceTrainingGuard({ isEdit: vm.hasUnsavedChanges });
-      return;
+    if (vm !== null) {
+      const interrupts = vm.interrupts;
+      if (interrupts.cappedSlots.length > 0) {
+        playManagementActionSfx('select');
+        setTrainingCapInterrupt(true);
+        return;
+      }
+      if (interrupts.tpShortfall > 0) {
+        playManagementActionSfx('select');
+        setTrainingTpInterrupt(true);
+        return;
+      }
     }
     advanceCareerWithSfx();
   }, [squadTrainingVm, advanceCareerWithSfx]);
 
-  const lockInTrainingAndAdvance = useCallback(() => {
-    setAdvanceTrainingGuard(null);
-    useM1Store.getState().applyTraining();
-    if (useM1Store.getState().error !== null) return;
-    playPlanLockedSfx();
-    advanceCareerWithSfx();
-  }, [advanceCareerWithSfx]);
-
-  const advanceWeekWithoutSaving = useCallback(() => {
-    setAdvanceTrainingGuard(null);
-    advanceCareerWithSfx();
-  }, [advanceCareerWithSfx]);
-
-  const dismissAdvanceTrainingGuard = useCallback(() => {
-    setAdvanceTrainingGuard(null);
+  const dismissTrainingCapInterrupt = useCallback(() => {
+    setTrainingCapInterrupt(false);
   }, []);
+
+  const dismissTrainingTpInterrupt = useCallback(() => {
+    setTrainingTpInterrupt(false);
+  }, []);
+
+  const advanceFromTrainingCapInterrupt = useCallback(() => {
+    setTrainingCapInterrupt(false);
+    advanceCareerWithSfx();
+  }, [advanceCareerWithSfx]);
+
+  const advanceFromTrainingTpInterrupt = useCallback(() => {
+    setTrainingTpInterrupt(false);
+    advanceCareerWithSfx();
+  }, [advanceCareerWithSfx]);
 
   useEffect(() => {
     setAssistantPageIndex(0);
@@ -1256,6 +1234,7 @@ function GameApp() {
         {store.activeTab === 'squad' ? (
           <SquadTrainingScreen
             viewModel={squadTrainingVm!}
+            selectedPlayerId={store.selectedPlayerId}
             onSelectPlayer={playerId => {
               store.selectPlayer(playerId);
               if (conciergeFocus === 'injury-lineup' || conciergeFocus === 'transfer-request') {
@@ -1263,8 +1242,8 @@ function GameApp() {
               }
             }}
             onTogglePlayerAssignment={store.toggleTrainingPlayer}
-            onToggleDrill={store.toggleDrill}
-            onApplyTraining={lockTrainingPlanWithFeedback}
+            onSelectTrainingStat={(playerId, pathId) => store.setTrainingSlotStat(playerId, pathId)}
+            trainingSlotLimitHit={store.trainingSlotLimitHit}
             guideTraining={assistantObjective?.target === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
           />
@@ -1492,11 +1471,23 @@ function GameApp() {
             action?.();
           }}
         />
-        <AdvanceTrainingGuard
-          guard={advanceTrainingGuard}
-          onLockIn={lockInTrainingAndAdvance}
-          onAdvanceAnyway={advanceWeekWithoutSaving}
-          onKeepEditing={dismissAdvanceTrainingGuard}
+        <TrainingCapInterruptModal
+          visible={trainingCapInterrupt}
+          vm={squadTrainingVm}
+          onChangeStat={playerId => {
+            store.selectPlayer(playerId);
+            setTrainingCapInterrupt(false);
+          }}
+          onSwapOut={playerId => store.toggleTrainingPlayer(playerId)}
+          onAdvance={advanceFromTrainingCapInterrupt}
+          onClose={dismissTrainingCapInterrupt}
+        />
+        <TrainingTpShortfallModal
+          visible={trainingTpInterrupt}
+          vm={squadTrainingVm}
+          onStopTraining={playerId => store.toggleTrainingPlayer(playerId)}
+          onAdvance={advanceFromTrainingTpInterrupt}
+          onClose={dismissTrainingTpInterrupt}
         />
         <SettingsOverlay
           open={globalSettingsOpen}
@@ -1547,13 +1538,6 @@ function GameApp() {
             scene={trainingTransition}
             reduceMotion={reduceMotion}
             onComplete={dismissTrainingTransition}
-          />
-        ) : null}
-        {lockedPlanConfirmation !== null ? (
-          <PlanLockedConfirmation
-            confirmation={lockedPlanConfirmation}
-            reduceMotion={reduceMotion}
-            onComplete={dismissLockedPlanConfirmation}
           />
         ) : null}
         {coachOverlay !== null ? (
@@ -1756,62 +1740,173 @@ function feedbackNoticeAccessibilityLabel(message: string): string {
   return `${sentence} Tap to dismiss.`;
 }
 
-function AdvanceTrainingGuard({
-  guard,
-  onLockIn,
-  onAdvanceAnyway,
-  onKeepEditing,
+// Reads squadTrainingVm live on every render (App passes the current memo down
+// as `vm`), so the list and the Advance button re-resolve as soon as the
+// manager's fix (stop training / change stat) clears the interrupt — no
+// snapshot of the blocking condition is kept here.
+function TrainingCapInterruptModal({
+  visible,
+  vm,
+  onChangeStat,
+  onSwapOut,
+  onAdvance,
+  onClose,
 }: {
-  guard: { isEdit: boolean } | null;
-  onLockIn: () => void;
-  onAdvanceAnyway: () => void;
-  onKeepEditing: () => void;
+  visible: boolean;
+  vm: SquadTrainingViewModel | null;
+  onChangeStat: (playerId: string) => void;
+  onSwapOut: (playerId: string) => void;
+  onAdvance: () => void;
+  onClose: () => void;
 }) {
+  const cappedSlots = vm?.interrupts.cappedSlots ?? [];
+  const resolved = cappedSlots.length === 0;
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={guard !== null}
-      onRequestClose={onKeepEditing}
-    >
+    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
         <View accessibilityViewIsModal className="border-2 border-b-4 border-ink bg-paper p-5">
-          <Text className="font-mono text-sm font-bold uppercase text-stamp">Before you advance</Text>
-          <Text className="mt-2 font-pixel text-xl uppercase text-ink">Your new training plan isn’t locked in</Text>
-          <Text className="mt-3 text-base leading-6 text-ink/70">
-            {guard?.isEdit
-              ? 'You changed your training plan but haven’t locked the new one in. Advance now and this week runs your last saved plan — your changes won’t take effect until you lock them in.'
-              : 'You haven’t locked in a training plan yet, so your squad won’t train this week.'}
+          <Text className="font-mono text-sm font-bold uppercase text-stamp">Training at the cap</Text>
+          <Text className="mt-2 font-pixel text-xl uppercase text-ink">
+            {resolved ? 'Ready to advance' : 'Pick a new stat first'}
           </Text>
+          <Text className="mt-3 text-base leading-6 text-ink/70">
+            {resolved
+              ? 'Every trainee now has a stat with room to grow.'
+              : 'These players are already at the cap for their trained stat. Change their focus or swap them out.'}
+          </Text>
+          <View className="mt-4 gap-2">
+            {cappedSlots.map(entry => (
+              <View key={entry.playerId} className="border border-ink/20 bg-white px-3 py-2">
+                <Text className="text-base font-bold text-ink" numberOfLines={1}>{entry.playerName}</Text>
+                <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>
+                  {entry.attribute.toUpperCase()} capped at {entry.cap}
+                </Text>
+                <View className="mt-2 flex-row gap-2">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Change ${entry.playerName}'s stat`}
+                    onPress={() => onChangeStat(entry.playerId)}
+                    className="min-h-11 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
+                    style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+                  >
+                    <Text className="font-mono text-sm font-bold uppercase text-ink">Change stat</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Swap out ${entry.playerName}`}
+                    onPress={() => onSwapOut(entry.playerId)}
+                    className="min-h-11 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
+                    style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+                  >
+                    <Text className="font-mono text-sm font-bold uppercase text-stamp">Swap out</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
           <View className="mt-5 flex-row gap-3">
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Advance the week without saving your training changes"
-              onPress={onAdvanceAnyway}
+              accessibilityLabel="Keep editing the training plan"
+              onPress={onClose}
               className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
               style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
             >
-              <Text className="font-pixel text-sm uppercase text-ink">Advance anyway</Text>
+              <Text className="font-pixel text-sm uppercase text-ink">Keep editing</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Lock in the training plan, then advance the week"
-              onPress={onLockIn}
-              className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-violet px-3"
-              style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+              accessibilityLabel="Advance the week"
+              disabled={!resolved}
+              onPress={onAdvance}
+              className={`min-h-12 flex-1 items-center justify-center border-2 border-b-4 px-3 ${
+                resolved ? 'border-ink bg-violet' : 'border-ink/30 bg-grey opacity-60'
+              }`}
+              style={({ pressed }) => ({ transform: [{ translateY: pressed && resolved ? 2 : 0 }] })}
             >
-              <Text className="font-pixel text-sm uppercase text-paper">Lock in & advance</Text>
+              <Text className="font-pixel text-sm uppercase text-paper">Advance week</Text>
             </Pressable>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Keep editing your training plan"
-            onPress={onKeepEditing}
-            className="mt-3 min-h-11 items-center justify-center"
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : undefined })}
-          >
-            <Text className="font-mono text-sm font-bold uppercase text-ink/60">Keep editing</Text>
-          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// Same live-VM contract as TrainingCapInterruptModal: `vm` is the current
+// squadTrainingVm, so stopping a player's training here immediately shrinks
+// tpShortfall on the next render and can flip the Advance button on.
+function TrainingTpShortfallModal({
+  visible,
+  vm,
+  onStopTraining,
+  onAdvance,
+  onClose,
+}: {
+  visible: boolean;
+  vm: SquadTrainingViewModel | null;
+  onStopTraining: (playerId: string) => void;
+  onAdvance: () => void;
+  onClose: () => void;
+}) {
+  const tpShortfall = vm?.interrupts.tpShortfall ?? 0;
+  const slots = vm?.slots ?? [];
+  const resolved = tpShortfall <= 0;
+  return (
+    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
+      <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
+        <View accessibilityViewIsModal className="border-2 border-b-4 border-ink bg-paper p-5">
+          <Text className="font-mono text-sm font-bold uppercase text-stamp">Not enough training points</Text>
+          <Text className="mt-2 font-pixel text-xl uppercase text-ink">
+            {resolved ? 'Ready to advance' : `Short ${tpShortfall} TP`}
+          </Text>
+          <Text className="mt-3 text-base leading-6 text-ink/70">
+            {resolved
+              ? 'Your training plan now fits this week’s training points.'
+              : 'Stop training a player to free up training points.'}
+          </Text>
+          <View className="mt-4 gap-2">
+            {slots.map(slot => (
+              <View key={slot.playerId} className="flex-row items-center justify-between border border-ink/20 bg-white px-3 py-2">
+                <View className="min-w-0 flex-1 pr-2">
+                  <Text className="text-base font-bold text-ink" numberOfLines={1}>{slot.playerName}</Text>
+                  <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>{slot.drillName} · {slot.gainLabel}</Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Stop training ${slot.playerName}`}
+                  onPress={() => onStopTraining(slot.playerId)}
+                  className="min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
+                  style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+                >
+                  <Text className="font-mono text-sm font-bold uppercase text-stamp">Stop training</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+          <View className="mt-5 flex-row gap-3">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Keep editing the training plan"
+              onPress={onClose}
+              className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
+              style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+            >
+              <Text className="font-pixel text-sm uppercase text-ink">Keep editing</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Advance the week"
+              disabled={!resolved}
+              onPress={onAdvance}
+              className={`min-h-12 flex-1 items-center justify-center border-2 border-b-4 px-3 ${
+                resolved ? 'border-ink bg-violet' : 'border-ink/30 bg-grey opacity-60'
+              }`}
+              style={({ pressed }) => ({ transform: [{ translateY: pressed && resolved ? 2 : 0 }] })}
+            >
+              <Text className="font-pixel text-sm uppercase text-paper">Advance week</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </Modal>

@@ -48,7 +48,6 @@ describe('player-facing acceptance audit regressions', () => {
 
     expect(shell).toContain('Bert says: ${tab.id === \'squad\' ? \'open Squad\' : \'return Home\'}');
     expect(squad).toContain("'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'");
-    expect(squad).toContain("'relative mt-20 border-2 border-blue-dark bg-blue-light p-1'");
     expect(club).toContain("'relative mt-20 border-2 border-blue-dark bg-blue-light p-1'");
   });
 

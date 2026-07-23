@@ -84,40 +84,40 @@ describe('saved weekly-plan summary', () => {
     expect(viewModel.players.find(player => player.id === players[0].id)?.slotNumber).toBe(1);
   });
 
-  it('renders the locked weekly plan instead of the save controls until the selection changes', () => {
+  it('renders a read-only committed-slots summary without a save control', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),
       'utf8',
     );
 
-    expect(source).toContain('viewModel.lockedPlan === undefined');
-    expect(source).toContain('kicker="The weekly plan"');
-    expect(source).toContain('title="Locked in"');
-    expect(source).toContain('viewModel.lockedPlan.players');
-    expect(source).toContain('viewModel.lockedPlan.drills');
-    expect(source).toContain('<PixelPortrait');
-    expect(source).toContain('<DrillIcon drillId={drill.id}');
+    expect(source).toContain('kicker="This week"');
+    expect(source).toContain('title="Training set"');
+    expect(source).toContain('viewModel.slots.map');
+    expect(source).toContain('{slot.playerName}');
+    expect(source).toContain('{slot.drillName}');
+    expect(source).toContain('{slot.gainLabel}');
+    expect(source).not.toContain('lockedPlan');
+    expect(source).not.toContain('onApplyTraining');
+    expect(source).not.toContain("'Save changes' : 'Save weekly plan'");
     expect(source).not.toContain('>✓ {playerName}</Text>');
     expect(source).not.toContain('>✓ {drillName}</Text>');
-    expect(source).toContain("? 'Save changes' : 'Save weekly plan'");
   });
 
-  it('puts drill icons on the left and the add/remove control on the far right', () => {
+  it('shows each stat option\'s drill name before its gain and its room to cap, greying out capped stats', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),
       'utf8',
     );
-    const pickerStart = source.indexOf('{viewModel.drills.map');
-    const pickerEnd = source.indexOf('{viewModel.lockedPlan === undefined');
+    const pickerStart = source.indexOf('viewModel.selectedPlayerStatOptions.map');
+    const pickerEnd = source.indexOf('This week');
     const picker = source.slice(pickerStart, pickerEnd);
 
-    expect(picker.indexOf('<DrillIcon drillId={drill.id}')).toBeGreaterThanOrEqual(0);
-    expect(picker.indexOf('<DrillIcon drillId={drill.id}')).toBeLessThan(picker.indexOf('{drill.name}'));
-    expect(picker.indexOf('{drill.name}')).toBeLessThan(picker.indexOf('{formatCurrency(drill.moneyCost)}'));
-    expect(picker.indexOf('{formatCurrency(drill.moneyCost)}')).toBeLessThan(
-      picker.indexOf('accessibilityLabel={drill.selected ? `Remove ${drill.name}` : `Add ${drill.name}`}'),
-    );
-    expect(picker).not.toContain("drill.selected ? '✓' : '+'");
+    expect(pickerStart).toBeGreaterThanOrEqual(0);
+    expect(picker.indexOf('{option.drillName}')).toBeGreaterThanOrEqual(0);
+    expect(picker.indexOf('{option.drillName}')).toBeLessThan(picker.indexOf('{option.gain} {option.label}'));
+    expect(picker).toContain('{option.room} to cap');
+    expect(picker).toContain('disabled={option.atCap}');
+    expect(picker).toContain('onPress={() => onSelectTrainingStat(selectedPlayer.id, option.pathId)}');
   });
 
   it('carries each slot\'s gain label from the real drill catalog', () => {
