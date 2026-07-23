@@ -11,6 +11,7 @@ import {
 import type {
   CareerPlayer,
   CareerTrainingDrill,
+  CareerTrainingPlan,
   GameState,
 } from './types';
 
@@ -45,6 +46,24 @@ export interface TrainingCapReached {
   attribute: keyof CareerPlayer['attrs'];
   cap: number;
   kind?: 'reached' | 'skipped';
+}
+
+/**
+ * True when the in-editor selection is exactly the saved plan (same trainees and
+ * same drills, order-independent). Drives the "unsaved changes" highlight and the
+ * advance-week guard, so both agree on when a plan still needs locking in.
+ */
+export function trainingSelectionMatchesSavedPlan(
+  savedPlan: CareerTrainingPlan | undefined,
+  assignedPlayerIds: readonly string[],
+  selectedDrillIds: readonly string[],
+): boolean {
+  if (savedPlan === undefined) return false;
+  const savedDrillIds = savedPlan.drills.map(drill => drill.id);
+  return savedPlan.assignedPlayerIds.length === assignedPlayerIds.length
+    && savedPlan.assignedPlayerIds.every(playerId => assignedPlayerIds.includes(playerId))
+    && savedDrillIds.length === selectedDrillIds.length
+    && savedDrillIds.every(drillId => selectedDrillIds.includes(drillId));
 }
 
 /**

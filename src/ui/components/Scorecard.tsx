@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { playUiClickSfx } from '../../render/management-sfx';
+import { playPositiveSfx, playUiClickSfx } from '../../render/management-sfx';
 
 function cx(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
@@ -28,14 +28,18 @@ export interface PaperPanelProps {
   kicker?: string;
   stamp?: string;
   className?: string;
+  /** 'attention' tints the whole card gold — used to flag unsaved/needs-action state. */
+  tone?: 'default' | 'attention';
 }
 
 /** Chunky pixel card: white face, thick ink outline with a deeper bottom edge. */
-export function PaperPanel({ children, title, kicker, stamp, className }: PaperPanelProps) {
+export function PaperPanel({ children, title, kicker, stamp, className, tone = 'default' }: PaperPanelProps) {
+  const attention = tone === 'attention';
   return (
     <View
       className={cx(
-        'relative border-2 border-b-4 border-ink bg-white p-4',
+        'relative border-2 border-b-4 p-4',
+        attention ? 'border-gold-dark bg-gold-light' : 'border-ink bg-white',
         className,
       )}
     >
@@ -43,15 +47,15 @@ export function PaperPanel({ children, title, kicker, stamp, className }: PaperP
         <View className="mb-3 flex-row items-start justify-between gap-3">
           <View className="flex-1">
             {kicker ? (
-              <Text className="font-mono text-sm font-bold uppercase text-stamp">{kicker}</Text>
+              <Text className={cx('font-mono text-sm font-bold uppercase', attention ? 'text-gold-dark' : 'text-stamp')}>{kicker}</Text>
             ) : null}
             {title ? (
               <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
             ) : null}
           </View>
           {stamp ? (
-            <View className="border-2 border-b-4 border-stamp bg-red-light/40 px-2 py-1">
-              <Text className="font-mono text-sm font-bold uppercase text-stamp">{stamp}</Text>
+            <View className={cx('border-2 border-b-4 px-2 py-1', attention ? 'border-gold-dark bg-gold' : 'border-stamp bg-red-light/40')}>
+              <Text className={cx('font-mono text-sm font-bold uppercase', attention ? 'text-ink' : 'text-stamp')}>{stamp}</Text>
             </View>
           ) : null}
         </View>
@@ -80,6 +84,8 @@ interface ActionButtonProps {
   variant?: ButtonVariant;
   compact?: boolean;
   maxFontSizeMultiplier?: number;
+  /** Large action buttons confirm or commit by default; use 'click' only for a non-committing action. */
+  pressSfx?: 'click' | 'positive';
 }
 
 /**
@@ -94,6 +100,7 @@ export function ActionButton({
   variant = 'primary',
   compact = false,
   maxFontSizeMultiplier,
+  pressSfx = 'positive',
 }: ActionButtonProps) {
   const ramp = disabled
     ? { face: 'bg-grey', light: 'bg-grey-light', lip: 'bg-grey-dark', text: 'text-paper' }
@@ -106,7 +113,8 @@ export function ActionButton({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={() => {
-        playUiClickSfx();
+        if (pressSfx === 'positive') playPositiveSfx();
+        else playUiClickSfx();
         onPress();
       }}
       className={cx(

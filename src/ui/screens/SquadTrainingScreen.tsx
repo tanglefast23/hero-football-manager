@@ -512,7 +512,7 @@ export function SquadTrainingScreen({
           right={<StatusChip label={`${viewModel.selectedDrillCount} / ${viewModel.maxDrills}`} selected={viewModel.selectedDrillCount > 0} />}
         />
         <Text className="mb-3 text-sm leading-5 text-ink/60">
-          Your Level 1 Training Pitch adds 10 TP after each weekly settlement. Money prices are per eligible trainee; TP is charged once per selected drill. The plan repeats weekly until changed.
+          A completed Level 1 Training Pitch adds 10 TP after each weekly settlement. Money prices are per eligible trainee; TP is charged once per selected drill. The plan repeats weekly until changed.
         </Text>
         <View className={guideDrills
           ? 'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'
@@ -568,7 +568,13 @@ export function SquadTrainingScreen({
       </View>
 
       {viewModel.lockedPlan === undefined ? (
-        <PaperPanel kicker="Plan total" title="Ready for the whistle?" className="mt-5">
+        <PaperPanel
+          kicker="Plan total"
+          title="Ready for the whistle?"
+          tone={viewModel.hasUnsavedChanges ? 'attention' : 'default'}
+          stamp={viewModel.hasUnsavedChanges ? 'Unsaved' : undefined}
+          className="mt-5"
+        >
           <View className="flex-row gap-2">
             <Metric label="Players" value={String(viewModel.assignedPlayerIds.length)} />
             <Metric label="Money cost" value={formatCurrency(viewModel.totalMoneyCost)} tone="negative" />
@@ -584,7 +590,7 @@ export function SquadTrainingScreen({
               <TutorialTapCue detail="Save the plan" style={{ left: 4, top: -74 }} />
             ) : null}
             <ActionButton
-              label="Save weekly plan"
+              label={viewModel.hasUnsavedChanges ? 'Save changes' : 'Save weekly plan'}
               accessibilityLabel="Save weekly plan. Save the repeating weekly training plan"
               onPress={onApplyTraining}
               disabled={!viewModel.canApply}

@@ -42,8 +42,8 @@ describe('filesForEvent: event → SFX wiring', () => {
     })).toEqual(['decoy-pop']);
   });
 
-  it('layers tap-fire only on a manual (strength 1.0) power fire', () => {
-    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 1 })).toEqual(['tap-fire', 'super-speed-whoosh']);
+  it('layers the positive cue only on a manual (strength 1.0) power fire', () => {
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 1 })).toEqual(['positive', 'super-speed-whoosh']);
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 0.85 })).toEqual(['super-speed-whoosh']);
   });
 
@@ -84,8 +84,8 @@ describe('filesForEvent: event → SFX wiring', () => {
 
   it('uses the flame-up sound when Fire Torch activates', () => {
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 0.85 })).toEqual(['flame-up']);
-    // A manual tap-confirm still layers the tap click on top.
-    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 })).toEqual(['tap-fire', 'flame-up']);
+    // A manual tap-confirm still layers the positive cue on top.
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 })).toEqual(['positive', 'flame-up']);
   });
 
   it('gives every launch power a sound somewhere in its deterministic lifecycle', () => {
