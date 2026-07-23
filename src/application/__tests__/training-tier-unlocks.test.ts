@@ -60,7 +60,7 @@ describe('training drill tier unlocks', () => {
     const player = state.players.find(candidate => candidate.clubId === state.userClubId)!;
     const model = squadTrainingViewModel(state, content, player.id, []);
 
-    expect(model.selectedPlayerStatOptions).toHaveLength(TRAINING_PATHS.length);
+    expect(model.selectedPlayerStatOptions).toHaveLength(TRAINING_PATHS.length - 1);
     expect(model.selectedPlayerStatOptions?.every(option => !option.drillName.includes('II'))).toBe(true);
   });
 });

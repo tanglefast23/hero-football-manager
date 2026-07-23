@@ -57,6 +57,7 @@ import type {
   SeasonEndViewModel,
   StoryEventViewModel,
   SquadTrainingViewModel,
+  TrainingSlotStatOption,
   WeeklyReviewViewModel,
 } from '../ui';
 import { divisionTierLabel } from '../game/pyramid';
@@ -1267,20 +1268,27 @@ export function squadTrainingViewModel(
     }),
     maxSlots,
     ...(selectedPlayer === undefined ? {} : {
-      selectedPlayerStatOptions: TRAINING_PATHS.map(path => {
-        const drill = resolveTrainingDrillForPath(state, path.pathId);
-        const gain = drill.gains[path.attribute] ?? 0;
-        const caps = playerAttributeCaps(selectedPlayer);
-        const room = caps[path.attribute] - selectedPlayer.attrs[path.attribute];
-        return {
-          pathId: path.pathId,
-          label: path.label,
-          drillName: drillName(drill.id),
-          gain,
-          room,
-          atCap: room <= 0,
-        };
-      }),
+      selectedPlayerStatOptions: TRAINING_PATHS
+        .filter(path => selectedPlayer.role === 'GK'
+          ? path.attribute !== 'sho'
+          : path.attribute !== 'ref')
+        .map(path => {
+          const drill = resolveTrainingDrillForPath(state, path.pathId);
+          const gain = drill.gains[path.attribute] ?? 0;
+          const current = selectedPlayer.attrs[path.attribute];
+          const cap = playerAttributeCaps(selectedPlayer)[path.attribute];
+          return {
+            pathId: path.pathId,
+            label: path.label,
+            shortCode: path.attribute.toUpperCase() as TrainingSlotStatOption['shortCode'],
+            drillName: drillName(drill.id),
+            gain,
+            current,
+            cap,
+            room: cap - current,
+            atCap: cap - current <= 0,
+          };
+        }),
     }),
     weeklyTrainingPointCost: slotTrainingPointCost(state, completeSlots),
     interrupts: {
