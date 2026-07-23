@@ -48,6 +48,49 @@ export function slotTrainingPointCost(state: GameState, slots: readonly CareerTr
   return tp;
 }
 
+export interface TrainingCappedSlot {
+  playerId: string;
+  playerName: string;
+  pathId: string;
+  attribute: keyof CareerPlayer['attrs'];
+  cap: number;
+}
+
+export interface TrainingInterrupts {
+  cappedSlots: TrainingCappedSlot[];
+  weeklyTrainingPointCost: number;
+  tpShortfall: number;
+}
+
+/**
+ * Pure blocking-interrupt state. `availableTrainingPoints` is what the caller
+ * will have this settlement (bank + this week's income); the UI passes the
+ * projected value, headless callers pass the current bank.
+ */
+export function pendingTrainingInterrupts(
+  state: GameState,
+  availableTrainingPoints: number,
+): TrainingInterrupts {
+  const slots = state.trainingPlan?.slots ?? [];
+  const roster = new Map(userRoster(state).map(player => [player.id, player]));
+  const cappedSlots: TrainingCappedSlot[] = [];
+  for (const slot of slots) {
+    const player = roster.get(slot.playerId);
+    if (player === undefined) continue;
+    const attribute = trainingPathAttribute(slot.pathId);
+    const cap = playerAttributeCaps(player)[attribute];
+    if (player.attrs[attribute] >= cap) {
+      cappedSlots.push({ playerId: player.id, playerName: player.name, pathId: slot.pathId, attribute, cap });
+    }
+  }
+  const weeklyTrainingPointCost = slotTrainingPointCost(state, slots);
+  return {
+    cappedSlots,
+    weeklyTrainingPointCost,
+    tpShortfall: Math.max(0, weeklyTrainingPointCost - availableTrainingPoints),
+  };
+}
+
 /**
  * Stores a repeating weekly template of player+path slots. Attribute gains and
  * costs resolve once, at weekly settlement, so editing the template repeatedly

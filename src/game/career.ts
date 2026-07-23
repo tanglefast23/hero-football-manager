@@ -7,7 +7,7 @@ import {
   isFacilityOperational,
   weeklyFacilityUpkeep,
 } from './facilities';
-import { resolveCareerTrainingWeek } from './training';
+import { pendingTrainingInterrupts, resolveCareerTrainingWeek } from './training';
 import { difficultyRules } from './difficulty';
 import { recordSeasonRecap } from './season-recap';
 import { enableFullCareer, startNextFullCareerSeason } from './full-career';
@@ -171,6 +171,14 @@ export function advanceWeek(state: GameState): GameState {
 
   if (activeCareerMatchday(state) !== undefined) {
     return { ...state, phase: 'matchday' };
+  }
+
+  if (state.careerMode === 'full') {
+    const projectedTrainingPoints = state.trainingPoints + weeklyAmbientTrainingPoints(state);
+    const interrupts = pendingTrainingInterrupts(state, projectedTrainingPoints);
+    if (interrupts.cappedSlots.length > 0 || interrupts.tpShortfall > 0) {
+      throw new Error('unresolved training interrupts must be cleared before advancing the week');
+    }
   }
 
   return settleCurrentWeek(state);
