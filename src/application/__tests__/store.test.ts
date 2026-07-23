@@ -785,6 +785,63 @@ describe('M1 app store integration', () => {
     expect(replayResetCalls).toBe(0);
   });
 
+  it('discards an unreadable save on request and unblocks a fresh career', async () => {
+    let deleteCalls = 0;
+    const careerRepository: CareerRepository = {
+      async load() { throw new Error('career save is corrupt'); },
+      async save() {},
+      async delete() { deleteCalls += 1; },
+    };
+    const replayRepository: ReplayRepository = {
+      async save() {},
+      async load() { return null; },
+      async listForCareer() { return []; },
+      async delete() {},
+      async deleteAllForCareer() {},
+    };
+    await useM1Store.getState().initializePersistence(careerRepository, replayRepository);
+    expect(useM1Store.getState().persistenceLoadError).toContain('career save is corrupt');
+
+    await useM1Store.getState().discardUnreadableSave();
+
+    expect(deleteCalls).toBe(1);
+    expect(useM1Store.getState().persistenceLoadError).toBeNull();
+    expect(useM1Store.getState().career).toBeNull();
+    expect(useM1Store.getState().hasSavedCareer).toBe(false);
+    expect(useM1Store.getState().screen).toBe('welcome');
+
+    useM1Store.getState().startNewCareer(777);
+    expect(useM1Store.getState().career).not.toBeNull();
+    expect(useM1Store.getState().error).toBeNull();
+  });
+
+  it('never deletes a save that loaded cleanly', async () => {
+    let deleteCalls = 0;
+    const careerRepository: CareerRepository = {
+      async load() { return null; },
+      async save() {},
+      async delete() { deleteCalls += 1; },
+    };
+    await useM1Store.getState().initializePersistence(careerRepository);
+
+    await useM1Store.getState().discardUnreadableSave();
+
+    expect(deleteCalls).toBe(0);
+  });
+
+  it('keeps the boot failure visible when discarding the save fails', async () => {
+    const careerRepository: CareerRepository = {
+      async load() { throw new Error('career save is corrupt'); },
+      async save() {},
+      async delete() { throw new Error('disk is on fire'); },
+    };
+    await useM1Store.getState().initializePersistence(careerRepository);
+
+    await useM1Store.getState().discardUnreadableSave();
+
+    expect(useM1Store.getState().persistenceLoadError).toContain('disk is on fire');
+  });
+
   it('clears the replay namespace before saving a replacement career', async () => {
     const operations: string[] = [];
     const careerRepository: CareerRepository = {

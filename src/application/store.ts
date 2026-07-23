@@ -163,6 +163,7 @@ interface M1Store {
     replayRepository?: ReplayRepository,
     enableM2?: boolean,
   ) => Promise<void>;
+  discardUnreadableSave: () => Promise<void>;
   startNewCareer: (seed?: number, careerMode?: 'm1-slice' | 'full') => void;
   continueCareer: () => void;
   completePlayerCreation: (draft: CreatedPlayerDraft) => void;
@@ -272,6 +273,33 @@ export const useM1Store = create<M1Store>((set, get) => ({
         persistenceLoadError: `Save could not be loaded safely: ${errorMessage(error)}`,
       });
     }
+  },
+
+  async discardUnreadableSave() {
+    const { repository, persistenceLoadError } = get();
+    if (repository === null || persistenceLoadError === null) return;
+    try {
+      await repository.delete();
+    } catch (error) {
+      set({
+        persistenceLoadError: `Save could not be deleted: ${errorMessage(error)}`,
+      });
+      return;
+    }
+    set({
+      persistenceLoadError: null,
+      career: null,
+      hasSavedCareer: false,
+      screen: 'welcome',
+      activeTab: 'home',
+      trainingSlots: [],
+      trainingSlotLimitHit: false,
+      watchedMatch: null,
+      postMatch: null,
+      postMatchOverlay: null,
+      weekReview: null,
+      error: null,
+    });
   },
 
   startNewCareer(seed, careerMode = 'm1-slice') {

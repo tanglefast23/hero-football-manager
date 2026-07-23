@@ -1005,6 +1005,7 @@ function GameApp() {
       <BootFailure
         message={store.persistenceLoadError}
         onRetry={() => setBootAttempt(attempt => attempt + 1)}
+        onStartFresh={() => { void store.discardUnreadableSave(); }}
       />
     );
   } else if (store.screen === 'welcome' && landingView === 'title') {
@@ -1733,7 +1734,16 @@ function LoadingScreen() {
   );
 }
 
-function BootFailure({ message, onRetry }: { message: string; onRetry: () => void }) {
+function BootFailure({
+  message,
+  onRetry,
+  onStartFresh,
+}: {
+  message: string;
+  onRetry: () => void;
+  onStartFresh?: () => void;
+}) {
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   return (
     <SafeAreaView className="flex-1 items-center justify-center bg-ink px-6">
       <View className="w-full border-2 border-stamp bg-paper p-5">
@@ -1749,6 +1759,21 @@ function BootFailure({ message, onRetry }: { message: string; onRetry: () => voi
         >
           <Text className="font-pixel text-sm uppercase text-paper">Retry</Text>
         </Pressable>
+        {onStartFresh !== undefined && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={confirmingDiscard
+              ? 'Confirm: delete the saved career and start fresh'
+              : 'Delete the saved career and start fresh'}
+            onPress={() => (confirmingDiscard ? onStartFresh() : setConfirmingDiscard(true))}
+            className="mt-3 min-h-12 items-center justify-center border-2 border-b-4 border-stamp bg-paper px-4"
+            style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+          >
+            <Text className="font-pixel text-sm uppercase text-stamp">
+              {confirmingDiscard ? 'Tap again to delete' : 'Delete save · start fresh'}
+            </Text>
+          </Pressable>
+        )}
       </View>
     </SafeAreaView>
   );
