@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, ScrollView, Text, View } from 'react-native';
+import {
+  Animated,
+  ScrollView,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WeeklyReviewViewModel } from '../models';
 import {
@@ -15,10 +22,12 @@ import { FacilityCompletionCard } from '../components/FacilityCompletionCard';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { countUpValue } from '../count-up';
+import { shouldStartDevelopmentAnimation } from '../weekly-review-animation';
 
 export interface WeeklyReviewScreenProps {
   viewModel: WeeklyReviewViewModel;
   onContinue: () => void;
+  animationsReady?: boolean;
   reduceMotion?: boolean;
   textScale?: TextScale;
 }
@@ -26,21 +35,50 @@ export interface WeeklyReviewScreenProps {
 export function WeeklyReviewScreen({
   viewModel,
   onContinue,
+  animationsReady = true,
   reduceMotion = false,
   textScale = 1,
 }: WeeklyReviewScreenProps) {
-  const [animationsComplete, setAnimationsComplete] = useState(reduceMotion);
-  const complete = reduceMotion || animationsComplete;
+  const [balanceAnimationsComplete, setBalanceAnimationsComplete] = useState(reduceMotion);
+  const [developmentAnimationsStarted, setDevelopmentAnimationsStarted] = useState(reduceMotion);
+  const hasManuallyScrolled = useRef(false);
+  const scrollY = useRef(0);
+  const viewportHeight = useRef(0);
+  const developmentSectionY = useRef<number | null>(null);
+  const developmentStatAreaOffsetY = useRef<number | null>(null);
+  const balanceAnimationsStarted = reduceMotion || animationsReady;
+  const balanceComplete = reduceMotion || balanceAnimationsComplete;
+
+  const maybeStartDevelopmentAnimations = () => {
+    const sectionY = developmentSectionY.current;
+    const statOffsetY = developmentStatAreaOffsetY.current;
+    const statAreaY = sectionY === null || statOffsetY === null
+      ? null
+      : sectionY + statOffsetY;
+    if (shouldStartDevelopmentAnimation({
+      hasManuallyScrolled: hasManuallyScrolled.current,
+      scrollY: scrollY.current,
+      viewportHeight: viewportHeight.current,
+      statAreaY,
+    })) {
+      setDevelopmentAnimationsStarted(true);
+    }
+  };
 
   useEffect(() => {
-    if (complete) return undefined;
-    const timeout = setTimeout(() => setAnimationsComplete(true), 2800);
+    if (!balanceAnimationsStarted || balanceComplete) return undefined;
+    const timeout = setTimeout(() => setBalanceAnimationsComplete(true), 2800);
     return () => clearTimeout(timeout);
-  }, [complete]);
+  }, [balanceAnimationsStarted, balanceComplete]);
 
   const continueOrFinish = () => {
-    if (complete) onContinue();
-    else setAnimationsComplete(true);
+    if (balanceComplete) onContinue();
+    else setBalanceAnimationsComplete(true);
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollY.current = event.nativeEvent.contentOffset.y;
+    maybeStartDevelopmentAnimations();
   };
 
   return (
@@ -48,6 +86,15 @@ export function WeeklyReviewScreen({
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        onLayout={event => {
+          viewportHeight.current = event.nativeEvent.layout.height;
+          maybeStartDevelopmentAnimations();
+        }}
+        onScrollBeginDrag={() => {
+          hasManuallyScrolled.current = true;
+        }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         <View className="border-b-2 border-ink pb-3">
           <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Weekly review</Text>
@@ -68,7 +115,8 @@ export function WeeklyReviewScreen({
             startingAmount={viewModel.cashBefore}
             currentAmount={viewModel.cashAfter}
             netAmount={viewModel.netAmount}
-            complete={complete}
+            started={balanceAnimationsStarted}
+            complete={balanceComplete}
             kind="money"
           />
           <WeeklyBalanceCard
@@ -76,7 +124,8 @@ export function WeeklyReviewScreen({
             startingAmount={viewModel.trainingPointsBefore}
             currentAmount={viewModel.trainingPointsAfter}
             netAmount={viewModel.netTrainingPoints}
-            complete={complete}
+            started={balanceAnimationsStarted}
+            complete={balanceComplete}
             kind="training-points"
           />
         </View>
@@ -89,7 +138,8 @@ export function WeeklyReviewScreen({
               <AnimatedCount
                 from={viewModel.cashBefore}
                 to={viewModel.cashAfter}
-                complete={complete}
+                started={balanceAnimationsStarted}
+                complete={balanceComplete}
                 format={value => formatCurrency(value)}
               />
             </Text>
@@ -101,19 +151,30 @@ export function WeeklyReviewScreen({
               <AnimatedCount
                 from={viewModel.trainingPointsBefore}
                 to={viewModel.trainingPointsAfter}
-                complete={complete}
+                started={balanceAnimationsStarted}
+                complete={balanceComplete}
                 format={value => `${formatCompactNumber(value)} TP`}
               />
             </Text>
           </View>
         </View>
 
-        <View className="min-h-96 justify-center pt-5">
+        <View
+          className="min-h-96 justify-center pt-5"
+          onLayout={event => {
+            developmentSectionY.current = event.nativeEvent.layout.y;
+            maybeStartDevelopmentAnimations();
+          }}
+        >
           <SectionLabel eyebrow="Training ground" title="Player development" />
           <PlayerDevelopmentSpotlight
             development={viewModel.development}
             reduceMotion={reduceMotion}
-            forceComplete={complete}
+            animationsStarted={developmentAnimationsStarted}
+            onStatAreaLayout={offsetY => {
+              developmentStatAreaOffsetY.current = offsetY;
+              maybeStartDevelopmentAnimations();
+            }}
           />
         </View>
 
@@ -186,6 +247,7 @@ function WeeklyBalanceCard({
   startingAmount,
   currentAmount,
   netAmount,
+  started,
   complete,
   kind,
 }: {
@@ -193,6 +255,7 @@ function WeeklyBalanceCard({
   startingAmount: number;
   currentAmount: number;
   netAmount: number;
+  started: boolean;
   complete: boolean;
   kind: WeeklyBalanceKind;
 }) {
@@ -202,6 +265,7 @@ function WeeklyBalanceCard({
       <AnimatedBalanceAmount
         from={startingAmount}
         to={currentAmount}
+        started={started}
         complete={complete}
         kind={kind}
       />
@@ -209,7 +273,7 @@ function WeeklyBalanceCard({
         <Text className="text-right text-sm font-bold uppercase text-ink/50">
           {kind === 'money' ? 'Net' : 'Net TP'}
         </Text>
-        <AnimatedNetAmount amount={netAmount} complete={complete} kind={kind} />
+        <AnimatedNetAmount amount={netAmount} started={started} complete={complete} kind={kind} />
       </View>
     </View>
   );
@@ -217,14 +281,16 @@ function WeeklyBalanceCard({
 
 function AnimatedNetAmount({
   amount,
+  started,
   complete,
   kind,
 }: {
   amount: number;
+  started: boolean;
   complete: boolean;
   kind: WeeklyBalanceKind;
 }) {
-  const { value: displayAmount, impact } = useCelebratoryNumber(0, amount, complete, 850);
+  const { value: displayAmount, impact } = useCelebratoryNumber(0, amount, started, complete, 850);
 
   return (
     <Animated.View
@@ -256,15 +322,17 @@ function AnimatedNetAmount({
 function AnimatedBalanceAmount({
   from,
   to,
+  started,
   complete,
   kind,
 }: {
   from: number;
   to: number;
+  started: boolean;
   complete: boolean;
   kind: WeeklyBalanceKind;
 }) {
-  const { value, impact } = useCelebratoryNumber(from, to, complete, 1050);
+  const { value, impact } = useCelebratoryNumber(from, to, started, complete, 1050);
   const movementClass = to < from
     ? 'text-stamp'
     : to > from
@@ -295,15 +363,17 @@ function AnimatedBalanceAmount({
 function AnimatedCount({
   from,
   to,
+  started,
   complete,
   format,
 }: {
   from: number;
   to: number;
+  started: boolean;
   complete: boolean;
   format: (value: number) => string;
 }) {
-  const { value } = useCelebratoryNumber(from, to, complete, 900);
+  const { value } = useCelebratoryNumber(from, to, started, complete, 900);
 
   return <>{format(value)}</>;
 }
@@ -311,6 +381,7 @@ function AnimatedCount({
 function useCelebratoryNumber(
   from: number,
   to: number,
+  started: boolean,
   complete: boolean,
   durationMs: number,
 ): { value: number; impact: Animated.Value } {
@@ -325,6 +396,7 @@ function useCelebratoryNumber(
     }
     setValue(from);
     impact.setValue(0);
+    if (!started) return undefined;
     let frame = 0;
     let landingAnimation: Animated.CompositeAnimation | undefined;
     let startedAt: number | null = null;
@@ -353,7 +425,7 @@ function useCelebratoryNumber(
       cancelAnimationFrame(frame);
       landingAnimation?.stop();
     };
-  }, [complete, durationMs, from, impact, to]);
+  }, [complete, durationMs, from, impact, started, to]);
 
   return { value, impact };
 }

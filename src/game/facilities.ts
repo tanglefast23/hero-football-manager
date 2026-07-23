@@ -1,6 +1,7 @@
 export const FACILITY_GRID_WIDTH = 8;
 export const FACILITY_GRID_HEIGHT = 6;
 export const MAX_FACILITY_LEVEL = 3;
+export const TRAINING_PITCH_TP_PER_LEVEL = 10;
 
 export type FacilityType =
   | 'training-pitch'

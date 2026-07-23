@@ -21,6 +21,7 @@ import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { FacilityPlacementConfirmation, type FacilityPlacement } from '../FacilityPlacementConfirmation';
 import {
   firstGuidedFacilityUpgradeId,
+  guidedFirstFacilityAllowsBuildType,
   guidedFirstFacilityAllowsPlacement,
   guidedFirstFacilityPhase,
   type GuidedFirstFacilityPhase,
@@ -467,7 +468,7 @@ export function ClubFinancesScreen({
           stamp={`${formatCurrency(viewModel.facilities.weeklyUpkeep)}/wk`}
         >
           <Text className="mb-3 text-sm leading-4 text-ink/60">
-            Pick a building from the menu below, then tap a glowing square to drop it. Put useful pairs edge-to-edge to discover bonuses.
+            Pick a building from the menu below, then tap any + square to drop it. Put useful pairs edge-to-edge to discover bonuses.
           </Text>
           {viewModel.facilities.activeProject ? (
             <View className="mb-3 flex-row items-center gap-3 border-2 border-b-4 border-amber-800 bg-amber-100 p-3">
@@ -504,11 +505,11 @@ export function ClubFinancesScreen({
             {guidedFirstFacility && guidedFacilityPhase === 'grid' && facilityGridWidth > 0 ? (
               <TutorialTapCue
                 label="Bert says"
-                detail="Tap a glowing square to build"
+                detail="Tap any + square"
                 style={{
-                  left: '50%',
+                  left: facilityGridWidth / facilities.width / 2,
                   marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                  top: -72,
+                  bottom: '100%',
                 }}
               />
             ) : null}
@@ -669,7 +670,7 @@ export function ClubFinancesScreen({
                   {relocatingBuildingId !== null ? `Moving · ${activeLabel}` : `Placing · ${activeLabel}`}
                 </Text>
                 <Text className="mt-1 text-sm text-ink/70">
-                  Tap a glowing square above. A violet outline fits; red is blocked.
+                  Tap any + square above. A violet outline fits; red is blocked.
                 </Text>
               </View>
               <Pressable
@@ -684,7 +685,7 @@ export function ClubFinancesScreen({
           ) : (
             <View className="mt-3 border-2 border-dashed border-ink/30 bg-paper px-3 py-2">
               <Text className="text-sm text-ink/70">
-                Pick a building from the <Text className="font-bold text-ink">Build menu</Text> below to start — every open square will glow so you can see where it drops.
+                Pick a building from the <Text className="font-bold text-ink">Build menu</Text> below to start — every available starting square shows a +.
               </Text>
             </View>
           )}
@@ -836,15 +837,10 @@ export function ClubFinancesScreen({
               }
             }}
           >
-            {guidedFirstFacility && guidedFacilityPhase === 'build-menu' ? (
-              <TutorialTapCue
-                label="Bert says"
-                detail="Choose a building to place"
-                style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
-              />
-            ) : null}
             <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">Build menu</Text>
-            <View className="flex-row flex-wrap gap-2">
+            <View className={guidedFirstFacility && guidedFacilityPhase === 'build-menu'
+              ? 'mt-20 flex-row flex-wrap gap-2'
+              : 'flex-row flex-wrap gap-2'}>
               {viewModel.facilities.catalog.map(entry => {
                 const selected = selectedBuildType === entry.type;
                 const adjacencyClue = facilityAdjacencyClue(entry.type);
@@ -858,15 +854,30 @@ export function ClubFinancesScreen({
                 const adjacencyAccessibility = adjacencyGuidance === undefined
                   ? ''
                   : ` ${knownAdjacency === undefined ? 'Neighbour clue' : 'Known combo'}: ${adjacencyGuidance}${adjacencyGuidance.endsWith('.') ? '' : '.'}`;
-                const entryEnabled = entry.available && entry.affordable;
+                const guideAllowsType = !guidedFirstFacility
+                  || guidedFirstFacilityAllowsBuildType(entry.type);
+                const entryEnabled = entry.available && entry.affordable && guideAllowsType;
                 return (
                   <View
                     key={entry.type}
                     className="relative w-[48%]"
                   >
+                    {guidedFirstFacility
+                      && guidedFacilityPhase === 'build-menu'
+                      && entry.type === 'training-pitch' ? (
+                        <TutorialTapCue
+                          label="Tap here"
+                          detail="Training Pitch"
+                          style={{
+                            left: '50%',
+                            marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                            top: -82,
+                          }}
+                        />
+                      ) : null}
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`${entry.name}. ${entry.effectLabel}. ${entry.width} by ${entry.height} footprint. Build time ${entry.buildWeeks} week${entry.buildWeeks === 1 ? '' : 's'}.${adjacencyAccessibility} ${entry.available
+                      accessibilityLabel={`${entry.name}. ${entry.effectLabel}. ${entry.width} by ${entry.height} footprint. Build time ${entry.buildWeeks} week${entry.buildWeeks === 1 ? '' : 's'}.${adjacencyAccessibility} ${guideAllowsType ? '' : 'Build the Training Pitch first. '}${entry.available
                         ? `Build cost ${formatCurrency(entry.buildCost)}. ${formatCurrency(entry.weeklyUpkeep)} per week upkeep.${entry.blockedReason
                           ? ` ${entry.blockedReason}`
                           : !entry.affordable && entry.affordabilityShortfall > 0
@@ -876,6 +887,7 @@ export function ClubFinancesScreen({
                       accessibilityState={{ disabled: !entryEnabled, selected }}
                       disabled={!entryEnabled}
                       onPress={() => {
+                        if (!guidedFirstFacilityAllowsBuildType(entry.type) && guidedFirstFacility) return;
                         setSelectedBuildType(selected ? null : entry.type);
                         setSelectedBuildingId(null);
                         setRelocatingBuildingId(null);

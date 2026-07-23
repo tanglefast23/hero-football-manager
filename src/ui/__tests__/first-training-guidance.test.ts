@@ -43,13 +43,20 @@ describe('first training guidance', () => {
     expect(finances).not.toContain('first-facility');
     expect(finances).not.toContain('AssistantGuideOverlay');
 
-    // Immediately scrolls grid into view on Training Pitch tap
+    // Only Training Pitch advances the guide and scrolls the grid into view
     expect(finances).toContain('scrollFacilityGuideTargetIntoView');
     expect(finances).toContain("guidedFacilityPhase === 'grid'");
+    expect(finances).toContain('guidedFirstFacilityAllowsBuildType(entry.type)');
+    expect(finances).toContain("entry.type === 'training-pitch'");
+    expect(finances).toContain('label="Tap here"');
+    expect(finances).toContain('detail="Training Pitch"');
+    expect(finances).not.toContain('detail="Choose Training Pitch"');
 
     // Second cue only appears once phase is 'grid'
     expect(finances).toContain("guidedFacilityPhase === 'grid'");
-    expect(finances).toContain('detail="Tap a glowing square to build"');
+    expect(finances).toContain('detail="Tap any + square"');
+    expect(finances).toContain('left: facilityGridWidth / facilities.width / 2');
+    expect(finances).not.toContain('glowing square');
 
     // Phase helper switches on selection
     expect(targets).toContain('guidedFirstFacilityPhase');

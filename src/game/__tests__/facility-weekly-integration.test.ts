@@ -2,7 +2,7 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
 import { advanceWeek, createCareer } from '../career';
 import { buildCareerFacility } from '../management';
-import { advanceFacilityConstruction, createFacilityGrid } from '../facilities';
+import { advanceFacilityConstruction } from '../facilities';
 import { setCareerTrainingPlan } from '../training';
 import type { GameState } from '../types';
 
@@ -13,17 +13,21 @@ function userCash(state: ReturnType<typeof createCareer>): number {
 }
 
 describe('facility weekly integration', () => {
-  test('starts a full career with an open Level 1 pitch and bridges four basic training weeks', () => {
+  test('funds and completes the player-placed first pitch while bridging four basic training weeks', () => {
     const content = loadLaunchContent();
     const fresh = createCareer(createLaunchCareerSetup(20260718, undefined, content, 'full'));
+    expect(userCash(fresh)).toBe(53_000);
+    expect(fresh.facilities.grid?.buildings).toHaveLength(0);
+    const started = buildCareerFacility(fresh, 'training-pitch', { x: 3, y: 2 }).state;
+    expect(userCash(started)).toBe(45_000);
     const players = fresh.players
       .filter(candidate => candidate.clubId === fresh.userClubId)
       .slice(0, 2);
     expect(players).toHaveLength(2);
     const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
     let state = setCareerTrainingPlan({
-      ...fresh,
-      players: fresh.players.map(candidate => players.some(player => player.id === candidate.id)
+      ...started,
+      players: started.players.map(candidate => players.some(player => player.id === candidate.id)
         ? {
             ...candidate,
             age: 25,
@@ -37,12 +41,12 @@ describe('facility weekly integration', () => {
 
     expect(state.trainingPoints).toBe(30);
     expect(state.facilities).toMatchObject({
-      trainingGroundBuilt: true,
+      trainingGroundBuilt: false,
       grid: {
-        buildings: [{ type: 'training-pitch', level: 1 }],
+        buildings: [{ type: 'training-pitch', level: 1, x: 3, y: 2 }],
+        construction: { type: 'training-pitch', weeksRemaining: 1 },
       },
     });
-    expect(state.facilities.grid?.construction).toBeUndefined();
 
     const balances = [state.trainingPoints];
     for (let week = 0; week < 4; week += 1) {
@@ -50,28 +54,27 @@ describe('facility weekly integration', () => {
       balances.push(state.trainingPoints);
     }
 
-    // Sprints I costs 10 TP once, then the open pitch restores all 10 TP.
+    // Sprints I costs 10 TP once. Completion awards the first 10 immediately,
+    // then the open pitch restores 10 TP at each later settlement.
     expect(balances).toEqual([30, 30, 30, 30, 30]);
     // TP is charged once for the selected drill; Money remains per eligible trainee.
     expect(state.ledgers.map(ledger => ledger.lines.find(line => line.kind === 'training')?.amount))
       .toEqual([-800, -800, -800, -800]);
   });
 
-  test('starts without benefits, then activates upkeep and ambient TP after completion', () => {
-    const initial = withoutStartingPitch(
-      createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full')),
-    );
+  test('awards the first 10 TP on completion, then activates upkeep and weekly TP', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
     const built = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
     const cashBeforeSettlement = userCash(built);
 
     const completionWeek = advanceWeek(built);
-    expect(completionWeek.trainingPoints).toBe(built.trainingPoints);
+    expect(completionWeek.trainingPoints).toBe(built.trainingPoints + 10);
     expect(completionWeek.ledgers[0].lines.some(line => line.kind === 'facilities')).toBe(false);
     expect(completionWeek.facilities.grid?.construction).toBeUndefined();
 
     const settled = advanceWeek(completionWeek);
 
-    expect(settled.trainingPoints).toBe(built.trainingPoints + 10);
+    expect(settled.trainingPoints).toBe(built.trainingPoints + 20);
     expect(settled.ledgers[1].lines).toContainEqual({
       kind: 'facilities',
       label: 'Facility upkeep',
@@ -83,9 +86,7 @@ describe('facility weekly integration', () => {
   });
 
   test('scales Training Pitch TP with the completed facility level', () => {
-    const initial = withoutStartingPitch(
-      createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full')),
-    );
+    const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
     const built = completeConstruction(
       buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state,
     );
@@ -106,9 +107,7 @@ describe('facility weekly integration', () => {
   });
 
   test('carries the Gym + Dorm ten-percent bonus until small real gains earn +1 STA', () => {
-    const initial = withoutStartingPitch(
-      createCareer(createLaunchCareerSetup(77, undefined, undefined, 'full')),
-    );
+    const initial = createCareer(createLaunchCareerSetup(77, undefined, undefined, 'full'));
     const gymProject = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
     const gym = completeConstruction(gymProject);
     const dormProject = buildCareerFacility(gym, 'dorm', { x: 1, y: 0 }).state;
@@ -165,15 +164,5 @@ function completeConstruction(state: GameState): GameState {
   return {
     ...state,
     facilities: { ...state.facilities, grid: next },
-  };
-}
-
-function withoutStartingPitch(state: GameState): GameState {
-  return {
-    ...state,
-    facilities: {
-      trainingGroundBuilt: false,
-      grid: createFacilityGrid(),
-    },
   };
 }

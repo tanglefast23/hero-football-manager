@@ -11,11 +11,10 @@ describe('first-hire screen copy', () => {
     expect(source).not.toContain('No wage subsidy');
   });
 
-  it('introduces the recruit through Bert instead of the header blurb', () => {
-    expect(source).toContain('Bert Rudge');
-    // Title stays two words so it fits one line beside the panel header.
-    expect(source).toContain('title="Registration note"');
-    expect(source).toContain('Eighteen, plays up front');
+  it('starts directly with player creation instead of a Bert note', () => {
+    expect(source).not.toContain('Bert Rudge');
+    expect(source).not.toContain('title="Registration note"');
+    expect(source).not.toContain('Eighteen, plays up front');
     expect(source).not.toContain('A solid D5');
   });
 
@@ -39,10 +38,26 @@ describe('first-hire screen copy', () => {
     expect(source).not.toMatch(/accessibilityLabel=\{`(Decrease|Increase) \$\{copy\.label\}`\}/);
   });
 
+  it('uses the supplied tap sound for appearance and stat adjustment buttons', () => {
+    // Two appearance-arrow definitions render 6 buttons; two stat-stepper
+    // definitions render 12 more buttons.
+    expect(source.match(/pressSfx="stat-step"/g)?.length).toBe(4);
+  });
+
   it('cycles appearance through one shared helper', () => {
     expect(source).toContain('function cycleAppearance');
     expect(source.match(/cycleAppearance\('/g)?.length).toBe(6);
     // the duplicated inline spread closures are gone
     expect(source).not.toContain('setAppearance(current => ({ ...current, skinTone:');
+  });
+
+  it('requires every creation point to be spent before signing', () => {
+    expect(source).toContain('const canSubmit = hasValidName && pointsRemaining === 0;');
+    expect(source).toContain('Spend ${pointsRemaining} more ${pointLabel} before signing.');
+    expect(source).toContain('const [submitAttempted, setSubmitAttempted] = useState(false);');
+    expect(source).toContain('!canSubmit && submitAttempted');
+    expect(source).toContain('setSubmitAttempted(true);');
+    expect(source).not.toContain('disabled={!canSubmit}');
+    expect(source).not.toContain('Points can stay unspent.');
   });
 });

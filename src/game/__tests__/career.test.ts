@@ -359,7 +359,7 @@ describe('finances and two-season boundary', () => {
     };
 
     expect(() => advanceWeek(state)).toThrow(
-      'facility training point balance exceeds the safe integer range',
+      'weekly ambient training point balance exceeds the safe integer range',
     );
   });
 

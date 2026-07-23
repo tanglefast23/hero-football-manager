@@ -118,6 +118,9 @@ export function completeAssistantGuideSequence(
 ): GameState {
   const milestone = MILESTONE_BY_SEQUENCE[sequenceId];
   if (milestone !== undefined) return completeAssistantGuideMilestone(state, milestone);
+  if (sequenceId === 'facility-placement' && !state.facilities.trainingGroundBuilt) {
+    return state;
+  }
   const flag = sequenceCompletionFlag(sequenceId);
   if (state.eventFlags.includes(flag)) return state;
   return { ...state, eventFlags: [...state.eventFlags, flag] };

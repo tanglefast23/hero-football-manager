@@ -3,19 +3,14 @@ import type { ClubFacilityBuildingViewModel, FacilityTypeViewModel } from './mod
 
 export type GuidedFirstFacilityPhase = 'build-menu' | 'grid';
 
-/**
- * The club always starts with a seeded Training Pitch, so the first facility
- * a player *builds* can be anything — there is no reason to force a second
- * pitch. Any selected type advances the guide to the grid step.
- */
 export function guidedFirstFacilityPhase(
   selectedBuildType: FacilityTypeViewModel | null,
 ): GuidedFirstFacilityPhase {
-  return selectedBuildType === null ? 'build-menu' : 'grid';
+  return selectedBuildType === 'training-pitch' ? 'grid' : 'build-menu';
 }
 
-export function guidedFirstFacilityAllowsBuildType(_type: FacilityTypeViewModel): boolean {
-  return true;
+export function guidedFirstFacilityAllowsBuildType(type: FacilityTypeViewModel): boolean {
+  return type === 'training-pitch';
 }
 
 export function guidedFirstFacilityAllowsPlacement(
@@ -23,7 +18,7 @@ export function guidedFirstFacilityAllowsPlacement(
   _x: number,
   _y: number,
 ): boolean {
-  return selectedBuildType !== null;
+  return selectedBuildType === 'training-pitch';
 }
 
 export function firstGuidedCoachCandidateId(

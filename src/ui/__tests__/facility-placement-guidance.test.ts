@@ -6,8 +6,14 @@ describe('first facility placement guidance', () => {
     const source = readFileSync(join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'), 'utf8');
     const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
-    expect(source).toContain('detail="Choose a building to place"');
-    expect(source).toContain('detail="Tap a glowing square to build"');
+    expect(source).toContain('label="Tap here"');
+    expect(source).toContain('detail="Training Pitch"');
+    expect(source).toContain('detail="Tap any + square"');
+    expect(source).toContain('left: facilityGridWidth / facilities.width / 2');
+    expect(source).toMatch(
+      /detail="Tap any \+ square"[\s\S]*?left: facilityGridWidth \/ facilities\.width \/ 2,[\s\S]*?bottom: '100%',/,
+    );
+    expect(source).not.toContain('glowing square');
     expect(source).not.toContain('Training Grounds · top left');
     expect(source).toContain('scrollRef.current?.scrollTo({ y: targetY, animated: true });');
     expect(source).toContain('disabled={!placementActive || !guideAllowsCell}');
