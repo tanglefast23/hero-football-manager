@@ -23,6 +23,8 @@ import {
   TUTORIAL_TAP_CUE_RESERVED_SPACE,
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
+import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
+import { useLayoutMode } from '../layout/use-layout-mode';
 
 export interface MarketScreenProps {
   readonly viewModel: MarketViewModel;
@@ -139,19 +141,108 @@ export function MarketScreen({
     else if ((guideFocus === 'coach-market' || guideFocus === 'coach-hire' || guideFocus === 'assistant-coach-hire') && coachSectionVisible) setSection('COACHES');
   }, [coachSectionVisible, guideFocus, scoutSectionVisible, transferSectionVisible, youthSectionVisible]);
 
+  const layoutMode = useLayoutMode();
+
   useEffect(() => {
+    if (layoutMode !== 'single') return;
     if (requestedSection === 'YOUTH' && youthSectionVisible) setSection('YOUTH');
     else if (requestedSection === 'SCOUT' && scoutSectionVisible) setSection('SCOUT');
     else if (requestedSection === 'TRANSFERS' && transferSectionVisible) setSection('TRANSFERS');
     else if (requestedSection === 'COACHES' && coachSectionVisible) setSection('COACHES');
   }, [
     coachSectionVisible,
+    layoutMode,
     requestedSection,
     requestedSectionToken,
     scoutSectionVisible,
     transferSectionVisible,
     youthSectionVisible,
   ]);
+
+  const header = (
+    <View className="flex-row items-end justify-between gap-3">
+      <View className="flex-1">
+        <Text className="font-mono text-sm font-bold uppercase tracking-[2px] text-blue-dark">
+          Recruitment office
+        </Text>
+        <Text className="mt-1 font-pixel text-xl uppercase text-ink">Market docket</Text>
+      </View>
+      <StatusChip label={viewModel.periodLabel} />
+    </View>
+  );
+
+  const youthDesk = viewModel.youth ? (
+    <YouthDesk
+      viewModel={viewModel}
+      onSignYouth={onSignYouth}
+      onDeclineYouth={onDeclineYouth}
+      guideFocus={visibleGuideFocus}
+    />
+  ) : null;
+  const scoutDesk = scoutSectionVisible ? (
+    <ScoutingDesk
+      viewModel={viewModel}
+      onStartScoutMission={onStartScoutMission}
+      onOpenScoutReport={onOpenScoutReport}
+      southAmericaScoutActionRef={southAmericaScoutActionRef}
+      guideFocus={visibleGuideFocus}
+    />
+  ) : null;
+  const transferDesk = transferSectionVisible ? (
+    <TransferDesk viewModel={viewModel} onTransferAction={onTransferAction} guideFocus={visibleGuideFocus} />
+  ) : null;
+  const coachDesk = coachSectionVisible ? (
+    <CoachDesk viewModel={viewModel} onHireCoach={onHireCoach} />
+  ) : null;
+
+  const activeDesk = section === 'YOUTH' && viewModel.youth
+    ? youthDesk
+    : section === 'SCOUT'
+      ? scoutDesk
+      : section === 'TRANSFERS'
+        ? transferDesk
+        : coachDesk;
+
+  const sections: FlowSection[] = [
+    {
+      key: 'registration',
+      weight: 5,
+      node: <RegistrationDesk viewModel={viewModel} flush />,
+    },
+    ...(viewModel.negotiation ? [{
+      key: 'negotiation',
+      weight: 10,
+      node: (
+        <NegotiationPanel
+          viewModel={viewModel.negotiation}
+          onSubmitContractOffer={onSubmitContractOffer}
+          onClose={onCloseNegotiation}
+          guided={visibleGuideFocus === 'transfer-negotiation'}
+          flush
+        />
+      ),
+    }] : []),
+    ...(viewModel.youth ? [{
+      key: 'youth-desk',
+      weight: 4 + 5 * viewModel.youth.offers.length,
+      node: youthDesk,
+    }] : []),
+    ...(scoutSectionVisible ? [{
+      key: 'scout-desk',
+      weight: 8,
+      node: scoutDesk,
+    }] : []),
+    ...(transferSectionVisible ? [{
+      key: 'transfer-desk',
+      weight: 3 + 3 * viewModel.transfers.length,
+      node: transferDesk,
+    }] : []),
+    ...(coachSectionVisible ? [{
+      key: 'coach-desk',
+      weight: 3 + 4 * viewModel.coaches.length,
+      node: coachDesk,
+    }] : []),
+  ];
 
   return (
     <View ref={marketViewportRef} collapsable={false} className="flex-1">
@@ -162,80 +253,69 @@ export function MarketScreen({
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-      <View className="flex-row items-end justify-between gap-3">
-        <View className="flex-1">
-          <Text className="font-mono text-sm font-bold uppercase tracking-[2px] text-blue-dark">
-            Recruitment office
-          </Text>
-          <Text className="mt-1 font-pixel text-xl uppercase text-ink">Market docket</Text>
-        </View>
-        <StatusChip label={viewModel.periodLabel} />
-      </View>
+      {layoutMode === 'single' ? (
+        <>
+          {header}
+          <RegistrationDesk viewModel={viewModel} />
 
-      <PaperPanel
-        kicker="Registration desk"
-        title="Build the next great side"
-        stamp={viewModel.window.open ? 'Open' : 'Shut'}
-        className="mt-5"
-      >
-        <View className="flex-row gap-2">
-          <Metric label="Cash" value={formatCurrency(viewModel.cash)} />
-          <Metric label="Level" value={viewModel.divisionLabel} />
-          <Metric
-            label="Window"
-            value={viewModel.window.open ? 'OPEN' : 'CLOSED'}
-            tone={viewModel.window.open ? 'positive' : 'negative'}
-          />
-        </View>
-        <Text className="mt-3 text-sm leading-5 text-ink/60">{viewModel.window.detail}</Text>
-      </PaperPanel>
+          {viewModel.negotiation ? (
+            <NegotiationPanel
+              viewModel={viewModel.negotiation}
+              onSubmitContractOffer={onSubmitContractOffer}
+              onClose={onCloseNegotiation}
+              guided={visibleGuideFocus === 'transfer-negotiation'}
+            />
+          ) : null}
 
-      {viewModel.negotiation ? (
-        <NegotiationPanel
-          viewModel={viewModel.negotiation}
-          onSubmitContractOffer={onSubmitContractOffer}
-          onClose={onCloseNegotiation}
-          guided={visibleGuideFocus === 'transfer-negotiation'}
-        />
-      ) : null}
+          <View className="mt-6 flex-row border-2 border-b-4 border-ink bg-paper-dark p-1">
+            {viewModel.sections.includes('YOUTH') && viewModel.youth ? (
+              <DocketTab id="YOUTH" label="Youth" glyph="★" selected={section === 'YOUTH'} onPress={setSection} />
+            ) : null}
+            {viewModel.sections.includes('SCOUT') ? (
+              <DocketTab id="SCOUT" label="Scout" glyph="⌖" selected={section === 'SCOUT'} onPress={setSection} />
+            ) : null}
+            {viewModel.sections.includes('TRANSFERS') ? (
+              <DocketTab id="TRANSFERS" label="Deals" glyph="⇄" selected={section === 'TRANSFERS'} onPress={setSection} />
+            ) : null}
+            {viewModel.sections.includes('COACHES') ? (
+              <DocketTab id="COACHES" label="Coaches" glyph="▣" selected={section === 'COACHES'} onPress={setSection} />
+            ) : null}
+          </View>
 
-      <View className="mt-6 flex-row border-2 border-b-4 border-ink bg-paper-dark p-1">
-        {viewModel.sections.includes('YOUTH') && viewModel.youth ? (
-          <DocketTab id="YOUTH" label="Youth" glyph="★" selected={section === 'YOUTH'} onPress={setSection} />
-        ) : null}
-        {viewModel.sections.includes('SCOUT') ? (
-          <DocketTab id="SCOUT" label="Scout" glyph="⌖" selected={section === 'SCOUT'} onPress={setSection} />
-        ) : null}
-        {viewModel.sections.includes('TRANSFERS') ? (
-          <DocketTab id="TRANSFERS" label="Deals" glyph="⇄" selected={section === 'TRANSFERS'} onPress={setSection} />
-        ) : null}
-        {viewModel.sections.includes('COACHES') ? (
-          <DocketTab id="COACHES" label="Coaches" glyph="▣" selected={section === 'COACHES'} onPress={setSection} />
-        ) : null}
-      </View>
-
-      {section === 'YOUTH' && viewModel.youth ? (
-        <YouthDesk
-          viewModel={viewModel}
-          onSignYouth={onSignYouth}
-          onDeclineYouth={onDeclineYouth}
-          guideFocus={visibleGuideFocus}
-        />
-      ) : section === 'SCOUT' ? (
-        <ScoutingDesk
-          viewModel={viewModel}
-          onStartScoutMission={onStartScoutMission}
-          onOpenScoutReport={onOpenScoutReport}
-          southAmericaScoutActionRef={southAmericaScoutActionRef}
-          guideFocus={visibleGuideFocus}
-        />
-      ) : section === 'TRANSFERS' ? (
-        <TransferDesk viewModel={viewModel} onTransferAction={onTransferAction} guideFocus={visibleGuideFocus} />
+          <View className="mt-6">{activeDesk}</View>
+        </>
       ) : (
-        <CoachDesk viewModel={viewModel} onHireCoach={onHireCoach} />
+        <SectionFlow mode={layoutMode} header={header} sections={sections} />
       )}
       </ScrollView>
     </View>
+  );
+}
+
+interface RegistrationDeskProps {
+  viewModel: MarketViewModel;
+  flush?: boolean;
+}
+
+function RegistrationDesk({ viewModel, flush = false }: RegistrationDeskProps) {
+  return (
+    <PaperPanel
+      kicker="Registration desk"
+      title="Build the next great side"
+      stamp={viewModel.window.open ? 'Open' : 'Shut'}
+      className={flush ? undefined : 'mt-5'}
+    >
+      <View className="flex-row gap-2">
+        <Metric label="Cash" value={formatCurrency(viewModel.cash)} />
+        <Metric label="Level" value={viewModel.divisionLabel} />
+        <Metric
+          label="Window"
+          value={viewModel.window.open ? 'OPEN' : 'CLOSED'}
+          tone={viewModel.window.open ? 'positive' : 'negative'}
+        />
+      </View>
+      <Text className="mt-3 text-sm leading-5 text-ink/60">{viewModel.window.detail}</Text>
+    </PaperPanel>
   );
 }
 
@@ -248,7 +328,7 @@ function YouthDesk({
   const intake = viewModel.youth;
   if (intake === undefined) return null;
   return (
-    <View className="mt-6">
+    <View>
       <SectionLabel
         eyebrow="Pre-season academy intake"
         title="Meet the next generation"
@@ -370,7 +450,7 @@ function ScoutingDesk({
       : 'border-ink bg-white';
 
   return (
-    <View className="mt-6">
+    <View>
       <SectionLabel
         eyebrow="Scout dispatch"
         title="Find the overlooked"
@@ -506,7 +586,7 @@ function TransferDesk({
       ? viewModel.transfers.find(listing => listing.direction === 'SELL' && listing.bids.length > 0)
       : undefined;
   return (
-    <View className="mt-6">
+    <View>
       <SectionLabel
         eyebrow="Transfers"
         title="Buy players · sell your own"
@@ -601,7 +681,7 @@ function CoachDesk({
   onHireCoach,
 }: Pick<MarketScreenProps, 'viewModel' | 'onHireCoach'>) {
   return (
-    <View className="mt-6">
+    <View>
       <SectionLabel
         eyebrow="Pre-season shortlist"
         title="A voice for the touchline"
@@ -701,11 +781,14 @@ export function NegotiationPanel({
   onSubmitContractOffer,
   onClose,
   guided = false,
+  flush = false,
 }: {
   viewModel: MarketNegotiationViewModel;
   onSubmitContractOffer: MarketScreenProps['onSubmitContractOffer'];
   onClose: () => void;
   guided?: boolean;
+  /** Omits the panel's own top margin — for use as a SectionFlow section, which owns inter-section spacing. Defaults to false so SeasonEndScreen is unaffected. */
+  flush?: boolean;
 }) {
   const [weeklyWage, setWeeklyWage] = useState(viewModel.initialWeeklyWage);
   const [termSeasons, setTermSeasons] = useState<1 | 2 | 3>(2);
@@ -725,7 +808,7 @@ export function NegotiationPanel({
       : 'border-blue-dark bg-blue-light';
 
   return (
-    <PaperPanel kicker="Agent on line two" title={viewModel.playerName} stamp={viewModel.roundLabel} className="mt-6">
+    <PaperPanel kicker="Agent on line two" title={viewModel.playerName} stamp={viewModel.roundLabel} className={flush ? undefined : 'mt-6'}>
       <View className={`flex-row items-center gap-3 border-2 p-3 ${moodClass}`}>
         <View className="overflow-hidden border-2 border-ink bg-white">
           <PixelPortrait
