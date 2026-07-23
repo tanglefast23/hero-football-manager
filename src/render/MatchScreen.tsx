@@ -31,6 +31,8 @@ import {
 import { useWorkletAtlasFrame } from './worklet-atlas-frame';
 import { nextMatchSpeed, type MatchSpeed } from './match-speed';
 import {
+  ENCORE_MARKER_TICKS,
+  type EncoreMarker,
   WorkletBallShadow,
   WorkletMatchOverlays,
   WorkletSlideTackleEffects,
@@ -53,7 +55,14 @@ import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playHapticForEvent } from './haptics';
 import { FormationDiagram } from '../ui/components/FormationDiagram';
 import { SettingsButton } from '../ui/SettingsOverlay';
+import { TutorialTapCue } from '../ui/TutorialTapCue';
+import { TUTORIAL_TAP_CUE_WIDTH } from '../ui/tutorial-cue-position';
 import { playUiClickSfx } from './management-sfx';
+import { FirstMatchCoachingModal } from './FirstMatchCoachingModal';
+import {
+  nextFirstMatchCoachingPrompt,
+  type FirstMatchCoachingPromptsSeen,
+} from './first-match-coaching';
 import {
   DEFAULT_FORMATION_PRESETS,
   ENERGY_USE_MODES,
@@ -138,21 +147,9 @@ const BALL_FOOT_DEADZONE_PX = 0.5; // tick-to-tick screen-px delta below this re
 // (matches the player cell width so the placeholder keeps sane proportions).
 const FALLBACK_SPRITE = 24;
 
-// UX fix (zone-entry discoverability) — a HOME hero's zone entry gets a
-// longer "go tap now" banner than a RIVAL hero's threat flash, since only the
-// home banner is asking the player to do something before the window closes.
-const ZONE_BANNER_TICKS = 25;
+// Rival readiness remains visible counterplay. Controlled-team powers activate
+// automatically and announce themselves only when they actually fire.
 const RIVAL_ZONE_BANNER_TICKS = 20;
-
-// On-pitch zone marker geometry — a small upward triangle drawn ~14pt above
-// a HOME hero's sprite while it's in the Zone, so an eyes-on-the-pitch player
-// spots the tap opportunity without looking down at the chip row. Rival zone
-// entries already get their own on-pitch tell (the existing red ring), so
-// this marker — like the chip urgency and early-tap feedback above — is
-// home-only.
-const MARKER_Y_OFFSET = 14; // pt above the sprite's center, before the triangle's own height
-const MARKER_HALF_W = 5;
-const MARKER_H = 7;
 const COLOR_SAFE_HOME_KIT = {
   o: '#6d4510',
   r: '#ba7517',
@@ -232,6 +229,7 @@ export function MatchScreen({
   highContrast = false,
   colorSafeKits = true,
   pausedExternally = false,
+  firstMatchTutorial = false,
   powerCutInQaEntries,
   powerMatchQa,
   onOpenSettings,
@@ -250,6 +248,7 @@ export function MatchScreen({
   highContrast?: boolean;
   colorSafeKits?: boolean;
   pausedExternally?: boolean;
+  firstMatchTutorial?: boolean;
   /** Dev-only held fixture for visual QA. Ignored by production bundles. */
   powerCutInQaEntries?: readonly PowerCutInQaEntry[];
   /** Dev-only live match scenario. It still fires through the real engine. */
@@ -327,6 +326,9 @@ export function MatchScreen({
   // just stable player indices/placed points; simulation state remains the
   // sole authority for whether a shield, root, clone, or hunt is still live.
   const powerEffectsRef = useRef<MatchPowerEffect[]>([]);
+  // Tick each teammate received a Rally Cry encore, so the gold bolt marker can
+  // show for ~2s from the grant and then clear itself.
+  const encoreGrantedTickRef = useRef<Map<number, number>>(new Map());
   // Whether the looping fire crackle is currently playing — reconciled each
   // frame against whether any Fire Torch hero is ablaze (see the RAF loop).
   const fireLoopOnRef = useRef(false);
@@ -340,7 +342,6 @@ export function MatchScreen({
     visualTick: 0,
   });
   const [speed, setSpeed] = useState<MatchSpeed>(1);
-  const [autoPowers, setAutoPowers] = useState(false);
   /** Opt-in bench cover: a manager who only wants to watch should not be
    * punished with eleven exhausted players and three unused substitutions. */
   const [autoSubs, setAutoSubs] = useState(false);
@@ -349,6 +350,16 @@ export function MatchScreen({
   const [swapOpen, setSwapOpen] = useState(false);
   const [selectedOutgoing, setSelectedOutgoing] = useState<number | null>(null);
   const [selectedIncoming, setSelectedIncoming] = useState<string | null>(null);
+  const [firstMatchTutorialStep, setFirstMatchTutorialStep] = useState<
+    'tired-modal' | 'tired-swap-cue' | 'comeback-modal' | null
+  >(null);
+  const firstMatchTutorialStepRef = useRef<
+    'tired-modal' | 'tired-swap-cue' | 'comeback-modal' | null
+  >(null);
+  const firstMatchPromptsSeenRef = useRef<FirstMatchCoachingPromptsSeen>({
+    tiredPlayer: false,
+    threeGoalDeficit: false,
+  });
   const powerCutInQaActive = __DEV__ && powerCutInQaEntries !== undefined;
   const [powerCutIns, setPowerCutIns] = useState<PowerCutInEntry[]>(() => (
     powerCutInQaActive ? [...powerCutInQaEntries] : []
@@ -390,6 +401,7 @@ export function MatchScreen({
   const {
     transforms: workletTransforms,
     visualPositions: workletVisualPositions,
+    visibility: workletVisibility,
     ballGroundPosition: workletBallGroundPosition,
     ballHeight: workletBallHeight,
     statuses: workletStatuses,
@@ -645,7 +657,11 @@ export function MatchScreen({
               && candidate.team === firingPlayer.team
               && candidate.encoreState === 'BANKED'
             ));
-            if (encore !== -1) targets.splice(0, targets.length, { player: encore });
+            if (encore !== -1) {
+              targets.splice(0, targets.length, { player: encore });
+              // Stamp the grant so the overlay can flash a 2s bolt over this mate.
+              encoreGrantedTickRef.current.set(encore, e.t);
+            }
           }
           const delayedFirstBeat = e.power === 'FUTURE_SIGHT'
             || e.power === 'GUST'
@@ -653,8 +669,13 @@ export function MatchScreen({
             || e.power === 'ICE_RINK'
             || e.power === 'SHADOW_MARK';
           const strengthImpact = e.power === 'SUPER_STRENGTH';
+          // Ice Rink is drawn entirely by the victim-anchored slide effect
+          // below. A recorded one-shot here is anchored to the caster's team
+          // direction, so its sheet lands on the opposite side and then "hops"
+          // when the victim slide takes over. Skip it.
+          const casterSheet = e.power === 'ICE_RINK';
           const descriptor = powerEffectDescriptor(e.power);
-          if (!strengthImpact) {
+          if (!strengthImpact && !casterSheet) {
             recordPowerEffect(e.power, e.player, {
               startTick: e.t,
               origin: effectOrigin,
@@ -878,23 +899,12 @@ export function MatchScreen({
             untilTick: s.players[e.player].outUntilTick,
           };
         }
-        // UX fix — zone entry announcement: the player didn't discover the
-        // tap affordance from the chip alone, so a HOME hero's Zone entry
-        // (POWER_READY; see sim/powers.ts's comment — "event kind retained;
-        // now means Zone entry") gets a loud "go tap now" banner. A RIVAL
-        // entry gets a shorter red threat banner instead, echoing the same
-        // "starving his window is the counterplay" reasoning as the rival
-        // chip/ring's existing red treatment (ledger item 5 above).
+        // Controlled heroes activate automatically without a readiness marker.
+        // Rival Zone entry remains a short red threat so keeping possession
+        // away from that hero is still visible counterplay.
         if (e.kind === 'POWER_READY') {
           const firstName = s.players[e.player].def.name.split(' ')[0];
-          if (s.players[e.player].team === controlledTeam) {
-            bannerRef.current = appendNewestFour(bannerRef.current, {
-              id: `zone:${e.t}:${e.player}`,
-              text: `⚡ ${firstName} IS IN THE ZONE — TAP!`,
-              untilTick: e.t + ZONE_BANNER_TICKS,
-              tone: 'gold',
-            });
-          } else {
+          if (s.players[e.player].team !== controlledTeam) {
             bannerRef.current = appendNewestFour(bannerRef.current, {
               id: `rival-zone:${e.t}:${e.player}`,
               text: `⚠ ${firstName} IS HOT — KEEP THE BALL AWAY`,
@@ -902,6 +912,28 @@ export function MatchScreen({
               tone: 'red',
             });
           }
+        }
+      }
+      if (
+        advanced
+        && firstMatchTutorial
+        && firstMatchTutorialStepRef.current === null
+      ) {
+        const prompt = nextFirstMatchCoachingPrompt(
+          s,
+          controlledTeam,
+          firstMatchPromptsSeenRef.current,
+        );
+        if (prompt !== null) {
+          const step = prompt === 'tired-player' ? 'tired-modal' : 'comeback-modal';
+          firstMatchPromptsSeenRef.current = prompt === 'tired-player'
+            ? { ...firstMatchPromptsSeenRef.current, tiredPlayer: true }
+            : { ...firstMatchPromptsSeenRef.current, threeGoalDeficit: true };
+          firstMatchTutorialStepRef.current = step;
+          setFirstMatchTutorialStep(step);
+          automaticPauseReasonsRef.current.add('tutorial');
+          syncPauseReasons();
+          acc = 0;
         }
       }
       // Fire crackle loop follows the caster's active window: on while any Fire
@@ -998,7 +1030,15 @@ export function MatchScreen({
       cancelAnimationFrame(raf);
       sub.remove();
     };
-  }, [controlledTeam, cutInMode, onDone, powerMatchQa, publishAtlasFrame, reduceMotion]);
+  }, [
+    controlledTeam,
+    cutInMode,
+    firstMatchTutorial,
+    onDone,
+    powerMatchQa,
+    publishAtlasFrame,
+    reduceMotion,
+  ]);
 
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
   // takes priority, followed by the far-ball GK ready loop, then locomotion.
@@ -1120,13 +1160,11 @@ export function MatchScreen({
     match.phase === 'play' &&
     ((match.half === 1 && match.tick >= HALF_TICKS) || (match.half === 2 && match.tick >= TOTAL_TICKS));
   const ringR = (PLAYER_CELL_W * scale * PLAYER_DRAW_SCALE) / 2 + 4;
-  const heroPlayers: number[] = [];
-  const userHeroes: number[] = [];
+  const rivalHeroPlayers: number[] = [];
   const fireTorchPlayers: number[] = [];
   match.players.forEach((player, index) => {
     if (!player.def.power) return;
-    heroPlayers.push(index);
-    if (player.team === controlledTeam) userHeroes.push(index);
+    if (player.team !== controlledTeam) rivalHeroPlayers.push(index);
     if (player.def.power === 'FIRE_TORCH') fireTorchPlayers.push(index);
   });
   const activeWebTraps = match.players.flatMap((player, index) => (
@@ -1208,16 +1246,9 @@ export function MatchScreen({
       );
     }
 
-    if (player.encoreState === 'BANKED') {
-      addPersistentPowerEffect(
-        `encore:${index}`,
-        'RALLY_CRY',
-        index,
-        3300,
-        playerPoint(index),
-        [playerPoint(index)],
-      );
-    }
+    // The banked-encore marker is no longer a lingering ticket/ring here; it is
+    // a short gold bolt over the granted teammate, built as encoreMarkers below
+    // and drawn by WorkletMatchOverlays.
 
     if ((player.portalProtectedUntilTick ?? 0) > hud.tick) {
       const remaining = player.portalProtectedUntilTick! - hud.tick;
@@ -1232,12 +1263,16 @@ export function MatchScreen({
     }
 
     if ((player.webbedUntilTick ?? 0) > hud.tick) {
-      const remaining = player.webbedUntilTick! - hud.tick;
+      // Hold the "rooted" frame for the whole webbed duration so the binding
+      // bands stay on the victim start to finish. The root lasts 120-200 ticks,
+      // far longer than the 4.3s descriptor, so a progressing elapsed time only
+      // reached the banded beat in the final ~1s (the "lines only at the end"
+      // bug). A fixed mid-beat time keeps the bands fully lit throughout.
       addPersistentPowerEffect(
         `webbed:${index}`,
         'WEB_TRAP',
         index,
-        2300 + (20 - remaining) * TICK_MS,
+        2580,
         playerPoint(index),
         [playerPoint(index)],
         playerPoint(index),
@@ -1279,36 +1314,38 @@ export function MatchScreen({
       );
     }
 
-    const decoyClone = player.def.power === 'DECOY_DOUBLE'
-      ? match.decoyClones[player.team] : null;
-    if (decoyClone !== null && decoyClone.ownerIdx === index) {
-      const cloneIndex = player.team === 0 ? 22 : 23;
-      const marker = state.kind === 'active' && state.targetIdx !== undefined
-        ? playerPoint(state.targetIdx) : screenPoint(decoyClone.pos);
-      addPersistentPowerEffect(
-        `decoy-clone:${index}`,
-        'DECOY_DOUBLE',
-        index,
-        2100,
-        playerPoint(cloneIndex),
-        [marker, screenPoint(decoyClone.pos)],
-        player.powerAnchor === undefined ? undefined : screenPoint(player.powerAnchor),
-        cloneIndex,
-      );
-    }
+    // The live Decoy clone is a real Atlas player; its dashed hologram ring is
+    // drawn by WorkletMatchOverlays, so it needs no power-effect scene here.
 
-    if ((player.def.power === 'WEB_TRAP' || player.def.power === 'ICE_RINK')
+    // Web Trap keeps its short caster-side cast flash. Ice Rink is intentionally
+    // excluded: it is drawn only by the victim-anchored slide effect above, so a
+    // caster-side sheet here would put the ice on the wrong side and cause the
+    // "starts one side, hops to the other" flip.
+    if (player.def.power === 'WEB_TRAP'
       && state.kind === 'active' && player.powerAnchor !== undefined) {
       addPersistentPowerEffect(
         `placed:${player.def.power}:${index}`,
         player.def.power,
         index,
-        player.def.power === 'WEB_TRAP' ? 820 : 850,
+        820,
         playerPoint(index),
         [screenPoint(player.powerAnchor)],
         screenPoint(player.powerAnchor),
       );
     }
+  });
+
+  // Rally Cry grant markers: a gold bolt over each freshly-granted teammate for
+  // ~2s. Drop entries once the window elapses or the encore is spent so stale
+  // bolts never linger.
+  const encoreMarkers: EncoreMarker[] = [];
+  encoreGrantedTickRef.current.forEach((grantTick, slot) => {
+    const banked = match.players[slot]?.encoreState === 'BANKED';
+    if (!banked || hud.tick - grantTick >= ENCORE_MARKER_TICKS) {
+      encoreGrantedTickRef.current.delete(slot);
+      return;
+    }
+    encoreMarkers.push({ slot, grantTick });
   });
 
   const activeSpeedster = match.players.findIndex(player => (
@@ -1410,6 +1447,11 @@ export function MatchScreen({
     setSelectedIncoming(null);
     setSwapOpen(true);
     automaticPauseReasonsRef.current.add('swap');
+    if (firstMatchTutorialStepRef.current === 'tired-swap-cue') {
+      firstMatchTutorialStepRef.current = null;
+      setFirstMatchTutorialStep(null);
+      automaticPauseReasonsRef.current.delete('tutorial');
+    }
     syncPauseReasons();
   };
   const closeSwap = () => {
@@ -1430,21 +1472,21 @@ export function MatchScreen({
     closeSwap();
   };
 
-  const toggleAutoPowers = () => {
-    if (match.phase === 'fulltime') return;
+  const continueTiredPlayerTutorial = () => {
     playUiClickSfx();
-    const enabled = !autoPowers;
-    queueInput(match, {
-      tick: match.tick + 1,
-      kind: 'SET_AUTO_POWERS',
-      enabled,
-    });
-    setAutoPowers(enabled);
-    const text = enabled ? 'AUTO SUPERPOWERS' : 'MANUAL SUPERPOWERS';
-    bannerRef.current = appendNewestFour(bannerRef.current, {
-      id: `power-mode:${match.tick}:${enabled}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'gold',
-    });
-    setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
+    firstMatchTutorialStepRef.current = 'tired-swap-cue';
+    setFirstMatchTutorialStep('tired-swap-cue');
+  };
+
+  const continueComebackTutorial = () => {
+    playUiClickSfx();
+    firstMatchTutorialStepRef.current = null;
+    setFirstMatchTutorialStep(null);
+    automaticPauseReasonsRef.current.delete('tutorial');
+    // Give the manager a still frame for trying the suggested controls. The
+    // scorebar already owns manual pause/resume, so its next tap resumes play.
+    userPausedRef.current = true;
+    syncPauseReasons();
   };
 
   return (
@@ -1472,17 +1514,6 @@ export function MatchScreen({
           </Text>
         </View>
         <View style={styles.controls}>
-          <Pressable
-            style={[styles.ctrlButton, coachingDisabled ? styles.coachButtonDisabled : null]}
-            accessibilityRole="switch"
-            accessibilityLabel={`Superpower control ${autoPowers ? 'automatic' : 'manual'}. Tap for ${autoPowers ? 'manual' : 'automatic'}.`}
-            accessibilityState={{ checked: autoPowers, disabled: coachingDisabled }}
-            disabled={coachingDisabled}
-            hitSlop={10}
-            onPress={toggleAutoPowers}
-          >
-            <Text style={styles.powerModeText}>{autoPowers ? 'AUTO' : 'MANUAL'}</Text>
-          </Pressable>
           <Pressable
             style={styles.ctrlButton}
             accessibilityRole="button"
@@ -1650,19 +1681,18 @@ export function MatchScreen({
         ) : null}
         <WorkletMatchOverlays
           visualPositions={workletVisualPositions}
+          visibility={workletVisibility}
           statuses={workletStatuses}
           zoneFractions={workletZoneFractions}
           carrier={workletCarrier}
           simTick={workletSimTick}
           progress={workletProgress}
           controlledTeam={controlledTeam}
-          heroPlayers={heroPlayers}
+          heroPlayers={rivalHeroPlayers}
           fireTorchPlayers={fireTorchPlayers}
+          encoreMarkers={encoreMarkers}
           scale={scale}
           ringRadius={ringR}
-          markerYOffset={MARKER_Y_OFFSET}
-          markerHalfWidth={MARKER_HALF_W}
-          markerHeight={MARKER_H}
           reduceMotion={reduceMotion}
         />
         </Canvas>
@@ -1688,25 +1718,6 @@ export function MatchScreen({
             </View>
           </View>
         ) : null}
-        {!autoPowers ? userHeroes.map((index) => {
-          const player = match.players[index];
-          const ready = player.outUntilTick <= match.tick
-            && player.powerState.kind === 'zone';
-          if (!ready) return null;
-          const position = frame.players[index];
-          return (
-            <Pressable
-              key={`hero-tap-${index}`}
-              accessibilityRole="button"
-              accessibilityLabel={`Activate ${player.def.name}'s ${powerEffectDescriptor(player.def.power!).name}. ${powerEffectDescriptor(player.def.power!).accessibilityLabel}`}
-              hitSlop={16}
-              style={[styles.heroTapTarget, { left: position.x * scale - 54, top: position.y * scale - 60 }]}
-              onPress={() => queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: index })}
-            >
-              <Text style={styles.heroTapLabel}>TAP</Text>
-            </Pressable>
-          );
-        }) : null}
         {powerCutIns.length > 0 ? (
           <Pressable
             accessibilityRole={powerCutInPolicy.skippable ? 'button' : 'text'}
@@ -1836,6 +1847,17 @@ export function MatchScreen({
               openSwap();
             }}
           >
+            {firstMatchTutorialStep === 'tired-swap-cue' ? (
+              <TutorialTapCue
+                label="Tap here"
+                detail="Swap players"
+                style={{
+                  left: '50%',
+                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                  bottom: '100%',
+                }}
+              />
+            ) : null}
             <Text style={styles.swapIcon}>⇄</Text>
             <View style={styles.coachCopy}>
               <Text style={styles.coachLabel}>SWAP</Text>
@@ -2069,6 +2091,25 @@ export function MatchScreen({
           </View>
         </View>
       ) : null}
+      {firstMatchTutorialStep === 'tired-modal' ? (
+        <FirstMatchCoachingModal
+          title="One player is very tired"
+          body="One of your players is very tired. Swap in a fresh player to give them some rest."
+          buttonLabel="Show me"
+          reduceMotion={reduceMotion}
+          onContinue={continueTiredPlayerTutorial}
+        />
+      ) : null}
+      {firstMatchTutorialStep === 'comeback-modal' ? (
+        <FirstMatchCoachingModal
+          title="Try a new strategy"
+          body="The other team is pulling away. Try going all out in offence: switch to an attacking playstyle, try a different formation, choose ALL OUT energy use, or swap in fresh players."
+          detail="The match will stay paused while you adjust the controls. Tap the score at the top when you are ready to resume."
+          buttonLabel="Try it"
+          reduceMotion={reduceMotion}
+          onContinue={continueComebackTutorial}
+        />
+      ) : null}
     </View>
   );
 }
@@ -2120,7 +2161,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   ctrlText: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold' },
-  powerModeText: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold' },
   autoSubRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2232,24 +2272,6 @@ const styles = StyleSheet.create({
   energyFillLow: { backgroundColor: '#d94f52' },
   energyTextMedium: { color: '#edb54a' },
   energyTextLow: { color: '#f06b6e' },
-  heroTapTarget: {
-    position: 'absolute',
-    zIndex: 6,
-    width: 108,
-    height: 120,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  heroTapLabel: {
-    color: '#f4f1ea',
-    backgroundColor: '#a83440',
-    borderColor: '#f4f1ea',
-    borderWidth: 2,
-    fontSize: 18,
-    fontWeight: 'bold',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
   coachingDock: {
     gap: 6,
     paddingHorizontal: 8,

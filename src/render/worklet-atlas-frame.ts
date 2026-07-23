@@ -48,6 +48,7 @@ interface WorkletAtlasOptions {
 export interface WorkletAtlasController {
   transforms: ReturnType<typeof useRSXformBuffer>;
   visualPositions: SharedValue<Float32Array>;
+  visibility: SharedValue<Float32Array>;
   ballGroundPosition: SharedValue<Float32Array>;
   ballHeight: SharedValue<number>;
   statuses: SharedValue<Float32Array>;
@@ -388,6 +389,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
   return {
     transforms,
     visualPositions,
+    visibility: nextVisibility,
     ballGroundPosition,
     ballHeight,
     statuses,

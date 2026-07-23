@@ -1,11 +1,11 @@
-import { createCareer } from '../../game/career';
+import { advanceWeek, createCareer } from '../../game/career';
 import { buildTrainingGround } from '../../game/squad';
-import { advanceFacilityConstruction } from '../../game/facilities';
 import { buildCareerFacility } from '../../game/management';
 import { hireCareerCoach } from '../../game/market-career';
 import {
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
+  hasAssistantGuideSequenceCompleted,
 } from '../../game/assistant-guide';
 import { createLaunchCareerSetup } from '../launch';
 import {
@@ -40,7 +40,7 @@ describe('assistant guide application flow', () => {
       target: 'training-ground-alert',
     });
     expect(currentAssistantObjective(state, 'club')).toEqual({
-      text: 'BUILD THE TRAINING GROUND.',
+      text: 'BUILD YOUR TRAINING PITCH.',
       target: 'training-ground-facility',
     });
 
@@ -50,10 +50,6 @@ describe('assistant guide application flow', () => {
     };
     expect(currentAssistantObjective(state, 'club')).toEqual({ text: 'RETURN HOME.', target: 'home-tab' });
     expect(pendingAssistantGuideSequence(state, 'club')).toBeNull();
-    expect(pendingAssistantGuideSequence(state, 'home')).toBe('desk-intro');
-    expect(currentAssistantObjective(state, 'home')).toBeNull();
-
-    state = completeAssistantGuideSequence(state, 'desk-intro');
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'INBOX CLEAR. ADVANCE WEEK.',
@@ -81,8 +77,7 @@ describe('assistant guide application flow', () => {
     state = buildTrainingGround(state);
 
     expect(state.facilities.trainingGroundBuilt).toBe(false);
-    expect(pendingAssistantGuideSequence(state, 'home')).toBe('desk-intro');
-    state = completeAssistantGuideSequence(state, 'desk-intro');
+    expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'INBOX CLEAR. ADVANCE WEEK.',
       target: 'advance-week',
@@ -93,9 +88,10 @@ describe('assistant guide application flow', () => {
     let state = createCareer(createLaunchCareerSetup(936, undefined, undefined, 'full'));
     state = completeAssistantGuideSequence(state, 'management-intro');
     state = completeAssistantGuideMilestone(state, 'first-training-complete');
-    state = completeAssistantGuideSequence(state, 'desk-intro');
+    state = buildCareerFacility(state, 'training-pitch', { x: 0, y: 0 }).state;
 
     expect(state.market?.headCoach).toBeUndefined();
+    expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
     expect(currentAssistantObjective(state, 'home')).toBeNull();
 
     state = {
@@ -128,15 +124,9 @@ describe('assistant guide application flow', () => {
 
   test('waits for D4 before teaching the first facility upgrade', () => {
     let state = createCareer(createLaunchCareerSetup(935, undefined, undefined, 'full'));
-    state = completeAssistantGuideSequence(state, 'facility-placement');
-    state = buildCareerFacility(state, 'gym', { x: 2, y: 0 }).state;
-    state = {
-      ...state,
-      facilities: {
-        ...state.facilities,
-        grid: advanceFacilityConstruction(state.facilities.grid!).grid,
-      },
-    };
+    state = buildCareerFacility(state, 'training-pitch', { x: 2, y: 0 }).state;
+    state = advanceWeek(state);
+    state = reconcileSatisfiedAssistantGuideSequences(state);
 
     expect(dueAssistantInboxGuideSequences(state)).not.toContain('facility-upgrade');
     const reachedD4 = {
@@ -146,13 +136,21 @@ describe('assistant guide application flow', () => {
     expect(dueAssistantInboxGuideSequences(reachedD4)).toContain('facility-upgrade');
   });
 
-  it('still asks the player to place their first facility despite the seeded pitch', () => {
-    const state = createCareer(createLaunchCareerSetup(413, undefined, undefined, 'full'));
-    const seeded = state.facilities.grid?.buildings ?? [];
-
-    expect(seeded).toHaveLength(1);
-    expect(seeded[0]?.type).toBe('training-pitch');
-    expect(seeded[0]?.seeded).toBe(true);
+  it('keeps the Training Pitch objective unfinished until construction completes', () => {
+    let state = createCareer(createLaunchCareerSetup(413, undefined, undefined, 'full'));
+    expect(state.facilities.grid?.buildings).toHaveLength(0);
     expect(dueAssistantInboxGuideSequences(state)).toContain('facility-placement');
+
+    state = completeAssistantGuideSequence(state, 'facility-placement');
+    expect(hasAssistantGuideSequenceCompleted(state, 'facility-placement')).toBe(false);
+
+    state = buildCareerFacility(state, 'training-pitch', { x: 4, y: 2 }).state;
+    expect(dueAssistantInboxGuideSequences(state)).not.toContain('facility-placement');
+    expect(hasAssistantGuideSequenceCompleted(state, 'facility-placement')).toBe(false);
+
+    state = advanceWeek(state);
+    state = reconcileSatisfiedAssistantGuideSequences(state);
+    expect(state.facilities.trainingGroundBuilt).toBe(true);
+    expect(hasAssistantGuideSequenceCompleted(state, 'facility-placement')).toBe(true);
   });
 });

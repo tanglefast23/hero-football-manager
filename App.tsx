@@ -97,6 +97,7 @@ import {
   careerCoachUnlockedFormationIds,
   clubSquadStrength,
   hasAssistantGuideSequenceCompleted,
+  isFirstOnboardingFixture,
   leagueStandings,
 } from './src/game';
 import type { DivisionLevel } from './src/game/pyramid';
@@ -580,7 +581,7 @@ function GameApp() {
   const beginCoachDismissal = useCallback((role: 'HEAD' | 'ASSISTANT' = 'HEAD') => {
     const career = useM1Store.getState().career;
     if (career === null) return;
-    const staff = squadTrainingViewModel(career, content, undefined, [], []).coachingStaff;
+    const staff = clubFinancesViewModel(career).coachingStaff;
     const coach = staff.find(candidate => candidate.role === role);
     if (coach === undefined) return;
     setCoachOverlay({
@@ -597,7 +598,7 @@ function GameApp() {
         severanceCost: coach.severanceCost,
       },
     });
-  }, [content]);
+  }, []);
 
   const confirmCoachDismissal = useCallback(() => {
     if (coachOverlay?.mode !== 'confirm-dismiss') return;
@@ -1081,6 +1082,10 @@ function GameApp() {
         highContrast={preferences.highContrast}
         colorSafeKits={preferences.colorSafeKits}
         pausedExternally={globalSettingsOpen}
+        firstMatchTutorial={isFirstOnboardingFixture(
+          store.career,
+          store.watchedMatch.fixture.id,
+        )}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         onDone={finishWatchedMatch}
       />
@@ -1260,8 +1265,6 @@ function GameApp() {
             onTogglePlayerAssignment={store.toggleTrainingPlayer}
             onToggleDrill={store.toggleDrill}
             onApplyTraining={lockTrainingPlanWithFeedback}
-            onOpenCoachMarket={() => store.setActiveTab('market')}
-            onDismissCoach={beginCoachDismissal}
             guideTraining={assistantObjective?.target === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
           />

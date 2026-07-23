@@ -1,4 +1,5 @@
 import { countUpValue } from '../count-up';
+import { shouldStartDevelopmentAnimation } from '../weekly-review-animation';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -17,14 +18,52 @@ describe('countUpValue', () => {
   });
 
   it('keeps weekly money, TP, and stat feedback animated until it lands or is skipped', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
     const review = readFileSync(join(process.cwd(), 'src/ui/screens/WeeklyReviewScreen.tsx'), 'utf8');
     const development = readFileSync(join(process.cwd(), 'src/ui/components/PlayerDevelopmentSpotlight.tsx'), 'utf8');
 
+    expect(app).toContain('animationsReady={trainingTransition === null}');
     expect(review).toContain('AnimatedBalanceAmount');
     expect(review).toContain('useCelebratoryNumber');
+    expect(review).toContain('animationsReady');
+    expect(review).toContain('onScrollBeginDrag');
+    expect(review).toContain('onStatAreaLayout');
     expect(review).toContain('countUpValue(to - from, progress)');
     expect(review).not.toContain('onTouchStart={finishAnimations}');
     expect(development).toContain('function CountedStat');
+    expect(development).toContain('animationsStarted');
     expect(development).toContain('toValue: 1.18');
+  });
+
+  it('starts player development once the stat area is on screen, via scroll or already visible', () => {
+    // Below the fold and not yet scrolled: wait.
+    expect(shouldStartDevelopmentAnimation({
+      hasManuallyScrolled: false,
+      scrollY: 700,
+      viewportHeight: 700,
+      statAreaY: 1_200,
+    })).toBe(false);
+    // Scrolled, but the stat area is still off screen: wait.
+    expect(shouldStartDevelopmentAnimation({
+      hasManuallyScrolled: true,
+      scrollY: 400,
+      viewportHeight: 700,
+      statAreaY: 1_200,
+    })).toBe(false);
+    // Scrolled far enough to expose the stat area: start.
+    expect(shouldStartDevelopmentAnimation({
+      hasManuallyScrolled: true,
+      scrollY: 548,
+      viewportHeight: 700,
+      statAreaY: 1_200,
+    })).toBe(true);
+    // Already fully visible at the top with no scroll needed (tall viewport / light
+    // week): start immediately so the count-up can't stay stuck on pre-training values.
+    expect(shouldStartDevelopmentAnimation({
+      hasManuallyScrolled: false,
+      scrollY: 0,
+      viewportHeight: 1_200,
+      statAreaY: 600,
+    })).toBe(true);
   });
 });

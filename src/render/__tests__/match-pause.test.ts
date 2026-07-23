@@ -17,4 +17,8 @@ describe('match pause reasons', () => {
   it('preserves a user pause when settings closes', () => {
     expect(shouldPauseMatch(true, new Set())).toBe(true);
   });
+
+  it('holds the match while a first-match tutorial is open', () => {
+    expect(shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['tutorial']))).toBe(true);
+  });
 });

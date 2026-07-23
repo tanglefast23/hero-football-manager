@@ -2,12 +2,12 @@ import { loadLaunchContent } from '../../content';
 import { createCareer } from '../../game/career';
 import { hireCareerCoach } from '../../game/market-career';
 import { createLaunchCareerSetup } from '../launch';
-import { squadTrainingViewModel } from '../view-models';
+import { clubFinancesViewModel } from '../view-models';
 
-describe('Squad coaching-staff view model', () => {
+describe('Club coaching-staff view model', () => {
   const content = loadLaunchContent();
 
-  it('puts the employed coach and exact role effects in the Squad tab model', () => {
+  it('puts the employed coach and exact role effects in the Club tab model', () => {
     const initial = createCareer(createLaunchCareerSetup(20260721, undefined, content, 'full'));
     const candidate = {
       ...initial.market!.coachCandidates[0],
@@ -21,13 +21,7 @@ describe('Squad coaching-staff view model', () => {
       candidate.id,
       'HEAD',
     );
-    const viewModel = squadTrainingViewModel(
-      { ...initial, market },
-      content,
-      undefined,
-      [],
-      [],
-    );
+    const viewModel = clubFinancesViewModel({ ...initial, market });
 
     expect(viewModel.coachingStaff).toEqual([expect.objectContaining({
       id: candidate.id,
@@ -58,7 +52,7 @@ describe('Squad coaching-staff view model', () => {
       market: { ...initial.market!, assistantCoach: assistant },
     };
 
-    expect(squadTrainingViewModel(state, content, undefined, [], []).coachingStaff[0])
+    expect(clubFinancesViewModel(state).coachingStaff[0])
       .toMatchObject({
         role: 'ASSISTANT',
         effectLabels: [

@@ -1,0 +1,89 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { createMatch } from '../../sim/match';
+import { ROVERS, UNITED } from '../../sim/teams';
+import type { PlayerDef, TeamDef } from '../../sim/types';
+import {
+  FIRST_MATCH_COMEBACK_GOAL_MARGIN,
+  FIRST_MATCH_RED_ENERGY_THRESHOLD,
+  nextFirstMatchCoachingPrompt,
+} from '../first-match-coaching';
+
+function reserve(id: string, role: PlayerDef['role']): PlayerDef {
+  return {
+    ...ROVERS.players.find(player => player.role === role)!,
+    id,
+    name: `Reserve ${id}`,
+  };
+}
+
+function watchedMatch(): ReturnType<typeof createMatch> {
+  const home: TeamDef = {
+    ...ROVERS,
+    bench: [reserve('bench-gk', 'GK'), reserve('bench-def', 'DEF'), reserve('bench-fwd', 'FWD')],
+  };
+  return createMatch(808, home, UNITED, { controlledTeam: 0 });
+}
+
+describe('first match coaching prompts', () => {
+  it('waits for the first controlled player to enter the red energy band', () => {
+    const state = watchedMatch();
+    state.players[1].condition = FIRST_MATCH_RED_ENERGY_THRESHOLD + 1;
+
+    expect(nextFirstMatchCoachingPrompt(state, 0, {
+      tiredPlayer: false,
+      threeGoalDeficit: false,
+    })).toBeNull();
+
+    state.players[1].condition = FIRST_MATCH_RED_ENERGY_THRESHOLD;
+    expect(nextFirstMatchCoachingPrompt(state, 0, {
+      tiredPlayer: false,
+      threeGoalDeficit: false,
+    })).toBe('tired-player');
+    expect(nextFirstMatchCoachingPrompt(state, 0, {
+      tiredPlayer: true,
+      threeGoalDeficit: false,
+    })).toBeNull();
+  });
+
+  it('does not point at Swap when no legal fresh replacement remains', () => {
+    const state = watchedMatch();
+    state.players[5].condition = FIRST_MATCH_RED_ENERGY_THRESHOLD;
+    state.bench[0] = state.bench[0].filter(player => player.role === 'GK');
+
+    expect(nextFirstMatchCoachingPrompt(state, 0, {
+      tiredPlayer: false,
+      threeGoalDeficit: false,
+    })).toBeNull();
+  });
+
+  it('fires once when the opponent opens a three-goal lead', () => {
+    const state = watchedMatch();
+    state.score = [0, FIRST_MATCH_COMEBACK_GOAL_MARGIN - 1];
+    expect(nextFirstMatchCoachingPrompt(state, 0, {
+      tiredPlayer: true,
+      threeGoalDeficit: false,
+    })).toBeNull();
+
+    state.score = [0, FIRST_MATCH_COMEBACK_GOAL_MARGIN];
+    expect(nextFirstMatchCoachingPrompt(state, 0, {
+      tiredPlayer: true,
+      threeGoalDeficit: false,
+    })).toBe('three-goal-deficit');
+    expect(nextFirstMatchCoachingPrompt(state, 0, {
+      tiredPlayer: true,
+      threeGoalDeficit: true,
+    })).toBeNull();
+  });
+
+  it('wires the prompts only to the story opening fixture and keeps the requested copy', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    const match = readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+
+    expect(app).toContain('firstMatchTutorial={isFirstOnboardingFixture(');
+    expect(match).toContain('One of your players is very tired. Swap in a fresh player to give them some rest.');
+    expect(match).toContain('detail="Swap players"');
+    expect(match).toContain('The other team is pulling away.');
+    expect(match).toContain('choose ALL OUT energy use');
+  });
+});

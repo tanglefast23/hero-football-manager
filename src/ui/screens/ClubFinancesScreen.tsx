@@ -21,6 +21,7 @@ import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { FacilityPlacementConfirmation, type FacilityPlacement } from '../FacilityPlacementConfirmation';
 import {
   firstGuidedFacilityUpgradeId,
+  guidedFirstFacilityAllowsBuildType,
   guidedFirstFacilityAllowsPlacement,
   guidedFirstFacilityPhase,
   type GuidedFirstFacilityPhase,
@@ -36,7 +37,7 @@ export interface ClubFinancesScreenProps {
   onUpgradeFacility?: (buildingId: string) => void;
   onRelocateFacility?: (buildingId: string, x: number, y: number) => void;
   onOpenCoachMarket?: () => void;
-  onDismissCoach?: () => void;
+  onDismissCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
   guideTrainingGround?: boolean;
   guideFocus?: AssistantGuideFocus;
 }
@@ -366,72 +367,85 @@ export function ClubFinancesScreen({
       ) : null}
 
       <View className="mt-6">
-        <SectionLabel eyebrow="Backroom staff" title="Head coach" />
-        <PaperPanel
-          kicker={viewModel.headCoach ? `Employed ${viewModel.headCoach.seasonsEmployed} season${viewModel.headCoach.seasonsEmployed === 1 ? '' : 's'}` : 'Vacancy'}
-          title={viewModel.headCoach?.name ?? 'The touchline needs a voice'}
-          stamp={viewModel.headCoach ? `LV${viewModel.headCoach.level}` : 'OPEN'}
-        >
-          {viewModel.headCoach ? (
-            <>
-              <View className="flex-row items-center gap-3 border-y-2 border-ink bg-blue-light p-3">
-                <View className="border-2 border-b-4 border-ink bg-white px-2 pt-2">
-                  <ManagementSprite
-                    spriteKey={`coach:${viewModel.headCoach.portraitId}:rest`}
-                    width={72}
-                    accessibilityLabel={`${viewModel.headCoach.name} coach portrait`}
-                  />
-                </View>
-                <View className="min-w-0 flex-1 gap-2">
-                  <Metric label="Age · level" value={`${viewModel.headCoach.age} · ${viewModel.headCoach.level}`} />
-                  <Metric label="Wage / wk" value={formatCurrency(viewModel.headCoach.weeklyWage)} />
-                </View>
-              </View>
-              <View className="mt-3 flex-row gap-2">
-                {viewModel.headCoach.specialtyLabels.map(specialty => (
-                  <View key={specialty} className="flex-1 border-2 border-ink bg-blue-light px-2 py-2">
-                    <Text className="text-center text-sm font-bold uppercase text-ink">{specialty}</Text>
-                  </View>
-                ))}
-              </View>
-            </>
-          ) : (
+        <SectionLabel
+          eyebrow="Backroom staff"
+          title="Coaching staff"
+          right={<StatusChip label={`${viewModel.coachingStaff.length} / 2`} selected={viewModel.coachingStaff.length > 0} />}
+        />
+        {viewModel.coachingStaff.length === 0 ? (
+          <PaperPanel kicker="Vacancy" title="The touchline needs a voice" stamp="OPEN">
             <Text className="text-sm leading-5 text-ink/60">
-              Coaches improve their specialist drills and charge a separate weekly wage.
+              Hire a head coach to improve specialist training and guide Hero Gauge growth.
             </Text>
-          )}
-          {viewModel.assistantCoach ? (
-            <View className="mt-3 border-2 border-violet-dark bg-violet-light p-3">
-              <View className="flex-row items-center justify-between gap-3">
-                <View className="flex-1">
-                  <Text className="font-mono text-sm font-bold uppercase text-violet-dark">Assistant coach</Text>
-                  <Text className="mt-1 text-base font-bold text-ink">{viewModel.assistantCoach.name} · Lv{viewModel.assistantCoach.level}</Text>
-                </View>
-                <Text className="font-mono text-sm font-bold text-ink">{formatCurrency(viewModel.assistantCoach.weeklyWage)}/wk</Text>
+            {onOpenCoachMarket ? (
+              <View className="mt-3">
+                <ActionButton
+                  label="Open coach market"
+                  accessibilityLabel="Open the coach market"
+                  onPress={onOpenCoachMarket}
+                />
               </View>
-              <Text className="mt-2 text-sm text-ink/65">
-                {viewModel.assistantCoach.specialtyLabels.join(' · ')} · {viewModel.assistantCoach.seasonsEmployed} season{viewModel.assistantCoach.seasonsEmployed === 1 ? '' : 's'} employed
-              </Text>
-            </View>
-          ) : null}
-          {onOpenCoachMarket ? (
-            <View className="mt-3 gap-2">
+            ) : null}
+          </PaperPanel>
+        ) : (
+          <View className="gap-3">
+            {viewModel.coachingStaff.map(coach => (
+              <View key={coach.id} className="border-2 border-b-4 border-ink bg-white p-3">
+                <View className="flex-row items-start gap-3">
+                  <View className="border-2 border-b-4 border-ink bg-blue-light px-2 pt-2">
+                    <ManagementSprite
+                      spriteKey={`coach:${coach.portraitId}:rest`}
+                      width={72}
+                      accessibilityLabel={`${coach.name} coach portrait`}
+                    />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{coach.roleLabel}</Text>
+                    <Text className="mt-1 text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
+                    <Text className="mt-1 text-sm text-ink/60">
+                      Age {coach.age} · {coach.personalityLabel} · Level {coach.level}
+                    </Text>
+                    <Text className="mt-1 font-mono text-sm font-bold text-ink">
+                      {formatCurrency(coach.weeklyWage)} / week
+                    </Text>
+                  </View>
+                </View>
+                <View className="mt-3 flex-row gap-2">
+                  {coach.specialtyLabels.map(specialty => (
+                    <View key={specialty} className="flex-1 border-2 border-ink bg-paper px-2 py-2">
+                      <Text className="text-center text-sm font-bold uppercase text-ink">{specialty}</Text>
+                    </View>
+                  ))}
+                </View>
+                <View className="mt-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
+                  {coach.effectLabels.map(effect => (
+                    <Text key={effect} className="text-sm font-bold text-ink">{effect}</Text>
+                  ))}
+                </View>
+                <Text className="mt-2 text-sm text-ink/55">
+                  Employed {coach.seasonsEmployed} season{coach.seasonsEmployed === 1 ? '' : 's'} · Dismissal costs one weekly wage.
+                </Text>
+                {onDismissCoach ? (
+                  <View className="mt-3">
+                    <ActionButton
+                      label={`Dismiss · ${formatCurrency(coach.severanceCost)} severance`}
+                      accessibilityLabel={`Dismiss ${coach.name} with one week severance`}
+                      variant="danger"
+                      onPress={() => onDismissCoach(coach.role)}
+                    />
+                  </View>
+                ) : null}
+              </View>
+            ))}
+            {onOpenCoachMarket ? (
               <ActionButton
-                label={viewModel.headCoach ? 'Review coach market' : 'Hire a head coach'}
-                accessibilityLabel={viewModel.headCoach ? 'Review coach market' : 'Hire a head coach'}
+                label="Review coach market"
+                accessibilityLabel="Review the coach market"
                 onPress={onOpenCoachMarket}
               />
-              {viewModel.headCoach && onDismissCoach ? (
-                <ActionButton
-                  label={`Dismiss · ${formatCurrency(viewModel.headCoach.severanceCost)} severance`}
-                  accessibilityLabel={`Dismiss ${viewModel.headCoach.name} with one week severance`}
-                  variant="danger"
-                  onPress={onDismissCoach}
-                />
-              ) : null}
-            </View>
-          ) : null}
-        </PaperPanel>
+            ) : null}
+          </View>
+        )}
       </View>
 
       <View
@@ -467,7 +481,7 @@ export function ClubFinancesScreen({
           stamp={`${formatCurrency(viewModel.facilities.weeklyUpkeep)}/wk`}
         >
           <Text className="mb-3 text-sm leading-4 text-ink/60">
-            Pick a building from the menu below, then tap a glowing square to drop it. Put useful pairs edge-to-edge to discover bonuses.
+            Pick a building from the menu below, then tap any + square to drop it. Put useful pairs edge-to-edge to discover bonuses.
           </Text>
           {viewModel.facilities.activeProject ? (
             <View className="mb-3 flex-row items-center gap-3 border-2 border-b-4 border-amber-800 bg-amber-100 p-3">
@@ -504,11 +518,11 @@ export function ClubFinancesScreen({
             {guidedFirstFacility && guidedFacilityPhase === 'grid' && facilityGridWidth > 0 ? (
               <TutorialTapCue
                 label="Bert says"
-                detail="Tap a glowing square to build"
+                detail="Tap any + square"
                 style={{
-                  left: '50%',
+                  left: facilityGridWidth / facilities.width / 2,
                   marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                  top: -72,
+                  bottom: '100%',
                 }}
               />
             ) : null}
@@ -555,7 +569,7 @@ export function ClubFinancesScreen({
                             alignItems: 'center',
                             justifyContent: 'center',
                             backgroundColor: occupied
-                              ? (placementActive ? 'rgba(217, 79, 82, 0.30)' : undefined)
+                              ? 'transparent'
                               : placementActive
                                 ? (buildable ? 'rgba(154, 99, 214, 0.32)' : 'rgba(36, 31, 46, 0.05)')
                                 : 'rgba(92, 184, 92, 0.12)',
@@ -563,8 +577,6 @@ export function ClubFinancesScreen({
                         >
                           {buildable ? (
                             <Text className="font-mono text-xs font-bold text-violet-dark">+</Text>
-                          ) : placementActive && occupied ? (
-                            <Text accessible={false} className="font-mono text-xs font-bold text-red-dark">×</Text>
                           ) : null}
                         </Pressable>
                       </View>
@@ -584,13 +596,16 @@ export function ClubFinancesScreen({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                zIndex: placementActive ? 0 : 1,
+                zIndex: 3,
               }}
             >
               {facilities.buildings.map(building => {
                 const selected = building.id === selectedBuildingId;
                 const moving = building.id === relocatingBuildingId;
                 const comboActive = building.activeAdjacencyIds.length > 0;
+                const cellSize = facilityGridWidth / facilities.width;
+                const artWidth = Math.max(24, building.width * cellSize - 10);
+                const artHeight = Math.max(24, building.height * cellSize - 10);
                 return (
                   <Pressable
                     key={building.id}
@@ -622,21 +637,43 @@ export function ClubFinancesScreen({
                         backgroundColor: moving ? '#c9a6ec' : facilityColor(building),
                         alignItems: 'center',
                         justifyContent: 'center',
+                        overflow: 'hidden',
                         opacity: moving ? 0.55 : 1,
                       }}
                     >
-                      <ManagementSprite
-                        spriteKey={building.status === 'construction'
-                          ? 'facility:worksite'
-                          : `facility:${building.type}:l${building.level}`}
-                        width={Math.min(42, building.width * 30)}
-                        accessibilityLabel={`${building.name} ${building.status}`}
-                      />
-                      <Text className="mt-0.5 text-center text-xs font-bold uppercase text-ink">
-                        {building.status === 'operational'
-                          ? `L${building.level}`
-                          : `${building.status === 'construction' ? 'BUILD' : 'UP'} · ${building.weeksRemaining}W`}
-                      </Text>
+                      {building.status === 'construction' ? (
+                        <ManagementSprite
+                          spriteKey="facility:worksite"
+                          width={Math.max(24, Math.min(56, Math.min(artWidth, artHeight)))}
+                          accessibilityLabel={`${building.name} construction`}
+                        />
+                      ) : (
+                        <FacilitySprite
+                          type={building.type}
+                          level={building.level}
+                          width={artWidth}
+                          height={artHeight}
+                          showLevel={false}
+                        />
+                      )}
+                      <View
+                        style={{
+                          position: 'absolute',
+                          right: 2,
+                          bottom: 2,
+                          borderWidth: 1,
+                          borderColor: '#241f2e',
+                          backgroundColor: '#f4f1eadd',
+                          paddingHorizontal: 3,
+                          paddingVertical: 1,
+                        }}
+                      >
+                        <Text className="text-center text-[9px] font-bold uppercase text-ink">
+                          {building.status === 'operational'
+                            ? `L${building.level}`
+                            : `${building.status === 'construction' ? 'BUILD' : 'UP'} · ${building.weeksRemaining}W`}
+                        </Text>
+                      </View>
                     </View>
                   </Pressable>
                 );
@@ -657,6 +694,7 @@ export function ClubFinancesScreen({
                   backgroundColor: canPlaceAt(previewCell.x, previewCell.y)
                     ? 'rgba(154, 99, 214, 0.45)'
                     : 'rgba(217, 79, 82, 0.40)',
+                  zIndex: 4,
                 }}
               />
             ) : null}
@@ -669,7 +707,7 @@ export function ClubFinancesScreen({
                   {relocatingBuildingId !== null ? `Moving · ${activeLabel}` : `Placing · ${activeLabel}`}
                 </Text>
                 <Text className="mt-1 text-sm text-ink/70">
-                  Tap a glowing square above. A violet outline fits; red is blocked.
+                  Tap any + square above. A violet outline fits; red is blocked.
                 </Text>
               </View>
               <Pressable
@@ -684,7 +722,7 @@ export function ClubFinancesScreen({
           ) : (
             <View className="mt-3 border-2 border-dashed border-ink/30 bg-paper px-3 py-2">
               <Text className="text-sm text-ink/70">
-                Pick a building from the <Text className="font-bold text-ink">Build menu</Text> below to start — every open square will glow so you can see where it drops.
+                Pick a building from the <Text className="font-bold text-ink">Build menu</Text> below to start — every available starting square shows a +.
               </Text>
             </View>
           )}
@@ -836,15 +874,10 @@ export function ClubFinancesScreen({
               }
             }}
           >
-            {guidedFirstFacility && guidedFacilityPhase === 'build-menu' ? (
-              <TutorialTapCue
-                label="Bert says"
-                detail="Choose a building to place"
-                style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
-              />
-            ) : null}
             <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">Build menu</Text>
-            <View className="flex-row flex-wrap gap-2">
+            <View className={guidedFirstFacility && guidedFacilityPhase === 'build-menu'
+              ? 'mt-20 flex-row flex-wrap gap-2'
+              : 'flex-row flex-wrap gap-2'}>
               {viewModel.facilities.catalog.map(entry => {
                 const selected = selectedBuildType === entry.type;
                 const adjacencyClue = facilityAdjacencyClue(entry.type);
@@ -858,15 +891,30 @@ export function ClubFinancesScreen({
                 const adjacencyAccessibility = adjacencyGuidance === undefined
                   ? ''
                   : ` ${knownAdjacency === undefined ? 'Neighbour clue' : 'Known combo'}: ${adjacencyGuidance}${adjacencyGuidance.endsWith('.') ? '' : '.'}`;
-                const entryEnabled = entry.available && entry.affordable;
+                const guideAllowsType = !guidedFirstFacility
+                  || guidedFirstFacilityAllowsBuildType(entry.type);
+                const entryEnabled = entry.available && entry.affordable && guideAllowsType;
                 return (
                   <View
                     key={entry.type}
                     className="relative w-[48%]"
                   >
+                    {guidedFirstFacility
+                      && guidedFacilityPhase === 'build-menu'
+                      && entry.type === 'training-pitch' ? (
+                        <TutorialTapCue
+                          label="Tap here"
+                          detail="Training Pitch"
+                          style={{
+                            left: '50%',
+                            marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                            top: -82,
+                          }}
+                        />
+                      ) : null}
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`${entry.name}. ${entry.effectLabel}. ${entry.width} by ${entry.height} footprint. Build time ${entry.buildWeeks} week${entry.buildWeeks === 1 ? '' : 's'}.${adjacencyAccessibility} ${entry.available
+                      accessibilityLabel={`${entry.name}. ${entry.effectLabel}. ${entry.width} by ${entry.height} footprint. Build time ${entry.buildWeeks} week${entry.buildWeeks === 1 ? '' : 's'}.${adjacencyAccessibility} ${guideAllowsType ? '' : 'Build the Training Pitch first. '}${entry.available
                         ? `Build cost ${formatCurrency(entry.buildCost)}. ${formatCurrency(entry.weeklyUpkeep)} per week upkeep.${entry.blockedReason
                           ? ` ${entry.blockedReason}`
                           : !entry.affordable && entry.affordabilityShortfall > 0
@@ -876,6 +924,7 @@ export function ClubFinancesScreen({
                       accessibilityState={{ disabled: !entryEnabled, selected }}
                       disabled={!entryEnabled}
                       onPress={() => {
+                        if (!guidedFirstFacilityAllowsBuildType(entry.type) && guidedFirstFacility) return;
                         setSelectedBuildType(selected ? null : entry.type);
                         setSelectedBuildingId(null);
                         setRelocatingBuildingId(null);

@@ -28,7 +28,7 @@ describe('M2 struggling-manager recovery soak', () => {
     // Keep a rounded guardrail around the accepted six-season rescue path. The
     // important fail-soft invariants below remain roster survival, a playable
     // XI, and deterministic board intervention rather than a magic cash value.
-    // Includes the operational starting Training Pitch's $100 weekly upkeep.
+    // This passive headless path never builds the guided Training Pitch.
     expect(first.minimumCash).toBeGreaterThanOrEqual(-360_000);
     expect(first.resolutions.some(resolution => resolution.kind === 'FORCED_SALE')).toBe(true);
     expect(buildCareerTeamDef(first.state, first.state.userClubId).players).toHaveLength(11);

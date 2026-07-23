@@ -23,7 +23,6 @@ import {
   TUTORIAL_TAP_CUE_RESERVED_SPACE,
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
-import { firstGuidedCoachCandidateId } from '../concierge-targets';
 
 export interface MarketScreenProps {
   readonly viewModel: MarketViewModel;
@@ -233,7 +232,7 @@ export function MarketScreen({
       ) : section === 'TRANSFERS' ? (
         <TransferDesk viewModel={viewModel} onTransferAction={onTransferAction} guideFocus={visibleGuideFocus} />
       ) : (
-        <CoachDesk viewModel={viewModel} onHireCoach={onHireCoach} guideFocus={visibleGuideFocus} />
+        <CoachDesk viewModel={viewModel} onHireCoach={onHireCoach} />
       )}
       </ScrollView>
     </View>
@@ -293,14 +292,12 @@ function YouthDesk({
                 <Text className="flex-1 text-sm text-stamp">
                   {offer.blockedReason ?? 'Three-year academy contract ready.'}
                 </Text>
-                <GuidedAction enabled={guideFocus === 'youth-intake' && offer === intake.offers[0]} detail="Review this youth">
-                  <SmallAction
-                    label="Sign"
-                    accessibilityLabel={`Sign youth player ${offer.playerName}`}
-                    disabled={!offer.available}
-                    onPress={() => onSignYouth(offer.playerId)}
-                  />
-                </GuidedAction>
+                <SmallAction
+                  label="Sign"
+                  accessibilityLabel={`Sign youth player ${offer.playerName}`}
+                  disabled={!offer.available}
+                  onPress={() => onSignYouth(offer.playerId)}
+                />
               </View>
             </View>
           ))}
@@ -602,10 +599,7 @@ function TransferDesk({
 function CoachDesk({
   viewModel,
   onHireCoach,
-  guideFocus,
-}: Pick<MarketScreenProps, 'viewModel' | 'onHireCoach' | 'guideFocus'>) {
-  const guidedHeadCoachId = firstGuidedCoachCandidateId(viewModel.coaches, 'HEAD');
-  const guidedAssistantCoachId = firstGuidedCoachCandidateId(viewModel.coaches, 'ASSISTANT');
+}: Pick<MarketScreenProps, 'viewModel' | 'onHireCoach'>) {
   return (
     <View className="mt-6">
       <SectionLabel
@@ -680,25 +674,18 @@ function CoachDesk({
                   <Text className="text-sm font-bold text-blue-dark">Build the Coaching Office to open the assistant desk.</Text>
                 ) : null}
                 <View className="flex-row justify-end gap-2">
-                  <GuidedAction
-                    enabled={(guideFocus === 'coach-market' || guideFocus === 'coach-hire') && coach.id === guidedHeadCoachId}
-                    detail="If you want to hire this coach"
-                  >
-                    <SmallAction
-                      label="Hire as head"
-                      accessibilityLabel={`Hire ${coach.name} as head coach`}
-                      disabled={!coach.headAvailable}
-                      onPress={() => onHireCoach(coach.id, 'HEAD')}
-                    />
-                  </GuidedAction>
-                  <GuidedAction enabled={guideFocus === 'assistant-coach-hire' && coach.id === guidedAssistantCoachId} detail="If you want to hire this coach">
-                    <SmallAction
-                      label="Hire as assistant"
-                      accessibilityLabel={`Hire ${coach.name} as assistant coach`}
-                      disabled={!coach.assistantAvailable}
-                      onPress={() => onHireCoach(coach.id, 'ASSISTANT')}
-                    />
-                  </GuidedAction>
+                  <SmallAction
+                    label="Hire as head"
+                    accessibilityLabel={`Hire ${coach.name} as head coach`}
+                    disabled={!coach.headAvailable}
+                    onPress={() => onHireCoach(coach.id, 'HEAD')}
+                  />
+                  <SmallAction
+                    label="Hire as assistant"
+                    accessibilityLabel={`Hire ${coach.name} as assistant coach`}
+                    disabled={!coach.assistantAvailable}
+                    onPress={() => onHireCoach(coach.id, 'ASSISTANT')}
+                  />
                 </View>
               </View>
             </View>

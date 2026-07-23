@@ -1,8 +1,8 @@
 import { Fragment } from 'react';
-import { Path, usePathValue } from '@shopify/react-native-skia';
+import { DashPathEffect, Path, usePathValue } from '@shopify/react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { WORKLET_ACTION_SLIDE, WORKLET_ACTION_STRIDE } from './worklet-atlas-frame';
-import { RENDER_PLAYER_COUNT } from '../sim/entities';
+import { AWAY_DECOY_INDEX, HOME_DECOY_INDEX, RENDER_PLAYER_COUNT } from '../sim/entities';
 import {
   BALL_AIRBORNE_THRESHOLD_CM,
   ballShadowOpacity,
@@ -22,8 +22,26 @@ const STATUS_ACTIVE = 2;
 const STATUS_IGNITED = 4;
 const STATUS_ZONE = 5;
 
+// A reserved Decoy slot is "visible" exactly while its live clone exists, so its
+// visibility flag doubles as the "draw the hologram ring" signal.
+const DECOY_SLOTS = [HOME_DECOY_INDEX, AWAY_DECOY_INDEX] as const;
+// Matches the decoy sprite's own translucent blue tint, distinct from the gold
+// "in the Zone" rings so the visual language stays unambiguous.
+const DECOY_RING_COLOR = '#a3c8f0';
+
+// Rally Cry hangs a gold lightning bolt over the teammate it just granted an
+// encore. It holds bright, then fades over this window (~2s at 100ms/tick).
+export const ENCORE_MARKER_TICKS = 20;
+const ENCORE_BOLT_COLOR = '#edb54a';
+
+export interface EncoreMarker {
+  slot: number;
+  grantTick: number;
+}
+
 interface WorkletMatchOverlaysProps {
   visualPositions: SharedValue<Float32Array>;
+  visibility: SharedValue<Float32Array>;
   statuses: SharedValue<Float32Array>;
   zoneFractions: SharedValue<Float32Array>;
   carrier: SharedValue<number>;
@@ -32,11 +50,9 @@ interface WorkletMatchOverlaysProps {
   controlledTeam: 0 | 1;
   heroPlayers: readonly number[];
   fireTorchPlayers: readonly number[];
+  encoreMarkers: readonly EncoreMarker[];
   scale: number;
   ringRadius: number;
-  markerYOffset: number;
-  markerHalfWidth: number;
-  markerHeight: number;
   reduceMotion: boolean;
 }
 
@@ -201,6 +217,7 @@ export function WorkletBallShadow({
 export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
   const {
     visualPositions,
+    visibility,
     statuses,
     zoneFractions,
     carrier,
@@ -209,11 +226,9 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
     controlledTeam,
     heroPlayers,
     fireTorchPlayers,
+    encoreMarkers,
     scale,
     ringRadius,
-    markerYOffset,
-    markerHalfWidth,
-    markerHeight,
     reduceMotion,
   } = props;
 
@@ -242,9 +257,6 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           controlledTeam={controlledTeam}
           scale={scale}
           ringRadius={ringRadius}
-          markerYOffset={markerYOffset}
-          markerHalfWidth={markerHalfWidth}
-          markerHeight={markerHeight}
           reduceMotion={reduceMotion}
         />
       ))}
@@ -263,7 +275,131 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
         />
       ))}
       <Path path={possession} color="#ffffff" style="stroke" strokeWidth={2} />
+      {DECOY_SLOTS.map((slot) => (
+        <WorkletDecoyRing
+          key={slot}
+          slot={slot}
+          visualPositions={visualPositions}
+          visibility={visibility}
+          simTick={simTick}
+          progress={progress}
+          scale={scale}
+          ringRadius={ringRadius}
+          reduceMotion={reduceMotion}
+        />
+      ))}
+      {encoreMarkers.map((marker) => (
+        <WorkletEncoreBolt
+          key={marker.slot}
+          marker={marker}
+          visualPositions={visualPositions}
+          simTick={simTick}
+          progress={progress}
+          scale={scale}
+          ringRadius={ringRadius}
+        />
+      ))}
     </Fragment>
+  );
+}
+
+/**
+ * Rally Cry's grant signal: a gold lightning bolt over the teammate that just
+ * received an encore, held bright then fading across ENCORE_MARKER_TICKS (~2s).
+ * The encore itself lives in the engine; this is purely the "you got it" cue.
+ */
+function WorkletEncoreBolt({
+  marker,
+  visualPositions,
+  simTick,
+  progress,
+  scale,
+  ringRadius,
+}: {
+  marker: EncoreMarker;
+  visualPositions: SharedValue<Float32Array>;
+  simTick: SharedValue<number>;
+  progress: SharedValue<number>;
+  scale: number;
+  ringRadius: number;
+}) {
+  const bolt = usePathValue((builder) => {
+    'worklet';
+    const cx = visualPositions.value[marker.slot * 2] * scale;
+    const cy = visualPositions.value[marker.slot * 2 + 1] * scale;
+    const top = cy - ringRadius * 3.6;
+    const w = ringRadius * 0.85;
+    const seg = ringRadius * 1.05;
+    builder.moveTo(cx + w * 0.35, top);
+    builder.lineTo(cx - w * 0.55, top + seg);
+    builder.lineTo(cx + w * 0.05, top + seg);
+    builder.lineTo(cx - w * 0.5, top + seg * 2.1);
+  });
+  const opacity = useDerivedValue(() => {
+    const visualTick = Math.max(0, simTick.value - 1 + progress.value);
+    const age = visualTick - marker.grantTick;
+    if (age < 0) return 0;
+    // Hold bright for the first few ticks, then fade out by the window's end.
+    return Math.max(0, Math.min(1, 1 - (age - 6) / (ENCORE_MARKER_TICKS - 6)));
+  });
+
+  return (
+    <Path
+      path={bolt}
+      color={ENCORE_BOLT_COLOR}
+      style="stroke"
+      strokeWidth={3}
+      strokeJoin="round"
+      strokeCap="round"
+      opacity={opacity}
+    />
+  );
+}
+
+/**
+ * Marks a live Decoy Double clone with a dashed light-blue hologram ring. The
+ * greyed-out decoy body is a real Atlas player; this ring is the only overlay it
+ * needs so the player can pick the fake forward out of the run of play.
+ */
+function WorkletDecoyRing({
+  slot,
+  visualPositions,
+  visibility,
+  simTick,
+  progress,
+  scale,
+  ringRadius,
+  reduceMotion,
+}: {
+  slot: number;
+  visualPositions: SharedValue<Float32Array>;
+  visibility: SharedValue<Float32Array>;
+  simTick: SharedValue<number>;
+  progress: SharedValue<number>;
+  scale: number;
+  ringRadius: number;
+  reduceMotion: boolean;
+}) {
+  const ring = usePathValue((builder) => {
+    'worklet';
+    if (visibility.value[slot] !== 1) return;
+    builder.addCircle(
+      visualPositions.value[slot * 2] * scale,
+      visualPositions.value[slot * 2 + 1] * scale,
+      ringRadius + 2,
+    );
+  });
+  const opacity = useDerivedValue(() => {
+    if (visibility.value[slot] !== 1) return 0;
+    const visualTick = Math.max(0, simTick.value - 1 + progress.value);
+    const pulse = reduceMotion || Math.floor(visualTick) % 20 < 10 ? 0.9 : 0.55;
+    return pulse;
+  });
+
+  return (
+    <Path path={ring} color={DECOY_RING_COLOR} style="stroke" strokeWidth={2} opacity={opacity}>
+      <DashPathEffect intervals={[5, 4]} phase={0} />
+    </Path>
   );
 }
 
@@ -277,9 +413,6 @@ function WorkletZoneIndicator({
   controlledTeam,
   scale,
   ringRadius,
-  markerYOffset,
-  markerHalfWidth,
-  markerHeight,
   reduceMotion,
 }: {
   playerIndex: number;
@@ -291,9 +424,6 @@ function WorkletZoneIndicator({
   controlledTeam: 0 | 1;
   scale: number;
   ringRadius: number;
-  markerYOffset: number;
-  markerHalfWidth: number;
-  markerHeight: number;
   reduceMotion: boolean;
 }) {
   const playerTeam = playerIndex < 11 ? 0 : 1;
@@ -306,21 +436,6 @@ function WorkletZoneIndicator({
       visualPositions.value[playerIndex * 2 + 1] * scale,
       ringRadius,
     );
-  });
-  const marker = usePathValue((builder) => {
-    'worklet';
-    if (!isControlled || statuses.value[playerIndex] !== STATUS_ZONE) return;
-    const start = controlledTeam === 0 ? 0 : 11;
-    for (let index = start; index < start + 11; index += 1) {
-      const status = statuses.value[index];
-      if (status === 1 || status === STATUS_ACTIVE) return;
-    }
-    const cx = visualPositions.value[playerIndex * 2] * scale;
-    const baseY = visualPositions.value[playerIndex * 2 + 1] * scale - markerYOffset;
-    builder.moveTo(cx - markerHalfWidth, baseY);
-    builder.lineTo(cx + markerHalfWidth, baseY);
-    builder.lineTo(cx, baseY - markerHeight);
-    builder.close();
   });
   const opacity = useDerivedValue(() => {
     if (statuses.value[playerIndex] !== STATUS_ZONE) return 0;
@@ -338,7 +453,6 @@ function WorkletZoneIndicator({
         strokeWidth={2}
         opacity={opacity}
       />
-      {isControlled ? <Path path={marker} color="#edb54a" /> : null}
     </Fragment>
   );
 }

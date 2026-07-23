@@ -19,11 +19,11 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(appSource).not.toMatch(/import\s*\{[^}]*\bAlert\b[^}]*\}\s*from\s*['"]react-native['"]/);
   });
 
-  it('makes the coach cue optional and dismisses retained guidance on the next tap', () => {
+  it('removes coach-card cues and dismisses retained global guidance on the next tap', () => {
     const market = readFileSync(join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'), 'utf8');
     const shell = readFileSync(join(process.cwd(), 'src/ui/ManagementShell.tsx'), 'utf8');
 
-    expect(market).toContain('detail="If you want to hire this coach"');
+    expect(market).not.toContain('detail="If you want to hire this coach"');
     expect(shell).toContain('onPointerDown={onDismissGuidance}');
   });
 

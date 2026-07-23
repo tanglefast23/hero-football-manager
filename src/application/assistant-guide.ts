@@ -4,6 +4,7 @@ import {
   careerRosterCapacity,
   completeAssistantGuideSequence,
   deferAssistantGuideSequencesUntilUnlock,
+  isFacilityOperational,
   isStoryCupGuideUnlocked,
   isStoryFeaturePacingActive,
   isStoryScoutingUnlocked,
@@ -29,20 +30,11 @@ export interface AssistantObjective {
 
 export function pendingAssistantGuideSequence(
   state: GameState,
-  activeTab: ManagementTab,
+  _activeTab: ManagementTab,
 ): AssistantGuideSequenceId | null {
   if (!isFirstCareerWeek(state)) return null;
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) {
     return 'management-intro';
-  }
-  if (
-    activeTab === 'home'
-    && hasAssistantGuideMilestone(state, 'first-training-complete')
-    && (state.facilities.trainingGroundBuilt || isTrainingGroundUnderConstruction(state))
-    && !hasAssistantGuideMilestone(state, 'desk-intro-complete')
-    && !hasAssistantGuideMilestone(state, 'first-week-advanced')
-  ) {
-    return 'desk-intro';
   }
   return null;
 }
@@ -90,13 +82,21 @@ export function dueAssistantInboxGuideSequences(
     due.push('youth-intake');
   }
 
-  const playerBuilt = buildings.filter(building => building.seeded !== true);
-  if (playerBuilt.length === 0) {
+  const grid = state.facilities.grid;
+  const operationalTrainingPitch = grid === undefined
+    ? state.facilities.trainingGroundBuilt
+    : buildings.some(building => (
+        building.type === 'training-pitch'
+        && isFacilityOperational(grid, building.id)
+      ));
+  const trainingPitchUnderConstruction = grid?.construction?.kind === 'BUILD'
+    && grid.construction.type === 'training-pitch';
+  if (!operationalTrainingPitch && !trainingPitchUnderConstruction) {
     due.push('facility-placement');
-  } else {
+  } else if (operationalTrainingPitch) {
     if (completed('facility-placement')
-      && state.facilities.grid?.construction === undefined
-      && playerBuilt.some(
+      && grid?.construction === undefined
+      && buildings.some(
         building => building.level < maxCareerFacilityLevel(state),
       )) {
       due.push('facility-upgrade');
@@ -164,7 +164,14 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
   const hasCoachingOffice = state.facilities.grid?.buildings.some(
     building => building.type === 'coaching-office',
   ) ?? false;
-  if ((state.facilities.grid?.buildings.filter(building => building.seeded !== true).length ?? 0) > 0) {
+  const grid = state.facilities.grid;
+  const hasOperationalTrainingPitch = grid === undefined
+    ? state.facilities.trainingGroundBuilt
+    : grid.buildings.some(building => (
+        building.type === 'training-pitch'
+        && isFacilityOperational(grid, building.id)
+      ));
+  if (hasOperationalTrainingPitch) {
     next = completeAssistantGuideSequence(next, 'facility-placement');
   }
   if (hasCoachingOffice) next = completeAssistantGuideSequence(next, 'coaching-office');
@@ -216,14 +223,13 @@ export function currentAssistantObjective(
       return { text: 'CHECK YOUR INBOX.', target: 'training-ground-alert' };
     }
     if (activeTab === 'club') {
-      return { text: 'BUILD THE TRAINING GROUND.', target: 'training-ground-facility' };
+      return { text: 'BUILD YOUR TRAINING PITCH.', target: 'training-ground-facility' };
     }
     return { text: 'RETURN HOME.', target: 'home-tab' };
   }
   if (activeTab !== 'home') {
     return { text: 'RETURN HOME.', target: 'home-tab' };
   }
-  if (!hasAssistantGuideMilestone(state, 'desk-intro-complete')) return null;
   if (state.market !== undefined && state.market.headCoach === undefined) return null;
   if (!hasAssistantGuideMilestone(state, 'first-week-advanced')) {
     return { text: 'INBOX CLEAR. ADVANCE WEEK.', target: 'advance-week' };

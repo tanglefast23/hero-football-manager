@@ -124,8 +124,8 @@ export function CoachStaffOverlay({
                 </>
               ) : (
                 <ActionButton
-                  label="Return to club  ▸"
-                  accessibilityLabel="Close coach confirmation"
+                  label="Return home"
+                  accessibilityLabel="Close coach confirmation and return home"
                   onPress={onClose}
                 />
               )}

@@ -331,7 +331,6 @@ export interface LockedTrainingProgressViewModel {
 export interface SquadTrainingViewModel {
   resources: ResourceSummaryViewModel;
   players: readonly SquadPlayerViewModel[];
-  coachingStaff: readonly CoachStaffMemberViewModel[];
   selectedPlayerId?: string;
   createdPlayerId?: string;
   drills: readonly FocusDrillViewModel[];
@@ -448,25 +447,7 @@ export interface ClubFinancesViewModel {
   wageSubsidyLabel?: string;
   trainingGround: TrainingGroundDecisionViewModel;
   legacyTrainingGroundVisible: boolean;
-  headCoach?: {
-    id: string;
-    portraitId: string;
-    name: string;
-    age: number;
-    level: number;
-    specialtyLabels: readonly [string, string];
-    weeklyWage: number;
-    seasonsEmployed: number;
-    severanceCost: number;
-  };
-  assistantCoach?: {
-    id: string;
-    name: string;
-    level: number;
-    specialtyLabels: readonly [string, string];
-    weeklyWage: number;
-    seasonsEmployed: number;
-  };
+  coachingStaff: readonly CoachStaffMemberViewModel[];
   facilities: ClubFacilityGridViewModel;
 }
 
