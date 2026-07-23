@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
-import type { FocusDrillViewModel, SquadTrainingViewModel } from '../models';
+import type { FocusDrillViewModel, SquadPlayerViewModel, SquadTrainingViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
@@ -19,7 +20,7 @@ import {
   type SquadSort,
   type SquadSortKey,
 } from '../squad-sort';
-import { archetypeDevelopmentSummary } from '../archetype-development';
+import { archetypeDevelopmentSummary, type ArchetypeDevelopmentSummary } from '../archetype-development';
 import {
   shouldDismissTutorialForDrag,
   type TutorialTouchPoint,
@@ -202,367 +203,54 @@ export function SquadTrainingScreen({
       key: 'roster',
       weight: 3 + viewModel.players.length,
       node: (
-        <View>
-          <SectionLabel
-            eyebrow="Team register"
-            title={`${viewModel.players.length} players`}
-            right={<StatusChip label={`${viewModel.assignedPlayerIds.length} assigned`} />}
-          />
-          <View className={guidePlayers
-            ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
-            : 'border-2 border-ink bg-white'}>
-            {guidePlayers && !playerGuideDismissed ? (
-              <TutorialTapCue
-                label="Tap in here"
-                detail="Add up to 3 players."
-                style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
-              />
-            ) : null}
-            <View className="flex-row items-center border-b border-ink/20 px-3">
-              <View className="w-10" />
-              <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-              <SquadSortHeader label={wideColumns ? 'Current' : 'OVR'} sortKey="overall" sort={squadSort} widthClass={currentColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-              <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-              <SquadSortHeader label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-              <Text className="w-14 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1} ellipsizeMode="clip">Train</Text>
-            </View>
-            {sortedPlayers.map((player) => {
-              const selected = player.id === viewModel.selectedPlayerId;
-              const isAssigned = assigned.has(player.id);
-              const glowAssignmentButton = guidePlayers && !isAssigned;
-              const guideConciergePlayer = player.id === viewModel.selectedPlayerId && (
-                (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
-                || guideFocus === 'transfer-request'
-              );
-              return (
-                <View
-                  key={player.id}
-                  className={selected
-                    ? 'flex-row items-center border-b border-ink/20 bg-paper-dark px-3 py-2'
-                    : player.injuryWeeks > 0
-                      ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
-                      : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
-                  style={guideConciergePlayer ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
-                >
-                  {guideConciergePlayer ? (
-                    <TutorialTapCue
-                      label="Bert says"
-                      detail={guideFocus === 'injury-lineup' ? 'Review injury and replacement' : 'Review this player'}
-                      style={{
-                        left: '50%',
-                        marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                        top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-                      }}
-                    />
-                  ) : null}
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open summary for ${player.name}`}
-                    onPress={() => onSelectPlayer(player.id)}
-                    className="min-h-11 flex-1 flex-row items-center"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
-                  >
-                    <Text className={selected ? 'w-10 font-mono text-sm font-bold text-ink' : 'w-10 font-mono text-sm font-bold text-blue-dark'} numberOfLines={1}>{player.role}</Text>
-                    <View className="flex-1 pr-2">
-                      <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
-                      {player.injuryWeeks > 0 ? (
-                        <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-red-dark" numberOfLines={1}>
-                          OUT · {player.injuryWeeks} {player.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
-                        </Text>
-                      ) : player.isStarter ? (
-                        <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-pitch-dark" numberOfLines={1}>
-                          Starting XI
-                        </Text>
-                      ) : null}
-                      {player.isCaptain || player.contractPromiseLabel ? (
-                        <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-violet-dark" numberOfLines={1}>
-                          {[player.isCaptain ? 'Captain' : undefined, player.shirtNumber ? `#${player.shirtNumber}` : undefined, player.contractPromiseLabel].filter(Boolean).join(' · ')}
-                        </Text>
-                      ) : null}
-                      <Text className="mt-1 text-sm text-ink/60" numberOfLines={1}>{player.contractLabel}</Text>
-                      {player.powerName ? (
-                        <Text className="mt-0.5 text-sm font-bold uppercase text-gold-dark" numberOfLines={1}>★ {player.powerName}</Text>
-                      ) : null}
-                    </View>
-                    <Text className={`${currentColumnWidth} text-right font-mono text-base font-bold text-ink`} numberOfLines={1}>{player.overall}</Text>
-                    <Text className={`${potentialColumnWidth} pr-1 text-right font-mono text-base font-bold text-gold-dark`} numberOfLines={1}>{player.potentialGrade}</Text>
-                    <Text className={player.condition < 30 ? 'w-16 text-right font-mono text-sm font-bold text-stamp' : 'w-16 text-right font-mono text-sm text-ink'} numberOfLines={1}>{player.condition}%</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="checkbox"
-                    accessibilityLabel={`Assign ${player.name} to selected focus drills`}
-                    accessibilityState={{ checked: isAssigned }}
-                    onPress={() => onTogglePlayerAssignment(player.id)}
-                    className={isAssigned
-                      ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-violet-dark bg-violet-light'
-                      : glowAssignmentButton
-                        ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
-                        : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
-                    style={({ pressed }) => [
-                      { opacity: pressed ? 0.65 : undefined },
-                      glowAssignmentButton ? styles.assignmentButtonGlow : null,
-                    ]}
-                  >
-                    <Text className={isAssigned || glowAssignmentButton
-                      ? 'font-mono text-base font-bold text-ink'
-                      : 'font-mono text-base text-ink/40'}>
-                      {isAssigned ? '✓' : '+'}
-                    </Text>
-                  </Pressable>
-                </View>
-              );
-            })}
-          </View>
-        </View>
+        <RosterSection
+          viewModel={viewModel}
+          guidePlayers={guidePlayers}
+          playerGuideDismissed={playerGuideDismissed}
+          wideColumns={wideColumns}
+          currentColumnWidth={currentColumnWidth}
+          potentialColumnWidth={potentialColumnWidth}
+          squadSort={squadSort}
+          setSquadSort={setSquadSort}
+          sortedPlayers={sortedPlayers}
+          assigned={assigned}
+          guideFocus={guideFocus}
+          onSelectPlayer={onSelectPlayer}
+          onTogglePlayerAssignment={onTogglePlayerAssignment}
+        />
       ),
     },
     ...(selectedPlayer ? [{
       key: 'player-file',
       weight: 9,
       node: (
-        <PaperPanel
-          kicker="Player file"
-          title={selectedPlayer.name}
-          stamp={selectedPlayer.injuryWeeks > 0 ? 'OUT' : selectedPlayer.licensed ? 'Licensed' : selectedPlayer.role}
-        >
-          <View className="mb-4 flex-row items-center gap-4">
-            <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
-              <PixelPortrait playerId={selectedPlayer.id} role={selectedPlayer.role} lookId={selectedPlayer.lookId} />
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Player identity</Text>
-              <Text className="mt-1 text-lg font-bold uppercase text-ink">{selectedPlayer.role} · {selectedPlayer.archetype}</Text>
-              <Text className="mt-1 text-sm text-ink/60">{selectedPlayer.personality} · Fame {selectedPlayer.fame}</Text>
-            </View>
-          </View>
-          {selectedPlayer.injuryWeeks > 0 ? (
-            <View className="mb-3 border-2 border-b-4 border-red-dark bg-red-light p-3">
-              <Text className="font-mono text-base font-bold uppercase text-red-dark">
-                OUT · {selectedPlayer.injuryWeeks} {selectedPlayer.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
-              </Text>
-              <Text className="mt-1 text-sm text-ink/70">Unavailable for match selection while recovering.</Text>
-            </View>
-          ) : null}
-          <View className="flex-row gap-2">
-            <Metric label="Current rating" value={String(selectedPlayer.overall)} />
-            <Metric
-              label="Condition"
-              value={`${selectedPlayer.condition}%`}
-              tone={selectedPlayer.condition < 30 ? 'negative' : 'positive'}
-            />
-            <Metric label="Wage / wk" value={formatCurrency(selectedPlayer.weeklyWage)} />
-          </View>
-          <View className="mt-2 flex-row gap-2">
-            <Metric label="Age" value={String(selectedPlayer.age)} />
-            <Metric label="Potential" value={`${selectedPlayer.potentialGrade} · Projected max ${selectedPlayer.projectedOverall}`} tone="positive" />
-            <Metric label="Morale" value={`${selectedPlayer.morale}%`} />
-          </View>
-          <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/20 pt-3">
-            <View className="flex-1">
-              <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Contract</Text>
-              <Text className="mt-1 text-base font-bold text-ink">{selectedPlayer.contractLabel}</Text>
-            </View>
-            {selectedPlayer.powerName ? <StatusChip label={selectedPlayer.powerName} tone="hero" /> : null}
-          </View>
-          {selectedPlayer.contractPromiseLabel || selectedPlayer.isCaptain || selectedPlayer.shirtNumber ? (
-            <View className="mt-3 flex-row flex-wrap gap-2">
-              {selectedPlayer.isCaptain ? <StatusChip label="Captain" selected /> : null}
-              {selectedPlayer.shirtNumber ? <StatusChip label={`Shirt #${selectedPlayer.shirtNumber}`} /> : null}
-              {selectedPlayer.contractPromiseLabel ? <StatusChip label={selectedPlayer.contractPromiseLabel} selected /> : null}
-            </View>
-          ) : null}
-          <View className="mt-3 border border-ink/20 bg-paper-dark/40 px-3 py-3">
-            <View className="flex-row items-center justify-between gap-3">
-              <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Archetype</Text>
-              <View className="min-w-0 flex-1 items-end">
-                <Text className="text-base font-bold text-ink">{selectedPlayer.archetype}</Text>
-                <View className="mt-1 flex-row flex-wrap justify-end gap-x-2">
-                  <Text className="font-mono text-sm font-bold text-pitch-dark">{selectedArchetype?.strengths}</Text>
-                  <Text className="font-mono text-sm font-bold text-red-dark">{selectedArchetype?.weaknesses}</Text>
-                </View>
-              </View>
-            </View>
-            <View className="mt-2 flex-row items-center justify-between gap-3">
-              <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Personality</Text>
-              <Text className="text-base font-bold text-ink">{selectedPlayer.personality}</Text>
-            </View>
-            <View className="mt-2 flex-row items-center justify-between gap-3">
-              <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Fame</Text>
-              <Text className="font-mono text-base font-bold text-ink">{selectedPlayer.fame}</Text>
-            </View>
-          </View>
-          <View className="mt-3 border-2 border-ink bg-white p-3">
-            <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">Attributes · current / cap</Text>
-            <Text className="mb-3 text-xs leading-4 text-ink/55">
-              PAC pace · SHO shooting · PAS passing · DEF defense · TEC technique · STA stamina · REF goalkeeping
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {selectedPlayer.attributes
-                .filter(attribute => selectedPlayer.role === 'GK'
-                  ? attribute.label !== 'SHO'
-                  : attribute.label !== 'REF')
-                .map(attribute => (
-                  <View key={attribute.label} className="min-w-[29%] flex-1 border border-ink/20 bg-paper px-2 py-2">
-                    <Text className="text-sm font-bold uppercase text-ink/50">{attribute.label}</Text>
-                    <Text className="mt-1 font-mono text-base font-bold text-ink">
-                      {attribute.value} / {attribute.cap}
-                    </Text>
-                  </View>
-                ))}
-            </View>
-          </View>
-        </PaperPanel>
+        <PlayerFileSection selectedPlayer={selectedPlayer} selectedArchetype={selectedArchetype} />
       ),
     }] : []),
     {
       key: 'drills',
       weight: 2 + viewModel.drills.length,
       node: (
-        <View>
-          <SectionLabel
-            eyebrow="Weekly plan"
-            title="Focus drills"
-            right={<StatusChip label={`${viewModel.selectedDrillCount} / ${viewModel.maxDrills}`} selected={viewModel.selectedDrillCount > 0} />}
-          />
-          <Text className="mb-3 text-sm leading-5 text-ink/60">
-            A completed Level 1 Training Pitch adds 10 TP after each weekly settlement. Money prices are per eligible trainee; TP is charged once per selected drill. The plan repeats weekly until changed.
-          </Text>
-          <View className={guideDrills
-            ? 'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'
-            : 'gap-2'}
-            ref={drillListRef}
-            collapsable={false}
-            onLayout={scheduleTrainingGuideVisibility}
-          >
-            {guideDrills ? (
-              <TutorialTapCue
-                label="Tap in here"
-                detail="Add up to 3 drills."
-                style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
-              />
-            ) : null}
-            {viewModel.drills.map(drill => (
-              <View
-                key={drill.id}
-                className={`relative min-h-16 flex-row items-center border-2 p-3 ${drillSelectionClass(drill)}`}
-              >
-                <DrillIcon drillId={drill.id} selected={drill.selected} />
-                <View className="min-w-0 flex-1 px-3">
-                  <Text className="text-base font-bold uppercase text-ink">{drill.name}</Text>
-                  <Text className={drill.selected ? 'mt-1 text-sm text-ink/70' : 'mt-1 text-sm text-ink/60'}>
-                    {drill.lockedReason ?? drill.gainLabel}
-                  </Text>
-                </View>
-                <View className="items-end">
-                  <Text className="font-mono text-sm font-bold text-ink" numberOfLines={1}>{formatCurrency(drill.moneyCost)} each</Text>
-                  <Text className={drill.selected ? 'mt-1 font-mono text-sm font-bold text-ink' : 'mt-1 font-mono text-sm text-blue-dark'} numberOfLines={1}>{drill.trainingPointCost} TP / drill</Text>
-                </View>
-                <Pressable
-                  accessibilityRole="checkbox"
-                  accessibilityLabel={drill.selected ? `Remove ${drill.name}` : `Add ${drill.name}`}
-                  accessibilityHint={drill.lockedReason ?? `${drill.gainLabel}. Costs ${formatCurrency(drill.moneyCost)} per eligible trainee and ${drill.trainingPointCost} training points once per drill.`}
-                  accessibilityState={{ checked: drill.selected, disabled: !drill.available }}
-                  disabled={!drill.available}
-                  onPress={() => onToggleDrill(drill.id)}
-                  className={drill.selected
-                    ? 'ml-3 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-paper'
-                    : 'ml-3 h-11 w-11 items-center justify-center border border-ink/30 bg-white'}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
-                >
-                  <Text className={drill.selected
-                    ? 'font-mono text-xl font-bold text-violet-dark'
-                    : 'font-mono text-xl text-ink/40'}>
-                    {drill.selected ? '−' : '+'}
-                  </Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        </View>
+        <DrillsSection
+          viewModel={viewModel}
+          guideDrills={guideDrills}
+          drillListRef={drillListRef}
+          scheduleTrainingGuideVisibility={scheduleTrainingGuideVisibility}
+          onToggleDrill={onToggleDrill}
+        />
       ),
     },
     {
       key: 'plan',
       weight: viewModel.lockedPlan === undefined ? 6 : 4 + viewModel.lockedPlan.players.length,
-      node: viewModel.lockedPlan === undefined ? (
-        <PaperPanel
-          kicker="Plan total"
-          title="Ready for the whistle?"
-          tone={viewModel.hasUnsavedChanges ? 'attention' : 'default'}
-          stamp={viewModel.hasUnsavedChanges ? 'Unsaved' : undefined}
-        >
-          <View className="flex-row gap-2">
-            <Metric label="Players" value={String(viewModel.assignedPlayerIds.length)} />
-            <Metric label="Money cost" value={formatCurrency(viewModel.totalMoneyCost)} tone="negative" />
-            <Metric label="TP cost" value={formatCompactNumber(viewModel.totalTrainingPointCost)} tone="negative" />
-          </View>
-          <View
-            ref={lockPlanRef}
-            collapsable={false}
-            onLayout={scheduleTrainingGuideVisibility}
-            className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
-          >
-            {guideTraining && viewModel.selectedDrillCount > 0 ? (
-              <TutorialTapCue detail="Save the plan" style={{ left: 4, top: -74 }} />
-            ) : null}
-            <ActionButton
-              label={viewModel.hasUnsavedChanges ? 'Save changes' : 'Save weekly plan'}
-              accessibilityLabel="Save weekly plan. Save the repeating weekly training plan"
-              onPress={onApplyTraining}
-              disabled={!viewModel.canApply}
-            />
-          </View>
-        </PaperPanel>
-      ) : (
-        <PaperPanel kicker="The weekly plan" title="Locked in" stamp="SAVED">
-          <View className="gap-3">
-            <View className="border-2 border-ink bg-white p-3">
-              <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Players</Text>
-              <View className="mt-2 gap-2">
-                {viewModel.lockedPlan.players.map(player => (
-                  <View key={player.id} className="flex-row items-center gap-3 border border-ink/20 bg-paper px-2 py-2">
-                    <View className="border-2 border-b-4 border-ink bg-blue-light px-1 pt-1">
-                      <PixelPortrait playerId={player.id} role={player.role} lookId={player.lookId} />
-                    </View>
-                    <View className="min-w-0 flex-1">
-                      <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
-                      {player.trainingProgress.map(entry => (
-                        <Text
-                          key={entry.label}
-                          className="mt-1 font-mono text-sm font-bold text-ink/70"
-                          numberOfLines={1}
-                        >
-                          {entry.label} {entry.value}/{entry.cap}{' '}
-                          <Text className={entry.atCap ? 'text-stamp' : entry.weeklyGain === 0 ? 'text-stamp' : 'text-pitch-dark'}>
-                            {entry.atCap ? '· At cap' : entry.weeklyGain === 0 ? '· None this week' : `+${entry.weeklyGain}/week`}
-                          </Text>
-                        </Text>
-                      ))}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-            <View className="border-2 border-ink bg-white p-3">
-              <Text className="font-mono text-sm font-bold uppercase text-violet-dark">Training exercises</Text>
-              <View className="mt-2 gap-2">
-                {viewModel.lockedPlan.drills.map(drill => (
-                  <View key={drill.id} className="flex-row items-center gap-3 border border-ink/20 bg-paper px-2 py-2">
-                    <DrillIcon drillId={drill.id} selected />
-                    <View className="min-w-0 flex-1">
-                      <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{drill.name}</Text>
-                      <Text className="mt-1 font-mono text-sm font-bold text-violet-dark" numberOfLines={1}>{drill.gainLabel}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          </View>
-          <View className="mt-3 flex-row gap-2">
-            <Metric label="Money cost" value={formatCurrency(viewModel.lockedPlan.moneyCost)} tone="negative" />
-            <Metric label="TP cost" value={formatCompactNumber(viewModel.lockedPlan.trainingPointCost)} tone="negative" />
-          </View>
-        </PaperPanel>
+      node: (
+        <PlanSection
+          viewModel={viewModel}
+          guideTraining={guideTraining}
+          lockPlanRef={lockPlanRef}
+          scheduleTrainingGuideVisibility={scheduleTrainingGuideVisibility}
+          onApplyTraining={onApplyTraining}
+        />
       ),
     },
   ];
@@ -605,6 +293,432 @@ export function SquadTrainingScreen({
         />
       ) : null}
     </View>
+  );
+}
+
+interface RosterSectionProps {
+  viewModel: SquadTrainingViewModel;
+  guidePlayers: boolean;
+  playerGuideDismissed: boolean;
+  wideColumns: boolean;
+  currentColumnWidth: string;
+  potentialColumnWidth: string;
+  squadSort: SquadSort | null;
+  setSquadSort: Dispatch<SetStateAction<SquadSort | null>>;
+  sortedPlayers: readonly SquadPlayerViewModel[];
+  assigned: Set<string>;
+  guideFocus?: AssistantGuideFocus;
+  onSelectPlayer: (playerId: string) => void;
+  onTogglePlayerAssignment: (playerId: string) => void;
+}
+
+function RosterSection({
+  viewModel,
+  guidePlayers,
+  playerGuideDismissed,
+  wideColumns,
+  currentColumnWidth,
+  potentialColumnWidth,
+  squadSort,
+  setSquadSort,
+  sortedPlayers,
+  assigned,
+  guideFocus,
+  onSelectPlayer,
+  onTogglePlayerAssignment,
+}: RosterSectionProps) {
+  return (
+    <View>
+      <SectionLabel
+        eyebrow="Team register"
+        title={`${viewModel.players.length} players`}
+        right={<StatusChip label={`${viewModel.assignedPlayerIds.length} assigned`} />}
+      />
+      <View className={guidePlayers
+        ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
+        : 'border-2 border-ink bg-white'}>
+        {guidePlayers && !playerGuideDismissed ? (
+          <TutorialTapCue
+            label="Tap in here"
+            detail="Add up to 3 players."
+            style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+          />
+        ) : null}
+        <View className="flex-row items-center border-b border-ink/20 px-3">
+          <View className="w-10" />
+          <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          <SquadSortHeader label={wideColumns ? 'Current' : 'OVR'} sortKey="overall" sort={squadSort} widthClass={currentColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          <SquadSortHeader label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          <Text className="w-14 text-right text-sm font-bold uppercase text-ink/50" numberOfLines={1} ellipsizeMode="clip">Train</Text>
+        </View>
+        {sortedPlayers.map((player) => {
+          const selected = player.id === viewModel.selectedPlayerId;
+          const isAssigned = assigned.has(player.id);
+          const glowAssignmentButton = guidePlayers && !isAssigned;
+          const guideConciergePlayer = player.id === viewModel.selectedPlayerId && (
+            (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
+            || guideFocus === 'transfer-request'
+          );
+          return (
+            <View
+              key={player.id}
+              className={selected
+                ? 'flex-row items-center border-b border-ink/20 bg-paper-dark px-3 py-2'
+                : player.injuryWeeks > 0
+                  ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
+                  : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
+              style={guideConciergePlayer ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
+            >
+              {guideConciergePlayer ? (
+                <TutorialTapCue
+                  label="Bert says"
+                  detail={guideFocus === 'injury-lineup' ? 'Review injury and replacement' : 'Review this player'}
+                  style={{
+                    left: '50%',
+                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                  }}
+                />
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open summary for ${player.name}`}
+                onPress={() => onSelectPlayer(player.id)}
+                className="min-h-11 flex-1 flex-row items-center"
+                style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+              >
+                <Text className={selected ? 'w-10 font-mono text-sm font-bold text-ink' : 'w-10 font-mono text-sm font-bold text-blue-dark'} numberOfLines={1}>{player.role}</Text>
+                <View className="flex-1 pr-2">
+                  <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
+                  {player.injuryWeeks > 0 ? (
+                    <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-red-dark" numberOfLines={1}>
+                      OUT · {player.injuryWeeks} {player.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
+                    </Text>
+                  ) : player.isStarter ? (
+                    <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-pitch-dark" numberOfLines={1}>
+                      Starting XI
+                    </Text>
+                  ) : null}
+                  {player.isCaptain || player.contractPromiseLabel ? (
+                    <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-violet-dark" numberOfLines={1}>
+                      {[player.isCaptain ? 'Captain' : undefined, player.shirtNumber ? `#${player.shirtNumber}` : undefined, player.contractPromiseLabel].filter(Boolean).join(' · ')}
+                    </Text>
+                  ) : null}
+                  <Text className="mt-1 text-sm text-ink/60" numberOfLines={1}>{player.contractLabel}</Text>
+                  {player.powerName ? (
+                    <Text className="mt-0.5 text-sm font-bold uppercase text-gold-dark" numberOfLines={1}>★ {player.powerName}</Text>
+                  ) : null}
+                </View>
+                <Text className={`${currentColumnWidth} text-right font-mono text-base font-bold text-ink`} numberOfLines={1}>{player.overall}</Text>
+                <Text className={`${potentialColumnWidth} pr-1 text-right font-mono text-base font-bold text-gold-dark`} numberOfLines={1}>{player.potentialGrade}</Text>
+                <Text className={player.condition < 30 ? 'w-16 text-right font-mono text-sm font-bold text-stamp' : 'w-16 text-right font-mono text-sm text-ink'} numberOfLines={1}>{player.condition}%</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityLabel={`Assign ${player.name} to selected focus drills`}
+                accessibilityState={{ checked: isAssigned }}
+                onPress={() => onTogglePlayerAssignment(player.id)}
+                className={isAssigned
+                  ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-violet-dark bg-violet-light'
+                  : glowAssignmentButton
+                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
+                    : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
+                style={({ pressed }) => [
+                  { opacity: pressed ? 0.65 : undefined },
+                  glowAssignmentButton ? styles.assignmentButtonGlow : null,
+                ]}
+              >
+                <Text className={isAssigned || glowAssignmentButton
+                  ? 'font-mono text-base font-bold text-ink'
+                  : 'font-mono text-base text-ink/40'}>
+                  {isAssigned ? '✓' : '+'}
+                </Text>
+              </Pressable>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+interface PlayerFileSectionProps {
+  selectedPlayer: SquadPlayerViewModel;
+  selectedArchetype?: ArchetypeDevelopmentSummary;
+}
+
+function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSectionProps) {
+  return (
+    <PaperPanel
+      kicker="Player file"
+      title={selectedPlayer.name}
+      stamp={selectedPlayer.injuryWeeks > 0 ? 'OUT' : selectedPlayer.licensed ? 'Licensed' : selectedPlayer.role}
+    >
+      <View className="mb-4 flex-row items-center gap-4">
+        <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
+          <PixelPortrait playerId={selectedPlayer.id} role={selectedPlayer.role} lookId={selectedPlayer.lookId} />
+        </View>
+        <View className="flex-1">
+          <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Player identity</Text>
+          <Text className="mt-1 text-lg font-bold uppercase text-ink">{selectedPlayer.role} · {selectedPlayer.archetype}</Text>
+          <Text className="mt-1 text-sm text-ink/60">{selectedPlayer.personality} · Fame {selectedPlayer.fame}</Text>
+        </View>
+      </View>
+      {selectedPlayer.injuryWeeks > 0 ? (
+        <View className="mb-3 border-2 border-b-4 border-red-dark bg-red-light p-3">
+          <Text className="font-mono text-base font-bold uppercase text-red-dark">
+            OUT · {selectedPlayer.injuryWeeks} {selectedPlayer.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
+          </Text>
+          <Text className="mt-1 text-sm text-ink/70">Unavailable for match selection while recovering.</Text>
+        </View>
+      ) : null}
+      <View className="flex-row gap-2">
+        <Metric label="Current rating" value={String(selectedPlayer.overall)} />
+        <Metric
+          label="Condition"
+          value={`${selectedPlayer.condition}%`}
+          tone={selectedPlayer.condition < 30 ? 'negative' : 'positive'}
+        />
+        <Metric label="Wage / wk" value={formatCurrency(selectedPlayer.weeklyWage)} />
+      </View>
+      <View className="mt-2 flex-row gap-2">
+        <Metric label="Age" value={String(selectedPlayer.age)} />
+        <Metric label="Potential" value={`${selectedPlayer.potentialGrade} · Projected max ${selectedPlayer.projectedOverall}`} tone="positive" />
+        <Metric label="Morale" value={`${selectedPlayer.morale}%`} />
+      </View>
+      <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/20 pt-3">
+        <View className="flex-1">
+          <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Contract</Text>
+          <Text className="mt-1 text-base font-bold text-ink">{selectedPlayer.contractLabel}</Text>
+        </View>
+        {selectedPlayer.powerName ? <StatusChip label={selectedPlayer.powerName} tone="hero" /> : null}
+      </View>
+      {selectedPlayer.contractPromiseLabel || selectedPlayer.isCaptain || selectedPlayer.shirtNumber ? (
+        <View className="mt-3 flex-row flex-wrap gap-2">
+          {selectedPlayer.isCaptain ? <StatusChip label="Captain" selected /> : null}
+          {selectedPlayer.shirtNumber ? <StatusChip label={`Shirt #${selectedPlayer.shirtNumber}`} /> : null}
+          {selectedPlayer.contractPromiseLabel ? <StatusChip label={selectedPlayer.contractPromiseLabel} selected /> : null}
+        </View>
+      ) : null}
+      <View className="mt-3 border border-ink/20 bg-paper-dark/40 px-3 py-3">
+        <View className="flex-row items-center justify-between gap-3">
+          <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Archetype</Text>
+          <View className="min-w-0 flex-1 items-end">
+            <Text className="text-base font-bold text-ink">{selectedPlayer.archetype}</Text>
+            <View className="mt-1 flex-row flex-wrap justify-end gap-x-2">
+              <Text className="font-mono text-sm font-bold text-pitch-dark">{selectedArchetype?.strengths}</Text>
+              <Text className="font-mono text-sm font-bold text-red-dark">{selectedArchetype?.weaknesses}</Text>
+            </View>
+          </View>
+        </View>
+        <View className="mt-2 flex-row items-center justify-between gap-3">
+          <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Personality</Text>
+          <Text className="text-base font-bold text-ink">{selectedPlayer.personality}</Text>
+        </View>
+        <View className="mt-2 flex-row items-center justify-between gap-3">
+          <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Fame</Text>
+          <Text className="font-mono text-base font-bold text-ink">{selectedPlayer.fame}</Text>
+        </View>
+      </View>
+      <View className="mt-3 border-2 border-ink bg-white p-3">
+        <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">Attributes · current / cap</Text>
+        <Text className="mb-3 text-xs leading-4 text-ink/55">
+          PAC pace · SHO shooting · PAS passing · DEF defense · TEC technique · STA stamina · REF goalkeeping
+        </Text>
+        <View className="flex-row flex-wrap gap-2">
+          {selectedPlayer.attributes
+            .filter(attribute => selectedPlayer.role === 'GK'
+              ? attribute.label !== 'SHO'
+              : attribute.label !== 'REF')
+            .map(attribute => (
+              <View key={attribute.label} className="min-w-[29%] flex-1 border border-ink/20 bg-paper px-2 py-2">
+                <Text className="text-sm font-bold uppercase text-ink/50">{attribute.label}</Text>
+                <Text className="mt-1 font-mono text-base font-bold text-ink">
+                  {attribute.value} / {attribute.cap}
+                </Text>
+              </View>
+            ))}
+        </View>
+      </View>
+    </PaperPanel>
+  );
+}
+
+interface DrillsSectionProps {
+  viewModel: SquadTrainingViewModel;
+  guideDrills: boolean;
+  drillListRef: RefObject<View | null>;
+  scheduleTrainingGuideVisibility: () => void;
+  onToggleDrill: (drillId: string) => void;
+}
+
+function DrillsSection({
+  viewModel,
+  guideDrills,
+  drillListRef,
+  scheduleTrainingGuideVisibility,
+  onToggleDrill,
+}: DrillsSectionProps) {
+  return (
+    <View>
+      <SectionLabel
+        eyebrow="Weekly plan"
+        title="Focus drills"
+        right={<StatusChip label={`${viewModel.selectedDrillCount} / ${viewModel.maxDrills}`} selected={viewModel.selectedDrillCount > 0} />}
+      />
+      <Text className="mb-3 text-sm leading-5 text-ink/60">
+        A completed Level 1 Training Pitch adds 10 TP after each weekly settlement. Money prices are per eligible trainee; TP is charged once per selected drill. The plan repeats weekly until changed.
+      </Text>
+      <View className={guideDrills
+        ? 'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'
+        : 'gap-2'}
+        ref={drillListRef}
+        collapsable={false}
+        onLayout={scheduleTrainingGuideVisibility}
+      >
+        {guideDrills ? (
+          <TutorialTapCue
+            label="Tap in here"
+            detail="Add up to 3 drills."
+            style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+          />
+        ) : null}
+        {viewModel.drills.map(drill => (
+          <View
+            key={drill.id}
+            className={`relative min-h-16 flex-row items-center border-2 p-3 ${drillSelectionClass(drill)}`}
+          >
+            <DrillIcon drillId={drill.id} selected={drill.selected} />
+            <View className="min-w-0 flex-1 px-3">
+              <Text className="text-base font-bold uppercase text-ink">{drill.name}</Text>
+              <Text className={drill.selected ? 'mt-1 text-sm text-ink/70' : 'mt-1 text-sm text-ink/60'}>
+                {drill.lockedReason ?? drill.gainLabel}
+              </Text>
+            </View>
+            <View className="items-end">
+              <Text className="font-mono text-sm font-bold text-ink" numberOfLines={1}>{formatCurrency(drill.moneyCost)} each</Text>
+              <Text className={drill.selected ? 'mt-1 font-mono text-sm font-bold text-ink' : 'mt-1 font-mono text-sm text-blue-dark'} numberOfLines={1}>{drill.trainingPointCost} TP / drill</Text>
+            </View>
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityLabel={drill.selected ? `Remove ${drill.name}` : `Add ${drill.name}`}
+              accessibilityHint={drill.lockedReason ?? `${drill.gainLabel}. Costs ${formatCurrency(drill.moneyCost)} per eligible trainee and ${drill.trainingPointCost} training points once per drill.`}
+              accessibilityState={{ checked: drill.selected, disabled: !drill.available }}
+              disabled={!drill.available}
+              onPress={() => onToggleDrill(drill.id)}
+              className={drill.selected
+                ? 'ml-3 h-11 w-11 items-center justify-center border-2 border-violet-dark bg-paper'
+                : 'ml-3 h-11 w-11 items-center justify-center border border-ink/30 bg-white'}
+              style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+            >
+              <Text className={drill.selected
+                ? 'font-mono text-xl font-bold text-violet-dark'
+                : 'font-mono text-xl text-ink/40'}>
+                {drill.selected ? '−' : '+'}
+              </Text>
+            </Pressable>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+interface PlanSectionProps {
+  viewModel: SquadTrainingViewModel;
+  guideTraining: boolean;
+  lockPlanRef: RefObject<View | null>;
+  scheduleTrainingGuideVisibility: () => void;
+  onApplyTraining: () => void;
+}
+
+function PlanSection({
+  viewModel,
+  guideTraining,
+  lockPlanRef,
+  scheduleTrainingGuideVisibility,
+  onApplyTraining,
+}: PlanSectionProps) {
+  return viewModel.lockedPlan === undefined ? (
+    <PaperPanel
+      kicker="Plan total"
+      title="Ready for the whistle?"
+      tone={viewModel.hasUnsavedChanges ? 'attention' : 'default'}
+      stamp={viewModel.hasUnsavedChanges ? 'Unsaved' : undefined}
+    >
+      <View className="flex-row gap-2">
+        <Metric label="Players" value={String(viewModel.assignedPlayerIds.length)} />
+        <Metric label="Money cost" value={formatCurrency(viewModel.totalMoneyCost)} tone="negative" />
+        <Metric label="TP cost" value={formatCompactNumber(viewModel.totalTrainingPointCost)} tone="negative" />
+      </View>
+      <View
+        ref={lockPlanRef}
+        collapsable={false}
+        onLayout={scheduleTrainingGuideVisibility}
+        className={guideTraining && viewModel.selectedDrillCount > 0 ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}
+      >
+        {guideTraining && viewModel.selectedDrillCount > 0 ? (
+          <TutorialTapCue detail="Save the plan" style={{ left: 4, top: -74 }} />
+        ) : null}
+        <ActionButton
+          label={viewModel.hasUnsavedChanges ? 'Save changes' : 'Save weekly plan'}
+          accessibilityLabel="Save weekly plan. Save the repeating weekly training plan"
+          onPress={onApplyTraining}
+          disabled={!viewModel.canApply}
+        />
+      </View>
+    </PaperPanel>
+  ) : (
+    <PaperPanel kicker="The weekly plan" title="Locked in" stamp="SAVED">
+      <View className="gap-3">
+        <View className="border-2 border-ink bg-white p-3">
+          <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Players</Text>
+          <View className="mt-2 gap-2">
+            {viewModel.lockedPlan.players.map(player => (
+              <View key={player.id} className="flex-row items-center gap-3 border border-ink/20 bg-paper px-2 py-2">
+                <View className="border-2 border-b-4 border-ink bg-blue-light px-1 pt-1">
+                  <PixelPortrait playerId={player.id} role={player.role} lookId={player.lookId} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
+                  {player.trainingProgress.map(entry => (
+                    <Text
+                      key={entry.label}
+                      className="mt-1 font-mono text-sm font-bold text-ink/70"
+                      numberOfLines={1}
+                    >
+                      {entry.label} {entry.value}/{entry.cap}{' '}
+                      <Text className={entry.atCap ? 'text-stamp' : entry.weeklyGain === 0 ? 'text-stamp' : 'text-pitch-dark'}>
+                        {entry.atCap ? '· At cap' : entry.weeklyGain === 0 ? '· None this week' : `+${entry.weeklyGain}/week`}
+                      </Text>
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+        <View className="border-2 border-ink bg-white p-3">
+          <Text className="font-mono text-sm font-bold uppercase text-violet-dark">Training exercises</Text>
+          <View className="mt-2 gap-2">
+            {viewModel.lockedPlan.drills.map(drill => (
+              <View key={drill.id} className="flex-row items-center gap-3 border border-ink/20 bg-paper px-2 py-2">
+                <DrillIcon drillId={drill.id} selected />
+                <View className="min-w-0 flex-1">
+                  <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{drill.name}</Text>
+                  <Text className="mt-1 font-mono text-sm font-bold text-violet-dark" numberOfLines={1}>{drill.gainLabel}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+      <View className="mt-3 flex-row gap-2">
+        <Metric label="Money cost" value={formatCurrency(viewModel.lockedPlan.moneyCost)} tone="negative" />
+        <Metric label="TP cost" value={formatCompactNumber(viewModel.lockedPlan.trainingPointCost)} tone="negative" />
+      </View>
+    </PaperPanel>
   );
 }
 
