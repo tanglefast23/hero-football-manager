@@ -31,3 +31,22 @@ describe('tutorial cue positioning', () => {
     expect(isTutorialTargetVisible({ x: 20, y: 720, width: 350, height: 54 }, viewport)).toBe(false);
   });
 });
+
+describe('desktop viewports', () => {
+  it('centers a cue over an anchor in the right column without clamping', () => {
+    // a column-2 card on a 1280pt-wide desktop window
+    const anchor = { x: 700, y: 400, width: 200, height: 56 };
+    expect(tutorialCuePosition(anchor, 1280)).toEqual({ left: 727, top: 462 });
+  });
+
+  it('clamps cues to the gutter on ultrawide viewports', () => {
+    const anchor = { x: 2480, y: 300, width: 80, height: 44 };
+    expect(tutorialCuePosition(anchor, 2560).left).toBe(2406); // 2560 - 146 - 8
+  });
+
+  it('keeps a column-2 target visible-check working with absolute coords', () => {
+    const viewport = { x: 0, y: 0, width: 1280, height: 800 };
+    expect(isTutorialTargetVisible({ x: 700, y: 750, width: 200, height: 56 }, viewport)).toBe(true);
+    expect(isTutorialTargetVisible({ x: 700, y: 900, width: 200, height: 56 }, viewport)).toBe(false);
+  });
+});
