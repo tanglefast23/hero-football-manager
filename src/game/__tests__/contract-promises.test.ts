@@ -4,6 +4,7 @@ import { playerAttributeCaps } from '../archetype-caps';
 import {
   applyCareerContractPromise,
   hasActiveCareerContractPromise,
+  resolveTrainingPromiseBump,
 } from '../contract-promises';
 import { setCareerLineup } from '../squad';
 import { setCareerTrainingPlan } from '../training';
@@ -128,13 +129,18 @@ describe('career contract promises', () => {
       .toMatchObject({ slots: [{ playerId: trainable.id, pathId: 'circuit' }] });
   });
 
-  test('training priority auto-adds a slot on the weakest stat when the plan has room', () => {
+  test('training priority auto-adds a slot on the biggest-room stat when the plan has room', () => {
     const state = career(9406);
     const trainee = state.players.find(player => player.clubId === state.userClubId)!;
     const withRoomAndWeakDef = {
       ...state,
       players: state.players.map(player => player.id === trainee.id
-        ? { ...player, attrs: { pac: 80, sho: 80, pas: 80, def: 10, tec: 80, sta: 80, ref: 80 } }
+        ? {
+            ...player,
+            archetype: 'All-Rounder' as const,
+            potentialCeiling: 90,
+            attrs: { pac: 50, sho: 50, pas: 50, def: 10, tec: 50, sta: 50, ref: 50 },
+          }
         : player),
       trainingPlan: { slots: [] },
     };
@@ -142,21 +148,90 @@ describe('career contract promises', () => {
     const promised = applyCareerContractPromise(withRoomAndWeakDef, trainee.id, 'TRAINING_PRIORITY');
 
     expect(promised.trainingPlan?.slots).toEqual([{ playerId: trainee.id, pathId: 'duels' }]);
+    expect(promised.pendingTrainingPromiseBump).toBeUndefined();
   });
 
-  test('training priority does not auto-add a slot when the plan is already full', () => {
+  test('training priority sets a pending bump signal when the plan is already full', () => {
     const state = career(9407);
     const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const trainee = roster[0];
+    const trainee = {
+      ...roster[0],
+      archetype: 'All-Rounder' as const,
+      potentialCeiling: 90,
+      attrs: { pac: 50, sho: 50, pas: 50, def: 10, tec: 50, sta: 50, ref: 50 },
+    };
     const fullSlots = [
       { playerId: roster[1].id, pathId: 'sprints' },
       { playerId: roster[2].id, pathId: 'rondo' },
       { playerId: roster[3].id, pathId: 'first-touch' },
     ];
-    const full = { ...state, trainingPlan: { slots: fullSlots } };
+    const full = {
+      ...state,
+      players: state.players.map(player => player.id === trainee.id ? trainee : player),
+      trainingPlan: { slots: fullSlots },
+    };
 
     const promised = applyCareerContractPromise(full, trainee.id, 'TRAINING_PRIORITY');
 
+    expect(promised.trainingPlan?.slots).toEqual(fullSlots);
+    expect(promised.pendingTrainingPromiseBump).toEqual({ promisedPlayerId: trainee.id });
+  });
+
+  test('resolveTrainingPromiseBump frees the bumped slot for the promised player', () => {
+    const state = career(9407);
+    const roster = state.players.filter(player => player.clubId === state.userClubId);
+    const trainee = {
+      ...roster[0],
+      archetype: 'All-Rounder' as const,
+      potentialCeiling: 90,
+      attrs: { pac: 50, sho: 50, pas: 50, def: 10, tec: 50, sta: 50, ref: 50 },
+    };
+    const fullSlots = [
+      { playerId: roster[1].id, pathId: 'sprints' },
+      { playerId: roster[2].id, pathId: 'rondo' },
+      { playerId: roster[3].id, pathId: 'first-touch' },
+    ];
+    const full = {
+      ...state,
+      players: state.players.map(player => player.id === trainee.id ? trainee : player),
+      trainingPlan: { slots: fullSlots },
+    };
+    const promised = applyCareerContractPromise(full, trainee.id, 'TRAINING_PRIORITY');
+
+    const resolved = resolveTrainingPromiseBump(promised, roster[1].id);
+
+    expect(resolved.pendingTrainingPromiseBump).toBeUndefined();
+    expect(resolved.trainingPlan?.slots).toEqual([
+      { playerId: roster[2].id, pathId: 'rondo' },
+      { playerId: roster[3].id, pathId: 'first-touch' },
+      { playerId: trainee.id, pathId: 'duels' },
+    ]);
+  });
+
+  test('a fully-capped promised player does not raise a pending bump signal', () => {
+    const state = career(9407);
+    const roster = state.players.filter(player => player.clubId === state.userClubId);
+    const cappedAttrs = { pac: 88, sho: 88, pas: 88, def: 88, tec: 88, sta: 88, ref: 88 };
+    const trainee = {
+      ...roster[0],
+      archetype: 'All-Rounder' as const,
+      potentialCeiling: 88,
+      attrs: cappedAttrs,
+    };
+    const fullSlots = [
+      { playerId: roster[1].id, pathId: 'sprints' },
+      { playerId: roster[2].id, pathId: 'rondo' },
+      { playerId: roster[3].id, pathId: 'first-touch' },
+    ];
+    const full = {
+      ...state,
+      players: state.players.map(player => player.id === trainee.id ? trainee : player),
+      trainingPlan: { slots: fullSlots },
+    };
+
+    const promised = applyCareerContractPromise(full, trainee.id, 'TRAINING_PRIORITY');
+
+    expect(promised.pendingTrainingPromiseBump).toBeUndefined();
     expect(promised.trainingPlan?.slots).toEqual(fullSlots);
   });
 

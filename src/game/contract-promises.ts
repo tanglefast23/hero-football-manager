@@ -4,8 +4,9 @@ import type {
   CareerPlayer,
   GameState,
 } from './types';
-import { roleOverall } from './archetype-caps';
+import { playerAttributeCaps, roleOverall } from './archetype-caps';
 import { currentUserDivision } from './m2-career';
+import { setCareerTrainingPlan } from './training';
 import { TRAINING_PATHS } from './training-paths';
 
 const STARTING_PROMISES: readonly CareerContractPerk[] = [
@@ -84,30 +85,61 @@ export function applyCareerContractPromise(
   }
 
   const maxTrainingSlots = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
-  const trainingPlan = perk === 'TRAINING_PRIORITY' && state.trainingPlan !== undefined
-    && !state.trainingPlan.slots.some(slot => slot.playerId === playerId)
-    && state.trainingPlan.slots.length < maxTrainingSlots
-    ? {
-        slots: [
-          ...state.trainingPlan.slots,
-          { playerId, pathId: weakestTrainingPathId(player) },
-        ],
-      }
+  const alreadySlotted = state.trainingPlan?.slots.some(slot => slot.playerId === playerId) ?? false;
+  const roomPathId = perk === 'TRAINING_PRIORITY' && !alreadySlotted
+    ? biggestRoomTrainingPath(state, player)
+    : undefined;
+  const hasFreeSlot = state.trainingPlan !== undefined
+    && !alreadySlotted
+    && state.trainingPlan.slots.length < maxTrainingSlots;
+  const trainingPlan = roomPathId !== undefined && hasFreeSlot
+    ? { slots: [...state.trainingPlan!.slots, { playerId, pathId: roomPathId }] }
     : state.trainingPlan;
+  // Slots are full: ask the manager who to bump instead of silently skipping.
+  // A fully-capped promised player has nothing to gain, so no prompt is raised.
+  const pendingTrainingPromiseBump = roomPathId !== undefined && !hasFreeSlot
+    ? { promisedPlayerId: playerId }
+    : state.pendingTrainingPromiseBump;
 
   // Re-read the promised player from the immutable copy so the returned state
   // is plain data even when no captain/shirt reassignment was necessary.
   players = players.map(candidate => candidate.id === playerId
     ? { ...candidate, contractPromise: { ...promise } }
     : candidate);
-  return { ...state, players, lineups, trainingPlan };
+  return { ...state, players, lineups, trainingPlan, pendingTrainingPromiseBump };
 }
 
-/** Picks the trainee's lowest-rated stat as the default path for an auto-added training slot. */
-function weakestTrainingPathId(player: CareerPlayer): string {
-  return TRAINING_PATHS.reduce((weakest, path) => (
-    player.attrs[path.attribute] < player.attrs[weakest.attribute] ? path : weakest
-  )).pathId;
+/** Returns the pathId for the trainee's stat with the most room before its personal cap. */
+export function biggestRoomTrainingPath(state: GameState, player: CareerPlayer): string | undefined {
+  const caps = playerAttributeCaps(player);
+  const withRoom = TRAINING_PATHS
+    .map(path => ({ pathId: path.pathId, room: caps[path.attribute] - player.attrs[path.attribute] }))
+    .filter(candidate => candidate.room > 0);
+  if (withRoom.length === 0) return undefined;
+  return withRoom.reduce((best, candidate) => candidate.room > best.room ? candidate : best).pathId;
+}
+
+/** Resolves a pending TRAINING_PRIORITY bump: frees the bumped slot and gives it to the promised player. */
+export function resolveTrainingPromiseBump(state: GameState, bumpedPlayerId: string): GameState {
+  const pending = state.pendingTrainingPromiseBump;
+  if (pending === undefined) throw new Error('there is no pending training promise bump to resolve');
+  const slots = state.trainingPlan?.slots ?? [];
+  if (!slots.some(slot => slot.playerId === bumpedPlayerId)) {
+    throw new Error(`${bumpedPlayerId} does not currently occupy a training slot`);
+  }
+  const promisedPlayer = state.players.find(candidate => candidate.id === pending.promisedPlayerId);
+  if (promisedPlayer === undefined) throw new Error(`unknown promised player ${pending.promisedPlayerId}`);
+  const pathId = biggestRoomTrainingPath(state, promisedPlayer);
+  if (pathId === undefined) throw new Error(`${promisedPlayer.name} has no training room left`);
+
+  const nextSlots = [
+    ...slots.filter(slot => slot.playerId !== bumpedPlayerId),
+    { playerId: pending.promisedPlayerId, pathId },
+  ];
+  return {
+    ...setCareerTrainingPlan(state, nextSlots),
+    pendingTrainingPromiseBump: undefined,
+  };
 }
 
 /** Restores recovered promised starters after injury repair and weekly settlement. */

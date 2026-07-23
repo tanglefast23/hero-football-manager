@@ -82,10 +82,12 @@ import {
   StoryEventScreen,
   TitleLandingScreen,
   TitleSettingsScreen,
+  TrainingPromiseReaction,
   WeeklyReviewScreen,
   type CoachOverlayCoach,
   type FacilityProjectNoticeModel,
   type PlayerSigningConfirmation,
+  type TrainingPromiseReactionPlayer,
   type MarketSectionId,
   formatCurrency,
   shouldShowOpeningBrief,
@@ -392,6 +394,10 @@ function GameApp() {
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const [trainingCapInterrupt, setTrainingCapInterrupt] = useState(false);
   const [trainingTpInterrupt, setTrainingTpInterrupt] = useState(false);
+  const [trainingPromiseReaction, setTrainingPromiseReaction] = useState<{
+    bumped: TrainingPromiseReactionPlayer;
+    promised: TrainingPromiseReactionPlayer;
+  } | null>(null);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesRef = useRef(preferences);
@@ -897,6 +903,35 @@ function GameApp() {
     setTrainingTpInterrupt(false);
     advanceCareerWithSfx();
   }, [advanceCareerWithSfx]);
+
+  // Reads live state so the reaction overlay's portraits reflect who was
+  // actually bumped/promised, even though resolveTrainingPromiseBump clears
+  // the pending signal before this callback finishes.
+  const handleTrainingPromiseBumpPick = useCallback((bumpedPlayerId: string) => {
+    const career = useM1Store.getState().career;
+    const promisedPlayerId = career?.pendingTrainingPromiseBump?.promisedPlayerId;
+    if (promisedPlayerId === undefined) return;
+    const bumpedPlayer = career?.players.find(player => player.id === bumpedPlayerId);
+    const promisedPlayer = career?.players.find(player => player.id === promisedPlayerId);
+    useM1Store.getState().resolveTrainingPromiseBump(bumpedPlayerId);
+    if (useM1Store.getState().error !== null) return;
+    if (bumpedPlayer !== undefined && promisedPlayer !== undefined) {
+      setTrainingPromiseReaction({
+        bumped: {
+          playerId: bumpedPlayer.id,
+          playerName: bumpedPlayer.name,
+          role: bumpedPlayer.role,
+          lookId: bumpedPlayer.lookId,
+        },
+        promised: {
+          playerId: promisedPlayer.id,
+          playerName: promisedPlayer.name,
+          role: promisedPlayer.role,
+          lookId: promisedPlayer.lookId,
+        },
+      });
+    }
+  }, []);
 
   useEffect(() => {
     setAssistantPageIndex(0);
@@ -1489,6 +1524,13 @@ function GameApp() {
           onAdvance={advanceFromTrainingTpInterrupt}
           onClose={dismissTrainingTpInterrupt}
         />
+        <TrainingPromiseBumpModal
+          promisedPlayerName={store.career?.players.find(player => (
+            player.id === store.career?.pendingTrainingPromiseBump?.promisedPlayerId
+          ))?.name ?? null}
+          slots={squadTrainingVm?.slots ?? []}
+          onPick={handleTrainingPromiseBumpPick}
+        />
         <SettingsOverlay
           open={globalSettingsOpen}
           glossary={content.glossary}
@@ -1565,6 +1607,14 @@ function GameApp() {
             player={playerSigning}
             reduceMotion={reduceMotion}
             onClose={() => setPlayerSigning(null)}
+          />
+        ) : null}
+        {trainingPromiseReaction !== null ? (
+          <TrainingPromiseReaction
+            bumped={trainingPromiseReaction.bumped}
+            promised={trainingPromiseReaction.promised}
+            reduceMotion={reduceMotion}
+            onDismiss={() => setTrainingPromiseReaction(null)}
           />
         ) : null}
         {store.screen === 'management'
@@ -1906,6 +1956,48 @@ function TrainingTpShortfallModal({
             >
               <Text className="font-pixel text-sm uppercase text-paper">Advance week</Text>
             </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// Visible whenever career.pendingTrainingPromiseBump is set, so a mid-prompt
+// save reopens the same choice on reload. There is no dismiss action — the
+// game never auto-picks who to drop, so the manager must choose here first.
+function TrainingPromiseBumpModal({
+  promisedPlayerName,
+  slots,
+  onPick,
+}: {
+  promisedPlayerName: string | null;
+  slots: readonly { playerId: string; playerName: string }[];
+  onPick: (playerId: string) => void;
+}) {
+  return (
+    <Modal transparent animationType="fade" visible={promisedPlayerName !== null} onRequestClose={() => {}}>
+      <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
+        <View accessibilityViewIsModal className="border-2 border-b-4 border-ink bg-paper p-5">
+          <Text className="font-mono text-sm font-bold uppercase text-stamp">Contract promise</Text>
+          <Text className="mt-2 font-pixel text-xl uppercase text-ink">Who stops training?</Text>
+          <Text className="mt-3 text-base leading-6 text-ink/70">
+            You promised {promisedPlayerName ?? 'this player'} training priority. Training is full — pick who steps aside.
+          </Text>
+          <View className="mt-4 gap-2">
+            {slots.map(slot => (
+              <Pressable
+                key={slot.playerId}
+                accessibilityRole="button"
+                accessibilityLabel={`Stop training ${slot.playerName}`}
+                onPress={() => onPick(slot.playerId)}
+                className="min-h-12 flex-row items-center justify-between border-2 border-b-4 border-ink bg-white px-3"
+                style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+              >
+                <Text className="text-base font-bold text-ink" numberOfLines={1}>{slot.playerName}</Text>
+                <Text className="font-mono text-sm font-bold uppercase text-stamp">Stop training</Text>
+              </Pressable>
+            ))}
           </View>
         </View>
       </View>

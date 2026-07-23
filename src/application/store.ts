@@ -43,6 +43,7 @@ import {
   relocateCareerFacility,
   renewCareerPlayer,
   releaseCareerPlayer,
+  resolveTrainingPromiseBump,
   closeCareerRenewalTalks,
   signYouthIntakeOffer,
   resolvePostMatchAwakening,
@@ -189,6 +190,7 @@ interface M1Store {
   selectPlayer: (playerId: string) => void;
   toggleTrainingPlayer: (playerId: string) => void;
   setTrainingSlotStat: (playerId: string, pathId: string) => void;
+  resolveTrainingPromiseBump: (bumpedPlayerId: string) => void;
   buildFacility: () => void;
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
   upgradeClubFacility: (buildingId: string) => void;
@@ -883,6 +885,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
         set,
         slots.map(slot => (slot.playerId === playerId ? { playerId, pathId } : slot)),
       );
+    });
+  },
+
+  resolveTrainingPromiseBump(bumpedPlayerId) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = resolveTrainingPromiseBump(career, bumpedPlayerId);
+      set({
+        career: next,
+        trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
+        error: null,
+      });
+      queueCareerSave(get, set, next);
     });
   },
 

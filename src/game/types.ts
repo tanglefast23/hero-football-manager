@@ -73,6 +73,14 @@ export interface CareerTrainingCapNotice {
   kind?: 'reached' | 'skipped';
 }
 
+/**
+ * Set when a TRAINING_PRIORITY promise is accepted while every training slot
+ * is full: the manager must pick who to bump before the promise is honored.
+ */
+export interface PendingTrainingPromiseBump {
+  promisedPlayerId: string;
+}
+
 export interface TrainingRules {
   baseConditioning: CareerTrainingDrill;
   maxFocusDrillsPerWeek: number;
@@ -416,6 +424,8 @@ export interface GameState {
   trainingPlan?: CareerTrainingPlan;
   /** One-shot inbox receipts created when focused training fills a personal attribute cap. */
   trainingCapNotices?: CareerTrainingCapNotice[];
+  /** Cleared once the manager picks who to bump; a mid-prompt save must reload it. */
+  pendingTrainingPromiseBump?: PendingTrainingPromiseBump;
   eventClock: CareerEventState;
   eventFlags: string[];
   resolvedEventIds: string[];

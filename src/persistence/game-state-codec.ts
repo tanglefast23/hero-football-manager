@@ -366,6 +366,12 @@ const trainingCapNoticeSchema = z
   })
   .passthrough();
 
+const pendingTrainingPromiseBumpSchema = z
+  .object({
+    promisedPlayerId: nonemptyString,
+  })
+  .passthrough();
+
 const eventClockSchema = z
   .object({
     weeksWithoutEvent: nonnegativeInteger,
@@ -734,6 +740,7 @@ const gameStateSchema = z
     trainingRules: trainingRulesSchema.optional(),
     trainingPlan: trainingPlanSchema.optional(),
     trainingCapNotices: z.array(trainingCapNoticeSchema).optional(),
+    pendingTrainingPromiseBump: pendingTrainingPromiseBumpSchema.optional(),
     eventClock: eventClockSchema,
     eventFlags: z.array(nonemptyString),
     resolvedEventIds: z.array(nonemptyString),
@@ -1435,6 +1442,17 @@ const gameStateSchema = z
             message: 'assigned player must belong to the user club',
           });
         }
+      }
+    }
+
+    if (state.pendingTrainingPromiseBump !== undefined) {
+      const { promisedPlayerId } = state.pendingTrainingPromiseBump;
+      if (!playerIds.has(promisedPlayerId) || playerClubById.get(promisedPlayerId) !== state.userClubId) {
+        context.addIssue({
+          code: 'custom',
+          path: ['pendingTrainingPromiseBump', 'promisedPlayerId'],
+          message: 'promised player must belong to the user club',
+        });
       }
     }
   });
