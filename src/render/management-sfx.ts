@@ -10,7 +10,8 @@ type ExplicitManagementSfxKey =
   | 'coach-departure'
   | 'facility-start'
   | 'facility-complete'
-  | 'event-success';
+  | 'event-success'
+  | 'stat-step';
 
 export type ManagementActionCue =
   | 'select'
@@ -20,21 +21,22 @@ export type ManagementActionCue =
   | 'card'
   | 'success'
   | 'hero'
-  | 'warning';
+  | 'warning'
+  | 'positive';
 
 type ManagementSfxKey = ExplicitManagementSfxKey | ManagementActionCue;
 
 const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   'match-statement': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'training-ding': require('../../assets/audio/sfx/training-stat-ding.m4a'),
-  'ui-click': require('../../assets/audio/sfx/tap-fire.wav'),
+  'ui-click': require('../../assets/audio/sfx/stat-step-tap.m4a'),
   // Player and coach signings intentionally share this confirmation sound.
   'transaction-confirm': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'coach-departure': require('../../assets/audio/sfx/fulltime-whistle.wav'),
   'facility-start': require('../../assets/audio/sfx/advance-week.m4a'),
   'facility-complete': require('../../assets/audio/sfx/facility-complete.m4a'),
   'event-success': require('../../assets/audio/sfx/crowd-cheer.wav'),
-  select: require('../../assets/audio/sfx/training-stat-ding.m4a'),
+  select: require('../../assets/audio/sfx/stat-step-tap.m4a'),
   cash: require('../../assets/audio/sfx/save-slap.wav'),
   build: require('../../assets/audio/sfx/tackle-thud.m4a'),
   dispatch: require('../../assets/audio/sfx/save-slap.wav'),
@@ -42,6 +44,10 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   success: require('../../assets/audio/sfx/plan-locked-chime.m4a'),
   hero: require('../../assets/audio/sfx/zone-enter.m4a'),
   warning: require('../../assets/audio/sfx/card-whistle.wav'),
+  // Reusable celebratory cue for positive outcomes (e.g. signing a player).
+  // Appended last so existing player indices stay stable.
+  positive: require('../../assets/audio/sfx/positive.m4a'),
+  'stat-step': require('../../assets/audio/sfx/stat-step-tap.m4a'),
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
@@ -86,6 +92,12 @@ export function playMatchStatementSfx(): void {
 
 export function playUiClickSfx(): void {
   playManagementSfx('ui-click');
+  playTapHaptic();
+}
+
+export function playStatStepSfx(): void {
+  playManagementSfx('stat-step');
+  playTapHaptic();
 }
 
 export function playTransactionConfirmSfx(): void {
@@ -108,9 +120,24 @@ export function playEventSuccessSfx(): void {
   playManagementSfx('event-success');
 }
 
+/** Short, upbeat cue for positive outcomes (signings, confirmations); fail-soft. */
+export function playPositiveSfx(): void {
+  playManagementSfx('positive');
+}
+
 /** Short semantic cues shared by management screens; presentation-only and fail-soft. */
 export function playManagementActionSfx(cue: ManagementActionCue): void {
   playManagementSfx(cue);
+  if (cue === 'select') playTapHaptic();
+}
+
+function playTapHaptic(): void {
+  try {
+    const haptics = require('./haptics') as typeof import('./haptics');
+    haptics.playManagementHaptic('tap');
+  } catch (error) {
+    warnOnce('tap haptic failed; sound remains available', error);
+  }
 }
 
 export function stopMatchStatementSfx(): void {
