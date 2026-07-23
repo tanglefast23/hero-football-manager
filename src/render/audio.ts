@@ -36,7 +36,7 @@ type SfxKey =
   | 'card-whistle'
   | 'crowd-jeer'
   | 'zone-enter'
-  | 'tap-fire'
+  | 'positive'
   | 'extinguisher-spray'
   | 'super-speed-whoosh'
   | 'blink-teleport'
@@ -76,7 +76,7 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'card-whistle': require('../../assets/audio/sfx/card-whistle.wav'),
   'crowd-jeer': require('../../assets/audio/sfx/crowd-jeer.wav'),
   'zone-enter': require('../../assets/audio/sfx/zone-enter.m4a'),
-  'tap-fire': require('../../assets/audio/sfx/tap-fire.wav'),
+  positive: require('../../assets/audio/sfx/positive.m4a'),
   'extinguisher-spray': require('../../assets/audio/sfx/extinguisher-spray.wav'),
   'super-speed-whoosh': require('../../assets/audio/sfx/super-speed-whoosh.wav'),
   'blink-teleport': require('../../assets/audio/sfx/blink-teleport.wav'),
@@ -184,11 +184,11 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       return ['extinguisher-spray'];
     case 'POWER_FIRED':
       // strength === 1 is TAP_STRENGTH (sim/powers.ts) — a manual tap-confirm,
-      // which layers the click on top of the power's own sound. Auto-fires
+      // which layers the positive cue on top of the power's own sound. Auto-fires
       // (CONTEXT_AUTO_STRENGTH 0.85 / LAPSE_STRENGTH 0.75) get just the
       // power sound.
       return e.strength === 1
-        ? ['tap-fire', ...POWER_AUDIO[e.power].activation]
+        ? ['positive', ...POWER_AUDIO[e.power].activation]
         : POWER_AUDIO[e.power].activation;
     case 'POWER_IMPACT':
       return POWER_AUDIO[e.power].impact;

@@ -221,6 +221,7 @@ export interface FacilityCompletionViewModel {
   name: string;
   level: 1 | 2 | 3;
   kind: 'BUILD' | 'UPGRADE';
+  trainingPointReward?: number;
 }
 
 export interface PlayerDevelopmentViewModel {
@@ -340,6 +341,8 @@ export interface SquadTrainingViewModel {
   totalMoneyCost: number;
   totalTrainingPointCost: number;
   canApply: boolean;
+  /** True when a saved plan exists but the current editor selection differs from it. */
+  hasUnsavedChanges: boolean;
   lockedPlan?: {
     players: readonly (Pick<SquadPlayerViewModel, 'id' | 'name' | 'role' | 'lookId'> & {
       trainingProgress: readonly LockedTrainingProgressViewModel[];

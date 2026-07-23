@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { AssistantGuideContent, AssistantGuideSequenceId } from '../content';
 import { ActionButton } from './components/Scorecard';
@@ -173,53 +174,102 @@ function NavigationGuidePage({
   buttonLabel: string;
   onAdvance: () => void;
 }) {
-  const left = Math.max(8, anchor.x);
-  const width = Math.max(0, Math.min(anchor.width, viewportWidth - left - 8));
-  const bottom = Math.max(8, viewportHeight - anchor.y + 8);
+  // Walk one tab at a time: spotlight the current tab, dim the rest, and step
+  // through with Next until the last tab, which finishes the guide. The copy is
+  // the same per-tab briefing (item.tab + item.detail) shown all-at-once before.
+  const [step, setStep] = useState(0);
+  const tabCount = Math.max(1, items.length);
+  const clampedStep = Math.min(step, tabCount - 1);
+  const item = items[clampedStep];
+  const isLast = clampedStep >= tabCount - 1;
+
+  const clamp = (value: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, value));
+  const tabWidth = anchor.width / tabCount;
+  const tabCenter = anchor.x + tabWidth * (clampedStep + 0.5);
+  const panelWidth = Math.min(240, Math.max(160, viewportWidth - 16));
+  const panelLeft = clamp(tabCenter - panelWidth / 2, 8, Math.max(8, viewportWidth - panelWidth - 8));
+  const panelBottom = Math.max(8, viewportHeight - anchor.y + 12);
+  const arrowLeft = clamp(tabCenter - panelLeft, 14, panelWidth - 14);
+
+  const advance = () => {
+    if (isLast) onAdvance();
+    else setStep(current => current + 1);
+  };
 
   return (
-    <View
-      pointerEvents="box-none"
-      style={[styles.navigationCalloutArea, { left, width, bottom }]}
-    >
-      <View style={styles.navigationAdvanceButton}>
-        <ActionButton
-          label={buttonLabel}
-          accessibilityLabel="Finish bottom navigation guide"
-          onPress={onAdvance}
-          variant="action"
-          compact
-        />
-      </View>
-      <View style={styles.navigationCalloutRow}>
-        {items.map(item => (
-          <View key={item.tab} style={styles.navigationCalloutShadow}>
+    <>
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        {items.map((navItem, index) => {
+          const slot = {
+            position: 'absolute' as const,
+            left: anchor.x + tabWidth * index,
+            top: anchor.y,
+            width: tabWidth,
+            height: anchor.height,
+          };
+          return (
             <View
-              accessible
-              accessibilityRole="text"
-              accessibilityLabel={`${item.tab}. ${item.detail}`}
-              style={styles.navigationCalloutBox}
-            >
-              <Text
-                adjustsFontSizeToFit
-                numberOfLines={1}
-                className="text-center font-pixel text-[11px] uppercase text-white"
-              >
-                {item.tab}
-              </Text>
-              <Text
-                adjustsFontSizeToFit
-                numberOfLines={4}
-                className="mt-1 text-center font-mono text-[10px] leading-3 text-white/90"
-              >
-                {item.detail}
-              </Text>
-              <Text accessible={false} style={styles.navigationCalloutArrow}>▼</Text>
-            </View>
-          </View>
-        ))}
+              key={navItem.tab}
+              style={[slot, index === clampedStep ? styles.navTourRing : styles.navTourDim]}
+            />
+          );
+        })}
       </View>
-    </View>
+      <View
+        pointerEvents="box-none"
+        style={[styles.navTourPanel, { left: panelLeft, width: panelWidth, bottom: panelBottom }]}
+      >
+        <View style={styles.navTourHeader}>
+          <View style={styles.navTourDots}>
+            {items.map((navItem, index) => (
+              <View
+                key={navItem.tab}
+                style={[
+                  styles.navTourDot,
+                  index === clampedStep ? styles.navTourDotOn : null,
+                  index < clampedStep ? styles.navTourDotDone : null,
+                ]}
+              />
+            ))}
+          </View>
+          <View style={styles.navTourButton}>
+            <ActionButton
+              label={isLast ? buttonLabel : 'Next  ▸'}
+              accessibilityLabel={isLast
+                ? `Finish bottom navigation guide`
+                : `${item.tab}: ${item.detail} Next, ${clampedStep + 2} of ${tabCount}`}
+              onPress={advance}
+              variant="action"
+              compact
+            />
+          </View>
+        </View>
+        <View style={styles.navTourCardShadow}>
+          <View
+            accessible
+            accessibilityRole="text"
+            accessibilityLabel={`${item.tab}, ${clampedStep + 1} of ${tabCount}. ${item.detail}`}
+            style={styles.navTourCard}
+          >
+            <Text
+              adjustsFontSizeToFit
+              numberOfLines={1}
+              className="text-center font-pixel text-sm uppercase text-white"
+            >
+              {item.tab}
+            </Text>
+            <Text
+              adjustsFontSizeToFit
+              numberOfLines={3}
+              className="mt-1 text-center font-mono text-xs leading-4 text-white/90"
+            >
+              {item.detail}
+            </Text>
+            <Text accessible={false} style={[styles.navigationCalloutArrow, { left: arrowLeft - 7 }]}>▼</Text>
+          </View>
+        </View>
+      </View>
+    </>
   );
 }
 
@@ -307,42 +357,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     backgroundColor: 'rgba(36,31,46,0.6)',
   },
-  navigationCalloutArea: {
-    position: 'absolute',
-    gap: 10,
-    zIndex: 40,
-  },
-  navigationAdvanceButton: {
-    width: '50%',
-    minWidth: 170,
-    maxWidth: 280,
-    alignSelf: 'center',
-  },
-  navigationCalloutRow: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  navigationCalloutShadow: {
-    minWidth: 0,
-    flex: 1,
-    paddingRight: 3,
-    paddingBottom: 4,
-    borderRadius: 7,
-    backgroundColor: '#241f2e',
-  },
-  navigationCalloutBox: {
-    minHeight: 88,
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    paddingTop: 7,
-    paddingBottom: 20,
-    borderWidth: 2,
-    borderColor: '#f4f1ea',
-    borderRadius: 6,
-    backgroundColor: '#3f6fb5',
-  },
   navigationCalloutArrow: {
     position: 'absolute',
     bottom: 3,
@@ -350,6 +364,66 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 13,
     lineHeight: 14,
+  },
+  navTourDim: {
+    backgroundColor: 'rgba(26,20,36,0.55)',
+  },
+  navTourRing: {
+    borderWidth: 3,
+    borderColor: '#edb54a',
+    borderRadius: 4,
+  },
+  navTourPanel: {
+    position: 'absolute',
+    gap: 8,
+    zIndex: 40,
+  },
+  navTourHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  navTourDots: {
+    flexDirection: 'row',
+    gap: 5,
+    alignItems: 'center',
+  },
+  navTourDot: {
+    width: 7,
+    height: 7,
+    borderWidth: 1.5,
+    borderColor: '#f4f1ea',
+    backgroundColor: '#241f2e',
+  },
+  navTourDotOn: {
+    backgroundColor: '#edb54a',
+    borderColor: '#edb54a',
+  },
+  navTourDotDone: {
+    backgroundColor: '#f4f1ea',
+  },
+  navTourButton: {
+    alignItems: 'flex-end',
+  },
+  navTourCardShadow: {
+    alignSelf: 'stretch',
+    paddingRight: 3,
+    paddingBottom: 4,
+    borderRadius: 7,
+    backgroundColor: '#241f2e',
+  },
+  navTourCard: {
+    minHeight: 78,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 20,
+    borderWidth: 2,
+    borderColor: '#f4f1ea',
+    borderRadius: 6,
+    backgroundColor: '#3f6fb5',
   },
   windowShadow: {
     maxWidth: 540,

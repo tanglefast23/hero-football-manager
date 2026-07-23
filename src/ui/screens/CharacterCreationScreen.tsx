@@ -48,8 +48,16 @@ export function CharacterCreationScreen({
   });
   const [appearance, setAppearance] = useState<CreatedPlayerAppearance>({ ...DEFAULT_CREATED_APPEARANCE });
   const [difficulty, setDifficulty] = useState<DifficultyMode>(initialDifficulty);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const pointsRemaining = useMemo(() => creationPointsRemaining(ratings), [ratings]);
-  const canSubmit = name.trim().length >= 2 && pointsRemaining >= 0;
+  const hasValidName = name.trim().length >= 2;
+  const canSubmit = hasValidName && pointsRemaining === 0;
+  const pointLabel = pointsRemaining === 1 ? 'point' : 'points';
+  const submitBlockReason = hasValidName
+    ? `Spend ${pointsRemaining} more ${pointLabel} before signing.`
+    : pointsRemaining === 0
+      ? 'Name the rookie to sign them.'
+      : `Name the rookie and spend ${pointsRemaining} more ${pointLabel} before signing.`;
 
   function adjust(stat: OutfieldCreationStat, delta: -1 | 1): void {
     setRatings(current => {
@@ -91,14 +99,7 @@ export function CharacterCreationScreen({
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
-        <PaperPanel kicker="Bert Rudge" title="Registration note">
-          <Text className="text-base leading-5 text-ink/70">
-            Eighteen, plays up front, and the best prospect the District League has turned up in
-            years. The finishing wanders and the legs go late, but I can coach that out.
-          </Text>
-        </PaperPanel>
-
-        <PaperPanel kicker="Paper doll" title="Choose their look" stamp="Saved" className="mt-5">
+        <PaperPanel kicker="Paper doll" title="Choose their look" stamp="Saved">
           <View className="flex-row items-center gap-4">
             <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
               <PixelPortrait
@@ -145,7 +146,6 @@ export function CharacterCreationScreen({
                   accessibilityState={{ selected }}
                   accessibilityLabel={`${mode} (${label})`}
                   onPress={() => {
-                    playManagementHaptic('select');
                     setDifficulty(mode);
                   }}
                   className={selected
@@ -212,8 +212,8 @@ export function CharacterCreationScreen({
                   accessibilityLabel={`Decrease ${copy.label}, currently ${value}`}
                   accessibilityState={{ disabled: value <= CREATION_STAT_MIN }}
                   disabled={value <= CREATION_STAT_MIN}
+                  pressSfx="stat-step"
                   onPress={() => {
-                    playManagementHaptic('select');
                     adjust(stat, -1);
                   }}
                   className="h-11 w-11 items-center justify-center border-2 border-ink/40"
@@ -227,8 +227,8 @@ export function CharacterCreationScreen({
                   accessibilityLabel={`Increase ${copy.label}, currently ${value}`}
                   accessibilityState={{ disabled: value >= CREATION_STAT_MAX || pointsRemaining <= 0 }}
                   disabled={value >= CREATION_STAT_MAX || pointsRemaining <= 0}
+                  pressSfx="stat-step"
                   onPress={() => {
-                    playManagementHaptic('select');
                     adjust(stat, 1);
                   }}
                   className="h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light"
@@ -244,23 +244,30 @@ export function CharacterCreationScreen({
         </View>
 
         <Text className="mt-4 text-sm leading-4 text-ink/45">
-          Points can stay unspent. Lower any stat to free more for another. REF is goalkeeper-only and stays hidden at its outfield filler value.
+          Spend every point before signing. Lower any stat to free more for another. REF is goalkeeper-only and stays hidden at its outfield filler value.
         </Text>
       </ScrollView>
 
       <View className="border-t-2 border-ink bg-white p-3">
-        {canSubmit ? null : (
-          <Text className="mb-2 text-center text-sm font-bold text-red-dark">
-            Name the rookie to sign them.
+        {!canSubmit && submitAttempted ? (
+          <Text
+            accessibilityRole="alert"
+            className="mb-2 text-center text-sm font-bold text-red-dark"
+          >
+            {submitBlockReason}
           </Text>
-        )}
+        ) : null}
         <ActionButton
           label="Sign the rookie  ▸"
           accessibilityLabel={canSubmit
             ? 'Finish creating player'
-            : 'Finish creating player. Unavailable: name the rookie to sign them.'}
-          disabled={!canSubmit}
+            : 'Finish creating player. Tap to review missing requirements.'}
+          pressSfx={canSubmit ? 'positive' : 'click'}
           onPress={() => {
+            if (!canSubmit) {
+              setSubmitAttempted(true);
+              return;
+            }
             playManagementHaptic('commit');
             onComplete({ name, ratings, appearance, difficulty });
           }}
@@ -287,8 +294,8 @@ function AppearanceChoice({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Previous ${label}, currently ${value}`}
+        pressSfx="stat-step"
         onPress={() => {
-          playManagementHaptic('select');
           onPrevious();
         }}
         className="h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light"
@@ -300,8 +307,8 @@ function AppearanceChoice({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Next ${label}, currently ${value}`}
+        pressSfx="stat-step"
         onPress={() => {
-          playManagementHaptic('select');
           onNext();
         }}
         className="h-11 w-11 items-center justify-center border-2 border-violet-dark bg-violet-light"

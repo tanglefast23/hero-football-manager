@@ -2,15 +2,18 @@ import { loadLaunchContent, type GameEvent, type LaunchContent, type TrainingDri
 import {
   FACILITY_ADJACENCIES,
   FACILITY_CATALOG,
+  TRAINING_PITCH_TP_PER_LEVEL,
   activeCareerMatchday,
   activeFacilityAdjacencies,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
   chargeableCareerTrainingPlan,
+  trainingSelectionMatchesSavedPlan,
   createFacilityGrid,
   currentUserDivision,
   difficultyRules,
   fixturesForCurrentWeek,
+  isFacilityOperational,
   isAssistantInboxOneShotProductVisible,
   latestSeasonRecap,
   leagueStandings,
@@ -713,8 +716,8 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     ...trainingCapAlerts,
     ...(!state.facilities.trainingGroundBuilt && !trainingGroundUnderConstruction ? [{
       id: 'training-ground',
-      title: 'Training Ground proposal',
-      detail: 'Build once for $8,000 and earn +10 TP after every settled week.',
+      title: 'Build your Training Pitch',
+      detail: 'Your starting budget includes its $8,000 cost. Choose where it goes.',
       tone: 'info' as const,
     }] : []),
     ...(expired.length > 0 ? [{
@@ -1166,12 +1169,12 @@ export function squadTrainingViewModel(
   const totalTrainingPointCost = chargeablePlan?.trainingPointCost
     ?? selectedDrills.reduce((sum, drill) => sum + drill.tpCost, 0);
   const savedPlan = state.trainingPlan;
-  const savedDrillIds = savedPlan?.drills.map(drill => drill.id) ?? [];
-  const selectionMatchesSavedPlan = savedPlan !== undefined
-    && savedPlan.assignedPlayerIds.length === assignedPlayerIds.length
-    && savedPlan.assignedPlayerIds.every(playerId => assignedPlayerIds.includes(playerId))
-    && savedDrillIds.length === selectedDrillIds.length
-    && savedDrillIds.every(drillId => selectedDrillIds.includes(drillId));
+  const selectionMatchesSavedPlan = trainingSelectionMatchesSavedPlan(
+    savedPlan,
+    assignedPlayerIds,
+    selectedDrillIds,
+  );
+  const hasUnsavedChanges = savedPlan !== undefined && !selectionMatchesSavedPlan;
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
   if (lineup === undefined) throw new Error('the user club has no starting lineup');
   const starterIds = new Set(lineup.playerIds);
@@ -1287,6 +1290,7 @@ export function squadTrainingViewModel(
       selectedDrills.every(drill => trainingDrillBlockedReason(state, drill.id) === undefined) &&
       totalMoneyCost <= club.cash &&
       totalTrainingPointCost <= state.trainingPoints,
+    hasUnsavedChanges,
     ...(selectionMatchesSavedPlan && savedPlan !== undefined ? {
       lockedPlan: lockedPlanViewModel(state, savedPlan, playerById, drills),
     } : {}),
@@ -1645,6 +1649,14 @@ function facilityCompletion(
     name: FACILITY_CATALOG[building.type].name,
     level: building.level,
     kind: project.kind,
+    ...(project.kind === 'BUILD'
+      && building.type === 'training-pitch'
+      && !before.facilities.grid?.buildings.some(candidate => (
+        candidate.type === 'training-pitch'
+        && isFacilityOperational(before.facilities.grid!, candidate.id)
+      ))
+      ? { trainingPointReward: TRAINING_PITCH_TP_PER_LEVEL }
+      : {}),
   };
 }
 

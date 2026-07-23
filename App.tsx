@@ -393,6 +393,7 @@ function GameApp() {
   const [selectedCupSeason, setSelectedCupSeason] = useState<number | undefined>();
   const [bootAttempt, setBootAttempt] = useState(0);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  const [advanceTrainingGuard, setAdvanceTrainingGuard] = useState<{ isEdit: boolean } | null>(null);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesRef = useRef(preferences);
@@ -516,7 +517,6 @@ function GameApp() {
 
   const requestConfirmation = useCallback((confirmation: PendingConfirmation) => {
     playManagementActionSfx('select');
-    playManagementHaptic('select');
     setPendingConfirmation(confirmation);
   }, []);
 
@@ -862,6 +862,12 @@ function GameApp() {
   const assistantObjective = store.career === null
     ? null
     : currentAssistantObjective(store.career, store.activeTab);
+  const hideCoachHiringCues = store.activeTab === 'market'
+    && (
+      conciergeFocus === 'coach-market'
+      || conciergeFocus === 'coach-hire'
+      || conciergeFocus === 'assistant-coach-hire'
+    );
 
   // Locked is the common state (the tutorial pushes a saved plan in Week 1,
   // and it repeats weekly), so this resolves the real training week on
@@ -881,6 +887,37 @@ function GameApp() {
         )),
     [store.career, content, store.selectedPlayerId, store.assignedPlayerIds, store.selectedDrillIds],
   );
+
+  // Advancing with a complete-but-unsaved training plan would silently run the
+  // last saved plan (or none) instead of the edits, so intercept and let the
+  // manager lock in first. lockedPlan === undefined && canApply means "a plan
+  // that could be saved but isn't the locked one" — covers first-time and edits.
+  const handleAdvanceWeek = useCallback(() => {
+    const vm = squadTrainingVm;
+    if (vm !== null && vm.lockedPlan === undefined && vm.canApply) {
+      playManagementActionSfx('select');
+      setAdvanceTrainingGuard({ isEdit: vm.hasUnsavedChanges });
+      return;
+    }
+    advanceCareerWithSfx();
+  }, [squadTrainingVm, advanceCareerWithSfx]);
+
+  const lockInTrainingAndAdvance = useCallback(() => {
+    setAdvanceTrainingGuard(null);
+    useM1Store.getState().applyTraining();
+    if (useM1Store.getState().error !== null) return;
+    playPlanLockedSfx();
+    advanceCareerWithSfx();
+  }, [advanceCareerWithSfx]);
+
+  const advanceWeekWithoutSaving = useCallback(() => {
+    setAdvanceTrainingGuard(null);
+    advanceCareerWithSfx();
+  }, [advanceCareerWithSfx]);
+
+  const dismissAdvanceTrainingGuard = useCallback(() => {
+    setAdvanceTrainingGuard(null);
+  }, []);
 
   useEffect(() => {
     setAssistantPageIndex(0);
@@ -1102,6 +1139,7 @@ function GameApp() {
     screen = (
       <WeeklyReviewScreen
         viewModel={store.weekReview}
+        animationsReady={trainingTransition === null}
         reduceMotion={reduceMotion}
         textScale={preferences.textScale}
         onContinue={store.continueWeekReview}
@@ -1195,7 +1233,7 @@ function GameApp() {
           setMarketSectionRequest(null);
           store.setActiveTab(tab);
         }}
-        onAdvanceWeek={advanceCareerWithSfx}
+        onAdvanceWeek={handleAdvanceWeek}
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
@@ -1205,7 +1243,7 @@ function GameApp() {
         guideFocus={assistantPage?.focus === 'money' || assistantPage?.focus === 'navigation'
           ? assistantPage.focus
           : undefined}
-        guideTarget={assistantObjective?.target}
+        guideTarget={hideCoachHiringCues ? undefined : assistantObjective?.target}
         onMoneyGuideAnchorChange={setMoneyGuideAnchor}
         onNavigationGuideAnchorChange={setNavigationGuideAnchor}
         onDismissGuidance={conciergeFocus === null ? undefined : () => setConciergeFocus(null)}
@@ -1451,6 +1489,12 @@ function GameApp() {
             action?.();
           }}
         />
+        <AdvanceTrainingGuard
+          guard={advanceTrainingGuard}
+          onLockIn={lockInTrainingAndAdvance}
+          onAdvanceAnyway={advanceWeekWithoutSaving}
+          onKeepEditing={dismissAdvanceTrainingGuard}
+        />
         <SettingsOverlay
           open={globalSettingsOpen}
           glossary={content.glossary}
@@ -1515,7 +1559,11 @@ function GameApp() {
             coach={coachOverlay.coach}
             reduceMotion={reduceMotion}
             onConfirm={coachOverlay.mode === 'confirm-dismiss' ? confirmCoachDismissal : undefined}
-            onClose={() => setCoachOverlay(null)}
+            onClose={() => {
+              const returnsHome = coachOverlay.mode !== 'confirm-dismiss';
+              setCoachOverlay(null);
+              if (returnsHome) useM1Store.getState().setActiveTab('home');
+            }}
           />
         ) : null}
         {facilityProjectNotice !== null ? (
@@ -1703,6 +1751,68 @@ function feedbackNoticeAccessibilityLabel(message: string): string {
   const trimmed = message.trim();
   const sentence = /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
   return `${sentence} Tap to dismiss.`;
+}
+
+function AdvanceTrainingGuard({
+  guard,
+  onLockIn,
+  onAdvanceAnyway,
+  onKeepEditing,
+}: {
+  guard: { isEdit: boolean } | null;
+  onLockIn: () => void;
+  onAdvanceAnyway: () => void;
+  onKeepEditing: () => void;
+}) {
+  return (
+    <Modal
+      transparent
+      animationType="fade"
+      visible={guard !== null}
+      onRequestClose={onKeepEditing}
+    >
+      <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
+        <View accessibilityViewIsModal className="border-2 border-b-4 border-ink bg-paper p-5">
+          <Text className="font-mono text-sm font-bold uppercase text-stamp">Before you advance</Text>
+          <Text className="mt-2 font-pixel text-xl uppercase text-ink">Your new training plan isn’t locked in</Text>
+          <Text className="mt-3 text-base leading-6 text-ink/70">
+            {guard?.isEdit
+              ? 'You changed your training plan but haven’t locked the new one in. Advance now and this week runs your last saved plan — your changes won’t take effect until you lock them in.'
+              : 'You haven’t locked in a training plan yet, so your squad won’t train this week.'}
+          </Text>
+          <View className="mt-5 flex-row gap-3">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Advance the week without saving your training changes"
+              onPress={onAdvanceAnyway}
+              className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
+              style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+            >
+              <Text className="font-pixel text-sm uppercase text-ink">Advance anyway</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Lock in the training plan, then advance the week"
+              onPress={onLockIn}
+              className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-violet px-3"
+              style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+            >
+              <Text className="font-pixel text-sm uppercase text-paper">Lock in & advance</Text>
+            </Pressable>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Keep editing your training plan"
+            onPress={onKeepEditing}
+            className="mt-3 min-h-11 items-center justify-center"
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : undefined })}
+          >
+            <Text className="font-mono text-sm font-bold uppercase text-ink/60">Keep editing</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 function ConfirmationSheet({
