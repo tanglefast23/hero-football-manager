@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { cloneElement, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import {
   ScrollView,
   Text,
@@ -170,6 +170,9 @@ export function MarketScreen({
       <StatusChip label={viewModel.periodLabel} />
     </View>
   );
+  const wideHeader = cloneElement(header, {
+    className: `mb-5 ${header.props.className}`,
+  });
 
   const youthDesk = viewModel.youth ? (
     <YouthDesk
@@ -285,7 +288,7 @@ export function MarketScreen({
           <View className="mt-6">{activeDesk}</View>
         </>
       ) : (
-        <SectionFlow mode={layoutMode} header={header} sections={sections} />
+        <SectionFlow mode={layoutMode} header={wideHeader} sections={sections} />
       )}
       </ScrollView>
     </View>

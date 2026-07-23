@@ -277,7 +277,7 @@ export function SquadTrainingScreen({
         <SectionFlow
           mode={layoutMode}
           header={
-            <View>
+            <View className="mb-6">
               <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Squad room</Text>
               <Text className="mt-1 text-xl font-bold uppercase text-ink">Roster & training</Text>
             </View>

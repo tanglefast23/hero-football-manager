@@ -133,7 +133,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
       <SectionFlow
         mode={layoutMode}
         header={
-          <View className="flex-row items-end justify-between">
+          <View className="mb-5 flex-row items-end justify-between">
             <View>
               <Text className="text-sm font-bold uppercase text-blue-dark">Competition office</Text>
               <Text className="mt-1 text-xl font-bold uppercase text-ink">{viewModel.divisionLabel}</Text>

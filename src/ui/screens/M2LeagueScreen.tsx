@@ -307,7 +307,7 @@ export function M2LeagueScreen({
       <SectionFlow
         mode={layoutMode}
         header={
-          <View className="flex-row items-end justify-between gap-3">
+          <View className="mb-5 flex-row items-end justify-between gap-3">
             <View className="flex-1">
               <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Competition office</Text>
               <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.title}</Text>

@@ -357,7 +357,7 @@ export function ClubFinancesScreen({
       <SectionFlow
         mode={layoutMode}
         header={
-      <View className="flex-row items-end justify-between">
+      <View className="mb-5 flex-row items-end justify-between">
         <View>
           <Text className="text-sm font-bold uppercase text-blue-dark">Accounts office</Text>
           <Text className="mt-1 text-xl font-bold uppercase text-ink">Club finances</Text>
