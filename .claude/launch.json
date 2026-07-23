@@ -4,26 +4,57 @@
     {
       "name": "expo-metro",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["expo", "start"],
+      "runtimeArgs": [
+        "expo",
+        "start"
+      ],
       "port": 8081
     },
     {
       "name": "expo-web-gate",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["expo", "start", "--web", "--port", "8099"],
+      "runtimeArgs": [
+        "expo",
+        "start",
+        "--web",
+        "--port",
+        "8099"
+      ],
       "port": 8099
     },
     {
       "name": "sprite-preview",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8471", "--directory", "/Users/joemacprom5/Documents/Vibecode/HFM-art-worktree/art"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8471",
+        "--directory",
+        "/Users/joemacprom5/Documents/Vibecode/HFM-art-worktree/art"
+      ],
       "port": 8471
     },
     {
       "name": "audio-preview",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8472", "--directory", "/Users/joemacprom5/Documents/Vibecode/HFM-audio-worktree"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8472",
+        "--directory",
+        "/Users/joemacprom5/Documents/Vibecode/HFM-audio-worktree"
+      ],
       "port": 8472
+    },
+    {
+      "name": "mockups",
+      "url": "http://localhost:4519",
+      "port": 4519
+    },
+    {
+      "name": "home-qa",
+      "url": "http://localhost:4520",
+      "port": 4520
     }
   ]
 }
