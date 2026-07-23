@@ -1285,6 +1285,7 @@ function GameApp() {
             onDismissSlotLimit={store.clearTrainingSlotLimit}
             guideTraining={assistantObjective?.target === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
+            reduceMotion={reduceMotion}
           />
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen
