@@ -247,6 +247,49 @@ function cupViewModel(
   };
 }
 
+/** Maps a single league fixture to its player-facing row. Shared by the M2 pyramid league
+ * builder and the season-1 single-division league builder — both careers use the same
+ * `LeagueFixture` shape and the same "your result, at a glance" presentation. */
+export function leagueFixtureViewModel(
+  fixture: LeagueFixture,
+  userClubId: string,
+  currentWeek: number | undefined,
+  clubName: (clubId: string) => string,
+): M2LeagueFixtureViewModel {
+  const userIsHome = fixture.homeClubId === userClubId;
+  const opponentId = userIsHome ? fixture.awayClubId : fixture.homeClubId;
+  const score = fixture.score;
+  if (fixture.status === 'played' && score === undefined) {
+    throw new Error(`played league fixture ${fixture.id} has no score`);
+  }
+  if (score !== undefined && (
+    !Number.isSafeInteger(score.homeGoals)
+    || score.homeGoals < 0
+    || !Number.isSafeInteger(score.awayGoals)
+    || score.awayGoals < 0
+  )) throw new Error(`league fixture ${fixture.id} has an invalid score`);
+
+  let result: M2LeagueFixtureViewModel['result'];
+  if (score !== undefined) {
+    const userGoals = userIsHome ? score.homeGoals : score.awayGoals;
+    const opponentGoals = userIsHome ? score.awayGoals : score.homeGoals;
+    result = userGoals > opponentGoals ? 'WIN' : userGoals < opponentGoals ? 'LOSS' : 'DRAW';
+  }
+  return {
+    id: fixture.id,
+    week: fixture.week,
+    weekLabel: `Week ${fixture.week}`,
+    homeClubName: clubName(fixture.homeClubId),
+    awayClubName: clubName(fixture.awayClubId),
+    opponentName: clubName(opponentId),
+    venue: userIsHome ? 'HOME' : 'AWAY',
+    scoreLabel: score === undefined ? 'VS' : `${score.homeGoals}-${score.awayGoals}`,
+    status: fixture.status === 'played' ? 'PLAYED' : 'SCHEDULED',
+    ...(result === undefined ? {} : { result }),
+    currentWeek: fixture.week === currentWeek,
+  };
+}
+
 function leagueFixtureHistory(
   source: M2LeagueViewModelSource,
   clubNames: ReadonlyMap<string, string>,
@@ -258,40 +301,12 @@ function leagueFixtureHistory(
     ))
     .slice()
     .sort((left, right) => left.week - right.week || left.round - right.round || left.id.localeCompare(right.id))
-    .map(fixture => {
-      const userIsHome = fixture.homeClubId === source.career.userClubId;
-      const opponentId = userIsHome ? fixture.awayClubId : fixture.homeClubId;
-      const score = fixture.score;
-      if (fixture.status === 'played' && score === undefined) {
-        throw new Error(`played league fixture ${fixture.id} has no score`);
-      }
-      if (score !== undefined && (
-        !Number.isSafeInteger(score.homeGoals)
-        || score.homeGoals < 0
-        || !Number.isSafeInteger(score.awayGoals)
-        || score.awayGoals < 0
-      )) throw new Error(`league fixture ${fixture.id} has an invalid score`);
-
-      let result: M2LeagueFixtureViewModel['result'];
-      if (score !== undefined) {
-        const userGoals = userIsHome ? score.homeGoals : score.awayGoals;
-        const opponentGoals = userIsHome ? score.awayGoals : score.homeGoals;
-        result = userGoals > opponentGoals ? 'WIN' : userGoals < opponentGoals ? 'LOSS' : 'DRAW';
-      }
-      return {
-        id: fixture.id,
-        week: fixture.week,
-        weekLabel: `Week ${fixture.week}`,
-        homeClubName: requireClubName(clubNames, fixture.homeClubId),
-        awayClubName: requireClubName(clubNames, fixture.awayClubId),
-        opponentName: requireClubName(clubNames, opponentId),
-        venue: userIsHome ? 'HOME' : 'AWAY',
-        scoreLabel: score === undefined ? 'VS' : `${score.homeGoals}-${score.awayGoals}`,
-        status: fixture.status === 'played' ? 'PLAYED' : 'SCHEDULED',
-        ...(result === undefined ? {} : { result }),
-        currentWeek: fixture.week === source.week,
-      };
-    });
+    .map(fixture => leagueFixtureViewModel(
+      fixture,
+      source.career.userClubId,
+      source.week,
+      clubId => requireClubName(clubNames, clubId),
+    ));
 }
 
 function selectCup(cups: readonly NationalCup[], selectedCupSeason?: number): NationalCup {
