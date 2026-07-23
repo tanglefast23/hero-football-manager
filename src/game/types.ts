@@ -50,9 +50,14 @@ export interface CareerTrainingDrill {
   gains: Partial<Attrs>;
 }
 
+export interface CareerTrainingSlot {
+  playerId: string;
+  /** Tier-1 drill id identifying the path; best unlocked tier resolves at settlement. */
+  pathId: string;
+}
+
 export interface CareerTrainingPlan {
-  assignedPlayerIds: string[];
-  drills: CareerTrainingDrill[];
+  slots: CareerTrainingSlot[];
 }
 
 export interface CareerTrainingCapNotice {

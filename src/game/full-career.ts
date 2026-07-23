@@ -186,8 +186,7 @@ export function startNextFullCareerSeason(
     trainingPlan: state.trainingPlan === undefined
       ? undefined
       : {
-          ...state.trainingPlan,
-          assignedPlayerIds: state.trainingPlan.assignedPlayerIds.filter(id => !retiredIds.has(id)),
+          slots: state.trainingPlan.slots.filter(slot => !retiredIds.has(slot.playerId)),
         },
     m2: nextM2,
     retiredPlayers,

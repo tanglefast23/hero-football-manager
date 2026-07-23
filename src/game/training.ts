@@ -3,15 +3,12 @@ import { facilityEffects } from './facilities';
 import { trainingMultiplierForAge } from './pyramid';
 import { careerCoachTrainingModifiers } from './coach-weekly';
 import { capPlayerTrainingGain, playerAttributeCaps } from './archetype-caps';
-import { trainingDrillBlockedReason } from './promotion-progression';
-import {
-  assertCareerTrainingHonorsContractPromises,
-  hasActiveCareerContractPromise,
-} from './contract-promises';
+import { resolveTrainingDrillForPath, trainingPathAttribute } from './training-paths';
+import { assertCareerTrainingHonorsContractPromises } from './contract-promises';
 import type {
   CareerPlayer,
   CareerTrainingDrill,
-  CareerTrainingPlan,
+  CareerTrainingSlot,
   GameState,
 } from './types';
 
@@ -24,21 +21,6 @@ export interface WeeklyTrainingResolution {
   skippedCaps: TrainingCapReached[];
 }
 
-export interface TrainingPlanCapConflict {
-  playerId: string;
-  playerName: string;
-  drillId: string;
-  drillName: string;
-  attributes: (keyof CareerPlayer['attrs'])[];
-}
-
-export interface ChargeableCareerTrainingPlan {
-  drills: FocusDrill[];
-  capConflicts: TrainingPlanCapConflict[];
-  moneyCost: number;
-  trainingPointCost: number;
-}
-
 export interface TrainingCapReached {
   playerId: string;
   playerName: string;
@@ -48,277 +30,110 @@ export interface TrainingCapReached {
   kind?: 'reached' | 'skipped';
 }
 
-/**
- * True when the in-editor selection is exactly the saved plan (same trainees and
- * same drills, order-independent). Drives the "unsaved changes" highlight and the
- * advance-week guard, so both agree on when a plan still needs locking in.
- */
-export function trainingSelectionMatchesSavedPlan(
-  savedPlan: CareerTrainingPlan | undefined,
-  assignedPlayerIds: readonly string[],
-  selectedDrillIds: readonly string[],
-): boolean {
-  if (savedPlan === undefined) return false;
-  const savedDrillIds = savedPlan.drills.map(drill => drill.id);
-  return savedPlan.assignedPlayerIds.length === assignedPlayerIds.length
-    && savedPlan.assignedPlayerIds.every(playerId => assignedPlayerIds.includes(playerId))
-    && savedDrillIds.length === selectedDrillIds.length
-    && savedDrillIds.every(drillId => selectedDrillIds.includes(drillId));
+/** True when the slot's player has already reached the cap for the slot's stat. */
+export function slotIsAtCap(state: GameState, slot: CareerTrainingSlot): boolean {
+  const player = userRoster(state).find(candidate => candidate.id === slot.playerId);
+  if (player === undefined) return false;
+  const attribute = trainingPathAttribute(slot.pathId);
+  return player.attrs[attribute] >= playerAttributeCaps(player)[attribute];
+}
+
+/** Sums the best-tier TP cost of every slot whose stat still has room. */
+export function slotTrainingPointCost(state: GameState, slots: readonly CareerTrainingSlot[]): number {
+  let tp = 0;
+  for (const slot of slots) {
+    if (slotIsAtCap(state, slot)) continue;
+    tp = checkedAdd(tp, resolveTrainingDrillForPath(state, slot.pathId).tpCost, 'weekly training point cost');
+  }
+  return tp;
 }
 
 /**
- * Stores a repeating weekly template. Attribute gains and costs resolve once,
- * at weekly settlement, so editing the template repeatedly cannot duplicate a
- * week's training.
+ * Stores a repeating weekly template of player+path slots. Attribute gains and
+ * costs resolve once, at weekly settlement, so editing the template repeatedly
+ * cannot duplicate a week's training.
  */
 export function setCareerTrainingPlan(
   state: GameState,
-  assignedPlayerIds: readonly string[],
-  drills: readonly FocusDrill[],
+  slots: readonly CareerTrainingSlot[],
 ): GameState {
   if (state.phase !== 'manage') {
     throw new Error('training plans can only change during the manage phase');
   }
-  const maxDrills = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
-  if (assignedPlayerIds.length === 0) {
-    throw new Error('a training plan requires at least one assigned player');
+  const maxSlots = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
+  if (slots.length > maxSlots) {
+    throw new Error(`a training plan allows at most ${maxSlots} players`);
   }
-  if (drills.length === 0 || drills.length > maxDrills) {
-    throw new Error(`a training plan requires from 1 to ${maxDrills} focus drills`);
+  if (new Set(slots.map(slot => slot.playerId)).size !== slots.length) {
+    throw new Error('a player can occupy only one training slot');
   }
-  assertDistinctTrainingDrillPaths(drills);
-  assertCareerTrainingDrillsUnlocked(state, drills);
-  assertCareerTrainingHonorsContractPromises(state, assignedPlayerIds);
-
-  // applyTrainingPlan is the shared validation boundary for player IDs, drill
-  // IDs, attributes, and cost integers. Validate the full authored plan first,
-  // then use exact resources only for drills with at least one eligible player.
-  // A fully capped plan is allowed so it can be saved with actionable warnings
-  // without requiring resources that will never be charged.
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
-  const roster = userRoster(state);
-  applyTrainingPlan(
-    roster,
-    assignedPlayerIds,
-    drills,
-    { money: Number.MAX_SAFE_INTEGER, tp: Number.MAX_SAFE_INTEGER },
-  );
-  const chargeable = chargeableCareerTrainingPlan(state, assignedPlayerIds, drills);
-  if (
-    chargeable.moneyCost > Math.max(0, club.cash)
-    || chargeable.trainingPointCost > state.trainingPoints
-  ) {
-    throw new Error('Training plan is not affordable');
+  const roster = new Set(userRoster(state).map(player => player.id));
+  for (const slot of slots) {
+    if (!roster.has(slot.playerId)) throw new Error(`unknown trainee ${slot.playerId}`);
+    resolveTrainingDrillForPath(state, slot.pathId); // throws on unknown path
   }
-  const skippedCaps = capConflictsAsSkippedCaps(state, chargeable.capConflicts);
-  const existingNoticeIds = new Set((state.trainingCapNotices ?? []).map(notice => notice.id));
-  const trainingCapNotices = [
-    ...(state.trainingCapNotices ?? []),
-    ...skippedCaps
-      .map(skipped => trainingCapNotice(state, skipped))
-      .filter(notice => !existingNoticeIds.has(notice.id)),
-  ];
-
-  return {
-    ...state,
-    trainingPlan: {
-      assignedPlayerIds: [...assignedPlayerIds],
-      drills: drills.map(cloneDrill),
-    },
-    trainingCapNotices,
-  };
+  assertCareerTrainingHonorsContractPromises(state, slots.map(slot => slot.playerId));
+  return { ...state, trainingPlan: { slots: slots.map(slot => ({ ...slot })) } };
 }
 
 /** Resolves free conditioning plus the affordable repeating focus plan once. */
 export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResolution {
   const roster = userRoster(state);
   const base = state.trainingRules?.baseConditioning;
-  const coachModifiers = state.market === undefined
-    ? undefined
-    : careerCoachTrainingModifiers(state.market);
+  const coachModifiers = state.market === undefined ? undefined : careerCoachTrainingModifiers(state.market);
   const conditioned = base === undefined
     ? roster
-    : applyTrainingPlan(
-        roster,
-        roster.map(player => player.id),
-        [base],
-        { money: 0, tp: 0 },
-      ).players as CareerPlayer[];
+    : applyTrainingPlan(roster, roster.map(p => p.id), [base], { money: 0, tp: 0 }).players as CareerPlayer[];
 
-  const plan = state.trainingPlan;
-  const assignedPlayerIds = plan === undefined
-    ? []
-    : Array.from(new Set([
-        ...plan.assignedPlayerIds,
-        ...roster
-          .filter(player => (
-            player.injuryWeeks === 0
-            && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
-          ))
-          .map(player => player.id),
-      ]));
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
-  const chargeable = plan === undefined
-    ? { drills: [], capConflicts: [], moneyCost: 0, trainingPointCost: 0 }
-    : chargeableCareerTrainingPlan(state, assignedPlayerIds, plan.drills);
-  const capConflicts = chargeable.capConflicts;
-  const blockedPlayerDrills = new Set(
-    capConflicts.map(conflict => `${conflict.playerId}:${conflict.drillId}`),
-  );
-  const executableDrills = plan === undefined
-    ? []
-    : chargeable.drills.flatMap(drill => {
-        const eligiblePlayerIds = assignedPlayerIds.filter(playerId => (
-          !blockedPlayerDrills.has(`${playerId}:${drill.id}`)
-        ));
-        return eligiblePlayerIds.length === 0 ? [] : [{ drill, eligiblePlayerIds }];
-      });
-  const focusCost = {
-    money: chargeable.moneyCost,
-    tp: chargeable.trainingPointCost,
-  };
-  const canAffordFocus = executableDrills.length > 0
-    && focusCost.money <= Math.max(0, club.cash)
-    && focusCost.tp <= state.trainingPoints;
-  let focused = {
-    players: conditioned as CareerPlayer[],
-    resources: { money: Math.max(0, club.cash), tp: state.trainingPoints },
-  };
-  if (canAffordFocus) {
-    for (const execution of executableDrills) {
+  const slots = state.trainingPlan?.slots ?? [];
+  const executable = slots
+    .filter(slot => !slotIsAtCap(state, slot))
+    .map(slot => ({ slot, drill: resolveTrainingDrillForPath(state, slot.pathId) }));
+  const tpCost = executable.reduce((sum, e) => checkedAdd(sum, e.drill.tpCost, 'weekly training point cost'), 0);
+  const canAfford = executable.length > 0 && tpCost <= state.trainingPoints;
+
+  let players = conditioned as CareerPlayer[];
+  let tp = state.trainingPoints;
+  if (canAfford) {
+    for (const { slot, drill } of executable) {
       const applied = applyTrainingPlan(
-        focused.players,
-        execution.eligiblePlayerIds,
-        [{
-          ...execution.drill,
-          moneyCost: checkedMultiply(
-            execution.drill.moneyCost,
-            execution.eligiblePlayerIds.length,
-            'weekly training money cost',
-          ),
-        }],
-        focused.resources,
+        players,
+        [slot.playerId],
+        [{ id: drill.id, moneyCost: 0, tpCost: drill.tpCost, gains: { ...drill.gains } }],
+        { money: Number.MAX_SAFE_INTEGER, tp },
       );
-      focused = {
-        players: applied.players as CareerPlayer[],
-        resources: applied.resources,
-      };
+      players = applied.players as CareerPlayer[];
+      tp = applied.resources.tp;
     }
   }
 
   const growthAdjusted = state.careerMode === 'full'
-    ? applyM2TrainingGrowthModifiers(
-        state,
-        roster,
-        focused.players as CareerPlayer[],
-        coachModifiers,
-      )
-    : focused.players as CareerPlayer[];
+    ? applyM2TrainingGrowthModifiers(state, roster, players, coachModifiers)
+    : players;
   const staminaBonusPercent = state.facilities.grid === undefined
     ? 0
     : facilityEffects(state.facilities.grid).staminaTrainingBonusPercent;
-  const facilityBoosted = applyFacilityStaminaBonus(
-    roster,
-    growthAdjusted,
-    staminaBonusPercent,
-  );
+  const facilityBoosted = applyFacilityStaminaBonus(roster, growthAdjusted, staminaBonusPercent);
 
-  const trainedById = new Map(
-    facilityBoosted.map(player => [player.id, player]),
-  );
+  const trainedById = new Map(facilityBoosted.map(p => [p.id, p]));
   const reachedCaps = findReachedTrainingCaps(
-    state,
-    roster,
-    facilityBoosted,
-    assignedPlayerIds,
-    plan?.drills ?? [],
-    canAffordFocus,
+    state, roster, facilityBoosted,
+    executable.map(e => e.slot.playerId),
+    executable.map(e => ({ id: e.drill.id, moneyCost: 0, tpCost: e.drill.tpCost, gains: e.drill.gains })),
+    canAfford,
   );
+
   return {
-    players: state.players.map(player => {
-      const trained = trainedById.get(player.id);
-      return trained === undefined
-        ? player
-        : { ...player, ...trained, attrs: { ...trained.attrs } };
+    players: state.players.map(p => {
+      const trained = trainedById.get(p.id);
+      return trained === undefined ? p : { ...p, ...trained, attrs: { ...trained.attrs } };
     }),
-    trainingPoints: focused.resources.tp,
-    moneyCost: canAffordFocus ? focusCost.money : 0,
-    focusApplied: canAffordFocus,
+    trainingPoints: tp,
+    moneyCost: 0,
+    focusApplied: canAfford,
     reachedCaps,
-    skippedCaps: canAffordFocus || executableDrills.length === 0
-      ? capConflictsAsSkippedCaps(state, capConflicts)
-      : [],
+    skippedCaps: [],
   };
-}
-
-/**
- * Prices exactly the drills that weekly settlement can execute. Money is
- * charged once per eligible assigned trainee; TP is charged once per
- * selected drill. A player/drill pairing is free for that week only when that
- * player is already capped on every attribute the drill improves.
- */
-export function chargeableCareerTrainingPlan(
-  state: GameState,
-  assignedPlayerIds: readonly string[],
-  drills: readonly FocusDrill[],
-): ChargeableCareerTrainingPlan {
-  const unlockedDrills = drills.filter(drill => trainingDrillBlockedReason(state, drill.id) === undefined);
-  const capConflicts = trainingPlanCapConflicts(state, assignedPlayerIds, unlockedDrills);
-  const blockedPlayerDrills = new Set(
-    capConflicts.map(conflict => `${conflict.playerId}:${conflict.drillId}`),
-  );
-  const chargeableDrills = unlockedDrills.filter(drill => assignedPlayerIds.some(playerId => (
-    !blockedPlayerDrills.has(`${playerId}:${drill.id}`)
-  )));
-  let moneyCost = 0;
-  let trainingPointCost = 0;
-  for (const drill of chargeableDrills) {
-    const eligibleTraineeCount = assignedPlayerIds.filter(playerId => (
-      !blockedPlayerDrills.has(`${playerId}:${drill.id}`)
-    )).length;
-    moneyCost = checkedAdd(
-      moneyCost,
-      checkedMultiply(drill.moneyCost, eligibleTraineeCount, 'weekly training money cost'),
-      'weekly training money cost',
-    );
-    trainingPointCost = checkedAdd(trainingPointCost, drill.tpCost, 'weekly training point cost');
-  }
-  return {
-    drills: chargeableDrills.map(cloneDrill),
-    capConflicts,
-    moneyCost,
-    trainingPointCost,
-  };
-}
-
-/** Returns player/drill pairs that cannot add any of that drill's attributes. */
-export function trainingPlanCapConflicts(
-  state: GameState,
-  assignedPlayerIds: readonly string[],
-  drills: readonly FocusDrill[],
-): TrainingPlanCapConflict[] {
-  if (state.careerMode !== 'full') return [];
-  const roster = new Map(userRoster(state).map(player => [player.id, player]));
-  return assignedPlayerIds.flatMap(playerId => {
-    const player = roster.get(playerId);
-    if (player === undefined) return [];
-    const caps = playerAttributeCaps(player);
-    return drills.flatMap(drill => {
-      const attributes = trainingAttributes(drill);
-      if (attributes.length === 0 || attributes.some(attribute => player.attrs[attribute] < caps[attribute])) {
-        return [];
-      }
-      return [{
-        playerId,
-        playerName: player.name,
-        drillId: drill.id,
-        drillName: drillDisplayName(drill),
-        attributes,
-      }];
-    });
-  });
 }
 
 function findReachedTrainingCaps(
@@ -363,12 +178,6 @@ function findReachedTrainingCaps(
 function trainingAttributes(drill: FocusDrill | CareerTrainingDrill): (keyof CareerPlayer['attrs'])[] {
   return (Object.entries(drill.gains) as Array<[keyof CareerPlayer['attrs'], number | undefined]>)
     .flatMap(([attribute, gain]) => gain === undefined || gain <= 0 ? [] : [attribute]);
-}
-
-function drillDisplayName(drill: FocusDrill): string {
-  const authoredName = (drill as FocusDrill & { readonly name?: string }).name;
-  if (authoredName !== undefined) return authoredName;
-  return drill.id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
 
 /**
@@ -550,64 +359,6 @@ function userRoster(state: GameState): CareerPlayer[] {
   return state.players
     .filter(player => player.clubId === state.userClubId)
     .map(player => ({ ...player, attrs: { ...player.attrs } }));
-}
-
-export function trainingDrillPathId(drillId: string): string {
-  return drillId.replace(/-(ii|iii)$/, '');
-}
-
-function assertDistinctTrainingDrillPaths(drills: readonly FocusDrill[]): void {
-  const paths = drills.map(drill => trainingDrillPathId(drill.id));
-  if (new Set(paths).size !== paths.length) {
-    throw new Error('a training plan can use only one level from each drill path');
-  }
-}
-
-function assertCareerTrainingDrillsUnlocked(
-  state: GameState,
-  drills: readonly FocusDrill[],
-): void {
-  for (const drill of drills) {
-    const blockedReason = trainingDrillBlockedReason(state, drill.id);
-    if (blockedReason !== undefined) throw new Error(blockedReason);
-  }
-}
-
-function capConflictsAsSkippedCaps(
-  state: GameState,
-  conflicts: readonly TrainingPlanCapConflict[],
-): TrainingCapReached[] {
-  const existingSkipped = new Set(
-    (state.trainingCapNotices ?? [])
-      .filter(notice => notice.kind === 'skipped')
-      .map(notice => `${notice.playerId}:${notice.drillId}:${notice.attribute}`),
-  );
-  return conflicts.flatMap(conflict => conflict.attributes.flatMap(attribute => {
-    const key = `${conflict.playerId}:${conflict.drillId}:${attribute}`;
-    if (existingSkipped.has(key)) return [];
-    const player = state.players.find(candidate => candidate.id === conflict.playerId);
-    if (player === undefined) return [];
-    return [{
-      playerId: conflict.playerId,
-      playerName: conflict.playerName,
-      drillId: conflict.drillId,
-      attribute,
-      cap: playerAttributeCaps(player)[attribute],
-      kind: 'skipped' as const,
-    }];
-  }));
-}
-
-function trainingCapNotice(state: GameState, cap: TrainingCapReached) {
-  const kind = cap.kind ?? 'reached';
-  return {
-    id: kind === 'skipped'
-      ? `training-cap:skipped:s${state.season}-w${state.week}:${cap.playerId}:${cap.attribute}:${cap.drillId}`
-      : `training-cap:s${state.season}-w${state.week}:${cap.playerId}:${cap.attribute}:${cap.drillId}`,
-    season: state.season,
-    week: state.week,
-    ...cap,
-  };
 }
 
 function cloneDrill(drill: FocusDrill | CareerTrainingDrill): CareerTrainingDrill {

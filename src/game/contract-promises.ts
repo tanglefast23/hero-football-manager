@@ -6,6 +6,7 @@ import type {
 } from './types';
 import { roleOverall } from './archetype-caps';
 import { currentUserDivision } from './m2-career';
+import { TRAINING_PATHS } from './training-paths';
 
 const STARTING_PROMISES: readonly CareerContractPerk[] = [
   'GUARANTEED_STARTER',
@@ -82,11 +83,15 @@ export function applyCareerContractPromise(
     lineups = restoreCareerContractPromiseLineup({ ...state, players }).lineups;
   }
 
+  const maxTrainingSlots = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
   const trainingPlan = perk === 'TRAINING_PRIORITY' && state.trainingPlan !== undefined
-    && !state.trainingPlan.assignedPlayerIds.includes(playerId)
+    && !state.trainingPlan.slots.some(slot => slot.playerId === playerId)
+    && state.trainingPlan.slots.length < maxTrainingSlots
     ? {
-        ...state.trainingPlan,
-        assignedPlayerIds: [...state.trainingPlan.assignedPlayerIds, playerId],
+        slots: [
+          ...state.trainingPlan.slots,
+          { playerId, pathId: weakestTrainingPathId(player) },
+        ],
       }
     : state.trainingPlan;
 
@@ -96,6 +101,13 @@ export function applyCareerContractPromise(
     ? { ...candidate, contractPromise: { ...promise } }
     : candidate);
   return { ...state, players, lineups, trainingPlan };
+}
+
+/** Picks the trainee's lowest-rated stat as the default path for an auto-added training slot. */
+function weakestTrainingPathId(player: CareerPlayer): string {
+  return TRAINING_PATHS.reduce((weakest, path) => (
+    player.attrs[path.attribute] < player.attrs[weakest.attribute] ? path : weakest
+  )).pathId;
 }
 
 /** Restores recovered promised starters after injury repair and weekly settlement. */

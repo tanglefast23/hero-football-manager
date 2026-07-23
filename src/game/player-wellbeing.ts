@@ -65,9 +65,9 @@ export function resolveWeeklyPlayerWellbeing(
   }
   const starters = new Set(lineup?.playerIds ?? []);
   const focusedPlayerIds = context.focusApplied
-    ? new Set(state.trainingPlan?.assignedPlayerIds ?? [])
+    ? new Set((state.trainingPlan?.slots ?? []).map(slot => slot.playerId))
     : new Set<string>();
-  const focusDrillCount = context.focusApplied ? state.trainingPlan?.drills.length ?? 0 : 0;
+  const focusDrillCount = context.focusApplied ? state.trainingPlan?.slots.length ?? 0 : 0;
   const focusConditionCost = checkedMultiply(
     focusDrillCount,
     FOCUS_DRILL_CONDITION_COST,
