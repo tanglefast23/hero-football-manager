@@ -1,28 +1,25 @@
 import { loadLaunchContent } from '../../content';
-import { applyCareerTraining, createCareer } from '../../game';
+import { createCareer, setCareerTrainingPlan } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { trainingTransitionScene } from '../training-transition';
 
 describe('training transition scene', () => {
   const content = loadLaunchContent();
 
-  it('shows up to three assigned players across the selected drills', () => {
+  it('shows the assigned players across their training paths', () => {
     const initial = {
       ...createCareer(createLaunchCareerSetup(123)),
       trainingPoints: 100,
     };
-    const drills = content.training.focusDrills.filter(drill =>
-      ['sprints', 'finishing', 'rondo'].includes(drill.id),
-    );
-    const state = applyCareerTraining(
-      initial,
-      ['bramble-rovers-p01', 'bramble-rovers-p02', 'bramble-rovers-p03', 'bramble-rovers-p04'],
-      drills,
-    );
+    const state = setCareerTrainingPlan(initial, [
+      { playerId: 'bramble-rovers-p01', pathId: 'sprints' },
+      { playerId: 'bramble-rovers-p02', pathId: 'finishing' },
+      { playerId: 'bramble-rovers-p03', pathId: 'rondo' },
+    ]);
 
     expect(trainingTransitionScene(state, content)).toMatchObject({
       mode: 'plan',
-      drillLabels: ['Sprints I', 'Finishing I', 'Rondo I'],
+      drillLabels: ['Sprints III', 'Finishing III', 'Rondo III'],
       participants: [
         { playerId: 'bramble-rovers-p01', activityId: 'sprints' },
         { playerId: 'bramble-rovers-p02', activityId: 'finishing' },
@@ -41,48 +38,42 @@ describe('training transition scene', () => {
     });
   });
 
-  it('maps the defensive, conditioning, and keeper drills to distinct activities', () => {
+  it('maps the defensive, conditioning, and keeper paths to distinct activities', () => {
     const initial = {
       ...createCareer(createLaunchCareerSetup(654)),
       trainingPoints: 100,
     };
-    const drills = content.training.focusDrills.filter(drill =>
-      ['duels', 'circuit', 'keeper-drills'].includes(drill.id),
-    );
-    const state = applyCareerTraining(
-      initial,
-      ['bramble-rovers-p01', 'bramble-rovers-p02', 'bramble-rovers-p03'],
-      drills,
-    );
+    const state = setCareerTrainingPlan(initial, [
+      { playerId: 'bramble-rovers-p01', pathId: 'duels' },
+      { playerId: 'bramble-rovers-p02', pathId: 'circuit' },
+      { playerId: 'bramble-rovers-p03', pathId: 'keeper-drills' },
+    ]);
 
     expect(trainingTransitionScene(state, content).participants.map(participant =>
       participant.activityId,
     )).toEqual(['duels', 'circuit', 'keeper-drills']);
   });
 
-  it('maps upgraded drill tiers to their path activity', () => {
+  it('maps the first-touch path to the rondo activity', () => {
     const initial = {
       ...createCareer(createLaunchCareerSetup(655)),
       trainingPoints: 100,
     };
-    const drills = content.training.focusDrills.filter(drill =>
-      ['sprints-ii', 'first-touch-iii'].includes(drill.id),
-    );
-    const state = applyCareerTraining(
-      initial,
-      ['bramble-rovers-p01', 'bramble-rovers-p02'],
-      drills,
-    );
+    const state = setCareerTrainingPlan(initial, [
+      { playerId: 'bramble-rovers-p01', pathId: 'sprints' },
+      { playerId: 'bramble-rovers-p02', pathId: 'first-touch' },
+    ]);
 
     expect(trainingTransitionScene(state, content).participants.map(participant =>
       participant.activityId,
     )).toEqual(['sprints', 'rondo']);
   });
 
-  it('does not present an unaffordable repeating plan as completed training', () => {
+  it('does not present an unaffordable plan as completed training', () => {
     const initial = createCareer(createLaunchCareerSetup(789));
-    const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
-    const planned = applyCareerTraining(initial, ['bramble-rovers-p01'], [sprint]);
+    const planned = setCareerTrainingPlan(initial, [
+      { playerId: 'bramble-rovers-p01', pathId: 'sprints' },
+    ]);
     const state = {
       ...planned,
       trainingPoints: 0,
