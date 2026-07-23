@@ -1,15 +1,14 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { loadLaunchContent } from '../../content';
-import { applyCareerTraining, createCareer, setCareerTrainingPlan } from '../../game';
+import { applyCareerTraining, createCareer, resolveTrainingDrillForPath, setCareerTrainingPlan } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { squadTrainingViewModel } from '../view-models';
 
 describe('saved weekly-plan summary', () => {
   const content = loadLaunchContent();
-  const drills = content.training.focusDrills.filter(drill => (
-    drill.id === 'sprints' || drill.id === 'finishing'
-  ));
+  const drillNameFor = (drillId: string) =>
+    content.training.focusDrills.find(candidate => candidate.id === drillId)?.name ?? drillId;
 
   function plannedCareer() {
     const initial = createCareer(createLaunchCareerSetup(20260720, undefined, content));
@@ -27,63 +26,62 @@ describe('saved weekly-plan summary', () => {
           }
         : player),
     };
+    const slots = [
+      { playerId: players[0].id, pathId: 'sprints' },
+      { playerId: players[1].id, pathId: 'finishing' },
+    ];
     return {
       players,
-      state: applyCareerTraining(prepared, players.map(player => player.id), drills),
+      slots,
+      state: applyCareerTraining(prepared, slots),
     };
   }
 
-  it('exposes the locked players, exercises, and weekly costs when the editor matches the saved plan', () => {
-    const { players, state } = plannedCareer();
-    const viewModel = squadTrainingViewModel(
-      state,
-      content,
-      undefined,
-      players.map(player => player.id),
-      drills.map(drill => drill.id),
-    );
+  it('exposes each slot\'s drill name, gain label, and the weekly TP total', () => {
+    const { players, slots, state } = plannedCareer();
+    const sprints = resolveTrainingDrillForPath(state, 'sprints');
+    const finishing = resolveTrainingDrillForPath(state, 'finishing');
+    const viewModel = squadTrainingViewModel(state, content, undefined, slots);
 
-    expect(viewModel.lockedPlan).toEqual({
-      players: players.map(player => ({
-        id: player.id,
-        name: player.name,
-        role: player.role,
-        ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
-        trainingProgress: [
-          { label: 'PAC', value: 20, cap: 99, weeklyGain: 3, atCap: false },
-          { label: 'SHO', value: 20, cap: 99, weeklyGain: 3, atCap: false },
-        ],
-      })),
-      drills: drills.map(drill => ({
-        id: drill.id,
-        name: drill.name,
-        gainLabel: Object.entries(drill.gains)
-          .map(([attribute, gain]) => `+${gain} ${attribute.toUpperCase()}`)
-          .join(' · '),
-      })),
-      moneyCost: drills.reduce((sum, drill) => sum + drill.moneyCost, 0) * players.length,
-      trainingPointCost: drills.reduce((sum, drill) => sum + drill.tpCost, 0),
-    });
+    expect(viewModel.slots).toEqual([
+      {
+        playerId: players[0].id,
+        playerName: players[0].name,
+        pathId: 'sprints',
+        drillName: drillNameFor(sprints.id),
+        gainLabel: `+${sprints.gains.pac} PAC`,
+      },
+      {
+        playerId: players[1].id,
+        playerName: players[1].name,
+        pathId: 'finishing',
+        drillName: drillNameFor(finishing.id),
+        gainLabel: `+${finishing.gains.sho} SHO`,
+      },
+    ]);
+    expect(viewModel.weeklyTrainingPointCost).toBe(sprints.tpCost + finishing.tpCost);
   });
 
-  it('returns to an editable plan total as soon as players or drills differ from the saved plan', () => {
-    const { players, state } = plannedCareer();
+  it('drops a slot from the weekly total as soon as its stat is cleared', () => {
+    const { players, slots, state } = plannedCareer();
+    const finishing = resolveTrainingDrillForPath(state, 'finishing');
+    const draftSlots = [
+      { playerId: players[0].id, pathId: null },
+      slots[1],
+    ];
 
-    expect(squadTrainingViewModel(
-      state,
-      content,
-      undefined,
-      players.slice(0, 1).map(player => player.id),
-      drills.map(drill => drill.id),
-    ).lockedPlan).toBeUndefined();
+    const viewModel = squadTrainingViewModel(state, content, undefined, draftSlots);
 
-    expect(squadTrainingViewModel(
-      state,
-      content,
-      undefined,
-      players.map(player => player.id),
-      drills.slice(0, 1).map(drill => drill.id),
-    ).lockedPlan).toBeUndefined();
+    expect(viewModel.slots).toEqual([{
+      playerId: players[1].id,
+      playerName: players[1].name,
+      pathId: 'finishing',
+      drillName: drillNameFor(finishing.id),
+      gainLabel: `+${finishing.gains.sho} SHO`,
+    }]);
+    expect(viewModel.weeklyTrainingPointCost).toBe(finishing.tpCost);
+    // The player still occupies a slot even without a stat picked yet.
+    expect(viewModel.players.find(player => player.id === players[0].id)?.slotNumber).toBe(1);
   });
 
   it('renders the locked weekly plan instead of the save controls until the selection changes', () => {
@@ -122,17 +120,20 @@ describe('saved weekly-plan summary', () => {
     expect(picker).not.toContain("drill.selected ? '✓' : '+'");
   });
 
-  it('carries each locked drill gain label into the saved plan panel', () => {
+  it('carries each slot\'s gain label from the real drill catalog', () => {
     let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
     const roster = state.players.filter(player => player.clubId === state.userClubId);
     const trainee = roster[0];
-    const drill = content.training.focusDrills[0];
-    state = setCareerTrainingPlan(state, [trainee.id], [drill]);
+    state = setCareerTrainingPlan(state, [{ playerId: trainee.id, pathId: 'sprints' }]);
 
-    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
+    const model = squadTrainingViewModel(
+      state,
+      content,
+      undefined,
+      [{ playerId: trainee.id, pathId: 'sprints' }],
+    );
 
-    // guard first: a bare `lockedPlan?.` chain would hide a missing panel
-    expect(model.lockedPlan).toBeDefined();
-    expect(model.lockedPlan?.drills[0]?.gainLabel).toMatch(/^\+\d+ [A-Z]{3}/);
+    expect(model.slots).toHaveLength(1);
+    expect(model.slots[0]?.gainLabel).toMatch(/^\+\d+ [A-Z]{3}/);
   });
 });

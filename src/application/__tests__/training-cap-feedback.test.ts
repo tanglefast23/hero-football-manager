@@ -7,6 +7,7 @@ import {
   completeAssistantGuideSequence,
   createCareer,
   playerAttributeCaps,
+  resolveTrainingDrillForPath,
   setCareerTrainingPlan,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
@@ -26,7 +27,7 @@ describe('training cap feedback', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
-  it('locks the plan and adds an inbox warning when a selected drill cannot improve the player', () => {
+  it('flags a training slot as a blocking interrupt when the player cannot improve that stat', () => {
     useM1Store.getState().startNewCareer(20260721, 'full');
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
@@ -44,90 +45,81 @@ describe('training cap feedback', () => {
       },
     });
 
-    expect(squadTrainingViewModel(
-      useM1Store.getState().career!,
-      content,
-      player.id,
-      [player.id],
-      ['sprints'],
-    )).toMatchObject({
-      totalMoneyCost: 0,
-      totalTrainingPointCost: 0,
-      canApply: true,
-    });
+    // Before committing, the stat picker already shows this stat as maxed out.
+    const beforeCommit = useM1Store.getState().career!;
+    expect(squadTrainingViewModel(beforeCommit, content, player.id, []).selectedPlayerStatOptions)
+      .toContainEqual(expect.objectContaining({ pathId: 'sprints', room: 0, atCap: true }));
 
     useM1Store.getState().toggleTrainingPlayer(player.id);
-    useM1Store.getState().toggleDrill('sprints');
-    useM1Store.getState().applyTraining();
+    useM1Store.getState().setTrainingSlotStat(player.id, 'sprints');
+    expect(useM1Store.getState().error).toBeNull();
 
     const planned = useM1Store.getState().career!;
     expect(planned.trainingPlan).toMatchObject({
-      assignedPlayerIds: [player.id],
-      drills: [{ id: 'sprints' }],
+      slots: [{ playerId: player.id, pathId: 'sprints' }],
     });
-    expect(useM1Store.getState().error).toBeNull();
-    expect(homeViewModel(planned).alerts).toContainEqual({
-      id: `training-cap:skipped:s1-w1:${player.id}:pac:sprints`,
-      title: `${player.name} skipped Sprints I`,
-      detail: `${player.name} is already at their PAC maximum of ${pacCap}. Pick another player or drill for next week.`,
-      tone: 'info',
+
+    const vm = squadTrainingViewModel(planned, content, player.id, useM1Store.getState().trainingSlots);
+    // A capped slot costs nothing and shows up as a blocking interrupt instead.
+    expect(vm.weeklyTrainingPointCost).toBe(0);
+    expect(vm.interrupts.cappedSlots).toContainEqual({
+      playerId: player.id,
+      playerName: player.name,
+      pathId: 'sprints',
+      attribute: 'pac',
+      cap: pacCap,
     });
   });
 
-  it('prices only eligible drills in the editor, store guard, and locked-plan summary', () => {
+  it('sums weekly TP cost per slot, skips capped slots, and matches the store after committing', () => {
     const initial = createCareer(createLaunchCareerSetup(20260724, undefined, content, 'full'));
-    const player = initial.players.find(candidate => (
-      candidate.clubId === initial.userClubId
-      && playerAttributeCaps(candidate).sho > candidate.attrs.sho
+    const roster = initial.players.filter(player => player.clubId === initial.userClubId);
+    const cappedTrainee = roster.find(candidate => playerAttributeCaps(candidate).pac > candidate.attrs.pac)!;
+    const openTrainee = roster.find(candidate => (
+      candidate.id !== cappedTrainee.id && playerAttributeCaps(candidate).sho > candidate.attrs.sho
     ))!;
+    const pacCap = playerAttributeCaps(cappedTrainee).pac;
+    const finishing = content.training.focusDrills.find(drill => drill.id === 'finishing')!;
     const state = {
       ...initial,
       trainingPoints: 12,
-      players: initial.players.map(candidate => candidate.id === player.id
-        ? { ...candidate, attrs: { ...candidate.attrs, pac: playerAttributeCaps(candidate).pac } }
+      players: initial.players.map(candidate => candidate.id === cappedTrainee.id
+        ? { ...candidate, attrs: { ...candidate.attrs, pac: pacCap } }
         : candidate),
     };
-    const selectedDrillIds = ['sprints', 'finishing'];
-    const editor = squadTrainingViewModel(
-      state,
-      content,
-      player.id,
-      [player.id],
-      selectedDrillIds,
-    );
+    const trainingSlots = [
+      { playerId: cappedTrainee.id, pathId: 'sprints' },
+      { playerId: openTrainee.id, pathId: 'finishing' },
+    ];
 
-    expect(editor).toMatchObject({
-      totalMoneyCost: 500,
-      totalTrainingPointCost: 12,
-      canApply: true,
-    });
-    expect(editor.drills.find(drill => drill.id === 'sprints')).toMatchObject({
-      available: true,
+    const editor = squadTrainingViewModel(state, content, undefined, trainingSlots);
+
+    // Only the open trainee's drill is charged; the capped slot is free.
+    expect(editor.weeklyTrainingPointCost).toBe(finishing.tpCost);
+    expect(editor.slots).toContainEqual({
+      playerId: openTrainee.id,
+      playerName: openTrainee.name,
+      pathId: 'finishing',
+      drillName: finishing.name,
+      gainLabel: `+${finishing.gains.sho} SHO`,
     });
 
-    useM1Store.setState({
-      career: state,
-      assignedPlayerIds: [player.id],
-      selectedDrillIds: ['sprints'],
-    });
-    useM1Store.getState().toggleDrill('finishing');
-    expect(useM1Store.getState()).toMatchObject({
-      selectedDrillIds,
-      error: null,
-    });
-    useM1Store.getState().applyTraining();
+    useM1Store.setState({ career: state });
+    useM1Store.getState().toggleTrainingPlayer(cappedTrainee.id);
+    useM1Store.getState().setTrainingSlotStat(cappedTrainee.id, 'sprints');
+    useM1Store.getState().toggleTrainingPlayer(openTrainee.id);
+    useM1Store.getState().setTrainingSlotStat(openTrainee.id, 'finishing');
+    expect(useM1Store.getState().error).toBeNull();
 
     const planned = useM1Store.getState().career!;
-    expect(squadTrainingViewModel(
-      planned,
-      content,
-      player.id,
-      [player.id],
-      selectedDrillIds,
-    ).lockedPlan).toMatchObject({
-      moneyCost: 500,
-      trainingPointCost: 12,
+    expect(planned.trainingPlan).toMatchObject({
+      slots: [
+        { playerId: cappedTrainee.id, pathId: 'sprints' },
+        { playerId: openTrainee.id, pathId: 'finishing' },
+      ],
     });
+    expect(squadTrainingViewModel(planned, content, undefined, useM1Store.getState().trainingSlots)
+      .weeklyTrainingPointCost).toBe(finishing.tpCost);
   });
 
   it('adds a one-shot inbox note naming the player, ability, and drill when the cap is reached', () => {
@@ -152,7 +144,7 @@ describe('training cap feedback', () => {
         ? { ...candidate, attrs: { ...candidate.attrs, pac: pacCap - 1 } }
         : candidate),
     };
-    before = applyCareerTraining(before, [player.id], [sprints]);
+    before = applyCareerTraining(before, [{ playerId: player.id, pathId: sprints.id }]);
 
     const after = advanceWeek(before);
     const alert = homeViewModel(after).alerts.find(candidate => candidate.id.startsWith('training-cap:'));
@@ -198,7 +190,7 @@ describe('training cap feedback', () => {
         cap: 50,
       })),
     };
-    before = applyCareerTraining(before, [player.id], [sprints]);
+    before = applyCareerTraining(before, [{ playerId: player.id, pathId: sprints.id }]);
 
     const after = advanceWeek(before);
 
@@ -209,7 +201,11 @@ describe('training cap feedback', () => {
     expect(() => parseStoredGameState(serializeGameState(after))).not.toThrow();
   });
 
-  it('counts a personal attribute cap once when overlapping drills reach it together', () => {
+  it('counts a personal attribute cap once when duplicate slots reach it together', () => {
+    // setCareerTrainingPlan forbids two slots for one player; this constructs
+    // the plan directly to exercise the reached-cap dedup guard in
+    // findReachedTrainingCaps, which still matters if a save is ever migrated
+    // with a malformed plan.
     let before = createCareer(createLaunchCareerSetup(20260724, undefined, content, 'full'));
     const player = before.players.find(candidate => (
       candidate.clubId === before.userClubId
@@ -221,11 +217,13 @@ describe('training cap feedback', () => {
       players: before.players.map(candidate => candidate.id === player.id
         ? { ...candidate, attrs: { ...candidate.attrs, pac: pacCap - 1 } }
         : candidate),
+      trainingPlan: {
+        slots: [
+          { playerId: player.id, pathId: 'sprints' },
+          { playerId: player.id, pathId: 'sprints' },
+        ],
+      },
     };
-    before = applyCareerTraining(before, [player.id], [
-      { id: 'overlap-a', moneyCost: 0, tpCost: 0, gains: { pac: 1 } },
-      { id: 'overlap-b', moneyCost: 0, tpCost: 0, gains: { pac: 1 } },
-    ]);
 
     const after = advanceWeek(before);
 
@@ -234,77 +232,64 @@ describe('training cap feedback', () => {
     ))).toHaveLength(1);
   });
 
-  it('projects a healthy trainee gain from the real resolver, with atCap false', () => {
-    let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
+  it('shows the best-tier gain and room for a selected player\'s stat options', () => {
+    const state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
     const roster = state.players.filter(player => player.clubId === state.userClubId);
     const trainee = roster[0];
-    const drill = content.training.focusDrills.find(candidate => candidate.id === 'sprints')!;
-    const trainedAttribute = Object.keys(drill.gains)[0] as 'pac';
+    const cap = playerAttributeCaps(trainee).pac;
+    const expectedGain = resolveTrainingDrillForPath(state, 'sprints').gains.pac;
 
-    state = setCareerTrainingPlan(state, [trainee.id], [drill]);
-    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
+    const model = squadTrainingViewModel(state, content, trainee.id, []);
+    const option = model.selectedPlayerStatOptions?.find(candidate => candidate.pathId === 'sprints');
 
-    expect(model.lockedPlan).toBeDefined();
-    const progress = model.lockedPlan?.players[0]?.trainingProgress ?? [];
-
-    // only attributes the plan raises appear
-    expect(progress).toHaveLength(Object.keys(drill.gains).length);
-
-    const line = progress.find(entry => entry.label === trainedAttribute.toUpperCase());
-    expect(line).toBeDefined();
-    expect(line?.value).toBe(25);
-    expect(line?.cap).toBe(41);
-    // Hardcoded, not re-derived from the resolver, so a formula change trips this test.
-    expect(line?.weeklyGain).toBe(5);
-    expect(line?.atCap).toBe(false);
+    expect(option).toMatchObject({
+      gain: expectedGain,
+      room: cap - trainee.attrs.pac,
+      atCap: false,
+    });
   });
 
   it('reports atCap only when the player is genuinely at their personal cap', () => {
     let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
     const roster = state.players.filter(player => player.clubId === state.userClubId);
     const trainee = roster[0];
-    const drill = content.training.focusDrills.find(candidate => candidate.id === 'sprints')!;
-    const trainedAttribute = Object.keys(drill.gains)[0] as 'pac';
-    const cap = playerAttributeCaps(trainee)[trainedAttribute];
-
+    const cap = playerAttributeCaps(trainee).pac;
     state = {
       ...state,
       players: state.players.map(player => player.id === trainee.id
-        ? { ...player, attrs: { ...player.attrs, [trainedAttribute]: cap } }
+        ? { ...player, attrs: { ...player.attrs, pac: cap } }
         : player),
     };
-    state = setCareerTrainingPlan(state, [trainee.id], [drill]);
 
-    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
-    const progress = model.lockedPlan?.players[0]?.trainingProgress ?? [];
-    const line = progress.find(entry => entry.label === trainedAttribute.toUpperCase());
+    const model = squadTrainingViewModel(state, content, trainee.id, []);
+    const option = model.selectedPlayerStatOptions?.find(candidate => candidate.pathId === 'sprints');
 
-    expect(line?.value).toBe(cap);
-    expect(line?.weeklyGain).toBe(0);
-    expect(line?.atCap).toBe(true);
+    expect(option?.room).toBe(0);
+    expect(option?.atCap).toBe(true);
   });
 
-  it('does not report atCap when the club simply cannot afford the plan (regression)', () => {
+  it('keeps a stat option\'s atCap independent of whether the club can afford it (regression)', () => {
     let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
     const roster = state.players.filter(player => player.clubId === state.userClubId);
     const trainee = roster[0];
-    const drill = content.training.focusDrills.find(candidate => candidate.id === 'sprints')!;
-    const trainedAttribute = Object.keys(drill.gains)[0] as 'pac';
-    const cap = playerAttributeCaps(trainee)[trainedAttribute];
-
+    const cap = playerAttributeCaps(trainee).pac;
     // Sanity: this player is nowhere near their cap.
-    expect(trainee.attrs[trainedAttribute]).toBeLessThan(cap);
+    expect(trainee.attrs.pac).toBeLessThan(cap);
 
-    state = setCareerTrainingPlan(state, [trainee.id], [drill]);
-    // Zero training points makes the drill unaffordable, so settlement grants
-    // no gain this week even though the player is not capped.
+    state = setCareerTrainingPlan(state, [{ playerId: trainee.id, pathId: 'sprints' }]);
+    // Zero training points makes the drill unaffordable — that must surface
+    // as a TP shortfall, not get conflated with the player being capped.
     state = { ...state, trainingPoints: 0 };
 
-    const model = squadTrainingViewModel(state, content, undefined, [trainee.id], [drill.id]);
-    const progress = model.lockedPlan?.players[0]?.trainingProgress ?? [];
-    const line = progress.find(entry => entry.label === trainedAttribute.toUpperCase());
+    const model = squadTrainingViewModel(
+      state,
+      content,
+      trainee.id,
+      [{ playerId: trainee.id, pathId: 'sprints' }],
+    );
+    const option = model.selectedPlayerStatOptions?.find(candidate => candidate.pathId === 'sprints');
 
-    expect(line?.weeklyGain).toBe(0);
-    expect(line?.atCap).toBe(false);
+    expect(option?.atCap).toBe(false);
+    expect(model.interrupts.tpShortfall).toBeGreaterThan(0);
   });
 });

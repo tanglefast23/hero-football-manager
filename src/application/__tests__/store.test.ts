@@ -265,10 +265,12 @@ describe('M1 app store integration', () => {
       },
     });
     expect(review.development.focusedTrainees[0].gains).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'PAC', before: beforePac, after: beforePac + 3, delta: 3 }),
+      // m1-slice has no division gating, so the path resolves to its best
+      // tier (Sprints III, +8 PAC) rather than the tier-1 nominal gain.
+      expect.objectContaining({ label: 'PAC', before: beforePac, after: beforePac + 8, delta: 8 }),
     ]));
     expect(review.development.trainingSkippedWarning).toBeUndefined();
-    expect(settled.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac + 3);
+    expect(settled.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac + 8);
     expect(settled.players.find(player => player.id === playerId)?.attrs.sta).toBe(
       before.players.find(player => player.id === playerId)!.attrs.sta + 1,
     );
@@ -341,7 +343,6 @@ describe('M1 app store integration', () => {
     useM1Store.setState({
       career: {
         ...planned,
-        clubs: planned.clubs.map(club => club.id === planned.userClubId ? { ...club, cash: 0 } : club),
         trainingPoints: 0,
       },
     });
@@ -353,7 +354,7 @@ describe('M1 app store integration', () => {
       weekReview: {
         development: {
           focusedTrainees: [],
-          trainingSkippedWarning: 'Focused training skipped — not enough money or TP.',
+          trainingSkippedWarning: 'Focused training skipped — not enough TP.',
         },
       },
     });
