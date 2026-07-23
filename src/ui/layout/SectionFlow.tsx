@@ -15,21 +15,25 @@ export interface FlowSection {
   node: ReactNode;
 }
 
+export interface SectionFlowProps {
+  mode: LayoutMode;
+  /** Optional full-width block (greeting, page title) rendered above the columns. */
+  header?: ReactNode;
+  sections: FlowSection[];
+}
+
 /**
  * Lays management-screen sections out as one column (phones — unchanged
  * look) or two reading-order columns (wide viewports). Sections are atomic:
  * one never splits across columns. Column 1 fills top-to-bottom, then
  * column 2, split where the estimated heights balance best.
+ * Crossing the mode breakpoint restructures the tree, so sections unmount
+ * and remount — do not keep meaningful local state inside a section.
  */
-export function SectionFlow({ mode, header, sections }: {
-  mode: LayoutMode;
-  /** Optional full-width block (greeting, page title) rendered above the columns. */
-  header?: ReactNode;
-  sections: FlowSection[];
-}) {
+export function SectionFlow({ mode, header, sections }: SectionFlowProps) {
   if (mode === 'single' || sections.length < 2) {
     return (
-      <View>
+      <View className="w-full max-w-5xl self-center">
         {header}
         <View className="gap-6">
           {sections.map(section => (
