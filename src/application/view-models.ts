@@ -707,15 +707,17 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
         return {
           id: notice.id,
           title: `${notice.playerName} skipped ${drillName}`,
-          detail: `${notice.playerName} is already at their ${attribute} maximum of ${notice.cap}. Pick another player or drill for next week.`,
+          detail: `${notice.playerName} is already at their ${attribute} maximum of ${notice.cap}. Tap to switch their drill or stop their training.`,
           tone: 'info' as const,
+          playerId: notice.playerId,
         };
       }
       return {
         id: notice.id,
         title: `${notice.playerName} reached their ${attribute} maximum`,
-        detail: `${drillName} took ${attribute} to its personal maximum of ${notice.cap}. Pick another player for this drill next week.`,
+        detail: `${drillName} took ${attribute} to its personal maximum of ${notice.cap}. Tap to switch their drill or stop their training.`,
         tone: 'info' as const,
+        playerId: notice.playerId,
       };
     });
 

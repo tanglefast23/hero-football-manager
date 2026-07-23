@@ -29,6 +29,8 @@ export interface ClubAlertViewModel {
   tone: 'urgent' | 'event' | 'info';
   guideSequenceId?: AssistantGuideSequenceId;
   destination?: AssistantGuideDestination;
+  /** Set on player-scoped alerts (e.g. training caps) so taps can deep-link to that player. */
+  playerId?: string;
 }
 
 export interface LeagueSnippetViewModel {

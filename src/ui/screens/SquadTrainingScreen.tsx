@@ -42,6 +42,8 @@ export interface SquadTrainingScreenProps {
   guideTraining?: boolean;
   guideFocus?: AssistantGuideFocus;
   reduceMotion?: boolean;
+  /** Bumped by the app shell to pop the drill picker for the selected player (inbox deep link). */
+  drillPickerRequestToken?: number;
 }
 
 export function SquadTrainingScreen({
@@ -55,6 +57,7 @@ export function SquadTrainingScreen({
   guideTraining = false,
   guideFocus,
   reduceMotion = false,
+  drillPickerRequestToken,
 }: SquadTrainingScreenProps) {
   const { width } = useWindowDimensions();
   const wideColumns = width >= 600;
@@ -113,6 +116,11 @@ export function SquadTrainingScreen({
     else onTogglePlayerAssignment(playerId);
     if (action !== 'reject-full') setDrillPickerOpen(true);
   }, [viewModel.players, viewModel.maxSlots, assignedCount, onSelectPlayer, onTogglePlayerAssignment]);
+
+  useEffect(() => {
+    if (drillPickerRequestToken === undefined) return;
+    setDrillPickerOpen(true);
+  }, [drillPickerRequestToken]);
 
   useEffect(() => {
     if (!trainingSlotLimitHit) return undefined;
