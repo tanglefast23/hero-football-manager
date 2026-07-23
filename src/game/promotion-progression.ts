@@ -8,8 +8,14 @@ export interface PromotionReward {
   readonly detail: string;
 }
 
+export const FIRST_D4_PROMOTION_RECRUITMENT_FUND = 15_000;
+
 const PROMOTION_REWARDS: Readonly<Record<1 | 2 | 3 | 4, readonly PromotionReward[]>> = {
   4: [
+    {
+      title: 'Recruitment fund · $15,000',
+      detail: 'The board added $15,000 to club funds. Use it to recruit a player who can help the club survive the County League.',
+    },
     {
       title: 'Level 2 facilities',
       detail: 'Every existing facility can now be upgraded to Level 2.',

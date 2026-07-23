@@ -122,6 +122,10 @@ describe('promotion reward presentation', () => {
     expect(seasonEndViewModel(promoted, content, 1).promotionRewards).toMatchObject({
       divisionLabel: 'D4 · County League',
       items: [
+        {
+          title: 'Recruitment fund · $15,000',
+          detail: 'The board added $15,000 to club funds. Use it to recruit a player who can help the club survive the County League.',
+        },
         { title: 'Level 2 facilities' },
         { title: 'International scouting' },
         { title: 'Level 2 coaches' },

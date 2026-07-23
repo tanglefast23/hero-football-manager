@@ -17,7 +17,15 @@ import {
   careerCoachWeeklyTrainingPoints,
 } from './coach-weekly';
 import { resolveCareerScoutClock } from './market-career';
-import { resolveNextM2NationalCupRound, willRetireAtSeasonTransition } from './m2-career';
+import {
+  currentUserDivision,
+  resolveNextM2NationalCupRound,
+  willRetireAtSeasonTransition,
+} from './m2-career';
+import {
+  FIRST_D4_PROMOTION_RECRUITMENT_FUND,
+  highestDivisionReached,
+} from './promotion-progression';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
 import type { NationalCupFixture, NationalCupResult } from './pyramid';
 import { repairCareerLineupForInjuries } from './squad';
@@ -595,6 +603,19 @@ function settlementLines(
         kind: 'prize',
         label: position === 1 ? 'League champion prize' : 'League runner-up prize',
         amount: prize,
+      });
+    }
+    const firstD4Promotion = state.careerMode === 'full'
+      && state.m2 !== undefined
+      && position !== undefined
+      && position <= 2
+      && currentUserDivision(state.m2) === 5
+      && highestDivisionReached(state) === 5;
+    if (firstD4Promotion) {
+      lines.push({
+        kind: 'subsidy',
+        label: 'County League recruitment fund',
+        amount: FIRST_D4_PROMOTION_RECRUITMENT_FUND,
       });
     }
   }

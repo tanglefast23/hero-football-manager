@@ -1,4 +1,5 @@
 import {
+  activeCareerMatchday,
   advanceWeek,
   completeMatchday,
   createCareer,
@@ -13,6 +14,8 @@ import type {
   LeagueFixture,
 } from '../types';
 import { createLaunchCareerSetup } from '../../application/launch';
+import { FIRST_D4_PROMOTION_RECRUITMENT_FUND } from '../promotion-progression';
+import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 
 function makeSetup(): CareerSetup {
   return {
@@ -52,7 +55,79 @@ function finishSeason(initialState: GameState): GameState {
   return state;
 }
 
+function finishPromotedFullSeason(initialState: GameState): GameState {
+  let state = initialState;
+
+  while (state.phase !== 'season-end') {
+    if (state.phase === 'manage') {
+      state = advanceWeek(state);
+      continue;
+    }
+    const matchday = activeCareerMatchday(state);
+    if (matchday === undefined) throw new Error('full-career test lost its active matchday');
+    const userIsHome = matchday.fixture.homeClubId === state.userClubId;
+    state = completeMatchday(state, matchday.fixtures.map(fixture => {
+      if (fixture.id !== matchday.fixture.id) {
+        return { fixtureId: fixture.id, homeGoals: 0, awayGoals: 0 };
+      }
+      if (matchday.kind === 'national-cup') {
+        return {
+          fixtureId: fixture.id,
+          homeGoals: userIsHome ? 0 : 1,
+          awayGoals: userIsHome ? 1 : 0,
+        };
+      }
+      return {
+        fixtureId: fixture.id,
+        homeGoals: userIsHome ? 3 : 0,
+        awayGoals: userIsHome ? 0 : 3,
+      };
+    }));
+  }
+
+  return state;
+}
+
 describe('career season workflow', () => {
+  it('pays and persists the County League recruitment fund only on the first D5 promotion', () => {
+    const initial = createCareer(createLaunchCareerSetup(
+      20260723,
+      undefined,
+      undefined,
+      'full',
+    ));
+    const withCash = {
+      ...initial,
+      clubs: initial.clubs.map(club => club.id === initial.userClubId
+        ? { ...club, cash: 1_000_000 }
+        : club),
+      seasonOpeningCash: 1_000_000,
+    };
+    const firstPromotion = finishPromotedFullSeason(withCash);
+    const repeatPromotion = finishPromotedFullSeason({
+      ...withCash,
+      m2: { ...withCash.m2!, highestDivisionReached: 4 as const },
+    });
+    const fundLine = {
+      kind: 'subsidy',
+      label: 'County League recruitment fund',
+      amount: FIRST_D4_PROMOTION_RECRUITMENT_FUND,
+    };
+
+    expect(firstPromotion.ledgers.at(-1)?.lines).toContainEqual(fundLine);
+    expect(firstPromotion.ledgers.flatMap(ledger => ledger.lines)
+      .filter(line => line.label === fundLine.label)).toEqual([fundLine]);
+    expect(repeatPromotion.ledgers.flatMap(ledger => ledger.lines)
+      .filter(line => line.label === fundLine.label)).toEqual([]);
+    const firstCash = firstPromotion.clubs.find(club => club.id === firstPromotion.userClubId)!.cash;
+    const repeatCash = repeatPromotion.clubs.find(club => club.id === repeatPromotion.userClubId)!.cash;
+    expect(firstCash - repeatCash).toBe(FIRST_D4_PROMOTION_RECRUITMENT_FUND);
+
+    const restored = parseStoredGameState(serializeGameState(firstPromotion));
+    expect(restored.clubs.find(club => club.id === restored.userClubId)?.cash).toBe(firstCash);
+    expect(restored.ledgers.at(-1)?.lines).toContainEqual(fundLine);
+  });
+
   it('adds supplied scorer identities to the persistent season goal ledger', () => {
     let state = createCareer(createLaunchCareerSetup(909));
     while (state.phase !== 'matchday') state = advanceWeek(state);

@@ -42,6 +42,7 @@ describe('permanent promotion progression', () => {
   test('defines one compact reward bundle for every promotion', () => {
     expect(promotionRewardsForDivision(5)).toEqual([]);
     expect(promotionRewardsForDivision(4).map(reward => reward.title)).toEqual([
+      'Recruitment fund · $15,000',
       'Level 2 facilities',
       'International scouting',
       'Level 2 coaches',
