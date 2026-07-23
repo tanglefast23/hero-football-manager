@@ -68,13 +68,13 @@ Borrowed directly from Inazuma Eleven's Keeper Power (see research/match-present
 
 A power is a **timed modifier burst** the sim applies to one agent (details in doc 04):
 
-- Each fielded hero builds **Heat** from involvement events (touches, tackles won, shots at launch, saves) plus a small time trickle — earned, not a timer. Above a threshold, each tick rolls a small seeded entry chance scaled by heat: the hero enters **the Zone** (heat resets, glow starts). Semi-random entry means watching the pitch for who's catching fire is real gameplay; heat-weighting means it's earned luck.
+- Each fielded hero builds **Heat** from involvement events (touches, tackles won, shots at launch, saves) plus a small role-aware trickle. At the threshold, Heat banks until that power's authored useful context appears; the hero then enters **the Zone** immediately and resets Heat. No second random roll can discard a short defensive opportunity.
 - Every power defines a **useful context** — the situations where firing it actually matters (Super Speed: you have the ball or it's loose nearby; Super Strength: an opposing carrier is in range; a GK power: a shot is incoming). The hero's on-pitch glow intensifies in context, so "when do I tap?" is a readable decision, not a guess.
 - **The Zone window** lasts ~7 seconds, glow fading as it runs out. Tap the glowing on-pitch hero during it to fire at **100%**, aimed at the current situation. A manual hero's expired window **decays heat to half — no auto-fire**: the attention premium is catching windows, not a stat bonus. Every watched match starts in manual `M`; the live `M`/`A` button can switch home heroes to automatic fire at the next useful context at **85%**, or at **75%** in the window's final seconds if no context appears (hands-off play and Quick Result stay respectable; rival heroes always run this policy). Powers that require a victim never fire targetless — those windows expire instead, making an opponent's glow a threat you can starve.
-- **One power active per team at a time**; while one is active or winding, teammates' zones and heat freeze (paused, never wasted). No stacking, so the compact activation callout only ever has one home power to name.
-- **Wind-up**: 1.5s telegraph (glow + rising jingle) during which a tackle can interrupt the power (Mario Strikers rule — the counterplay that stops power-snowballing).
-- **Opposing heroes** use powers on their own AI priorities. They appear rarely in D5 · District League and D4 · County League, then commonly from D2 · National Championship upward.
-- Power vs. power in the same moment → contested roll with a special clash cut-in.
+- **Powers can stack.** Every hero's Heat, Zone, wind-up, and active effect advances independently while teammates' powers run. The match HUD expands from one to four simultaneous power tiles as the Hero License cap grows, so later heroes retain their own opportunities instead of freezing behind the first activation.
+- **Wind-up**: each power owns its readable telegraph length, from a next-tick spatial reveal to Super Strength's 0.5-second charge and longer trap preparations. Interruptible wind-ups preserve visible counterplay; instant or already-planted effects resolve according to their authored contract.
+- **Opposing heroes** use powers on their own AI priorities. Division 5 has none so the player's first hero remains unique; rival heroes begin above it and become common from D2 · National Championship upward.
+- Simultaneous opposing powers resolve through their authored effects. A dedicated power-clash contest and cut-in is post-launch work, not a current engine promise.
 
 ## Presentation (renderer)
 

@@ -280,7 +280,7 @@ describe('automatic post-match awakenings', () => {
     expect(() => buildCareerTeamDef(settled, settled.userClubId)).not.toThrow();
   });
 
-  it('only gives the goalkeeper the keeper-only launch power', () => {
+  it('chooses from the role-safe three-power goalkeeper pool', () => {
     const initial = playedUserFixture(createCareer(createLaunchCareerSetup(63)));
     const goalkeeperId = userLineup(initial)[0];
     const result = resolvePostMatchAwakening(

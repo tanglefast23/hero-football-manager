@@ -192,11 +192,11 @@ export const DIVISION_STRENGTH_BANDS: Readonly<
 };
 /**
  * Two survivable opponents installed for the user's D4 season. These
- * full-squad targets produce roughly 46-49 effective starting-XI strength at
+ * full-squad targets produce roughly 46-48 effective starting-XI strength at
  * the production match boundary, while leaving D4's established middle and
  * top untouched.
  */
-export const DIVISION_FOUR_RELEGATION_PACK_STRENGTHS = [47, 49] as const;
+export const DIVISION_FOUR_RELEGATION_PACK_STRENGTHS = [46, 47] as const;
 const ARCHETYPES: readonly PlayerArchetype[] = [
   'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
 ];

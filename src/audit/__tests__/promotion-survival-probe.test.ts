@@ -11,6 +11,9 @@
  * Final acceptance run:
  *   PROMOTION_SURVIVAL_SEEDS=300 PROMOTION_SURVIVAL_WEEKS=30 npm run test:probe -- \
  *     src/audit/__tests__/promotion-survival-probe.test.ts
+ * The same 300-career sample may be split into equal disjoint shards with
+ * PROMOTION_SURVIVAL_SEED_OFFSET (for example 100 careers at offsets 0, 100,
+ * and 200). The report includes its position histogram for exact aggregation.
  *
  * A shorter week limit is directional only. Week 30 is required to classify
  * actual survival because the bottom two clubs are relegated after 18 matches.
@@ -63,6 +66,7 @@ import type { Attrs, Role } from '../../sim/types';
 const content = loadLaunchContent();
 const SEEDS = positiveIntegerEnv('PROMOTION_SURVIVAL_SEEDS', 3, 10_000);
 const D4_WEEKS = positiveIntegerEnv('PROMOTION_SURVIVAL_WEEKS', 30, 30);
+const SEED_OFFSET = nonNegativeIntegerEnv('PROMOTION_SURVIVAL_SEED_OFFSET', 0, 40_000);
 const PRESEASON_LAST_WEEK = 4;
 const FINAL_SEASON_WEEK = 30;
 const MAX_PRESEASON_SIGNINGS = 2;
@@ -152,7 +156,7 @@ interface PreparationState {
 describe('promoted-club survival probe', () => {
   it('measures a production D5 promotion followed by a realistic D4 pre-season', () => {
     const runs = Array.from({ length: SEEDS }, (_, index) => {
-      const seed = 9_000_001 + index * 104_729;
+      const seed = 9_000_001 + (SEED_OFFSET + index) * 104_729;
       const promoted = createPromotedCareer(seed);
       const prepared = runD4Season(promoted, seed, true);
       const control = runD4Season(promoted, seed, false);
@@ -861,7 +865,7 @@ function report(runs: readonly PairedRun[]): void {
 
   const lines = [
     '',
-    `=== D5 -> D4 PROMOTION SURVIVAL (${runs.length} paired careers, through D4 Week ${D4_WEEKS}) ===`,
+    `=== D5 -> D4 PROMOTION SURVIVAL (${runs.length} paired careers, seed offset ${SEED_OFFSET}, through D4 Week ${D4_WEEKS}) ===`,
     'prepared policy: one reserve sale per completed signing, one production scouting brief, up to two affordable reported upgrades,',
     '                 plus useful single-stat training for up to three starters in Weeks 1-4',
     `preparation: signed ${signingRate}%  avg signings ${average(run => run.prepared.signings)}`
@@ -886,6 +890,7 @@ function report(runs: readonly PairedRun[]): void {
       + `  PPM ${average(run => run.prepared.points / Math.max(1, run.prepared.played))}`
       + `  W/D/L ${average(run => run.prepared.won)}/${average(run => run.prepared.drawn)}/${average(run => run.prepared.lost)}`
       + `  GD ${average(run => run.prepared.goalDifference)}`,
+    `prepared position distribution: ${breakdown(runs.map(run => String(run.prepared.position)))}`,
     `control:  position ${average(run => run.control.position)}`
       + `  survival/top-8 ${rate(run => run.control.position <= 8)}%`
       + `  PPM ${average(run => run.control.points / Math.max(1, run.control.played))}`
@@ -906,6 +911,17 @@ function positiveIntegerEnv(name: string, fallback: number, maximum: number): nu
   const value = Number(raw);
   if (!Number.isSafeInteger(value) || value > maximum) {
     throw new Error(`${name} must be a safe positive integer no greater than ${maximum}`);
+  }
+  return value;
+}
+
+function nonNegativeIntegerEnv(name: string, fallback: number, maximum: number): number {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  if (!/^\d+$/.test(raw)) throw new Error(`${name} must be a nonnegative integer`);
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value > maximum) {
+    throw new Error(`${name} must be a safe nonnegative integer no greater than ${maximum}`);
   }
   return value;
 }

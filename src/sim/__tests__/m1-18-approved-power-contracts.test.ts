@@ -806,6 +806,26 @@ describe('m1.18 approved power contracts', () => {
     expect(match.players[10].pos).toEqual(manualLanding!.pos);
   });
 
+  it('keeps Gust fully usable when the awakened hero is the goalkeeper', () => {
+    const match = matchWith('GUST', 0);
+    match.ball = { kind: 'held', by: 11 };
+    activatePower(match, 0, 1);
+    launchPass(match, 11, 12, false);
+    expect(match.ball).toMatchObject({
+      kind: 'pass', to: 0, willSucceed: true, gustRedirect: true,
+    });
+    forceArrival(match);
+    expect(match.ball).toMatchObject({ kind: 'held', by: 0, gustPunt: true });
+
+    match.tick += 3;
+    possessionTick(match);
+
+    expect(match.ball).toMatchObject({ kind: 'pass', from: 0, willSucceed: true, gustPunt: true });
+    expect(match.events).toContainEqual(expect.objectContaining({
+      kind: 'GUST_PUNT', player: 0, from: 0,
+    }));
+  });
+
   it('targetless defensive placements remain banked instead of harming their own team', () => {
     for (const power of ['WEB_TRAP', 'ICE_RINK', 'SHADOW_MARK'] as const) {
       const match = matchWith(power, 2);
