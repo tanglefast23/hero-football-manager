@@ -331,7 +331,11 @@ describe('M2 weekly sidecars', () => {
     expect(settled.players.find(player => player.id === replacementId)?.injuryWeeks).toBe(0);
     expect(() => buildCareerTeamDef(settled!, settled!.userClubId)).not.toThrow();
 
-    const nextMatchday = advanceWeek(settled);
+    // The repeating 3-slot plan has outrun its TP budget by now, which the
+    // interrupt guard (now enforced on match weeks too) would block. This test
+    // is about injury/bench/lineup, not training economy, so clear the plan —
+    // the same resolution the UI's "drop a player" interrupt would apply.
+    const nextMatchday = advanceWeek({ ...settled, trainingPlan: { slots: [] } });
     expect(nextMatchday.phase).toBe('matchday');
     expect(() => buildCareerTeamDef(nextMatchday, nextMatchday.userClubId)).not.toThrow();
   });

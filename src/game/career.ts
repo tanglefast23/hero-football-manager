@@ -169,16 +169,20 @@ export function advanceWeek(state: GameState): GameState {
     throw new Error('a week can only advance from the manage phase');
   }
 
-  if (activeCareerMatchday(state) !== undefined) {
-    return { ...state, phase: 'matchday' };
-  }
-
+  // Blocking training interrupts must be resolved before the week advances at
+  // all — including match weeks, whose training settles later in
+  // completeMatchday. Checking before the matchday transition guarantees no
+  // slot is ever silently wasted and no plan overspends TP.
   if (state.careerMode === 'full') {
     const projectedTrainingPoints = state.trainingPoints + weeklyAmbientTrainingPoints(state);
     const interrupts = pendingTrainingInterrupts(state, projectedTrainingPoints);
     if (interrupts.cappedSlots.length > 0 || interrupts.tpShortfall > 0) {
       throw new Error('unresolved training interrupts must be cleared before advancing the week');
     }
+  }
+
+  if (activeCareerMatchday(state) !== undefined) {
+    return { ...state, phase: 'matchday' };
   }
 
   return settleCurrentWeek(state);
@@ -354,7 +358,19 @@ function settleCurrentWeek(
     throw new Error(`user club ${state.userClubId} does not exist`);
   }
 
-  const training = resolveCareerTrainingWeek(state);
+  // Credit this week's TP income before training resolves, so the repeating
+  // plan is paid from bank + income (matching advanceWeek's interrupt guard)
+  // rather than the bank alone — otherwise a plan the guard deems affordable
+  // would be silently skipped here. The final TP total is unchanged (income
+  // minus training cost); only the affordability basis moves.
+  const ambientTrainingPoints = weeklyAmbientTrainingPoints(state);
+  const completionTrainingPoints = firstTrainingPitchCompletionPoints(state);
+  const preTrainingTrainingPoints = checkedAdd(
+    checkedAdd(state.trainingPoints, ambientTrainingPoints, 'weekly ambient training point balance'),
+    completionTrainingPoints,
+    'facility training point balance',
+  );
+  const training = resolveCareerTrainingWeek({ ...state, trainingPoints: preTrainingTrainingPoints });
   const existingTrainingCapNoticeIds = new Set(
     (state.trainingCapNotices ?? []).map(notice => notice.id),
   );
@@ -394,17 +410,7 @@ function settleCurrentWeek(
   const clubs = intervenedState.clubs.map(club =>
     club.id === state.userClubId ? { ...club, cash: balanceAfter } : club,
   );
-  const ambientTrainingPoints = weeklyAmbientTrainingPoints(state);
-  const completionTrainingPoints = firstTrainingPitchCompletionPoints(state);
-  const trainingPoints = checkedAdd(
-    checkedAdd(
-      training.trainingPoints,
-      ambientTrainingPoints,
-      'weekly ambient training point balance',
-    ),
-    completionTrainingPoints,
-    'facility training point balance',
-  );
+  const trainingPoints = training.trainingPoints;
   const ledgers = [
     ...state.ledgers,
     {
