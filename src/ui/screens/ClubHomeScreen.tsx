@@ -147,7 +147,7 @@ export function ClubHomeScreen({
     },
     ...(viewModel.boardResolution ? [{
       key: 'board-resolution',
-      weight: 10,
+      weight: viewModel.boardResolution.soldPlayer && viewModel.boardResolution.replacementPlayer ? 13 : 6,
       node: (
         <View>
           <SectionLabel
