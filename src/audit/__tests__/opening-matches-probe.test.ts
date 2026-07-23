@@ -15,17 +15,17 @@ import {
   advanceWeek,
   beginStoryOnboarding,
   buildCareerMatchTeams,
-  chargeableCareerTrainingPlan,
   completeFirstOnboardingMatch,
   completeMatchday,
   completePostMatchAwakening,
   createCareer,
   createdPlayer,
   isFirstOnboardingFixture,
-  playerAttributeCaps,
   quickMatchForFixture,
   resolvePostMatchAwakening,
   setCareerTrainingPlan,
+  slotIsAtCap,
+  slotTrainingPointCost,
   withoutPowers,
   type CareerPlayer,
   type GameState,
@@ -40,8 +40,6 @@ const tuning = {
   chancePercent: content.powers.awakening.postMatchChancePercent,
   minimumMatchesBetween: content.powers.awakening.minimumMatchesBetween,
 };
-const SPRINTS = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
-
 const SEEDS = positiveIntegerEnv('OPENING_MATCHES_SEEDS', 300);
 const MATCHES_TRACKED = positiveIntegerEnv('OPENING_MATCHES_TRACKED', 5);
 const TRAINED_PLAYERS = 3;
@@ -137,13 +135,12 @@ function runCareer(seed: number, train: boolean): CareerRun {
  * only players with PAC headroom so every counted trainee session is real.
  */
 function planWeeklyTraining(state: GameState, run: CareerRun): GameState {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId)!;
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
   const hero = createdPlayer(state);
   const roster = state.players.filter(player => player.clubId === state.userClubId);
 
   const hasPacHeadroom = (player: CareerPlayer): boolean =>
-    player.attrs.pac < Math.min(99, playerAttributeCaps(player).pac);
+    !slotIsAtCap(state, { playerId: player.id, pathId: 'sprints' });
 
   const candidates = [
     ...(hero !== undefined && hasPacHeadroom(hero) ? [hero] : []),
@@ -160,28 +157,20 @@ function planWeeklyTraining(state: GameState, run: CareerRun): GameState {
     run.weeksBlockedByCaps += 1;
     return clearPlan(state);
   }
-  const assignedPlayerIds = candidates.map(player => player.id);
-  const chargeable = chargeableCareerTrainingPlan(state, assignedPlayerIds, [SPRINTS]);
-  if (chargeable.drills.length === 0) {
-    run.weeksBlockedByCaps += 1;
-    return clearPlan(state);
-  }
-  if (state.trainingPoints < chargeable.trainingPointCost) {
+  const slots = candidates.map(player => ({ playerId: player.id, pathId: 'sprints' }));
+  const trainingPointCost = slotTrainingPointCost(state, slots);
+  if (state.trainingPoints < trainingPointCost) {
     run.weeksBlockedByTp += 1;
     return clearPlan(state);
   }
-  if (club.cash < chargeable.moneyCost) {
-    run.weeksBlockedByCash += 1;
-    return clearPlan(state);
-  }
+  // Training money is always 0 now, so a cash block can never happen.
 
   // Do not catch this: a planner/settlement pricing mismatch invalidates the
   // cohort and must fail the probe loudly.
-  const next = setCareerTrainingPlan(state, assignedPlayerIds, [SPRINTS]);
+  const next = setCareerTrainingPlan(state, slots);
   run.weeksTrained += 1;
-  run.eligibleTraineeSessions += assignedPlayerIds.length;
-  run.focusCashCommitted += chargeable.moneyCost;
-  run.focusTpCommitted += chargeable.trainingPointCost;
+  run.eligibleTraineeSessions += slots.length;
+  run.focusTpCommitted += trainingPointCost;
   return next;
 }
 

@@ -4,8 +4,10 @@ import type {
   CareerPlayer,
   GameState,
 } from './types';
-import { roleOverall } from './archetype-caps';
+import { playerAttributeCaps, roleOverall } from './archetype-caps';
 import { currentUserDivision } from './m2-career';
+import { setCareerTrainingPlan } from './training';
+import { TRAINING_PATHS } from './training-paths';
 
 const STARTING_PROMISES: readonly CareerContractPerk[] = [
   'GUARANTEED_STARTER',
@@ -82,20 +84,71 @@ export function applyCareerContractPromise(
     lineups = restoreCareerContractPromiseLineup({ ...state, players }).lineups;
   }
 
-  const trainingPlan = perk === 'TRAINING_PRIORITY' && state.trainingPlan !== undefined
-    && !state.trainingPlan.assignedPlayerIds.includes(playerId)
-    ? {
-        ...state.trainingPlan,
-        assignedPlayerIds: [...state.trainingPlan.assignedPlayerIds, playerId],
-      }
+  const maxTrainingSlots = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
+  const alreadySlotted = state.trainingPlan?.slots.some(slot => slot.playerId === playerId) ?? false;
+  const roomPathId = perk === 'TRAINING_PRIORITY' && !alreadySlotted
+    ? biggestRoomTrainingPath(state, player)
+    : undefined;
+  const hasFreeSlot = state.trainingPlan !== undefined
+    && !alreadySlotted
+    && state.trainingPlan.slots.length < maxTrainingSlots;
+  const trainingPlan = roomPathId !== undefined && hasFreeSlot
+    ? { slots: [...state.trainingPlan!.slots, { playerId, pathId: roomPathId }] }
     : state.trainingPlan;
+  // Slots are full: ask the manager who to bump instead of silently skipping.
+  // A fully-capped promised player has nothing to gain, so no prompt is raised.
+  // If every current occupant is itself promise-locked (and not fully capped),
+  // there is nobody left to bump, so skip honoring rather than raising an
+  // unsatisfiable prompt.
+  const hasBumpableSlot = (state.trainingPlan?.slots ?? []).some(slot => {
+    const occupant = state.players.find(candidate => candidate.id === slot.playerId);
+    return occupant === undefined
+      || !hasActiveCareerContractPromise(occupant, 'TRAINING_PRIORITY')
+      || isFullyCappedPlayer(occupant);
+  });
+  const pendingTrainingPromiseBump = roomPathId !== undefined && !hasFreeSlot && hasBumpableSlot
+    ? { promisedPlayerId: playerId }
+    : state.pendingTrainingPromiseBump;
 
   // Re-read the promised player from the immutable copy so the returned state
   // is plain data even when no captain/shirt reassignment was necessary.
   players = players.map(candidate => candidate.id === playerId
     ? { ...candidate, contractPromise: { ...promise } }
     : candidate);
-  return { ...state, players, lineups, trainingPlan };
+  return { ...state, players, lineups, trainingPlan, pendingTrainingPromiseBump };
+}
+
+/** Returns the pathId for the trainee's stat with the most room before its personal cap. */
+export function biggestRoomTrainingPath(state: GameState, player: CareerPlayer): string | undefined {
+  const caps = playerAttributeCaps(player);
+  const withRoom = TRAINING_PATHS
+    .map(path => ({ pathId: path.pathId, room: caps[path.attribute] - player.attrs[path.attribute] }))
+    .filter(candidate => candidate.room > 0);
+  if (withRoom.length === 0) return undefined;
+  return withRoom.reduce((best, candidate) => candidate.room > best.room ? candidate : best).pathId;
+}
+
+/** Resolves a pending TRAINING_PRIORITY bump: frees the bumped slot and gives it to the promised player. */
+export function resolveTrainingPromiseBump(state: GameState, bumpedPlayerId: string): GameState {
+  const pending = state.pendingTrainingPromiseBump;
+  if (pending === undefined) throw new Error('there is no pending training promise bump to resolve');
+  const slots = state.trainingPlan?.slots ?? [];
+  if (!slots.some(slot => slot.playerId === bumpedPlayerId)) {
+    throw new Error(`${bumpedPlayerId} does not currently occupy a training slot`);
+  }
+  const promisedPlayer = state.players.find(candidate => candidate.id === pending.promisedPlayerId);
+  if (promisedPlayer === undefined) throw new Error(`unknown promised player ${pending.promisedPlayerId}`);
+  const pathId = biggestRoomTrainingPath(state, promisedPlayer);
+  if (pathId === undefined) throw new Error(`${promisedPlayer.name} has no training room left`);
+
+  const nextSlots = [
+    ...slots.filter(slot => slot.playerId !== bumpedPlayerId),
+    { playerId: pending.promisedPlayerId, pathId },
+  ];
+  return {
+    ...setCareerTrainingPlan(state, nextSlots),
+    pendingTrainingPromiseBump: undefined,
+  };
 }
 
 /** Restores recovered promised starters after injury repair and weekly settlement. */
@@ -144,11 +197,21 @@ export function assertCareerTrainingHonorsContractPromises(
   for (const player of state.players) {
     if (player.clubId !== state.userClubId
       || player.injuryWeeks > 0
-      || !hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')) continue;
+      || !hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
+      // A fully-capped player has no trainable stat left, so the promise
+      // cannot be honored by training them — requiring the slot would be an
+      // unresolvable dead-end.
+      || isFullyCappedPlayer(player)) continue;
     if (!assigned.has(player.id)) {
       throw new Error(`${player.name} was promised training priority`);
     }
   }
+}
+
+/** True once every one of the player's seven attributes is at their personal cap. */
+export function isFullyCappedPlayer(player: CareerPlayer): boolean {
+  const caps = playerAttributeCaps(player);
+  return TRAINING_PATHS.every(path => player.attrs[path.attribute] >= caps[path.attribute]);
 }
 
 /** Removes promises and club-owned presentation roles when a player is sold. */

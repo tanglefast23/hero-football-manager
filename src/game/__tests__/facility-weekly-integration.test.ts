@@ -24,7 +24,6 @@ describe('facility weekly integration', () => {
       .filter(candidate => candidate.clubId === fresh.userClubId)
       .slice(0, 2);
     expect(players).toHaveLength(2);
-    const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
     let state = setCareerTrainingPlan({
       ...started,
       players: started.players.map(candidate => players.some(player => player.id === candidate.id)
@@ -37,7 +36,7 @@ describe('facility weekly integration', () => {
             attrs: { ...candidate.attrs, pac: 20 },
           }
         : candidate),
-    }, players.map(player => player.id), [sprint]);
+    }, players.map(player => ({ playerId: player.id, pathId: 'sprints' })));
 
     expect(state.trainingPoints).toBe(30);
     expect(state.facilities).toMatchObject({
@@ -54,12 +53,14 @@ describe('facility weekly integration', () => {
       balances.push(state.trainingPoints);
     }
 
-    // Sprints I costs 10 TP once. Completion awards the first 10 immediately,
-    // then the open pitch restores 10 TP at each later settlement.
-    expect(balances).toEqual([30, 30, 30, 30, 30]);
-    // TP is charged once for the selected drill; Money remains per eligible trainee.
+    // Sprints I now costs 6 TP per slot (12 total for the two trainees).
+    // Completion awards the first 10 immediately, then the open pitch
+    // restores 10 TP at each later settlement, netting -2 TP per week.
+    expect(balances).toEqual([30, 28, 26, 24, 22]);
+    // Training is TP-only now; no money is ever charged, so no ledger line
+    // of kind 'training' is ever recorded.
     expect(state.ledgers.map(ledger => ledger.lines.find(line => line.kind === 'training')?.amount))
-      .toEqual([-800, -800, -800, -800]);
+      .toEqual([undefined, undefined, undefined, undefined]);
   });
 
   test('awards the first 10 TP on completion, then activates upkeep and weekly TP', () => {

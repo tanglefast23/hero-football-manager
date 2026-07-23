@@ -5,6 +5,7 @@ import {
   buildCareerFacility,
   createCareer,
   playerAttributeCaps,
+  resolveTrainingDrillForPath,
   type GameState,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
@@ -15,8 +16,11 @@ describe('weekly review view model', () => {
     const content = loadLaunchContent();
     const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
     let before = createCareer(createLaunchCareerSetup(1234));
-    const playerId = 'bramble-rovers-p13';
-    before = applyCareerTraining(before, [playerId], [sprint]);
+    // p12 has PAC headroom under this seed (p13's is already at its archetype
+    // cap); the m1-slice career has no tier gating, so the slot always trains
+    // at the highest unlocked tier (Sprints III, +8 PAC).
+    const playerId = 'bramble-rovers-p12';
+    before = applyCareerTraining(before, [{ playerId, pathId: sprint.id }]);
     const playerBefore = before.players.find(player => player.id === playerId)!;
 
     const after = advanceWeek(before);
@@ -38,8 +42,8 @@ describe('weekly review view model', () => {
       expect.objectContaining({
         label: 'PAC',
         before: playerBefore.attrs.pac,
-        after: playerBefore.attrs.pac + 3,
-        delta: 3,
+        after: playerBefore.attrs.pac + 8,
+        delta: 8,
       }),
     ]));
     expect(review.development.conditioning).toEqual(expect.arrayContaining([
@@ -126,61 +130,35 @@ describe('weekly review view model', () => {
   it('names a fully capped drill instead of reporting a funding failure', () => {
     const content = loadLaunchContent();
     const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
-    const initial = createCareer(createLaunchCareerSetup(6790, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(6790));
     const player = initial.players.find(candidate => candidate.clubId === initial.userClubId)!;
     const cap = playerAttributeCaps(player).pac;
-    const headCoach = { ...initial.market!.coachCandidates[0], level: 3 };
     const capped: GameState = {
       ...initial,
-      trainingPoints: 0,
-      facilities: { trainingGroundBuilt: true },
-      market: { ...initial.market!, headCoach },
       players: initial.players.map(candidate => candidate.id === player.id
         ? { ...candidate, attrs: { ...candidate.attrs, pac: cap } }
         : candidate),
     };
-    const before = applyCareerTraining(capped, [player.id], [sprint]);
+    const before = applyCareerTraining(capped, [{ playerId: player.id, pathId: sprint.id }]);
+    const drill = resolveTrainingDrillForPath(before, sprint.id);
+    const drillName = content.training.focusDrills.find(candidate => candidate.id === drill.id)?.name ?? drill.id;
     const after = advanceWeek(before);
     const review = weeklyReviewViewModel(before, after);
 
-    expect(after.trainingPoints).toBe(26);
+    expect(after.trainingPoints).toBe(before.trainingPoints);
     expect(review.development).toMatchObject({
       focusedTrainees: [],
-      trainingSkippedWarning: `${player.name} skipped Sprints I — already at their PAC maximum of ${cap}.`,
+      trainingSkippedWarning: `${player.name} skipped ${drillName} — already at their PAC maximum of ${cap}.`,
     });
     expect(after.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
   });
 
-  it('uses the real facility and coach TP when explaining an unfunded plan', () => {
-    const content = loadLaunchContent();
-    const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
-    const initial = createCareer(createLaunchCareerSetup(6791, undefined, content, 'full'));
-    const player = initial.players.find(candidate => (
-      candidate.clubId === initial.userClubId
-      && playerAttributeCaps(candidate).pac > candidate.attrs.pac
-    ))!;
-    const headCoach = { ...initial.market!.coachCandidates[0], level: 3 };
-    const before: GameState = {
-      ...initial,
-      trainingPoints: 0,
-      facilities: { trainingGroundBuilt: true },
-      market: { ...initial.market!, headCoach },
-      trainingPlan: {
-        assignedPlayerIds: [player.id],
-        drills: [{
-          id: sprint.id,
-          moneyCost: sprint.moneyCost,
-          tpCost: sprint.tpCost,
-          gains: { ...sprint.gains },
-        }],
-      },
-    };
-    const after = advanceWeek(before);
-
-    expect(after.trainingPoints).toBe(26);
-    expect(weeklyReviewViewModel(before, after).development.trainingSkippedWarning)
-      .toBe('Focused training skipped — not enough TP.');
-  });
+  // "uses the real facility and coach TP when explaining an unfunded plan" was
+  // deleted: it relied on a per-trainee training MONEY cost (400) to make the
+  // plan unaffordable despite ample TP. Training money is always 0 now, and
+  // every path's TP cost is tiny next to any real facility/coach TP income, so
+  // there is no way to reconstruct a genuine "affordable TP-wise, not
+  // cash-wise" shortfall — the mechanism this case tested is gone.
 });
 
 function requireUserClub(state: GameState) {

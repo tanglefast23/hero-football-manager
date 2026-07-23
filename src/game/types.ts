@@ -50,9 +50,14 @@ export interface CareerTrainingDrill {
   gains: Partial<Attrs>;
 }
 
+export interface CareerTrainingSlot {
+  playerId: string;
+  /** Tier-1 drill id identifying the path; best unlocked tier resolves at settlement. */
+  pathId: string;
+}
+
 export interface CareerTrainingPlan {
-  assignedPlayerIds: string[];
-  drills: CareerTrainingDrill[];
+  slots: CareerTrainingSlot[];
 }
 
 export interface CareerTrainingCapNotice {
@@ -68,9 +73,19 @@ export interface CareerTrainingCapNotice {
   kind?: 'reached' | 'skipped';
 }
 
+/**
+ * Set when a TRAINING_PRIORITY promise is accepted while every training slot
+ * is full: the manager must pick who to bump before the promise is honored.
+ */
+export interface PendingTrainingPromiseBump {
+  promisedPlayerId: string;
+}
+
 export interface TrainingRules {
   baseConditioning: CareerTrainingDrill;
   maxFocusDrillsPerWeek: number;
+  /** Full focus-drill catalog, baked in so the pure engine can resolve tiers. */
+  focusDrills: CareerTrainingDrill[];
 }
 
 export type PlayerArchetype =
@@ -409,6 +424,8 @@ export interface GameState {
   trainingPlan?: CareerTrainingPlan;
   /** One-shot inbox receipts created when focused training fills a personal attribute cap. */
   trainingCapNotices?: CareerTrainingCapNotice[];
+  /** Cleared once the manager picks who to bump; a mid-prompt save must reload it. */
+  pendingTrainingPromiseBump?: PendingTrainingPromiseBump;
   eventClock: CareerEventState;
   eventFlags: string[];
   resolvedEventIds: string[];
