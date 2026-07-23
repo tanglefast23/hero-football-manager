@@ -11,8 +11,10 @@ import {
   currentUserDivision,
   difficultyRules,
   fixturesForCurrentWeek,
+  hasActiveCareerContractPromise,
   isFacilityOperational,
   isAssistantInboxOneShotProductVisible,
+  isFullyCappedPlayer,
   latestSeasonRecap,
   leagueStandings,
   nextPendingClubLegend,
@@ -1235,6 +1237,9 @@ export function squadTrainingViewModel(
           }),
         ),
         ...(slotNumberByPlayerId.has(player.id) ? { slotNumber: slotNumberByPlayerId.get(player.id) } : {}),
+        ...(hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY') && !isFullyCappedPlayer(player)
+          ? { trainingLocked: true }
+          : {}),
       };
     }),
     slots: completeSlots.map(slot => {

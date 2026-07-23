@@ -95,8 +95,10 @@ import {
 import {
   careerCoachUnlockedFormationIds,
   clubSquadStrength,
+  hasActiveCareerContractPromise,
   hasAssistantGuideSequenceCompleted,
   isFirstOnboardingFixture,
+  isFullyCappedPlayer,
   leagueStandings,
 } from './src/game';
 import type { DivisionLevel } from './src/game/pyramid';
@@ -1279,6 +1281,7 @@ function GameApp() {
             onTogglePlayerAssignment={store.toggleTrainingPlayer}
             onSelectTrainingStat={(playerId, pathId) => store.setTrainingSlotStat(playerId, pathId)}
             trainingSlotLimitHit={store.trainingSlotLimitHit}
+            onDismissSlotLimit={store.clearTrainingSlotLimit}
             guideTraining={assistantObjective?.target === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
           />
@@ -1528,7 +1531,12 @@ function GameApp() {
           promisedPlayerName={store.career?.players.find(player => (
             player.id === store.career?.pendingTrainingPromiseBump?.promisedPlayerId
           ))?.name ?? null}
-          slots={squadTrainingVm?.slots ?? []}
+          slots={(squadTrainingVm?.slots ?? []).filter(slot => {
+            const occupant = store.career?.players.find(player => player.id === slot.playerId);
+            return occupant === undefined
+              || !hasActiveCareerContractPromise(occupant, 'TRAINING_PRIORITY')
+              || isFullyCappedPlayer(occupant);
+          })}
           onPick={handleTrainingPromiseBumpPick}
         />
         <SettingsOverlay

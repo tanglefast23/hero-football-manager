@@ -289,6 +289,8 @@ export interface SquadPlayerViewModel {
   }[];
   /** Position (1-based) in this week's training slots, when the player occupies one. */
   slotNumber?: number;
+  /** True when a TRAINING_PRIORITY promise requires this player stay slotted (they cannot be dropped). */
+  trainingLocked?: boolean;
 }
 
 export interface FocusDrillViewModel {

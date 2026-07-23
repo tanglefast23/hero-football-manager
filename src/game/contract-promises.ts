@@ -97,7 +97,16 @@ export function applyCareerContractPromise(
     : state.trainingPlan;
   // Slots are full: ask the manager who to bump instead of silently skipping.
   // A fully-capped promised player has nothing to gain, so no prompt is raised.
-  const pendingTrainingPromiseBump = roomPathId !== undefined && !hasFreeSlot
+  // If every current occupant is itself promise-locked (and not fully capped),
+  // there is nobody left to bump, so skip honoring rather than raising an
+  // unsatisfiable prompt.
+  const hasBumpableSlot = (state.trainingPlan?.slots ?? []).some(slot => {
+    const occupant = state.players.find(candidate => candidate.id === slot.playerId);
+    return occupant === undefined
+      || !hasActiveCareerContractPromise(occupant, 'TRAINING_PRIORITY')
+      || isFullyCappedPlayer(occupant);
+  });
+  const pendingTrainingPromiseBump = roomPathId !== undefined && !hasFreeSlot && hasBumpableSlot
     ? { promisedPlayerId: playerId }
     : state.pendingTrainingPromiseBump;
 
@@ -188,11 +197,21 @@ export function assertCareerTrainingHonorsContractPromises(
   for (const player of state.players) {
     if (player.clubId !== state.userClubId
       || player.injuryWeeks > 0
-      || !hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')) continue;
+      || !hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
+      // A fully-capped player has no trainable stat left, so the promise
+      // cannot be honored by training them — requiring the slot would be an
+      // unresolvable dead-end.
+      || isFullyCappedPlayer(player)) continue;
     if (!assigned.has(player.id)) {
       throw new Error(`${player.name} was promised training priority`);
     }
   }
+}
+
+/** True once every one of the player's seven attributes is at their personal cap. */
+export function isFullyCappedPlayer(player: CareerPlayer): boolean {
+  const caps = playerAttributeCaps(player);
+  return TRAINING_PATHS.every(path => player.attrs[path.attribute] >= caps[path.attribute]);
 }
 
 /** Removes promises and club-owned presentation roles when a player is sold. */

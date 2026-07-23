@@ -190,6 +190,7 @@ interface M1Store {
   selectPlayer: (playerId: string) => void;
   toggleTrainingPlayer: (playerId: string) => void;
   setTrainingSlotStat: (playerId: string, pathId: string) => void;
+  clearTrainingSlotLimit: () => void;
   resolveTrainingPromiseBump: (bumpedPlayerId: string) => void;
   buildFacility: () => void;
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
@@ -468,9 +469,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const guidedCareer = career.eventFlags.includes('m4:season-recap-guide-seen')
           ? career
           : { ...career, eventFlags: [...career.eventFlags, 'm4:season-recap-guide-seen'] };
+        // TODO: startNextSeason bypasses advanceWeek's interrupt guard, but
+        // resolveCareerTrainingWeek still skips at-cap slots and the next real
+        // advance re-blocks, so this is low impact (see Finding 4).
         const next = reconcilePendingClubLegends(startNextSeason(guidedCareer));
         set({
           career: next,
+          trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
           screen: nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
           activeTab: 'home',
           weekReview: null,
@@ -888,6 +893,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
+  clearTrainingSlotLimit() {
+    set({ trainingSlotLimitHit: false });
+  },
+
   resolveTrainingPromiseBump(bumpedPlayerId) {
     guarded(set, () => {
       const career = requireCareer(get());
@@ -1035,6 +1044,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const next = { ...transaction.state, market: transaction.market };
       set({
         career: next,
+        trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
         error: null,
         notice: {
           tone: 'success',
@@ -1116,6 +1126,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const next = { ...transaction.state, market: transaction.market };
         set({
           career: next,
+          trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
           error: null,
           notice: {
             tone: 'success',
@@ -1185,6 +1196,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const next = { ...transaction.state, market: transaction.market };
         set({
           career: next,
+          trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
           selectedContractTerm: 1,
           error: null,
           notice: { tone: 'success', message: 'Contract renewed.' },
@@ -1216,7 +1228,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
   releasePlayer(playerId) {
     guarded(set, () => {
       const next = releaseCareerPlayer(requireCareer(get()), playerId);
-      set({ career: next, error: null });
+      set({
+        career: next,
+        trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
+        error: null,
+      });
       queueCareerSave(get, set, next);
     });
   },

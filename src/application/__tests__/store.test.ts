@@ -308,6 +308,100 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().trainingSlotLimitHit).toBe(false);
   });
 
+  it('clears the slot-limit toast so a repeated 4th tap can re-fire', () => {
+    startCreatedCareer(795);
+    const career = useM1Store.getState().career!;
+    const ids = career.players
+      .filter(player => player.clubId === career.userClubId)
+      .map(player => player.id);
+
+    useM1Store.getState().toggleTrainingPlayer(ids[0]);
+    useM1Store.getState().toggleTrainingPlayer(ids[1]);
+    useM1Store.getState().toggleTrainingPlayer(ids[2]);
+    useM1Store.getState().toggleTrainingPlayer(ids[3]);
+    expect(useM1Store.getState().trainingSlotLimitHit).toBe(true);
+
+    useM1Store.getState().clearTrainingSlotLimit();
+    expect(useM1Store.getState().trainingSlotLimitHit).toBe(false);
+
+    useM1Store.getState().toggleTrainingPlayer(ids[4]);
+    expect(useM1Store.getState().trainingSlotLimitHit).toBe(true);
+  });
+
+  it('resyncs the training draft after a slotted player is sold, so a later toggle does not throw', () => {
+    useM1Store.getState().startNewCareer(20260830, 'full');
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    const career = useM1Store.getState().career!;
+    const starterIds = new Set(
+      career.lineups.find(lineup => lineup.clubId === career.userClubId)!.playerIds,
+    );
+    const bench = career.players.filter(player => (
+      player.clubId === career.userClubId && !starterIds.has(player.id)
+    ));
+    const trainee = bench[0];
+    const other = bench[1];
+
+    useM1Store.getState().toggleTrainingPlayer(trainee.id);
+    useM1Store.getState().setTrainingSlotStat(trainee.id, 'sprints');
+    useM1Store.getState().toggleTrainingPlayer(other.id);
+    useM1Store.getState().setTrainingSlotStat(other.id, 'rondo');
+    expect(useM1Store.getState().trainingSlots.map(slot => slot.playerId)).toEqual([trainee.id, other.id]);
+
+    // List, then accept the first bid — this is the engine path that silently
+    // strips the sold player from career.trainingPlan.slots.
+    useM1Store.getState().actOnTransfer(trainee.id, 'SELL');
+    expect(useM1Store.getState().error).toBeNull();
+    const listing = useM1Store.getState().career!.market!.transferListings!
+      .find(candidate => candidate.playerId === trainee.id)!;
+    useM1Store.getState().actOnTransfer(trainee.id, 'SELL', listing.bids[0].id);
+    expect(useM1Store.getState().error).toBeNull();
+
+    expect(useM1Store.getState().trainingSlots.map(slot => slot.playerId)).toEqual([other.id]);
+
+    // Before the fix, the stale draft entry for the sold player survived, and
+    // committing a plan that referenced them (a player no longer on the
+    // roster) would throw and soft-lock the training screen.
+    useM1Store.getState().toggleTrainingPlayer(other.id);
+    expect(useM1Store.getState().error).toBeNull();
+    expect(useM1Store.getState().trainingSlots).toEqual([]);
+  });
+
+  it('adds a TRAINING_PRIORITY renewal auto-slot into the training draft', () => {
+    useM1Store.getState().startNewCareer(20260831, 'full');
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    const career = useM1Store.getState().career!;
+    const trainee = career.players.find(player => (
+      player.clubId === career.userClubId && player.contractPromise === undefined
+    ))!;
+    const seasonEndCareer: GameState = {
+      ...career,
+      phase: 'season-end',
+      trainingPlan: { slots: [] },
+      players: career.players.map(player => player.id === trainee.id
+        ? { ...player, contractSeasonsRemaining: 0 }
+        : player),
+    };
+    useM1Store.setState({ career: seasonEndCareer, trainingSlots: [] });
+
+    useM1Store.getState().startRenewal(trainee.id);
+    expect(useM1Store.getState().error).toBeNull();
+    useM1Store.getState().submitRenewalOffer({
+      weeklyWage: 999999,
+      termSeasons: 3,
+      perk: 'TRAINING_PRIORITY',
+    });
+
+    expect(useM1Store.getState().error).toBeNull();
+    expect(useM1Store.getState().career?.market?.renewalTalks).toBeUndefined();
+    expect(useM1Store.getState().trainingSlots.map(slot => slot.playerId)).toContain(trainee.id);
+  });
+
   it('writes the chosen stat to the slot and to the career training plan', () => {
     startCreatedCareer(794);
     const career = useM1Store.getState().career!;

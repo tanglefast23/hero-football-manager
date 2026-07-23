@@ -270,25 +270,32 @@ export function SquadTrainingScreen({
                 </Pressable>
                 <Pressable
                   accessibilityRole="checkbox"
-                  accessibilityLabel={isAssigned
-                    ? `Remove ${player.name} from this week's training slots`
-                    : `Add ${player.name} to this week's training slots`}
-                  accessibilityState={{ checked: isAssigned }}
+                  accessibilityLabel={player.trainingLocked
+                    ? `${player.name} is locked into training by a contract promise`
+                    : isAssigned
+                      ? `Remove ${player.name} from this week's training slots`
+                      : `Add ${player.name} to this week's training slots`}
+                  accessibilityState={{ checked: isAssigned, disabled: player.trainingLocked === true }}
+                  disabled={player.trainingLocked === true}
                   onPress={() => onTogglePlayerAssignment(player.id)}
-                  className={isAssigned
-                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-violet-dark bg-violet-light'
-                    : glowAssignmentButton
-                      ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
-                      : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
+                  className={player.trainingLocked
+                    ? 'ml-2 h-11 w-12 items-center justify-center border border-ink/20 bg-paper-dark'
+                    : isAssigned
+                      ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-violet-dark bg-violet-light'
+                      : glowAssignmentButton
+                        ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
+                        : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
                   style={({ pressed }) => [
-                    { opacity: pressed ? 0.65 : undefined },
+                    { opacity: pressed && !player.trainingLocked ? 0.65 : undefined },
                     glowAssignmentButton ? styles.assignmentButtonGlow : null,
                   ]}
                 >
-                  <Text className={isAssigned || glowAssignmentButton
-                    ? 'font-mono text-base font-bold text-ink'
-                    : 'font-mono text-base text-ink/40'}>
-                    {player.slotNumber ?? '+'}
+                  <Text className={player.trainingLocked
+                    ? 'font-mono text-base font-bold text-ink/30'
+                    : isAssigned || glowAssignmentButton
+                      ? 'font-mono text-base font-bold text-ink'
+                      : 'font-mono text-base text-ink/40'}>
+                    {player.trainingLocked ? '🔒' : player.slotNumber ?? '+'}
                   </Text>
                 </Pressable>
               </View>
