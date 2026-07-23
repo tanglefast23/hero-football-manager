@@ -31,5 +31,6 @@ export * from './season-recap';
 export * from './squad';
 export * from './story-progression';
 export * from './training';
+export * from './training-paths';
 export * from './types';
 export * from './youth-intake';
