@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { ENGINE_VERSION } from '../../sim/match';
 
 function source(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -84,16 +85,18 @@ describe('player-facing acceptance audit regressions', () => {
     expect(club).not.toContain('disabled={!onOpenLedgerLine}');
   });
 
-  test('keeps placement cells exposed while hiding overlapping buildings from VoiceOver', () => {
+  test('keeps placement cells exposed while completed facility art fills its footprint', () => {
     const club = source('src/ui/screens/ClubFinancesScreen.tsx');
 
     expect(club).toContain("position: 'relative'");
     expect(club).toContain('zIndex: placementActive ? 2 : 0');
-    expect(club).toContain('zIndex: placementActive ? 0 : 1');
+    expect(club).toContain('zIndex: 3');
     expect(club).toContain('accessible={placementActive}');
     expect(club).toContain("`${buildable ? 'Build at' : 'Blocked at'} column ${x + 1}, row ${y + 1}`");
-    expect(club).toContain("placementActive ? 'rgba(217, 79, 82, 0.30)' : undefined");
-    expect(club).toContain('placementActive && occupied');
+    expect(club).toContain("occupied\n                              ? 'transparent'");
+    expect(club).toContain('width={artWidth}');
+    expect(club).toContain('height={artHeight}');
+    expect(club).not.toContain('placementActive && occupied');
     expect(club).toContain('accessibilityElementsHidden={placementActive}');
     expect(club).toContain("importantForAccessibility={placementActive ? 'no-hide-descendants' : 'auto'}");
   });
@@ -111,7 +114,7 @@ describe('player-facing acceptance audit regressions', () => {
     expect(home).toContain("Use Advance Week below to prepare Match Day.");
   });
 
-  test('keeps the README engine marker synchronized without a replay bump', () => {
-    expect(source('README.md')).toContain('Current engine: **m1.16**.');
+  test('keeps the README engine marker synchronized with the replay version', () => {
+    expect(source('README.md')).toContain(`Current engine: **${ENGINE_VERSION}**.`);
   });
 });

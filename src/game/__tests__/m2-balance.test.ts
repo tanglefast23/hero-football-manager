@@ -26,10 +26,12 @@ describe('M2 deterministic management balance rails', () => {
     // A deliberately passive manager can run into debt after the S1 subsidy,
     // but the six-season stress path must stay in a controlled integer corridor
     // rather than overflow or produce runaway income/debt.
-    // The starting Training Pitch adds $100 weekly upkeep to this deliberately
-    // passive six-season path, so retain a rounded corridor around that cost.
+    // This deliberately passive path keeps the extra $8,000 first-pitch budget
+    // and never takes on the pitch's upkeep. The first D4 promotion also adds
+    // the authored $15,000 recruitment fund, so retain rounded corridors around
+    // the long-run economy.
     expect(summary.minimumBalance).toBeGreaterThanOrEqual(-335_000);
-    expect(summary.maximumBalance).toBeLessThanOrEqual(75_000);
+    expect(summary.maximumBalance).toBeLessThanOrEqual(100_000);
     expect(summary.minimumWeeklyNet).toBeGreaterThanOrEqual(-15_000);
     expect(summary.maximumWeeklyNet).toBeLessThanOrEqual(40_000);
     expect(Number.isSafeInteger(summary.endingCash)).toBe(true);

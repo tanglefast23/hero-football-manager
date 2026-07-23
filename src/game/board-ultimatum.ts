@@ -324,8 +324,7 @@ function canLeaveWithoutBreakingLineup(state: GameState, player: CareerPlayer): 
     candidate.clubId === state.userClubId
     && candidate.id !== player.id
     && !starterIds.has(candidate.id)
-    && candidate.contractSeasonsRemaining > 0
-    && candidate.injuryWeeks === 0
+    && isEligibleBoardLineupReplacement(candidate)
     && (candidate.role === player.role
       || (candidate.role !== 'GK' && player.role !== 'GK'))
   ));
@@ -342,15 +341,13 @@ function replaceDepartingStarter(
     candidate.clubId === state.userClubId
     && candidate.id !== player.id
     && !starters.has(candidate.id)
-    && candidate.contractSeasonsRemaining > 0
-    && candidate.injuryWeeks === 0
+    && isEligibleBoardLineupReplacement(candidate)
     && candidate.role === player.role
   )) ?? state.players.find(candidate => (
     candidate.clubId === state.userClubId
     && candidate.id !== player.id
     && !starters.has(candidate.id)
-    && candidate.contractSeasonsRemaining > 0
-    && candidate.injuryWeeks === 0
+    && isEligibleBoardLineupReplacement(candidate)
     && candidate.role !== 'GK'
     && player.role !== 'GK'
   ));
@@ -363,6 +360,12 @@ function replaceDepartingStarter(
         playerIds: candidate.playerIds.map(id => id === player.id ? replacement.id : id),
       }
     : candidate);
+}
+
+function isEligibleBoardLineupReplacement(player: CareerPlayer): boolean {
+  return player.contractSeasonsRemaining > 0
+    && player.injuryWeeks === 0
+    && !(player.power !== undefined && !player.licensed);
 }
 
 function userLineup(state: GameState) {

@@ -2,15 +2,15 @@ import { mulberry32 } from './rng';
 import { HALF_TICKS } from './geometry';
 import { emit } from './events';
 import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTick } from './engine';
-import { powerTick } from './powers';
+import { cancelPowerReferencesForSubstitution, powerTick } from './powers';
 import { applyAutomaticCoaching } from './auto-coaching';
 import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.16 makes Shadow Mark genuinely invisible to pass choice, then consumes
-// the cloak on its first challenge as the authored one-ambush contract says.
-export const ENGINE_VERSION = 'm1.17';
+// m1.23 keeps Gravity's lane-opening pulse from moving blockers toward the
+// carrier and abandons its priority pass if that lane closes before the kick.
+export const ENGINE_VERSION = 'm1.23';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -55,7 +55,7 @@ function makePlayers(home: TeamDef, away: TeamDef, opts: MatchOpts): SimPlayer[]
     defs.players.map(def => ({
       def, team,
       pos: { x: 0, y: 0 }, // set by restartKickoff below
-      condition: 100, gauge: 0,
+      condition: 100, gauge: 0, zonesOpened: 0,
       powerState: { kind: 'idle' as const },
       firePolicy: team === 0 ? (opts.homePolicy ?? 'SAVE_FOR_TAP') : (opts.awayPolicy ?? 'FIRE_WHEN_READY'),
       outUntilTick: 0, tackleRecoveryUntil: 0, tackleCooldownUntil: 0, cards: 0 as const,
@@ -71,6 +71,7 @@ export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: Ma
   const state: MatchState = {
     tick: 0, half: 1, phase: 'play', score: [0, 0],
     players: makePlayers(teams[0], teams[1], optsCopy),
+    decoyClones: [null, null],
     ball: { kind: 'held', by: 9 },
     // Inert placeholder (blendFrom === phase → no blend); restartKickoff below
     // resets it properly for the opening kickoff.
@@ -199,7 +200,7 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
     return;
   }
 
-  performSubstitution(state, team, input.player, input.replacementId);
+  performSubstitution(state, team, input.player, input.replacementId, cancelPowerReferencesForSubstitution);
 }
 
 export function tick(state: MatchState): void {
@@ -213,7 +214,7 @@ export function tick(state: MatchState): void {
   }
   state.pendingInputs = remainingInputs;
   for (const input of dueInputs) processCoachingInput(state, input);
-  applyAutomaticCoaching(state);
+  applyAutomaticCoaching(state, cancelPowerReferencesForSubstitution);
   powerTick(state, dueInputs);
   movementTick(state);
   possessionTick(state);

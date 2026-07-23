@@ -7,6 +7,7 @@ Portrait, one-handed, thumb-first. The design language follows the house rules (
 - **60% neutral**: warm cream surfaces (dark mode: deep navy-charcoal) — the "clubhouse" canvas.
 - **30% structure**: dark ink text/borders; pitch-green reserved for match surfaces.
 - **10% accent**: **hero gold** — used *only* for hero/power elements (gauges, license slots, awakening moments, HE currency). The accent literally means "hero"; nothing else may use it. Semantic red/green only for money deltas and win/loss.
+- **Action colour carries meaning, not decoration** (the shared families live in [11-art-style.md](11-art-style.md)): **violet** confirm/primary · **red** cancel/destructive · **blue** neutral action · **gold** hero/reward only · **grey** disabled. Button faces are the one place the palette is allowed to shout against the calm cream canvas; violet is therefore the primary-action colour across management screens (Advance Week, confirms, guided cards) and is not a second brand accent competing with gold.
 - Pixel-art portraits and icons on clean flat UI (the Kairosoft contrast: crunchy sprites, calm chrome).
 - Type: one UI sans (4 sizes: 13/15/18/24) + monospace for numerals. Weights: regular + bold only.
 
@@ -31,12 +32,12 @@ Only relevant club notes appear below development: skipped focus training names 
 ## Match Day flow
 
 1. **Pre-match** (one screen): formation pitch with drag-swap lineup and hero license slot picker. Big buttons: **Watch** / **Quick Result**. The three quick-cycle formations and manual/automatic power control live in persistent Settings, reachable from both the title screen and management shell.
-2. **Live match** (portrait vertical pitch): scoreboard bug top with speed and pause; a compact name + energy card stays fixed at bottom-left and retains the last carrier during passes, shots, and loose balls. A home hero glows in the Zone and is tapped directly on the pitch; rivals always run automatically. The first coaching row has **Formation**, **Playstyle**, and **Swap**: Formation taps cycle the three Settings presets with a large text overlay, Playstyle cycles Balanced / Attack / Protect, and Swap pauses play for an on-field-player → bench-player → confirm flow with names and numeric energy. A second full-width **Energy Use** row directly selects **Save Energy / Balanced / All Out** and shows Team Energy. The active mode is unmistakably selected without relying on color alone. Swap's secondary label becomes `N TIRED · used/3` when players are at or below 40%, prompting the player to inspect exhausted off-ball teammates; the count remains visible after all three substitutions are spent. Power cut-ins can hold up to four simultaneous **home** activations: one full tile, two side by side, three as two-up/one-down, and four as a 2×2 grid. Rival activations use compact red banners instead of consuming tiles. Banners use the same newest-four overflow rule. First reveals hold for 1.55s; previously seen panels are skippable and hold for 1s.
+2. **Live match** (portrait vertical pitch): scoreboard bug top with speed and pause; a compact name + energy card stays fixed at bottom-left and retains the last carrier during passes, shots, and loose balls. A home hero glows in the Zone and is tapped directly on the pitch; rivals always run automatically. The first coaching row has **Formation**, **Playstyle**, and **Swap**: Formation taps cycle the three Settings presets with a large text overlay, Playstyle cycles Balanced / Attack / Protect, and Swap pauses play for an on-field-player → bench-player → confirm flow with names and numeric energy. A second full-width **Energy Use** row directly selects **Save Energy / Balanced / All Out** and shows Team Energy. The active mode is unmistakably selected without relying on color alone. Swap's secondary label becomes `N TIRED · used/3` when players are at or below 40%, prompting the player to inspect exhausted off-ball teammates; the count remains visible after all three substitutions are spent. A home power activation temporarily replaces that bottom-left card with a compact player name + power name + pixel glyph callout for 0.9–1.2 seconds. It never pauses or covers the pitch. Rival activations use compact red threat banners. All on-pitch power effects follow the Track-B pixel-art rules in doc 11 and must communicate the affected player and gameplay result without relying on the label.
 3. **Post-match**: full-time result and highlights → Home beneath an accounts statement modal (line-by-line count-up with a high-contrast semantic Net row) → focused-player development celebration with sequential stat pops and a ding per positive gain. One tap finishes all remaining motion.
 
 ## Feel (juice budget — restrained but present)
 
-Haptics: power fired (heavy), goal (success), full gauge (light tick). Count-up tickers on money. Sprite squash-and-stretch on kicks. Confetti on promotion. No screen-shake spam; the comic cut-ins are the spectacle ration.
+Haptics: power fired (heavy), goal (success), full gauge (light tick). Count-up tickers on money. Sprite squash-and-stretch on kicks. Confetti on promotion. No screen-shake spam; compact pixel effects are the spectacle ration and the pitch remains readable.
 
 ### Interaction feedback contract
 
@@ -56,7 +57,7 @@ The approved Bert design and full copy cadence live in [the assistant-manager br
 
 ## Accessibility
 
-Colorblind-safe kit palette pairs (never red-vs-green matches); text scaling respected on management screens; reduce-motion setting = no cut-ins (banner only); timing gives a 7-second Zone followed by a fixed 2-second armed window when the player commits early; left/right-hand HUD flip.
+Colorblind-safe kit palette pairs (never red-vs-green matches); text scaling respected on management screens; reduce-motion keeps the compact activation card but removes repeated pulses; timing gives a 7-second Zone followed by a fixed 2-second armed window when the player commits early; left/right-hand HUD flip.
 
 ## PC port posture
 

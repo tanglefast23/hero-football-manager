@@ -37,4 +37,10 @@ describe('persistent haptics gate', () => {
     expect(mockSelectionAsync).toHaveBeenCalledTimes(1);
     expect(mockImpactAsync).toHaveBeenCalledWith('heavy');
   });
+
+  it('uses a medium impact for tap feedback', () => {
+    playManagementHaptic('tap');
+
+    expect(mockImpactAsync).toHaveBeenCalledWith('medium');
+  });
 });

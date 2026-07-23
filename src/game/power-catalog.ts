@@ -27,9 +27,9 @@ export const LAUNCH_POWER_IDS: readonly PowerId[] = [
  * what the trigger actually needs, not by flavour.
  */
 const ROLE_POOL: Readonly<Record<Role, readonly PowerId[]>> = {
-  GK: ['ELASTIC_KEEPER', 'GIANT_GK', 'FIRE_TORCH'],
+  GK: ['ELASTIC_KEEPER', 'GIANT_GK', 'GUST'],
   DEF: ['FUTURE_SIGHT', 'GUST', 'SUPER_STRENGTH', 'WEB_TRAP', 'ICE_RINK', 'SHADOW_MARK',
-    'SUPER_SPEED', 'FIRE_TORCH', 'RALLY_CRY'],
+    'SUPER_SPEED', 'RALLY_CRY'],
   MID: ['PORTAL_PASS', 'DECOY_DOUBLE', 'PHASE_RUN', 'BLINK_RUN', 'FUTURE_SIGHT', 'GUST',
     'WEB_TRAP', 'ICE_RINK', 'SHADOW_MARK', 'GRAVITY_WELL', 'SUPER_SPEED',
     'FIRE_TORCH', 'RALLY_CRY'],

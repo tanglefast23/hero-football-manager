@@ -1,8 +1,7 @@
 import { generateSeasonFixtures } from './schedule';
 import {
-  FACILITY_CATALOG,
+  TRAINING_PITCH_TP_PER_LEVEL,
   advanceFacilityConstruction,
-  buildFacility,
   createFacilityGrid,
   facilityEffects,
   isFacilityOperational,
@@ -17,7 +16,15 @@ import {
   careerCoachWeeklyTrainingPoints,
 } from './coach-weekly';
 import { resolveCareerScoutClock } from './market-career';
-import { resolveNextM2NationalCupRound, willRetireAtSeasonTransition } from './m2-career';
+import {
+  currentUserDivision,
+  resolveNextM2NationalCupRound,
+  willRetireAtSeasonTransition,
+} from './m2-career';
+import {
+  FIRST_D4_PROMOTION_RECRUITMENT_FUND,
+  highestDivisionReached,
+} from './promotion-progression';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
 import type { NationalCupFixture, NationalCupResult } from './pyramid';
 import { repairCareerLineupForInjuries } from './squad';
@@ -108,29 +115,7 @@ export function createCareer(setup: CareerSetup): GameState {
     ...(setup.careerMode === undefined ? {} : { careerMode: setup.careerMode }),
   };
   const career = setup.careerMode === 'full' ? enableFullCareer(state) : state;
-  return setup.careerMode === 'full' && setup.launchRosterVersion !== undefined
-    ? addStartingTrainingPitch(career)
-    : career;
-}
-
-function addStartingTrainingPitch(state: GameState): GameState {
-  const project = buildFacility(
-    createFacilityGrid(),
-    'training-pitch',
-    { x: 0, y: 0 },
-    FACILITY_CATALOG['training-pitch'].buildCost,
-  ).grid;
-  const grid = advanceFacilityConstruction(project).grid;
-  return {
-    ...state,
-    facilities: {
-      trainingGroundBuilt: true,
-      grid: {
-        ...grid,
-        buildings: grid.buildings.map(building => ({ ...building, seeded: true as const })),
-      },
-    },
-  };
+  return career;
 }
 
 export function fixturesForCurrentWeek(state: GameState): LeagueFixture[] {
@@ -398,9 +383,14 @@ function settleCurrentWeek(
     club.id === state.userClubId ? { ...club, cash: balanceAfter } : club,
   );
   const ambientTrainingPoints = weeklyAmbientTrainingPoints(state);
+  const completionTrainingPoints = firstTrainingPitchCompletionPoints(state);
   const trainingPoints = checkedAdd(
-    training.trainingPoints,
-    ambientTrainingPoints,
+    checkedAdd(
+      training.trainingPoints,
+      ambientTrainingPoints,
+      'weekly ambient training point balance',
+    ),
+    completionTrainingPoints,
     'facility training point balance',
   );
   const ledgers = [
@@ -595,6 +585,19 @@ function settlementLines(
         kind: 'prize',
         label: position === 1 ? 'League champion prize' : 'League runner-up prize',
         amount: prize,
+      });
+    }
+    const firstD4Promotion = state.careerMode === 'full'
+      && state.m2 !== undefined
+      && position !== undefined
+      && position <= 2
+      && currentUserDivision(state.m2) === 5
+      && highestDivisionReached(state) === 5;
+    if (firstD4Promotion) {
+      lines.push({
+        kind: 'subsidy',
+        label: 'County League recruitment fund',
+        amount: FIRST_D4_PROMOTION_RECRUITMENT_FUND,
       });
     }
   }
@@ -990,9 +993,32 @@ export function weeklyAmbientTrainingPoints(state: GameState): number {
         building.type === 'training-pitch' && isFacilityOperational(grid, building.id)
       ))
       .reduce((maximum, building) => Math.max(maximum, building.level), 0);
-  const facilityPoints = checkedMultiply(trainingPitchLevel, 10, 'facility training points');
+  const facilityPoints = checkedMultiply(
+    trainingPitchLevel,
+    TRAINING_PITCH_TP_PER_LEVEL,
+    'facility training points',
+  );
   const coachPoints = state.market === undefined ? 0 : careerCoachWeeklyTrainingPoints(state.market);
   return checkedAdd(facilityPoints, coachPoints, 'ambient training points');
+}
+
+function firstTrainingPitchCompletionPoints(state: GameState): number {
+  const grid = state.facilities.grid;
+  const project = grid?.construction;
+  if (
+    grid === undefined
+    || project === undefined
+    || project.kind !== 'BUILD'
+    || project.type !== 'training-pitch'
+    || project.weeksRemaining !== 1
+  ) {
+    return 0;
+  }
+  const alreadyOperational = grid.buildings.some(building => (
+    building.type === 'training-pitch'
+    && isFacilityOperational(grid, building.id)
+  ));
+  return alreadyOperational ? 0 : TRAINING_PITCH_TP_PER_LEVEL;
 }
 
 function validateSetup(setup: CareerSetup): void {

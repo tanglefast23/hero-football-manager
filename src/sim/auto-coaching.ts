@@ -1,6 +1,7 @@
 import { HALF_TICKS } from './geometry';
 import { emit } from './events';
 import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
+import type { BeforeSubstitution } from './substitutions';
 import type { EnergyUse } from './tactics';
 import type { MatchState, PlayerDef, Role } from './types';
 
@@ -47,13 +48,19 @@ export function automaticTeams(state: MatchState): readonly (0 | 1)[] {
   return [0, 1];
 }
 
-function automaticSubstitution(state: MatchState, team: 0 | 1): void {
+function automaticSubstitution(
+  state: MatchState,
+  team: 0 | 1,
+  beforeSubstitution?: BeforeSubstitution,
+): void {
   const choice = automaticSubstitutionChoice(state, team);
   if (choice === null) return;
-  performSubstitution(state, team, choice.playerIndex, choice.replacementId);
+  performSubstitution(state, team, choice.playerIndex, choice.replacementId, beforeSubstitution);
 }
 
-function automaticSubstitutionChoice(
+/** Exported so a watched match can offer the same bench call to the team the
+ * manager controls. Pure selection: it reads state and never mutates it. */
+export function automaticSubstitutionChoice(
   state: MatchState,
   team: 0 | 1,
 ): { playerIndex: number; replacementId: string } | null {
@@ -110,13 +117,16 @@ export function automaticEnergyUse(state: MatchState, team: 0 | 1): EnergyUse {
 }
 
 /** Derived coaching runs at fixed ticks and never consumes RNG or enters inputLog. */
-export function applyAutomaticCoaching(state: MatchState): void {
+export function applyAutomaticCoaching(
+  state: MatchState,
+  beforeSubstitution?: BeforeSubstitution,
+): void {
   const substitutionCheckpoint = AUTO_SUBSTITUTION_TICKS.includes(state.tick);
   const energyCheckpoint = AUTO_ENERGY_USE_TICKS.includes(state.tick);
   if (!substitutionCheckpoint && !energyCheckpoint) return;
 
   for (const team of automaticTeams(state)) {
-    if (substitutionCheckpoint) automaticSubstitution(state, team);
+    if (substitutionCheckpoint) automaticSubstitution(state, team, beforeSubstitution);
     if (!energyCheckpoint) continue;
     const energyUse = automaticEnergyUse(state, team);
     if (state.tactics[team].energyUse === energyUse) continue;

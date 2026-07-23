@@ -44,16 +44,6 @@
           "buttonLabel": "Got it"
         },
         {
-          "kicker": "What you inherited",
-          "title": "One pitch, already yours",
-          "body": [
-            "The board left you a Level 1 Training Pitch. It's built, it's paid for, and it hands you 10 Training Points every week.",
-            "That's what pays for drills. Everything else on the grounds, you build yourself."
-          ],
-          "focus": "assistant",
-          "buttonLabel": "Good to know"
-        },
-        {
           "kicker": "The bottom rail",
           "title": "Know your doors",
           "body": [
@@ -64,7 +54,7 @@
           "navItems": [
             { "tab": "HOME", "detail": "Today's work." },
             { "tab": "SQUAD", "detail": "Team and training." },
-            { "tab": "CLUB", "detail": "Wages and facilities." },
+            { "tab": "CLUB", "detail": "Wages and grounds." },
             { "tab": "MARKET", "detail": "Scout, hire and fire." },
             { "tab": "LEAGUE", "detail": "Leagues and rivals." }
           ]
@@ -168,20 +158,20 @@
     {
       "id": "facility-placement",
       "inbox": {
-        "title": "Place your first facility",
-        "detail": "Bert has the grounds plan and only one coffee ring on it."
+        "title": "Build your Training Pitch",
+        "detail": "The $8,000 build cost is in your starting budget. You choose where it goes."
       },
       "destination": "club-facilities",
       "pages": [
         {
-          "kicker": "The club grounds",
-          "title": "Build with a little plan",
+          "kicker": "Your first build",
+          "title": "Put down the Training Pitch",
           "body": [
-            "Choose a building, then an empty patch on the 8 by 6 grid. It opens after construction; shared edges can unlock pairing bonuses."
+            "Choose Training Pitch, place it on any clear patch, and approve the $8,000 build. It opens next week and earns your first 10 TP on completion."
           ],
           "focus": "facility-grid",
-          "objective": "PLACE YOUR FIRST FACILITY.",
-          "buttonLabel": "Hard hat acquired."
+          "objective": "BUILD YOUR TRAINING PITCH.",
+          "buttonLabel": "Show me the grounds."
         }
       ]
     },

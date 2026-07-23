@@ -2,6 +2,7 @@ import { createLaunchCareerSetup, reconcileLaunchRoster } from '../../applicatio
 import { createCareer, startNextSeason } from '../career';
 import { enableFullCareer } from '../full-career';
 import { clubSquadStrength, currentUserDivision } from '../m2-career';
+import { tuneSquadToStrength } from '../pyramid';
 import { runHeadlessFullCareer } from '../headless';
 import { buildCareerTeamDef } from '../squad';
 import type { GameState } from '../types';
@@ -136,7 +137,50 @@ describe('full M2 career clock', () => {
     expect(currentUserDivision(promoted.m2!)).toBe(4);
     expect(promotedOpponents.every(player => player.potentialCeiling !== undefined)).toBe(true);
     expect(averageCeiling(promotedOpponents)).toBeGreaterThan(averageCeiling(startingOpponents));
+    for (const club of promoted.clubs) {
+      if (club.id === promoted.userClubId) continue;
+      expect(promoted.players.filter(player => (
+        player.clubId === club.id && player.power !== undefined
+      )).length).toBeLessThanOrEqual(1);
+      expect(() => buildCareerTeamDef(promoted, club.id)).not.toThrow();
+    }
   });
+
+  test.each([78_003, 78_004, 78_005])(
+    'gives a sensibly prepared promoted club two D4 relegation rivals while preserving the real step above them (seed %i)',
+    careerSeed => {
+      const initial = createCareer({ ...createLaunchCareerSetup(careerSeed), careerMode: 'full' });
+      const userPlayers = initial.players.filter(player => player.clubId === initial.userClubId);
+      const tunedUserPlayers = new Map(tuneSquadToStrength(userPlayers, 46)
+        .map(player => [player.id, player] as const));
+      const prepared = {
+        ...initial,
+        players: initial.players.map(player => tunedUserPlayers.get(player.id) ?? player),
+      };
+
+      const promoted = startNextSeason(completeSeasonForUser(prepared, 'win'));
+      const userStrength = effectiveStartingElevenStrength(promoted, promoted.userClubId);
+      const opponentStrengths = promoted.clubs
+        .filter(club => club.id !== promoted.userClubId)
+        .map(club => ({
+          clubId: club.id,
+          strength: effectiveStartingElevenStrength(promoted, club.id),
+        }));
+      const minnows = opponentStrengths.filter(club => club.strength >= 46 && club.strength <= 49.5);
+      const established = opponentStrengths.filter(club => (
+        !minnows.some(minnow => minnow.clubId === club.clubId)
+      ));
+
+      expect(currentUserDivision(promoted.m2!)).toBe(4);
+      expect(userStrength).toBeGreaterThanOrEqual(45);
+      expect(userStrength).toBeLessThanOrEqual(47);
+      expect(minnows).toHaveLength(2);
+      expect(Math.min(...established.map(club => club.strength))).toBeGreaterThanOrEqual(51);
+      expect(Math.max(...opponentStrengths.map(club => club.strength))).toBeGreaterThanOrEqual(59.5);
+      // A stored 61 can read as 61.9 after the role-specific XI is selected.
+      expect(Math.max(...opponentStrengths.map(club => club.strength))).toBeLessThanOrEqual(62);
+    },
+  );
 
   test('deterministically replenishes every position when a generation retires', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(79), careerMode: 'full' });
@@ -301,4 +345,17 @@ function completeSeasonForUser<T extends ReturnType<typeof createCareer>>(
         }
       : fixture),
   } as T;
+}
+
+const EFFECTIVE_STRENGTH_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const;
+
+function effectiveStartingElevenStrength(state: GameState, clubId: string): number {
+  const team = buildCareerTeamDef(state, clubId);
+  const total = team.players.reduce((teamTotal, player) => (
+    teamTotal + EFFECTIVE_STRENGTH_ATTRIBUTES.reduce(
+      (playerTotal, attribute) => playerTotal + player.attrs[attribute],
+      0,
+    )
+  ), 0);
+  return Math.round(total / (team.players.length * EFFECTIVE_STRENGTH_ATTRIBUTES.length) * 10) / 10;
 }

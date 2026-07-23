@@ -1,5 +1,5 @@
 import { createMatch, queueInput, tick } from '../../sim/match';
-import { ZONE_WINDOW_TICKS } from '../../sim/powers';
+import { ARM_WINDOW_TICKS, ZONE_WINDOW_TICKS } from '../../sim/powers';
 import { ROVERS, UNITED } from '../../sim/teams';
 import { queueAutoPowerTap } from '../autoPower';
 
@@ -17,7 +17,9 @@ describe('watch-match AUTO power control', () => {
     expect(match.inputLog).toEqual([{ tick: 1, kind: 'POWER_TAP', player: TORCH }]);
 
     tick(match);
-    expect(match.players[TORCH].powerState).toMatchObject({ kind: 'winding', strength: 1 });
+    expect(match.players[TORCH].powerState).toEqual({
+      kind: 'armed', remainingTicks: ARM_WINDOW_TICKS,
+    });
   });
 
   it('queues a replay-recorded tap for a manually controlled away hero', () => {

@@ -157,6 +157,39 @@ describe('career market view-model source adapter', () => {
     expect(visible.transfers.some(listing => listing.direction === 'SELL')).toBe(true);
   });
 
+  it('maps a scouted player from outside the active division into a buy listing', () => {
+    const state = fullCareer(714);
+    const division = state.m2!.pyramid.divisions.find(candidate => candidate.level === 4)!;
+    const target = division.clubs[0].squad.find(player => player.role === 'DEF')!;
+    expect(state.players.some(player => player.id === target.id)).toBe(false);
+    const market: CareerMarketState = {
+      ...state.market!,
+      scoutReports: [{
+        playerId: target.id,
+        role: target.role,
+        age: target.age,
+        statRanges: Object.fromEntries(Object.entries(target.attrs).map(([key, value]) => [
+          key,
+          { minimum: value, maximum: value },
+        ])) as never,
+        potentialRange: { minimum: 3, maximum: 3 },
+      }],
+    };
+
+    const source = careerMarketViewModelSource(state, market);
+
+    expect(source.transferListings.find(listing => listing.direction === 'BUY')).toEqual(
+      expect.objectContaining({
+        direction: 'BUY',
+        sellingClubDivision: 4,
+        player: expect.objectContaining({ id: target.id, name: target.name }),
+      }),
+    );
+    expect(source.scoutedPlayerIdentities).toEqual([
+      expect.objectContaining({ id: target.id, name: target.name }),
+    ]);
+  });
+
   it('passes coach candidates and current contract talks through with the target wage context', () => {
     const state = fullCareer(1014);
     const target = state.players.find(player => player.clubId !== state.userClubId)!;

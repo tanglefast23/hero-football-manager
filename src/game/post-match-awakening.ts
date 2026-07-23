@@ -6,6 +6,8 @@ import {
 } from './career-events';
 import type { GameState } from './types';
 import { powerIsCompatibleWithRole } from './power-catalog';
+import { hasActiveCareerContractPromise } from './contract-promises';
+import { careerHeroLimit } from './squad';
 
 export interface PostMatchAwakeningTuning {
   chancePercent: number;
@@ -51,6 +53,7 @@ export function resolvePostMatchAwakening(
   const licensedCount = state.players.filter(candidate =>
     candidate.clubId === state.userClubId && candidate.licensed,
   ).length;
+  const hasAvailableHeroLicense = licensedCount < careerHeroLimit(state);
   let playerId: string | undefined;
 
   if (firstHero) {
@@ -79,7 +82,7 @@ export function resolvePostMatchAwakening(
       && player.clubId === state.userClubId
       && player.power === undefined
       && powerIds.some(power => powerIsCompatibleWithRole(power, player.role))
-      && canSafelyAwaken(state, id, licensedCount),
+      && canSafelyAwaken(state, id, hasAvailableHeroLicense),
     ));
     if (eligible.length === 0) return nextWithoutAwakening();
     playerId = eligible[
@@ -126,9 +129,9 @@ export function resolvePostMatchAwakening(
     ? [...state.awakening.usedTriggerIds, triggerId]
     : state.awakening.usedTriggerIds;
   const nextPlayers = state.players.map(candidate => candidate.id === playerId
-    ? { ...candidate, power, powerTier: 1 as const, licensed: licensedCount < 2 }
+    ? { ...candidate, power, powerTier: 1 as const, licensed: hasAvailableHeroLicense }
     : candidate);
-  const nextLineups = licensedCount < 2
+  const nextLineups = hasAvailableHeroLicense
     ? state.lineups
     : benchUnlicensedAwakening(state, nextPlayers, playerId);
   const next: GameState = {
@@ -222,8 +225,17 @@ function validateTriggerIds(triggerIds: readonly string[]): void {
   }
 }
 
-function canSafelyAwaken(state: GameState, playerId: string, licensedCount: number): boolean {
-  if (licensedCount < 2) return true;
+function canSafelyAwaken(
+  state: GameState,
+  playerId: string,
+  hasAvailableHeroLicense: boolean,
+): boolean {
+  if (hasAvailableHeroLicense) return true;
+  const player = state.players.find(candidate => candidate.id === playerId);
+  if (player === undefined) return false;
+  if (player.injuryWeeks === 0
+    && (hasActiveCareerContractPromise(player, 'GUARANTEED_STARTER')
+      || hasActiveCareerContractPromise(player, 'CAPTAINCY'))) return false;
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
   if (lineup === undefined || !lineup.playerIds.includes(playerId)) return true;
   return replacementForAwakenedStarter(state, lineup.playerIds, playerId) !== undefined;

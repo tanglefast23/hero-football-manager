@@ -20,6 +20,7 @@ export type PlayerActionAnimation =
   | {
       kind: 'slide';
       startTick: number;
+      origin: Vec;
       direction: Vec;
       rotation: number;
       untilTick: number;
@@ -58,12 +59,12 @@ const smoothstep = (value: number) => {
  * Each run pose covers a fixed amount of pitch, so faster players cycle their
  * feet faster instead of skating farther during the same wall-clock interval.
  */
-export function runFrameForDistance(distance: number, moved: boolean): PlayerSpriteFrame {
+export function runFrameForDistance(distance: number, moved: boolean): 'run0' | 'run1' {
   if (!moved) return 'run0';
   return Math.floor(Math.max(0, distance) / RUN_PHASE_DISTANCE) % 2 === 0 ? 'run0' : 'run1';
 }
 
-export function keeperReadyFrame(visualTick: number): PlayerSpriteFrame {
+export function keeperReadyFrame(visualTick: number): 'ready0' | 'ready1' {
   return Math.floor(Math.max(0, visualTick) / 5) % 2 === 0 ? 'ready0' : 'ready1';
 }
 

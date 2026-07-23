@@ -101,7 +101,7 @@ describe('saved weekly-plan summary', () => {
     expect(source).toContain('<DrillIcon drillId={drill.id}');
     expect(source).not.toContain('>✓ {playerName}</Text>');
     expect(source).not.toContain('>✓ {drillName}</Text>');
-    expect(source).toContain('label="Save weekly plan"');
+    expect(source).toContain("? 'Save changes' : 'Save weekly plan'");
   });
 
   it('puts drill icons on the left and the add/remove control on the far right', () => {

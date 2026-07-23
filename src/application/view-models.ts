@@ -2,15 +2,18 @@ import { loadLaunchContent, type GameEvent, type LaunchContent, type TrainingDri
 import {
   FACILITY_ADJACENCIES,
   FACILITY_CATALOG,
+  TRAINING_PITCH_TP_PER_LEVEL,
   activeCareerMatchday,
   activeFacilityAdjacencies,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
   chargeableCareerTrainingPlan,
+  trainingSelectionMatchesSavedPlan,
   createFacilityGrid,
   currentUserDivision,
   difficultyRules,
   fixturesForCurrentWeek,
+  isFacilityOperational,
   isAssistantInboxOneShotProductVisible,
   latestSeasonRecap,
   leagueStandings,
@@ -42,6 +45,7 @@ import type {
   ClubLegacyViewModel,
   ClubFinancesViewModel,
   ClubAlertViewModel,
+  CoachStaffMemberViewModel,
   FixtureViewModel,
   HomeViewModel,
   LeagueTableViewModel,
@@ -244,31 +248,44 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       weeklyTrainingPoints: 10,
     },
     legacyTrainingGroundVisible: state.careerMode !== 'full',
-    ...(state.market?.headCoach === undefined ? {} : {
-      headCoach: {
-        id: state.market.headCoach.id,
-        portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
-        name: state.market.headCoach.name,
-        age: state.market.headCoach.age ?? 45,
-        level: state.market.headCoach.level,
-        specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
-        weeklyWage: state.market.headCoach.weeklyWage,
-        seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
-        severanceCost: state.market.headCoach.weeklyWage,
-      },
-    }),
-    ...(state.market?.assistantCoach === undefined ? {} : {
-      assistantCoach: {
-        id: state.market.assistantCoach.id,
-        name: state.market.assistantCoach.name,
-        level: state.market.assistantCoach.level,
-        specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
-        weeklyWage: state.market.assistantCoach.weeklyWage,
-        seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
-      },
-    }),
+    coachingStaff: coachingStaffViewModels(state),
     facilities: facilityGridViewModel(state),
   };
+}
+
+function coachingStaffViewModels(state: GameState): readonly CoachStaffMemberViewModel[] {
+  return [
+    ...(state.market?.headCoach === undefined ? [] : [{
+      id: state.market.headCoach.id,
+      role: 'HEAD' as const,
+      roleLabel: 'Head coach' as const,
+      portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
+      name: state.market.headCoach.name,
+      age: state.market.headCoach.age ?? 45,
+      personalityLabel: readableLabel(state.market.headCoach.personality),
+      level: state.market.headCoach.level,
+      specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
+      effectLabels: coachRoleEffectLabels(state.market.headCoach, 'HEAD'),
+      weeklyWage: state.market.headCoach.weeklyWage,
+      seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
+      severanceCost: state.market.headCoach.weeklyWage,
+    }]),
+    ...(state.market?.assistantCoach === undefined ? [] : [{
+      id: state.market.assistantCoach.id,
+      role: 'ASSISTANT' as const,
+      roleLabel: 'Assistant coach' as const,
+      portraitId: state.market.assistantCoach.portraitId ?? state.market.assistantCoach.id,
+      name: state.market.assistantCoach.name,
+      age: state.market.assistantCoach.age ?? 45,
+      personalityLabel: readableLabel(state.market.assistantCoach.personality),
+      level: state.market.assistantCoach.level,
+      specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
+      effectLabels: coachRoleEffectLabels(state.market.assistantCoach, 'ASSISTANT'),
+      weeklyWage: state.market.assistantCoach.weeklyWage,
+      seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
+      severanceCost: state.market.assistantCoach.weeklyWage,
+    }]),
+  ];
 }
 
 function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilities'] {
@@ -713,8 +730,8 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     ...trainingCapAlerts,
     ...(!state.facilities.trainingGroundBuilt && !trainingGroundUnderConstruction ? [{
       id: 'training-ground',
-      title: 'Training Ground proposal',
-      detail: 'Build once for $8,000 and earn +10 TP after every settled week.',
+      title: 'Build your Training Pitch',
+      detail: 'Your starting budget includes its $8,000 cost. Choose where it goes.',
       tone: 'info' as const,
     }] : []),
     ...(expired.length > 0 ? [{
@@ -1166,12 +1183,12 @@ export function squadTrainingViewModel(
   const totalTrainingPointCost = chargeablePlan?.trainingPointCost
     ?? selectedDrills.reduce((sum, drill) => sum + drill.tpCost, 0);
   const savedPlan = state.trainingPlan;
-  const savedDrillIds = savedPlan?.drills.map(drill => drill.id) ?? [];
-  const selectionMatchesSavedPlan = savedPlan !== undefined
-    && savedPlan.assignedPlayerIds.length === assignedPlayerIds.length
-    && savedPlan.assignedPlayerIds.every(playerId => assignedPlayerIds.includes(playerId))
-    && savedDrillIds.length === selectedDrillIds.length
-    && savedDrillIds.every(drillId => selectedDrillIds.includes(drillId));
+  const selectionMatchesSavedPlan = trainingSelectionMatchesSavedPlan(
+    savedPlan,
+    assignedPlayerIds,
+    selectedDrillIds,
+  );
+  const hasUnsavedChanges = savedPlan !== undefined && !selectionMatchesSavedPlan;
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
   if (lineup === undefined) throw new Error('the user club has no starting lineup');
   const starterIds = new Set(lineup.playerIds);
@@ -1232,38 +1249,6 @@ export function squadTrainingViewModel(
         ),
       };
     }),
-    coachingStaff: [
-      ...(state.market?.headCoach === undefined ? [] : [{
-        id: state.market.headCoach.id,
-        role: 'HEAD' as const,
-        roleLabel: 'Head coach' as const,
-        portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
-        name: state.market.headCoach.name,
-        age: state.market.headCoach.age ?? 45,
-        personalityLabel: readableLabel(state.market.headCoach.personality),
-        level: state.market.headCoach.level,
-        specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
-        effectLabels: coachRoleEffectLabels(state.market.headCoach, 'HEAD'),
-        weeklyWage: state.market.headCoach.weeklyWage,
-        seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
-        severanceCost: state.market.headCoach.weeklyWage,
-      }]),
-      ...(state.market?.assistantCoach === undefined ? [] : [{
-        id: state.market.assistantCoach.id,
-        role: 'ASSISTANT' as const,
-        roleLabel: 'Assistant coach' as const,
-        portraitId: state.market.assistantCoach.portraitId ?? state.market.assistantCoach.id,
-        name: state.market.assistantCoach.name,
-        age: state.market.assistantCoach.age ?? 45,
-        personalityLabel: readableLabel(state.market.assistantCoach.personality),
-        level: state.market.assistantCoach.level,
-        specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
-        effectLabels: coachRoleEffectLabels(state.market.assistantCoach, 'ASSISTANT'),
-        weeklyWage: state.market.assistantCoach.weeklyWage,
-        seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
-        severanceCost: state.market.assistantCoach.weeklyWage,
-      }]),
-    ],
     selectedPlayerId,
     createdPlayerId,
     // Division-locked tiers stay hidden until the club can actually reach them.
@@ -1287,6 +1272,7 @@ export function squadTrainingViewModel(
       selectedDrills.every(drill => trainingDrillBlockedReason(state, drill.id) === undefined) &&
       totalMoneyCost <= club.cash &&
       totalTrainingPointCost <= state.trainingPoints,
+    hasUnsavedChanges,
     ...(selectionMatchesSavedPlan && savedPlan !== undefined ? {
       lockedPlan: lockedPlanViewModel(state, savedPlan, playerById, drills),
     } : {}),
@@ -1645,6 +1631,14 @@ function facilityCompletion(
     name: FACILITY_CATALOG[building.type].name,
     level: building.level,
     kind: project.kind,
+    ...(project.kind === 'BUILD'
+      && building.type === 'training-pitch'
+      && !before.facilities.grid?.buildings.some(candidate => (
+        candidate.type === 'training-pitch'
+        && isFacilityOperational(before.facilities.grid!, candidate.id)
+      ))
+      ? { trainingPointReward: TRAINING_PITCH_TP_PER_LEVEL }
+      : {}),
   };
 }
 

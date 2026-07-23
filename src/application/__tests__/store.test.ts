@@ -59,8 +59,13 @@ describe('M1 app store integration', () => {
       licensed: true,
     });
     useM1Store.getState().continueAfterAwakening();
-    expect(useM1Store.getState()).toMatchObject({ screen: 'management' });
+    // The first hero arrives at the final whistle, but the manager is still owed
+    // that match's accounts — the onboarding brief's own "survive the books" job.
+    expect(useM1Store.getState()).toMatchObject({ screen: 'postmatch' });
+    expect(useM1Store.getState().postMatch).not.toBeNull();
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('complete');
+    useM1Store.getState().continueAfterMatch();
+    expect(useM1Store.getState()).toMatchObject({ screen: 'management' });
   });
 
   it('still awakens the created player after they are substituted in the first match', () => {
@@ -384,12 +389,10 @@ describe('M1 app store integration', () => {
     useM1Store.getState().setActiveTab('club');
     useM1Store.getState().buildFacility();
     useM1Store.getState().setActiveTab('home');
-    useM1Store.getState().completeAssistantGuide('desk-intro');
 
     expect(useM1Store.getState().career?.eventFlags).toEqual(expect.arrayContaining([
       'guide:bert:intro-complete',
       'guide:bert:first-training-complete',
-      'guide:bert:desk-intro-complete',
     ]));
 
     useM1Store.getState().advanceCareer();
@@ -432,12 +435,39 @@ describe('M1 app store integration', () => {
 
     useM1Store.getState().setActiveTab('home');
     useM1Store.getState().advanceCareer();
-    expect(useM1Store.getState().career?.week).toBe(weekBefore);
-    expect(useM1Store.getState().error).toBe(
-      "Finish Bert's briefing before advancing the week.",
-    );
+    expect(useM1Store.getState().career?.week).toBe(weekBefore + 1);
+  });
 
-    useM1Store.getState().completeAssistantGuide('desk-intro');
+  it('warns only after Advance Week is tapped with one first-week inbox item left', () => {
+    useM1Store.getState().startNewCareer(792, 'full');
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    useM1Store.getState().completeAssistantGuide('management-intro');
+    useM1Store.getState().setActiveTab('squad');
+    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
+    useM1Store.getState().toggleDrill('sprints');
+    useM1Store.getState().applyTraining();
+    useM1Store.getState().setActiveTab('club');
+    useM1Store.getState().buildClubFacility('training-pitch', { x: 0, y: 0 });
+    useM1Store.getState().setActiveTab('home');
+    useM1Store.getState().clearNotice();
+    const weekBefore = useM1Store.getState().career!.week;
+
+    expect(useM1Store.getState().notice).toBeNull();
+    useM1Store.getState().advanceCareer();
+
+    expect(useM1Store.getState().career?.week).toBe(weekBefore);
+    expect(useM1Store.getState().notice).toEqual({
+      tone: 'info',
+      message: 'You still have 1 inbox item left to deal with first.',
+    });
+    expect(useM1Store.getState().career?.eventFlags)
+      .not.toContain('guide:bert:desk-intro-complete');
+
+    const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
+    useM1Store.getState().hireCoach(coachId);
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore + 1);
   });
@@ -520,8 +550,8 @@ describe('M1 app store integration', () => {
             watched.away,
             {
               controlledTeam: watched.controlledTeam,
-              homePolicy: watched.controlledTeam === 0 ? 'SAVE_FOR_TAP' : 'FIRE_WHEN_READY',
-              awayPolicy: watched.controlledTeam === 1 ? 'SAVE_FOR_TAP' : 'FIRE_WHEN_READY',
+              homePolicy: 'FIRE_WHEN_READY',
+              awayPolicy: 'FIRE_WHEN_READY',
             },
           );
           queueInput(match, { tick: 1, kind: 'SET_FORMATION', formation: '4-3-3' });

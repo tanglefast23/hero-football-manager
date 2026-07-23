@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import type { MatchEvent } from '../sim/types';
 import { hapticCueForEvent } from './haptic-cues';
 
-export type ManagementHapticCue = 'select' | 'commit' | 'success' | 'warning' | 'hero';
+export type ManagementHapticCue = 'select' | 'tap' | 'commit' | 'success' | 'warning' | 'hero';
 let hapticsEnabled = true;
 
 export function setHapticsEnabled(enabled: boolean): void {

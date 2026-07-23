@@ -13,7 +13,7 @@ describe('club finances immediate transaction history', () => {
         grid: advanceFacilityConstruction(building.facilities.grid!).grid,
       },
     };
-    const moved = relocateCareerFacility(built, 'facility-2', { x: 2, y: 2 }).state;
+    const moved = relocateCareerFacility(built, 'facility-1', { x: 2, y: 2 }).state;
 
     const viewModel = clubFinancesViewModel(moved);
 
@@ -25,12 +25,12 @@ describe('club finances immediate transaction history', () => {
         periodLabel: 'S1 · W1',
         label: 'Relocated Gym',
         amount: -350,
-        balanceAfter: 37_650,
+        balanceAfter: 45_650,
       }),
       expect.objectContaining({
         label: 'Gym construction started',
         amount: -7_000,
-        balanceAfter: 38_000,
+        balanceAfter: 46_000,
       }),
     ]);
     expect(moved.ledgers).toHaveLength(0);
@@ -75,7 +75,7 @@ describe('club finances immediate transaction history', () => {
     expect(viewModel.ledger).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Season 1 wage subsidy' }),
     ]));
-    expect(viewModel.weeklyNet).toBe(-userClub.weeklyWages - 100);
+    expect(viewModel.weeklyNet).toBe(-userClub.weeklyWages);
   });
 
   test('describes facility effects, affordability, and the exact buildings in an active combo', () => {

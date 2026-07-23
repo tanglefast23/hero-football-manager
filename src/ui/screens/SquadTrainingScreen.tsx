@@ -4,12 +4,13 @@ import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
-import { ManagementSprite } from '../components/ManagementSprite';
 import type { FocusDrillViewModel, SquadTrainingViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
   isTutorialTargetVisible,
+  TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+  TUTORIAL_TAP_CUE_RESERVED_SPACE,
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
 import {
@@ -30,8 +31,6 @@ export interface SquadTrainingScreenProps {
   onTogglePlayerAssignment: (playerId: string) => void;
   onToggleDrill: (drillId: string) => void;
   onApplyTraining: () => void;
-  onOpenCoachMarket?: () => void;
-  onDismissCoach?: (role: 'HEAD' | 'ASSISTANT') => void;
   guideTraining?: boolean;
   guideFocus?: AssistantGuideFocus;
 }
@@ -75,8 +74,6 @@ export function SquadTrainingScreen({
   onTogglePlayerAssignment,
   onToggleDrill,
   onApplyTraining,
-  onOpenCoachMarket,
-  onDismissCoach,
   guideTraining = false,
   guideFocus,
 }: SquadTrainingScreenProps) {
@@ -222,80 +219,6 @@ export function SquadTrainingScreen({
 
       <View className="mt-6">
         <SectionLabel
-          eyebrow="Backroom staff"
-          title="Coaching staff"
-          right={<StatusChip label={`${viewModel.coachingStaff.length} / 2`} selected={viewModel.coachingStaff.length > 0} />}
-        />
-        {viewModel.coachingStaff.length === 0 ? (
-          <PaperPanel kicker="Vacancy" title="The touchline needs a voice" stamp="OPEN">
-            <Text className="text-sm leading-5 text-ink/60">
-              Hire a head coach to improve specialist training and guide Hero Gauge growth.
-            </Text>
-            {onOpenCoachMarket ? (
-              <View className="mt-3">
-                <ActionButton label="Open coach market" accessibilityLabel="Open the coach market" onPress={onOpenCoachMarket} />
-              </View>
-            ) : null}
-          </PaperPanel>
-        ) : (
-          <View className="gap-3">
-            {viewModel.coachingStaff.map(coach => (
-              <View key={coach.id} className="border-2 border-b-4 border-ink bg-white p-3">
-                <View className="flex-row items-start gap-3">
-                  <View className="border-2 border-b-4 border-ink bg-blue-light px-2 pt-2">
-                    <ManagementSprite
-                      spriteKey={`coach:${coach.portraitId}:rest`}
-                      width={72}
-                      accessibilityLabel={`${coach.name} coach portrait`}
-                    />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{coach.roleLabel}</Text>
-                    <Text className="mt-1 text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
-                    <Text className="mt-1 text-sm text-ink/60">
-                      Age {coach.age} · {coach.personalityLabel} · Level {coach.level}
-                    </Text>
-                    <Text className="mt-1 font-mono text-sm font-bold text-ink">
-                      {formatCurrency(coach.weeklyWage)} / week
-                    </Text>
-                  </View>
-                </View>
-                <View className="mt-3 flex-row gap-2">
-                  {coach.specialtyLabels.map(specialty => (
-                    <View key={specialty} className="flex-1 border-2 border-ink bg-paper px-2 py-2">
-                      <Text className="text-center text-sm font-bold uppercase text-ink">{specialty}</Text>
-                    </View>
-                  ))}
-                </View>
-                <View className="mt-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
-                  {coach.effectLabels.map(effect => (
-                    <Text key={effect} className="text-sm font-bold text-ink">{effect}</Text>
-                  ))}
-                </View>
-                <Text className="mt-2 text-sm text-ink/55">
-                  Employed {coach.seasonsEmployed} season{coach.seasonsEmployed === 1 ? '' : 's'} · Dismissal costs one weekly wage.
-                </Text>
-                {onDismissCoach ? (
-                  <View className="mt-3">
-                    <ActionButton
-                      label={`Dismiss · ${formatCurrency(coach.severanceCost)} severance`}
-                      accessibilityLabel={`Dismiss ${coach.name} with one week severance`}
-                      variant="danger"
-                      onPress={() => onDismissCoach(coach.role)}
-                    />
-                  </View>
-                ) : null}
-              </View>
-            ))}
-            {onOpenCoachMarket ? (
-              <ActionButton label="Review coach market" accessibilityLabel="Review the coach market" onPress={onOpenCoachMarket} />
-            ) : null}
-          </View>
-        )}
-      </View>
-
-      <View className="mt-6">
-        <SectionLabel
           eyebrow="Team register"
           title={`${viewModel.players.length} players`}
           right={<StatusChip label={`${viewModel.assignedPlayerIds.length} assigned`} />}
@@ -334,12 +257,17 @@ export function SquadTrainingScreen({
                   : player.injuryWeeks > 0
                     ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
                     : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
+                style={guideConciergePlayer ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
               >
                 {guideConciergePlayer ? (
                   <TutorialTapCue
                     label="Bert says"
                     detail={guideFocus === 'injury-lineup' ? 'Review injury and replacement' : 'Review this player'}
-                    style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+                    style={{
+                      left: '50%',
+                      marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                      top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                    }}
                   />
                 ) : null}
                 <Pressable
@@ -505,7 +433,7 @@ export function SquadTrainingScreen({
           right={<StatusChip label={`${viewModel.selectedDrillCount} / ${viewModel.maxDrills}`} selected={viewModel.selectedDrillCount > 0} />}
         />
         <Text className="mb-3 text-sm leading-5 text-ink/60">
-          Your Level 1 Training Pitch adds 10 TP after each weekly settlement. Money prices are per eligible trainee; TP is charged once per selected drill. The plan repeats weekly until changed.
+          A completed Level 1 Training Pitch adds 10 TP after each weekly settlement. Money prices are per eligible trainee; TP is charged once per selected drill. The plan repeats weekly until changed.
         </Text>
         <View className={guideDrills
           ? 'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'
@@ -561,7 +489,13 @@ export function SquadTrainingScreen({
       </View>
 
       {viewModel.lockedPlan === undefined ? (
-        <PaperPanel kicker="Plan total" title="Ready for the whistle?" className="mt-5">
+        <PaperPanel
+          kicker="Plan total"
+          title="Ready for the whistle?"
+          tone={viewModel.hasUnsavedChanges ? 'attention' : 'default'}
+          stamp={viewModel.hasUnsavedChanges ? 'Unsaved' : undefined}
+          className="mt-5"
+        >
           <View className="flex-row gap-2">
             <Metric label="Players" value={String(viewModel.assignedPlayerIds.length)} />
             <Metric label="Money cost" value={formatCurrency(viewModel.totalMoneyCost)} tone="negative" />
@@ -577,7 +511,7 @@ export function SquadTrainingScreen({
               <TutorialTapCue detail="Save the plan" style={{ left: 4, top: -74 }} />
             ) : null}
             <ActionButton
-              label="Save weekly plan"
+              label={viewModel.hasUnsavedChanges ? 'Save changes' : 'Save weekly plan'}
               accessibilityLabel="Save weekly plan. Save the repeating weekly training plan"
               onPress={onApplyTraining}
               disabled={!viewModel.canApply}

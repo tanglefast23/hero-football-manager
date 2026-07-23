@@ -19,14 +19,126 @@ const PLAYER_IDS = ['r', 'u'].flatMap(side => [
   ...FIELD_PLAYER_LOOK_IDS.map(lookId => `${side}:${lookId}`),
   ...GOALKEEPER_LOOK_IDS.map(lookId => `${side}:${lookId}`),
 ]);
-const FRAMES = ['run0', 'run1'];
+const FRAMES = ['run0', 'run1', 'back0', 'back1'];
 const GOALKEEPER_IDS = ['r', 'u'].flatMap(side => (
   GOALKEEPER_LOOK_IDS.map(lookId => `${side}:${lookId}`)
 ));
-const GOALKEEPER_FRAMES = ['ready0', 'ready1'];
+const GOALKEEPER_FRAMES = ['ready0', 'ready1', 'backReady0', 'backReady1'];
 const BALL_KEY = 'ball';
 const BALL_SIZE = 6;
-const SLIDE_FRAME_PATTERN = /:slide\d+$/;
+const SLIDE_FRAME_PATTERN = /:slide\d+(?::webbed)?$/;
+
+const FRONT_FRAME_PATTERN = /:(run0|run1|ready0|ready1)$/;
+
+function mostCommonToken(
+  rows: readonly string[],
+  fromRow: number,
+  toRow: number,
+  excluded: ReadonlySet<string>,
+): string {
+  const counts = new Map<string, number>();
+  for (let row = fromRow; row <= Math.min(toRow, rows.length - 1); row += 1) {
+    for (const token of rows[row]) {
+      if (excluded.has(token)) continue;
+      counts.set(token, (counts.get(token) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? 'K';
+}
+
+/**
+ * The authored player sheet is front-facing. A vertical pitch also needs a
+ * readable rear view for the side attacking toward the top goal. Preserve the
+ * exact silhouette, hair, skin, kit, and stride, while replacing face and
+ * shirt-front details with the back of the head and jersey. This runs once
+ * while the atlas is built, never during a match frame.
+ */
+export function deriveBackFacingFrame(front: readonly string[]): string[] {
+  const hair = mostCommonToken(front, 0, 6, new Set(['.', 'K']));
+  const skin = mostCommonToken(front, 7, 14, new Set(['.', 'K', 'W', 'w']));
+  const kit = mostCommonToken(front, 16, 23, new Set(['.', 'K', 'W', 'w', skin]));
+
+  return front.map((source, row) => {
+    if (row < 7 || row > 23) return source;
+    const tokens = [...source];
+    const painted = tokens.flatMap((token, column) => token === '.' ? [] : [column]);
+    if (painted.length < 2) return source;
+    const first = painted[0];
+    const last = painted[painted.length - 1];
+    for (let column = first + 1; column < last; column += 1) {
+      if (tokens[column] === '.') continue;
+      if (row <= 12) tokens[column] = hair;
+      else if (row <= 14) tokens[column] = skin;
+      else if (tokens[column] === 'W' || tokens[column] === 'w') tokens[column] = kit;
+    }
+    return tokens.join('');
+  });
+}
+
+function backFrameName(frontFrame: string): string {
+  if (frontFrame === 'run0') return 'back0';
+  if (frontFrame === 'run1') return 'back1';
+  if (frontFrame === 'ready0') return 'backReady0';
+  return 'backReady1';
+}
+
+function withBackFacingSprites(sheet: SpriteSheet): SpriteSheet {
+  const sprites = { ...sheet.sprites };
+  for (const [key, rows] of Object.entries(sheet.sprites)) {
+    const match = key.match(FRONT_FRAME_PATTERN);
+    if (!match) continue;
+    const visualId = key.slice(0, -match[0].length);
+    sprites[`${visualId}:${backFrameName(match[1])}`] = deriveBackFacingFrame(rows);
+  }
+  return { ...sheet, sprites };
+}
+
+const WEBBED_SUFFIX = ':webbed';
+
+/**
+ * Web Trap is a body state, not a translucent wash. Build a palette-locked
+ * monochrome copy of the exact current player frame so skin, hair, kit and
+ * outline all read grey from head to toe without losing the real silhouette.
+ */
+export function webbedSpriteKey(spriteKey: string): string {
+  return `${spriteKey}${WEBBED_SUFFIX}`;
+}
+
+function greyTokenFor(color: string | null): string {
+  if (color === null) return '.';
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+  if (!match) return 'Q';
+  const red = Number.parseInt(match[1], 16);
+  const green = Number.parseInt(match[2], 16);
+  const blue = Number.parseInt(match[3], 16);
+  const luminance = (299 * red + 587 * green + 114 * blue) / 1000;
+  if (luminance < 70) return 'K';
+  if (luminance < 125) return 'g';
+  if (luminance < 190) return 'G';
+  if (luminance < 235) return 'w';
+  return 'W';
+}
+
+export function deriveWebbedFrame(
+  rows: readonly string[],
+  palette: Readonly<Record<string, string | null>>,
+): string[] {
+  return rows.map(row => [...row].map(token => (
+    token === '.' ? '.' : greyTokenFor(palette[token] ?? null)
+  )).join(''));
+}
+
+function withWebbedSprites(sheet: SpriteSheet): SpriteSheet {
+  const sprites = { ...sheet.sprites };
+  for (const [key, rows] of Object.entries(sheet.sprites)) {
+    // A webbed player is rooted in the standing pose. Generating thousands of
+    // impossible webbed slide frames bloats every match Atlas and the full
+    // roster contract without adding a state the renderer can legitimately use.
+    if (key === BALL_KEY || key.endsWith(WEBBED_SUFFIX) || SLIDE_FRAME_PATTERN.test(key)) continue;
+    sprites[webbedSpriteKey(key)] = deriveWebbedFrame(rows, sheet.palette);
+  }
+  return { ...sheet, sprites };
+}
 
 // Keep every source rect away from its neighbours. This prevents transformed
 // sprites from ever sampling a shoe/hair pixel from the next atlas cell.
@@ -95,7 +207,9 @@ export function loadSpriteSheet(visualIds: readonly string[] = PLAYER_IDS): Spri
   for (const id of uniqueVisualIds) for (const [key, rows] of Object.entries(baseSheet.sprites)) {
     if (key.startsWith(`${id}:`)) selectedSprites[key] = rows;
   }
-  const sheet = withSlideTackleSprites({ ...baseSheet, sprites: selectedSprites });
+  const sheet = withWebbedSprites(
+    withSlideTackleSprites(withBackFacingSprites({ ...baseSheet, sprites: selectedSprites })),
+  );
 
   for (const key of requiredKeys(uniqueVisualIds)) {
     if (!(key in sheet.sprites)) {

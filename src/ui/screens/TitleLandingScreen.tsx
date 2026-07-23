@@ -223,7 +223,7 @@ export function TitleSettingsScreen({
                 <AccessibilityChoice label="Text size" detail="Adds extra room to important story and review copy." value={preferences.textScale === 1 ? 'System' : preferences.textScale === 1.15 ? 'Roomy' : 'Large'} onPress={onCycleTextScale} />
                 <AccessibilityToggle label="High contrast" detail="Darkens match chrome and strengthens live-match contrast." enabled={preferences.highContrast} onPress={onToggleHighContrast} />
                 <AccessibilityToggle label="Color-safe kits" detail="Uses a high-separation blue and amber match pairing." enabled={preferences.colorSafeKits} onPress={onToggleColorSafeKits} />
-                <AccessibilityChoice label="Power cut-ins" detail="Choose full comic panels or compact match banners." value={preferences.cutInMode} onPress={onToggleCutInMode} />
+                <AccessibilityChoice label="Power labels" detail="Choose a bottom-left player card or a minimal match banner." value={preferences.cutInMode === 'full' ? 'PLAYER' : 'BANNER'} onPress={onToggleCutInMode} />
               </View>
             </PaperPanel>
             {difficultyLabel ? (

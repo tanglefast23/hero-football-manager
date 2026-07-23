@@ -66,7 +66,11 @@ describe('assistant guide milestones', () => {
   });
 
   test('delivers at most three firsts and holds the fourth for a later week', () => {
-    const state = createCareer(createLaunchCareerSetup(845));
+    const fresh = createCareer(createLaunchCareerSetup(845));
+    const state = {
+      ...fresh,
+      facilities: { ...fresh.facilities, trainingGroundBuilt: true },
+    };
     const firstWeek = scheduleAssistantInboxWeek(state, {
       dueGuideSequenceIds: [
         'head-coach-market',

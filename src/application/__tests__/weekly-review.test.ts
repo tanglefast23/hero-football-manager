@@ -2,6 +2,7 @@ import { loadLaunchContent } from '../../content';
 import {
   advanceWeek,
   applyCareerTraining,
+  buildCareerFacility,
   createCareer,
   playerAttributeCaps,
   type GameState,
@@ -68,6 +69,23 @@ describe('weekly review view model', () => {
     }));
     expect(review.updates.some(update => update.id.startsWith('contract-'))).toBe(false);
     expect(review.updates.some(update => update.id.startsWith('event-'))).toBe(false);
+  });
+
+  it('celebrates the first Training Pitch and shows its immediate 10 TP reward', () => {
+    const fresh = createCareer(createLaunchCareerSetup(5680, undefined, undefined, 'full'));
+    const before = buildCareerFacility(fresh, 'training-pitch', { x: 5, y: 1 }).state;
+    const after = advanceWeek(before);
+    const review = weeklyReviewViewModel(before, after);
+
+    expect(after.trainingPoints).toBe(before.trainingPoints + 10);
+    expect(review.netTrainingPoints).toBe(10);
+    expect(review.facilityCompletion).toEqual({
+      type: 'training-pitch',
+      name: 'Training Pitch',
+      level: 1,
+      kind: 'BUILD',
+      trainingPointReward: 10,
+    });
   });
 
   it('announces a new injury and names the automatic Starting XI replacement', () => {

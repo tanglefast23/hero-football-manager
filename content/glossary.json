@@ -67,8 +67,8 @@
       "entries": [
         { "term": "Weekly plan", "definition": "The players and focus drills trained at weekly settlement. A saved plan repeats until you change it." },
         { "term": "Focus drill", "definition": "A targeted weekly training choice. Its Money price is charged for each eligible assigned trainee; its Training Point price is charged once, and capped players are skipped for that drill." },
-        { "term": "Training Points (TP)", "definition": "The improvement currency. Your starting Level 1 Training Pitch adds 10 TP after every weekly settlement; coaches and upgrades can add more. Match results do not create TP." },
-        { "term": "Training Pitch", "definition": "The club starts with a Level 1 pitch already open. It creates 10 TP per level every week and can be upgraded after reaching the required division." },
+        { "term": "Training Points (TP)", "definition": "The improvement currency. Complete your first Training Pitch to earn 10 TP immediately; after that, completed pitches add 10 TP per level at each weekly settlement. Coaches and upgrades can add more. Match results do not create TP." },
+        { "term": "Training Pitch", "definition": "Your first guided grounds project. Its $8,000 cost is included in the starting budget; you choose where to place it. Completion awards the first 10 TP, then it creates 10 TP per level each week." },
         { "term": "Coach specialty", "definition": "The areas a coach improves. Matching a specialty to a drill or attribute increases training gains over time." },
         { "term": "Head coach", "definition": "The primary coach, with the strongest specialty bonuses, a weekly TP contribution, and a weekly wage." },
         { "term": "Assistant coach", "definition": "A second, smaller set of specialty bonuses and weekly TP, unlocked by building a Coaching Office." }
@@ -92,7 +92,7 @@
       "title": "Heroes & powers",
       "entries": [
         { "term": "Power", "definition": "A hero's visible, moment-specific super ability. Powers change possession or geometry rather than giving a hidden permanent stat smear." },
-        { "term": "Heat", "definition": "Momentum earned from touches, tackles, shots, saves, and time on the pitch. Above the threshold, more Heat means a better chance to enter the Zone." },
+        { "term": "Heat", "definition": "Momentum earned from touches, tackles, shots, saves, and time on the pitch. At the threshold, Heat waits until that hero has a useful chance to enter the Zone." },
         { "term": "The Zone", "definition": "A short glowing activation window. Tap a glowing home hero in Manual mode to fire at full strength before the window fades." },
         { "term": "Manual power (M)", "definition": "You tap a glowing home hero during the Zone to activate at 100%. A missed window does not auto-fire and leaves half Heat." },
         { "term": "Fire when ready (A)", "definition": "The engine fires at the next useful context at reduced strength. Rival heroes and Quick Result always use automatic timing." },

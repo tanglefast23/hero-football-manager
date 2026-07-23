@@ -22,7 +22,13 @@ import {
   type AppPreferences,
   type PreferencesRepository,
 } from './src/persistence';
-import { MatchScreen } from './src/render/MatchScreen';
+import { MatchScreen, type PowerCutInQaEntry } from './src/render/MatchScreen';
+import { PowerEffectPreview } from './src/render/PowerEffectPreview';
+import {
+  POWER_MATCH_SHOWCASE_READY_TICKS,
+  powerMatchShowcaseAway,
+  powerMatchShowcaseHome,
+} from './src/render/power-match-showcase';
 import { TrainingTransitionOverlay } from './src/render/TrainingTransitionOverlay';
 import { setMasterVolume } from './src/render/audio';
 import {
@@ -91,6 +97,7 @@ import {
   careerCoachUnlockedFormationIds,
   clubSquadStrength,
   hasAssistantGuideSequenceCompleted,
+  isFirstOnboardingFixture,
   leagueStandings,
 } from './src/game';
 import type { DivisionLevel } from './src/game/pyramid';
@@ -123,6 +130,7 @@ import {
 } from './src/application/view-models';
 import type { AwakeningCutsceneViewModel } from './src/ui/models';
 import { AwakeningArtQaScreen } from './src/ui/screens/AwakeningArtQaScreen';
+import { PowerArtQaScreen } from './src/ui/screens/PowerArtQaScreen';
 import { championshipCelebrationViewModel } from './src/application/championship-celebration';
 import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
@@ -154,6 +162,17 @@ interface PendingConfirmation {
 
 export default function App() {
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
+  if (process.env.EXPO_PUBLIC_POWER_MATCH_QA === '1') {
+    return <PowerMatchQaApp />;
+  }
+  if (__DEV__ && process.env.EXPO_PUBLIC_POWER_CUTIN_QA === '1') {
+    return <PowerCutInQaApp />;
+  }
+  // The explicit build flag also supports a static web export, so art review
+  // never depends on opening a saved career or matching its replay baseline.
+  if (process.env.EXPO_PUBLIC_POWER_ART_QA === '1') {
+    return <PowerArtQaApp />;
+  }
   if (__DEV__ && process.env.EXPO_PUBLIC_AWAKENING_ART_QA === '1') {
     return <AwakeningArtQaApp triggerId={previewTriggerId ?? 'magic-sponge'} />;
   }
@@ -166,6 +185,150 @@ export default function App() {
     >
       <GameApp />
     </ScreenErrorBoundary>
+  );
+}
+
+const POWER_CUT_IN_QA_ENTRIES: readonly PowerCutInQaEntry[] = [
+  { id: 'qa-fire', power: 'FIRE_TORCH', playerName: 'Dario Flint', skippable: false },
+  { id: 'qa-speed', power: 'SUPER_SPEED', playerName: 'Zip Vela', skippable: false },
+  { id: 'qa-gravity', power: 'GRAVITY_WELL', playerName: 'Leo Quick', skippable: false },
+  { id: 'qa-elastic', power: 'ELASTIC_KEEPER', playerName: 'Sam Mitts', skippable: false },
+];
+
+function PowerMatchQaApp() {
+  const content = useMemo(loadLaunchContent, []);
+  const powers = content.powers.powers;
+  const [selectedPowerIndex, setSelectedPowerIndex] = useState(0);
+  const [replayKey, setReplayKey] = useState(0);
+  const powerCount = powers.length;
+  const powerIndex = selectedPowerIndex % powerCount;
+  const power = powers[powerIndex];
+  const home = useMemo(() => powerMatchShowcaseHome(power.id), [power.id]);
+  const away = useMemo(powerMatchShowcaseAway, []);
+  const powerMatchQa = useMemo(() => ({
+    power: power.id,
+    readyTicks: POWER_MATCH_SHOWCASE_READY_TICKS,
+  }), [power.id]);
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+
+  return (
+    <SafeAreaProvider>
+      {!fontsLoaded ? <LoadingScreen /> : <>
+        <StatusBar style="light" />
+        <SafeAreaView className="flex-1 bg-ink">
+        <View className="border-b-2 border-ink bg-violet-dark px-2 py-2">
+          <View className="flex-row items-center gap-2">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Show previous power in a live match"
+              className="min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-paper px-3"
+              onPress={() => {
+                setSelectedPowerIndex((powerIndex - 1 + powerCount) % powerCount);
+                setReplayKey(key => key + 1);
+              }}
+            >
+              <Text className="font-pixel text-xs uppercase text-ink">‹ Prev</Text>
+            </Pressable>
+            <View className="flex-1 items-center">
+              <Text className="font-mono text-[10px] font-bold uppercase tracking-widest text-gold">
+                Live match · {String(powerIndex + 1).padStart(2, '0')} / {String(powerCount).padStart(2, '0')}
+              </Text>
+              <Text numberOfLines={1} className="font-pixel text-base uppercase text-paper">{power.name}</Text>
+              <Text className="font-mono text-[10px] font-bold uppercase text-paper/70">13 sec to tap the glowing hero</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Restart ${power.name} live match scenario`}
+              className="min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-gold px-3"
+              onPress={() => setReplayKey(key => key + 1)}
+            >
+              <Text className="font-pixel text-xs uppercase text-ink">↻</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Show next power in a live match"
+              className="min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-paper px-3"
+              onPress={() => {
+                setSelectedPowerIndex((powerIndex + 1) % powerCount);
+                setReplayKey(key => key + 1);
+              }}
+            >
+              <Text className="font-pixel text-xs uppercase text-ink">Next ›</Text>
+            </Pressable>
+          </View>
+        </View>
+        <View className="flex-1">
+          <MatchScreen
+            key={`${power.id}:${replayKey}`}
+            seed={42}
+            home={home}
+            away={away}
+            controlledTeam={0}
+            reduceMotion={false}
+            cutInMode="full"
+            powerMatchQa={powerMatchQa}
+            onOpenSettings={() => undefined}
+            onDone={() => undefined}
+          />
+        </View>
+        </SafeAreaView>
+      </>}
+    </SafeAreaProvider>
+  );
+}
+
+function PowerCutInQaApp() {
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+  if (!fontsLoaded) return <LoadingScreen />;
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="light" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#16121f' }}>
+        <MatchScreen
+          seed={42}
+          reduceMotion={false}
+          cutInMode="full"
+          powerCutInQaEntries={POWER_CUT_IN_QA_ENTRIES}
+          onOpenSettings={() => undefined}
+          onDone={() => undefined}
+        />
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
+
+function PowerArtQaApp() {
+  const content = useMemo(loadLaunchContent, []);
+  const powers = content.powers.powers;
+  const [selectedPowerIndex, setSelectedPowerIndex] = useState(0);
+  const [replayKey, setReplayKey] = useState(0);
+  const powerCount = powers.length;
+  const powerIndex = selectedPowerIndex % powerCount;
+  const power = powers[powerIndex];
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+
+  return (
+    <SafeAreaProvider>
+      {!fontsLoaded ? <LoadingScreen /> : (
+        <>
+          <StatusBar style="light" />
+          <PowerArtQaScreen
+            index={powerIndex}
+            total={powerCount}
+            name={power.name}
+            description={power.description}
+            category={power.category}
+            tier={power.tier === 'starter' ? 'starter' : 'standard'}
+            preview={<PowerEffectPreview power={power.id} replayKey={replayKey} />}
+            onPrevious={() => setSelectedPowerIndex((
+              powerIndex - 1 + powerCount
+            ) % powerCount)}
+            onReplay={() => setReplayKey(key => key + 1)}
+            onNext={() => setSelectedPowerIndex((powerIndex + 1) % powerCount)}
+          />
+        </>
+      )}
+    </SafeAreaProvider>
   );
 }
 
@@ -231,6 +394,7 @@ function GameApp() {
   const [selectedCupSeason, setSelectedCupSeason] = useState<number | undefined>();
   const [bootAttempt, setBootAttempt] = useState(0);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  const [advanceTrainingGuard, setAdvanceTrainingGuard] = useState<{ isEdit: boolean } | null>(null);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesRef = useRef(preferences);
@@ -354,7 +518,6 @@ function GameApp() {
 
   const requestConfirmation = useCallback((confirmation: PendingConfirmation) => {
     playManagementActionSfx('select');
-    playManagementHaptic('select');
     setPendingConfirmation(confirmation);
   }, []);
 
@@ -418,7 +581,7 @@ function GameApp() {
   const beginCoachDismissal = useCallback((role: 'HEAD' | 'ASSISTANT' = 'HEAD') => {
     const career = useM1Store.getState().career;
     if (career === null) return;
-    const staff = squadTrainingViewModel(career, content, undefined, [], []).coachingStaff;
+    const staff = clubFinancesViewModel(career).coachingStaff;
     const coach = staff.find(candidate => candidate.role === role);
     if (coach === undefined) return;
     setCoachOverlay({
@@ -435,7 +598,7 @@ function GameApp() {
         severanceCost: coach.severanceCost,
       },
     });
-  }, [content]);
+  }, []);
 
   const confirmCoachDismissal = useCallback(() => {
     if (coachOverlay?.mode !== 'confirm-dismiss') return;
@@ -700,6 +863,12 @@ function GameApp() {
   const assistantObjective = store.career === null
     ? null
     : currentAssistantObjective(store.career, store.activeTab);
+  const hideCoachHiringCues = store.activeTab === 'market'
+    && (
+      conciergeFocus === 'coach-market'
+      || conciergeFocus === 'coach-hire'
+      || conciergeFocus === 'assistant-coach-hire'
+    );
 
   // Locked is the common state (the tutorial pushes a saved plan in Week 1,
   // and it repeats weekly), so this resolves the real training week on
@@ -719,6 +888,37 @@ function GameApp() {
         )),
     [store.career, content, store.selectedPlayerId, store.assignedPlayerIds, store.selectedDrillIds],
   );
+
+  // Advancing with a complete-but-unsaved training plan would silently run the
+  // last saved plan (or none) instead of the edits, so intercept and let the
+  // manager lock in first. lockedPlan === undefined && canApply means "a plan
+  // that could be saved but isn't the locked one" — covers first-time and edits.
+  const handleAdvanceWeek = useCallback(() => {
+    const vm = squadTrainingVm;
+    if (vm !== null && vm.lockedPlan === undefined && vm.canApply) {
+      playManagementActionSfx('select');
+      setAdvanceTrainingGuard({ isEdit: vm.hasUnsavedChanges });
+      return;
+    }
+    advanceCareerWithSfx();
+  }, [squadTrainingVm, advanceCareerWithSfx]);
+
+  const lockInTrainingAndAdvance = useCallback(() => {
+    setAdvanceTrainingGuard(null);
+    useM1Store.getState().applyTraining();
+    if (useM1Store.getState().error !== null) return;
+    playPlanLockedSfx();
+    advanceCareerWithSfx();
+  }, [advanceCareerWithSfx]);
+
+  const advanceWeekWithoutSaving = useCallback(() => {
+    setAdvanceTrainingGuard(null);
+    advanceCareerWithSfx();
+  }, [advanceCareerWithSfx]);
+
+  const dismissAdvanceTrainingGuard = useCallback(() => {
+    setAdvanceTrainingGuard(null);
+  }, []);
 
   useEffect(() => {
     setAssistantPageIndex(0);
@@ -882,6 +1082,10 @@ function GameApp() {
         highContrast={preferences.highContrast}
         colorSafeKits={preferences.colorSafeKits}
         pausedExternally={globalSettingsOpen}
+        firstMatchTutorial={isFirstOnboardingFixture(
+          store.career,
+          store.watchedMatch.fixture.id,
+        )}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         onDone={finishWatchedMatch}
       />
@@ -940,6 +1144,7 @@ function GameApp() {
     screen = (
       <WeeklyReviewScreen
         viewModel={store.weekReview}
+        animationsReady={trainingTransition === null}
         reduceMotion={reduceMotion}
         textScale={preferences.textScale}
         onContinue={store.continueWeekReview}
@@ -1033,7 +1238,7 @@ function GameApp() {
           setMarketSectionRequest(null);
           store.setActiveTab(tab);
         }}
-        onAdvanceWeek={advanceCareerWithSfx}
+        onAdvanceWeek={handleAdvanceWeek}
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
@@ -1043,7 +1248,7 @@ function GameApp() {
         guideFocus={assistantPage?.focus === 'money' || assistantPage?.focus === 'navigation'
           ? assistantPage.focus
           : undefined}
-        guideTarget={assistantObjective?.target}
+        guideTarget={hideCoachHiringCues ? undefined : assistantObjective?.target}
         onMoneyGuideAnchorChange={setMoneyGuideAnchor}
         onNavigationGuideAnchorChange={setNavigationGuideAnchor}
         onDismissGuidance={conciergeFocus === null ? undefined : () => setConciergeFocus(null)}
@@ -1060,8 +1265,6 @@ function GameApp() {
             onTogglePlayerAssignment={store.toggleTrainingPlayer}
             onToggleDrill={store.toggleDrill}
             onApplyTraining={lockTrainingPlanWithFeedback}
-            onOpenCoachMarket={() => store.setActiveTab('market')}
-            onDismissCoach={beginCoachDismissal}
             guideTraining={assistantObjective?.target === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
           />
@@ -1289,6 +1492,12 @@ function GameApp() {
             action?.();
           }}
         />
+        <AdvanceTrainingGuard
+          guard={advanceTrainingGuard}
+          onLockIn={lockInTrainingAndAdvance}
+          onAdvanceAnyway={advanceWeekWithoutSaving}
+          onKeepEditing={dismissAdvanceTrainingGuard}
+        />
         <SettingsOverlay
           open={globalSettingsOpen}
           glossary={content.glossary}
@@ -1353,7 +1562,11 @@ function GameApp() {
             coach={coachOverlay.coach}
             reduceMotion={reduceMotion}
             onConfirm={coachOverlay.mode === 'confirm-dismiss' ? confirmCoachDismissal : undefined}
-            onClose={() => setCoachOverlay(null)}
+            onClose={() => {
+              const returnsHome = coachOverlay.mode !== 'confirm-dismiss';
+              setCoachOverlay(null);
+              if (returnsHome) useM1Store.getState().setActiveTab('home');
+            }}
           />
         ) : null}
         {facilityProjectNotice !== null ? (
@@ -1541,6 +1754,68 @@ function feedbackNoticeAccessibilityLabel(message: string): string {
   const trimmed = message.trim();
   const sentence = /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
   return `${sentence} Tap to dismiss.`;
+}
+
+function AdvanceTrainingGuard({
+  guard,
+  onLockIn,
+  onAdvanceAnyway,
+  onKeepEditing,
+}: {
+  guard: { isEdit: boolean } | null;
+  onLockIn: () => void;
+  onAdvanceAnyway: () => void;
+  onKeepEditing: () => void;
+}) {
+  return (
+    <Modal
+      transparent
+      animationType="fade"
+      visible={guard !== null}
+      onRequestClose={onKeepEditing}
+    >
+      <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
+        <View accessibilityViewIsModal className="border-2 border-b-4 border-ink bg-paper p-5">
+          <Text className="font-mono text-sm font-bold uppercase text-stamp">Before you advance</Text>
+          <Text className="mt-2 font-pixel text-xl uppercase text-ink">Your new training plan isn’t locked in</Text>
+          <Text className="mt-3 text-base leading-6 text-ink/70">
+            {guard?.isEdit
+              ? 'You changed your training plan but haven’t locked the new one in. Advance now and this week runs your last saved plan — your changes won’t take effect until you lock them in.'
+              : 'You haven’t locked in a training plan yet, so your squad won’t train this week.'}
+          </Text>
+          <View className="mt-5 flex-row gap-3">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Advance the week without saving your training changes"
+              onPress={onAdvanceAnyway}
+              className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
+              style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+            >
+              <Text className="font-pixel text-sm uppercase text-ink">Advance anyway</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Lock in the training plan, then advance the week"
+              onPress={onLockIn}
+              className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-violet px-3"
+              style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
+            >
+              <Text className="font-pixel text-sm uppercase text-paper">Lock in & advance</Text>
+            </Pressable>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Keep editing your training plan"
+            onPress={onKeepEditing}
+            className="mt-3 min-h-11 items-center justify-center"
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : undefined })}
+          >
+            <Text className="font-mono text-sm font-bold uppercase text-ink/60">Keep editing</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 function ConfirmationSheet({

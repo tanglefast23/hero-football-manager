@@ -301,13 +301,15 @@ describe('validated M1 launch content', () => {
     const managementIntroPages = content.assistantGuide.sequences
       .find(sequence => sequence.id === 'management-intro')
       ?.pages;
-    expect(managementIntroPages).toHaveLength(4);
+    expect(managementIntroPages).toHaveLength(3);
     expect(managementIntroPages?.find(page => page.focus === 'navigation')).toMatchObject({
       buttonLabel: 'Got it!',
       navItems: [
         { tab: 'HOME', detail: "Today's work." },
         { tab: 'SQUAD', detail: 'Team and training.' },
-        { tab: 'CLUB', detail: 'Wages and facilities.' },
+        // "grounds" keeps the line short enough that the narrow cue chip never
+        // breaks it mid-word ("FACILITIE S.").
+        { tab: 'CLUB', detail: 'Wages and grounds.' },
         { tab: 'MARKET', detail: 'Scout, hire and fire.' },
         { tab: 'LEAGUE', detail: 'Leagues and rivals.' },
       ],
@@ -359,7 +361,10 @@ describe('validated M1 launch content', () => {
       });
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'facility-placement')
-      ?.pages[0].body[0]).toContain('opens after construction');
+      ?.pages[0]).toMatchObject({
+        title: 'Put down the Training Pitch',
+        objective: 'BUILD YOUR TRAINING PITCH.',
+      });
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'facility-upgrade')
       ?.pages[0].body[0]).toContain('current level stays active until construction finishes');
@@ -370,11 +375,11 @@ describe('validated M1 launch content', () => {
       });
   });
 
-  test('explains the founding training pitch during the opening sequence', () => {
+  test('keeps the opening sequence short and saves the Training Pitch explanation for its task', () => {
     const intro = loadLaunchContent().assistantGuide.sequences
       .find(sequence => sequence.id === 'management-intro');
     const bodies = intro?.pages.flatMap(page => page.body) ?? [];
 
-    expect(bodies.some(line => line.includes('Training Pitch'))).toBe(true);
+    expect(bodies.some(line => line.includes('Training Pitch'))).toBe(false);
   });
 });

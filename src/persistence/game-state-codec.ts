@@ -1238,14 +1238,19 @@ const gameStateSchema = z
       }
       if (state.market.transferTalks !== undefined) {
         const talks = state.market.transferTalks;
-        if (playerClubById.get(talks.playerId) === state.userClubId
-          || !playerIds.has(talks.playerId)
+        const pyramidTargetClubId = state.m2?.pyramid.divisions
+          .flatMap(division => division.clubs)
+          .flatMap(club => club.squad)
+          .find(player => player.id === talks.playerId)?.clubId;
+        const targetClubId = playerClubById.get(talks.playerId) ?? pyramidTargetClubId;
+        if (targetClubId === state.userClubId
+          || targetClubId === undefined
           || talks.transferQuote.playerId !== talks.playerId
           || talks.negotiation.playerId !== talks.playerId) {
           context.addIssue({
             code: 'custom',
             path: ['market', 'transferTalks', 'playerId'],
-            message: 'transfer talks must consistently reference an active target from another club',
+            message: 'transfer talks must consistently reference a target from another club',
           });
         }
       }

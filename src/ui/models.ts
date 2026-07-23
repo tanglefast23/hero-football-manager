@@ -221,6 +221,7 @@ export interface FacilityCompletionViewModel {
   name: string;
   level: 1 | 2 | 3;
   kind: 'BUILD' | 'UPGRADE';
+  trainingPointReward?: number;
 }
 
 export interface PlayerDevelopmentViewModel {
@@ -330,7 +331,6 @@ export interface LockedTrainingProgressViewModel {
 export interface SquadTrainingViewModel {
   resources: ResourceSummaryViewModel;
   players: readonly SquadPlayerViewModel[];
-  coachingStaff: readonly CoachStaffMemberViewModel[];
   selectedPlayerId?: string;
   createdPlayerId?: string;
   drills: readonly FocusDrillViewModel[];
@@ -340,6 +340,8 @@ export interface SquadTrainingViewModel {
   totalMoneyCost: number;
   totalTrainingPointCost: number;
   canApply: boolean;
+  /** True when a saved plan exists but the current editor selection differs from it. */
+  hasUnsavedChanges: boolean;
   lockedPlan?: {
     players: readonly (Pick<SquadPlayerViewModel, 'id' | 'name' | 'role' | 'lookId'> & {
       trainingProgress: readonly LockedTrainingProgressViewModel[];
@@ -445,25 +447,7 @@ export interface ClubFinancesViewModel {
   wageSubsidyLabel?: string;
   trainingGround: TrainingGroundDecisionViewModel;
   legacyTrainingGroundVisible: boolean;
-  headCoach?: {
-    id: string;
-    portraitId: string;
-    name: string;
-    age: number;
-    level: number;
-    specialtyLabels: readonly [string, string];
-    weeklyWage: number;
-    seasonsEmployed: number;
-    severanceCost: number;
-  };
-  assistantCoach?: {
-    id: string;
-    name: string;
-    level: number;
-    specialtyLabels: readonly [string, string];
-    weeklyWage: number;
-    seasonsEmployed: number;
-  };
+  coachingStaff: readonly CoachStaffMemberViewModel[];
   facilities: ClubFacilityGridViewModel;
 }
 

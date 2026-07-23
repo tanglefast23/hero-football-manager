@@ -44,6 +44,61 @@ describe('career contract promises', () => {
       .toEqual(lineup.playerIds);
   });
 
+  test('a guaranteed starter replaces the weakest same-role player by role overall', () => {
+    const state = career(9405);
+    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+    const starterSet = new Set(lineup.playerIds);
+    const starters = lineup.playerIds.map(id => state.players.find(player => player.id === id)!);
+    const sameRolePair = starters.flatMap((player, index) => (
+      player.role === 'GK'
+        ? []
+        : starters.slice(index + 1)
+          .filter(candidate => candidate.role === player.role)
+          .map(candidate => [player, candidate] as const)
+    ))[0];
+    if (sameRolePair === undefined) throw new Error('expected two same-role outfield starters');
+    const reserve = state.players.find(player => (
+      player.clubId === state.userClubId
+      && !starterSet.has(player.id)
+      && player.role !== 'GK'
+    ));
+    if (reserve === undefined) throw new Error('expected an outfield reserve');
+    const [weaker, stronger] = sameRolePair;
+    const roleAware = {
+      ...state,
+      players: state.players.map(player => {
+        if (player.id === weaker.id) {
+          return {
+            ...player,
+            attrs: { pac: 20, sho: 20, pas: 20, def: 20, tec: 20, sta: 20, ref: 99 },
+          };
+        }
+        if (player.id === stronger.id) {
+          return {
+            ...player,
+            attrs: { pac: 30, sho: 30, pas: 30, def: 30, tec: 30, sta: 30, ref: 1 },
+          };
+        }
+        return player.id === reserve.id ? { ...player, role: weaker.role } : player;
+      }),
+    };
+
+    const promised = applyCareerContractPromise(
+      roleAware,
+      reserve.id,
+      'GUARANTEED_STARTER',
+    );
+    const promisedIds = promised.lineups.find(candidate => (
+      candidate.clubId === state.userClubId
+    ))!.playerIds;
+
+    // The weaker player's irrelevant REF makes their raw seven-stat total
+    // larger, so this catches regressions back to role-unaware replacement.
+    expect(promisedIds).toContain(reserve.id);
+    expect(promisedIds).not.toContain(weaker.id);
+    expect(promisedIds).toContain(stronger.id);
+  });
+
   test('captaincy and shirt ten are unique, persisted player roles', () => {
     const state = career(9402);
     const roster = state.players.filter(player => player.clubId === state.userClubId);

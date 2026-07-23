@@ -1,6 +1,9 @@
 import { currentUserDivision } from '../game/m2-career';
 import { isFacilityOperational } from '../game/facilities';
-import type { CareerMarketState } from '../game/market-career';
+import {
+  careerTransferTarget,
+  type CareerMarketState,
+} from '../game/market-career';
 import type {
   CoachCandidate,
   ScoutFocus,
@@ -69,6 +72,14 @@ export function careerMarketViewModelSource(
   ];
   const reportByPlayerId = new Map(market.scoutReports.map(report => [report.playerId, report]));
   const playerById = new Map(state.players.map(player => [player.id, player]));
+  for (const report of market.scoutReports) {
+    const target = careerTransferTarget(state, report.playerId, division);
+    if (target !== undefined) playerById.set(report.playerId, target.player);
+  }
+  if (market.transferTalks !== undefined && !playerById.has(market.transferTalks.playerId)) {
+    const target = careerTransferTarget(state, market.transferTalks.playerId, division);
+    if (target !== undefined) playerById.set(target.player.id, target.player);
+  }
   const scoutResult = currentScoutResult(state, market);
   const buyListings = market.scoutReports
     .map(report => {

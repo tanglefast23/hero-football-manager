@@ -29,7 +29,7 @@ Promotion rewards are permanent: relegation changes the current opposition, not 
 
 | First reach | Permanent club rewards currently wired |
 |---|---|
-| D4 · County League | Level 2 facilities, expanded international scouting, Level 2 coach access (Fame still required) |
+| D4 · County League | Recruitment fund · $15,000, Level 2 facilities, expanded international scouting, Level 2 coach access (Fame still required) |
 | D3 · Regional League | Rumored Hero scouting, third Hero License, Level 3 coach access |
 | D2 · National Championship | Level 3 facilities, Elite Prospect scouting, Level 4 coach access |
 | D1 · Global League | Fourth Hero License, Level 5 coach access |

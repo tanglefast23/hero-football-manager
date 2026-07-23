@@ -65,7 +65,7 @@ export function PlayerSigningOverlay({
             </Text>
             <View className="mt-4">
               <ActionButton
-                label={isRookie ? 'Meet Bert  ▸' : 'Meet the squad  ▸'}
+                label={isRookie ? 'Meet Bert  ▸' : 'Return to club  ▸'}
                 accessibilityLabel={isRookie
                   ? 'Close rookie signing celebration and meet Bert'
                   : 'Close player signing confirmation'}
