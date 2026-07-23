@@ -335,6 +335,7 @@ const trainingRulesSchema = z
   .object({
     maxFocusDrillsPerWeek: positiveInteger,
     baseConditioning: trainingDrillSchema,
+    focusDrills: z.array(trainingDrillSchema),
   })
   .passthrough();
 

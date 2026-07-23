@@ -102,6 +102,10 @@ export function createCareer(setup: CareerSetup): GameState {
           ...setup.trainingRules.baseConditioning,
           gains: { ...setup.trainingRules.baseConditioning.gains },
         },
+        focusDrills: setup.trainingRules.focusDrills.map(drill => ({
+          ...drill,
+          gains: { ...drill.gains },
+        })),
       },
     }),
     eventClock: { weeksWithoutEvent: 0, riskyChoices: 0 },

@@ -71,6 +71,8 @@ export interface CareerTrainingCapNotice {
 export interface TrainingRules {
   baseConditioning: CareerTrainingDrill;
   maxFocusDrillsPerWeek: number;
+  /** Full focus-drill catalog, baked in so the pure engine can resolve tiers. */
+  focusDrills: CareerTrainingDrill[];
 }
 
 export type PlayerArchetype =

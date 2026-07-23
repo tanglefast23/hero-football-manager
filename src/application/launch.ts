@@ -60,6 +60,9 @@ export function createLaunchCareerSetup(
         tpCost: content.training.baseConditioning.tpCost,
         gains: { ...content.training.baseConditioning.gains },
       },
+      focusDrills: content.training.focusDrills.map(drill => ({
+        id: drill.id, moneyCost: drill.moneyCost, tpCost: drill.tpCost, gains: { ...drill.gains },
+      })),
     },
     clubs: content.clubs.clubs.map(club => ({
       id: club.id,
@@ -302,6 +305,10 @@ export function reconcileLaunchRoster(
               ...launch.trainingRules.baseConditioning,
               gains: { ...launch.trainingRules.baseConditioning.gains },
             },
+            focusDrills: launch.trainingRules.focusDrills.map(drill => ({
+              ...drill,
+              gains: { ...drill.gains },
+            })),
           },
         }
       : {}),
