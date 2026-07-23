@@ -1,3 +1,4 @@
+import { loadLaunchContent } from '../../content';
 import { advanceWeek, createCareer } from '../career';
 import {
   applyCareerTraining,
@@ -61,6 +62,7 @@ function setup(): CareerSetup {
       playerIds: Array.from({ length: 11 }, (_, index) => `${clubId}-p${index}`),
     })),
     startingTrainingPoints: 100,
+    trainingRules: loadLaunchContent().training,
   };
 }
 
@@ -173,32 +175,26 @@ describe('career squad integration', () => {
     expect(buildCareerTeamDef(coached, coached.userClubId).heroGaugeRatePercent).toBe(102.5);
   });
 
-  it('stores one weekly plan and applies every drill to every assigned player once', () => {
-    const planned = applyCareerTraining(
-      career(),
-      [`${CLUB_IDS[0]}-p9`, `${CLUB_IDS[0]}-p1`],
-      [
-        { id: 'sprint', moneyCost: 1000, tpCost: 10, gains: { pac: 2 } },
-        { id: 'shield', moneyCost: 500, tpCost: 8, gains: { def: 3 } },
-      ],
-    );
+  it('stores one weekly plan and settles each slot for only its own player and stat', () => {
+    const planned = applyCareerTraining(career(), [
+      { playerId: `${CLUB_IDS[0]}-p9`, pathId: 'sprints' },
+      { playerId: `${CLUB_IDS[0]}-p1`, pathId: 'duels' },
+    ]);
 
     expect(planned.clubs[0].cash).toBe(50000);
     expect(planned.trainingPoints).toBe(100);
     expect(planned.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(50);
 
     const trained = advanceWeek(planned);
-    expect(trained.clubs[0].cash).toBe(46350);
-    expect(trained.trainingPoints).toBe(82);
-    expect(trained.ledgers[0].lines).toContainEqual({
-      kind: 'training',
-      label: 'Weekly focus training',
-      amount: -3000,
-    });
-    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(52);
-    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.def).toBe(53);
-    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.pac).toBe(52);
-    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(53);
+    // This M1 fixture never gates a tier by division, so each path resolves
+    // to its highest (tier III) drill: 15 TP and +8 gain per slot.
+    expect(trained.trainingPoints).toBe(70);
+    // Focus drills are TP-only now; no money is ever charged for training.
+    expect(trained.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
+    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(58);
+    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.def).toBe(50);
+    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.pac).toBe(50);
+    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(58);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p2`)?.attrs.def).toBe(50);
   });
 
@@ -222,11 +218,9 @@ describe('career squad integration', () => {
   });
 
   it('skips an unaffordable repeating focus plan without blocking weekly settlement', () => {
-    const planned = applyCareerTraining(
-      career(),
-      [`${CLUB_IDS[0]}-p9`],
-      [{ id: 'sprint', moneyCost: 1000, tpCost: 10, gains: { pac: 2 } }],
-    );
+    const planned = applyCareerTraining(career(), [
+      { playerId: `${CLUB_IDS[0]}-p9`, pathId: 'sprints' },
+    ]);
     const broke = {
       ...planned,
       trainingPoints: 0,

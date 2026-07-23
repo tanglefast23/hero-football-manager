@@ -75,14 +75,20 @@ describe('weekly player wellbeing', () => {
       consecutiveLowMoraleWeeks: 0,
     }));
     state = withPlayedUserFixture(state, 2, 0);
+    const otherTrainees = roster
+      .filter(player => player.id !== starterId && player.id !== benchId)
+      .slice(0, 2)
+      .map(player => player.id);
     state = {
       ...state,
+      // Three total slots reproduce the same 3x focus-drill condition workload
+      // as the old shared three-drill plan (the workload cost scales with the
+      // whole week's slot count, not just this one player's).
       trainingPlan: {
-        assignedPlayerIds: [starterId],
-        drills: [
-          { id: 'one', moneyCost: 0, tpCost: 0, gains: { pac: 1 } },
-          { id: 'two', moneyCost: 0, tpCost: 0, gains: { sho: 1 } },
-          { id: 'three', moneyCost: 0, tpCost: 0, gains: { sta: 1 } },
+        slots: [
+          { playerId: starterId, pathId: 'sprints' },
+          { playerId: otherTrainees[0], pathId: 'finishing' },
+          { playerId: otherTrainees[1], pathId: 'rondo' },
         ],
       },
     };
@@ -143,7 +149,7 @@ describe('weekly player wellbeing', () => {
     let selected: { state: GameState; result: ReturnType<typeof resolveWeeklyPlayerWellbeing> } | undefined;
     for (let seed = 1; seed <= 100 && selected === undefined; seed += 1) {
       let state = career(seed);
-      const playerId = userPlayers(state)[0].id;
+      const [playerId, otherId1, otherId2] = userPlayers(state).map(player => player.id);
       state = withUserPlayerChanges(state, player => ({
         ...player,
         condition: player.id === playerId ? 0 : 100,
@@ -152,11 +158,10 @@ describe('weekly player wellbeing', () => {
       state = {
         ...state,
         trainingPlan: {
-          assignedPlayerIds: [playerId],
-          drills: [
-            { id: 'one', moneyCost: 0, tpCost: 0, gains: { pac: 1 } },
-            { id: 'two', moneyCost: 0, tpCost: 0, gains: { sho: 1 } },
-            { id: 'three', moneyCost: 0, tpCost: 0, gains: { sta: 1 } },
+          slots: [
+            { playerId, pathId: 'sprints' },
+            { playerId: otherId1, pathId: 'finishing' },
+            { playerId: otherId2, pathId: 'rondo' },
           ],
         },
       };
@@ -208,7 +213,7 @@ describe('weekly player wellbeing', () => {
 
     const makeLowConditionState = (facilityGrid: FacilityGridState): GameState => {
       let state = career(2);
-      const playerId = userPlayers(state)[0].id;
+      const [playerId, otherId1, otherId2] = userPlayers(state).map(player => player.id);
       state = withUserPlayerChanges(state, player => ({
         ...player,
         condition: player.id === playerId ? 0 : 100,
@@ -217,11 +222,10 @@ describe('weekly player wellbeing', () => {
         ...state,
         facilities: { ...state.facilities, grid: facilityGrid },
         trainingPlan: {
-          assignedPlayerIds: [playerId],
-          drills: [
-            { id: 'one', moneyCost: 0, tpCost: 0, gains: { pac: 1 } },
-            { id: 'two', moneyCost: 0, tpCost: 0, gains: { sho: 1 } },
-            { id: 'three', moneyCost: 0, tpCost: 0, gains: { sta: 1 } },
+          slots: [
+            { playerId, pathId: 'sprints' },
+            { playerId: otherId1, pathId: 'finishing' },
+            { playerId: otherId2, pathId: 'rondo' },
           ],
         },
       };

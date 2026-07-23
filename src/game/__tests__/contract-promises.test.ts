@@ -121,12 +121,43 @@ describe('career contract promises', () => {
     if (trainable === undefined) throw new Error('expected a player below their STA ceiling');
     const other = roster.find(player => player.id !== trainable.id)!;
     const priority = applyCareerContractPromise(state, trainable.id, 'TRAINING_PRIORITY');
-    const drill = { id: 'promise-focus', moneyCost: 0, tpCost: 0, gains: { sta: 1 } };
 
-    expect(() => setCareerTrainingPlan(priority, [other.id], [drill]))
+    expect(() => setCareerTrainingPlan(priority, [{ playerId: other.id, pathId: 'circuit' }]))
       .toThrow(`${trainable.name} was promised training priority`);
-    expect(setCareerTrainingPlan(priority, [trainable.id], [drill]).trainingPlan)
-      .toMatchObject({ assignedPlayerIds: [trainable.id] });
+    expect(setCareerTrainingPlan(priority, [{ playerId: trainable.id, pathId: 'circuit' }]).trainingPlan)
+      .toMatchObject({ slots: [{ playerId: trainable.id, pathId: 'circuit' }] });
+  });
+
+  test('training priority auto-adds a slot on the weakest stat when the plan has room', () => {
+    const state = career(9406);
+    const trainee = state.players.find(player => player.clubId === state.userClubId)!;
+    const withRoomAndWeakDef = {
+      ...state,
+      players: state.players.map(player => player.id === trainee.id
+        ? { ...player, attrs: { pac: 80, sho: 80, pas: 80, def: 10, tec: 80, sta: 80, ref: 80 } }
+        : player),
+      trainingPlan: { slots: [] },
+    };
+
+    const promised = applyCareerContractPromise(withRoomAndWeakDef, trainee.id, 'TRAINING_PRIORITY');
+
+    expect(promised.trainingPlan?.slots).toEqual([{ playerId: trainee.id, pathId: 'duels' }]);
+  });
+
+  test('training priority does not auto-add a slot when the plan is already full', () => {
+    const state = career(9407);
+    const roster = state.players.filter(player => player.clubId === state.userClubId);
+    const trainee = roster[0];
+    const fullSlots = [
+      { playerId: roster[1].id, pathId: 'sprints' },
+      { playerId: roster[2].id, pathId: 'rondo' },
+      { playerId: roster[3].id, pathId: 'first-touch' },
+    ];
+    const full = { ...state, trainingPlan: { slots: fullSlots } };
+
+    const promised = applyCareerContractPromise(full, trainee.id, 'TRAINING_PRIORITY');
+
+    expect(promised.trainingPlan?.slots).toEqual(fullSlots);
   });
 
   test('a promised hero uses an available license and never creates an invalid lineup', () => {
