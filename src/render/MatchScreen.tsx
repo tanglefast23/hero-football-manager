@@ -31,6 +31,8 @@ import {
 import { useWorkletAtlasFrame } from './worklet-atlas-frame';
 import { nextMatchSpeed, type MatchSpeed } from './match-speed';
 import {
+  ENCORE_MARKER_TICKS,
+  type EncoreMarker,
   WorkletBallShadow,
   WorkletMatchOverlays,
   WorkletSlideTackleEffects,
@@ -324,6 +326,9 @@ export function MatchScreen({
   // just stable player indices/placed points; simulation state remains the
   // sole authority for whether a shield, root, clone, or hunt is still live.
   const powerEffectsRef = useRef<MatchPowerEffect[]>([]);
+  // Tick each teammate received a Rally Cry encore, so the gold bolt marker can
+  // show for ~2s from the grant and then clear itself.
+  const encoreGrantedTickRef = useRef<Map<number, number>>(new Map());
   // Whether the looping fire crackle is currently playing — reconciled each
   // frame against whether any Fire Torch hero is ablaze (see the RAF loop).
   const fireLoopOnRef = useRef(false);
@@ -396,6 +401,7 @@ export function MatchScreen({
   const {
     transforms: workletTransforms,
     visualPositions: workletVisualPositions,
+    visibility: workletVisibility,
     ballGroundPosition: workletBallGroundPosition,
     ballHeight: workletBallHeight,
     statuses: workletStatuses,
@@ -651,7 +657,11 @@ export function MatchScreen({
               && candidate.team === firingPlayer.team
               && candidate.encoreState === 'BANKED'
             ));
-            if (encore !== -1) targets.splice(0, targets.length, { player: encore });
+            if (encore !== -1) {
+              targets.splice(0, targets.length, { player: encore });
+              // Stamp the grant so the overlay can flash a 2s bolt over this mate.
+              encoreGrantedTickRef.current.set(encore, e.t);
+            }
           }
           const delayedFirstBeat = e.power === 'FUTURE_SIGHT'
             || e.power === 'GUST'
@@ -659,8 +669,13 @@ export function MatchScreen({
             || e.power === 'ICE_RINK'
             || e.power === 'SHADOW_MARK';
           const strengthImpact = e.power === 'SUPER_STRENGTH';
+          // Ice Rink is drawn entirely by the victim-anchored slide effect
+          // below. A recorded one-shot here is anchored to the caster's team
+          // direction, so its sheet lands on the opposite side and then "hops"
+          // when the victim slide takes over. Skip it.
+          const casterSheet = e.power === 'ICE_RINK';
           const descriptor = powerEffectDescriptor(e.power);
-          if (!strengthImpact) {
+          if (!strengthImpact && !casterSheet) {
             recordPowerEffect(e.power, e.player, {
               startTick: e.t,
               origin: effectOrigin,
@@ -1231,16 +1246,9 @@ export function MatchScreen({
       );
     }
 
-    if (player.encoreState === 'BANKED') {
-      addPersistentPowerEffect(
-        `encore:${index}`,
-        'RALLY_CRY',
-        index,
-        3300,
-        playerPoint(index),
-        [playerPoint(index)],
-      );
-    }
+    // The banked-encore marker is no longer a lingering ticket/ring here; it is
+    // a short gold bolt over the granted teammate, built as encoreMarkers below
+    // and drawn by WorkletMatchOverlays.
 
     if ((player.portalProtectedUntilTick ?? 0) > hud.tick) {
       const remaining = player.portalProtectedUntilTick! - hud.tick;
@@ -1255,12 +1263,16 @@ export function MatchScreen({
     }
 
     if ((player.webbedUntilTick ?? 0) > hud.tick) {
-      const remaining = player.webbedUntilTick! - hud.tick;
+      // Hold the "rooted" frame for the whole webbed duration so the binding
+      // bands stay on the victim start to finish. The root lasts 120-200 ticks,
+      // far longer than the 4.3s descriptor, so a progressing elapsed time only
+      // reached the banded beat in the final ~1s (the "lines only at the end"
+      // bug). A fixed mid-beat time keeps the bands fully lit throughout.
       addPersistentPowerEffect(
         `webbed:${index}`,
         'WEB_TRAP',
         index,
-        2300 + (20 - remaining) * TICK_MS,
+        2580,
         playerPoint(index),
         [playerPoint(index)],
         playerPoint(index),
@@ -1302,36 +1314,38 @@ export function MatchScreen({
       );
     }
 
-    const decoyClone = player.def.power === 'DECOY_DOUBLE'
-      ? match.decoyClones[player.team] : null;
-    if (decoyClone !== null && decoyClone.ownerIdx === index) {
-      const cloneIndex = player.team === 0 ? 22 : 23;
-      const marker = state.kind === 'active' && state.targetIdx !== undefined
-        ? playerPoint(state.targetIdx) : screenPoint(decoyClone.pos);
-      addPersistentPowerEffect(
-        `decoy-clone:${index}`,
-        'DECOY_DOUBLE',
-        index,
-        2100,
-        playerPoint(cloneIndex),
-        [marker, screenPoint(decoyClone.pos)],
-        player.powerAnchor === undefined ? undefined : screenPoint(player.powerAnchor),
-        cloneIndex,
-      );
-    }
+    // The live Decoy clone is a real Atlas player; its dashed hologram ring is
+    // drawn by WorkletMatchOverlays, so it needs no power-effect scene here.
 
-    if ((player.def.power === 'WEB_TRAP' || player.def.power === 'ICE_RINK')
+    // Web Trap keeps its short caster-side cast flash. Ice Rink is intentionally
+    // excluded: it is drawn only by the victim-anchored slide effect above, so a
+    // caster-side sheet here would put the ice on the wrong side and cause the
+    // "starts one side, hops to the other" flip.
+    if (player.def.power === 'WEB_TRAP'
       && state.kind === 'active' && player.powerAnchor !== undefined) {
       addPersistentPowerEffect(
         `placed:${player.def.power}:${index}`,
         player.def.power,
         index,
-        player.def.power === 'WEB_TRAP' ? 820 : 850,
+        820,
         playerPoint(index),
         [screenPoint(player.powerAnchor)],
         screenPoint(player.powerAnchor),
       );
     }
+  });
+
+  // Rally Cry grant markers: a gold bolt over each freshly-granted teammate for
+  // ~2s. Drop entries once the window elapses or the encore is spent so stale
+  // bolts never linger.
+  const encoreMarkers: EncoreMarker[] = [];
+  encoreGrantedTickRef.current.forEach((grantTick, slot) => {
+    const banked = match.players[slot]?.encoreState === 'BANKED';
+    if (!banked || hud.tick - grantTick >= ENCORE_MARKER_TICKS) {
+      encoreGrantedTickRef.current.delete(slot);
+      return;
+    }
+    encoreMarkers.push({ slot, grantTick });
   });
 
   const activeSpeedster = match.players.findIndex(player => (
@@ -1667,6 +1681,7 @@ export function MatchScreen({
         ) : null}
         <WorkletMatchOverlays
           visualPositions={workletVisualPositions}
+          visibility={workletVisibility}
           statuses={workletStatuses}
           zoneFractions={workletZoneFractions}
           carrier={workletCarrier}
@@ -1675,6 +1690,7 @@ export function MatchScreen({
           controlledTeam={controlledTeam}
           heroPlayers={rivalHeroPlayers}
           fireTorchPlayers={fireTorchPlayers}
+          encoreMarkers={encoreMarkers}
           scale={scale}
           ringRadius={ringR}
           reduceMotion={reduceMotion}

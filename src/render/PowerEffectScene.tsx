@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import {
   Circle,
+  DashPathEffect,
   Group,
   Line,
   Path,
@@ -240,19 +241,17 @@ export function PowerEffectScene({
 
   switch (power) {
     case 'SUPER_SPEED': {
+      // The live speed read is the afterimage sprite trail (a separate actor
+      // layer). This scene keeps only the preview placeholder afterimages; the
+      // drawn streak and parallel path lines are intentionally gone.
       const burst = easeOut(segment(p, 0.16, 0.73));
       const runner = pointAlong(origin, forward, burst);
-      const streak = makeCurve(origin, { x: width * 0.54, y: origin.y + direction * unit }, runner);
       art = (
         <Fragment>
-          <Path path={streak} color={palette.secondary} style="stroke" strokeWidth={unit * 0.28} opacity={0.75} />
           {showPlaceholderActors ? [0.12, 0.24, 0.38].map((lag, index) => (
             <PixelActor key={index} at={pointAlong(origin, runner, Math.max(0, burst - lag))} color={palette.primary} unit={unit} opacity={(0.18 + index * 0.12) * pulse} />
           )) : null}
           {showPlaceholderActors ? <PixelActor at={runner} color={palette.highlight} unit={unit} opacity={0.9} /> : null}
-          {[0, 1, 2].map(index => (
-            <Line key={index} p1={{ x: origin.x - unit * (2 + index), y: origin.y - unit + index * unit }} p2={{ x: runner.x - unit * 0.8, y: runner.y - unit + index * unit }} color={palette.primary} strokeWidth={Math.max(2, unit * 0.18)} opacity={0.7 - index * 0.15} />
-          ))}
         </Fragment>
       );
       break;
@@ -363,25 +362,14 @@ export function PowerEffectScene({
       break;
     }
     case 'DECOY_DOUBLE': {
-      const project = segment(p, 0.08, 0.28);
-      const run = easeInOut(segment(p, 0.26, 0.78));
-      const runnerStart = origin;
-      const realEnd = forward;
-      const cloneEnd = secondary;
-      const real = pointAlong(runnerStart, realEnd, run);
-      const clone = pointAlong(runnerStart, cloneEnd, run);
+      // The live match marks the real decoy body with a dashed hologram ring in
+      // the match overlay. The preview has no decoy sprite, so it shows the same
+      // ring on its own as the representative effect.
+      const reveal = segment(p, 0.08, 0.3);
       art = (
-        <Fragment>
-          <Circle cx={runnerStart.x} cy={runnerStart.y} r={unit * (0.8 + project * 1.7)} color={palette.secondary} style="stroke" strokeWidth={unit * 0.18} opacity={project * 0.8} />
-          <Path path={makeCurve(runnerStart, anchor, realEnd)} color={palette.primary} style="stroke" strokeWidth={unit * 0.2} opacity={0.72} />
-          <Path path={makeCurve(runnerStart, { x: anchor.x + unit * 2, y: anchor.y }, cloneEnd)} color={palette.secondary} style="stroke" strokeWidth={unit * 0.18} opacity={0.72 * pulse} />
-          {showPlaceholderActors ? <PixelActor at={real} color={palette.primary} unit={unit} opacity={0.9} /> : null}
-          {showPlaceholderActors ? <PixelActor at={clone} color={palette.secondary} unit={unit} opacity={(0.42 + 0.35 * pulse) * project} outline={palette.highlight} /> : null}
-          {[0, 1, 2, 3].map(index => (
-            <Line key={index} p1={{ x: clone.x - unit * 1.5, y: clone.y - unit * 1.8 + index * unit }} p2={{ x: clone.x + unit * 1.5, y: clone.y - unit * 1.8 + index * unit }} color={palette.highlight} strokeWidth={unit * 0.1} opacity={0.55} />
-          ))}
-          <Circle cx={target.x} cy={target.y} r={unit * (1.4 + segment(p, 0.65, 1) * 0.7)} color={palette.secondary} style="stroke" strokeWidth={unit * 0.2} opacity={segment(p, 0.55, 0.85)} />
-        </Fragment>
+        <Circle cx={origin.x} cy={origin.y} r={unit * 2.4} color={palette.secondary} style="stroke" strokeWidth={unit * 0.16} opacity={reveal * (0.6 + 0.3 * pulse)}>
+          <DashPathEffect intervals={[unit * 0.7, unit * 0.55]} phase={0} />
+        </Circle>
       );
       break;
     }
@@ -473,7 +461,9 @@ export function PowerEffectScene({
               strokeWidth={pixel}
               opacity={rooted}
               antiAlias={false}
-            />
+            >
+              <DashPathEffect intervals={[pixel * 2, pixel * 1.5]} phase={0} />
+            </Line>
           ))}
           <Rect x={target.x - pixel} y={target.y - pixel} width={pixel * 2} height={pixel * 2} color={palette.highlight} opacity={rooted} antiAlias={false} />
         </Fragment>
