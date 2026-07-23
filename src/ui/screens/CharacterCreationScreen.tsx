@@ -88,13 +88,17 @@ export function CharacterCreationScreen({
             </View>
           </View>
         </View>
-        <Text className="mt-3 max-w-sm text-base leading-5 text-ink/65">
-          A solid D5 · District League forward you can shape. Useful, but not overpowered.
-        </Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
-        <PaperPanel kicker="Paper doll" title="Choose their look" stamp="Saved">
+        <PaperPanel kicker="Bert Rudge" title="Registration note">
+          <Text className="text-base leading-5 text-ink/70">
+            Eighteen, plays up front, and the best prospect the District League has turned up in
+            years. The finishing wanders and the legs go late, but I can coach that out.
+          </Text>
+        </PaperPanel>
+
+        <PaperPanel kicker="Paper doll" title="Choose their look" stamp="Saved" className="mt-5">
           <View className="flex-row items-center gap-4">
             <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
               <PixelPortrait

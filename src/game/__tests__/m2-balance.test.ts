@@ -27,9 +27,10 @@ describe('M2 deterministic management balance rails', () => {
     // but the six-season stress path must stay in a controlled integer corridor
     // rather than overflow or produce runaway income/debt.
     // The starting Training Pitch adds $100 weekly upkeep to this deliberately
-    // passive six-season path, so retain a rounded corridor around that cost.
+    // passive six-season path. The first D4 promotion also adds the authored
+    // $15,000 recruitment fund, so retain rounded corridors around both.
     expect(summary.minimumBalance).toBeGreaterThanOrEqual(-335_000);
-    expect(summary.maximumBalance).toBeLessThanOrEqual(75_000);
+    expect(summary.maximumBalance).toBeLessThanOrEqual(90_000);
     expect(summary.minimumWeeklyNet).toBeGreaterThanOrEqual(-15_000);
     expect(summary.maximumWeeklyNet).toBeLessThanOrEqual(40_000);
     expect(Number.isSafeInteger(summary.endingCash)).toBe(true);

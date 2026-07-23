@@ -4,12 +4,19 @@ import { join } from 'node:path';
 describe('first-hire screen copy', () => {
   const source = readFileSync(join(process.cwd(), 'src/ui/screens/CharacterCreationScreen.tsx'), 'utf8');
 
-  it('keeps difficulty labels simple and removes the redundant Bert note', () => {
+  it('keeps difficulty labels simple', () => {
     expect(source).toContain("['COZY', 'Casual mode']");
     expect(source).toContain("['CHAIRMAN', 'Expert mode']");
-    expect(source).not.toContain('Bert Rudge');
     expect(source).not.toContain('First-season wage subsidy');
     expect(source).not.toContain('No wage subsidy');
+  });
+
+  it('introduces the recruit through Bert instead of the header blurb', () => {
+    expect(source).toContain('Bert Rudge');
+    // Title stays two words so it fits one line beside the panel header.
+    expect(source).toContain('title="Registration note"');
+    expect(source).toContain('Eighteen, plays up front');
+    expect(source).not.toContain('A solid D5');
   });
 
   it('offers both directions on every paper-doll choice', () => {
