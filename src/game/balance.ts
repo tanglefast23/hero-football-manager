@@ -9,6 +9,7 @@ import {
 import { deterministicPostMatchAwakeningRoll } from './post-match-awakening';
 import { buildTrainingGround } from './squad';
 import { setCareerTrainingPlan } from './training';
+import { trainingDrillPathId } from './training-paths';
 import type { FocusDrill } from './progression';
 import type { CareerSetup, FixtureResult, GameState, LeagueFixture } from './types';
 
@@ -91,7 +92,6 @@ export function runMiniBalanceHarness(
   for (let seed = 1; seed <= careerSeeds; seed += 1) {
     const result = simulateSeasonOne(
       { ...setupTemplate, seed },
-      representativeDrills,
       scenario.spendingPolicy,
     );
     if (result.minimumBalance < 0) bankruptCareers += 1;
@@ -167,18 +167,18 @@ interface SeasonOneResult {
 
 function simulateSeasonOne(
   setup: CareerSetup,
-  representativeDrills: readonly FocusDrill[],
   spendingPolicy: MiniBalanceScenario['spendingPolicy'],
 ): SeasonOneResult {
   let state = createCareer(setup);
   state = buildTrainingGround(state, spendingPolicy.trainingGroundCost);
-  const focusDrillById = new Map(representativeDrills.map(drill => [drill.id, drill]));
-  const weeklyDrills = spendingPolicy.weeklyFocusDrillIds.map(id => {
-    const drill = focusDrillById.get(id);
-    if (drill === undefined) throw new Error(`balance spending policy uses unknown drill ${id}`);
-    return drill;
-  });
-  state = setCareerTrainingPlan(state, spendingPolicy.assignedPlayerIds, weeklyDrills);
+  if (spendingPolicy.assignedPlayerIds.length !== spendingPolicy.weeklyFocusDrillIds.length) {
+    throw new Error('balance spending policy requires exactly one drill per assigned player');
+  }
+  const slots = spendingPolicy.assignedPlayerIds.map((playerId, index) => ({
+    playerId,
+    pathId: trainingDrillPathId(spendingPolicy.weeklyFocusDrillIds[index]),
+  }));
+  state = setCareerTrainingPlan(state, slots);
 
   let ambientTrainingPoints = 0;
   const initialCash = setup.clubs.find(club => club.id === setup.userClubId)?.cash ?? 0;

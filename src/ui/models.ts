@@ -289,6 +289,10 @@ export interface SquadPlayerViewModel {
     value: number;
     cap: number;
   }[];
+  /** Position (1-based) in this week's training slots, when the player occupies one. */
+  slotNumber?: number;
+  /** True when a TRAINING_PRIORITY promise requires this player stay slotted (they cannot be dropped). */
+  trainingLocked?: boolean;
 }
 
 export interface FocusDrillViewModel {
@@ -319,38 +323,42 @@ export interface CoachStaffMemberViewModel {
   severanceCost: number;
 }
 
-export interface LockedTrainingProgressViewModel {
-  label: 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
-  /** Attribute value before this week's settlement. */
-  value: number;
-  /** Personal archetype cap for this attribute. */
-  cap: number;
-  /** Exactly what weekly settlement will add. Zero when capped or ineligible. */
-  weeklyGain: number;
+export interface TrainingSlotStatOption {
+  pathId: string;
+  /** Display label for the stat, e.g. "Defense". */
+  label: string;
+  /** Best unlocked drill tier's title, e.g. "Duels III". */
+  drillName: string;
+  /** Best unlocked tier's gain for this stat. */
+  gain: number;
+  /** Cap minus the selected player's current value; may be negative. */
+  room: number;
   atCap: boolean;
 }
 
 export interface SquadTrainingViewModel {
   resources: ResourceSummaryViewModel;
   players: readonly SquadPlayerViewModel[];
-  selectedPlayerId?: string;
-  createdPlayerId?: string;
-  drills: readonly FocusDrillViewModel[];
-  assignedPlayerIds: readonly string[];
-  selectedDrillCount: number;
-  maxDrills: number;
-  totalMoneyCost: number;
-  totalTrainingPointCost: number;
-  canApply: boolean;
-  /** True when a saved plan exists but the current editor selection differs from it. */
-  hasUnsavedChanges: boolean;
-  lockedPlan?: {
-    players: readonly (Pick<SquadPlayerViewModel, 'id' | 'name' | 'role' | 'lookId'> & {
-      trainingProgress: readonly LockedTrainingProgressViewModel[];
-    })[];
-    drills: readonly Pick<FocusDrillViewModel, 'id' | 'name' | 'gainLabel'>[];
-    moneyCost: number;
-    trainingPointCost: number;
+  slots: readonly {
+    playerId: string;
+    playerName: string;
+    pathId: string;
+    drillName: string;
+    gainLabel: string;
+  }[];
+  maxSlots: number;
+  /** Every stat path's best-tier option for the selected player, when one is selected. */
+  selectedPlayerStatOptions?: readonly TrainingSlotStatOption[];
+  weeklyTrainingPointCost: number;
+  interrupts: {
+    cappedSlots: readonly {
+      playerId: string;
+      playerName: string;
+      pathId: string;
+      attribute: string;
+      cap: number;
+    }[];
+    tpShortfall: number;
   };
 }
 

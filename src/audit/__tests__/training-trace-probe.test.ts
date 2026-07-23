@@ -9,6 +9,9 @@ import {
   createCareer,
   createdPlayer,
   setCareerTrainingPlan,
+  slotIsAtCap,
+  slotTrainingPointCost,
+  weeklyAmbientTrainingPoints,
   type GameState,
 } from '../../game';
 
@@ -38,15 +41,25 @@ describe('training trace', () => {
           && p.role !== 'GK' && lineup.playerIds.includes(p.id))
         .slice(0, 2);
       const assigned = [hero.id, ...others.map(p => p.id)];
+      // advanceWeek now refuses to run while a slot is capped or the plan is
+      // short on TP, so drop capped trainees and, if the remainder still
+      // can't be funded this week, clear the plan entirely before saving it.
+      let slots = assigned
+        .filter(playerId => !slotIsAtCap(state, { playerId, pathId: drill.id }))
+        .map(playerId => ({ playerId, pathId: drill.id }));
+      const projectedTrainingPoints = state.trainingPoints + weeklyAmbientTrainingPoints(state);
+      if (slotTrainingPointCost(state, slots) > projectedTrainingPoints) {
+        slots = [];
+      }
 
       // Probe failures must surface: swallowing a rejected plan can make two
       // supposedly different cohorts byte-identical and invalidate the result.
-      const next = setCareerTrainingPlan(state, assigned, [drill]);
+      const next = setCareerTrainingPlan(state, slots);
       const club = state.clubs.find(c => c.id === state.userClubId)!;
       lines.push(
         `wk${state.week} tp=${state.trainingPoints} cash=${club.cash} `
         + `heroPac=${hero.attrs.pac} plan=set `
-        + `stored=${JSON.stringify(next.trainingPlan?.assignedPlayerIds.length ?? null)}`,
+        + `stored=${JSON.stringify(next.trainingPlan?.slots.length ?? null)}`,
       );
       state = advanceWeek(next);
     }

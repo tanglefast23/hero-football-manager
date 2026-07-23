@@ -614,8 +614,7 @@ function completeCareerPlayerSale(
       trainingPlan: state.trainingPlan === undefined
         ? undefined
         : {
-            ...state.trainingPlan,
-            assignedPlayerIds: state.trainingPlan.assignedPlayerIds.filter(id => id !== playerId),
+            slots: state.trainingPlan.slots.filter(slot => slot.playerId !== playerId),
           },
     };
   const recordedState = recordCashTransaction(transferredState, {

@@ -17,7 +17,6 @@ import {
   buildCareerMatchTeams,
   buildCareerFacility,
   buildTrainingGround,
-  chargeableCareerTrainingPlan,
   completeFirstOnboardingMatch,
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
@@ -44,6 +43,7 @@ import {
   relocateCareerFacility,
   renewCareerPlayer,
   releaseCareerPlayer,
+  resolveTrainingPromiseBump,
   closeCareerRenewalTalks,
   signYouthIntakeOffer,
   resolvePostMatchAwakening,
@@ -57,8 +57,6 @@ import {
   startCareerScoutMission,
   submitCareerTransferOffer,
   submitCareerRenewalOffer,
-  trainingDrillBlockedReason,
-  trainingDrillPathId,
   upgradeCareerFacility,
   withoutPowers,
   type CreatedPlayerDraft,
@@ -127,6 +125,12 @@ export interface WatchedMatch {
 
 export type PostMatchOverlay = 'summary' | 'development' | null;
 
+export interface TrainingSlotDraft {
+  playerId: string;
+  /** null until the player's focus stat has been chosen. */
+  pathId: string | null;
+}
+
 export type StoreNoticeTone = 'info' | 'success';
 
 export interface StoreNotice {
@@ -145,8 +149,8 @@ interface M1Store {
   screen: M1Screen;
   activeTab: ManagementTab;
   selectedPlayerId?: string;
-  assignedPlayerIds: string[];
-  selectedDrillIds: string[];
+  trainingSlots: TrainingSlotDraft[];
+  trainingSlotLimitHit: boolean;
   watchedMatch: WatchedMatch | null;
   postMatch: PostMatchViewModel | null;
   postMatchOverlay: PostMatchOverlay;
@@ -185,8 +189,9 @@ interface M1Store {
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
   selectPlayer: (playerId: string) => void;
   toggleTrainingPlayer: (playerId: string) => void;
-  toggleDrill: (drillId: string) => void;
-  applyTraining: () => void;
+  setTrainingSlotStat: (playerId: string, pathId: string) => void;
+  clearTrainingSlotLimit: () => void;
+  resolveTrainingPromiseBump: (bumpedPlayerId: string) => void;
   buildFacility: () => void;
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
   upgradeClubFacility: (buildingId: string) => void;
@@ -222,8 +227,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
   hasSavedCareer: false,
   screen: 'welcome',
   activeTab: 'home',
-  assignedPlayerIds: [],
-  selectedDrillIds: [],
+  trainingSlots: [],
+  trainingSlotLimitHit: false,
   watchedMatch: null,
   postMatch: null,
   postMatchOverlay: null,
@@ -250,8 +255,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
         replayRepository: replayRepository ?? null,
         persistenceReady: true,
         career,
-        assignedPlayerIds: career?.trainingPlan?.assignedPlayerIds ?? [],
-        selectedDrillIds: career?.trainingPlan?.drills.map(drill => drill.id) ?? [],
+        trainingSlots: (career?.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
+        trainingSlotLimitHit: false,
         hasSavedCareer: career !== null,
         postMatch: null,
         postMatchOverlay: null,
@@ -289,8 +294,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
         screen: 'create-player',
         activeTab: 'home',
         selectedPlayerId: undefined,
-        assignedPlayerIds: [],
-        selectedDrillIds: [],
+        trainingSlots: [],
+        trainingSlotLimitHit: false,
         watchedMatch: null,
         postMatch: null,
         postMatchOverlay: null,
@@ -464,9 +469,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const guidedCareer = career.eventFlags.includes('m4:season-recap-guide-seen')
           ? career
           : { ...career, eventFlags: [...career.eventFlags, 'm4:season-recap-guide-seen'] };
+        // TODO: startNextSeason bypasses advanceWeek's interrupt guard, but
+        // resolveCareerTrainingWeek still skips at-cap slots and the next real
+        // advance re-blocks, so this is low impact (see Finding 4).
         const next = reconcilePendingClubLegends(startNextSeason(guidedCareer));
         set({
           career: next,
+          trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
           screen: nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
           activeTab: 'home',
           weekReview: null,
@@ -852,86 +861,49 @@ export const useM1Store = create<M1Store>((set, get) => ({
   },
 
   toggleTrainingPlayer(playerId) {
-    const assigned = get().assignedPlayerIds;
-    set({
-      assignedPlayerIds: assigned.includes(playerId)
-        ? assigned.filter(id => id !== playerId)
-        : [...assigned, playerId],
-      error: null,
+    guarded(set, () => {
+      const slots = get().trainingSlots;
+      const alreadySlotted = slots.some(slot => slot.playerId === playerId);
+      if (alreadySlotted) {
+        commitTrainingSlots(get, set, slots.filter(slot => slot.playerId !== playerId));
+        return;
+      }
+      const maxSlots = get().career?.trainingRules?.maxFocusDrillsPerWeek ?? 3;
+      if (slots.length >= maxSlots) {
+        set({ trainingSlotLimitHit: true });
+        return;
+      }
+      set({
+        trainingSlots: [...slots, { playerId, pathId: null }],
+        trainingSlotLimitHit: false,
+        selectedPlayerId: playerId,
+        error: null,
+      });
     });
   },
 
-  toggleDrill(drillId) {
-    const selected = get().selectedDrillIds;
-    if (selected.includes(drillId)) {
-      set({ selectedDrillIds: selected.filter(id => id !== drillId), error: null });
-      return;
-    }
-    if (selected.length >= 3) {
-      set({ error: 'A weekly plan can contain at most three focus drills.' });
-      return;
-    }
-    const drillById = new Map(launchContent.training.focusDrills.map(drill => [drill.id, drill]));
-    const drill = drillById.get(drillId);
-    if (drill === undefined) {
-      set({ error: 'That focus drill is not available.' });
-      return;
-    }
-    const selectedSamePath = selected.find(id => (
-      trainingDrillPathId(id) === trainingDrillPathId(drillId)
-    ));
-    if (selectedSamePath !== undefined) {
-      const selectedName = drillById.get(selectedSamePath)?.name ?? selectedSamePath;
-      set({ error: `Replace ${selectedName} before choosing another level from that drill path.` });
-      return;
-    }
-    const career = requireCareer(get());
-    const blockedReason = trainingDrillBlockedReason(career, drillId);
-    if (blockedReason !== undefined) {
-      set({ error: blockedReason });
-      return;
-    }
-    const prospectiveDrills = [...selected, drillId].map(id => drillById.get(id)!);
-    const assignedPlayerIds = get().assignedPlayerIds;
-    const requiredTrainingPoints = assignedPlayerIds.length === 0
-      ? prospectiveDrills.reduce((total, selectedDrill) => total + selectedDrill.tpCost, 0)
-      : chargeableCareerTrainingPlan(
-          career,
-          assignedPlayerIds,
-          prospectiveDrills,
-        ).trainingPointCost;
-    const availableTrainingPoints = career.trainingPoints;
-    if (requiredTrainingPoints > availableTrainingPoints) {
-      set({
-        error: `${drill.name} would make this plan cost ${requiredTrainingPoints} TP, but you only have ${availableTrainingPoints} TP. Choose a cheaper drill.`,
-      });
-      return;
-    }
-    set({ selectedDrillIds: [...selected, drillId], error: null });
+  setTrainingSlotStat(playerId, pathId) {
+    guarded(set, () => {
+      const slots = get().trainingSlots;
+      commitTrainingSlots(
+        get,
+        set,
+        slots.map(slot => (slot.playerId === playerId ? { playerId, pathId } : slot)),
+      );
+    });
   },
 
-  applyTraining() {
+  clearTrainingSlotLimit() {
+    set({ trainingSlotLimitHit: false });
+  },
+
+  resolveTrainingPromiseBump(bumpedPlayerId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const assigned = get().assignedPlayerIds;
-      const selectedIds = get().selectedDrillIds;
-      if (assigned.length === 0 || selectedIds.length === 0) {
-        throw new Error('Select at least one player and one focus drill.');
-      }
-      const drillById = new Map(launchContent.training.focusDrills.map(drill => [drill.id, drill]));
-      const drills = selectedIds.map(id => {
-        const drill = drillById.get(id);
-        if (drill === undefined) throw new Error(`unknown training drill ${id}`);
-        return drill;
-      });
-      const next = completeAssistantGuideMilestone(
-        applyCareerTraining(career, assigned, drills),
-        'first-training-complete',
-      );
+      const next = resolveTrainingPromiseBump(career, bumpedPlayerId);
       set({
         career: next,
-        assignedPlayerIds: [...assigned],
-        selectedDrillIds: [...selectedIds],
+        trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
         error: null,
       });
       queueCareerSave(get, set, next);
@@ -1072,6 +1044,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const next = { ...transaction.state, market: transaction.market };
       set({
         career: next,
+        trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
         error: null,
         notice: {
           tone: 'success',
@@ -1153,6 +1126,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const next = { ...transaction.state, market: transaction.market };
         set({
           career: next,
+          trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
           error: null,
           notice: {
             tone: 'success',
@@ -1222,6 +1196,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const next = { ...transaction.state, market: transaction.market };
         set({
           career: next,
+          trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
           selectedContractTerm: 1,
           error: null,
           notice: { tone: 'success', message: 'Contract renewed.' },
@@ -1253,7 +1228,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
   releasePlayer(playerId) {
     guarded(set, () => {
       const next = releaseCareerPlayer(requireCareer(get()), playerId);
-      set({ career: next, error: null });
+      set({
+        career: next,
+        trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
+        error: null,
+      });
       queueCareerSave(get, set, next);
     });
   },
@@ -1507,6 +1486,28 @@ function reconcileLegacyFirstAwakening(state: GameState): GameState {
 function requireCareer(state: Pick<M1Store, 'career'>): GameState {
   if (state.career === null) throw new Error('start or load a career first');
   return state.career;
+}
+
+/** Commits a training slot draft: stores it, then applies its complete slots to the career. */
+function commitTrainingSlots(
+  get: () => M1Store,
+  set: (partial: Partial<M1Store>) => void,
+  slots: TrainingSlotDraft[],
+): void {
+  const career = get().career;
+  if (career === null) {
+    set({ trainingSlots: slots, trainingSlotLimitHit: false, error: null });
+    return;
+  }
+  const complete = slots
+    .filter((slot): slot is TrainingSlotDraft & { pathId: string } => slot.pathId !== null)
+    .map(slot => ({ playerId: slot.playerId, pathId: slot.pathId }));
+  let next = applyCareerTraining(career, complete);
+  if (complete.length > 0) {
+    next = completeAssistantGuideMilestone(next, 'first-training-complete');
+  }
+  set({ trainingSlots: slots, trainingSlotLimitHit: false, career: next, error: null });
+  queueCareerSave(get, set, next);
 }
 
 function queueCareerSave(

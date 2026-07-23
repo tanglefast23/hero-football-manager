@@ -203,7 +203,6 @@ export type PowerCutInQaEntry = PowerCutInEntry;
 
 export interface PowerMatchQaConfig {
   readonly power: PowerId;
-  readonly readyTicks: number;
 }
 
 function scoreCode(team: TeamDef): string {
@@ -292,7 +291,6 @@ export function MatchScreen({
       initializePowerMatchShowcase(
         stateRef.current,
         powerMatchQa.power,
-        powerMatchQa.readyTicks,
       );
     }
   }

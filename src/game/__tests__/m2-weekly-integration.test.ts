@@ -213,24 +213,29 @@ describe('M2 weekly sidecars', () => {
   test('applies full-career condition workload while leaving the M1 slice unchanged', () => {
     const focusPlan = (state: GameState): GameState => {
       const playerId = state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds[0];
+      const otherIds = state.players
+        .filter(player => player.clubId === state.userClubId && player.id !== playerId)
+        .slice(0, 2)
+        .map(player => player.id);
       return {
         ...state,
         players: state.players.map(player => player.id === playerId
           ? { ...player, condition: 20 }
           : player),
+        // Three total slots reproduce the same 3x focus-drill condition
+        // workload as the old shared three-drill plan.
         trainingPlan: {
-          assignedPlayerIds: [playerId],
-          drills: [
-            { id: 'condition-one', moneyCost: 0, tpCost: 0, gains: { pac: 1 } },
-            { id: 'condition-two', moneyCost: 0, tpCost: 0, gains: { sho: 1 } },
-            { id: 'condition-three', moneyCost: 0, tpCost: 0, gains: { sta: 1 } },
+          slots: [
+            { playerId, pathId: 'sprints' },
+            { playerId: otherIds[0], pathId: 'finishing' },
+            { playerId: otherIds[1], pathId: 'rondo' },
           ],
         },
       };
     };
     const m2Before = focusPlan(fullCareer(504));
     const m1Before = focusPlan(createCareer(createLaunchCareerSetup(504)));
-    const playerId = m2Before.trainingPlan!.assignedPlayerIds[0];
+    const playerId = m2Before.trainingPlan!.slots[0].playerId;
 
     const m2After = advanceWeek(m2Before);
     const m1After = advanceWeek(m1Before);
@@ -282,17 +287,22 @@ describe('M2 weekly sidecars', () => {
       while (state.week < 5) state = advanceWeek(state);
       const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
       const targetId = lineup.playerIds[1];
+      const otherIds = state.players
+        .filter(player => player.clubId === state.userClubId && player.id !== targetId)
+        .slice(0, 2)
+        .map(player => player.id);
       state = {
         ...state,
         players: state.players.map(player => player.id === targetId
           ? { ...player, condition: 0 }
           : player),
+        // Three total slots reproduce the same 3x focus-drill condition
+        // workload as the old shared three-drill plan.
         trainingPlan: {
-          assignedPlayerIds: [targetId],
-          drills: [
-            { id: 'injury-one', moneyCost: 0, tpCost: 0, gains: { pac: 1 } },
-            { id: 'injury-two', moneyCost: 0, tpCost: 0, gains: { sho: 1 } },
-            { id: 'injury-three', moneyCost: 0, tpCost: 0, gains: { sta: 1 } },
+          slots: [
+            { playerId: targetId, pathId: 'sprints' },
+            { playerId: otherIds[0], pathId: 'finishing' },
+            { playerId: otherIds[1], pathId: 'rondo' },
           ],
         },
       };
@@ -321,7 +331,11 @@ describe('M2 weekly sidecars', () => {
     expect(settled.players.find(player => player.id === replacementId)?.injuryWeeks).toBe(0);
     expect(() => buildCareerTeamDef(settled!, settled!.userClubId)).not.toThrow();
 
-    const nextMatchday = advanceWeek(settled);
+    // The repeating 3-slot plan has outrun its TP budget by now, which the
+    // interrupt guard (now enforced on match weeks too) would block. This test
+    // is about injury/bench/lineup, not training economy, so clear the plan —
+    // the same resolution the UI's "drop a player" interrupt would apply.
+    const nextMatchday = advanceWeek({ ...settled, trainingPlan: { slots: [] } });
     expect(nextMatchday.phase).toBe('matchday');
     expect(() => buildCareerTeamDef(nextMatchday, nextMatchday.userClubId)).not.toThrow();
   });

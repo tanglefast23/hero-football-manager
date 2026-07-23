@@ -1,10 +1,10 @@
 import { PITCH_H, PITCH_W } from '../sim/geometry';
-import { powerTick } from '../sim/powers';
+import { powerTick, ZONE_WINDOW_TICKS } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import type { MatchState, PowerId, TeamDef } from '../sim/types';
 
-/** 13 real-time seconds at the engine's fixed 100 ms tick rate. */
-export const POWER_MATCH_SHOWCASE_READY_TICKS = 130;
+/** Brief still frame before the real contextual auto policy evaluates. */
+export const POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 10;
 
 const HERO_INDEX: Readonly<Record<PowerId, number>> = {
   SUPER_SPEED: 10,
@@ -223,36 +223,37 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
 export function initializePowerMatchShowcase(
   match: MatchState,
   power: PowerId,
-  readyTicks = POWER_MATCH_SHOWCASE_READY_TICKS,
 ): number {
   const hero = arrangePowerMatchShowcase(match, power);
-  for (const player of match.players) player.firePolicy = 'SAVE_FOR_TAP';
+  match.players[hero].firePolicy = 'FIRE_WHEN_READY';
   match.players[hero].gauge = 0;
   match.players[hero].zonesOpened = 1;
-  match.players[hero].powerState = { kind: 'zone', remainingTicks: readyTicks };
+  match.players[hero].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
   match.events.push({ t: match.tick, kind: 'POWER_READY', player: hero });
   return hero;
 }
 
 /**
- * Holds the authored match tableau while the 13-second review window counts
- * down. The real power engine consumes a queued replay input while the tableau
- * remains held through any wind-up, then ordinary match play resumes once the
- * power is active. Nothing is repositioned at tap time.
+ * Holds the authored match tableau until the real contextual auto policy sees
+ * the power's best moment. The banked Zone cannot expire in this review mode:
+ * it waits indefinitely, fires at the normal automatic strength, stays held
+ * through any wind-up, then ordinary match play resumes once the power is
+ * active. Nothing is repositioned at activation time.
  */
 export function advancePowerMatchShowcaseReady(match: MatchState, power: PowerId): boolean {
   const hero = powerMatchShowcaseHeroIndex(power);
   const state = match.players[hero].powerState;
   if (state.kind !== 'zone' && state.kind !== 'winding') return false;
   match.tick++;
-  const dueTapInputs = match.pendingInputs.filter(input => (
-    input.kind === 'POWER_TAP'
-    && input.player === hero
-    && input.tick <= match.tick
-  ));
-  if (dueTapInputs.length > 0) {
-    match.pendingInputs = match.pendingInputs.filter(input => !dueTapInputs.includes(input));
+  if (state.kind === 'zone' && match.tick <= POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS) {
+    return true;
   }
-  powerTick(match, dueTapInputs);
+  powerTick(match);
+  const nextState = match.players[hero].powerState;
+  if (nextState.kind === 'zone') {
+    // The showcase has no Zone deadline. Only the real authored context may
+    // release this banked power.
+    nextState.remainingTicks = ZONE_WINDOW_TICKS;
+  }
   return true;
 }

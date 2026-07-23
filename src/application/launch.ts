@@ -7,8 +7,8 @@ import {
   developmentPotentialCeiling,
   enableFullCareer,
   potentialTierForDivision,
-  trainingDrillPathId,
 } from '../game';
+import { TRAINING_PATHS } from '../game/training-paths';
 import {
   assignDistinctPlayerLooks,
   isPlayerLookIdForRole,
@@ -60,6 +60,9 @@ export function createLaunchCareerSetup(
         tpCost: content.training.baseConditioning.tpCost,
         gains: { ...content.training.baseConditioning.gains },
       },
+      focusDrills: content.training.focusDrills.map(drill => ({
+        id: drill.id, moneyCost: drill.moneyCost, tpCost: drill.tpCost, gains: { ...drill.gains },
+      })),
     },
     clubs: content.clubs.clubs.map(club => ({
       id: club.id,
@@ -152,7 +155,7 @@ export function reconcileLaunchRoster(
   content: LaunchContent = loadLaunchContent(),
   enableM2 = false,
 ): GameState {
-  const trainingPlanState = reconcileSavedTrainingPlan(state, content);
+  const trainingPlanState = reconcileSavedTrainingPlan(state);
   const trainingPlanChanged = trainingPlanState !== state;
   state = trainingPlanState;
   const savedAwakening = (state as Omit<GameState, 'awakening'> & {
@@ -302,6 +305,10 @@ export function reconcileLaunchRoster(
               ...launch.trainingRules.baseConditioning,
               gains: { ...launch.trainingRules.baseConditioning.gains },
             },
+            focusDrills: launch.trainingRules.focusDrills.map(drill => ({
+              ...drill,
+              gains: { ...drill.gains },
+            })),
           },
         }
       : {}),
@@ -317,39 +324,16 @@ export function reconcileLaunchRoster(
 }
 
 /**
- * Saved plans are templates, not historical records. Refresh their authored
- * costs/gains from current content and keep the first saved tier for each path.
+ * Saved plans are templates, not historical records. Drop any slot whose path
+ * no longer exists; drills/costs resolve fresh from content at settlement.
  */
-function reconcileSavedTrainingPlan(state: GameState, content: LaunchContent): GameState {
+function reconcileSavedTrainingPlan(state: GameState): GameState {
   const plan = state.trainingPlan;
   if (plan === undefined) return state;
-  const currentById = new Map(content.training.focusDrills.map(drill => [drill.id, drill]));
-  const seenPaths = new Set<string>();
-  const drills = plan.drills.flatMap(savedDrill => {
-    const current = currentById.get(savedDrill.id);
-    if (current === undefined) return [];
-    const path = trainingDrillPathId(current.id);
-    if (seenPaths.has(path)) return [];
-    seenPaths.add(path);
-    return [{
-      id: current.id,
-      moneyCost: current.moneyCost,
-      tpCost: current.tpCost,
-      gains: { ...current.gains },
-    }];
-  });
-  if (drills.length === 0) {
-    const { trainingPlan: _removedPlan, ...withoutTrainingPlan } = state;
-    return withoutTrainingPlan;
-  }
-  if (JSON.stringify(drills) === JSON.stringify(plan.drills)) return state;
-  return {
-    ...state,
-    trainingPlan: {
-      assignedPlayerIds: [...plan.assignedPlayerIds],
-      drills,
-    },
-  };
+  const validPathIds = new Set(TRAINING_PATHS.map(path => path.pathId));
+  const slots = plan.slots.filter(slot => validPathIds.has(slot.pathId));
+  if (slots.length === plan.slots.length) return state;
+  return { ...state, trainingPlan: { slots } };
 }
 
 function reconcileCareerPlayerLooks(state: GameState): GameState {

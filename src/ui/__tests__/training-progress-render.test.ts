@@ -1,16 +1,18 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-describe('locked training progress rendering', () => {
-  it('distinguishes at-cap from merely-unfunded zero gain', () => {
+describe('training stat option rendering', () => {
+  it('greys out and disables an at-cap stat option in the picker', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),
       'utf8',
     );
 
-    // Three distinct states, not a two-way atCap/gain toggle: at cap, funded
-    // with zero gain (a real, separate situation), and a positive gain.
-    expect(source).toContain("entry.atCap ? 'text-stamp' : entry.weeklyGain === 0 ? 'text-stamp' : 'text-pitch-dark'");
-    expect(source).toContain("entry.atCap ? '· At cap' : entry.weeklyGain === 0 ? '· None this week' : `+${entry.weeklyGain}/week`");
+    // At-cap options are visually distinct (greyed, disabled) rather than
+    // just showing a lower gain number — the manager shouldn't be able to
+    // select a stat that can't grow.
+    expect(source).toContain("option.atCap\n                    ? 'flex-row items-center justify-between border-2 border-ink/20 bg-white px-3 py-3 opacity-40'");
+    expect(source).toContain('disabled={option.atCap}');
+    expect(source).toContain("option.atCap ? 'At cap' : `${option.room} to cap`");
   });
 });

@@ -7,7 +7,6 @@ import {
 } from '../../game';
 import type { CareerSetup, GameState } from '../../game/types';
 import { createLaunchCareerSetup } from '../../application/launch';
-import { loadLaunchContent } from '../../content';
 import { createCareerRepository } from '../career-repository';
 import { parseStoredGameState } from '../game-state-codec';
 import {
@@ -87,11 +86,12 @@ describe('career repository', () => {
   it('round-trips the repeating training rules and selected weekly plan', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
-    const sprint = loadLaunchContent().training.focusDrills.find(drill => drill.id === 'sprints')!;
     const state = applyCareerTraining(
       createCareer(createLaunchCareerSetup(13579)),
-      ['bramble-rovers-p13', 'bramble-rovers-p14'],
-      [sprint],
+      [
+        { playerId: 'bramble-rovers-p13', pathId: 'sprints' },
+        { playerId: 'bramble-rovers-p14', pathId: 'sprints' },
+      ],
     );
 
     await repository.save(state);

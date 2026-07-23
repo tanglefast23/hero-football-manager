@@ -2,13 +2,13 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 describe('first training guidance', () => {
-  it('guides the full roster, then the full drill list, without a Bert briefing', () => {
+  it('guides the full roster, then the stat picker, without a Bert briefing', () => {
     const source = readFileSync(join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'), 'utf8');
     const homeSource = readFileSync(join(process.cwd(), 'src/ui/screens/ClubHomeScreen.tsx'), 'utf8');
     const guideContent = readFileSync(join(process.cwd(), 'content/assistant-guide.json'), 'utf8');
 
-    expect(source).toContain("const guidePlayers = guideTraining && viewModel.assignedPlayerIds.length === 0;");
-    expect(source).toContain("const guideDrills = guideTraining");
+    expect(source).toContain("const guidePlayers = guideTraining && assignedCount === 0;");
+    expect(source).toContain("const guideStat = guideTraining");
     expect(source).toContain("'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'");
     expect(source).toContain("'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'");
     expect(source).toContain('label="Tap in here"');
@@ -16,9 +16,9 @@ describe('first training guidance', () => {
     expect(source).toContain('onTouchStart={rememberPlayerGuideTouch}');
     expect(source).toContain('onTouchMove={dismissPlayerGuideAfterDrag}');
     expect(source).toContain('{guidePlayers && !playerGuideDismissed ? (');
-    expect(source).toContain('const showScrollCue = (guideDrills && !drillListVisible)');
-    expect(source).toContain('ref={drillListRef}');
-    expect(source).toContain('detail="Add up to 3 drills."');
+    expect(source).toContain('const showScrollCue = guideStat && !statPickerVisible;');
+    expect(source).toContain('ref={statPickerRef}');
+    expect(source).toContain('detail="Pick a stat"');
     expect(source).not.toContain('<SquadSortHeader label="Role"');
     expect(source).toContain('label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16"');
     expect(source).toContain('className="w-14 text-right text-sm font-bold uppercase text-ink/50"');
@@ -29,8 +29,6 @@ describe('first training guidance', () => {
     expect(source).toContain("boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)'");
     expect(source).not.toContain('detail="Add one player"');
     expect(source).not.toContain('detail="Pick a drill"');
-    expect(source).toContain('{drill.lockedReason ?? drill.gainLabel}');
-    expect(source).not.toContain('{drill.focusLabel} · {drill.gainLabel}');
     expect(homeSource).toContain('detail="Build the facility"');
     expect(guideContent).not.toContain('"id": "squad-intro"');
   });

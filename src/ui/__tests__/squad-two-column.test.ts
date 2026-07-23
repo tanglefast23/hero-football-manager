@@ -16,9 +16,9 @@ describe('squad training two-column layout', () => {
     expect(source).not.toContain('mt-6');
   });
 
-  it('derives the roster and drill weights from view-model content counts', () => {
+  it('derives the roster and training-focus weights from view-model content counts', () => {
     expect(source).toContain('3 + viewModel.players.length');
-    expect(source).toContain('2 + viewModel.drills.length');
+    expect(source).toContain('2 + (viewModel.selectedPlayerStatOptions?.length ?? 1)');
   });
 
   it('keeps the internal 600pt roster breakpoint independent of the 960pt layout breakpoint', () => {
@@ -31,17 +31,12 @@ describe('squad training two-column layout', () => {
     expect(source).toContain('weight: 9');
   });
 
-  it('derives the plan panel weight from the locked-plan state', () => {
-    expect(source).toContain('viewModel.lockedPlan === undefined ? 6 : 4 + viewModel.lockedPlan.players.length');
+  it('derives the training-set panel weight from the committed slot count', () => {
+    expect(source).toContain('3 + viewModel.slots.length');
   });
 
   it('keeps the guide mt-20 wrapper literals byte-identical', () => {
     expect(source).toContain("'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'");
     expect(source).toContain("'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'");
-  });
-
-  it('gives the floating cue a direction-neutral label', () => {
-    expect(source).toContain('label="Find your drills"');
-    expect(source).not.toContain('label="Scroll down"');
   });
 });
