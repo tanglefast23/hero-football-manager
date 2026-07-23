@@ -631,14 +631,14 @@ evidence belongs to the multihero measurement below.
 | **B. Powers fire reliably** | **Pass with accepted near miss** | Formal cadence passes. Portal reaches 83% auto / 79% tapped; Decoy 98% / 98%; most defensive powers reach roughly 68–93%. Shadow remains lower at about 54% but clears the formal useful-power floor. Heroes receive roughly 2–3 opportunities per match across positions. |
 | **C. Manual play** | **Partial — accepted compromise** | Manual activation works, Decoy is fully usable by hand, and the fixed two-second armed window starts when pressed. Manual play is clearly better for several powers, but not every power. No final 1,000-seed comparison establishes that tapping or upgrading harms the team. |
 | **D. Opening run** | **Partial — accepted near miss** | Losses are 91%, 57%, 57.7%, 39.3%, and 26.7%. Match 1 is one point harder than the 80–90% range and match 3 is flat, but matches 4–5 produce the intended visible bend toward the player. |
-| **E. League structure** | **Fail — owner decision required** | User XI is 41.1 below D5's 42–50 field, and the base divisions form real steps through roughly 50–60 / 60–70 / 70–80 / 80–90. The approved 46/47 D4 minnows pass structurally but are not enough: a 30-career full-season direction check produced 6.7% prepared survival, average position 9.5, and median position 10. Recruitment completed in only 53.3% of careers; all 30 eventually stopped with no affordable upgrade. The invalid preparation result is already decisive enough that a 300-career rerun would waste time. |
+| **E. League structure** | **Partial — fund works; survival remains hard** | User XI is 41.1 below D5's 42–50 field, and the base divisions form real steps through roughly 50–60 / 60–70 / 70–80 / 80–90. The approved 46/47 D4 minnows and first-promotion $15,000 recruitment fund are implemented. In the 30-career full-season rerun, recruitment completion rose from 53.3% to 96.7%, prepared XI strength rose from 45.34 to 47.85, and survival rose from 6.7% to 26.7% versus 10% for the unprepared control. Preparation added 2.57 points and 14.27 goal difference, but the club was still relegated in 73.3% of careers. |
 | **F. Cup** | **Pass** | The Cup begins around week 10, uses division seeding, and the play-in test guarantees opponents are no more than one division apart. |
 | **G. Awakening** | **Pass** | Role pools prevent unusable defender/striker assignments: Fire Torch is excluded from DEF/GK, while keepers have three functional choices in Elastic Keeper, Giant GK, and Gust. A goalkeeper-awakened Gust is covered through its self-redirect and teammate punt. Division 5 contains no rival heroes. |
 | **H. Training** | **Pass** | Training now changes results: trained/control losses are 57.7%/65.7% at match 3, 39.3%/49% at match 4, and 26.7%/37% at match 5. Capped players are skipped with named warnings. Seven single-stat drill families progress through +3/+5/+8 tiers, and the roster retains ample headroom. |
 | **I. Money and TP** | **Pass** | Training Pitches provide 10 TP per level every week, eliminating the pre-season drought. No useful purchase is blocked by TP while otherwise affordable. Cash becomes the real limiter: all 300 measured careers encountered cash blocks, averaging about 18 blocked training weeks with the first around week 20. |
 | **J. Heroes on the pitch** | **Partial — positive stacking, retained-value miss** | D5 rival heroes are gone, teammate powers advance independently, and the HUD supports one to four simultaneous tiles. At 1,000 seeds, Speed retained 100% of its solo value, Decoy 51%, Future Sight 51%, and Giant GK 138%. Every added hero remained positive, but heroes two and three did not retain close to full solo value. Rally Cry added +0.1 beside Speed with no proven harmful effect. |
 | **K. Match feel** | **Pass under the approved replacement** | Ordinary failed passes can create a loose-ball contest. Gust uses the later approved behavior: redirect to the goalkeeper, followed by a guaranteed teammate punt whose destination improves with activation grade. |
-| **L. Engineering gates** | **Pass** | m1.23 versioning, parity/runtime baselines, typecheck, web export, snapshots, opt-in probe separation, and Gravity's required 1,000-seed rerun pass. The final automated run after the role-safe Awakening correction is green: 173/173 suites, 1,288/1,288 tests, and 3/3 snapshots. |
+| **L. Engineering gates** | **Pass** | m1.23 versioning, parity/runtime baselines, typecheck, web export, snapshots, opt-in probe separation, and Gravity's required 1,000-seed rerun pass. The final committed balance scope is green: 173/173 suites, 1,289/1,289 tests, and 3/3 snapshots. The approved fund deliberately raises the passive-career cash ceiling by its exact $15,000 value, while the debt and weekly-income rails remain unchanged. |
 
 ### Accepted compromises
 
@@ -658,11 +658,12 @@ These are known differences from the original ideal, not unresolved bugs:
 
 ### Still unresolved
 
-- **Promotion survival:** the 46/47 minnows alone fail. The smallest next step
-  is an owner-approved, player-visible one-time D5-to-D4 recruitment fund of
-  15,000. That is approximately one ordinary D4 transfer fee and directly
-  addresses the measured affordability failure without a hidden match
-  multiplier. It has not been implemented because it is a new economy rule.
+- **Promotion survival:** the approved one-time $15,000 recruitment fund is
+  implemented, called out on the first D4 promotion screen, and fixes the
+  affordability failure. Prepared survival improves materially to 26.7%, but
+  remains below the probe's more-likely-than-not target. Further improvement
+  would require an owner decision to accept a harsh first D4 season or soften
+  the two approved 46/47 relegation-pack clubs beyond their current range.
 - **Multihero retained value:** every addition is positive, but Decoy Double and
   Future Sight retain only 51% of their solo value in the representative stack.
   Raising that result further requires an owner-approved stacking mechanic, not
