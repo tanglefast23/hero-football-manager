@@ -15,10 +15,15 @@ Kairosoft-style soccer club management sim with superpowered players. iOS-first 
 - Balance changes must keep the CI balance-harness assertions passing (see `docs/09-tech-stack.md`).
 - Any replay-affecting sim change (behavior, tuning, or RNG consumption) must bump `ENGINE_VERSION` in `src/sim/match.ts`. The golden-replay snapshot update is the forcing reminder — never update that snapshot without a version decision.
 
+## Artwork discipline
+
+- Unless the user explicitly directs otherwise, every new or modified piece of artwork—including sprites, visual effects, icons, world objects, animation frames, and art-bearing UI—must follow the canonical design rules in `docs/11-art-style.md` and the colour/usage rules in `docs/08-ui-ux.md`.
+- This rule applies prospectively to artwork being created or changed. It does not require retroactive restyling of otherwise untouched artwork.
+
 ## Key design facts (don't re-litigate casually)
 
-- Matches auto-play, 3–4 real minutes watched; heroes build Heat and semi-randomly enter "the Zone" (~7s fading window); user taps during the zone to fire at 100%, a missed manual window decays (no auto-fire); fire-when-ready heroes auto-fire in-context at 85%. One power active per team at a time; teammates' zones freeze while one runs. Taps are recorded inputs that genuinely change outcomes (deterministic = same seed + same inputs, NOT predetermined). Quick Result runs the same engine with heroes on auto behavior.
-- Powers: 20 designed / at least 12 ship at launch (chosen at M4 by playtest), Hero License field caps (2→4), GK Resolve prevents one-shot goals, wind-ups are interruptible, cut-ins skippable after first view. Timing-sensitivity principle: effects are visible possession/geometry spikes, never stat smears.
+- Matches auto-play, 3–4 real minutes watched; heroes build Heat, bank it until an authored opportunity, then enter "the Zone" (~7s fading window); user taps during the zone to fire at 100%, a missed manual window decays (no auto-fire); fire-when-ready heroes auto-fire in-context at 85%. Teammate powers advance independently and may overlap; the match HUD presents one to four simultaneous power tiles as the Hero License cap grows. Taps are recorded inputs that genuinely change outcomes (deterministic = same seed + same inputs, NOT predetermined). Quick Result runs the same engine with heroes on auto behavior.
+- Powers: 20 designed / at least 12 ship at launch (chosen at M4 by playtest), Hero License field caps (2→4), GK Resolve prevents one-shot goals, and wind-ups are interruptible. Activations use a compact player/power callout beside the bottom-left name card and never pause or cover the pitch. Timing-sensitivity principle: effects are visible possession/geometry spikes, never stat smears.
 - Economy: Money + Training Points — exactly one job each; no new currencies.
 - Salaries weekly; awakened players keep old wage until renewal, then ×3–5 hero rates.
 - Art: B+ "heroic chibi" pixel sprites + comic FX + broadcast dressing; paper-doll customization layers.

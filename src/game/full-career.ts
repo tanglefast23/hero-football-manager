@@ -261,11 +261,12 @@ function generatedActiveDivision(
   const players: CareerPlayer[] = [];
   const lineups: ClubLineupState[] = [];
   for (const club of clubs) {
-    const clubPlayers = club.squad.map((player, index) => opponentCareerPlayer(
-      player,
-      division,
-      index,
-    ));
+    let heroEligibleIndex = 0;
+    const clubPlayers = club.squad.map(player => {
+      const eligibleIndex = player.role === 'MID' || player.role === 'FWD'
+        ? heroEligibleIndex++ : -1;
+      return opponentCareerPlayer(player, division, eligibleIndex);
+    });
     generatedClubs.push({
       id: club.id,
       name: club.name,
@@ -287,11 +288,10 @@ function generatedActiveDivision(
 function opponentCareerPlayer(
   player: PyramidPlayer,
   division: DivisionLevel,
-  squadIndex: number,
+  eligibleIndex: number,
 ): CareerPlayer {
   const heroCount = generatedClubHeroCount(player.clubId, division);
-  const heroEligible = player.role === 'MID' || player.role === 'FWD';
-  const eligibleIndex = heroEligible ? Math.max(0, squadIndex - 7) : -1;
+  const heroEligible = eligibleIndex >= 0;
   const power = heroEligible && eligibleIndex < heroCount
     ? generatedClubPower(player.clubId, eligibleIndex, player.role)
     : undefined;

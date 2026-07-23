@@ -12,10 +12,11 @@ const ALLOWED: Record<string, string[]> = {
   'teams.ts': ['types'],
   'movement-table.ts': ['formation-tables.json', 'geometry'],
   'events.ts': ['types'],
+  'entities.ts': ['types'],
   'substitutions.ts': ['events', 'types'],
   'auto-coaching.ts': ['geometry', 'events', 'substitutions', 'tactics', 'types'],
-  'powers.ts': ['types', 'geometry', 'events'],
-  'engine.ts': ['movement-table', 'geometry', 'events', 'types', 'contest', 'powers', 'tactics'],
+  'powers.ts': ['types', 'geometry', 'events', 'entities'],
+  'engine.ts': ['movement-table', 'geometry', 'events', 'types', 'contest', 'powers', 'tactics', 'entities'],
   'match.ts': ['rng', 'geometry', 'events', 'engine', 'types', 'powers', 'auto-coaching', 'substitutions', 'tactics'],
   'runtime-golden.ts': ['match', 'teams'],
 };

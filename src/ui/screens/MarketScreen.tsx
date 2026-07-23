@@ -18,7 +18,11 @@ import type {
   MarketViewModel,
 } from '../market-models';
 import { TutorialTapCue } from '../TutorialTapCue';
-import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
+import {
+  TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+  TUTORIAL_TAP_CUE_RESERVED_SPACE,
+  TUTORIAL_TAP_CUE_WIDTH,
+} from '../tutorial-cue-position';
 import { firstGuidedCoachCandidateId } from '../concierge-targets';
 
 export interface MarketScreenProps {
@@ -400,12 +404,21 @@ function ScoutingDesk({
               className={guideFocus === 'scout-report' && index === 0
                 ? 'relative border-2 border-b-4 border-blue-dark bg-blue-light p-3'
                 : 'relative border-2 border-b-4 border-ink bg-white p-3'}
-              style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.78 : 1,
+                ...(guideFocus === 'scout-report' && index === 0
+                  ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
+                  : {}),
+              })}
             >
               {guideFocus === 'scout-report' && index === 0 ? (
                 <TutorialTapCue
                   detail="Open the report"
-                  style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+                  style={{
+                    left: '50%',
+                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                  }}
                 />
               ) : null}
               <View className="flex-row items-start justify-between gap-3">
@@ -854,11 +867,18 @@ export function NegotiationPanel({
             </View>
           </View>
 
-          <View className={guided ? 'relative mt-4 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-4'}>
+          <View
+            className={guided ? 'relative mt-4 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-4'}
+            style={guided ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
+          >
             {guided ? (
               <TutorialTapCue
                 detail="Make the offer"
-                style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+                style={{
+                  left: '50%',
+                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                  top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                }}
               />
             ) : null}
             <ActionButton
@@ -898,11 +918,19 @@ function GuidedAction({
   children: ReactNode;
 }) {
   return (
-    <View ref={targetRef} className={enabled ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
+    <View
+      ref={targetRef}
+      className={enabled ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
+      style={enabled ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
+    >
       {enabled ? (
         <TutorialTapCue
           detail={detail}
-          style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+          style={{
+            left: '50%',
+            marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+            top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+          }}
         />
       ) : null}
       {children}

@@ -2,6 +2,7 @@ import { emit } from './events';
 import type { MatchState, PlayerDef } from './types';
 
 export const MAX_SUBSTITUTIONS = 3;
+export type BeforeSubstitution = (state: MatchState, playerIndex: number, outgoingPlayerId: string) => void;
 
 function copyPlayerDef(player: PlayerDef): PlayerDef {
   return { ...player, attrs: { ...player.attrs } };
@@ -13,6 +14,7 @@ export function performSubstitution(
   team: 0 | 1,
   playerIndex: number,
   replacementId: string,
+  beforeSubstitution?: BeforeSubstitution,
 ): boolean {
   const first = team * 11;
   if (playerIndex < first || playerIndex >= first + 11) return false;
@@ -26,6 +28,7 @@ export function performSubstitution(
     || outgoing.outReason === 'redcard'
     || (outgoing.def.role === 'GK') !== (replacement.role === 'GK')) return false;
 
+  beforeSubstitution?.(state, playerIndex, outgoing.def.id);
   state.bench[team].splice(benchIndex, 1);
   const outPlayerId = outgoing.def.id;
   state.players[playerIndex] = {
@@ -34,6 +37,7 @@ export function performSubstitution(
     pos: { ...outgoing.pos },
     condition: 100,
     gauge: 0,
+    zonesOpened: 0,
     powerState: { kind: 'idle' },
     // A substitute inherits the team's live manual/automatic power policy.
     firePolicy: state.players[first].firePolicy,

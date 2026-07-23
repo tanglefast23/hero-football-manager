@@ -1,10 +1,12 @@
 import type { Attrs } from '../../sim/types';
 import {
   advanceNationalCup,
+  applyDivisionFourRelegationPack,
   applyLowMoraleToStat,
   boostLegacyYouthAttributes,
   createLegendLegacy,
   createNationalCup,
+  DIVISION_FOUR_RELEGATION_PACK_STRENGTHS,
   DIVISION_STRENGTH_BANDS,
   generateLeaguePyramid,
   divisionTierLabel,
@@ -112,6 +114,44 @@ describe('five-division pyramid generation', () => {
       expect(Math.min(...strengths)).toBe(minimum);
       expect(Math.max(...strengths)).toBe(maximum);
       expect(strengths.every(strength => strength >= minimum && strength <= maximum)).toBe(true);
+    }
+  });
+
+  it('deterministically installs two D4 relegation clubs without weakening its middle, top, or other divisions', () => {
+    const pyramid = generateLeaguePyramid(20260723);
+    const divisionFour = pyramid.divisions.find(division => division.level === 4)!;
+    const userClub = divisionFour.clubs.slice()
+      .sort((left, right) => right.squadStrength - left.squadStrength || left.id.localeCompare(right.id))[0];
+    const expectedMinnowIds = divisionFour.clubs
+      .filter(club => club.id !== userClub.id)
+      .slice()
+      .sort((left, right) => left.squadStrength - right.squadStrength || left.id.localeCompare(right.id))
+      .slice(0, 2)
+      .map(club => club.id);
+    const before = JSON.stringify(pyramid);
+
+    const first = applyDivisionFourRelegationPack(pyramid, userClub.id);
+    const second = applyDivisionFourRelegationPack(pyramid, userClub.id);
+    const prepared = first.divisions.find(division => division.level === 4)!;
+    const minnowIds = prepared.clubs
+      .filter(club => DIVISION_FOUR_RELEGATION_PACK_STRENGTHS.some(
+        strength => strength === club.squadStrength,
+      ))
+      .sort((left, right) => left.squadStrength - right.squadStrength)
+      .map(club => club.id);
+
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second));
+    expect(JSON.stringify(pyramid)).toBe(before);
+    expect(minnowIds).toEqual(expectedMinnowIds);
+    expect(prepared.clubs.filter(club => expectedMinnowIds.includes(club.id))
+      .map(club => club.squadStrength).sort((left, right) => left - right))
+      .toEqual(DIVISION_FOUR_RELEGATION_PACK_STRENGTHS);
+    expect(Math.max(...prepared.clubs.map(club => club.squadStrength))).toBe(60);
+    for (const division of first.divisions.filter(candidate => candidate.level !== 4)) {
+      expect(division).toEqual(pyramid.divisions.find(candidate => candidate.level === division.level));
+    }
+    for (const club of prepared.clubs.filter(candidate => !expectedMinnowIds.includes(candidate.id))) {
+      expect(club).toEqual(divisionFour.clubs.find(candidate => candidate.id === club.id));
     }
   });
 });

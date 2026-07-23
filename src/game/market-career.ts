@@ -22,8 +22,16 @@ import {
   type TransferQuote,
 } from './market';
 import type { CareerPlayer, GameState, PlayerPersonality } from './types';
+import { developmentPotentialCeiling, potentialTierForDivision } from './archetype-caps';
 import { recordCashTransaction } from './cash-transactions';
 import { isFacilityOperational } from './facilities';
+import {
+  clubSquadStrength,
+  currentUserDivision,
+  synchronizeM2ActiveDivision,
+} from './m2-career';
+import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
+import type { DivisionLevel, PyramidClub, PyramidPlayer } from './pyramid';
 import { assertUserCareerRosterSpace } from './youth-intake';
 import { isStoryScoutingUnlocked } from './story-progression';
 import {
@@ -94,6 +102,12 @@ export interface CareerMarketTransaction {
   readonly market: CareerMarketState;
 }
 
+export interface CareerTransferTarget {
+  readonly player: CareerPlayer;
+  readonly sellingClubDivision: number;
+  readonly active: boolean;
+}
+
 export function applyCareerNegotiationConsequence(
   state: GameState,
   market: CareerMarketState,
@@ -104,14 +118,17 @@ export function applyCareerNegotiationConsequence(
   if (talks === undefined || consequence === undefined || talks.consequenceApplied === true) {
     return { state, market };
   }
-  const player = state.players.find(candidate => candidate.id === talks.playerId);
-  if (player === undefined) throw new Error(`unknown negotiation player ${talks.playerId}`);
-  const nextState: GameState = {
-    ...state,
-    players: state.players.map(candidate => candidate.id === player.id
-      ? { ...candidate, morale: Math.max(0, Math.min(100, candidate.morale + consequence.moraleDelta)) }
-      : candidate),
-  };
+  const target = careerTransferTarget(state, talks.playerId);
+  if (target === undefined) throw new Error(`unknown negotiation player ${talks.playerId}`);
+  const nextMorale = Math.max(0, Math.min(100, target.player.morale + consequence.moraleDelta));
+  const nextState = target.active
+    ? {
+        ...state,
+        players: state.players.map(candidate => candidate.id === target.player.id
+          ? { ...candidate, morale: nextMorale }
+          : candidate),
+      }
+    : updatePyramidPlayerMorale(state, target.player.id, nextMorale);
   const nextTalks = { ...talks, consequenceApplied: true };
   return {
     state: nextState,
@@ -238,15 +255,16 @@ export function beginCareerTransferTalks(
   if (!market.scoutReports.some(report => report.playerId === playerId)) {
     throw new Error('a player must be scouted before transfer talks');
   }
-  const player = state.players.find(candidate => candidate.id === playerId);
-  if (player === undefined || player.clubId === state.userClubId) {
+  const target = careerTransferTarget(state, playerId, division);
+  if (target === undefined) {
     throw new Error(`unknown transfer target ${playerId}`);
   }
+  const player = target.player;
   const quote = buyingTransferQuote(valuationPlayer(player), {
     careerSeed: state.careerSeed,
     season: state.season,
     week: state.week,
-    sellingClubDivision: division,
+    sellingClubDivision: target.sellingClubDivision,
   });
   const weeklyAsk = Math.max(1, Math.round(player.weeklyWage * (player.power ? 3.5 : 1.2)));
   return {
@@ -290,16 +308,17 @@ export function completeCareerTransfer(
   if (talks?.negotiation.status !== 'ACCEPTED' || talks.negotiation.acceptedOffer === undefined) {
     throw new Error('a transfer requires an accepted player contract');
   }
-  const player = state.players.find(candidate => candidate.id === talks.playerId);
-  if (player === undefined || player.clubId === state.userClubId) {
+  const target = careerTransferTarget(state, talks.playerId);
+  if (target === undefined) {
     throw new Error(`unknown transfer target ${talks.playerId}`);
   }
+  const player = target.player;
   assertUserCareerRosterSpace(state);
   const buyer = userClub(state);
   if (buyer.cash < talks.transferQuote.fee) throw new Error('the transfer fee is not affordable');
   const offer = talks.negotiation.acceptedOffer;
   const sellerClubId = player.clubId;
-  const lineups = replaceTransferredStarter(state, player);
+  const lineups = target.active ? replaceTransferredStarter(state, player) : state.lineups;
   const transferred: CareerPlayer = {
     ...player,
     clubId: state.userClubId,
@@ -329,10 +348,13 @@ export function completeCareerTransfer(
         }
         return club;
       }),
-      players: state.players.map(candidate => candidate.id === player.id ? transferred : candidate),
+      players: target.active
+        ? state.players.map(candidate => candidate.id === player.id ? transferred : candidate)
+        : [...state.players, transferred],
       lineups,
     };
-  const recordedState = recordCashTransaction(transferredState, {
+  const persistedState = persistCareerTransferInPyramid(transferredState, player);
+  const recordedState = recordCashTransaction(persistedState, {
       kind: 'transfer-buy',
       label: `Signed ${player.name}`,
       amount: -talks.transferQuote.fee,
@@ -739,9 +761,9 @@ export function refreshCareerMarketForNewSeason(
     employedPortraitIds,
     DEFAULT_COACH_CONTENT_UNLOCK_IDS.filter(id => !unlockedContent.has(id)),
   );
-  const currentTransferTargetIds = new Set(state.players
-    .filter(player => player.clubId !== state.userClubId)
-    .map(player => player.id));
+  const currentTransferTargetIds = new Set(
+    allCareerTransferTargets(state).map(target => target.player.id),
+  );
   const scoutReports = previous.scoutReports.filter(report => (
     currentTransferTargetIds.has(report.playerId)
   ));
@@ -789,9 +811,7 @@ export function careerCoachWeeklyWage(market: CareerMarketState): number {
 }
 
 function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
-  return state.players
-    .filter(player => player.clubId !== state.userClubId)
-    .map(player => ({
+  return allCareerTransferTargets(state).map(({ player }) => ({
       id: player.id,
       region: scoutRegion(player.id),
       role: player.role,
@@ -804,6 +824,200 @@ function scoutableCareerPlayers(state: GameState): ScoutablePlayer[] {
         : { power: player.power, powerTier: player.powerTier ?? 1 }),
       contractSeasonsRemaining: player.contractSeasonsRemaining,
     }));
+}
+
+/** Resolves a scouted target from either the active division or the persistent pyramid. */
+export function careerTransferTarget(
+  state: GameState,
+  playerId: string,
+  fallbackDivision = 5,
+): CareerTransferTarget | undefined {
+  const active = state.players.find(candidate => (
+    candidate.id === playerId && candidate.clubId !== state.userClubId
+  ));
+  if (active !== undefined) {
+    return {
+      player: active,
+      sellingClubDivision: pyramidDivisionForClub(state, active.clubId) ?? fallbackDivision,
+      active: true,
+    };
+  }
+  if (state.m2 === undefined) return undefined;
+  for (const division of state.m2.pyramid.divisions) {
+    for (const club of division.clubs) {
+      if (club.id === state.userClubId) continue;
+      const player = club.squad.find(candidate => candidate.id === playerId);
+      if (player !== undefined) {
+        return {
+          player: pyramidCareerPlayer(club, player, division.level),
+          sellingClubDivision: division.level,
+          active: false,
+        };
+      }
+    }
+  }
+  return undefined;
+}
+
+function allCareerTransferTargets(state: GameState): CareerTransferTarget[] {
+  const targets: CareerTransferTarget[] = [];
+  const seen = new Set<string>();
+  for (const player of state.players) {
+    if (player.clubId === state.userClubId) continue;
+    seen.add(player.id);
+    targets.push({
+      player,
+      sellingClubDivision: pyramidDivisionForClub(state, player.clubId) ?? 5,
+      active: true,
+    });
+  }
+  if (state.m2 === undefined) return targets;
+  for (const division of state.m2.pyramid.divisions) {
+    for (const club of division.clubs) {
+      if (club.id === state.userClubId) continue;
+      for (const player of club.squad) {
+        if (seen.has(player.id)) continue;
+        seen.add(player.id);
+        targets.push({
+          player: pyramidCareerPlayer(club, player, division.level),
+          sellingClubDivision: division.level,
+          active: false,
+        });
+      }
+    }
+  }
+  return targets;
+}
+
+function pyramidCareerPlayer(
+  club: PyramidClub,
+  player: PyramidPlayer,
+  division: DivisionLevel,
+): CareerPlayer {
+  let nextEligibleIndex = 0;
+  let eligibleIndex = -1;
+  for (const candidate of club.squad) {
+    if (candidate.role !== 'MID' && candidate.role !== 'FWD') continue;
+    if (candidate.id === player.id) eligibleIndex = nextEligibleIndex;
+    nextEligibleIndex += 1;
+  }
+  const heroCount = generatedClubHeroCount(club.id, division);
+  const power = eligibleIndex >= 0 && eligibleIndex < heroCount
+    ? generatedClubPower(club.id, eligibleIndex, player.role)
+    : undefined;
+  const average = Object.values(player.attrs).reduce((sum, value) => sum + value, 0) / 7;
+  const potential = opponentPotential(player.id, division);
+  return {
+    id: player.id,
+    clubId: player.clubId,
+    name: player.name,
+    role: player.role,
+    ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+    attrs: { ...player.attrs },
+    ...(power === undefined
+      ? {}
+      : { power, powerTier: (division === 1 ? 3 : division <= 3 ? 2 : 1) as 1 | 2 | 3 }),
+    licensed: power !== undefined,
+    weeklyWage: Math.max(150, Math.round(average * (7 - division))),
+    onHeroWage: power !== undefined,
+    contractSeasonsRemaining: 2,
+    morale: player.morale,
+    injuryWeeks: 0,
+    age: player.age,
+    archetype: player.archetype,
+    potential,
+    potentialCeiling: developmentPotentialCeiling({
+      id: player.id,
+      role: player.role,
+      attrs: player.attrs,
+      age: player.age,
+      potential,
+    }),
+    consistency: 70,
+    personality: player.personality,
+    condition: player.condition,
+    seasonsAtClub: player.seasonsAtClub,
+    fame: player.fame,
+    retirementAge: 36,
+    retirementAnnounced: player.retirementAnnouncementSeason !== undefined,
+    consecutiveLowMoraleWeeks: player.consecutiveLowMoraleWeeks,
+    ...(player.retirementAnnouncementSeason === undefined
+      ? {}
+      : { retirementAnnouncementSeason: player.retirementAnnouncementSeason }),
+    signingStatTotal: Object.values(player.attrs).reduce((sum, value) => sum + value, 0),
+  };
+}
+
+function opponentPotential(playerId: string, division: DivisionLevel): 1 | 2 | 3 | 4 | 5 {
+  let value = 2166136261;
+  for (let index = 0; index < playerId.length; index += 1) {
+    value = Math.imul(value ^ playerId.charCodeAt(index), 16777619) >>> 0;
+  }
+  return potentialTierForDivision(division, value % 100);
+}
+
+function pyramidDivisionForClub(state: GameState, clubId: string): DivisionLevel | undefined {
+  return state.m2?.pyramid.divisions.find(division => (
+    division.clubs.some(club => club.id === clubId)
+  ))?.level;
+}
+
+function updatePyramidPlayerMorale(
+  state: GameState,
+  playerId: string,
+  morale: number,
+): GameState {
+  if (state.m2 === undefined) throw new Error(`unknown negotiation player ${playerId}`);
+  return {
+    ...state,
+    m2: {
+      ...state.m2,
+      pyramid: {
+        ...state.m2.pyramid,
+        divisions: state.m2.pyramid.divisions.map(division => ({
+          ...division,
+          clubs: division.clubs.map(club => ({
+            ...club,
+            squad: club.squad.map(player => player.id === playerId ? { ...player, morale } : player),
+          })),
+        })),
+      },
+    },
+  };
+}
+
+function persistCareerTransferInPyramid(
+  state: GameState,
+  sourcePlayer: CareerPlayer,
+): GameState {
+  if (state.m2 === undefined) return state;
+  const sourceIsActive = state.clubs.some(club => club.id === sourcePlayer.clubId);
+  let m2 = state.m2;
+  if (!sourceIsActive) {
+    m2 = {
+      ...m2,
+      pyramid: {
+        ...m2.pyramid,
+        divisions: m2.pyramid.divisions.map(division => ({
+          ...division,
+          clubs: division.clubs.map(club => {
+            if (club.id !== sourcePlayer.clubId) return club;
+            const squad = club.squad.filter(player => player.id !== sourcePlayer.id);
+            if (squad.length === club.squad.length) {
+              throw new Error(`transfer source ${sourcePlayer.id} is missing from the pyramid`);
+            }
+            return { ...club, squad, squadStrength: clubSquadStrength(squad) };
+          }),
+        })),
+      },
+    };
+  }
+  m2 = synchronizeM2ActiveDivision(
+    m2,
+    { clubs: state.clubs, players: state.players },
+    currentUserDivision(m2),
+  );
+  return { ...state, m2 };
 }
 
 function valuationPlayer(player: CareerPlayer) {

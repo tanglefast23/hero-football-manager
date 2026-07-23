@@ -52,6 +52,27 @@ interface WorthEstimate {
   readonly bound: 'exact' | 'at-least' | 'at-most';
 }
 
+interface SeedOutcome {
+  readonly points: number;
+  readonly goalsFor: number;
+  readonly goalsAgainst: number;
+}
+
+interface MatchSample {
+  readonly ppm: number;
+  readonly outcomes: readonly SeedOutcome[];
+}
+
+interface PairedDeltaSummary {
+  readonly mean: number;
+  readonly lower: number;
+  readonly upper: number;
+  readonly meanGoalDifferenceDelta: number;
+  readonly better: number;
+  readonly same: number;
+  readonly worse: number;
+}
+
 interface SummaryRow {
   readonly soloWorth: number;
   readonly cumulativeWorth: number;
@@ -98,6 +119,20 @@ describe('multihero marginal value', () => {
     }
   });
 
+  it('centers worth on the measured no-hero PPM across an isotonic plateau', () => {
+    const ladder: LadderRow[] = [
+      { delta: -2, ppm: 2 },
+      { delta: -1, ppm: 1.5 },
+      { delta: 0, ppm: 1.5 },
+      { delta: 1, ppm: 1 },
+    ];
+
+    expect(estimateEquivalentDelta(ladder, 1.5)).toEqual({ value: -0.5, bound: 'exact' });
+    expect(estimateWorth(ladder, 1.5, 1.5)).toEqual({ value: 0, bound: 'exact' });
+    expect(estimateWorth(ladder, 1.75, 1.5)).toEqual({ value: 1, bound: 'exact' });
+    expect(estimateWorth(ladder, 1.25, 1.5)).toEqual({ value: -1, bound: 'exact' });
+  });
+
   it('reports solo, cumulative, and marginal worth for heroes one through four', () => {
     const { user, opponent } = openingTeams();
     const userStrength = teamStrength(user);
@@ -106,30 +141,39 @@ describe('multihero marginal value', () => {
     // Four healthy heroes target roughly +8 combined. Cover +12 through -4 so
     // stacking upside is measured rather than clipped at the one-hero ladder.
     const ladderDeltas = Array.from({ length: 17 }, (_, index) => evenDelta - 12 + index);
-    const rawLadder = ladderDeltas.map(delta => ({
+    const ladderSamples = ladderDeltas.map(delta => ({
       delta,
-      ppm: pointsPerMatch(user, scale(opponent, delta)),
+      sample: sampleMatches(user, scale(opponent, delta)),
     }));
+    const rawLadder = ladderSamples.map(({ delta, sample }) => ({ delta, ppm: sample.ppm }));
     const fittedLadder = fitNonIncreasingPpm(rawLadder);
+    const baselineSample = ladderSamples.find(row => row.delta === evenDelta)!.sample;
+    const rawBasePpm = baselineSample.ppm;
+    const baselineDelta = estimateEquivalentDelta(fittedLadder, rawBasePpm).value;
     const evenOpponent = scale(opponent, evenDelta);
 
     const soloSamples = REPRESENTATIVE_HEROES.map(hero => {
-      const ppm = pointsPerMatch(withHeroes(user, [hero]), evenOpponent);
-      return { ppm, worth: estimateWorth(fittedLadder, ppm, evenDelta) };
+      const sample = sampleMatches(withHeroes(user, [hero]), evenOpponent);
+      return { sample, ppm: sample.ppm, worth: estimateWorth(fittedLadder, sample.ppm, rawBasePpm) };
     });
     const prefixSamples = REPRESENTATIVE_HEROES.map((_, index) => {
-      const ppm = pointsPerMatch(withHeroes(user, REPRESENTATIVE_HEROES.slice(0, index + 1)), evenOpponent);
-      return { ppm, worth: estimateWorth(fittedLadder, ppm, evenDelta) };
+      const sample = sampleMatches(
+        withHeroes(user, REPRESENTATIVE_HEROES.slice(0, index + 1)),
+        evenOpponent,
+      );
+      return { sample, ppm: sample.ppm, worth: estimateWorth(fittedLadder, sample.ppm, rawBasePpm) };
     });
     // Rally Cry is deliberately unavailable as a club's first or only power.
     // Price it in its valid weakest case: Tier 1 contextual auto beside the
     // first Super Speed hero, then subtract that hero's measured prefix worth.
-    const rallyPairPpm = pointsPerMatch(
+    const rallyPairSample = sampleMatches(
       withHeroes(user, [REPRESENTATIVE_HEROES[0], RALLY_HERO]),
       evenOpponent,
     );
-    const rallyPairWorth = estimateWorth(fittedLadder, rallyPairPpm, evenDelta);
+    const rallyPairPpm = rallyPairSample.ppm;
+    const rallyPairWorth = estimateWorth(fittedLadder, rallyPairPpm, rawBasePpm);
     const rallyMarginalWorth = rallyPairWorth.value - prefixSamples[0].worth.value;
+    const rallyPairedDelta = summarizePairedDelta(rallyPairSample, prefixSamples[0].sample);
     const summaries = summarizeWorths(
       soloSamples.map(sample => sample.worth.value),
       prefixSamples.map(sample => sample.worth.value),
@@ -140,7 +184,8 @@ describe('multihero marginal value', () => {
       `=== MULTI-HERO MARGINAL VALUE (${SEEDS} paired seeds per sample) ===`,
       'mode: Tier 1, contextual auto-fire (the weakest player case)',
       `starting-XI strength: user ${userStrength}, opponent ${opponentStrength}, calibrated even delta ${evenDelta}`,
-      `ladder coverage: ${formatSigned(12)} to ${formatSigned(-4)} points of squad worth`,
+      `centered ladder coverage: ${formatSigned(baselineDelta - Math.min(...ladderDeltas))}`
+      + ` to ${formatSigned(baselineDelta - Math.max(...ladderDeltas))} points of squad worth`,
       '',
       '=== SHARED NO-HERO BASELINE LADDER ===',
       '  delta   raw ppm   fitted ppm',
@@ -153,6 +198,8 @@ describe('multihero marginal value', () => {
       );
     }
     lines.push(
+      `  (calibrated even raw ppm ${rawBasePpm.toFixed(3)}, centered worth`
+      + ` ${formatEstimate(estimateWorth(fittedLadder, rawBasePpm, rawBasePpm))})`,
       '',
       '=== HERO STACK VALUE AT CALIBRATED EVEN STRENGTH ===',
       'order  slot/role  power             solo ppm/worth   prefix ppm/worth   marginal   efficiency',
@@ -180,8 +227,11 @@ describe('multihero marginal value', () => {
       'Bound markers mean the result reached the edge of the calibrated ladder.',
       '',
       '=== RALLY CRY VALID-CONTEXT VALUE ===',
+      'matched policy: Tier 1 contextual auto; pair and companion use identical seeds',
+      `SUPER_SPEED companion control: ${prefixSamples[0].ppm.toFixed(3)} / ${formatEstimate(prefixSamples[0].worth)}`,
       `SUPER_SPEED + RALLY_CRY prefix: ${rallyPairPpm.toFixed(3)} / ${formatEstimate(rallyPairWorth)}`,
       `RALLY_CRY marginal beside first hero: ${formatSigned(rallyMarginalWorth)}`,
+      `RALLY_CRY paired contribution: ${formatPairedDelta(rallyPairedDelta)}`,
     );
 
     // eslint-disable-next-line no-console
@@ -193,17 +243,68 @@ describe('multihero marginal value', () => {
 });
 
 /** Points per match: 3 for a win, 1 for a draw, from the user's perspective. */
-function pointsPerMatch(home: TeamDef, away: TeamDef): number {
-  let points = 0;
+function sampleMatches(home: TeamDef, away: TeamDef): MatchSample {
+  const outcomes: SeedOutcome[] = [];
   for (let index = 0; index < SEEDS; index += 1) {
     const result = runMatch(1_000_003 + index * 104_729, home, away, [], {
       homePolicy: 'FIRE_WHEN_READY',
       awayPolicy: 'FIRE_WHEN_READY',
     });
     const [forGoals, againstGoals] = result.score;
-    points += forGoals > againstGoals ? 3 : forGoals === againstGoals ? 1 : 0;
+    outcomes.push({
+      points: forGoals > againstGoals ? 3 : forGoals === againstGoals ? 1 : 0,
+      goalsFor: forGoals,
+      goalsAgainst: againstGoals,
+    });
   }
-  return points / SEEDS;
+  return {
+    ppm: outcomes.reduce((sum, outcome) => sum + outcome.points, 0) / outcomes.length,
+    outcomes,
+  };
+}
+
+function summarizePairedDelta(
+  treatment: MatchSample,
+  control: MatchSample,
+): PairedDeltaSummary {
+  if (treatment.outcomes.length !== control.outcomes.length || treatment.outcomes.length === 0) {
+    throw new Error('paired samples must have the same non-zero seed count');
+  }
+  const pointDeltas = treatment.outcomes.map((outcome, index) => (
+    outcome.points - control.outcomes[index].points
+  ));
+  const mean = pointDeltas.reduce((sum, value) => sum + value, 0) / pointDeltas.length;
+  const variance = pointDeltas.length === 1 ? 0 : pointDeltas.reduce(
+    (sum, value) => sum + (value - mean) ** 2,
+    0,
+  ) / (pointDeltas.length - 1);
+  const margin = 1.96 * Math.sqrt(variance / pointDeltas.length);
+  const goalDifferenceDeltas = treatment.outcomes.map((outcome, index) => {
+    const paired = control.outcomes[index];
+    return (outcome.goalsFor - outcome.goalsAgainst)
+      - (paired.goalsFor - paired.goalsAgainst);
+  });
+  return {
+    mean,
+    lower: mean - margin,
+    upper: mean + margin,
+    meanGoalDifferenceDelta: goalDifferenceDeltas.reduce((sum, value) => sum + value, 0)
+      / goalDifferenceDeltas.length,
+    better: pointDeltas.filter(value => value > 0).length,
+    same: pointDeltas.filter(value => value === 0).length,
+    worse: pointDeltas.filter(value => value < 0).length,
+  };
+}
+
+function formatPairedDelta(summary: PairedDeltaSummary): string {
+  return `ΔPPM ${formatSignedFixed(summary.mean, 3)}`
+    + ` (95% CI [${formatSignedFixed(summary.lower, 3)}, ${formatSignedFixed(summary.upper, 3)}])`
+    + `; ΔGD ${formatSignedFixed(summary.meanGoalDifferenceDelta, 3)}`
+    + `; better/same/worse ${summary.better}/${summary.same}/${summary.worse}`;
+}
+
+function formatSignedFixed(value: number, digits: number): string {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(digits)}`;
 }
 
 function summarizeWorths(
@@ -263,23 +364,47 @@ function fitNonIncreasingPpm(rows: readonly LadderRow[]): LadderRow[] {
 function estimateWorth(
   ladder: readonly LadderRow[],
   ppm: number,
-  evenDelta: number,
+  baselinePpm: number,
+): WorthEstimate {
+  if (ppm === baselinePpm) return { value: 0, bound: 'exact' };
+  const baseline = estimateEquivalentDelta(ladder, baselinePpm);
+  const sample = estimateEquivalentDelta(ladder, ppm);
+  const bound = sample.bound === 'at-most' ? 'at-least'
+    : sample.bound === 'at-least' ? 'at-most'
+      : baseline.bound;
+  return { value: baseline.value - sample.value, bound };
+}
+
+/** Inverts a fitted non-increasing PPM ladder. Exact plateaus map to the
+ * midpoint of their strength span so the result does not depend on row order. */
+function estimateEquivalentDelta(
+  ladder: readonly LadderRow[],
+  ppm: number,
 ): WorthEstimate {
   if (ladder.length === 0) throw new Error('worth ladder must not be empty');
   const sorted = [...ladder].sort((left, right) => left.delta - right.delta);
-  const maximumWorth = evenDelta - sorted[0].delta;
-  const minimumWorth = evenDelta - sorted[sorted.length - 1].delta;
-  if (ppm > sorted[0].ppm) return { value: maximumWorth, bound: 'at-least' };
-  if (ppm < sorted[sorted.length - 1].ppm) return { value: minimumWorth, bound: 'at-most' };
+  if (ppm > sorted[0].ppm) return { value: sorted[0].delta, bound: 'at-most' };
+  if (ppm < sorted[sorted.length - 1].ppm) {
+    return { value: sorted[sorted.length - 1].delta, bound: 'at-least' };
+  }
+
+  const plateau = sorted.filter(row => row.ppm === ppm);
+  if (plateau.length > 0) {
+    return {
+      value: (plateau[0].delta + plateau[plateau.length - 1].delta) / 2,
+      bound: 'exact',
+    };
+  }
 
   for (let index = 0; index < sorted.length - 1; index += 1) {
-    const stronger = sorted[index];
-    const weaker = sorted[index + 1];
-    if (ppm <= stronger.ppm && ppm >= weaker.ppm) {
-      const span = stronger.ppm - weaker.ppm;
-      const ratio = span === 0 ? 0 : (stronger.ppm - ppm) / span;
-      const delta = stronger.delta + (weaker.delta - stronger.delta) * ratio;
-      return { value: evenDelta - delta, bound: 'exact' };
+    const left = sorted[index];
+    const right = sorted[index + 1];
+    if (ppm < left.ppm && ppm > right.ppm) {
+      const ratio = (left.ppm - ppm) / (left.ppm - right.ppm);
+      return {
+        value: left.delta + (right.delta - left.delta) * ratio,
+        bound: 'exact',
+      };
     }
   }
   throw new Error(`PPM ${ppm} could not be located in the fitted worth ladder`);

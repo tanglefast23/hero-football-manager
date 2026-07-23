@@ -64,7 +64,7 @@
           "navItems": [
             { "tab": "HOME", "detail": "Today's work." },
             { "tab": "SQUAD", "detail": "Team and training." },
-            { "tab": "CLUB", "detail": "Wages and facilities." },
+            { "tab": "CLUB", "detail": "Wages and grounds." },
             { "tab": "MARKET", "detail": "Scout, hire and fire." },
             { "tab": "LEAGUE", "detail": "Leagues and rivals." }
           ]

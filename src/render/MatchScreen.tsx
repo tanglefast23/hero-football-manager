@@ -1,14 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Atlas, Canvas, Circle, Fill, Skia, type SkColor, type SkImage, type SkRect } from '@shopify/react-native-skia';
+import { Atlas, Canvas, Circle, Fill, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
 import { createMatch, queueInput, tick } from '../sim/match';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState, PowerId, TeamDef } from '../sim/types';
+import {
+  BASE_PLAYER_COUNT,
+  decoyCloneAt,
+  HOME_DECOY_INDEX,
+  playerAt,
+  RENDER_PLAYER_COUNT,
+} from '../sim/entities';
 import type { HudSide } from '../persistence';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
+import { keeperReadyFrameForTeam, runFrameForTeam } from './sprites/facing';
+import { webbedSpriteKey } from './sprites/loader';
 import { spriteKeyForMatchPlayer, visualIdForMatchPlayer } from './sprites/slot-key';
 import { snapshotFrame, type PitchFrame } from './interpolate';
 import {
@@ -29,7 +38,16 @@ import {
 import { BALL_AIRBORNE_THRESHOLD_CM, ballVisualOffset } from './ball-flight-visuals';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
 import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
-import { appendNewestFour, powerCutInGroupPolicy, powerCutInPresentation, powerCutInTileWidth, powerOverlayPath } from './power-cut-in';
+import { appendNewestFour, powerCutInAccessibilityLabel, powerCutInGroupPolicy, powerCutInPresentation, powerOverlayPath } from './power-cut-in';
+import { appendBannerNewestFour, type MatchBannerSubject } from './match-banners';
+import { PowerEffectScene, type PowerEffectPoint } from './PowerEffectScene';
+import { powerEffectDescriptor } from './power-effect-descriptors';
+import { livePowerEffectActors, superSpeedAfterimageActors } from './live-power-effect-actors';
+import {
+  advancePowerMatchShowcaseReady,
+  initializePowerMatchShowcase,
+} from './power-match-showcase';
+import { AUTO_SUBSTITUTION_TICKS, automaticSubstitutionChoice } from '../sim/auto-coaching';
 import { Pitch } from './Pitch';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playHapticForEvent } from './haptics';
@@ -147,6 +165,9 @@ type MatchBanner = {
   text: string;
   untilTick: number;
   tone: 'gold' | 'red' | 'blue';
+  /** Set for the three coaching controls so a tap and the sim's confirming
+   * event share one tile instead of stacking two identical banners. */
+  subject?: MatchBannerSubject;
 };
 
 type PowerCutInEntry = {
@@ -155,6 +176,38 @@ type PowerCutInEntry = {
   playerName: string;
   skippable: boolean;
 };
+
+type MatchPowerEffectTarget =
+  | { player: number; point?: never }
+  | { player?: never; point: PowerEffectPoint };
+
+type MatchPowerEffect = {
+  id: string;
+  power: PowerId;
+  /** The power owner remains useful after an effect starts tracking a GK. */
+  player: number;
+  origin: MatchPowerEffectTarget;
+  targets: MatchPowerEffectTarget[];
+  anchor?: PowerEffectPoint;
+  startTick: number;
+  timelineOffsetMs: number;
+  maxElapsedMs?: number;
+  tier: 1 | 2 | 3;
+};
+
+function appendPowerEffect(
+  effects: readonly MatchPowerEffect[],
+  effect: MatchPowerEffect,
+): MatchPowerEffect[] {
+  return [...effects, effect].slice(-12);
+}
+
+export type PowerCutInQaEntry = PowerCutInEntry;
+
+export interface PowerMatchQaConfig {
+  readonly power: PowerId;
+  readonly readyTicks: number;
+}
 
 function scoreCode(team: TeamDef): string {
   const words = team.name.trim().split(/\s+/);
@@ -179,6 +232,8 @@ export function MatchScreen({
   highContrast = false,
   colorSafeKits = true,
   pausedExternally = false,
+  powerCutInQaEntries,
+  powerMatchQa,
   onOpenSettings,
   onDone,
 }: {
@@ -195,6 +250,10 @@ export function MatchScreen({
   highContrast?: boolean;
   colorSafeKits?: boolean;
   pausedExternally?: boolean;
+  /** Dev-only held fixture for visual QA. Ignored by production bundles. */
+  powerCutInQaEntries?: readonly PowerCutInQaEntry[];
+  /** Dev-only live match scenario. It still fires through the real engine. */
+  powerMatchQa?: PowerMatchQaConfig;
   onOpenSettings: () => void;
   onDone: (state: MatchState) => void;
 }) {
@@ -230,6 +289,13 @@ export function MatchScreen({
       away,
       matchPoliciesForControlledTeam(controlledTeam, formationPresets[0]),
     );
+    if (powerMatchQa !== undefined) {
+      initializePowerMatchShowcase(
+        stateRef.current,
+        powerMatchQa.power,
+        powerMatchQa.readyTicks,
+      );
+    }
   }
   const match = stateRef.current;
 
@@ -257,6 +323,10 @@ export function MatchScreen({
   const actionRef = useRef<Record<number, PlayerActionAnimation>>({});
   // Super Strength impact burst (render-only), set when a charge lands a KO.
   const impactRef = useRef<{ x: number; y: number; tick: number } | null>(null);
+  // Production power art is event-driven but renderer-only. Entries remember
+  // just stable player indices/placed points; simulation state remains the
+  // sole authority for whether a shield, root, clone, or hunt is still live.
+  const powerEffectsRef = useRef<MatchPowerEffect[]>([]);
   // Whether the looping fire crackle is currently playing — reconciled each
   // frame against whether any Fire Torch hero is ablaze (see the RAF loop).
   const fireLoopOnRef = useRef(false);
@@ -271,11 +341,18 @@ export function MatchScreen({
   });
   const [speed, setSpeed] = useState<MatchSpeed>(1);
   const [autoPowers, setAutoPowers] = useState(false);
+  /** Opt-in bench cover: a manager who only wants to watch should not be
+   * punished with eleven exhausted players and three unused substitutions. */
+  const [autoSubs, setAutoSubs] = useState(false);
+  const autoSubsRef = useRef(false);
   const [paused, setPaused] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
   const [selectedOutgoing, setSelectedOutgoing] = useState<number | null>(null);
   const [selectedIncoming, setSelectedIncoming] = useState<string | null>(null);
-  const [powerCutIns, setPowerCutIns] = useState<PowerCutInEntry[]>([]);
+  const powerCutInQaActive = __DEV__ && powerCutInQaEntries !== undefined;
+  const [powerCutIns, setPowerCutIns] = useState<PowerCutInEntry[]>(() => (
+    powerCutInQaActive ? [...powerCutInQaEntries] : []
+  ));
   const powerCutInPolicy = powerCutInGroupPolicy(powerCutIns);
   const speedRef = useRef<MatchSpeed>(1);
   const pausedRef = useRef(false);
@@ -358,16 +435,14 @@ export function MatchScreen({
   }, [pausedExternally]);
 
   useEffect(() => {
-    if (!powerCutInPolicy.shouldPause) return undefined;
-    automaticPauseReasonsRef.current.add('cut-in');
-    syncPauseReasons();
+    // A paused match is a still inspection frame; keep its activation label
+    // visible until play resumes instead of expiring against wall-clock time.
+    if (powerCutIns.length === 0 || powerCutInQaActive || paused) return undefined;
     const timer = setTimeout(() => {
-      automaticPauseReasonsRef.current.delete('cut-in');
-      syncPauseReasons();
       setPowerCutIns([]);
     }, powerCutInPolicy.durationMs);
     return () => clearTimeout(timer);
-  }, [powerCutIns.map(entry => entry.id).join('|')]);
+  }, [paused, powerCutInQaActive, powerCutIns.map(entry => entry.id).join('|')]);
 
   // Audio lifecycle — own effect, separate from the RAF loop below: starts
   // the match theme on mount, tears everything down on unmount. No pause
@@ -428,11 +503,13 @@ export function MatchScreen({
       while (acc >= TICK_MS && s.phase !== 'fulltime') {
         const before = nextRef.current!;
         prevRef.current = before;
-        tick(s);
+        const heldForPowerReview = powerMatchQa !== undefined
+          && advancePowerMatchShowcaseReady(s, powerMatchQa.power);
+        if (!heldForPowerReview) tick(s);
         advanced = true;
         nextRef.current = snapshotFrame(s, before);
 
-        for (let i = 0; i < 22; i++) {
+        for (let i = 0; i < RENDER_PLAYER_COUNT; i++) {
           if (dist2(prevRef.current!.players[i], nextRef.current.players[i]) > SNAP_DIST2) {
             // A restart teleport is not locomotion. Keep the accumulated
             // stride distance unchanged so a kickoff cannot arbitrarily flip
@@ -462,20 +539,48 @@ export function MatchScreen({
       // batch, so remembering the caster's spot here lets the ignite knockdown
       // fling the victim *away* from Flint.
       let torchCasterPos: { x: number; y: number } | null = null;
+      const recordPowerEffect = (
+        power: PowerId,
+        player: number,
+        config: {
+          idSuffix?: string;
+          origin?: MatchPowerEffectTarget;
+          targets?: MatchPowerEffectTarget[];
+          anchor?: PowerEffectPoint;
+          timelineOffsetMs?: number;
+          maxElapsedMs?: number;
+          startTick?: number;
+        } = {},
+      ) => {
+        const startTick = config.startTick ?? s.tick;
+        powerEffectsRef.current = appendPowerEffect(powerEffectsRef.current, {
+          id: `${startTick}:${player}:${power}:${config.idSuffix ?? 'fire'}`,
+          power,
+          player,
+          origin: config.origin ?? { player },
+          targets: config.targets ?? [],
+          anchor: config.anchor,
+          startTick,
+          timelineOffsetMs: config.timelineOffsetMs ?? 0,
+          maxElapsedMs: config.maxElapsedMs,
+          tier: s.players[player]?.def.powerTier ?? 1,
+        });
+      };
       for (const e of newEvents) {
         playForEvent(e);
         playHapticForEvent(e, controlledTeam);
         if (e.kind === 'POWER_FIRED' && e.power === 'FIRE_TORCH') {
           torchCasterPos = { ...nextRef.current!.players[e.player] };
         }
-        if (!reduceMotion && e.kind === 'SHOT' && e.by >= 0 && e.by < 22) {
+        const shotActor = e.kind === 'SHOT' ? e.actor ?? e.by : -1;
+        if (!reduceMotion && e.kind === 'SHOT' && playerAt(s, shotActor) !== undefined) {
           // Kick up a dust puff at the striker's feet — the visual "he hit it".
-          const o = s.players[e.by].pos;
+          const o = playerAt(s, shotActor)!.pos;
           puffRef.current = { x: o.x, y: o.y, tick: e.t };
         }
         if (e.kind === 'GOAL' || e.kind === 'MISS' || e.kind === 'HALF_TIME' || e.kind === 'KICKOFF') snap = true;
         if (e.kind === 'GOAL') {
-          const scorerName = e.by >= 0 && e.by < 22 ? s.players[e.by].def.name : 'Unknown';
+          const scorerName = e.by >= 0 && e.by < BASE_PLAYER_COUNT ? s.players[e.by].def.name : 'Unknown';
           bannerRef.current = appendNewestFour(bannerRef.current, {
             id: `goal:${e.t}:${e.by}`,
             text: `⚡ GOAL! ${scorerName}`,
@@ -486,6 +591,78 @@ export function MatchScreen({
         }
         if (e.kind === 'POWER_FIRED') {
           const firingPlayer = s.players[e.player];
+          const state = firingPlayer.powerState;
+          const targets: MatchPowerEffectTarget[] = [];
+          let effectOrigin: MatchPowerEffectTarget = { player: e.player };
+          let anchor = firingPlayer.powerAnchor === undefined
+            ? undefined : { ...firingPlayer.powerAnchor };
+          if (state.kind === 'active') {
+            if (state.targetIdx !== undefined) targets.push({ player: state.targetIdx });
+            if (state.secondaryTargetIdx !== undefined) targets.push({ player: state.secondaryTargetIdx });
+            if (state.runnerIdx !== undefined) targets.push({ player: state.runnerIdx });
+          }
+          if (e.power === 'PORTAL_PASS' && s.ball.kind === 'held') {
+            targets.splice(0, targets.length, { player: s.ball.by });
+          }
+          if (e.power === 'ELASTIC_KEEPER') {
+            // Aim the glove at the real shot's goal-plane destination. The
+            // ball remains the one ball in the main Atlas; the FX must never
+            // invent a second projectile or follow the later distribution.
+            const catchX = s.ball.kind === 'shot'
+              ? s.ball.targetX
+              : prevRef.current!.ball.x;
+            targets.splice(0, targets.length, {
+              point: { x: catchX, y: firingPlayer.pos.y },
+            });
+          }
+          if (e.power === 'BLINK_RUN') {
+            effectOrigin = { point: { ...prevRef.current!.players[e.player] } };
+            targets.splice(0, targets.length, {
+              point: { ...nextRef.current!.players[e.player] },
+            });
+          }
+          if (e.power === 'DECOY_DOUBLE') {
+            const clone = s.decoyClones[firingPlayer.team];
+            if (clone !== null) {
+              const marker = state.kind === 'active' ? state.targetIdx : undefined;
+              targets.splice(
+                0,
+                targets.length,
+                ...(marker === undefined ? [] : [{ player: marker } as MatchPowerEffectTarget]),
+                { point: { ...clone.pos } },
+              );
+              effectOrigin = { point: { ...clone.pos } };
+            }
+          }
+          if (e.power === 'GRAVITY_WELL' && state.kind === 'active'
+            && state.carrierIdx !== undefined) {
+            effectOrigin = { player: state.carrierIdx };
+            anchor = { ...s.players[state.carrierIdx].pos };
+          }
+          if (e.power === 'RALLY_CRY') {
+            const encore = s.players.findIndex((candidate, index) => (
+              index !== e.player
+              && candidate.team === firingPlayer.team
+              && candidate.encoreState === 'BANKED'
+            ));
+            if (encore !== -1) targets.splice(0, targets.length, { player: encore });
+          }
+          const delayedFirstBeat = e.power === 'FUTURE_SIGHT'
+            || e.power === 'GUST'
+            || e.power === 'WEB_TRAP'
+            || e.power === 'ICE_RINK'
+            || e.power === 'SHADOW_MARK';
+          const strengthImpact = e.power === 'SUPER_STRENGTH';
+          const descriptor = powerEffectDescriptor(e.power);
+          if (!strengthImpact) {
+            recordPowerEffect(e.power, e.player, {
+              startTick: e.t,
+              origin: effectOrigin,
+              targets,
+              anchor,
+              maxElapsedMs: delayedFirstBeat ? descriptor.beats[0].endMs : undefined,
+            });
+          }
           if (powerOverlayPath(cutInMode, reduceMotion, firingPlayer.team, controlledTeam) === 'tile') {
             const skippable = seenPowerCutInsRef.current.has(e.power);
             if (!skippable) {
@@ -507,6 +684,79 @@ export function MatchScreen({
             });
           }
         }
+        if (e.kind === 'PASS') {
+          // Future Sight mutates its hero into POWER_OUTLET immediately before
+          // the intercepted PASS event is emitted. That stable commitment is
+          // the exact causal marker for forecast -> intercept -> outlet art.
+          const future = s.players.findIndex((candidate) => (
+            candidate.def.power === 'FUTURE_SIGHT'
+            && candidate.team !== playerAt(s, e.from)?.team
+            && candidate.powerState.kind === 'active'
+            && candidate.powerState.commitment === 'POWER_OUTLET'
+          ));
+          if (future !== -1) {
+            const futureState = s.players[future].powerState;
+            const outlet = futureState.kind === 'active' ? futureState.targetIdx : undefined;
+            recordPowerEffect('FUTURE_SIGHT', future, {
+              startTick: e.t,
+              idSuffix: `intercept:${e.from}:${e.to}`,
+              origin: { point: { ...prevRef.current!.players[future] } },
+              targets: [
+                { player: e.to },
+                { player: e.from },
+                ...(outlet === undefined ? [] : [{ player: outlet } as MatchPowerEffectTarget]),
+              ],
+              timelineOffsetMs: powerEffectDescriptor('FUTURE_SIGHT').beats[1].startMs,
+            });
+          }
+        }
+        if (e.kind === 'GUST_REDIRECT') {
+          recordPowerEffect('GUST', e.player, {
+            startTick: e.t,
+            idSuffix: `redirect:${e.from}:${e.to}`,
+            origin: { player: e.to },
+            targets: [{ player: e.from }],
+            timelineOffsetMs: powerEffectDescriptor('GUST').beats[1].startMs,
+          });
+        }
+        if (e.kind === 'GUST_PUNT') {
+          recordPowerEffect('GUST', e.player, {
+            startTick: e.t,
+            idSuffix: `punt:${e.from}:${e.to}`,
+            origin: { player: e.from },
+            targets: [{ player: e.from }, { player: e.to }],
+            timelineOffsetMs: powerEffectDescriptor('GUST').beats[2].startMs,
+          });
+        }
+        if (e.kind === 'DECOY_POP') {
+          puffRef.current = { x: e.pos.x, y: e.pos.y, tick: e.t };
+        }
+        if (e.kind === 'TACKLE' && e.style === 'power') {
+          const source = playerAt(s, e.by);
+          const power = source?.def.power;
+          // Web and Ice already have state-backed persistent art while the
+          // victim is rooted/sliding. Recording another event copy here drew
+          // two effects over the same player and made both read as clutter.
+          if (power === 'SUPER_STRENGTH' || power === 'SHADOW_MARK') {
+            const descriptor = powerEffectDescriptor(power);
+            const placedAnchor = source?.powerAnchor;
+            const offset = power === 'SUPER_STRENGTH'
+              ? descriptor.beats[2].startMs
+              : power === 'SHADOW_MARK'
+                ? descriptor.beats[2].startMs
+                : descriptor.beats[1].startMs;
+            recordPowerEffect(power, e.by, {
+              startTick: e.t,
+              idSuffix: `resolve:${e.on}`,
+              origin: power === 'SHADOW_MARK' && placedAnchor !== undefined
+                ? { point: { ...placedAnchor } }
+                : { player: e.by },
+              targets: [{ player: e.on }],
+              anchor: placedAnchor === undefined ? undefined : { ...placedAnchor },
+              timelineOffsetMs: offset,
+            });
+          }
+        }
         if (e.kind === 'HALF_TIME') {
           bannerRef.current = appendNewestFour(bannerRef.current, {
             id: `half:${e.t}`, text: 'HALF TIME', untilTick: e.t + FLASH_TICKS, tone: 'blue',
@@ -520,27 +770,30 @@ export function MatchScreen({
           });
         }
         if (e.kind === 'FORMATION_CHANGED' && e.team === controlledTeam) {
-          bannerRef.current = appendNewestFour(bannerRef.current, {
+          bannerRef.current = appendBannerNewestFour(bannerRef.current, {
             id: `formation:${e.t}`,
             text: `${e.formation} · ${FORMATION_LABELS[e.formation].toUpperCase()}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
+            subject: 'formation',
           });
         }
         if (e.kind === 'MENTALITY_CHANGED' && e.team === controlledTeam) {
-          bannerRef.current = appendNewestFour(bannerRef.current, {
+          bannerRef.current = appendBannerNewestFour(bannerRef.current, {
             id: `mentality:${e.t}`,
             text: `PLAYSTYLE · ${e.mentality}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
+            subject: 'mentality',
           });
         }
         if (e.kind === 'ENERGY_USE_CHANGED' && e.team === controlledTeam) {
-          bannerRef.current = appendNewestFour(bannerRef.current, {
+          bannerRef.current = appendBannerNewestFour(bannerRef.current, {
             id: `energy:${e.t}`,
             text: `ENERGY USE · ${ENERGY_USE_LABELS[e.energyUse]}`,
             untilTick: e.t + FLASH_TICKS,
             tone: 'blue',
+            subject: 'energy',
           });
         }
         if (e.kind === 'SUBSTITUTION' && e.team === controlledTeam) {
@@ -570,25 +823,26 @@ export function MatchScreen({
           const magnitude = Math.hypot(dx, dy);
           const direction = magnitude > 0
             ? { x: dx / magnitude, y: dy / magnitude }
-            : { x: 0, y: s.players[e.by].team === 0 ? -1 : 1 };
+            : { x: 0, y: playerAt(s, e.by)?.team === 0 ? -1 : 1 };
           const rotation = direction.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
           const startTick = e.t - 1;
           if (e.style === 'slide') {
             const current = actionRef.current[e.by];
             if (current?.kind === 'slide') {
-              current.untilTick = Math.max(current.untilTick, s.players[e.by].tackleRecoveryUntil);
+              current.untilTick = Math.max(current.untilTick, playerAt(s, e.by)?.tackleRecoveryUntil ?? current.untilTick);
             }
           }
           // Super Strength knocks the target OUT (outUntilTick in the future):
           // hold them flat until they recover and punch up an impact burst. An
           // ordinary tackle only dispossesses — the quick fall-and-recover.
-          if (s.players[e.on].outUntilTick > s.tick) {
+          const tackled = playerAt(s, e.on);
+          if (tackled !== undefined && tackled.outUntilTick > s.tick) {
             actionRef.current[e.on] = {
               kind: 'knockdown',
               startTick,
               anchor: { ...onPos },
               rotation: -rotation,
-              untilTick: s.players[e.on].outUntilTick,
+              untilTick: tackled.outUntilTick,
             };
             impactRef.current = { x: onPos.x, y: onPos.y, tick: e.t };
           } else if (e.won && e.contact) {
@@ -598,6 +852,16 @@ export function MatchScreen({
               anchor: { ...onPos },
               rotation: -rotation,
             };
+          }
+        }
+        if (e.kind === 'IGNITED') {
+          for (let index = powerEffectsRef.current.length - 1; index >= 0; index -= 1) {
+            const effect = powerEffectsRef.current[index];
+            if (effect.power !== 'FIRE_TORCH' || effect.startTick !== e.t) continue;
+            if (!effect.targets.some(target => target.player === e.player)) {
+              effect.targets.push({ player: e.player });
+            }
+            break;
           }
         }
         if (!reduceMotion && e.kind === 'IGNITED') {
@@ -664,9 +928,34 @@ export function MatchScreen({
         trailRef.current = [];
       }
 
+      // Opt-in bench cover for the watched team. This queues the same recorded
+      // SUBSTITUTE input a tap would, at the same checkpoints the AI coach uses,
+      // so the replay stays honest and no engine behaviour changes.
+      if (
+        advanced
+        && autoSubsRef.current
+        && s.phase !== 'fulltime'
+        && AUTO_SUBSTITUTION_TICKS.includes(s.tick)
+      ) {
+        const choice = automaticSubstitutionChoice(s, controlledTeam);
+        if (choice !== null) {
+          queueInput(match, {
+            tick: s.tick + 1,
+            kind: 'SUBSTITUTE',
+            player: choice.playerIndex,
+            replacementId: choice.replacementId,
+          });
+        }
+      }
+
       if (advanced) {
+        powerEffectsRef.current = powerEffectsRef.current.filter((effect) => {
+          const elapsed = (s.tick - effect.startTick) * TICK_MS + effect.timelineOffsetMs;
+          const end = effect.maxElapsedMs ?? powerEffectDescriptor(effect.power).durationMs;
+          return elapsed <= end;
+        });
         // Publish one immutable tick pair. Reanimated interpolates it and
-        // updates all 23 Atlas transforms on the UI thread; React only receives
+        // updates all 25 Atlas transforms on the UI thread; React only receives
         // the discrete state used by HUD, chips, and event overlays.
         publishAtlasFrame(
           prevRef.current!,
@@ -708,29 +997,78 @@ export function MatchScreen({
       cancelAnimationFrame(raf);
       sub.remove();
     };
-  }, [controlledTeam, cutInMode, onDone, publishAtlasFrame, reduceMotion]);
+  }, [controlledTeam, cutInMode, onDone, powerMatchQa, publishAtlasFrame, reduceMotion]);
 
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
   // takes priority, followed by the far-ball GK ready loop, then locomotion.
-  const playerSpriteKeys = useMemo(() => match.players.map((p, i) => {
+  const playerSpriteKeys = useMemo(() => Array.from({ length: RENDER_PLAYER_COUNT }, (_, i) => {
+    const entity = playerAt(match, i);
+    const clone = decoyCloneAt(match, i);
+    const sourceIndex = clone?.sourceIdx ?? (i < BASE_PLAYER_COUNT
+      ? i
+      : i === HOME_DECOY_INDEX ? 9 : 20);
+    const p = entity ?? match.players[sourceIndex];
+    // Clone IDs are intentionally unique replay identities. The visual must
+    // still use the copied forward's stable ID whenever no explicit lookId is
+    // authored, or playerLookId() would derive a different face and request a
+    // sprite that was never included in the match Atlas.
+    const visualPlayerId = clone?.sourcePlayerId ?? p.def.id;
+    const webbed = (p.webbedUntilTick ?? 0) > hud.tick;
+    if (webbed) {
+      // Web Trap roots the whole body. Hold the authored grey standing pose
+      // even if a stale pre-trap slide animation still exists in the UI ref.
+      return webbedSpriteKey(spriteKeyForMatchPlayer(
+        i,
+        visualPlayerId,
+        p.def.role,
+        runFrameForTeam(p.team, 'run0'),
+        p.def.lookId,
+      ));
+    }
     const action = actionRef.current[i];
     const pose = actionPose(action, hud.visualTick);
     if (pose.active && action?.kind === 'slide') {
-      return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, slideTackleSpriteFrameForAction(action, hud.visualTick), p.def.lookId);
+      return spriteKeyForMatchPlayer(
+        i,
+        visualPlayerId,
+        p.def.role,
+        slideTackleSpriteFrameForAction(action, hud.visualTick),
+        p.def.lookId,
+      );
     }
-    if (pose.active) return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, 'run0', p.def.lookId);
+    if (pose.active) {
+      return spriteKeyForMatchPlayer(
+        i,
+        visualPlayerId,
+        p.def.role,
+        runFrameForTeam(p.team, 'run0'),
+        p.def.lookId,
+      );
+    }
     if (p.def.role === 'GK' && isKeeperReady(dist2(frame.players[i], frame.ball))) {
-      return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, keeperReadyFrame(hud.visualTick), p.def.lookId);
+      return spriteKeyForMatchPlayer(
+        i,
+        visualPlayerId,
+        p.def.role,
+        keeperReadyFrameForTeam(p.team, keeperReadyFrame(hud.visualTick)),
+        p.def.lookId,
+      );
     }
-    return spriteKeyForMatchPlayer(i, p.def.id, p.def.role, runFrameForDistance(frame.travel[i], frame.moved[i]), p.def.lookId);
-  }), [frame, hud.visualTick, match]);
+    return spriteKeyForMatchPlayer(
+      i,
+      visualPlayerId,
+      p.def.role,
+      runFrameForTeam(p.team, runFrameForDistance(frame.travel[i], frame.moved[i])),
+      p.def.lookId,
+    );
+  }), [frame, hud.tick, hud.visualTick, match]);
 
-  // All 22 players plus the ball still share one batched Atlas draw call.
+  // The 22 starters, two reserved Decoy slots, and ball share one batched Atlas draw call.
   const sprites: SkRect[] = useMemo(() => {
     const ball = atlas.rectFor('ball');
     return [
-      ...match.players.map((_p, i) => {
-        const r = atlas.rectFor(playerSpriteKeys[i]);
+      ...playerSpriteKeys.map((spriteKey) => {
+        const r = atlas.rectFor(spriteKey);
         return Skia.XYWHRect(r.x, r.y, r.w, r.h);
       }),
       Skia.XYWHRect(ball.x, ball.y, ball.w, ball.h),
@@ -742,6 +1080,22 @@ export function MatchScreen({
   // of being flattened to a solid team-color block.
   const colors: SkColor[] = useMemo(() => {
     const tints = frame.statuses.map((st, i) => {
+      const player = playerAt(match, i);
+      if (player === undefined || !frame.visible[i]) return Skia.Color('rgba(255,255,255,0)');
+      if (player.def.power === 'SHADOW_MARK'
+        && player.powerState.kind === 'active'
+        && player.powerState.commitment === 'SHADOW_HUNT') {
+        return Skia.Color(reduceMotion ? '#6b6675' : 'rgba(255,255,255,0)');
+      }
+      if (player.def.power === 'PHASE_RUN' && player.powerState.kind === 'active') {
+        return Skia.Color(reduceMotion ? '#c9a6ec' : 'rgba(201,166,236,0.48)');
+      }
+      // Webbed players use an authored four-step grey sprite variant above;
+      // keep its palette intact instead of multiplying another tint over it.
+      if ((player.webbedUntilTick ?? 0) > hud.tick) return Skia.Color('#ffffff');
+      if ((player.portalProtectedUntilTick ?? 0) > hud.tick) return Skia.Color('#a3c8f0');
+      if ((player.forcedMovement?.untilTick ?? 0) > hud.tick) return Skia.Color('#a3c8f0');
+      if ((player.actionLockedUntilTick ?? 0) > hud.tick) return Skia.Color('#d94f52');
       if (st === 'ignited') return Skia.Color('#ff6a00'); // flame orange (matches Fire Torch FX)
       if (st === 'out') return Skia.Color('#6b6675'); // bible grey-dark
       if (st === 'windup') {
@@ -752,12 +1106,13 @@ export function MatchScreen({
       // In fallback mode there are no kit pixels to preserve, so tint the
       // white placeholder rects with bible team colors (red / blue) instead.
       return atlas.fallbackMode
-        ? Skia.Color(i < 11 ? (colorSafeKits ? '#edb54a' : '#d94f52') : '#5a8fd6')
-        : Skia.Color('#ffffff');
+        ? Skia.Color(i < 11 || i === HOME_DECOY_INDEX
+          ? (colorSafeKits ? '#edb54a' : '#d94f52') : '#5a8fd6')
+        : Skia.Color(i >= BASE_PLAYER_COUNT ? 'rgba(185,235,255,0.78)' : '#ffffff');
     });
     tints.push(Skia.Color('#ffffff')); // ball — no tint
     return tints;
-  }, [frame, hud.tick, atlas, colorSafeKits, reduceMotion]);
+  }, [frame, hud.tick, atlas, colorSafeKits, match, reduceMotion]);
 
   const minute = Math.min(90, Math.ceil((hud.tick / TOTAL_TICKS) * 90));
   const stoppage =
@@ -782,6 +1137,216 @@ export function MatchScreen({
           color: player.team === controlledTeam ? '#edb54a' : '#d94f52',
         }]
       : []
+  ));
+
+  const screenPoint = (point: PowerEffectPoint): PowerEffectPoint => ({
+    x: point.x * scale,
+    y: point.y * scale,
+  });
+  const playerPoint = (index: number): PowerEffectPoint => screenPoint(frame.players[index]);
+  const resolveEffectTarget = (target: MatchPowerEffectTarget): PowerEffectPoint => (
+    target.point === undefined ? playerPoint(target.player) : screenPoint(target.point)
+  );
+  const drawablePowerEffects: Array<{
+    id: string;
+    power: PowerId;
+    elapsedMs: number;
+    origin: PowerEffectPoint;
+    targets: PowerEffectPoint[];
+    anchor?: PowerEffectPoint;
+    tier: 1 | 2 | 3;
+    direction: -1 | 1;
+    sourcePlayer: number;
+  }> = powerEffectsRef.current.map(effect => ({
+    id: effect.id,
+    power: effect.power,
+    elapsedMs: Math.max(0, (hud.tick - effect.startTick) * TICK_MS + effect.timelineOffsetMs),
+    origin: resolveEffectTarget(effect.origin),
+    targets: effect.targets.map(resolveEffectTarget),
+    anchor: effect.anchor === undefined ? undefined : screenPoint(effect.anchor),
+    tier: effect.tier,
+    direction: match.players[effect.player].team === 0 ? -1 : 1,
+    sourcePlayer: effect.origin.player ?? effect.player,
+  }));
+
+  const addPersistentPowerEffect = (
+    id: string,
+    power: PowerId,
+    player: number,
+    elapsedMs: number,
+    origin: PowerEffectPoint,
+    targets: PowerEffectPoint[],
+    anchor?: PowerEffectPoint,
+    sourcePlayer = player,
+  ) => {
+    drawablePowerEffects.push({
+      id,
+      power,
+      elapsedMs,
+      origin,
+      targets,
+      anchor,
+      tier: match.players[player].def.powerTier ?? 1,
+      direction: match.players[player].team === 0 ? -1 : 1,
+      sourcePlayer,
+    });
+  };
+
+  match.players.forEach((player, index) => {
+    const state = player.powerState;
+    if (player.def.power === 'SUPER_STRENGTH' && state.kind === 'winding'
+      && state.targetIdx !== undefined) {
+      const chargeStartTick = state.untilTick - 5;
+      addPersistentPowerEffect(
+        `strength-charge:${index}`,
+        'SUPER_STRENGTH',
+        index,
+        1000 + Math.max(0, hud.tick - chargeStartTick) * TICK_MS,
+        playerPoint(index),
+        [playerPoint(state.targetIdx)],
+      );
+    }
+
+    if (player.encoreState === 'BANKED') {
+      addPersistentPowerEffect(
+        `encore:${index}`,
+        'RALLY_CRY',
+        index,
+        3300,
+        playerPoint(index),
+        [playerPoint(index)],
+      );
+    }
+
+    if ((player.portalProtectedUntilTick ?? 0) > hud.tick) {
+      const remaining = player.portalProtectedUntilTick! - hud.tick;
+      addPersistentPowerEffect(
+        `portal-shield:${index}`,
+        'PORTAL_PASS',
+        index,
+        2300 + (10 - remaining) * 150,
+        playerPoint(index),
+        [playerPoint(index)],
+      );
+    }
+
+    if ((player.webbedUntilTick ?? 0) > hud.tick) {
+      const remaining = player.webbedUntilTick! - hud.tick;
+      addPersistentPowerEffect(
+        `webbed:${index}`,
+        'WEB_TRAP',
+        index,
+        2300 + (20 - remaining) * TICK_MS,
+        playerPoint(index),
+        [playerPoint(index)],
+        playerPoint(index),
+      );
+    }
+
+    if ((player.forcedMovement?.untilTick ?? 0) > hud.tick) {
+      const remaining = player.forcedMovement!.untilTick - hud.tick;
+      addPersistentPowerEffect(
+        `ice-slide:${index}`,
+        'ICE_RINK',
+        index,
+        950 + (10 - remaining) * 190,
+        playerPoint(index),
+        [playerPoint(index)],
+        playerPoint(index),
+      );
+    }
+
+    if (player.def.power === 'SHADOW_MARK' && state.kind === 'active'
+      && state.commitment === 'SHADOW_HUNT' && state.armedAtTick !== undefined
+      && player.powerAnchor !== undefined) {
+      const burrowStartTick = state.armedAtTick - 20;
+      const elapsedMs = hud.tick < state.armedAtTick
+        ? Math.max(0, hud.tick - burrowStartTick) / 20 * 1250
+        : 1250 + Math.min(1, (hud.tick - state.armedAtTick) / 100) * 1900;
+      const carrier = match.ball.kind === 'held'
+        && playerAt(match, match.ball.by)?.team !== player.team
+        ? playerPoint(match.ball.by)
+        : screenPoint(player.powerAnchor);
+      addPersistentPowerEffect(
+        `shadow-hunt:${index}`,
+        'SHADOW_MARK',
+        index,
+        elapsedMs,
+        screenPoint(player.powerAnchor),
+        [carrier],
+        screenPoint(player.powerAnchor),
+      );
+    }
+
+    const decoyClone = player.def.power === 'DECOY_DOUBLE'
+      ? match.decoyClones[player.team] : null;
+    if (decoyClone !== null && decoyClone.ownerIdx === index) {
+      const cloneIndex = player.team === 0 ? 22 : 23;
+      const marker = state.kind === 'active' && state.targetIdx !== undefined
+        ? playerPoint(state.targetIdx) : screenPoint(decoyClone.pos);
+      addPersistentPowerEffect(
+        `decoy-clone:${index}`,
+        'DECOY_DOUBLE',
+        index,
+        2100,
+        playerPoint(cloneIndex),
+        [marker, screenPoint(decoyClone.pos)],
+        player.powerAnchor === undefined ? undefined : screenPoint(player.powerAnchor),
+        cloneIndex,
+      );
+    }
+
+    if ((player.def.power === 'WEB_TRAP' || player.def.power === 'ICE_RINK')
+      && state.kind === 'active' && player.powerAnchor !== undefined) {
+      addPersistentPowerEffect(
+        `placed:${player.def.power}:${index}`,
+        player.def.power,
+        index,
+        player.def.power === 'WEB_TRAP' ? 820 : 850,
+        playerPoint(index),
+        [screenPoint(player.powerAnchor)],
+        screenPoint(player.powerAnchor),
+      );
+    }
+  });
+
+  const activeSpeedster = match.players.findIndex(player => (
+    player.def.power === 'SUPER_SPEED' && player.powerState.kind === 'active'
+  ));
+  const powerEffectActors = [
+    ...drawablePowerEffects.flatMap(effect => livePowerEffectActors({
+      id: effect.id,
+      power: effect.power,
+      player: effect.sourcePlayer,
+      elapsedMs: effect.elapsedMs,
+      width: pitchWidth,
+      height: pitchH,
+      origin: effect.origin,
+      targets: effect.targets,
+      direction: effect.direction,
+      reduceMotion,
+    })),
+    ...(activeSpeedster === -1 ? [] : superSpeedAfterimageActors(
+      activeSpeedster,
+      trailRef.current.map(screenPoint),
+    )),
+  ];
+  const powerActorSprites: SkRect[] = powerEffectActors.map(actor => {
+    const rect = atlas.rectFor(playerSpriteKeys[actor.player]);
+    return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
+  });
+  const powerActorTransforms: SkRSXform[] = powerEffectActors.map(actor => {
+    const rect = atlas.rectFor(playerSpriteKeys[actor.player]);
+    const actorScale = scale * PLAYER_DRAW_SCALE * actor.scale;
+    return Skia.RSXform(
+      actorScale,
+      0,
+      actor.at.x - rect.w * actorScale / 2,
+      actor.at.y - rect.h * actorScale / 2,
+    );
+  });
+  const powerActorColors: SkColor[] = powerEffectActors.map(actor => (
+    Skia.Color(`rgba(255,255,255,${actor.opacity})`)
   ));
 
   const teamOffset = controlledTeam === 0 ? 0 : 11;
@@ -812,7 +1377,7 @@ export function MatchScreen({
   useEffect(() => {
     if (frame.carrier >= 0) lastCarrierRef.current = frame.carrier;
   }, [frame.carrier]);
-  const carrier = carrierIndex === null ? null : match.players[carrierIndex];
+  const carrier = carrierIndex === null ? null : playerAt(match, carrierIndex) ?? null;
   const selectedOutgoingPlayer = selectedOutgoing === null ? null : match.players[selectedOutgoing];
   const selectedIncomingPlayer = selectedIncoming === null
     ? null
@@ -826,9 +1391,11 @@ export function MatchScreen({
   const teamEnergyBand = energyBand(teamEnergy);
   const swapDisabled = match.phase === 'fulltime' || substitutionsUsed >= 3 || bench.length === 0;
   const coachingDisabled = match.phase === 'fulltime';
-  const swapSecondary = tiredCount > 0
-    ? `${tiredCount} TIRED · ${substitutionsUsed}/3`
-    : `${substitutionsUsed}/3 USED`;
+  const swapSecondary = autoSubs
+    ? `AUTO · ${substitutionsUsed}/3`
+    : tiredCount > 0
+      ? `${tiredCount} TIRED · ${substitutionsUsed}/3`
+      : `${substitutionsUsed}/3 USED`;
 
   const surname = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -1054,6 +1621,32 @@ export function MatchScreen({
           scale={scale}
           playerDrawScale={PLAYER_DRAW_SCALE}
         />
+        {drawablePowerEffects.map(effect => (
+          <PowerEffectScene
+            key={effect.id}
+            power={effect.power}
+            elapsedMs={effect.elapsedMs}
+            width={pitchWidth}
+            height={pitchH}
+            origin={effect.origin}
+            targets={effect.targets}
+            anchor={effect.anchor}
+            tier={effect.tier}
+            direction={effect.direction}
+            reduceMotion={reduceMotion}
+            showPlaceholderActors={false}
+          />
+        ))}
+        {powerEffectActors.length > 0 ? (
+          <Atlas
+            image={atlas.image as SkImage}
+            sprites={powerActorSprites}
+            transforms={powerActorTransforms}
+            colors={powerActorColors}
+            colorBlendMode="modulate"
+            sampling={PIXEL_ART_SAMPLING}
+          />
+        ) : null}
         <WorkletMatchOverlays
           visualPositions={workletVisualPositions}
           statuses={workletStatuses}
@@ -1072,7 +1665,7 @@ export function MatchScreen({
           reduceMotion={reduceMotion}
         />
         </Canvas>
-        {carrier ? (
+        {carrier && powerCutIns.length === 0 ? (
           <View
             pointerEvents="none"
             style={[
@@ -1104,15 +1697,52 @@ export function MatchScreen({
             <Pressable
               key={`hero-tap-${index}`}
               accessibilityRole="button"
-              accessibilityLabel={`Activate ${player.def.name}'s ${player.def.power?.replace(/_/g, ' ').toLowerCase()}`}
-              hitSlop={8}
-              style={[styles.heroTapTarget, { left: position.x * scale - 27, top: position.y * scale - 30 }]}
+              accessibilityLabel={`Activate ${player.def.name}'s ${powerEffectDescriptor(player.def.power!).name}. ${powerEffectDescriptor(player.def.power!).accessibilityLabel}`}
+              hitSlop={16}
+              style={[styles.heroTapTarget, { left: position.x * scale - 54, top: position.y * scale - 60 }]}
               onPress={() => queueInput(match, { tick: match.tick + 1, kind: 'POWER_TAP', player: index })}
             >
               <Text style={styles.heroTapLabel}>TAP</Text>
             </Pressable>
           );
         }) : null}
+        {powerCutIns.length > 0 ? (
+          <Pressable
+            accessibilityRole={powerCutInPolicy.skippable ? 'button' : 'text'}
+            accessibilityLabel={powerCutInAccessibilityLabel(powerCutIns)}
+            disabled={!powerCutInPolicy.skippable}
+            style={[
+              styles.powerActivationStack,
+              hudSide === 'left'
+                ? styles.powerActivationStackLeft
+                : styles.powerActivationStackRight,
+            ]}
+            onPress={() => setPowerCutIns([])}
+          >
+            {powerCutIns.slice(-2).map((entry) => {
+              const presentation = powerCutInPresentation(entry.power);
+              return (
+                <View key={entry.id} style={styles.powerActivationCard}>
+                  <View style={styles.powerActivationHighlight} />
+                  <Text style={[styles.powerActivationGlyph, { color: presentation.color }]}>
+                    {presentation.glyph}
+                  </Text>
+                  <View style={styles.powerActivationCopy}>
+                    <Text numberOfLines={1} style={styles.powerActivationPlayer}>
+                      {entry.playerName}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.powerActivationName, { color: presentation.color }]}
+                    >
+                      {presentation.name}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </Pressable>
+        ) : null}
       </View>
       {hud.banners.length > 0 ? (
         <View pointerEvents="none" style={styles.bannerStack}>
@@ -1129,50 +1759,6 @@ export function MatchScreen({
             </Text>
           ))}
         </View>
-      ) : null}
-      {powerCutIns.length > 0 ? (
-        <Pressable
-          accessibilityRole={powerCutInPolicy.skippable ? 'button' : 'text'}
-          accessibilityLabel={`${powerCutIns.map(entry => `${powerCutInPresentation(entry.power).name}, ${entry.playerName}`).join('. ')}${powerCutInPolicy.skippable ? '. Tap to skip.' : ''}`}
-          disabled={!powerCutInPolicy.skippable}
-          style={styles.powerCutInGrid}
-          onPress={() => {
-            automaticPauseReasonsRef.current.delete('cut-in');
-            syncPauseReasons();
-            setPowerCutIns([]);
-          }}
-        >
-          {powerCutIns.map((entry, index) => {
-            const presentation = powerCutInPresentation(entry.power);
-            return (
-              <View
-                key={entry.id}
-                style={[
-                  styles.powerCutInTile,
-                  styles.powerCutInHome,
-                  powerCutIns.length === 1 ? styles.powerCutInTileSolo : styles.powerCutInTileCompact,
-                  { width: powerCutInTileWidth(powerCutIns.length, index) },
-                ]}
-              >
-                <View style={styles.powerCutInSlash} />
-                <Text style={[
-                  styles.powerCutInGlyph,
-                  powerCutIns.length > 1 ? styles.powerCutInGlyphCompact : null,
-                  { color: presentation.color },
-                ]}>{presentation.glyph}</Text>
-                <View style={styles.powerCutInCopy}>
-                  <Text style={styles.powerCutInPlayer}>{entry.playerName}</Text>
-                  <Text style={[
-                    styles.powerCutInName,
-                    powerCutIns.length > 1 ? styles.powerCutInNameCompact : null,
-                    { color: presentation.color },
-                  ]}>{presentation.name}</Text>
-                  <Text style={styles.powerCutInHint}>{entry.skippable ? 'TAP TO SKIP' : 'FIRST REVEAL'}</Text>
-                </View>
-              </View>
-            );
-          })}
-        </Pressable>
       ) : null}
       <View style={[styles.coachingDock, compactHeight ? styles.coachingDockCompact : null]}>
         <View style={styles.coachBar}>
@@ -1191,8 +1777,9 @@ export function MatchScreen({
               const formation = nextFormation(displayedFormation, formationPresets);
               queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
               const text = `${formation} · ${FORMATION_LABELS[formation].toUpperCase()}`;
-              bannerRef.current = appendNewestFour(bannerRef.current, {
+              bannerRef.current = appendBannerNewestFour(bannerRef.current, {
                 id: `formation-input:${match.tick}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'blue',
+                subject: 'formation',
               });
               setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
             }}
@@ -1218,8 +1805,9 @@ export function MatchScreen({
               const mentality = nextMentality(displayedMentality);
               queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
               const text = `PLAYSTYLE · ${mentality}`;
-              bannerRef.current = appendNewestFour(bannerRef.current, {
+              bannerRef.current = appendBannerNewestFour(bannerRef.current, {
                 id: `mentality-input:${match.tick}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'blue',
+                subject: 'mentality',
               });
               setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
             }}
@@ -1293,8 +1881,9 @@ export function MatchScreen({
                     if (mode === displayedEnergyUse) return;
                     queueInput(match, { tick: match.tick + 1, kind: 'SET_ENERGY_USE', energyUse: mode });
                     const text = `ENERGY USE · ${ENERGY_USE_LABELS[mode]}`;
-                    bannerRef.current = appendNewestFour(bannerRef.current, {
+                    bannerRef.current = appendBannerNewestFour(bannerRef.current, {
                       id: `energy-input:${match.tick}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'blue',
+                      subject: 'energy',
                     });
                     setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
                   }}
@@ -1318,6 +1907,31 @@ export function MatchScreen({
               </View>
               <Text style={styles.swapCount}>{substitutionsUsed} / 3</Text>
             </View>
+
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityLabel={`Automatic substitutions ${autoSubs ? 'on' : 'off'}. ${
+                autoSubs
+                  ? 'The bench covers tired players for you. Tap to take the calls back.'
+                  : 'Tap to let the bench cover tired players for you.'
+              }`}
+              accessibilityState={{ checked: autoSubs }}
+              style={[styles.autoSubRow, autoSubs ? styles.autoSubRowOn : null]}
+              onPress={() => {
+                playUiClickSfx();
+                const enabled = !autoSubs;
+                setAutoSubs(enabled);
+                autoSubsRef.current = enabled;
+              }}
+            >
+              <Text style={styles.autoSubBox}>{autoSubs ? '☑' : '☐'}</Text>
+              <View style={styles.coachCopy}>
+                <Text style={styles.autoSubLabel}>AUTO SUBS</Text>
+                <Text numberOfLines={1} style={styles.autoSubDetail}>
+                  {autoSubs ? 'The bench covers tired legs' : 'You make every call'}
+                </Text>
+              </View>
+            </Pressable>
 
             <Text style={styles.swapInstruction}>1 · TAP THE PLAYER COMING OFF</Text>
             <View style={styles.playerGrid}>
@@ -1506,6 +2120,21 @@ const styles = StyleSheet.create({
   },
   ctrlText: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold' },
   powerModeText: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold' },
+  autoSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#3a3350',
+    borderWidth: 2,
+    borderColor: '#241f2e',
+  },
+  autoSubRowOn: { backgroundColor: '#5b3a91', borderColor: '#9a63d6' },
+  autoSubBox: { color: '#f4f1ea', fontSize: 18, lineHeight: 20 },
+  autoSubLabel: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
+  autoSubDetail: { color: '#c9a6ec', fontSize: 11 },
   bannerStack: {
     position: 'absolute',
     zIndex: 8,
@@ -1527,35 +2156,58 @@ const styles = StyleSheet.create({
   },
   bannerThreat: { color: '#f4f1ea', borderColor: '#d94f52', backgroundColor: '#3a1512ee' },
   bannerAction: { color: '#f4f1ea', borderColor: '#77a4d8', backgroundColor: '#214566ee' },
-  powerCutInGrid: {
+  powerActivationStack: {
     position: 'absolute',
-    zIndex: 30,
-    top: '18%',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    zIndex: 7,
+    bottom: 8,
+    width: 230,
+    gap: 4,
   },
-  powerCutInTile: {
+  powerActivationStackLeft: { left: 8 },
+  powerActivationStackRight: { right: 8 },
+  powerActivationCard: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
-    borderWidth: 3,
+    backgroundColor: '#241f2ef2',
+    borderWidth: 2,
     borderColor: '#edb54a',
-    backgroundColor: '#16121ff5',
-    paddingHorizontal: 12,
+    borderBottomWidth: 4,
+    borderBottomColor: '#c8862a',
+    borderRadius: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
-  powerCutInTileSolo: { minHeight: 210, paddingHorizontal: 20 },
-  powerCutInTileCompact: { minHeight: 132 },
-  powerCutInHome: { borderColor: '#edb54a' },
-  powerCutInSlash: { position: 'absolute', left: '42%', top: -70, width: 70, height: 360, backgroundColor: '#f4f1ea12', transform: [{ rotate: '18deg' }] },
-  powerCutInGlyph: { width: 120, fontSize: 72, fontWeight: 'bold', textAlign: 'center' },
-  powerCutInGlyphCompact: { width: 54, fontSize: 38 },
-  powerCutInCopy: { minWidth: 0, flex: 1, paddingLeft: 12 },
-  powerCutInPlayer: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' },
-  powerCutInName: { marginTop: 6, fontSize: 34, lineHeight: 38, fontWeight: '900', textTransform: 'uppercase' },
-  powerCutInNameCompact: { fontSize: 20, lineHeight: 24 },
-  powerCutInHint: { marginTop: 12, color: '#c9c5d0', fontSize: 10, fontWeight: 'bold', letterSpacing: 2 },
+  powerActivationHighlight: {
+    position: 'absolute',
+    left: 2,
+    right: 2,
+    top: 2,
+    height: 4,
+    backgroundColor: '#f7d89455',
+  },
+  powerActivationGlyph: {
+    width: 38,
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  powerActivationCopy: { minWidth: 0, flex: 1, paddingLeft: 6 },
+  powerActivationPlayer: {
+    color: '#f4f1ea',
+    fontSize: 9,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  powerActivationName: {
+    marginTop: 2,
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
   carrierCard: {
     position: 'absolute',
     zIndex: 4,
@@ -1582,8 +2234,8 @@ const styles = StyleSheet.create({
   heroTapTarget: {
     position: 'absolute',
     zIndex: 6,
-    width: 54,
-    height: 60,
+    width: 108,
+    height: 120,
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
@@ -1591,11 +2243,11 @@ const styles = StyleSheet.create({
     color: '#f4f1ea',
     backgroundColor: '#a83440',
     borderColor: '#f4f1ea',
-    borderWidth: 1,
-    fontSize: 9,
+    borderWidth: 2,
+    fontSize: 18,
     fontWeight: 'bold',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
   coachingDock: {
     gap: 6,

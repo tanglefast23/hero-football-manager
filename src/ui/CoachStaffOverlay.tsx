@@ -124,7 +124,7 @@ export function CoachStaffOverlay({
                 </>
               ) : (
                 <ActionButton
-                  label={mode === 'hired' ? 'Meet the squad  ▸' : 'Return to club  ▸'}
+                  label="Return to club  ▸"
                   accessibilityLabel="Close coach confirmation"
                   onPress={onClose}
                 />

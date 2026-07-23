@@ -330,7 +330,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const pending = career.awakening.pending;
       if (pending === undefined) throw new Error('there is no awakening cutscene to finish');
       const next = completePostMatchAwakening(career);
-      const returnToPostMatch = !pending.firstHero && get().postMatch !== null;
+      // Every awakening still owes the manager that match's accounts, including
+      // the story's first hero — skipping it hid the opening match's whole ledger.
+      const returnToPostMatch = get().postMatch !== null;
       const screen: M1Screen = returnToPostMatch
         ? 'postmatch'
         : career.phase === 'season-end' || career.phase === 'complete'
@@ -537,9 +539,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
           )
         : { state: completed, awakened: false };
       const next = awakening.state;
-      const postMatch = isOnboardingMatch
-        ? null
-        : postMatchViewModel(before, next, fixture.id, userResult);
+      // The onboarding match earns its statement too; the awakening cutscene
+      // runs first, so the payoff still lands before any accounting.
+      const postMatch = postMatchViewModel(before, next, fixture.id, userResult);
       set({
         career: next,
         postMatch,
@@ -621,9 +623,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
           )
         : { state: completed, awakened: false };
       const next = awakening.state;
-      const postMatch = isOnboardingMatch
-        ? null
-        : postMatchViewModel(before, next, fixture.id, supplied, highlights);
+      const postMatch = postMatchViewModel(before, next, fixture.id, supplied, highlights);
       set({
         career: next,
         postMatch,

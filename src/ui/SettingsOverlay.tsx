@@ -256,8 +256,8 @@ export function SettingsOverlay({
               <Pressable accessibilityRole="switch" accessibilityLabel="Color-safe kits" accessibilityState={{ checked: colorSafeKits }} onPress={onToggleColorSafeKits} className={colorSafeKits ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-violet-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}>
                 <Text className="font-mono text-sm font-bold uppercase text-ink">Color-safe kits</Text><Text className="font-mono text-base font-bold text-ink">{colorSafeKits ? 'ON' : 'OFF'}</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel={`Power cut-ins ${cutInMode}`} onPress={onToggleCutInMode} className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2">
-                <Text className="font-mono text-sm font-bold uppercase text-ink">Power cut-ins</Text><Text className="font-mono text-base font-bold uppercase text-violet-dark">{cutInMode}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Power labels ${cutInMode === 'full' ? 'player card' : 'banner'}`} onPress={onToggleCutInMode} className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2">
+                <Text className="font-mono text-sm font-bold uppercase text-ink">Power labels</Text><Text className="font-mono text-base font-bold uppercase text-violet-dark">{cutInMode === 'full' ? 'PLAYER' : 'BANNER'}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"

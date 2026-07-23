@@ -26,6 +26,13 @@ describe('National Cup app routing', () => {
     });
 
     useM1Store.getState().continueAfterAwakening();
+    // The awakening hands back to that match's accounts before the desk.
+    expect(useM1Store.getState()).toMatchObject({
+      screen: 'postmatch',
+      career: { week: 6, phase: 'manage' },
+    });
+
+    useM1Store.getState().continueAfterMatch();
     expect(useM1Store.getState()).toMatchObject({
       screen: 'management',
       career: { week: 6, phase: 'manage' },

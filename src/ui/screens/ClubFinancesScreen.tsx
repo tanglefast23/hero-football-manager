@@ -18,6 +18,7 @@ import {
   facilityAdjacencyPresentation,
 } from '../facility-adjacency';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
+import { FacilityPlacementConfirmation, type FacilityPlacement } from '../FacilityPlacementConfirmation';
 import {
   firstGuidedFacilityUpgradeId,
   guidedFirstFacilityAllowsPlacement,
@@ -68,6 +69,7 @@ export function ClubFinancesScreen({
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [relocatingBuildingId, setRelocatingBuildingId] = useState<string | null>(null);
   const [previewCell, setPreviewCell] = useState<{ x: number; y: number } | null>(null);
+  const [pendingPlacement, setPendingPlacement] = useState<FacilityPlacement | null>(null);
   const [facilityGridWidth, setFacilityGridWidth] = useState(0);
   const selectedBuilding = facilities.buildings.find(
     building => building.id === selectedBuildingId,
@@ -136,11 +138,20 @@ export function ClubFinancesScreen({
       return;
     }
     if (selectedBuildType !== null) {
-      onBuildFacility?.(selectedBuildType, x, y);
-      setSelectedBuildType(null);
+      const catalog = facilities.catalog.find(entry => entry.type === selectedBuildType);
+      if (catalog === undefined) return;
+      // The tap proposes a spot; money is only committed from the confirmation.
+      setPendingPlacement({ catalog, x, y });
       setPreviewCell(null);
     }
-  }, [canPlaceAt, guidedFirstFacility, onBuildFacility, onRelocateFacility, relocatingBuildingId, selectedBuildType]);
+  }, [canPlaceAt, facilities.catalog, guidedFirstFacility, onRelocateFacility, relocatingBuildingId, selectedBuildType]);
+
+  const confirmPendingPlacement = useCallback(() => {
+    if (pendingPlacement === null) return;
+    onBuildFacility?.(pendingPlacement.catalog.type, pendingPlacement.x, pendingPlacement.y);
+    setPendingPlacement(null);
+    setSelectedBuildType(null);
+  }, [onBuildFacility, pendingPlacement]);
 
   const scrollFacilityGuideTargetIntoView = useCallback((phase: GuidedFirstFacilityPhase) => {
     if (!guidedFirstFacility || facilityGuideScrolledPhaseRef.current === phase) return;
@@ -1024,6 +1035,13 @@ export function ClubFinancesScreen({
       </View>
       ) : null}
     </ScrollView>
+    {pendingPlacement === null ? null : (
+      <FacilityPlacementConfirmation
+        placement={pendingPlacement}
+        onConfirm={confirmPendingPlacement}
+        onCancel={() => setPendingPlacement(null)}
+      />
+    )}
     </View>
   );
 }

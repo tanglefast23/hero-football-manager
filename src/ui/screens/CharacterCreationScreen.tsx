@@ -245,9 +245,16 @@ export function CharacterCreationScreen({
       </ScrollView>
 
       <View className="border-t-2 border-ink bg-white p-3">
+        {canSubmit ? null : (
+          <Text className="mb-2 text-center text-sm font-bold text-red-dark">
+            Name the rookie to sign them.
+          </Text>
+        )}
         <ActionButton
           label="Sign the rookie  ▸"
-          accessibilityLabel="Finish creating player"
+          accessibilityLabel={canSubmit
+            ? 'Finish creating player'
+            : 'Finish creating player. Unavailable: name the rookie to sign them.'}
           disabled={!canSubmit}
           onPress={() => {
             playManagementHaptic('commit');

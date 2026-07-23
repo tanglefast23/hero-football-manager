@@ -1,5 +1,7 @@
 import { createLaunchCareerSetup } from '../../application/launch';
+import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 import { advanceFacilityConstruction, buildCareerFacility, createCareer } from '..';
+import { clubSquadStrength } from '../m2-career';
 import {
   applyCareerNegotiationConsequence,
   acceptCareerTransferBid,
@@ -60,6 +62,112 @@ describe('career market integration', () => {
       balanceAfter: started.state.clubs.find(club => club.id === initial.userClubId)?.cash,
     });
     expect(started.state.ledgers).toHaveLength(0);
+  });
+
+  test('international scouting draws reports from clubs outside the active division', () => {
+    const initial = {
+      ...createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full')),
+      week: 15,
+    };
+    const activePlayerIds = new Set(initial.players.map(player => player.id));
+    const started = startCareerScoutMission(
+      initial,
+      initial.market!,
+      'EUROPE',
+      { kind: 'POSITION', role: 'FWD' },
+    );
+    const dueState = {
+      ...started.state,
+      week: started.market.activeScoutMission!.dueWeek,
+    };
+    const resolved = resolveCareerScoutClock(dueState, started.market);
+
+    expect(resolved.scoutReports).toHaveLength(3);
+    expect(resolved.scoutReports.some(report => !activePlayerIds.has(report.playerId))).toBe(true);
+  });
+
+  test('prices and completes a scouted transfer from the seller real pyramid division', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
+    const sourceDivision = initial.m2!.pyramid.divisions.find(division => division.level === 4)!;
+    const sourceClub = sourceDivision.clubs[0];
+    const target = sourceClub.squad.find(player => player.role === 'DEF')!;
+    expect(initial.players.some(player => player.id === target.id)).toBe(false);
+
+    const userLineup = new Set(initial.lineups
+      .find(lineup => lineup.clubId === initial.userClubId)!.playerIds);
+    const releasedReserve = initial.players.find(player => (
+      player.clubId === initial.userClubId && !userLineup.has(player.id)
+    ))!;
+    const withRosterSpace = {
+      ...initial,
+      clubs: initial.clubs.map(club => club.id === initial.userClubId
+        ? { ...club, cash: 1_000_000, weeklyWages: club.weeklyWages - releasedReserve.weeklyWage }
+        : club),
+      players: initial.players.filter(player => player.id !== releasedReserve.id),
+    };
+    const report = {
+      playerId: target.id,
+      role: target.role,
+      age: target.age,
+      statRanges: Object.fromEntries(Object.entries(target.attrs).map(([key, value]) => [
+        key,
+        { minimum: value, maximum: value },
+      ])) as never,
+      potentialRange: { minimum: 3 as const, maximum: 3 as const },
+    };
+    const market = { ...withRosterSpace.market!, scoutReports: [report] };
+    const talksWithWrongFallback = beginCareerTransferTalks(
+      withRosterSpace,
+      market,
+      target.id,
+      5,
+    );
+    const talksWithActualDivision = beginCareerTransferTalks(
+      withRosterSpace,
+      market,
+      target.id,
+      sourceDivision.level,
+    );
+
+    expect(talksWithWrongFallback.transferTalks!.transferQuote)
+      .toEqual(talksWithActualDivision.transferTalks!.transferQuote);
+    const savedTalks = parseStoredGameState(serializeGameState({
+      ...withRosterSpace,
+      market: talksWithWrongFallback,
+    }));
+    expect(savedTalks.market?.transferTalks?.playerId).toBe(target.id);
+
+    const ask = talksWithWrongFallback.transferTalks!.negotiation.weeklyAsk;
+    const accepted = submitCareerTransferOffer(talksWithWrongFallback, {
+      weeklyWage: ask,
+      termSeasons: 2,
+      perk: 'GUARANTEED_STARTER',
+    });
+    const completed = completeCareerTransfer(withRosterSpace, accepted);
+    const completedSource = completed.state.m2!.pyramid.divisions
+      .find(division => division.level === sourceDivision.level)!.clubs
+      .find(club => club.id === sourceClub.id)!;
+    const completedUser = completed.state.m2!.pyramid.divisions
+      .flatMap(division => division.clubs)
+      .find(club => club.id === initial.userClubId)!;
+
+    expect(completed.state.players.find(player => player.id === target.id)).toMatchObject({
+      clubId: initial.userClubId,
+      weeklyWage: ask,
+    });
+    expect(completedSource.squad.some(player => player.id === target.id)).toBe(false);
+    expect(completedSource.squadStrength).toBe(clubSquadStrength(completedSource.squad));
+    expect(completedUser.squad.find(player => player.id === target.id)?.clubId)
+      .toBe(initial.userClubId);
+    const reloaded = parseStoredGameState(serializeGameState({
+      ...completed.state,
+      market: completed.market,
+    }));
+    expect(reloaded.players.find(player => player.id === target.id)?.clubId)
+      .toBe(initial.userClubId);
+    expect(reloaded.m2!.pyramid.divisions.flatMap(division => division.clubs)
+      .find(club => club.id === sourceClub.id)!.squad.some(player => player.id === target.id))
+      .toBe(false);
   });
 
   test('turns an accepted pitch-card deal into a real transfer and repairs the seller lineup', () => {
@@ -379,7 +487,7 @@ describe('career market integration', () => {
     expect(refreshed.nextMissionNumber).toBe(started.market.nextMissionNumber);
   });
 
-  test('drops reports for opponents that leave the active division', () => {
+  test('retains reports for opponents that leave the active division but remain in the pyramid', () => {
     const state = createCareer(createLaunchCareerSetup(84, undefined, undefined, 'full'));
     const target = state.players.find(player => player.clubId !== state.userClubId)!;
     const report = {
@@ -401,6 +509,6 @@ describe('career market integration', () => {
       players: state.players.filter(player => player.id !== target.id),
     };
 
-    expect(refreshCareerMarketForNewSeason(nextState, previous).scoutReports).toEqual([]);
+    expect(refreshCareerMarketForNewSeason(nextState, previous).scoutReports).toEqual([report]);
   });
 });

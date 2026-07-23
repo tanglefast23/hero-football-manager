@@ -49,15 +49,54 @@ export type PowerState =
   | { kind: 'idle' }
   | { kind: 'zone'; remainingTicks: number }
   | { kind: 'armed'; remainingTicks: number }
-  | { kind: 'winding'; untilTick: number; strength: number; targetIdx?: number }
+  | {
+    kind: 'winding';
+    untilTick: number;
+    strength: number;
+    /** Target captured when a visible, placed wind-up begins. */
+    targetIdx?: number;
+    /** Stable identity prevents a substitution inheriting somebody else's lock. */
+    targetPlayerId?: string;
+    /** A second captured target for authored multi-blocker effects. */
+    secondaryTargetIdx?: number;
+    /** Stable identity paired with the second captured target. */
+    secondaryTargetPlayerId?: string;
+    /** Destination paired with the second captured target. */
+    secondaryAnchor?: Vec;
+    /** Friendly carrier whose attack created an off-ball placed wind-up. */
+    carrierIdx?: number;
+    /** Friendly runner committed to Gravity Well's opened lane. */
+    runnerIdx?: number;
+    /** Stable identity prevents a substitute inheriting Gravity's run. */
+    runnerPlayerId?: string;
+    /** The opened-lane destination paired with the runner. */
+    runnerAnchor?: Vec;
+  }
   | {
     kind: 'active';
     untilTick: number;
     strength: number;
-    /** Locked one-moment target, such as Decoy's marker or Future Sight's outlet. */
+    /** Locked one-moment target, such as Future Sight's outlet. */
     targetIdx?: number;
+    /** Optional second locked target for a single multi-blocker moment. */
+    secondaryTargetIdx?: number;
+    /** Destination paired with the second locked target. */
+    secondaryAnchor?: Vec;
+    /** Friendly carrier for an off-ball one-moment attack such as Decoy or Gravity. */
+    carrierIdx?: number;
+    /** Stable target identity for one-action commitments across substitutions. */
+    targetPlayerId?: string;
+    /** Friendly runner committed to Gravity Well's opened lane. */
+    runnerIdx?: number;
+    /** Stable identity paired with the Gravity runner. */
+    runnerPlayerId?: string;
+    /** The committed Gravity runner's visible lane destination. */
+    runnerAnchor?: Vec;
+    /** Shadow Mark is invisible during its two-second burrow, then hunts. */
+    armedAtTick?: number;
     /** Ensures a power's authored next action happens once instead of smearing across its duration. */
-    commitment?: 'THUNDER_SHOT' | 'BLINK_ACTION' | 'FUTURE_OUTLET';
+    commitment?: 'SPEED_ACTION' | 'THUNDER_SHOT' | 'BLINK_ACTION' | 'FIRE_RUN'
+      | 'PHASE_ACTION' | 'POWER_OUTLET' | 'SHADOW_HUNT';
   };
 
 export type OutReason = 'ko' | 'ignited' | 'redcard';
@@ -75,7 +114,7 @@ export interface SlideTackleState {
   remainingDistance: number;
   previousPos: Vec;
   targetPreviousPos: Vec;
-  /** Shadow Mark is spent at slide launch; this preserves its contest bonus. */
+  /** Snapshot of Shadow Mark's one-challenge bonus; the cloak is consumed when the slide starts. */
   shadowDefenseBonus?: number;
 }
 
@@ -85,9 +124,25 @@ export interface SimPlayer {
   pos: Vec;
   condition: number;
   gauge: number; // this is HEAT (In-the-Zone model, 2026-07-17) — field name kept as `gauge` to limit churn
+  /** Match-local Zone budget; prevents dominant teams from farming unlimited hero moments. */
+  zonesOpened: number;
   powerState: PowerState;
   /** Fixed pitch point for place-and-spring effects such as Web Trap. */
   powerAnchor?: Vec;
+  /** Rally may grant one fourth Zone exactly once per hero per match. */
+  encoreState?: 'BANKED' | 'CONSUMED';
+  /** One queued threshold refill after Rally catches a hero already ready/busy. */
+  encoreQueuedRefill?: boolean;
+  /** A webbed player cannot move, act, challenge, or recover the loose ball. */
+  webbedUntilTick?: number;
+  /** Portal arrival protection ends on its deadline or the receiver's action. */
+  portalProtectedUntilTick?: number;
+  /** Authored Ice movement keeps the carrier and ball together. */
+  forcedMovement?: { kind: 'ICE_SLIDE'; untilTick: number; step: Vec };
+  /** Super Strength freezes the captured carrier through the visible charge. */
+  actionLockedUntilTick?: number;
+  /** Owner of the Strength lock, used for safe cancellation. */
+  actionLockSourceIdx?: number;
   firePolicy: FirePolicy;
   outUntilTick: number;       // 0 = fine
   outReason?: OutReason;
@@ -97,8 +152,30 @@ export interface SimPlayer {
   cards: 0 | 1 | 2;
 }
 
+/**
+ * A real temporary Decoy player. The two reserved identities (22 home, 23
+ * away) never move or splice the starting-XI array, so replays and base player
+ * indices stay stable even when both teams have a clone at once.
+ */
+export interface DecoyCloneState extends SimPlayer {
+  ownerIdx: number;
+  ownerPlayerId: string;
+  sourceIdx: number;
+  sourcePlayerId: string;
+  formationSlot: number;
+  untilTick: number;
+}
+
 export type BallState =
-  | { kind: 'held'; by: number; caught?: true; releaseAfterTick?: number }
+  | {
+    kind: 'held';
+    by: number;
+    caught?: true;
+    releaseAfterTick?: number;
+    gustPunt?: true;
+    gustHeroIdx?: number;
+    gustGrade?: number;
+  }
   | { kind: 'loose'; pos: Vec; vel: Vec; z: number; vz: number }
   | {
     kind: 'pass';
@@ -114,6 +191,22 @@ export type BallState =
     looseOnArrival?: boolean;
     /** Deterministic roll-away applied when a disrupted pass lands loose. */
     deflectionVel?: Vec;
+    /** Gust's redirect is visually distinct and triggers a forced GK punt. */
+    gustRedirect?: true;
+    /** The authored follow-up punt is guaranteed and renderer-visible. */
+    gustPunt?: true;
+    /** Gust owner retained across redirect flight for deterministic FX events. */
+    gustHeroIdx?: number;
+    /** Gust activation grade retained through the redirect and contestable punt. */
+    gustGrade?: number;
+    /** An authored pass flies to a fixed landing point, not the receiver's old body. */
+    arrivalPos?: Vec;
+    /** Stable identity required before a successful clone can materialize. */
+    decoyReceiverPlayerId?: string;
+    /** Stable identity required before Gust moves its receiver into the landing lane. */
+    gustPuntReceiverPlayerId?: string;
+    /** A power-read interception cannot be inherited by a substitute. */
+    powerInterceptorPlayerId?: string;
   }
   | {
     kind: 'shot';
@@ -133,14 +226,36 @@ export type MatchEvent =
   | { t: number; kind: 'PASS'; from: number; to: number; ok: boolean }
   | { t: number; kind: 'SLIDE_STARTED'; by: number; on: number; direction: Vec; untilTick: number }
   | { t: number; kind: 'TACKLE'; by: number; on: number; won: boolean; style: 'standing' | 'slide' | 'power'; contact: boolean }
-  | { t: number; kind: 'SHOT'; by: number; power: number; trajectory: 'driven' | 'lifted' }
+  | {
+    t: number;
+    kind: 'SHOT';
+    /** Stable base player credited in match reports. */
+    by: number;
+    /** Temporary entity that physically struck it, when different from `by`. */
+    actor?: number;
+    power: number;
+    trajectory: 'driven' | 'lifted';
+  }
   | { t: number; kind: 'SAVE'; by: number; resolveLeft: number }
   | { t: number; kind: 'MISS'; by: number }
   | { t: number; kind: 'GOAL'; by: number; team: 0 | 1 }
   | { t: number; kind: 'POWER_READY'; player: number }
   | { t: number; kind: 'POWER_FIRED'; player: number; power: PowerId; strength: number }
+  /** A power's authored on-pitch effect landing, distinct from ordinary ball/body contact. */
+  | { t: number; kind: 'POWER_IMPACT'; player: number; power: PowerId; target?: number }
   | { t: number; kind: 'POWER_INTERRUPTED'; player: number }
   | { t: number; kind: 'POWER_EXPIRED'; player: number }
+  | {
+    t: number;
+    kind: 'DECOY_POP';
+    player: number;
+    clone: number;
+    source: number;
+    pos: Vec;
+    reason: 'expired' | 'turnover' | 'restart' | 'substitution' | 'invalid';
+  }
+  | { t: number; kind: 'GUST_REDIRECT'; player: number; from: number; to: number }
+  | { t: number; kind: 'GUST_PUNT'; player: number; from: number; to: number }
   | { t: number; kind: 'CARD'; player: number; color: 'yellow' | 'red' }
   | { t: number; kind: 'IGNITED'; player: number }
   | { t: number; kind: 'EXTINGUISHED'; player: number }
@@ -188,6 +303,8 @@ export interface MatchState {
   phase: 'play' | 'fulltime';
   score: [number, number];
   players: SimPlayer[];      // 22; 0-10 team 0 (attacks toward y=0), 11-21 team 1
+  /** Fixed optional clone slots: team 0 is entity 22, team 1 is entity 23. */
+  decoyClones: [DecoyCloneState | null, DecoyCloneState | null];
   ball: BallState;
   movement: MovementState;
   tactics: [TeamTactics, TeamTactics];

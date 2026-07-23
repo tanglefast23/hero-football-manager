@@ -7,8 +7,8 @@ import {
 import type { PowerId, Role } from '../../sim/types';
 
 const EXPECTED_ROLE_POOLS: Readonly<Record<Role, readonly PowerId[]>> = {
-  GK: ['FIRE_TORCH', 'ELASTIC_KEEPER', 'GIANT_GK'],
-  DEF: ['SUPER_SPEED', 'FIRE_TORCH', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP',
+  GK: ['ELASTIC_KEEPER', 'GIANT_GK', 'GUST'],
+  DEF: ['SUPER_SPEED', 'FUTURE_SIGHT', 'SUPER_STRENGTH', 'WEB_TRAP',
     'RALLY_CRY', 'ICE_RINK', 'SHADOW_MARK', 'GUST'],
   MID: ['SUPER_SPEED', 'BLINK_RUN', 'FIRE_TORCH', 'PHASE_RUN', 'PORTAL_PASS',
     'DECOY_DOUBLE', 'FUTURE_SIGHT', 'WEB_TRAP', 'RALLY_CRY', 'ICE_RINK',
@@ -33,6 +33,9 @@ describe('generated club power variety', () => {
       expect(new Set(first)).toEqual(new Set(EXPECTED_ROLE_POOLS[role]));
     }
     expect(new Set(Object.values(EXPECTED_ROLE_POOLS).flat())).toEqual(new Set(LAUNCH_POWER_IDS));
+    expect(powerIsCompatibleWithRole('FIRE_TORCH', 'GK')).toBe(false);
+    expect(powerIsCompatibleWithRole('FIRE_TORCH', 'DEF')).toBe(false);
+    expect(powerIsCompatibleWithRole('GUST', 'GK')).toBe(true);
   });
 
   it('keeps D5 hero-free and ramps to 2-3 heroes on every D1 club', () => {

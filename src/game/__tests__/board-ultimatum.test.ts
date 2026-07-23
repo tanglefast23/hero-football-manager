@@ -89,6 +89,64 @@ describe('board ultimatum domain', () => {
     expect(() => buildCareerTeamDef(next, state.userClubId)).not.toThrow();
   });
 
+  test('a forced sale preserves an unlicensed hero on the bench', () => {
+    const state = career(9505);
+    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+    const starterIds = new Set(lineup.playerIds);
+    const departing = state.players.find(player => (
+      player.clubId === state.userClubId
+      && starterIds.has(player.id)
+      && player.role !== 'GK'
+    ))!;
+    const reserves = state.players.filter(player => (
+      player.clubId === state.userClubId
+      && !starterIds.has(player.id)
+      && player.role !== 'GK'
+    ));
+    const unlicensedHero = reserves[0];
+    const eligibleReserve = reserves[1];
+    if (unlicensedHero === undefined || eligibleReserve === undefined) {
+      throw new Error('expected two outfield reserves for the forced-sale regression');
+    }
+    const withHeroBenched = {
+      ...state,
+      players: state.players.map(player => {
+        if (player.id === unlicensedHero.id) {
+          return {
+            ...player,
+            role: departing.role,
+            power: 'SUPER_SPEED' as const,
+            licensed: false,
+          };
+        }
+        return player.id === eligibleReserve.id
+          ? { ...player, role: departing.role }
+          : player;
+      }),
+    };
+    const resolution = boardForcedSaleAtDeadline(withHeroBenched, {
+      id: 'board-ultimatum-unlicensed-hero-regression',
+      issuedSeason: withHeroBenched.season,
+      issuedWeek: withHeroBenched.week,
+      weeksRemaining: 1,
+      targetCash: 0,
+      candidates: [{
+        playerId: departing.id,
+        marketValue: 2,
+        forcedSaleFee: 1,
+        discountPercent: 30,
+      }],
+    });
+    if (resolution === undefined) throw new Error('expected a forced-sale resolution');
+
+    const next = applyBoardForcedSaleConsequences(withHeroBenched, resolution);
+    const nextLineup = next.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+
+    expect(nextLineup.playerIds).not.toContain(unlicensedHero.id);
+    expect(nextLineup.playerIds).toContain(eligibleReserve.id);
+    expect(() => buildCareerTeamDef(next, state.userClubId)).not.toThrow();
+  });
+
   test('clears an active target immediately when current cash reaches it', () => {
     const state = career(9504);
     const ultimatum = { ...createBoardUltimatum(state)!, targetCash: 1_000 };

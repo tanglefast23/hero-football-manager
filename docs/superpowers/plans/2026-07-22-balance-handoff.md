@@ -1,13 +1,16 @@
 # Handoff — hero powers, training and league balance (2026-07-22)
 
 Written at the end of the original measurement session, then updated after the
-approved implementation and post-build audit. Sections 1–5 preserve the
-starting evidence and decision record; sections 6–9 are the current status.
+approved implementation and post-build audit. Sections 1–9 preserve that
+chronological evidence trail. Section 10 is the owner-approved closeout
+contract; the final m1.23 evidence and release decision belong in section 11.
 
-**Current branch:** `feature/hero-power-balance-m1-13`. The implementation is
-committed in `3cbca1f`, and the Shadow Mark correctness fix is committed in
-`f0d0ef5`. Final acceptance evidence is committed in `bf7c8e6`. All three are
-pushed. The current replay version is **m1.16**.
+**Historical branch at the start of this handoff:**
+`feature/hero-power-balance-m1-13`. The active closeout branch is now
+`codex/balance-closeout-m1-18`, and the replay version under verification is
+**m1.23**. Sections 1–9 remain the historical evidence trail; section 10 is the
+owner-approved closeout contract and is authoritative when an older target or
+proposal conflicts with it.
 
 ---
 
@@ -511,7 +514,160 @@ The multi-hero marginal-value probe passed 4/4 tests at 1,000 paired seeds per
 sample in 2,797 seconds. Decoy Double retained 27% of its solo value, Future
 Sight 63%, and Giant GK 102%; Rally Cry's marginal value was +0.2.
 
-All requested implementation and measurement work is complete. Do not merge to
-`main` until the approval-required balance work has been accepted or explicitly
-deferred by the owner: hero value, manual advantage, weekly TP/cash pressure,
-and second/third-hero stacking still miss their targets.
+This was the pre-m1.22 gate result. The owner subsequently accepted the broader
++1-to-+6 power band and approved the mechanic/tuning changes in section 10.
+Use the final evidence in section 11—not this historical block—for the merge
+decision.
+
+---
+
+## 10. Owner-approved m1.22 closeout contract
+
+The owner replaced the narrow +2 / +2.5–3 / +4 power curve with a broader fun
+band. A power passes when it is worth **+1 to +6 squad-strength points**, does
+not make its team worse, fires reliably, and performs the visible action it
+advertises. Manual activation must not punish the player, and an upgrade must
+never make a power weaker. Powers already inside that band do not need tuning
+to an exact number. Decision-grade retained-value claims still use 1,000 paired
+seeds; smaller runs are directional diagnostics.
+
+The owner approved these mechanic replacements and the matching readable match
+animations:
+
+- **Decoy Double:** create one temporary hologram forward with the copied
+  forward's stats. The double remains a separate player for its full duration,
+  can receive, carry, pass, and shoot, and does not disappear merely because it
+  receives the ball. It pops on expiry, turnover, or restart; if it is carrying
+  at expiry, the ball stays loose where it vanished. Automatic clones last 12
+  seconds and well-tapped/upgraded clones last 14. The pop has an audible cue.
+- **Future Sight:** after the predicted interception, immediately complete a
+  controlled pass to the furthest-forward onside teammate.
+- **Super Strength:** lock the current carrier into a visible 0.5-second charge
+  window in which they cannot pass or shoot; the charge then lands and wins the
+  ball.
+- **Web Trap:** the victim drops the ball and remains visibly webbed for 12
+  seconds automatically or 20 seconds when well tapped/upgraded, unable to
+  move, tackle, or recover the loose ball.
+- **Ice Rink:** if the existing version remains below the accepted band, slide
+  the carrier and ball backward toward their own goal, preventing actions
+  during the slide and never forcing the ball across the goal line.
+- **Shadow Mark:** burrow underground, arm after two seconds, and wait up to ten
+  seconds for an opposing field-player carrier to enter the visible hunting
+  area. Friendly possession does not cancel the hunt and friendly carriers are
+  ignored. Pop up for a guaranteed steal when the opposition next qualifies;
+  safely return only if the full hunting window expires or play restarts.
+- **Gust:** bend the opponent's next pass safely to the friendly goalkeeper,
+  who immediately completes a long punt to a teammate. Higher activation
+  grades improve the punt destination.
+- **Rally Cry:** grant one nearby powered teammate an Encore: exactly one bonus
+  activation beyond the normal three-use cap. If a power is already ready, the
+  Encore queues and refills it after use. A hero can hold and receive only one
+  Encore per match.
+- **Portal Pass:** protect the receiving forward from tackles and
+  dispossessions for up to two seconds, ending the protection on their pass or
+  shot; goalkeepers can still save normally.
+- **Gravity Well:** after a next-tick wind-up, move one or two
+  opposing defenders to a non-harmful safe rim around the current carrier,
+  direct the nearest suitable attacker into the abandoned lane, and prioritize
+  the carrier's next pass to that runner. Re-check the current lane when the
+  wind-up lands and refund rather than fire without a real lane.
+- **Fire Torch:** a short attacking window torches up to one, two, or three
+  relevant goal-side defenders at power tiers 1, 2, and 3 respectively. Measure
+  the upper tier against the +6 ceiling.
+- **Super Speed:** leave unchanged unless the 1,000-seed result falls below +1
+  or live playtesting shows that its visible duration feels too short. The
+  directional +1.6 auto / +2.5 manual / +4.8 upgraded result already passes.
+
+A developer-only browser showcase queues every launch power one at a time with
+Previous, Replay, and Next controls. It remains available for an owner-requested
+art review, but the closeout does not open additional browser windows.
+
+---
+
+## 11. Final closeout evidence and decision
+
+This section supersedes the historical measurements in sections 7–9.
+
+### Power value — final catalog evidence
+
+Values are squad-strength equivalents from 1,000 paired seeds. The accepted
+band is approximately **+1 to +6**, with no statistically demonstrated harmful
+reversal from manual timing or upgrading.
+
+| Power | T1 auto | T1 well-tapped | T3 well-tapped | Closeout |
+|---|---:|---:|---:|---|
+| Super Speed | +1.7 | +2.6 | +4.4 | Pass |
+| Fire Torch | +1.3 | +1.8 | +2.9 | Pass |
+| Decoy Double | +0.7 | +0.7 | +0.7 | Accepted close miss; no proven harm |
+| Web Trap | +1.2 | +1.4 | +1.4 | Pass |
+| Shadow Mark | +0.5 | +0.5 | +0.5 | Accepted close miss; no proven harm |
+| Gust | +1.3 | +1.4 | +1.5 | Pass |
+| Blink Run | +4.1 | +4.3 | +5.1 | Pass |
+| Phase Run | +1.7 | +2.8 | +4.2 | Pass |
+| Future Sight | +1.8 | +1.6 | +1.7 | Pass; ordering differences are noise |
+| Elastic Keeper | +2.2 | +3.9 | +5.2 | Pass |
+| Gravity Well | +0.3 | +0.3 | +0.3 | Accepted close miss; no proven harm |
+| Thunder Strike | +1.8 | +2.7 | +5.5 | Pass |
+| Portal Pass | +1.6 | +1.8 | +1.7 | Pass; ordering differences are noise |
+| Super Strength | +1.9 | +2.0 | +2.0 | Pass |
+| Ice Rink | +0.8 | +0.6 | +1.0 | Accepted close miss; no proven harm |
+| Giant GK | +2.0 | +3.7 | +5.1 | Pass |
+
+At m1.23, **12 of 16** solo-measurable powers clear the band in all three
+cases. Twelve clear it automatically, twelve when well tapped at Tier 1, and
+thirteen when well tapped at Tier 3. None exceeds the +6 ceiling.
+
+The final catalog combines the m1.22 1,000-seed reruns for Decoy Double, Web
+Trap, Ice Rink, Shadow Mark, Portal Pass, and Future Sight; the m1.23 Gravity
+Well rerun; and the unchanged powers' existing 1,000-seed results. Rally Cry
+cannot be valued alone because it requires another powered teammate; its valid
+evidence belongs to the multihero measurement below.
+
+### A–L outcome scorecard
+
+| Area | Outcome | Final evidence |
+|---|---|---|
+| **A. Hero effectiveness** | **Partial — accepted close misses** | 12/16 solo powers clear +1 to +6 in every mode. Decoy, Ice, Shadow, and Gravity are useful, perform their advertised actions, and show no proven harm, but remain below +1 in at least one case. Gravity's final center is now positive after its unsafe inward pull was fixed. |
+| **B. Powers fire reliably** | **Pass with accepted near miss** | Formal cadence passes. Portal reaches 83% auto / 79% tapped; Decoy 98% / 98%; most defensive powers reach roughly 68–93%. Shadow remains lower at about 54% but clears the formal useful-power floor. Heroes receive roughly 2–3 opportunities per match across positions. |
+| **C. Manual play** | **Partial — accepted compromise** | Manual activation works, Decoy is fully usable by hand, and the fixed two-second armed window starts when pressed. Manual play is clearly better for several powers, but not every power. No final 1,000-seed comparison establishes that tapping or upgrading harms the team. |
+| **D. Opening run** | **Partial — accepted near miss** | Losses are 91%, 57%, 57.7%, 39.3%, and 26.7%. Match 1 is one point harder than the 80–90% range and match 3 is flat, but matches 4–5 produce the intended visible bend toward the player. |
+| **E. League structure** | **Fail — owner decision required** | User XI is 41.1 below D5's 42–50 field, and the base divisions form real steps through roughly 50–60 / 60–70 / 70–80 / 80–90. The approved 46/47 D4 minnows pass structurally but are not enough: a 30-career full-season direction check produced 6.7% prepared survival, average position 9.5, and median position 10. Recruitment completed in only 53.3% of careers; all 30 eventually stopped with no affordable upgrade. The invalid preparation result is already decisive enough that a 300-career rerun would waste time. |
+| **F. Cup** | **Pass** | The Cup begins around week 10, uses division seeding, and the play-in test guarantees opponents are no more than one division apart. |
+| **G. Awakening** | **Pass** | Role pools prevent unusable defender/striker assignments: Fire Torch is excluded from DEF/GK, while keepers have three functional choices in Elastic Keeper, Giant GK, and Gust. A goalkeeper-awakened Gust is covered through its self-redirect and teammate punt. Division 5 contains no rival heroes. |
+| **H. Training** | **Pass** | Training now changes results: trained/control losses are 57.7%/65.7% at match 3, 39.3%/49% at match 4, and 26.7%/37% at match 5. Capped players are skipped with named warnings. Seven single-stat drill families progress through +3/+5/+8 tiers, and the roster retains ample headroom. |
+| **I. Money and TP** | **Pass** | Training Pitches provide 10 TP per level every week, eliminating the pre-season drought. No useful purchase is blocked by TP while otherwise affordable. Cash becomes the real limiter: all 300 measured careers encountered cash blocks, averaging about 18 blocked training weeks with the first around week 20. |
+| **J. Heroes on the pitch** | **Partial — positive stacking, retained-value miss** | D5 rival heroes are gone, teammate powers advance independently, and the HUD supports one to four simultaneous tiles. At 1,000 seeds, Speed retained 100% of its solo value, Decoy 51%, Future Sight 51%, and Giant GK 138%. Every added hero remained positive, but heroes two and three did not retain close to full solo value. Rally Cry added +0.1 beside Speed with no proven harmful effect. |
+| **K. Match feel** | **Pass under the approved replacement** | Ordinary failed passes can create a loose-ball contest. Gust uses the later approved behavior: redirect to the goalkeeper, followed by a guaranteed teammate punt whose destination improves with activation grade. |
+| **L. Engineering gates** | **Pass** | m1.23 versioning, parity/runtime baselines, typecheck, web export, snapshots, opt-in probe separation, and Gravity's required 1,000-seed rerun pass. The final automated run after the role-safe Awakening correction is green: 173/173 suites, 1,288/1,288 tests, and 3/3 snapshots. |
+
+### Accepted compromises
+
+These are known differences from the original ideal, not unresolved bugs:
+
+- The exact +2 / +2.5–3 / +4 curve was replaced by the broader +1-to-+6
+  catalog band.
+- Manual timing and upgrades must not show statistically established harm;
+  every individual point estimate does not need to rise monotonically.
+- Decoy Double, Ice Rink, Shadow Mark, and Gravity Well are accepted close
+  misses for this milestone because their approved football moments work and
+  their final evidence does not demonstrate harm.
+- Shadow Mark clears the formal cadence floor even though it remains below the
+  aspirational 70% defensive conversion target.
+- The opening curve is accepted as a near miss because its intended improvement
+  becomes unmistakable in matches 4–5.
+
+### Still unresolved
+
+- **Promotion survival:** the 46/47 minnows alone fail. The smallest next step
+  is an owner-approved, player-visible one-time D5-to-D4 recruitment fund of
+  15,000. That is approximately one ordinary D4 transfer fee and directly
+  addresses the measured affordability failure without a hidden match
+  multiplier. It has not been implemented because it is a new economy rule.
+- **Multihero retained value:** every addition is positive, but Decoy Double and
+  Future Sight retain only 51% of their solo value in the representative stack.
+  Raising that result further requires an owner-approved stacking mechanic, not
+  a definite bug fix.
+
+No new creative mechanic is required for the accepted solo-power close misses.
+Improving the measured 51% retained value for later heroes requires a separate
+owner-approved stacking mechanic.

@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { ENGINE_VERSION } from '../../sim/match';
 
 function source(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -111,7 +112,7 @@ describe('player-facing acceptance audit regressions', () => {
     expect(home).toContain("Use Advance Week below to prepare Match Day.");
   });
 
-  test('keeps the README engine marker synchronized without a replay bump', () => {
-    expect(source('README.md')).toContain('Current engine: **m1.16**.');
+  test('keeps the README engine marker synchronized with the replay version', () => {
+    expect(source('README.md')).toContain(`Current engine: **${ENGINE_VERSION}**.`);
   });
 });

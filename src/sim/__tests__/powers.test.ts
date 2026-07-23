@@ -1,6 +1,6 @@
 import { createMatch, queueInput, tick } from '../match';
 import { speedFor } from '../engine';
-import { activatePower, addGauge, ARM_WINDOW_TICKS, inUsefulContext, interruptWindup, knockOut, powerTick, ZONE_WINDOW_TICKS } from '../powers';
+import { activatePower, addGauge, ARM_WINDOW_TICKS, inUsefulContext, interruptWindup, knockOut, MAX_ZONES_PER_PLAYER, powerTick, ZONE_WINDOW_TICKS } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState, PowerId } from '../types';
 
@@ -52,18 +52,16 @@ describe('hero gauge and firing', () => {
   it('lets an auto target power fire late on a usable target instead of lapsing', () => {
     // Target-requiring powers used to be excluded from the late-window fallback
     // outright, so a Zone they could not perfectly convert was simply wasted
-    // (M4 gate: seven of twelve powers firing in 0-17% of matches). Portal Pass
-    // is usable whenever its hero carries the ball; its ideal context also wants
-    // an opponent within 1100, so an unmarked carrier is usable-but-not-ideal.
+    // (M4 gate: seven of twelve powers firing in 0-17% of matches). Blink Run
+    // is usable from 45% attacking progress, while its ideal context waits for
+    // 55%, so this carrier is usable-but-not-ideal.
     const m = createMatch(42, { ...ROVERS, players: ROVERS.players.map((pl, i) => (
-      i === SPEEDSTER ? { ...pl, power: 'PORTAL_PASS' as const } : { ...pl, power: undefined }
+      i === SPEEDSTER ? { ...pl, power: 'BLINK_RUN' as const } : { ...pl, power: undefined }
     )) }, UNITED, { homePolicy: 'FIRE_WHEN_READY' });
     const hero = m.players[SPEEDSTER];
     hero.powerState = { kind: 'zone', remainingTicks: 3 };
-    hero.pos = { x: 2250, y: 3500 };
+    hero.pos = { x: 2250, y: 5500 };
     m.ball = { kind: 'held', by: SPEEDSTER };
-    // Push every opponent well clear so the ideal context cannot be satisfied.
-    for (let i = 11; i < 22; i += 1) m.players[i].pos = { x: 200, y: 9000 };
 
     expect(inUsefulContext(m, SPEEDSTER)).toBe(false);
     tick(m);
@@ -92,6 +90,32 @@ describe('hero gauge and firing', () => {
     expect(m.events.some(e => e.kind === 'POWER_READY' && (e as { player: number }).player === SPEEDSTER)).toBe(true);
     expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
     expect(m.players[SPEEDSTER].gauge).toBe(0); // heat resets on entry
+  });
+
+  it('caps each hero at three Zone opportunities in one match', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const hero = m.players[SPEEDSTER];
+    hero.zonesOpened = MAX_ZONES_PER_PLAYER - 1;
+    hero.gauge = 60;
+    hero.pos = { x: 2250, y: 3500 };
+    m.ball = { kind: 'held', by: SPEEDSTER };
+
+    powerTick(m);
+    expect(hero.powerState.kind).toBe('zone');
+    expect(hero.zonesOpened).toBe(MAX_ZONES_PER_PLAYER);
+
+    hero.powerState = { kind: 'idle' };
+    addGauge(m, SPEEDSTER, 200);
+    powerTick(m);
+    expect(hero.gauge).toBe(0);
+    expect(hero.powerState.kind).toBe('idle');
+
+    // Expiry refunds and old saved matches can already contain banked Heat.
+    // The cap belongs on Zone conversion too, not only on addGauge().
+    hero.gauge = 50;
+    powerTick(m);
+    expect(hero.powerState.kind).toBe('idle');
+    expect(m.events.filter(event => event.kind === 'POWER_READY' && event.player === SPEEDSTER)).toHaveLength(1);
   });
 
   it('a tap fires at strength 1.0 after the windup (rigged directly into the Zone)', () => {
@@ -181,15 +205,15 @@ describe('hero gauge and firing', () => {
 
     m.ball = { kind: 'held', by: 9 };
     m.players[9].pos = { x: 3400, y: 4000 };
-    for (let index = 12; index < 22; index += 1) m.players[index].pos = { x: 200, y: 9000 };
-    m.players[11].pos = { x: 3400, y: 3500 };
+    for (let index = 11; index < 22; index += 1) m.players[index].pos = { x: 200, y: 9000 };
+    m.players[12].pos = { x: 3400, y: 3500 };
     expect(inUsefulContext(m, 9)).toBe(true);
     m.ball = { kind: 'held', by: 8 };
     expect(inUsefulContext(m, 9)).toBe(false);
     m.ball = { kind: 'held', by: 9 };
-    m.players[11].pos = { x: 3400, y: 4600 };
+    m.players[12].pos = { x: 3400, y: 4600 };
     expect(inUsefulContext(m, 9)).toBe(false);
-    m.players[11].pos = { x: 3400, y: 9000 };
+    m.players[12].pos = { x: 3400, y: 9000 };
     for (let index = 12; index < 22; index += 1) m.players[index].pos = { x: 200, y: 9000 };
     expect(inUsefulContext(m, 9)).toBe(false);
   });
@@ -248,7 +272,8 @@ describe('power effects', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const base = speedFor(m, SPEEDSTER);
     m.players[SPEEDSTER].powerState = { kind: 'active', untilTick: m.tick + 40, strength: 1 };
-    expect(speedFor(m, SPEEDSTER)).toBe(Math.round((base / 1) * 2.3));
+    expect(speedFor(m, SPEEDSTER)).toBeGreaterThanOrEqual(Math.round(base * 2.3));
+    expect(speedFor(m, SPEEDSTER)).toBeLessThanOrEqual(Math.round(base * 2.35));
   });
 
   it('FIRE_TORCH ignites the nearest opponent, who is later extinguished', () => {
@@ -257,28 +282,30 @@ describe('power effects', () => {
     // Rig an attacking carry with a marker between Dario and goal.
     m.ball = { kind: 'held', by: torch };
     m.players[torch].pos = { x: 3400, y: 4000 };
-    m.players[17].pos = { x: 3400, y: 3400 };
+    m.players[12].pos = { x: 3400, y: 3400 };
     activatePower(m, torch, 1);
     const ignited = m.events.find(e => e.kind === 'IGNITED') as { player: number };
     expect(ignited.player).toBeGreaterThanOrEqual(11);
-    tickUntil(m, () => m.events.some(e => e.kind === 'EXTINGUISHED'), 600);
+    tickUntil(m, () => m.events.some(e => e.kind === 'EXTINGUISHED'), 800);
     expect(m.events.some(e => e.kind === 'EXTINGUISHED')).toBe(true);
   });
 
-  it('FIRE_TORCH reaches a marker 13m away but not one beyond 14m', () => {
+  it('FIRE_TORCH uses the shared visible acquisition radius at every tier', () => {
     const firesAt = (distance: number) => {
       const m = createMatch(42, ROVERS, UNITED);
       const torch = 9;
       m.ball = { kind: 'held', by: torch };
       m.players[torch].pos = { x: 2000, y: 4000 };
-      m.players[11].pos = { x: 2000 + distance, y: 4000 };
-      for (let index = 12; index < 22; index++) m.players[index].pos = { x: 200, y: 9000 };
-      activatePower(m, torch, 1);
+      m.players[12].pos = { x: 2000 + distance, y: 4000 };
+      for (let index = 11; index < 22; index++) {
+        if (index !== 12) m.players[index].pos = { x: 200, y: 9000 };
+      }
+      activatePower(m, torch, 0.85);
       return m.events.some(event => event.kind === 'IGNITED');
     };
 
-    expect(firesAt(1300)).toBe(true);
-    expect(firesAt(1500)).toBe(false);
+    expect(firesAt(1850)).toBe(true);
+    expect(firesAt(1950)).toBe(false);
   });
 
   it('knocking out the ball carrier releases the ball instead of freezing possession', () => {

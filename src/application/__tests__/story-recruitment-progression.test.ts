@@ -160,8 +160,12 @@ describe('story recruitment pacing', () => {
 
     const dueState = { ...started.state, week: dueWeek };
     const reported = resolveCareerScoutClock(dueState, started.market);
-    const targetId = reported.scoutReports[0].playerId;
-    let talks = beginCareerTransferTalks(dueState, reported, targetId);
+    const cash = dueState.clubs.find(club => club.id === dueState.userClubId)!.cash;
+    const affordableTalks = reported.scoutReports
+      .map(report => beginCareerTransferTalks(dueState, reported, report.playerId))
+      .find(candidate => candidate.transferTalks!.transferQuote.fee <= cash);
+    expect(affordableTalks).toBeDefined();
+    let talks = affordableTalks!;
     talks = submitCareerTransferOffer(talks, {
       weeklyWage: talks.transferTalks!.negotiation.weeklyAsk,
       termSeasons: 2,

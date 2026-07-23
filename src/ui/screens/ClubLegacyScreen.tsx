@@ -5,7 +5,11 @@ import { PixelPortrait } from '../components/PixelPortrait';
 import type { ClubLegacyChoiceViewModel, ClubLegacyViewModel } from '../models';
 import { SettingsButton } from '../SettingsOverlay';
 import { TutorialTapCue } from '../TutorialTapCue';
-import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
+import {
+  TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+  TUTORIAL_TAP_CUE_RESERVED_SPACE,
+  TUTORIAL_TAP_CUE_WIDTH,
+} from '../tutorial-cue-position';
 
 export interface ClubLegacyScreenProps {
   viewModel: ClubLegacyViewModel;
@@ -63,11 +67,16 @@ export function ClubLegacyScreen({
             <View
               key={choice.id}
               className={guided && index === 0 ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
+              style={guided && index === 0 ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
             >
               {guided && index === 0 ? (
                 <TutorialTapCue
                   detail="Choose the legacy"
-                  style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+                  style={{
+                    left: '50%',
+                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                  }}
                 />
               ) : null}
               <PaperPanel

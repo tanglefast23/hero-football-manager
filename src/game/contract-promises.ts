@@ -4,6 +4,7 @@ import type {
   CareerPlayer,
   GameState,
 } from './types';
+import { roleOverall } from './archetype-caps';
 import { currentUserDivision } from './m2-career';
 
 const STARTING_PROMISES: readonly CareerContractPerk[] = [
@@ -210,13 +211,10 @@ function promisedReplacementSlot(
   return pool
     .slice()
     .sort((left, right) => (
-      playerStrength(left.player) - playerStrength(right.player)
+      roleOverall(left.player.role, left.player.attrs)
+        - roleOverall(right.player.role, right.player.attrs)
       || left.player.id.localeCompare(right.player.id)
     ))[0]?.index ?? -1;
-}
-
-function playerStrength(player: CareerPlayer): number {
-  return Object.values(player.attrs).reduce((sum, value) => sum + value, 0);
 }
 
 function contractPromiseHeroLimit(state: GameState): number {
