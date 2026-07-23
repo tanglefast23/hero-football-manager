@@ -292,14 +292,12 @@ function YouthDesk({
                 <Text className="flex-1 text-sm text-stamp">
                   {offer.blockedReason ?? 'Three-year academy contract ready.'}
                 </Text>
-                <GuidedAction enabled={guideFocus === 'youth-intake' && offer === intake.offers[0]} detail="Review this youth">
-                  <SmallAction
-                    label="Sign"
-                    accessibilityLabel={`Sign youth player ${offer.playerName}`}
-                    disabled={!offer.available}
-                    onPress={() => onSignYouth(offer.playerId)}
-                  />
-                </GuidedAction>
+                <SmallAction
+                  label="Sign"
+                  accessibilityLabel={`Sign youth player ${offer.playerName}`}
+                  disabled={!offer.available}
+                  onPress={() => onSignYouth(offer.playerId)}
+                />
               </View>
             </View>
           ))}

@@ -550,8 +550,8 @@ describe('M1 app store integration', () => {
             watched.away,
             {
               controlledTeam: watched.controlledTeam,
-              homePolicy: watched.controlledTeam === 0 ? 'SAVE_FOR_TAP' : 'FIRE_WHEN_READY',
-              awayPolicy: watched.controlledTeam === 1 ? 'SAVE_FOR_TAP' : 'FIRE_WHEN_READY',
+              homePolicy: 'FIRE_WHEN_READY',
+              awayPolicy: 'FIRE_WHEN_READY',
             },
           );
           queueInput(match, { tick: 1, kind: 'SET_FORMATION', formation: '4-3-3' });

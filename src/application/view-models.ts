@@ -45,6 +45,7 @@ import type {
   ClubLegacyViewModel,
   ClubFinancesViewModel,
   ClubAlertViewModel,
+  CoachStaffMemberViewModel,
   FixtureViewModel,
   HomeViewModel,
   LeagueTableViewModel,
@@ -247,31 +248,44 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       weeklyTrainingPoints: 10,
     },
     legacyTrainingGroundVisible: state.careerMode !== 'full',
-    ...(state.market?.headCoach === undefined ? {} : {
-      headCoach: {
-        id: state.market.headCoach.id,
-        portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
-        name: state.market.headCoach.name,
-        age: state.market.headCoach.age ?? 45,
-        level: state.market.headCoach.level,
-        specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
-        weeklyWage: state.market.headCoach.weeklyWage,
-        seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
-        severanceCost: state.market.headCoach.weeklyWage,
-      },
-    }),
-    ...(state.market?.assistantCoach === undefined ? {} : {
-      assistantCoach: {
-        id: state.market.assistantCoach.id,
-        name: state.market.assistantCoach.name,
-        level: state.market.assistantCoach.level,
-        specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
-        weeklyWage: state.market.assistantCoach.weeklyWage,
-        seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
-      },
-    }),
+    coachingStaff: coachingStaffViewModels(state),
     facilities: facilityGridViewModel(state),
   };
+}
+
+function coachingStaffViewModels(state: GameState): readonly CoachStaffMemberViewModel[] {
+  return [
+    ...(state.market?.headCoach === undefined ? [] : [{
+      id: state.market.headCoach.id,
+      role: 'HEAD' as const,
+      roleLabel: 'Head coach' as const,
+      portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
+      name: state.market.headCoach.name,
+      age: state.market.headCoach.age ?? 45,
+      personalityLabel: readableLabel(state.market.headCoach.personality),
+      level: state.market.headCoach.level,
+      specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
+      effectLabels: coachRoleEffectLabels(state.market.headCoach, 'HEAD'),
+      weeklyWage: state.market.headCoach.weeklyWage,
+      seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
+      severanceCost: state.market.headCoach.weeklyWage,
+    }]),
+    ...(state.market?.assistantCoach === undefined ? [] : [{
+      id: state.market.assistantCoach.id,
+      role: 'ASSISTANT' as const,
+      roleLabel: 'Assistant coach' as const,
+      portraitId: state.market.assistantCoach.portraitId ?? state.market.assistantCoach.id,
+      name: state.market.assistantCoach.name,
+      age: state.market.assistantCoach.age ?? 45,
+      personalityLabel: readableLabel(state.market.assistantCoach.personality),
+      level: state.market.assistantCoach.level,
+      specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
+      effectLabels: coachRoleEffectLabels(state.market.assistantCoach, 'ASSISTANT'),
+      weeklyWage: state.market.assistantCoach.weeklyWage,
+      seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
+      severanceCost: state.market.assistantCoach.weeklyWage,
+    }]),
+  ];
 }
 
 function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilities'] {
@@ -1235,38 +1249,6 @@ export function squadTrainingViewModel(
         ),
       };
     }),
-    coachingStaff: [
-      ...(state.market?.headCoach === undefined ? [] : [{
-        id: state.market.headCoach.id,
-        role: 'HEAD' as const,
-        roleLabel: 'Head coach' as const,
-        portraitId: state.market.headCoach.portraitId ?? state.market.headCoach.id,
-        name: state.market.headCoach.name,
-        age: state.market.headCoach.age ?? 45,
-        personalityLabel: readableLabel(state.market.headCoach.personality),
-        level: state.market.headCoach.level,
-        specialtyLabels: state.market.headCoach.specialties.map(readableLabel) as [string, string],
-        effectLabels: coachRoleEffectLabels(state.market.headCoach, 'HEAD'),
-        weeklyWage: state.market.headCoach.weeklyWage,
-        seasonsEmployed: state.market.headCoachSeasonsEmployed ?? 0,
-        severanceCost: state.market.headCoach.weeklyWage,
-      }]),
-      ...(state.market?.assistantCoach === undefined ? [] : [{
-        id: state.market.assistantCoach.id,
-        role: 'ASSISTANT' as const,
-        roleLabel: 'Assistant coach' as const,
-        portraitId: state.market.assistantCoach.portraitId ?? state.market.assistantCoach.id,
-        name: state.market.assistantCoach.name,
-        age: state.market.assistantCoach.age ?? 45,
-        personalityLabel: readableLabel(state.market.assistantCoach.personality),
-        level: state.market.assistantCoach.level,
-        specialtyLabels: state.market.assistantCoach.specialties.map(readableLabel) as [string, string],
-        effectLabels: coachRoleEffectLabels(state.market.assistantCoach, 'ASSISTANT'),
-        weeklyWage: state.market.assistantCoach.weeklyWage,
-        seasonsEmployed: state.market.assistantCoachSeasonsEmployed ?? 0,
-        severanceCost: state.market.assistantCoach.weeklyWage,
-      }]),
-    ],
     selectedPlayerId,
     createdPlayerId,
     // Division-locked tiers stay hidden until the club can actually reach them.

@@ -5,6 +5,8 @@ interface FacilitySpriteProps {
   type: FacilityTypeViewModel;
   level?: 1 | 2 | 3;
   size?: number;
+  width?: number;
+  height?: number;
   showLevel?: boolean;
 }
 
@@ -150,15 +152,18 @@ export function FacilitySprite({
   type,
   level = 1,
   size = 32,
+  width = size,
+  height = size,
   showLevel = true,
 }: FacilitySpriteProps) {
   const definition = FACILITY_SPRITES[type];
-  const pixelSize = size / 8;
+  const pixelWidth = width / 8;
+  const pixelHeight = height / 8;
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: size, height: size, position: 'relative' }}
+      style={{ width, height, position: 'relative' }}
     >
       {definition.pixels.flatMap((row, y) => [...row].map((tone, x) => {
         if (tone === '.') return null;
@@ -167,10 +172,10 @@ export function FacilitySprite({
             key={`${x}-${y}`}
             style={{
               position: 'absolute',
-              left: x * pixelSize,
-              top: y * pixelSize,
-              width: pixelSize,
-              height: pixelSize,
+              left: x * pixelWidth,
+              top: y * pixelHeight,
+              width: pixelWidth,
+              height: pixelHeight,
               backgroundColor: definition.palette[tone as PixelTone],
             }}
           />
@@ -192,8 +197,8 @@ export function FacilitySprite({
             <View
               key={pip}
               style={{
-                width: Math.max(2, pixelSize - 1),
-                height: Math.max(2, pixelSize - 1),
+                width: Math.max(2, Math.min(pixelWidth, pixelHeight) - 1),
+                height: Math.max(2, Math.min(pixelWidth, pixelHeight) - 1),
                 backgroundColor: pip <= level ? '#9a63d6' : '#6b6675',
               }}
             />

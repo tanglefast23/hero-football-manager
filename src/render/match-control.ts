@@ -9,18 +9,14 @@ export function retainedCarrierIndex(
   return currentCarrier >= 0 ? currentCarrier : previousCarrier;
 }
 
-/** Keep the watched side manual without changing scheduled home/away order. */
+/** Every watched side uses the authored contextual power timing. */
 export function matchPoliciesForControlledTeam(
   controlledTeam: 0 | 1,
   initialFormation: FormationId = '4-4-2',
 ): MatchOpts {
   return {
-    homePolicy: controlledTeam === 0
-      ? 'SAVE_FOR_TAP'
-      : 'FIRE_WHEN_READY',
-    awayPolicy: controlledTeam === 1
-      ? 'SAVE_FOR_TAP'
-      : 'FIRE_WHEN_READY',
+    homePolicy: 'FIRE_WHEN_READY',
+    awayPolicy: 'FIRE_WHEN_READY',
     controlledTeam,
     ...(controlledTeam === 0
       ? { homeFormation: initialFormation }

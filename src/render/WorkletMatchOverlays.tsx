@@ -33,9 +33,6 @@ interface WorkletMatchOverlaysProps {
   fireTorchPlayers: readonly number[];
   scale: number;
   ringRadius: number;
-  markerYOffset: number;
-  markerHalfWidth: number;
-  markerHeight: number;
   reduceMotion: boolean;
 }
 
@@ -179,9 +176,6 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
     fireTorchPlayers,
     scale,
     ringRadius,
-    markerYOffset,
-    markerHalfWidth,
-    markerHeight,
     reduceMotion,
   } = props;
 
@@ -210,9 +204,6 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           controlledTeam={controlledTeam}
           scale={scale}
           ringRadius={ringRadius}
-          markerYOffset={markerYOffset}
-          markerHalfWidth={markerHalfWidth}
-          markerHeight={markerHeight}
           reduceMotion={reduceMotion}
         />
       ))}
@@ -245,9 +236,6 @@ function WorkletZoneIndicator({
   controlledTeam,
   scale,
   ringRadius,
-  markerYOffset,
-  markerHalfWidth,
-  markerHeight,
   reduceMotion,
 }: {
   playerIndex: number;
@@ -259,9 +247,6 @@ function WorkletZoneIndicator({
   controlledTeam: 0 | 1;
   scale: number;
   ringRadius: number;
-  markerYOffset: number;
-  markerHalfWidth: number;
-  markerHeight: number;
   reduceMotion: boolean;
 }) {
   const playerTeam = playerIndex < 11 ? 0 : 1;
@@ -274,21 +259,6 @@ function WorkletZoneIndicator({
       visualPositions.value[playerIndex * 2 + 1] * scale,
       ringRadius,
     );
-  });
-  const marker = usePathValue((builder) => {
-    'worklet';
-    if (!isControlled || statuses.value[playerIndex] !== STATUS_ZONE) return;
-    const start = controlledTeam === 0 ? 0 : 11;
-    for (let index = start; index < start + 11; index += 1) {
-      const status = statuses.value[index];
-      if (status === 1 || status === STATUS_ACTIVE) return;
-    }
-    const cx = visualPositions.value[playerIndex * 2] * scale;
-    const baseY = visualPositions.value[playerIndex * 2 + 1] * scale - markerYOffset;
-    builder.moveTo(cx - markerHalfWidth, baseY);
-    builder.lineTo(cx + markerHalfWidth, baseY);
-    builder.lineTo(cx, baseY - markerHeight);
-    builder.close();
   });
   const opacity = useDerivedValue(() => {
     if (statuses.value[playerIndex] !== STATUS_ZONE) return 0;
@@ -306,7 +276,6 @@ function WorkletZoneIndicator({
         strokeWidth={2}
         opacity={opacity}
       />
-      {isControlled ? <Path path={marker} color="#edb54a" /> : null}
     </Fragment>
   );
 }

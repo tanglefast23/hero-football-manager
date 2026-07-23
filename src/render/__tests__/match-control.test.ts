@@ -15,28 +15,28 @@ describe('retainedCarrierIndex', () => {
 });
 
 describe('matchPoliciesForControlledTeam', () => {
-  it('keeps a watched home side manual and the opponent automatic', () => {
+  it('uses contextual automatic powers for a watched home side and its opponent', () => {
     expect(matchPoliciesForControlledTeam(0)).toEqual({
-      homePolicy: 'SAVE_FOR_TAP',
+      homePolicy: 'FIRE_WHEN_READY',
       awayPolicy: 'FIRE_WHEN_READY',
       controlledTeam: 0,
       homeFormation: '4-4-2',
     });
   });
 
-  it('keeps a watched away side manual without reversing fixture order', () => {
+  it('uses contextual automatic powers for a watched away side without reversing fixture order', () => {
     expect(matchPoliciesForControlledTeam(1)).toEqual({
       homePolicy: 'FIRE_WHEN_READY',
-      awayPolicy: 'SAVE_FOR_TAP',
+      awayPolicy: 'FIRE_WHEN_READY',
       controlledTeam: 1,
       awayFormation: '4-4-2',
     });
   });
 
-  it('starts every watched match manual with the selected opening formation', () => {
+  it('keeps the selected opening formation while powers remain automatic', () => {
     expect(matchPoliciesForControlledTeam(1, '4-3-3')).toEqual({
       homePolicy: 'FIRE_WHEN_READY',
-      awayPolicy: 'SAVE_FOR_TAP',
+      awayPolicy: 'FIRE_WHEN_READY',
       controlledTeam: 1,
       awayFormation: '4-3-3',
     });
