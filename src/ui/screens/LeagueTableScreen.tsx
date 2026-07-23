@@ -1,5 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
 import { Metric, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
+import { LeagueFixtureRow } from '../components/LeagueFixtureRow';
 import type { LeagueTableViewModel } from '../models';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
@@ -96,6 +97,32 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
               <Text className="text-sm text-ink/60">Promotion place</Text>
             </View>
           </View>
+        </View>
+      ),
+    },
+    {
+      key: 'fixtures',
+      weight: 2 + Math.min(viewModel.leagueFixtures.length, 10),
+      node: (
+        <View>
+          <SectionLabel
+            eyebrow={viewModel.divisionLabel}
+            title="Fixtures & results"
+            right={<StatusChip label={`${viewModel.leagueFixtures.length} matches`} />}
+          />
+          {viewModel.leagueFixtures.length === 0 ? (
+            <PaperPanel title="Schedule pending" kicker={viewModel.seasonLabel}>
+              <Text className="text-sm leading-5 text-ink/60">
+                Your league schedule will appear here when the competition office publishes it.
+              </Text>
+            </PaperPanel>
+          ) : (
+            <View className="gap-2">
+              {viewModel.leagueFixtures.map(fixture => (
+                <LeagueFixtureRow key={fixture.id} fixture={fixture} />
+              ))}
+            </View>
+          )}
         </View>
       ),
     },

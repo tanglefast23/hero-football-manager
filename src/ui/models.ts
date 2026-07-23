@@ -1,4 +1,5 @@
 import type { MarketNegotiationViewModel } from './market-models';
+import type { M2LeagueFixtureViewModel } from './m2-league-models';
 import type { AssistantGuideDestination, AssistantGuideSequenceId } from '../content';
 import type { PotentialGrade } from '../game/archetype-caps';
 import type { PowerId } from '../sim/types';
@@ -62,6 +63,7 @@ export interface LeagueTableViewModel {
   userPoints: number;
   leaderPoints: number;
   rows: readonly LeagueTableRowViewModel[];
+  readonly leagueFixtures: readonly M2LeagueFixtureViewModel[];
 }
 
 export interface HomeViewModel {

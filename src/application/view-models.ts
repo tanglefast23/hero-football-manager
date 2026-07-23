@@ -66,6 +66,7 @@ import {
   trainingDrillBlockedReason,
 } from '../game/promotion-progression';
 import { marketNegotiationViewModel } from './market-view-model';
+import { leagueFixtureViewModel } from './m2-league-view-model';
 import { coachRoleEffectLabels } from './coach-effects';
 import {
   dueAssistantInboxGuideSequences,
@@ -1059,6 +1060,10 @@ export function leagueTableViewModel(state: GameState): LeagueTableViewModel {
   const user = standings.find(row => row.clubId === state.userClubId);
   if (user === undefined) throw new Error('the user club has no league standing');
   const seasonFixtures = state.fixtures.filter(fixture => fixture.season === state.season);
+  const userFixtures = seasonFixtures
+    .filter(fixture => fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
+    .slice()
+    .sort((left, right) => left.week - right.week || left.round - right.round || left.id.localeCompare(right.id));
 
   return {
     divisionLabel: careerDivisionLabel(state),
@@ -1084,6 +1089,12 @@ export function leagueTableViewModel(state: GameState): LeagueTableViewModel {
       isUserClub: row.clubId === state.userClubId,
       inPromotionPlaces: row.position <= 2,
     })),
+    leagueFixtures: userFixtures.map(fixture => leagueFixtureViewModel(
+      fixture,
+      state.userClubId,
+      state.week,
+      clubId => clubName(state, clubId),
+    )),
   };
 }
 
