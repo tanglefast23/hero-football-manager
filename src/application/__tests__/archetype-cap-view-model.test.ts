@@ -26,7 +26,7 @@ describe('personal potential in the Squad desk', () => {
       })),
     };
 
-    const viewModel = squadTrainingViewModel(state, content, undefined, [], []);
+    const viewModel = squadTrainingViewModel(state, content, undefined, []);
 
     for (const [playerId, archetype] of archetypeByPlayerId) {
       const player = viewModel.players.find(candidate => candidate.id === playerId)!;

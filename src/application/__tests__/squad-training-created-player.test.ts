@@ -16,10 +16,11 @@ describe('squad training tutorial targeting', () => {
     });
     const createdPlayerId = withHero.onboarding?.createdPlayerId;
 
-    const viewModel = squadTrainingViewModel(withHero, content, undefined, [], []);
+    const viewModel = squadTrainingViewModel(withHero, content, undefined, []);
 
     expect(createdPlayerId).toBeDefined();
-    expect(viewModel.createdPlayerId).toBe(createdPlayerId);
+    // `createdPlayerId` was removed from the view model; the tutorial cue now
+    // shows up purely through roster ordering, checked below.
     expect(viewModel.players[0]?.id).toBe(createdPlayerId);
     expect(viewModel.players.some(player => player.id === createdPlayerId)).toBe(true);
   });
