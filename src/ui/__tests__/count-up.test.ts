@@ -35,24 +35,35 @@ describe('countUpValue', () => {
     expect(development).toContain('toValue: 1.18');
   });
 
-  it('starts player development only after a manual scroll exposes the stat area', () => {
+  it('starts player development once the stat area is on screen, via scroll or already visible', () => {
+    // Below the fold and not yet scrolled: wait.
     expect(shouldStartDevelopmentAnimation({
       hasManuallyScrolled: false,
       scrollY: 700,
       viewportHeight: 700,
       statAreaY: 1_200,
     })).toBe(false);
+    // Scrolled, but the stat area is still off screen: wait.
     expect(shouldStartDevelopmentAnimation({
       hasManuallyScrolled: true,
       scrollY: 400,
       viewportHeight: 700,
       statAreaY: 1_200,
     })).toBe(false);
+    // Scrolled far enough to expose the stat area: start.
     expect(shouldStartDevelopmentAnimation({
       hasManuallyScrolled: true,
       scrollY: 548,
       viewportHeight: 700,
       statAreaY: 1_200,
+    })).toBe(true);
+    // Already fully visible at the top with no scroll needed (tall viewport / light
+    // week): start immediately so the count-up can't stay stuck on pre-training values.
+    expect(shouldStartDevelopmentAnimation({
+      hasManuallyScrolled: false,
+      scrollY: 0,
+      viewportHeight: 1_200,
+      statAreaY: 600,
     })).toBe(true);
   });
 });

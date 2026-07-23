@@ -13,6 +13,12 @@ export function shouldStartDevelopmentAnimation({
   viewportHeight,
   statAreaY,
 }: DevelopmentAnimationVisibility): boolean {
-  if (!hasManuallyScrolled || viewportHeight <= 0 || statAreaY === null) return false;
-  return scrollY + viewportHeight >= statAreaY + MINIMUM_VISIBLE_STAT_HEIGHT;
+  if (viewportHeight <= 0 || statAreaY === null) return false;
+  const statAreaVisible = scrollY + viewportHeight >= statAreaY + MINIMUM_VISIBLE_STAT_HEIGHT;
+  if (!statAreaVisible) return false;
+  // Start once the stats are on screen — either the player scrolled to them, or
+  // they were already fully visible without any scroll (light weeks, tablets).
+  // Without this second case the count-up stays stuck on the pre-training values.
+  const visibleWithoutScrolling = statAreaY + MINIMUM_VISIBLE_STAT_HEIGHT <= viewportHeight;
+  return hasManuallyScrolled || visibleWithoutScrolling;
 }
