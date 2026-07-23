@@ -233,8 +233,7 @@ describe('M1 app store integration', () => {
 
     useM1Store.getState().buildFacility();
     useM1Store.getState().toggleTrainingPlayer(playerId);
-    useM1Store.getState().toggleDrill('sprints');
-    useM1Store.getState().applyTraining();
+    useM1Store.getState().setTrainingSlotStat(playerId, 'sprints');
 
     const planned = useM1Store.getState().career!;
     expect(planned.facilities.trainingGroundBuilt).toBe(false);
@@ -246,11 +245,10 @@ describe('M1 app store integration', () => {
     expect(planned.trainingPoints).toBe(before.trainingPoints);
     expect(planned.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac);
     expect(planned.trainingPlan).toMatchObject({
-      assignedPlayerIds: [playerId],
-      drills: [{ id: 'sprints' }],
+      slots: [{ playerId, pathId: 'sprints' }],
     });
 
-    useM1Store.getState().applyTraining();
+    useM1Store.getState().setTrainingSlotStat(playerId, 'sprints');
     expect(useM1Store.getState().career?.clubs[0].cash).toBe(planned.clubs[0].cash);
     expect(useM1Store.getState().career?.players.find(player => player.id === playerId)?.attrs.pac)
       .toBe(beforePac);
@@ -283,31 +281,42 @@ describe('M1 app store integration', () => {
       level: 1,
       kind: 'BUILD',
     });
-    expect(settled.ledgers[0].lines).toContainEqual({
-      kind: 'training',
-      label: 'Weekly focus training',
-      amount: -400,
-    });
     expect(settled.eventFlags).toContain('guide:bert:first-training-complete');
   });
 
-  it('warns and refuses a drill that would put the weekly plan over available TP', () => {
-    startCreatedCareer(790);
-    useM1Store.setState(state => ({
-      career: state.career === null ? null : { ...state.career, trainingPoints: 30 },
-    }));
+  it('fills training slots, blocks a 4th, and reindexes on removal', () => {
+    startCreatedCareer(793);
+    const career = useM1Store.getState().career!;
+    const ids = career.players
+      .filter(player => player.clubId === career.userClubId)
+      .map(player => player.id);
 
-    useM1Store.getState().toggleDrill('sprints');
-    useM1Store.getState().toggleDrill('rondo');
-    useM1Store.getState().toggleDrill('duels');
+    useM1Store.getState().toggleTrainingPlayer(ids[0]);
+    useM1Store.getState().toggleTrainingPlayer(ids[1]);
+    useM1Store.getState().toggleTrainingPlayer(ids[2]);
+    expect(useM1Store.getState().trainingSlots.map(slot => slot.playerId))
+      .toEqual([ids[0], ids[1], ids[2]]);
 
-    expect(useM1Store.getState().selectedDrillIds).toEqual(['sprints', 'rondo']);
-    expect(useM1Store.getState().error).toBe(
-      'Duels I would make this plan cost 36 TP, but you only have 30 TP. Choose a cheaper drill.',
-    );
+    useM1Store.getState().toggleTrainingPlayer(ids[3]);
+    expect(useM1Store.getState().trainingSlots).toHaveLength(3);
+    expect(useM1Store.getState().trainingSlotLimitHit).toBe(true);
 
-    useM1Store.getState().toggleDrill('rondo');
-    expect(useM1Store.getState()).toMatchObject({ selectedDrillIds: ['sprints'], error: null });
+    useM1Store.getState().toggleTrainingPlayer(ids[0]);
+    expect(useM1Store.getState().trainingSlots.map(slot => slot.playerId)).toEqual([ids[1], ids[2]]);
+    expect(useM1Store.getState().trainingSlotLimitHit).toBe(false);
+  });
+
+  it('writes the chosen stat to the slot and to the career training plan', () => {
+    startCreatedCareer(794);
+    const career = useM1Store.getState().career!;
+    const playerId = career.players.find(player => player.clubId === career.userClubId)!.id;
+
+    useM1Store.getState().toggleTrainingPlayer(playerId);
+    expect(useM1Store.getState().trainingSlots).toEqual([{ playerId, pathId: null }]);
+
+    useM1Store.getState().setTrainingSlotStat(playerId, 'sprints');
+    expect(useM1Store.getState().trainingSlots).toEqual([{ playerId, pathId: 'sprints' }]);
+    expect(useM1Store.getState().career?.trainingPlan?.slots).toEqual([{ playerId, pathId: 'sprints' }]);
   });
 
   it('updates the Starting XI through the app store', () => {
@@ -327,8 +336,7 @@ describe('M1 app store integration', () => {
   it('shows why a repeating focus plan was skipped and returns to the new week', () => {
     startCreatedCareer(791);
     useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().toggleDrill('sprints');
-    useM1Store.getState().applyTraining();
+    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
     const planned = useM1Store.getState().career!;
     useM1Store.setState({
       career: {
@@ -383,8 +391,7 @@ describe('M1 app store integration', () => {
     useM1Store.getState().completeAssistantGuide('management-intro');
     useM1Store.getState().setActiveTab('squad');
     useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().toggleDrill('sprints');
-    useM1Store.getState().applyTraining();
+    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().setActiveTab('home');
     useM1Store.getState().setActiveTab('club');
     useM1Store.getState().buildFacility();
@@ -412,8 +419,7 @@ describe('M1 app store integration', () => {
     );
 
     useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().toggleDrill('sprints');
-    useM1Store.getState().applyTraining();
+    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore);
     expect(useM1Store.getState().error).toBe(
@@ -447,8 +453,7 @@ describe('M1 app store integration', () => {
     useM1Store.getState().completeAssistantGuide('management-intro');
     useM1Store.getState().setActiveTab('squad');
     useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().toggleDrill('sprints');
-    useM1Store.getState().applyTraining();
+    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().setActiveTab('club');
     useM1Store.getState().buildClubFacility('training-pitch', { x: 0, y: 0 });
     useM1Store.getState().setActiveTab('home');
@@ -476,8 +481,7 @@ describe('M1 app store integration', () => {
     startCreatedCareer(24680);
     useM1Store.getState().buildFacility();
     useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().toggleDrill('sprints');
-    useM1Store.getState().applyTraining();
+    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
 
     driveStoreUntil(state => state.career?.phase === 'season-end');
     const seasonOne = useM1Store.getState().career!;
@@ -524,8 +528,7 @@ describe('M1 app store integration', () => {
     useM1Store.getState().buildFacility();
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
     useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().toggleDrill('sprints');
-    useM1Store.getState().applyTraining();
+    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
 
     let watchedMatches = 0;
