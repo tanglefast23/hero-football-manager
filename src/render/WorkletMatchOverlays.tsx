@@ -15,6 +15,7 @@ import {
   TACKLE_GRASS_COLOR,
   TACKLE_GRASS_OPACITY,
   TACKLE_GRASS_PIXELS,
+  TACKLE_TRAIL_SAMPLES,
 } from './slide-tackle-effects';
 
 const STATUS_ACTIVE = 2;
@@ -50,8 +51,10 @@ const FLAME_LAYERS: readonly FlameLayer[] = [
 ];
 
 /**
- * Pixel-clustered tackle debris. Dust is batched into one hard-edged path at
- * exactly 65% opacity; grass is a second opaque path. No blur/filter nodes.
+ * Pixel-clustered tackle debris. The body spray follows the player while a
+ * ground-locked trail spans the real launch-to-current path. Dust is batched
+ * into one hard-edged path at exactly 65% opacity; grass is a second opaque
+ * path. No blur/filter nodes.
  */
 export function WorkletSlideTackleEffects({
   layer,
@@ -81,7 +84,7 @@ export function WorkletSlideTackleEffects({
       const untilTick = actionData.value[offset + 5];
       const elapsed = visualTick - startTick;
       const duration = untilTick - startTick;
-      if (elapsed < 1.5 || elapsed >= duration - 1.5) continue;
+      if (elapsed < 1.5 || elapsed >= duration - 1) continue;
 
       const rawX = actionData.value[offset + 3];
       const rawY = actionData.value[offset + 4];
@@ -92,9 +95,25 @@ export function WorkletSlideTackleEffects({
       const sideY = ux;
       const cx = visualPositions.value[player * 2] * scale;
       const cy = visualPositions.value[player * 2 + 1] * scale;
+      const originX = actionData.value[offset + 6] * scale;
+      const originY = actionData.value[offset + 7] * scale;
+      const travelX = cx - originX;
+      const travelY = cy - originY;
       const age = Math.max(0, elapsed - 1.5);
 
       if (layer === 'dust') {
+        for (let index = 0; index < TACKLE_TRAIL_SAMPLES.length; index += 1) {
+          const sample = TACKLE_TRAIL_SAMPLES[index];
+          const size = sample.dustSize * pixel;
+          const left = originX + travelX * sample.progress + sideX * sample.side * pixel - size * 0.5;
+          const top = originY + travelY * sample.progress + sideY * sample.side * pixel - size * 0.5;
+          builder.moveTo(left, top);
+          builder.lineTo(left + size, top);
+          builder.lineTo(left + size, top + size);
+          builder.lineTo(left, top + size);
+          builder.close();
+        }
+
         const count = Math.min(TACKLE_DUST_PIXELS.length, Math.max(2, Math.floor(age * 2) + 2));
         for (let index = 0; index < count; index += 1) {
           const puff = TACKLE_DUST_PIXELS[index];
@@ -110,6 +129,19 @@ export function WorkletSlideTackleEffects({
           builder.close();
         }
       } else {
+        for (let index = 0; index < TACKLE_TRAIL_SAMPLES.length; index += 1) {
+          const sample = TACKLE_TRAIL_SAMPLES[index];
+          const baseX = originX + travelX * sample.progress + sideX * sample.side * pixel;
+          const baseY = originY + travelY * sample.progress + sideY * sample.side * pixel;
+          const width = Math.max(1, pixel);
+          const height = sample.grassHeight * pixel;
+          builder.moveTo(baseX, baseY);
+          builder.lineTo(baseX + width, baseY);
+          builder.lineTo(baseX + width, baseY - height);
+          builder.lineTo(baseX, baseY - height);
+          builder.close();
+        }
+
         const count = Math.min(TACKLE_GRASS_PIXELS.length, Math.max(1, Math.floor(age * 1.5)));
         for (let index = 0; index < count; index += 1) {
           const blade = TACKLE_GRASS_PIXELS[index];

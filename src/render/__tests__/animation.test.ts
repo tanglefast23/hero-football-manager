@@ -41,6 +41,7 @@ describe('tackle action poses', () => {
   const slide: PlayerActionAnimation = {
     kind: 'slide',
     startTick: 10,
+    origin: { x: 100, y: 200 },
     direction: { x: 1, y: 0 },
     rotation: Math.PI / 2,
     untilTick: 10 + SLIDE_TACKLE_TICKS,
