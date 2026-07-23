@@ -20,6 +20,7 @@ export type PlayerActionAnimation =
   | {
       kind: 'slide';
       startTick: number;
+      origin: Vec;
       direction: Vec;
       rotation: number;
       untilTick: number;

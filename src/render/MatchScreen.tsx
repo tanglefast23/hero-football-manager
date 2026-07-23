@@ -810,6 +810,7 @@ export function MatchScreen({
           actionRef.current[e.by] = {
             kind: 'slide',
             startTick: e.t,
+            origin: { ...playerAt(s, e.by)!.pos },
             direction: { ...e.direction },
             rotation,
             untilTick: e.untilTick + SLIDE_SUCCESS_RECOVERY_TICKS,

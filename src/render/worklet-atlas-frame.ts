@@ -23,7 +23,7 @@ import { HOME_DECOY_INDEX, RENDER_PLAYER_COUNT } from '../sim/entities';
 const PLAYER_COUNT = RENDER_PLAYER_COUNT;
 const ATLAS_SLOT_COUNT = PLAYER_COUNT + 1;
 const BALL_SLOT = PLAYER_COUNT;
-export const WORKLET_ACTION_STRIDE = 6;
+export const WORKLET_ACTION_STRIDE = 8;
 export const WORKLET_ACTION_SLIDE = 1;
 const ACTION_STRIDE = WORKLET_ACTION_STRIDE;
 
@@ -94,6 +94,8 @@ function packActions(actions: Record<number, PlayerActionAnimation>): Float32Arr
     packed[offset + 3] = action.kind === 'slide' ? action.direction.x : action.anchor.x;
     packed[offset + 4] = action.kind === 'slide' ? action.direction.y : action.anchor.y;
     packed[offset + 5] = action.kind === 'slide' || action.kind === 'knockdown' ? action.untilTick : 0;
+    packed[offset + 6] = action.kind === 'slide' ? action.origin.x : 0;
+    packed[offset + 7] = action.kind === 'slide' ? action.origin.y : 0;
   }
   return packed;
 }
