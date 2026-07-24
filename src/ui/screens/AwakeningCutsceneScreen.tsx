@@ -469,8 +469,12 @@ function PowerOmen({
   );
 }
 
+// Chalkboard-pitch chrome (docs/11 palette): the cutscene sits on the same
+// dark-pitch stage as the landing screens — pixel display type, paper
+// stickers, and a centered story panel. Custom fonts are referenced without
+// fontWeight so iOS never swaps in a synthetic system face.
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#181420' },
+  root: { flex: 1, backgroundColor: '#3f8a4a' },
   flex: { flex: 1 },
   header: {
     minHeight: 84,
@@ -479,14 +483,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#241f2e',
-    borderBottomWidth: 3,
-    borderBottomColor: '#d94f52',
   },
-  eyebrow: { color: '#d94f52', fontSize: 12, fontWeight: '900', letterSpacing: 1.2 },
-  fixture: { marginTop: 6, color: '#f4f1ea', fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
-  counter: { borderWidth: 2, borderColor: '#f4f1ea', paddingHorizontal: 10, paddingVertical: 7 },
-  counterText: { color: '#f4f1ea', fontSize: 15, fontWeight: '900' },
+  eyebrow: { fontFamily: 'Silkscreen_700Bold', color: '#f7d894', fontSize: 10, letterSpacing: 2 },
+  fixture: { marginTop: 6, fontFamily: 'Silkscreen_400Regular', color: '#f4f1ea', fontSize: 12, textTransform: 'uppercase' },
+  counter: {
+    borderWidth: 2,
+    borderColor: '#241f2e',
+    backgroundColor: '#f4f1ea',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    transform: [{ rotate: '2deg' }],
+  },
+  counterText: { fontFamily: 'Silkscreen_700Bold', color: '#241f2e', fontSize: 13 },
   viewport: { overflow: 'hidden', backgroundColor: '#3f8a4a', borderBottomWidth: 4, borderBottomColor: '#241f2e' },
   fullTimeBug: {
     position: 'absolute',
@@ -498,7 +506,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
-  fullTimeText: { color: '#f4f1ea', fontWeight: '900', letterSpacing: 1.5 },
+  fullTimeText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12, letterSpacing: 1.5 },
   biteCallout: {
     position: 'absolute',
     right: 14,
@@ -511,11 +519,15 @@ const styles = StyleSheet.create({
     borderColor: '#e7ff7a',
     padding: 10,
   },
-  biteLabel: { color: '#e7ff7a', fontWeight: '900', fontSize: 11, letterSpacing: 1 },
+  biteLabel: { fontFamily: 'Silkscreen_700Bold', color: '#e7ff7a', fontSize: 10, letterSpacing: 1 },
   biteDetail: { marginTop: 3, color: '#f4f1ea', fontSize: 10 },
   storyPanel: {
     margin: 14,
     padding: 16,
+    width: 'auto',
+    maxWidth: 560,
+    minWidth: 320,
+    alignSelf: 'center',
     backgroundColor: '#f4f1ea',
     borderWidth: 3,
     borderColor: '#241f2e',
@@ -523,14 +535,14 @@ const styles = StyleSheet.create({
   },
   storyPanelHero: { backgroundColor: '#edb54a', borderColor: '#f7d894' },
   storyTopline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  beatKicker: { color: '#d94f52', fontSize: 12, fontWeight: '900', letterSpacing: 1.4 },
-  tapHint: { color: '#6b6675', fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
+  beatKicker: { fontFamily: 'Silkscreen_400Regular', color: '#d94f52', fontSize: 11, letterSpacing: 1 },
+  tapHint: { fontFamily: 'Silkscreen_400Regular', color: '#6b6675', fontSize: 9, letterSpacing: 0.8 },
   heroInk: { color: '#241f2e' },
-  beatTitle: { marginTop: 8, color: '#241f2e', fontSize: 28, lineHeight: 31, fontWeight: '900', textTransform: 'uppercase' },
-  powerName: { marginTop: 4, color: '#fff8df', fontSize: 21, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5 },
+  beatTitle: { marginTop: 8, fontFamily: 'Silkscreen_700Bold', color: '#241f2e', fontSize: 24, lineHeight: 28, textTransform: 'uppercase' },
+  powerName: { marginTop: 4, fontFamily: 'Silkscreen_700Bold', color: '#fff8df', fontSize: 17, textTransform: 'uppercase', letterSpacing: 1 },
   storyCopy: { marginTop: 12, color: '#3a3350', fontSize: 15, lineHeight: 22 },
   heroCopy: { color: '#241f2e' },
   heroFooter: { marginTop: 14, paddingTop: 12, borderTopWidth: 2, borderTopColor: '#241f2e55', flexDirection: 'row', justifyContent: 'space-between' },
-  license: { color: '#241f2e', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  continueInline: { color: '#241f2e', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  license: { fontFamily: 'Silkscreen_400Regular', color: '#241f2e', fontSize: 10, textTransform: 'uppercase' },
+  continueInline: { fontFamily: 'Silkscreen_400Regular', color: '#241f2e', fontSize: 10, textTransform: 'uppercase' },
 });
