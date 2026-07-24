@@ -1286,6 +1286,7 @@ export function squadTrainingViewModel(
             label: path.label,
             shortCode: path.attribute.toUpperCase() as TrainingSlotStatOption['shortCode'],
             drillName: drillName(drill.id),
+            tpCost: drill.tpCost,
             gain,
             currentValue,
             atSafetyCeiling: currentValue >= 999,

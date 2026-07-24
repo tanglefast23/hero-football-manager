@@ -326,6 +326,8 @@ export interface TrainingSlotStatOption {
   shortCode: 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
   /** Best unlocked drill tier's title, e.g. "Duels III". */
   drillName: string;
+  /** Best unlocked tier's weekly TP cost. */
+  tpCost: number;
   /** Best unlocked tier's gain for this stat. */
   gain: number;
   /** The selected player's current value in this stat. */

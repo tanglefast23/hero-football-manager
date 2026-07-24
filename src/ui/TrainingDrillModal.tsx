@@ -72,7 +72,7 @@ export function TrainingDrillModal({
                       key={option.pathId}
                       accessibilityRole="radio"
                       accessibilityLabel={`Train ${playerName} in ${option.label}`}
-                      accessibilityHint={`${option.drillName}. Gains ${option.gain} ${option.label}. Currently ${option.currentValue}.`}
+                      accessibilityHint={`${option.drillName}. Costs ${option.tpCost} training points. Gains ${option.gain} ${option.label}. Currently ${option.currentValue}.`}
                       accessibilityState={{ checked: isCurrent, disabled: option.atSafetyCeiling }}
                       disabled={option.atSafetyCeiling}
                       onPress={() => onPickDrill(playerId, option.pathId)}
@@ -84,7 +84,10 @@ export function TrainingDrillModal({
                       style={({ pressed }) => ({ opacity: pressed && !option.atSafetyCeiling ? 0.65 : undefined })}
                     >
                       <View className="min-w-0 flex-1 pr-2">
-                        <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{option.drillName}</Text>
+                        <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>
+                          {option.drillName}
+                          <Text className="font-mono text-sm text-ink/60"> (Cost: {option.tpCost} TP)</Text>
+                        </Text>
                         <Text className="mt-0.5 font-mono text-sm font-bold text-ink/60" numberOfLines={1}>
                           {option.currentValue} {option.shortCode}
                         </Text>
