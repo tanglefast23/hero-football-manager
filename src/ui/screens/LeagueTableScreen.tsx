@@ -1,6 +1,5 @@
 import { ScrollView, Text, View } from 'react-native';
-import { Metric, PaperPanel, StatusChip } from '../components/Scorecard';
-import { StageSection } from '../components/ChalkboardStage';
+import { Metric, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
 import { LeagueFixtureRow } from '../components/LeagueFixtureRow';
 import type { LeagueTableViewModel } from '../models';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
@@ -36,7 +35,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
       weight: 2 + viewModel.rows.length,
       node: (
         <View>
-          <StageSection
+          <SectionLabel
             eyebrow="Promotion race"
             title="Full league table"
             right={<StatusChip label="Top 2 go up" tone="success" />}
@@ -106,7 +105,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
       weight: 2 + Math.min(viewModel.leagueFixtures.length, 10),
       node: (
         <View>
-          <StageSection
+          <SectionLabel
             eyebrow={viewModel.divisionLabel}
             title="Fixtures & results"
             right={<StatusChip label={`${viewModel.leagueFixtures.length} matches`} />}
@@ -136,12 +135,12 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
         header={
           <View className="mb-5 flex-row items-end justify-between">
             <View>
-              <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Competition office</Text>
-              <Text className="mt-1 font-pixel text-xl uppercase text-white">{viewModel.divisionLabel}</Text>
+              <Text className="text-sm font-bold uppercase text-blue-dark">Competition office</Text>
+              <Text className="mt-1 text-xl font-bold uppercase text-ink">{viewModel.divisionLabel}</Text>
             </View>
             <View className="items-end gap-1">
               <StatusChip label={viewModel.seasonLabel} />
-              <Text className="font-mono text-sm text-paper/70">{viewModel.weekLabel}</Text>
+              <Text className="font-mono text-sm text-ink/50">{viewModel.weekLabel}</Text>
             </View>
           </View>
         }

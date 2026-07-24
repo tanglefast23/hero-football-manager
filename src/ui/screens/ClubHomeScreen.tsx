@@ -1,6 +1,5 @@
 import { ScrollView, Text, View } from 'react-native';
-import { ActionButton, Metric, PaperPanel, StatusChip, formatCurrency } from '../components/Scorecard';
-import { StageSection } from '../components/ChalkboardStage';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type { ClubAlertViewModel, HomeViewModel } from '../models';
 import { scaledBody } from '../text-scale';
@@ -104,7 +103,7 @@ export function ClubHomeScreen({
       weight: 2 + 2 * Math.max(viewModel.alerts.length, 1),
       node: (
         <View>
-          <StageSection
+          <SectionLabel
             eyebrow="Inbox"
             title="Needs your call"
             right={<StatusChip label={`${viewModel.alerts.length} open`} tone={viewModel.alerts.length ? 'danger' : 'normal'} />}
@@ -151,7 +150,7 @@ export function ClubHomeScreen({
       weight: viewModel.boardResolution.soldPlayer && viewModel.boardResolution.replacementPlayer ? 13 : 6,
       node: (
         <View>
-          <StageSection
+          <SectionLabel
             eyebrow="Boardroom aftermath"
             title={viewModel.boardResolution.headline}
             right={<StatusChip label={viewModel.boardResolution.kind === 'TARGET_MET' ? 'Resolved' : 'Squad rebuilt'} tone="success" />}
@@ -204,7 +203,7 @@ export function ClubHomeScreen({
               style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
             />
           ) : null}
-          <StageSection
+          <SectionLabel
             eyebrow="Board intervention"
             title="Protect one player"
             right={<StatusChip label={`${viewModel.boardUltimatum.weeksRemaining} ${viewModel.boardUltimatum.weeksRemaining === 1 ? 'week' : 'weeks'}`} tone="danger" />}
@@ -262,10 +261,10 @@ export function ClubHomeScreen({
       weight: 2 + viewModel.table.length,
       node: (
         <View>
-          <StageSection
+          <SectionLabel
             eyebrow={viewModel.divisionLabel}
             title="Table snapshot"
-            right={<Text className="font-mono text-sm font-bold uppercase text-blue-light">Table ›</Text>}
+            right={<Text className="font-mono text-sm font-bold uppercase text-blue-dark">Table ›</Text>}
           />
           <Pressable
             accessibilityRole="button"
@@ -310,11 +309,11 @@ export function ClubHomeScreen({
           <>
             <View className="flex-row items-end justify-between">
               <View>
-                <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Good morning, boss</Text>
-                <Text className="mt-1 font-pixel text-xl uppercase tracking-wide text-white">{viewModel.managerName}</Text>
+                <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Good morning, boss</Text>
+                <Text className="mt-1 text-xl font-bold uppercase tracking-wide text-ink">{viewModel.managerName}</Text>
               </View>
               <View className="items-end">
-                <Text className="text-sm uppercase tracking-wide text-paper/60">Recent form</Text>
+                <Text className="text-sm uppercase tracking-wide text-ink/50">Recent form</Text>
                 <View className="mt-2 flex-row gap-1">
                   {viewModel.form.map((result, index) => (
                     <StatusChip
@@ -326,7 +325,7 @@ export function ClubHomeScreen({
                 </View>
               </View>
             </View>
-            <View className="my-5 h-0.5 bg-paper/10" />
+            <View className="my-5 h-0.5 bg-ink/15" />
           </>
         }
         sections={sections}

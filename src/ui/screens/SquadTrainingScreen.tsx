@@ -3,8 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
-import { Metric, PaperPanel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
-import { StageSection } from '../components/ChalkboardStage';
+import { Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type { SquadPlayerViewModel, SquadTrainingViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
@@ -195,8 +194,8 @@ export function SquadTrainingScreen({
           mode={layoutMode}
           header={
             <View className="mb-6">
-              <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Squad room</Text>
-              <Text className="mt-1 font-pixel text-xl uppercase text-white">Roster & training</Text>
+              <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Squad room</Text>
+              <Text className="mt-1 text-xl font-bold uppercase text-ink">Roster & training</Text>
             </View>
           }
           sections={sections}
@@ -269,7 +268,7 @@ function RosterSection({
 }: RosterSectionProps) {
   return (
     <View>
-      <StageSection
+      <SectionLabel
         eyebrow="Team register"
         title={`${viewModel.players.length} players`}
         right={<StatusChip label={`${assignedCount} / ${viewModel.maxSlots} training`} />}

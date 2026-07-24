@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
-import { ActionButton, Metric, PaperPanel, StatusChip, formatCurrency } from '../components/Scorecard';
-import { StageSection } from '../components/ChalkboardStage';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { FacilitySprite } from '../components/FacilitySprite';
 import type {
   ClubFacilityBuildingViewModel,
@@ -400,8 +399,8 @@ export function ClubFinancesScreen({
         header={
       <View className="mb-5 flex-row items-end justify-between">
         <View>
-          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Accounts office</Text>
-          <Text className="mt-1 font-pixel text-xl uppercase text-white">Club finances</Text>
+          <Text className="text-sm font-bold uppercase text-blue-dark">Accounts office</Text>
+          <Text className="mt-1 text-xl font-bold uppercase text-ink">Club finances</Text>
         </View>
         <StatusChip label={viewModel.periodLabel} />
       </View>
@@ -468,7 +467,7 @@ interface ItemizedStatementSectionProps {
 function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedStatementSectionProps) {
   return (
     <View>
-        <StageSection eyebrow="Itemized statement" title="Every coin accounted for" />
+        <SectionLabel eyebrow="Itemized statement" title="Every coin accounted for" />
         <View className="border-2 border-ink bg-white">
           <View className="flex-row border-b border-ink/20 px-3 py-2">
             <Text className="flex-1 text-sm font-bold uppercase tracking-wide text-ink/50">Entry</Text>
@@ -527,7 +526,7 @@ interface RecentTransactionsSectionProps {
 function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps) {
   return (
     <View>
-          <StageSection eyebrow="Cash activity" title="Recent club transactions" />
+          <SectionLabel eyebrow="Cash activity" title="Recent club transactions" />
           <View className="border-2 border-ink bg-white">
             {viewModel.recentTransactions.map(transaction => (
               <View
@@ -559,7 +558,7 @@ interface CoachingStaffSectionProps {
 function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: CoachingStaffSectionProps) {
   return (
     <View>
-        <StageSection
+        <SectionLabel
           eyebrow="Backroom staff"
           title="Coaching staff"
           right={<StatusChip label={`${viewModel.coachingStaff.length} / 2`} selected={viewModel.coachingStaff.length > 0} />}
@@ -731,7 +730,7 @@ function GroundsSection({
           style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
         />
       ) : null}
-        <StageSection
+        <SectionLabel
           eyebrow="Club grounds"
           title="Build the place around the team"
           right={<StatusChip label={`${viewModel.facilities.buildings.filter(building => building.status === 'operational').length} open`} />}
@@ -1322,7 +1321,7 @@ function LegacyTrainingGroundSection({
 }: LegacyTrainingGroundSectionProps) {
   return (
     <View ref={trainingGroundRef} collapsable={false} onLayout={onTrainingGroundLayout}>
-        <StageSection eyebrow="One big call" title="Training Ground" right={<StatusChip label="Facility 01" />} />
+        <SectionLabel eyebrow="One big call" title="Training Ground" right={<StatusChip label="Facility 01" />} />
         <PaperPanel
           kicker="Works order"
           title="Turn mud into momentum"
