@@ -34,7 +34,7 @@ export function FacilityProjectNotice({
         className="flex-1 justify-center bg-ink/60 px-4 py-6"
         edges={['top', 'left', 'right', 'bottom']}
       >
-        <View accessibilityViewIsModal>
+        <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
           <PaperPanel
             kicker="Works order approved"
             title={project.kind === 'BUILD'
