@@ -53,7 +53,6 @@ export function createLaunchCareerSetup(
     launchRosterVersion: LAUNCH_ROSTER_VERSION,
     startingTrainingPoints: 30,
     trainingRules: {
-      maxFocusDrillsPerWeek: content.training.maxFocusDrillsPerWeek,
       focusDrills: content.training.focusDrills.map(drill => ({
         id: drill.id, moneyCost: drill.moneyCost, tpCost: drill.tpCost, gains: { ...drill.gains },
       })),
@@ -294,7 +293,6 @@ export function reconcileLaunchRoster(
     ...(state.trainingRules === undefined && launch.trainingRules !== undefined
       ? {
           trainingRules: {
-            maxFocusDrillsPerWeek: launch.trainingRules.maxFocusDrillsPerWeek,
             focusDrills: launch.trainingRules.focusDrills.map(drill => ({
               ...drill,
               gains: { ...drill.gains },

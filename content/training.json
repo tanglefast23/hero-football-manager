@@ -1,6 +1,5 @@
 {
   "schemaVersion": 1,
-  "maxFocusDrillsPerWeek": 3,
   "focusDrills": [
     { "id": "sprints", "name": "Sprints 1", "moneyCost": 0, "tpCost": 6, "gains": { "pac": 3 } },
     { "id": "sprints-ii", "name": "Sprints 2", "moneyCost": 0, "tpCost": 10, "gains": { "pac": 5 } },
