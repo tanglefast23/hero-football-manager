@@ -1122,8 +1122,12 @@ function resolveActiveSlide(state: MatchState): boolean {
   const slide = tackler.slideTackle!;
   const carrierStillTargeted = state.ball.kind === 'held' && state.ball.by === slide.targetIdx
     && isConscious(state, slide.targetIdx);
-  const target = requirePlayerAt(state, slide.targetIdx);
-  const contactFraction = carrierStillTargeted
+  // The slide's target may be a Decoy Double clone that expired mid-slide, so this
+  // lookup must not throw — requiring the entity here killed the whole match with
+  // `missing match player entity 22`. Every path below already tolerates a target
+  // that is no longer on the pitch, so behaviour is unchanged when it is present.
+  const target = playerAt(state, slide.targetIdx);
+  const contactFraction = carrierStillTargeted && target !== undefined
     ? sweptContactFraction(slide.previousPos, tackler.pos, slide.targetPreviousPos, target.pos)
     : null;
   if (carrierStillTargeted && contactFraction !== null) {
@@ -1151,7 +1155,7 @@ function resolveActiveSlide(state: MatchState): boolean {
   // A committed miss still travels its locked path after the target releases
   // the ball. Stopping on the release tick made far-away slides look like a
   // one-step stumble even though the launch itself came from 8-11 metres.
-  slide.targetPreviousPos = { ...target.pos };
+  if (target !== undefined) slide.targetPreviousPos = { ...target.pos };
   return true;
 }
 
