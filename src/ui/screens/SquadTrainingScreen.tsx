@@ -180,6 +180,8 @@ export function SquadTrainingScreen({
           injuryWeeks={selectedPlayer.injuryWeeks}
           trainingPoints={trainingPoints}
           lastDrillResult={lastDrillResult}
+          promiseGate={viewModel.trainingPromiseGate}
+          onSwitchToPromised={onSelectPlayer}
           onTrainDrill={onTrainDrill}
           onDismiss={() => setDrillPickerOpen(false)}
           reduceMotion={reduceMotion}
@@ -312,15 +314,19 @@ function RosterSection({
                 accessibilityRole="button"
                 accessibilityLabel={player.injuryWeeks > 0
                   ? `${player.name} is injured and cannot train`
-                  : `Train ${player.name} now`}
+                  : player.priorityDrillsRemaining !== undefined
+                    ? `Train ${player.name} now, ${player.priorityDrillsRemaining} promised drills owed`
+                    : `Train ${player.name} now`}
                 accessibilityState={{ disabled: player.injuryWeeks > 0 }}
                 disabled={player.injuryWeeks > 0}
                 onPress={() => onPressTrainingBadge(player.id)}
                 className={player.injuryWeeks > 0
                   ? 'ml-2 h-11 w-12 items-center justify-center border border-ink/20 bg-paper-dark'
-                  : glowAssignmentButton
-                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
-                    : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
+                  : player.priorityDrillsRemaining !== undefined
+                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-violet-dark bg-violet-light'
+                    : glowAssignmentButton
+                      ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
+                      : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
                 style={({ pressed }) => [
                   { opacity: pressed && player.injuryWeeks === 0 ? 0.65 : undefined },
                   glowAssignmentButton ? styles.assignmentButtonGlow : null,
@@ -328,10 +334,12 @@ function RosterSection({
               >
                 <Text className={player.injuryWeeks > 0
                   ? 'font-mono text-base font-bold text-ink/30'
-                  : glowAssignmentButton
-                    ? 'font-mono text-base font-bold text-ink'
-                    : 'font-mono text-base text-ink/40'}>
-                  +
+                  : player.priorityDrillsRemaining !== undefined
+                    ? 'font-mono text-base font-bold text-violet-dark'
+                    : glowAssignmentButton
+                      ? 'font-mono text-base font-bold text-ink'
+                      : 'font-mono text-base text-ink/40'}>
+                  {player.priorityDrillsRemaining ?? '+'}
                 </Text>
               </Pressable>
             </View>

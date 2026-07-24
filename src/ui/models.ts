@@ -245,6 +245,8 @@ export interface SquadPlayerViewModel {
   potentialGrade: PotentialGrade;
   /** Chance the next drill is a SUPER (1.5x) session, from the potential grade. */
   superChancePercent: number;
+  /** Drills still owed under a TRAINING_PRIORITY promise; shown as the countdown badge. */
+  priorityDrillsRemaining?: number;
   /** Tap-time injury gamble at current condition; 0 above the fatigue line. */
   injuryRiskPercent: number;
   positionTrainingLabel: string;
@@ -334,6 +336,8 @@ export interface SquadTrainingViewModel {
   players: readonly SquadPlayerViewModel[];
   /** Every stat path's best-tier option for the selected player, when one is selected. */
   selectedPlayerStatOptions?: readonly TrainingSlotStatOption[];
+  /** Set while a fit promised player is still owed drills: only they may train. */
+  trainingPromiseGate?: { playerId: string; playerName: string; remaining: number };
 }
 
 export interface TrainingGroundDecisionViewModel {

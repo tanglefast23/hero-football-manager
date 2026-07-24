@@ -15,6 +15,10 @@ import {
   overtrainingInjuryChancePercent,
   OVERTRAINING_CONDITION_THRESHOLD,
 } from './player-wellbeing';
+import {
+  hasActiveCareerContractPromise,
+  pendingTrainingPriorityHolder,
+} from './contract-promises';
 import { repairCareerLineupForInjuries } from './squad';
 import { resolveTrainingDrillForPath, trainingPathAttribute } from './training-paths';
 import type { CareerPlayer, GameState } from './types';
@@ -52,6 +56,18 @@ export function trainPlayerInstantly(
     throw new Error(`player ${playerId} is not on the user club`);
   }
   if (player.injuryWeeks > 0) throw new Error(`${player.name} is injured and cannot train`);
+  // A TRAINING_PRIORITY promise is a debt: the promised player owns the next
+  // drills until their countdown drains. They remind the manager; an injured
+  // holder pauses the debt instead of deadlocking training.
+  const targetOwedDrills = (player.priorityDrillsRemaining ?? 0) > 0
+    && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY');
+  const priorityHolder = pendingTrainingPriorityHolder(state);
+  if (!targetOwedDrills && priorityHolder !== undefined) {
+    throw new Error(
+      `${priorityHolder.playerName} was promised the next `
+      + `${priorityHolder.remaining} drill${priorityHolder.remaining === 1 ? '' : 's'} — train them first`,
+    );
+  }
   const drill = resolveTrainingDrillForPath(state, pathId);
   if (drill.tpCost > state.trainingPoints) {
     throw new Error(`training needs ${drill.tpCost} TP but only ${state.trainingPoints} are available`);
@@ -104,6 +120,9 @@ export function trainPlayerInstantly(
     attrs: { ...player.attrs, [attribute]: growth.value },
     condition: conditionAfter,
     drillsSinceSuper: isSuper ? 0 : (player.drillsSinceSuper ?? 0) + 1,
+    ...(targetOwedDrills
+      ? { priorityDrillsRemaining: (player.priorityDrillsRemaining ?? 0) - 1 }
+      : {}),
     ...(growth.trainingBonusRemainders === undefined
       ? {}
       : { trainingBonusRemainders: growth.trainingBonusRemainders }),

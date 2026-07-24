@@ -135,6 +135,8 @@ export interface CareerPlayer {
   trainingBonusRemainders?: Partial<Record<keyof Attrs, number>>;
   /** Drills since the last SUPER session; drives the pity-timer guarantee. */
   drillsSinceSuper?: number;
+  /** Drills still owed under a TRAINING_PRIORITY promise; blocks other training while > 0. */
+  priorityDrillsRemaining?: number;
 }
 
 export interface ClubLineupState {

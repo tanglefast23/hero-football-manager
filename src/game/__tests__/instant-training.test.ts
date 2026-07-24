@@ -1,5 +1,9 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { superTrainingChancePercent } from '../archetype-caps';
+import {
+  applyCareerContractPromise,
+  TRAINING_PRIORITY_DRILLS,
+} from '../contract-promises';
 import { runHeadlessFullCareer } from '../headless';
 import { overtrainingInjuryChancePercent } from '../player-wellbeing';
 import {
@@ -137,6 +141,55 @@ describe('trainPlayerInstantly', () => {
     if (!ordinary.isSuper) {
       expect(superRes.after - superRes.before).toBeGreaterThan(ordinary.after - ordinary.before);
     }
+  });
+
+  it('enforces a TRAINING_PRIORITY debt: owed drills block others, count down, then clear', () => {
+    const state = fullCareerState();
+    const roster = state.players.filter(p => p.clubId === state.userClubId);
+    const promised = roster[0];
+    const other = roster.find(p => p.id !== promised.id && p.role !== 'GK')!;
+    let owed: GameState = applyCareerContractPromise(
+      { ...state, trainingPoints: 1_000 },
+      promised.id,
+      'TRAINING_PRIORITY',
+    );
+    expect(owed.players.find(p => p.id === promised.id)?.priorityDrillsRemaining)
+      .toBe(TRAINING_PRIORITY_DRILLS);
+
+    // The promised player reminds you: nobody else may train while drills are owed.
+    expect(() => trainPlayerInstantly(owed, other.id, 'sprints'))
+      .toThrow(`${promised.name} was promised the next 5 drills`);
+
+    // Each of their drills ticks the countdown down.
+    for (let drill = TRAINING_PRIORITY_DRILLS; drill > 0; drill -= 1) {
+      expect(owed.players.find(p => p.id === promised.id)?.priorityDrillsRemaining).toBe(drill);
+      owed = trainPlayerInstantly(owed, promised.id, 'sprints').state;
+    }
+    expect(owed.players.find(p => p.id === promised.id)?.priorityDrillsRemaining).toBe(0);
+
+    // Debt paid: everyone trains freely again.
+    expect(() => trainPlayerInstantly(owed, other.id, 'sprints')).not.toThrow();
+  });
+
+  it('pauses a TRAINING_PRIORITY debt while the promised player is injured', () => {
+    const state = fullCareerState();
+    const roster = state.players.filter(p => p.clubId === state.userClubId);
+    const promised = roster[0];
+    const other = roster.find(p => p.id !== promised.id && p.role !== 'GK')!;
+    const owed = applyCareerContractPromise(
+      { ...state, trainingPoints: 1_000 },
+      promised.id,
+      'TRAINING_PRIORITY',
+    );
+    const paused = {
+      ...owed,
+      players: owed.players.map(p => p.id === promised.id ? { ...p, injuryWeeks: 3 } : p),
+    };
+
+    expect(() => trainPlayerInstantly(paused, other.id, 'sprints')).not.toThrow();
+    // The debt survives the pause rather than being forgiven.
+    expect(paused.players.find(p => p.id === promised.id)?.priorityDrillsRemaining)
+      .toBe(TRAINING_PRIORITY_DRILLS);
   });
 
   it('never rolls injury at 30+ condition, and gambles honestly below it', () => {

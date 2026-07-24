@@ -282,7 +282,7 @@ describe('M1 app store integration', () => {
     });
   });
 
-  it('accepts a TRAINING_PRIORITY renewal with no slot side effects', () => {
+  it('accepts a TRAINING_PRIORITY renewal as a five-drill debt', () => {
     useM1Store.getState().startNewCareer(20260831, 'full');
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
@@ -311,10 +311,13 @@ describe('M1 app store integration', () => {
 
     expect(useM1Store.getState().error).toBeNull();
     expect(useM1Store.getState().career?.market?.renewalTalks).toBeUndefined();
-    // Training is unlimited for everyone now, so the promise persists with no
-    // slot, bump prompt, or draft mutation.
-    expect(useM1Store.getState().career?.players.find(player => player.id === trainee.id)
-      ?.contractPromise).toMatchObject({ perk: 'TRAINING_PRIORITY' });
+    // The promise is a debt: the player is now owed their next five drills,
+    // which block other training until the countdown drains.
+    expect(useM1Store.getState().career?.players.find(player => player.id === trainee.id))
+      .toMatchObject({
+        contractPromise: expect.objectContaining({ perk: 'TRAINING_PRIORITY' }),
+        priorityDrillsRemaining: 5,
+      });
   });
 
   it('surfaces a tap the bank cannot afford without advancing anything', () => {

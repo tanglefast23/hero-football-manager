@@ -11,6 +11,7 @@ import {
   difficultyRules,
   fixturesForCurrentWeek,
   hasActiveCareerContractPromise,
+  pendingTrainingPriorityHolder,
   isAssistantInboxOneShotProductVisible,
   isFullyCappedPlayer,
   latestSeasonRecap,
@@ -1189,6 +1190,10 @@ export function squadTrainingViewModel(
         overall: overall(player.role, player.attrs),
         potentialGrade,
         superChancePercent: superTrainingChancePercent(potentialGrade),
+        ...((player.priorityDrillsRemaining ?? 0) > 0
+          && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
+          ? { priorityDrillsRemaining: player.priorityDrillsRemaining }
+          : {}),
         injuryRiskPercent: overtrainingInjuryChancePercent(
           player.condition ?? 100,
           injuryRiskReductionPercent,
@@ -1246,6 +1251,10 @@ export function squadTrainingViewModel(
           };
         }),
     }),
+    ...(() => {
+      const holder = pendingTrainingPriorityHolder(state);
+      return holder === undefined ? {} : { trainingPromiseGate: holder };
+    })(),
   };
 }
 

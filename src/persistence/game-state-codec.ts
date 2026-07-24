@@ -242,6 +242,7 @@ const playerSchema = z
     coachTrainingBonusRemainders: trainingRemaindersSchema.optional(),
     trainingBonusRemainders: trainingRemaindersSchema.optional(),
     drillsSinceSuper: nonnegativeInteger.optional(),
+    priorityDrillsRemaining: nonnegativeInteger.optional(),
   })
   .passthrough()
   .superRefine((player, context) => {

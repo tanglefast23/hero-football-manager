@@ -83,14 +83,49 @@ export function applyCareerContractPromise(
     lineups = restoreCareerContractPromiseLineup({ ...state, players }).lineups;
   }
 
-  // TRAINING_PRIORITY needs no side effects: drills resolve instantly on tap,
-  // so every player already has unlimited access to training.
-  // Re-read the promised player from the immutable copy so the returned state
-  // is plain data even when no captain/shirt reassignment was necessary.
+  // TRAINING_PRIORITY is an obligation, not a slot: the manager owes the
+  // player their next TRAINING_PRIORITY_DRILLS drills. Until the countdown
+  // drains, other players' instant drills are blocked (the promised player
+  // reminds you). Re-read the promised player from the immutable copy so the
+  // returned state is plain data even when no reassignment was necessary.
   players = players.map(candidate => candidate.id === playerId
-    ? { ...candidate, contractPromise: { ...promise } }
+    ? {
+        ...candidate,
+        contractPromise: { ...promise },
+        ...(perk === 'TRAINING_PRIORITY'
+          ? { priorityDrillsRemaining: TRAINING_PRIORITY_DRILLS }
+          : {}),
+      }
     : candidate);
   return { ...state, players, lineups };
+}
+
+/** Drills owed to a player the moment a TRAINING_PRIORITY promise is agreed. */
+export const TRAINING_PRIORITY_DRILLS = 5;
+
+/**
+ * The fit promise-holder still owed drills, if any. While one exists, only
+ * they may train; an injured holder pauses the debt rather than deadlocking
+ * the training screen, and a player maxed at 999 everywhere has nothing left
+ * to drill, so their debt can never block anyone.
+ */
+export function pendingTrainingPriorityHolder(
+  state: GameState,
+): { playerId: string; playerName: string; remaining: number } | undefined {
+  const holder = state.players.find(player => (
+    player.clubId === state.userClubId
+    && player.injuryWeeks === 0
+    && (player.priorityDrillsRemaining ?? 0) > 0
+    && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
+    && !isFullyCappedPlayer(player)
+  ));
+  return holder === undefined
+    ? undefined
+    : {
+        playerId: holder.id,
+        playerName: holder.name,
+        remaining: holder.priorityDrillsRemaining ?? 0,
+      };
 }
 
 /** Restores recovered promised starters after injury repair and weekly settlement. */

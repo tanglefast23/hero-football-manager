@@ -11,7 +11,10 @@ describe('training stat option rendering', () => {
     // A drill is untappable when the player is injured, the stat sits at the
     // universal safety ceiling, or the bank cannot cover the cost — never
     // because of slots or caps, which no longer exist.
-    expect(source).toContain('const disabled = injured || option.atSafetyCeiling || !option.affordable;');
+    expect(source).toContain('const disabled = injured || blockedByPromise || option.atSafetyCeiling || !option.affordable;');
+    // A promised player's owed drills block everyone else with their reminder.
+    expect(source).toContain('reminds you');
+    expect(source).toContain('Train {promiseGate.playerName} instead');
     expect(source).toContain('{option.currentValue} {option.shortCode}');
     expect(source).not.toContain('{option.cap}');
 

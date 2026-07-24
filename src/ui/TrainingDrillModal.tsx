@@ -20,6 +20,10 @@ export interface TrainingDrillModalProps {
   trainingPoints: number;
   /** The latest tap's resolution; ignored unless it belongs to this player. */
   lastDrillResult: DrillResultViewModel | null;
+  /** Set while a promised player is owed drills: only they may train. */
+  promiseGate?: { playerId: string; playerName: string; remaining: number };
+  /** Jumps the popup to the promised player when their reminder is tapped. */
+  onSwitchToPromised?: (playerId: string) => void;
   onTrainDrill: (playerId: string, pathId: string) => void;
   onDismiss: () => void;
   reduceMotion?: boolean;
@@ -41,6 +45,8 @@ export function TrainingDrillModal({
   injuryWeeks,
   trainingPoints,
   lastDrillResult,
+  promiseGate,
+  onSwitchToPromised,
   onTrainDrill,
   onDismiss,
   reduceMotion = false,
@@ -113,6 +119,8 @@ export function TrainingDrillModal({
     : options.find(option => option.pathId === activeResult.pathId);
   const riskTone = injuryRiskPercent >= 25 ? 'red' : 'amber';
   const injured = injuryWeeks > 0;
+  const owedHere = promiseGate !== undefined && promiseGate.playerId === playerId;
+  const blockedByPromise = promiseGate !== undefined && promiseGate.playerId !== playerId;
 
   return (
     <Modal
@@ -168,6 +176,13 @@ export function TrainingDrillModal({
                   ★ SUPER chance {superChancePercent}%
                 </Text>
               </View>
+              {owedHere ? (
+                <View className="border-2 border-violet-dark bg-violet-light px-2 py-1">
+                  <Text className="font-mono text-sm font-bold uppercase text-violet-dark">
+                    Promise · {promiseGate.remaining} owed
+                  </Text>
+                </View>
+              ) : null}
               <View className="border border-ink/30 bg-paper px-2 py-1">
                 <Text
                   className={condition < 30
@@ -216,9 +231,32 @@ export function TrainingDrillModal({
             ) : null}
 
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 16 }}>
+              {blockedByPromise ? (
+                <View className="border-2 border-b-4 border-violet-dark bg-violet-light p-4">
+                  <Text className="font-mono text-sm font-bold uppercase text-violet-dark">
+                    {promiseGate.playerName} reminds you
+                  </Text>
+                  <Text className="mt-2 text-base font-bold text-ink">
+                    “Boss! You promised me the next {promiseGate.remaining} drill{promiseGate.remaining === 1 ? '' : 's'}.”
+                  </Text>
+                  {onSwitchToPromised !== undefined ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Train ${promiseGate.playerName} instead`}
+                      onPress={() => onSwitchToPromised(promiseGate.playerId)}
+                      className="mt-3 min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-violet px-4 py-2"
+                      style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                    >
+                      <Text className="font-pixel text-base uppercase text-white">
+                        Train {promiseGate.playerName} instead ▸
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
               <View className="gap-2">
                 {options.map(option => {
-                  const disabled = injured || option.atSafetyCeiling || !option.affordable;
+                  const disabled = injured || blockedByPromise || option.atSafetyCeiling || !option.affordable;
                   const isResultRow = activeResult?.pathId === option.pathId && !celebrating;
                   return (
                     <Pressable
