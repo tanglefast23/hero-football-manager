@@ -126,7 +126,7 @@ describe('M2 weekly sidecars', () => {
         ? { ...club, cash: -50_000 }
         : club),
     };
-    for (let week = 0; week < 4; week += 1) state = advanceWeek(state);
+    for (let week = 0; week < 4; week += 1) state = settleScheduledWeek(state);
 
     expect(state.financialSafety).toMatchObject({
       emergencyLoanUsed: true,
@@ -246,7 +246,7 @@ describe('M2 weekly sidecars', () => {
 
   test('applies match result and playing-time morale through normal M2 settlement', () => {
     let state = fullCareer(505);
-    while (state.week < 5) state = advanceWeek(state);
+    while (state.week < 5) state = settleScheduledWeek(state);
     state = advanceWeek(state);
     const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
     const starterId = lineup.playerIds[0];
@@ -284,7 +284,7 @@ describe('M2 weekly sidecars', () => {
 
     for (let seed = 1; seed <= 100 && settled === undefined; seed += 1) {
       let state = fullCareer(seed);
-      while (state.week < 5) state = advanceWeek(state);
+      while (state.week < 4) state = settleScheduledWeek(state);
       const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
       const targetId = lineup.playerIds[1];
       const otherIds = state.players
@@ -326,7 +326,7 @@ describe('M2 weekly sidecars', () => {
     if (settled === undefined || injuredStarterId === undefined || replacementId === undefined) {
       throw new Error('expected a deterministic starter injury sample');
     }
-    expect(settled.week).toBe(6);
+    expect(settled.week).toBe(5);
     expect(replacementId).not.toBe(injuredStarterId);
     expect(settled.players.find(player => player.id === replacementId)?.injuryWeeks).toBe(0);
     expect(() => buildCareerTeamDef(settled!, settled!.userClubId)).not.toThrow();

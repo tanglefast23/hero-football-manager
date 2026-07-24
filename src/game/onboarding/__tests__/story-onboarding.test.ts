@@ -30,7 +30,7 @@ function state(): GameState {
       id: 's1-r1-rovers-v-united',
       season: 1,
       round: 1,
-      week: 5,
+      week: 3,
       homeClubId: 'rovers',
       awayClubId: 'united',
       matchSeed: 7,

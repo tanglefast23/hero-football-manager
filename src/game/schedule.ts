@@ -4,17 +4,24 @@ import type { LeagueFixture } from './types';
 const CLUB_COUNT = 10;
 const FIRST_LEG_ROUNDS = CLUB_COUNT - 1;
 const TOTAL_ROUNDS = FIRST_LEG_ROUNDS * 2;
-const FIRST_LEAGUE_WEEK = 5;
+const OPENING_SEASON_FIRST_LEAGUE_WEEK = 3;
+const STANDARD_FIRST_LEAGUE_WEEK = 5;
 const LAST_LEAGUE_WEEK = 28;
 const UINT32_RANGE = 4294967296;
 
-export function leagueWeekForRound(round: number): number {
+export function leagueWeekForRound(round: number, season: number): number {
   if (!Number.isInteger(round) || round < 1 || round > TOTAL_ROUNDS) {
     throw new Error(`league round must be an integer from 1 to ${TOTAL_ROUNDS}`);
   }
+  if (!Number.isInteger(season) || season <= 0) {
+    throw new Error('season must be a positive integer');
+  }
 
-  const weekSpan = LAST_LEAGUE_WEEK - FIRST_LEAGUE_WEEK;
-  return FIRST_LEAGUE_WEEK + Math.floor(((round - 1) * weekSpan) / (TOTAL_ROUNDS - 1));
+  const firstLeagueWeek = season === 1
+    ? OPENING_SEASON_FIRST_LEAGUE_WEEK
+    : STANDARD_FIRST_LEAGUE_WEEK;
+  const weekSpan = LAST_LEAGUE_WEEK - firstLeagueWeek;
+  return firstLeagueWeek + Math.floor(((round - 1) * weekSpan) / (TOTAL_ROUNDS - 1));
 }
 
 export function generateSeasonFixtures(
@@ -42,7 +49,7 @@ export function generateSeasonFixtures(
         id: `s${season}-r${round}-m${matchIndex + 1}`,
         season,
         round,
-        week: leagueWeekForRound(round),
+        week: leagueWeekForRound(round, season),
         homeClubId,
         awayClubId,
         matchSeed: Math.floor(random() * UINT32_RANGE) >>> 0,
