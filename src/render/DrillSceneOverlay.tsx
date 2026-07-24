@@ -17,7 +17,7 @@ import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playerLookId } from './sprites/player-look';
 
 /** Per-drill sprite scene: fast enough to chain-tap, always tap-to-skip. */
-export const DRILL_SCENE_MS = 1_500;
+export const DRILL_SCENE_MS = 2_200;
 const REDUCED_MOTION_MS = 450;
 const STAGE_HEIGHT = 200;
 const FALLBACK_SPRITE = 24;
@@ -67,7 +67,7 @@ export interface DrillSceneOverlayProps {
 
 /**
  * A single player runs their drill on a pitch stage while the stat counts up.
- * Plays for ~1.5s, but a tap anywhere ends it instantly and jumps back to the
+ * Plays for ~2.2s, but a tap anywhere ends it instantly and jumps back to the
  * Drills popup so chain-training stays snappy.
  */
 export function DrillSceneOverlay({

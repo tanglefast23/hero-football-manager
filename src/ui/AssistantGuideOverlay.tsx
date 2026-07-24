@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { AssistantGuideContent, AssistantGuideSequenceId } from '../content';
 import { ActionButton } from './components/Scorecard';
+import { playBertVoice, stopBertVoice } from '../render/bert-voice';
 import { TutorialTapCue } from './TutorialTapCue';
 import {
   tutorialCuePosition,
@@ -26,6 +27,11 @@ export function AssistantGuideOverlay({
   onAdvance,
 }: AssistantGuideOverlayProps) {
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
+  // Bert "speaks" a fresh line of bleeps each time a new briefing page appears.
+  useEffect(() => {
+    playBertVoice();
+    return () => stopBertVoice();
+  }, [sequenceId, pageIndex]);
   const sequence = content.sequences.find(candidate => candidate.id === sequenceId);
   if (sequence === undefined) return null;
   const page = sequence.pages[Math.min(pageIndex, sequence.pages.length - 1)];
