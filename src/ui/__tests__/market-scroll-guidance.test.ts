@@ -35,4 +35,15 @@ describe('market scroll guidance', () => {
     expect(market).toContain("requestedSection === 'TRANSFERS'");
     expect(market).toContain("requestedSection === 'COACHES'");
   });
+
+  it('lands the assistant-coach inbox action on the Coaches hiring page', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    const market = readFileSync(join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'), 'utf8');
+
+    expect(app).toMatch(/destination === 'coach-market'\s*\?\s*'COACHES'/);
+    expect(app).toMatch(/destination === 'coach-market'[\s\S]*?\?\s*'market'/);
+    expect(market).toMatch(
+      /guideFocus === 'assistant-coach-hire'[\s\S]*?setSection\('COACHES'\)/,
+    );
+  });
 });

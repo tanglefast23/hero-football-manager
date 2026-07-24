@@ -71,12 +71,11 @@ describe('default two-season career journey', () => {
     // the old "at least one training-charge week across the season" and "never
     // more than one per week" assertions no longer measure anything real.
     // The m1-slice career has no tier gating, so the slot trains at the
-    // highest unlocked tier (Sprints III, +8 PAC/week) instead of the old
-    // fixed Sprints I (+3/week); the faster climb settles PAC's own rising
-    // development-headroom cap at 90 rather than 99. Sprints trains only PAC,
-    // so STA remains at the player's creation value.
+    // highest unlocked tier (Sprints III) for all 60 weeks. Cap-free training
+    // keeps raising the raw PAC value; Sprints trains only PAC, so STA remains
+    // at the player's creation value.
     expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
-      .toMatchObject({ pac: 90, sta: 50 });
+      .toMatchObject({ pac: 386, sta: 50 });
   });
 });
 

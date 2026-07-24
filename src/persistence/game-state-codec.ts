@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { validateFacilityGrid } from '../game/facilities';
 import { GAME_SCHEMA_VERSION, type GameState } from '../game/types';
 import { isPlayerLookIdForRole } from '../game/player-appearance';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import {
   CorruptCareerSaveError,
   InvalidGameStateError,
@@ -46,8 +47,8 @@ const powerIdSchema = z.enum([
   'GUST',
 ]);
 const playerAttribute = positiveInteger.refine(
-  (value) => value <= 99,
-  'must be at most 99',
+  value => value <= MAX_PLAYER_ATTRIBUTE,
+  `must be at most ${MAX_PLAYER_ATTRIBUTE}`,
 );
 
 const clubSchema = z
@@ -239,6 +240,7 @@ const playerSchema = z
       'must be at most 99',
     ).optional(),
     coachTrainingBonusRemainders: trainingRemaindersSchema.optional(),
+    trainingBonusRemainders: trainingRemaindersSchema.optional(),
   })
   .passthrough()
   .superRefine((player, context) => {
@@ -359,7 +361,10 @@ const trainingCapNoticeSchema = z
     playerId: nonemptyString,
     playerName: nonemptyString,
     attribute: z.enum(['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref']),
-    cap: positiveInteger.refine(value => value <= 99, 'must be at most 99'),
+    cap: positiveInteger.refine(
+      value => value <= MAX_PLAYER_ATTRIBUTE,
+      `must be at most ${MAX_PLAYER_ATTRIBUTE}`,
+    ),
     drillId: nonemptyString,
     kind: z.enum(['reached', 'skipped']).optional(),
   })
@@ -475,7 +480,10 @@ const pyramidClubSchema = z.object({
   id: nonemptyString,
   name: nonemptyString,
   division: divisionLevelSchema,
-  squadStrength: positiveInteger.refine(value => value <= 99, 'must be at most 99'),
+  squadStrength: positiveInteger.refine(
+    value => value <= MAX_PLAYER_ATTRIBUTE,
+    `must be at most ${MAX_PLAYER_ATTRIBUTE}`,
+  ),
   squad: z.array(pyramidPlayerSchema),
 }).passthrough();
 const cupFixtureSchema = z.object({

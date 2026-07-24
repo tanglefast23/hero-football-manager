@@ -376,8 +376,6 @@ function GameApp() {
     section: MarketSectionId;
     token: number;
   } | null>(null);
-  // Bumped when an inbox training-cap letter deep-links into the drill picker.
-  const [drillFocusToken, setDrillFocusToken] = useState<number | null>(null);
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
@@ -1254,7 +1252,6 @@ function GameApp() {
         onTabChange={tab => {
           setConciergeFocus(null);
           setMarketSectionRequest(null);
-          setDrillFocusToken(null);
           store.setActiveTab(tab);
         }}
         onAdvanceWeek={handleAdvanceWeek}
@@ -1288,8 +1285,6 @@ function GameApp() {
             onDismissSlotLimit={store.clearTrainingSlotLimit}
             guideTraining={assistantObjective?.target === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
-            reduceMotion={reduceMotion}
-            drillPickerRequestToken={drillFocusToken ?? undefined}
           />
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen
@@ -1447,13 +1442,6 @@ function GameApp() {
               }
               else if (alertId.startsWith('transfer-request-')) {
                 store.selectPlayer(alertId.slice('transfer-request-'.length));
-                store.setActiveTab('squad');
-              }
-              else if (alertId.startsWith('training-cap:')) {
-                if (alert?.playerId !== undefined) {
-                  store.selectPlayer(alert.playerId);
-                  setDrillFocusToken(current => (current ?? 0) + 1);
-                }
                 store.setActiveTab('squad');
               }
               else if (alertId === 'renewals') store.setActiveTab('squad');
@@ -1860,21 +1848,21 @@ function TrainingCapInterruptModal({
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
         <View accessibilityViewIsModal className="border-2 border-b-4 border-ink bg-paper p-5">
-          <Text className="font-mono text-sm font-bold uppercase text-stamp">Training at the cap</Text>
+          <Text className="font-mono text-sm font-bold uppercase text-stamp">Maximum 999 reached</Text>
           <Text className="mt-2 font-pixel text-xl uppercase text-ink">
             {resolved ? 'Ready to advance' : 'Pick a new stat first'}
           </Text>
           <Text className="mt-3 text-base leading-6 text-ink/70">
             {resolved
               ? 'Every trainee now has a stat with room to grow.'
-              : 'These players are already at the cap for their trained stat. Change their focus or swap them out.'}
+              : 'These stats cannot go any higher. Change the training focus or swap the player out.'}
           </Text>
           <View className="mt-4 gap-2">
             {cappedSlots.map(entry => (
               <View key={entry.playerId} className="border border-ink/20 bg-white px-3 py-2">
                 <Text className="text-base font-bold text-ink" numberOfLines={1}>{entry.playerName}</Text>
                 <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>
-                  {entry.attribute.toUpperCase()} capped at {entry.cap}
+                  {entry.attribute.toUpperCase()} cannot go above {entry.cap}
                 </Text>
                 <View className="mt-2 flex-row gap-2">
                   <Pressable

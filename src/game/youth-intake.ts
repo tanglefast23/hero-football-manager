@@ -1,6 +1,6 @@
 import { mulberry32, type Rng } from '../sim/rng';
 import type { Attrs, Role } from '../sim/types';
-import { developmentPotentialCeiling } from './archetype-caps';
+import { developmentPotentialCeiling, potentialTierForDivision } from './archetype-caps';
 import { nextDistinctPlayerLook } from './player-appearance';
 import type {
   CareerPlayer,
@@ -10,6 +10,7 @@ import type {
 } from './types';
 import { recordCashTransaction } from './cash-transactions';
 import { isFacilityOperational } from './facilities';
+import { DIVISION_TYPICAL_PACE } from './pyramid';
 import {
   isStoryFeaturePacingActive,
   isStoryYouthUnlocked,
@@ -340,13 +341,26 @@ function createOffer(
   fieldLevel: 0 | 1 | 2 | 3,
   random: Rng,
 ): YouthIntakeOffer {
-  const targetStrength = 32 + fieldLevel * 5 + integerRoll(random, 0, 6);
-  const attrs = generateAttributes(targetStrength, role, random);
+  const division = state.m2?.pyramid.divisions.find(candidate =>
+    candidate.clubs.some(club => club.id === state.userClubId),
+  )?.level ?? 5;
+  const targetStrength = 32
+    + fieldLevel * 5
+    + (5 - division) * 3
+    + integerRoll(random, 0, 6);
+  const paceTarget = Math.max(
+    targetStrength,
+    DIVISION_TYPICAL_PACE[division] - 10 + fieldLevel * 2,
+  );
+  const attrs = generateAttributes(targetStrength, role, random, paceTarget);
   const id = `youth-s${state.season}-${index + 1}`;
   if (state.players.some(player => player.id === id)) {
     throw new Error(`player ID ${id} is already in the career`);
   }
-  const potential = Math.min(5, 1 + integerRoll(random, 0, 3) + Math.floor(fieldLevel / 2)) as 1 | 2 | 3 | 4 | 5;
+  // Better youth fields improve the roll within the current division's talent
+  // pool. They cannot reveal A-range talent before D1.
+  const potentialRoll = Math.max(0, integerRoll(random, 0, 99) - fieldLevel * 10);
+  const potential = potentialTierForDivision(division, potentialRoll);
   const age = integerRoll(random, 16, 17);
   const retirementAge = 33 + integerRoll(random, 0, 5);
   const player: CareerPlayer = {
@@ -403,7 +417,12 @@ function youthRoles(roster: readonly CareerPlayer[], count: number, random: Rng)
   return roles;
 }
 
-function generateAttributes(target: number, role: Role, random: Rng): Attrs {
+function generateAttributes(
+  target: number,
+  role: Role,
+  random: Rng,
+  paceTarget = target,
+): Attrs {
   const roleNudges: Readonly<Record<Role, Attrs>> = {
     GK: { pac: -5, sho: -8, pas: 0, def: 3, tec: 0, sta: 0, ref: 10 },
     DEF: { pac: 0, sho: -4, pas: 0, def: 7, tec: -1, sta: 3, ref: -5 },
@@ -413,7 +432,7 @@ function generateAttributes(target: number, role: Role, random: Rng): Attrs {
   const nudges = roleNudges[role];
   const value = (nudge: number) => clampRating(target + nudge + integerRoll(random, -3, 3));
   return {
-    pac: value(nudges.pac),
+    pac: clampRating(paceTarget + nudges.pac + integerRoll(random, -3, 3)),
     sho: value(nudges.sho),
     pas: value(nudges.pas),
     def: value(nudges.def),
@@ -518,7 +537,7 @@ function checkedAdd(left: number, right: number, label: string): number {
 }
 
 function clampRating(value: number): number {
-  return Math.max(1, Math.min(99, value));
+  return Math.max(1, Math.min(999, value));
 }
 
 function integerRoll(random: Rng, minimum: number, maximum: number): number {

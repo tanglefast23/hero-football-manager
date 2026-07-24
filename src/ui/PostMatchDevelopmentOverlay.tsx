@@ -200,7 +200,7 @@ export function PostMatchDevelopmentOverlay({
                     );
                   }) : (
                     <View className="border-2 border-ink bg-white px-3 py-2">
-                      <Text className="text-sm font-bold uppercase text-ink/60">Stats are at their training caps</Text>
+                      <Text className="text-sm font-bold uppercase text-ink/60">No focused stat gain this week</Text>
                     </View>
                   )}
                 </View>

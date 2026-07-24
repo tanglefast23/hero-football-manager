@@ -14,6 +14,7 @@ import {
   pendingAssistantGuideSequence,
   reconcileSatisfiedAssistantGuideSequences,
 } from '../assistant-guide';
+import { homeViewModel, reconcileHomeAssistantInbox } from '../view-models';
 
 describe('assistant guide application flow', () => {
   test('reveals one task and one follow-up sequence at a time', () => {
@@ -152,5 +153,47 @@ describe('assistant guide application flow', () => {
     state = reconcileSatisfiedAssistantGuideSequences(state);
     expect(state.facilities.trainingGroundBuilt).toBe(true);
     expect(hasAssistantGuideSequenceCompleted(state, 'facility-placement')).toBe(true);
+  });
+
+  it('waits until the Coaching Office opens before offering assistant-coach hiring', () => {
+    let state = createCareer(createLaunchCareerSetup(414, undefined, undefined, 'full'));
+    state = {
+      ...state,
+      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+    };
+    state = buildCareerFacility(state, 'coaching-office', { x: 2, y: 0 }).state;
+
+    expect(state.facilities.grid?.construction?.type).toBe('coaching-office');
+    expect(dueAssistantInboxGuideSequences(state)).not.toContain('assistant-coach-hire');
+
+    const premature = {
+      ...state,
+      eventFlags: [
+        ...state.eventFlags,
+        'guide:bert:inbox:queued:assistant-coach-hire',
+        'guide:bert:inbox:delivered:s1:w1:guide:assistant-coach-hire',
+        'guide:bert:sequence-complete:assistant-coach-hire',
+      ],
+    };
+    const repaired = reconcileSatisfiedAssistantGuideSequences(premature);
+    expect(repaired.eventFlags.some(flag => flag.includes('assistant-coach-hire'))).toBe(false);
+    const repairedLaterSeason = reconcileSatisfiedAssistantGuideSequences({
+      ...premature,
+      season: 2,
+    });
+    expect(repairedLaterSeason.eventFlags.some(flag => flag.includes('assistant-coach-hire')))
+      .toBe(false);
+
+    state = advanceWeek(repaired);
+    state = reconcileSatisfiedAssistantGuideSequences(state);
+
+    expect(state.facilities.grid?.construction).toBeUndefined();
+    expect(dueAssistantInboxGuideSequences(state)).toContain('assistant-coach-hire');
+
+    const scheduled = reconcileHomeAssistantInbox(state);
+    expect(homeViewModel(scheduled).alerts).toContainEqual(expect.objectContaining({
+      guideSequenceId: 'assistant-coach-hire',
+      destination: 'coach-market',
+    }));
   });
 });

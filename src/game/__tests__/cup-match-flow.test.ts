@@ -100,7 +100,7 @@ describe('player-controlled National Cup match flow', () => {
   });
 
   test('adds a separately labelled gate receipt for a home Cup tie', () => {
-    const afterLeague = cupReadyCareer(true, true);
+    const afterLeague = cupReadyCareer(true);
     const fixture = activeCareerMatchday(afterLeague)!.fixture;
     const userClub = afterLeague.clubs.find(club => club.id === afterLeague.userClubId)!;
     const expectedGate = Math.floor(userClub.fans * 0.6) * userClub.ticketPrice;
@@ -113,10 +113,9 @@ describe('player-controlled National Cup match flow', () => {
     const settled = completeMatchday(afterLeague, [userWin]);
 
     const ledger = settled.ledgers.at(-1)!;
-    expect(ledger.lines.filter(line => line.kind === 'tickets')).toEqual([
-      { kind: 'tickets', label: 'League home gate', amount: expectedGate },
+    expect(ledger.lines.filter(line => line.kind === 'tickets')).toContainEqual(
       { kind: 'tickets', label: 'National Cup Play-in home gate', amount: expectedGate },
-    ]);
+    );
     expect(ledger.balanceAfter).toBe(
       userClub.cash + ledger.lines.reduce((total, line) => total + line.amount, 0),
     );

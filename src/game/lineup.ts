@@ -1,4 +1,5 @@
 import type { Attrs, Role, TeamDef } from '../sim/types';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import type { ProgressionPlayer } from './progression';
 
 export type MatchSquadPlayer = ProgressionPlayer & {
@@ -24,7 +25,7 @@ export function matchAttrsAtMorale(attrs: Readonly<Attrs>, morale: number): Attr
   for (const attribute of ATTR_NAMES) {
     adjusted[attribute] = Math.max(
       1,
-      Math.min(99, Math.round((attrs[attribute] * scalePerThousand) / 1000)),
+      Math.min(MAX_PLAYER_ATTRIBUTE, Math.round((attrs[attribute] * scalePerThousand) / 1000)),
     );
   }
   return adjusted;
@@ -78,8 +79,10 @@ export function buildTeamDef(
     }
     for (const attribute of ATTR_NAMES) {
       const value = player.attrs[attribute];
-      if (!Number.isSafeInteger(value) || value < 1 || value > 99) {
-        throw new Error(`Player ${player.id} attribute ${attribute} must be an integer from 1 to 99`);
+      if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
+        throw new Error(
+          `Player ${player.id} attribute ${attribute} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
+        );
       }
     }
     if (player.licensed && !player.power) {

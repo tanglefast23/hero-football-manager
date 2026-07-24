@@ -209,10 +209,10 @@ describe('career contract promises', () => {
     ]);
   });
 
-  test('a fully-capped promised player does not raise a pending bump signal', () => {
+  test('a player at the universal maximum does not raise a pending bump signal', () => {
     const state = career(9407);
     const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const cappedAttrs = { pac: 88, sho: 88, pas: 88, def: 88, tec: 88, sta: 88, ref: 88 };
+    const cappedAttrs = { pac: 999, sho: 999, pas: 999, def: 999, tec: 999, sta: 999, ref: 999 };
     const trainee = {
       ...roster[0],
       archetype: 'All-Rounder' as const,
@@ -236,10 +236,10 @@ describe('career contract promises', () => {
     expect(promised.trainingPlan?.slots).toEqual(fullSlots);
   });
 
-  test('a fully-capped promised player can be dropped from the plan without throwing', () => {
+  test('a player at the universal maximum can be dropped from the plan without throwing', () => {
     const state = career(9408);
     const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const cappedAttrs = { pac: 88, sho: 88, pas: 88, def: 88, tec: 88, sta: 88, ref: 88 };
+    const cappedAttrs = { pac: 999, sho: 999, pas: 999, def: 999, tec: 999, sta: 999, ref: 999 };
     const trainee = {
       ...roster[0],
       archetype: 'All-Rounder' as const,

@@ -1,5 +1,6 @@
 import { mulberry32 } from '../sim/rng';
 import type { Attrs, PowerId, Role } from '../sim/types';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import coachIdentityData from './coach-identities.json';
 
 const UINT32_MAX = 4294967295;
@@ -231,13 +232,13 @@ export function scoutAttributeRanges(
   const span = scoutOfficeLevel === 1 ? 30 : scoutOfficeLevel === 2 ? 18 : 8;
 
   return {
-    pac: scoutingRange(attrs.pac, span, 1, 99, mixSeed(rangeSeed, 'pac')),
-    sho: scoutingRange(attrs.sho, span, 1, 99, mixSeed(rangeSeed, 'sho')),
-    pas: scoutingRange(attrs.pas, span, 1, 99, mixSeed(rangeSeed, 'pas')),
-    def: scoutingRange(attrs.def, span, 1, 99, mixSeed(rangeSeed, 'def')),
-    tec: scoutingRange(attrs.tec, span, 1, 99, mixSeed(rangeSeed, 'tec')),
-    sta: scoutingRange(attrs.sta, span, 1, 99, mixSeed(rangeSeed, 'sta')),
-    ref: scoutingRange(attrs.ref, span, 1, 99, mixSeed(rangeSeed, 'ref')),
+    pac: scoutingRange(attrs.pac, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'pac')),
+    sho: scoutingRange(attrs.sho, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'sho')),
+    pas: scoutingRange(attrs.pas, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'pas')),
+    def: scoutingRange(attrs.def, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'def')),
+    tec: scoutingRange(attrs.tec, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'tec')),
+    sta: scoutingRange(attrs.sta, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'sta')),
+    ref: scoutingRange(attrs.ref, span, 1, MAX_PLAYER_ATTRIBUTE, mixSeed(rangeSeed, 'ref')),
   };
 }
 
@@ -1019,8 +1020,8 @@ function validateRetiredLegend(legend: RetiredLegendCoachInput): void {
 function validateAttrs(attrs: Readonly<Attrs>, label: string): void {
   for (const attribute of ATTR_NAMES) {
     const value = attrs[attribute];
-    if (!Number.isSafeInteger(value) || value < 1 || value > 99) {
-      throw new Error(`${label} ${attribute} must be an integer from 1 to 99`);
+    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
+      throw new Error(`${label} ${attribute} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
     }
   }
 }

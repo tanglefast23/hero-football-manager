@@ -19,7 +19,7 @@ import {
   squadTrainingViewModel,
 } from '../view-models';
 
-describe('training cap feedback', () => {
+describe('universal training maximum feedback', () => {
   const content = loadLaunchContent();
   const sprints = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
 
@@ -48,7 +48,7 @@ describe('training cap feedback', () => {
     // Before committing, the stat picker already shows this stat as maxed out.
     const beforeCommit = useM1Store.getState().career!;
     expect(squadTrainingViewModel(beforeCommit, content, player.id, []).selectedPlayerStatOptions)
-      .toContainEqual(expect.objectContaining({ pathId: 'sprints', room: 0, atCap: true }));
+      .toContainEqual(expect.objectContaining({ pathId: 'sprints', atSafetyCeiling: true }));
 
     useM1Store.getState().toggleTrainingPlayer(player.id);
     useM1Store.getState().setTrainingSlotStat(player.id, 'sprints');
@@ -122,7 +122,7 @@ describe('training cap feedback', () => {
       .weeklyTrainingPointCost).toBe(finishing.tpCost);
   });
 
-  it('adds a one-shot inbox note naming the player, ability, and drill when the cap is reached', () => {
+  it('adds a one-shot inbox note at the rare universal safety maximum', () => {
     let before = createCareer(createLaunchCareerSetup(20260722, undefined, content, 'full'));
     before = M2_ASSISTANT_GUIDE_SEQUENCE_IDS.reduce(
       (state, sequenceId) => completeAssistantGuideSequence(state, sequenceId),
@@ -151,10 +151,9 @@ describe('training cap feedback', () => {
 
     expect(alert).toEqual({
       id: `training-cap:s1-w1:${player.id}:pac:sprints`,
-      title: `${player.name} reached their PAC maximum`,
-      detail: `Sprints I took PAC to its personal maximum of ${pacCap}. Tap to switch their drill or stop their training.`,
+      title: `${player.name} reached ${pacCap} PAC`,
+      detail: 'Sprints I took PAC to its maximum. It cannot go higher, so choose another stat or player for next week.',
       tone: 'info',
-      playerId: player.id,
     });
     expect(parseStoredGameState(serializeGameState(after)).trainingCapNotices)
       .toEqual(after.trainingCapNotices);
@@ -202,7 +201,7 @@ describe('training cap feedback', () => {
     expect(() => parseStoredGameState(serializeGameState(after))).not.toThrow();
   });
 
-  it('counts a personal attribute cap once when duplicate slots reach it together', () => {
+  it('counts the universal maximum once when duplicate slots reach it together', () => {
     // setCareerTrainingPlan forbids two slots for one player; this constructs
     // the plan directly to exercise the reached-cap dedup guard in
     // findReachedTrainingCaps, which still matters if a save is ever migrated
@@ -233,11 +232,10 @@ describe('training cap feedback', () => {
     ))).toHaveLength(1);
   });
 
-  it('shows the best-tier gain and room for a selected player\'s stat options', () => {
+  it('shows the best-tier gain and current rating for a selected player\'s stat options', () => {
     const state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
     const roster = state.players.filter(player => player.clubId === state.userClubId);
     const trainee = roster[0];
-    const cap = playerAttributeCaps(trainee).pac;
     const expectedGain = resolveTrainingDrillForPath(state, 'sprints').gains.pac;
 
     const model = squadTrainingViewModel(state, content, trainee.id, []);
@@ -245,12 +243,12 @@ describe('training cap feedback', () => {
 
     expect(option).toMatchObject({
       gain: expectedGain,
-      room: cap - trainee.attrs.pac,
-      atCap: false,
+      currentValue: trainee.attrs.pac,
+      atSafetyCeiling: false,
     });
   });
 
-  it('reports atCap only when the player is genuinely at their personal cap', () => {
+  it('reports the safety ceiling only at the universal maximum', () => {
     let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
     const roster = state.players.filter(player => player.clubId === state.userClubId);
     const trainee = roster[0];
@@ -265,11 +263,11 @@ describe('training cap feedback', () => {
     const model = squadTrainingViewModel(state, content, trainee.id, []);
     const option = model.selectedPlayerStatOptions?.find(candidate => candidate.pathId === 'sprints');
 
-    expect(option?.room).toBe(0);
-    expect(option?.atCap).toBe(true);
+    expect(option?.currentValue).toBe(999);
+    expect(option?.atSafetyCeiling).toBe(true);
   });
 
-  it('keeps a stat option\'s atCap independent of whether the club can afford it (regression)', () => {
+  it('keeps the safety ceiling independent of whether the club can afford training', () => {
     let state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
     const roster = state.players.filter(player => player.clubId === state.userClubId);
     const trainee = roster[0];
@@ -290,7 +288,7 @@ describe('training cap feedback', () => {
     );
     const option = model.selectedPlayerStatOptions?.find(candidate => candidate.pathId === 'sprints');
 
-    expect(option?.atCap).toBe(false);
+    expect(option?.atSafetyCeiling).toBe(false);
     expect(model.interrupts.tpShortfall).toBeGreaterThan(0);
   });
 });

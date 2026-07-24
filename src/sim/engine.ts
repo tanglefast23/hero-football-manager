@@ -13,6 +13,13 @@ import {
   playerAt,
   requirePlayerAt,
 } from './entities';
+import {
+  BASE_MOVEMENT_SPEED,
+  matchAttribute,
+  matchPaceAttribute,
+  slideStaminaDrainScale,
+  staminaEnduranceScale,
+} from './attributes';
 
 export { addGauge, interruptWindup, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, knockOut };
 
@@ -69,14 +76,20 @@ export function effectiveStat(state: MatchState, idx: number, stat: keyof Attrs)
   const player = requirePlayerAt(state, idx);
   // STA determines drain; every other action stat follows the canon curve:
   // full value at 100 condition, down to at most a 25% penalty at zero.
-  if (stat === 'sta') return player.def.attrs.sta;
+  const baseAttribute = stat === 'pac'
+    ? matchPaceAttribute(player.def.attrs.pac)
+    : matchAttribute(player.def.attrs[stat]);
+  if (stat === 'sta') return baseAttribute;
   const conditionScale = 0.75 + 0.25 * (player.condition / 100);
-  return Math.max(1, Math.round(player.def.attrs[stat] * conditionScale));
+  return Math.max(1, Math.round(baseAttribute * conditionScale));
 }
 
 /** Authoritative speed: reads power state internally (Task 12 supplies the multiplier). */
 export function speedFor(state: MatchState, idx: number): number {
-  return Math.round((40 + effectiveStat(state, idx, 'pac')) * speedMultiplier(state, idx));
+  return Math.round(
+    (BASE_MOVEMENT_SPEED + effectiveStat(state, idx, 'pac'))
+    * speedMultiplier(state, idx),
+  );
 }
 
 export function ballPos(state: MatchState): Vec {
@@ -96,7 +109,7 @@ export const SPRINT_CONDITION_COST = 0.058;
 export function drainStamina(p: SimPlayer, movedFar: boolean, energyUse: EnergyUse = 'BALANCED'): void {
   // The design-pinned comparison is STA 40 => 1.36x drain and STA 80 =>
   // 1.12x. Condition affects speed plus every contested action exactly once.
-  const enduranceScale = 1.6 - p.def.attrs.sta * 0.006;
+  const enduranceScale = staminaEnduranceScale(p.def.attrs.sta);
   const cost = (movedFar ? SPRINT_CONDITION_COST : ORDINARY_CONDITION_COST)
     * enduranceScale
     * energyDrainMultiplier(energyUse);
@@ -104,7 +117,7 @@ export function drainStamina(p: SimPlayer, movedFar: boolean, energyUse: EnergyU
 }
 
 function drainSlideCondition(p: SimPlayer, energyUse: EnergyUse): void {
-  const drainMultiplier = 1 + 0.6 * (100 - p.def.attrs.sta) / 100;
+  const drainMultiplier = slideStaminaDrainScale(p.def.attrs.sta);
   p.condition = clamp(
     p.condition - SLIDE_TACKLE_CONDITION_COST * drainMultiplier * energyDrainMultiplier(energyUse),
     0,
@@ -519,7 +532,10 @@ function shadowFrontalPressure(state: MatchState, by: number, pos: Vec): number 
 /** Aim error shared by decision quality and the actual launch. */
 function shotSpreadAt(state: MatchState, by: number, pos: Vec, distance: number, forDecision = false): number {
   const sho = effectiveStat(state, by, 'sho');
-  const base = 500 + (99 - sho) * 8 + Math.round(distance / 4);
+  const closeRangeSpread = sho <= 99
+    ? 500 + (99 - sho) * 8
+    : Math.round(50_000 / (sho + 1));
+  const base = closeRangeSpread + Math.round(distance / 4);
   const pressureSpread = hasFrontalPressure(state, by, pos, forDecision) ? Math.round(base * 1.25) : base;
   const finish = powerFinishShotProfile(state, by);
   if (finish === null) return pressureSpread;

@@ -7,7 +7,10 @@ import {
   createLegendLegacy,
   createNationalCup,
   DIVISION_FOUR_RELEGATION_PACK_STRENGTHS,
+  DIVISION_SUPPORT_STRENGTHS,
   DIVISION_STRENGTH_BANDS,
+  DIVISION_TYPICAL_PACE,
+  divisionStarFocusedAttribute,
   generateLeaguePyramid,
   divisionTierLabel,
   isClubLegend,
@@ -115,6 +118,40 @@ describe('five-division pyramid generation', () => {
       expect(Math.max(...strengths)).toBe(maximum);
       expect(strengths.every(strength => strength >= minimum && strength <= maximum)).toBe(true);
     }
+  });
+
+  it('concentrates later-division growth in three position specialists per club', () => {
+    const pyramid = generateLeaguePyramid(20260722);
+    const globalLeague = pyramid.divisions.find(division => division.level === 1)!;
+    const districtLeague = pyramid.divisions.find(division => division.level === 5)!;
+
+    expect(DIVISION_SUPPORT_STRENGTHS).toEqual({ 1: 48, 2: 46, 3: 44, 4: 42, 5: 40 });
+    expect(DIVISION_TYPICAL_PACE).toEqual({ 1: 90, 2: 88, 3: 82, 4: 78, 5: 72 });
+    expect(divisionStarFocusedAttribute(1, 85)).toBe(442);
+    for (const club of globalLeague.clubs) {
+      expect(club.squad.filter(player => Math.max(...Object.values(player.attrs)) > 99))
+        .toHaveLength(3);
+      expect(club.squad.some(player => player.role === 'FWD' && player.attrs.pac > 99)).toBe(true);
+    }
+    const districtMaximum = Math.max(
+      ...districtLeague.clubs.flatMap(club => (
+        club.squad.flatMap(player => Object.values(player.attrs))
+      )),
+    );
+    const globalMaximum = Math.max(
+      ...globalLeague.clubs.flatMap(club => (
+        club.squad.flatMap(player => Object.values(player.attrs))
+      )),
+    );
+    expect(districtMaximum).toBeLessThan(160);
+    expect(globalMaximum).toBeGreaterThan(400);
+    const medianPace = (club: (typeof globalLeague.clubs)[number]) => (
+      club.squad.map(player => player.attrs.pac).sort((left, right) => left - right)[8]
+    );
+    expect(globalLeague.clubs.every(club => medianPace(club) >= 85 && medianPace(club) <= 95))
+      .toBe(true);
+    expect(districtLeague.clubs.every(club => medianPace(club) >= 65 && medianPace(club) <= 75))
+      .toBe(true);
   });
 
   it('deterministically installs two D4 relegation clubs without weakening its middle, top, or other divisions', () => {
@@ -312,7 +349,7 @@ describe('aging, retirement, and legacy', () => {
     expect(youth.youth.name.endsWith(' Flint')).toBe(true);
     expect(youth.startingStatBoostPercent).toBe(15);
     expect(boostLegacyYouthAttributes({ ...ATTRS, ref: 90 })).toEqual({
-      pac: 69, sho: 69, pas: 69, def: 69, tec: 69, sta: 69, ref: 99,
+      pac: 69, sho: 69, pas: 69, def: 69, tec: 69, sta: 69, ref: 103,
     });
   });
 });

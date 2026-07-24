@@ -1,4 +1,5 @@
 import type { Attrs, PowerId } from '../sim/types';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 
 export interface ProgressionPlayer {
   readonly id: string;
@@ -141,9 +142,9 @@ function validateDrill(drill: FocusDrill): void {
 function validatePlayerAttrs(player: ProgressionPlayer): void {
   for (const attribute of ATTR_NAMES) {
     const value = player.attrs[attribute];
-    if (!Number.isSafeInteger(value) || value < 1 || value > 99) {
+    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
       throw new Error(
-        `Player ${player.id} attribute ${attribute} must be a safe integer from 1 to 99`,
+        `Player ${player.id} attribute ${attribute} must be from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
       );
     }
   }
@@ -199,7 +200,7 @@ export function applyTrainingPlan(
         if (gain === undefined) continue;
 
         const nextValue = attrs[attribute] + gain;
-        attrs[attribute] = nextValue > 99 ? 99 : nextValue;
+        attrs[attribute] = Math.min(MAX_PLAYER_ATTRIBUTE, nextValue);
       }
     }
     return { ...player, attrs };

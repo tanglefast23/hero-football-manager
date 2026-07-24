@@ -1,4 +1,5 @@
 import type { Attrs, PowerId } from '../sim/types';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import type { GameState } from './types';
 import { LAUNCH_POWER_IDS } from './power-catalog';
 
@@ -75,8 +76,10 @@ export function awakeningPowerRollSize(
 
 function awakeningPowerWeight(powerId: PowerId, attrs: Readonly<Attrs>): number {
   const values = Object.values(attrs);
-  if (values.some(value => !Number.isSafeInteger(value) || value < 1 || value > 99)) {
-    throw new Error('awakening attributes must be integers from 1 to 99');
+  if (values.some(value => !Number.isSafeInteger(value)
+    || value < 1
+    || value > MAX_PLAYER_ATTRIBUTE)) {
+    throw new Error(`awakening attributes must be integers from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
   }
   if (powerId === 'SUPER_SPEED') return 10 + attrs.pac * 3 + attrs.tec + attrs.pas;
   if (powerId === 'BLINK_RUN') return 10 + attrs.pac * 2 + attrs.tec * 2 + attrs.sho;
@@ -224,7 +227,10 @@ function applyPlayerEffect(
       const delta = safeDelta(effect.attributeDelta ?? 0, 'event attribute');
       attrs[effect.attribute] = Math.max(
         1,
-        Math.min(99, safeAdd(attrs[effect.attribute], delta, 'event attribute')),
+        Math.min(
+          MAX_PLAYER_ATTRIBUTE,
+          safeAdd(attrs[effect.attribute], delta, 'event attribute'),
+        ),
       );
     } else if (effect.attributeDelta !== undefined) {
       throw new Error('an event attribute delta requires an attribute');

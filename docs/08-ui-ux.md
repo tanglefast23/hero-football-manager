@@ -16,7 +16,7 @@ Portrait, one-handed, thumb-first. The design language follows the house rules (
 Bottom tab bar, 5 tabs; a persistent **Advance Week ▸** button lives above it on every management screen (the Kairosoft heartbeat button).
 
 1. **Home** — club hub: next fixture card, cash/TP/HE strip, alerts (renewals due, event waiting, injuries), league position snippet.
-2. **Squad** — roster list (sortable chips) → Player Card (large portrait with customization/paper-doll layers, stats + archetype caps, contract, morale, power panel with gauge history & upgrade button).
+2. **Squad** — roster list (sortable chips) → Player Card (large portrait with customization/paper-doll layers, raw stats, exact Archetype/Position/Potential training bonuses, contract, morale, and power panel). Stats have no personal cap; a value of 999 is labelled as the universal maximum.
 3. **Club** — facilities grid (build/upgrade/move with adjacency glows), staff (coach card, hire market), finances (ledger, sponsors, loan status).
 4. **Market** — scouting missions, transfer listings, negotiation flow (mood face + Pitch Cards), youth intake.
 5. **League** — named five-division ladder, current standings, fixtures/results, cup progress, and a live comparison between your squad strength and each division's club strength range.

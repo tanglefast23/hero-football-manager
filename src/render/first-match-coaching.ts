@@ -2,13 +2,11 @@ import { MAX_SUBSTITUTIONS } from '../sim/substitutions';
 import type { MatchState } from '../sim/types';
 
 export const FIRST_MATCH_RED_ENERGY_THRESHOLD = 30;
-export const FIRST_MATCH_COMEBACK_GOAL_MARGIN = 3;
 
-export type FirstMatchCoachingPrompt = 'tired-player' | 'three-goal-deficit';
+export type FirstMatchCoachingPrompt = 'tired-player';
 
 export interface FirstMatchCoachingPromptsSeen {
   readonly tiredPlayer: boolean;
-  readonly threeGoalDeficit: boolean;
 }
 
 function firstTiredControlledPlayer(
@@ -53,14 +51,6 @@ export function nextFirstMatchCoachingPrompt(
 
   if (!seen.tiredPlayer && firstTiredControlledPlayer(state, controlledTeam) !== null) {
     return 'tired-player';
-  }
-
-  const opponent = controlledTeam === 0 ? 1 : 0;
-  if (
-    !seen.threeGoalDeficit
-    && state.score[opponent] - state.score[controlledTeam] >= FIRST_MATCH_COMEBACK_GOAL_MARGIN
-  ) {
-    return 'three-goal-deficit';
   }
 
   return null;

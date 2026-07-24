@@ -56,8 +56,13 @@ export function dueAssistantInboxGuideSequences(
   const completed = (sequenceId: AssistantInboxGuideSequenceId) => (
     hasAssistantGuideSequenceCompleted(state, sequenceId)
   );
-  const buildings = state.facilities.grid?.buildings ?? [];
+  const grid = state.facilities.grid;
+  const buildings = grid?.buildings ?? [];
   const hasCoachingOffice = buildings.some(building => building.type === 'coaching-office');
+  const hasOperationalCoachingOffice = grid !== undefined && buildings.some(building => (
+    building.type === 'coaching-office'
+    && isFacilityOperational(grid, building.id)
+  ));
   const scoutingUnlocked = isStoryScoutingUnlocked(state)
     || state.market.activeScoutMission !== undefined
     || state.market.scoutReports.length > 0;
@@ -70,7 +75,7 @@ export function dueAssistantInboxGuideSequences(
     due.push(completed('head-coach-market') ? 'head-coach-hire' : 'head-coach-market');
   } else if (!hasCoachingOffice) {
     due.push('coaching-office');
-  } else if (state.market.assistantCoach === undefined) {
+  } else if (hasOperationalCoachingOffice && state.market.assistantCoach === undefined) {
     due.push('assistant-coach-hire');
   }
 
@@ -82,7 +87,6 @@ export function dueAssistantInboxGuideSequences(
     due.push('youth-intake');
   }
 
-  const grid = state.facilities.grid;
   const operationalTrainingPitch = grid === undefined
     ? state.facilities.trainingGroundBuilt
     : buildings.some(building => (
@@ -161,10 +165,14 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
     next = completeAssistantGuideSequence(next, 'head-coach-hire');
   }
 
-  const hasCoachingOffice = state.facilities.grid?.buildings.some(
+  const grid = state.facilities.grid;
+  const hasCoachingOffice = grid?.buildings.some(
     building => building.type === 'coaching-office',
   ) ?? false;
-  const grid = state.facilities.grid;
+  const hasOperationalCoachingOffice = grid?.buildings.some(building => (
+    building.type === 'coaching-office'
+    && isFacilityOperational(grid, building.id)
+  )) ?? false;
   const hasOperationalTrainingPitch = grid === undefined
     ? state.facilities.trainingGroundBuilt
     : grid.buildings.some(building => (
@@ -185,8 +193,11 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
     next = completeAssistantGuideSequence(next, 'scout-mission');
   }
 
-  if (!isStoryFeaturePacingActive(next)) return next;
   const premature: AssistantInboxGuideSequenceId[] = [];
+  if (!hasOperationalCoachingOffice) premature.push('assistant-coach-hire');
+  if (!isStoryFeaturePacingActive(next)) {
+    return deferAssistantGuideSequencesUntilUnlock(next, premature);
+  }
   if (!isStoryYouthUnlocked(next)) premature.push('youth-intake');
   if (!isStoryCupGuideUnlocked(next)) premature.push('national-cup');
   if (

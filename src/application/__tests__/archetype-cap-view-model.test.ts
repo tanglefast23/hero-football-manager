@@ -3,15 +3,15 @@ import {
   PLAYER_ARCHETYPES,
   createCareer,
   playerAttributeCaps,
-  potentialGradeForOverall,
-  projectedPlayerOverall,
+  playerPotentialGrade,
+  playerPotentialTrainingBonusPercent,
   roleOverall,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { squadTrainingViewModel } from '../view-models';
 
-describe('personal potential in the Squad desk', () => {
-  test('shows role-aware current ratings and fixed projected cap grades', () => {
+describe('open-ended potential in the Squad desk', () => {
+  test('shows role-aware current ratings and exact training-speed grades', () => {
     const content = loadLaunchContent();
     const initial = createCareer(createLaunchCareerSetup(73101, undefined, content, 'full'));
     const roster = initial.players.filter(player => player.clubId === initial.userClubId);
@@ -37,8 +37,9 @@ describe('personal potential in the Squad desk', () => {
         attribute.cap,
       ]))).toEqual(playerAttributeCaps(careerPlayer));
       expect(player.overall).toBe(roleOverall(careerPlayer.role, careerPlayer.attrs));
-      expect(player.projectedOverall).toBe(projectedPlayerOverall(careerPlayer));
-      expect(player.potentialGrade).toBe(potentialGradeForOverall(player.projectedOverall));
+      expect(player.potentialGrade).toBe(playerPotentialGrade(careerPlayer));
+      expect(player.potentialBonusPercent)
+        .toBe(playerPotentialTrainingBonusPercent(careerPlayer));
     }
   });
 });

@@ -43,6 +43,7 @@ export interface ScoutReportViewModel {
   readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
   readonly lookId?: string;
   readonly ageLabel: string;
+  readonly potentialLabel: string;
   readonly powerLabel?: string;
   readonly rumorLabel?: string;
   readonly stats: readonly ScoutedStatViewModel[];
@@ -62,6 +63,7 @@ export interface TransferListingViewModel {
   readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
   readonly lookId?: string;
   readonly age: number;
+  readonly potentialLabel: string;
   readonly direction: 'BUY' | 'SELL';
   readonly powerLabel?: string;
   readonly valuation: number;
@@ -108,6 +110,7 @@ export interface YouthOfferViewModel {
   readonly lookId?: string;
   readonly ageLabel: string;
   readonly archetypeLabel: string;
+  readonly potentialLabel: string;
   readonly signingBonus: number;
   readonly weeklyWage: number;
   readonly available: boolean;

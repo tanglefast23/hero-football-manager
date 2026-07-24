@@ -34,7 +34,7 @@ describe('M2 player-specific training growth', () => {
     expect(prime.attrs.sta).toBe(53);
   });
 
-  test('uses the matching facility level and diminishing returns', () => {
+  test('uses the matching facility level without a high-stat growth wall', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90211), careerMode: 'full' });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     const state = {
@@ -62,11 +62,11 @@ describe('M2 player-specific training growth', () => {
 
     const player = resolveCareerTrainingWeek(state).players.find(candidate => candidate.id === playerId)!;
 
-    // Circuit I's +3 STA x Engine 1.15 x Lv3 Gym 2.0 x high-stat 0.5 rounds to 3.
-    expect(player.attrs.sta).toBe(93);
+    // Circuit I's +3 STA, Engine +15%, and Lv3 Gym x2 still add seven points at 90.
+    expect(player.attrs.sta).toBe(97);
   });
 
-  test('banks the fractional coach bonus after other growth multipliers', () => {
+  test('banks combined fractional development bonuses after structural multipliers', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90212), careerMode: 'full' });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     // Level 1 (not 4): a real tier-I drill's fixed +3 gain, times the Lv3
@@ -122,13 +122,13 @@ describe('M2 player-specific training growth', () => {
     const secondWeek = resolveCareerTrainingWeek({ ...state, players: firstWeek.players });
     const secondPlayer = secondWeek.players.find(candidate => candidate.id === playerId)!;
 
-    // Each week has +6 base growth (tier-I +3 x Lv3 facility x2) and a 10%
-    // coach bonus (60 hundredths). The fractional coach portion carries, so
-    // the first week banks it and the second week releases the extra point.
+    // Each week has +6 base growth (tier-I +3 x Lv3 facility x2) and a combined
+    // 13% coach-plus-potential bonus. The first week banks 78 hundredths; the
+    // second releases one extra point and carries 56.
     expect(firstPlayer.attrs.sho).toBe(56);
-    expect(firstPlayer.coachTrainingBonusRemainders?.sho).toBe(60);
+    expect(firstPlayer.trainingBonusRemainders?.sho).toBe(78);
     expect(secondPlayer.attrs.sho).toBe(63);
-    expect(secondPlayer.coachTrainingBonusRemainders?.sho).toBe(20);
+    expect(secondPlayer.trainingBonusRemainders?.sho).toBe(56);
   });
 
   test('turns a Level 1 Attack coach into one exact extra point over repeated +3 drills', () => {
@@ -172,15 +172,15 @@ describe('M2 player-specific training growth', () => {
     }
 
     expect(weeklyGains).toEqual([3, 3, 3, 4]);
-    expect(state.players.find(player => player.id === playerId)?.coachTrainingBonusRemainders?.sho)
+    expect(state.players.find(player => player.id === playerId)?.trainingBonusRemainders?.sho)
       .toBe(20);
   });
 
-  test('caps gains at each player personal ceiling while preserving an above-cap rating', () => {
+  test('allows gains through 99 and stops only at the universal 999 ceiling', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90213), careerMode: 'full' });
     const roster = initial.players.filter(player => player.clubId === initial.userClubId);
-    const cappedId = roster[0].id;
-    const exceptionalId = roster[1].id;
+    const growingId = roster[0].id;
+    const maximumId = roster[1].id;
     const baseAttrs = { pac: 40, sho: 40, pas: 40, def: 40, tec: 40, sta: 40, ref: 40 };
     const profile = {
       ...roster[0],
@@ -190,45 +190,40 @@ describe('M2 player-specific training growth', () => {
       potentialCeiling: 60,
       attrs: baseAttrs,
     };
-    const personalShootingCap = playerAttributeCaps(profile).sho;
     const state = {
       ...initial,
       trainingPoints: 100,
       players: initial.players.map(player => {
-        // Starts one point short of the cap so any real drill gain (minimum
-        // +1) reaches it in a single settlement, without needing a
-        // synthetic +99 gain the new catalog can't produce.
-        if (player.id === cappedId) {
-          return { ...profile, age: 20, attrs: { ...baseAttrs, sho: personalShootingCap - 1 } };
+        if (player.id === growingId) {
+          return { ...profile, age: 20, attrs: { ...baseAttrs, sho: 98 } };
         }
-        if (player.id === exceptionalId) {
+        if (player.id === maximumId) {
           return {
             ...profile,
-            id: exceptionalId,
+            id: maximumId,
             age: 20,
-            attrs: { ...baseAttrs, sho: personalShootingCap + 1 },
+            attrs: { ...baseAttrs, sho: 998 },
           };
         }
         return player;
       }),
       trainingPlan: {
         slots: [
-          { playerId: cappedId, pathId: 'finishing' },
-          { playerId: exceptionalId, pathId: 'finishing' },
+          { playerId: growingId, pathId: 'finishing' },
+          { playerId: maximumId, pathId: 'finishing' },
         ],
       },
     };
 
     const players = resolveCareerTrainingWeek(state).players;
-    const capped = players.find(player => player.id === cappedId)!;
-    const exceptional = players.find(player => player.id === exceptionalId)!;
+    const growing = players.find(player => player.id === growingId)!;
+    const maximum = players.find(player => player.id === maximumId)!;
 
-    expect(personalShootingCap).toBeLessThan(95);
-    expect(capped.attrs.sho).toBe(personalShootingCap);
-    expect(exceptional.attrs.sho).toBe(personalShootingCap + 1);
+    expect(growing.attrs.sho).toBeGreaterThan(99);
+    expect(maximum.attrs.sho).toBe(999);
   });
 
-  test('skips only the capped player while charging TP for both slots', () => {
+  test('skips only a player already at 999 while charging for the executable slot', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90215), careerMode: 'full' });
     const roster = initial.players.filter(player => player.clubId === initial.userClubId);
     const capped = roster[0];
@@ -254,18 +249,16 @@ describe('M2 player-specific training growth', () => {
       .toBe(playerAttributeCaps(state.players.find(player => player.id === capped.id)!).pac);
     expect(result.players.find(player => player.id === eligible.id)?.attrs.pac)
       .toBeGreaterThan(eligible.attrs.pac);
-    // TP is charged per slot now (6 for the one eligible tier-I slot); the
-    // capped slot is excluded from the executable set entirely.
+    // The 999 slot is excluded from the executable set entirely.
     expect(result.trainingPoints).toBe(94);
     expect(result.moneyCost).toBe(0);
-    // Skipped-cap notices are gone; capping is surfaced via the pre-settlement
-    // interrupt check instead.
+    // The rare safety maximum is surfaced before settlement.
     expect(pendingTrainingInterrupts(state, state.trainingPoints).cappedSlots).toContainEqual(
       expect.objectContaining({ playerId: capped.id, pathId: 'sprints', attribute: 'pac' }),
     );
   });
 
-  test('saves a fully capped plan without requiring resources that cannot be charged', () => {
+  test('saves a plan at the universal maximum without requiring unusable resources', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90216), careerMode: 'full' });
     const player = initial.players.find(candidate => candidate.clubId === initial.userClubId)!;
     const state = {

@@ -4,9 +4,9 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
-// Rebaselined deliberately for m1.23: Gravity now moves blockers sideways out
-// of the useful lanes and revalidates that its priority pass remains open.
-const EXPECTED_RUNTIME_GOLDEN = '518ea506';
+// Rebaselined deliberately for m1.24: career attributes now extend to 999 and
+// PAC/STA use bounded match curves while every 1–99 result stays unchanged.
+const EXPECTED_RUNTIME_GOLDEN = 'bdbb3f75';
 
 export function runtimeGoldenFingerprint(): string {
   const result = runMatch(42, ROVERS, UNITED, [], {

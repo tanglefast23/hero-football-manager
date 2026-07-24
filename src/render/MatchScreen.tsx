@@ -102,7 +102,7 @@ const PLAYER_DRAW_SCALE = 17;
 // width range.
 const BALL_DRAW_SCALE = 34;
 
-// speedFor()'s theoretical ceiling: (40 + 99 max pac) * 1.0 max conditionScale
+// speedFor()'s PAC ceiling: (40 + 168 max effective PAC) * 1.0 conditionScale
 // * 2.2 max active-SUPER_SPEED multiplier ~= 306 pitch-units/tick. The snap
 // threshold (2x that) sits comfortably above any ordinary tick's movement but
 // far below a kickoff/restart teleport (players jump thousands of units back
@@ -349,14 +349,13 @@ export function MatchScreen({
   const [selectedOutgoing, setSelectedOutgoing] = useState<number | null>(null);
   const [selectedIncoming, setSelectedIncoming] = useState<string | null>(null);
   const [firstMatchTutorialStep, setFirstMatchTutorialStep] = useState<
-    'tired-modal' | 'tired-swap-cue' | 'comeback-modal' | null
+    'tired-modal' | 'tired-swap-cue' | null
   >(null);
   const firstMatchTutorialStepRef = useRef<
-    'tired-modal' | 'tired-swap-cue' | 'comeback-modal' | null
+    'tired-modal' | 'tired-swap-cue' | null
   >(null);
   const firstMatchPromptsSeenRef = useRef<FirstMatchCoachingPromptsSeen>({
     tiredPlayer: false,
-    threeGoalDeficit: false,
   });
   const powerCutInQaActive = __DEV__ && powerCutInQaEntries !== undefined;
   const [powerCutIns, setPowerCutIns] = useState<PowerCutInEntry[]>(() => (
@@ -923,10 +922,8 @@ export function MatchScreen({
           firstMatchPromptsSeenRef.current,
         );
         if (prompt !== null) {
-          const step = prompt === 'tired-player' ? 'tired-modal' : 'comeback-modal';
-          firstMatchPromptsSeenRef.current = prompt === 'tired-player'
-            ? { ...firstMatchPromptsSeenRef.current, tiredPlayer: true }
-            : { ...firstMatchPromptsSeenRef.current, threeGoalDeficit: true };
+          const step = 'tired-modal';
+          firstMatchPromptsSeenRef.current = { tiredPlayer: true };
           firstMatchTutorialStepRef.current = step;
           setFirstMatchTutorialStep(step);
           automaticPauseReasonsRef.current.add('tutorial');
@@ -1427,6 +1424,7 @@ export function MatchScreen({
   const teamEnergyBand = energyBand(teamEnergy);
   const swapDisabled = match.phase === 'fulltime' || substitutionsUsed >= 3 || bench.length === 0;
   const coachingDisabled = match.phase === 'fulltime';
+  const guideSwapButton = firstMatchTutorialStep === 'tired-swap-cue';
   const swapSecondary = autoSubs
     ? `AUTO · ${substitutionsUsed}/3`
     : tiredCount > 0
@@ -1474,17 +1472,6 @@ export function MatchScreen({
     playUiClickSfx();
     firstMatchTutorialStepRef.current = 'tired-swap-cue';
     setFirstMatchTutorialStep('tired-swap-cue');
-  };
-
-  const continueComebackTutorial = () => {
-    playUiClickSfx();
-    firstMatchTutorialStepRef.current = null;
-    setFirstMatchTutorialStep(null);
-    automaticPauseReasonsRef.current.delete('tutorial');
-    // Give the manager a still frame for trying the suggested controls. The
-    // scorebar already owns manual pause/resume, so its next tap resumes play.
-    userPausedRef.current = true;
-    syncPauseReasons();
   };
 
   return (
@@ -1831,6 +1818,9 @@ export function MatchScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Swap players. ${tiredCount === 0 ? 'No tired players.' : `${tiredCount} tired players.`} ${substitutionsRemaining} substitutions remaining.`}
+            accessibilityHint={guideSwapButton
+              ? 'Opens the substitution page while the match remains paused.'
+              : undefined}
             accessibilityState={{ disabled: swapDisabled }}
             disabled={swapDisabled}
             style={[
@@ -1839,12 +1829,16 @@ export function MatchScreen({
               swapDisabled
                 ? (tiredCount > 0 ? styles.coachButtonDisabledReadable : styles.coachButtonDisabled)
                 : null,
+              guideSwapButton ? styles.coachButtonGuided : null,
             ]}
             onPress={() => {
               playUiClickSfx();
               openSwap();
             }}
           >
+            {guideSwapButton ? (
+              <View pointerEvents="none" style={styles.coachButtonGuidedHighlight} />
+            ) : null}
             {firstMatchTutorialStep === 'tired-swap-cue' ? (
               <TutorialTapCue
                 label="Tap here"
@@ -1856,10 +1850,19 @@ export function MatchScreen({
                 }}
               />
             ) : null}
-            <Text style={styles.swapIcon}>⇄</Text>
+            <Text style={[styles.swapIcon, guideSwapButton ? styles.swapIconGuided : null]}>⇄</Text>
             <View style={styles.coachCopy}>
-              <Text style={styles.coachLabel}>SWAP</Text>
-              <Text numberOfLines={1} style={[styles.coachValue, tiredCount > 0 ? styles.tiredValue : null]}>
+              <Text style={[styles.coachLabel, guideSwapButton ? styles.coachLabelGuided : null]}>
+                SWAP
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.coachValue,
+                  tiredCount > 0 ? styles.tiredValue : null,
+                  guideSwapButton ? styles.coachValueGuided : null,
+                ]}
+              >
                 {swapSecondary}
               </Text>
             </View>
@@ -2098,16 +2101,6 @@ export function MatchScreen({
           onContinue={continueTiredPlayerTutorial}
         />
       ) : null}
-      {firstMatchTutorialStep === 'comeback-modal' ? (
-        <FirstMatchCoachingModal
-          title="Try a new strategy"
-          body="The other team is pulling away. Try going all out in offence: switch to an attacking playstyle, try a different formation, choose ALL OUT energy use, or swap in fresh players."
-          detail="The match will stay paused while you adjust the controls. Tap the score at the top when you are ready to resume."
-          buttonLabel="Try it"
-          reduceMotion={reduceMotion}
-          onContinue={continueComebackTutorial}
-        />
-      ) : null}
     </View>
   );
 }
@@ -2301,11 +2294,37 @@ const styles = StyleSheet.create({
   coachButtonCompact: { minHeight: 52, borderBottomWidth: 4, paddingVertical: 2 },
   coachButtonDisabled: { opacity: 0.38 },
   coachButtonDisabledReadable: { opacity: 0.68 },
+  coachButtonGuided: {
+    opacity: 1,
+    zIndex: 50,
+    elevation: 12,
+    backgroundColor: '#5a8fd6',
+    borderColor: '#a3c8f0',
+    borderBottomColor: '#3f6fb5',
+    shadowColor: '#a3c8f0',
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+    transform: [{ scale: 1.04 }],
+  },
+  coachButtonGuidedHighlight: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    right: 2,
+    height: 18,
+    borderTopLeftRadius: 2,
+    borderTopRightRadius: 2,
+    backgroundColor: '#a3c8f066',
+  },
   coachCopy: { flexShrink: 1, alignItems: 'flex-start' },
   coachLabel: { color: '#bcb7c4', fontSize: 8, fontWeight: 'bold' },
+  coachLabelGuided: { color: '#f4f1ea' },
   coachValue: { color: '#f4f1ea', fontSize: 11, fontWeight: 'bold', marginTop: 3 },
+  coachValueGuided: { color: '#f4f1ea' },
   mentalityIcon: { color: '#70b879', fontSize: 28, fontWeight: 'bold' },
   swapIcon: { color: '#77a4d8', fontSize: 30, fontWeight: 'bold' },
+  swapIconGuided: { color: '#f4f1ea' },
   tiredValue: { color: '#edb54a', fontSize: 9 },
   energyUseRow: {
     backgroundColor: '#2d283c',

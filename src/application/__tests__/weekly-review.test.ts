@@ -55,6 +55,9 @@ describe('weekly review view model', () => {
     const before: GameState = {
       ...initial,
       week: 4,
+      fixtures: initial.fixtures.map(fixture => fixture.week <= 4
+        ? { ...fixture, status: 'played' as const, score: { homeGoals: 0, awayGoals: 0 } }
+        : fixture),
       players: initial.players.map(player => player.id === injuredId
         ? { ...player, injuryWeeks: 1 }
         : player),
@@ -146,7 +149,7 @@ describe('weekly review view model', () => {
     expect(after.trainingPoints).toBe(before.trainingPoints);
     expect(review.development).toMatchObject({
       focusedTrainees: [],
-      trainingSkippedWarning: `${player.name} skipped ${drillName} — already at their PAC maximum of ${cap}.`,
+      trainingSkippedWarning: `${player.name} skipped ${drillName} — PAC is already at the maximum of ${cap} and cannot go higher.`,
     });
     expect(after.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
   });

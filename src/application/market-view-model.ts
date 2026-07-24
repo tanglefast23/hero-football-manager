@@ -14,6 +14,11 @@ import {
   type ValuationPlayer,
 } from '../game/market';
 import { divisionTierLabel, type DivisionLevel } from '../game/pyramid';
+import {
+  playerPotentialGrade,
+  playerPotentialTrainingBonusPercent,
+  POTENTIAL_GRADES,
+} from '../game/archetype-caps';
 import type {
   ContractPerkViewModel,
   MarketNegotiationViewModel,
@@ -169,6 +174,11 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
           role: report.role,
           lookId: identity?.lookId,
           ageLabel: `Age ${report.age}`,
+          potentialLabel: scoutPotentialLabel(
+            report.playerId,
+            report.potentialRange.minimum,
+            report.potentialRange.maximum,
+          ),
           ...(report.power === undefined
             ? {}
             : { powerLabel: identity?.powerName ?? readableId(report.power) }),
@@ -280,6 +290,7 @@ function youthIntakeViewModel(
         lookId: offer.player.lookId,
         ageLabel: `Age ${offer.player.age}`,
         archetypeLabel: offer.player.archetype,
+        potentialLabel: exactPotentialLabel(offer.player.id, offer.player.potential),
         signingBonus: offer.signingBonus,
         weeklyWage: offer.player.weeklyWage,
         available: isOpen && hasRosterSpace && affordable,
@@ -382,6 +393,10 @@ function transferListing(
     role: listing.player.role,
     lookId: listing.player.lookId,
     age: listing.player.age,
+    potentialLabel: exactPotentialLabel(
+      listing.player.id,
+      listing.player.potential as 1 | 2 | 3 | 4 | 5,
+    ),
     direction: listing.direction,
     ...(listing.player.powerName === undefined ? {} : { powerLabel: listing.player.powerName }),
     valuation: quote.valuation,
@@ -405,6 +420,27 @@ function transferListing(
         ? { blockedReason: 'Transfer fee exceeds current cash.' }
         : {}),
   };
+}
+
+function exactPotentialLabel(
+  playerId: string,
+  potential: 1 | 2 | 3 | 4 | 5,
+): string {
+  const profile = { id: playerId, potential };
+  return `${playerPotentialGrade(profile)} · +${playerPotentialTrainingBonusPercent(profile)}% training`;
+}
+
+function scoutPotentialLabel(
+  playerId: string,
+  minimum: number,
+  maximum: number,
+): string {
+  const minTier = Math.max(1, Math.min(5, Math.round(minimum))) as 1 | 2 | 3 | 4 | 5;
+  const maxTier = Math.max(1, Math.min(5, Math.round(maximum))) as 1 | 2 | 3 | 4 | 5;
+  if (minTier === maxTier) return exactPotentialLabel(playerId, minTier);
+  const lowGrade = POTENTIAL_GRADES[(minTier - 1) * 3];
+  const highGrade = POTENTIAL_GRADES[(maxTier - 1) * 3 + 2];
+  return `${lowGrade}–${highGrade}`;
 }
 
 export function marketNegotiationViewModel(

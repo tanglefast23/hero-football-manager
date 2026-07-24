@@ -26,6 +26,10 @@ describe('facility weekly integration', () => {
     expect(players).toHaveLength(2);
     let state = setCareerTrainingPlan({
       ...started,
+      fixtures: [],
+      m2: started.m2 === undefined
+        ? undefined
+        : { ...started.m2, nationalCups: [] },
       players: started.players.map(candidate => players.some(player => player.id === candidate.id)
         ? {
             ...candidate,
@@ -142,13 +146,13 @@ describe('facility weekly integration', () => {
     let state = withoutMatches;
     for (let week = 0; week < 9; week += 1) state = advanceWeek(state);
     const afterNine = state.players.find(player => player.id === playerId);
-    expect(afterNine?.attrs.sta).toBe(startingSta + 29);
-    expect(afterNine?.facilityStaBonusRemainder).toBe(70);
+    expect(afterNine?.attrs.sta).toBe(startingSta + 31);
+    expect(afterNine?.facilityStaBonusRemainder).toBe(90);
 
     state = advanceWeek(state);
     const afterTen = state.players.find(player => player.id === playerId);
-    expect(afterTen?.attrs.sta).toBe(startingSta + 33);
-    expect(afterTen?.facilityStaBonusRemainder).toBe(0);
+    expect(afterTen?.attrs.sta).toBe(startingSta + 35);
+    expect(afterTen?.facilityStaBonusRemainder).toBe(20);
   });
 
   test('keeps M1 ambient TP behavior and charges no upkeep when the grid is absent', () => {

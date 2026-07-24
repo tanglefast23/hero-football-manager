@@ -4,14 +4,14 @@ export interface ArchetypeDevelopmentSummary {
 }
 
 const ARCHETYPE_DEVELOPMENT: Readonly<Record<string, ArchetypeDevelopmentSummary>> = {
-  Speedster: { strengths: '+ PAC', weaknesses: '− DEF − SHO' },
-  Sniper: { strengths: '+ SHO', weaknesses: '− DEF − PAS' },
-  Playmaker: { strengths: '+ PAS + TEC', weaknesses: '− DEF − SHO' },
-  Anchor: { strengths: '+ DEF + STA', weaknesses: '− SHO − PAC' },
-  Wall: { strengths: '+ REF + DEF', weaknesses: '− PAC − SHO' },
-  Engine: { strengths: '+ STA + PAC', weaknesses: '− SHO − DEF' },
-  'All-Rounder': { strengths: '+ ALL STATS', weaknesses: '− NO WEAK SPOT' },
-  Prodigy: { strengths: '+ ALL STATS', weaknesses: '− NONE' },
+  Speedster: { strengths: '+15% PAC', weaknesses: 'OTHER STATS +0%' },
+  Sniper: { strengths: '+15% SHO', weaknesses: 'OTHER STATS +0%' },
+  Playmaker: { strengths: '+15% PAS & TEC', weaknesses: 'OTHER STATS +0%' },
+  Anchor: { strengths: '+15% DEF & STA', weaknesses: 'OTHER STATS +0%' },
+  Wall: { strengths: '+15% REF & DEF', weaknesses: 'OTHER STATS +0%' },
+  Engine: { strengths: '+15% STA & PAC', weaknesses: 'OTHER STATS +0%' },
+  'All-Rounder': { strengths: '+5% ALL STATS', weaknesses: 'NO WEAK SPOT' },
+  Prodigy: { strengths: '+20% ALL STATS', weaknesses: 'NO WEAK SPOT' },
 };
 
 export function archetypeDevelopmentSummary(archetype: string): ArchetypeDevelopmentSummary {

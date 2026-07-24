@@ -110,7 +110,7 @@ describe('marketViewModel', () => {
       role: 'MID',
       ageLabel: 'Age 22',
     });
-    expect(viewModel.scouting.reports[0]).not.toHaveProperty('potentialLabel');
+    expect(viewModel.scouting.reports[0].potentialLabel).toBe('B-–A+');
     expect(viewModel.scouting.reports[0].stats).toHaveLength(6);
     expect(JSON.parse(JSON.stringify(viewModel))).toEqual(viewModel);
   });

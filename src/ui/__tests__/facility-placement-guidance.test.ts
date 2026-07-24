@@ -20,7 +20,28 @@ describe('first facility placement guidance', () => {
     expect(source).toContain('key={`facility-cell-${x}-${y}`}');
     expect(source).toContain("position: 'absolute',");
     expect(source).toContain("right: 0,\n                            bottom: 0,");
+    expect(source).toContain('const FACILITY_PLACEMENT_PLUS_FONT_SIZE = 12 * 1.4;');
+    expect(source).toMatch(
+      /pointerEvents="none"[\s\S]*?alignItems: 'center',[\s\S]*?justifyContent: 'center',[\s\S]*?fontSize: FACILITY_PLACEMENT_PLUS_FONT_SIZE,[\s\S]*?lineHeight: FACILITY_PLACEMENT_PLUS_FONT_SIZE,[\s\S]*?textAlign: 'center',/,
+    );
     expect(appSource).toContain("conciergeFocus === 'facility-grid'");
     expect(appSource).toContain('!guidedFirstFacilityAllowsPlacement(type, x, y)');
+  });
+
+  it('scrolls coaching-office guidance to its build card without a grounds tooltip', () => {
+    const source = readFileSync(join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'), 'utf8');
+
+    expect(source).toContain('const coachingOfficeBuildTargetRef = useRef<View>(null);');
+    expect(source).toContain("guideFocus !== 'coaching-office'");
+    expect(source).toContain('coachingOfficeBuildTargetRef,');
+    expect(source).toContain(
+      "ref={entry.type === 'coaching-office' ? coachingOfficeBuildTargetRef : undefined}",
+    );
+    expect(source).toContain(
+      "onLayout={entry.type === 'coaching-office' ? scrollToCoachingOffice : undefined}",
+    );
+    expect(source).toMatch(
+      /guideFocus !== 'facility-grid'\s*&& guideFocus !== 'coaching-office' \? \(/,
+    );
   });
 });

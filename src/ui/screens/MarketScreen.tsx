@@ -362,6 +362,9 @@ function YouthDesk({
                   <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
                     {offer.role} · {offer.ageLabel} · {offer.archetypeLabel}
                   </Text>
+                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-gold-dark">
+                    Potential {offer.potentialLabel}
+                  </Text>
                 </View>
                 <View className="-rotate-2 border-2 border-violet-dark bg-violet-light px-2 py-1">
                   <Text className="text-sm font-bold uppercase text-violet-dark">Academy</Text>
@@ -510,6 +513,9 @@ function ScoutingDesk({
                   <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
                     {report.role} · {report.ageLabel}
                   </Text>
+                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-gold-dark">
+                    Potential {report.potentialLabel}
+                  </Text>
                 </View>
               </View>
               {report.powerLabel ? (
@@ -611,6 +617,9 @@ function TransferDesk({
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{listing.playerName}</Text>
                   <Text className="mt-1 font-mono text-sm font-bold uppercase text-ink/60">
                     {listing.role} · Age {listing.age}
+                  </Text>
+                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-gold-dark">
+                    Potential {listing.potentialLabel}
                   </Text>
                 </View>
                 <View className="border-2 border-ink bg-white px-2 py-1">

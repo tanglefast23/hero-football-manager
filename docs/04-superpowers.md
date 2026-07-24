@@ -2,6 +2,8 @@
 
 The signature system. Powers must feel **rare** (pillar 3), **spectacular** (comic FX), and **fair** (interruptible wind-ups, GK Resolve attrition, license slots). Every power obeys the **timing-sensitivity principle**: an effect is a *spike* tied to a moment, never a smear of passive percentages — activations must visibly change possession or geometry, and expert timing determines how valuable the change becomes.
 
+**Powers break ordinary limits by design.** The raw 999 rating ceiling and PAC's 60% movement endpoint apply to training and ordinary match performance only. An authored power resolves afterward and may temporarily exceed any ordinary stat, fatigue, contest, Resolve, geometry, or movement limit when that is the promised spectacle. These exceptions are temporary power effects; they never write a raw stat above 999 into the player save.
+
 ## Hero License slots (field cap)
 
 League lore: superpowered players require a registered Hero License, and licenses per match are capped.

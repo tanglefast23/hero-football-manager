@@ -1,4 +1,5 @@
 import type { Attrs } from '../sim/types';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { roleOverall } from './archetype-caps';
 import {
   advanceNationalCup,
@@ -524,7 +525,7 @@ export function clubSquadStrength(
     (clubTotal, player) => clubTotal + roleOverall(player.role, player.attrs),
     0,
   );
-  return Math.max(1, Math.min(99, Math.round(total / squad.length)));
+  return Math.max(1, Math.min(MAX_PLAYER_ATTRIBUTE, Math.round(total / squad.length)));
 }
 
 function stableSeasonTie(careerSeed: number, season: number, clubId: string): number {
@@ -584,7 +585,7 @@ function scaleOpponentClub(club: PyramidClub, season: number): PyramidClub {
   const previousSeasonBonus = Math.min(8, Math.floor(Math.max(0, season - 2) / 2));
   const currentSeasonBonus = Math.min(8, Math.floor((season - 1) / 2));
   const increase = currentSeasonBonus - previousSeasonBonus;
-  const squadStrength = Math.min(99, club.squadStrength + increase);
+  const squadStrength = Math.min(MAX_PLAYER_ATTRIBUTE, club.squadStrength + increase);
   return {
     ...club,
     squadStrength,
@@ -596,7 +597,7 @@ function scaleOpponentClub(club: PyramidClub, season: number): PyramidClub {
 }
 
 function increaseAttrs(attrs: Attrs, increase: number): Attrs {
-  const boosted = (value: number) => Math.min(99, value + increase);
+  const boosted = (value: number) => Math.min(MAX_PLAYER_ATTRIBUTE, value + increase);
   return {
     pac: boosted(attrs.pac),
     sho: boosted(attrs.sho),
@@ -626,8 +627,10 @@ function validateUserClub(club: M2UserClubIdentity): void {
   if (typeof club.name !== 'string' || club.name.trim().length === 0) {
     throw new Error('user club name must be a non-empty string');
   }
-  if (!Number.isInteger(club.squadStrength) || club.squadStrength < 1 || club.squadStrength > 99) {
-    throw new Error('user club strength must be an integer from 1 to 99');
+  if (!Number.isInteger(club.squadStrength)
+    || club.squadStrength < 1
+    || club.squadStrength > MAX_PLAYER_ATTRIBUTE) {
+    throw new Error(`user club strength must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
   }
 }
 

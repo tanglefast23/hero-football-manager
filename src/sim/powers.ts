@@ -7,6 +7,7 @@ import {
   playerAt,
   requirePlayerAt,
 } from './entities';
+import { matchAttribute } from './attributes';
 
 export const WINDUP_TICKS = 15;
 export const TAP_STRENGTH = 1.0;
@@ -1004,8 +1005,8 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       // Contextual timing earns a brief visible opening against the goal-side
       // marker. Fire's active attacking burst carries the rest of its value;
       // extending 11-v-10 play creates runaway score tails in mismatch games.
-      const resistance = state.players[marker].def.attrs.def;
-      const matchupAdvantage = p.def.attrs.tec - resistance;
+      const resistance = matchAttribute(state.players[marker].def.attrs.def);
+      const matchupAdvantage = matchAttribute(p.def.attrs.tec) - resistance;
       const matchupHeadroom = clampEffect(
         (FIRE_SATURATED_MATCHUP_ADVANTAGE - matchupAdvantage)
           / (FIRE_SATURATED_MATCHUP_ADVANTAGE - FIRE_FULL_MATCHUP_ADVANTAGE),
@@ -1726,7 +1727,9 @@ function portalReceiverThreat(
   const player = requirePlayerAt(state, idx);
   const progress = attackingProgress(player.team, pos) / PITCH_H;
   const centrality = 1 - Math.abs(pos.x - PITCH_W / 2) / (PITCH_W / 2);
-  const technique = player.def.attrs.sho * 8 + player.def.attrs.tec * 4 + player.def.attrs.pas * 2;
+  const technique = matchAttribute(player.def.attrs.sho) * 8
+    + matchAttribute(player.def.attrs.tec) * 4
+    + matchAttribute(player.def.attrs.pas) * 2;
   return progress * progress * 1400
     + Math.max(0, centrality) * 300
     + openSpaceAt(state, player.team, pos) * 0.6
@@ -1916,7 +1919,8 @@ function bestDecoyForward(state: MatchState, heroIdx: number, carrierIdx: number
     if (idx === carrierIdx || idx === heroIdx || mate.team !== hero.team
       || mate.def.role !== 'FWD' || !friendlyTargetAvailable(state, hero.team, idx)) continue;
     const score = attackingProgress(mate.team, mate.pos) * 10
-      + mate.def.attrs.sho * 4 + mate.def.attrs.tec * 2;
+      + matchAttribute(mate.def.attrs.sho) * 4
+      + matchAttribute(mate.def.attrs.tec) * 2;
     if (score > bestScore || (score === bestScore && idx < best)) {
       best = idx;
       bestScore = score;
