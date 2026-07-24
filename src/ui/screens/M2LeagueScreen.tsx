@@ -7,7 +7,8 @@ import type {
   M2DivisionLevelViewModel,
   M2LeagueViewModel,
 } from '../m2-league-models';
-import { Metric, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
+import { Metric, PaperPanel, StatusChip } from '../components/Scorecard';
+import { StageSection } from '../components/ChalkboardStage';
 import { LeagueFixtureRow } from '../components/LeagueFixtureRow';
 import { TutorialTapCue } from '../TutorialTapCue';
 import {
@@ -52,7 +53,7 @@ export function M2LeagueScreen({
       weight: 13,
       node: (
         <View>
-          <SectionLabel eyebrow="The national ladder" title="Five divisions" />
+          <StageSection eyebrow="The national ladder" title="Five divisions" />
           <View className="flex-row gap-1">
             {viewModel.divisions.map(division => (
               <Pressable
@@ -65,7 +66,7 @@ export function M2LeagueScreen({
                   ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light px-1 py-2'
                   : division.userDivision
                     ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1 py-2'
-                    : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1 py-2'}
+                    : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-1 py-2'}
                 style={({ pressed }) => ({
                   opacity: pressed ? 0.82 : 1,
                   transform: [{ translateY: pressed ? 2 : 0 }],
@@ -113,7 +114,7 @@ export function M2LeagueScreen({
       weight: 2 + viewModel.activeTable.rows.length,
       node: (
         <View>
-          <SectionLabel
+          <StageSection
             eyebrow={viewModel.activeTable.divisionLabel}
             title="Current standings"
             right={<StatusChip label={viewModel.activeTable.rulesLabel} tone="success" />}
@@ -166,7 +167,7 @@ export function M2LeagueScreen({
               );
             })}
           </View>
-          <Text className="mt-2 text-xs text-ink/50">P played · GD goal difference · Pts points</Text>
+          <Text className="mt-2 text-xs text-paper/60">P played · GD goal difference · Pts points</Text>
         </View>
       ),
     },
@@ -175,7 +176,7 @@ export function M2LeagueScreen({
       weight: 2 + Math.min(viewModel.leagueFixtures.length, 10),
       node: (
         <View>
-          <SectionLabel
+          <StageSection
             eyebrow={viewModel.activeTable.divisionLabel}
             title="Fixtures & results"
             right={<StatusChip label={`${viewModel.leagueFixtures.length} matches`} />}
@@ -226,7 +227,7 @@ export function M2LeagueScreen({
               }}
             />
           ) : null}
-          <SectionLabel
+          <StageSection
             eyebrow="All 50 clubs"
             title="National Cup"
             right={<StatusChip label={viewModel.cup.statusLabel} tone={viewModel.cup.championName ? 'hero' : 'normal'} />}
@@ -244,7 +245,7 @@ export function M2LeagueScreen({
                   onPress={() => onSelectCupSeason?.(option.season)}
                   className={option.selected
                     ? 'min-h-11 min-w-14 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light px-3'
-                    : 'min-h-11 min-w-14 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-3'}
+                    : 'min-h-11 min-w-14 items-center justify-center border-2 border-b-4 border-ink bg-white px-3'}
                   style={({ pressed }) => ({
                     opacity: pressed ? 0.82 : 1,
                     transform: [{ translateY: pressed ? 2 : 0 }],
@@ -281,7 +282,7 @@ export function M2LeagueScreen({
                 </View>
               )}
 
-              <SectionLabel eyebrow={viewModel.cup.seasonLabel} title="Road to the final" />
+              <StageSection eyebrow={viewModel.cup.seasonLabel} title="Road to the final" />
               <View
                 accessible
                 accessibilityLabel={`${viewModel.cup.seasonLabel} National Cup road to the final`}
@@ -309,12 +310,12 @@ export function M2LeagueScreen({
         header={
           <View className="mb-5 flex-row items-end justify-between gap-3">
             <View className="flex-1">
-              <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Competition office</Text>
-              <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.title}</Text>
+              <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Competition office</Text>
+              <Text className="mt-1 font-pixel text-xl uppercase text-white">{viewModel.title}</Text>
             </View>
             <View className="items-end gap-1">
               <StatusChip label={viewModel.userDivisionBadge} />
-              <Text className="font-mono text-sm text-ink/50">{viewModel.seasonLabel}</Text>
+              <Text className="font-mono text-sm text-paper/70">{viewModel.seasonLabel}</Text>
             </View>
           </View>
         }

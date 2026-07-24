@@ -165,7 +165,7 @@ export function PlayerDevelopmentSpotlight({
       ) : null}
 
       {animationsStarted && !complete ? (
-        <Text className="mt-3 font-mono text-sm uppercase text-ink/40">Tap once to finish</Text>
+        <Text className="mt-3 font-mono text-sm uppercase text-paper/60">Tap once to finish</Text>
       ) : null}
     </Pressable>
   );

@@ -8,7 +8,8 @@ import {
 } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import type { ContractOffer, ContractPerk, PitchCard } from '../../game/market';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, StatusChip, formatCurrency } from '../components/Scorecard';
+import { StageSection } from '../components/ChalkboardStage';
 import { ManagementSprite } from '../components/ManagementSprite';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -162,10 +163,10 @@ export function MarketScreen({
   const header = (
     <View className="flex-row items-end justify-between gap-3">
       <View className="flex-1">
-        <Text className="font-mono text-sm font-bold uppercase tracking-[2px] text-blue-dark">
+        <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">
           Recruitment office
         </Text>
-        <Text className="mt-1 font-pixel text-xl uppercase text-ink">Market docket</Text>
+        <Text className="mt-1 font-pixel text-xl uppercase text-white">Market docket</Text>
       </View>
       <StatusChip label={viewModel.periodLabel} />
     </View>
@@ -270,7 +271,7 @@ export function MarketScreen({
             />
           ) : null}
 
-          <View className="mt-6 flex-row border-2 border-b-4 border-ink bg-paper-dark p-1">
+          <View className="mt-6 flex-row border-2 border-b-4 border-ink bg-paper p-1">
             {viewModel.sections.includes('YOUTH') && viewModel.youth ? (
               <DocketTab id="YOUTH" label="Youth" glyph="★" selected={section === 'YOUTH'} onPress={setSection} />
             ) : null}
@@ -467,7 +468,7 @@ function ScoutingDesk({
 
   return (
     <View>
-      <SectionLabel
+      <StageSection
         eyebrow="Scout dispatch"
         title="Find the overlooked"
         right={<StatusChip label={viewModel.scouting.officeLabel} />}
@@ -487,7 +488,7 @@ function ScoutingDesk({
 
       {viewModel.scouting.reports.length > 0 ? (
         <View className="mt-5 gap-3">
-          <Text className="font-mono text-sm font-bold uppercase tracking-wide text-stamp">Scouting reports</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Scouting reports</Text>
           {viewModel.scouting.reports.map((report, index) => (
             <Pressable
               key={report.playerId}
@@ -552,7 +553,7 @@ function ScoutingDesk({
         </View>
       ) : (
         <View className="mt-5 gap-3">
-          <Text className="font-mono text-sm font-bold uppercase tracking-wide text-stamp">Mission slips</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Mission slips</Text>
           {viewModel.scouting.choices.map((choice, index) => (
             <View
               key={choice.id}
@@ -606,7 +607,7 @@ function TransferDesk({
       : undefined;
   return (
     <View>
-      <SectionLabel
+      <StageSection
         eyebrow="Transfers"
         title="Buy players · sell your own"
         right={<StatusChip label={viewModel.window.label} tone={viewModel.window.open ? 'success' : 'danger'} />}
@@ -704,7 +705,7 @@ function CoachDesk({
 }: Pick<MarketScreenProps, 'viewModel' | 'onHireCoach'>) {
   return (
     <View>
-      <SectionLabel
+      <StageSection
         eyebrow="Pre-season shortlist"
         title="A voice for the touchline"
         right={<StatusChip label={`${viewModel.coaches.length} candidates`} />}
@@ -1064,10 +1065,10 @@ function SmallAction({
 
 function EmptyDocket({ title, detail }: { title: string; detail: string }) {
   return (
-    <View className="items-center border-2 border-dashed border-ink/30 bg-white/50 px-5 py-10">
-      <Text className="font-mono text-3xl text-ink/25">□</Text>
-      <Text className="mt-3 font-pixel text-base uppercase text-ink">{title}</Text>
-      <Text className="mt-2 text-center text-sm leading-5 text-ink/55">{detail}</Text>
+    <View className="items-center border-2 border-dashed border-paper/30 px-5 py-10">
+      <Text className="font-mono text-3xl text-paper/25">□</Text>
+      <Text className="mt-3 font-pixel text-base uppercase text-white">{title}</Text>
+      <Text className="mt-2 text-center text-sm leading-5 text-paper/70">{detail}</Text>
     </View>
   );
 }

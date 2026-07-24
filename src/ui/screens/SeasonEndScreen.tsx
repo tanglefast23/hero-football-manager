@@ -1,8 +1,10 @@
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ContractOffer, PitchCard } from '../../game/market';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, StatusChip, formatCurrency } from '../components/Scorecard';
+import { ChalkboardBackdrop, StageSection } from '../components/ChalkboardStage';
 import { PixelPortrait } from '../components/PixelPortrait';
+import { useLayoutMode } from '../layout/use-layout-mode';
 import type { SeasonEndViewModel } from '../models';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
@@ -37,6 +39,7 @@ export function SeasonEndScreen({
   guideCopy,
   textScale = 1,
 }: SeasonEndScreenProps) {
+  const wide = useLayoutMode() === 'twoColumn';
   const contract = viewModel.expiredContract;
   // The season-end fanfare is owned by App.tsx, keyed per career/season so it
   // fires exactly once. Do not add a second cue here.
@@ -47,23 +50,24 @@ export function SeasonEndScreen({
       : 'normal';
 
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
-      <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
+    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+      <ChalkboardBackdrop wide={wide} />
+      <View className="flex-row items-center justify-between px-4 py-3">
         <View>
-          <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Front office</Text>
-          <Text className="mt-1 text-base font-bold uppercase text-ink">Season review</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Front office</Text>
+          <Text className="mt-1 font-pixel text-base uppercase text-white">Season review</Text>
         </View>
         <SettingsButton onPress={onOpenSettings} />
       </View>
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
         <View className="items-center py-3">
-          <Text className="text-sm font-bold uppercase text-blue-dark">Season complete</Text>
-          <Text className="mt-2 text-3xl font-bold uppercase tracking-wide text-ink">{viewModel.seasonLabel}</Text>
-          <View className="mt-4 rotate-2 border-2 border-stamp px-5 py-3">
-            <Text className="text-xl font-bold uppercase text-stamp">{viewModel.outcomeLabel}</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Season complete</Text>
+          <Text className="mt-2 font-pixel text-3xl uppercase tracking-wide text-white">{viewModel.seasonLabel}</Text>
+          <View className="mt-4 rotate-2 border-2 border-red bg-red-light/25 px-5 py-3">
+            <Text className="text-xl font-bold uppercase text-red-light">{viewModel.outcomeLabel}</Text>
           </View>
-          <Text className="mt-5 text-center text-xl font-bold uppercase text-ink">{viewModel.headline}</Text>
-          <Text className="mt-2 max-w-sm text-center text-ink/60" style={scaledBody(textScale)}>{viewModel.summary}</Text>
+          <Text className="mt-5 text-center font-pixel text-xl uppercase text-white">{viewModel.headline}</Text>
+          <Text className="mt-2 max-w-sm text-center text-paper/70" style={scaledBody(textScale)}>{viewModel.summary}</Text>
           <View className="mt-4 flex-row gap-2">
             <StatusChip label={`Finished #${viewModel.finalPosition}`} tone={outcomeTone} />
             <StatusChip label={`Prize ${formatCurrency(viewModel.prizeMoney)}`} />
@@ -73,7 +77,7 @@ export function SeasonEndScreen({
 
         {viewModel.recap ? (
           <View className="mt-6">
-            <SectionLabel eyebrow="Season in numbers" title="The year in the cabinet" />
+            <StageSection eyebrow="Season in numbers" title="The year in the cabinet" />
             {guideCopy ? (
               <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="Filed">
                 <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
@@ -96,7 +100,7 @@ export function SeasonEndScreen({
             </PaperPanel>
             {viewModel.recap.awards.length > 0 ? (
               <View className="mt-5">
-                <SectionLabel eyebrow="Club honours" title="Season awards" />
+                <StageSection eyebrow="Club honours" title="Season awards" />
                 <View className="gap-3">
                   {viewModel.recap.awards.map(award => (
                     <View key={`${award.label}-${award.playerId}`} className="flex-row items-center gap-3 border-2 border-gold-dark bg-gold-light p-3">
@@ -118,7 +122,7 @@ export function SeasonEndScreen({
 
         {viewModel.promotionRewards ? (
           <View className="mt-6">
-            <SectionLabel eyebrow="Promotion rewards" title="New doors are open" />
+            <StageSection eyebrow="Promotion rewards" title="New doors are open" />
             <PaperPanel
               kicker="Permanent club progress"
               title={viewModel.promotionRewards.divisionLabel}
@@ -148,8 +152,8 @@ export function SeasonEndScreen({
         ) : null}
 
         <View className="mt-6">
-          <SectionLabel eyebrow="Final whistle" title="League table" />
-          <View className="border-2 border-ink/20 bg-white">
+          <StageSection eyebrow="Final whistle" title="League table" />
+          <View className="border-2 border-ink bg-white">
             <View className="flex-row border-b border-ink/15 px-3 py-2">
               <Text className="w-8 text-sm font-bold text-ink/50">#</Text>
               <Text className="flex-1 text-sm font-bold uppercase text-ink/50">Club</Text>
@@ -182,7 +186,7 @@ export function SeasonEndScreen({
 
         {contract ? (
           <View className="mt-6">
-            <SectionLabel
+            <StageSection
               eyebrow="Before the doors close"
               title={contract.remainingExpiredCount === 1
                 ? 'Expired contract'
@@ -304,7 +308,7 @@ export function SeasonEndScreen({
         ) : null}
       </ScrollView>
 
-      <View className="border-t-2 border-ink/20 bg-white p-3">
+      <View className="border-t-2 border-paper/10 bg-pitch-dark p-3">
         <ActionButton
           label={viewModel.sliceComplete ? 'Finish career review  ▸' : 'Begin next season  ▸'}
           accessibilityLabel={viewModel.sliceComplete ? 'Finish the career review' : 'Begin the next season'}
@@ -312,7 +316,7 @@ export function SeasonEndScreen({
           disabled={!viewModel.canContinue}
         />
         {!viewModel.canContinue ? (
-          <Text className="mt-2 text-center text-sm font-bold uppercase tracking-wide text-stamp">
+          <Text className="mt-2 text-center text-sm font-bold uppercase tracking-wide text-red-light">
             Resolve the expired contract first
           </Text>
         ) : null}
