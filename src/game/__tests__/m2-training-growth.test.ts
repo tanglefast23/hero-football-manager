@@ -1,21 +1,32 @@
 import { createLaunchCareerSetup } from '../../application/launch';
-import { playerAttributeCaps } from '../archetype-caps';
 import { createCareer } from '../career';
 import { trainingDrillBlockedReason } from '../promotion-progression';
-import {
-  pendingTrainingInterrupts,
-  resolveCareerTrainingWeek,
-  setCareerTrainingPlan,
-} from '../training';
+import { trainPlayerInstantly, type InstantDrillResolution } from '../training';
+import type { GameState } from '../types';
 
-describe('M2 player-specific training growth', () => {
+/**
+ * Retries the drill at successive RNG nonces until the SUPER roll misses, so
+ * exact-value growth assertions are not disturbed by a lucky 1.5x session.
+ */
+function trainWithoutSuper(
+  state: GameState,
+  playerId: string,
+  pathId: string,
+): InstantDrillResolution {
+  for (let nonce = state.totalInstantDrills ?? 0; nonce < 1_000; nonce += 1) {
+    const result = trainPlayerInstantly({ ...state, totalInstantDrills: nonce }, playerId, pathId);
+    if (!result.isSuper) return result;
+  }
+  throw new Error('no non-SUPER nonce found within 1000 attempts');
+}
+
+describe('M2 player-specific instant training growth', () => {
   test('applies the age curve to deliberate stamina training', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90210), careerMode: 'full' });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     const prepare = (age: number) => ({
       ...initial,
       trainingPoints: 100,
-      trainingPlan: { slots: [{ playerId, pathId: 'circuit' }] },
       players: initial.players.map(player => player.id === playerId
         ? {
             ...player,
@@ -27,11 +38,11 @@ describe('M2 player-specific training growth', () => {
         : player),
     });
 
-    const young = resolveCareerTrainingWeek(prepare(20)).players.find(player => player.id === playerId)!;
-    const prime = resolveCareerTrainingWeek(prepare(25)).players.find(player => player.id === playerId)!;
+    const young = trainWithoutSuper(prepare(20), playerId, 'circuit');
+    const prime = trainWithoutSuper(prepare(25), playerId, 'circuit');
 
-    expect(young.attrs.sta).toBe(55);
-    expect(prime.attrs.sta).toBe(53);
+    expect(young.after).toBe(55);
+    expect(prime.after).toBe(53);
   });
 
   test('uses the matching facility level without a high-stat growth wall', () => {
@@ -40,11 +51,11 @@ describe('M2 player-specific training growth', () => {
     const state = {
       ...initial,
       trainingPoints: 100,
-      trainingPlan: { slots: [{ playerId, pathId: 'circuit' }] },
       players: initial.players.map(player => player.id === playerId
         ? {
             ...player,
             age: 25,
+            role: 'FWD' as const,
             archetype: 'Engine' as const,
             potentialCeiling: 99,
             attrs: { ...player.attrs, sta: 90 },
@@ -60,239 +71,70 @@ describe('M2 player-specific training growth', () => {
       },
     };
 
-    const player = resolveCareerTrainingWeek(state).players.find(candidate => candidate.id === playerId)!;
+    const result = trainWithoutSuper(state, playerId, 'circuit');
 
-    // Circuit I's +3 STA, Engine +15%, and Lv3 Gym x2 still add seven points at 90.
-    expect(player.attrs.sta).toBe(97);
+    // Circuit I's +3 STA doubles under the Lv3 Gym; Engine's 15% (90
+    // hundredths) banks without releasing a point yet. No growth wall at 90.
+    expect(result.after).toBe(96);
+    expect(result.state.players.find(p => p.id === playerId)?.trainingBonusRemainders?.sta).toBe(90);
   });
 
-  test('banks combined fractional development bonuses after structural multipliers', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90212), careerMode: 'full' });
+  test('banks fractional archetype bonuses until repeat drills earn a whole point', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(90214), careerMode: 'full' });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
-    // Level 1 (not 4): a real tier-I drill's fixed +3 gain, times the Lv3
-    // shooting-range x2 multiplier, must stay under a 100-hundredths coach
-    // bonus in week one so the fraction genuinely carries into week two.
-    const coach = {
-      id: 'rounding-coach',
-      name: 'Rounding Coach',
-      specialties: ['ATTACK', 'DEFENSE'] as const,
-      level: 1,
-      weeklyWage: 1_000,
-      personality: 'PROFESSIONAL' as const,
-      requiredDivision: 5,
-      requiredFame: 0,
-      loyaltyDiscountPercent: 0,
-    };
-    const state = {
+    // Anchor gives +15% DEF; a FWD earns no position bonus on DEF, and there is
+    // no coach, so each +3 Duels drill banks exactly 45 hundredths.
+    let state: GameState = {
       ...initial,
       trainingPoints: 100,
       players: initial.players.map(player => player.id === playerId
         ? {
             ...player,
             age: 25,
+            role: 'FWD' as const,
             archetype: 'Anchor' as const,
             potentialCeiling: 99,
-            attrs: { ...player.attrs, sho: 50 },
+            condition: 100,
+            attrs: { ...player.attrs, def: 50 },
           }
         : player),
-      facilities: {
-        ...initial.facilities,
-        grid: {
-          ...initial.facilities.grid!,
-          nextBuildingId: 2,
-          buildings: [{
-            id: 'facility-1',
-            type: 'shooting-range' as const,
-            level: 3 as const,
-            x: 0,
-            y: 0,
-          }],
-        },
-      },
-      market: {
-        ...initial.market!,
-        coachCandidates: [coach],
-        headCoach: coach,
-      },
-      trainingPlan: { slots: [{ playerId, pathId: 'finishing' }] },
+      market: undefined,
     };
-
-    const firstWeek = resolveCareerTrainingWeek(state);
-    const firstPlayer = firstWeek.players.find(candidate => candidate.id === playerId)!;
-    const secondWeek = resolveCareerTrainingWeek({ ...state, players: firstWeek.players });
-    const secondPlayer = secondWeek.players.find(candidate => candidate.id === playerId)!;
-
-    // Each week has +6 base growth (tier-I +3 x Lv3 facility x2) and a combined
-    // 13% coach-plus-potential bonus. The first week banks 78 hundredths; the
-    // second releases one extra point and carries 56.
-    expect(firstPlayer.attrs.sho).toBe(56);
-    expect(firstPlayer.trainingBonusRemainders?.sho).toBe(78);
-    expect(secondPlayer.attrs.sho).toBe(63);
-    expect(secondPlayer.trainingBonusRemainders?.sho).toBe(56);
-  });
-
-  test('turns a Level 1 Attack coach into one exact extra point over repeated +3 drills', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90214), careerMode: 'full' });
-    const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
-    const coach = {
-      id: 'level-one-coach',
-      name: 'Level One Coach',
-      specialties: ['ATTACK', 'MOTIVATOR'] as const,
-      level: 1,
-      weeklyWage: 500,
-      personality: 'PROFESSIONAL' as const,
-      requiredDivision: 5,
-      requiredFame: 0,
-      loyaltyDiscountPercent: 0,
-    };
-    let state = {
-      ...initial,
-      players: initial.players.map(player => player.id === playerId
-        ? {
-            ...player,
-            age: 25,
-            archetype: 'Anchor' as const,
-            potentialCeiling: 99,
-            attrs: { ...player.attrs, sho: 50 },
-          }
-        : player),
-      market: { ...initial.market!, headCoach: coach },
-      // A real tier-I 'finishing' slot gives the same fixed +3 gain the old
-      // synthetic drill used, so the coach math is unchanged.
-      trainingPlan: { slots: [{ playerId, pathId: 'finishing' }] },
-    };
-    const weeklyGains: number[] = [];
-
-    for (let week = 0; week < 4; week += 1) {
-      const before = state.players.find(player => player.id === playerId)!.attrs.sho;
-      const result = resolveCareerTrainingWeek(state);
-      const after = result.players.find(player => player.id === playerId)!.attrs.sho;
-      weeklyGains.push(after - before);
-      state = { ...state, players: result.players };
+    const gains: number[] = [];
+    for (let drill = 0; drill < 3; drill += 1) {
+      const result = trainWithoutSuper(state, playerId, 'duels');
+      gains.push(result.after - result.before);
+      state = { ...result.state, players: result.state.players.map(p => p.id === playerId
+        ? { ...p, condition: 100 }
+        : p) };
     }
 
-    expect(weeklyGains).toEqual([3, 3, 3, 4]);
-    expect(state.players.find(player => player.id === playerId)?.trainingBonusRemainders?.sho)
-      .toBe(20);
+    expect(gains).toEqual([3, 3, 4]);
+    expect(state.players.find(p => p.id === playerId)?.trainingBonusRemainders?.def).toBe(35);
   });
 
   test('allows gains through 99 and stops only at the universal 999 ceiling', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90213), careerMode: 'full' });
     const roster = initial.players.filter(player => player.clubId === initial.userClubId);
-    const growingId = roster[0].id;
-    const maximumId = roster[1].id;
-    const baseAttrs = { pac: 40, sho: 40, pas: 40, def: 40, tec: 40, sta: 40, ref: 40 };
-    const profile = {
-      ...roster[0],
-      role: 'FWD' as const,
-      archetype: 'Sniper' as const,
-      potential: 2 as const,
-      potentialCeiling: 60,
-      attrs: baseAttrs,
-    };
     const state = {
       ...initial,
       trainingPoints: 100,
       players: initial.players.map(player => {
-        if (player.id === growingId) {
-          return { ...profile, age: 20, attrs: { ...baseAttrs, sho: 98 } };
+        if (player.id === roster[0].id) {
+          return { ...player, age: 20, attrs: { ...player.attrs, sho: 98 } };
         }
-        if (player.id === maximumId) {
-          return {
-            ...profile,
-            id: maximumId,
-            age: 20,
-            attrs: { ...baseAttrs, sho: 998 },
-          };
+        if (player.id === roster[1].id) {
+          return { ...player, age: 20, attrs: { ...player.attrs, sho: 998 } };
         }
         return player;
       }),
-      trainingPlan: {
-        slots: [
-          { playerId: growingId, pathId: 'finishing' },
-          { playerId: maximumId, pathId: 'finishing' },
-        ],
-      },
     };
 
-    const players = resolveCareerTrainingWeek(state).players;
-    const growing = players.find(player => player.id === growingId)!;
-    const maximum = players.find(player => player.id === maximumId)!;
+    const growing = trainWithoutSuper(state, roster[0].id, 'finishing');
+    expect(growing.after).toBeGreaterThan(99);
 
-    expect(growing.attrs.sho).toBeGreaterThan(99);
-    expect(maximum.attrs.sho).toBe(999);
-  });
-
-  test('skips only a player already at 999 while charging for the executable slot', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90215), careerMode: 'full' });
-    const roster = initial.players.filter(player => player.clubId === initial.userClubId);
-    const capped = roster[0];
-    const eligible = roster.find(player => (
-      player.id !== capped.id && playerAttributeCaps(player).pac > player.attrs.pac
-    ))!;
-    const state = {
-      ...initial,
-      trainingPoints: 100,
-      players: initial.players.map(player => player.id === capped.id
-        ? { ...player, attrs: { ...player.attrs, pac: playerAttributeCaps(player).pac } }
-        : player),
-      trainingPlan: {
-        slots: [
-          { playerId: capped.id, pathId: 'sprints' },
-          { playerId: eligible.id, pathId: 'sprints' },
-        ],
-      },
-    };
-    const result = resolveCareerTrainingWeek(state);
-
-    expect(result.players.find(player => player.id === capped.id)?.attrs.pac)
-      .toBe(playerAttributeCaps(state.players.find(player => player.id === capped.id)!).pac);
-    expect(result.players.find(player => player.id === eligible.id)?.attrs.pac)
-      .toBeGreaterThan(eligible.attrs.pac);
-    // The 999 slot is excluded from the executable set entirely.
-    expect(result.trainingPoints).toBe(94);
-    expect(result.moneyCost).toBe(0);
-    // The rare safety maximum is surfaced before settlement.
-    expect(pendingTrainingInterrupts(state, state.trainingPoints).cappedSlots).toContainEqual(
-      expect.objectContaining({ playerId: capped.id, pathId: 'sprints', attribute: 'pac' }),
-    );
-  });
-
-  test('saves a plan at the universal maximum without requiring unusable resources', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90216), careerMode: 'full' });
-    const player = initial.players.find(candidate => candidate.clubId === initial.userClubId)!;
-    const state = {
-      ...initial,
-      trainingPoints: 0,
-      clubs: initial.clubs.map(club => club.id === initial.userClubId
-        ? { ...club, cash: 0 }
-        : club),
-      players: initial.players.map(candidate => candidate.id === player.id
-        ? { ...candidate, attrs: { ...candidate.attrs, pac: playerAttributeCaps(candidate).pac } }
-        : candidate),
-    };
-
-    const planned = setCareerTrainingPlan(state, [{ playerId: player.id, pathId: 'sprints' }]);
-
-    expect(planned.trainingPlan?.slots).toEqual([{ playerId: player.id, pathId: 'sprints' }]);
-    expect(pendingTrainingInterrupts(planned, 0).cappedSlots).toContainEqual(expect.objectContaining({
-      playerId: player.id,
-      pathId: 'sprints',
-      attribute: 'pac',
-    }));
-  });
-
-  test('a player can occupy only one training slot', () => {
-    const initial = {
-      ...createCareer({ ...createLaunchCareerSetup(90217), careerMode: 'full' }),
-      trainingPoints: 100,
-    };
-    const player = initial.players.find(candidate => candidate.clubId === initial.userClubId)!;
-
-    expect(() => setCareerTrainingPlan(initial, [
-      { playerId: player.id, pathId: 'sprints' },
-      { playerId: player.id, pathId: 'finishing' },
-    ])).toThrow('a player can occupy only one training slot');
+    const maximum = trainWithoutSuper(state, roster[1].id, 'finishing');
+    expect(maximum.after).toBe(999);
   });
 
   test('unlocks drill tiers from the permanent best division reached', () => {

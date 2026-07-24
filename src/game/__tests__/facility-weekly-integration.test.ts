@@ -3,8 +3,19 @@ import { loadLaunchContent } from '../../content';
 import { advanceWeek, completeMatchday, createCareer, fixturesForCurrentWeek } from '../career';
 import { buildCareerFacility } from '../management';
 import { advanceFacilityConstruction } from '../facilities';
-import { setCareerTrainingPlan } from '../training';
+import { trainPlayerInstantly } from '../training';
+import { resolveTrainingDrillForPath } from '../training-paths';
 import type { GameState } from '../types';
+
+/** Taps the drill when the bank affords it, retrying nonces past SUPER rolls. */
+function tapIfAffordable(state: GameState, playerId: string, pathId: string): GameState {
+  if (resolveTrainingDrillForPath(state, pathId).tpCost > state.trainingPoints) return state;
+  for (let nonce = state.totalInstantDrills ?? 0; nonce < 1_000; nonce += 1) {
+    const result = trainPlayerInstantly({ ...state, totalInstantDrills: nonce }, playerId, pathId);
+    if (!result.isSuper) return result.state;
+  }
+  throw new Error('no non-SUPER nonce found within 1000 attempts');
+}
 
 function userCash(state: ReturnType<typeof createCareer>): number {
   const club = state.clubs.find(candidate => candidate.id === state.userClubId);
@@ -24,7 +35,7 @@ describe('facility weekly integration', () => {
       .filter(candidate => candidate.clubId === fresh.userClubId)
       .slice(0, 2);
     expect(players).toHaveLength(2);
-    let state = setCareerTrainingPlan({
+    let state: GameState = {
       ...started,
       fixtures: [],
       m2: started.m2 === undefined
@@ -40,7 +51,7 @@ describe('facility weekly integration', () => {
             attrs: { ...candidate.attrs, pac: 20 },
           }
         : candidate),
-    }, players.map(player => ({ playerId: player.id, pathId: 'sprints' })));
+    };
 
     expect(state.trainingPoints).toBe(30);
     expect(state.facilities).toMatchObject({
@@ -53,6 +64,7 @@ describe('facility weekly integration', () => {
 
     const balances = [state.trainingPoints];
     for (let week = 0; week < 4; week += 1) {
+      for (const player of players) state = tapIfAffordable(state, player.id, 'sprints');
       state = advanceWeek(state);
       if (state.phase === 'matchday') {
         state = completeMatchday(state, fixturesForCurrentWeek(state).map(fixture => ({
@@ -64,10 +76,11 @@ describe('facility weekly integration', () => {
       balances.push(state.trainingPoints);
     }
 
-    // Sprints I now costs 6 TP per slot (12 total for the two trainees).
-    // The two build weeks pay nothing — benefits start only once the pitch is
-    // open — then each later settlement restores 10 TP, netting -2 per week.
-    expect(balances).toEqual([30, 18, 6, 4, 2]);
+    // Sprints I costs 6 TP per tap (12 for the two trainees). The two build
+    // weeks pay nothing — benefits start only once the pitch is open — so week
+    // three affords one drill (6→0) before the first +10 lands, and week four
+    // affords one more (10→4) before the next.
+    expect(balances).toEqual([30, 18, 6, 10, 14]);
     // Training is TP-only now; no money is ever charged, so no ledger line
     // of kind 'training' is ever recorded.
     expect(state.ledgers.map(ledger => ledger.lines.find(line => line.kind === 'training')?.amount))
@@ -142,8 +155,7 @@ describe('facility weekly integration', () => {
     const withoutMatches: GameState = {
       ...withAdjacency,
       fixtures: [],
-      trainingPoints: 100,
-      trainingPlan: { slots: [{ playerId, pathId: 'circuit' }] },
+      trainingPoints: 1_000,
       m2: withAdjacency.m2 === undefined
         ? undefined
         : { ...withAdjacency.m2, nationalCups: [] },
@@ -163,15 +175,19 @@ describe('facility weekly integration', () => {
     if (startingSta === undefined) throw new Error('missing user player STA');
 
     let state = withoutMatches;
-    for (let week = 0; week < 9; week += 1) state = advanceWeek(state);
+    for (let week = 0; week < 9; week += 1) {
+      state = tapIfAffordable(state, playerId, 'circuit');
+      state = advanceWeek(state);
+    }
     const afterNine = state.players.find(player => player.id === playerId);
-    expect(afterNine?.attrs.sta).toBe(startingSta + 31);
-    expect(afterNine?.facilityStaBonusRemainder).toBe(90);
+    expect(afterNine?.attrs.sta).toBe(startingSta + 30);
+    expect(afterNine?.facilityStaBonusRemainder).toBe(80);
 
+    state = tapIfAffordable(state, playerId, 'circuit');
     state = advanceWeek(state);
     const afterTen = state.players.find(player => player.id === playerId);
-    expect(afterTen?.attrs.sta).toBe(startingSta + 35);
-    expect(afterTen?.facilityStaBonusRemainder).toBe(20);
+    expect(afterTen?.attrs.sta).toBe(startingSta + 34);
+    expect(afterTen?.facilityStaBonusRemainder).toBe(10);
   });
 
   test('keeps M1 ambient TP behavior and charges no upkeep when the grid is absent', () => {

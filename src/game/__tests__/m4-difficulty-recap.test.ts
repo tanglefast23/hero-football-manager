@@ -130,23 +130,4 @@ describe('M4 difficulty and season recap', () => {
     expect(recap.topScorer).toMatchObject({ playerId: scorer.id, detail: '7 goals' });
   });
 
-  it('clears delivered cap receipts after their season recap is recorded', () => {
-    const initial = career('COZY');
-    const finished = finishSeason({
-      ...initial,
-      trainingCapNotices: [{
-        id: 'training-cap:s1-w1:test:pac:sprints',
-        season: 1,
-        week: 1,
-        playerId: initial.players[0].id,
-        playerName: initial.players[0].name,
-        drillId: 'sprints',
-        attribute: 'pac',
-        cap: 50,
-      }],
-    });
-
-    expect(finished.seasonRecaps?.[0]?.trainingCapsReached).toBe(1);
-    expect(startNextSeason(finished).trainingCapNotices).toEqual([]);
-  });
 });

@@ -1,7 +1,6 @@
 import type { TeamDef } from '../sim/types';
 import { buildTeamDef } from './lineup';
 import { renewContract, selectLicensedHeroes } from './progression';
-import { setCareerTrainingPlan } from './training';
 import { buildFacility as placeFacility, createFacilityGrid } from './facilities';
 import { applyLowMoraleToStat } from './pyramid';
 import {
@@ -11,7 +10,7 @@ import {
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { coachMotivatorBonusPercent } from './coach-weekly';
 import { highestDivisionReached } from './promotion-progression';
-import type { CareerPlayer, CareerTrainingSlot, GameState } from './types';
+import type { CareerPlayer, GameState } from './types';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
 
 const DEFAULT_HERO_LIMIT = 2;
@@ -287,14 +286,6 @@ export function selectCareerLicensedHeroes(
   };
 }
 
-/** Stores a repeating weekly plan; gains and costs resolve at settlement. */
-export function applyCareerTraining(
-  state: GameState,
-  slots: readonly CareerTrainingSlot[],
-): GameState {
-  return setCareerTrainingPlan(state, slots);
-}
-
 export function buildTrainingGround(
   state: GameState,
   cost = TRAINING_GROUND_COST,
@@ -410,9 +401,6 @@ export function releaseCareerPlayer(state: GameState, playerId: string): GameSta
     throw new Error('the expired starter cannot leave without an eligible replacement');
   }
 
-  const remainingTrainingAssignments = state.trainingPlan?.slots
-    .filter(slot => slot.playerId !== playerId) ?? [];
-
   return reconcileBoardUltimatumCandidates({
     ...state,
     clubs: state.clubs.map(club => {
@@ -430,9 +418,6 @@ export function releaseCareerPlayer(state: GameState, playerId: string): GameSta
           ...candidate,
           playerIds: candidate.playerIds.map(id => id === playerId ? replacement!.id : id),
         }),
-    trainingPlan: state.trainingPlan === undefined || remainingTrainingAssignments.length === 0
-      ? undefined
-      : { slots: remainingTrainingAssignments },
     // After the tutorial is complete this record is historical only. Clearing
     // it allows the created player to leave without leaving a dangling save ID.
     onboarding: state.onboarding?.createdPlayerId === playerId

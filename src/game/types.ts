@@ -50,39 +50,7 @@ export interface CareerTrainingDrill {
   gains: Partial<Attrs>;
 }
 
-export interface CareerTrainingSlot {
-  playerId: string;
-  /** Tier-1 drill id identifying the path; best unlocked tier resolves at settlement. */
-  pathId: string;
-}
-
-export interface CareerTrainingPlan {
-  slots: CareerTrainingSlot[];
-}
-
-export interface CareerTrainingCapNotice {
-  id: string;
-  season: number;
-  week: number;
-  playerId: string;
-  playerName: string;
-  attribute: keyof Attrs;
-  cap: number;
-  drillId: string;
-  /** Absent on older saves, which means the player reached the cap that week. */
-  kind?: 'reached' | 'skipped';
-}
-
-/**
- * Set when a TRAINING_PRIORITY promise is accepted while every training slot
- * is full: the manager must pick who to bump before the promise is honored.
- */
-export interface PendingTrainingPromiseBump {
-  promisedPlayerId: string;
-}
-
 export interface TrainingRules {
-  maxFocusDrillsPerWeek: number;
   /** Full focus-drill catalog, baked in so the pure engine can resolve tiers. */
   focusDrills: CareerTrainingDrill[];
 }
@@ -424,11 +392,6 @@ export interface GameState {
   lineups: ClubLineupState[];
   facilities: FacilityState;
   trainingRules?: TrainingRules;
-  trainingPlan?: CareerTrainingPlan;
-  /** One-shot inbox receipts created at the rare universal 999 safety ceiling. */
-  trainingCapNotices?: CareerTrainingCapNotice[];
-  /** Cleared once the manager picks who to bump; a mid-prompt save must reload it. */
-  pendingTrainingPromiseBump?: PendingTrainingPromiseBump;
   eventClock: CareerEventState;
   eventFlags: string[];
   resolvedEventIds: string[];

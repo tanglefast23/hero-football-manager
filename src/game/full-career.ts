@@ -58,7 +58,6 @@ export function enableFullCareer(state: GameState): GameState {
     && state.userClubId === 'bramble-rovers'
     && state.ledgers.length === 0
     && (state.cashTransactions?.length ?? 0) === 0
-    && state.trainingPlan === undefined
     && !state.facilities.trainingGroundBuilt
     && (state.facilities.grid?.buildings.length ?? 0) === 0
     && state.facilities.grid?.construction === undefined
@@ -183,12 +182,6 @@ export function startNextFullCareerSeason(
     players,
     lineups,
     seasonOpeningCash: userClub.cash,
-    trainingCapNotices: [],
-    trainingPlan: state.trainingPlan === undefined
-      ? undefined
-      : {
-          slots: state.trainingPlan.slots.filter(slot => !retiredIds.has(slot.playerId)),
-        },
     m2: nextM2,
     retiredPlayers,
     pendingLegacyPlayerIds,

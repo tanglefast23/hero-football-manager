@@ -12,6 +12,7 @@ import {
   overtrainingInjuryChancePercent,
   resolveWeeklyPlayerWellbeing,
 } from '../player-wellbeing';
+import { trainPlayerInstantly } from '../training';
 import type { CareerPlayer, GameState } from '../types';
 
 function career(seed = 1): GameState {
@@ -62,7 +63,7 @@ function withUserPlayerChanges(
 }
 
 describe('weekly player wellbeing', () => {
-  test('combines focus workload, recovery, match result, and starter status', () => {
+  test('combines recovery, match result, and starter status without a training workload', () => {
     let state = career(7);
     const roster = userPlayers(state);
     const userLineup = state.lineups.find(lineup => lineup.clubId === state.userClubId)!;
@@ -75,34 +76,15 @@ describe('weekly player wellbeing', () => {
       consecutiveLowMoraleWeeks: 0,
     }));
     state = withPlayedUserFixture(state, 2, 0);
-    const otherTrainees = roster
-      .filter(player => player.id !== starterId && player.id !== benchId)
-      .slice(0, 2)
-      .map(player => player.id);
-    state = {
-      ...state,
-      // Three total slots reproduce the same 3x focus-drill condition workload
-      // as the old shared three-drill plan (the workload cost scales with the
-      // whole week's slot count, not just this one player's).
-      trainingPlan: {
-        slots: [
-          { playerId: starterId, pathId: 'sprints' },
-          { playerId: otherTrainees[0], pathId: 'finishing' },
-          { playerId: otherTrainees[1], pathId: 'rondo' },
-        ],
-      },
-    };
     const before = JSON.stringify(state);
 
-    const result = resolveWeeklyPlayerWellbeing(state, {
-      trainedPlayers: state.players,
-      focusApplied: true,
-    });
+    const result = resolveWeeklyPlayerWellbeing(state);
     const starter = result.players.find(player => player.id === starterId);
     const bench = result.players.find(player => player.id === benchId);
 
     expect(result.matchOutcome).toBe('win');
-    expect(starter).toMatchObject({ condition: 38, morale: 55, consecutiveLowMoraleWeeks: 0 });
+    // Drill costs land at tap time now, so settlement is pure +12 recovery.
+    expect(starter).toMatchObject({ condition: 62, morale: 55, consecutiveLowMoraleWeeks: 0 });
     expect(bench).toMatchObject({ condition: 62, morale: 52, consecutiveLowMoraleWeeks: 0 });
     expect(JSON.stringify(state)).toBe(before);
   });
@@ -119,10 +101,7 @@ describe('weekly player wellbeing', () => {
       consecutiveLowMoraleWeeks: player.id === starterId ? 2 : player.id === benchId ? 4 : 0,
     }));
 
-    const result = resolveWeeklyPlayerWellbeing(state, {
-      trainedPlayers: state.players,
-      focusApplied: false,
-    });
+    const result = resolveWeeklyPlayerWellbeing(state);
 
     expect(result.players.find(player => player.id === starterId)).toMatchObject({
       morale: 29,
@@ -137,55 +116,9 @@ describe('weekly player wellbeing', () => {
     recoveryWeek.players = result.players.map(player => player.id === starterId
       ? { ...player, morale: 35 }
       : player);
-    const recovered = resolveWeeklyPlayerWellbeing(recoveryWeek, {
-      trainedPlayers: recoveryWeek.players,
-      focusApplied: false,
-    });
+    const recovered = resolveWeeklyPlayerWellbeing(recoveryWeek);
     expect(recovered.players.find(player => player.id === starterId)?.consecutiveLowMoraleWeeks)
       .toBe(0);
-  });
-
-  test('uses seeded overtraining checks and produces byte-identical output', () => {
-    let selected: { state: GameState; result: ReturnType<typeof resolveWeeklyPlayerWellbeing> } | undefined;
-    for (let seed = 1; seed <= 100 && selected === undefined; seed += 1) {
-      let state = career(seed);
-      const [playerId, otherId1, otherId2] = userPlayers(state).map(player => player.id);
-      state = withUserPlayerChanges(state, player => ({
-        ...player,
-        condition: player.id === playerId ? 0 : 100,
-        injuryWeeks: 0,
-      }));
-      state = {
-        ...state,
-        trainingPlan: {
-          slots: [
-            { playerId, pathId: 'sprints' },
-            { playerId: otherId1, pathId: 'finishing' },
-            { playerId: otherId2, pathId: 'rondo' },
-          ],
-        },
-      };
-      const result = resolveWeeklyPlayerWellbeing(state, {
-        trainedPlayers: state.players,
-        focusApplied: true,
-      });
-      if (result.injuryChecks[0]?.injured) selected = { state, result };
-    }
-    expect(selected).toBeDefined();
-    if (selected === undefined) throw new Error('expected a deterministic injury sample');
-
-    const repeated = resolveWeeklyPlayerWellbeing(selected.state, {
-      trainedPlayers: selected.state.players,
-      focusApplied: true,
-    });
-    expect(JSON.stringify(repeated)).toBe(JSON.stringify(selected.result));
-    expect(selected.result.injuryChecks[0]).toMatchObject({
-      condition: 0,
-      chancePercent: 70,
-      injured: true,
-    });
-    expect(selected.result.injuryChecks[0].recoveryWeeks).toBeGreaterThanOrEqual(2);
-    expect(selected.result.injuryChecks[0].recoveryWeeks).toBeLessThanOrEqual(6);
   });
 
   test('uses Medical Bay level for recovery and adjacency for the documented risk reduction', () => {
@@ -210,59 +143,51 @@ describe('weekly player wellbeing', () => {
     expect(overtrainingInjuryChancePercent(0, 0)).toBe(70);
     expect(overtrainingInjuryChancePercent(0, 20)).toBe(56);
     expect(overtrainingInjuryChancePercent(30, 20)).toBe(0);
+    expect(() => medicalBayRecoveryWeeks(0, 1)).toThrow(/positive/);
 
-    const makeLowConditionState = (facilityGrid: FacilityGridState): GameState => {
-      let state = career(2);
-      const [playerId, otherId1, otherId2] = userPlayers(state).map(player => player.id);
+    // The same facility grids shape the tap-time injury gamble: the Lv3
+    // Medical Bay alone leaves a 70% chance at 0 condition, and the adjacent
+    // Training Pitch discount brings it to 56%; an injury that does land is
+    // shortened by three weeks (floor one) by the Lv3 bay.
+    const makeExhaustedState = (facilityGrid: FacilityGridState): GameState => {
+      let state = createCareer(createLaunchCareerSetup(2, undefined, undefined, 'full'));
+      const playerId = userPlayers(state)[0].id;
       state = withUserPlayerChanges(state, player => ({
         ...player,
         condition: player.id === playerId ? 0 : 100,
       }));
       return {
         ...state,
+        trainingPoints: 100,
         facilities: { ...state.facilities, grid: facilityGrid },
-        trainingPlan: {
-          slots: [
-            { playerId, pathId: 'sprints' },
-            { playerId: otherId1, pathId: 'finishing' },
-            { playerId: otherId2, pathId: 'rondo' },
-          ],
-        },
       };
     };
-    const medicalState = makeLowConditionState(medicalOnly);
-    const adjacencyState = makeLowConditionState(adjacent);
-    const medicalResult = resolveWeeklyPlayerWellbeing(medicalState, {
-      trainedPlayers: medicalState.players,
-      focusApplied: true,
-    });
-    const adjacencyResult = resolveWeeklyPlayerWellbeing(adjacencyState, {
-      trainedPlayers: adjacencyState.players,
-      focusApplied: true,
-    });
+    const medicalState = makeExhaustedState(medicalOnly);
+    const playerId = userPlayers(medicalState)[0].id;
+    let injuredResult;
+    for (let nonce = 0; nonce < 200 && injuredResult === undefined; nonce += 1) {
+      const result = trainPlayerInstantly(
+        { ...medicalState, totalInstantDrills: nonce },
+        playerId,
+        'sprints',
+      );
+      if (result.injury !== undefined) injuredResult = result;
+    }
+    expect(injuredResult?.injury?.chancePercent).toBe(70);
+    expect(injuredResult?.injury?.recoveryWeeks).toBeGreaterThanOrEqual(1);
+    expect(injuredResult?.injury?.recoveryWeeks).toBeLessThanOrEqual(3);
 
-    expect(medicalResult.injuryChecks[0].chancePercent).toBe(70);
-    expect(adjacencyResult.injuryChecks[0].chancePercent).toBe(56);
-    expect(medicalResult.injuryChecks[0].injured).toBe(true);
-    expect(adjacencyResult.injuryChecks[0].injured).toBe(false);
-    expect(medicalResult.injuryChecks[0].recoveryWeeks)
-      .toBe(medicalBayRecoveryWeeks(medicalResult.injuryChecks[0].baseRecoveryWeeks!, 3));
+    const adjacencyState = makeExhaustedState(adjacent);
+    const adjacencyResult = trainPlayerInstantly(adjacencyState, playerId, 'sprints');
+    expect(adjacencyResult.injury?.chancePercent ?? overtrainingInjuryChancePercent(0, 20)).toBe(56);
   });
 
-  test('leaves opponents unchanged and rejects incomplete training output', () => {
+  test('leaves opponents unchanged', () => {
     const state = career(9);
     const opponent = state.players.find(player => player.clubId !== state.userClubId)!;
-    const result = resolveWeeklyPlayerWellbeing(state, {
-      trainedPlayers: state.players,
-      focusApplied: false,
-    });
+    const result = resolveWeeklyPlayerWellbeing(state);
 
     expect(result.players.find(player => player.id === opponent.id)).toBe(opponent);
-    expect(() => resolveWeeklyPlayerWellbeing(state, {
-      trainedPlayers: state.players.slice(1),
-      focusApplied: false,
-    })).toThrow(/every career player/);
-    expect(() => medicalBayRecoveryWeeks(0, 1)).toThrow(/positive/);
   });
 
   test('drains an underpaid star, honors Motivator carry, and raises a transfer request', () => {
@@ -287,10 +212,7 @@ describe('weekly player wellbeing', () => {
       },
     };
 
-    const first = resolveWeeklyPlayerWellbeing(state, {
-      trainedPlayers: state.players,
-      focusApplied: false,
-    });
+    const first = resolveWeeklyPlayerWellbeing(state);
     const updated = first.players.find(candidate => candidate.id === player.id)!;
 
     expect(updated).toMatchObject({
@@ -323,10 +245,7 @@ describe('weekly player wellbeing', () => {
     };
 
     for (let week = 0; week < 20; week += 1) {
-      const result = resolveWeeklyPlayerWellbeing(state, {
-        trainedPlayers: state.players,
-        focusApplied: false,
-      });
+      const result = resolveWeeklyPlayerWellbeing(state);
       state = { ...state, players: result.players };
     }
 

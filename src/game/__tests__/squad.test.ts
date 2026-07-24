@@ -1,7 +1,6 @@
 import { loadLaunchContent } from '../../content';
 import { activeCareerMatchday, advanceWeek, completeMatchday, createCareer } from '../career';
 import {
-  applyCareerTraining,
   buildCareerTeamDef,
   buildTrainingGround,
   releaseCareerPlayer,
@@ -10,6 +9,7 @@ import {
   setCareerLineup,
   swapCareerLineupPlayer,
 } from '../squad';
+import { trainPlayerInstantly } from '../training';
 import type { CareerPlayer, CareerSetup, GameState } from '../types';
 
 const CLUB_IDS = Array.from({ length: 10 }, (_, index) => `club-${index}`);
@@ -175,27 +175,38 @@ describe('career squad integration', () => {
     expect(buildCareerTeamDef(coached, coached.userClubId).heroGaugeRatePercent).toBe(102.5);
   });
 
-  it('stores one weekly plan and settles each slot for only its own player and stat', () => {
-    const planned = applyCareerTraining(career(), [
+  it('trains each tapped drill for only its own player and stat', () => {
+    const initial = career();
+    expect(initial.clubs[0].cash).toBe(50000);
+    expect(initial.trainingPoints).toBe(100);
+    expect(initial.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(50);
+
+    // This M1 fixture never gates a tier by division, so each path resolves
+    // to its highest (tier III) drill: 15 TP and +8 gain per tap. M1 careers
+    // apply the plain drill gain, so a SUPER roll cannot disturb these exact
+    // values only if it misses — probe nonces to keep both taps ordinary.
+    let trained = initial;
+    for (const tap of [
       { playerId: `${CLUB_IDS[0]}-p9`, pathId: 'sprints' },
       { playerId: `${CLUB_IDS[0]}-p1`, pathId: 'duels' },
-    ]);
-
-    expect(planned.clubs[0].cash).toBe(50000);
-    expect(planned.trainingPoints).toBe(100);
-    expect(planned.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(50);
-
-    const trained = advanceWeek(planned);
-    // This M1 fixture never gates a tier by division, so each path resolves
-    // to its highest (tier III) drill: 15 TP and +8 gain per slot.
+    ]) {
+      for (let nonce = trained.totalInstantDrills ?? 0; ; nonce += 1) {
+        const result = trainPlayerInstantly(
+          { ...trained, totalInstantDrills: nonce },
+          tap.playerId,
+          tap.pathId,
+        );
+        if (!result.isSuper) { trained = result.state; break; }
+      }
+    }
     expect(trained.trainingPoints).toBe(70);
-    // Focus drills are TP-only now; no money is ever charged for training.
-    expect(trained.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
     expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(58);
     expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.def).toBe(50);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.pac).toBe(50);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(58);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p2`)?.attrs.def).toBe(50);
+    // Training is TP-only; weekly settlement never charges money for it.
+    expect(advanceWeek(trained).ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
   });
 
   it('starts the two-week training-ground build and pays its first 10 TP the week after completion', () => {
@@ -234,23 +245,21 @@ describe('career squad integration', () => {
     expect(activeWeek.trainingPoints).toBe(110);
   });
 
-  it('skips an unaffordable repeating focus plan without blocking weekly settlement', () => {
-    const planned = applyCareerTraining(career(), [
-      { playerId: `${CLUB_IDS[0]}-p9`, pathId: 'sprints' },
-    ]);
+  it('rejects an unaffordable drill at tap time without blocking weekly settlement', () => {
     const broke = {
-      ...planned,
+      ...career(),
       trainingPoints: 0,
-      clubs: planned.clubs.map(club => club.id === planned.userClubId
+      clubs: career().clubs.map(club => club.id === CLUB_IDS[0]
         ? { ...club, cash: 0 }
         : club),
     };
 
-    const settled = advanceWeek(broke);
+    expect(() => trainPlayerInstantly(broke, `${CLUB_IDS[0]}-p9`, 'sprints'))
+      .toThrow(/needs 15 TP/);
 
+    const settled = advanceWeek(broke);
     expect(settled.week).toBe(2);
     expect(settled.players.find(player => player.id === `${CLUB_IDS[0]}-p9`)?.attrs.pac).toBe(50);
-    expect(settled.trainingPlan).toEqual(planned.trainingPlan);
     expect(settled.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
   });
 
