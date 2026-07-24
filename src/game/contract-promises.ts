@@ -6,7 +6,7 @@ import type {
 } from './types';
 import { playerAttributeCaps, roleOverall } from './archetype-caps';
 import { currentUserDivision } from './m2-career';
-import { setCareerTrainingPlan } from './training';
+import { replaceCareerTrainingPlan } from './training-plan';
 import { TRAINING_PATHS } from './training-paths';
 
 const STARTING_PROMISES: readonly CareerContractPerk[] = [
@@ -145,8 +145,10 @@ export function resolveTrainingPromiseBump(state: GameState, bumpedPlayerId: str
     ...slots.filter(slot => slot.playerId !== bumpedPlayerId),
     { playerId: pending.promisedPlayerId, pathId },
   ];
+  const next = replaceCareerTrainingPlan(state, nextSlots);
+  assertCareerTrainingHonorsContractPromises(state, nextSlots.map(slot => slot.playerId));
   return {
-    ...setCareerTrainingPlan(state, nextSlots),
+    ...next,
     pendingTrainingPromiseBump: undefined,
   };
 }
