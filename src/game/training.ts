@@ -12,6 +12,7 @@ import {
 import { resolveTrainingDrillForPath, trainingPathAttribute } from './training-paths';
 import { replaceCareerTrainingPlan } from './training-plan';
 import { assertCareerTrainingHonorsContractPromises } from './contract-promises';
+import { replaceCareerTrainingPlan } from './training-plan';
 import type {
   CareerPlayer,
   CareerTrainingDrill,
