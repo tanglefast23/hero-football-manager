@@ -32,7 +32,8 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 
 const FACILITY_GUIDE_TARGET_TOP = 170;
-const FACILITY_PLACEMENT_PLUS_FONT_SIZE = 12 * 1.4;
+const FACILITY_PLACEMENT_PLUS_SIZE = 16;
+const FACILITY_PLACEMENT_PLUS_THICKNESS = 4;
 
 /** Scrolls the ScrollView so the given target (a rendered View) is margin px
  * below the viewport top. Works regardless of column nesting because both
@@ -821,46 +822,40 @@ function GroundsSection({
                           onPressIn={() => setPreviewCell({ x, y })}
                           onPressOut={() => setPreviewCell(null)}
                           style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            flex: 1,
                             backgroundColor: occupied
                               ? 'transparent'
                               : placementActive
                                 ? (buildable ? 'rgba(154, 99, 214, 0.32)' : 'rgba(36, 31, 46, 0.05)')
                                 : 'rgba(92, 184, 92, 0.12)',
                           }}
-                        >
-                          {buildable ? (
+                        />
+                        {buildable ? (
+                          <View
+                            pointerEvents="none"
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
                             <View
-                              pointerEvents="none"
                               style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
+                                width: FACILITY_PLACEMENT_PLUS_SIZE,
+                                height: FACILITY_PLACEMENT_PLUS_SIZE,
                                 alignItems: 'center',
                                 justifyContent: 'center',
                               }}
                             >
-                              <Text
-                                className="font-mono font-bold text-violet-dark"
-                                style={{
-                                  fontSize: FACILITY_PLACEMENT_PLUS_FONT_SIZE,
-                                  lineHeight: FACILITY_PLACEMENT_PLUS_FONT_SIZE,
-                                  textAlign: 'center',
-                                }}
-                              >
-                                +
-                              </Text>
+                              <View style={{ position: 'absolute', width: FACILITY_PLACEMENT_PLUS_SIZE, height: FACILITY_PLACEMENT_PLUS_THICKNESS, backgroundColor: '#5b3a91' }} />
+                              <View style={{ position: 'absolute', width: FACILITY_PLACEMENT_PLUS_THICKNESS, height: FACILITY_PLACEMENT_PLUS_SIZE, backgroundColor: '#5b3a91' }} />
                             </View>
-                          ) : null}
-                        </Pressable>
+                          </View>
+                        ) : null}
                       </View>
                     );
                   })}

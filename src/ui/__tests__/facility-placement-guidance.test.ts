@@ -19,10 +19,13 @@ describe('first facility placement guidance', () => {
     expect(source).toContain('disabled={!placementActive || !guideAllowsCell}');
     expect(source).toContain('key={`facility-cell-${x}-${y}`}');
     expect(source).toContain("position: 'absolute',");
-    expect(source).toContain("right: 0,\n                            bottom: 0,");
-    expect(source).toContain('const FACILITY_PLACEMENT_PLUS_FONT_SIZE = 12 * 1.4;');
+    expect(source).toContain('const FACILITY_PLACEMENT_PLUS_SIZE = 16;');
+    expect(source).toContain('const FACILITY_PLACEMENT_PLUS_THICKNESS = 4;');
+    // The + overlay is a sibling of the cell Pressable (never a child): a
+    // function-styled SfxPressable lays out children at zero height on
+    // native, so the drawn plus must live at cell level.
     expect(source).toMatch(
-      /pointerEvents="none"[\s\S]*?alignItems: 'center',[\s\S]*?justifyContent: 'center',[\s\S]*?fontSize: FACILITY_PLACEMENT_PLUS_FONT_SIZE,[\s\S]*?lineHeight: FACILITY_PLACEMENT_PLUS_FONT_SIZE,[\s\S]*?textAlign: 'center',/,
+      /\/>\s*\{buildable \? \(\s*<View\s*pointerEvents="none"[\s\S]*?alignItems: 'center',[\s\S]*?justifyContent: 'center',[\s\S]*?width: FACILITY_PLACEMENT_PLUS_SIZE,[\s\S]*?height: FACILITY_PLACEMENT_PLUS_THICKNESS,/,
     );
     expect(appSource).toContain("conciergeFocus === 'facility-grid'");
     expect(appSource).toContain('!guidedFirstFacilityAllowsPlacement(type, x, y)');
