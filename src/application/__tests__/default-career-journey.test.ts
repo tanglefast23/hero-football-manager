@@ -73,9 +73,11 @@ describe('default two-season career journey', () => {
     // The m1-slice career has no tier gating, so the slot trains at the
     // highest unlocked tier (Sprints III) for all 60 weeks. Cap-free training
     // keeps raising the raw PAC value; Sprints trains only PAC, so STA remains
-    // at the player's creation value.
+    // at the player's creation value. The training pitch paying TP only after
+    // construction finishes delays one early drill week versus the old
+    // immediate reward, settling PAC at 378 rather than 386.
     expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
-      .toMatchObject({ pac: 386, sta: 50 });
+      .toMatchObject({ pac: 378, sta: 50 });
   });
 });
 
