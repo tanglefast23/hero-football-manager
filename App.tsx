@@ -1848,21 +1848,21 @@ function TrainingCapInterruptModal({
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
         <View accessibilityViewIsModal className="border-2 border-b-4 border-ink bg-paper p-5">
-          <Text className="font-mono text-sm font-bold uppercase text-stamp">Training at the cap</Text>
+          <Text className="font-mono text-sm font-bold uppercase text-stamp">Maximum 999 reached</Text>
           <Text className="mt-2 font-pixel text-xl uppercase text-ink">
             {resolved ? 'Ready to advance' : 'Pick a new stat first'}
           </Text>
           <Text className="mt-3 text-base leading-6 text-ink/70">
             {resolved
               ? 'Every trainee now has a stat with room to grow.'
-              : 'These players are already at the cap for their trained stat. Change their focus or swap them out.'}
+              : 'These stats cannot go any higher. Change the training focus or swap the player out.'}
           </Text>
           <View className="mt-4 gap-2">
             {cappedSlots.map(entry => (
               <View key={entry.playerId} className="border border-ink/20 bg-white px-3 py-2">
                 <Text className="text-base font-bold text-ink" numberOfLines={1}>{entry.playerName}</Text>
                 <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>
-                  {entry.attribute.toUpperCase()} capped at {entry.cap}
+                  {entry.attribute.toUpperCase()} cannot go above {entry.cap}
                 </Text>
                 <View className="mt-2 flex-row gap-2">
                   <Pressable

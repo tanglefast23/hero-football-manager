@@ -103,7 +103,7 @@ describe('saved weekly-plan summary', () => {
     expect(source).not.toContain('>✓ {drillName}</Text>');
   });
 
-  it('shows each stat option\'s drill name before its gain and its room to cap, greying out capped stats', () => {
+  it('shows each stat option\'s drill name before its gain and its current raw value', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'),
       'utf8',
@@ -115,8 +115,8 @@ describe('saved weekly-plan summary', () => {
     expect(pickerStart).toBeGreaterThanOrEqual(0);
     expect(picker.indexOf('{option.drillName}')).toBeGreaterThanOrEqual(0);
     expect(picker.indexOf('{option.drillName}')).toBeLessThan(picker.indexOf('{option.gain} {option.label}'));
-    expect(picker).toContain('{option.room} to cap');
-    expect(picker).toContain('disabled={option.atCap}');
+    expect(picker).toContain('Current ${option.currentValue} · no personal cap');
+    expect(picker).toContain('disabled={option.atSafetyCeiling}');
     expect(picker).toContain('onPress={() => onSelectTrainingStat(selectedPlayer.id, option.pathId)}');
   });
 

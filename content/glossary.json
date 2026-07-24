@@ -7,15 +7,15 @@
       "entries": [
         {
           "term": "Overall Rating",
-          "definition": "A quick current-strength number from the six attributes the player's role can use. Goalkeepers use REF instead of SHO. Open the player file to see the individual stats and personal caps."
+          "definition": "A quick average of the six raw attributes the player's role can use. Goalkeepers use REF instead of SHO. Individual stats can keep growing to the universal maximum of 999."
         },
         {
           "term": "Potential",
-          "definition": "A fixed A+ to F- grade for how good the player will be when fully developed. It comes from the role-aware rating they would have with every personal cap filled: A+ can reach the top of the game, while F- remains limited even after maximum training. Archetype shapes which attributes are strongest; normal training does not change the grade."
+          "definition": "A fixed E- to A+ grade that adds an exact training bonus. E- adds 0%, and every grade step adds 1% up to A+ at 14%. Potential changes development speed, not how high a player can grow."
         },
         {
           "term": "Archetype",
-          "definition": "The player's development identity. It speeds growth in favored attributes and sets each attribute's training cap. The + and − labels show the strongest and weakest development areas."
+          "definition": "The player's development identity. It adds an exact training bonus to favored attributes without limiting the others. For example, All-Rounder adds 5% to every stat."
         },
         {
           "term": "Personality",
@@ -56,7 +56,7 @@
         { "term": "PAS · Passing", "definition": "Pass selection and execution, especially when pressure or distance makes the ball difficult." },
         { "term": "DEF · Defending", "definition": "Marking, tackling, interceptions, and resisting attacking actions." },
         { "term": "TEC · Technique", "definition": "Close control, dribbling, and keeping useful possession in traffic." },
-        { "term": "STA · Stamina", "definition": "How well a player handles physical effort and condition drain across a match." },
+        { "term": "STA · Stamina", "definition": "How well a player handles physical effort and condition drain across a match. Higher STA always slows energy loss, but even a 999-STA player still tires." },
         { "term": "REF · Reflexes", "definition": "Goalkeeping reactions and save strength. Outfield players store REF but do not use it as a visible role stat." },
         { "term": "Attribute cap", "definition": "The maximum value normal training can reach for one attribute. Caps come from Archetype; a player already above a cap is never reduced." }
       ]

@@ -4,7 +4,6 @@ import { createMatch } from '../../sim/match';
 import { ROVERS, UNITED } from '../../sim/teams';
 import type { PlayerDef, TeamDef } from '../../sim/types';
 import {
-  FIRST_MATCH_COMEBACK_GOAL_MARGIN,
   FIRST_MATCH_RED_ENERGY_THRESHOLD,
   nextFirstMatchCoachingPrompt,
 } from '../first-match-coaching';
@@ -32,17 +31,14 @@ describe('first match coaching prompts', () => {
 
     expect(nextFirstMatchCoachingPrompt(state, 0, {
       tiredPlayer: false,
-      threeGoalDeficit: false,
     })).toBeNull();
 
     state.players[1].condition = FIRST_MATCH_RED_ENERGY_THRESHOLD;
     expect(nextFirstMatchCoachingPrompt(state, 0, {
       tiredPlayer: false,
-      threeGoalDeficit: false,
     })).toBe('tired-player');
     expect(nextFirstMatchCoachingPrompt(state, 0, {
       tiredPlayer: true,
-      threeGoalDeficit: false,
     })).toBeNull();
   });
 
@@ -53,26 +49,14 @@ describe('first match coaching prompts', () => {
 
     expect(nextFirstMatchCoachingPrompt(state, 0, {
       tiredPlayer: false,
-      threeGoalDeficit: false,
     })).toBeNull();
   });
 
-  it('fires once when the opponent opens a three-goal lead', () => {
+  it('does not interrupt the match when the opponent opens a three-goal lead', () => {
     const state = watchedMatch();
-    state.score = [0, FIRST_MATCH_COMEBACK_GOAL_MARGIN - 1];
+    state.score = [0, 3];
     expect(nextFirstMatchCoachingPrompt(state, 0, {
       tiredPlayer: true,
-      threeGoalDeficit: false,
-    })).toBeNull();
-
-    state.score = [0, FIRST_MATCH_COMEBACK_GOAL_MARGIN];
-    expect(nextFirstMatchCoachingPrompt(state, 0, {
-      tiredPlayer: true,
-      threeGoalDeficit: false,
-    })).toBe('three-goal-deficit');
-    expect(nextFirstMatchCoachingPrompt(state, 0, {
-      tiredPlayer: true,
-      threeGoalDeficit: true,
     })).toBeNull();
   });
 
@@ -83,7 +67,24 @@ describe('first match coaching prompts', () => {
     expect(app).toContain('firstMatchTutorial={isFirstOnboardingFixture(');
     expect(match).toContain('One of your players is very tired. Swap in a fresh player to give them some rest.');
     expect(match).toContain('detail="Swap players"');
-    expect(match).toContain('The other team is pulling away.');
-    expect(match).toContain('choose ALL OUT energy use');
+    expect(match).not.toContain('Try a new strategy');
+    expect(match).not.toContain('The other team is pulling away.');
+  });
+
+  it('turns the Swap control into the undimmed action that opens substitutions', () => {
+    const match = readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+
+    expect(match).toContain(
+      "const guideSwapButton = firstMatchTutorialStep === 'tired-swap-cue';",
+    );
+    expect(match).toContain('guideSwapButton ? styles.coachButtonGuided : null');
+    expect(match).toContain('guideSwapButton ? styles.swapIconGuided : null');
+    expect(match).toContain('guideSwapButton ? styles.coachLabelGuided : null');
+    expect(match).toMatch(
+      /onPress=\{\(\) => \{\s*playUiClickSfx\(\);\s*openSwap\(\);\s*\}\}/,
+    );
+    expect(match).toMatch(
+      /coachButtonGuided:\s*\{[\s\S]*?opacity: 1,[\s\S]*?backgroundColor: '#5a8fd6',/,
+    );
   });
 });

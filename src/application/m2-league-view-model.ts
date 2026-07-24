@@ -19,6 +19,7 @@ import type {
   M2LeagueViewModel,
   M2NationalCupViewModel,
 } from '../ui/m2-league-models';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 
 export interface M2LeagueViewModelSource {
   readonly career: M2CareerState;
@@ -91,7 +92,7 @@ function divisionSummary(
   userSquadStrength: number,
 ): M2DivisionSummaryViewModel {
   if (strengths.length !== 10 || strengths.some(strength =>
-    !Number.isInteger(strength) || strength < 1 || strength > 99
+    !Number.isInteger(strength) || strength < 1 || strength > MAX_PLAYER_ATTRIBUTE
   )) {
     throw new Error(`Division ${level} must contain ten valid club strengths`);
   }
@@ -129,8 +130,8 @@ function strengthComparison(
 }
 
 function validateStrength(value: number, label: string): void {
-  if (!Number.isInteger(value) || value < 1 || value > 99) {
-    throw new Error(`${label} must be an integer from 1 to 99`);
+  if (!Number.isInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
+    throw new Error(`${label} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
   }
 }
 

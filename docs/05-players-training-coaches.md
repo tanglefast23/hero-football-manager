@@ -3,32 +3,24 @@
 ## Player anatomy
 
 - **Identity**: procedurally generated name + look (skin tone, hair, facial hair, glasses/accessories, body type: slim/normal/heavy/muscular, height: short/normal/tall). Looks are cosmetic *flavor* except body type nudging awakening weights (doc 04).
-- **Stats**: PAC / SHO (REF for GKs) / PAS / DEF / TEC / STA, 1–99.
-- **Archetype** (visible): Speedster, Sniper, Playmaker, Anchor, Wall, Engine, All-Rounder, Prodigy — each has stat-growth multipliers and the **cap shape** below (Pocket League Story 2's proven "build identity" pattern). Individual potential sets the height of a player's personal caps; archetype redistributes that ceiling so, for example, a Speedster still peaks higher in PAC than SHO. Actual personal caps are shown in the player file — informed investment, no wasted training. Existing exceptional or legacy players above a personal cap keep that rating but cannot train it higher.
+- **Stats**: PAC / SHO (REF for GKs) / PAS / DEF / TEC / STA. Career ratings run from **1–999** with no player-specific cap. Every point can improve match performance, while ratings above 99 use diminishing match returns so the engine stays stable. The only training hard stop is the universal 999 safety maximum; temporary superpower effects are exceptions and may exceed ordinary match limits.
+- **Archetype** (visible): Speedster, Sniper, Playmaker, Anchor, Wall, Engine, All-Rounder, Prodigy. Archetypes change how quickly favored stats train; they never prevent an unfavored stat from growing.
 
-| Archetype | PAC | SHO | PAS | DEF | TEC | STA | REF |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Speedster | 95 | 70 | 82 | 68 | 84 | 88 | 60 |
-| Sniper | 82 | 95 | 80 | 65 | 90 | 82 | 55 |
-| Playmaker | 82 | 78 | 95 | 74 | 95 | 86 | 65 |
-| Anchor | 76 | 68 | 84 | 95 | 82 | 90 | 75 |
-| Wall | 70 | 60 | 76 | 95 | 78 | 90 | 95 |
-| Engine | 90 | 80 | 88 | 84 | 86 | 95 | 65 |
-| All-Rounder | 88 | 88 | 88 | 88 | 88 | 88 | 88 |
-| Prodigy | 99 | 99 | 99 | 99 | 99 | 99 | 99 |
+| Archetype | Exact training bonus |
+|---|---|
+| Speedster | +15% PAC |
+| Sniper | +15% SHO |
+| Playmaker | +15% PAS and TEC |
+| Anchor | +15% DEF and STA |
+| Wall | +15% REF and DEF |
+| Engine | +15% STA and PAC |
+| All-Rounder | +5% all stats |
+| Prodigy | +20% all stats |
+
+- **Natural position** (visible): adds another **+5%** to three role skills. GK: REF/DEF/STA; DEF: DEF/STA/PAS; MID: PAS/TEC/STA; FWD: SHO/PAC/TEC.
 - **Current rating**: the rounded average of the six attributes the role can use. Outfield players use SHO and ignore REF; goalkeepers use REF and ignore SHO.
-- **Potential**: a permanent grade from **A+** through **F−** based on the role-aware overall the player reaches when every personal cap is full. Normal training raises the current rating toward that ceiling but never lowers or rerolls the grade. The player file also shows the exact projected maximum.
-
-| Grade | Projected max | Grade | Projected max | Grade | Projected max |
-|---|---:|---|---:|---|---:|
-| A+ | 97–99 | A | 94–96 | A− | 91–93 |
-| B+ | 88–90 | B | 85–87 | B− | 82–84 |
-| C+ | 79–81 | C | 76–78 | C− | 73–75 |
-| D+ | 70–72 | D | 67–69 | D− | 64–66 |
-| E+ | 61–63 | E | 58–60 | E− | 55–57 |
-| F+ | 52–54 | F | 49–51 | F− | 48 or below |
-
-- **Potential progression**: the scale is absolute across the whole game. Higher divisions and stronger scouting pools contain better potential distributions; promotion changes who can be found, not what an A or C means.
+- **Potential**: a permanent **training-speed grade**, not a cap. **E− is +0%**, and every step adds one point: E +1%, E+ +2%, D− +3%, D +4%, D+ +5%, C− +6%, C +7%, C+ +8%, B− +9%, B +10%, B+ +11%, A− +12%, A +13%, A+ +14%. The player file shows the grade and exact percentage.
+- **Potential progression**: recruitment quality rises with the club. D5 pools are 90% E-tier and 10% D-tier; D4 is 35% E / 60% D / 5% C; D3 is 5% E / 30% D / 60% C / 5% B; D2 is 5% D / 35% C / 60% B; D1 is 25% B / 75% A. Youth intake and scouting both use this division progression, so A and A+ players begin appearing in D1.
 - **Hidden**: the coarse scouting/valuation tier behind the grade, consistency, personality (see below).
 - **Personality** (visible after a few weeks): Fiery, Loyal, Greedy, Joker, Professional, Timid — drives event outcomes, negotiation behavior, morale swings.
 - **State**: age, morale, condition/stamina, injury status, contract (wage, seasons left), fame, power (or none).
@@ -44,11 +36,10 @@
 
 Weekly plan, set once and it repeats until changed:
 
-- **Free base layer**: every player automatically runs Basic Conditioning each week — small, free gains. Nobody ever stagnates completely.
-- **Focus drills (the TP decision)**: pick up to **3 squad-wide focus drills** per week. Money is charged for each assigned player who can gain from that drill; TP is charged once per selected drill, and capped player/drill pairs are skipped. The seven single-stat paths are Sprints→PAC, Finishing→SHO, Rondo→PAS, Duels→DEF, First Touch→TEC, Circuit→STA, and Keeper Drills→REF. Each path has I/II/III tiers worth +3/+5/+8 base gain; only one tier from the same path may be selected in a plan. Tier I starts unlocked in D5, Tier II unlocks permanently after reaching D4, and Tier III unlocks permanently after reaching D2.
-- **Cap-safe plans**: a capped player no longer rejects the whole plan. That player skips only the capped drill, useful player/drill pairs still train, and the manager receives a one-shot inbox warning naming the player and drill so the repeating plan can be adjusted. A drill with no eligible assigned players is not charged that week.
+- **Focus drills (the TP decision)**: assign up to **3 players** per week, with one repeating stat focus for each player. Training costs TP only, never money. The seven paths are Sprints→PAC, Finishing→SHO, Rondo→PAS, Duels→DEF, First Touch→TEC, Circuit→STA, and Keeper Drills→REF. Their I/II/III tiers give +3/+5/+8 base gain and cost 6/10/15 TP per assigned player. Tier I starts in D5, Tier II unlocks permanently after reaching D4, and Tier III unlocks permanently after reaching D2.
+- **999 warning**: when training reaches 999, the manager gets a one-shot alert stating the exact player and stat and that it cannot go higher. The maxed option reads **Maximum 999** and is disabled. If the repeating plan still targets it next week, Advance Week opens a blocking prompt to choose another stat or player; no TP is wasted.
 - **TP income**: match results award no TP. A fresh career starts with 30 TP and an empty grounds grid, plus enough extra cash to build the $8,000 Level 1 Training Pitch as its guided first project. Completion awards the pitch's first 10 TP immediately; later weekly settlements add **+10 TP per completed facility level**. Employed coaches (head coach **10 + 2× level**, assistant **5 + level**) and explicit event effects can add more. A Level 1 pitch alone therefore funds one basic 10-TP drill every week. Losing never slows training income, while hiring and upgrading staff or grounds creates a visible development budget.
-- **Gain formula**: `base gain × archetype multiplier × facility level (1.0–2.0) × coach bonus × age curve × diminishing returns (higher current stat = smaller gains)`.
+- **Gain formula**: age and the relevant facility multiply the base drill gain. Archetype + natural position + Potential + coach percentages then add together as a bonus on that adjusted gain. Fractional bonuses bank per player/stat until they become a whole visible point. There is **no high-stat training slowdown** and no personal ceiling.
 - **Stamina price**: training drains condition; overtraining (condition < 30%) risks injury (2–6 weeks). The Medical Bay facility shortens recoveries.
 - **Chemistry trios** (Pocket League Story 2's standout mechanic, adapted): specific 3-archetype combinations training together grant +15% to +60% gains for the whole trio (e.g. Speedster + Sniper + Playmaker = +40% attack drills). Combos are discoverable in-game and collectible in a Chemistry Codex. One combo bonus per week.
 

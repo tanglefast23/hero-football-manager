@@ -204,13 +204,6 @@ export interface FocusedTraineeViewModel {
   gains: readonly AttributeGainViewModel[];
 }
 
-export interface SquadConditioningViewModel {
-  id: string;
-  attributeLabel: string;
-  gain: number;
-  playerCount: number;
-}
-
 export interface WeekUpdateViewModel {
   id: string;
   title: string;
@@ -228,7 +221,6 @@ export interface FacilityCompletionViewModel {
 
 export interface PlayerDevelopmentViewModel {
   focusedTrainees: readonly FocusedTraineeViewModel[];
-  conditioning: readonly SquadConditioningViewModel[];
   trainingSkippedWarning?: string;
 }
 
@@ -272,8 +264,9 @@ export interface SquadPlayerViewModel {
   isStarter: boolean;
   age: number;
   archetype: string;
-  projectedOverall: number;
   potentialGrade: PotentialGrade;
+  potentialBonusPercent: number;
+  positionTrainingLabel: string;
   personality: string;
   morale: number;
   fame: number;
@@ -287,6 +280,7 @@ export interface SquadPlayerViewModel {
   attributes: readonly {
     label: 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
     value: number;
+    /** Universal safety ceiling; intentionally hidden from normal player-facing UI. */
     cap: number;
   }[];
   /** Position (1-based) in this week's training slots, when the player occupies one. */
@@ -331,9 +325,8 @@ export interface TrainingSlotStatOption {
   drillName: string;
   /** Best unlocked tier's gain for this stat. */
   gain: number;
-  /** Cap minus the selected player's current value; may be negative. */
-  room: number;
-  atCap: boolean;
+  currentValue: number;
+  atSafetyCeiling: boolean;
 }
 
 export interface SquadTrainingViewModel {

@@ -99,7 +99,7 @@
     "id": "match-week",
     "expectedScreen": "matchday",
     "season": 1,
-    "week": 5,
+    "week": 3,
     "phase": "matchday",
     "difficulty": "COZY"
   },

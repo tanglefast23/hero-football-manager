@@ -5,6 +5,7 @@ const SIM_DIR = join(__dirname, '..');
 
 const ALLOWED: Record<string, string[]> = {
   'rng.ts': [],
+  'attributes.ts': [],
   'geometry.ts': [],
   'contest.ts': ['rng', 'contest-table.json', 'geometry'],
   'types.ts': ['geometry', 'rng', 'tactics'],
@@ -15,9 +16,9 @@ const ALLOWED: Record<string, string[]> = {
   'entities.ts': ['types'],
   'substitutions.ts': ['events', 'types'],
   'auto-coaching.ts': ['geometry', 'events', 'substitutions', 'tactics', 'types'],
-  'powers.ts': ['types', 'geometry', 'events', 'entities'],
-  'engine.ts': ['movement-table', 'geometry', 'events', 'types', 'contest', 'powers', 'tactics', 'entities'],
-  'match.ts': ['rng', 'geometry', 'events', 'engine', 'types', 'powers', 'auto-coaching', 'substitutions', 'tactics'],
+  'powers.ts': ['types', 'geometry', 'events', 'entities', 'attributes'],
+  'engine.ts': ['movement-table', 'geometry', 'events', 'types', 'contest', 'powers', 'tactics', 'entities', 'attributes'],
+  'match.ts': ['rng', 'geometry', 'events', 'engine', 'types', 'powers', 'auto-coaching', 'substitutions', 'tactics', 'attributes'],
   'runtime-golden.ts': ['match', 'teams'],
 };
 

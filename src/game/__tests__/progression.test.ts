@@ -148,7 +148,7 @@ describe('focus training', () => {
     expect(JSON.stringify(roster)).toBe(before);
   });
 
-  it('caps every trained attribute at 99', () => {
+  it('keeps growing past 99 and stops only at the universal 999 safety ceiling', () => {
     const almostMaxed = player('max', {
       attrs: { ...BASE_ATTRS, pac: 98, pas: 97, tec: 99 },
     });
@@ -160,7 +160,7 @@ describe('focus training', () => {
       { money: 1_000, tp: 25 },
     );
 
-    expect(result.players[0].attrs).toMatchObject({ pac: 99, pas: 99, tec: 99 });
+    expect(result.players[0].attrs).toMatchObject({ pac: 102, pas: 100, tec: 101 });
     expect(almostMaxed.attrs).toMatchObject({ pac: 98, pas: 97, tec: 99 });
   });
 
@@ -194,7 +194,7 @@ describe('focus training', () => {
     ['Infinity', Number.POSITIVE_INFINITY],
     ['a fraction', 50.5],
     ['zero', 0],
-    ['over 99', 100],
+    ['over 999', 1_000],
   ])('rejects %s in existing roster attributes, even for an unassigned player', (_label, pac) => {
     const roster = [
       player('assigned'),
@@ -206,6 +206,6 @@ describe('focus training', () => {
       ['assigned'],
       drills,
       { money: 1_000, tp: 25 },
-    )).toThrow(/Player malformed-bench attribute pac must be a safe integer from 1 to 99/);
+    )).toThrow(/Player malformed-bench attribute pac must be from 1 to 999/);
   });
 });

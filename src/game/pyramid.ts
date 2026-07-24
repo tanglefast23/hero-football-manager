@@ -1,6 +1,7 @@
 import { mulberry32, type Rng } from '../sim/rng';
 import type { Attrs, Role } from '../sim/types';
-import { roleOverall } from './archetype-caps';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
+import { POSITION_TRAINING_ATTRIBUTES, roleOverall } from './archetype-caps';
 import type { PlayerArchetype, PlayerPersonality } from './types';
 export type { PlayerArchetype, PlayerPersonality } from './types';
 
@@ -190,6 +191,31 @@ export const DIVISION_STRENGTH_BANDS: Readonly<
   4: [50, 60],
   5: [40, 50],
 };
+/**
+ * Most players improve modestly between divisions while three position
+ * specialists carry each generated club's extra strength. This mirrors the
+ * player's three weekly training slots and prevents every D1 sprite from
+ * moving at elite pace.
+ */
+export const DIVISION_SUPPORT_STRENGTHS: Readonly<Record<DivisionLevel, number>> = {
+  1: 48,
+  2: 46,
+  3: 44,
+  4: 42,
+  5: 40,
+};
+/**
+ * A typical full-condition player's visual pace by division. D1 deliberately
+ * lands at 90: universal-max PAC 999 moves 38% faster than that comparison.
+ */
+export const DIVISION_TYPICAL_PACE: Readonly<Record<DivisionLevel, number>> = {
+  1: 90,
+  2: 88,
+  3: 82,
+  4: 78,
+  5: 72,
+};
+const GENERATED_STAR_SLOTS = new Set([2, 7, 12]);
 /**
  * Two survivable opponents installed for the user's D4 season. These
  * full-squad targets produce roughly 46-48 effective starting-XI strength at
@@ -430,12 +456,12 @@ export function advanceNationalCup(
   return { ...cup, rounds: [...rounds, nextRound] };
 }
 
-/** One rating point every two completed seasons, capped at +8. It never reads match results. */
+/** Opponents gain one raw rating point every two completed seasons, capped at +8. */
 export function opponentStrengthForSeason(baseStrength: number, season: number): number {
   validateRating(baseStrength, 'base opponent strength');
   validateSeason(season);
   const seasonIncrease = Math.min(8, Math.floor((season - 1) / 2));
-  return Math.min(99, baseStrength + seasonIncrease);
+  return Math.min(MAX_PLAYER_ATTRIBUTE, baseStrength + seasonIncrease);
 }
 
 export function trainingMultiplierForAge(age: number): 1.5 | 1 | 0.6 {
@@ -572,7 +598,7 @@ export function createLegendLegacy(
 
 export function boostLegacyYouthAttributes(attrs: Attrs): Attrs {
   validateAttrs(attrs);
-  return mapAttrs(attrs, value => Math.min(99, Math.round(value * 1.15)));
+  return mapAttrs(attrs, value => Math.min(MAX_PLAYER_ATTRIBUTE, Math.round(value * 1.15)));
 }
 
 /** Applies explicit weekly morale/condition changes and tracks sustained low morale. */
@@ -636,6 +662,9 @@ function generateSquad(
   targetStrength: number,
   random: Rng,
 ): PyramidPlayer[] {
+  const supportStrength = DIVISION_SUPPORT_STRENGTHS[division];
+  const typicalPace = DIVISION_TYPICAL_PACE[division];
+  const focusedStarAttribute = divisionStarFocusedAttribute(division, targetStrength);
   return SQUAD_ROLES.map((role, playerIndex) => {
     const age = integerRoll(random, 18, 32);
     return {
@@ -643,7 +672,20 @@ function generateSquad(
       clubId,
       name: `${FIRST_NAMES[Math.floor(random() * FIRST_NAMES.length)]} ${LAST_NAMES[Math.floor(random() * LAST_NAMES.length)]}`,
       role,
-      attrs: generateAttributes(targetStrength + integerRoll(random, -5, 5), role, random),
+      attrs: GENERATED_STAR_SLOTS.has(playerIndex)
+        ? generateFocusedAttributes(
+            supportStrength,
+            focusedStarAttribute + integerRoll(random, -3, 3),
+            role,
+            random,
+            typicalPace,
+          )
+        : generateAttributes(
+            supportStrength + integerRoll(random, -3, 3),
+            role,
+            random,
+            typicalPace,
+          ),
       archetype: ARCHETYPES[Math.floor(random() * ARCHETYPES.length)],
       personality: PERSONALITIES[Math.floor(random() * PERSONALITIES.length)],
       age,
@@ -656,7 +698,27 @@ function generateSquad(
   });
 }
 
-function generateAttributes(target: number, role: Role, random: Rng): Attrs {
+/**
+ * Raw value used for a generated club's three position-specialist attributes.
+ * The other thirteen squad members remain near the division support strength,
+ * while the club's existing authored average remains unchanged.
+ */
+export function divisionStarFocusedAttribute(
+  division: DivisionLevel,
+  targetClubStrength: number,
+): number {
+  validateRating(targetClubStrength, 'target squad strength');
+  const support = DIVISION_SUPPORT_STRENGTHS[division];
+  const starOverall = Math.round((targetClubStrength * SQUAD_ROLES.length - support * 13) / 3);
+  return clampRating(starOverall * 2 - support);
+}
+
+function generateAttributes(
+  target: number,
+  role: Role,
+  random: Rng,
+  paceTarget = target,
+): Attrs {
   const jitter = () => integerRoll(random, -3, 3);
   const nudges: Readonly<Record<Role, Attrs>> = {
     GK: { pac: -5, sho: -8, pas: 0, def: 3, tec: 0, sta: 0, ref: 10 },
@@ -666,7 +728,7 @@ function generateAttributes(target: number, role: Role, random: Rng): Attrs {
   };
   const roleNudges = nudges[role];
   return {
-    pac: clampRating(target + roleNudges.pac + jitter()),
+    pac: clampRating(paceTarget + roleNudges.pac + jitter()),
     sho: clampRating(target + roleNudges.sho + jitter()),
     pas: clampRating(target + roleNudges.pas + jitter()),
     def: clampRating(target + roleNudges.def + jitter()),
@@ -674,6 +736,20 @@ function generateAttributes(target: number, role: Role, random: Rng): Attrs {
     sta: clampRating(target + roleNudges.sta + jitter()),
     ref: clampRating(target + roleNudges.ref + jitter()),
   };
+}
+
+function generateFocusedAttributes(
+  supportTarget: number,
+  focusedTarget: number,
+  role: Role,
+  random: Rng,
+  paceTarget: number,
+): Attrs {
+  const attrs = generateAttributes(supportTarget, role, random, paceTarget);
+  for (const attribute of POSITION_TRAINING_ATTRIBUTES[role]) {
+    attrs[attribute] = clampRating(focusedTarget + integerRoll(random, -2, 2));
+  }
+  return attrs;
 }
 
 function averageSquadStrength(squad: readonly PyramidPlayer[]): number {
@@ -697,7 +773,15 @@ export function tuneSquadToStrength<T extends Pick<PyramidPlayer, 'role' | 'attr
     if (delta === 0) return tuned;
     tuned = tuned.map(player => ({
       ...player,
-      attrs: mapAttrs(player.attrs, value => clampRating(value + delta)),
+      attrs: {
+        ...player.attrs,
+        sho: clampRating(player.attrs.sho + delta),
+        pas: clampRating(player.attrs.pas + delta),
+        def: clampRating(player.attrs.def + delta),
+        tec: clampRating(player.attrs.tec + delta),
+        sta: clampRating(player.attrs.sta + delta),
+        ref: clampRating(player.attrs.ref + delta),
+      },
     }));
   }
   return tuned;
@@ -894,8 +978,8 @@ function validateAge(age: number): void {
 }
 
 function validateRating(value: number, label: string): void {
-  if (!Number.isInteger(value) || value < 1 || value > 99) {
-    throw new Error(`${label} must be an integer from 1 to 99`);
+  if (!Number.isInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
+    throw new Error(`${label} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
   }
 }
 
@@ -988,7 +1072,7 @@ function stableIdCompare(left: string, right: string): number {
 }
 
 function clampRating(value: number): number {
-  return clamp(value, 1, 99);
+  return clamp(value, 1, MAX_PLAYER_ATTRIBUTE);
 }
 
 function clamp(value: number, min: number, max: number): number {

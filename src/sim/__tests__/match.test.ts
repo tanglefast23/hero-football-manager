@@ -273,7 +273,7 @@ describe('validateEnvelope', () => {
     const env = makeValidEnvelope();
     env.home = {
       ...env.home,
-      players: env.home.players.map((p, i) => (i === 0 ? { ...p, attrs: { ...p.attrs, pac: 150 } } : p)),
+      players: env.home.players.map((p, i) => (i === 0 ? { ...p, attrs: { ...p.attrs, pac: 1_000 } } : p)),
     };
     expect(() => validateEnvelope(env)).toThrow('replay envelope: home team player');
   });

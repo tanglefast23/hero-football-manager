@@ -7,6 +7,7 @@ import { runHeadlessFullCareer } from '../headless';
 import { buildCareerTeamDef } from '../squad';
 import type { GameState } from '../types';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
+import { matchAttribute, matchPaceAttribute } from '../../sim/attributes';
 
 describe('full M2 career clock', () => {
   test('initializes all divisions, market, cup, and youth intake only when full mode is requested', () => {
@@ -176,9 +177,8 @@ describe('full M2 career clock', () => {
       expect(userStrength).toBeLessThanOrEqual(47);
       expect(minnows).toHaveLength(2);
       expect(Math.min(...established.map(club => club.strength))).toBeGreaterThanOrEqual(51);
-      expect(Math.max(...opponentStrengths.map(club => club.strength))).toBeGreaterThanOrEqual(59.5);
-      // A stored 61 can read as 61.9 after the role-specific XI is selected.
-      expect(Math.max(...opponentStrengths.map(club => club.strength))).toBeLessThanOrEqual(62);
+      expect(Math.max(...opponentStrengths.map(club => club.strength))).toBeGreaterThanOrEqual(54);
+      expect(Math.max(...opponentStrengths.map(club => club.strength))).toBeLessThanOrEqual(55);
     },
   );
 
@@ -353,7 +353,11 @@ function effectiveStartingElevenStrength(state: GameState, clubId: string): numb
   const team = buildCareerTeamDef(state, clubId);
   const total = team.players.reduce((teamTotal, player) => (
     teamTotal + EFFECTIVE_STRENGTH_ATTRIBUTES.reduce(
-      (playerTotal, attribute) => playerTotal + player.attrs[attribute],
+      (playerTotal, attribute) => playerTotal + (
+        attribute === 'pac'
+          ? matchPaceAttribute(player.attrs.pac)
+          : matchAttribute(player.attrs[attribute])
+      ),
       0,
     )
   ), 0);

@@ -96,8 +96,8 @@ export function applyCareerContractPromise(
     ? { slots: [...state.trainingPlan!.slots, { playerId, pathId: roomPathId }] }
     : state.trainingPlan;
   // Slots are full: ask the manager who to bump instead of silently skipping.
-  // A fully-capped promised player has nothing to gain, so no prompt is raised.
-  // If every current occupant is itself promise-locked (and not fully capped),
+  // A player at 999 everywhere has nothing to gain, so no prompt is raised.
+  // If every current occupant is itself promise-locked (and still trainable),
   // there is nobody left to bump, so skip honoring rather than raising an
   // unsatisfiable prompt.
   const hasBumpableSlot = (state.trainingPlan?.slots ?? []).some(slot => {
@@ -118,7 +118,7 @@ export function applyCareerContractPromise(
   return { ...state, players, lineups, trainingPlan, pendingTrainingPromiseBump };
 }
 
-/** Returns the pathId for the trainee's stat with the most room before its personal cap. */
+/** Returns the pathId with the most room before the universal safety maximum. */
 export function biggestRoomTrainingPath(state: GameState, player: CareerPlayer): string | undefined {
   const caps = playerAttributeCaps(player);
   const withRoom = TRAINING_PATHS
@@ -198,7 +198,7 @@ export function assertCareerTrainingHonorsContractPromises(
     if (player.clubId !== state.userClubId
       || player.injuryWeeks > 0
       || !hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
-      // A fully-capped player has no trainable stat left, so the promise
+      // A player at 999 everywhere has no trainable stat left, so the promise
       // cannot be honored by training them — requiring the slot would be an
       // unresolvable dead-end.
       || isFullyCappedPlayer(player)) continue;
@@ -208,7 +208,7 @@ export function assertCareerTrainingHonorsContractPromises(
   }
 }
 
-/** True once every one of the player's seven attributes is at their personal cap. */
+/** True only once every trainable attribute reaches the universal 999 maximum. */
 export function isFullyCappedPlayer(player: CareerPlayer): boolean {
   const caps = playerAttributeCaps(player);
   return TRAINING_PATHS.every(path => player.attrs[path.attribute] >= caps[path.attribute]);

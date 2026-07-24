@@ -464,7 +464,11 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
       </View>
       <View className="mt-2 flex-row gap-2">
         <Metric label="Age" value={String(selectedPlayer.age)} />
-        <Metric label="Potential" value={`${selectedPlayer.potentialGrade} · Projected max ${selectedPlayer.projectedOverall}`} tone="positive" />
+        <Metric
+          label="Potential"
+          value={`${selectedPlayer.potentialGrade} · +${selectedPlayer.potentialBonusPercent}% training`}
+          tone="positive"
+        />
         <Metric label="Morale" value={`${selectedPlayer.morale}%`} />
       </View>
       <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/20 pt-3">
@@ -488,9 +492,13 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
             <Text className="text-base font-bold text-ink">{selectedPlayer.archetype}</Text>
             <View className="mt-1 flex-row flex-wrap justify-end gap-x-2">
               <Text className="font-mono text-sm font-bold text-pitch-dark">{selectedArchetype?.strengths}</Text>
-              <Text className="font-mono text-sm font-bold text-red-dark">{selectedArchetype?.weaknesses}</Text>
+              <Text className="font-mono text-sm font-bold text-ink/50">{selectedArchetype?.weaknesses}</Text>
             </View>
           </View>
+        </View>
+        <View className="mt-2 flex-row items-center justify-between gap-3">
+          <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Position</Text>
+          <Text className="font-mono text-sm font-bold text-blue-dark">{selectedPlayer.positionTrainingLabel}</Text>
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
           <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Personality</Text>
@@ -502,7 +510,7 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
         </View>
       </View>
       <View className="mt-3 border-2 border-ink bg-white p-3">
-        <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">Attributes · current / cap</Text>
+        <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">Attributes</Text>
         <Text className="mb-3 text-xs leading-4 text-ink/55">
           PAC pace · SHO shooting · PAS passing · DEF defense · TEC technique · STA stamina · REF goalkeeping
         </Text>
@@ -515,7 +523,7 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
               <View key={attribute.label} className="min-w-[29%] flex-1 border border-ink/20 bg-paper px-2 py-2">
                 <Text className="text-sm font-bold uppercase text-ink/50">{attribute.label}</Text>
                 <Text className="mt-1 font-mono text-base font-bold text-ink">
-                  {attribute.value} / {attribute.cap}
+                  {attribute.value}
                 </Text>
               </View>
             ))}
@@ -574,21 +582,21 @@ function TrainingFocusSection({
                   key={option.pathId}
                   accessibilityRole="radio"
                   accessibilityLabel={`Train ${selectedPlayer.name} in ${option.label}`}
-                  accessibilityHint={`${option.drillName}. Gains ${option.gain} ${option.label}. ${option.atCap ? 'Already at cap.' : `${option.room} to cap.`}`}
-                  accessibilityState={{ checked: isCurrent, disabled: option.atCap }}
-                  disabled={option.atCap}
+                  accessibilityHint={`${option.drillName}. Base gain ${option.gain} ${option.label}. Current value ${option.currentValue}.`}
+                  accessibilityState={{ checked: isCurrent, disabled: option.atSafetyCeiling }}
+                  disabled={option.atSafetyCeiling}
                   onPress={() => onSelectTrainingStat(selectedPlayer.id, option.pathId)}
-                  className={option.atCap
+                  className={option.atSafetyCeiling
                     ? 'flex-row items-center justify-between border-2 border-ink/20 bg-white px-3 py-3 opacity-40'
                     : isCurrent
                       ? 'flex-row items-center justify-between border-2 border-violet-dark bg-violet-light px-3 py-3'
                       : 'flex-row items-center justify-between border-2 border-ink/30 bg-white px-3 py-3'}
-                  style={({ pressed }) => ({ opacity: pressed && !option.atCap ? 0.65 : undefined })}
+                  style={({ pressed }) => ({ opacity: pressed && !option.atSafetyCeiling ? 0.65 : undefined })}
                 >
                   <View className="min-w-0 flex-1 pr-2">
                     <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{option.drillName}</Text>
                     <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>
-                      {option.atCap ? 'At cap' : `${option.room} to cap`}
+                      {option.atSafetyCeiling ? 'Maximum 999' : `Current ${option.currentValue} · no personal cap`}
                     </Text>
                   </View>
                   <Text

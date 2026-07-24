@@ -20,8 +20,9 @@ import {
   nextPendingClubLegend,
   pendingTrainingInterrupts,
   playerAttributeCaps,
-  potentialGradeForOverall,
-  projectedPlayerOverall,
+  playerPotentialGrade,
+  playerPotentialTrainingBonusPercent,
+  POSITION_TRAINING_ATTRIBUTES,
   reconcilePendingClubLegends,
   renewalQuote,
   resolveTrainingDrillForPath,
@@ -705,15 +706,15 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
       if (notice.kind === 'skipped') {
         return {
           id: notice.id,
-          title: `${notice.playerName} skipped ${drillName}`,
-          detail: `${notice.playerName} is already at their ${attribute} maximum of ${notice.cap}. Pick another player or drill for next week.`,
+          title: `${notice.playerName} cannot train ${attribute}`,
+          detail: `${attribute} is already at the maximum of ${notice.cap} and cannot go higher. Choose another stat or player for next week.`,
           tone: 'info' as const,
         };
       }
       return {
         id: notice.id,
-        title: `${notice.playerName} reached their ${attribute} maximum`,
-        detail: `${drillName} took ${attribute} to its personal maximum of ${notice.cap}. Pick another player for this drill next week.`,
+        title: `${notice.playerName} reached ${notice.cap} ${attribute}`,
+        detail: `${drillName} took ${attribute} to its maximum. It cannot go higher, so choose another stat or player for next week.`,
         tone: 'info' as const,
       };
     });
@@ -1209,16 +1210,20 @@ export function squadTrainingViewModel(
       trainingPoints: state.trainingPoints,
     },
     players: orderedRoster.map(player => {
-      const projectedOverall = projectedPlayerOverall(player);
+      const potentialGrade = playerPotentialGrade(player);
       const personalCaps = playerAttributeCaps(player);
+      const positionAttributes = POSITION_TRAINING_ATTRIBUTES[player.role]
+        .map(attribute => attribute.toUpperCase())
+        .join(', ');
       return {
         id: player.id,
         name: player.name,
         role: player.role,
         lookId: player.lookId,
         overall: overall(player.role, player.attrs),
-        projectedOverall,
-        potentialGrade: potentialGradeForOverall(projectedOverall),
+        potentialGrade,
+        potentialBonusPercent: playerPotentialTrainingBonusPercent(player),
+        positionTrainingLabel: `+5% ${positionAttributes}`,
         condition: player.condition ?? 100,
         injuryWeeks: player.injuryWeeks,
         isStarter: starterIds.has(player.id),
@@ -1270,15 +1275,14 @@ export function squadTrainingViewModel(
       selectedPlayerStatOptions: TRAINING_PATHS.map(path => {
         const drill = resolveTrainingDrillForPath(state, path.pathId);
         const gain = drill.gains[path.attribute] ?? 0;
-        const caps = playerAttributeCaps(selectedPlayer);
-        const room = caps[path.attribute] - selectedPlayer.attrs[path.attribute];
+        const currentValue = selectedPlayer.attrs[path.attribute];
         return {
           pathId: path.pathId,
           label: path.label,
           drillName: drillName(drill.id),
           gain,
-          room,
-          atCap: room <= 0,
+          currentValue,
+          atSafetyCeiling: currentValue >= 999,
         };
       }),
     }),
@@ -1457,25 +1461,8 @@ function playerDevelopmentViewModel(
       })
     : [];
 
-  const userPlayers = before.players.filter(player => player.clubId === before.userClubId);
-  const conditioning = before.trainingRules === undefined
-    ? []
-    : REVIEW_ATTRIBUTES.flatMap(attribute => {
-        const plannedGain = before.trainingRules?.baseConditioning.gains[attribute];
-        if (plannedGain === undefined || plannedGain <= 0) return [];
-        const affected = userPlayers.filter(player => player.attrs[attribute] < 99);
-        if (affected.length === 0) return [];
-        return [{
-          id: `conditioning-${attribute}`,
-          attributeLabel: attribute.toUpperCase(),
-          gain: plannedGain,
-          playerCount: affected.length,
-        }];
-      });
-
   return {
     focusedTrainees,
-    conditioning,
     ...(plan !== undefined && !focusApplied ? {
       trainingSkippedWarning: skippedTrainingWarning(before, after),
     } : {}),
@@ -1492,7 +1479,7 @@ function skippedTrainingWarning(before: GameState, after: GameState): string {
     const drillName = LAUNCH_CONTENT.training.focusDrills
       .find(candidate => candidate.id === drill.id)?.name
       ?? drill.id;
-    return `${conflict.playerName} skipped ${drillName} — already at their ${conflict.attribute.toUpperCase()} maximum of ${conflict.cap}.`;
+    return `${conflict.playerName} skipped ${drillName} — ${conflict.attribute.toUpperCase()} is already at the maximum of ${conflict.cap} and cannot go higher.`;
   }
   const trainingPointCost = interrupts.weeklyTrainingPointCost;
   const ambientTrainingPoints = weeklyAmbientTrainingPoints(before);

@@ -132,6 +132,7 @@ export function startNextFullCareerSeason(
     state.userClubId,
     transition.nextSeason,
     state.careerSeed,
+    transition.division,
   );
   const userLineup = repairUserLineup(
     state.lineups.find(lineup => lineup.clubId === state.userClubId),
@@ -403,6 +404,7 @@ function replenishUserSquad(
   userClubId: string,
   season: number,
   careerSeed: number,
+  division: DivisionLevel,
 ): CareerPlayer[] {
   const result = players.map(player => ({ ...player, attrs: { ...player.attrs } }));
   const existingIds = new Set(result.map(player => player.id));
@@ -416,7 +418,15 @@ function replenishUserSquad(
         id = `${userClubId}-academy-s${season}-${role.toLowerCase()}-${intakeNumber}`;
       }
       existingIds.add(id);
-      const player = academyPlayer(id, userClubId, role, season, careerSeed, intakeNumber);
+      const player = academyPlayer(
+        id,
+        userClubId,
+        role,
+        season,
+        careerSeed,
+        intakeNumber,
+        division,
+      );
       result.push({ ...player, lookId: nextDistinctPlayerLook(player, result) });
       roleCount += 1;
       intakeNumber += 1;
@@ -432,6 +442,7 @@ function academyPlayer(
   season: number,
   careerSeed: number,
   intakeNumber: number,
+  division: DivisionLevel,
 ): CareerPlayer {
   const value = stableYouthValue(careerSeed, season, id);
   const base = 38 + value % 13;
@@ -444,7 +455,7 @@ function academyPlayer(
     sta: Math.min(99, base + 4),
     ref: Math.min(99, base + (role === 'GK' ? 10 : 0)),
   };
-  const potential = (3 + ((value >>> 5) % 3)) as 3 | 4 | 5;
+  const potential = potentialTierForDivision(division, (value >>> 5) % 100);
   const personalities = ['Fiery', 'Loyal', 'Joker', 'Professional', 'Timid'] as const;
   return {
     id,

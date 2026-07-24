@@ -4,11 +4,8 @@ import {
   beginStoryOnboarding,
   buildCareerTeams,
   createCareer,
-  minimumDevelopmentHeadroom,
   playerAttributeCaps,
-  potentialGradeForOverall,
-  projectedPlayerOverall,
-  roleOverall,
+  playerPotentialGrade,
 } from '../../game';
 import { runHeadlessFullCareer } from '../../game/headless';
 import { serializeGameState } from '../../persistence/game-state-codec';
@@ -59,32 +56,29 @@ describe('launch career adapter', () => {
     expect(setup.clubs.find(club => club.id === DEFAULT_USER_CLUB_ID)?.weeklyWages).toBe(expected);
   });
 
-  it('starts the Division 5 user squad with only E and F potential grades', () => {
+  it('starts the Division 5 user squad with only early E/D-range potential grades', () => {
     const career = createCareer(createLaunchCareerSetup(20260718, undefined, undefined, 'full'));
     const grades = career.players
       .filter(player => player.clubId === career.userClubId)
-      .map(player => potentialGradeForOverall(projectedPlayerOverall(player)));
+      .map(playerPotentialGrade);
 
     expect(grades).toHaveLength(16);
-    expect(grades.every(grade => grade.startsWith('E') || grade.startsWith('F'))).toBe(true);
+    expect(grades.every(grade => grade.startsWith('E') || grade.startsWith('D'))).toBe(true);
   });
 
-  it('gives every starting player age-scaled room across multiple useful attributes', () => {
+  it('gives every starting player open room to the universal safety ceiling', () => {
     const career = createCareer(createLaunchCareerSetup(20260718, undefined, undefined, 'full'));
     const players = career.players.filter(player => player.clubId === career.userClubId);
 
     for (const player of players) {
-      const current = roleOverall(player.role, player.attrs);
-      const projected = projectedPlayerOverall(player);
-      const expectedRoom = Math.min(99 - current, minimumDevelopmentHeadroom(player.age ?? 24));
       const caps = playerAttributeCaps(player);
       const relevant = player.role === 'GK'
         ? ['pac', 'pas', 'def', 'tec', 'sta', 'ref'] as const
         : ['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const;
       const trainableAttributes = relevant.filter(attribute => caps[attribute] > player.attrs[attribute]);
 
-      expect(projected - current).toBeGreaterThanOrEqual(expectedRoom);
-      expect(trainableAttributes.length).toBeGreaterThanOrEqual(2);
+      expect(Object.values(caps).every(cap => cap === 999)).toBe(true);
+      expect(trainableAttributes).toHaveLength(relevant.length);
     }
   });
 
@@ -113,7 +107,7 @@ describe('launch career adapter', () => {
     const heroAfter = repaired.players.find(player => player.id === heroBefore.id)!;
 
     expect(ordinaryPlayer.potential).toBe(1);
-    expect(potentialGradeForOverall(projectedPlayerOverall(ordinaryPlayer))).toMatch(/^[EF]/);
+    expect(playerPotentialGrade(ordinaryPlayer)).toMatch(/^E/);
     expect(heroAfter.potential).toBe(heroBefore.potential);
     expect(heroAfter.potentialCeiling).toBe(heroBefore.potentialCeiling);
   });

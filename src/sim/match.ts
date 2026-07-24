@@ -6,11 +6,12 @@ import { cancelPowerReferencesForSubstitution, powerTick } from './powers';
 import { applyAutomaticCoaching } from './auto-coaching';
 import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import { isEnergyUse, isFormationId, isMentality } from './tactics';
+import { MAX_PLAYER_ATTRIBUTE } from './attributes';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.23 keeps Gravity's lane-opening pulse from moving blockers toward the
-// carrier and abandons its priority pass if that lane closes before the kick.
-export const ENGINE_VERSION = 'm1.23';
+// m1.24 accepts 1–999 career attributes and converts values above 99 to
+// bounded, diminishing match strength.
+export const ENGINE_VERSION = 'm1.24';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -315,8 +316,10 @@ export function validateTeamDef(team: TeamDef, label: string): void {
     if (index < 11 && p.role === 'GK') goalkeeperCount += 1;
     for (const key of ATTR_KEYS) {
       const v = p.attrs?.[key];
-      if (!Number.isSafeInteger(v) || v < 1 || v > 99) {
-        throw new Error(`${label} player ${p.id} has invalid attrs.${key} (${v}); expected an integer from 1 to 99`);
+      if (!Number.isSafeInteger(v) || v < 1 || v > MAX_PLAYER_ATTRIBUTE) {
+        throw new Error(
+          `${label} player ${p.id} has invalid attrs.${key} (${v}); expected an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
+        );
       }
     }
     if (p.power !== undefined && !VALID_POWER_IDS.has(p.power)) {

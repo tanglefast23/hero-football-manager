@@ -1,192 +1,147 @@
-import type { Attrs } from '../../sim/types';
+import type { Attrs, Role } from '../../sim/types';
+import { MAX_PLAYER_ATTRIBUTE } from '../../sim/attributes';
 import {
-  ARCHETYPE_ATTRIBUTE_CAPS,
   PLAYER_ARCHETYPES,
-  POTENTIAL_GRADE_BANDS,
-  archetypeAttributeCap,
-  capArchetypeTrainingGain,
+  POSITION_TRAINING_ATTRIBUTES,
+  POTENTIAL_GRADES,
+  archetypeTrainingBonusPercent,
   capPlayerTrainingGain,
-  developmentPotentialCeiling,
-  deterministicPotentialCeiling,
-  minimumDevelopmentHeadroom,
   playerAttributeCaps,
+  playerPotentialGrade,
+  playerPotentialTrainingBonusPercent,
+  positionTrainingBonusPercent,
   potentialTierForDivision,
-  potentialGradeForOverall,
-  projectedPlayerOverall,
+  potentialTrainingBonusPercent,
   remainingDevelopmentPotential,
   roleOverall,
 } from '../archetype-caps';
 
 const ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
+const BASE_ATTRS: Attrs = {
+  pac: 50,
+  sho: 50,
+  pas: 50,
+  def: 50,
+  tec: 50,
+  sta: 50,
+  ref: 50,
+};
 
-describe('archetype training caps', () => {
-  test.each(PLAYER_ARCHETYPES)('%s defines a safe, explicit cap for every attribute', archetype => {
-    expect(Object.keys(ARCHETYPE_ATTRIBUTE_CAPS[archetype]).sort()).toEqual([...ATTRIBUTES].sort());
-    for (const attribute of ATTRIBUTES) {
-      const cap = archetypeAttributeCap(archetype, attribute);
-      expect(Number.isSafeInteger(cap)).toBe(true);
-      expect(cap).toBeGreaterThanOrEqual(1);
-      expect(cap).toBeLessThanOrEqual(99);
-    }
-  });
-
-  test('locks the documented Speedster identity and gives goalkeepers a real REF path', () => {
-    expect(ARCHETYPE_ATTRIBUTE_CAPS.Speedster).toMatchObject({ pac: 95, sho: 70 });
-    expect(ARCHETYPE_ATTRIBUTE_CAPS.Wall.ref).toBe(95);
-    expect(ARCHETYPE_ATTRIBUTE_CAPS.Wall.ref).toBeGreaterThan(
-      ARCHETYPE_ATTRIBUTE_CAPS.Wall.pac,
-    );
-    expect(ARCHETYPE_ATTRIBUTE_CAPS.Wall.ref).toBeGreaterThan(
-      ARCHETYPE_ATTRIBUTE_CAPS['All-Rounder'].ref,
-    );
-  });
-
-  test('uses neutral caps for legacy players without archetype metadata', () => {
-    for (const attribute of ATTRIBUTES) {
-      expect(archetypeAttributeCap(undefined, attribute)).toBe(
-        ARCHETYPE_ATTRIBUTE_CAPS['All-Rounder'][attribute],
-      );
-    }
-  });
-
-  test.each(PLAYER_ARCHETYPES)('%s gains stop at the cap without reducing above-cap ratings', archetype => {
-    const attribute: keyof Attrs = archetype === 'Wall' ? 'ref' : 'pac';
-    const cap = archetypeAttributeCap(archetype, attribute);
-    const below = Math.max(1, cap - 1);
-    expect(capArchetypeTrainingGain(archetype, attribute, below, below + 20)).toBe(cap);
-    expect(capArchetypeTrainingGain(archetype, attribute, below, below - 1)).toBe(below);
-    if (cap < 99) {
-      expect(capArchetypeTrainingGain(archetype, attribute, cap + 1, 99)).toBe(cap + 1);
-    }
-  });
-
-  test('sums every remaining cap point and never subtracts above-cap attributes', () => {
-    const attrs: Attrs = { pac: 60, sho: 61, pas: 70, def: 96, tec: 71, sta: 80, ref: 90 };
-    expect(remainingDevelopmentPotential('Wall', attrs)).toBe(
-      (70 - 60)
-      + 0
-      + (76 - 70)
-      + 0
-      + (78 - 71)
-      + (90 - 80)
-      + (95 - 90),
-    );
-  });
-
-  test('reaches zero when every attribute is at its archetype cap', () => {
-    expect(remainingDevelopmentPotential('Anchor', ARCHETYPE_ATTRIBUTE_CAPS.Anchor)).toBe(0);
-  });
-
-  test('defines an absolute F− through A+ grade scale with no gaps', () => {
-    expect(POTENTIAL_GRADE_BANDS.map(band => band.grade)).toEqual([
-      'F-', 'F', 'F+', 'E-', 'E', 'E+', 'D-', 'D', 'D+',
-      'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+',
+describe('open-ended player development', () => {
+  test('uses the exact E− through A+ potential bonus ladder', () => {
+    expect(POTENTIAL_GRADES).toEqual([
+      'E-', 'E', 'E+',
+      'D-', 'D', 'D+',
+      'C-', 'C', 'C+',
+      'B-', 'B', 'B+',
+      'A-', 'A', 'A+',
     ]);
-    expect(potentialGradeForOverall(1)).toBe('F-');
-    expect(potentialGradeForOverall(48)).toBe('F-');
-    expect(potentialGradeForOverall(49)).toBe('F');
-    expect(potentialGradeForOverall(84)).toBe('B-');
-    expect(potentialGradeForOverall(93)).toBe('A-');
-    expect(potentialGradeForOverall(94)).toBe('A');
-    expect(potentialGradeForOverall(97)).toBe('A+');
-    expect(potentialGradeForOverall(99)).toBe('A+');
+    expect(POTENTIAL_GRADES.map(potentialTrainingBonusPercent))
+      .toEqual(Array.from({ length: 15 }, (_, index) => index));
   });
 
-  test('calculates current overall from the six role-relevant attributes', () => {
-    const attrs: Attrs = { pac: 60, sho: 90, pas: 60, def: 60, tec: 60, sta: 60, ref: 30 };
-    expect(roleOverall('FWD', attrs)).toBe(65);
-    expect(roleOverall('GK', attrs)).toBe(55);
+  test.each([
+    ['Speedster', { pac: 15 }],
+    ['Sniper', { sho: 15 }],
+    ['Playmaker', { pas: 15, tec: 15 }],
+    ['Anchor', { def: 15, sta: 15 }],
+    ['Wall', { def: 15, ref: 15 }],
+    ['Engine', { pac: 15, sta: 15 }],
+    ['All-Rounder', Object.fromEntries(ATTRIBUTES.map(attribute => [attribute, 5]))],
+    ['Prodigy', Object.fromEntries(ATTRIBUTES.map(attribute => [attribute, 20]))],
+  ] as const)('%s exposes its exact innate training bonuses', (archetype, expected) => {
+    for (const attribute of ATTRIBUTES) {
+      expect(archetypeTrainingBonusPercent(archetype, attribute))
+        .toBe(expected[attribute as keyof typeof expected] ?? 0);
+    }
   });
 
-  test('maps legacy potential tiers into deterministic fine-grained ceilings', () => {
-    const first = deterministicPotentialCeiling('player-1', 3);
-    expect(deterministicPotentialCeiling('player-1', 3)).toBe(first);
-    expect(first).toBeGreaterThanOrEqual(70);
-    expect(first).toBeLessThanOrEqual(81);
-    expect(deterministicPotentialCeiling('player-1', 1)).toBeGreaterThanOrEqual(46);
-    expect(deterministicPotentialCeiling('player-1', 1)).toBeLessThanOrEqual(57);
-    expect(deterministicPotentialCeiling('player-1', 5)).toBeGreaterThanOrEqual(94);
-    expect(deterministicPotentialCeiling('player-1', 5)).toBeLessThanOrEqual(99);
+  test.each(Object.entries(POSITION_TRAINING_ATTRIBUTES) as [Role, readonly (keyof Attrs)[]][])(
+    '%s gains +5%% only on its three position attributes',
+    (role, positionAttributes) => {
+      expect(positionAttributes).toHaveLength(3);
+      for (const attribute of ATTRIBUTES) {
+        expect(positionTrainingBonusPercent(role, attribute))
+          .toBe(positionAttributes.includes(attribute) ? 5 : 0);
+      }
+    },
+  );
+
+  test('derives a stable three-step grade inside each persisted talent tier', () => {
+    for (const potential of [1, 2, 3, 4, 5] as const) {
+      const first = playerPotentialGrade({ id: `player-${potential}`, potential });
+      const second = playerPotentialGrade({ id: `player-${potential}`, potential });
+      expect(first).toBe(second);
+      expect(POTENTIAL_GRADES.indexOf(first)).toBeGreaterThanOrEqual((potential - 1) * 3);
+      expect(POTENTIAL_GRADES.indexOf(first)).toBeLessThan(potential * 3);
+      expect(playerPotentialTrainingBonusPercent({ id: `player-${potential}`, potential }))
+        .toBe(POTENTIAL_GRADES.indexOf(first));
+    }
   });
 
-  test('keeps age-scaled growth room without raising current match strength', () => {
-    const attrs: Attrs = { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50, ref: 50 };
-    const youngCeiling = developmentPotentialCeiling({
-      id: 'young-d5-player', role: 'MID', attrs, age: 20, potential: 1,
-    });
-    const veteranCeiling = developmentPotentialCeiling({
-      id: 'veteran-d5-player', role: 'MID', attrs, age: 32, potential: 1,
-    });
-
-    expect(roleOverall('MID', attrs)).toBe(50);
-    expect(minimumDevelopmentHeadroom(20)).toBe(8);
-    expect(minimumDevelopmentHeadroom(32)).toBe(3);
-    expect(youngCeiling).toBeGreaterThanOrEqual(58);
-    expect(veteranCeiling).toBeGreaterThanOrEqual(53);
-    expect(youngCeiling).toBeGreaterThan(veteranCeiling);
-  });
-
-  test('higher divisions have deterministically stronger potential-tier distributions', () => {
-    const averages = [1, 2, 3, 4, 5].map(division => (
-      Array.from({ length: 100 }, (_, roll) => potentialTierForDivision(division, roll))
-        .reduce((sum, tier) => sum + tier, 0) / 100
+  test('gates talent so A-range players first appear in D1', () => {
+    const tiersByDivision = ([5, 4, 3, 2, 1] as const).map(division => (
+      new Set(Array.from({ length: 100 }, (_, roll) => potentialTierForDivision(division, roll)))
     ));
-    expect(averages[0]).toBeGreaterThan(averages[1]);
-    expect(averages[1]).toBeGreaterThan(averages[2]);
-    expect(averages[2]).toBeGreaterThan(averages[3]);
-    expect(averages[3]).toBeGreaterThan(averages[4]);
+    expect(tiersByDivision[0]).toEqual(new Set([1, 2]));
+    expect(tiersByDivision[1]).toEqual(new Set([1, 2, 3]));
+    expect(tiersByDivision[2]).toEqual(new Set([1, 2, 3, 4]));
+    expect(tiersByDivision[3]).toEqual(new Set([2, 3, 4]));
+    expect(tiersByDivision[4]).toEqual(new Set([4, 5]));
+    expect(potentialTierForDivision(1, 0)).toBe(5);
+    expect(potentialTierForDivision(2, 0)).not.toBe(5);
+    const d1TopTierGrades = new Set(Array.from(
+      { length: 200 },
+      (_, index) => playerPotentialGrade({ id: `d1-candidate-${index}`, potential: 5 }),
+    ));
+    expect(d1TopTierGrades).toEqual(new Set(['A-', 'A', 'A+']));
   });
 
-  test('Division 5 contains only F and E potential while A potential first appears in Division 4', () => {
-    const divisionFiveTiers = Array.from(
-      { length: 100 },
-      (_, roll) => potentialTierForDivision(5, roll),
-    );
-
-    expect(new Set(divisionFiveTiers)).toEqual(new Set([1]));
-    expect(potentialTierForDivision(4, 0)).toBe(5);
+  test('keeps current role overall separate from future training speed', () => {
+    const attrs: Attrs = { ...BASE_ATTRS, sho: 80, ref: 20 };
+    expect(roleOverall('FWD', attrs)).toBe(55);
+    expect(roleOverall('GK', attrs)).toBe(45);
+    expect(playerPotentialTrainingBonusPercent({ id: 'fast-learner', potential: 5 }))
+      .toBeGreaterThan(playerPotentialTrainingBonusPercent({ id: 'slow-learner', potential: 1 }));
   });
 
-  test('personal caps preserve archetype shape while landing on the fixed projected overall', () => {
-    const attrs: Attrs = { pac: 30, sho: 30, pas: 30, def: 30, tec: 30, sta: 30, ref: 30 };
+  test('allows growth through 99 and stops only at the universal 999 safety ceiling', () => {
     const player = {
-      id: 'speedster-prospect',
+      id: 'open-ended-player',
       role: 'FWD' as const,
-      attrs,
-      archetype: 'Speedster' as const,
-      potential: 3 as const,
-      potentialCeiling: 78,
+      attrs: { ...BASE_ATTRS },
+      archetype: 'Sniper' as const,
+      potential: 1 as const,
+      potentialCeiling: 60,
     };
-    const caps = playerAttributeCaps(player);
-    expect(caps.pac).toBeGreaterThan(caps.sho);
-    expect(projectedPlayerOverall(player)).toBe(78);
-    expect(potentialGradeForOverall(projectedPlayerOverall(player))).toBe('C');
+    expect(playerAttributeCaps(player)).toEqual({
+      pac: 999,
+      sho: 999,
+      pas: 999,
+      def: 999,
+      tec: 999,
+      sta: 999,
+      ref: 999,
+    });
+    expect(capPlayerTrainingGain(player, 'sho', 98, 105)).toBe(105);
+    expect(capPlayerTrainingGain(player, 'sho', 998, 1_020)).toBe(MAX_PLAYER_ATTRIBUTE);
   });
 
-  test('A+ is the top possible cap and F− stays mediocre even when fully developed', () => {
-    const attrs: Attrs = { pac: 20, sho: 20, pas: 20, def: 20, tec: 20, sta: 20, ref: 20 };
-    const elite = {
-      id: 'elite', role: 'MID' as const, attrs, archetype: 'Playmaker' as const,
-      potential: 5 as const, potentialCeiling: 99,
-    };
-    const limited = {
-      id: 'limited', role: 'DEF' as const, attrs, archetype: 'Anchor' as const,
-      potential: 1 as const, potentialCeiling: 48,
-    };
-    expect(projectedPlayerOverall(elite)).toBe(99);
-    expect(potentialGradeForOverall(projectedPlayerOverall(elite))).toBe('A+');
-    expect(projectedPlayerOverall(limited)).toBe(48);
-    expect(potentialGradeForOverall(projectedPlayerOverall(limited))).toBe('F-');
+  test('reports only the remaining room to the rare universal ceiling', () => {
+    expect(remainingDevelopmentPotential('Wall', BASE_ATTRS))
+      .toBe(ATTRIBUTES.length * (MAX_PLAYER_ATTRIBUTE - 50));
+    const maximums = Object.fromEntries(
+      ATTRIBUTES.map(attribute => [attribute, MAX_PLAYER_ATTRIBUTE]),
+    ) as unknown as Attrs;
+    expect(remainingDevelopmentPotential('Prodigy', maximums)).toBe(0);
   });
 
-  test('training stops at the personal cap without reducing grandfathered ratings', () => {
-    const attrs: Attrs = { pac: 40, sho: 40, pas: 40, def: 40, tec: 40, sta: 40, ref: 40 };
-    const player = {
-      id: 'capped-player', role: 'FWD' as const, attrs, archetype: 'Sniper' as const,
-      potential: 2 as const, potentialCeiling: 60,
-    };
-    const cap = playerAttributeCaps(player).sho;
-    expect(capPlayerTrainingGain(player, 'sho', cap - 1, cap + 20)).toBe(cap);
-    expect(capPlayerTrainingGain(player, 'sho', cap + 1, 99)).toBe(cap + 1);
+  test('defines every supported archetype without using it as a cap', () => {
+    expect(PLAYER_ARCHETYPES).toHaveLength(8);
+    for (const archetype of PLAYER_ARCHETYPES) {
+      expect(ATTRIBUTES.some(attribute => (
+        archetypeTrainingBonusPercent(archetype, attribute) > 0
+      ))).toBe(true);
+    }
   });
 });

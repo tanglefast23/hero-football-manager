@@ -82,7 +82,6 @@ export interface PendingTrainingPromiseBump {
 }
 
 export interface TrainingRules {
-  baseConditioning: CareerTrainingDrill;
   maxFocusDrillsPerWeek: number;
   /** Full focus-drill catalog, baked in so the pure engine can resolve tiers. */
   focusDrills: CareerTrainingDrill[];
@@ -142,7 +141,7 @@ export interface CareerPlayer {
   age?: number;
   archetype?: PlayerArchetype;
   potential?: 1 | 2 | 3 | 4 | 5;
-  /** Fixed role-aware projected overall after every personal training cap is filled. */
+  /** Legacy schema-1 field. Read for save compatibility; no longer limits training. */
   potentialCeiling?: number;
   consistency?: number;
   personality?: PlayerPersonality;
@@ -164,6 +163,8 @@ export interface CareerPlayer {
   facilityStaBonusRemainder?: number;
   /** Hundredths of coach-earned growth banked until each attribute reaches a full point. */
   coachTrainingBonusRemainders?: Partial<Record<keyof Attrs, number>>;
+  /** Hundredths from archetype, position, Potential, and coach growth bonuses. */
+  trainingBonusRemainders?: Partial<Record<keyof Attrs, number>>;
 }
 
 export interface ClubLineupState {
@@ -422,7 +423,7 @@ export interface GameState {
   facilities: FacilityState;
   trainingRules?: TrainingRules;
   trainingPlan?: CareerTrainingPlan;
-  /** One-shot inbox receipts created when focused training fills a personal attribute cap. */
+  /** One-shot inbox receipts created at the rare universal 999 safety ceiling. */
   trainingCapNotices?: CareerTrainingCapNotice[];
   /** Cleared once the manager picks who to bump; a mid-prompt save must reload it. */
   pendingTrainingPromiseBump?: PendingTrainingPromiseBump;

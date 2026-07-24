@@ -2,7 +2,13 @@ import { applyTrainingPlan, type FocusDrill } from './progression';
 import { facilityEffects } from './facilities';
 import { trainingMultiplierForAge } from './pyramid';
 import { careerCoachTrainingModifiers } from './coach-weekly';
-import { capPlayerTrainingGain, playerAttributeCaps } from './archetype-caps';
+import {
+  archetypeTrainingBonusPercent,
+  capPlayerTrainingGain,
+  playerAttributeCaps,
+  playerPotentialTrainingBonusPercent,
+  positionTrainingBonusPercent,
+} from './archetype-caps';
 import { resolveTrainingDrillForPath, trainingPathAttribute } from './training-paths';
 import { assertCareerTrainingHonorsContractPromises } from './contract-promises';
 import type {
@@ -119,14 +125,10 @@ export function setCareerTrainingPlan(
   return { ...state, trainingPlan: { slots: slots.map(slot => ({ ...slot })) } };
 }
 
-/** Resolves free conditioning plus the affordable repeating focus plan once. */
+/** Resolves the affordable repeating focus plan once. */
 export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResolution {
   const roster = userRoster(state);
-  const base = state.trainingRules?.baseConditioning;
   const coachModifiers = state.market === undefined ? undefined : careerCoachTrainingModifiers(state.market);
-  const conditioned = base === undefined
-    ? roster
-    : applyTrainingPlan(roster, roster.map(p => p.id), [base], { money: 0, tp: 0 }).players as CareerPlayer[];
 
   const slots = state.trainingPlan?.slots ?? [];
   const executable = slots
@@ -135,7 +137,7 @@ export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResol
   const tpCost = executable.reduce((sum, e) => checkedAdd(sum, e.drill.tpCost, 'weekly training point cost'), 0);
   const canAfford = executable.length > 0 && tpCost <= state.trainingPoints;
 
-  let players = conditioned as CareerPlayer[];
+  let players = roster;
   let tp = state.trainingPoints;
   if (canAfford) {
     for (const { slot, drill } of executable) {
@@ -238,36 +240,40 @@ function applyM2TrainingGrowthModifiers(
     const before = originalById.get(player.id);
     if (before === undefined) throw new Error(`unknown trained player ${player.id}`);
     const attrs = { ...player.attrs };
-    const coachTrainingBonusRemainders = { ...(player.coachTrainingBonusRemainders ?? {}) };
-    let hasCoachRemainderChange = false;
+    const trainingBonusRemainders = {
+      ...(player.trainingBonusRemainders ?? player.coachTrainingBonusRemainders ?? {}),
+    };
+    let hasTrainingRemainderChange = false;
     for (const attribute of Object.keys(attrs) as Array<keyof CareerPlayer['attrs']>) {
       const realizedGain = player.attrs[attribute] - before.attrs[attribute];
       if (realizedGain <= 0) continue;
-      const baseMultiplier = trainingMultiplierForAge(player.age ?? 24)
-        * archetypeTrainingMultiplier(player.archetype, attribute)
-        * facilityTrainingMultiplier(state, attribute)
-        * diminishingTrainingMultiplier(before.attrs[attribute]);
-      const baseGain = Math.max(1, Math.round(realizedGain * baseMultiplier));
+      const structuralMultiplier = trainingMultiplierForAge(player.age ?? 24)
+        * facilityTrainingMultiplier(state, attribute);
+      const baseGain = Math.max(1, Math.round(realizedGain * structuralMultiplier));
       const coachBonusPercent = (coachModifiers?.gainScalePercentByAttribute[attribute] ?? 100) - 100;
-      const previousRemainder = coachTrainingBonusRemainders[attribute] ?? 0;
+      const developmentBonusPercent = archetypeTrainingBonusPercent(player.archetype, attribute)
+        + positionTrainingBonusPercent(player.role, attribute)
+        + playerPotentialTrainingBonusPercent(player)
+        + coachBonusPercent;
+      const previousRemainder = trainingBonusRemainders[attribute] ?? 0;
       validateCoachTrainingRemainder(previousRemainder, player.id, attribute);
-      // Bank hundredths instead of rounding a small coach bonus away every week.
-      // Example: a +3 drill with a +10% coach earns 30 hundredths; the fourth
-      // identical session awards +1 and carries the remaining 20 hundredths.
-      const earnedHundredths = coachBonusPercent === 0
+      // Bank hundredths so Potential's one-point grade steps and the position
+      // bonus remain exact even when one weekly session cannot award a whole
+      // extra attribute point.
+      const earnedHundredths = developmentBonusPercent === 0
         ? 0
-        : Math.round(realizedGain * baseMultiplier * coachBonusPercent);
+        : Math.round(realizedGain * structuralMultiplier * developmentBonusPercent);
       const totalHundredths = checkedAdd(
         previousRemainder,
         earnedHundredths,
-        'coach training bonus progress',
+        'training bonus progress',
       );
       const extraGain = Math.floor(totalHundredths / 100);
       const nextRemainder = totalHundredths % 100;
       const proposedValue = checkedAdd(
         before.attrs[attribute],
-        checkedAdd(baseGain, extraGain, 'coach-adjusted training gain'),
-        'coach-adjusted training attribute',
+        checkedAdd(baseGain, extraGain, 'adjusted training gain'),
+        'adjusted training attribute',
       );
       const cappedValue = capPlayerTrainingGain(
         before,
@@ -276,16 +282,18 @@ function applyM2TrainingGrowthModifiers(
         proposedValue,
       );
       attrs[attribute] = cappedValue;
-      if (coachBonusPercent > 0) {
-        coachTrainingBonusRemainders[attribute] = cappedValue < proposedValue ? 0 : nextRemainder;
-        hasCoachRemainderChange = true;
+      if (developmentBonusPercent > 0) {
+        trainingBonusRemainders[attribute] = cappedValue < proposedValue ? 0 : nextRemainder;
+        hasTrainingRemainderChange = true;
       }
     }
     return {
       ...player,
       attrs,
-      ...(hasCoachRemainderChange || player.coachTrainingBonusRemainders !== undefined
-        ? { coachTrainingBonusRemainders }
+      ...(hasTrainingRemainderChange
+        || player.trainingBonusRemainders !== undefined
+        || player.coachTrainingBonusRemainders !== undefined
+        ? { trainingBonusRemainders }
         : {}),
     };
   });
@@ -299,23 +307,6 @@ function validateCoachTrainingRemainder(
   if (!Number.isSafeInteger(remainder) || remainder < 0 || remainder >= 100) {
     throw new Error(`player ${playerId} ${attribute} coach training remainder must be from 0 to 99`);
   }
-}
-
-function archetypeTrainingMultiplier(
-  archetype: CareerPlayer['archetype'],
-  attribute: keyof CareerPlayer['attrs'],
-): number {
-  if (archetype === 'Prodigy') return 1.2;
-  if (archetype === 'All-Rounder') return 1.05;
-  const specialties: Partial<Record<NonNullable<CareerPlayer['archetype']>, readonly (keyof CareerPlayer['attrs'])[]>> = {
-    Speedster: ['pac'],
-    Sniper: ['sho'],
-    Playmaker: ['pas', 'tec'],
-    Anchor: ['def', 'sta'],
-    Wall: ['ref', 'def'],
-    Engine: ['sta', 'pac'],
-  };
-  return archetype !== undefined && specialties[archetype]?.includes(attribute) ? 1.15 : 1;
 }
 
 function facilityTrainingMultiplier(
@@ -337,15 +328,9 @@ function facilityTrainingMultiplier(
   return level === 0 ? 1 : 1 + (level - 1) / 2;
 }
 
-function diminishingTrainingMultiplier(currentStat: number): number {
-  if (currentStat >= 90) return 0.5;
-  if (currentStat >= 80) return 0.75;
-  return 1;
-}
-
 /**
  * Carries percentage points between weeks so a 10% bonus remains exact even
- * when weekly integer gains are small. Only gains that survived the 99 cap
+ * when weekly integer gains are small. Only gains that survived the safety cap
  * earn bonus credit.
  */
 function applyFacilityStaminaBonus(

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import type { ReplayEnvelope } from '../sim/types';
 import { validateEnvelope } from '../sim/match';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { isPlayerLookIdForRole } from '../game/player-appearance';
 import {
   CorruptReplayEnvelopeError,
@@ -27,8 +28,8 @@ const uint32 = nonnegativeInteger.refine(
   'must fit uint32',
 );
 const playerAttribute = safeInteger.refine(
-  (value) => value >= 1 && value <= 99,
-  'must be from 1 to 99',
+  (value) => value >= 1 && value <= MAX_PLAYER_ATTRIBUTE,
+  `must be from 1 to ${MAX_PLAYER_ATTRIBUTE}`,
 );
 const nonemptyString = z.string().min(1);
 

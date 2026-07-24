@@ -272,10 +272,10 @@ describe('M1 app store integration', () => {
     expect(review.development.trainingSkippedWarning).toBeUndefined();
     expect(settled.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac + 8);
     expect(settled.players.find(player => player.id === playerId)?.attrs.sta).toBe(
-      before.players.find(player => player.id === playerId)!.attrs.sta + 1,
+      before.players.find(player => player.id === playerId)!.attrs.sta,
     );
     expect(settled.players.find(player => player.id === unassignedPlayerId)?.attrs.sta)
-      .toBe(beforeUnassignedSta + 1);
+      .toBe(beforeUnassignedSta);
     expect(settled.facilities.trainingGroundBuilt).toBe(true);
     expect(review.facilityCompletion).toMatchObject({
       type: 'training-pitch',
@@ -1147,7 +1147,6 @@ function examplePostMatch(): PostMatchViewModel {
         role: 'FWD',
         gains: [{ id: 'player-1-pac', label: 'PAC', before: 92, after: 95, delta: 3 }],
       }],
-      conditioning: [{ id: 'conditioning-sta', attributeLabel: 'STA', gain: 1, playerCount: 17 }],
     },
     updates: [],
   };

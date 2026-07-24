@@ -215,7 +215,7 @@ describe('buildTeamDef', () => {
     )).toThrow(/exactly one goalkeeper/);
   });
 
-  it('validates attributes as integer values from 1 to 99', () => {
+  it('validates attributes as integer values from 1 to 999', () => {
     const roster = validRoster().map(player => (
       player.id === 'bench-regular'
         ? { ...player, attrs: { ...player.attrs, pac: 99.5 } }
@@ -226,7 +226,7 @@ describe('buildTeamDef', () => {
       { id: 'rovers', name: 'Hero Rovers' },
       roster,
       STARTING_IDS,
-    )).toThrow(/integer from 1 to 99/);
+    )).toThrow(/integer from 1 to 999/);
   });
 
   it('pins the canonical morale modifier into the match attributes', () => {
@@ -256,9 +256,10 @@ describe('buildTeamDef', () => {
     expect(matchAttrsAtMorale(BASE_ATTRS, 0).pac).toBe(45);
     expect(matchAttrsAtMorale(BASE_ATTRS, 50).pac).toBe(50);
     expect(matchAttrsAtMorale(BASE_ATTRS, 100).pac).toBe(55);
-    expect(matchAttrsAtMorale({ ...BASE_ATTRS, pac: 99, sho: 1 }, 100)).toMatchObject({
-      pac: 99,
+    expect(matchAttrsAtMorale({ ...BASE_ATTRS, pac: 99, sho: 1, sta: 999 }, 100)).toMatchObject({
+      pac: 109,
       sho: 1,
+      sta: 999,
     });
   });
 

@@ -1,17 +1,20 @@
 import type { Attrs, Role } from '../sim/types';
+import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import type { PlayerArchetype } from './types';
 
 const ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const satisfies readonly (keyof Attrs)[];
 const OUT_FIELD_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const satisfies readonly (keyof Attrs)[];
 const GOALKEEPER_ATTRIBUTES = ['pac', 'pas', 'def', 'tec', 'sta', 'ref'] as const satisfies readonly (keyof Attrs)[];
 
-export type PotentialGrade =
-  | 'A+' | 'A' | 'A-'
-  | 'B+' | 'B' | 'B-'
-  | 'C+' | 'C' | 'C-'
-  | 'D+' | 'D' | 'D-'
-  | 'E+' | 'E' | 'E-'
-  | 'F+' | 'F' | 'F-';
+export const POTENTIAL_GRADES = [
+  'E-', 'E', 'E+',
+  'D-', 'D', 'D+',
+  'C-', 'C', 'C+',
+  'B-', 'B', 'B+',
+  'A-', 'A', 'A+',
+] as const;
+
+export type PotentialGrade = (typeof POTENTIAL_GRADES)[number];
 
 export interface PotentialGradeBand {
   readonly grade: PotentialGrade;
@@ -20,10 +23,7 @@ export interface PotentialGradeBand {
 }
 
 export const POTENTIAL_GRADE_BANDS: readonly PotentialGradeBand[] = [
-  { grade: 'F-', minimum: 1, maximum: 48 },
-  { grade: 'F', minimum: 49, maximum: 51 },
-  { grade: 'F+', minimum: 52, maximum: 54 },
-  { grade: 'E-', minimum: 55, maximum: 57 },
+  { grade: 'E-', minimum: 1, maximum: 57 },
   { grade: 'E', minimum: 58, maximum: 60 },
   { grade: 'E+', minimum: 61, maximum: 63 },
   { grade: 'D-', minimum: 64, maximum: 66 },
@@ -69,49 +69,87 @@ export const PLAYER_ARCHETYPES = [
   'Prodigy',
 ] as const satisfies readonly PlayerArchetype[];
 
-/**
- * M2's visible training ceilings. These limit development only: an imported,
- * awakened, or otherwise exceptional player who is already above a ceiling is
- * never reduced.
- */
-export const ARCHETYPE_ATTRIBUTE_CAPS: Readonly<Record<PlayerArchetype, Readonly<Attrs>>> = {
-  Speedster: { pac: 95, sho: 70, pas: 82, def: 68, tec: 84, sta: 88, ref: 60 },
-  Sniper: { pac: 82, sho: 95, pas: 80, def: 65, tec: 90, sta: 82, ref: 55 },
-  Playmaker: { pac: 82, sho: 78, pas: 95, def: 74, tec: 95, sta: 86, ref: 65 },
-  Anchor: { pac: 76, sho: 68, pas: 84, def: 95, tec: 82, sta: 90, ref: 75 },
-  Wall: { pac: 70, sho: 60, pas: 76, def: 95, tec: 78, sta: 90, ref: 95 },
-  Engine: { pac: 90, sho: 80, pas: 88, def: 84, tec: 86, sta: 95, ref: 65 },
-  'All-Rounder': { pac: 88, sho: 88, pas: 88, def: 88, tec: 88, sta: 88, ref: 88 },
-  Prodigy: { pac: 99, sho: 99, pas: 99, def: 99, tec: 99, sta: 99, ref: 99 },
+export const POSITION_TRAINING_ATTRIBUTES: Readonly<
+  Record<Role, readonly (keyof Attrs)[]>
+> = {
+  GK: ['ref', 'def', 'sta'],
+  DEF: ['def', 'sta', 'pas'],
+  MID: ['pas', 'tec', 'sta'],
+  FWD: ['sho', 'pac', 'tec'],
 };
 
-/** Legacy players without archetype metadata use the neutral All-Rounder caps. */
-export function archetypeAttributeCap(
+export const POSITION_TRAINING_BONUS_PERCENT = 5;
+
+export function positionTrainingBonusPercent(
+  role: Role,
+  attribute: keyof Attrs,
+): number {
+  return POSITION_TRAINING_ATTRIBUTES[role].includes(attribute)
+    ? POSITION_TRAINING_BONUS_PERCENT
+    : 0;
+}
+
+export function archetypeTrainingBonusPercent(
   archetype: PlayerArchetype | undefined,
   attribute: keyof Attrs,
 ): number {
-  return ARCHETYPE_ATTRIBUTE_CAPS[archetype ?? 'All-Rounder'][attribute];
+  if (archetype === 'Prodigy') return 20;
+  if (archetype === 'All-Rounder') return 5;
+  const specialties: Partial<Record<PlayerArchetype, readonly (keyof Attrs)[]>> = {
+    Speedster: ['pac'],
+    Sniper: ['sho'],
+    Playmaker: ['pas', 'tec'],
+    Anchor: ['def', 'sta'],
+    Wall: ['ref', 'def'],
+    Engine: ['sta', 'pac'],
+  };
+  return archetype !== undefined && specialties[archetype]?.includes(attribute) ? 15 : 0;
 }
 
-/** Total attribute points normal training can still add before every cap. */
+/** Stable E− through A+ grade within the player's persisted 1–5 talent tier. */
+export function playerPotentialGrade(
+  player: Pick<PotentialProfile, 'id' | 'potential'>,
+): PotentialGrade {
+  const potential = player.potential ?? 3;
+  const range = POTENTIAL_TIER_CEILING_RANGES[potential];
+  const legacyValue = deterministicPotentialCeiling(player.id, potential);
+  const variant = Math.min(
+    2,
+    Math.floor((legacyValue - range[0]) * 3 / (range[1] - range[0] + 1)),
+  );
+  return POTENTIAL_GRADES[(potential - 1) * 3 + variant];
+}
+
+/** E− is +0%; every grade step adds exactly one percentage point. */
+export function potentialTrainingBonusPercent(grade: PotentialGrade): number {
+  return POTENTIAL_GRADES.indexOf(grade);
+}
+
+export function playerPotentialTrainingBonusPercent(
+  player: Pick<PotentialProfile, 'id' | 'potential'>,
+): number {
+  return potentialTrainingBonusPercent(playerPotentialGrade(player));
+}
+
+/** Total attribute points normal training can still add before the 999 safety ceiling. */
 export function remainingDevelopmentPotential(
-  archetype: PlayerArchetype | undefined,
+  _archetype: PlayerArchetype | undefined,
   attrs: Readonly<Attrs>,
 ): number {
   return ATTRIBUTES.reduce((total, attribute) => {
     const currentValue = attrs[attribute];
     assertAttributeValue(currentValue, `current ${attribute} attribute`);
-    return total + Math.max(0, archetypeAttributeCap(archetype, attribute) - currentValue);
+    return total + Math.max(0, MAX_PLAYER_ATTRIBUTE - currentValue);
   }, 0);
 }
 
 /**
- * Applies a development ceiling without ever turning training into a stat loss.
- * A current value above its ceiling is grandfathered and simply cannot grow.
+ * Legacy helper retained for callers outside the full career. Archetypes no
+ * longer impose a personal ceiling; only the universal safety ceiling remains.
  */
 export function capArchetypeTrainingGain(
-  archetype: PlayerArchetype | undefined,
-  attribute: keyof Attrs,
+  _archetype: PlayerArchetype | undefined,
+  _attribute: keyof Attrs,
   currentValue: number,
   proposedValue: number,
 ): number {
@@ -119,8 +157,7 @@ export function capArchetypeTrainingGain(
   if (!Number.isSafeInteger(proposedValue)) {
     throw new Error('proposed training attribute must be a safe integer');
   }
-  const maximum = Math.max(currentValue, archetypeAttributeCap(archetype, attribute));
-  return Math.min(maximum, Math.max(currentValue, proposedValue));
+  return Math.min(MAX_PLAYER_ATTRIBUTE, Math.max(currentValue, proposedValue));
 }
 
 /** Current rating from the six attributes that the player's role can actually use. */
@@ -134,10 +171,10 @@ export function roleOverall(role: Role, attrs: Readonly<Attrs>): number {
   return Math.round(total / attributes.length);
 }
 
-/** Absolute grade: the same projected rating always means the same grade in every division. */
+/** Legacy score-to-grade adapter. New players derive their grade from talent tier and ID. */
 export function potentialGradeForOverall(overall: number): PotentialGrade {
   assertAttributeValue(overall, 'projected overall');
-  return POTENTIAL_GRADE_BANDS.find(band => overall <= band.maximum)!.grade;
+  return POTENTIAL_GRADE_BANDS.find(band => overall <= band.maximum)?.grade ?? 'A+';
 }
 
 /** Stable fine-grained ceiling for legacy players that only persisted a 1–5 potential tier. */
@@ -199,14 +236,13 @@ export function potentialTierForDivision(
     throw new Error('potential roll must be an integer from 0 to 99');
   }
   const thresholds: Readonly<Record<number, readonly [number, number, number, number]>> = {
-    1: [55, 95, 100, 100],
-    2: [35, 80, 98, 100],
-    3: [15, 50, 85, 98],
-    4: [5, 25, 60, 90],
-    // Division 5 is the starting amateur pool: ordinary players stay in the
-    // 46–57 ceiling band (F through E−). The hired story player remains the
-    // deliberate high-potential exception, and A-range prospects begin in D4.
-    5: [0, 0, 0, 0],
+    // D1 is the first tier where A-range talent appears.
+    1: [75, 100, 100, 100],
+    2: [0, 60, 95, 100],
+    3: [0, 5, 65, 95],
+    4: [0, 0, 5, 65],
+    // D5 is deliberately humble: 90% E-range, 10% D-range.
+    5: [0, 0, 0, 10],
   };
   const [tier5, tier4, tier3, tier2] = thresholds[division];
   if (roll < tier5) return 5;
@@ -229,44 +265,33 @@ export function resolvedPotentialCeiling(player: PotentialProfile): number {
 }
 
 /**
- * Personal stat ceilings. Archetype controls the shape while potential controls
- * the role-aware average. Existing above-cap ratings are grandfathered.
+ * Compatibility adapter for old cap-aware callers. Personal caps have been
+ * removed, so every attribute now reports the universal 999 safety ceiling.
  */
 export function playerAttributeCaps(player: PotentialProfile): Attrs {
-  const target = resolvedPotentialCeiling(player);
-  const archetypeCaps = ARCHETYPE_ATTRIBUTE_CAPS[player.archetype ?? 'All-Rounder'];
-  const relevant = roleAttributes(player.role);
-  const archetypeMean = relevant.reduce((sum, attribute) => sum + archetypeCaps[attribute], 0)
-    / relevant.length;
-  const offsets = ATTRIBUTES.map(attribute => archetypeCaps[attribute] - archetypeMean);
-  const maximumOffset = Math.max(0, ...offsets);
-  const minimumOffset = Math.min(0, ...offsets);
-  const shapeScale = Math.min(
-    1,
-    maximumOffset === 0 ? 1 : (99 - target) / maximumOffset,
-    minimumOffset === 0 ? 1 : (target - 1) / Math.abs(minimumOffset),
-  );
-  const caps = Object.fromEntries(ATTRIBUTES.map(attribute => [
-    attribute,
-    Math.max(
-      player.attrs[attribute],
-      clampRating(Math.round(target + (archetypeCaps[attribute] - archetypeMean) * shapeScale)),
-    ),
-  ])) as unknown as Attrs;
-
-  rebalanceRelevantCaps(caps, player.attrs, relevant, archetypeCaps, target * relevant.length);
-  return caps;
+  for (const attribute of ATTRIBUTES) {
+    assertAttributeValue(player.attrs[attribute], `current ${attribute} attribute`);
+  }
+  return {
+    pac: MAX_PLAYER_ATTRIBUTE,
+    sho: MAX_PLAYER_ATTRIBUTE,
+    pas: MAX_PLAYER_ATTRIBUTE,
+    def: MAX_PLAYER_ATTRIBUTE,
+    tec: MAX_PLAYER_ATTRIBUTE,
+    sta: MAX_PLAYER_ATTRIBUTE,
+    ref: MAX_PLAYER_ATTRIBUTE,
+  };
 }
 
-/** Rating the player will have after every personal role-relevant cap is filled. */
+/** Legacy adapter: a cap-free player has no useful projected maximum. */
 export function projectedPlayerOverall(player: PotentialProfile): number {
-  return roleOverall(player.role, playerAttributeCaps(player));
+  return roleOverall(player.role, player.attrs);
 }
 
-/** Applies the player's personal ceiling without ever turning training into a loss. */
+/** Applies only the universal 999 safety ceiling. */
 export function capPlayerTrainingGain(
-  player: PotentialProfile,
-  attribute: keyof Attrs,
+  _player: PotentialProfile,
+  _attribute: keyof Attrs,
   currentValue: number,
   proposedValue: number,
 ): number {
@@ -274,43 +299,15 @@ export function capPlayerTrainingGain(
   if (!Number.isSafeInteger(proposedValue)) {
     throw new Error('proposed training attribute must be a safe integer');
   }
-  const maximum = Math.max(currentValue, playerAttributeCaps(player)[attribute]);
-  return Math.min(maximum, Math.max(currentValue, proposedValue));
+  return Math.min(MAX_PLAYER_ATTRIBUTE, Math.max(currentValue, proposedValue));
 }
 
 function roleAttributes(role: Role): readonly (keyof Attrs)[] {
   return role === 'GK' ? GOALKEEPER_ATTRIBUTES : OUT_FIELD_ATTRIBUTES;
 }
 
-function rebalanceRelevantCaps(
-  caps: Attrs,
-  current: Readonly<Attrs>,
-  relevant: readonly (keyof Attrs)[],
-  archetypeCaps: Readonly<Attrs>,
-  targetTotal: number,
-): void {
-  let difference = targetTotal - relevant.reduce((sum, attribute) => sum + caps[attribute], 0);
-  const increaseOrder = [...relevant].sort((left, right) => (
-    archetypeCaps[right] - archetypeCaps[left] || left.localeCompare(right)
-  ));
-  const decreaseOrder = [...increaseOrder].reverse();
-  while (difference !== 0) {
-    const order = difference > 0 ? increaseOrder : decreaseOrder;
-    const candidate = order.find(attribute => difference > 0
-      ? caps[attribute] < 99
-      : caps[attribute] > current[attribute]);
-    if (candidate === undefined) break;
-    caps[candidate] += difference > 0 ? 1 : -1;
-    difference += difference > 0 ? -1 : 1;
-  }
-}
-
-function clampRating(value: number): number {
-  return Math.max(1, Math.min(99, value));
-}
-
 function assertAttributeValue(value: number, label: string): void {
-  if (!Number.isSafeInteger(value) || value < 1 || value > 99) {
-    throw new Error(`${label} must be a safe integer from 1 to 99`);
+  if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
+    throw new Error(`${label} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
   }
 }

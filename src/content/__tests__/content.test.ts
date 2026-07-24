@@ -221,7 +221,11 @@ describe('validated M1 launch content', () => {
     const content = loadLaunchContent();
 
     expect(content.training.maxFocusDrillsPerWeek).toBe(3);
-    expect(content.training.baseConditioning).toMatchObject({ moneyCost: 0, tpCost: 0 });
+    expect(content.training.focusDrills).toContainEqual(expect.objectContaining({
+      id: 'circuit',
+      name: 'Circuit I',
+      gains: { sta: 3 },
+    }));
     expect(content.events.tuning).toEqual({
       weeklyChancePercent: 18,
       guaranteeAfterDryWeeks: 8,

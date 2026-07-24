@@ -32,6 +32,7 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 
 const FACILITY_GUIDE_TARGET_TOP = 170;
+const FACILITY_PLACEMENT_PLUS_FONT_SIZE = 12 * 1.4;
 
 /** Scrolls the ScrollView so the given target (a rendered View) is margin px
  * below the viewport top. Works regardless of column nesting because both
@@ -86,6 +87,9 @@ export function ClubFinancesScreen({
   const groundsRef = useRef<View>(null);
   const trainingGroundRef = useRef<View>(null);
   const scrollFrameRef = useRef<number | null>(null);
+  const coachingOfficeScrollFrameRef = useRef<number | null>(null);
+  const coachingOfficeScrolledRef = useRef(false);
+  const coachingOfficeBuildTargetRef = useRef<View>(null);
   const facilityGuideScrollFrameRef = useRef<number | null>(null);
   const facilityGuideScrolledPhaseRef = useRef<GuidedFirstFacilityPhase | null>(null);
   const facilityGuideBuildTargetRef = useRef<View>(null);
@@ -213,12 +217,41 @@ export function ClubFinancesScreen({
     });
   }, [guideTrainingGround]);
 
+  const scrollToCoachingOffice = useCallback(() => {
+    if (
+      guideFocus !== 'coaching-office'
+      || coachingOfficeScrolledRef.current
+      || coachingOfficeBuildTargetRef.current === null
+    ) return;
+    if (coachingOfficeScrollFrameRef.current !== null) {
+      cancelAnimationFrame(coachingOfficeScrollFrameRef.current);
+    }
+    coachingOfficeScrollFrameRef.current = requestAnimationFrame(() => {
+      coachingOfficeScrollFrameRef.current = null;
+      scrollToTarget(
+        scrollRef,
+        scrollViewportRef,
+        coachingOfficeBuildTargetRef,
+        latestScrollOffsetRef.current,
+      );
+      coachingOfficeScrolledRef.current = true;
+    });
+  }, [guideFocus]);
+
   useEffect(() => {
     scrollToTrainingGround();
     return () => {
       if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current);
     };
   }, [scrollToTrainingGround]);
+
+  useEffect(() => {
+    if (guideFocus !== 'coaching-office') {
+      coachingOfficeScrolledRef.current = false;
+      return;
+    }
+    scrollToCoachingOffice();
+  }, [guideFocus, scrollToCoachingOffice]);
 
   useEffect(() => {
     if (guideFocus !== 'facility-grid') return;
@@ -241,6 +274,9 @@ export function ClubFinancesScreen({
     if (facilityGuideScrollFrameRef.current !== null) {
       cancelAnimationFrame(facilityGuideScrollFrameRef.current);
     }
+    if (coachingOfficeScrollFrameRef.current !== null) {
+      cancelAnimationFrame(coachingOfficeScrollFrameRef.current);
+    }
   }, []);
 
   useEffect(() => {
@@ -248,6 +284,8 @@ export function ClubFinancesScreen({
     if (guideFocus === 'coaching-office') {
       setSelectedBuildType('coaching-office');
       setSelectedBuildingId(null);
+      scrollToCoachingOffice();
+      return;
     } else if (guideFocus === 'facility-grid') {
       return;
     } else if (guideFocus === 'facility-upgrade' && facilities.buildings.length > 0) {
@@ -255,7 +293,7 @@ export function ClubFinancesScreen({
       setSelectedBuildType(null);
     }
     scrollToTarget(scrollRef, scrollViewportRef, groundsRef, latestScrollOffsetRef.current);
-  }, [facilities.buildings, guideFocus, guideGrounds]);
+  }, [facilities.buildings, guideFocus, guideGrounds, scrollToCoachingOffice]);
 
   const onTrainingGroundLayout = useCallback(() => {
     scrollToTrainingGround();
@@ -325,6 +363,8 @@ export function ClubFinancesScreen({
           facilityGuideGridTargetRef={facilityGuideGridTargetRef}
           facilityGuideBuildTargetRef={facilityGuideBuildTargetRef}
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
+          coachingOfficeBuildTargetRef={coachingOfficeBuildTargetRef}
+          scrollToCoachingOffice={scrollToCoachingOffice}
         />
       ),
     },
@@ -632,6 +672,8 @@ interface GroundsSectionProps {
   facilityGuideGridTargetRef: RefObject<View | null>;
   facilityGuideBuildTargetRef: RefObject<View | null>;
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
+  coachingOfficeBuildTargetRef: RefObject<View | null>;
+  scrollToCoachingOffice: () => void;
 }
 
 function GroundsSection({
@@ -665,15 +707,23 @@ function GroundsSection({
   facilityGuideGridTargetRef,
   facilityGuideBuildTargetRef,
   scrollFacilityGuideTargetIntoView,
+  coachingOfficeBuildTargetRef,
+  scrollToCoachingOffice,
 }: GroundsSectionProps) {
   const facilities = viewModel.facilities;
   return (
     <View
       ref={groundsRef}
       collapsable={false}
-      className={guideGrounds ? 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
+      className={guideGrounds
+        ? guideFocus === 'coaching-office'
+          ? 'relative border-2 border-blue-dark bg-blue-light p-1'
+          : 'relative mt-20 border-2 border-blue-dark bg-blue-light p-1'
+        : 'relative'}
     >
-      {guideGrounds && guideFocus !== 'facility-grid' ? (
+      {guideGrounds
+        && guideFocus !== 'facility-grid'
+        && guideFocus !== 'coaching-office' ? (
         <TutorialTapCue
           label="Bert says"
           detail={guideFocus === 'facility-upgrade' ? 'Review the upgrade' : 'Use the club grounds'}
@@ -786,7 +836,29 @@ function GroundsSection({
                           }}
                         >
                           {buildable ? (
-                            <Text className="font-mono text-xs font-bold text-violet-dark">+</Text>
+                            <View
+                              pointerEvents="none"
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Text
+                                className="font-mono font-bold text-violet-dark"
+                                style={{
+                                  fontSize: FACILITY_PLACEMENT_PLUS_FONT_SIZE,
+                                  lineHeight: FACILITY_PLACEMENT_PLUS_FONT_SIZE,
+                                  textAlign: 'center',
+                                }}
+                              >
+                                +
+                              </Text>
+                            </View>
                           ) : null}
                         </Pressable>
                       </View>
@@ -1107,7 +1179,10 @@ function GroundsSection({
                 return (
                   <View
                     key={entry.type}
+                    ref={entry.type === 'coaching-office' ? coachingOfficeBuildTargetRef : undefined}
+                    collapsable={entry.type === 'coaching-office' ? false : undefined}
                     className="relative w-[48%]"
+                    onLayout={entry.type === 'coaching-office' ? scrollToCoachingOffice : undefined}
                   >
                     {guidedFirstFacility
                       && guidedFacilityPhase === 'build-menu'

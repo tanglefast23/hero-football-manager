@@ -155,7 +155,7 @@ export function PlayerDevelopmentSpotlight({
               />
             )) : (
               <View className="border-2 border-ink bg-white px-3 py-2">
-                <Text className="text-sm font-bold uppercase text-ink/60">Current stats are at their training caps</Text>
+                <Text className="text-sm font-bold uppercase text-ink/60">No focused stat gain this week</Text>
               </View>
             )}
           </View>
@@ -185,17 +185,6 @@ export function PlayerDevelopmentSpotlight({
       ) : development.trainingSkippedWarning === undefined ? (
         <View className="border-2 border-b-4 border-ink bg-white px-4 py-3">
           <Text className="text-center text-base text-ink/60">No focused trainees this week.</Text>
-        </View>
-      ) : null}
-
-      {development.conditioning.length > 0 ? (
-        <View className="mt-5 w-full border-y-2 border-ink/20 py-3">
-          <Text className="text-center font-mono text-sm font-bold uppercase text-blue-dark">Squad conditioning</Text>
-          {development.conditioning.map(item => (
-            <Text key={item.id} className="mt-1 text-center text-base font-bold text-ink">
-              {item.playerCount} player{item.playerCount === 1 ? '' : 's'} · {item.attributeLabel} +{item.gain}
-            </Text>
-          ))}
         </View>
       ) : null}
 

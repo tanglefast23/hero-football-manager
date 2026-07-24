@@ -16,7 +16,7 @@ Portrait, one-handed, thumb-first. The design language follows the house rules (
 Bottom tab bar, 5 tabs; a persistent **Advance Week ▸** button lives above it on every management screen (the Kairosoft heartbeat button).
 
 1. **Home** — club hub: next fixture card, cash/TP/HE strip, alerts (renewals due, event waiting, injuries), league position snippet.
-2. **Squad** — roster list (sortable chips) → Player Card (large portrait with customization/paper-doll layers, stats + archetype caps, contract, morale, power panel with gauge history & upgrade button).
+2. **Squad** — roster list (sortable chips) → Player Card (large portrait with customization/paper-doll layers, raw stats, exact Archetype/Position/Potential training bonuses, contract, morale, and power panel). Stats have no personal cap; a value of 999 is labelled as the universal maximum.
 3. **Club** — facilities grid (build/upgrade/move with adjacency glows), staff (coach card, hire market), finances (ledger, sponsors, loan status).
 4. **Market** — scouting missions, transfer listings, negotiation flow (mood face + Pitch Cards), youth intake.
 5. **League** — named five-division ladder, current standings, fixtures/results, cup progress, and a live comparison between your squad strength and each division's club strength range.
@@ -25,7 +25,7 @@ Events interrupt as full-screen cards on Advance Week (never mid-match). Match D
 
 ### Weekly Review
 
-Settling a non-match week always opens **Week N Complete** before the next management desk. The money block stays at the top beside the current cash total: the weekly net counts from zero to its signed value, followed by the exact cash-before → cash-after movement and itemized ledger. The center of the screen belongs to focused trainees: each player receives a joyful portrait reaction and their actual stat values count upward. Free squad conditioning is summarized once rather than repeating every player card.
+Settling a non-match week always opens **Week N Complete** before the next management desk. The money block stays at the top beside the current cash total: the weekly net counts from zero to its signed value, followed by the exact cash-before → cash-after movement and itemized ledger. The center of the screen belongs to focused trainees: each player receives a joyful portrait reaction and their actual stat values count upward.
 
 Only relevant club notes appear below development: skipped focus training names the missing Money or TP, injury recovery, contract pressure, a newly available event, and a fixture that has just become current. The full sequence settles within 2–4 seconds; one tap completes all motion, and Reduce Motion renders final values immediately. On match weeks, the full-time result returns to Home first, then presents the accounts statement as a modal over the office. Continuing opens a separate celebration overlay over Home: focused trainees appear centrally, each positive stat pops in one at a time, and each reveal plays a short ding.
 

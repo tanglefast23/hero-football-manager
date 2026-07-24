@@ -276,6 +276,16 @@ describe('power effects', () => {
     expect(speedFor(m, SPEEDSTER)).toBeLessThanOrEqual(Math.round(base * 2.35));
   });
 
+  it('allows a power to exceed the trained-only 999 PAC movement endpoint', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.players[SPEEDSTER].def.attrs.pac = 999;
+    const trainedMaximum = speedFor(m, SPEEDSTER);
+    expect(trainedMaximum).toBe(208);
+
+    m.players[SPEEDSTER].powerState = { kind: 'active', untilTick: m.tick + 40, strength: 1 };
+    expect(speedFor(m, SPEEDSTER)).toBeGreaterThan(trainedMaximum);
+  });
+
   it('FIRE_TORCH ignites the nearest opponent, who is later extinguished', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const torch = 9;

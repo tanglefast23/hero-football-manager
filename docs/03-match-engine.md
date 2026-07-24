@@ -33,7 +33,9 @@ Passes and shots **travel through space** — a pass is a moving ball that can b
 
 ## Stats → outcomes
 
-Six visible stats, 1–99: **PAC** (pace) · **SHO** (shooting; GKs show **REF** reflexes instead) · **PAS** (passing) · **DEF** (defending) · **TEC** (technique/dribbling) · **STA** (stamina). The current overall rating averages those six role-relevant stats. Potential is a fixed A+ through F− grade derived from the player's role-aware projected overall with every personal cap filled. Morale, condition and consistency remain separate. (Storage note: every player carries all 7 attribute fields — GKs' SHO and outfielders' REF are unused filler; 'six visible' refers to the UI, not the data shape.)
+Six visible stats, stored from **1–999**: **PAC** (pace) · **SHO** (shooting; GKs show **REF** reflexes instead) · **PAS** (passing) · **DEF** (defending) · **TEC** (technique/dribbling) · **STA** (stamina). The current overall rating averages those six role-relevant raw stats. Potential is an E− through A+ training-speed grade; it is not a match stat or a player ceiling. Morale, condition and consistency remain separate. (Every player stores all 7 fields — GKs' SHO and outfielders' REF are unused filler.)
+
+Ratings from 1–99 keep their original match behavior exactly. Above 99, the match engine converts the visible raw rating to a diminishing effective rating: raw 200 is generally effective 116, raw 500 is effective 132, and raw 999 is effective 140. PAC uses a separate movement curve: ordinary career development stays around a **38% soft target**, while the rare final stretch from raw 930 to 999 can reach effective PAC 168. This ensures every stat continues to matter while bounding probabilities and animation speed. A sensibly trained star is targeted to become about **25% faster than typical same-division opposition** before promotion; 999 PAC is the **60% trained-only endpoint** versus a typical 90-PAC D1 opponent. Superpowers are applied after this conversion and are explicit exceptions: an active Super Speed hero can exceed the trained movement endpoint, and other authored powers may similarly exceed ordinary shooting, defense, passing, stamina, or goalkeeping limits.
 
 Contested actions resolve as opposed rolls through a logistic curve (in plain terms: the better your stat vs. theirs, the more often you win, but upsets always possible):
 
@@ -44,7 +46,7 @@ P(success) = 1 / (1 + e^(-(attacker_stat − defender_stat + situation_mod) / 12
 - **Dribble past**: TEC (+PAC bonus if sprinting) vs. DEF.
 - **Pass**: PAS vs. distance/pressure threshold; interception check vs. nearest defender's DEF.
 - **Shot**: SHO vs. a difficulty score (distance, angle, pressure) produces shot power → GK save roll (REF) modified by **GK Resolve** (below).
-- **Stamina**: condition drains through movement and exhausting actions; low STA multiplies that cost, so weak beginner players tire materially faster. Low condition scales all stats down by up to −25% late in the match. In the opening squads, an unchanged starting XI playing on Balanced is tuned to finish across **0–60%**, with its worst player reaching approximately zero only late in the match. Between-match condition carryover remains a separate career-layer feature and is not part of m1.5.
+- **Stamina**: condition drains through movement and exhausting actions; low STA multiplies that cost, so weak beginner players tire materially faster. The effect continues above 99: compared with 90 STA, 200 STA drains about 18% slower, 500 about 30% slower, and 999 about 36% slower. Drain is floored at 65% of the ordinary cost, so even a maxed player tires and substitutions remain relevant. Low condition scales all stats down by up to −25% late in the match. In the opening squads, an unchanged Starting XI playing on Balanced is tuned to finish across **0–60%**, with its worst player reaching approximately zero only late in the match.
 
 ### Playstyle, Energy Use, and fatigue
 

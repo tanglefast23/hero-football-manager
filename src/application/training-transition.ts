@@ -89,7 +89,7 @@ function genericScene(roster: readonly CareerPlayer[]): TrainingTransitionScene 
   const player = roster[index];
   return {
     mode: 'generic',
-    drillLabels: ['Basic Conditioning'],
+    drillLabels: ['Open Training'],
     participants: [{
       playerId: player?.id ?? 'generic-player',
       playerName: player?.name ?? 'Rovers Player',
