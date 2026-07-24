@@ -13,7 +13,7 @@ Weekly progress combines three player identities: the existing archetype bonus, 
 
 ## Why This Approach
 
-Raw ratings remain the numbers the player sees, with a universal 999 safety ceiling that ordinary careers are tuned never to reach. Match calculations convert them to a bounded effective scale: 1–99 is unchanged, while growth above 99 has diminishing match impact and reaches an effective rating of 140 at raw 999. This keeps probabilities, movement speed, fatigue, and shooting stable without hiding continued development.
+Raw ratings remain the numbers the player sees, with a universal 999 safety ceiling that ordinary careers are tuned never to reach. Match calculations convert them to a bounded effective scale: 1–99 is unchanged, while non-PAC growth above 99 has diminishing match impact and reaches an effective rating of 140 at raw 999. PAC has its own trained-only movement curve and endpoint. This keeps probabilities, movement speed, fatigue, and shooting stable without hiding continued development.
 
 ## Key Decisions
 
@@ -21,7 +21,7 @@ Raw ratings remain the numbers the player sees, with a universal 999 safety ceil
 - Position bonus: +5% to FWD PAC/SHO/TEC, MID PAS/TEC/STA, DEF PAS/DEF/STA, and GK DEF/STA/REF.
 - Bonuses: archetype, position, Potential, and coach percentages add together before one deterministic growth calculation; age and facilities remain structural multipliers.
 - Every earned whole stat point is permanent and visible. Fractional percentage bonuses bank deterministically until they produce another point.
-- Match scale: raw 1–99 is unchanged; raw values above 99 convert to diminishing effective strength, reaching 140 at raw 999.
+- Match scale: raw 1–99 is unchanged; non-PAC values above 99 convert to diminishing effective strength, reaching 140 at raw 999.
 - Every stat retains a real match advantage: PAC changes movement, STA changes energy drain, SHO/REF oppose one another at goal, PAS/DEF govern passes and interceptions, and TEC/DEF govern dribbles and tackles.
 - STA has a 65% drain floor. A 999-STA player lasts much longer than a peer but still tires, preserving Energy Use and substitutions.
 - PAC is tuned relative to each division: a normally trained star should be roughly 25% faster than typical same-division opposition before promotion. About 38% is the normal-career soft target; the rare 999 endpoint is limited to 60% above typical D1 pace from training alone.
