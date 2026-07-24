@@ -2,6 +2,7 @@ import { advanceWeek, createCareer } from '../../game/career';
 import { buildTrainingGround } from '../../game/squad';
 import { buildCareerFacility } from '../../game/management';
 import { hireCareerCoach } from '../../game/market-career';
+import { reconcileStoryYouthIntake } from '../../game/youth-intake';
 import {
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
@@ -136,6 +137,34 @@ describe('assistant guide application flow', () => {
       m2: { ...state.m2!, highestDivisionReached: 4 as const },
     };
     expect(dueAssistantInboxGuideSequences(reachedD4)).toContain('facility-upgrade');
+  });
+
+  it('offers Youth Intake in Week 2 and delays the Coaching Office prompt until Week 3', () => {
+    let state = createCareer(createLaunchCareerSetup(415, undefined, undefined, 'full'));
+    state = {
+      ...state,
+      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+    };
+
+    const weekTwo = reconcileStoryYouthIntake({ ...state, week: 2 });
+    expect(weekTwo.youthIntake).toMatchObject({ status: 'OPEN' });
+    expect(dueAssistantInboxGuideSequences(weekTwo)).toContain('youth-intake');
+    expect(dueAssistantInboxGuideSequences(weekTwo)).not.toContain('coaching-office');
+
+    const repairedWeekTwo = reconcileSatisfiedAssistantGuideSequences({
+      ...weekTwo,
+      eventFlags: [
+        ...weekTwo.eventFlags,
+        'guide:bert:inbox:queued:coaching-office',
+        'guide:bert:inbox:delivered:s1:w2:guide:coaching-office',
+      ],
+    });
+    expect(repairedWeekTwo.eventFlags.some(flag => flag.includes('coaching-office'))).toBe(false);
+
+    const afterYouth = completeAssistantGuideSequence(repairedWeekTwo, 'youth-intake');
+    const weekThree = { ...afterYouth, week: 3 };
+    expect(dueAssistantInboxGuideSequences(weekThree)).toContain('coaching-office');
+    expect(dueAssistantInboxGuideSequences(weekThree)).not.toContain('youth-intake');
   });
 
   it('keeps the Training Pitch objective unfinished until construction completes', () => {

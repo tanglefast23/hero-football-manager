@@ -135,7 +135,7 @@ export function initializeSeasonYouthIntake(state: GameState): YouthIntakeState 
   return closedYouthIntake(state.season);
 }
 
-/** Keeps the first academy choice off the desk until Bert introduces it in Week 3. */
+/** Keeps the first academy choice off the desk until Bert introduces it in Week 2. */
 export function reconcileStoryYouthIntake(state: GameState): GameState {
   if (!isStoryFeaturePacingActive(state)) return expireYouthIntakeWindow(state);
   const intake = state.youthIntake;

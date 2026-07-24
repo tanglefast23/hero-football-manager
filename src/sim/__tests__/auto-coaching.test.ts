@@ -24,6 +24,7 @@ function withBench(team: TeamDef, prefix: string): TeamDef {
     ...team,
     bench: [
       reserve(`${prefix}-def`, 'DEF'),
+      reserve(`${prefix}-def-b`, 'DEF'),
       reserve(`${prefix}-mid-a`, 'MID'),
       reserve(`${prefix}-mid-b`, 'MID'),
       reserve(`${prefix}-fwd`, 'FWD'),
@@ -85,18 +86,32 @@ describe('deterministic automatic coaching', () => {
     expect(match.substitutionsUsed).toEqual([1, 1]);
   });
 
-  it('skips a tired player when no same-role reserve exists', () => {
+  it('skips an incompatible red player and covers the next eligible red player', () => {
     const away = { ...UNITED, bench: [reserve('only-mid', 'MID')] };
     const match = createMatch(4, ROVERS, away, { controlledTeam: 0 });
     match.players[12].condition = 0;
     match.players[16].condition = 10;
-    setCheckpoint(match, AUTO_SUBSTITUTION_TICKS[0]);
+    match.tick = AUTO_SUBSTITUTION_TICKS[0] - 1;
 
     applyAutomaticCoaching(match);
 
     expect(match.players[12].def.id).toBe('u1');
-    expect(match.players[16].def.id).toBe('u5');
-    expect(match.substitutionsUsed[1]).toBe(0);
+    expect(match.players[16].def.id).toBe('only-mid');
+    expect(match.substitutionsUsed[1]).toBe(1);
+  });
+
+  it('immediately replaces a red opponent with a weaker fresh reserve between checkpoints', () => {
+    const away = { ...UNITED, bench: [reserve('weaker-def', 'DEF', 1)] };
+    const match = createMatch(13, ROVERS, away, { controlledTeam: 0 });
+    match.players[12].condition = 30;
+    match.tick = AUTO_SUBSTITUTION_TICKS[0] - 1;
+
+    applyAutomaticCoaching(match);
+
+    expect(match.players[12].def.id).toBe('weaker-def');
+    expect(match.players[12].condition).toBe(100);
+    expect(match.substitutionsUsed[1]).toBe(1);
+    expect(match.inputLog).toEqual([]);
   });
 
   it('does not use a substitution to restore a sent-off slot', () => {
@@ -140,7 +155,7 @@ describe('deterministic automatic coaching', () => {
   it('protects an exhausted side with no substitutions even when trailing', () => {
     const match = createMatch(6, ROVERS, withBench(UNITED, 'a'), { controlledTeam: 0 });
     match.score = [2, 1];
-    match.substitutionsUsed[1] = 3;
+    match.substitutionsUsed[1] = 5;
     for (let index = 11; index < 22; index += 1) match.players[index].condition = 30;
     setCheckpoint(match, AUTO_ENERGY_USE_TICKS[2]);
 
@@ -158,7 +173,7 @@ describe('deterministic automatic coaching', () => {
     const unusableBench = createMatch(
       9,
       ROVERS,
-      { ...UNITED, bench: [reserve('only-mid', 'MID', 1)] },
+      { ...UNITED, bench: [reserve('only-gk', 'GK', 1)] },
       { controlledTeam: 0 },
     );
     unusableBench.score = [2, 1];
@@ -199,9 +214,9 @@ describe('deterministic automatic coaching', () => {
   });
 
   it.each([
-    ['watched home', { controlledTeam: 0 as const }, [0, 3]],
-    ['watched away', { controlledTeam: 1 as const }, [3, 0]],
-    ['Quick Result', {}, [3, 3]],
+    ['watched home', { controlledTeam: 0 as const }, [0, 5]],
+    ['watched away', { controlledTeam: 1 as const }, [5, 0]],
+    ['Quick Result', {}, [5, 5]],
   ])('regenerates %s automatic coaching during replay without fake inputs', (_label, opts, expectedSubs) => {
     const match = createMatch(77, withBench(ROVERS, 'h'), withBench(UNITED, 'a'), opts);
     runToFullTime(match);

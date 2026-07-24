@@ -66,7 +66,7 @@ describe('story recruitment pacing', () => {
     expect(storyClub.weeklyWages).toBe(3_074);
   });
 
-  it('reveals Youth in Week 3, Cup in Week 5, and Scouting in Week 15', () => {
+  it('reveals Youth in Week 2, Cup in Week 5, and Scouting in Week 15', () => {
     const weekOne = createdStory();
     const weekOneMarket = marketViewModel(careerMarketViewModelSource(weekOne));
     expect(weekOneMarket.sections).toEqual(['COACHES']);
@@ -79,14 +79,14 @@ describe('story recruitment pacing', () => {
       'national-cup',
     ]));
 
-    const weekThree = reconcileStoryYouthIntake({ ...weekOne, week: 3 });
-    expect(weekThree.youthIntake).toMatchObject({ status: 'OPEN' });
-    expect(marketViewModel(careerMarketViewModelSource(weekThree)).sections)
+    const weekTwo = reconcileStoryYouthIntake({ ...weekOne, week: 2 });
+    expect(weekTwo.youthIntake).toMatchObject({ status: 'OPEN' });
+    expect(marketViewModel(careerMarketViewModelSource(weekTwo)).sections)
       .toEqual(['YOUTH', 'COACHES']);
-    expect(dueAssistantInboxGuideSequences(weekThree)).toContain('youth-intake');
-    expect(dueAssistantInboxGuideSequences(weekThree)).not.toContain('national-cup');
+    expect(dueAssistantInboxGuideSequences(weekTwo)).toContain('youth-intake');
+    expect(dueAssistantInboxGuideSequences(weekTwo)).not.toContain('national-cup');
 
-    const weekFive = reconcileStoryYouthIntake({ ...weekThree, week: 5 });
+    const weekFive = reconcileStoryYouthIntake({ ...weekTwo, week: 5 });
     expect(weekFive.youthIntake).toMatchObject({ status: 'CLOSED', offers: [] });
     expect(dueAssistantInboxGuideSequences(weekFive)).toContain('national-cup');
 
@@ -106,20 +106,20 @@ describe('story recruitment pacing', () => {
   });
 
   it('keeps the Season 1 pacing gates after an old save loses its onboarding marker', () => {
-    const migratedWeekTwo = {
+    const migratedWeekOne = {
       ...createdStory(20260722),
-      week: 2,
+      week: 1,
       onboarding: undefined,
       eventFlags: [
         'guide:bert:inbox:queued:youth-intake',
-        'guide:bert:inbox:delivered:s1:w2:guide:youth-intake',
+        'guide:bert:inbox:delivered:s1:w1:guide:youth-intake',
         'guide:bert:sequence-complete:youth-intake',
         'guide:bert:inbox:queued:scout-mission',
         'guide:bert:inbox:queued:transfer-list',
       ],
     };
 
-    const repaired = reconcileSatisfiedAssistantGuideSequences(migratedWeekTwo);
+    const repaired = reconcileSatisfiedAssistantGuideSequences(migratedWeekOne);
     expect(repaired.eventFlags.some(flag => (
       flag.includes('youth-intake')
       || flag.includes('scout-mission')
@@ -132,16 +132,16 @@ describe('story recruitment pacing', () => {
       'transfer-list',
     ]));
 
-    const weekThree = reconcileStoryYouthIntake({ ...repaired, week: 3 });
-    expect(marketViewModel(careerMarketViewModelSource(weekThree)).sections)
+    const weekTwo = reconcileStoryYouthIntake({ ...repaired, week: 2 });
+    expect(marketViewModel(careerMarketViewModelSource(weekTwo)).sections)
       .toEqual(['YOUTH', 'COACHES']);
-    expect(dueAssistantInboxGuideSequences(weekThree)).toContain('youth-intake');
+    expect(dueAssistantInboxGuideSequences(weekTwo)).toContain('youth-intake');
   });
 
   it('allows one youth, times the first scout for the window, then teaches the 17-player cap', () => {
-    const weekThree = reconcileStoryYouthIntake({ ...createdStory(24680), week: 3 });
-    const youthOffer = weekThree.youthIntake!.offers[0];
-    const youth = signYouthIntakeOffer(weekThree, weekThree.youthIntake!, youthOffer.player.id);
+    const weekTwo = reconcileStoryYouthIntake({ ...createdStory(24680), week: 2 });
+    const youthOffer = weekTwo.youthIntake!.offers[0];
+    const youth = signYouthIntakeOffer(weekTwo, weekTwo.youthIntake!, youthOffer.player.id);
     const withYouth = { ...youth.state, youthIntake: youth.intake };
 
     expect(withYouth.players.filter(player => player.clubId === withYouth.userClubId)).toHaveLength(16);

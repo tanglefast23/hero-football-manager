@@ -1,7 +1,7 @@
 import { emit } from './events';
 import type { MatchState, PlayerDef } from './types';
 
-export const MAX_SUBSTITUTIONS = 3;
+export const MAX_SUBSTITUTIONS = 5;
 export type BeforeSubstitution = (state: MatchState, playerIndex: number, outgoingPlayerId: string) => void;
 
 function copyPlayerDef(player: PlayerDef): PlayerDef {

@@ -49,8 +49,8 @@ The club owns **one works crew**, so only one build or upgrade project may run a
 
 | Facility group | Lv1 build | Lv2 upgrade | Lv3 upgrade |
 |---|---:|---:|---:|
-| Training Pitch, Gym, Dorm, Scout Office, Coaching Office, Fan Shop | 1 week | 1 week | 2 weeks |
-| Tech Center, Shooting Range, Keeper Court, Medical Bay | 2 weeks | 2 weeks | 3 weeks |
+| Training Pitch, Gym, Tech Center, Shooting Range, Keeper Court, Medical Bay | 2 weeks | 2 weeks | 3 weeks |
+| Dorm, Scout Office, Coaching Office, Fan Shop | 1 week | 1 week | 2 weeks |
 | Youth Field, Stadium Stand | 3 weeks | 2 weeks | 3 weeks |
 
 **Adjacency bonuses** (Grand Prix Story 2's stealable puzzle, simplified): certain pairings buff each other when adjacent (Gym+Dorm: +10% STA gains; Fan Shop+Stadium: +10% merch; Medical+Training Pitch: −20% injury odds). Buildings are **relocatable for a small fee**, so layout is a recurring optimization toy. Discovered pairings log into the Codex.

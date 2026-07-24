@@ -63,5 +63,5 @@ Exactly **one head coach** may be employed at a time (assistant slot unlocks wit
 
 ## Roster rules
 
-- Every generated launch club carries **16 players**: 2 GK, 5 DEF, 5 MID, 4 FWD. Story onboarding deliberately trims the user's club before adding the created player, so the playable story begins at **15/17** with one place reserved for Week 3 Youth and one for the first scout target. Matchday: 11 starters + 5 bench players, with a maximum of 3 substitutions. Future Dorm upgrades may raise the broader career squad cap, but never the in-match substitution limit.
+- Every generated launch club carries **16 players**: 2 GK, 5 DEF, 5 MID, 4 FWD. Story onboarding deliberately trims the user's club before adding the created player, so the playable story begins at **15/17** with one place reserved for Week 2 Youth and one for the first scout target. Matchday: 11 starters + 5 bench players, and all five bench players may be used as one-way substitutions. Future Dorm upgrades may raise the broader career squad cap, but never the in-match substitution limit.
 - Morale: fed by wins, playing time, fair wages, event outcomes. Low morale = stat penalty ±10% and transfer-request risk.

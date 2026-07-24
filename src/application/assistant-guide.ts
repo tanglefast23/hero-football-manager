@@ -10,6 +10,7 @@ import {
   isStoryScoutingUnlocked,
   isStoryYouthUnlocked,
   maxCareerFacilityLevel,
+  STORY_COACHING_OFFICE_GUIDE_WEEK,
   type AssistantInboxGuideSequenceId,
   type AssistantGuideSequenceId,
   type GameState,
@@ -73,7 +74,10 @@ export function dueAssistantInboxGuideSequences(
 
   if (state.market.headCoach === undefined) {
     due.push(completed('head-coach-market') ? 'head-coach-hire' : 'head-coach-market');
-  } else if (!hasCoachingOffice) {
+  } else if (
+    !hasCoachingOffice
+    && (!isStoryFeaturePacingActive(state) || state.week >= STORY_COACHING_OFFICE_GUIDE_WEEK)
+  ) {
     due.push('coaching-office');
   } else if (hasOperationalCoachingOffice && state.market.assistantCoach === undefined) {
     due.push('assistant-coach-hire');
@@ -197,6 +201,9 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
   if (!hasOperationalCoachingOffice) premature.push('assistant-coach-hire');
   if (!isStoryFeaturePacingActive(next)) {
     return deferAssistantGuideSequencesUntilUnlock(next, premature);
+  }
+  if (!hasCoachingOffice && next.week < STORY_COACHING_OFFICE_GUIDE_WEEK) {
+    premature.push('coaching-office');
   }
   if (!isStoryYouthUnlocked(next)) premature.push('youth-intake');
   if (!isStoryCupGuideUnlocked(next)) premature.push('national-cup');

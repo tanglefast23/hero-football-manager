@@ -60,14 +60,14 @@ describe('opening-match stamina balance', () => {
     runToFullTime(watched);
     expect(watched.substitutionsUsed[0]).toBe(0);
     expect(watched.substitutionsUsed[1]).toBeGreaterThan(0);
-    expect(watched.substitutionsUsed[1]).toBeLessThanOrEqual(3);
+    expect(watched.substitutionsUsed[1]).toBeLessThanOrEqual(5);
 
     const quick = createMatch(404, teams[0], teams[1]);
     runToFullTime(quick);
     expect(quick.substitutionsUsed[0]).toBeGreaterThan(0);
-    expect(quick.substitutionsUsed[0]).toBeLessThanOrEqual(3);
+    expect(quick.substitutionsUsed[0]).toBeLessThanOrEqual(5);
     expect(quick.substitutionsUsed[1]).toBeGreaterThan(0);
-    expect(quick.substitutionsUsed[1]).toBeLessThanOrEqual(3);
+    expect(quick.substitutionsUsed[1]).toBeLessThanOrEqual(5);
     expect(quick.inputLog).toEqual([]);
   });
 

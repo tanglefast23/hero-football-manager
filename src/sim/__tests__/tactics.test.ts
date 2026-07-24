@@ -159,6 +159,41 @@ describe('match tactics', () => {
     });
   });
 
+  it('allows five one-way substitutions and rejects a sixth', () => {
+    const replacements: PlayerDef[] = Array.from({ length: 6 }, (_, index) => ({
+      id: `bench-mid-${index + 1}`,
+      name: `Bench Mid ${index + 1}`,
+      role: 'MID',
+      attrs: { pac: 55, sho: 45, pas: 58, def: 47, tec: 56, sta: 64, ref: 10 },
+    }));
+    const match = createMatch(
+      42,
+      { ...ROVERS, bench: replacements },
+      UNITED,
+      { controlledTeam: 0 },
+    );
+
+    for (const replacement of replacements.slice(0, 5)) {
+      queueInput(match, {
+        tick: match.tick + 1,
+        kind: 'SUBSTITUTE',
+        player: 6,
+        replacementId: replacement.id,
+      });
+      tick(match);
+    }
+
+    expect(match.substitutionsUsed[0]).toBe(5);
+    expect(match.players[6].def.id).toBe('bench-mid-5');
+    expect(match.bench[0].map(player => player.id)).toEqual(['bench-mid-6']);
+    expect(() => queueInput(match, {
+      tick: match.tick + 1,
+      kind: 'SUBSTITUTE',
+      player: 6,
+      replacementId: 'bench-mid-6',
+    })).toThrow('team 0 has used all 5 substitutions');
+  });
+
   it('rejects goalkeeper-for-outfielder substitutions', () => {
     const keeper: PlayerDef = {
       id: 'bench-gk',

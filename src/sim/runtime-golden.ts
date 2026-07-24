@@ -4,9 +4,9 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
-// Rebaselined deliberately for m1.24: career attributes now extend to 999 and
-// PAC/STA use bounded match curves while every 1–99 result stays unchanged.
-const EXPECTED_RUNTIME_GOLDEN = 'bdbb3f75';
+// Rebaselined deliberately for m1.25: matches now allow all five named
+// substitutes and automatic coaching reacts immediately at red energy.
+const EXPECTED_RUNTIME_GOLDEN = '74bf0d48';
 
 export function runtimeGoldenFingerprint(): string {
   const result = runMatch(42, ROVERS, UNITED, [], {

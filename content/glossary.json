@@ -82,7 +82,7 @@
         { "term": "Playstyle", "definition": "Tactical intent: Attack seeks more forward play, Protect values safety, and Balanced sits between them. It is separate from physical effort." },
         { "term": "Energy Use", "definition": "How hard the team works off the ball. Save Energy reduces movement and condition drain; All Out increases movement but drains condition much faster." },
         { "term": "Team Energy", "definition": "A live summary of the on-field team's remaining condition. It helps judge Energy Use and substitutions." },
-        { "term": "Substitution", "definition": "Swap an on-field player for an eligible bench player. Each team has at most three substitutions per match." },
+        { "term": "Substitution", "definition": "Swap an on-field player for an eligible bench player. Each team may use all five named substitutes once per match; replaced players cannot return." },
         { "term": "Quick Result", "definition": "Runs the same deterministic match engine instantly with automatic hero timing, substitutions, and Energy Use. Watching instead lets you make the touchline calls yourself." },
         { "term": "GK Resolve", "definition": "A goalkeeper's pressure bar. Saves and power shots damage Resolve, making later saves weaker; it partially recovers at halftime." }
       ]

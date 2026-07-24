@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Atlas, Canvas, Circle, Fill, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
-import { createMatch, queueInput, tick } from '../sim/match';
+import { createMatch, MAX_SUBSTITUTIONS, queueInput, tick } from '../sim/match';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
@@ -49,7 +49,11 @@ import {
   advancePowerMatchShowcaseReady,
   initializePowerMatchShowcase,
 } from './power-match-showcase';
-import { AUTO_SUBSTITUTION_TICKS, automaticSubstitutionChoice } from '../sim/auto-coaching';
+import {
+  AUTO_SUBSTITUTION_TICKS,
+  automaticEmergencySubstitutionChoice,
+  automaticSubstitutionChoice,
+} from '../sim/auto-coaching';
 import { Pitch } from './Pitch';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playHapticForEvent } from './haptics';
@@ -341,7 +345,7 @@ export function MatchScreen({
   });
   const [speed, setSpeed] = useState<MatchSpeed>(1);
   /** Opt-in bench cover: a manager who only wants to watch should not be
-   * punished with eleven exhausted players and three unused substitutions. */
+   * punished with eleven exhausted players and five unused substitutions. */
   const [autoSubs, setAutoSubs] = useState(false);
   const autoSubsRef = useRef(false);
   const [paused, setPaused] = useState(false);
@@ -957,15 +961,12 @@ export function MatchScreen({
       }
 
       // Opt-in bench cover for the watched team. This queues the same recorded
-      // SUBSTITUTE input a tap would, at the same checkpoints the AI coach uses,
-      // so the replay stays honest and no engine behaviour changes.
-      if (
-        advanced
-        && autoSubsRef.current
-        && s.phase !== 'fulltime'
-        && AUTO_SUBSTITUTION_TICKS.includes(s.tick)
-      ) {
-        const choice = automaticSubstitutionChoice(s, controlledTeam);
+      // SUBSTITUTE input a tap would, using planned checkpoints plus the same
+      // immediate red-energy response as automatic teams, so replays stay honest.
+      if (advanced && autoSubsRef.current && s.phase !== 'fulltime') {
+        const choice = AUTO_SUBSTITUTION_TICKS.includes(s.tick)
+          ? automaticSubstitutionChoice(s, controlledTeam)
+          : automaticEmergencySubstitutionChoice(s, controlledTeam);
         if (choice !== null) {
           queueInput(match, {
             tick: s.tick + 1,
@@ -1421,12 +1422,14 @@ export function MatchScreen({
     : match.bench[controlledTeam].find((player) => player.id === selectedIncoming) ?? null;
   const bench = match.bench[controlledTeam];
   const substitutionsUsed = match.substitutionsUsed[controlledTeam];
-  const substitutionsRemaining = Math.max(0, 3 - substitutionsUsed);
+  const substitutionsRemaining = Math.max(0, MAX_SUBSTITUTIONS - substitutionsUsed);
   const { average: teamEnergy, tiredCount } = summarizeTeamEnergy(
     activeOnFieldIndices.map((index) => match.players[index].condition),
   );
   const teamEnergyBand = energyBand(teamEnergy);
-  const swapDisabled = match.phase === 'fulltime' || substitutionsUsed >= 3 || bench.length === 0;
+  const swapDisabled = match.phase === 'fulltime'
+    || substitutionsUsed >= MAX_SUBSTITUTIONS
+    || bench.length === 0;
   const coachingDisabled = match.phase === 'fulltime';
   const guideSwapButton = firstMatchTutorialStep === 'tired-swap-cue';
   const mostTiredStarter = activeOnFieldIndices.length === 0
@@ -1435,10 +1438,10 @@ export function MatchScreen({
         .map((index) => match.players[index])
         .reduce((worst, player) => (player.condition < worst.condition ? player : worst));
   const swapSecondary = autoSubs
-    ? `AUTO · ${substitutionsUsed}/3`
+    ? `AUTO · ${substitutionsUsed}/${MAX_SUBSTITUTIONS}`
     : tiredCount > 0
-      ? `${tiredCount} TIRED · ${substitutionsUsed}/3`
-      : `${substitutionsUsed}/3 USED`;
+      ? `${tiredCount} TIRED · ${substitutionsUsed}/${MAX_SUBSTITUTIONS}`
+      : `${substitutionsUsed}/${MAX_SUBSTITUTIONS} USED`;
 
   const surname = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -1447,7 +1450,11 @@ export function MatchScreen({
   const initials = (name: string) => name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
   const openSwap = () => {
-    if (match.phase === 'fulltime' || substitutionsUsed >= 3 || bench.length === 0) return;
+    if (
+      match.phase === 'fulltime'
+      || substitutionsUsed >= MAX_SUBSTITUTIONS
+      || bench.length === 0
+    ) return;
     setSelectedOutgoing(null);
     setSelectedIncoming(null);
     setSwapOpen(true);
@@ -1938,7 +1945,7 @@ export function MatchScreen({
                 <Text style={styles.swapEyebrow}>MATCH PAUSED</Text>
                 <Text style={styles.swapTitle}>CHOOSE A SUBSTITUTE</Text>
               </View>
-              <Text style={styles.swapCount}>{substitutionsUsed} / 3</Text>
+              <Text style={styles.swapCount}>{substitutionsUsed} / {MAX_SUBSTITUTIONS}</Text>
             </View>
 
             <Pressable

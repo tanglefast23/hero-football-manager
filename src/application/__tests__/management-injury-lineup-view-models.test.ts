@@ -341,7 +341,7 @@ describe('management injury and lineup presentation', () => {
     ]);
   });
 
-  it('keeps the once-per-career youth intake in the capped inbox at Week 3 and Week 4', () => {
+  it('keeps the once-per-career youth intake in the capped inbox at Week 2 and Week 3', () => {
     const begun = beginStoryOnboarding(createCareer(createLaunchCareerSetup(20260718, undefined, content, 'full')));
     let story = addCreatedPlayer(begun, { name: 'Jo Rook', ratings: DEFAULT_CREATION_RATINGS });
     const pitchProject = buildCareerFacility(story, 'training-pitch', { x: 0, y: 0 }).state;
@@ -362,17 +362,17 @@ describe('management injury and lineup presentation', () => {
         : player),
     };
 
-    const weekThree = reconcileStoryYouthIntake({ ...story, week: 3 });
+    const weekTwo = reconcileStoryYouthIntake({ ...story, week: 2 });
+    expect(weekTwo.youthIntake).toMatchObject({ status: 'OPEN' });
+    const weekTwoAlerts = homeViewModel(weekTwo).alerts;
+    expect(weekTwoAlerts).toHaveLength(3);
+    expect(weekTwoAlerts.map(alert => alert.guideSequenceId)).toContain('youth-intake');
+
+    const weekThree = reconcileStoryYouthIntake({ ...weekTwo, week: 3 });
     expect(weekThree.youthIntake).toMatchObject({ status: 'OPEN' });
     const weekThreeAlerts = homeViewModel(weekThree).alerts;
     expect(weekThreeAlerts).toHaveLength(3);
     expect(weekThreeAlerts.map(alert => alert.guideSequenceId)).toContain('youth-intake');
-
-    const weekFour = reconcileStoryYouthIntake({ ...weekThree, week: 4 });
-    expect(weekFour.youthIntake).toMatchObject({ status: 'OPEN' });
-    const weekFourAlerts = homeViewModel(weekFour).alerts;
-    expect(weekFourAlerts).toHaveLength(3);
-    expect(weekFourAlerts.map(alert => alert.guideSequenceId)).toContain('youth-intake');
   });
 
   it('delivers a crowded one-shot board resolution in the following week', () => {

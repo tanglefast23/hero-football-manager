@@ -7,7 +7,7 @@ describe('M2 youth intake store flow', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
 
-  test('reveals the Week 3 choice, signs one prospect, and preserves the scout slot', () => {
+  test('reveals the Week 2 choice, signs one prospect, and preserves the scout slot', () => {
     useM1Store.getState().startNewCareer(91_001, 'full');
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
@@ -16,7 +16,7 @@ describe('M2 youth intake store flow', () => {
     const beforeReveal = useM1Store.getState().career!;
     expect(beforeReveal.youthIntake).toMatchObject({ status: 'CLOSED', offers: [] });
     useM1Store.setState({
-      career: reconcileStoryYouthIntake({ ...beforeReveal, week: 3 }),
+      career: reconcileStoryYouthIntake({ ...beforeReveal, week: 2 }),
       error: null,
     });
     const initial = useM1Store.getState().career!;
@@ -45,7 +45,7 @@ describe('M2 youth intake store flow', () => {
     });
     const beforeReveal = useM1Store.getState().career!;
     useM1Store.setState({
-      career: reconcileStoryYouthIntake({ ...beforeReveal, week: 3 }),
+      career: reconcileStoryYouthIntake({ ...beforeReveal, week: 2 }),
     });
     expect(useM1Store.getState().career?.youthIntake?.status).toBe('OPEN');
 

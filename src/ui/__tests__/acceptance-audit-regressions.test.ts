@@ -113,6 +113,15 @@ describe('player-facing acceptance audit regressions', () => {
     expect(home).toContain("Use Advance Week below to prepare Match Day.");
   });
 
+  test('keeps the match-day docket free of redundant live-coaching and auto-context blocks', () => {
+    const matchDay = source('src/ui/screens/FixtureMatchDayScreen.tsx');
+
+    expect(matchDay).not.toContain('title="Live coaching"');
+    expect(matchDay).not.toContain('Set the XI here. Shape the match live.');
+    expect(matchDay).not.toContain('In context');
+    expect(matchDay).not.toContain('activation. Powers fire automatically');
+  });
+
   test('keeps the README engine marker synchronized with the replay version', () => {
     expect(source('README.md')).toContain(`Current engine: **${ENGINE_VERSION}**.`);
   });

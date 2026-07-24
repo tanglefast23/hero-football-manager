@@ -6,9 +6,10 @@ import type { EnergyUse } from './tactics';
 import type { MatchState, PlayerDef, Role } from './types';
 
 const TOTAL_TICKS = HALF_TICKS * 2;
-const SUBSTITUTION_MINUTES = [55, 70, 80] as const;
+const SUBSTITUTION_MINUTES = [50, 60, 70, 80, 85] as const;
 const ENERGY_USE_MINUTES = [65, 75, 85] as const;
 const AUTO_SUB_CONDITION = 60;
+export const AUTO_SUB_EMERGENCY_CONDITION = 30;
 const ROLE_VALUE_MARGIN = 300; // weighted score is stored at 100x player-facing points
 
 function tickForMinute(minute: number): number {
@@ -48,14 +49,13 @@ export function automaticTeams(state: MatchState): readonly (0 | 1)[] {
   return [0, 1];
 }
 
-function automaticSubstitution(
+function performAutomaticSubstitution(
   state: MatchState,
   team: 0 | 1,
+  choice: { playerIndex: number; replacementId: string },
   beforeSubstitution?: BeforeSubstitution,
-): void {
-  const choice = automaticSubstitutionChoice(state, team);
-  if (choice === null) return;
-  performSubstitution(state, team, choice.playerIndex, choice.replacementId, beforeSubstitution);
+): boolean {
+  return performSubstitution(state, team, choice.playerIndex, choice.replacementId, beforeSubstitution);
 }
 
 /** Exported so a watched match can offer the same bench call to the team the
@@ -63,6 +63,29 @@ function automaticSubstitution(
 export function automaticSubstitutionChoice(
   state: MatchState,
   team: 0 | 1,
+): { playerIndex: number; replacementId: string } | null {
+  return automaticSubstitutionChoiceAtCondition(state, team, AUTO_SUB_CONDITION, true);
+}
+
+/** Red energy is an emergency: use any same-role fresh reserve, even when that
+ * reserve would not clear the ordinary condition-adjusted quality margin. */
+export function automaticEmergencySubstitutionChoice(
+  state: MatchState,
+  team: 0 | 1,
+): { playerIndex: number; replacementId: string } | null {
+  return automaticSubstitutionChoiceAtCondition(
+    state,
+    team,
+    AUTO_SUB_EMERGENCY_CONDITION,
+    false,
+  );
+}
+
+function automaticSubstitutionChoiceAtCondition(
+  state: MatchState,
+  team: 0 | 1,
+  conditionThreshold: number,
+  requireValueMargin: boolean,
 ): { playerIndex: number; replacementId: string } | null {
   if (state.substitutionsUsed[team] >= MAX_SUBSTITUTIONS || state.bench[team].length === 0) return null;
   const first = team * 11;
@@ -73,21 +96,26 @@ export function automaticSubstitutionChoice(
       && index < first + 11
       && player.def.role !== 'GK'
       && player.outReason !== 'redcard'
-      && player.condition <= AUTO_SUB_CONDITION
+      && player.condition <= conditionThreshold
     ))
     .sort((a, b) => a.player.condition - b.player.condition || stableIdCompare(a.player.def.id, b.player.def.id));
 
-  const outgoing = candidates[0];
-  if (outgoing === undefined) return null;
-  const replacements = state.bench[team]
-    .filter(player => player.role === outgoing.player.def.role)
-    .sort((a, b) => automaticRoleValue(b, 100) - automaticRoleValue(a, 100) || stableIdCompare(a.id, b.id));
-  const replacement = replacements[0];
-  if (replacement === undefined) return null;
-  if (automaticRoleValue(replacement, 100) < automaticRoleValue(outgoing.player.def, outgoing.player.condition) + ROLE_VALUE_MARGIN) {
-    return null;
+  for (const outgoing of candidates) {
+    const replacements = state.bench[team]
+      .filter(player => player.role === outgoing.player.def.role)
+      .sort((a, b) => automaticRoleValue(b, 100) - automaticRoleValue(a, 100) || stableIdCompare(a.id, b.id));
+    const replacement = replacements[0];
+    if (replacement === undefined) continue;
+    if (
+      requireValueMargin
+      && automaticRoleValue(replacement, 100)
+        < automaticRoleValue(outgoing.player.def, outgoing.player.condition) + ROLE_VALUE_MARGIN
+    ) {
+      continue;
+    }
+    return { playerIndex: outgoing.index, replacementId: replacement.id };
   }
-  return { playerIndex: outgoing.index, replacementId: replacement.id };
+  return null;
 }
 
 function meanCondition(state: MatchState, team: 0 | 1): number {
@@ -116,17 +144,25 @@ export function automaticEnergyUse(state: MatchState, team: 0 | 1): EnergyUse {
   return 'BALANCED';
 }
 
-/** Derived coaching runs at fixed ticks and never consumes RNG or enters inputLog. */
+/** Derived coaching never consumes RNG or enters inputLog. Planned decisions
+ * run at fixed ticks; red-energy emergency substitutions react every tick. */
 export function applyAutomaticCoaching(
   state: MatchState,
   beforeSubstitution?: BeforeSubstitution,
 ): void {
   const substitutionCheckpoint = AUTO_SUBSTITUTION_TICKS.includes(state.tick);
   const energyCheckpoint = AUTO_ENERGY_USE_TICKS.includes(state.tick);
-  if (!substitutionCheckpoint && !energyCheckpoint) return;
 
   for (const team of automaticTeams(state)) {
-    if (substitutionCheckpoint) automaticSubstitution(state, team, beforeSubstitution);
+    const emergencyChoice = automaticEmergencySubstitutionChoice(state, team);
+    const emergencySubstitutionMade = emergencyChoice !== null
+      && performAutomaticSubstitution(state, team, emergencyChoice, beforeSubstitution);
+    if (!emergencySubstitutionMade && substitutionCheckpoint) {
+      const scheduledChoice = automaticSubstitutionChoice(state, team);
+      if (scheduledChoice !== null) {
+        performAutomaticSubstitution(state, team, scheduledChoice, beforeSubstitution);
+      }
+    }
     if (!energyCheckpoint) continue;
     const energyUse = automaticEnergyUse(state, team);
     if (state.tactics[team].energyUse === energyUse) continue;
