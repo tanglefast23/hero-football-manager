@@ -16,7 +16,7 @@ import {
 } from '../sim/entities';
 import type { HudSide } from '../persistence';
 import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
-import { keeperReadyFrameForTeam, runFrameForTeam } from './sprites/facing';
+import { keeperReadyFrameFacingBall, runFrameFacingBall } from './sprites/facing';
 import { webbedSpriteKey } from './sprites/loader';
 import { spriteKeyForMatchPlayer, visualIdForMatchPlayer } from './sprites/slot-key';
 import { snapshotFrame, type PitchFrame } from './interpolate';
@@ -1060,7 +1060,7 @@ export function MatchScreen({
         i,
         visualPlayerId,
         p.def.role,
-        runFrameForTeam(p.team, 'run0'),
+        runFrameFacingBall(frame.players[i].y, frame.ball.y, 'run0'),
         p.def.lookId,
       ));
     }
@@ -1080,7 +1080,7 @@ export function MatchScreen({
         i,
         visualPlayerId,
         p.def.role,
-        runFrameForTeam(p.team, 'run0'),
+        runFrameFacingBall(frame.players[i].y, frame.ball.y, 'run0'),
         p.def.lookId,
       );
     }
@@ -1089,7 +1089,7 @@ export function MatchScreen({
         i,
         visualPlayerId,
         p.def.role,
-        keeperReadyFrameForTeam(p.team, keeperReadyFrame(hud.visualTick)),
+        keeperReadyFrameFacingBall(frame.players[i].y, frame.ball.y, keeperReadyFrame(hud.visualTick)),
         p.def.lookId,
       );
     }
@@ -1097,7 +1097,11 @@ export function MatchScreen({
       i,
       visualPlayerId,
       p.def.role,
-      runFrameForTeam(p.team, runFrameForDistance(frame.travel[i], frame.moved[i])),
+      runFrameFacingBall(
+        frame.players[i].y,
+        frame.ball.y,
+        runFrameForDistance(frame.travel[i], frame.moved[i]),
+      ),
       p.def.lookId,
     );
   }), [frame, hud.tick, hud.visualTick, match]);
