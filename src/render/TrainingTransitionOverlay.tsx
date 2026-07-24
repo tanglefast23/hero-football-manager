@@ -16,6 +16,7 @@ import type {
   TrainingTransitionScene,
 } from '../application/training-transition';
 import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
+import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playerLookId } from './sprites/player-look';
 
 export const TRAINING_TRANSITION_MS = 3_000;
@@ -288,7 +289,12 @@ function TrainingAtlasStage({
           color={index % 2 === 0 ? '#3f8a4a' : '#367c43'}
         />
       ))}
-      <Atlas image={atlas.image as SkImage} sprites={sprites} transforms={transforms} />
+      <Atlas
+        image={atlas.image as SkImage}
+        sprites={sprites}
+        transforms={transforms}
+        sampling={PIXEL_ART_SAMPLING}
+      />
     </Canvas>
   );
 }
