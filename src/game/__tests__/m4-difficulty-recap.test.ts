@@ -11,7 +11,19 @@ function career(difficulty: DifficultyMode): GameState {
 
 function settleThroughWeekFour(state: GameState): GameState {
   let next = state;
-  while (next.week <= 4) next = advanceWeek(next);
+  while (next.week <= 4) {
+    if (next.phase === 'manage') {
+      next = advanceWeek(next);
+      continue;
+    }
+    const matchday = activeCareerMatchday(next);
+    if (matchday === undefined) throw new Error('expected an active fixture');
+    next = completeMatchday(next, matchday.fixtures.map(fixture => ({
+      fixtureId: fixture.id,
+      homeGoals: 0,
+      awayGoals: 0,
+    })));
+  }
   return next;
 }
 

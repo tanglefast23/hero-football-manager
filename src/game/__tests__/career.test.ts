@@ -159,24 +159,23 @@ describe('career season workflow', () => {
   it('pauses a scheduled week at matchday, accepts every result, and settles it', () => {
     let state = createCareer(makeSetup());
 
-    for (let week = 1; week <= 4; week += 1) {
+    for (let week = 1; week <= 2; week += 1) {
       state = advanceWeek(state);
     }
 
-    expect(state.week).toBe(5);
+    expect(state.week).toBe(3);
     expect(state.phase).toBe('manage');
-    expect(state.ledgers).toHaveLength(4);
-    expect(state.ledgers[3].lines.map(line => line.kind)).toEqual([
-      'sponsor',
+    expect(state.ledgers).toHaveLength(2);
+    expect(state.ledgers[1].lines.map(line => line.kind)).toEqual([
       'wages',
       'subsidy',
     ]);
 
     const beforeMatchday = state;
     state = advanceWeek(state);
-    expect(state.week).toBe(5);
+    expect(state.week).toBe(3);
     expect(state.phase).toBe('matchday');
-    expect(state.ledgers).toHaveLength(4);
+    expect(state.ledgers).toHaveLength(2);
     expect(() => advanceWeek(state)).toThrow('manage phase');
 
     const fixtures = fixturesForCurrentWeek(state);
@@ -196,7 +195,7 @@ describe('career season workflow', () => {
 
     expect(JSON.stringify(state)).toBe(frozenInput);
     expect(settled.phase).toBe('manage');
-    expect(settled.week).toBe(6);
+    expect(settled.week).toBe(4);
     expect(settled.fixtures.filter(fixture => fixture.status === 'played')).toHaveLength(5);
     expect(settled.trainingPoints).toBe(7);
     expect(settled.ledgers.at(-1)?.lines).toEqual([
@@ -204,14 +203,13 @@ describe('career season workflow', () => {
       { kind: 'wages', label: 'Weekly wages', amount: -3200 },
       { kind: 'subsidy', label: 'Season 1 wage subsidy', amount: 1600 },
     ]);
-    expect(settled.clubs.find(club => club.id === state.userClubId)?.cash).toBe(20200);
-    expect(beforeMatchday.week).toBe(5);
+    expect(settled.clubs.find(club => club.id === state.userClubId)?.cash).toBe(21400);
+    expect(beforeMatchday.week).toBe(3);
   });
 
   it('rejects incomplete, duplicate, unknown, or invalid matchday results', () => {
     let state = createCareer(makeSetup());
-    while (state.week < 5) state = advanceWeek(state);
-    state = advanceWeek(state);
+    while (state.phase !== 'matchday') state = advanceWeek(state);
 
     const valid = allDraws(state);
     expect(() => completeMatchday(state, valid.slice(1))).toThrow('exactly 5');
@@ -345,7 +343,7 @@ describe('finances and two-season boundary', () => {
     setup.clubs[0].weeklyWages = 0;
     const initial = createCareer(setup);
 
-    expect(() => advanceWeek({ ...initial, week: 4 })).toThrow(
+    expect(() => advanceWeek({ ...initial, week: 4, fixtures: [] })).toThrow(
       'club cash balance exceeds the safe integer range',
     );
   });

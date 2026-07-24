@@ -50,14 +50,14 @@ describe('management UI truthfulness view models', () => {
     const career = createCareer(createLaunchCareerSetup(924));
     const firstFixture = career.fixtures.find(fixture =>
       fixture.season === 1 &&
-      fixture.week === 5 &&
+      fixture.week === 3 &&
       (fixture.homeClubId === career.userClubId || fixture.awayClubId === career.userClubId),
     );
-    if (firstFixture === undefined) throw new Error('launch career has no week five user fixture');
+    if (firstFixture === undefined) throw new Error('launch career has no Week 3 user fixture');
 
     const afterOpeningMatch = {
       ...career,
-      week: 5,
+      week: 3,
       fixtures: career.fixtures.map(fixture => fixture.id === firstFixture.id
         ? {
             ...fixture,

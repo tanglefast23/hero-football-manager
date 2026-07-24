@@ -47,15 +47,34 @@ describe('generateSeasonFixtures', () => {
     }
   });
 
-  test('spreads league rounds deterministically across weeks 5 through 28', () => {
-    const weeks = Array.from({ length: 18 }, (_, index) => leagueWeekForRound(index + 1));
+  test('starts the opening season in Week 3 and brings Match 2 forward to Week 4', () => {
+    const weeks = Array.from(
+      { length: 18 },
+      (_, index) => leagueWeekForRound(index + 1, 1),
+    );
 
-    expect(weeks[0]).toBe(5);
+    expect(weeks.slice(0, 3)).toEqual([3, 4, 5]);
     expect(weeks[17]).toBe(28);
     expect(new Set(weeks).size).toBe(18);
     expect(weeks.every((week, index) => index === 0 || week > weeks[index - 1])).toBe(true);
 
     const fixtures = generateSeasonFixtures(CLUB_IDS, 1, 12345);
+    for (const fixture of fixtures) {
+      expect(fixture.week).toBe(weeks[fixture.round - 1]);
+    }
+  });
+
+  test('keeps the four-week preseason before league matches in later seasons', () => {
+    const weeks = Array.from(
+      { length: 18 },
+      (_, index) => leagueWeekForRound(index + 1, 2),
+    );
+
+    expect(weeks[0]).toBe(5);
+    expect(weeks[17]).toBe(28);
+    expect(new Set(weeks).size).toBe(18);
+
+    const fixtures = generateSeasonFixtures(CLUB_IDS, 2, 12345);
     for (const fixture of fixtures) {
       expect(fixture.week).toBe(weeks[fixture.round - 1]);
     }
@@ -113,8 +132,9 @@ describe('generateSeasonFixtures', () => {
     expect(() => generateSeasonFixtures(CLUB_IDS, 0, 1)).toThrow('positive integer');
     expect(() => generateSeasonFixtures(CLUB_IDS, 1.5, 1)).toThrow('positive integer');
     expect(() => generateSeasonFixtures(CLUB_IDS, 1, Number.NaN)).toThrow('safe integer');
-    expect(() => leagueWeekForRound(0)).toThrow('1 to 18');
-    expect(() => leagueWeekForRound(19)).toThrow('1 to 18');
-    expect(() => leagueWeekForRound(1.5)).toThrow('1 to 18');
+    expect(() => leagueWeekForRound(0, 1)).toThrow('1 to 18');
+    expect(() => leagueWeekForRound(19, 1)).toThrow('1 to 18');
+    expect(() => leagueWeekForRound(1.5, 1)).toThrow('1 to 18');
+    expect(() => leagueWeekForRound(1, 0)).toThrow('positive integer');
   });
 });

@@ -14,7 +14,7 @@ describe('National Cup app routing', () => {
     });
     const career = useM1Store.getState().career!;
     useM1Store.setState({
-      career: { ...career, week: 5, phase: 'matchday' },
+      career: { ...career, week: 3, phase: 'matchday' },
       screen: 'matchday',
     });
 
@@ -22,20 +22,20 @@ describe('National Cup app routing', () => {
     expect(useM1Store.getState().error).toBeNull();
     expect(useM1Store.getState()).toMatchObject({
       screen: 'awakening',
-      career: { week: 6, phase: 'manage' },
+      career: { week: 4, phase: 'manage' },
     });
 
     useM1Store.getState().continueAfterAwakening();
     // The awakening hands back to that match's accounts before the desk.
     expect(useM1Store.getState()).toMatchObject({
       screen: 'postmatch',
-      career: { week: 6, phase: 'manage' },
+      career: { week: 4, phase: 'manage' },
     });
 
     useM1Store.getState().continueAfterMatch();
     expect(useM1Store.getState()).toMatchObject({
       screen: 'management',
-      career: { week: 6, phase: 'manage' },
+      career: { week: 4, phase: 'manage' },
     });
 
     const awakenedCareer = useM1Store.getState().career!;

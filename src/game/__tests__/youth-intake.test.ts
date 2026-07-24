@@ -1,5 +1,10 @@
 import { createLaunchCareerSetup } from '../../application/launch';
-import { advanceWeek, createCareer } from '../career';
+import {
+  activeCareerMatchday,
+  advanceWeek,
+  completeMatchday,
+  createCareer,
+} from '../career';
 import { createFacilityGrid } from '../facilities';
 import {
   BASE_ROSTER_CAPACITY,
@@ -125,7 +130,17 @@ describe('pre-season youth intake', () => {
     let state = createCareer(createLaunchCareerSetup(222, undefined, undefined, 'full'));
     expect(state.youthIntake?.status).toBe('OPEN');
 
-    while (state.week < 5) state = advanceWeek(state);
+    while (state.week < 5) {
+      state = advanceWeek(state);
+      if (state.phase !== 'matchday') continue;
+      const matchday = activeCareerMatchday(state);
+      if (matchday === undefined) throw new Error('expected an active fixture');
+      state = completeMatchday(state, matchday.fixtures.map(fixture => ({
+        fixtureId: fixture.id,
+        homeGoals: 0,
+        awayGoals: 0,
+      })));
+    }
 
     expect(state).toMatchObject({ week: 5, phase: 'manage' });
     expect(state.youthIntake).toMatchObject({ status: 'CLOSED', offers: [] });

@@ -14,7 +14,7 @@ function awakenedCareerAtEvent(seed: number, eventId: string): GameState {
     name: 'Jo Rook',
     ratings: { pac: 55, sho: 55, pas: 55, def: 45, tec: 55, sta: 55 },
   });
-  for (let week = 1; week < 5; week += 1) useM1Store.getState().advanceCareer();
+  for (let week = 1; week < 3; week += 1) useM1Store.getState().advanceCareer();
   useM1Store.getState().advanceCareer();
   useM1Store.getState().quickResult();
   useM1Store.getState().continueAfterAwakening();

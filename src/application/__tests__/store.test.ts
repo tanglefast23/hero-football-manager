@@ -29,8 +29,8 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().screen).toBe('management');
     expect(useM1Store.getState().career?.players).toHaveLength(159);
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('first-match');
-    for (let week = 1; week < 5; week += 1) useM1Store.getState().advanceCareer();
-    expect(useM1Store.getState().career?.week).toBe(5);
+    for (let week = 1; week < 3; week += 1) useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(3);
 
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState()).toMatchObject({ screen: 'matchday' });
@@ -39,8 +39,8 @@ describe('M1 app store integration', () => {
     useM1Store.getState().quickResult();
     expect(useM1Store.getState().screen).toBe('awakening');
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('reveal');
-    expect(useM1Store.getState().career?.week).toBe(6);
-    expect(useM1Store.getState().career?.ledgers).toHaveLength(5);
+    expect(useM1Store.getState().career?.week).toBe(4);
+    expect(useM1Store.getState().career?.ledgers).toHaveLength(3);
     expect(useM1Store.getState().career?.onboarding).toMatchObject({
       stage: 'reveal',
       awakenedPower: expect.any(String),
@@ -70,7 +70,7 @@ describe('M1 app store integration', () => {
 
   it('still awakens the created player after they are substituted in the first match', () => {
     startCreatedCareer(124);
-    while ((useM1Store.getState().career?.week ?? 0) < 5) {
+    while ((useM1Store.getState().career?.week ?? 0) < 3) {
       useM1Store.getState().advanceCareer();
     }
     useM1Store.getState().advanceCareer();
@@ -954,13 +954,13 @@ describe('M1 app store integration', () => {
     useM1Store.setState({ replayRepository });
 
     startCreatedCareer(2468);
-    for (let week = 1; week <= 5; week += 1) useM1Store.getState().advanceCareer();
+    for (let week = 1; week <= 3; week += 1) useM1Store.getState().advanceCareer();
     useM1Store.getState().quickResult();
     await waitFor(() => saved.length === 1);
 
     expect(saved[0]).toMatchObject({
       careerId: 'm1-career-2468',
-      sortOrder: 5,
+      sortOrder: 3,
       envelope: {
         schemaVersion: 1,
         engineVersion: expect.any(String),
@@ -1155,7 +1155,7 @@ function examplePostMatch(): PostMatchViewModel {
 
 function startAwakenedCareer(seed: number): void {
   startCreatedCareer(seed);
-  while ((useM1Store.getState().career?.week ?? 0) < 5) {
+  while ((useM1Store.getState().career?.week ?? 0) < 3) {
     useM1Store.getState().advanceCareer();
   }
   useM1Store.getState().advanceCareer();
