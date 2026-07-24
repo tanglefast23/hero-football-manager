@@ -611,11 +611,6 @@ function completeCareerPlayerSale(
         ? { ...clearCareerContractPromise(candidate), clubId: buyerClubId, licensed: false }
         : candidate),
       lineups,
-      trainingPlan: state.trainingPlan === undefined
-        ? undefined
-        : {
-            slots: state.trainingPlan.slots.filter(slot => slot.playerId !== playerId),
-          },
     };
   const recordedState = recordCashTransaction(transferredState, {
       kind: 'transfer-sell',

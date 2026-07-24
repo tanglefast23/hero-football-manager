@@ -8,10 +8,7 @@ import {
   beginStoryOnboarding,
   createCareer,
   createdPlayer,
-  setCareerTrainingPlan,
-  slotIsAtCap,
-  slotTrainingPointCost,
-  weeklyAmbientTrainingPoints,
+  trainPlayerInstantly,
   type GameState,
 } from '../../game';
 
@@ -41,25 +38,22 @@ describe('training trace', () => {
           && p.role !== 'GK' && lineup.playerIds.includes(p.id))
         .slice(0, 2);
       const assigned = [hero.id, ...others.map(p => p.id)];
-      // advanceWeek now refuses to run while a slot is capped or the plan is
-      // short on TP, so drop capped trainees and, if the remainder still
-      // can't be funded this week, clear the plan entirely before saving it.
-      let slots = assigned
-        .filter(playerId => !slotIsAtCap(state, { playerId, pathId: drill.id }))
-        .map(playerId => ({ playerId, pathId: drill.id }));
-      const projectedTrainingPoints = state.trainingPoints + weeklyAmbientTrainingPoints(state);
-      if (slotTrainingPointCost(state, slots) > projectedTrainingPoints) {
-        slots = [];
+      // Drills resolve at tap time now: tap each cohort member once per manage
+      // week while the bank affords the drill, the tap-cadence equivalent of
+      // the old repeating weekly plan.
+      let next = state;
+      let tapped = 0;
+      for (const playerId of assigned) {
+        const player = next.players.find(p => p.id === playerId);
+        if (player === undefined || player.injuryWeeks > 0) continue;
+        if (drill.tpCost > next.trainingPoints) continue;
+        next = trainPlayerInstantly(next, playerId, drill.id).state;
+        tapped += 1;
       }
-
-      // Probe failures must surface: swallowing a rejected plan can make two
-      // supposedly different cohorts byte-identical and invalidate the result.
-      const next = setCareerTrainingPlan(state, slots);
       const club = state.clubs.find(c => c.id === state.userClubId)!;
       lines.push(
         `wk${state.week} tp=${state.trainingPoints} cash=${club.cash} `
-        + `heroPac=${hero.attrs.pac} plan=set `
-        + `stored=${JSON.stringify(next.trainingPlan?.slots.length ?? null)}`,
+        + `heroPac=${hero.attrs.pac} tapped=${tapped}`,
       );
       state = advanceWeek(next);
     }

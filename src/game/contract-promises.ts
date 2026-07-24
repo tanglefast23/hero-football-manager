@@ -6,7 +6,6 @@ import type {
 } from './types';
 import { playerAttributeCaps, roleOverall } from './archetype-caps';
 import { currentUserDivision } from './m2-career';
-import { replaceCareerTrainingPlan } from './training-plan';
 import { TRAINING_PATHS } from './training-paths';
 
 const STARTING_PROMISES: readonly CareerContractPerk[] = [
@@ -84,73 +83,49 @@ export function applyCareerContractPromise(
     lineups = restoreCareerContractPromiseLineup({ ...state, players }).lineups;
   }
 
-  const maxTrainingSlots = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
-  const alreadySlotted = state.trainingPlan?.slots.some(slot => slot.playerId === playerId) ?? false;
-  const roomPathId = perk === 'TRAINING_PRIORITY' && !alreadySlotted
-    ? biggestRoomTrainingPath(state, player)
-    : undefined;
-  const hasFreeSlot = state.trainingPlan !== undefined
-    && !alreadySlotted
-    && state.trainingPlan.slots.length < maxTrainingSlots;
-  const trainingPlan = roomPathId !== undefined && hasFreeSlot
-    ? { slots: [...state.trainingPlan!.slots, { playerId, pathId: roomPathId }] }
-    : state.trainingPlan;
-  // Slots are full: ask the manager who to bump instead of silently skipping.
-  // A player at 999 everywhere has nothing to gain, so no prompt is raised.
-  // If every current occupant is itself promise-locked (and still trainable),
-  // there is nobody left to bump, so skip honoring rather than raising an
-  // unsatisfiable prompt.
-  const hasBumpableSlot = (state.trainingPlan?.slots ?? []).some(slot => {
-    const occupant = state.players.find(candidate => candidate.id === slot.playerId);
-    return occupant === undefined
-      || !hasActiveCareerContractPromise(occupant, 'TRAINING_PRIORITY')
-      || isFullyCappedPlayer(occupant);
-  });
-  const pendingTrainingPromiseBump = roomPathId !== undefined && !hasFreeSlot && hasBumpableSlot
-    ? { promisedPlayerId: playerId }
-    : state.pendingTrainingPromiseBump;
-
-  // Re-read the promised player from the immutable copy so the returned state
-  // is plain data even when no captain/shirt reassignment was necessary.
+  // TRAINING_PRIORITY is an obligation, not a slot: the manager owes the
+  // player their next TRAINING_PRIORITY_DRILLS drills. Until the countdown
+  // drains, other players' instant drills are blocked (the promised player
+  // reminds you). Re-read the promised player from the immutable copy so the
+  // returned state is plain data even when no reassignment was necessary.
   players = players.map(candidate => candidate.id === playerId
-    ? { ...candidate, contractPromise: { ...promise } }
+    ? {
+        ...candidate,
+        contractPromise: { ...promise },
+        ...(perk === 'TRAINING_PRIORITY'
+          ? { priorityDrillsRemaining: TRAINING_PRIORITY_DRILLS }
+          : {}),
+      }
     : candidate);
-  return { ...state, players, lineups, trainingPlan, pendingTrainingPromiseBump };
+  return { ...state, players, lineups };
 }
 
-/** Returns the pathId with the most room before the universal safety maximum. */
-export function biggestRoomTrainingPath(state: GameState, player: CareerPlayer): string | undefined {
-  const caps = playerAttributeCaps(player);
-  const withRoom = TRAINING_PATHS
-    .map(path => ({ pathId: path.pathId, room: caps[path.attribute] - player.attrs[path.attribute] }))
-    .filter(candidate => candidate.room > 0);
-  if (withRoom.length === 0) return undefined;
-  return withRoom.reduce((best, candidate) => candidate.room > best.room ? candidate : best).pathId;
-}
+/** Drills owed to a player the moment a TRAINING_PRIORITY promise is agreed. */
+export const TRAINING_PRIORITY_DRILLS = 5;
 
-/** Resolves a pending TRAINING_PRIORITY bump: frees the bumped slot and gives it to the promised player. */
-export function resolveTrainingPromiseBump(state: GameState, bumpedPlayerId: string): GameState {
-  const pending = state.pendingTrainingPromiseBump;
-  if (pending === undefined) throw new Error('there is no pending training promise bump to resolve');
-  const slots = state.trainingPlan?.slots ?? [];
-  if (!slots.some(slot => slot.playerId === bumpedPlayerId)) {
-    throw new Error(`${bumpedPlayerId} does not currently occupy a training slot`);
-  }
-  const promisedPlayer = state.players.find(candidate => candidate.id === pending.promisedPlayerId);
-  if (promisedPlayer === undefined) throw new Error(`unknown promised player ${pending.promisedPlayerId}`);
-  const pathId = biggestRoomTrainingPath(state, promisedPlayer);
-  if (pathId === undefined) throw new Error(`${promisedPlayer.name} has no training room left`);
-
-  const nextSlots = [
-    ...slots.filter(slot => slot.playerId !== bumpedPlayerId),
-    { playerId: pending.promisedPlayerId, pathId },
-  ];
-  const next = replaceCareerTrainingPlan(state, nextSlots);
-  assertCareerTrainingHonorsContractPromises(state, nextSlots.map(slot => slot.playerId));
-  return {
-    ...next,
-    pendingTrainingPromiseBump: undefined,
-  };
+/**
+ * The fit promise-holder still owed drills, if any. While one exists, only
+ * they may train; an injured holder pauses the debt rather than deadlocking
+ * the training screen, and a player maxed at 999 everywhere has nothing left
+ * to drill, so their debt can never block anyone.
+ */
+export function pendingTrainingPriorityHolder(
+  state: GameState,
+): { playerId: string; playerName: string; remaining: number } | undefined {
+  const holder = state.players.find(player => (
+    player.clubId === state.userClubId
+    && player.injuryWeeks === 0
+    && (player.priorityDrillsRemaining ?? 0) > 0
+    && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
+    && !isFullyCappedPlayer(player)
+  ));
+  return holder === undefined
+    ? undefined
+    : {
+        playerId: holder.id,
+        playerName: holder.name,
+        remaining: holder.priorityDrillsRemaining ?? 0,
+      };
 }
 
 /** Restores recovered promised starters after injury repair and weekly settlement. */
@@ -186,26 +161,6 @@ export function assertCareerLineupHonorsContractPromises(
       || !STARTING_PROMISES.includes(player.contractPromise!.perk)) continue;
     if (!selected.has(player.id)) {
       throw new Error(`${player.name} was promised a place in the starting XI`);
-    }
-  }
-}
-
-/** Rejects a weekly plan that omits a fit player promised training priority. */
-export function assertCareerTrainingHonorsContractPromises(
-  state: GameState,
-  assignedPlayerIds: readonly string[],
-): void {
-  const assigned = new Set(assignedPlayerIds);
-  for (const player of state.players) {
-    if (player.clubId !== state.userClubId
-      || player.injuryWeeks > 0
-      || !hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
-      // A player at 999 everywhere has no trainable stat left, so the promise
-      // cannot be honored by training them — requiring the slot would be an
-      // unresolvable dead-end.
-      || isFullyCappedPlayer(player)) continue;
-    if (!assigned.has(player.id)) {
-      throw new Error(`${player.name} was promised training priority`);
     }
   }
 }

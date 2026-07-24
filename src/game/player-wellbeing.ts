@@ -1,54 +1,36 @@
-import { mulberry32 } from '../sim/rng';
 import { coachMotivatorStrengthHalfLevels } from './coach-weekly';
-import { facilityEffects, type FacilityGridState } from './facilities';
+import { type FacilityGridState } from './facilities';
 import { growthSinceSigningPercent } from './market-career';
 import { renewalContractAsk } from './market';
 import { shouldRequestTransfer, updatePlayerWellbeing } from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
 export const WEEKLY_CONDITION_RECOVERY = 12;
-export const FOCUS_DRILL_CONDITION_COST = 8;
 export const OVERTRAINING_CONDITION_THRESHOLD = 30;
 
 export interface WeeklyPlayerWellbeingContext {
-  /** Full player array returned by the weekly training resolver. */
-  readonly trainedPlayers: readonly CareerPlayer[];
-  readonly focusApplied: boolean;
   /** Results played outside the league fixture list, such as a Cup tie. */
   readonly additionalMatchOutcomes?: readonly WeeklyMatchOutcome[];
 }
 
 export type WeeklyMatchOutcome = 'win' | 'draw' | 'loss';
 
-export interface OvertrainingInjuryCheck {
-  readonly playerId: string;
-  readonly condition: number;
-  readonly chancePercent: number;
-  readonly rollPercent: number;
-  readonly injured: boolean;
-  readonly baseRecoveryWeeks?: number;
-  readonly recoveryWeeks?: number;
-}
-
 export interface WeeklyPlayerWellbeingResult {
   readonly players: CareerPlayer[];
   readonly matchOutcome?: WeeklyMatchOutcome;
-  readonly injuryChecks: OvertrainingInjuryCheck[];
 }
 
 /**
- * Applies one user-club wellbeing tick after training and, when present, the
- * current week's played match. Opponent players pass through unchanged.
+ * Applies one user-club wellbeing tick for the settling week: condition
+ * recovery, match/underpaid morale, and transfer-request checks. Training
+ * costs and overtraining injuries resolve at drill tap time, not here.
+ * Opponent players pass through unchanged.
  */
 export function resolveWeeklyPlayerWellbeing(
   state: GameState,
-  context: WeeklyPlayerWellbeingContext,
+  context: WeeklyPlayerWellbeingContext = {},
 ): WeeklyPlayerWellbeingResult {
   validateStateClock(state);
-  validateTrainedPlayers(state.players, context.trainedPlayers);
-  if (typeof context.focusApplied !== 'boolean') {
-    throw new Error('focus-applied context must be a boolean');
-  }
 
   const match = currentUserMatch(state);
   const additionalMatchOutcomes = context.additionalMatchOutcomes ?? [];
@@ -64,29 +46,14 @@ export function resolveWeeklyPlayerWellbeing(
     throw new Error('a played user match requires a user lineup');
   }
   const starters = new Set(lineup?.playerIds ?? []);
-  const focusedPlayerIds = context.focusApplied
-    ? new Set((state.trainingPlan?.slots ?? []).map(slot => slot.playerId))
-    : new Set<string>();
-  const focusDrillCount = context.focusApplied ? state.trainingPlan?.slots.length ?? 0 : 0;
-  const focusConditionCost = checkedMultiply(
-    focusDrillCount,
-    FOCUS_DRILL_CONDITION_COST,
-    'focus condition workload',
-  );
-  const medicalBayLevel = gridMedicalBayLevel(state.facilities.grid);
-  const injuryRiskReductionPercent = state.facilities.grid === undefined
-    ? 0
-    : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
-  const injuryChecks: OvertrainingInjuryCheck[] = [];
   const motivatorStrengthHalfLevels = state.market === undefined
     ? 0
     : coachMotivatorStrengthHalfLevels(state.market);
 
-  const players = context.trainedPlayers.map(player => {
+  const players = state.players.map(player => {
     if (player.clubId !== state.userClubId) return player;
 
-    const isFocused = focusedPlayerIds.has(player.id);
-    const conditionDelta = WEEKLY_CONDITION_RECOVERY - (isFocused ? focusConditionCost : 0);
+    const conditionDelta = WEEKLY_CONDITION_RECOVERY;
     const matchMoraleDelta = matchOutcomes.reduce(
       (total, outcome) => total + moraleDeltaForMatch(outcome, starters.has(player.id)),
       0,
@@ -109,48 +76,12 @@ export function resolveWeeklyPlayerWellbeing(
     );
     const updatedCondition = updated.condition ?? 100;
     const { motivatorMoraleRemainder: _legacyMotivatorRemainder, ...withoutLegacyRemainder } = updated;
-    const withMoraleState: CareerPlayer = {
+    return {
       ...withoutLegacyRemainder,
       condition: updatedCondition,
       motivatorMoraleRemainderHalfPoints: motivation.remainderHalfPoints,
       transferRequested: player.transferRequested === true || shouldRequestTransfer(updated),
     };
-
-    if (!isFocused
-      || updatedCondition >= OVERTRAINING_CONDITION_THRESHOLD
-      || withMoraleState.injuryWeeks > 0) {
-      return withMoraleState;
-    }
-
-    const chancePercent = overtrainingInjuryChancePercent(
-      updatedCondition,
-      injuryRiskReductionPercent,
-    );
-    const rollPercent = deterministicWellbeingRoll(state, player.id, 0, 100);
-    const injured = rollPercent < chancePercent;
-    if (!injured) {
-      injuryChecks.push({
-        playerId: player.id,
-        condition: updatedCondition,
-        chancePercent,
-        rollPercent,
-        injured: false,
-      });
-      return withMoraleState;
-    }
-
-    const baseRecoveryWeeks = 2 + deterministicWellbeingRoll(state, player.id, 1, 5);
-    const recoveryWeeks = medicalBayRecoveryWeeks(baseRecoveryWeeks, medicalBayLevel);
-    injuryChecks.push({
-      playerId: player.id,
-      condition: updatedCondition,
-      chancePercent,
-      rollPercent,
-      injured: true,
-      baseRecoveryWeeks,
-      recoveryWeeks,
-    });
-    return { ...withMoraleState, injuryWeeks: recoveryWeeks };
   });
 
   return {
@@ -158,7 +89,6 @@ export function resolveWeeklyPlayerWellbeing(
     ...(matchOutcomes.length === 0
       ? {}
       : { matchOutcome: matchOutcomes[matchOutcomes.length - 1] }),
-    injuryChecks,
   };
 }
 
@@ -258,37 +188,13 @@ function currentUserMatch(
   return { outcome: goalsFor > goalsAgainst ? 'win' : goalsFor === goalsAgainst ? 'draw' : 'loss' };
 }
 
-function gridMedicalBayLevel(grid: FacilityGridState | undefined): number {
+export function gridMedicalBayLevel(grid: FacilityGridState | undefined): number {
   if (grid === undefined) return 0;
   let level = 0;
   for (const building of grid.buildings) {
     if (building.type === 'medical-bay') level = Math.max(level, building.level);
   }
   return level;
-}
-
-function deterministicWellbeingRoll(
-  state: Pick<GameState, 'careerSeed' | 'season' | 'week'>,
-  playerId: string,
-  stream: number,
-  upperExclusive: number,
-): number {
-  if (typeof playerId !== 'string' || playerId.length === 0) {
-    throw new Error('wellbeing player ID must be a non-empty string');
-  }
-  if (!Number.isSafeInteger(stream) || stream < 0) {
-    throw new Error('wellbeing RNG stream must be a non-negative safe integer');
-  }
-  if (!Number.isSafeInteger(upperExclusive) || upperExclusive < 1) {
-    throw new Error('wellbeing RNG upper bound must be a positive safe integer');
-  }
-  const seed = (
-    state.careerSeed
-    ^ Math.imul(state.season, 0x9e3779b1)
-    ^ Math.imul(state.week, 0x85ebca6b)
-    ^ Math.imul(hashString(playerId), stream + 1)
-  ) >>> 0;
-  return Math.floor(mulberry32(seed)() * upperExclusive);
 }
 
 function validateStateClock(state: Pick<GameState, 'careerSeed' | 'season' | 'week'>): void {
@@ -303,29 +209,6 @@ function validateStateClock(state: Pick<GameState, 'careerSeed' | 'season' | 'we
   }
 }
 
-function validateTrainedPlayers(
-  statePlayers: readonly CareerPlayer[],
-  trainedPlayers: readonly CareerPlayer[],
-): void {
-  if (trainedPlayers.length !== statePlayers.length) {
-    throw new Error('weekly wellbeing requires every career player after training');
-  }
-  const stateIds = new Set(statePlayers.map(player => player.id));
-  const trainedIds = new Set<string>();
-  for (const player of trainedPlayers) {
-    if (!stateIds.has(player.id)) throw new Error(`unknown trained player ${player.id}`);
-    if (trainedIds.has(player.id)) throw new Error(`duplicate trained player ${player.id}`);
-    trainedIds.add(player.id);
-  }
-}
-
-function hashString(value: string): number {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = Math.imul(hash ^ value.charCodeAt(index), 0x01000193);
-  }
-  return hash >>> 0;
-}
 
 function checkedMultiply(left: number, right: number, label: string): number {
   const result = left * right;

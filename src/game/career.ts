@@ -7,7 +7,6 @@ import {
   isFacilityOperational,
   weeklyFacilityUpkeep,
 } from './facilities';
-import { pendingTrainingInterrupts, resolveCareerTrainingWeek } from './training';
 import { difficultyRules } from './difficulty';
 import { recordSeasonRecap } from './season-recap';
 import { enableFullCareer, startNextFullCareerSeason } from './full-career';
@@ -97,7 +96,6 @@ export function createCareer(setup: CareerSetup): GameState {
     facilities: { trainingGroundBuilt: false, grid: createFacilityGrid() },
     ...(setup.trainingRules === undefined ? {} : {
       trainingRules: {
-        maxFocusDrillsPerWeek: setup.trainingRules.maxFocusDrillsPerWeek,
         focusDrills: setup.trainingRules.focusDrills.map(drill => ({
           ...drill,
           gains: { ...drill.gains },
@@ -163,18 +161,6 @@ export function nationalCupFixtureById(
 export function advanceWeek(state: GameState): GameState {
   if (state.phase !== 'manage') {
     throw new Error('a week can only advance from the manage phase');
-  }
-
-  // Blocking training interrupts must be resolved before the week advances at
-  // all — including match weeks, whose training settles later in
-  // completeMatchday. Checking before the matchday transition guarantees no
-  // slot is ever silently wasted and no plan overspends TP.
-  if (state.careerMode === 'full') {
-    const projectedTrainingPoints = state.trainingPoints + weeklyAmbientTrainingPoints(state);
-    const interrupts = pendingTrainingInterrupts(state, projectedTrainingPoints);
-    if (interrupts.cappedSlots.length > 0 || interrupts.tpShortfall > 0) {
-      throw new Error('unresolved training interrupts must be cleared before advancing the week');
-    }
   }
 
   if (activeCareerMatchday(state) !== undefined) {
@@ -337,7 +323,6 @@ export function startNextSeason(state: GameState): GameState {
     phase: 'manage',
     fixtures: [...state.fixtures, ...nextFixtures],
     seasonOpeningCash: state.clubs.find(club => club.id === state.userClubId)!.cash,
-    trainingCapNotices: [],
   };
   return state.youthIntake === undefined
     ? next
@@ -354,48 +339,23 @@ function settleCurrentWeek(
     throw new Error(`user club ${state.userClubId} does not exist`);
   }
 
-  // Credit this week's TP income before training resolves, so the repeating
-  // plan is paid from bank + income (matching advanceWeek's interrupt guard)
-  // rather than the bank alone — otherwise a plan the guard deems affordable
-  // would be silently skipped here. The final TP total is unchanged (income
-  // minus training cost); only the affordability basis moves.
+  // Drills resolve instantly at tap time now, so settlement only credits the
+  // week's ambient TP income and runs the recovery/morale wellbeing tick.
   const ambientTrainingPoints = weeklyAmbientTrainingPoints(state);
-  const preTrainingTrainingPoints = checkedAdd(
+  const trainingPoints = checkedAdd(
     state.trainingPoints,
     ambientTrainingPoints,
     'weekly ambient training point balance',
   );
-  const training = resolveCareerTrainingWeek({ ...state, trainingPoints: preTrainingTrainingPoints });
-  const existingTrainingCapNoticeIds = new Set(
-    (state.trainingCapNotices ?? []).map(notice => notice.id),
-  );
-  const trainingCapNotices = [
-    ...(state.trainingCapNotices ?? []),
-    ...[...training.reachedCaps, ...training.skippedCaps]
-      .map(reached => ({
-        id: reached.kind === 'skipped'
-          ? `training-cap:skipped:s${state.season}-w${state.week}:${reached.playerId}:${reached.attribute}:${reached.drillId}`
-          : `training-cap:s${state.season}-w${state.week}:${reached.playerId}:${reached.attribute}:${reached.drillId}`,
-        season: state.season,
-        week: state.week,
-        ...reached,
-      }))
-      .filter(notice => !existingTrainingCapNoticeIds.has(notice.id)),
-  ];
   const weeklyPlayers = state.careerMode === 'full'
-      ? resolveWeeklyPlayerWellbeing(state, {
-          trainedPlayers: training.players,
-          focusApplied: training.focusApplied,
-          additionalMatchOutcomes,
-        }).players
-    : training.players;
+    ? resolveWeeklyPlayerWellbeing(state, { additionalMatchOutcomes }).players
+    : state.players;
   const trainedState = {
     ...state,
     players: weeklyPlayers,
-    trainingPoints: training.trainingPoints,
-    trainingCapNotices,
+    trainingPoints,
   };
-  const lines = settlementLines(trainedState, userClub, training.moneyCost);
+  const lines = settlementLines(trainedState, userClub, 0);
   const safety = resolveFinancialSafety(trainedState, userClub.cash, lines);
   const settledLines = safety.lines;
   const balanceAfter = safety.balanceAfter;
@@ -405,7 +365,6 @@ function settleCurrentWeek(
   const clubs = intervenedState.clubs.map(club =>
     club.id === state.userClubId ? { ...club, cash: balanceAfter } : club,
   );
-  const trainingPoints = training.trainingPoints;
   const ledgers = [
     ...state.ledgers,
     {
@@ -1048,15 +1007,6 @@ function validateSetup(setup: CareerSetup): void {
   }
 
   validateNonnegativeInteger(setup.startingTrainingPoints ?? 0, 'starting training points');
-  if (setup.trainingRules !== undefined) {
-    validateNonnegativeInteger(
-      setup.trainingRules.maxFocusDrillsPerWeek,
-      'maximum weekly focus drills',
-    );
-    if (setup.trainingRules.maxFocusDrillsPerWeek < 1) {
-      throw new Error('maximum weekly focus drills must be positive');
-    }
-  }
   validatePlayerSetup(setup, ids);
 }
 

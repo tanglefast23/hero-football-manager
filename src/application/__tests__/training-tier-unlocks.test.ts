@@ -22,7 +22,6 @@ describe('training drill tier unlocks', () => {
       },
       content,
       player.id,
-      [],
     ).selectedPlayerStatOptions?.find(option => option.pathId === 'sprints');
 
     expect(optionAt(5)).toMatchObject({ drillName: 'Sprints 1' });
@@ -30,35 +29,30 @@ describe('training drill tier unlocks', () => {
     expect(optionAt(2)).toMatchObject({ drillName: 'Sprints 3' });
   });
 
-  test('charges TP once per slot, independent of how many trainees share a stat', () => {
+  test('marks a stat option unaffordable when the bank cannot cover one tap', () => {
     const initial = createCareer(createLaunchCareerSetup(20260723, undefined, content, 'full'));
-    const players = initial.players
-      .filter(player => player.clubId === initial.userClubId)
-      .slice(0, 2);
-    const state = {
-      ...initial,
-      trainingPoints: 100,
-      players: initial.players.map(player => players.some(trainee => trainee.id === player.id)
-        ? {
-            ...player,
-            potential: 5 as const,
-            potentialCeiling: 99,
-            attrs: { ...player.attrs, pac: 20 },
-          }
-        : player),
-    };
-    const slots = players.map(player => ({ playerId: player.id, pathId: 'sprints' }));
-    const sprints = resolveTrainingDrillForPath(state, 'sprints');
+    const player = initial.players.find(candidate => candidate.clubId === initial.userClubId)!;
+    const sprints = resolveTrainingDrillForPath(initial, 'sprints');
 
-    const viewModel = squadTrainingViewModel(state, content, undefined, slots);
+    const funded = squadTrainingViewModel(
+      { ...initial, trainingPoints: sprints.tpCost },
+      content,
+      player.id,
+    ).selectedPlayerStatOptions?.find(option => option.pathId === 'sprints');
+    const broke = squadTrainingViewModel(
+      { ...initial, trainingPoints: sprints.tpCost - 1 },
+      content,
+      player.id,
+    ).selectedPlayerStatOptions?.find(option => option.pathId === 'sprints');
 
-    expect(viewModel.weeklyTrainingPointCost).toBe(sprints.tpCost * players.length);
+    expect(funded?.affordable).toBe(true);
+    expect(broke?.affordable).toBe(false);
   });
 
   it('resolves every stat path to its currently unlocked tier, never a locked one', () => {
     const state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
     const player = state.players.find(candidate => candidate.clubId === state.userClubId)!;
-    const model = squadTrainingViewModel(state, content, player.id, []);
+    const model = squadTrainingViewModel(state, content, player.id);
 
     // Role filtering hides one path (GK loses Finishing, outfield loses Keeper Drills).
     expect(model.selectedPlayerStatOptions).toHaveLength(TRAINING_PATHS.length - 1);

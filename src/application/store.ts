@@ -8,7 +8,6 @@ import {
   addCreatedPlayer,
   applyCareerNegotiationConsequence,
   applyCareerEventOutcome,
-  applyCareerTraining,
   beginStoryOnboarding,
   beginCareerTransferTalks,
   beginCareerRenewalTalks,
@@ -43,7 +42,6 @@ import {
   relocateCareerFacility,
   renewCareerPlayer,
   releaseCareerPlayer,
-  resolveTrainingPromiseBump,
   closeCareerRenewalTalks,
   signYouthIntakeOffer,
   resolvePostMatchAwakening,
@@ -53,6 +51,7 @@ import {
   selectCareerLicensedHeroes,
   setCareerLineup,
   swapCareerLineupPlayer,
+  trainPlayerInstantly,
   startNextSeason,
   startCareerScoutMission,
   submitCareerTransferOffer,
@@ -60,6 +59,7 @@ import {
   upgradeCareerFacility,
   withoutPowers,
   type CreatedPlayerDraft,
+  type InstantDrillResolution,
   type CareerLegendLegacyChoice,
   type AssistantGuideSequenceId,
   type GameState,
@@ -123,12 +123,11 @@ export interface WatchedMatch {
   controlledTeam: 0 | 1;
 }
 
-export type PostMatchOverlay = 'summary' | 'development' | null;
+export type PostMatchOverlay = 'summary' | null;
 
-export interface TrainingSlotDraft {
-  playerId: string;
-  /** null until the player's focus stat has been chosen. */
-  pathId: string | null;
+/** The latest tap's outcome, sequenced so the popup can animate repeats. */
+export interface InstantDrillResult extends Omit<InstantDrillResolution, 'state'> {
+  sequence: number;
 }
 
 export type StoreNoticeTone = 'info' | 'success';
@@ -149,8 +148,7 @@ interface M1Store {
   screen: M1Screen;
   activeTab: ManagementTab;
   selectedPlayerId?: string;
-  trainingSlots: TrainingSlotDraft[];
-  trainingSlotLimitHit: boolean;
+  lastDrillResult: InstantDrillResult | null;
   watchedMatch: WatchedMatch | null;
   postMatch: PostMatchViewModel | null;
   postMatchOverlay: PostMatchOverlay;
@@ -179,7 +177,6 @@ interface M1Store {
   finishWatchedMatch: (result: MatchState) => void;
   continueAfterMatch: () => void;
   dismissPostMatchSummary: () => void;
-  dismissPostMatchDevelopment: () => void;
   continueWeekReview: () => void;
   completeChampionshipCelebration: () => void;
   chooseLegacy: (choice: CareerLegendLegacyChoice) => void;
@@ -189,10 +186,8 @@ interface M1Store {
   toggleHeroLicense: (playerId: string) => void;
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
   selectPlayer: (playerId: string) => void;
-  toggleTrainingPlayer: (playerId: string) => void;
-  setTrainingSlotStat: (playerId: string, pathId: string) => void;
-  clearTrainingSlotLimit: () => void;
-  resolveTrainingPromiseBump: (bumpedPlayerId: string) => void;
+  trainPlayer: (playerId: string, pathId: string) => void;
+  clearDrillResult: () => void;
   buildFacility: () => void;
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
   upgradeClubFacility: (buildingId: string) => void;
@@ -228,8 +223,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   hasSavedCareer: false,
   screen: 'welcome',
   activeTab: 'home',
-  trainingSlots: [],
-  trainingSlotLimitHit: false,
+  lastDrillResult: null,
   watchedMatch: null,
   postMatch: null,
   postMatchOverlay: null,
@@ -256,8 +250,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         replayRepository: replayRepository ?? null,
         persistenceReady: true,
         career,
-        trainingSlots: (career?.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
-        trainingSlotLimitHit: false,
         hasSavedCareer: career !== null,
         postMatch: null,
         postMatchOverlay: null,
@@ -292,8 +284,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
       hasSavedCareer: false,
       screen: 'welcome',
       activeTab: 'home',
-      trainingSlots: [],
-      trainingSlotLimitHit: false,
       watchedMatch: null,
       postMatch: null,
       postMatchOverlay: null,
@@ -322,8 +312,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         screen: 'create-player',
         activeTab: 'home',
         selectedPlayerId: undefined,
-        trainingSlots: [],
-        trainingSlotLimitHit: false,
         watchedMatch: null,
         postMatch: null,
         postMatchOverlay: null,
@@ -453,7 +441,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         hasAssistantGuideMilestone(career, 'intro-complete')
         && !hasAssistantGuideMilestone(career, 'first-training-complete')
       ) {
-        throw new Error('Finish your first training plan before advancing the week.');
+        throw new Error('Train a player before advancing the week.');
       }
       const guidedFirstWeek = hasAssistantGuideMilestone(career, 'intro-complete')
         && hasAssistantGuideMilestone(career, 'first-training-complete')
@@ -503,7 +491,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const next = reconcilePendingClubLegends(startNextSeason(guidedCareer));
         set({
           career: next,
-          trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
           screen: nextPendingClubLegend(next) === undefined ? 'management' : 'legacy',
           activeTab: 'home',
           weekReview: null,
@@ -700,15 +687,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
   },
 
   dismissPostMatchSummary() {
-    const postMatch = get().postMatch;
-    if (postMatch !== null && hasDevelopmentToShow(postMatch)) {
-      set({ postMatchOverlay: 'development', error: null });
-      return;
-    }
-    set({ postMatch: null, postMatchOverlay: null, error: null });
-  },
-
-  dismissPostMatchDevelopment() {
     set({ postMatch: null, postMatchOverlay: null, error: null });
   },
 
@@ -888,54 +866,25 @@ export const useM1Store = create<M1Store>((set, get) => ({
     set({ selectedPlayerId, error: null });
   },
 
-  toggleTrainingPlayer(playerId) {
-    guarded(set, () => {
-      const slots = get().trainingSlots;
-      const alreadySlotted = slots.some(slot => slot.playerId === playerId);
-      if (alreadySlotted) {
-        commitTrainingSlots(get, set, slots.filter(slot => slot.playerId !== playerId));
-        return;
-      }
-      const maxSlots = get().career?.trainingRules?.maxFocusDrillsPerWeek ?? 3;
-      if (slots.length >= maxSlots) {
-        set({ trainingSlotLimitHit: true });
-        return;
-      }
-      set({
-        trainingSlots: [...slots, { playerId, pathId: null }],
-        trainingSlotLimitHit: false,
-        selectedPlayerId: playerId,
-        error: null,
-      });
-    });
-  },
-
-  setTrainingSlotStat(playerId, pathId) {
-    guarded(set, () => {
-      const slots = get().trainingSlots;
-      commitTrainingSlots(
-        get,
-        set,
-        slots.map(slot => (slot.playerId === playerId ? { playerId, pathId } : slot)),
-      );
-    });
-  },
-
-  clearTrainingSlotLimit() {
-    set({ trainingSlotLimitHit: false });
-  },
-
-  resolveTrainingPromiseBump(bumpedPlayerId) {
+  trainPlayer(playerId, pathId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const next = resolveTrainingPromiseBump(career, bumpedPlayerId);
+      const resolution = trainPlayerInstantly(career, playerId, pathId);
+      const next = hasAssistantGuideMilestone(resolution.state, 'first-training-complete')
+        ? resolution.state
+        : completeAssistantGuideMilestone(resolution.state, 'first-training-complete');
+      const { state: _state, ...result } = resolution;
       set({
         career: next,
-        trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
+        lastDrillResult: { ...result, sequence: (get().lastDrillResult?.sequence ?? 0) + 1 },
         error: null,
       });
       queueCareerSave(get, set, next);
     });
+  },
+
+  clearDrillResult() {
+    set({ lastDrillResult: null });
   },
 
   buildFacility() {
@@ -1072,7 +1021,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const next = { ...transaction.state, market: transaction.market };
       set({
         career: next,
-        trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
         error: null,
         notice: {
           tone: 'success',
@@ -1154,7 +1102,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const next = { ...transaction.state, market: transaction.market };
         set({
           career: next,
-          trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
           error: null,
           notice: {
             tone: 'success',
@@ -1224,7 +1171,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         const next = { ...transaction.state, market: transaction.market };
         set({
           career: next,
-          trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
           selectedContractTerm: 1,
           error: null,
           notice: { tone: 'success', message: 'Contract renewed.' },
@@ -1258,7 +1204,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const next = releaseCareerPlayer(requireCareer(get()), playerId);
       set({
         career: next,
-        trainingSlots: (next.trainingPlan?.slots ?? []).map(slot => ({ ...slot })),
         error: null,
       });
       queueCareerSave(get, set, next);
@@ -1434,11 +1379,6 @@ function resumeScreen(career: GameState): M1Screen {
   return 'management';
 }
 
-function hasDevelopmentToShow(postMatch: PostMatchViewModel): boolean {
-  return postMatch.development.focusedTrainees.length > 0
-    || postMatch.development.trainingSkippedWarning !== undefined;
-}
-
 function seasonBoundaryScreen(career: GameState): M1Screen {
   return hasPendingChampionshipCelebration(career)
     ? 'championship-celebration'
@@ -1513,28 +1453,6 @@ function reconcileLegacyFirstAwakening(state: GameState): GameState {
 function requireCareer(state: Pick<M1Store, 'career'>): GameState {
   if (state.career === null) throw new Error('start or load a career first');
   return state.career;
-}
-
-/** Commits a training slot draft: stores it, then applies its complete slots to the career. */
-function commitTrainingSlots(
-  get: () => M1Store,
-  set: (partial: Partial<M1Store>) => void,
-  slots: TrainingSlotDraft[],
-): void {
-  const career = get().career;
-  if (career === null) {
-    set({ trainingSlots: slots, trainingSlotLimitHit: false, error: null });
-    return;
-  }
-  const complete = slots
-    .filter((slot): slot is TrainingSlotDraft & { pathId: string } => slot.pathId !== null)
-    .map(slot => ({ playerId: slot.playerId, pathId: slot.pathId }));
-  let next = applyCareerTraining(career, complete);
-  if (complete.length > 0) {
-    next = completeAssistantGuideMilestone(next, 'first-training-complete');
-  }
-  set({ trainingSlots: slots, trainingSlotLimitHit: false, career: next, error: null });
-  queueCareerSave(get, set, next);
 }
 
 function queueCareerSave(

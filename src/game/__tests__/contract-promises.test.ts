@@ -1,14 +1,10 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../career';
-import { playerAttributeCaps } from '../archetype-caps';
 import {
   applyCareerContractPromise,
-  assertCareerTrainingHonorsContractPromises,
   hasActiveCareerContractPromise,
-  resolveTrainingPromiseBump,
 } from '../contract-promises';
 import { setCareerLineup } from '../squad';
-import { setCareerTrainingPlan } from '../training';
 
 function career(seed: number) {
   return createCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'));
@@ -116,182 +112,19 @@ describe('career contract promises', () => {
       .toEqual({ perk: 'JERSEY_10', agreedSeason: state.season });
   });
 
-  test('training priority is enforced by the repeating-plan boundary', () => {
+  test('training priority persists as a promise with no slot side effects', () => {
     const state = career(9403);
-    const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const trainable = roster.find(player => player.attrs.sta < playerAttributeCaps(player).sta);
-    if (trainable === undefined) throw new Error('expected a player below their STA ceiling');
-    const other = roster.find(player => player.id !== trainable.id)!;
-    const priority = applyCareerContractPromise(state, trainable.id, 'TRAINING_PRIORITY');
-
-    expect(() => setCareerTrainingPlan(priority, [{ playerId: other.id, pathId: 'circuit' }]))
-      .toThrow(`${trainable.name} was promised training priority`);
-    expect(setCareerTrainingPlan(priority, [{ playerId: trainable.id, pathId: 'circuit' }]).trainingPlan)
-      .toMatchObject({ slots: [{ playerId: trainable.id, pathId: 'circuit' }] });
-  });
-
-  test('training priority auto-adds a slot on the biggest-room stat when the plan has room', () => {
-    const state = career(9406);
     const trainee = state.players.find(player => player.clubId === state.userClubId)!;
-    const withRoomAndWeakDef = {
-      ...state,
-      players: state.players.map(player => player.id === trainee.id
-        ? {
-            ...player,
-            archetype: 'All-Rounder' as const,
-            potentialCeiling: 90,
-            attrs: { pac: 50, sho: 50, pas: 50, def: 10, tec: 50, sta: 50, ref: 50 },
-          }
-        : player),
-      trainingPlan: { slots: [] },
-    };
 
-    const promised = applyCareerContractPromise(withRoomAndWeakDef, trainee.id, 'TRAINING_PRIORITY');
+    const promised = applyCareerContractPromise(state, trainee.id, 'TRAINING_PRIORITY');
 
-    expect(promised.trainingPlan?.slots).toEqual([{ playerId: trainee.id, pathId: 'duels' }]);
-    expect(promised.pendingTrainingPromiseBump).toBeUndefined();
-  });
-
-  test('training priority sets a pending bump signal when the plan is already full', () => {
-    const state = career(9407);
-    const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const trainee = {
-      ...roster[0],
-      archetype: 'All-Rounder' as const,
-      potentialCeiling: 90,
-      attrs: { pac: 50, sho: 50, pas: 50, def: 10, tec: 50, sta: 50, ref: 50 },
-    };
-    const fullSlots = [
-      { playerId: roster[1].id, pathId: 'sprints' },
-      { playerId: roster[2].id, pathId: 'rondo' },
-      { playerId: roster[3].id, pathId: 'first-touch' },
-    ];
-    const full = {
-      ...state,
-      players: state.players.map(player => player.id === trainee.id ? trainee : player),
-      trainingPlan: { slots: fullSlots },
-    };
-
-    const promised = applyCareerContractPromise(full, trainee.id, 'TRAINING_PRIORITY');
-
-    expect(promised.trainingPlan?.slots).toEqual(fullSlots);
-    expect(promised.pendingTrainingPromiseBump).toEqual({ promisedPlayerId: trainee.id });
-  });
-
-  test('resolveTrainingPromiseBump frees the bumped slot for the promised player', () => {
-    const state = career(9407);
-    const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const trainee = {
-      ...roster[0],
-      archetype: 'All-Rounder' as const,
-      potentialCeiling: 90,
-      attrs: { pac: 50, sho: 50, pas: 50, def: 10, tec: 50, sta: 50, ref: 50 },
-    };
-    const fullSlots = [
-      { playerId: roster[1].id, pathId: 'sprints' },
-      { playerId: roster[2].id, pathId: 'rondo' },
-      { playerId: roster[3].id, pathId: 'first-touch' },
-    ];
-    const full = {
-      ...state,
-      players: state.players.map(player => player.id === trainee.id ? trainee : player),
-      trainingPlan: { slots: fullSlots },
-    };
-    const promised = applyCareerContractPromise(full, trainee.id, 'TRAINING_PRIORITY');
-
-    const resolved = resolveTrainingPromiseBump(promised, roster[1].id);
-
-    expect(resolved.pendingTrainingPromiseBump).toBeUndefined();
-    expect(resolved.trainingPlan?.slots).toEqual([
-      { playerId: roster[2].id, pathId: 'rondo' },
-      { playerId: roster[3].id, pathId: 'first-touch' },
-      { playerId: trainee.id, pathId: 'duels' },
-    ]);
-  });
-
-  test('a player at the universal maximum does not raise a pending bump signal', () => {
-    const state = career(9407);
-    const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const cappedAttrs = { pac: 999, sho: 999, pas: 999, def: 999, tec: 999, sta: 999, ref: 999 };
-    const trainee = {
-      ...roster[0],
-      archetype: 'All-Rounder' as const,
-      potentialCeiling: 88,
-      attrs: cappedAttrs,
-    };
-    const fullSlots = [
-      { playerId: roster[1].id, pathId: 'sprints' },
-      { playerId: roster[2].id, pathId: 'rondo' },
-      { playerId: roster[3].id, pathId: 'first-touch' },
-    ];
-    const full = {
-      ...state,
-      players: state.players.map(player => player.id === trainee.id ? trainee : player),
-      trainingPlan: { slots: fullSlots },
-    };
-
-    const promised = applyCareerContractPromise(full, trainee.id, 'TRAINING_PRIORITY');
-
-    expect(promised.pendingTrainingPromiseBump).toBeUndefined();
-    expect(promised.trainingPlan?.slots).toEqual(fullSlots);
-  });
-
-  test('a player at the universal maximum can be dropped from the plan without throwing', () => {
-    const state = career(9408);
-    const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const cappedAttrs = { pac: 999, sho: 999, pas: 999, def: 999, tec: 999, sta: 999, ref: 999 };
-    const trainee = {
-      ...roster[0],
-      archetype: 'All-Rounder' as const,
-      potentialCeiling: 88,
-      attrs: cappedAttrs,
-    };
-    const other = roster[1];
-    const withCappedTrainee = {
-      ...state,
-      players: state.players.map(player => player.id === trainee.id ? trainee : player),
-    };
-    const promised = applyCareerContractPromise(withCappedTrainee, trainee.id, 'TRAINING_PRIORITY');
-
-    // A maxed-out player has nothing left to train, so a plan that drops them
-    // must not hit the "was promised training priority" dead-end.
-    expect(() => assertCareerTrainingHonorsContractPromises(promised, [other.id])).not.toThrow();
-    expect(() => setCareerTrainingPlan(promised, [{ playerId: other.id, pathId: 'circuit' }]))
-      .not.toThrow();
-  });
-
-  test('training priority skips honoring when every current slot is itself promise-locked', () => {
-    const state = career(9409);
-    const roster = state.players.filter(player => player.clubId === state.userClubId);
-    const trainee = {
-      ...roster[0],
-      archetype: 'All-Rounder' as const,
-      potentialCeiling: 90,
-      attrs: { pac: 50, sho: 50, pas: 50, def: 10, tec: 50, sta: 50, ref: 50 },
-    };
-    const fullSlots = [
-      { playerId: roster[1].id, pathId: 'sprints' },
-      { playerId: roster[2].id, pathId: 'rondo' },
-      { playerId: roster[3].id, pathId: 'first-touch' },
-    ];
-    const lockedOccupantIds = new Set(fullSlots.map(slot => slot.playerId));
-    const full = {
-      ...state,
-      players: state.players.map(player => {
-        if (player.id === trainee.id) return trainee;
-        if (!lockedOccupantIds.has(player.id)) return player;
-        return { ...player, contractPromise: { perk: 'TRAINING_PRIORITY' as const, agreedSeason: state.season } };
-      }),
-      trainingPlan: { slots: fullSlots },
-    };
-
-    // Every occupied slot already belongs to another promised, trainable
-    // player, so there is nobody left to bump — honoring must be skipped
-    // rather than raising an unsatisfiable prompt.
-    const promised = applyCareerContractPromise(full, trainee.id, 'TRAINING_PRIORITY');
-
-    expect(promised.trainingPlan?.slots).toEqual(fullSlots);
-    expect(promised.pendingTrainingPromiseBump).toBeUndefined();
+    // Drills resolve instantly on tap now, so the promise needs no slot,
+    // bump prompt, or plan mutation to already be true for everyone.
+    expect(hasActiveCareerContractPromise(
+      promised.players.find(player => player.id === trainee.id)!,
+      'TRAINING_PRIORITY',
+    )).toBe(true);
+    expect(promised.lineups).toEqual(state.lineups);
   });
 
   test('a promised hero uses an available license and never creates an invalid lineup', () => {

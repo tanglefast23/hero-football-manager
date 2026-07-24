@@ -190,22 +190,6 @@ export interface HighlightViewModel {
   description: string;
 }
 
-export interface AttributeGainViewModel {
-  id: string;
-  label: string;
-  before: number;
-  after: number;
-  delta: number;
-}
-
-export interface FocusedTraineeViewModel {
-  id: string;
-  name: string;
-  role: 'GK' | 'DEF' | 'MID' | 'FWD';
-  lookId?: string;
-  gains: readonly AttributeGainViewModel[];
-}
-
 export interface WeekUpdateViewModel {
   id: string;
   title: string;
@@ -220,11 +204,6 @@ export interface FacilityCompletionViewModel {
   kind: 'BUILD' | 'UPGRADE';
 }
 
-export interface PlayerDevelopmentViewModel {
-  focusedTrainees: readonly FocusedTraineeViewModel[];
-  trainingSkippedWarning?: string;
-}
-
 export interface WeeklyReviewViewModel {
   completedWeekLabel: string;
   nextWeekLabel: string;
@@ -236,7 +215,6 @@ export interface WeeklyReviewViewModel {
   trainingPointsAfter: number;
   netTrainingPoints: number;
   ledger: readonly LedgerLineViewModel[];
-  development: PlayerDevelopmentViewModel;
   updates: readonly WeekUpdateViewModel[];
   facilityCompletion?: FacilityCompletionViewModel;
   nextFixture?: FixtureViewModel;
@@ -249,7 +227,6 @@ export interface PostMatchViewModel {
   trainingPointsGained: number;
   fanDelta: number;
   highlights: readonly HighlightViewModel[];
-  development: PlayerDevelopmentViewModel;
   updates: readonly WeekUpdateViewModel[];
   facilityCompletion?: FacilityCompletionViewModel;
 }
@@ -266,7 +243,12 @@ export interface SquadPlayerViewModel {
   age: number;
   archetype: string;
   potentialGrade: PotentialGrade;
-  potentialBonusPercent: number;
+  /** Chance the next drill is a SUPER (1.5x) session, from the potential grade. */
+  superChancePercent: number;
+  /** Drills still owed under a TRAINING_PRIORITY promise; shown as the countdown badge. */
+  priorityDrillsRemaining?: number;
+  /** Tap-time injury gamble at current condition; 0 above the fatigue line. */
+  injuryRiskPercent: number;
   positionTrainingLabel: string;
   personality: string;
   morale: number;
@@ -284,10 +266,6 @@ export interface SquadPlayerViewModel {
     /** Universal safety ceiling; intentionally hidden from normal player-facing UI. */
     cap: number;
   }[];
-  /** Position (1-based) in this week's training slots, when the player occupies one. */
-  slotNumber?: number;
-  /** True when a TRAINING_PRIORITY promise requires this player stay slotted (they cannot be dropped). */
-  trainingLocked?: boolean;
 }
 
 export interface FocusDrillViewModel {
@@ -334,32 +312,32 @@ export interface TrainingSlotStatOption {
   currentValue: number;
   /** True at the invisible 999 safety ceiling; never shown as a number. */
   atSafetyCeiling: boolean;
+  /** False when the TP bank cannot cover this drill right now. */
+  affordable: boolean;
+}
+
+/** One resolved instant drill, sequenced so repeat taps re-animate. */
+export interface DrillResultViewModel {
+  sequence: number;
+  playerId: string;
+  pathId: string;
+  drillId: string;
+  attribute: string;
+  tpSpent: number;
+  isSuper: boolean;
+  before: number;
+  after: number;
+  conditionAfter: number;
+  injury?: { chancePercent: number; recoveryWeeks: number };
 }
 
 export interface SquadTrainingViewModel {
   resources: ResourceSummaryViewModel;
   players: readonly SquadPlayerViewModel[];
-  slots: readonly {
-    playerId: string;
-    playerName: string;
-    pathId: string;
-    drillName: string;
-    gainLabel: string;
-  }[];
-  maxSlots: number;
   /** Every stat path's best-tier option for the selected player, when one is selected. */
   selectedPlayerStatOptions?: readonly TrainingSlotStatOption[];
-  weeklyTrainingPointCost: number;
-  interrupts: {
-    cappedSlots: readonly {
-      playerId: string;
-      playerName: string;
-      pathId: string;
-      attribute: string;
-      cap: number;
-    }[];
-    tpShortfall: number;
-  };
+  /** Set while a fit promised player is still owed drills: only they may train. */
+  trainingPromiseGate?: { playerId: string; playerName: string; remaining: number };
 }
 
 export interface TrainingGroundDecisionViewModel {

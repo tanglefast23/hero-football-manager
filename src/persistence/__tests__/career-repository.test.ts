@@ -2,7 +2,6 @@ import { createCareer } from '../../game/career';
 import {
   DEFAULT_CREATION_RATINGS,
   addCreatedPlayer,
-  applyCareerTraining,
   beginStoryOnboarding,
 } from '../../game';
 import type { CareerSetup, GameState } from '../../game/types';
@@ -83,22 +82,25 @@ describe('career repository', () => {
       .toBeUndefined();
   });
 
-  it('round-trips the repeating training rules and selected weekly plan', async () => {
+  it('round-trips the training rules, SUPER pity counters, and drill nonce', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
-    const state = applyCareerTraining(
-      createCareer(createLaunchCareerSetup(13579)),
-      [
-        { playerId: 'bramble-rovers-p13', pathId: 'sprints' },
-        { playerId: 'bramble-rovers-p14', pathId: 'sprints' },
-      ],
-    );
+    const initial = createCareer(createLaunchCareerSetup(13579));
+    const state: GameState = {
+      ...initial,
+      totalInstantDrills: 17,
+      players: initial.players.map(player => player.id === 'bramble-rovers-p13'
+        ? { ...player, drillsSinceSuper: 7 }
+        : player),
+    };
 
     await repository.save(state);
     const loaded = await repository.load();
 
     expect(loaded?.trainingRules).toEqual(state.trainingRules);
-    expect(loaded?.trainingPlan).toEqual(state.trainingPlan);
+    expect(loaded?.totalInstantDrills).toBe(17);
+    expect(loaded?.players.find(player => player.id === 'bramble-rovers-p13')?.drillsSinceSuper)
+      .toBe(7);
   });
 
   it('overwrites the existing slot atomically with the latest state', async () => {

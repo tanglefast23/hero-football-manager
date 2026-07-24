@@ -256,7 +256,6 @@ function buildScenarios(): Scenario[] {
   const migratedSource = atWeek(auditCareer(7_210_600), 6);
   const {
     onboarding: _onboarding,
-    trainingCapNotices: _trainingCapNotices,
     retirementAnnouncements: _retirementAnnouncements,
     seasonRecaps: _seasonRecaps,
     ...migrated

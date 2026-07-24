@@ -2,7 +2,6 @@ import { loadLaunchContent } from '../../content';
 import {
   addCreatedPlayer,
   advanceWeek,
-  applyCareerTraining,
   beginStoryOnboarding,
   buildCareerTeamDef,
   buildTrainingGround,
@@ -15,6 +14,7 @@ import {
   renewCareerPlayer,
   resolvePostMatchAwakening,
   startNextSeason,
+  trainPlayerInstantly,
   type GameState,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
@@ -30,8 +30,7 @@ describe('default two-season career journey', () => {
       ratings: { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50 },
     });
     state = buildTrainingGround(state);
-    state = applyCareerTraining(state, [{ playerId: 'bramble-rovers-created-player', pathId: sprint.id }]);
-    state = playToSeasonBoundary(state);
+    state = playToSeasonBoundary(state, sprint.id);
 
     const userClub = state.clubs.find(club => club.id === state.userClubId)!;
     const expired = state.players.filter(player =>
@@ -63,21 +62,17 @@ describe('default two-season career journey', () => {
 
     expect(JSON.stringify(second)).toBe(JSON.stringify(first));
     expect(first.ledgers).toHaveLength(60);
-    expect(first.trainingPlan).toMatchObject({
-      slots: [{ playerId: 'bramble-rovers-created-player', pathId: 'sprints' }],
-    });
     // Ledger `kind: 'training'` lines only ever recorded a per-trainee training
     // MONEY charge, which is always 0 now — the ledger line can never fire, so
     // the old "at least one training-charge week across the season" and "never
     // more than one per week" assertions no longer measure anything real.
-    // The m1-slice career has no tier gating, so the slot trains at the
-    // highest unlocked tier (Sprints III) for all 60 weeks. Cap-free training
-    // keeps raising the raw PAC value; Sprints trains only PAC, so STA remains
-    // at the player's creation value. The training pitch paying TP only after
-    // its two-week construction finishes delays two early drill weeks versus
-    // the old immediate reward, settling PAC at 370 rather than 386.
+    // The m1-slice career has no tier gating, so each tap trains the highest
+    // unlocked tier (Sprints III, +8 PAC — +12 on a SUPER session). Cap-free
+    // training keeps raising the raw PAC value; Sprints trains only PAC, so
+    // STA stays at the creation value. The seeded SUPER rolls lift the same
+    // 40 affordable weekly taps from the old plan's 370 to 418.
     expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
-      .toMatchObject({ pac: 370, sta: 50 });
+      .toMatchObject({ pac: 418, sta: 50 });
   });
 });
 
@@ -152,19 +147,26 @@ function runTwoSeasonTrainingJourney(): GameState {
     ratings: { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50 },
   });
   state = buildTrainingGround(state);
-  state = applyCareerTraining(state, [{ playerId: 'bramble-rovers-created-player', pathId: sprint.id }]);
-  state = playToSeasonBoundary(state);
+  state = playToSeasonBoundary(state, sprint.id);
   const expired = state.players.find(player =>
     player.clubId === state.userClubId && player.contractSeasonsRemaining === 0,
   );
   if (expired === undefined) throw new Error('expected the created player renewal');
   state = startNextSeason(renewCareerPlayer(state, expired.id, 4, 1));
-  return playToSeasonBoundary(state);
+  return playToSeasonBoundary(state, sprint.id);
 }
 
-function playToSeasonBoundary(initial: GameState): GameState {
+function playToSeasonBoundary(initial: GameState, weeklyDrillPathId?: string): GameState {
   let state = initial;
   while (state.phase !== 'season-end' && state.phase !== 'complete') {
+    // The shipped journey taps the created player's drill once per manage
+    // week, the instant-training equivalent of the old repeating plan.
+    if (weeklyDrillPathId !== undefined && state.phase === 'manage') {
+      const hero = state.players.find(player => player.id === 'bramble-rovers-created-player');
+      if (hero !== undefined && hero.injuryWeeks === 0 && state.trainingPoints >= 15) {
+        state = trainPlayerInstantly(state, hero.id, weeklyDrillPathId).state;
+      }
+    }
     state = advanceWeek(state);
     if (state.phase !== 'matchday') continue;
     const fixtures = fixturesForCurrentWeek(state);

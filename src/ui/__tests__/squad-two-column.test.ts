@@ -31,10 +31,6 @@ describe('squad training two-column layout', () => {
     expect(source).toContain('weight: 9');
   });
 
-  it('derives the training-set panel weight from the committed slot count', () => {
-    expect(source).toContain('3 + viewModel.slots.length');
-  });
-
   it('keeps the guide mt-20 wrapper literal byte-identical', () => {
     expect(source).toContain("'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'");
   });

@@ -64,7 +64,9 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     goalsAgainst,
     cashChange,
     closingCash: club.cash,
-    trainingCapsReached: (state.trainingCapNotices ?? []).filter(notice => notice.season === state.season).length,
+    // Cap-free development plus instant drills retired cap notices entirely;
+    // the persisted recap field stays for old saves and always reads zero now.
+    trainingCapsReached: 0,
     cupResult: cupResult(state),
     ...(latestResolvedEvent === undefined ? {} : { memorableEventId: latestResolvedEvent }),
     // A Golden Boot for nobody is worse than no Golden Boot at all.

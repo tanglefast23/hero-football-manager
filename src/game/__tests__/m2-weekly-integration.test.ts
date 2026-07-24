@@ -8,6 +8,7 @@ import {
   weeklyMerchandiseIncome,
 } from '../career';
 import { buildCareerTeamDef } from '../squad';
+import { trainPlayerInstantly } from '../training';
 import {
   advanceFacilityConstruction,
   buildFacility,
@@ -211,37 +212,30 @@ describe('M2 weekly sidecars', () => {
   });
 
   test('applies full-career condition workload while leaving the M1 slice unchanged', () => {
-    const focusPlan = (state: GameState): GameState => {
+    const focusPlan = (state: GameState): { state: GameState; playerId: string } => {
       const playerId = state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds[0];
-      const otherIds = state.players
-        .filter(player => player.clubId === state.userClubId && player.id !== playerId)
-        .slice(0, 2)
-        .map(player => player.id);
-      return {
+      const prepared = {
         ...state,
+        trainingPoints: 100,
         players: state.players.map(player => player.id === playerId
-          ? { ...player, condition: 20 }
+          ? { ...player, condition: 60 }
           : player),
-        // Three total slots reproduce the same 3x focus-drill condition
-        // workload as the old shared three-drill plan.
-        trainingPlan: {
-          slots: [
-            { playerId, pathId: 'sprints' },
-            { playerId: otherIds[0], pathId: 'finishing' },
-            { playerId: otherIds[1], pathId: 'rondo' },
-          ],
-        },
       };
+      return { state: trainPlayerInstantly(prepared, playerId, 'sprints').state, playerId };
     };
-    const m2Before = focusPlan(fullCareer(504));
-    const m1Before = focusPlan(createCareer(createLaunchCareerSetup(504)));
-    const playerId = m2Before.trainingPlan!.slots[0].playerId;
+    const m2 = focusPlan(fullCareer(504));
+    const m1 = focusPlan(createCareer(createLaunchCareerSetup(504)));
 
-    const m2After = advanceWeek(m2Before);
-    const m1After = advanceWeek(m1Before);
+    // Conditioning is a full-career system: the tap costs 8 there, while the
+    // m1 slice (which has no recovery or wellbeing) charges nothing.
+    expect(m2.state.players.find(player => player.id === m2.playerId)?.condition).toBe(52);
+    expect(m1.state.players.find(player => player.id === m1.playerId)?.condition).toBe(60);
 
-    expect(m2After.players.find(player => player.id === playerId)?.condition).toBe(8);
-    expect(m1After.players.find(player => player.id === playerId)?.condition).toBe(20);
+    // The +12 weekly recovery is the full career's wellbeing tick only.
+    const m2After = advanceWeek(m2.state);
+    const m1After = advanceWeek(m1.state);
+    expect(m2After.players.find(player => player.id === m2.playerId)?.condition).toBe(64);
+    expect(m1After.players.find(player => player.id === m1.playerId)?.condition).toBe(60);
   });
 
   test('applies match result and playing-time morale through normal M2 settlement', () => {
@@ -277,67 +271,43 @@ describe('M2 weekly sidecars', () => {
     expect(settled.players.find(player => player.id === benchId)?.morale).toBe(52);
   });
 
-  test('auto-benches an overtrained starter before a consecutive match week', () => {
-    let injuredStarterId: string | undefined;
-    let replacementId: string | undefined;
-    let settled: GameState | undefined;
+  test('benches a starter the moment an exhausted drill injures them', () => {
+    let state = fullCareer(1);
+    while (state.week < 4) state = settleScheduledWeek(state);
+    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+    const targetId = lineup.playerIds[1];
+    const prepared: GameState = {
+      ...state,
+      trainingPoints: 100,
+      players: state.players.map(player => player.id === targetId
+        ? { ...player, condition: 0 }
+        : player),
+    };
 
-    for (let seed = 1; seed <= 100 && settled === undefined; seed += 1) {
-      let state = fullCareer(seed);
-      while (state.week < 4) state = settleScheduledWeek(state);
-      const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
-      const targetId = lineup.playerIds[1];
-      const otherIds = state.players
-        .filter(player => player.clubId === state.userClubId && player.id !== targetId)
-        .slice(0, 2)
-        .map(player => player.id);
-      state = {
-        ...state,
-        players: state.players.map(player => player.id === targetId
-          ? { ...player, condition: 0 }
-          : player),
-        // Three total slots reproduce the same 3x focus-drill condition
-        // workload as the old shared three-drill plan.
-        trainingPlan: {
-          slots: [
-            { playerId: targetId, pathId: 'sprints' },
-            { playerId: otherIds[0], pathId: 'finishing' },
-            { playerId: otherIds[1], pathId: 'rondo' },
-          ],
-        },
-      };
-      const matchday = advanceWeek(state);
-      const results = fixturesForCurrentWeek(matchday).map(fixture => ({
-        fixtureId: fixture.id,
-        homeGoals: 1,
-        awayGoals: 0,
-      }));
-      const candidate = completeLeagueAndCupWeek(matchday, results);
-      const injured = candidate.players.find(player => player.id === targetId);
-      if ((injured?.injuryWeeks ?? 0) === 0) continue;
-
-      const repairedLineup = candidate.lineups.find(item => item.clubId === candidate.userClubId)!;
-      injuredStarterId = targetId;
-      replacementId = repairedLineup.playerIds[1];
-      settled = candidate;
+    // At 0 condition the gamble is 70%; probe nonces to land the injury tap.
+    let injured: GameState | undefined;
+    for (let nonce = 0; nonce < 200 && injured === undefined; nonce += 1) {
+      const result = trainPlayerInstantly(
+        { ...prepared, totalInstantDrills: nonce },
+        targetId,
+        'sprints',
+      );
+      if (result.injury !== undefined) injured = result.state;
     }
+    expect(injured).toBeDefined();
+    if (injured === undefined) throw new Error('expected a deterministic injury sample');
 
-    expect(settled).toBeDefined();
-    if (settled === undefined || injuredStarterId === undefined || replacementId === undefined) {
-      throw new Error('expected a deterministic starter injury sample');
-    }
-    expect(settled.week).toBe(5);
-    expect(replacementId).not.toBe(injuredStarterId);
-    expect(settled.players.find(player => player.id === replacementId)?.injuryWeeks).toBe(0);
-    expect(() => buildCareerTeamDef(settled!, settled!.userClubId)).not.toThrow();
+    // The tap itself repaired the lineup: the injured starter is out, the
+    // replacement is fit, and the eleven still builds a valid match team.
+    const repairedLineup = injured.lineups.find(item => item.clubId === injured!.userClubId)!;
+    expect(repairedLineup.playerIds).not.toContain(targetId);
+    const replacementId = repairedLineup.playerIds[1];
+    expect(injured.players.find(player => player.id === replacementId)?.injuryWeeks).toBe(0);
+    expect(() => buildCareerTeamDef(injured!, injured!.userClubId)).not.toThrow();
 
-    // The repeating 3-slot plan has outrun its TP budget by now, which the
-    // interrupt guard (now enforced on match weeks too) would block. This test
-    // is about injury/bench/lineup, not training economy, so clear the plan —
-    // the same resolution the UI's "drop a player" interrupt would apply.
-    const nextMatchday = advanceWeek({ ...settled, trainingPlan: { slots: [] } });
-    expect(nextMatchday.phase).toBe('matchday');
-    expect(() => buildCareerTeamDef(nextMatchday, nextMatchday.userClubId)).not.toThrow();
+    const matchday = advanceWeek(injured);
+    expect(matchday.phase).toBe('matchday');
+    expect(() => buildCareerTeamDef(matchday, matchday.userClubId)).not.toThrow();
   });
 
   test('itemizes Fan Shop income and applies the stadium adjacency bonus only in full mode', () => {

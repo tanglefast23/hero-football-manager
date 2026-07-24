@@ -4,8 +4,6 @@ import {
   ScrollView,
   Text,
   View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WeeklyReviewViewModel } from '../models';
@@ -17,12 +15,10 @@ import {
 } from '../components/Scorecard';
 import { ChalkboardBackdrop, StageSection } from '../components/ChalkboardStage';
 import { useLayoutMode } from '../layout/use-layout-mode';
-import { PlayerDevelopmentSpotlight } from '../components/PlayerDevelopmentSpotlight';
 import { FacilityCompletionCard } from '../components/FacilityCompletionCard';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { countUpValue } from '../count-up';
-import { shouldStartDevelopmentAnimation } from '../weekly-review-animation';
 
 export interface WeeklyReviewScreenProps {
   viewModel: WeeklyReviewViewModel;
@@ -41,30 +37,8 @@ export function WeeklyReviewScreen({
 }: WeeklyReviewScreenProps) {
   const wide = useLayoutMode() === 'twoColumn';
   const [balanceAnimationsComplete, setBalanceAnimationsComplete] = useState(reduceMotion);
-  const [developmentAnimationsStarted, setDevelopmentAnimationsStarted] = useState(reduceMotion);
-  const hasManuallyScrolled = useRef(false);
-  const scrollY = useRef(0);
-  const viewportHeight = useRef(0);
-  const developmentSectionY = useRef<number | null>(null);
-  const developmentStatAreaOffsetY = useRef<number | null>(null);
   const balanceAnimationsStarted = reduceMotion || animationsReady;
   const balanceComplete = reduceMotion || balanceAnimationsComplete;
-
-  const maybeStartDevelopmentAnimations = () => {
-    const sectionY = developmentSectionY.current;
-    const statOffsetY = developmentStatAreaOffsetY.current;
-    const statAreaY = sectionY === null || statOffsetY === null
-      ? null
-      : sectionY + statOffsetY;
-    if (shouldStartDevelopmentAnimation({
-      hasManuallyScrolled: hasManuallyScrolled.current,
-      scrollY: scrollY.current,
-      viewportHeight: viewportHeight.current,
-      statAreaY,
-    })) {
-      setDevelopmentAnimationsStarted(true);
-    }
-  };
 
   useEffect(() => {
     if (!balanceAnimationsStarted || balanceComplete) return undefined;
@@ -77,26 +51,12 @@ export function WeeklyReviewScreen({
     else setBalanceAnimationsComplete(true);
   };
 
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    scrollY.current = event.nativeEvent.contentOffset.y;
-    maybeStartDevelopmentAnimations();
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
-        onLayout={event => {
-          viewportHeight.current = event.nativeEvent.layout.height;
-          maybeStartDevelopmentAnimations();
-        }}
-        onScrollBeginDrag={() => {
-          hasManuallyScrolled.current = true;
-        }}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
       >
         <View className="border-b-2 border-paper/15 pb-3">
           <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Weekly review</Text>
@@ -159,25 +119,6 @@ export function WeeklyReviewScreen({
               />
             </Text>
           </View>
-        </View>
-
-        <View
-          className="min-h-96 justify-center pt-5"
-          onLayout={event => {
-            developmentSectionY.current = event.nativeEvent.layout.y;
-            maybeStartDevelopmentAnimations();
-          }}
-        >
-          <StageSection eyebrow="Training ground" title="Player development" />
-          <PlayerDevelopmentSpotlight
-            development={viewModel.development}
-            reduceMotion={reduceMotion}
-            animationsStarted={developmentAnimationsStarted}
-            onStatAreaLayout={offsetY => {
-              developmentStatAreaOffsetY.current = offsetY;
-              maybeStartDevelopmentAnimations();
-            }}
-          />
         </View>
 
         <PaperPanel kicker="Accounts office" title="Weekly statement" stamp="Recorded" className="mt-5">

@@ -50,39 +50,7 @@ export interface CareerTrainingDrill {
   gains: Partial<Attrs>;
 }
 
-export interface CareerTrainingSlot {
-  playerId: string;
-  /** Tier-1 drill id identifying the path; best unlocked tier resolves at settlement. */
-  pathId: string;
-}
-
-export interface CareerTrainingPlan {
-  slots: CareerTrainingSlot[];
-}
-
-export interface CareerTrainingCapNotice {
-  id: string;
-  season: number;
-  week: number;
-  playerId: string;
-  playerName: string;
-  attribute: keyof Attrs;
-  cap: number;
-  drillId: string;
-  /** Absent on older saves, which means the player reached the cap that week. */
-  kind?: 'reached' | 'skipped';
-}
-
-/**
- * Set when a TRAINING_PRIORITY promise is accepted while every training slot
- * is full: the manager must pick who to bump before the promise is honored.
- */
-export interface PendingTrainingPromiseBump {
-  promisedPlayerId: string;
-}
-
 export interface TrainingRules {
-  maxFocusDrillsPerWeek: number;
   /** Full focus-drill catalog, baked in so the pure engine can resolve tiers. */
   focusDrills: CareerTrainingDrill[];
 }
@@ -165,6 +133,10 @@ export interface CareerPlayer {
   coachTrainingBonusRemainders?: Partial<Record<keyof Attrs, number>>;
   /** Hundredths from archetype, position, Potential, and coach growth bonuses. */
   trainingBonusRemainders?: Partial<Record<keyof Attrs, number>>;
+  /** Drills since the last SUPER session; drives the pity-timer guarantee. */
+  drillsSinceSuper?: number;
+  /** Drills still owed under a TRAINING_PRIORITY promise; blocks other training while > 0. */
+  priorityDrillsRemaining?: number;
 }
 
 export interface ClubLineupState {
@@ -422,11 +394,6 @@ export interface GameState {
   lineups: ClubLineupState[];
   facilities: FacilityState;
   trainingRules?: TrainingRules;
-  trainingPlan?: CareerTrainingPlan;
-  /** One-shot inbox receipts created at the rare universal 999 safety ceiling. */
-  trainingCapNotices?: CareerTrainingCapNotice[];
-  /** Cleared once the manager picks who to bump; a mid-prompt save must reload it. */
-  pendingTrainingPromiseBump?: PendingTrainingPromiseBump;
   eventClock: CareerEventState;
   eventFlags: string[];
   resolvedEventIds: string[];
@@ -437,6 +404,8 @@ export interface GameState {
   /** Optional only so pre-onboarding internal M1 saves remain loadable. */
   onboarding?: CareerOnboardingState;
   trainingPoints: number;
+  /** Lifetime instant-drill count; the RNG nonce that keeps back-to-back taps distinct. */
+  totalInstantDrills?: number;
   ledgers: WeeklyLedger[];
   /** User-club cash when the active season began, for an exact season recap delta. */
   seasonOpeningCash?: number;

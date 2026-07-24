@@ -7,29 +7,25 @@ describe('first training guidance', () => {
     const homeSource = readFileSync(join(process.cwd(), 'src/ui/screens/ClubHomeScreen.tsx'), 'utf8');
     const guideContent = readFileSync(join(process.cwd(), 'content/assistant-guide.json'), 'utf8');
 
-    expect(source).toContain("const guidePlayers = guideTraining && assignedCount === 0;");
-    expect(source).toContain("const guideStat = guideTraining");
+    // Instant training: one guided beat — tap any +, the drill happens now.
+    expect(source).toContain('const guidePlayers = guideTraining;');
     expect(source).toContain("'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'");
-    expect(source).toContain('label="Tap in here"');
-    expect(source).toContain('detail="Add up to 3 players."');
+    expect(source).toContain('label="Tap a +"');
+    expect(source).toContain('detail="Train a player right now."');
     expect(source).toContain('onTouchStart={rememberPlayerGuideTouch}');
     expect(source).toContain('onTouchMove={dismissPlayerGuideAfterDrag}');
     expect(source).toContain('{guidePlayers && !playerGuideDismissed ? (');
-    expect(source).toContain('label="Tap the number"');
-    expect(source).toContain('detail="Pick a drill"');
     expect(source).toContain('setDrillPickerOpen(true)');
-    expect(source).not.toContain('detail="Pick a stat"');
-    expect(source).not.toContain('statPickerRef');
-    expect(source).not.toContain('measureInWindow');
+    expect(source).not.toContain('slotNumber');
+    expect(source).not.toContain('label="Tap the number"');
     expect(source).not.toContain('<SquadSortHeader label="Role"');
     expect(source).toContain('label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16"');
     expect(source).toContain('className="w-14 text-right text-sm font-bold uppercase text-ink/50"');
     expect(source).toContain('ellipsizeMode="clip"');
-    expect(source).toContain('const glowAssignmentButton = guidePlayers && !isAssigned;');
+    expect(source).toContain('const glowAssignmentButton = guidePlayers && player.injuryWeeks === 0;');
     expect(source).toContain('glowAssignmentButton ? styles.assignmentButtonGlow : null');
     expect(source).toContain('assignmentButtonGlow:');
     expect(source).toContain("boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)'");
-    expect(source).not.toContain('detail="Add one player"');
     expect(homeSource).toContain('detail="Build the facility"');
     expect(guideContent).not.toContain('"id": "squad-intro"');
   });

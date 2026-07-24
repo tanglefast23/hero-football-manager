@@ -232,7 +232,7 @@ export function currentAssistantObjective(
   if (!hasAssistantGuideMilestone(state, 'intro-complete')) return null;
   if (!hasAssistantGuideMilestone(state, 'first-training-complete')) {
     if (activeTab === 'squad') {
-      return { text: 'PICK A PLAYER AND A STAT TO TRAIN.', target: 'training-plan' };
+      return { text: 'TAP + ON A PLAYER AND TRAIN A STAT.', target: 'training-plan' };
     }
     return { text: 'OPEN SQUAD.', target: 'squad-tab' };
   }

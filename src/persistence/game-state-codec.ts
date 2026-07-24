@@ -241,6 +241,8 @@ const playerSchema = z
     ).optional(),
     coachTrainingBonusRemainders: trainingRemaindersSchema.optional(),
     trainingBonusRemainders: trainingRemaindersSchema.optional(),
+    drillsSinceSuper: nonnegativeInteger.optional(),
+    priorityDrillsRemaining: nonnegativeInteger.optional(),
   })
   .passthrough()
   .superRefine((player, context) => {
@@ -335,44 +337,7 @@ const trainingDrillSchema = z
 
 const trainingRulesSchema = z
   .object({
-    maxFocusDrillsPerWeek: positiveInteger,
     focusDrills: z.array(trainingDrillSchema),
-  })
-  .passthrough();
-
-const trainingSlotSchema = z
-  .object({
-    playerId: nonemptyString,
-    pathId: nonemptyString,
-  })
-  .passthrough();
-
-const trainingPlanSchema = z
-  .object({
-    slots: z.array(trainingSlotSchema),
-  })
-  .passthrough();
-
-const trainingCapNoticeSchema = z
-  .object({
-    id: nonemptyString,
-    season: positiveInteger,
-    week: positiveInteger,
-    playerId: nonemptyString,
-    playerName: nonemptyString,
-    attribute: z.enum(['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref']),
-    cap: positiveInteger.refine(
-      value => value <= MAX_PLAYER_ATTRIBUTE,
-      `must be at most ${MAX_PLAYER_ATTRIBUTE}`,
-    ),
-    drillId: nonemptyString,
-    kind: z.enum(['reached', 'skipped']).optional(),
-  })
-  .passthrough();
-
-const pendingTrainingPromiseBumpSchema = z
-  .object({
-    promisedPlayerId: nonemptyString,
   })
   .passthrough();
 
@@ -745,9 +710,6 @@ const gameStateSchema = z
     lineups: z.array(lineupSchema),
     facilities: facilitiesSchema,
     trainingRules: trainingRulesSchema.optional(),
-    trainingPlan: trainingPlanSchema.optional(),
-    trainingCapNotices: z.array(trainingCapNoticeSchema).optional(),
-    pendingTrainingPromiseBump: pendingTrainingPromiseBumpSchema.optional(),
     eventClock: eventClockSchema,
     eventFlags: z.array(nonemptyString),
     resolvedEventIds: z.array(nonemptyString),
@@ -762,6 +724,7 @@ const gameStateSchema = z
     awakening: awakeningSchema.optional(),
     onboarding: onboardingSchema.optional(),
     trainingPoints: nonnegativeInteger,
+    totalInstantDrills: nonnegativeInteger.optional(),
     ledgers: z.array(ledgerSchema),
     seasonOpeningCash: safeInteger.optional(),
     cashTransactions: z.array(cashTransactionSchema).optional(),
@@ -1422,46 +1385,6 @@ const gameStateSchema = z
       }
     }
 
-    if (state.trainingPlan !== undefined) {
-      const maxSlots = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
-      const assignedIds = new Set<string>();
-      if (state.trainingPlan.slots.length > maxSlots) {
-        context.addIssue({
-          code: 'custom',
-          path: ['trainingPlan', 'slots'],
-          message: `cannot contain more than ${maxSlots} slots`,
-        });
-      }
-      for (let index = 0; index < state.trainingPlan.slots.length; index += 1) {
-        const { playerId } = state.trainingPlan.slots[index];
-        if (assignedIds.has(playerId)) {
-          context.addIssue({
-            code: 'custom',
-            path: ['trainingPlan', 'slots', index, 'playerId'],
-            message: 'a player can occupy only one training slot',
-          });
-        }
-        assignedIds.add(playerId);
-        if (!playerIds.has(playerId) || playerClubById.get(playerId) !== state.userClubId) {
-          context.addIssue({
-            code: 'custom',
-            path: ['trainingPlan', 'slots', index, 'playerId'],
-            message: 'assigned player must belong to the user club',
-          });
-        }
-      }
-    }
-
-    if (state.pendingTrainingPromiseBump !== undefined) {
-      const { promisedPlayerId } = state.pendingTrainingPromiseBump;
-      if (!playerIds.has(promisedPlayerId) || playerClubById.get(promisedPlayerId) !== state.userClubId) {
-        context.addIssue({
-          code: 'custom',
-          path: ['pendingTrainingPromiseBump', 'promisedPlayerId'],
-          message: 'promised player must belong to the user club',
-        });
-      }
-    }
   });
 
 export function serializeGameState(state: GameState): string {
@@ -1495,6 +1418,7 @@ export function parseStoredGameState(serialized: string): GameState {
   }
 
   value = removeRetiredHeroSystems(value);
+  value = removeRetiredWeeklyTraining(value);
   value = migrateRetiredPowers(value);
   assertSupportedSchema(value, true);
   let validation: z.ZodSafeParseResult<unknown>;
@@ -1551,6 +1475,27 @@ function migrateRetiredPowers(value: unknown): unknown {
     return next;
   };
   return walk(value);
+}
+
+/**
+ * Weekly training plans, cap notices, promise bumps, and the slot cap were
+ * replaced by tap-time instant drills. Strip their inert data so saves made
+ * before the change remain loadable, discarding any pending plan silently.
+ */
+function removeRetiredWeeklyTraining(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+
+  const {
+    trainingPlan: _trainingPlan,
+    trainingCapNotices: _trainingCapNotices,
+    pendingTrainingPromiseBump: _pendingTrainingPromiseBump,
+    ...withoutWeeklyTraining
+  } = value;
+  const trainingRules = withoutWeeklyTraining.trainingRules;
+  if (!isRecord(trainingRules)) return withoutWeeklyTraining;
+
+  const { maxFocusDrillsPerWeek: _maxFocusDrillsPerWeek, ...rulesWithoutCap } = trainingRules;
+  return { ...withoutWeeklyTraining, trainingRules: rulesWithoutCap };
 }
 
 function removeRetiredHeroSystems(value: unknown): unknown {

@@ -22,8 +22,8 @@ import {
   playerPotentialGrade,
   potentialTierForDivision,
   POSITION_TRAINING_ATTRIBUTES,
-  resolveCareerTrainingWeek,
   roleOverall,
+  trainPlayerInstantly,
   type CareerPlayer,
   type DivisionLevel,
   type GameState,
@@ -109,21 +109,21 @@ describeProbe('long-career open-ended development', () => {
         const heroLimit = careerHeroLimit(state);
 
         for (let week = 0; week < 30; week += 1) {
-          const slots = traineeIds.map(playerId => {
+          state = { ...state, trainingPoints: 1_000_000 };
+          for (const playerId of traineeIds) {
             const player = state.players.find(candidate => candidate.id === playerId)!;
+            if (player.injuryWeeks > 0) continue;
             const attributes = POSITION_TRAINING_ATTRIBUTES[player.role];
             const attribute = attributes[(seasonIndex * 30 + week) % attributes.length];
-            return { playerId, pathId: PATH_BY_ATTRIBUTE[attribute] };
-          });
-          const training = resolveCareerTrainingWeek({
-            ...state,
-            trainingPoints: 1_000_000,
-            trainingPlan: { slots },
-          });
+            state = trainPlayerInstantly(state, playerId, PATH_BY_ATTRIBUTE[attribute]).state;
+          }
+          // Weekly recovery keeps the probe's one-drill-per-week cadence from
+          // grinding trainees into the injury-gamble zone.
           state = {
             ...state,
-            players: training.players,
-            trainingPoints: training.trainingPoints,
+            players: state.players.map(player => player.clubId === state.userClubId
+              ? { ...player, condition: Math.min(100, (player.condition ?? 100) + 12) }
+              : player),
           };
         }
 

@@ -8,7 +8,7 @@ import {
 } from './career';
 import { deterministicPostMatchAwakeningRoll } from './post-match-awakening';
 import { buildTrainingGround } from './squad';
-import { setCareerTrainingPlan } from './training';
+import { trainPlayerInstantly } from './training';
 import { trainingDrillPathId } from './training-paths';
 import type { FocusDrill } from './progression';
 import type { CareerSetup, FixtureResult, GameState, LeagueFixture } from './types';
@@ -178,13 +178,24 @@ function simulateSeasonOne(
     playerId,
     pathId: trainingDrillPathId(spendingPolicy.weeklyFocusDrillIds[index]),
   }));
-  state = setCareerTrainingPlan(state, slots);
 
   let ambientTrainingPoints = 0;
   const initialCash = setup.clubs.find(club => club.id === setup.userClubId)?.cash ?? 0;
   let minimumBalance = initialCash - spendingPolicy.trainingGroundCost;
 
   while (state.phase !== 'season-end') {
+    // Drills now resolve at tap time; the harness taps each policy drill once
+    // per manage week, skipping unaffordable or injured assignments the way an
+    // active manager would.
+    for (const slot of slots) {
+      const player = state.players.find(candidate => candidate.id === slot.playerId);
+      if (player === undefined || player.injuryWeeks > 0) continue;
+      try {
+        state = trainPlayerInstantly(state, slot.playerId, slot.pathId).state;
+      } catch {
+        break; // Out of TP this week.
+      }
+    }
     const beforeAdvance = state;
     state = advanceWeek(state);
     if (state.phase === 'matchday') {

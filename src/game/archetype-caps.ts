@@ -120,6 +120,11 @@ export function playerPotentialGrade(
   return POTENTIAL_GRADES[(potential - 1) * 3 + variant];
 }
 
+/** E− is 5%; every grade step adds two percentage points, so A+ is 33%. */
+export function superTrainingChancePercent(grade: PotentialGrade): number {
+  return 5 + POTENTIAL_GRADES.indexOf(grade) * 2;
+}
+
 /** E− is +0%; every grade step adds exactly one percentage point. */
 export function potentialTrainingBonusPercent(grade: PotentialGrade): number {
   return POTENTIAL_GRADES.indexOf(grade);

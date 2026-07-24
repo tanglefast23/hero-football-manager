@@ -10,7 +10,7 @@ describe('training stat options', () => {
 
   it('reports current value and short code for each option, with no visible cap', () => {
     const outfielder = roster.find(player => player.role !== 'GK')!;
-    const options = squadTrainingViewModel(state, content, outfielder.id, []).selectedPlayerStatOptions!;
+    const options = squadTrainingViewModel(state, content, outfielder.id).selectedPlayerStatOptions!;
     const duels = options.find(option => option.pathId === 'duels')!;
 
     expect(duels).toMatchObject({
@@ -25,8 +25,8 @@ describe('training stat options', () => {
   it('hides keeper drills from outfield players and finishing from goalkeepers', () => {
     const outfielder = roster.find(player => player.role !== 'GK')!;
     const keeper = roster.find(player => player.role === 'GK')!;
-    const outfieldOptions = squadTrainingViewModel(state, content, outfielder.id, []).selectedPlayerStatOptions!;
-    const keeperOptions = squadTrainingViewModel(state, content, keeper.id, []).selectedPlayerStatOptions!;
+    const outfieldOptions = squadTrainingViewModel(state, content, outfielder.id).selectedPlayerStatOptions!;
+    const keeperOptions = squadTrainingViewModel(state, content, keeper.id).selectedPlayerStatOptions!;
 
     expect(outfieldOptions).toHaveLength(6);
     expect(outfieldOptions.some(option => option.pathId === 'keeper-drills')).toBe(false);

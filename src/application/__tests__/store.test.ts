@@ -223,7 +223,7 @@ describe('M1 app store integration', () => {
     });
   });
 
-  it('stores a repeating weekly squad plan and settles it only once per week', () => {
+  it('trains a player the moment a drill is tapped and reviews the week without it', () => {
     startCreatedCareer(789);
     const before = useM1Store.getState().career!;
     const playerId = 'bramble-rovers-created-player';
@@ -232,60 +232,48 @@ describe('M1 app store integration', () => {
     const beforeUnassignedSta = before.players.find(player => player.id === unassignedPlayerId)!.attrs.sta;
 
     useM1Store.getState().buildFacility();
-    useM1Store.getState().toggleTrainingPlayer(playerId);
-    useM1Store.getState().setTrainingSlotStat(playerId, 'sprints');
+    useM1Store.getState().trainPlayer(playerId, 'sprints');
 
-    const planned = useM1Store.getState().career!;
-    expect(planned.facilities.trainingGroundBuilt).toBe(false);
-    expect(planned.facilities.grid?.construction).toMatchObject({
-      type: 'training-pitch',
-      weeksRemaining: 2,
+    const trained = useM1Store.getState().career!;
+    const result = useM1Store.getState().lastDrillResult!;
+    // m1-slice has no division gating, so the tap resolves Sprints III:
+    // 15 TP for +8 PAC (+12 on a SUPER session).
+    expect(result).toMatchObject({
+      playerId,
+      attribute: 'pac',
+      before: beforePac,
+      tpSpent: 15,
+      sequence: 1,
     });
-    expect(planned.clubs[0].cash).toBe(before.clubs[0].cash - 8000);
-    expect(planned.trainingPoints).toBe(before.trainingPoints);
-    expect(planned.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac);
-    expect(planned.trainingPlan).toMatchObject({
-      slots: [{ playerId, pathId: 'sprints' }],
-    });
+    expect(result.after - result.before).toBe(result.isSuper ? 12 : 8);
+    expect(trained.players.find(player => player.id === playerId)?.attrs.pac).toBe(result.after);
+    expect(trained.trainingPoints).toBe(before.trainingPoints - 15);
+    expect(trained.players.find(player => player.id === unassignedPlayerId)?.attrs.sta)
+      .toBe(beforeUnassignedSta);
+    expect(trained.eventFlags).toContain('guide:bert:first-training-complete');
 
-    useM1Store.getState().setTrainingSlotStat(playerId, 'sprints');
-    expect(useM1Store.getState().career?.clubs[0].cash).toBe(planned.clubs[0].cash);
-    expect(useM1Store.getState().career?.players.find(player => player.id === playerId)?.attrs.pac)
-      .toBe(beforePac);
+    // Chain-tap: the popup stays live and the next result re-sequences.
+    useM1Store.getState().trainPlayer(playerId, 'sprints');
+    expect(useM1Store.getState().lastDrillResult).toMatchObject({ sequence: 2 });
+    expect(useM1Store.getState().career?.trainingPoints).toBe(before.trainingPoints - 30);
 
     useM1Store.getState().advanceCareer();
-    const settled = useM1Store.getState().career!;
     expect(useM1Store.getState().screen).toBe('week-review');
     const review = useM1Store.getState().weekReview!;
     expect(review).toMatchObject({
       completedWeekLabel: 'Week 1 complete',
       nextWeekLabel: 'Week 2',
-      development: {
-        focusedTrainees: [{ id: playerId }],
-      },
     });
-    expect(review.development.focusedTrainees[0].gains).toEqual(expect.arrayContaining([
-      // m1-slice has no division gating, so the path resolves to its best
-      // tier (Sprints III, +8 PAC) rather than the tier-1 nominal gain.
-      expect.objectContaining({ label: 'PAC', before: beforePac, after: beforePac + 8, delta: 8 }),
-    ]));
-    expect(review.development.trainingSkippedWarning).toBeUndefined();
-    expect(settled.players.find(player => player.id === playerId)?.attrs.pac).toBe(beforePac + 8);
-    expect(settled.players.find(player => player.id === playerId)?.attrs.sta).toBe(
-      before.players.find(player => player.id === playerId)!.attrs.sta,
-    );
-    expect(settled.players.find(player => player.id === unassignedPlayerId)?.attrs.sta)
-      .toBe(beforeUnassignedSta);
-    // The pitch now takes two weeks: still building after the first settlement.
-    expect(settled.facilities.trainingGroundBuilt).toBe(false);
+    // Development now happens live in the drill popup, never in the review.
+    expect(review).not.toHaveProperty('development');
+    // The pitch takes two weeks: still building after the first settlement.
+    expect(useM1Store.getState().career?.facilities.trainingGroundBuilt).toBe(false);
     expect(review.facilityCompletion).toBeUndefined();
-    expect(settled.eventFlags).toContain('guide:bert:first-training-complete');
 
     useM1Store.getState().continueWeekReview();
     useM1Store.getState().advanceCareer();
-    const secondWeek = useM1Store.getState().career!;
     const secondReview = useM1Store.getState().weekReview!;
-    expect(secondWeek.facilities.trainingGroundBuilt).toBe(true);
+    expect(useM1Store.getState().career?.facilities.trainingGroundBuilt).toBe(true);
     expect(secondReview.facilityCompletion).toMatchObject({
       type: 'training-pitch',
       name: 'Training Pitch',
@@ -294,90 +282,7 @@ describe('M1 app store integration', () => {
     });
   });
 
-  it('fills training slots, blocks a 4th, and reindexes on removal', () => {
-    startCreatedCareer(793);
-    const career = useM1Store.getState().career!;
-    const ids = career.players
-      .filter(player => player.clubId === career.userClubId)
-      .map(player => player.id);
-
-    useM1Store.getState().toggleTrainingPlayer(ids[0]);
-    useM1Store.getState().toggleTrainingPlayer(ids[1]);
-    useM1Store.getState().toggleTrainingPlayer(ids[2]);
-    expect(useM1Store.getState().trainingSlots.map(slot => slot.playerId))
-      .toEqual([ids[0], ids[1], ids[2]]);
-
-    useM1Store.getState().toggleTrainingPlayer(ids[3]);
-    expect(useM1Store.getState().trainingSlots).toHaveLength(3);
-    expect(useM1Store.getState().trainingSlotLimitHit).toBe(true);
-
-    useM1Store.getState().toggleTrainingPlayer(ids[0]);
-    expect(useM1Store.getState().trainingSlots.map(slot => slot.playerId)).toEqual([ids[1], ids[2]]);
-    expect(useM1Store.getState().trainingSlotLimitHit).toBe(false);
-  });
-
-  it('clears the slot-limit toast so a repeated 4th tap can re-fire', () => {
-    startCreatedCareer(795);
-    const career = useM1Store.getState().career!;
-    const ids = career.players
-      .filter(player => player.clubId === career.userClubId)
-      .map(player => player.id);
-
-    useM1Store.getState().toggleTrainingPlayer(ids[0]);
-    useM1Store.getState().toggleTrainingPlayer(ids[1]);
-    useM1Store.getState().toggleTrainingPlayer(ids[2]);
-    useM1Store.getState().toggleTrainingPlayer(ids[3]);
-    expect(useM1Store.getState().trainingSlotLimitHit).toBe(true);
-
-    useM1Store.getState().clearTrainingSlotLimit();
-    expect(useM1Store.getState().trainingSlotLimitHit).toBe(false);
-
-    useM1Store.getState().toggleTrainingPlayer(ids[4]);
-    expect(useM1Store.getState().trainingSlotLimitHit).toBe(true);
-  });
-
-  it('resyncs the training draft after a slotted player is sold, so a later toggle does not throw', () => {
-    useM1Store.getState().startNewCareer(20260830, 'full');
-    useM1Store.getState().completePlayerCreation({
-      name: 'Jo Rook',
-      ratings: DEFAULT_CREATION_RATINGS,
-    });
-    const career = useM1Store.getState().career!;
-    const starterIds = new Set(
-      career.lineups.find(lineup => lineup.clubId === career.userClubId)!.playerIds,
-    );
-    const bench = career.players.filter(player => (
-      player.clubId === career.userClubId && !starterIds.has(player.id)
-    ));
-    const trainee = bench[0];
-    const other = bench[1];
-
-    useM1Store.getState().toggleTrainingPlayer(trainee.id);
-    useM1Store.getState().setTrainingSlotStat(trainee.id, 'sprints');
-    useM1Store.getState().toggleTrainingPlayer(other.id);
-    useM1Store.getState().setTrainingSlotStat(other.id, 'rondo');
-    expect(useM1Store.getState().trainingSlots.map(slot => slot.playerId)).toEqual([trainee.id, other.id]);
-
-    // List, then accept the first bid — this is the engine path that silently
-    // strips the sold player from career.trainingPlan.slots.
-    useM1Store.getState().actOnTransfer(trainee.id, 'SELL');
-    expect(useM1Store.getState().error).toBeNull();
-    const listing = useM1Store.getState().career!.market!.transferListings!
-      .find(candidate => candidate.playerId === trainee.id)!;
-    useM1Store.getState().actOnTransfer(trainee.id, 'SELL', listing.bids[0].id);
-    expect(useM1Store.getState().error).toBeNull();
-
-    expect(useM1Store.getState().trainingSlots.map(slot => slot.playerId)).toEqual([other.id]);
-
-    // Before the fix, the stale draft entry for the sold player survived, and
-    // committing a plan that referenced them (a player no longer on the
-    // roster) would throw and soft-lock the training screen.
-    useM1Store.getState().toggleTrainingPlayer(other.id);
-    expect(useM1Store.getState().error).toBeNull();
-    expect(useM1Store.getState().trainingSlots).toEqual([]);
-  });
-
-  it('adds a TRAINING_PRIORITY renewal auto-slot into the training draft', () => {
+  it('accepts a TRAINING_PRIORITY renewal as a five-drill debt', () => {
     useM1Store.getState().startNewCareer(20260831, 'full');
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
@@ -390,12 +295,11 @@ describe('M1 app store integration', () => {
     const seasonEndCareer: GameState = {
       ...career,
       phase: 'season-end',
-      trainingPlan: { slots: [] },
       players: career.players.map(player => player.id === trainee.id
         ? { ...player, contractSeasonsRemaining: 0 }
         : player),
     };
-    useM1Store.setState({ career: seasonEndCareer, trainingSlots: [] });
+    useM1Store.setState({ career: seasonEndCareer });
 
     useM1Store.getState().startRenewal(trainee.id);
     expect(useM1Store.getState().error).toBeNull();
@@ -407,20 +311,27 @@ describe('M1 app store integration', () => {
 
     expect(useM1Store.getState().error).toBeNull();
     expect(useM1Store.getState().career?.market?.renewalTalks).toBeUndefined();
-    expect(useM1Store.getState().trainingSlots.map(slot => slot.playerId)).toContain(trainee.id);
+    // The promise is a debt: the player is now owed their next five drills,
+    // which block other training until the countdown drains.
+    expect(useM1Store.getState().career?.players.find(player => player.id === trainee.id))
+      .toMatchObject({
+        contractPromise: expect.objectContaining({ perk: 'TRAINING_PRIORITY' }),
+        priorityDrillsRemaining: 5,
+      });
   });
 
-  it('writes the chosen stat to the slot and to the career training plan', () => {
+  it('surfaces a tap the bank cannot afford without advancing anything', () => {
     startCreatedCareer(794);
     const career = useM1Store.getState().career!;
     const playerId = career.players.find(player => player.clubId === career.userClubId)!.id;
+    useM1Store.setState({ career: { ...career, trainingPoints: 0 } });
 
-    useM1Store.getState().toggleTrainingPlayer(playerId);
-    expect(useM1Store.getState().trainingSlots).toEqual([{ playerId, pathId: null }]);
+    useM1Store.getState().trainPlayer(playerId, 'sprints');
 
-    useM1Store.getState().setTrainingSlotStat(playerId, 'sprints');
-    expect(useM1Store.getState().trainingSlots).toEqual([{ playerId, pathId: 'sprints' }]);
-    expect(useM1Store.getState().career?.trainingPlan?.slots).toEqual([{ playerId, pathId: 'sprints' }]);
+    expect(useM1Store.getState().error).toContain('needs 15 TP');
+    expect(useM1Store.getState().lastDrillResult).toBeNull();
+    expect(useM1Store.getState().career?.players.find(player => player.id === playerId)?.attrs)
+      .toEqual(career.players.find(player => player.id === playerId)?.attrs);
   });
 
   it('updates the Starting XI through the app store', () => {
@@ -437,34 +348,17 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().error).toBeNull();
   });
 
-  it('shows why a repeating focus plan was skipped and returns to the new week', () => {
+  it('advances a week with no training and returns to the new week from the review', () => {
     startCreatedCareer(791);
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
-    const planned = useM1Store.getState().career!;
-    useM1Store.setState({
-      career: {
-        ...planned,
-        trainingPoints: 0,
-      },
-    });
 
     useM1Store.getState().advanceCareer();
 
-    expect(useM1Store.getState()).toMatchObject({
-      screen: 'week-review',
-      weekReview: {
-        development: {
-          focusedTrainees: [],
-          trainingSkippedWarning: 'Focused training skipped — not enough TP.',
-        },
-      },
-    });
+    expect(useM1Store.getState().screen).toBe('week-review');
     useM1Store.getState().continueWeekReview();
     expect(useM1Store.getState()).toMatchObject({ screen: 'management', weekReview: null });
   });
 
-  it('returns Home beneath the statement, then celebrates player development', () => {
+  it('returns Home beneath the statement, then dismisses it', () => {
     const postMatch = examplePostMatch();
     useM1Store.setState({ screen: 'postmatch', postMatch, postMatchOverlay: null });
 
@@ -478,12 +372,6 @@ describe('M1 app store integration', () => {
 
     useM1Store.getState().dismissPostMatchSummary();
     expect(useM1Store.getState()).toMatchObject({
-      postMatch,
-      postMatchOverlay: 'development',
-    });
-
-    useM1Store.getState().dismissPostMatchDevelopment();
-    expect(useM1Store.getState()).toMatchObject({
       postMatch: null,
       postMatchOverlay: null,
     });
@@ -493,8 +381,7 @@ describe('M1 app store integration', () => {
     startCreatedCareer(790);
     useM1Store.getState().completeAssistantGuide('management-intro');
     useM1Store.getState().setActiveTab('squad');
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
+    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().setActiveTab('home');
     useM1Store.getState().setActiveTab('club');
     useM1Store.getState().buildFacility();
@@ -518,11 +405,10 @@ describe('M1 app store integration', () => {
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore);
     expect(useM1Store.getState().error).toBe(
-      'Finish your first training plan before advancing the week.',
+      'Train a player before advancing the week.',
     );
 
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
+    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore);
     expect(useM1Store.getState().error).toBe(
@@ -555,8 +441,7 @@ describe('M1 app store integration', () => {
     });
     useM1Store.getState().completeAssistantGuide('management-intro');
     useM1Store.getState().setActiveTab('squad');
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
+    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
     useM1Store.getState().setActiveTab('club');
     useM1Store.getState().buildClubFacility('training-pitch', { x: 0, y: 0 });
     useM1Store.getState().setActiveTab('home');
@@ -583,8 +468,7 @@ describe('M1 app store integration', () => {
   it('completes the real default two-season store flow through events, licenses, and renewal', () => {
     startCreatedCareer(24680);
     useM1Store.getState().buildFacility();
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
+    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
 
     driveStoreUntil(state => state.career?.phase === 'season-end');
     const seasonOne = useM1Store.getState().career!;
@@ -630,8 +514,7 @@ describe('M1 app store integration', () => {
       .toContain(replacementId);
     useM1Store.getState().buildFacility();
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
-    useM1Store.getState().toggleTrainingPlayer('bramble-rovers-created-player');
-    useM1Store.getState().setTrainingSlotStat('bramble-rovers-created-player', 'sprints');
+    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
     checkpoints += await relaunchCheckpoint(careerRepository, replayRepository);
 
     let watchedMatches = 0;
@@ -688,7 +571,6 @@ describe('M1 app store integration', () => {
         if (current.screen === 'postmatch') current.continueAfterMatch();
         else if (current.screen === 'week-review') current.continueWeekReview();
         else if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
-        else if (current.postMatchOverlay === 'development') current.dismissPostMatchDevelopment();
         else current.advanceCareer();
       } else {
         throw new Error(`unexpected persisted journey screen ${current.screen}`);
@@ -1073,7 +955,6 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
     }
     if (current.screen === 'management') {
       if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
-      else if (current.postMatchOverlay === 'development') current.dismissPostMatchDevelopment();
       else current.advanceCareer();
       continue;
     }
@@ -1148,14 +1029,6 @@ function examplePostMatch(): PostMatchViewModel {
     trainingPointsGained: 7,
     fanDelta: 10,
     highlights: [],
-    development: {
-      focusedTrainees: [{
-        id: 'player-1',
-        name: 'Joe',
-        role: 'FWD',
-        gains: [{ id: 'player-1-pac', label: 'PAC', before: 92, after: 95, delta: 3 }],
-      }],
-    },
     updates: [],
   };
 }

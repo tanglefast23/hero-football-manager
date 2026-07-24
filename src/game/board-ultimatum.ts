@@ -253,11 +253,6 @@ export function applyBoardForcedSaleConsequences(
       };
     }), replacement],
     lineups,
-    trainingPlan: state.trainingPlan === undefined
-      ? undefined
-      : {
-          slots: state.trainingPlan.slots.filter(slot => slot.playerId !== player.id),
-        },
     market: state.market === undefined
       ? undefined
       : {
