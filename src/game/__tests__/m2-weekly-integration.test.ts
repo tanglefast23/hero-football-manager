@@ -212,7 +212,7 @@ describe('M2 weekly sidecars', () => {
   });
 
   test('applies full-career condition workload while leaving the M1 slice unchanged', () => {
-    const focusPlan = (state: GameState): GameState => {
+    const focusPlan = (state: GameState): { state: GameState; playerId: string } => {
       const playerId = state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds[0];
       const prepared = {
         ...state,

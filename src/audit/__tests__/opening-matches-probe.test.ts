@@ -23,9 +23,8 @@ import {
   isFirstOnboardingFixture,
   quickMatchForFixture,
   resolvePostMatchAwakening,
-  setCareerTrainingPlan,
-  slotIsAtCap,
-  slotTrainingPointCost,
+  resolveTrainingDrillForPath,
+  trainPlayerInstantly,
   withoutPowers,
   type CareerPlayer,
   type GameState,
@@ -139,8 +138,7 @@ function planWeeklyTraining(state: GameState, run: CareerRun): GameState {
   const hero = createdPlayer(state);
   const roster = state.players.filter(player => player.clubId === state.userClubId);
 
-  const hasPacHeadroom = (player: CareerPlayer): boolean =>
-    !slotIsAtCap(state, { playerId: player.id, pathId: 'sprints' });
+  const hasPacHeadroom = (player: CareerPlayer): boolean => player.attrs.pac < 999;
 
   const candidates = [
     ...(hero !== undefined && hasPacHeadroom(hero) ? [hero] : []),
@@ -155,29 +153,28 @@ function planWeeklyTraining(state: GameState, run: CareerRun): GameState {
 
   if (candidates.length === 0) {
     run.weeksBlockedByCaps += 1;
-    return clearPlan(state);
+    return state;
   }
-  const slots = candidates.map(player => ({ playerId: player.id, pathId: 'sprints' }));
-  const trainingPointCost = slotTrainingPointCost(state, slots);
-  if (state.trainingPoints < trainingPointCost) {
+
+  // Drills resolve at tap time now: tap each candidate once for this week
+  // while the bank affords it. Do not catch tap failures — a pricing mismatch
+  // invalidates the cohort and must fail the probe loudly.
+  let next = state;
+  let tapped = 0;
+  for (const player of candidates) {
+    const drill = resolveTrainingDrillForPath(next, 'sprints');
+    if (next.trainingPoints < drill.tpCost) break;
+    next = trainPlayerInstantly(next, player.id, 'sprints').state;
+    run.focusTpCommitted += drill.tpCost;
+    tapped += 1;
+  }
+  if (tapped === 0) {
     run.weeksBlockedByTp += 1;
-    return clearPlan(state);
+    return next;
   }
-  // Training money is always 0 now, so a cash block can never happen.
-
-  // Do not catch this: a planner/settlement pricing mismatch invalidates the
-  // cohort and must fail the probe loudly.
-  const next = setCareerTrainingPlan(state, slots);
   run.weeksTrained += 1;
-  run.eligibleTraineeSessions += slots.length;
-  run.focusTpCommitted += trainingPointCost;
+  run.eligibleTraineeSessions += tapped;
   return next;
-}
-
-function clearPlan(state: GameState): GameState {
-  if (state.trainingPlan === undefined) return state;
-  const { trainingPlan: _dropped, ...rest } = state;
-  return rest as GameState;
 }
 
 function positiveIntegerEnv(name: string, fallback: number): number {

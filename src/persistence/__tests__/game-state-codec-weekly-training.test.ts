@@ -27,7 +27,7 @@ describe('retired weekly-training migration', () => {
       },
     });
 
-    const loaded = parseStoredGameState(legacy) as Record<string, unknown>;
+    const loaded = parseStoredGameState(legacy) as unknown as Record<string, unknown>;
 
     // The pending plan is discarded silently; drills happen at tap time now.
     expect(loaded.trainingPlan).toBeUndefined();

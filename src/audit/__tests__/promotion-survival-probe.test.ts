@@ -43,15 +43,14 @@ import {
   quickMatchForFixture,
   renewCareerPlayer,
   resolveTrainingDrillForPath,
+  trainPlayerInstantly,
+  trainingPathAttribute,
   restoreCareerContractPromiseLineup,
   resolvePostMatchAwakening,
   roleOverall,
   sellCareerPlayer,
   selectCareerLicensedHeroes,
   setCareerLineup,
-  setCareerTrainingPlan,
-  slotIsAtCap,
-  slotTrainingPointCost,
   startCareerScoutMission,
   startNextSeason,
   submitCareerTransferOffer,
@@ -263,7 +262,7 @@ function settlePromotionMatchday(state: GameState): GameState {
 }
 
 function runD4Season(promoted: GameState, seed: number, prepared: boolean): SeasonOutcome {
-  let state = choosePromotionHeroLicenses(clearTrainingPlan(startNextSeason(promoted)));
+  let state = choosePromotionHeroLicenses(startNextSeason(promoted));
   if (state.m2 === undefined || currentUserDivision(state.m2) !== 4) {
     throw new Error(`promotion seed ${seed} did not enter Division 4`);
   }
@@ -303,7 +302,6 @@ function runD4Season(promoted: GameState, seed: number, prepared: boolean): Seas
         prep.state = training.state;
         if (training.planned) prep.trainingWeeks += 1;
       } else {
-        prep.state = clearTrainingPlan(prep.state);
       }
       try {
         prep.state = advanceWeek(prep.state);
@@ -347,7 +345,6 @@ function runD4Season(promoted: GameState, seed: number, prepared: boolean): Seas
     }
     if (prep.state.phase === 'matchday') {
       // A Week-4 plan must not leak into the Week-5 league settlement.
-      if (prep.state.week > PRESEASON_LAST_WEEK) prep.state = clearTrainingPlan(prep.state);
       prep.state = settleMeasuredMatchday(prep.state);
       continue;
     }
@@ -678,8 +675,9 @@ function planUsefulTraining(
     .map(id => state.players.find(player => player.id === id)!)
     .filter(player => player.injuryWeeks === 0);
   const options = TRAINING_PATHS.flatMap(path => {
+    const attribute = trainingPathAttribute(path.pathId);
     const eligible = lineupPlayers
-      .filter(player => !slotIsAtCap(state, { playerId: player.id, pathId: path.pathId }))
+      .filter(player => player.attrs[attribute] < 999)
       .sort((left, right) => (
         trainingGain(state, right, path.pathId) - trainingGain(state, left, path.pathId)
         || left.id.localeCompare(right.id)
@@ -687,7 +685,7 @@ function planUsefulTraining(
       .slice(0, maxTrainees);
     if (eligible.length === 0) return [];
     const slots = eligible.map(player => ({ playerId: player.id, pathId: path.pathId }));
-    const tpCost = slotTrainingPointCost(state, slots);
+    const tpCost = resolveTrainingDrillForPath(state, path.pathId).tpCost * eligible.length;
     // Training money is always 0 now; TP is the only remaining constraint.
     if (tpCost > state.trainingPoints) return [];
     return [{
@@ -702,11 +700,13 @@ function planUsefulTraining(
     || left.pathId.localeCompare(right.pathId)
   ));
   const selected = options[0];
-  if (selected === undefined) return { state: clearTrainingPlan(state), planned: false };
-  return {
-    state: setCareerTrainingPlan(state, selected.slots),
-    planned: true,
-  };
+  if (selected === undefined) return { state, planned: false };
+  // Drills resolve at tap time now: tap the selected weekly cohort directly.
+  let next = state;
+  for (const slot of selected.slots) {
+    next = trainPlayerInstantly(next, slot.playerId, slot.pathId).state;
+  }
+  return { state: next, planned: true };
 }
 
 function trainingGain(state: GameState, player: CareerPlayer, pathId: string): number {
@@ -717,12 +717,6 @@ function trainingGain(state: GameState, player: CareerPlayer, pathId: string): n
     attrs[attribute] = Math.min(99, attrs[attribute] + (gain ?? 0));
   }
   return roleOverall(player.role, attrs) - roleOverall(player.role, player.attrs);
-}
-
-function clearTrainingPlan(state: GameState): GameState {
-  if (state.trainingPlan === undefined) return state;
-  const { trainingPlan: _removed, ...rest } = state;
-  return rest as GameState;
 }
 
 function weakestStartingRole(state: GameState): Role {
