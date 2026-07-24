@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
@@ -9,12 +9,11 @@ import type { SquadPlayerViewModel, SquadTrainingViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
+  isTutorialTargetVisible,
   TUTORIAL_TAP_CUE_ABOVE_OFFSET,
   TUTORIAL_TAP_CUE_RESERVED_SPACE,
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
-import { TrainingDrillModal } from '../TrainingDrillModal';
-import { trainingBadgeAction } from '../training-badge-action';
 import {
   nextSquadSort,
   sortSquadPlayers,
@@ -41,9 +40,6 @@ export interface SquadTrainingScreenProps {
   onDismissSlotLimit?: () => void;
   guideTraining?: boolean;
   guideFocus?: AssistantGuideFocus;
-  reduceMotion?: boolean;
-  /** Bumped by the app shell to pop the drill picker for the selected player (inbox deep link). */
-  drillPickerRequestToken?: number;
 }
 
 export function SquadTrainingScreen({
@@ -56,8 +52,6 @@ export function SquadTrainingScreen({
   onDismissSlotLimit,
   guideTraining = false,
   guideFocus,
-  reduceMotion = false,
-  drillPickerRequestToken,
 }: SquadTrainingScreenProps) {
   const { width } = useWindowDimensions();
   const wideColumns = width >= 600;
@@ -67,8 +61,11 @@ export function SquadTrainingScreen({
   const selectedArchetype = selectedPlayer === undefined
     ? undefined
     : archetypeDevelopmentSummary(selectedPlayer.archetype);
+  const scrollViewportRef = useRef<View>(null);
+  const statPickerRef = useRef<View>(null);
+  const visibilityFrameRef = useRef<number | null>(null);
   const playerGuideTouchStartRef = useRef<TutorialTouchPoint | null>(null);
-  const [drillPickerOpen, setDrillPickerOpen] = useState(false);
+  const [statPickerVisible, setStatPickerVisible] = useState(false);
   const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
   const [slotLimitToastVisible, setSlotLimitToastVisible] = useState(false);
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
@@ -108,19 +105,49 @@ export function SquadTrainingScreen({
     playerGuideTouchStartRef.current = null;
   }, []);
 
-  const handleTrainingBadgePress = useCallback((playerId: string) => {
-    const player = viewModel.players.find(candidate => candidate.id === playerId);
-    if (player === undefined) return;
-    const action = trainingBadgeAction(player.slotNumber !== undefined, assignedCount, viewModel.maxSlots);
-    if (action === 'manage') onSelectPlayer(playerId);
-    else onTogglePlayerAssignment(playerId);
-    if (action !== 'reject-full') setDrillPickerOpen(true);
-  }, [viewModel.players, viewModel.maxSlots, assignedCount, onSelectPlayer, onTogglePlayerAssignment]);
+  const measureTrainingGuideVisibility = useCallback(() => {
+    scrollViewportRef.current?.measureInWindow((viewportX, viewportY, viewportWidth, viewportHeight) => {
+      const viewport = { x: viewportX, y: viewportY, width: viewportWidth, height: viewportHeight };
+      if (guideStat) {
+        statPickerRef.current?.measureInWindow((targetX, targetY, targetWidth, targetHeight) => {
+          const visible = isTutorialTargetVisible(
+            { x: targetX, y: targetY, width: targetWidth, height: targetHeight },
+            viewport,
+          );
+          setStatPickerVisible(current => current === visible ? current : visible);
+        });
+      }
+    });
+  }, [guideStat]);
+
+  const scheduleTrainingGuideVisibility = useCallback(() => {
+    if (!guideStat) return;
+    if (visibilityFrameRef.current !== null) cancelAnimationFrame(visibilityFrameRef.current);
+    visibilityFrameRef.current = requestAnimationFrame(() => {
+      visibilityFrameRef.current = null;
+      measureTrainingGuideVisibility();
+    });
+  }, [guideStat, measureTrainingGuideVisibility]);
 
   useEffect(() => {
-    if (drillPickerRequestToken === undefined) return;
-    setDrillPickerOpen(true);
-  }, [drillPickerRequestToken]);
+    if (!guideStat) setStatPickerVisible(false);
+    if (!guideStat) {
+      return;
+    }
+    scheduleTrainingGuideVisibility();
+    return () => {
+      if (visibilityFrameRef.current !== null) {
+        cancelAnimationFrame(visibilityFrameRef.current);
+        visibilityFrameRef.current = null;
+      }
+    };
+  }, [guideStat, scheduleTrainingGuideVisibility]);
+
+  useEffect(() => {
+    if (!guideTraining) {
+      setStatPickerVisible(false);
+    }
+  }, [guideTraining]);
 
   useEffect(() => {
     if (!trainingSlotLimitHit) return undefined;
@@ -132,10 +159,7 @@ export function SquadTrainingScreen({
     return () => clearTimeout(timer);
   }, [trainingSlotLimitHit, onDismissSlotLimit]);
 
-  const drillCuePlayerId = guideStat && !drillPickerOpen
-    ? sortedPlayers.find(player => player.slotNumber !== undefined
-        && !viewModel.slots.some(slot => slot.playerId === player.id))?.id
-    : undefined;
+  const showScrollCue = guideStat && !statPickerVisible;
 
   const layoutMode = useLayoutMode();
 
@@ -157,9 +181,8 @@ export function SquadTrainingScreen({
           assignedCount={assignedCount}
           selectedPlayerId={selectedPlayerId}
           guideFocus={guideFocus}
-          drillCuePlayerId={drillCuePlayerId}
           onSelectPlayer={onSelectPlayer}
-          onPressTrainingBadge={handleTrainingBadgePress}
+          onTogglePlayerAssignment={onTogglePlayerAssignment}
         />
       ),
     },
@@ -171,6 +194,20 @@ export function SquadTrainingScreen({
       ),
     }] : []),
     {
+      key: 'training-focus',
+      weight: 2 + (viewModel.selectedPlayerStatOptions?.length ?? 1),
+      node: (
+        <TrainingFocusSection
+          viewModel={viewModel}
+          selectedPlayer={selectedPlayer}
+          guideStat={guideStat}
+          statPickerRef={statPickerRef}
+          scheduleTrainingGuideVisibility={scheduleTrainingGuideVisibility}
+          onSelectTrainingStat={onSelectTrainingStat}
+        />
+      ),
+    },
+    {
       key: 'training-set',
       weight: 3 + viewModel.slots.length,
       node: (
@@ -180,15 +217,23 @@ export function SquadTrainingScreen({
   ];
 
   return (
-    <View className="flex-1">
+    <View
+      ref={scrollViewportRef}
+      collapsable={false}
+      className="flex-1"
+      onLayout={scheduleTrainingGuideVisibility}
+    >
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        onLayout={scheduleTrainingGuideVisibility}
+        onScroll={scheduleTrainingGuideVisibility}
         onScrollBeginDrag={dismissPlayerGuide}
         onTouchStart={rememberPlayerGuideTouch}
         onTouchMove={dismissPlayerGuideAfterDrag}
         onTouchEnd={forgetPlayerGuideTouch}
         onTouchCancel={forgetPlayerGuideTouch}
+        scrollEventThrottle={16}
       >
         <SectionFlow
           mode={layoutMode}
@@ -209,22 +254,11 @@ export function SquadTrainingScreen({
           <Text className="text-center text-sm font-bold text-ink">Only 3 players — remove one first.</Text>
         </View>
       ) : null}
-      {drillPickerOpen && selectedPlayer && selectedPlayer.slotNumber !== undefined && viewModel.selectedPlayerStatOptions ? (
-        <TrainingDrillModal
-          playerId={selectedPlayer.id}
-          playerName={selectedPlayer.name}
-          options={viewModel.selectedPlayerStatOptions}
-          currentPathId={viewModel.slots.find(slot => slot.playerId === selectedPlayer.id)?.pathId}
-          onPickDrill={(playerId, pathId) => {
-            onSelectTrainingStat(playerId, pathId);
-            setDrillPickerOpen(false);
-          }}
-          onRemoveFromTraining={playerId => {
-            onTogglePlayerAssignment(playerId);
-            setDrillPickerOpen(false);
-          }}
-          onDismiss={() => setDrillPickerOpen(false)}
-          reduceMotion={reduceMotion}
+      {showScrollCue ? (
+        <TutorialTapCue
+          label="Scroll down"
+          detail="Pick a stat"
+          style={{ bottom: 10, right: 10 }}
         />
       ) : null}
     </View>
@@ -244,9 +278,8 @@ interface RosterSectionProps {
   assignedCount: number;
   selectedPlayerId?: string;
   guideFocus?: AssistantGuideFocus;
-  drillCuePlayerId?: string;
   onSelectPlayer: (playerId: string) => void;
-  onPressTrainingBadge: (playerId: string) => void;
+  onTogglePlayerAssignment: (playerId: string) => void;
 }
 
 function RosterSection({
@@ -262,9 +295,8 @@ function RosterSection({
   assignedCount,
   selectedPlayerId,
   guideFocus,
-  drillCuePlayerId,
   onSelectPlayer,
-  onPressTrainingBadge,
+  onTogglePlayerAssignment,
 }: RosterSectionProps) {
   return (
     <View>
@@ -299,7 +331,6 @@ function RosterSection({
             (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
             || guideFocus === 'transfer-request'
           );
-          const guideDrillPlayer = player.id === drillCuePlayerId;
           return (
             <View
               key={player.id}
@@ -308,23 +339,12 @@ function RosterSection({
                 : player.injuryWeeks > 0
                   ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
                   : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
-              style={guideConciergePlayer || guideDrillPlayer ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
+              style={guideConciergePlayer ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
             >
               {guideConciergePlayer ? (
                 <TutorialTapCue
                   label="Bert says"
                   detail={guideFocus === 'injury-lineup' ? 'Review injury and replacement' : 'Review this player'}
-                  style={{
-                    left: '50%',
-                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-                  }}
-                />
-              ) : null}
-              {guideDrillPlayer ? (
-                <TutorialTapCue
-                  label="Tap the number"
-                  detail="Pick a drill"
                   style={{
                     left: '50%',
                     marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -366,15 +386,15 @@ function RosterSection({
                 <Text className={player.condition < 30 ? 'w-16 text-right font-mono text-sm font-bold text-stamp' : 'w-16 text-right font-mono text-sm text-ink'} numberOfLines={1}>{player.condition}%</Text>
               </Pressable>
               <Pressable
-                accessibilityRole="button"
+                accessibilityRole="checkbox"
                 accessibilityLabel={player.trainingLocked
                   ? `${player.name} is locked into training by a contract promise`
                   : isAssigned
-                    ? `Change or remove ${player.name}'s training drill`
+                    ? `Remove ${player.name} from this week's training slots`
                     : `Add ${player.name} to this week's training slots`}
-                accessibilityState={{ disabled: player.trainingLocked === true }}
+                accessibilityState={{ checked: isAssigned, disabled: player.trainingLocked === true }}
                 disabled={player.trainingLocked === true}
-                onPress={() => onPressTrainingBadge(player.id)}
+                onPress={() => onTogglePlayerAssignment(player.id)}
                 className={player.trainingLocked
                   ? 'ml-2 h-11 w-12 items-center justify-center border border-ink/20 bg-paper-dark'
                   : isAssigned
@@ -510,6 +530,91 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
         </View>
       </View>
     </PaperPanel>
+  );
+}
+
+interface TrainingFocusSectionProps {
+  viewModel: SquadTrainingViewModel;
+  selectedPlayer?: SquadPlayerViewModel;
+  guideStat: boolean;
+  statPickerRef: RefObject<View | null>;
+  scheduleTrainingGuideVisibility: () => void;
+  onSelectTrainingStat: (playerId: string, pathId: string) => void;
+}
+
+function TrainingFocusSection({
+  viewModel,
+  selectedPlayer,
+  guideStat,
+  statPickerRef,
+  scheduleTrainingGuideVisibility,
+  onSelectTrainingStat,
+}: TrainingFocusSectionProps) {
+  return (
+      <View>
+        <SectionLabel
+          eyebrow="Weekly plan"
+          title="Training focus"
+          right={<StatusChip label={`${viewModel.weeklyTrainingPointCost} TP / wk`} selected={viewModel.weeklyTrainingPointCost > 0} />}
+        />
+        {selectedPlayer && viewModel.selectedPlayerStatOptions ? (
+          <View
+            className={guideStat
+              ? 'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'
+              : 'gap-2'}
+            ref={statPickerRef}
+            collapsable={false}
+            onLayout={scheduleTrainingGuideVisibility}
+          >
+            {guideStat ? (
+              <TutorialTapCue
+                label="Tap in here"
+                detail="Pick a stat"
+                style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+              />
+            ) : null}
+            {viewModel.selectedPlayerStatOptions.map(option => {
+              const isCurrent = viewModel.slots.some(
+                slot => slot.playerId === selectedPlayer.id && slot.pathId === option.pathId,
+              );
+              return (
+                <Pressable
+                  key={option.pathId}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Train ${selectedPlayer.name} in ${option.label}`}
+                  accessibilityHint={`${option.drillName}. Base gain ${option.gain} ${option.label}. Current value ${option.currentValue}.`}
+                  accessibilityState={{ checked: isCurrent, disabled: option.atSafetyCeiling }}
+                  disabled={option.atSafetyCeiling}
+                  onPress={() => onSelectTrainingStat(selectedPlayer.id, option.pathId)}
+                  className={option.atSafetyCeiling
+                    ? 'flex-row items-center justify-between border-2 border-ink/20 bg-white px-3 py-3 opacity-40'
+                    : isCurrent
+                      ? 'flex-row items-center justify-between border-2 border-violet-dark bg-violet-light px-3 py-3'
+                      : 'flex-row items-center justify-between border-2 border-ink/30 bg-white px-3 py-3'}
+                  style={({ pressed }) => ({ opacity: pressed && !option.atSafetyCeiling ? 0.65 : undefined })}
+                >
+                  <View className="min-w-0 flex-1 pr-2">
+                    <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{option.drillName}</Text>
+                    <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>
+                      {option.atSafetyCeiling ? 'Maximum 999' : `Current ${option.currentValue} · no personal cap`}
+                    </Text>
+                  </View>
+                  <Text
+                    className={isCurrent ? 'font-mono text-base font-bold text-violet-dark' : 'font-mono text-base font-bold text-ink'}
+                    numberOfLines={1}
+                  >
+                    +{option.gain} {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <View className="border-2 border-ink bg-white p-4">
+            <Text className="text-sm text-ink/60">Select a player above to choose their training focus.</Text>
+          </View>
+        )}
+      </View>
   );
 }
 
