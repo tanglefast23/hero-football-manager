@@ -52,7 +52,7 @@ describe('management injury and lineup presentation', () => {
       destination: 'squad',
     }));
 
-    const squadPlayer = squadTrainingViewModel(injured, content, benchPlayer.id, [])
+    const squadPlayer = squadTrainingViewModel(injured, content, benchPlayer.id)
       .players.find(player => player.id === benchPlayer.id);
     expect(squadPlayer).toMatchObject({ injuryWeeks: 2, isStarter: false });
 

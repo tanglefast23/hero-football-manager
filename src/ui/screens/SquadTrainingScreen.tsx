@@ -3,9 +3,9 @@ import type { Dispatch, SetStateAction } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
-import { Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
+import { Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
-import type { SquadPlayerViewModel, SquadTrainingViewModel } from '../models';
+import type { DrillResultViewModel, SquadPlayerViewModel, SquadTrainingViewModel } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
@@ -14,7 +14,6 @@ import {
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
 import { TrainingDrillModal } from '../TrainingDrillModal';
-import { trainingBadgeAction } from '../training-badge-action';
 import {
   nextSquadSort,
   sortSquadPlayers,
@@ -31,18 +30,18 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
-  /** The player currently focused for the profile card and stat picker (mirrors store.selectedPlayerId). */
+  /** The player currently focused for the profile card and drill popup (mirrors store.selectedPlayerId). */
   selectedPlayerId?: string;
   onSelectPlayer: (playerId: string) => void;
-  onTogglePlayerAssignment: (playerId: string) => void;
-  onSelectTrainingStat: (playerId: string, pathId: string) => void;
-  /** True right after a 4th player is tapped while all 3 slots are full. */
-  trainingSlotLimitHit?: boolean;
-  onDismissSlotLimit?: () => void;
+  /** Resolves the drill instantly; the popup stays open for chain taps. */
+  onTrainDrill: (playerId: string, pathId: string) => void;
+  /** The latest resolved drill, sequenced so the popup can animate repeats. */
+  lastDrillResult: DrillResultViewModel | null;
+  trainingPoints: number;
   guideTraining?: boolean;
   guideFocus?: AssistantGuideFocus;
   reduceMotion?: boolean;
-  /** Bumped by the app shell to pop the drill picker for the selected player (inbox deep link). */
+  /** Bumped by the app shell to pop the drill popup for the selected player (inbox deep link). */
   drillPickerRequestToken?: number;
 }
 
@@ -50,10 +49,9 @@ export function SquadTrainingScreen({
   viewModel,
   selectedPlayerId,
   onSelectPlayer,
-  onTogglePlayerAssignment,
-  onSelectTrainingStat,
-  trainingSlotLimitHit = false,
-  onDismissSlotLimit,
+  onTrainDrill,
+  lastDrillResult,
+  trainingPoints,
   guideTraining = false,
   guideFocus,
   reduceMotion = false,
@@ -70,15 +68,12 @@ export function SquadTrainingScreen({
   const playerGuideTouchStartRef = useRef<TutorialTouchPoint | null>(null);
   const [drillPickerOpen, setDrillPickerOpen] = useState(false);
   const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
-  const [slotLimitToastVisible, setSlotLimitToastVisible] = useState(false);
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
     [squadSort, viewModel.players],
   );
-  const assignedCount = viewModel.players.filter(player => player.slotNumber !== undefined).length;
-  const guidePlayers = guideTraining && assignedCount === 0;
-  const guideStat = guideTraining && assignedCount > 0 && viewModel.slots.length < assignedCount;
+  const guidePlayers = guideTraining;
 
   const dismissPlayerGuide = useCallback(() => {
     if (guidePlayers) setPlayerGuideDismissed(true);
@@ -109,33 +104,14 @@ export function SquadTrainingScreen({
   }, []);
 
   const handleTrainingBadgePress = useCallback((playerId: string) => {
-    const player = viewModel.players.find(candidate => candidate.id === playerId);
-    if (player === undefined) return;
-    const action = trainingBadgeAction(player.slotNumber !== undefined, assignedCount, viewModel.maxSlots);
-    if (action === 'manage') onSelectPlayer(playerId);
-    else onTogglePlayerAssignment(playerId);
-    if (action !== 'reject-full') setDrillPickerOpen(true);
-  }, [viewModel.players, viewModel.maxSlots, assignedCount, onSelectPlayer, onTogglePlayerAssignment]);
+    onSelectPlayer(playerId);
+    setDrillPickerOpen(true);
+  }, [onSelectPlayer]);
 
   useEffect(() => {
     if (drillPickerRequestToken === undefined) return;
     setDrillPickerOpen(true);
   }, [drillPickerRequestToken]);
-
-  useEffect(() => {
-    if (!trainingSlotLimitHit) return undefined;
-    setSlotLimitToastVisible(true);
-    const timer = setTimeout(() => {
-      setSlotLimitToastVisible(false);
-      onDismissSlotLimit?.();
-    }, 2400);
-    return () => clearTimeout(timer);
-  }, [trainingSlotLimitHit, onDismissSlotLimit]);
-
-  const drillCuePlayerId = guideStat && !drillPickerOpen
-    ? sortedPlayers.find(player => player.slotNumber !== undefined
-        && !viewModel.slots.some(slot => slot.playerId === player.id))?.id
-    : undefined;
 
   const layoutMode = useLayoutMode();
 
@@ -154,10 +130,9 @@ export function SquadTrainingScreen({
           squadSort={squadSort}
           setSquadSort={setSquadSort}
           sortedPlayers={sortedPlayers}
-          assignedCount={assignedCount}
+          trainingPoints={trainingPoints}
           selectedPlayerId={selectedPlayerId}
           guideFocus={guideFocus}
-          drillCuePlayerId={drillCuePlayerId}
           onSelectPlayer={onSelectPlayer}
           onPressTrainingBadge={handleTrainingBadgePress}
         />
@@ -170,13 +145,6 @@ export function SquadTrainingScreen({
         <PlayerFileSection selectedPlayer={selectedPlayer} selectedArchetype={selectedArchetype} />
       ),
     }] : []),
-    {
-      key: 'training-set',
-      weight: 3 + viewModel.slots.length,
-      node: (
-        <TrainingSetSection viewModel={viewModel} />
-      ),
-    },
   ];
 
   return (
@@ -201,28 +169,18 @@ export function SquadTrainingScreen({
           sections={sections}
         />
       </ScrollView>
-      {slotLimitToastVisible ? (
-        <View
-          pointerEvents="none"
-          className="absolute inset-x-4 top-4 border-2 border-stamp bg-red-light px-4 py-3 shadow-lg shadow-black/40"
-        >
-          <Text className="text-center text-sm font-bold text-ink">Only 3 players — remove one first.</Text>
-        </View>
-      ) : null}
-      {drillPickerOpen && selectedPlayer && selectedPlayer.slotNumber !== undefined && viewModel.selectedPlayerStatOptions ? (
+      {drillPickerOpen && selectedPlayer && viewModel.selectedPlayerStatOptions ? (
         <TrainingDrillModal
           playerId={selectedPlayer.id}
           playerName={selectedPlayer.name}
           options={viewModel.selectedPlayerStatOptions}
-          currentPathId={viewModel.slots.find(slot => slot.playerId === selectedPlayer.id)?.pathId}
-          onPickDrill={(playerId, pathId) => {
-            onSelectTrainingStat(playerId, pathId);
-            setDrillPickerOpen(false);
-          }}
-          onRemoveFromTraining={playerId => {
-            onTogglePlayerAssignment(playerId);
-            setDrillPickerOpen(false);
-          }}
+          superChancePercent={selectedPlayer.superChancePercent}
+          injuryRiskPercent={selectedPlayer.injuryRiskPercent}
+          condition={selectedPlayer.condition}
+          injuryWeeks={selectedPlayer.injuryWeeks}
+          trainingPoints={trainingPoints}
+          lastDrillResult={lastDrillResult}
+          onTrainDrill={onTrainDrill}
           onDismiss={() => setDrillPickerOpen(false)}
           reduceMotion={reduceMotion}
         />
@@ -241,10 +199,9 @@ interface RosterSectionProps {
   squadSort: SquadSort | null;
   setSquadSort: Dispatch<SetStateAction<SquadSort | null>>;
   sortedPlayers: readonly SquadPlayerViewModel[];
-  assignedCount: number;
+  trainingPoints: number;
   selectedPlayerId?: string;
   guideFocus?: AssistantGuideFocus;
-  drillCuePlayerId?: string;
   onSelectPlayer: (playerId: string) => void;
   onPressTrainingBadge: (playerId: string) => void;
 }
@@ -259,10 +216,9 @@ function RosterSection({
   squadSort,
   setSquadSort,
   sortedPlayers,
-  assignedCount,
+  trainingPoints,
   selectedPlayerId,
   guideFocus,
-  drillCuePlayerId,
   onSelectPlayer,
   onPressTrainingBadge,
 }: RosterSectionProps) {
@@ -271,15 +227,15 @@ function RosterSection({
       <SectionLabel
         eyebrow="Team register"
         title={`${viewModel.players.length} players`}
-        right={<StatusChip label={`${assignedCount} / ${viewModel.maxSlots} training`} />}
+        right={<StatusChip label={`${trainingPoints} TP`} />}
       />
       <View className={guidePlayers
         ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
         : 'border-2 border-ink bg-white'}>
         {guidePlayers && !playerGuideDismissed ? (
           <TutorialTapCue
-            label="Tap in here"
-            detail="Add up to 3 players."
+            label="Tap a +"
+            detail="Train a player right now."
             style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
           />
         ) : null}
@@ -293,13 +249,11 @@ function RosterSection({
         </View>
         {sortedPlayers.map((player) => {
           const selected = player.id === selectedPlayerId;
-          const isAssigned = player.slotNumber !== undefined;
-          const glowAssignmentButton = guidePlayers && !isAssigned;
+          const glowAssignmentButton = guidePlayers && player.injuryWeeks === 0;
           const guideConciergePlayer = player.id === selectedPlayerId && (
             (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
             || guideFocus === 'transfer-request'
           );
-          const guideDrillPlayer = player.id === drillCuePlayerId;
           return (
             <View
               key={player.id}
@@ -308,23 +262,12 @@ function RosterSection({
                 : player.injuryWeeks > 0
                   ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
                   : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
-              style={guideConciergePlayer || guideDrillPlayer ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
+              style={guideConciergePlayer ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
             >
               {guideConciergePlayer ? (
                 <TutorialTapCue
                   label="Bert says"
                   detail={guideFocus === 'injury-lineup' ? 'Review injury and replacement' : 'Review this player'}
-                  style={{
-                    left: '50%',
-                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-                  }}
-                />
-              ) : null}
-              {guideDrillPlayer ? (
-                <TutorialTapCue
-                  label="Tap the number"
-                  detail="Pick a drill"
                   style={{
                     left: '50%',
                     marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
@@ -367,32 +310,28 @@ function RosterSection({
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={player.trainingLocked
-                  ? `${player.name} is locked into training by a contract promise`
-                  : isAssigned
-                    ? `Change or remove ${player.name}'s training drill`
-                    : `Add ${player.name} to this week's training slots`}
-                accessibilityState={{ disabled: player.trainingLocked === true }}
-                disabled={player.trainingLocked === true}
+                accessibilityLabel={player.injuryWeeks > 0
+                  ? `${player.name} is injured and cannot train`
+                  : `Train ${player.name} now`}
+                accessibilityState={{ disabled: player.injuryWeeks > 0 }}
+                disabled={player.injuryWeeks > 0}
                 onPress={() => onPressTrainingBadge(player.id)}
-                className={player.trainingLocked
+                className={player.injuryWeeks > 0
                   ? 'ml-2 h-11 w-12 items-center justify-center border border-ink/20 bg-paper-dark'
-                  : isAssigned
-                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-violet-dark bg-violet-light'
-                    : glowAssignmentButton
-                      ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
-                      : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
+                  : glowAssignmentButton
+                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
+                    : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
                 style={({ pressed }) => [
-                  { opacity: pressed && !player.trainingLocked ? 0.65 : undefined },
+                  { opacity: pressed && player.injuryWeeks === 0 ? 0.65 : undefined },
                   glowAssignmentButton ? styles.assignmentButtonGlow : null,
                 ]}
               >
-                <Text className={player.trainingLocked
+                <Text className={player.injuryWeeks > 0
                   ? 'font-mono text-base font-bold text-ink/30'
-                  : isAssigned || glowAssignmentButton
+                  : glowAssignmentButton
                     ? 'font-mono text-base font-bold text-ink'
                     : 'font-mono text-base text-ink/40'}>
-                  {player.trainingLocked ? '🔒' : player.slotNumber ?? '+'}
+                  +
                 </Text>
               </Pressable>
             </View>
@@ -446,7 +385,7 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
         <Metric label="Age" value={String(selectedPlayer.age)} />
         <Metric
           label="Potential"
-          value={`${selectedPlayer.potentialGrade} · +${selectedPlayer.potentialBonusPercent}% training`}
+          value={`${selectedPlayer.potentialGrade} · ${selectedPlayer.superChancePercent}% SUPER`}
           tone="positive"
         />
         <Metric label="Morale" value={`${selectedPlayer.morale}%`} />
@@ -508,39 +447,6 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
               </View>
             ))}
         </View>
-      </View>
-    </PaperPanel>
-  );
-}
-
-interface TrainingSetSectionProps {
-  viewModel: SquadTrainingViewModel;
-}
-
-function TrainingSetSection({ viewModel }: TrainingSetSectionProps) {
-  return (
-    <PaperPanel kicker="This week" title="Training set">
-      {viewModel.slots.length === 0 ? (
-        <Text className="text-sm text-ink/60">No players in training this week.</Text>
-      ) : (
-        <View className="gap-2">
-          {viewModel.slots.map(slot => (
-            <View
-              key={slot.playerId}
-              className="flex-row items-center justify-between border border-ink/20 bg-paper px-3 py-2"
-            >
-              <View className="min-w-0 flex-1 pr-2">
-                <Text className="text-base font-bold text-ink" numberOfLines={1}>{slot.playerName}</Text>
-                <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>{slot.drillName}</Text>
-              </View>
-              <Text className="font-mono text-sm font-bold text-pitch-dark" numberOfLines={1}>{slot.gainLabel}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-      <View className="mt-3 flex-row gap-2">
-        <Metric label="Players training" value={String(viewModel.slots.length)} />
-        <Metric label="TP cost / wk" value={formatCompactNumber(viewModel.weeklyTrainingPointCost)} tone="negative" />
       </View>
     </PaperPanel>
   );

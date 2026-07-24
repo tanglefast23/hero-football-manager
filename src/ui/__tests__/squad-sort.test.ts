@@ -1,10 +1,10 @@
 import { nextSquadSort, sortSquadPlayers, type SquadSort } from '../squad-sort';
 
 const players = [
-  { id: '1', name: 'Sam Mitts', role: 'GK' as const, overall: 43, potentialBonusPercent: 1, condition: 100 },
-  { id: '2', name: 'Ed Stone', role: 'DEF' as const, overall: 45, potentialBonusPercent: 10, condition: 75 },
-  { id: '3', name: 'Bo Hedges', role: 'DEF' as const, overall: 45, potentialBonusPercent: 10, condition: 100 },
-  { id: '4', name: 'Gio Marsh', role: 'MID' as const, overall: 50, potentialBonusPercent: 14, condition: 60 },
+  { id: '1', name: 'Sam Mitts', role: 'GK' as const, overall: 43, superChancePercent: 1, condition: 100 },
+  { id: '2', name: 'Ed Stone', role: 'DEF' as const, overall: 45, superChancePercent: 10, condition: 75 },
+  { id: '3', name: 'Bo Hedges', role: 'DEF' as const, overall: 45, superChancePercent: 10, condition: 100 },
+  { id: '4', name: 'Gio Marsh', role: 'MID' as const, overall: 50, superChancePercent: 14, condition: 60 },
 ];
 
 describe('squad table sorting', () => {

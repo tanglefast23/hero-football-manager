@@ -11,7 +11,7 @@ interface SortableSquadPlayer {
   name: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   overall: number;
-  potentialBonusPercent: number;
+  superChancePercent: number;
   condition: number;
 }
 
@@ -47,7 +47,7 @@ function comparePlayers(
   if (key === 'role') return left.role.localeCompare(right.role);
   if (key === 'overall') return left.overall - right.overall;
   if (key === 'potential') {
-    return left.potentialBonusPercent - right.potentialBonusPercent;
+    return left.superChancePercent - right.superChancePercent;
   }
   return left.condition - right.condition;
 }

@@ -952,7 +952,6 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
     }
     if (current.screen === 'management') {
       if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
-      else if (current.postMatchOverlay === 'development') current.dismissPostMatchDevelopment();
       else current.advanceCareer();
       continue;
     }

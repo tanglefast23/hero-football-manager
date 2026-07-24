@@ -86,6 +86,28 @@ export function playTrainingStatDing(): void {
   playManagementSfx('training-ding');
 }
 
+/** Drill-result ding whose pitch climbs with the same-player tap streak. */
+export function playDrillResultSfx(streak: number): void {
+  initManagementSfx();
+  const player = players.get('training-ding');
+  if (player === undefined || masterVolume === 0) return;
+  try {
+    const rate = 1 + 0.06 * Math.max(0, Math.min(streak, 8));
+    (player as unknown as { setPlaybackRate?: (rate: number) => void }).setPlaybackRate?.(rate);
+  } catch (error) {
+    warnOnce('training-ding pitch adjust failed', error);
+  }
+  player.seekTo(0)
+    .then(() => player.play())
+    .catch((error: unknown) => warnOnce('training-ding playback failed', error));
+}
+
+/** Big celebratory hit for a SUPER training session. */
+export function playSuperTrainingSfx(): void {
+  playManagementSfx('hero');
+  playManagementSfx('event-success');
+}
+
 export function playMatchStatementSfx(): void {
   playManagementSfx('match-statement');
 }

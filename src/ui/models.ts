@@ -314,6 +314,21 @@ export interface TrainingSlotStatOption {
   affordable: boolean;
 }
 
+/** One resolved instant drill, sequenced so repeat taps re-animate. */
+export interface DrillResultViewModel {
+  sequence: number;
+  playerId: string;
+  pathId: string;
+  drillId: string;
+  attribute: string;
+  tpSpent: number;
+  isSuper: boolean;
+  before: number;
+  after: number;
+  conditionAfter: number;
+  injury?: { chancePercent: number; recoveryWeeks: number };
+}
+
 export interface SquadTrainingViewModel {
   resources: ResourceSummaryViewModel;
   players: readonly SquadPlayerViewModel[];

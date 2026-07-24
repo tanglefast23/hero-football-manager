@@ -28,7 +28,6 @@ import {
   powerMatchShowcaseAway,
   powerMatchShowcaseHome,
 } from './src/render/power-match-showcase';
-import { TrainingTransitionOverlay } from './src/render/TrainingTransitionOverlay';
 import { setMasterVolume } from './src/render/audio';
 import {
   playAwakeningAscension,
@@ -73,7 +72,6 @@ import {
   ManagementShell,
   MarketScreen,
   NewGameWelcomeScreen,
-  PostMatchDevelopmentOverlay,
   PostMatchLedgerScreen,
   PostMatchSummaryModal,
   SeasonEndScreen,
@@ -81,12 +79,10 @@ import {
   StoryEventScreen,
   TitleLandingScreen,
   TitleSettingsScreen,
-  TrainingPromiseReaction,
   WeeklyReviewScreen,
   type CoachOverlayCoach,
   type FacilityProjectNoticeModel,
   type PlayerSigningConfirmation,
-  type TrainingPromiseReactionPlayer,
   type MarketSectionId,
   formatCurrency,
   shouldShowOpeningBrief,
@@ -108,10 +104,6 @@ import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { useM1Store } from './src/application/store';
 import { ScreenErrorBoundary } from './src/ui/ScreenErrorBoundary';
-import {
-  trainingTransitionScene,
-  type TrainingTransitionScene,
-} from './src/application/training-transition';
 import {
   currentAssistantObjective,
   pendingAssistantGuideSequence,
@@ -388,7 +380,6 @@ function GameApp() {
   const [settingsSaveError, setSettingsSaveError] = useState<string | null>(null);
   const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
-  const [trainingTransition, setTrainingTransition] = useState<TrainingTransitionScene | null>(null);
   const [coachOverlay, setCoachOverlay] = useState<{
     mode: 'hired' | 'confirm-dismiss' | 'dismissed';
     coach: CoachOverlayCoach;
@@ -400,12 +391,6 @@ function GameApp() {
   const [selectedCupSeason, setSelectedCupSeason] = useState<number | undefined>();
   const [bootAttempt, setBootAttempt] = useState(0);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
-  const [trainingCapInterrupt, setTrainingCapInterrupt] = useState(false);
-  const [trainingTpInterrupt, setTrainingTpInterrupt] = useState(false);
-  const [trainingPromiseReaction, setTrainingPromiseReaction] = useState<{
-    bumped: TrainingPromiseReactionPlayer;
-    promised: TrainingPromiseReactionPlayer;
-  } | null>(null);
   const preferencesRepositoryRef = useRef<PreferencesRepository | null>(null);
   const preferencesSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const preferencesRef = useRef(preferences);
@@ -466,21 +451,16 @@ function GameApp() {
   }, [savePreferences]);
 
   const advanceCareerWithSfx = useCallback(() => {
-    if (trainingTransition !== null) return;
     // Zustand updates synchronously here. Only a real week change gets the
     // cue, so tutorial-blocked taps and event redirects stay silent.
     const careerBefore = useM1Store.getState().career;
     const before = careerBefore?.week;
     const boardResolutionBefore = careerBefore?.financialSafety?.latestBoardResolution?.id;
-    const transitionScene = careerBefore === null
-      ? null
-      : trainingTransitionScene(careerBefore, content);
     useM1Store.getState().advanceCareer();
     const after = useM1Store.getState().career?.week;
     const boardResolutionAfter = useM1Store.getState().career?.financialSafety?.latestBoardResolution;
     if (before !== undefined && after !== undefined && after !== before) {
       playAdvanceWeekSfx();
-      if (transitionScene !== null) setTrainingTransition(transitionScene);
     }
     if (boardResolutionAfter !== undefined && boardResolutionAfter.id !== boardResolutionBefore) {
       if (boardResolutionAfter.kind === 'TARGET_MET') {
@@ -492,7 +472,7 @@ function GameApp() {
         setTimeout(() => playManagementActionSfx('success'), 280);
       }
     }
-  }, [content, trainingTransition]);
+  }, []);
 
   const showStartedFacilityProject = useCallback(() => {
     const career = useM1Store.getState().career;
@@ -693,10 +673,6 @@ function GameApp() {
     });
   }, []);
 
-  const dismissTrainingTransition = useCallback(() => {
-    setTrainingTransition(null);
-  }, []);
-
   useEffect(() => {
     setMasterVolume(devVolume);
     setMenuMasterVolume(devVolume);
@@ -853,12 +829,9 @@ function GameApp() {
       || conciergeFocus === 'assistant-coach-hire'
     );
 
-  // Locked is the common state (the tutorial pushes a saved plan in Week 1,
-  // and it repeats weekly), so this resolves the real training week on
-  // every render that touches it. Memoized so unrelated re-renders of the
-  // squad tab (scroll cues, drag-dismiss touch handling, selection changes)
-  // don't redo base conditioning, M2 growth, facility effects, and cap
-  // scanning across the whole roster.
+  // Memoized so unrelated re-renders of the squad tab (scroll cues, selection
+  // changes) don't redo conditioning, growth-modifier, and facility effects
+  // across the whole roster.
   const squadTrainingVm = useMemo(
     () => (store.career === null
       ? null
@@ -866,80 +839,12 @@ function GameApp() {
           store.career,
           content,
           store.selectedPlayerId,
-          store.trainingSlots,
         )),
-    [store.career, content, store.selectedPlayerId, store.trainingSlots],
+    [store.career, content, store.selectedPlayerId],
   );
 
-  // A capped stat or a training-point shortfall would silently run a training
-  // plan that can't pay off (or can't be afforded) this week, so intercept
-  // and let the manager resolve it first. Both interrupt modals read the live
-  // squadTrainingVm each render, so they clear themselves as soon as the
-  // manager's fix (swap a stat, stop training a player) resolves the issue.
-  const handleAdvanceWeek = useCallback(() => {
-    const vm = squadTrainingVm;
-    if (vm !== null) {
-      const interrupts = vm.interrupts;
-      if (interrupts.cappedSlots.length > 0) {
-        playManagementActionSfx('select');
-        setTrainingCapInterrupt(true);
-        return;
-      }
-      if (interrupts.tpShortfall > 0) {
-        playManagementActionSfx('select');
-        setTrainingTpInterrupt(true);
-        return;
-      }
-    }
-    advanceCareerWithSfx();
-  }, [squadTrainingVm, advanceCareerWithSfx]);
+  const handleAdvanceWeek = advanceCareerWithSfx;
 
-  const dismissTrainingCapInterrupt = useCallback(() => {
-    setTrainingCapInterrupt(false);
-  }, []);
-
-  const dismissTrainingTpInterrupt = useCallback(() => {
-    setTrainingTpInterrupt(false);
-  }, []);
-
-  const advanceFromTrainingCapInterrupt = useCallback(() => {
-    setTrainingCapInterrupt(false);
-    advanceCareerWithSfx();
-  }, [advanceCareerWithSfx]);
-
-  const advanceFromTrainingTpInterrupt = useCallback(() => {
-    setTrainingTpInterrupt(false);
-    advanceCareerWithSfx();
-  }, [advanceCareerWithSfx]);
-
-  // Reads live state so the reaction overlay's portraits reflect who was
-  // actually bumped/promised, even though resolveTrainingPromiseBump clears
-  // the pending signal before this callback finishes.
-  const handleTrainingPromiseBumpPick = useCallback((bumpedPlayerId: string) => {
-    const career = useM1Store.getState().career;
-    const promisedPlayerId = career?.pendingTrainingPromiseBump?.promisedPlayerId;
-    if (promisedPlayerId === undefined) return;
-    const bumpedPlayer = career?.players.find(player => player.id === bumpedPlayerId);
-    const promisedPlayer = career?.players.find(player => player.id === promisedPlayerId);
-    useM1Store.getState().resolveTrainingPromiseBump(bumpedPlayerId);
-    if (useM1Store.getState().error !== null) return;
-    if (bumpedPlayer !== undefined && promisedPlayer !== undefined) {
-      setTrainingPromiseReaction({
-        bumped: {
-          playerId: bumpedPlayer.id,
-          playerName: bumpedPlayer.name,
-          role: bumpedPlayer.role,
-          lookId: bumpedPlayer.lookId,
-        },
-        promised: {
-          playerId: promisedPlayer.id,
-          playerName: promisedPlayer.name,
-          role: promisedPlayer.role,
-          lookId: promisedPlayer.lookId,
-        },
-      });
-    }
-  }, []);
 
   useEffect(() => {
     setAssistantPageIndex(0);
@@ -1167,7 +1072,7 @@ function GameApp() {
     screen = (
       <WeeklyReviewScreen
         viewModel={store.weekReview}
-        animationsReady={trainingTransition === null}
+        animationsReady
         reduceMotion={reduceMotion}
         textScale={preferences.textScale}
         onContinue={store.continueWeekReview}
@@ -1267,7 +1172,6 @@ function GameApp() {
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
         advanceWeekDisabled={store.saving
-          || trainingTransition !== null
           || (assistantObjective !== null && assistantObjective.target !== 'advance-week')}
         guideFocus={assistantPage?.focus === 'money' || assistantPage?.focus === 'navigation'
           ? assistantPage.focus
@@ -1287,10 +1191,9 @@ function GameApp() {
                 setConciergeFocus(null);
               }
             }}
-            onTogglePlayerAssignment={store.toggleTrainingPlayer}
-            onSelectTrainingStat={(playerId, pathId) => store.setTrainingSlotStat(playerId, pathId)}
-            trainingSlotLimitHit={store.trainingSlotLimitHit}
-            onDismissSlotLimit={store.clearTrainingSlotLimit}
+            onTrainDrill={(playerId, pathId) => store.trainPlayer(playerId, pathId)}
+            lastDrillResult={store.lastDrillResult}
+            trainingPoints={store.career?.trainingPoints ?? 0}
             guideTraining={assistantObjective?.target === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
             reduceMotion={reduceMotion}
@@ -1527,36 +1430,6 @@ function GameApp() {
             action?.();
           }}
         />
-        <TrainingCapInterruptModal
-          visible={trainingCapInterrupt}
-          vm={squadTrainingVm}
-          onChangeStat={playerId => {
-            store.selectPlayer(playerId);
-            setTrainingCapInterrupt(false);
-          }}
-          onSwapOut={playerId => store.toggleTrainingPlayer(playerId)}
-          onAdvance={advanceFromTrainingCapInterrupt}
-          onClose={dismissTrainingCapInterrupt}
-        />
-        <TrainingTpShortfallModal
-          visible={trainingTpInterrupt}
-          vm={squadTrainingVm}
-          onStopTraining={playerId => store.toggleTrainingPlayer(playerId)}
-          onAdvance={advanceFromTrainingTpInterrupt}
-          onClose={dismissTrainingTpInterrupt}
-        />
-        <TrainingPromiseBumpModal
-          promisedPlayerName={store.career?.players.find(player => (
-            player.id === store.career?.pendingTrainingPromiseBump?.promisedPlayerId
-          ))?.name ?? null}
-          slots={(squadTrainingVm?.slots ?? []).filter(slot => {
-            const occupant = store.career?.players.find(player => player.id === slot.playerId);
-            return occupant === undefined
-              || !hasActiveCareerContractPromise(occupant, 'TRAINING_PRIORITY')
-              || isFullyCappedPlayer(occupant);
-          })}
-          onPick={handleTrainingPromiseBumpPick}
-        />
         <SettingsOverlay
           open={globalSettingsOpen}
           glossary={content.glossary}
@@ -1601,13 +1474,6 @@ function GameApp() {
             onAdvance={advanceAssistantGuide}
           />
         ) : null}
-        {trainingTransition !== null ? (
-          <TrainingTransitionOverlay
-            scene={trainingTransition}
-            reduceMotion={reduceMotion}
-            onComplete={dismissTrainingTransition}
-          />
-        ) : null}
         {coachOverlay !== null ? (
           <CoachStaffOverlay
             mode={coachOverlay.mode}
@@ -1635,14 +1501,6 @@ function GameApp() {
             onClose={() => setPlayerSigning(null)}
           />
         ) : null}
-        {trainingPromiseReaction !== null ? (
-          <TrainingPromiseReaction
-            bumped={trainingPromiseReaction.bumped}
-            promised={trainingPromiseReaction.promised}
-            reduceMotion={reduceMotion}
-            onDismiss={() => setTrainingPromiseReaction(null)}
-          />
-        ) : null}
         {store.screen === 'management'
           && store.postMatch !== null
           && store.postMatchOverlay === 'summary' ? (
@@ -1652,16 +1510,6 @@ function GameApp() {
               onDismiss={store.dismissPostMatchSummary}
             />
           ) : null}
-        {store.screen === 'management'
-          && store.postMatch !== null
-          && store.postMatchOverlay === 'development' ? (
-            <PostMatchDevelopmentOverlay
-              development={store.postMatch.development}
-              facilityCompletion={store.postMatch.facilityCompletion}
-              reduceMotion={reduceMotion}
-              onDismiss={store.dismissPostMatchDevelopment}
-             />
-           ) : null}
       </View>
     </SafeAreaProvider>
   );
@@ -1844,217 +1692,6 @@ function feedbackNoticeAccessibilityLabel(message: string): string {
 // as `vm`), so the list and the Advance button re-resolve as soon as the
 // manager's fix (stop training / change stat) clears the interrupt — no
 // snapshot of the blocking condition is kept here.
-function TrainingCapInterruptModal({
-  visible,
-  vm,
-  onChangeStat,
-  onSwapOut,
-  onAdvance,
-  onClose,
-}: {
-  visible: boolean;
-  vm: SquadTrainingViewModel | null;
-  onChangeStat: (playerId: string) => void;
-  onSwapOut: (playerId: string) => void;
-  onAdvance: () => void;
-  onClose: () => void;
-}) {
-  const cappedSlots = vm?.interrupts.cappedSlots ?? [];
-  const resolved = cappedSlots.length === 0;
-  return (
-    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
-        <View accessibilityViewIsModal className="border-2 border-b-4 border-ink bg-paper p-5">
-          <Text className="font-mono text-sm font-bold uppercase text-stamp">Maximum 999 reached</Text>
-          <Text className="mt-2 font-pixel text-xl uppercase text-ink">
-            {resolved ? 'Ready to advance' : 'Pick a new stat first'}
-          </Text>
-          <Text className="mt-3 text-base leading-6 text-ink/70">
-            {resolved
-              ? 'Every trainee now has a stat with room to grow.'
-              : 'These stats cannot go any higher. Change the training focus or swap the player out.'}
-          </Text>
-          <View className="mt-4 gap-2">
-            {cappedSlots.map(entry => (
-              <View key={entry.playerId} className="border border-ink/20 bg-white px-3 py-2">
-                <Text className="text-base font-bold text-ink" numberOfLines={1}>{entry.playerName}</Text>
-                <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>
-                  {entry.attribute.toUpperCase()} cannot go above {entry.cap}
-                </Text>
-                <View className="mt-2 flex-row gap-2">
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Change ${entry.playerName}'s stat`}
-                    onPress={() => onChangeStat(entry.playerId)}
-                    className="min-h-11 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
-                    style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
-                  >
-                    <Text className="font-mono text-sm font-bold uppercase text-ink">Change stat</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Swap out ${entry.playerName}`}
-                    onPress={() => onSwapOut(entry.playerId)}
-                    className="min-h-11 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
-                    style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
-                  >
-                    <Text className="font-mono text-sm font-bold uppercase text-stamp">Swap out</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))}
-          </View>
-          <View className="mt-5 flex-row gap-3">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Keep editing the training plan"
-              onPress={onClose}
-              className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
-              style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
-            >
-              <Text className="font-pixel text-sm uppercase text-ink">Keep editing</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Advance the week"
-              disabled={!resolved}
-              onPress={onAdvance}
-              className={`min-h-12 flex-1 items-center justify-center border-2 border-b-4 px-3 ${
-                resolved ? 'border-ink bg-violet' : 'border-ink/30 bg-grey opacity-60'
-              }`}
-              style={({ pressed }) => ({ transform: [{ translateY: pressed && resolved ? 2 : 0 }] })}
-            >
-              <Text className="font-pixel text-sm uppercase text-paper">Advance week</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-// Same live-VM contract as TrainingCapInterruptModal: `vm` is the current
-// squadTrainingVm, so stopping a player's training here immediately shrinks
-// tpShortfall on the next render and can flip the Advance button on.
-function TrainingTpShortfallModal({
-  visible,
-  vm,
-  onStopTraining,
-  onAdvance,
-  onClose,
-}: {
-  visible: boolean;
-  vm: SquadTrainingViewModel | null;
-  onStopTraining: (playerId: string) => void;
-  onAdvance: () => void;
-  onClose: () => void;
-}) {
-  const tpShortfall = vm?.interrupts.tpShortfall ?? 0;
-  const slots = vm?.slots ?? [];
-  const resolved = tpShortfall <= 0;
-  return (
-    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
-        <View accessibilityViewIsModal className="border-2 border-b-4 border-ink bg-paper p-5">
-          <Text className="font-mono text-sm font-bold uppercase text-stamp">Not enough training points</Text>
-          <Text className="mt-2 font-pixel text-xl uppercase text-ink">
-            {resolved ? 'Ready to advance' : `Short ${tpShortfall} TP`}
-          </Text>
-          <Text className="mt-3 text-base leading-6 text-ink/70">
-            {resolved
-              ? 'Your training plan now fits this week’s training points.'
-              : 'Stop training a player to free up training points.'}
-          </Text>
-          <View className="mt-4 gap-2">
-            {slots.map(slot => (
-              <View key={slot.playerId} className="flex-row items-center justify-between border border-ink/20 bg-white px-3 py-2">
-                <View className="min-w-0 flex-1 pr-2">
-                  <Text className="text-base font-bold text-ink" numberOfLines={1}>{slot.playerName}</Text>
-                  <Text className="mt-0.5 text-sm text-ink/60" numberOfLines={1}>{slot.drillName} · {slot.gainLabel}</Text>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Stop training ${slot.playerName}`}
-                  onPress={() => onStopTraining(slot.playerId)}
-                  className="min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
-                  style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
-                >
-                  <Text className="font-mono text-sm font-bold uppercase text-stamp">Stop training</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
-          <View className="mt-5 flex-row gap-3">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Keep editing the training plan"
-              onPress={onClose}
-              className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
-              style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
-            >
-              <Text className="font-pixel text-sm uppercase text-ink">Keep editing</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Advance the week"
-              disabled={!resolved}
-              onPress={onAdvance}
-              className={`min-h-12 flex-1 items-center justify-center border-2 border-b-4 px-3 ${
-                resolved ? 'border-ink bg-violet' : 'border-ink/30 bg-grey opacity-60'
-              }`}
-              style={({ pressed }) => ({ transform: [{ translateY: pressed && resolved ? 2 : 0 }] })}
-            >
-              <Text className="font-pixel text-sm uppercase text-paper">Advance week</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-// Visible whenever career.pendingTrainingPromiseBump is set, so a mid-prompt
-// save reopens the same choice on reload. There is no dismiss action — the
-// game never auto-picks who to drop, so the manager must choose here first.
-function TrainingPromiseBumpModal({
-  promisedPlayerName,
-  slots,
-  onPick,
-}: {
-  promisedPlayerName: string | null;
-  slots: readonly { playerId: string; playerName: string }[];
-  onPick: (playerId: string) => void;
-}) {
-  return (
-    <Modal transparent animationType="fade" visible={promisedPlayerName !== null} onRequestClose={() => {}}>
-      <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
-        <View accessibilityViewIsModal className="border-2 border-b-4 border-ink bg-paper p-5">
-          <Text className="font-mono text-sm font-bold uppercase text-stamp">Contract promise</Text>
-          <Text className="mt-2 font-pixel text-xl uppercase text-ink">Who stops training?</Text>
-          <Text className="mt-3 text-base leading-6 text-ink/70">
-            You promised {promisedPlayerName ?? 'this player'} training priority. Training is full — pick who steps aside.
-          </Text>
-          <View className="mt-4 gap-2">
-            {slots.map(slot => (
-              <Pressable
-                key={slot.playerId}
-                accessibilityRole="button"
-                accessibilityLabel={`Stop training ${slot.playerName}`}
-                onPress={() => onPick(slot.playerId)}
-                className="min-h-12 flex-row items-center justify-between border-2 border-b-4 border-ink bg-white px-3"
-                style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
-              >
-                <Text className="text-base font-bold text-ink" numberOfLines={1}>{slot.playerName}</Text>
-                <Text className="font-mono text-sm font-bold uppercase text-stamp">Stop training</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
 function ConfirmationSheet({
   confirmation,
   onCancel,
