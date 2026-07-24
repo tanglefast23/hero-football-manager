@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, Platform, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
+import { Modal, Platform, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { SuperTrainingCelebration } from './components/SuperTrainingCelebration';
+import { DrillSceneOverlay, drillActivityId } from '../render/DrillSceneOverlay';
 import { playDrillResultSfx, playSuperTrainingSfx, playManagementActionSfx } from '../render/management-sfx';
 import { useLayoutMode } from './layout/use-layout-mode';
 import type { DrillResultViewModel, TrainingSlotStatOption } from './models';
 
-const COUNT_UP_MS = 520;
-
 export interface TrainingDrillModalProps {
   playerId: string;
   playerName: string;
+  playerRole: 'GK' | 'DEF' | 'MID' | 'FWD';
+  playerLookId?: string;
   options: readonly TrainingSlotStatOption[];
   superChancePercent: number;
   injuryRiskPercent: number;
@@ -29,15 +30,20 @@ export interface TrainingDrillModalProps {
   reduceMotion?: boolean;
 }
 
+/** 'scene' plays the drill, then SUPER fireworks, then the injury card. */
+type ResultStage = 'scene' | 'super' | 'injury' | null;
+
 /**
- * The whole training loop lives here now: tap a stat, the drill resolves
- * instantly, the result animates in place, and the buttons stay live for the
- * next tap. SUPER sessions take the popup over with fireworks; a lost injury
- * gamble interrupts with the OUT card.
+ * The whole training loop lives here: tap a stat, the drill resolves instantly,
+ * and a sprite scene shows the player performing it while the stat counts up.
+ * A SUPER session adds a fireworks takeover, a lost injury gamble adds the OUT
+ * card, and then the popup returns so the buttons stay live for the next tap.
  */
 export function TrainingDrillModal({
   playerId,
   playerName,
+  playerRole,
+  playerLookId,
   options,
   superChancePercent,
   injuryRiskPercent,
@@ -55,13 +61,9 @@ export function TrainingDrillModal({
   // picker never stretches across the whole desktop window.
   const wide = useLayoutMode() === 'twoColumn';
   const [activeResult, setActiveResult] = useState<DrillResultViewModel | null>(null);
-  const [celebrating, setCelebrating] = useState(false);
-  const [injuryCardVisible, setInjuryCardVisible] = useState(false);
-  const [countedValue, setCountedValue] = useState<number | null>(null);
+  const [stage, setStage] = useState<ResultStage>(null);
   const streakRef = useRef(0);
   const seenSequenceRef = useRef(0);
-  const shake = useRef(new Animated.Value(0)).current;
-  const pop = useRef(new Animated.Value(1)).current;
 
   // Reset the pitch streak whenever the popup moves to another player.
   useEffect(() => {
@@ -73,46 +75,30 @@ export function TrainingDrillModal({
     if (result === null || result.playerId !== playerId) return;
     if (result.sequence === seenSequenceRef.current) return;
     seenSequenceRef.current = result.sequence;
-    setActiveResult(result);
-    setInjuryCardVisible(result.injury !== undefined);
 
     streakRef.current += 1;
     if (result.isSuper) {
       playSuperTrainingSfx();
       if (Platform.OS !== 'web') Vibration.vibrate(180);
-      setCelebrating(true);
-      if (!reduceMotion) {
-        Animated.sequence([
-          Animated.timing(shake, { toValue: 1, duration: 60, useNativeDriver: true }),
-          Animated.timing(shake, { toValue: -1, duration: 60, useNativeDriver: true }),
-          Animated.timing(shake, { toValue: 1, duration: 60, useNativeDriver: true }),
-          Animated.timing(shake, { toValue: 0, duration: 60, useNativeDriver: true }),
-        ]).start();
-      }
     } else {
       playDrillResultSfx(streakRef.current);
     }
 
-    // Count the stat up from before to after with a landing pop.
-    if (reduceMotion) {
-      setCountedValue(result.after);
-      return;
-    }
-    setCountedValue(result.before);
-    const startedAt = Date.now();
-    const timer = setInterval(() => {
-      const progress = Math.min(1, (Date.now() - startedAt) / COUNT_UP_MS);
-      setCountedValue(Math.round(result.before + (result.after - result.before) * progress));
-      if (progress >= 1) {
-        clearInterval(timer);
-        Animated.sequence([
-          Animated.spring(pop, { toValue: 1.25, friction: 4, useNativeDriver: true }),
-          Animated.spring(pop, { toValue: 1, friction: 5, useNativeDriver: true }),
-        ]).start();
+    setActiveResult(result);
+    setStage('scene');
+  }, [lastDrillResult, playerId]);
+
+  // Advances the presentation once the current beat finishes or is skipped.
+  const advanceStage = () => {
+    setStage(current => {
+      if (current === 'scene' && activeResult?.isSuper) return 'super';
+      if ((current === 'scene' || current === 'super') && activeResult?.injury !== undefined) {
+        return 'injury';
       }
-    }, 40);
-    return () => clearInterval(timer);
-  }, [lastDrillResult, playerId, pop, reduceMotion, shake]);
+      setActiveResult(null);
+      return null;
+    });
+  };
 
   const resultOption = activeResult === null
     ? undefined
@@ -121,6 +107,7 @@ export function TrainingDrillModal({
   const injured = injuryWeeks > 0;
   const owedHere = promiseGate !== undefined && promiseGate.playerId === playerId;
   const blockedByPromise = promiseGate !== undefined && promiseGate.playerId !== playerId;
+  const conditionBadge = conditionBadgeStyle(condition);
 
   return (
     <Modal
@@ -139,21 +126,16 @@ export function TrainingDrillModal({
           >
             <View className="flex-1" style={{ backgroundColor: 'rgba(36,31,46,0.62)' }} />
           </Pressable>
-          <Animated.View
+          <View
             accessibilityViewIsModal
             className={wide
               ? 'w-full max-w-[560px] overflow-hidden border-2 border-b-4 border-ink bg-paper'
               : 'w-full overflow-hidden border-2 border-b-4 border-ink bg-paper'}
-            style={{
-              maxHeight: '92%',
-              transform: [{
-                translateX: shake.interpolate({ inputRange: [-1, 1], outputRange: [-7, 7] }),
-              }],
-            }}
+            style={{ maxHeight: '92%' }}
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
               <View className="flex-1 pr-3">
-                <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Instant training</Text>
+                <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Drills</Text>
                 <Text className="mt-1 font-pixel text-xl uppercase text-ink" numberOfLines={1}>{playerName}</Text>
               </View>
               <View className="mr-3 items-end">
@@ -183,12 +165,8 @@ export function TrainingDrillModal({
                   </Text>
                 </View>
               ) : null}
-              <View className="border border-ink/30 bg-paper px-2 py-1">
-                <Text
-                  className={condition < 30
-                    ? 'font-mono text-sm font-bold uppercase text-stamp'
-                    : 'font-mono text-sm font-bold uppercase text-ink'}
-                >
+              <View className={conditionBadge.box}>
+                <Text className={conditionBadge.text}>
                   Cond {condition}%
                 </Text>
               </View>
@@ -206,29 +184,6 @@ export function TrainingDrillModal({
                 </View>
               ) : null}
             </View>
-
-            {activeResult !== null && resultOption !== undefined && !celebrating ? (
-              <View
-                className={activeResult.isSuper
-                  ? 'flex-row items-center justify-between border-b-2 border-gold-dark bg-gold-light px-4 py-3'
-                  : 'flex-row items-center justify-between border-b-2 border-pitch-dark bg-pitch-light px-4 py-3'}
-              >
-                <Text className="font-mono text-base font-bold uppercase text-ink">
-                  {activeResult.isSuper ? '★ SUPER · ' : ''}{resultOption.label}
-                </Text>
-                <View className="flex-row items-baseline gap-2">
-                  <Animated.Text
-                    className="font-pixel text-2xl text-ink"
-                    style={{ transform: [{ scale: pop }] }}
-                  >
-                    {countedValue ?? activeResult.after}
-                  </Animated.Text>
-                  <Text className="font-mono text-base font-bold text-pitch-dark">
-                    +{activeResult.after - activeResult.before}
-                  </Text>
-                </View>
-              </View>
-            ) : null}
 
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 16 }}>
               {blockedByPromise ? (
@@ -257,7 +212,7 @@ export function TrainingDrillModal({
               <View className="gap-2">
                 {options.map(option => {
                   const disabled = injured || blockedByPromise || option.atSafetyCeiling || !option.affordable;
-                  const isResultRow = activeResult?.pathId === option.pathId && !celebrating;
+                  const isResultRow = stage === null && activeResult?.pathId === option.pathId;
                   return (
                     <Pressable
                       key={option.pathId}
@@ -303,21 +258,38 @@ export function TrainingDrillModal({
               ) : null}
             </ScrollView>
 
-            {celebrating && activeResult !== null ? (
-              <SuperTrainingCelebration
-                gainLabel={`+${activeResult.after - activeResult.before} ${resultOption?.shortCode ?? activeResult.attribute.toUpperCase()}`}
+            {stage === 'scene' && activeResult !== null && resultOption !== undefined ? (
+              <DrillSceneOverlay
+                playerId={playerId}
+                playerName={playerName}
+                role={playerRole}
+                lookId={playerLookId}
+                activityId={drillActivityId(activeResult.pathId)}
+                drillName={resultOption.drillName}
+                shortCode={resultOption.shortCode}
+                before={activeResult.before}
+                after={activeResult.after}
+                isSuper={activeResult.isSuper}
                 reduceMotion={reduceMotion}
-                onComplete={() => setCelebrating(false)}
+                onComplete={advanceStage}
               />
             ) : null}
 
-            {injuryCardVisible && !celebrating && activeResult?.injury !== undefined ? (
+            {stage === 'super' && activeResult !== null ? (
+              <SuperTrainingCelebration
+                gainLabel={`+${activeResult.after - activeResult.before} ${resultOption?.shortCode ?? activeResult.attribute.toUpperCase()}`}
+                reduceMotion={reduceMotion}
+                onComplete={advanceStage}
+              />
+            ) : null}
+
+            {stage === 'injury' && activeResult?.injury !== undefined ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${playerName} got injured, out ${activeResult.injury.recoveryWeeks} weeks. Tap to continue.`}
                 onPress={() => {
                   playManagementActionSfx('warning');
-                  setInjuryCardVisible(false);
+                  advanceStage();
                 }}
                 style={StyleSheet.absoluteFill}
               >
@@ -334,11 +306,37 @@ export function TrainingDrillModal({
                 </View>
               </Pressable>
             ) : null}
-          </Animated.View>
+          </View>
         </View>
       </SafeAreaView>
     </Modal>
   );
+}
+
+/** Condition badge shifts white → grey → yellow → red as fatigue climbs. */
+function conditionBadgeStyle(condition: number): { box: string; text: string } {
+  if (condition < 30) {
+    return {
+      box: 'border-2 border-stamp bg-red-light px-2 py-1',
+      text: 'font-mono text-sm font-bold uppercase text-stamp',
+    };
+  }
+  if (condition < 50) {
+    return {
+      box: 'border border-gold-dark bg-gold-light px-2 py-1',
+      text: 'font-mono text-sm font-bold uppercase text-gold-dark',
+    };
+  }
+  if (condition < 70) {
+    return {
+      box: 'border border-ink/30 bg-paper-dark px-2 py-1',
+      text: 'font-mono text-sm font-bold uppercase text-ink/70',
+    };
+  }
+  return {
+    box: 'border border-ink/30 bg-white px-2 py-1',
+    text: 'font-mono text-sm font-bold uppercase text-ink',
+  };
 }
 
 const styles = StyleSheet.create({

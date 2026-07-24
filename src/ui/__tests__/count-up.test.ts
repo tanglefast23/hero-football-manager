@@ -16,14 +16,19 @@ describe('countUpValue', () => {
     expect(frames[2]).toBeGreaterThan(500);
   });
 
-  it('keeps weekly money and TP feedback animated, and drills counting up in the popup', () => {
+  it('keeps weekly money/TP animated, and drills counting up in the drill scene', () => {
     const review = readFileSync(join(process.cwd(), 'src/ui/screens/WeeklyReviewScreen.tsx'), 'utf8');
     const popup = readFileSync(join(process.cwd(), 'src/ui/TrainingDrillModal.tsx'), 'utf8');
+    const scene = readFileSync(join(process.cwd(), 'src/render/DrillSceneOverlay.tsx'), 'utf8');
 
     expect(review).toContain('countUpValue(to - from, progress)');
-    // Development left the weekly review: gains animate in the drill popup now.
+    // Development left the weekly review: gains animate in the drill scene now.
     expect(review).not.toContain('PlayerDevelopmentSpotlight');
-    expect(popup).toContain('COUNT_UP_MS');
+    // The popup delegates the result beat to the sprite scene, then the SUPER
+    // fireworks, then the injury card.
+    expect(popup).toContain('DrillSceneOverlay');
     expect(popup).toContain('SuperTrainingCelebration');
+    expect(scene).toContain('DRILL_SCENE_MS');
+    expect(scene).toContain('setCountedValue');
   });
 });
