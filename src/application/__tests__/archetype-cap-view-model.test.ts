@@ -4,7 +4,7 @@ import {
   createCareer,
   playerAttributeCaps,
   playerPotentialGrade,
-  playerPotentialTrainingBonusPercent,
+  superTrainingChancePercent,
   roleOverall,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
@@ -26,7 +26,7 @@ describe('open-ended potential in the Squad desk', () => {
       })),
     };
 
-    const viewModel = squadTrainingViewModel(state, content, undefined, []);
+    const viewModel = squadTrainingViewModel(state, content, undefined);
 
     for (const [playerId, archetype] of archetypeByPlayerId) {
       const player = viewModel.players.find(candidate => candidate.id === playerId)!;
@@ -38,8 +38,8 @@ describe('open-ended potential in the Squad desk', () => {
       ]))).toEqual(playerAttributeCaps(careerPlayer));
       expect(player.overall).toBe(roleOverall(careerPlayer.role, careerPlayer.attrs));
       expect(player.potentialGrade).toBe(playerPotentialGrade(careerPlayer));
-      expect(player.potentialBonusPercent)
-        .toBe(playerPotentialTrainingBonusPercent(careerPlayer));
+      expect(player.superChancePercent)
+        .toBe(superTrainingChancePercent(playerPotentialGrade(careerPlayer)));
     }
   });
 });

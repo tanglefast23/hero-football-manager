@@ -226,15 +226,16 @@ describe('M2 weekly sidecars', () => {
     const m2 = focusPlan(fullCareer(504));
     const m1 = focusPlan(createCareer(createLaunchCareerSetup(504)));
 
-    // The tap itself costs 8 condition in every career mode…
+    // Conditioning is a full-career system: the tap costs 8 there, while the
+    // m1 slice (which has no recovery or wellbeing) charges nothing.
     expect(m2.state.players.find(player => player.id === m2.playerId)?.condition).toBe(52);
-    expect(m1.state.players.find(player => player.id === m1.playerId)?.condition).toBe(52);
+    expect(m1.state.players.find(player => player.id === m1.playerId)?.condition).toBe(60);
 
-    // …while the +12 weekly recovery is the full career's wellbeing tick only.
+    // The +12 weekly recovery is the full career's wellbeing tick only.
     const m2After = advanceWeek(m2.state);
     const m1After = advanceWeek(m1.state);
     expect(m2After.players.find(player => player.id === m2.playerId)?.condition).toBe(64);
-    expect(m1After.players.find(player => player.id === m1.playerId)?.condition).toBe(52);
+    expect(m1After.players.find(player => player.id === m1.playerId)?.condition).toBe(60);
   });
 
   test('applies match result and playing-time morale through normal M2 settlement', () => {

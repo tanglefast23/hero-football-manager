@@ -16,7 +16,7 @@ describe('squad training tutorial targeting', () => {
     });
     const createdPlayerId = withHero.onboarding?.createdPlayerId;
 
-    const viewModel = squadTrainingViewModel(withHero, content, undefined, []);
+    const viewModel = squadTrainingViewModel(withHero, content, undefined);
 
     expect(createdPlayerId).toBeDefined();
     // `createdPlayerId` was removed from the view model; the tutorial cue now

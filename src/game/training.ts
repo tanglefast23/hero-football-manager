@@ -77,11 +77,14 @@ export function trainPlayerInstantly(
         ),
       };
 
+  // Conditioning is a full-career system: the m1 slice has no weekly recovery
+  // or wellbeing, so charging it there would only ratchet condition downward.
   const conditionBefore = player.condition ?? 100;
+  const hasConditioning = state.careerMode === 'full';
   const injuryRiskReductionPercent = state.facilities.grid === undefined
     ? 0
     : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
-  const injuryChancePercent = conditionBefore >= OVERTRAINING_CONDITION_THRESHOLD
+  const injuryChancePercent = !hasConditioning || conditionBefore >= OVERTRAINING_CONDITION_THRESHOLD
     ? 0
     : overtrainingInjuryChancePercent(conditionBefore, injuryRiskReductionPercent);
   const injured = injuryChancePercent > 0
@@ -92,7 +95,9 @@ export function trainPlayerInstantly(
         gridMedicalBayLevel(state.facilities.grid),
       )
     : undefined;
-  const conditionAfter = Math.max(0, conditionBefore - INSTANT_DRILL_CONDITION_COST);
+  const conditionAfter = hasConditioning
+    ? Math.max(0, conditionBefore - INSTANT_DRILL_CONDITION_COST)
+    : conditionBefore;
 
   const trainedPlayer: CareerPlayer = {
     ...player,

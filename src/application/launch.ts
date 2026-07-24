@@ -8,7 +8,6 @@ import {
   enableFullCareer,
   potentialTierForDivision,
 } from '../game';
-import { TRAINING_PATHS } from '../game/training-paths';
 import {
   assignDistinctPlayerLooks,
   isPlayerLookIdForRole,
@@ -148,9 +147,6 @@ export function reconcileLaunchRoster(
   content: LaunchContent = loadLaunchContent(),
   enableM2 = false,
 ): GameState {
-  const trainingPlanState = reconcileSavedTrainingPlan(state);
-  const trainingPlanChanged = trainingPlanState !== state;
-  state = trainingPlanState;
   const savedAwakening = (state as Omit<GameState, 'awakening'> & {
     awakening?: Omit<GameState['awakening'], 'usedTriggerIds'> & { usedTriggerIds?: string[] };
   }).awakening;
@@ -179,8 +175,7 @@ export function reconcileLaunchRoster(
     legacyReserveWages.set(`${club.id}-p13`, 304 + index * 8);
   });
 
-  let changed = trainingPlanChanged
-    || state.launchRosterVersion !== LAUNCH_ROSTER_VERSION
+  let changed = state.launchRosterVersion !== LAUNCH_ROSTER_VERSION
     || missing.length > 0
     || state.trainingRules === undefined
     || savedAwakening === undefined
@@ -309,19 +304,6 @@ export function reconcileLaunchRoster(
     ? enableFullCareer(reconciled)
     : reconciled;
   return reconcileCareerPlayerLooks(enabled);
-}
-
-/**
- * Saved plans are templates, not historical records. Drop any slot whose path
- * no longer exists; drills/costs resolve fresh from content at settlement.
- */
-function reconcileSavedTrainingPlan(state: GameState): GameState {
-  const plan = state.trainingPlan;
-  if (plan === undefined) return state;
-  const validPathIds = new Set(TRAINING_PATHS.map(path => path.pathId));
-  const slots = plan.slots.filter(slot => validPathIds.has(slot.pathId));
-  if (slots.length === plan.slots.length) return state;
-  return { ...state, trainingPlan: { slots } };
 }
 
 function reconcileCareerPlayerLooks(state: GameState): GameState {

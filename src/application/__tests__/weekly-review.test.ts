@@ -1,29 +1,17 @@
-import { loadLaunchContent } from '../../content';
 import {
   advanceWeek,
-  applyCareerTraining,
   buildCareerFacility,
   completeMatchday,
   createCareer,
   fixturesForCurrentWeek,
-  playerAttributeCaps,
-  resolveTrainingDrillForPath,
   type GameState,
 } from '../../game';
 import { createLaunchCareerSetup } from '../launch';
 import { weeklyReviewViewModel } from '../view-models';
 
 describe('weekly review view model', () => {
-  it('reports exact focused gains and the settled money movement', () => {
-    const content = loadLaunchContent();
-    const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
-    let before = createCareer(createLaunchCareerSetup(1234));
-    // p12 has PAC headroom under this seed (p13's is already at its archetype
-    // cap); the m1-slice career has no tier gating, so the slot always trains
-    // at the highest unlocked tier (Sprints III, +8 PAC).
-    const playerId = 'bramble-rovers-p12';
-    before = applyCareerTraining(before, [{ playerId, pathId: sprint.id }]);
-    const playerBefore = before.players.find(player => player.id === playerId)!;
+  it('reports the settled money and TP movement with no development section', () => {
+    const before = createCareer(createLaunchCareerSetup(1234));
 
     const after = advanceWeek(before);
     const review = weeklyReviewViewModel(before, after);
@@ -39,16 +27,9 @@ describe('weekly review view model', () => {
       netTrainingPoints: after.trainingPoints - before.trainingPoints,
     });
     expect(review.ledger.some(line => line.label === 'Weekly wages')).toBe(true);
-    expect(review.development.focusedTrainees).toHaveLength(1);
-    expect(review.development.focusedTrainees[0].gains).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        label: 'PAC',
-        before: playerBefore.attrs.pac,
-        after: playerBefore.attrs.pac + 8,
-        delta: 8,
-      }),
-    ]));
-    expect(review.development).not.toHaveProperty('conditioning');
+    // Drills resolve instantly in the popup now; the review carries no
+    // training results section at all.
+    expect(review).not.toHaveProperty('development');
   });
 
   it('includes only applicable recovery and upcoming-fixture notices', () => {
@@ -139,32 +120,6 @@ describe('weekly review view model', () => {
       detail: `OUT · 4 WEEKS. ${replacement.name} has moved into the Starting XI.`,
       tone: 'warning',
     });
-  });
-
-  it('names a fully capped drill instead of reporting a funding failure', () => {
-    const content = loadLaunchContent();
-    const sprint = content.training.focusDrills.find(drill => drill.id === 'sprints')!;
-    const initial = createCareer(createLaunchCareerSetup(6790));
-    const player = initial.players.find(candidate => candidate.clubId === initial.userClubId)!;
-    const cap = playerAttributeCaps(player).pac;
-    const capped: GameState = {
-      ...initial,
-      players: initial.players.map(candidate => candidate.id === player.id
-        ? { ...candidate, attrs: { ...candidate.attrs, pac: cap } }
-        : candidate),
-    };
-    const before = applyCareerTraining(capped, [{ playerId: player.id, pathId: sprint.id }]);
-    const drill = resolveTrainingDrillForPath(before, sprint.id);
-    const drillName = content.training.focusDrills.find(candidate => candidate.id === drill.id)?.name ?? drill.id;
-    const after = advanceWeek(before);
-    const review = weeklyReviewViewModel(before, after);
-
-    expect(after.trainingPoints).toBe(before.trainingPoints);
-    expect(review.development).toMatchObject({
-      focusedTrainees: [],
-      trainingSkippedWarning: `${player.name} skipped ${drillName} — PAC is already at the maximum of ${cap} and cannot go higher.`,
-    });
-    expect(after.ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
   });
 
   // "uses the real facility and coach TP when explaining an unfunded plan" was

@@ -16,10 +16,11 @@ import {
   latestSeasonRecap,
   leagueStandings,
   nextPendingClubLegend,
-  pendingTrainingInterrupts,
   playerAttributeCaps,
   playerPotentialGrade,
-  playerPotentialTrainingBonusPercent,
+  overtrainingInjuryChancePercent,
+  superTrainingChancePercent,
+  facilityEffects,
   POSITION_TRAINING_ATTRIBUTES,
   reconcilePendingClubLegends,
   renewalQuote,
@@ -27,7 +28,6 @@ import {
   rosterForClub,
   roleOverall,
   scheduleAssistantInboxWeek,
-  slotTrainingPointCost,
   trainingPathAttribute,
   TRAINING_PATHS,
   weeklyFacilityUpkeep,
@@ -52,7 +52,6 @@ import type {
   LeagueTableViewModel,
   MatchDayViewModel,
   PostMatchViewModel,
-  PlayerDevelopmentViewModel,
   SeasonEndViewModel,
   StoryEventViewModel,
   SquadTrainingViewModel,
@@ -74,7 +73,6 @@ import {
 } from './assistant-guide';
 import { eventChoiceUnavailableReason } from './event-selection';
 
-const REVIEW_ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 const LAUNCH_CONTENT = loadLaunchContent();
 const ASSISTANT_GUIDE_CONTENT = LAUNCH_CONTENT.assistantGuide;
 
@@ -695,33 +693,7 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     && isAssistantInboxOneShotProductVisible(state, boardResolutionAlertId);
   const trainingGroundUnderConstruction = state.facilities.grid?.construction?.kind === 'BUILD'
     && state.facilities.grid.construction.type === 'training-pitch';
-  const trainingCapAlerts = (state.trainingCapNotices ?? [])
-    .filter(notice => isAssistantInboxOneShotProductVisible(state, notice.id))
-    .map(notice => {
-      const drillName = LAUNCH_CONTENT.training.focusDrills
-        .find(drill => drill.id === notice.drillId)?.name
-        ?? notice.drillId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-      const attribute = notice.attribute.toUpperCase();
-      if (notice.kind === 'skipped') {
-        return {
-          id: notice.id,
-          title: `${notice.playerName} skipped ${drillName}`,
-          detail: `${notice.playerName} is already at their ${attribute} maximum. Tap to switch their drill or stop their training.`,
-          tone: 'info' as const,
-          playerId: notice.playerId,
-        };
-      }
-      return {
-        id: notice.id,
-        title: `${notice.playerName} reached their ${attribute} maximum`,
-        detail: `${drillName} took ${attribute} to its maximum. Tap to switch their drill or stop their training.`,
-        tone: 'info' as const,
-        playerId: notice.playerId,
-      };
-    });
-
   return [
-    ...trainingCapAlerts,
     ...(!state.facilities.trainingGroundBuilt && !trainingGroundUnderConstruction ? [{
       id: 'training-ground',
       title: 'Build your Training Pitch',
@@ -1172,10 +1144,8 @@ export function squadTrainingViewModel(
   state: GameState,
   content: LaunchContent,
   selectedPlayerId: string | undefined,
-  trainingSlots: readonly { playerId: string; pathId: string | null }[],
 ): SquadTrainingViewModel {
   const club = requireUserClub(state);
-  const maxSlots = content.training.maxFocusDrillsPerWeek;
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
   if (lineup === undefined) throw new Error('the user club has no starting lineup');
   const starterIds = new Set(lineup.playerIds);
@@ -1189,11 +1159,9 @@ export function squadTrainingViewModel(
     ? roster
     : [createdPlayer, ...roster.filter(player => player.id !== createdPlayerId)];
   const playerById = new Map(roster.map(player => [player.id, player]));
-
-  const slotNumberByPlayerId = new Map(trainingSlots.map((slot, index) => [slot.playerId, index + 1]));
-  const completeSlots = trainingSlots.filter(
-    (slot): slot is { playerId: string; pathId: string } => slot.pathId !== null,
-  );
+  const injuryRiskReductionPercent = state.facilities.grid === undefined
+    ? 0
+    : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
 
   const drillName = (drillId: string): string =>
     content.training.focusDrills.find(candidate => candidate.id === drillId)?.name ?? drillId;
@@ -1201,9 +1169,6 @@ export function squadTrainingViewModel(
   const selectedPlayer = selectedPlayerId === undefined
     ? undefined
     : playerById.get(selectedPlayerId);
-
-  const projectedTrainingPoints = state.trainingPoints + weeklyAmbientTrainingPoints(state);
-  const interrupts = pendingTrainingInterrupts(state, projectedTrainingPoints);
 
   return {
     resources: {
@@ -1223,7 +1188,11 @@ export function squadTrainingViewModel(
         lookId: player.lookId,
         overall: overall(player.role, player.attrs),
         potentialGrade,
-        potentialBonusPercent: playerPotentialTrainingBonusPercent(player),
+        superChancePercent: superTrainingChancePercent(potentialGrade),
+        injuryRiskPercent: overtrainingInjuryChancePercent(
+          player.condition ?? 100,
+          injuryRiskReductionPercent,
+        ),
         positionTrainingLabel: `+5% ${positionAttributes}`,
         condition: player.condition ?? 100,
         injuryWeeks: player.injuryWeeks,
@@ -1253,25 +1222,8 @@ export function squadTrainingViewModel(
             cap: personalCaps[attribute],
           }),
         ),
-        ...(slotNumberByPlayerId.has(player.id) ? { slotNumber: slotNumberByPlayerId.get(player.id) } : {}),
-        ...(hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY') && !isFullyCappedPlayer(player)
-          ? { trainingLocked: true }
-          : {}),
       };
     }),
-    slots: completeSlots.map(slot => {
-      const drill = resolveTrainingDrillForPath(state, slot.pathId);
-      const attribute = trainingPathAttribute(slot.pathId);
-      const gain = drill.gains[attribute] ?? 0;
-      return {
-        playerId: slot.playerId,
-        playerName: playerById.get(slot.playerId)?.name ?? slot.playerId,
-        pathId: slot.pathId,
-        drillName: drillName(drill.id),
-        gainLabel: `+${gain} ${attribute.toUpperCase()}`,
-      };
-    }),
-    maxSlots,
     ...(selectedPlayer === undefined ? {} : {
       selectedPlayerStatOptions: TRAINING_PATHS
         .filter(path => selectedPlayer.role === 'GK'
@@ -1290,14 +1242,10 @@ export function squadTrainingViewModel(
             gain,
             currentValue,
             atSafetyCeiling: currentValue >= 999,
+            affordable: drill.tpCost <= state.trainingPoints,
           };
         }),
     }),
-    weeklyTrainingPointCost: slotTrainingPointCost(state, completeSlots),
-    interrupts: {
-      cappedSlots: interrupts.cappedSlots,
-      tpShortfall: interrupts.tpShortfall,
-    },
   };
 }
 
@@ -1350,7 +1298,6 @@ export function weeklyReviewViewModel(
       amount: line.amount,
       kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
     })),
-    development: playerDevelopmentViewModel(before, after),
     updates: weekUpdates(before, after),
     ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
     ...(nextFixture === undefined ? {} : { nextFixture: fixtureViewModel(after, nextFixture) }),
@@ -1419,82 +1366,9 @@ export function postMatchViewModel(
     trainingPointsGained: after.trainingPoints - before.trainingPoints,
     fanDelta: requireUserClub(after).fans - requireUserClub(before).fans,
     highlights,
-    development: playerDevelopmentViewModel(before, after),
     updates: weekUpdates(before, after),
     ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
   };
-}
-
-function playerDevelopmentViewModel(
-  before: GameState,
-  after: GameState,
-): PlayerDevelopmentViewModel {
-  const plan = before.trainingPlan;
-  // Training costs no money now, so the old ledger-line check can never fire;
-  // re-derive whether the plan actually ran from the same blocking-interrupt
-  // data the training screen uses (at least one slot not already capped, and
-  // enough TP for all of them).
-  const projectedTrainingPoints = before.trainingPoints + weeklyAmbientTrainingPoints(before);
-  const interruptsBefore = plan === undefined
-    ? undefined
-    : pendingTrainingInterrupts(before, projectedTrainingPoints);
-  const focusApplied = plan !== undefined
-    && interruptsBefore !== undefined
-    && interruptsBefore.cappedSlots.length < plan.slots.length
-    && interruptsBefore.tpShortfall === 0;
-  const afterPlayers = new Map(after.players.map(player => [player.id, player]));
-
-  const focusedTrainees = focusApplied && plan !== undefined
-    ? plan.slots.map(slot => slot.playerId).flatMap(playerId => {
-        const playerBefore = before.players.find(player => player.id === playerId);
-        const playerAfter = afterPlayers.get(playerId);
-        if (playerBefore === undefined || playerAfter === undefined) return [];
-        return [{
-          id: playerBefore.id,
-          name: playerBefore.name,
-          role: playerBefore.role,
-          lookId: playerBefore.lookId,
-          gains: REVIEW_ATTRIBUTES.flatMap(attribute => {
-            const delta = playerAfter.attrs[attribute] - playerBefore.attrs[attribute];
-            return delta <= 0 ? [] : [{
-              id: `${playerBefore.id}-${attribute}`,
-              label: attribute.toUpperCase(),
-              before: playerBefore.attrs[attribute],
-              after: playerAfter.attrs[attribute],
-              delta,
-            }];
-          }),
-        }];
-      })
-    : [];
-
-  return {
-    focusedTrainees,
-    ...(plan !== undefined && !focusApplied ? {
-      trainingSkippedWarning: skippedTrainingWarning(before, after),
-    } : {}),
-  };
-}
-
-function skippedTrainingWarning(before: GameState, after: GameState): string {
-  const plan = before.trainingPlan;
-  if (plan === undefined) return 'Focused training was skipped.';
-  const interrupts = pendingTrainingInterrupts(before, before.trainingPoints);
-  if (interrupts.cappedSlots.length > 0) {
-    const conflict = interrupts.cappedSlots[0];
-    const drill = resolveTrainingDrillForPath(before, conflict.pathId);
-    const drillName = LAUNCH_CONTENT.training.focusDrills
-      .find(candidate => candidate.id === drill.id)?.name
-      ?? drill.id;
-    return `${conflict.playerName} skipped ${drillName} — ${conflict.attribute.toUpperCase()} is already at the maximum of ${conflict.cap} and cannot go higher.`;
-  }
-  const trainingPointCost = interrupts.weeklyTrainingPointCost;
-  const ambientTrainingPoints = weeklyAmbientTrainingPoints(before);
-  const availableTrainingPoints = Math.max(before.trainingPoints, after.trainingPoints - ambientTrainingPoints);
-  const reason = trainingPointCost > availableTrainingPoints
-    ? 'not enough TP'
-    : 'the weekly plan could not be funded';
-  return `Focused training skipped — ${reason}.`;
 }
 
 function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel['updates'] {
