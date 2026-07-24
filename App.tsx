@@ -1018,6 +1018,7 @@ function GameApp() {
     screen = (
       <TitleLandingScreen
         hasSavedCareer={store.hasSavedCareer}
+        reduceMotion={reduceMotion}
         onStory={() => setLandingView('story')}
         onSettings={() => setLandingView('settings')}
       />

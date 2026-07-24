@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { FormationDiagram } from '../components/FormationDiagram';
@@ -8,95 +8,162 @@ import { SfxPressable as Pressable } from '../components/SfxPressable';
 import type { AppPreferences } from '../../persistence';
 import type { GlossaryCatalog } from '../../content';
 import { GlossaryPanel } from '../GlossaryPanel';
+import { TitlePlayerPopScene } from '../components/TitlePlayerPopScene';
 
 export interface TitleLandingScreenProps {
   hasSavedCareer: boolean;
+  reduceMotion?: boolean;
   onStory: () => void;
   onSettings: () => void;
 }
 
 export function TitleLandingScreen({
   hasSavedCareer,
+  reduceMotion = false,
   onStory,
   onSettings,
 }: TitleLandingScreenProps) {
+  const { width, height } = useWindowDimensions();
+  const isWide = width >= 900 && height >= 600;
+
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
       <View pointerEvents="none" className="absolute inset-0 overflow-hidden">
-        <View className="absolute -right-24 top-20 h-72 w-72 rotate-12 border-2 border-ink/10" />
-        <View className="absolute -left-20 bottom-24 h-52 w-72 -rotate-12 border-2 border-ink/10" />
-        <View className="absolute left-1/2 top-0 h-full w-px bg-ink/5" />
-        <View className="absolute left-0 top-1/2 h-px w-full bg-ink/5" />
+        <View className="absolute -left-28 top-16 h-72 w-72 rounded-full border-4 border-paper/15" />
+        <View className="absolute -right-24 top-64 h-64 w-64 rounded-full border-4 border-paper/10" />
+        <View className="absolute left-1/2 top-0 h-full w-[3px] bg-paper/10" />
+        {isWide ? (
+          <View className="absolute right-[9%] top-1/2 h-[440px] w-[440px] -translate-y-1/2 rounded-full border-4 border-paper/10" />
+        ) : null}
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 justify-between px-5 py-6">
-          <View>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1, alignItems: 'center' }}
+      >
+        <View
+          className={isWide
+            ? 'w-full max-w-[1180px] flex-1 flex-row items-center justify-between gap-20 px-12 py-10'
+            : 'w-full max-w-[480px] flex-1 justify-between px-5 py-5'}
+        >
+          <View className={isWide ? 'w-[54%] max-w-[620px]' : 'relative'}>
             <View className="flex-row items-start justify-between">
-              <View className="-rotate-3 border-2 border-signal bg-ink px-3 py-2">
-                <Text className="font-mono text-sm font-bold uppercase text-signal">
+              <View className="-rotate-2 border-2 border-ink bg-paper px-3 py-2">
+                <Text className="font-pixel text-xs uppercase text-pitch-dark">
                   Small club · Big heroes
                 </Text>
               </View>
-              <View className="h-12 w-12 rotate-3 items-center justify-center border-2 border-stamp bg-paper">
-                <Text className="font-mono text-2xl font-bold text-stamp">★</Text>
+              <View className={isWide
+                ? 'h-14 w-14 rotate-3 items-center justify-center border-[3px] border-ink bg-gold'
+                : 'h-11 w-11 rotate-3 items-center justify-center border-2 border-ink bg-gold'}
+              >
+                <Text className={isWide ? 'font-pixel text-3xl text-ink' : 'font-pixel text-xl text-ink'}>★</Text>
               </View>
             </View>
 
-            <View className="mt-12">
-              <Text className="text-sm font-bold uppercase tracking-[4px] text-blue-dark">The beautiful game gets strange</Text>
-              <Text className="mt-4 text-6xl font-bold uppercase leading-[64px] tracking-tight text-ink">
-                Hero{`\n`}Football{`\n`}Manager
+            <View className={isWide ? 'mt-12' : 'mt-7'}>
+              <Text className={isWide
+                ? 'font-pixel text-sm uppercase tracking-[4px] text-paper/80'
+                : 'font-pixel text-xs uppercase tracking-[3px] text-paper/80'}
+              >
+                The beautiful game gets strange
               </Text>
-              <View className="mt-5 h-2 w-32 -rotate-2 bg-signal" />
-              <Text className="mt-6 max-w-sm text-lg leading-6 text-ink/65">
-                Build a tiny club. Discover impossible players. Make match-day legends.
+              <Text className={isWide
+                ? 'mt-4 font-pixel text-[68px] uppercase leading-[68px] tracking-tight text-white'
+                : 'mt-2 font-pixel text-[43px] uppercase leading-[44px] tracking-tight text-white'}
+              >
+                Hero{`\n`}Football
+              </Text>
+              <View className={isWide
+                ? '-mt-1 self-start -rotate-2 border-[3px] border-ink bg-violet px-5 py-2'
+                : '-mt-1 self-start -rotate-2 border-2 border-ink bg-violet px-3 py-1'}
+              >
+                <Text className={isWide
+                  ? 'font-pixel text-4xl uppercase text-white'
+                  : 'font-pixel text-2xl uppercase text-white'}
+                >
+                  Manager!
+                </Text>
+              </View>
+              <Text className={isWide
+                ? 'mt-7 max-w-lg font-mono text-base uppercase leading-7 text-paper/80'
+                : 'mt-4 max-w-sm font-mono text-sm uppercase leading-5 text-paper/80'}
+              >
+                Train a tiny club. Discover impossible players. Make match-day legends.
               </Text>
             </View>
           </View>
 
-          <View className="mt-12 gap-3">
-            <View className="mb-1 flex-row items-center justify-between">
-              <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Choose your entrance</Text>
-              {hasSavedCareer ? <StatusChip label="Save found" tone="success" /> : <StatusChip label="New file" tone="hero" />}
-            </View>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={hasSavedCareer ? 'Open story and saved career options' : 'Open story mode'}
-              onPress={onStory}
-              className="relative min-h-24 overflow-hidden border-2 border-ink bg-signal px-5 py-4 shadow-lg shadow-black/40"
-              style={({ pressed }) => ({ opacity: pressed ? 0.78 : undefined })}
-            >
-              <View pointerEvents="none" className="absolute -right-8 -top-12 h-40 w-24 rotate-12 bg-paper/25" />
-              <Text className="font-mono text-4xl font-bold uppercase text-ink">Story</Text>
-              <Text className="mt-1 max-w-[80%] text-sm font-bold uppercase tracking-wide text-ink/60">
-                {hasSavedCareer ? 'Continue your club or begin again' : 'Take the keys to your first club'}
-              </Text>
-              <Text className="absolute right-5 top-6 font-mono text-5xl font-bold text-ink">▸</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open settings"
-              onPress={onSettings}
-              className="min-h-14 flex-row items-center justify-between border-2 border-ink bg-white px-4 py-3"
-              style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
-            >
-              <View className="flex-row items-center gap-3">
-                <Text className="font-mono text-xl font-bold text-blue-dark">⚙</Text>
-                <Text className="text-base font-bold uppercase tracking-[2px] text-ink">Settings</Text>
-              </View>
-              <Text className="font-mono text-xl text-ink/45">›</Text>
-            </Pressable>
-
-            <Text className="mt-2 text-center font-mono text-sm uppercase text-ink/30">
-              Heroes start here
-            </Text>
+          <View className={isWide ? 'w-[430px] pt-28' : 'mt-32'}>
+            <TitleMenu
+              hasSavedCareer={hasSavedCareer}
+              reduceMotion={reduceMotion}
+              onStory={onStory}
+              onSettings={onSettings}
+            />
           </View>
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function TitleMenu({
+  hasSavedCareer,
+  reduceMotion,
+  onStory,
+  onSettings,
+}: {
+  readonly hasSavedCareer: boolean;
+  readonly reduceMotion: boolean;
+  readonly onStory: () => void;
+  readonly onSettings: () => void;
+}) {
+  return (
+    <View className="relative">
+      <View pointerEvents="none" className="absolute -top-[250px] left-0 right-0 h-[252px]">
+        <TitlePlayerPopScene reduceMotion={reduceMotion} />
+      </View>
+      <View className="z-10 gap-2 border-[3px] border-ink bg-paper p-3">
+        <View className="mb-1 flex-row items-center justify-between">
+          <Text className="font-pixel text-[10px] uppercase tracking-[1px] text-ink/60">Pick your boots</Text>
+          {hasSavedCareer ? <StatusChip label="Save found" tone="success" /> : <StatusChip label="New file" tone="hero" />}
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={hasSavedCareer ? 'Open story and saved career options' : 'Open story mode'}
+          onPress={onStory}
+          className="relative min-h-20 overflow-hidden border-[3px] border-ink bg-violet px-4 py-3"
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.82 : undefined,
+            transform: [{ translateY: pressed ? 3 : 0 }],
+          })}
+        >
+          <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-2 bg-violet-dark" />
+          <Text className="font-pixel text-2xl uppercase text-white">Story</Text>
+          <Text className="mt-1 max-w-[82%] font-mono text-[10px] uppercase leading-4 text-white/75">
+            {hasSavedCareer ? 'Continue your club or begin again' : 'Take the keys to your first club'}
+          </Text>
+          <Text className="absolute right-4 top-3 font-pixel text-4xl text-white">▸</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open settings"
+          onPress={onSettings}
+          className="min-h-12 flex-row items-center justify-between border-[3px] border-ink bg-white px-4 py-2"
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.72 : undefined,
+            transform: [{ translateY: pressed ? 2 : 0 }],
+          })}
+        >
+          <View className="flex-row items-center gap-3">
+            <Text className="font-pixel text-lg text-blue-dark">⚙</Text>
+            <Text className="font-pixel text-xs uppercase text-ink">Settings</Text>
+          </View>
+          <Text className="font-pixel text-lg text-ink/45">›</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
