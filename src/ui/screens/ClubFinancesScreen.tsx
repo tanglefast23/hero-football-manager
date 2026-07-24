@@ -977,22 +977,22 @@ function GroundsSection({
           </View>
 
           {placementActive ? (
-            <View className="mt-3 flex-row items-start justify-between gap-3 border-2 border-violet-dark bg-violet-light px-3 py-2">
+            <View className="mt-3 flex-row items-start justify-between gap-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
               <View className="flex-1">
-                <Text className="text-sm font-bold uppercase text-violet-dark">
+                <Text className="text-sm font-bold uppercase text-blue-dark">
                   {relocatingBuildingId !== null ? `Moving · ${activeLabel}` : `Placing · ${activeLabel}`}
                 </Text>
                 <Text className="mt-1 text-sm text-ink/70">
-                  Tap any + square above. A violet outline fits; red is blocked.
+                  Tap any + square above. A blue outline fits; red is blocked.
                 </Text>
               </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Cancel placement"
                 onPress={cancelPlacement}
-                className="min-h-11 items-center justify-center border-2 border-violet-dark bg-white px-3"
+                className="min-h-11 items-center justify-center border-2 border-blue-dark bg-white px-3"
               >
-                <Text className="text-sm font-bold uppercase text-violet-dark">Cancel</Text>
+                <Text className="text-sm font-bold uppercase text-blue-dark">Cancel</Text>
               </Pressable>
             </View>
           ) : (
@@ -1034,7 +1034,7 @@ function GroundsSection({
                       ? `${formatCurrency(selectedBuilding.weeklyUpkeep)}/wk upkeep · ${formatCurrency(selectedBuilding.relocationFee)} to move`
                       : `${selectedBuilding.status === 'construction' ? 'Building' : 'Upgrading'} · ${selectedBuilding.weeksRemaining} week${selectedBuilding.weeksRemaining === 1 ? '' : 's'} remaining`}
                   </Text>
-                  <Text className="mt-2 text-sm font-bold leading-4 text-violet-dark">
+                  <Text className="mt-2 text-sm font-bold leading-4 text-blue-dark">
                     {selectedBuilding.effectLabel}
                   </Text>
                   {selectedBuilding.nextLevelEffectLabel ? (
@@ -1111,7 +1111,7 @@ function GroundsSection({
                     || selectedBuilding.status !== 'operational'
                     || viewModel.facilities.activeProject !== undefined
                     ? 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'
-                    : 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-violet px-2'}
+                    : 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-blue px-2'}
                 >
                   <Text className={!selectedBuilding.canUpgrade
                     || selectedBuilding.status !== 'operational'
@@ -1209,7 +1209,7 @@ function GroundsSection({
                         setRelocatingBuildingId(null);
                       }}
                       className={selected
-                        ? 'min-h-36 w-full border-2 border-b-4 border-violet-dark bg-violet-light/30 p-2'
+                        ? 'min-h-36 w-full border-2 border-b-4 border-blue-dark bg-blue-light/30 p-2'
                         : entryEnabled
                           ? 'min-h-36 w-full border-2 border-b-4 border-ink bg-white p-2'
                           : 'min-h-36 w-full border-2 border-ink/20 bg-ink/5 p-2'}
@@ -1225,7 +1225,7 @@ function GroundsSection({
                         </Text>
                       </View>
                       <Text className={entryEnabled
-                        ? 'text-xs font-bold leading-4 text-violet-dark'
+                        ? 'text-xs font-bold leading-4 text-blue-dark'
                         : 'text-xs font-bold leading-4 text-ink/35'}>
                         {entry.effectLabel}
                       </Text>
@@ -1282,7 +1282,7 @@ function GroundsSection({
                     </Text>
                     {presentation ? (
                       <>
-                        <Text className="mt-1 text-sm font-bold text-violet-dark">
+                        <Text className="mt-1 text-sm font-bold text-blue-dark">
                           {presentation.effectLabel}
                         </Text>
                         <Text className="mt-1 text-sm leading-4 text-ink/60">

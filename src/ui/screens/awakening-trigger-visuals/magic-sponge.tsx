@@ -8,9 +8,9 @@ const P = AWAKENING_PIXEL_PALETTE;
 
 const MAGIC_SPONGE_BLOCKS: readonly AwakeningPixelBlock[] = [
   // Violet block-sparkles establish magic without a smooth aura.
-  [3, 3, 2, 6, P.violetShadow],
-  [1, 5, 6, 2, P.violetShadow],
-  [3, 4, 2, 3, P.violetLight],
+  [3, 3, 2, 6, P.blueShadow],
+  [1, 5, 6, 2, P.blueShadow],
+  [3, 4, 2, 3, P.blueLight],
   [10, 4, 1, 4, P.cream],
   [8, 5, 5, 1, P.cream],
 

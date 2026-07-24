@@ -1,7 +1,9 @@
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, StatusChip } from '../components/Scorecard';
+import { ChalkboardBackdrop } from '../components/ChalkboardStage';
 import { SettingsButton } from '../SettingsOverlay';
+import { useLayoutMode } from '../layout/use-layout-mode';
 
 /** One self-reported stat tile. `value` is a display string so "99*" / "MAX" both work. */
 export interface HirePitchStat {
@@ -131,6 +133,7 @@ const DEFAULT_STATS: HirePitchStat[] = [
  * speech bubble, and Sign / Pass. Meant to make the player smile.
  */
 export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOpenSettings }: HirePitchScreenProps) {
+  const wide = useLayoutMode() === 'twoColumn';
   const speech = lines && lines.length > 0 ? lines : DEFAULT_LINES;
   const stats = player.stats && player.stats.length > 0 ? player.stats : DEFAULT_STATS;
   const usingDefaultStats = !(player.stats && player.stats.length > 0);
@@ -140,23 +143,24 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOp
     : player.position;
 
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
-      <View className="border-b-2 border-ink bg-white px-5 py-4">
+    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+      <ChalkboardBackdrop wide={wide} />
+      <View className="px-5 py-4">
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="text-sm font-bold uppercase tracking-[3px] text-blue-dark">Trial · unsolicited</Text>
-            <Text className="mt-2 text-3xl font-bold uppercase leading-9 tracking-wide text-ink">
+            <Text className="font-pixel text-xs uppercase tracking-[3px] text-gold-light">Trial · unsolicited</Text>
+            <Text className="mt-2 font-pixel text-3xl uppercase leading-9 tracking-wide text-white">
               Sign me. Please.
             </Text>
           </View>
           <View className="items-end gap-3">
             <SettingsButton onPress={onOpenSettings} />
-            <View className="-rotate-3 border-2 border-stamp px-3 py-2">
-              <Text className="text-sm font-bold uppercase tracking-widest text-stamp">Trialist</Text>
+            <View className="-rotate-3 border-2 border-red bg-red-light/25 px-3 py-2">
+              <Text className="text-sm font-bold uppercase tracking-widest text-red-light">Trialist</Text>
             </View>
           </View>
         </View>
-        <Text className="mt-3 max-w-sm text-base leading-5 text-ink/65">{tagline}</Text>
+        <Text className="mt-3 max-w-sm text-base leading-5 text-paper/70">{tagline}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
@@ -174,7 +178,7 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOp
               {player.name}
             </Text>
           </View>
-          <Text className="mt-2 font-mono text-sm font-bold uppercase text-blue-dark">{subLine}</Text>
+          <Text className="mt-2 font-mono text-sm font-bold uppercase text-blue-light">{subLine}</Text>
           <View className="mt-3">
             <StatusChip label="Wonderkid (his words)" tone="hero" />
           </View>
@@ -221,7 +225,7 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOp
         </View>
       </ScrollView>
 
-      <View className="flex-row items-stretch gap-3 border-t-2 border-ink bg-white p-3">
+      <View className="flex-row items-stretch gap-3 border-t-[6px] border-white bg-ink/25 p-3">
         <View className="w-28">
           <ActionButton label="Pass" accessibilityLabel={`Pass on ${player.name}`} variant="paper" onPress={onPass} />
         </View>

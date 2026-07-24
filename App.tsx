@@ -211,7 +211,7 @@ function PowerMatchQaApp() {
       {!fontsLoaded ? <LoadingScreen /> : <>
         <StatusBar style="light" />
         <SafeAreaView className="flex-1 bg-ink">
-        <View className="border-b-2 border-ink bg-violet-dark px-2 py-2">
+        <View className="border-b-2 border-ink bg-blue-dark px-2 py-2">
           <View className="flex-row items-center gap-2">
             <Pressable
               accessibilityRole="button"
@@ -1619,7 +1619,7 @@ function BootFailure({
           accessibilityRole="button"
           accessibilityLabel="Retry opening club files"
           onPress={onRetry}
-          className="mt-5 min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-violet px-4"
+          className="mt-5 min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-blue px-4"
           style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
         >
           <Text className="font-pixel text-sm uppercase text-paper">Retry</Text>
@@ -1688,10 +1688,6 @@ function feedbackNoticeAccessibilityLabel(message: string): string {
   return `${sentence} Tap to dismiss.`;
 }
 
-// Reads squadTrainingVm live on every render (App passes the current memo down
-// as `vm`), so the list and the Advance button re-resolve as soon as the
-// manager's fix (stop training / change stat) clears the interrupt — no
-// snapshot of the blocking condition is kept here.
 function ConfirmationSheet({
   confirmation,
   onCancel,
@@ -1735,7 +1731,7 @@ function ConfirmationSheet({
                   ? 'bg-red'
                   : confirmation?.tone === 'hero'
                     ? 'bg-gold'
-                    : 'bg-violet'
+                    : 'bg-blue'
               }`}
               style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
             >

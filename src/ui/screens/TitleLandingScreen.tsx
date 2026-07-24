@@ -33,7 +33,6 @@ export function TitleLandingScreen({
       <View pointerEvents="none" className="absolute inset-0 overflow-hidden">
         <View className="absolute -left-28 top-16 h-72 w-72 rounded-full border-4 border-paper/15" />
         <View className="absolute -right-24 top-64 h-64 w-64 rounded-full border-4 border-paper/10" />
-        <View className="absolute left-1/2 top-0 h-full w-[3px] bg-paper/10" />
         {isWide ? (
           <View className="absolute right-[9%] top-1/2 h-[440px] w-[440px] -translate-y-1/2 rounded-full border-4 border-paper/10" />
         ) : null}
@@ -77,8 +76,8 @@ export function TitleLandingScreen({
                 Hero{`\n`}Football
               </Text>
               <View className={isWide
-                ? '-mt-1 self-start -rotate-2 border-[3px] border-ink bg-violet px-5 py-2'
-                : '-mt-1 self-start -rotate-2 border-2 border-ink bg-violet px-3 py-1'}
+                ? '-mt-1 self-start -rotate-2 border-[3px] border-ink bg-blue px-5 py-2'
+                : '-mt-1 self-start -rotate-2 border-2 border-ink bg-blue px-3 py-1'}
               >
                 <Text className={isWide
                   ? 'font-pixel text-4xl uppercase text-white'
@@ -135,13 +134,13 @@ function TitleMenu({
           accessibilityRole="button"
           accessibilityLabel={hasSavedCareer ? 'Open story and saved career options' : 'Open story mode'}
           onPress={onStory}
-          className="relative min-h-20 overflow-hidden border-[3px] border-ink bg-violet px-4 py-3"
+          className="relative min-h-20 overflow-hidden border-[3px] border-ink bg-blue px-4 py-3"
           style={({ pressed }) => ({
             opacity: pressed ? 0.82 : undefined,
             transform: [{ translateY: pressed ? 3 : 0 }],
           })}
         >
-          <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-2 bg-violet-dark" />
+          <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-2 bg-blue-dark" />
           <Text className="font-pixel text-2xl uppercase text-white">Story</Text>
           <Text className="mt-1 max-w-[82%] font-mono text-[10px] uppercase leading-4 text-white/75">
             {hasSavedCareer ? 'Continue your club or begin again' : 'Take the keys to your first club'}
@@ -254,7 +253,7 @@ export function TitleSettingsScreen({
                   accessibilityState={{ checked: preferences.reduceMotion }}
                   onPress={onToggleReduceMotion}
                   className={preferences.reduceMotion
-                    ? 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-violet-light px-4 py-3'
+                    ? 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-blue-light px-4 py-3'
                     : 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3'}
                   style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
                 >
@@ -275,7 +274,7 @@ export function TitleSettingsScreen({
                     <Text className="font-mono text-base font-bold uppercase text-ink">Match info position</Text>
                     <Text className="mt-1 text-sm text-ink/60">Moves the carrier card and top controls together.</Text>
                   </View>
-                  <Text className="font-mono text-lg font-bold uppercase text-violet-dark">{preferences.hudSide}</Text>
+                  <Text className="font-mono text-lg font-bold uppercase text-blue-dark">{preferences.hudSide}</Text>
                 </Pressable>
                 <AccessibilityToggle label="Haptics" detail="Turns all touch feedback on or off." enabled={preferences.hapticsEnabled} onPress={onToggleHaptics} />
                 <AccessibilityChoice label="Text size" detail="Adds extra room to important story and review copy." value={preferences.textScale === 1 ? 'System' : preferences.textScale === 1.15 ? 'Roomy' : 'Large'} onPress={onCycleTextScale} />
@@ -413,7 +412,7 @@ export function TitleSettingsScreen({
 
 function AccessibilityToggle({ label, detail, enabled, onPress }: { label: string; detail: string; enabled: boolean; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: enabled }} onPress={onPress} className={enabled ? 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-violet-light px-4 py-3' : 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3'}>
+    <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: enabled }} onPress={onPress} className={enabled ? 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-blue-light px-4 py-3' : 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3'}>
       <View className="flex-1 pr-3"><Text className="font-mono text-base font-bold uppercase text-ink">{label}</Text><Text className="mt-1 text-sm text-ink/60">{detail}</Text></View>
       <Text className="font-mono text-lg font-bold text-ink">{enabled ? 'ON' : 'OFF'}</Text>
     </Pressable>
@@ -424,7 +423,7 @@ function AccessibilityChoice({ label, detail, value, onPress }: { label: string;
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${value}`} onPress={onPress} className="min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3">
       <View className="flex-1 pr-3"><Text className="font-mono text-base font-bold uppercase text-ink">{label}</Text><Text className="mt-1 text-sm text-ink/60">{detail}</Text></View>
-      <Text className="font-mono text-lg font-bold uppercase text-violet-dark">{value}</Text>
+      <Text className="font-mono text-lg font-bold uppercase text-blue-dark">{value}</Text>
     </Pressable>
   );
 }

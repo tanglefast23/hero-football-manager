@@ -211,6 +211,9 @@ export function ManagementShell({
       <View className="flex-1">{children}</View>
 
       <View className="border-t-2 border-ink bg-paper-dark px-3 pt-2">
+        {/* Bottom chrome shares the content column: the Advance Week button and
+            the five tabs never extend past the tables above them on desktop. */}
+        <View className="w-full max-w-5xl self-center">
         <View className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
           {guideTarget === 'advance-week' ? (
             <TutorialTapCue
@@ -287,6 +290,7 @@ export function ManagementShell({
               </Pressable>
             );
           })}
+        </View>
         </View>
       </View>
     </SafeAreaView>

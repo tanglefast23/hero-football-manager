@@ -42,7 +42,7 @@ const CALLOUT_ART = {
     [3, 14, 18, 1, P.ink, 0.28],
     [4, 6, 5, 5, P.skinShadow], [5, 5, 4, 4, P.skinLight],
     [10, 5, 3, 3, P.cream], [14, 3, 2, 2, P.cream], [15, 9, 3, 3, P.greyLight],
-    [18, 7, 4, 7, P.violetShadow], [19, 8, 3, 5, P.violetBase], [19, 6, 3, 2, P.greyLight],
+    [18, 7, 4, 7, P.blueShadow], [19, 8, 3, 5, P.blueBase], [19, 6, 3, 2, P.greyLight],
   ],
   ice: [
     [4, 14, 16, 1, P.ink, 0.28],
@@ -84,7 +84,7 @@ const CALLOUT_ART = {
     [3, 14, 18, 1, P.ink, 0.28],
     [3, 8, 9, 5, P.redShadow], [4, 8, 7, 3, P.redBase], [11, 6, 4, 7, P.goldShadow],
     [14, 2, 2, 3, P.blueLight], [18, 4, 2, 2, P.redLight], [21, 1, 2, 2, P.goldLight],
-    [17, 9, 2, 3, P.violetLight], [21, 11, 2, 2, P.turfLight],
+    [17, 9, 2, 3, P.blueLight], [21, 11, 2, 2, P.turfLight],
   ],
   feather: [
     [4, 14, 16, 1, P.ink, 0.28],

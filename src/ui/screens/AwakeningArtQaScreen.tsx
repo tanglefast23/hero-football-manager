@@ -128,8 +128,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   navigationButton: {
-    backgroundColor: '#9a63d6',
-    borderBottomColor: '#5b3a91',
+    backgroundColor: '#5a8fd6',
+    borderBottomColor: '#3f6fb5',
     borderColor: '#241f2e',
     borderWidth: 3,
     flex: 1,

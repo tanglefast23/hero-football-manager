@@ -177,8 +177,8 @@ export function TrainingDrillModal({
                 </Text>
               </View>
               {owedHere ? (
-                <View className="border-2 border-violet-dark bg-violet-light px-2 py-1">
-                  <Text className="font-mono text-sm font-bold uppercase text-violet-dark">
+                <View className="border-2 border-blue-dark bg-blue-light px-2 py-1">
+                  <Text className="font-mono text-sm font-bold uppercase text-blue-dark">
                     Promise · {promiseGate.remaining} owed
                   </Text>
                 </View>
@@ -232,8 +232,8 @@ export function TrainingDrillModal({
 
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 16 }}>
               {blockedByPromise ? (
-                <View className="border-2 border-b-4 border-violet-dark bg-violet-light p-4">
-                  <Text className="font-mono text-sm font-bold uppercase text-violet-dark">
+                <View className="border-2 border-b-4 border-blue-dark bg-blue-light p-4">
+                  <Text className="font-mono text-sm font-bold uppercase text-blue-dark">
                     {promiseGate.playerName} reminds you
                   </Text>
                   <Text className="mt-2 text-base font-bold text-ink">
@@ -244,7 +244,7 @@ export function TrainingDrillModal({
                       accessibilityRole="button"
                       accessibilityLabel={`Train ${promiseGate.playerName} instead`}
                       onPress={() => onSwitchToPromised(promiseGate.playerId)}
-                      className="mt-3 min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-violet px-4 py-2"
+                      className="mt-3 min-h-11 items-center justify-center border-2 border-b-4 border-ink bg-blue px-4 py-2"
                       style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
                     >
                       <Text className="font-pixel text-base uppercase text-white">

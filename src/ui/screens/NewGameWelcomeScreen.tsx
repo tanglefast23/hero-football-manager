@@ -248,7 +248,7 @@ export function NewGameWelcomeScreen({
       {/* The entrance choice is pinned on phones: on a short screen the brief
           scrolls, but the button that starts the game is never below the fold. */}
       {wide ? null : (
-        <View className="border-t-2 border-paper/10 bg-pitch-dark px-5 pb-2 pt-3">
+        <View className="border-t-[6px] border-white bg-ink/25 px-5 pb-2 pt-3">
           {entranceChoices}
         </View>
       )}

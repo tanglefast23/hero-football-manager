@@ -4,18 +4,17 @@ import {
   ScrollView,
   Text,
   View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WeeklyReviewViewModel } from '../models';
 import {
   ActionButton,
   PaperPanel,
-  SectionLabel,
   formatCompactNumber,
   formatCurrency,
 } from '../components/Scorecard';
+import { ChalkboardBackdrop, StageSection } from '../components/ChalkboardStage';
+import { useLayoutMode } from '../layout/use-layout-mode';
 import { FacilityCompletionCard } from '../components/FacilityCompletionCard';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
@@ -36,6 +35,7 @@ export function WeeklyReviewScreen({
   reduceMotion = false,
   textScale = 1,
 }: WeeklyReviewScreenProps) {
+  const wide = useLayoutMode() === 'twoColumn';
   const [balanceAnimationsComplete, setBalanceAnimationsComplete] = useState(reduceMotion);
   const balanceAnimationsStarted = reduceMotion || animationsReady;
   const balanceComplete = reduceMotion || balanceAnimationsComplete;
@@ -52,15 +52,16 @@ export function WeeklyReviewScreen({
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+      <ChalkboardBackdrop wide={wide} />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
       >
-        <View className="border-b-2 border-ink pb-3">
-          <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Weekly review</Text>
-          <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.completedWeekLabel}</Text>
-          <Text className="mt-2 text-sm font-bold uppercase text-ink/50">{viewModel.clubName}</Text>
+        <View className="border-b-2 border-paper/15 pb-3">
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Weekly review</Text>
+          <Text className="mt-1 font-pixel text-xl uppercase text-white">{viewModel.completedWeekLabel}</Text>
+          <Text className="mt-2 text-sm font-bold uppercase text-paper/70">{viewModel.clubName}</Text>
         </View>
 
         {viewModel.facilityCompletion ? (
@@ -137,7 +138,7 @@ export function WeeklyReviewScreen({
 
       </ScrollView>
 
-      <View className="border-t-2 border-ink/20 bg-white p-3">
+      <View className="border-t-[6px] border-white bg-ink/25 p-3">
         <ActionButton
           label={`Start ${viewModel.nextWeekLabel}  ▸`}
           accessibilityLabel={`Finish the weekly review and start ${viewModel.nextWeekLabel}`}

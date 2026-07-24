@@ -13,7 +13,7 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 /** Full-card tint per alert tone — bible palette only, never off-palette Tailwind hues. */
 function alertPalette(tone: ClubAlertViewModel['tone']): string {
   if (tone === 'urgent') return 'border-red-dark bg-red-light';
-  if (tone === 'event') return 'border-violet-dark bg-violet-light';
+  if (tone === 'event') return 'border-blue-dark bg-blue-light';
   return 'border-blue-dark bg-blue-light';
 }
 
@@ -174,7 +174,7 @@ export function ClubHomeScreen({
                   </View>
                   <Text className="font-mono text-2xl font-bold text-ink">→</Text>
                   <View className="flex-1 items-center border-2 border-pitch-dark bg-white p-2">
-                    <View className="overflow-hidden border-2 border-ink bg-violet-light">
+                    <View className="overflow-hidden border-2 border-ink bg-blue-light">
                       <PixelPortrait playerId={viewModel.boardResolution.replacementPlayer.id} role={viewModel.boardResolution.replacementPlayer.role} lookId={viewModel.boardResolution.replacementPlayer.lookId} expression="joy" />
                     </View>
                     <Text className="mt-2 text-center text-sm font-bold text-ink" numberOfLines={1}>{viewModel.boardResolution.replacementPlayer.name}</Text>
@@ -227,7 +227,7 @@ export function ClubHomeScreen({
                     accessibilityState={{ selected: protectedPlayer }}
                     onPress={() => onProtectBoardCandidate(candidate.playerId)}
                     className={protectedPlayer
-                      ? 'min-h-14 flex-row items-center gap-3 border-2 border-b-4 border-violet-dark bg-violet-light p-2'
+                      ? 'min-h-14 flex-row items-center gap-3 border-2 border-b-4 border-blue-dark bg-blue-light p-2'
                       : 'min-h-14 flex-row items-center gap-3 border-2 border-ink bg-white p-2'}
                     style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
                   >
@@ -244,7 +244,7 @@ export function ClubHomeScreen({
                       </Text>
                     </View>
                     <Text className={protectedPlayer
-                      ? 'font-mono text-sm font-bold uppercase text-violet-dark'
+                      ? 'font-mono text-sm font-bold uppercase text-blue-dark'
                       : 'font-mono text-sm font-bold uppercase text-ink/45'}>
                       {protectedPlayer ? 'Protected' : 'Protect'}
                     </Text>
@@ -285,7 +285,7 @@ export function ClubHomeScreen({
               return (
                 <View
                   key={row.clubName}
-                  className={isUser ? 'flex-row bg-violet-light px-3 py-2' : 'flex-row px-3 py-2'}
+                  className={isUser ? 'flex-row bg-blue-light px-3 py-2' : 'flex-row px-3 py-2'}
                 >
                   <Text className={isUser ? 'w-8 font-mono text-base font-bold text-ink' : 'w-8 font-mono text-base text-ink'}>{row.position}</Text>
                   <Text className={isUser ? 'flex-1 text-base font-bold text-ink' : 'flex-1 text-base text-ink'} numberOfLines={1}>{row.clubName}</Text>

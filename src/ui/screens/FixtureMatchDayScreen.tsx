@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
-import { ChalkboardBackdrop } from '../components/ChalkboardStage';
+import { ChalkboardBackdrop, StageSection } from '../components/ChalkboardStage';
 import { SettingsButton } from '../SettingsOverlay';
 import type { MatchDayViewModel } from '../models';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -22,19 +22,6 @@ export interface FixtureMatchDayScreenProps {
 }
 
 const ROLE_ORDER: ReadonlyArray<'FWD' | 'MID' | 'DEF' | 'GK'> = ['FWD', 'MID', 'DEF', 'GK'];
-
-/** On-stage section header: gold pixel eyebrow over a white pixel title. */
-function DocketSection({ eyebrow, title, right }: { eyebrow: string; title: string; right?: ReactNode }) {
-  return (
-    <View className="mb-3 flex-row items-end justify-between gap-3">
-      <View className="flex-1">
-        <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{eyebrow}</Text>
-        <Text className="mt-1 font-pixel text-lg uppercase text-white">{title}</Text>
-      </View>
-      {right}
-    </View>
-  );
-}
 
 export function FixtureMatchDayScreen({
   viewModel,
@@ -83,7 +70,7 @@ export function FixtureMatchDayScreen({
 
   const teamSheet = (
     <View className="mt-6">
-      <DocketSection eyebrow="Team sheet" title="Starting eleven" right={<StatusChip label={viewModel.formationLabel} />} />
+      <StageSection eyebrow="Team sheet" title="Starting eleven" right={<StatusChip label={viewModel.formationLabel} />} />
       <Text className="mb-3 text-sm leading-5 text-paper/70">
         Tap a starter, then choose an available player in the same role. Every change is saved for future matches.
       </Text>
@@ -102,7 +89,7 @@ export function FixtureMatchDayScreen({
                   accessibilityState={{ selected: player.id === selectedStarterId }}
                   onPress={() => setSelectedStarterId(current => current === player.id ? null : player.id)}
                   className={player.id === selectedStarterId
-                    ? 'w-14 items-center border-2 border-violet-dark bg-violet-light p-1'
+                    ? 'w-14 items-center border-2 border-blue-dark bg-blue-light p-1'
                     : 'w-14 items-center border-2 border-transparent p-1'}
                   style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
                 >
@@ -125,7 +112,7 @@ export function FixtureMatchDayScreen({
 
   const bench = (
     <View className={wide ? undefined : 'mt-4'}>
-      <DocketSection
+      <StageSection
         eyebrow="Selection bench"
         title={selectedStarter === undefined ? 'Choose a starter' : `Replace ${selectedStarter.name}`}
         right={selectedStarter === undefined ? undefined : <StatusChip label={selectedStarter.role} selected />}
@@ -174,7 +161,7 @@ export function FixtureMatchDayScreen({
 
   const heroLicenses = (
     <View className="mt-6">
-      <DocketSection
+      <StageSection
         eyebrow="League permit"
         title="Hero licenses"
         right={<StatusChip label={`${licensedCount} / ${viewModel.heroLimit}`} tone="hero" />}
@@ -271,7 +258,7 @@ export function FixtureMatchDayScreen({
         )}
       </ScrollView>
 
-      <View className="border-t-2 border-paper/10 bg-pitch-dark p-3">
+      <View className="border-t-[6px] border-white bg-ink/25 p-3">
         <View className={wide ? 'w-full max-w-[1180px] flex-row gap-2 self-center px-2' : 'flex-row gap-2'}>
           <View className="flex-1">
             <ActionButton

@@ -297,7 +297,7 @@ function RosterSection({
                     </Text>
                   ) : null}
                   {player.isCaptain || player.contractPromiseLabel ? (
-                    <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-violet-dark" numberOfLines={1}>
+                    <Text className="mt-0.5 font-mono text-sm font-bold uppercase text-blue-dark" numberOfLines={1}>
                       {[player.isCaptain ? 'Captain' : undefined, player.shirtNumber ? `#${player.shirtNumber}` : undefined, player.contractPromiseLabel].filter(Boolean).join(' · ')}
                     </Text>
                   ) : null}
@@ -323,7 +323,7 @@ function RosterSection({
                 className={player.injuryWeeks > 0
                   ? 'ml-2 h-11 w-12 items-center justify-center border border-ink/20 bg-paper-dark'
                   : player.priorityDrillsRemaining !== undefined
-                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-violet-dark bg-violet-light'
+                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-blue-dark bg-blue-light'
                     : glowAssignmentButton
                       ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
                       : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
@@ -335,7 +335,7 @@ function RosterSection({
                 <Text className={player.injuryWeeks > 0
                   ? 'font-mono text-base font-bold text-ink/30'
                   : player.priorityDrillsRemaining !== undefined
-                    ? 'font-mono text-base font-bold text-violet-dark'
+                    ? 'font-mono text-base font-bold text-blue-dark'
                     : glowAssignmentButton
                       ? 'font-mono text-base font-bold text-ink'
                       : 'font-mono text-base text-ink/40'}>

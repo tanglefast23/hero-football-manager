@@ -225,7 +225,7 @@ export function StoryEventScreen({
         </View>
       </ScrollView>
 
-      {resolved ? <View className="border-t-2 border-paper/10 bg-pitch-dark p-3"><ActionButton label="Return to the office  ▸" accessibilityLabel="Continue after the story event" onPress={onContinue} /></View> : null}
+      {resolved ? <View className="border-t-[6px] border-white bg-ink/25 p-3"><ActionButton label="Return to the office  ▸" accessibilityLabel="Continue after the story event" onPress={onContinue} /></View> : null}
     </SafeAreaView>
   );
 }

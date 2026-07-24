@@ -1,7 +1,9 @@
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
+import { ChalkboardBackdrop, StageSection } from '../components/ChalkboardStage';
 import { PixelPortrait } from '../components/PixelPortrait';
+import { useLayoutMode } from '../layout/use-layout-mode';
 import type { ClubLegacyChoiceViewModel, ClubLegacyViewModel } from '../models';
 import { SettingsButton } from '../SettingsOverlay';
 import { TutorialTapCue } from '../TutorialTapCue';
@@ -24,12 +26,14 @@ export function ClubLegacyScreen({
   onOpenSettings,
   guided = false,
 }: ClubLegacyScreenProps) {
+  const wide = useLayoutMode() === 'twoColumn';
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
-      <View className="flex-row items-center justify-between border-b-2 border-gold-dark bg-white px-4 py-3">
+    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+      <ChalkboardBackdrop wide={wide} />
+      <View className="flex-row items-center justify-between px-4 py-3">
         <View className="flex-1">
-          <Text className="font-mono text-sm font-bold uppercase text-gold-dark">Club legacy</Text>
-          <Text className="mt-1 font-pixel text-lg uppercase text-ink">A legend's next chapter</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Club legacy</Text>
+          <Text className="mt-1 font-pixel text-lg uppercase text-white">A legend's next chapter</Text>
         </View>
         <View className="flex-row items-center gap-2">
           <StatusChip label={viewModel.seasonLabel} tone="hero" />
@@ -59,10 +63,7 @@ export function ClubLegacyScreen({
         </PaperPanel>
 
         <View className="mt-6 gap-4">
-          <View>
-            <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Your decision</Text>
-            <Text className="mt-1 text-xl font-bold uppercase text-ink">How should the legacy continue?</Text>
-          </View>
+          <StageSection eyebrow="Your decision" title="How should the legacy continue?" />
           {viewModel.choices.map((choice, index) => (
             <View
               key={choice.id}
