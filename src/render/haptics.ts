@@ -22,7 +22,12 @@ export function playHapticForEvent(event: MatchEvent, controlledTeam: 0 | 1): vo
   void feedback?.catch(() => undefined);
 }
 
-/** Management feedback is never part of simulation state and always fails soft. */
+/**
+ * Management feedback is never part of simulation state and always fails soft.
+ *
+ * Weight tracks consequence: a plain `tap` on a row must not feel like a
+ * `commit` that spends club money, so the impact styles are kept distinct.
+ */
 export function playManagementHaptic(cue: ManagementHapticCue): void {
   if (!hapticsEnabled) return;
   const feedback = cue === 'select'
@@ -32,7 +37,11 @@ export function playManagementHaptic(cue: ManagementHapticCue): void {
       : cue === 'warning'
         ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
         : Haptics.impactAsync(
-          cue === 'hero' ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Medium,
+          cue === 'hero' || cue === 'commit'
+            ? Haptics.ImpactFeedbackStyle.Heavy
+            : cue === 'tap'
+              ? Haptics.ImpactFeedbackStyle.Light
+              : Haptics.ImpactFeedbackStyle.Medium,
         );
   void feedback.catch(() => undefined);
 }

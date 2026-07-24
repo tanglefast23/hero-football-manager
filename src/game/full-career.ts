@@ -349,6 +349,13 @@ function startingEleven(players: readonly CareerPlayer[]): string[] {
   return ids;
 }
 
+/**
+ * Slot order carries meaning: slot 0 must hold the goalkeeper (`buildTeamDef`
+ * rejects anything else) and the remaining indices encode formation position.
+ * Replacements are therefore written into the vacated slot — filtering the
+ * array and appending would shift every survivor down one place and eventually
+ * leave an outfielder keeping goal, which bricks the career.
+ */
 function repairUserLineup(
   current: ClubLineupState | undefined,
   players: readonly CareerPlayer[],
@@ -357,18 +364,25 @@ function repairUserLineup(
 ): ClubLineupState {
   if (current === undefined) throw new Error('the user club has no lineup');
   const playerById = new Map(players.map(player => [player.id, player]));
-  const retained = current.playerIds.filter(id => !retiredIds.has(id) && playerById.has(id));
-  const selected = new Set(retained);
-  for (const retiredId of current.playerIds.filter(id => retiredIds.has(id))) {
-    const retiredRole = retiredRoleById.get(retiredId);
-    const replacement = players.find(player => !selected.has(player.id) && (
-      retiredRole === undefined || player.role === retiredRole
-    )) ?? players.find(player => !selected.has(player.id) && player.role !== 'GK');
+  const slots: Array<string | undefined> = current.playerIds.map(
+    id => (retiredIds.has(id) || !playerById.has(id) ? undefined : id),
+  );
+  const selected = new Set(slots.filter((id): id is string => id !== undefined));
+  for (let index = 0; index < slots.length; index += 1) {
+    if (slots[index] !== undefined) continue;
+    const vacatedId = current.playerIds[index];
+    const vacatedRole = retiredRoleById.get(vacatedId) ?? playerById.get(vacatedId)?.role;
+    const sameRole = players.find(player => !selected.has(player.id) && player.role === vacatedRole);
+    const fallback = index === 0
+      ? players.find(player => !selected.has(player.id) && player.role === 'GK')
+      : players.find(player => !selected.has(player.id) && player.role !== 'GK');
+    const replacement = sameRole ?? fallback ?? players.find(player => !selected.has(player.id));
     if (replacement !== undefined) {
-      retained.push(replacement.id);
+      slots[index] = replacement.id;
       selected.add(replacement.id);
     }
   }
+  const retained = slots.filter((id): id is string => id !== undefined);
   for (const player of players) {
     if (retained.length >= 11) break;
     if (!selected.has(player.id)) {
@@ -377,7 +391,27 @@ function repairUserLineup(
     }
   }
   if (retained.length !== 11) throw new Error('retirements leave the user without a starting eleven');
+  ensureKeeperFirst(retained, players);
   return { clubId: current.clubId, playerIds: retained };
+}
+
+/**
+ * Restores the slot-0 keeper contract in place. Swapping with a keeper already
+ * in the eleven is preferred; only when the eleven has none does a spare come
+ * in from the squad.
+ */
+export function ensureKeeperFirst(playerIds: string[], players: readonly CareerPlayer[]): void {
+  const roleById = new Map(players.map(player => [player.id, player.role]));
+  if (playerIds.length === 0 || roleById.get(playerIds[0]) === 'GK') return;
+  const keeperIndex = playerIds.findIndex(id => roleById.get(id) === 'GK');
+  if (keeperIndex > 0) {
+    const keeper = playerIds[keeperIndex];
+    playerIds[keeperIndex] = playerIds[0];
+    playerIds[0] = keeper;
+    return;
+  }
+  const spare = players.find(player => player.role === 'GK' && !playerIds.includes(player.id));
+  if (spare !== undefined) playerIds[0] = spare.id;
 }
 
 const ACADEMY_ROLE_TARGETS: Readonly<Record<CareerPlayer['role'], number>> = {

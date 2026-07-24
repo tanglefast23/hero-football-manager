@@ -707,7 +707,7 @@ function CoachDesk({
       <SectionLabel
         eyebrow="Pre-season shortlist"
         title="A voice for the touchline"
-        right={<StatusChip label={`${viewModel.coaches.length} candidates`} />}
+        right={<StatusChip label={`${viewModel.coaches.length} ${viewModel.coaches.length === 1 ? 'candidate' : 'candidates'}`} />}
       />
       {viewModel.coaches.length === 0 ? (
         <EmptyDocket title="Shortlist pending" detail="Coach candidates refresh each pre-season." />
@@ -820,6 +820,11 @@ export function NegotiationPanel({
   useEffect(() => {
     setWeeklyWage(viewModel.initialWeeklyWage);
     setPitchCard(undefined);
+    // Term and promise must reset with the target too. The panel does not unmount
+    // between negotiations, so leaving them behind handed the next player a term
+    // and a binding promise the user never chose for them.
+    setTermSeasons(2);
+    setPerk('GUARANTEED_STARTER');
   }, [viewModel.id, viewModel.roundLabel, viewModel.initialWeeklyWage]);
 
   const open = viewModel.status === 'OPEN';
@@ -960,7 +965,7 @@ export function NegotiationPanel({
           </View>
 
           <View
-            className={guided ? 'relative mt-4 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-4'}
+            className={guided ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-4'}
             style={guided ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
           >
             {guided ? (
@@ -974,7 +979,7 @@ export function NegotiationPanel({
               />
             ) : null}
             <ActionButton
-              label="Make the offer  ▸"
+              label="Make the offer ▸"
               accessibilityLabel={`Offer ${formatCurrency(weeklyWage)} per week for ${termSeasons} seasons`}
               variant="confirm"
               onPress={() => onSubmitContractOffer({ weeklyWage, termSeasons, perk }, pitchCard)}

@@ -22,16 +22,26 @@ function snapVolume(raw: number): DevVolume {
 function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: DevVolume) => void }) {
   const widthRef = useRef(0);
   const [trackWidth, setTrackWidth] = useState(0);
+  // The PanResponder is built once, so calling `onChange` directly would capture
+  // the first render's prop — which closes over a stale preferences snapshot and
+  // persists it, silently reverting every other setting changed since Settings
+  // opened. Route through a ref so the handlers always see the live callback.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const commit = (locationX: number) => {
+    if (widthRef.current <= 0) return;
+    const next = snapVolume(locationX / widthRef.current);
+    // Only five levels exist; skipping no-ops avoids a SQLite write per pointer move.
+    if (next !== valueRef.current) onChangeRef.current(next);
+  };
   const responder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: e => {
-        if (widthRef.current > 0) onChange(snapVolume(e.nativeEvent.locationX / widthRef.current));
-      },
-      onPanResponderMove: e => {
-        if (widthRef.current > 0) onChange(snapVolume(e.nativeEvent.locationX / widthRef.current));
-      },
+      onPanResponderGrant: e => commit(e.nativeEvent.locationX),
+      onPanResponderMove: e => commit(e.nativeEvent.locationX),
     }),
   ).current;
   const pct = `${value * 100}%` as const;

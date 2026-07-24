@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { Modal, Platform, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { SuperTrainingCelebration } from './components/SuperTrainingCelebration';
 import { DrillSceneOverlay, drillActivityId } from '../render/DrillSceneOverlay';
 import { playDrillResultSfx, playSuperTrainingSfx, playManagementActionSfx } from '../render/management-sfx';
+import { playManagementHaptic } from '../render/haptics';
 import { useLayoutMode } from './layout/use-layout-mode';
 import type { DrillResultViewModel, TrainingSlotStatOption } from './models';
 
@@ -63,7 +64,10 @@ export function TrainingDrillModal({
   const [activeResult, setActiveResult] = useState<DrillResultViewModel | null>(null);
   const [stage, setStage] = useState<ResultStage>(null);
   const streakRef = useRef(0);
-  const seenSequenceRef = useRef(0);
+  // Seeded from the store's current sequence, not 0: dismissing the popup unmounts
+  // this component, so a fresh ref would treat the last result as new and replay
+  // its scene, sound and haptic on reopen without a tap or any TP spent.
+  const seenSequenceRef = useRef(lastDrillResult?.sequence ?? 0);
 
   // Reset the pitch streak whenever the popup moves to another player.
   useEffect(() => {
@@ -79,7 +83,7 @@ export function TrainingDrillModal({
     streakRef.current += 1;
     if (result.isSuper) {
       playSuperTrainingSfx();
-      if (Platform.OS !== 'web') Vibration.vibrate(180);
+      playManagementHaptic('hero');
     } else {
       playDrillResultSfx(streakRef.current);
     }
@@ -89,16 +93,18 @@ export function TrainingDrillModal({
   }, [lastDrillResult, playerId]);
 
   // Advances the presentation once the current beat finishes or is skipped.
-  const advanceStage = () => {
-    setStage(current => {
-      if (current === 'scene' && activeResult?.isSuper) return 'super';
-      if ((current === 'scene' || current === 'super') && activeResult?.injury !== undefined) {
-        return 'injury';
-      }
-      setActiveResult(null);
-      return null;
-    });
-  };
+  // The next stage is derived outside the updater — a setState updater must be
+  // pure, and React may invoke it more than once. Memoised so the drill scene's
+  // effect does not tear down and restart its animation on every parent render.
+  const advanceStage = useCallback(() => {
+    const next: ResultStage = stage === 'scene' && activeResult?.isSuper
+      ? 'super'
+      : (stage === 'scene' || stage === 'super') && activeResult?.injury !== undefined
+        ? 'injury'
+        : null;
+    setStage(next);
+    if (next === null) setActiveResult(null);
+  }, [stage, activeResult]);
 
   const resultOption = activeResult === null
     ? undefined

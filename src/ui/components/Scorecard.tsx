@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { playPositiveSfx, playUiClickSfx } from '../../render/management-sfx';
 
@@ -105,6 +105,10 @@ export function ActionButton({
   const ramp = disabled
     ? { face: 'bg-grey', light: 'bg-grey-light', lip: 'bg-grey-dark', text: 'text-paper' }
     : BUTTON_RAMP[variant];
+  // Pressed state is local so `style` stays a plain array. A callback style
+  // bypasses NativeWind processing on native and the className layout silently
+  // drops out — see the note on SfxPressable.
+  const [pressed, setPressed] = useState(false);
 
   return (
     <Pressable
@@ -112,6 +116,8 @@ export function ActionButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       disabled={disabled}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
       onPress={() => {
         if (pressSfx === 'positive') playPositiveSfx();
         else playUiClickSfx();
@@ -123,29 +129,23 @@ export function ActionButton({
         compact ? 'py-2.5' : 'py-3.5',
         disabled && 'opacity-60',
       )}
-      style={({ pressed }) => ({
-        transform: [{ translateY: pressed && !disabled ? 2 : 0 }],
-      })}
+      style={[{ transform: [{ translateY: pressed && !disabled ? 2 : 0 }] }]}
     >
-      {({ pressed }) => (
-        <>
-          {/* bold top-third gloss — clipped to the rounded corners */}
-          {!pressed && !disabled ? (
-            <View pointerEvents="none" className={cx('absolute inset-x-0 top-0', compact ? 'h-4' : 'h-5', ramp.light)} />
-          ) : null}
-          {/* dark bottom lip — the raised depth */}
-          <View pointerEvents="none" className={cx('absolute inset-x-0 bottom-0 h-2', ramp.lip)} />
-          <Text
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={maxFontSizeMultiplier}
-            className={cx('font-pixel text-sm uppercase', ramp.text)}
-            style={{ textShadowColor: 'rgba(36,31,46,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 0 }}
-          >
-            {label}
-          </Text>
-        </>
-      )}
+      {/* bold top-third gloss — clipped to the rounded corners */}
+      {!pressed && !disabled ? (
+        <View pointerEvents="none" className={cx('absolute inset-x-0 top-0', compact ? 'h-4' : 'h-5', ramp.light)} />
+      ) : null}
+      {/* dark bottom lip — the raised depth */}
+      <View pointerEvents="none" className={cx('absolute inset-x-0 bottom-0 h-2', ramp.lip)} />
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        maxFontSizeMultiplier={maxFontSizeMultiplier}
+        className={cx('font-pixel text-sm uppercase', ramp.text)}
+        style={{ textShadowColor: 'rgba(36,31,46,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 0 }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }

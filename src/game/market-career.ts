@@ -252,6 +252,10 @@ export function beginCareerTransferTalks(
 ): CareerMarketState {
   assertManagePhase(state);
   if (!isTransferWindowOpen(state.week)) throw new Error('the transfer window is closed');
+  // Matches the renewal guard. Without it, closing a rejected negotiation and
+  // reopening it dealt the same deterministic pitch cards at round 0, so the
+  // three-round cap and the walk-away penalty could both be retried away.
+  if (market.transferTalks !== undefined) throw new Error('another transfer is already being negotiated');
   if (!market.scoutReports.some(report => report.playerId === playerId)) {
     throw new Error('a player must be scouted before transfer talks');
   }
@@ -328,6 +332,9 @@ export function completeCareerTransfer(
     onHeroWage: player.power !== undefined,
     morale: Math.max(55, player.morale),
     signingStatTotal: playerStatTotal(player),
+    // Loyalty does not transfer. Inheriting the selling club's tenure let a
+    // one-season signing retire as a club legend, which is meant to take five.
+    seasonsAtClub: 0,
   };
   const transferredState: GameState = {
       ...state,

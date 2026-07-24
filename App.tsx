@@ -728,16 +728,21 @@ function GameApp() {
   useEffect(() => {
     let active = true;
     setBootError(null);
-    try {
-      // Expo's native runtime is Hermes. This boot gate executes the same
-      // full-payload replay fingerprint as the Node test before opening a save.
-      assertRuntimeGoldenReplay();
-      console.info(`HERMES_GOLDEN_OK ${runtimeGoldenFingerprint()}`);
-    } catch (error) {
-      setBootError(error instanceof Error ? error.message : String(error));
-      return () => {
-        active = false;
-      };
+    // Expo's native runtime is Hermes. This gate executes the same full-payload
+    // replay fingerprint as the Node test to catch engine drift — but it runs two
+    // complete 2,000-tick matches synchronously, so it is development-only. In a
+    // shipped build it would add ~1s to cold start, and a runtime float shift
+    // would send every installed copy to an error screen instead of their save.
+    if (__DEV__) {
+      try {
+        assertRuntimeGoldenReplay();
+        console.info(`HERMES_GOLDEN_OK ${runtimeGoldenFingerprint()}`);
+      } catch (error) {
+        setBootError(error instanceof Error ? error.message : String(error));
+        return () => {
+          active = false;
+        };
+      }
     }
     void openDatabaseAsync(DATABASE_NAME)
       .then(async database => ({

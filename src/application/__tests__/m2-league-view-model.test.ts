@@ -233,7 +233,10 @@ describe('m2LeagueViewModel', () => {
     const view = m2LeagueViewModel({
       career,
       season: 1,
-      week: 5,
+      // CUP_SETTLEMENT_WEEKS[0]. The previous value of 5 came from a parallel
+      // literal in the view model that never overlapped the engine's calendar,
+      // so this test passed while every cup tie was unplayable in the real game.
+      week: 10,
       phase: 'matchday',
       activeStandings: standings(career),
     });

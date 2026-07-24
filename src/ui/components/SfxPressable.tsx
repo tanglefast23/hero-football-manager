@@ -1,11 +1,22 @@
 import { useState, type ComponentProps } from 'react';
-import { Pressable as NativePressable } from 'react-native';
+import { Pressable as NativePressable, type ViewStyle } from 'react-native';
 import { playStatStepSfx, playUiClickSfx } from '../../render/management-sfx';
 
 type NativePressableProps = ComponentProps<typeof NativePressable>;
 type SfxPressableProps = NativePressableProps & {
   pressSfx?: 'click' | 'stat-step';
 };
+
+/**
+ * True when a resolved style already dims the surface itself. Style arrays
+ * flatten left-to-right, so the fallback dim below would otherwise silently
+ * override every call site that authored its own pressed opacity.
+ */
+function setsOpacity(style: unknown): boolean {
+  if (style == null || typeof style !== 'object') return false;
+  if (Array.isArray(style)) return style.some(setsOpacity);
+  return (style as ViewStyle).opacity != null;
+}
 
 /**
  * Shared management interaction surface. It gives every custom button/card a
@@ -44,12 +55,12 @@ export function SfxPressable({
         else playUiClickSfx();
         onPress(event);
       }}
-      style={[
-        typeof style === 'function'
+      style={(() => {
+        const resolved = typeof style === 'function'
           ? style({ pressed } as Parameters<typeof style>[0])
-          : style,
-        pressed ? { opacity: 0.7 } : undefined,
-      ]}
+          : style;
+        return [resolved, pressed && !setsOpacity(resolved) ? { opacity: 0.7 } : undefined];
+      })()}
     />
   );
 }

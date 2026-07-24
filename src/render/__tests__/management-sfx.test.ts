@@ -15,7 +15,7 @@ jest.mock('expo-haptics', () => ({
   selectionAsync: jest.fn(() => Promise.resolve()),
   impactAsync: mockImpactAsync,
   notificationAsync: jest.fn(() => Promise.resolve()),
-  ImpactFeedbackStyle: { Medium: 'medium', Heavy: 'heavy' },
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
   NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }));
 
@@ -104,7 +104,9 @@ describe('management feedback sounds', () => {
     expect(mockPlayers[5].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[6].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[7].play).toHaveBeenCalledTimes(1);
-    expect(mockImpactAsync).toHaveBeenCalledWith('medium');
+    // A plain tap is deliberately the lightest weight in the taxonomy so it does
+    // not feel like a `commit` that spends club money.
+    expect(mockImpactAsync).toHaveBeenCalledWith('light');
   });
 
   it('uses the tap for small interactions and confirmation for large action buttons', () => {
@@ -148,6 +150,6 @@ describe('management feedback sounds', () => {
     expect(statStep.seekTo).toHaveBeenCalledWith(0);
     expect(statStep.play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[2].play).not.toHaveBeenCalled();
-    expect(mockImpactAsync).toHaveBeenCalledWith('medium');
+    expect(mockImpactAsync).toHaveBeenCalledWith('light');
   });
 });

@@ -1,3 +1,4 @@
+import { CUP_SETTLEMENT_WEEKS } from '../game/career';
 import {
   currentUserDivision,
   type M2CareerState,
@@ -208,8 +209,10 @@ function cupViewModel(
   const championName = selectedCup.championClubId === undefined
     ? undefined
     : requireClubName(clubNames, selectedCup.championClubId);
+  // Must track the engine's settlement calendar, not a parallel literal — the two
+  // drifted apart and left every cup tie permanently unplayable from this tab.
   const roundIsPlayable = selectedCup.season === source.season
-    && source.week === [5, 10, 15, 20, 25, 30][currentRound.number - 1]
+    && source.week === CUP_SETTLEMENT_WEEKS[currentRound.number - 1]
     && source.phase === 'matchday';
   const rounds = cupRoadToFinal(
     selectedCup,
