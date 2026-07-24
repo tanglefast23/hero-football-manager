@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
+import { ChalkboardBackdrop, PaperSticker } from '../components/ChalkboardStage';
+import { useLayoutMode } from '../layout/use-layout-mode';
 import { FormationDiagram } from '../components/FormationDiagram';
 import { FORMATION_LABELS } from '../../sim/tactics';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -203,6 +205,7 @@ export function TitleSettingsScreen({
   backLabel = 'Back to title',
 }: TitleSettingsScreenProps) {
   const [showGlossary, setShowGlossary] = useState(false);
+  const wide = useLayoutMode() === 'twoColumn';
   const volumePercent = Math.round(preferences.masterVolume * 100);
   if (showGlossary) {
     return (
@@ -213,46 +216,34 @@ export function TitleSettingsScreen({
       </SafeAreaView>
     );
   }
-  return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
-      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 justify-between px-5 py-6">
-          <View>
-            <View className="flex-row items-center justify-between">
-              <View>
-                <Text className="text-sm font-bold uppercase tracking-[3px] text-blue-dark">Front office</Text>
-                <Text className="mt-2 text-4xl font-bold uppercase tracking-wide text-ink">Settings</Text>
-              </View>
-              <View className="-rotate-3 border-2 border-stamp px-3 py-2">
-                <Text className="text-sm font-bold uppercase tracking-[2px] text-stamp">Coach’s board</Text>
-              </View>
-            </View>
+  const formationsPanel = (
+    <PaperPanel kicker="Match-day kit" title="Three formations" stamp="Tap to swap">
+      <Text className="text-base leading-5 text-ink/65">
+        These are the three shapes available from the live Formation button. The first shape starts every watched match.
+      </Text>
+      <View className="mt-5 flex-row gap-2">
+        {preferences.formationPresets.map((formation, index) => (
+          <Pressable
+            key={`${index}-${formation}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Formation slot ${index + 1}, ${formation}. Tap to replace.`}
+            onPress={() => onCycleFormation(index)}
+            className="flex-1 items-center border-2 border-ink bg-paper-dark px-2 py-3"
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
+          >
+            <FormationDiagram formation={formation} compact />
+            <Text className="mt-2 font-mono text-sm font-bold text-ink">{formation}</Text>
+            <Text className="mt-1 text-center text-xs font-bold uppercase text-ink/50" numberOfLines={2}>
+              {FORMATION_LABELS[formation]}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </PaperPanel>
+  );
 
-            <PaperPanel kicker="Match-day kit" title="Three formations" stamp="Tap to swap" className="mt-10">
-              <Text className="text-base leading-5 text-ink/65">
-                These are the three shapes available from the live Formation button. The first shape starts every watched match.
-              </Text>
-              <View className="mt-5 flex-row gap-2">
-                {preferences.formationPresets.map((formation, index) => (
-                  <Pressable
-                    key={`${index}-${formation}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Formation slot ${index + 1}, ${formation}. Tap to replace.`}
-                    onPress={() => onCycleFormation(index)}
-                    className="flex-1 items-center border-2 border-ink bg-paper-dark px-2 py-3"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
-                  >
-                    <FormationDiagram formation={formation} compact />
-                    <Text className="mt-2 font-mono text-sm font-bold text-ink">{formation}</Text>
-                    <Text className="mt-1 text-center text-xs font-bold uppercase text-ink/50" numberOfLines={2}>
-                      {FORMATION_LABELS[formation]}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </PaperPanel>
-
-            <PaperPanel kicker="Accessibility" title="Comfort and reach" stamp="Saved" className="mt-6">
+  const accessibilityPanel = (
+    <PaperPanel kicker="Accessibility" title="Comfort and reach" stamp="Saved">
               <Text className="text-base leading-5 text-ink/65">
                 {accessibilityCopy?.body ?? 'Reduce animated flourishes and put the live-match information where it is easiest to read.'}
               </Text>
@@ -292,15 +283,19 @@ export function TitleSettingsScreen({
                 <AccessibilityToggle label="Color-safe kits" detail="Uses a high-separation blue and amber match pairing." enabled={preferences.colorSafeKits} onPress={onToggleColorSafeKits} />
                 <AccessibilityChoice label="Power labels" detail="Choose a bottom-left player card or a minimal match banner." value={preferences.cutInMode === 'full' ? 'PLAYER' : 'BANNER'} onPress={onToggleCutInMode} />
               </View>
-            </PaperPanel>
-            {difficultyLabel ? (
-              <PaperPanel kicker="Current career" title="Boardroom pressure" stamp={difficultyLabel} className="mt-6">
-                <Text className="text-base leading-5 text-ink/65">
-                  Difficulty is chosen when the career begins. It changes economy pressure, never match replay rules.
-                </Text>
-              </PaperPanel>
-            ) : null}
-            <PaperPanel kicker="Master mix" title="Game audio" stamp={`${volumePercent}%`} className="mt-6">
+    </PaperPanel>
+  );
+
+  const difficultyPanel = difficultyLabel ? (
+    <PaperPanel kicker="Current career" title="Boardroom pressure" stamp={difficultyLabel}>
+      <Text className="text-base leading-5 text-ink/65">
+        Difficulty is chosen when the career begins. It changes economy pressure, never match replay rules.
+      </Text>
+    </PaperPanel>
+  ) : null;
+
+  const audioPanel = (
+    <PaperPanel kicker="Master mix" title="Game audio" stamp={`${volumePercent}%`}>
               <Text className="text-base leading-5 text-ink/65">
                 One master level keeps the opening, clubhouse, match music, and sound effects balanced together.
               </Text>
@@ -338,21 +333,68 @@ export function TitleSettingsScreen({
                   <StatusChip label="Match Day Heroes" />
                 </View>
               </View>
-            </PaperPanel>
+    </PaperPanel>
+  );
 
-            <PaperPanel kicker="Club handbook" title="Glossary" stamp="A–Z" className="mt-6">
-              <Text className="text-base leading-5 text-ink/65">
-                Look up football terms, player development, club systems, match controls, and hero mechanics.
-              </Text>
-              <View className="mt-4">
-                <ActionButton
-                  label="Open glossary"
-                  accessibilityLabel="Open glossary"
-                  onPress={() => setShowGlossary(true)}
-                  variant="paper"
-                />
+  const glossaryPanel = (
+    <PaperPanel kicker="Club handbook" title="Glossary" stamp="A–Z">
+      <Text className="text-base leading-5 text-ink/65">
+        Look up football terms, player development, club systems, match controls, and hero mechanics.
+      </Text>
+      <View className="mt-4">
+        <ActionButton
+          label="Open glossary"
+          accessibilityLabel="Open glossary"
+          onPress={() => setShowGlossary(true)}
+          variant="paper"
+        />
+      </View>
+    </PaperPanel>
+  );
+
+  return (
+    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+      <ChalkboardBackdrop wide={wide} />
+      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
+        <View className={wide
+          ? 'w-full max-w-[1180px] flex-1 justify-between self-center px-10 py-8'
+          : 'flex-1 justify-between px-5 py-6'}
+        >
+          <View>
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="font-pixel text-xs uppercase tracking-[3px] text-gold-light">Front office</Text>
+                <Text className={wide
+                  ? 'mt-2 font-pixel text-4xl uppercase text-white'
+                  : 'mt-2 font-pixel text-3xl uppercase text-white'}
+                >
+                  Settings
+                </Text>
               </View>
-            </PaperPanel>
+              <PaperSticker text="Coach’s board" className="-rotate-3" />
+            </View>
+
+            {wide ? (
+              <View className="mt-8 flex-row items-start gap-6">
+                <View className="flex-1 gap-6">
+                  {formationsPanel}
+                  {difficultyPanel}
+                  {audioPanel}
+                </View>
+                <View className="flex-1 gap-6">
+                  {accessibilityPanel}
+                  {glossaryPanel}
+                </View>
+              </View>
+            ) : (
+              <View className="mt-8 gap-6">
+                {formationsPanel}
+                {accessibilityPanel}
+                {difficultyPanel}
+                {audioPanel}
+                {glossaryPanel}
+              </View>
+            )}
           </View>
 
           <View className="mt-8">
