@@ -20,26 +20,53 @@ function leagueDraws(state: GameState): FixtureResult[] {
   }));
 }
 
+/**
+ * Since the season-1 schedule moved league round openers to week 3, the user
+ * is always the away league side in the play-in week, so the hosting
+ * combinations these ledger tests need are arranged directly on the state
+ * instead of scanning seeds for a natural draw.
+ */
 function cupReadyCareer(userIsHome: boolean, leagueUserIsHome?: boolean): GameState {
-  for (let seed = 1; seed <= 100; seed += 1) {
-    const initial = fullCareerAtPlayIn(seed);
-    const afterLeague = completeMatchday(initial, leagueDraws(initial));
-    const cupMatchday = activeCareerMatchday(afterLeague);
-    const leagueFixture = afterLeague.fixtures.find(fixture => (
-      fixture.season === afterLeague.season
-      && fixture.week === afterLeague.week
-      && (fixture.homeClubId === afterLeague.userClubId || fixture.awayClubId === afterLeague.userClubId)
-    ));
-    if (
-      cupMatchday?.kind === 'national-cup'
-      && (cupMatchday.fixture.homeClubId === afterLeague.userClubId) === userIsHome
-      && (leagueUserIsHome === undefined
-        || (leagueFixture?.homeClubId === afterLeague.userClubId) === leagueUserIsHome)
-    ) {
-      return afterLeague;
-    }
+  const initial = fullCareerAtPlayIn();
+  const userClubId = initial.userClubId;
+  const swapIfNeeded = <T extends { homeClubId: string; awayClubId: string }>(
+    fixture: T,
+    wantUserHome: boolean,
+  ): T => {
+    if (fixture.homeClubId !== userClubId && fixture.awayClubId !== userClubId) return fixture;
+    if ((fixture.homeClubId === userClubId) === wantUserHome) return fixture;
+    return { ...fixture, homeClubId: fixture.awayClubId, awayClubId: fixture.homeClubId };
+  };
+  const arranged: GameState = {
+    ...initial,
+    fixtures: leagueUserIsHome === undefined
+      ? initial.fixtures
+      : initial.fixtures.map(fixture => (
+        fixture.season === initial.season && fixture.week === initial.week
+          ? swapIfNeeded(fixture, leagueUserIsHome)
+          : fixture
+      )),
+    m2: {
+      ...initial.m2!,
+      nationalCups: initial.m2!.nationalCups.map(cup => (
+        cup.championClubId === undefined && cup.season === initial.season
+          ? {
+              ...cup,
+              rounds: cup.rounds.map((round, index) => index === cup.rounds.length - 1
+                ? { ...round, fixtures: round.fixtures.map(fixture => swapIfNeeded(fixture, userIsHome)) }
+                : round),
+            }
+          : cup
+      )),
+    },
+  };
+  const afterLeague = completeMatchday(arranged, leagueDraws(arranged));
+  const cupMatchday = activeCareerMatchday(afterLeague);
+  if (cupMatchday?.kind !== 'national-cup'
+    || (cupMatchday.fixture.homeClubId === userClubId) !== userIsHome) {
+    throw new Error(`could not arrange a ${userIsHome ? 'home' : 'away'} Cup fixture`);
   }
-  throw new Error(`could not find a ${userIsHome ? 'home' : 'away'} Cup fixture`);
+  return afterLeague;
 }
 
 describe('player-controlled National Cup match flow', () => {

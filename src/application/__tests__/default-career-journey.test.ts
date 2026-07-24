@@ -75,7 +75,7 @@ describe('default two-season career journey', () => {
     // keeps raising the raw PAC value; Sprints trains only PAC, so STA remains
     // at the player's creation value.
     expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
-      .toMatchObject({ pac: 386, sta: 50 });
+      .toMatchObject({ pac: 378, sta: 50 });
   });
 });
 

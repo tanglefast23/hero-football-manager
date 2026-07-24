@@ -216,7 +216,6 @@ export interface FacilityCompletionViewModel {
   name: string;
   level: 1 | 2 | 3;
   kind: 'BUILD' | 'UPGRADE';
-  trainingPointReward?: number;
 }
 
 export interface PlayerDevelopmentViewModel {

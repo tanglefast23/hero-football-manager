@@ -2,7 +2,6 @@ import { loadLaunchContent, type GameEvent, type LaunchContent } from '../conten
 import {
   FACILITY_ADJACENCIES,
   FACILITY_CATALOG,
-  TRAINING_PITCH_TP_PER_LEVEL,
   activeCareerMatchday,
   activeFacilityAdjacencies,
   careerHeroLimit,
@@ -12,7 +11,6 @@ import {
   difficultyRules,
   fixturesForCurrentWeek,
   hasActiveCareerContractPromise,
-  isFacilityOperational,
   isAssistantInboxOneShotProductVisible,
   isFullyCappedPlayer,
   latestSeasonRecap,
@@ -1575,14 +1573,6 @@ function facilityCompletion(
     name: FACILITY_CATALOG[building.type].name,
     level: building.level,
     kind: project.kind,
-    ...(project.kind === 'BUILD'
-      && building.type === 'training-pitch'
-      && !before.facilities.grid?.buildings.some(candidate => (
-        candidate.type === 'training-pitch'
-        && isFacilityOperational(before.facilities.grid!, candidate.id)
-      ))
-      ? { trainingPointReward: TRAINING_PITCH_TP_PER_LEVEL }
-      : {}),
   };
 }
 

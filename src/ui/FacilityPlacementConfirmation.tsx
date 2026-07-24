@@ -55,8 +55,7 @@ export function FacilityPlacementConfirmation({
             </View>
 
             <Text className="mt-3 text-center text-base leading-5 text-ink/65">
-              {catalog.effectLabel} Benefits begin only when the {weeksLabel} of work finish, and the crew cannot start
-              anything else until then.
+              {catalog.effectLabel}
             </Text>
 
             <View className="mt-4 gap-2">
