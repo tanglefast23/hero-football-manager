@@ -47,6 +47,12 @@
       "port": 8472
     },
     {
+      "name": "static-export",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "dist", "-l", "4173"],
+      "port": 4173
+    },
+    {
       "name": "mockups",
       "url": "http://localhost:4519",
       "port": 4519

@@ -5,6 +5,7 @@ import { careerCoachTrainingModifiers } from './coach-weekly';
 import { capPlayerTrainingGain, playerAttributeCaps } from './archetype-caps';
 import { resolveTrainingDrillForPath, trainingPathAttribute } from './training-paths';
 import { assertCareerTrainingHonorsContractPromises } from './contract-promises';
+import { replaceCareerTrainingPlan } from './training-plan';
 import type {
   CareerPlayer,
   CareerTrainingDrill,
@@ -100,23 +101,9 @@ export function setCareerTrainingPlan(
   state: GameState,
   slots: readonly CareerTrainingSlot[],
 ): GameState {
-  if (state.phase !== 'manage') {
-    throw new Error('training plans can only change during the manage phase');
-  }
-  const maxSlots = state.trainingRules?.maxFocusDrillsPerWeek ?? 3;
-  if (slots.length > maxSlots) {
-    throw new Error(`a training plan allows at most ${maxSlots} players`);
-  }
-  if (new Set(slots.map(slot => slot.playerId)).size !== slots.length) {
-    throw new Error('a player can occupy only one training slot');
-  }
-  const roster = new Set(userRoster(state).map(player => player.id));
-  for (const slot of slots) {
-    if (!roster.has(slot.playerId)) throw new Error(`unknown trainee ${slot.playerId}`);
-    resolveTrainingDrillForPath(state, slot.pathId); // throws on unknown path
-  }
+  const next = replaceCareerTrainingPlan(state, slots);
   assertCareerTrainingHonorsContractPromises(state, slots.map(slot => slot.playerId));
-  return { ...state, trainingPlan: { slots: slots.map(slot => ({ ...slot })) } };
+  return next;
 }
 
 /** Resolves free conditioning plus the affordable repeating focus plan once. */
