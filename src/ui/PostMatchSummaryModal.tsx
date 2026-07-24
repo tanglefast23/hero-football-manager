@@ -62,7 +62,7 @@ export function PostMatchSummaryModal({
           </Pressable>
           <View
             accessibilityViewIsModal
-            className="w-full overflow-hidden border-2 border-b-4 border-ink bg-paper"
+            className="w-full max-w-[560px] self-center overflow-hidden border-2 border-b-4 border-ink bg-paper"
             style={{ maxHeight: '92%' }}
             onTouchStart={() => setAnimationsComplete(true)}
           >

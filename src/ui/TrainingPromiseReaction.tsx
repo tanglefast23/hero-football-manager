@@ -48,7 +48,7 @@ export function TrainingPromiseReaction({
       onRequestClose={onDismiss}
     >
       <SafeAreaView className="flex-1 justify-center bg-ink/60 px-4 py-6" edges={['top', 'left', 'right', 'bottom']}>
-        <View accessibilityViewIsModal>
+        <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
           <PaperPanel kicker="Promise kept" title="Training swap" stamp="SWAP">
             <View className="flex-row gap-3">
               <View className="flex-1 items-center border-2 border-b-4 border-ink bg-grey-light px-2 py-4">

@@ -57,7 +57,7 @@ export function CoachStaffOverlay({
         className="flex-1 justify-center bg-ink/60 px-4 py-6"
         edges={['top', 'left', 'right', 'bottom']}
       >
-        <View accessibilityViewIsModal className="w-full">
+        <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
           <PaperPanel kicker={kicker} title={title} stamp={mode === 'hired' ? 'HIRED' : mode === 'dismissed' ? 'COMPLETE' : '1 WK'}>
             <View className="items-center border-y-2 border-ink bg-blue-light py-4">
               <View className="border-2 border-b-4 border-ink bg-white px-4 pt-3">

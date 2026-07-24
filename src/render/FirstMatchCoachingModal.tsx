@@ -103,6 +103,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   card: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
     borderWidth: 3,
     borderBottomWidth: 7,
     borderColor: '#241f2e',

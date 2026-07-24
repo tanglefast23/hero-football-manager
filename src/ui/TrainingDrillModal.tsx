@@ -2,6 +2,7 @@ import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { ActionButton } from './components/Scorecard';
+import { useLayoutMode } from './layout/use-layout-mode';
 import type { TrainingSlotStatOption } from './models';
 
 export interface TrainingDrillModalProps {
@@ -27,6 +28,9 @@ export function TrainingDrillModal({
   onDismiss,
   reduceMotion = false,
 }: TrainingDrillModalProps) {
+  // Phones get the bottom sheet; wide viewports get a centered dialog so the
+  // picker never stretches across the whole desktop window.
+  const wide = useLayoutMode() === 'twoColumn';
   return (
     <Modal
       visible
@@ -36,7 +40,7 @@ export function TrainingDrillModal({
       statusBarTranslucent
     >
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right', 'bottom']}>
-        <View className="flex-1 justify-end px-3 pb-3">
+        <View className={wide ? 'flex-1 items-center justify-center px-3 py-6' : 'flex-1 justify-end px-3 pb-3'}>
           <Pressable
             accessible={false}
             style={StyleSheet.absoluteFill}
@@ -46,7 +50,9 @@ export function TrainingDrillModal({
           </Pressable>
           <View
             accessibilityViewIsModal
-            className="w-full overflow-hidden border-2 border-b-4 border-ink bg-paper"
+            className={wide
+              ? 'w-full max-w-[560px] overflow-hidden border-2 border-b-4 border-ink bg-paper'
+              : 'w-full overflow-hidden border-2 border-b-4 border-ink bg-paper'}
             style={{ maxHeight: '92%' }}
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">

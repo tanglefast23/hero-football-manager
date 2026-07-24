@@ -115,7 +115,7 @@ export function PostMatchDevelopmentOverlay({
 
         <View
           accessibilityViewIsModal
-          className="w-full overflow-hidden border-2 border-b-4 border-ink bg-paper"
+          className="w-full max-w-[560px] self-center overflow-hidden border-2 border-b-4 border-ink bg-paper"
           style={{ maxHeight: '94%' }}
         >
           <View className="flex-row items-center justify-between border-b-2 border-ink bg-blue-light px-4 py-3">
