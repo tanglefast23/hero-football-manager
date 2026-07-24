@@ -313,10 +313,12 @@ const FOCUS_DRILL_PATHS = [
   { id: 'circuit', name: 'Circuit', attribute: 'sta' },
   { id: 'keeper-drills', name: 'Keeper Drills', attribute: 'ref' },
 ] as const;
+// Tier labels are Arabic digits: the Roman "I" rendered as a bare bar in the
+// UI font and read as a serif-less 1.
 const FOCUS_DRILL_TIERS = [
-  { suffix: '', label: 'I', gain: 3 },
-  { suffix: '-ii', label: 'II', gain: 5 },
-  { suffix: '-iii', label: 'III', gain: 8 },
+  { suffix: '', label: '1', gain: 3 },
+  { suffix: '-ii', label: '2', gain: 5 },
+  { suffix: '-iii', label: '3', gain: 8 },
 ] as const;
 const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap(path => (
   FOCUS_DRILL_TIERS.map(tier => ({

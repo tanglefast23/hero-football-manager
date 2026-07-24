@@ -223,7 +223,7 @@ describe('validated M1 launch content', () => {
     expect(content.training.maxFocusDrillsPerWeek).toBe(3);
     expect(content.training.focusDrills).toContainEqual(expect.objectContaining({
       id: 'circuit',
-      name: 'Circuit I',
+      name: 'Circuit 1',
       gains: { sta: 3 },
     }));
     expect(content.events.tuning).toEqual({

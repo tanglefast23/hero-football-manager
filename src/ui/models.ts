@@ -324,7 +324,7 @@ export interface TrainingSlotStatOption {
   label: string;
   /** Attribute code for the compact current-value line, e.g. "DEF". */
   shortCode: 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
-  /** Best unlocked drill tier's title, e.g. "Duels III". */
+  /** Best unlocked drill tier's title, e.g. "Duels 3". */
   drillName: string;
   /** Best unlocked tier's weekly TP cost. */
   tpCost: number;

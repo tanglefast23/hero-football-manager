@@ -19,7 +19,7 @@ describe('training transition scene', () => {
 
     expect(trainingTransitionScene(state, content)).toMatchObject({
       mode: 'plan',
-      drillLabels: ['Sprints III', 'Finishing III', 'Rondo III'],
+      drillLabels: ['Sprints 3', 'Finishing 3', 'Rondo 3'],
       participants: [
         { playerId: 'bramble-rovers-p01', activityId: 'sprints' },
         { playerId: 'bramble-rovers-p02', activityId: 'finishing' },

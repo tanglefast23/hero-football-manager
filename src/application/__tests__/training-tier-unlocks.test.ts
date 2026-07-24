@@ -25,9 +25,9 @@ describe('training drill tier unlocks', () => {
       [],
     ).selectedPlayerStatOptions?.find(option => option.pathId === 'sprints');
 
-    expect(optionAt(5)).toMatchObject({ drillName: 'Sprints I' });
-    expect(optionAt(4)).toMatchObject({ drillName: 'Sprints II' });
-    expect(optionAt(2)).toMatchObject({ drillName: 'Sprints III' });
+    expect(optionAt(5)).toMatchObject({ drillName: 'Sprints 1' });
+    expect(optionAt(4)).toMatchObject({ drillName: 'Sprints 2' });
+    expect(optionAt(2)).toMatchObject({ drillName: 'Sprints 3' });
   });
 
   test('charges TP once per slot, independent of how many trainees share a stat', () => {

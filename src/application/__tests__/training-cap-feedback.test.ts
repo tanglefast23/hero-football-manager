@@ -152,7 +152,7 @@ describe('universal training maximum feedback', () => {
     expect(alert).toEqual({
       id: `training-cap:s1-w1:${player.id}:pac:sprints`,
       title: `${player.name} reached their PAC maximum`,
-      detail: 'Sprints I took PAC to its maximum. Tap to switch their drill or stop their training.',
+      detail: 'Sprints 1 took PAC to its maximum. Tap to switch their drill or stop their training.',
       tone: 'info',
       playerId: player.id,
     });
