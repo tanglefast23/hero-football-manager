@@ -1,5 +1,5 @@
 import { loadLaunchContent } from '../../content';
-import { advanceWeek, createCareer } from '../career';
+import { activeCareerMatchday, advanceWeek, completeMatchday, createCareer } from '../career';
 import {
   applyCareerTraining,
   buildCareerTeamDef,
@@ -198,22 +198,39 @@ describe('career squad integration', () => {
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p2`)?.attrs.def).toBe(50);
   });
 
-  it('starts the one-week training-ground build and pays its first 10 TP the week after completion', () => {
+  it('starts the two-week training-ground build and pays its first 10 TP the week after completion', () => {
     const built = buildTrainingGround(career());
     expect(built.clubs[0].cash).toBe(42000);
     expect(built.facilities.trainingGroundBuilt).toBe(false);
     expect(built.facilities.grid?.construction).toMatchObject({
       type: 'training-pitch',
-      weeksRemaining: 1,
+      weeksRemaining: 2,
     });
     expect(() => buildTrainingGround(built)).toThrow(/construction project/);
 
-    const completed = advanceWeek(built);
-    expect(completed.week).toBe(2);
+    const stillBuilding = advanceWeek(built);
+    expect(stillBuilding.week).toBe(2);
+    expect(stillBuilding.trainingPoints).toBe(100);
+    expect(stillBuilding.facilities.trainingGroundBuilt).toBe(false);
+    expect(stillBuilding.facilities.grid?.construction).toMatchObject({
+      type: 'training-pitch',
+      weeksRemaining: 1,
+    });
+
+    const completed = advanceWeek(stillBuilding);
+    expect(completed.week).toBe(3);
     expect(completed.trainingPoints).toBe(100);
     expect(completed.facilities.trainingGroundBuilt).toBe(true);
 
-    const activeWeek = advanceWeek(completed);
+    // Week 3 is the first match week, so settle it through the matchday path.
+    const matchday = advanceWeek(completed);
+    expect(matchday.phase).toBe('matchday');
+    const activeWeek = completeMatchday(
+      matchday,
+      activeCareerMatchday(matchday)!.fixtures.map(fixture => (
+        { fixtureId: fixture.id, homeGoals: 1, awayGoals: 1 }
+      )),
+    );
     expect(activeWeek.trainingPoints).toBe(110);
   });
 

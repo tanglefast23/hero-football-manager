@@ -89,11 +89,14 @@ describe('weekly review view model', () => {
 
   it('celebrates the first Training Pitch without paying TP before it opens', () => {
     const fresh = createCareer(createLaunchCareerSetup(5680, undefined, undefined, 'full'));
-    const before = buildCareerFacility(fresh, 'training-pitch', { x: 5, y: 1 }).state;
+    const started = buildCareerFacility(fresh, 'training-pitch', { x: 5, y: 1 }).state;
+    // The pitch now takes two weeks: no completion after the first settlement.
+    const before = advanceWeek(started);
+    expect(weeklyReviewViewModel(started, before).facilityCompletion).toBeUndefined();
     const after = advanceWeek(before);
     const review = weeklyReviewViewModel(before, after);
 
-    expect(after.trainingPoints).toBe(before.trainingPoints);
+    expect(after.trainingPoints).toBe(started.trainingPoints);
     expect(review.netTrainingPoints).toBe(0);
     expect(review.facilityCompletion).toEqual({
       type: 'training-pitch',

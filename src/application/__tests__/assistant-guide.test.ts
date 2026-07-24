@@ -127,6 +127,7 @@ describe('assistant guide application flow', () => {
     let state = createCareer(createLaunchCareerSetup(935, undefined, undefined, 'full'));
     state = buildCareerFacility(state, 'training-pitch', { x: 2, y: 0 }).state;
     state = advanceWeek(state);
+    state = advanceWeek(state); // the pitch now takes two weeks to open
     state = reconcileSatisfiedAssistantGuideSequences(state);
 
     expect(dueAssistantInboxGuideSequences(state)).not.toContain('facility-upgrade');
@@ -147,6 +148,11 @@ describe('assistant guide application flow', () => {
 
     state = buildCareerFacility(state, 'training-pitch', { x: 4, y: 2 }).state;
     expect(dueAssistantInboxGuideSequences(state)).not.toContain('facility-placement');
+    expect(hasAssistantGuideSequenceCompleted(state, 'facility-placement')).toBe(false);
+
+    state = advanceWeek(state);
+    state = reconcileSatisfiedAssistantGuideSequences(state);
+    expect(state.facilities.trainingGroundBuilt).toBe(false);
     expect(hasAssistantGuideSequenceCompleted(state, 'facility-placement')).toBe(false);
 
     state = advanceWeek(state);

@@ -55,15 +55,20 @@ describe('training interrupts are enforced on every week, not just bye weeks', (
 
 describe('this week\'s TP income is credited before training charges', () => {
   test('a plan the guard allows via bank+income is not silently skipped at settlement', () => {
-    // Build and complete a training pitch so the club earns ambient TP each week.
+    // Build and complete a training pitch so the club earns ambient TP each week,
+    // then reach a bye manage week (playing through any match weeks en route).
     let state = buildCareerFacility(newFullCareer(20260718), 'training-pitch', { x: 0, y: 0 }).state;
     let warmup = 0;
-    while (weeklyAmbientTrainingPoints(state) < 6) {
-      if (warmup++ > 6) throw new Error('training pitch never became operational');
-      state = advanceWeek(state); // bye weeks, no plan set -> no interrupt
-      if (state.phase !== 'manage') throw new Error(`unexpected phase during warmup: ${state.phase}`);
+    while (weeklyAmbientTrainingPoints(state) < 6 || activeCareerMatchday(state) !== undefined) {
+      if (warmup++ > 12) throw new Error('training pitch never became operational');
+      if (state.phase === 'matchday') {
+        const md = activeCareerMatchday(state)!;
+        state = completeMatchday(state, md.fixtures.map(f => ({ fixtureId: f.id, homeGoals: 1, awayGoals: 1 })));
+      } else {
+        state = advanceWeek(state); // no plan set -> no interrupt
+      }
     }
-    expect(activeCareerMatchday(state)).toBeUndefined(); // still a bye week -> settles directly
+    expect(activeCareerMatchday(state)).toBeUndefined(); // a bye week -> settles directly
 
     const target = state.players.find(p => p.clubId === state.userClubId && p.attrs.pac < 90)!;
     state = { ...state, phase: 'manage', trainingPoints: 4 }; // bank below the 6-TP tier-I slot cost

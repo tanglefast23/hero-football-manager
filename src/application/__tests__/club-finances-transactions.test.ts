@@ -1,6 +1,18 @@
 import { createLaunchCareerSetup } from '../launch';
 import { clubFinancesViewModel } from '../view-models';
-import { advanceFacilityConstruction, buildCareerFacility, createCareer, relocateCareerFacility } from '../../game';
+import {
+  advanceFacilityConstruction,
+  buildCareerFacility,
+  createCareer,
+  relocateCareerFacility,
+  type FacilityGridState,
+} from '../../game';
+
+function finishConstruction(grid: FacilityGridState): FacilityGridState {
+  let next = grid;
+  while (next.construction !== undefined) next = advanceFacilityConstruction(next).grid;
+  return next;
+}
 
 describe('club finances immediate transaction history', () => {
   test('shows newest M2 purchases separately from the weekly statement', () => {
@@ -10,7 +22,7 @@ describe('club finances immediate transaction history', () => {
       ...building,
       facilities: {
         ...building.facilities,
-        grid: advanceFacilityConstruction(building.facilities.grid!).grid,
+        grid: finishConstruction(building.facilities.grid!),
       },
     };
     const moved = relocateCareerFacility(built, 'facility-1', { x: 2, y: 2 }).state;
@@ -85,7 +97,7 @@ describe('club finances immediate transaction history', () => {
       ...gymProject,
       facilities: {
         ...gymProject.facilities,
-        grid: advanceFacilityConstruction(gymProject.facilities.grid!).grid,
+        grid: finishConstruction(gymProject.facilities.grid!),
       },
     };
     const dormProject = buildCareerFacility(gym, 'dorm', { x: 3, y: 0 }).state;
@@ -93,7 +105,7 @@ describe('club finances immediate transaction history', () => {
       ...dormProject,
       facilities: {
         ...dormProject.facilities,
-        grid: advanceFacilityConstruction(dormProject.facilities.grid!).grid,
+        grid: finishConstruction(dormProject.facilities.grid!),
       },
     };
     const broke = {

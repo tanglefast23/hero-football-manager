@@ -78,7 +78,7 @@ describe('career facility transactions', () => {
 
     expect(built.state.facilities.trainingGroundBuilt).toBe(false);
     expect(built.state.facilities.grid?.buildings[0].type).toBe('training-pitch');
-    expect(built.state.facilities.grid?.construction).toMatchObject({ weeksRemaining: 1 });
+    expect(built.state.facilities.grid?.construction).toMatchObject({ weeksRemaining: 2 });
     expect(built.state.cashTransactions).toBeUndefined();
   });
 });

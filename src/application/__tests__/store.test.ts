@@ -239,7 +239,7 @@ describe('M1 app store integration', () => {
     expect(planned.facilities.trainingGroundBuilt).toBe(false);
     expect(planned.facilities.grid?.construction).toMatchObject({
       type: 'training-pitch',
-      weeksRemaining: 1,
+      weeksRemaining: 2,
     });
     expect(planned.clubs[0].cash).toBe(before.clubs[0].cash - 8000);
     expect(planned.trainingPoints).toBe(before.trainingPoints);
@@ -276,14 +276,22 @@ describe('M1 app store integration', () => {
     );
     expect(settled.players.find(player => player.id === unassignedPlayerId)?.attrs.sta)
       .toBe(beforeUnassignedSta);
-    expect(settled.facilities.trainingGroundBuilt).toBe(true);
-    expect(review.facilityCompletion).toMatchObject({
+    // The pitch now takes two weeks: still building after the first settlement.
+    expect(settled.facilities.trainingGroundBuilt).toBe(false);
+    expect(review.facilityCompletion).toBeUndefined();
+    expect(settled.eventFlags).toContain('guide:bert:first-training-complete');
+
+    useM1Store.getState().continueWeekReview();
+    useM1Store.getState().advanceCareer();
+    const secondWeek = useM1Store.getState().career!;
+    const secondReview = useM1Store.getState().weekReview!;
+    expect(secondWeek.facilities.trainingGroundBuilt).toBe(true);
+    expect(secondReview.facilityCompletion).toMatchObject({
       type: 'training-pitch',
       name: 'Training Pitch',
       level: 1,
       kind: 'BUILD',
     });
-    expect(settled.eventFlags).toContain('guide:bert:first-training-complete');
   });
 
   it('fills training slots, blocks a 4th, and reindexes on removal', () => {

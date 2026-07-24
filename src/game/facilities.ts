@@ -41,8 +41,8 @@ export interface FacilityCatalogEntry {
 }
 
 export const FACILITY_CATALOG: Readonly<Record<FacilityType, FacilityCatalogEntry>> = {
-  'training-pitch': facility('training-pitch', 'Training Pitch', 2, 2, 8_000, 1, [8_000, 12_000], [1, 2], [100, 160, 240], 400),
-  gym: facility('gym', 'Gym', 1, 1, 7_000, 1, [7_000, 10_500], [1, 2], [90, 140, 210], 350),
+  'training-pitch': facility('training-pitch', 'Training Pitch', 2, 2, 8_000, 2, [8_000, 12_000], [2, 3], [100, 160, 240], 400),
+  gym: facility('gym', 'Gym', 1, 1, 7_000, 2, [7_000, 10_500], [2, 3], [90, 140, 210], 350),
   'tech-center': facility('tech-center', 'Tech Center', 1, 1, 9_000, 2, [9_000, 13_500], [2, 3], [110, 175, 260], 450),
   'shooting-range': facility('shooting-range', 'Shooting Range', 1, 2, 7_500, 2, [7_500, 11_250], [2, 3], [95, 150, 225], 375),
   'keeper-court': facility('keeper-court', 'Keeper Court', 1, 2, 7_500, 2, [7_500, 11_250], [2, 3], [95, 150, 225], 375),

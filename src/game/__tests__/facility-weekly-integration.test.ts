@@ -47,7 +47,7 @@ describe('facility weekly integration', () => {
       trainingGroundBuilt: false,
       grid: {
         buildings: [{ type: 'training-pitch', level: 1, x: 3, y: 2 }],
-        construction: { type: 'training-pitch', weeksRemaining: 1 },
+        construction: { type: 'training-pitch', weeksRemaining: 2 },
       },
     });
 
@@ -65,36 +65,48 @@ describe('facility weekly integration', () => {
     }
 
     // Sprints I now costs 6 TP per slot (12 total for the two trainees).
-    // The build week pays nothing — benefits start only once the pitch is
+    // The two build weeks pay nothing — benefits start only once the pitch is
     // open — then each later settlement restores 10 TP, netting -2 per week.
-    expect(balances).toEqual([30, 18, 16, 14, 12]);
+    expect(balances).toEqual([30, 18, 6, 4, 2]);
     // Training is TP-only now; no money is ever charged, so no ledger line
     // of kind 'training' is ever recorded.
     expect(state.ledgers.map(ledger => ledger.lines.find(line => line.kind === 'training')?.amount))
       .toEqual([undefined, undefined, undefined, undefined]);
   });
 
-  test('pays no TP during the build week, then activates upkeep and weekly TP', () => {
+  test('pays no TP during the build weeks, then activates upkeep and weekly TP', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
-    const built = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
+    const project = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
+    // Strip fixtures so every settlement goes through the direct weekly path.
+    const built: GameState = {
+      ...project,
+      fixtures: [],
+      m2: project.m2 === undefined ? undefined : { ...project.m2, nationalCups: [] },
+    };
     const cashBeforeSettlement = userCash(built);
 
-    const completionWeek = advanceWeek(built);
+    const midBuildWeek = advanceWeek(built);
+    expect(midBuildWeek.trainingPoints).toBe(built.trainingPoints);
+    expect(midBuildWeek.ledgers[0].lines.some(line => line.kind === 'facilities')).toBe(false);
+    expect(midBuildWeek.facilities.grid?.construction).toMatchObject({ weeksRemaining: 1 });
+
+    const completionWeek = advanceWeek(midBuildWeek);
     expect(completionWeek.trainingPoints).toBe(built.trainingPoints);
-    expect(completionWeek.ledgers[0].lines.some(line => line.kind === 'facilities')).toBe(false);
+    expect(completionWeek.ledgers[1].lines.some(line => line.kind === 'facilities')).toBe(false);
     expect(completionWeek.facilities.grid?.construction).toBeUndefined();
 
     const settled = advanceWeek(completionWeek);
 
     expect(settled.trainingPoints).toBe(built.trainingPoints + 10);
-    expect(settled.ledgers[1].lines).toContainEqual({
+    expect(settled.ledgers[2].lines).toContainEqual({
       kind: 'facilities',
       label: 'Facility upkeep',
       amount: -100,
     });
-    const completionNet = completionWeek.ledgers[0].lines.reduce((total, line) => total + line.amount, 0);
-    const activeNet = settled.ledgers[1].lines.reduce((total, line) => total + line.amount, 0);
-    expect(userCash(settled)).toBe(cashBeforeSettlement + completionNet + activeNet);
+    const weeklyNets = settled.ledgers.slice(0, 3).map(ledger => (
+      ledger.lines.reduce((total, line) => total + line.amount, 0)
+    ));
+    expect(userCash(settled)).toBe(cashBeforeSettlement + weeklyNets[0] + weeklyNets[1] + weeklyNets[2]);
   });
 
   test('scales Training Pitch TP with the completed facility level', () => {

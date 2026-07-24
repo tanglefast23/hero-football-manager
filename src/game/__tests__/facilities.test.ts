@@ -76,6 +76,11 @@ describe('facility catalog and grid', () => {
       buildingId: 'facility-2',
       weeksRemaining: 1,
     });
+    expect(first.grid.construction).toMatchObject({
+      kind: 'BUILD',
+      buildingId: 'facility-1',
+      weeksRemaining: 2,
+    });
     expect(() => build(first.grid, 'dorm', { x: 3, y: 1 }, first.cashAfter))
       .toThrow(/only one facility construction project/);
 
