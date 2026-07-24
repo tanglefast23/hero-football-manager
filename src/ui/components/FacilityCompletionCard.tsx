@@ -35,9 +35,7 @@ export function FacilityCompletionCard({
   return (
     <Animated.View
       accessibilityRole="summary"
-      accessibilityLabel={`${completion.name} level ${completion.level} is complete and operational${completion.trainingPointReward === undefined
-        ? ''
-        : `. ${completion.trainingPointReward} Training Points awarded`}`}
+      accessibilityLabel={`${completion.name} level ${completion.level} is complete and operational`}
       className="mt-4 overflow-hidden border-2 border-b-4 border-gold-dark bg-gold-light"
       style={{
         opacity: entrance,
@@ -62,9 +60,7 @@ export function FacilityCompletionCard({
         <View className="min-w-0 flex-1">
           <Text className="font-pixel text-lg uppercase text-ink">{completion.name} is open!</Text>
           <Text className="mt-2 text-sm leading-5 text-ink/65">
-            {completion.trainingPointReward !== undefined
-              ? `Construction is finished. You earned the first ${completion.trainingPointReward} TP now; the pitch adds ${completion.trainingPointReward} TP at each future weekly settlement.`
-              : completion.kind === 'BUILD'
+            {completion.kind === 'BUILD'
               ? 'Construction is finished. Its benefit is active; upkeep starts with the next weekly settlement.'
               : `The Level ${completion.level} improvements are finished and active now.`}
           </Text>

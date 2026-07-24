@@ -364,11 +364,10 @@ function settleCurrentWeek(
   // would be silently skipped here. The final TP total is unchanged (income
   // minus training cost); only the affordability basis moves.
   const ambientTrainingPoints = weeklyAmbientTrainingPoints(state);
-  const completionTrainingPoints = firstTrainingPitchCompletionPoints(state);
   const preTrainingTrainingPoints = checkedAdd(
-    checkedAdd(state.trainingPoints, ambientTrainingPoints, 'weekly ambient training point balance'),
-    completionTrainingPoints,
-    'facility training point balance',
+    state.trainingPoints,
+    ambientTrainingPoints,
+    'weekly ambient training point balance',
   );
   const training = resolveCareerTrainingWeek({ ...state, trainingPoints: preTrainingTrainingPoints });
   const existingTrainingCapNoticeIds = new Set(
@@ -1018,25 +1017,6 @@ export function weeklyAmbientTrainingPoints(state: GameState): number {
   );
   const coachPoints = state.market === undefined ? 0 : careerCoachWeeklyTrainingPoints(state.market);
   return checkedAdd(facilityPoints, coachPoints, 'ambient training points');
-}
-
-function firstTrainingPitchCompletionPoints(state: GameState): number {
-  const grid = state.facilities.grid;
-  const project = grid?.construction;
-  if (
-    grid === undefined
-    || project === undefined
-    || project.kind !== 'BUILD'
-    || project.type !== 'training-pitch'
-    || project.weeksRemaining !== 1
-  ) {
-    return 0;
-  }
-  const alreadyOperational = grid.buildings.some(building => (
-    building.type === 'training-pitch'
-    && isFacilityOperational(grid, building.id)
-  ));
-  return alreadyOperational ? 0 : TRAINING_PITCH_TP_PER_LEVEL;
 }
 
 function validateSetup(setup: CareerSetup): void {

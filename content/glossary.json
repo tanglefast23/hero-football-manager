@@ -67,8 +67,8 @@
       "entries": [
         { "term": "Weekly plan", "definition": "Up to 3 players, each training one stat. Picking a stat commits immediately and repeats every week until you change it." },
         { "term": "Focus drill", "definition": "The stat a player trains, costing Training Points only. Once a player is maxed out on their chosen stat, swap in a new player." },
-        { "term": "Training Points (TP)", "definition": "The improvement currency. Complete your first Training Pitch to earn 10 TP immediately; after that, completed pitches add 10 TP per level at each weekly settlement. Coaches and upgrades can add more. Match results do not create TP." },
-        { "term": "Training Pitch", "definition": "Your first guided grounds project. Its $8,000 cost is included in the starting budget; you choose where to place it. Completion awards the first 10 TP, then it creates 10 TP per level each week." },
+        { "term": "Training Points (TP)", "definition": "The improvement currency. Completed Training Pitches add 10 TP per level at each weekly settlement once they open. Coaches and upgrades can add more. Match results do not create TP." },
+        { "term": "Training Pitch", "definition": "Your first guided grounds project. Its $8,000 cost is included in the starting budget; you choose where to place it. Once open, it creates 10 TP per level each week." },
         { "term": "Coach specialty", "definition": "The areas a coach improves. Matching a specialty to a drill or attribute increases training gains over time." },
         { "term": "Head coach", "definition": "The primary coach, with the strongest specialty bonuses, a weekly TP contribution, and a weekly wage." },
         { "term": "Assistant coach", "definition": "A second, smaller set of specialty bonuses and weekly TP, unlocked by building a Coaching Office." }
