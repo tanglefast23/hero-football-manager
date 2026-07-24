@@ -214,7 +214,7 @@ export function ManagementShell({
 
       <View className="flex-1">{children}</View>
 
-      <View className="border-t-2 border-paper/10 px-3 pt-2">
+      <View className="border-t-[6px] border-white bg-ink/25 px-3 pt-2">
         {/* Bottom chrome shares the content column: the Advance Week button and
             the five tabs never extend past the tables above them on desktop. */}
         <View className="w-full max-w-5xl self-center">

@@ -163,7 +163,7 @@ export function SeasonEndScreen({
             </View>
             {viewModel.table.map(row => {
               const rowClass = row.isUserClub
-                ? 'bg-violet-light'
+                ? 'bg-blue-light'
                 : row.promoted
                   ? 'bg-pitch-light'
                   : '';
@@ -241,7 +241,7 @@ export function SeasonEndScreen({
                           accessibilityLabel={`${term} season contract`}
                           accessibilityState={{ selected }}
                           onPress={() => onSelectContractTerm(contract.playerId, term)}
-                          className={selected ? 'min-h-11 flex-1 items-center justify-center border-2 border-violet-dark bg-violet-light' : 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-paper-dark'}
+                          className={selected ? 'min-h-11 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light' : 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-paper-dark'}
                           style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
                         >
                           <Text className="font-mono text-base font-bold text-ink">{term}</Text>
@@ -308,7 +308,7 @@ export function SeasonEndScreen({
         ) : null}
       </ScrollView>
 
-      <View className="border-t-2 border-paper/10 bg-pitch-dark p-3">
+      <View className="border-t-[6px] border-white bg-ink/25 p-3">
         <ActionButton
           label={viewModel.sliceComplete ? 'Finish career review  ▸' : 'Begin next season  ▸'}
           accessibilityLabel={viewModel.sliceComplete ? 'Finish the career review' : 'Begin the next season'}

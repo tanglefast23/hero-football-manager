@@ -14,9 +14,6 @@ module.exports = {
         'paper-dark': '#d9d3e0',
         cream: '#f4f1ea',
         // core families — each has -dark (shadow/lip), base, -light (highlight)
-        violet: '#9a63d6',
-        'violet-dark': '#5b3a91',
-        'violet-light': '#c9a6ec',
         red: '#d94f52',
         'red-dark': '#a83440',
         'red-light': '#f2938c',

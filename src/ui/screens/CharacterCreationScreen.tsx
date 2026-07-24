@@ -136,7 +136,7 @@ export function CharacterCreationScreen({
                   setDifficulty(mode);
                 }}
                 className={selected
-                  ? 'min-h-14 border-2 border-ink bg-violet px-3 py-3'
+                  ? 'min-h-14 border-2 border-ink bg-blue px-3 py-3'
                   : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-3'}
               >
                 <Text className={selected
@@ -180,7 +180,7 @@ export function CharacterCreationScreen({
         </View>
         <View className={pointsRemaining === 0
           ? 'rotate-2 border-[3px] border-ink bg-pitch-light px-3 py-2'
-          : 'rotate-2 border-[3px] border-ink bg-violet px-3 py-2'}
+          : 'rotate-2 border-[3px] border-ink bg-blue px-3 py-2'}
         >
           <Text className={pointsRemaining === 0
             ? 'text-center font-mono text-2xl font-bold text-ink'
@@ -240,7 +240,7 @@ export function CharacterCreationScreen({
                 onPress={() => {
                   adjust(stat, 1);
                 }}
-                className="h-11 w-11 items-center justify-center border-2 border-ink bg-violet"
+                className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
                 style={({ pressed }) => ({
                   opacity: pressed ? 0.65 : value >= CREATION_STAT_MAX || pointsRemaining <= 0 ? 0.3 : 1,
                 })}
@@ -333,7 +333,7 @@ export function CharacterCreationScreen({
       </ScrollView>
 
       {wide ? null : (
-        <View className="border-t-2 border-paper/10 bg-pitch-dark p-3">
+        <View className="border-t-[6px] border-white bg-ink/25 p-3">
           {signRookie}
         </View>
       )}
@@ -362,12 +362,12 @@ function AppearanceChoice({
         onPress={() => {
           onPrevious();
         }}
-        className="h-11 w-11 items-center justify-center border-2 border-ink bg-violet"
+        className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
         style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
       >
         <Text className="font-mono text-xl font-bold text-white">‹</Text>
       </Pressable>
-      <Text className="w-16 text-center font-mono text-sm font-bold text-violet-dark" numberOfLines={1}>{value}</Text>
+      <Text className="w-16 text-center font-mono text-sm font-bold text-blue-dark" numberOfLines={1}>{value}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Next ${label}, currently ${value}`}
@@ -375,7 +375,7 @@ function AppearanceChoice({
         onPress={() => {
           onNext();
         }}
-        className="h-11 w-11 items-center justify-center border-2 border-ink bg-violet"
+        className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
         style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
       >
         <Text className="font-mono text-xl font-bold text-white">›</Text>

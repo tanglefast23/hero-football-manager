@@ -85,7 +85,7 @@ export function TrainingDrillModal({
                       className={option.atSafetyCeiling
                         ? 'flex-row items-center justify-between border-2 border-ink/20 bg-white px-3 py-3 opacity-40'
                         : isCurrent
-                          ? 'flex-row items-center justify-between border-2 border-violet-dark bg-violet-light px-3 py-3'
+                          ? 'flex-row items-center justify-between border-2 border-blue-dark bg-blue-light px-3 py-3'
                           : 'flex-row items-center justify-between border-2 border-ink/30 bg-white px-3 py-3'}
                       style={({ pressed }) => ({ opacity: pressed && !option.atSafetyCeiling ? 0.65 : undefined })}
                     >
@@ -99,7 +99,7 @@ export function TrainingDrillModal({
                         </Text>
                       </View>
                       <Text
-                        className={isCurrent ? 'font-mono text-base font-bold text-violet-dark' : 'font-mono text-base font-bold text-ink'}
+                        className={isCurrent ? 'font-mono text-base font-bold text-blue-dark' : 'font-mono text-base font-bold text-ink'}
                         numberOfLines={1}
                       >
                         +{option.gain} {option.label}

@@ -141,7 +141,7 @@ export function PostMatchDevelopmentOverlay({
               eyebrow="Player development"
               title={sequenceComplete ? 'Boosts complete' : 'Getting stronger'}
               right={development.focusedTrainees.length > 1 ? (
-                <View className="border-2 border-ink bg-violet px-2 py-1">
+                <View className="border-2 border-ink bg-blue px-2 py-1">
                   <Text className="font-mono text-sm font-bold text-paper">
                     {Math.min(activeTraineeIndex + 1, development.focusedTrainees.length)} / {development.focusedTrainees.length}
                   </Text>

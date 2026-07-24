@@ -89,7 +89,7 @@ export function FixtureMatchDayScreen({
                   accessibilityState={{ selected: player.id === selectedStarterId }}
                   onPress={() => setSelectedStarterId(current => current === player.id ? null : player.id)}
                   className={player.id === selectedStarterId
-                    ? 'w-14 items-center border-2 border-violet-dark bg-violet-light p-1'
+                    ? 'w-14 items-center border-2 border-blue-dark bg-blue-light p-1'
                     : 'w-14 items-center border-2 border-transparent p-1'}
                   style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
                 >
@@ -258,7 +258,7 @@ export function FixtureMatchDayScreen({
         )}
       </ScrollView>
 
-      <View className="border-t-2 border-paper/10 bg-pitch-dark p-3">
+      <View className="border-t-[6px] border-white bg-ink/25 p-3">
         <View className={wide ? 'w-full max-w-[1180px] flex-row gap-2 self-center px-2' : 'flex-row gap-2'}>
           <View className="flex-1">
             <ActionButton

@@ -7,17 +7,17 @@ import {
 const CHOSEN_FEATHER_BLOCKS: readonly AwakeningPixelBlock[] = [
   [5, 22, 14, 1, palette.ink, 0.28],
 
-  // Wide, tapered plume: violet upper barbs and blue lower barbs flank a
+  // Wide, tapered plume: blue upper barbs and blue lower barbs flank a
   // clearly visible diagonal quill instead of forming a key-shaped blob.
-  [18, 2, 3, 2, palette.violetShadow],
-  [15, 3, 7, 3, palette.violetShadow],
-  [12, 5, 9, 4, palette.violetShadow],
-  [9, 8, 10, 5, palette.violetShadow],
+  [18, 2, 3, 2, palette.blueShadow],
+  [15, 3, 7, 3, palette.blueShadow],
+  [12, 5, 9, 4, palette.blueShadow],
+  [9, 8, 10, 5, palette.blueShadow],
   [7, 11, 9, 5, palette.blueShadow],
   [5, 15, 8, 5, palette.blueShadow],
-  [16, 4, 5, 2, palette.violetLight],
-  [13, 6, 7, 3, palette.violetBase],
-  [10, 9, 8, 3, palette.violetBase],
+  [16, 4, 5, 2, palette.blueLight],
+  [13, 6, 7, 3, palette.blueBase],
+  [10, 9, 8, 3, palette.blueBase],
   [8, 12, 7, 3, palette.blueBase],
   [6, 16, 6, 3, palette.blueBase],
   [13, 6, 4, 2, palette.blueLight],

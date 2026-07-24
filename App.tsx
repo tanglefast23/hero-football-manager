@@ -219,7 +219,7 @@ function PowerMatchQaApp() {
       {!fontsLoaded ? <LoadingScreen /> : <>
         <StatusBar style="light" />
         <SafeAreaView className="flex-1 bg-ink">
-        <View className="border-b-2 border-ink bg-violet-dark px-2 py-2">
+        <View className="border-b-2 border-ink bg-blue-dark px-2 py-2">
           <View className="flex-row items-center gap-2">
             <Pressable
               accessibilityRole="button"
@@ -1771,7 +1771,7 @@ function BootFailure({
           accessibilityRole="button"
           accessibilityLabel="Retry opening club files"
           onPress={onRetry}
-          className="mt-5 min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-violet px-4"
+          className="mt-5 min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-blue px-4"
           style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
         >
           <Text className="font-pixel text-sm uppercase text-paper">Retry</Text>
@@ -1920,7 +1920,7 @@ function TrainingCapInterruptModal({
               disabled={!resolved}
               onPress={onAdvance}
               className={`min-h-12 flex-1 items-center justify-center border-2 border-b-4 px-3 ${
-                resolved ? 'border-ink bg-violet' : 'border-ink/30 bg-grey opacity-60'
+                resolved ? 'border-ink bg-blue' : 'border-ink/30 bg-grey opacity-60'
               }`}
               style={({ pressed }) => ({ transform: [{ translateY: pressed && resolved ? 2 : 0 }] })}
             >
@@ -2000,7 +2000,7 @@ function TrainingTpShortfallModal({
               disabled={!resolved}
               onPress={onAdvance}
               className={`min-h-12 flex-1 items-center justify-center border-2 border-b-4 px-3 ${
-                resolved ? 'border-ink bg-violet' : 'border-ink/30 bg-grey opacity-60'
+                resolved ? 'border-ink bg-blue' : 'border-ink/30 bg-grey opacity-60'
               }`}
               style={({ pressed }) => ({ transform: [{ translateY: pressed && resolved ? 2 : 0 }] })}
             >
@@ -2098,7 +2098,7 @@ function ConfirmationSheet({
                   ? 'bg-red'
                   : confirmation?.tone === 'hero'
                     ? 'bg-gold'
-                    : 'bg-violet'
+                    : 'bg-blue'
               }`}
               style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
             >

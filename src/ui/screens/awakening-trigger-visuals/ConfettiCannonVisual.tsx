@@ -43,13 +43,13 @@ const CONFETTI_CANNON_BLOCKS: readonly AwakeningPixelBlock[] = [
   [23, 5, 3, 2, palette.goldLight],
   [25, 2, 2, 2, palette.blueLight],
   [28, 4, 1, 3, palette.redLight],
-  [30, 1, 2, 2, palette.violetLight],
+  [30, 1, 2, 2, palette.blueLight],
   [24, 9, 2, 2, palette.blueBase],
   [28, 9, 3, 2, palette.goldShadow],
   [29, 10, 2, 4, palette.goldShadow],
   [28, 9, 2, 1, palette.goldLight],
   [29, 11, 1, 2, palette.goldBase],
-  [25, 13, 2, 2, palette.violetBase],
+  [25, 13, 2, 2, palette.blueBase],
 ];
 
 export function ConfettiCannonVisual({ x, y }: { x: number; y: number }) {

@@ -55,7 +55,7 @@ export class ScreenErrorBoundary extends Component<
               this.setState({ message: null });
               this.props.onRecover();
             }}
-            className="mt-5 min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-violet px-4"
+            className="mt-5 min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-blue px-4"
             style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
           >
             <Text className="font-pixel text-sm uppercase text-paper">Back to title</Text>

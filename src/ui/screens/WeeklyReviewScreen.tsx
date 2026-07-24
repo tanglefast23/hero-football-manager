@@ -197,7 +197,7 @@ export function WeeklyReviewScreen({
 
       </ScrollView>
 
-      <View className="border-t-2 border-paper/10 bg-pitch-dark p-3">
+      <View className="border-t-[6px] border-white bg-ink/25 p-3">
         <ActionButton
           label={`Start ${viewModel.nextWeekLabel}  ▸`}
           accessibilityLabel={`Finish the weekly review and start ${viewModel.nextWeekLabel}`}

@@ -18,7 +18,6 @@ Every colour comes from here. Author art as indexed PNG with the palette locked.
 
 | Family | Shadow / lip | Base / face | Light / highlight | Meaning (see 08) |
 |---|---|---|---|---|
-| Violet | `#5b3a91` | `#9a63d6` | `#c9a6ec` | Confirm / primary |
 | Red | `#a83440` | `#d94f52` | `#f2938c` | Cancel / destructive |
 | Blue | `#3f6fb5` | `#5a8fd6` | `#a3c8f0` | Neutral action |
 | Gold | `#c8862a` | `#edb54a` | `#f7d894` | **Hero / reward only** |
@@ -62,8 +61,8 @@ Every button is a **fat pixel lozenge**, not a flat tinted rect. Meaning is carr
 |---|---|---|
 | **Outline** | **2px** solid dark border, all the way around | `#35234f` (or ink `#241f2e`) |
 | **Corners** | **Rounded chunky** — a 2–3px stepped pixel radius. Not square, not a 1px notch | — |
-| **Highlight** | the **top ~40%** is the family **light** tint — a bold gloss band, *not* a 1px line; plus a 1px lighter rim on the top+left inner edge | `#c9a6ec` |
-| **Face** | the family **base** fills the body — vibrant, saturated | `#9a63d6` |
+| **Highlight** | the **top ~40%** is the family **light** tint — a bold gloss band, *not* a 1px line; plus a 1px lighter rim on the top+left inner edge | `#a3c8f0` |
+| **Face** | the family **base** fills the body — vibrant, saturated | `#5a8fd6` |
 | **Lip** | the **bottom 2–3px** is the family **shadow/dark** — the raised depth | `#6d3fa6` |
 | **Label** | **Silkscreen bold**, uppercase, cream/white, 1px ink drop-shadow, centred + tracked | `#f4f1ea` on face |
 | **At rest** | optional 1–2px ink contact-shadow *under* the whole button | — |
@@ -71,7 +70,7 @@ Every button is a **fat pixel lozenge**, not a flat tinted rect. Meaning is carr
 
 Proportions on a 48px button: outline 2px · corner radius 2–3px · highlight band ~18px (top ~40%) · lip 2–3px.
 
-Colour = meaning (per [08](08-ui-ux.md)): **violet** confirm/primary · **red** cancel/destructive · **blue** neutral action · **gold** hero/reward only · **grey** disabled. Faces are **vibrant** — buttons are exactly where the palette is allowed to shout, against the calm cream canvas. Reserve red for genuinely destructive actions.
+Colour = meaning (per [08](08-ui-ux.md)): **blue** confirm/primary and neutral action · **red** cancel/destructive · **gold** hero/reward only · **grey** disabled. Violet is retired from the UI palette (2026-07-24); it survives only inside authored art such as power identities and character sprites. Faces are **vibrant** — buttons are exactly where the palette is allowed to shout, against the calm cream canvas. Reserve red for genuinely destructive actions.
 
 ## Track B — world & character art
 

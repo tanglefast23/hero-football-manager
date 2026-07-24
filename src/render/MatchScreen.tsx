@@ -2188,10 +2188,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#241f2e',
   },
-  autoSubRowOn: { backgroundColor: '#5b3a91', borderColor: '#9a63d6' },
+  autoSubRowOn: { backgroundColor: '#3f6fb5', borderColor: '#5a8fd6' },
   autoSubBox: { color: '#f4f1ea', fontSize: 18, lineHeight: 20 },
   autoSubLabel: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
-  autoSubDetail: { color: '#c9a6ec', fontSize: 11 },
+  autoSubDetail: { color: '#a3c8f0', fontSize: 11 },
   bannerStack: {
     position: 'absolute',
     zIndex: 8,

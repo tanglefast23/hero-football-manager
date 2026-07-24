@@ -344,7 +344,7 @@ function YouthDesk({
         <StatusChip label={intake.rosterLabel} />
       </View>
       <View className={intake.status === 'OPEN'
-        ? 'self-start -rotate-1 border-2 border-ink bg-violet px-3 py-2'
+        ? 'self-start -rotate-1 border-2 border-ink bg-blue px-3 py-2'
         : 'self-start -rotate-1 border-2 border-ink bg-paper px-3 py-2'}
       >
         <Text className={intake.status === 'OPEN'
@@ -377,8 +377,8 @@ function YouthDesk({
                     Potential {offer.potentialLabel}
                   </Text>
                 </View>
-                <View className="-rotate-2 border-2 border-violet-dark bg-violet-light px-2 py-1">
-                  <Text className="text-sm font-bold uppercase text-violet-dark">Academy</Text>
+                <View className="-rotate-2 border-2 border-blue-dark bg-blue-light px-2 py-1">
+                  <Text className="text-sm font-bold uppercase text-blue-dark">Academy</Text>
                 </View>
               </View>
               <View className="mt-3 flex-row gap-2">
@@ -431,7 +431,7 @@ function DocketTab({
       accessibilityState={{ selected }}
       onPress={() => onPress(id)}
       className={selected
-        ? 'min-h-14 flex-1 items-center justify-center border-2 border-violet-dark bg-violet-light px-1'
+        ? 'min-h-14 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light px-1'
         : 'min-h-14 flex-1 items-center justify-center border-2 border-transparent px-1'}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
     >
@@ -760,7 +760,7 @@ function CoachDesk({
                 </View>
                 {coach.assistantSlotUnlocked ? (
                   <View className="mt-2 border-t border-blue-dark/25 pt-2">
-                    <Text className="font-mono text-sm font-bold uppercase text-violet-dark">As assistant</Text>
+                    <Text className="font-mono text-sm font-bold uppercase text-blue-dark">As assistant</Text>
                     {coach.assistantEffectLabels.map(effect => (
                       <Text key={`assistant-${effect}`} className="mt-1 text-sm text-ink/75">{effect}</Text>
                     ))}
@@ -880,7 +880,7 @@ export function NegotiationPanel({
                 accessibilityRole="button"
                 accessibilityLabel={`Increase weekly wage by ${formatCurrency(viewModel.wageStep)}`}
                 onPress={() => setWeeklyWage(value => value + viewModel.wageStep)}
-                className="h-12 w-12 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light"
+                className="h-12 w-12 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light"
               >
                 <Text className="font-mono text-2xl font-bold text-ink">+</Text>
               </Pressable>
@@ -898,7 +898,7 @@ export function NegotiationPanel({
                   accessibilityState={{ selected: termSeasons === term }}
                   onPress={() => setTermSeasons(term)}
                   className={termSeasons === term
-                    ? 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light'
+                    ? 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light'
                     : 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-white'}
                 >
                   <Text className="font-mono text-base font-bold text-ink">{term}Y</Text>
@@ -918,7 +918,7 @@ export function NegotiationPanel({
                   accessibilityState={{ selected: perk === option.id }}
                   onPress={() => setPerk(option.id)}
                   className={perk === option.id
-                    ? 'min-h-14 w-[48%] flex-grow justify-center border-2 border-b-4 border-violet-dark bg-violet-light px-3 py-2'
+                    ? 'min-h-14 w-[48%] flex-grow justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
                     : 'min-h-14 w-[48%] flex-grow justify-center border-2 border-ink/30 bg-white px-3 py-2'}
                 >
                   <Text className="text-sm font-bold uppercase text-ink">{option.label}</Text>
@@ -944,7 +944,7 @@ export function NegotiationPanel({
                     className={card.used
                       ? 'min-h-14 border-2 border-ink/20 bg-ink/5 px-3 py-2 opacity-45'
                       : selected
-                        ? 'min-h-14 border-2 border-b-4 border-violet-dark bg-violet-light px-3 py-2'
+                        ? 'min-h-14 border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
                         : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'}
                   >
                     <View className="flex-row items-center justify-between gap-3">
@@ -1051,7 +1051,7 @@ function SmallAction({
       onPress={onPress}
       className={disabled
         ? 'min-h-11 min-w-24 items-center justify-center border-2 border-ink/20 bg-ink/5 px-3'
-        : 'min-h-11 min-w-24 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light px-3'}
+        : 'min-h-11 min-w-24 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3'}
       style={({ pressed }) => ({ transform: [{ translateY: pressed && !disabled ? 2 : 0 }] })}
     >
       <Text className={disabled

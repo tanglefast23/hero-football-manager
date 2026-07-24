@@ -63,7 +63,7 @@ export function M2LeagueScreen({
                 accessibilityState={{ selected: division.selected }}
                 onPress={() => onSelectDivision(division.level)}
                 className={division.selected
-                  ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light px-1 py-2'
+                  ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1 py-2'
                   : division.userDivision
                     ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1 py-2'
                     : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-1 py-2'}
@@ -244,7 +244,7 @@ export function M2LeagueScreen({
                   disabled={onSelectCupSeason === undefined}
                   onPress={() => onSelectCupSeason?.(option.season)}
                   className={option.selected
-                    ? 'min-h-11 min-w-14 items-center justify-center border-2 border-b-4 border-violet-dark bg-violet-light px-3'
+                    ? 'min-h-11 min-w-14 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3'
                     : 'min-h-11 min-w-14 items-center justify-center border-2 border-b-4 border-ink bg-white px-3'}
                   style={({ pressed }) => ({
                     opacity: pressed ? 0.82 : 1,
@@ -420,7 +420,7 @@ function CupTie({
       disabled={disabled}
       onPress={() => onOpenCupFixture?.(fixture.id)}
       className={fixture.playableNow
-        ? 'min-h-14 flex-row items-center border-2 border-b-4 border-violet-dark bg-violet-light px-2 py-2'
+        ? 'min-h-14 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-2 py-2'
         : fixture.involvesUserClub
           ? 'min-h-14 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-2 py-2'
           : 'min-h-14 flex-row items-center border-2 border-b-4 border-ink/50 bg-white px-2 py-2'}

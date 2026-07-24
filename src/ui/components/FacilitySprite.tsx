@@ -199,7 +199,7 @@ export function FacilitySprite({
               style={{
                 width: Math.max(2, Math.min(pixelWidth, pixelHeight) - 1),
                 height: Math.max(2, Math.min(pixelWidth, pixelHeight) - 1),
-                backgroundColor: pip <= level ? '#9a63d6' : '#6b6675',
+                backgroundColor: pip <= level ? '#5a8fd6' : '#6b6675',
               }}
             />
           ))}

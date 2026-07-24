@@ -225,7 +225,7 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOp
         </View>
       </ScrollView>
 
-      <View className="flex-row items-stretch gap-3 border-t-2 border-paper/10 bg-pitch-dark p-3">
+      <View className="flex-row items-stretch gap-3 border-t-[6px] border-white bg-ink/25 p-3">
         <View className="w-28">
           <ActionButton label="Pass" accessibilityLabel={`Pass on ${player.name}`} variant="paper" onPress={onPass} />
         </View>
