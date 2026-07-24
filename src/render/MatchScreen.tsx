@@ -1429,6 +1429,11 @@ export function MatchScreen({
   const swapDisabled = match.phase === 'fulltime' || substitutionsUsed >= 3 || bench.length === 0;
   const coachingDisabled = match.phase === 'fulltime';
   const guideSwapButton = firstMatchTutorialStep === 'tired-swap-cue';
+  const mostTiredStarter = activeOnFieldIndices.length === 0
+    ? null
+    : activeOnFieldIndices
+        .map((index) => match.players[index])
+        .reduce((worst, player) => (player.condition < worst.condition ? player : worst));
   const swapSecondary = autoSubs
     ? `AUTO · ${substitutionsUsed}/3`
     : tiredCount > 0
@@ -2098,9 +2103,18 @@ export function MatchScreen({
       ) : null}
       {firstMatchTutorialStep === 'tired-modal' ? (
         <FirstMatchCoachingModal
-          title="One player is very tired"
-          body="One of your players is very tired. Swap in a fresh player to give them some rest."
+          title={mostTiredStarter === null
+            ? 'One player is very tired'
+            : `${mostTiredStarter.def.name} is very tired`}
+          body="Swap in a fresh player to give them some rest."
           buttonLabel="Show me"
+          player={mostTiredStarter === null ? undefined : {
+            id: mostTiredStarter.def.id,
+            name: mostTiredStarter.def.name,
+            role: mostTiredStarter.def.role,
+            lookId: mostTiredStarter.def.lookId,
+            energyPercent: Math.round(mostTiredStarter.condition),
+          }}
           reduceMotion={reduceMotion}
           onContinue={continueTiredPlayerTutorial}
         />
