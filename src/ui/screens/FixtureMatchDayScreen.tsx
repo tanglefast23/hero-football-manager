@@ -216,11 +216,11 @@ export function FixtureMatchDayScreen({
                   </View>
                   <View
                     accessible
-                    accessibilityLabel={`${hero.playerName} activation. Watched matches use manual taps. Quick Result uses contextual auto-fire.`}
+                    accessibilityLabel={`${hero.playerName} activation. Powers fire automatically at their useful moment in every match mode.`}
                     className="min-w-20 border-2 border-ink px-2 py-2"
                   >
-                    <Text className="text-sm font-bold uppercase text-ink">Watch · Tap</Text>
-                    <Text className="mt-1 text-sm font-bold uppercase text-ink/50">Quick · Auto</Text>
+                    <Text className="text-sm font-bold uppercase text-ink">Auto</Text>
+                    <Text className="mt-1 text-sm font-bold uppercase text-ink/50">In context</Text>
                   </View>
                 </View>
               </PaperPanel>
@@ -228,8 +228,8 @@ export function FixtureMatchDayScreen({
           </View>
           {viewModel.heroes.length > 0 ? (
             <Text className="mt-3 text-sm leading-5 text-ink/50">
-              Owned heroes without a license must remain on the bench. Activation follows match mode:
-              manual taps while watching, contextual auto-fire in Quick Result.
+              Owned heroes without a license must remain on the bench. Licensed heroes fire their
+              powers automatically at the right moment in both watched and Quick Result matches.
             </Text>
           ) : null}
           {!viewModel.licenseReady ? (

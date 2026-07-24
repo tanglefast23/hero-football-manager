@@ -27,7 +27,7 @@
         },
         {
           "term": "Condition (COND)",
-          "definition": "The player's week-to-week physical readiness. Matches and hard Energy Use drain it; rest and recovery restore it. Low condition weakens performance and raises injury risk."
+          "definition": "The player's week-to-week physical readiness. Hard training drills drain it; rest restores it each week. Low condition weakens match performance and raises injury risk."
         },
         {
           "term": "Morale",
@@ -58,7 +58,7 @@
         { "term": "TEC · Technique", "definition": "Close control, dribbling, and keeping useful possession in traffic." },
         { "term": "STA · Stamina", "definition": "How well a player handles physical effort and condition drain across a match. Higher STA always slows energy loss, but even a 999-STA player still tires." },
         { "term": "REF · Reflexes", "definition": "Goalkeeping reactions and save strength. Outfield players store REF but do not use it as a visible role stat." },
-        { "term": "Attribute cap", "definition": "The maximum value normal training can reach for one attribute. Caps come from Archetype; a player already above a cap is never reduced." }
+        { "term": "Attribute cap", "definition": "The universal maximum of 999 where normal training for one attribute ends. There are no personal caps; every stat can train all the way there." }
       ]
     },
     {
@@ -67,7 +67,7 @@
       "entries": [
         { "term": "Weekly plan", "definition": "Up to 3 players, each training one stat. Picking a stat commits immediately and repeats every week until you change it." },
         { "term": "Focus drill", "definition": "The stat a player trains, costing Training Points only. Once a player is maxed out on their chosen stat, swap in a new player." },
-        { "term": "Training Points (TP)", "definition": "The improvement currency. Completed Training Pitches add 10 TP per level at each weekly settlement once they open. Coaches and upgrades can add more. Match results do not create TP." },
+        { "term": "Training Points (TP)", "definition": "The improvement currency. Your best completed Training Pitch adds 10 TP per level at each weekly settlement once it opens. Coaches and upgrades can add more. Match results do not create TP." },
         { "term": "Training Pitch", "definition": "Your first guided grounds project. Its $8,000 cost is included in the starting budget; you choose where to place it. Once open, it creates 10 TP per level each week." },
         { "term": "Coach specialty", "definition": "The areas a coach improves. Matching a specialty to a drill or attribute increases training gains over time." },
         { "term": "Head coach", "definition": "The primary coach, with the strongest specialty bonuses, a weekly TP contribution, and a weekly wage." },
@@ -83,7 +83,7 @@
         { "term": "Energy Use", "definition": "How hard the team works off the ball. Save Energy reduces movement and condition drain; All Out increases movement but drains condition much faster." },
         { "term": "Team Energy", "definition": "A live summary of the on-field team's remaining condition. It helps judge Energy Use and substitutions." },
         { "term": "Substitution", "definition": "Swap an on-field player for an eligible bench player. Each team has at most three substitutions per match." },
-        { "term": "Quick Result", "definition": "Runs the same deterministic match engine instantly with automatic hero timing, substitutions, and Energy Use. Watching can earn an edge through better manual power timing." },
+        { "term": "Quick Result", "definition": "Runs the same deterministic match engine instantly with automatic hero timing, substitutions, and Energy Use. Watching instead lets you make the touchline calls yourself." },
         { "term": "GK Resolve", "definition": "A goalkeeper's pressure bar. Saves and power shots damage Resolve, making later saves weaker; it partially recovers at halftime." }
       ]
     },
@@ -93,9 +93,8 @@
       "entries": [
         { "term": "Power", "definition": "A hero's visible, moment-specific super ability. Powers change possession or geometry rather than giving a hidden permanent stat smear." },
         { "term": "Heat", "definition": "Momentum earned from touches, tackles, shots, saves, and time on the pitch. At the threshold, Heat waits until that hero has a useful chance to enter the Zone." },
-        { "term": "The Zone", "definition": "A short glowing activation window. Tap a glowing home hero in Manual mode to fire at full strength before the window fades." },
-        { "term": "Manual power (M)", "definition": "You tap a glowing home hero during the Zone to activate at 100%. A missed window does not auto-fire and leaves half Heat." },
-        { "term": "Fire when ready (A)", "definition": "The engine fires at the next useful context at reduced strength. Rival heroes and Quick Result always use automatic timing." },
+        { "term": "The Zone", "definition": "A short glowing activation window. The hero fires automatically at the next useful moment; a window that fades unused returns half their Heat." },
+        { "term": "Automatic timing", "definition": "Every hero fires on their own when their power's useful moment appears. The same timing runs in watched matches, rival teams, and Quick Result." },
         { "term": "Wind-up", "definition": "The visible delay before a power starts. Many wind-ups can be interrupted, which returns half the hero's Heat." },
         { "term": "Hero License", "definition": "A permit allowing a powered player to use their power in the next match. You may own more heroes than the number you can license at once." }
       ]
@@ -105,7 +104,7 @@
       "title": "Club & competitions",
       "entries": [
         { "term": "Money", "definition": "The club-capacity currency used for wages, transfers, facilities, scouting, and events. It is earned from sponsors, tickets, prizes, and player sales." },
-        { "term": "Fans", "definition": "Supporters who affect home attendance and ticket income. Results, promotions, and memorable heroes can grow the fanbase." },
+        { "term": "Fans", "definition": "Supporters who affect home attendance and ticket income. Club events can grow — or shrink — the fanbase." },
         { "term": "Facility", "definition": "A building placed on club grounds that adds a lasting benefit and usually a weekly upkeep cost." },
         { "term": "Upkeep", "definition": "The recurring weekly Money cost of running a facility." },
         { "term": "Adjacency", "definition": "A bonus discovered when compatible facilities touch on the grounds grid." },
