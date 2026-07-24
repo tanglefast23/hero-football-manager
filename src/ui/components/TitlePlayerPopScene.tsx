@@ -223,7 +223,7 @@ function PopSlot({
             {
               translateY: progress.interpolate({
                 inputRange: [0, 1],
-                outputRange: [174, isGiant ? -44 : -18 + (appearance % 2) * 5],
+                outputRange: [174, isGiant ? -28 : -(appearance % 2) * 4],
               }),
             },
             { rotate: appearance % 2 === 0 ? '-2deg' : '3deg' },
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   popSlot: {
     position: 'absolute',
     zIndex: 2,
-    bottom: -34,
+    bottom: 12,
     width: 196,
     marginLeft: -98,
     alignItems: 'center',
