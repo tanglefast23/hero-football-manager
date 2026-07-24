@@ -283,7 +283,6 @@ export function ClubFinancesScreen({
   useEffect(() => {
     if (!guideGrounds) return;
     if (guideFocus === 'coaching-office') {
-      setSelectedBuildType('coaching-office');
       setSelectedBuildingId(null);
       scrollToCoachingOffice();
       return;
@@ -1359,7 +1358,7 @@ function LegacyTrainingGroundSection({
                 />
               ) : null}
               <ActionButton
-                label="Approve build · $8,000 · 1 week"
+                label="Approve build · $8,000 · 2 weeks"
                 accessibilityLabel="Build the Training Ground for $8,000"
                 onPress={onBuildTrainingGround}
                 disabled={!facility.affordable}
