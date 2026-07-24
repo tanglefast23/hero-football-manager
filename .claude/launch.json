@@ -55,6 +55,17 @@
       "name": "home-qa",
       "url": "http://localhost:4520",
       "port": 4520
+    },
+    {
+      "name": "static-export",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "serve",
+        "dist",
+        "-l",
+        "4173"
+      ],
+      "port": 4173
     }
   ]
 }
