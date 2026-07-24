@@ -1,7 +1,7 @@
 import './global.css';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Text, View } from 'react-native';
+import { LogBox, Modal, Text, View } from 'react-native';
 import { openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -148,6 +148,10 @@ appText.defaultProps = {
   ...appText.defaultProps,
   maxFontSizeMultiplier: APP_MAX_FONT_SIZE_MULTIPLIER,
 };
+
+// The Debug build pings the packager port it was compiled with before falling
+// back to the active one; the resulting warning toast is pure dev noise.
+LogBox.ignoreLogs([/Packager status check returned unexpected result/]);
 
 const DATABASE_NAME = 'hero-football-manager.db';
 type LandingView = 'title' | 'story' | 'settings';
