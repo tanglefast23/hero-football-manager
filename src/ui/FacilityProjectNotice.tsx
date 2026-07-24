@@ -64,7 +64,7 @@ export function FacilityProjectNotice({
               </View>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
-              One club works crew is now assigned. Benefits begin only when the project is complete.
+              One club works crew is now assigned.
             </Text>
             <View className="mt-4">
               <ActionButton
