@@ -9,7 +9,7 @@ describe('rookie signing celebration', () => {
     expect(appSource).toContain('completeRookieCreation');
     expect(appSource).toContain("source: 'rookie'");
     expect(appSource).toContain("assistantSequenceId !== null && playerSigning?.source !== 'rookie'");
-    expect(overlaySource).toContain('playEventSuccessSfx()');
+    expect(overlaySource).toContain('playPositiveSfx()');
     expect(overlaySource).toContain('Thanks for the opportunity, boss!');
     expect(overlaySource).toContain('second scoreboard');
     expect(overlaySource).toContain('Meet Bert  ▸');

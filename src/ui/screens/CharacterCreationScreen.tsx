@@ -18,7 +18,6 @@ import {
 } from '../../game';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { ChalkboardBackdrop, StickerWord } from '../components/ChalkboardStage';
-import { SettingsButton } from '../SettingsOverlay';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { playManagementHaptic } from '../../render/haptics';
 import { stepChoice } from '../appearance-stepper';
@@ -27,7 +26,6 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 export interface CharacterCreationScreenProps {
   initialDifficulty: DifficultyMode;
   onComplete: (draft: CreatedPlayerDraft) => void;
-  onOpenSettings: () => void;
 }
 
 const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }> = {
@@ -42,7 +40,6 @@ const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }>
 export function CharacterCreationScreen({
   initialDifficulty,
   onComplete,
-  onOpenSettings,
 }: CharacterCreationScreenProps) {
   const wide = useLayoutMode() === 'twoColumn';
   const [name, setName] = useState('');
@@ -171,33 +168,29 @@ export function CharacterCreationScreen({
     </>
   );
 
+  const pointsChip = (
+    <View className={pointsRemaining === 0
+      ? 'rotate-2 border-[3px] border-ink bg-pitch-light px-3 py-2'
+      : 'rotate-2 border-[3px] border-ink bg-blue px-3 py-2'}
+    >
+      <Text className={pointsRemaining === 0
+        ? 'text-center font-mono text-2xl font-bold text-ink'
+        : 'text-center font-mono text-2xl font-bold text-white'}
+      >
+        {pointsRemaining}
+      </Text>
+      <Text className={pointsRemaining === 0
+        ? 'text-center text-sm font-bold uppercase text-ink/60'
+        : 'text-center text-sm font-bold uppercase text-white/80'}
+      >
+        left
+      </Text>
+    </View>
+  );
+
   const statBalancing = (
     <>
-      <View className={`flex-row items-end justify-between gap-3 ${wide ? '' : 'mt-6'}`}>
-        <View className="flex-1">
-          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Six visible stats</Text>
-          <Text className="mt-1 font-pixel text-2xl uppercase text-white">Balance your way</Text>
-        </View>
-        <View className={pointsRemaining === 0
-          ? 'rotate-2 border-[3px] border-ink bg-pitch-light px-3 py-2'
-          : 'rotate-2 border-[3px] border-ink bg-blue px-3 py-2'}
-        >
-          <Text className={pointsRemaining === 0
-            ? 'text-center font-mono text-2xl font-bold text-ink'
-            : 'text-center font-mono text-2xl font-bold text-white'}
-          >
-            {pointsRemaining}
-          </Text>
-          <Text className={pointsRemaining === 0
-            ? 'text-center text-sm font-bold uppercase text-ink/60'
-            : 'text-center text-sm font-bold uppercase text-white/80'}
-          >
-            left
-          </Text>
-        </View>
-      </View>
-
-      <View className="mt-3 gap-2">
+      <View className={wide ? 'gap-2' : 'mt-6 gap-2'}>
         {OUTFIELD_CREATION_STATS.map(stat => {
           const copy = STAT_COPY[stat];
           const value = ratings[stat];
@@ -251,10 +244,6 @@ export function CharacterCreationScreen({
           );
         })}
       </View>
-
-      <Text className="mt-4 text-sm leading-4 text-paper/60">
-        Spend every point before signing. Lower any stat to free more for another. REF is goalkeeper-only and stays hidden at its outfield filler value.
-      </Text>
     </>
   );
 
@@ -303,12 +292,7 @@ export function CharacterCreationScreen({
               <StickerWord text="hire" wide={wide} />
             </View>
           </View>
-          <View className="items-end gap-3">
-            <SettingsButton onPress={onOpenSettings} />
-            <View className="-rotate-3 border-2 border-red bg-red-light/25 px-3 py-2">
-              <Text className="text-sm font-bold uppercase tracking-widest text-red-light">Rookie</Text>
-            </View>
-          </View>
+          {pointsChip}
         </View>
       </View>
 
