@@ -376,6 +376,8 @@ function GameApp() {
     section: MarketSectionId;
     token: number;
   } | null>(null);
+  // Bumped when an inbox training-cap letter deep-links into the drill picker.
+  const [drillFocusToken, setDrillFocusToken] = useState<number | null>(null);
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
@@ -1252,6 +1254,7 @@ function GameApp() {
         onTabChange={tab => {
           setConciergeFocus(null);
           setMarketSectionRequest(null);
+          setDrillFocusToken(null);
           store.setActiveTab(tab);
         }}
         onAdvanceWeek={handleAdvanceWeek}
@@ -1285,6 +1288,8 @@ function GameApp() {
             onDismissSlotLimit={store.clearTrainingSlotLimit}
             guideTraining={assistantObjective?.target === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
+            reduceMotion={reduceMotion}
+            drillPickerRequestToken={drillFocusToken ?? undefined}
           />
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen
@@ -1442,6 +1447,13 @@ function GameApp() {
               }
               else if (alertId.startsWith('transfer-request-')) {
                 store.selectPlayer(alertId.slice('transfer-request-'.length));
+                store.setActiveTab('squad');
+              }
+              else if (alertId.startsWith('training-cap:')) {
+                if (alert?.playerId !== undefined) {
+                  store.selectPlayer(alert.playerId);
+                  setDrillFocusToken(current => (current ?? 0) + 1);
+                }
                 store.setActiveTab('squad');
               }
               else if (alertId === 'renewals') store.setActiveTab('squad');

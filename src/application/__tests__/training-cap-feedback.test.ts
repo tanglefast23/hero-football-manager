@@ -152,8 +152,9 @@ describe('training cap feedback', () => {
     expect(alert).toEqual({
       id: `training-cap:s1-w1:${player.id}:pac:sprints`,
       title: `${player.name} reached their PAC maximum`,
-      detail: `Sprints I took PAC to its personal maximum of ${pacCap}. Pick another player for this drill next week.`,
+      detail: `Sprints I took PAC to its personal maximum of ${pacCap}. Tap to switch their drill or stop their training.`,
       tone: 'info',
+      playerId: player.id,
     });
     expect(parseStoredGameState(serializeGameState(after)).trainingCapNotices)
       .toEqual(after.trainingCapNotices);

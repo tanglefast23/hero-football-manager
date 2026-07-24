@@ -29,6 +29,8 @@ export interface ClubAlertViewModel {
   tone: 'urgent' | 'event' | 'info';
   guideSequenceId?: AssistantGuideSequenceId;
   destination?: AssistantGuideDestination;
+  /** Set on player-scoped alerts (e.g. training caps) so taps can deep-link to that player. */
+  playerId?: string;
 }
 
 export interface LeagueSnippetViewModel {
@@ -327,10 +329,16 @@ export interface TrainingSlotStatOption {
   pathId: string;
   /** Display label for the stat, e.g. "Defense". */
   label: string;
+  /** Attribute code for the compact current/cap line, e.g. "DEF". */
+  shortCode: 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
   /** Best unlocked drill tier's title, e.g. "Duels III". */
   drillName: string;
   /** Best unlocked tier's gain for this stat. */
   gain: number;
+  /** The selected player's current value in this stat. */
+  current: number;
+  /** The selected player's personal cap for this stat. */
+  cap: number;
   /** Cap minus the selected player's current value; may be negative. */
   room: number;
   atCap: boolean;
