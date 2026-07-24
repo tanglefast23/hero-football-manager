@@ -13,7 +13,6 @@ import {
   ActionButton,
   PaperPanel,
   SectionLabel,
-  StatusChip,
   formatCompactNumber,
   formatCurrency,
 } from '../components/Scorecard';
@@ -193,40 +192,6 @@ export function WeeklyReviewScreen({
           ))}
         </PaperPanel>
 
-        {viewModel.updates.length > 0 || viewModel.nextFixture !== undefined ? (
-          <View className="mt-7">
-            <SectionLabel eyebrow="Club desk" title="What needs attention" />
-            <View className="gap-2">
-              {viewModel.updates.map(update => (
-                <View
-                  key={update.id}
-                  className={update.tone === 'warning'
-                    ? 'border-2 border-b-4 border-red-dark bg-red-light p-3'
-                    : update.tone === 'positive'
-                      ? 'border-2 border-b-4 border-pitch-dark bg-pitch-light p-3'
-                      : 'border-2 border-b-4 border-blue-dark bg-blue-light p-3'}
-                >
-                  <Text className="text-base font-bold uppercase text-ink">{update.title}</Text>
-                  <Text className="mt-1 text-sm text-ink/70">{update.detail}</Text>
-                </View>
-              ))}
-
-              {viewModel.nextFixture ? (
-                <View className="border-2 border-b-4 border-ink bg-white p-3">
-                  <View className="flex-row items-center justify-between gap-2">
-                    <View className="flex-1">
-                      <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Next fixture</Text>
-                      <Text className="mt-1 text-base font-bold uppercase text-ink">
-                        {viewModel.nextFixture.homeTeam} vs {viewModel.nextFixture.awayTeam}
-                      </Text>
-                    </View>
-                    <StatusChip label={viewModel.nextFixture.weekLabel} />
-                  </View>
-                </View>
-              ) : null}
-            </View>
-          </View>
-        ) : null}
       </ScrollView>
 
       <View className="border-t-2 border-ink/20 bg-white p-3">
