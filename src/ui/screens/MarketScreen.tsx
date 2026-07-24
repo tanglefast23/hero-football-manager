@@ -331,19 +331,29 @@ function YouthDesk({
   const intake = viewModel.youth;
   if (intake === undefined) return null;
   return (
-    <View>
-      <SectionLabel
-        eyebrow="Pre-season academy intake"
-        title="Meet the next generation"
-        right={<StatusChip label={intake.rosterLabel} />}
-      />
-      <View className={intake.status === 'OPEN'
-        ? 'border-2 border-b-4 border-violet-dark bg-violet-light p-4'
-        : 'border-2 border-b-4 border-ink bg-white p-4'}
-      >
-        <Text className="font-pixel text-base uppercase text-ink">{intake.headline}</Text>
-        <Text className="mt-2 text-sm leading-5 text-ink/65">{intake.detail}</Text>
+    <View className="relative overflow-hidden border-[3px] border-ink bg-pitch-dark p-4">
+      {/* The academy gets its own chalkboard stage inside the market desk. */}
+      <View pointerEvents="none" className="absolute -left-12 -top-10 h-40 w-40 rounded-full border-4 border-paper/10" />
+      <View pointerEvents="none" className="absolute -right-10 bottom-4 h-32 w-32 rounded-full border-4 border-paper/10" />
+      <View className="mb-3 flex-row items-end justify-between gap-3">
+        <View className="flex-1">
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Pre-season academy intake</Text>
+          <Text className="mt-1 font-pixel text-lg uppercase text-white">Meet the next generation</Text>
+        </View>
+        <StatusChip label={intake.rosterLabel} />
       </View>
+      <View className={intake.status === 'OPEN'
+        ? 'self-start -rotate-1 border-2 border-ink bg-violet px-3 py-2'
+        : 'self-start -rotate-1 border-2 border-ink bg-paper px-3 py-2'}
+      >
+        <Text className={intake.status === 'OPEN'
+          ? 'font-pixel text-sm uppercase text-white'
+          : 'font-pixel text-sm uppercase text-ink'}
+        >
+          {intake.headline}
+        </Text>
+      </View>
+      <Text className="mt-2 text-sm leading-5 text-paper/75">{intake.detail}</Text>
 
       {intake.offers.length === 0 ? (
         <View className="mt-4">
