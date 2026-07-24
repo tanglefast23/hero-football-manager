@@ -258,7 +258,7 @@ function currentUserMatch(
   return { outcome: goalsFor > goalsAgainst ? 'win' : goalsFor === goalsAgainst ? 'draw' : 'loss' };
 }
 
-function gridMedicalBayLevel(grid: FacilityGridState | undefined): number {
+export function gridMedicalBayLevel(grid: FacilityGridState | undefined): number {
   if (grid === undefined) return 0;
   let level = 0;
   for (const building of grid.buildings) {
