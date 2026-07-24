@@ -84,18 +84,24 @@ export function StoryEventScreen({
   if (viewModel.successCutscene !== undefined) {
     const cutscene = viewModel.successCutscene;
     return (
-      <SafeAreaView className="flex-1 bg-ink" edges={['top', 'left', 'right', 'bottom']}>
-        <EventArtwork artKey={cutscene.artKey} category={viewModel.category} success className="flex-1 justify-end">
+      <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+        <EventArtwork
+          artKey={cutscene.artKey}
+          category={viewModel.category}
+          success
+          reduceMotion={reduceMotion}
+          className="flex-1 justify-end"
+        >
           <View className="absolute right-4 top-4"><SettingsButton onPress={onOpenSettings} variant="match" /></View>
           <Animated.View
-            className="border-t-4 border-gold bg-ink/95 px-5 pb-5 pt-4"
+            className="w-full max-w-[560px] self-center border-[3px] border-gold bg-ink/95 px-5 pb-5 pt-4"
             style={{
               opacity: reveal,
               transform: [{ translateY: reveal.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }],
             }}
           >
-            <Text className="font-mono text-sm font-bold uppercase tracking-[3px] text-gold">Risky success</Text>
-            <Text className="mt-2 text-4xl font-bold uppercase leading-10 text-paper">{cutscene.headline}</Text>
+            <Text className="font-pixel text-xs uppercase tracking-[3px] text-gold">Risky success</Text>
+            <Text className="mt-2 font-pixel text-2xl uppercase leading-8 text-paper">{cutscene.headline}</Text>
             <Text className="mt-3 text-paper/80" style={scaledBody(textScale)}>{viewModel.outcomeText}</Text>
             <Animated.View
               className="mt-4"
@@ -127,11 +133,11 @@ export function StoryEventScreen({
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
-      <View className="flex-row items-center justify-between border-b-2 border-stamp bg-white px-4 py-3">
+    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+      <View className="flex-row items-center justify-between px-4 py-3">
         <View>
-          <Text className="text-sm font-bold uppercase text-stamp">Story interruption</Text>
-          <Text className="mt-1 text-base font-bold uppercase text-ink">{viewModel.categoryLabel}</Text>
+          <Text className="font-pixel text-xs uppercase tracking-[2px] text-red-light">Story interruption</Text>
+          <Text className="mt-1 font-pixel text-base uppercase text-white">{viewModel.categoryLabel}</Text>
         </View>
         <View className="flex-row items-center gap-2">
           <StatusChip label={viewModel.weekLabel} tone="danger" />
@@ -140,14 +146,19 @@ export function StoryEventScreen({
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 28 }}>
-        <EventArtwork artKey={viewModel.artKey} category={viewModel.category} className="h-64 justify-end border-b-4 border-stamp">
+        <EventArtwork
+          artKey={viewModel.artKey}
+          category={viewModel.category}
+          reduceMotion={reduceMotion}
+          className="h-64 justify-end border-y-[3px] border-ink"
+        >
           <View className="bg-ink/85 px-5 py-4">
-            <Text className="font-mono text-sm font-bold uppercase tracking-[2px] text-gold">{viewModel.categoryLabel}</Text>
-            <Text className="mt-2 text-3xl font-bold uppercase leading-8 tracking-wide text-paper">{viewModel.title}</Text>
+            <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold">{viewModel.categoryLabel}</Text>
+            <Text className="mt-2 font-pixel text-2xl uppercase leading-8 text-paper">{viewModel.title}</Text>
           </View>
         </EventArtwork>
 
-        <View className="p-4">
+        <View className="w-full max-w-[720px] self-center p-4">
           {guideCopy ? (
             <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="No power effect">
               <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
@@ -159,7 +170,7 @@ export function StoryEventScreen({
 
           {viewModel.playerSelectionRequired || viewModel.selectedPlayer ? (
             <View className="mt-5">
-              <Text className="mb-2 text-sm font-bold uppercase text-blue-dark">Player involved</Text>
+              <Text className="mb-2 font-pixel text-xs uppercase tracking-[2px] text-gold-light">Player involved</Text>
               <Pressable
                 accessibilityRole={onSelectPlayer ? 'button' : 'text'}
                 accessibilityLabel={viewModel.selectedPlayer ? `Selected player ${viewModel.selectedPlayer.name}` : 'Choose a player for this event'}
@@ -180,7 +191,7 @@ export function StoryEventScreen({
 
           {!resolved ? (
             <View className="mt-6 gap-3">
-              <Text className="text-sm font-bold uppercase text-blue-dark">Your call</Text>
+              <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Your call</Text>
               {viewModel.choices.map((choice, index) => {
                 const disabled = Boolean(choice.disabled || needsPlayer);
                 return (
@@ -204,7 +215,7 @@ export function StoryEventScreen({
                   </Pressable>
                 );
               })}
-              {needsPlayer ? <Text className="text-center text-sm font-bold uppercase tracking-wide text-stamp">Choose a player before making this call</Text> : null}
+              {needsPlayer ? <Text className="text-center text-sm font-bold uppercase tracking-wide text-red-light">Choose a player before making this call</Text> : null}
             </View>
           ) : (
             <PaperPanel kicker="Incident outcome" title={viewModel.outcomeTitle ?? 'Decision resolved'} stamp="Resolved" className="mt-6 bg-signal">
@@ -214,7 +225,7 @@ export function StoryEventScreen({
         </View>
       </ScrollView>
 
-      {resolved ? <View className="border-t-2 border-stamp bg-white p-3"><ActionButton label="Return to the office  ▸" accessibilityLabel="Continue after the story event" onPress={onContinue} /></View> : null}
+      {resolved ? <View className="border-t-2 border-paper/10 bg-pitch-dark p-3"><ActionButton label="Return to the office  ▸" accessibilityLabel="Continue after the story event" onPress={onContinue} /></View> : null}
     </SafeAreaView>
   );
 }
