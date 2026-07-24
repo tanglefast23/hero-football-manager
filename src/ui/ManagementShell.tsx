@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChalkboardBackdrop } from './components/ChalkboardStage';
+import { useLayoutMode } from './layout/use-layout-mode';
 import { ActionButton, formatCompactNumber, formatCurrency } from './components/Scorecard';
 import type { ManagementTab, ResourceSummaryViewModel } from './models';
 import { TutorialTapCue } from './TutorialTapCue';
@@ -139,6 +141,7 @@ export function ManagementShell({
   onNavigationGuideAnchorChange,
   onDismissGuidance,
 }: ManagementShellProps) {
+  const wide = useLayoutMode() === 'twoColumn';
   const moneyGuideAnchor = useGuideAnchor(guideFocus === 'money', onMoneyGuideAnchorChange);
   const navigationGuideAnchor = useGuideAnchor(
     guideFocus === 'navigation',
@@ -161,18 +164,19 @@ export function ManagementShell({
 
   return (
     <SafeAreaView
-      className="flex-1 bg-paper"
+      className="flex-1 bg-pitch-dark"
       edges={['top', 'left', 'right', 'bottom']}
       onPointerDown={onDismissGuidance}
     >
+      <ChalkboardBackdrop wide={wide} />
       {/* Persistent HUD bar — club and controls share the top row. */}
       <View
-        className="border-b-2 border-ink bg-paper-dark px-3 py-2.5"
+        className="border-b-2 border-paper/10 px-3 py-2.5"
         onLayout={moneyGuideAnchor.scheduleMeasurement}
       >
         <View className="flex-row items-center gap-2">
           <Text
-            className="min-w-0 flex-1 font-pixel text-sm uppercase text-ink"
+            className="min-w-0 flex-1 font-pixel text-sm uppercase text-white"
             numberOfLines={1}
             adjustsFontSizeToFit
           >
@@ -196,9 +200,9 @@ export function ManagementShell({
             ) : null}
           </View>
         </View>
-        <View className="mt-2 border-t border-ink/15 pt-2">
+        <View className="mt-2 border-t border-paper/15 pt-2">
           <Text
-            className="font-mono text-sm font-bold uppercase text-blue-dark"
+            className="font-mono text-sm font-bold uppercase text-blue-light"
             numberOfLines={1}
             adjustsFontSizeToFit
             maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
@@ -210,7 +214,7 @@ export function ManagementShell({
 
       <View className="flex-1">{children}</View>
 
-      <View className="border-t-2 border-ink bg-paper-dark px-3 pt-2">
+      <View className="border-t-2 border-paper/10 px-3 pt-2">
         <View className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
           {guideTarget === 'advance-week' ? (
             <TutorialTapCue
@@ -269,7 +273,7 @@ export function ManagementShell({
                   />
                 ) : null}
                 <Text
-                  className={selected ? 'font-mono text-lg font-bold text-ink' : 'font-mono text-lg text-ink/50'}
+                  className={selected ? 'font-mono text-lg font-bold text-white' : 'font-mono text-lg text-paper/60'}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
@@ -277,7 +281,7 @@ export function ManagementShell({
                   {tab.glyph}
                 </Text>
                 <Text
-                  className={selected ? 'mt-1 text-sm font-bold uppercase text-ink' : 'mt-1 text-sm uppercase text-ink/50'}
+                  className={selected ? 'mt-1 text-sm font-bold uppercase text-white' : 'mt-1 text-sm uppercase text-paper/60'}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}

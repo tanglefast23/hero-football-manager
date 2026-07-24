@@ -40,3 +40,26 @@ export function PaperSticker({ text, className = '' }: { text: string; className
     </View>
   );
 }
+
+/** On-stage section header: gold pixel eyebrow over a white pixel title. */
+export function StageSection({
+  eyebrow,
+  title,
+  right,
+  className = '',
+}: {
+  eyebrow: string;
+  title: string;
+  right?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <View className={`mb-3 flex-row items-end justify-between gap-3 ${className}`}>
+      <View className="flex-1">
+        <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">{eyebrow}</Text>
+        <Text className="mt-1 font-pixel text-lg uppercase text-white">{title}</Text>
+      </View>
+      {right}
+    </View>
+  );
+}
