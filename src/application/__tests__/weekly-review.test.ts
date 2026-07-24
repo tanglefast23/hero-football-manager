@@ -3,7 +3,9 @@ import {
   advanceWeek,
   applyCareerTraining,
   buildCareerFacility,
+  completeMatchday,
   createCareer,
+  fixturesForCurrentWeek,
   playerAttributeCaps,
   resolveTrainingDrillForPath,
   type GameState,
@@ -63,7 +65,16 @@ describe('weekly review view model', () => {
         : player),
     };
 
-    const after = advanceWeek(before);
+    // Season-1 league rounds now start in week 3, so week 4 is a matchday
+    // that must be played before the weekly ledger settles.
+    let after = advanceWeek(before);
+    if (after.phase === 'matchday') {
+      after = completeMatchday(after, fixturesForCurrentWeek(after).map(fixture => ({
+        fixtureId: fixture.id,
+        homeGoals: 0,
+        awayGoals: 0,
+      })));
+    }
     const review = weeklyReviewViewModel(before, after);
 
     expect(review.nextWeekLabel).toBe('Week 5');
@@ -76,20 +87,19 @@ describe('weekly review view model', () => {
     expect(review.updates.some(update => update.id.startsWith('event-'))).toBe(false);
   });
 
-  it('celebrates the first Training Pitch and shows its immediate 10 TP reward', () => {
+  it('celebrates the first Training Pitch without paying TP before it opens', () => {
     const fresh = createCareer(createLaunchCareerSetup(5680, undefined, undefined, 'full'));
     const before = buildCareerFacility(fresh, 'training-pitch', { x: 5, y: 1 }).state;
     const after = advanceWeek(before);
     const review = weeklyReviewViewModel(before, after);
 
-    expect(after.trainingPoints).toBe(before.trainingPoints + 10);
-    expect(review.netTrainingPoints).toBe(10);
+    expect(after.trainingPoints).toBe(before.trainingPoints);
+    expect(review.netTrainingPoints).toBe(0);
     expect(review.facilityCompletion).toEqual({
       type: 'training-pitch',
       name: 'Training Pitch',
       level: 1,
       kind: 'BUILD',
-      trainingPointReward: 10,
     });
   });
 

@@ -1,6 +1,6 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
-import { advanceWeek, createCareer } from '../career';
+import { advanceWeek, completeMatchday, createCareer, fixturesForCurrentWeek } from '../career';
 import { buildCareerFacility } from '../management';
 import { advanceFacilityConstruction } from '../facilities';
 import { setCareerTrainingPlan } from '../training';
@@ -54,32 +54,39 @@ describe('facility weekly integration', () => {
     const balances = [state.trainingPoints];
     for (let week = 0; week < 4; week += 1) {
       state = advanceWeek(state);
+      if (state.phase === 'matchday') {
+        state = completeMatchday(state, fixturesForCurrentWeek(state).map(fixture => ({
+          fixtureId: fixture.id,
+          homeGoals: 0,
+          awayGoals: 0,
+        })));
+      }
       balances.push(state.trainingPoints);
     }
 
     // Sprints I now costs 6 TP per slot (12 total for the two trainees).
-    // Completion awards the first 10 immediately, then the open pitch
-    // restores 10 TP at each later settlement, netting -2 TP per week.
-    expect(balances).toEqual([30, 28, 26, 24, 22]);
+    // The build week pays nothing — benefits start only once the pitch is
+    // open — then each later settlement restores 10 TP, netting -2 per week.
+    expect(balances).toEqual([30, 18, 16, 14, 12]);
     // Training is TP-only now; no money is ever charged, so no ledger line
     // of kind 'training' is ever recorded.
     expect(state.ledgers.map(ledger => ledger.lines.find(line => line.kind === 'training')?.amount))
       .toEqual([undefined, undefined, undefined, undefined]);
   });
 
-  test('awards the first 10 TP on completion, then activates upkeep and weekly TP', () => {
+  test('pays no TP during the build week, then activates upkeep and weekly TP', () => {
     const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
     const built = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
     const cashBeforeSettlement = userCash(built);
 
     const completionWeek = advanceWeek(built);
-    expect(completionWeek.trainingPoints).toBe(built.trainingPoints + 10);
+    expect(completionWeek.trainingPoints).toBe(built.trainingPoints);
     expect(completionWeek.ledgers[0].lines.some(line => line.kind === 'facilities')).toBe(false);
     expect(completionWeek.facilities.grid?.construction).toBeUndefined();
 
     const settled = advanceWeek(completionWeek);
 
-    expect(settled.trainingPoints).toBe(built.trainingPoints + 20);
+    expect(settled.trainingPoints).toBe(built.trainingPoints + 10);
     expect(settled.ledgers[1].lines).toContainEqual({
       kind: 'facilities',
       label: 'Facility upkeep',

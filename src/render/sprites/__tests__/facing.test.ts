@@ -1,14 +1,19 @@
 import sheetData from '../sprites.json';
 import { deriveBackFacingFrame, loadSpriteSheet } from '../loader';
-import { keeperReadyFrameForTeam, runFrameForTeam } from '../facing';
+import { keeperReadyFrameFacingBall, runFrameFacingBall } from '../facing';
 
 describe('direction-aware match sprites', () => {
-  it('uses rear views for the team attacking toward the top goal', () => {
-    expect(runFrameForTeam(0, 'run0')).toBe('back0');
-    expect(runFrameForTeam(0, 'run1')).toBe('back1');
-    expect(keeperReadyFrameForTeam(0, 'ready1')).toBe('backReady1');
-    expect(runFrameForTeam(1, 'run0')).toBe('run0');
-    expect(keeperReadyFrameForTeam(1, 'ready0')).toBe('ready0');
+  it('shows the rear view when the ball is up-screen of the player', () => {
+    expect(runFrameFacingBall(500, 200, 'run0')).toBe('back0');
+    expect(runFrameFacingBall(500, 200, 'run1')).toBe('back1');
+    expect(keeperReadyFrameFacingBall(500, 200, 'ready1')).toBe('backReady1');
+  });
+
+  it('shows the face when the ball is level with or below the player', () => {
+    expect(runFrameFacingBall(500, 800, 'run0')).toBe('run0');
+    expect(runFrameFacingBall(500, 500, 'run1')).toBe('run1');
+    expect(keeperReadyFrameFacingBall(500, 800, 'ready0')).toBe('ready0');
+    expect(keeperReadyFrameFacingBall(500, 500, 'ready0')).toBe('ready0');
   });
 
   it('keeps the authored silhouette and stride while removing face details', () => {
