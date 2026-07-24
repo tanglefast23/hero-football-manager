@@ -16,9 +16,9 @@ describe('squad training two-column layout', () => {
     expect(source).not.toContain('mt-6');
   });
 
-  it('derives the roster and training-focus weights from view-model content counts', () => {
+  it('derives the roster weight from view-model content counts', () => {
     expect(source).toContain('3 + viewModel.players.length');
-    expect(source).toContain('2 + (viewModel.selectedPlayerStatOptions?.length ?? 1)');
+    expect(source).not.toContain('selectedPlayerStatOptions?.length');
   });
 
   it('keeps the internal 600pt roster breakpoint independent of the 960pt layout breakpoint', () => {
@@ -35,8 +35,7 @@ describe('squad training two-column layout', () => {
     expect(source).toContain('3 + viewModel.slots.length');
   });
 
-  it('keeps the guide mt-20 wrapper literals byte-identical', () => {
+  it('keeps the guide mt-20 wrapper literal byte-identical', () => {
     expect(source).toContain("'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'");
-    expect(source).toContain("'relative mt-20 gap-2 border-4 border-blue-dark bg-blue-light p-1'");
   });
 });
