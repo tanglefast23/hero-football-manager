@@ -165,6 +165,8 @@ export interface CareerPlayer {
   coachTrainingBonusRemainders?: Partial<Record<keyof Attrs, number>>;
   /** Hundredths from archetype, position, Potential, and coach growth bonuses. */
   trainingBonusRemainders?: Partial<Record<keyof Attrs, number>>;
+  /** Drills since the last SUPER session; drives the pity-timer guarantee. */
+  drillsSinceSuper?: number;
 }
 
 export interface ClubLineupState {
@@ -437,6 +439,8 @@ export interface GameState {
   /** Optional only so pre-onboarding internal M1 saves remain loadable. */
   onboarding?: CareerOnboardingState;
   trainingPoints: number;
+  /** Lifetime instant-drill count; the RNG nonce that keeps back-to-back taps distinct. */
+  totalInstantDrills?: number;
   ledgers: WeeklyLedger[];
   /** User-club cash when the active season began, for an exact season recap delta. */
   seasonOpeningCash?: number;
