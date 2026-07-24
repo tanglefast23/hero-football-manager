@@ -9,17 +9,17 @@ import {
 } from '../training';
 
 describe('M2 player-specific training growth', () => {
-  test('applies the age curve only in full careers', () => {
-    const setup = createLaunchCareerSetup(90210);
-    const m1 = createCareer(setup);
-    const full = createCareer({ ...setup, careerMode: 'full' });
-    const playerId = full.players.find(player => player.clubId === full.userClubId)!.id;
-    const prepare = (state: typeof full) => ({
-      ...state,
-      players: state.players.map(player => player.id === playerId
+  test('applies the age curve to deliberate stamina training', () => {
+    const initial = createCareer({ ...createLaunchCareerSetup(90210), careerMode: 'full' });
+    const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
+    const prepare = (age: number) => ({
+      ...initial,
+      trainingPoints: 100,
+      trainingPlan: { slots: [{ playerId, pathId: 'circuit' }] },
+      players: initial.players.map(player => player.id === playerId
         ? {
             ...player,
-            age: 20,
+            age,
             archetype: 'All-Rounder' as const,
             potentialCeiling: 99,
             attrs: { ...player.attrs, sta: 50 },
@@ -27,11 +27,11 @@ describe('M2 player-specific training growth', () => {
         : player),
     });
 
-    const m1Player = resolveCareerTrainingWeek(prepare(m1)).players.find(player => player.id === playerId)!;
-    const fullPlayer = resolveCareerTrainingWeek(prepare(full)).players.find(player => player.id === playerId)!;
+    const young = resolveCareerTrainingWeek(prepare(20)).players.find(player => player.id === playerId)!;
+    const prime = resolveCareerTrainingWeek(prepare(25)).players.find(player => player.id === playerId)!;
 
-    expect(m1Player.attrs.sta).toBe(51);
-    expect(fullPlayer.attrs.sta).toBe(52);
+    expect(young.attrs.sta).toBe(55);
+    expect(prime.attrs.sta).toBe(53);
   });
 
   test('uses the matching facility level and diminishing returns', () => {
@@ -39,6 +39,8 @@ describe('M2 player-specific training growth', () => {
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     const state = {
       ...initial,
+      trainingPoints: 100,
+      trainingPlan: { slots: [{ playerId, pathId: 'circuit' }] },
       players: initial.players.map(player => player.id === playerId
         ? {
             ...player,
@@ -60,8 +62,8 @@ describe('M2 player-specific training growth', () => {
 
     const player = resolveCareerTrainingWeek(state).players.find(candidate => candidate.id === playerId)!;
 
-    // 1 base STA x Engine 1.15 x Lv3 Gym 2.0 x high-stat 0.5 rounds to 1.
-    expect(player.attrs.sta).toBe(91);
+    // Circuit I's +3 STA x Engine 1.15 x Lv3 Gym 2.0 x high-stat 0.5 rounds to 3.
+    expect(player.attrs.sta).toBe(93);
   });
 
   test('banks the fractional coach bonus after other growth multipliers', () => {

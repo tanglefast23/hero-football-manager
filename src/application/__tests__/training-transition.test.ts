@@ -33,7 +33,7 @@ describe('training transition scene', () => {
 
     expect(trainingTransitionScene(state, content)).toMatchObject({
       mode: 'generic',
-      drillLabels: ['Basic Conditioning'],
+      drillLabels: ['Open Training'],
       participants: [{ activityId: 'generic', activityLabel: 'Ball Work' }],
     });
   });

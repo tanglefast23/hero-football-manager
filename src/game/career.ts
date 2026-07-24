@@ -98,10 +98,6 @@ export function createCareer(setup: CareerSetup): GameState {
     ...(setup.trainingRules === undefined ? {} : {
       trainingRules: {
         maxFocusDrillsPerWeek: setup.trainingRules.maxFocusDrillsPerWeek,
-        baseConditioning: {
-          ...setup.trainingRules.baseConditioning,
-          gains: { ...setup.trainingRules.baseConditioning.gains },
-        },
         focusDrills: setup.trainingRules.focusDrills.map(drill => ({
           ...drill,
           gains: { ...drill.gains },

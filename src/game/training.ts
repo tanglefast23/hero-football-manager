@@ -119,14 +119,10 @@ export function setCareerTrainingPlan(
   return { ...state, trainingPlan: { slots: slots.map(slot => ({ ...slot })) } };
 }
 
-/** Resolves free conditioning plus the affordable repeating focus plan once. */
+/** Resolves the affordable repeating focus plan once. */
 export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResolution {
   const roster = userRoster(state);
-  const base = state.trainingRules?.baseConditioning;
   const coachModifiers = state.market === undefined ? undefined : careerCoachTrainingModifiers(state.market);
-  const conditioned = base === undefined
-    ? roster
-    : applyTrainingPlan(roster, roster.map(p => p.id), [base], { money: 0, tp: 0 }).players as CareerPlayer[];
 
   const slots = state.trainingPlan?.slots ?? [];
   const executable = slots
@@ -135,7 +131,7 @@ export function resolveCareerTrainingWeek(state: GameState): WeeklyTrainingResol
   const tpCost = executable.reduce((sum, e) => checkedAdd(sum, e.drill.tpCost, 'weekly training point cost'), 0);
   const canAfford = executable.length > 0 && tpCost <= state.trainingPoints;
 
-  let players = conditioned as CareerPlayer[];
+  let players = roster;
   let tp = state.trainingPoints;
   if (canAfford) {
     for (const { slot, drill } of executable) {

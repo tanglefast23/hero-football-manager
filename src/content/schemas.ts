@@ -338,11 +338,10 @@ export const TrainingDrillSchema = z.strictObject({
 export const TrainingCatalogSchema = z.strictObject({
   schemaVersion: ContentSchemaVersion,
   maxFocusDrillsPerWeek: z.literal(3),
-  baseConditioning: TrainingDrillSchema,
   focusDrills: z.array(TrainingDrillSchema).length(21),
 }).superRefine((catalog, context) => {
   addDuplicateIssues(
-    [catalog.baseConditioning.id, ...catalog.focusDrills.map(drill => drill.id)],
+    catalog.focusDrills.map(drill => drill.id),
     context,
     ['focusDrills'],
     'drill ID',

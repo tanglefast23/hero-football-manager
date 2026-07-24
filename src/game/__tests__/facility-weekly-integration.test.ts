@@ -119,13 +119,21 @@ describe('facility weekly integration', () => {
     const withoutMatches: GameState = {
       ...withAdjacency,
       fixtures: [],
+      trainingPoints: 100,
+      trainingPlan: { slots: [{ playerId, pathId: 'circuit' }] },
       m2: withAdjacency.m2 === undefined
         ? undefined
         : { ...withAdjacency.m2, nationalCups: [] },
       // Neutralize the other M2 growth multipliers so this assertion isolates
       // the adjacency's exact percentage carry.
       players: withAdjacency.players.map(player => player.id === playerId
-        ? { ...player, age: 25, archetype: 'Sniper', potentialCeiling: 99 }
+        ? {
+            ...player,
+            age: 25,
+            archetype: 'Sniper',
+            potentialCeiling: 99,
+            attrs: { ...player.attrs, sta: 40 },
+          }
         : player),
     };
     const startingSta = withoutMatches.players.find(player => player.id === playerId)?.attrs.sta;
@@ -134,12 +142,12 @@ describe('facility weekly integration', () => {
     let state = withoutMatches;
     for (let week = 0; week < 9; week += 1) state = advanceWeek(state);
     const afterNine = state.players.find(player => player.id === playerId);
-    expect(afterNine?.attrs.sta).toBe(startingSta + 9);
-    expect(afterNine?.facilityStaBonusRemainder).toBe(90);
+    expect(afterNine?.attrs.sta).toBe(startingSta + 29);
+    expect(afterNine?.facilityStaBonusRemainder).toBe(70);
 
     state = advanceWeek(state);
     const afterTen = state.players.find(player => player.id === playerId);
-    expect(afterTen?.attrs.sta).toBe(startingSta + 11);
+    expect(afterTen?.attrs.sta).toBe(startingSta + 33);
     expect(afterTen?.facilityStaBonusRemainder).toBe(0);
   });
 

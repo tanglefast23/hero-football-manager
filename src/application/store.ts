@@ -1436,7 +1436,6 @@ function resumeScreen(career: GameState): M1Screen {
 
 function hasDevelopmentToShow(postMatch: PostMatchViewModel): boolean {
   return postMatch.development.focusedTrainees.length > 0
-    || postMatch.development.conditioning.length > 0
     || postMatch.development.trainingSkippedWarning !== undefined;
 }
 

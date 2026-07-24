@@ -54,12 +54,6 @@ export function createLaunchCareerSetup(
     startingTrainingPoints: 30,
     trainingRules: {
       maxFocusDrillsPerWeek: content.training.maxFocusDrillsPerWeek,
-      baseConditioning: {
-        id: content.training.baseConditioning.id,
-        moneyCost: content.training.baseConditioning.moneyCost,
-        tpCost: content.training.baseConditioning.tpCost,
-        gains: { ...content.training.baseConditioning.gains },
-      },
       focusDrills: content.training.focusDrills.map(drill => ({
         id: drill.id, moneyCost: drill.moneyCost, tpCost: drill.tpCost, gains: { ...drill.gains },
       })),
@@ -301,10 +295,6 @@ export function reconcileLaunchRoster(
       ? {
           trainingRules: {
             maxFocusDrillsPerWeek: launch.trainingRules.maxFocusDrillsPerWeek,
-            baseConditioning: {
-              ...launch.trainingRules.baseConditioning,
-              gains: { ...launch.trainingRules.baseConditioning.gains },
-            },
             focusDrills: launch.trainingRules.focusDrills.map(drill => ({
               ...drill,
               gains: { ...drill.gains },

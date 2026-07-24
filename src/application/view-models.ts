@@ -1467,25 +1467,8 @@ function playerDevelopmentViewModel(
       })
     : [];
 
-  const userPlayers = before.players.filter(player => player.clubId === before.userClubId);
-  const conditioning = before.trainingRules === undefined
-    ? []
-    : REVIEW_ATTRIBUTES.flatMap(attribute => {
-        const plannedGain = before.trainingRules?.baseConditioning.gains[attribute];
-        if (plannedGain === undefined || plannedGain <= 0) return [];
-        const affected = userPlayers.filter(player => player.attrs[attribute] < 99);
-        if (affected.length === 0) return [];
-        return [{
-          id: `conditioning-${attribute}`,
-          attributeLabel: attribute.toUpperCase(),
-          gain: plannedGain,
-          playerCount: affected.length,
-        }];
-      });
-
   return {
     focusedTrainees,
-    conditioning,
     ...(plan !== undefined && !focusApplied ? {
       trainingSkippedWarning: skippedTrainingWarning(before, after),
     } : {}),

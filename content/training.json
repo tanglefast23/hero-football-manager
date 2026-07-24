@@ -1,13 +1,6 @@
 {
   "schemaVersion": 1,
   "maxFocusDrillsPerWeek": 3,
-  "baseConditioning": {
-    "id": "basic-conditioning",
-    "name": "Basic Conditioning",
-    "moneyCost": 0,
-    "tpCost": 0,
-    "gains": { "sta": 1 }
-  },
   "focusDrills": [
     { "id": "sprints", "name": "Sprints I", "moneyCost": 0, "tpCost": 6, "gains": { "pac": 3 } },
     { "id": "sprints-ii", "name": "Sprints II", "moneyCost": 0, "tpCost": 10, "gains": { "pac": 5 } },

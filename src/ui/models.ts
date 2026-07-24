@@ -206,13 +206,6 @@ export interface FocusedTraineeViewModel {
   gains: readonly AttributeGainViewModel[];
 }
 
-export interface SquadConditioningViewModel {
-  id: string;
-  attributeLabel: string;
-  gain: number;
-  playerCount: number;
-}
-
 export interface WeekUpdateViewModel {
   id: string;
   title: string;
@@ -230,7 +223,6 @@ export interface FacilityCompletionViewModel {
 
 export interface PlayerDevelopmentViewModel {
   focusedTrainees: readonly FocusedTraineeViewModel[];
-  conditioning: readonly SquadConditioningViewModel[];
   trainingSkippedWarning?: string;
 }
 

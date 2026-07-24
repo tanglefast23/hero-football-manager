@@ -46,9 +46,7 @@ describe('weekly review view model', () => {
         delta: 8,
       }),
     ]));
-    expect(review.development.conditioning).toEqual(expect.arrayContaining([
-      expect.objectContaining({ attributeLabel: 'STA', gain: 1 }),
-    ]));
+    expect(review.development).not.toHaveProperty('conditioning');
   });
 
   it('includes only applicable recovery and upcoming-fixture notices', () => {

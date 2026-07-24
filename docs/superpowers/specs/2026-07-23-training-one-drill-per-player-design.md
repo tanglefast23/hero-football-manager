@@ -39,9 +39,8 @@ trains one single thing.)
 
 - Each slotted player trains **exactly one stat** per week and keeps training it
   **automatically every week** — no re-confirming.
-- The free roster-wide **base conditioning** (+1 stamina to everyone, costs
-  nothing) stays exactly as it is today: a silent passive, **not** one of the 3
-  slots.
+- There is no free roster-wide stat gain. Stamina improves deliberately through
+  the Circuit path, using one of the 3 slots like every other trainable stat.
 - Two slots **may** train the same stat (two players both on Shooting is fine).
   The old "no duplicate drill path per week" rule
   (`assertDistinctTrainingDrillPaths`) is removed.
@@ -241,7 +240,7 @@ nor breaches fail-soft bounds. This guards the redesign going forward.
 - The two interrupts are the *only* automatic stoppers; everything else repeats
   silently.
 - Number badges are cosmetic fill-order; slot order carries no gameplay priority.
-- Base conditioning stays free, automatic, and roster-wide.
+- There is no automatic base conditioning; Circuit is the dedicated Stamina path.
 - Pre-launch: no migration of old saved training plans.
 - TP costs 6 / 10 / 15 are a starting proposal; exact values are fixed during
   implementation against the balance harness (target: ~3 continuous drills

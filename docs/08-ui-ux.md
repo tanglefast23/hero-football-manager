@@ -25,7 +25,7 @@ Events interrupt as full-screen cards on Advance Week (never mid-match). Match D
 
 ### Weekly Review
 
-Settling a non-match week always opens **Week N Complete** before the next management desk. The money block stays at the top beside the current cash total: the weekly net counts from zero to its signed value, followed by the exact cash-before → cash-after movement and itemized ledger. The center of the screen belongs to focused trainees: each player receives a joyful portrait reaction and their actual stat values count upward. Free squad conditioning is summarized once rather than repeating every player card.
+Settling a non-match week always opens **Week N Complete** before the next management desk. The money block stays at the top beside the current cash total: the weekly net counts from zero to its signed value, followed by the exact cash-before → cash-after movement and itemized ledger. The center of the screen belongs to focused trainees: each player receives a joyful portrait reaction and their actual stat values count upward.
 
 Only relevant club notes appear below development: skipped focus training names the missing Money or TP, injury recovery, contract pressure, a newly available event, and a fixture that has just become current. The full sequence settles within 2–4 seconds; one tap completes all motion, and Reduce Motion renders final values immediately. On match weeks, the full-time result returns to Home first, then presents the accounts statement as a modal over the office. Continuing opens a separate celebration overlay over Home: focused trainees appear centrally, each positive stat pops in one at a time, and each reveal plays a short ding.
 

@@ -188,17 +188,6 @@ export function PlayerDevelopmentSpotlight({
         </View>
       ) : null}
 
-      {development.conditioning.length > 0 ? (
-        <View className="mt-5 w-full border-y-2 border-ink/20 py-3">
-          <Text className="text-center font-mono text-sm font-bold uppercase text-blue-dark">Squad conditioning</Text>
-          {development.conditioning.map(item => (
-            <Text key={item.id} className="mt-1 text-center text-base font-bold text-ink">
-              {item.playerCount} player{item.playerCount === 1 ? '' : 's'} · {item.attributeLabel} +{item.gain}
-            </Text>
-          ))}
-        </View>
-      ) : null}
-
       {animationsStarted && !complete ? (
         <Text className="mt-3 font-mono text-sm uppercase text-ink/40">Tap once to finish</Text>
       ) : null}

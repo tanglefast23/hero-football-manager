@@ -1,5 +1,9 @@
 # One-Drill-Per-Player Training — Engine Plan (1 of 2)
 
+> **2026-07-24 decision update:** automatic base conditioning was removed.
+> Historical steps below that preserve or apply `baseConditioning` are superseded;
+> Circuit remains the dedicated Stamina training path.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the group/multi-drill training engine with a slot model — up to 3 slots, each one player training one auto-tier drill, TP-only, with cap-reached and TP-affordability surfaced as blocking interrupts.
