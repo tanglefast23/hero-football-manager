@@ -173,6 +173,8 @@ export function SquadTrainingScreen({
         <TrainingDrillModal
           playerId={selectedPlayer.id}
           playerName={selectedPlayer.name}
+          playerRole={selectedPlayer.role}
+          playerLookId={selectedPlayer.lookId}
           options={viewModel.selectedPlayerStatOptions}
           superChancePercent={selectedPlayer.superChancePercent}
           injuryRiskPercent={selectedPlayer.injuryRiskPercent}
