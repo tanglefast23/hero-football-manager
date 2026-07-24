@@ -56,6 +56,7 @@ import type {
   SeasonEndViewModel,
   StoryEventViewModel,
   SquadTrainingViewModel,
+  TrainingSlotStatOption,
   WeeklyReviewViewModel,
 } from '../ui';
 import { divisionTierLabel } from '../game/pyramid';
@@ -704,16 +705,18 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
       if (notice.kind === 'skipped') {
         return {
           id: notice.id,
-          title: `${notice.playerName} cannot train ${attribute}`,
-          detail: `${attribute} is already at the maximum of ${notice.cap} and cannot go higher. Choose another stat or player for next week.`,
+          title: `${notice.playerName} skipped ${drillName}`,
+          detail: `${notice.playerName} is already at their ${attribute} maximum. Tap to switch their drill or stop their training.`,
           tone: 'info' as const,
+          playerId: notice.playerId,
         };
       }
       return {
         id: notice.id,
-        title: `${notice.playerName} reached ${notice.cap} ${attribute}`,
-        detail: `${drillName} took ${attribute} to its maximum. It cannot go higher, so choose another stat or player for next week.`,
+        title: `${notice.playerName} reached their ${attribute} maximum`,
+        detail: `${drillName} took ${attribute} to its maximum. Tap to switch their drill or stop their training.`,
         tone: 'info' as const,
+        playerId: notice.playerId,
       };
     });
 
@@ -1270,19 +1273,24 @@ export function squadTrainingViewModel(
     }),
     maxSlots,
     ...(selectedPlayer === undefined ? {} : {
-      selectedPlayerStatOptions: TRAINING_PATHS.map(path => {
-        const drill = resolveTrainingDrillForPath(state, path.pathId);
-        const gain = drill.gains[path.attribute] ?? 0;
-        const currentValue = selectedPlayer.attrs[path.attribute];
-        return {
-          pathId: path.pathId,
-          label: path.label,
-          drillName: drillName(drill.id),
-          gain,
-          currentValue,
-          atSafetyCeiling: currentValue >= 999,
-        };
-      }),
+      selectedPlayerStatOptions: TRAINING_PATHS
+        .filter(path => selectedPlayer.role === 'GK'
+          ? path.attribute !== 'sho'
+          : path.attribute !== 'ref')
+        .map(path => {
+          const drill = resolveTrainingDrillForPath(state, path.pathId);
+          const gain = drill.gains[path.attribute] ?? 0;
+          const currentValue = selectedPlayer.attrs[path.attribute];
+          return {
+            pathId: path.pathId,
+            label: path.label,
+            shortCode: path.attribute.toUpperCase() as TrainingSlotStatOption['shortCode'],
+            drillName: drillName(drill.id),
+            gain,
+            currentValue,
+            atSafetyCeiling: currentValue >= 999,
+          };
+        }),
     }),
     weeklyTrainingPointCost: slotTrainingPointCost(state, completeSlots),
     interrupts: {

@@ -10,8 +10,8 @@ import {
   positionTrainingBonusPercent,
 } from './archetype-caps';
 import { resolveTrainingDrillForPath, trainingPathAttribute } from './training-paths';
-import { assertCareerTrainingHonorsContractPromises } from './contract-promises';
 import { replaceCareerTrainingPlan } from './training-plan';
+import { assertCareerTrainingHonorsContractPromises } from './contract-promises';
 import type {
   CareerPlayer,
   CareerTrainingDrill,

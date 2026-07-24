@@ -49,7 +49,12 @@
     {
       "name": "static-export",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "dist", "-l", "4173"],
+      "runtimeArgs": [
+        "serve",
+        "dist",
+        "-l",
+        "4173"
+      ],
       "port": 4173
     },
     {
