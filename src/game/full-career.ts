@@ -234,6 +234,21 @@ function balanceOpeningDivision(state: GameState): GameState {
       currentStrengths.get(left.id)! - currentStrengths.get(right.id)!
       || left.id.localeCompare(right.id)
     ));
+  // The opening is deliberately rigged against the player: 40 against a field of
+  // 42..50, so the user is the weakest club in the division and every week of
+  // Season 1 is uphill. Climbing out is meant to take one or two seasons of
+  // building facilities and training, not a fair fight on day one.
+  //
+  // Measured against a held squad strength over a full 90-fixture D5 season,
+  // promotion (top two) needs roughly a +5 lead on the field, so the climb this
+  // opening asks for is about +11 of squad strength:
+  //
+  // | strength vs field | finish | points |
+  // |-------------------|--------|--------|
+  // | -5 (the opening)  | 8th    | 17     |
+  // |  0                | 8th    | 19     |
+  // | +5                | 2nd    | 34     |
+  // | +10               | 1st    | 52     |
   const targetStrengthByClubId = new Map<string, number>([[state.userClubId, 40]]);
   opponentsWeakestFirst.forEach((club, index) => {
     targetStrengthByClubId.set(club.id, 42 + index);

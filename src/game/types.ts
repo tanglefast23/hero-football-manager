@@ -237,7 +237,8 @@ export type LedgerLineKind =
   | 'subsidy'
   | 'emergency-loan'
   | 'board-sale'
-  | 'loan-repayment';
+  | 'loan-repayment'
+  | 'board-rescue';
 
 export interface LedgerLine {
   kind: LedgerLineKind;

@@ -15,6 +15,20 @@ export interface DifficultyRules {
   opponentGrowthSeasonsPerPoint: number;
   /** Ceiling on cumulative league growth, so a long career cannot run away. */
   opponentGrowthCap: number;
+  /**
+   * The furthest into the red a club can ever go. The board tops the balance
+   * back up to this line whenever a week would end below it.
+   *
+   * This is what makes the economy genuinely fail-soft. The escalation above it
+   * — warnings, one emergency loan, then board-enforced sales — is the part with
+   * teeth, and it fires first. But every one of those is finite: measured in D5,
+   * the loan is 20,000 and a forced sale raised 8,885, against a shortfall of
+   * about 2,300 a week. Once they were spent nothing else happened, so a club
+   * that stalled fell to -101,183 by season three and kept going. That is not a
+   * game over, but it is not a safety net either — it is an unbounded number
+   * with no route back and no signal that anything has gone wrong.
+   */
+  cashFloor: number;
 }
 
 /**
@@ -35,6 +49,7 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
     emergencyLoanAmount: 20_000,
     opponentGrowthSeasonsPerPoint: 2,
     opponentGrowthCap: 8,
+    cashFloor: -15_000,
   },
   CHAIRMAN: {
     seasonOneWageSubsidyPercent: 0,
@@ -43,6 +58,10 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
     emergencyLoanAmount: 10_000,
     opponentGrowthSeasonsPerPoint: 1,
     opponentGrowthCap: 10,
+    // Chairman is allowed to sink twice as deep before the board steps in, so
+    // the danger zone lasts longer and the ultimatums bite harder. It is still
+    // bounded — the mode is a harder game, not an unwinnable one.
+    cashFloor: -30_000,
   },
 };
 

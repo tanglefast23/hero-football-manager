@@ -68,11 +68,13 @@ describe('default two-season career journey', () => {
     // more than one per week" assertions no longer measure anything real.
     // Division 5 unlocks tiers I and II, so each tap is Sprints 2 (+5 PAC,
     // scaled by age and the Gym/Training Pitch level, more on a SUPER session).
-    // Two changes lifted this from 548: tier II is open in D5, and a level-1
-    // facility is now x1.25 instead of x1.0. Cap-free training keeps raising the
-    // raw PAC value; Sprints trains only PAC, so STA stays at the creation value.
+    // Three changes lifted this from 548: tier II is open in D5, a level-1
+    // facility is now x1.25 instead of x1.0, and the club banks
+    // BASE_WEEKLY_TRAINING_POINTS every week, so fewer of the plan's taps are
+    // refused for an empty bank. Cap-free training keeps raising the raw PAC
+    // value; Sprints trains only PAC, so STA stays at the creation value.
     expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
-      .toMatchObject({ pac: 646, sta: 50 });
+      .toMatchObject({ pac: 655, sta: 50 });
   });
 });
 

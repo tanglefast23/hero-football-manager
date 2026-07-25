@@ -2,7 +2,11 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
 import { advanceWeek, completeMatchday, createCareer, fixturesForCurrentWeek } from '../career';
 import { buildCareerFacility } from '../management';
-import { advanceFacilityConstruction } from '../facilities';
+import {
+  advanceFacilityConstruction,
+  BASE_WEEKLY_TRAINING_POINTS,
+  TRAINING_PITCH_TP_PER_LEVEL,
+} from '../facilities';
 import { trainPlayerInstantly } from '../training';
 import { resolveTrainingDrillForPath } from '../training-paths';
 import type { GameState } from '../types';
@@ -76,12 +80,24 @@ describe('facility weekly integration', () => {
       balances.push(state.trainingPoints);
     }
 
-    // Sprints 2 is the best tier open in D5 and costs 10 TP per tap. Week one
-    // affords both trainees (30→10); week two affords one (10→0); the two build
-    // weeks pay nothing, so week three affords none and banks the pitch's first
-    // +10; week four spends it again. A Level 1 pitch funds exactly one drill a
-    // week, which is the intended squeeze.
-    expect(balances).toEqual([30, 10, 0, 10, 10]);
+    // Sprints 2 is the best tier open in D5 and costs 10 TP per tap, so two
+    // trainees cost 20 a week. The club banks BASE_WEEKLY_TRAINING_POINTS every
+    // week whether or not a pitch exists, and the pitch adds its own
+    // TRAINING_PITCH_TP_PER_LEVEL once the two build weeks finish — weeks three
+    // and four here. The bank therefore climbs by 4 a week during construction
+    // and by 14 a week after it, which is the point of the baseline: a club with
+    // no pitch can still train, and the pitch makes it comfortable rather than
+    // being the only source of TP.
+    const spendPerWeek = 20;
+    const base = BASE_WEEKLY_TRAINING_POINTS - spendPerWeek;
+    const withPitch = base + TRAINING_PITCH_TP_PER_LEVEL;
+    expect(balances).toEqual([
+      30,
+      30 + base,
+      30 + base * 2,
+      30 + base * 2 + withPitch,
+      30 + base * 2 + withPitch * 2,
+    ]);
     // Training is TP-only now; no money is ever charged, so no ledger line
     // of kind 'training' is ever recorded.
     expect(state.ledgers.map(ledger => ledger.lines.find(line => line.kind === 'training')?.amount))
@@ -99,19 +115,24 @@ describe('facility weekly integration', () => {
     };
     const cashBeforeSettlement = userCash(built);
 
+    // A half-built pitch contributes nothing of its own. The club still banks
+    // its unconditional baseline every week, so "pays no TP" means the pitch
+    // adds no TP, not that the week produces none.
     const midBuildWeek = advanceWeek(built);
-    expect(midBuildWeek.trainingPoints).toBe(built.trainingPoints);
+    expect(midBuildWeek.trainingPoints).toBe(built.trainingPoints + BASE_WEEKLY_TRAINING_POINTS);
     expect(midBuildWeek.ledgers[0].lines.some(line => line.kind === 'facilities')).toBe(false);
     expect(midBuildWeek.facilities.grid?.construction).toMatchObject({ weeksRemaining: 1 });
 
     const completionWeek = advanceWeek(midBuildWeek);
-    expect(completionWeek.trainingPoints).toBe(built.trainingPoints);
+    expect(completionWeek.trainingPoints).toBe(built.trainingPoints + BASE_WEEKLY_TRAINING_POINTS * 2);
     expect(completionWeek.ledgers[1].lines.some(line => line.kind === 'facilities')).toBe(false);
     expect(completionWeek.facilities.grid?.construction).toBeUndefined();
 
     const settled = advanceWeek(completionWeek);
 
-    expect(settled.trainingPoints).toBe(built.trainingPoints + 10);
+    expect(settled.trainingPoints).toBe(
+      built.trainingPoints + BASE_WEEKLY_TRAINING_POINTS * 3 + TRAINING_PITCH_TP_PER_LEVEL,
+    );
     expect(settled.ledgers[2].lines).toContainEqual({
       kind: 'facilities',
       label: 'Facility upkeep',
@@ -141,7 +162,9 @@ describe('facility weekly integration', () => {
       },
     };
 
-    expect(advanceWeek(levelThree).trainingPoints).toBe(levelThree.trainingPoints + 30);
+    expect(advanceWeek(levelThree).trainingPoints).toBe(
+      levelThree.trainingPoints + BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL * 3,
+    );
   });
 
   test('carries the Gym + Dorm ten-percent bonus until small real gains earn +1 STA', () => {
@@ -285,7 +308,9 @@ describe('facility weekly integration', () => {
 
     const settled = advanceWeek(legacy);
 
-    expect(settled.trainingPoints).toBe(legacy.trainingPoints + 10);
+    expect(settled.trainingPoints).toBe(
+      legacy.trainingPoints + BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL,
+    );
     expect(settled.ledgers[0].lines.some(line => line.kind === 'facilities')).toBe(false);
   });
 });

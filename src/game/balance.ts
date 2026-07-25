@@ -6,6 +6,7 @@ import {
   createCareer,
   weeklyAmbientTrainingPoints,
 } from './career';
+import { BASE_WEEKLY_TRAINING_POINTS, TRAINING_PITCH_TP_PER_LEVEL } from './facilities';
 import { deterministicPostMatchAwakeningRoll } from './post-match-awakening';
 import { buildTrainingGround } from './squad';
 import { trainPlayerInstantly } from './training';
@@ -19,15 +20,21 @@ const DEFAULT_AWAKENING_SEEDS = 2000;
 /**
  * M1 CI rails, taken directly from the design promises:
  * - docs/09: Season-1 Cozy bankruptcy stays below 2%.
- * - docs/05: a completed Level-1 Training Pitch supplies almost 10 TP/week
- *   across the season (Week 1 is its construction week).
+ * - docs/05: a completed Level-1 Training Pitch supplies almost all of its
+ *   nominal TP/week across the season, losing only its construction weeks. The
+ *   pitch's share sits on top of BASE_WEEKLY_TRAINING_POINTS, which every club
+ *   banks whether or not it has ever built anything, so both ends of the rail
+ *   ride the constants rather than restating numbers that drift the moment
+ *   either one moves.
  * - Post-match awakenings average roughly one per ten eligible matches after
  *   their three-match cooldown, without silently adding a pity guarantee.
  */
 export const MINI_BALANCE_RAILS = Object.freeze({
   maximumSeasonOneBankruptcyRate: 0.02,
-  minimumMeanAmbientTrainingPointsPerWeek: 9,
-  maximumMeanAmbientTrainingPointsPerWeek: 10,
+  minimumMeanAmbientTrainingPointsPerWeek:
+    BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL * 0.9,
+  maximumMeanAmbientTrainingPointsPerWeek:
+    BASE_WEEKLY_TRAINING_POINTS + TRAINING_PITCH_TP_PER_LEVEL,
   minimumMeanAwakeningMatch: 10,
   maximumMeanAwakeningMatch: 14,
   minimumAwakeningBySeasonEndRate: 0.75,
