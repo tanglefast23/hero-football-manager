@@ -99,6 +99,13 @@ import {
   energyBand,
   summarizeTeamEnergy,
 } from './match-energy-ui';
+import { chargeMeter } from './hero-charge-meter';
+import { HeroChargeMeter } from './HeroChargeMeter';
+import {
+  KIT_PANEL_BORDER_COLOR,
+  KIT_PANEL_TEXT_COLOR,
+  teamKitColor,
+} from './team-kit-ui';
 import {
   initAudio,
   playForEvent,
@@ -160,6 +167,16 @@ const BALL_FOOT_DEADZONE_PX = 0.5; // tick-to-tick screen-px delta below this re
 // Side of the plain white square drawn when the sprite pack fails to build
 // (matches the player cell width so the placeholder keeps sane proportions).
 const FALLBACK_SPRITE = 24;
+
+// Possession-card geometry. The charge meter's rainbow strip is built from real
+// pixel bands, so it needs the card's content width rather than a percentage.
+const CARRIER_CARD_WIDTH = 150;
+const CARRIER_CARD_PADDING_X = 7;
+// Standard HUD ink pixel frame — a solid kit-coloured panel needs it to hold
+// its edge against the pitch, where the old 1pt cream hairline washed out.
+const CARRIER_CARD_BORDER = 2;
+const CARRIER_CARD_CONTENT_WIDTH =
+  CARRIER_CARD_WIDTH - (CARRIER_CARD_PADDING_X + CARRIER_CARD_BORDER) * 2;
 
 // Rival readiness remains visible counterplay. Controlled-team powers activate
 // automatically and announce themselves only when they actually fire.
@@ -1179,8 +1196,10 @@ export function MatchScreen({
       // In fallback mode there are no kit pixels to preserve, so tint the
       // white placeholder rects with bible team colors (red / blue) instead.
       return atlas.fallbackMode
-        ? Skia.Color(i < 11 || i === HOME_DECOY_INDEX
-          ? (colorSafeKits ? '#edb54a' : '#d94f52') : '#5a8fd6')
+        ? Skia.Color(teamKitColor(
+          i < 11 || i === HOME_DECOY_INDEX ? 0 : 1,
+          colorSafeKits,
+        ))
         : Skia.Color(i >= BASE_PLAYER_COUNT ? 'rgba(185,235,255,0.78)' : '#ffffff');
     });
     tints.push(Skia.Color('#ffffff')); // ball — no tint
@@ -1846,6 +1865,9 @@ export function MatchScreen({
                 style={[
                   styles.carrierCard,
                   hudSide === 'left' ? styles.carrierCardLeft : styles.carrierCardRight,
+                  // The panel wears the carrier's kit, so which team has the
+                  // ball reads at a glance without looking back at the pitch.
+                  { backgroundColor: teamKitColor(carrier.team, colorSafeKits) },
                 ]}
               >
                 <View style={styles.carrierLine}>
@@ -1860,6 +1882,14 @@ export function MatchScreen({
                     { width: `${Math.max(0, Math.min(100, carrier.condition))}%` },
                   ]} />
                 </View>
+                {/* Heroes only — an ordinary player has no Heat to read. */}
+                {carrier.def.power ? (
+                  <HeroChargeMeter
+                    meter={chargeMeter(carrier.gauge, carrier.powerState)}
+                    trackWidth={CARRIER_CARD_CONTENT_WIDTH}
+                    reduceMotion={reduceMotion}
+                  />
+                ) : null}
               </View>
             ) : null}
             {powerCutIns.length > 0 ? (
@@ -2299,7 +2329,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  scoreText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 18, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  scoreText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 18, fontVariant: ['tabular-nums'] },
   scoreTextFlash: { color: '#f7d894' },
   // Top-right controls: small beveled buttons (same Track-A recipe as the bug).
   controls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -2315,7 +2345,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
     borderRadius: 4,
   },
-  ctrlText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 16, fontWeight: 'bold' },
+  ctrlText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 16 },
   autoSubRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2329,7 +2359,7 @@ const styles = StyleSheet.create({
   },
   autoSubRowOn: { backgroundColor: '#3f6fb5', borderColor: '#5a8fd6' },
   autoSubBox: { color: '#f4f1ea', fontSize: 18, lineHeight: 20 },
-  autoSubLabel: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
+  autoSubLabel: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 10, letterSpacing: 1 },
   autoSubDetail: { fontFamily: 'Silkscreen_400Regular', color: '#a3c8f0', fontSize: 11 },
   bannerStack: {
     position: 'absolute',
@@ -2344,7 +2374,6 @@ const styles = StyleSheet.create({
     color: '#edb54a',
     fontFamily: 'Silkscreen_700Bold',
     fontSize: 18,
-    fontWeight: 'bold',
     backgroundColor: '#241f2edd',
     borderWidth: 2,
     borderColor: '#edb54a',
@@ -2396,7 +2425,6 @@ const styles = StyleSheet.create({
     color: '#f4f1ea',
     fontFamily: 'Silkscreen_700Bold',
     fontSize: 9,
-    fontWeight: 'bold',
     textTransform: 'uppercase',
   },
   powerActivationName: {
@@ -2404,26 +2432,30 @@ const styles = StyleSheet.create({
     fontFamily: 'Silkscreen_700Bold',
     fontSize: 15,
     lineHeight: 18,
-    fontWeight: '900',
     textTransform: 'uppercase',
   },
   carrierCard: {
     position: 'absolute',
     zIndex: 4,
     bottom: 8,
-    width: 150,
-    backgroundColor: '#241f2eee',
-    borderWidth: 1,
-    borderColor: '#f4f1ea99',
+    width: CARRIER_CARD_WIDTH,
+    // backgroundColor is the carrier's kit colour, applied inline.
+    borderWidth: CARRIER_CARD_BORDER,
+    borderColor: KIT_PANEL_BORDER_COLOR,
     borderRadius: 3,
-    paddingHorizontal: 7,
+    paddingHorizontal: CARRIER_CARD_PADDING_X,
     paddingVertical: 5,
   },
   carrierCardLeft: { left: 8 },
   carrierCardRight: { right: 8 },
   carrierLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  carrierName: { fontFamily: 'Silkscreen_700Bold', flex: 1, color: '#f4f1ea', fontSize: 11, fontWeight: 'bold' },
-  carrierEnergy: { fontFamily: 'Silkscreen_400Regular', color: '#f4f1ea', fontSize: 10, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  carrierName: { fontFamily: 'Silkscreen_700Bold', flex: 1, color: KIT_PANEL_TEXT_COLOR, fontSize: 11 },
+  carrierEnergy: {
+    fontFamily: 'Silkscreen_400Regular',
+    color: KIT_PANEL_TEXT_COLOR,
+    fontSize: 10,
+    fontVariant: ['tabular-nums'],
+  },
   energyTrack: { height: 4, backgroundColor: '#3a3350', marginTop: 4, overflow: 'hidden' },
   energyFill: { height: 4, backgroundColor: '#65b96e' },
   energyFillMedium: { backgroundColor: '#edb54a' },
@@ -2485,9 +2517,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#a3c8f066',
   },
   coachCopy: { flexShrink: 1, alignItems: 'flex-start' },
-  coachLabel: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8, fontWeight: 'bold' },
+  coachLabel: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8 },
   coachLabelGuided: { color: '#f4f1ea' },
-  coachValue: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 11, fontWeight: 'bold', marginTop: 3 },
+  coachValue: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 11, marginTop: 3 },
   coachValueGuided: { color: '#f4f1ea' },
   mentalityIcon: { color: '#70b879', fontSize: 28, fontWeight: 'bold' },
   swapIcon: { color: '#77a4d8', fontSize: 30, fontWeight: 'bold' },
@@ -2513,7 +2545,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     marginBottom: 3,
   },
-  energyUseTitle: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8, fontWeight: 'bold', letterSpacing: 0.6 },
+  energyUseTitle: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8, letterSpacing: 0.6 },
   teamEnergy: {
     color: '#65b96e',
     fontSize: 9,
@@ -2539,7 +2571,7 @@ const styles = StyleSheet.create({
   energySegmentSave: { backgroundColor: '#35618e' },
   energySegmentBalanced: { backgroundColor: '#4f6753' },
   energySegmentAllOut: { backgroundColor: '#a83440' },
-  energySegmentText: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 9, fontWeight: 'bold', textAlign: 'center' },
+  energySegmentText: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 9, textAlign: 'center' },
   energySegmentTextSelected: { color: '#f4f1ea' },
   swapOverlay: {
     position: 'absolute',
@@ -2560,8 +2592,8 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   swapHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  swapEyebrow: { fontFamily: 'Silkscreen_700Bold', color: '#77a4d8', fontSize: 9, fontWeight: 'bold' },
-  swapTitle: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 17, fontWeight: 'bold', marginTop: 2 },
+  swapEyebrow: { fontFamily: 'Silkscreen_700Bold', color: '#77a4d8', fontSize: 9 },
+  swapTitle: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 17, marginTop: 2 },
   swapCount: {
     color: '#f4f1ea',
     backgroundColor: '#3a3350',
@@ -2571,7 +2603,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
-  swapInstruction: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 9, fontWeight: 'bold', marginTop: 5, marginBottom: 5 },
+  swapInstruction: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 9, marginTop: 5, marginBottom: 5 },
   playerGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 },
   benchGrid: { flexDirection: 'row', justifyContent: 'center', gap: 8, minHeight: 62 },
   playerCard: {
@@ -2604,7 +2636,7 @@ const styles = StyleSheet.create({
   },
   benchHead: { backgroundColor: '#35618e', borderColor: '#77a4d8' },
   playerHeadSelected: { borderColor: '#f4f1ea', transform: [{ scale: 1.08 }] },
-  playerInitials: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 9, fontWeight: 'bold' },
+  playerInitials: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 9 },
   shirtNumber: {
     position: 'absolute',
     right: -3,
@@ -2619,7 +2651,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   playerSurname: { fontFamily: 'Silkscreen_400Regular', color: '#f4f1ea', fontSize: 8, marginTop: 3, maxWidth: 50 },
-  roleLabel: { fontFamily: 'Silkscreen_700Bold', color: '#77a4d8', fontSize: 7, fontWeight: 'bold', marginTop: 1 },
+  roleLabel: { fontFamily: 'Silkscreen_700Bold', color: '#77a4d8', fontSize: 7, marginTop: 1 },
   cardEnergyTrack: { width: 38, height: 3, backgroundColor: '#16121f', marginTop: 3, overflow: 'hidden' },
   cardEnergyFill: { height: 3, backgroundColor: '#65b96e' },
   cardEnergyText: {
@@ -2641,9 +2673,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   selectionSide: { flex: 1 },
-  selectionLabel: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8, fontWeight: 'bold' },
-  selectionName: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 11, fontWeight: 'bold', marginTop: 2 },
-  selectionEnergy: { fontFamily: 'Silkscreen_700Bold', color: '#65b96e', fontSize: 8, fontWeight: 'bold', marginTop: 2 },
+  selectionLabel: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8 },
+  selectionName: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 11, marginTop: 2 },
+  selectionEnergy: { fontFamily: 'Silkscreen_700Bold', color: '#65b96e', fontSize: 8, marginTop: 2 },
   swapArrow: { color: '#f4f1ea', fontSize: 20, paddingHorizontal: 8 },
   swapActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   cancelButton: {
@@ -2657,7 +2689,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
     borderBottomColor: '#16121f',
   },
-  cancelText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12, fontWeight: 'bold' },
+  cancelText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12 },
   confirmButton: {
     flex: 2,
     minHeight: 42,
@@ -2670,7 +2702,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#563779',
   },
   confirmButtonDisabled: { opacity: 0.3 },
-  confirmText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12, fontWeight: 'bold' },
+  confirmText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12 },
   selectionPlaceholder: {
     color: '#bcb7c4',
     fontSize: 10,
