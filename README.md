@@ -56,6 +56,24 @@ Research reports (source material, written by research agents):
 | Players | Fictional, procedurally generated (no licensing risk); gentle aging with retirement and a legacy system |
 | Stack | Expo/React Native + TypeScript + react-native-skia (Atlas API); deterministic pure-TS sim core |
 
+### Balance decisions (2026-07-25, not yet implemented)
+
+Measured audit found the D5→D1 ramp impossible (0 promotions across 6 best-play careers × 10 seasons). These are the owner's answers; each still needs implementation and re-measurement.
+
+| Question | Decision | Where it lands |
+|---|---|---|
+| Economy: cut wages or raise income? | **Raise income**, via the fans / ticket price / sponsor levers | Division scaling now implemented (`full-career.ts`); the D5 baseline ratio is still open |
+| Should PAC matter? | **Yes.** Pace must convert into chances — accepting it as a dead stat is rejected | Engine change; needs `ENGINE_VERSION` bump + band re-tuning |
+| Is the goalkeeper the most important player? | **No.** Flatten the shot/save asymmetry so the eleven matter roughly equally | `engine.ts` `saveProbability`: compress the keeper's REF around a baseline the way `shotPowerAt` already compresses SHO. Do **not** raise the shooter's `/4` — that divisor deliberately prevents SHO being counted twice (aim + power) |
+| Opponent shape | **Balanced teams, not three unbeatable specialists.** Cap star concentration | `pyramid.ts` star slots + `divisionStarFocusedAttribute` |
+| Opponent season scaling | **Much slower**, so a stalled division does not outrun the player | `m2-career.ts` `scaleOpponentClub` |
+| Tutorial fixture | Open against the **3rd-strongest** rival, save the best for later | `schedule.ts` `pinOpeningLeagueOpponents` |
+| Hero worth | **Too low.** A full four-hero squad is +4.6 squad points against a ~19-point division gap; must become a real progression pillar | `content/powers.json` tiers |
+| Chairman mode | **Genuinely harder**, not Cozy with four economic knobs turned down | `difficulty.ts` needs a difficulty axis beyond the economy |
+| How hard is D5? | **1 season for a good player, 2 at most for someone still learning.** Not a multi-season tutorial arc, and never the current unsignposted permanent 10th place | Sets the target for every number above |
+| Should the harness gate the ramp? | **Yes** — assert a best-play career promotes out of D5 **within 2 seasons**, and that a competent-play career manages it in 1 | `m2-balance.test.ts` |
+| Manual Zone tap | **Removed permanently**; powers always fire automatically | Done — see docs/04 |
+
 ## Deliberately deferred (not forgotten)
 
 - Final mix balance — decide during M4 polish
