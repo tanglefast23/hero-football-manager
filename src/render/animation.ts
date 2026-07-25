@@ -16,6 +16,25 @@ export const TACKLED_RECOVERY_TICKS = 10;
 export const KNOCKDOWN_DROP_TICKS = 1.6;
 export const KNOCKDOWN_RISE_TICKS = 4;
 
+// A LOST duel: the beaten challenger is knocked off the contact point and leans,
+// then settles. ~100 of these fire per match (see duel-scuff.ts), so the whole
+// beat is three ticks — 300ms at TICK_MS = 100.
+export const STAGGER_TICKS = 3;
+/**
+ * Fraction of the beat spent being shoved. The knock peaks early and eases back
+ * over the remaining three quarters, so it reads as an impact rather than a
+ * symmetric wobble.
+ */
+const STAGGER_ATTACK_FRACTION = 0.25;
+/**
+ * Peak recoil, in sprite SOURCE pixels along `direction` — the same unit the
+ * scuff flecks use, and comparable to the 90-150 pitch-unit presser standoff
+ * once magnified, so the shove visibly opens the gap between the two sprites.
+ */
+export const STAGGER_RECOIL_PIXELS = 5;
+/** Peak body tilt in radians (~13°), toward the direction of the shove. */
+export const STAGGER_LEAN = 0.22;
+
 export type PlayerActionAnimation =
   | {
       kind: 'slide';
@@ -24,6 +43,18 @@ export type PlayerActionAnimation =
       direction: Vec;
       rotation: number;
       untilTick: number;
+    }
+  | {
+      // A beaten challenge (TACKLE won:false, contact:true). Render-only: the
+      // sim keeps the loser exactly where it put him, and this offsets the
+      // sprite off that coordinate for STAGGER_TICKS before returning to it.
+      kind: 'stagger';
+      startTick: number;
+      /** Unit vector pointing AWAY from the winner. */
+      direction: Vec;
+      /** Contact point (the two players' midpoint), where the scuff is drawn. */
+      contact: Vec;
+      rotation: number;
     }
   | {
       kind: 'fall';
@@ -47,7 +78,35 @@ export interface ActionPose {
   active: boolean;
   rotation: number;
   anchorWeight: number;
+  /**
+   * Render-only displacement along the action's `direction`, in sprite SOURCE
+   * pixels (multiply by the snapped player draw scale to reach pitch units).
+   * Only 'stagger' uses it: a slide's travel is real sim movement, and a
+   * fall/knockdown blends toward its anchor via `anchorWeight` instead.
+   */
   forwardOffset: number;
+}
+
+/**
+ * Shove envelope: a fast attack to 1, then an eased release back to 0. Zero at
+ * both ends, so the sprite leaves and returns to its sim coordinate smoothly
+ * instead of snapping when the beat expires.
+ *
+ * Marked 'worklet' because the Atlas transform worklet calls it directly, which
+ * is also why the smoothstep polynomial is written out twice below instead of
+ * calling the `smoothstep` arrow const further down this file — that one is not
+ * workletised, and folding it in here would break the UI-thread call.
+ */
+export function staggerPush(elapsedTicks: number): number {
+  'worklet';
+  const t = elapsedTicks / STAGGER_TICKS;
+  if (t <= 0 || t >= 1) return 0;
+  if (t < STAGGER_ATTACK_FRACTION) {
+    const attack = t / STAGGER_ATTACK_FRACTION;
+    return attack * attack * (3 - 2 * attack);
+  }
+  const release = (t - STAGGER_ATTACK_FRACTION) / (1 - STAGGER_ATTACK_FRACTION);
+  return 1 - release * release * (3 - 2 * release);
 }
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 const smoothstep = (value: number) => {
@@ -123,6 +182,17 @@ export function actionPose(action: PlayerActionAnimation | undefined, visualTick
     const rise = smoothstep((visualTick - (action.untilTick - KNOCKDOWN_RISE_TICKS)) / KNOCKDOWN_RISE_TICKS);
     const down = drop * (1 - rise);
     return { active: true, rotation: action.rotation * down, anchorWeight: down, forwardOffset: 0 };
+  }
+
+  if (action.kind === 'stagger') {
+    const push = staggerPush(elapsed);
+    if (push <= 0) return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
+    return {
+      active: true,
+      rotation: action.rotation * push,
+      anchorWeight: 0,
+      forwardOffset: STAGGER_RECOIL_PIXELS * push,
+    };
   }
 
   const duration = action.kind === 'slide' ? action.untilTick - action.startTick : TACKLED_RECOVERY_TICKS;

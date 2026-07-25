@@ -151,7 +151,10 @@ describe('M4 twelve-power catalog', () => {
     const decoy = matchWith('DECOY_DOUBLE');
     decoy.match.ball = { kind: 'held', by: decoy.hero };
     decoy.match.players[decoy.hero].pos = { x: 3000, y: 5000 };
-    decoy.match.players[12].pos = { x: 3100, y: 5000 };
+    // Outside the presser standoff ring (max 150) so this still asserts the
+    // presser closing. At the old 100 units it sits inside the ring and
+    // correctly holds station.
+    decoy.match.players[12].pos = { x: 3400, y: 5000 };
     for (let idx = 11; idx < 22; idx += 1) {
       if (idx !== 12) decoy.match.players[idx].pos = { x: 6000, y: 9000 };
     }
@@ -209,7 +212,9 @@ describe('M4 twelve-power catalog', () => {
     decoy.match.ball = { kind: 'held', by: carrier };
     decoy.match.players[carrier].pos = { x: 3000, y: 4000 };
     decoy.match.players[decoy.hero].pos = { x: 300, y: 8000 };
-    decoy.match.players[marker].pos = { x: 3050, y: 4000 };
+    // Outside the presser standoff ring (max 150) — see the note in the
+    // catalog-wide test above.
+    decoy.match.players[marker].pos = { x: 3450, y: 4000 };
     for (let idx = 11; idx < 22; idx += 1) {
       if (idx !== marker) decoy.match.players[idx].pos = { x: 6000, y: 9000 };
     }

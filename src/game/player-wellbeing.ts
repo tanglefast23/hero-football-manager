@@ -198,11 +198,14 @@ function currentUserMatch(
   return { outcome: goalsFor > goalsAgainst ? 'win' : goalsFor === goalsAgainst ? 'draw' : 'loss' };
 }
 
+/** The best operational Medical Bay wins; one still being built treats nobody. */
 export function gridMedicalBayLevel(grid: FacilityGridState | undefined): number {
   if (grid === undefined) return 0;
   let level = 0;
   for (const building of grid.buildings) {
-    if (building.type === 'medical-bay') level = Math.max(level, building.level);
+    if (building.type !== 'medical-bay') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
+    level = Math.max(level, building.level);
   }
   return level;
 }

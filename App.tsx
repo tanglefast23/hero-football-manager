@@ -2,7 +2,7 @@ import './global.css';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LogBox, Modal, Text, View } from 'react-native';
-import { openDatabaseAsync } from 'expo-sqlite';
+import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Silkscreen_400Regular, Silkscreen_700Bold } from '@expo-google-fonts/silkscreen';
@@ -19,6 +19,7 @@ import {
   createReplayRepository,
   DEFAULT_APP_PREFERENCES,
   replaceFormationPreset,
+  resetCareerDatabase,
   type AppPreferences,
   type PreferencesRepository,
 } from './src/persistence';
@@ -927,7 +928,22 @@ function GameApp() {
   if (!fontsLoaded && !fontError && bootError === null) {
     screen = <LoadingScreen />;
   } else if (bootError !== null) {
-    screen = <BootFailure message={bootError} onRetry={() => setBootAttempt(attempt => attempt + 1)} />;
+    // A boot failure means the repository itself never opened, so
+    // discardUnreadableSave (which needs a working repository) cannot run. Without
+    // a database-level reset this branch was Retry-forever on a downgrade or a
+    // corrupt file.
+    screen = (
+      <BootFailure
+        message={bootError}
+        onRetry={() => setBootAttempt(attempt => attempt + 1)}
+        onStartFresh={() => {
+          void resetCareerDatabase({
+            openDatabase: () => openDatabaseAsync(DATABASE_NAME),
+            deleteDatabaseFile: () => deleteDatabaseAsync(DATABASE_NAME),
+          }).then(() => setBootAttempt(attempt => attempt + 1));
+        }}
+      />
+    );
   } else if (!store.persistenceReady) {
     screen = <LoadingScreen />;
   } else if (store.persistenceLoadError !== null) {
@@ -936,6 +952,9 @@ function GameApp() {
         message={store.persistenceLoadError}
         onRetry={() => setBootAttempt(attempt => attempt + 1)}
         onStartFresh={() => { void store.discardUnreadableSave(); }}
+        onRestoreBackup={store.backupSummary === null
+          ? undefined
+          : { season: store.backupSummary.season, week: store.backupSummary.week, onRestore: () => { void store.restoreBackupSave(); } }}
       />
     );
   } else if (store.screen === 'welcome' && landingView === 'title') {
@@ -1431,6 +1450,15 @@ function GameApp() {
       />
       <View className="flex-1 bg-ink">
         {screen}
+        {/* Not a FeedbackNotice: that one is dismissible and auto-hides. An
+            unsaved career must keep saying so until a save actually succeeds. */}
+        {store.saveWarning !== null && (
+          <SaveWarningBanner
+            message={store.saveWarning}
+            blocked={store.saveBlocked}
+            onRetry={store.retrySave}
+          />
+        )}
         {store.error ? (
           <FeedbackNotice message={store.error} tone="error" onDismiss={store.clearError} />
         ) : store.notice ? (
@@ -1618,48 +1646,124 @@ function LoadingScreen() {
   );
 }
 
+/**
+ * Every button here uses a local `pressed` state with a plain-array `style`.
+ * A function-form `style` on a Pressable renders zero-height and untappable on
+ * iOS only — and this is the one screen where a dead button means a dead game.
+ */
+function BootFailureButton({
+  label,
+  accessibilityLabel,
+  onPress,
+  tone,
+}: {
+  label: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+  tone: 'primary' | 'paper';
+}) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      className={tone === 'primary'
+        ? 'mt-5 min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-blue px-4'
+        : 'mt-3 min-h-12 items-center justify-center border-2 border-b-4 border-stamp bg-paper px-4'}
+      style={[{ transform: [{ translateY: pressed ? 2 : 0 }] }]}
+    >
+      <Text className={tone === 'primary'
+        ? 'font-pixel text-sm uppercase text-paper'
+        : 'font-pixel text-sm uppercase text-stamp'}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 function BootFailure({
   message,
   onRetry,
   onStartFresh,
+  onRestoreBackup,
 }: {
   message: string;
   onRetry: () => void;
   onStartFresh?: () => void;
+  onRestoreBackup?: { season: number; week: number; onRestore: () => void };
 }) {
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   return (
     <SafeAreaView className="flex-1 items-center justify-center bg-ink px-6">
       <View className="w-full border-2 border-stamp bg-paper p-5">
-        <Text className="text-lg font-bold uppercase text-stamp">We could not open your club</Text>
+        <Text className="font-pixel text-lg uppercase text-stamp">We could not open your club</Text>
         <Text className="mt-3 text-sm leading-5 text-ink/70">Your saved career has not been changed. Try again.</Text>
         <Text className="mt-2 text-xs leading-4 text-ink/50">Technical detail: {message}</Text>
-        <Pressable
-          accessibilityRole="button"
+        <BootFailureButton
+          tone="primary"
+          label="Retry"
           accessibilityLabel="Retry opening club files"
           onPress={onRetry}
-          className="mt-5 min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-blue px-4"
-          style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
-        >
-          <Text className="font-pixel text-sm uppercase text-paper">Retry</Text>
-        </Pressable>
+        />
+        {onRestoreBackup !== undefined && (
+          <BootFailureButton
+            tone="paper"
+            label={`Restore season ${onRestoreBackup.season} · week ${onRestoreBackup.week}`}
+            accessibilityLabel={`Restore the backup saved at season ${onRestoreBackup.season}, week ${onRestoreBackup.week}`}
+            onPress={onRestoreBackup.onRestore}
+          />
+        )}
         {onStartFresh !== undefined && (
-          <Pressable
-            accessibilityRole="button"
+          <BootFailureButton
+            tone="paper"
+            label={confirmingDiscard ? 'Tap again to delete' : 'Delete save · start fresh'}
             accessibilityLabel={confirmingDiscard
               ? 'Confirm: delete the saved career and start fresh'
               : 'Delete the saved career and start fresh'}
             onPress={() => (confirmingDiscard ? onStartFresh() : setConfirmingDiscard(true))}
-            className="mt-3 min-h-12 items-center justify-center border-2 border-b-4 border-stamp bg-paper px-4"
-            style={({ pressed }) => ({ transform: [{ translateY: pressed ? 2 : 0 }] })}
-          >
-            <Text className="font-pixel text-sm uppercase text-stamp">
-              {confirmingDiscard ? 'Tap again to delete' : 'Delete save · start fresh'}
-            </Text>
-          </Pressable>
+          />
         )}
       </View>
     </SafeAreaView>
+  );
+}
+
+/**
+ * Persistent, non-dismissible: a career that is not reaching disk must keep
+ * saying so. `blocked` means week advancement is paused, so the retry is the
+ * designed way out rather than an optional extra.
+ */
+function SaveWarningBanner({
+  message,
+  blocked,
+  onRetry,
+}: {
+  message: string;
+  blocked: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <View
+      accessible
+      accessibilityRole="alert"
+      accessibilityLabel={`Save problem: ${message}`}
+      className="absolute inset-x-0 top-0 border-b-4 border-stamp bg-red-light px-4 py-3"
+    >
+      <Text className="font-pixel text-sm uppercase text-stamp">Your club is not saving</Text>
+      <Text className="mt-1 text-xs leading-4 text-ink/70">{message}</Text>
+      {blocked && (
+        <BootFailureButton
+          tone="primary"
+          label="Try saving again"
+          accessibilityLabel="Try saving your career again"
+          onPress={onRetry}
+        />
+      )}
+    </View>
   );
 }
 

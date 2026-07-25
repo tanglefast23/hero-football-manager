@@ -6,6 +6,7 @@ import {
   PLAYER_DRAW_SCALE,
   snapSpriteScale,
 } from '../interpolate';
+import { snapDevicePixels } from '../pixel-grid';
 
 /**
  * docs/11-art-style.md: "On-screen scaling is always an integer multiple".
@@ -170,12 +171,25 @@ describe('renderer wiring contract', () => {
   test('every atlas transform rounds its translate to whole device pixels', () => {
     const source = readFileSync(join(renderDir, 'worklet-atlas-frame.ts'), 'utf8');
     const setCalls = (source.match(/xf\.set\(/g) ?? []).length;
-    const snapCalls = (source.match(/snapTranslateWorklet\(/g) ?? []).length;
+    const snapCalls = (source.match(/snapDevicePixels\(/g) ?? []).length;
 
-    // Two RSXform writers (ball + player), two translate arguments each, plus
-    // the helper's own declaration. A raw float translate re-introduces the
-    // per-frame sub-pixel phase shift that makes the sprites shimmer.
+    // Two RSXform writers (ball + player), two translate arguments each. A raw
+    // float translate re-introduces the per-frame sub-pixel phase shift that
+    // makes the sprites shimmer.
     expect(setCalls).toBe(2);
-    expect(snapCalls).toBe(setCalls * 2 + 1);
+    expect(snapCalls).toBe(setCalls * 2);
+    // ...and it must be the shared rule, not a private re-implementation.
+    expect(source).toContain("from './pixel-grid'");
+  });
+
+  test('one device-pixel snapping rule, shared by the camera, sprites and FX', () => {
+    const inlineRule = /Math\.round\([^\n]*\* *dpr\) *\/ *dpr/;
+    for (const file of ['interpolate.ts', 'worklet-atlas-frame.ts', 'WorkletMatchOverlays.tsx']) {
+      expect(readFileSync(join(renderDir, file), 'utf8')).not.toMatch(inlineRule);
+    }
+    expect(snapDevicePixels(10.4, 3)).toBeCloseTo(10 + 1 / 3, 10);
+    expect(snapDevicePixels(10.4, 1)).toBe(10);
+    // A sub-1 ratio would otherwise quantise dp positions into multi-dp jumps.
+    expect(snapDevicePixels(10.4, 0.5)).toBe(10);
   });
 });

@@ -1185,6 +1185,29 @@ const gameStateSchema = z
       });
     }
     if (state.market !== undefined) {
+      // A scout report is read back as a transfer target: the market tab looks
+      // the scouted player up and throws when they are gone. Every other
+      // reference in this save is checked, so this one is too — and
+      // `parseStoredGameState` drops the danglers saves in the field already have.
+      const transferTargetIds = new Set<string>();
+      for (const [playerId, clubId] of playerClubById) {
+        if (clubId !== state.userClubId) transferTargetIds.add(playerId);
+      }
+      for (const division of state.m2?.pyramid.divisions ?? []) {
+        for (const club of division.clubs) {
+          if (club.id === state.userClubId) continue;
+          for (const player of club.squad) transferTargetIds.add(player.id);
+        }
+      }
+      for (let index = 0; index < state.market.scoutReports.length; index += 1) {
+        const report = state.market.scoutReports[index];
+        if (transferTargetIds.has(report.playerId)) continue;
+        context.addIssue({
+          code: 'custom',
+          path: ['market', 'scoutReports', index, 'playerId'],
+          message: 'scout report must reference a player at another club',
+        });
+      }
       if (state.market.headCoach !== undefined
         && state.market.assistantCoach?.id === state.market.headCoach.id) {
         context.addIssue({
@@ -1429,6 +1452,10 @@ export function parseStoredGameState(serialized: string): GameState {
   // Then walk the save up to the current schema version. This is the step that
   // lets a shipped update change the save shape without wiping the field.
   value = migrateStoredGameState(value);
+  // Referential fail-soft, after the ladder so it sees the final shape: the
+  // schema now requires every scout report to resolve, and saves written before
+  // it did must still load.
+  value = dropUnresolvableScoutReports(value);
   assertSupportedSchema(value, true);
   let validation: z.ZodSafeParseResult<unknown>;
   try {
@@ -1509,6 +1536,59 @@ function removeRetiredWeeklyTraining(value: unknown): unknown {
 
   const { maxFocusDrillsPerWeek: _maxFocusDrillsPerWeek, ...rulesWithoutCap } = trainingRules;
   return { ...withoutWeeklyTraining, trainingRules: rulesWithoutCap };
+}
+
+/**
+ * Drops scout reports whose scouted player is no longer somewhere the market can
+ * find them — retired, or gone with a regenerated pyramid. The report is a
+ * shopping note, so losing it costs nothing; keeping it crashes the Market tab
+ * on every visit, and the tab is reachable from a save that loads.
+ */
+function dropUnresolvableScoutReports(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  const market = value.market;
+  if (!isRecord(market) || !Array.isArray(market.scoutReports)) return value;
+  const userClubId = value.userClubId;
+  if (typeof userClubId !== 'string') return value;
+
+  const targetIds = transferTargetPlayerIds(value, userClubId);
+  // Malformed reports are kept so the validator still reports them rather than
+  // this quietly hiding a corrupt save.
+  const scoutReports = market.scoutReports.filter(report => (
+    !isRecord(report)
+    || typeof report.playerId !== 'string'
+    || targetIds.has(report.playerId)
+  ));
+  if (scoutReports.length === market.scoutReports.length) return value;
+  return { ...value, market: { ...market, scoutReports } };
+}
+
+function transferTargetPlayerIds(
+  state: Record<string, unknown>,
+  userClubId: string,
+): Set<string> {
+  const ids = new Set<string>();
+  if (Array.isArray(state.players)) {
+    for (const player of state.players) {
+      if (!isRecord(player) || typeof player.id !== 'string') continue;
+      if (player.clubId === userClubId) continue;
+      ids.add(player.id);
+    }
+  }
+  const m2 = state.m2;
+  const pyramid = isRecord(m2) ? m2.pyramid : undefined;
+  const divisions = isRecord(pyramid) ? pyramid.divisions : undefined;
+  if (!Array.isArray(divisions)) return ids;
+  for (const division of divisions) {
+    if (!isRecord(division) || !Array.isArray(division.clubs)) continue;
+    for (const club of division.clubs) {
+      if (!isRecord(club) || club.id === userClubId || !Array.isArray(club.squad)) continue;
+      for (const player of club.squad) {
+        if (isRecord(player) && typeof player.id === 'string') ids.add(player.id);
+      }
+    }
+  }
+  return ids;
 }
 
 function removeRetiredHeroSystems(value: unknown): unknown {

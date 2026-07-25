@@ -10,7 +10,7 @@ import {
 describe('event story-object pixel art', () => {
   it('gives every launch event two or three story objects with real sprites', () => {
     const events = loadLaunchContent().events.events;
-    expect(events).toHaveLength(30);
+    expect(events).toHaveLength(50);
     for (const event of events) {
       const objects = eventObjectIds(event.art);
       expect(objects.length).toBeGreaterThanOrEqual(2);

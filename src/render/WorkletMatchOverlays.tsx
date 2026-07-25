@@ -1,7 +1,11 @@
 import { Fragment } from 'react';
 import { DashPathEffect, Path, usePathValue } from '@shopify/react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
-import { WORKLET_ACTION_SLIDE, WORKLET_ACTION_STRIDE } from './worklet-atlas-frame';
+import {
+  WORKLET_ACTION_SLIDE,
+  WORKLET_ACTION_STAGGER,
+  WORKLET_ACTION_STRIDE,
+} from './worklet-atlas-frame';
 import { AWAY_DECOY_INDEX, HOME_DECOY_INDEX, RENDER_PLAYER_COUNT } from '../sim/entities';
 import {
   BALL_AIRBORNE_THRESHOLD_CM,
@@ -17,6 +21,15 @@ import {
   TACKLE_GRASS_PIXELS,
   TACKLE_TRAIL_SAMPLES,
 } from './slide-tackle-effects';
+import {
+  DUEL_SCUFF_COLOR,
+  DUEL_SCUFF_OPACITY,
+  DUEL_SCUFF_PIXELS,
+  DUEL_SCUFF_TICKS,
+  duelScuffFleckOffset,
+  duelScuffFleckSize,
+} from './duel-scuff';
+import { snapDevicePixels } from './pixel-grid';
 
 const STATUS_ACTIVE = 2;
 const STATUS_IGNITED = 4;
@@ -49,7 +62,13 @@ interface WorkletMatchOverlaysProps {
   progress: SharedValue<number>;
   controlledTeam: 0 | 1;
   heroPlayers: readonly number[];
-  fireTorchPlayers: readonly number[];
+  /**
+   * Bit `i` set = render slot `i` owns Fire Torch. A bitmask rather than an array
+   * because the flame worklet reads it: Reanimated builds that worklet's
+   * dependency list out of its captured closure values, so an array rebuilt each
+   * render restarted three UI-thread mappers every sim tick.
+   */
+  fireTorchMask: number;
   encoreMarkers: readonly EncoreMarker[];
   scale: number;
   ringRadius: number;
@@ -68,6 +87,21 @@ const FLAME_LAYERS: readonly FlameLayer[] = [
   { color: '#ff6a00', heightScale: 0.72, widthScale: 0.78, opacity: 0.95 },
   { color: '#ffc23a', heightScale: 0.45, widthScale: 0.55, opacity: 0.9 },
 ];
+
+// Radial speed lines for the speed powers. Sixteen fixed spokes, precomputed at
+// module load so the worklet only ever reads them; the whole burst is batched
+// into ONE hard-edged Path (antiAlias off) rather than sixteen nodes.
+const SPEED_LINE_COUNT = 16;
+const SPEED_LINE_SPOKES: readonly { x: number; y: number }[] = Array.from(
+  { length: SPEED_LINE_COUNT },
+  (_, index) => {
+    // The half-step offset keeps every wedge off the exact axes, so none of
+    // them can degenerate into a 1px axis-aligned sliver at low zoom.
+    const angle = ((index + 0.5) / SPEED_LINE_COUNT) * Math.PI * 2;
+    return { x: Math.cos(angle), y: Math.sin(angle) };
+  },
+);
+const SPEED_LINE_COLOR = '#ffffff';
 
 /**
  * Pixel-clustered tackle debris. The body spray follows the player while a
@@ -185,6 +219,65 @@ export function WorkletSlideTackleEffects({
     : <Path path={debris} color={TACKLE_GRASS_COLOR} opacity={TACKLE_GRASS_OPACITY} antiAlias={false} />;
 }
 
+/**
+ * Activation speed lines: a radial burst of tapered wedges off the hero, for the
+ * speed powers. `slot` is the firing player's render index, or -1 for idle;
+ * `life` runs 0 -> 1 across the burst window and the wedges travel outward,
+ * shorten and fade as it climbs.
+ *
+ * Batched into one Path like WorkletSlideTackleEffects, and hard-edged for the
+ * same reason: sixteen anti-aliased vector nodes would neither batch nor match
+ * the sprites.
+ */
+export function WorkletSpeedLines({
+  slot,
+  life,
+  visualPositions,
+  scale,
+  ringRadius,
+}: {
+  slot: SharedValue<number>;
+  life: SharedValue<number>;
+  visualPositions: SharedValue<Float32Array>;
+  scale: number;
+  ringRadius: number;
+}) {
+  const lines = usePathValue((builder) => {
+    'worklet';
+    const player = slot.value;
+    if (player < 0 || player >= RENDER_PLAYER_COUNT) return;
+    const progress = life.value;
+    if (progress <= 0 || progress >= 1) return;
+    const cx = visualPositions.value[player * 2] * scale;
+    const cy = visualPositions.value[player * 2 + 1] * scale;
+    const inner = ringRadius * (0.9 + progress * 3.4);
+    const length = ringRadius * (2.4 - progress * 1.7);
+    const halfWidth = ringRadius * 0.2 * (1 - progress);
+    for (let index = 0; index < SPEED_LINE_SPOKES.length; index += 1) {
+      const spoke = SPEED_LINE_SPOKES[index];
+      // Perpendicular, so the wedge widens across the spoke as it runs outward.
+      const sideX = -spoke.y * halfWidth;
+      const sideY = spoke.x * halfWidth;
+      const nearX = cx + spoke.x * inner;
+      const nearY = cy + spoke.y * inner;
+      const farX = cx + spoke.x * (inner + length);
+      const farY = cy + spoke.y * (inner + length);
+      builder.moveTo(nearX, nearY);
+      builder.lineTo(farX + sideX, farY + sideY);
+      builder.lineTo(farX - sideX, farY - sideY);
+      builder.close();
+    }
+  });
+  const opacity = useDerivedValue(() => {
+    if (slot.value < 0) return 0;
+    const progress = life.value;
+    if (progress <= 0 || progress >= 1) return 0;
+    return 0.85 * (1 - progress);
+  });
+
+  return <Path path={lines} color={SPEED_LINE_COLOR} opacity={opacity} antiAlias={false} />;
+}
+
 /** Ground-locked cue that makes the ball sprite's vertical offset read as height. */
 export function WorkletBallShadow({
   ballGroundPosition,
@@ -225,7 +318,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
     progress,
     controlledTeam,
     heroPlayers,
-    fireTorchPlayers,
+    fireTorchMask,
     encoreMarkers,
     scale,
     ringRadius,
@@ -268,7 +361,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           statuses={statuses}
           simTick={simTick}
           progress={progress}
-          fireTorchPlayers={fireTorchPlayers}
+          fireTorchMask={fireTorchMask}
           scale={scale}
           ringRadius={ringRadius}
           reduceMotion={reduceMotion}
@@ -291,7 +384,8 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
       {encoreMarkers.map((marker) => (
         <WorkletEncoreBolt
           key={marker.slot}
-          marker={marker}
+          slot={marker.slot}
+          grantTick={marker.grantTick}
           visualPositions={visualPositions}
           simTick={simTick}
           progress={progress}
@@ -307,16 +401,22 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
  * Rally Cry's grant signal: a gold lightning bolt over the teammate that just
  * received an encore, held bright then fading across ENCORE_MARKER_TICKS (~2s).
  * The encore itself lives in the engine; this is purely the "you got it" cue.
+ *
+ * Takes the marker's two fields as primitives rather than the object: the parent
+ * rebuilds that object every sim tick, and an object in a worklet's closure
+ * restarts its UI-thread mapper each time it changes identity.
  */
 function WorkletEncoreBolt({
-  marker,
+  slot,
+  grantTick,
   visualPositions,
   simTick,
   progress,
   scale,
   ringRadius,
 }: {
-  marker: EncoreMarker;
+  slot: number;
+  grantTick: number;
   visualPositions: SharedValue<Float32Array>;
   simTick: SharedValue<number>;
   progress: SharedValue<number>;
@@ -325,8 +425,8 @@ function WorkletEncoreBolt({
 }) {
   const bolt = usePathValue((builder) => {
     'worklet';
-    const cx = visualPositions.value[marker.slot * 2] * scale;
-    const cy = visualPositions.value[marker.slot * 2 + 1] * scale;
+    const cx = visualPositions.value[slot * 2] * scale;
+    const cy = visualPositions.value[slot * 2 + 1] * scale;
     const top = cy - ringRadius * 3.6;
     const w = ringRadius * 0.85;
     const seg = ringRadius * 1.05;
@@ -337,7 +437,7 @@ function WorkletEncoreBolt({
   });
   const opacity = useDerivedValue(() => {
     const visualTick = Math.max(0, simTick.value - 1 + progress.value);
-    const age = visualTick - marker.grantTick;
+    const age = visualTick - grantTick;
     if (age < 0) return 0;
     // Hold bright for the first few ticks, then fade out by the window's end.
     return Math.max(0, Math.min(1, 1 - (age - 6) / (ENCORE_MARKER_TICKS - 6)));
@@ -463,7 +563,7 @@ function WorkletFlameLayer({
   statuses,
   simTick,
   progress,
-  fireTorchPlayers,
+  fireTorchMask,
   scale,
   ringRadius,
   reduceMotion,
@@ -473,7 +573,7 @@ function WorkletFlameLayer({
   statuses: SharedValue<Float32Array>;
   simTick: SharedValue<number>;
   progress: SharedValue<number>;
-  fireTorchPlayers: readonly number[];
+  fireTorchMask: number;
   scale: number;
   ringRadius: number;
   reduceMotion: boolean;
@@ -486,7 +586,7 @@ function WorkletFlameLayer({
     const count = 5;
     for (let player = 0; player < 22; player += 1) {
       const status = statuses.value[player];
-      const fireCaster = fireTorchPlayers.includes(player);
+      const fireCaster = (fireTorchMask & (1 << player)) !== 0;
       if (status !== STATUS_IGNITED && !(status === STATUS_ACTIVE && fireCaster)) continue;
       const cx = visualPositions.value[player * 2] * scale;
       const baseY = visualPositions.value[player * 2 + 1] * scale + ringRadius * 0.35;
@@ -509,4 +609,87 @@ function WorkletFlameLayer({
     }
   });
   return <Path path={path} color={layer.color} opacity={layer.opacity} />;
+}
+
+/**
+ * Lost-duel contact mark: a short cream fleck spray where a challenge was
+ * beaten. A TACKLE with `won: false, contact: true` fires ~100 times a match and
+ * used to be audio-only — the thud played, both sprites carried on, and the beat
+ * read as "nothing happened". This is its visual half; the other half is the
+ * loser's own recoil (the 'stagger' pose in animation.ts), which is what makes
+ * WHO lost legible. The presser standoff keeps duelling sprites only ~90-150
+ * pitch units apart, so this is drawn OVER the atlas — under it the mark would
+ * disappear beneath two overlapping bodies.
+ *
+ * Batched exactly like WorkletSlideTackleEffects: geometry precomputed at module
+ * load, every concurrent scuff in ONE hard-edged Path (antiAlias off), and no
+ * per-fleck opacity, because a shared Path has only one. The spray fades by
+ * drifting outward and shrinking instead. Reduce Motion never records a stagger
+ * pose, so this draws nothing at all in that mode.
+ */
+export function WorkletDuelScuff({
+  actionData,
+  simTick,
+  progress,
+  scale,
+  playerDrawScale,
+  devicePixelRatio,
+}: {
+  actionData: SharedValue<Float32Array>;
+  simTick: SharedValue<number>;
+  progress: SharedValue<number>;
+  scale: number;
+  playerDrawScale: number;
+  devicePixelRatio: number;
+}) {
+  const scuff = usePathValue((builder) => {
+    'worklet';
+    const visualTick = Math.max(0, simTick.value - 1 + progress.value);
+    const pixel = scale * playerDrawScale;
+    for (let player = 0; player < RENDER_PLAYER_COUNT; player += 1) {
+      const offset = player * WORKLET_ACTION_STRIDE;
+      if (actionData.value[offset] !== WORKLET_ACTION_STAGGER) continue;
+      const age = visualTick - actionData.value[offset + 1];
+      if (age < 0 || age >= DUEL_SCUFF_TICKS) continue;
+
+      // Recoil direction, already a unit vector, plus its perpendicular: the
+      // spray leans the way the duel was lost rather than ringing the point.
+      const ux = actionData.value[offset + 3];
+      const uy = actionData.value[offset + 4];
+      const sideX = -uy;
+      const sideY = ux;
+      // The contact point is a fixed pitch coordinate, so the mark stays put
+      // while the loser is shoved off it.
+      const cx = snapDevicePixels(actionData.value[offset + 6] * scale, devicePixelRatio);
+      const cy = snapDevicePixels(actionData.value[offset + 7] * scale, devicePixelRatio);
+
+      for (let index = 0; index < DUEL_SCUFF_PIXELS.length; index += 1) {
+        const fleck = DUEL_SCUFF_PIXELS[index];
+        const size = duelScuffFleckSize(fleck.size, age) * pixel;
+        const along = duelScuffFleckOffset(fleck.along, age);
+        const side = duelScuffFleckOffset(fleck.side, age);
+        // Centring on an odd source size halves a whole device-pixel span, so
+        // snap the corner back onto the grid. `size` is already a whole number of
+        // device pixels (integer source pixels x snapped magnification), which
+        // makes the far edge land on it too.
+        const left = snapDevicePixels(
+          cx + (ux * along + sideX * side) * pixel - size * 0.5,
+          devicePixelRatio,
+        );
+        const top = snapDevicePixels(
+          cy + (uy * along + sideY * side) * pixel - size * 0.5,
+          devicePixelRatio,
+        );
+        builder.moveTo(left, top);
+        builder.lineTo(left + size, top);
+        builder.lineTo(left + size, top + size);
+        builder.lineTo(left, top + size);
+        builder.close();
+      }
+    }
+  });
+
+  return (
+    <Path path={scuff} color={DUEL_SCUFF_COLOR} opacity={DUEL_SCUFF_OPACITY} antiAlias={false} />
+  );
 }

@@ -11,9 +11,11 @@ import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 import {
   CorruptCareerSaveError,
   InvalidGameStateError,
+  MissingCareerBackupError,
   UnsupportedGameSchemaError,
 } from '../errors';
 import { PERSISTENCE_SCHEMA_VERSION } from '../migrations';
+import type { DatabaseBindParams } from '../database';
 import { FakePersistenceDatabase } from './fake-database';
 
 describe('career repository', () => {
@@ -214,8 +216,143 @@ describe('career repository', () => {
     );
     expect(database.careerRow).toBeNull();
   });
+
+  it('rejects a row whose schema version column is below the first version', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    database.seedCareerRow({ schema_version: 0, state_json: '{"schemaVersion":1}' });
+
+    await expect(repository.load()).rejects.toBeInstanceOf(CorruptCareerSaveError);
+  });
+});
+
+describe('career backup generation', () => {
+  it('keeps one season-boundary copy and refreshes it when the season turns', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const seasonOne = makeState();
+
+    await repository.save(seasonOne);
+    await expect(repository.backupSummary()).resolves.toEqual({ season: 1, week: 1 });
+
+    // Mid-season saves leave the previous generation alone.
+    await repository.save(atSeason(seasonOne, 1, 7));
+    await expect(repository.backupSummary()).resolves.toEqual({ season: 1, week: 1 });
+
+    await repository.save(atSeason(seasonOne, 2, 3));
+    await expect(repository.backupSummary()).resolves.toEqual({ season: 2, week: 3 });
+  });
+
+  it('reports no backup before the first save', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+
+    await expect(repository.backupSummary()).resolves.toBeNull();
+    await expect(repository.restoreBackup()).rejects.toBeInstanceOf(
+      MissingCareerBackupError,
+    );
+  });
+
+  it('restores the backup over a live slot that can no longer be read', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const state = makeState();
+    await repository.save(state);
+
+    // What data loss looks like from here: the row is still there and no longer
+    // decodes. Without the backup the whole career would be gone.
+    database.seedCareerRow({ schema_version: 1, state_json: '{"schemaVersion":1}' });
+    await expect(repository.load()).rejects.toBeInstanceOf(CorruptCareerSaveError);
+
+    const restored = await repository.restoreBackup();
+
+    expect(restored.careerSeed).toBe(state.careerSeed);
+    await expect(repository.load()).resolves.toEqual(restored);
+  });
+
+  it('carries the restored season forward so the next season backs up again', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const state = makeState();
+    await repository.save(state);
+    await repository.save(atSeason(state, 2, 1));
+
+    await repository.restoreBackup();
+    await repository.save(atSeason(state, 2, 4));
+    await expect(repository.backupSummary()).resolves.toEqual({ season: 2, week: 1 });
+
+    await repository.save(atSeason(state, 3, 1));
+    await expect(repository.backupSummary()).resolves.toEqual({ season: 3, week: 1 });
+  });
+
+  it('refuses to restore a backup this build cannot decode', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const state = makeState();
+    await repository.save(state);
+    database.seedBackupRow({
+      schema_version: 1,
+      state_json: '{"schemaVersion":1}',
+      saved_season: 1,
+      saved_week: 1,
+    });
+
+    await expect(repository.restoreBackup()).rejects.toBeInstanceOf(
+      CorruptCareerSaveError,
+    );
+    // The live slot is untouched: a bad backup must not cost the live save.
+    await expect(repository.load()).resolves.toEqual(state);
+  });
+
+  it('does not report a saved week as lost when only the backup copy fails', async () => {
+    const database = new BackupWriteFailureDatabase();
+    const repository = await createCareerRepository(database);
+    const state = makeState();
+
+    await expect(repository.save(state)).resolves.toBeUndefined();
+    await expect(repository.load()).resolves.toEqual(state);
+    await expect(repository.backupSummary()).resolves.toBeNull();
+
+    // The checkpoint is retried rather than skipped for the rest of the season.
+    database.backupWritesFail = false;
+    await repository.save(atSeason(state, 1, 5));
+    await expect(repository.backupSummary()).resolves.toEqual({ season: 1, week: 5 });
+  });
+
+  it('reports the database file as damaged when SQLite says so', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+
+    await expect(repository.checkIntegrity()).resolves.toBe(true);
+    database.integrity = '*** in database main *** Page 4 is never used';
+    await expect(repository.checkIntegrity()).resolves.toBe(false);
+  });
 });
 
 function makeState(): GameState {
   return createCareer(createLaunchCareerSetup(987654321));
+}
+
+/** Moves a career to a season and week, keeping the season-linked sidecars legal. */
+function atSeason(state: GameState, season: number, week: number): GameState {
+  return {
+    ...state,
+    season,
+    week,
+    ...(state.youthIntake === undefined
+      ? {}
+      : { youthIntake: { ...state.youthIntake, season } }),
+  };
+}
+
+/** A disk with room for the live save but not for its backup copy. */
+class BackupWriteFailureDatabase extends FakePersistenceDatabase {
+  backupWritesFail = true;
+
+  override async runAsync(source: string, params: DatabaseBindParams) {
+    if (this.backupWritesFail && source.includes('career_save_backups')) {
+      throw new Error('database or disk is full');
+    }
+    return super.runAsync(source, params);
+  }
 }

@@ -5,6 +5,7 @@ import { PITCH_H, PITCH_W, type Vec } from '../sim/geometry';
 import { ARM_WINDOW_TICKS, ZONE_WINDOW_TICKS } from '../sim/powers';
 import type { MatchState } from '../sim/types';
 import { playerAt, RENDER_PLAYER_COUNT } from '../sim/entities';
+import { snapDevicePixels } from './pixel-grid';
 
 // No 'ready' state exists (Task 14 amendment ledger item 5) — a hero's
 // zone window is its own status, distinct from an ordinary idle 'ok'.
@@ -120,6 +121,90 @@ export function matchPitchLayout(
     scale,
     player: snapSpriteScale(scale, PLAYER_DRAW_SCALE, devicePixelRatio),
     ball: snapSpriteScale(scale, BALL_DRAW_SCALE, devicePixelRatio),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Match camera (pan / integer zoom / shake).
+//
+// There is one camera for the whole pitch: a single <Group transform> wrapping
+// the canvas contents, so nothing per-draw-site changes. Both numbers it needs
+// are computed here because both have to respect the device-pixel grid that
+// snapSpriteScale() above just bought us:
+//
+//  - The zoom is an INTEGER magnification step (1x -> 2x), never a smooth ramp.
+//    Group scale multiplies the already-snapped sprite magnification, so a
+//    fractional zoom would put every source texel back on a fraction of a
+//    device pixel and re-introduce the shimmer. An integer multiple of an
+//    integer is still an integer. It is also the more deliberate read for pixel
+//    art: a hard punch-in, not a dolly.
+//  - The translate is rounded to whole DEVICE pixels for the same reason the
+//    per-sprite translates are, through the one shared rule in pixel-grid.ts.
+// ---------------------------------------------------------------------------
+
+/** Peak screen-shake displacement, in dp, before decay and pixel-quantising. */
+export const MATCH_SHAKE_AMPLITUDE_PT = 3;
+
+export interface MatchShakeOffset {
+  x: number;
+  y: number;
+}
+
+/**
+ * Decaying two-axis shake. Deterministic (two incommensurate sine terms, no
+ * PRNG) so it can be asserted in a test, and quadratic decay so the first frame
+ * carries the hit and the tail settles instead of buzzing.
+ */
+export function matchShakeOffset(
+  elapsedMs: number,
+  durationMs: number,
+  amplitude: number,
+): MatchShakeOffset {
+  if (elapsedMs < 0 || elapsedMs >= durationMs || durationMs <= 0) return { x: 0, y: 0 };
+  const progress = elapsedMs / durationMs;
+  const decay = (1 - progress) ** 2;
+  return {
+    x: Math.sin(progress * Math.PI * 14) * amplitude * decay,
+    // Shorter vertical throw: a mostly-horizontal shake reads as impact rather
+    // than as the whole screen wobbling.
+    y: Math.sin(progress * Math.PI * 11 + 1.7) * amplitude * decay * 0.7,
+  };
+}
+
+export interface MatchCameraOffset {
+  /** dp, already whole device pixels. */
+  translateX: number;
+  translateY: number;
+  /** The integer magnification actually applied. */
+  zoom: number;
+}
+
+/**
+ * Camera translate for `<Group transform={[{translateX},{translateY},{scale}]}>`
+ * (no `origin` prop — the centring is folded into the translate, so the composed
+ * matrix stays `p -> zoom * p + translate` and the grid math above holds).
+ *
+ * `focus` is where to centre, in canvas dp. It is clamped so the visible window
+ * never leaves the pitch: an activation must not reveal void beyond the touchline.
+ */
+export function matchCameraOffset(
+  focusX: number,
+  focusY: number,
+  viewWidth: number,
+  viewHeight: number,
+  zoom: number,
+  shake: MatchShakeOffset,
+  devicePixelRatio: number,
+): MatchCameraOffset {
+  const steps = Math.max(1, Math.round(zoom));
+  const halfWidth = viewWidth / (2 * steps);
+  const halfHeight = viewHeight / (2 * steps);
+  const centerX = Math.min(Math.max(focusX, halfWidth), viewWidth - halfWidth);
+  const centerY = Math.min(Math.max(focusY, halfHeight), viewHeight - halfHeight);
+  return {
+    translateX: snapDevicePixels(viewWidth / 2 - steps * centerX + shake.x, devicePixelRatio),
+    translateY: snapDevicePixels(viewHeight / 2 - steps * centerY + shake.y, devicePixelRatio),
+    zoom: steps,
   };
 }
 

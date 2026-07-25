@@ -1,3 +1,4 @@
+import { CAREER_MILESTONES } from '../../game';
 import { loadLaunchContent, parseLaunchContent } from '../load';
 import type { LaunchContent } from '../schemas';
 
@@ -69,7 +70,7 @@ describe('validated M1 launch content', () => {
       drillPaths.set(path, [...(drillPaths.get(path) ?? []), ...Object.values(drill.gains)]);
     }
     expect([...drillPaths.values()]).toEqual(Array.from({ length: 7 }, () => [3, 5, 8]));
-    expect(content.events.events).toHaveLength(30);
+    expect(content.events.events).toHaveLength(50);
     expect(new Set(content.events.events.map(event => event.category))).toEqual(new Set([
       'mystery',
       'club',
@@ -91,12 +92,12 @@ describe('validated M1 launch content', () => {
     const successHeadlines = content.events.events.flatMap(event => event.choices
       .filter(choice => choice.risky)
       .map(choice => ({ event: event.title, headline: choice.outcomes[0].successHeadline })));
-    expect(successHeadlines).toHaveLength(30);
+    expect(successHeadlines).toHaveLength(50);
     for (const { event, headline } of successHeadlines) {
       expect(headline).toEqual(expect.any(String));
       expect(headline).not.toContain(event);
     }
-    expect(new Set(successHeadlines.map(entry => entry.headline)).size).toBe(30);
+    expect(new Set(successHeadlines.map(entry => entry.headline)).size).toBe(50);
     expect(content.events.events.some(event => event.trigger.requiresPlayer)).toBe(true);
     expect(content.events.events.some(event => event.trigger.requiredFacility)).toBe(true);
     expect(content.events.events.some(event => event.trigger.requiredPersonality)).toBe(true);
@@ -135,6 +136,58 @@ describe('validated M1 launch content', () => {
         }
       }
     }
+  });
+
+  test('ships a recognition story for every career milestone the engine records', () => {
+    const events = loadLaunchContent().events.events;
+    const milestoneStories = events.filter(
+      event => event.trigger.requiredFlag?.startsWith('milestone:') === true,
+    );
+
+    expect(milestoneStories.map(event => event.id)).toEqual([
+      'milestone-first-win',
+      'milestone-first-hero-goal',
+      'milestone-statement-win',
+      'milestone-unbeaten-run',
+      'milestone-first-cup-win',
+      'milestone-crowd-thousand',
+      'milestone-promotion-push',
+    ]);
+    for (const milestone of CAREER_MILESTONES) {
+      const story = events.find(event => event.id === milestone.eventId);
+      expect(story?.trigger.requiredFlag).toBe(milestone.flag);
+      // Recognition arrives from Season 1 onward, whenever the club earns it.
+      expect(story?.trigger.season).toBe(1);
+    }
+  });
+
+  test('threads authored follow-ups and keeps a run of good news in the deck', () => {
+    const events = loadLaunchContent().events.events;
+    const chains = events.flatMap(event => event.choices.flatMap(choice => choice.outcomes.flatMap(
+      outcome => outcome.nextEventId === undefined ? [] : [[event.id, outcome.nextEventId]],
+    )));
+
+    expect(chains).toEqual(expect.arrayContaining([
+      ['hundredth-fan', 'community-mural'],
+      ['rival-bid-arrives', 'rival-bid-deadline-day'],
+      ['leaking-stand-roof', 'west-stand-reopening'],
+    ]));
+    // Every authored thread step is reachable by the flag its opener produces,
+    // so a chain broken by a retired event still resolves from the weekly deck.
+    for (const followUpId of ['rival-bid-deadline-day', 'west-stand-reopening', 'terrace-choir-anthem']) {
+      expect(events.find(event => event.id === followUpId)?.trigger.requiredFlag)
+        .toEqual(expect.any(String));
+    }
+    // Good news the player can look forward to: stories whose every outcome
+    // leaves the club no worse off than it started.
+    const goodNews = events.filter(event => event.choices.every(choice => choice.outcomes.every(
+      outcome => outcome.effects.every(effect => (
+        effect.type === 'flag' || effect.type === 'injury'
+          ? effect.type === 'flag'
+          : effect.type === 'statDelta' ? effect.amount >= 0 : effect.amount >= 0
+      )),
+    )));
+    expect(goodNews.length).toBeGreaterThanOrEqual(12);
   });
 
   test('loads byte-identically and does not share mutable parsed objects', () => {
@@ -227,7 +280,7 @@ describe('validated M1 launch content', () => {
     }));
     expect(content.events.tuning).toEqual({
       weeklyChancePercent: 18,
-      guaranteeAfterDryWeeks: 8,
+      guaranteeAfterDryWeeks: 6,
     });
     expect(content.powers.awakening).toEqual({
       postMatchChancePercent: 10,
