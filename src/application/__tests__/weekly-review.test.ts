@@ -1,5 +1,6 @@
 import {
   advanceWeek,
+  BASE_WEEKLY_TRAINING_POINTS,
   buildCareerFacility,
   completeMatchday,
   createCareer,
@@ -77,8 +78,10 @@ describe('weekly review view model', () => {
     const after = advanceWeek(before);
     const review = weeklyReviewViewModel(before, after);
 
-    expect(after.trainingPoints).toBe(started.trainingPoints);
-    expect(review.netTrainingPoints).toBe(0);
+    // The pitch itself pays nothing until it opens; the club's unconditional
+    // baseline still lands in both build weeks.
+    expect(after.trainingPoints).toBe(started.trainingPoints + BASE_WEEKLY_TRAINING_POINTS * 2);
+    expect(review.netTrainingPoints).toBe(BASE_WEEKLY_TRAINING_POINTS);
     expect(review.facilityCompletion).toEqual({
       type: 'training-pitch',
       name: 'Training Pitch',

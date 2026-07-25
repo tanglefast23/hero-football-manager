@@ -149,7 +149,14 @@ describe('launch career adapter', () => {
     const migrated = reconcileLaunchRoster(legacy, content);
     expect(migrated.players).toHaveLength(160);
     expect(migrated.players.filter(player => player.clubId === DEFAULT_USER_CLUB_ID)).toHaveLength(16);
-    expect(migrated.players.find(player => player.id === 'bramble-rovers-p12')?.weeklyWage).toBe(110);
+    // The point is that migration restores the AUTHORED wage rather than the
+    // inflated one the legacy save carried, so read it from content instead of
+    // pinning a number that moves whenever wages are rebalanced.
+    const authoredP12Wage = content.clubs.clubs
+      .find(club => club.id === DEFAULT_USER_CLUB_ID)!
+      .players.find(player => player.id === 'bramble-rovers-p12')!.weeklyWage;
+    expect(migrated.players.find(player => player.id === 'bramble-rovers-p12')?.weeklyWage)
+      .toBe(authoredP12Wage);
     const bramblePayroll = migrated.players
       .filter(player => player.clubId === DEFAULT_USER_CLUB_ID)
       .reduce((sum, player) => sum + player.weeklyWage, 0);

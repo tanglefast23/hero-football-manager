@@ -27,7 +27,7 @@
             "sta": 59,
             "ref": 61
           },
-          "weeklyWage": 205,
+          "weeklyWage": 164,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -48,7 +48,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 197,
+          "weeklyWage": 158,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -69,7 +69,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 204,
+          "weeklyWage": 163,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -90,7 +90,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 211,
+          "weeklyWage": 169,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -111,7 +111,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 218,
+          "weeklyWage": 174,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -132,7 +132,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 225,
+          "weeklyWage": 180,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -153,7 +153,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 232,
+          "weeklyWage": 186,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -174,7 +174,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 239,
+          "weeklyWage": 191,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -195,7 +195,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 246,
+          "weeklyWage": 197,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -216,7 +216,7 @@
             "sta": 60,
             "ref": 10
           },
-          "weeklyWage": 283,
+          "weeklyWage": 226,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -237,7 +237,7 @@
             "sta": 61,
             "ref": 10
           },
-          "weeklyWage": 290,
+          "weeklyWage": 232,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -258,7 +258,7 @@
             "sta": 61,
             "ref": 63
           },
-          "weeklyWage": 110,
+          "weeklyWage": 88,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -279,7 +279,7 @@
             "sta": 60,
             "ref": 10
           },
-          "weeklyWage": 112,
+          "weeklyWage": 90,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -300,7 +300,7 @@
             "sta": 64,
             "ref": 8
           },
-          "weeklyWage": 114,
+          "weeklyWage": 91,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -321,7 +321,7 @@
             "sta": 64,
             "ref": 8
           },
-          "weeklyWage": 120,
+          "weeklyWage": 96,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -342,7 +342,7 @@
             "sta": 58,
             "ref": 8
           },
-          "weeklyWage": 130,
+          "weeklyWage": 104,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -389,7 +389,7 @@
             "sta": 61,
             "ref": 63
           },
-          "weeklyWage": 213,
+          "weeklyWage": 170,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -410,7 +410,7 @@
             "sta": 68,
             "ref": 10
           },
-          "weeklyWage": 205,
+          "weeklyWage": 164,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -431,7 +431,7 @@
             "sta": 69,
             "ref": 10
           },
-          "weeklyWage": 212,
+          "weeklyWage": 170,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -452,7 +452,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 219,
+          "weeklyWage": 175,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -473,7 +473,7 @@
             "sta": 68,
             "ref": 10
           },
-          "weeklyWage": 226,
+          "weeklyWage": 181,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -494,7 +494,7 @@
             "sta": 68,
             "ref": 10
           },
-          "weeklyWage": 233,
+          "weeklyWage": 186,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -515,7 +515,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 240,
+          "weeklyWage": 192,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -536,7 +536,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 247,
+          "weeklyWage": 198,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -557,7 +557,7 @@
             "sta": 68,
             "ref": 10
           },
-          "weeklyWage": 254,
+          "weeklyWage": 203,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -578,7 +578,7 @@
             "sta": 62,
             "ref": 10
           },
-          "weeklyWage": 291,
+          "weeklyWage": 233,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -599,7 +599,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 298,
+          "weeklyWage": 238,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -620,7 +620,7 @@
             "sta": 63,
             "ref": 65
           },
-          "weeklyWage": 113,
+          "weeklyWage": 90,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -641,7 +641,7 @@
             "sta": 62,
             "ref": 10
           },
-          "weeklyWage": 115,
+          "weeklyWage": 92,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -662,7 +662,7 @@
             "sta": 66,
             "ref": 8
           },
-          "weeklyWage": 117,
+          "weeklyWage": 94,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -683,7 +683,7 @@
             "sta": 66,
             "ref": 8
           },
-          "weeklyWage": 123,
+          "weeklyWage": 98,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -704,7 +704,7 @@
             "sta": 60,
             "ref": 8
           },
-          "weeklyWage": 134,
+          "weeklyWage": 107,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -751,7 +751,7 @@
             "sta": 58,
             "ref": 60
           },
-          "weeklyWage": 221,
+          "weeklyWage": 177,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -772,7 +772,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 213,
+          "weeklyWage": 170,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -793,7 +793,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 220,
+          "weeklyWage": 176,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -814,7 +814,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 227,
+          "weeklyWage": 182,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -835,7 +835,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 234,
+          "weeklyWage": 187,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -856,7 +856,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 241,
+          "weeklyWage": 193,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -877,7 +877,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 248,
+          "weeklyWage": 198,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -898,7 +898,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 255,
+          "weeklyWage": 204,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -919,7 +919,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 262,
+          "weeklyWage": 210,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -940,7 +940,7 @@
             "sta": 59,
             "ref": 10
           },
-          "weeklyWage": 299,
+          "weeklyWage": 239,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -961,7 +961,7 @@
             "sta": 60,
             "ref": 10
           },
-          "weeklyWage": 306,
+          "weeklyWage": 245,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -982,7 +982,7 @@
             "sta": 60,
             "ref": 62
           },
-          "weeklyWage": 116,
+          "weeklyWage": 93,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1003,7 +1003,7 @@
             "sta": 59,
             "ref": 10
           },
-          "weeklyWage": 118,
+          "weeklyWage": 94,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1024,7 +1024,7 @@
             "sta": 63,
             "ref": 8
           },
-          "weeklyWage": 120,
+          "weeklyWage": 96,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1045,7 +1045,7 @@
             "sta": 63,
             "ref": 8
           },
-          "weeklyWage": 126,
+          "weeklyWage": 101,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1066,7 +1066,7 @@
             "sta": 57,
             "ref": 8
           },
-          "weeklyWage": 138,
+          "weeklyWage": 110,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1113,7 +1113,7 @@
             "sta": 57,
             "ref": 59
           },
-          "weeklyWage": 229,
+          "weeklyWage": 183,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1134,7 +1134,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 221,
+          "weeklyWage": 177,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1155,7 +1155,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 228,
+          "weeklyWage": 182,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1176,7 +1176,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 235,
+          "weeklyWage": 188,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1197,7 +1197,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 242,
+          "weeklyWage": 194,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1218,7 +1218,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 249,
+          "weeklyWage": 199,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1239,7 +1239,7 @@
             "sta": 62,
             "ref": 10
           },
-          "weeklyWage": 256,
+          "weeklyWage": 205,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1260,7 +1260,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 263,
+          "weeklyWage": 210,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1281,7 +1281,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 270,
+          "weeklyWage": 216,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1302,7 +1302,7 @@
             "sta": 58,
             "ref": 10
           },
-          "weeklyWage": 307,
+          "weeklyWage": 246,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1323,7 +1323,7 @@
             "sta": 59,
             "ref": 10
           },
-          "weeklyWage": 314,
+          "weeklyWage": 251,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1344,7 +1344,7 @@
             "sta": 59,
             "ref": 61
           },
-          "weeklyWage": 119,
+          "weeklyWage": 95,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1365,7 +1365,7 @@
             "sta": 58,
             "ref": 10
           },
-          "weeklyWage": 121,
+          "weeklyWage": 97,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1386,7 +1386,7 @@
             "sta": 62,
             "ref": 8
           },
-          "weeklyWage": 123,
+          "weeklyWage": 98,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1407,7 +1407,7 @@
             "sta": 62,
             "ref": 8
           },
-          "weeklyWage": 129,
+          "weeklyWage": 103,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1428,7 +1428,7 @@
             "sta": 56,
             "ref": 8
           },
-          "weeklyWage": 142,
+          "weeklyWage": 114,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1475,7 +1475,7 @@
             "sta": 60,
             "ref": 62
           },
-          "weeklyWage": 237,
+          "weeklyWage": 190,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1496,7 +1496,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 229,
+          "weeklyWage": 183,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1517,7 +1517,7 @@
             "sta": 68,
             "ref": 10
           },
-          "weeklyWage": 236,
+          "weeklyWage": 189,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1538,7 +1538,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 243,
+          "weeklyWage": 194,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1559,7 +1559,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 250,
+          "weeklyWage": 200,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1580,7 +1580,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 257,
+          "weeklyWage": 206,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1601,7 +1601,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 264,
+          "weeklyWage": 211,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1622,7 +1622,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 271,
+          "weeklyWage": 217,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1643,7 +1643,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 278,
+          "weeklyWage": 222,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1664,7 +1664,7 @@
             "sta": 61,
             "ref": 10
           },
-          "weeklyWage": 315,
+          "weeklyWage": 252,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1685,7 +1685,7 @@
             "sta": 62,
             "ref": 10
           },
-          "weeklyWage": 322,
+          "weeklyWage": 258,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1706,7 +1706,7 @@
             "sta": 62,
             "ref": 64
           },
-          "weeklyWage": 122,
+          "weeklyWage": 98,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1727,7 +1727,7 @@
             "sta": 61,
             "ref": 10
           },
-          "weeklyWage": 124,
+          "weeklyWage": 99,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1748,7 +1748,7 @@
             "sta": 65,
             "ref": 8
           },
-          "weeklyWage": 126,
+          "weeklyWage": 101,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1769,7 +1769,7 @@
             "sta": 65,
             "ref": 8
           },
-          "weeklyWage": 132,
+          "weeklyWage": 106,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1790,7 +1790,7 @@
             "sta": 59,
             "ref": 8
           },
-          "weeklyWage": 146,
+          "weeklyWage": 117,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1837,7 +1837,7 @@
             "sta": 56,
             "ref": 58
           },
-          "weeklyWage": 245,
+          "weeklyWage": 196,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1858,7 +1858,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 237,
+          "weeklyWage": 190,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1879,7 +1879,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 244,
+          "weeklyWage": 195,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1900,7 +1900,7 @@
             "sta": 62,
             "ref": 10
           },
-          "weeklyWage": 251,
+          "weeklyWage": 201,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1921,7 +1921,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 258,
+          "weeklyWage": 206,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -1942,7 +1942,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 265,
+          "weeklyWage": 212,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -1963,7 +1963,7 @@
             "sta": 61,
             "ref": 10
           },
-          "weeklyWage": 272,
+          "weeklyWage": 218,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -1984,7 +1984,7 @@
             "sta": 62,
             "ref": 10
           },
-          "weeklyWage": 279,
+          "weeklyWage": 223,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2005,7 +2005,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 286,
+          "weeklyWage": 229,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2026,7 +2026,7 @@
             "sta": 57,
             "ref": 10
           },
-          "weeklyWage": 323,
+          "weeklyWage": 258,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2047,7 +2047,7 @@
             "sta": 58,
             "ref": 10
           },
-          "weeklyWage": 330,
+          "weeklyWage": 264,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2068,7 +2068,7 @@
             "sta": 58,
             "ref": 60
           },
-          "weeklyWage": 125,
+          "weeklyWage": 100,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2089,7 +2089,7 @@
             "sta": 57,
             "ref": 10
           },
-          "weeklyWage": 127,
+          "weeklyWage": 102,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2110,7 +2110,7 @@
             "sta": 61,
             "ref": 8
           },
-          "weeklyWage": 129,
+          "weeklyWage": 103,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2131,7 +2131,7 @@
             "sta": 61,
             "ref": 8
           },
-          "weeklyWage": 135,
+          "weeklyWage": 108,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2152,7 +2152,7 @@
             "sta": 55,
             "ref": 8
           },
-          "weeklyWage": 150,
+          "weeklyWage": 120,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2199,7 +2199,7 @@
             "sta": 59,
             "ref": 61
           },
-          "weeklyWage": 253,
+          "weeklyWage": 202,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2220,7 +2220,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 245,
+          "weeklyWage": 196,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2241,7 +2241,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 252,
+          "weeklyWage": 202,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2262,7 +2262,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 259,
+          "weeklyWage": 207,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2283,7 +2283,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 266,
+          "weeklyWage": 213,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2304,7 +2304,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 273,
+          "weeklyWage": 218,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2325,7 +2325,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 280,
+          "weeklyWage": 224,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2346,7 +2346,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 287,
+          "weeklyWage": 230,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2367,7 +2367,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 294,
+          "weeklyWage": 235,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2388,7 +2388,7 @@
             "sta": 60,
             "ref": 10
           },
-          "weeklyWage": 331,
+          "weeklyWage": 265,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2409,7 +2409,7 @@
             "sta": 61,
             "ref": 10
           },
-          "weeklyWage": 338,
+          "weeklyWage": 270,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2430,7 +2430,7 @@
             "sta": 61,
             "ref": 63
           },
-          "weeklyWage": 128,
+          "weeklyWage": 102,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2451,7 +2451,7 @@
             "sta": 60,
             "ref": 10
           },
-          "weeklyWage": 130,
+          "weeklyWage": 104,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2472,7 +2472,7 @@
             "sta": 64,
             "ref": 8
           },
-          "weeklyWage": 132,
+          "weeklyWage": 106,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2493,7 +2493,7 @@
             "sta": 64,
             "ref": 8
           },
-          "weeklyWage": 138,
+          "weeklyWage": 110,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2514,7 +2514,7 @@
             "sta": 58,
             "ref": 8
           },
-          "weeklyWage": 154,
+          "weeklyWage": 123,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2561,7 +2561,7 @@
             "sta": 62,
             "ref": 64
           },
-          "weeklyWage": 261,
+          "weeklyWage": 209,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2582,7 +2582,7 @@
             "sta": 69,
             "ref": 10
           },
-          "weeklyWage": 253,
+          "weeklyWage": 202,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2603,7 +2603,7 @@
             "sta": 70,
             "ref": 10
           },
-          "weeklyWage": 260,
+          "weeklyWage": 208,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2624,7 +2624,7 @@
             "sta": 68,
             "ref": 10
           },
-          "weeklyWage": 267,
+          "weeklyWage": 214,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2645,7 +2645,7 @@
             "sta": 69,
             "ref": 10
           },
-          "weeklyWage": 274,
+          "weeklyWage": 219,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2666,7 +2666,7 @@
             "sta": 69,
             "ref": 10
           },
-          "weeklyWage": 281,
+          "weeklyWage": 225,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2687,7 +2687,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 288,
+          "weeklyWage": 230,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2708,7 +2708,7 @@
             "sta": 68,
             "ref": 10
           },
-          "weeklyWage": 295,
+          "weeklyWage": 236,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2729,7 +2729,7 @@
             "sta": 69,
             "ref": 10
           },
-          "weeklyWage": 302,
+          "weeklyWage": 242,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2750,7 +2750,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 339,
+          "weeklyWage": 271,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2771,7 +2771,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 346,
+          "weeklyWage": 277,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2792,7 +2792,7 @@
             "sta": 64,
             "ref": 66
           },
-          "weeklyWage": 131,
+          "weeklyWage": 105,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2813,7 +2813,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 133,
+          "weeklyWage": 106,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2834,7 +2834,7 @@
             "sta": 67,
             "ref": 8
           },
-          "weeklyWage": 135,
+          "weeklyWage": 108,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2855,7 +2855,7 @@
             "sta": 67,
             "ref": 8
           },
-          "weeklyWage": 141,
+          "weeklyWage": 113,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2876,7 +2876,7 @@
             "sta": 61,
             "ref": 8
           },
-          "weeklyWage": 158,
+          "weeklyWage": 126,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2923,7 +2923,7 @@
             "sta": 58,
             "ref": 60
           },
-          "weeklyWage": 269,
+          "weeklyWage": 215,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -2944,7 +2944,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 261,
+          "weeklyWage": 209,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -2965,7 +2965,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 268,
+          "weeklyWage": 214,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -2986,7 +2986,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 275,
+          "weeklyWage": 220,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3007,7 +3007,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 282,
+          "weeklyWage": 226,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -3028,7 +3028,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 289,
+          "weeklyWage": 231,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -3049,7 +3049,7 @@
             "sta": 63,
             "ref": 10
           },
-          "weeklyWage": 296,
+          "weeklyWage": 237,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3070,7 +3070,7 @@
             "sta": 64,
             "ref": 10
           },
-          "weeklyWage": 303,
+          "weeklyWage": 242,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -3091,7 +3091,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 310,
+          "weeklyWage": 248,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -3112,7 +3112,7 @@
             "sta": 59,
             "ref": 10
           },
-          "weeklyWage": 347,
+          "weeklyWage": 278,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3133,7 +3133,7 @@
             "sta": 60,
             "ref": 10
           },
-          "weeklyWage": 354,
+          "weeklyWage": 283,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -3154,7 +3154,7 @@
             "sta": 60,
             "ref": 62
           },
-          "weeklyWage": 134,
+          "weeklyWage": 107,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -3175,7 +3175,7 @@
             "sta": 59,
             "ref": 10
           },
-          "weeklyWage": 136,
+          "weeklyWage": 109,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3196,7 +3196,7 @@
             "sta": 63,
             "ref": 8
           },
-          "weeklyWage": 138,
+          "weeklyWage": 110,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3217,7 +3217,7 @@
             "sta": 63,
             "ref": 8
           },
-          "weeklyWage": 144,
+          "weeklyWage": 115,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -3238,7 +3238,7 @@
             "sta": 57,
             "ref": 8
           },
-          "weeklyWage": 162,
+          "weeklyWage": 130,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -3285,7 +3285,7 @@
             "sta": 60,
             "ref": 62
           },
-          "weeklyWage": 277,
+          "weeklyWage": 222,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3306,7 +3306,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 269,
+          "weeklyWage": 215,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -3327,7 +3327,7 @@
             "sta": 68,
             "ref": 10
           },
-          "weeklyWage": 276,
+          "weeklyWage": 221,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -3348,7 +3348,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 283,
+          "weeklyWage": 226,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3369,7 +3369,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 290,
+          "weeklyWage": 232,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -3390,7 +3390,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 297,
+          "weeklyWage": 238,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -3411,7 +3411,7 @@
             "sta": 65,
             "ref": 10
           },
-          "weeklyWage": 304,
+          "weeklyWage": 243,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3432,7 +3432,7 @@
             "sta": 66,
             "ref": 10
           },
-          "weeklyWage": 311,
+          "weeklyWage": 249,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -3453,7 +3453,7 @@
             "sta": 67,
             "ref": 10
           },
-          "weeklyWage": 318,
+          "weeklyWage": 254,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -3474,7 +3474,7 @@
             "sta": 61,
             "ref": 10
           },
-          "weeklyWage": 355,
+          "weeklyWage": 284,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3495,7 +3495,7 @@
             "sta": 62,
             "ref": 10
           },
-          "weeklyWage": 362,
+          "weeklyWage": 290,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -3516,7 +3516,7 @@
             "sta": 62,
             "ref": 64
           },
-          "weeklyWage": 137,
+          "weeklyWage": 110,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,
@@ -3537,7 +3537,7 @@
             "sta": 61,
             "ref": 10
           },
-          "weeklyWage": 139,
+          "weeklyWage": 111,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3558,7 +3558,7 @@
             "sta": 65,
             "ref": 8
           },
-          "weeklyWage": 141,
+          "weeklyWage": 113,
           "contractSeasonsRemaining": 1,
           "powerId": null,
           "licensed": false,
@@ -3579,7 +3579,7 @@
             "sta": 65,
             "ref": 8
           },
-          "weeklyWage": 147,
+          "weeklyWage": 118,
           "contractSeasonsRemaining": 2,
           "powerId": null,
           "licensed": false,
@@ -3600,7 +3600,7 @@
             "sta": 59,
             "ref": 8
           },
-          "weeklyWage": 166,
+          "weeklyWage": 133,
           "contractSeasonsRemaining": 3,
           "powerId": null,
           "licensed": false,

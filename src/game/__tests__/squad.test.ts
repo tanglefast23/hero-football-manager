@@ -10,6 +10,7 @@ import {
   swapCareerLineupPlayer,
 } from '../squad';
 import { trainPlayerInstantly } from '../training';
+import { BASE_WEEKLY_TRAINING_POINTS, TRAINING_PITCH_TP_PER_LEVEL } from '../facilities';
 import type { CareerPlayer, CareerSetup, GameState } from '../types';
 
 const CLUB_IDS = Array.from({ length: 10 }, (_, index) => `club-${index}`);
@@ -206,9 +207,11 @@ describe('career squad integration', () => {
     });
     expect(() => buildTrainingGround(built)).toThrow(/construction project/);
 
+    // Each week banks the club's unconditional baseline; only the pitch's own
+    // +10 waits for construction to finish.
     const stillBuilding = advanceWeek(built);
     expect(stillBuilding.week).toBe(2);
-    expect(stillBuilding.trainingPoints).toBe(100);
+    expect(stillBuilding.trainingPoints).toBe(100 + BASE_WEEKLY_TRAINING_POINTS);
     expect(stillBuilding.facilities.trainingGroundBuilt).toBe(false);
     expect(stillBuilding.facilities.grid?.construction).toMatchObject({
       type: 'training-pitch',
@@ -217,7 +220,7 @@ describe('career squad integration', () => {
 
     const completed = advanceWeek(stillBuilding);
     expect(completed.week).toBe(3);
-    expect(completed.trainingPoints).toBe(100);
+    expect(completed.trainingPoints).toBe(100 + BASE_WEEKLY_TRAINING_POINTS * 2);
     expect(completed.facilities.trainingGroundBuilt).toBe(true);
 
     // Week 3 is the first match week, so settle it through the matchday path.
@@ -229,7 +232,9 @@ describe('career squad integration', () => {
         { fixtureId: fixture.id, homeGoals: 1, awayGoals: 1 }
       )),
     );
-    expect(activeWeek.trainingPoints).toBe(110);
+    expect(activeWeek.trainingPoints).toBe(
+      100 + BASE_WEEKLY_TRAINING_POINTS * 3 + TRAINING_PITCH_TP_PER_LEVEL,
+    );
   });
 
   it('rejects an unaffordable drill at tap time without blocking weekly settlement', () => {

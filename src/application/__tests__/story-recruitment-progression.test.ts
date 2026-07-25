@@ -10,7 +10,10 @@ import {
   addCreatedPlayer,
   beginStoryOnboarding,
 } from '../../game/onboarding/story-onboarding';
-import { DEFAULT_CREATION_RATINGS } from '../../game/onboarding/player-creation';
+import {
+  CREATED_PLAYER_ROOKIE_WAGE,
+  DEFAULT_CREATION_RATINGS,
+} from '../../game/onboarding/player-creation';
 import { STORY_STARTING_ROSTER_SIZE } from '../../game/story-progression';
 import { hasAssistantGuideSequenceCompleted } from '../../game/assistant-guide';
 import {
@@ -55,13 +58,20 @@ describe('story recruitment pacing', () => {
     expect(begun.players.filter(player => player.clubId === begun.userClubId)).toHaveLength(14);
     expect(begun.players.some(player => player.id === 'bramble-rovers-p13')).toBe(false);
     expect(begun.players.some(player => player.id === 'bramble-rovers-p16')).toBe(false);
-    expect(begunClub.weeklyWages).toBe(launchClub.weeklyWages - 242);
+    // Onboarding drops two players; the payroll must fall by exactly what they
+    // earned. Derived rather than pinned so a wage rebalance cannot silently
+    // turn this into an assertion about nothing.
+    const releasedWages = launch.players
+      .filter(player => player.clubId === launch.userClubId
+        && !begun.players.some(kept => kept.id === player.id))
+      .reduce((sum, player) => sum + player.weeklyWage, 0);
+    expect(begunClub.weeklyWages).toBe(launchClub.weeklyWages - releasedWages);
     expect(begun.youthIntake).toMatchObject({ status: 'CLOSED', offers: [] });
 
     expect(story.players.filter(player => player.clubId === story.userClubId))
       .toHaveLength(STORY_STARTING_ROSTER_SIZE);
     expect(careerRosterCapacity(story)).toBe(17);
-    expect(storyClub.weeklyWages).toBe(3_074);
+    expect(storyClub.weeklyWages).toBe(begunClub.weeklyWages + CREATED_PLAYER_ROOKIE_WAGE);
   });
 
   it('reveals Youth in Week 2, Cup in Week 5, and Scouting in Week 15', () => {
