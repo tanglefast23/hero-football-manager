@@ -254,7 +254,7 @@ export function ManagementShell({
             compact
             maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
           />
-        </View>
+        </HoverTipAnchor>
         <View
           ref={navigationGuideAnchor.anchorRef}
           collapsable={false}
@@ -264,7 +264,7 @@ export function ManagementShell({
             : 'mt-2 flex-row'}
           accessibilityRole="tablist"
         >
-          {TABS.map(tab => {
+          {TABS.map((tab, index) => {
             const selected = tab.id === activeTab;
             const guideTab = guideTarget === 'home-tab'
               ? 'home'
@@ -281,7 +281,9 @@ export function ManagementShell({
                   : tab.available ? `${tab.label} tab` : `${tab.label} tab, unavailable`}
                 accessibilityState={{ selected, disabled: !tab.available }}
                 disabled={!tab.available}
-                tip={tab.available ? tab.tip : `${tab.label} is not available yet`}
+                tip={tab.available
+                  ? `${tab.tip} · press ${tabNumberKey(index)}`
+                  : `${tab.label} is not available yet`}
                 onPress={() => onTabChange(tab.id)}
                 className={guided
                   ? 'relative min-h-12 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light'
