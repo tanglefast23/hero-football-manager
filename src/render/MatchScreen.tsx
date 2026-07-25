@@ -73,8 +73,26 @@ import {
   FORMATION_LABELS,
   nextFormation,
   nextMentality,
+  type EnergyUse,
   type FormationId,
+  type Mentality,
 } from '../sim/tactics';
+import { layoutModeForWidth } from '../ui/layout/layout-mode';
+import {
+  MatchControlRail,
+  type MatchRailHeroTile,
+  type MatchRailTiredPlayer,
+} from './MatchControlRail';
+import {
+  heatFraction,
+  MATCH_RAIL_GUTTER,
+  MATCH_RAIL_TOP_INSET,
+  MATCH_RAIL_WIDTH,
+  mostTiredFirst,
+  RAIL_HERO_TILE_CAP,
+  railHeroStatus,
+  zoneSecondsRemaining,
+} from './match-rail';
 import {
   ENERGY_USE_ACCESSIBILITY,
   ENERGY_USE_LABELS,
@@ -266,17 +284,29 @@ export function MatchScreen({
   // taller than coachButtonCompact's 52pt minimum. Reserve the rows' measured
   // content height rather than their minimums or the Energy Use row can fall
   // below the viewport on short phones.
-  const reservedChromeHeight = compactHeight ? 226 : 286;
+  // Desktop windows swap the top scorebar + bottom coaching dock for a fixed
+  // left control rail, so the pitch reserves no dock height and instead gives
+  // up the rail's width. Same aspect-ratio math either way; only `scale`
+  // changes, so every sprite/atlas transform follows automatically.
+  const railLayout = layoutModeForWidth(width) === 'twoColumn';
+  const reservedChromeHeight = railLayout
+    ? MATCH_RAIL_TOP_INSET + MATCH_RAIL_GUTTER
+    : (compactHeight ? 226 : 286);
   const availablePitchHeight = Math.max(280, height - reservedChromeHeight);
+  const availablePitchWidth = railLayout
+    ? Math.max(280, width - MATCH_RAIL_WIDTH - MATCH_RAIL_GUTTER * 3)
+    : width;
   // Sprite draw scales come back snapped so one source pixel always covers a
   // whole number of device pixels (art-bible integer-scaling rule); `scale`
   // itself stays continuous for the vector pitch, which tolerates fractions.
+  // The rail's reserved width is fed in rather than the raw viewport, so the
+  // snap is computed against the space the pitch actually receives.
   const {
     pitchWidth,
     scale,
     player: playerSpriteScale,
     ball: ballSpriteScale,
-  } = matchPitchLayout(width, availablePitchHeight, devicePixelRatio);
+  } = matchPitchLayout(availablePitchWidth, availablePitchHeight, devicePixelRatio);
   const pitchH = PITCH_H * scale;
   const homeCode = scoreCode(home);
   const awayCode = scoreCode(away);
@@ -1404,6 +1434,9 @@ export function MatchScreen({
   const pendingEnergyUse = [...match.pendingInputs].reverse().find(
     (input) => input.kind === 'SET_ENERGY_USE',
   );
+  const pendingAutoPowers = [...match.pendingInputs].reverse().find(
+    (input) => input.kind === 'SET_AUTO_POWERS',
+  );
   const displayedFormation = pendingFormation?.kind === 'SET_FORMATION'
     ? pendingFormation.formation
     : currentTactics.formation;
@@ -1413,6 +1446,11 @@ export function MatchScreen({
   const displayedEnergyUse = pendingEnergyUse?.kind === 'SET_ENERGY_USE'
     ? pendingEnergyUse.energyUse
     : currentTactics.energyUse;
+  // SET_AUTO_POWERS is a team-wide policy in the engine, so one flag drives
+  // every hero tile's M/A badge.
+  const displayedAutoPowers = pendingAutoPowers?.kind === 'SET_AUTO_POWERS'
+    ? pendingAutoPowers.enabled
+    : match.players[teamOffset].firePolicy === 'FIRE_WHEN_READY';
   const carrierIndex = retainedCarrierIndex(frame.carrier, lastCarrierRef.current);
   useEffect(() => {
     if (frame.carrier >= 0) lastCarrierRef.current = frame.carrier;
@@ -1492,275 +1530,380 @@ export function MatchScreen({
     setFirstMatchTutorialStep('tired-swap-cue');
   };
 
+  // Shared coaching actions. The phone dock and the desktop rail both call
+  // these, so both issue byte-identical recorded inputs and the same banner.
+  // The tap cue stays at each call site: the dock plays it explicitly, and the
+  // rail's SfxPressable plays it for every chip.
+  const applySpeed = (next: MatchSpeed) => {
+    speedRef.current = next;
+    if (!pausedRef.current) resumeAtlasFrame(next);
+    setSpeed(next);
+  };
+  const toggleUserPause = () => {
+    automaticPauseReasonsRef.current.delete('background');
+    userPausedRef.current = !pausedRef.current;
+    syncPauseReasons();
+  };
+  const pushInputBanner = (id: string, text: string, subject: MatchBannerSubject) => {
+    bannerRef.current = appendBannerNewestFour(bannerRef.current, {
+      id, text, untilTick: match.tick + FLASH_TICKS, tone: 'blue', subject,
+    });
+    setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
+  };
+  const selectFormation = (formation: FormationId) => {
+    queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
+    pushInputBanner(
+      `formation-input:${match.tick}`,
+      `${formation} · ${FORMATION_LABELS[formation].toUpperCase()}`,
+      'formation',
+    );
+  };
+  const selectMentality = (mentality: Mentality) => {
+    queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
+    pushInputBanner(`mentality-input:${match.tick}`, `PLAYSTYLE · ${mentality}`, 'mentality');
+  };
+  const selectEnergyUse = (mode: EnergyUse) => {
+    if (mode === displayedEnergyUse) return;
+    queueInput(match, { tick: match.tick + 1, kind: 'SET_ENERGY_USE', energyUse: mode });
+    pushInputBanner(
+      `energy-input:${match.tick}`,
+      `ENERGY USE · ${ENERGY_USE_LABELS[mode]}`,
+      'energy',
+    );
+  };
+  // Desktop rail view-model. Everything here reads the JS-side match state the
+  // RAF loop already re-renders each tick, so heat and the Zone countdown are
+  // live without touching the Reanimated worklet frame.
+  const railTiredPlayers: MatchRailTiredPlayer[] = mostTiredFirst(
+    activeOnFieldIndices.map((index) => ({
+      id: match.players[index].def.id,
+      name: match.players[index].def.name,
+      role: match.players[index].def.role,
+      condition: match.players[index].condition,
+    })),
+  );
+  const railHeroTiles: MatchRailHeroTile[] = activeOnFieldIndices
+    .flatMap((index) => {
+      const player = match.players[index];
+      const power = player.def.power;
+      if (!power) return [];
+      const presentation = powerCutInPresentation(power);
+      return [{
+        id: player.def.id,
+        name: player.def.name,
+        powerName: presentation.name,
+        powerGlyph: presentation.glyph,
+        powerColor: presentation.color,
+        heat: heatFraction(player.gauge),
+        status: railHeroStatus(player.powerState),
+        zoneSecondsLeft: zoneSecondsRemaining(player.powerState),
+      }];
+    })
+    .slice(0, RAIL_HERO_TILE_CAP);
+  const railClockLine = `${match.half === 1 ? '1ST' : '2ND'} HALF · ${minute}'${
+    stoppage ? '+' : ''
+  }${paused ? ' · PAUSED' : ''}`;
+
   return (
     <View style={[styles.root, highContrast ? styles.rootHighContrast : null]}>
-      <Pressable
-        style={[
-          styles.scorebar,
-          compactHeight ? styles.scorebarCompact : null,
-          hudSide === 'right' ? styles.scorebarFlipped : null,
-        ]}
-        onPress={() => {
-          playUiClickSfx();
-          automaticPauseReasonsRef.current.delete('background');
-          userPausedRef.current = !pausedRef.current;
-          syncPauseReasons();
-        }}
-      >
-        {/* Scoreboard "bug": an ink-outlined dark pill with a raised bottom
-            lip (Track-A bevel) and cream mono numerals; flashes hero-gold on a
-            goal. Tapping the surrounding bar still toggles pause. */}
-        <View style={styles.scoreBug}>
-          <Text style={[styles.scoreText, hud.scoreFlash ? styles.scoreTextFlash : null]}>
-            {homeCode} {hud.score[0]} – {hud.score[1]} {awayCode} · {minute}'{stoppage ? '+' : ''}
-            {paused ? ' ⏸' : ''}
-          </Text>
-        </View>
-        <View style={styles.controls}>
-          <Pressable
-            style={styles.ctrlButton}
-            accessibilityRole="button"
-            accessibilityLabel={`Match speed ${speed} times. Tap for next speed.`}
-            hitSlop={10}
-            onPress={() => {
-              playUiClickSfx();
-              const next = nextMatchSpeed(speed);
-              speedRef.current = next;
-              if (!pausedRef.current) resumeAtlasFrame(next);
-              setSpeed(next);
-            }}
-          >
-            <Text style={styles.ctrlText}>×{speed}</Text>
-          </Pressable>
-          <SettingsButton onPress={onOpenSettings} variant="match" />
-        </View>
-      </Pressable>
-      <View style={{ width: pitchWidth, height: pitchH, alignSelf: 'center' }}>
-        <Canvas style={{ width: pitchWidth, height: pitchH }}>
-        {/* Pitch base = pixel-bible pitch-dark (#3f8a4a); Pitch.tsx paints the
-            brighter base #5cb85c on alternating mow bands over it. */}
-        <Fill color="#3f8a4a" />
-        <Pitch scale={scale} />
-        {/* Web Trap is simulation geometry, so keep its fixed trigger circle
-            visible after the caster moves. Rival traps use the threat palette. */}
-        {activeWebTraps.map(trap => (
-          <Circle
-            key={trap.key}
-            cx={trap.x * scale}
-            cy={trap.y * scale}
-            r={WEB_TRAP_TRIGGER_RANGE * scale}
-            color={trap.color}
-            style="stroke"
-            strokeWidth={3}
-            opacity={reduceMotion || hud.tick % 20 < 10 ? 0.88 : 0.55}
-          />
-        ))}
-        {trailRef.current.map((t, i) => (
-          <Circle
-            key={i}
-            cx={t.x * scale}
-            cy={t.y * scale}
-            r={Math.max(1.5, 7 - i)}
-            color="#ffffff"
-            opacity={0.55 * (1 - i / trailRef.current.length)}
-          />
-        ))}
-        {/* Fading arc history behind driven shots and every lifted kick. */}
-        {ballFlightTrailRef.current.map((t, i) => (
-          <Circle
-            key={`shot-${i}`}
-            cx={t.x * scale}
-            cy={t.y * scale - ballVisualOffset(t.z, scale)}
-            r={Math.max(1.5, 6.5 - i)}
-            color="#f4f7fa"
-            opacity={0.64 * (1 - i / BALL_FLIGHT_TRAIL_LEN)}
-          />
-        ))}
-        {/* Dust puff at the strike origin — a soft filled smoke body plus
-            expanding rings; both grow and fade over PUFF_TICKS. */}
-        {(() => {
-          const puff = puffRef.current;
-          if (!puff) return null;
-          const prog = (match.tick - puff.tick) / PUFF_TICKS;
-          if (prog < 0 || prog >= 1) return null;
-          const cx = puff.x * scale;
-          const cy = puff.y * scale;
-          return [
-            <Circle key="puff-body" cx={cx} cy={cy} r={9 + prog * 20} color="#efeade" opacity={Math.max(0, (1 - prog) * 0.6)} />,
-            ...Array.from({ length: PUFF_RINGS }, (_, k) => (
-              <Circle
-                key={`puff-${k}`}
-                cx={cx}
-                cy={cy}
-                r={11 + prog * 28 + k * 6}
-                color="#d8d2c4"
-                style="stroke"
-                strokeWidth={2.5}
-                opacity={Math.max(0, (1 - prog) * (0.62 - k * 0.16))}
-              />
-            )),
-          ];
-        })()}
-        {/* Super Strength impact — a bright core plus an expanding shockwave
-            ring where the charge lands, fading over IMPACT_TICKS. */}
-        {(() => {
-          const im = impactRef.current;
-          if (!im) return null;
-          const prog = (match.tick - im.tick) / IMPACT_TICKS;
-          if (prog < 0 || prog >= 1) return null;
-          const cx = im.x * scale;
-          const cy = im.y * scale;
-          const fade = 1 - prog;
-          return [
-            <Circle key="impact-core" cx={cx} cy={cy} r={6 + prog * 22} color="#f7d894" opacity={fade * 0.5} />,
-            <Circle
-              key="impact-ring"
-              cx={cx}
-              cy={cy}
-              r={9 + prog * 34}
-              color="#edb54a"
-              style="stroke"
-              strokeWidth={3}
-              opacity={fade * 0.7}
-            />,
-          ];
-        })()}
-        <WorkletBallShadow
-          ballGroundPosition={workletBallGroundPosition}
-          ballHeight={workletBallHeight}
-          scale={scale}
-        />
-        <WorkletSlideTackleEffects
-          layer="dust"
-          visualPositions={workletVisualPositions}
-          actionData={workletActionData}
-          simTick={workletSimTick}
-          progress={workletProgress}
-          scale={scale}
-          playerDrawScale={playerSpriteScale.drawScale}
-        />
-        <Atlas
-          image={atlas.image as SkImage}
-          sprites={sprites}
-          transforms={workletTransforms}
-          colors={colors}
-          colorBlendMode="modulate"
-          sampling={PIXEL_ART_SAMPLING}
-        />
-        <WorkletSlideTackleEffects
-          layer="grass"
-          visualPositions={workletVisualPositions}
-          actionData={workletActionData}
-          simTick={workletSimTick}
-          progress={workletProgress}
-          scale={scale}
-          playerDrawScale={playerSpriteScale.drawScale}
-        />
-        {drawablePowerEffects.map(effect => (
-          <PowerEffectScene
-            key={effect.id}
-            power={effect.power}
-            elapsedMs={effect.elapsedMs}
-            width={pitchWidth}
-            height={pitchH}
-            origin={effect.origin}
-            targets={effect.targets}
-            anchor={effect.anchor}
-            tier={effect.tier}
-            direction={effect.direction}
-            reduceMotion={reduceMotion}
-            showPlaceholderActors={false}
-          />
-        ))}
-        {powerEffectActors.length > 0 ? (
-          <Atlas
-            image={atlas.image as SkImage}
-            sprites={powerActorSprites}
-            transforms={powerActorTransforms}
-            colors={powerActorColors}
-            colorBlendMode="modulate"
-            sampling={PIXEL_ART_SAMPLING}
-          />
-        ) : null}
-        <WorkletMatchOverlays
-          visualPositions={workletVisualPositions}
-          visibility={workletVisibility}
-          statuses={workletStatuses}
-          zoneFractions={workletZoneFractions}
-          carrier={workletCarrier}
-          simTick={workletSimTick}
-          progress={workletProgress}
-          controlledTeam={controlledTeam}
-          heroPlayers={rivalHeroPlayers}
-          fireTorchPlayers={fireTorchPlayers}
-          encoreMarkers={encoreMarkers}
-          scale={scale}
-          ringRadius={ringR}
-          reduceMotion={reduceMotion}
-        />
-        </Canvas>
-        {carrier && powerCutIns.length === 0 ? (
-          <View
-            pointerEvents="none"
-            style={[
-              styles.carrierCard,
-              hudSide === 'left' ? styles.carrierCardLeft : styles.carrierCardRight,
-            ]}
-          >
-            <View style={styles.carrierLine}>
-              <Text numberOfLines={1} style={styles.carrierName}>{carrier.def.name}</Text>
-              <Text style={styles.carrierEnergy}>{Math.round(carrier.condition)}%</Text>
-            </View>
-            <View style={styles.energyTrack}>
-              <View style={[
-                styles.energyFill,
-                energyBand(carrier.condition) === 'amber' ? styles.energyFillMedium : null,
-                energyBand(carrier.condition) === 'red' ? styles.energyFillLow : null,
-                { width: `${Math.max(0, Math.min(100, carrier.condition))}%` },
-              ]} />
-            </View>
+      {/* Desktop replaces this bar with the rail scoreboard card. */}
+      {railLayout ? null : (
+        <Pressable
+          style={[
+            styles.scorebar,
+            compactHeight ? styles.scorebarCompact : null,
+            hudSide === 'right' ? styles.scorebarFlipped : null,
+          ]}
+          onPress={() => {
+            playUiClickSfx();
+            toggleUserPause();
+          }}
+        >
+          {/* Scoreboard "bug": an ink-outlined dark pill with a raised bottom
+              lip (Track-A bevel) and cream mono numerals; flashes hero-gold on a
+              goal. Tapping the surrounding bar still toggles pause. */}
+          <View style={styles.scoreBug}>
+            <Text style={[styles.scoreText, hud.scoreFlash ? styles.scoreTextFlash : null]}>
+              {homeCode} {hud.score[0]} – {hud.score[1]} {awayCode} · {minute}'{stoppage ? '+' : ''}
+              {paused ? ' ⏸' : ''}
+            </Text>
           </View>
+          <View style={styles.controls}>
+            <Pressable
+              style={styles.ctrlButton}
+              accessibilityRole="button"
+              accessibilityLabel={`Match speed ${speed} times. Tap for next speed.`}
+              hitSlop={10}
+              onPress={() => {
+                playUiClickSfx();
+                applySpeed(nextMatchSpeed(speed));
+              }}
+            >
+              <Text style={styles.ctrlText}>×{speed}</Text>
+            </Pressable>
+            <SettingsButton onPress={onOpenSettings} variant="match" />
+          </View>
+        </Pressable>
+      )}
+      <View style={railLayout ? styles.desktopBody : null}>
+        {railLayout ? (
+          <MatchControlRail
+            scoreLine={`${homeCode} ${hud.score[0]} – ${hud.score[1]} ${awayCode}`}
+            clockLine={railClockLine}
+            scoreFlash={hud.scoreFlash}
+            paused={paused}
+            speed={speed}
+            onSelectSpeed={applySpeed}
+            onTogglePause={toggleUserPause}
+            onOpenSettings={onOpenSettings}
+            formations={formationPresets}
+            formation={displayedFormation}
+            onSelectFormation={selectFormation}
+            mentality={displayedMentality}
+            onSelectMentality={selectMentality}
+            coachingDisabled={coachingDisabled}
+            substitutionsRemaining={substitutionsRemaining}
+            tiredPlayers={railTiredPlayers}
+            swapDisabled={swapDisabled}
+            guideSwap={guideSwapButton}
+            onSwap={openSwap}
+            teamEnergy={teamEnergy}
+            tiredCount={tiredCount}
+            energyUse={displayedEnergyUse}
+            onSelectEnergyUse={selectEnergyUse}
+            heroTiles={railHeroTiles}
+            autoPowers={displayedAutoPowers}
+          />
         ) : null}
-        {powerCutIns.length > 0 ? (
-          <Pressable
-            accessibilityRole={powerCutInPolicy.skippable ? 'button' : 'text'}
-            accessibilityLabel={powerCutInAccessibilityLabel(powerCutIns)}
-            disabled={!powerCutInPolicy.skippable}
-            style={[
-              styles.powerActivationStack,
-              hudSide === 'left'
-                ? styles.powerActivationStackLeft
-                : styles.powerActivationStackRight,
-            ]}
-            onPress={() => setPowerCutIns([])}
-          >
-            {powerCutIns.slice(-2).map((entry) => {
-              const presentation = powerCutInPresentation(entry.power);
-              return (
-                <View key={entry.id} style={styles.powerActivationCard}>
-                  <View style={styles.powerActivationHighlight} />
-                  <Text style={[styles.powerActivationGlyph, { color: presentation.color }]}>
-                    {presentation.glyph}
-                  </Text>
-                  <View style={styles.powerActivationCopy}>
-                    <Text numberOfLines={1} style={styles.powerActivationPlayer}>
-                      {entry.playerName}
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.powerActivationName, { color: presentation.color }]}
-                    >
-                      {presentation.name}
-                    </Text>
-                  </View>
+        <View style={railLayout ? styles.desktopPitchPane : null}>
+          <View style={{ width: pitchWidth, height: pitchH, alignSelf: 'center' }}>
+            <Canvas style={{ width: pitchWidth, height: pitchH }}>
+            {/* Pitch base = pixel-bible pitch-dark (#3f8a4a); Pitch.tsx paints the
+                brighter base #5cb85c on alternating mow bands over it. */}
+            <Fill color="#3f8a4a" />
+            <Pitch scale={scale} />
+            {/* Web Trap is simulation geometry, so keep its fixed trigger circle
+                visible after the caster moves. Rival traps use the threat palette. */}
+            {activeWebTraps.map(trap => (
+              <Circle
+                key={trap.key}
+                cx={trap.x * scale}
+                cy={trap.y * scale}
+                r={WEB_TRAP_TRIGGER_RANGE * scale}
+                color={trap.color}
+                style="stroke"
+                strokeWidth={3}
+                opacity={reduceMotion || hud.tick % 20 < 10 ? 0.88 : 0.55}
+              />
+            ))}
+            {trailRef.current.map((t, i) => (
+              <Circle
+                key={i}
+                cx={t.x * scale}
+                cy={t.y * scale}
+                r={Math.max(1.5, 7 - i)}
+                color="#ffffff"
+                opacity={0.55 * (1 - i / trailRef.current.length)}
+              />
+            ))}
+            {/* Fading arc history behind driven shots and every lifted kick. */}
+            {ballFlightTrailRef.current.map((t, i) => (
+              <Circle
+                key={`shot-${i}`}
+                cx={t.x * scale}
+                cy={t.y * scale - ballVisualOffset(t.z, scale)}
+                r={Math.max(1.5, 6.5 - i)}
+                color="#f4f7fa"
+                opacity={0.64 * (1 - i / BALL_FLIGHT_TRAIL_LEN)}
+              />
+            ))}
+            {/* Dust puff at the strike origin — a soft filled smoke body plus
+                expanding rings; both grow and fade over PUFF_TICKS. */}
+            {(() => {
+              const puff = puffRef.current;
+              if (!puff) return null;
+              const prog = (match.tick - puff.tick) / PUFF_TICKS;
+              if (prog < 0 || prog >= 1) return null;
+              const cx = puff.x * scale;
+              const cy = puff.y * scale;
+              return [
+                <Circle key="puff-body" cx={cx} cy={cy} r={9 + prog * 20} color="#efeade" opacity={Math.max(0, (1 - prog) * 0.6)} />,
+                ...Array.from({ length: PUFF_RINGS }, (_, k) => (
+                  <Circle
+                    key={`puff-${k}`}
+                    cx={cx}
+                    cy={cy}
+                    r={11 + prog * 28 + k * 6}
+                    color="#d8d2c4"
+                    style="stroke"
+                    strokeWidth={2.5}
+                    opacity={Math.max(0, (1 - prog) * (0.62 - k * 0.16))}
+                  />
+                )),
+              ];
+            })()}
+            {/* Super Strength impact — a bright core plus an expanding shockwave
+                ring where the charge lands, fading over IMPACT_TICKS. */}
+            {(() => {
+              const im = impactRef.current;
+              if (!im) return null;
+              const prog = (match.tick - im.tick) / IMPACT_TICKS;
+              if (prog < 0 || prog >= 1) return null;
+              const cx = im.x * scale;
+              const cy = im.y * scale;
+              const fade = 1 - prog;
+              return [
+                <Circle key="impact-core" cx={cx} cy={cy} r={6 + prog * 22} color="#f7d894" opacity={fade * 0.5} />,
+                <Circle
+                  key="impact-ring"
+                  cx={cx}
+                  cy={cy}
+                  r={9 + prog * 34}
+                  color="#edb54a"
+                  style="stroke"
+                  strokeWidth={3}
+                  opacity={fade * 0.7}
+                />,
+              ];
+            })()}
+            <WorkletBallShadow
+              ballGroundPosition={workletBallGroundPosition}
+              ballHeight={workletBallHeight}
+              scale={scale}
+            />
+            <WorkletSlideTackleEffects
+              layer="dust"
+              visualPositions={workletVisualPositions}
+              actionData={workletActionData}
+              simTick={workletSimTick}
+              progress={workletProgress}
+              scale={scale}
+              playerDrawScale={playerSpriteScale.drawScale}
+            />
+            <Atlas
+              image={atlas.image as SkImage}
+              sprites={sprites}
+              transforms={workletTransforms}
+              colors={colors}
+              colorBlendMode="modulate"
+              sampling={PIXEL_ART_SAMPLING}
+            />
+            <WorkletSlideTackleEffects
+              layer="grass"
+              visualPositions={workletVisualPositions}
+              actionData={workletActionData}
+              simTick={workletSimTick}
+              progress={workletProgress}
+              scale={scale}
+              playerDrawScale={playerSpriteScale.drawScale}
+            />
+            {drawablePowerEffects.map(effect => (
+              <PowerEffectScene
+                key={effect.id}
+                power={effect.power}
+                elapsedMs={effect.elapsedMs}
+                width={pitchWidth}
+                height={pitchH}
+                origin={effect.origin}
+                targets={effect.targets}
+                anchor={effect.anchor}
+                tier={effect.tier}
+                direction={effect.direction}
+                reduceMotion={reduceMotion}
+                showPlaceholderActors={false}
+              />
+            ))}
+            {powerEffectActors.length > 0 ? (
+              <Atlas
+                image={atlas.image as SkImage}
+                sprites={powerActorSprites}
+                transforms={powerActorTransforms}
+                colors={powerActorColors}
+                colorBlendMode="modulate"
+                sampling={PIXEL_ART_SAMPLING}
+              />
+            ) : null}
+            <WorkletMatchOverlays
+              visualPositions={workletVisualPositions}
+              visibility={workletVisibility}
+              statuses={workletStatuses}
+              zoneFractions={workletZoneFractions}
+              carrier={workletCarrier}
+              simTick={workletSimTick}
+              progress={workletProgress}
+              controlledTeam={controlledTeam}
+              heroPlayers={rivalHeroPlayers}
+              fireTorchPlayers={fireTorchPlayers}
+              encoreMarkers={encoreMarkers}
+              scale={scale}
+              ringRadius={ringR}
+              reduceMotion={reduceMotion}
+            />
+            </Canvas>
+            {carrier && powerCutIns.length === 0 ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.carrierCard,
+                  hudSide === 'left' ? styles.carrierCardLeft : styles.carrierCardRight,
+                ]}
+              >
+                <View style={styles.carrierLine}>
+                  <Text numberOfLines={1} style={styles.carrierName}>{carrier.def.name}</Text>
+                  <Text style={styles.carrierEnergy}>{Math.round(carrier.condition)}%</Text>
                 </View>
-              );
-            })}
-          </Pressable>
-        ) : null}
+                <View style={styles.energyTrack}>
+                  <View style={[
+                    styles.energyFill,
+                    energyBand(carrier.condition) === 'amber' ? styles.energyFillMedium : null,
+                    energyBand(carrier.condition) === 'red' ? styles.energyFillLow : null,
+                    { width: `${Math.max(0, Math.min(100, carrier.condition))}%` },
+                  ]} />
+                </View>
+              </View>
+            ) : null}
+            {powerCutIns.length > 0 ? (
+              <Pressable
+                accessibilityRole={powerCutInPolicy.skippable ? 'button' : 'text'}
+                accessibilityLabel={powerCutInAccessibilityLabel(powerCutIns)}
+                disabled={!powerCutInPolicy.skippable}
+                style={[
+                  styles.powerActivationStack,
+                  hudSide === 'left'
+                    ? styles.powerActivationStackLeft
+                    : styles.powerActivationStackRight,
+                ]}
+                onPress={() => setPowerCutIns([])}
+              >
+                {powerCutIns.slice(-2).map((entry) => {
+                  const presentation = powerCutInPresentation(entry.power);
+                  return (
+                    <View key={entry.id} style={styles.powerActivationCard}>
+                      <View style={styles.powerActivationHighlight} />
+                      <Text style={[styles.powerActivationGlyph, { color: presentation.color }]}>
+                        {presentation.glyph}
+                      </Text>
+                      <View style={styles.powerActivationCopy}>
+                        <Text numberOfLines={1} style={styles.powerActivationPlayer}>
+                          {entry.playerName}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.powerActivationName, { color: presentation.color }]}
+                        >
+                          {presentation.name}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
       </View>
       {hud.banners.length > 0 ? (
-        <View pointerEvents="none" style={styles.bannerStack}>
+        <View pointerEvents="none" style={[styles.bannerStack, railLayout ? styles.bannerStackDesktop : null]}>
           {hud.banners.map(banner => (
             <Text
               key={banner.id}
@@ -1775,170 +1918,152 @@ export function MatchScreen({
           ))}
         </View>
       ) : null}
-      <View style={[styles.coachingDock, compactHeight ? styles.coachingDockCompact : null]}>
-        <View style={styles.coachBar}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Formation ${displayedFormation}. Tap for next match formation.`}
-            accessibilityState={{ disabled: coachingDisabled }}
-            disabled={coachingDisabled}
-            style={[
-              styles.coachButton,
-              compactHeight ? styles.coachButtonCompact : null,
-              coachingDisabled ? styles.coachButtonDisabled : null,
-            ]}
-            onPress={() => {
-              playUiClickSfx();
-              const formation = nextFormation(displayedFormation, formationPresets);
-              queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
-              const text = `${formation} · ${FORMATION_LABELS[formation].toUpperCase()}`;
-              bannerRef.current = appendBannerNewestFour(bannerRef.current, {
-                id: `formation-input:${match.tick}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'blue',
-                subject: 'formation',
-              });
-              setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
-            }}
-          >
-            <FormationDiagram formation={displayedFormation} compact inverted />
-            <View style={styles.coachCopy}>
-              <Text style={styles.coachLabel}>FORMATION</Text>
-              <Text style={styles.coachValue}>{displayedFormation}</Text>
-            </View>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Playstyle ${displayedMentality}. Tap for next playstyle.`}
-            accessibilityState={{ disabled: coachingDisabled }}
-            disabled={coachingDisabled}
-            style={[
-              styles.coachButton,
-              compactHeight ? styles.coachButtonCompact : null,
-              coachingDisabled ? styles.coachButtonDisabled : null,
-            ]}
-            onPress={() => {
-              playUiClickSfx();
-              const mentality = nextMentality(displayedMentality);
-              queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
-              const text = `PLAYSTYLE · ${mentality}`;
-              bannerRef.current = appendBannerNewestFour(bannerRef.current, {
-                id: `mentality-input:${match.tick}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'blue',
-                subject: 'mentality',
-              });
-              setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
-            }}
-          >
-            <Text style={styles.mentalityIcon}>{displayedMentality === 'ATTACK' ? '▲' : displayedMentality === 'PROTECT' ? '▼' : '◆'}</Text>
-            <View style={styles.coachCopy}>
-              <Text style={styles.coachLabel}>PLAYSTYLE</Text>
-              <Text style={styles.coachValue}>{displayedMentality}</Text>
-            </View>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Swap players. ${tiredCount === 0 ? 'No tired players.' : `${tiredCount} tired players.`} ${substitutionsRemaining} substitutions remaining.`}
-            accessibilityHint={guideSwapButton
-              ? 'Opens the substitution page while the match remains paused.'
-              : undefined}
-            accessibilityState={{ disabled: swapDisabled }}
-            disabled={swapDisabled}
-            style={[
-              styles.coachButton,
-              compactHeight ? styles.coachButtonCompact : null,
-              swapDisabled
-                ? (tiredCount > 0 ? styles.coachButtonDisabledReadable : styles.coachButtonDisabled)
-                : null,
-              guideSwapButton ? styles.coachButtonGuided : null,
-            ]}
-            onPress={() => {
-              playUiClickSfx();
-              openSwap();
-            }}
-          >
-            {guideSwapButton ? (
-              <View pointerEvents="none" style={styles.coachButtonGuidedHighlight} />
-            ) : null}
-            {firstMatchTutorialStep === 'tired-swap-cue' ? (
-              <TutorialTapCue
-                label="Tap here"
-                detail="Swap players"
-                style={{
-                  left: '50%',
-                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                  bottom: '100%',
-                }}
-              />
-            ) : null}
-            <Text style={[styles.swapIcon, guideSwapButton ? styles.swapIconGuided : null]}>⇄</Text>
-            <View style={styles.coachCopy}>
-              <Text style={[styles.coachLabel, guideSwapButton ? styles.coachLabelGuided : null]}>
-                SWAP
-              </Text>
+      {/* Desktop moves every dock control into the left rail. */}
+      {railLayout ? null : (
+        <View style={[styles.coachingDock, compactHeight ? styles.coachingDockCompact : null]}>
+          <View style={styles.coachBar}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Formation ${displayedFormation}. Tap for next match formation.`}
+              accessibilityState={{ disabled: coachingDisabled }}
+              disabled={coachingDisabled}
+              style={[
+                styles.coachButton,
+                compactHeight ? styles.coachButtonCompact : null,
+                coachingDisabled ? styles.coachButtonDisabled : null,
+              ]}
+              onPress={() => {
+                playUiClickSfx();
+                selectFormation(nextFormation(displayedFormation, formationPresets));
+              }}
+            >
+              <FormationDiagram formation={displayedFormation} compact inverted />
+              <View style={styles.coachCopy}>
+                <Text style={styles.coachLabel}>FORMATION</Text>
+                <Text style={styles.coachValue}>{displayedFormation}</Text>
+              </View>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Playstyle ${displayedMentality}. Tap for next playstyle.`}
+              accessibilityState={{ disabled: coachingDisabled }}
+              disabled={coachingDisabled}
+              style={[
+                styles.coachButton,
+                compactHeight ? styles.coachButtonCompact : null,
+                coachingDisabled ? styles.coachButtonDisabled : null,
+              ]}
+              onPress={() => {
+                playUiClickSfx();
+                selectMentality(nextMentality(displayedMentality));
+              }}
+            >
+              <Text style={styles.mentalityIcon}>{displayedMentality === 'ATTACK' ? '▲' : displayedMentality === 'PROTECT' ? '▼' : '◆'}</Text>
+              <View style={styles.coachCopy}>
+                <Text style={styles.coachLabel}>PLAYSTYLE</Text>
+                <Text style={styles.coachValue}>{displayedMentality}</Text>
+              </View>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Swap players. ${tiredCount === 0 ? 'No tired players.' : `${tiredCount} tired players.`} ${substitutionsRemaining} substitutions remaining.`}
+              accessibilityHint={guideSwapButton
+                ? 'Opens the substitution page while the match remains paused.'
+                : undefined}
+              accessibilityState={{ disabled: swapDisabled }}
+              disabled={swapDisabled}
+              style={[
+                styles.coachButton,
+                compactHeight ? styles.coachButtonCompact : null,
+                swapDisabled
+                  ? (tiredCount > 0 ? styles.coachButtonDisabledReadable : styles.coachButtonDisabled)
+                  : null,
+                guideSwapButton ? styles.coachButtonGuided : null,
+              ]}
+              onPress={() => {
+                playUiClickSfx();
+                openSwap();
+              }}
+            >
+              {guideSwapButton ? (
+                <View pointerEvents="none" style={styles.coachButtonGuidedHighlight} />
+              ) : null}
+              {firstMatchTutorialStep === 'tired-swap-cue' ? (
+                <TutorialTapCue
+                  label="Tap here"
+                  detail="Swap players"
+                  style={{
+                    left: '50%',
+                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                    bottom: '100%',
+                  }}
+                />
+              ) : null}
+              <Text style={[styles.swapIcon, guideSwapButton ? styles.swapIconGuided : null]}>⇄</Text>
+              <View style={styles.coachCopy}>
+                <Text style={[styles.coachLabel, guideSwapButton ? styles.coachLabelGuided : null]}>
+                  SWAP
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.coachValue,
+                    tiredCount > 0 ? styles.tiredValue : null,
+                    guideSwapButton ? styles.coachValueGuided : null,
+                  ]}
+                >
+                  {swapSecondary}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+          <View style={[styles.energyUseRow, compactHeight ? styles.energyUseRowCompact : null]}>
+            <View style={styles.energyUseHeader}>
+              <Text style={styles.energyUseTitle}>ENERGY USE</Text>
               <Text
-                numberOfLines={1}
                 style={[
-                  styles.coachValue,
-                  tiredCount > 0 ? styles.tiredValue : null,
-                  guideSwapButton ? styles.coachValueGuided : null,
+                  styles.teamEnergy,
+                  teamEnergyBand === 'amber' ? styles.energyTextMedium : null,
+                  teamEnergyBand === 'red' ? styles.energyTextLow : null,
                 ]}
               >
-                {swapSecondary}
+                TEAM ENERGY {teamEnergy}%
               </Text>
             </View>
-          </Pressable>
-        </View>
-        <View style={[styles.energyUseRow, compactHeight ? styles.energyUseRowCompact : null]}>
-          <View style={styles.energyUseHeader}>
-            <Text style={styles.energyUseTitle}>ENERGY USE</Text>
-            <Text
-              style={[
-                styles.teamEnergy,
-                teamEnergyBand === 'amber' ? styles.energyTextMedium : null,
-                teamEnergyBand === 'red' ? styles.energyTextLow : null,
-              ]}
-            >
-              TEAM ENERGY {teamEnergy}%
-            </Text>
-          </View>
-          <View style={styles.energySegments}>
-            {ENERGY_USE_MODES.map((mode) => {
-              const selected = displayedEnergyUse === mode;
-              return (
-                <Pressable
-                  key={mode}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${ENERGY_USE_LABELS[mode]}. ${ENERGY_USE_ACCESSIBILITY[mode]}`}
-                  accessibilityState={{ selected, disabled: coachingDisabled }}
-                  disabled={coachingDisabled}
-                  style={[
-                    styles.energySegment,
-                    narrowWidth ? styles.energySegmentNarrow : null,
-                    selected ? styles.energySegmentSelected : null,
-                    selected && mode === 'SAVE_ENERGY' ? styles.energySegmentSave : null,
-                    selected && mode === 'BALANCED' ? styles.energySegmentBalanced : null,
-                    selected && mode === 'ALL_OUT' ? styles.energySegmentAllOut : null,
-                    coachingDisabled ? styles.coachButtonDisabled : null,
-                  ]}
-                  onPress={() => {
-                    playUiClickSfx();
-                    if (mode === displayedEnergyUse) return;
-                    queueInput(match, { tick: match.tick + 1, kind: 'SET_ENERGY_USE', energyUse: mode });
-                    const text = `ENERGY USE · ${ENERGY_USE_LABELS[mode]}`;
-                    bannerRef.current = appendBannerNewestFour(bannerRef.current, {
-                      id: `energy-input:${match.tick}`, text, untilTick: match.tick + FLASH_TICKS, tone: 'blue',
-                      subject: 'energy',
-                    });
-                    setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
-                  }}
-                >
-                  <Text style={[styles.energySegmentText, selected ? styles.energySegmentTextSelected : null]}>
-                    {ENERGY_USE_LABELS[mode]}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            <View style={styles.energySegments}>
+              {ENERGY_USE_MODES.map((mode) => {
+                const selected = displayedEnergyUse === mode;
+                return (
+                  <Pressable
+                    key={mode}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${ENERGY_USE_LABELS[mode]}. ${ENERGY_USE_ACCESSIBILITY[mode]}`}
+                    accessibilityState={{ selected, disabled: coachingDisabled }}
+                    disabled={coachingDisabled}
+                    style={[
+                      styles.energySegment,
+                      narrowWidth ? styles.energySegmentNarrow : null,
+                      selected ? styles.energySegmentSelected : null,
+                      selected && mode === 'SAVE_ENERGY' ? styles.energySegmentSave : null,
+                      selected && mode === 'BALANCED' ? styles.energySegmentBalanced : null,
+                      selected && mode === 'ALL_OUT' ? styles.energySegmentAllOut : null,
+                      coachingDisabled ? styles.coachButtonDisabled : null,
+                    ]}
+                    onPress={() => {
+                      playUiClickSfx();
+                      selectEnergyUse(mode);
+                    }}
+                  >
+                    <Text style={[styles.energySegmentText, selected ? styles.energySegmentTextSelected : null]}>
+                      {ENERGY_USE_LABELS[mode]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         </View>
-      </View>
+      )}
       {swapOpen ? (
         <View style={styles.swapOverlay}>
           <View style={styles.swapSheet}>
@@ -2141,6 +2266,18 @@ export function MatchScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#241f2e' },
   rootHighContrast: { backgroundColor: '#09070d' },
+  // Desktop two-pane body: fixed control rail left, pitch filling the rest.
+  desktopBody: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: MATCH_RAIL_GUTTER,
+    paddingHorizontal: MATCH_RAIL_GUTTER,
+    paddingTop: MATCH_RAIL_TOP_INSET,
+    paddingBottom: MATCH_RAIL_GUTTER,
+  },
+  desktopPitchPane: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // Keep event banners over the pitch instead of across the rail.
+  bannerStackDesktop: { left: MATCH_RAIL_WIDTH + MATCH_RAIL_GUTTER * 2 },
   scorebar: {
     flexDirection: 'row',
     justifyContent: 'space-between',

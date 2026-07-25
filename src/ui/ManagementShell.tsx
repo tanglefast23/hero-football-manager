@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActionButton, formatCompactNumber, formatCurrency } from './components/Scorecard';
 import type { ManagementTab, ResourceSummaryViewModel } from './models';
 import { TutorialTapCue } from './TutorialTapCue';
@@ -67,6 +67,16 @@ const ADVANCE_WEEK_TIP = 'Match day, wages and events · press Enter';
 // its accessibility maximum. The full names remain available to assistive
 // technology through accessibilityLabel.
 const CHROME_MAX_FONT_SIZE_MULTIPLIER = 1.3;
+
+// The shell paints its own safe-area padding instead of letting SafeAreaView
+// letterbox the screen: the status-bar/Dynamic Island strip then carries the
+// HUD's own paper-dark, and the tab bar reaches the physical bottom edge so no
+// paper-coloured band is wasted under it.
+const HUD_TOP_BREATHING_ROOM = 4;
+// Enough clearance for the home indicator without donating the full inset to
+// empty chrome — the tabs sit lower and the content column keeps the pixels.
+const TAB_BAR_BOTTOM_CLEARANCE = 8;
+const TAB_BAR_BOTTOM_INSET_TRIM = 14;
 
 /** Compact top-bar numerals: commas under 10k, then k / M so three fit on one row. */
 function abbrev(n: number): string {
@@ -165,6 +175,7 @@ export function ManagementShell({
     guideFocus === 'navigation',
     onNavigationGuideAnchorChange,
   );
+  const insets = useSafeAreaInsets();
 
   const resourceCluster = (
     <View className="flex-shrink flex-row items-center gap-1.5">
@@ -182,13 +193,15 @@ export function ManagementShell({
 
   return (
     <SafeAreaView
-      className="flex-1 bg-paper"
-      edges={['top', 'left', 'right', 'bottom']}
+      className="flex-1 bg-paper-dark"
+      edges={['left', 'right']}
       onPointerDown={onDismissGuidance}
     >
-      {/* Persistent HUD bar — club and controls share the top row. */}
+      {/* Persistent HUD bar — club and controls share the top row. The status-bar
+          inset is padding on this bar, so the notch strip is HUD-coloured. */}
       <View
-        className="border-b-2 border-ink bg-paper-dark px-3 py-2.5"
+        className="border-b-2 border-ink bg-paper-dark px-3 pb-2.5"
+        style={{ paddingTop: insets.top + HUD_TOP_BREATHING_ROOM }}
         onLayout={moneyGuideAnchor.scheduleMeasurement}
       >
         <View className="flex-row items-center gap-2">
@@ -229,9 +242,17 @@ export function ManagementShell({
         </View>
       </View>
 
-      <View className="flex-1">{children}</View>
+      <View className="flex-1 bg-paper">{children}</View>
 
-      <View className="border-t-2 border-ink bg-paper-dark px-3 pt-2">
+      <View
+        className="border-t-2 border-ink bg-paper-dark px-3 pt-2"
+        style={{
+          paddingBottom: Math.max(
+            insets.bottom - TAB_BAR_BOTTOM_INSET_TRIM,
+            TAB_BAR_BOTTOM_CLEARANCE,
+          ),
+        }}
+      >
         {/* Bottom chrome shares the content column: the Advance Week button and
             the five tabs never extend past the tables above them on desktop. */}
         <View className="w-full max-w-5xl self-center">

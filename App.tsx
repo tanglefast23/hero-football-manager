@@ -52,6 +52,7 @@ import {
   setManagementSfxMasterVolume,
   teardownManagementSfx,
 } from './src/render/management-sfx';
+import { setBertVoiceMasterVolume, teardownBertVoice } from './src/render/bert-voice';
 import { playManagementHaptic, setHapticsEnabled } from './src/render/haptics';
 import { assertRuntimeGoldenReplay, runtimeGoldenFingerprint } from './src/sim/runtime-golden';
 import type { MatchState } from './src/sim/types';
@@ -677,6 +678,7 @@ function GameApp() {
     setMasterVolume(devVolume);
     setMenuMasterVolume(devVolume);
     setManagementSfxMasterVolume(devVolume);
+    setBertVoiceMasterVolume(devVolume);
     setAwakeningMasterVolume(devVolume);
   }, [devVolume]);
 
@@ -706,6 +708,7 @@ function GameApp() {
   useEffect(() => () => {
     teardownMenuAudio();
     teardownManagementSfx();
+    teardownBertVoice();
     teardownAwakeningAudio();
   }, []);
 
@@ -986,7 +989,6 @@ function GameApp() {
       <CharacterCreationScreen
         initialDifficulty={store.career.difficulty ?? 'COZY'}
         onComplete={completeRookieCreation}
-        onOpenSettings={() => setGlobalSettingsOpen(true)}
       />
     );
   } else if (
@@ -1724,7 +1726,7 @@ function ConfirmationSheet({
       <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
         <View
           accessibilityViewIsModal
-          className="border-2 border-b-4 border-ink bg-paper p-5"
+          className="w-full max-w-[1180px] self-center border-2 border-b-4 border-ink bg-paper p-5"
         >
           <Text className="font-pixel text-sm uppercase text-stamp">Confirm club decision</Text>
           <Text className="mt-2 font-pixel text-xl uppercase text-ink">{confirmation?.title}</Text>

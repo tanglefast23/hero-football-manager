@@ -239,8 +239,8 @@ function RosterSection({
         : 'border-2 border-ink bg-white'}>
         {guidePlayers && !playerGuideDismissed ? (
           <TutorialTapCue
-            label="Tap a +"
-            detail="Train a player right now."
+            label="Tap +"
+            detail="Train a player"
             style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
           />
         ) : null}

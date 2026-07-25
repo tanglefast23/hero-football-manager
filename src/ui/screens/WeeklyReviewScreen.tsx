@@ -52,99 +52,95 @@ export function WeeklyReviewScreen({
     else setBalanceAnimationsComplete(true);
   };
 
+  const moneyCard = (
+    <WeeklyBalanceCard
+      label="Money"
+      startingAmount={viewModel.cashBefore}
+      currentAmount={viewModel.cashAfter}
+      netAmount={viewModel.netAmount}
+      started={balanceAnimationsStarted}
+      complete={balanceComplete}
+      kind="money"
+    />
+  );
+
+  const cashMovement = (
+    <View className="flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
+      <Text className="font-pixel text-sm uppercase text-paper/70">Cash movement</Text>
+      <Text className="font-mono text-base text-paper">
+        {formatCurrency(viewModel.cashBefore)} →{' '}
+        <AnimatedCount
+          from={viewModel.cashBefore}
+          to={viewModel.cashAfter}
+          started={balanceAnimationsStarted}
+          complete={balanceComplete}
+          format={value => formatCurrency(value)}
+        />
+      </Text>
+    </View>
+  );
+
+  const statement = (
+    <PaperPanel kicker="Accounts office" title="Weekly statement" stamp="Recorded">
+      {viewModel.ledger.map(line => (
+        <View key={line.id} className="flex-row items-center border-b border-ink/10 py-2.5 last:border-b-0">
+          <Text className="flex-1 text-ink" style={scaledBody(textScale)}>{line.label}</Text>
+          <Text className={line.amount < 0
+            ? 'font-mono text-base text-stamp'
+            : line.amount > 0
+              ? 'font-mono text-base text-pitch-dark'
+              : 'font-mono text-base text-ink'}>
+            {formatCurrency(line.amount, true)}
+          </Text>
+        </View>
+      ))}
+    </PaperPanel>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
-      >
-        <View className="border-b-2 border-paper/15 pb-3">
-          <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Weekly review</Text>
-          <Text className="mt-1 font-pixel text-xl uppercase text-white">{viewModel.completedWeekLabel}</Text>
-          <PixelText className="mt-2 text-sm uppercase text-paper/70">{viewModel.clubName}</PixelText>
-        </View>
-
-        {viewModel.facilityCompletion ? (
-          <FacilityCompletionCard
-            completion={viewModel.facilityCompletion}
-            reduceMotion={reduceMotion}
-          />
-        ) : null}
-
-        <View className="mt-3 flex-row gap-2">
-          <WeeklyBalanceCard
-            label="Money"
-            startingAmount={viewModel.cashBefore}
-            currentAmount={viewModel.cashAfter}
-            netAmount={viewModel.netAmount}
-            started={balanceAnimationsStarted}
-            complete={balanceComplete}
-            kind="money"
-          />
-          <WeeklyBalanceCard
-            label="TP"
-            startingAmount={viewModel.trainingPointsBefore}
-            currentAmount={viewModel.trainingPointsAfter}
-            netAmount={viewModel.netTrainingPoints}
-            started={balanceAnimationsStarted}
-            complete={balanceComplete}
-            kind="training-points"
-          />
-        </View>
-
-        <View className="mt-3 gap-2">
-          <View className="flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
-            <PixelText className="text-sm uppercase text-paper/70">Cash movement</PixelText>
-            <Text className="font-mono text-base text-paper">
-              {formatCurrency(viewModel.cashBefore)} →{' '}
-              <AnimatedCount
-                from={viewModel.cashBefore}
-                to={viewModel.cashAfter}
-                started={balanceAnimationsStarted}
-                complete={balanceComplete}
-                format={value => formatCurrency(value)}
-              />
-            </Text>
+      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
+        <View className={wide ? 'w-full max-w-[1180px] self-center px-4 pb-7 pt-4' : 'w-full px-4 pb-7 pt-4'}>
+          <View className="border-b-2 border-paper/15 pb-3">
+            <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Weekly review</Text>
+            <Text className="mt-1 font-pixel text-xl uppercase text-white">{viewModel.completedWeekLabel}</Text>
+            <Text className="mt-2 font-pixel text-sm uppercase text-paper/70">{viewModel.clubName}</Text>
           </View>
-          <View className="flex-row items-center justify-between border-2 border-ink bg-blue-dark px-3 py-2.5">
-            <PixelText className="text-sm uppercase text-paper/70">TP movement</PixelText>
-            <Text className="font-mono text-base text-paper">
-              {formatCompactNumber(viewModel.trainingPointsBefore)} →{' '}
-              <AnimatedCount
-                from={viewModel.trainingPointsBefore}
-                to={viewModel.trainingPointsAfter}
-                started={balanceAnimationsStarted}
-                complete={balanceComplete}
-                format={value => `${formatCompactNumber(value)} TP`}
-              />
-            </Text>
-          </View>
-        </View>
 
-        <PaperPanel kicker="Accounts office" title="Weekly statement" stamp="Recorded" className="mt-5">
-          {viewModel.ledger.map(line => (
-            <View key={line.id} className="flex-row items-center border-b border-ink/10 py-2.5 last:border-b-0">
-              <Text className="flex-1 text-ink" style={scaledBody(textScale)}>{line.label}</Text>
-              <Text className={line.amount < 0
-                ? 'font-mono text-base text-stamp'
-                : line.amount > 0
-                  ? 'font-mono text-base text-pitch-dark'
-                  : 'font-mono text-base text-ink'}>
-                {formatCurrency(line.amount, true)}
-              </Text>
+          {viewModel.facilityCompletion ? (
+            <FacilityCompletionCard
+              completion={viewModel.facilityCompletion}
+              reduceMotion={reduceMotion}
+            />
+          ) : null}
+
+          {wide ? (
+            <View className="mt-5 flex-row items-start gap-6">
+              <View className="flex-1 gap-2">
+                <View className="flex-row">{moneyCard}</View>
+                {cashMovement}
+              </View>
+              <View className="flex-1">{statement}</View>
             </View>
-          ))}
-        </PaperPanel>
-
+          ) : (
+            <>
+              <View className="mt-3 flex-row">{moneyCard}</View>
+              <View className="mt-3">{cashMovement}</View>
+              <View className="mt-5">{statement}</View>
+            </>
+          )}
+        </View>
       </ScrollView>
 
       <View className="border-t-[6px] border-white bg-ink/25 p-3">
-        <ActionButton
-          label={`Start ${viewModel.nextWeekLabel}  ▸`}
-          accessibilityLabel={`Finish the weekly review and start ${viewModel.nextWeekLabel}`}
-          onPress={continueOrFinish}
-        />
+        <View className={wide ? 'w-full max-w-[1180px] self-center' : 'w-full'}>
+          <ActionButton
+            label={`Start ${viewModel.nextWeekLabel}  ▸`}
+            accessibilityLabel={`Finish the weekly review and start ${viewModel.nextWeekLabel}`}
+            onPress={continueOrFinish}
+          />
+        </View>
       </View>
     </SafeAreaView>
   );

@@ -152,7 +152,9 @@ describe('renderer wiring contract', () => {
 
     expect(source).toContain('compactHeight ? 226 : 286');
     expect(source).toContain('Math.max(280, height - reservedChromeHeight)');
-    expect(source).toContain('matchPitchLayout(width, availablePitchHeight, devicePixelRatio)');
+    // Post-merge the rail-reduced width is fed in, so snapping is computed
+    // against the space the pitch actually receives.
+    expect(source).toContain('matchPitchLayout(availablePitchWidth, availablePitchHeight, devicePixelRatio)');
   });
 
   test('MatchScreen feeds every sprite consumer the snapped draw scale', () => {

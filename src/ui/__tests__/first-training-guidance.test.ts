@@ -10,8 +10,8 @@ describe('first training guidance', () => {
     // Instant training: one guided beat — tap any +, the drill happens now.
     expect(source).toContain('const guidePlayers = guideTraining;');
     expect(source).toContain("'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'");
-    expect(source).toContain('label="Tap a +"');
-    expect(source).toContain('detail="Train a player right now."');
+    expect(source).toContain('label="Tap +"');
+    expect(source).toContain('detail="Train a player"');
     expect(source).toContain('onTouchStart={rememberPlayerGuideTouch}');
     expect(source).toContain('onTouchMove={dismissPlayerGuideAfterDrag}');
     expect(source).toContain('{guidePlayers && !playerGuideDismissed ? (');

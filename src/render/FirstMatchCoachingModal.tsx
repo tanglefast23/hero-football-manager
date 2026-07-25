@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { PixelPortrait } from '../ui/components/PixelPortrait';
 import type { PortraitRole } from '../ui/pixel-portrait-model';
 import { energyBand } from './match-energy-ui';
+import { playUiClickSfx } from './management-sfx';
 
 export interface FirstMatchCoachingModalPlayer {
   readonly id: string;
@@ -85,7 +86,10 @@ export function FirstMatchCoachingModal({
             onPressIn={() => setButtonPressed(true)}
             onPressOut={() => setButtonPressed(false)}
             style={[styles.button, buttonPressed ? styles.buttonPressed : null]}
-            onPress={onContinue}
+            onPress={() => {
+              playUiClickSfx();
+              onContinue();
+            }}
           >
             <Text style={styles.buttonText}>{buttonLabel}</Text>
           </Pressable>

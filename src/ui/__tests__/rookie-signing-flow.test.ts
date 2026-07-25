@@ -17,7 +17,7 @@ describe('rookie signing celebration', () => {
     expect(appSource).toContain("playerSigning?.source !== 'rookie'");
     expect(appSource).toContain('const guideOverlayVisible');
     expect(appSource).toContain('{guideOverlayVisible ? (');
-    expect(overlaySource).toContain('playEventSuccessSfx()');
+    expect(overlaySource).toContain('playPositiveSfx()');
     expect(overlaySource).toContain('Thanks for the opportunity, boss!');
     expect(overlaySource).toContain('second scoreboard');
     expect(overlaySource).toContain('Meet Bert  ▸');

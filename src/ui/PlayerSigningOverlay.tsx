@@ -3,7 +3,7 @@ import { Modal, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel } from './components/Scorecard';
 import { PixelPortrait } from './components/PixelPortrait';
-import { playEventSuccessSfx } from '../render/management-sfx';
+import { playPositiveSfx } from '../render/management-sfx';
 
 export interface PlayerSigningConfirmation {
   playerId: string;
@@ -23,7 +23,7 @@ export function PlayerSigningOverlay({
   onClose: () => void;
 }) {
   useEffect(() => {
-    if (player.source === 'rookie') playEventSuccessSfx();
+    if (player.source === 'rookie') playPositiveSfx();
   }, [player.source]);
 
   const isRookie = player.source === 'rookie';
