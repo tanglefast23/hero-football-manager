@@ -42,9 +42,12 @@ describe('filesForEvent: event → SFX wiring', () => {
     })).toEqual(['decoy-pop']);
   });
 
-  it('layers the positive cue only on a manual (strength 1.0) power fire', () => {
-    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 1 })).toEqual(['positive', 'super-speed-whoosh']);
+  it('plays only the power sound at every firing strength, since all fires are automatic', () => {
+    // The manual tap was removed on 2026-07-25, so there is no tap-confirm layer
+    // at any strength — a full-strength fire is only reachable from test probes.
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 1 })).toEqual(['super-speed-whoosh']);
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 0.85 })).toEqual(['super-speed-whoosh']);
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 10, power: 'SUPER_SPEED', strength: 0.75 })).toEqual(['super-speed-whoosh']);
   });
 
   it('times spatial powers on their real on-pitch impact instead of activation', () => {
@@ -84,8 +87,7 @@ describe('filesForEvent: event → SFX wiring', () => {
 
   it('uses the flame-up sound when Fire Torch activates', () => {
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 0.85 })).toEqual(['flame-up']);
-    // A manual tap-confirm still layers the positive cue on top.
-    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 })).toEqual(['positive', 'flame-up']);
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 })).toEqual(['flame-up']);
   });
 
   it('gives every launch power a sound somewhere in its deterministic lifecycle', () => {

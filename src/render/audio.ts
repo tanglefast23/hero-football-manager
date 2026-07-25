@@ -183,13 +183,9 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     case 'EXTINGUISHED':
       return ['extinguisher-spray'];
     case 'POWER_FIRED':
-      // strength === 1 is TAP_STRENGTH (sim/powers.ts) — a manual tap-confirm,
-      // which layers the positive cue on top of the power's own sound. Auto-fires
-      // (CONTEXT_AUTO_STRENGTH 0.85 / LAPSE_STRENGTH 0.75) get just the
-      // power sound.
-      return e.strength === 1
-        ? ['positive', ...POWER_AUDIO[e.power].activation]
-        : POWER_AUDIO[e.power].activation;
+      // Powers always fire automatically in a watched match, so there is no
+      // tap-confirm layer — every activation gets just the power's own sound.
+      return POWER_AUDIO[e.power].activation;
     case 'POWER_IMPACT':
       return POWER_AUDIO[e.power].impact;
     case 'SAVE':

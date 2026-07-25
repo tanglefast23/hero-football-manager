@@ -377,14 +377,6 @@ function genZoneExpire(seed) {
   return mix([{ buf: body, gain: 0.8 }, { buf: breath, gain: 0.15 }]);
 }
 
-function genTapFire(seed) {
-  const rng = mulberry32(seed);
-  const n = secondsToSamples(0.11);
-  const click = applyEnv(highpass(noiseWhite(n, rng), 4000), decayEnv(n, { attack: 0.0005, decay: 0.02 }));
-  const chime = chimeNote(n, note('G5'), 0.09);
-  return mix([{ buf: click, gain: 0.4 }, { buf: chime, gain: 0.8 }]);
-}
-
 function genWindupRiser(seed) {
   const rng = mulberry32(seed);
   const dur = 1.5;
@@ -736,7 +728,6 @@ const GENERATORS = {
   'crowd-jeer': genCrowdJeer,
   'zone-enter': genZoneEnter,
   'zone-expire': genZoneExpire,
-  'tap-fire': genTapFire,
   'windup-riser': genWindupRiser,
   'power-interrupt': genPowerInterrupt,
   'super-speed-whoosh': genSuperSpeedWhoosh,

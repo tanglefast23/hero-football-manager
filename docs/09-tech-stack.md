@@ -66,7 +66,10 @@ does not. Near an even match, **1 squad point ≈ 8 percentage points of win
 rate** (measured: even = 40% W / 23% D / 37% L; two points stronger = 23% W).
 
 The initial calibration center was +2 for Tier-1 automatic play, +2.5–3 for a
-good tap, and +4 for an upgraded good tap. The owner broadened the closeout
+good tap, and +4 for an upgraded good tap. (The tap was removed in 2026-07-25;
+the tapped figures now describe only a power's measured *ceiling* under the
+test-only `SAVE_FOR_TAP` policy, not anything a player can reach.)
+The owner broadened the closeout
 acceptance band after seeing the measured catalog: an individual power may be
 worth roughly **+1 to +6 squad points** if it is clearly useful, reliably fires,
 and performs its advertised football moment. No power may have a demonstrated
