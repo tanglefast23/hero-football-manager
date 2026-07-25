@@ -9,6 +9,7 @@ import {
   type FacilityGridState,
 } from './facilities';
 import { difficultyRules } from './difficulty';
+import { recordCareerMilestones } from './career-events';
 import { recordSeasonRecap } from './season-recap';
 import { enableFullCareer, startNextFullCareerSeason } from './full-career';
 import {
@@ -53,7 +54,22 @@ import {
 
 const CLUB_COUNT = 10;
 const UINT32_MAX = 4294967295;
-export const CUP_SETTLEMENT_WEEKS = [10, 14, 18, 22, 26, 29] as const;
+/**
+ * The week each National Cup round settles, chosen to land on weeks the league
+ * calendar leaves empty so a cup tie is its own event instead of a second match
+ * bolted onto a league week. `leagueWeekForRound` fills weeks 3–28 in season 1
+ * and 5–28 from season 2 on, which leaves these empty weeks:
+ *
+ *   season 1:  1 2   6   9   12    15    18    21    24 27 29 30
+ *   season 2+: 1 2 3 4 8       12       16       20  24 27 29 30
+ *
+ * Only 12, 24, 27, 29 and 30 are free in every season, so no six-week set can
+ * be empty in all of them. This set is empty for the whole of season 1 and
+ * doubles up only twice (weeks 6 and 18) from season 2 on — the fewest possible
+ * without opening in weeks 1–2, before the league has even kicked off, or
+ * settling the final in week 30 alongside the season-end transition.
+ */
+export const CUP_SETTLEMENT_WEEKS = [6, 12, 18, 24, 27, 29] as const;
 
 type NationalCupRoundLabel =
   | 'Play-in'
@@ -302,10 +318,28 @@ export function startNextSeason(state: GameState): GameState {
   return startNextFullCareerSeason(state, leagueStandings(state));
 }
 
+/**
+ * Settles the week and banks any milestone that week just earned. The
+ * recognition story still waits for the next story beat, but the flag itself is
+ * recorded the moment the club earns it instead of sitting unnoticed for weeks.
+ * `recordCareerMilestones` derives its flags from persisted results, consumes no
+ * random value and skips flags already present, so a settled week records each
+ * milestone exactly once.
+ */
 function settleCurrentWeek(
   state: GameState,
   cupAlreadyResolved = false,
   additionalMatchOutcomes: readonly WeeklyMatchOutcome[] = [],
+): GameState {
+  return recordCareerMilestones(
+    settleWeekResults(state, cupAlreadyResolved, additionalMatchOutcomes),
+  );
+}
+
+function settleWeekResults(
+  state: GameState,
+  cupAlreadyResolved: boolean,
+  additionalMatchOutcomes: readonly WeeklyMatchOutcome[],
 ): GameState {
   const userClub = state.clubs.find(club => club.id === state.userClubId);
   if (userClub === undefined) {

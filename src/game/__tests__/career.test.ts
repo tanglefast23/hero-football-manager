@@ -1,4 +1,5 @@
 import {
+  CUP_SETTLEMENT_WEEKS,
   activeCareerMatchday,
   advanceWeek,
   completeMatchday,
@@ -7,6 +8,7 @@ import {
   leagueStandings,
   startNextSeason,
 } from '../career';
+import { SEASON_WEEKS } from '../types';
 import type {
   CareerPlayer,
   CareerSetup,
@@ -15,7 +17,9 @@ import type {
   LeagueFixture,
 } from '../types';
 import { createLaunchCareerSetup } from '../../application/launch';
+import { earnedCareerMilestoneFlags, recordCareerMilestones } from '../career-events';
 import { FIRST_D4_PROMOTION_RECRUITMENT_FUND } from '../promotion-progression';
+import { generateSeasonFixtures } from '../schedule';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 
 /** The shape a career club's starting eleven must be able to field. */
@@ -454,6 +458,108 @@ describe('finances and two-season boundary', () => {
 
   it('only starts a new season from the season-end boundary', () => {
     expect(() => startNextSeason(createCareer(makeSetup()))).toThrow('season-end phase');
+  });
+});
+
+describe('National Cup settlement calendar', () => {
+  const career = createCareer(createLaunchCareerSetup(77));
+
+  /** The weeks the production schedule fills with league fixtures in a season. */
+  function leagueWeeks(season: number): Set<number> {
+    return new Set(generateSeasonFixtures(
+      career.clubs.map(club => club.id),
+      season,
+      career.careerSeed,
+    ).map(fixture => fixture.week));
+  }
+
+  it('settles every round in a week the opening season leaves empty', () => {
+    const opening = leagueWeeks(1);
+
+    expect(CUP_SETTLEMENT_WEEKS.filter(week => opening.has(week))).toEqual([]);
+  });
+
+  it('keeps six ordered rounds clear of the opening weeks and the season-end week', () => {
+    const weeks = [...CUP_SETTLEMENT_WEEKS];
+
+    expect(weeks).toHaveLength(6);
+    expect(new Set(weeks).size).toBe(6);
+    expect(weeks).toEqual([...weeks].sort((left, right) => left - right));
+    // Never before the league has kicked off, and the final stays late enough to
+    // read as a final without colliding with the season-end transition.
+    expect(weeks[0]).toBeGreaterThan(2);
+    expect(weeks[5]).toBe(SEASON_WEEKS - 1);
+  });
+
+  it('doubles up on only the two league weeks no six-week set can avoid', () => {
+    const opening = leagueWeeks(1);
+    const standard = leagueWeeks(2);
+    const freeInEverySeason = Array.from({ length: SEASON_WEEKS }, (_week, index) => index + 1)
+      .filter(week => !opening.has(week) && !standard.has(week));
+
+    // Season 2 onward opens a fortnight later than season 1, so only these weeks
+    // are empty in both calendars: six rounds cannot all avoid a league week
+    // everywhere. The two that do share a week are the documented minimum.
+    expect(freeInEverySeason).toEqual([1, 2, 12, 24, 27, 29, 30]);
+    expect(CUP_SETTLEMENT_WEEKS.filter(week => standard.has(week))).toEqual([6, 18]);
+  });
+});
+
+describe('career milestones recorded at settlement', () => {
+  /** Wins the user's match 3-0 and draws the rest of the division. */
+  function winUserMatch(state: GameState): GameState {
+    const matchday = activeCareerMatchday(state);
+    if (matchday === undefined) throw new Error('milestone test lost its active matchday');
+    const userIsHome = matchday.fixture.homeClubId === state.userClubId;
+    const scorerId = state.lineups
+      .find(lineup => lineup.clubId === state.userClubId)!.playerIds.at(-1)!;
+
+    return completeMatchday(state, matchday.fixtures.map(fixture => (
+      fixture.id === matchday.fixture.id
+        ? {
+            fixtureId: fixture.id,
+            homeGoals: userIsHome ? 3 : 0,
+            awayGoals: userIsHome ? 0 : 3,
+            scorerPlayerIds: [scorerId, scorerId, scorerId],
+          }
+        : { fixtureId: fixture.id, homeGoals: 0, awayGoals: 0 }
+    )));
+  }
+
+  it('banks the flags the settled week earned instead of waiting for a story', () => {
+    let state = createCareer(createLaunchCareerSetup(4242));
+    while (state.phase !== 'matchday') state = advanceWeek(state);
+
+    expect(state.eventFlags).toEqual([]);
+
+    const settled = winUserMatch(state);
+
+    expect(settled.eventFlags).toEqual(['milestone:first-win', 'milestone:statement-win']);
+  });
+
+  it('records each milestone exactly once over a run of weeks', () => {
+    const fresh = createCareer(createLaunchCareerSetup(4242));
+    let state = fresh;
+
+    while (state.week <= 20 && state.phase !== 'season-end') {
+      state = state.phase === 'manage' ? advanceWeek(state) : winUserMatch(state);
+      if (state.phase === 'matchday') continue;
+      // What the club has passed and what the save records never drift apart.
+      expect([...state.eventFlags].sort()).toEqual([...earnedCareerMilestoneFlags(state)].sort());
+    }
+
+    expect(state.eventFlags.length).toBeGreaterThanOrEqual(3);
+    for (const flag of new Set(state.eventFlags)) {
+      expect(state.eventFlags.filter(recorded => recorded === flag)).toEqual([flag]);
+    }
+    // Re-recording is a no-op, so a later settlement cannot award a second time.
+    expect(recordCareerMilestones(state)).toBe(state);
+
+    // The same seed started again has earned nothing: flags come from results.
+    const restarted = createCareer(createLaunchCareerSetup(4242));
+    expect(restarted.eventFlags).toEqual([]);
+    expect(earnedCareerMilestoneFlags(restarted)).toEqual([]);
+    expect(fresh.eventFlags).toEqual([]);
   });
 });
 
