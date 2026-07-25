@@ -480,6 +480,14 @@ export const EventCatalogSchema = z.strictObject({
   addDuplicateIssues(catalog.events.map(event => event.id), context, ['events'], 'event ID');
 });
 
+/**
+ * Flag namespaces the engine records itself rather than an authored outcome.
+ * Career milestones are derived from played results in
+ * `src/game/career-events.ts`, so a recognition story may gate on one even
+ * though nothing in this catalog produces it.
+ */
+export const ENGINE_PRODUCED_FLAG_PREFIXES = ['milestone:'] as const;
+
 const GlossaryEntrySchema = z.strictObject({
   term: displayNameSchema,
   definition: z.string().trim().min(1).max(500),
@@ -561,7 +569,10 @@ export const LaunchContentSchema = z.strictObject({
   });
 
   content.events.events.forEach((event, eventIndex) => {
-    if (event.trigger.requiredFlag !== undefined && !producedFlags.has(event.trigger.requiredFlag)) {
+    const requiredFlag = event.trigger.requiredFlag;
+    const engineProduced = requiredFlag !== undefined
+      && ENGINE_PRODUCED_FLAG_PREFIXES.some(prefix => requiredFlag.startsWith(prefix));
+    if (requiredFlag !== undefined && !engineProduced && !producedFlags.has(requiredFlag)) {
       addIssue(
         context,
         ['events', 'events', eventIndex, 'trigger', 'requiredFlag'],

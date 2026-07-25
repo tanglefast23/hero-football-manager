@@ -100,6 +100,145 @@ function awakeningPowerWeight(powerId: PowerId, attrs: Readonly<Attrs>): number 
   return 10 + attrs.ref * 4 + attrs.sta;
 }
 
+/**
+ * One thing the club actually did, worth a word from somebody. Every milestone
+ * is derived from persisted results, so it consumes no random value and the same
+ * career always earns the same set in the same order. `eventId` names the
+ * authored recognition story in `content/events.json`; a build that ships
+ * without that story just skips the beat.
+ */
+export interface CareerMilestone {
+  readonly id: string;
+  readonly flag: string;
+  readonly eventId: string;
+}
+
+/** Flag namespace the engine fills in; no authored outcome produces these. */
+export const CAREER_MILESTONE_FLAG_PREFIX = 'milestone:';
+
+export const CAREER_MILESTONE_STATEMENT_MARGIN = 3;
+export const CAREER_MILESTONE_UNBEATEN_RUN = 4;
+export const CAREER_MILESTONE_PUSH_SEASON_WINS = 8;
+export const CAREER_MILESTONE_CROWD = 1000;
+
+/** Recognition order when a week earns more than one milestone at once. */
+export const CAREER_MILESTONES: readonly CareerMilestone[] = [
+  { id: 'first-win', flag: 'milestone:first-win', eventId: 'milestone-first-win' },
+  { id: 'first-hero-goal', flag: 'milestone:first-hero-goal', eventId: 'milestone-first-hero-goal' },
+  { id: 'statement-win', flag: 'milestone:statement-win', eventId: 'milestone-statement-win' },
+  { id: 'unbeaten-four', flag: 'milestone:unbeaten-four', eventId: 'milestone-unbeaten-run' },
+  { id: 'first-cup-win', flag: 'milestone:first-cup-win', eventId: 'milestone-first-cup-win' },
+  { id: 'crowd-thousand', flag: 'milestone:crowd-thousand', eventId: 'milestone-crowd-thousand' },
+  { id: 'promotion-push', flag: 'milestone:promotion-push', eventId: 'milestone-promotion-push' },
+];
+
+interface UserLeagueResult {
+  season: number;
+  goalsFor: number;
+  goalsAgainst: number;
+}
+
+/** The milestone flags this career has earned, in recognition order. */
+export function earnedCareerMilestoneFlags(state: GameState): string[] {
+  const results = userLeagueResults(state);
+  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
+  const winsBySeason = new Map<number, number>();
+  let unbeatenRun = 0;
+  let longestUnbeatenRun = 0;
+  let bestMargin = 0;
+  for (const result of results) {
+    const margin = result.goalsFor - result.goalsAgainst;
+    if (margin > bestMargin) bestMargin = margin;
+    if (margin > 0) winsBySeason.set(result.season, (winsBySeason.get(result.season) ?? 0) + 1);
+    unbeatenRun = margin >= 0 ? unbeatenRun + 1 : 0;
+    if (unbeatenRun > longestUnbeatenRun) longestUnbeatenRun = unbeatenRun;
+  }
+  const bestSeasonWins = [...winsBySeason.values()].reduce((best, wins) => Math.max(best, wins), 0);
+
+  const earned = new Set<string>();
+  if (bestMargin > 0) earned.add('first-win');
+  if (heroHasScored(state)) earned.add('first-hero-goal');
+  if (bestMargin >= CAREER_MILESTONE_STATEMENT_MARGIN) earned.add('statement-win');
+  if (longestUnbeatenRun >= CAREER_MILESTONE_UNBEATEN_RUN) earned.add('unbeaten-four');
+  if (hasWonCupTie(state)) earned.add('first-cup-win');
+  if ((club?.fans ?? 0) >= CAREER_MILESTONE_CROWD) earned.add('crowd-thousand');
+  if (bestSeasonWins >= CAREER_MILESTONE_PUSH_SEASON_WINS) earned.add('promotion-push');
+
+  return CAREER_MILESTONES
+    .filter(milestone => earned.has(milestone.id))
+    .map(milestone => milestone.flag);
+}
+
+/** Appends any newly earned milestone flags. Idempotent and order-stable. */
+export function recordCareerMilestones(state: GameState): GameState {
+  const additions = earnedCareerMilestoneFlags(state)
+    .filter(flag => !state.eventFlags.includes(flag));
+  return additions.length === 0
+    ? state
+    : { ...state, eventFlags: [...state.eventFlags, ...additions] };
+}
+
+/**
+ * The earned milestone whose recognition story has not been seen yet. A resolved
+ * story chains straight into it, so an achievement is acknowledged at the next
+ * story beat instead of waiting on a weekly draw the player may never win.
+ */
+export function pendingCareerMilestoneEventId(state: GameState): string | undefined {
+  const earned = new Set(earnedCareerMilestoneFlags(state));
+  const pendingId = state.pendingEvent?.eventId;
+  return CAREER_MILESTONES.find(milestone => (
+    earned.has(milestone.flag)
+    && milestone.eventId !== pendingId
+    && !state.resolvedEventIds.includes(milestone.eventId)
+  ))?.eventId;
+}
+
+export function isCareerMilestoneEventId(eventId: string | undefined): boolean {
+  return CAREER_MILESTONES.some(milestone => milestone.eventId === eventId);
+}
+
+function userLeagueResults(state: GameState): UserLeagueResult[] {
+  return state.fixtures
+    .filter(fixture => (
+      fixture.status === 'played'
+      && fixture.score !== undefined
+      && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId)
+    ))
+    .slice()
+    .sort((left, right) => (
+      left.season - right.season
+      || left.week - right.week
+      || left.id.localeCompare(right.id)
+    ))
+    .flatMap(fixture => {
+      const score = fixture.score;
+      if (score === undefined) return [];
+      const atHome = fixture.homeClubId === state.userClubId;
+      return [{
+        season: fixture.season,
+        goalsFor: atHome ? score.homeGoals : score.awayGoals,
+        goalsAgainst: atHome ? score.awayGoals : score.homeGoals,
+      }];
+    });
+}
+
+function heroHasScored(state: GameState): boolean {
+  const heroIds = new Set(state.players
+    .filter(player => player.clubId === state.userClubId && player.power !== undefined)
+    .map(player => player.id));
+  return (state.seasonGoalTallies ?? []).some(
+    tally => tally.goals > 0 && heroIds.has(tally.playerId),
+  );
+}
+
+function hasWonCupTie(state: GameState): boolean {
+  return (state.m2?.nationalCups ?? []).some(cup => cup.rounds.some(round => (
+    round.fixtures.some(
+      fixture => fixture.status === 'played' && fixture.winnerClubId === state.userClubId,
+    )
+  )));
+}
+
 export function offerCareerEvent(state: GameState, eventId: string): GameState {
   if (state.phase !== 'manage') throw new Error('events can only interrupt the manage phase');
   if (state.pendingEvent !== undefined) throw new Error('another event is already pending');
@@ -164,7 +303,7 @@ export function applyCareerEventOutcome(
     if (!flags.includes(flag)) flags.push(flag);
   }
 
-  return {
+  const resolved: GameState = {
     ...state,
     clubs: state.clubs.map(candidate =>
       candidate.id === state.userClubId ? { ...candidate, cash, fans } : candidate,
@@ -185,6 +324,30 @@ export function applyCareerEventOutcome(
           : { resolvedNextEventId: presentation.nextEventId }),
       }),
     },
+  };
+  return withCareerMilestoneRecognition(resolved, presentation);
+}
+
+/**
+ * Records what the club has passed and, unless the author already chained this
+ * outcome, follows the story with the earned recognition beat. A milestone story
+ * never chains into another one, so a catch-up run arrives one beat per week
+ * instead of as a stack of cards.
+ */
+function withCareerMilestoneRecognition(
+  state: GameState,
+  presentation: CareerEventResolutionPresentation | undefined,
+): GameState {
+  const recorded = recordCareerMilestones(state);
+  const pending = recorded.pendingEvent;
+  if (presentation === undefined || pending === undefined) return recorded;
+  if (pending.resolvedNextEventId !== undefined) return recorded;
+  if (isCareerMilestoneEventId(pending.eventId)) return recorded;
+  const milestoneEventId = pendingCareerMilestoneEventId(recorded);
+  if (milestoneEventId === undefined) return recorded;
+  return {
+    ...recorded,
+    pendingEvent: { ...pending, resolvedNextEventId: milestoneEventId },
   };
 }
 

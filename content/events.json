@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "tuning": {
     "weeklyChancePercent": 18,
-    "guaranteeAfterDryWeeks": 8
+    "guaranteeAfterDryWeeks": 6
   },
   "events": [
     {
@@ -452,6 +452,286 @@
         ] },
         { "id": "simple-community-mural", "label": "Paint the club crest", "risky": false, "outcomes": [
           { "weight": 100, "text": "The crisp new crest becomes the most photographed wall in the district.", "effects": [{ "type": "fans", "amount": 65 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "milestone-first-win", "category": "club", "rarity": "common", "art": "event-team-bbq",
+      "title": "The First Win", "body": "The weekend result sheet is pinned to the office door. Somebody has drawn a small crown on it.",
+      "trigger": { "season": 1, "minWeek": 2, "maxWeek": 30, "requiredFlag": "milestone:first-win" },
+      "choices": [
+        { "id": "open-the-clubhouse", "label": "Open the clubhouse to everyone", "risky": true, "outcomes": [
+          { "weight": 70, "successHeadline": "The crown stays on the door", "text": "Half the town squeezes in, the crowned sheet goes behind glass, and the squad walks taller all week.", "effects": [{ "type": "morale", "amount": 7 }, { "type": "fans", "amount": 90 }, { "type": "flag", "flag": "first-result-framed", "value": true }] },
+          { "weight": 30, "text": "The urn runs dry after nine cups. Everyone stays anyway and drinks squash.", "effects": [{ "type": "morale", "amount": 3 }] }
+        ] },
+        { "id": "back-to-work-after-first-win", "label": "Enjoy it for ten minutes", "risky": false, "outcomes": [
+          { "weight": 100, "text": "Ten minutes of noise, then cones. The squad likes that you kept it short.", "effects": [{ "type": "tp", "amount": 8 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "milestone-first-hero-goal", "category": "media", "rarity": "common", "art": "event-viral-goal",
+      "title": "A Hero Finally Scores", "body": "The goal your hero has been threatening all season arrives, and three phones catch it from three useless angles.",
+      "trigger": { "season": 1, "minWeek": 3, "maxWeek": 30, "requiredFlag": "milestone:first-hero-goal" },
+      "choices": [
+        { "id": "release-hero-goal-angles", "label": "Publish all three angles", "risky": true, "outcomes": [
+          { "weight": 65, "successHeadline": "Three bad angles, one great goal", "text": "Supporters stitch the shaky clips into one and the club account gains a following it did not earn.", "effects": [{ "type": "fans", "amount": 130 }, { "type": "money", "amount": 400 }, { "type": "flag", "flag": "hero-goal-montage", "value": true }] },
+          { "weight": 35, "text": "All three angles are mostly the back of one steward's head. The steward is thrilled.", "effects": [{ "type": "fans", "amount": 25 }] }
+        ] },
+        { "id": "hero-goal-quiet-note", "label": "Put it on the noticeboard", "risky": false, "outcomes": [
+          { "weight": 100, "text": "A printed still goes up with the date underlined twice. It stays there all season.", "effects": [{ "type": "morale", "amount": 5 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "milestone-statement-win", "category": "fan", "rarity": "common", "art": "event-ultras-tickets",
+      "title": "Three Goals Clear", "body": "The supporters' group has already printed a banner about the margin. It is enormous and slightly damp.",
+      "trigger": { "season": 1, "minWeek": 3, "maxWeek": 30, "requiredFlag": "milestone:statement-win" },
+      "choices": [
+        { "id": "hang-the-margin-banner", "label": "Hang it over the tunnel", "risky": true, "outcomes": [
+          { "weight": 60, "successHeadline": "Every visiting side reads it first", "text": "Visiting teams walk out under it all season and the terrace never lets them forget the number.", "effects": [{ "type": "fans", "amount": 120 }, { "type": "morale", "amount": 5 }, { "type": "flag", "flag": "tunnel-banner", "value": true }] },
+          { "weight": 40, "text": "It falls on the referee during the warm-up. He takes it surprisingly well.", "effects": [{ "type": "morale", "amount": 2 }] }
+        ] },
+        { "id": "store-the-margin-banner", "label": "Keep it for a bigger day", "risky": false, "outcomes": [
+          { "weight": 100, "text": "It is folded into the store cupboard and labelled FOR LATER, WHEN IT MEANS MORE.", "effects": [{ "type": "fans", "amount": 40 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "milestone-unbeaten-run", "category": "media", "rarity": "common", "art": "event-pundit-tactics",
+      "title": "Four Without Losing", "body": "A regional broadcaster wants two minutes on how a club this small stopped losing.",
+      "trigger": { "season": 1, "minWeek": 5, "maxWeek": 30, "requiredFlag": "milestone:unbeaten-four" },
+      "choices": [
+        { "id": "explain-the-run", "label": "Explain exactly how you did it", "risky": true, "outcomes": [
+          { "weight": 55, "successHeadline": "The whole division took notes", "text": "You give the entire plan away on air. It works anyway, and everyone wants to watch the club that says the quiet part.", "effects": [{ "type": "fans", "amount": 140 }, { "type": "tp", "amount": 10 }, { "type": "flag", "flag": "told-them-everything", "value": true }] },
+          { "weight": 45, "text": "Three managers copy the plan by Tuesday. Two of them do it better.", "effects": [{ "type": "tp", "amount": 4 }] }
+        ] },
+        { "id": "credit-the-squad-for-run", "label": "Credit the squad and stop talking", "risky": false, "outcomes": [
+          { "weight": 100, "text": "You name all eighteen of them, slowly, until the segment runs out of time.", "effects": [{ "type": "morale", "amount": 6 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "milestone-first-cup-win", "category": "club", "rarity": "common", "art": "event-haunted-scoreboard",
+      "title": "Through to the Next Round", "body": "The cup tie is won and the scoreboard operator has left the final score up all week on purpose.",
+      "trigger": { "season": 1, "minWeek": 10, "maxWeek": 30, "requiredFlag": "milestone:first-cup-win" },
+      "choices": [
+        { "id": "leave-the-cup-score-up", "label": "Leave the score up until the next round", "risky": true, "outcomes": [
+          { "weight": 65, "successHeadline": "Nobody touched the switch for a week", "text": "Supporters detour past the ground just to look at it. The next opponent arrives and reads it twice.", "effects": [{ "type": "morale", "amount": 7 }, { "type": "fans", "amount": 95 }, { "type": "flag", "flag": "cup-score-left-up", "value": true }] },
+          { "weight": 35, "text": "A storm knocks out the second digit. It now reads a much stranger result.", "effects": [{ "type": "money", "amount": -250 }] }
+        ] },
+        { "id": "reset-the-cup-scoreboard", "label": "Reset it and get back to the league", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The operator photographs it, then resets it, then photographs it again.", "effects": [{ "type": "tp", "amount": 7 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "milestone-crowd-thousand", "category": "fan", "rarity": "common", "art": "event-hundredth-fan",
+      "title": "A Thousand Voices", "body": "The turnstile counter passes a thousand and the man who operates it insists on a photograph with it.",
+      "trigger": { "season": 1, "minWeek": 6, "maxWeek": 30, "requiredFlag": "milestone:crowd-thousand" },
+      "choices": [
+        { "id": "open-the-fourth-side", "label": "Open the far side of the ground", "risky": true, "outcomes": [
+          { "weight": 60, "successHeadline": "The far side sings back", "text": "The far terrace fills, learns its own songs by half time, and starts answering the main stand.", "effects": [{ "type": "fans", "amount": 200 }, { "type": "money", "amount": 700 }, { "type": "flag", "flag": "fourth-side-open", "value": true }] },
+          { "weight": 40, "text": "Eleven people spread themselves across four hundred seats and enjoy the room.", "effects": [{ "type": "money", "amount": -200 }, { "type": "fans", "amount": 30 }] }
+        ] },
+        { "id": "thank-the-turnstile-man", "label": "Take the photograph", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The photograph goes in the programme. He buys forty copies for relatives.", "effects": [{ "type": "fans", "amount": 55 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "milestone-promotion-push", "category": "club", "rarity": "rare", "art": "event-community-mural",
+      "title": "The Push Is Real", "body": "Someone has started painting the season's results down the tunnel wall, one match at a time, in club colors.",
+      "trigger": { "season": 1, "minWeek": 8, "maxWeek": 30, "requiredFlag": "milestone:promotion-push" },
+      "choices": [
+        { "id": "finish-the-results-wall", "label": "Let them paint the rest of the season", "risky": true, "outcomes": [
+          { "weight": 60, "successHeadline": "The wall runs out of room", "text": "The wall fills faster than the painter expected and the squad checks it on the way out every single day.", "effects": [{ "type": "morale", "amount": 8 }, { "type": "fans", "amount": 110 }, { "type": "flag", "flag": "results-wall", "value": true }] },
+          { "weight": 40, "text": "Two draws in a row get painted a suspicious shade of green. Nobody comments.", "effects": [{ "type": "morale", "amount": 2 }] }
+        ] },
+        { "id": "cover-the-results-wall", "label": "Ask them to wait for May", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The painter agrees, then quietly primes the whole wall ready for one very good afternoon.", "effects": [{ "type": "tp", "amount": 9 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "rival-bid-arrives", "category": "player", "rarity": "common", "art": "event-agent-whispers",
+      "title": "A Rival Bids", "body": "A club two divisions up has put a real number on one of your players and given you eight days to think about it.",
+      "trigger": { "season": 1, "minWeek": 8, "maxWeek": 26, "requiresPlayer": true },
+      "choices": [
+        { "id": "refuse-the-rival-bid", "label": "Tell them he is not for sale", "risky": true, "outcomes": [
+          { "weight": 60, "successHeadline": "The answer travels faster than the bid", "text": "Your flat refusal reaches the dressing room before it reaches their chairman. He decides you meant it about all of them.", "effects": [{ "type": "morale", "amount": 8 }, { "type": "flag", "flag": "rival-bid-rebuffed", "value": true }], "nextEventId": "rival-bid-deadline-day" },
+          { "weight": 40, "text": "Their scout keeps turning up anyway, now with a folding chair.", "effects": [{ "type": "morale", "amount": -3 }], "nextEventId": "rival-bid-deadline-day" }
+        ] },
+        { "id": "listen-to-the-rival-bid", "label": "Ask to hear the whole offer", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The number is better than you feared and the deadline is real. Bert writes both on the back of a teamsheet.", "effects": [{ "type": "tp", "amount": 5 }], "nextEventId": "rival-bid-deadline-day" }
+        ] }
+      ]
+    },
+    {
+      "id": "rival-bid-deadline-day", "category": "player", "rarity": "common", "art": "event-popup-sponsor",
+      "title": "Deadline Day", "body": "The rival's final offer expires at five. Their chairman has phoned three times and left the same message.",
+      "trigger": { "season": 1, "minWeek": 9, "maxWeek": 27, "requiresPlayer": true, "requiredFlag": "rival-bid-rebuffed" },
+      "choices": [
+        { "id": "hold-past-the-deadline", "label": "Let the clock run out", "risky": true, "outcomes": [
+          { "weight": 55, "successHeadline": "Five o'clock came and went", "text": "Five o'clock passes in total silence. He stays, signs nothing, and plays like a man who was wanted and chose here.", "effects": [{ "type": "morale", "amount": 10 }, { "type": "fans", "amount": 70 }, { "type": "flag", "flag": "held-off-the-rival", "value": true }] },
+          { "weight": 45, "text": "The offer expires and so does his good mood. He asks, politely, to be told next time.", "effects": [{ "type": "morale", "amount": -6 }] }
+        ] },
+        { "id": "take-the-deadline-fee", "label": "Take the fee before five", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The money lands the same afternoon. The squad understands the arithmetic and hates it politely.", "effects": [{ "type": "money", "amount": 2600 }, { "type": "morale", "amount": -4 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "rival-scout-duel", "category": "player", "rarity": "rare", "art": "event-lottery-win",
+      "title": "Two Clubs, One Signature", "body": "The winger you have watched all month is sitting in a cafe with a rival's scout and a second, untouched coffee.",
+      "trigger": { "season": 1, "minWeek": 12, "maxWeek": 28 },
+      "choices": [
+        { "id": "match-the-rival-offer", "label": "Sit down and match them", "risky": true, "requires": { "minMoney": 1000 }, "outcomes": [
+          { "weight": 50, "successHeadline": "The second coffee was yours", "text": "You take the second chair, match the offer to the pound, and he signs a napkin before the rival returns from the counter.", "effects": [{ "type": "money", "amount": -1000 }, { "type": "tp", "amount": 26 }, { "type": "flag", "flag": "won-the-signature", "value": true }] },
+          { "weight": 50, "text": "He thanks you both, chooses neither, and moves to a club by the sea.", "effects": [{ "type": "money", "amount": -250 }] }
+        ] },
+        { "id": "walk-away-from-the-duel", "label": "Leave them to it", "risky": false, "outcomes": [
+          { "weight": 100, "text": "Your scout spends the afternoon on someone cheaper and, he insists, better.", "effects": [{ "type": "tp", "amount": 8 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "sponsor-bonus-cheque", "category": "sponsor", "rarity": "common", "art": "event-hero-commercial",
+      "title": "An Unexpected Cheque", "body": "The kit sponsor has done better than expected this quarter and wants to share it, loudly, in front of a camera.",
+      "trigger": { "season": 1, "minWeek": 5, "maxWeek": 30, "repeatable": true },
+      "choices": [
+        { "id": "giant-cheque-photo", "label": "Do the giant cheque photo", "risky": true, "outcomes": [
+          { "weight": 70, "successHeadline": "It took four people to hold it", "text": "The cheque is the size of a door. The photograph runs everywhere and the sponsor asks about next year before lunch.", "effects": [{ "type": "money", "amount": 1400 }, { "type": "fans", "amount": 60 }, { "type": "flag", "flag": "giant-cheque", "value": true }] },
+          { "weight": 30, "text": "The wind takes it across the car park. The money is fine; the cheque is not.", "effects": [{ "type": "money", "amount": 1000 }] }
+        ] },
+        { "id": "quiet-bonus-transfer", "label": "Ask them to just wire it", "risky": false, "outcomes": [
+          { "weight": 100, "text": "It arrives by Thursday with a note reading THANKS FOR NOT MAKING US HOLD A CHEQUE.", "effects": [{ "type": "money", "amount": 1100 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "groundskeeper-award", "category": "club", "rarity": "common", "art": "event-radioactive-paint",
+      "title": "Best Pitch in the Division", "body": "The groundskeeper has won a small regional award and is pretending very hard not to care about it.",
+      "trigger": { "season": 1, "minWeek": 6, "maxWeek": 30 },
+      "choices": [
+        { "id": "parade-the-groundskeeper", "label": "Walk him round the pitch at half time", "risky": true, "outcomes": [
+          { "weight": 75, "successHeadline": "He waved with the wrong hand the whole way", "text": "He walks the full lap, waves with the wrong hand throughout, and the ground stands up for him twice.", "effects": [{ "type": "fans", "amount": 85 }, { "type": "morale", "amount": 6 }, { "type": "flag", "flag": "groundskeeper-lap", "value": true }] },
+          { "weight": 25, "text": "He refuses to leave the mower shed and accepts the applause through a window.", "effects": [{ "type": "morale", "amount": 3 }] }
+        ] },
+        { "id": "buy-the-groundskeeper-tools", "label": "Spend the prize on new tools", "risky": false, "outcomes": [
+          { "weight": 100, "text": "He returns with equipment nobody can name and a pitch that plays a yard faster.", "effects": [{ "type": "tp", "amount": 11 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "old-boy-comes-home", "category": "fan", "rarity": "rare", "art": "event-old-boot",
+      "title": "A Club Legend Walks In", "body": "A man who played four hundred games here in the seventies is standing in reception holding his own boots.",
+      "trigger": { "season": 1, "minWeek": 7, "maxWeek": 30 },
+      "choices": [
+        { "id": "legend-takes-a-session", "label": "Ask him to take a session", "risky": true, "outcomes": [
+          { "weight": 70, "successHeadline": "One drill, forty years old, still works", "text": "He runs one drill he has sworn by since 1974. It is baffling, exhausting, and by Friday the squad asks for it again.", "effects": [{ "type": "tp", "amount": 20 }, { "type": "morale", "amount": 7 }, { "type": "flag", "flag": "old-boy-drill", "value": true }] },
+          { "weight": 30, "text": "He mostly tells stories. Excellent stories, and a warm afternoon for everyone.", "effects": [{ "type": "morale", "amount": 5 }] }
+        ] },
+        { "id": "legend-boots-in-cabinet", "label": "Put the boots in the cabinet", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The boots go on the middle shelf. He visits every other Saturday to check on them.", "effects": [{ "type": "fans", "amount": 80 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "youth-coach-breakthrough", "category": "player", "rarity": "common", "art": "event-lightning-training",
+      "title": "The Kid Who Never Misses", "body": "The youth coach has waited outside your office for an hour to tell you about one player and one number.",
+      "trigger": { "season": 1, "minWeek": 6, "maxWeek": 30, "requiresPlayer": true },
+      "choices": [
+        { "id": "promote-the-kid-early", "label": "Put him in with the first team", "risky": true, "outcomes": [
+          { "weight": 60, "successHeadline": "The number was not a typo", "text": "He does it again in front of everyone, twice, and the senior squad quietly starts staying behind to watch.", "effects": [{ "type": "statDelta", "attribute": "sho", "amount": 2 }, { "type": "morale", "amount": 6 }, { "type": "flag", "flag": "kid-promoted-early", "value": true }] },
+          { "weight": 40, "text": "He is nineteen and it shows for ninety minutes. He learns more in that hour than in a month.", "effects": [{ "type": "morale", "amount": -2 }] }
+        ] },
+        { "id": "keep-the-kid-in-youth", "label": "Leave him where he is winning", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The youth coach is delighted, which is rare, and hands over a session plan built around him.", "effects": [{ "type": "tp", "amount": 10 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "saturday-radio-hour", "category": "media", "rarity": "common", "art": "event-hero-expose",
+      "title": "The Saturday Radio Hour", "body": "Local radio wants an hour of build-up from the ground itself, with supporters allowed to phone in.",
+      "trigger": { "season": 1, "minWeek": 4, "maxWeek": 30, "repeatable": true },
+      "choices": [
+        { "id": "open-the-phone-lines", "label": "Let the supporters phone in", "risky": true, "outcomes": [
+          { "weight": 65, "successHeadline": "Forty minutes of pure affection", "text": "Caller after caller says something kind and specific. The hour overruns and nobody at the station minds.", "effects": [{ "type": "fans", "amount": 125 }, { "type": "morale", "amount": 5 }, { "type": "flag", "flag": "radio-phone-in", "value": true }] },
+          { "weight": 35, "text": "One caller talks for eleven minutes about parking. He is, in fairness, correct.", "effects": [{ "type": "fans", "amount": 30 }] }
+        ] },
+        { "id": "radio-hour-preview-only", "label": "Keep it to a match preview", "risky": false, "outcomes": [
+          { "weight": 100, "text": "A tidy, useful hour. Two hundred people learn where the ground actually is.", "effects": [{ "type": "fans", "amount": 45 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "clean-bill-of-health", "category": "medical", "rarity": "common", "art": "event-miracle-physio",
+      "title": "Nobody in the Treatment Room", "body": "For the first time this season the physio has nothing to do and is visibly unsettled by it.",
+      "trigger": { "season": 1, "minWeek": 8, "maxWeek": 30, "repeatable": true },
+      "choices": [
+        { "id": "full-strength-session", "label": "Use the full squad while you have it", "risky": true, "outcomes": [
+          { "weight": 65, "successHeadline": "Eighteen fit players in one session", "text": "A whole squad in one session for once. The shape finally looks like the shape on the board.", "effects": [{ "type": "tp", "amount": 18 }, { "type": "morale", "amount": 4 }, { "type": "flag", "flag": "full-strength-week", "value": true }] },
+          { "weight": 35, "text": "Someone pulls up in the last ten minutes. The physio looks almost relieved.", "effects": [{ "type": "tp", "amount": 6 }] }
+        ] },
+        { "id": "give-the-squad-a-day", "label": "Give everyone the day off", "risky": false, "outcomes": [
+          { "weight": 100, "text": "They come back on Thursday looking like a different team, in the good way.", "effects": [{ "type": "morale", "amount": 7 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "leaking-stand-roof", "category": "club", "rarity": "common", "art": "event-radioactive-paint",
+      "title": "The West Stand Leaks", "body": "Four rows of the west stand are now officially a water feature. The safety officer has used the word CLOSED.",
+      "trigger": { "season": 1, "minWeek": 5, "maxWeek": 26 },
+      "choices": [
+        { "id": "patch-the-roof-ourselves", "label": "Patch it with whoever turns up", "risky": true, "outcomes": [
+          { "weight": 60, "successHeadline": "Nine supporters and one long ladder", "text": "Nine supporters, one ladder, and a Sunday. The roof holds, and everyone who helped now owns a small piece of the ground.", "effects": [{ "type": "fans", "amount": 90 }, { "type": "flag", "flag": "west-stand-dry", "value": true }], "nextEventId": "west-stand-reopening" },
+          { "weight": 40, "text": "The patch survives one shower. A professional is called, and charges for the diagnosis too.", "effects": [{ "type": "money", "amount": -600 }] }
+        ] },
+        { "id": "pay-for-the-roof", "label": "Pay a roofer properly", "risky": false, "outcomes": [
+          { "weight": 100, "text": "It costs what it costs and is finished by Friday, dry and entirely unremarkable.", "effects": [{ "type": "money", "amount": -900 }, { "type": "flag", "flag": "west-stand-dry", "value": true }], "nextEventId": "west-stand-reopening" }
+        ] }
+      ]
+    },
+    {
+      "id": "west-stand-reopening", "category": "fan", "rarity": "common", "art": "event-ultras-tickets",
+      "title": "The West Stand Reopens", "body": "The dry rows go back on sale and the supporters who fixed them want the first four seats.",
+      "trigger": { "season": 1, "minWeek": 6, "maxWeek": 30, "requiredFlag": "west-stand-dry" },
+      "choices": [
+        { "id": "name-the-repaired-rows", "label": "Name the rows after the ladder crew", "risky": true, "outcomes": [
+          { "weight": 75, "successHeadline": "Four seats with nine names on them", "text": "Nine names go on a brass strip along four seats. Every one of them brings somebody new the following week.", "effects": [{ "type": "fans", "amount": 150 }, { "type": "money", "amount": 500 }, { "type": "flag", "flag": "ladder-crew-rows", "value": true }] },
+          { "weight": 25, "text": "The engraver misspells two names. Both men decide they prefer the new versions.", "effects": [{ "type": "fans", "amount": 45 }] }
+        ] },
+        { "id": "reopen-west-stand-quietly", "label": "Just put them back on sale", "risky": false, "outcomes": [
+          { "weight": 100, "text": "They sell out in a morning, mostly to people who now check the roof out of habit.", "effects": [{ "type": "money", "amount": 450 }, { "type": "fans", "amount": 35 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "terrace-choir-forms", "category": "fan", "rarity": "common", "art": "event-lost-mascot",
+      "title": "A Choir on the Terrace", "body": "Six supporters have started singing in something close to harmony and are asking for a microphone.",
+      "trigger": { "season": 1, "minWeek": 4, "maxWeek": 24 },
+      "choices": [
+        { "id": "give-the-choir-a-microphone", "label": "Give them the microphone", "risky": true, "outcomes": [
+          { "weight": 65, "successHeadline": "Six voices, then sixty", "text": "Six voices become sixty by half time. The terrace has a sound now, and it is genuinely quite good.", "effects": [{ "type": "fans", "amount": 115 }, { "type": "morale", "amount": 5 }, { "type": "flag", "flag": "terrace-choir", "value": true }] },
+          { "weight": 35, "text": "They attempt a key nobody can reach. The attempt itself becomes the joke of the season.", "effects": [{ "type": "fans", "amount": 25 }] }
+        ] },
+        { "id": "choir-without-microphone", "label": "Let them sing unamplified", "risky": false, "outcomes": [
+          { "weight": 100, "text": "They sing anyway, all afternoon, and are hoarse and happy by full time.", "effects": [{ "type": "morale", "amount": 4 }] }
+        ] }
+      ]
+    },
+    {
+      "id": "terrace-choir-anthem", "category": "media", "rarity": "common", "art": "event-viral-goal",
+      "title": "The Anthem Gets a Verse", "body": "The terrace choir has written a second verse. It is about the club's plumbing and it is four minutes long.",
+      "trigger": { "season": 1, "minWeek": 10, "maxWeek": 30, "requiredFlag": "terrace-choir" },
+      "choices": [
+        { "id": "record-the-second-verse", "label": "Record the whole four minutes", "risky": true, "outcomes": [
+          { "weight": 60, "successHeadline": "Four minutes about a boiler, charting locally", "text": "The full version is released unedited and charts locally. The boiler becomes the most famous appliance in the county.", "effects": [{ "type": "fans", "amount": 165 }, { "type": "money", "amount": 900 }, { "type": "flag", "flag": "choir-anthem-recorded", "value": true }] },
+          { "weight": 40, "text": "Four minutes proves to be three minutes too many. The chorus survives; the verse does not.", "effects": [{ "type": "fans", "amount": 40 }] }
+        ] },
+        { "id": "trim-the-choir-anthem", "label": "Ask for the chorus only", "risky": false, "outcomes": [
+          { "weight": 100, "text": "The trimmed chorus is sung on the way out of every home game from then on.", "effects": [{ "type": "fans", "amount": 70 }] }
         ] }
       ]
     }
