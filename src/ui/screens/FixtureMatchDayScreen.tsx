@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -44,6 +44,25 @@ export function FixtureMatchDayScreen({
   useEffect(() => {
     if (selectedStarterId !== null && selectedStarter === undefined) setSelectedStarterId(null);
   }, [selectedStarter, selectedStarterId]);
+
+  // Handing the fixture off changes the screen, but this one is not unmounted
+  // until the next render — long enough for a second tap to settle the fixture
+  // after it, which is a real one when a cup tie shares the week: it would be
+  // played with the league match's ledger never shown. The ref closes that
+  // window on the press itself; the state only drives the disabled look. Both
+  // re-arm on the next fixture, which is how that cup tie stays playable.
+  const [handedOff, setHandedOff] = useState(false);
+  const handedOffRef = useRef(false);
+  useEffect(() => {
+    handedOffRef.current = false;
+    setHandedOff(false);
+  }, [fixture.id]);
+  const handOffFixture = (settle: () => void) => {
+    if (handedOffRef.current) return;
+    handedOffRef.current = true;
+    setHandedOff(true);
+    settle();
+  };
 
   const swapWithBenchPlayer = (replacementId: string) => {
     if (selectedStarter === undefined) return;
@@ -265,8 +284,8 @@ export function FixtureMatchDayScreen({
             <ActionButton
               label="Quick result"
               accessibilityLabel="Simulate this match with quick result"
-              onPress={onQuickResult}
-              disabled={quickResultDisabled || !viewModel.licenseReady}
+              onPress={() => handOffFixture(onQuickResult)}
+              disabled={quickResultDisabled || handedOff || !viewModel.licenseReady}
               variant="paper"
             />
           </View>
@@ -274,8 +293,8 @@ export function FixtureMatchDayScreen({
             <ActionButton
               label={wide ? 'Watch match  ▸' : 'Watch  ▸'}
               accessibilityLabel="Watch match"
-              onPress={onWatchMatch}
-              disabled={watchDisabled || !viewModel.licenseReady}
+              onPress={() => handOffFixture(onWatchMatch)}
+              disabled={watchDisabled || handedOff || !viewModel.licenseReady}
             />
           </View>
         </View>

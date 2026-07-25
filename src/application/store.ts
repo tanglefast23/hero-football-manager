@@ -360,9 +360,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (get().persistenceLoadError !== null) {
         throw new Error('Resolve the save-load error before replacing this career.');
       }
-      const replacedCareerId = get().career === null
-        ? null
-        : `m1-career-${get().career!.careerSeed}`;
+      const replacedCareer = get().career;
       const career = beginStoryOnboarding(createCareer(createLaunchCareerSetup(
         seed ?? generateCareerSeed(),
         undefined,
@@ -380,7 +378,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         weekReview: null,
         error: null,
       });
-      queueNewCareerSave(get, set, career, replacedCareerId);
+      queueNewCareerSave(get, set, career, replacedCareer);
     });
   },
 
@@ -1590,6 +1588,12 @@ function queueCareerSave(
     set,
     async () => {
       if (get().persistenceLoadError !== null) return;
+      // Every career save is queued for the career the store had just moved to,
+      // so a different one being live by the time this runs means this career
+      // was abandoned — a replacement whose own save failed and rolled back onto
+      // the career still in the live slot. Writing it now would undo that.
+      const live = get().career;
+      if (live !== null && live.careerSeed !== career.careerSeed) return;
       await repository.save(career);
     },
     'Save failed',
@@ -1668,12 +1672,15 @@ function queueNewCareerSave(
   get: () => M1Store,
   set: (partial: Partial<M1Store>) => void,
   career: GameState,
-  replacedCareerId: string | null,
+  replacedCareer: GameState | null,
 ): void {
   const careerRepository = get().repository;
   const replayRepository = get().replayRepository;
   if (careerRepository === null && replayRepository === null) return;
   const careerId = `m1-career-${career.careerSeed}`;
+  const replacedCareerId = replacedCareer === null
+    ? null
+    : `m1-career-${replacedCareer.careerSeed}`;
   enqueueSave(
     set,
     async () => {
@@ -1683,15 +1690,33 @@ function queueNewCareerSave(
       await replayRepository?.deleteAllForCareer(careerId);
       await careerRepository?.save(career);
     },
-    'New career save failed',
+    'New career could not be saved',
     () => {
       clearSaveFailures(set);
       if (get().career === career) set({ hasSavedCareer: true });
     },
-    error => {
+    () => {
+      // The write that failed is the one that would have replaced the career on
+      // disk, so the live slot still holds it. Roll memory back onto that career
+      // rather than leaving the player in one the game has refused to store:
+      // treating this as an unreadable save would offer to delete the slot, and
+      // the slot is the good career.
+      if (replacedCareer === null) {
+        // Nothing to lose to a retry — the slot was empty. This is the ordinary
+        // "progress is not being saved" warning, with its Retry.
+        recordSaveFailure(get, set);
+        return;
+      }
       set({
-        persistenceLoadError:
-          `New career could not safely replace the existing save: ${errorMessage(error)}`,
+        career: replacedCareer,
+        hasSavedCareer: true,
+        screen: resumeScreen(replacedCareer),
+        activeTab: 'home',
+        selectedPlayerId: undefined,
+        watchedMatch: null,
+        postMatch: null,
+        postMatchOverlay: null,
+        weekReview: null,
       });
     },
   );

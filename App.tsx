@@ -402,6 +402,11 @@ function GameApp() {
   const reduceMotion = useReducedMotion(preferences.reduceMotion);
 
   const savePreferences = useCallback((next: AppPreferences) => {
+    // Ahead of the render, so two changes made before React re-renders — a
+    // toggle and a volume drag, or a cut-in first-view landing mid-tap — both
+    // compose from this and the second no longer persists a snapshot taken
+    // before the first.
+    preferencesRef.current = next;
     setPreferences(next);
     setSettingsSaveError(null);
     const repository = preferencesRepositoryRef.current;
@@ -417,38 +422,61 @@ function GameApp() {
       });
   }, []);
 
+  // Every one of these composes from `preferencesRef`, never from the rendered
+  // `preferences`: a settings screen is a column of controls the player can hit
+  // faster than React re-renders, and a stale spread reverts the change before
+  // it on disk while the UI still shows both as set.
   const cycleVolume = useCallback(() => {
-    savePreferences({ ...preferences, masterVolume: nextDevVolume(devVolume) });
-  }, [devVolume, preferences, savePreferences]);
+    const current = preferencesRef.current;
+    savePreferences({
+      ...current,
+      masterVolume: nextDevVolume(current.masterVolume as DevVolume),
+    });
+  }, [savePreferences]);
+  const setVolume = useCallback((masterVolume: DevVolume) => {
+    savePreferences({ ...preferencesRef.current, masterVolume });
+  }, [savePreferences]);
   const toggleReduceMotion = useCallback(() => {
-    savePreferences({ ...preferences, reduceMotion: !preferences.reduceMotion });
-  }, [preferences, savePreferences]);
+    const current = preferencesRef.current;
+    savePreferences({ ...current, reduceMotion: !current.reduceMotion });
+  }, [savePreferences]);
   const toggleHudSide = useCallback(() => {
-    savePreferences({ ...preferences, hudSide: preferences.hudSide === 'left' ? 'right' : 'left' });
-  }, [preferences, savePreferences]);
+    const current = preferencesRef.current;
+    savePreferences({ ...current, hudSide: current.hudSide === 'left' ? 'right' : 'left' });
+  }, [savePreferences]);
   const toggleHaptics = useCallback(() => {
-    savePreferences({ ...preferences, hapticsEnabled: !preferences.hapticsEnabled });
-  }, [preferences, savePreferences]);
+    const current = preferencesRef.current;
+    savePreferences({ ...current, hapticsEnabled: !current.hapticsEnabled });
+  }, [savePreferences]);
   const cycleTextScale = useCallback(() => {
-    const textScale = preferences.textScale === 1 ? 1.15 : preferences.textScale === 1.15 ? 1.3 : 1;
-    savePreferences({ ...preferences, textScale });
-  }, [preferences, savePreferences]);
+    const current = preferencesRef.current;
+    const textScale = current.textScale === 1 ? 1.15 : current.textScale === 1.15 ? 1.3 : 1;
+    savePreferences({ ...current, textScale });
+  }, [savePreferences]);
   const toggleHighContrast = useCallback(() => {
-    savePreferences({ ...preferences, highContrast: !preferences.highContrast });
-  }, [preferences, savePreferences]);
+    const current = preferencesRef.current;
+    savePreferences({ ...current, highContrast: !current.highContrast });
+  }, [savePreferences]);
   const toggleColorSafeKits = useCallback(() => {
-    savePreferences({ ...preferences, colorSafeKits: !preferences.colorSafeKits });
-  }, [preferences, savePreferences]);
+    const current = preferencesRef.current;
+    savePreferences({ ...current, colorSafeKits: !current.colorSafeKits });
+  }, [savePreferences]);
   const toggleCutInMode = useCallback(() => {
-    savePreferences({ ...preferences, cutInMode: preferences.cutInMode === 'full' ? 'banner' : 'full' });
-  }, [preferences, savePreferences]);
+    const current = preferencesRef.current;
+    savePreferences({ ...current, cutInMode: current.cutInMode === 'full' ? 'banner' : 'full' });
+  }, [savePreferences]);
+  const cycleFormationPreset = useCallback((slot: number) => {
+    const market = useM1Store.getState().career?.market;
+    savePreferences(replaceFormationPreset(
+      preferencesRef.current,
+      slot,
+      market === undefined ? [] : careerCoachUnlockedFormationIds(market),
+    ));
+  }, [savePreferences]);
   const recordSeenPowerCutIn = useCallback((power: AppPreferences['seenPowerCutIns'][number]) => {
     const current = preferencesRef.current;
     const next = markPowerCutInSeen(current, power);
     if (next === current) return;
-    // Compose two first-time fires from one event batch instead of allowing
-    // the latter persistence write to replace the former.
-    preferencesRef.current = next;
     savePreferences(next);
   }, [savePreferences]);
 
@@ -972,13 +1000,7 @@ function GameApp() {
         preferences={preferences}
         glossary={content.glossary}
         onCycleVolume={cycleVolume}
-        onCycleFormation={slot => savePreferences(replaceFormationPreset(
-          preferences,
-          slot,
-          store.career?.market === undefined
-            ? []
-            : careerCoachUnlockedFormationIds(store.career.market),
-        ))}
+        onCycleFormation={cycleFormationPreset}
         onToggleReduceMotion={toggleReduceMotion}
         onToggleHudSide={toggleHudSide}
         onToggleHaptics={toggleHaptics}
@@ -1209,7 +1231,11 @@ function GameApp() {
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
+        // `saveBlocked` already refuses the advance in the store; the button has
+        // to say so too, or the only feedback for a paused season is a toast
+        // repeating what the warning banner above it already says.
         advanceWeekDisabled={store.saving
+          || store.saveBlocked
           || (assistantObjective !== null && assistantObjective.target !== 'advance-week')}
         guideFocus={assistantPage?.focus === 'money' || assistantPage?.focus === 'navigation'
           ? assistantPage.focus
@@ -1494,7 +1520,7 @@ function GameApp() {
             ? undefined
             : store.career?.difficulty ?? (store.career ? 'COZY' : undefined)}
           saveError={settingsSaveError}
-          onVolumeChange={volume => savePreferences({ ...preferences, masterVolume: volume })}
+          onVolumeChange={setVolume}
           onToggleReduceMotion={toggleReduceMotion}
           onToggleHudSide={toggleHudSide}
           onToggleHaptics={toggleHaptics}
