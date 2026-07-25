@@ -20,6 +20,7 @@ import {
 } from '../../game';
 import { createMatch, queueInput, tick } from '../../sim/match';
 import type { PowerId, TeamDef } from '../../sim/types';
+import { scaleTeam as scale } from '../probe-calibration';
 import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 
 const content = loadLaunchContent();
@@ -646,21 +647,6 @@ function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   return {
     user: withoutPowers(teams[state.userClubId]),
     opponent: withoutPowers(teams[opponentId]),
-  };
-}
-
-function scale(team: TeamDef, delta: number): TeamDef {
-  return {
-    ...team,
-    players: team.players.map(player => ({
-      ...player,
-      attrs: Object.fromEntries(
-        Object.entries(player.attrs).map(([key, value]) => [
-          key,
-          Math.max(1, Math.min(99, value + delta)),
-        ]),
-      ) as unknown as typeof player.attrs,
-    })),
   };
 }
 

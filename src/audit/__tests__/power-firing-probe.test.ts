@@ -21,6 +21,7 @@ import {
 } from '../../game';
 import { createMatch, queueInput, tick } from '../../sim/match';
 import type { PowerId, TeamDef } from '../../sim/types';
+import { EVEN_DELTA, STRENGTH_LADDER, scaleTeam as scale } from '../probe-calibration';
 import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 
 const content = loadLaunchContent();
@@ -51,9 +52,8 @@ const CARRIER_SLOT: Record<PowerId, number> = {
   GIANT_GK: 0,
   GUST: 2,
 };
-/** The baseline opponent is 2 points stronger, so -2 is a genuinely even match. */
-const EVEN_DELTA = -2;
-const LADDER = [-6, -5, -4, -3, -2, -1, 0, 1, 2];
+// EVEN_DELTA and the ladder are measured, shared constants — see probe-calibration.
+const LADDER = STRENGTH_LADDER;
 
 interface Sample {
   ppm: number;
@@ -216,21 +216,6 @@ function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   return {
     user: withoutPowers(teams[state.userClubId]),
     opponent: withoutPowers(teams[opponentId]),
-  };
-}
-
-function scale(team: TeamDef, delta: number): TeamDef {
-  return {
-    ...team,
-    players: team.players.map(player => ({
-      ...player,
-      attrs: Object.fromEntries(
-        Object.entries(player.attrs).map(([key, value]) => [
-          key,
-          Math.max(1, Math.min(99, value + delta)),
-        ]),
-      ) as unknown as typeof player.attrs,
-    })),
   };
 }
 

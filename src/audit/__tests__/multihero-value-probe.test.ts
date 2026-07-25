@@ -20,6 +20,7 @@ import {
 } from '../../game';
 import { runMatch } from '../../sim/match';
 import type { PowerId, TeamDef } from '../../sim/types';
+import { scaleTeam as scale } from '../probe-calibration';
 
 const content = loadLaunchContent();
 const SEEDS = positiveIntegerEnv('MULTIHERO_VALUE_SEEDS', 1000);
@@ -465,21 +466,6 @@ function teamStrength(team: TeamDef): number {
     (sum, player) => sum + roleOverall(player.role, player.attrs),
     0,
   ) / team.players.length);
-}
-
-function scale(team: TeamDef, delta: number): TeamDef {
-  return {
-    ...team,
-    players: team.players.map(player => ({
-      ...player,
-      attrs: Object.fromEntries(
-        Object.entries(player.attrs).map(([key, value]) => [
-          key,
-          Math.max(1, Math.min(99, value + delta)),
-        ]),
-      ) as unknown as typeof player.attrs,
-    })),
-  };
 }
 
 function positiveIntegerEnv(name: string, fallback: number): number {
