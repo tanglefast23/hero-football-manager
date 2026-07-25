@@ -143,6 +143,16 @@ export function startNextFullCareerSeason(
   const currentUserClub = state.clubs.find(club => club.id === state.userClubId)!;
   const userClub: ClubState = {
     ...currentUserClub,
+    // The user's gate, sponsor and ticket income scales with division exactly as
+    // every generated opponent's does (see generatedActiveDivision below). This
+    // used to spread the old club through unchanged, so fans, ticket price and
+    // sponsor fee stayed frozen at their D5 starting values for the whole D5->D1
+    // climb — docs/02's "each division up means better sponsors, bigger gates"
+    // was never implemented. Fans take the division floor but keep any surplus
+    // earned through events, so growth is never taken away.
+    fans: Math.max(currentUserClub.fans, divisionFans(transition.division)),
+    ticketPrice: divisionTicketPrice(transition.division),
+    sponsorMonthlyFee: divisionSponsorMonthlyFee(transition.division),
     weeklyWages: activeUserPlayers.reduce(
       (sum, player) => checkedAdd(sum, player.weeklyWage, 'user weekly wages'),
       0,
@@ -264,9 +274,9 @@ function generatedActiveDivision(
       id: club.id,
       name: club.name,
       cash: 25_000 * (6 - division),
-      fans: 500 * (6 - division),
-      ticketPrice: 3 + (6 - division),
-      sponsorMonthlyFee: 2_000 * (6 - division),
+      fans: divisionFans(division),
+      ticketPrice: divisionTicketPrice(division),
+      sponsorMonthlyFee: divisionSponsorMonthlyFee(division),
       weeklyWages: clubPlayers.reduce(
         (sum, player) => checkedAdd(sum, player.weeklyWage, 'opponent weekly wages'),
         0,
@@ -337,6 +347,23 @@ function opponentPotential(
     value = Math.imul(value ^ playerId.charCodeAt(index), 16777619) >>> 0;
   }
   return potentialTierForDivision(division, value % 100);
+}
+
+/**
+ * Division income levers, shared by the user club and every generated opponent
+ * so the two can never drift apart again. A lower division number is a higher
+ * tier, so each promotion raises all three.
+ */
+export function divisionFans(division: DivisionLevel): number {
+  return 500 * (6 - division);
+}
+
+export function divisionTicketPrice(division: DivisionLevel): number {
+  return 3 + (6 - division);
+}
+
+export function divisionSponsorMonthlyFee(division: DivisionLevel): number {
+  return 2_000 * (6 - division);
 }
 
 function startingEleven(players: readonly CareerPlayer[]): string[] {

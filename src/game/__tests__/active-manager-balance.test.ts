@@ -62,10 +62,12 @@ describe('active-manager economy rail', () => {
     }
     const balances = state.ledgers.map(l => l.balanceAfter);
     // No runaway build-up: even a flawless winner who trains for free every week
-    // must not accumulate cash beyond a sane ceiling. Observed max across seeds
-    // [0, 77, 20_260_719] is ~125,600 -- ceiling is that rounded up to the next
-    // 25k (150k) plus one 25k of margin.
-    expect(Math.max(...balances)).toBeLessThanOrEqual(/* CEILING */ 175_000);
+    // must not accumulate cash without bound. Re-centred once the user club's
+    // gate/sponsor income began scaling with division (previously it was frozen
+    // at D5 values for the whole climb, which is why the old 175k ceiling held).
+    // Observed max across seeds [0, 77, 20_260_719] is ~734,400 -- ceiling is
+    // that rounded up to the next 100k plus one 100k of margin.
+    expect(Math.max(...balances)).toBeLessThanOrEqual(/* CEILING */ 900_000);
     expect(balances.every(b => Number.isSafeInteger(b))).toBe(true);
     expect(state.trainingPoints).toBeGreaterThanOrEqual(0);
   });

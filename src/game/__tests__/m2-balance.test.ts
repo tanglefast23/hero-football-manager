@@ -72,10 +72,16 @@ describe('M2 deterministic management balance rails', () => {
 
     // This runner is deliberately passive, so it is not the player-progression
     // median promised by the design doc. It still guards distribution drift:
-    // some zero-hero clubs climb twice, every debt spiral receives the one loan,
-    // and no sampled balance escapes the long-run corridor.
+    // some zero-hero clubs climb twice, the emergency loan is reachable, and no
+    // sampled balance escapes the long-run corridor.
     expect(divisionThreeOrHigher.length / summaries.length).toBeGreaterThanOrEqual(0.1);
-    expect(loanCount).toBe(summaries.length);
+    // The loan must remain a safety net, not the normal course of business. This
+    // previously asserted `toBe(summaries.length)` -- i.e. that EVERY sampled
+    // career goes insolvent -- which certified the broken economy as correct and
+    // could never fail no matter how bad the ramp got. It must stay exercised
+    // (a passive manager should still hit trouble) but must not be universal.
+    expect(loanCount).toBeGreaterThan(0);
+    expect(loanCount).toBeLessThan(summaries.length);
     expect(Math.min(...summaries.map(({ summary }) => summary.minimumBalance)))
       .toBeGreaterThanOrEqual(-200_000);
     expect(summaries.every(({ summary }) => Number.isSafeInteger(summary.endingCash))).toBe(true);
