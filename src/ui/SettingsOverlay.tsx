@@ -108,6 +108,14 @@ export interface SettingsOverlayProps {
   accessibilityCopy?: { title: string; body: string };
   difficultyLabel?: 'COZY' | 'CHAIRMAN';
   saveError?: string | null;
+  /** The result of the last export or import, shown until Settings closes. */
+  saveFileStatus?: string | null;
+  /** True while a file is being written, read or validated. */
+  saveFileBusy?: boolean;
+  /** Omit to hide the row: each control appears only when it can do its job. */
+  onExportSave?: () => void;
+  /** Replaces the career, so the caller is expected to confirm first. */
+  onImportSave?: () => void;
   onVolumeChange: (v: DevVolume) => void;
   onToggleReduceMotion: () => void;
   onToggleHudSide: () => void;
@@ -163,6 +171,10 @@ export function SettingsOverlay({
   accessibilityCopy,
   difficultyLabel,
   saveError,
+  saveFileStatus,
+  saveFileBusy = false,
+  onExportSave,
+  onImportSave,
   onVolumeChange,
   onToggleReduceMotion,
   onToggleHudSide,
@@ -289,6 +301,51 @@ export function SettingsOverlay({
                 <Text className="font-pixel text-base text-blue-dark">A–Z ›</Text>
               </Pressable>
             </View>
+            {onExportSave === undefined && onImportSave === undefined ? null : (
+              <View className="mt-5 gap-3 border-t border-ink/15 pt-5">
+                {onExportSave === undefined ? null : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Export save to a file"
+                    accessibilityState={{ disabled: saveFileBusy }}
+                    disabled={saveFileBusy}
+                    onPress={onExportSave}
+                    className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
+                  >
+                    <Text className="font-pixel text-sm uppercase text-ink">Export save</Text>
+                    <Text className="font-pixel text-base uppercase text-blue-dark">
+                      {saveFileBusy ? 'WORKING' : 'SHARE ›'}
+                    </Text>
+                  </Pressable>
+                )}
+                {onImportSave === undefined ? null : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Import a save file, replacing this career"
+                    accessibilityState={{ disabled: saveFileBusy }}
+                    disabled={saveFileBusy}
+                    onPress={onImportSave}
+                    className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
+                  >
+                    <Text className="font-pixel text-sm uppercase text-ink">Import save</Text>
+                    {/* Says what it costs: an import overwrites the live career. */}
+                    <Text className="font-pixel text-base uppercase text-blue-dark">
+                      {saveFileBusy ? 'WORKING' : 'REPLACE ›'}
+                    </Text>
+                  </Pressable>
+                )}
+                {saveFileStatus ? (
+                  <View
+                    accessible
+                    accessibilityRole="text"
+                    accessibilityLiveRegion="polite"
+                    className="border-2 border-blue-dark bg-blue-light px-3 py-2"
+                  >
+                    <Text className="text-sm leading-5 text-ink/65">{saveFileStatus}</Text>
+                  </View>
+                ) : null}
+              </View>
+            )}
             <View className="mt-6">
               <ActionButton label="Done" accessibilityLabel="Close settings" onPress={() => setOpenState(false)} variant="primary" />
             </View>

@@ -1453,9 +1453,10 @@ export function parseStoredGameState(serialized: string): GameState {
   // lets a shipped update change the save shape without wiping the field.
   value = migrateStoredGameState(value);
   // Referential fail-soft, after the ladder so it sees the final shape: the
-  // schema now requires every scout report to resolve, and saves written before
-  // it did must still load.
+  // schema now requires every scout report and every open transfer talk to
+  // resolve, and saves written before it did must still load.
   value = dropUnresolvableScoutReports(value);
+  value = dropUnresolvableTransferTalks(value);
   assertSupportedSchema(value, true);
   let validation: z.ZodSafeParseResult<unknown>;
   try {
@@ -1561,6 +1562,31 @@ function dropUnresolvableScoutReports(value: unknown): unknown {
   ));
   if (scoutReports.length === market.scoutReports.length) return value;
   return { ...value, market: { ...market, scoutReports } };
+}
+
+/**
+ * Drops open transfer talks whose target is no longer somewhere the market can
+ * find them — signed elsewhere, retired, or gone with a regenerated pyramid. The
+ * negotiation is a conversation the player can restart, so losing it costs
+ * nothing; keeping it crashes the Market tab on every visit, and the tab is
+ * reachable from a save that loads.
+ */
+function dropUnresolvableTransferTalks(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  const market = value.market;
+  if (!isRecord(market)) return value;
+  const talks = market.transferTalks;
+  if (talks === undefined) return value;
+  // Malformed talks are kept so the validator still reports them rather than
+  // this quietly hiding a corrupt save. That includes a quote or negotiation
+  // pointing at a different player than the talks themselves.
+  if (!isRecord(talks) || typeof talks.playerId !== 'string') return value;
+  const userClubId = value.userClubId;
+  if (typeof userClubId !== 'string') return value;
+  if (transferTargetPlayerIds(value, userClubId).has(talks.playerId)) return value;
+
+  const { transferTalks: _transferTalks, ...marketWithoutTalks } = market;
+  return { ...value, market: marketWithoutTalks };
 }
 
 function transferTargetPlayerIds(
