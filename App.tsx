@@ -225,7 +225,7 @@ function PowerMatchQaApp() {
               <Text className="font-pixel text-xs uppercase text-ink">‹ Prev</Text>
             </Pressable>
             <View className="flex-1 items-center">
-              <Text className="font-mono text-[10px] font-bold uppercase tracking-widest text-gold">
+              <Text className="font-pixel text-[10px] uppercase tracking-widest text-gold">
                 Live match · {String(powerIndex + 1).padStart(2, '0')} / {String(powerCount).padStart(2, '0')}
               </Text>
               <Text numberOfLines={1} className="font-pixel text-base uppercase text-paper">{power.name}</Text>
@@ -250,7 +250,7 @@ function PowerMatchQaApp() {
               <Text className="font-pixel text-xs uppercase text-ink">Next ›</Text>
             </Pressable>
           </View>
-          <Text className="mt-1 text-center font-mono text-[10px] font-bold leading-4 text-paper/80">
+          <Text className="mt-1 text-center font-pixel text-[10px] leading-4 text-paper/80">
             {power.description}
           </Text>
         </View>
@@ -1610,7 +1610,7 @@ function LoadingScreen() {
         accessibilityLabel="Opening club files"
         className="-rotate-2 border-2 border-signal px-5 py-4"
       >
-        <Text className="font-mono text-lg font-bold uppercase tracking-widest text-signal">Opening club files…</Text>
+        <Text className="font-pixel text-lg uppercase tracking-widest text-signal">Opening club files…</Text>
       </View>
     </SafeAreaView>
   );
@@ -1726,7 +1726,7 @@ function ConfirmationSheet({
           accessibilityViewIsModal
           className="border-2 border-b-4 border-ink bg-paper p-5"
         >
-          <Text className="font-mono text-sm font-bold uppercase text-stamp">Confirm club decision</Text>
+          <Text className="font-pixel text-sm uppercase text-stamp">Confirm club decision</Text>
           <Text className="mt-2 font-pixel text-xl uppercase text-ink">{confirmation?.title}</Text>
           <Text className="mt-3 text-base leading-6 text-ink/70">{confirmation?.detail}</Text>
           <View className="mt-5 flex-row gap-3">

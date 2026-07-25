@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 10,
   },
-  backText: { color: 'white', fontSize: 16 },
+  backText: { color: 'white', fontFamily: 'Silkscreen_700Bold', fontSize: 16 },
   hud: {
     position: 'absolute',
     top: 108,
@@ -211,5 +211,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 10,
   },
-  hudText: { color: '#f5c518', fontSize: 16, fontVariant: ['tabular-nums'] },
+  hudText: { color: '#f5c518', fontFamily: 'Silkscreen_400Regular', fontSize: 16, fontVariant: ['tabular-nums'] },
 });
