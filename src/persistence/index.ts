@@ -7,14 +7,21 @@ export type {
 } from './database';
 export {
   createCareerRepository,
+  type CareerBackupSummary,
   type CareerRepository,
 } from './career-repository';
+export {
+  resetCareerDatabase,
+  type CareerDatabaseResetOptions,
+} from './hard-reset';
 export {
   CorruptCareerSaveError,
   CorruptReplayEnvelopeError,
   InvalidGameStateError,
   InvalidReplayEnvelopeError,
+  MissingCareerBackupError,
   PersistenceMigrationError,
+  PersistenceResetError,
   UnsupportedDatabaseVersionError,
   UnsupportedGameSchemaError,
   UnsupportedReplaySchemaError,

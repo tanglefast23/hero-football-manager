@@ -23,6 +23,11 @@ export interface FakePreferencesRow {
   preferences_json: unknown;
 }
 
+export interface FakeBackupRow extends FakeCareerRow {
+  saved_season: unknown;
+  saved_week: unknown;
+}
+
 export class FakePersistenceDatabase implements PersistenceDatabase {
   userVersion: number;
   journalMode: string | null = null;
@@ -30,18 +35,25 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
   tableExists = false;
   replayTableExists = false;
   preferencesTableExists = false;
+  backupTableExists = false;
   migrationTransactions = 0;
   createTableExecutions = 0;
   executedSql: string[] = [];
   careerRow: FakeCareerRow | null = null;
   replayRows = new Map<string, FakeReplayRow>();
   preferencesRow: FakePreferencesRow | null = null;
+  backupRow: FakeBackupRow | null = null;
+  /** What `PRAGMA quick_check` answers; tests set 'damaged' to fake corruption. */
+  integrity = 'ok';
+  /** Fails every write once set, standing in for a full or read-only disk. */
+  writesFail = false;
 
   constructor(userVersion = 0) {
     this.userVersion = userVersion;
     this.tableExists = userVersion >= 1;
     this.replayTableExists = userVersion >= 2;
     this.preferencesTableExists = userVersion >= 3;
+    this.backupTableExists = userVersion >= 4;
   }
 
   async execAsync(source: string): Promise<void> {
@@ -71,6 +83,17 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       this.createTableExecutions += 1;
       return;
     }
+    if (sql.startsWith('CREATE TABLE IF NOT EXISTS career_save_backups')) {
+      this.backupTableExists = true;
+      this.createTableExecutions += 1;
+      return;
+    }
+
+    const dropMatch = /^DROP TABLE IF EXISTS "(.+)"$/.exec(sql);
+    if (dropMatch !== null) {
+      this.dropTable(dropMatch[1]);
+      return;
+    }
     if (
       sql.startsWith(
         'CREATE INDEX IF NOT EXISTS replay_envelopes_by_career_order',
@@ -97,6 +120,28 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
     const sql = normalizeSql(source);
     this.executedSql.push(sql);
     const values = arrayParams(params);
+    if (this.writesFail) throw new Error('disk is full');
+
+    if (sql.startsWith('INSERT INTO career_save_backups')) {
+      this.assertBackupTable();
+      const [slot, schemaVersion, stateJson, savedSeason, savedWeek] = values;
+      if (
+        slot !== 1 ||
+        typeof schemaVersion !== 'number' ||
+        typeof stateJson !== 'string' ||
+        typeof savedSeason !== 'number' ||
+        typeof savedWeek !== 'number'
+      ) {
+        throw new Error('invalid fake backup upsert parameters');
+      }
+      this.backupRow = {
+        schema_version: schemaVersion,
+        state_json: stateJson,
+        saved_season: savedSeason,
+        saved_week: savedWeek,
+      };
+      return { lastInsertRowId: 1, changes: 1 };
+    }
 
     if (sql.startsWith('INSERT INTO career_saves')) {
       this.assertTable();
@@ -206,6 +251,29 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       return { user_version: this.userVersion } as T;
     }
 
+    if (sql === 'PRAGMA quick_check') {
+      return { quick_check: this.integrity } as T;
+    }
+
+    if (sql.startsWith('SELECT schema_version, state_json, saved_season, saved_week FROM career_save_backups')) {
+      this.assertBackupTable();
+      const values = arrayParams(params);
+      if (values[0] !== 1) throw new Error('invalid fake backup load slot');
+      return this.backupRow === null ? null : ({ ...this.backupRow } as T);
+    }
+
+    if (sql.startsWith('SELECT saved_season, saved_week FROM career_save_backups')) {
+      this.assertBackupTable();
+      const values = arrayParams(params);
+      if (values[0] !== 1) throw new Error('invalid fake backup summary slot');
+      return this.backupRow === null
+        ? null
+        : ({
+            saved_season: this.backupRow.saved_season,
+            saved_week: this.backupRow.saved_week,
+          } as T);
+    }
+
     if (sql.startsWith('SELECT schema_version, state_json FROM career_saves')) {
       this.assertTable();
       const values = arrayParams(params);
@@ -244,6 +312,9 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
   ): Promise<T[]> {
     const sql = normalizeSql(source);
     this.executedSql.push(sql);
+    if (sql.startsWith("SELECT name FROM sqlite_master")) {
+      return this.existingTables().map(name => ({ name }) as T);
+    }
     if (
       !sql.startsWith(
         'SELECT fixture_id, sort_order, schema_version, engine_version, envelope_json FROM replay_envelopes',
@@ -269,6 +340,8 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       tableExists: this.tableExists,
       replayTableExists: this.replayTableExists,
       preferencesTableExists: this.preferencesTableExists,
+      backupTableExists: this.backupTableExists,
+      backupRow: this.backupRow === null ? null : { ...this.backupRow },
       careerRow: this.careerRow === null ? null : { ...this.careerRow },
       replayRows: new Map(
         Array.from(this.replayRows, ([key, row]) => [key, { ...row }]),
@@ -285,6 +358,8 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       this.tableExists = snapshot.tableExists;
       this.replayTableExists = snapshot.replayTableExists;
       this.preferencesTableExists = snapshot.preferencesTableExists;
+      this.backupTableExists = snapshot.backupTableExists;
+      this.backupRow = snapshot.backupRow;
       this.careerRow = snapshot.careerRow;
       this.replayRows = snapshot.replayRows;
       this.preferencesRow = snapshot.preferencesRow;
@@ -309,6 +384,39 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
     this.replayRows.set(replayKey(row.career_id, row.fixture_id), { ...row });
   }
 
+  seedBackupRow(row: FakeBackupRow): void {
+    this.assertBackupTable();
+    this.backupRow = { ...row };
+  }
+
+  private existingTables(): string[] {
+    return [
+      ...(this.tableExists ? ['career_saves'] : []),
+      ...(this.replayTableExists ? ['replay_envelopes'] : []),
+      ...(this.preferencesTableExists ? ['app_preferences'] : []),
+      ...(this.backupTableExists ? ['career_save_backups'] : []),
+    ];
+  }
+
+  private dropTable(name: string): void {
+    if (name === 'career_saves') {
+      this.tableExists = false;
+      this.careerRow = null;
+    }
+    if (name === 'replay_envelopes') {
+      this.replayTableExists = false;
+      this.replayRows.clear();
+    }
+    if (name === 'app_preferences') {
+      this.preferencesTableExists = false;
+      this.preferencesRow = null;
+    }
+    if (name === 'career_save_backups') {
+      this.backupTableExists = false;
+      this.backupRow = null;
+    }
+  }
+
   private assertTable(): void {
     if (!this.tableExists) throw new Error('career_saves table does not exist');
   }
@@ -316,6 +424,11 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
   private assertReplayTable(): void {
     if (!this.replayTableExists)
       throw new Error('replay_envelopes table does not exist');
+  }
+
+  private assertBackupTable(): void {
+    if (!this.backupTableExists)
+      throw new Error('career_save_backups table does not exist');
   }
 }
 

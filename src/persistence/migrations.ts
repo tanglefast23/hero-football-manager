@@ -46,6 +46,25 @@ const MIGRATIONS: readonly Migration[] = [
       )`,
     ],
   },
+  // The career lived in exactly one row, so a save that was valid when written
+  // but later unreadable took the whole career with it. This rung adds a second,
+  // older generation: the state as it stood when the current season opened.
+  // It is a separate table rather than a second `career_saves` slot on purpose —
+  // widening that table's `CHECK (slot = 1)` would mean recreating and copying
+  // the one row that must never be lost, and a backup sharing the primary's
+  // B-tree pages is the copy most likely to die with it.
+  {
+    version: 4,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS career_save_backups (
+        slot INTEGER PRIMARY KEY CHECK (slot = 1),
+        schema_version INTEGER NOT NULL,
+        state_json TEXT NOT NULL,
+        saved_season INTEGER NOT NULL CHECK (saved_season >= 1),
+        saved_week INTEGER NOT NULL CHECK (saved_week >= 1)
+      )`,
+    ],
+  },
 ];
 
 export const PERSISTENCE_SCHEMA_VERSION = MIGRATIONS.length;

@@ -1,7 +1,9 @@
 module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  // .tsx too, or a component test would be collected by nothing and silently
+  // never run.
+  testMatch: ['**/__tests__/**/*.test.@(ts|tsx)'],
   // Transpile-only (no type-checking during the test run) so the acceptance
   // gates parallelize across workers without each one re-typechecking every
   // file it imports. The type gate is npx tsc --noEmit, run separately in CI

@@ -1,7 +1,8 @@
-import { useM1Store } from '../store';
+import { SAVE_FAILURE_BLOCK_LIMIT, useM1Store } from '../store';
 import {
   createCareerRepository,
   createReplayRepository,
+  MissingCareerBackupError,
   type CareerRepository,
   type ReplayRepository,
 } from '../../persistence';
@@ -11,7 +12,7 @@ import { DEFAULT_CREATION_RATINGS, offerCareerEvent, type GameState } from '../.
 import { FakePersistenceDatabase } from '../../persistence/__tests__/fake-database';
 import type { PostMatchViewModel } from '../../ui';
 import { loadLaunchContent } from '../../content';
-import { storyEventViewModel } from '../view-models';
+import { awakeningCutsceneViewModel, storyEventViewModel } from '../view-models';
 
 describe('M1 app store integration', () => {
   beforeEach(() => {
@@ -221,6 +222,37 @@ describe('M1 app store integration', () => {
         resolvedEventIds: expect.arrayContaining(['hundredth-fan']),
       },
     });
+  });
+
+  it('ends a chain whose follow-up event this build no longer ships', () => {
+    startAwakenedCareer(457);
+    const career = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...career,
+        phase: 'manage',
+        week: 8,
+        pendingEvent: {
+          eventId: 'hundredth-fan',
+          resolvedChoiceId: 'hundredth-fan-parade',
+          outcomeText: 'The parade inspires a new stadium mural.',
+          resolvedOutcomeIndex: 0,
+          resolvedRisky: true,
+          resolvedSuccess: true,
+          resolvedNextEventId: 'event-cut-from-the-build',
+        },
+      },
+      screen: 'event',
+    });
+
+    useM1Store.getState().continueAfterEvent();
+
+    // Continue used to throw here, and the throw was reachable again on every
+    // tap because the dead chain is saved.
+    expect(useM1Store.getState().error).toBeNull();
+    expect(useM1Store.getState().screen).not.toBe('event');
+    expect(useM1Store.getState().career?.pendingEvent).toBeUndefined();
+    expect(useM1Store.getState().career?.resolvedEventIds).toContain('hundredth-fan');
   });
 
   it('trains a player the moment a drill is tapped and reviews the week without it', () => {
@@ -657,11 +689,10 @@ describe('M1 app store integration', () => {
   it('blocks a new career after a load failure without overwriting the save', async () => {
     let careerSaveCalls = 0;
     let replayResetCalls = 0;
-    const careerRepository: CareerRepository = {
+    const careerRepository = stubCareerRepository({
       async load() { throw new Error('database read failed'); },
       async save() { careerSaveCalls += 1; },
-      async delete() {},
-    };
+    });
     const replayRepository: ReplayRepository = {
       async save() {},
       async load() { return null; },
@@ -689,11 +720,10 @@ describe('M1 app store integration', () => {
 
   it('discards an unreadable save on request and unblocks a fresh career', async () => {
     let deleteCalls = 0;
-    const careerRepository: CareerRepository = {
+    const careerRepository = stubCareerRepository({
       async load() { throw new Error('career save is corrupt'); },
-      async save() {},
       async delete() { deleteCalls += 1; },
-    };
+    });
     const replayRepository: ReplayRepository = {
       async save() {},
       async load() { return null; },
@@ -719,11 +749,9 @@ describe('M1 app store integration', () => {
 
   it('never deletes a save that loaded cleanly', async () => {
     let deleteCalls = 0;
-    const careerRepository: CareerRepository = {
-      async load() { return null; },
-      async save() {},
+    const careerRepository = stubCareerRepository({
       async delete() { deleteCalls += 1; },
-    };
+    });
     await useM1Store.getState().initializePersistence(careerRepository);
 
     await useM1Store.getState().discardUnreadableSave();
@@ -732,11 +760,10 @@ describe('M1 app store integration', () => {
   });
 
   it('keeps the boot failure visible when discarding the save fails', async () => {
-    const careerRepository: CareerRepository = {
+    const careerRepository = stubCareerRepository({
       async load() { throw new Error('career save is corrupt'); },
-      async save() {},
       async delete() { throw new Error('disk is on fire'); },
-    };
+    });
     await useM1Store.getState().initializePersistence(careerRepository);
 
     await useM1Store.getState().discardUnreadableSave();
@@ -744,13 +771,136 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().persistenceLoadError).toContain('disk is on fire');
   });
 
+  it('warns while progress is unsaved and pauses the season after repeated failures', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    await useM1Store.getState().initializePersistence(repository);
+    startCreatedCareer(31337);
+    // `hasSavedCareer` flips optimistically, so wait for the row itself.
+    await waitFor(() => database.careerRow !== null && !useM1Store.getState().saving);
+
+    // The disk fills. The first failed week is a dismissible toast today, which
+    // is how a player keeps advancing a career that only exists in memory.
+    database.writesFail = true;
+    useM1Store.getState().advanceCareer();
+    const advancedWeek = useM1Store.getState().career!.week;
+    await waitFor(() => useM1Store.getState().saveWarning !== null);
+
+    expect(useM1Store.getState().consecutiveSaveFailures).toBe(1);
+    expect(useM1Store.getState().saveBlocked).toBe(false);
+
+    useM1Store.getState().retrySave();
+    await waitFor(() => useM1Store.getState().consecutiveSaveFailures === 2);
+    useM1Store.getState().retrySave();
+    await waitFor(() => useM1Store.getState().saveBlocked);
+
+    expect(useM1Store.getState().consecutiveSaveFailures).toBe(SAVE_FAILURE_BLOCK_LIMIT);
+    expect(useM1Store.getState().saveWarning).toContain('paused');
+
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().error).toContain('could not be saved');
+    expect(useM1Store.getState().career?.week).toBe(advancedWeek);
+
+    // Space freed: one successful save clears the warning and the pause.
+    database.writesFail = false;
+    useM1Store.getState().retrySave();
+    await waitFor(() => !useM1Store.getState().saveBlocked);
+
+    expect(useM1Store.getState().saveWarning).toBeNull();
+    expect(useM1Store.getState().consecutiveSaveFailures).toBe(0);
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBeGreaterThan(advancedWeek);
+  });
+
+  it('restores the season backup when the live save stops loading', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    await useM1Store.getState().initializePersistence(repository);
+    startCreatedCareer(24601);
+    await waitFor(() => database.backupRow !== null && !useM1Store.getState().saving);
+
+    // The live row survives as unreadable bytes; before the backup existed this
+    // was the whole career gone.
+    database.seedCareerRow({ schema_version: 1, state_json: '{"schemaVersion":1}' });
+    useM1Store.setState(useM1Store.getInitialState(), true);
+    await useM1Store.getState().initializePersistence(repository);
+
+    expect(useM1Store.getState().persistenceLoadError).toContain('career save is corrupt');
+    expect(useM1Store.getState().backupSummary).toEqual({ season: 1, week: 1 });
+
+    await useM1Store.getState().restoreBackupSave();
+
+    expect(useM1Store.getState().persistenceLoadError).toBeNull();
+    expect(useM1Store.getState().career?.careerSeed).toBe(24601);
+    expect(useM1Store.getState().hasSavedCareer).toBe(true);
+    // The restored generation is now the live save, so a relaunch loads it.
+    await waitFor(() => useM1Store.getState().saving === false);
+    await expect(repository.load()).resolves.not.toBeNull();
+  });
+
+  it('reports a failed restore without clearing the boot failure', async () => {
+    const careerRepository = stubCareerRepository({
+      async load() { throw new Error('career save is corrupt'); },
+      async restoreBackup() { throw new Error('backup row is corrupt too'); },
+    });
+    await useM1Store.getState().initializePersistence(careerRepository);
+
+    await useM1Store.getState().restoreBackupSave();
+
+    expect(useM1Store.getState().persistenceLoadError).toContain('backup row is corrupt too');
+    expect(useM1Store.getState().career).toBeNull();
+  });
+
+  it('re-points a saved awakening whose authored trigger no longer ships', async () => {
+    const pendingCareer = careerWithPendingAwakening(8675309);
+    const retiredTrigger: GameState = {
+      ...pendingCareer,
+      awakening: {
+        ...pendingCareer.awakening,
+        pending: {
+          ...pendingCareer.awakening.pending!,
+          triggerId: 'trigger-cut-from-the-build',
+        },
+      },
+    };
+    useM1Store.setState(useM1Store.getInitialState(), true);
+
+    await useM1Store.getState().initializePersistence(stubCareerRepository({
+      async load() { return retiredTrigger; },
+    }));
+
+    // The cutscene view model throws on an unknown trigger, and the pending
+    // awakening is persisted, so it would throw again on every relaunch.
+    expect(useM1Store.getState().career?.awakening.pending?.triggerId)
+      .toBe(loadLaunchContent().onboarding.triggers[0].id);
+    expect(() => awakeningCutsceneViewModel(
+      useM1Store.getState().career!,
+      loadLaunchContent(),
+    )).not.toThrow();
+  });
+
+  it('drops a saved awakening whose power content no longer ships', async () => {
+    const pendingCareer = careerWithPendingAwakening(112358);
+    const pending = pendingCareer.awakening.pending!;
+    const retiredPower = withRetiredAwakeningPower(pendingCareer, pending.playerId);
+    useM1Store.setState(useM1Store.getInitialState(), true);
+
+    await useM1Store.getState().initializePersistence(stubCareerRepository({
+      async load() { return retiredPower; },
+    }));
+
+    expect(useM1Store.getState().career?.awakening.pending).toBeUndefined();
+    // The power the player already earned is untouched; only the cutscene goes.
+    expect(useM1Store.getState().career?.players
+      .find(player => player.id === pending.playerId)?.power).toBe('MAGNET_TOUCH');
+    expect(useM1Store.getState().career?.onboarding?.stage).toBe('complete');
+  });
+
   it('clears the replay namespace before saving a replacement career', async () => {
     const operations: string[] = [];
-    const careerRepository: CareerRepository = {
-      async load() { return null; },
+    const careerRepository = stubCareerRepository({
       async save(career) { operations.push(`save:${career.careerSeed}`); },
-      async delete() {},
-    };
+    });
     const replayRepository: ReplayRepository = {
       async save() {},
       async load() { return null; },
@@ -780,11 +930,10 @@ describe('M1 app store integration', () => {
     useM1Store.setState(useM1Store.getInitialState(), true);
 
     const operations: string[] = [];
-    const careerRepository: CareerRepository = {
+    const careerRepository = stubCareerRepository({
       async load() { return existingCareer; },
       async save(career) { operations.push(`save:${career.careerSeed}`); },
-      async delete() {},
-    };
+    });
     const replayRepository: ReplayRepository = {
       async save() {},
       async load() { return null; },
@@ -811,11 +960,9 @@ describe('M1 app store integration', () => {
 
   it('does not overwrite the career when replay reset fails', async () => {
     let careerSaveCalls = 0;
-    const careerRepository: CareerRepository = {
-      async load() { return null; },
+    const careerRepository = stubCareerRepository({
       async save() { careerSaveCalls += 1; },
-      async delete() {},
-    };
+    });
     const replayRepository: ReplayRepository = {
       async save() {},
       async load() { return null; },
@@ -913,7 +1060,9 @@ describe('M1 app store integration', () => {
 });
 
 async function waitFor(predicate: () => boolean): Promise<void> {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  // Each queued save serialises a full career synchronously, which eats timer
+  // turns, so the budget has to cover several of them back to back.
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     if (predicate()) return;
     await new Promise(resolve => setTimeout(resolve, 0));
   }
@@ -1079,4 +1228,55 @@ async function flushMicrotasks(): Promise<void> {
   for (let turn = 0; turn < 5; turn += 1) {
     await new Promise(resolve => setTimeout(resolve, 0));
   }
+}
+
+/** A career parked on the post-match awakening cutscene, pending and all. */
+function careerWithPendingAwakening(seed: number): GameState {
+  useM1Store.setState(useM1Store.getInitialState(), true);
+  startCreatedCareer(seed);
+  while ((useM1Store.getState().career?.week ?? 0) < 3) {
+    useM1Store.getState().advanceCareer();
+  }
+  useM1Store.getState().advanceCareer();
+  useM1Store.getState().quickResult();
+  const career = useM1Store.getState().career;
+  if (career?.awakening.pending === undefined) {
+    throw new Error('the first match did not leave a pending awakening');
+  }
+  return career;
+}
+
+/**
+ * A career whose hero holds a power this build retired from its content, the way
+ * MAGNET_TOUCH once was. A power id dropped from the type can only reach the game
+ * through stored JSON, so the state is built the same way.
+ */
+function withRetiredAwakeningPower(state: GameState, playerId: string): GameState {
+  const stored = JSON.parse(JSON.stringify(state)) as {
+    players: { id: string; power?: string }[];
+    awakening: { pending?: { power: string } };
+  };
+  for (const player of stored.players) {
+    if (player.id === playerId) player.power = 'MAGNET_TOUCH';
+  }
+  if (stored.awakening.pending === undefined) {
+    throw new Error('the career has no pending awakening to retire');
+  }
+  stored.awakening.pending.power = 'MAGNET_TOUCH';
+  return stored as unknown as GameState;
+}
+
+/** An empty career repository: healthy, with no save and no backup. */
+function stubCareerRepository(
+  overrides: Partial<CareerRepository> = {},
+): CareerRepository {
+  return {
+    async load() { return null; },
+    async save() {},
+    async delete() {},
+    async backupSummary() { return null; },
+    async restoreBackup() { throw new MissingCareerBackupError(); },
+    async checkIntegrity() { return true; },
+    ...overrides,
+  };
 }

@@ -68,7 +68,11 @@ import {
   type LeagueFixture,
 } from '../game';
 import type { ContractOffer, PitchCard } from '../game/market';
-import type { CareerRepository, ReplayRepository } from '../persistence';
+import type {
+  CareerBackupSummary,
+  CareerRepository,
+  ReplayRepository,
+} from '../persistence';
 import { HALF_TICKS } from '../sim/geometry';
 import { envelopeFrom } from '../sim/match';
 import { mulberry32 } from '../sim/rng';
@@ -100,6 +104,13 @@ const awakeningTuning = {
 };
 let saveQueue = Promise.resolve();
 let latestSaveTicket = 0;
+
+/**
+ * How many career saves may fail in a row before the week stops advancing.
+ * Unsaved weeks only exist in this store, so past this point every further
+ * advance is progress the next crash erases.
+ */
+export const SAVE_FAILURE_BLOCK_LIMIT = 3;
 
 export type M1Screen =
   | 'welcome'
@@ -145,6 +156,14 @@ interface M1Store {
   persistenceReady: boolean;
   saving: boolean;
   hasSavedCareer: boolean;
+  /** Career saves that have failed in a row; 0 once one succeeds again. */
+  consecutiveSaveFailures: number;
+  /** Non-dismissible warning while progress is only in memory. */
+  saveWarning: string | null;
+  /** True once saves have failed enough times to stop the week advancing. */
+  saveBlocked: boolean;
+  /** The previous-generation save the player can fall back to, if any. */
+  backupSummary: CareerBackupSummary | null;
   screen: M1Screen;
   activeTab: ManagementTab;
   selectedPlayerId?: string;
@@ -161,6 +180,8 @@ interface M1Store {
     replayRepository?: ReplayRepository,
   ) => Promise<void>;
   discardUnreadableSave: () => Promise<void>;
+  restoreBackupSave: () => Promise<void>;
+  retrySave: () => void;
   startNewCareer: (seed?: number) => void;
   continueCareer: () => void;
   completePlayerCreation: (draft: CreatedPlayerDraft) => void;
@@ -220,6 +241,10 @@ export const useM1Store = create<M1Store>((set, get) => ({
   persistenceReady: false,
   saving: false,
   hasSavedCareer: false,
+  consecutiveSaveFailures: 0,
+  saveWarning: null,
+  saveBlocked: false,
+  backupSummary: null,
   screen: 'welcome',
   activeTab: 'home',
   lastDrillResult: null,
@@ -234,15 +259,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   async initializePersistence(repository, replayRepository) {
     try {
       const loadedCareer = await repository.load();
-      const reconciled = loadedCareer === null
-        ? null
-        : reconcileLaunchRoster(loadedCareer, launchContent);
-      const career = reconciled === null
-        ? null
-        : reconcilePendingStoryEvent(
-          reconcileLegacyFirstAwakening(reconciled),
-          launchContent.events,
-        );
+      const career = loadedCareer === null ? null : reconcileLoadedCareer(loadedCareer);
       if (career !== null && career !== loadedCareer) await repository.save(career);
       set({
         repository,
@@ -254,14 +271,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatchOverlay: null,
         weekReview: null,
         persistenceLoadError: null,
+        backupSummary: await backupSummaryFailSoft(repository),
         error: null,
       });
     } catch (error) {
+      // Whether the file itself is damaged decides which way out is worth
+      // offering: restoring the backup, or wiping the database and starting over.
+      const damaged = !(await integrityFailSoft(repository));
       set({
         repository,
         replayRepository: replayRepository ?? null,
         persistenceReady: true,
-        persistenceLoadError: `Save could not be loaded safely: ${errorMessage(error)}`,
+        backupSummary: await backupSummaryFailSoft(repository),
+        persistenceLoadError: `Save could not be loaded safely: ${errorMessage(error)}${
+          damaged ? ' The game database file also reports damage.' : ''
+        }`,
       });
     }
   },
@@ -289,6 +313,46 @@ export const useM1Store = create<M1Store>((set, get) => ({
       weekReview: null,
       error: null,
     });
+  },
+
+  /**
+   * Falls back to the previous-generation save. The unreadable live slot is
+   * overwritten by the backup, so the career survives at the cost of the play
+   * since that season opened.
+   */
+  async restoreBackupSave() {
+    const repository = get().repository;
+    if (repository === null) return;
+    let restored: GameState;
+    try {
+      restored = reconcileLoadedCareer(await repository.restoreBackup());
+    } catch (error) {
+      set({ persistenceLoadError: `Backup could not be restored: ${errorMessage(error)}` });
+      return;
+    }
+    set({
+      career: restored,
+      hasSavedCareer: true,
+      persistenceLoadError: null,
+      screen: 'welcome',
+      activeTab: 'home',
+      watchedMatch: null,
+      postMatch: null,
+      postMatchOverlay: null,
+      weekReview: null,
+      error: null,
+      notice: { tone: 'info', message: 'Restored the backup save.' },
+    });
+    clearSaveFailures(set);
+    // Reconciliation may have changed the restored state; persist that shape.
+    queueCareerSave(get, set, restored);
+  },
+
+  /** Retries the last career state, so a fixed disk can clear a save block. */
+  retrySave() {
+    const career = get().career;
+    if (career === null) return;
+    queueCareerSave(get, set, career);
   },
 
   startNewCareer(seed) {
@@ -427,6 +491,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   advanceCareer() {
     guarded(set, () => {
+      if (get().saveBlocked) {
+        throw new Error(
+          'The last few weeks could not be saved, so the season is paused. Free up space on your device, then try saving again.',
+        );
+      }
       const career = requireCareer(get());
       if (career.onboarding?.stage === 'create-player') {
         throw new Error('Create your player before entering the club office.');
@@ -769,11 +838,15 @@ export const useM1Store = create<M1Store>((set, get) => ({
         : { ...career, eventFlags: [...career.eventFlags, 'm4:event-guide-seen'] };
       const dismissed = dismissCareerEvent(guidedCareer, event?.trigger.repeatable !== true);
       if (pending.resolvedNextEventId !== undefined) {
+        // A chained event this build no longer ships ends the chain. Throwing
+        // here left the player on an event screen whose only button could do
+        // nothing but throw again, with the dead chain saved.
         const followUp = launchContent.events.events.find(
           candidate => candidate.id === pending.resolvedNextEventId,
         );
-        if (followUp === undefined) throw new Error(`unknown chained event ${pending.resolvedNextEventId}`);
-        if (followUp.trigger.repeatable === true || !dismissed.resolvedEventIds.includes(followUp.id)) {
+        if (followUp !== undefined
+          && (followUp.trigger.repeatable === true
+            || !dismissed.resolvedEventIds.includes(followUp.id))) {
           const next = offerCareerEvent(dismissed, followUp.id);
           set({ career: next, screen: 'event', weekReview: null, error: null });
           queueCareerSave(get, set, next);
@@ -1409,6 +1482,59 @@ function userReplayParticipantIds(
   return team.players.map(player => player.id);
 }
 
+/**
+ * Everything a loaded save needs before the UI touches it: roster reconciliation,
+ * the legacy first-awakening repair, and the two content fail-softs that keep a
+ * save whose authored content this build no longer ships from bricking.
+ */
+function reconcileLoadedCareer(state: GameState): GameState {
+  return reconcilePendingAwakeningContent(
+    reconcilePendingStoryEvent(
+      reconcileLegacyFirstAwakening(reconcileLaunchRoster(state, launchContent)),
+      launchContent.events,
+    ),
+  );
+}
+
+/**
+ * Keeps a persisted awakening cutscene renderable when its authored content is
+ * gone. Content ships as data, so a later drop can retire the trigger or power
+ * copy a saved cutscene points at; the cutscene view model throws on the missing
+ * id, and because the pending awakening is persisted it throws again on every
+ * relaunch. The trigger is only the visual cause, so it is re-pointed at the
+ * campaign's first one; a power with no copy left costs the cutscene, never the
+ * power itself, which was already granted to the player before this ran.
+ */
+function reconcilePendingAwakeningContent(state: GameState): GameState {
+  const pending = state.awakening.pending;
+  if (pending === undefined) return state;
+  const triggerId = awakeningTriggerIds.includes(pending.triggerId)
+    ? pending.triggerId
+    : awakeningTriggerIds[0];
+  const hasPowerContent = launchContent.powers.powers.some(power => power.id === pending.power)
+    && launchContent.onboarding.powers.some(copy => copy.powerId === pending.power);
+  if (triggerId !== undefined && hasPowerContent) {
+    if (triggerId === pending.triggerId) return state;
+    return {
+      ...state,
+      awakening: { ...state.awakening, pending: { ...pending, triggerId } },
+    };
+  }
+
+  return {
+    ...state,
+    awakening: {
+      matchesSinceLastAwakening: state.awakening.matchesSinceLastAwakening,
+      usedTriggerIds: [...state.awakening.usedTriggerIds],
+    },
+    // Onboarding waits at `reveal` for this cutscene, and `advanceCareer` sends
+    // the player back to it, so the stage has to move on with the drop.
+    ...(pending.firstHero && state.onboarding !== undefined && state.onboarding.stage !== 'complete'
+      ? { onboarding: { ...state.onboarding, stage: 'complete' as const } }
+      : {}),
+  };
+}
+
 function reconcileLegacyFirstAwakening(state: GameState): GameState {
   if (state.awakening.pending !== undefined) return state;
   const onboarding = state.onboarding;
@@ -1468,9 +1594,52 @@ function queueCareerSave(
     },
     'Save failed',
     () => {
+      clearSaveFailures(set);
       if (get().career === career) set({ hasSavedCareer: true });
     },
+    () => recordSaveFailure(get, set),
   );
+}
+
+function recordSaveFailure(
+  get: () => M1Store,
+  set: (partial: Partial<M1Store>) => void,
+): void {
+  const consecutiveSaveFailures = get().consecutiveSaveFailures + 1;
+  const saveBlocked = consecutiveSaveFailures >= SAVE_FAILURE_BLOCK_LIMIT;
+  set({
+    consecutiveSaveFailures,
+    saveBlocked,
+    // `error` is a dismissible toast, so it cannot carry this: the player would
+    // wave it away and keep playing a career that exists only in memory.
+    saveWarning: saveBlocked
+      ? 'Progress is not being saved and the season is paused. Free up space on your device, then try saving again.'
+      : 'Progress is not being saved. Anything since the last save is lost if the game closes.',
+  });
+}
+
+function clearSaveFailures(set: (partial: Partial<M1Store>) => void): void {
+  set({ consecutiveSaveFailures: 0, saveBlocked: false, saveWarning: null });
+}
+
+/** A missing summary only costs the UI a recovery option, so it never throws. */
+async function backupSummaryFailSoft(
+  repository: CareerRepository,
+): Promise<CareerBackupSummary | null> {
+  try {
+    return await repository.backupSummary();
+  } catch {
+    return null;
+  }
+}
+
+/** Treats an unanswerable integrity check as "no damage reported". */
+async function integrityFailSoft(repository: CareerRepository): Promise<boolean> {
+  try {
+    return await repository.checkIntegrity();
+  } catch {
+    return true;
+  }
 }
 
 function queueReplaySave(
@@ -1516,6 +1685,7 @@ function queueNewCareerSave(
     },
     'New career save failed',
     () => {
+      clearSaveFailures(set);
       if (get().career === career) set({ hasSavedCareer: true });
     },
     error => {

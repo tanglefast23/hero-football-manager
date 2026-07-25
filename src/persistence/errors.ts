@@ -30,6 +30,20 @@ export class CorruptCareerSaveError extends Error {
   }
 }
 
+export class MissingCareerBackupError extends Error {
+  constructor() {
+    super('there is no backup career save to restore');
+    this.name = 'MissingCareerBackupError';
+  }
+}
+
+export class PersistenceResetError extends Error {
+  constructor(message: string) {
+    super(`the game database could not be reset: ${message}`);
+    this.name = 'PersistenceResetError';
+  }
+}
+
 export class InvalidGameStateError extends Error {
   constructor(message: string) {
     super(`game state cannot be saved: ${message}`);
