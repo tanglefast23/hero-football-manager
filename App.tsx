@@ -761,7 +761,6 @@ function GameApp() {
         await store.initializePersistence(
           repositories.careerRepository,
           repositories.replayRepository,
-          true,
         );
         if (active && repositories.warning !== undefined) {
           store.notify(repositories.warning);
@@ -782,7 +781,7 @@ function GameApp() {
 
   const startNewCareer = useCallback(() => {
     if (!store.hasSavedCareer) {
-      store.startNewCareer(undefined, 'full');
+      store.startNewCareer();
       return;
     }
     requestConfirmation({
@@ -790,7 +789,7 @@ function GameApp() {
       detail: 'Starting over permanently erases the current career and its match replays.',
       confirmLabel: 'Erase and start over',
       tone: 'danger',
-      onConfirm: () => store.startNewCareer(undefined, 'full'),
+      onConfirm: () => store.startNewCareer(),
     });
   }, [requestConfirmation, store.hasSavedCareer, store.startNewCareer]);
 
@@ -824,6 +823,18 @@ function GameApp() {
   const assistantPage = assistantSequence?.pages[
     Math.min(assistantPageIndex, (assistantSequence?.pages.length ?? 1) - 1)
   ];
+  /**
+   * Whether Bert's guide is covering the screen.
+   *
+   * Declared once and used both to render the overlay and to suspend keyboard
+   * shortcuts. The guide is an absolutely-positioned View rather than an RN
+   * Modal, so react-native-web never renders `aria-modal` for it and the
+   * shortcut hook's own modal check cannot see it — without this, 1-5 switched
+   * tabs underneath a full-screen briefing that was blocking mouse clicks on
+   * that same rail. Sharing the expression keeps the two from drifting apart.
+   */
+  const guideOverlayVisible = assistantSequenceId !== null
+    && playerSigning?.source !== 'rookie';
   const assistantObjective = store.career === null
     ? null
     : currentAssistantObjective(store.career, store.activeTab);
@@ -1173,6 +1184,7 @@ function GameApp() {
           store.setActiveTab(tab);
         }}
         onAdvanceWeek={handleAdvanceWeek}
+        keyboardShortcutsEnabled={!guideOverlayVisible}
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
@@ -1469,7 +1481,7 @@ function GameApp() {
             }
           }}
         />
-        {assistantSequenceId !== null && playerSigning?.source !== 'rookie' ? (
+        {guideOverlayVisible ? (
           <AssistantGuideOverlay
             content={content.assistantGuide}
             sequenceId={assistantSequenceId}

@@ -211,7 +211,7 @@ export function careerMarketViewModelSource(
 
 /** Promotion adds briefs without replacing the familiar searches below them. */
 export function careerMarketScoutOptions(
-  state: Pick<GameState, 'careerSeed' | 'season' | 'week'> & Partial<Pick<GameState, 'careerMode' | 'm2'>>,
+  state: Pick<GameState, 'careerSeed' | 'season' | 'week'> & Partial<Pick<GameState, 'm2'>>,
 ): ScoutMissionOptionSource[] {
   if (!Number.isInteger(state.careerSeed) || state.careerSeed < 0 || state.careerSeed > 4294967295) {
     throw new Error('market option career seed must be a uint32');
@@ -226,9 +226,9 @@ export function careerMarketScoutOptions(
   const secondRegion = ROTATING_REGIONS[cursor % ROTATING_REGIONS.length];
   const heroRegion = ROTATING_REGIONS[(cursor + 1) % ROTATING_REGIONS.length];
   const eliteRegion = ROTATING_REGIONS[(cursor + 2) % ROTATING_REGIONS.length];
-  const progressionDivision = state.careerMode === 'full' && state.m2 !== undefined
-    ? Math.min(currentUserDivision(state.m2), state.m2.highestDivisionReached ?? 5)
-    : 5;
+  const progressionDivision = state.m2 === undefined
+    ? 5
+    : Math.min(currentUserDivision(state.m2), state.m2.highestDivisionReached ?? 5);
 
   const options: ScoutMissionOptionSource[] = [
     {

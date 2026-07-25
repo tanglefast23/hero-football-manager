@@ -92,7 +92,7 @@ function runCohort(train: boolean): CareerRun[] {
 function runCareer(seed: number, train: boolean): CareerRun {
   let state = addCreatedPlayer(
     beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      seed, undefined, content, 'full', 'COZY',
+      seed, undefined, content, 'COZY',
     ))),
     // 15-point creation pool fully spent into a striker build.
     { name: 'Probe Rookie', ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 } },

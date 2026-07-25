@@ -26,7 +26,7 @@ function userCash(state: ReturnType<typeof createCareer>): number {
 describe('facility weekly integration', () => {
   test('funds and completes the player-placed first pitch while bridging four basic training weeks', () => {
     const content = loadLaunchContent();
-    const fresh = createCareer(createLaunchCareerSetup(20260718, undefined, content, 'full'));
+    const fresh = createCareer(createLaunchCareerSetup(20260718, undefined, content));
     expect(userCash(fresh)).toBe(53_000);
     expect(fresh.facilities.grid?.buildings).toHaveLength(0);
     const started = buildCareerFacility(fresh, 'training-pitch', { x: 3, y: 2 }).state;
@@ -88,7 +88,7 @@ describe('facility weekly integration', () => {
   });
 
   test('pays no TP during the build weeks, then activates upkeep and weekly TP', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260719));
     const project = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
     // Strip fixtures so every settlement goes through the direct weekly path.
     const built: GameState = {
@@ -123,7 +123,7 @@ describe('facility weekly integration', () => {
   });
 
   test('scales Training Pitch TP with the completed facility level', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260720));
     const built = completeConstruction(
       buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state,
     );
@@ -144,7 +144,7 @@ describe('facility weekly integration', () => {
   });
 
   test('carries the Gym + Dorm ten-percent bonus until small real gains earn +1 STA', () => {
-    const initial = createCareer(createLaunchCareerSetup(77, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(77));
     const gymProject = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
     const gym = completeConstruction(gymProject);
     const dormProject = buildCareerFacility(gym, 'dorm', { x: 1, y: 0 }).state;

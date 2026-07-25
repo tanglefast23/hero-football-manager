@@ -8,6 +8,7 @@ import {
   startNextSeason,
 } from '../career';
 import type {
+  CareerPlayer,
   CareerSetup,
   FixtureResult,
   GameState,
@@ -17,19 +18,52 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { FIRST_D4_PROMOTION_RECRUITMENT_FUND } from '../promotion-progression';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 
+/** The shape a career club's starting eleven must be able to field. */
+const SQUAD_ROLES: readonly CareerPlayer['role'][] = [
+  'GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD',
+];
+
+/**
+ * A synthetic ten-club division with a complete starting XI per club — the
+ * minimum a career needs. Club `weeklyWages` is what settlement reads, so it
+ * stays authoritative and the per-player wage is only there to be a legal
+ * contract figure.
+ */
 function makeSetup(): CareerSetup {
+  const clubIds = Array.from({ length: 10 }, (_, index) => `club-${String(index).padStart(2, '0')}`);
   return {
     seed: 123456789,
     userClubId: 'club-00',
     startingTrainingPoints: 7,
-    clubs: Array.from({ length: 10 }, (_, index) => ({
-      id: `club-${String(index).padStart(2, '0')}`,
+    clubs: clubIds.map((id, index) => ({
+      id,
       name: `Club ${index}`,
       cash: index === 0 ? 25000 : 10000,
       fans: 500,
       ticketPrice: 4,
       sponsorMonthlyFee: 2000,
       weeklyWages: 3200,
+    })),
+    players: clubIds.flatMap(clubId => SQUAD_ROLES.map((role, playerIndex) => ({
+      id: `${clubId}-p${String(playerIndex).padStart(2, '0')}`,
+      clubId,
+      name: `${clubId} Player ${playerIndex}`,
+      role,
+      attrs: { pac: 50, sho: 50, pas: 50, def: 50, tec: 50, sta: 50, ref: role === 'GK' ? 55 : 20 },
+      licensed: false,
+      weeklyWage: 200,
+      onHeroWage: false,
+      contractSeasonsRemaining: 3,
+      morale: 50,
+      injuryWeeks: 0,
+      age: 24,
+      condition: 100,
+    }))),
+    lineups: clubIds.map(clubId => ({
+      clubId,
+      playerIds: SQUAD_ROLES.map((_role, playerIndex) => (
+        `${clubId}-p${String(playerIndex).padStart(2, '0')}`
+      )),
     })),
   };
 }
@@ -42,14 +76,22 @@ function allDraws(state: GameState): FixtureResult[] {
   }));
 }
 
+/** Draws every fixture, league or National Cup, to the season-end boundary. */
 function finishSeason(initialState: GameState): GameState {
   let state = initialState;
 
-  while (state.phase !== 'season-end' && state.phase !== 'complete') {
-    state = advanceWeek(state);
-    if (state.phase === 'matchday') {
-      state = completeMatchday(state, allDraws(state));
+  while (state.phase !== 'season-end') {
+    if (state.phase === 'manage') {
+      state = advanceWeek(state);
+      continue;
     }
+    const matchday = activeCareerMatchday(state);
+    if (matchday === undefined) throw new Error('career test lost its active matchday');
+    state = completeMatchday(state, matchday.fixtures.map(fixture => ({
+      fixtureId: fixture.id,
+      homeGoals: 0,
+      awayGoals: 0,
+    })));
   }
 
   return state;
@@ -94,7 +136,6 @@ describe('career season workflow', () => {
       20260723,
       undefined,
       undefined,
-      'full',
     ));
     const withCash = {
       ...initial,
@@ -272,12 +313,12 @@ describe('finances and two-season boundary', () => {
       { kind: 'subsidy', label: 'Season 1 wage subsidy', amount: 1600 },
     ]);
 
+    // The season transition re-derives the wage bill from the post-aging
+    // squad, so Season 2 is asserted on line composition: wages, no subsidy.
     const seasonOneEnd = finishSeason(createCareer(makeSetup()));
     const seasonTwoStart = startNextSeason(seasonOneEnd);
     const seasonTwoWeekTwo = advanceWeek(seasonTwoStart);
-    expect(seasonTwoWeekTwo.ledgers.at(-1)?.lines).toEqual([
-      { kind: 'wages', label: 'Weekly wages', amount: -3200 },
-    ]);
+    expect(seasonTwoWeekTwo.ledgers.at(-1)?.lines.map(line => line.kind)).toEqual(['wages']);
   });
 
   it('rounds an odd Season 1 wage subsidy down to whole money', () => {
@@ -380,7 +421,7 @@ describe('finances and two-season boundary', () => {
     expect(completeMatchday(matchday, results).trainingPoints).toBe(matchday.trainingPoints);
   });
 
-  it('rolls Season 1 into a deterministic Season 2 and completes the M1 slice', () => {
+  it('rolls Season 1 into a deterministic Season 2', () => {
     const seasonOneEnd = finishSeason(createCareer(makeSetup()));
 
     expect(seasonOneEnd.season).toBe(1);
@@ -389,6 +430,7 @@ describe('finances and two-season boundary', () => {
     expect(seasonOneEnd.fixtures).toHaveLength(90);
     expect(seasonOneEnd.ledgers.at(-1)?.lines.map(line => line.kind)).toEqual([
       'prize',
+      'subsidy',
       'wages',
       'subsidy',
     ]);
@@ -398,21 +440,16 @@ describe('finances and two-season boundary', () => {
     expect(seasonTwo.season).toBe(2);
     expect(seasonTwo.week).toBe(1);
     expect(seasonTwo.phase).toBe('manage');
-    expect(seasonTwo.fixtures).toHaveLength(180);
-    expect(JSON.stringify(seasonTwo.fixtures.slice(90))).toBe(
-      JSON.stringify(sameSeasonTwo.fixtures.slice(90)),
-    );
+    // The transition replaces the fixture list with the new division's season
+    // rather than appending to Season 1's.
+    expect(seasonTwo.fixtures).toHaveLength(90);
+    expect(JSON.stringify(seasonTwo.fixtures)).toBe(JSON.stringify(sameSeasonTwo.fixtures));
 
-    const completed = finishSeason(seasonTwo);
-    expect(completed.season).toBe(2);
-    expect(completed.week).toBe(30);
-    expect(completed.phase).toBe('complete');
-    expect(completed.ledgers).toHaveLength(60);
-    expect(completed.ledgers.at(-1)?.lines.map(line => line.kind)).toEqual([
-      'prize',
-      'wages',
-    ]);
-    expect(() => startNextSeason(completed)).toThrow('season-end phase');
+    const seasonTwoEnd = finishSeason(seasonTwo);
+    expect(seasonTwoEnd.season).toBe(2);
+    expect(seasonTwoEnd.week).toBe(30);
+    expect(seasonTwoEnd.phase).toBe('season-end');
+    expect(seasonTwoEnd.ledgers).toHaveLength(60);
   });
 
   it('only starts a new season from the season-end boundary', () => {

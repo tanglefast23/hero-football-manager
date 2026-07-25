@@ -74,7 +74,7 @@ const PROMOTION_REWARDS: Readonly<Record<1 | 2 | 3 | 4, readonly PromotionReward
  * earned instead of losing facilities, staff access, or Hero Licenses.
  */
 export function highestDivisionReached(state: GameState): DivisionLevel {
-  if (state.careerMode !== 'full' || state.m2 === undefined) return 5;
+  if (state.m2 === undefined) return 5;
   const current = currentUserDivision(state.m2);
   return Math.min(current, state.m2.highestDivisionReached ?? current) as DivisionLevel;
 }
@@ -88,7 +88,7 @@ export function recordHighestDivisionReached(state: M2CareerState): M2CareerStat
 }
 
 export function maxCareerFacilityLevel(state: GameState): FacilityLevel {
-  if (state.careerMode !== 'full' || state.m2 === undefined) return MAX_FACILITY_LEVEL;
+  if (state.m2 === undefined) return MAX_FACILITY_LEVEL;
   const highest = highestDivisionReached(state);
   if (highest <= 2) return 3;
   if (highest <= 4) return 2;
@@ -126,9 +126,7 @@ export function trainingDrillBlockedReason(
   state: GameState,
   drillId: string,
 ): string | undefined {
-  // The short M1 slice predates the league pyramid and retains its authored
-  // training catalog. The shipped full career uses permanent division unlocks.
-  if (state.careerMode !== 'full' || state.m2 === undefined) return undefined;
+  if (state.m2 === undefined) return undefined;
   const tier = trainingDrillTier(drillId);
   const requiredDivision = trainingDrillUnlockDivision(tier);
   if (highestDivisionReached(state) <= requiredDivision) return undefined;

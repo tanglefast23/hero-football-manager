@@ -33,8 +33,6 @@ function createdStory(seed = 20260718) {
   const begun = beginStoryOnboarding(createCareer(createLaunchCareerSetup(
     seed,
     undefined,
-    undefined,
-    'full',
   )));
   return addCreatedPlayer(begun, {
     name: 'Jo Rook',
@@ -44,7 +42,7 @@ function createdStory(seed = 20260718) {
 
 describe('story recruitment pacing', () => {
   it('opens two real roster slots and preserves the cheaper starting payroll', () => {
-    const launch = createCareer(createLaunchCareerSetup(20260718, undefined, undefined, 'full'));
+    const launch = createCareer(createLaunchCareerSetup(20260718));
     const launchClub = launch.clubs.find(club => club.id === launch.userClubId)!;
     const begun = beginStoryOnboarding(launch);
     const begunClub = begun.clubs.find(club => club.id === begun.userClubId)!;

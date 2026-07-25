@@ -43,7 +43,7 @@ function tapWeeklyDrills(state: GameState): GameState {
 
 describe('active-manager economy rail', () => {
   test.each(SEEDS)('a winning, actively-training manager stays bounded (seed %i)', seed => {
-    let state = createCareer({ ...createLaunchCareerSetup(seed, undefined, undefined, 'full'), careerMode: 'full' });
+    let state = createCareer({ ...createLaunchCareerSetup(seed) });
     let guard = 0;
     while (!(state.phase === 'season-end' && state.season === SEASONS)) {
       if (guard++ > SEASONS * 64 + 1) throw new Error('overran');

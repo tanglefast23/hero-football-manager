@@ -13,13 +13,12 @@ export interface CashTransactionInput {
 
 /**
  * Records one already-applied user-club cash mutation without touching weekly
- * ledgers. M1 calls remain byte-for-byte compatible and receive no M2 sidecar.
+ * ledgers.
  */
 export function recordCashTransaction(
   state: GameState,
   input: CashTransactionInput,
 ): GameState {
-  if (state.careerMode !== 'full') return state;
   if (!Number.isSafeInteger(input.amount) || input.amount === 0) {
     throw new Error('cash transaction amount must be a non-zero safe integer');
   }

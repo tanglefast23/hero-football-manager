@@ -13,7 +13,7 @@ import { squadTrainingViewModel } from '../view-models';
 describe('open-ended potential in the Squad desk', () => {
   test('shows role-aware current ratings and exact training-speed grades', () => {
     const content = loadLaunchContent();
-    const initial = createCareer(createLaunchCareerSetup(73101, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(73101, undefined, content));
     const roster = initial.players.filter(player => player.clubId === initial.userClubId);
     const archetypeByPlayerId = new Map(
       PLAYER_ARCHETYPES.map((archetype, index) => [roster[index].id, archetype] as const),

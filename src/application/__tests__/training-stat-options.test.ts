@@ -5,7 +5,7 @@ import { squadTrainingViewModel } from '../view-models';
 
 describe('training stat options', () => {
   const content = loadLaunchContent();
-  const state = createCareer(createLaunchCareerSetup(20260724, undefined, content, 'full'));
+  const state = createCareer(createLaunchCareerSetup(20260724, undefined, content));
   const roster = state.players.filter(player => player.clubId === state.userClubId);
 
   it('reports current value and short code for each option, with no visible cap', () => {

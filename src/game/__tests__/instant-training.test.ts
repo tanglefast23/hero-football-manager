@@ -14,7 +14,7 @@ import {
 import type { GameState } from '../types';
 
 function fullCareerState(seed = 0): GameState {
-  const state = runHeadlessFullCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'), 1);
+  const state = runHeadlessFullCareer(createLaunchCareerSetup(seed), 1);
   return { ...state, phase: 'manage', trainingPoints: 100 };
 }
 

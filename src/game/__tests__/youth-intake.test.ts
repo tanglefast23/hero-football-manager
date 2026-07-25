@@ -127,7 +127,7 @@ describe('pre-season youth intake', () => {
   });
 
   it('expires and clears every open offer after pre-season Week 4', () => {
-    let state = createCareer(createLaunchCareerSetup(222, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(222));
     expect(state.youthIntake?.status).toBe('OPEN');
 
     while (state.week < 5) {
@@ -163,7 +163,6 @@ describe('pre-season youth intake', () => {
   it('signs one player, charges the bonus, adds wages, and never mutates its inputs', () => {
     const state = {
       ...careerWithRosterSize(15, 404, 2),
-      careerMode: 'full' as const,
       cashTransactions: [],
     };
     const intake = createPreseasonYouthIntake(state);

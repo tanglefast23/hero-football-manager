@@ -7,7 +7,7 @@ describe('M4 event selection', () => {
   const content = loadLaunchContent().events;
 
   it('guarantees the Giant Spider story in its Season 1 window', () => {
-    const initial = createCareer(createLaunchCareerSetup(3, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(3));
     const state = { ...initial, season: 1, week: 7, phase: 'manage' as const };
 
     expect(eventOfferForWeek(state, content)).toMatchObject({
@@ -17,7 +17,7 @@ describe('M4 event selection', () => {
   });
 
   it('does not interrupt the first-hero onboarding journey', () => {
-    const initial = createCareer(createLaunchCareerSetup(3, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(3));
     const state = {
       ...initial,
       season: 1,
@@ -31,7 +31,7 @@ describe('M4 event selection', () => {
   });
 
   it('is deterministic and never re-offers a resolved one-shot event', () => {
-    const initial = createCareer(createLaunchCareerSetup(99, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(99));
     const state = {
       ...initial,
       season: 2,
@@ -52,7 +52,7 @@ describe('M4 event selection', () => {
   });
 
   it('increments the persisted dry-spell clock when no event is offered', () => {
-    const initial = createCareer(createLaunchCareerSetup(1, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(1));
     const state = {
       ...initial,
       season: 1,
@@ -68,7 +68,7 @@ describe('M4 event selection', () => {
   });
 
   it('leaves a management week between resolved stories', () => {
-    const initial = createCareer(createLaunchCareerSetup(1, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(1));
     const state = {
       ...initial,
       season: 1,
@@ -84,7 +84,7 @@ describe('M4 event selection', () => {
   });
 
   it('enforces personality, facility, and money requirements from content', () => {
-    const initial = createCareer(createLaunchCareerSetup(1, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(1));
     const prank = content.events.find(event => event.id === 'prank-war')!;
     const drone = content.events.find(event => event.id === 'training-drone')!;
     const clinic = content.events.find(event => event.id === 'miracle-physio')!.choices[0];
@@ -109,7 +109,7 @@ describe('M4 event selection', () => {
   });
 
   it('can re-offer an authored repeatable event after its dry-spell guarantee', () => {
-    const initial = createCareer(createLaunchCareerSetup(88, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(88));
     const barbecue = content.events.find(event => event.id === 'team-bbq')!;
     const repeatableOnly = { ...content, events: [barbecue] };
     const state = {

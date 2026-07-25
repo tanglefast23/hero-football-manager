@@ -12,6 +12,7 @@ import {
 function state(): GameState {
   return {
     schemaVersion: 1,
+    careerMode: 'full',
     careerSeed: 42,
     userClubId: 'rovers',
     season: 1,

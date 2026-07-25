@@ -8,7 +8,7 @@ import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 
 describe('M2 game-state codec', () => {
   test('round-trips the full pyramid, cup, market, youth intake, facilities, and lifecycle metadata', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260719));
     const built = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
     const listedPlayer = built.players.find(player => (
       player.clubId === built.userClubId
@@ -54,7 +54,7 @@ describe('M2 game-state codec', () => {
   });
 
   test('rejects a full career whose required M2 market sidecar is missing', () => {
-    const state = createCareer(createLaunchCareerSetup(44, undefined, undefined, 'full'));
+    const state = createCareer(createLaunchCareerSetup(44));
     const { market: _market, ...withoutMarket } = state;
 
     expect(() => serializeGameState(withoutMarket as typeof state)).toThrow(InvalidGameStateError);
@@ -62,7 +62,7 @@ describe('M2 game-state codec', () => {
   });
 
   test('round-trips a protected board ultimatum and rejects hidden protection', () => {
-    const initial = createCareer(createLaunchCareerSetup(445, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(445));
     const ultimatum = createBoardUltimatum(initial)!;
     const active = {
       ...initial,
@@ -91,7 +91,7 @@ describe('M2 game-state codec', () => {
   });
 
   test('rejects stale youth intake data from another season', () => {
-    const state = createCareer(createLaunchCareerSetup(45, undefined, undefined, 'full'));
+    const state = createCareer(createLaunchCareerSetup(45));
     const stale = {
       ...state,
       youthIntake: { ...state.youthIntake!, season: state.season + 1 },
@@ -102,7 +102,7 @@ describe('M2 game-state codec', () => {
   });
 
   test('rejects a saved appearance from the wrong role pool', () => {
-    const state = createCareer(createLaunchCareerSetup(451, undefined, undefined, 'full'));
+    const state = createCareer(createLaunchCareerSetup(451));
     const invalid = {
       ...state,
       players: state.players.map((player, index) => index === 0
@@ -115,7 +115,7 @@ describe('M2 game-state codec', () => {
   });
 
   test('rejects duplicate or zero-value immediate cash transactions', () => {
-    const initial = createCareer(createLaunchCareerSetup(46, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(46));
     const state = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
     const transaction = state.cashTransactions![0];
     const duplicate = { ...state, cashTransactions: [transaction, transaction] };
@@ -201,7 +201,7 @@ describe('M2 game-state codec', () => {
       }),
     },
   ])('rejects inconsistent M2 relationships: $label', ({ mutate }) => {
-    const state = createCareer(createLaunchCareerSetup(47, undefined, undefined, 'full'));
+    const state = createCareer(createLaunchCareerSetup(47));
     const invalid = mutate(state);
 
     expect(() => serializeGameState(invalid)).toThrow(InvalidGameStateError);

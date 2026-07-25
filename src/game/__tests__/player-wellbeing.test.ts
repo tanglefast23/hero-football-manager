@@ -150,7 +150,7 @@ describe('weekly player wellbeing', () => {
     // Training Pitch discount brings it to 56%; an injury that does land is
     // shortened by three weeks (floor one) by the Lv3 bay.
     const makeExhaustedState = (facilityGrid: FacilityGridState): GameState => {
-      let state = createCareer(createLaunchCareerSetup(2, undefined, undefined, 'full'));
+      let state = createCareer(createLaunchCareerSetup(2));
       const playerId = userPlayers(state)[0].id;
       state = withUserPlayerChanges(state, player => ({
         ...player,
@@ -191,7 +191,7 @@ describe('weekly player wellbeing', () => {
   });
 
   test('drains an underpaid star, honors Motivator carry, and raises a transfer request', () => {
-    let state = createCareer(createLaunchCareerSetup(10, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(10));
     const player = userPlayers(state)[0];
     const coach = state.market!.coachCandidates[0];
     state = withUserPlayerChanges(state, candidate => candidate.id === player.id
@@ -224,7 +224,7 @@ describe('weekly player wellbeing', () => {
   });
 
   test('gives a Level 1 assistant Motivator an exact 2.5% morale effect', () => {
-    let state = createCareer(createLaunchCareerSetup(11, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(11));
     const player = userPlayers(state)[0];
     const assistant = state.market!.coachCandidates[0];
     state = withUserPlayerChanges(state, candidate => candidate.id === player.id

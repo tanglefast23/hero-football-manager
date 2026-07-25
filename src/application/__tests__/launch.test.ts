@@ -57,7 +57,7 @@ describe('launch career adapter', () => {
   });
 
   it('starts the Division 5 user squad with only early E/D-range potential grades', () => {
-    const career = createCareer(createLaunchCareerSetup(20260718, undefined, undefined, 'full'));
+    const career = createCareer(createLaunchCareerSetup(20260718));
     const grades = career.players
       .filter(player => player.clubId === career.userClubId)
       .map(playerPotentialGrade);
@@ -67,7 +67,7 @@ describe('launch career adapter', () => {
   });
 
   it('gives every starting player open room to the universal safety ceiling', () => {
-    const career = createCareer(createLaunchCareerSetup(20260718, undefined, undefined, 'full'));
+    const career = createCareer(createLaunchCareerSetup(20260718));
     const players = career.players.filter(player => player.clubId === career.userClubId);
 
     for (const player of players) {
@@ -88,7 +88,6 @@ describe('launch career adapter', () => {
       20260718,
       DEFAULT_USER_CLUB_ID,
       content,
-      'full',
     )));
     const withHero = addCreatedPlayer(initial, {
       name: 'Jo Rook',
@@ -102,7 +101,7 @@ describe('launch career adapter', () => {
         : player),
     };
 
-    const repaired = reconcileLaunchRoster(stale, content, true);
+    const repaired = reconcileLaunchRoster(stale, content);
     const ordinaryPlayer = repaired.players.find(player => player.id === 'bramble-rovers-p08')!;
     const heroAfter = repaired.players.find(player => player.id === heroBefore.id)!;
 
@@ -155,7 +154,8 @@ describe('launch career adapter', () => {
       .filter(player => player.clubId === DEFAULT_USER_CLUB_ID)
       .reduce((sum, player) => sum + player.weeklyWage, 0);
     expect(migrated.clubs.find(club => club.id === DEFAULT_USER_CLUB_ID)?.weeklyWages).toBe(bramblePayroll);
-    expect(reconcileLaunchRoster(migrated, content)).toBe(migrated);
+    // Reconciling rebuilds the career sidecars, so idempotence is by value.
+    expect(reconcileLaunchRoster(migrated, content)).toStrictEqual(migrated);
   });
 
   it('marks an established full career without restoring departed launch players', () => {
@@ -164,7 +164,6 @@ describe('launch career adapter', () => {
       7,
       DEFAULT_USER_CLUB_ID,
       content,
-      'full',
     ));
     const established = {
       ...current,
@@ -173,7 +172,7 @@ describe('launch career adapter', () => {
       players: current.players.filter(player => player.id !== 'bramble-rovers-p14'),
     };
 
-    const reconciled = reconcileLaunchRoster(established, content, true);
+    const reconciled = reconcileLaunchRoster(established, content);
 
     expect(reconciled.launchRosterVersion).toBe(2);
     expect(reconciled.players.some(player => player.id === 'bramble-rovers-p14')).toBe(false);
@@ -204,11 +203,10 @@ describe('launch career adapter', () => {
       8,
       DEFAULT_USER_CLUB_ID,
       loadLaunchContent(),
-      'full',
     ));
     const { cashTransactions: _history, ...legacy } = current;
 
-    const reconciled = reconcileLaunchRoster(legacy as typeof current, loadLaunchContent(), true);
+    const reconciled = reconcileLaunchRoster(legacy as typeof current, loadLaunchContent());
 
     expect(reconciled.cashTransactions).toEqual([]);
   });
@@ -219,10 +217,10 @@ describe('launch career adapter', () => {
     // so referenced clubs absent from state.clubs and made the save unrecoverable.
     for (const seed of [8, 77, generateCareerSeed(1)]) {
       const past = runHeadlessFullCareer(
-        createLaunchCareerSetup(seed, undefined, loadLaunchContent(), 'full'),
+        createLaunchCareerSetup(seed, undefined, loadLaunchContent()),
         2,
       );
-      const reconciled = reconcileLaunchRoster(past, loadLaunchContent(), true);
+      const reconciled = reconcileLaunchRoster(past, loadLaunchContent());
       const clubIds = new Set(reconciled.clubs.map(club => club.id));
       expect(reconciled.players.every(player => clubIds.has(player.clubId))).toBe(true);
       // the app re-saves the reconciled state on load; this must not throw
@@ -232,7 +230,7 @@ describe('launch career adapter', () => {
 
   it('backfills an old deep save while preserving non-colliding user faces', () => {
     const past = runHeadlessFullCareer(
-      createLaunchCareerSetup(20260722, undefined, loadLaunchContent(), 'full'),
+      createLaunchCareerSetup(20260722, undefined, loadLaunchContent()),
       7,
     );
     const oldSave = {
@@ -249,7 +247,7 @@ describe('launch career adapter', () => {
       userIdsByOldLook.set(lookId, playerIds);
     }
 
-    const reconciled = reconcileLaunchRoster(oldSave, loadLaunchContent(), true);
+    const reconciled = reconcileLaunchRoster(oldSave, loadLaunchContent());
     const reconciledUserPlayers = reconciled.players
       .filter(player => player.clubId === reconciled.userClubId);
     const changedPlayers = reconciledUserPlayers.filter(player => (
@@ -271,7 +269,7 @@ describe('launch career adapter', () => {
     expect(changedPlayers.every(player => (
       (userIdsByOldLook.get(expectedUserLooks.get(player.id) ?? '')?.length ?? 0) > 1
     ))).toBe(true);
-    expect(reconcileLaunchRoster(reconciled, loadLaunchContent(), true))
+    expect(reconcileLaunchRoster(reconciled, loadLaunchContent()))
       .toStrictEqual(reconciled);
   });
 });

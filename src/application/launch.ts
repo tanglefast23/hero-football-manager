@@ -43,7 +43,6 @@ export function createLaunchCareerSetup(
   seed = DEFAULT_CAREER_SEED,
   userClubId = DEFAULT_USER_CLUB_ID,
   content: LaunchContent = loadLaunchContent(),
-  careerMode?: CareerSetup['careerMode'],
   difficulty?: CareerSetup['difficulty'],
 ): CareerSetup {
   return {
@@ -111,7 +110,6 @@ export function createLaunchCareerSetup(
       clubId: club.id,
       playerIds: [...club.startingLineup],
     })),
-    ...(careerMode === undefined ? {} : { careerMode }),
     ...(difficulty === undefined ? {} : { difficulty }),
   };
 }
@@ -145,7 +143,6 @@ function deterministicPotential(
 export function reconcileLaunchRoster(
   state: GameState,
   content: LaunchContent = loadLaunchContent(),
-  enableM2 = false,
 ): GameState {
   const savedAwakening = (state as Omit<GameState, 'awakening'> & {
     awakening?: Omit<GameState['awakening'], 'usedTriggerIds'> & { usedTriggerIds?: string[] };
@@ -256,10 +253,7 @@ export function reconcileLaunchRoster(
   }
 
   if (!changed) {
-    const enabled = enableM2 || state.careerMode === 'full'
-      ? enableFullCareer(state)
-      : state;
-    return reconcileCareerPlayerLooks(enabled);
+    return reconcileCareerPlayerLooks(enableFullCareer(state));
   }
 
   const reconciled: GameState = {
@@ -300,10 +294,7 @@ export function reconcileLaunchRoster(
       weeklyWages: wageByClub.get(club.id) ?? club.weeklyWages,
     })),
   };
-  const enabled = enableM2 || state.careerMode === 'full'
-    ? enableFullCareer(reconciled)
-    : reconciled;
-  return reconcileCareerPlayerLooks(enabled);
+  return reconcileCareerPlayerLooks(enableFullCareer(reconciled));
 }
 
 function reconcileCareerPlayerLooks(state: GameState): GameState {

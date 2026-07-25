@@ -13,7 +13,6 @@ describe('completed onboarding history in persisted careers', () => {
       20260721,
       undefined,
       undefined,
-      'full',
     )));
     const story = addCreatedPlayer(begun, {
       name: 'History Rook',
@@ -40,7 +39,6 @@ describe('completed onboarding history in persisted careers', () => {
       20260722,
       undefined,
       undefined,
-      'full',
     )));
     const story = addCreatedPlayer(begun, {
       name: 'Live Rook',

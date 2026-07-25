@@ -5,7 +5,6 @@ import type { M2CareerState } from './m2-career';
 import type { YouthIntakeState } from './youth-intake';
 
 export const GAME_SCHEMA_VERSION = 1;
-export const M1_SEASONS = 2;
 export const SEASON_WEEKS = 30;
 
 export type GamePhase = 'manage' | 'matchday' | 'season-end' | 'complete';
@@ -37,8 +36,6 @@ export interface CareerSetup {
   players?: CareerPlayer[];
   lineups?: ClubLineupState[];
   trainingRules?: TrainingRules;
-  /** Omitted setups retain the finite M1 harness; the shipped app opts into full. */
-  careerMode?: 'm1-slice' | 'full';
   /** Defaults to Cozy for old fixtures and saves. */
   difficulty?: DifficultyMode;
 }
@@ -413,8 +410,12 @@ export interface GameState {
   cashTransactions?: CashTransaction[];
   /** Optional so careers saved before Golden Boot tracking remain loadable. */
   seasonGoalTallies?: PlayerSeasonGoalTally[];
-  /** Optional so deterministic M1 tests and schema-1 saves remain valid. */
-  careerMode?: 'm1-slice' | 'full';
+  /**
+   * Every career is a full career. The field stays because saves in the field
+   * carry it and the persisted schema keys two validation rules off it; the
+   * codec normalises the retired `'m1-slice'` value on read.
+   */
+  careerMode: 'full';
   /** M2 sidecars are plain data and defaulted during application reconciliation. */
   m2?: M2CareerState;
   market?: CareerMarketState;

@@ -4,7 +4,7 @@ import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 
 describe('retired weekly-training migration', () => {
   it('loads a save carrying a weekly plan, cap notices, a promise bump, and the slot cap', () => {
-    const base = createCareer(createLaunchCareerSetup(20260724, undefined, undefined, 'full'));
+    const base = createCareer(createLaunchCareerSetup(20260724));
     const playerId = base.players.find(p => p.clubId === base.userClubId)!.id;
     const serialized = serializeGameState(base);
     const legacy = JSON.stringify({

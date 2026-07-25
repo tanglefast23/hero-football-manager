@@ -8,7 +8,7 @@ import {
 import type { FixtureResult, GameState } from '../types';
 
 function fullCareerAtPlayIn(seed = 2): GameState {
-  const career = createCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'));
+  const career = createCareer(createLaunchCareerSetup(seed));
   return { ...career, week: 10, phase: 'matchday' };
 }
 

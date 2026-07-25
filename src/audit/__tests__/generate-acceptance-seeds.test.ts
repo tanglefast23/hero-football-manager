@@ -304,7 +304,6 @@ function onboardingStart(seed: number, difficulty: DifficultyMode): GameState {
     seed,
     undefined,
     content,
-    'full',
     difficulty,
   )));
 }

@@ -184,7 +184,7 @@ describe('promoted-club survival probe', () => {
 function createPromotedCareer(seed: number): GameState {
   let state = addCreatedPlayer(
     beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      seed, undefined, content, 'full', 'COZY',
+      seed, undefined, content, 'COZY',
     ))),
     {
       name: 'Promotion Probe Hero',

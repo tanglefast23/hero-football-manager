@@ -66,7 +66,7 @@ describe('M4 event balance rails', () => {
 
   it('lands a useful but non-flooding number of stories across two seasons', () => {
     const counts = Array.from({ length: 50 }, (_, seed) => {
-      let state = createCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'));
+      let state = createCareer(createLaunchCareerSetup(seed));
       let count = 0;
       for (let season = 1; season <= 2; season += 1) {
         for (let week = 1; week <= 30; week += 1) {

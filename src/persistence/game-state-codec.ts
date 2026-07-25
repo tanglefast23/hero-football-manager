@@ -729,6 +729,10 @@ const gameStateSchema = z
     seasonOpeningCash: safeInteger.optional(),
     cashTransactions: z.array(cashTransactionSchema).optional(),
     seasonGoalTallies: z.array(seasonGoalTallySchema).optional(),
+    // `'m1-slice'` was a second, finite career mode that no longer exists. The
+    // value stays legal on read so saves written while it did are still
+    // decodable; `parseStoredGameState` normalises it and the launch
+    // reconciliation pass builds the M2 sidecars such a save never had.
     careerMode: z.enum(['m1-slice', 'full']).optional(),
     m2: m2CareerSchema.optional(),
     market: careerMarketSchema.optional(),
@@ -1435,11 +1439,15 @@ export function parseStoredGameState(serialized: string): GameState {
   if (!validation.success) {
     throw new CorruptCareerSaveError(formatIssues(validation.error.issues));
   }
-  const parsed = validation.data as Omit<GameState, 'awakening'> & {
+  const parsed = validation.data as Omit<GameState, 'awakening' | 'careerMode'> & {
     awakening?: Omit<GameState['awakening'], 'usedTriggerIds'> & { usedTriggerIds?: string[] };
   };
   return {
     ...parsed,
+    // Retired slice saves (and pre-`careerMode` saves) become full careers. Only
+    // the label is set here; `reconcileLaunchRoster` runs `enableFullCareer` on
+    // every load, which synthesises the M2 and market state they lack.
+    careerMode: 'full',
     awakening: parsed.awakening === undefined
       ? { matchesSinceLastAwakening: 0, usedTriggerIds: [] }
       : {

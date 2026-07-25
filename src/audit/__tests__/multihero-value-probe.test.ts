@@ -432,7 +432,7 @@ function formatEfficiency(
 function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   const state = addCreatedPlayer(
     beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      4_000_000, undefined, content, 'full', 'COZY',
+      4_000_000, undefined, content, 'COZY',
     ))),
     { name: 'Probe Rookie', ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 } },
   );

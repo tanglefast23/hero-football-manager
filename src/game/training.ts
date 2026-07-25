@@ -82,25 +82,13 @@ export function trainPlayerInstantly(
   const attribute = trainingPathAttribute(pathId);
   const baseDrillGain = drill.gains[attribute] ?? 0;
   const rolledGain = isSuper ? Math.round(baseDrillGain * 1.5) : baseDrillGain;
-  const growth = state.careerMode === 'full'
-    ? applyInstantGrowthModifiers(state, player, attribute, rolledGain)
-    : {
-        value: capPlayerTrainingGain(
-          player,
-          attribute,
-          player.attrs[attribute],
-          checkedAdd(player.attrs[attribute], rolledGain, 'instant drill attribute'),
-        ),
-      };
+  const growth = applyInstantGrowthModifiers(state, player, attribute, rolledGain);
 
-  // Conditioning is a full-career system: the m1 slice has no weekly recovery
-  // or wellbeing, so charging it there would only ratchet condition downward.
   const conditionBefore = player.condition ?? 100;
-  const hasConditioning = state.careerMode === 'full';
   const injuryRiskReductionPercent = state.facilities.grid === undefined
     ? 0
     : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
-  const injuryChancePercent = !hasConditioning || conditionBefore >= OVERTRAINING_CONDITION_THRESHOLD
+  const injuryChancePercent = conditionBefore >= OVERTRAINING_CONDITION_THRESHOLD
     ? 0
     : overtrainingInjuryChancePercent(conditionBefore, injuryRiskReductionPercent);
   const injured = injuryChancePercent > 0
@@ -111,9 +99,7 @@ export function trainPlayerInstantly(
         gridMedicalBayLevel(state.facilities.grid),
       )
     : undefined;
-  const conditionAfter = hasConditioning
-    ? Math.max(0, conditionBefore - INSTANT_DRILL_CONDITION_COST)
-    : conditionBefore;
+  const conditionAfter = Math.max(0, conditionBefore - INSTANT_DRILL_CONDITION_COST);
 
   const trainedPlayer: CareerPlayer = {
     ...player,

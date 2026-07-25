@@ -38,7 +38,6 @@ import {
 } from './board-ultimatum';
 import {
   GAME_SCHEMA_VERSION,
-  M1_SEASONS,
   SEASON_WEEKS,
   type CareerSetup,
   type CareerPlayer,
@@ -110,10 +109,9 @@ export function createCareer(setup: CareerSetup): GameState {
     ledgers: [],
     seasonOpeningCash: clubs.find(club => club.id === setup.userClubId)!.cash,
     seasonGoalTallies: [],
-    ...(setup.careerMode === undefined ? {} : { careerMode: setup.careerMode }),
+    careerMode: 'full',
   };
-  const career = setup.careerMode === 'full' ? enableFullCareer(state) : state;
-  return career;
+  return enableFullCareer(state);
 }
 
 export function fixturesForCurrentWeek(state: GameState): LeagueFixture[] {
@@ -198,9 +196,7 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
 
   const seasonGoalTallies = recordSeasonGoals(state, scheduledFixtures, resultByFixtureId);
 
-  const players = state.careerMode === 'full'
-    ? resolveCareerMatchFame(state, scheduledFixtures, resultByFixtureId)
-    : state.players;
+  const players = resolveCareerMatchFame(state, scheduledFixtures, resultByFixtureId);
 
   const playedLeagueState: GameState = {
     ...state,
@@ -294,39 +290,15 @@ export function startNextSeason(state: GameState): GameState {
   if (state.phase !== 'season-end') {
     throw new Error('the next season can only start from the season-end phase');
   }
-  if (state.careerMode === 'full') {
-    const expired = state.players.filter(player => (
-      player.clubId === state.userClubId
-      && player.contractSeasonsRemaining === 0
-      && !willRetireAtSeasonTransition(player, state.season)
-    ));
-    if (expired.length > 0) {
-      throw new Error(`${expired.length} expired contract${expired.length === 1 ? '' : 's'} must be resolved before the next season`);
-    }
-    return startNextFullCareerSeason(state, leagueStandings(state));
+  const expired = state.players.filter(player => (
+    player.clubId === state.userClubId
+    && player.contractSeasonsRemaining === 0
+    && !willRetireAtSeasonTransition(player, state.season)
+  ));
+  if (expired.length > 0) {
+    throw new Error(`${expired.length} expired contract${expired.length === 1 ? '' : 's'} must be resolved before the next season`);
   }
-  if (state.season >= M1_SEASONS) {
-    throw new Error('the M1 career has no additional season');
-  }
-
-  const season = checkedAdd(state.season, 1, 'career season');
-  const nextFixtures = generateSeasonFixtures(
-    state.clubs.map(club => club.id),
-    season,
-    state.careerSeed,
-  );
-
-  const next: GameState = {
-    ...state,
-    season,
-    week: 1,
-    phase: 'manage',
-    fixtures: [...state.fixtures, ...nextFixtures],
-    seasonOpeningCash: state.clubs.find(club => club.id === state.userClubId)!.cash,
-  };
-  return state.youthIntake === undefined
-    ? next
-    : { ...next, youthIntake: initializeSeasonYouthIntake(next) };
+  return startNextFullCareerSeason(state, leagueStandings(state));
 }
 
 function settleCurrentWeek(
@@ -347,9 +319,7 @@ function settleCurrentWeek(
     ambientTrainingPoints,
     'weekly ambient training point balance',
   );
-  const weeklyPlayers = state.careerMode === 'full'
-    ? resolveWeeklyPlayerWellbeing(state, { additionalMatchOutcomes }).players
-    : state.players;
+  const weeklyPlayers = resolveWeeklyPlayerWellbeing(state, { additionalMatchOutcomes }).players;
   const trainedState = {
     ...state,
     players: weeklyPlayers,
@@ -386,9 +356,7 @@ function settleCurrentWeek(
     }
     // An existing injury advances by one recovery week. A new overtraining
     // injury begins now and must retain its full deterministic recovery time.
-    const shouldRecover = state.careerMode === 'full'
-      ? injuryWeeksBefore > 0
-      : player.injuryWeeks > 0;
+    const shouldRecover = injuryWeeksBefore > 0;
     return {
       ...player,
       injuryWeeks: shouldRecover ? Math.max(0, player.injuryWeeks - 1) : player.injuryWeeks,
@@ -396,9 +364,7 @@ function settleCurrentWeek(
   });
 
   if (state.week === SEASON_WEEKS) {
-    const seasonFamePlayers = state.careerMode === 'full'
-      ? resolveCareerSeasonFame({ ...state, players: recoveredPlayers })
-      : recoveredPlayers;
+    const seasonFamePlayers = resolveCareerSeasonFame({ ...state, players: recoveredPlayers });
     const players = seasonFamePlayers.map(player => ({
       ...player,
       contractSeasonsRemaining: player.contractSeasonsRemaining > 0
@@ -412,15 +378,11 @@ function settleCurrentWeek(
       players,
       trainingPoints,
       financialSafety: safety.financialSafety,
-      phase: state.careerMode === 'full'
-        ? 'season-end'
-        : state.season === M1_SEASONS ? 'complete' : 'season-end',
+      phase: 'season-end',
     };
     const withRecap = recordSeasonRecap(settledState);
     return advanceM2WeeklySidecars(
-      state.careerMode === 'full'
-        ? repairCareerLineupForInjuries(withRecap)
-        : withRecap,
+      repairCareerLineupForInjuries(withRecap),
       state.week,
       cupAlreadyResolved,
     );
@@ -437,9 +399,7 @@ function settleCurrentWeek(
     phase: 'manage',
   };
   return advanceM2WeeklySidecars(
-    state.careerMode === 'full'
-      ? repairCareerLineupForInjuries(settledState)
-      : settledState,
+    repairCareerLineupForInjuries(settledState),
     state.week,
     cupAlreadyResolved,
   );
@@ -454,7 +414,6 @@ export function resolveCareerMatchFame(
   fixtures: readonly LeagueFixture[],
   resultByFixtureId: ReadonlyMap<string, FixtureResult>,
 ): CareerPlayer[] {
-  if (state.careerMode !== 'full') return state.players.map(clonePlayer);
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
   if (lineup === undefined) throw new Error('the user club has no lineup');
   const gains = new Map<string, number>();
@@ -484,7 +443,6 @@ export function resolveCareerMatchFame(
 
 /** Small club-wide recognition bonus for a real top-two league finish. */
 export function resolveCareerSeasonFame(state: GameState): CareerPlayer[] {
-  if (state.careerMode !== 'full') return state.players.map(clonePlayer);
   const finish = leagueStandings(state).find(row => row.clubId === state.userClubId)?.position;
   const leagueBonus = finish === 1 ? 5 : finish === 2 ? 3 : 0;
   const cupWon = state.m2?.nationalCups.some(cup => (
@@ -559,8 +517,7 @@ function settlementLines(
         amount: prize,
       });
     }
-    const firstD4Promotion = state.careerMode === 'full'
-      && state.m2 !== undefined
+    const firstD4Promotion = state.m2 !== undefined
       && position !== undefined
       && position <= 2
       && currentUserDivision(state.m2) === 5
@@ -591,7 +548,7 @@ function settlementLines(
     });
   }
 
-  const facilityUpkeep = state.careerMode !== 'full' || state.facilities.grid === undefined
+  const facilityUpkeep = state.facilities.grid === undefined
     ? 0
     : weeklyFacilityUpkeep(state.facilities.grid);
   if (facilityUpkeep > 0) {
@@ -640,7 +597,7 @@ function settlementLines(
 /** A small recurring return for building a Fan Shop, with the documented adjacency bonus. */
 export function weeklyMerchandiseIncome(state: GameState, userClub: ClubState): number {
   const grid = state.facilities.grid;
-  if (state.careerMode !== 'full' || grid === undefined) return 0;
+  if (grid === undefined) return 0;
   let combinedFanShopLevel = 0;
   for (const building of grid.buildings) {
     if (building.type !== 'fan-shop') continue;
@@ -764,15 +721,6 @@ function resolveFinancialSafety(
   financialSafety?: FinancialSafetyState;
   forcedSale?: BoardForcedSaleResolution;
 } {
-  if (state.careerMode !== 'full') {
-    const net = baseLines.reduce(
-      (total, line) => checkedAdd(total, line.amount, 'weekly ledger net'),
-      0,
-    );
-    const balanceAfter = checkedAdd(startingCash, net, 'club cash balance');
-    return { lines: [...baseLines], balanceAfter };
-  }
-
   const previous = state.financialSafety ?? {
     consecutiveNegativeWeeks: 0,
     emergencyLoanUsed: false,
@@ -883,7 +831,7 @@ function nationalCupUserFixtureForCurrentWeek(state: GameState): {
   fixture: NationalCupFixture;
   roundLabel: NationalCupRoundLabel;
 } | undefined {
-  if (state.careerMode !== 'full' || state.m2 === undefined) return undefined;
+  if (state.m2 === undefined) return undefined;
   const activeCup = state.m2.nationalCups.find(cup => cup.championClubId === undefined);
   if (activeCup === undefined || activeCup.season !== state.season) return undefined;
   const round = activeCup.rounds[activeCup.rounds.length - 1];

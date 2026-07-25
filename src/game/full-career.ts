@@ -33,8 +33,13 @@ import type {
   LeagueStanding,
 } from './types';
 
+/**
+ * Idempotent: an already-provisioned career is only reconciled, while one whose
+ * M2 sidecars are missing — a fresh `createCareer` state, or a save written
+ * before the pyramid existed — has them built here.
+ */
 export function enableFullCareer(state: GameState): GameState {
-  if (state.careerMode === 'full' && state.m2 !== undefined && state.market !== undefined) {
+  if (state.m2 !== undefined && state.market !== undefined) {
     const reconciled = {
       ...state,
       m2: recordHighestDivisionReached(state.m2),
@@ -107,8 +112,8 @@ export function startNextFullCareerSeason(
   state: GameState,
   activeStandings: readonly LeagueStanding[],
 ): GameState {
-  if (state.careerMode !== 'full' || state.m2 === undefined) {
-    throw new Error('the career is not in full mode');
+  if (state.m2 === undefined) {
+    throw new Error('the career has no M2 pyramid state');
   }
   const activeDivision = currentUserDivision(state.m2);
   let m2 = synchronizeM2ActiveDivision(state.m2, state, activeDivision);

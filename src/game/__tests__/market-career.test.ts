@@ -24,7 +24,7 @@ import {
 describe('career market integration', () => {
   test('charges for a mission and resolves deterministic reports on its due week', () => {
     const initial = {
-      ...createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full')),
+      ...createCareer(createLaunchCareerSetup(20260719)),
       week: 15,
     };
     const officeProject = buildCareerFacility(initial, 'scout-office', { x: 2, y: 0 }).state;
@@ -66,7 +66,7 @@ describe('career market integration', () => {
 
   test('international scouting draws reports from clubs outside the active division', () => {
     const initial = {
-      ...createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full')),
+      ...createCareer(createLaunchCareerSetup(20260719)),
       week: 15,
     };
     const activePlayerIds = new Set(initial.players.map(player => player.id));
@@ -87,7 +87,7 @@ describe('career market integration', () => {
   });
 
   test('prices and completes a scouted transfer from the seller real pyramid division', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260720));
     const sourceDivision = initial.m2!.pyramid.divisions.find(division => division.level === 4)!;
     const sourceClub = sourceDivision.clubs[0];
     const target = sourceClub.squad.find(player => player.role === 'DEF')!;
@@ -171,7 +171,7 @@ describe('career market integration', () => {
   });
 
   test('turns an accepted pitch-card deal into a real transfer and repairs the seller lineup', () => {
-    const initial = createCareer(createLaunchCareerSetup(4242, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(4242));
     const userLineup = new Set(initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds);
     const releasedReserve = initial.players.find(player => (
       player.clubId === initial.userClubId && !userLineup.has(player.id)
@@ -232,7 +232,7 @@ describe('career market integration', () => {
   });
 
   test('itemizes a player sale without creating a weekly ledger', () => {
-    const state = createCareer(createLaunchCareerSetup(4243, undefined, undefined, 'full'));
+    const state = createCareer(createLaunchCareerSetup(4243));
     const starters = new Set(state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds);
     const reserve = state.players.find(player => (
       player.clubId === state.userClubId && !starters.has(player.id)
@@ -274,7 +274,7 @@ describe('career market integration', () => {
   });
 
   test('dismisses a coach for exactly one weekly wage before another can be hired', () => {
-    const state = createCareer(createLaunchCareerSetup(810, undefined, undefined, 'full'));
+    const state = createCareer(createLaunchCareerSetup(810));
     const hired = hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id);
     const coach = hired.headCoach!;
     const cashBefore = state.clubs.find(club => club.id === state.userClubId)!.cash;
@@ -330,7 +330,7 @@ describe('career market integration', () => {
   });
 
   test('lists a player, creates repeatable AI bids, and accepts only a saved bid', () => {
-    const state = createCareer(createLaunchCareerSetup(824, undefined, undefined, 'full'));
+    const state = createCareer(createLaunchCareerSetup(824));
     const starters = new Set(state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds);
     const reserve = state.players.find(player => (
       player.clubId === state.userClubId && !starters.has(player.id)
@@ -358,7 +358,7 @@ describe('career market integration', () => {
   });
 
   test('expires listings at the end of their registration window and rejects a saved bid later', () => {
-    const initial = createCareer(createLaunchCareerSetup(826, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(826));
     const weekFour = { ...initial, week: 4 };
     const starters = new Set(weekFour.lineups
       .find(lineup => lineup.clubId === weekFour.userClubId)!.playerIds);
@@ -377,7 +377,7 @@ describe('career market integration', () => {
   });
 
   test('enforces coach eligibility and gates an assistant behind the Coaching Office', () => {
-    const initial = createCareer(createLaunchCareerSetup(825, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(825));
     const market = createCareerMarketState(initial);
     const candidate = market.coachCandidates.find(coach => coach.requiredDivision === 5)!;
     const hired = hireCareerCoach(initial, market, candidate.id);
@@ -423,7 +423,7 @@ describe('career market integration', () => {
   });
 
   test('applies an insulting offer consequence exactly once in live career state', () => {
-    const state = createCareer(createLaunchCareerSetup(822, undefined, undefined, 'full'));
+    const state = createCareer(createLaunchCareerSetup(822));
     const target = state.players.find(player => player.clubId !== state.userClubId)!;
     const market = {
       ...state.market!,
@@ -456,7 +456,7 @@ describe('career market integration', () => {
 
   test('retains paid scouting work when the preseason coach market refreshes', () => {
     const state = {
-      ...createCareer(createLaunchCareerSetup(83, undefined, undefined, 'full')),
+      ...createCareer(createLaunchCareerSetup(83)),
       week: 15,
     };
     const started = startCareerScoutMission(
@@ -488,7 +488,7 @@ describe('career market integration', () => {
   });
 
   test('retains reports for opponents that leave the active division but remain in the pyramid', () => {
-    const state = createCareer(createLaunchCareerSetup(84, undefined, undefined, 'full'));
+    const state = createCareer(createLaunchCareerSetup(84));
     const target = state.players.find(player => player.clubId !== state.userClubId)!;
     const report = {
       playerId: target.id,

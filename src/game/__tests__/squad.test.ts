@@ -115,39 +115,27 @@ describe('career squad integration', () => {
       .toThrow('injured and unavailable');
   });
 
-  it('uses M2 low-morale penalties without changing the M1 match adapter', () => {
+  it('applies the low-morale penalty at the sim boundary and never rewards high morale', () => {
     const playerId = `${CLUB_IDS[0]}-p0`;
-    const lowMorale = (state: GameState): GameState => ({
+    const withMorale = (state: GameState, morale: number): GameState => ({
       ...state,
       players: state.players.map(player => player.id === playerId
-        ? { ...player, morale: 0 }
+        ? { ...player, morale }
         : player),
     });
-    const m1 = lowMorale(career());
-    const m2 = lowMorale(createCareer({ ...setup(), careerMode: 'full' }));
+    const demoralized = withMorale(career(), 0);
 
-    expect(buildCareerTeamDef(m1, CLUB_IDS[0]).players[0].attrs.pac).toBe(45);
-    expect(buildCareerTeamDef(m2, CLUB_IDS[0]).players[0].attrs.pac).toBe(45);
-    expect(m2.players.find(player => player.id === playerId)?.attrs.pac).toBe(50);
+    expect(buildCareerTeamDef(demoralized, CLUB_IDS[0]).players[0].attrs.pac).toBe(45);
+    // The penalty belongs to the match adapter; the career attribute is untouched.
+    expect(demoralized.players.find(player => player.id === playerId)?.attrs.pac).toBe(50);
 
-    const highMoraleM1 = {
-      ...m1,
-      players: m1.players.map(player => player.id === playerId
-        ? { ...player, morale: 100 }
-        : player),
-    };
-    const highMoraleM2 = {
-      ...m2,
-      players: m2.players.map(player => player.id === playerId
-        ? { ...player, morale: 100 }
-        : player),
-    };
-    expect(buildCareerTeamDef(highMoraleM1, CLUB_IDS[0]).players[0].attrs.pac).toBe(55);
-    expect(buildCareerTeamDef(highMoraleM2, CLUB_IDS[0]).players[0].attrs.pac).toBe(50);
+    // Morale is a penalty with a neutral band, never a high-morale stat bonus.
+    expect(buildCareerTeamDef(withMorale(demoralized, 100), CLUB_IDS[0]).players[0].attrs.pac)
+      .toBe(50);
   });
 
   it('carries a Motivator coach Heat bonus through the sim-team boundary', () => {
-    const state = createCareer({ ...setup(), careerMode: 'full' });
+    const state = createCareer({ ...setup() });
     const coach = state.market!.coachCandidates[0];
     const coached = {
       ...state,
@@ -162,7 +150,7 @@ describe('career squad integration', () => {
   });
 
   it('gives a Level 1 assistant Motivator a half-strength Hero Gauge bonus', () => {
-    const state = createCareer({ ...setup(), careerMode: 'full' });
+    const state = createCareer({ ...setup() });
     const assistant = state.market!.coachCandidates[0];
     const coached = {
       ...state,
@@ -181,10 +169,9 @@ describe('career squad integration', () => {
     expect(initial.trainingPoints).toBe(100);
     expect(initial.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(50);
 
-    // This M1 fixture never gates a tier by division, so each path resolves
-    // to its highest (tier III) drill: 15 TP and +8 gain per tap. M1 careers
-    // apply the plain drill gain, so a SUPER roll cannot disturb these exact
-    // values only if it misses — probe nonces to keep both taps ordinary.
+    // A Division 5 career only unlocks tier-I drills, so each path resolves to
+    // its 6 TP tap. A SUPER roll would disturb these exact values, so probe
+    // nonces to keep both taps ordinary.
     let trained = initial;
     for (const tap of [
       { playerId: `${CLUB_IDS[0]}-p9`, pathId: 'sprints' },
@@ -199,11 +186,11 @@ describe('career squad integration', () => {
         if (!result.isSuper) { trained = result.state; break; }
       }
     }
-    expect(trained.trainingPoints).toBe(70);
-    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(58);
+    expect(trained.trainingPoints).toBe(88);
+    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(53);
     expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.def).toBe(50);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.pac).toBe(50);
-    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(58);
+    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(53);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p2`)?.attrs.def).toBe(50);
     // Training is TP-only; weekly settlement never charges money for it.
     expect(advanceWeek(trained).ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
@@ -255,7 +242,7 @@ describe('career squad integration', () => {
     };
 
     expect(() => trainPlayerInstantly(broke, `${CLUB_IDS[0]}-p9`, 'sprints'))
-      .toThrow(/needs 15 TP/);
+      .toThrow(/needs 6 TP/);
 
     const settled = advanceWeek(broke);
     expect(settled.week).toBe(2);

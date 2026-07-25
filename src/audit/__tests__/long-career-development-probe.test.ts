@@ -210,7 +210,6 @@ function probeCareer(): GameState {
       4_000_000,
       undefined,
       content,
-      'full',
       'COZY',
     ))),
     {

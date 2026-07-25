@@ -11,7 +11,6 @@ describe('training drill tier unlocks', () => {
       20260722,
       undefined,
       content,
-      'full',
     ));
     const player = divisionFive.players.find(candidate => candidate.clubId === divisionFive.userClubId)!;
     const optionAt = (highestDivisionReached: 5 | 4 | 2) => squadTrainingViewModel(
@@ -30,7 +29,7 @@ describe('training drill tier unlocks', () => {
   });
 
   test('marks a stat option unaffordable when the bank cannot cover one tap', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260723, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260723, undefined, content));
     const player = initial.players.find(candidate => candidate.clubId === initial.userClubId)!;
     const sprints = resolveTrainingDrillForPath(initial, 'sprints');
 
@@ -50,7 +49,7 @@ describe('training drill tier unlocks', () => {
   });
 
   it('resolves every stat path to its currently unlocked tier, never a locked one', () => {
-    const state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
+    const state = createCareer(createLaunchCareerSetup(413, undefined, content));
     const player = state.players.find(candidate => candidate.clubId === state.userClubId)!;
     const model = squadTrainingViewModel(state, content, player.id);
 

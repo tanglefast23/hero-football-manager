@@ -384,7 +384,6 @@ export function beginCareerRenewalTalks(
   playerId: string,
 ): CareerMarketState {
   assertSeasonEndPhase(state);
-  if (state.careerMode !== 'full') throw new Error('negotiated renewals are available in full careers');
   if (market.renewalTalks !== undefined) throw new Error('another renewal is already being negotiated');
   const player = expiredUserPlayer(state, playerId);
   const weeklyAsk = renewalContractAsk({

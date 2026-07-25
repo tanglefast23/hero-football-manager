@@ -7,7 +7,7 @@ import {
 import { setCareerLineup } from '../squad';
 
 function career(seed: number) {
-  return createCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'));
+  return createCareer(createLaunchCareerSetup(seed));
 }
 
 describe('career contract promises', () => {

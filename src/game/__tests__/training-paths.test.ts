@@ -12,7 +12,7 @@ describe('training paths', () => {
   });
 
   test('catalog is baked into state and resolver returns tier I at a D5 start', () => {
-    const state = runHeadlessFullCareer(createLaunchCareerSetup(0, undefined, undefined, 'full'), 1);
+    const state = runHeadlessFullCareer(createLaunchCareerSetup(0), 1);
     expect(state.trainingRules?.focusDrills.length).toBe(21);
     const drill = resolveTrainingDrillForPath(state, 'sprints');
     expect(drill.id).toBe('sprints');   // brand-new career is in D5, only tier I unlocked

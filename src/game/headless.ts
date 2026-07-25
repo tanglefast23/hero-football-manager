@@ -1,26 +1,13 @@
-import type { TeamDef } from '../sim/types';
 import {
   activeCareerMatchday,
   advanceWeek,
   completeMatchday,
   createCareer,
-  fixturesForCurrentWeek,
-  leagueStandings,
   startNextSeason,
 } from './career';
-import { resolveMatchday } from './matchday';
 import { renewCareerPlayer } from './squad';
 import { mulberry32 } from '../sim/rng';
 import type { CareerSetup, GameState } from './types';
-
-const MAX_HEADLESS_TRANSITIONS = 128;
-
-export interface HeadlessCareerSummary {
-  endingCash: number;
-  trainingPoints: number;
-  minimumBalance: number;
-  finalPositionBySeason: Record<number, number>;
-}
 
 export interface FullCareerBalanceSummary {
   completedSeasons: number;
@@ -33,38 +20,6 @@ export interface FullCareerBalanceSummary {
   currentDivision: number;
   userRosterSize: number;
   userStartingLineupSize: number;
-}
-
-export function runHeadlessM1Career(
-  setup: CareerSetup,
-  teamsByClubId: Readonly<Record<string, TeamDef>>,
-): GameState {
-  let state = createCareer(setup);
-  let transitions = 0;
-
-  while (state.phase !== 'complete') {
-    transitions += 1;
-    if (transitions > MAX_HEADLESS_TRANSITIONS) {
-      throw new Error(`headless M1 career exceeded ${MAX_HEADLESS_TRANSITIONS} transitions`);
-    }
-
-    if (state.phase === 'manage') {
-      state = advanceWeek(state);
-    } else if (state.phase === 'matchday') {
-      const fixtures = fixturesForCurrentWeek(state);
-      const results = resolveMatchday(fixtures, teamsByClubId);
-      state = completeMatchday(state, results);
-    } else if (state.phase === 'season-end') {
-      for (const player of state.players.filter(candidate => (
-        candidate.clubId === state.userClubId && candidate.contractSeasonsRemaining === 0
-      ))) {
-        state = renewCareerPlayer(state, player.id, 4, 1);
-      }
-      state = startNextSeason(state);
-    }
-  }
-
-  return state;
 }
 
 /**
@@ -80,7 +35,7 @@ export function runHeadlessFullCareer(
     throw new Error('completedSeasons must be an integer from 1 to 100');
   }
 
-  let state = createCareer({ ...setup, careerMode: 'full' });
+  let state = createCareer(setup);
   const maximumTransitions = completedSeasons * 64 + 1;
   let transitions = 0;
 
@@ -116,40 +71,13 @@ export function runHeadlessFullCareer(
   return state;
 }
 
-export function summarizeCareer(state: GameState): HeadlessCareerSummary {
-  const userClub = state.clubs.find(club => club.id === state.userClubId);
-  if (userClub === undefined) {
-    throw new Error(`user club ${state.userClubId} does not exist`);
-  }
-
-  const finalPositionBySeason: Record<number, number> = {};
-  for (let season = 1; season <= state.season; season += 1) {
-    const position = leagueStandings(state, season)
-      .find(standing => standing.clubId === state.userClubId)?.position;
-    if (position === undefined) {
-      throw new Error(`user club ${state.userClubId} has no standing for season ${season}`);
-    }
-    finalPositionBySeason[season] = position;
-  }
-
-  return {
-    endingCash: userClub.cash,
-    trainingPoints: state.trainingPoints,
-    minimumBalance: state.ledgers.reduce(
-      (minimum, ledger) => Math.min(minimum, ledger.balanceAfter),
-      userClub.cash,
-    ),
-    finalPositionBySeason,
-  };
-}
-
 /**
  * Extracts the numeric M2 rails while rejecting corrupted/non-finite money.
  * The caller supplies the setup to the headless runner, so this pure game
  * helper never imports launch content or platform code.
  */
 export function summarizeFullCareerBalance(state: GameState): FullCareerBalanceSummary {
-  if (state.careerMode !== 'full' || state.m2 === undefined) {
+  if (state.m2 === undefined) {
     throw new Error('full career balance requires an M2 career state');
   }
   const userClub = state.clubs.find(club => club.id === state.userClubId);

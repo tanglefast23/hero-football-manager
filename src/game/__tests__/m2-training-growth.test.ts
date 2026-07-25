@@ -22,7 +22,7 @@ function trainWithoutSuper(
 
 describe('M2 player-specific instant training growth', () => {
   test('applies the age curve to deliberate stamina training', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90210), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(90210) });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     const prepare = (age: number) => ({
       ...initial,
@@ -46,7 +46,7 @@ describe('M2 player-specific instant training growth', () => {
   });
 
   test('uses the matching facility level without a high-stat growth wall', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90211), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(90211) });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     const state = {
       ...initial,
@@ -80,7 +80,7 @@ describe('M2 player-specific instant training growth', () => {
   });
 
   test('banks fractional archetype bonuses until repeat drills earn a whole point', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90214), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(90214) });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     // Anchor gives +15% DEF; a FWD earns no position bonus on DEF, and there is
     // no coach, so each +3 Duels drill banks exactly 45 hundredths.
@@ -114,7 +114,7 @@ describe('M2 player-specific instant training growth', () => {
   });
 
   test('allows gains through 99 and stops only at the universal 999 ceiling', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90213), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(90213) });
     const roster = initial.players.filter(player => player.clubId === initial.userClubId);
     const state = {
       ...initial,
@@ -139,7 +139,7 @@ describe('M2 player-specific instant training growth', () => {
 
   test('unlocks drill tiers from the permanent best division reached', () => {
     const initial = {
-      ...createCareer({ ...createLaunchCareerSetup(90219), careerMode: 'full' }),
+      ...createCareer({ ...createLaunchCareerSetup(90219) }),
       trainingPoints: 100,
     };
 

@@ -239,7 +239,7 @@ function promisedReplacementSlot(
 }
 
 function contractPromiseHeroLimit(state: GameState): number {
-  if (state.careerMode !== 'full' || state.m2 === undefined) return 2;
+  if (state.m2 === undefined) return 2;
   const division = currentUserDivision(state.m2);
   if (division === 1) return 4;
   if (division <= 3) return 3;

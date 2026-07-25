@@ -164,7 +164,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
   const club = requireUserClub(state);
   const wageSubsidyPercent = difficultyRules(state).seasonOneWageSubsidyPercent;
   const latest = state.ledgers[state.ledgers.length - 1];
-  const facilityUpkeep = state.careerMode !== 'full' || state.facilities.grid === undefined
+  const facilityUpkeep = state.facilities.grid === undefined
     ? 0
     : weeklyFacilityUpkeep(state.facilities.grid);
   const coachWage = state.market === undefined ? 0 : careerCoachWageLedgerAmount(state.market);
@@ -238,7 +238,10 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       cost: 8000,
       weeklyTrainingPoints: 10,
     },
-    legacyTrainingGroundVisible: state.careerMode !== 'full',
+    // Was `careerMode !== 'full'`, so already always false in a shipped career.
+    // The flag and its dead branch in ClubFinancesScreen can go with the next
+    // src/ui pass.
+    legacyTrainingGroundVisible: false,
     coachingStaff: coachingStaffViewModels(state),
     facilities: facilityGridViewModel(state),
   };
@@ -538,23 +541,19 @@ export function seasonEndViewModel(
   if (user === undefined) throw new Error('the user club has no final standing');
   const sliceComplete = state.phase === 'complete';
   const division = careerDivision(state);
-  const outcomeLabel = state.careerMode === 'full'
-    ? user.position === 1 && division === 1
-      ? 'CHAMPIONS' as const
-      : user.position <= 2 && division > 1
-        ? 'PROMOTED' as const
-        : user.position >= 9 && division < 5
-          ? 'RELEGATED' as const
-          : 'SAFE' as const
-    : user.position === 1 ? 'CHAMPIONS' as const : 'SAFE' as const;
+  const outcomeLabel = user.position === 1 && division === 1
+    ? 'CHAMPIONS' as const
+    : user.position <= 2 && division > 1
+      ? 'PROMOTED' as const
+      : user.position >= 9 && division < 5
+        ? 'RELEGATED' as const
+        : 'SAFE' as const;
   const expiredPlayers = sliceComplete ? [] : rosterForClub(state, state.userClubId)
     .filter(player => player.contractSeasonsRemaining === 0
       && !willRetireAtSeasonTransition(player, state.season))
     .sort((left, right) => left.id.localeCompare(right.id));
-  const expiredPlayer = state.careerMode === 'full'
-    ? expiredPlayers[0]
-    : expiredPlayers.find(player => player.power !== undefined);
-  const renewalTalks = state.careerMode === 'full' ? state.market?.renewalTalks : undefined;
+  const expiredPlayer = expiredPlayers[0];
+  const renewalTalks = state.market?.renewalTalks;
   const prizeMoney = state.ledgers[state.ledgers.length - 1]?.lines
     .filter(line => line.kind === 'prize')
     .reduce((sum, line) => sum + line.amount, 0) ?? 0;
@@ -583,9 +582,7 @@ export function seasonEndViewModel(
     : content.events.events.find(event => event.id === recap.memorableEventId)?.title;
 
   return {
-    seasonLabel: state.careerMode === 'full'
-      ? `Season ${state.season} · ${divisionTierLabel(division)}`
-      : `Season ${state.season} of 2`,
+    seasonLabel: `Season ${state.season} · ${divisionTierLabel(division)}`,
     outcomeLabel,
     headline: outcomeLabel === 'CHAMPIONS'
       ? 'The club owns the country.'
@@ -594,15 +591,11 @@ export function seasonEndViewModel(
         : outcomeLabel === 'RELEGATED'
           ? 'A hard landing. The rebuild starts now.'
           : 'The board signs off on another year.',
-    summary: state.careerMode === 'full'
-      ? outcomeLabel === 'PROMOTED'
-        ? `A place in ${divisionTierLabel((division - 1) as 1 | 2 | 3 | 4)} is secured. Contracts and retirements resolve before the new fixtures arrive.`
-        : outcomeLabel === 'RELEGATED'
-          ? `The club drops to ${divisionTierLabel((division + 1) as 2 | 3 | 4 | 5)}, but the endless career continues.`
-          : 'Contracts, player aging, retirement announcements, and the next national campaign now resolve.'
-      : sliceComplete
-        ? 'Two seasons are complete. Your club is ready for the full career.'
-        : 'Before Season 2 begins, the awakened bargain contract finally reaches the agent’s desk.',
+    summary: outcomeLabel === 'PROMOTED'
+      ? `A place in ${divisionTierLabel((division - 1) as 1 | 2 | 3 | 4)} is secured. Contracts and retirements resolve before the new fixtures arrive.`
+      : outcomeLabel === 'RELEGATED'
+        ? `The club drops to ${divisionTierLabel((division + 1) as 2 | 3 | 4 | 5)}, but the endless career continues.`
+        : 'Contracts, player aging, retirement announcements, and the next national campaign now resolve.',
     finalPosition: user.position,
     prizeMoney,
     difficultyLabel: state.difficulty ?? 'COZY',
@@ -626,7 +619,7 @@ export function seasonEndViewModel(
       goalDifference: row.goalDifference,
       points: row.points,
       isUserClub: row.clubId === state.userClubId,
-      promoted: row.position <= 2 && (state.careerMode !== 'full' || division > 1),
+      promoted: row.position <= 2 && division > 1,
     })),
     ...(promotedDivision === undefined || newlyUnlockedRewards.length === 0
       ? {}
@@ -651,7 +644,7 @@ export function seasonEndViewModel(
         termOptions: [1, 2, 3] as const,
         selectedTerm,
         decision: 'pending' as const,
-        requiresNegotiation: state.careerMode === 'full',
+        requiresNegotiation: true,
         remainingExpiredCount: expiredPlayers.length,
       },
     } : {}),
@@ -922,12 +915,8 @@ export function homeViewModel(state: GameState): HomeViewModel {
   return {
     clubName: userClub.name,
     managerName: 'Boss',
-    seasonLabel: state.careerMode === 'full'
-      ? `Season ${state.season} · ${divisionTierLabel(careerDivision(state))}`
-      : `Season ${state.season} / 2`,
-    divisionLabel: state.careerMode === 'full'
-      ? divisionTierLabel(careerDivision(state))
-      : divisionTierLabel(5),
+    seasonLabel: `Season ${state.season} · ${divisionTierLabel(careerDivision(state))}`,
+    divisionLabel: divisionTierLabel(careerDivision(state)),
     weekLabel: `Week ${state.week} / 30`,
     nextMatchTimingLabel: nextFixture === undefined
       ? state.phase === 'complete' ? 'Complete' : 'Season end'
@@ -1033,9 +1022,7 @@ export function leagueTableViewModel(state: GameState): LeagueTableViewModel {
 
   return {
     divisionLabel: careerDivisionLabel(state),
-    seasonLabel: state.careerMode === 'full'
-      ? `Season ${state.season}`
-      : `Season ${state.season} / 2`,
+    seasonLabel: `Season ${state.season}`,
     weekLabel: `Week ${state.week} / 30`,
     matchesPlayed: seasonFixtures.filter(fixture => fixture.status === 'played').length,
     matchesTotal: seasonFixtures.length,
