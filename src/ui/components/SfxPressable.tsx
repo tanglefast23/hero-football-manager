@@ -115,6 +115,34 @@ export function SfxPressable({
 }
 
 /**
+ * Hover tip for a control that cannot host one itself: ActionButton clips its
+ * children to keep the bevel gloss inside its rounded corners, so a tip nested
+ * in it would be cut off. Wrapping it anchors the tip outside that clip.
+ *
+ * Pointer-only for the same reason as the tip above — a tap has no hover phase.
+ */
+export function HoverTipAnchor({ tip, className, children }: {
+  tip?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const pointer = hasPointer();
+  const showTip = pointer && hovered && tip !== undefined && tip.length > 0;
+
+  return (
+    <View
+      className={className}
+      onPointerEnter={pointer ? () => setHovered(true) : undefined}
+      onPointerLeave={pointer ? () => setHovered(false) : undefined}
+    >
+      {children}
+      {showTip ? <HoverTip text={tip} side="top" /> : null}
+    </View>
+  );
+}
+
+/**
  * `cursor` is understood by react-native-web but is not part of React Native's
  * own ViewStyle, so it is declared once here rather than cast at each use.
  */

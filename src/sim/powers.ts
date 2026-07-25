@@ -544,37 +544,25 @@ export function powerTick(state: MatchState, dueInputs: readonly MatchInput[] = 
         emit(state, { t: state.tick, kind: 'POWER_READY', player: idx }); // event kind retained; now means Zone entry
       }
     } else if (p.powerState.kind === 'zone') {
+      // A charged hero now HOLDS until the moment is genuinely optimal. The Zone
+      // used to be a 7-second window that decayed to half heat if the authored
+      // situation never arrived, and settled for a merely-usable target at 75%
+      // strength in its final second. Both existed to reward a watching player
+      // for tapping; with the manual tap removed there is nothing left to
+      // reward, and an expiring window only meant a charge the player earned
+      // could evaporate for reasons they could not influence.
+      //
+      // So there is no countdown and no expiry: heat converts once, and the
+      // power waits for its context however long that takes.
       if (p.firePolicy === 'FIRE_WHEN_READY') {
         const blind = p.team === 0 && state.blindAutoHome;
         const keeperPower = p.def.power === 'ELASTIC_KEEPER' || p.def.power === 'GIANT_GK';
         if ((!keeperPower && blind) || inUsefulContext(state, idx)) {
           beginPower(state, idx, CONTEXT_AUTO_STRENGTH);
         }
-        // Late in the window, settle for a usable target rather than waste the
-        // Zone. Target-requiring powers still only fire when one resolves, so a
-        // power with nothing to act on expires like a manual miss.
-        else if (p.powerState.remainingTicks <= LATE_WINDOW_TICKS && hasUsableTarget(state, idx)) {
-          beginPower(state, idx, LAPSE_STRENGTH);
-        }
       }
-      // SAVE_FOR_TAP heroes never auto-fire — a missed window only decays heat.
-      if (p.powerState.kind === 'zone') {
-        const keeperPower = p.def.power === 'ELASTIC_KEEPER' || p.def.power === 'GIANT_GK';
-        const liveEnemyAttack = state.ball.kind === 'held'
-          && requirePlayerAt(state, state.ball.by).team !== p.team;
-        // A keeper Zone earned during danger waits for that attack's shot instead
-        // of expiring between passes. Watched play still matters because the tap
-        // must land on the shot (or arm a 20-tick placement); the underlying Zone
-        // should not disappear before that decision is available.
-        if (!(keeperPower && liveEnemyAttack)) {
-          p.powerState.remainingTicks--;
-        }
-        if (p.powerState.remainingTicks <= 0) {
-          emit(state, { t: state.tick, kind: 'POWER_EXPIRED', player: idx });
-          p.gauge = 50;
-          p.powerState = { kind: 'idle' };
-        }
-      }
+      // SAVE_FOR_TAP heroes still never auto-fire; they are test instrumentation
+      // only (see docs/04) and their Zone also simply persists.
     } else if (p.powerState.kind === 'armed') {
       const available = p.outUntilTick <= state.tick && !tacklingBusy;
       if (available && inUsefulContext(state, idx)) {

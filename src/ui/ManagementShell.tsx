@@ -6,7 +6,9 @@ import type { ManagementTab, ResourceSummaryViewModel } from './models';
 import { TutorialTapCue } from './TutorialTapCue';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import { SettingsButton } from './SettingsOverlay';
-import { SfxPressable as Pressable } from './components/SfxPressable';
+import { HoverTipAnchor, SfxPressable as Pressable } from './components/SfxPressable';
+import { managementKeyBindings, tabNumberKey } from './management-key-bindings';
+import { useKeyBindings } from './use-key-bindings';
 
 function useGuideAnchor(
   enabled: boolean,
@@ -57,6 +59,8 @@ const TABS: ReadonlyArray<{
   { id: 'market', label: 'Market', glyph: '⇄', available: true, tip: 'Scout, sign, sell and hire coaches' },
   { id: 'league', label: 'League', glyph: '≡', available: true, tip: 'Standings, fixtures and the cup' },
 ];
+
+const ADVANCE_WEEK_TIP = 'Match day, wages and events · press Enter';
 
 // Persistent chrome must not consume the screen when iOS Dynamic Type is at
 // its accessibility maximum. The full names remain available to assistive
@@ -109,6 +113,13 @@ export interface ManagementShellProps {
   onOpenSettings?: () => void;
   advanceWeekLabel?: string;
   advanceWeekDisabled?: boolean;
+  /**
+   * Desktop key shortcuts, on by default. The shell cannot see an overlay a
+   * screen renders over it, so a caller that owns the keyboard for a while
+   * (a full-screen tutorial page) passes false. React Native modals are
+   * detected on their own — see useKeyBindings.
+   */
+  keyboardShortcutsEnabled?: boolean;
   guideFocus?: 'money' | 'navigation';
   guideTarget?:
     | 'home-tab'
@@ -135,12 +146,19 @@ export function ManagementShell({
   onOpenSettings,
   advanceWeekLabel = 'Advance Week  ▸',
   advanceWeekDisabled = false,
+  keyboardShortcutsEnabled = true,
   guideFocus,
   guideTarget,
   onMoneyGuideAnchorChange,
   onNavigationGuideAnchorChange,
   onDismissGuidance,
 }: ManagementShellProps) {
+  // Desktop players drive the chrome from the keyboard; a no-op on phones.
+  useKeyBindings(
+    managementKeyBindings({ tabs: TABS, onTabChange, onAdvanceWeek, advanceWeekDisabled }),
+    keyboardShortcutsEnabled,
+  );
+
   const moneyGuideAnchor = useGuideAnchor(guideFocus === 'money', onMoneyGuideAnchorChange);
   const navigationGuideAnchor = useGuideAnchor(
     guideFocus === 'navigation',
@@ -216,7 +234,10 @@ export function ManagementShell({
         {/* Bottom chrome shares the content column: the Advance Week button and
             the five tabs never extend past the tables above them on desktop. */}
         <View className="w-full max-w-5xl self-center">
-        <View className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
+        <HoverTipAnchor
+          tip={advanceWeekDisabled ? undefined : ADVANCE_WEEK_TIP}
+          className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
+        >
           {guideTarget === 'advance-week' ? (
             <TutorialTapCue
               detail="Advance week"

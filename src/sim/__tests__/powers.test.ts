@@ -49,12 +49,13 @@ describe('hero gauge and firing', () => {
     expect(interceptionHeat).toBeGreaterThanOrEqual(receptionHeat * 4);
   });
 
-  it('lets an auto target power fire late on a usable target instead of lapsing', () => {
-    // Target-requiring powers used to be excluded from the late-window fallback
-    // outright, so a Zone they could not perfectly convert was simply wasted
-    // (M4 gate: seven of twelve powers firing in 0-17% of matches). Blink Run
-    // is usable from 45% attacking progress, while its ideal context waits for
-    // 55%, so this carrier is usable-but-not-ideal.
+  it('waits through a usable-but-not-ideal moment and fires once the ideal one arrives', () => {
+    // Engine m1.27 replaced the late-window 0.75 lapse with patience. The problem
+    // the lapse solved (M4 gate: seven of twelve powers firing in 0-17% of
+    // matches) is now solved better — a charged power holds indefinitely instead
+    // of settling for a worse moment. Blink Run is usable from 45% attacking
+    // progress but its ideal context waits for 55%, so this carrier starts
+    // usable-but-not-ideal.
     const m = createMatch(42, { ...ROVERS, players: ROVERS.players.map((pl, i) => (
       i === SPEEDSTER ? { ...pl, power: 'BLINK_RUN' as const } : { ...pl, power: undefined }
     )) }, UNITED, { homePolicy: 'FIRE_WHEN_READY' });
@@ -64,9 +65,23 @@ describe('hero gauge and firing', () => {
     m.ball = { kind: 'held', by: SPEEDSTER };
 
     expect(inUsefulContext(m, SPEEDSTER)).toBe(false);
-    tick(m);
+    powerTick(m);
 
-    expect(m.players[SPEEDSTER].powerState.kind).not.toBe('zone');
+    // Held, not spent, and never wasted.
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
+    expect(m.events.some(e => e.kind === 'POWER_EXPIRED')).toBe(false);
+    expect(m.events.some(e => e.kind === 'POWER_FIRED')).toBe(false);
+
+    // Advance the carrier into the ideal context; now it converts, at full
+    // contextual strength rather than the old discounted lapse grade.
+    m.players[SPEEDSTER].pos = { x: 2250, y: 3800 };
+    m.ball = { kind: 'held', by: SPEEDSTER };
+    expect(inUsefulContext(m, SPEEDSTER)).toBe(true);
+    powerTick(m);
+
+    // Committing means leaving the Zone for the wind-up; POWER_FIRED itself is
+    // emitted later, when activatePower resolves at the end of that wind-up.
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('winding');
     expect(m.events.some(e => e.kind === 'POWER_EXPIRED')).toBe(false);
   });
 
@@ -144,14 +159,15 @@ describe('hero gauge and firing', () => {
     expect(m.players[SPEEDSTER].powerState).toMatchObject({ kind: 'winding', strength: 0.9 });
   });
 
-  it('a SAVE_FOR_TAP hero who is not tapped in time gets POWER_EXPIRED, decays to 50 heat, and never auto-fires', () => {
+  it('a SAVE_FOR_TAP hero holds its Zone indefinitely and never auto-fires', () => {
+    // SAVE_FOR_TAP survives only as test instrumentation (docs/04). Since m1.27
+    // its Zone no longer expires either, so the guarantee that still matters is
+    // that it never fires on its own.
     const m = createMatch(42, ROVERS, UNITED);
     m.players[SPEEDSTER].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
-    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === SPEEDSTER), ZONE_WINDOW_TICKS + 5);
-    expect(m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(true);
-    expect(m.players[SPEEDSTER].powerState.kind).toBe('idle');
-    expect(m.players[SPEEDSTER].gauge).toBe(50);
+    for (let i = 0; i < ZONE_WINDOW_TICKS + 20; i += 1) tick(m);
     expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
+    expect(m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === SPEEDSTER)).toBe(false);
   });
 
   it('the rival auto-fires only via context (0.85) — never a targetless 0.75 lapse, never 1.0', () => {
@@ -167,7 +183,7 @@ describe('hero gauge and firing', () => {
     expect(fired).toMatchObject({ player: RIVAL, power: 'SUPER_STRENGTH', strength: 0.85 });
   });
 
-  it('a FIRE_WHEN_READY SUPER_STRENGTH hero with no lockable target expires instead of firing targetless', () => {
+  it('a FIRE_WHEN_READY SUPER_STRENGTH hero with no lockable target holds instead of firing targetless', () => {
     const m = createMatch(42, ROVERS, UNITED);
     // Every opponent is out: the only possible opposing "carrier" is the out kickoff
     // holder frozen at midfield (~2900+ from Rex's anchor), so no opposing carrier can
@@ -178,11 +194,11 @@ describe('hero gauge and firing', () => {
     }
     m.ball = { kind: 'held', by: 16 }; // United's own carrier is never a context for Rex
     m.players[RIVAL].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
-    tickUntil(m, () => m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === RIVAL), ZONE_WINDOW_TICKS + 5);
-    expect(m.events.some(e => e.kind === 'POWER_EXPIRED' && (e as { player: number }).player === RIVAL)).toBe(true);
+    for (let i = 0; i < ZONE_WINDOW_TICKS + 20; i += 1) tick(m);
+    // Since m1.27 the Zone holds instead of decaying, so the guarantee is simply
+    // that a power needing a victim never fires without one.
     expect(m.events.some(e => e.kind === 'POWER_FIRED' && (e as { player: number }).player === RIVAL)).toBe(false);
-    expect(m.players[RIVAL].powerState.kind).toBe('idle');
-    expect(m.players[RIVAL].gauge).toBe(50);
+    expect(m.players[RIVAL].powerState.kind).toBe('zone');
   });
 
   it('recognizes decisive carries, nearby loose balls, and a goal-side Torch marker during an attacking run', () => {
@@ -351,7 +367,9 @@ describe('power effects', () => {
     m.players[SPEEDSTER].gauge = 0;
     for (let i = 0; i < 30; i++) tick(m);
     expect(m.players[torch].powerState.kind).toBe('winding'); // still busy — untilTick (200) not reached
-    expect(m.players[SPEEDSTER].powerState).toEqual({ kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS - 30 });
+    // The Zone no longer counts down; what this guards is that a teammate's
+    // in-progress power does not clear or freeze this hero's own Zone or Heat.
+    expect(m.players[SPEEDSTER].powerState.kind).toBe('zone');
     expect(m.players[SPEEDSTER].gauge).toBe(0);
     m.players[SPEEDSTER].powerState = { kind: 'idle' };
     addGauge(m, SPEEDSTER, 20);
