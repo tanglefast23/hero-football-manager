@@ -51,6 +51,7 @@ function state(overrides: Partial<GameState> = {}): GameState {
   const legend = player('legend');
   return {
     schemaVersion: 1,
+    careerMode: 'full',
     careerSeed: 4242,
     userClubId: USER_CLUB_ID,
     season: 4,

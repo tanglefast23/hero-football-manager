@@ -10,7 +10,7 @@ const STRESS_SEASONS = 6;
 
 describe('M2 deterministic management balance rails', () => {
   test.each(SAMPLE_SEEDS)('keeps seed %i finite, bounded, and playable for six seasons', seed => {
-    const setup = createLaunchCareerSetup(seed, undefined, undefined, 'full');
+    const setup = createLaunchCareerSetup(seed);
     const first = runHeadlessFullCareer(setup, STRESS_SEASONS);
     const second = runHeadlessFullCareer(setup, STRESS_SEASONS);
     const summary = summarizeFullCareerBalance(first);
@@ -47,7 +47,7 @@ describe('M2 deterministic management balance rails', () => {
   });
 
   test('continues past the old two-season boundary on a long deterministic sample', () => {
-    const setup = createLaunchCareerSetup(91_827, undefined, undefined, 'full');
+    const setup = createLaunchCareerSetup(91_827);
     const seasonSeven = runHeadlessFullCareer(setup, 7);
 
     expect(seasonSeven.season).toBe(7);
@@ -62,7 +62,7 @@ describe('M2 deterministic management balance rails', () => {
   test('samples passive four-season promotion and fail-soft outcomes across 40 seeds', () => {
     const summaries = Array.from({ length: 40 }, (_, seed) => {
       const state = runHeadlessFullCareer(
-        createLaunchCareerSetup(seed, undefined, undefined, 'full'),
+        createLaunchCareerSetup(seed),
         4,
       );
       return { state, summary: summarizeFullCareerBalance(state) };
@@ -72,10 +72,16 @@ describe('M2 deterministic management balance rails', () => {
 
     // This runner is deliberately passive, so it is not the player-progression
     // median promised by the design doc. It still guards distribution drift:
-    // some zero-hero clubs climb twice, every debt spiral receives the one loan,
-    // and no sampled balance escapes the long-run corridor.
+    // some zero-hero clubs climb twice, the emergency loan is reachable, and no
+    // sampled balance escapes the long-run corridor.
     expect(divisionThreeOrHigher.length / summaries.length).toBeGreaterThanOrEqual(0.1);
-    expect(loanCount).toBe(summaries.length);
+    // The loan must remain a safety net, not the normal course of business. This
+    // previously asserted `toBe(summaries.length)` -- i.e. that EVERY sampled
+    // career goes insolvent -- which certified the broken economy as correct and
+    // could never fail no matter how bad the ramp got. It must stay exercised
+    // (a passive manager should still hit trouble) but must not be universal.
+    expect(loanCount).toBeGreaterThan(0);
+    expect(loanCount).toBeLessThan(summaries.length);
     expect(Math.min(...summaries.map(({ summary }) => summary.minimumBalance)))
       .toBeGreaterThanOrEqual(-200_000);
     expect(summaries.every(({ summary }) => Number.isSafeInteger(summary.endingCash))).toBe(true);
@@ -85,7 +91,7 @@ describe('M2 deterministic management balance rails', () => {
     const setup = createLaunchCareerSetup(44);
     const full = runHeadlessFullCareer(setup, 1);
 
-    expect(() => summarizeFullCareerBalance({ ...full, careerMode: 'm1-slice' }))
+    expect(() => summarizeFullCareerBalance({ ...full, m2: undefined }))
       .toThrow('full career balance requires an M2 career state');
     expect(() => summarizeFullCareerBalance({
       ...full,

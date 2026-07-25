@@ -12,7 +12,7 @@ import type { GameState } from '../types';
 
 describe('M2 fame and expired contracts', () => {
   test('turns genuine appearances, wins, and goals into reachable club-legend fame', () => {
-    let state = createCareer({ ...createLaunchCareerSetup(8801), careerMode: 'full' });
+    let state = createCareer({ ...createLaunchCareerSetup(8801) });
     const fixture = state.fixtures.find(candidate => (
       candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId
     ))!;
@@ -47,7 +47,7 @@ describe('M2 fame and expired contracts', () => {
 
   test('blocks a new full-career season until every ordinary or hero expiry is resolved', () => {
     const content = loadLaunchContent();
-    const initial = createCareer({ ...createLaunchCareerSetup(8802), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(8802) });
     const lineupIds = new Set(initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds);
     const expired = initial.players
       .filter(player => player.clubId === initial.userClubId && !lineupIds.has(player.id))

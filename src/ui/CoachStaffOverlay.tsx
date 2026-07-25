@@ -2,6 +2,7 @@ import { Modal, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, formatCurrency } from './components/Scorecard';
 import { ManagementSprite } from './components/ManagementSprite';
+import { PixelText } from './components/PixelText';
 
 export interface CoachOverlayCoach {
   role: 'HEAD' | 'ASSISTANT';
@@ -68,7 +69,7 @@ export function CoachStaffOverlay({
                 />
               </View>
               <Text className="mt-3 font-pixel text-xl uppercase text-ink">{coach.name}</Text>
-              <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
+              <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                 {roleLabel} · Age {coach.age} · Level {coach.level}
               </Text>
             </View>
@@ -87,7 +88,7 @@ export function CoachStaffOverlay({
             <View className="mt-3 flex-row flex-wrap justify-center gap-2">
               {coach.specialtyLabels.map(specialty => (
                 <View key={specialty} className="border-2 border-ink bg-paper px-3 py-2">
-                  <Text className="text-sm font-bold uppercase text-ink">{specialty}</Text>
+                  <PixelText className="text-sm uppercase text-ink">{specialty}</PixelText>
                 </View>
               ))}
             </View>

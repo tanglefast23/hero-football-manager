@@ -41,7 +41,7 @@ describe('concierge actionable targets', () => {
 
   it('guides a fresh full career to build its first Training Pitch, without a renderer', () => {
     const content = loadLaunchContent();
-    const state = createCareer(createLaunchCareerSetup(413, undefined, content, 'full'));
+    const state = createCareer(createLaunchCareerSetup(413, undefined, content));
     expect(state.facilities.grid?.buildings).toHaveLength(0);
     expect(dueAssistantInboxGuideSequences(state)).toContain('facility-placement');
 

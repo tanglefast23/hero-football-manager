@@ -24,7 +24,11 @@ describe('direction-aware match sprites', () => {
     expect(back.slice(0, 7)).toEqual(front.slice(0, 7));
     expect(back.slice(7, 15)).not.toEqual(front.slice(7, 15));
     expect(back[8]).not.toContain('W');
-    expect(back.slice(24)).toEqual(front.slice(24));
+    // Below the waist the silhouette is untouched; only the near boot changes
+    // colour, turning sole-side out for a player running away from the camera.
+    const silhouette = (rows: readonly string[]) => rows.map(row => row.replace(/[^.]/g, '#'));
+    expect(silhouette(back.slice(24))).toEqual(silhouette(front.slice(24)));
+    expect(back.slice(24)).not.toEqual(front.slice(24));
   });
 
   it('derives rear run and keeper-ready art for selected identities', () => {

@@ -31,7 +31,7 @@ describe('management injury and lineup presentation', () => {
   const content = loadLaunchContent();
 
   it('shows active injuries on Home, in Squad, and on the match-day bench', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260720, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260720, undefined, content));
     const lineup = initial.lineups.find(candidate => candidate.clubId === initial.userClubId)!;
     const benchPlayer = initial.players.find(player => (
       player.clubId === initial.userClubId && !lineup.playerIds.includes(player.id)
@@ -68,7 +68,7 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('carries a new-injury notice into the post-match office summary', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260721, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260721, undefined, content));
     const fixture = initial.fixtures.find(candidate => (
       candidate.homeClubId === initial.userClubId || candidate.awayClubId === initial.userClubId
     ))!;
@@ -110,7 +110,7 @@ describe('management injury and lineup presentation', () => {
 
   it('guides the first emergency loan and transfer request to the correct desk', () => {
     const initial = {
-      ...createCareer(createLaunchCareerSetup(20260726, undefined, content, 'full')),
+      ...createCareer(createLaunchCareerSetup(20260726, undefined, content)),
       season: 2,
     };
     const requester = initial.players.find(player => player.clubId === initial.userClubId)!;
@@ -151,7 +151,7 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('keeps a retirement announcement visible during the player final season', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260722, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260722, undefined, content));
     const player = initial.players.find(candidate => candidate.clubId === initial.userClubId)!;
     const finalSeason: GameState = {
       ...initial,
@@ -175,7 +175,7 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('shows the exact board candidates and retained protected-player choice', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260723, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260723, undefined, content));
     const ultimatum = createBoardUltimatum(initial)!;
     const active = protectBoardUltimatumPlayer({
       ...initial,
@@ -199,7 +199,7 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('reconciles a below-target manual sale before Home renders the remaining board choices', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260726, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260726, undefined, content));
     const ultimatum = { ...createBoardUltimatum(initial)!, targetCash: 1_000_000 };
     const active: GameState = {
       ...initial,
@@ -222,7 +222,7 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('reconciles a released candidate before the season-end Home renders', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260727, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260727, undefined, content));
     const ultimatum = createBoardUltimatum(initial)!;
     const releasedId = ultimatum.candidates[0].playerId;
     const seasonEnd: GameState = {
@@ -245,7 +245,7 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('reconciles a retiring candidate during the full-career season transition', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260728, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260728, undefined, content));
     const ultimatum = createBoardUltimatum(initial)!;
     const retiringId = ultimatum.candidates[0].playerId;
     const seasonEnd: GameState = {
@@ -275,7 +275,7 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('renders an older save defensively when its protected board candidate is already stale', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260729, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260729, undefined, content));
     const ultimatum = createBoardUltimatum(initial)!;
     const staleId = ultimatum.candidates[0].playerId;
     const stale: GameState = {
@@ -295,7 +295,7 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('presents the forced sale and its replacement youth as one truthful aftermath', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260724, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260724, undefined, content));
     const ultimatum = createBoardUltimatum(initial)!;
     const resolution = boardForcedSaleAtDeadline(initial, ultimatum)!;
     const afterSale = applyBoardForcedSaleConsequences(initial, resolution);
@@ -325,7 +325,7 @@ describe('management injury and lineup presentation', () => {
 
   it('never shows more than three inbox cards and defers the remaining firsts', () => {
     const initial = {
-      ...createCareer(createLaunchCareerSetup(20260725, undefined, content, 'full')),
+      ...createCareer(createLaunchCareerSetup(20260725, undefined, content)),
       week: 15,
     };
     const inbox = homeViewModel(initial).alerts;
@@ -342,7 +342,7 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('keeps the once-per-career youth intake in the capped inbox at Week 2 and Week 3', () => {
-    const begun = beginStoryOnboarding(createCareer(createLaunchCareerSetup(20260718, undefined, content, 'full')));
+    const begun = beginStoryOnboarding(createCareer(createLaunchCareerSetup(20260718, undefined, content)));
     let story = addCreatedPlayer(begun, { name: 'Jo Rook', ratings: DEFAULT_CREATION_RATINGS });
     const pitchProject = buildCareerFacility(story, 'training-pitch', { x: 0, y: 0 }).state;
     const completedGrid = advanceFacilityConstruction(pitchProject.facilities.grid!).grid;
@@ -376,7 +376,7 @@ describe('management injury and lineup presentation', () => {
   });
 
   it('delivers a crowded one-shot board resolution in the following week', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260727, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260727, undefined, content));
     const injuredIds = initial.players
       .filter(player => player.clubId === initial.userClubId)
       .slice(0, 3)

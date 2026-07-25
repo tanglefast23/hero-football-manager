@@ -20,7 +20,7 @@ describe('first training guidance', () => {
     expect(source).not.toContain('label="Tap the number"');
     expect(source).not.toContain('<SquadSortHeader label="Role"');
     expect(source).toContain('label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16"');
-    expect(source).toContain('className="w-14 text-right text-sm font-bold uppercase text-ink/50"');
+    expect(source).toContain('className="w-14 text-right text-sm uppercase text-ink/50"');
     expect(source).toContain('ellipsizeMode="clip"');
     expect(source).toContain('const glowAssignmentButton = guidePlayers && player.injuryWeeks === 0;');
     expect(source).toContain('glowAssignmentButton ? styles.assignmentButtonGlow : null');

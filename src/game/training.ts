@@ -82,25 +82,13 @@ export function trainPlayerInstantly(
   const attribute = trainingPathAttribute(pathId);
   const baseDrillGain = drill.gains[attribute] ?? 0;
   const rolledGain = isSuper ? Math.round(baseDrillGain * 1.5) : baseDrillGain;
-  const growth = state.careerMode === 'full'
-    ? applyInstantGrowthModifiers(state, player, attribute, rolledGain)
-    : {
-        value: capPlayerTrainingGain(
-          player,
-          attribute,
-          player.attrs[attribute],
-          checkedAdd(player.attrs[attribute], rolledGain, 'instant drill attribute'),
-        ),
-      };
+  const growth = applyInstantGrowthModifiers(state, player, attribute, rolledGain);
 
-  // Conditioning is a full-career system: the m1 slice has no weekly recovery
-  // or wellbeing, so charging it there would only ratchet condition downward.
   const conditionBefore = player.condition ?? 100;
-  const hasConditioning = state.careerMode === 'full';
   const injuryRiskReductionPercent = state.facilities.grid === undefined
     ? 0
     : facilityEffects(state.facilities.grid).injuryRiskReductionPercent;
-  const injuryChancePercent = !hasConditioning || conditionBefore >= OVERTRAINING_CONDITION_THRESHOLD
+  const injuryChancePercent = conditionBefore >= OVERTRAINING_CONDITION_THRESHOLD
     ? 0
     : overtrainingInjuryChancePercent(conditionBefore, injuryRiskReductionPercent);
   const injured = injuryChancePercent > 0
@@ -111,9 +99,7 @@ export function trainPlayerInstantly(
         gridMedicalBayLevel(state.facilities.grid),
       )
     : undefined;
-  const conditionAfter = hasConditioning
-    ? Math.max(0, conditionBefore - INSTANT_DRILL_CONDITION_COST)
-    : conditionBefore;
+  const conditionAfter = Math.max(0, conditionBefore - INSTANT_DRILL_CONDITION_COST);
 
   const trainedPlayer: CareerPlayer = {
     ...player,
@@ -277,6 +263,15 @@ function validateCoachTrainingRemainder(
   }
 }
 
+/**
+ * Indexed by facility level; index 0 means the club owns no such building.
+ * An explicit table replaces the old `1 + (level - 1) / 2`, which made level 1
+ * worth exactly x1.0 — so the first Gym, Tech Center, Shooting Range or Keeper
+ * Court a club ever built changed nothing, at the only level a D5 club can
+ * afford. Level 2 and 3 keep their previous x1.5 and x2.0.
+ */
+export const FACILITY_TRAINING_MULTIPLIER: readonly number[] = [1, 1.25, 1.5, 2];
+
 function facilityTrainingMultiplier(
   state: GameState,
   attribute: keyof CareerPlayer['attrs'],
@@ -293,7 +288,7 @@ function facilityTrainingMultiplier(
   const level = state.facilities.grid?.buildings
     .filter(building => building.type === facilityType)
     .reduce((maximum, building) => Math.max(maximum, building.level), 0) ?? 0;
-  return level === 0 ? 1 : 1 + (level - 1) / 2;
+  return FACILITY_TRAINING_MULTIPLIER[level] ?? 1;
 }
 
 function checkedAdd(left: number, right: number, label: string): number {

@@ -1,5 +1,6 @@
 import { loadLaunchContent } from '../../content';
 import {
+  activeCareerMatchday,
   addCreatedPlayer,
   advanceWeek,
   beginStoryOnboarding,
@@ -9,7 +10,6 @@ import {
   completeMatchday,
   completePostMatchAwakening,
   createCareer,
-  fixturesForCurrentWeek,
   releaseCareerPlayer,
   renewCareerPlayer,
   resolvePostMatchAwakening,
@@ -47,7 +47,7 @@ describe('default two-season career journey', () => {
     expect(seasonEndViewModel(renewed, content, 1).canContinue).toBe(true);
     const seasonTwo = startNextSeason(renewed);
     expect(seasonTwo).toMatchObject({ season: 2, week: 1, phase: 'manage' });
-    expect(playToSeasonBoundary(seasonTwo)).toMatchObject({ season: 2, phase: 'complete' });
+    expect(playToSeasonBoundary(seasonTwo)).toMatchObject({ season: 2, phase: 'season-end' });
 
     const released = releaseCareerPlayer(state, expired[0].id);
     expect(released.players.some(player => player.id === expired[0].id)).toBe(false);
@@ -66,20 +66,20 @@ describe('default two-season career journey', () => {
     // MONEY charge, which is always 0 now — the ledger line can never fire, so
     // the old "at least one training-charge week across the season" and "never
     // more than one per week" assertions no longer measure anything real.
-    // The m1-slice career has no tier gating, so each tap trains the highest
-    // unlocked tier (Sprints III, +8 PAC — +12 on a SUPER session). Cap-free
-    // training keeps raising the raw PAC value; Sprints trains only PAC, so
-    // STA stays at the creation value. The seeded SUPER rolls lift the same
-    // 40 affordable weekly taps from the old plan's 370 to 418.
+    // Division 5 unlocks tiers I and II, so each tap is Sprints 2 (+5 PAC,
+    // scaled by age and the Gym/Training Pitch level, more on a SUPER session).
+    // Two changes lifted this from 548: tier II is open in D5, and a level-1
+    // facility is now x1.25 instead of x1.0. Cap-free training keeps raising the
+    // raw PAC value; Sprints trains only PAC, so STA stays at the creation value.
     expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
-      .toMatchObject({ pac: 418, sta: 50 });
+      .toMatchObject({ pac: 646, sta: 50 });
   });
 });
 
 describe('full-career retirement boundary', () => {
   it('does not ask a player who completed their announced final season to renew', () => {
     const content = loadLaunchContent();
-    const initial = createCareer(createLaunchCareerSetup(24_681, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(24_681, undefined, content));
     const retiringPlayerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     const seasonEnd: GameState = {
       ...initial,
@@ -102,7 +102,7 @@ describe('full-career retirement boundary', () => {
 describe('promotion reward presentation', () => {
   it('shows newly earned permanent systems once on the season review', () => {
     const content = loadLaunchContent();
-    const initial = createCareer(createLaunchCareerSetup(24_682, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(24_682, undefined, content));
     const promoted: GameState = {
       ...initial,
       phase: 'season-end',
@@ -124,7 +124,8 @@ describe('promotion reward presentation', () => {
           title: 'Recruitment fund · $15,000',
           detail: 'The board added $15,000 to club funds. Use it to recruit a player who can help the club survive the County League.',
         },
-        { title: 'Level 2 facilities' },
+        // No 'Level 2 facilities': it is available from D5, so promoting to D4
+        // must not present it as newly earned.
         { title: 'International scouting' },
         { title: 'Level 2 coaches' },
       ],
@@ -158,7 +159,7 @@ function runTwoSeasonTrainingJourney(): GameState {
 
 function playToSeasonBoundary(initial: GameState, weeklyDrillPathId?: string): GameState {
   let state = initial;
-  while (state.phase !== 'season-end' && state.phase !== 'complete') {
+  while (state.phase !== 'season-end') {
     // The shipped journey taps the created player's drill once per manage
     // week, the instant-training equivalent of the old repeating plan.
     if (weeklyDrillPathId !== undefined && state.phase === 'manage') {
@@ -169,13 +170,17 @@ function playToSeasonBoundary(initial: GameState, weeklyDrillPathId?: string): G
     }
     state = advanceWeek(state);
     if (state.phase !== 'matchday') continue;
-    const fixtures = fixturesForCurrentWeek(state);
     const firstFixtureId = state.onboarding?.firstFixtureId;
-    state = completeMatchday(state, fixtures.map(fixture => ({
-      fixtureId: fixture.id,
-      homeGoals: 1,
-      awayGoals: 1,
-    })));
+    // A cup week presents a second matchday after the league fixture.
+    while (state.phase === 'matchday') {
+      const matchday = activeCareerMatchday(state);
+      if (matchday === undefined) throw new Error('journey lost its active matchday');
+      state = completeMatchday(state, matchday.fixtures.map(fixture => ({
+        fixtureId: fixture.id,
+        homeGoals: 1,
+        awayGoals: 1,
+      })));
+    }
     if (state.onboarding?.stage === 'first-match' && firstFixtureId !== undefined) {
       state = completeFirstOnboardingMatch(state, firstFixtureId);
       const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;

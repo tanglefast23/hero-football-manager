@@ -12,7 +12,7 @@ function assignedLook(player: CareerPlayer): string {
 
 describe('career roster visual diversity', () => {
   it('gives all 160 launch players a distinct look', () => {
-    const career = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
+    const career = createCareer(createLaunchCareerSetup(20260720));
     const coverage = career.clubs.map(club => {
       const roster = career.players.filter(player => player.clubId === club.id);
       const looks = roster.map(assignedLook);
@@ -26,7 +26,7 @@ describe('career roster visual diversity', () => {
 
   it('keeps every club distinct and avoids obvious opponent repeats deep into an endless career', () => {
     const career = runHeadlessFullCareer(
-      createLaunchCareerSetup(20260720, undefined, undefined, 'full'),
+      createLaunchCareerSetup(20260720),
       7,
     );
     const userRoster = career.players.filter(player => player.clubId === career.userClubId);
@@ -43,7 +43,7 @@ describe('career roster visual diversity', () => {
 
   it('persists every assigned face through a deep-career save and reload', () => {
     const career = runHeadlessFullCareer(
-      createLaunchCareerSetup(20260720, undefined, undefined, 'full'),
+      createLaunchCareerSetup(20260720),
       7,
     );
     const reloaded = parseStoredGameState(serializeGameState(career));
@@ -54,7 +54,7 @@ describe('career roster visual diversity', () => {
   it('avoids active-career collisions across varied seeds', () => {
     for (let offset = 0; offset < 20; offset += 1) {
       const career = runHeadlessFullCareer(
-        createLaunchCareerSetup(20260720 + offset, undefined, undefined, 'full'),
+        createLaunchCareerSetup(20260720 + offset),
         7,
       );
       const userLooks = career.players
@@ -74,11 +74,11 @@ describe('career roster visual diversity', () => {
   it('does not let newly promoted opponents displace surviving user faces', () => {
     for (const seed of [20260721, 20260722]) {
       const seasonSix = runHeadlessFullCareer(
-        createLaunchCareerSetup(seed, undefined, undefined, 'full'),
+        createLaunchCareerSetup(seed),
         6,
       );
       const seasonSeven = runHeadlessFullCareer(
-        createLaunchCareerSetup(seed, undefined, undefined, 'full'),
+        createLaunchCareerSetup(seed),
         7,
       );
       const seasonSevenLooks = new Map(seasonSeven.players

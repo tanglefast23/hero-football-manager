@@ -53,6 +53,10 @@ describe('assistant guide application flow', () => {
     expect(currentAssistantObjective(state, 'club')).toEqual({ text: 'RETURN HOME.', target: 'home-tab' });
     expect(pendingAssistantGuideSequence(state, 'club')).toBeNull();
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
+
+    // Hiring the head coach is the other first-week inbox job; the desk only
+    // clears once both are done.
+    state = { ...state, market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id) };
     expect(currentAssistantObjective(state, 'home')).toEqual({
       text: 'INBOX CLEAR. ADVANCE WEEK.',
       target: 'advance-week',
@@ -77,6 +81,7 @@ describe('assistant guide application flow', () => {
     state = completeAssistantGuideSequence(state, 'management-intro');
     state = completeAssistantGuideMilestone(state, 'first-training-complete');
     state = buildTrainingGround(state);
+    state = { ...state, market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id) };
 
     expect(state.facilities.trainingGroundBuilt).toBe(false);
     expect(pendingAssistantGuideSequence(state, 'home')).toBeNull();
@@ -87,7 +92,7 @@ describe('assistant guide application flow', () => {
   });
 
   test('waits for both first-week inbox jobs before pointing to Advance Week', () => {
-    let state = createCareer(createLaunchCareerSetup(936, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(936));
     state = completeAssistantGuideSequence(state, 'management-intro');
     state = completeAssistantGuideMilestone(state, 'first-training-complete');
     state = buildCareerFacility(state, 'training-pitch', { x: 0, y: 0 }).state;
@@ -107,7 +112,7 @@ describe('assistant guide application flow', () => {
   });
 
   test('retires queued coach help once the hiring objective is already complete', () => {
-    let state = createCareer(createLaunchCareerSetup(937, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(937));
     state = completeAssistantGuideSequence(state, 'head-coach-market');
     state = {
       ...state,
@@ -124,23 +129,35 @@ describe('assistant guide application flow', () => {
     expect(reconciled.eventFlags).toContain('guide:bert:sequence-complete:head-coach-hire');
   });
 
-  test('waits for D4 before teaching the first facility upgrade', () => {
-    let state = createCareer(createLaunchCareerSetup(935, undefined, undefined, 'full'));
+  test('teaches the first facility upgrade as soon as one is reachable', () => {
+    let state = createCareer(createLaunchCareerSetup(935));
     state = buildCareerFacility(state, 'training-pitch', { x: 2, y: 0 }).state;
     state = advanceWeek(state);
     state = advanceWeek(state); // the pitch now takes two weeks to open
     state = reconcileSatisfiedAssistantGuideSequences(state);
 
-    expect(dueAssistantInboxGuideSequences(state)).not.toContain('facility-upgrade');
-    const reachedD4 = {
+    // Level 2 needs no promotion, so the lesson is due in D5 the moment the
+    // first pitch opens. It used to wait for D4 along with the level itself.
+    expect(dueAssistantInboxGuideSequences(state)).toContain('facility-upgrade');
+
+    // Nothing left to teach once every building sits at the current ceiling.
+    const atCeiling = {
       ...state,
-      m2: { ...state.m2!, highestDivisionReached: 4 as const },
+      facilities: {
+        ...state.facilities,
+        grid: {
+          ...state.facilities.grid!,
+          buildings: state.facilities.grid!.buildings.map(building => (
+            { ...building, level: 2 as const }
+          )),
+        },
+      },
     };
-    expect(dueAssistantInboxGuideSequences(reachedD4)).toContain('facility-upgrade');
+    expect(dueAssistantInboxGuideSequences(atCeiling)).not.toContain('facility-upgrade');
   });
 
   it('offers Youth Intake in Week 2 and delays the Coaching Office prompt until Week 3', () => {
-    let state = createCareer(createLaunchCareerSetup(415, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(415));
     state = {
       ...state,
       market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
@@ -168,7 +185,7 @@ describe('assistant guide application flow', () => {
   });
 
   it('keeps the Training Pitch objective unfinished until construction completes', () => {
-    let state = createCareer(createLaunchCareerSetup(413, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(413));
     expect(state.facilities.grid?.buildings).toHaveLength(0);
     expect(dueAssistantInboxGuideSequences(state)).toContain('facility-placement');
 
@@ -191,7 +208,7 @@ describe('assistant guide application flow', () => {
   });
 
   it('waits until the Coaching Office opens before offering assistant-coach hiring', () => {
-    let state = createCareer(createLaunchCareerSetup(414, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(414));
     state = {
       ...state,
       market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),

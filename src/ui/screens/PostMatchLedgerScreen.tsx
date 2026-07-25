@@ -6,6 +6,7 @@ import { SettingsButton } from '../SettingsOverlay';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
+import { PixelText } from '../components/PixelText';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
@@ -33,26 +34,26 @@ export function PostMatchLedgerScreen({
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'left', 'right', 'bottom']}>
       <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
         <View>
-          <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-dark">Match complete</Text>
-          <Text className="mt-1 text-base font-bold uppercase text-ink">Full-time report</Text>
+          <PixelText className="text-sm uppercase tracking-[2px] text-blue-dark">Match complete</PixelText>
+          <PixelText className="mt-1 text-base uppercase text-ink">Full-time report</PixelText>
         </View>
         <SettingsButton onPress={onOpenSettings} />
       </View>
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
         <View className="items-center py-3">
           <StatusChip label="Full time" tone={resultTone} />
-          <Text className="mt-3 text-sm font-bold uppercase text-blue-dark">{result.competition}</Text>
+          <PixelText className="mt-3 text-sm uppercase text-blue-dark">{result.competition}</PixelText>
           <View className="mt-4 flex-row items-center gap-4">
-            <Text className="w-24 text-right text-base font-bold uppercase text-ink" numberOfLines={2}>{result.homeTeam}</Text>
+            <PixelText className="w-24 text-right text-base uppercase text-ink" numberOfLines={2}>{result.homeTeam}</PixelText>
             <View className="flex-row items-center border-2 border-ink bg-ink px-4 py-3">
-              <Text className="font-mono text-3xl font-bold text-paper">{result.homeScore}</Text>
+              <Text className="font-mono text-3xl text-paper">{result.homeScore}</Text>
               <Text className="mx-3 font-mono text-xl text-paper/60">–</Text>
-              <Text className="font-mono text-3xl font-bold text-paper">{result.awayScore}</Text>
+              <Text className="font-mono text-3xl text-paper">{result.awayScore}</Text>
             </View>
-            <Text className="w-24 text-base font-bold uppercase text-ink" numberOfLines={2}>{result.awayTeam}</Text>
+            <PixelText className="w-24 text-base uppercase text-ink" numberOfLines={2}>{result.awayTeam}</PixelText>
           </View>
           <View className="mt-4 -rotate-2 border-2 border-stamp px-4 py-2">
-            <Text className="text-xl font-bold uppercase text-stamp">{result.outcomeLabel}</Text>
+            <PixelText className="text-xl uppercase text-stamp">{result.outcomeLabel}</PixelText>
           </View>
           <Text className="mt-4 text-center text-ink/70" style={scaledBody(textScale)}>{result.headline}</Text>
         </View>
@@ -71,7 +72,7 @@ export function PostMatchLedgerScreen({
                   className="min-h-12 flex-row items-center border border-ink/25 bg-white px-3 py-2"
                   style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
                 >
-                  <Text className="w-12 font-mono text-base font-bold text-gold-dark">{highlight.minuteLabel}</Text>
+                  <Text className="w-12 font-mono text-base text-gold-dark">{highlight.minuteLabel}</Text>
                   <Text className="flex-1 text-ink" style={scaledBody(textScale)}>{highlight.description}</Text>
                   {onReplayHighlight ? <Text className="font-mono text-base text-blue-dark">▶</Text> : null}
                 </Pressable>

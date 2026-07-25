@@ -22,7 +22,7 @@ function trainWithoutSuper(
 
 describe('M2 player-specific instant training growth', () => {
   test('applies the age curve to deliberate stamina training', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90210), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(90210) });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     const prepare = (age: number) => ({
       ...initial,
@@ -41,12 +41,14 @@ describe('M2 player-specific instant training growth', () => {
     const young = trainWithoutSuper(prepare(20), playerId, 'circuit');
     const prime = trainWithoutSuper(prepare(25), playerId, 'circuit');
 
-    expect(young.after).toBe(55);
-    expect(prime.after).toBe(53);
+    // Circuit 2 (+5 STA) is the best tier unlocked at a D5 start. Age 20 scales
+    // by 1.5 (round(7.5) = 8), age 25 by 1.0.
+    expect(young.after).toBe(58);
+    expect(prime.after).toBe(55);
   });
 
   test('uses the matching facility level without a high-stat growth wall', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90211), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(90211) });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     const state = {
       ...initial,
@@ -73,17 +75,17 @@ describe('M2 player-specific instant training growth', () => {
 
     const result = trainWithoutSuper(state, playerId, 'circuit');
 
-    // Circuit I's +3 STA doubles under the Lv3 Gym; Engine's 15% (90
-    // hundredths) banks without releasing a point yet. No growth wall at 90.
-    expect(result.after).toBe(96);
-    expect(result.state.players.find(p => p.id === playerId)?.trainingBonusRemainders?.sta).toBe(90);
+    // Circuit 2's +5 STA doubles under the Lv3 Gym to +10; Engine's 15% (150
+    // hundredths) releases one whole point and banks 50. No growth wall at 90.
+    expect(result.after).toBe(101);
+    expect(result.state.players.find(p => p.id === playerId)?.trainingBonusRemainders?.sta).toBe(50);
   });
 
   test('banks fractional archetype bonuses until repeat drills earn a whole point', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90214), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(90214) });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     // Anchor gives +15% DEF; a FWD earns no position bonus on DEF, and there is
-    // no coach, so each +3 Duels drill banks exactly 45 hundredths.
+    // no coach, so each +5 Duels 2 drill banks exactly 75 hundredths.
     let state: GameState = {
       ...initial,
       trainingPoints: 100,
@@ -109,12 +111,12 @@ describe('M2 player-specific instant training growth', () => {
         : p) };
     }
 
-    expect(gains).toEqual([3, 3, 4]);
-    expect(state.players.find(p => p.id === playerId)?.trainingBonusRemainders?.def).toBe(35);
+    expect(gains).toEqual([5, 6, 6]);
+    expect(state.players.find(p => p.id === playerId)?.trainingBonusRemainders?.def).toBe(25);
   });
 
   test('allows gains through 99 and stops only at the universal 999 ceiling', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(90213), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(90213) });
     const roster = initial.players.filter(player => player.clubId === initial.userClubId);
     const state = {
       ...initial,
@@ -139,12 +141,12 @@ describe('M2 player-specific instant training growth', () => {
 
   test('unlocks drill tiers from the permanent best division reached', () => {
     const initial = {
-      ...createCareer({ ...createLaunchCareerSetup(90219), careerMode: 'full' }),
+      ...createCareer({ ...createLaunchCareerSetup(90219) }),
       trainingPoints: 100,
     };
 
-    expect(trainingDrillBlockedReason(initial, 'sprints-ii'))
-      .toBe('Tier 2 drills unlock in D4 · County League.');
+    // Tier 2 is open from the D5 start; only tier 3 still waits for a promotion.
+    expect(trainingDrillBlockedReason(initial, 'sprints-ii')).toBeUndefined();
 
     // The active pyramid is still Division 5: the stored best division keeps
     // the earned tier unlocked after relegation.

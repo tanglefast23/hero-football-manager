@@ -211,7 +211,7 @@ export function careerMarketViewModelSource(
 
 /** Promotion adds briefs without replacing the familiar searches below them. */
 export function careerMarketScoutOptions(
-  state: Pick<GameState, 'careerSeed' | 'season' | 'week'> & Partial<Pick<GameState, 'careerMode' | 'm2'>>,
+  state: Pick<GameState, 'careerSeed' | 'season' | 'week'> & Partial<Pick<GameState, 'm2'>>,
 ): ScoutMissionOptionSource[] {
   if (!Number.isInteger(state.careerSeed) || state.careerSeed < 0 || state.careerSeed > 4294967295) {
     throw new Error('market option career seed must be a uint32');
@@ -226,9 +226,9 @@ export function careerMarketScoutOptions(
   const secondRegion = ROTATING_REGIONS[cursor % ROTATING_REGIONS.length];
   const heroRegion = ROTATING_REGIONS[(cursor + 1) % ROTATING_REGIONS.length];
   const eliteRegion = ROTATING_REGIONS[(cursor + 2) % ROTATING_REGIONS.length];
-  const progressionDivision = state.careerMode === 'full' && state.m2 !== undefined
-    ? Math.min(currentUserDivision(state.m2), state.m2.highestDivisionReached ?? 5)
-    : 5;
+  const progressionDivision = state.m2 === undefined
+    ? 5
+    : Math.min(currentUserDivision(state.m2), state.m2.highestDivisionReached ?? 5);
 
   const options: ScoutMissionOptionSource[] = [
     {
@@ -352,11 +352,17 @@ function clubFame(state: GameState): number {
     .reduce((total, player) => total + (player.fame ?? 0), state.market?.clubFameAdjustment ?? 0)));
 }
 
+/** 0 when the club owns no Scout Office; the best operational office wins. */
 function scoutOfficeLevel(state: GameState): number {
   const grid = state.facilities.grid;
-  return grid?.buildings.find(building => (
-    building.type === 'scout-office' && isFacilityOperational(grid, building.id)
-  ))?.level ?? 1;
+  if (grid === undefined) return 0;
+  let level = 0;
+  for (const building of grid.buildings) {
+    if (building.type !== 'scout-office') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
+    level = Math.max(level, building.level);
+  }
+  return level;
 }
 
 function absoluteCareerWeek(state: Pick<GameState, 'season' | 'week'>): number {

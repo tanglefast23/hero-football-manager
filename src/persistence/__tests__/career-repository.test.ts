@@ -5,9 +5,9 @@ import {
   beginStoryOnboarding,
 } from '../../game';
 import type { CareerSetup, GameState } from '../../game/types';
-import { createLaunchCareerSetup } from '../../application/launch';
+import { createLaunchCareerSetup, reconcileLaunchRoster } from '../../application/launch';
 import { createCareerRepository } from '../career-repository';
-import { parseStoredGameState } from '../game-state-codec';
+import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 import {
   CorruptCareerSaveError,
   InvalidGameStateError,
@@ -34,6 +34,28 @@ describe('career repository', () => {
       .toEqual([]);
   });
 
+  it('loads a retired m1-slice save and reconciles it into a full career', () => {
+    const state = createCareer(createLaunchCareerSetup(4321));
+    // The shape a career saved by the retired second game mode had: the old
+    // label, and none of the sidecars that mode never created.
+    const slice = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+    slice.careerMode = 'm1-slice';
+    for (const field of ['m2', 'market', 'youthIntake', 'financialSafety', 'cashTransactions']) {
+      delete slice[field];
+    }
+
+    const decoded = parseStoredGameState(JSON.stringify(slice));
+    expect(decoded.careerMode).toBe('full');
+    expect(decoded.m2).toBeUndefined();
+
+    // Boot reconciliation is what actually rebuilds the missing sidecars.
+    const reconciled = reconcileLaunchRoster(decoded);
+    expect(reconciled.careerMode).toBe('full');
+    expect(reconciled.m2?.pyramid.divisions).toHaveLength(5);
+    expect(reconciled.market).toBeDefined();
+    expect(() => serializeGameState(reconciled)).not.toThrow();
+  });
+
   it('creates a fresh schema and reports a missing slot', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
@@ -53,7 +75,11 @@ describe('career repository', () => {
 
     expect(loaded).toEqual(state);
     expect(loaded).not.toBe(state);
-    expect(JSON.stringify(loaded)).toBe(JSON.stringify(state));
+    // Decoding orders keys by the codec schema rather than by the in-memory
+    // literal, so byte-identity is asserted where it matters: a decoded save
+    // re-saves and re-loads to exactly itself.
+    expect(JSON.stringify(parseStoredGameState(serializeGameState(loaded!))))
+      .toBe(JSON.stringify(loaded));
   });
 
   it('persists the created player and resumable onboarding stage in the career save', async () => {
@@ -191,19 +217,5 @@ describe('career repository', () => {
 });
 
 function makeState(): GameState {
-  const setup: CareerSetup = {
-    seed: 987654321,
-    userClubId: 'club-00',
-    startingTrainingPoints: 7,
-    clubs: Array.from({ length: 10 }, (_, index) => ({
-      id: `club-${String(index).padStart(2, '0')}`,
-      name: `Club ${index}`,
-      cash: index === 0 ? 25000 : 10000,
-      fans: 500,
-      ticketPrice: 4,
-      sponsorMonthlyFee: 2000,
-      weeklyWages: 3200,
-    })),
-  };
-  return createCareer(setup);
+  return createCareer(createLaunchCareerSetup(987654321));
 }

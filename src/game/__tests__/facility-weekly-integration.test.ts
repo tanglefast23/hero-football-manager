@@ -26,7 +26,7 @@ function userCash(state: ReturnType<typeof createCareer>): number {
 describe('facility weekly integration', () => {
   test('funds and completes the player-placed first pitch while bridging four basic training weeks', () => {
     const content = loadLaunchContent();
-    const fresh = createCareer(createLaunchCareerSetup(20260718, undefined, content, 'full'));
+    const fresh = createCareer(createLaunchCareerSetup(20260718, undefined, content));
     expect(userCash(fresh)).toBe(53_000);
     expect(fresh.facilities.grid?.buildings).toHaveLength(0);
     const started = buildCareerFacility(fresh, 'training-pitch', { x: 3, y: 2 }).state;
@@ -76,11 +76,12 @@ describe('facility weekly integration', () => {
       balances.push(state.trainingPoints);
     }
 
-    // Sprints I costs 6 TP per tap (12 for the two trainees). The two build
-    // weeks pay nothing — benefits start only once the pitch is open — so week
-    // three affords one drill (6→0) before the first +10 lands, and week four
-    // affords one more (10→4) before the next.
-    expect(balances).toEqual([30, 18, 6, 10, 14]);
+    // Sprints 2 is the best tier open in D5 and costs 10 TP per tap. Week one
+    // affords both trainees (30→10); week two affords one (10→0); the two build
+    // weeks pay nothing, so week three affords none and banks the pitch's first
+    // +10; week four spends it again. A Level 1 pitch funds exactly one drill a
+    // week, which is the intended squeeze.
+    expect(balances).toEqual([30, 10, 0, 10, 10]);
     // Training is TP-only now; no money is ever charged, so no ledger line
     // of kind 'training' is ever recorded.
     expect(state.ledgers.map(ledger => ledger.lines.find(line => line.kind === 'training')?.amount))
@@ -88,7 +89,7 @@ describe('facility weekly integration', () => {
   });
 
   test('pays no TP during the build weeks, then activates upkeep and weekly TP', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260719));
     const project = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state;
     // Strip fixtures so every settlement goes through the direct weekly path.
     const built: GameState = {
@@ -123,7 +124,7 @@ describe('facility weekly integration', () => {
   });
 
   test('scales Training Pitch TP with the completed facility level', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260720));
     const built = completeConstruction(
       buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 }).state,
     );
@@ -144,7 +145,7 @@ describe('facility weekly integration', () => {
   });
 
   test('carries the Gym + Dorm ten-percent bonus until small real gains earn +1 STA', () => {
-    const initial = createCareer(createLaunchCareerSetup(77, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(77));
     const gymProject = buildCareerFacility(initial, 'gym', { x: 0, y: 0 }).state;
     const gym = completeConstruction(gymProject);
     const dormProject = buildCareerFacility(gym, 'dorm', { x: 1, y: 0 }).state;
@@ -179,15 +180,100 @@ describe('facility weekly integration', () => {
       state = tapIfAffordable(state, playerId, 'circuit');
       state = advanceWeek(state);
     }
+    // A Level 1 Gym is now x1.25, and Circuit 2 (+5) is the open tier, so each
+    // tap lands 6 real STA and banks 60 percentage points of the adjacency's
+    // 10% — enough to release a whole extra point on roughly every other tap.
     const afterNine = state.players.find(player => player.id === playerId);
-    expect(afterNine?.attrs.sta).toBe(startingSta + 30);
-    expect(afterNine?.facilityStaBonusRemainder).toBe(80);
+    expect(afterNine?.attrs.sta).toBe(startingSta + 61);
+    expect(afterNine?.facilityStaBonusRemainder).toBe(60);
 
     state = tapIfAffordable(state, playerId, 'circuit');
     state = advanceWeek(state);
     const afterTen = state.players.find(player => player.id === playerId);
-    expect(afterTen?.attrs.sta).toBe(startingSta + 34);
-    expect(afterTen?.facilityStaBonusRemainder).toBe(10);
+    expect(afterTen?.attrs.sta).toBe(startingSta + 69);
+    expect(afterTen?.facilityStaBonusRemainder).toBe(30);
+  });
+
+  test('raises the home gate by 25% per Stadium Stand level, best level only', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260725));
+    const homeFixture = initial.fixtures.find(fixture => (
+      fixture.season === 1 && fixture.homeClubId === initial.userClubId
+    ));
+    if (homeFixture === undefined) throw new Error('missing a home fixture');
+    const playedHomeWeek: GameState = {
+      ...initial,
+      week: homeFixture.week,
+      fixtures: [{ ...homeFixture, status: 'played', score: { homeGoals: 1, awayGoals: 0 } }],
+      m2: initial.m2 === undefined ? undefined : { ...initial.m2, nationalCups: [] },
+    };
+    const gateOf = (state: GameState): number | undefined => advanceWeek(state)
+      .ledgers.at(-1)?.lines.find(line => line.kind === 'tickets')?.amount;
+    const withStands = (...levels: readonly (1 | 2 | 3)[]): GameState => ({
+      ...playedHomeWeek,
+      facilities: {
+        ...playedHomeWeek.facilities,
+        grid: {
+          ...playedHomeWeek.facilities.grid!,
+          nextBuildingId: levels.length + 1,
+          buildings: levels.map((level, index) => ({
+            id: `facility-${index + 1}`,
+            type: 'stadium-stand' as const,
+            level,
+            x: index * 2,
+            y: 0,
+          })),
+        },
+      },
+    });
+
+    // 500 fans at 60% attendance x $4 tickets is the $1,200 D5 baseline.
+    expect(gateOf(playedHomeWeek)).toBe(1_200);
+    expect(gateOf(withStands(1))).toBe(1_500);
+    expect(gateOf(withStands(2))).toBe(1_800);
+    expect(gateOf(withStands(3))).toBe(2_100);
+    // Two stands are not two bonuses, and the better one wins whichever
+    // order they were built in.
+    expect(gateOf(withStands(1, 3))).toBe(2_100);
+    expect(gateOf(withStands(3, 1))).toBe(2_100);
+  });
+
+  test('makes a level-1 training facility worth x1.25, not x1.0', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260726));
+    const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
+    const atGymLevel = (level: 0 | 1 | 2 | 3): number => {
+      const state: GameState = {
+        ...initial,
+        trainingPoints: 100,
+        players: initial.players.map(player => player.id === playerId
+          ? {
+              ...player,
+              age: 25,
+              archetype: 'All-Rounder' as const,
+              potentialCeiling: 999,
+              attrs: { ...player.attrs, pac: 50 },
+            }
+          : player),
+        facilities: {
+          ...initial.facilities,
+          grid: {
+            ...initial.facilities.grid!,
+            nextBuildingId: 2,
+            buildings: level === 0
+              ? []
+              : [{ id: 'facility-1', type: 'gym' as const, level, x: 0, y: 0 }],
+          },
+        },
+      };
+      const trained = tapIfAffordable(state, playerId, 'sprints');
+      return trained.players.find(player => player.id === playerId)!.attrs.pac - 50;
+    };
+
+    // Sprints 2 gives +5 PAC at age 25. The old formula made level 1 x1.0, so
+    // the first Gym a club ever built changed nothing at all.
+    expect(atGymLevel(0)).toBe(5);
+    expect(atGymLevel(1)).toBe(6); // round(5 x 1.25)
+    expect(atGymLevel(2)).toBe(8); // round(5 x 1.5)
+    expect(atGymLevel(3)).toBe(10);
   });
 
   test('keeps M1 ambient TP behavior and charges no upkeep when the grid is absent', () => {

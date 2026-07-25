@@ -25,7 +25,7 @@ import type { FixtureResult, GameState } from '../types';
 import { protectBoardUltimatumPlayer } from '../board-ultimatum';
 
 function fullCareer(seed: number) {
-  return createCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'));
+  return createCareer(createLaunchCareerSetup(seed));
 }
 
 function completeLeagueAndCupWeek(state: GameState, leagueResults: FixtureResult[]): GameState {
@@ -211,31 +211,21 @@ describe('M2 weekly sidecars', () => {
     expect(state.financialSafety?.boardUltimatum).toBeUndefined();
   });
 
-  test('applies full-career condition workload while leaving the M1 slice unchanged', () => {
-    const focusPlan = (state: GameState): { state: GameState; playerId: string } => {
-      const playerId = state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds[0];
-      const prepared = {
-        ...state,
-        trainingPoints: 100,
-        players: state.players.map(player => player.id === playerId
-          ? { ...player, condition: 60 }
-          : player),
-      };
-      return { state: trainPlayerInstantly(prepared, playerId, 'sprints').state, playerId };
+  test('charges a drill its condition workload and recovers it on the weekly tick', () => {
+    const state = fullCareer(504);
+    const playerId = state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds[0];
+    const prepared = {
+      ...state,
+      trainingPoints: 100,
+      players: state.players.map(player => player.id === playerId
+        ? { ...player, condition: 60 }
+        : player),
     };
-    const m2 = focusPlan(fullCareer(504));
-    const m1 = focusPlan(createCareer(createLaunchCareerSetup(504)));
+    const trained = trainPlayerInstantly(prepared, playerId, 'sprints').state;
 
-    // Conditioning is a full-career system: the tap costs 8 there, while the
-    // m1 slice (which has no recovery or wellbeing) charges nothing.
-    expect(m2.state.players.find(player => player.id === m2.playerId)?.condition).toBe(52);
-    expect(m1.state.players.find(player => player.id === m1.playerId)?.condition).toBe(60);
-
-    // The +12 weekly recovery is the full career's wellbeing tick only.
-    const m2After = advanceWeek(m2.state);
-    const m1After = advanceWeek(m1.state);
-    expect(m2After.players.find(player => player.id === m2.playerId)?.condition).toBe(64);
-    expect(m1After.players.find(player => player.id === m1.playerId)?.condition).toBe(60);
+    // The tap costs 8 condition, and the wellbeing tick returns 12 a week.
+    expect(trained.players.find(player => player.id === playerId)?.condition).toBe(52);
+    expect(advanceWeek(trained).players.find(player => player.id === playerId)?.condition).toBe(64);
   });
 
   test('applies match result and playing-time morale through normal M2 settlement', () => {
@@ -310,7 +300,7 @@ describe('M2 weekly sidecars', () => {
     expect(() => buildCareerTeamDef(matchday, matchday.userClubId)).not.toThrow();
   });
 
-  test('itemizes Fan Shop income and applies the stadium adjacency bonus only in full mode', () => {
+  test('itemizes Fan Shop income and applies the stadium adjacency bonus', () => {
     let grid = buildFacility(
       createFacilityGrid(),
       'fan-shop',
@@ -345,12 +335,6 @@ describe('M2 weekly sidecars', () => {
       label: 'Fan Shop merchandise',
       amount: adjacencyIncome,
     });
-
-    const m1 = createCareer(createLaunchCareerSetup(506));
-    expect(weeklyMerchandiseIncome({
-      ...m1,
-      facilities: { ...m1.facilities, grid },
-    }, m1.clubs.find(candidate => candidate.id === m1.userClubId)!)).toBe(0);
   });
 });
 

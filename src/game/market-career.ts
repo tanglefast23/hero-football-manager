@@ -188,7 +188,7 @@ export function startCareerScoutMission(
     startWeek: absoluteCareerWeek(state),
     region,
     focus,
-    scoutOfficeLevel: scoutOfficeLevel(state),
+    scoutOfficeLevel: scoutReportLevel(state),
     division,
   });
   const club = userClub(state);
@@ -225,6 +225,7 @@ export function resolveCareerScoutClock(
     mission,
     absoluteCareerWeek(state),
     scoutableCareerPlayers(state),
+    scoutShortlistSize(scoutOfficeLevel(state)),
   );
   return {
     ...currentMarket,
@@ -252,6 +253,10 @@ export function beginCareerTransferTalks(
 ): CareerMarketState {
   assertManagePhase(state);
   if (!isTransferWindowOpen(state.week)) throw new Error('the transfer window is closed');
+  // Matches the renewal guard. Without it, closing a rejected negotiation and
+  // reopening it dealt the same deterministic pitch cards at round 0, so the
+  // three-round cap and the walk-away penalty could both be retried away.
+  if (market.transferTalks !== undefined) throw new Error('another transfer is already being negotiated');
   if (!market.scoutReports.some(report => report.playerId === playerId)) {
     throw new Error('a player must be scouted before transfer talks');
   }
@@ -328,6 +333,9 @@ export function completeCareerTransfer(
     onHeroWage: player.power !== undefined,
     morale: Math.max(55, player.morale),
     signingStatTotal: playerStatTotal(player),
+    // Loyalty does not transfer. Inheriting the selling club's tenure let a
+    // one-season signing retire as a club legend, which is meant to take five.
+    seasonsAtClub: 0,
   };
   const transferredState: GameState = {
       ...state,
@@ -377,7 +385,6 @@ export function beginCareerRenewalTalks(
   playerId: string,
 ): CareerMarketState {
   assertSeasonEndPhase(state);
-  if (state.careerMode !== 'full') throw new Error('negotiated renewals are available in full careers');
   if (market.renewalTalks !== undefined) throw new Error('another renewal is already being negotiated');
   const player = expiredUserPlayer(state, playerId);
   const weeklyAsk = renewalContractAsk({
@@ -1070,11 +1077,43 @@ function replaceTransferredStarter(state: GameState, player: CareerPlayer) {
     : candidate);
 }
 
-function scoutOfficeLevel(state: GameState): number {
+/**
+ * 0 when the club owns no Scout Office. The best operational office wins —
+ * `.find()` used to take whichever office was built first, so a second office
+ * upgraded to level 3 was money for nothing.
+ */
+export function scoutOfficeLevel(state: GameState): number {
   const grid = state.facilities.grid;
-  return grid?.buildings.find(building => (
-    building.type === 'scout-office' && isFacilityOperational(grid, building.id)
-  ))?.level ?? 1;
+  if (grid === undefined) return 0;
+  let level = 0;
+  for (const building of grid.buildings) {
+    if (building.type !== 'scout-office') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
+    level = Math.max(level, building.level);
+  }
+  return level;
+}
+
+/**
+ * Candidates a finished mission brings back. Without an office the club is
+ * borrowing an agency scout and gets one fewer name than a level-1 office —
+ * previously level 1 was indistinguishable from owning nothing, because the
+ * lookup defaulted to 1, so the first $6,000 bought literally no change.
+ */
+export function scoutShortlistSize(officeLevel: number): number {
+  if (!Number.isSafeInteger(officeLevel) || officeLevel < 0 || officeLevel > 3) {
+    throw new Error('Scout Office level must be an integer from 0 to 3');
+  }
+  return 2 + officeLevel;
+}
+
+/**
+ * Report precision is stored on the mission when it starts and the save schema
+ * accepts 1-3 only, so an office-less club still reads at level-1 precision.
+ * Its penalty is the shorter shortlist above, not a vaguer report.
+ */
+function scoutReportLevel(state: GameState): number {
+  return Math.max(1, scoutOfficeLevel(state));
 }
 
 function absoluteCareerWeek(state: Pick<GameState, 'season' | 'week'>): number {

@@ -166,6 +166,7 @@ const styles = StyleSheet.create({
   energyFillMedium: { backgroundColor: '#edb54a' },
   energyFillLow: { backgroundColor: '#d94f52' },
   energyValue: {
+    fontFamily: 'Silkscreen_400Regular',
     color: '#241f2e',
     fontSize: 14,
     fontWeight: '900',
@@ -196,6 +197,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
   },
   buttonText: {
+    fontFamily: 'Silkscreen_700Bold',
     color: '#f4f1ea',
     fontSize: 16,
     fontWeight: '900',

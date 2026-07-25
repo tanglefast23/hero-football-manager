@@ -5,7 +5,6 @@ import {
   careerMarketViewModelSource,
 } from '../market-source-adapter';
 import { createCareer } from '../../game/career';
-import { enableFullCareer } from '../../game/full-career';
 import { buildCareerFacility } from '../../game/management';
 import { advanceFacilityConstruction } from '../../game/facilities';
 import {
@@ -17,7 +16,7 @@ import {
 import type { CareerPlayer, GameState } from '../../game/types';
 
 function fullCareer(seed = 20260719): GameState {
-  return enableFullCareer(createCareer(createLaunchCareerSetup(seed)));
+  return createCareer(createLaunchCareerSetup(seed));
 }
 
 function exactReport(player: CareerPlayer): CareerMarketState['scoutReports'][number] {

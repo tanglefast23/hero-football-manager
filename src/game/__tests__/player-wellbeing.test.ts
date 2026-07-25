@@ -11,6 +11,7 @@ import {
   medicalBayRecoveryWeeks,
   overtrainingInjuryChancePercent,
   resolveWeeklyPlayerWellbeing,
+  weeklyConditionRecovery,
 } from '../player-wellbeing';
 import { trainPlayerInstantly } from '../training';
 import type { CareerPlayer, GameState } from '../types';
@@ -89,6 +90,77 @@ describe('weekly player wellbeing', () => {
     expect(JSON.stringify(state)).toBe(before);
   });
 
+  test('speeds weekly condition recovery by 4 per Dorm level, best level only', () => {
+    expect(weeklyConditionRecovery(0)).toBe(12);
+    expect(weeklyConditionRecovery(1)).toBe(16);
+    expect(weeklyConditionRecovery(2)).toBe(20);
+    expect(weeklyConditionRecovery(3)).toBe(24);
+    expect(() => weeklyConditionRecovery(4)).toThrow('Dorm level');
+
+    const base = withUserPlayerChanges(career(9), player => ({
+      ...player,
+      condition: 50,
+      morale: 50,
+      consecutiveLowMoraleWeeks: 0,
+    }));
+    const withDorms = (...levels: readonly (1 | 2 | 3)[]): GameState => ({
+      ...base,
+      facilities: {
+        ...base.facilities,
+        grid: {
+          ...base.facilities.grid!,
+          nextBuildingId: levels.length + 1,
+          buildings: levels.map((level, index) => ({
+            id: `facility-${index + 1}`,
+            type: 'dorm' as const,
+            level,
+            x: index,
+            y: 0,
+          })),
+        },
+      },
+    });
+    const conditionAfterOneWeek = (state: GameState): number => (
+      resolveWeeklyPlayerWellbeing(state).players
+        .find(player => player.clubId === state.userClubId)!.condition ?? 0
+    );
+
+    expect(conditionAfterOneWeek(base)).toBe(62);
+    expect(conditionAfterOneWeek(withDorms(1))).toBe(66);
+    expect(conditionAfterOneWeek(withDorms(3))).toBe(74);
+    // A second Dorm is not a second bonus, whichever order they were built in.
+    expect(conditionAfterOneWeek(withDorms(1, 3))).toBe(74);
+    expect(conditionAfterOneWeek(withDorms(3, 1))).toBe(74);
+  });
+
+  test('leaves an unfinished Dorm out of condition recovery until it opens', () => {
+    const base = withUserPlayerChanges(career(10), player => ({
+      ...player,
+      condition: 50,
+      morale: 50,
+      consecutiveLowMoraleWeeks: 0,
+    }));
+    const underConstruction = buildFacility(createFacilityGrid(), 'dorm', { x: 0, y: 0 }, 50_000);
+    const building: GameState = {
+      ...base,
+      facilities: { ...base.facilities, grid: underConstruction.grid },
+    };
+    const open: GameState = {
+      ...base,
+      facilities: {
+        ...base.facilities,
+        grid: completeFacilityProject(underConstruction.grid),
+      },
+    };
+    const conditionAfterOneWeek = (state: GameState): number => (
+      resolveWeeklyPlayerWellbeing(state).players
+        .find(player => player.clubId === state.userClubId)!.condition ?? 0
+    );
+
+    expect(conditionAfterOneWeek(building)).toBe(62);
+    expect(conditionAfterOneWeek(open)).toBe(66);
+  });
+
   test('tracks sustained low morale and resets the counter on recovery', () => {
     let state = withPlayedUserFixture(career(8), 0, 2);
     const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
@@ -150,7 +222,7 @@ describe('weekly player wellbeing', () => {
     // Training Pitch discount brings it to 56%; an injury that does land is
     // shortened by three weeks (floor one) by the Lv3 bay.
     const makeExhaustedState = (facilityGrid: FacilityGridState): GameState => {
-      let state = createCareer(createLaunchCareerSetup(2, undefined, undefined, 'full'));
+      let state = createCareer(createLaunchCareerSetup(2));
       const playerId = userPlayers(state)[0].id;
       state = withUserPlayerChanges(state, player => ({
         ...player,
@@ -191,7 +263,7 @@ describe('weekly player wellbeing', () => {
   });
 
   test('drains an underpaid star, honors Motivator carry, and raises a transfer request', () => {
-    let state = createCareer(createLaunchCareerSetup(10, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(10));
     const player = userPlayers(state)[0];
     const coach = state.market!.coachCandidates[0];
     state = withUserPlayerChanges(state, candidate => candidate.id === player.id
@@ -224,7 +296,7 @@ describe('weekly player wellbeing', () => {
   });
 
   test('gives a Level 1 assistant Motivator an exact 2.5% morale effect', () => {
-    let state = createCareer(createLaunchCareerSetup(11, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(11));
     const player = userPlayers(state)[0];
     const assistant = state.market!.coachCandidates[0];
     state = withUserPlayerChanges(state, candidate => candidate.id === player.id

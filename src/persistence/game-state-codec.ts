@@ -729,6 +729,10 @@ const gameStateSchema = z
     seasonOpeningCash: safeInteger.optional(),
     cashTransactions: z.array(cashTransactionSchema).optional(),
     seasonGoalTallies: z.array(seasonGoalTallySchema).optional(),
+    // `'m1-slice'` was a second, finite career mode that no longer exists. The
+    // value stays legal on read so saves written while it did are still
+    // decodable; `parseStoredGameState` normalises it and the launch
+    // reconciliation pass builds the M2 sidecars such a save never had.
     careerMode: z.enum(['m1-slice', 'full']).optional(),
     m2: m2CareerSchema.optional(),
     market: careerMarketSchema.optional(),
@@ -1417,9 +1421,14 @@ export function parseStoredGameState(serialized: string): GameState {
     throw new CorruptCareerSaveError('state_json is not valid JSON');
   }
 
+  // Content-churn normalisers first: they clean up retired fields and ids within
+  // a version, so every migration rung below sees already-normalised input.
   value = removeRetiredHeroSystems(value);
   value = removeRetiredWeeklyTraining(value);
   value = migrateRetiredPowers(value);
+  // Then walk the save up to the current schema version. This is the step that
+  // lets a shipped update change the save shape without wiping the field.
+  value = migrateStoredGameState(value);
   assertSupportedSchema(value, true);
   let validation: z.ZodSafeParseResult<unknown>;
   try {
@@ -1430,11 +1439,15 @@ export function parseStoredGameState(serialized: string): GameState {
   if (!validation.success) {
     throw new CorruptCareerSaveError(formatIssues(validation.error.issues));
   }
-  const parsed = validation.data as Omit<GameState, 'awakening'> & {
+  const parsed = validation.data as Omit<GameState, 'awakening' | 'careerMode'> & {
     awakening?: Omit<GameState['awakening'], 'usedTriggerIds'> & { usedTriggerIds?: string[] };
   };
   return {
     ...parsed,
+    // Retired slice saves (and pre-`careerMode` saves) become full careers. Only
+    // the label is set here; `reconcileLaunchRoster` runs `enableFullCareer` on
+    // every load, which synthesises the M2 and market state they lack.
+    careerMode: 'full',
     awakening: parsed.awakening === undefined
       ? { matchesSinceLastAwakening: 0, usedTriggerIds: [] }
       : {
@@ -1527,17 +1540,79 @@ function removeRetiredHeroSystems(value: unknown): unknown {
   };
 }
 
-function assertSupportedSchema(value: unknown, stored: boolean): void {
+/**
+ * One upgrade step across a single schema-version boundary.
+ *
+ * `up` receives a save already at version `to - 1` and returns it at version
+ * `to`. It must not assume anything the previous version did not guarantee, and
+ * it must not set `schemaVersion` — the ladder stamps that, so a step can never
+ * disagree with its own position.
+ */
+interface GameStateMigration {
+  readonly to: number;
+  up(value: Record<string, unknown>): Record<string, unknown>;
+}
+
+/**
+ * The save-upgrade ladder, ordered by ascending `to`.
+ *
+ * `GAME_SCHEMA_VERSION` is still 1, so no boundary has been crossed and the
+ * ladder is legitimately empty. It exists now, before the first bump, because
+ * the alternative is discovering at bump time that every save in the field is
+ * unreadable — the ladder has to predate the version it rescues.
+ *
+ * To add a version: raise `GAME_SCHEMA_VERSION` in `src/game/types.ts` and append
+ * `{ to: <new version>, up }` here. Anything the new schema requires must be
+ * synthesised by `up`, because an old save will not carry it.
+ */
+const GAME_STATE_MIGRATIONS: readonly GameStateMigration[] = [];
+
+function readSchemaVersion(value: unknown, stored: boolean): number {
   if (!isRecord(value) || !Number.isSafeInteger(value.schemaVersion)) {
     if (stored)
       throw new CorruptCareerSaveError('schemaVersion is missing or invalid');
     throw new InvalidGameStateError('schemaVersion is missing or invalid');
   }
-  if (value.schemaVersion !== GAME_SCHEMA_VERSION) {
-    throw new UnsupportedGameSchemaError(
-      value.schemaVersion as number,
-      GAME_SCHEMA_VERSION,
-    );
+  return value.schemaVersion as number;
+}
+
+/**
+ * Walks a stored save up to `GAME_SCHEMA_VERSION`, one boundary at a time.
+ *
+ * A version newer than this build is refused outright: that is a downgrade, and
+ * nothing here can invent the meaning of a field written by a future version. A
+ * missing rung is refused for the same reason — silently accepting it would hand
+ * a half-upgraded save to the validator and report a corrupt save instead of the
+ * real cause.
+ */
+export function migrateStoredGameState(value: unknown): unknown {
+  let current = value;
+  let version = readSchemaVersion(current, true);
+  if (version > GAME_SCHEMA_VERSION) {
+    throw new UnsupportedGameSchemaError(version, GAME_SCHEMA_VERSION);
+  }
+  while (version < GAME_SCHEMA_VERSION) {
+    const step = GAME_STATE_MIGRATIONS.find(migration => migration.to === version + 1);
+    if (step === undefined) {
+      throw new UnsupportedGameSchemaError(version, GAME_SCHEMA_VERSION);
+    }
+    if (!isRecord(current)) {
+      throw new CorruptCareerSaveError(`schema ${version} save is not an object`);
+    }
+    const upgraded = step.up(current);
+    if (!isRecord(upgraded)) {
+      throw new CorruptCareerSaveError(`schema migration to ${step.to} produced a non-object`);
+    }
+    current = { ...upgraded, schemaVersion: step.to };
+    version = step.to;
+  }
+  return current;
+}
+
+function assertSupportedSchema(value: unknown, stored: boolean): void {
+  const version = readSchemaVersion(value, stored);
+  if (version !== GAME_SCHEMA_VERSION) {
+    throw new UnsupportedGameSchemaError(version, GAME_SCHEMA_VERSION);
   }
 }
 

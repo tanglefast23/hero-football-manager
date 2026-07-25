@@ -1,9 +1,9 @@
 import { mulberry32 } from '../sim/rng';
 import {
+  activeCareerMatchday,
   advanceWeek,
   completeMatchday,
   createCareer,
-  fixturesForCurrentWeek,
   weeklyAmbientTrainingPoints,
 } from './career';
 import { deterministicPostMatchAwakeningRoll } from './post-match-awakening';
@@ -200,8 +200,13 @@ function simulateSeasonOne(
     state = advanceWeek(state);
     if (state.phase === 'matchday') {
       ambientTrainingPoints += weeklyAmbientTrainingPoints(state);
-      const fixtures = fixturesForCurrentWeek(state);
-      state = completeMatchday(state, fixtures.map(scoreFixture));
+      // A double-header week presents the league fixture and then the National
+      // Cup tie, so drain every matchday the week holds.
+      while (state.phase === 'matchday') {
+        const matchday = activeCareerMatchday(state);
+        if (matchday === undefined) throw new Error('balance harness lost its active matchday');
+        state = completeMatchday(state, matchday.fixtures.map(scoreFixture));
+      }
     } else {
       ambientTrainingPoints += weeklyAmbientTrainingPoints(beforeAdvance);
     }

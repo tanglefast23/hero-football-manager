@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { Modal, Platform, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { SuperTrainingCelebration } from './components/SuperTrainingCelebration';
 import { DrillSceneOverlay, drillActivityId } from '../render/DrillSceneOverlay';
 import { playDrillResultSfx, playSuperTrainingSfx, playManagementActionSfx } from '../render/management-sfx';
+import { playManagementHaptic } from '../render/haptics';
 import { useLayoutMode } from './layout/use-layout-mode';
 import type { DrillResultViewModel, TrainingSlotStatOption } from './models';
+import { PixelText } from './components/PixelText';
 
 export interface TrainingDrillModalProps {
   playerId: string;
@@ -63,7 +65,10 @@ export function TrainingDrillModal({
   const [activeResult, setActiveResult] = useState<DrillResultViewModel | null>(null);
   const [stage, setStage] = useState<ResultStage>(null);
   const streakRef = useRef(0);
-  const seenSequenceRef = useRef(0);
+  // Seeded from the store's current sequence, not 0: dismissing the popup unmounts
+  // this component, so a fresh ref would treat the last result as new and replay
+  // its scene, sound and haptic on reopen without a tap or any TP spent.
+  const seenSequenceRef = useRef(lastDrillResult?.sequence ?? 0);
 
   // Reset the pitch streak whenever the popup moves to another player.
   useEffect(() => {
@@ -79,7 +84,7 @@ export function TrainingDrillModal({
     streakRef.current += 1;
     if (result.isSuper) {
       playSuperTrainingSfx();
-      if (Platform.OS !== 'web') Vibration.vibrate(180);
+      playManagementHaptic('hero');
     } else {
       playDrillResultSfx(streakRef.current);
     }
@@ -89,16 +94,18 @@ export function TrainingDrillModal({
   }, [lastDrillResult, playerId]);
 
   // Advances the presentation once the current beat finishes or is skipped.
-  const advanceStage = () => {
-    setStage(current => {
-      if (current === 'scene' && activeResult?.isSuper) return 'super';
-      if ((current === 'scene' || current === 'super') && activeResult?.injury !== undefined) {
-        return 'injury';
-      }
-      setActiveResult(null);
-      return null;
-    });
-  };
+  // The next stage is derived outside the updater — a setState updater must be
+  // pure, and React may invoke it more than once. Memoised so the drill scene's
+  // effect does not tear down and restart its animation on every parent render.
+  const advanceStage = useCallback(() => {
+    const next: ResultStage = stage === 'scene' && activeResult?.isSuper
+      ? 'super'
+      : (stage === 'scene' || stage === 'super') && activeResult?.injury !== undefined
+        ? 'injury'
+        : null;
+    setStage(next);
+    if (next === null) setActiveResult(null);
+  }, [stage, activeResult]);
 
   const resultOption = activeResult === null
     ? undefined
@@ -135,11 +142,11 @@ export function TrainingDrillModal({
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
               <View className="flex-1 pr-3">
-                <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Drills</Text>
+                <Text className="font-pixel text-sm uppercase text-blue-dark">Drills</Text>
                 <Text className="mt-1 font-pixel text-xl uppercase text-ink" numberOfLines={1}>{playerName}</Text>
               </View>
               <View className="mr-3 items-end">
-                <Text className="font-mono text-sm font-bold uppercase text-ink/50">TP</Text>
+                <Text className="font-pixel text-sm uppercase text-ink/50">TP</Text>
                 <Text className="font-pixel text-lg text-ink">{trainingPoints}</Text>
               </View>
               <Pressable
@@ -148,19 +155,19 @@ export function TrainingDrillModal({
                 onPress={onDismiss}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-white"
               >
-                <Text className="font-mono text-lg font-bold text-ink">×</Text>
+                <Text className="font-pixel text-lg text-ink">×</Text>
               </Pressable>
             </View>
 
             <View className="flex-row flex-wrap items-center gap-2 border-b border-ink/20 bg-white px-4 py-2">
               <View className="border border-gold-dark bg-gold-light px-2 py-1">
-                <Text className="font-mono text-sm font-bold uppercase text-ink">
+                <Text className="font-pixel text-sm uppercase text-ink">
                   ★ SUPER chance {superChancePercent}%
                 </Text>
               </View>
               {owedHere ? (
                 <View className="border-2 border-blue-dark bg-blue-light px-2 py-1">
-                  <Text className="font-mono text-sm font-bold uppercase text-blue-dark">
+                  <Text className="font-pixel text-sm uppercase text-blue-dark">
                     Promise · {promiseGate.remaining} owed
                   </Text>
                 </View>
@@ -176,8 +183,8 @@ export function TrainingDrillModal({
                   : 'border border-gold-dark bg-gold-light px-2 py-1'}
                 >
                   <Text className={riskTone === 'red'
-                    ? 'font-mono text-sm font-bold uppercase text-stamp'
-                    : 'font-mono text-sm font-bold uppercase text-gold-dark'}
+                    ? 'font-pixel text-sm uppercase text-stamp'
+                    : 'font-pixel text-sm uppercase text-gold-dark'}
                   >
                     ⚠ {injuryRiskPercent}% injury risk
                   </Text>
@@ -188,7 +195,7 @@ export function TrainingDrillModal({
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 16 }}>
               {blockedByPromise ? (
                 <View className="border-2 border-b-4 border-blue-dark bg-blue-light p-4">
-                  <Text className="font-mono text-sm font-bold uppercase text-blue-dark">
+                  <Text className="font-pixel text-sm uppercase text-blue-dark">
                     {promiseGate.playerName} reminds you
                   </Text>
                   <Text className="mt-2 text-base font-bold text-ink">
@@ -232,16 +239,16 @@ export function TrainingDrillModal({
                       style={({ pressed }) => ({ opacity: pressed && !disabled ? 0.65 : undefined })}
                     >
                       <View className="min-w-0 flex-1 pr-2">
-                        <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>
+                        <PixelText className="text-base uppercase text-ink" numberOfLines={1}>
                           {option.drillName}
                           <Text className="font-mono text-sm text-ink/60"> ({option.tpCost} TP)</Text>
-                        </Text>
-                        <Text className="mt-0.5 font-mono text-sm font-bold text-ink/60" numberOfLines={1}>
+                        </PixelText>
+                        <Text className="mt-0.5 font-mono text-sm text-ink/60" numberOfLines={1}>
                           {option.currentValue} {option.shortCode}
                           {!injured && !option.affordable && !option.atSafetyCeiling ? ' · Not enough TP' : ''}
                         </Text>
                       </View>
-                      <Text className="font-mono text-base font-bold text-ink" numberOfLines={1}>
+                      <Text className="font-mono text-base text-ink" numberOfLines={1}>
                         +{option.gain} {option.label}
                       </Text>
                     </Pressable>
@@ -250,7 +257,7 @@ export function TrainingDrillModal({
               </View>
               {injured ? (
                 <View className="mt-3 border-2 border-b-4 border-red-dark bg-red-light p-3">
-                  <Text className="font-mono text-base font-bold uppercase text-red-dark">
+                  <Text className="font-pixel text-base uppercase text-red-dark">
                     OUT · {injuryWeeks} {injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
                   </Text>
                   <Text className="mt-1 text-sm text-ink/70">No training until they recover.</Text>
@@ -296,7 +303,7 @@ export function TrainingDrillModal({
                 <View style={styles.injuryBackdrop}>
                   <View className="border-2 border-b-4 border-red-dark bg-red-light px-5 py-4">
                     <Text className="text-center font-pixel text-xl uppercase text-red-dark">Pulled up!</Text>
-                    <Text className="mt-2 text-center font-mono text-base font-bold uppercase text-ink">
+                    <Text className="mt-2 text-center font-pixel text-base uppercase text-ink">
                       OUT · {activeResult.injury.recoveryWeeks} {activeResult.injury.recoveryWeeks === 1 ? 'WEEK' : 'WEEKS'}
                     </Text>
                     <Text className="mt-2 text-center text-sm text-ink/70">
@@ -318,24 +325,24 @@ function conditionBadgeStyle(condition: number): { box: string; text: string } {
   if (condition < 30) {
     return {
       box: 'border-2 border-stamp bg-red-light px-2 py-1',
-      text: 'font-mono text-sm font-bold uppercase text-stamp',
+      text: 'font-pixel text-sm uppercase text-stamp',
     };
   }
   if (condition < 50) {
     return {
       box: 'border border-gold-dark bg-gold-light px-2 py-1',
-      text: 'font-mono text-sm font-bold uppercase text-gold-dark',
+      text: 'font-pixel text-sm uppercase text-gold-dark',
     };
   }
   if (condition < 70) {
     return {
       box: 'border border-ink/30 bg-paper-dark px-2 py-1',
-      text: 'font-mono text-sm font-bold uppercase text-ink/70',
+      text: 'font-pixel text-sm uppercase text-ink/70',
     };
   }
   return {
     box: 'border border-ink/30 bg-white px-2 py-1',
-    text: 'font-mono text-sm font-bold uppercase text-ink',
+    text: 'font-pixel text-sm uppercase text-ink',
   };
 }
 

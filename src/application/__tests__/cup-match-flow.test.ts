@@ -7,7 +7,7 @@ describe('National Cup app routing', () => {
   });
 
   test('routes from the league match through awakening into the playable cup tie', () => {
-    useM1Store.getState().startNewCareer(2, 'full');
+    useM1Store.getState().startNewCareer(2);
     useM1Store.getState().completePlayerCreation({
       name: 'Cup Runner',
       ratings: DEFAULT_CREATION_RATINGS,

@@ -5,7 +5,7 @@ import { createMatch, MAX_SUBSTITUTIONS, queueInput, tick } from '../sim/match';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
-import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
+import { PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState, PowerId, TeamDef } from '../sim/types';
 import {
   BASE_PLAYER_COUNT,
@@ -19,7 +19,7 @@ import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
 import { keeperReadyFrameFacingBall, runFrameFacingBall } from './sprites/facing';
 import { webbedSpriteKey } from './sprites/loader';
 import { spriteKeyForMatchPlayer, visualIdForMatchPlayer } from './sprites/slot-key';
-import { snapshotFrame, type PitchFrame } from './interpolate';
+import { matchPitchLayout, snapshotFrame, type PitchFrame } from './interpolate';
 import {
   actionPose,
   isKeeperReady,
@@ -119,17 +119,9 @@ import {
 const MAX_CATCHUP_TICKS = 5;
 const TOTAL_TICKS = HALF_TICKS * 2;
 
-// Magnifies each atlas source-pixel into screen px, before the pitch->screen
-// `scale` factor. Player cells are 24x30 source px; at PLAYER_DRAW_SCALE=17
-// that keeps the same ~28-34pt tall footprint as the prior 16x20@26 across the
-// common iPhone width range (375-430pt) — crisper and more detailed, not bigger.
-const PLAYER_DRAW_SCALE = 17;
-
-// The ball sprite is a separate 6x6 source asset, not a scaled-down player —
-// reusing PLAYER_DRAW_SCALE would shrink it to a ~5pt speck. Calibrated
-// instead for its own ~6pt on-screen radius (~12pt diameter) across the same
-// width range.
-const BALL_DRAW_SCALE = 34;
+// Sprite magnification (PLAYER_DRAW_SCALE / BALL_DRAW_SCALE) and the pixel-grid
+// snapping that keeps it an integer multiple live in interpolate.ts, which is
+// headless-testable — see matchPitchLayout below.
 
 // speedFor()'s PAC ceiling: (40 + 168 max effective PAC) * 1.0 conditionScale
 // * 2.2 max active-SUPER_SPEED multiplier ~= 306 pitch-units/tick. The snap
@@ -298,7 +290,9 @@ export function MatchScreen({
   for (const power of seenPowerCutIns) seenPowerCutInsRef.current.add(power);
   const onPowerCutInSeenRef = useRef(onPowerCutInSeen);
   onPowerCutInSeenRef.current = onPowerCutInSeen;
-  const { width, height } = useWindowDimensions();
+  // `scale` here is React Native's name for the device pixel ratio; the pitch's
+  // own scale factor is derived below and would shadow it.
+  const { width, height, scale: devicePixelRatio } = useWindowDimensions();
   const compactHeight = height < 760;
   const narrowWidth = width < 375;
   // Keep the pitch and both coaching rows visible on short phones. Decorative
@@ -319,8 +313,17 @@ export function MatchScreen({
   const availablePitchWidth = railLayout
     ? Math.max(280, width - MATCH_RAIL_WIDTH - MATCH_RAIL_GUTTER * 3)
     : width;
-  const pitchWidth = Math.min(availablePitchWidth, availablePitchHeight * PITCH_W / PITCH_H);
-  const scale = pitchWidth / PITCH_W;
+  // Sprite draw scales come back snapped so one source pixel always covers a
+  // whole number of device pixels (art-bible integer-scaling rule); `scale`
+  // itself stays continuous for the vector pitch, which tolerates fractions.
+  // The rail's reserved width is fed in rather than the raw viewport, so the
+  // snap is computed against the space the pitch actually receives.
+  const {
+    pitchWidth,
+    scale,
+    player: playerSpriteScale,
+    ball: ballSpriteScale,
+  } = matchPitchLayout(availablePitchWidth, availablePitchHeight, devicePixelRatio);
   const pitchH = PITCH_H * scale;
   const homeCode = scoreCode(home);
   const awayCode = scoreCode(away);
@@ -465,8 +468,9 @@ export function MatchScreen({
     playerCell: { width: playerCell.w, height: playerCell.h },
     actionCell: { width: actionCell.w, height: actionCell.h },
     ballCell: { width: ballCell.w, height: ballCell.h },
-    playerDrawScale: PLAYER_DRAW_SCALE,
-    ballDrawScale: BALL_DRAW_SCALE,
+    playerDrawScale: playerSpriteScale.drawScale,
+    ballDrawScale: ballSpriteScale.drawScale,
+    devicePixelRatio,
     ballFootForwardFraction: BALL_FOOT_FORWARD_FRACTION,
     ballFootDownPx: BALL_FOOT_DOWN_PX,
     ballFootDeadzonePx: BALL_FOOT_DEADZONE_PX,
@@ -1206,7 +1210,7 @@ export function MatchScreen({
   const stoppage =
     match.phase === 'play' &&
     ((match.half === 1 && match.tick >= HALF_TICKS) || (match.half === 2 && match.tick >= TOTAL_TICKS));
-  const ringR = (PLAYER_CELL_W * scale * PLAYER_DRAW_SCALE) / 2 + 4;
+  const ringR = (PLAYER_CELL_W * scale * playerSpriteScale.drawScale) / 2 + 4;
   const rivalHeroPlayers: number[] = [];
   const fireTorchPlayers: number[] = [];
   match.players.forEach((player, index) => {
@@ -1422,7 +1426,7 @@ export function MatchScreen({
   });
   const powerActorTransforms: SkRSXform[] = powerEffectActors.map(actor => {
     const rect = atlas.rectFor(playerSpriteKeys[actor.player]);
-    const actorScale = scale * PLAYER_DRAW_SCALE * actor.scale;
+    const actorScale = scale * playerSpriteScale.drawScale * actor.scale;
     return Skia.RSXform(
       actorScale,
       0,
@@ -1793,7 +1797,7 @@ export function MatchScreen({
               simTick={workletSimTick}
               progress={workletProgress}
               scale={scale}
-              playerDrawScale={PLAYER_DRAW_SCALE}
+              playerDrawScale={playerSpriteScale.drawScale}
             />
             <Atlas
               image={atlas.image as SkImage}
@@ -1810,7 +1814,7 @@ export function MatchScreen({
               simTick={workletSimTick}
               progress={workletProgress}
               scale={scale}
-              playerDrawScale={PLAYER_DRAW_SCALE}
+              playerDrawScale={playerSpriteScale.drawScale}
             />
             {drawablePowerEffects.map(effect => (
               <PowerEffectScene
@@ -2325,7 +2329,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  scoreText: { color: '#f4f1ea', fontSize: 18, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  scoreText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 18, fontVariant: ['tabular-nums'] },
   scoreTextFlash: { color: '#f7d894' },
   // Top-right controls: small beveled buttons (same Track-A recipe as the bug).
   controls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -2341,7 +2345,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
     borderRadius: 4,
   },
-  ctrlText: { color: '#f4f1ea', fontSize: 16, fontWeight: 'bold' },
+  ctrlText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 16 },
   autoSubRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2355,8 +2359,8 @@ const styles = StyleSheet.create({
   },
   autoSubRowOn: { backgroundColor: '#3f6fb5', borderColor: '#5a8fd6' },
   autoSubBox: { color: '#f4f1ea', fontSize: 18, lineHeight: 20 },
-  autoSubLabel: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
-  autoSubDetail: { color: '#a3c8f0', fontSize: 11 },
+  autoSubLabel: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 10, letterSpacing: 1 },
+  autoSubDetail: { fontFamily: 'Silkscreen_400Regular', color: '#a3c8f0', fontSize: 11 },
   bannerStack: {
     position: 'absolute',
     zIndex: 8,
@@ -2368,8 +2372,8 @@ const styles = StyleSheet.create({
   banner: {
     textAlign: 'center',
     color: '#edb54a',
+    fontFamily: 'Silkscreen_700Bold',
     fontSize: 18,
-    fontWeight: 'bold',
     backgroundColor: '#241f2edd',
     borderWidth: 2,
     borderColor: '#edb54a',
@@ -2419,15 +2423,15 @@ const styles = StyleSheet.create({
   powerActivationCopy: { minWidth: 0, flex: 1, paddingLeft: 6 },
   powerActivationPlayer: {
     color: '#f4f1ea',
+    fontFamily: 'Silkscreen_700Bold',
     fontSize: 9,
-    fontWeight: 'bold',
     textTransform: 'uppercase',
   },
   powerActivationName: {
     marginTop: 2,
+    fontFamily: 'Silkscreen_700Bold',
     fontSize: 15,
     lineHeight: 18,
-    fontWeight: '900',
     textTransform: 'uppercase',
   },
   carrierCard: {
@@ -2445,11 +2449,11 @@ const styles = StyleSheet.create({
   carrierCardLeft: { left: 8 },
   carrierCardRight: { right: 8 },
   carrierLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  carrierName: { flex: 1, color: KIT_PANEL_TEXT_COLOR, fontSize: 11, fontWeight: 'bold' },
+  carrierName: { fontFamily: 'Silkscreen_700Bold', flex: 1, color: KIT_PANEL_TEXT_COLOR, fontSize: 11 },
   carrierEnergy: {
+    fontFamily: 'Silkscreen_400Regular',
     color: KIT_PANEL_TEXT_COLOR,
     fontSize: 10,
-    fontWeight: 'bold',
     fontVariant: ['tabular-nums'],
   },
   energyTrack: { height: 4, backgroundColor: '#3a3350', marginTop: 4, overflow: 'hidden' },
@@ -2513,14 +2517,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#a3c8f066',
   },
   coachCopy: { flexShrink: 1, alignItems: 'flex-start' },
-  coachLabel: { color: '#bcb7c4', fontSize: 8, fontWeight: 'bold' },
+  coachLabel: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8 },
   coachLabelGuided: { color: '#f4f1ea' },
-  coachValue: { color: '#f4f1ea', fontSize: 11, fontWeight: 'bold', marginTop: 3 },
+  coachValue: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 11, marginTop: 3 },
   coachValueGuided: { color: '#f4f1ea' },
   mentalityIcon: { color: '#70b879', fontSize: 28, fontWeight: 'bold' },
   swapIcon: { color: '#77a4d8', fontSize: 30, fontWeight: 'bold' },
   swapIconGuided: { color: '#f4f1ea' },
-  tiredValue: { color: '#edb54a', fontSize: 9 },
+  tiredValue: { fontFamily: 'Silkscreen_400Regular', color: '#edb54a', fontSize: 9 },
   energyUseRow: {
     backgroundColor: '#2d283c',
     borderWidth: 2,
@@ -2541,7 +2545,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     marginBottom: 3,
   },
-  energyUseTitle: { color: '#bcb7c4', fontSize: 8, fontWeight: 'bold', letterSpacing: 0.6 },
+  energyUseTitle: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8, letterSpacing: 0.6 },
   teamEnergy: {
     color: '#65b96e',
     fontSize: 9,
@@ -2567,7 +2571,7 @@ const styles = StyleSheet.create({
   energySegmentSave: { backgroundColor: '#35618e' },
   energySegmentBalanced: { backgroundColor: '#4f6753' },
   energySegmentAllOut: { backgroundColor: '#a83440' },
-  energySegmentText: { color: '#bcb7c4', fontSize: 9, fontWeight: 'bold', textAlign: 'center' },
+  energySegmentText: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 9, textAlign: 'center' },
   energySegmentTextSelected: { color: '#f4f1ea' },
   swapOverlay: {
     position: 'absolute',
@@ -2588,8 +2592,8 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   swapHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  swapEyebrow: { color: '#77a4d8', fontSize: 9, fontWeight: 'bold' },
-  swapTitle: { color: '#f4f1ea', fontSize: 17, fontWeight: 'bold', marginTop: 2 },
+  swapEyebrow: { fontFamily: 'Silkscreen_700Bold', color: '#77a4d8', fontSize: 9 },
+  swapTitle: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 17, marginTop: 2 },
   swapCount: {
     color: '#f4f1ea',
     backgroundColor: '#3a3350',
@@ -2599,7 +2603,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
-  swapInstruction: { color: '#bcb7c4', fontSize: 9, fontWeight: 'bold', marginTop: 5, marginBottom: 5 },
+  swapInstruction: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 9, marginTop: 5, marginBottom: 5 },
   playerGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 },
   benchGrid: { flexDirection: 'row', justifyContent: 'center', gap: 8, minHeight: 62 },
   playerCard: {
@@ -2632,7 +2636,7 @@ const styles = StyleSheet.create({
   },
   benchHead: { backgroundColor: '#35618e', borderColor: '#77a4d8' },
   playerHeadSelected: { borderColor: '#f4f1ea', transform: [{ scale: 1.08 }] },
-  playerInitials: { color: '#f4f1ea', fontSize: 9, fontWeight: 'bold' },
+  playerInitials: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 9 },
   shirtNumber: {
     position: 'absolute',
     right: -3,
@@ -2646,8 +2650,8 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: 'bold',
   },
-  playerSurname: { color: '#f4f1ea', fontSize: 8, marginTop: 3, maxWidth: 50 },
-  roleLabel: { color: '#77a4d8', fontSize: 7, fontWeight: 'bold', marginTop: 1 },
+  playerSurname: { fontFamily: 'Silkscreen_400Regular', color: '#f4f1ea', fontSize: 8, marginTop: 3, maxWidth: 50 },
+  roleLabel: { fontFamily: 'Silkscreen_700Bold', color: '#77a4d8', fontSize: 7, marginTop: 1 },
   cardEnergyTrack: { width: 38, height: 3, backgroundColor: '#16121f', marginTop: 3, overflow: 'hidden' },
   cardEnergyFill: { height: 3, backgroundColor: '#65b96e' },
   cardEnergyText: {
@@ -2669,9 +2673,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   selectionSide: { flex: 1 },
-  selectionLabel: { color: '#bcb7c4', fontSize: 8, fontWeight: 'bold' },
-  selectionName: { color: '#f4f1ea', fontSize: 11, fontWeight: 'bold', marginTop: 2 },
-  selectionEnergy: { color: '#65b96e', fontSize: 8, fontWeight: 'bold', marginTop: 2 },
+  selectionLabel: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8 },
+  selectionName: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 11, marginTop: 2 },
+  selectionEnergy: { fontFamily: 'Silkscreen_700Bold', color: '#65b96e', fontSize: 8, marginTop: 2 },
   swapArrow: { color: '#f4f1ea', fontSize: 20, paddingHorizontal: 8 },
   swapActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   cancelButton: {
@@ -2685,7 +2689,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
     borderBottomColor: '#16121f',
   },
-  cancelText: { color: '#f4f1ea', fontSize: 12, fontWeight: 'bold' },
+  cancelText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12 },
   confirmButton: {
     flex: 2,
     minHeight: 42,
@@ -2698,7 +2702,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#563779',
   },
   confirmButtonDisabled: { opacity: 0.3 },
-  confirmText: { color: '#f4f1ea', fontSize: 12, fontWeight: 'bold' },
+  confirmText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12 },
   selectionPlaceholder: {
     color: '#bcb7c4',
     fontSize: 10,

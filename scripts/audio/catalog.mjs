@@ -27,7 +27,6 @@ export const SFX_CATALOG = [
   // -- Zone & powers --
   { name: 'zone-enter', group: 'Zone & Powers', minMs: 400, maxMs: 750, targetDb: -3, desc: 'Ascending sparkle chime — hero zone entered' },
   { name: 'zone-expire', group: 'Zone & Powers', minMs: 280, maxMs: 500, targetDb: -5, desc: 'Soft deflating womp — zone expired' },
-  { name: 'tap-fire', group: 'Zone & Powers', minMs: 70, maxMs: 160, targetDb: -4, desc: 'Instant confirm click-chime' },
   { name: 'windup-riser', group: 'Zone & Powers', minMs: 1450, maxMs: 1550, targetDb: -3, desc: 'Rising tone + 15 accelerating ticks' },
   { name: 'power-interrupt', group: 'Zone & Powers', minMs: 180, maxMs: 400, targetDb: -4, desc: 'Record-scratch fizzle, power cut short' },
   { name: 'super-speed-whoosh', group: 'Zone & Powers', minMs: 350, maxMs: 600, targetDb: -3, desc: 'Doppler-ish filtered noise sweep' },

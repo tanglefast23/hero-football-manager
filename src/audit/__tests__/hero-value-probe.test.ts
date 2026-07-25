@@ -20,6 +20,7 @@ import {
 } from '../../game';
 import { createMatch, queueInput, tick } from '../../sim/match';
 import type { PowerId, TeamDef } from '../../sim/types';
+import { scaleTeam as scale } from '../probe-calibration';
 import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 
 const content = loadLaunchContent();
@@ -637,7 +638,7 @@ function parseShard(raw: string | undefined, powerCount: number): { index: numbe
 function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   const state = addCreatedPlayer(
     beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      4_000_000, undefined, content, 'full', 'COZY',
+      4_000_000, undefined, content, 'COZY',
     ))),
     { name: 'Probe Rookie', ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 } },
   );
@@ -646,21 +647,6 @@ function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   return {
     user: withoutPowers(teams[state.userClubId]),
     opponent: withoutPowers(teams[opponentId]),
-  };
-}
-
-function scale(team: TeamDef, delta: number): TeamDef {
-  return {
-    ...team,
-    players: team.players.map(player => ({
-      ...player,
-      attrs: Object.fromEntries(
-        Object.entries(player.attrs).map(([key, value]) => [
-          key,
-          Math.max(1, Math.min(99, value + delta)),
-        ]),
-      ) as unknown as typeof player.attrs,
-    })),
   };
 }
 

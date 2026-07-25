@@ -69,7 +69,7 @@ describe('weekly review view model', () => {
   });
 
   it('celebrates the first Training Pitch without paying TP before it opens', () => {
-    const fresh = createCareer(createLaunchCareerSetup(5680, undefined, undefined, 'full'));
+    const fresh = createCareer(createLaunchCareerSetup(5680));
     const started = buildCareerFacility(fresh, 'training-pitch', { x: 5, y: 1 }).state;
     // The pitch now takes two weeks: no completion after the first settlement.
     const before = advanceWeek(started);

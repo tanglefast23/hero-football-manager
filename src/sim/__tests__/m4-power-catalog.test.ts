@@ -306,7 +306,7 @@ describe('M4 twelve-power catalog', () => {
   it.each([
     'PORTAL_PASS', 'DECOY_DOUBLE', 'FUTURE_SIGHT',
     'SUPER_STRENGTH', 'WEB_TRAP', 'ELASTIC_KEEPER', 'GUST',
-  ] as const)('%s expires rather than auto-firing without its useful target', power => {
+  ] as const)('%s holds its Zone rather than auto-firing without its useful target', power => {
     const { match, hero } = matchWith(power);
     match.players[hero].firePolicy = 'FIRE_WHEN_READY';
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 20 };
@@ -318,8 +318,12 @@ describe('M4 twelve-power catalog', () => {
 
     powerTick(match);
 
-    expect(match.players[hero].powerState).toEqual({ kind: 'zone', remainingTicks: 19 });
+    // The Zone no longer counts down (engine m1.27): a charged power waits for
+    // its context instead of decaying. What matters here is unchanged — a power
+    // that needs a target must never fire without one.
+    expect(match.players[hero].powerState.kind).toBe('zone');
     expect(match.events).not.toContainEqual(expect.objectContaining({ kind: 'POWER_FIRED', player: hero }));
+    expect(match.events).not.toContainEqual(expect.objectContaining({ kind: 'POWER_EXPIRED', player: hero }));
   });
 
   it.each([

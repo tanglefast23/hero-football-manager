@@ -8,7 +8,7 @@ describe('club-legend app flow', () => {
   });
 
   it('pauses a full-career season transition for the legacy choice and returns to the office', () => {
-    useM1Store.getState().startNewCareer(73_531, 'full');
+    useM1Store.getState().startNewCareer(73_531);
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
       ratings: DEFAULT_CREATION_RATINGS,
@@ -68,7 +68,7 @@ describe('club-legend app flow', () => {
   });
 
   it('resumes directly into a pending legacy decision', () => {
-    useM1Store.getState().startNewCareer(73_532, 'full');
+    useM1Store.getState().startNewCareer(73_532);
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
       ratings: DEFAULT_CREATION_RATINGS,

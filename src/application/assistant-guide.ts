@@ -49,7 +49,7 @@ export function pendingAssistantGuideSequence(
 export function dueAssistantInboxGuideSequences(
   state: GameState,
 ): AssistantInboxGuideSequenceId[] {
-  if (state.careerMode !== 'full' || state.market === undefined || state.m2 === undefined) {
+  if (state.market === undefined || state.m2 === undefined) {
     return [];
   }
 

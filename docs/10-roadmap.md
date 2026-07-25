@@ -15,6 +15,8 @@ Build the smallest thing that answers the riskiest question.
 
 > **✅ GATE PASSED — 2026-07-18** (owner's on-device verdict after live play on iPhone: "I like the fun gate, it's passed"). The In-the-Zone tap model reads clearly, the rival Super Strength threat lands as scary-but-fair, and the match is a charming payoff screen. Post-gate polish then shipped on top (engine m0.6): positional-table team movement, GK angle-narrowing, side-split hero cards, 27 SFX + match theme, the Caped Ball app icon, and the ball-at-foot render fix. M1 is now unblocked.
 
+> **⚠ SUPERSEDED — 2026-07-25**: the manual tap this gate tested has since been removed and powers now always fire automatically (see doc 04). The gate's actual verdict — that the match is a readable, charming payoff screen with scary-but-fair rival threats — still stands, because it never depended on the tap. Everything above is kept as the historical record of what was built and judged in M0; the "When should you tap?" question is no longer applicable.
+
 Scope of this gate, stated precisely: M0 judges whether the match is a **readable, charming payoff screen** — not whether the game is fun. Management sims earn most of their fun in the building loop (training nobodies into heroes, economy pressure, collection), which is industry-proven and gets its own verdict at M1's two-season slice, where matches and management are finally judged together. M0 exists because "auto-played soccer with tappable superpowers" is the one unproven bet; it must clear the bar of "worthy payoff for the loop," nothing more.
 
 ## M1 — Two-season hero vertical slice (4 weeks) — THE SECOND GATE

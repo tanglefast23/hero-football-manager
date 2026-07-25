@@ -184,7 +184,7 @@ describe('automatic post-match awakenings', () => {
 
   it('skips a fit promised starter when every Hero License is already in use', () => {
     const initial = playedUserFixture(createCareer(
-      createLaunchCareerSetup(54, undefined, undefined, 'full'),
+      createLaunchCareerSetup(54),
     ));
     const lineup = userLineup(initial);
     const promisedId = lineup[2];
@@ -221,7 +221,7 @@ describe('automatic post-match awakenings', () => {
 
   it('awakens a safe alternative and remains buildable through Cup, injury repair, and settlement', () => {
     const initial = playedUserFixture(createCareer(
-      createLaunchCareerSetup(55, undefined, undefined, 'full'),
+      createLaunchCareerSetup(55),
     ));
     const lineup = userLineup(initial);
     const promisedId = lineup[2];

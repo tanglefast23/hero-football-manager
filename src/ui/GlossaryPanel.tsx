@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import type { GlossaryCatalog } from '../content';
 import { ActionButton } from './components/Scorecard';
+import { PixelText } from './components/PixelText';
 
 export interface GlossaryPanelProps {
   content: GlossaryCatalog;
@@ -29,7 +30,7 @@ export function GlossaryPanel({
   return (
     <View className="min-h-0 flex-1">
       <View className="border-b-2 border-ink pb-4">
-        <Text className="text-sm font-bold uppercase tracking-[3px] text-blue-dark">Club handbook</Text>
+        <PixelText className="text-sm uppercase tracking-[3px] text-blue-dark">Club handbook</PixelText>
         <Text className="mt-1 font-pixel text-2xl uppercase text-ink">Glossary</Text>
         <Text className="mt-2 text-sm leading-5 text-ink/60">
           Plain-language definitions for football, management, training, and hero mechanics.

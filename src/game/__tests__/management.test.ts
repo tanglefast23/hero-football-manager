@@ -9,7 +9,7 @@ import {
 
 describe('career facility transactions', () => {
   test('charges the user club and persists build, upgrade, and relocation state', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260719));
     const built = buildCareerFacility(initial, 'gym', { x: 2, y: 0 });
     const builtReady = completeProject(built.state);
     const levelTwoUnlocked = {
@@ -55,14 +55,12 @@ describe('career facility transactions', () => {
   });
 
   test('gates new facility levels by the best division reached', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260720));
     const built = completeProject(buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state);
 
-    expect(() => upgradeCareerFacility(built, 'facility-1'))
-      .toThrow('Level 2 facilities unlock in D4 · County League');
-
-    const d4 = { ...built, m2: { ...built.m2!, highestDivisionReached: 4 as const } };
-    const levelTwo = completeProject(upgradeCareerFacility(d4, 'facility-1').state);
+    // Level 2 needs no promotion: it is the club's main training accelerator,
+    // so a D5 club can reach it. Only level 3 is still a promotion reward.
+    const levelTwo = completeProject(upgradeCareerFacility(built, 'facility-1').state);
     expect(levelTwo.facilities.grid?.buildings.find(building => building.id === 'facility-1')?.level).toBe(2);
     expect(() => upgradeCareerFacility(levelTwo, 'facility-1'))
       .toThrow('Level 3 facilities unlock in D2 · National Championship');
@@ -72,14 +70,16 @@ describe('career facility transactions', () => {
     expect(levelThree.facilities.grid?.buildings.find(building => building.id === 'facility-1')?.level).toBe(3);
   });
 
-  test('keeps M1 training-ground compatibility while storing the M2 grid', () => {
+  test('stores the grid build behind its construction weeks and logs the spend', () => {
     const initial = createCareer(createLaunchCareerSetup(99));
     const built = buildCareerFacility(initial, 'training-pitch', { x: 0, y: 0 });
 
     expect(built.state.facilities.trainingGroundBuilt).toBe(false);
     expect(built.state.facilities.grid?.buildings[0].type).toBe('training-pitch');
     expect(built.state.facilities.grid?.construction).toMatchObject({ weeksRemaining: 2 });
-    expect(built.state.cashTransactions).toBeUndefined();
+    expect(built.state.cashTransactions).toMatchObject([
+      { kind: 'facility-build', label: 'Training Pitch construction started', amount: -8000 },
+    ]);
   });
 });
 

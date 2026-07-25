@@ -8,7 +8,7 @@ describe('M2 youth intake store flow', () => {
   });
 
   test('reveals the Week 2 choice, signs one prospect, and preserves the scout slot', () => {
-    useM1Store.getState().startNewCareer(91_001, 'full');
+    useM1Store.getState().startNewCareer(91_001);
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
       ratings: DEFAULT_CREATION_RATINGS,
@@ -38,7 +38,7 @@ describe('M2 youth intake store flow', () => {
   });
 
   test('declines every remaining offer and keeps the decision in career state', () => {
-    useM1Store.getState().startNewCareer(91_002, 'full');
+    useM1Store.getState().startNewCareer(91_002);
     useM1Store.getState().completePlayerCreation({
       name: 'Jo Rook',
       ratings: DEFAULT_CREATION_RATINGS,

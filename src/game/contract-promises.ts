@@ -193,9 +193,10 @@ function putPromisedPlayerInStartingLineup(
 
   const playerById = new Map(state.players.map(candidate => [candidate.id, candidate]));
   const replacementSlot = promisedReplacementSlot(lineup.playerIds, player, playerById);
-  if (replacementSlot < 0) {
-    throw new Error(`${player.name} cannot be placed in the starting XI`);
-  }
+  // Two promises can compete for one slot (there is only ever a single GK slot).
+  // Leaving the promise unhonoured is the correct outcome — the club overcommitted
+  // — whereas throwing here ran during weekly settlement and bricked the career.
+  if (replacementSlot < 0) return state.lineups;
   return state.lineups.map(candidate => candidate.clubId !== state.userClubId
     ? candidate
     : {
@@ -238,7 +239,7 @@ function promisedReplacementSlot(
 }
 
 function contractPromiseHeroLimit(state: GameState): number {
-  if (state.careerMode !== 'full' || state.m2 === undefined) return 2;
+  if (state.m2 === undefined) return 2;
   const division = currentUserDivision(state.m2);
   if (division === 1) return 4;
   if (division <= 3) return 3;

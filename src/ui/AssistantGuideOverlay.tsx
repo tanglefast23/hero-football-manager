@@ -115,7 +115,7 @@ export function AssistantGuideOverlay({
 
                 {page.objective ? (
                   <View className="mt-4 border-2 border-blue-dark bg-blue-light px-3 py-2">
-                    <Text className="font-mono text-[10px] font-bold uppercase text-blue-dark">Your next move</Text>
+                    <Text className="font-pixel text-[10px] uppercase text-blue-dark">Your next move</Text>
                     <Text className="mt-1 font-pixel text-sm uppercase text-ink">{page.objective}</Text>
                   </View>
                 ) : null}

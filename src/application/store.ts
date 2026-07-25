@@ -159,10 +159,9 @@ interface M1Store {
   initializePersistence: (
     repository: CareerRepository,
     replayRepository?: ReplayRepository,
-    enableM2?: boolean,
   ) => Promise<void>;
   discardUnreadableSave: () => Promise<void>;
-  startNewCareer: (seed?: number, careerMode?: 'm1-slice' | 'full') => void;
+  startNewCareer: (seed?: number) => void;
   continueCareer: () => void;
   completePlayerCreation: (draft: CreatedPlayerDraft) => void;
   continueAfterAwakening: () => void;
@@ -232,12 +231,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
   error: null,
   notice: null,
 
-  async initializePersistence(repository, replayRepository, enableM2 = false) {
+  async initializePersistence(repository, replayRepository) {
     try {
       const loadedCareer = await repository.load();
       const reconciled = loadedCareer === null
         ? null
-        : reconcileLaunchRoster(loadedCareer, launchContent, enableM2);
+        : reconcileLaunchRoster(loadedCareer, launchContent);
       const career = reconciled === null
         ? null
         : reconcilePendingStoryEvent(
@@ -292,7 +291,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
-  startNewCareer(seed, careerMode = 'm1-slice') {
+  startNewCareer(seed) {
     guarded(set, () => {
       if (get().persistenceLoadError !== null) {
         throw new Error('Resolve the save-load error before replacing this career.');
@@ -304,7 +303,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
         seed ?? generateCareerSeed(),
         undefined,
         launchContent,
-        careerMode === 'full' ? 'full' : undefined,
       )));
       set({
         career,

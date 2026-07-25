@@ -6,7 +6,7 @@ import { buildSeasonRecap } from '../season-recap';
 import type { DifficultyMode, GameState } from '../types';
 
 function career(difficulty: DifficultyMode): GameState {
-  return createCareer(createLaunchCareerSetup(20260721, undefined, undefined, 'full', difficulty));
+  return createCareer(createLaunchCareerSetup(20260721, undefined, undefined, difficulty));
 }
 
 function settleThroughWeekFour(state: GameState): GameState {

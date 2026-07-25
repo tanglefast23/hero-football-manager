@@ -105,7 +105,10 @@ describe('desktop match control rail', () => {
     expect(source).toContain('? MATCH_RAIL_TOP_INSET + MATCH_RAIL_GUTTER');
     expect(source).toContain('const availablePitchWidth = railLayout');
     expect(source).toContain('width - MATCH_RAIL_WIDTH - MATCH_RAIL_GUTTER * 3');
-    expect(source).toContain('const scale = pitchWidth / PITCH_W;');
+    // `scale` now comes from matchPitchLayout, which also snaps sprite
+    // magnification to whole device pixels. What this test guards is that the
+    // rail's reserved width is what gets measured, not the raw viewport.
+    expect(source).toContain('matchPitchLayout(availablePitchWidth');
     // The phone scorebar and coaching dock render only in single mode.
     expect(source).toContain('{railLayout ? null : (');
     expect(source).toContain('{railLayout ? (');

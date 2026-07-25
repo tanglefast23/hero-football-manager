@@ -8,7 +8,7 @@ describe('Club coaching-staff view model', () => {
   const content = loadLaunchContent();
 
   it('puts the employed coach and exact role effects in the Club tab model', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260721, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260721, undefined, content));
     const candidate = {
       ...initial.market!.coachCandidates[0],
       level: 1,
@@ -40,7 +40,7 @@ describe('Club coaching-staff view model', () => {
   });
 
   it('shows true half-strength effects for an employed assistant', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260722, undefined, content, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260722, undefined, content));
     const assistant = {
       ...initial.market!.coachCandidates[0],
       level: 1,

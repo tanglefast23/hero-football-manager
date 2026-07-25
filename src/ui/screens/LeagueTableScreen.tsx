@@ -1,9 +1,11 @@
 import { ScrollView, Text, View } from 'react-native';
 import { Metric, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
+import { EmptyDocket } from '../components/EmptyDocket';
 import { LeagueFixtureRow } from '../components/LeagueFixtureRow';
 import type { LeagueTableViewModel } from '../models';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { PixelText } from '../components/PixelText';
 
 export interface LeagueTableScreenProps {
   viewModel: LeagueTableViewModel;
@@ -40,20 +42,26 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
             title="Full league table"
             right={<StatusChip label="Top 2 go up" tone="success" />}
           />
+          {viewModel.rows.length === 0 ? (
+            <EmptyDocket
+              title="Standings not published"
+              detail="The competition office posts the table once the first round is played."
+            />
+          ) : (
           <View
             accessible
             accessibilityLabel={`${viewModel.divisionLabel} standings after ${viewModel.matchesPlayed} matches`}
             className="border-2 border-ink bg-white"
           >
             <View className="flex-row border-b border-ink/20 px-2 py-2">
-              <Text className="w-7 text-sm font-bold text-ink/50">#</Text>
-              <Text className="flex-1 text-sm font-bold uppercase text-ink/50">Club</Text>
-              <Text className="w-7 text-right font-mono text-sm font-bold text-ink/50">P</Text>
-              <Text className="w-7 text-right font-mono text-sm font-bold text-ink/50">W</Text>
-              <Text className="w-7 text-right font-mono text-sm font-bold text-ink/50">D</Text>
-              <Text className="w-7 text-right font-mono text-sm font-bold text-ink/50">L</Text>
-              <Text className="w-9 text-right font-mono text-sm font-bold text-ink/50">GD</Text>
-              <Text className="w-9 text-right font-mono text-sm font-bold text-ink/50">PTS</Text>
+              <Text className="w-7 font-mono text-sm text-ink/50">#</Text>
+              <PixelText className="flex-1 text-sm uppercase text-ink/50">Club</PixelText>
+              <Text className="w-7 text-right font-mono text-sm text-ink/50">P</Text>
+              <Text className="w-7 text-right font-mono text-sm text-ink/50">W</Text>
+              <Text className="w-7 text-right font-mono text-sm text-ink/50">D</Text>
+              <Text className="w-7 text-right font-mono text-sm text-ink/50">L</Text>
+              <Text className="w-9 text-right font-mono text-sm text-ink/50">GD</Text>
+              <Text className="w-9 text-right font-mono text-sm text-ink/50">PTS</Text>
             </View>
             {viewModel.rows.map(row => {
               const rowClass = row.isUserClub
@@ -70,7 +78,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
                   accessibilityLabel={`${row.position}. ${row.clubName}. Played ${row.played}, won ${row.won}, drawn ${row.drawn}, lost ${row.lost}, goal difference ${row.goalDifference}, ${row.points} points.`}
                   className={`min-h-11 flex-row items-center border-b border-ink/10 px-2 py-2 ${rowClass}`}
                 >
-                  <Text className={`w-7 font-mono text-base font-bold ${primaryText}`}>{row.position}</Text>
+                  <Text className={`w-7 font-mono text-base ${primaryText}`}>{row.position}</Text>
                   <View className="flex-1 flex-row items-center pr-1">
                     <Text className={`flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${primaryText}`} numberOfLines={1}>{row.clubName}</Text>
                     {row.inPromotionPlaces ? (
@@ -82,11 +90,12 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
                   <Text className={`w-7 text-right font-mono text-sm ${secondaryText}`}>{row.drawn}</Text>
                   <Text className={`w-7 text-right font-mono text-sm ${secondaryText}`}>{row.lost}</Text>
                   <Text className={`w-9 text-right font-mono text-sm ${secondaryText}`}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
-                  <Text className={`w-9 text-right font-mono text-base font-bold ${primaryText}`}>{row.points}</Text>
+                  <Text className={`w-9 text-right font-mono text-base ${primaryText}`}>{row.points}</Text>
                 </View>
               );
             })}
           </View>
+          )}
           <View className="mt-4 flex-row items-center gap-4 border-2 border-ink bg-white px-3 py-3">
             <View className="flex-row items-center gap-2">
               <View className="h-3 w-3 bg-blue" />
@@ -135,8 +144,8 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
         header={
           <View className="mb-5 flex-row items-end justify-between">
             <View>
-              <Text className="text-sm font-bold uppercase text-blue-dark">Competition office</Text>
-              <Text className="mt-1 text-xl font-bold uppercase text-ink">{viewModel.divisionLabel}</Text>
+              <PixelText className="text-sm uppercase text-blue-dark">Competition office</PixelText>
+              <PixelText className="mt-1 text-xl uppercase text-ink">{viewModel.divisionLabel}</PixelText>
             </View>
             <View className="items-end gap-1">
               <StatusChip label={viewModel.seasonLabel} />

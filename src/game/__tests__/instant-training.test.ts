@@ -14,7 +14,7 @@ import {
 import type { GameState } from '../types';
 
 function fullCareerState(seed = 0): GameState {
-  const state = runHeadlessFullCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'), 1);
+  const state = runHeadlessFullCareer(createLaunchCareerSetup(seed), 1);
   return { ...state, phase: 'manage', trainingPoints: 100 };
 }
 
@@ -44,8 +44,8 @@ describe('trainPlayerInstantly', () => {
     const res = trainPlayerInstantly(state, player.id, 'sprints');
     const trained = res.state.players.find(p => p.id === player.id)!;
 
-    expect(res.tpSpent).toBe(6); // tier-I sprints in D5
-    expect(res.state.trainingPoints).toBe(state.trainingPoints - 6);
+    expect(res.tpSpent).toBe(10); // tier-II sprints, unlocked from D5
+    expect(res.state.trainingPoints).toBe(state.trainingPoints - 10);
     expect(trained.condition).toBe((player.condition ?? 100) - INSTANT_DRILL_CONDITION_COST);
     expect(res.conditionAfter).toBe(trained.condition);
     expect(res.state.totalInstantDrills).toBe(1);
@@ -79,7 +79,7 @@ describe('trainPlayerInstantly', () => {
     };
     expect(() => trainPlayerInstantly(hurt, player.id, 'sprints')).toThrow('injured');
     expect(() => trainPlayerInstantly({ ...state, trainingPoints: 5 }, player.id, 'sprints'))
-      .toThrow('needs 6 TP');
+      .toThrow('needs 10 TP');
   });
 
   it('is deterministic: the same state resolves identically twice', () => {

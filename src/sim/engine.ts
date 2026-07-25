@@ -807,14 +807,25 @@ export function possessionTick(state: MatchState): void {
     b.vel = { x: Math.trunc(b.vel.x * 0.8), y: Math.trunc(b.vel.y * 0.8) };
     advanceFlightHeight(b);
     if (b.z > BALL_CONTROL_HEIGHT) return;
+    // The nearest player wins a loose ball. Taking the first index inside the
+    // radius handed team 0 (indices 0-10) every contested loose ball, and within
+    // a team gave the keeper and defenders priority over the forwards — a
+    // systematic home advantage in an otherwise symmetric engine. Ties fall to
+    // the lower index so recovery stays deterministic.
+    let recoveredBy = -1;
+    let nearest = 150 * 150;
     for (const i of activePlayerIndices(state)) {
       if (!isAvailable(state, i)) continue;
       const p = requirePlayerAt(state, i);
-      if (dist2(p.pos, b.pos) < 150 * 150) {
-        state.ball = { kind: 'held', by: i };
-        addGauge(state, i, LOOSE_BALL_GAUGE);
-        return;
+      const distance = dist2(p.pos, b.pos);
+      if (distance < nearest) {
+        nearest = distance;
+        recoveredBy = i;
       }
+    }
+    if (recoveredBy !== -1) {
+      state.ball = { kind: 'held', by: recoveredBy };
+      addGauge(state, recoveredBy, LOOSE_BALL_GAUGE);
     }
     return;
   }
@@ -1122,8 +1133,12 @@ function resolveActiveSlide(state: MatchState): boolean {
   const slide = tackler.slideTackle!;
   const carrierStillTargeted = state.ball.kind === 'held' && state.ball.by === slide.targetIdx
     && isConscious(state, slide.targetIdx);
-  const target = requirePlayerAt(state, slide.targetIdx);
-  const contactFraction = carrierStillTargeted
+  // The slide's target may be a Decoy Double clone that expired mid-slide, so this
+  // lookup must not throw — requiring the entity here killed the whole match with
+  // `missing match player entity 22`. Every path below already tolerates a target
+  // that is no longer on the pitch, so behaviour is unchanged when it is present.
+  const target = playerAt(state, slide.targetIdx);
+  const contactFraction = carrierStillTargeted && target !== undefined
     ? sweptContactFraction(slide.previousPos, tackler.pos, slide.targetPreviousPos, target.pos)
     : null;
   if (carrierStillTargeted && contactFraction !== null) {
@@ -1151,7 +1166,7 @@ function resolveActiveSlide(state: MatchState): boolean {
   // A committed miss still travels its locked path after the target releases
   // the ball. Stopping on the release tick made far-away slides look like a
   // one-step stumble even though the launch itself came from 8-11 metres.
-  slide.targetPreviousPos = { ...target.pos };
+  if (target !== undefined) slide.targetPreviousPos = { ...target.pos };
   return true;
 }
 

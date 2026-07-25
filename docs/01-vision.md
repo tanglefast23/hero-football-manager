@@ -6,7 +6,7 @@ A cozy Kairosoft-style soccer club sim where your players are secretly superhero
 
 ## The fantasy
 
-You run a tiny club in the fifth division. Your striker is decent. Then one day a giant spider wanders into the clubhouse, someone gets bitten, and now he bursts into flame when he sprints. Suddenly you're not just balancing a wage bill — you're managing a roster of budding superheroes, deciding who gets the two precious Hero License slots on match day, and tapping the Hero Gauge at exactly the right second to win promotion.
+You run a tiny club in the fifth division. Your striker is decent. Then one day a giant spider wanders into the clubhouse, someone gets bitten, and now he bursts into flame when he sprints. Suddenly you're not just balancing a wage bill — you're managing a roster of budding superheroes, deciding who gets the two precious Hero License slots on match day, and building the squad that wins promotion.
 
 ## Design pillars
 

@@ -16,7 +16,7 @@ function finishConstruction(grid: FacilityGridState): FacilityGridState {
 
 describe('club finances immediate transaction history', () => {
   test('shows newest M2 purchases separately from the weekly statement', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260719, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260719));
     const building = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
     const built = {
       ...building,
@@ -49,7 +49,7 @@ describe('club finances immediate transaction history', () => {
   });
 
   test('projects recurring commitments instead of replaying a one-off statement', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260720));
     const withOneOffStatement = {
       ...initial,
       ledgers: [{
@@ -76,7 +76,6 @@ describe('club finances immediate transaction history', () => {
       20260721,
       undefined,
       undefined,
-      'full',
       'CHAIRMAN',
     ));
 
@@ -91,7 +90,7 @@ describe('club finances immediate transaction history', () => {
   });
 
   test('describes facility effects, affordability, and the exact buildings in an active combo', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260720, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260720));
     const gymProject = buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state;
     const gym = {
       ...gymProject,
@@ -124,13 +123,12 @@ describe('club finances immediate transaction history', () => {
 
     expect(viewModel.facilities.catalog).toHaveLength(12);
     expect(viewModel.facilities.catalog.every(entry => entry.effectLabel.length > 0)).toBe(true);
-    expect(d5Gym).toMatchObject({
-      canUpgrade: false,
-      upgradeBlockedReason: 'Level 2 facilities unlock in D4 · County League.',
-    });
+    // A funded D5 club can upgrade to level 2 without a promotion.
+    expect(d5Gym).toMatchObject({ canUpgrade: true });
+    expect(d5Gym?.upgradeBlockedReason).toBeUndefined();
     expect(viewModel.facilities.activeAdjacencies).toEqual(['gym-dorm']);
     expect(gymBuilding).toMatchObject({
-      effectLabel: 'Level 1: no PAC + STA bonus · upgrades add +50%/+100%',
+      effectLabel: '+25% PAC + STA training',
       canUpgrade: false,
       upgradeShortfall: 7_000,
       canRelocate: false,
@@ -146,7 +144,7 @@ describe('club finances immediate transaction history', () => {
   });
 
   test('puts the completed benefit on every facility construction notice model', () => {
-    const initial = createCareer(createLaunchCareerSetup(20260722, undefined, undefined, 'full'));
+    const initial = createCareer(createLaunchCareerSetup(20260722));
     const catalog = clubFinancesViewModel(initial).facilities.catalog;
 
     for (const entry of catalog) {

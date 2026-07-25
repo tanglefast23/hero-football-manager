@@ -21,6 +21,7 @@ import {
 } from '../../game';
 import { createMatch, queueInput, tick } from '../../sim/match';
 import type { PowerId, TeamDef } from '../../sim/types';
+import { EVEN_DELTA, STRENGTH_LADDER, scaleTeam as scale } from '../probe-calibration';
 import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 
 const content = loadLaunchContent();
@@ -51,9 +52,8 @@ const CARRIER_SLOT: Record<PowerId, number> = {
   GIANT_GK: 0,
   GUST: 2,
 };
-/** The baseline opponent is 2 points stronger, so -2 is a genuinely even match. */
-const EVEN_DELTA = -2;
-const LADDER = [-6, -5, -4, -3, -2, -1, 0, 1, 2];
+// EVEN_DELTA and the ladder are measured, shared constants — see probe-calibration.
+const LADDER = STRENGTH_LADDER;
 
 interface Sample {
   ppm: number;
@@ -207,7 +207,7 @@ function worthLabel(ladder: readonly { delta: number; ppm: number }[], ppm: numb
 function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   const state = addCreatedPlayer(
     beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-      4_000_000, undefined, content, 'full', 'COZY',
+      4_000_000, undefined, content, 'COZY',
     ))),
     { name: 'Probe Rookie', ratings: { pac: 55, sho: 60, pas: 50, def: 50, tec: 50, sta: 50 } },
   );
@@ -219,33 +219,53 @@ function openingTeams(): { user: TeamDef; opponent: TeamDef } {
   };
 }
 
-function scale(team: TeamDef, delta: number): TeamDef {
-  return {
-    ...team,
-    players: team.players.map(player => ({
-      ...player,
-      attrs: Object.fromEntries(
-        Object.entries(player.attrs).map(([key, value]) => [
-          key,
-          Math.max(1, Math.min(99, value + delta)),
-        ]),
-      ) as unknown as typeof player.attrs,
-    })),
-  };
-}
+/**
+ * Powers whose useful context depends on a *teammate* also being a hero, and the
+ * companion power to grant so they can be measured at all.
+ *
+ * RALLY_CRY grants an Encore to a nearby hero, so `bestEncoreCandidate` skips any
+ * teammate with `power === undefined`. Measured one-power-at-a-time it therefore
+ * reported 0.00 zones and 0.00 fires — not because the power is broken, but
+ * because isolating it removes the only thing it can target. The companion sits
+ * in slot 9, which is inside RALLY_CRY_RANGE (2600) of slot 6 in a 4-4-2.
+ */
+const COMPANION_POWER: Partial<Record<PowerId, { power: PowerId; slot: number }>> = {
+  RALLY_CRY: { power: 'SUPER_SPEED', slot: 9 },
+};
 
-/** Gives the power to its designed carrier slot, and to nobody else. */
+/**
+ * Gives the power to its designed carrier slot, and to nobody else — except for
+ * the powers in COMPANION_POWER, which cannot enter their context alone. A
+ * companion makes the reading interpretable as "worth beside another hero"
+ * rather than silently zero.
+ */
 function grantPower(team: TeamDef, power: PowerId): TeamDef {
   const slot = CARRIER_SLOT[power];
   const carrier = team.players[slot];
   if (carrier === undefined || !powerIsCompatibleWithRole(power, carrier.role)) {
     throw new Error(`slot ${slot} cannot carry ${power} (role ${carrier?.role})`);
   }
+  const companion = COMPANION_POWER[power];
+  if (companion !== undefined) {
+    const mate = team.players[companion.slot];
+    if (mate === undefined || !powerIsCompatibleWithRole(companion.power, mate.role)) {
+      throw new Error(
+        `slot ${companion.slot} cannot carry companion ${companion.power} for ${power}`,
+      );
+    }
+    if (companion.slot === slot) {
+      throw new Error(`${power} companion must not share its carrier slot`);
+    }
+  }
   return {
     ...team,
-    players: team.players.map((player, index) => (
-      index === slot ? { ...player, power } : { ...player, power: undefined }
-    )),
+    players: team.players.map((player, index) => {
+      if (index === slot) return { ...player, power };
+      if (companion !== undefined && index === companion.slot) {
+        return { ...player, power: companion.power };
+      }
+      return { ...player, power: undefined };
+    }),
   };
 }
 

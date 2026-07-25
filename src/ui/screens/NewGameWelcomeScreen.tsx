@@ -7,6 +7,7 @@ import { PixelPortrait } from '../components/PixelPortrait';
 import { SettingsButton } from '../SettingsOverlay';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { PixelText } from '../components/PixelText';
 
 export interface NewGameWelcomeScreenProps {
   hasSavedCareer: boolean;
@@ -37,7 +38,7 @@ function BriefRow({ index, title, note, children }: { index: string; title: stri
   return (
     <View className="flex-row items-start gap-3">
       <View className="h-6 w-6 items-center justify-center bg-ink">
-        <Text className="font-mono text-sm font-bold text-paper">{index}</Text>
+        <Text className="font-mono text-sm text-paper">{index}</Text>
       </View>
       <View className="flex-1">
         <Text className="font-pixel text-sm uppercase text-ink">{title}</Text>
@@ -71,7 +72,7 @@ export function NewGameWelcomeScreen({
         </View>
         {/* Board stamp — full red tint, hand-applied tilt */}
         <View className="rotate-2 border-2 border-b-4 border-red bg-red-light/30 px-3 py-1.5">
-          <Text className="font-mono text-sm font-bold uppercase text-red-light">Board approved</Text>
+          <Text className="font-pixel text-sm uppercase text-red-light">Board approved</Text>
         </View>
       </View>
 
@@ -106,7 +107,7 @@ export function NewGameWelcomeScreen({
           <Text className="font-pixel text-2xl text-ink">HF</Text>
         </View>
         <View className="-rotate-2 border-2 border-b-4 border-pitch-light bg-pitch-light/25 px-3 py-1.5">
-          <Text className="font-mono text-sm font-bold uppercase text-pitch-light">File ready</Text>
+          <Text className="font-pixel text-sm uppercase text-pitch-light">File ready</Text>
         </View>
       </View>
 
@@ -159,7 +160,7 @@ export function NewGameWelcomeScreen({
       <View className="border-2 border-ink bg-white p-4">
         <View className="flex-row items-center justify-between gap-3">
           <View className="flex-1">
-            <Text className="font-mono text-xs font-bold uppercase tracking-[2px] text-red-dark">Saved career</Text>
+            <Text className="font-pixel text-xs uppercase tracking-[2px] text-red-dark">Saved career</Text>
             <Text className="mt-1 font-pixel text-lg uppercase text-ink">
               {savedCareerLabel ?? 'Club file ready'}
             </Text>
@@ -199,7 +200,7 @@ export function NewGameWelcomeScreen({
           className="min-h-11 items-center justify-center"
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
         >
-          <Text className="text-sm font-bold uppercase tracking-widest text-paper/70">Accessibility & controls</Text>
+          <PixelText className="text-sm uppercase tracking-widest text-paper/70">Accessibility & controls</PixelText>
         </Pressable>
       ) : null}
     </View>
@@ -222,7 +223,7 @@ export function NewGameWelcomeScreen({
                 className="min-h-11 justify-center"
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
               >
-                <Text className="font-mono text-sm font-bold uppercase tracking-[2px] text-paper/75">‹ Title</Text>
+                <Text className="font-pixel text-sm uppercase tracking-[2px] text-paper/75">‹ Title</Text>
               </Pressable>
             ) : <View />}
             <SettingsButton onPress={onOpenSettings} />

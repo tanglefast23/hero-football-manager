@@ -12,6 +12,7 @@ import {
   createPreseasonYouthIntake,
   declineYouthIntakeOffers,
   signYouthIntakeOffer,
+  youthFieldLevel,
   youthSigningBonus,
 } from '../youth-intake';
 import type { GameState } from '../types';
@@ -87,6 +88,34 @@ describe('pre-season youth intake', () => {
     expect(JSON.stringify(state)).toBe(before);
   });
 
+  it('reads the best operational Youth Field, not the first one built', () => {
+    const base = careerWithRosterSize(12, 303);
+    const withFields = (...levels: readonly (1 | 2 | 3)[]): GameState => ({
+      ...base,
+      facilities: {
+        ...base.facilities,
+        grid: {
+          ...base.facilities.grid!,
+          nextBuildingId: levels.length + 1,
+          buildings: levels.map((level, index) => ({
+            id: `facility-${index + 1}`,
+            type: 'youth-field' as const,
+            level,
+            x: index * 2,
+            y: 0,
+          })),
+        },
+      },
+    });
+
+    expect(youthFieldLevel(base)).toBe(0);
+    expect(youthFieldLevel(withFields(2))).toBe(2);
+    // `.find()` used to return whichever field was built first, so upgrading a
+    // second one paid for nothing.
+    expect(youthFieldLevel(withFields(1, 3))).toBe(3);
+    expect(youthFieldLevel(withFields(3, 1))).toBe(3);
+  });
+
   it('keeps a full roster intake visible but blocks signing until the club makes space', () => {
     const oneSlot = createPreseasonYouthIntake(careerWithRosterSize(15, 202));
     const fullState = careerWithRosterSize(BASE_ROSTER_CAPACITY, 202);
@@ -127,7 +156,7 @@ describe('pre-season youth intake', () => {
   });
 
   it('expires and clears every open offer after pre-season Week 4', () => {
-    let state = createCareer(createLaunchCareerSetup(222, undefined, undefined, 'full'));
+    let state = createCareer(createLaunchCareerSetup(222));
     expect(state.youthIntake?.status).toBe('OPEN');
 
     while (state.week < 5) {
@@ -163,7 +192,6 @@ describe('pre-season youth intake', () => {
   it('signs one player, charges the bonus, adds wages, and never mutates its inputs', () => {
     const state = {
       ...careerWithRosterSize(15, 404, 2),
-      careerMode: 'full' as const,
       cashTransactions: [],
     };
     const intake = createPreseasonYouthIntake(state);

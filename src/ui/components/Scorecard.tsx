@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { playPositiveSfx, playUiClickSfx } from '../../render/management-sfx';
+import { PixelText } from './PixelText';
 
 function cx(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
@@ -47,7 +48,7 @@ export function PaperPanel({ children, title, kicker, stamp, className, tone = '
         <View className="mb-3 flex-row items-start justify-between gap-3">
           <View className="flex-1">
             {kicker ? (
-              <Text className={cx('font-mono text-sm font-bold uppercase', attention ? 'text-gold-dark' : 'text-stamp')}>{kicker}</Text>
+              <Text className={cx('font-pixel text-sm uppercase', attention ? 'text-gold-dark' : 'text-stamp')}>{kicker}</Text>
             ) : null}
             {title ? (
               <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
@@ -55,7 +56,7 @@ export function PaperPanel({ children, title, kicker, stamp, className, tone = '
           </View>
           {stamp ? (
             <View className={cx('border-2 border-b-4 px-2 py-1', attention ? 'border-gold-dark bg-gold' : 'border-stamp bg-red-light/40')}>
-              <Text className={cx('font-mono text-sm font-bold uppercase', attention ? 'text-ink' : 'text-stamp')}>{stamp}</Text>
+              <Text className={cx('font-pixel text-sm uppercase', attention ? 'text-ink' : 'text-stamp')}>{stamp}</Text>
             </View>
           ) : null}
         </View>
@@ -105,6 +106,10 @@ export function ActionButton({
   const ramp = disabled
     ? { face: 'bg-grey', light: 'bg-grey-light', lip: 'bg-grey-dark', text: 'text-paper' }
     : BUTTON_RAMP[variant];
+  // Pressed state is local so `style` stays a plain array. A callback style
+  // bypasses NativeWind processing on native and the className layout silently
+  // drops out — see the note on SfxPressable.
+  const [pressed, setPressed] = useState(false);
 
   return (
     <Pressable
@@ -112,6 +117,8 @@ export function ActionButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       disabled={disabled}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
       onPress={() => {
         if (pressSfx === 'positive') playPositiveSfx();
         else playUiClickSfx();
@@ -123,29 +130,23 @@ export function ActionButton({
         compact ? 'py-2.5' : 'py-3.5',
         disabled && 'opacity-60',
       )}
-      style={({ pressed }) => ({
-        transform: [{ translateY: pressed && !disabled ? 2 : 0 }],
-      })}
+      style={[{ transform: [{ translateY: pressed && !disabled ? 2 : 0 }] }]}
     >
-      {({ pressed }) => (
-        <>
-          {/* bold top-third gloss — clipped to the rounded corners */}
-          {!pressed && !disabled ? (
-            <View pointerEvents="none" className={cx('absolute inset-x-0 top-0', compact ? 'h-4' : 'h-5', ramp.light)} />
-          ) : null}
-          {/* dark bottom lip — the raised depth */}
-          <View pointerEvents="none" className={cx('absolute inset-x-0 bottom-0 h-2', ramp.lip)} />
-          <Text
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={maxFontSizeMultiplier}
-            className={cx('font-pixel text-sm uppercase', ramp.text)}
-            style={{ textShadowColor: 'rgba(36,31,46,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 0 }}
-          >
-            {label}
-          </Text>
-        </>
-      )}
+      {/* bold top-third gloss — clipped to the rounded corners */}
+      {!pressed && !disabled ? (
+        <View pointerEvents="none" className={cx('absolute inset-x-0 top-0', compact ? 'h-4' : 'h-5', ramp.light)} />
+      ) : null}
+      {/* dark bottom lip — the raised depth */}
+      <View pointerEvents="none" className={cx('absolute inset-x-0 bottom-0 h-2', ramp.lip)} />
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        maxFontSizeMultiplier={maxFontSizeMultiplier}
+        className={cx('font-pixel text-sm uppercase', ramp.text)}
+        style={{ textShadowColor: 'rgba(36,31,46,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 0 }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -167,8 +168,8 @@ export function Metric({ label, value, tone = 'normal' }: MetricProps) {
 
   return (
     <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-2 py-2">
-      <Text className="text-sm font-bold uppercase text-ink/60">{label}</Text>
-      <Text className={cx('mt-1 font-mono text-base font-bold', valueColor)} numberOfLines={1}>
+      <PixelText className="text-sm uppercase text-ink/60">{label}</PixelText>
+      <Text className={cx('mt-1 font-mono text-base', valueColor)} numberOfLines={1}>
         {value}
       </Text>
     </View>
@@ -185,7 +186,7 @@ export function SectionLabel({ eyebrow, title, right }: SectionLabelProps) {
   return (
     <View className="mb-3 flex-row items-end justify-between gap-3">
       <View className="flex-1">
-        <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{eyebrow}</Text>
+        <Text className="font-pixel text-sm uppercase text-blue-dark">{eyebrow}</Text>
         <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
       </View>
       {right}
@@ -212,9 +213,9 @@ export function StatusChip({ label, selected = false, tone = 'normal' }: StatusC
 
   return (
     <View className={cx('min-h-8 justify-center border-2 px-2 py-1', palette)}>
-      <Text className={cx('text-sm font-bold uppercase', palette.split(' ').find(c => c.startsWith('text-')))}>
+      <PixelText className={cx('text-sm uppercase', palette.split(' ').find(c => c.startsWith('text-')))}>
         {label}
-      </Text>
+      </PixelText>
     </View>
   );
 }

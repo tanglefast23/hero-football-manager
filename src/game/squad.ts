@@ -17,7 +17,7 @@ const DEFAULT_HERO_LIMIT = 2;
 const TRAINING_GROUND_COST = 8000;
 /** Hero License field cap earned by climbing the national pyramid. */
 export function careerHeroLimit(state: GameState): number {
-  if (state.careerMode !== 'full' || state.m2 === undefined) return DEFAULT_HERO_LIMIT;
+  if (state.m2 === undefined) return DEFAULT_HERO_LIMIT;
   const division = highestDivisionReached(state);
   if (division === 1) return 4;
   if (division <= 3) return 3;
@@ -49,22 +49,20 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
   // M2's wellbeing model defines morale as a low-morale penalty with a neutral
   // band at 30+. Normalize the legacy match adapter's separate morale scaling
   // after applying that rule so the penalty is neither doubled nor turned into
-  // a high-morale stat bonus. The finite M1 slice keeps its established adapter.
-  const matchRoster = state.careerMode === 'full'
-    ? roster.map(player => ({
-        ...player,
-        morale: 50,
-        attrs: {
-          pac: applyLowMoraleToStat(player.attrs.pac, player.morale),
-          sho: applyLowMoraleToStat(player.attrs.sho, player.morale),
-          pas: applyLowMoraleToStat(player.attrs.pas, player.morale),
-          def: applyLowMoraleToStat(player.attrs.def, player.morale),
-          tec: applyLowMoraleToStat(player.attrs.tec, player.morale),
-          sta: applyLowMoraleToStat(player.attrs.sta, player.morale),
-          ref: applyLowMoraleToStat(player.attrs.ref, player.morale),
-        },
-      }))
-    : roster;
+  // a high-morale stat bonus.
+  const matchRoster = roster.map(player => ({
+    ...player,
+    morale: 50,
+    attrs: {
+      pac: applyLowMoraleToStat(player.attrs.pac, player.morale),
+      sho: applyLowMoraleToStat(player.attrs.sho, player.morale),
+      pas: applyLowMoraleToStat(player.attrs.pas, player.morale),
+      def: applyLowMoraleToStat(player.attrs.def, player.morale),
+      tec: applyLowMoraleToStat(player.attrs.tec, player.morale),
+      sta: applyLowMoraleToStat(player.attrs.sta, player.morale),
+      ref: applyLowMoraleToStat(player.attrs.ref, player.morale),
+    },
+  }));
 
   const team = buildTeamDef(club, matchRoster, lineup.playerIds, careerHeroLimit(state));
   if (clubId !== state.userClubId) return team;

@@ -22,6 +22,7 @@ import { PixelPortrait } from '../components/PixelPortrait';
 import { playManagementHaptic } from '../../render/haptics';
 import { stepChoice } from '../appearance-stepper';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { PixelText } from '../components/PixelText';
 
 export interface CharacterCreationScreenProps {
   initialDifficulty: DifficultyMode;
@@ -137,8 +138,8 @@ export function CharacterCreationScreen({
                   : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-3'}
               >
                 <Text className={selected
-                  ? 'font-mono text-base font-bold text-white'
-                  : 'font-mono text-base font-bold text-ink'}
+                  ? 'font-pixel text-base text-white'
+                  : 'font-pixel text-base text-ink'}
                 >
                   {selected ? '●' : '○'} {mode} ({label})
                 </Text>
@@ -162,7 +163,7 @@ export function CharacterCreationScreen({
         />
         <View className="mt-3 flex-row items-center justify-between">
           <StatusChip label="Position: FWD" selected />
-          <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">$180 / week · 1 season</Text>
+          <PixelText className="text-sm uppercase tracking-wide text-ink/50">$180 / week · 1 season</PixelText>
         </View>
       </PaperPanel>
     </>
@@ -174,14 +175,14 @@ export function CharacterCreationScreen({
       : 'rotate-2 border-[3px] border-ink bg-blue px-3 py-2'}
     >
       <Text className={pointsRemaining === 0
-        ? 'text-center font-mono text-2xl font-bold text-ink'
-        : 'text-center font-mono text-2xl font-bold text-white'}
+        ? 'text-center font-mono text-2xl text-ink'
+        : 'text-center font-mono text-2xl text-white'}
       >
         {pointsRemaining}
       </Text>
       <Text className={pointsRemaining === 0
-        ? 'text-center text-sm font-bold uppercase text-ink/60'
-        : 'text-center text-sm font-bold uppercase text-white/80'}
+        ? 'text-center font-pixel text-sm uppercase text-ink/60'
+        : 'text-center font-pixel text-sm uppercase text-white/80'}
       >
         left
       </Text>
@@ -223,7 +224,7 @@ export function CharacterCreationScreen({
               >
                 <Text className="font-mono text-2xl font-bold text-ink">−</Text>
               </Pressable>
-              <Text className="w-12 text-center font-mono text-2xl font-bold text-ink">{value}</Text>
+              <Text className="w-12 text-center font-mono text-2xl text-ink">{value}</Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Increase ${copy.label}, currently ${value}`}
@@ -338,7 +339,7 @@ function AppearanceChoice({
 }) {
   return (
     <View className="min-h-11 flex-row items-center justify-between gap-2 border-2 border-ink/30 bg-white px-2 py-2">
-      <Text className="min-w-0 flex-1 text-sm font-bold uppercase text-ink" numberOfLines={1}>{label}</Text>
+      <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink" numberOfLines={1}>{label}</PixelText>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Previous ${label}, currently ${value}`}
@@ -349,9 +350,9 @@ function AppearanceChoice({
         className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
         style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
       >
-        <Text className="font-mono text-xl font-bold text-white">‹</Text>
+        <Text className="font-pixel text-xl text-white">‹</Text>
       </Pressable>
-      <Text className="w-16 text-center font-mono text-sm font-bold text-blue-dark" numberOfLines={1}>{value}</Text>
+      <Text className="w-16 text-center font-pixel text-sm text-blue-dark" numberOfLines={1}>{value}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Next ${label}, currently ${value}`}
@@ -362,7 +363,7 @@ function AppearanceChoice({
         className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
         style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
       >
-        <Text className="font-mono text-xl font-bold text-white">›</Text>
+        <Text className="font-pixel text-xl text-white">›</Text>
       </Pressable>
     </View>
   );

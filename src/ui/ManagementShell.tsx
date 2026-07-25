@@ -6,7 +6,10 @@ import type { ManagementTab, ResourceSummaryViewModel } from './models';
 import { TutorialTapCue } from './TutorialTapCue';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import { SettingsButton } from './SettingsOverlay';
-import { SfxPressable as Pressable } from './components/SfxPressable';
+import { HoverTipAnchor, SfxPressable as Pressable } from './components/SfxPressable';
+import { managementKeyBindings, tabNumberKey } from './management-key-bindings';
+import { useKeyBindings } from './use-key-bindings';
+import { PixelText } from './components/PixelText';
 
 function useGuideAnchor(
   enabled: boolean,
@@ -48,13 +51,17 @@ function useGuideAnchor(
   return { anchorRef, scheduleMeasurement };
 }
 
-const TABS: ReadonlyArray<{ id: ManagementTab; label: string; glyph: string; available: boolean }> = [
-  { id: 'home', label: 'Home', glyph: '⌂', available: true },
-  { id: 'squad', label: 'Squad', glyph: '11', available: true },
-  { id: 'club', label: 'Club', glyph: '▦', available: true },
-  { id: 'market', label: 'Market', glyph: '⇄', available: true },
-  { id: 'league', label: 'League', glyph: '≡', available: true },
+const TABS: ReadonlyArray<{
+  id: ManagementTab; label: string; glyph: string; available: boolean; tip: string;
+}> = [
+  { id: 'home', label: 'Home', glyph: '⌂', available: true, tip: 'Today\u2019s work — next fixture, inbox and the league table' },
+  { id: 'squad', label: 'Squad', glyph: '11', available: true, tip: 'Your eleven and the bench — train players and set the lineup' },
+  { id: 'club', label: 'Club', glyph: '▦', available: true, tip: 'Grounds, coaching staff and the books' },
+  { id: 'market', label: 'Market', glyph: '⇄', available: true, tip: 'Scout, sign, sell and hire coaches' },
+  { id: 'league', label: 'League', glyph: '≡', available: true, tip: 'Standings, fixtures and the cup' },
 ];
+
+const ADVANCE_WEEK_TIP = 'Match day, wages and events · press Enter';
 
 // Persistent chrome must not consume the screen when iOS Dynamic Type is at
 // its accessibility maximum. The full names remain available to assistive
@@ -97,7 +104,7 @@ function ResourceChip({ glyph, name, value, tone }: {
       <Text maxFontSizeMultiplier={1.2} className={hero ? 'font-mono text-xs font-bold text-gold-dark' : 'font-mono text-xs font-bold text-blue-dark'}>
         {glyph}
       </Text>
-      <Text maxFontSizeMultiplier={1.2} adjustsFontSizeToFit numberOfLines={1} className={hero ? 'font-mono text-sm font-bold text-gold-dark' : 'font-mono text-sm font-bold text-ink'}>
+      <Text maxFontSizeMultiplier={1.2} adjustsFontSizeToFit numberOfLines={1} className={hero ? 'font-mono text-sm text-gold-dark' : 'font-mono text-sm text-ink'}>
         {abbrev(value)}
       </Text>
     </View>
@@ -117,6 +124,13 @@ export interface ManagementShellProps {
   onOpenSettings?: () => void;
   advanceWeekLabel?: string;
   advanceWeekDisabled?: boolean;
+  /**
+   * Desktop key shortcuts, on by default. The shell cannot see an overlay a
+   * screen renders over it, so a caller that owns the keyboard for a while
+   * (a full-screen tutorial page) passes false. React Native modals are
+   * detected on their own — see useKeyBindings.
+   */
+  keyboardShortcutsEnabled?: boolean;
   guideFocus?: 'money' | 'navigation';
   guideTarget?:
     | 'home-tab'
@@ -143,12 +157,19 @@ export function ManagementShell({
   onOpenSettings,
   advanceWeekLabel = 'Advance Week  ▸',
   advanceWeekDisabled = false,
+  keyboardShortcutsEnabled = true,
   guideFocus,
   guideTarget,
   onMoneyGuideAnchorChange,
   onNavigationGuideAnchorChange,
   onDismissGuidance,
 }: ManagementShellProps) {
+  // Desktop players drive the chrome from the keyboard; a no-op on phones.
+  useKeyBindings(
+    managementKeyBindings({ tabs: TABS, onTabChange, onAdvanceWeek, advanceWeekDisabled }),
+    keyboardShortcutsEnabled,
+  );
+
   const moneyGuideAnchor = useGuideAnchor(guideFocus === 'money', onMoneyGuideAnchorChange);
   const navigationGuideAnchor = useGuideAnchor(
     guideFocus === 'navigation',
@@ -211,7 +232,7 @@ export function ManagementShell({
         </View>
         <View className="mt-2 border-t border-ink/15 pt-2">
           <Text
-            className="font-mono text-sm font-bold uppercase text-blue-dark"
+            className="font-pixel text-sm uppercase text-blue-dark"
             numberOfLines={1}
             adjustsFontSizeToFit
             maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
@@ -235,7 +256,10 @@ export function ManagementShell({
         {/* Bottom chrome shares the content column: the Advance Week button and
             the five tabs never extend past the tables above them on desktop. */}
         <View className="w-full max-w-5xl self-center">
-        <View className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}>
+        <HoverTipAnchor
+          tip={advanceWeekDisabled ? undefined : ADVANCE_WEEK_TIP}
+          className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
+        >
           {guideTarget === 'advance-week' ? (
             <TutorialTapCue
               detail="Advance week"
@@ -252,7 +276,7 @@ export function ManagementShell({
             compact
             maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
           />
-        </View>
+        </HoverTipAnchor>
         <View
           ref={navigationGuideAnchor.anchorRef}
           collapsable={false}
@@ -262,7 +286,7 @@ export function ManagementShell({
             : 'mt-2 flex-row'}
           accessibilityRole="tablist"
         >
-          {TABS.map(tab => {
+          {TABS.map((tab, index) => {
             const selected = tab.id === activeTab;
             const guideTab = guideTarget === 'home-tab'
               ? 'home'
@@ -279,6 +303,9 @@ export function ManagementShell({
                   : tab.available ? `${tab.label} tab` : `${tab.label} tab, unavailable`}
                 accessibilityState={{ selected, disabled: !tab.available }}
                 disabled={!tab.available}
+                tip={tab.available
+                  ? `${tab.tip} · press ${tabNumberKey(index)}`
+                  : `${tab.label} is not available yet`}
                 onPress={() => onTabChange(tab.id)}
                 className={guided
                   ? 'relative min-h-12 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light'
@@ -293,21 +320,21 @@ export function ManagementShell({
                   />
                 ) : null}
                 <Text
-                  className={selected ? 'font-mono text-lg font-bold text-ink' : 'font-mono text-lg text-ink/50'}
+                  className={selected ? 'font-pixel text-lg text-ink' : 'font-mono text-lg text-ink/50'}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
                 >
                   {tab.glyph}
                 </Text>
-                <Text
-                  className={selected ? 'mt-1 text-sm font-bold uppercase text-ink' : 'mt-1 text-sm uppercase text-ink/50'}
+                <PixelText
+                  className={selected ? 'mt-1 text-sm uppercase text-ink' : 'mt-1 text-sm uppercase text-ink/50'}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
                 >
                   {tab.label}
-                </Text>
+                </PixelText>
               </Pressable>
             );
           })}

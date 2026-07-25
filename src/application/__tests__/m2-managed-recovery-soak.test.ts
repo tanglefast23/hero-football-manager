@@ -43,7 +43,7 @@ function runStrugglingManagerCareer(seed: number): {
   minimumCash: number;
 } {
   let state = coldRelaunch(createCareer(
-    createLaunchCareerSetup(seed, undefined, undefined, 'full'),
+    createLaunchCareerSetup(seed),
   ));
   let transitions = 0;
   let minimumRosterSize = userRosterSize(state);
@@ -88,7 +88,7 @@ function runStrugglingManagerCareer(seed: number): {
       ))) {
         state = renewCareerPlayer(state, player.id, 4, 1);
       }
-      state = reconcileLaunchRoster(coldRelaunch(startNextSeason(state)), undefined, true);
+      state = reconcileLaunchRoster(coldRelaunch(startNextSeason(state)));
     } else {
       throw new Error('a full career must not enter the complete phase');
     }

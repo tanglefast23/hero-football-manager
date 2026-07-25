@@ -4,6 +4,7 @@ import { ActionButton, Metric, PaperPanel, StatusChip } from '../components/Scor
 import { ChalkboardBackdrop } from '../components/ChalkboardStage';
 import { SettingsButton } from '../SettingsOverlay';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { PixelText } from '../components/PixelText';
 
 /** One self-reported stat tile. `value` is a display string so "99*" / "MAX" both work. */
 export interface HirePitchStat {
@@ -156,7 +157,7 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOp
           <View className="items-end gap-3">
             <SettingsButton onPress={onOpenSettings} />
             <View className="-rotate-3 border-2 border-red bg-red-light/25 px-3 py-2">
-              <Text className="text-sm font-bold uppercase tracking-widest text-red-light">Trialist</Text>
+              <PixelText className="text-sm uppercase tracking-widest text-red-light">Trialist</PixelText>
             </View>
           </View>
         </View>
@@ -174,11 +175,11 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOp
           </View>
 
           <View className="-mt-3 border-2 border-b-4 border-ink bg-white px-5 py-2">
-            <Text className="text-center text-xl font-bold uppercase tracking-wide text-ink" numberOfLines={1}>
+            <PixelText className="text-center text-xl uppercase tracking-wide text-ink" numberOfLines={1}>
               {player.name}
-            </Text>
+            </PixelText>
           </View>
-          <Text className="mt-2 font-mono text-sm font-bold uppercase text-blue-light">{subLine}</Text>
+          <Text className="mt-2 font-pixel text-sm uppercase text-blue-light">{subLine}</Text>
           <View className="mt-3">
             <StatusChip label="Wonderkid (his words)" tone="hero" />
           </View>
@@ -206,12 +207,12 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOp
         </PaperPanel>
 
         {/* Speech bubble — his desperate, lovable pitch */}
-        <View className="relative mt-6 border-2 border-b-4 border-ink bg-white p-4">
+        <PaperPanel className="mt-6">
           <View
             pointerEvents="none"
             className="absolute -top-2 left-8 h-4 w-4 rotate-45 border-l-2 border-t-2 border-ink bg-white"
           />
-          <Text className="font-mono text-sm font-bold uppercase text-stamp">The pitch</Text>
+          <Text className="font-pixel text-sm uppercase text-stamp">The pitch</Text>
           <View className="mt-2 gap-3">
             {speech.map((line, index) => (
               <Text
@@ -222,7 +223,7 @@ export function HirePitchScreen({ player, lines, signLabel, onSign, onPass, onOp
               </Text>
             ))}
           </View>
-        </View>
+        </PaperPanel>
       </ScrollView>
 
       <View className="flex-row items-stretch gap-3 border-t-[6px] border-white bg-ink/25 p-3">

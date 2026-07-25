@@ -50,7 +50,7 @@ export function PlayerSigningOverlay({
                 <PixelPortrait playerId={player.playerId} role={player.role} lookId={player.lookId} expression="joy" />
               </View>
               <Text className="mt-3 font-pixel text-xl uppercase text-ink">{player.playerName}</Text>
-              <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
+              <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                 {player.role} · {isRookie
                   ? 'Your first hire'
                   : player.source === 'academy' ? 'Academy graduate' : 'First-team signing'}

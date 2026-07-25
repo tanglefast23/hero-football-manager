@@ -8,6 +8,7 @@ import { SettingsButton } from '../SettingsOverlay';
 import type { MatchDayViewModel } from '../models';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { PixelText } from '../components/PixelText';
 
 export interface FixtureMatchDayScreenProps {
   viewModel: MatchDayViewModel;
@@ -55,7 +56,7 @@ export function FixtureMatchDayScreen({
       <View className="flex-row items-center gap-3">
         <Text className="flex-1 text-right font-pixel text-base uppercase leading-6 text-ink" numberOfLines={2}>{fixture.homeTeam}</Text>
         <View className="border-2 border-ink bg-ink px-3 py-2">
-          <Text className="font-mono text-base font-bold text-signal">V</Text>
+          <Text className="font-pixel text-base text-signal">V</Text>
         </View>
         <Text className="flex-1 font-pixel text-base uppercase leading-6 text-ink" numberOfLines={2}>{fixture.awayTeam}</Text>
       </View>
@@ -94,7 +95,7 @@ export function FixtureMatchDayScreen({
                   style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
                 >
                   <View className={player.isHero ? 'h-9 w-9 items-center justify-center border-2 border-gold bg-ink' : 'h-9 w-9 items-center justify-center border-2 border-paper bg-ink'}>
-                    <Text className={player.isHero ? 'font-mono text-sm font-bold text-gold' : 'font-mono text-sm font-bold text-paper'}>
+                    <Text className={player.isHero ? 'font-mono text-sm text-gold' : 'font-mono text-sm text-paper'}>
                       {player.shirtNumber}
                     </Text>
                   </View>
@@ -140,10 +141,10 @@ export function FixtureMatchDayScreen({
                 ? 'mr-3 h-10 w-10 items-center justify-center border-2 border-gold-dark bg-gold'
                 : 'mr-3 h-10 w-10 items-center justify-center border-2 border-ink bg-paper-dark'}
               >
-                <Text className="font-mono text-sm font-bold text-ink">{player.shirtNumber}</Text>
+                <Text className="font-mono text-sm text-ink">{player.shirtNumber}</Text>
               </View>
               <View className="flex-1 pr-2">
-                <Text className="text-base font-bold uppercase text-ink" numberOfLines={1}>{player.name}</Text>
+                <PixelText className="text-base uppercase text-ink" numberOfLines={1}>{player.name}</PixelText>
                 <Text className="mt-1 font-mono text-sm text-ink/60">
                   {player.role} · Rating {player.overall} · Condition {player.condition}%
                 </Text>
@@ -187,8 +188,8 @@ export function FixtureMatchDayScreen({
                 <Text className="font-mono text-xl font-bold text-ink">{hero.licensed ? '★' : '○'}</Text>
               </Pressable>
               <View className="flex-1">
-                <Text className="text-base font-bold uppercase text-ink">{hero.playerName}</Text>
-                <Text className="mt-1 text-sm font-bold uppercase tracking-wide text-gold-dark">{hero.powerName}</Text>
+                <PixelText className="text-base uppercase text-ink">{hero.playerName}</PixelText>
+                <PixelText className="mt-1 text-sm uppercase tracking-wide text-gold-dark">{hero.powerName}</PixelText>
               </View>
             </View>
           </PaperPanel>
@@ -201,9 +202,9 @@ export function FixtureMatchDayScreen({
         </Text>
       ) : null}
       {!viewModel.licenseReady ? (
-        <Text className="mt-3 text-center text-sm font-bold uppercase tracking-wide text-red-light">
+        <PixelText className="mt-3 text-center text-sm uppercase tracking-wide text-red-light">
           License every starting hero before starting the match · limit {viewModel.heroLimit}
-        </Text>
+        </PixelText>
       ) : null}
     </View>
   );
@@ -222,7 +223,7 @@ export function FixtureMatchDayScreen({
           className="min-h-11 min-w-11 items-center justify-center border-2 border-paper/40"
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
         >
-          <Text className="font-mono text-xl font-bold text-paper">‹</Text>
+          <Text className="font-pixel text-xl text-paper">‹</Text>
         </Pressable>
         <View className="flex-1 px-3">
           <Text className="text-center font-pixel text-xs uppercase tracking-[2px] text-gold-light">Match-day docket</Text>
@@ -230,7 +231,7 @@ export function FixtureMatchDayScreen({
         </View>
         <View className="flex-row items-center gap-2">
           <View className="min-w-11 rotate-2 border-2 border-red bg-red-light/25 px-2 py-2">
-            <Text className="text-center font-mono text-sm font-bold text-red-light">{fixture.weekLabel}</Text>
+            <Text className="text-center font-pixel text-sm text-red-light">{fixture.weekLabel}</Text>
           </View>
           <SettingsButton onPress={onOpenSettings} />
         </View>

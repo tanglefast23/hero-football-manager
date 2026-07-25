@@ -1,6 +1,6 @@
 # Hero Football Manager (working title)
 
-A cozy, Kairosoft-style soccer club management sim where some of your players are secretly superheroes. Manage a lower-league club — train players, balance the books, upgrade your grounds — and watch short, charming, auto-played matches where superpowers fire with comic-book spectacle. Tap a charged hero at the perfect moment to turn a match.
+A cozy, Kairosoft-style soccer club management sim where some of your players are secretly superheroes. Manage a lower-league club — train players, balance the books, upgrade your grounds — and watch short, charming, auto-played matches where superpowers fire with comic-book spectacle. Build the squad, set the shape, and watch your heroes turn a match.
 
 **Platform:** iOS first (paid, ~$0.99), Android next, PC (Steam/web) later.
 **Art:** "Heroic chibi" pixel art (B+) — big readable heads, taller bodies for real customization, comic-book effects when powers fire, broadcast-style match dressing.
@@ -13,7 +13,7 @@ A cozy, Kairosoft-style soccer club management sim where some of your players ar
 - **Power effect-art review (web, development only):** `EXPO_PUBLIC_POWER_ART_QA=1 npx expo start --web --port 8092`. This lighter review reel reuses the production effect layer, but deliberately uses a simplified pitch and demo actors; it is not a live match replay.
 - **Simulator:** `npx expo start` then press `i`, or build directly with the XcodeBuildMCP CLI (`simulator build-and-run --scheme HeroFootballManager --workspace-path ios/HeroFootballManager.xcworkspace`). Relaunch pointed at a specific bundler with `xcrun simctl launch <udid> com.tanglefast.herofootballmanager -RCT_jsLocation localhost:8082`.
 - **Native builds** (needed after any icon/audio/native-dep change — Metro can't hot-load native resources): local `xcodebuild` with cloud signing via the ASC API key. `security find-identity` showing 0 local certs is NORMAL (signing is cloud-based); `expo run:ios` fails its local-cert pre-check, so don't use it. Export `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` for CocoaPods. Device install: wireless (needs the one-time cabled network-pairing toggle) or the TestFlight upload pipeline.
-    - **Engine version discipline:** any replay-affecting `src/sim` change bumps `ENGINE_VERSION` in `src/sim/match.ts` and regenerates the golden snapshot (`npx jest src/sim/__tests__/parity-replay.test.ts -u`) in the same commit. Current engine: **m1.25**.
+    - **Engine version discipline:** any replay-affecting `src/sim` change bumps `ENGINE_VERSION` in `src/sim/match.ts` and regenerates the golden snapshot (`npx jest src/sim/__tests__/parity-replay.test.ts -u`) in the same commit. Current engine: **m1.27**.
 
 ## Planning documents
 
@@ -38,7 +38,7 @@ Research reports (source material, written by research agents):
 
 | Decision | Choice |
 |---|---|
-| Match involvement | Hybrid: matches auto-play; tap glowing home heroes on the pitch to fire; live Formation, Playstyle, Swap, and Energy Use controls; persistent auto-power option |
+| Match involvement | Matches auto-play and powers always fire automatically in their authored context — there is no manual hero tap. The player's live controls are Formation, Playstyle, Swap, and Energy Use |
 | Match effort | Playstyle controls tactical intent; Save Energy / Balanced / All Out controls physical effort, movement, and condition drain without directly changing passing or shooting |
 | Career structure | Climb from D5 · District League to D1 · Global League; win D1 to complete the main journey, then continue endlessly; score recap after Season 10 |
 | Business model | Paid app, ~$0.99, no IAP at launch; economy balanced purely for fun |
@@ -55,6 +55,24 @@ Research reports (source material, written by research agents):
 | Salaries | Weekly wages for everyone; raises at contract renewal; hero-rate renewals (×3–5) after awakening |
 | Players | Fictional, procedurally generated (no licensing risk); gentle aging with retirement and a legacy system |
 | Stack | Expo/React Native + TypeScript + react-native-skia (Atlas API); deterministic pure-TS sim core |
+
+### Balance decisions (2026-07-25, not yet implemented)
+
+Measured audit found the D5→D1 ramp impossible (0 promotions across 6 best-play careers × 10 seasons). These are the owner's answers; each still needs implementation and re-measurement.
+
+| Question | Decision | Where it lands |
+|---|---|---|
+| Economy: cut wages or raise income? | **Raise income**, via the fans / ticket price / sponsor levers | Division scaling now implemented (`full-career.ts`); the D5 baseline ratio is still open |
+| Should PAC matter? | **Yes.** Pace must convert into chances — accepting it as a dead stat is rejected | Engine change; needs `ENGINE_VERSION` bump + band re-tuning |
+| Is the goalkeeper the most important player? | **No.** Flatten the shot/save asymmetry so the eleven matter roughly equally | `engine.ts` `saveProbability`: compress the keeper's REF around a baseline the way `shotPowerAt` already compresses SHO. Do **not** raise the shooter's `/4` — that divisor deliberately prevents SHO being counted twice (aim + power) |
+| Opponent shape | **Balanced teams, not three unbeatable specialists.** Cap star concentration | `pyramid.ts` star slots + `divisionStarFocusedAttribute` |
+| Opponent season scaling | **Much slower**, so a stalled division does not outrun the player | `m2-career.ts` `scaleOpponentClub` |
+| Tutorial fixture | Open against the **3rd-strongest** rival, save the best for later | `schedule.ts` `pinOpeningLeagueOpponents` |
+| Hero worth | **Too low.** A full four-hero squad is +4.6 squad points against a ~19-point division gap; must become a real progression pillar | `content/powers.json` tiers |
+| Chairman mode | **Genuinely harder**, not Cozy with four economic knobs turned down | `difficulty.ts` needs a difficulty axis beyond the economy |
+| How hard is D5? | **1 season for a good player, 2 at most for someone still learning.** Not a multi-season tutorial arc, and never the current unsignposted permanent 10th place | Sets the target for every number above |
+| Should the harness gate the ramp? | **Yes** — assert a best-play career promotes out of D5 **within 2 seasons**, and that a competent-play career manages it in 1 | `m2-balance.test.ts` |
+| Manual Zone tap | **Removed permanently**; powers always fire automatically | Done — see docs/04 |
 
 ## Deliberately deferred (not forgotten)
 

@@ -11,7 +11,7 @@ describe('training-ground inbox letter', () => {
   const content = loadLaunchContent();
 
   it('gives a fresh full career the pitch budget and guides the player to build it', () => {
-    const fresh = createCareer(createLaunchCareerSetup(20260720, undefined, content, 'full'));
+    const fresh = createCareer(createLaunchCareerSetup(20260720, undefined, content));
     expect(fresh.careerMode).toBe('full');
     expect(fresh.clubs.find(club => club.id === fresh.userClubId)?.cash).toBe(53_000);
     expect(fresh.facilities.trainingGroundBuilt).toBe(false);
@@ -25,7 +25,7 @@ describe('training-ground inbox letter', () => {
   });
 
   it('leaves an existing seeded pitch alone when loading an older career', () => {
-    const fresh = createCareer(createLaunchCareerSetup(20260721, undefined, content, 'full'));
+    const fresh = createCareer(createLaunchCareerSetup(20260721, undefined, content));
     const started = buildCareerFacility(fresh, 'training-pitch', { x: 0, y: 0 }).state;
     const completedGrid = advanceFacilityConstruction(started.facilities.grid!).grid;
     const oldSave = {

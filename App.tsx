@@ -226,7 +226,7 @@ function PowerMatchQaApp() {
               <Text className="font-pixel text-xs uppercase text-ink">‹ Prev</Text>
             </Pressable>
             <View className="flex-1 items-center">
-              <Text className="font-mono text-[10px] font-bold uppercase tracking-widest text-gold">
+              <Text className="font-pixel text-[10px] uppercase tracking-widest text-gold">
                 Live match · {String(powerIndex + 1).padStart(2, '0')} / {String(powerCount).padStart(2, '0')}
               </Text>
               <Text numberOfLines={1} className="font-pixel text-base uppercase text-paper">{power.name}</Text>
@@ -251,7 +251,7 @@ function PowerMatchQaApp() {
               <Text className="font-pixel text-xs uppercase text-ink">Next ›</Text>
             </Pressable>
           </View>
-          <Text className="mt-1 text-center font-mono text-[10px] font-bold leading-4 text-paper/80">
+          <Text className="mt-1 text-center font-pixel text-[10px] leading-4 text-paper/80">
             {power.description}
           </Text>
         </View>
@@ -731,16 +731,21 @@ function GameApp() {
   useEffect(() => {
     let active = true;
     setBootError(null);
-    try {
-      // Expo's native runtime is Hermes. This boot gate executes the same
-      // full-payload replay fingerprint as the Node test before opening a save.
-      assertRuntimeGoldenReplay();
-      console.info(`HERMES_GOLDEN_OK ${runtimeGoldenFingerprint()}`);
-    } catch (error) {
-      setBootError(error instanceof Error ? error.message : String(error));
-      return () => {
-        active = false;
-      };
+    // Expo's native runtime is Hermes. This gate executes the same full-payload
+    // replay fingerprint as the Node test to catch engine drift — but it runs two
+    // complete 2,000-tick matches synchronously, so it is development-only. In a
+    // shipped build it would add ~1s to cold start, and a runtime float shift
+    // would send every installed copy to an error screen instead of their save.
+    if (__DEV__) {
+      try {
+        assertRuntimeGoldenReplay();
+        console.info(`HERMES_GOLDEN_OK ${runtimeGoldenFingerprint()}`);
+      } catch (error) {
+        setBootError(error instanceof Error ? error.message : String(error));
+        return () => {
+          active = false;
+        };
+      }
     }
     void openDatabaseAsync(DATABASE_NAME)
       .then(async database => ({
@@ -759,7 +764,6 @@ function GameApp() {
         await store.initializePersistence(
           repositories.careerRepository,
           repositories.replayRepository,
-          true,
         );
         if (active && repositories.warning !== undefined) {
           store.notify(repositories.warning);
@@ -780,7 +784,7 @@ function GameApp() {
 
   const startNewCareer = useCallback(() => {
     if (!store.hasSavedCareer) {
-      store.startNewCareer(undefined, 'full');
+      store.startNewCareer();
       return;
     }
     requestConfirmation({
@@ -788,7 +792,7 @@ function GameApp() {
       detail: 'Starting over permanently erases the current career and its match replays.',
       confirmLabel: 'Erase and start over',
       tone: 'danger',
-      onConfirm: () => store.startNewCareer(undefined, 'full'),
+      onConfirm: () => store.startNewCareer(),
     });
   }, [requestConfirmation, store.hasSavedCareer, store.startNewCareer]);
 
@@ -822,6 +826,18 @@ function GameApp() {
   const assistantPage = assistantSequence?.pages[
     Math.min(assistantPageIndex, (assistantSequence?.pages.length ?? 1) - 1)
   ];
+  /**
+   * Whether Bert's guide is covering the screen.
+   *
+   * Declared once and used both to render the overlay and to suspend keyboard
+   * shortcuts. The guide is an absolutely-positioned View rather than an RN
+   * Modal, so react-native-web never renders `aria-modal` for it and the
+   * shortcut hook's own modal check cannot see it — without this, 1-5 switched
+   * tabs underneath a full-screen briefing that was blocking mouse clicks on
+   * that same rail. Sharing the expression keeps the two from drifting apart.
+   */
+  const guideOverlayVisible = assistantSequenceId !== null
+    && playerSigning?.source !== 'rookie';
   const assistantObjective = store.career === null
     ? null
     : currentAssistantObjective(store.career, store.activeTab);
@@ -1170,6 +1186,7 @@ function GameApp() {
           store.setActiveTab(tab);
         }}
         onAdvanceWeek={handleAdvanceWeek}
+        keyboardShortcutsEnabled={!guideOverlayVisible}
         onOpenLedger={() => store.setActiveTab('club')}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         advanceWeekLabel={store.saving ? 'Saving…' : 'Advance Week  ▸'}
@@ -1466,7 +1483,7 @@ function GameApp() {
             }
           }}
         />
-        {assistantSequenceId !== null && playerSigning?.source !== 'rookie' ? (
+        {guideOverlayVisible ? (
           <AssistantGuideOverlay
             content={content.assistantGuide}
             sequenceId={assistantSequenceId}
@@ -1595,7 +1612,7 @@ function LoadingScreen() {
         accessibilityLabel="Opening club files"
         className="-rotate-2 border-2 border-signal px-5 py-4"
       >
-        <Text className="font-mono text-lg font-bold uppercase tracking-widest text-signal">Opening club files…</Text>
+        <Text className="font-pixel text-lg uppercase tracking-widest text-signal">Opening club files…</Text>
       </View>
     </SafeAreaView>
   );
@@ -1711,7 +1728,7 @@ function ConfirmationSheet({
           accessibilityViewIsModal
           className="w-full max-w-[1180px] self-center border-2 border-b-4 border-ink bg-paper p-5"
         >
-          <Text className="font-mono text-sm font-bold uppercase text-stamp">Confirm club decision</Text>
+          <Text className="font-pixel text-sm uppercase text-stamp">Confirm club decision</Text>
           <Text className="mt-2 font-pixel text-xl uppercase text-ink">{confirmation?.title}</Text>
           <Text className="mt-3 text-base leading-6 text-ink/70">{confirmation?.detail}</Text>
           <View className="mt-5 flex-row gap-3">

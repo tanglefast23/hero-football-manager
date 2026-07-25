@@ -10,7 +10,7 @@ import { createCareer } from '../career';
 import { buildCareerTeamDef } from '../squad';
 
 function career(seed: number) {
-  return createCareer(createLaunchCareerSetup(seed, undefined, undefined, 'full'));
+  return createCareer(createLaunchCareerSetup(seed));
 }
 
 describe('board ultimatum domain', () => {

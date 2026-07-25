@@ -5,7 +5,7 @@ import { parseStoredGameState, serializeGameState } from '../game-state-codec';
 
 describe('retired power migration', () => {
   it('loads a save whose hero still carries the retired Magnet Touch', () => {
-    const base = createCareer(createLaunchCareerSetup(20260721, undefined, undefined, 'full'));
+    const base = createCareer(createLaunchCareerSetup(20260721));
     const target = base.players.find(p => p.clubId === base.userClubId && p.role === 'FWD')!;
     const legacy = serializeGameState({
       ...base,

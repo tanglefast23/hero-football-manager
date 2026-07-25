@@ -10,23 +10,20 @@ import { parseStoredGameState, serializeGameState } from '../../persistence/game
 import { matchAttribute, matchPaceAttribute } from '../../sim/attributes';
 
 describe('full M2 career clock', () => {
-  test('initializes all divisions, market, cup, and youth intake only when full mode is requested', () => {
-    const m1 = createCareer(createLaunchCareerSetup(77));
-    const full = createCareer({ ...createLaunchCareerSetup(77), careerMode: 'full' });
+  test('initializes all divisions, market, cup, and youth intake for every new career', () => {
+    const full = createCareer(createLaunchCareerSetup(77));
 
-    expect(m1.m2).toBeUndefined();
     expect(full.careerMode).toBe('full');
     expect(full.m2?.pyramid.divisions.map(division => division.clubs.length))
       .toEqual([10, 10, 10, 10, 10]);
     expect(full.m2?.nationalCups[0].season).toBe(1);
     expect(full.market?.coachCandidates.length).toBeGreaterThanOrEqual(3);
-    expect(m1.youthIntake).toBeUndefined();
     expect(full.youthIntake).toMatchObject({ season: 1, status: 'OPEN' });
     expect(full.youthIntake?.offers.length).toBeGreaterThanOrEqual(1);
   });
 
   test('starts the user at the bottom of D5 with a venue-aware first-five curve', () => {
-    const full = createCareer({ ...createLaunchCareerSetup(77_003), careerMode: 'full' });
+    const full = createCareer({ ...createLaunchCareerSetup(77_003) });
     const strengths = new Map(full.clubs.map(club => [
       club.id,
       clubSquadStrength(full.players.filter(player => player.clubId === club.id)),
@@ -60,9 +57,9 @@ describe('full M2 career clock', () => {
     { label: 'Week 5 management', week: 5, phase: 'manage' as const },
     { label: 'matchday', week: 3, phase: 'matchday' as const },
     { label: 'season end', week: 30, phase: 'season-end' as const },
-  ])('upgrades a legacy M1 save during $label with an expired intake', ({ week, phase }) => {
-    const m1 = createCareer(createLaunchCareerSetup(77_001));
-    const upgraded = enableFullCareer({ ...m1, week, phase });
+  ])('re-provisions a resumed save during $label with an expired intake', ({ week, phase }) => {
+    const resumedFrom = createCareer(createLaunchCareerSetup(77_001));
+    const upgraded = enableFullCareer({ ...resumedFrom, week, phase });
 
     expect(upgraded.careerMode).toBe('full');
     expect(upgraded.m2).toBeDefined();
@@ -75,14 +72,14 @@ describe('full M2 career clock', () => {
   });
 
   test('closes stale open offers when an already-upgraded save resumes after Week 4', () => {
-    const full = createCareer({ ...createLaunchCareerSetup(77_002), careerMode: 'full' });
+    const full = createCareer({ ...createLaunchCareerSetup(77_002) });
     const resumed = enableFullCareer({ ...full, week: 6, phase: 'manage' });
 
     expect(resumed.youthIntake).toMatchObject({ status: 'CLOSED', offers: [] });
   });
 
   test('starts an endless next season with an active ten-club division', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(78), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(78) });
     const seasonEnd = {
       ...initial,
       phase: 'season-end' as const,
@@ -107,7 +104,7 @@ describe('full M2 career clock', () => {
   });
 
   test('records a promotion permanently after a later relegation', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(78_001), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(78_001) });
     const promoted = startNextSeason(completeSeasonForUser(initial, 'win'));
 
     expect(currentUserDivision(promoted.m2!)).toBe(4);
@@ -126,7 +123,7 @@ describe('full M2 career clock', () => {
   });
 
   test('promotion exposes a deterministically stronger pool of player ceilings', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(78_002), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(78_002) });
     const promoted = startNextSeason(completeSeasonForUser(initial, 'win'));
     const startingOpponents = initial.players.filter(player => player.clubId !== initial.userClubId);
     const promotedOpponents = promoted.players.filter(player => player.clubId !== promoted.userClubId);
@@ -150,7 +147,7 @@ describe('full M2 career clock', () => {
   test.each([78_003, 78_004, 78_005])(
     'gives a sensibly prepared promoted club two D4 relegation rivals while preserving the real step above them (seed %i)',
     careerSeed => {
-      const initial = createCareer({ ...createLaunchCareerSetup(careerSeed), careerMode: 'full' });
+      const initial = createCareer({ ...createLaunchCareerSetup(careerSeed) });
       const userPlayers = initial.players.filter(player => player.clubId === initial.userClubId);
       const tunedUserPlayers = new Map(tuneSquadToStrength(userPlayers, 46)
         .map(player => [player.id, player] as const));
@@ -183,7 +180,7 @@ describe('full M2 career clock', () => {
   );
 
   test('deterministically replenishes every position when a generation retires', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(79), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(79) });
     const retiringPlayerIds = new Set(initial.players
       .filter(player => player.clubId === initial.userClubId)
       .map(player => player.id));
@@ -221,14 +218,14 @@ describe('full M2 career clock', () => {
   });
 
   test('cold-relaunches multiple season transitions without restoring launch rosters', () => {
-    const current = createCareer({ ...createLaunchCareerSetup(80), careerMode: 'full' });
+    const current = createCareer({ ...createLaunchCareerSetup(80) });
     const { launchRosterVersion: _version, ...preMarker } = current;
     let relaunched: GameState = preMarker;
 
     for (let expectedSeason = 2; expectedSeason <= 5; expectedSeason += 1) {
       const next = startNextSeason(completeSeason(relaunched));
       const loaded = parseStoredGameState(serializeGameState(next));
-      relaunched = reconcileLaunchRoster(loaded, undefined, true);
+      relaunched = reconcileLaunchRoster(loaded);
 
       expect(relaunched.season).toBe(expectedSeason);
       expect(relaunched.players).toHaveLength(next.players.length);
@@ -242,7 +239,7 @@ describe('full M2 career clock', () => {
   });
 
   test('retires an expired-contract legend without requiring a pointless renewal', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(81), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(81) });
     const firstSeasonEnd = completeSeason(initial);
     const seasonTwo = startNextSeason(firstSeasonEnd);
     const legendId = seasonTwo.players.find(player => player.clubId === seasonTwo.userClubId)!.id;
@@ -269,7 +266,7 @@ describe('full M2 career clock', () => {
   });
 
   test('persists deterministic retirement announcements for presentation after transition', () => {
-    const initial = createCareer({ ...createLaunchCareerSetup(82), careerMode: 'full' });
+    const initial = createCareer({ ...createLaunchCareerSetup(82) });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     const announcing = {
       ...completeSeason(initial),
@@ -298,7 +295,7 @@ describe('full M2 career clock', () => {
   });
 
   test('runs four complete seasons through the endless management clock deterministically', () => {
-    const setup = createLaunchCareerSetup(20260719, undefined, undefined, 'full');
+    const setup = createLaunchCareerSetup(20260719);
     const first = runHeadlessFullCareer(setup, 4);
     const second = runHeadlessFullCareer(setup, 4);
 
