@@ -48,12 +48,14 @@ function useGuideAnchor(
   return { anchorRef, scheduleMeasurement };
 }
 
-const TABS: ReadonlyArray<{ id: ManagementTab; label: string; glyph: string; available: boolean }> = [
-  { id: 'home', label: 'Home', glyph: '⌂', available: true },
-  { id: 'squad', label: 'Squad', glyph: '11', available: true },
-  { id: 'club', label: 'Club', glyph: '▦', available: true },
-  { id: 'market', label: 'Market', glyph: '⇄', available: true },
-  { id: 'league', label: 'League', glyph: '≡', available: true },
+const TABS: ReadonlyArray<{
+  id: ManagementTab; label: string; glyph: string; available: boolean; tip: string;
+}> = [
+  { id: 'home', label: 'Home', glyph: '⌂', available: true, tip: 'Today\u2019s work — next fixture, inbox and the league table' },
+  { id: 'squad', label: 'Squad', glyph: '11', available: true, tip: 'Your eleven and the bench — train players and set the lineup' },
+  { id: 'club', label: 'Club', glyph: '▦', available: true, tip: 'Grounds, coaching staff and the books' },
+  { id: 'market', label: 'Market', glyph: '⇄', available: true, tip: 'Scout, sign, sell and hire coaches' },
+  { id: 'league', label: 'League', glyph: '≡', available: true, tip: 'Standings, fixtures and the cup' },
 ];
 
 // Persistent chrome must not consume the screen when iOS Dynamic Type is at
@@ -258,6 +260,7 @@ export function ManagementShell({
                   : tab.available ? `${tab.label} tab` : `${tab.label} tab, unavailable`}
                 accessibilityState={{ selected, disabled: !tab.available }}
                 disabled={!tab.available}
+                tip={tab.available ? tab.tip : `${tab.label} is not available yet`}
                 onPress={() => onTabChange(tab.id)}
                 className={guided
                   ? 'relative min-h-12 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light'

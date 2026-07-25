@@ -820,6 +820,16 @@ function GroundsSection({
                           onPress={() => handleGridCell(x, y)}
                           onPressIn={() => setPreviewCell({ x, y })}
                           onPressOut={() => setPreviewCell(null)}
+                          // A mouse has a hover phase, so the fits/blocked footprint
+                          // tracks the cursor instead of forcing a click-and-hold on
+                          // every square to discover whether the building fits.
+                          onHoverIn={() => setPreviewCell({ x, y })}
+                          onHoverOut={() => setPreviewCell(null)}
+                          tip={placementActive
+                            ? (buildable
+                              ? `Build here · column ${x + 1}, row ${y + 1}`
+                              : 'Blocked — the footprint does not fit here')
+                            : undefined}
                           style={{
                             flex: 1,
                             backgroundColor: occupied

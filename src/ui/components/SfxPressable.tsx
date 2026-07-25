@@ -1,11 +1,28 @@
-import { useState, type ComponentProps } from 'react';
-import { Pressable as NativePressable, type ViewStyle } from 'react-native';
+import { useState, type ComponentProps, type ReactNode } from 'react';
+import { Platform, Pressable as NativePressable, Text, View, type ViewStyle } from 'react-native';
 import { playStatStepSfx, playUiClickSfx } from '../../render/management-sfx';
 
 type NativePressableProps = ComponentProps<typeof NativePressable>;
 type SfxPressableProps = NativePressableProps & {
   pressSfx?: 'click' | 'stat-step';
+  /**
+   * One short line explaining what this control does, shown on mouse hover.
+   * Pointer-only by design: a tap has no hover phase, so this never fires on a
+   * phone and never blocks a touch.
+   */
+  tip?: string;
+  /** Which side of the control the tip opens on. Defaults to above. */
+  tipSide?: 'top' | 'bottom';
 };
+
+/**
+ * Hover and cursor only exist where there is a pointer. Resolved lazily rather
+ * than at module scope: several UI tests mock react-native without `Platform`,
+ * and evaluating it on import would break them at load time.
+ */
+function hasPointer(): boolean {
+  return Platform?.OS === 'web';
+}
 
 /**
  * True when a resolved style already dims the surface itself. Style arrays
@@ -20,7 +37,9 @@ function setsOpacity(style: unknown): boolean {
 
 /**
  * Shared management interaction surface. It gives every custom button/card a
- * short tap cue and a visible pressed state while preserving its own styles.
+ * short tap cue, a visible pressed state, and — on desktop — a pointer cursor,
+ * a hover lift, and an optional explanatory tip, while preserving its own
+ * styles.
  *
  * The pressed state is tracked with local state and the style is always
  * passed down as a plain array — NEVER as a state callback function. On
@@ -34,14 +53,33 @@ export function SfxPressable({
   onPress,
   onPressIn,
   onPressOut,
+  onHoverIn,
+  onHoverOut,
   pressSfx = 'click',
+  tip,
+  tipSide = 'top',
   style,
+  children,
+  disabled,
   ...props
 }: SfxPressableProps) {
   const [pressed, setPressed] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const pointer = hasPointer();
+  const showTip = pointer && hovered && !pressed && tip !== undefined && tip.length > 0;
+
   return (
     <NativePressable
       {...props}
+      disabled={disabled}
+      onHoverIn={event => {
+        setHovered(true);
+        onHoverIn?.(event);
+      }}
+      onHoverOut={event => {
+        setHovered(false);
+        onHoverOut?.(event);
+      }}
       onPressIn={event => {
         setPressed(true);
         onPressIn?.(event);
@@ -57,10 +95,41 @@ export function SfxPressable({
       }}
       style={(() => {
         const resolved = typeof style === 'function'
-          ? style({ pressed } as Parameters<typeof style>[0])
+          ? style({ pressed, hovered } as Parameters<typeof style>[0])
           : style;
-        return [resolved, pressed && !setsOpacity(resolved) ? { opacity: 0.7 } : undefined];
+        return [
+          resolved,
+          pressed && !setsOpacity(resolved) ? { opacity: 0.7 } : undefined,
+          // A mouse gets a cursor and a 1px lift so the UI stops feeling dead.
+          pointer && !disabled ? pointerCursor : undefined,
+          pointer && hovered && !pressed && !disabled ? hoverLift : undefined,
+        ];
       })()}
-    />
+    >
+      {typeof children === 'function'
+        ? children({ pressed, hovered } as Parameters<typeof children>[0])
+        : children}
+      {showTip ? <HoverTip text={tip} side={tipSide} /> : null}
+    </NativePressable>
+  );
+}
+
+/**
+ * `cursor` is understood by react-native-web but is not part of React Native's
+ * own ViewStyle, so it is declared once here rather than cast at each use.
+ */
+const pointerCursor = { cursor: 'pointer' } as ViewStyle;
+const hoverLift: ViewStyle = { transform: [{ translateY: -1 }] };
+
+function HoverTip({ text, side }: { text: string; side: 'top' | 'bottom' }): ReactNode {
+  return (
+    <View
+      pointerEvents="none"
+      className={`absolute left-1/2 z-50 w-44 -translate-x-1/2 border-2 border-ink bg-ink px-2 py-1 ${
+        side === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
+      }`}
+    >
+      <Text className="font-mono text-[10px] leading-4 text-paper">{text}</Text>
+    </View>
   );
 }

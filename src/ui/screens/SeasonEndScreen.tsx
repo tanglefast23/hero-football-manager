@@ -10,7 +10,7 @@ import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SettingsButton } from '../SettingsOverlay';
-import { NegotiationPanel } from './MarketScreen';
+import { NegotiationPanel, useContractDraft } from './MarketScreen';
 
 export interface SeasonEndScreenProps {
   viewModel: SeasonEndViewModel;
@@ -39,6 +39,7 @@ export function SeasonEndScreen({
   guideCopy,
   textScale = 1,
 }: SeasonEndScreenProps) {
+  const renewalDraft = useContractDraft(viewModel.renewalNegotiation);
   const wide = useLayoutMode() === 'twoColumn';
   const contract = viewModel.expiredContract;
   // The season-end fanfare is owned by App.tsx, keyed per career/season so it
@@ -300,6 +301,7 @@ export function SeasonEndScreen({
             {viewModel.renewalNegotiation ? (
               <NegotiationPanel
                 viewModel={viewModel.renewalNegotiation}
+                draft={renewalDraft}
                 onSubmitContractOffer={onSubmitRenewalOffer}
                 onClose={onCloseRenewal}
               />

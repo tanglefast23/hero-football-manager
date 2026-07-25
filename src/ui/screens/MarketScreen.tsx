@@ -1,4 +1,4 @@
-import { cloneElement, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { cloneElement, useEffect, useRef, useState, type Dispatch, type ReactNode, type RefObject, type SetStateAction } from 'react';
 import {
   ScrollView,
   Text,
@@ -141,6 +141,7 @@ export function MarketScreen({
     else if ((guideFocus === 'coach-market' || guideFocus === 'coach-hire' || guideFocus === 'assistant-coach-hire') && coachSectionVisible) setSection('COACHES');
   }, [coachSectionVisible, guideFocus, scoutSectionVisible, transferSectionVisible, youthSectionVisible]);
 
+  const negotiationDraft = useContractDraft(viewModel.negotiation);
   const layoutMode = useLayoutMode();
 
   useEffect(() => {
@@ -218,6 +219,7 @@ export function MarketScreen({
       node: (
         <NegotiationPanel
           viewModel={viewModel.negotiation}
+          draft={negotiationDraft}
           onSubmitContractOffer={onSubmitContractOffer}
           onClose={onCloseNegotiation}
           guided={visibleGuideFocus === 'transfer-negotiation'}
@@ -264,6 +266,7 @@ export function MarketScreen({
           {viewModel.negotiation ? (
             <NegotiationPanel
               viewModel={viewModel.negotiation}
+              draft={negotiationDraft}
               onSubmitContractOffer={onSubmitContractOffer}
               onClose={onCloseNegotiation}
               guided={visibleGuideFocus === 'transfer-negotiation'}
@@ -798,34 +801,69 @@ function CoachDesk({
   );
 }
 
+export interface ContractDraft {
+  weeklyWage: number;
+  setWeeklyWage: Dispatch<SetStateAction<number>>;
+  termSeasons: 1 | 2 | 3;
+  setTermSeasons: Dispatch<SetStateAction<1 | 2 | 3>>;
+  perk: ContractPerk;
+  setPerk: Dispatch<SetStateAction<ContractPerk>>;
+  pitchCard: PitchCard | undefined;
+  setPitchCard: Dispatch<SetStateAction<PitchCard | undefined>>;
+}
+
+/**
+ * Holds the in-progress contract offer for whichever screen renders the panel.
+ *
+ * It lives in the parent because `MarketScreen` renders `NegotiationPanel` from
+ * two different JSX trees — one per layout mode — so crossing the 960px
+ * breakdown point unmounts and remounts the panel. Owning the draft here means
+ * dragging a desktop window wider mid-negotiation no longer silently discards
+ * the wage, term, promise, and pitch card the user had dialled in.
+ */
+export function useContractDraft(viewModel: MarketNegotiationViewModel | undefined): ContractDraft {
+  const [weeklyWage, setWeeklyWage] = useState(viewModel?.initialWeeklyWage ?? 0);
+  const [termSeasons, setTermSeasons] = useState<1 | 2 | 3>(2);
+  const [perk, setPerk] = useState<ContractPerk>('GUARANTEED_STARTER');
+  const [pitchCard, setPitchCard] = useState<PitchCard | undefined>();
+
+  const id = viewModel?.id;
+  const roundLabel = viewModel?.roundLabel;
+  const initialWeeklyWage = viewModel?.initialWeeklyWage;
+  useEffect(() => {
+    if (initialWeeklyWage === undefined) return;
+    setWeeklyWage(initialWeeklyWage);
+    setPitchCard(undefined);
+    // Term and promise reset with the target too. Leaving them behind handed the
+    // next player a term and a binding promise the user never chose for them.
+    setTermSeasons(2);
+    setPerk('GUARANTEED_STARTER');
+  }, [id, roundLabel, initialWeeklyWage]);
+
+  return {
+    weeklyWage, setWeeklyWage, termSeasons, setTermSeasons,
+    perk, setPerk, pitchCard, setPitchCard,
+  };
+}
+
 export function NegotiationPanel({
   viewModel,
+  draft,
   onSubmitContractOffer,
   onClose,
   guided = false,
   flush = false,
 }: {
   viewModel: MarketNegotiationViewModel;
+  /** Owned by the parent screen so a layout-mode remount cannot discard the offer. */
+  draft: ContractDraft;
   onSubmitContractOffer: MarketScreenProps['onSubmitContractOffer'];
   onClose: () => void;
   guided?: boolean;
   /** Omits the panel's own top margin — for use as a SectionFlow section, which owns inter-section spacing. Defaults to false so SeasonEndScreen is unaffected. */
   flush?: boolean;
 }) {
-  const [weeklyWage, setWeeklyWage] = useState(viewModel.initialWeeklyWage);
-  const [termSeasons, setTermSeasons] = useState<1 | 2 | 3>(2);
-  const [perk, setPerk] = useState<ContractPerk>('GUARANTEED_STARTER');
-  const [pitchCard, setPitchCard] = useState<PitchCard | undefined>();
-
-  useEffect(() => {
-    setWeeklyWage(viewModel.initialWeeklyWage);
-    setPitchCard(undefined);
-    // Term and promise must reset with the target too. The panel does not unmount
-    // between negotiations, so leaving them behind handed the next player a term
-    // and a binding promise the user never chose for them.
-    setTermSeasons(2);
-    setPerk('GUARANTEED_STARTER');
-  }, [viewModel.id, viewModel.roundLabel, viewModel.initialWeeklyWage]);
+  const { weeklyWage, setWeeklyWage, termSeasons, setTermSeasons, perk, setPerk, pitchCard, setPitchCard } = draft;
 
   const open = viewModel.status === 'OPEN';
   const moodClass = viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
