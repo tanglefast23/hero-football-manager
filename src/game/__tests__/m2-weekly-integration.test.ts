@@ -1,5 +1,6 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import {
+  CUP_SETTLEMENT_WEEKS,
   activeCareerMatchday,
   advanceWeek,
   completeMatchday,
@@ -55,21 +56,18 @@ function settleScheduledWeek(state: GameState): GameState {
 
 describe('M2 weekly sidecars', () => {
   test('advances exactly one National Cup round on each cup calendar week', () => {
-    const initial = fullCareer(501);
-    const weekTen = { ...initial, week: 10, phase: 'matchday' as const };
-    const results = fixturesForCurrentWeek(weekTen).map(fixture => ({
-      fixtureId: fixture.id,
-      homeGoals: 1,
-      awayGoals: 1,
-    }));
+    // The cup calendar settles in weeks the league leaves empty, so the play-in
+    // week is settled through ordinary week advancement rather than as the
+    // second half of a double-header.
+    const playInWeek = { ...fullCareer(501), week: CUP_SETTLEMENT_WEEKS[0] };
 
-    const settled = completeLeagueAndCupWeek(weekTen, results);
+    const settled = settleScheduledWeek(playInWeek);
     const cup = settled.m2?.nationalCups[0];
 
     expect(cup?.rounds).toHaveLength(2);
     expect(cup?.rounds[0].fixtures.every(fixture => fixture.status === 'played')).toBe(true);
     expect(cup?.rounds[1].fixtures.every(fixture => fixture.status === 'scheduled')).toBe(true);
-    expect(JSON.stringify(settled)).toBe(JSON.stringify(completeLeagueAndCupWeek(weekTen, results)));
+    expect(JSON.stringify(settled)).toBe(JSON.stringify(settleScheduledWeek(playInWeek)));
   });
 
   test('resolves the scouting clock through normal week advancement', () => {

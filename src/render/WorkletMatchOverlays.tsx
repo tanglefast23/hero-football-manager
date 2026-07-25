@@ -108,6 +108,15 @@ const SPEED_LINE_COLOR = '#ffffff';
  * ground-locked trail spans the real launch-to-current path. Dust is batched
  * into one hard-edged path at exactly 65% opacity; grass is a second opaque
  * path. No blur/filter nodes.
+ *
+ * Every rect corner goes through `snapDevicePixels`, the same single rounding
+ * rule the camera, the sprite atlas and the duel scuff use. The inputs are all
+ * continuous — a `progress` lerp along the travel path, a fractional `drift`/
+ * `rise` off the debris age, and a 1.5x blade width that is half a device pixel
+ * on a 2.625x screen — so without it these clusters sat on a different sub-pixel
+ * phase from the sprites throwing them up, and from themselves frame to frame.
+ * Both edges are snapped, not just the near one, so a fractional span cannot put
+ * the far edge back on a fraction.
  */
 export function WorkletSlideTackleEffects({
   layer,
@@ -117,6 +126,7 @@ export function WorkletSlideTackleEffects({
   progress,
   scale,
   playerDrawScale,
+  devicePixelRatio,
 }: {
   layer: 'dust' | 'grass';
   visualPositions: SharedValue<Float32Array>;
@@ -125,6 +135,7 @@ export function WorkletSlideTackleEffects({
   progress: SharedValue<number>;
   scale: number;
   playerDrawScale: number;
+  devicePixelRatio: number;
 }) {
   const debris = usePathValue((builder) => {
     'worklet';
@@ -158,12 +169,16 @@ export function WorkletSlideTackleEffects({
         for (let index = 0; index < TACKLE_TRAIL_SAMPLES.length; index += 1) {
           const sample = TACKLE_TRAIL_SAMPLES[index];
           const size = sample.dustSize * pixel;
-          const left = originX + travelX * sample.progress + sideX * sample.side * pixel - size * 0.5;
-          const top = originY + travelY * sample.progress + sideY * sample.side * pixel - size * 0.5;
+          const rawLeft = originX + travelX * sample.progress + sideX * sample.side * pixel - size * 0.5;
+          const rawTop = originY + travelY * sample.progress + sideY * sample.side * pixel - size * 0.5;
+          const left = snapDevicePixels(rawLeft, devicePixelRatio);
+          const top = snapDevicePixels(rawTop, devicePixelRatio);
+          const right = snapDevicePixels(rawLeft + size, devicePixelRatio);
+          const bottom = snapDevicePixels(rawTop + size, devicePixelRatio);
           builder.moveTo(left, top);
-          builder.lineTo(left + size, top);
-          builder.lineTo(left + size, top + size);
-          builder.lineTo(left, top + size);
+          builder.lineTo(right, top);
+          builder.lineTo(right, bottom);
+          builder.lineTo(left, bottom);
           builder.close();
         }
 
@@ -172,26 +187,34 @@ export function WorkletSlideTackleEffects({
           const puff = TACKLE_DUST_PIXELS[index];
           const drift = Math.min(5, age * 0.8 + index * 0.35);
           const along = puff.along - drift;
-          const left = cx + (ux * along + sideX * puff.side) * pixel;
-          const top = cy + (uy * along + sideY * puff.side) * pixel - puff.size * pixel * 0.5;
           const size = puff.size * pixel;
+          const rawLeft = cx + (ux * along + sideX * puff.side) * pixel;
+          const rawTop = cy + (uy * along + sideY * puff.side) * pixel - size * 0.5;
+          const left = snapDevicePixels(rawLeft, devicePixelRatio);
+          const top = snapDevicePixels(rawTop, devicePixelRatio);
+          const right = snapDevicePixels(rawLeft + size, devicePixelRatio);
+          const bottom = snapDevicePixels(rawTop + size, devicePixelRatio);
           builder.moveTo(left, top);
-          builder.lineTo(left + size, top);
-          builder.lineTo(left + size, top + size);
-          builder.lineTo(left, top + size);
+          builder.lineTo(right, top);
+          builder.lineTo(right, bottom);
+          builder.lineTo(left, bottom);
           builder.close();
         }
       } else {
         for (let index = 0; index < TACKLE_TRAIL_SAMPLES.length; index += 1) {
           const sample = TACKLE_TRAIL_SAMPLES[index];
-          const baseX = originX + travelX * sample.progress + sideX * sample.side * pixel;
-          const baseY = originY + travelY * sample.progress + sideY * sample.side * pixel;
+          const rawBaseX = originX + travelX * sample.progress + sideX * sample.side * pixel;
+          const rawBaseY = originY + travelY * sample.progress + sideY * sample.side * pixel;
           const width = Math.max(1, pixel);
           const height = sample.grassHeight * pixel;
+          const baseX = snapDevicePixels(rawBaseX, devicePixelRatio);
+          const baseY = snapDevicePixels(rawBaseY, devicePixelRatio);
+          const rightX = snapDevicePixels(rawBaseX + width, devicePixelRatio);
+          const tipY = snapDevicePixels(rawBaseY - height, devicePixelRatio);
           builder.moveTo(baseX, baseY);
-          builder.lineTo(baseX + width, baseY);
-          builder.lineTo(baseX + width, baseY - height);
-          builder.lineTo(baseX, baseY - height);
+          builder.lineTo(rightX, baseY);
+          builder.lineTo(rightX, tipY);
+          builder.lineTo(baseX, tipY);
           builder.close();
         }
 
@@ -200,14 +223,18 @@ export function WorkletSlideTackleEffects({
           const blade = TACKLE_GRASS_PIXELS[index];
           const rise = Math.min(7, age + index * 0.7);
           const along = blade.along - age * 0.35;
-          const baseX = cx + (ux * along + sideX * blade.side) * pixel;
-          const baseY = cy + (uy * along + sideY * blade.side) * pixel;
+          const rawBaseX = cx + (ux * along + sideX * blade.side) * pixel;
+          const rawBaseY = cy + (uy * along + sideY * blade.side) * pixel;
           const width = Math.max(1, pixel * 1.5);
           const height = (blade.height + rise) * pixel;
+          const baseX = snapDevicePixels(rawBaseX, devicePixelRatio);
+          const baseY = snapDevicePixels(rawBaseY, devicePixelRatio);
+          const rightX = snapDevicePixels(rawBaseX + width, devicePixelRatio);
+          const tipY = snapDevicePixels(rawBaseY - height, devicePixelRatio);
           builder.moveTo(baseX, baseY);
-          builder.lineTo(baseX + width, baseY);
-          builder.lineTo(baseX + width, baseY - height);
-          builder.lineTo(baseX, baseY - height);
+          builder.lineTo(rightX, baseY);
+          builder.lineTo(rightX, tipY);
+          builder.lineTo(baseX, tipY);
           builder.close();
         }
       }

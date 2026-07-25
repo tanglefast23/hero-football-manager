@@ -2093,6 +2093,7 @@ export function MatchScreen({
                   progress={workletProgress}
                   scale={scale}
                   playerDrawScale={playerSpriteScale.drawScale}
+                  devicePixelRatio={devicePixelRatio}
                 />
                 <Atlas
                   image={atlas.image as SkImage}
@@ -2110,6 +2111,7 @@ export function MatchScreen({
                   progress={workletProgress}
                   scale={scale}
                   playerDrawScale={playerSpriteScale.drawScale}
+                  devicePixelRatio={devicePixelRatio}
                 />
                 {/* Beaten-challenge contact mark. Over the atlas because the
                     standoff ring leaves the two duelling sprites overlapping,

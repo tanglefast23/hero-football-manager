@@ -1,5 +1,6 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import {
+  CUP_SETTLEMENT_WEEKS,
   activeCareerMatchday,
   completeMatchday,
   createCareer,
@@ -7,9 +8,30 @@ import {
 } from '../career';
 import type { FixtureResult, GameState } from '../types';
 
+const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
+
+/**
+ * A career parked on the play-in week with the next league round pulled onto the
+ * same week. The cup calendar settles in weeks the season-1 league leaves empty,
+ * so a double-header only happens naturally from season 2 on (weeks 6 and 18);
+ * moving the round keeps that shared-week path covered without playing out a
+ * whole season first.
+ */
 function fullCareerAtPlayIn(seed = 2): GameState {
   const career = createCareer(createLaunchCareerSetup(seed));
-  return { ...career, week: 10, phase: 'matchday' };
+  const doubleHeaderRound = Math.min(...career.fixtures
+    .filter(fixture => fixture.season === career.season && fixture.week > PLAY_IN_WEEK)
+    .map(fixture => fixture.round));
+  return {
+    ...career,
+    week: PLAY_IN_WEEK,
+    phase: 'matchday',
+    fixtures: career.fixtures.map(fixture => (
+      fixture.season === career.season && fixture.round === doubleHeaderRound
+        ? { ...fixture, week: PLAY_IN_WEEK }
+        : fixture
+    )),
+  };
 }
 
 function leagueDraws(state: GameState): FixtureResult[] {
@@ -75,7 +97,7 @@ describe('player-controlled National Cup match flow', () => {
     const afterLeague = completeMatchday(initial, leagueDraws(initial));
     const cupMatchday = activeCareerMatchday(afterLeague);
 
-    expect(afterLeague).toMatchObject({ week: 10, phase: 'matchday', ledgers: [] });
+    expect(afterLeague).toMatchObject({ week: PLAY_IN_WEEK, phase: 'matchday', ledgers: [] });
     expect(cupMatchday).toMatchObject({
       kind: 'national-cup',
       cupRoundLabel: 'Play-in',
@@ -95,7 +117,7 @@ describe('player-controlled National Cup match flow', () => {
     const settled = completeMatchday(afterLeague, [userWin]);
     const resolvedRound = settled.m2!.nationalCups[0].rounds[0];
 
-    expect(settled).toMatchObject({ week: 11, phase: 'manage' });
+    expect(settled).toMatchObject({ week: PLAY_IN_WEEK + 1, phase: 'manage' });
     expect(resolvedRound.fixtures.every(fixture => fixture.status === 'played')).toBe(true);
     expect(resolvedRound.fixtures.find(fixture => fixture.id === cupFixture.id)).toMatchObject({
       winnerClubId: settled.userClubId,

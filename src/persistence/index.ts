@@ -15,10 +15,25 @@ export {
   type CareerDatabaseResetOptions,
 } from './hard-reset';
 export {
+  careerSaveFileName,
+  decodeCareerSaveFile,
+  encodeCareerSaveFile,
+  exportCareerSave,
+  importCareerSave,
+  SAVE_FILE_FORMAT,
+  SAVE_FILE_FORMAT_VERSION,
+  type CareerSaveExportOptions,
+  type CareerSaveExportResult,
+  type CareerSaveFileEnvelope,
+  type CareerSaveImportOptions,
+  type DecodedCareerSaveFile,
+} from './save-file';
+export {
   CorruptCareerSaveError,
   CorruptReplayEnvelopeError,
   InvalidGameStateError,
   InvalidReplayEnvelopeError,
+  InvalidSaveFileError,
   MissingCareerBackupError,
   PersistenceMigrationError,
   PersistenceResetError,

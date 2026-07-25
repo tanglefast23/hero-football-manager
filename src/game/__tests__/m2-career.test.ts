@@ -14,6 +14,7 @@ import {
   type M2CareerState,
   type StructuralCareerPlayer,
 } from '../m2-career';
+import { difficultyRules } from '../difficulty';
 import type { NationalCupResult } from '../pyramid';
 import { DIVISION_FOUR_RELEGATION_PACK_STRENGTHS } from '../pyramid';
 
@@ -149,6 +150,32 @@ describe('endless opponent growth', () => {
     for (const club of seasonFive.generatedOpponentClubs) {
       expect(club.squadStrength).toBe(baseline.get(club.id)! + 2);
     }
+  });
+
+  it('lets Chairman face a league that improves every season, not every other one', () => {
+    const initial = initializeM2Career({ careerSeed: 9182, userClub: USER_CLUB });
+    const divisionFive = initial.pyramid.divisions.find(division => division.level === 5)!;
+    const baseline = new Map(divisionFive.clubs.map(club => [club.id, club.squadStrength]));
+
+    // Season 2 is the first transition where the two curves diverge: Cozy needs
+    // two seasons per point, Chairman one.
+    const cozy = planEndlessCareerSeasonTransition(initial, 1, difficultyRules({ difficulty: 'COZY' }));
+    const chairman = planEndlessCareerSeasonTransition(initial, 1, difficultyRules({ difficulty: 'CHAIRMAN' }));
+
+    for (const club of cozy.generatedOpponentClubs) {
+      expect(club.squadStrength).toBe(baseline.get(club.id)!);
+    }
+    for (const club of chairman.generatedOpponentClubs) {
+      expect(club.squadStrength).toBe(baseline.get(club.id)! + 1);
+    }
+  });
+
+  it('defaults to the Cozy curve when no difficulty is supplied', () => {
+    const initial = initializeM2Career({ careerSeed: 9182, userClub: USER_CLUB });
+    const implicit = planEndlessCareerSeasonTransition(initial, 2);
+    const explicit = planEndlessCareerSeasonTransition(initial, 2, difficultyRules({ difficulty: 'COZY' }));
+    expect(implicit.generatedOpponentClubs.map(club => club.squadStrength))
+      .toEqual(explicit.generatedOpponentClubs.map(club => club.squadStrength));
   });
 });
 

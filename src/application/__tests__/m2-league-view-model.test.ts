@@ -1,3 +1,4 @@
+import { CUP_SETTLEMENT_WEEKS } from '../../game/career';
 import {
   advanceM2NationalCup,
   initializeM2Career,
@@ -233,10 +234,10 @@ describe('m2LeagueViewModel', () => {
     const view = m2LeagueViewModel({
       career,
       season: 1,
-      // CUP_SETTLEMENT_WEEKS[0]. The previous value of 5 came from a parallel
-      // literal in the view model that never overlapped the engine's calendar,
-      // so this test passed while every cup tie was unplayable in the real game.
-      week: 10,
+      // Read from the engine's calendar, never a literal: a parallel literal in
+      // the view model once drifted out of overlap with it, so this test passed
+      // while every cup tie was unplayable in the real game.
+      week: CUP_SETTLEMENT_WEEKS[0],
       phase: 'matchday',
       activeStandings: standings(career),
     });

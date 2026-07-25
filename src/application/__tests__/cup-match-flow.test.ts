@@ -1,5 +1,7 @@
-import { DEFAULT_CREATION_RATINGS } from '../../game';
+import { CUP_SETTLEMENT_WEEKS, DEFAULT_CREATION_RATINGS } from '../../game';
 import { useM1Store } from '../store';
+
+const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
 
 describe('National Cup app routing', () => {
   beforeEach(() => {
@@ -38,28 +40,44 @@ describe('National Cup app routing', () => {
       career: { week: 4, phase: 'manage' },
     });
 
+    // The cup settles in weeks the season-1 league leaves empty, so the league
+    // round after the play-in week is pulled onto it. That reproduces the
+    // season-2-onward double-header this routing has to handle without playing
+    // out a whole season first.
     const awakenedCareer = useM1Store.getState().career!;
+    const doubleHeaderRound = Math.min(...awakenedCareer.fixtures
+      .filter(fixture => fixture.season === awakenedCareer.season && fixture.week > PLAY_IN_WEEK)
+      .map(fixture => fixture.round));
     useM1Store.setState({
-      career: { ...awakenedCareer, week: 10, phase: 'matchday' },
+      career: {
+        ...awakenedCareer,
+        week: PLAY_IN_WEEK,
+        phase: 'matchday',
+        fixtures: awakenedCareer.fixtures.map(fixture => (
+          fixture.season === awakenedCareer.season && fixture.round === doubleHeaderRound
+            ? { ...fixture, week: PLAY_IN_WEEK }
+            : fixture
+        )),
+      },
       screen: 'matchday',
     });
 
     useM1Store.getState().quickResult();
     expect(useM1Store.getState()).toMatchObject({
       screen: 'postmatch',
-      career: { week: 10, phase: 'matchday' },
+      career: { week: PLAY_IN_WEEK, phase: 'matchday' },
     });
     useM1Store.getState().continueAfterMatch();
     expect(useM1Store.getState()).toMatchObject({
       screen: 'matchday',
-      career: { week: 10, phase: 'matchday' },
+      career: { week: PLAY_IN_WEEK, phase: 'matchday' },
     });
 
     useM1Store.getState().quickResult();
     const final = useM1Store.getState();
     expect(final).toMatchObject({
       screen: 'postmatch',
-      career: { week: 11, phase: 'manage' },
+      career: { week: PLAY_IN_WEEK + 1, phase: 'manage' },
       postMatch: {
         result: {
           fixtureId: expect.stringContaining('-cup-'),

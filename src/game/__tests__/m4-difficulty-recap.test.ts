@@ -56,11 +56,22 @@ describe('M4 difficulty and season recap', () => {
 
     expect(cozyLines.find(line => line.kind === 'subsidy')?.amount).toBeGreaterThan(0);
     expect(chairmanLines.some(line => line.kind === 'subsidy')).toBe(false);
+    // Derived from the rules, not a pinned 0.85: this asserts the difficulty
+    // actually reaches the ledger, and survives retuning the percentage.
     expect(chairmanLines.find(line => line.kind === 'sponsor')?.amount)
-      .toBe(Math.floor((cozyLines.find(line => line.kind === 'sponsor')?.amount ?? 0) * 0.85));
+      .toBe(Math.floor(
+        (cozyLines.find(line => line.kind === 'sponsor')?.amount ?? 0)
+        * difficultyRules(chairman).sponsorIncomePercent / 100,
+      ));
     expect(difficultyRules(cozy).negativeWeeksBeforeIntervention).toBe(4);
-    expect(difficultyRules(chairman).negativeWeeksBeforeIntervention).toBe(3);
+    expect(difficultyRules(chairman).negativeWeeksBeforeIntervention)
+      .toBeLessThan(difficultyRules(cozy).negativeWeeksBeforeIntervention);
     expect(difficultyRules(chairman).emergencyLoanAmount).toBeLessThan(difficultyRules(cozy).emergencyLoanAmount);
+    // Chairman must be a harder GAME, not only a leaner budget.
+    expect(difficultyRules(chairman).opponentGrowthSeasonsPerPoint)
+      .toBeLessThan(difficultyRules(cozy).opponentGrowthSeasonsPerPoint);
+    expect(difficultyRules(chairman).opponentGrowthCap)
+      .toBeGreaterThan(difficultyRules(cozy).opponentGrowthCap);
   });
 
   it('records and reloads the complete deterministic season cabinet', () => {

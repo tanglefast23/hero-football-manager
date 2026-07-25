@@ -7,20 +7,42 @@ export interface DifficultyRules {
   sponsorIncomePercent: number;
   negativeWeeksBeforeIntervention: number;
   emergencyLoanAmount: number;
+  /**
+   * Seasons the league needs to gain one rating point. Lower means the field
+   * pulls away faster, which is the only lever that makes a mode harder to PLAY
+   * rather than merely harder to afford.
+   */
+  opponentGrowthSeasonsPerPoint: number;
+  /** Ceiling on cumulative league growth, so a long career cannot run away. */
+  opponentGrowthCap: number;
 }
 
+/**
+ * Chairman is meant to be a harder GAME, not just a leaner budget. It used to
+ * differ only in money, so the league it faced was identical to Cozy's.
+ *
+ * It now also loses cushion (sponsor income, one fewer grace week before the
+ * board steps in, a smaller emergency loan) AND faces a league that improves
+ * every season instead of every other season, with a slightly higher ceiling.
+ * That is deliberately a small step: one extra rating point a season, not a
+ * different curve.
+ */
 const RULES: Record<DifficultyMode, DifficultyRules> = {
   COZY: {
     seasonOneWageSubsidyPercent: 50,
     sponsorIncomePercent: 100,
     negativeWeeksBeforeIntervention: 4,
     emergencyLoanAmount: 20_000,
+    opponentGrowthSeasonsPerPoint: 2,
+    opponentGrowthCap: 8,
   },
   CHAIRMAN: {
     seasonOneWageSubsidyPercent: 0,
-    sponsorIncomePercent: 85,
-    negativeWeeksBeforeIntervention: 3,
-    emergencyLoanAmount: 15_000,
+    sponsorIncomePercent: 80,
+    negativeWeeksBeforeIntervention: 2,
+    emergencyLoanAmount: 10_000,
+    opponentGrowthSeasonsPerPoint: 1,
+    opponentGrowthCap: 10,
   },
 };
 

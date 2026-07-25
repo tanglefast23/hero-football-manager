@@ -395,9 +395,25 @@ export function resolveM2CareerPlayerLifecycle(
  * Describes the next endless season without changing GameState. Opponent growth
  * depends only on the next season number, never user results or scorelines.
  */
+/**
+ * How fast the league improves. Supplied by the career's difficulty so Chairman
+ * faces a field that pulls away faster; the default reproduces Cozy exactly, so
+ * callers that do not care are unaffected.
+ */
+export interface OpponentGrowthRules {
+  opponentGrowthSeasonsPerPoint: number;
+  opponentGrowthCap: number;
+}
+
+export const DEFAULT_OPPONENT_GROWTH: OpponentGrowthRules = {
+  opponentGrowthSeasonsPerPoint: 2,
+  opponentGrowthCap: 8,
+};
+
 export function planEndlessCareerSeasonTransition(
   state: M2CareerState,
   completedSeason: number,
+  growth: OpponentGrowthRules = DEFAULT_OPPONENT_GROWTH,
 ): EndlessCareerSeasonTransitionPlan {
   validateStateIdentity(state);
   validateSeason(completedSeason);
@@ -413,7 +429,7 @@ export function planEndlessCareerSeasonTransition(
         ...candidate,
         clubs: candidate.clubs.map(club => club.id === state.userClubId
           ? cloneClub(club)
-          : scaleOpponentClub(club, nextSeason)),
+          : scaleOpponentClub(club, nextSeason, growth)),
       })),
     },
   };
@@ -578,13 +594,19 @@ function deterministicCupRoundResults(
   });
 }
 
-function scaleOpponentClub(club: PyramidClub, season: number): PyramidClub {
+function scaleOpponentClub(
+  club: PyramidClub,
+  season: number,
+  growth: OpponentGrowthRules,
+): PyramidClub {
   // `club` already contains every prior season's applied growth after the
   // active division is synchronized. Apply only this season's step so the
-  // documented +8 curve does not compound the same bonus every year.
-  const previousSeasonBonus = Math.min(8, Math.floor(Math.max(0, season - 2) / 2));
-  const currentSeasonBonus = Math.min(8, Math.floor((season - 1) / 2));
-  const increase = currentSeasonBonus - previousSeasonBonus;
+  // curve does not compound the same bonus every year.
+  const cumulative = (atSeason: number) => Math.min(
+    growth.opponentGrowthCap,
+    Math.floor(Math.max(0, atSeason - 1) / growth.opponentGrowthSeasonsPerPoint),
+  );
+  const increase = cumulative(season) - cumulative(season - 1);
   const squadStrength = Math.min(MAX_PLAYER_ATTRIBUTE, club.squadStrength + increase);
   return {
     ...club,
