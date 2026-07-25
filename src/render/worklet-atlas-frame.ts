@@ -38,8 +38,12 @@ interface WorkletAtlasOptions {
   playerCell: { width: number; height: number };
   actionCell: { width: number; height: number };
   ballCell: { width: number; height: number };
+  /** Snapped via `snapSpriteScale` — see interpolate.ts. */
   playerDrawScale: number;
+  /** Snapped via `snapSpriteScale` — see interpolate.ts. */
   ballDrawScale: number;
+  /** Device pixels per dp, used to land sprite translates on whole texels. */
+  devicePixelRatio: number;
   ballFootForwardFraction: number;
   ballFootDownPx: number;
   ballFootDeadzonePx: number;
@@ -117,6 +121,19 @@ function packStatuses(frame: PitchFrame): Float32Array {
 function clamp01Worklet(value: number): number {
   'worklet';
   return Math.max(0, Math.min(1, value));
+}
+
+/**
+ * Rounds a screen-space (dp) translate so the sprite's top-left corner lands on
+ * a whole device pixel. Positions arrive as `progress`-driven lerps between sim
+ * ticks, i.e. fractional nearly every frame; without this each frame samples a
+ * different sub-pixel phase and the pixel art crawls. Only the final on-screen
+ * translate is quantised — sim positions stay untouched, and the movement
+ * quantum (1 device px, a third of a dp on a 3x screen) is imperceptible.
+ */
+function snapTranslateWorklet(value: number, devicePixelRatio: number): number {
+  'worklet';
+  return Math.round(value * devicePixelRatio) / devicePixelRatio;
 }
 
 function smoothstepWorklet(value: number): number {
@@ -215,6 +232,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     ballCell,
     playerDrawScale,
     ballDrawScale,
+    devicePixelRatio,
     ballFootForwardFraction,
     ballFootDownPx,
     ballFootDeadzonePx,
@@ -305,7 +323,13 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
       // Pixel Cup-style aerial cue: never shrink the ball; a modest 10% apex
       // growth keeps it bright/readable while the arc + shadow carry height.
       const heightScale = ballHeightScale(height);
-      const ballScale = scale * ballDrawScale * heightScale;
+      // `scale * ballDrawScale * dpr` is already a whole number of device
+      // pixels; the apex growth would make it fractional again, so it grows in
+      // whole device pixels instead (one visible step, never a blurred ball).
+      const ballScale = Math.max(
+        1,
+        Math.round(scale * ballDrawScale * heightScale * devicePixelRatio)
+      ) / devicePixelRatio;
       let offsetX = 0;
       let offsetY = 0;
       const heldBy = carrier.value;
@@ -327,8 +351,11 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
       xf.set(
         ballScale,
         0,
-        x * scale - (ballCell.width * ballScale) / 2 + offsetX,
-        y * scale - (ballCell.height * ballScale) / 2 + offsetY - ballVisualOffset(height, scale)
+        snapTranslateWorklet(x * scale - (ballCell.width * ballScale) / 2 + offsetX, devicePixelRatio),
+        snapTranslateWorklet(
+          y * scale - (ballCell.height * ballScale) / 2 + offsetY - ballVisualOffset(height, scale),
+          devicePixelRatio
+        )
       );
       return;
     }
@@ -345,8 +372,8 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     xf.set(
       scos,
       ssin,
-      x * scale - (scos * sourceWidth - ssin * sourceHeight) / 2,
-      y * scale - (ssin * sourceWidth + scos * sourceHeight) / 2
+      snapTranslateWorklet(x * scale - (scos * sourceWidth - ssin * sourceHeight) / 2, devicePixelRatio),
+      snapTranslateWorklet(y * scale - (ssin * sourceWidth + scos * sourceHeight) / 2, devicePixelRatio)
     );
   });
 

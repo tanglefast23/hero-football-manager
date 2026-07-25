@@ -5,7 +5,7 @@ import { createMatch, MAX_SUBSTITUTIONS, queueInput, tick } from '../sim/match';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
-import { PITCH_W, PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
+import { PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
 import type { MatchState, PowerId, TeamDef } from '../sim/types';
 import {
   BASE_PLAYER_COUNT,
@@ -19,7 +19,7 @@ import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
 import { keeperReadyFrameFacingBall, runFrameFacingBall } from './sprites/facing';
 import { webbedSpriteKey } from './sprites/loader';
 import { spriteKeyForMatchPlayer, visualIdForMatchPlayer } from './sprites/slot-key';
-import { snapshotFrame, type PitchFrame } from './interpolate';
+import { matchPitchLayout, snapshotFrame, type PitchFrame } from './interpolate';
 import {
   actionPose,
   isKeeperReady,
@@ -94,17 +94,9 @@ import {
 const MAX_CATCHUP_TICKS = 5;
 const TOTAL_TICKS = HALF_TICKS * 2;
 
-// Magnifies each atlas source-pixel into screen px, before the pitch->screen
-// `scale` factor. Player cells are 24x30 source px; at PLAYER_DRAW_SCALE=17
-// that keeps the same ~28-34pt tall footprint as the prior 16x20@26 across the
-// common iPhone width range (375-430pt) — crisper and more detailed, not bigger.
-const PLAYER_DRAW_SCALE = 17;
-
-// The ball sprite is a separate 6x6 source asset, not a scaled-down player —
-// reusing PLAYER_DRAW_SCALE would shrink it to a ~5pt speck. Calibrated
-// instead for its own ~6pt on-screen radius (~12pt diameter) across the same
-// width range.
-const BALL_DRAW_SCALE = 34;
+// Sprite magnification (PLAYER_DRAW_SCALE / BALL_DRAW_SCALE) and the pixel-grid
+// snapping that keeps it an integer multiple live in interpolate.ts, which is
+// headless-testable — see matchPitchLayout below.
 
 // speedFor()'s PAC ceiling: (40 + 168 max effective PAC) * 1.0 conditionScale
 // * 2.2 max active-SUPER_SPEED multiplier ~= 306 pitch-units/tick. The snap
@@ -263,7 +255,9 @@ export function MatchScreen({
   for (const power of seenPowerCutIns) seenPowerCutInsRef.current.add(power);
   const onPowerCutInSeenRef = useRef(onPowerCutInSeen);
   onPowerCutInSeenRef.current = onPowerCutInSeen;
-  const { width, height } = useWindowDimensions();
+  // `scale` here is React Native's name for the device pixel ratio; the pitch's
+  // own scale factor is derived below and would shadow it.
+  const { width, height, scale: devicePixelRatio } = useWindowDimensions();
   const compactHeight = height < 760;
   const narrowWidth = width < 375;
   // Keep the pitch and both coaching rows visible on short phones. Decorative
@@ -274,8 +268,15 @@ export function MatchScreen({
   // below the viewport on short phones.
   const reservedChromeHeight = compactHeight ? 226 : 286;
   const availablePitchHeight = Math.max(280, height - reservedChromeHeight);
-  const pitchWidth = Math.min(width, availablePitchHeight * PITCH_W / PITCH_H);
-  const scale = pitchWidth / PITCH_W;
+  // Sprite draw scales come back snapped so one source pixel always covers a
+  // whole number of device pixels (art-bible integer-scaling rule); `scale`
+  // itself stays continuous for the vector pitch, which tolerates fractions.
+  const {
+    pitchWidth,
+    scale,
+    player: playerSpriteScale,
+    ball: ballSpriteScale,
+  } = matchPitchLayout(width, availablePitchHeight, devicePixelRatio);
   const pitchH = PITCH_H * scale;
   const homeCode = scoreCode(home);
   const awayCode = scoreCode(away);
@@ -420,8 +421,9 @@ export function MatchScreen({
     playerCell: { width: playerCell.w, height: playerCell.h },
     actionCell: { width: actionCell.w, height: actionCell.h },
     ballCell: { width: ballCell.w, height: ballCell.h },
-    playerDrawScale: PLAYER_DRAW_SCALE,
-    ballDrawScale: BALL_DRAW_SCALE,
+    playerDrawScale: playerSpriteScale.drawScale,
+    ballDrawScale: ballSpriteScale.drawScale,
+    devicePixelRatio,
     ballFootForwardFraction: BALL_FOOT_FORWARD_FRACTION,
     ballFootDownPx: BALL_FOOT_DOWN_PX,
     ballFootDeadzonePx: BALL_FOOT_DEADZONE_PX,
@@ -1159,7 +1161,7 @@ export function MatchScreen({
   const stoppage =
     match.phase === 'play' &&
     ((match.half === 1 && match.tick >= HALF_TICKS) || (match.half === 2 && match.tick >= TOTAL_TICKS));
-  const ringR = (PLAYER_CELL_W * scale * PLAYER_DRAW_SCALE) / 2 + 4;
+  const ringR = (PLAYER_CELL_W * scale * playerSpriteScale.drawScale) / 2 + 4;
   const rivalHeroPlayers: number[] = [];
   const fireTorchPlayers: number[] = [];
   match.players.forEach((player, index) => {
@@ -1375,7 +1377,7 @@ export function MatchScreen({
   });
   const powerActorTransforms: SkRSXform[] = powerEffectActors.map(actor => {
     const rect = atlas.rectFor(playerSpriteKeys[actor.player]);
-    const actorScale = scale * PLAYER_DRAW_SCALE * actor.scale;
+    const actorScale = scale * playerSpriteScale.drawScale * actor.scale;
     return Skia.RSXform(
       actorScale,
       0,
@@ -1635,7 +1637,7 @@ export function MatchScreen({
           simTick={workletSimTick}
           progress={workletProgress}
           scale={scale}
-          playerDrawScale={PLAYER_DRAW_SCALE}
+          playerDrawScale={playerSpriteScale.drawScale}
         />
         <Atlas
           image={atlas.image as SkImage}
@@ -1652,7 +1654,7 @@ export function MatchScreen({
           simTick={workletSimTick}
           progress={workletProgress}
           scale={scale}
-          playerDrawScale={PLAYER_DRAW_SCALE}
+          playerDrawScale={playerSpriteScale.drawScale}
         />
         {drawablePowerEffects.map(effect => (
           <PowerEffectScene
