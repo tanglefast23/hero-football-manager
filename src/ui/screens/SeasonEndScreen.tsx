@@ -11,6 +11,7 @@ import type { TextScale } from '../../persistence';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SettingsButton } from '../SettingsOverlay';
 import { NegotiationPanel, useContractDraft } from './MarketScreen';
+import { PixelText } from '../components/PixelText';
 
 export interface SeasonEndScreenProps {
   viewModel: SeasonEndViewModel;
@@ -65,7 +66,7 @@ export function SeasonEndScreen({
           <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Season complete</Text>
           <Text className="mt-2 font-pixel text-3xl uppercase tracking-wide text-white">{viewModel.seasonLabel}</Text>
           <View className="mt-4 rotate-2 border-2 border-red bg-red-light/25 px-5 py-3">
-            <Text className="text-xl font-bold uppercase text-red-light">{viewModel.outcomeLabel}</Text>
+            <PixelText className="text-xl uppercase text-red-light">{viewModel.outcomeLabel}</PixelText>
           </View>
           <Text className="mt-5 text-center font-pixel text-xl uppercase text-white">{viewModel.headline}</Text>
           <Text className="mt-2 max-w-sm text-center text-paper/70" style={scaledBody(textScale)}>{viewModel.summary}</Text>
@@ -109,8 +110,8 @@ export function SeasonEndScreen({
                         <PixelPortrait playerId={award.playerId} role={award.role} lookId={award.lookId} expression="joy" />
                       </View>
                       <View className="min-w-0 flex-1">
-                        <Text className="font-mono text-sm font-bold uppercase tracking-wide text-gold-dark">{award.label}</Text>
-                        <Text className="mt-1 text-lg font-bold uppercase text-ink">{award.playerName}</Text>
+                        <Text className="font-pixel text-sm uppercase tracking-wide text-gold-dark">{award.label}</Text>
+                        <PixelText className="mt-1 text-lg uppercase text-ink">{award.playerName}</PixelText>
                         <Text className="mt-1 text-sm leading-5 text-ink/60">{award.detail}</Text>
                       </View>
                     </View>
@@ -138,10 +139,10 @@ export function SeasonEndScreen({
                   <View key={reward.title} className="border-2 border-ink bg-white p-3">
                     <View className="flex-row items-start gap-3">
                       <View className="h-7 w-7 items-center justify-center border-2 border-ink bg-gold">
-                        <Text className="font-mono text-sm font-bold text-ink">{index + 1}</Text>
+                        <Text className="font-mono text-sm text-ink">{index + 1}</Text>
                       </View>
                       <View className="flex-1">
-                        <Text className="text-base font-bold uppercase text-ink">{reward.title}</Text>
+                        <PixelText className="text-base uppercase text-ink">{reward.title}</PixelText>
                         <Text className="mt-1 text-sm leading-5 text-ink/60">{reward.detail}</Text>
                       </View>
                     </View>
@@ -156,11 +157,11 @@ export function SeasonEndScreen({
           <StageSection eyebrow="Final whistle" title="League table" />
           <View className="border-2 border-ink bg-white">
             <View className="flex-row border-b border-ink/15 px-3 py-2">
-              <Text className="w-8 text-sm font-bold text-ink/50">#</Text>
-              <Text className="flex-1 text-sm font-bold uppercase text-ink/50">Club</Text>
-              <Text className="w-8 text-right font-mono text-sm font-bold text-ink/50">P</Text>
-              <Text className="w-12 text-right font-mono text-sm font-bold text-ink/50">GD</Text>
-              <Text className="w-12 text-right font-mono text-sm font-bold text-ink/50">PTS</Text>
+              <Text className="w-8 font-mono text-sm text-ink/50">#</Text>
+              <PixelText className="flex-1 text-sm uppercase text-ink/50">Club</PixelText>
+              <Text className="w-8 text-right font-mono text-sm text-ink/50">P</Text>
+              <Text className="w-12 text-right font-mono text-sm text-ink/50">GD</Text>
+              <Text className="w-12 text-right font-mono text-sm text-ink/50">PTS</Text>
             </View>
             {viewModel.table.map(row => {
               const rowClass = row.isUserClub
@@ -171,14 +172,14 @@ export function SeasonEndScreen({
               const textClass = 'text-ink';
               return (
                 <View key={row.clubId} className={`flex-row px-3 py-2 ${rowClass}`}>
-                  <Text className={`w-8 font-mono text-base font-bold ${textClass}`}>{row.position}</Text>
+                  <Text className={`w-8 font-mono text-base ${textClass}`}>{row.position}</Text>
                   <View className="flex-1 flex-row items-center pr-2">
                     <Text className={`flex-1 text-base ${row.isUserClub ? 'font-bold' : ''} ${textClass}`} numberOfLines={1}>{row.clubName}</Text>
                     {row.promoted ? <Text className={row.isUserClub ? 'text-sm font-bold text-ink' : 'text-sm font-bold text-pitch-dark'}>↑</Text> : null}
                   </View>
                   <Text className={`w-8 text-right font-mono text-base ${textClass}`}>{row.played}</Text>
                   <Text className={`w-12 text-right font-mono text-base ${textClass}`}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
-                  <Text className={`w-12 text-right font-mono text-base font-bold ${textClass}`}>{row.points}</Text>
+                  <Text className={`w-12 text-right font-mono text-base ${textClass}`}>{row.points}</Text>
                 </View>
               );
             })}
@@ -205,14 +206,14 @@ export function SeasonEndScreen({
                   <PixelPortrait playerId={contract.playerId} role={contract.role} lookId={contract.lookId} expression={contract.isHeroWageCliff ? 'joy' : 'rest'} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Weekly wage request</Text>
+                  <PixelText className="text-sm uppercase tracking-wide text-ink/50">Weekly wage request</PixelText>
                   <View className="mt-2 flex-row items-center gap-2">
                     {contract.isHeroWageCliff ? (
-                      <Text className="font-mono text-base font-bold text-ink/40 line-through">
+                      <Text className="font-mono text-base text-ink/40 line-through">
                         {formatCurrency(contract.currentWeeklyWage)}
                       </Text>
                     ) : null}
-                    <Text className="font-mono text-xl font-bold text-stamp">
+                    <Text className="font-mono text-xl text-stamp">
                       {formatCurrency(contract.quotedWeeklyWage)}
                     </Text>
                     {contract.isHeroWageCliff ? <StatusChip label="Hero rate" tone="hero" /> : null}
@@ -222,7 +223,7 @@ export function SeasonEndScreen({
 
               {contract.isHeroWageCliff ? (
                 <View className="mt-3 border-2 border-gold-dark bg-gold/40 p-3">
-                  <Text className="text-sm font-bold uppercase tracking-wide text-gold-dark">The bargain years are over</Text>
+                  <PixelText className="text-sm uppercase tracking-wide text-gold-dark">The bargain years are over</PixelText>
                   <Text className="mt-1 text-sm leading-5 text-ink/60">
                     The awakening never changed this contract. Renewal does—and the agent knows exactly what a hero is worth.
                   </Text>
@@ -231,7 +232,7 @@ export function SeasonEndScreen({
 
               {contract.decision === 'pending' && !contract.requiresNegotiation ? (
                 <>
-                  <Text className="mt-4 text-sm font-bold uppercase tracking-wide text-ink/50">Contract length</Text>
+                  <PixelText className="mt-4 text-sm uppercase tracking-wide text-ink/50">Contract length</PixelText>
                   <View className="mt-2 flex-row gap-2">
                     {contract.termOptions.map(term => {
                       const selected = contract.selectedTerm === term;
@@ -245,8 +246,8 @@ export function SeasonEndScreen({
                           className={selected ? 'min-h-11 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light' : 'min-h-11 flex-1 items-center justify-center border-2 border-ink/30 bg-paper-dark'}
                           style={({ pressed }) => ({ opacity: pressed ? 0.68 : undefined })}
                         >
-                          <Text className="font-mono text-base font-bold text-ink">{term}</Text>
-                          <Text className="mt-1 text-sm font-bold uppercase text-ink/50">Season{term === 1 ? '' : 's'}</Text>
+                          <Text className="font-mono text-base text-ink">{term}</Text>
+                          <PixelText className="mt-1 text-sm uppercase text-ink/50">Season{term === 1 ? '' : 's'}</PixelText>
                         </Pressable>
                       );
                     })}
@@ -318,9 +319,9 @@ export function SeasonEndScreen({
           disabled={!viewModel.canContinue}
         />
         {!viewModel.canContinue ? (
-          <Text className="mt-2 text-center text-sm font-bold uppercase tracking-wide text-red-light">
+          <PixelText className="mt-2 text-center text-sm uppercase tracking-wide text-red-light">
             Resolve the expired contract first
-          </Text>
+          </PixelText>
         ) : null}
       </View>
     </SafeAreaView>

@@ -17,6 +17,7 @@ import {
 } from '../tutorial-cue-position';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { PixelText } from '../components/PixelText';
 
 export interface M2LeagueScreenProps {
   viewModel: M2LeagueViewModel;
@@ -124,11 +125,11 @@ export function M2LeagueScreen({
             className="border-2 border-b-4 border-ink bg-white"
           >
             <View className="flex-row border-b border-ink/20 px-2 py-2">
-              <Text className="w-7 text-sm font-bold text-ink/50">#</Text>
-              <Text className="flex-1 text-sm font-bold uppercase text-ink/50">Club</Text>
-              <Text className="w-7 text-right font-mono text-sm font-bold text-ink/50">P</Text>
-              <Text className="w-9 text-right font-mono text-sm font-bold text-ink/50">GD</Text>
-              <Text className="w-9 text-right font-mono text-sm font-bold text-ink/50">PTS</Text>
+              <Text className="w-7 font-mono text-sm text-ink/50">#</Text>
+              <PixelText className="flex-1 text-sm uppercase text-ink/50">Club</PixelText>
+              <Text className="w-7 text-right font-mono text-sm text-ink/50">P</Text>
+              <Text className="w-9 text-right font-mono text-sm text-ink/50">GD</Text>
+              <Text className="w-9 text-right font-mono text-sm text-ink/50">PTS</Text>
             </View>
             {viewModel.activeTable.rows.map(row => {
               const rowClass = row.isUserClub
@@ -145,13 +146,13 @@ export function M2LeagueScreen({
                   accessibilityLabel={`${row.position}. ${row.clubName}.${row.isUserClub ? ' Your club.' : ''} Played ${row.played}, goal difference ${row.goalDifference}, ${row.points} points.${row.movement === 'PROMOTION' ? ' Promotion place.' : row.movement === 'RELEGATION' ? ' Relegation place.' : ''}`}
                   className={`min-h-11 flex-row items-center border-b border-ink/10 px-2 py-2 ${rowClass}`}
                 >
-                  <Text className="w-7 font-mono text-base font-bold text-ink">{row.position}</Text>
+                  <Text className="w-7 font-mono text-base text-ink">{row.position}</Text>
                   <View className="flex-1 flex-row items-center pr-1">
                     <Text className={row.isUserClub ? 'flex-1 text-base font-bold text-ink' : 'flex-1 text-base text-ink'} numberOfLines={1}>
                       {row.clubName}
                     </Text>
                     {row.isUserClub ? (
-                      <Text className="mr-1 font-mono text-sm font-bold uppercase text-blue-dark">YOU</Text>
+                      <Text className="mr-1 font-pixel text-sm uppercase text-blue-dark">YOU</Text>
                     ) : null}
                     {row.movement !== 'NONE' ? (
                       <Text className={row.movement === 'PROMOTION' ? 'text-sm font-bold text-pitch-dark' : 'text-sm font-bold text-stamp'}>
@@ -161,7 +162,7 @@ export function M2LeagueScreen({
                   </View>
                   <Text className="w-7 text-right font-mono text-sm text-ink/65">{row.played}</Text>
                   <Text className="w-9 text-right font-mono text-sm text-ink/65">{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
-                  <Text className="w-9 text-right font-mono text-base font-bold text-ink">{row.points}</Text>
+                  <Text className="w-9 text-right font-mono text-base text-ink">{row.points}</Text>
                 </View>
               );
             })}
@@ -250,7 +251,7 @@ export function M2LeagueScreen({
                     transform: [{ translateY: pressed ? 2 : 0 }],
                   })}
                 >
-                  <Text className="font-mono text-sm font-bold uppercase text-ink">{option.label}</Text>
+                  <Text className="font-pixel text-sm uppercase text-ink">{option.label}</Text>
                 </Pressable>
               ))}
             </View>
@@ -266,7 +267,7 @@ export function M2LeagueScreen({
             <>
               {viewModel.cup.championName ? (
                 <View className="mb-4 border-2 border-b-4 border-gold-dark bg-gold-light p-4">
-                  <Text className="font-mono text-sm font-bold uppercase text-gold-dark">Cup champions</Text>
+                  <Text className="font-pixel text-sm uppercase text-gold-dark">Cup champions</Text>
                   <Text className="mt-1 font-pixel text-xl uppercase text-ink">
                     {viewModel.cup.championName}
                   </Text>
@@ -276,7 +277,7 @@ export function M2LeagueScreen({
                 </View>
               ) : (
                 <View className="mb-4 border-2 border-b-4 border-blue-dark bg-blue-light p-3">
-                  <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Current desk</Text>
+                  <Text className="font-pixel text-sm uppercase text-blue-dark">Current desk</Text>
                   <Text className="mt-1 text-base font-bold text-ink">{viewModel.cup.currentRoundLabel}</Text>
                 </View>
               )}
@@ -309,7 +310,7 @@ export function M2LeagueScreen({
         header={
           <View className="mb-5 flex-row items-end justify-between gap-3">
             <View className="flex-1">
-              <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Competition office</Text>
+              <Text className="font-pixel text-sm uppercase text-blue-dark">Competition office</Text>
               <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.title}</Text>
             </View>
             <View className="items-end gap-1">
@@ -350,7 +351,7 @@ function CupRoundCard({
       >
         <View className="mb-3 flex-row items-center justify-between gap-2">
           <View className="flex-1">
-            <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Round {round.round}</Text>
+            <Text className="font-pixel text-sm uppercase text-blue-dark">Round {round.round}</Text>
             <Text className="mt-1 font-pixel text-lg uppercase text-ink">{round.label}</Text>
             <Text className="mt-1 font-mono text-sm text-ink/50">
               {round.completedCount}/{round.matchCount} matches complete
@@ -361,7 +362,7 @@ function CupRoundCard({
 
         {round.byes.length > 0 ? (
           <View className="mb-3 border-2 border-dashed border-ink/30 bg-white p-2">
-            <Text className="font-mono text-sm font-bold uppercase text-ink/50">
+            <Text className="font-pixel text-sm uppercase text-ink/50">
               Through with a bye · {round.byes.length}
             </Text>
             <View className="mt-2 flex-row flex-wrap gap-1">
@@ -435,7 +436,7 @@ function CupTie({
         {fixture.homeClubName}{fixture.winnerName === fixture.homeClubName ? '  ✓' : ''}
       </Text>
       <View className="mx-2 min-w-12 border-2 border-ink bg-paper px-2 py-1">
-        <Text className="text-center font-mono text-sm font-bold text-ink">{fixture.scoreLabel}</Text>
+        <Text className="text-center font-mono text-sm text-ink">{fixture.scoreLabel}</Text>
       </View>
       <Text
         className={fixture.winnerName === fixture.awayClubName ? 'flex-1 text-right text-sm font-bold text-ink' : 'flex-1 text-right text-sm text-ink'}

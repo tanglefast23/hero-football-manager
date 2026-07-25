@@ -44,7 +44,7 @@ export function FacilityPlacementConfirmation({
                 <FacilitySprite type={catalog.type} level={1} />
               </View>
               <Text className="mt-3 font-pixel text-xl uppercase text-ink">{catalog.name}</Text>
-              <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
+              <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                 {cellLabel} · {catalog.width}×{catalog.height}
               </Text>
             </View>

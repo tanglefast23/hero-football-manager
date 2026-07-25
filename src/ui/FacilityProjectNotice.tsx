@@ -55,7 +55,7 @@ export function FacilityProjectNotice({
                 <StatusChip label={`Level ${project.targetLevel} · ${weekLabel(project.weeks)}`} tone="hero" />
               </View>
               <View className="mx-3 mt-4 self-stretch border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-3">
-                <Text className="text-center font-mono text-xs font-bold uppercase tracking-widest text-blue-dark">
+                <Text className="text-center font-pixel text-xs uppercase tracking-widest text-blue-dark">
                   When complete
                 </Text>
                 <Text className="mt-2 text-center font-pixel text-base uppercase leading-5 text-ink">

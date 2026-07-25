@@ -10,6 +10,7 @@ import { SettingsButton } from '../SettingsOverlay';
 import type { StoryEventChoiceViewModel, StoryEventViewModel } from '../models';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
+import { PixelText } from '../components/PixelText';
 
 export interface StoryEventScreenProps {
   viewModel: StoryEventViewModel;
@@ -180,11 +181,11 @@ export function StoryEventScreen({
               >
                 {viewModel.selectedPlayer ? (
                   <>
-                    <View className="mr-3 h-10 w-10 items-center justify-center border-2 border-ink bg-paper"><Text className="font-mono text-sm font-bold text-ink">{viewModel.selectedPlayer.role}</Text></View>
-                    <View className="flex-1"><Text className="text-base font-bold uppercase text-ink">{viewModel.selectedPlayer.name}</Text><Text className="mt-1 text-sm text-ink/60">{viewModel.selectedPlayer.detail}</Text></View>
+                    <View className="mr-3 h-10 w-10 items-center justify-center border-2 border-ink bg-paper"><Text className="font-pixel text-sm text-ink">{viewModel.selectedPlayer.role}</Text></View>
+                    <View className="flex-1"><PixelText className="text-base uppercase text-ink">{viewModel.selectedPlayer.name}</PixelText><Text className="mt-1 text-sm text-ink/60">{viewModel.selectedPlayer.detail}</Text></View>
                     {viewModel.selectedPlayer.powerName ? <StatusChip label={viewModel.selectedPlayer.powerName} tone="hero" /> : null}
                   </>
-                ) : <Text className="text-base font-bold uppercase text-ink">+ Choose player</Text>}
+                ) : <PixelText className="text-base uppercase text-ink">+ Choose player</PixelText>}
               </Pressable>
             </View>
           ) : null}
@@ -205,17 +206,17 @@ export function StoryEventScreen({
                     className={`min-h-20 flex-row items-center border-2 p-3 ${choiceClass(choice)}`}
                   >
                     <View className={choice.tone === 'risky' ? 'mr-3 h-10 w-10 items-center justify-center border-2 border-stamp' : 'mr-3 h-10 w-10 items-center justify-center border-2 border-ink/40'}>
-                      <Text className={choice.tone === 'risky' ? 'font-mono text-base font-bold text-stamp' : 'font-mono text-base font-bold text-ink'}>{String(index + 1).padStart(2, '0')}</Text>
+                      <Text className={choice.tone === 'risky' ? 'font-mono text-base text-stamp' : 'font-mono text-base text-ink'}>{String(index + 1).padStart(2, '0')}</Text>
                     </View>
                     <View className="flex-1">
-                      <View className="flex-row items-center justify-between gap-2"><Text className="flex-1 text-base font-bold uppercase text-ink">{choice.label}</Text><StatusChip label={choice.tone} tone={choice.tone === 'risky' ? 'danger' : 'normal'} /></View>
+                      <View className="flex-row items-center justify-between gap-2"><PixelText className="flex-1 text-base uppercase text-ink">{choice.label}</PixelText><StatusChip label={choice.tone} tone={choice.tone === 'risky' ? 'danger' : 'normal'} /></View>
                       <Text className="mt-1 text-sm leading-5 text-ink/60">{choice.detail}</Text>
                       <Text className={choice.disabledReason ? 'mt-2 text-sm font-bold text-stamp' : choice.tone === 'risky' ? 'mt-2 text-sm font-bold text-stamp' : 'mt-2 text-sm font-bold text-blue-dark'}>{choice.disabledReason ?? choice.consequenceHint}</Text>
                     </View>
                   </Pressable>
                 );
               })}
-              {needsPlayer ? <Text className="text-center text-sm font-bold uppercase tracking-wide text-red-light">Choose a player before making this call</Text> : null}
+              {needsPlayer ? <PixelText className="text-center text-sm uppercase tracking-wide text-red-light">Choose a player before making this call</PixelText> : null}
             </View>
           ) : (
             <PaperPanel kicker="Incident outcome" title={viewModel.outcomeTitle ?? 'Decision resolved'} stamp="Resolved" className="mt-6 bg-signal">

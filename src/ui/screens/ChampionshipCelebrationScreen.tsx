@@ -307,7 +307,7 @@ export function ChampionshipCelebrationScreen({
       </Pressable>
 
       <Animated.View pointerEvents="none" style={[styles.titleCard, titleStyle]}>
-        <Text className="text-center font-mono text-xs font-bold uppercase tracking-[4px] text-gold">
+        <Text className="text-center font-pixel text-xs uppercase tracking-[4px] text-gold">
           {viewModel.seasonLabel} · Final whistle
         </Text>
         <Text
@@ -318,7 +318,7 @@ export function ChampionshipCelebrationScreen({
           YOU WON{`\n`}THE LEAGUE!
         </Text>
         <View className="mt-3 self-center border-2 border-gold bg-ink/80 px-4 py-2">
-          <Text className="text-center font-mono text-sm font-bold uppercase text-gold">
+          <Text className="text-center font-pixel text-sm uppercase text-gold">
             {viewModel.clubName} · Champions
           </Text>
         </View>
@@ -362,7 +362,7 @@ export function ChampionshipCelebrationScreen({
           <Text className="text-center font-pixel text-base uppercase text-ink" numberOfLines={1}>
             {viewModel.star.name}
           </Text>
-          <Text className="mt-1 text-center font-mono text-[10px] font-bold uppercase tracking-wider text-ink/70">
+          <Text className="mt-1 text-center font-pixel text-[10px] uppercase tracking-wider text-ink/70">
             {viewModel.star.hasRecordedGoals
               ? `Golden boot · ${viewModel.star.goals} goal${viewModel.star.goals === 1 ? '' : 's'}`
               : 'Season star'}

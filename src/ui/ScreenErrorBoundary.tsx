@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from './components/SfxPressable';
+import { PixelText } from './components/PixelText';
 
 interface ScreenErrorBoundaryProps {
   children: ReactNode;
@@ -43,7 +44,7 @@ export class ScreenErrorBoundary extends Component<
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-ink px-6">
         <View className="w-full border-2 border-stamp bg-paper p-5">
-          <Text className="text-lg font-bold uppercase text-stamp">This screen could not open</Text>
+          <PixelText className="text-lg uppercase text-stamp">This screen could not open</PixelText>
           <Text className="mt-3 text-sm leading-5 text-ink/70">
             Your saved career has not been changed. Head back to the title screen and continue from there.
           </Text>

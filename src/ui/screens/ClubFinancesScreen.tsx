@@ -3,6 +3,7 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
+import { EmptyDocket } from '../components/EmptyDocket';
 import { FacilitySprite } from '../components/FacilitySprite';
 import type {
   ClubFacilityBuildingViewModel,
@@ -30,6 +31,7 @@ import {
 } from '../concierge-targets';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { PixelText } from '../components/PixelText';
 
 const FACILITY_GUIDE_TARGET_TOP = 170;
 const FACILITY_PLACEMENT_PLUS_SIZE = 16;
@@ -399,8 +401,8 @@ export function ClubFinancesScreen({
         header={
       <View className="mb-5 flex-row items-end justify-between">
         <View>
-          <Text className="text-sm font-bold uppercase text-blue-dark">Accounts office</Text>
-          <Text className="mt-1 text-xl font-bold uppercase text-ink">Club finances</Text>
+          <PixelText className="text-sm uppercase text-blue-dark">Accounts office</PixelText>
+          <PixelText className="mt-1 text-xl uppercase text-ink">Club finances</PixelText>
         </View>
         <StatusChip label={viewModel.periodLabel} />
       </View>
@@ -444,14 +446,14 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
             />
             <Metric label="Projected balance" value={formatCurrency(viewModel.projectedBalance)} />
           </View>
-          <Text className="mt-3 text-xs font-bold uppercase leading-4 tracking-wide text-ink/45">
+          <PixelText className="mt-3 text-xs uppercase leading-4 tracking-wide text-ink/45">
             Forward estimate · known weekly commitments and steady merchandise · match, sponsor and prize income excluded
-          </Text>
+          </PixelText>
           {viewModel.wageSubsidyLabel ? (
             <View className="mt-3 border border-pitch-dark bg-pitch-light px-3 py-2">
-              <Text className="text-sm font-bold uppercase tracking-wide text-ink">
+              <PixelText className="text-sm uppercase tracking-wide text-ink">
                 {viewModel.wageSubsidyLabel}
-              </Text>
+              </PixelText>
             </View>
           ) : null}
         </PaperPanel>
@@ -468,10 +470,16 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
   return (
     <View>
         <SectionLabel eyebrow="Itemized statement" title="Every coin accounted for" />
+        {viewModel.ledger.length === 0 ? (
+          <EmptyDocket
+            title="Statement empty"
+            detail="Wages, gate receipts and transfers land here as the week is played."
+          />
+        ) : (
         <View className="border-2 border-ink bg-white">
           <View className="flex-row border-b border-ink/20 px-3 py-2">
-            <Text className="flex-1 text-sm font-bold uppercase tracking-wide text-ink/50">Entry</Text>
-            <Text className="text-right text-sm font-bold uppercase tracking-wide text-ink/50">Amount</Text>
+            <PixelText className="flex-1 text-sm uppercase tracking-wide text-ink/50">Entry</PixelText>
+            <PixelText className="text-right text-sm uppercase tracking-wide text-ink/50">Amount</PixelText>
           </View>
           {viewModel.ledger.map(line => {
             const amountClass = line.kind === 'income'
@@ -483,7 +491,7 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
             const content = (
               <>
                 <Text className="flex-1 text-base text-ink">{line.label}</Text>
-                <Text className={`font-mono text-base font-bold ${amountClass}`}>
+                <Text className={`font-mono text-base ${amountClass}`}>
                   {formatCurrency(line.amount, true)}
                 </Text>
               </>
@@ -515,6 +523,7 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
             );
           })}
         </View>
+        )}
     </View>
   );
 }
@@ -527,6 +536,12 @@ function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps
   return (
     <View>
           <SectionLabel eyebrow="Cash activity" title="Recent club transactions" />
+          {viewModel.recentTransactions.length === 0 ? (
+            <EmptyDocket
+              title="No cash activity"
+              detail="Money in and out of the club shows up here after the first week is played."
+            />
+          ) : (
           <View className="border-2 border-ink bg-white">
             {viewModel.recentTransactions.map(transaction => (
               <View
@@ -539,12 +554,13 @@ function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps
                     {transaction.periodLabel} · Balance {formatCurrency(transaction.balanceAfter)}
                   </Text>
                 </View>
-                <Text className={`font-mono text-base font-bold ${transaction.kind === 'income' ? 'text-pitch-dark' : 'text-red-dark'}`}>
+                <Text className={`font-mono text-base ${transaction.kind === 'income' ? 'text-pitch-dark' : 'text-red-dark'}`}>
                   {formatCurrency(transaction.amount, true)}
                 </Text>
               </View>
             ))}
           </View>
+          )}
     </View>
   );
 }
@@ -591,12 +607,12 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
                     />
                   </View>
                   <View className="min-w-0 flex-1">
-                    <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{coach.roleLabel}</Text>
+                    <Text className="font-pixel text-sm uppercase text-blue-dark">{coach.roleLabel}</Text>
                     <Text className="mt-1 text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
                     <Text className="mt-1 text-sm text-ink/60">
                       Age {coach.age} · {coach.personalityLabel} · Level {coach.level}
                     </Text>
-                    <Text className="mt-1 font-mono text-sm font-bold text-ink">
+                    <Text className="mt-1 font-mono text-sm text-ink">
                       {formatCurrency(coach.weeklyWage)} / week
                     </Text>
                   </View>
@@ -604,7 +620,7 @@ function CoachingStaffSection({ viewModel, onOpenCoachMarket, onDismissCoach }: 
                 <View className="mt-3 flex-row gap-2">
                   {coach.specialtyLabels.map(specialty => (
                     <View key={specialty} className="flex-1 border-2 border-ink bg-paper px-2 py-2">
-                      <Text className="text-center text-sm font-bold uppercase text-ink">{specialty}</Text>
+                      <PixelText className="text-center text-sm uppercase text-ink">{specialty}</PixelText>
                     </View>
                   ))}
                 </View>
@@ -747,10 +763,10 @@ function GroundsSection({
             <View className="mb-3 flex-row items-center gap-3 border-2 border-b-4 border-amber-800 bg-amber-100 p-3">
               <ManagementSprite spriteKey="facility:worksite" width={54} accessibilityLabel="Active construction site" />
               <View className="min-w-0 flex-1">
-                <Text className="font-mono text-sm font-bold uppercase text-amber-900">Works crew busy</Text>
-                <Text className="mt-1 text-base font-bold uppercase text-ink">
+                <Text className="font-pixel text-sm uppercase text-amber-900">Works crew busy</Text>
+                <PixelText className="mt-1 text-base uppercase text-ink">
                   {viewModel.facilities.activeProject.name} · {viewModel.facilities.activeProject.weeksRemaining}W left
-                </Text>
+                </PixelText>
                 <Text className="mt-1 text-sm text-ink/60">Only one construction or upgrade project can run at a time.</Text>
               </View>
             </View>
@@ -954,11 +970,11 @@ function GroundsSection({
                           paddingVertical: 1,
                         }}
                       >
-                        <Text className="text-center text-[9px] font-bold uppercase text-ink">
+                        <PixelText className="text-center text-[9px] uppercase text-ink">
                           {building.status === 'operational'
                             ? `L${building.level}`
                             : `${building.status === 'construction' ? 'BUILD' : 'UP'} · ${building.weeksRemaining}W`}
-                        </Text>
+                        </PixelText>
                       </View>
                     </View>
                   </Pressable>
@@ -989,9 +1005,9 @@ function GroundsSection({
           {placementActive ? (
             <View className="mt-3 flex-row items-start justify-between gap-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
               <View className="flex-1">
-                <Text className="text-sm font-bold uppercase text-blue-dark">
+                <PixelText className="text-sm uppercase text-blue-dark">
                   {relocatingBuildingId !== null ? `Moving · ${activeLabel}` : `Placing · ${activeLabel}`}
-                </Text>
+                </PixelText>
                 <Text className="mt-1 text-sm text-ink/70">
                   Tap any + square above. A blue outline fits; red is blocked.
                 </Text>
@@ -1002,7 +1018,7 @@ function GroundsSection({
                 onPress={cancelPlacement}
                 className="min-h-11 items-center justify-center border-2 border-blue-dark bg-white px-3"
               >
-                <Text className="text-sm font-bold uppercase text-blue-dark">Cancel</Text>
+                <PixelText className="text-sm uppercase text-blue-dark">Cancel</PixelText>
               </Pressable>
             </View>
           ) : (
@@ -1023,7 +1039,7 @@ function GroundsSection({
                 />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-bold uppercase text-ink">What it does</Text>
+                <PixelText className="text-sm uppercase text-ink">What it does</PixelText>
                 <Text className="mt-1 text-sm text-ink/80">{facilityBenefit(placementType)}</Text>
               </View>
             </View>
@@ -1036,9 +1052,9 @@ function GroundsSection({
                   <FacilitySprite type={selectedBuilding.type} level={selectedBuilding.level} size={48} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-base font-bold uppercase text-ink">
+                  <PixelText className="text-base uppercase text-ink">
                     {selectedBuilding.name} · Level {selectedBuilding.level}
-                  </Text>
+                  </PixelText>
                   <Text className="mt-1 text-sm text-ink/60">
                     {selectedBuilding.status === 'operational'
                       ? `${formatCurrency(selectedBuilding.weeklyUpkeep)}/wk upkeep · ${formatCurrency(selectedBuilding.relocationFee)} to move`
@@ -1048,14 +1064,14 @@ function GroundsSection({
                     {selectedBuilding.effectLabel}
                   </Text>
                   {selectedBuilding.nextLevelEffectLabel ? (
-                    <Text className="mt-1 text-xs font-bold uppercase leading-4 text-ink/45">
+                    <PixelText className="mt-1 text-xs uppercase leading-4 text-ink/45">
                       Next level · {selectedBuilding.nextLevelEffectLabel}
-                    </Text>
+                    </PixelText>
                   ) : null}
                   {selectedBuilding.activeAdjacencyIds.length > 0 ? (
-                    <Text className="mt-2 text-xs font-bold uppercase text-pitch-dark">
+                    <PixelText className="mt-2 text-xs uppercase text-pitch-dark">
                       Active combo · {selectedBuilding.activeAdjacencyIds.map(facilityAdjacencyLabel).join(' · ')}
-                    </Text>
+                    </PixelText>
                   ) : null}
                 </View>
                 <Pressable
@@ -1067,7 +1083,7 @@ function GroundsSection({
                   }}
                   className="h-11 w-11 items-center justify-center border-2 border-ink bg-paper"
                 >
-                  <Text className="font-mono text-base font-bold text-ink">×</Text>
+                  <Text className="font-pixel text-base text-ink">×</Text>
                 </Pressable>
               </View>
               <View className="mt-3 flex-row gap-2">
@@ -1085,15 +1101,15 @@ function GroundsSection({
                     ? 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-blue-light px-2'
                     : 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'}
                 >
-                  <Text className={selectedBuilding.status === 'operational' && selectedBuilding.canRelocate
-                    ? 'text-center text-sm font-bold uppercase text-ink'
-                    : 'text-center text-sm font-bold uppercase text-ink/35'}>
+                  <PixelText className={selectedBuilding.status === 'operational' && selectedBuilding.canRelocate
+                    ? 'text-center text-sm uppercase text-ink'
+                    : 'text-center text-sm uppercase text-ink/35'}>
                     {selectedBuilding.status !== 'operational'
                       ? 'Project active'
                       : selectedBuilding.canRelocate
                         ? `Move · ${formatCurrency(selectedBuilding.relocationFee)}`
                         : `Need ${formatCurrency(selectedBuilding.relocationShortfall)}`}
-                  </Text>
+                  </PixelText>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -1123,11 +1139,11 @@ function GroundsSection({
                     ? 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-ink/5 px-2'
                     : 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-blue px-2'}
                 >
-                  <Text className={!selectedBuilding.canUpgrade
+                  <PixelText className={!selectedBuilding.canUpgrade
                     || selectedBuilding.status !== 'operational'
                     || viewModel.facilities.activeProject !== undefined
-                    ? 'text-center text-sm font-bold uppercase text-ink/35'
-                    : 'text-center text-sm font-bold uppercase text-white'}>
+                    ? 'text-center text-sm uppercase text-ink/35'
+                    : 'text-center text-sm uppercase text-white'}>
                     {selectedBuilding.status !== 'operational'
                       ? 'Project active'
                       : viewModel.facilities.activeProject !== undefined
@@ -1139,7 +1155,7 @@ function GroundsSection({
                           : selectedBuilding.canUpgrade
                             ? `Upgrade · ${formatCurrency(selectedBuilding.upgradeCost)}`
                             : `Need ${formatCurrency(selectedBuilding.upgradeShortfall)}`}
-                  </Text>
+                  </PixelText>
                 </Pressable>
               </View>
               {selectedBuilding.upgradeBlockedReason ? (
@@ -1160,7 +1176,7 @@ function GroundsSection({
               }
             }}
           >
-            <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/50">Build menu</Text>
+            <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/50">Build menu</PixelText>
             <View className={guidedFirstFacility && guidedFacilityPhase === 'build-menu'
               ? 'mt-20 flex-row flex-wrap gap-2'
               : 'flex-row flex-wrap gap-2'}>
@@ -1228,11 +1244,11 @@ function GroundsSection({
                         <View style={{ opacity: entryEnabled ? 1 : 0.35 }}>
                           <FacilitySprite type={entry.type} size={32} showLevel={false} />
                         </View>
-                        <Text className={entryEnabled
-                          ? 'flex-1 text-sm font-bold uppercase leading-4 text-ink'
-                          : 'flex-1 text-sm font-bold uppercase leading-4 text-ink/35'}>
+                        <PixelText className={entryEnabled
+                          ? 'flex-1 text-sm uppercase leading-4 text-ink'
+                          : 'flex-1 text-sm uppercase leading-4 text-ink/35'}>
                           {entry.name}
-                        </Text>
+                        </PixelText>
                       </View>
                       <Text className={entryEnabled
                         ? 'text-xs font-bold leading-4 text-blue-dark'
@@ -1250,11 +1266,11 @@ function GroundsSection({
                         <View className={knownAdjacency === undefined
                           ? 'mt-2 border-t border-blue-dark/25 pt-2'
                           : 'mt-2 border-t border-pitch-dark/25 pt-2'}>
-                          <Text className={knownAdjacency === undefined
-                            ? 'text-xs font-bold uppercase tracking-wide text-blue-dark'
-                            : 'text-xs font-bold uppercase tracking-wide text-pitch-dark'}>
+                          <PixelText className={knownAdjacency === undefined
+                            ? 'text-xs uppercase tracking-wide text-blue-dark'
+                            : 'text-xs uppercase tracking-wide text-pitch-dark'}>
                             {knownAdjacency === undefined ? 'Neighbour clue' : 'Known combo'}
-                          </Text>
+                          </PixelText>
                           <Text className="mt-1 text-xs leading-4 text-ink/65">
                             {adjacencyGuidance}
                           </Text>
@@ -1264,9 +1280,9 @@ function GroundsSection({
                         <Text className="mt-1 text-xs font-bold text-stamp">{entry.blockedReason}</Text>
                       ) : null}
                       {entry.available && !entry.affordable && entry.affordabilityShortfall > 0 ? (
-                        <Text className="mt-1 text-xs font-bold uppercase text-red-dark">
+                        <PixelText className="mt-1 text-xs uppercase text-red-dark">
                           Need {formatCurrency(entry.affordabilityShortfall)} more
-                        </Text>
+                        </PixelText>
                       ) : null}
                     </Pressable>
                   </View>
@@ -1276,7 +1292,7 @@ function GroundsSection({
           </View>
 
           <View className="mt-4 border-t-2 border-ink/20 pt-3">
-            <Text className="text-sm font-bold uppercase tracking-wide text-ink/50">Facility pair bonuses</Text>
+            <PixelText className="text-sm uppercase tracking-wide text-ink/50">Facility pair bonuses</PixelText>
             {viewModel.facilities.discoveredAdjacencies.length === 0 ? (
               <Text className="mt-2 text-sm leading-4 text-ink/55">
                 No pairings discovered yet. Six buildings carry neighbour clues in the build menu. Place the right two edge-to-edge — corners do not count.
@@ -1287,9 +1303,9 @@ function GroundsSection({
               return (
                 <View key={adjacency} className="mt-2 flex-row items-start gap-3 border border-ink/20 bg-white px-3 py-3">
                   <View className="min-w-0 flex-1">
-                    <Text className="text-sm font-bold uppercase text-ink">
+                    <PixelText className="text-sm uppercase text-ink">
                       {presentation?.pairLabel ?? adjacency}
-                    </Text>
+                    </PixelText>
                     {presentation ? (
                       <>
                         <Text className="mt-1 text-sm font-bold text-blue-dark">
@@ -1346,7 +1362,7 @@ function LegacyTrainingGroundSection({
               />
             </View>
             <View className="flex-1">
-              <Text className="text-base font-bold uppercase text-ink">Training Ground · Level 1</Text>
+              <PixelText className="text-base uppercase text-ink">Training Ground · Level 1</PixelText>
               <Text className="mt-2 text-sm leading-4 text-ink/60">
                 A proper weekly practice base. Small, dependable improvement without adding another management chore.
               </Text>
@@ -1356,9 +1372,9 @@ function LegacyTrainingGroundSection({
             <Metric label="Build cost" value={formatCurrency(facility.cost)} tone="negative" />
             <Metric label="Weekly return" value={`+${facility.weeklyTrainingPoints} TP`} tone="positive" />
           </View>
-          <Text className="mt-3 text-sm font-bold uppercase tracking-wide text-ink/50">
+          <PixelText className="mt-3 text-sm uppercase tracking-wide text-ink/50">
             M1 offer: $8,000 cost · +10 TP every week
-          </Text>
+          </PixelText>
           {!facility.built && !facility.underConstruction ? (
             <View className={guideTrainingGround ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>
               {guideTrainingGround ? (
@@ -1382,9 +1398,9 @@ function LegacyTrainingGroundSection({
             </View>
           ) : null}
           {!facility.built && !facility.underConstruction && !facility.affordable ? (
-            <Text className="mt-2 text-center text-sm font-bold uppercase tracking-wide text-stamp">
+            <PixelText className="mt-2 text-center text-sm uppercase tracking-wide text-stamp">
               Insufficient balance
-            </Text>
+            </PixelText>
           ) : null}
         </PaperPanel>
     </View>

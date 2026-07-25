@@ -9,6 +9,7 @@ import {
 import type { AssistantGuideFocus } from '../../content';
 import type { ContractOffer, ContractPerk, PitchCard } from '../../game/market';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
+import { EmptyDocket } from '../components/EmptyDocket';
 import { ManagementSprite } from '../components/ManagementSprite';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -25,6 +26,7 @@ import {
 } from '../tutorial-cue-position';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { PixelText } from '../components/PixelText';
 
 export interface MarketScreenProps {
   readonly viewModel: MarketViewModel;
@@ -163,7 +165,7 @@ export function MarketScreen({
   const header = (
     <View className="flex-row items-end justify-between gap-3">
       <View className="flex-1">
-        <Text className="font-mono text-sm font-bold uppercase tracking-[2px] text-blue-dark">
+        <Text className="font-pixel text-sm uppercase tracking-[2px] text-blue-dark">
           Recruitment office
         </Text>
         <Text className="mt-1 font-pixel text-xl uppercase text-ink">Market docket</Text>
@@ -372,15 +374,15 @@ function YouthDesk({
                 </View>
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{offer.playerName}</Text>
-                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
+                  <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                     {offer.role} · {offer.ageLabel} · {offer.archetypeLabel}
                   </Text>
-                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-gold-dark">
+                  <Text className="mt-1 font-pixel text-sm uppercase text-gold-dark">
                     Potential {offer.potentialLabel}
                   </Text>
                 </View>
                 <View className="-rotate-2 border-2 border-blue-dark bg-blue-light px-2 py-1">
-                  <Text className="text-sm font-bold uppercase text-blue-dark">Academy</Text>
+                  <PixelText className="text-sm uppercase text-blue-dark">Academy</PixelText>
                 </View>
               </View>
               <View className="mt-3 flex-row gap-2">
@@ -440,11 +442,11 @@ function DocketTab({
       <Text className={selected ? 'font-mono text-lg font-bold text-ink' : 'font-mono text-lg text-ink/45'}>
         {glyph}
       </Text>
-      <Text className={selected
-        ? 'mt-0.5 text-sm font-bold uppercase text-ink'
-        : 'mt-0.5 text-sm font-bold uppercase text-ink/50'}>
+      <PixelText className={selected
+        ? 'mt-0.5 text-sm uppercase text-ink'
+        : 'mt-0.5 text-sm uppercase text-ink/50'}>
         {label}
-      </Text>
+      </PixelText>
     </Pressable>
   );
 }
@@ -490,7 +492,7 @@ function ScoutingDesk({
 
       {viewModel.scouting.reports.length > 0 ? (
         <View className="mt-5 gap-3">
-          <Text className="font-mono text-sm font-bold uppercase tracking-wide text-stamp">Scouting reports</Text>
+          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">Scouting reports</Text>
           {viewModel.scouting.reports.map((report, index) => (
             <Pressable
               key={report.playerId}
@@ -523,40 +525,45 @@ function ScoutingDesk({
                 </View>
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{report.playerName}</Text>
-                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
+                  <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                     {report.role} · {report.ageLabel}
                   </Text>
-                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-gold-dark">
+                  <Text className="mt-1 font-pixel text-sm uppercase text-gold-dark">
                     Potential {report.potentialLabel}
                   </Text>
                 </View>
               </View>
               {report.powerLabel ? (
                 <View className="mt-3 border-2 border-gold-dark bg-gold-light px-3 py-2">
-                  <Text className="font-mono text-sm font-bold uppercase text-ink">★ Confirmed · {report.powerLabel}</Text>
+                  <Text className="font-pixel text-sm uppercase text-ink">★ Confirmed · {report.powerLabel}</Text>
                 </View>
               ) : null}
               {report.rumorLabel ? (
                 <View className="mt-3 border-2 border-gold-dark bg-gold-light px-3 py-2">
-                  <Text className="font-mono text-sm font-bold uppercase text-ink">★ {report.rumorLabel}</Text>
+                  <Text className="font-pixel text-sm uppercase text-ink">★ {report.rumorLabel}</Text>
                 </View>
               ) : null}
               <View className="mt-3 flex-row flex-wrap gap-1.5">
                 {report.stats.map(stat => (
                   <View key={stat.label} className="min-w-[30%] flex-1 border border-ink/25 bg-paper px-2 py-1.5">
-                    <Text className="text-sm font-bold uppercase text-ink/50">{stat.label}</Text>
-                    <Text className="mt-0.5 font-mono text-base font-bold text-ink">{stat.rangeLabel}</Text>
+                    <PixelText className="text-sm uppercase text-ink/50">{stat.label}</PixelText>
+                    <Text className="mt-0.5 font-mono text-base text-ink">{stat.rangeLabel}</Text>
                   </View>
                 ))}
               </View>
-              <Text className="mt-3 text-right font-mono text-sm font-bold uppercase text-blue-dark">Full report · ranges shown</Text>
+              <Text className="mt-3 text-right font-pixel text-sm uppercase text-blue-dark">Full report · ranges shown</Text>
             </Pressable>
           ))}
         </View>
       ) : (
         <View className="mt-5 gap-3">
-          <Text className="font-mono text-sm font-bold uppercase tracking-wide text-stamp">Mission slips</Text>
-          {viewModel.scouting.choices.map((choice, index) => (
+          <Text className="font-pixel text-sm uppercase tracking-wide text-stamp">Mission slips</Text>
+          {viewModel.scouting.choices.length === 0 ? (
+            <EmptyDocket
+              title="No missions on offer"
+              detail="Scouting assignments are drawn up again next week."
+            />
+          ) : viewModel.scouting.choices.map((choice, index) => (
             <View
               key={choice.id}
               className={choice.available
@@ -565,10 +572,10 @@ function ScoutingDesk({
             >
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1">
-                  <Text className="text-base font-bold uppercase text-ink">{choice.regionLabel}</Text>
-                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">{choice.focusLabel}</Text>
+                  <PixelText className="text-base uppercase text-ink">{choice.regionLabel}</PixelText>
+                  <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">{choice.focusLabel}</Text>
                 </View>
-                <Text className="font-mono text-base font-bold text-ink">{formatCurrency(choice.cost)}</Text>
+                <Text className="font-mono text-base text-ink">{formatCurrency(choice.cost)}</Text>
               </View>
               <Text className="mt-2 text-sm leading-5 text-ink/60">{choice.detail}</Text>
               <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/15 pt-3">
@@ -628,17 +635,17 @@ function TransferDesk({
                 </View>
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{listing.playerName}</Text>
-                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-ink/60">
+                  <Text className="mt-1 font-pixel text-sm uppercase text-ink/60">
                     {listing.role} · Age {listing.age}
                   </Text>
-                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-gold-dark">
+                  <Text className="mt-1 font-pixel text-sm uppercase text-gold-dark">
                     Potential {listing.potentialLabel}
                   </Text>
                 </View>
                 <View className="border-2 border-ink bg-white px-2 py-1">
-                  <Text className="text-sm font-bold uppercase text-ink">
+                  <PixelText className="text-sm uppercase text-ink">
                     {listing.direction === 'BUY' ? 'Target' : listing.listed ? 'Bids in' : 'Available'}
-                  </Text>
+                  </PixelText>
                 </View>
               </View>
               <View className="p-3">
@@ -672,11 +679,18 @@ function TransferDesk({
                 </View>
                 {listing.direction === 'SELL' && listing.listed ? (
                   <View className="mt-3 gap-2 border-t-2 border-ink/15 pt-3">
-                    {listing.bids.map((bid, index) => (
+                    {listing.bids.length === 0 ? (
+                      <View className="items-center border-2 border-dashed border-ink/25 bg-white/50 px-3 py-4">
+                        <PixelText className="text-sm uppercase text-ink/60">Listed · no bids yet</PixelText>
+                        <Text className="mt-1 text-center text-sm leading-5 text-ink/55">
+                          Rival clubs review the listing each week.
+                        </Text>
+                      </View>
+                    ) : listing.bids.map((bid, index) => (
                       <View key={bid.id} className="flex-row items-center gap-3 border-2 border-ink bg-paper px-3 py-2">
                         <View className="flex-1">
                           <Text className="font-bold text-ink">{index + 1}. {bid.buyerName}</Text>
-                          <Text className="mt-1 font-mono text-sm font-bold text-pitch-dark">
+                          <Text className="mt-1 font-mono text-sm text-pitch-dark">
                             {formatCurrency(bid.fee)} fee
                           </Text>
                         </View>
@@ -733,12 +747,12 @@ function CoachDesk({
                 </View>
                 <View className="min-w-0 flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={1}>{coach.name}</Text>
-                  <Text className="mt-1 font-mono text-sm font-bold uppercase text-blue-dark">
+                  <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                     Age {coach.age} · {coach.personalityLabel} · {coach.levelLabel}
                   </Text>
                   {coach.retiredLegend ? (
                     <View className="mt-2 self-start -rotate-2 border-2 border-gold-dark bg-white px-2 py-1">
-                      <Text className="text-sm font-bold uppercase text-gold-dark">Club legend</Text>
+                      <PixelText className="text-sm uppercase text-gold-dark">Club legend</PixelText>
                     </View>
                   ) : null}
                 </View>
@@ -746,23 +760,23 @@ function CoachDesk({
               <View className="mt-3 flex-row gap-2">
                 {coach.specialtyLabels.map(specialty => (
                   <View key={specialty} className="flex-1 border-2 border-ink bg-paper px-2 py-2">
-                    <Text className="text-center text-sm font-bold uppercase text-ink">{specialty}</Text>
+                    <PixelText className="text-center text-sm uppercase text-ink">{specialty}</PixelText>
                   </View>
                 ))}
               </View>
               <View className="mt-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
-                <Text className="font-mono text-sm font-bold uppercase text-ink">
+                <Text className="font-pixel text-sm uppercase text-ink">
                   {formatCurrency(coach.weeklyWage)} / week
                 </Text>
                 <View className="mt-2 border-t border-blue-dark/25 pt-2">
-                  <Text className="font-mono text-sm font-bold uppercase text-blue-dark">As head coach</Text>
+                  <Text className="font-pixel text-sm uppercase text-blue-dark">As head coach</Text>
                   {coach.headEffectLabels.map(effect => (
                     <Text key={`head-${effect}`} className="mt-1 text-sm font-bold text-ink">{effect}</Text>
                   ))}
                 </View>
                 {coach.assistantSlotUnlocked ? (
                   <View className="mt-2 border-t border-blue-dark/25 pt-2">
-                    <Text className="font-mono text-sm font-bold uppercase text-blue-dark">As assistant</Text>
+                    <Text className="font-pixel text-sm uppercase text-blue-dark">As assistant</Text>
                     {coach.assistantEffectLabels.map(effect => (
                       <Text key={`assistant-${effect}`} className="mt-1 text-sm text-ink/75">{effect}</Text>
                     ))}
@@ -889,8 +903,8 @@ export function NegotiationPanel({
         </View>
         <View className="flex-1">
           <Text className="font-pixel text-base uppercase text-ink">{viewModel.moodLabel}</Text>
-          <Text className="mt-1 text-sm font-bold uppercase text-ink/60">{viewModel.personalityLabel} personality</Text>
-          <Text className="mt-2 font-mono text-sm font-bold uppercase text-blue-dark">
+          <PixelText className="mt-1 text-sm uppercase text-ink/60">{viewModel.personalityLabel} personality</PixelText>
+          <Text className="mt-2 font-pixel text-sm uppercase text-blue-dark">
             {viewModel.pitchLeverageLabel}
           </Text>
         </View>
@@ -905,7 +919,7 @@ export function NegotiationPanel({
       {open ? (
         <>
           <View className="mt-4">
-            <Text className="font-mono text-sm font-bold uppercase text-stamp">1 · Weekly wage</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">1 · Weekly wage</Text>
             <View className="mt-2 flex-row items-stretch gap-2">
               <Pressable
                 accessibilityRole="button"
@@ -916,7 +930,7 @@ export function NegotiationPanel({
                 <Text className="font-mono text-2xl font-bold text-ink">−</Text>
               </Pressable>
               <View className="h-12 flex-1 items-center justify-center border-2 border-ink bg-white">
-                <Text className="font-mono text-xl font-bold text-ink">{formatCurrency(weeklyWage)} / wk</Text>
+                <Text className="font-mono text-xl text-ink">{formatCurrency(weeklyWage)} / wk</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -930,7 +944,7 @@ export function NegotiationPanel({
           </View>
 
           <View className="mt-4">
-            <Text className="font-mono text-sm font-bold uppercase text-stamp">2 · Contract term</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">2 · Contract term</Text>
             <View className="mt-2 flex-row gap-2">
               {([1, 2, 3] as const).map(term => (
                 <Pressable
@@ -943,14 +957,14 @@ export function NegotiationPanel({
                     ? 'min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light'
                     : 'min-h-12 flex-1 items-center justify-center border-2 border-ink/30 bg-white'}
                 >
-                  <Text className="font-mono text-base font-bold text-ink">{term}Y</Text>
+                  <Text className="font-pixel text-base text-ink">{term}Y</Text>
                 </Pressable>
               ))}
             </View>
           </View>
 
           <View className="mt-4">
-            <Text className="font-mono text-sm font-bold uppercase text-stamp">3 · One promise</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">3 · One promise</Text>
             <View className="mt-2 flex-row flex-wrap gap-2">
               {viewModel.perks.map(option => (
                 <Pressable
@@ -963,7 +977,7 @@ export function NegotiationPanel({
                     ? 'min-h-14 w-[48%] flex-grow justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2'
                     : 'min-h-14 w-[48%] flex-grow justify-center border-2 border-ink/30 bg-white px-3 py-2'}
                 >
-                  <Text className="text-sm font-bold uppercase text-ink">{option.label}</Text>
+                  <PixelText className="text-sm uppercase text-ink">{option.label}</PixelText>
                   <Text className="mt-0.5 text-sm text-ink/55" numberOfLines={1}>{option.detail}</Text>
                 </Pressable>
               ))}
@@ -971,9 +985,14 @@ export function NegotiationPanel({
           </View>
 
           <View className="mt-4">
-            <Text className="font-mono text-sm font-bold uppercase text-stamp">4 · Pitch card · optional</Text>
+            <Text className="font-pixel text-sm uppercase text-stamp">4 · Pitch card · optional</Text>
             <View className="mt-2 gap-2">
-              {viewModel.cards.map(card => {
+              {viewModel.cards.length === 0 ? (
+                <EmptyDocket
+                  title="No cards in hand"
+                  detail="Pitch cards are earned from board objectives and cup runs."
+                />
+              ) : viewModel.cards.map(card => {
                 const selected = pitchCard === card.id;
                 return (
                   <Pressable
@@ -990,8 +1009,8 @@ export function NegotiationPanel({
                         : 'min-h-14 border-2 border-ink/30 bg-white px-3 py-2'}
                   >
                     <View className="flex-row items-center justify-between gap-3">
-                      <Text className="text-sm font-bold uppercase text-ink">{card.label}</Text>
-                      <Text className="font-mono text-sm font-bold uppercase text-ink/50">
+                      <PixelText className="text-sm uppercase text-ink">{card.label}</PixelText>
+                      <Text className="font-pixel text-sm uppercase text-ink/50">
                         {card.used ? 'Played' : selected ? 'Loaded' : 'Card'}
                       </Text>
                     </View>
@@ -1096,21 +1115,11 @@ function SmallAction({
         : 'min-h-11 min-w-24 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-3'}
       style={({ pressed }) => ({ transform: [{ translateY: pressed && !disabled ? 2 : 0 }] })}
     >
-      <Text className={disabled
-        ? 'text-center text-sm font-bold uppercase text-ink/30'
-        : 'text-center text-sm font-bold uppercase text-ink'}>
+      <PixelText className={disabled
+        ? 'text-center text-sm uppercase text-ink/30'
+        : 'text-center text-sm uppercase text-ink'}>
         {label}
-      </Text>
+      </PixelText>
     </Pressable>
-  );
-}
-
-function EmptyDocket({ title, detail }: { title: string; detail: string }) {
-  return (
-    <View className="items-center border-2 border-dashed border-ink/30 bg-white/50 px-5 py-10">
-      <Text className="font-mono text-3xl text-ink/25">□</Text>
-      <Text className="mt-3 font-pixel text-base uppercase text-ink">{title}</Text>
-      <Text className="mt-2 text-center text-sm leading-5 text-ink/55">{detail}</Text>
-    </View>
   );
 }

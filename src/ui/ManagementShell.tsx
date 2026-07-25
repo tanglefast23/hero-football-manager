@@ -9,6 +9,7 @@ import { SettingsButton } from './SettingsOverlay';
 import { HoverTipAnchor, SfxPressable as Pressable } from './components/SfxPressable';
 import { managementKeyBindings, tabNumberKey } from './management-key-bindings';
 import { useKeyBindings } from './use-key-bindings';
+import { PixelText } from './components/PixelText';
 
 function useGuideAnchor(
   enabled: boolean,
@@ -93,7 +94,7 @@ function ResourceChip({ glyph, name, value, tone }: {
       <Text maxFontSizeMultiplier={1.2} className={hero ? 'font-mono text-xs font-bold text-gold-dark' : 'font-mono text-xs font-bold text-blue-dark'}>
         {glyph}
       </Text>
-      <Text maxFontSizeMultiplier={1.2} adjustsFontSizeToFit numberOfLines={1} className={hero ? 'font-mono text-sm font-bold text-gold-dark' : 'font-mono text-sm font-bold text-ink'}>
+      <Text maxFontSizeMultiplier={1.2} adjustsFontSizeToFit numberOfLines={1} className={hero ? 'font-mono text-sm text-gold-dark' : 'font-mono text-sm text-ink'}>
         {abbrev(value)}
       </Text>
     </View>
@@ -218,7 +219,7 @@ export function ManagementShell({
         </View>
         <View className="mt-2 border-t border-ink/15 pt-2">
           <Text
-            className="font-mono text-sm font-bold uppercase text-blue-dark"
+            className="font-pixel text-sm uppercase text-blue-dark"
             numberOfLines={1}
             adjustsFontSizeToFit
             maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
@@ -298,21 +299,21 @@ export function ManagementShell({
                   />
                 ) : null}
                 <Text
-                  className={selected ? 'font-mono text-lg font-bold text-ink' : 'font-mono text-lg text-ink/50'}
+                  className={selected ? 'font-pixel text-lg text-ink' : 'font-mono text-lg text-ink/50'}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
                 >
                   {tab.glyph}
                 </Text>
-                <Text
-                  className={selected ? 'mt-1 text-sm font-bold uppercase text-ink' : 'mt-1 text-sm uppercase text-ink/50'}
+                <PixelText
+                  className={selected ? 'mt-1 text-sm uppercase text-ink' : 'mt-1 text-sm uppercase text-ink/50'}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
                 >
                   {tab.label}
-                </Text>
+                </PixelText>
               </Pressable>
             );
           })}

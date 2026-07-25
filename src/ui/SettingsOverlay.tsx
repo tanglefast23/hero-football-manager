@@ -7,6 +7,7 @@ import type { CutInMode, HudSide, TextScale } from '../persistence';
 import type { GlossaryCatalog } from '../content';
 import { GlossaryPanel } from './GlossaryPanel';
 import { volumeThumbLeft } from './volume-slider-thumb';
+import { PixelText } from './components/PixelText';
 
 /** Snap a raw 0–1 gesture position to the nearest supported volume level. */
 function snapVolume(raw: number): DevVolume {
@@ -49,8 +50,8 @@ function VolumeSlider({ value, onChange }: { value: DevVolume; onChange: (v: Dev
   return (
     <View>
       <View className="mb-3 flex-row items-center justify-between">
-        <Text className="font-mono text-base font-bold uppercase text-ink/60">Volume</Text>
-        <Text className="font-mono text-lg font-bold text-ink">{devVolumePercent(value)}%</Text>
+        <Text className="font-pixel text-base uppercase text-ink/60">Volume</Text>
+        <Text className="font-mono text-lg text-ink">{devVolumePercent(value)}%</Text>
       </View>
       <View
         accessible
@@ -211,7 +212,7 @@ export function SettingsOverlay({
             <Text className="font-pixel text-2xl uppercase text-ink">Settings</Text>
             {accessibilityCopy ? (
               <View className="mt-3 border-2 border-blue-dark bg-blue-light px-3 py-2">
-                <Text className="text-sm font-bold uppercase text-blue-dark">{accessibilityCopy.title}</Text>
+                <PixelText className="text-sm uppercase text-blue-dark">{accessibilityCopy.title}</PixelText>
                 <Text className="mt-1 text-sm leading-5 text-ink/65">{accessibilityCopy.body}</Text>
               </View>
             ) : null}
@@ -228,8 +229,8 @@ export function SettingsOverlay({
             <View className="my-4 h-0.5 bg-ink/15" />
             {difficultyLabel ? (
               <View accessible accessibilityRole="text" accessibilityLabel={`Career difficulty ${difficultyLabel}`} className="mb-4 flex-row items-center justify-between border-2 border-gold-dark bg-gold-light px-3 py-2">
-                <Text className="font-mono text-sm font-bold uppercase text-ink">Career difficulty</Text>
-                <Text className="font-mono text-base font-bold text-gold-dark">{difficultyLabel}</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">Career difficulty</Text>
+                <Text className="font-pixel text-base text-gold-dark">{difficultyLabel}</Text>
               </View>
             ) : null}
             <VolumeSlider value={volume} onChange={onVolumeChange} />
@@ -243,8 +244,8 @@ export function SettingsOverlay({
                   ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2'
                   : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}
               >
-                <Text className="font-mono text-sm font-bold uppercase text-ink">Reduce motion</Text>
-                <Text className="font-mono text-base font-bold text-ink">{reduceMotion ? 'ON' : 'OFF'}</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">Reduce motion</Text>
+                <Text className="font-pixel text-base text-ink">{reduceMotion ? 'ON' : 'OFF'}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="switch"
@@ -253,21 +254,21 @@ export function SettingsOverlay({
                 onPress={onToggleHaptics}
                 className={hapticsEnabled ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}
               >
-                <Text className="font-mono text-sm font-bold uppercase text-ink">Haptics</Text>
-                <Text className="font-mono text-base font-bold text-ink">{hapticsEnabled ? 'ON' : 'OFF'}</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">Haptics</Text>
+                <Text className="font-pixel text-base text-ink">{hapticsEnabled ? 'ON' : 'OFF'}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={`Text size ${Math.round(textScale * 100)} percent`} onPress={onCycleTextScale} className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2">
-                <Text className="font-mono text-sm font-bold uppercase text-ink">Text size</Text>
-                <Text className="font-mono text-base font-bold text-blue-dark">{textScale === 1 ? 'SYSTEM' : textScale === 1.15 ? 'ROOMY' : 'LARGE'}</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">Text size</Text>
+                <Text className="font-pixel text-base text-blue-dark">{textScale === 1 ? 'SYSTEM' : textScale === 1.15 ? 'ROOMY' : 'LARGE'}</Text>
               </Pressable>
               <Pressable accessibilityRole="switch" accessibilityLabel="High contrast" accessibilityState={{ checked: highContrast }} onPress={onToggleHighContrast} className={highContrast ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}>
-                <Text className="font-mono text-sm font-bold uppercase text-ink">High contrast</Text><Text className="font-mono text-base font-bold text-ink">{highContrast ? 'ON' : 'OFF'}</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">High contrast</Text><Text className="font-pixel text-base text-ink">{highContrast ? 'ON' : 'OFF'}</Text>
               </Pressable>
               <Pressable accessibilityRole="switch" accessibilityLabel="Color-safe kits" accessibilityState={{ checked: colorSafeKits }} onPress={onToggleColorSafeKits} className={colorSafeKits ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}>
-                <Text className="font-mono text-sm font-bold uppercase text-ink">Color-safe kits</Text><Text className="font-mono text-base font-bold text-ink">{colorSafeKits ? 'ON' : 'OFF'}</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">Color-safe kits</Text><Text className="font-pixel text-base text-ink">{colorSafeKits ? 'ON' : 'OFF'}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={`Power labels ${cutInMode === 'full' ? 'player card' : 'banner'}`} onPress={onToggleCutInMode} className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2">
-                <Text className="font-mono text-sm font-bold uppercase text-ink">Power labels</Text><Text className="font-mono text-base font-bold uppercase text-blue-dark">{cutInMode === 'full' ? 'PLAYER' : 'BANNER'}</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">Power labels</Text><Text className="font-pixel text-base uppercase text-blue-dark">{cutInMode === 'full' ? 'PLAYER' : 'BANNER'}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -275,8 +276,8 @@ export function SettingsOverlay({
                 onPress={onToggleHudSide}
                 className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
               >
-                <Text className="font-mono text-sm font-bold uppercase text-ink">Match info</Text>
-                <Text className="font-mono text-base font-bold uppercase text-blue-dark">{hudSide}</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">Match info</Text>
+                <Text className="font-pixel text-base uppercase text-blue-dark">{hudSide}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -284,8 +285,8 @@ export function SettingsOverlay({
                 onPress={() => onGlossaryOpenChange(true)}
                 className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
               >
-                <Text className="font-mono text-sm font-bold uppercase text-ink">Glossary</Text>
-                <Text className="font-mono text-base font-bold text-blue-dark">A–Z ›</Text>
+                <Text className="font-pixel text-sm uppercase text-ink">Glossary</Text>
+                <Text className="font-pixel text-base text-blue-dark">A–Z ›</Text>
               </Pressable>
             </View>
             <View className="mt-6">

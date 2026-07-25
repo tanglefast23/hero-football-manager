@@ -1,5 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
+import { EmptyDocket } from '../components/EmptyDocket';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type { ClubAlertViewModel, HomeViewModel } from '../models';
 import { scaledBody } from '../text-scale';
@@ -9,6 +10,7 @@ import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
+import { PixelText } from '../components/PixelText';
 
 /** Full-card tint per alert tone — bible palette only, never off-palette Tailwind hues. */
 function alertPalette(tone: ClubAlertViewModel['tone']): string {
@@ -52,25 +54,25 @@ export function ClubHomeScreen({
         <PaperPanel kicker="Next match" title={fixture.competition} stamp={viewModel.nextMatchTimingLabel}>
           <View className="border-y-2 border-ink py-4">
             <View className="flex-row items-center justify-between gap-2">
-              <Text
-                className="flex-1 text-right text-xl font-bold uppercase text-ink"
+              <PixelText
+                className="flex-1 text-right text-xl uppercase text-ink"
                 numberOfLines={2}
                 adjustsFontSizeToFit
                 minimumFontScale={0.65}
               >
                 {fixture.homeTeam}
-              </Text>
+              </PixelText>
               <View className="border-2 border-ink bg-ink px-3 py-2">
-                <Text className="font-mono text-base font-bold text-paper">VS</Text>
+                <Text className="font-pixel text-base text-paper">VS</Text>
               </View>
-              <Text
-                className="flex-1 text-xl font-bold uppercase text-ink"
+              <PixelText
+                className="flex-1 text-xl uppercase text-ink"
                 numberOfLines={2}
                 adjustsFontSizeToFit
                 minimumFontScale={0.65}
               >
                 {fixture.awayTeam}
-              </Text>
+              </PixelText>
             </View>
             <View className="mt-3 flex-row justify-center gap-2">
               <StatusChip label={fixture.venueLabel} />
@@ -110,9 +112,9 @@ export function ClubHomeScreen({
           />
           <View className="gap-2">
             {viewModel.alerts.length === 0 ? (
-              <View className="border-2 border-b-4 border-ink bg-white p-4">
+              <PaperPanel>
                 <Text className="text-ink/60" style={scaledBody(textScale)}>Desk clear. The board is suspiciously quiet.</Text>
-              </View>
+              </PaperPanel>
             ) : viewModel.alerts.map(alert => {
               const guided = alert.id === guideAlertId;
               const locked = lockOtherAlerts && guideAlertId !== undefined && !guided;
@@ -134,10 +136,10 @@ export function ClubHomeScreen({
                     />
                   ) : null}
                   <View className="flex-1 pr-3">
-                    <Text className="text-base font-bold uppercase text-ink">{alert.title}</Text>
+                    <PixelText className="text-base uppercase text-ink">{alert.title}</PixelText>
                     <Text className="mt-1 text-ink/70" style={scaledBody(textScale, 14, 18)} numberOfLines={2}>{alert.detail}</Text>
                   </View>
-                  <Text className="font-mono text-xl font-bold text-ink">›</Text>
+                  <Text className="font-pixel text-xl text-ink">›</Text>
                 </Pressable>
               );
             })}
@@ -244,8 +246,8 @@ export function ClubHomeScreen({
                       </Text>
                     </View>
                     <Text className={protectedPlayer
-                      ? 'font-mono text-sm font-bold uppercase text-blue-dark'
-                      : 'font-mono text-sm font-bold uppercase text-ink/45'}>
+                      ? 'font-pixel text-sm uppercase text-blue-dark'
+                      : 'font-pixel text-sm uppercase text-ink/45'}>
                       {protectedPlayer ? 'Protected' : 'Protect'}
                     </Text>
                   </Pressable>
@@ -264,8 +266,14 @@ export function ClubHomeScreen({
           <SectionLabel
             eyebrow={viewModel.divisionLabel}
             title="Table snapshot"
-            right={<Text className="font-mono text-sm font-bold uppercase text-blue-dark">Table ›</Text>}
+            right={<Text className="font-pixel text-sm uppercase text-blue-dark">Table ›</Text>}
           />
+          {viewModel.table.length === 0 ? (
+            <EmptyDocket
+              title="Table not published"
+              detail="Standings appear once the division plays its first round."
+            />
+          ) : (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Open full league table"
@@ -274,11 +282,11 @@ export function ClubHomeScreen({
             style={({ pressed }) => ({ opacity: pressed ? 0.75 : undefined })}
           >
             <View className="flex-row border-b-2 border-ink/20 px-3 py-2">
-              <Text className="w-8 font-mono text-sm font-bold text-ink/50">#</Text>
-              <Text className="flex-1 text-sm font-bold uppercase text-ink/50">Club</Text>
-              <Text className="w-8 text-right font-mono text-sm font-bold text-ink/50">P</Text>
-              <Text className="w-10 text-right font-mono text-sm font-bold text-ink/50">GD</Text>
-              <Text className="w-10 text-right font-mono text-sm font-bold text-ink/50">PTS</Text>
+              <Text className="w-8 font-mono text-sm text-ink/50">#</Text>
+              <PixelText className="flex-1 text-sm uppercase text-ink/50">Club</PixelText>
+              <Text className="w-8 text-right font-mono text-sm text-ink/50">P</Text>
+              <Text className="w-10 text-right font-mono text-sm text-ink/50">GD</Text>
+              <Text className="w-10 text-right font-mono text-sm text-ink/50">PTS</Text>
             </View>
             {viewModel.table.map(row => {
               const isUser = row.clubName === viewModel.clubName;
@@ -287,15 +295,16 @@ export function ClubHomeScreen({
                   key={row.clubName}
                   className={isUser ? 'flex-row bg-blue-light px-3 py-2' : 'flex-row px-3 py-2'}
                 >
-                  <Text className={isUser ? 'w-8 font-mono text-base font-bold text-ink' : 'w-8 font-mono text-base text-ink'}>{row.position}</Text>
+                  <Text className={isUser ? 'w-8 font-mono text-base text-ink' : 'w-8 font-mono text-base text-ink'}>{row.position}</Text>
                   <Text className={isUser ? 'flex-1 text-base font-bold text-ink' : 'flex-1 text-base text-ink'} numberOfLines={1}>{row.clubName}</Text>
-                  <Text className={isUser ? 'w-8 text-right font-mono text-base font-bold text-ink' : 'w-8 text-right font-mono text-base text-ink'}>{row.played}</Text>
-                  <Text className={isUser ? 'w-10 text-right font-mono text-base font-bold text-ink' : 'w-10 text-right font-mono text-base text-ink'}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
-                  <Text className={isUser ? 'w-10 text-right font-mono text-base font-bold text-ink' : 'w-10 text-right font-mono text-base text-ink'}>{row.points}</Text>
+                  <Text className={isUser ? 'w-8 text-right font-mono text-base text-ink' : 'w-8 text-right font-mono text-base text-ink'}>{row.played}</Text>
+                  <Text className={isUser ? 'w-10 text-right font-mono text-base text-ink' : 'w-10 text-right font-mono text-base text-ink'}>{row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</Text>
+                  <Text className={isUser ? 'w-10 text-right font-mono text-base text-ink' : 'w-10 text-right font-mono text-base text-ink'}>{row.points}</Text>
                 </View>
               );
             })}
           </Pressable>
+          )}
         </View>
       ),
     },
@@ -309,20 +318,24 @@ export function ClubHomeScreen({
           <>
             <View className="flex-row items-end justify-between">
               <View>
-                <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Good morning, boss</Text>
-                <Text className="mt-1 text-xl font-bold uppercase tracking-wide text-ink">{viewModel.managerName}</Text>
+                <Text className="font-pixel text-sm uppercase text-blue-dark">Good morning, boss</Text>
+                <PixelText className="mt-1 text-xl uppercase tracking-wide text-ink">{viewModel.managerName}</PixelText>
               </View>
               <View className="items-end">
-                <Text className="text-sm uppercase tracking-wide text-ink/50">Recent form</Text>
-                <View className="mt-2 flex-row gap-1">
-                  {viewModel.form.map((result, index) => (
-                    <StatusChip
-                      key={`${result}-${index}`}
-                      label={result}
-                      tone={result === 'W' ? 'success' : result === 'L' ? 'danger' : 'normal'}
-                    />
-                  ))}
-                </View>
+                <PixelText className="text-sm uppercase tracking-wide text-ink/50">Recent form</PixelText>
+                {viewModel.form.length === 0 ? (
+                  <PixelText className="mt-2 text-sm uppercase tracking-wide text-ink/40">No games yet</PixelText>
+                ) : (
+                  <View className="mt-2 flex-row gap-1">
+                    {viewModel.form.map((result, index) => (
+                      <StatusChip
+                        key={`${result}-${index}`}
+                        label={result}
+                        tone={result === 'W' ? 'success' : result === 'L' ? 'danger' : 'normal'}
+                      />
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
             <View className="my-5 h-0.5 bg-ink/15" />

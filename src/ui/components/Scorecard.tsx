@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { playPositiveSfx, playUiClickSfx } from '../../render/management-sfx';
+import { PixelText } from './PixelText';
 
 function cx(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
@@ -47,7 +48,7 @@ export function PaperPanel({ children, title, kicker, stamp, className, tone = '
         <View className="mb-3 flex-row items-start justify-between gap-3">
           <View className="flex-1">
             {kicker ? (
-              <Text className={cx('font-mono text-sm font-bold uppercase', attention ? 'text-gold-dark' : 'text-stamp')}>{kicker}</Text>
+              <Text className={cx('font-pixel text-sm uppercase', attention ? 'text-gold-dark' : 'text-stamp')}>{kicker}</Text>
             ) : null}
             {title ? (
               <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
@@ -55,7 +56,7 @@ export function PaperPanel({ children, title, kicker, stamp, className, tone = '
           </View>
           {stamp ? (
             <View className={cx('border-2 border-b-4 px-2 py-1', attention ? 'border-gold-dark bg-gold' : 'border-stamp bg-red-light/40')}>
-              <Text className={cx('font-mono text-sm font-bold uppercase', attention ? 'text-ink' : 'text-stamp')}>{stamp}</Text>
+              <Text className={cx('font-pixel text-sm uppercase', attention ? 'text-ink' : 'text-stamp')}>{stamp}</Text>
             </View>
           ) : null}
         </View>
@@ -167,8 +168,8 @@ export function Metric({ label, value, tone = 'normal' }: MetricProps) {
 
   return (
     <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-2 py-2">
-      <Text className="text-sm font-bold uppercase text-ink/60">{label}</Text>
-      <Text className={cx('mt-1 font-mono text-base font-bold', valueColor)} numberOfLines={1}>
+      <PixelText className="text-sm uppercase text-ink/60">{label}</PixelText>
+      <Text className={cx('mt-1 font-mono text-base', valueColor)} numberOfLines={1}>
         {value}
       </Text>
     </View>
@@ -185,7 +186,7 @@ export function SectionLabel({ eyebrow, title, right }: SectionLabelProps) {
   return (
     <View className="mb-3 flex-row items-end justify-between gap-3">
       <View className="flex-1">
-        <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{eyebrow}</Text>
+        <Text className="font-pixel text-sm uppercase text-blue-dark">{eyebrow}</Text>
         <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
       </View>
       {right}
@@ -212,9 +213,9 @@ export function StatusChip({ label, selected = false, tone = 'normal' }: StatusC
 
   return (
     <View className={cx('min-h-8 justify-center border-2 px-2 py-1', palette)}>
-      <Text className={cx('text-sm font-bold uppercase', palette.split(' ').find(c => c.startsWith('text-')))}>
+      <PixelText className={cx('text-sm uppercase', palette.split(' ').find(c => c.startsWith('text-')))}>
         {label}
-      </Text>
+      </PixelText>
     </View>
   );
 }

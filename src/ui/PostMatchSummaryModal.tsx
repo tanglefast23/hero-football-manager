@@ -8,6 +8,7 @@ import {
 import { countUpValue } from './count-up';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import type { PostMatchViewModel } from './models';
+import { PixelText } from './components/PixelText';
 import {
   ActionButton,
   Metric,
@@ -68,7 +69,7 @@ export function PostMatchSummaryModal({
           >
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
               <View className="flex-1 pr-3">
-                <Text className="font-mono text-sm font-bold uppercase text-blue-dark">Back at the office</Text>
+                <Text className="font-pixel text-sm uppercase text-blue-dark">Back at the office</Text>
                 <Text className="mt-1 font-pixel text-xl uppercase text-ink">Match summary</Text>
               </View>
               <Pressable
@@ -77,23 +78,23 @@ export function PostMatchSummaryModal({
                 onPress={onDismiss}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-white"
               >
-                <Text className="font-mono text-lg font-bold text-ink">×</Text>
+                <Text className="font-pixel text-lg text-ink">×</Text>
               </Pressable>
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
               <View className="flex-row items-center justify-center gap-3">
-                <Text className="max-w-28 flex-1 text-right text-base font-bold uppercase text-ink" numberOfLines={2}>
+                <PixelText className="max-w-28 flex-1 text-right text-base uppercase text-ink" numberOfLines={2}>
                   {viewModel.result.homeTeam}
-                </Text>
+                </PixelText>
                 <View className="flex-row items-center border-2 border-ink bg-ink px-3 py-2">
-                  <Text className="font-mono text-xl font-bold text-paper">{viewModel.result.homeScore}</Text>
+                  <Text className="font-mono text-xl text-paper">{viewModel.result.homeScore}</Text>
                   <Text className="mx-2 font-mono text-base text-paper/60">–</Text>
-                  <Text className="font-mono text-xl font-bold text-paper">{viewModel.result.awayScore}</Text>
+                  <Text className="font-mono text-xl text-paper">{viewModel.result.awayScore}</Text>
                 </View>
-                <Text className="max-w-28 flex-1 text-base font-bold uppercase text-ink" numberOfLines={2}>
+                <PixelText className="max-w-28 flex-1 text-base uppercase text-ink" numberOfLines={2}>
                   {viewModel.result.awayTeam}
-                </Text>
+                </PixelText>
               </View>
               <View className="mt-3 items-center border-b-2 border-ink/15 pb-4">
                 <StatusChip label={viewModel.result.outcomeLabel} tone={resultTone} />
@@ -112,7 +113,7 @@ export function PostMatchSummaryModal({
                             ? 'border-2 border-b-4 border-pitch-dark bg-pitch-light p-3'
                             : 'border-2 border-b-4 border-blue-dark bg-blue-light p-3'}
                       >
-                        <Text className="text-base font-bold uppercase text-ink">{update.title}</Text>
+                        <PixelText className="text-base uppercase text-ink">{update.title}</PixelText>
                         <Text className="mt-1 text-sm text-ink/70">{update.detail}</Text>
                       </View>
                     ))}
@@ -145,13 +146,13 @@ export function PostMatchSummaryModal({
                   : viewModel.netAmount > 0
                     ? 'mt-3 flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-3'
                     : 'mt-3 flex-row items-center justify-between border-2 border-blue-dark bg-blue-light px-3 py-3'}>
-                  <Text className={viewModel.netAmount < 0
-                    ? 'text-base font-bold uppercase text-red-dark'
+                  <PixelText className={viewModel.netAmount < 0
+                    ? 'text-base uppercase text-red-dark'
                     : viewModel.netAmount > 0
-                      ? 'text-base font-bold uppercase text-pitch-dark'
-                      : 'text-base font-bold uppercase text-blue-dark'}>
+                      ? 'text-base uppercase text-pitch-dark'
+                      : 'text-base uppercase text-blue-dark'}>
                     Net cash change
-                  </Text>
+                  </PixelText>
                   <CountUpAmount
                     amount={viewModel.netAmount}
                     delay={viewModel.ledger.length * 120}
@@ -235,7 +236,7 @@ function CountUpAmount({
     <Text
       accessible
       accessibilityLabel={`${amount > 0 ? 'plus ' : amount < 0 ? 'minus ' : ''}${formatCurrency(Math.abs(amount))}`}
-      className={large ? 'font-mono text-xl font-bold' : 'font-mono text-base font-bold'}
+      className={large ? 'font-mono text-xl' : 'font-mono text-base'}
       style={{ color }}
     >
       {formatCurrency(displayAmount, true)}

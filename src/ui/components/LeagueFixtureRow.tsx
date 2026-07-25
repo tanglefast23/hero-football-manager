@@ -19,7 +19,7 @@ export function LeagueFixtureRow({ fixture }: { fixture: M2LeagueFixtureViewMode
         : 'min-h-16 flex-row items-center border-2 border-b-4 border-ink bg-white px-3 py-2'}
     >
       <View className="w-16 pr-2">
-        <Text className="font-mono text-sm font-bold uppercase text-blue-dark">{fixture.weekLabel}</Text>
+        <Text className="font-pixel text-sm uppercase text-blue-dark">{fixture.weekLabel}</Text>
         <Text className="mt-1 font-mono text-sm uppercase text-ink/50">{fixture.venue}</Text>
       </View>
       <View className="flex-1 border-l border-ink/20 pl-3">
@@ -27,7 +27,7 @@ export function LeagueFixtureRow({ fixture }: { fixture: M2LeagueFixtureViewMode
         <Text className="mt-0.5 text-base font-bold text-ink" numberOfLines={1}>{fixture.opponentName}</Text>
       </View>
       <View className="items-end gap-1 pl-2">
-        <Text className="font-mono text-base font-bold text-ink">{fixture.scoreLabel}</Text>
+        <Text className="font-mono text-base text-ink">{fixture.scoreLabel}</Text>
         <StatusChip label={resultLabel} tone={resultTone} />
       </View>
     </View>

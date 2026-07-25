@@ -19,6 +19,7 @@ import { FacilityCompletionCard } from '../components/FacilityCompletionCard';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { countUpValue } from '../count-up';
+import { PixelText } from '../components/PixelText';
 
 export interface WeeklyReviewScreenProps {
   viewModel: WeeklyReviewViewModel;
@@ -61,7 +62,7 @@ export function WeeklyReviewScreen({
         <View className="border-b-2 border-paper/15 pb-3">
           <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Weekly review</Text>
           <Text className="mt-1 font-pixel text-xl uppercase text-white">{viewModel.completedWeekLabel}</Text>
-          <Text className="mt-2 text-sm font-bold uppercase text-paper/70">{viewModel.clubName}</Text>
+          <PixelText className="mt-2 text-sm uppercase text-paper/70">{viewModel.clubName}</PixelText>
         </View>
 
         {viewModel.facilityCompletion ? (
@@ -94,8 +95,8 @@ export function WeeklyReviewScreen({
 
         <View className="mt-3 gap-2">
           <View className="flex-row items-center justify-between border-2 border-ink bg-ink px-3 py-2.5">
-            <Text className="text-sm font-bold uppercase text-paper/70">Cash movement</Text>
-            <Text className="font-mono text-base font-bold text-paper">
+            <PixelText className="text-sm uppercase text-paper/70">Cash movement</PixelText>
+            <Text className="font-mono text-base text-paper">
               {formatCurrency(viewModel.cashBefore)} →{' '}
               <AnimatedCount
                 from={viewModel.cashBefore}
@@ -107,8 +108,8 @@ export function WeeklyReviewScreen({
             </Text>
           </View>
           <View className="flex-row items-center justify-between border-2 border-ink bg-blue-dark px-3 py-2.5">
-            <Text className="text-sm font-bold uppercase text-paper/70">TP movement</Text>
-            <Text className="font-mono text-base font-bold text-paper">
+            <PixelText className="text-sm uppercase text-paper/70">TP movement</PixelText>
+            <Text className="font-mono text-base text-paper">
               {formatCompactNumber(viewModel.trainingPointsBefore)} →{' '}
               <AnimatedCount
                 from={viewModel.trainingPointsBefore}
@@ -126,10 +127,10 @@ export function WeeklyReviewScreen({
             <View key={line.id} className="flex-row items-center border-b border-ink/10 py-2.5 last:border-b-0">
               <Text className="flex-1 text-ink" style={scaledBody(textScale)}>{line.label}</Text>
               <Text className={line.amount < 0
-                ? 'font-mono text-base font-bold text-stamp'
+                ? 'font-mono text-base text-stamp'
                 : line.amount > 0
-                  ? 'font-mono text-base font-bold text-pitch-dark'
-                  : 'font-mono text-base font-bold text-ink'}>
+                  ? 'font-mono text-base text-pitch-dark'
+                  : 'font-mono text-base text-ink'}>
                 {formatCurrency(line.amount, true)}
               </Text>
             </View>
@@ -170,7 +171,7 @@ function WeeklyBalanceCard({
 }) {
   return (
     <View className="min-w-0 flex-1 border-2 border-b-4 border-ink bg-white px-3 py-2">
-      <Text className="text-right text-sm font-bold uppercase text-ink/50">{label}</Text>
+      <PixelText className="text-right text-sm uppercase text-ink/50">{label}</PixelText>
       <AnimatedBalanceAmount
         from={startingAmount}
         to={currentAmount}
@@ -179,9 +180,9 @@ function WeeklyBalanceCard({
         kind={kind}
       />
       <View className="mt-2 border-t border-ink/20 pt-2">
-        <Text className="text-right text-sm font-bold uppercase text-ink/50">
+        <PixelText className="text-right text-sm uppercase text-ink/50">
           {kind === 'money' ? 'Net' : 'Net TP'}
-        </Text>
+        </PixelText>
         <AnimatedNetAmount amount={netAmount} started={started} complete={complete} kind={kind} />
       </View>
     </View>
@@ -214,8 +215,8 @@ function AnimatedNetAmount({
         accessible
         accessibilityLabel={`Net ${amount < 0 ? 'minus' : amount > 0 ? 'plus' : ''} ${Math.abs(amount)} ${kind === 'money' ? 'dollars' : 'training points'}`}
         className={amount < 0
-          ? 'mt-1 text-right font-mono text-xl font-bold text-stamp'
-          : 'mt-1 text-right font-mono text-xl font-bold text-pitch-dark'}
+          ? 'mt-1 text-right font-mono text-xl text-stamp'
+          : 'mt-1 text-right font-mono text-xl text-pitch-dark'}
         numberOfLines={1}
         adjustsFontSizeToFit
       >
@@ -258,7 +259,7 @@ function AnimatedBalanceAmount({
     >
       <Text
         accessibilityLabel={`${kind === 'money' ? 'Money' : 'Training points'} ${from} to ${to}`}
-        className={`mt-1 text-right font-mono text-xl font-bold ${movementClass}`}
+        className={`mt-1 text-right font-mono text-xl ${movementClass}`}
         numberOfLines={1}
         adjustsFontSizeToFit
       >

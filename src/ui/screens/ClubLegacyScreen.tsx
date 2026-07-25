@@ -7,6 +7,7 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 import type { ClubLegacyChoiceViewModel, ClubLegacyViewModel } from '../models';
 import { SettingsButton } from '../SettingsOverlay';
 import { TutorialTapCue } from '../TutorialTapCue';
+import { PixelText } from '../components/PixelText';
 import {
   TUTORIAL_TAP_CUE_ABOVE_OFFSET,
   TUTORIAL_TAP_CUE_RESERVED_SPACE,
@@ -57,9 +58,9 @@ export function ClubLegacyScreen({
             After {viewModel.seasonsAtClub} season{viewModel.seasonsAtClub === 1 ? '' : 's'} at the club,
             {' '}{viewModel.playerName} has earned a permanent place in its story.
           </Text>
-          <Text className="mt-2 text-sm font-bold uppercase text-ink/50">
+          <PixelText className="mt-2 text-sm uppercase text-ink/50">
             {viewModel.personality} · {viewModel.queueLabel}
-          </Text>
+          </PixelText>
         </PaperPanel>
 
         <View className="mt-6 gap-4">
@@ -87,9 +88,9 @@ export function ClubLegacyScreen({
               >
                 <Text className="text-base leading-6 text-ink/70">{choice.detail}</Text>
                 <View className="my-3 border-t border-ink/20" />
-                <Text className="mb-3 text-sm font-bold uppercase leading-5 text-ink">
+                <PixelText className="mb-3 text-sm uppercase leading-5 text-ink">
                   {choice.outcome}
-                </Text>
+                </PixelText>
                 <ActionButton
                   label={`Choose ${choice.label}  ▸`}
                   accessibilityLabel={`Choose ${choice.label} for ${viewModel.playerName}. ${choice.outcome}`}

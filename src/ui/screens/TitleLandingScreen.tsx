@@ -11,6 +11,7 @@ import type { AppPreferences } from '../../persistence';
 import type { GlossaryCatalog } from '../../content';
 import { GlossaryPanel } from '../GlossaryPanel';
 import { TitlePlayerPopScene } from '../components/TitlePlayerPopScene';
+import { PixelText } from '../components/PixelText';
 
 export interface TitleLandingScreenProps {
   hasSavedCareer: boolean;
@@ -231,10 +232,10 @@ export function TitleSettingsScreen({
             style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
           >
             <FormationDiagram formation={formation} compact />
-            <Text className="mt-2 font-mono text-sm font-bold text-ink">{formation}</Text>
-            <Text className="mt-1 text-center text-xs font-bold uppercase text-ink/50" numberOfLines={2}>
+            <Text className="mt-2 font-pixel text-sm text-ink">{formation}</Text>
+            <PixelText className="mt-1 text-center text-xs uppercase text-ink/50" numberOfLines={2}>
               {FORMATION_LABELS[formation]}
-            </Text>
+            </PixelText>
           </Pressable>
         ))}
       </View>
@@ -258,10 +259,10 @@ export function TitleSettingsScreen({
                   style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
                 >
                   <View className="flex-1 pr-3">
-                    <Text className="font-mono text-base font-bold uppercase text-ink">Reduce motion</Text>
+                    <Text className="font-pixel text-base uppercase text-ink">Reduce motion</Text>
                     <Text className="mt-1 text-sm text-ink/60">Stops count-ups, flashes, pulses, and decorative match trails.</Text>
                   </View>
-                  <Text className="font-mono text-lg font-bold text-ink">{preferences.reduceMotion ? 'ON' : 'OFF'}</Text>
+                  <Text className="font-pixel text-lg text-ink">{preferences.reduceMotion ? 'ON' : 'OFF'}</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -271,10 +272,10 @@ export function TitleSettingsScreen({
                   style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
                 >
                   <View className="flex-1 pr-3">
-                    <Text className="font-mono text-base font-bold uppercase text-ink">Match info position</Text>
+                    <Text className="font-pixel text-base uppercase text-ink">Match info position</Text>
                     <Text className="mt-1 text-sm text-ink/60">Moves the carrier card and top controls together.</Text>
                   </View>
-                  <Text className="font-mono text-lg font-bold uppercase text-blue-dark">{preferences.hudSide}</Text>
+                  <Text className="font-pixel text-lg uppercase text-blue-dark">{preferences.hudSide}</Text>
                 </Pressable>
                 <AccessibilityToggle label="Haptics" detail="Turns all touch feedback on or off." enabled={preferences.hapticsEnabled} onPress={onToggleHaptics} />
                 <AccessibilityChoice label="Text size" detail="Adds extra room to important story and review copy." value={preferences.textScale === 1 ? 'System' : preferences.textScale === 1.15 ? 'Roomy' : 'Large'} onPress={onCycleTextScale} />
@@ -309,8 +310,8 @@ export function TitleSettingsScreen({
               >
                 <View className="flex-row items-end justify-between">
                   <View>
-                    <Text className="text-sm font-bold uppercase tracking-[2px] text-ink/55">Tap to change</Text>
-                    <Text className="mt-1 font-mono text-3xl font-bold text-ink">
+                    <PixelText className="text-sm uppercase tracking-[2px] text-ink/55">Tap to change</PixelText>
+                    <Text className="mt-1 font-mono text-3xl text-ink">
                       {volumePercent === 0 ? 'MUTED' : `${volumePercent}%`}
                     </Text>
                   </View>
@@ -320,15 +321,15 @@ export function TitleSettingsScreen({
 
               <View className="mt-5 gap-2 border-t border-ink/20 pt-4">
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-sm font-bold uppercase tracking-wide text-ink/60">Title theme</Text>
+                  <PixelText className="text-sm uppercase tracking-wide text-ink/60">Title theme</PixelText>
                   <StatusChip label="Heroes Start Here" selected />
                 </View>
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-sm font-bold uppercase tracking-wide text-ink/60">Management</Text>
+                  <PixelText className="text-sm uppercase tracking-wide text-ink/60">Management</PixelText>
                   <StatusChip label="Clubhouse Dreams" />
                 </View>
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-sm font-bold uppercase tracking-wide text-ink/60">Match day</Text>
+                  <PixelText className="text-sm uppercase tracking-wide text-ink/60">Match day</PixelText>
                   <StatusChip label="Match Day Heroes" />
                 </View>
               </View>
@@ -413,8 +414,8 @@ export function TitleSettingsScreen({
 function AccessibilityToggle({ label, detail, enabled, onPress }: { label: string; detail: string; enabled: boolean; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: enabled }} onPress={onPress} className={enabled ? 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-blue-light px-4 py-3' : 'min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3'}>
-      <View className="flex-1 pr-3"><Text className="font-mono text-base font-bold uppercase text-ink">{label}</Text><Text className="mt-1 text-sm text-ink/60">{detail}</Text></View>
-      <Text className="font-mono text-lg font-bold text-ink">{enabled ? 'ON' : 'OFF'}</Text>
+      <View className="flex-1 pr-3"><Text className="font-pixel text-base uppercase text-ink">{label}</Text><Text className="mt-1 text-sm text-ink/60">{detail}</Text></View>
+      <Text className="font-pixel text-lg text-ink">{enabled ? 'ON' : 'OFF'}</Text>
     </Pressable>
   );
 }
@@ -422,8 +423,8 @@ function AccessibilityToggle({ label, detail, enabled, onPress }: { label: strin
 function AccessibilityChoice({ label, detail, value, onPress }: { label: string; detail: string; value: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${value}`} onPress={onPress} className="min-h-14 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-4 py-3">
-      <View className="flex-1 pr-3"><Text className="font-mono text-base font-bold uppercase text-ink">{label}</Text><Text className="mt-1 text-sm text-ink/60">{detail}</Text></View>
-      <Text className="font-mono text-lg font-bold uppercase text-blue-dark">{value}</Text>
+      <View className="flex-1 pr-3"><Text className="font-pixel text-base uppercase text-ink">{label}</Text><Text className="mt-1 text-sm text-ink/60">{detail}</Text></View>
+      <Text className="font-pixel text-lg uppercase text-blue-dark">{value}</Text>
     </Pressable>
   );
 }
