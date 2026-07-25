@@ -352,11 +352,17 @@ function clubFame(state: GameState): number {
     .reduce((total, player) => total + (player.fame ?? 0), state.market?.clubFameAdjustment ?? 0)));
 }
 
+/** 0 when the club owns no Scout Office; the best operational office wins. */
 function scoutOfficeLevel(state: GameState): number {
   const grid = state.facilities.grid;
-  return grid?.buildings.find(building => (
-    building.type === 'scout-office' && isFacilityOperational(grid, building.id)
-  ))?.level ?? 1;
+  if (grid === undefined) return 0;
+  let level = 0;
+  for (const building of grid.buildings) {
+    if (building.type !== 'scout-office') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
+    level = Math.max(level, building.level);
+  }
+  return level;
 }
 
 function absoluteCareerWeek(state: Pick<GameState, 'season' | 'week'>): number {

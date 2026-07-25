@@ -188,7 +188,7 @@ export function startCareerScoutMission(
     startWeek: absoluteCareerWeek(state),
     region,
     focus,
-    scoutOfficeLevel: scoutOfficeLevel(state),
+    scoutOfficeLevel: scoutReportLevel(state),
     division,
   });
   const club = userClub(state);
@@ -225,6 +225,7 @@ export function resolveCareerScoutClock(
     mission,
     absoluteCareerWeek(state),
     scoutableCareerPlayers(state),
+    scoutShortlistSize(scoutOfficeLevel(state)),
   );
   return {
     ...currentMarket,
@@ -1076,11 +1077,43 @@ function replaceTransferredStarter(state: GameState, player: CareerPlayer) {
     : candidate);
 }
 
-function scoutOfficeLevel(state: GameState): number {
+/**
+ * 0 when the club owns no Scout Office. The best operational office wins —
+ * `.find()` used to take whichever office was built first, so a second office
+ * upgraded to level 3 was money for nothing.
+ */
+export function scoutOfficeLevel(state: GameState): number {
   const grid = state.facilities.grid;
-  return grid?.buildings.find(building => (
-    building.type === 'scout-office' && isFacilityOperational(grid, building.id)
-  ))?.level ?? 1;
+  if (grid === undefined) return 0;
+  let level = 0;
+  for (const building of grid.buildings) {
+    if (building.type !== 'scout-office') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
+    level = Math.max(level, building.level);
+  }
+  return level;
+}
+
+/**
+ * Candidates a finished mission brings back. Without an office the club is
+ * borrowing an agency scout and gets one fewer name than a level-1 office —
+ * previously level 1 was indistinguishable from owning nothing, because the
+ * lookup defaulted to 1, so the first $6,000 bought literally no change.
+ */
+export function scoutShortlistSize(officeLevel: number): number {
+  if (!Number.isSafeInteger(officeLevel) || officeLevel < 0 || officeLevel > 3) {
+    throw new Error('Scout Office level must be an integer from 0 to 3');
+  }
+  return 2 + officeLevel;
+}
+
+/**
+ * Report precision is stored on the mission when it starts and the save schema
+ * accepts 1-3 only, so an office-less club still reads at level-1 precision.
+ * Its penalty is the shorter shortlist above, not a vaguer report.
+ */
+function scoutReportLevel(state: GameState): number {
+  return Math.max(1, scoutOfficeLevel(state));
 }
 
 function absoluteCareerWeek(state: Pick<GameState, 'season' | 'week'>): number {

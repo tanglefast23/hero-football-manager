@@ -66,12 +66,13 @@ describe('default two-season career journey', () => {
     // MONEY charge, which is always 0 now — the ledger line can never fire, so
     // the old "at least one training-charge week across the season" and "never
     // more than one per week" assertions no longer measure anything real.
-    // Division 5 only unlocks tier-I drills, so each tap is Sprints (+3 PAC,
-    // scaled by age and the Training Pitch, more on a SUPER session). Cap-free
-    // training keeps raising the raw PAC value; Sprints trains only PAC, so
-    // STA stays at the creation value.
+    // Division 5 unlocks tiers I and II, so each tap is Sprints 2 (+5 PAC,
+    // scaled by age and the Gym/Training Pitch level, more on a SUPER session).
+    // Two changes lifted this from 548: tier II is open in D5, and a level-1
+    // facility is now x1.25 instead of x1.0. Cap-free training keeps raising the
+    // raw PAC value; Sprints trains only PAC, so STA stays at the creation value.
     expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
-      .toMatchObject({ pac: 548, sta: 50 });
+      .toMatchObject({ pac: 646, sta: 50 });
   });
 });
 
@@ -123,7 +124,8 @@ describe('promotion reward presentation', () => {
           title: 'Recruitment fund · $15,000',
           detail: 'The board added $15,000 to club funds. Use it to recruit a player who can help the club survive the County League.',
         },
-        { title: 'Level 2 facilities' },
+        // No 'Level 2 facilities': it is available from D5, so promoting to D4
+        // must not present it as newly earned.
         { title: 'International scouting' },
         { title: 'Level 2 coaches' },
       ],

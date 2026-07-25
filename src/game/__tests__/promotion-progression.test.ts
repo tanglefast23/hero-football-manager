@@ -30,7 +30,9 @@ describe('permanent promotion progression', () => {
     };
 
     expect(highestDivisionReached(initial)).toBe(5);
-    expect(maxCareerFacilityLevel(initial)).toBe(1);
+    // Level 2 is reachable from the D5 start: it is the club's main training
+    // accelerator, and gating it behind D4 gated it behind its own purpose.
+    expect(maxCareerFacilityLevel(initial)).toBe(2);
     expect(maxCareerFacilityLevel(reachedD4)).toBe(2);
     expect(careerHeroLimit(reachedD4)).toBe(2);
     expect(highestDivisionReached(reachedD3ThenRelegated)).toBe(3);
@@ -41,9 +43,10 @@ describe('permanent promotion progression', () => {
 
   test('defines one compact reward bundle for every promotion', () => {
     expect(promotionRewardsForDivision(5)).toEqual([]);
+    // No 'Level 2 facilities' here: level 2 is available from D5, so the D4
+    // promotion screen must not promise a reward the club already has.
     expect(promotionRewardsForDivision(4).map(reward => reward.title)).toEqual([
       'Recruitment fund · $15,000',
-      'Level 2 facilities',
       'International scouting',
       'Level 2 coaches',
     ]);

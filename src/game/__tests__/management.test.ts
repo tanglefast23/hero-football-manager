@@ -58,11 +58,9 @@ describe('career facility transactions', () => {
     const initial = createCareer(createLaunchCareerSetup(20260720));
     const built = completeProject(buildCareerFacility(initial, 'gym', { x: 2, y: 0 }).state);
 
-    expect(() => upgradeCareerFacility(built, 'facility-1'))
-      .toThrow('Level 2 facilities unlock in D4 · County League');
-
-    const d4 = { ...built, m2: { ...built.m2!, highestDivisionReached: 4 as const } };
-    const levelTwo = completeProject(upgradeCareerFacility(d4, 'facility-1').state);
+    // Level 2 needs no promotion: it is the club's main training accelerator,
+    // so a D5 club can reach it. Only level 3 is still a promotion reward.
+    const levelTwo = completeProject(upgradeCareerFacility(built, 'facility-1').state);
     expect(levelTwo.facilities.grid?.buildings.find(building => building.id === 'facility-1')?.level).toBe(2);
     expect(() => upgradeCareerFacility(levelTwo, 'facility-1'))
       .toThrow('Level 3 facilities unlock in D2 · National Championship');

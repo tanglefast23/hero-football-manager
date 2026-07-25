@@ -1,5 +1,5 @@
 import { coachMotivatorStrengthHalfLevels } from './coach-weekly';
-import { type FacilityGridState } from './facilities';
+import { isFacilityOperational, type FacilityGridState } from './facilities';
 import { growthSinceSigningPercent } from './market-career';
 import { renewalContractAsk } from './market';
 import { shouldRequestTransfer, updatePlayerWellbeing } from './pyramid';
@@ -7,6 +7,16 @@ import type { CareerPlayer, GameState } from './types';
 
 export const WEEKLY_CONDITION_RECOVERY = 12;
 export const OVERTRAINING_CONDITION_THRESHOLD = 30;
+
+/**
+ * Each Dorm level speeds weekly condition recovery, the way each Medical Bay
+ * level shortens an injury. An instant drill costs 8 condition, so bare
+ * recovery of 12 sustains 1.5 taps per player per week; a Dorm lifts that to
+ * 2.0 / 2.5 / 3.0 taps and keeps players clear of the condition-30 floor where
+ * overtraining injury rolls start. Before this the Dorm had no effect site at
+ * all beyond the Gym adjacency.
+ */
+export const DORM_CONDITION_RECOVERY_PER_LEVEL = 4;
 
 export interface WeeklyPlayerWellbeingContext {
   /** Results played outside the league fixture list, such as a Cup tie. */
@@ -49,11 +59,11 @@ export function resolveWeeklyPlayerWellbeing(
   const motivatorStrengthHalfLevels = state.market === undefined
     ? 0
     : coachMotivatorStrengthHalfLevels(state.market);
+  const conditionDelta = weeklyConditionRecovery(gridDormLevel(state.facilities.grid));
 
   const players = state.players.map(player => {
     if (player.clubId !== state.userClubId) return player;
 
-    const conditionDelta = WEEKLY_CONDITION_RECOVERY;
     const matchMoraleDelta = matchOutcomes.reduce(
       (total, outcome) => total + moraleDeltaForMatch(outcome, starters.has(player.id)),
       0,
@@ -195,6 +205,26 @@ export function gridMedicalBayLevel(grid: FacilityGridState | undefined): number
     if (building.type === 'medical-bay') level = Math.max(level, building.level);
   }
   return level;
+}
+
+/** The best operational Dorm wins; a second Dorm is not a second bonus. */
+export function gridDormLevel(grid: FacilityGridState | undefined): number {
+  if (grid === undefined) return 0;
+  let level = 0;
+  for (const building of grid.buildings) {
+    if (building.type !== 'dorm') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
+    level = Math.max(level, building.level);
+  }
+  return level;
+}
+
+/** Weekly condition recovery for the user club, Dorm levels included. */
+export function weeklyConditionRecovery(dormLevel: number): number {
+  if (!Number.isSafeInteger(dormLevel) || dormLevel < 0 || dormLevel > 3) {
+    throw new Error('Dorm level must be an integer from 0 to 3');
+  }
+  return WEEKLY_CONDITION_RECOVERY + dormLevel * DORM_CONDITION_RECOVERY_PER_LEVEL;
 }
 
 function validateStateClock(state: Pick<GameState, 'careerSeed' | 'season' | 'week'>): void {

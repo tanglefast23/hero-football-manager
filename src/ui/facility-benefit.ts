@@ -11,19 +11,19 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
     case 'training-pitch':
       return 'Adds +10 Training Points per Level every week. Upgrades also boost defense training.';
     case 'gym':
-      return 'Level 1 has no training bonus. Level 2+ boosts pace and stamina training.';
+      return 'Boosts pace and stamina training — +25% at Level 1, up to +100% at Level 3.';
     case 'tech-center':
-      return 'Level 1 has no training bonus. Level 2+ boosts passing and technique training.';
+      return 'Boosts passing and technique training — +25% at Level 1, up to +100% at Level 3.';
     case 'shooting-range':
-      return 'Level 1 has no training bonus. Level 2+ boosts shooting training.';
+      return 'Boosts shooting training — +25% at Level 1, up to +100% at Level 3.';
     case 'keeper-court':
-      return 'Level 1 has no training bonus. Level 2+ boosts goalkeeping training.';
+      return 'Boosts goalkeeping training — +25% at Level 1, up to +100% at Level 3.';
     case 'medical-bay':
       return 'Shortens injuries by one week. Its placement can also unlock a safety bonus.';
     case 'dorm':
-      return 'Player accommodation built for rest and recovery. Its value comes from the right neighbour.';
+      return 'Adds +4 weekly condition recovery per Level, so players can train more often.';
     case 'scout-office':
-      return 'Narrows player rating estimates. Level 3 confirms reported powers.';
+      return 'Adds one more name per scouting mission and narrows rating estimates. Level 3 confirms reported powers.';
     case 'coaching-office':
       return 'Unlocks the assistant coach position.';
     case 'youth-field':
@@ -31,6 +31,6 @@ export function facilityBenefit(type: FacilityTypeViewModel): string {
     case 'fan-shop':
       return 'Earns weekly merchandise income — more per Level.';
     case 'stadium-stand':
-      return 'Creates a matchday crowd route. Its value comes from the right neighbour.';
+      return 'Adds +25% home gate income per Level — the bigger the club, the bigger the return.';
   }
 }

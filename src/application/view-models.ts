@@ -381,14 +381,13 @@ function facilityGridViewModel(state: GameState): ClubFinancesViewModel['facilit
   };
 }
 
+/** Every line states a real effect site in src/game — no facility says "nothing". */
 function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
-  const trainingEffect = (attributes: string): string => level === 1
-    ? `Level 1: no ${attributes} bonus · upgrades add +50%/+100%`
-    : `${level === 2 ? '+50%' : '+100%'} ${attributes} training`;
+  const trainingEffect = (attributes: string): string => (
+    `+${TRAINING_BONUS_PERCENT[level]}% ${attributes} training`
+  );
   if (type === 'training-pitch') {
-    return level === 1
-      ? '+10 TP weekly · upgrades boost DEF training'
-      : `+${level * 10} TP weekly · ${level === 2 ? '+50%' : '+100%'} DEF training`;
+    return `+${level * 10} TP weekly · +${TRAINING_BONUS_PERCENT[level]}% DEF training`;
   }
   if (type === 'gym') return trainingEffect('PAC + STA');
   if (type === 'tech-center') return trainingEffect('PAS + TEC');
@@ -397,32 +396,36 @@ function facilityEffectLabel(type: FacilityType, level: FacilityLevel): string {
   if (type === 'medical-bay') {
     return `Recovery -${level} week${level === 1 ? '' : 's'} · adjacency bonus available`;
   }
-  if (type === 'dorm') return 'Rest quarters · adjacency bonus only';
+  if (type === 'dorm') {
+    return `+${level * 4} condition recovery weekly · adjacency bonus available`;
+  }
   if (type === 'scout-office') {
+    const names = `${2 + level} names per mission`;
     return level === 1
-      ? 'Scout intel desk · upgrades narrow stat ranges'
+      ? `${names} · broad stat ranges`
       : level === 2
-        ? 'Scout reports show tighter stat ranges'
-        : 'Precise reports reveal confirmed powers';
+        ? `${names} · tighter stat ranges`
+        : `${names} · powers confirmed`;
   }
   if (type === 'coaching-office') return 'Unlocks the assistant coach position';
   if (type === 'youth-field') {
     return `Youth starting strength +${level * 5}`;
   }
   if (type === 'fan-shop') return `Weekly merchandise scales with fans · x${level}`;
-  if (type === 'stadium-stand') return 'Matchday crowd route · adjacency bonus only';
+  if (type === 'stadium-stand') return `+${level * 25}% home gate income`;
   throw new Error(`missing facility effect copy for ${type}`);
 }
+
+/** Mirrors FACILITY_TRAINING_MULTIPLIER in src/game/training.ts, as a percentage. */
+const TRAINING_BONUS_PERCENT: Readonly<Record<FacilityLevel, number>> = { 1: 25, 2: 50, 3: 100 };
 
 function facilityNextLevelEffectLabel(
   type: FacilityType,
   nextLevel: FacilityLevel,
 ): string | undefined {
-  if (type === 'dorm'
-    || type === 'coaching-office'
-    || type === 'stadium-stand') {
-    return undefined;
-  }
+  // The Coaching Office is a one-off unlock: its upgrades change nothing, so it
+  // is the only facility with no next-level promise to show.
+  if (type === 'coaching-office') return undefined;
   return facilityEffectLabel(type, nextLevel);
 }
 

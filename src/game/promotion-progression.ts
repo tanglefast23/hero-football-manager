@@ -16,10 +16,8 @@ const PROMOTION_REWARDS: Readonly<Record<1 | 2 | 3 | 4, readonly PromotionReward
       title: 'Recruitment fund · $15,000',
       detail: 'The board added $15,000 to club funds. Use it to recruit a player who can help the club survive the County League.',
     },
-    {
-      title: 'Level 2 facilities',
-      detail: 'Every existing facility can now be upgraded to Level 2.',
-    },
+    // No "Level 2 facilities" line: level 2 is now available from D5, so
+    // advertising it here would promise a reward the club already has.
     {
       title: 'International scouting',
       detail: 'A second overseas brief is added to each scouting shortlist.',
@@ -89,15 +87,16 @@ export function recordHighestDivisionReached(state: M2CareerState): M2CareerStat
 
 export function maxCareerFacilityLevel(state: GameState): FacilityLevel {
   if (state.m2 === undefined) return MAX_FACILITY_LEVEL;
+  // Level 2 is available from D5. Gating it behind D4 locked the club's main
+  // training accelerator behind the very promotion it was needed to achieve:
+  // measured, 0 promotions across 6 careers x 10 seasons. Level 3 still waits
+  // for D2 so the upgrade ladder keeps a promotion payoff at the top.
   const highest = highestDivisionReached(state);
-  if (highest <= 2) return 3;
-  if (highest <= 4) return 2;
-  return 1;
+  return highest <= 2 ? 3 : 2;
 }
 
 export function facilityLevelUnlockDivision(level: FacilityLevel): DivisionLevel {
-  if (level === 1) return 5;
-  return level === 2 ? 4 : 2;
+  return level <= 2 ? 5 : 2;
 }
 
 export function facilityUpgradeBlockedReason(
@@ -117,8 +116,8 @@ export function trainingDrillTier(drillId: string): TrainingDrillTier {
 }
 
 export function trainingDrillUnlockDivision(tier: TrainingDrillTier): DivisionLevel {
-  if (tier === 1) return 5;
-  return tier === 2 ? 4 : 2;
+  // Tier 2 drills open at D5 for the same reason level-2 facilities do.
+  return tier <= 2 ? 5 : 2;
 }
 
 /** Drill unlocks are permanent once their division has been reached. */

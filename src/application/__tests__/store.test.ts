@@ -236,17 +236,17 @@ describe('M1 app store integration', () => {
 
     const trained = useM1Store.getState().career!;
     const result = useM1Store.getState().lastDrillResult!;
-    // Division 5 only unlocks tier I, so the tap resolves Sprints: 6 TP.
+    // Division 5 unlocks tier II, so the tap resolves Sprints 2: 10 TP.
     expect(result).toMatchObject({
       playerId,
       attribute: 'pac',
       before: beforePac,
-      tpSpent: 6,
+      tpSpent: 10,
       sequence: 1,
     });
     expect(result.after).toBeGreaterThan(result.before);
     expect(trained.players.find(player => player.id === playerId)?.attrs.pac).toBe(result.after);
-    expect(trained.trainingPoints).toBe(before.trainingPoints - 6);
+    expect(trained.trainingPoints).toBe(before.trainingPoints - 10);
     expect(trained.players.find(player => player.id === unassignedPlayerId)?.attrs.sta)
       .toBe(beforeUnassignedSta);
     expect(trained.eventFlags).toContain('guide:bert:first-training-complete');
@@ -254,7 +254,7 @@ describe('M1 app store integration', () => {
     // Chain-tap: the popup stays live and the next result re-sequences.
     useM1Store.getState().trainPlayer(playerId, 'sprints');
     expect(useM1Store.getState().lastDrillResult).toMatchObject({ sequence: 2 });
-    expect(useM1Store.getState().career?.trainingPoints).toBe(before.trainingPoints - 12);
+    expect(useM1Store.getState().career?.trainingPoints).toBe(before.trainingPoints - 20);
 
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().screen).toBe('week-review');
@@ -327,7 +327,7 @@ describe('M1 app store integration', () => {
 
     useM1Store.getState().trainPlayer(playerId, 'sprints');
 
-    expect(useM1Store.getState().error).toContain('needs 6 TP');
+    expect(useM1Store.getState().error).toContain('needs 10 TP');
     expect(useM1Store.getState().lastDrillResult).toBeNull();
     expect(useM1Store.getState().career?.players.find(player => player.id === playerId)?.attrs)
       .toEqual(career.players.find(player => player.id === playerId)?.attrs);

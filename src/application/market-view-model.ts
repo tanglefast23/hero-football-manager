@@ -155,12 +155,16 @@ export function marketViewModel(source: MarketViewModelSource): MarketViewModel 
         : 'Scout and plan now. Registrations reopen in pre-season or weeks 17-18.',
     },
     scouting: {
-      officeLabel: `Scout Office · Lv${source.scoutOfficeLevel}`,
-      precisionLabel: source.scoutOfficeLevel === 1
-        ? 'Broad estimates'
-        : source.scoutOfficeLevel === 2
-          ? 'Improved estimates'
-          : 'Sharp estimates · powers confirmed',
+      officeLabel: source.scoutOfficeLevel === 0
+        ? 'No Scout Office'
+        : `Scout Office · Lv${source.scoutOfficeLevel}`,
+      precisionLabel: source.scoutOfficeLevel === 0
+        ? 'Broad estimates · 2 names per mission'
+        : source.scoutOfficeLevel === 1
+          ? 'Broad estimates · 3 names per mission'
+          : source.scoutOfficeLevel === 2
+            ? 'Improved estimates · 4 names per mission'
+            : 'Sharp estimates · powers confirmed · 5 names',
       status: scoutingStatus(source),
       choices: source.scoutOptions.map(option => scoutingChoice(source, option)),
       reports: (source.scoutResult?.reports ?? []).map(report => {

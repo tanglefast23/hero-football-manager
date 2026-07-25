@@ -6,6 +6,7 @@ import {
   facilityEffects,
   isFacilityOperational,
   weeklyFacilityUpkeep,
+  type FacilityGridState,
 } from './facilities';
 import { difficultyRules } from './difficulty';
 import { recordSeasonRecap } from './season-recap';
@@ -470,11 +471,10 @@ function settlementLines(
   );
 
   if (homeFixture !== undefined) {
-    const attendance = sixtyPercentOf(userClub.fans);
     lines.push({
       kind: 'tickets',
       label: 'League home gate',
-      amount: checkedMultiply(attendance, userClub.ticketPrice, 'ticket revenue'),
+      amount: homeGateIncome(state, userClub, 'ticket revenue'),
     });
   }
 
@@ -486,11 +486,10 @@ function settlementLines(
     fixture.homeClubId === state.userClubId && fixture.status === 'played'
   ));
   if (currentCupRound !== undefined && homeCupFixture !== undefined) {
-    const attendance = sixtyPercentOf(userClub.fans);
     lines.push({
       kind: 'tickets',
       label: `National Cup ${currentCupRound.label} home gate`,
-      amount: checkedMultiply(attendance, userClub.ticketPrice, 'National Cup ticket revenue'),
+      amount: homeGateIncome(state, userClub, 'National Cup ticket revenue'),
     });
   }
 
@@ -592,6 +591,39 @@ function settlementLines(
   }
 
   return lines;
+}
+
+/**
+ * Extra seats and matchday spend from each Stadium Stand level. It multiplies
+ * the ordinary gate, so it rides the division scaling in `divisionFans` and
+ * `divisionTicketPrice` instead of bypassing it: the same stand is worth far
+ * more in D1 than in D5, which is what makes it the club's climb investment.
+ */
+export const STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL = 25;
+
+/** The best operational stand wins; a second stand is not a second bonus. */
+export function gridStadiumStandLevel(grid: FacilityGridState | undefined): number {
+  if (grid === undefined) return 0;
+  let level = 0;
+  for (const building of grid.buildings) {
+    if (building.type !== 'stadium-stand') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
+    level = Math.max(level, building.level);
+  }
+  return level;
+}
+
+function homeGateIncome(state: GameState, userClub: ClubState, label: string): number {
+  const attendance = sixtyPercentOf(userClub.fans);
+  const base = checkedMultiply(attendance, userClub.ticketPrice, label);
+  const standLevel = gridStadiumStandLevel(state.facilities.grid);
+  if (standLevel === 0) return base;
+  const bonus = Math.floor(checkedMultiply(
+    base,
+    standLevel * STADIUM_STAND_GATE_BONUS_PERCENT_PER_LEVEL,
+    'Stadium Stand gate bonus',
+  ) / 100);
+  return checkedAdd(base, bonus, 'home gate income');
 }
 
 /** A small recurring return for building a Fan Shop, with the documented adjacency bonus. */

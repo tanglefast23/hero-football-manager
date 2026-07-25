@@ -23,7 +23,8 @@ describe('training drill tier unlocks', () => {
       player.id,
     ).selectedPlayerStatOptions?.find(option => option.pathId === 'sprints');
 
-    expect(optionAt(5)).toMatchObject({ drillName: 'Sprints 1' });
+    // Tier II is unlocked from the D5 start, alongside level-2 facilities.
+    expect(optionAt(5)).toMatchObject({ drillName: 'Sprints 2' });
     expect(optionAt(4)).toMatchObject({ drillName: 'Sprints 2' });
     expect(optionAt(2)).toMatchObject({ drillName: 'Sprints 3' });
   });

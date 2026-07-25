@@ -16,10 +16,13 @@ import {
   listCareerPlayer,
   refreshCareerMarketForNewSeason,
   resolveCareerScoutClock,
+  scoutOfficeLevel,
+  scoutShortlistSize,
   sellCareerPlayer,
   startCareerScoutMission,
   submitCareerTransferOffer,
 } from '../market-career';
+import type { GameState } from '../types';
 
 describe('career market integration', () => {
   test('charges for a mission and resolves deterministic reports on its due week', () => {
@@ -82,8 +85,57 @@ describe('career market integration', () => {
     };
     const resolved = resolveCareerScoutClock(dueState, started.market);
 
-    expect(resolved.scoutReports).toHaveLength(3);
+    // Two names, because this club owns no Scout Office. A level-1 office buys
+    // the third — see 'the Scout Office shortlist grows with its best level'.
+    expect(resolved.scoutReports).toHaveLength(2);
     expect(resolved.scoutReports.some(report => !activePlayerIds.has(report.playerId))).toBe(true);
+  });
+
+  test('the Scout Office shortlist grows with its best level', () => {
+    expect(scoutShortlistSize(0)).toBe(2);
+    expect(scoutShortlistSize(1)).toBe(3);
+    expect(scoutShortlistSize(2)).toBe(4);
+    expect(scoutShortlistSize(3)).toBe(5);
+    expect(() => scoutShortlistSize(4)).toThrow('Scout Office level');
+
+    const initial = { ...createCareer(createLaunchCareerSetup(20260719)), week: 15 };
+    const withOffices = (...levels: readonly (1 | 2 | 3)[]): GameState => ({
+      ...initial,
+      facilities: {
+        ...initial.facilities,
+        grid: {
+          ...initial.facilities.grid!,
+          nextBuildingId: levels.length + 1,
+          buildings: levels.map((level, index) => ({
+            id: `facility-${index + 1}`,
+            type: 'scout-office' as const,
+            level,
+            x: index,
+            y: 0,
+          })),
+        },
+      },
+    });
+    const namesReturned = (state: GameState): number => {
+      const started = startCareerScoutMission(
+        state,
+        createCareerMarketState(state),
+        'EUROPE',
+        { kind: 'POSITION', role: 'FWD' },
+      );
+      const due = { ...started.state, week: started.market.activeScoutMission!.dueWeek };
+      return resolveCareerScoutClock(due, started.market).scoutReports.length;
+    };
+
+    // Owning nothing is now strictly worse than a level-1 office. It used to be
+    // identical, because the level lookup defaulted to 1.
+    expect(scoutOfficeLevel(initial)).toBe(0);
+    expect(namesReturned(initial)).toBe(2);
+    expect(namesReturned(withOffices(1))).toBe(3);
+    expect(namesReturned(withOffices(3))).toBe(5);
+    // The best office wins, so a second one upgraded later is not wasted money.
+    expect(scoutOfficeLevel(withOffices(1, 3))).toBe(3);
+    expect(namesReturned(withOffices(1, 3))).toBe(5);
   });
 
   test('prices and completes a scouted transfer from the seller real pyramid division', () => {

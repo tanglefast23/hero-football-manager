@@ -263,6 +263,15 @@ function validateCoachTrainingRemainder(
   }
 }
 
+/**
+ * Indexed by facility level; index 0 means the club owns no such building.
+ * An explicit table replaces the old `1 + (level - 1) / 2`, which made level 1
+ * worth exactly x1.0 — so the first Gym, Tech Center, Shooting Range or Keeper
+ * Court a club ever built changed nothing, at the only level a D5 club can
+ * afford. Level 2 and 3 keep their previous x1.5 and x2.0.
+ */
+export const FACILITY_TRAINING_MULTIPLIER: readonly number[] = [1, 1.25, 1.5, 2];
+
 function facilityTrainingMultiplier(
   state: GameState,
   attribute: keyof CareerPlayer['attrs'],
@@ -279,7 +288,7 @@ function facilityTrainingMultiplier(
   const level = state.facilities.grid?.buildings
     .filter(building => building.type === facilityType)
     .reduce((maximum, building) => Math.max(maximum, building.level), 0) ?? 0;
-  return level === 0 ? 1 : 1 + (level - 1) / 2;
+  return FACILITY_TRAINING_MULTIPLIER[level] ?? 1;
 }
 
 function checkedAdd(left: number, right: number, label: string): number {

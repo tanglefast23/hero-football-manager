@@ -123,13 +123,12 @@ describe('club finances immediate transaction history', () => {
 
     expect(viewModel.facilities.catalog).toHaveLength(12);
     expect(viewModel.facilities.catalog.every(entry => entry.effectLabel.length > 0)).toBe(true);
-    expect(d5Gym).toMatchObject({
-      canUpgrade: false,
-      upgradeBlockedReason: 'Level 2 facilities unlock in D4 · County League.',
-    });
+    // A funded D5 club can upgrade to level 2 without a promotion.
+    expect(d5Gym).toMatchObject({ canUpgrade: true });
+    expect(d5Gym?.upgradeBlockedReason).toBeUndefined();
     expect(viewModel.facilities.activeAdjacencies).toEqual(['gym-dorm']);
     expect(gymBuilding).toMatchObject({
-      effectLabel: 'Level 1: no PAC + STA bonus · upgrades add +50%/+100%',
+      effectLabel: '+25% PAC + STA training',
       canUpgrade: false,
       upgradeShortfall: 7_000,
       canRelocate: false,

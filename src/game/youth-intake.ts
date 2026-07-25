@@ -267,11 +267,17 @@ export function declineYouthIntakeOffers(
   };
 }
 
+/** The best operational field wins; `.find()` used to take the first one built. */
 export function youthFieldLevel(state: Pick<GameState, 'facilities'>): 0 | 1 | 2 | 3 {
   const grid = state.facilities.grid;
-  return grid?.buildings.find(building => (
-    building.type === 'youth-field' && isFacilityOperational(grid, building.id)
-  ))?.level ?? 0;
+  if (grid === undefined) return 0;
+  let level: 0 | 1 | 2 | 3 = 0;
+  for (const building of grid.buildings) {
+    if (building.type !== 'youth-field') continue;
+    if (!isFacilityOperational(grid, building.id)) continue;
+    if (building.level > level) level = building.level;
+  }
+  return level;
 }
 
 export function youthSigningBonus(fieldLevel: 0 | 1 | 2 | 3): number {

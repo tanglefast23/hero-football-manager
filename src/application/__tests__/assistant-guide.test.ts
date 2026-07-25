@@ -129,19 +129,31 @@ describe('assistant guide application flow', () => {
     expect(reconciled.eventFlags).toContain('guide:bert:sequence-complete:head-coach-hire');
   });
 
-  test('waits for D4 before teaching the first facility upgrade', () => {
+  test('teaches the first facility upgrade as soon as one is reachable', () => {
     let state = createCareer(createLaunchCareerSetup(935));
     state = buildCareerFacility(state, 'training-pitch', { x: 2, y: 0 }).state;
     state = advanceWeek(state);
     state = advanceWeek(state); // the pitch now takes two weeks to open
     state = reconcileSatisfiedAssistantGuideSequences(state);
 
-    expect(dueAssistantInboxGuideSequences(state)).not.toContain('facility-upgrade');
-    const reachedD4 = {
+    // Level 2 needs no promotion, so the lesson is due in D5 the moment the
+    // first pitch opens. It used to wait for D4 along with the level itself.
+    expect(dueAssistantInboxGuideSequences(state)).toContain('facility-upgrade');
+
+    // Nothing left to teach once every building sits at the current ceiling.
+    const atCeiling = {
       ...state,
-      m2: { ...state.m2!, highestDivisionReached: 4 as const },
+      facilities: {
+        ...state.facilities,
+        grid: {
+          ...state.facilities.grid!,
+          buildings: state.facilities.grid!.buildings.map(building => (
+            { ...building, level: 2 as const }
+          )),
+        },
+      },
     };
-    expect(dueAssistantInboxGuideSequences(reachedD4)).toContain('facility-upgrade');
+    expect(dueAssistantInboxGuideSequences(atCeiling)).not.toContain('facility-upgrade');
   });
 
   it('offers Youth Intake in Week 2 and delays the Coaching Office prompt until Week 3', () => {

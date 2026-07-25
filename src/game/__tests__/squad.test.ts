@@ -169,9 +169,9 @@ describe('career squad integration', () => {
     expect(initial.trainingPoints).toBe(100);
     expect(initial.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(50);
 
-    // A Division 5 career only unlocks tier-I drills, so each path resolves to
-    // its 6 TP tap. A SUPER roll would disturb these exact values, so probe
-    // nonces to keep both taps ordinary.
+    // A Division 5 career unlocks tiers I and II, so each path resolves to its
+    // 10 TP tier-II tap for +5. A SUPER roll would disturb these exact values,
+    // so probe nonces to keep both taps ordinary.
     let trained = initial;
     for (const tap of [
       { playerId: `${CLUB_IDS[0]}-p9`, pathId: 'sprints' },
@@ -186,11 +186,11 @@ describe('career squad integration', () => {
         if (!result.isSuper) { trained = result.state; break; }
       }
     }
-    expect(trained.trainingPoints).toBe(88);
-    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(53);
+    expect(trained.trainingPoints).toBe(80);
+    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(55);
     expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.def).toBe(50);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.pac).toBe(50);
-    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(53);
+    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(55);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p2`)?.attrs.def).toBe(50);
     // Training is TP-only; weekly settlement never charges money for it.
     expect(advanceWeek(trained).ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);
@@ -242,7 +242,7 @@ describe('career squad integration', () => {
     };
 
     expect(() => trainPlayerInstantly(broke, `${CLUB_IDS[0]}-p9`, 'sprints'))
-      .toThrow(/needs 6 TP/);
+      .toThrow(/needs 10 TP/);
 
     const settled = advanceWeek(broke);
     expect(settled.week).toBe(2);

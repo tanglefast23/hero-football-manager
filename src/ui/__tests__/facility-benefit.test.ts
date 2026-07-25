@@ -12,7 +12,19 @@ describe('facilityBenefit', () => {
     const gym = facilityBenefit('gym');
     expect(gym).toMatch(/pace/);
     expect(gym).toMatch(/stamina/);
-    expect(gym).toMatch(/Level 2\+/);
+    // Previously pinned "Level 2+", from the era when a level-1 facility gave
+    // exactly x1.0 and the copy had to admit it. Level 1 is now +25%, so the
+    // guarantee is that the line quotes a real per-level figure.
+    expect(gym).toMatch(/Level 1/);
+    expect(gym).toMatch(/%/);
+  });
+
+  it('never tells the player a facility does nothing', () => {
+    for (const type of Object.keys(FACILITY_CATALOG) as FacilityType[]) {
+      const line = facilityBenefit(type);
+      expect(line).not.toMatch(/no training bonus/i);
+      expect(line).not.toMatch(/value comes from the right neighbour/i);
+    }
   });
 
   it('states the training pitch training-point bonus', () => {
