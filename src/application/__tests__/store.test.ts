@@ -810,7 +810,10 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().consecutiveSaveFailures).toBe(0);
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBeGreaterThan(advancedWeek);
-  });
+    // Each queued save serialises a whole career synchronously, so this needs the
+    // same explicit budget as the journey-checkpoint test above rather than the
+    // 5s default.
+  }, 120000);
 
   it('restores the season backup when the live save stops loading', async () => {
     const database = new FakePersistenceDatabase();
