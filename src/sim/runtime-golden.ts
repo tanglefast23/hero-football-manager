@@ -6,7 +6,7 @@ import { ROVERS, UNITED } from './teams';
 // enough to run in both Node CI and the app's Hermes boot path.
 // Rebaselined deliberately for m1.25: matches now allow all five named
 // substitutes and automatic coaching reacts immediately at red energy.
-const EXPECTED_RUNTIME_GOLDEN = '2450bea2';
+const EXPECTED_RUNTIME_GOLDEN = '42da4b37';
 
 export function runtimeGoldenFingerprint(): string {
   const result = runMatch(42, ROVERS, UNITED, [], {

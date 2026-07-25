@@ -44,10 +44,14 @@ describe('attacking decisions', () => {
     expect(attackingDecision(m, CARRIER).kind).toBe('shoot');
   });
 
+  // Distance is calibrated so the two branches straddle the shoot/carry line:
+  // clear shoots, blocked does not. It moves when keeper strength changes —
+  // m1.28's KEEPER_SAVE_BASELINE made shooting more attractive, pushing the
+  // tipping point out from 2300 to 2500 (measured: clear 0.184 / blocked 0.084).
   it('a defender in the shooting corridor lowers shot value and changes a marginal decision', () => {
-    const clear = attackingScenario(2200);
-    const blocked = attackingScenario(2200);
-    blocked.players[12].pos = { x: GOAL_CENTER_X, y: 1100 };
+    const clear = attackingScenario(2500);
+    const blocked = attackingScenario(2500);
+    blocked.players[12].pos = { x: GOAL_CENTER_X, y: 1250 };
 
     const clearDecision = attackingDecision(clear, CARRIER);
     const blockedDecision = attackingDecision(blocked, CARRIER);
@@ -79,9 +83,12 @@ describe('attacking decisions', () => {
     expect(m.players[CARRIER].pos.x).not.toBe(before.x);
   });
 
-  it('SHO changes a marginal edge-of-box decision', () => {
-    const strong = attackingScenario(2900);
-    const weak = attackingScenario(2900);
+  // Same calibration note as the corridor test: the tipping point moved out
+  // from 3000 to 3200 in m1.28 (measured: sho90 0.164 / sho25 0.046). ~32m out,
+  // so this is a long-range decision, not the edge of the box.
+  it('SHO changes a marginal long-range decision', () => {
+    const strong = attackingScenario(3200);
+    const weak = attackingScenario(3200);
     strong.players[CARRIER].def.attrs.sho = 90;
     weak.players[CARRIER].def.attrs.sho = 25;
 

@@ -571,6 +571,49 @@ function shotPowerAt(state: MatchState, by: number, distance: number): number {
   ));
 }
 
+/**
+ * How much Reflexes a keeper actually brings to a save contest.
+ *
+ * The shooter's SHO reaches this contest already compressed (see `shotPowerAt`:
+ * SHO improves aim through `shotSpreadAt` too, so its second contribution is
+ * divided to avoid counting it twice). REF arrived UNCOMPRESSED, which made one
+ * point of Reflexes worth roughly four points of finishing — and on one player
+ * instead of eleven. Measured, +11 REF cut goals conceded by 0.637 a match,
+ * while +10 pace across the whole XI was worth almost nothing.
+ *
+ * The anchor is deliberately NOT `SHOT_POWER_BASELINE`. Compressing around 60
+ * when a D5 keeper sits near 45 would make every weak keeper ~11 points BETTER
+ * and suppress scoring at the bottom of the game, where most of a career is
+ * played. Anchoring low leaves a typical starting keeper roughly unchanged and
+ * flattens the UPSIDE of training Reflexes, which is the actual goal.
+ *
+ * Resolve scales the compressed rating, so GK Resolve attrition still bites, and
+ * explicit power bonuses stay uncompressed, matching `shotBonus`.
+ *
+ * 57 was MEASURED, not chosen. A linear compression has exactly one fixed point,
+ * so every anchor trades keeper strength against scoring. 80 seeds, ROVERS (whose
+ * keeper is REF 62) vs UNITED, reporting goals per match and the drop in goals
+ * conceded from +11 keeper REF:
+ *
+ *   anchor   goals/match   leverage of +11 REF
+ *   none        2.025            0.637
+ *   45          4.313            0.625   keeper 13 points weaker; scoring blows out
+ *   57          2.188            0.150   <- flattens the slope, holds the level
+ *   60          1.788            0.263   keeper too strong; scoring suppressed
+ *
+ * So 57 cuts the value of training Reflexes by 4.25x — the compression divisor —
+ * while moving scoring only +8%, and slightly TOWARD the 2.72 goals/match this
+ * engine is documented to produce rather than further from it.
+ */
+const KEEPER_SAVE_BASELINE = 57;
+
+function keeperSaveRating(state: MatchState, keeperIdx: number, resolveScale: number): number {
+  const ref = effectiveStat(state, keeperIdx, 'ref');
+  return Math.max(1, Math.round(
+    (KEEPER_SAVE_BASELINE + (ref - KEEPER_SAVE_BASELINE) / 4) * resolveScale,
+  ));
+}
+
 function keeperResolveScale(resolve: number): number {
   return KEEPER_RESOLVE_FLOOR
     + (1 - KEEPER_RESOLVE_FLOOR) * (resolve / 100);
@@ -588,7 +631,7 @@ function shotExpectedValue(state: MatchState, by: number, pos: Vec): number {
   const keeperIdx = defendingTeam === 0 ? 0 : 11;
   const resolveScale = keeperResolveScale(state.resolve[defendingTeam]);
   const saveProbability = isAvailable(state, keeperIdx)
-    ? contestProbability(effectiveStat(state, keeperIdx, 'ref') * resolveScale, power, SHOT_KEEPER_MOD)
+    ? contestProbability(keeperSaveRating(state, keeperIdx, resolveScale), power, SHOT_KEEPER_MOD)
     : 0;
   // The current launch model loses too little quality with distance, so decision
   // quality supplies a smooth 17-42m falloff rather than another hard range cliff.
@@ -1338,7 +1381,7 @@ export function shotFlightTick(state: MatchState): void {
       const powerSaveBonus = keeperSaveBonus(state, gkIdx);
       const saved = contest(
         state.rng,
-        effectiveStat(state, gkIdx, 'ref') * resolveScale + powerSaveBonus,
+        keeperSaveRating(state, gkIdx, resolveScale) + powerSaveBonus,
         b.power,
         SHOT_KEEPER_MOD,
       );

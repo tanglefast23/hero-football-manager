@@ -9,6 +9,8 @@ import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import { MAX_PLAYER_ATTRIBUTE } from './attributes';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
+// m1.28 compresses the keeper's REF around a measured baseline so training
+// Reflexes is no longer worth ~4x any other attribute.
 // m1.27 removes the timed Zone window: a charged power holds until its authored
 // context appears instead of decaying after 7 seconds.
 // m1.26 awards a loose ball to the nearest player instead of the lowest player
@@ -17,7 +19,7 @@ import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, 
 // immediately when an outfielder reaches red energy.
 // m1.24 accepts 1–999 career attributes and converts values above 99 to
 // bounded, diminishing match strength.
-export const ENGINE_VERSION = 'm1.27';
+export const ENGINE_VERSION = 'm1.28';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
