@@ -47,7 +47,15 @@ describe('slide-tackle debris', () => {
 
   it('explicitly disables Skia antialiasing on both debris layers', () => {
     const source = readFileSync(join(process.cwd(), 'src/render/WorkletMatchOverlays.tsx'), 'utf8');
-    expect(source.match(/antiAlias=\{false\}/g)).toHaveLength(2);
+    // Scoped to this component: other hard-edged overlays in the same file
+    // (WorkletSpeedLines) also disable AA, and a whole-file count would make
+    // this assertion fail every time one is added.
+    const component = source.slice(
+      source.indexOf('export function WorkletSlideTackleEffects('),
+      source.indexOf('export function WorkletSpeedLines('),
+    );
+    expect(component).not.toBe('');
+    expect(component.match(/antiAlias=\{false\}/g)).toHaveLength(2);
   });
 
   it('anchors the trail to the packed launch point and current live position', () => {

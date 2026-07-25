@@ -14,6 +14,7 @@ import {
   Fill,
   Group,
   Line,
+  Rect,
   Skia,
   useRSXformBuffer,
   type SkColor,
@@ -25,6 +26,7 @@ import {
   useDerivedValue,
   useSharedValue,
   withDelay,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { PITCH_H, PITCH_W } from '../../sim/geometry';
@@ -48,6 +50,20 @@ const TRIGGER_REVEAL_MS = 1900;
 const TRIGGER_ART_DELAY_MS = 350;
 const ASCENT_DURATION_MS = 2800;
 const CATERPILLAR_FACE_OFFSET = { x: 11, y: -13 } as const;
+
+// Scene juice. Unlike the match, this stage is already drawn at a fractional
+// DRAW_SCALE with a fractional camera zoom, so there is no integer pixel grid
+// here to protect — the shake stays a plain screen-space offset.
+/** Opening jolt: the hush lands as a hit, then settles. */
+const SCENE_SHAKE_MS = 420;
+const SCENE_SHAKE_PT = 4;
+/** The hobbling walk gets a hard punch-in before the slow push continues. */
+const HOBBLE_PUNCH_MS = 140;
+const HOBBLE_PUNCH_ZOOM = 1.18;
+/** White-out immediately before the power arrives and the player rises. */
+const REVEAL_FLASH_IN_MS = 40;
+const REVEAL_FLASH_OUT_MS = 220;
+const REVEAL_FLASH_OPACITY = 0.8;
 
 const BEAT_LABELS = {
   1: { number: '01', kicker: 'THE HUSH', title: 'Something is wrong.' },
@@ -77,6 +93,9 @@ export function AwakeningCutsceneScreen({
   const [advanceReady, setAdvanceReady] = useState(false);
   const [triggerPropVisible, setTriggerPropVisible] = useState(false);
   const cameraZoom = useSharedValue(1);
+  // 0 -> 1 across the opening jolt; 1 means settled.
+  const shakePhase = useSharedValue(1);
+  const revealFlash = useSharedValue(0);
   const rush = useSharedValue(0);
   const ascent = useSharedValue(0);
   const burst = useSharedValue(0);
@@ -108,7 +127,18 @@ export function AwakeningCutsceneScreen({
 
   const centerX = width / 2;
   const centerY = pitchHeight / 2;
-  const cameraTransform = useDerivedValue(() => [{ scale: cameraZoom.value }]);
+  // Camera = opening jolt (screen-space, applied before the zoom) + the push in.
+  // Two incommensurate sine terms with a quadratic decay: the first frame
+  // carries the hit and the tail settles instead of buzzing.
+  const cameraTransform = useDerivedValue(() => {
+    const phase = shakePhase.value;
+    const decay = phase >= 1 ? 0 : (1 - phase) ** 2;
+    return [
+      { translateX: Math.sin(phase * Math.PI * 14) * SCENE_SHAKE_PT * decay },
+      { translateY: Math.sin(phase * Math.PI * 11 + 1.7) * SCENE_SHAKE_PT * decay * 0.7 },
+      { scale: cameraZoom.value },
+    ];
+  });
   const starts = useMemo(() => [
     [width * 0.63, centerY - 176],
     [width * 0.36, centerY - 165],
@@ -198,10 +228,29 @@ export function AwakeningCutsceneScreen({
           easing: ReanimatedEasing.out(ReanimatedEasing.cubic),
         }),
       );
-      cameraZoom.value = withTiming(reduceMotion ? 1.2 : 1.42, {
-        duration: reduceMotion ? 0 : LIMP_DURATION_MS + HUDDLE_DURATION_MS,
-        easing: ReanimatedEasing.out(ReanimatedEasing.cubic),
-      });
+      // The scene opens on a jolt, then the hobbling walk gets a hard punch-in
+      // before the long slow push resumes to the same 1.42 it always ended on.
+      shakePhase.value = 1;
+      revealFlash.value = 0;
+      if (reduceMotion) {
+        cameraZoom.value = withTiming(1.2, { duration: 0 });
+      } else {
+        shakePhase.value = 0;
+        shakePhase.value = withTiming(1, {
+          duration: SCENE_SHAKE_MS,
+          easing: ReanimatedEasing.linear,
+        });
+        cameraZoom.value = withSequence(
+          withTiming(HOBBLE_PUNCH_ZOOM, {
+            duration: HOBBLE_PUNCH_MS,
+            easing: ReanimatedEasing.out(ReanimatedEasing.cubic),
+          }),
+          withTiming(1.42, {
+            duration: LIMP_DURATION_MS + HUDDLE_DURATION_MS - HOBBLE_PUNCH_MS,
+            easing: ReanimatedEasing.out(ReanimatedEasing.cubic),
+          }),
+        );
+      }
       readyDelay = reduceMotion
         ? 500
         : HUDDLE_DELAY_MS + HUDDLE_DURATION_MS + HUDDLE_PAUSE_MS;
@@ -222,6 +271,18 @@ export function AwakeningCutsceneScreen({
       limpTravel.value = 1;
       limp.value = 1;
       rush.value = 1;
+      // The power arrives on a white-out: it peaks inside 40ms, while the
+      // ascent's out(cubic) has barely left the ground, so it reads as the
+      // flash that lifts him.
+      if (!reduceMotion) {
+        revealFlash.value = withSequence(
+          withTiming(REVEAL_FLASH_OPACITY, {
+            duration: REVEAL_FLASH_IN_MS,
+            easing: ReanimatedEasing.linear,
+          }),
+          withTiming(0, { duration: REVEAL_FLASH_OUT_MS, easing: ReanimatedEasing.linear }),
+        );
+      }
       ascent.value = withTiming(1, {
         duration: reduceMotion ? 0 : ASCENT_DURATION_MS,
         easing: ReanimatedEasing.out(ReanimatedEasing.cubic),
@@ -250,7 +311,9 @@ export function AwakeningCutsceneScreen({
     limpTravel,
     onBeatChange,
     reduceMotion,
+    revealFlash,
     rush,
+    shakePhase,
   ]);
 
   const current = beat === 2
@@ -323,6 +386,16 @@ export function AwakeningCutsceneScreen({
                 />
               ) : null}
             </Group>
+            {/* Outside the camera group so the white-out covers the whole
+                viewport however far the shot has pushed in. */}
+            <Rect
+              x={0}
+              y={0}
+              width={width}
+              height={pitchHeight}
+              color="#ffffff"
+              opacity={revealFlash}
+            />
           </Canvas>
           <View style={styles.fullTimeBug}>
             <Text style={styles.fullTimeText}>FULL TIME</Text>

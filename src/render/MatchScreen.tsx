@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Atlas, Canvas, Circle, Fill, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
+import { Atlas, Canvas, Circle, Fill, Group, Rect, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
+import Animated, {
+  Easing as ReanimatedEasing,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { createMatch, MAX_SUBSTITUTIONS, queueInput, tick } from '../sim/match';
 import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
@@ -19,7 +27,14 @@ import { buildSpriteAtlas, buildFallbackAtlas } from './sprites/buildAtlas';
 import { keeperReadyFrameFacingBall, runFrameFacingBall } from './sprites/facing';
 import { webbedSpriteKey } from './sprites/loader';
 import { spriteKeyForMatchPlayer, visualIdForMatchPlayer } from './sprites/slot-key';
-import { matchPitchLayout, snapshotFrame, type PitchFrame } from './interpolate';
+import {
+  MATCH_SHAKE_AMPLITUDE_PT,
+  matchCameraOffset,
+  matchPitchLayout,
+  matchShakeOffset,
+  snapshotFrame,
+  type PitchFrame,
+} from './interpolate';
 import {
   actionPose,
   isKeeperReady,
@@ -29,18 +44,40 @@ import {
   type PlayerActionAnimation,
 } from './animation';
 import { useWorkletAtlasFrame } from './worklet-atlas-frame';
-import { nextMatchSpeed, type MatchSpeed } from './match-speed';
+import { matchPlaybackRate, nextMatchSpeed, type MatchSpeed } from './match-speed';
 import {
   ENCORE_MARKER_TICKS,
   type EncoreMarker,
   WorkletBallShadow,
   WorkletMatchOverlays,
   WorkletSlideTackleEffects,
+  WorkletSpeedLines,
 } from './WorkletMatchOverlays';
 import { BALL_AIRBORNE_THRESHOLD_CM, ballVisualOffset } from './ball-flight-visuals';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
 import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
-import { appendNewestFour, powerCutInAccessibilityLabel, powerCutInGroupPolicy, powerCutInPresentation, powerOverlayPath } from './power-cut-in';
+import {
+  appendNewestFour,
+  hasPowerJuiceExtras,
+  POWER_JUICE_CARD_SLAM_MS,
+  POWER_JUICE_CARD_SLAM_PX,
+  POWER_JUICE_END_MS,
+  POWER_JUICE_FLASH_MS,
+  POWER_JUICE_FLASH_OPACITY,
+  POWER_JUICE_PUNCH_MS,
+  POWER_JUICE_PUNCH_ZOOM,
+  POWER_JUICE_SHAKE_MS,
+  POWER_JUICE_SPEED_LINES_MS,
+  powerCutInAccessibilityLabel,
+  powerCutInGroupPolicy,
+  powerCutInPresentation,
+  powerJuice,
+  powerJuiceDilation,
+  powerJuiceHeroTint,
+  powerOverlayPath,
+  type PowerJuice,
+  type PowerJuiceHeroTint,
+} from './power-cut-in';
 import { appendBannerNewestFour, type MatchBannerSubject } from './match-banners';
 import { PowerEffectScene, type PowerEffectPoint } from './PowerEffectScene';
 import { powerEffectDescriptor } from './power-effect-descriptors';
@@ -118,6 +155,9 @@ import {
 
 const MAX_CATCHUP_TICKS = 5;
 const TOTAL_TICKS = HALF_TICKS * 2;
+
+// Shared "no shake" reading, so the per-frame camera update allocates nothing.
+const ZERO_SHAKE = { x: 0, y: 0 } as const;
 
 // Sprite magnification (PLAYER_DRAW_SCALE / BALL_DRAW_SCALE) and the pixel-grid
 // snapping that keeps it an integer multiple live in interpolate.ts, which is
@@ -230,6 +270,20 @@ function appendPowerEffect(
   return [...effects, effect].slice(-12);
 }
 
+/**
+ * One activation beat sheet in flight. `startedAt` is on the RAF timestamp clock
+ * (the same performance.now() timebase the loop already uses), and the focus
+ * point is frozen in canvas dp at the moment of firing so a punch-in cannot
+ * chase a sprite around the pitch mid-shot.
+ */
+type ActivationJuice = {
+  startedAt: number;
+  player: number;
+  focusX: number;
+  focusY: number;
+  juice: PowerJuice;
+};
+
 export type PowerCutInQaEntry = PowerCutInEntry;
 
 export interface PowerMatchQaConfig {
@@ -328,6 +382,16 @@ export function MatchScreen({
   const homeCode = scoreCode(home);
   const awayCode = scoreCode(away);
 
+  // The RAF loop below drives the activation camera, and its effect deps
+  // deliberately exclude layout (a resize must not restart the match clock), so
+  // the current canvas geometry is handed over through a mutated ref instead of
+  // captured by the closure. Same render-time-ref pattern as speedRef below.
+  const layoutRef = useRef({ pitchWidth: 0, pitchH: 0, scale: 1, devicePixelRatio: 1 });
+  layoutRef.current.pitchWidth = pitchWidth;
+  layoutRef.current.pitchH = pitchH;
+  layoutRef.current.scale = scale;
+  layoutRef.current.devicePixelRatio = devicePixelRatio;
+
   // Ledger item 1 — lazy init: never `useRef(createMatch(...))`, whose
   // argument expression would run (creating and discarding a fresh match)
   // on every render. Guard-then-assign only ever creates one match per mount.
@@ -382,6 +446,15 @@ export function MatchScreen({
   // Whether the looping fire crackle is currently playing — reconciled each
   // frame against whether any Fire Torch hero is ablaze (see the RAF loop).
   const fireLoopOnRef = useRef(false);
+  // The activation beat sheet currently playing (power-cut-in.ts owns the
+  // timings). Presentation only: it paces and dresses ticks, never changes them.
+  const juiceRef = useRef<ActivationJuice | null>(null);
+  // Wall-clock time dilation the frame accumulator is multiplying by. 1 = normal.
+  const dilationRef = useRef(1);
+  // Last camera triple actually pushed to the UI thread, so an idle match never
+  // writes shared values it has already written.
+  const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
+  const heroTintStepRef = useRef<PowerJuiceHeroTint>('none');
 
   const [frame, setFrame] = useState<PitchFrame>(() => prevRef.current!);
   const [hud, setHud] = useState({
@@ -414,11 +487,37 @@ export function MatchScreen({
     powerCutInQaActive ? [...powerCutInQaEntries] : []
   ));
   const powerCutInPolicy = powerCutInGroupPolicy(powerCutIns);
+  /** Which player's body is mid white/gold activation flash, and in which half. */
+  const [heroTint, setHeroTint] = useState<{ player: number; tint: 'white' | 'gold' } | null>(null);
   const speedRef = useRef<MatchSpeed>(1);
   const pausedRef = useRef(false);
   const userPausedRef = useRef(false);
   const automaticPauseReasonsRef = useRef(new Set<AutomaticMatchPauseReason>());
   speedRef.current = speed;
+
+  // ---- Activation camera & FX, all on the UI thread ----------------------
+  // One camera for the whole pitch: a single <Group transform> below. The two
+  // translates and the scale are pushed from the RAF loop (only while an
+  // activation is playing), so an idle match writes nothing and the derived
+  // transform never re-evaluates.
+  const cameraX = useSharedValue(0);
+  const cameraY = useSharedValue(0);
+  const cameraZoom = useSharedValue(1);
+  const cameraTransform = useDerivedValue(() => [
+    { translateX: cameraX.value },
+    { translateY: cameraY.value },
+    { scale: cameraZoom.value },
+  ]);
+  const activationFlash = useSharedValue(0);
+  const speedLineSlot = useSharedValue(-1);
+  const speedLineLife = useSharedValue(0);
+  // Rests at 1 (card fully in place) so a Reduce Motion match — and the dev QA
+  // fixture, which seeds cut-ins without ever firing a power — still shows it.
+  const cardSlam = useSharedValue(1);
+  const cardSlamStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: -POWER_JUICE_CARD_SLAM_PX * (1 - cardSlam.value) }],
+    opacity: cardSlam.value,
+  }));
   const matchVisualIds = useMemo(() => [
     ...match.players.map((player, index) => (
       visualIdForMatchPlayer(index, player.def.id, player.def.role, player.def.lookId)
@@ -482,7 +581,7 @@ export function MatchScreen({
   const setPausedBoth = (value: boolean) => {
     pausedRef.current = value;
     if (value) pauseAtlasFrame();
-    else resumeAtlasFrame(speedRef.current);
+    else resumeAtlasFrame(matchPlaybackRate(speedRef.current, dilationRef.current));
     setPaused(value);
   };
 
@@ -540,6 +639,129 @@ export function MatchScreen({
       }
     });
 
+    // ---- Activation juice ------------------------------------------------
+    // Beat sheet and timings live in power-cut-in.ts; this is only the wiring.
+    // Reduce Motion opts out of every part of it — no dilation, no camera move,
+    // no flash, no lines, no body flash.
+
+    const resetJuice = () => {
+      juiceRef.current = null;
+      speedLineSlot.value = -1;
+      speedLineLife.value = 0;
+      activationFlash.value = 0;
+      if (dilationRef.current !== 1) {
+        dilationRef.current = 1;
+        if (!pausedRef.current) {
+          resumeAtlasFrame(matchPlaybackRate(speedRef.current, 1));
+        }
+      }
+      if (cameraRef.current.zoom !== 1 || cameraRef.current.x !== 0 || cameraRef.current.y !== 0) {
+        cameraRef.current.x = 0;
+        cameraRef.current.y = 0;
+        cameraRef.current.zoom = 1;
+        cameraX.value = 0;
+        cameraY.value = 0;
+        cameraZoom.value = 1;
+      }
+      if (heroTintStepRef.current !== 'none') {
+        heroTintStepRef.current = 'none';
+        setHeroTint(null);
+      }
+    };
+
+    const startJuice = (power: PowerId, player: number, now: number) => {
+      if (reduceMotion) return;
+      const juice = powerJuice(power);
+      const { scale: pitchScale } = layoutRef.current;
+      juiceRef.current = {
+        startedAt: now,
+        player,
+        focusX: nextRef.current!.players[player].x * pitchScale,
+        focusY: nextRef.current!.players[player].y * pitchScale,
+        juice,
+      };
+      // The name card slams in for every activation; the rest is per-power.
+      cardSlam.value = 0;
+      cardSlam.value = withTiming(1, {
+        duration: POWER_JUICE_CARD_SLAM_MS,
+        easing: ReanimatedEasing.out(ReanimatedEasing.cubic),
+      });
+      if (juice.flash) {
+        activationFlash.value = withSequence(
+          withTiming(POWER_JUICE_FLASH_OPACITY, { duration: 30, easing: ReanimatedEasing.linear }),
+          withTiming(0, { duration: POWER_JUICE_FLASH_MS, easing: ReanimatedEasing.linear }),
+        );
+      }
+      if (juice.speedLines) {
+        speedLineSlot.value = player;
+        speedLineLife.value = 0;
+        speedLineLife.value = withTiming(
+          1,
+          { duration: POWER_JUICE_SPEED_LINES_MS, easing: ReanimatedEasing.out(ReanimatedEasing.quad) },
+          (finished) => {
+            'worklet';
+            if (finished) speedLineSlot.value = -1;
+          },
+        );
+      }
+    };
+
+    const advanceJuice = (now: number) => {
+      const active = juiceRef.current;
+      if (active === null) return;
+      const elapsed = now - active.startedAt;
+      if (elapsed >= POWER_JUICE_END_MS) {
+        resetJuice();
+        return;
+      }
+
+      // Time dilation, re-issued only when the step changes (four times total).
+      const dilation = powerJuiceDilation(elapsed);
+      if (dilation !== dilationRef.current) {
+        dilationRef.current = dilation;
+        if (!pausedRef.current) {
+          resumeAtlasFrame(matchPlaybackRate(speedRef.current, dilation));
+        }
+      }
+
+      // Camera: an integer magnification step plus a device-pixel-quantised
+      // shake, both computed by interpolate.ts so the sprite pixel grid holds.
+      const { pitchWidth: viewWidth, pitchH: viewHeight, devicePixelRatio: dpr } = layoutRef.current;
+      const shake = active.juice.shake
+        ? matchShakeOffset(elapsed, POWER_JUICE_SHAKE_MS, MATCH_SHAKE_AMPLITUDE_PT)
+        : ZERO_SHAKE;
+      const zoomStep = active.juice.punchIn && elapsed < POWER_JUICE_PUNCH_MS
+        ? POWER_JUICE_PUNCH_ZOOM
+        : 1;
+      const camera = matchCameraOffset(
+        active.focusX,
+        active.focusY,
+        viewWidth,
+        viewHeight,
+        zoomStep,
+        shake,
+        dpr,
+      );
+      const previousCamera = cameraRef.current;
+      if (camera.translateX !== previousCamera.x
+        || camera.translateY !== previousCamera.y
+        || camera.zoom !== previousCamera.zoom) {
+        previousCamera.x = camera.translateX;
+        previousCamera.y = camera.translateY;
+        previousCamera.zoom = camera.zoom;
+        cameraX.value = camera.translateX;
+        cameraY.value = camera.translateY;
+        cameraZoom.value = camera.zoom;
+      }
+
+      // Hero body flash — four alternating steps, so four extra renders.
+      const tint = powerJuiceHeroTint(elapsed);
+      if (tint !== heroTintStepRef.current) {
+        heroTintStepRef.current = tint;
+        setHeroTint(tint === 'none' ? null : { player: active.player, tint });
+      }
+    };
+
     const loop = (now: number) => {
       const s = stateRef.current!;
       if (pausedRef.current) {
@@ -553,7 +775,15 @@ export function MatchScreen({
       }
       // Ledger item 7 — capped catch-up: never simulate more than
       // MAX_CATCHUP_TICKS in one frame, however long the JS thread stalled.
-      acc = Math.min(acc + (now - last) * speedRef.current, TICK_MS * MAX_CATCHUP_TICKS);
+      //
+      // The activation dilation multiplies in here and nowhere else. tick()
+      // takes no delta, so a fractional rate stretches the wall-clock gap
+      // between ticks while the tick sequence — and every RNG draw inside it —
+      // stays byte-identical. That is why slow-mo cannot move a replay.
+      acc = Math.min(
+        acc + (now - last) * matchPlaybackRate(speedRef.current, dilationRef.current),
+        TICK_MS * MAX_CATCHUP_TICKS,
+      );
       last = now;
 
       const eventsBefore = s.events.length;
@@ -733,6 +963,12 @@ export function MatchScreen({
               anchor,
               maxElapsedMs: delayedFirstBeat ? descriptor.beats[0].endMs : undefined,
             });
+          }
+          // Activation juice. Every power gets the shared sheet; only powers
+          // with authored extras take over an in-flight one, so a plain
+          // activation can't cut short a shoulder charge's shake.
+          if (juiceRef.current === null || hasPowerJuiceExtras(e.power)) {
+            startJuice(e.power, e.player, now);
           }
           if (powerOverlayPath(cutInMode, reduceMotion, firingPlayer.team, controlledTeam) === 'tile') {
             const skippable = seenPowerCutInsRef.current.has(e.power);
@@ -964,6 +1200,9 @@ export function MatchScreen({
           }
         }
       }
+      // Every frame, not every tick: the beat sheet runs on wall clock so the
+      // camera and the dilation steps stay smooth through a slowed tick.
+      advanceJuice(now);
       if (
         advanced
         && firstMatchTutorial
@@ -1039,7 +1278,7 @@ export function MatchScreen({
           prevRef.current!,
           nextRef.current!,
           s.tick,
-          speedRef.current,
+          matchPlaybackRate(speedRef.current, dilationRef.current),
           actionRef.current
         );
         setFrame(nextRef.current!);
@@ -1074,6 +1313,9 @@ export function MatchScreen({
     return () => {
       cancelAnimationFrame(raf);
       sub.remove();
+      // Never leave a dilated clock or an off-centre camera behind for the next
+      // loop (this effect restarts when Reduce Motion is toggled mid-match).
+      resetJuice();
     };
   }, [
     controlledTeam,
@@ -1083,6 +1325,7 @@ export function MatchScreen({
     powerMatchQa,
     publishAtlasFrame,
     reduceMotion,
+    resumeAtlasFrame,
   ]);
 
   // Distance, not wall-clock ticks, advances the run cycle. The action pose
@@ -1177,6 +1420,13 @@ export function MatchScreen({
         && player.powerState.commitment === 'SHADOW_HUNT') {
         return Skia.Color(reduceMotion ? '#6b6675' : 'rgba(255,255,255,0)');
       }
+      // Activation body flash — white, then the bright highlight gold, twice
+      // over ~0.26s, before releasing to the settled 'active' gold below. Ranked
+      // above the other power tints so the moment of firing always reads, but
+      // below Shadow Mark's vanish so a hunt can't be lit up.
+      if (heroTint !== null && heroTint.player === i) {
+        return Skia.Color(heroTint.tint === 'white' ? '#ffffff' : '#f7d894');
+      }
       if (player.def.power === 'PHASE_RUN' && player.powerState.kind === 'active') {
         return Skia.Color(reduceMotion ? '#c9a6ec' : 'rgba(201,166,236,0.48)');
       }
@@ -1204,7 +1454,7 @@ export function MatchScreen({
     });
     tints.push(Skia.Color('#ffffff')); // ball — no tint
     return tints;
-  }, [frame, hud.tick, atlas, colorSafeKits, match, reduceMotion]);
+  }, [frame, heroTint, hud.tick, atlas, colorSafeKits, match, reduceMotion]);
 
   const minute = Math.min(90, Math.ceil((hud.tick / TOTAL_TICKS) * 90));
   const stoppage =
@@ -1555,7 +1805,7 @@ export function MatchScreen({
   // rail's SfxPressable plays it for every chip.
   const applySpeed = (next: MatchSpeed) => {
     speedRef.current = next;
-    if (!pausedRef.current) resumeAtlasFrame(next);
+    if (!pausedRef.current) resumeAtlasFrame(matchPlaybackRate(next, dilationRef.current));
     setSpeed(next);
   };
   const toggleUserPause = () => {
@@ -1697,167 +1947,196 @@ export function MatchScreen({
         <View style={railLayout ? styles.desktopPitchPane : null}>
           <View style={{ width: pitchWidth, height: pitchH, alignSelf: 'center' }}>
             <Canvas style={{ width: pitchWidth, height: pitchH }}>
-            {/* Pitch base = pixel-bible pitch-dark (#3f8a4a); Pitch.tsx paints the
-                brighter base #5cb85c on alternating mow bands over it. */}
-            <Fill color="#3f8a4a" />
-            <Pitch scale={scale} />
-            {/* Web Trap is simulation geometry, so keep its fixed trigger circle
-                visible after the caster moves. Rival traps use the threat palette. */}
-            {activeWebTraps.map(trap => (
-              <Circle
-                key={trap.key}
-                cx={trap.x * scale}
-                cy={trap.y * scale}
-                r={WEB_TRAP_TRIGGER_RANGE * scale}
-                color={trap.color}
-                style="stroke"
-                strokeWidth={3}
-                opacity={reduceMotion || hud.tick % 20 < 10 ? 0.88 : 0.55}
-              />
-            ))}
-            {trailRef.current.map((t, i) => (
-              <Circle
-                key={i}
-                cx={t.x * scale}
-                cy={t.y * scale}
-                r={Math.max(1.5, 7 - i)}
-                color="#ffffff"
-                opacity={0.55 * (1 - i / trailRef.current.length)}
-              />
-            ))}
-            {/* Fading arc history behind driven shots and every lifted kick. */}
-            {ballFlightTrailRef.current.map((t, i) => (
-              <Circle
-                key={`shot-${i}`}
-                cx={t.x * scale}
-                cy={t.y * scale - ballVisualOffset(t.z, scale)}
-                r={Math.max(1.5, 6.5 - i)}
-                color="#f4f7fa"
-                opacity={0.64 * (1 - i / BALL_FLIGHT_TRAIL_LEN)}
-              />
-            ))}
-            {/* Dust puff at the strike origin — a soft filled smoke body plus
-                expanding rings; both grow and fade over PUFF_TICKS. */}
-            {(() => {
-              const puff = puffRef.current;
-              if (!puff) return null;
-              const prog = (match.tick - puff.tick) / PUFF_TICKS;
-              if (prog < 0 || prog >= 1) return null;
-              const cx = puff.x * scale;
-              const cy = puff.y * scale;
-              return [
-                <Circle key="puff-body" cx={cx} cy={cy} r={9 + prog * 20} color="#efeade" opacity={Math.max(0, (1 - prog) * 0.6)} />,
-                ...Array.from({ length: PUFF_RINGS }, (_, k) => (
+              {/* Pitch base = pixel-bible pitch-dark (#3f8a4a); Pitch.tsx paints the
+                  brighter base #5cb85c on alternating mow bands over it. Kept
+                  OUTSIDE the camera group so a punched-in frame still has a
+                  backdrop everywhere. */}
+              <Fill color="#3f8a4a" />
+              {/* The one match camera. Idle it is identity, and the derived
+                  transform only re-evaluates when the RAF loop pushes an
+                  activation beat. The zoom is an integer step and the translate
+                  is whole device pixels (see interpolate.ts), so wrapping the
+                  contents here cannot knock the sprites off the pixel grid. */}
+              <Group transform={cameraTransform}>
+                <Pitch scale={scale} />
+                {/* Web Trap is simulation geometry, so keep its fixed trigger circle
+                    visible after the caster moves. Rival traps use the threat palette. */}
+                {activeWebTraps.map(trap => (
                   <Circle
-                    key={`puff-${k}`}
-                    cx={cx}
-                    cy={cy}
-                    r={11 + prog * 28 + k * 6}
-                    color="#d8d2c4"
+                    key={trap.key}
+                    cx={trap.x * scale}
+                    cy={trap.y * scale}
+                    r={WEB_TRAP_TRIGGER_RANGE * scale}
+                    color={trap.color}
                     style="stroke"
-                    strokeWidth={2.5}
-                    opacity={Math.max(0, (1 - prog) * (0.62 - k * 0.16))}
+                    strokeWidth={3}
+                    opacity={reduceMotion || hud.tick % 20 < 10 ? 0.88 : 0.55}
                   />
-                )),
-              ];
-            })()}
-            {/* Super Strength impact — a bright core plus an expanding shockwave
-                ring where the charge lands, fading over IMPACT_TICKS. */}
-            {(() => {
-              const im = impactRef.current;
-              if (!im) return null;
-              const prog = (match.tick - im.tick) / IMPACT_TICKS;
-              if (prog < 0 || prog >= 1) return null;
-              const cx = im.x * scale;
-              const cy = im.y * scale;
-              const fade = 1 - prog;
-              return [
-                <Circle key="impact-core" cx={cx} cy={cy} r={6 + prog * 22} color="#f7d894" opacity={fade * 0.5} />,
-                <Circle
-                  key="impact-ring"
-                  cx={cx}
-                  cy={cy}
-                  r={9 + prog * 34}
-                  color="#edb54a"
-                  style="stroke"
-                  strokeWidth={3}
-                  opacity={fade * 0.7}
-                />,
-              ];
-            })()}
-            <WorkletBallShadow
-              ballGroundPosition={workletBallGroundPosition}
-              ballHeight={workletBallHeight}
-              scale={scale}
-            />
-            <WorkletSlideTackleEffects
-              layer="dust"
-              visualPositions={workletVisualPositions}
-              actionData={workletActionData}
-              simTick={workletSimTick}
-              progress={workletProgress}
-              scale={scale}
-              playerDrawScale={playerSpriteScale.drawScale}
-            />
-            <Atlas
-              image={atlas.image as SkImage}
-              sprites={sprites}
-              transforms={workletTransforms}
-              colors={colors}
-              colorBlendMode="modulate"
-              sampling={PIXEL_ART_SAMPLING}
-            />
-            <WorkletSlideTackleEffects
-              layer="grass"
-              visualPositions={workletVisualPositions}
-              actionData={workletActionData}
-              simTick={workletSimTick}
-              progress={workletProgress}
-              scale={scale}
-              playerDrawScale={playerSpriteScale.drawScale}
-            />
-            {drawablePowerEffects.map(effect => (
-              <PowerEffectScene
-                key={effect.id}
-                power={effect.power}
-                elapsedMs={effect.elapsedMs}
+                ))}
+                {trailRef.current.map((t, i) => (
+                  <Circle
+                    key={i}
+                    cx={t.x * scale}
+                    cy={t.y * scale}
+                    r={Math.max(1.5, 7 - i)}
+                    color="#ffffff"
+                    opacity={0.55 * (1 - i / trailRef.current.length)}
+                  />
+                ))}
+                {/* Fading arc history behind driven shots and every lifted kick. */}
+                {ballFlightTrailRef.current.map((t, i) => (
+                  <Circle
+                    key={`shot-${i}`}
+                    cx={t.x * scale}
+                    cy={t.y * scale - ballVisualOffset(t.z, scale)}
+                    r={Math.max(1.5, 6.5 - i)}
+                    color="#f4f7fa"
+                    opacity={0.64 * (1 - i / BALL_FLIGHT_TRAIL_LEN)}
+                  />
+                ))}
+                {/* Dust puff at the strike origin — a soft filled smoke body plus
+                    expanding rings; both grow and fade over PUFF_TICKS. */}
+                {(() => {
+                  const puff = puffRef.current;
+                  if (!puff) return null;
+                  const prog = (match.tick - puff.tick) / PUFF_TICKS;
+                  if (prog < 0 || prog >= 1) return null;
+                  const cx = puff.x * scale;
+                  const cy = puff.y * scale;
+                  return [
+                    <Circle key="puff-body" cx={cx} cy={cy} r={9 + prog * 20} color="#efeade" opacity={Math.max(0, (1 - prog) * 0.6)} />,
+                    ...Array.from({ length: PUFF_RINGS }, (_, k) => (
+                      <Circle
+                        key={`puff-${k}`}
+                        cx={cx}
+                        cy={cy}
+                        r={11 + prog * 28 + k * 6}
+                        color="#d8d2c4"
+                        style="stroke"
+                        strokeWidth={2.5}
+                        opacity={Math.max(0, (1 - prog) * (0.62 - k * 0.16))}
+                      />
+                    )),
+                  ];
+                })()}
+                {/* Super Strength impact — a bright core plus an expanding shockwave
+                    ring where the charge lands, fading over IMPACT_TICKS. */}
+                {(() => {
+                  const im = impactRef.current;
+                  if (!im) return null;
+                  const prog = (match.tick - im.tick) / IMPACT_TICKS;
+                  if (prog < 0 || prog >= 1) return null;
+                  const cx = im.x * scale;
+                  const cy = im.y * scale;
+                  const fade = 1 - prog;
+                  return [
+                    <Circle key="impact-core" cx={cx} cy={cy} r={6 + prog * 22} color="#f7d894" opacity={fade * 0.5} />,
+                    <Circle
+                      key="impact-ring"
+                      cx={cx}
+                      cy={cy}
+                      r={9 + prog * 34}
+                      color="#edb54a"
+                      style="stroke"
+                      strokeWidth={3}
+                      opacity={fade * 0.7}
+                    />,
+                  ];
+                })()}
+                <WorkletBallShadow
+                  ballGroundPosition={workletBallGroundPosition}
+                  ballHeight={workletBallHeight}
+                  scale={scale}
+                />
+                <WorkletSlideTackleEffects
+                  layer="dust"
+                  visualPositions={workletVisualPositions}
+                  actionData={workletActionData}
+                  simTick={workletSimTick}
+                  progress={workletProgress}
+                  scale={scale}
+                  playerDrawScale={playerSpriteScale.drawScale}
+                />
+                <Atlas
+                  image={atlas.image as SkImage}
+                  sprites={sprites}
+                  transforms={workletTransforms}
+                  colors={colors}
+                  colorBlendMode="modulate"
+                  sampling={PIXEL_ART_SAMPLING}
+                />
+                <WorkletSlideTackleEffects
+                  layer="grass"
+                  visualPositions={workletVisualPositions}
+                  actionData={workletActionData}
+                  simTick={workletSimTick}
+                  progress={workletProgress}
+                  scale={scale}
+                  playerDrawScale={playerSpriteScale.drawScale}
+                />
+                {drawablePowerEffects.map(effect => (
+                  <PowerEffectScene
+                    key={effect.id}
+                    power={effect.power}
+                    elapsedMs={effect.elapsedMs}
+                    width={pitchWidth}
+                    height={pitchH}
+                    origin={effect.origin}
+                    targets={effect.targets}
+                    anchor={effect.anchor}
+                    tier={effect.tier}
+                    direction={effect.direction}
+                    reduceMotion={reduceMotion}
+                    showPlaceholderActors={false}
+                  />
+                ))}
+                {powerEffectActors.length > 0 ? (
+                  <Atlas
+                    image={atlas.image as SkImage}
+                    sprites={powerActorSprites}
+                    transforms={powerActorTransforms}
+                    colors={powerActorColors}
+                    colorBlendMode="modulate"
+                    sampling={PIXEL_ART_SAMPLING}
+                  />
+                ) : null}
+                <WorkletMatchOverlays
+                  visualPositions={workletVisualPositions}
+                  visibility={workletVisibility}
+                  statuses={workletStatuses}
+                  zoneFractions={workletZoneFractions}
+                  carrier={workletCarrier}
+                  simTick={workletSimTick}
+                  progress={workletProgress}
+                  controlledTeam={controlledTeam}
+                  heroPlayers={rivalHeroPlayers}
+                  fireTorchPlayers={fireTorchPlayers}
+                  encoreMarkers={encoreMarkers}
+                  scale={scale}
+                  ringRadius={ringR}
+                  reduceMotion={reduceMotion}
+                />
+                {/* Radial burst off the hero for the speed powers. Batched into
+                    one hard-edged path; idle when its slot is -1. */}
+                <WorkletSpeedLines
+                  slot={speedLineSlot}
+                  life={speedLineLife}
+                  visualPositions={workletVisualPositions}
+                  scale={scale}
+                  ringRadius={ringR}
+                />
+              </Group>
+              {/* White-out for the speed powers, over the camera so a punched-in
+                  frame flashes evenly. Peaks well short of a full white screen
+                  and is gone inside ~0.16s. */}
+              <Rect
+                x={0}
+                y={0}
                 width={pitchWidth}
                 height={pitchH}
-                origin={effect.origin}
-                targets={effect.targets}
-                anchor={effect.anchor}
-                tier={effect.tier}
-                direction={effect.direction}
-                reduceMotion={reduceMotion}
-                showPlaceholderActors={false}
+                color="#ffffff"
+                opacity={activationFlash}
               />
-            ))}
-            {powerEffectActors.length > 0 ? (
-              <Atlas
-                image={atlas.image as SkImage}
-                sprites={powerActorSprites}
-                transforms={powerActorTransforms}
-                colors={powerActorColors}
-                colorBlendMode="modulate"
-                sampling={PIXEL_ART_SAMPLING}
-              />
-            ) : null}
-            <WorkletMatchOverlays
-              visualPositions={workletVisualPositions}
-              visibility={workletVisibility}
-              statuses={workletStatuses}
-              zoneFractions={workletZoneFractions}
-              carrier={workletCarrier}
-              simTick={workletSimTick}
-              progress={workletProgress}
-              controlledTeam={controlledTeam}
-              heroPlayers={rivalHeroPlayers}
-              fireTorchPlayers={fireTorchPlayers}
-              encoreMarkers={encoreMarkers}
-              scale={scale}
-              ringRadius={ringR}
-              reduceMotion={reduceMotion}
-            />
             </Canvas>
             {carrier && powerCutIns.length === 0 ? (
               <View
@@ -1905,28 +2184,35 @@ export function MatchScreen({
                 ]}
                 onPress={() => setPowerCutIns([])}
               >
-                {powerCutIns.slice(-2).map((entry) => {
-                  const presentation = powerCutInPresentation(entry.power);
-                  return (
-                    <View key={entry.id} style={styles.powerActivationCard}>
-                      <View style={styles.powerActivationHighlight} />
-                      <Text style={[styles.powerActivationGlyph, { color: presentation.color }]}>
-                        {presentation.glyph}
-                      </Text>
-                      <View style={styles.powerActivationCopy}>
-                        <Text numberOfLines={1} style={styles.powerActivationPlayer}>
-                          {entry.playerName}
+                {/* The name card slams in from the edge on every activation.
+                    Reduce Motion never starts the animation, so cardSlam holds
+                    at its resting 1 and the card simply appears. */}
+                <Animated.View
+                  style={[styles.powerActivationSlam, reduceMotion ? null : cardSlamStyle]}
+                >
+                  {powerCutIns.slice(-2).map((entry) => {
+                    const presentation = powerCutInPresentation(entry.power);
+                    return (
+                      <View key={entry.id} style={styles.powerActivationCard}>
+                        <View style={styles.powerActivationHighlight} />
+                        <Text style={[styles.powerActivationGlyph, { color: presentation.color }]}>
+                          {presentation.glyph}
                         </Text>
-                        <Text
-                          numberOfLines={1}
-                          style={[styles.powerActivationName, { color: presentation.color }]}
-                        >
-                          {presentation.name}
-                        </Text>
+                        <View style={styles.powerActivationCopy}>
+                          <Text numberOfLines={1} style={styles.powerActivationPlayer}>
+                            {entry.playerName}
+                          </Text>
+                          <Text
+                            numberOfLines={1}
+                            style={[styles.powerActivationName, { color: presentation.color }]}
+                          >
+                            {presentation.name}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </Animated.View>
               </Pressable>
             ) : null}
           </View>
@@ -2391,6 +2677,7 @@ const styles = StyleSheet.create({
   },
   powerActivationStackLeft: { left: 8 },
   powerActivationStackRight: { right: 8 },
+  powerActivationSlam: { gap: 4 },
   powerActivationCard: {
     minHeight: 48,
     flexDirection: 'row',

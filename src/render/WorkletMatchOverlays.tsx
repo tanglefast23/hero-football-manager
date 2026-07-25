@@ -69,6 +69,21 @@ const FLAME_LAYERS: readonly FlameLayer[] = [
   { color: '#ffc23a', heightScale: 0.45, widthScale: 0.55, opacity: 0.9 },
 ];
 
+// Radial speed lines for the speed powers. Sixteen fixed spokes, precomputed at
+// module load so the worklet only ever reads them; the whole burst is batched
+// into ONE hard-edged Path (antiAlias off) rather than sixteen nodes.
+const SPEED_LINE_COUNT = 16;
+const SPEED_LINE_SPOKES: readonly { x: number; y: number }[] = Array.from(
+  { length: SPEED_LINE_COUNT },
+  (_, index) => {
+    // The half-step offset keeps every wedge off the exact axes, so none of
+    // them can degenerate into a 1px axis-aligned sliver at low zoom.
+    const angle = ((index + 0.5) / SPEED_LINE_COUNT) * Math.PI * 2;
+    return { x: Math.cos(angle), y: Math.sin(angle) };
+  },
+);
+const SPEED_LINE_COLOR = '#ffffff';
+
 /**
  * Pixel-clustered tackle debris. The body spray follows the player while a
  * ground-locked trail spans the real launch-to-current path. Dust is batched
@@ -183,6 +198,65 @@ export function WorkletSlideTackleEffects({
   return layer === 'dust'
     ? <Path path={debris} color={TACKLE_DUST_COLOR} opacity={TACKLE_DUST_OPACITY} antiAlias={false} />
     : <Path path={debris} color={TACKLE_GRASS_COLOR} opacity={TACKLE_GRASS_OPACITY} antiAlias={false} />;
+}
+
+/**
+ * Activation speed lines: a radial burst of tapered wedges off the hero, for the
+ * speed powers. `slot` is the firing player's render index, or -1 for idle;
+ * `life` runs 0 -> 1 across the burst window and the wedges travel outward,
+ * shorten and fade as it climbs.
+ *
+ * Batched into one Path like WorkletSlideTackleEffects, and hard-edged for the
+ * same reason: sixteen anti-aliased vector nodes would neither batch nor match
+ * the sprites.
+ */
+export function WorkletSpeedLines({
+  slot,
+  life,
+  visualPositions,
+  scale,
+  ringRadius,
+}: {
+  slot: SharedValue<number>;
+  life: SharedValue<number>;
+  visualPositions: SharedValue<Float32Array>;
+  scale: number;
+  ringRadius: number;
+}) {
+  const lines = usePathValue((builder) => {
+    'worklet';
+    const player = slot.value;
+    if (player < 0 || player >= RENDER_PLAYER_COUNT) return;
+    const progress = life.value;
+    if (progress <= 0 || progress >= 1) return;
+    const cx = visualPositions.value[player * 2] * scale;
+    const cy = visualPositions.value[player * 2 + 1] * scale;
+    const inner = ringRadius * (0.9 + progress * 3.4);
+    const length = ringRadius * (2.4 - progress * 1.7);
+    const halfWidth = ringRadius * 0.2 * (1 - progress);
+    for (let index = 0; index < SPEED_LINE_SPOKES.length; index += 1) {
+      const spoke = SPEED_LINE_SPOKES[index];
+      // Perpendicular, so the wedge widens across the spoke as it runs outward.
+      const sideX = -spoke.y * halfWidth;
+      const sideY = spoke.x * halfWidth;
+      const nearX = cx + spoke.x * inner;
+      const nearY = cy + spoke.y * inner;
+      const farX = cx + spoke.x * (inner + length);
+      const farY = cy + spoke.y * (inner + length);
+      builder.moveTo(nearX, nearY);
+      builder.lineTo(farX + sideX, farY + sideY);
+      builder.lineTo(farX - sideX, farY - sideY);
+      builder.close();
+    }
+  });
+  const opacity = useDerivedValue(() => {
+    if (slot.value < 0) return 0;
+    const progress = life.value;
+    if (progress <= 0 || progress >= 1) return 0;
+    return 0.85 * (1 - progress);
+  });
+
+  return <Path path={lines} color={SPEED_LINE_COLOR} opacity={opacity} antiAlias={false} />;
 }
 
 /** Ground-locked cue that makes the ball sprite's vertical offset read as height. */

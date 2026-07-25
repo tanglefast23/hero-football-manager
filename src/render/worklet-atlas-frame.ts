@@ -9,6 +9,7 @@ import {
   type SharedValue,
 } from 'react-native-reanimated';
 import { TICK_MS } from '../sim/geometry';
+import { MIN_MATCH_PLAYBACK_RATE } from './match-speed';
 import type { PitchFrame } from './interpolate';
 import {
   KNOCKDOWN_DROP_TICKS,
@@ -397,7 +398,10 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     simTick.value = tick;
     progress.value = 0;
     progress.value = withTiming(1, {
-      duration: TICK_MS / Math.max(1, speed),
+      // `speed` is the wall-clock playback RATE, which slow-motion drops below
+      // 1 — the old Math.max(1, …) floor clamped the interpolation to a normal
+      // tick and made a dilated tick look like a freeze followed by a snap.
+      duration: TICK_MS / Math.max(MIN_MATCH_PLAYBACK_RATE, speed),
       easing: Easing.linear,
     });
   }, [previousPositions, nextPositions, previousVisibility, nextVisibility, previousBallHeight, nextBallHeight, actionData, statuses, zoneFractions, carrier, simTick, progress]);
@@ -407,8 +411,13 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
   }, [progress]);
 
   const resume = useCallback((speed: number) => {
+    // Only the UNFINISHED part of the current tick is left to interpolate.
+    // Re-issuing a whole tick's window from a part-way progress made the sprites
+    // crawl and then snap — barely visible at 1x, but the activation dilation
+    // re-issues this mid-tick on every step change, where it read as a hitch.
+    const remaining = Math.max(0, Math.min(1, 1 - progress.value));
     progress.value = withTiming(1, {
-      duration: TICK_MS / Math.max(1, speed),
+      duration: (TICK_MS * remaining) / Math.max(MIN_MATCH_PLAYBACK_RATE, speed),
       easing: Easing.linear,
     });
   }, [progress]);
