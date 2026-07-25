@@ -46,19 +46,76 @@ function mostCommonToken(
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? 'K';
 }
 
+// Boots live below the shorts hem, and are the only white/off-white pixels down
+// there, so a boot is exactly a run of columns carrying W/w in this band.
+const BOOT_BAND_TOP = 26;
+const SOLE_FOR: Readonly<Record<string, string>> = { W: 'G', w: 'g' };
+
+function bootColumnGroups(rows: readonly string[]): { start: number; end: number }[] {
+  const groups: { start: number; end: number }[] = [];
+  for (let column = 0; column < (rows[BOOT_BAND_TOP]?.length ?? 0); column += 1) {
+    const isBoot = rows.slice(BOOT_BAND_TOP)
+      .some(row => SOLE_FOR[row[column]] !== undefined);
+    if (!isBoot) continue;
+    const previous = groups[groups.length - 1];
+    if (previous !== undefined && previous.end === column - 1) previous.end = column;
+    else groups.push({ start: column, end: column });
+  }
+  return groups;
+}
+
+function bootBottomRow(rows: readonly string[], group: { start: number; end: number }): number {
+  let bottom = -1;
+  for (let row = BOOT_BAND_TOP; row < rows.length; row += 1) {
+    for (let column = group.start; column <= group.end; column += 1) {
+      if (SOLE_FOR[rows[row][column]] !== undefined) bottom = row;
+    }
+  }
+  return bottom;
+}
+
+/**
+ * Running away from the camera, the trailing boot is the near one: its heel is
+ * up and the sole faces us, while the far boot shows only its heel. Just the
+ * alternating-stride art carries that information (one boot lifted, one
+ * planted), so the swap is a no-op on any look whose feet are still authored
+ * level — those keep the front boots they always had.
+ */
+function withRearSoles(rows: readonly string[]): string[] {
+  const groups = bootColumnGroups(rows);
+  if (groups.length < 2) return [...rows];
+  const bottoms = groups.map(group => bootBottomRow(rows, group));
+  const nearest = Math.max(...bottoms);
+  if (bottoms.every(bottom => bottom === nearest)) return [...rows];
+
+  const soleColumns = groups
+    .filter((_, index) => bottoms[index] === nearest)
+    .flatMap(group => Array.from({ length: group.end - group.start + 1 }, (_, i) => group.start + i));
+  return rows.map((row, index) => {
+    if (index < BOOT_BAND_TOP) return row;
+    const tokens = [...row];
+    for (const column of soleColumns) {
+      const sole = SOLE_FOR[tokens[column]];
+      if (sole !== undefined) tokens[column] = sole;
+    }
+    return tokens.join('');
+  });
+}
+
 /**
  * The authored player sheet is front-facing. A vertical pitch also needs a
  * readable rear view for the side attacking toward the top goal. Preserve the
  * exact silhouette, hair, skin, kit, and stride, while replacing face and
- * shirt-front details with the back of the head and jersey. This runs once
- * while the atlas is built, never during a match frame.
+ * shirt-front details with the back of the head and jersey, and turning the
+ * near boot sole-side out. This runs once while the atlas is built, never
+ * during a match frame.
  */
 export function deriveBackFacingFrame(front: readonly string[]): string[] {
   const hair = mostCommonToken(front, 0, 6, new Set(['.', 'K']));
   const skin = mostCommonToken(front, 7, 14, new Set(['.', 'K', 'W', 'w']));
   const kit = mostCommonToken(front, 16, 23, new Set(['.', 'K', 'W', 'w', skin]));
 
-  return front.map((source, row) => {
+  return withRearSoles(front.map((source, row) => {
     if (row < 7 || row > 23) return source;
     const tokens = [...source];
     const painted = tokens.flatMap((token, column) => token === '.' ? [] : [column]);
@@ -72,7 +129,7 @@ export function deriveBackFacingFrame(front: readonly string[]): string[] {
       else if (tokens[column] === 'W' || tokens[column] === 'w') tokens[column] = kit;
     }
     return tokens.join('');
-  });
+  }));
 }
 
 function backFrameName(frontFrame: string): string {
