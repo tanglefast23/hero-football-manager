@@ -21,6 +21,7 @@ import {
   type PyramidClub,
   type PyramidPlayer,
 } from './pyramid';
+import { difficultyRules } from './difficulty';
 import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { highestDivisionReached, recordHighestDivisionReached } from './promotion-progression';
@@ -125,7 +126,9 @@ export function startNextFullCareerSeason(
     activeStandings.map(row => row.clubId),
   );
   m2 = applyM2PromotionAndRelegation(m2, finishOrders).state;
-  const transition = planEndlessCareerSeasonTransition(m2, state.season);
+  // Chairman faces a league that improves every season instead of every other
+  // one, so the difficulty has to reach the opponent growth step.
+  const transition = planEndlessCareerSeasonTransition(m2, state.season, difficultyRules(state));
   m2 = transition.state;
 
   const userPlayers = state.players.filter(player => player.clubId === state.userClubId);
