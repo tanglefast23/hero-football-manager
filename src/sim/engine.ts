@@ -159,6 +159,74 @@ export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
 /** Presser hysteresis: once selected, a presser holds the role for at least this many ticks unless unavailable (movement spec — kills per-tick flip-flop between near-equidistant defenders). */
 export const PRESSER_LEASE_TICKS = 10;
 const CARRIER_SPEED_SCALE = 0.37;
+
+/**
+ * Radius a presser closes to instead of standing on the carrier's exact point,
+ * widened by the carrier's pace edge over the presser.
+ *
+ * This one ring fixes two separate audit findings.
+ *
+ * READABILITY. The presser used to target the carrier's position exactly, so for
+ * 45.9% of possession ticks (MEASURED, 20 matches) an opponent sat within 60
+ * pitch units of the carrier — about 3.4pt against a 23pt sprite, i.e. two
+ * sprites ~85% overlapped, moving as one blob. That is the "players tying up
+ * looks like slowdown" complaint: a readability failure, not a frame-rate one.
+ *
+ * PACE. PAC was not merely weak, it was mildly HARMFUL: MEASURED -0.063 ppm for
+ * +11 PAC on every outfielder, against DEF +0.463 and TEC +0.375. The cause was
+ * arithmetic. `speedFor` is `40 + pac`, and a carrier multiplies that whole sum
+ * by CARRIER_SPEED_SCALE, so a pace-90 carrier dribbles at 0.37 * 130 = 48 while
+ * a pace-40 presser closes at 80 — no carrier at any pace could outrun any
+ * realistic presser, and each pace point was worth 1.0 speed to a defender
+ * against 0.37 to a carrier. Buying pace armed the opposition's press harder
+ * than your own attack. A pace-widened ring gives the stat somewhere to pay off
+ * without touching dribble speed, so match tempo is unchanged.
+ *
+ * 90 was MEASURED, 80 seeds, ROVERS vs UNITED at its even point (delta 0):
+ *
+ * ```
+ * base   goals/match  +11 PAC  +11 SHO  +11 DEF   sep <60   sep >=120
+ * none       2.19      -0.063   +0.100   +0.463     45.9%      49.9%
+ *  60        2.45      -0.038   +0.212   +0.862      2.4%      79.9%
+ *  90        2.38      +0.225   +0.250   +0.587      0.9%      91.5%
+ * 120        2.50      +0.363   +0.188   +0.788      0.9%      95.4%
+ * 150        2.86      +0.700       -    +0.462      0.8%      98.2%
+ * ```
+ *
+ * At 60 pace is still negative; by 150 pace outranks every other stat and
+ * scoring leaves the 2.0..2.7 band because the press has been defanged. 90 makes
+ * pace worth about as much as shooting while DEF stays correctly the strongest
+ * stat, and moves 91.5% of duels to a >=120-unit gap (~7pt of clear air).
+ *
+ * The ring spans 30..150, deliberately inside STANDING_TACKLE_RANGE (200) at
+ * every pace edge — pressing must still win the ball. A carrier only earns the
+ * tight end of that range by being much slower than the defender.
+ */
+const PRESS_STANDOFF_BASE = 90;
+const PRESS_STANDOFF_PACE_SPAN = 60;
+const PRESS_STANDOFF_PACE_CLAMP = 20;
+
+/** How far off the carrier this presser holds station, widened by the carrier's pace edge. */
+function pressStandoffRadius(carrierPac: number, presserPac: number): number {
+  const edge = clamp(carrierPac - presserPac, -PRESS_STANDOFF_PACE_CLAMP, PRESS_STANDOFF_PACE_CLAMP);
+  return PRESS_STANDOFF_BASE + Math.round(PRESS_STANDOFF_PACE_SPAN * edge / PRESS_STANDOFF_PACE_CLAMP);
+}
+
+/**
+ * The point `radius` short of the carrier on the presser's own approach line.
+ * Already inside the ring means hold station — backing off would look like the
+ * defender losing interest and would undo standing tackles.
+ */
+function standoffTarget(presserPos: Vec, carrierPos: Vec, radius: number): Vec {
+  const d = dist(presserPos, carrierPos);
+  if (d <= radius) return presserPos;
+  const t = (d - radius) / d;
+  return {
+    x: Math.round(presserPos.x + (carrierPos.x - presserPos.x) * t),
+    y: Math.round(presserPos.y + (carrierPos.y - presserPos.y) * t),
+  };
+}
+
 const STRENGTH_ZONE_APPROACH_RANGE = STRENGTH_LOCK_RANGE + 600;
 
 /**
@@ -244,12 +312,21 @@ function targetFor(state: MatchState, i: number, mv: MovementState, presserIdx: 
     && state.ball.kind === 'pass' && state.ball.decoyReceiverPlayerId === undefined;
   const chaseLoose = state.ball.kind === 'loose' && dist2(p.pos, ball) < 1500 * 1500;
   const gravityTarget = gravityRunnerTarget(state, i);
+  // The presser holds a standoff ring rather than standing on the carrier, so a
+  // duel reads as two players. Pass receivers and loose chasers still go to the
+  // ball itself — they are contesting it, not shepherding a carrier.
+  const pressTarget = i === presserIdx && state.ball.kind === 'held'
+    ? standoffTarget(p.pos, ball, pressStandoffRadius(
+      effectiveStat(state, state.ball.by, 'pac'),
+      effectiveStat(state, i, 'pac'),
+    ))
+    : null;
   return isCarrier
     ? carryTarget(state, i)
     : chargeTarget ? chargeTarget
     : strengthZoneTarget ? strengthZoneTarget
-    : gravityTarget ?? (i === presserIdx || isPassReceiver || chaseLoose ? ball
-      : fallbackTarget(state, i, mv, ball));
+    : gravityTarget ?? (pressTarget ?? (isPassReceiver || chaseLoose ? ball
+      : fallbackTarget(state, i, mv, ball)));
 }
 
 function slideMovementTick(state: MatchState, idx: number): void {
