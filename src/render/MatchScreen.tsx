@@ -99,6 +99,13 @@ import {
   energyBand,
   summarizeTeamEnergy,
 } from './match-energy-ui';
+import { chargeMeter } from './hero-charge-meter';
+import { HeroChargeMeter } from './HeroChargeMeter';
+import {
+  KIT_PANEL_BORDER_COLOR,
+  KIT_PANEL_TEXT_COLOR,
+  teamKitColor,
+} from './team-kit-ui';
 import {
   initAudio,
   playForEvent,
@@ -168,6 +175,16 @@ const BALL_FOOT_DEADZONE_PX = 0.5; // tick-to-tick screen-px delta below this re
 // Side of the plain white square drawn when the sprite pack fails to build
 // (matches the player cell width so the placeholder keeps sane proportions).
 const FALLBACK_SPRITE = 24;
+
+// Possession-card geometry. The charge meter's rainbow strip is built from real
+// pixel bands, so it needs the card's content width rather than a percentage.
+const CARRIER_CARD_WIDTH = 150;
+const CARRIER_CARD_PADDING_X = 7;
+// Standard HUD ink pixel frame — a solid kit-coloured panel needs it to hold
+// its edge against the pitch, where the old 1pt cream hairline washed out.
+const CARRIER_CARD_BORDER = 2;
+const CARRIER_CARD_CONTENT_WIDTH =
+  CARRIER_CARD_WIDTH - (CARRIER_CARD_PADDING_X + CARRIER_CARD_BORDER) * 2;
 
 // Rival readiness remains visible counterplay. Controlled-team powers activate
 // automatically and announce themselves only when they actually fire.
@@ -1175,8 +1192,10 @@ export function MatchScreen({
       // In fallback mode there are no kit pixels to preserve, so tint the
       // white placeholder rects with bible team colors (red / blue) instead.
       return atlas.fallbackMode
-        ? Skia.Color(i < 11 || i === HOME_DECOY_INDEX
-          ? (colorSafeKits ? '#edb54a' : '#d94f52') : '#5a8fd6')
+        ? Skia.Color(teamKitColor(
+          i < 11 || i === HOME_DECOY_INDEX ? 0 : 1,
+          colorSafeKits,
+        ))
         : Skia.Color(i >= BASE_PLAYER_COUNT ? 'rgba(185,235,255,0.78)' : '#ffffff');
     });
     tints.push(Skia.Color('#ffffff')); // ball — no tint
@@ -1842,6 +1861,9 @@ export function MatchScreen({
                 style={[
                   styles.carrierCard,
                   hudSide === 'left' ? styles.carrierCardLeft : styles.carrierCardRight,
+                  // The panel wears the carrier's kit, so which team has the
+                  // ball reads at a glance without looking back at the pitch.
+                  { backgroundColor: teamKitColor(carrier.team, colorSafeKits) },
                 ]}
               >
                 <View style={styles.carrierLine}>
@@ -1856,6 +1878,14 @@ export function MatchScreen({
                     { width: `${Math.max(0, Math.min(100, carrier.condition))}%` },
                   ]} />
                 </View>
+                {/* Heroes only — an ordinary player has no Heat to read. */}
+                {carrier.def.power ? (
+                  <HeroChargeMeter
+                    meter={chargeMeter(carrier.gauge, carrier.powerState)}
+                    trackWidth={CARRIER_CARD_CONTENT_WIDTH}
+                    reduceMotion={reduceMotion}
+                  />
+                ) : null}
               </View>
             ) : null}
             {powerCutIns.length > 0 ? (
@@ -2404,19 +2434,24 @@ const styles = StyleSheet.create({
     position: 'absolute',
     zIndex: 4,
     bottom: 8,
-    width: 150,
-    backgroundColor: '#241f2eee',
-    borderWidth: 1,
-    borderColor: '#f4f1ea99',
+    width: CARRIER_CARD_WIDTH,
+    // backgroundColor is the carrier's kit colour, applied inline.
+    borderWidth: CARRIER_CARD_BORDER,
+    borderColor: KIT_PANEL_BORDER_COLOR,
     borderRadius: 3,
-    paddingHorizontal: 7,
+    paddingHorizontal: CARRIER_CARD_PADDING_X,
     paddingVertical: 5,
   },
   carrierCardLeft: { left: 8 },
   carrierCardRight: { right: 8 },
   carrierLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  carrierName: { flex: 1, color: '#f4f1ea', fontSize: 11, fontWeight: 'bold' },
-  carrierEnergy: { color: '#f4f1ea', fontSize: 10, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  carrierName: { flex: 1, color: KIT_PANEL_TEXT_COLOR, fontSize: 11, fontWeight: 'bold' },
+  carrierEnergy: {
+    color: KIT_PANEL_TEXT_COLOR,
+    fontSize: 10,
+    fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
+  },
   energyTrack: { height: 4, backgroundColor: '#3a3350', marginTop: 4, overflow: 'hidden' },
   energyFill: { height: 4, backgroundColor: '#65b96e' },
   energyFillMedium: { backgroundColor: '#edb54a' },
