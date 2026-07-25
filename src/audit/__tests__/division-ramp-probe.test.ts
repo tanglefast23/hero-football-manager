@@ -45,6 +45,7 @@ const content = loadLaunchContent();
 
 const SEEDS = [4_000_000, 20_260_725];
 const SEASONS = 2;
+const TRAIN_CONDITION_FLOOR = Number(process.env.TRAIN_CONDITION_FLOOR ?? '0');
 
 function newCareer(seed: number): GameState {
   return addCreatedPlayer(
@@ -72,7 +73,12 @@ function trainWithWholeBank(state: GameState): { state: GameState; drills: numbe
   // Re-rank after every tap: a drill changes headroom, condition and the bank.
   for (let guard = 0; guard < 200; guard += 1) {
     const roster = next.players.filter(p => (
-      p.clubId === next.userClubId && (p.injuryWeeks ?? 0) === 0
+      p.clubId === next.userClubId
+      && (p.injuryWeeks ?? 0) === 0
+      // Sensible play, not maximal play: drills cost condition, and condition
+      // drives movement speed, so training a tired player into an injury makes
+      // the match XI worse however good its attributes look.
+      && (p.condition ?? 100) >= TRAIN_CONDITION_FLOOR
     ));
     const candidates = roster.flatMap(p => {
       const caps = playerAttributeCaps(p);
@@ -134,6 +140,8 @@ interface SeasonRow {
   drills: number;
   tpSpent: number;
   tpLeft: number;
+  meanCondition: number;
+  injured: number;
 }
 
 const ATTRS = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
@@ -191,6 +199,13 @@ function playCareer(seed: number, train: boolean): SeasonRow[] {
       goalsFor: mine.goalsFor,
       goalsAgainst: mine.goalsAgainst,
       promoted: mine.position <= 2,
+      meanCondition: (() => {
+        const mine = state.players.filter(p => p.clubId === state.userClubId);
+        return mine.reduce((sum, p) => sum + (p.condition ?? 100), 0) / Math.max(1, mine.length);
+      })(),
+      injured: state.players.filter(p => (
+        p.clubId === state.userClubId && (p.injuryWeeks ?? 0) > 0
+      )).length,
       drills: seasonDrills,
       tpSpent: seasonSpent,
       tpLeft: state.trainingPoints,
@@ -226,7 +241,7 @@ describeProbe('division ramp', () => {
             + ` ${String(r.points).padStart(4)} ${String(r.goalsFor).padStart(4)}`
             + ` ${String(r.goalsAgainst).padStart(3)}`
             + ` ${r.squadMean.toFixed(1).padStart(5)} ${r.fieldMean.toFixed(1).padStart(5)}`
-            + ` ${String(r.drills).padStart(6)} ${String(r.tpSpent).padStart(7)} ${String(r.tpLeft).padStart(6)}`
+            + ` ${String(r.drills).padStart(6)} ${r.meanCondition.toFixed(0).padStart(4)} ${String(r.injured).padStart(3)}`
             + `  ${r.promoted ? 'YES' : 'no'}`,
           );
         }
