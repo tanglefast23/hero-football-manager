@@ -15,10 +15,13 @@ import {
   KNOCKDOWN_DROP_TICKS,
   KNOCKDOWN_RISE_TICKS,
   SLIDE_TACKLE_TICKS,
+  STAGGER_RECOIL_PIXELS,
   TACKLED_RECOVERY_TICKS,
+  staggerPush,
   type PlayerActionAnimation,
 } from './animation';
 import { ballHeightScale, ballVisualOffset } from './ball-flight-visuals';
+import { snapDevicePixels } from './pixel-grid';
 import { HOME_DECOY_INDEX, RENDER_PLAYER_COUNT } from '../sim/entities';
 
 const PLAYER_COUNT = RENDER_PLAYER_COUNT;
@@ -26,12 +29,14 @@ const ATLAS_SLOT_COUNT = PLAYER_COUNT + 1;
 const BALL_SLOT = PLAYER_COUNT;
 export const WORKLET_ACTION_STRIDE = 8;
 export const WORKLET_ACTION_SLIDE = 1;
+export const WORKLET_ACTION_STAGGER = 4;
 const ACTION_STRIDE = WORKLET_ACTION_STRIDE;
 
 const ACTION_NONE = 0;
 const ACTION_SLIDE = WORKLET_ACTION_SLIDE;
 const ACTION_FALL = 2;
 const ACTION_KNOCKDOWN = 3;
+const ACTION_STAGGER = WORKLET_ACTION_STAGGER;
 
 interface WorkletAtlasOptions {
   initialFrame: PitchFrame;
@@ -84,6 +89,13 @@ function packPositions(frame: PitchFrame): Float32Array {
   return packed;
 }
 
+/**
+ * Packs the render-only action poses into the flat Float32Array the UI-thread
+ * worklets read. Slots 3/4 carry whichever vector the kind steers by (a
+ * direction for slide/stagger, a hold anchor for fall/knockdown) and slots 6/7 a
+ * fixed pitch coordinate (the slide's launch point, the stagger's contact
+ * point), so every kind fits the one ACTION_STRIDE without widening it.
+ */
 function packActions(actions: Record<number, PlayerActionAnimation>): Float32Array {
   const packed = new Float32Array(PLAYER_COUNT * ACTION_STRIDE);
   for (let i = 0; i < PLAYER_COUNT; i++) {
@@ -92,16 +104,26 @@ function packActions(actions: Record<number, PlayerActionAnimation>): Float32Arr
     const offset = i * ACTION_STRIDE;
     packed[offset] = action.kind === 'slide'
       ? ACTION_SLIDE
-      : action.kind === 'fall'
-        ? ACTION_FALL
-        : ACTION_KNOCKDOWN;
+      : action.kind === 'stagger'
+        ? ACTION_STAGGER
+        : action.kind === 'fall'
+          ? ACTION_FALL
+          : ACTION_KNOCKDOWN;
     packed[offset + 1] = action.startTick;
     packed[offset + 2] = action.rotation;
-    packed[offset + 3] = action.kind === 'slide' ? action.direction.x : action.anchor.x;
-    packed[offset + 4] = action.kind === 'slide' ? action.direction.y : action.anchor.y;
+    packed[offset + 3] = action.kind === 'slide' || action.kind === 'stagger'
+      ? action.direction.x
+      : action.anchor.x;
+    packed[offset + 4] = action.kind === 'slide' || action.kind === 'stagger'
+      ? action.direction.y
+      : action.anchor.y;
     packed[offset + 5] = action.kind === 'slide' || action.kind === 'knockdown' ? action.untilTick : 0;
-    packed[offset + 6] = action.kind === 'slide' ? action.origin.x : 0;
-    packed[offset + 7] = action.kind === 'slide' ? action.origin.y : 0;
+    packed[offset + 6] = action.kind === 'slide'
+      ? action.origin.x
+      : action.kind === 'stagger' ? action.contact.x : 0;
+    packed[offset + 7] = action.kind === 'slide'
+      ? action.origin.y
+      : action.kind === 'stagger' ? action.contact.y : 0;
   }
   return packed;
 }
@@ -122,19 +144,6 @@ function packStatuses(frame: PitchFrame): Float32Array {
 function clamp01Worklet(value: number): number {
   'worklet';
   return Math.max(0, Math.min(1, value));
-}
-
-/**
- * Rounds a screen-space (dp) translate so the sprite's top-left corner lands on
- * a whole device pixel. Positions arrive as `progress`-driven lerps between sim
- * ticks, i.e. fractional nearly every frame; without this each frame samples a
- * different sub-pixel phase and the pixel art crawls. Only the final on-screen
- * translate is quantised — sim positions stay untouched, and the movement
- * quantum (1 device px, a third of a dp on a 3x screen) is imperceptible.
- */
-function snapTranslateWorklet(value: number, devicePixelRatio: number): number {
-  'worklet';
-  return Math.round(value * devicePixelRatio) / devicePixelRatio;
 }
 
 function smoothstepWorklet(value: number): number {
@@ -187,6 +196,17 @@ function actionPoseWorklet(
     );
     const down = drop * (1 - rise);
     return { active: true, rotation: rotation * down, anchorWeight: down, forwardOffset: 0 };
+  }
+
+  if (kind === ACTION_STAGGER) {
+    const push = staggerPush(elapsed);
+    if (push <= 0) return { active: false, rotation: 0, anchorWeight: 0, forwardOffset: 0 };
+    return {
+      active: true,
+      rotation: rotation * push,
+      anchorWeight: 0,
+      forwardOffset: STAGGER_RECOIL_PIXELS * push,
+    };
   }
 
   const untilTick = packed[offset + 5];
@@ -280,9 +300,13 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
       const kind = packedActions[actionOffset];
       let centerX = x;
       let centerY = y;
-      if (pose.active && kind === ACTION_SLIDE) {
-        centerX += packedActions[actionOffset + 3] * pose.forwardOffset;
-        centerY += packedActions[actionOffset + 4] * pose.forwardOffset;
+      if (pose.active && (kind === ACTION_SLIDE || kind === ACTION_STAGGER)) {
+        // forwardOffset is in sprite SOURCE pixels; playerDrawScale converts one
+        // source pixel to pitch units, which is what this buffer holds. The
+        // resulting screen translate is still device-pixel snapped downstream,
+        // so the recoil cannot knock the sprite off the pixel grid.
+        centerX += packedActions[actionOffset + 3] * pose.forwardOffset * playerDrawScale;
+        centerY += packedActions[actionOffset + 4] * pose.forwardOffset * playerDrawScale;
       } else if (pose.active && (kind === ACTION_FALL || kind === ACTION_KNOCKDOWN)) {
         centerX = x * (1 - pose.anchorWeight) + packedActions[actionOffset + 3] * pose.anchorWeight;
         centerY = y * (1 - pose.anchorWeight) + packedActions[actionOffset + 4] * pose.anchorWeight;
@@ -352,8 +376,8 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
       xf.set(
         ballScale,
         0,
-        snapTranslateWorklet(x * scale - (ballCell.width * ballScale) / 2 + offsetX, devicePixelRatio),
-        snapTranslateWorklet(
+        snapDevicePixels(x * scale - (ballCell.width * ballScale) / 2 + offsetX, devicePixelRatio),
+        snapDevicePixels(
           y * scale - (ballCell.height * ballScale) / 2 + offsetY - ballVisualOffset(height, scale),
           devicePixelRatio
         )
@@ -373,8 +397,8 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     xf.set(
       scos,
       ssin,
-      snapTranslateWorklet(x * scale - (scos * sourceWidth - ssin * sourceHeight) / 2, devicePixelRatio),
-      snapTranslateWorklet(y * scale - (ssin * sourceWidth + scos * sourceHeight) / 2, devicePixelRatio)
+      snapDevicePixels(x * scale - (scos * sourceWidth - ssin * sourceHeight) / 2, devicePixelRatio),
+      snapDevicePixels(y * scale - (ssin * sourceWidth + scos * sourceHeight) / 2, devicePixelRatio)
     );
   });
 

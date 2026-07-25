@@ -19,7 +19,6 @@ const manifest = manifestData as PlayerLookManifest;
 
 export const FIELD_PLAYER_LOOK_IDS = manifest.field;
 export const GOALKEEPER_LOOK_IDS = manifest.goalkeeper;
-export const CREATED_PLAYER_LOOK_IDS = manifest.created;
 
 /**
  * A career player keeps the same visual identity everywhere. The original

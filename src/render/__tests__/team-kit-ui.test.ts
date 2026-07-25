@@ -70,7 +70,10 @@ describe('match team kit colours', () => {
     const source = matchSource();
 
     expect(source).toContain('{ backgroundColor: teamKitColor(carrier.team, colorSafeKits) }');
-    expect(source).toContain('Skia.Color(teamKitColor(');
+    // skColor is the interning wrapper around Skia.Color (the Atlas tint table
+    // resolves 25 colours a tick); the point of this assertion is that the
+    // fallback tint still comes from teamKitColor rather than a second literal.
+    expect(source).toContain('skColor(teamKitColor(');
     // No second copy of the kit literals left behind in the screen.
     expect(source).not.toContain("colorSafeKits ? '#edb54a' : '#d94f52'");
   });

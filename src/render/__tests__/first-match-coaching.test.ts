@@ -85,7 +85,12 @@ describe('first match coaching prompts', () => {
     expect(match).toMatch(
       /onPress=\{\(\) => \{\s*playUiClickSfx\(\);\s*openSwap\(\);\s*\}\}/,
     );
-    expect(match).toMatch(
+    // The StyleSheet itself now lives beside the screen in match-screen-styles.
+    const styles = readFileSync(
+      join(process.cwd(), 'src/render/match-screen-styles.ts'),
+      'utf8',
+    );
+    expect(styles).toMatch(
       /coachButtonGuided:\s*\{[\s\S]*?opacity: 1,[\s\S]*?backgroundColor: '#5a8fd6',/,
     );
   });

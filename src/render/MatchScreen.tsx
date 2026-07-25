@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AppState, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { Atlas, Canvas, Circle, Fill, Group, Rect, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
 import Animated, {
   Easing as ReanimatedEasing,
@@ -43,12 +43,14 @@ import {
   slideTackleSpriteFrameForAction,
   type PlayerActionAnimation,
 } from './animation';
+import { tacklePoses } from './tackle-poses';
 import { useWorkletAtlasFrame } from './worklet-atlas-frame';
 import { matchPlaybackRate, nextMatchSpeed, type MatchSpeed } from './match-speed';
 import {
   ENCORE_MARKER_TICKS,
   type EncoreMarker,
   WorkletBallShadow,
+  WorkletDuelScuff,
   WorkletMatchOverlays,
   WorkletSlideTackleEffects,
   WorkletSpeedLines,
@@ -138,11 +140,8 @@ import {
 } from './match-energy-ui';
 import { chargeMeter } from './hero-charge-meter';
 import { HeroChargeMeter } from './HeroChargeMeter';
-import {
-  KIT_PANEL_BORDER_COLOR,
-  KIT_PANEL_TEXT_COLOR,
-  teamKitColor,
-} from './team-kit-ui';
+import { teamKitColor } from './team-kit-ui';
+import { CARRIER_CARD_CONTENT_WIDTH, styles } from './match-screen-styles';
 import {
   initAudio,
   playForEvent,
@@ -207,16 +206,6 @@ const BALL_FOOT_DEADZONE_PX = 0.5; // tick-to-tick screen-px delta below this re
 // Side of the plain white square drawn when the sprite pack fails to build
 // (matches the player cell width so the placeholder keeps sane proportions).
 const FALLBACK_SPRITE = 24;
-
-// Possession-card geometry. The charge meter's rainbow strip is built from real
-// pixel bands, so it needs the card's content width rather than a percentage.
-const CARRIER_CARD_WIDTH = 150;
-const CARRIER_CARD_PADDING_X = 7;
-// Standard HUD ink pixel frame — a solid kit-coloured panel needs it to hold
-// its edge against the pitch, where the old 1pt cream hairline washed out.
-const CARRIER_CARD_BORDER = 2;
-const CARRIER_CARD_CONTENT_WIDTH =
-  CARRIER_CARD_WIDTH - (CARRIER_CARD_PADDING_X + CARRIER_CARD_BORDER) * 2;
 
 // Rival readiness remains visible counterplay. Controlled-team powers activate
 // automatically and announce themselves only when they actually fire.
@@ -288,6 +277,30 @@ export type PowerCutInQaEntry = PowerCutInEntry;
 
 export interface PowerMatchQaConfig {
   readonly power: PowerId;
+}
+
+/**
+ * Interned Atlas tints.
+ *
+ * The status tint table below resolves 25 colours on every sim tick, and it
+ * draws them from a fixed handful of literals — so parsing the CSS string each
+ * time (Skia.Color is a parser, not a lookup) bought nothing. SkColor is an
+ * immutable Float32Array that Skia only ever reads, so one instance per string
+ * is safe to hand to as many Atlas slots and frames as ask for it.
+ *
+ * Fixed palette entries ONLY. A colour built from a continuous animation value
+ * would mint a new key every frame, which is why the bound below exists: past it
+ * the cache stops growing and simply stops interning.
+ */
+const SK_COLOR_CACHE_LIMIT = 64;
+const SK_COLOR_CACHE = new Map<string, SkColor>();
+
+function skColor(css: string): SkColor {
+  const cached = SK_COLOR_CACHE.get(css);
+  if (cached !== undefined) return cached;
+  const color = Skia.Color(css);
+  if (SK_COLOR_CACHE.size < SK_COLOR_CACHE_LIMIT) SK_COLOR_CACHE.set(css, color);
+  return color;
 }
 
 function scoreCode(team: TeamDef): string {
@@ -543,9 +556,36 @@ export function MatchScreen({
     }
   }, [colorSafeKits, matchVisualIds]);
 
-  const playerCell = atlas.rectFor(`${matchVisualIds[0]}:run0`);
-  const actionCell = atlas.rectFor(`${matchVisualIds[0]}:slide0`);
-  const ballCell = atlas.rectFor('ball');
+  // Sprite-rect cache, keyed by atlas because rectFor's layout is derived from
+  // the sheet this atlas was built from. `sprites` below asks for 25 rects on
+  // every sim tick and the answers never change for a given key, so without this
+  // each tick allocated 25 plain rect objects plus 25 SkRects.
+  const spriteRects = useMemo(() => {
+    const cache = new Map<string, SkRect>();
+    return (key: string): SkRect => {
+      const cached = cache.get(key);
+      if (cached !== undefined) return cached;
+      const r = atlas.rectFor(key);
+      const rect = Skia.XYWHRect(r.x, r.y, r.w, r.h);
+      cache.set(key, rect);
+      return rect;
+    };
+  }, [atlas]);
+
+  // The three source cells are fixed for the life of an atlas, and they are
+  // handed to the UI-thread worklets below — a fresh object literal per render
+  // would put them in the worklet closure and churn its dependency list.
+  const { playerCell, actionCell, ballCell } = useMemo(() => {
+    const cell = (key: string) => {
+      const r = atlas.rectFor(key);
+      return { width: r.w, height: r.h };
+    };
+    return {
+      playerCell: cell(`${matchVisualIds[0]}:run0`),
+      actionCell: cell(`${matchVisualIds[0]}:slide0`),
+      ballCell: cell('ball'),
+    };
+  }, [atlas, matchVisualIds]);
   const {
     transforms: workletTransforms,
     visualPositions: workletVisualPositions,
@@ -564,9 +604,9 @@ export function MatchScreen({
   } = useWorkletAtlasFrame({
     initialFrame: prevRef.current!,
     scale,
-    playerCell: { width: playerCell.w, height: playerCell.h },
-    actionCell: { width: actionCell.w, height: actionCell.h },
-    ballCell: { width: ballCell.w, height: ballCell.h },
+    playerCell,
+    actionCell,
+    ballCell,
     playerDrawScale: playerSpriteScale.drawScale,
     ballDrawScale: ballSpriteScale.drawScale,
     devicePixelRatio,
@@ -1124,42 +1164,29 @@ export function MatchScreen({
           };
         }
         if (!reduceMotion && e.kind === 'TACKLE') {
-          const byPos = nextRef.current!.players[e.by];
-          const onPos = nextRef.current!.players[e.on];
-          const dx = onPos.x - byPos.x;
-          const dy = onPos.y - byPos.y;
-          const magnitude = Math.hypot(dx, dy);
-          const direction = magnitude > 0
-            ? { x: dx / magnitude, y: dy / magnitude }
-            : { x: 0, y: playerAt(s, e.by)?.team === 0 ? -1 : 1 };
-          const rotation = direction.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
-          const startTick = e.t - 1;
           if (e.style === 'slide') {
             const current = actionRef.current[e.by];
             if (current?.kind === 'slide') {
               current.untilTick = Math.max(current.untilTick, playerAt(s, e.by)?.tackleRecoveryUntil ?? current.untilTick);
             }
           }
-          // Super Strength knocks the target OUT (outUntilTick in the future):
-          // hold them flat until they recover and punch up an impact burst. An
-          // ordinary tackle only dispossesses — the quick fall-and-recover.
-          const tackled = playerAt(s, e.on);
-          if (tackled !== undefined && tackled.outUntilTick > s.tick) {
-            actionRef.current[e.on] = {
-              kind: 'knockdown',
-              startTick,
-              anchor: { ...onPos },
-              rotation: -rotation,
-              untilTick: tackled.outUntilTick,
-            };
-            impactRef.current = { x: onPos.x, y: onPos.y, tick: e.t };
-          } else if (e.won && e.contact) {
-            actionRef.current[e.on] = {
-              kind: 'fall',
-              startTick,
-              anchor: { ...onPos },
-              rotation: -rotation,
-            };
+          // The whole decision table lives in tackle-poses.ts, where it is
+          // unit-testable; this only applies what it returns.
+          const poses = tacklePoses({
+            won: e.won,
+            contact: e.contact,
+            startTick: e.t - 1,
+            tick: s.tick,
+            challenger: nextRef.current!.players[e.by],
+            target: nextRef.current!.players[e.on],
+            challengerTeam: playerAt(s, e.by)?.team,
+            targetOutUntilTick: playerAt(s, e.on)?.outUntilTick ?? null,
+            challengerBusy: actionPose(actionRef.current[e.by], s.tick).active,
+          });
+          if (poses.target !== undefined) actionRef.current[e.on] = poses.target;
+          if (poses.challenger !== undefined) actionRef.current[e.by] = poses.challenger;
+          if (poses.impact !== undefined) {
+            impactRef.current = { x: poses.impact.x, y: poses.impact.y, tick: e.t };
           }
         }
         if (e.kind === 'IGNITED') {
@@ -1396,17 +1423,13 @@ export function MatchScreen({
     );
   }), [frame, hud.tick, hud.visualTick, match]);
 
-  // The 22 starters, two reserved Decoy slots, and ball share one batched Atlas draw call.
-  const sprites: SkRect[] = useMemo(() => {
-    const ball = atlas.rectFor('ball');
-    return [
-      ...playerSpriteKeys.map((spriteKey) => {
-        const r = atlas.rectFor(spriteKey);
-        return Skia.XYWHRect(r.x, r.y, r.w, r.h);
-      }),
-      Skia.XYWHRect(ball.x, ball.y, ball.w, ball.h),
-    ];
-  }, [atlas, match, playerSpriteKeys]);
+  // The 22 starters, two reserved Decoy slots, and ball share one batched Atlas
+  // draw call. Rects come from the per-atlas cache, so a tick that reuses the
+  // same sprite frames constructs no new SkRects at all.
+  const sprites: SkRect[] = useMemo(() => [
+    ...playerSpriteKeys.map(spriteRects),
+    spriteRects('ball'),
+  ], [playerSpriteKeys, spriteRects]);
 
   // Ledger item 4 — tints carry status ONLY. A normal player gets white (a
   // no-op multiply) so the sprite's own kit/skin/hair colors survive instead
@@ -1414,45 +1437,45 @@ export function MatchScreen({
   const colors: SkColor[] = useMemo(() => {
     const tints = frame.statuses.map((st, i) => {
       const player = playerAt(match, i);
-      if (player === undefined || !frame.visible[i]) return Skia.Color('rgba(255,255,255,0)');
+      if (player === undefined || !frame.visible[i]) return skColor('rgba(255,255,255,0)');
       if (player.def.power === 'SHADOW_MARK'
         && player.powerState.kind === 'active'
         && player.powerState.commitment === 'SHADOW_HUNT') {
-        return Skia.Color(reduceMotion ? '#6b6675' : 'rgba(255,255,255,0)');
+        return skColor(reduceMotion ? '#6b6675' : 'rgba(255,255,255,0)');
       }
       // Activation body flash — white, then the bright highlight gold, twice
       // over ~0.26s, before releasing to the settled 'active' gold below. Ranked
       // above the other power tints so the moment of firing always reads, but
       // below Shadow Mark's vanish so a hunt can't be lit up.
       if (heroTint !== null && heroTint.player === i) {
-        return Skia.Color(heroTint.tint === 'white' ? '#ffffff' : '#f7d894');
+        return skColor(heroTint.tint === 'white' ? '#ffffff' : '#f7d894');
       }
       if (player.def.power === 'PHASE_RUN' && player.powerState.kind === 'active') {
-        return Skia.Color(reduceMotion ? '#c9a6ec' : 'rgba(201,166,236,0.48)');
+        return skColor(reduceMotion ? '#c9a6ec' : 'rgba(201,166,236,0.48)');
       }
       // Webbed players use an authored four-step grey sprite variant above;
       // keep its palette intact instead of multiplying another tint over it.
-      if ((player.webbedUntilTick ?? 0) > hud.tick) return Skia.Color('#ffffff');
-      if ((player.portalProtectedUntilTick ?? 0) > hud.tick) return Skia.Color('#a3c8f0');
-      if ((player.forcedMovement?.untilTick ?? 0) > hud.tick) return Skia.Color('#a3c8f0');
-      if ((player.actionLockedUntilTick ?? 0) > hud.tick) return Skia.Color('#d94f52');
-      if (st === 'ignited') return Skia.Color('#ff6a00'); // flame orange (matches Fire Torch FX)
-      if (st === 'out') return Skia.Color('#6b6675'); // bible grey-dark
+      if ((player.webbedUntilTick ?? 0) > hud.tick) return skColor('#ffffff');
+      if ((player.portalProtectedUntilTick ?? 0) > hud.tick) return skColor('#a3c8f0');
+      if ((player.forcedMovement?.untilTick ?? 0) > hud.tick) return skColor('#a3c8f0');
+      if ((player.actionLockedUntilTick ?? 0) > hud.tick) return skColor('#d94f52');
+      if (st === 'ignited') return skColor('#ff6a00'); // flame orange (matches Fire Torch FX)
+      if (st === 'out') return skColor('#6b6675'); // bible grey-dark
       if (st === 'windup') {
-        return Skia.Color(reduceMotion || hud.tick % 4 < 2 ? '#ffffff' : '#edb54a');
+        return skColor(reduceMotion || hud.tick % 4 < 2 ? '#ffffff' : '#edb54a');
       }
-      if (st === 'active') return Skia.Color('#edb54a'); // hero gold
+      if (st === 'active') return skColor('#edb54a'); // hero gold
       // 'ok' | 'zone' — zone is telegraphed by the glow ring, not a body tint.
       // In fallback mode there are no kit pixels to preserve, so tint the
       // white placeholder rects with bible team colors (red / blue) instead.
       return atlas.fallbackMode
-        ? Skia.Color(teamKitColor(
+        ? skColor(teamKitColor(
           i < 11 || i === HOME_DECOY_INDEX ? 0 : 1,
           colorSafeKits,
         ))
-        : Skia.Color(i >= BASE_PLAYER_COUNT ? 'rgba(185,235,255,0.78)' : '#ffffff');
+        : skColor(i >= BASE_PLAYER_COUNT ? 'rgba(185,235,255,0.78)' : '#ffffff');
     });
-    tints.push(Skia.Color('#ffffff')); // ball — no tint
+    tints.push(skColor('#ffffff')); // ball — no tint
     return tints;
   }, [frame, heroTint, hud.tick, atlas, colorSafeKits, match, reduceMotion]);
 
@@ -1461,12 +1484,25 @@ export function MatchScreen({
     match.phase === 'play' &&
     ((match.half === 1 && match.tick >= HALF_TICKS) || (match.half === 2 && match.tick >= TOTAL_TICKS));
   const ringR = (PLAYER_CELL_W * scale * playerSpriteScale.drawScale) / 2 + 4;
+  // The canvas is sized by layout, not by the match clock. Fresh object literals
+  // here handed the Skia host view (and its wrapper) a new style object on every
+  // sim tick, for a size that had not changed since mount.
+  const canvasStyle = useMemo(() => ({ width: pitchWidth, height: pitchH }), [pitchWidth, pitchH]);
+  const pitchFrameStyle = useMemo(
+    () => ({ width: pitchWidth, height: pitchH, alignSelf: 'center' as const }),
+    [pitchWidth, pitchH],
+  );
   const rivalHeroPlayers: number[] = [];
-  const fireTorchPlayers: number[] = [];
+  // A BITMASK, not an array: this one is read inside the flame worklet, and
+  // Reanimated derives that worklet's dependency list from its captured closure
+  // values. A fresh array each render therefore tore down and restarted three
+  // UI-thread mappers (one per flame layer) on every sim tick; a number compares
+  // by value, so the mappers now only restart when the cast actually changes.
+  let fireTorchMask = 0;
   match.players.forEach((player, index) => {
     if (!player.def.power) return;
     if (player.team !== controlledTeam) rivalHeroPlayers.push(index);
-    if (player.def.power === 'FIRE_TORCH') fireTorchPlayers.push(index);
+    if (player.def.power === 'FIRE_TORCH') fireTorchMask |= 1 << index;
   });
   const activeWebTraps = match.players.flatMap((player, index) => (
     player.def.power === 'WEB_TRAP' && isActive(match, index) && player.powerAnchor !== undefined
@@ -1670,10 +1706,9 @@ export function MatchScreen({
       trailRef.current.map(screenPoint),
     )),
   ];
-  const powerActorSprites: SkRect[] = powerEffectActors.map(actor => {
-    const rect = atlas.rectFor(playerSpriteKeys[actor.player]);
-    return Skia.XYWHRect(rect.x, rect.y, rect.w, rect.h);
-  });
+  const powerActorSprites: SkRect[] = powerEffectActors.map(
+    actor => spriteRects(playerSpriteKeys[actor.player]),
+  );
   const powerActorTransforms: SkRSXform[] = powerEffectActors.map(actor => {
     const rect = atlas.rectFor(playerSpriteKeys[actor.player]);
     const actorScale = scale * playerSpriteScale.drawScale * actor.scale;
@@ -1684,6 +1719,8 @@ export function MatchScreen({
       actor.at.y - rect.h * actorScale / 2,
     );
   });
+  // Not interned: an afterimage's opacity is a continuous animation value, so
+  // every frame would be a fresh cache key.
   const powerActorColors: SkColor[] = powerEffectActors.map(actor => (
     Skia.Color(`rgba(255,255,255,${actor.opacity})`)
   ));
@@ -1945,8 +1982,8 @@ export function MatchScreen({
           />
         ) : null}
         <View style={railLayout ? styles.desktopPitchPane : null}>
-          <View style={{ width: pitchWidth, height: pitchH, alignSelf: 'center' }}>
-            <Canvas style={{ width: pitchWidth, height: pitchH }}>
+          <View style={pitchFrameStyle}>
+            <Canvas style={canvasStyle}>
               {/* Pitch base = pixel-bible pitch-dark (#3f8a4a); Pitch.tsx paints the
                   brighter base #5cb85c on alternating mow bands over it. Kept
                   OUTSIDE the camera group so a punched-in frame still has a
@@ -2074,6 +2111,17 @@ export function MatchScreen({
                   scale={scale}
                   playerDrawScale={playerSpriteScale.drawScale}
                 />
+                {/* Beaten-challenge contact mark. Over the atlas because the
+                    standoff ring leaves the two duelling sprites overlapping,
+                    and under it the mark would be invisible. */}
+                <WorkletDuelScuff
+                  actionData={workletActionData}
+                  simTick={workletSimTick}
+                  progress={workletProgress}
+                  scale={scale}
+                  playerDrawScale={playerSpriteScale.drawScale}
+                  devicePixelRatio={devicePixelRatio}
+                />
                 {drawablePowerEffects.map(effect => (
                   <PowerEffectScene
                     key={effect.id}
@@ -2110,7 +2158,7 @@ export function MatchScreen({
                   progress={workletProgress}
                   controlledTeam={controlledTeam}
                   heroPlayers={rivalHeroPlayers}
-                  fireTorchPlayers={fireTorchPlayers}
+                  fireTorchMask={fireTorchMask}
                   encoreMarkers={encoreMarkers}
                   scale={scale}
                   ringRadius={ringR}
@@ -2572,426 +2620,3 @@ export function MatchScreen({
     </View>
   );
 }
-
-// All colours below come from the pixel-art bible palette (docs/11): ink
-// #241f2e / ink-soft #3a3350 (dark canvas + chrome faces), cream #f4f1ea
-// (text), hero gold #edb54a / #c8862a / #f7d894 (hero-only accents), red
-// #d94f52 / #a83440 (rival threat), grey-dark #6b6675 (structure). Interactive
-// chrome (Track A) uses an ink outline with a thicker bottom edge as the
-// raised "lip"; gold is reserved for hero/power moments per docs/08.
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#241f2e' },
-  rootHighContrast: { backgroundColor: '#09070d' },
-  // Desktop two-pane body: fixed control rail left, pitch filling the rest.
-  desktopBody: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: MATCH_RAIL_GUTTER,
-    paddingHorizontal: MATCH_RAIL_GUTTER,
-    paddingTop: MATCH_RAIL_TOP_INSET,
-    paddingBottom: MATCH_RAIL_GUTTER,
-  },
-  desktopPitchPane: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // Keep event banners over the pitch instead of across the rail.
-  bannerStackDesktop: { left: MATCH_RAIL_WIDTH + MATCH_RAIL_GUTTER * 2 },
-  scorebar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 56,
-    paddingBottom: 12,
-  },
-  scorebarCompact: { paddingTop: 24, paddingBottom: 6 },
-  scorebarFlipped: { flexDirection: 'row-reverse' },
-  // Scoreboard "bug": a lighter ink-soft pill on the ink canvas, outlined in
-  // ink with a thicker bottom lip for a raised, pressable-panel read.
-  scoreBug: {
-    backgroundColor: '#3a3350',
-    borderWidth: 2,
-    borderColor: '#241f2e',
-    borderBottomWidth: 4,
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  scoreText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 18, fontVariant: ['tabular-nums'] },
-  scoreTextFlash: { color: '#f7d894' },
-  // Top-right controls: small beveled buttons (same Track-A recipe as the bug).
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ctrlButton: {
-    minWidth: 40,
-    minHeight: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-    backgroundColor: '#3a3350',
-    borderWidth: 2,
-    borderColor: '#241f2e',
-    borderBottomWidth: 4,
-    borderRadius: 4,
-  },
-  ctrlText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 16 },
-  autoSubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#3a3350',
-    borderWidth: 2,
-    borderColor: '#241f2e',
-  },
-  autoSubRowOn: { backgroundColor: '#3f6fb5', borderColor: '#5a8fd6' },
-  autoSubBox: { color: '#f4f1ea', fontSize: 18, lineHeight: 20 },
-  autoSubLabel: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 10, letterSpacing: 1 },
-  autoSubDetail: { fontFamily: 'Silkscreen_400Regular', color: '#a3c8f0', fontSize: 11 },
-  bannerStack: {
-    position: 'absolute',
-    zIndex: 8,
-    top: '40%',
-    left: 18,
-    right: 18,
-    gap: 4,
-  },
-  banner: {
-    textAlign: 'center',
-    color: '#edb54a',
-    fontFamily: 'Silkscreen_700Bold',
-    fontSize: 18,
-    backgroundColor: '#241f2edd',
-    borderWidth: 2,
-    borderColor: '#edb54a',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  bannerThreat: { color: '#f4f1ea', borderColor: '#d94f52', backgroundColor: '#3a1512ee' },
-  bannerAction: { color: '#f4f1ea', borderColor: '#77a4d8', backgroundColor: '#214566ee' },
-  powerActivationStack: {
-    position: 'absolute',
-    zIndex: 7,
-    bottom: 8,
-    width: 230,
-    gap: 4,
-  },
-  powerActivationStackLeft: { left: 8 },
-  powerActivationStackRight: { right: 8 },
-  powerActivationSlam: { gap: 4 },
-  powerActivationCard: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    overflow: 'hidden',
-    backgroundColor: '#241f2ef2',
-    borderWidth: 2,
-    borderColor: '#edb54a',
-    borderBottomWidth: 4,
-    borderBottomColor: '#c8862a',
-    borderRadius: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  powerActivationHighlight: {
-    position: 'absolute',
-    left: 2,
-    right: 2,
-    top: 2,
-    height: 4,
-    backgroundColor: '#f7d89455',
-  },
-  powerActivationGlyph: {
-    width: 38,
-    fontSize: 24,
-    lineHeight: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  powerActivationCopy: { minWidth: 0, flex: 1, paddingLeft: 6 },
-  powerActivationPlayer: {
-    color: '#f4f1ea',
-    fontFamily: 'Silkscreen_700Bold',
-    fontSize: 9,
-    textTransform: 'uppercase',
-  },
-  powerActivationName: {
-    marginTop: 2,
-    fontFamily: 'Silkscreen_700Bold',
-    fontSize: 15,
-    lineHeight: 18,
-    textTransform: 'uppercase',
-  },
-  carrierCard: {
-    position: 'absolute',
-    zIndex: 4,
-    bottom: 8,
-    width: CARRIER_CARD_WIDTH,
-    // backgroundColor is the carrier's kit colour, applied inline.
-    borderWidth: CARRIER_CARD_BORDER,
-    borderColor: KIT_PANEL_BORDER_COLOR,
-    borderRadius: 3,
-    paddingHorizontal: CARRIER_CARD_PADDING_X,
-    paddingVertical: 5,
-  },
-  carrierCardLeft: { left: 8 },
-  carrierCardRight: { right: 8 },
-  carrierLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  carrierName: { fontFamily: 'Silkscreen_700Bold', flex: 1, color: KIT_PANEL_TEXT_COLOR, fontSize: 11 },
-  carrierEnergy: {
-    fontFamily: 'Silkscreen_400Regular',
-    color: KIT_PANEL_TEXT_COLOR,
-    fontSize: 10,
-    fontVariant: ['tabular-nums'],
-  },
-  energyTrack: { height: 4, backgroundColor: '#3a3350', marginTop: 4, overflow: 'hidden' },
-  energyFill: { height: 4, backgroundColor: '#65b96e' },
-  energyFillMedium: { backgroundColor: '#edb54a' },
-  energyFillLow: { backgroundColor: '#d94f52' },
-  energyTextMedium: { color: '#edb54a' },
-  energyTextLow: { color: '#f06b6e' },
-  coachingDock: {
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    paddingBottom: 8,
-    backgroundColor: '#241f2e',
-  },
-  coachingDockCompact: { paddingTop: 4, paddingBottom: 6, gap: 4 },
-  coachBar: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  coachButton: {
-    flex: 1,
-    minHeight: 64,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#3a3350',
-    borderWidth: 2,
-    borderColor: '#6b6675',
-    borderBottomWidth: 5,
-    borderBottomColor: '#16121f',
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 5,
-  },
-  coachButtonCompact: { minHeight: 52, borderBottomWidth: 4, paddingVertical: 2 },
-  coachButtonDisabled: { opacity: 0.38 },
-  coachButtonDisabledReadable: { opacity: 0.68 },
-  coachButtonGuided: {
-    opacity: 1,
-    zIndex: 50,
-    elevation: 12,
-    backgroundColor: '#5a8fd6',
-    borderColor: '#a3c8f0',
-    borderBottomColor: '#3f6fb5',
-    shadowColor: '#a3c8f0',
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
-    transform: [{ scale: 1.04 }],
-  },
-  coachButtonGuidedHighlight: {
-    position: 'absolute',
-    top: 2,
-    left: 2,
-    right: 2,
-    height: 18,
-    borderTopLeftRadius: 2,
-    borderTopRightRadius: 2,
-    backgroundColor: '#a3c8f066',
-  },
-  coachCopy: { flexShrink: 1, alignItems: 'flex-start' },
-  coachLabel: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8 },
-  coachLabelGuided: { color: '#f4f1ea' },
-  coachValue: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 11, marginTop: 3 },
-  coachValueGuided: { color: '#f4f1ea' },
-  mentalityIcon: { color: '#70b879', fontSize: 28, fontWeight: 'bold' },
-  swapIcon: { color: '#77a4d8', fontSize: 30, fontWeight: 'bold' },
-  swapIconGuided: { color: '#f4f1ea' },
-  tiredValue: { fontFamily: 'Silkscreen_400Regular', color: '#edb54a', fontSize: 9 },
-  energyUseRow: {
-    backgroundColor: '#2d283c',
-    borderWidth: 2,
-    borderColor: '#6b6675',
-    borderBottomWidth: 4,
-    borderBottomColor: '#16121f',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingTop: 4,
-    paddingBottom: 5,
-  },
-  energyUseRowCompact: { paddingTop: 2, paddingBottom: 3 },
-  energyUseHeader: {
-    minHeight: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
-    marginBottom: 3,
-  },
-  energyUseTitle: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8, letterSpacing: 0.6 },
-  teamEnergy: {
-    color: '#65b96e',
-    fontSize: 9,
-    fontWeight: 'bold',
-    fontVariant: ['tabular-nums'],
-  },
-  energySegments: { flexDirection: 'row', gap: 4 },
-  energySegment: {
-    flex: 1,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3a3350',
-    borderWidth: 2,
-    borderColor: '#49415f',
-    borderBottomWidth: 3,
-    borderBottomColor: '#16121f',
-    borderRadius: 3,
-    paddingHorizontal: 4,
-  },
-  energySegmentNarrow: { paddingHorizontal: 1 },
-  energySegmentSelected: { borderColor: '#f4f1ea', borderBottomColor: '#f4f1ea' },
-  energySegmentSave: { backgroundColor: '#35618e' },
-  energySegmentBalanced: { backgroundColor: '#4f6753' },
-  energySegmentAllOut: { backgroundColor: '#a83440' },
-  energySegmentText: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 9, textAlign: 'center' },
-  energySegmentTextSelected: { color: '#f4f1ea' },
-  swapOverlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    zIndex: 20,
-    backgroundColor: '#16121fee',
-    justifyContent: 'flex-end',
-  },
-  swapSheet: {
-    backgroundColor: '#2d283c',
-    borderTopWidth: 3,
-    borderColor: '#6b6675',
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
-  swapHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  swapEyebrow: { fontFamily: 'Silkscreen_700Bold', color: '#77a4d8', fontSize: 9 },
-  swapTitle: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 17, marginTop: 2 },
-  swapCount: {
-    color: '#f4f1ea',
-    backgroundColor: '#3a3350',
-    borderWidth: 1,
-    borderColor: '#6b6675',
-    fontWeight: 'bold',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-  },
-  swapInstruction: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 9, marginTop: 5, marginBottom: 5 },
-  playerGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 },
-  benchGrid: { flexDirection: 'row', justifyContent: 'center', gap: 8, minHeight: 62 },
-  playerCard: {
-    width: 49,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    borderRadius: 3,
-    paddingVertical: 3,
-  },
-  benchCard: {
-    width: 54,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    borderRadius: 3,
-    paddingVertical: 3,
-  },
-  playerCardSelected: { backgroundColor: '#49415f', borderColor: '#f4f1ea' },
-  benchCardDisabled: { opacity: 0.25 },
-  playerHead: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#a83440',
-    borderWidth: 2,
-    borderColor: '#d94f52',
-  },
-  benchHead: { backgroundColor: '#35618e', borderColor: '#77a4d8' },
-  playerHeadSelected: { borderColor: '#f4f1ea', transform: [{ scale: 1.08 }] },
-  playerInitials: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 9 },
-  shirtNumber: {
-    position: 'absolute',
-    right: -3,
-    bottom: -3,
-    color: '#241f2e',
-    backgroundColor: '#f4f1ea',
-    minWidth: 13,
-    height: 13,
-    borderRadius: 7,
-    textAlign: 'center',
-    fontSize: 8,
-    fontWeight: 'bold',
-  },
-  playerSurname: { fontFamily: 'Silkscreen_400Regular', color: '#f4f1ea', fontSize: 8, marginTop: 3, maxWidth: 50 },
-  roleLabel: { fontFamily: 'Silkscreen_700Bold', color: '#77a4d8', fontSize: 7, marginTop: 1 },
-  cardEnergyTrack: { width: 38, height: 3, backgroundColor: '#16121f', marginTop: 3, overflow: 'hidden' },
-  cardEnergyFill: { height: 3, backgroundColor: '#65b96e' },
-  cardEnergyText: {
-    color: '#65b96e',
-    fontSize: 7,
-    fontWeight: 'bold',
-    fontVariant: ['tabular-nums'],
-    marginTop: 2,
-  },
-  benchEnergyText: { color: '#65b96e' },
-  swapSelection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#241f2e',
-    borderWidth: 1,
-    borderColor: '#49415f',
-    marginTop: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  selectionSide: { flex: 1 },
-  selectionLabel: { fontFamily: 'Silkscreen_700Bold', color: '#bcb7c4', fontSize: 8 },
-  selectionName: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 11, marginTop: 2 },
-  selectionEnergy: { fontFamily: 'Silkscreen_700Bold', color: '#65b96e', fontSize: 8, marginTop: 2 },
-  swapArrow: { color: '#f4f1ea', fontSize: 20, paddingHorizontal: 8 },
-  swapActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  cancelButton: {
-    flex: 1,
-    minHeight: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3a3350',
-    borderWidth: 2,
-    borderColor: '#6b6675',
-    borderBottomWidth: 4,
-    borderBottomColor: '#16121f',
-  },
-  cancelText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12 },
-  confirmButton: {
-    flex: 2,
-    minHeight: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#76509f',
-    borderWidth: 2,
-    borderColor: '#b189d9',
-    borderBottomWidth: 4,
-    borderBottomColor: '#563779',
-  },
-  confirmButtonDisabled: { opacity: 0.3 },
-  confirmText: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 12 },
-  selectionPlaceholder: {
-    color: '#bcb7c4',
-    fontSize: 10,
-  },
-});

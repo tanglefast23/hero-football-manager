@@ -5,6 +5,7 @@ import { PITCH_H, PITCH_W, type Vec } from '../sim/geometry';
 import { ARM_WINDOW_TICKS, ZONE_WINDOW_TICKS } from '../sim/powers';
 import type { MatchState } from '../sim/types';
 import { playerAt, RENDER_PLAYER_COUNT } from '../sim/entities';
+import { snapDevicePixels } from './pixel-grid';
 
 // No 'ready' state exists (Task 14 amendment ledger item 5) — a hero's
 // zone window is its own status, distinct from an ordinary idle 'ok'.
@@ -138,7 +139,7 @@ export function matchPitchLayout(
 //    integer is still an integer. It is also the more deliberate read for pixel
 //    art: a hard punch-in, not a dolly.
 //  - The translate is rounded to whole DEVICE pixels for the same reason the
-//    per-sprite translates are (snapTranslateWorklet in worklet-atlas-frame).
+//    per-sprite translates are, through the one shared rule in pixel-grid.ts.
 // ---------------------------------------------------------------------------
 
 /** Peak screen-shake displacement, in dp, before decay and pixel-quantising. */
@@ -200,10 +201,9 @@ export function matchCameraOffset(
   const halfHeight = viewHeight / (2 * steps);
   const centerX = Math.min(Math.max(focusX, halfWidth), viewWidth - halfWidth);
   const centerY = Math.min(Math.max(focusY, halfHeight), viewHeight - halfHeight);
-  const dpr = Math.max(1, devicePixelRatio);
   return {
-    translateX: Math.round((viewWidth / 2 - steps * centerX + shake.x) * dpr) / dpr,
-    translateY: Math.round((viewHeight / 2 - steps * centerY + shake.y) * dpr) / dpr,
+    translateX: snapDevicePixels(viewWidth / 2 - steps * centerX + shake.x, devicePixelRatio),
+    translateY: snapDevicePixels(viewHeight / 2 - steps * centerY + shake.y, devicePixelRatio),
     zoom: steps,
   };
 }
