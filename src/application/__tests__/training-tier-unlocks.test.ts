@@ -52,10 +52,25 @@ describe('training drill tier unlocks', () => {
   it('resolves every stat path to its currently unlocked tier, never a locked one', () => {
     const state = createCareer(createLaunchCareerSetup(413, undefined, content));
     const player = state.players.find(candidate => candidate.clubId === state.userClubId)!;
-    const model = squadTrainingViewModel(state, content, player.id);
+    // Drill names end with their tier ("Sprints 2"), so the last word is the tier.
+    const drillTiersAt = (highestDivisionReached: 5 | 2): readonly string[] => (
+      squadTrainingViewModel(
+        {
+          ...state,
+          trainingPoints: 100,
+          m2: { ...state.m2!, highestDivisionReached },
+        },
+        content,
+        player.id,
+      ).selectedPlayerStatOptions ?? []
+    ).map(option => option.drillName.replace(/^.* /, ''));
 
     // Role filtering hides one path (GK loses Finishing, outfield loses Keeper Drills).
-    expect(model.selectedPlayerStatOptions).toHaveLength(TRAINING_PATHS.length - 1);
-    expect(model.selectedPlayerStatOptions?.every(option => !option.drillName.includes('II'))).toBe(true);
+    const unlockedPathCount = TRAINING_PATHS.length - 1;
+    expect(squadTrainingViewModel(state, content, player.id).selectedPlayerStatOptions)
+      .toHaveLength(unlockedPathCount);
+    // Tier 2 is unlocked from the D5 start; tier 3 stays locked until D2 is reached.
+    expect(drillTiersAt(5)).toEqual(Array.from({ length: unlockedPathCount }, () => '2'));
+    expect(drillTiersAt(2)).toEqual(Array.from({ length: unlockedPathCount }, () => '3'));
   });
 });

@@ -254,6 +254,45 @@ describe('weekly player wellbeing', () => {
     expect(adjacencyResult.injury?.chancePercent ?? overtrainingInjuryChancePercent(0, 20)).toBe(56);
   });
 
+  test('leaves an unfinished Medical Bay out of injury recovery until it opens', () => {
+    const underConstruction = buildFacility(
+      createFacilityGrid(),
+      'medical-bay',
+      { x: 0, y: 0 },
+      1_000_000,
+    ).grid;
+    const exhaustedWith = (facilityGrid: FacilityGridState): GameState => {
+      let state = career(12);
+      const exhaustedId = userPlayers(state)[0].id;
+      state = withUserPlayerChanges(state, player => ({
+        ...player,
+        condition: player.id === exhaustedId ? 0 : 100,
+      }));
+      return {
+        ...state,
+        trainingPoints: 100,
+        facilities: { ...state.facilities, grid: facilityGrid },
+      };
+    };
+    const building = exhaustedWith(underConstruction);
+    const open = exhaustedWith(completeFacilityProject(underConstruction));
+    const playerId = userPlayers(building)[0].id;
+    // A lone bay has no adjacency either way, so the same nonce injures in both
+    // grids with the same base recovery roll: only the bay's level differs.
+    const recoveryWeeksAt = (state: GameState, nonce: number): number | undefined => (
+      trainPlayerInstantly({ ...state, totalInstantDrills: nonce }, playerId, 'sprints')
+        .injury?.recoveryWeeks
+    );
+
+    let injuringNonce = -1;
+    for (let nonce = 0; nonce < 200 && injuringNonce < 0; nonce += 1) {
+      if (recoveryWeeksAt(open, nonce) !== undefined) injuringNonce = nonce;
+    }
+    expect(injuringNonce).toBeGreaterThanOrEqual(0);
+    const openWeeks = recoveryWeeksAt(open, injuringNonce)!;
+    expect(recoveryWeeksAt(building, injuringNonce)).toBe(openWeeks + 1);
+  });
+
   test('leaves opponents unchanged', () => {
     const state = career(9);
     const opponent = state.players.find(player => player.clubId !== state.userClubId)!;
