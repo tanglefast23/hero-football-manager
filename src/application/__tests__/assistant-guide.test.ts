@@ -18,6 +18,30 @@ import {
 import { homeViewModel, reconcileHomeAssistantInbox } from '../view-models';
 
 describe('assistant guide application flow', () => {
+  test('flags the fixture on the morning of match week, once', () => {
+    let state = createCareer(createLaunchCareerSetup(932));
+    state = completeAssistantGuideSequence(state, 'management-intro');
+    const firstFixtureWeek = Math.min(...state.fixtures
+      .filter(fixture => fixture.season === state.season
+        && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId))
+      .map(fixture => fixture.week));
+    // The briefing has to land on a week of its own, after the intro's.
+    expect(firstFixtureWeek).toBeGreaterThan(1);
+
+    // Quiet on the weeks between the intro and the match.
+    expect(pendingAssistantGuideSequence({ ...state, week: firstFixtureWeek - 1 }, 'home')).toBeNull();
+
+    const matchWeek = { ...state, week: firstFixtureWeek };
+    expect(pendingAssistantGuideSequence(matchWeek, 'home')).toBe('desk-intro');
+    // Reading it retires it: this was dead content precisely because nothing
+    // ever asked for it, and a briefing that reappears every match week is the
+    // opposite failure.
+    expect(pendingAssistantGuideSequence(
+      completeAssistantGuideSequence(matchWeek, 'desk-intro'),
+      'home',
+    )).toBeNull();
+  });
+
   test('reveals one task and one follow-up sequence at a time', () => {
     let state = createCareer(createLaunchCareerSetup(932));
     expect(pendingAssistantGuideSequence(state, 'home')).toBe('management-intro');
