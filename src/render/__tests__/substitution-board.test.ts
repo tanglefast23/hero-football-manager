@@ -1,20 +1,20 @@
 import { MAX_SUBSTITUTIONS } from '../../sim/substitutions';
 import {
   EMPTY_SUBSTITUTION_PLAN,
-  bringOn,
+  applySwap,
+  atSubstitutionLimit,
+  benchEntries,
   canSave,
+  canSwap,
   fieldByTiredness,
   filledShirtLabel,
-  openShirtLabel,
-  isBenched,
-  isComingOn,
-  openSlotCount,
+  incomingFor,
+  isSlotStaged,
+  isSubStaged,
   planInputs,
-  planProblem,
-  recallToField,
-  returnToBench,
-  sendToBench,
-  slotForReplacement,
+  slotForSub,
+  stagedCount,
+  undoSwap,
   type SubstitutionBenchPlayer,
   type SubstitutionFieldPlayer,
 } from '../substitution-board';
@@ -32,135 +32,107 @@ function substitute(id: string, role: SubstitutionBenchPlayer['role'] = 'MID'): 
   return { id, name: `Sub ${id}`, role };
 }
 
-const FIELD = [
-  starter(0, 96, 'GK'),
-  starter(1, 24),
-  starter(2, 51),
-  starter(3, 24, 'DEF'),
-  starter(4, 88, 'FWD'),
-];
+const KEEPER = starter(0, 96, 'GK');
+const FLINT = starter(1, 24, 'FWD');
+const CHAN = starter(2, 27);
+const MARSH = starter(3, 30);
+const FIELD = [KEEPER, FLINT, CHAN, MARSH];
+const VELA = substitute('vela', 'FWD');
+const VALE = substitute('vale');
+const KEEPER_SUB = substitute('gk-sub', 'GK');
 
-describe('substitution board rules', () => {
+describe('substitution board trades', () => {
   it('puts the most tired starter on top, breaking ties by slot', () => {
-    expect(fieldByTiredness(FIELD).map(player => player.index)).toEqual([1, 3, 2, 4, 0]);
+    expect(fieldByTiredness(FIELD).map(player => player.index)).toEqual([1, 2, 3, 0]);
   });
 
-  it('stages as many swaps as the manager likes, in any order', () => {
+  it('trades a starter for a substitute and emits one engine payload', () => {
+    const plan = applySwap(EMPTY_SUBSTITUTION_PLAN, FLINT, VELA);
+
+    expect(incomingFor(plan, FLINT.index)).toBe('vela');
+    expect(slotForSub(plan, 'vela')).toBe(FLINT.index);
+    expect(isSlotStaged(plan, FLINT.index)).toBe(true);
+    expect(isSubStaged(plan, 'vela')).toBe(true);
+    expect(planInputs(plan)).toEqual([{ player: 1, replacementId: 'vela' }]);
+    expect(canSave(plan)).toBe(true);
+  });
+
+  it('treats outfielders as interchangeable and keepers as not, exactly as the engine does', () => {
+    const empty = EMPTY_SUBSTITUTION_PLAN;
+
+    // A midfielder may take a forward's place: the sim has no finer rule.
+    expect(canSwap(empty, FLINT, VALE, MAX_SUBSTITUTIONS)).toBe(true);
+    expect(canSwap(empty, CHAN, VELA, MAX_SUBSTITUTIONS)).toBe(true);
+    // Keepers only ever trade with keepers, in both directions.
+    expect(canSwap(empty, KEEPER, VALE, MAX_SUBSTITUTIONS)).toBe(false);
+    expect(canSwap(empty, FLINT, KEEPER_SUB, MAX_SUBSTITUTIONS)).toBe(false);
+    expect(canSwap(empty, KEEPER, KEEPER_SUB, MAX_SUBSTITUTIONS)).toBe(true);
+  });
+
+  it('never trades a sent-off player, who cannot be replaced', () => {
+    const sentOff = starter(4, 40, 'FWD', true);
+
+    expect(canSwap(EMPTY_SUBSTITUTION_PLAN, sentOff, VELA, MAX_SUBSTITUTIONS)).toBe(false);
+  });
+
+  it('spends one substitution per new trade and none for changing your mind', () => {
+    let plan = applySwap(EMPTY_SUBSTITUTION_PLAN, FLINT, VELA);
+    plan = applySwap(plan, CHAN, VALE);
+    expect(stagedCount(plan)).toBe(2);
+
+    // Two staged with two left: a third starter cannot come off...
+    expect(canSwap(plan, MARSH, substitute('spare'), 2)).toBe(false);
+    // ...but swapping a different substitute into an already-staged shirt is free.
+    expect(canSwap(plan, FLINT, substitute('spare'), 2)).toBe(true);
+    const repointed = applySwap(plan, FLINT, substitute('spare'));
+    expect(stagedCount(repointed)).toBe(2);
+    expect(incomingFor(repointed, FLINT.index)).toBe('spare');
+  });
+
+  it('refuses to use one substitute for two shirts', () => {
+    const plan = applySwap(EMPTY_SUBSTITUTION_PLAN, FLINT, VELA);
+
+    expect(canSwap(plan, CHAN, VELA, MAX_SUBSTITUTIONS)).toBe(false);
+  });
+
+  it('undoes a trade, putting the starter back and freeing the substitute', () => {
+    const plan = applySwap(EMPTY_SUBSTITUTION_PLAN, FLINT, VELA);
+    const undone = undoSwap(plan, FLINT.index);
+
+    expect(undone.swaps).toHaveLength(0);
+    expect(isSubStaged(undone, 'vela')).toBe(false);
+    expect(canSave(undone)).toBe(false);
+    expect(planInputs(undone)).toEqual([]);
+  });
+
+  it('lists available substitutes first and sinks the leavers to the bottom', () => {
+    const bench = [VELA, VALE, KEEPER_SUB];
+    const plan = applySwap(EMPTY_SUBSTITUTION_PLAN, FLINT, VELA);
+    const rows = benchEntries(bench, FIELD, plan);
+
+    // Vela is on the field now, so she is gone from the bench...
+    expect(rows.filter(row => row.kind === 'available').map(row => (
+      row.kind === 'available' ? row.sub.id : ''
+    ))).toEqual(['vale', 'gk-sub']);
+    // ...and Flint sits dimmed at the bottom, naming who took his shirt.
+    const last = rows[rows.length - 1];
+    expect(last.kind).toBe('outgoing');
+    expect(last.kind === 'outgoing' ? last.starter.index : null).toBe(FLINT.index);
+    expect(last.kind === 'outgoing' ? last.incomingId : null).toBe('vela');
+  });
+
+  it('knows when the match has no substitutions left to spend', () => {
     let plan = EMPTY_SUBSTITUTION_PLAN;
-    plan = sendToBench(plan, starter(1, 24), MAX_SUBSTITUTIONS).plan;
-    plan = sendToBench(plan, starter(3, 24, 'DEF'), MAX_SUBSTITUTIONS).plan;
-    // Bringing on happens independently of the order they went off.
-    plan = bringOn(plan, substitute('zed'), FIELD).plan;
-    plan = bringOn(plan, substitute('yan', 'DEF'), FIELD).plan;
-
-    expect(planProblem(plan, MAX_SUBSTITUTIONS)).toBeNull();
-    expect(planInputs(plan)).toEqual([
-      { player: 1, replacementId: 'zed' },
-      { player: 3, replacementId: 'yan' },
-    ]);
+    expect(atSubstitutionLimit(plan, 2)).toBe(false);
+    plan = applySwap(plan, FLINT, VELA);
+    expect(atSubstitutionLimit(plan, 2)).toBe(false);
+    plan = applySwap(plan, CHAN, VALE);
+    // Two staged against two left: nothing more may light up.
+    expect(atSubstitutionLimit(plan, 2)).toBe(true);
+    expect(atSubstitutionLimit(EMPTY_SUBSTITUTION_PLAN, 0)).toBe(true);
   });
 
-  it('counts the missing players in words, the way Bert would say it', () => {
-    let plan = sendToBench(EMPTY_SUBSTITUTION_PLAN, starter(1, 24), MAX_SUBSTITUTIONS).plan;
-    expect(planProblem(plan, MAX_SUBSTITUTIONS)).toBe("You're missing one player on the field.");
-
-    plan = sendToBench(plan, starter(2, 51), MAX_SUBSTITUTIONS).plan;
-    expect(planProblem(plan, MAX_SUBSTITUTIONS)).toBe("You're missing two players on the field.");
-
-    plan = bringOn(plan, substitute('zed'), FIELD).plan;
-    expect(planProblem(plan, MAX_SUBSTITUTIONS)).toBe("You're missing one player on the field.");
-    expect(canSave(plan, MAX_SUBSTITUTIONS)).toBe(false);
-
-    plan = bringOn(plan, substitute('yan'), FIELD).plan;
-    expect(planProblem(plan, MAX_SUBSTITUTIONS)).toBeNull();
-    expect(canSave(plan, MAX_SUBSTITUTIONS)).toBe(true);
-  });
-
-  it('says what to do first when nothing is staged', () => {
-    expect(planProblem(EMPTY_SUBSTITUTION_PLAN, MAX_SUBSTITUTIONS))
-      .toBe('Drag a tired player down to the bench to start a substitution.');
-  });
-
-  it('refuses to bring anyone on to a full field', () => {
-    const move = bringOn(EMPTY_SUBSTITUTION_PLAN, substitute('zed'), FIELD);
-
-    expect(move.rejection).toBe('field-full');
-    expect(move.plan).toEqual(EMPTY_SUBSTITUTION_PLAN);
-  });
-
-  it('keeps goalkeepers and outfielders out of each other shirts', () => {
-    const outfieldOff = sendToBench(EMPTY_SUBSTITUTION_PLAN, starter(1, 24), MAX_SUBSTITUTIONS).plan;
-    const keeperOntoOutfield = bringOn(outfieldOff, substitute('gk-sub', 'GK'), FIELD);
-    expect(keeperOntoOutfield.rejection).toBe('keeper-only-for-keeper');
-
-    const keeperOff = sendToBench(EMPTY_SUBSTITUTION_PLAN, starter(0, 96, 'GK'), MAX_SUBSTITUTIONS).plan;
-    const outfielderIntoGoal = bringOn(keeperOff, substitute('zed'), FIELD);
-    expect(outfielderIntoGoal.rejection).toBe('keeper-needs-keeper');
-
-    // The legal pairing goes through.
-    const keeperForKeeper = bringOn(keeperOff, substitute('gk-sub', 'GK'), FIELD);
-    expect(keeperForKeeper.rejection).toBeUndefined();
-    expect(planInputs(keeperForKeeper.plan)).toEqual([{ player: 0, replacementId: 'gk-sub' }]);
-  });
-
-  it('never stages a sent-off player, who cannot be replaced', () => {
-    const move = sendToBench(EMPTY_SUBSTITUTION_PLAN, starter(4, 40, 'FWD', true), MAX_SUBSTITUTIONS);
-
-    expect(move.rejection).toBe('sent-off');
-    expect(move.plan.slots).toHaveLength(0);
-  });
-
-  it('stops staging at the substitutions actually left', () => {
-    let plan = EMPTY_SUBSTITUTION_PLAN;
-    plan = sendToBench(plan, starter(1, 24), 2).plan;
-    plan = sendToBench(plan, starter(2, 51), 2).plan;
-    const overBudget = sendToBench(plan, starter(3, 24, 'DEF'), 2);
-
-    expect(overBudget.rejection).toBe('no-substitutions-left');
-    expect(overBudget.plan.slots).toHaveLength(2);
-  });
-
-  it('undoes a bench drop and a substitute in either order', () => {
-    let plan = sendToBench(EMPTY_SUBSTITUTION_PLAN, starter(1, 24), MAX_SUBSTITUTIONS).plan;
-    plan = bringOn(plan, substitute('zed'), FIELD).plan;
-    expect(isBenched(plan, 1)).toBe(true);
-    expect(isComingOn(plan, 'zed')).toBe(true);
-    expect(slotForReplacement(plan, 'zed')).toBe(1);
-
-    // Sending the substitute back leaves the hole open, not the plan broken.
-    const withoutSub = returnToBench(plan, 'zed');
-    expect(openSlotCount(withoutSub)).toBe(1);
-    expect(isBenched(withoutSub, 1)).toBe(true);
-
-    // Recalling the starter drops the whole staged swap.
-    const recalled = recallToField(plan, 1);
-    expect(recalled.slots).toHaveLength(0);
-    expect(isComingOn(recalled, 'zed')).toBe(false);
-  });
-
-  it('ignores a substitute dropped in twice', () => {
-    let plan = sendToBench(EMPTY_SUBSTITUTION_PLAN, starter(1, 24), MAX_SUBSTITUTIONS).plan;
-    plan = sendToBench(plan, starter(2, 51), MAX_SUBSTITUTIONS).plan;
-    plan = bringOn(plan, substitute('zed'), FIELD).plan;
-    const again = bringOn(plan, substitute('zed'), FIELD);
-
-    // One bench player cannot fill two holes — the engine rejects the duplicate.
-    expect(again.plan).toEqual(plan);
-    expect(planInputs(again.plan)).toEqual([{ player: 1, replacementId: 'zed' }]);
-  });
-
-  it('labels an empty shirt with an instruction, or just the name when compact', () => {
-    expect(openShirtLabel('Ravi Chan', false)).toBe('Sub someone in for Ravi Chan…');
-    // Two-up on a phone: no room for a sentence, so the name carries it.
-    expect(openShirtLabel('Ravi Chan', true)).toBe('Ravi Chan');
+  it('names who took the shirt', () => {
     expect(filledShirtLabel('Dario Flint')).toBe('ON FOR DARIO FLINT');
-  });
-
-  it('emits one engine payload per staged pair and nothing for open holes', () => {
-    let plan = sendToBench(EMPTY_SUBSTITUTION_PLAN, starter(1, 24), MAX_SUBSTITUTIONS).plan;
-    plan = sendToBench(plan, starter(2, 51), MAX_SUBSTITUTIONS).plan;
-    plan = bringOn(plan, substitute('zed'), FIELD).plan;
-
-    expect(planInputs(plan)).toEqual([{ player: 1, replacementId: 'zed' }]);
   });
 });

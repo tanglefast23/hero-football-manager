@@ -1,12 +1,17 @@
 // The substitution board's rules, kept out of the component so they can be
-// tested headlessly. The board lets the manager stage as many swaps as they like
-// and commit them together, so every rule the engine enforces on a SUBSTITUTE
-// input has to be enforced here FIRST: `queueInput` throws on a bad swap, and a
-// throw inside a press handler would take the match screen down mid-play.
+// tested headlessly.
 //
-// Engine rules mirrored (src/sim/match.ts validateSubstitutionInput):
+// Every swap is atomic: a starter is dropped onto a bench player and the two
+// trade places. There is no intermediate state where the eleven is short, which
+// is why the board needs no validation copy — an illegal drop simply is not a
+// drop, and the card springs home.
+//
+// Engine rules mirrored (src/sim/match.ts validateSubstitutionInput), because
+// `queueInput` THROWS on an illegal swap and a throw inside a press handler would
+// take the match screen down mid-play:
 //   - one queued swap per field slot and per bench player
-//   - goalkeepers only ever replace goalkeepers
+//   - goalkeepers only ever trade with goalkeepers; outfielders are
+//     interchangeable, exactly as the engine has it
 //   - a sent-off player cannot be substituted
 //   - used + queued may never reach MAX_SUBSTITUTIONS
 
@@ -27,40 +32,30 @@ export interface SubstitutionBenchPlayer {
   readonly lookId?: string;
 }
 
-/** One staged swap. A null replacement is a hole in the eleven. */
-export interface SubstitutionSlot {
+/** One staged swap: this slot's starter comes off, this substitute goes on. */
+export interface SubstitutionSwap {
   readonly player: number;
-  readonly replacementId: string | null;
+  readonly replacementId: string;
 }
 
 export interface SubstitutionPlan {
-  readonly slots: readonly SubstitutionSlot[];
+  readonly swaps: readonly SubstitutionSwap[];
 }
 
-export const EMPTY_SUBSTITUTION_PLAN: SubstitutionPlan = { slots: [] };
+export const EMPTY_SUBSTITUTION_PLAN: SubstitutionPlan = { swaps: [] };
 
-export type SubstitutionRejection =
-  | 'sent-off'
-  | 'already-off'
-  | 'no-substitutions-left'
-  | 'field-full'
-  | 'keeper-needs-keeper'
-  | 'keeper-only-for-keeper';
-
-/** Bert's voice: every refusal says what to do instead. */
-export const SUBSTITUTION_REJECTION_MESSAGES: Readonly<Record<SubstitutionRejection, string>> = {
-  'sent-off': 'That one is sent off — the eleven plays a man short, and no substitute can fix it.',
-  'already-off': 'They are already on their way to the bench.',
-  'no-substitutions-left': 'That is your last substitution spent. Save what you have or put someone back.',
-  'field-full': 'The field is full. Drag a tired player to the bench before bringing anyone on.',
-  'keeper-needs-keeper': 'Only a goalkeeper can take that shirt. Send an outfielder off first.',
-  'keeper-only-for-keeper': 'Keepers go in goal only. Take your goalkeeper off if you want them on.',
-};
-
-export interface SubstitutionMove {
-  readonly plan: SubstitutionPlan;
-  readonly rejection?: SubstitutionRejection;
-}
+/**
+ * A row in the bench column: substitutes still available, then the starters
+ * staged to come off, dimmed. A dimmed row is not a substitute — it only accepts
+ * the drop that undoes its own swap.
+ */
+export type BenchEntry =
+  | { readonly kind: 'available'; readonly sub: SubstitutionBenchPlayer }
+  | {
+    readonly kind: 'outgoing';
+    readonly starter: SubstitutionFieldPlayer;
+    readonly incomingId: string;
+  };
 
 /** Most tired first — the column exists to put the next decision on top. */
 export function fieldByTiredness(
@@ -73,142 +68,120 @@ export function fieldByTiredness(
   ));
 }
 
-export function isBenched(plan: SubstitutionPlan, index: number): boolean {
-  return plan.slots.some(slot => slot.player === index);
+/** Who is staged to come on for this slot, if anyone. */
+export function incomingFor(plan: SubstitutionPlan, index: number): string | null {
+  return plan.swaps.find(swap => swap.player === index)?.replacementId ?? null;
 }
 
-export function replacementFor(plan: SubstitutionPlan, index: number): string | null {
-  return plan.slots.find(slot => slot.player === index)?.replacementId ?? null;
+/** Which slot this substitute is staged to fill, if any. */
+export function slotForSub(plan: SubstitutionPlan, benchId: string): number | null {
+  return plan.swaps.find(swap => swap.replacementId === benchId)?.player ?? null;
 }
 
-export function isComingOn(plan: SubstitutionPlan, benchId: string): boolean {
-  return plan.slots.some(slot => slot.replacementId === benchId);
+export function isSubStaged(plan: SubstitutionPlan, benchId: string): boolean {
+  return plan.swaps.some(swap => swap.replacementId === benchId);
 }
 
-/** Field slot a bench player is currently pencilled into, if any. */
-export function slotForReplacement(plan: SubstitutionPlan, benchId: string): number | null {
-  return plan.slots.find(slot => slot.replacementId === benchId)?.player ?? null;
+export function isSlotStaged(plan: SubstitutionPlan, index: number): boolean {
+  return plan.swaps.some(swap => swap.player === index);
 }
 
 export function stagedCount(plan: SubstitutionPlan): number {
-  return plan.slots.length;
+  return plan.swaps.length;
 }
 
-export function openSlotCount(plan: SubstitutionPlan): number {
-  return plan.slots.filter(slot => slot.replacementId === null).length;
-}
-
-/** Sends a starter to the bench, opening a hole for a replacement. */
-export function sendToBench(
-  plan: SubstitutionPlan,
-  player: SubstitutionFieldPlayer,
-  substitutionsRemaining: number,
-): SubstitutionMove {
-  if (player.sentOff) return { plan, rejection: 'sent-off' };
-  if (isBenched(plan, player.index)) return { plan, rejection: 'already-off' };
-  if (plan.slots.length >= substitutionsRemaining) {
-    return { plan, rejection: 'no-substitutions-left' };
-  }
-  return { plan: { slots: [...plan.slots, { player: player.index, replacementId: null }] } };
-}
-
-/**
- * Fills the first hole this player is allowed to fill. Keepers and outfielders
- * are not interchangeable, so the refusal names which way round the problem is.
- */
-export function bringOn(
-  plan: SubstitutionPlan,
-  bench: SubstitutionBenchPlayer,
+/** Bench rows in display order: available substitutes, then dimmed leavers. */
+export function benchEntries(
+  bench: readonly SubstitutionBenchPlayer[],
   field: readonly SubstitutionFieldPlayer[],
-): SubstitutionMove {
-  if (isComingOn(plan, bench.id)) return { plan };
-  const open = plan.slots.filter(slot => slot.replacementId === null);
-  if (open.length === 0) return { plan, rejection: 'field-full' };
-
-  const benchIsKeeper = bench.role === 'GK';
-  const target = open.find(slot => {
-    const outgoing = field.find(player => player.index === slot.player);
-    return outgoing !== undefined && (outgoing.role === 'GK') === benchIsKeeper;
+  plan: SubstitutionPlan,
+): BenchEntry[] {
+  const available: BenchEntry[] = bench
+    .filter(sub => !isSubStaged(plan, sub.id))
+    .map(sub => ({ kind: 'available', sub }));
+  // Dimmed rows sink to the bottom, and keep the order they were staged in.
+  const outgoing: BenchEntry[] = plan.swaps.flatMap(swap => {
+    const starter = field.find(player => player.index === swap.player);
+    return starter === undefined
+      ? []
+      : [{ kind: 'outgoing' as const, starter, incomingId: swap.replacementId }];
   });
-  if (target === undefined) {
-    return { plan, rejection: benchIsKeeper ? 'keeper-only-for-keeper' : 'keeper-needs-keeper' };
-  }
-  return {
-    plan: {
-      slots: plan.slots.map(slot => (
-        slot.player === target.player ? { ...slot, replacementId: bench.id } : slot
-      )),
-    },
-  };
+  return [...available, ...outgoing];
 }
 
-/** Puts a starter back on the pitch, releasing whoever was pencilled in. */
-export function recallToField(plan: SubstitutionPlan, index: number): SubstitutionPlan {
-  return { slots: plan.slots.filter(slot => slot.player !== index) };
-}
-
-/** Sends a substitute back to the bench, leaving the hole open. */
-export function returnToBench(plan: SubstitutionPlan, benchId: string): SubstitutionPlan {
-  return {
-    slots: plan.slots.map(slot => (
-      slot.replacementId === benchId ? { ...slot, replacementId: null } : slot
-    )),
-  };
+function sameSide(left: { role: string }, right: { role: string }): boolean {
+  // The engine's only positional rule: keepers with keepers, everyone else free.
+  return (left.role === 'GK') === (right.role === 'GK');
 }
 
 /**
- * Copy for an empty shirt. The full prompt is an instruction; `compact` drops it
- * to the name alone, because a two-up grid on a phone has no room for a sentence.
+ * Whether dropping this starter onto this substitute would trade them. Used for
+ * both the drop itself and for deciding which cards light up mid-drag, so what
+ * glows and what works can never disagree.
  */
-export function openShirtLabel(outgoingName: string, compact: boolean): string {
-  return compact ? outgoingName : `Sub someone in for ${outgoingName}…`;
+export function canSwap(
+  plan: SubstitutionPlan,
+  starter: SubstitutionFieldPlayer,
+  sub: SubstitutionBenchPlayer,
+  substitutionsRemaining: number,
+): boolean {
+  if (starter.sentOff) return false;
+  if (!sameSide(starter, sub)) return false;
+  if (isSubStaged(plan, sub.id)) return false;
+  // Re-pointing a slot that is already staged spends no new substitution.
+  const spendsOne = !isSlotStaged(plan, starter.index);
+  return !spendsOne || plan.swaps.length < substitutionsRemaining;
 }
 
-/** Copy for a filled shirt: who is on, and whose shirt they took. */
+/**
+ * Trades the starter for the substitute. A slot that already had someone staged
+ * is re-pointed rather than doubled up, so the manager can change their mind
+ * without undoing first.
+ */
+export function applySwap(
+  plan: SubstitutionPlan,
+  starter: SubstitutionFieldPlayer,
+  sub: SubstitutionBenchPlayer,
+): SubstitutionPlan {
+  const existing = plan.swaps.some(swap => swap.player === starter.index);
+  return {
+    swaps: existing
+      ? plan.swaps.map(swap => (
+        swap.player === starter.index ? { ...swap, replacementId: sub.id } : swap
+      ))
+      : [...plan.swaps, { player: starter.index, replacementId: sub.id }],
+  };
+}
+
+/** Undoes a slot's swap: the starter stays on, the substitute goes back. */
+export function undoSwap(plan: SubstitutionPlan, index: number): SubstitutionPlan {
+  return { swaps: plan.swaps.filter(swap => swap.player !== index) };
+}
+
+/** Copy for a swapped field card: who is on, and whose shirt they took. */
 export function filledShirtLabel(outgoingName: string): string {
   return `ON FOR ${outgoingName.toUpperCase()}`;
 }
 
-function countWord(count: number): string {
-  const words = ['no', 'one', 'two', 'three', 'four', 'five'];
-  return words[count] ?? String(count);
+/** Nothing to save until something is staged; there is no invalid plan. */
+export function canSave(plan: SubstitutionPlan): boolean {
+  return plan.swaps.length > 0;
 }
 
-/**
- * What still stands between this plan and a saveable one, in Bert's words.
- * Null means the plan is legal and ready to commit.
- */
-export function planProblem(
+/** True once the board has spent every substitution the match has left. */
+export function atSubstitutionLimit(
   plan: SubstitutionPlan,
   substitutionsRemaining: number,
-): string | null {
-  if (plan.slots.length === 0) {
-    return 'Drag a tired player down to the bench to start a substitution.';
-  }
-  if (plan.slots.length > substitutionsRemaining) {
-    return substitutionsRemaining === 0
-      ? 'You have no substitutions left this match.'
-      : `You only have ${countWord(substitutionsRemaining)} substitution${substitutionsRemaining === 1 ? '' : 's'} left.`;
-  }
-  const open = openSlotCount(plan);
-  if (open > 0) {
-    return `You're missing ${countWord(open)} player${open === 1 ? '' : 's'} on the field.`;
-  }
-  return null;
-}
-
-export function canSave(plan: SubstitutionPlan, substitutionsRemaining: number): boolean {
-  return planProblem(plan, substitutionsRemaining) === null;
+): boolean {
+  return plan.swaps.length >= substitutionsRemaining;
 }
 
 /**
- * The engine payloads, in staging order. Only ever called for a plan that
- * `canSave` accepts, so every entry is a swap `queueInput` will take.
+ * The engine payloads, in staging order. Every staged swap is a complete pair,
+ * so this is a straight mapping.
  */
 export function planInputs(
   plan: SubstitutionPlan,
 ): readonly { readonly player: number; readonly replacementId: string }[] {
-  return plan.slots.flatMap(slot => (
-    slot.replacementId === null ? [] : [{ player: slot.player, replacementId: slot.replacementId }]
-  ));
+  return plan.swaps.map(swap => ({ player: swap.player, replacementId: swap.replacementId }));
 }

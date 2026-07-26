@@ -19,101 +19,84 @@ describe('substitution board layout', () => {
     expect(styles()).not.toContain('swapOverlay:');
   });
 
-  it('names the three zones the manager drags between', () => {
+  it('has two columns and nothing else — no bench furniture, no assistant', () => {
     const source = board();
 
     expect(source).toContain('>FIELD<');
-    expect(source).toContain('>SUBSTITUTIONS<');
     expect(source).toContain('>BENCH<');
     expect(source).toContain('MOST TIRED FIRST');
-    expect(source).toContain('fieldByTiredness');
-    // The bench is a real drop target, drawn as pixel furniture.
-    expect(source).toContain('function BenchArt');
-    expect(source).toContain('benchShadow');
+    // The pixel bench strip and Bert are both gone: every swap is a straight
+    // trade, so there is no third zone and nothing to explain.
+    expect(source).not.toContain('BenchArt');
+    expect(source).not.toContain('benchShadow');
+    expect(source).not.toContain('BertFullBody');
+    expect(source).not.toContain('BERT RUDGE');
   });
 
-  it('drags with PanResponder and keeps a tap as the equal path', () => {
+  it('lights up exactly what a drop would accept', () => {
     const source = board();
 
-    expect(source).toContain('PanResponder.create');
-    expect(source).toContain('onPanResponderRelease');
-    expect(source).toContain('zoneAt(gesture.moveX, gesture.moveY)');
-    // A short press is a tap: the board does the obvious move for that card.
-    expect(source).toContain('const TAP_SLOP = 8');
-    expect(source).toContain('onTap()');
-    // Hit-testing uses page coordinates, so zones measure in window space.
+    // One predicate for the glow and the drop, so they cannot disagree.
+    expect(source).toContain('lit={drag !== null && drag.id !== id && isEligible(drag, id)}');
+    expect(source).toContain('if (target === null || !isEligible(source, target)) return;');
+    expect(source).toContain('canSwap(plan, starter, sub, substitutionsRemaining)');
+    // Glow, not marching dashes — several cards light at once.
+    expect(source).toContain('cardLit');
+    expect(source).toContain("boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.75)'");
+    expect(source).not.toContain('DashPathEffect');
+  });
+
+  it('measures drop targets when the drag starts, not when they lay out', () => {
+    const source = board();
+
+    // The board scrolls, so a rect captured at layout time would be stale.
+    expect(source).toContain('const measureCards');
     expect(source).toContain('measureInWindow');
+    expect(source).toContain('onDragStart: (source: DragSource) => {');
+    expect(source).toContain('measureCards();');
+    expect(source).toContain('cardAt(pageX, pageY)');
   });
 
-  it('lets Bert do the directing and the complaining', () => {
+  it('keeps a traded starter dimmed on the bench and only accepts their partner back', () => {
     const source = board();
 
-    expect(source).toContain('BertFullBody');
-    expect(source).toContain('Drag your tired players down to the bench');
-    expect(source).toContain('BERT RUDGE');
-    // Rejections and the outstanding problem share his speech bubble.
-    expect(source).toContain('SUBSTITUTION_REJECTION_MESSAGES');
-    expect(source).toContain('speechProblem');
+    expect(source).toContain('cardDimmed');
+    expect(source).toContain('COMING OFF');
+    expect(source).toContain('benchEntries');
+    // A leaver's card takes the drop that undoes its own swap and nothing else.
+    expect(source).toContain('return target === `field:${source.slot}`;');
+    expect(source).toContain('undoSwap');
   });
 
-  it('opens a dotted shirt that names who left it, and marches only when it qualifies', () => {
+  it('says nothing at the substitution limit beyond a red counter', () => {
     const source = board();
 
-    // The border is Skia, because a View's dashed border has no animatable offset.
-    expect(source).toContain('DashPathEffect');
-    expect(source).toContain('phase={phase}');
-    expect(source).toContain('BlurMask');
-    expect(source).toContain('DASH_MARCH_PT_PER_SECOND');
-    // Only a shirt this substitute could legally fill is armed: keepers with
-    // keepers, outfielders with outfielders.
-    expect(source).toContain("draggingRole === (player.role === 'GK' ? 'GK' : 'OUTFIELD')");
-    expect(source).toContain('incoming === undefined');
-    // The shirt states the position on both faces.
-    expect(source).toContain('openShirtLabel');
-    expect(source).toContain('filledShirtLabel');
-    expect(source).toContain('SHIRT · EMPTY');
+    expect(source).toContain('atSubstitutionLimit');
+    expect(source).toContain('atLimit ? styles.counterSpent : null');
+    expect(source).toContain("counterSpent: { color: '#f06b6e' }");
+    // No copy for it: at the limit nothing lights up and the drag springs home.
+    expect(source).not.toContain('No substitutions left');
   });
 
-  it('takes a substitute out of the column once they are in a shirt', () => {
-    const source = board();
-
-    expect(source).toContain('bench.filter(player => !isComingOn(plan, player.id))');
-    expect(source).toContain('availableBench');
-    // Dragging them out of the shirt puts them back and reopens it.
-    expect(source).toContain('returnToBench');
-    expect(source).toContain("onTap: () => onDrop(filled ? 'subs' : 'field')");
-  });
-
-  it('offers cancel, reset and save, and only reset can be a no-op', () => {
+  it('offers cancel, reset and save', () => {
     const source = board();
 
     expect(source).toContain('>CANCEL<');
     expect(source).toContain('>RESET<');
     expect(source).toContain('setPlan(EMPTY_SUBSTITUTION_PLAN)');
-    // Cancel closes the board; reset only clears it.
     expect(source).toContain('onPress={onCancel}');
     expect(source).toContain('onPress={reset}');
     expect(source).toContain('disabled={staged === 0}');
+    expect(source).toContain('onSave(planInputs(plan))');
   });
 
   it('lists two names per row on a phone', () => {
     const source = board();
 
-    expect(source).toContain('grid: { flexDirection: \'row\', flexWrap: \'wrap\'');
+    expect(source).toContain("grid: { flexDirection: 'row', flexWrap: 'wrap'");
     expect(source).toContain("gridCell: { width: '48.5%'");
-    expect(source).toContain('wide ? null : styles.grid');
-    // Compact cells drop the sentence and the portrait to fit half a row.
-    expect(source).toContain('compact ? surname(player.name) : player.name');
-  });
-
-  it('gates save on a legal plan and never on the button alone', () => {
-    const source = board();
-
-    expect(source).toContain('const saveable = canSave(plan, substitutionsRemaining)');
-    // Pressing a blocked save explains itself rather than doing nothing.
-    expect(source).toContain('if (!saveable) {');
-    expect(source).toContain('setMessage(problem)');
-    expect(source).toContain('onSave(planInputs(plan))');
+    expect(source).toContain('wide ? undefined : styles.grid');
+    expect(source).toContain('compactName(');
   });
 });
 
@@ -125,9 +108,8 @@ describe('match screen wiring', () => {
     expect(source).toContain('onSave={commitSubstitutions}');
     expect(source).toContain('for (const swap of swaps) {');
     expect(source).toContain("kind: 'SUBSTITUTE'");
-    // Every pair lands on the same tick, and one rejection cannot kill the screen.
     expect(source).toContain('tick: match.tick + 1');
-    expect(source).toContain('console.warn(\'MatchScreen: the engine rejected a staged substitution\'');
+    expect(source).toContain("console.warn('MatchScreen: the engine rejected a staged substitution'");
   });
 
   it('drops the old two-tap selection state entirely', () => {
@@ -142,7 +124,6 @@ describe('match screen wiring', () => {
   it('keeps the match paused while the board is open', () => {
     const source = matchScreen();
 
-    // The board reads and writes engine state, so nothing may move underneath it.
     expect(source).toContain("automaticPauseReasonsRef.current.add('swap')");
     expect(source).toContain("automaticPauseReasonsRef.current.delete('swap')");
   });
