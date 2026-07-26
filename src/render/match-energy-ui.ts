@@ -22,6 +22,23 @@ export function energyBand(condition: number): EnergyBand {
   return 'green';
 }
 
+/**
+ * One fill colour per band, shared by every energy bar (possession card, swap
+ * sheet, control rail, first-match coaching).
+ *
+ * None of them may repeat a kit colour from `team-kit-ui`: the possession card
+ * paints itself in the carrier's kit, so a fill that matches the panel vanishes
+ * into it. Amber was literally `HOME_KIT_COLOR_SAFE` and red literally
+ * `HOME_KIT_COLOR`, which hid the bar on whichever kit was in play. The
+ * replacements are the bible's gold-dark and the low-energy red already used
+ * for the matching text, and all three clear 3:1 on the dark HUD track.
+ */
+export const ENERGY_FILL_COLORS: Readonly<Record<EnergyBand, string>> = {
+  green: '#65b96e',
+  amber: '#c8862a',
+  red: '#f06b6e',
+};
+
 export function summarizeTeamEnergy(conditions: readonly number[]): {
   average: number;
   tiredCount: number;

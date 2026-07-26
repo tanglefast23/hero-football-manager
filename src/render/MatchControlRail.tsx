@@ -3,6 +3,7 @@ import { SettingsButton } from '../ui/SettingsOverlay';
 import { TutorialTapCue } from '../ui/TutorialTapCue';
 import { SfxPressable } from '../ui/components/SfxPressable';
 import {
+  ENERGY_FILL_COLORS,
   ENERGY_USE_ACCESSIBILITY,
   ENERGY_USE_LABELS,
   energyBand,
@@ -518,7 +519,7 @@ const styles = StyleSheet.create({
   },
   policyToggleAuto: { backgroundColor: '#35618e', borderColor: '#77a4d8' },
   policyToggleText: { color: '#f4f1ea', fontSize: 12, fontWeight: 'bold' },
-  energyFillGreen: { backgroundColor: '#65b96e' },
-  energyFillAmber: { backgroundColor: '#edb54a' },
-  energyFillRed: { backgroundColor: '#d94f52' },
+  energyFillGreen: { backgroundColor: ENERGY_FILL_COLORS.green },
+  energyFillAmber: { backgroundColor: ENERGY_FILL_COLORS.amber },
+  energyFillRed: { backgroundColor: ENERGY_FILL_COLORS.red },
 });
