@@ -8,6 +8,7 @@ import {
   leagueStandings,
   startNextSeason,
 } from '../career';
+import { BASE_WEEKLY_TRAINING_POINTS } from '../facilities';
 import { SEASON_WEEKS } from '../types';
 import type {
   CareerPlayer,
@@ -242,7 +243,8 @@ describe('career season workflow', () => {
     expect(settled.phase).toBe('manage');
     expect(settled.week).toBe(4);
     expect(settled.fixtures.filter(fixture => fixture.status === 'played')).toHaveLength(5);
-    expect(settled.trainingPoints).toBe(7);
+    // Three weeks have settled by now, each banking the flat baseline.
+    expect(settled.trainingPoints).toBe(7 + BASE_WEEKLY_TRAINING_POINTS * 3);
     expect(settled.ledgers.at(-1)?.lines).toEqual([
       { kind: 'tickets', label: 'League home gate', amount: 1200 },
       { kind: 'wages', label: 'Weekly wages', amount: -3200 },
@@ -422,7 +424,10 @@ describe('finances and two-season boundary', () => {
         }
       : result);
 
-    expect(completeMatchday(matchday, results).trainingPoints).toBe(matchday.trainingPoints);
+    // An 8-0 win banks the same flat weekly baseline a 0-0 would. The result
+    // itself is worth no TP, which is what this test guards.
+    expect(completeMatchday(matchday, results).trainingPoints)
+      .toBe(matchday.trainingPoints + BASE_WEEKLY_TRAINING_POINTS);
   });
 
   it('rolls Season 1 into a deterministic Season 2', () => {

@@ -1,5 +1,6 @@
 import { generateSeasonFixtures } from './schedule';
 import {
+  BASE_WEEKLY_TRAINING_POINTS,
   TRAINING_PITCH_TP_PER_LEVEL,
   advanceFacilityConstruction,
   createFacilityGrid,
@@ -879,6 +880,22 @@ function resolveFinancialSafety(
     boardUltimatum = createBoardUltimatum(state);
   }
 
+  // The floor is the last line and it never runs out. Everything above it —
+  // warnings, the one emergency loan, board-enforced sales — is finite, so a
+  // club that stalled used them all up and then fell forever. Topping back up
+  // to the floor keeps the debt bounded and keeps a rescue visible in the
+  // ledger every week it happens, which is the difference between "fail-soft"
+  // and "no consequence and no way back".
+  if (balanceAfter < rules.cashFloor) {
+    const rescue = checkedAdd(rules.cashFloor, -balanceAfter, 'board rescue amount');
+    lines.push({
+      kind: 'board-rescue',
+      label: 'Board rescue package',
+      amount: rescue,
+    });
+    balanceAfter = rules.cashFloor;
+  }
+
   return {
     lines,
     balanceAfter,
@@ -985,7 +1002,13 @@ export function weeklyAmbientTrainingPoints(state: GameState): number {
     'facility training points',
   );
   const coachPoints = state.market === undefined ? 0 : careerCoachWeeklyTrainingPoints(state.market);
-  return checkedAdd(facilityPoints, coachPoints, 'ambient training points');
+  // The baseline is unconditional: a club can run drills on whatever field it
+  // has. Without it a career with no Training Pitch earned nothing, forever.
+  return checkedAdd(
+    checkedAdd(BASE_WEEKLY_TRAINING_POINTS, facilityPoints, 'baseline training points'),
+    coachPoints,
+    'ambient training points',
+  );
 }
 
 function validateSetup(setup: CareerSetup): void {

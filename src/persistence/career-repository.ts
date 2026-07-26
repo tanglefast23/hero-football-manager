@@ -24,30 +24,28 @@ const LOAD_CAREER_SQL = `
 `;
 const DELETE_CAREER_SQL = 'DELETE FROM career_saves WHERE slot = ?';
 const UPSERT_BACKUP_SQL = `
-  INSERT INTO career_save_backups (slot, schema_version, state_json, saved_season, saved_week, career_seed)
+  INSERT INTO career_save_backups (
+    slot, schema_version, state_json, saved_season, saved_week, saved_career_seed
+  )
   VALUES (?, ?, ?, ?, ?, ?)
   ON CONFLICT(slot) DO UPDATE SET
     schema_version = excluded.schema_version,
     state_json = excluded.state_json,
     saved_season = excluded.saved_season,
     saved_week = excluded.saved_week,
-    career_seed = excluded.career_seed
+    saved_career_seed = excluded.saved_career_seed
 `;
 const LOAD_BACKUP_SQL = `
-  SELECT schema_version, state_json, saved_season, saved_week
+  SELECT schema_version, state_json, saved_season, saved_week, saved_career_seed
   FROM career_save_backups
   WHERE slot = ?
 `;
 const BACKUP_SUMMARY_SQL = `
-  SELECT saved_season, saved_week
+  SELECT saved_season, saved_week, saved_career_seed
   FROM career_save_backups
   WHERE slot = ?
 `;
-const BACKUP_IDENTITY_SQL = `
-  SELECT saved_season, career_seed
-  FROM career_save_backups
-  WHERE slot = ?
-`;
+const DELETE_BACKUP_SQL = 'DELETE FROM career_save_backups WHERE slot = ?';
 // quick_check skips the (much slower) full index cross-check but still reads
 // every page, which is what tells a damaged file apart from an unreadable save.
 const INTEGRITY_CHECK_SQL = 'PRAGMA quick_check';
@@ -60,12 +58,22 @@ interface StoredCareerRow {
 interface StoredBackupRow extends StoredCareerRow {
   saved_season: unknown;
   saved_week: unknown;
+  saved_career_seed: unknown;
 }
 
 /** Where in the career the backup generation was taken. */
 export interface CareerBackupSummary {
   readonly season: number;
   readonly week: number;
+}
+
+/**
+ * Which career the backup holds and where in it — the whole cache key for
+ * deciding whether the stored copy is still the generation we want. A career
+ * written before the seed column existed reads as null and is replaced.
+ */
+interface BackupGeneration extends CareerBackupSummary {
+  readonly careerSeed: number | null;
 }
 
 export interface CareerRepository {
@@ -85,10 +93,10 @@ export interface CareerRepository {
 
 /**
  * Production saves skip the serialize-side zod pass: it costs ~50-90ms of JS
- * thread per store action on device, the state always came from the typed game
- * module, and the next load still runs the full parse with the backup
- * generation intact. Dev and test builds keep the check to catch state bugs at
- * the moment they are written.
+ * thread per store action on device (measured; ~95% of serialize cost), the
+ * state always came from the typed game module, and the next load still runs
+ * the full parse with the backup generation intact. Dev and test builds keep
+ * the check so a state bug surfaces where it is written.
  */
 const VALIDATE_ON_SAVE = typeof __DEV__ === 'undefined' || __DEV__;
 
@@ -96,13 +104,10 @@ export async function createCareerRepository(
   database: PersistenceDatabase,
 ): Promise<CareerRepository> {
   await migrateDatabase(database);
-  // Which season — and which career — the backup generation holds. Read once so
-  // the common save path stays a single INSERT instead of re-reading the stored
-  // state every week. The seed matters: both careers start at season 1, so a
-  // season-only key let a new career keep the abandoned career's backup alive.
-  const backupIdentity = await readBackupIdentity(database);
-  let backedUpSeason = backupIdentity?.season;
-  let backedUpSeed = backupIdentity?.careerSeed;
+  // Which career and season the backup generation holds. Read once so the common
+  // save path stays a single INSERT instead of re-reading the stored state every
+  // week, and only ever updated from a write that succeeded.
+  let backedUp = await readBackupGeneration(database);
 
   async function writeBackup(state: GameState, stateJson: string): Promise<void> {
     try {
@@ -114,11 +119,14 @@ export async function createCareerRepository(
         state.week,
         state.careerSeed,
       ]);
-      backedUpSeason = state.season;
-      backedUpSeed = state.careerSeed;
+      backedUp = {
+        careerSeed: state.careerSeed,
+        season: state.season,
+        week: state.week,
+      };
     } catch {
       // The live save already succeeded, so a failed backup must not report the
-      // week as lost. `backedUpSeason` stays put, so the next save retries.
+      // week as lost. `backedUp` stays put, so the next save retries.
     }
   }
 
@@ -132,8 +140,14 @@ export async function createCareerRepository(
       ]);
       // A season boundary is the cadence: one generation back is never more than
       // the current season's play, and the copy is a state this build validated.
-      // A different career always replaces the old career's backup immediately.
-      if (state.season !== backedUpSeason || state.careerSeed !== backedUpSeed) {
+      // A different career is always a boundary — otherwise the career this one
+      // replaced stays restorable, and season 1 of the new one would never
+      // displace season 1 of the old.
+      if (
+        backedUp === null
+        || backedUp.careerSeed !== state.careerSeed
+        || backedUp.season !== state.season
+      ) {
         await writeBackup(state, stateJson);
       }
     },
@@ -147,12 +161,25 @@ export async function createCareerRepository(
       return decodeStoredCareer(row);
     },
 
+    /**
+     * Both generations go, in one transaction. A discard is the player saying
+     * this career is over, and a backup that outlived its live slot is a career
+     * with no way back to it — still offered for restore over whatever is
+     * played next.
+     */
     async delete(): Promise<void> {
-      await database.runAsync(DELETE_CAREER_SQL, [PRIMARY_SLOT]);
+      await database.withTransactionAsync(async () => {
+        await database.runAsync(DELETE_CAREER_SQL, [PRIMARY_SLOT]);
+        await database.runAsync(DELETE_BACKUP_SQL, [BACKUP_SLOT]);
+      });
+      backedUp = null;
     },
 
     async backupSummary(): Promise<CareerBackupSummary | null> {
-      return readBackupSummary(database);
+      const generation = await readBackupGeneration(database);
+      return generation === null
+        ? null
+        : { season: generation.season, week: generation.week };
     },
 
     async restoreBackup(): Promise<GameState> {
@@ -169,10 +196,11 @@ export async function createCareerRepository(
         GAME_SCHEMA_VERSION,
         stateJson,
       ]);
-      backedUpSeason = typeof row.saved_season === 'number'
-        ? row.saved_season
-        : restored.season;
-      backedUpSeed = restored.careerSeed;
+      backedUp = {
+        careerSeed: restored.careerSeed,
+        season: typeof row.saved_season === 'number' ? row.saved_season : restored.season,
+        week: typeof row.saved_week === 'number' ? row.saved_week : restored.week,
+      };
       return restored;
     },
 
@@ -207,31 +235,25 @@ function decodeStoredCareer(row: StoredCareerRow): GameState {
   return parseStoredGameState(row.state_json);
 }
 
-/** The season+seed pair the save cadence compares against; seed may be null on pre-v5 rows. */
-async function readBackupIdentity(
+async function readBackupGeneration(
   database: PersistenceDatabase,
-): Promise<{ season: number; careerSeed: number | undefined } | null> {
-  const row = await database.getFirstAsync<{
-    saved_season: unknown;
-    career_seed: unknown;
-  }>(BACKUP_IDENTITY_SQL, [BACKUP_SLOT]);
-  if (row === null || !Number.isSafeInteger(row.saved_season)) return null;
-  return {
-    season: row.saved_season as number,
-    careerSeed: Number.isSafeInteger(row.career_seed) ? row.career_seed as number : undefined,
-  };
-}
-
-async function readBackupSummary(
-  database: PersistenceDatabase,
-): Promise<CareerBackupSummary | null> {
+): Promise<BackupGeneration | null> {
   const row = await database.getFirstAsync<{
     saved_season: unknown;
     saved_week: unknown;
+    saved_career_seed: unknown;
   }>(BACKUP_SUMMARY_SQL, [BACKUP_SLOT]);
   if (row === null) return null;
   if (!Number.isSafeInteger(row.saved_season) || !Number.isSafeInteger(row.saved_week)) {
     return null;
   }
-  return { season: row.saved_season as number, week: row.saved_week as number };
+  return {
+    season: row.saved_season as number,
+    week: row.saved_week as number,
+    // A row written before the seed column existed names no career, so the next
+    // save replaces it rather than trusting it to belong to the live slot.
+    careerSeed: Number.isSafeInteger(row.saved_career_seed)
+      ? (row.saved_career_seed as number)
+      : null,
+  };
 }

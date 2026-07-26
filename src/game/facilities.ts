@@ -1,7 +1,56 @@
 export const FACILITY_GRID_WIDTH = 8;
 export const FACILITY_GRID_HEIGHT = 6;
 export const MAX_FACILITY_LEVEL = 3;
-export const TRAINING_PITCH_TP_PER_LEVEL = 10;
+/**
+ * Training Points a completed Training Pitch adds each week, per level.
+ *
+ * This is the club's main TP income and the thing that makes Division 5
+ * escapable. Measured over three D5 seasons with the whole bank spent every
+ * week (ramp probe, seed 4000000, all 90 fixtures a season):
+ *
+ * | manager                | season 1     | season 2      | season 3 |
+ * |------------------------|--------------|---------------|----------|
+ * | trains and builds      | 8th, sq 48.8 | 1st, PROMOTED | 1st (D4) |
+ * | trains, never builds   | 8th, sq 39.7 | 10th          | 10th     |
+ * | never trains           | 6th          | 10th          | 10th     |
+ *
+ * At 10 nobody escaped D5 in three seasons however hard they trained: a
+ * Level 2 pitch plus BASE_WEEKLY_TRAINING_POINTS came to 44 TP a week, which
+ * grows the squad about 7 points a season, and promotion needs roughly +11 over
+ * the opening deficit. 28 puts a Level 2 pitch at 80 TP a week, which is the
+ * measured rate that promotes in season 2 — the intended "one or two seasons of
+ * building facilities and training".
+ *
+ * Raising this makes the Pitch more decisive, not less; lowering it toward the
+ * baseline makes the building optional again, which is what broke D5.
+ */
+export const TRAINING_PITCH_TP_PER_LEVEL = 28;
+
+/**
+ * Training Points earned every week with no Training Pitch built at all.
+ *
+ * A club can run drills on whatever field it has. Without this baseline the
+ * weekly income was `trainingPitchLevel * TRAINING_PITCH_TP_PER_LEVEL`, and no
+ * Training Pitch exists at career start, so a career earned **zero TP per week,
+ * indefinitely** — it could only ever spend the 30 TP it launched with. Measured
+ * over two D5 seasons with the whole bank spent every week (ramp probe):
+ *
+ * | base | drills/season | squad mean, season 1 → 2 |
+ * |------|---------------|--------------------------|
+ * | 0    | 3 per season  | 36.0 → 32.4 (decays)     |
+ * | 24   | 72            | 39.7 → 42.0 (grows)      |
+ * | 60   | 177           | 45.9 → 54.1              |
+ *
+ * 24 is the smallest value that turns squad decay into growth, and it is
+ * deliberately not enough to win anything: a manager who trains every week but
+ * never builds a Training Pitch finishes 8th, 10th, 10th across three D5
+ * seasons. That is the intended floor — the club can always run drills, but
+ * TRAINING_PITCH_TP_PER_LEVEL is what actually earns promotion. Do not raise
+ * this toward the Pitch's own rate; a baseline large enough to promote on its
+ * own would make the building optional, which is the trap that produced a
+ * career earning zero TP forever in the first place.
+ */
+export const BASE_WEEKLY_TRAINING_POINTS = 24;
 
 export type FacilityType =
   | 'training-pitch'

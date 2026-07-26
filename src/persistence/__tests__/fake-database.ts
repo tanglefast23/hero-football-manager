@@ -26,7 +26,8 @@ export interface FakePreferencesRow {
 export interface FakeBackupRow extends FakeCareerRow {
   saved_season: unknown;
   saved_week: unknown;
-  career_seed?: unknown;
+  /** Null stands in for a row written before migration 5 added the column. */
+  saved_career_seed: unknown;
 }
 
 export class FakePersistenceDatabase implements PersistenceDatabase {
@@ -37,6 +38,7 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
   replayTableExists = false;
   preferencesTableExists = false;
   backupTableExists = false;
+  backupSeedColumnExists = false;
   migrationTransactions = 0;
   createTableExecutions = 0;
   executedSql: string[] = [];
@@ -55,6 +57,7 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
     this.replayTableExists = userVersion >= 2;
     this.preferencesTableExists = userVersion >= 3;
     this.backupTableExists = userVersion >= 4;
+    this.backupSeedColumnExists = userVersion >= 5;
   }
 
   async execAsync(source: string): Promise<void> {
@@ -89,8 +92,12 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       this.createTableExecutions += 1;
       return;
     }
-    if (sql.startsWith('ALTER TABLE career_save_backups ADD COLUMN career_seed')) {
+    if (sql === 'ALTER TABLE career_save_backups ADD COLUMN saved_career_seed INTEGER') {
       this.assertBackupTable();
+      if (this.backupSeedColumnExists) throw new Error('duplicate column name: saved_career_seed');
+      this.backupSeedColumnExists = true;
+      // The column arrives on existing rows as NULL, the same as SQLite.
+      if (this.backupRow !== null) this.backupRow.saved_career_seed = null;
       return;
     }
 
@@ -128,15 +135,15 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
     if (this.writesFail) throw new Error('disk is full');
 
     if (sql.startsWith('INSERT INTO career_save_backups')) {
-      this.assertBackupTable();
-      const [slot, schemaVersion, stateJson, savedSeason, savedWeek, careerSeed] = values;
+      this.assertBackupSeedColumn();
+      const [slot, schemaVersion, stateJson, savedSeason, savedWeek, savedCareerSeed] = values;
       if (
         slot !== 1 ||
         typeof schemaVersion !== 'number' ||
         typeof stateJson !== 'string' ||
         typeof savedSeason !== 'number' ||
         typeof savedWeek !== 'number' ||
-        typeof careerSeed !== 'number'
+        typeof savedCareerSeed !== 'number'
       ) {
         throw new Error('invalid fake backup upsert parameters');
       }
@@ -145,9 +152,17 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
         state_json: stateJson,
         saved_season: savedSeason,
         saved_week: savedWeek,
-        career_seed: careerSeed,
+        saved_career_seed: savedCareerSeed,
       };
       return { lastInsertRowId: 1, changes: 1 };
+    }
+
+    if (sql === 'DELETE FROM career_save_backups WHERE slot = ?') {
+      this.assertBackupTable();
+      if (values[0] !== 1) throw new Error('invalid fake backup delete slot');
+      const changes = this.backupRow === null ? 0 : 1;
+      this.backupRow = null;
+      return { lastInsertRowId: 0, changes };
     }
 
     if (sql.startsWith('INSERT INTO career_saves')) {
@@ -262,15 +277,17 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       return { quick_check: this.integrity } as T;
     }
 
-    if (sql.startsWith('SELECT schema_version, state_json, saved_season, saved_week FROM career_save_backups')) {
-      this.assertBackupTable();
+    if (sql.startsWith(
+      'SELECT schema_version, state_json, saved_season, saved_week, saved_career_seed FROM career_save_backups',
+    )) {
+      this.assertBackupSeedColumn();
       const values = arrayParams(params);
       if (values[0] !== 1) throw new Error('invalid fake backup load slot');
       return this.backupRow === null ? null : ({ ...this.backupRow } as T);
     }
 
-    if (sql.startsWith('SELECT saved_season, saved_week FROM career_save_backups')) {
-      this.assertBackupTable();
+    if (sql.startsWith('SELECT saved_season, saved_week, saved_career_seed FROM career_save_backups')) {
+      this.assertBackupSeedColumn();
       const values = arrayParams(params);
       if (values[0] !== 1) throw new Error('invalid fake backup summary slot');
       return this.backupRow === null
@@ -278,18 +295,7 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
         : ({
             saved_season: this.backupRow.saved_season,
             saved_week: this.backupRow.saved_week,
-          } as T);
-    }
-
-    if (sql.startsWith('SELECT saved_season, career_seed FROM career_save_backups')) {
-      this.assertBackupTable();
-      const values = arrayParams(params);
-      if (values[0] !== 1) throw new Error('invalid fake backup identity slot');
-      return this.backupRow === null
-        ? null
-        : ({
-            saved_season: this.backupRow.saved_season,
-            career_seed: this.backupRow.career_seed ?? null,
+            saved_career_seed: this.backupRow.saved_career_seed,
           } as T);
     }
 
@@ -360,6 +366,7 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       replayTableExists: this.replayTableExists,
       preferencesTableExists: this.preferencesTableExists,
       backupTableExists: this.backupTableExists,
+      backupSeedColumnExists: this.backupSeedColumnExists,
       backupRow: this.backupRow === null ? null : { ...this.backupRow },
       careerRow: this.careerRow === null ? null : { ...this.careerRow },
       replayRows: new Map(
@@ -378,6 +385,7 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       this.replayTableExists = snapshot.replayTableExists;
       this.preferencesTableExists = snapshot.preferencesTableExists;
       this.backupTableExists = snapshot.backupTableExists;
+      this.backupSeedColumnExists = snapshot.backupSeedColumnExists;
       this.backupRow = snapshot.backupRow;
       this.careerRow = snapshot.careerRow;
       this.replayRows = snapshot.replayRows;
@@ -432,6 +440,7 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
     }
     if (name === 'career_save_backups') {
       this.backupTableExists = false;
+      this.backupSeedColumnExists = false;
       this.backupRow = null;
     }
   }
@@ -448,6 +457,12 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
   private assertBackupTable(): void {
     if (!this.backupTableExists)
       throw new Error('career_save_backups table does not exist');
+  }
+
+  private assertBackupSeedColumn(): void {
+    this.assertBackupTable();
+    if (!this.backupSeedColumnExists)
+      throw new Error('no such column: saved_career_seed');
   }
 }
 

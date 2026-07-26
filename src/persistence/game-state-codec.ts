@@ -114,6 +114,7 @@ const ledgerLineSchema = z
       'emergency-loan',
       'board-sale',
       'loan-repayment',
+      'board-rescue',
     ]),
     label: nonemptyString,
     amount: safeInteger,

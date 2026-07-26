@@ -310,6 +310,7 @@ describe('career backup generation', () => {
       state_json: '{"schemaVersion":1}',
       saved_season: 1,
       saved_week: 1,
+      saved_career_seed: state.careerSeed,
     });
 
     await expect(repository.restoreBackup()).rejects.toBeInstanceOf(
@@ -332,6 +333,60 @@ describe('career backup generation', () => {
     database.backupWritesFail = false;
     await repository.save(atSeason(state, 1, 5));
     await expect(repository.backupSummary()).resolves.toEqual({ season: 1, week: 5 });
+  });
+
+  it('backs up a replacement career that opened on the same season number', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    await repository.save(makeState());
+
+    // Season 1 either side, so the season boundary alone sees no change — and
+    // the backup would still hand back the career this one replaced.
+    const replacement = createCareer(createLaunchCareerSetup(24680));
+    await repository.save(replacement);
+
+    await expect(repository.restoreBackup()).resolves.toMatchObject({
+      careerSeed: replacement.careerSeed,
+    });
+  });
+
+  it('takes the backup with the save when a career is discarded', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    await repository.save(makeState());
+
+    await repository.delete();
+
+    await expect(repository.load()).resolves.toBeNull();
+    await expect(repository.backupSummary()).resolves.toBeNull();
+    await expect(repository.restoreBackup()).rejects.toBeInstanceOf(
+      MissingCareerBackupError,
+    );
+  });
+
+  it('replaces a backup that predates the career-seed column', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const state = makeState();
+    database.seedBackupRow({
+      schema_version: 1,
+      state_json: '{"schemaVersion":1}',
+      saved_season: state.season,
+      saved_week: 9,
+      saved_career_seed: null,
+    });
+
+    // Same season, so only the unnamed career forces the rewrite. Until it does,
+    // an undecodable row from an unknown career is what Restore backup offers.
+    await repository.save(state);
+
+    await expect(repository.backupSummary()).resolves.toEqual({
+      season: state.season,
+      week: state.week,
+    });
+    await expect(repository.restoreBackup()).resolves.toMatchObject({
+      careerSeed: state.careerSeed,
+    });
   });
 
   it('reports the database file as damaged when SQLite says so', async () => {

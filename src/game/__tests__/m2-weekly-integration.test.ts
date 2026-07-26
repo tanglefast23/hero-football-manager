@@ -170,11 +170,18 @@ describe('M2 weekly sidecars', () => {
 
   test('runs a persistent four-week protected-player ultimatum and forced sale', () => {
     let state = fullCareer(5051);
+    // A club that has already spent its one emergency loan and is still under
+    // water — which is exactly when the board escalates to an ultimatum, and is
+    // reachable in real play by season three. This used to open at -500,000,
+    // but DifficultyRules.cashFloor now tops any week back up to -15,000, and
+    // from there a 20,000 loan clears the debt outright, so the old setup could
+    // never reach an ultimatum at all.
     state = {
       ...state,
       clubs: state.clubs.map(club => club.id === state.userClubId
-        ? { ...club, cash: -500_000 }
+        ? { ...club, cash: -20_000 }
         : club),
+      financialSafety: { consecutiveNegativeWeeks: 0, emergencyLoanUsed: true },
     };
     for (let week = 0; week < 4; week += 1) state = settleScheduledWeek(state);
     const ultimatum = state.financialSafety?.boardUltimatum;

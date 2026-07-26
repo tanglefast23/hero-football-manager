@@ -65,16 +65,16 @@ const MIGRATIONS: readonly Migration[] = [
       )`,
     ],
   },
-  // The backup was keyed on season number alone, so starting a new career
-  // left the previous career's backup in place (both careers begin at season
-  // 1) and "Restore backup" could silently resurrect the abandoned career.
-  // The seed identifies the owning career; NULL marks a pre-v5 backup of
-  // unknown origin, which the repository treats as a different career so the
-  // next save replaces it.
+  // The backup described where in a career it was taken but never which career,
+  // so a replacement career that opened on the same season number left the old
+  // career's copy in place — and "Restore backup" would hand it back. The seed
+  // is the same career identity the replay namespace uses. Old rows migrate as
+  // NULL, which reads as "belongs to no career this build can name" and so is
+  // replaced by the next save.
   {
     version: 5,
     statements: [
-      'ALTER TABLE career_save_backups ADD COLUMN career_seed INTEGER',
+      'ALTER TABLE career_save_backups ADD COLUMN saved_career_seed INTEGER',
     ],
   },
 ];
