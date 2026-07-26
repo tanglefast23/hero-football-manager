@@ -12,10 +12,16 @@ export function parseLaunchContent(input: unknown): LaunchContent {
 }
 
 /**
- * Parsed once and shared: the zod pass over ~208KB of catalog JSON costs
- * 40-80ms in Node (several hundred ms on Hermes), and three call sites run
- * before first paint. The catalogs are immutable by contract — nothing may
- * mutate the returned object.
+ * Parsed once: the zod pass over ~208KB of catalog JSON costs 40-80ms in Node
+ * (several hundred ms on Hermes), and three call sites run before first paint.
+ *
+ * The parse is what is cached, not the object. Handing every caller the same
+ * instance made one caller's mutation everyone's — a corruption that outlives
+ * the mutating screen and cannot be traced back to it — so each call still gets
+ * its own copy. "Immutable by contract" is not a guarantee when the contract is
+ * a comment, and the copy costs a couple of milliseconds against the 40-80ms it
+ * saves. The round trip is safe because the source is JSON: no dates, maps,
+ * classes or undefined survive `parseLaunchContent` to be lost by it.
  */
 let cachedLaunchContent: LaunchContent | undefined;
 
@@ -29,5 +35,5 @@ export function loadLaunchContent(): LaunchContent {
     training: trainingJson,
     events: eventsJson,
   });
-  return cachedLaunchContent;
+  return JSON.parse(JSON.stringify(cachedLaunchContent)) as LaunchContent;
 }
