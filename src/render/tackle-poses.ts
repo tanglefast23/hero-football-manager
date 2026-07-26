@@ -30,6 +30,10 @@ export interface TacklePoseInput {
   targetOutUntilTick: number | null;
   /** True while the challenger is already mid-pose (a live slide owns the body). */
   challengerBusy: boolean;
+  /** The sim put this beaten challenger on the grass (standing challenges only). */
+  dropped?: true;
+  /** The challenger's `tackleRecoveryUntil` — when a dropped body gets back up. */
+  challengerRecoveryUntil?: number;
 }
 
 export interface TacklePoseResult {
@@ -83,6 +87,24 @@ export function tacklePoses(input: TacklePoseInput): TacklePoseResult {
         untilTick: input.targetOutUntilTick,
       },
       impact: { ...input.target },
+    };
+  }
+
+  // A beaten challenger the sim floored. `knockdown` rather than `fall` because
+  // only knockdown honours an untilTick, so the get-up lands exactly on the sim's
+  // recovery tick instead of running `fall`'s hardcoded ten. Going to ground
+  // outranks a stale pose, so this sits above the challengerBusy guard.
+  if (input.dropped && input.contact && !input.won
+    && input.challengerRecoveryUntil !== undefined
+    && onPitch(input.challenger)) {
+    return {
+      challenger: {
+        kind: 'knockdown',
+        startTick: input.startTick,
+        anchor: { ...input.challenger },
+        rotation,
+        untilTick: input.challengerRecoveryUntil,
+      },
     };
   }
 

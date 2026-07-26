@@ -30,6 +30,8 @@ type SfxKey =
   | 'kick-shot'
   | 'tackle-thud'
   | 'grunt'
+  | 'body-fall'
+  | 'duel-scuff'
   | 'goal-fanfare'
   | 'goal-celebration'
   | 'crowd-cheer'
@@ -70,6 +72,8 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'kick-shot': require('../../assets/audio/sfx/kick-shot.m4a'),
   'tackle-thud': require('../../assets/audio/sfx/tackle-thud.m4a'),
   grunt: require('../../assets/audio/sfx/grunt.wav'),
+  'body-fall': require('../../assets/audio/sfx/body-fall.m4a'),
+  'duel-scuff': require('../../assets/audio/sfx/duel-scuff.wav'),
   'goal-fanfare': require('../../assets/audio/sfx/goal-fanfare.m4a'),
   'goal-celebration': require('../../assets/audio/sfx/goal-celebration.m4a'),
   'crowd-cheer': require('../../assets/audio/sfx/crowd-cheer.wav'),
@@ -173,7 +177,13 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     case 'SLIDE_STARTED':
       return [];
     case 'TACKLE':
-      return e.contact ? ['tackle-thud', 'grunt'] : [];
+      if (!e.contact) return [];
+      // A standing challenge fires every 1.7s of match time, and 96 of ~121 a
+      // match changed nothing — playing the full body impact on all of them is
+      // what made the duel read as noise. Only this style is tiered; slide and
+      // power contact are genuine collisions and keep the thud they always had.
+      if (e.style !== 'standing' || e.won) return ['tackle-thud', 'grunt'];
+      return e.dropped ? ['body-fall'] : ['duel-scuff'];
     case 'GOAL':
       return ['goal-fanfare', 'goal-celebration', 'crowd-cheer'];
     case 'CARD':

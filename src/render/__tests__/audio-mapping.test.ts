@@ -104,6 +104,44 @@ describe('filesForEvent: event → SFX wiring', () => {
     expect(filesForEvent({ t: 0, kind: 'RECOVERED', player: 5 })).toEqual([]);
   });
 
+  /**
+   * A standing challenge fired every 1.7s of match time and every one of them
+   * played the full body-impact pair, 96 of ~121 changing nothing. Only the
+   * standing style is tiered; slide and power contact are real collisions and
+   * keep the thud they always had.
+   */
+  describe('standing-challenge tiers', () => {
+    const standing = (won: boolean, contact: boolean, dropped?: true): MatchEvent => ({
+      t: 0, kind: 'TACKLE', by: 3, on: 14, won, style: 'standing', contact,
+      ...(dropped ? { dropped } : {}),
+    });
+
+    it('keeps the full body impact for a won challenge', () => {
+      expect(filesForEvent(standing(true, true))).toEqual(['tackle-thud', 'grunt']);
+    });
+
+    it('plays the soft wet landing when the beaten defender goes down', () => {
+      expect(filesForEvent(standing(false, true, true))).toEqual(['body-fall']);
+    });
+
+    it('drops a beaten-but-standing challenge to the light scuff', () => {
+      expect(filesForEvent(standing(false, true))).toEqual(['duel-scuff']);
+    });
+
+    it('stays silent when the challenge never made contact', () => {
+      expect(filesForEvent(standing(false, false))).toEqual([]);
+    });
+
+    it('leaves slide and power contact exactly as they were', () => {
+      for (const style of ['slide', 'power'] as const) {
+        for (const won of [true, false]) {
+          expect(filesForEvent({ t: 0, kind: 'TACKLE', by: 3, on: 14, won, style, contact: true }))
+            .toEqual(['tackle-thud', 'grunt']);
+        }
+      }
+    });
+  });
+
   it('every MatchEvent kind is handled (exhaustive — no throw)', () => {
     const samples: MatchEvent[] = [
       { t: 0, kind: 'KICKOFF', half: 1 },

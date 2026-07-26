@@ -147,6 +147,13 @@ export interface SimPlayer {
   outUntilTick: number;       // 0 = fine
   outReason?: OutReason;
   slideTackle?: SlideTackleState;
+  /**
+   * Consecutive beaten standing challenges against one carrier. The third in a
+   * row always puts this defender on the floor, so no single defender can grind
+   * a duel indefinitely. Keyed by carrier index and expired by `lastFailTick`,
+   * so a failure from an old duel cannot fell him in a fresh one.
+   */
+  beatenStreak?: { targetIdx: number; count: number; lastFailTick: number };
   tackleRecoveryUntil: number;
   tackleCooldownUntil: number;
   cards: 0 | 1 | 2;
@@ -225,7 +232,8 @@ export type MatchEvent =
   | { t: number; kind: 'KICKOFF'; half: 1 | 2 }
   | { t: number; kind: 'PASS'; from: number; to: number; ok: boolean }
   | { t: number; kind: 'SLIDE_STARTED'; by: number; on: number; direction: Vec; untilTick: number }
-  | { t: number; kind: 'TACKLE'; by: number; on: number; won: boolean; style: 'standing' | 'slide' | 'power'; contact: boolean }
+  /** `dropped` marks a beaten challenger left on the grass; standing challenges only. */
+  | { t: number; kind: 'TACKLE'; by: number; on: number; won: boolean; style: 'standing' | 'slide' | 'power'; contact: boolean; dropped?: true }
   | {
     t: number;
     kind: 'SHOT';

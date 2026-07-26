@@ -110,6 +110,54 @@ describe('won and knocked-out challenges keep their existing poses', () => {
   });
 });
 
+/**
+ * A beaten defender the sim has put on the grass (TACKLE `dropped`). The pose
+ * must be `knockdown`, not `fall`: `fall` has no untilTick and runs a hardcoded
+ * TACKLED_RECOVERY_TICKS, so it would animate 1.0s of prone against the sim's
+ * 0.8s freeze and leave him moving while drawn on the floor.
+ */
+describe('dropped challenger (TACKLE dropped:true)', () => {
+  const droppedBase: TacklePoseInput = {
+    ...base,
+    dropped: true,
+    challengerRecoveryUntil: 50, // sim tick 42 + BEATEN_FALL_TICKS
+  };
+
+  it('floors the challenger rather than staggering him', () => {
+    const result = tacklePoses(droppedBase);
+    expect(result.challenger?.kind).toBe('knockdown');
+    expect(result.target).toBeUndefined();
+  });
+
+  it('holds him down to the sim recovery tick so the get-up lands on it', () => {
+    const pose = tacklePoses(droppedBase).challenger;
+    expect(pose).toMatchObject({ kind: 'knockdown', untilTick: 50, startTick: 41 });
+  });
+
+  it('adds no impact burst — those stay knockouts only', () => {
+    expect(tacklePoses(droppedBase).impact).toBeUndefined();
+  });
+
+  it('floors him even when a stale pose is still running', () => {
+    // Unlike the stagger, going to ground outranks whatever the body was doing.
+    const result = tacklePoses({ ...droppedBase, challengerBusy: true });
+    expect(result.challenger?.kind).toBe('knockdown');
+  });
+
+  it('still only staggers when the sim left him on his feet', () => {
+    const result = tacklePoses({ ...base, challengerRecoveryUntil: 0 });
+    expect(result.challenger?.kind).toBe('stagger');
+  });
+
+  it('leans the floored body the way it was beaten', () => {
+    const pose = tacklePoses(droppedBase).challenger;
+    expect(pose?.kind === 'knockdown' && pose.anchor).toEqual({ x: 3000, y: 5000 });
+    const mirrored = tacklePoses({ ...droppedBase, target: { x: 2880, y: 5000 } }).challenger;
+    expect(pose?.kind === 'knockdown' && pose.rotation)
+      .not.toBe(mirrored?.kind === 'knockdown' && mirrored.rotation);
+  });
+});
+
 describe('stagger pose envelope', () => {
   const stagger = tacklePoses(base).challenger!;
 

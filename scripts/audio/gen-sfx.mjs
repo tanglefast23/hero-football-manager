@@ -205,6 +205,17 @@ function genBallBounce(seed) {
   return mix([{ buf: click, gain: 0.7 }, { buf: tick, gain: 0.5 }]);
 }
 
+function genDuelScuff(seed) {
+  const rng = mulberry32(seed);
+  const n = secondsToSamples(0.08);
+  // Studs skidding across turf, not a body landing: a band-limited scrape with a
+  // very fast decay over a low pink-noise brush so it reads as two players
+  // colliding rather than a click. Deliberately the quietest match sound.
+  const scrape = applyEnv(bandpass(noiseWhite(n, rng), 900, 4200), decayEnv(n, { attack: 0.002, decay: 0.05 }));
+  const brush = applyEnv(lowpass(noisePink(n, rng), 400), decayEnv(n, { attack: 0.001, decay: 0.03 }));
+  return mix([{ buf: scrape, gain: 0.6 }, { buf: brush, gain: 0.4 }]);
+}
+
 function genDecoyPop(seed) {
   const rng = mulberry32(seed);
   const n = secondsToSamples(0.22);
@@ -750,12 +761,24 @@ const GENERATORS = {
   'extinguisher-spray': genExtinguisherSpray,
   'match-end-sting': genMatchEndSting,
   'decoy-pop': genDecoyPop,
+  'duel-scuff': genDuelScuff,
 };
 
-export function generateAllSfx(outDir = OUT_DIR) {
+/**
+ * `only` writes just the named sounds, and exists because a blanket regenerate
+ * is not safe: 23 of the committed .wav files no longer match what their own
+ * generators produce (drift that predates this option), so rewriting everything
+ * to add one asset would silently replace 23 unrelated sounds. Seeds stay
+ * index-based off the full catalog, so a filtered run is byte-identical to the
+ * same entry in a full run.
+ *
+ * Usage: `node scripts/audio/gen-sfx.mjs duel-scuff`
+ */
+export function generateAllSfx(outDir = OUT_DIR, only = []) {
   mkdirSync(outDir, { recursive: true });
   const results = [];
   SFX_CATALOG.forEach((entry, index) => {
+    if (only.length > 0 && !only.includes(entry.name)) return;
     const gen = GENERATORS[entry.name];
     if (!gen) throw new Error(`no generator registered for "${entry.name}"`);
     const seed = 1000 + index;
@@ -770,6 +793,6 @@ export function generateAllSfx(outDir = OUT_DIR) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const results = generateAllSfx();
+  const results = generateAllSfx(OUT_DIR, process.argv.slice(2));
   console.log(`\ngenerated ${results.length} SFX -> ${OUT_DIR}`);
 }

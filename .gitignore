@@ -46,3 +46,6 @@ yarn-error.*
 .worktrees
 .vercel
 .env*
+
+# Superpowers brainstorming visual companion sessions
+.superpowers/

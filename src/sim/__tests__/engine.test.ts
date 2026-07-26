@@ -1,5 +1,16 @@
 import { createMatch, runMatch, tick } from '../match';
-import { drainStamina, effectiveStat, launchPass, movementTick, possessionTick, speedFor, tackleTick } from '../engine';
+import {
+  BEATEN_FALL_TICKS,
+  BEATEN_STREAK_STALE_TICKS,
+  drainStamina,
+  effectiveStat,
+  launchPass,
+  movementTick,
+  possessionTick,
+  restartKickoff,
+  speedFor,
+  tackleTick,
+} from '../engine';
 import { ROVERS, UNITED } from '../teams';
 import type { BallState } from '../types';
 import { activatePower, powerTick } from '../powers';
@@ -320,6 +331,229 @@ describe('tackling', () => {
     const tackle = m.events.filter(e => e.kind === 'TACKLE').pop() as { by: number } | undefined;
     expect(tackle).toBeDefined();
     expect(tackle?.by).toBe(16);
+  });
+});
+
+describe('beaten defenders go down', () => {
+  const CARRIER = 5;   // Rovers MID, no power — keeps the duel free of power interactions
+  const DEFENDER = 13; // United DEF u2
+  const MIDFIELDER = 16; // United MID u5
+  const KEEPER = 11;
+
+  /**
+   * Carrier at a fixed point with exactly one opponent inside standing-tackle
+   * range, stats matched so the contest is an exact coin flip (delta 0 => p 0.5)
+   * and the drop threshold is therefore a predictable 1 - 0.5 * dropChance.
+   */
+  function rigEvenDuel(tacklerIdx = DEFENDER) {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.ball = { kind: 'held', by: CARRIER };
+    m.players[CARRIER].pos = { x: 3400, y: 3000 };
+    m.players[CARRIER].def.attrs.tec = 50;
+    m.players[CARRIER].condition = 100;
+    for (let i = 11; i < 22; i++) m.players[i].pos = { x: 200, y: 9000 };
+    m.players[tacklerIdx].pos = { x: 3400, y: 3120 };
+    m.players[tacklerIdx].def.attrs.def = 50;
+    m.players[tacklerIdx].condition = 100;
+    m.players[tacklerIdx].tackleCooldownUntil = 0;
+    return { m, tacklerIdx };
+  }
+
+  /** Advance past the standing-tackle cooldown without running a whole tick. */
+  function readyForNextChallenge(m: ReturnType<typeof createMatch>, tacklerIdx: number) {
+    m.tick += 10;
+    m.players[tacklerIdx].tackleCooldownUntil = m.tick;
+  }
+
+  it('puts a comprehensively beaten defender on the floor', () => {
+    const { m, tacklerIdx } = rigEvenDuel();
+    m.rng = () => 0.99; // lost the contest, and lost it in the top slice
+
+    tackleTick(m);
+
+    expect(m.events.at(-1)).toMatchObject({
+      kind: 'TACKLE', by: tacklerIdx, on: CARRIER, won: false, style: 'standing', dropped: true,
+    });
+    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(m.tick + BEATEN_FALL_TICKS);
+    expect(m.players[tacklerIdx].tackleCooldownUntil).toBeGreaterThan(m.tick + BEATEN_FALL_TICKS);
+    expect(m.ball).toEqual({ kind: 'held', by: CARRIER });
+  });
+
+  it('leaves a narrowly beaten defender on his feet', () => {
+    const { m, tacklerIdx } = rigEvenDuel();
+    m.rng = () => 0.6; // lost (0.6 > p 0.5) but nowhere near the 0.875 drop threshold
+
+    tackleTick(m);
+
+    const tackle = m.events.at(-1);
+    expect(tackle).toMatchObject({ kind: 'TACKLE', won: false, style: 'standing' });
+    expect(tackle).not.toHaveProperty('dropped');
+    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(0);
+  });
+
+  it('always drops him on the third consecutive failure against the same carrier', () => {
+    const { m, tacklerIdx } = rigEvenDuel();
+    m.rng = () => 0.6; // never enough to drop him on the roll alone
+
+    tackleTick(m);
+    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(0);
+    readyForNextChallenge(m, tacklerIdx);
+    tackleTick(m);
+    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(0);
+    readyForNextChallenge(m, tacklerIdx);
+    tackleTick(m);
+
+    expect(m.events.at(-1)).toMatchObject({ kind: 'TACKLE', won: false, dropped: true });
+    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(m.tick + BEATEN_FALL_TICKS);
+  });
+
+  it('restarts the count when the defender turns to a different carrier', () => {
+    const { m, tacklerIdx } = rigEvenDuel();
+    m.rng = () => 0.6;
+
+    tackleTick(m);
+    readyForNextChallenge(m, tacklerIdx);
+    tackleTick(m);
+    expect(m.players[tacklerIdx].beatenStreak?.count).toBe(2);
+
+    // A different carrier picks the ball up in the same place.
+    const otherCarrier = 6;
+    m.players[otherCarrier].pos = { ...m.players[CARRIER].pos };
+    m.players[otherCarrier].def.attrs.tec = 50;
+    m.ball = { kind: 'held', by: otherCarrier };
+    readyForNextChallenge(m, tacklerIdx);
+    tackleTick(m);
+
+    expect(m.players[tacklerIdx].beatenStreak).toMatchObject({ targetIdx: otherCarrier, count: 1 });
+    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(0);
+  });
+
+  it('lets a stale streak expire so an old duel cannot fell him in a fresh one', () => {
+    const { m, tacklerIdx } = rigEvenDuel();
+    m.rng = () => 0.6;
+
+    tackleTick(m);
+    readyForNextChallenge(m, tacklerIdx);
+    tackleTick(m);
+    expect(m.players[tacklerIdx].beatenStreak?.count).toBe(2);
+
+    m.tick += BEATEN_STREAK_STALE_TICKS + 1;
+    m.players[tacklerIdx].tackleCooldownUntil = m.tick;
+    tackleTick(m);
+
+    expect(m.players[tacklerIdx].beatenStreak?.count).toBe(1);
+    expect(m.players[tacklerIdx].tackleRecoveryUntil).toBe(0);
+  });
+
+  it('never drops a goalkeeper, who would otherwise concede an open goal while prone', () => {
+    const { m } = rigEvenDuel(KEEPER);
+    m.rng = () => 0.99;
+
+    tackleTick(m);
+
+    expect(m.events.at(-1)).toMatchObject({ kind: 'TACKLE', by: KEEPER, won: false });
+    expect(m.events.at(-1)).not.toHaveProperty('dropped');
+    expect(m.players[KEEPER].tackleRecoveryUntil).toBe(0);
+  });
+
+  it('stops a floored defender from challenging or moving until he is up', () => {
+    const { m, tacklerIdx } = rigEvenDuel();
+    m.rng = () => 0.99;
+    tackleTick(m);
+    const tackleCount = m.events.filter(e => e.kind === 'TACKLE').length;
+    const floorPos = { ...m.players[tacklerIdx].pos };
+
+    m.tick += 1;
+    movementTick(m);
+    tackleTick(m);
+
+    expect(m.players[tacklerIdx].pos).toEqual(floorPos);
+    expect(m.events.filter(e => e.kind === 'TACKLE')).toHaveLength(tackleCount);
+  });
+
+  it('hands the press to the covering defender on the tick after the drop', () => {
+    const { m, tacklerIdx } = rigEvenDuel();
+    const cover = MIDFIELDER;
+    m.players[cover].pos = { x: 3400, y: 3900 };
+    m.movement = { ...m.movement, presserIdx: tacklerIdx, presserSinceTick: m.tick };
+    m.rng = () => 0.99;
+
+    tackleTick(m);
+    // tackleTick runs AFTER movementTick, so the lease is still the beaten man's.
+    expect(m.movement.presserIdx).toBe(tacklerIdx);
+
+    m.tick += 1;
+    movementTick(m);
+
+    expect(m.movement.presserIdx).toBe(cover);
+  });
+
+  it('clears the streak at a restart so it cannot survive a kickoff', () => {
+    const { m, tacklerIdx } = rigEvenDuel();
+    m.rng = () => 0.6;
+    tackleTick(m);
+    expect(m.players[tacklerIdx].beatenStreak).toBeDefined();
+
+    restartKickoff(m, 0);
+
+    expect(m.players[tacklerIdx].beatenStreak).toBeUndefined();
+  });
+});
+
+/**
+ * Sliding stays a defender's tool, and these pin that against a specific
+ * temptation: letting midfielders lunge on the breakaway beat was built and cut
+ * (see the note above slideLaunchRange). Unrestricted it broke the +20 blowout
+ * rail; restricted enough to pass, it produced 0.10 slides a match. The slide
+ * increase this feature wanted arrived from defenders instead — breakaway
+ * carriers keep the ball, so committed slides connect (17% -> 44% contact).
+ */
+describe('only defenders slide, even on a breakaway', () => {
+  const CARRIER = 5;
+  const MIDFIELDER = 16; // United MID
+  const FORWARD = 20;    // United FWD
+  const FLOORED = 13;    // United DEF, already on the grass
+
+  function rigLaunchOpportunity(sliderIdx: number) {
+    const m = createMatch(42, ROVERS, UNITED);
+    m.ball = { kind: 'held', by: CARRIER };
+    m.players[CARRIER].pos = { x: 3400, y: 3000 };
+    for (let i = 11; i < 22; i++) m.players[i].pos = { x: 200, y: 9000 };
+    // Goal-side (Rovers attack toward y=0) and inside the 8-11m launch band —
+    // every geometric condition a defender would need.
+    m.players[sliderIdx].pos = { x: 3400, y: 3000 - 950 };
+    m.players[sliderIdx].condition = 100;
+    m.players[sliderIdx].tackleCooldownUntil = 0;
+    // A beaten marker on the grass beside the carrier: the breakaway picture.
+    m.players[FLOORED].pos = { x: 3450, y: 3050 };
+    m.players[FLOORED].tackleRecoveryUntil = m.tick + 6;
+    return m;
+  }
+
+  it('launches the slide when the opportunity falls to a defender', () => {
+    const m = rigLaunchOpportunity(12);
+
+    tackleTick(m);
+
+    expect(m.players[12].slideTackle).toBeDefined();
+    expect(m.events.at(-1)).toMatchObject({ kind: 'SLIDE_STARTED', by: 12, on: CARRIER });
+  });
+
+  it('refuses the same opportunity to a midfielder', () => {
+    const m = rigLaunchOpportunity(MIDFIELDER);
+
+    tackleTick(m);
+
+    expect(m.players[MIDFIELDER].slideTackle).toBeUndefined();
+    expect(m.events.filter(e => e.kind === 'SLIDE_STARTED')).toHaveLength(0);
+  });
+
+  it('refuses the same opportunity to a forward', () => {
+    const m = rigLaunchOpportunity(FORWARD);
+
+    tackleTick(m);
+
+    expect(m.players[FORWARD].slideTackle).toBeUndefined();
   });
 });
 
