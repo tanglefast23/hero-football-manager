@@ -4,11 +4,13 @@ import {
   applySwap,
   atSubstitutionLimit,
   benchEntries,
+  budgetNote,
   canSave,
   canSwap,
   fieldByTiredness,
   filledShirtLabel,
   incomingFor,
+  ineligibleTag,
   isSlotStaged,
   isSubStaged,
   planInputs,
@@ -134,5 +136,26 @@ describe('substitution board trades', () => {
 
   it('names who took the shirt', () => {
     expect(filledShirtLabel('Dario Flint')).toBe('ON FOR DARIO FLINT');
+  });
+
+  it('states what is left to spend rather than leaving a dead drag unexplained', () => {
+    const one = applySwap(EMPTY_SUBSTITUTION_PLAN, FLINT, VELA);
+
+    expect(budgetNote(EMPTY_SUBSTITUTION_PLAN, 5)).toBe('Five substitutions left.');
+    expect(budgetNote(one, 5)).toBe('Four substitutions left.');
+    expect(budgetNote(one, 2)).toBe('One substitution left.');
+    expect(budgetNote(one, 1)).toBe('No substitutions left this match.');
+    expect(budgetNote(EMPTY_SUBSTITUTION_PLAN, 0)).toBe('No substitutions left this match.');
+  });
+
+  it('tells a card why it cannot take the player being dragged', () => {
+    // Keeper rule, named from whichever side is wrong.
+    expect(ineligibleTag(true, false, false)).toBe('KEEPERS ONLY');
+    expect(ineligibleTag(false, true, false)).toBe('NEEDS A KEEPER');
+    // Same side, but the match has no substitutions left.
+    expect(ineligibleTag(false, false, true)).toBe('NO SUBS LEFT');
+    // Same side and budget to spend: nothing to explain.
+    expect(ineligibleTag(false, false, false)).toBeNull();
+    expect(ineligibleTag(true, true, false)).toBeNull();
   });
 });

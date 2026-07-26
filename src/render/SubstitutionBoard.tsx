@@ -17,11 +17,13 @@ import {
   applySwap,
   atSubstitutionLimit,
   benchEntries,
+  budgetNote,
   canSave,
   canSwap,
   fieldByTiredness,
   filledShirtLabel,
   incomingFor,
+  ineligibleTag,
   planInputs,
   stagedCount,
   undoSwap,
@@ -49,6 +51,7 @@ interface DragSource {
   readonly slot?: number;
   /** Bench player for 'sub'. */
   readonly subId?: string;
+  readonly isKeeper: boolean;
 }
 
 export interface SubstitutionBoardProps {
@@ -66,13 +69,15 @@ export interface SubstitutionBoardProps {
  * The substitution board: a centred modal where every swap is a straight trade.
  *
  * Drag a starter onto a bench player and the two change places. Everyone the
- * dragged player is allowed to trade with glows while the finger is down, so what
- * lights up and what works are the same predicate (`canSwap`). Drop anywhere else
- * and the card springs home — there is no state where the eleven is short, which
- * is why the board needs no warnings and no assistant explaining itself.
+ * dragged player is allowed to trade with lights up, using the same predicate
+ * (`canSwap`) that accepts the drop — so what glows and what works cannot
+ * disagree. Drop anywhere else and the card springs home.
  *
- * A traded starter stays visible in the bench column, dimmed and sunk to the
- * bottom; dragging that pair back onto each other undoes the swap.
+ * Dressed to docs/01, /08 and /11: the warm cream clubhouse canvas with ink
+ * structure, Silkscreen at four sizes, blue carrying every neutral action, and
+ * Track A lozenge buttons. Hero gold appears nowhere — docs/08 reserves it for
+ * hero and power moments and nothing else. Anything unavailable says why, per the
+ * same doc's interaction feedback contract.
  */
 export function SubstitutionBoard({
   field,
@@ -96,6 +101,7 @@ export function SubstitutionBoard({
   const staged = stagedCount(plan);
   const atLimit = atSubstitutionLimit(plan, substitutionsRemaining);
   const saveable = canSave(plan);
+  const note = budgetNote(plan, substitutionsRemaining);
 
   const starterAt = useCallback(
     (slot: number) => field.find(player => player.index === slot),
@@ -136,7 +142,7 @@ export function SubstitutionBoard({
   }, [cardRects]);
 
   /**
-   * One predicate for the glow and for the drop. A dimmed leaver only ever
+   * One predicate for the light and for the drop. A dimmed leaver only ever
    * accepts its own partner back.
    */
   const isEligible = useCallback((source: DragSource, target: CardId): boolean => {
@@ -229,12 +235,11 @@ export function SubstitutionBoard({
           <View style={styles.headerCopy}>
             <Text style={styles.eyebrow}>MATCH PAUSED</Text>
             <Text style={styles.title}>SUBSTITUTIONS</Text>
-            <Text style={styles.hint}>DRAG A PLAYER ONTO THEIR REPLACEMENT</Text>
+            <Text style={styles.hint}>HOLD A PLAYER, DRAG ONTO THEIR REPLACEMENT</Text>
           </View>
           <View style={styles.headerRight}>
-            {/* Red is the whole message at the limit: nothing will light up. */}
             <Text style={[styles.counter, atLimit ? styles.counterSpent : null]}>
-              {substitutionsUsed + staged} / {MAX_SUBSTITUTIONS}
+              {substitutionsUsed + staged}/{MAX_SUBSTITUTIONS}
             </Text>
             <SfxPressable
               accessibilityRole="switch"
@@ -267,16 +272,19 @@ export function SubstitutionBoard({
                     <DragCard
                       key={id}
                       id={id}
-                      source={{ id, kind: 'field', slot: player.index }}
+                      source={{
+                        id,
+                        kind: 'field',
+                        slot: player.index,
+                        isKeeper: (incoming?.role ?? player.role) === 'GK',
+                      }}
                       lit={drag !== null && drag.id !== id && isEligible(drag, id)}
                       compact={!wide}
                       registerCard={registerCard}
                       {...dragProps}
                       accessibilityLabel={incoming === undefined
-                        ? `${player.name}, ${player.role}, ${Math.round(player.condition)} percent energy. Drag onto a bench player to trade them.`
-                        : `${incoming.name}, ${incoming.role}, on for ${player.name}. Drag onto ${player.name} on the bench to undo.`}
-                      // A swapped shirt is the same box as every other card; only
-                      // what is written inside it changes.
+                        ? `${player.name}, ${player.role}, ${Math.round(player.condition)} percent energy. Hold and drag onto a bench player to trade them.`
+                        : `${incoming.name}, ${incoming.role}, on for ${player.name}. Hold and drag onto ${player.name} on the bench to undo.`}
                       style={styles.card}
                     >
                       <View style={styles.cardCopy}>
@@ -319,16 +327,22 @@ export function SubstitutionBoard({
                   {rows.map(entry => {
                     if (entry.kind === 'available') {
                       const id: CardId = `sub:${entry.sub.id}`;
+                      const lit = drag !== null && drag.id !== id && isEligible(drag, id);
+                      // While a starter is held, a card that cannot take them says
+                      // why — docs/08: nothing refuses silently.
+                      const reason = drag === null || drag.kind !== 'field' || lit
+                        ? null
+                        : ineligibleTag(entry.sub.role === 'GK', drag.isKeeper, atLimit);
                       return (
                         <DragCard
                           key={id}
                           id={id}
-                          source={{ id, kind: 'sub', subId: entry.sub.id }}
-                          lit={drag !== null && drag.id !== id && isEligible(drag, id)}
+                          source={{ id, kind: 'sub', subId: entry.sub.id, isKeeper: entry.sub.role === 'GK' }}
+                          lit={lit}
                           compact={!wide}
                           registerCard={registerCard}
                           {...dragProps}
-                          accessibilityLabel={`${entry.sub.name}, ${entry.sub.role}, fresh. Drag onto a player on the field to trade them.`}
+                          accessibilityLabel={`${entry.sub.name}, ${entry.sub.role}, fresh. Hold and drag onto a player on the field to trade them.`}
                           style={styles.card}
                         >
                           <View style={styles.cardCopy}>
@@ -336,7 +350,9 @@ export function SubstitutionBoard({
                               {compactName(entry.sub.name, !wide)}
                               <Text style={styles.role}> {entry.sub.role}</Text>
                             </Text>
-                            <Text style={styles.meta}>100%</Text>
+                            <Text style={reason === null ? styles.meta : styles.metaBlocked}>
+                              {reason ?? '100%'}
+                            </Text>
                           </View>
                         </DragCard>
                       );
@@ -346,13 +362,13 @@ export function SubstitutionBoard({
                       <DragCard
                         key={id}
                         id={id}
-                        source={{ id, kind: 'off', slot: entry.starter.index }}
+                        source={{ id, kind: 'off', slot: entry.starter.index, isKeeper: entry.starter.role === 'GK' }}
                         lit={drag !== null && drag.id !== id && isEligible(drag, id)}
                         compact={!wide}
                         registerCard={registerCard}
                         {...dragProps}
-                        accessibilityLabel={`${entry.starter.name} is coming off. Drag onto their shirt on the field to keep them on.`}
-                        style={styles.cardDimmed}
+                        accessibilityLabel={`${entry.starter.name} is coming off. Hold and drag onto their shirt on the field to keep them on.`}
+                        style={[styles.card, styles.cardDimmed]}
                       >
                         <View style={styles.cardCopy}>
                           <Text numberOfLines={1} style={styles.nameDimmed}>
@@ -370,40 +386,89 @@ export function SubstitutionBoard({
           </View>
         </ScrollView>
 
+        <Text
+          accessible
+          accessibilityRole="alert"
+          style={[styles.note, atLimit ? styles.noteSpent : null]}
+        >
+          {note}
+        </Text>
+
         <View style={styles.actions}>
-          <SfxPressable
-            accessibilityRole="button"
+          <LozengeButton
+            label="CANCEL"
             accessibilityLabel="Cancel and close without substituting"
+            tone="grey"
             onPress={onCancel}
-            style={[styles.button, styles.cancelButton]}
-          >
-            <Text style={styles.cancelText}>CANCEL</Text>
-          </SfxPressable>
-          <SfxPressable
-            accessibilityRole="button"
+          />
+          <LozengeButton
+            label="RESET"
             accessibilityLabel="Reset the board and put everyone back"
-            accessibilityState={{ disabled: staged === 0 }}
+            tone="grey"
             disabled={staged === 0}
             onPress={reset}
-            style={[styles.button, styles.resetButton, staged === 0 ? styles.buttonBlocked : null]}
-          >
-            <Text style={styles.resetText}>RESET</Text>
-          </SfxPressable>
-          <SfxPressable
-            accessibilityRole="button"
+          />
+          <LozengeButton
+            label="SAVE"
             accessibilityLabel={saveable
               ? `Save ${staged} substitution${staged === 1 ? '' : 's'}`
               : 'Nothing to save yet'}
+            tone="blue"
+            wide
+            disabled={!saveable}
             onPress={save}
-            style={[styles.button, styles.saveButton, saveable ? null : styles.buttonBlocked]}
-          >
-            {/* Just SAVE. The counter up top already says how many, and the
-                cards themselves show which. */}
-            <Text style={styles.saveText}>SAVE</Text>
-          </SfxPressable>
+          />
         </View>
       </View>
     </View>
+  );
+}
+
+/**
+ * Track A from docs/11: a fat pixel lozenge — 2px ink outline, chunky corners, a
+ * gloss band across the top 40%, and a darker lip along the bottom. Pressing it
+ * drops the button 2px and collapses the gloss, so it reads as pushed in.
+ */
+function LozengeButton({
+  label,
+  accessibilityLabel,
+  tone,
+  wide = false,
+  disabled = false,
+  onPress,
+}: {
+  label: string;
+  accessibilityLabel: string;
+  tone: 'grey' | 'blue';
+  wide?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const face = disabled ? styles.faceDisabled : tone === 'blue' ? styles.faceBlue : styles.faceGrey;
+  const gloss = disabled ? styles.glossDisabled : tone === 'blue' ? styles.glossBlue : styles.glossGrey;
+  return (
+    <SfxPressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      pressSfx={tone === 'blue' ? 'click' : 'click'}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        wide ? styles.buttonWide : null,
+        face,
+        // Opacity is set here so SfxPressable's fallback dim never fires: the
+        // pressed state is the drop and the collapsed gloss, not a fade.
+        { opacity: 1, transform: [{ translateY: pressed && !disabled ? 2 : 0 }] },
+      ]}
+    >
+      {({ pressed }) => (
+        <>
+          {pressed && !disabled ? null : <View style={[styles.gloss, gloss]} />}
+          <Text style={styles.buttonLabel}>{label}</Text>
+        </>
+      )}
+    </SfxPressable>
   );
 }
 
@@ -433,7 +498,7 @@ function DragCard({
   onDragEnd: () => void;
   onDrop: (source: DragSource, pageX: number, pageY: number) => void;
   accessibilityLabel: string;
-  style: object;
+  style: object | readonly object[];
   children: React.ReactNode;
 }) {
   const offset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
@@ -506,7 +571,7 @@ function DragCard({
         style,
         compact ? styles.gridCell : null,
         lit ? styles.cardLit : null,
-        lifted ? styles.cardDragging : null,
+        lifted ? styles.cardLifted : null,
         { transform: offset.getTranslateTransform() },
       ]}
     >
@@ -522,11 +587,15 @@ function compactName(name: string, compact: boolean): string {
   return parts[parts.length - 1] ?? name;
 }
 
-// Palette from the pixel bible (docs/11): ink #241f2e, ink-soft #3a3350,
-// card #2d283c, cream #f4f1ea, muted #bcb7c4, structure #6b6675, gold #edb54a,
-// red #d94f52.
+// docs/08 design language: 60% warm cream surfaces, 30% dark ink structure, and
+// an accent that means "hero" — so gold appears nowhere on this board. Blue
+// (#5a8fd6 face / #a3c8f0 gloss / #3f6fb5 lip) carries confirm and every neutral
+// action; grey is disabled and secondary; red-dark speaks only for the spent
+// limit. Type is Silkscreen at the doc's four sizes (13/15/18/24), two weights.
 const PIXEL_BOLD = 'Silkscreen_700Bold';
 const PIXEL = 'Silkscreen_400Regular';
+const INK = '#241f2e';
+const PAPER = '#f4f1ea';
 
 const styles = StyleSheet.create({
   overlay: {
@@ -540,17 +609,21 @@ const styles = StyleSheet.create({
     padding: 24,
     zIndex: 30,
   },
-  scrim: { flex: 1, backgroundColor: 'rgba(20,16,28,0.82)' },
+  scrim: { flex: 1, backgroundColor: 'rgba(36,31,46,0.72)' },
   board: {
     width: '100%',
     borderWidth: 3,
-    borderColor: '#6b6675',
-    borderBottomWidth: 6,
-    borderBottomColor: '#16121f',
+    borderColor: INK,
     borderRadius: 4,
-    backgroundColor: '#2d283c',
+    backgroundColor: PAPER,
     padding: 20,
     gap: 16,
+    // Ink contact shadow rather than a soft blur, per docs/11.
+    shadowColor: INK,
+    shadowOffset: { width: 8, height: 10 },
+    shadowOpacity: 0.55,
+    shadowRadius: 0,
+    elevation: 12,
   },
   boardWide: { maxWidth: 920, maxHeight: '92%' },
   boardNarrow: { maxWidth: 520, maxHeight: '94%' },
@@ -559,24 +632,23 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
   headerCopy: { flex: 1, minWidth: 0 },
   headerRight: { alignItems: 'flex-end', gap: 8 },
-  eyebrow: { color: '#bcb7c4', fontFamily: PIXEL, fontSize: 11, letterSpacing: 1 },
-  title: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 22, letterSpacing: 1, marginTop: 4 },
-  hint: { color: '#8e88a0', fontFamily: PIXEL, fontSize: 10, letterSpacing: 0.8, marginTop: 6 },
-  counter: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 16, fontVariant: ['tabular-nums'] },
-  counterSpent: { color: '#f06b6e' },
+  eyebrow: { color: '#6b6675', fontFamily: PIXEL, fontSize: 13, letterSpacing: 1 },
+  title: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 24, letterSpacing: 1, marginTop: 4 },
+  hint: { color: '#6b6675', fontFamily: PIXEL, fontSize: 13, letterSpacing: 0.6, marginTop: 6 },
+  counter: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 18, fontVariant: ['tabular-nums'] },
+  counterSpent: { color: '#a83440' },
   autoSub: {
     minHeight: 40,
     justifyContent: 'center',
     paddingHorizontal: 12,
     borderWidth: 2,
-    borderColor: '#49415f',
+    borderColor: INK,
     borderBottomWidth: 4,
-    borderBottomColor: '#16121f',
     borderRadius: 3,
-    backgroundColor: '#3a3350',
+    backgroundColor: '#ffffff',
   },
-  autoSubOn: { backgroundColor: '#35618e', borderColor: '#77a4d8' },
-  autoSubText: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 12 },
+  autoSubOn: { backgroundColor: '#a3c8f0' },
+  autoSubText: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 15 },
   columns: { flexDirection: 'row', gap: 16 },
   columnsStacked: { gap: 16 },
   column: {
@@ -584,82 +656,85 @@ const styles = StyleSheet.create({
     minWidth: 0,
     gap: 8,
     borderWidth: 2,
-    borderColor: '#49415f',
+    borderColor: INK,
     borderRadius: 3,
-    backgroundColor: '#241f2e',
+    backgroundColor: '#ffffff',
     padding: 12,
   },
   fieldColumn: { flexGrow: 1.15 },
-  columnTitle: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 14, letterSpacing: 1 },
-  columnHint: { color: '#8e88a0', fontFamily: PIXEL, fontSize: 10, letterSpacing: 0.8, marginTop: -4 },
-  emptyBench: { color: '#8e88a0', fontFamily: PIXEL, fontSize: 11, paddingVertical: 12 },
+  columnTitle: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 15, letterSpacing: 1 },
+  columnHint: { color: '#9a95a4', fontFamily: PIXEL, fontSize: 13, letterSpacing: 0.6, marginTop: -4 },
+  emptyBench: { color: '#9a95a4', fontFamily: PIXEL, fontSize: 13, paddingVertical: 12 },
   // Two names per row on a phone, so a whole squad fits without scrolling.
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  gridCell: { width: '48.5%', minHeight: 62 },
+  gridCell: { width: '48.5%', minHeight: 64 },
   card: {
-    minHeight: 56,
+    minHeight: 58,
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#49415f',
-    borderBottomWidth: 3,
-    borderBottomColor: '#16121f',
-    borderRadius: 3,
-    backgroundColor: '#3a3350',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  cardDimmed: {
-    minHeight: 56,
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#3a3350',
-    borderBottomWidth: 3,
-    borderBottomColor: '#16121f',
-    borderRadius: 3,
-    backgroundColor: '#241f2e',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    opacity: 0.55,
-  },
-  // Everyone the dragged player may trade with. Same recipe as the training
-  // screen's glow so one lit thing looks like another across the game.
-  cardLit: {
-    borderColor: '#edb54a',
-    opacity: 1,
-    boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.75)',
-    shadowColor: '#edb54a',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 9,
-    elevation: 10,
-  },
-  cardDragging: { borderColor: '#a3c8f0', zIndex: 40, elevation: 14 },
-  cardCopy: { minWidth: 0 },
-  name: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 14 },
-  nameSwapped: { color: '#f7d894', fontFamily: PIXEL_BOLD, fontSize: 14 },
-  nameDimmed: { color: '#bcb7c4', fontFamily: PIXEL_BOLD, fontSize: 14 },
-  role: { color: '#a3c8f0', fontFamily: PIXEL_BOLD, fontSize: 11, letterSpacing: 0.5 },
-  roleDimmed: { color: '#8e88a0', fontFamily: PIXEL_BOLD, fontSize: 11, letterSpacing: 0.5 },
-  meta: { color: '#bcb7c4', fontFamily: PIXEL, fontSize: 10, marginTop: 4, letterSpacing: 0.6 },
-  metaSwapped: { color: '#edb54a', fontFamily: PIXEL, fontSize: 10, marginTop: 4, letterSpacing: 0.6 },
-  metaDimmed: { color: '#8e88a0', fontFamily: PIXEL, fontSize: 10, marginTop: 4, letterSpacing: 0.6 },
-  energyTrack: { height: 6, marginTop: 6, backgroundColor: '#16121f', overflow: 'hidden' },
-  energyFill: { height: 6 },
-  actions: { flexDirection: 'row', gap: 12 },
-  button: {
-    minHeight: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    borderWidth: 2,
+    borderColor: INK,
     borderBottomWidth: 4,
     borderRadius: 3,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  buttonBlocked: { opacity: 0.45 },
-  cancelButton: { flex: 1, borderColor: '#6b6675', borderBottomColor: '#16121f', backgroundColor: '#3a3350' },
-  cancelText: { color: '#bcb7c4', fontFamily: PIXEL_BOLD, fontSize: 15, letterSpacing: 1 },
-  resetButton: { flex: 1, borderColor: '#c8862a', borderBottomColor: '#16121f', backgroundColor: '#3a3350' },
-  resetText: { color: '#edb54a', fontFamily: PIXEL_BOLD, fontSize: 15, letterSpacing: 1 },
-  saveButton: { flex: 1.4, borderColor: '#a3c8f0', borderBottomColor: '#2b5a97', backgroundColor: '#3f6fb5' },
-  saveText: { color: '#ffffff', fontFamily: PIXEL_BOLD, fontSize: 15, letterSpacing: 1 },
+  cardDimmed: { backgroundColor: '#f4f1ea', borderColor: '#9a95a4', opacity: 0.6 },
+  // Blue, not gold: docs/08 reserves the gold accent for hero and power moments.
+  cardLit: {
+    borderColor: '#3f6fb5',
+    opacity: 1,
+    boxShadow: '0 0 0 3px rgba(90, 143, 214, 0.45)',
+    shadowColor: '#5a8fd6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 7,
+    elevation: 10,
+  },
+  cardLifted: { borderColor: '#3f6fb5', zIndex: 40, elevation: 14 },
+  cardCopy: { minWidth: 0 },
+  name: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 15 },
+  nameSwapped: { color: '#3f6fb5', fontFamily: PIXEL_BOLD, fontSize: 15 },
+  nameDimmed: { color: '#6b6675', fontFamily: PIXEL_BOLD, fontSize: 15 },
+  role: { color: '#6b6675', fontFamily: PIXEL_BOLD, fontSize: 13, letterSpacing: 0.5 },
+  roleDimmed: { color: '#9a95a4', fontFamily: PIXEL_BOLD, fontSize: 13, letterSpacing: 0.5 },
+  meta: { color: '#6b6675', fontFamily: PIXEL, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
+  metaSwapped: { color: '#3f6fb5', fontFamily: PIXEL, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
+  metaBlocked: { color: '#a83440', fontFamily: PIXEL, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
+  metaDimmed: { color: '#9a95a4', fontFamily: PIXEL, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
+  energyTrack: { height: 6, marginTop: 6, backgroundColor: '#d9d3e0', overflow: 'hidden' },
+  energyFill: { height: 6 },
+  note: { color: '#6b6675', fontFamily: PIXEL, fontSize: 13, letterSpacing: 0.6, lineHeight: 20 },
+  noteSpent: { color: '#a83440' },
+  actions: { flexDirection: 'row', gap: 12 },
+  button: {
+    flex: 1,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: INK,
+    borderBottomWidth: 5,
+    borderRadius: 4,
+    paddingHorizontal: 10,
+  },
+  buttonWide: { flex: 1.4 },
+  faceBlue: { backgroundColor: '#5a8fd6', borderBottomColor: '#3f6fb5' },
+  faceGrey: { backgroundColor: '#9a95a4', borderBottomColor: '#6b6675' },
+  faceDisabled: { backgroundColor: '#c9c5d0', borderBottomColor: '#9a95a4' },
+  // The gloss is a bold band across the top 40%, not a hairline.
+  gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: '40%' },
+  glossBlue: { backgroundColor: '#a3c8f0' },
+  glossGrey: { backgroundColor: '#c9c5d0' },
+  glossDisabled: { backgroundColor: '#d9d3e0' },
+  buttonLabel: {
+    color: PAPER,
+    fontFamily: PIXEL_BOLD,
+    fontSize: 15,
+    letterSpacing: 1,
+    textShadowColor: INK,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
+  },
 });

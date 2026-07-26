@@ -40,10 +40,13 @@ describe('substitution board layout', () => {
     expect(source).toContain('lit={drag !== null && drag.id !== id && isEligible(drag, id)}');
     expect(source).toContain('if (target === null || !isEligible(source, target)) return;');
     expect(source).toContain('canSwap(plan, starter, sub, substitutionsRemaining)');
-    // Glow, not marching dashes — several cards light at once.
+    // Blue, never gold: docs/08 reserves the gold accent for hero and power.
     expect(source).toContain('cardLit');
-    expect(source).toContain("boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.75)'");
+    expect(source).toContain("borderColor: '#3f6fb5'");
+    expect(source).toContain("boxShadow: '0 0 0 3px rgba(90, 143, 214, 0.45)'");
     expect(source).not.toContain('DashPathEffect');
+    expect(source).not.toContain('#edb54a');
+    expect(source).not.toContain('#c8862a');
   });
 
   it('scrolls the list unless a card is held, and never drags on contact', () => {
@@ -98,24 +101,49 @@ describe('substitution board layout', () => {
     expect(source).toContain('undoSwap');
   });
 
-  it('says nothing at the substitution limit beyond a red counter', () => {
+  it('explains what is unavailable instead of refusing in silence', () => {
     const source = board();
 
-    expect(source).toContain('atSubstitutionLimit');
+    // docs/08's interaction feedback contract: disabled things say why.
+    expect(source).toContain('budgetNote');
+    expect(source).toContain('ineligibleTag(');
     expect(source).toContain('atLimit ? styles.counterSpent : null');
-    expect(source).toContain("counterSpent: { color: '#f06b6e' }");
-    // No copy for it: at the limit nothing lights up and the drag springs home.
-    expect(source).not.toContain('No substitutions left');
+    expect(source).toContain('atLimit ? styles.noteSpent : null');
+    expect(source).toContain("accessibilityRole=\"alert\"");
+  });
+
+  it('dresses to the pixel bible: cream canvas, ink structure, Track A buttons', () => {
+    const source = board();
+
+    // 60% warm cream, 30% ink structure (docs/08 design language).
+    expect(source).toContain("const PAPER = '#f4f1ea'");
+    expect(source).toContain("const INK = '#241f2e'");
+    // Track A lozenge: 2px outline, chunky corner, gloss band, darker lip.
+    expect(source).toContain('function LozengeButton');
+    expect(source).toContain('borderBottomWidth: 5');
+    expect(source).toContain("gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: '40%' }");
+    expect(source).toContain('pressed && !disabled ? null : <View style={[styles.gloss, gloss]} />');
+    expect(source).toContain('translateY: pressed && !disabled ? 2 : 0');
+    // Four type sizes, two weights (docs/08).
+    expect(source).toContain('fontSize: 24');
+    expect(source).toContain('fontSize: 18');
+    expect(source).toContain('fontSize: 15');
+    expect(source).toContain('fontSize: 13');
+    expect(source).not.toContain('fontSize: 14');
+    expect(source).not.toContain('fontSize: 11');
   });
 
   it('offers cancel, reset and save', () => {
     const source = board();
 
-    expect(source).toContain('>CANCEL<');
-    expect(source).toContain('>RESET<');
+    expect(source).toContain('label="CANCEL"');
+    expect(source).toContain('label="RESET"');
     // Just SAVE: the header counter says how many, the cards say which.
-    expect(source).toContain('>SAVE</Text>');
+    expect(source).toContain('label="SAVE"');
     expect(source).not.toContain('SAVE{staged');
+    // Blue for confirm, grey for secondary and disabled (docs/08 colour meaning).
+    expect(source).toContain('tone="blue"');
+    expect(source).toContain('tone="grey"');
     expect(source).toContain('setPlan(EMPTY_SUBSTITUTION_PLAN)');
     expect(source).toContain('onPress={onCancel}');
     expect(source).toContain('onPress={reset}');

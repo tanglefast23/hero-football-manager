@@ -163,6 +163,38 @@ export function filledShirtLabel(outgoingName: string): string {
   return `ON FOR ${outgoingName.toUpperCase()}`;
 }
 
+function countWord(count: number): string {
+  const words = ['no', 'one', 'two', 'three', 'four', 'five'];
+  return words[count] ?? String(count);
+}
+
+/**
+ * The board's standing note. docs/08's feedback contract requires that anything
+ * unavailable explains itself rather than silently refusing, so the board always
+ * states what is left to spend instead of leaving a dead drag to be interpreted.
+ */
+export function budgetNote(plan: SubstitutionPlan, substitutionsRemaining: number): string {
+  const left = substitutionsRemaining - plan.swaps.length;
+  if (left <= 0) return 'No substitutions left this match.';
+  const word = countWord(left);
+  return `${word.charAt(0).toUpperCase()}${word.slice(1)} substitution${left === 1 ? '' : 's'} left.`;
+}
+
+/**
+ * Why a bench card cannot take the dragged player, in three words or fewer. Null
+ * when it can. Shown on the card itself while a drag is live, so the reason sits
+ * where the refusal is rather than in a message elsewhere.
+ */
+export function ineligibleTag(
+  cardIsKeeper: boolean,
+  draggedIsKeeper: boolean,
+  budgetSpent: boolean,
+): string | null {
+  if (cardIsKeeper !== draggedIsKeeper) return cardIsKeeper ? 'KEEPERS ONLY' : 'NEEDS A KEEPER';
+  if (budgetSpent) return 'NO SUBS LEFT';
+  return null;
+}
+
 /** Nothing to save until something is staged; there is no invalid plan. */
 export function canSave(plan: SubstitutionPlan): boolean {
   return plan.swaps.length > 0;
