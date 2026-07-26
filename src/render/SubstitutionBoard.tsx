@@ -32,8 +32,10 @@ import {
 
 /** Below this the modal stacks and lists two names per row. */
 const WIDE_BOARD_MIN_WIDTH = 900;
-/** A release inside this radius is a tap, not a drag. */
+/** Movement under this counts as a still finger rather than a drag. */
 const TAP_SLOP = 8;
+/** Hold this long to lift a card. Shorter swipes scroll the list instead. */
+const LIFT_DELAY_MS = 180;
 
 interface Rect { x: number; y: number; width: number; height: number }
 
@@ -273,7 +275,9 @@ export function SubstitutionBoard({
                       accessibilityLabel={incoming === undefined
                         ? `${player.name}, ${player.role}, ${Math.round(player.condition)} percent energy. Drag onto a bench player to trade them.`
                         : `${incoming.name}, ${incoming.role}, on for ${player.name}. Drag onto ${player.name} on the bench to undo.`}
-                      style={incoming === undefined ? styles.card : styles.cardSwapped}
+                      // A swapped shirt is the same box as every other card; only
+                      // what is written inside it changes.
+                      style={styles.card}
                     >
                       <View style={styles.cardCopy}>
                         <Text numberOfLines={1} style={incoming === undefined ? styles.name : styles.nameSwapped}>
@@ -393,7 +397,9 @@ export function SubstitutionBoard({
             onPress={save}
             style={[styles.button, styles.saveButton, saveable ? null : styles.buttonBlocked]}
           >
-            <Text style={styles.saveText}>SAVE{staged > 0 ? ` ${staged}` : ''}</Text>
+            {/* Just SAVE. The counter up top already says how many, and the
+                cards themselves show which. */}
+            <Text style={styles.saveText}>SAVE</Text>
           </SfxPressable>
         </View>
       </View>
@@ -431,34 +437,61 @@ function DragCard({
   children: React.ReactNode;
 }) {
   const offset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const [dragging, setDragging] = useState(false);
+  const [lifted, setLifted] = useState(false);
+  const liftedRef = useRef(false);
+  const liftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * The responder is built once, so it must never read props directly: the plan
+   * it closed over would be the plan from the first render, and staging a second
+   * swap against that stale copy would silently erase the first.
+   */
+  const latest = useRef({ source, onDragStart, onDragEnd, onDrop });
+  latest.current = { source, onDragStart, onDragEnd, onDrop };
+
+  const release = useCallback(() => {
+    if (liftTimer.current !== null) clearTimeout(liftTimer.current);
+    liftTimer.current = null;
+    liftedRef.current = false;
+    setLifted(false);
+    offset.setValue({ x: 0, y: 0 });
+    latest.current.onDragEnd();
+  }, [offset]);
+
   const responder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_event, gesture) => (
-        Math.abs(gesture.dx) > 2 || Math.abs(gesture.dy) > 2
-      ),
       onPanResponderGrant: () => {
-        setDragging(true);
-        onDragStart(source);
+        // Held, not merely touched. A card that lifted on contact would swallow
+        // every swipe and leave the list unscrollable on a phone.
+        liftTimer.current = setTimeout(() => {
+          liftedRef.current = true;
+          setLifted(true);
+          latest.current.onDragStart(latest.current.source);
+        }, LIFT_DELAY_MS);
       },
+      // Until the card lifts, the list may take the gesture back and scroll;
+      // once lifted, it may not.
+      onPanResponderTerminationRequest: () => !liftedRef.current,
       onPanResponderMove: (_event, gesture) => {
+        if (!liftedRef.current) {
+          // Moved before the hold completed: that is a scroll, not a drag.
+          if (Math.abs(gesture.dx) > TAP_SLOP || Math.abs(gesture.dy) > TAP_SLOP) {
+            if (liftTimer.current !== null) clearTimeout(liftTimer.current);
+            liftTimer.current = null;
+          }
+          return;
+        }
         offset.setValue({ x: gesture.dx, y: gesture.dy });
       },
       onPanResponderRelease: (_event, gesture) => {
-        setDragging(false);
-        onDragEnd();
-        offset.setValue({ x: 0, y: 0 });
-        // A tap is not a drop: with every swap needing a partner, there is no
-        // sensible one-tap action, so a tap deliberately does nothing.
-        if (Math.abs(gesture.dx) < TAP_SLOP && Math.abs(gesture.dy) < TAP_SLOP) return;
-        onDrop(source, gesture.moveX, gesture.moveY);
+        const dropping = liftedRef.current;
+        const { source: from, onDrop: drop } = latest.current;
+        release();
+        // A tap never drops: every swap needs a partner, so there is no sensible
+        // one-tap action.
+        if (dropping) drop(from, gesture.moveX, gesture.moveY);
       },
-      onPanResponderTerminate: () => {
-        setDragging(false);
-        onDragEnd();
-        offset.setValue({ x: 0, y: 0 });
-      },
+      onPanResponderTerminate: () => release(),
     }),
   ).current;
 
@@ -473,7 +506,7 @@ function DragCard({
         style,
         compact ? styles.gridCell : null,
         lit ? styles.cardLit : null,
-        dragging ? styles.cardDragging : null,
+        lifted ? styles.cardDragging : null,
         { transform: offset.getTranslateTransform() },
       ]}
     >
@@ -572,17 +605,6 @@ const styles = StyleSheet.create({
     borderBottomColor: '#16121f',
     borderRadius: 3,
     backgroundColor: '#3a3350',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  cardSwapped: {
-    minHeight: 56,
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#edb54a',
-    borderStyle: 'dashed',
-    borderRadius: 3,
-    backgroundColor: 'rgba(237,181,74,0.12)',
     paddingHorizontal: 10,
     paddingVertical: 8,
   },

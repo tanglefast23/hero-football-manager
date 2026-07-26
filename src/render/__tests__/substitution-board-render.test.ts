@@ -46,6 +46,32 @@ describe('substitution board layout', () => {
     expect(source).not.toContain('DashPathEffect');
   });
 
+  it('scrolls the list unless a card is held, and never drags on contact', () => {
+    const source = board();
+
+    // A card that lifted on contact would swallow every swipe and leave a phone
+    // list unscrollable, so lifting takes a hold and the list may take the
+    // gesture back until then.
+    expect(source).toContain('const LIFT_DELAY_MS = 180');
+    expect(source).toContain('onPanResponderTerminationRequest: () => !liftedRef.current');
+    expect(source).toContain('liftTimer.current = setTimeout(');
+    expect(source).toContain('if (!liftedRef.current) {');
+    // Only a lifted card drops; a tap is deliberately nothing.
+    expect(source).toContain('if (dropping) drop(from, gesture.moveX, gesture.moveY);');
+  });
+
+  it('reads its handlers from a ref so a second swap cannot erase the first', () => {
+    const source = board();
+
+    // PanResponder.create runs once. Closing over props would capture the plan
+    // from the first render, and applySwap against that stale plan would drop
+    // every swap staged before it.
+    expect(source).toContain('const latest = useRef({ source, onDragStart, onDragEnd, onDrop })');
+    expect(source).toContain('latest.current = { source, onDragStart, onDragEnd, onDrop }');
+    expect(source).toContain('latest.current.onDragStart(latest.current.source)');
+    expect(source).toContain('const { source: from, onDrop: drop } = latest.current;');
+  });
+
   it('measures drop targets when the drag starts, not when they lay out', () => {
     const source = board();
 
@@ -62,6 +88,10 @@ describe('substitution board layout', () => {
 
     expect(source).toContain('cardDimmed');
     expect(source).toContain('COMING OFF');
+    // A swapped shirt is the same box as any other card — no dotted border, no
+    // tinted background. Only its contents differ.
+    expect(source).not.toContain('cardSwapped');
+    expect(source).not.toContain("borderStyle: 'dashed'");
     expect(source).toContain('benchEntries');
     // A leaver's card takes the drop that undoes its own swap and nothing else.
     expect(source).toContain('return target === `field:${source.slot}`;');
@@ -83,6 +113,9 @@ describe('substitution board layout', () => {
 
     expect(source).toContain('>CANCEL<');
     expect(source).toContain('>RESET<');
+    // Just SAVE: the header counter says how many, the cards say which.
+    expect(source).toContain('>SAVE</Text>');
+    expect(source).not.toContain('SAVE{staged');
     expect(source).toContain('setPlan(EMPTY_SUBSTITUTION_PLAN)');
     expect(source).toContain('onPress={onCancel}');
     expect(source).toContain('onPress={reset}');
