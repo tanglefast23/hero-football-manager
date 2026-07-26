@@ -639,7 +639,7 @@ describe('M1 app store integration', () => {
       if (score === undefined) throw new Error(`missing played fixture ${replay.fixtureId}`);
       expect(runReplay(replay.envelope).score).toEqual(score);
     }
-  }, 120000);
+  }, 300000);
 
   it('resumes a saved final-match awakening and continues to the season review', async () => {
     const database = new FakePersistenceDatabase();
@@ -815,8 +815,10 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.week).toBeGreaterThan(advancedWeek);
     // Each queued save serialises a whole career synchronously, so this needs the
     // same explicit budget as the journey-checkpoint test above rather than the
-    // 5s default.
-  }, 120000);
+    // 5s default. Sized for CI, not one desk: store.test.ts runs ~87s on the
+    // author's Mac and ~257s on a GitHub runner, so 120s passed locally and
+    // timed out there the moment the suite could finish at all.
+  }, 300000);
 
   it('restores the season backup when the live save stops loading', async () => {
     const database = new FakePersistenceDatabase();
