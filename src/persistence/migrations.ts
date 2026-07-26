@@ -65,6 +65,18 @@ const MIGRATIONS: readonly Migration[] = [
       )`,
     ],
   },
+  // The backup described where in a career it was taken but never which career,
+  // so a replacement career that opened on the same season number left the old
+  // career's copy in place — and "Restore backup" would hand it back. The seed
+  // is the same career identity the replay namespace uses. Old rows migrate as
+  // NULL, which reads as "belongs to no career this build can name" and so is
+  // replaced by the next save.
+  {
+    version: 5,
+    statements: [
+      'ALTER TABLE career_save_backups ADD COLUMN saved_career_seed INTEGER',
+    ],
+  },
 ];
 
 export const PERSISTENCE_SCHEMA_VERSION = MIGRATIONS.length;

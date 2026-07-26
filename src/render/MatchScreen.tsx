@@ -444,6 +444,11 @@ export function MatchScreen({
   // End-of-match hold deadline (RAF/performance.now() timebase), set once
   // when the loop first sees phase === 'fulltime' — see FULLTIME_HOLD_MS.
   const fulltimeDeadlineRef = useRef<number | null>(null);
+  // Whether the result has already been handed to the career. The loop effect
+  // restarts on a settings change (Reduce Motion, cut-in mode), and a restart
+  // after the deadline has passed would otherwise re-hand the same result on
+  // its first frame.
+  const handedOffRef = useRef(false);
   // Render-only tackle poses keyed by player index. Slide travel itself is now
   // deterministic sim movement; this layer only tilts/recovers the sprite.
   const actionRef = useRef<Record<number, PlayerActionAnimation>>({});
@@ -1330,6 +1335,8 @@ export function MatchScreen({
           fulltimeDeadlineRef.current = now + (reduceMotion ? 0 : FULLTIME_HOLD_MS);
         }
         if (now >= fulltimeDeadlineRef.current) {
+          if (handedOffRef.current) return;
+          handedOffRef.current = true;
           onDone(s);
           return;
         }

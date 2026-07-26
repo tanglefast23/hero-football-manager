@@ -961,10 +961,15 @@ describe('M1 app store integration', () => {
     ]);
   });
 
-  it('does not overwrite the career when replay reset fails', async () => {
-    let careerSaveCalls = 0;
+  it('keeps the existing career when a replacement career cannot be saved', async () => {
+    startCreatedCareer(111);
+    const existingCareer = useM1Store.getState().career!;
+    useM1Store.setState(useM1Store.getInitialState(), true);
+
+    const savedSeeds: number[] = [];
     const careerRepository = stubCareerRepository({
-      async save() { careerSaveCalls += 1; },
+      async load() { return existingCareer; },
+      async save(career) { savedSeeds.push(career.careerSeed); },
     });
     const replayRepository: ReplayRepository = {
       async save() {},
@@ -978,16 +983,48 @@ describe('M1 app store integration', () => {
       replayRepository,
     );
 
-    useM1Store.getState().startNewCareer(4242);
+    useM1Store.getState().startNewCareer(222);
+    // Queued while the replacement is still only in memory: its own save has to
+    // be refused too, or it lands on the slot the failure just preserved.
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
     await waitFor(() => useM1Store.getState().error?.includes('reset failed') ?? false);
-    expect(useM1Store.getState().persistenceLoadError).toContain('reset failed');
-
-    // Even an action queued before the UI can render the fatal persistence
-    // error must not write the replacement career over the recoverable save.
-    useM1Store.getState().advanceCareer();
     await flushMicrotasks();
 
-    expect(careerSaveCalls).toBe(0);
+    // The write that failed is the one that would have replaced the save, so the
+    // slot still holds career 111 — and the recovery screen that offers to
+    // delete that slot is the wrong answer. Play goes back to it instead.
+    expect(useM1Store.getState().persistenceLoadError).toBeNull();
+    expect(useM1Store.getState().career?.careerSeed).toBe(111);
+    expect(useM1Store.getState().hasSavedCareer).toBe(true);
+    expect(useM1Store.getState().screen).toBe('management');
+    expect(savedSeeds).not.toContain(222);
+  });
+
+  it('warns rather than rolling back when there was no career to replace', async () => {
+    const careerRepository = stubCareerRepository();
+    const replayRepository: ReplayRepository = {
+      async save() {},
+      async load() { return null; },
+      async listForCareer() { return []; },
+      async delete() {},
+      async deleteAllForCareer() { throw new Error('reset failed'); },
+    };
+    await useM1Store.getState().initializePersistence(
+      careerRepository,
+      replayRepository,
+    );
+
+    useM1Store.getState().startNewCareer(4242);
+    await waitFor(() => useM1Store.getState().saveWarning !== null);
+
+    // An empty slot has nothing to protect, so this is the ordinary unsaved
+    // career: keep playing, with the banner and its retry.
+    expect(useM1Store.getState().persistenceLoadError).toBeNull();
+    expect(useM1Store.getState().career?.careerSeed).toBe(4242);
+    expect(useM1Store.getState().saveWarning).toContain('not being saved');
   });
 
   it('persists a complete Quick Result replay envelope for the user fixture', async () => {
