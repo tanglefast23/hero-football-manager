@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   PanResponder,
@@ -38,6 +38,8 @@ const WIDE_BOARD_MIN_WIDTH = 900;
 const TAP_SLOP = 8;
 /** Hold this long to lift a card. Shorter swipes scroll the list instead. */
 const LIFT_DELAY_MS = 180;
+/** How long the hover and lift emphasis takes to arrive. */
+const EMPHASIS_MS = 110;
 
 interface Rect { x: number; y: number; width: number; height: number }
 
@@ -92,6 +94,8 @@ export function SubstitutionBoard({
   const wide = width >= WIDE_BOARD_MIN_WIDTH;
   const [plan, setPlan] = useState<SubstitutionPlan>(EMPTY_SUBSTITUTION_PLAN);
   const [drag, setDrag] = useState<DragSource | null>(null);
+  /** The eligible card currently under the carried one, if any. */
+  const [dropTarget, setDropTarget] = useState<CardId | null>(null);
   const cardViews = useRef(new Map<CardId, View>()).current;
   const cardRects = useRef(new Map<CardId, Rect>()).current;
 
@@ -215,7 +219,17 @@ export function SubstitutionBoard({
       measureCards();
       setDrag(source);
     },
-    onDragEnd: () => setDrag(null),
+    onDragEnd: () => {
+      setDrag(null);
+      setDropTarget(null);
+    },
+    // Every eligible card lights up, but only the one actually under the finger
+    // promises the trade — the same hit test the drop itself uses, so the badge
+    // can never name a card the release would miss.
+    onDragMove: (source: DragSource, pageX: number, pageY: number) => {
+      const over = cardAt(pageX, pageY);
+      setDropTarget(over !== null && over !== source.id && isEligible(source, over) ? over : null);
+    },
     onDrop: (source: DragSource, pageX: number, pageY: number) => {
       resolveDrop(source, cardAt(pageX, pageY));
     },
@@ -259,8 +273,16 @@ export function SubstitutionBoard({
           contentContainerStyle={styles.scrollContent}
           style={styles.scroll}
         >
+          {/* The carried card can only rise above its own column's siblings, so
+              the column holding it is raised too — otherwise a starter dragged
+              towards the bench slid underneath the bench column, which paints
+              after it. */}
           <View style={wide ? styles.columns : styles.columnsStacked}>
-            <View style={[styles.column, styles.fieldColumn]}>
+            <View style={[
+              styles.column,
+              styles.fieldColumn,
+              drag?.kind === 'field' ? styles.columnCarrying : null,
+            ]}>
               <Text style={styles.columnTitle}>FIELD</Text>
               <Text style={styles.columnHint}>MOST TIRED FIRST</Text>
               <View style={wide ? undefined : styles.grid}>
@@ -279,7 +301,9 @@ export function SubstitutionBoard({
                         isKeeper: (incoming?.role ?? player.role) === 'GK',
                       }}
                       lit={drag !== null && drag.id !== id && isEligible(drag, id)}
+                      hint={dropTarget === id ? 'SWAP' : null}
                       compact={!wide}
+                      holdToLift={!wide}
                       registerCard={registerCard}
                       {...dragProps}
                       accessibilityLabel={incoming === undefined
@@ -317,7 +341,7 @@ export function SubstitutionBoard({
               </View>
             </View>
 
-            <View style={styles.column}>
+            <View style={[styles.column, drag !== null && drag.kind !== 'field' ? styles.columnCarrying : null]}>
               <Text style={styles.columnTitle}>BENCH</Text>
               <Text style={styles.columnHint}>FRESH LEGS ENTER AT 100%</Text>
               {rows.length === 0 ? (
@@ -339,7 +363,9 @@ export function SubstitutionBoard({
                           id={id}
                           source={{ id, kind: 'sub', subId: entry.sub.id, isKeeper: entry.sub.role === 'GK' }}
                           lit={lit}
+                          hint={dropTarget === id ? 'SWAP' : null}
                           compact={!wide}
+                          holdToLift={!wide}
                           registerCard={registerCard}
                           {...dragProps}
                           accessibilityLabel={`${entry.sub.name}, ${entry.sub.role}, fresh. Hold and drag onto a player on the field to trade them.`}
@@ -353,6 +379,15 @@ export function SubstitutionBoard({
                             <Text style={reason === null ? styles.meta : styles.metaBlocked}>
                               {reason ?? '100%'}
                             </Text>
+                            {/* A full green bar, so a bench player reads against
+                                the field on the same scale instead of asking you
+                                to compare a bar with a bare number. */}
+                            <View style={styles.energyTrack}>
+                              <View style={[
+                                styles.energyFill,
+                                { backgroundColor: ENERGY_FILL_COLORS.green, width: '100%' },
+                              ]} />
+                            </View>
                           </View>
                         </DragCard>
                       );
@@ -364,7 +399,9 @@ export function SubstitutionBoard({
                         id={id}
                         source={{ id, kind: 'off', slot: entry.starter.index, isKeeper: entry.starter.role === 'GK' }}
                         lit={drag !== null && drag.id !== id && isEligible(drag, id)}
+                        hint={dropTarget === id ? 'KEEP ON' : null}
                         compact={!wide}
+                        holdToLift={!wide}
                         registerCard={registerCard}
                         {...dragProps}
                         accessibilityLabel={`${entry.starter.name} is coming off. Hold and drag onto their shirt on the field to keep them on.`}
@@ -480,9 +517,12 @@ function DragCard({
   id,
   source,
   lit,
+  hint,
   compact,
+  holdToLift,
   registerCard,
   onDragStart,
+  onDragMove,
   onDragEnd,
   onDrop,
   accessibilityLabel,
@@ -492,9 +532,14 @@ function DragCard({
   id: CardId;
   source: DragSource;
   lit: boolean;
+  /** Shown over this card while a compatible partner is carried onto it. */
+  hint: string | null;
   compact: boolean;
+  /** The stacked board scrolls, so there a card must be held before it lifts. */
+  holdToLift: boolean;
   registerCard: (id: CardId) => (view: View | null) => void;
   onDragStart: (source: DragSource) => void;
+  onDragMove: (source: DragSource, pageX: number, pageY: number) => void;
   onDragEnd: () => void;
   onDrop: (source: DragSource, pageX: number, pageY: number) => void;
   accessibilityLabel: string;
@@ -503,6 +548,7 @@ function DragCard({
 }) {
   const offset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const [lifted, setLifted] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const liftedRef = useRef(false);
   const liftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
@@ -510,8 +556,22 @@ function DragCard({
    * it closed over would be the plan from the first render, and staging a second
    * swap against that stale copy would silently erase the first.
    */
-  const latest = useRef({ source, onDragStart, onDragEnd, onDrop });
-  latest.current = { source, onDragStart, onDragEnd, onDrop };
+  const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, holdToLift });
+  latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, holdToLift };
+
+  /**
+   * 0 at rest, 1 under the pointer, 2 while carried. One value so a card cannot
+   * be caught between two competing animations.
+   */
+  const emphasis = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(emphasis, {
+      toValue: lifted ? 2 : hovered ? 1 : 0,
+      duration: EMPHASIS_MS,
+      useNativeDriver: true,
+    }).start();
+  }, [emphasis, hovered, lifted]);
+  const scale = emphasis.interpolate({ inputRange: [0, 1, 2], outputRange: [1, 1.02, 1.06] });
 
   const release = useCallback(() => {
     if (liftTimer.current !== null) clearTimeout(liftTimer.current);
@@ -522,31 +582,41 @@ function DragCard({
     latest.current.onDragEnd();
   }, [offset]);
 
+  const lift = useCallback(() => {
+    if (liftTimer.current !== null) clearTimeout(liftTimer.current);
+    liftTimer.current = null;
+    liftedRef.current = true;
+    setLifted(true);
+    latest.current.onDragStart(latest.current.source);
+  }, []);
+
   const responder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         // Held, not merely touched. A card that lifted on contact would swallow
         // every swipe and leave the list unscrollable on a phone.
-        liftTimer.current = setTimeout(() => {
-          liftedRef.current = true;
-          setLifted(true);
-          latest.current.onDragStart(latest.current.source);
-        }, LIFT_DELAY_MS);
+        liftTimer.current = setTimeout(lift, LIFT_DELAY_MS);
       },
       // Until the card lifts, the list may take the gesture back and scroll;
       // once lifted, it may not.
       onPanResponderTerminationRequest: () => !liftedRef.current,
       onPanResponderMove: (_event, gesture) => {
         if (!liftedRef.current) {
-          // Moved before the hold completed: that is a scroll, not a drag.
-          if (Math.abs(gesture.dx) > TAP_SLOP || Math.abs(gesture.dy) > TAP_SLOP) {
+          if (Math.abs(gesture.dx) <= TAP_SLOP && Math.abs(gesture.dy) <= TAP_SLOP) return;
+          // Moving early means a scroll on the stacked board, where the columns
+          // are one long list — but on the wide board nothing scrolls sideways
+          // and a mouse always moves before the hold elapses, so waiting there
+          // just made the card refuse to pick up. Movement IS the drag.
+          if (latest.current.holdToLift) {
             if (liftTimer.current !== null) clearTimeout(liftTimer.current);
             liftTimer.current = null;
+            return;
           }
-          return;
+          lift();
         }
         offset.setValue({ x: gesture.dx, y: gesture.dy });
+        latest.current.onDragMove(latest.current.source, gesture.moveX, gesture.moveY);
       },
       onPanResponderRelease: (_event, gesture) => {
         const dropping = liftedRef.current;
@@ -564,6 +634,10 @@ function DragCard({
     <Animated.View
       ref={registerCard(id)}
       {...responder.panHandlers}
+      // Hover is a pointer affordance and simply never fires on a touch screen,
+      // so the board loses nothing there.
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
       accessible
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
@@ -571,10 +645,17 @@ function DragCard({
         style,
         compact ? styles.gridCell : null,
         lit ? styles.cardLit : null,
+        hovered && !lifted ? styles.cardHovered : null,
         lifted ? styles.cardLifted : null,
-        { transform: offset.getTranslateTransform() },
+        { transform: [...offset.getTranslateTransform(), { scale }] },
       ]}
     >
+      {hint === null ? null : (
+        <View pointerEvents="none" style={styles.dropHint}>
+          <Text style={styles.dropHintLabel}>{hint}</Text>
+          <Text style={styles.dropHintTail}>▼</Text>
+        </View>
+      )}
       {children}
     </Animated.View>
   );
@@ -691,7 +772,50 @@ const styles = StyleSheet.create({
     shadowRadius: 7,
     elevation: 10,
   },
-  cardLifted: { borderColor: '#3f6fb5', zIndex: 40, elevation: 14 },
+  // Under the pointer but not yet carried: enough to say "this one is live",
+  // deliberately weaker than cardLit so a drop target still wins the eye.
+  cardHovered: {
+    borderColor: '#5a8fd6',
+    boxShadow: '0 0 0 2px rgba(90, 143, 214, 0.25)',
+  },
+  cardLifted: {
+    borderColor: '#3f6fb5',
+    zIndex: 40,
+    elevation: 14,
+    boxShadow: '0 8px 0 0 rgba(36, 31, 46, 0.30), 0 0 0 3px rgba(90, 143, 214, 0.55)',
+    shadowColor: '#241f2e',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+  },
+  /**
+   * The macOS-trash promise: the target says what the release will do, above
+   * the card and pointing down at it, so the badge never covers the name you
+   * are aiming for.
+   */
+  dropHint: {
+    position: 'absolute',
+    top: -30,
+    alignSelf: 'center',
+    alignItems: 'center',
+    zIndex: 60,
+  },
+  dropHintLabel: {
+    color: '#f4f1ea',
+    fontFamily: PIXEL_BOLD,
+    fontSize: 12,
+    letterSpacing: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 2,
+    borderColor: '#f4f1ea',
+    borderRadius: 4,
+    backgroundColor: '#3f6fb5',
+    overflow: 'hidden',
+  },
+  dropHintTail: { color: '#3f6fb5', fontSize: 12, lineHeight: 10, marginTop: -1 },
+  /** Raised so the card being carried out of it clears the other column. */
+  columnCarrying: { zIndex: 30 },
   cardCopy: { minWidth: 0 },
   name: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 15 },
   nameSwapped: { color: '#3f6fb5', fontFamily: PIXEL_BOLD, fontSize: 15 },

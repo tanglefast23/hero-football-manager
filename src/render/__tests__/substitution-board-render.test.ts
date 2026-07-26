@@ -69,10 +69,61 @@ describe('substitution board layout', () => {
     // PanResponder.create runs once. Closing over props would capture the plan
     // from the first render, and applySwap against that stale plan would drop
     // every swap staged before it.
-    expect(source).toContain('const latest = useRef({ source, onDragStart, onDragEnd, onDrop })');
-    expect(source).toContain('latest.current = { source, onDragStart, onDragEnd, onDrop }');
+    expect(source).toContain('const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, holdToLift })');
+    expect(source).toContain('latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, holdToLift }');
     expect(source).toContain('latest.current.onDragStart(latest.current.source)');
     expect(source).toContain('const { source: from, onDrop: drop } = latest.current;');
+    // Every handler the responder calls has to come back through the ref.
+    expect(source).not.toMatch(/onPanResponder\w+: \([^)]*\) => \{[^}]*\bonDrag(Start|Move|End)\(/);
+  });
+
+  it('lifts on movement where nothing scrolls sideways, and on a hold where it does', () => {
+    const source = board();
+
+    // A mouse always moves before a 180ms hold elapses, so on the wide board the
+    // hold cancelled essentially every drag attempt. Movement is the drag there;
+    // the stacked board is one scrolling list, so it keeps the hold.
+    expect(source).toContain('holdToLift={!wide}');
+    expect(source).toContain('if (latest.current.holdToLift) {');
+    expect(source).toContain('lift();');
+    // The early-move branch must not still be an unconditional cancel.
+    expect(source).not.toContain('// Moved before the hold completed: that is a scroll, not a drag.');
+  });
+
+  it('promises the trade on the card actually under the carried one', () => {
+    const source = board();
+
+    // The badge and the drop must agree, so both go through cardAt.
+    expect(source).toContain('onDragMove: (source: DragSource, pageX: number, pageY: number) => {');
+    expect(source).toContain('const over = cardAt(pageX, pageY);');
+    expect(source).toContain('isEligible(source, over) ? over : null');
+    expect(source).toContain("hint={dropTarget === id ? 'SWAP' : null}");
+    // Putting a leaver back is not a swap, so it says what it really does.
+    expect(source).toContain("hint={dropTarget === id ? 'KEEP ON' : null}");
+    expect(source).toContain('dropHint:');
+  });
+
+  it('raises the column a card is carried out of, and lights cards under the pointer', () => {
+    const source = board();
+
+    // zIndex only orders siblings: without raising the column, a starter dragged
+    // toward the bench slid under the bench column, which paints after it.
+    expect(source).toContain('columnCarrying');
+    expect(source).toContain("drag?.kind === 'field' ? styles.columnCarrying : null");
+    expect(source).toContain('onPointerEnter={() => setHovered(true)}');
+    expect(source).toContain('onPointerLeave={() => setHovered(false)}');
+    expect(source).toContain('cardHovered');
+    // Rest, hover, carried — one value, so two animations cannot fight.
+    expect(source).toContain('outputRange: [1, 1.02, 1.06]');
+  });
+
+  it('shows the bench on the same energy scale as the field', () => {
+    const source = board();
+
+    // A bare "100%" beside a row of bars asks the eye to compare a number with
+    // a bar; the bench draws its own full green track instead.
+    expect(source).toContain('backgroundColor: ENERGY_FILL_COLORS.green');
+    expect(source.match(/styles\.energyTrack/g)?.length).toBe(2);
   });
 
   it('measures drop targets when the drag starts, not when they lay out', () => {
