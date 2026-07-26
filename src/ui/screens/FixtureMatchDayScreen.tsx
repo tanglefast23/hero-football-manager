@@ -9,6 +9,14 @@ import type { MatchDayViewModel } from '../models';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { PixelPortrait } from '../components/PixelPortrait';
+
+/**
+ * Three pixels per sprite pixel: a 72x87 face, which fits a w-28 pitch cell
+ * beside its shirt and full name without the row outgrowing the pitch box.
+ * Whole number on purpose — a fractional scale smears a 1-bit face.
+ */
+const PITCH_PORTRAIT_SCALE = 3;
 
 export interface FixtureMatchDayScreenProps {
   viewModel: MatchDayViewModel;
@@ -94,33 +102,66 @@ export function FixtureMatchDayScreen({
       <Text className="mb-3 text-sm leading-5 text-paper/70">
         Tap a starter, then choose an available player in the same role. Every change is saved for future matches.
       </Text>
-      <View className="border-[3px] border-ink bg-pitch px-3 py-4">
+      {/* Desktop has the room to show who these people are: a face, a full name
+          and the shirt, in a cell wide enough that no name is clipped. A phone
+          keeps the compact shirt-number grid, where a portrait per starter would
+          not fit and eleven Skia canvases are not worth the frame. */}
+      <View className={wide
+        ? 'border-[3px] border-ink bg-pitch px-4 py-6'
+        : 'border-[3px] border-ink bg-pitch px-3 py-4'}>
         <View className="absolute inset-x-3 top-1/2 h-px bg-paper/50" />
         <View className="absolute left-1/2 top-0 h-full w-px bg-paper/40" />
         {ROLE_ORDER.map(role => {
           const players = viewModel.lineup.filter(player => player.role === role);
           return (
-            <View key={role} className="my-2 flex-row justify-center gap-2">
+            <View key={role} className={wide
+              ? 'my-3 flex-row justify-center gap-4'
+              : 'my-2 flex-row justify-center gap-2'}>
               {players.map(player => (
                 <Pressable
                   key={player.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`${player.name}, starting ${player.role}. Select to replace.`}
+                  accessibilityLabel={`${player.name}, starting ${player.role}, shirt ${player.shirtNumber}. Select to replace.`}
                   accessibilityState={{ selected: player.id === selectedStarterId }}
                   onPress={() => setSelectedStarterId(current => current === player.id ? null : player.id)}
                   className={player.id === selectedStarterId
-                    ? 'w-14 items-center border-2 border-blue-dark bg-blue-light p-1'
-                    : 'w-14 items-center border-2 border-transparent p-1'}
+                    ? (wide ? 'w-28 items-center border-2 border-blue-dark bg-blue-light p-2' : 'w-14 items-center border-2 border-blue-dark bg-blue-light p-1')
+                    : (wide ? 'w-28 items-center border-2 border-transparent p-2' : 'w-14 items-center border-2 border-transparent p-1')}
                   style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
                 >
-                  <View className={player.isHero ? 'h-9 w-9 items-center justify-center border-2 border-gold bg-ink' : 'h-9 w-9 items-center justify-center border-2 border-paper bg-ink'}>
+                  {wide ? (
+                    <View className={player.isHero
+                      ? 'border-2 border-gold bg-blue-light'
+                      : 'border-2 border-paper bg-blue-light'}>
+                      <PixelPortrait
+                        playerId={player.id}
+                        role={player.role}
+                        lookId={player.lookId}
+                        scale={PITCH_PORTRAIT_SCALE}
+                      />
+                    </View>
+                  ) : null}
+                  <View className={wide
+                    ? (player.isHero
+                      ? 'mt-1 h-7 w-7 items-center justify-center border-2 border-gold bg-ink'
+                      : 'mt-1 h-7 w-7 items-center justify-center border-2 border-paper bg-ink')
+                    : (player.isHero
+                      ? 'h-9 w-9 items-center justify-center border-2 border-gold bg-ink'
+                      : 'h-9 w-9 items-center justify-center border-2 border-paper bg-ink')}>
                     <Text className={player.isHero ? 'font-mono text-sm text-gold' : 'font-mono text-sm text-paper'}>
                       {player.shirtNumber}
                     </Text>
                   </View>
-                  <Text className={player.id === selectedStarterId
-                    ? 'mt-1 text-center text-sm font-bold text-ink'
-                    : 'mt-1 text-center text-sm font-bold text-paper'} numberOfLines={1}>{player.name}</Text>
+                  <Text
+                    className={player.id === selectedStarterId
+                      ? 'mt-1 text-center text-sm font-bold text-ink'
+                      : 'mt-1 text-center text-sm font-bold text-paper'}
+                    // Wide cells spell the name out; the phone grid still has to
+                    // clip, because 56px cannot hold "Dario Flint".
+                    numberOfLines={wide ? 2 : 1}
+                  >
+                    {player.name}
+                  </Text>
                 </Pressable>
               ))}
             </View>

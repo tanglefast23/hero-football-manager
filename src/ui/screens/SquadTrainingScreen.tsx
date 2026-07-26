@@ -28,6 +28,35 @@ import {
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { InfoTip } from '../components/InfoTip';
+
+/**
+ * What each roster column actually means. The words are short because the
+ * heading already names the thing — the tip answers "so what?", not "what?".
+ */
+const PERSONALITY_EXPLAINER: Readonly<Record<string, string>> = {
+  // Straight off market.ts: LOVED_PITCHES, HATED_PITCHES, and the renewal ask
+  // multiplier. Nothing here is flavour — every line names a real effect.
+  FIERY: 'Wants trophies and straight talk in negotiations. Hometown sentiment turns them off.',
+  LOYAL: 'Moved by hometown ties and flattery, put off by money talk. Renews for about 10% less.',
+  GREEDY: 'Money and trophies, in that order. Hometown ties mean nothing, and they renew for about 20% more.',
+  JOKER: 'Warms to flattery and hometown ties. Blunt talk falls flat.',
+  PROFESSIONAL: 'Responds to straight talk and trophy promises. Flattery gets you nowhere.',
+  TIMID: 'Reassured by hometown ties and straight talk. Big trophy promises only spook them.',
+};
+
+function personalityExplainer(personality: string): string {
+  return PERSONALITY_EXPLAINER[personality.toUpperCase().replace('-', '_')]
+    ?? 'Shapes which arguments land in contract talks.';
+}
+
+const COLUMN_EXPLAINER: Readonly<Record<SquadSortKey, string>> = {
+  player: 'Name, position, and whether they start.',
+  role: 'Where they play: keeper, defence, midfield or attack.',
+  overall: 'Their ability right now, out of 99. It is what they bring to Saturday.',
+  potential: 'How good they could still become. A high grade trains faster and further.',
+  condition: 'Fresh legs. Training and matches drain it; low condition risks injury.',
+};
 
 /**
  * Which drill in the career earns the condition warning. Not the first: the
@@ -521,7 +550,13 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
           <PixelText className="text-sm uppercase tracking-wide text-ink/50">Personality</PixelText>
-          <Text className="text-base font-bold text-ink">{selectedPlayer.personality}</Text>
+          <InfoTip
+            align="right"
+            text={personalityExplainer(selectedPlayer.personality)}
+            accessibilityLabel={`Personality: ${selectedPlayer.personality}. ${personalityExplainer(selectedPlayer.personality)}`}
+          >
+            <Text className="text-base font-bold text-ink">{selectedPlayer.personality}</Text>
+          </InfoTip>
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
           <PixelText className="text-sm uppercase tracking-wide text-ink/50">Fame</PixelText>
@@ -574,12 +609,14 @@ function SquadSortHeader({
       ? 'ascending'
       : 'default order';
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Sort by ${label}, ${direction ?? 'default order'}. Next: ${nextDirection}.`}
+    <InfoTip
+      text={COLUMN_EXPLAINER[sortKey]}
+      align={align}
+      accessibilityLabel={`Sort by ${label}, ${direction ?? 'default order'}. Next: ${nextDirection}. ${COLUMN_EXPLAINER[sortKey]}`}
       onPress={() => onSort(sortKey)}
+    >
+    <View
       className={`min-h-11 flex-row items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'} ${widthClass}`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : undefined })}
     >
       <PixelText
         // A step down from the row values so the spelled-out words fit their
@@ -592,7 +629,8 @@ function SquadSortHeader({
       >
         {label}{direction === 'descending' ? ' ▼' : direction === 'ascending' ? ' ▲' : ''}
       </PixelText>
-    </Pressable>
+    </View>
+    </InfoTip>
   );
 }
 

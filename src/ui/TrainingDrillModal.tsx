@@ -334,7 +334,13 @@ export function TrainingDrillModal({
               ) : null}
             </ScrollView>
 
-            {stage === 'scene' && activeResult !== null && resultOption !== undefined ? (
+            {/* The scene stays mounted under the gain and the fireworks. It used
+                to unmount the instant the drill finished, which dropped the
+                celebration back onto the drill list it came from — the list you
+                had already left. DrillSceneOverlay guards onComplete with a ref,
+                so holding it on its last frame cannot advance the stage twice. */}
+            {(stage === 'scene' || stage === 'reveal' || stage === 'super')
+              && activeResult !== null && resultOption !== undefined ? (
               <DrillSceneOverlay
                 playerId={playerId}
                 playerName={playerName}
