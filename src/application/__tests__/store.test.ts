@@ -30,7 +30,7 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().screen).toBe('management');
     expect(useM1Store.getState().career?.players).toHaveLength(159);
     expect(useM1Store.getState().career?.onboarding?.stage).toBe('first-match');
-    for (let week = 1; week < 3; week += 1) useM1Store.getState().advanceCareer();
+    advanceToWeek(3);
     expect(useM1Store.getState().career?.week).toBe(3);
 
     useM1Store.getState().advanceCareer();
@@ -71,9 +71,7 @@ describe('M1 app store integration', () => {
 
   it('still awakens the created player after they are substituted in the first match', () => {
     startCreatedCareer(124);
-    while ((useM1Store.getState().career?.week ?? 0) < 3) {
-      useM1Store.getState().advanceCareer();
-    }
+    advanceToWeek(3);
     useM1Store.getState().advanceCareer();
     useM1Store.getState().watchMatch();
 
@@ -797,6 +795,11 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().consecutiveSaveFailures).toBe(SAVE_FAILURE_BLOCK_LIMIT);
     expect(useM1Store.getState().saveWarning).toContain('paused');
 
+    // Back to management first: the advance above raised a week review, and
+    // advanceCareer only dispatches from the shell that owns the button.
+    if (useM1Store.getState().screen === 'week-review') {
+      useM1Store.getState().continueWeekReview();
+    }
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().error).toContain('could not be saved');
     expect(useM1Store.getState().career?.week).toBe(advancedWeek);
@@ -1046,7 +1049,9 @@ describe('M1 app store integration', () => {
     useM1Store.setState({ replayRepository });
 
     startCreatedCareer(2468);
-    for (let week = 1; week <= 3; week += 1) useM1Store.getState().advanceCareer();
+    advanceToWeek(3);
+    // The week-3 advance opens the fixture rather than moving the clock on.
+    useM1Store.getState().advanceCareer();
     useM1Store.getState().quickResult();
     await waitFor(() => saved.length === 1);
 
@@ -1247,11 +1252,46 @@ function examplePostMatch(): PostMatchViewModel {
   };
 }
 
+/**
+ * Advances to `week` the way the app does. An advance that produces a week
+ * review leaves the store on that screen, and `advanceCareer` only dispatches
+ * from management, so the review has to be cleared before the next one.
+ *
+ * Bounded on purpose, and it reports the screen it stopped on. The unbounded
+ * `while (week < 3) advanceCareer()` this replaces spun forever the day
+ * advanceCareer gained its double-tap screen guard: jest cannot interrupt a
+ * synchronous loop, so the suite stopped finishing at all — locally and on CI —
+ * without ever naming a failing test.
+ */
+function advanceToWeek(week: number): void {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const state = useM1Store.getState();
+    if ((state.career?.week ?? 0) >= week) {
+      // Leave the caller on management, not on the review the last advance
+      // raised — a player always dismisses it, and the next advanceCareer only
+      // dispatches from there.
+      if (state.screen === 'week-review') state.continueWeekReview();
+      return;
+    }
+    if (state.screen === 'week-review') {
+      state.continueWeekReview();
+      continue;
+    }
+    if (state.screen !== 'management') {
+      throw new Error(
+        `advanceToWeek(${week}) stopped on the ${state.screen} screen at week ${state.career?.week}`,
+      );
+    }
+    state.advanceCareer();
+  }
+  throw new Error(
+    `advanceToWeek(${week}) stalled at week ${useM1Store.getState().career?.week}`,
+  );
+}
+
 function startAwakenedCareer(seed: number): void {
   startCreatedCareer(seed);
-  while ((useM1Store.getState().career?.week ?? 0) < 3) {
-    useM1Store.getState().advanceCareer();
-  }
+  advanceToWeek(3);
   useM1Store.getState().advanceCareer();
   useM1Store.getState().quickResult();
   useM1Store.getState().continueAfterAwakening();
@@ -1274,9 +1314,7 @@ async function flushMicrotasks(): Promise<void> {
 function careerWithPendingAwakening(seed: number): GameState {
   useM1Store.setState(useM1Store.getInitialState(), true);
   startCreatedCareer(seed);
-  while ((useM1Store.getState().career?.week ?? 0) < 3) {
-    useM1Store.getState().advanceCareer();
-  }
+  advanceToWeek(3);
   useM1Store.getState().advanceCareer();
   useM1Store.getState().quickResult();
   const career = useM1Store.getState().career;
