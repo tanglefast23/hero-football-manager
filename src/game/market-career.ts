@@ -303,7 +303,7 @@ export function beginCareerTransferTalks(
     throw new Error(`unknown transfer target ${playerId}`);
   }
   const player = target.player;
-  if (!target.active && !pyramidSellerCanSpare(state, playerId)) {
+  if (!sellerCanSpare(state, playerId)) {
     throw new Error(`${player.name}'s club has no other cover for that position and will not sell.`);
   }
   const quote = buyingTransferQuote(valuationPlayer(player), {
@@ -361,7 +361,7 @@ export function completeCareerTransfer(
   const player = target.player;
   // Re-checked at completion: another purchase between opening talks and
   // signing can take the club's remaining cover for this position.
-  if (!target.active && !pyramidSellerCanSpare(state, player.id)) {
+  if (!sellerCanSpare(state, player.id)) {
     throw new Error(`${player.name}'s club has no other cover for that position and will not sell.`);
   }
   assertUserCareerRosterSpace(state);
@@ -1034,32 +1034,53 @@ function updatePyramidPlayerMorale(
 }
 
 /**
- * The pyramid never refills a squad mid-career, and `startingEleven` in
- * full-career.ts must later assemble 1 GK / 4 DEF / 4 MID / 2 FWD from
- * whatever remains once the club's division becomes active. Buying a club
- * below that template therefore bricks the career at the next promotion —
- * so the club refuses to sell its last cover for a position. Active-division
- * sellers are handled separately by `replaceTransferredStarter`.
+ * Nothing refills a selling club's squad mid-career, and `startingEleven` in
+ * full-career.ts must assemble 1 GK / 4 DEF / 4 MID / 2 FWD from whatever
+ * remains every time that club's division is built as the active one. Buying a
+ * club below this template therefore bricks the career at a later season
+ * transition — so the club refuses to sell its last cover for a position.
  */
-const PYRAMID_LINEUP_TEMPLATE = [
+const SELLER_LINEUP_TEMPLATE = [
   ['GK', 1],
   ['DEF', 4],
   ['MID', 4],
   ['FWD', 2],
 ] as const;
 
-function pyramidSellerCanSpare(state: GameState, playerId: string): boolean {
+/**
+ * Both kinds of seller are checked. A pyramid club's squad is read from the
+ * stored pyramid; an active-division club's is the live roster, which
+ * `synchronizeM2ActiveDivision` writes back into the pyramid on the way into
+ * the next season — its only check there is a squad count, so a roster that is
+ * eleven-strong but two defenders short passes it and throws later. Active
+ * clubs are the likelier brick of the two: they are the league the player
+ * scouts and buys from all season.
+ */
+function sellerCanSpare(state: GameState, playerId: string): boolean {
+  const activeSellerId = state.players
+    .find(candidate => candidate.id === playerId && candidate.clubId !== state.userClubId)
+    ?.clubId;
+  if (activeSellerId !== undefined) {
+    return coversLineupTemplate(state.players.filter(candidate => (
+      candidate.clubId === activeSellerId && candidate.id !== playerId
+    )));
+  }
   if (state.m2 === undefined) return true;
   for (const division of state.m2.pyramid.divisions) {
     for (const club of division.clubs) {
       if (!club.squad.some(candidate => candidate.id === playerId)) continue;
-      const remaining = club.squad.filter(candidate => candidate.id !== playerId);
-      return PYRAMID_LINEUP_TEMPLATE.every(([role, needed]) => (
-        remaining.filter(candidate => candidate.role === role).length >= needed
-      ));
+      return coversLineupTemplate(club.squad.filter(candidate => candidate.id !== playerId));
     }
   }
   return true;
+}
+
+function coversLineupTemplate(
+  squad: ReadonlyArray<{ readonly role: CareerPlayer['role'] }>,
+): boolean {
+  return SELLER_LINEUP_TEMPLATE.every(([role, needed]) => (
+    squad.filter(candidate => candidate.role === role).length >= needed
+  ));
 }
 
 function persistCareerTransferInPyramid(
