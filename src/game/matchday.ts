@@ -1,5 +1,5 @@
 import * as simMatch from '../sim/match';
-import type { ReplayEnvelope, TeamDef } from '../sim/types';
+import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
 import type { FixtureResult, LeagueFixture } from './types';
 
 const UINT32_MAX = 4294967295;
@@ -8,26 +8,20 @@ export function quickResultForFixture(
   fixture: LeagueFixture,
   teamsByClubId: Readonly<Record<string, TeamDef>>,
 ): FixtureResult {
-  validateScheduledFixture(fixture);
-  const [home, away] = teamsForFixture(fixture, teamsByClubId);
-  const result = simMatch.runMatch(fixture.matchSeed, home, away, [], {
-    homePolicy: 'FIRE_WHEN_READY',
-    awayPolicy: 'FIRE_WHEN_READY',
-  });
-  const scorerPlayerIds = scorerIdsFromEvents(result.events, home, away);
-  return {
-    fixtureId: fixture.id,
-    homeGoals: result.score[0],
-    awayGoals: result.score[1],
-    ...(scorerPlayerIds.length === result.score[0] + result.score[1]
-      ? { scorerPlayerIds }
-      : {}),
-  };
+  return quickMatchForFixture(fixture, teamsByClubId).result;
 }
 
 export interface QuickFixtureMatch {
   result: FixtureResult;
   replay: ReplayEnvelope;
+  /**
+   * Final match state, kept so callers read participants (auto-substitutes
+   * included) exactly the way a watched match does. Discarding it forced the
+   * awakening roll to fall back to the starting XI, so a bench player could
+   * awaken after a watched match but not after Quick Result of the same
+   * fixture.
+   */
+  match: MatchState;
 }
 
 /** Runs Quick Result through the production engine and retains its replay. */
@@ -42,21 +36,31 @@ export function quickMatchForFixture(
     awayPolicy: 'FIRE_WHEN_READY',
   });
   while (match.phase !== 'fulltime') simMatch.tick(match);
+  return {
+    result: fixtureResultFrom(fixture, match),
+    replay: simMatch.envelopeFrom(match),
+    match,
+  };
+}
+
+/**
+ * Scorers resolve against the FINAL match state: after a substitution the
+ * slot's `def` is the replacement, while the original TeamDef still names the
+ * starter. Resolving against the TeamDef credited a substitute's goal to the
+ * player who had been subbed off.
+ */
+function fixtureResultFrom(fixture: LeagueFixture, match: MatchState): FixtureResult {
   const scorerPlayerIds = match.events
     .filter(event => event.kind === 'GOAL')
     .map(event => match.players[event.by]?.def.id)
     .filter((playerId): playerId is string => playerId !== undefined);
-
   return {
-    result: {
-      fixtureId: fixture.id,
-      homeGoals: match.score[0],
-      awayGoals: match.score[1],
-      ...(scorerPlayerIds.length === match.score[0] + match.score[1]
-        ? { scorerPlayerIds }
-        : {}),
-    },
-    replay: simMatch.envelopeFrom(match),
+    fixtureId: fixture.id,
+    homeGoals: match.score[0],
+    awayGoals: match.score[1],
+    ...(scorerPlayerIds.length === match.score[0] + match.score[1]
+      ? { scorerPlayerIds }
+      : {}),
   };
 }
 
@@ -156,19 +160,6 @@ function validateSuppliedResult(result: FixtureResult): void {
       throw new Error(`supplied result for fixture ${result.fixtureId} has an invalid scorer ID`);
     }
   }
-}
-
-function scorerIdsFromEvents(
-  events: ReturnType<typeof simMatch.runMatch>['events'],
-  home: TeamDef,
-  away: TeamDef,
-): string[] {
-  return events
-    .filter(event => event.kind === 'GOAL')
-    .map(event => event.by < 11
-      ? home.players[event.by]?.id
-      : away.players[event.by - 11]?.id)
-    .filter((playerId): playerId is string => playerId !== undefined);
 }
 
 function isValidGoalCount(goals: number): boolean {

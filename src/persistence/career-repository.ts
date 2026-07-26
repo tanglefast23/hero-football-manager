@@ -24,13 +24,14 @@ const LOAD_CAREER_SQL = `
 `;
 const DELETE_CAREER_SQL = 'DELETE FROM career_saves WHERE slot = ?';
 const UPSERT_BACKUP_SQL = `
-  INSERT INTO career_save_backups (slot, schema_version, state_json, saved_season, saved_week)
-  VALUES (?, ?, ?, ?, ?)
+  INSERT INTO career_save_backups (slot, schema_version, state_json, saved_season, saved_week, career_seed)
+  VALUES (?, ?, ?, ?, ?, ?)
   ON CONFLICT(slot) DO UPDATE SET
     schema_version = excluded.schema_version,
     state_json = excluded.state_json,
     saved_season = excluded.saved_season,
-    saved_week = excluded.saved_week
+    saved_week = excluded.saved_week,
+    career_seed = excluded.career_seed
 `;
 const LOAD_BACKUP_SQL = `
   SELECT schema_version, state_json, saved_season, saved_week
@@ -39,6 +40,11 @@ const LOAD_BACKUP_SQL = `
 `;
 const BACKUP_SUMMARY_SQL = `
   SELECT saved_season, saved_week
+  FROM career_save_backups
+  WHERE slot = ?
+`;
+const BACKUP_IDENTITY_SQL = `
+  SELECT saved_season, career_seed
   FROM career_save_backups
   WHERE slot = ?
 `;
@@ -77,13 +83,26 @@ export interface CareerRepository {
   checkIntegrity(): Promise<boolean>;
 }
 
+/**
+ * Production saves skip the serialize-side zod pass: it costs ~50-90ms of JS
+ * thread per store action on device, the state always came from the typed game
+ * module, and the next load still runs the full parse with the backup
+ * generation intact. Dev and test builds keep the check to catch state bugs at
+ * the moment they are written.
+ */
+const VALIDATE_ON_SAVE = typeof __DEV__ === 'undefined' || __DEV__;
+
 export async function createCareerRepository(
   database: PersistenceDatabase,
 ): Promise<CareerRepository> {
   await migrateDatabase(database);
-  // Which season the backup generation holds. Read once so the common save path
-  // stays a single INSERT instead of re-reading the stored state every week.
-  let backedUpSeason = (await readBackupSummary(database))?.season;
+  // Which season — and which career — the backup generation holds. Read once so
+  // the common save path stays a single INSERT instead of re-reading the stored
+  // state every week. The seed matters: both careers start at season 1, so a
+  // season-only key let a new career keep the abandoned career's backup alive.
+  const backupIdentity = await readBackupIdentity(database);
+  let backedUpSeason = backupIdentity?.season;
+  let backedUpSeed = backupIdentity?.careerSeed;
 
   async function writeBackup(state: GameState, stateJson: string): Promise<void> {
     try {
@@ -93,8 +112,10 @@ export async function createCareerRepository(
         stateJson,
         state.season,
         state.week,
+        state.careerSeed,
       ]);
       backedUpSeason = state.season;
+      backedUpSeed = state.careerSeed;
     } catch {
       // The live save already succeeded, so a failed backup must not report the
       // week as lost. `backedUpSeason` stays put, so the next save retries.
@@ -103,7 +124,7 @@ export async function createCareerRepository(
 
   return {
     async save(state: GameState): Promise<void> {
-      const stateJson = serializeGameState(state);
+      const stateJson = serializeGameState(state, { validate: VALIDATE_ON_SAVE });
       await database.runAsync(UPSERT_CAREER_SQL, [
         PRIMARY_SLOT,
         GAME_SCHEMA_VERSION,
@@ -111,7 +132,10 @@ export async function createCareerRepository(
       ]);
       // A season boundary is the cadence: one generation back is never more than
       // the current season's play, and the copy is a state this build validated.
-      if (state.season !== backedUpSeason) await writeBackup(state, stateJson);
+      // A different career always replaces the old career's backup immediately.
+      if (state.season !== backedUpSeason || state.careerSeed !== backedUpSeed) {
+        await writeBackup(state, stateJson);
+      }
     },
 
     async load(): Promise<GameState | null> {
@@ -148,6 +172,7 @@ export async function createCareerRepository(
       backedUpSeason = typeof row.saved_season === 'number'
         ? row.saved_season
         : restored.season;
+      backedUpSeed = restored.careerSeed;
       return restored;
     },
 
@@ -180,6 +205,21 @@ function decodeStoredCareer(row: StoredCareerRow): GameState {
     throw new CorruptCareerSaveError('state_json column is not text');
   }
   return parseStoredGameState(row.state_json);
+}
+
+/** The season+seed pair the save cadence compares against; seed may be null on pre-v5 rows. */
+async function readBackupIdentity(
+  database: PersistenceDatabase,
+): Promise<{ season: number; careerSeed: number | undefined } | null> {
+  const row = await database.getFirstAsync<{
+    saved_season: unknown;
+    career_seed: unknown;
+  }>(BACKUP_IDENTITY_SQL, [BACKUP_SLOT]);
+  if (row === null || !Number.isSafeInteger(row.saved_season)) return null;
+  return {
+    season: row.saved_season as number,
+    careerSeed: Number.isSafeInteger(row.career_seed) ? row.career_seed as number : undefined,
+  };
 }
 
 async function readBackupSummary(

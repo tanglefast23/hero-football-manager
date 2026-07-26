@@ -19,7 +19,7 @@ describe('persistence migrations', () => {
     expect(database.preferencesTableExists).toBe(true);
     expect(database.backupTableExists).toBe(true);
     expect(database.userVersion).toBe(PERSISTENCE_SCHEMA_VERSION);
-    expect(database.migrationTransactions).toBe(4);
+    expect(database.migrationTransactions).toBe(5);
     expect(database.createTableExecutions).toBe(4);
   });
 
@@ -30,7 +30,7 @@ describe('persistence migrations', () => {
     await migrateDatabase(database);
 
     expect(database.userVersion).toBe(PERSISTENCE_SCHEMA_VERSION);
-    expect(database.migrationTransactions).toBe(4);
+    expect(database.migrationTransactions).toBe(5);
     expect(database.createTableExecutions).toBe(4);
   });
 
@@ -41,12 +41,12 @@ describe('persistence migrations', () => {
 
     await migrateDatabase(database);
 
-    expect(database.userVersion).toBe(4);
+    expect(database.userVersion).toBe(5);
     expect(database.replayTableExists).toBe(true);
     expect(database.preferencesTableExists).toBe(true);
     expect(database.backupTableExists).toBe(true);
     expect(database.careerRow).toEqual(existingRow);
-    expect(database.migrationTransactions).toBe(3);
+    expect(database.migrationTransactions).toBe(4);
   });
 
   it('adds the backup table to a version-3 database and leaves the save alone', async () => {
@@ -59,8 +59,8 @@ describe('persistence migrations', () => {
     expect(database.backupTableExists).toBe(true);
     expect(database.backupRow).toBeNull();
     expect(database.careerRow).toEqual(existingRow);
-    expect(database.userVersion).toBe(4);
-    expect(database.migrationTransactions).toBe(1);
+    expect(database.userVersion).toBe(5);
+    expect(database.migrationTransactions).toBe(2);
   });
 
   it('rejects a database created by a newer build', async () => {

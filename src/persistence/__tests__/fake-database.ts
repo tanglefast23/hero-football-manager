@@ -26,6 +26,7 @@ export interface FakePreferencesRow {
 export interface FakeBackupRow extends FakeCareerRow {
   saved_season: unknown;
   saved_week: unknown;
+  career_seed?: unknown;
 }
 
 export class FakePersistenceDatabase implements PersistenceDatabase {
@@ -88,6 +89,10 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
       this.createTableExecutions += 1;
       return;
     }
+    if (sql.startsWith('ALTER TABLE career_save_backups ADD COLUMN career_seed')) {
+      this.assertBackupTable();
+      return;
+    }
 
     const dropMatch = /^DROP TABLE IF EXISTS "(.+)"$/.exec(sql);
     if (dropMatch !== null) {
@@ -124,13 +129,14 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
 
     if (sql.startsWith('INSERT INTO career_save_backups')) {
       this.assertBackupTable();
-      const [slot, schemaVersion, stateJson, savedSeason, savedWeek] = values;
+      const [slot, schemaVersion, stateJson, savedSeason, savedWeek, careerSeed] = values;
       if (
         slot !== 1 ||
         typeof schemaVersion !== 'number' ||
         typeof stateJson !== 'string' ||
         typeof savedSeason !== 'number' ||
-        typeof savedWeek !== 'number'
+        typeof savedWeek !== 'number' ||
+        typeof careerSeed !== 'number'
       ) {
         throw new Error('invalid fake backup upsert parameters');
       }
@@ -139,6 +145,7 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
         state_json: stateJson,
         saved_season: savedSeason,
         saved_week: savedWeek,
+        career_seed: careerSeed,
       };
       return { lastInsertRowId: 1, changes: 1 };
     }
@@ -271,6 +278,18 @@ export class FakePersistenceDatabase implements PersistenceDatabase {
         : ({
             saved_season: this.backupRow.saved_season,
             saved_week: this.backupRow.saved_week,
+          } as T);
+    }
+
+    if (sql.startsWith('SELECT saved_season, career_seed FROM career_save_backups')) {
+      this.assertBackupTable();
+      const values = arrayParams(params);
+      if (values[0] !== 1) throw new Error('invalid fake backup identity slot');
+      return this.backupRow === null
+        ? null
+        : ({
+            saved_season: this.backupRow.saved_season,
+            career_seed: this.backupRow.career_seed ?? null,
           } as T);
     }
 

@@ -10,7 +10,10 @@ import { BOOTSTRAP_RESAMPLES, BOOTSTRAP_SEED, bootstrapMeanCI95, cachedHomeGoals
 // to weaken.
 
 describe('M0 acceptance suite (Task 13)', () => {
-  describe('GATE-1: attention floor', () => {
+  // Historical name was "attention floor" — that described the manual-tap era.
+  // Since the 2026-07-25 tap removal this gate measures firing-vs-never-firing:
+  // powers must be worth having at all, independent of anyone's attention.
+  describe('GATE-1: powers-matter floor', () => {
     it('firing beats never-firing — home goals with all-FIRE_WHEN_READY vs SAVE_FOR_TAP never tapped (400 seeds, bootstrap CI lower bound > 0)', () => {
       const N = 400;
       const diffs: number[] = new Array(N);
@@ -20,7 +23,7 @@ describe('M0 acceptance suite (Task 13)', () => {
         diffs[seed - 1] = firing - neverFiring;
       }
       const { mean, lower, upper } = bootstrapMeanCI95(diffs, BOOTSTRAP_RESAMPLES, BOOTSTRAP_SEED);
-      console.log(`GATE-1 attention floor: mean diff ${mean.toFixed(4)}, 95% CI [${lower.toFixed(4)}, ${upper.toFixed(4)}] over ${N} seeds`);
+      console.log(`GATE-1 powers-matter floor: mean diff ${mean.toFixed(4)}, 95% CI [${lower.toFixed(4)}, ${upper.toFixed(4)}] over ${N} seeds`);
       expect(lower).toBeGreaterThan(0);
     }, 60000);
   });

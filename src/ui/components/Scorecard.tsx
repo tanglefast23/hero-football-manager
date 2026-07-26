@@ -8,7 +8,10 @@ function cx(...classes: Array<string | false | null | undefined>): string {
 }
 
 export function formatCompactNumber(value: number): string {
-  const sign = value < 0 ? '−' : '';
+  // ASCII hyphen-minus on purpose: Silkscreen has no U+2212 glyph, so a true
+  // minus rendered every negative number's sign in the system fallback face
+  // mid-string. Reachable in normal play — the fail-soft economy goes negative.
+  const sign = value < 0 ? '-' : '';
   const digits = String(Math.abs(Math.trunc(value)));
   return `${sign}${digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 }
@@ -19,7 +22,7 @@ export function formatSignedCompactNumber(value: number): string {
 }
 
 export function formatCurrency(value: number, signed = false): string {
-  const sign = value < 0 ? '−' : signed && value > 0 ? '+' : '';
+  const sign = value < 0 ? '-' : signed && value > 0 ? '+' : '';
   return `${sign}$${formatCompactNumber(Math.abs(value))}`;
 }
 

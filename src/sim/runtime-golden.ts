@@ -4,8 +4,9 @@ import { ROVERS, UNITED } from './teams';
 // Compact runtime counterpart to parity-replay.test.ts's detailed Jest
 // snapshot. This hash covers the score and every event payload, and is cheap
 // enough to run in both Node CI and the app's Hermes boot path.
-// Rebaselined deliberately for m1.25: matches now allow all five named
-// substitutes and automatic coaching reacts immediately at red energy.
+// Rebaselined deliberately for m1.29 (presser standoff ring; PAC-widened
+// duel spacing). Earlier deliberate rebaselines: m1.25 (five named subs,
+// immediate red-energy auto-coaching), m1.26-m1.28 (see git history).
 const EXPECTED_RUNTIME_GOLDEN = '73ee0ecf';
 
 export function runtimeGoldenFingerprint(): string {

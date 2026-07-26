@@ -2,7 +2,7 @@
 
 ## One-liner
 
-A cozy Kairosoft-style soccer club sim where your players are secretly superheroes — and you get to fire their powers at the perfect moment.
+A cozy Kairosoft-style soccer club sim where your players are secretly superheroes — build the squad, set the shape, and watch their powers turn a match at the perfect moment.
 
 ## The fantasy
 
@@ -12,7 +12,7 @@ You run a tiny club in the fifth division. Your striker is decent. Then one day 
 
 Every feature decision gets tested against these four. If it doesn't serve one, cut it.
 
-1. **Matches are toy theater.** A watched match is 3–4 real minutes of charming, readable pixel soccer. You're a spectator with one meaningful lever — firing charged powers — not a twitch gamer. Any match can be instant-simmed guilt-free.
+1. **Matches are toy theater.** A watched match is 3–4 real minutes of charming, readable pixel soccer. You're the coach, not a twitch gamer — your live levers are Formation, Playstyle, Swaps, and Energy Use, while powers fire themselves at their perfect moment. Any match can be instant-simmed guilt-free.
 2. **Cozy crunch.** The management layer is Kairosoft's proven loop: everything costs money, every choice compounds, numbers go up in satisfying ways. Tension without stress — you can struggle, you can't really die.
 3. **Heroes are precious.** Powers are rare, risky to obtain, expensive to keep, and spectacular when they fire. A team of five heroes is an endgame achievement, not a mid-game default.
 4. **One more season.** Promotion races, contract timing, aging stars, and event luck create natural cliffhangers at every season boundary.
@@ -42,8 +42,8 @@ Lighthearted sports comedy with superhero flavor. The referee carries a fire ext
 ## What this game is NOT
 
 - Not a realistic sim — no offside, no weather micromanagement, no 40-attribute players (6 visible stats).
-- Not free-to-play — no energy timers, no gacha, no currency sprawl beyond the three designed currencies.
-- Not an action game — every real-time input is optional; "fire when ready" auto-mode exists for every hero.
+- Not free-to-play — no energy timers, no gacha, no currency sprawl beyond the two designed currencies (Money + Training Points).
+- Not an action game — no real-time inputs are required; powers always fire automatically in their authored context.
 
 ## Naming
 

@@ -543,5 +543,9 @@ function readableId(value: string): string {
 }
 
 function formatMoney(value: number): string {
-  return `$${String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  // Sign before the symbol, matching the other money formatters: the naive
+  // form rendered a negative as "$-1,000".
+  const sign = value < 0 ? '-' : '';
+  const digits = String(Math.abs(Math.trunc(value)));
+  return `${sign}$${digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 }

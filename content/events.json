@@ -514,7 +514,7 @@
     {
       "id": "milestone-first-cup-win", "category": "club", "rarity": "common", "art": "event-haunted-scoreboard",
       "title": "Through to the Next Round", "body": "The cup tie is won and the scoreboard operator has left the final score up all week on purpose.",
-      "trigger": { "season": 1, "minWeek": 10, "maxWeek": 30, "requiredFlag": "milestone:first-cup-win" },
+      "trigger": { "season": 1, "minWeek": 7, "maxWeek": 30, "requiredFlag": "milestone:first-cup-win" },
       "choices": [
         { "id": "leave-the-cup-score-up", "label": "Leave the score up until the next round", "risky": true, "outcomes": [
           { "weight": 65, "successHeadline": "Nobody touched the switch for a week", "text": "Supporters detour past the ground just to look at it. The next opponent arrives and reads it twice.", "effects": [{ "type": "morale", "amount": 7 }, { "type": "fans", "amount": 95 }, { "type": "flag", "flag": "cup-score-left-up", "value": true }] },

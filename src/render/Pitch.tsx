@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Circle, Group, Line, Rect } from '@shopify/react-native-skia';
 import { PITCH_W, PITCH_H, GOAL_W, GOAL_CENTER_X } from '../sim/geometry';
 
@@ -30,7 +31,14 @@ const POST_W = 4; // pt — thicker than LINE_W so the goal mouth reads as posts
  * `scale` converts pitch-units (PITCH_W/PITCH_H) to screen points — the same
  * factor MatchScreen uses for players and the ball.
  */
-export function Pitch({ scale }: { scale: number }) {
+/**
+ * Memoized: `scale` only changes on viewport resize, but the parent HUD
+ * re-renders every advanced tick — without the memo these 17 Skia nodes (and
+ * their fresh point-object props) re-reconciled at up to 40Hz for nothing.
+ */
+export const Pitch = memo(PitchMarkings);
+
+function PitchMarkings({ scale }: { scale: number }) {
   const w = PITCH_W * scale;
   const h = PITCH_H * scale;
   const stripeH = h / STRIPE_COUNT;

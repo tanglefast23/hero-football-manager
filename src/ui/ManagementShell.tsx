@@ -101,7 +101,9 @@ function ResourceChip({ glyph, name, value, tone }: {
         ? 'h-11 flex-row items-center gap-1 border-2 border-gold-dark bg-white px-2'
         : 'h-11 flex-row items-center gap-1 border-2 border-ink bg-white px-2'}
     >
-      <Text maxFontSizeMultiplier={1.2} className={hero ? 'font-mono text-xs font-bold text-gold-dark' : 'font-mono text-xs font-bold text-blue-dark'}>
+      {/* font-pixel is the authored bold face; font-mono + font-bold would
+          synthetically embolden the bitmap font and smear these glyphs. */}
+      <Text maxFontSizeMultiplier={1.2} className={hero ? 'font-pixel text-xs text-gold-dark' : 'font-pixel text-xs text-blue-dark'}>
         {glyph}
       </Text>
       <Text maxFontSizeMultiplier={1.2} adjustsFontSizeToFit numberOfLines={1} className={hero ? 'font-mono text-sm text-gold-dark' : 'font-mono text-sm text-ink'}>

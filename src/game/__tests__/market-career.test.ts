@@ -6,6 +6,7 @@ import {
   applyCareerNegotiationConsequence,
   acceptCareerTransferBid,
   beginCareerTransferTalks,
+  closeCareerTransferTalks,
   careerCoachUnlockedFormationIds,
   completeCareerTransfer,
   createCareerMarketState,
@@ -220,6 +221,75 @@ describe('career market integration', () => {
     expect(reloaded.m2!.pyramid.divisions.flatMap(division => division.clubs)
       .find(club => club.id === sourceClub.id)!.squad.some(player => player.id === target.id))
       .toBe(false);
+  });
+
+  test('refuses to buy a pyramid club below its lineup template (career-brick guard)', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260726));
+    const sourceDivision = initial.m2!.pyramid.divisions.find(division => division.level === 4)!;
+    const sourceClub = sourceDivision.clubs[0];
+    const goalkeepers = sourceClub.squad.filter(player => player.role === 'GK');
+    expect(goalkeepers.length).toBeGreaterThanOrEqual(2);
+
+    // The club has already lost its spare keeper. Nothing refills pyramid
+    // squads, and startingEleven needs 1 GK / 4 DEF / 4 MID / 2 FWD when this
+    // division goes active after promotion — selling the last keeper bricked
+    // the career at the next season transition.
+    const hollowed = {
+      ...initial,
+      m2: {
+        ...initial.m2!,
+        pyramid: {
+          ...initial.m2!.pyramid,
+          divisions: initial.m2!.pyramid.divisions.map(division => ({
+            ...division,
+            clubs: division.clubs.map(club => club.id === sourceClub.id
+              ? { ...club, squad: club.squad.filter(player => player.id !== goalkeepers[0].id) }
+              : club),
+          })),
+        },
+      },
+    };
+    const lastKeeper = goalkeepers[1];
+    const report = {
+      playerId: lastKeeper.id,
+      role: lastKeeper.role,
+      age: lastKeeper.age,
+      statRanges: Object.fromEntries(Object.entries(lastKeeper.attrs).map(([key, value]) => [
+        key,
+        { minimum: value, maximum: value },
+      ])) as never,
+      potentialRange: { minimum: 3 as const, maximum: 3 as const },
+    };
+    const market = { ...hollowed.market!, scoutReports: [report] };
+
+    expect(() => beginCareerTransferTalks(hollowed, market, lastKeeper.id))
+      .toThrow('will not sell');
+  });
+
+  test('closing talks locks that player\'s deterministic deck for the rest of the week', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260727));
+    const sourceDivision = initial.m2!.pyramid.divisions.find(division => division.level === 4)!;
+    const target = sourceDivision.clubs[0].squad.find(player => player.role === 'DEF')!;
+    const report = {
+      playerId: target.id,
+      role: target.role,
+      age: target.age,
+      statRanges: Object.fromEntries(Object.entries(target.attrs).map(([key, value]) => [
+        key,
+        { minimum: value, maximum: value },
+      ])) as never,
+      potentialRange: { minimum: 3 as const, maximum: 3 as const },
+    };
+    const market = { ...initial.market!, scoutReports: [report] };
+
+    // The negotiation id is week-stable, so close-and-reopen used to re-deal
+    // the identical pitch-card deck at round 0 — retrying away the three-round
+    // cap and the walk-away penalty.
+    const opened = beginCareerTransferTalks(initial, market, target.id);
+    const closed = closeCareerTransferTalks(initial, opened);
+    expect(closed.transferTalks).toBeUndefined();
+    expect(() => beginCareerTransferTalks(initial, closed, target.id))
+      .toThrow('ended talks for this week');
   });
 
   test('turns an accepted pitch-card deal into a real transfer and repairs the seller lineup', () => {

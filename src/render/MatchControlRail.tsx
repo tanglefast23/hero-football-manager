@@ -358,7 +358,9 @@ export function MatchControlRail({
 
 function heroStatusText(tile: MatchRailHeroTile): string {
   if (tile.status === 'firing') return 'LIVE';
-  if (tile.status === 'zone' && tile.zoneSecondsLeft !== null) return `${tile.zoneSecondsLeft}s`;
+  // m1.27 removed the Zone countdown from the sim: remainingTicks never
+  // decrements, so a seconds readout would sit frozen at "7s" for the whole
+  // hold. The tile states the phase instead of faking a timer.
   if (tile.status === 'zone') return 'ZONE';
   return `${Math.round(tile.heat * 100)}%`;
 }

@@ -243,6 +243,21 @@ describe('career backup generation', () => {
     await expect(repository.backupSummary()).resolves.toEqual({ season: 2, week: 3 });
   });
 
+  it('replaces the previous career\'s backup as soon as a different career saves', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const careerA = makeState();
+    await repository.save(careerA);
+
+    // Both careers are at season 1, so a season-only backup key skipped this
+    // write and "Restore backup" could resurrect the abandoned career A.
+    const careerB = createCareer(createLaunchCareerSetup(111111));
+    await repository.save(careerB);
+
+    const restored = await repository.restoreBackup();
+    expect(restored.careerSeed).toBe(careerB.careerSeed);
+  });
+
   it('reports no backup before the first save', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);

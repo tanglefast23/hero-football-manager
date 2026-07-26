@@ -14,7 +14,7 @@ import { SLIDE_SUCCESS_RECOVERY_TICKS } from '../sim/engine';
 import { isActive, WEB_TRAP_TRIGGER_RANGE } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import { PITCH_H, TICK_MS, HALF_TICKS, dist2 } from '../sim/geometry';
-import type { MatchState, PowerId, TeamDef } from '../sim/types';
+import type { MatchInput, MatchState, PowerId, TeamDef } from '../sim/types';
 import {
   BASE_PLAYER_COUNT,
   decoyCloneAt,
@@ -1731,18 +1731,20 @@ export function MatchScreen({
     (index) => match.players[index].outReason !== 'redcard',
   );
   const currentTactics = match.tactics[controlledTeam];
-  const pendingFormation = [...match.pendingInputs].reverse().find(
-    (input) => input.kind === 'SET_FORMATION',
-  );
-  const pendingMentality = [...match.pendingInputs].reverse().find(
-    (input) => input.kind === 'SET_MENTALITY',
-  );
-  const pendingEnergyUse = [...match.pendingInputs].reverse().find(
-    (input) => input.kind === 'SET_ENERGY_USE',
-  );
-  const pendingAutoPowers = [...match.pendingInputs].reverse().find(
-    (input) => input.kind === 'SET_AUTO_POWERS',
-  );
+  // One backwards scan for the newest input of each kind — this runs on every
+  // HUD render (per advanced tick), and four copy+reverse passes were the
+  // per-tick allocation hot spot outside the draw call.
+  let pendingFormation: MatchInput | undefined;
+  let pendingMentality: MatchInput | undefined;
+  let pendingEnergyUse: MatchInput | undefined;
+  let pendingAutoPowers: MatchInput | undefined;
+  for (let i = match.pendingInputs.length - 1; i >= 0; i--) {
+    const input = match.pendingInputs[i];
+    if (input.kind === 'SET_FORMATION') pendingFormation ??= input;
+    else if (input.kind === 'SET_MENTALITY') pendingMentality ??= input;
+    else if (input.kind === 'SET_ENERGY_USE') pendingEnergyUse ??= input;
+    else if (input.kind === 'SET_AUTO_POWERS') pendingAutoPowers ??= input;
+  }
   const displayedFormation = pendingFormation?.kind === 'SET_FORMATION'
     ? pendingFormation.formation
     : currentTactics.formation;
@@ -1915,6 +1917,8 @@ export function MatchScreen({
       {/* Desktop replaces this bar with the rail scoreboard card. */}
       {railLayout ? null : (
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={paused ? 'Resume match' : 'Pause match'}
           style={[
             styles.scorebar,
             compactHeight ? styles.scorebarCompact : null,

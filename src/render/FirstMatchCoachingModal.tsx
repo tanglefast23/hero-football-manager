@@ -166,10 +166,11 @@ const styles = StyleSheet.create({
   energyFillMedium: { backgroundColor: '#edb54a' },
   energyFillLow: { backgroundColor: '#d94f52' },
   energyValue: {
-    fontFamily: 'Silkscreen_400Regular',
+    // Never pair fontFamily with fontWeight: synthetic bold smears the bitmap
+    // font. Bold weight comes from the authored 700 face instead.
+    fontFamily: 'Silkscreen_700Bold',
     color: '#241f2e',
     fontSize: 14,
-    fontWeight: '900',
   },
   body: {
     color: '#241f2e',
@@ -200,7 +201,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Silkscreen_700Bold',
     color: '#f4f1ea',
     fontSize: 16,
-    fontWeight: '900',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },

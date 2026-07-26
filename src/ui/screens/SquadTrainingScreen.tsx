@@ -44,6 +44,8 @@ export interface SquadTrainingScreenProps {
   reduceMotion?: boolean;
   /** Bumped by the app shell to pop the drill popup for the selected player (inbox deep link). */
   drillPickerRequestToken?: number;
+  /** Store save warning, shown inside the drill modal (a Modal covers the app banner). */
+  saveWarning?: string | null;
 }
 
 export function SquadTrainingScreen({
@@ -57,6 +59,7 @@ export function SquadTrainingScreen({
   guideFocus,
   reduceMotion = false,
   drillPickerRequestToken,
+  saveWarning = null,
 }: SquadTrainingScreenProps) {
   const { width } = useWindowDimensions();
   const wideColumns = width >= 600;
@@ -188,6 +191,7 @@ export function SquadTrainingScreen({
           onTrainDrill={onTrainDrill}
           onDismiss={() => setDrillPickerOpen(false)}
           reduceMotion={reduceMotion}
+          saveWarning={saveWarning}
         />
       ) : null}
     </View>

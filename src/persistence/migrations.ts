@@ -65,6 +65,18 @@ const MIGRATIONS: readonly Migration[] = [
       )`,
     ],
   },
+  // The backup was keyed on season number alone, so starting a new career
+  // left the previous career's backup in place (both careers begin at season
+  // 1) and "Restore backup" could silently resurrect the abandoned career.
+  // The seed identifies the owning career; NULL marks a pre-v5 backup of
+  // unknown origin, which the repository treats as a different career so the
+  // next save replaces it.
+  {
+    version: 5,
+    statements: [
+      'ALTER TABLE career_save_backups ADD COLUMN career_seed INTEGER',
+    ],
+  },
 ];
 
 export const PERSISTENCE_SCHEMA_VERSION = MIGRATIONS.length;

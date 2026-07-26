@@ -11,6 +11,7 @@ import {
   beginStoryOnboarding,
   beginCareerTransferTalks,
   beginCareerRenewalTalks,
+  closeCareerTransferTalks,
   careerHeroLimit,
   highestDivisionReached,
   buildCareerMatchTeams,
@@ -104,6 +105,14 @@ const awakeningTuning = {
 };
 let saveQueue = Promise.resolve();
 let latestSaveTicket = 0;
+/**
+ * The career state a queued-but-not-yet-running save will write. While a save
+ * is waiting its turn, newer states replace this payload instead of enqueuing
+ * more work, so a burst of actions (instant-training taps are the worst case)
+ * costs one serialize+write of the final state rather than one per action.
+ * Intermediate snapshots carry no information the final state lacks.
+ */
+let pendingCareerSave: GameState | null = null;
 
 /**
  * How many career saves may fail in a row before the week stops advancing.
@@ -260,7 +269,6 @@ export const useM1Store = create<M1Store>((set, get) => ({
     try {
       const loadedCareer = await repository.load();
       const career = loadedCareer === null ? null : reconcileLoadedCareer(loadedCareer);
-      if (career !== null && career !== loadedCareer) await repository.save(career);
       set({
         repository,
         replayRepository: replayRepository ?? null,
@@ -274,6 +282,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
         backupSummary: await backupSummaryFailSoft(repository),
         error: null,
       });
+      // Reconciliation write-back goes through the normal failure-counting
+      // queue AFTER the career is installed: a save that fails here (full
+      // disk) must warn, not turn a perfectly readable career into the
+      // "save could not be loaded" screen whose options include deleting it.
+      if (career !== null && career !== loadedCareer) queueCareerSave(get, set, career);
     } catch (error) {
       // Whether the file itself is damaged decides which way out is worth
       // offering: restoring the backup, or wiping the database and starting over.
@@ -491,6 +504,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   advanceCareer() {
     guarded(set, () => {
+      // Advance is only dispatched from the management shell and the season
+      // recap. A double-tap lands the second dispatch after the screen has
+      // already moved on (week-review, matchday...) — without this guard it
+      // advanced a second week and destroyed the first week's review.
+      const screen = get().screen;
+      if (screen !== 'management' && screen !== 'season-end') return;
       if (get().saveBlocked) {
         throw new Error(
           'The last few weeks could not be saved, so the season is paused. Free up space on your device, then try saving again.',
@@ -613,6 +632,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   quickResult() {
     guarded(set, () => {
+      // Only the match-day screen offers Quick Result. On a shared league+cup
+      // week the first dispatch leaves the cup fixture active, so an unguarded
+      // double-tap would silently quick-resolve the cup tie the player never
+      // saw. (`finishWatchedMatch` gets the same protection from its
+      // watched-fixture identity check.)
+      if (get().screen !== 'matchday') return;
+      if (get().saveBlocked) {
+        throw new Error(
+          'The last few weeks could not be saved, so the season is paused. Free up space on your device, then try saving again.',
+        );
+      }
       const before = requireCareer(get());
       const { kind, fixture, fixtures, teams } = currentMatchday(before);
       const quickMatch = quickMatchForFixture(fixture, teams);
@@ -630,7 +660,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ? resolvePostMatchAwakening(
             completed,
             fixture.id,
-            userReplayParticipantIds(quickMatch.replay, fixture, before.userClubId),
+            userMatchParticipantIds(quickMatch.match, fixture, before.userClubId),
             awakeningPowerIds,
             awakeningTriggerIds,
             awakeningTuning,
@@ -656,6 +686,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   watchMatch() {
     guarded(set, () => {
+      // Matches saveBlocked's contract: once saving is broken the season is
+      // paused, so no new match progress may start, only be retried/recovered.
+      if (get().saveBlocked) {
+        throw new Error(
+          'The last few weeks could not be saved, so the season is paused. Free up space on your device, then try saving again.',
+        );
+      }
       const career = requireCareer(get());
       const { fixture, teams } = currentMatchday(career);
       const userIsFixtureHome = fixture.homeClubId === career.userClubId;
@@ -701,7 +738,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
         .filter(event => event.kind === 'GOAL')
         .map((event, index) => ({
           id: `${fixture.id}-goal-${index}`,
-          minuteLabel: `${Math.max(1, Math.min(90, Math.round((event.t / (HALF_TICKS * 2)) * 90)))}'`,
+          // Same rounding as the live match clock (MatchScreen): a goal's
+          // post-match minute must match the minute shown when it went in.
+          minuteLabel: `${Math.max(1, Math.min(90, Math.ceil((event.t / (HALF_TICKS * 2)) * 90)))}'`,
           description: event.by >= 0 && event.by < result.players.length
             ? `${result.players[event.by].def.name} scored`
             : 'Goal',
@@ -829,6 +868,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   continueAfterEvent() {
     guarded(set, () => {
+      // This action advances the week on its own, so it honours the same
+      // saveBlocked pause as advanceCareer.
+      if (get().saveBlocked) {
+        throw new Error(
+          'The last few weeks could not be saved, so the season is paused. Free up space on your device, then try saving again.',
+        );
+      }
       const career = requireCareer(get());
       const pending = career.pendingEvent;
       if (pending?.resolvedChoiceId === undefined) throw new Error('resolve the event before continuing');
@@ -1198,7 +1244,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
     guarded(set, () => {
       const career = requireCareer(get());
       const market = requireMarket(career);
-      const next = { ...career, market: { ...market, transferTalks: undefined } };
+      const next = { ...career, market: closeCareerTransferTalks(career, market) };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -1473,15 +1519,6 @@ function userMatchParticipantIds(
   return [...new Set([...finalPlayers, ...substitutedPlayers])];
 }
 
-function userReplayParticipantIds(
-  replay: ReplayEnvelope,
-  fixture: LeagueFixture,
-  userClubId: string,
-): string[] {
-  const team = fixture.homeClubId === userClubId ? replay.home : replay.away;
-  return team.players.map(player => player.id);
-}
-
 /**
  * Everything a loaded save needs before the UI touches it: roster reconciliation,
  * the legacy first-awakening repair, and the two content fail-softs that keep a
@@ -1586,16 +1623,28 @@ function queueCareerSave(
 ): void {
   const repository = get().repository;
   if (repository === null) return;
+  if (pendingCareerSave !== null) {
+    pendingCareerSave = career;
+    return;
+  }
+  pendingCareerSave = career;
+  let saved: GameState | null = null;
   enqueueSave(
     set,
     async () => {
-      if (get().persistenceLoadError !== null) return;
-      await repository.save(career);
+      const state = pendingCareerSave;
+      pendingCareerSave = null;
+      if (state === null || get().persistenceLoadError !== null) return;
+      await repository.save(state);
+      saved = state;
     },
     'Save failed',
     () => {
+      // A task that skipped (payload withdrawn, load error) proved nothing —
+      // only an actual write may clear the failure streak.
+      if (saved === null) return;
       clearSaveFailures(set);
-      if (get().career === career) set({ hasSavedCareer: true });
+      if (get().career === saved) set({ hasSavedCareer: true });
     },
     () => recordSaveFailure(get, set),
   );
@@ -1674,6 +1723,9 @@ function queueNewCareerSave(
   const replayRepository = get().replayRepository;
   if (careerRepository === null && replayRepository === null) return;
   const careerId = `m1-career-${career.careerSeed}`;
+  // Withdraw any coalesced old-career payload: its task runs before this one
+  // and must not write the abandoned career's state ahead of the replacement.
+  pendingCareerSave = null;
   enqueueSave(
     set,
     async () => {

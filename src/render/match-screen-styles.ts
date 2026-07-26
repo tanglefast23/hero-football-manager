@@ -325,11 +325,13 @@ export const styles = StyleSheet.create({
   swapEyebrow: { fontFamily: 'Silkscreen_700Bold', color: '#77a4d8', fontSize: 9 },
   swapTitle: { fontFamily: 'Silkscreen_700Bold', color: '#f4f1ea', fontSize: 17, marginTop: 2 },
   swapCount: {
+    // The authored bold face, matching every sibling label here — this was the
+    // one system-font holdout in the Silkscreen HUD.
+    fontFamily: 'Silkscreen_700Bold',
     color: '#f4f1ea',
     backgroundColor: '#3a3350',
     borderWidth: 1,
     borderColor: '#6b6675',
-    fontWeight: 'bold',
     paddingHorizontal: 9,
     paddingVertical: 5,
   },

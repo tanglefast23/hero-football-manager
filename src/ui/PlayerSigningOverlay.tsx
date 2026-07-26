@@ -49,7 +49,12 @@ export function PlayerSigningOverlay({
               <View className="border-2 border-b-4 border-ink bg-white px-4 pt-3">
                 <PixelPortrait playerId={player.playerId} role={player.role} lookId={player.lookId} expression="joy" />
               </View>
-              <Text className="mt-3 font-pixel text-xl uppercase text-ink">{player.playerName}</Text>
+              <Text
+                numberOfLines={2}
+                className="mt-3 px-4 text-center font-pixel text-xl uppercase text-ink"
+              >
+                {player.playerName}
+              </Text>
               <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
                 {player.role} · {isRookie
                   ? 'Your first hire'

@@ -611,6 +611,7 @@ const careerMarketSchema = z.object({
     negotiation: negotiationSchema,
     consequenceApplied: z.boolean().optional(),
   }).passthrough().optional(),
+  abandonedTransferNegotiationIds: z.array(nonemptyString).optional(),
 }).passthrough();
 
 const youthIntakeSchema = z.object({
@@ -1414,16 +1415,28 @@ const gameStateSchema = z
 
   });
 
-export function serializeGameState(state: GameState): string {
+/**
+ * `validate: false` skips the full zod pass — ~95% of serialize cost, paid on
+ * every store action because a save follows each one. The state always came
+ * from the typed game module, and `parseStoredGameState` re-validates on the
+ * next load with the backup generation still intact, so production saves may
+ * skip it. Dev builds and every other caller keep the full check.
+ */
+export function serializeGameState(
+  state: GameState,
+  options?: { readonly validate?: boolean },
+): string {
   assertSupportedSchema(state, false);
-  let validation: z.ZodSafeParseResult<unknown>;
-  try {
-    validation = gameStateSchema.safeParse(state);
-  } catch {
-    throw new InvalidGameStateError('validation failed unexpectedly');
-  }
-  if (!validation.success) {
-    throw new InvalidGameStateError(formatIssues(validation.error.issues));
+  if (options?.validate !== false) {
+    let validation: z.ZodSafeParseResult<unknown>;
+    try {
+      validation = gameStateSchema.safeParse(state);
+    } catch {
+      throw new InvalidGameStateError('validation failed unexpectedly');
+    }
+    if (!validation.success) {
+      throw new InvalidGameStateError(formatIssues(validation.error.issues));
+    }
   }
 
   try {

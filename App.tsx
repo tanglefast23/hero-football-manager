@@ -6,7 +6,7 @@ import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Silkscreen_400Regular, Silkscreen_700Bold } from '@expo-google-fonts/silkscreen';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   loadLaunchContent,
   type AssistantGuideDestination,
@@ -1236,6 +1236,7 @@ function GameApp() {
             guideFocus={conciergeFocus ?? undefined}
             reduceMotion={reduceMotion}
             drillPickerRequestToken={drillFocusToken ?? undefined}
+            saveWarning={store.saveWarning}
           />
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen
@@ -1746,12 +1747,16 @@ function SaveWarningBanner({
   blocked: boolean;
   onRetry: () => void;
 }) {
+  // top-0 sat the alert text under the notch/Dynamic Island; pad by the real
+  // inset so the first line is always readable.
+  const insets = useSafeAreaInsets();
   return (
     <View
       accessible
       accessibilityRole="alert"
       accessibilityLabel={`Save problem: ${message}`}
       className="absolute inset-x-0 top-0 border-b-4 border-stamp bg-red-light px-4 py-3"
+      style={{ paddingTop: insets.top + 12 }}
     >
       <Text className="font-pixel text-sm uppercase text-stamp">Your club is not saving</Text>
       <Text className="mt-1 text-xs leading-4 text-ink/70">{message}</Text>
@@ -1827,7 +1832,9 @@ function ConfirmationSheet({
       visible={confirmation !== null}
       onRequestClose={onCancel}
     >
-      <View className="flex-1 justify-end bg-ink/70 px-4 pb-8">
+      {/* edges=['bottom'] matches every sibling bottom sheet: pb-8 alone sat
+          the Cancel/Confirm row on the home indicator (34pt inset). */}
+      <SafeAreaView edges={['bottom']} className="flex-1 justify-end bg-ink/70 px-4 pb-8">
         <View
           accessibilityViewIsModal
           className="w-full max-w-[1180px] self-center border-2 border-b-4 border-ink bg-paper p-5"
@@ -1866,7 +1873,7 @@ function ConfirmationSheet({
             </Pressable>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
