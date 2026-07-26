@@ -28,6 +28,53 @@ import {
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { InfoTip } from '../components/InfoTip';
+
+/**
+ * What each roster column actually means. The words are short because the
+ * heading already names the thing — the tip answers "so what?", not "what?".
+ */
+const PERSONALITY_EXPLAINER: Readonly<Record<string, string>> = {
+  // Straight off market.ts: LOVED_PITCHES, HATED_PITCHES, and the renewal ask
+  // multiplier. Nothing here is flavour — every line names a real effect.
+  FIERY: 'Wants trophies and straight talk in negotiations. Hometown sentiment turns them off.',
+  LOYAL: 'Moved by hometown ties and flattery, put off by money talk. Renews for about 10% less.',
+  GREEDY: 'Money and trophies, in that order. Hometown ties mean nothing, and they renew for about 20% more.',
+  JOKER: 'Warms to flattery and hometown ties. Blunt talk falls flat.',
+  PROFESSIONAL: 'Responds to straight talk and trophy promises. Flattery gets you nowhere.',
+  TIMID: 'Reassured by hometown ties and straight talk. Big trophy promises only spook them.',
+};
+
+function personalityExplainer(personality: string): string {
+  return PERSONALITY_EXPLAINER[personality.toUpperCase().replace('-', '_')]
+    ?? 'Shapes which arguments land in contract talks.';
+}
+
+const COLUMN_EXPLAINER: Readonly<Record<SquadSortKey, string>> = {
+  player: 'Name, position, and whether they start.',
+  role: 'Where they play: keeper, defence, midfield or attack.',
+  overall: 'Their ability right now, out of 99. It is what they bring to Saturday.',
+  potential: 'How good they could still become. A high grade trains faster and further.',
+  condition: 'Fresh legs. Training and matches drain it; low condition risks injury.',
+};
+
+/**
+ * Which drill in the career earns the condition warning. Not the first: the
+ * manager has to watch the number fall a couple of times before being told
+ * what a low one costs, or the warning is just noise on a full-energy squad.
+ */
+const CONDITION_WARNING_DRILL = 3;
+
+/**
+ * Nudges the cue off the row's right edge so it sits over the condition column
+ * rather than the row's centre. The cue is TUTORIAL_TAP_CUE_WIDTH wide, the
+ * Train button and its margin take 56px, and the condition cell is half its own
+ * width in from there.
+ */
+function conditionCueRightOffset(wideColumns: boolean): number {
+  const conditionCellWidth = wideColumns ? 112 : 64;
+  return Math.max(0, 56 + conditionCellWidth / 2 - TUTORIAL_TAP_CUE_WIDTH / 2);
+}
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
@@ -63,8 +110,12 @@ export function SquadTrainingScreen({
 }: SquadTrainingScreenProps) {
   const { width } = useWindowDimensions();
   const wideColumns = width >= 600;
-  const currentColumnWidth = wideColumns ? 'w-20' : 'w-10';
-  const potentialColumnWidth = wideColumns ? 'w-24' : 'w-14';
+  // Wide columns spell their headers out in full ("SCORE", "POTENTIAL",
+  // "CONDITION"), so each one has to be wide enough to hold the word plus its
+  // sort arrow — a clipped header reads as a bug, not as an abbreviation.
+  const currentColumnWidth = wideColumns ? 'w-16' : 'w-10';
+  const potentialColumnWidth = wideColumns ? 'w-28' : 'w-14';
+  const conditionColumnWidth = wideColumns ? 'w-28' : 'w-16';
   const selectedPlayer = viewModel.players.find(player => player.id === selectedPlayerId);
   const selectedArchetype = selectedPlayer === undefined
     ? undefined
@@ -72,6 +123,18 @@ export function SquadTrainingScreen({
   const playerGuideTouchStartRef = useRef<TutorialTouchPoint | null>(null);
   const [drillPickerOpen, setDrillPickerOpen] = useState(false);
   const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
+  /**
+   * The Train glow outlives the tap cue on purpose: scrolling dismisses the
+   * floating "Tap +" arrow, but the button keeps glowing until it is actually
+   * pressed, so the one thing the manager still owes the guide stays lit.
+   */
+  const [trainingCueUsed, setTrainingCueUsed] = useState(false);
+  /**
+   * The player whose condition the warning is pointing at, set by the third
+   * drill of the career and cleared by the next thing the manager does. It
+   * waits for the drill popup to close, because the popup covers the roster.
+   */
+  const [conditionCuePlayerId, setConditionCuePlayerId] = useState<string | null>(null);
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
@@ -108,6 +171,7 @@ export function SquadTrainingScreen({
   }, []);
 
   const handleTrainingBadgePress = useCallback((playerId: string) => {
+    setTrainingCueUsed(true);
     onSelectPlayer(playerId);
     setDrillPickerOpen(true);
   }, [onSelectPlayer]);
@@ -116,6 +180,15 @@ export function SquadTrainingScreen({
     if (drillPickerRequestToken === undefined) return;
     setDrillPickerOpen(true);
   }, [drillPickerRequestToken]);
+
+  // Keyed to the drill, not the career total, so it fires once and never again
+  // on a re-render or a reload.
+  useEffect(() => {
+    if (lastDrillResult?.totalDrillsRun !== CONDITION_WARNING_DRILL) return;
+    setConditionCuePlayerId(lastDrillResult.playerId);
+  }, [lastDrillResult]);
+
+  const dismissConditionCue = useCallback(() => setConditionCuePlayerId(null), []);
 
   const layoutMode = useLayoutMode();
 
@@ -128,9 +201,12 @@ export function SquadTrainingScreen({
           viewModel={viewModel}
           guidePlayers={guidePlayers}
           playerGuideDismissed={playerGuideDismissed}
+          trainingCueUsed={trainingCueUsed}
+          conditionCuePlayerId={drillPickerOpen ? null : conditionCuePlayerId}
           wideColumns={wideColumns}
           currentColumnWidth={currentColumnWidth}
           potentialColumnWidth={potentialColumnWidth}
+          conditionColumnWidth={conditionColumnWidth}
           squadSort={squadSort}
           setSquadSort={setSquadSort}
           sortedPlayers={sortedPlayers}
@@ -156,7 +232,10 @@ export function SquadTrainingScreen({
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
-        onScrollBeginDrag={dismissPlayerGuide}
+        onScrollBeginDrag={() => {
+          dismissPlayerGuide();
+          dismissConditionCue();
+        }}
         onTouchStart={rememberPlayerGuideTouch}
         onTouchMove={dismissPlayerGuideAfterDrag}
         onTouchEnd={forgetPlayerGuideTouch}
@@ -202,9 +281,13 @@ interface RosterSectionProps {
   viewModel: SquadTrainingViewModel;
   guidePlayers: boolean;
   playerGuideDismissed: boolean;
+  trainingCueUsed: boolean;
+  /** Set while the condition warning is pointing at this player's row. */
+  conditionCuePlayerId: string | null;
   wideColumns: boolean;
   currentColumnWidth: string;
   potentialColumnWidth: string;
+  conditionColumnWidth: string;
   squadSort: SquadSort | null;
   setSquadSort: Dispatch<SetStateAction<SquadSort | null>>;
   sortedPlayers: readonly SquadPlayerViewModel[];
@@ -219,9 +302,12 @@ function RosterSection({
   viewModel,
   guidePlayers,
   playerGuideDismissed,
+  trainingCueUsed,
+  conditionCuePlayerId,
   wideColumns,
   currentColumnWidth,
   potentialColumnWidth,
+  conditionColumnWidth,
   squadSort,
   setSquadSort,
   sortedPlayers,
@@ -251,10 +337,12 @@ function RosterSection({
         <View className="flex-row items-center border-b border-ink/20 px-3">
           <View className="w-10" />
           <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-          <SquadSortHeader label={wideColumns ? 'Current' : 'OVR'} sortKey="overall" sort={squadSort} widthClass={currentColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          <SquadSortHeader label={wideColumns ? 'Score' : 'OVR'} sortKey="overall" sort={squadSort} widthClass={currentColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
           <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-          <SquadSortHeader label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-          <PixelText className="w-14 text-right text-sm uppercase text-ink/50" numberOfLines={1} ellipsizeMode="clip">Train</PixelText>
+          <SquadSortHeader label={wideColumns ? 'Condition' : 'Cond'} sortKey="condition" sort={squadSort} widthClass={conditionColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          {/* The train column needs its width to keep the + buttons aligned, but
+              not a label: the + is self-explanatory and the word was clipping. */}
+          <View className="w-14" />
         </View>
         {sortedPlayers.length === 0 ? (
           <View className="items-center px-4 py-8">
@@ -265,7 +353,11 @@ function RosterSection({
           </View>
         ) : sortedPlayers.map((player) => {
           const selected = player.id === selectedPlayerId;
-          const glowAssignmentButton = guidePlayers && player.injuryWeeks === 0;
+          const showConditionCue = player.id === conditionCuePlayerId;
+          const glowAssignmentButton = guidePlayers
+            && !trainingCueUsed
+            && player.id === viewModel.createdPlayerId
+            && player.injuryWeeks === 0;
           const guideConciergePlayer = player.id === selectedPlayerId && (
             (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
             || guideFocus === 'transfer-request'
@@ -278,8 +370,20 @@ function RosterSection({
                 : player.injuryWeeks > 0
                   ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
                   : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
-              style={guideConciergePlayer ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
+              style={guideConciergePlayer || showConditionCue
+                ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
+                : undefined}
             >
+              {showConditionCue ? (
+                <TutorialTapCue
+                  label="Condition"
+                  detail="Too low and they risk injury. You're okay for now."
+                  style={{
+                    right: conditionCueRightOffset(wideColumns),
+                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                  }}
+                />
+              ) : null}
               {guideConciergePlayer ? (
                 <TutorialTapCue
                   label="Bert says"
@@ -306,8 +410,11 @@ function RosterSection({
                       OUT · {player.injuryWeeks} {player.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
                     </Text>
                   ) : player.isStarter ? (
+                    // One word, because the name column is the row's only
+                    // flexible cell: "Starting XI" clipped to "STARTI…" on a
+                    // phone, which reads as a bug rather than an abbreviation.
                     <Text className="mt-0.5 font-pixel text-sm uppercase text-pitch-dark" numberOfLines={1}>
-                      Starting XI
+                      Start
                     </Text>
                   ) : null}
                   {player.isCaptain || player.contractPromiseLabel ? (
@@ -322,7 +429,7 @@ function RosterSection({
                 </View>
                 <Text className={`${currentColumnWidth} text-right font-mono text-base text-ink`} numberOfLines={1}>{player.overall}</Text>
                 <Text className={`${potentialColumnWidth} pr-1 text-right font-mono text-base text-gold-dark`} numberOfLines={1}>{player.potentialGrade}</Text>
-                <Text className={player.condition < 30 ? 'w-16 text-right font-mono text-sm text-stamp' : 'w-16 text-right font-mono text-sm text-ink'} numberOfLines={1}>{player.condition}%</Text>
+                <Text className={`${conditionColumnWidth} text-right font-mono text-sm ${player.condition < 30 ? 'text-stamp' : 'text-ink'}`} numberOfLines={1}>{player.condition}%</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -443,7 +550,13 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
           <PixelText className="text-sm uppercase tracking-wide text-ink/50">Personality</PixelText>
-          <Text className="text-base font-bold text-ink">{selectedPlayer.personality}</Text>
+          <InfoTip
+            align="right"
+            text={personalityExplainer(selectedPlayer.personality)}
+            accessibilityLabel={`Personality: ${selectedPlayer.personality}. ${personalityExplainer(selectedPlayer.personality)}`}
+          >
+            <Text className="text-base font-bold text-ink">{selectedPlayer.personality}</Text>
+          </InfoTip>
         </View>
         <View className="mt-2 flex-row items-center justify-between gap-3">
           <PixelText className="text-sm uppercase tracking-wide text-ink/50">Fame</PixelText>
@@ -496,23 +609,28 @@ function SquadSortHeader({
       ? 'ascending'
       : 'default order';
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Sort by ${label}, ${direction ?? 'default order'}. Next: ${nextDirection}.`}
+    <InfoTip
+      text={COLUMN_EXPLAINER[sortKey]}
+      align={align}
+      accessibilityLabel={`Sort by ${label}, ${direction ?? 'default order'}. Next: ${nextDirection}. ${COLUMN_EXPLAINER[sortKey]}`}
       onPress={() => onSort(sortKey)}
+    >
+    <View
       className={`min-h-11 flex-row items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'} ${widthClass}`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : undefined })}
     >
       <PixelText
+        // A step down from the row values so the spelled-out words fit their
+        // column with the sort arrow — headers label the data, they aren't it.
         className={direction === null
-          ? 'text-sm uppercase text-ink/50'
-          : 'text-sm uppercase text-blue-dark'}
+          ? 'text-xs uppercase text-ink/50'
+          : 'text-xs uppercase text-blue-dark'}
         numberOfLines={1}
         ellipsizeMode="clip"
       >
         {label}{direction === 'descending' ? ' ▼' : direction === 'ascending' ? ' ▲' : ''}
       </PixelText>
-    </Pressable>
+    </View>
+    </InfoTip>
   );
 }
 

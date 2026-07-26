@@ -1,4 +1,4 @@
-import { Modal, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, formatCurrency } from './components/Scorecard';
 import { FacilitySprite } from './components/FacilitySprite';
@@ -37,6 +37,10 @@ export function FacilityPlacementConfirmation({
       onRequestClose={onCancel}
     >
       <SafeAreaView className="flex-1 justify-center bg-ink/60 px-4 py-6" edges={['top', 'left', 'right', 'bottom']}>
+        {/* An outside tap cancels — the safe half of the question. It never
+            approves the build, and the chosen square survives the cancel.
+            Sibling of the panel so taps on its controls never bubble here. */}
+        <Pressable accessible={false} className="absolute inset-0" onPress={onCancel} />
         <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
           <PaperPanel kicker="Works order" title="Approve this build?" stamp={weeksLabel.toUpperCase()}>
             <View className="items-center border-y-2 border-ink bg-gold-light py-4">

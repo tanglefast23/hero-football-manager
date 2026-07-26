@@ -11,7 +11,10 @@ type ExplicitManagementSfxKey =
   | 'facility-start'
   | 'facility-complete'
   | 'event-success'
-  | 'stat-step';
+  | 'stat-step'
+  | 'drill-progress'
+  | 'drill-gain-reveal'
+  | 'super-training-yay';
 
 export type ManagementActionCue =
   | 'select'
@@ -29,25 +32,36 @@ type ManagementSfxKey = ExplicitManagementSfxKey | ManagementActionCue;
 const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   'match-statement': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'training-ding': require('../../assets/audio/sfx/training-stat-ding.m4a'),
-  'ui-click': require('../../assets/audio/sfx/stat-step-tap.m4a'),
+  // A real push-button click: the old 80ms tap was too slight to register under
+  // the music bed, so small buttons read as dead.
+  'ui-click': require('../../assets/audio/sfx/ui-push-button.m4a'),
   // Player and coach signings intentionally share this confirmation sound.
   'transaction-confirm': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'coach-departure': require('../../assets/audio/sfx/fulltime-whistle.wav'),
   'facility-start': require('../../assets/audio/sfx/advance-week.m4a'),
   'facility-complete': require('../../assets/audio/sfx/facility-complete.m4a'),
   'event-success': require('../../assets/audio/sfx/crowd-cheer.wav'),
-  select: require('../../assets/audio/sfx/stat-step-tap.m4a'),
+  select: require('../../assets/audio/sfx/ui-push-button.m4a'),
   cash: require('../../assets/audio/sfx/save-slap.wav'),
   build: require('../../assets/audio/sfx/tackle-thud.m4a'),
   dispatch: require('../../assets/audio/sfx/save-slap.wav'),
   card: require('../../assets/audio/sfx/save-slap.wav'),
   success: require('../../assets/audio/sfx/plan-locked-chime.m4a'),
   hero: require('../../assets/audio/sfx/zone-enter.m4a'),
-  warning: require('../../assets/audio/sfx/card-whistle.wav'),
+  // The supplied negative cue. This is the "you cannot do that" sound the UI
+  // plays at a blocked tap, and it used to be the referee's card whistle —
+  // far too harsh for a menu, and it also made a denied drill sound like a
+  // booking. The whistle stays in `audio.ts`, where an actual card is shown.
+  warning: require('../../assets/audio/sfx/negative.m4a'),
   // Reusable celebratory cue for positive outcomes (e.g. signing a player).
   // Appended last so existing player indices stay stable.
   positive: require('../../assets/audio/sfx/positive.m4a'),
-  'stat-step': require('../../assets/audio/sfx/stat-step-tap.m4a'),
+  'stat-step': require('../../assets/audio/sfx/ui-push-button.m4a'),
+  // Appended last, after `positive` and `stat-step`, so existing player indices
+  // stay stable.
+  'drill-progress': require('../../assets/audio/sfx/drill-progress.m4a'),
+  'drill-gain-reveal': require('../../assets/audio/sfx/drill-gain-reveal.m4a'),
+  'super-training-yay': require('../../assets/audio/sfx/super-training-yay.m4a'),
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
@@ -106,6 +120,34 @@ export function playDrillResultSfx(streak: number): void {
 export function playSuperTrainingSfx(): void {
   playManagementSfx('hero');
   playManagementSfx('event-success');
+}
+
+/** The cheer that lands as the SUPER takeover leaves the screen. */
+export function playSuperTrainingYaySfx(): void {
+  playManagementSfx('super-training-yay');
+}
+
+/**
+ * Runs under the drill count-up and nothing else. The clip is a steady 4s
+ * progress bed, so the caller starts it when the number starts climbing and
+ * stops it the instant the number lands — the sound is the animation's length,
+ * not its own.
+ */
+export function playDrillProgressSfx(): void {
+  playManagementSfx('drill-progress');
+}
+
+export function stopDrillProgressSfx(): void {
+  try {
+    players.get('drill-progress')?.pause();
+  } catch (error) {
+    warnOnce('drill progress stop failed', error);
+  }
+}
+
+/** The hit under the big "+N STAT" reveal once the count-up has landed. */
+export function playDrillGainRevealSfx(): void {
+  playManagementSfx('drill-gain-reveal');
 }
 
 export function playMatchStatementSfx(): void {

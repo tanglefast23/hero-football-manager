@@ -244,4 +244,54 @@ describe('marketViewModel', () => {
     expect(viewModel.negotiation?.perks).toHaveLength(4);
     expect(viewModel.negotiation).not.toHaveProperty('weeklyAsk');
   });
+
+  describe('youth prospect stats', () => {
+    function withYouth(role: 'GK' | 'DEF' | 'MID' | 'FWD'): MarketViewModelSource {
+      return {
+        ...baseSource(),
+        youthIntake: {
+          status: 'OPEN',
+          declined: false,
+          rosterCount: 15,
+          rosterCapacity: 17,
+          offers: [{
+            player: {
+              id: 'kid-1',
+              name: 'Cal Hart',
+              role,
+              age: 17,
+              potential: 2,
+              archetype: 'Anchor',
+              weeklyWage: 202,
+              attrs: { ...ATTRS },
+            },
+            signingBonus: 500,
+          }],
+        },
+      };
+    }
+
+    it('states the prospect exact stats rather than a scouted range', () => {
+      const offer = marketViewModel(withYouth('FWD')).youth?.offers[0];
+
+      expect(offer?.stats).toEqual([
+        { label: 'PAC', value: ATTRS.pac },
+        { label: 'SHO', value: ATTRS.sho },
+        { label: 'PAS', value: ATTRS.pas },
+        { label: 'DEF', value: ATTRS.def },
+        { label: 'TEC', value: ATTRS.tec },
+        { label: 'STA', value: ATTRS.sta },
+      ]);
+      // No hedging: every value is a number the card can print as-is.
+      expect(offer?.stats.every(stat => Number.isInteger(stat.value))).toBe(true);
+    });
+
+    it('shows a keeper reflexes in place of finishing', () => {
+      const offer = marketViewModel(withYouth('GK')).youth?.offers[0];
+
+      expect(offer?.stats.map(stat => stat.label)).toEqual(['PAC', 'REF', 'PAS', 'DEF', 'TEC', 'STA']);
+      expect(offer?.stats.find(stat => stat.label === 'REF')?.value).toBe(ATTRS.ref);
+      expect(offer?.stats.some(stat => stat.label === 'SHO')).toBe(false);
+    });
+  });
 });

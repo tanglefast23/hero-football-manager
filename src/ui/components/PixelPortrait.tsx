@@ -19,6 +19,12 @@ export interface PixelPortraitProps {
   expression?: PortraitExpression;
   /** App-level reduced-motion preference; merged with the OS setting. */
   reduceMotion?: boolean;
+  /**
+   * Pixels per sprite pixel. Whole numbers only — a fractional scale lands the
+   * grid off the device pixel and smears a 1-bit face. Defaults to the sheet's
+   * own PIXEL_PORTRAIT_SCALE.
+   */
+  scale?: number;
 }
 
 /** A crisp, deterministic cast portrait selected from the shipped pixel sheet. */
@@ -28,7 +34,9 @@ export function PixelPortrait({
   lookId,
   expression = 'rest',
   reduceMotion = false,
+  scale = PIXEL_PORTRAIT_SCALE,
 }: PixelPortraitProps) {
+  const pixel = Math.max(1, Math.round(scale));
   const spriteKey = useMemo(
     () => portraitSpriteKey(playerId, role, expression, lookId),
     [expression, lookId, playerId, role],
@@ -78,17 +86,17 @@ export function PixelPortrait({
   return (
     <Canvas
       style={{
-        width: portraitSheet.cell.w * PIXEL_PORTRAIT_SCALE,
-        height: portraitSheet.cell.h * PIXEL_PORTRAIT_SCALE,
+        width: portraitSheet.cell.w * pixel,
+        height: portraitSheet.cell.h * pixel,
       }}
     >
       {runs.map(run => (
         <Rect
           key={run.id}
-          x={run.x * PIXEL_PORTRAIT_SCALE}
-          y={run.y * PIXEL_PORTRAIT_SCALE}
-          width={run.width * PIXEL_PORTRAIT_SCALE}
-          height={PIXEL_PORTRAIT_SCALE}
+          x={run.x * pixel}
+          y={run.y * pixel}
+          width={run.width * pixel}
+          height={pixel}
           color={run.color}
         />
       ))}

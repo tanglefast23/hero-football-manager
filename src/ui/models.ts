@@ -319,6 +319,12 @@ export interface TrainingSlotStatOption {
 /** One resolved instant drill, sequenced so repeat taps re-animate. */
 export interface DrillResultViewModel {
   sequence: number;
+  /**
+   * Which drill this was in the whole career, from GameState.totalInstantDrills.
+   * The condition warning waits for the third one: by then the manager has seen
+   * the number move twice and is ready to be told what it costs.
+   */
+  totalDrillsRun: number;
   playerId: string;
   pathId: string;
   drillId: string;
@@ -334,6 +340,12 @@ export interface DrillResultViewModel {
 export interface SquadTrainingViewModel {
   resources: ResourceSummaryViewModel;
   players: readonly SquadPlayerViewModel[];
+  /**
+   * The rookie the manager built. They are sorted to the top of the roster, and
+   * the first-training cue glows their Train button alone — lighting all
+   * fifteen left the "Tap +" arrow pointing at nothing in particular.
+   */
+  createdPlayerId?: string;
   /** Every stat path's best-tier option for the selected player, when one is selected. */
   selectedPlayerStatOptions?: readonly TrainingSlotStatOption[];
   /** Set while a fit promised player is still owed drills: only they may train. */

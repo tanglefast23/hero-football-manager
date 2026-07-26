@@ -33,11 +33,29 @@ export function pendingAssistantGuideSequence(
   state: GameState,
   _activeTab: ManagementTab,
 ): AssistantGuideSequenceId | null {
-  if (!isFirstCareerWeek(state)) return null;
-  if (!hasAssistantGuideMilestone(state, 'intro-complete')) {
-    return 'management-intro';
+  if (isFirstCareerWeek(state)) {
+    return hasAssistantGuideMilestone(state, 'intro-complete') ? null : 'management-intro';
+  }
+  if (isFirstFixtureWeek(state) && !hasAssistantGuideMilestone(state, 'desk-intro-complete')) {
+    return 'desk-intro';
   }
   return null;
+}
+
+/**
+ * True on the morning the first fixture's week opens — the last week training
+ * can still change that result, and so the only week Bert's "train up before
+ * you head in" is actionable. Derived from the fixture rather than a literal
+ * week 3, so a schedule change moves the briefing with the match.
+ */
+function isFirstFixtureWeek(state: GameState): boolean {
+  let earliestWeek: number | undefined;
+  for (const fixture of state.fixtures) {
+    if (fixture.season !== state.season) continue;
+    if (fixture.homeClubId !== state.userClubId && fixture.awayClubId !== state.userClubId) continue;
+    if (earliestWeek === undefined || fixture.week < earliestWeek) earliestWeek = fixture.week;
+  }
+  return earliestWeek !== undefined && earliestWeek === state.week;
 }
 
 /**

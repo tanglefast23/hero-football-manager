@@ -148,6 +148,12 @@ export type PostMatchOverlay = 'summary' | null;
 /** The latest tap's outcome, sequenced so the popup can animate repeats. */
 export interface InstantDrillResult extends Omit<InstantDrillResolution, 'state'> {
   sequence: number;
+  /**
+   * Which drill this was in the whole career. Carried on the result rather than
+   * read off the career, so a cue keyed to "the third drill" fires on the drill
+   * itself and cannot re-fire when the screen re-renders.
+   */
+  totalDrillsRun: number;
 }
 
 export type StoreNoticeTone = 'info' | 'success';
@@ -991,7 +997,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const { state: _state, ...result } = resolution;
       set({
         career: next,
-        lastDrillResult: { ...result, sequence: (get().lastDrillResult?.sequence ?? 0) + 1 },
+        lastDrillResult: {
+          ...result,
+          sequence: (get().lastDrillResult?.sequence ?? 0) + 1,
+          totalDrillsRun: next.totalInstantDrills ?? 0,
+        },
         error: null,
       });
       queueCareerSave(get, set, next);

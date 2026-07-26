@@ -9,8 +9,11 @@ describe('squad potential labels', () => {
     );
 
     expect(source).toContain('useWindowDimensions');
-    expect(source).toContain("wideColumns ? 'Current' : 'OVR'");
+    expect(source).toContain("wideColumns ? 'Score' : 'OVR'");
     expect(source).toContain("wideColumns ? 'Potential' : 'POT'");
+    expect(source).toContain("wideColumns ? 'Condition' : 'Cond'");
+    // The + button speaks for itself; the clipped "Train" header is gone.
+    expect(source).not.toContain('>Train</PixelText>');
     expect(source).toContain('player.potentialGrade');
     expect(source).toContain('${selectedPlayer.superChancePercent}% SUPER');
     expect(source).toContain('selectedPlayer.positionTrainingLabel');

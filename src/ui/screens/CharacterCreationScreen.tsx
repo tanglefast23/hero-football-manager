@@ -34,6 +34,12 @@ export interface CharacterCreationScreenProps {
  * The stepper label and value live in fixed cells (flex-1 and w-16), so system
  * text far above this multiplier ellipsises them rather than reflowing. Body
  * prose is unaffected: it scales through the in-game Text size setting.
+ *
+ * The value cell holds text-sm (0.875rem) in w-16 (4rem), so a value may be at
+ * most 4.571em wide however the platform sizes a rem. The widest value, "10/10",
+ * is 4.0em in Silkscreen Bold and only 3.375em in the Regular cut, which is why
+ * the value renders in the `data` voice: Bold overran the cell above 1.143x and
+ * shipped as "10/…" on any device with system text above the default.
  */
 const STEPPER_MAX_FONT_SIZE_MULTIPLIER = 1.2;
 
@@ -94,12 +100,15 @@ export function CharacterCreationScreen({
         {/* Portrait and steppers sit side by side only when there is room for
             readable stepper labels; phones stack them. */}
         <View className={wide ? 'flex-row items-center gap-4' : 'items-center gap-4'}>
+          {/* `rest` rather than `joy` so the rookie blinks while you dress them:
+              every joy face squints, and PixelPortrait can only close eyes it can
+              find open (see portrait-blink). */}
           <View className="border-2 border-b-4 border-ink bg-blue-light p-2">
             <PixelPortrait
               playerId="created-player-preview"
               role="FWD"
               lookId={createdAppearanceLookId(appearance)}
-              expression="joy"
+              expression="rest"
             />
           </View>
           <View className={wide ? 'min-w-0 flex-1 gap-2' : 'w-full gap-2'}>
@@ -368,13 +377,14 @@ function AppearanceChoice({
       >
         <Text className="font-pixel text-xl text-white">‹</Text>
       </Pressable>
-      <Text
-        className="w-16 text-center font-pixel text-sm text-blue-dark"
+      <PixelText
+        variant="data"
+        className="w-16 text-center text-sm text-blue-dark"
         maxFontSizeMultiplier={STEPPER_MAX_FONT_SIZE_MULTIPLIER}
         numberOfLines={1}
       >
         {value}
-      </Text>
+      </PixelText>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Next ${label}, currently ${value}`}

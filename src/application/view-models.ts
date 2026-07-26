@@ -762,12 +762,24 @@ function homeAssistantInboxPlan(state: GameState) {
   const dueGuides = dueAssistantInboxGuideSequences(state);
   return scheduleAssistantInboxWeek(state, {
     dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
+    heldGuideSequenceIds: buildBlockedInboxGuides(state),
     productAlerts: productAlerts.map(alert => ({
       id: alert.id,
       priority: assistantProductPriority(alert, dueGuides),
       oneShot: isOneShotProductAlert(alert.id),
     })),
   });
+}
+
+/**
+ * Build beats the works crew makes impossible. Only one project runs at a time,
+ * so an upgrade card that arrives mid-build is an instruction the player cannot
+ * follow — it waits for a week with a free crew instead of burning its slot next
+ * to the Coaching Office tutorial.
+ */
+function buildBlockedInboxGuides(state: GameState): AssistantInboxGuideSequenceId[] {
+  if (state.facilities.grid?.construction === undefined) return [];
+  return ['facility-upgrade'];
 }
 
 function assistantProductPriority(
@@ -828,6 +840,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
   const dueGuides = dueAssistantInboxGuideSequences(assistantState);
   const inboxPlan = scheduleAssistantInboxWeek(assistantState, {
     dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
+    heldGuideSequenceIds: buildBlockedInboxGuides(assistantState),
     productAlerts: productAlerts.map(alert => ({
       id: alert.id,
       priority: assistantProductPriority(alert, dueGuides),
@@ -1166,6 +1179,7 @@ export function squadTrainingViewModel(
       money: club.cash,
       trainingPoints: state.trainingPoints,
     },
+    ...(createdPlayer === undefined ? {} : { createdPlayerId: createdPlayer.id }),
     players: orderedRoster.map(player => {
       const potentialGrade = playerPotentialGrade(player);
       const personalCaps = playerAttributeCaps(player);

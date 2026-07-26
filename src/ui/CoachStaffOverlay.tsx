@@ -1,4 +1,4 @@
-import { Modal, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, formatCurrency } from './components/Scorecard';
 import { ManagementSprite } from './components/ManagementSprite';
@@ -58,6 +58,13 @@ export function CoachStaffOverlay({
         className="flex-1 justify-center bg-ink/60 px-4 py-6"
         edges={['top', 'left', 'right', 'bottom']}
       >
+        {/* Receipts ("hired", "dismissed") close on an outside tap; the dismissal
+            question does not, because a stray tap must never answer it. The
+            backdrop is a sibling of the panel so taps on its controls never
+            bubble into the close target. */}
+        {isDismissConfirmation ? null : (
+          <Pressable accessible={false} className="absolute inset-0" onPress={onClose} />
+        )}
         <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
           <PaperPanel kicker={kicker} title={title} stamp={mode === 'hired' ? 'HIRED' : mode === 'dismissed' ? 'COMPLETE' : '1 WK'}>
             <View className="items-center border-y-2 border-ink bg-blue-light py-4">

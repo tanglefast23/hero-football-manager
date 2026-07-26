@@ -37,8 +37,8 @@
           "kicker": "A professional club",
           "title": "The books bite",
           "body": [
-            "This is a REAL professional team. Players earn wages every week, whether they played like champions or garden furniture.",
-            "Contracts, facilities and the rest can wait until they matter. For now, keep one eye on the money at the top."
+            "Lots for you to learn in the big leagues. There's real wages and upkeep. Just make sure you keep an eye on your funds here because they can go fast.",
+            "All you gotta do is win games, gain fans, get sponsors. Not hard right?"
           ],
           "focus": "money",
           "buttonLabel": "Got it"
@@ -47,7 +47,7 @@
           "kicker": "The bottom rail",
           "title": "Know your doors",
           "body": [
-            "These are the only doors you need today. I'll explain the machinery behind them when it can actually hurt us."
+            "Navigate round the facilities here."
           ],
           "focus": "navigation",
           "buttonLabel": "Got it!",
@@ -72,6 +72,15 @@
           ],
           "focus": "assistant",
           "buttonLabel": "Got it."
+        },
+        {
+          "kicker": "The fixture list",
+          "title": "One week to kick-off",
+          "body": [
+            "It's game week. Tough draw, they just might be the best team in this division. Train up before you head in."
+          ],
+          "focus": "assistant",
+          "buttonLabel": "Right you are."
         }
       ]
     },
@@ -347,7 +356,7 @@
           "kicker": "Fresh boots",
           "title": "The kids have arrived",
           "body": [
-            "Choose one academy prospect for the open squad place. Check their ratings, archetype, signing bonus and weekly wage."
+            "We've got a pretty good system for taking on youth. Very often with their age, they're quicker to benefit from drills. They also will stick around much longer!"
           ],
           "focus": "youth-intake",
           "objective": "REVIEW THE YOUTH INTAKE.",
