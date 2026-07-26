@@ -26,6 +26,26 @@ describe('first-hire screen copy', () => {
     expect(source.match(/onNext=/g)?.length).toBe(3);
   });
 
+  it('shows each paper-doll value in full inside its fixed cell', () => {
+    // "3 / 10" overran the w-16 column and rendered as "3 / …", so the value is
+    // unspaced and both cells cap how far system text can scale them.
+    expect(source).toContain('formatChoiceValue(appearance.hairstyle, APPEARANCE_OPTIONS.hairstyle)');
+    expect(source).not.toMatch(/\$\{appearance\.\w+ \+ 1\} \//);
+    expect(source.match(/maxFontSizeMultiplier=\{STEPPER_MAX_FONT_SIZE_MULTIPLIER\}/g)?.length).toBe(2);
+  });
+
+  it('cycles every paper-doll control through the shipped option counts', () => {
+    // Hair is ten looks, not seven: the counts come from the look atlas so a
+    // stepper can never disagree with the art.
+    expect(source).toContain("cycleAppearance('hairstyle', 1, APPEARANCE_OPTIONS.hairstyle)");
+    expect(source).not.toMatch(/cycleAppearance\('\w+', -?1, \d+\)/);
+  });
+
+  it('keeps the registration terms inside the card', () => {
+    expect(source).toContain('flex-row flex-wrap items-center justify-between gap-2');
+    expect(source).toContain('$180 / week · 1 season');
+  });
+
   it('labels the registration panel simply', () => {
     expect(source).toContain('title="Name"');
     expect(source).not.toContain('Name on the shirt');

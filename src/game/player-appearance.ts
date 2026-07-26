@@ -16,6 +16,17 @@ export interface CreatedAppearanceChoice {
   readonly kitAccent: 0 | 1 | 2 | 3;
 }
 
+/**
+ * How many options each paper-doll control cycles through. Their product is
+ * CREATED_PLAYER_LOOK_COUNT, and the creation screen steps by these rather than
+ * repeating the numbers, so a control can never offer a look the atlas lacks.
+ */
+export const CREATED_APPEARANCE_OPTION_COUNTS = {
+  skinTone: 6,
+  hairstyle: 10,
+  kitAccent: 4,
+} as const satisfies Record<keyof CreatedAppearanceChoice, number>;
+
 /** Maps the editable paper-doll controls onto the dedicated 240-look paper-doll atlas. */
 export function createdAppearanceLookId(appearance: CreatedAppearanceChoice): string {
   const index = appearance.skinTone * 40 + appearance.hairstyle * 4 + appearance.kitAccent;

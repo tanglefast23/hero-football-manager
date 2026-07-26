@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { ENERGY_FILL_COLORS } from './match-energy-ui';
 import { MATCH_RAIL_GUTTER, MATCH_RAIL_TOP_INSET, MATCH_RAIL_WIDTH } from './match-rail';
 import { KIT_PANEL_BORDER_COLOR, KIT_PANEL_TEXT_COLOR } from './team-kit-ui';
 
@@ -186,10 +187,21 @@ export const styles = StyleSheet.create({
     fontSize: 10,
     fontVariant: ['tabular-nums'],
   },
-  energyTrack: { height: 4, backgroundColor: '#3a3350', marginTop: 4, overflow: 'hidden' },
-  energyFill: { height: 4, backgroundColor: '#65b96e' },
-  energyFillMedium: { backgroundColor: '#edb54a' },
-  energyFillLow: { backgroundColor: '#d94f52' },
+  // The possession card sits on a solid kit colour, so the track wears the same
+  // ink frame as the card: without it a fill close to the kit has no edge and
+  // the bar reads as an empty dark stub. 6px tall so the fill keeps its 4px
+  // inside the border.
+  energyTrack: {
+    height: 6,
+    backgroundColor: '#3a3350',
+    marginTop: 4,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: KIT_PANEL_BORDER_COLOR,
+  },
+  energyFill: { height: 4, backgroundColor: ENERGY_FILL_COLORS.green },
+  energyFillMedium: { backgroundColor: ENERGY_FILL_COLORS.amber },
+  energyFillLow: { backgroundColor: ENERGY_FILL_COLORS.red },
   energyTextMedium: { color: '#edb54a' },
   energyTextLow: { color: '#f06b6e' },
   coachingDock: {

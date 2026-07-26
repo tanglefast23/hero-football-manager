@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { PixelPortrait } from '../ui/components/PixelPortrait';
 import type { PortraitRole } from '../ui/pixel-portrait-model';
-import { energyBand } from './match-energy-ui';
+import { ENERGY_FILL_COLORS, energyBand } from './match-energy-ui';
 import { playUiClickSfx } from './management-sfx';
 
 export interface FirstMatchCoachingModalPlayer {
@@ -161,10 +161,10 @@ const styles = StyleSheet.create({
   },
   energyFill: {
     height: '100%',
-    backgroundColor: '#65b96e',
+    backgroundColor: ENERGY_FILL_COLORS.green,
   },
-  energyFillMedium: { backgroundColor: '#edb54a' },
-  energyFillLow: { backgroundColor: '#d94f52' },
+  energyFillMedium: { backgroundColor: ENERGY_FILL_COLORS.amber },
+  energyFillLow: { backgroundColor: ENERGY_FILL_COLORS.red },
   energyValue: {
     // Never pair fontFamily with fontWeight: synthetic bold smears the bitmap
     // font. Bold weight comes from the authored 700 face instead.

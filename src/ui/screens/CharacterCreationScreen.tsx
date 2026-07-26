@@ -3,6 +3,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
+  CREATED_APPEARANCE_OPTION_COUNTS as APPEARANCE_OPTIONS,
   CREATION_STAT_MAX,
   CREATION_STAT_MIN,
   DEFAULT_CREATED_APPEARANCE,
@@ -20,7 +21,7 @@ import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { ChalkboardBackdrop, StickerWord } from '../components/ChalkboardStage';
 import { PixelPortrait } from '../components/PixelPortrait';
 import { playManagementHaptic } from '../../render/haptics';
-import { stepChoice } from '../appearance-stepper';
+import { formatChoiceValue, stepChoice } from '../appearance-stepper';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 
@@ -28,6 +29,13 @@ export interface CharacterCreationScreenProps {
   initialDifficulty: DifficultyMode;
   onComplete: (draft: CreatedPlayerDraft) => void;
 }
+
+/**
+ * The stepper label and value live in fixed cells (flex-1 and w-16), so system
+ * text far above this multiplier ellipsises them rather than reflowing. Body
+ * prose is unaffected: it scales through the in-game Text size setting.
+ */
+const STEPPER_MAX_FONT_SIZE_MULTIPLIER = 1.2;
 
 const STAT_COPY: Record<OutfieldCreationStat, { label: string; detail: string }> = {
   pac: { label: 'PACE', detail: 'Burst and recovery runs' },
@@ -97,21 +105,21 @@ export function CharacterCreationScreen({
           <View className={wide ? 'min-w-0 flex-1 gap-2' : 'w-full gap-2'}>
             <AppearanceChoice
               label="Skin tone"
-              value={`${appearance.skinTone + 1} / 6`}
-              onPrevious={() => cycleAppearance('skinTone', -1, 6)}
-              onNext={() => cycleAppearance('skinTone', 1, 6)}
+              value={formatChoiceValue(appearance.skinTone, APPEARANCE_OPTIONS.skinTone)}
+              onPrevious={() => cycleAppearance('skinTone', -1, APPEARANCE_OPTIONS.skinTone)}
+              onNext={() => cycleAppearance('skinTone', 1, APPEARANCE_OPTIONS.skinTone)}
             />
             <AppearanceChoice
               label="Hair"
-              value={`${appearance.hairstyle + 1} / 10`}
-              onPrevious={() => cycleAppearance('hairstyle', -1, 10)}
-              onNext={() => cycleAppearance('hairstyle', 1, 10)}
+              value={formatChoiceValue(appearance.hairstyle, APPEARANCE_OPTIONS.hairstyle)}
+              onPrevious={() => cycleAppearance('hairstyle', -1, APPEARANCE_OPTIONS.hairstyle)}
+              onNext={() => cycleAppearance('hairstyle', 1, APPEARANCE_OPTIONS.hairstyle)}
             />
             <AppearanceChoice
               label="Kit accent"
-              value={`${appearance.kitAccent + 1} / 4`}
-              onPrevious={() => cycleAppearance('kitAccent', -1, 4)}
-              onNext={() => cycleAppearance('kitAccent', 1, 4)}
+              value={formatChoiceValue(appearance.kitAccent, APPEARANCE_OPTIONS.kitAccent)}
+              onPrevious={() => cycleAppearance('kitAccent', -1, APPEARANCE_OPTIONS.kitAccent)}
+              onNext={() => cycleAppearance('kitAccent', 1, APPEARANCE_OPTIONS.kitAccent)}
             />
           </View>
         </View>
@@ -161,9 +169,11 @@ export function CharacterCreationScreen({
           maxLength={24}
           className="min-h-14 border-2 border-ink bg-paper-dark px-3 py-3 text-xl font-bold text-ink"
         />
-        <View className="mt-3 flex-row items-center justify-between">
+        {/* The chip and the terms need 397px of Silkscreen on a 325px card, so
+            the row wraps instead of running the wage off the edge. */}
+        <View className="mt-3 flex-row flex-wrap items-center justify-between gap-2">
           <StatusChip label="Position: FWD" selected />
-          <PixelText className="text-sm uppercase tracking-wide text-ink/50">$180 / week · 1 season</PixelText>
+          <PixelText className="shrink text-sm uppercase text-ink/50">$180 / week · 1 season</PixelText>
         </View>
       </PaperPanel>
     </>
@@ -339,7 +349,13 @@ function AppearanceChoice({
 }) {
   return (
     <View className="min-h-11 flex-row items-center justify-between gap-2 border-2 border-ink/30 bg-white px-2 py-2">
-      <PixelText className="min-w-0 flex-1 text-sm uppercase text-ink" numberOfLines={1}>{label}</PixelText>
+      <PixelText
+        className="min-w-0 flex-1 text-sm uppercase text-ink"
+        maxFontSizeMultiplier={STEPPER_MAX_FONT_SIZE_MULTIPLIER}
+        numberOfLines={1}
+      >
+        {label}
+      </PixelText>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Previous ${label}, currently ${value}`}
@@ -352,7 +368,13 @@ function AppearanceChoice({
       >
         <Text className="font-pixel text-xl text-white">‹</Text>
       </Pressable>
-      <Text className="w-16 text-center font-pixel text-sm text-blue-dark" numberOfLines={1}>{value}</Text>
+      <Text
+        className="w-16 text-center font-pixel text-sm text-blue-dark"
+        maxFontSizeMultiplier={STEPPER_MAX_FONT_SIZE_MULTIPLIER}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Next ${label}, currently ${value}`}
