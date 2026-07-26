@@ -56,6 +56,56 @@ describe('substitution board layout', () => {
     expect(source).toContain('speechProblem');
   });
 
+  it('opens a dotted shirt that names who left it, and marches only when it qualifies', () => {
+    const source = board();
+
+    // The border is Skia, because a View's dashed border has no animatable offset.
+    expect(source).toContain('DashPathEffect');
+    expect(source).toContain('phase={phase}');
+    expect(source).toContain('BlurMask');
+    expect(source).toContain('DASH_MARCH_PT_PER_SECOND');
+    // Only a shirt this substitute could legally fill is armed: keepers with
+    // keepers, outfielders with outfielders.
+    expect(source).toContain("draggingRole === (player.role === 'GK' ? 'GK' : 'OUTFIELD')");
+    expect(source).toContain('incoming === undefined');
+    // The shirt states the position on both faces.
+    expect(source).toContain('openShirtLabel');
+    expect(source).toContain('filledShirtLabel');
+    expect(source).toContain('SHIRT · EMPTY');
+  });
+
+  it('takes a substitute out of the column once they are in a shirt', () => {
+    const source = board();
+
+    expect(source).toContain('bench.filter(player => !isComingOn(plan, player.id))');
+    expect(source).toContain('availableBench');
+    // Dragging them out of the shirt puts them back and reopens it.
+    expect(source).toContain('returnToBench');
+    expect(source).toContain("onTap: () => onDrop(filled ? 'subs' : 'field')");
+  });
+
+  it('offers cancel, reset and save, and only reset can be a no-op', () => {
+    const source = board();
+
+    expect(source).toContain('>CANCEL<');
+    expect(source).toContain('>RESET<');
+    expect(source).toContain('setPlan(EMPTY_SUBSTITUTION_PLAN)');
+    // Cancel closes the board; reset only clears it.
+    expect(source).toContain('onPress={onCancel}');
+    expect(source).toContain('onPress={reset}');
+    expect(source).toContain('disabled={staged === 0}');
+  });
+
+  it('lists two names per row on a phone', () => {
+    const source = board();
+
+    expect(source).toContain('grid: { flexDirection: \'row\', flexWrap: \'wrap\'');
+    expect(source).toContain("gridCell: { width: '48.5%'");
+    expect(source).toContain('wide ? null : styles.grid');
+    // Compact cells drop the sentence and the portrait to fit half a row.
+    expect(source).toContain('compact ? surname(player.name) : player.name');
+  });
+
   it('gates save on a legal plan and never on the button alone', () => {
     const source = board();
 

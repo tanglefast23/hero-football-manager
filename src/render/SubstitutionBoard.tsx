@@ -9,6 +9,13 @@ import {
   useWindowDimensions,
   type LayoutChangeEvent,
 } from 'react-native';
+import {
+  BlurMask,
+  Canvas,
+  DashPathEffect,
+  RoundedRect,
+} from '@shopify/react-native-skia';
+import { useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
 import { SfxPressable } from '../ui/components/SfxPressable';
 import { BertFullBody } from '../ui/AssistantGuideOverlay';
 import { playManagementActionSfx, playUiClickSfx } from './management-sfx';
@@ -20,8 +27,10 @@ import {
   bringOn,
   canSave,
   fieldByTiredness,
+  filledShirtLabel,
   isBenched,
   isComingOn,
+  openShirtLabel,
   planInputs,
   planProblem,
   recallToField,
@@ -35,11 +44,18 @@ import {
 } from './substitution-board';
 
 /** Bert's standing instruction, shown until a rule needs explaining instead. */
-const BERT_DIRECTION = 'Drag your tired players down to the bench, then drag replacements onto the field. As many as you like — save when you are happy.';
-/** Below this the modal stacks into one column and drops the portraits. */
+const BERT_DIRECTION = 'Drag your tired players down to the bench, then drag replacements into their shirts. As many as you like — save when you are happy.';
+/** Below this the modal stacks and lists two names per row. */
 const WIDE_BOARD_MIN_WIDTH = 900;
 /** A release inside this radius is a tap, not a drag. */
 const TAP_SLOP = 8;
+/** Dash pattern for an open shirt, and how fast it marches when armed. */
+const DASH_INTERVALS = [11, 11] as const;
+const DASH_MARCH_PT_PER_SECOND = 44;
+const SHIRT_RADIUS = 3;
+const SHIRT_STROKE = 3;
+const SHIRT_DASH_IDLE = '#c8862a';
+const SHIRT_DASH_ARMED = '#f7d894';
 
 type DropZone = 'field' | 'subs' | 'bench';
 type ZoneRects = Partial<Record<DropZone, { x: number; y: number; width: number; height: number }>>;
@@ -60,11 +76,13 @@ export interface SubstitutionBoardProps {
  * manager stages every swap they want and commits them together.
  *
  * Field on the left, most tired first, because that is the decision being made.
- * The bench along the bottom is the drop target for taking someone off, and the
- * substitutes column feeds the holes that opens. Dragging is the headline
- * gesture, but every card is also a plain tap — a tap does the obvious thing for
- * where the card currently is, which keeps the board usable with a keyboard, a
- * screen reader, or a thumb that would rather not drag.
+ * Sending a starter down opens their shirt as a dotted box naming them; dropping
+ * a substitute in fills it and takes that substitute out of the right-hand column
+ * — they are on the pitch now, so listing them as available would be a lie.
+ *
+ * Dragging is the headline gesture, but every card is also a plain tap that does
+ * the obvious thing for where the card currently is, which keeps the board usable
+ * with a screen reader or a thumb that would rather not drag.
  */
 export function SubstitutionBoard({
   field,
@@ -79,16 +97,20 @@ export function SubstitutionBoard({
   const wide = width >= WIDE_BOARD_MIN_WIDTH;
   const [plan, setPlan] = useState<SubstitutionPlan>(EMPTY_SUBSTITUTION_PLAN);
   const [message, setMessage] = useState<string | null>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
+  const [draggingRole, setDraggingRole] = useState<'GK' | 'OUTFIELD' | null>(null);
+  const [draggingKind, setDraggingKind] = useState<'field' | 'bench' | null>(null);
   const zonesRef = useRef<ZoneRects>({});
 
   const substitutionsRemaining = Math.max(0, MAX_SUBSTITUTIONS - substitutionsUsed);
   const orderedField = useMemo(() => fieldByTiredness(field), [field]);
+  // A substitute already in a shirt is on the pitch, so they leave this column.
+  const availableBench = useMemo(
+    () => bench.filter(player => !isComingOn(plan, player.id)),
+    [bench, plan],
+  );
   const problem = planProblem(plan, substitutionsRemaining);
   const saveable = canSave(plan, substitutionsRemaining);
   const staged = stagedCount(plan);
-  // Bert leads with the how-to, switches to whatever rule was just broken, and
-  // ends on the all-clear. One voice, one place to look.
   const speech = message
     ?? (staged === 0 ? BERT_DIRECTION : problem)
     ?? 'That is a full eleven. Save it and we play on.';
@@ -117,6 +139,15 @@ export function SubstitutionBoard({
     return null;
   }, []);
 
+  const startDrag = useCallback((kind: 'field' | 'bench', role: SubstitutionFieldPlayer['role']) => {
+    setDraggingKind(kind);
+    setDraggingRole(role === 'GK' ? 'GK' : 'OUTFIELD');
+  }, []);
+  const endDrag = useCallback(() => {
+    setDraggingKind(null);
+    setDraggingRole(null);
+  }, []);
+
   const applyMove = useCallback((next: SubstitutionPlan, rejection?: string) => {
     if (rejection !== undefined) {
       playManagementActionSfx('warning');
@@ -128,7 +159,7 @@ export function SubstitutionBoard({
     setPlan(next);
   }, []);
 
-  const dropFieldPlayer = useCallback((player: SubstitutionFieldPlayer, zone: DropZone | null) => {
+  const dropStarter = useCallback((player: SubstitutionFieldPlayer, zone: DropZone | null) => {
     if (zone === 'bench' || zone === 'subs') {
       const move = sendToBench(plan, player, substitutionsRemaining);
       applyMove(
@@ -142,7 +173,7 @@ export function SubstitutionBoard({
     }
   }, [applyMove, plan, substitutionsRemaining]);
 
-  const dropBenchPlayer = useCallback((player: SubstitutionBenchPlayer, zone: DropZone | null) => {
+  const dropSubstitute = useCallback((player: SubstitutionBenchPlayer, zone: DropZone | null) => {
     if (zone === 'field') {
       const move = bringOn(plan, player, field);
       applyMove(
@@ -152,6 +183,8 @@ export function SubstitutionBoard({
       return;
     }
     if ((zone === 'subs' || zone === 'bench') && isComingOn(plan, player.id)) {
+      // Out of the shirt, back to the column — the shirt reopens, the starter
+      // stays on the bench.
       applyMove(returnToBench(plan, player.id));
     }
   }, [applyMove, field, plan]);
@@ -165,13 +198,15 @@ export function SubstitutionBoard({
     onSave(planInputs(plan));
   }, [onSave, plan, problem, saveable]);
 
+  const reset = useCallback(() => {
+    playUiClickSfx();
+    setPlan(EMPTY_SUBSTITUTION_PLAN);
+    setMessage(null);
+  }, []);
+
   return (
     <View style={styles.overlay}>
-      <SfxPressable
-        accessible={false}
-        onPress={onCancel}
-        style={StyleSheet.absoluteFill}
-      >
+      <SfxPressable accessible={false} onPress={onCancel} style={StyleSheet.absoluteFill}>
         <View style={styles.scrim} />
       </SfxPressable>
 
@@ -185,9 +220,7 @@ export function SubstitutionBoard({
             <Text style={styles.title}>SUBSTITUTIONS</Text>
           </View>
           <View style={styles.headerRight}>
-            <Text style={styles.counter}>
-              {substitutionsUsed + staged} / {MAX_SUBSTITUTIONS}
-            </Text>
+            <Text style={styles.counter}>{substitutionsUsed + staged} / {MAX_SUBSTITUTIONS}</Text>
             <SfxPressable
               accessibilityRole="switch"
               accessibilityLabel={`Automatic substitutions ${autoSubs ? 'on' : 'off'}`}
@@ -201,88 +234,116 @@ export function SubstitutionBoard({
         </View>
 
         {/* The board scrolls between its fixed header and its actions, so SAVE is
-            always reachable — on a stacked phone layout and on a short desktop
-            window alike. */}
+            always reachable on a phone and on a short desktop window alike. */}
         <ScrollView
           bounces={false}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           style={styles.scroll}
         >
-        <View style={wide ? styles.columns : styles.columnsStacked}>
-          <View
-            onLayout={measureZone('field')}
-            style={[styles.column, styles.fieldColumn, dragging === 'bench' ? styles.columnArmed : null]}
-          >
-            <Text style={styles.columnTitle}>FIELD</Text>
-            <Text style={styles.columnHint}>MOST TIRED FIRST</Text>
-            {orderedField.map(player => (
-              <FieldRow
-                key={player.index}
-                player={player}
-                incoming={bench.find(sub => sub.id === replacementFor(plan, player.index))}
-                benched={isBenched(plan, player.index)}
-                showPortrait={wide}
-                onDragStateChange={setDragging}
-                onDrop={zone => dropFieldPlayer(player, zone)}
-                zoneAt={zoneAt}
-              />
-            ))}
-          </View>
+          <View style={wide ? styles.columns : styles.columnsStacked}>
+            <View onLayout={measureZone('field')} style={[styles.column, styles.fieldColumn]}>
+              <Text style={styles.columnTitle}>FIELD</Text>
+              <Text style={styles.columnHint}>MOST TIRED FIRST</Text>
+              <View style={wide ? null : styles.grid}>
+                {orderedField.map(player => {
+                  const incoming = bench.find(sub => sub.id === replacementFor(plan, player.index));
+                  const benched = isBenched(plan, player.index);
+                  // Only shirts this dragged substitute could legally fill march.
+                  const armed = benched
+                    && incoming === undefined
+                    && draggingKind === 'bench'
+                    && draggingRole === (player.role === 'GK' ? 'GK' : 'OUTFIELD');
+                  return benched ? (
+                    <ShirtRow
+                      key={player.index}
+                      outgoing={player}
+                      incoming={incoming}
+                      armed={armed}
+                      compact={!wide}
+                      onDragStart={startDrag}
+                      onDragEnd={endDrag}
+                      onDrop={zone => (incoming === undefined
+                        ? dropStarter(player, zone)
+                        : dropSubstitute(incoming, zone))}
+                      zoneAt={zoneAt}
+                    />
+                  ) : (
+                    <StarterRow
+                      key={player.index}
+                      player={player}
+                      showPortrait={wide}
+                      compact={!wide}
+                      onDragStart={startDrag}
+                      onDragEnd={endDrag}
+                      onDrop={zone => dropStarter(player, zone)}
+                      zoneAt={zoneAt}
+                    />
+                  );
+                })}
+              </View>
+            </View>
 
-          <View
-            onLayout={measureZone('subs')}
-            style={[styles.column, dragging === 'field' ? styles.columnArmed : null]}
-          >
-            <Text style={styles.columnTitle}>SUBSTITUTIONS</Text>
-            <Text style={styles.columnHint}>FRESH LEGS ENTER AT 100%</Text>
-            {bench.length === 0 ? (
-              <Text style={styles.emptyBench}>NOBODY LEFT ON THE BENCH.</Text>
-            ) : bench.map(player => (
-              <BenchRow
-                key={player.id}
-                player={player}
-                comingOn={isComingOn(plan, player.id)}
-                showPortrait={wide}
-                onDragStateChange={setDragging}
-                onDrop={zone => dropBenchPlayer(player, zone)}
-                zoneAt={zoneAt}
-              />
-            ))}
-          </View>
-        </View>
-
-        <View
-          onLayout={measureZone('bench')}
-          style={[styles.benchStrip, dragging === 'field' ? styles.benchStripArmed : null]}
-        >
-          <Text style={styles.columnTitle}>BENCH</Text>
-          <View style={styles.benchSeats}>
-            <BenchArt />
-            <View style={styles.benchOccupants}>
-              {plan.slots.length === 0 ? (
-                <Text style={styles.benchEmptyHint}>DROP A TIRED PLAYER HERE</Text>
-              ) : plan.slots.map(slot => {
-                const player = field.find(candidate => candidate.index === slot.player);
-                if (player === undefined) return null;
-                return (
-                  <SfxPressable
-                    key={slot.player}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${player.name} is coming off. Tap to put them back on the field.`}
-                    onPress={() => applyMove(recallToField(plan, slot.player))}
-                    style={styles.benchChip}
-                  >
-                    <Text numberOfLines={1} style={styles.benchChipName}>{surname(player.name)}</Text>
-                    <Text style={styles.benchChipMeta}>
-                      {slot.replacementId === null ? 'NEEDS COVER' : 'COVERED'}
-                    </Text>
-                  </SfxPressable>
-                );
-              })}
+            <View
+              onLayout={measureZone('subs')}
+              style={[styles.column, draggingKind === 'field' ? styles.columnArmed : null]}
+            >
+              <Text style={styles.columnTitle}>SUBSTITUTIONS</Text>
+              <Text style={styles.columnHint}>FRESH LEGS ENTER AT 100%</Text>
+              {availableBench.length === 0 ? (
+                <Text style={styles.emptyBench}>
+                  {bench.length === 0 ? 'NOBODY LEFT ON THE BENCH.' : 'EVERY SUBSTITUTE IS ON.'}
+                </Text>
+              ) : (
+                <View style={wide ? null : styles.grid}>
+                  {availableBench.map(player => (
+                    <SubstituteRow
+                      key={player.id}
+                      player={player}
+                      showPortrait={wide}
+                      compact={!wide}
+                      onDragStart={startDrag}
+                      onDragEnd={endDrag}
+                      onDrop={zone => dropSubstitute(player, zone)}
+                      zoneAt={zoneAt}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
           </View>
-        </View>
+
+          <View
+            onLayout={measureZone('bench')}
+            style={[styles.benchStrip, draggingKind === 'field' ? styles.benchStripArmed : null]}
+          >
+            <Text style={styles.columnTitle}>BENCH</Text>
+            <View style={styles.benchSeats}>
+              <BenchArt />
+              <View style={styles.benchOccupants}>
+                {plan.slots.length === 0 ? (
+                  <Text style={styles.benchEmptyHint}>DROP A TIRED PLAYER HERE</Text>
+                ) : plan.slots.map(slot => {
+                  const player = field.find(candidate => candidate.index === slot.player);
+                  if (player === undefined) return null;
+                  return (
+                    <SfxPressable
+                      key={slot.player}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${player.name} is coming off. Tap to put them back on the field.`}
+                      onPress={() => applyMove(recallToField(plan, slot.player))}
+                      style={styles.benchChip}
+                    >
+                      <Text numberOfLines={1} style={styles.benchChipName}>{surname(player.name)}</Text>
+                      <Text style={styles.benchChipMeta}>
+                        {player.role} · {slot.replacementId === null ? 'NEEDS COVER' : 'COVERED'}
+                      </Text>
+                    </SfxPressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
         </ScrollView>
 
         <View style={styles.bertRow}>
@@ -305,7 +366,7 @@ export function SubstitutionBoard({
         <View style={styles.actions}>
           <SfxPressable
             accessibilityRole="button"
-            accessibilityLabel="Cancel these substitutions"
+            accessibilityLabel="Cancel and close without substituting"
             onPress={onCancel}
             style={[styles.button, styles.cancelButton]}
           >
@@ -313,15 +374,23 @@ export function SubstitutionBoard({
           </SfxPressable>
           <SfxPressable
             accessibilityRole="button"
+            accessibilityLabel="Reset the board and put everyone back"
+            accessibilityState={{ disabled: staged === 0 }}
+            disabled={staged === 0}
+            onPress={reset}
+            style={[styles.button, styles.resetButton, staged === 0 ? styles.buttonBlocked : null]}
+          >
+            <Text style={styles.resetText}>RESET</Text>
+          </SfxPressable>
+          <SfxPressable
+            accessibilityRole="button"
             accessibilityLabel={saveable
               ? `Save ${staged} substitution${staged === 1 ? '' : 's'}`
               : problem ?? 'Nothing to save yet'}
             onPress={save}
-            style={[styles.button, styles.saveButton, saveable ? null : styles.saveButtonBlocked]}
+            style={[styles.button, styles.saveButton, saveable ? null : styles.buttonBlocked]}
           >
-            <Text style={styles.saveText}>
-              SAVE{staged > 0 ? ` ${staged}` : ''}
-            </Text>
+            <Text style={styles.saveText}>SAVE{staged > 0 ? ` ${staged}` : ''}</Text>
           </SfxPressable>
         </View>
       </View>
@@ -331,14 +400,14 @@ export function SubstitutionBoard({
 
 /** Shared drag behaviour. Cards spring home; the plan decides where they live. */
 function useCardDrag({
-  kind,
-  onDragStateChange,
+  onDragStart,
+  onDragEnd,
   onDrop,
   zoneAt,
   onTap,
 }: {
-  kind: 'field' | 'bench';
-  onDragStateChange: (kind: string | null) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
   onDrop: (zone: DropZone | null) => void;
   zoneAt: (pageX: number, pageY: number) => DropZone | null;
   onTap: () => void;
@@ -350,12 +419,12 @@ function useCardDrag({
       onMoveShouldSetPanResponder: (_event, gesture) => (
         Math.abs(gesture.dx) > 2 || Math.abs(gesture.dy) > 2
       ),
-      onPanResponderGrant: () => onDragStateChange(kind),
+      onPanResponderGrant: () => onDragStart(),
       onPanResponderMove: (_event, gesture) => {
         offset.setValue({ x: gesture.dx, y: gesture.dy });
       },
       onPanResponderRelease: (_event, gesture) => {
-        onDragStateChange(null);
+        onDragEnd();
         offset.setValue({ x: 0, y: 0 });
         if (Math.abs(gesture.dx) < TAP_SLOP && Math.abs(gesture.dy) < TAP_SLOP) {
           onTap();
@@ -364,7 +433,7 @@ function useCardDrag({
         onDrop(zoneAt(gesture.moveX, gesture.moveY));
       },
       onPanResponderTerminate: () => {
-        onDragStateChange(null);
+        onDragEnd();
         offset.setValue({ x: 0, y: 0 });
       },
     }),
@@ -373,30 +442,137 @@ function useCardDrag({
   return { offset, handlers: responder.panHandlers };
 }
 
-function FieldRow({
-  player,
+/**
+ * The dotted shirt border, drawn in Skia so its dashes can actually march. A
+ * View's dashed border has no animatable offset; DashPathEffect has a phase.
+ * The phase counts DOWN because a rounded rect path runs clockwise, so a falling
+ * phase carries the dashes forward along it.
+ */
+function MarchingBorder({ width, height, armed }: { width: number; height: number; armed: boolean }) {
+  const clock = useSharedValue(0);
+  useFrameCallback((info) => {
+    'worklet';
+    clock.value = info.timeSinceFirstFrame ?? 0;
+  }, armed);
+  const phase = useDerivedValue(() => (
+    armed ? -((clock.value / 1000) * DASH_MARCH_PT_PER_SECOND) : 0
+  ));
+
+  if (width <= 0 || height <= 0) return null;
+  const inset = SHIRT_STROKE / 2;
+  return (
+    <Canvas pointerEvents="none" style={[StyleSheet.absoluteFill, { width, height }]}>
+      <RoundedRect
+        x={inset}
+        y={inset}
+        width={Math.max(0, width - SHIRT_STROKE)}
+        height={Math.max(0, height - SHIRT_STROKE)}
+        r={SHIRT_RADIUS}
+        style="stroke"
+        strokeWidth={SHIRT_STROKE}
+        color={armed ? SHIRT_DASH_ARMED : SHIRT_DASH_IDLE}
+      >
+        <DashPathEffect intervals={[...DASH_INTERVALS]} phase={phase} />
+        {armed ? <BlurMask blur={3} style="solid" /> : null}
+      </RoundedRect>
+    </Canvas>
+  );
+}
+
+/** An open or filled shirt: the hole a benched starter leaves behind. */
+function ShirtRow({
+  outgoing,
   incoming,
-  benched,
+  armed,
+  compact,
+  onDragStart,
+  onDragEnd,
+  onDrop,
+  zoneAt,
+}: {
+  outgoing: SubstitutionFieldPlayer;
+  incoming?: SubstitutionBenchPlayer;
+  armed: boolean;
+  compact: boolean;
+  onDragStart: (kind: 'field' | 'bench', role: SubstitutionFieldPlayer['role']) => void;
+  onDragEnd: () => void;
+  onDrop: (zone: DropZone | null) => void;
+  zoneAt: (pageX: number, pageY: number) => DropZone | null;
+}) {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const filled = incoming !== undefined;
+  const { offset, handlers } = useCardDrag({
+    // A filled shirt drags its substitute back out; an empty one drags the
+    // starter back on.
+    onDragStart: () => onDragStart(filled ? 'bench' : 'field', outgoing.role),
+    onDragEnd,
+    onDrop,
+    zoneAt,
+    onTap: () => onDrop(filled ? 'subs' : 'field'),
+  });
+
+  return (
+    <Animated.View
+      {...handlers}
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={filled
+        ? `${incoming.name}, ${incoming.role}, on for ${outgoing.name}. Tap to send them back to the bench.`
+        : `${outgoing.name}'s ${outgoing.role} shirt is empty. Drag a substitute in, or tap to keep ${outgoing.name} on.`}
+      onLayout={event => setSize({
+        width: event.nativeEvent.layout.width,
+        height: event.nativeEvent.layout.height,
+      })}
+      style={[
+        styles.shirt,
+        filled ? styles.shirtFilled : null,
+        compact ? styles.gridCell : null,
+        { transform: offset.getTranslateTransform() },
+      ]}
+    >
+      <MarchingBorder width={size.width} height={size.height} armed={armed} />
+      {filled && !compact ? (
+        <View style={styles.portrait}>
+          <Text style={styles.portraitInitials}>{initials(incoming.name)}</Text>
+        </View>
+      ) : null}
+      <View style={styles.rowCopy}>
+        <Text numberOfLines={1} style={styles.shirtName}>
+          {filled ? incoming.name : openShirtLabel(compact ? surname(outgoing.name) : outgoing.name, compact)}
+          <Text style={styles.role}> {filled ? incoming.role : outgoing.role}</Text>
+        </Text>
+        <Text style={styles.shirtMeta}>
+          {filled ? filledShirtLabel(outgoing.name) : `${outgoing.role} SHIRT · EMPTY`}
+        </Text>
+      </View>
+      {compact ? null : <Text style={styles.grip}>⠿</Text>}
+    </Animated.View>
+  );
+}
+
+function StarterRow({
+  player,
   showPortrait,
-  onDragStateChange,
+  compact,
+  onDragStart,
+  onDragEnd,
   onDrop,
   zoneAt,
 }: {
   player: SubstitutionFieldPlayer;
-  incoming?: SubstitutionBenchPlayer;
-  benched: boolean;
   showPortrait: boolean;
-  onDragStateChange: (kind: string | null) => void;
+  compact: boolean;
+  onDragStart: (kind: 'field' | 'bench', role: SubstitutionFieldPlayer['role']) => void;
+  onDragEnd: () => void;
   onDrop: (zone: DropZone | null) => void;
   zoneAt: (pageX: number, pageY: number) => DropZone | null;
 }) {
   const { offset, handlers } = useCardDrag({
-    kind: 'field',
-    onDragStateChange,
+    onDragStart: () => onDragStart('field', player.role),
+    onDragEnd,
     onDrop,
     zoneAt,
-    // A tap means "the obvious thing": off to the bench, or back on if staged.
-    onTap: () => onDrop(benched ? 'field' : 'bench'),
+    onTap: () => onDrop('bench'),
   });
   const band = energyBand(player.condition);
 
@@ -405,68 +581,63 @@ function FieldRow({
       {...handlers}
       accessible
       accessibilityRole="button"
-      accessibilityLabel={benched
-        ? `${player.name} is coming off${incoming === undefined ? ' and needs cover' : `, replaced by ${incoming.name}`}. Tap to keep them on.`
-        : `${player.name}, ${player.role}, ${Math.round(player.condition)} percent energy. Tap to send them to the bench.`}
+      accessibilityLabel={`${player.name}, ${player.role}, ${Math.round(player.condition)} percent energy. Tap to send them to the bench.`}
       style={[
         styles.row,
-        benched ? styles.rowBenched : null,
         player.sentOff ? styles.rowSentOff : null,
+        compact ? styles.gridCell : null,
         { transform: offset.getTranslateTransform() },
       ]}
     >
       {showPortrait ? (
-        <View style={[styles.portrait, benched ? styles.portraitBenched : null]}>
+        <View style={styles.portrait}>
           <Text style={styles.portraitInitials}>{initials(player.name)}</Text>
         </View>
       ) : null}
       <View style={styles.rowCopy}>
         <Text numberOfLines={1} style={styles.rowName}>
-          {benched && incoming !== undefined ? incoming.name : player.name}
+          {compact ? surname(player.name) : player.name}
+          <Text style={styles.role}> {player.role}</Text>
         </Text>
-        <Text style={styles.rowMeta}>
-          {benched
-            ? incoming === undefined ? 'OPEN — DRAG A SUB IN' : `ON FOR ${surname(player.name).toUpperCase()}`
-            : `${player.role} · ${Math.round(player.condition)}%`}
-        </Text>
-        {benched ? null : (
-          <View style={styles.energyTrack}>
-            <View
-              style={[
-                styles.energyFill,
-                { backgroundColor: ENERGY_FILL_COLORS[band] },
-                { width: `${Math.max(0, Math.min(100, player.condition))}%` },
-              ]}
-            />
-          </View>
-        )}
+        <Text style={styles.rowMeta}>{Math.round(player.condition)}%</Text>
+        <View style={styles.energyTrack}>
+          <View
+            style={[
+              styles.energyFill,
+              { backgroundColor: ENERGY_FILL_COLORS[band] },
+              { width: `${Math.max(0, Math.min(100, player.condition))}%` },
+            ]}
+          />
+        </View>
       </View>
-      <Text style={styles.grip}>⠿</Text>
+      {compact ? null : <Text style={styles.grip}>⠿</Text>}
     </Animated.View>
   );
 }
 
-function BenchRow({
+function SubstituteRow({
   player,
-  comingOn,
   showPortrait,
-  onDragStateChange,
+  compact,
+  onDragStart,
+  onDragEnd,
   onDrop,
   zoneAt,
 }: {
   player: SubstitutionBenchPlayer;
-  comingOn: boolean;
   showPortrait: boolean;
-  onDragStateChange: (kind: string | null) => void;
+  compact: boolean;
+  onDragStart: (kind: 'field' | 'bench', role: SubstitutionFieldPlayer['role']) => void;
+  onDragEnd: () => void;
   onDrop: (zone: DropZone | null) => void;
   zoneAt: (pageX: number, pageY: number) => DropZone | null;
 }) {
   const { offset, handlers } = useCardDrag({
-    kind: 'bench',
-    onDragStateChange,
+    onDragStart: () => onDragStart('bench', player.role),
+    onDragEnd,
     onDrop,
     zoneAt,
-    onTap: () => onDrop(comingOn ? 'subs' : 'field'),
+    onTap: () => onDrop('field'),
   });
 
   return (
@@ -474,12 +645,10 @@ function BenchRow({
       {...handlers}
       accessible
       accessibilityRole="button"
-      accessibilityLabel={comingOn
-        ? `${player.name} is coming on. Tap to leave them on the bench.`
-        : `${player.name}, ${player.role}, fresh. Tap to bring them on.`}
+      accessibilityLabel={`${player.name}, ${player.role}, fresh. Tap to bring them on.`}
       style={[
         styles.row,
-        comingOn ? styles.rowComingOn : null,
+        compact ? styles.gridCell : null,
         { transform: offset.getTranslateTransform() },
       ]}
     >
@@ -489,10 +658,13 @@ function BenchRow({
         </View>
       ) : null}
       <View style={styles.rowCopy}>
-        <Text numberOfLines={1} style={styles.rowName}>{player.name}</Text>
-        <Text style={styles.rowMeta}>{player.role} · 100%</Text>
+        <Text numberOfLines={1} style={styles.rowName}>
+          {compact ? surname(player.name) : player.name}
+          <Text style={styles.role}> {player.role}</Text>
+        </Text>
+        <Text style={styles.rowMeta}>100%</Text>
       </View>
-      <Text style={comingOn ? styles.comingOnFlag : styles.grip}>{comingOn ? 'ON ▸' : '⠿'}</Text>
+      {compact ? null : <Text style={styles.grip}>⠿</Text>}
     </Animated.View>
   );
 }
@@ -528,9 +700,8 @@ function surname(name: string): string {
 }
 
 // Palette from the pixel bible (docs/11): ink #241f2e, ink-soft #3a3350,
-// card #2d283c, cream #f4f1ea, muted #bcb7c4, structure #6b6675,
-// gold #edb54a, red #d94f52, pitch green #3f8a4a. Wood tones for the bench come
-// from the extended world ramp.
+// card #2d283c, cream #f4f1ea, muted #bcb7c4, structure #6b6675, gold #edb54a,
+// red #d94f52. Wood tones for the bench come from the extended world ramp.
 const PIXEL_BOLD = 'Silkscreen_700Bold';
 const PIXEL = 'Silkscreen_400Regular';
 
@@ -567,12 +738,7 @@ const styles = StyleSheet.create({
   headerRight: { alignItems: 'flex-end', gap: 8 },
   eyebrow: { color: '#bcb7c4', fontFamily: PIXEL, fontSize: 11, letterSpacing: 1 },
   title: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 22, letterSpacing: 1, marginTop: 4 },
-  counter: {
-    color: '#f4f1ea',
-    fontFamily: PIXEL_BOLD,
-    fontSize: 16,
-    fontVariant: ['tabular-nums'],
-  },
+  counter: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 16, fontVariant: ['tabular-nums'] },
   autoSub: {
     minHeight: 40,
     justifyContent: 'center',
@@ -603,6 +769,9 @@ const styles = StyleSheet.create({
   columnTitle: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 14, letterSpacing: 1 },
   columnHint: { color: '#8e88a0', fontFamily: PIXEL, fontSize: 10, letterSpacing: 0.8, marginTop: -4 },
   emptyBench: { color: '#8e88a0', fontFamily: PIXEL, fontSize: 11, paddingVertical: 12 },
+  // Two names per row on a phone, so a squad fits without scrolling.
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  gridCell: { width: '48.5%', minHeight: 62 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -617,12 +786,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  rowBenched: { backgroundColor: '#2b2438', borderColor: '#edb54a', borderStyle: 'dashed' },
-  rowComingOn: { backgroundColor: '#2f5233', borderColor: '#65b96e' },
   rowSentOff: { opacity: 0.4 },
   rowCopy: { flex: 1, minWidth: 0 },
   rowName: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 14 },
   rowMeta: { color: '#bcb7c4', fontFamily: PIXEL, fontSize: 10, marginTop: 4, letterSpacing: 0.6 },
+  role: { color: '#a3c8f0', fontFamily: PIXEL_BOLD, fontSize: 11, letterSpacing: 0.5 },
+  // The shirt has no View border of its own: MarchingBorder draws it in Skia.
+  shirt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 56,
+    borderRadius: 3,
+    backgroundColor: 'rgba(237,181,74,0.06)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  shirtFilled: { backgroundColor: 'rgba(237,181,74,0.12)' },
+  shirtName: { color: '#f7d894', fontFamily: PIXEL_BOLD, fontSize: 14 },
+  shirtMeta: { color: '#edb54a', fontFamily: PIXEL, fontSize: 10, marginTop: 4, letterSpacing: 0.6 },
   portrait: {
     width: 40,
     height: 40,
@@ -633,12 +815,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#5a8fd6',
   },
   portraitBench: { backgroundColor: '#6b6675' },
-  portraitBenched: { backgroundColor: '#3a3350' },
   portraitInitials: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 13 },
   energyTrack: { height: 6, marginTop: 6, backgroundColor: '#16121f', overflow: 'hidden' },
   energyFill: { height: 6 },
   grip: { color: '#6b6675', fontFamily: PIXEL_BOLD, fontSize: 16 },
-  comingOnFlag: { color: '#65b96e', fontFamily: PIXEL_BOLD, fontSize: 12 },
   benchStrip: {
     gap: 8,
     borderWidth: 2,
@@ -664,7 +844,6 @@ const styles = StyleSheet.create({
   },
   benchChipName: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 13 },
   benchChipMeta: { color: '#edb54a', fontFamily: PIXEL, fontSize: 9, marginTop: 2, letterSpacing: 0.6 },
-  // --- pixel bench, drawn from blocks so it stays on the pixel grid ---
   benchArt: { width: 96, height: 56 },
   benchShadow: { position: 'absolute', left: 6, bottom: 0, width: 84, height: 5, backgroundColor: 'rgba(0,0,0,0.35)' },
   benchLeg: { position: 'absolute', bottom: 4, width: 8, height: 18, backgroundColor: '#6a4326' },
@@ -692,18 +871,20 @@ const styles = StyleSheet.create({
   speechText: { color: '#ffffff', fontFamily: PIXEL, fontSize: 13, lineHeight: 20, marginTop: 6 },
   actions: { flexDirection: 'row', gap: 12 },
   button: {
-    flex: 1,
     minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 12,
     borderWidth: 2,
     borderBottomWidth: 4,
     borderRadius: 3,
   },
-  cancelButton: { borderColor: '#6b6675', borderBottomColor: '#16121f', backgroundColor: '#3a3350' },
+  buttonBlocked: { opacity: 0.45 },
+  cancelButton: { flex: 1, borderColor: '#6b6675', borderBottomColor: '#16121f', backgroundColor: '#3a3350' },
   cancelText: { color: '#bcb7c4', fontFamily: PIXEL_BOLD, fontSize: 15, letterSpacing: 1 },
-  saveButton: { borderColor: '#a3c8f0', borderBottomColor: '#2b5a97', backgroundColor: '#3f6fb5' },
-  saveButtonBlocked: { opacity: 0.45 },
+  resetButton: { flex: 1, borderColor: '#c8862a', borderBottomColor: '#16121f', backgroundColor: '#3a3350' },
+  resetText: { color: '#edb54a', fontFamily: PIXEL_BOLD, fontSize: 15, letterSpacing: 1 },
+  saveButton: { flex: 1.4, borderColor: '#a3c8f0', borderBottomColor: '#2b5a97', backgroundColor: '#3f6fb5' },
   saveText: { color: '#ffffff', fontFamily: PIXEL_BOLD, fontSize: 15, letterSpacing: 1 },
 });
 

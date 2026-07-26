@@ -156,6 +156,19 @@ export function returnToBench(plan: SubstitutionPlan, benchId: string): Substitu
   };
 }
 
+/**
+ * Copy for an empty shirt. The full prompt is an instruction; `compact` drops it
+ * to the name alone, because a two-up grid on a phone has no room for a sentence.
+ */
+export function openShirtLabel(outgoingName: string, compact: boolean): string {
+  return compact ? outgoingName : `Sub someone in for ${outgoingName}…`;
+}
+
+/** Copy for a filled shirt: who is on, and whose shirt they took. */
+export function filledShirtLabel(outgoingName: string): string {
+  return `ON FOR ${outgoingName.toUpperCase()}`;
+}
+
 function countWord(count: number): string {
   const words = ['no', 'one', 'two', 'three', 'four', 'five'];
   return words[count] ?? String(count);

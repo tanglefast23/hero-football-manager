@@ -4,6 +4,8 @@ import {
   bringOn,
   canSave,
   fieldByTiredness,
+  filledShirtLabel,
+  openShirtLabel,
   isBenched,
   isComingOn,
   openSlotCount,
@@ -145,6 +147,13 @@ describe('substitution board rules', () => {
     // One bench player cannot fill two holes — the engine rejects the duplicate.
     expect(again.plan).toEqual(plan);
     expect(planInputs(again.plan)).toEqual([{ player: 1, replacementId: 'zed' }]);
+  });
+
+  it('labels an empty shirt with an instruction, or just the name when compact', () => {
+    expect(openShirtLabel('Ravi Chan', false)).toBe('Sub someone in for Ravi Chan…');
+    // Two-up on a phone: no room for a sentence, so the name carries it.
+    expect(openShirtLabel('Ravi Chan', true)).toBe('Ravi Chan');
+    expect(filledShirtLabel('Dario Flint')).toBe('ON FOR DARIO FLINT');
   });
 
   it('emits one engine payload per staged pair and nothing for open holes', () => {
