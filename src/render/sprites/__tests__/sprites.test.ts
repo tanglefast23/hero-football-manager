@@ -72,7 +72,11 @@ describe('large career match-sprite roster', () => {
 
   it('keeps hard-pixel dimensions and declared palette tokens', () => {
     const sheet = fullSheet;
-    expect(Object.keys(sheet.palette).length).toBeLessThanOrEqual(24);
+    // 26, not the old 24: hair now has its own near-black ramp. Hair and skin
+    // used to share one set of browns, which is why a fringe or a beard drawn
+    // over a face was invisible. Two of the three new slots are genuinely new;
+    // the third was paid for by retiring J, which sat dE 8.4 from m.
+    expect(Object.keys(sheet.palette).length).toBeLessThanOrEqual(26);
     for (const [key, rows] of Object.entries(sheet.sprites)) {
       const ball = key === 'ball';
       const slide = /:slide\d+(?::webbed)?$/.test(key);
