@@ -1,4 +1,4 @@
-import { Modal, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { FacilityTypeViewModel } from './models';
 import { ActionButton, PaperPanel, StatusChip } from './components/Scorecard';
@@ -34,6 +34,9 @@ export function FacilityProjectNotice({
         className="flex-1 justify-center bg-ink/60 px-4 py-6"
         edges={['top', 'left', 'right', 'bottom']}
       >
+        {/* Nothing to decide here, so an outside tap closes it. Sibling of the
+            panel so taps on its controls never bubble into the close target. */}
+        <Pressable accessible={false} className="absolute inset-0" onPress={onClose} />
         <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
           <PaperPanel
             kicker="Works order approved"

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { AssistantGuideContent, AssistantGuideSequenceId } from '../content';
 import { ActionButton } from './components/Scorecard';
-import { playBertVoice, stopBertVoice } from '../render/bert-voice';
+import { bertVoiceDurationMs, playBertVoice, stopBertVoice } from '../render/bert-voice';
 import { TutorialTapCue } from './TutorialTapCue';
 import {
   tutorialCuePosition,
@@ -27,11 +27,16 @@ export function AssistantGuideOverlay({
   onAdvance,
 }: AssistantGuideOverlayProps) {
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
-  // Bert "speaks" a fresh line of bleeps each time a new briefing page appears.
+  // Bert ticks his way through each new briefing page for as long as its copy
+  // takes to say. Derived inside the effect so the hook stays above the early
+  // return for an unknown sequence.
   useEffect(() => {
-    playBertVoice();
+    const pages = content.sequences.find(candidate => candidate.id === sequenceId)?.pages;
+    if (pages === undefined || pages.length === 0) return undefined;
+    const spoken = pages[Math.min(pageIndex, pages.length - 1)].body.join(' ');
+    playBertVoice(bertVoiceDurationMs(spoken));
     return () => stopBertVoice();
-  }, [sequenceId, pageIndex]);
+  }, [content, sequenceId, pageIndex]);
   const sequence = content.sequences.find(candidate => candidate.id === sequenceId);
   if (sequence === undefined) return null;
   const page = sequence.pages[Math.min(pageIndex, sequence.pages.length - 1)];
@@ -51,9 +56,9 @@ export function AssistantGuideOverlay({
           viewportWidth={viewportWidth}
           viewportHeight={viewportHeight}
         />
-        {navigationAnchor && page.navItems ? (
+        {navigationAnchor ? (
           <NavigationGuidePage
-            items={page.navItems}
+            tip={page.body[0]}
             anchor={navigationAnchor}
             viewportWidth={viewportWidth}
             viewportHeight={viewportHeight}
@@ -166,110 +171,68 @@ export function AssistantGuideOverlay({
 }
 
 function NavigationGuidePage({
-  items,
+  tip,
   anchor,
   viewportWidth,
   viewportHeight,
   buttonLabel,
   onAdvance,
 }: {
-  items: ReadonlyArray<{ tab: string; detail: string }>;
+  tip: string;
   anchor: TutorialAnchorLayout;
   viewportWidth: number;
   viewportHeight: number;
   buttonLabel: string;
   onAdvance: () => void;
 }) {
-  // Walk one tab at a time: spotlight the current tab, dim the rest, and step
-  // through with Next until the last tab, which finishes the guide. The copy is
-  // the same per-tab briefing (item.tab + item.detail) shown all-at-once before.
-  const [step, setStep] = useState(0);
-  const tabCount = Math.max(1, items.length);
-  const clampedStep = Math.min(step, tabCount - 1);
-  const item = items[clampedStep];
-  const isLast = clampedStep >= tabCount - 1;
-
+  // The whole rail is the subject, so ring it as one object and hang a single
+  // tip centred over it. Stepping tab by tab turned one instruction into five
+  // beats and dimmed four doors the player was being told to look at.
   const clamp = (value: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, value));
-  const tabWidth = anchor.width / tabCount;
-  const tabCenter = anchor.x + tabWidth * (clampedStep + 0.5);
-  const panelWidth = Math.min(240, Math.max(160, viewportWidth - 16));
-  const panelLeft = clamp(tabCenter - panelWidth / 2, 8, Math.max(8, viewportWidth - panelWidth - 8));
+  const barCenter = anchor.x + anchor.width / 2;
+  const panelWidth = Math.min(280, Math.max(160, viewportWidth - 16));
+  const panelLeft = clamp(barCenter - panelWidth / 2, 8, Math.max(8, viewportWidth - panelWidth - 8));
   const panelBottom = Math.max(8, viewportHeight - anchor.y + 12);
-  const arrowLeft = clamp(tabCenter - panelLeft, 14, panelWidth - 14);
-
-  const advance = () => {
-    if (isLast) onAdvance();
-    else setStep(current => current + 1);
-  };
+  // Stays under the bar's centre even when a narrow viewport clamps the panel.
+  const arrowLeft = clamp(barCenter - panelLeft, 14, panelWidth - 14);
 
   return (
     <>
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {items.map((navItem, index) => {
-          const slot = {
-            position: 'absolute' as const,
-            left: anchor.x + tabWidth * index,
-            top: anchor.y,
-            width: tabWidth,
-            height: anchor.height,
-          };
-          return (
-            <View
-              key={navItem.tab}
-              style={[slot, index === clampedStep ? styles.navTourRing : styles.navTourDim]}
-            />
-          );
-        })}
-      </View>
+      <View
+        pointerEvents="none"
+        style={[styles.navTourRing, {
+          left: anchor.x,
+          top: anchor.y,
+          width: anchor.width,
+          height: anchor.height,
+        }]}
+      />
       <View
         pointerEvents="box-none"
         style={[styles.navTourPanel, { left: panelLeft, width: panelWidth, bottom: panelBottom }]}
       >
-        <View style={styles.navTourHeader}>
-          <View style={styles.navTourDots}>
-            {items.map((navItem, index) => (
-              <View
-                key={navItem.tab}
-                style={[
-                  styles.navTourDot,
-                  index === clampedStep ? styles.navTourDotOn : null,
-                  index < clampedStep ? styles.navTourDotDone : null,
-                ]}
-              />
-            ))}
-          </View>
-          <View style={styles.navTourButton}>
-            <ActionButton
-              label={isLast ? buttonLabel : 'Next  ▸'}
-              accessibilityLabel={isLast
-                ? `Finish bottom navigation guide`
-                : `${item.tab}: ${item.detail} Next, ${clampedStep + 2} of ${tabCount}`}
-              onPress={advance}
-              variant="action"
-              compact
-            />
-          </View>
+        <View style={styles.navTourButton}>
+          <ActionButton
+            label={buttonLabel}
+            accessibilityLabel="Finish bottom navigation guide"
+            onPress={onAdvance}
+            variant="action"
+            compact
+          />
         </View>
         <View style={styles.navTourCardShadow}>
           <View
             accessible
             accessibilityRole="text"
-            accessibilityLabel={`${item.tab}, ${clampedStep + 1} of ${tabCount}. ${item.detail}`}
+            accessibilityLabel={tip}
             style={styles.navTourCard}
           >
             <Text
               adjustsFontSizeToFit
-              numberOfLines={1}
-              className="text-center font-pixel text-sm uppercase text-white"
+              numberOfLines={2}
+              className="text-center font-mono text-xs leading-4 text-white"
             >
-              {item.tab}
-            </Text>
-            <Text
-              adjustsFontSizeToFit
-              numberOfLines={3}
-              className="mt-1 text-center font-mono text-xs leading-4 text-white/90"
-            >
-              {item.detail}
+              {tip}
             </Text>
             <Text accessible={false} style={[styles.navigationCalloutArrow, { left: arrowLeft - 7 }]}>▼</Text>
           </View>
@@ -371,10 +334,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 14,
   },
-  navTourDim: {
-    backgroundColor: 'rgba(26,20,36,0.55)',
-  },
   navTourRing: {
+    position: 'absolute',
     borderWidth: 3,
     borderColor: '#edb54a',
     borderRadius: 4,
@@ -384,33 +345,8 @@ const styles = StyleSheet.create({
     gap: 8,
     zIndex: 40,
   },
-  navTourHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  navTourDots: {
-    flexDirection: 'row',
-    gap: 5,
-    alignItems: 'center',
-  },
-  navTourDot: {
-    width: 7,
-    height: 7,
-    borderWidth: 1.5,
-    borderColor: '#f4f1ea',
-    backgroundColor: '#241f2e',
-  },
-  navTourDotOn: {
-    backgroundColor: '#edb54a',
-    borderColor: '#edb54a',
-  },
-  navTourDotDone: {
-    backgroundColor: '#f4f1ea',
-  },
   navTourButton: {
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
   navTourCardShadow: {
     alignSelf: 'stretch',
@@ -420,7 +356,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#241f2e',
   },
   navTourCard: {
-    minHeight: 78,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,

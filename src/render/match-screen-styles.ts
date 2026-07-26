@@ -26,18 +26,20 @@ export const CARRIER_CARD_CONTENT_WIDTH =
 export const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#241f2e' },
   rootHighContrast: { backgroundColor: '#09070d' },
-  // Desktop two-pane body: fixed control rail left, pitch filling the rest.
+  // Desktop two-pane body: control rail then pitch, centred as ONE group so the
+  // rail always sits directly left of the touchline. A flexed pitch pane
+  // centred the (height-limited) pitch inside all the leftover width instead,
+  // stranding the controls a third of a screen away from the match.
   desktopBody: {
     flex: 1,
     flexDirection: 'row',
+    justifyContent: 'center',
     gap: MATCH_RAIL_GUTTER,
     paddingHorizontal: MATCH_RAIL_GUTTER,
     paddingTop: MATCH_RAIL_TOP_INSET,
     paddingBottom: MATCH_RAIL_GUTTER,
   },
-  desktopPitchPane: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // Keep event banners over the pitch instead of across the rail.
-  bannerStackDesktop: { left: MATCH_RAIL_WIDTH + MATCH_RAIL_GUTTER * 2 },
+  desktopPitchPane: { alignItems: 'center', justifyContent: 'center' },
   scorebar: {
     flexDirection: 'row',
     justifyContent: 'space-between',

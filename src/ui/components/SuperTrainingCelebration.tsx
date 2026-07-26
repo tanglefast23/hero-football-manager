@@ -1,9 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SfxPressable as Pressable } from './SfxPressable';
+import { playSuperTrainingYaySfx } from '../../render/management-sfx';
 
 const CONFETTI_COLORS = ['#f6c744', '#d94f52', '#5b3a91', '#f4f1ea', '#63c56b', '#62b5e5'];
-export const SUPER_CELEBRATION_MS = 2000;
+/** A SUPER session is the rarest thing in a training week; it gets held. */
+export const SUPER_CELEBRATION_MS = 3200;
+/** Four bursts, staggered — one shared clock made them all pop in unison. */
+const FIREWORK_DELAYS_MS = [0, 260, 620, 980] as const;
 
 export interface SuperTrainingCelebrationProps {
   /** The multiplied gain headline, e.g. "+5 PAC". */
@@ -23,12 +27,14 @@ export function SuperTrainingCelebration({
   onComplete,
 }: SuperTrainingCelebrationProps) {
   const confettiProgress = useRef(new Animated.Value(0)).current;
-  const fireworkProgress = useRef(new Animated.Value(0)).current;
+  const fireworkProgress = useRef(FIREWORK_DELAYS_MS.map(() => new Animated.Value(0))).current;
   const titleProgress = useRef(new Animated.Value(0)).current;
   const completedRef = useRef(false);
   const completeOnce = useRef(() => {
     if (completedRef.current) return;
     completedRef.current = true;
+    // The cheer lands as the takeover leaves, whether it played out or was tapped away.
+    playSuperTrainingYaySfx();
     onComplete();
   }).current;
 
@@ -43,15 +49,18 @@ export function SuperTrainingCelebration({
       easing: Easing.linear,
       useNativeDriver: true,
     });
-    const fireworks = Animated.loop(
-      Animated.timing(fireworkProgress, {
-        toValue: 1,
-        duration: 700,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      { iterations: 3, resetBeforeIteration: true },
-    );
+    const fireworks = Animated.parallel(fireworkProgress.map((value, index) => Animated.sequence([
+      Animated.delay(FIREWORK_DELAYS_MS[index]),
+      Animated.loop(
+        Animated.timing(value, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        { iterations: 3, resetBeforeIteration: true },
+      ),
+    ])));
     const title = Animated.spring(titleProgress, {
       toValue: 1,
       friction: 5,
@@ -96,7 +105,8 @@ export function SuperTrainingCelebration({
                   {
                     translateY: confettiProgress.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [piece.top, 460],
+                      // Further to fall, so a longer hold does not turn into slow-motion.
+                      outputRange: [piece.top, 660],
                     }),
                   },
                   {
@@ -112,8 +122,10 @@ export function SuperTrainingCelebration({
         ))}
         {reduceMotion ? null : (
           <>
-            <Firework progress={fireworkProgress} color="#f6c744" left={60} top={90} radius={44} />
-            <Firework progress={fireworkProgress} color="#62b5e5" left={250} top={140} radius={38} />
+            <Firework progress={fireworkProgress[0]} color="#f6c744" left={52} top={74} radius={52} />
+            <Firework progress={fireworkProgress[1]} color="#62b5e5" left={258} top={126} radius={44} />
+            <Firework progress={fireworkProgress[2]} color="#63c56b" left={132} top={228} radius={40} />
+            <Firework progress={fireworkProgress[3]} color="#d94f52" left={286} top={286} radius={46} />
           </>
         )}
         <Animated.View
@@ -130,15 +142,15 @@ export function SuperTrainingCelebration({
             },
           ]}
         >
-          <Text className="text-center font-pixel text-2xl uppercase text-gold" style={styles.titleGlow}>
+          <Text className="text-center font-pixel text-3xl uppercase text-gold" style={styles.titleGlow}>
             Super training
           </Text>
-          <Text className="text-center font-pixel text-2xl uppercase text-gold" style={styles.titleGlow}>
+          <Text className="text-center font-pixel text-3xl uppercase text-gold" style={styles.titleGlow}>
             session!
           </Text>
-          <View className="mt-3 items-center">
-            <View className="border-2 border-b-4 border-ink bg-gold px-4 py-2">
-              <Text className="font-pixel text-xl uppercase text-ink">1.5× · {gainLabel}</Text>
+          <View className="mt-4 items-center">
+            <View className="border-[3px] border-b-[6px] border-ink bg-gold px-6 py-3">
+              <Text className="font-pixel text-2xl uppercase text-ink">1.5× · {gainLabel}</Text>
             </View>
           </View>
         </Animated.View>
@@ -200,7 +212,7 @@ function Firework({
 }
 
 function makeConfetti(width: number) {
-  return Array.from({ length: 36 }, (_, index) => ({
+  return Array.from({ length: 52 }, (_, index) => ({
     id: `super-confetti-${index}`,
     left: (index * 73) % Math.max(1, width),
     top: -40 - ((index * 47) % 200),

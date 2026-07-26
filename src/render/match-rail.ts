@@ -8,7 +8,7 @@ import type { PowerState } from '../sim/types';
  * the left, the live pitch filling the right pane. Presentation only — every
  * rail control issues an already-recorded coaching input.
  */
-export const MATCH_RAIL_WIDTH = 400;
+export const MATCH_RAIL_WIDTH = 440;
 
 /** Outer padding around the desktop body, and the rail→pitch gutter. */
 export const MATCH_RAIL_GUTTER = 16;

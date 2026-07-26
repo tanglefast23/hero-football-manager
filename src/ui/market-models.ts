@@ -111,6 +111,15 @@ export interface YouthOfferViewModel {
   readonly ageLabel: string;
   readonly archetypeLabel: string;
   readonly potentialLabel: string;
+  /**
+   * The prospect's real stats, six across (keepers show REF in place of SHO).
+   * Academy kids are the club's own, so the card states them outright instead of
+   * the scout's estimated ranges.
+   */
+  readonly stats: readonly {
+    readonly label: 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
+    readonly value: number;
+  }[];
   readonly signingBonus: number;
   readonly weeklyWage: number;
   readonly available: boolean;

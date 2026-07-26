@@ -17,6 +17,15 @@ import {
 
 const railSource = () => readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
 const matchSource = () => readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+const styleSource = () => readFileSync(join(process.cwd(), 'src/render/match-screen-styles.ts'), 'utf8');
+
+/** Where the pitch's left edge lands once rail + pitch are centred as one group. */
+function pitchLeftEdge(width: number, pitchWidth: number): number {
+  return MATCH_RAIL_GUTTER * 2 + MATCH_RAIL_WIDTH + Math.max(
+    0,
+    (width - MATCH_RAIL_GUTTER * 3 - MATCH_RAIL_WIDTH - pitchWidth) / 2,
+  );
+}
 
 describe('desktop match control rail', () => {
   it('lists the three most tired players, condition ascending', () => {
@@ -79,7 +88,7 @@ describe('desktop match control rail', () => {
     expect(RAIL_HERO_TILE_CAP).toBe(4);
   });
 
-  it('leaves the pitch aspect-correct and full-height beside a 400pt rail', () => {
+  it('leaves the pitch aspect-correct and full-height beside a 440pt rail', () => {
     const width = 1280;
     const height = 800;
     expect(layoutModeForWidth(width)).toBe('twoColumn');
@@ -89,12 +98,32 @@ describe('desktop match control rail', () => {
     const pitchWidth = Math.min(availableWidth, (availableHeight * PITCH_W) / PITCH_H);
     const pitchHeight = PITCH_H * (pitchWidth / PITCH_W);
 
-    expect(MATCH_RAIL_WIDTH).toBe(400);
+    expect(MATCH_RAIL_WIDTH).toBe(440);
     // Height-limited, so the pitch fills the pane vertically...
     expect(Math.round(pitchHeight)).toBe(availableHeight);
     // ...and stays wider than the phone pitch it replaces.
     expect(pitchWidth).toBeGreaterThan(430);
     expect(pitchWidth).toBeLessThanOrEqual(availableWidth);
+  });
+
+  it('keeps the rail one gutter from the touchline instead of stranding it left', () => {
+    // A wide, short window is the worst case: the pitch is height-limited, so a
+    // flexed pane used to centre it in ~1,000pt of leftover width.
+    const width = 1920;
+    const pitchWidth = 800;
+
+    expect(styleSource()).toContain("justifyContent: 'center'");
+    expect(styleSource()).not.toContain('desktopPitchPane: { flex: 1');
+    expect(matchSource()).toContain('{ left: desktopPitchLeft }');
+
+    const railRight = pitchLeftEdge(width, pitchWidth) - MATCH_RAIL_GUTTER;
+    const railLeft = railRight - MATCH_RAIL_WIDTH;
+    // The gap between controls and pitch is the gutter, nothing more...
+    expect(pitchLeftEdge(width, pitchWidth) - railRight).toBe(MATCH_RAIL_GUTTER);
+    // ...and the leftover width is split evenly either side of the pair.
+    expect(Math.round(railLeft)).toBe(
+      Math.round(width - (pitchLeftEdge(width, pitchWidth) + pitchWidth)),
+    );
   });
 
   it('reserves no bottom-dock height on desktop and none of the rail on phones', () => {

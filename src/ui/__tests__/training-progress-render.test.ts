@@ -8,10 +8,18 @@ describe('training stat option rendering', () => {
       'utf8',
     );
 
-    // A drill is untappable when the player is injured, the stat sits at the
-    // universal safety ceiling, or the bank cannot cover the cost — never
-    // because of slots or caps, which no longer exist.
-    expect(source).toContain('const disabled = injured || blockedByPromise || option.atSafetyCeiling || !option.affordable;');
+    // A drill is untappable when the player is injured, someone else is owed
+    // drills, or the stat sits at the universal safety ceiling — never because of
+    // slots or caps, which no longer exist.
+    expect(source).toContain('const blocked = injured || blockedByPromise || option.atSafetyCeiling;');
+    expect(source).toContain('const disabled = blocked;');
+    // Too little TP is different: the row stays tappable and says so, because a
+    // button that does nothing reads as broken.
+    expect(source).toContain('const unaffordable = !blocked && !option.affordable;');
+    expect(source).toContain("title: 'Not enough TP'");
+    expect(source).toContain('setNotice(null)');
+    // Greyed the same either way.
+    expect(source).toContain('className={disabled || unaffordable');
     // A promised player's owed drills block everyone else with their reminder.
     expect(source).toContain('reminds you');
     expect(source).toContain('Train {promiseGate.playerName} instead');

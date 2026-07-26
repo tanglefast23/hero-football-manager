@@ -1,26 +1,30 @@
-// Bert's "voice": four short dialogue bleeps played back-to-back, each randomly
-// one of two samples, so every briefing line sounds a little different (Animal
-// Crossing "animalese" style). Presentation-only and fail-soft — headless Jest
+// Bert "speaks" in ticks: one very short tick clip repeated at a typewriter
+// cadence for as long as the page's copy takes to say — 2s for a one-line tip,
+// 3.5s for a full briefing. Presentation-only and fail-soft, so headless Jest
 // and an out-of-date native dev client still render the guide with no audio.
-import type { AudioPlayer, AudioSource } from 'expo-audio';
+import type { AudioPlayer } from 'expo-audio';
 
-const VOICE_SOURCES: AudioSource[] = [
-  require('../../assets/audio/sfx/bert-voice-1.wav'),
-  require('../../assets/audio/sfx/bert-voice-2.wav'),
-];
+const VOICE_SOURCE = require('../../assets/audio/sfx/bert-voice-tick.m4a');
 
-// Each sample carries ~0.28s of sound at its head; four bleeps at this spacing
-// read as one spoken line just over a second long, with no clip talking over
-// the previous one.
-const CLIPS_PER_LINE = 4;
-const CLIP_GAP_MS = 280;
+// The clip is ~23ms, so this spacing reads as speech; looping the clip natively
+// would run the ticks together into one buzz.
+const TICK_INTERVAL_MS = 90;
+/** Copy longer than this counts as a long message. */
+const LONG_MESSAGE_CHARS = 100;
+export const SHORT_MESSAGE_MS = 2_000;
+export const LONG_MESSAGE_MS = 3_500;
 
-const players: AudioPlayer[] = [];
-const pending: Array<ReturnType<typeof setTimeout>> = [];
+/** How long Bert talks for one page of copy. */
+export function bertVoiceDurationMs(spoken: string): number {
+  return spoken.trim().length > LONG_MESSAGE_CHARS ? LONG_MESSAGE_MS : SHORT_MESSAGE_MS;
+}
+
+let player: AudioPlayer | null = null;
+let ticker: ReturnType<typeof setInterval> | null = null;
+let stopTimer: ReturnType<typeof setTimeout> | null = null;
 const warned = new Set<string>();
 let masterVolume = 1;
 let initAttempted = false;
-let ready = false;
 
 function warnOnce(context: string, error: unknown): void {
   if (warned.has(context)) return;
@@ -33,68 +37,70 @@ function initBertVoice(): void {
   initAttempted = true;
   try {
     const audio = require('expo-audio') as typeof import('expo-audio');
-    for (const source of VOICE_SOURCES) {
-      const player = audio.createAudioPlayer(source);
-      player.volume = masterVolume;
-      players.push(player);
-    }
-    ready = true;
+    const created = audio.createAudioPlayer(VOICE_SOURCE);
+    created.volume = masterVolume;
+    player = created;
   } catch (error) {
-    players.length = 0;
-    ready = false;
+    player = null;
     warnOnce('init failed — Bert voice disabled for this session', error);
   }
 }
 
 export function setBertVoiceMasterVolume(volume: number): void {
   masterVolume = Math.max(0, Math.min(1, volume));
-  for (const player of players) {
-    try {
-      player.volume = masterVolume;
-    } catch (error) {
-      warnOnce('volume update failed', error);
-    }
+  if (player === null) return;
+  try {
+    player.volume = masterVolume;
+  } catch (error) {
+    warnOnce('volume update failed', error);
   }
 }
 
-/** Cancels any bleeps still queued from a previous line. */
+function tick(): void {
+  const active = player;
+  if (active === null) return;
+  try {
+    active.seekTo(0)
+      .then(() => active.play())
+      .catch((error: unknown) => warnOnce('tick playback failed', error));
+  } catch (error) {
+    warnOnce('tick playback failed', error);
+  }
+}
+
+/** Stops the run of ticks immediately; safe to call when nothing is talking. */
 export function stopBertVoice(): void {
-  for (const timer of pending) clearTimeout(timer);
-  pending.length = 0;
+  if (ticker !== null) clearInterval(ticker);
+  ticker = null;
+  if (stopTimer !== null) clearTimeout(stopTimer);
+  stopTimer = null;
+  try {
+    player?.pause();
+  } catch (error) {
+    warnOnce('stop failed', error);
+  }
 }
 
-/** Plays one spoken line: CLIPS_PER_LINE bleeps, each a random one of two samples. */
-export function playBertVoice(): void {
+/** Ticks for `durationMs`, then falls silent on its own. */
+export function playBertVoice(durationMs: number): void {
   initBertVoice();
-  if (!ready || masterVolume === 0 || players.length === 0) return;
+  if (player === null || masterVolume === 0 || durationMs <= 0) return;
   stopBertVoice();
-  for (let clip = 0; clip < CLIPS_PER_LINE; clip += 1) {
-    const timer = setTimeout(() => {
-      const player = players[Math.random() < 0.5 ? 0 : players.length - 1];
-      try {
-        player.seekTo(0)
-          .then(() => player.play())
-          .catch((error: unknown) => warnOnce('bleep playback failed', error));
-      } catch (error) {
-        warnOnce('bleep playback failed', error);
-      }
-    }, clip * CLIP_GAP_MS);
-    pending.push(timer);
-  }
+  tick();
+  ticker = setInterval(tick, TICK_INTERVAL_MS);
+  stopTimer = setTimeout(stopBertVoice, durationMs);
 }
 
 export function teardownBertVoice(): void {
   stopBertVoice();
-  for (const player of players) {
+  if (player !== null) {
     try {
-      player.pause();
       player.remove();
       player.release();
     } catch (error) {
       warnOnce('teardown failed', error);
     }
   }
-  players.length = 0;
-  ready = false;
+  player = null;
   initAttempted = false;
 }

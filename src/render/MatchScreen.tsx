@@ -392,6 +392,15 @@ export function MatchScreen({
     ball: ballSpriteScale,
   } = matchPitchLayout(availablePitchWidth, availablePitchHeight, devicePixelRatio);
   const pitchH = PITCH_H * scale;
+  // The desktop body centres rail + pitch as one group, so the pitch no longer
+  // begins at a fixed offset from the rail: banners have to follow its real
+  // left edge or they float in the dead space beside the touchline.
+  const desktopPitchLeft = railLayout
+    ? MATCH_RAIL_GUTTER * 2 + MATCH_RAIL_WIDTH + Math.max(
+      0,
+      (width - MATCH_RAIL_GUTTER * 3 - MATCH_RAIL_WIDTH - pitchWidth) / 2,
+    )
+    : 0;
   const homeCode = scoreCode(home);
   const awayCode = scoreCode(away);
 
@@ -1263,7 +1272,13 @@ export function MatchScreen({
       // Torch hero is ablaze, off once none are. Reconciled from state each
       // frame (not off an event) so it also stops on a KO, interruption, or
       // natural expiry — none of which emit a "power ended" event.
-      const fireActive = s.players.some((p, i) => p.def.power === 'FIRE_TORCH' && isActive(s, i));
+      // Both things that draw flames count: the caster while ablaze AND anyone
+      // they set alight (WorkletMatchOverlays draws tongues for STATUS_IGNITED
+      // too), so the crackle covers every flame on the pitch and nothing else.
+      const fireActive = s.players.some((p, i) => (
+        (p.def.power === 'FIRE_TORCH' && isActive(s, i))
+        || (p.outReason === 'ignited' && p.outUntilTick > s.tick)
+      ));
       if (fireActive && !fireLoopOnRef.current) {
         startFireAmbience();
         fireLoopOnRef.current = true;
@@ -2284,7 +2299,7 @@ export function MatchScreen({
         </View>
       </View>
       {hud.banners.length > 0 ? (
-        <View pointerEvents="none" style={[styles.bannerStack, railLayout ? styles.bannerStackDesktop : null]}>
+        <View pointerEvents="none" style={[styles.bannerStack, railLayout ? { left: desktopPitchLeft } : null]}>
           {hud.banners.map(banner => (
             <Text
               key={banner.id}

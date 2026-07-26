@@ -12,6 +12,7 @@ import {
 } from '@shopify/react-native-skia';
 import { useFrameCallback, useSharedValue, type FrameInfo } from 'react-native-reanimated';
 import { SfxPressable as Pressable } from '../ui/components/SfxPressable';
+import { playDrillProgressSfx, stopDrillProgressSfx } from './management-sfx';
 import { buildFallbackAtlas, buildSpriteAtlas } from './sprites/buildAtlas';
 import { PIXEL_ART_SAMPLING } from './pixel-art-sampling';
 import { playerLookId } from './sprites/player-look';
@@ -19,6 +20,9 @@ import { playerLookId } from './sprites/player-look';
 /** Per-drill sprite scene: fast enough to chain-tap, always tap-to-skip. */
 export const DRILL_SCENE_MS = 2_200;
 const REDUCED_MOTION_MS = 450;
+/** The number holds for a beat, then climbs; the gain only names itself after. */
+const COUNT_START_MS = 300;
+export const COUNT_UP_MS = 1_400;
 const STAGE_HEIGHT = 200;
 const FALLBACK_SPRITE = 24;
 
@@ -89,6 +93,9 @@ export function DrillSceneOverlay({
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const pop = useRef(new Animated.Value(1)).current;
   const [countedValue, setCountedValue] = useState(reduceMotion ? after : before);
+  // The "+N SHO" stamp stays hidden until the number has finished climbing, so
+  // the count is the only thing to watch and the gain reads as its payoff.
+  const [countLanded, setCountLanded] = useState(reduceMotion);
   const completedRef = useRef(false);
   const completeOnce = useCallback(() => {
     if (completedRef.current) return;
@@ -107,17 +114,31 @@ export function DrillSceneOverlay({
     });
     animation?.start();
 
-    // Count the stat up over the back half of the scene, landing with a pop.
+    if (reduceMotion) {
+      const skip = setTimeout(completeOnce, duration);
+      return () => {
+        animation?.stop();
+        clearTimeout(skip);
+      };
+    }
+
+    // The count-up owns the progress bed: it starts on the first tick upwards and
+    // is cut the instant the number lands, so the sound lasts exactly as long as
+    // the motion — never a beat longer, even when the scene is tapped away.
     const startedAt = Date.now();
-    const countStart = duration * 0.4;
-    const countEnd = duration * 0.9;
-    const timer = reduceMotion ? null : setInterval(() => {
-      const t = Date.now() - startedAt;
-      const ratio = Math.max(0, Math.min(1, (t - countStart) / (countEnd - countStart)));
-      const value = Math.round(before + (after - before) * ratio);
-      setCountedValue(value);
+    let sounding = false;
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const ratio = Math.max(0, Math.min(1, (elapsed - COUNT_START_MS) / COUNT_UP_MS));
+      if (!sounding && elapsed >= COUNT_START_MS) {
+        sounding = true;
+        playDrillProgressSfx();
+      }
+      setCountedValue(Math.round(before + (after - before) * ratio));
       if (ratio >= 1) {
-        if (timer !== null) clearInterval(timer);
+        clearInterval(timer);
+        stopDrillProgressSfx();
+        setCountLanded(true);
         Animated.sequence([
           Animated.spring(pop, { toValue: 1.3, friction: 4, useNativeDriver: true }),
           Animated.spring(pop, { toValue: 1, friction: 5, useNativeDriver: true }),
@@ -128,8 +149,9 @@ export function DrillSceneOverlay({
     const finish = setTimeout(completeOnce, duration);
     return () => {
       animation?.stop();
-      if (timer !== null) clearInterval(timer);
+      clearInterval(timer);
       clearTimeout(finish);
+      stopDrillProgressSfx();
     };
   }, [after, before, completeOnce, pop, progress, reduceMotion]);
 
@@ -168,7 +190,15 @@ export function DrillSceneOverlay({
           <Animated.Text style={[styles.gainValue, { transform: [{ scale: pop }] }]}>
             {countedValue}
           </Animated.Text>
-          <Text style={[styles.gainDelta, isSuper && styles.gainDeltaSuper]}>
+          <Text
+            style={[
+              styles.gainDelta,
+              isSuper && styles.gainDeltaSuper,
+              // Space is held from the start so the stamp appearing never nudges
+              // the number mid-count.
+              { opacity: countLanded ? 1 : 0 },
+            ]}
+          >
             +{after - before} {shortCode}
           </Text>
         </View>
@@ -404,7 +434,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 12,
   },
-  gainValue: { color: '#241f2e', fontFamily: 'Silkscreen_700Bold', fontSize: 30 },
+  // Green while it climbs and after it lands: the number itself is the gain.
+  gainValue: { color: '#3f8a4a', fontFamily: 'Silkscreen_700Bold', fontSize: 30 },
   gainDelta: { color: '#3f8a4a', fontFamily: 'Silkscreen_700Bold', fontSize: 16 },
   gainDeltaSuper: { color: '#c8862a' },
   progressTrack: { height: 9, borderTopWidth: 2, borderColor: '#241f2e', backgroundColor: '#cfc8da' },

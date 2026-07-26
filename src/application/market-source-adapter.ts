@@ -200,6 +200,7 @@ export function careerMarketViewModelSource(
                 potential: offer.player.potential ?? 1,
                 archetype: offer.player.archetype ?? 'All-Rounder',
                 weeklyWage: offer.player.weeklyWage,
+                attrs: offer.player.attrs,
               },
               signingBonus: offer.signingBonus,
             })),
