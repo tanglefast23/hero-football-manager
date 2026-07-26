@@ -122,6 +122,7 @@ import {
   type MatchRailHeroTile,
   type MatchRailTiredPlayer,
 } from './MatchControlRail';
+import { SubstitutionBoard } from './SubstitutionBoard';
 import {
   heatFraction,
   MATCH_RAIL_GUTTER,
@@ -498,8 +499,6 @@ export function MatchScreen({
   const autoSubsRef = useRef(false);
   const [paused, setPaused] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
-  const [selectedOutgoing, setSelectedOutgoing] = useState<number | null>(null);
-  const [selectedIncoming, setSelectedIncoming] = useState<string | null>(null);
   const [firstMatchTutorialStep, setFirstMatchTutorialStep] = useState<
     'tired-modal' | 'tired-swap-cue' | null
   >(null);
@@ -1786,13 +1785,20 @@ export function MatchScreen({
     if (frame.carrier >= 0) lastCarrierRef.current = frame.carrier;
   }, [frame.carrier]);
   const carrier = carrierIndex === null ? null : playerAt(match, carrierIndex) ?? null;
-  const selectedOutgoingPlayer = selectedOutgoing === null ? null : match.players[selectedOutgoing];
-  const selectedIncomingPlayer = selectedIncoming === null
-    ? null
-    : match.bench[controlledTeam].find((player) => player.id === selectedIncoming) ?? null;
   const bench = match.bench[controlledTeam];
   const substitutionsUsed = match.substitutionsUsed[controlledTeam];
   const substitutionsRemaining = Math.max(0, MAX_SUBSTITUTIONS - substitutionsUsed);
+  const substitutionBoardField = onFieldIndices.map((index) => {
+    const player = match.players[index];
+    return {
+      index,
+      name: player.def.name,
+      role: player.def.role,
+      condition: player.condition,
+      sentOff: player.outReason === 'redcard',
+      ...(player.def.lookId === undefined ? {} : { lookId: player.def.lookId }),
+    };
+  });
   const { average: teamEnergy, tiredCount } = summarizeTeamEnergy(
     activeOnFieldIndices.map((index) => match.players[index].condition),
   );
@@ -1825,8 +1831,6 @@ export function MatchScreen({
       || substitutionsUsed >= MAX_SUBSTITUTIONS
       || bench.length === 0
     ) return;
-    setSelectedOutgoing(null);
-    setSelectedIncoming(null);
     setSwapOpen(true);
     automaticPauseReasonsRef.current.add('swap');
     if (firstMatchTutorialStepRef.current === 'tired-swap-cue') {
@@ -1838,19 +1842,35 @@ export function MatchScreen({
   };
   const closeSwap = () => {
     setSwapOpen(false);
-    setSelectedOutgoing(null);
-    setSelectedIncoming(null);
     automaticPauseReasonsRef.current.delete('swap');
     syncPauseReasons();
   };
-  const confirmSwap = () => {
-    if (selectedOutgoing === null || selectedIncoming === null) return;
-    queueInput(match, {
-      tick: match.tick + 1,
-      kind: 'SUBSTITUTE',
-      player: selectedOutgoing,
-      replacementId: selectedIncoming,
-    });
+  const toggleAutoSubs = () => {
+    const enabled = !autoSubs;
+    setAutoSubs(enabled);
+    autoSubsRef.current = enabled;
+  };
+  /**
+   * Commits the whole board at once: one recorded SUBSTITUTE input per staged
+   * pair, all on the same tick. The engine validates each one and the board
+   * mirrors those rules, so the try/catch only covers the match having moved
+   * under an open board — one rejected swap must never take the screen down.
+   */
+  const commitSubstitutions = (
+    swaps: readonly { player: number; replacementId: string }[],
+  ) => {
+    for (const swap of swaps) {
+      try {
+        queueInput(match, {
+          tick: match.tick + 1,
+          kind: 'SUBSTITUTE',
+          player: swap.player,
+          replacementId: swap.replacementId,
+        });
+      } catch (error) {
+        console.warn('MatchScreen: the engine rejected a staged substitution', error);
+      }
+    }
     closeSwap();
   };
 
@@ -2457,175 +2477,15 @@ export function MatchScreen({
         </View>
       )}
       {swapOpen ? (
-        <View style={styles.swapOverlay}>
-          <View style={styles.swapSheet}>
-            <View style={styles.swapHeader}>
-              <View>
-                <Text style={styles.swapEyebrow}>MATCH PAUSED</Text>
-                <Text style={styles.swapTitle}>CHOOSE A SUBSTITUTE</Text>
-              </View>
-              <Text style={styles.swapCount}>{substitutionsUsed} / {MAX_SUBSTITUTIONS}</Text>
-            </View>
-
-            <Pressable
-              accessibilityRole="switch"
-              accessibilityLabel={`Automatic substitutions ${autoSubs ? 'on' : 'off'}. ${
-                autoSubs
-                  ? 'The bench covers tired players for you. Tap to take the calls back.'
-                  : 'Tap to let the bench cover tired players for you.'
-              }`}
-              accessibilityState={{ checked: autoSubs }}
-              style={[styles.autoSubRow, autoSubs ? styles.autoSubRowOn : null]}
-              onPress={() => {
-                playUiClickSfx();
-                const enabled = !autoSubs;
-                setAutoSubs(enabled);
-                autoSubsRef.current = enabled;
-              }}
-            >
-              <Text style={styles.autoSubBox}>{autoSubs ? '☑' : '☐'}</Text>
-              <View style={styles.coachCopy}>
-                <Text style={styles.autoSubLabel}>AUTO SUBS</Text>
-                <Text numberOfLines={1} style={styles.autoSubDetail}>
-                  {autoSubs ? 'The bench covers tired legs' : 'You make every call'}
-                </Text>
-              </View>
-            </Pressable>
-
-            <Text style={styles.swapInstruction}>1 · TAP THE PLAYER COMING OFF</Text>
-            <View style={styles.playerGrid}>
-              {onFieldIndices.map((index, slot) => {
-                const player = match.players[index];
-                const selected = selectedOutgoing === index;
-                const sentOff = player.outReason === 'redcard';
-                return (
-                  <Pressable
-                    key={player.def.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={sentOff
-                      ? `${player.def.name}, sent off and unavailable`
-                      : `${player.def.name}, ${Math.round(player.condition)} percent energy`}
-                    disabled={sentOff}
-                    style={[
-                      styles.playerCard,
-                      selected ? styles.playerCardSelected : null,
-                      sentOff ? styles.benchCardDisabled : null,
-                    ]}
-                    onPress={() => {
-                      playUiClickSfx();
-                      setSelectedOutgoing(index);
-                      setSelectedIncoming(null);
-                    }}
-                  >
-                    <View style={[styles.playerHead, selected ? styles.playerHeadSelected : null]}>
-                      <Text style={styles.playerInitials}>{initials(player.def.name)}</Text>
-                      <Text style={styles.shirtNumber}>{slot + 1}</Text>
-                    </View>
-                    <Text numberOfLines={1} style={styles.playerSurname}>{surname(player.def.name)}</Text>
-                    <View style={styles.cardEnergyTrack}>
-                      <View style={[
-                        styles.cardEnergyFill,
-                        energyBand(player.condition) === 'amber' ? styles.energyFillMedium : null,
-                        energyBand(player.condition) === 'red' ? styles.energyFillLow : null,
-                        { width: `${Math.max(0, Math.min(100, player.condition))}%` },
-                      ]} />
-                    </View>
-                    <Text style={[
-                      styles.cardEnergyText,
-                      energyBand(player.condition) === 'amber' ? styles.energyTextMedium : null,
-                      energyBand(player.condition) === 'red' ? styles.energyTextLow : null,
-                    ]}>
-                      {Math.round(player.condition)}%
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Text style={styles.swapInstruction}>2 · TAP THE PLAYER COMING ON</Text>
-            <View style={styles.benchGrid}>
-              {bench.map((player) => {
-                const compatible = selectedOutgoingPlayer !== null
-                  && ((selectedOutgoingPlayer.def.role === 'GK') === (player.role === 'GK'));
-                const selected = selectedIncoming === player.id;
-                return (
-                  <Pressable
-                    key={player.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${player.name}, full energy`}
-                    disabled={!compatible}
-                    style={[
-                      styles.benchCard,
-                      selected ? styles.playerCardSelected : null,
-                      !compatible ? styles.benchCardDisabled : null,
-                    ]}
-                    onPress={() => {
-                      playUiClickSfx();
-                      setSelectedIncoming(player.id);
-                    }}
-                  >
-                    <View style={[styles.playerHead, styles.benchHead, selected ? styles.playerHeadSelected : null]}>
-                      <Text style={styles.playerInitials}>{initials(player.name)}</Text>
-                    </View>
-                    <Text numberOfLines={1} style={styles.playerSurname}>{surname(player.name)}</Text>
-                    <Text style={styles.roleLabel}>{player.role}</Text>
-                    <Text style={[styles.cardEnergyText, styles.benchEnergyText]}>100%</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={styles.swapSelection}>
-              <View style={styles.selectionSide}>
-                <Text style={styles.selectionLabel}>OFF</Text>
-                <Text numberOfLines={1} style={styles.selectionName}>
-                  {selectedOutgoingPlayer?.def.name ?? 'Select player'}
-                </Text>
-                <Text style={[
-                  styles.selectionEnergy,
-                  selectedOutgoingPlayer && energyBand(selectedOutgoingPlayer.condition) === 'amber'
-                    ? styles.energyTextMedium
-                    : null,
-                  selectedOutgoingPlayer && energyBand(selectedOutgoingPlayer.condition) === 'red'
-                    ? styles.energyTextLow
-                    : null,
-                ]}>
-                  {selectedOutgoingPlayer ? `${Math.round(selectedOutgoingPlayer.condition)}% ENERGY` : '—'}
-                </Text>
-              </View>
-              <Text style={styles.swapArrow}>→</Text>
-              <View style={styles.selectionSide}>
-                <Text style={styles.selectionLabel}>ON</Text>
-                <Text numberOfLines={1} style={styles.selectionName}>
-                  {selectedIncomingPlayer?.name ?? 'Select substitute'}
-                </Text>
-                <Text style={styles.selectionEnergy}>{selectedIncomingPlayer ? '100% ENERGY' : '—'}</Text>
-              </View>
-            </View>
-
-            <View style={styles.swapActions}>
-              <Pressable style={styles.cancelButton} onPress={() => {
-                playUiClickSfx();
-                closeSwap();
-              }}>
-                <Text style={styles.cancelText}>CANCEL</Text>
-              </Pressable>
-              <Pressable
-                disabled={selectedOutgoing === null || selectedIncoming === null}
-                style={[
-                  styles.confirmButton,
-                  selectedOutgoing === null || selectedIncoming === null ? styles.confirmButtonDisabled : null,
-                ]}
-                onPress={() => {
-                  playUiClickSfx();
-                  confirmSwap();
-                }}
-              >
-                <Text style={styles.confirmText}>MAKE SWAP</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
+        <SubstitutionBoard
+          field={substitutionBoardField}
+          bench={bench}
+          substitutionsUsed={substitutionsUsed}
+          autoSubs={autoSubs}
+          onToggleAutoSubs={toggleAutoSubs}
+          onCancel={closeSwap}
+          onSave={commitSubstitutions}
+        />
       ) : null}
       {firstMatchTutorialStep === 'tired-modal' ? (
         <FirstMatchCoachingModal
