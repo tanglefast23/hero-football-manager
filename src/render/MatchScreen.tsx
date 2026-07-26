@@ -1187,6 +1187,10 @@ export function MatchScreen({
             challengerTeam: playerAt(s, e.by)?.team,
             targetOutUntilTick: playerAt(s, e.on)?.outUntilTick ?? null,
             challengerBusy: actionPose(actionRef.current[e.by], s.tick).active,
+            ...(e.dropped ? { dropped: e.dropped } : {}),
+            // A floored challenger is held prone to his own recovery tick, so the
+            // pose needs the sim's number rather than a render-side duration.
+            challengerRecoveryUntil: playerAt(s, e.by)?.tackleRecoveryUntil,
           });
           if (poses.target !== undefined) actionRef.current[e.on] = poses.target;
           if (poses.challenger !== undefined) actionRef.current[e.by] = poses.challenger;

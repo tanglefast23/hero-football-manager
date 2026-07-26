@@ -50,6 +50,9 @@ export const SFX_CATALOG = [
   { name: 'shadow-emerge', group: 'Zone & Powers', minMs: 400, maxMs: 600, targetDb: -2.5, desc: 'Rising dirt burst and steal snap — hero emerges' },
   { name: 'giant-grow', group: 'Zone & Powers', minMs: 550, maxMs: 750, targetDb: -2.5, desc: 'Rising low body and heroic chord — goalkeeper grows' },
   { name: 'decoy-pop', group: 'Zone & Powers', minMs: 180, maxMs: 260, targetDb: -4, desc: 'Light comic bubble-pop when a Decoy disappears' },
+  // Beaten challenges that stay on their feet fire ~55 times a match, so this
+  // sits at the crowd-ambient floor: audible as texture, never as an event.
+  { name: 'duel-scuff', group: 'Match', minMs: 60, maxMs: 110, targetDb: -14, desc: 'Dry turf scuff — a beaten challenge that keeps its feet' },
 ];
 
 export const MUSIC_CATALOG = [

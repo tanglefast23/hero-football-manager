@@ -36,6 +36,74 @@ export const SLIDE_SUCCESS_RECOVERY_TICKS = 6;
 export const SLIDE_MISS_RECOVERY_TICKS = 12;
 const SLIDE_CONTACT_RANGE = 50;
 
+export const STANDING_TACKLE_COOLDOWN_TICKS = 10;
+
+// A beaten defender used to pay nothing: he kept his feet, kept his standoff
+// ring, and re-rolled one second later. MEASURED, 30-40 seeded matches: 121
+// standing challenges a match (one per 1.7s), only 20.5% won, and 10 duels a
+// match where one pair stayed locked for 2s+ while travelling ~11m up the pitch.
+// Dropping the loser is what punctuates that grind.
+//
+// The chance scales with how outgunned he is, so TEC finally buys something
+// visible. 0.25 at an even duel is roughly 20 falls a match (one per 10s); 0.35
+// measured out near 30, which reads as slapstick.
+export const BEATEN_DROP_BASE = 0.25;
+const BEATEN_DROP_DELTA_SCALE = 0.015;
+// The clamp band, not the base rate, is what bounds this mechanic. A carrier's
+// TEC usually exceeds his marker's DEF (MEASURED mean delta at a lost challenge:
+// -19.7 in an even match, -36.8 for the weaker side of a +20 mismatch), so the
+// raw curve sits above its ceiling in nearly every duel and the ceiling is what
+// actually sets the rate.
+//
+// 0.20 was MEASURED against two constraints. A [0.10, 0.70] band gave 36 falls a
+// match in even play — one every 5.5s, slapstick — and lifted the dominant side
+// of the +20 rail by +0.56 goals a match, breaking the p95 blowout rail (10 vs
+// <=9). [0.12, 0.20] lands ~19 falls a match, the agreed one-per-10s cadence.
+//
+// Lowering BEATEN_DROP_BASE instead makes a mismatch WORSE, not better (0.15
+// measured a 3.26x fell-rate asymmetry against 2.68x at 0.25): the ceiling still
+// lets a lopsided duel drop often while ordinary duels drop less, so the gap
+// widens. Tune the ceiling for blowouts, the base for tempo.
+//
+// What survives of the delta term at this band: a defender who outclasses his
+// man by ~9+ points falls at the 0.12 floor instead of 0.20, so DEF still buys
+// staying on your feet. TEC's payoff is the drop existing at all.
+const BEATEN_DROP_MIN = 0.12;
+const BEATEN_DROP_MAX = 0.2;
+/**
+ * 0.8s. MEASURED: when a challenge is lost the covering opponent is 8.2m away
+ * and closes at up to 6.2 m/s net, reaching standing range in ~1.0s — so the
+ * cover's arrival, not the fall length, governs the breakaway. A longer fall
+ * would only leave a body on the turf beside an already-live duel.
+ */
+export const BEATEN_FALL_TICKS = 8;
+const BEATEN_FALL_COOLDOWN_EXTRA = 4;
+/** A failure older than 3s starts a new count rather than extending the old one. */
+export const BEATEN_STREAK_STALE_TICKS = 30;
+const BEATEN_STREAK_FORCE_COUNT = 3;
+/**
+ * How close a floored opponent must be to the carrier for the breakaway window
+ * to be open. 15m covers the whole fall: the carrier only travels ~3.2m in
+ * BEATEN_FALL_TICKS, and the beaten man is inside 2m when he goes down.
+ */
+/**
+ * Letting midfielders slide on the breakaway beat was designed, built, measured,
+ * and cut. Recorded here because the measurements are the reason and the idea
+ * will otherwise come back:
+ *
+ *  - Unrestricted it broke the +20 blowout rail (p95 goal margin 10 vs <=9) by
+ *    handing the dominant side 4.05 extra winning challenges a match.
+ *  - Gating on a real chance of winning did not help: the strong side's
+ *    midfielders were the ones passing the gate.
+ *  - Restricting it to a team's own defensive third passed the rails but left
+ *    the whole path at 0.10 slides a match — two per twenty matches.
+ *
+ * The slides arrived anyway, from defenders. Flooring beaten defenders leaves
+ * carriers in open space, and a carrier in space keeps the ball instead of
+ * passing, so committed slides connect: launches 5.1 -> 8.9 a match, contact
+ * rate 17% -> 44%, slides won 0.4 -> 1.4. Nothing in slideLaunchRange changed.
+ */
+
 // Heat rewards, one table so each role's decisive act is worth about a shot.
 // Frequent actions stay cheap on purpose: a completed pass paid even 3 Heat
 // would let a midfielder making 40 passes out-charge every striker.
@@ -134,6 +202,7 @@ export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
     // ignited, or dismissed player remains unavailable and is not teleported.
     p.slideTackle = undefined;
     p.tackleRecoveryUntil = 0;
+    p.beatenStreak = undefined;
     if (!isConscious(state, i)) continue;
     p.pos = formationTarget(
       p.team,
@@ -1198,6 +1267,15 @@ function isGoalSideOfCarrier(tackler: SimPlayer, carrier: SimPlayer): boolean {
 }
 
 /**
+ * True while one of the carrier's own markers is still on the grass near him.
+ *
+ * This is the authored breakaway beat, and the only situation in which a
+ * midfielder may commit to a slide. It needs no state of its own: a floored
+ * player is exactly one with `tackleRecoveryUntil` in the future, so the
+ * permission window IS the fall window (and a defender still down from his own
+ * slide opens it too, which is the same picture).
+ */
+/**
  * 80% is the preferred band, not a cliff. Below it, the launch range and
  * opportunity narrows; below 50%, only a shorter emergency challenge in the
  * defender's own third is allowed. Under 30%, a player cannot launch at all.
@@ -1322,22 +1400,86 @@ function startSlide(state: MatchState, tacklerIdx: number, carrierIdx: number, d
   emit(state, { t: state.tick, kind: 'SLIDE_STARTED', by: tacklerIdx, on: carrierIdx, direction: { ...direction }, untilTick });
 }
 
+/** Bumps this defender's consecutive-failure count against one carrier and returns it. */
+function recordBeatenChallenge(state: MatchState, tackler: SimPlayer, carrierIdx: number): number {
+  const previous = tackler.beatenStreak;
+  const continues = previous !== undefined
+    && previous.targetIdx === carrierIdx
+    && state.tick - previous.lastFailTick <= BEATEN_STREAK_STALE_TICKS;
+  const count = continues ? previous.count + 1 : 1;
+  tackler.beatenStreak = { targetIdx: carrierIdx, count, lastFailTick: state.tick };
+  return count;
+}
+
+/**
+ * Does a beaten defender end up on the grass? Either the carrier outclassed him,
+ * or he has now failed BEATEN_STREAK_FORCE_COUNT times running against the same
+ * man — the backstop that caps a grind no matter how the rolls fall.
+ *
+ * `roll` is the same draw that already decided the challenge. Conditional on
+ * losing it is uniform on [winProbability, 1], so the top `dropChance` slice of
+ * that range is exactly a dropChance-probability event and the RNG stream is
+ * unchanged from before this mechanic existed.
+ *
+ * Goalkeepers are exempt: `shotFlightTick` gates the save contest on
+ * `isAvailable`, so a prone keeper would concede every on-target shot.
+ */
+function beatenDefenderDrops(
+  state: MatchState,
+  tackler: SimPlayer,
+  carrierIdx: number,
+  delta: number,
+  winProbability: number,
+  roll: number,
+): boolean {
+  const streak = recordBeatenChallenge(state, tackler, carrierIdx);
+  if (tackler.def.role === 'GK') return false;
+  if (streak >= BEATEN_STREAK_FORCE_COUNT) return true;
+  const dropChance = clamp(
+    BEATEN_DROP_BASE - BEATEN_DROP_DELTA_SCALE * delta,
+    BEATEN_DROP_MIN,
+    BEATEN_DROP_MAX,
+  );
+  return roll > 1 - (1 - winProbability) * dropChance;
+}
+
 function standingTackle(state: MatchState, tacklerIdx: number, carrierIdx: number): void {
   const tackler = requirePlayerAt(state, tacklerIdx);
-  tackler.tackleCooldownUntil = state.tick + 10;
-  const won = contest(
-    state.rng,
-    effectiveStat(state, tacklerIdx, 'def') + defenseBonus(state, tacklerIdx),
-    effectiveStat(state, carrierIdx, 'tec'),
-    -dribbleBonus(state, carrierIdx),
+  tackler.tackleCooldownUntil = state.tick + STANDING_TACKLE_COOLDOWN_TICKS;
+  // Named for what they are rather than contest()'s attacker/defender, which
+  // inverts confusingly in a feature about the defender going down.
+  const tacklerDef = effectiveStat(state, tacklerIdx, 'def') + defenseBonus(state, tacklerIdx);
+  const carrierTec = effectiveStat(state, carrierIdx, 'tec');
+  const mod = -dribbleBonus(state, carrierIdx);
+  const winProbability = contestProbability(tacklerDef, carrierTec, mod);
+  const roll = state.rng();
+  const won = roll < winProbability;
+  const dropped = !won && beatenDefenderDrops(
+    state, tackler, carrierIdx, tacklerDef + mod - carrierTec, winProbability, roll,
   );
-  emit(state, { t: state.tick, kind: 'TACKLE', by: tacklerIdx, on: carrierIdx, won, style: 'standing', contact: true });
+  emit(state, {
+    t: state.tick,
+    kind: 'TACKLE',
+    by: tacklerIdx,
+    on: carrierIdx,
+    won,
+    style: 'standing',
+    contact: true,
+    ...(dropped ? { dropped: true as const } : {}),
+  });
   consumeShadowMark(state, tacklerIdx);
   addGauge(state, tacklerIdx, TACKLE_ATTEMPT_GAUGE);
   if (won) {
+    tackler.beatenStreak = undefined;
     state.ball = { kind: 'held', by: tacklerIdx };
     addGauge(state, tacklerIdx, TACKLE_WON_GAUGE);
     interruptWindup(state, carrierIdx);
+    return;
+  }
+  if (dropped) {
+    tackler.beatenStreak = undefined;
+    tackler.tackleRecoveryUntil = state.tick + BEATEN_FALL_TICKS;
+    tackler.tackleCooldownUntil = state.tick + BEATEN_FALL_TICKS + BEATEN_FALL_COOLDOWN_EXTRA;
   }
 }
 
