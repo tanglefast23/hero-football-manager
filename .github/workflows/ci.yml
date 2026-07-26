@@ -1,5 +1,16 @@
 # The gate docs 09/10 promise: typecheck + the full deterministic suite on every
 # PR. Balance probes stay excluded (env-gated, see jest testPathIgnorePatterns).
+#
+# Two jobs, because the suite is dominated by CPU-bound sim probes: on a runner
+# the whole thing passed 42 minutes without finishing jest, so a single job spent
+# its entire budget before reporting anything at all. `quick` answers the
+# ordinary "did I break the build" question in a couple of minutes; `full` is the
+# real gate and still runs everything.
+#
+# `full` runs the WHOLE suite, not the complement of `quick`. That is deliberate:
+# a suite mis-sorted into the fast list then costs a little duplicated time,
+# never coverage — nothing can fall between the two jobs and silently stop being
+# tested, which is the failure mode jest.config.js already warns about.
 name: CI
 
 on:
@@ -7,10 +18,20 @@ on:
   push:
     branches: [main]
 
+env:
+  # Measured on a fast Mac; each is several times slower on a runner.
+  # gates-auto 270s, shooting 226s, balance-rails 163s, sprites 163s, store 148s,
+  # m2-managed-recovery-soak 144s, match-stamina-balance 140s, power-cadence 108s,
+  # attacking-balance 73s. The probe pattern is repeated here because a CLI
+  # --testPathIgnorePatterns replaces jest.config.js's value rather than adding
+  # to it.
+  SLOW_SUITES: (src/audit/__tests__/.*-probe\.test\.ts|src/sim/__tests__/(gates-auto|shooting|balance-rails|power-cadence|attacking-balance)\.test\.ts|src/application/__tests__/(store|m2-managed-recovery-soak|match-stamina-balance)\.test\.ts|src/render/sprites/__tests__/sprites\.test\.ts)$
+
 jobs:
-  check:
+  quick:
+    name: typecheck + fast tests
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,4 +40,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
+      - run: npx jest --ci --silent --testPathIgnorePatterns "$SLOW_SUITES"
+
+  full:
+    name: full suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - run: npx jest --ci --silent
