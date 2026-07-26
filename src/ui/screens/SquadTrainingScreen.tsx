@@ -29,6 +29,24 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 
+/**
+ * Which drill in the career earns the condition warning. Not the first: the
+ * manager has to watch the number fall a couple of times before being told
+ * what a low one costs, or the warning is just noise on a full-energy squad.
+ */
+const CONDITION_WARNING_DRILL = 3;
+
+/**
+ * Nudges the cue off the row's right edge so it sits over the condition column
+ * rather than the row's centre. The cue is TUTORIAL_TAP_CUE_WIDTH wide, the
+ * Train button and its margin take 56px, and the condition cell is half its own
+ * width in from there.
+ */
+function conditionCueRightOffset(wideColumns: boolean): number {
+  const conditionCellWidth = wideColumns ? 112 : 64;
+  return Math.max(0, 56 + conditionCellWidth / 2 - TUTORIAL_TAP_CUE_WIDTH / 2);
+}
+
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
   /** The player currently focused for the profile card and drill popup (mirrors store.selectedPlayerId). */
@@ -82,6 +100,12 @@ export function SquadTrainingScreen({
    * pressed, so the one thing the manager still owes the guide stays lit.
    */
   const [trainingCueUsed, setTrainingCueUsed] = useState(false);
+  /**
+   * The player whose condition the warning is pointing at, set by the third
+   * drill of the career and cleared by the next thing the manager does. It
+   * waits for the drill popup to close, because the popup covers the roster.
+   */
+  const [conditionCuePlayerId, setConditionCuePlayerId] = useState<string | null>(null);
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
@@ -128,6 +152,15 @@ export function SquadTrainingScreen({
     setDrillPickerOpen(true);
   }, [drillPickerRequestToken]);
 
+  // Keyed to the drill, not the career total, so it fires once and never again
+  // on a re-render or a reload.
+  useEffect(() => {
+    if (lastDrillResult?.totalDrillsRun !== CONDITION_WARNING_DRILL) return;
+    setConditionCuePlayerId(lastDrillResult.playerId);
+  }, [lastDrillResult]);
+
+  const dismissConditionCue = useCallback(() => setConditionCuePlayerId(null), []);
+
   const layoutMode = useLayoutMode();
 
   const sections: FlowSection[] = [
@@ -140,6 +173,7 @@ export function SquadTrainingScreen({
           guidePlayers={guidePlayers}
           playerGuideDismissed={playerGuideDismissed}
           trainingCueUsed={trainingCueUsed}
+          conditionCuePlayerId={drillPickerOpen ? null : conditionCuePlayerId}
           wideColumns={wideColumns}
           currentColumnWidth={currentColumnWidth}
           potentialColumnWidth={potentialColumnWidth}
@@ -169,7 +203,10 @@ export function SquadTrainingScreen({
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
-        onScrollBeginDrag={dismissPlayerGuide}
+        onScrollBeginDrag={() => {
+          dismissPlayerGuide();
+          dismissConditionCue();
+        }}
         onTouchStart={rememberPlayerGuideTouch}
         onTouchMove={dismissPlayerGuideAfterDrag}
         onTouchEnd={forgetPlayerGuideTouch}
@@ -216,6 +253,8 @@ interface RosterSectionProps {
   guidePlayers: boolean;
   playerGuideDismissed: boolean;
   trainingCueUsed: boolean;
+  /** Set while the condition warning is pointing at this player's row. */
+  conditionCuePlayerId: string | null;
   wideColumns: boolean;
   currentColumnWidth: string;
   potentialColumnWidth: string;
@@ -235,6 +274,7 @@ function RosterSection({
   guidePlayers,
   playerGuideDismissed,
   trainingCueUsed,
+  conditionCuePlayerId,
   wideColumns,
   currentColumnWidth,
   potentialColumnWidth,
@@ -284,6 +324,7 @@ function RosterSection({
           </View>
         ) : sortedPlayers.map((player) => {
           const selected = player.id === selectedPlayerId;
+          const showConditionCue = player.id === conditionCuePlayerId;
           const glowAssignmentButton = guidePlayers
             && !trainingCueUsed
             && player.id === viewModel.createdPlayerId
@@ -300,8 +341,20 @@ function RosterSection({
                 : player.injuryWeeks > 0
                   ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
                   : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
-              style={guideConciergePlayer ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
+              style={guideConciergePlayer || showConditionCue
+                ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
+                : undefined}
             >
+              {showConditionCue ? (
+                <TutorialTapCue
+                  label="Condition"
+                  detail="Too low and they risk injury. You're okay for now."
+                  style={{
+                    right: conditionCueRightOffset(wideColumns),
+                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                  }}
+                />
+              ) : null}
               {guideConciergePlayer ? (
                 <TutorialTapCue
                   label="Bert says"

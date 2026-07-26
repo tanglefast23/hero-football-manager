@@ -319,6 +319,12 @@ export interface TrainingSlotStatOption {
 /** One resolved instant drill, sequenced so repeat taps re-animate. */
 export interface DrillResultViewModel {
   sequence: number;
+  /**
+   * Which drill this was in the whole career, from GameState.totalInstantDrills.
+   * The condition warning waits for the third one: by then the manager has seen
+   * the number move twice and is ready to be told what it costs.
+   */
+  totalDrillsRun: number;
   playerId: string;
   pathId: string;
   drillId: string;

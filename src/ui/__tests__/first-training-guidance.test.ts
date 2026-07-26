@@ -39,6 +39,29 @@ describe('first training guidance', () => {
     expect(guideContent).not.toContain('"id": "squad-intro"');
   });
 
+  it('warns about condition on the third drill of the career, pointing at that player', () => {
+    const source = readFileSync(join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'), 'utf8');
+    const store = readFileSync(join(process.cwd(), 'src/application/store.ts'), 'utf8');
+
+    // Not the first drill: on a full-energy squad the warning is noise until the
+    // manager has watched the number fall a couple of times.
+    expect(source).toContain('const CONDITION_WARNING_DRILL = 3;');
+    // Keyed to the drill that landed, not to the career total, so it fires once
+    // and cannot re-fire on a re-render or a reload.
+    expect(source).toContain('if (lastDrillResult?.totalDrillsRun !== CONDITION_WARNING_DRILL) return;');
+    expect(source).toContain('setConditionCuePlayerId(lastDrillResult.playerId);');
+    // The drill popup covers the roster, so the cue waits for it to close.
+    expect(source).toContain('conditionCuePlayerId={drillPickerOpen ? null : conditionCuePlayerId}');
+    // It points at the condition column, not the middle of the row.
+    expect(source).toContain('conditionCueRightOffset(wideColumns)');
+    expect(source).toContain('label="Condition"');
+    expect(source).toContain("detail=\"Too low and they risk injury. You're okay for now.\"");
+    // The row reserves the space so the cue lands in a gap, not over the row above.
+    expect(source).toContain('guideConciergePlayer || showConditionCue');
+    // The count comes off the resolved state, which is what the save persists.
+    expect(store).toContain('totalDrillsRun: next.totalInstantDrills ?? 0,');
+  });
+
   it('skips the Bert briefing modal and shows a second bouncing cue on the grid after tapping Training Pitch', () => {
     const finances = readFileSync(join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'), 'utf8');
     const targets = readFileSync(join(process.cwd(), 'src/ui/concierge-targets.ts'), 'utf8');
