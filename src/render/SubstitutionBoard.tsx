@@ -646,6 +646,9 @@ function DragCard({
         compact ? styles.gridCell : null,
         lit ? styles.cardLit : null,
         hovered && !lifted ? styles.cardHovered : null,
+        // The one card the release would actually take. Every eligible card is
+        // already lit, so the target has to out-shout them, not just join them.
+        hint === null ? null : styles.cardTargeted,
         lifted ? styles.cardLifted : null,
         { transform: [...offset.getTranslateTransform(), { scale }] },
       ]}
@@ -787,6 +790,23 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.45,
     shadowRadius: 8,
+  },
+  /**
+   * The card the drop would land on. A filled blue face under a heavy ring: at
+   * a glance you can see which bench player is coming on without reading a
+   * word, and it cannot be confused with the softer ring every merely-eligible
+   * card wears.
+   */
+  cardTargeted: {
+    borderColor: '#3f6fb5',
+    backgroundColor: '#a3c8f0',
+    opacity: 1,
+    boxShadow: '0 0 0 4px rgba(63, 111, 181, 0.85)',
+    shadowColor: '#3f6fb5',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 12,
   },
   /**
    * The macOS-trash promise: the target says what the release will do, above

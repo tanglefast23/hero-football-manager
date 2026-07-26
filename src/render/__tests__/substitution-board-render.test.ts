@@ -101,6 +101,10 @@ describe('substitution board layout', () => {
     // Putting a leaver back is not a swap, so it says what it really does.
     expect(source).toContain("hint={dropTarget === id ? 'KEEP ON' : null}");
     expect(source).toContain('dropHint:');
+    // Text alone is not enough: the target itself has to read as chosen, and
+    // has to out-shout the softer ring every eligible card already wears.
+    expect(source).toContain('hint === null ? null : styles.cardTargeted');
+    expect(source).toContain('cardTargeted:');
   });
 
   it('raises the column a card is carried out of, and lights cards under the pointer', () => {
