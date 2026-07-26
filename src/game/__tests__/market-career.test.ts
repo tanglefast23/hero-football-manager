@@ -1,6 +1,8 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 import { advanceFacilityConstruction, buildCareerFacility, createCareer } from '..';
+import { leagueStandings } from '../career';
+import { startNextFullCareerSeason } from '../full-career';
 import { clubSquadStrength } from '../m2-career';
 import {
   applyCareerNegotiationConsequence,
@@ -264,6 +266,71 @@ describe('career market integration', () => {
 
     expect(() => beginCareerTransferTalks(hollowed, market, lastKeeper.id))
       .toThrow('will not sell');
+  });
+
+  test('refuses to buy an active-division club below its lineup template', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260726));
+    // The rival the player scouts and buys from all season is in their own
+    // division, not the deeper pyramid. Its roster is written back into the
+    // pyramid at the season transition, where the only check is a squad count —
+    // so an eleven-strong roster two defenders short passes it and throws when
+    // the division is next built as the active one.
+    const rivalId = initial.clubs.find(club => club.id !== initial.userClubId)!.id;
+    const defenders = initial.players.filter(player => (
+      player.clubId === rivalId && player.role === 'DEF'
+    ));
+    expect(defenders.length).toBe(5);
+
+    const sold = new Set(defenders.slice(0, 1).map(player => player.id));
+    const hollowed: GameState = {
+      ...initial,
+      players: initial.players.map(player => sold.has(player.id)
+        ? { ...player, clubId: initial.userClubId }
+        : player),
+    };
+    const lastCover = defenders[1];
+    const report = {
+      playerId: lastCover.id,
+      role: lastCover.role,
+      // Active-division players carry an optional age; the pyramid's is required.
+      age: lastCover.age ?? 24,
+      statRanges: Object.fromEntries(Object.entries(lastCover.attrs).map(([key, value]) => [
+        key,
+        { minimum: value, maximum: value },
+      ])) as never,
+      potentialRange: { minimum: 3 as const, maximum: 3 as const },
+    };
+    const market = { ...hollowed.market!, scoutReports: [report] };
+
+    expect(() => beginCareerTransferTalks(hollowed, market, lastCover.id))
+      .toThrow('will not sell');
+  });
+
+  test('a squad bought down to the template still survives a season transition', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260726));
+    const rivalId = initial.clubs.find(club => club.id !== initial.userClubId)!.id;
+    const defenders = initial.players.filter(player => (
+      player.clubId === rivalId && player.role === 'DEF'
+    ));
+    // One sale is legal (5 -> 4 still covers the template); two are what the
+    // guard refuses. Staying mid-table is what makes the club be rebuilt: a
+    // player who promotes every season simply climbs away from the damage.
+    const sold = new Set(defenders.slice(0, 1).map(player => player.id));
+    let state: GameState = {
+      ...initial,
+      players: initial.players.map(player => sold.has(player.id)
+        ? { ...player, clubId: initial.userClubId }
+        : player),
+    };
+
+    expect(() => {
+      for (let season = 1; season <= 3; season += 1) {
+        const rows = leagueStandings(state);
+        const user = rows.find(row => row.clubId === state.userClubId)!;
+        const others = rows.filter(row => row.clubId !== state.userClubId);
+        state = startNextFullCareerSeason(state, [...others.slice(0, 4), user, ...others.slice(4)]);
+      }
+    }).not.toThrow();
   });
 
   test('closing talks locks that player\'s deterministic deck for the rest of the week', () => {
