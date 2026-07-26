@@ -48,7 +48,11 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   card: require('../../assets/audio/sfx/save-slap.wav'),
   success: require('../../assets/audio/sfx/plan-locked-chime.m4a'),
   hero: require('../../assets/audio/sfx/zone-enter.m4a'),
-  warning: require('../../assets/audio/sfx/card-whistle.wav'),
+  // The supplied negative cue. This is the "you cannot do that" sound the UI
+  // plays at a blocked tap, and it used to be the referee's card whistle —
+  // far too harsh for a menu, and it also made a denied drill sound like a
+  // booking. The whistle stays in `audio.ts`, where an actual card is shown.
+  warning: require('../../assets/audio/sfx/negative.m4a'),
   // Reusable celebratory cue for positive outcomes (e.g. signing a player).
   // Appended last so existing player indices stay stable.
   positive: require('../../assets/audio/sfx/positive.m4a'),

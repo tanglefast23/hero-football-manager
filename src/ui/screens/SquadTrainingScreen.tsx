@@ -328,8 +328,11 @@ function RosterSection({
                       OUT · {player.injuryWeeks} {player.injuryWeeks === 1 ? 'WEEK' : 'WEEKS'}
                     </Text>
                   ) : player.isStarter ? (
+                    // One word, because the name column is the row's only
+                    // flexible cell: "Starting XI" clipped to "STARTI…" on a
+                    // phone, which reads as a bug rather than an abbreviation.
                     <Text className="mt-0.5 font-pixel text-sm uppercase text-pitch-dark" numberOfLines={1}>
-                      Starting XI
+                      Start
                     </Text>
                   ) : null}
                   {player.isCaptain || player.contractPromiseLabel ? (
