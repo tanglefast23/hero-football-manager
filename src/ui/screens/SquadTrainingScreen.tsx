@@ -72,6 +72,12 @@ export function SquadTrainingScreen({
   const playerGuideTouchStartRef = useRef<TutorialTouchPoint | null>(null);
   const [drillPickerOpen, setDrillPickerOpen] = useState(false);
   const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
+  /**
+   * The Train glow outlives the tap cue on purpose: scrolling dismisses the
+   * floating "Tap +" arrow, but the button keeps glowing until it is actually
+   * pressed, so the one thing the manager still owes the guide stays lit.
+   */
+  const [trainingCueUsed, setTrainingCueUsed] = useState(false);
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
@@ -108,6 +114,7 @@ export function SquadTrainingScreen({
   }, []);
 
   const handleTrainingBadgePress = useCallback((playerId: string) => {
+    setTrainingCueUsed(true);
     onSelectPlayer(playerId);
     setDrillPickerOpen(true);
   }, [onSelectPlayer]);
@@ -128,6 +135,7 @@ export function SquadTrainingScreen({
           viewModel={viewModel}
           guidePlayers={guidePlayers}
           playerGuideDismissed={playerGuideDismissed}
+          trainingCueUsed={trainingCueUsed}
           wideColumns={wideColumns}
           currentColumnWidth={currentColumnWidth}
           potentialColumnWidth={potentialColumnWidth}
@@ -202,6 +210,7 @@ interface RosterSectionProps {
   viewModel: SquadTrainingViewModel;
   guidePlayers: boolean;
   playerGuideDismissed: boolean;
+  trainingCueUsed: boolean;
   wideColumns: boolean;
   currentColumnWidth: string;
   potentialColumnWidth: string;
@@ -219,6 +228,7 @@ function RosterSection({
   viewModel,
   guidePlayers,
   playerGuideDismissed,
+  trainingCueUsed,
   wideColumns,
   currentColumnWidth,
   potentialColumnWidth,
@@ -265,7 +275,10 @@ function RosterSection({
           </View>
         ) : sortedPlayers.map((player) => {
           const selected = player.id === selectedPlayerId;
-          const glowAssignmentButton = guidePlayers && player.injuryWeeks === 0;
+          const glowAssignmentButton = guidePlayers
+            && !trainingCueUsed
+            && player.id === viewModel.createdPlayerId
+            && player.injuryWeeks === 0;
           const guideConciergePlayer = player.id === selectedPlayerId && (
             (guideFocus === 'injury-lineup' && player.injuryWeeks > 0)
             || guideFocus === 'transfer-request'

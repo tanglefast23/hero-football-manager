@@ -1166,6 +1166,7 @@ export function squadTrainingViewModel(
       money: club.cash,
       trainingPoints: state.trainingPoints,
     },
+    ...(createdPlayer === undefined ? {} : { createdPlayerId: createdPlayer.id }),
     players: orderedRoster.map(player => {
       const potentialGrade = playerPotentialGrade(player);
       const personalCaps = playerAttributeCaps(player);

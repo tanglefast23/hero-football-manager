@@ -22,7 +22,12 @@ describe('first training guidance', () => {
     expect(source).toContain('label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16"');
     expect(source).toContain('className="w-14 text-right text-sm uppercase text-ink/50"');
     expect(source).toContain('ellipsizeMode="clip"');
-    expect(source).toContain('const glowAssignmentButton = guidePlayers && player.injuryWeeks === 0;');
+    // The cue points at one button, not fifteen: only the rookie the manager
+    // built glows, and it keeps glowing until it is actually pressed.
+    expect(source).toContain('player.id === viewModel.createdPlayerId');
+    expect(source).toContain('&& !trainingCueUsed');
+    expect(source).toContain('setTrainingCueUsed(true);');
+    expect(source).not.toContain('const glowAssignmentButton = guidePlayers && player.injuryWeeks === 0;');
     expect(source).toContain('glowAssignmentButton ? styles.assignmentButtonGlow : null');
     expect(source).toContain('assignmentButtonGlow:');
     expect(source).toContain("boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)'");
