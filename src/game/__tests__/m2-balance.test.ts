@@ -59,7 +59,12 @@ describe('M2 deterministic management balance rails', () => {
     expect(seasonSeven.m2?.nationalCups.every(cup => cup.championClubId !== undefined)).toBe(true);
   });
 
-  test('samples passive four-season promotion and fail-soft outcomes across 40 seeds', () => {
+  // NOT a promotion-balance gate: runHeadlessFullCareer scores every fixture
+  // from the fixture seed alone and ignores squad strength entirely, so the
+  // division distribution below measures schedule/promotion PLUMBING and the
+  // economy corridors underneath it — never the climb promise. The climb gate
+  // is the real-engine division-ramp probe (src/audit, DIVISION_RAMP_PROBE=1).
+  test('exercises promotion plumbing and fail-soft corridors across 40 seed-scored careers', () => {
     const summaries = Array.from({ length: 40 }, (_, seed) => {
       const state = runHeadlessFullCareer(
         createLaunchCareerSetup(seed),

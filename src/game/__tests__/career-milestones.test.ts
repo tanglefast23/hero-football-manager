@@ -224,6 +224,26 @@ describe('milestone recognition rides the resolved-story chain', () => {
     expect(pendingCareerMilestoneEventId(afterRecognition)).toBe('milestone-statement-win');
   });
 
+  it('keeps a banked milestone claimable after its evidence leaves the state', () => {
+    const banked = recordCareerMilestones(won);
+    expect(banked.eventFlags).toContain('milestone:first-win');
+
+    // Season rollover replaces `fixtures` with the new season's slate, so the
+    // live recompute forgets the win. Recognition must survive on the banked
+    // flag alone — recomputing from live state silently dropped any milestone
+    // whose story had not resolved before the season turned.
+    const rolledOver: GameState = {
+      ...banked,
+      fixtures: banked.fixtures.map(fixture => ({
+        ...fixture,
+        status: 'scheduled' as const,
+        score: undefined,
+      })),
+    };
+    expect(earnedCareerMilestoneFlags(rolledOver)).not.toContain('milestone:first-win');
+    expect(pendingCareerMilestoneEventId(rolledOver)).toBe('milestone-first-win');
+  });
+
   it('stops offering a recognition story once it has been seen', () => {
     const seen: GameState = {
       ...won,

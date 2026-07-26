@@ -62,7 +62,13 @@ export function railHeroStatus(state: PowerState): RailHeroStatus {
   return 'firing';
 }
 
-/** Whole seconds left in the ~7s Zone window, or null outside it. */
+/**
+ * STALE INSTRUMENT — m1.27 removed the Zone countdown, so `remainingTicks`
+ * stays at its initial value and this always answers 7 while zoned. The rail
+ * no longer displays it (the tile says ZONE); kept only because the armed
+ * test-instrumentation state still carries meaningful ticks. Candidate for
+ * removal with the rest of the countdown plumbing.
+ */
 export function zoneSecondsRemaining(state: PowerState): number | null {
   if (state.kind !== 'zone') return null;
   return Math.max(0, Math.ceil((state.remainingTicks * TICK_MS) / 1000));

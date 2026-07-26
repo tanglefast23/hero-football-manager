@@ -1,0 +1,22 @@
+# The gate docs 09/10 promise: typecheck + the full deterministic suite on every
+# PR. Balance probes stay excluded (env-gated, see jest testPathIgnorePatterns).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx jest --ci --silent

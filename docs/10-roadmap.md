@@ -82,7 +82,7 @@ The second existential question — "does *managing heroes* stay fun across seas
 | Art volume (customization × animation) | Paper-doll layers on chibi frame counts (chosen for exactly this); portraits carry detail, pitch sprites stay simple |
 | Balance sprawl (2 currencies, powers, wages) | Deterministic harness makes tuning measurable; tuning tables live in one content file |
 | Skia perf trap (per-sprite components) | Atlas-first architecture + real-device stress test inside M0 |
-| Solo-dev scope creep | Pillars test every feature; power count hard-capped at 12 for launch (11 ship: Magnet Touch cut at M4); "Explicitly out" list in doc 09 |
+| Solo-dev scope creep | Pillars test every feature; launch power catalog frozen at 17 (Magnet Touch cut at M4; see doc 04); "Explicitly out" list in doc 09 |
 | PC port uncertainty | Deferred by design; sim/game purity guarantees worst case is re-hosting the renderer, not a rewrite |
 
 ## Post-launch candidates (unordered, earn their way in)

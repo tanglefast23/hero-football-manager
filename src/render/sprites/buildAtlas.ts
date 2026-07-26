@@ -165,7 +165,7 @@ export function buildSpriteAtlas(
 /**
  * Placeholder atlas for when buildSpriteAtlas throws (realistically: sprites.json
  * failing loader validation): a single white `size`×`size` square, so a screen
- * draws plain rects instead of crashing. Shared by MatchScreen and StressScreen,
+ * draws plain rects instead of crashing. Used by MatchScreen,
  * which previously duplicated this construction (audit finding 14). Mirrors
  * buildSpriteAtlas's offscreen → non-texture flow and its plain-rect drawRect.
  */

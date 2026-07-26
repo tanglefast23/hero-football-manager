@@ -67,7 +67,7 @@ export function PixelPortrait({
 
   const colorPaths = useMemo(() => {
     const rows = blinking && blinkVariant ? blinkVariant : portraitSpriteRows(spriteKey);
-    const runs = portraitPixelRuns(rows, blinking ? `${spriteKey}:blink` : spriteKey);
+    const runs = portraitPixelRuns(rows, spriteKey);
     const commandsByColor = new Map<string, string[]>();
     for (const run of runs) {
       const commands = commandsByColor.get(run.color) ?? [];

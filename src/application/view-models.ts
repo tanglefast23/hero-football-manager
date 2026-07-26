@@ -1565,7 +1565,9 @@ function overall(
 }
 
 function formatMoney(value: number, signed = false): string {
-  const sign = value < 0 ? '−' : signed && value > 0 ? '+' : '';
+  // ASCII hyphen, matching Scorecard's formatCurrency: Silkscreen has no
+  // U+2212 glyph, and money strings render in the pixel face.
+  const sign = value < 0 ? '-' : signed && value > 0 ? '+' : '';
   return `${sign}$${Math.abs(Math.trunc(value)).toLocaleString('en-US')}`;
 }
 

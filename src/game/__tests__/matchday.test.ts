@@ -1,6 +1,6 @@
 import * as simMatch from '../../sim/match';
 import { ROVERS, UNITED } from '../../sim/teams';
-import type { TeamDef } from '../../sim/types';
+import type { MatchEvent, MatchState, TeamDef } from '../../sim/types';
 import { quickResultForFixture, resolveMatchday } from '../matchday';
 import type { FixtureResult, LeagueFixture } from '../types';
 
@@ -8,6 +8,23 @@ const TEAMS: Readonly<Record<string, TeamDef>> = {
   [ROVERS.id]: ROVERS,
   [UNITED.id]: UNITED,
 };
+
+/**
+ * The minimum MatchState surface quickMatchForFixture reads from an
+ * already-finished match: phase (so the tick loop never runs), the flat
+ * 22-slot players array (home 0-10, away 11-21), events, and score.
+ */
+function fakeFulltimeMatch(score: [number, number], events: MatchEvent[]): MatchState {
+  return {
+    phase: 'fulltime',
+    score,
+    events,
+    players: [...ROVERS.players, ...UNITED.players].map((def, index) => ({
+      def,
+      team: index < 11 ? 0 : 1,
+    })),
+  } as unknown as MatchState;
+}
 
 function fixture(
   id: string,
@@ -35,7 +52,13 @@ describe('quickResultForFixture', () => {
   });
 
   test('auto-fires heroes for both teams regardless of venue', () => {
-    const runMatch = jest.spyOn(simMatch, 'runMatch').mockReturnValue({ score: [3, 2], events: [] });
+    // quickResultForFixture delegates to quickMatchForFixture (createMatch +
+    // tick), so the policy seam is createMatch. A fake already-fulltime state
+    // keeps the sim out of a unit test about option plumbing.
+    const createMatch = jest.spyOn(simMatch, 'createMatch').mockReturnValue(
+      fakeFulltimeMatch([3, 2], []),
+    );
+    const envelopeFrom = jest.spyOn(simMatch, 'envelopeFrom').mockReturnValue({} as never);
 
     try {
       expect(quickResultForFixture(fixture('auto-fire', UNITED.id, ROVERS.id, 77), TEAMS)).toEqual({
@@ -43,38 +66,45 @@ describe('quickResultForFixture', () => {
         homeGoals: 3,
         awayGoals: 2,
       });
-      expect(runMatch).toHaveBeenCalledTimes(1);
-      expect(runMatch).toHaveBeenCalledWith(77, UNITED, ROVERS, [], {
+      expect(createMatch).toHaveBeenCalledTimes(1);
+      expect(createMatch).toHaveBeenCalledWith(77, UNITED, ROVERS, {
         homePolicy: 'FIRE_WHEN_READY',
         awayPolicy: 'FIRE_WHEN_READY',
       });
     } finally {
-      runMatch.mockRestore();
+      createMatch.mockRestore();
+      envelopeFrom.mockRestore();
     }
   });
 
-  test('retains the simulated scorer identities for Golden Boot tracking', () => {
-    const runMatch = jest.spyOn(simMatch, 'runMatch').mockReturnValue({
-      score: [2, 1],
-      events: [
-        { t: 10, kind: 'GOAL', by: 1, team: 0 },
-        { t: 20, kind: 'GOAL', by: 1, team: 0 },
-        { t: 30, kind: 'GOAL', by: 12, team: 1 },
-      ],
-    });
+  test('credits goals to the FINAL slot occupant, not the starting XI', () => {
+    // The regression this guards: scorers used to resolve against the original
+    // TeamDef, so after a substitution the replacement's goal was credited to
+    // the player who had been subbed off. Slot 1 here is occupied by a
+    // substitute at fulltime.
+    const substitute = { ...ROVERS.players[1], id: 'rovers-substitute' };
+    const state = fakeFulltimeMatch([2, 1], [
+      { t: 10, kind: 'GOAL', by: 1, team: 0 },
+      { t: 20, kind: 'GOAL', by: 1, team: 0 },
+      { t: 30, kind: 'GOAL', by: 12, team: 1 },
+    ]);
+    state.players[1] = { ...state.players[1], def: substitute };
+    const createMatch = jest.spyOn(simMatch, 'createMatch').mockReturnValue(state);
+    const envelopeFrom = jest.spyOn(simMatch, 'envelopeFrom').mockReturnValue({} as never);
 
     try {
       expect(quickResultForFixture(fixture('scorers'), TEAMS)).toMatchObject({
         homeGoals: 2,
         awayGoals: 1,
         scorerPlayerIds: [
-          ROVERS.players[1].id,
-          ROVERS.players[1].id,
+          'rovers-substitute',
+          'rovers-substitute',
           UNITED.players[1].id,
         ],
       });
     } finally {
-      runMatch.mockRestore();
+      createMatch.mockRestore();
+      envelopeFrom.mockRestore();
     }
   });
 

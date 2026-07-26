@@ -184,7 +184,13 @@ export function recordCareerMilestones(state: GameState): GameState {
  * story beat instead of waiting on a weekly draw the player may never win.
  */
 export function pendingCareerMilestoneEventId(state: GameState): string | undefined {
+  // Banked flags are the durable record: the live recompute forgets a milestone
+  // when its evidence leaves the state (season rollover replaces `fixtures`, a
+  // negative-fans event can drop a banked crowd back under the bar). The live
+  // set still matters for milestones earned mid-week, before the next
+  // settlement banks them.
   const earned = new Set(earnedCareerMilestoneFlags(state));
+  for (const flag of state.eventFlags) earned.add(flag);
   const pendingId = state.pendingEvent?.eventId;
   return CAREER_MILESTONES.find(milestone => (
     earned.has(milestone.flag)
@@ -222,6 +228,11 @@ function userLeagueResults(state: GameState): UserLeagueResult[] {
     });
 }
 
+// KNOWN QUIRK (accepted 2026-07-26): tallies persist across seasons and hero
+// status is tested at recognition time, so a player who scored before awakening
+// earns "first hero goal" the week they awaken. Deterministic and harmless —
+// fixing it needs a per-tally hero bit in the save, which the moment of a
+// just-awakened striker's recognition doesn't justify.
 function heroHasScored(state: GameState): boolean {
   const heroIds = new Set(state.players
     .filter(player => player.clubId === state.userClubId && player.power !== undefined)

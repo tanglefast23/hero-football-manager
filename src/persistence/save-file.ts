@@ -172,6 +172,19 @@ export async function exportCareerSave(
  * null when they cancelled. The file is decoded and fully validated before
  * `replaceSave` is reached, so a corrupt, foreign or future file throws with the
  * existing career still in place.
+ *
+ * WIRING CONTRACT (unwired as of 2026-07-26 — read before adding the store
+ * action): schema validation here is NOT the whole load path. The store must
+ * treat the returned state exactly like `initializePersistence` treats a
+ * loaded row, and like a career replacement:
+ *   1. run it through `reconcileLoadedCareer` (roster reconcile + the
+ *      retired-content fail-softs) before `set({ career })`,
+ *   2. resume via `resumeScreen`, and
+ *   3. clean up the replaced career like `startNewCareer` does — delete the
+ *      old career's replays; the seed-keyed backup then refreshes on the
+ *      first save.
+ * Skipping step 1 installs a save the ordinary load path would have repaired,
+ * which can throw on every relaunch.
  */
 export async function importCareerSave(
   options: CareerSaveImportOptions,

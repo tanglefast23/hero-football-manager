@@ -1,5 +1,5 @@
 import { mulberry32 } from '../sim/rng';
-import { facilityEffects } from './facilities';
+import { facilityEffects, isFacilityOperational } from './facilities';
 import { trainingMultiplierForAge } from './pyramid';
 import { careerCoachTrainingModifiers } from './coach-weekly';
 import {
@@ -285,8 +285,11 @@ function facilityTrainingMultiplier(
         : attribute === 'pac' || attribute === 'sta'
           ? 'gym'
           : 'training-pitch';
-  const level = state.facilities.grid?.buildings
-    .filter(building => building.type === facilityType)
+  const grid = state.facilities.grid;
+  // A building under construction trains nobody — the same rule the Medical
+  // Bay, dorm, and income lookups already follow.
+  const level = grid?.buildings
+    .filter(building => building.type === facilityType && isFacilityOperational(grid, building.id))
     .reduce((maximum, building) => Math.max(maximum, building.level), 0) ?? 0;
   return FACILITY_TRAINING_MULTIPLIER[level] ?? 1;
 }

@@ -30,6 +30,13 @@ export interface TrainingDrillModalProps {
   onTrainDrill: (playerId: string, pathId: string) => void;
   onDismiss: () => void;
   reduceMotion?: boolean;
+  /**
+   * The store's save warning, surfaced INSIDE this modal: drill taps are the
+   * highest-frequency save trigger and a native Modal covers the app-level
+   * banner, so without this strip a player could keep training a career that
+   * exists only in memory and never see the alert.
+   */
+  saveWarning?: string | null;
 }
 
 /** 'scene' plays the drill, then SUPER fireworks, then the injury card. */
@@ -58,6 +65,7 @@ export function TrainingDrillModal({
   onTrainDrill,
   onDismiss,
   reduceMotion = false,
+  saveWarning = null,
 }: TrainingDrillModalProps) {
   // Phones get the bottom sheet; wide viewports get a centered dialog so the
   // picker never stretches across the whole desktop window.
@@ -158,6 +166,18 @@ export function TrainingDrillModal({
                 <Text className="font-pixel text-lg text-ink">×</Text>
               </Pressable>
             </View>
+
+            {saveWarning !== null && saveWarning !== undefined ? (
+              <View
+                accessible
+                accessibilityRole="alert"
+                accessibilityLabel={`Save problem: ${saveWarning}`}
+                className="border-b-2 border-stamp bg-red-light px-4 py-2"
+              >
+                <Text className="font-pixel text-sm uppercase text-stamp">Your club is not saving</Text>
+                <Text className="mt-1 text-xs leading-4 text-ink/70">{saveWarning}</Text>
+              </View>
+            ) : null}
 
             <View className="flex-row flex-wrap items-center gap-2 border-b border-ink/20 bg-white px-4 py-2">
               <View className="border border-gold-dark bg-gold-light px-2 py-1">

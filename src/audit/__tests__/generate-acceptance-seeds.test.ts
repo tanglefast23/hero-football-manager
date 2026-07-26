@@ -25,13 +25,23 @@ import { parseStoredGameState, serializeGameState } from '../../persistence/game
 const OUTPUT_DIR = join(process.cwd(), 'artifacts', 'acceptance-audit-2026-07-21', 'seeds');
 const content = loadLaunchContent();
 
+/**
+ * Writes into git-tracked artifact files, so a plain `npx jest` used to dirty
+ * the working tree whenever engine or content changes moved the generated
+ * saves — hostile to the many-concurrent-worktrees workflow. Opt in explicitly
+ * when regenerating the acceptance seeds:
+ *
+ *   ACCEPTANCE_SEEDS=1 npx jest src/audit/__tests__/generate-acceptance-seeds.test.ts
+ */
+const describeIfEnabled = process.env.ACCEPTANCE_SEEDS === '1' ? describe : describe.skip;
+
 interface Scenario {
   readonly id: string;
   readonly expectedScreen: string;
   readonly state: GameState;
 }
 
-describe('acceptance audit seed harness', () => {
+describeIfEnabled('acceptance audit seed harness', () => {
   it('generates schema-valid production saves for every requested boundary', () => {
     mkdirSync(OUTPUT_DIR, { recursive: true });
     const scenarios = buildScenarios();

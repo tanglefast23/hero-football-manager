@@ -95,6 +95,13 @@ export interface CareerMarketState {
   readonly clubFameAdjustment?: number;
   readonly transferTalks?: CareerTransferTalks;
   readonly renewalTalks?: CareerRenewalTalks;
+  /**
+   * Negotiation ids closed without a signing this week. The pitch-card deck is
+   * dealt from the week-stable negotiation id, so without this record closing
+   * and reopening talks replayed the same deck at round 0 — retrying away the
+   * three-round cap. Ids embed season+week, so stale entries never match.
+   */
+  readonly abandonedTransferNegotiationIds?: readonly string[];
 }
 
 export interface CareerMarketTransaction {
@@ -245,6 +252,34 @@ export function expireCareerTransferListings(
   return { ...market, transferListings: active };
 }
 
+function transferNegotiationId(state: GameState, playerId: string): string {
+  return `transfer-s${state.season}-w${state.week}-${playerId}`;
+}
+
+/**
+ * Closes talks and records the abandoned negotiation id. The single-active
+ * guard in `beginCareerTransferTalks` only blocks concurrent talks; without
+ * this record, closing and reopening the same week re-dealt the identical
+ * deterministic deck at round 0, retrying away the three-round cap and the
+ * walk-away penalty.
+ */
+export function closeCareerTransferTalks(
+  state: GameState,
+  market: CareerMarketState,
+): CareerMarketState {
+  const talks = market.transferTalks;
+  if (talks === undefined) return market;
+  const weekPrefix = `transfer-s${state.season}-w${state.week}-`;
+  return {
+    ...market,
+    transferTalks: undefined,
+    abandonedTransferNegotiationIds: [
+      ...(market.abandonedTransferNegotiationIds ?? []).filter(id => id.startsWith(weekPrefix)),
+      talks.negotiation.id,
+    ],
+  };
+}
+
 export function beginCareerTransferTalks(
   state: GameState,
   market: CareerMarketState,
@@ -257,6 +292,9 @@ export function beginCareerTransferTalks(
   // reopening it dealt the same deterministic pitch cards at round 0, so the
   // three-round cap and the walk-away penalty could both be retried away.
   if (market.transferTalks !== undefined) throw new Error('another transfer is already being negotiated');
+  if ((market.abandonedTransferNegotiationIds ?? []).includes(transferNegotiationId(state, playerId))) {
+    throw new Error('That agent has ended talks for this week. Try again next week.');
+  }
   if (!market.scoutReports.some(report => report.playerId === playerId)) {
     throw new Error('a player must be scouted before transfer talks');
   }
@@ -265,6 +303,9 @@ export function beginCareerTransferTalks(
     throw new Error(`unknown transfer target ${playerId}`);
   }
   const player = target.player;
+  if (!target.active && !pyramidSellerCanSpare(state, playerId)) {
+    throw new Error(`${player.name}'s club has no other cover for that position and will not sell.`);
+  }
   const quote = buyingTransferQuote(valuationPlayer(player), {
     careerSeed: state.careerSeed,
     season: state.season,
@@ -279,7 +320,7 @@ export function beginCareerTransferTalks(
       transferQuote: quote,
       negotiation: startContractNegotiation({
         careerSeed: state.careerSeed,
-        negotiationId: `transfer-s${state.season}-w${state.week}-${playerId}`,
+        negotiationId: transferNegotiationId(state, playerId),
         playerId,
         personality: marketPersonality(player.personality),
         weeklyAsk,
@@ -318,6 +359,11 @@ export function completeCareerTransfer(
     throw new Error(`unknown transfer target ${talks.playerId}`);
   }
   const player = target.player;
+  // Re-checked at completion: another purchase between opening talks and
+  // signing can take the club's remaining cover for this position.
+  if (!target.active && !pyramidSellerCanSpare(state, player.id)) {
+    throw new Error(`${player.name}'s club has no other cover for that position and will not sell.`);
+  }
   assertUserCareerRosterSpace(state);
   const buyer = userClub(state);
   if (buyer.cash < talks.transferQuote.fee) throw new Error('the transfer fee is not affordable');
@@ -985,6 +1031,35 @@ function updatePyramidPlayerMorale(
       },
     },
   };
+}
+
+/**
+ * The pyramid never refills a squad mid-career, and `startingEleven` in
+ * full-career.ts must later assemble 1 GK / 4 DEF / 4 MID / 2 FWD from
+ * whatever remains once the club's division becomes active. Buying a club
+ * below that template therefore bricks the career at the next promotion —
+ * so the club refuses to sell its last cover for a position. Active-division
+ * sellers are handled separately by `replaceTransferredStarter`.
+ */
+const PYRAMID_LINEUP_TEMPLATE = [
+  ['GK', 1],
+  ['DEF', 4],
+  ['MID', 4],
+  ['FWD', 2],
+] as const;
+
+function pyramidSellerCanSpare(state: GameState, playerId: string): boolean {
+  if (state.m2 === undefined) return true;
+  for (const division of state.m2.pyramid.divisions) {
+    for (const club of division.clubs) {
+      if (!club.squad.some(candidate => candidate.id === playerId)) continue;
+      const remaining = club.squad.filter(candidate => candidate.id !== playerId);
+      return PYRAMID_LINEUP_TEMPLATE.every(([role, needed]) => (
+        remaining.filter(candidate => candidate.role === role).length >= needed
+      ));
+    }
+  }
+  return true;
 }
 
 function persistCareerTransferInPyramid(

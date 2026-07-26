@@ -69,7 +69,10 @@ export function PixelPortrait({
 
   const runs = useMemo(() => {
     const rows = blinking && blinkVariant ? blinkVariant : portraitSpriteRows(spriteKey);
-    return portraitPixelRuns(rows, blinking ? `${spriteKey}:blink` : spriteKey);
+    // The run id doubles as the React key, so it must stay STABLE across the
+    // blink: a `:blink`-prefixed id unmounted and remounted every Rect in the
+    // Canvas twice per blink (open and close) instead of diffing in place.
+    return portraitPixelRuns(rows, spriteKey);
   }, [spriteKey, blinking, blinkVariant]);
 
   return (

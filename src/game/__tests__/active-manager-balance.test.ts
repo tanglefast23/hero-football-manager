@@ -11,6 +11,11 @@ import type { GameState, LeagueFixture } from '../types';
 const SEEDS = [0, 77, 20_260_719];
 const SEASONS = 6;
 
+// INSTRUMENT LIMITATION (2026-07-26): this harness FEEDS a 3-0 win for every
+// user fixture instead of playing real matches, so it measures the economy
+// UNDERNEATH guaranteed weekly success — never win rates, never the climb.
+// Its 3-drills/week cadence is also gentler than the TP starvation the real
+// ramp probe measured. Use DIVISION_RAMP_PROBE=1 for anything outcome-shaped.
 function winnerScore(f: LeagueFixture, user: string) {
   if (f.homeClubId === user) return { fixtureId: f.id, homeGoals: 3, awayGoals: 0 };
   if (f.awayClubId === user) return { fixtureId: f.id, homeGoals: 0, awayGoals: 3 };

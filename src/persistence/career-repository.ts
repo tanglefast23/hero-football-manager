@@ -91,6 +91,15 @@ export interface CareerRepository {
   checkIntegrity(): Promise<boolean>;
 }
 
+/**
+ * Production saves skip the serialize-side zod pass: it costs ~50-90ms of JS
+ * thread per store action on device (measured; ~95% of serialize cost), the
+ * state always came from the typed game module, and the next load still runs
+ * the full parse with the backup generation intact. Dev and test builds keep
+ * the check so a state bug surfaces where it is written.
+ */
+const VALIDATE_ON_SAVE = typeof __DEV__ === 'undefined' || __DEV__;
+
 export async function createCareerRepository(
   database: PersistenceDatabase,
 ): Promise<CareerRepository> {
@@ -123,7 +132,7 @@ export async function createCareerRepository(
 
   return {
     async save(state: GameState): Promise<void> {
-      const stateJson = serializeGameState(state);
+      const stateJson = serializeGameState(state, { validate: VALIDATE_ON_SAVE });
       await database.runAsync(UPSERT_CAREER_SQL, [
         PRIMARY_SLOT,
         GAME_SCHEMA_VERSION,

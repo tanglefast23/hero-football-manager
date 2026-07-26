@@ -5,7 +5,7 @@ import type {
   GameState,
 } from './types';
 import { playerAttributeCaps, roleOverall } from './archetype-caps';
-import { currentUserDivision } from './m2-career';
+import { highestDivisionReached } from './promotion-progression';
 import { TRAINING_PATHS } from './training-paths';
 
 const STARTING_PROMISES: readonly CareerContractPerk[] = [
@@ -148,17 +148,38 @@ export function restoreCareerContractPromiseLineup(state: GameState): GameState 
   }), state);
 }
 
-/** Rejects a lineup edit that would break a fit player's accepted promise. */
+/**
+ * Rejects a lineup edit that would break a fit player's accepted promise.
+ *
+ * Only enforceable promises are demanded. The club can overcommit — two
+ * promised goalkeepers compete for the single GK slot — and the settlement
+ * fail-soft in `putPromisedPlayerInStartingLineup` deliberately leaves the
+ * later promise unhonoured. Demanding it here anyway froze every lineup edit
+ * for the promise's whole duration, so this mirrors the same seniority order
+ * (agreedSeason, then id): one GK promise and at most ten outfield promises
+ * are enforceable.
+ */
 export function assertCareerLineupHonorsContractPromises(
   state: GameState,
   playerIds: readonly string[],
 ): void {
   const selected = new Set(playerIds);
-  for (const player of state.players) {
-    if (player.clubId !== state.userClubId
-      || player.injuryWeeks > 0
-      || !hasActiveCareerContractPromise(player)
-      || !STARTING_PROMISES.includes(player.contractPromise!.perk)) continue;
+  const promised = state.players
+    .filter(player => (
+      player.clubId === state.userClubId
+      && player.injuryWeeks === 0
+      && hasActiveCareerContractPromise(player)
+      && STARTING_PROMISES.includes(player.contractPromise!.perk)
+    ))
+    .sort((left, right) => (
+      (left.contractPromise!.agreedSeason - right.contractPromise!.agreedSeason)
+      || left.id.localeCompare(right.id)
+    ));
+  const enforceable = [
+    ...promised.filter(player => player.role === 'GK').slice(0, 1),
+    ...promised.filter(player => player.role !== 'GK').slice(0, 10),
+  ];
+  for (const player of enforceable) {
     if (!selected.has(player.id)) {
       throw new Error(`${player.name} was promised a place in the starting XI`);
     }
@@ -240,7 +261,10 @@ function promisedReplacementSlot(
 
 function contractPromiseHeroLimit(state: GameState): number {
   if (state.m2 === undefined) return 2;
-  const division = currentUserDivision(state.m2);
+  // Ratchets on the highest division reached, matching `careerHeroLimit`:
+  // promotion unlocks are permanent, so relegation must not shrink the cap a
+  // promise negotiation checks against while match day still honours 4 slots.
+  const division = highestDivisionReached(state);
   if (division === 1) return 4;
   if (division <= 3) return 3;
   return 2;

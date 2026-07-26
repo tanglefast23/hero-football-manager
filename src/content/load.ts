@@ -5,59 +5,22 @@ import glossaryJson from '../../content/glossary.json';
 import onboardingJson from '../../content/onboarding.json';
 import powersJson from '../../content/powers.json';
 import trainingJson from '../../content/training.json';
-import {
-  AssistantGuideContentSchema,
-  ClubCatalogSchema,
-  EventCatalogSchema,
-  GlossaryCatalogSchema,
-  LaunchContentSchema,
-  OnboardingContentSchema,
-  PowerCatalogSchema,
-  TrainingCatalogSchema,
-  type AssistantGuideContent,
-  type ClubCatalog,
-  type EventCatalog,
-  type GlossaryCatalog,
-  type LaunchContent,
-  type OnboardingContent,
-  type PowerCatalog,
-  type TrainingCatalog,
-} from './schemas';
-
-export function parseClubCatalog(input: unknown): ClubCatalog {
-  return ClubCatalogSchema.parse(input);
-}
-
-export function parsePowerCatalog(input: unknown): PowerCatalog {
-  return PowerCatalogSchema.parse(input);
-}
-
-export function parseTrainingCatalog(input: unknown): TrainingCatalog {
-  return TrainingCatalogSchema.parse(input);
-}
-
-export function parseEventCatalog(input: unknown): EventCatalog {
-  return EventCatalogSchema.parse(input);
-}
-
-export function parseGlossaryCatalog(input: unknown): GlossaryCatalog {
-  return GlossaryCatalogSchema.parse(input);
-}
-
-export function parseOnboardingContent(input: unknown): OnboardingContent {
-  return OnboardingContentSchema.parse(input);
-}
-
-export function parseAssistantGuideContent(input: unknown): AssistantGuideContent {
-  return AssistantGuideContentSchema.parse(input);
-}
+import { LaunchContentSchema, type LaunchContent } from './schemas';
 
 export function parseLaunchContent(input: unknown): LaunchContent {
   return LaunchContentSchema.parse(input);
 }
 
+/**
+ * Parsed once and shared: the zod pass over ~208KB of catalog JSON costs
+ * 40-80ms in Node (several hundred ms on Hermes), and three call sites run
+ * before first paint. The catalogs are immutable by contract — nothing may
+ * mutate the returned object.
+ */
+let cachedLaunchContent: LaunchContent | undefined;
+
 export function loadLaunchContent(): LaunchContent {
-  return parseLaunchContent({
+  cachedLaunchContent ??= parseLaunchContent({
     assistantGuide: assistantGuideJson,
     clubs: clubsJson,
     glossary: glossaryJson,
@@ -66,4 +29,5 @@ export function loadLaunchContent(): LaunchContent {
     training: trainingJson,
     events: eventsJson,
   });
+  return cachedLaunchContent;
 }

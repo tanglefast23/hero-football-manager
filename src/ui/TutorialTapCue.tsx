@@ -8,6 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { TUTORIAL_TAP_CUE_WIDTH } from './tutorial-cue-position';
+import { useReducedMotion } from './use-reduced-motion';
 
 export interface TutorialTapCueProps {
   label?: string;
@@ -15,6 +16,8 @@ export interface TutorialTapCueProps {
   direction?: 'up' | 'down';
   labelOffsetX?: number;
   style?: StyleProp<ViewStyle>;
+  /** App-level Reduce Motion preference; the OS setting is honoured regardless. */
+  reduceMotion?: boolean;
 }
 
 /** A non-blocking, Kairosoft-style prompt anchored beside the real control. */
@@ -24,10 +27,18 @@ export function TutorialTapCue({
   direction = 'down',
   labelOffsetX = 0,
   style,
+  reduceMotion = false,
 }: TutorialTapCueProps) {
   const bounce = useRef(new Animated.Value(0)).current;
+  // This was the one perpetual animation Reduce Motion could not stop: the
+  // cue loops for as long as the tutorial step is on screen.
+  const reduce = useReducedMotion(reduceMotion);
 
   useEffect(() => {
+    if (reduce) {
+      bounce.setValue(0);
+      return;
+    }
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(bounce, {
@@ -44,7 +55,7 @@ export function TutorialTapCue({
     );
     animation.start();
     return () => animation.stop();
-  }, [bounce]);
+  }, [bounce, reduce]);
 
   const travel = bounce.interpolate({
     inputRange: [0, 1],

@@ -11,7 +11,7 @@ The match is a live simulation: 22 agents making stat-driven decisions, with a d
 - Same seed + same inputs → byte-identical match. This buys replays that match reality, identical behavior across iPhone/Android/PC, reproducible bugs, and the Monte Carlo balance harness (doc 09).
 - Same seed + different coaching decisions → a genuinely different match. Involvement is real.
 
-**Quick Result** runs the same engine with every hero on the same automatic firing policy a watched match uses — a fair playing-out of the match, not a prediction. Because powers no longer depend on attention, an unattended watch and a Quick Result resolve identically; watching is for spectacle and live coaching, not for a hidden edge. Both teams also use the engine's deterministic automatic substitutions and Energy Use decisions; in a watched match, only the opponent is auto-coached. Watching and tapping well earns a modest edge (better power timing), by design: attention is rewarded; simming only forgoes that edge, never gets punished beyond it.
+**Quick Result** runs the same engine with every hero on the same automatic firing policy a watched match uses — a fair playing-out of the match, not a prediction. Because powers no longer depend on attention, an unattended watch and a Quick Result resolve identically; watching is for spectacle and live coaching, not for a hidden edge. Both teams also use the engine's deterministic automatic substitutions and Energy Use decisions; in a watched match, only the opponent is auto-coached. Watching earns its value from spectacle and live coaching (your Formation, Playstyle, Swap, and Energy calls); simming forgoes those calls to the auto-coach, and is never punished beyond that.
 
 ## Simulation core
 
