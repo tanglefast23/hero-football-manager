@@ -63,8 +63,12 @@ export function SquadTrainingScreen({
 }: SquadTrainingScreenProps) {
   const { width } = useWindowDimensions();
   const wideColumns = width >= 600;
-  const currentColumnWidth = wideColumns ? 'w-20' : 'w-10';
-  const potentialColumnWidth = wideColumns ? 'w-24' : 'w-14';
+  // Wide columns spell their headers out in full ("SCORE", "POTENTIAL",
+  // "CONDITION"), so each one has to be wide enough to hold the word plus its
+  // sort arrow — a clipped header reads as a bug, not as an abbreviation.
+  const currentColumnWidth = wideColumns ? 'w-16' : 'w-10';
+  const potentialColumnWidth = wideColumns ? 'w-28' : 'w-14';
+  const conditionColumnWidth = wideColumns ? 'w-28' : 'w-16';
   const selectedPlayer = viewModel.players.find(player => player.id === selectedPlayerId);
   const selectedArchetype = selectedPlayer === undefined
     ? undefined
@@ -131,6 +135,7 @@ export function SquadTrainingScreen({
           wideColumns={wideColumns}
           currentColumnWidth={currentColumnWidth}
           potentialColumnWidth={potentialColumnWidth}
+          conditionColumnWidth={conditionColumnWidth}
           squadSort={squadSort}
           setSquadSort={setSquadSort}
           sortedPlayers={sortedPlayers}
@@ -205,6 +210,7 @@ interface RosterSectionProps {
   wideColumns: boolean;
   currentColumnWidth: string;
   potentialColumnWidth: string;
+  conditionColumnWidth: string;
   squadSort: SquadSort | null;
   setSquadSort: Dispatch<SetStateAction<SquadSort | null>>;
   sortedPlayers: readonly SquadPlayerViewModel[];
@@ -222,6 +228,7 @@ function RosterSection({
   wideColumns,
   currentColumnWidth,
   potentialColumnWidth,
+  conditionColumnWidth,
   squadSort,
   setSquadSort,
   sortedPlayers,
@@ -251,10 +258,12 @@ function RosterSection({
         <View className="flex-row items-center border-b border-ink/20 px-3">
           <View className="w-10" />
           <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-          <SquadSortHeader label={wideColumns ? 'Current' : 'OVR'} sortKey="overall" sort={squadSort} widthClass={currentColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          <SquadSortHeader label={wideColumns ? 'Score' : 'OVR'} sortKey="overall" sort={squadSort} widthClass={currentColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
           <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-          <SquadSortHeader label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16" align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-          <PixelText className="w-14 text-right text-sm uppercase text-ink/50" numberOfLines={1} ellipsizeMode="clip">Train</PixelText>
+          <SquadSortHeader label={wideColumns ? 'Condition' : 'Cond'} sortKey="condition" sort={squadSort} widthClass={conditionColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          {/* The train column needs its width to keep the + buttons aligned, but
+              not a label: the + is self-explanatory and the word was clipping. */}
+          <View className="w-14" />
         </View>
         {sortedPlayers.length === 0 ? (
           <View className="items-center px-4 py-8">
@@ -322,7 +331,7 @@ function RosterSection({
                 </View>
                 <Text className={`${currentColumnWidth} text-right font-mono text-base text-ink`} numberOfLines={1}>{player.overall}</Text>
                 <Text className={`${potentialColumnWidth} pr-1 text-right font-mono text-base text-gold-dark`} numberOfLines={1}>{player.potentialGrade}</Text>
-                <Text className={player.condition < 30 ? 'w-16 text-right font-mono text-sm text-stamp' : 'w-16 text-right font-mono text-sm text-ink'} numberOfLines={1}>{player.condition}%</Text>
+                <Text className={`${conditionColumnWidth} text-right font-mono text-sm ${player.condition < 30 ? 'text-stamp' : 'text-ink'}`} numberOfLines={1}>{player.condition}%</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -504,9 +513,11 @@ function SquadSortHeader({
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : undefined })}
     >
       <PixelText
+        // A step down from the row values so the spelled-out words fit their
+        // column with the sort arrow — headers label the data, they aren't it.
         className={direction === null
-          ? 'text-sm uppercase text-ink/50'
-          : 'text-sm uppercase text-blue-dark'}
+          ? 'text-xs uppercase text-ink/50'
+          : 'text-xs uppercase text-blue-dark'}
         numberOfLines={1}
         ellipsizeMode="clip"
       >

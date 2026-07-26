@@ -108,7 +108,9 @@ const THEME_SOURCE: AudioSource = require('../../assets/audio/music/match-theme.
 // Crackling fire bed, looped for as long as a Fire Torch hero is ablaze
 // (started/stopped by MatchScreen off the caster's 'active' state, not a
 // one-shot event). Its own dedicated looping player, like THEME_SOURCE.
-const FIRE_LOOP_SOURCE: AudioSource = require('../../assets/audio/sfx/flame-loop.wav');
+// Owner-supplied recording (2026-07-26): it plays under the flame visuals for
+// exactly as long as they are on the pitch.
+const FIRE_LOOP_SOURCE: AudioSource = require('../../assets/audio/sfx/flame-loop.m4a');
 
 // Music sits at half volume under the SFX (which play at the 1.0 ceiling) —
 // the mix balance, not a fix for the earlier silence (that was the seek/play

@@ -40,6 +40,8 @@ import { AwakeningTriggerVisual } from './awakening-trigger-visuals/AwakeningTri
 import { awakeningViewportHeight, nextAwakeningAction } from './awakening-progression';
 
 const FOCUS_INDEX = 4;
+/** Where the huddle sits inside the visible strip, as a share of its height. */
+const SCENE_ANCHOR_RATIO = 0.8;
 const DRAW_SCALE = 2.15;
 const FALLBACK_SPRITE = 24;
 const LIMP_DURATION_MS = 4400;
@@ -87,7 +89,6 @@ export function AwakeningCutsceneScreen({
 }: AwakeningCutsceneScreenProps) {
   const { width, height } = useWindowDimensions();
   const pitchScale = width / PITCH_W;
-  const pitchHeight = PITCH_H * pitchScale;
   const viewportHeight = awakeningViewportHeight(width, height);
   const [beat, setBeat] = useState<1 | 2 | 3>(initialBeat);
   const [advanceReady, setAdvanceReady] = useState(false);
@@ -126,7 +127,12 @@ export function AwakeningCutsceneScreen({
   }), [atlas, cutsceneSpriteKeys]);
 
   const centerX = width / 2;
-  const centerY = pitchHeight / 2;
+  // Anchored inside the band the viewport actually shows, NOT the middle of the
+  // full-pitch drawing. The canvas is PITCH_H * (width / PITCH_W) tall — 3,000pt
+  // on a desktop window — so centring on its middle parked the entire cast about
+  // a thousand points below the visible strip and left an empty green field.
+  // 0.8 reproduces the phone framing the shot was composed for.
+  const centerY = viewportHeight * SCENE_ANCHOR_RATIO;
   // Camera = opening jolt (screen-space, applied before the zoom) + the push in.
   // Two incommensurate sine terms with a quadratic decay: the first frame
   // carries the hit and the tail settles instead of buzzing.
@@ -362,7 +368,7 @@ export function AwakeningCutsceneScreen({
         </View>
 
         <View style={[styles.viewport, { height: viewportHeight }]}>
-          <Canvas style={{ width, height: pitchHeight }}>
+          <Canvas style={{ width, height: viewportHeight }}>
             <Fill color="#3f8a4a" />
             <Group
               origin={{ x: centerX, y: centerY }}
@@ -392,7 +398,7 @@ export function AwakeningCutsceneScreen({
               x={0}
               y={0}
               width={width}
-              height={pitchHeight}
+              height={viewportHeight}
               color="#ffffff"
               opacity={revealFlash}
             />

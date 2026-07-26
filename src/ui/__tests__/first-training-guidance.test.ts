@@ -19,8 +19,12 @@ describe('first training guidance', () => {
     expect(source).not.toContain('slotNumber');
     expect(source).not.toContain('label="Tap the number"');
     expect(source).not.toContain('<SquadSortHeader label="Role"');
-    expect(source).toContain('label="Cond" sortKey="condition" sort={squadSort} widthClass="w-16"');
-    expect(source).toContain('className="w-14 text-right text-sm uppercase text-ink/50"');
+    // Condition is still a sortable column, now spelled out and sharing its
+    // width with the row cell beneath it.
+    expect(source).toContain('sortKey="condition" sort={squadSort} widthClass={conditionColumnWidth}');
+    // The train column keeps its width to hold the + buttons in line, but has
+    // no header label to clip.
+    expect(source).toContain('<View className="w-14" />');
     expect(source).toContain('ellipsizeMode="clip"');
     expect(source).toContain('const glowAssignmentButton = guidePlayers && player.injuryWeeks === 0;');
     expect(source).toContain('glowAssignmentButton ? styles.assignmentButtonGlow : null');

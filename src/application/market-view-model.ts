@@ -89,9 +89,32 @@ export interface YouthIntakeViewSource {
       readonly potential: 1 | 2 | 3 | 4 | 5;
       readonly archetype: string;
       readonly weeklyWage: number;
+      /** Academy prospects show their real stats — the club's own kids, no fog. */
+      readonly attrs: YouthAttrs;
     };
     readonly signingBonus: number;
   }[];
+}
+
+type YouthAttrKey = 'pac' | 'sho' | 'pas' | 'def' | 'tec' | 'sta' | 'ref';
+type YouthAttrs = Readonly<Record<YouthAttrKey, number>>;
+export type YouthStatLabel = 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
+
+/**
+ * The six stats a youth card shows. Keepers swap SHO for REF: a shot-stopper's
+ * finishing says nothing about them and their reflexes say everything.
+ */
+function youthStatLine(
+  role: 'GK' | 'DEF' | 'MID' | 'FWD',
+  attrs: YouthAttrs,
+): readonly { readonly label: YouthStatLabel; readonly value: number }[] {
+  const keys: readonly YouthAttrKey[] = role === 'GK'
+    ? ['pac', 'ref', 'pas', 'def', 'tec', 'sta']
+    : ['pac', 'sho', 'pas', 'def', 'tec', 'sta'];
+  return keys.map(key => ({
+    label: key.toUpperCase() as YouthStatLabel,
+    value: attrs[key],
+  }));
 }
 
 export interface MarketViewModelSource {
@@ -295,6 +318,7 @@ function youthIntakeViewModel(
         ageLabel: `Age ${offer.player.age}`,
         archetypeLabel: offer.player.archetype,
         potentialLabel: exactPotentialLabel(offer.player.id, offer.player.potential),
+        stats: youthStatLine(offer.player.role, offer.player.attrs),
         signingBonus: offer.signingBonus,
         weeklyWage: offer.player.weeklyWage,
         available: isOpen && hasRosterSpace && affordable,

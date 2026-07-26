@@ -385,6 +385,7 @@ function YouthDesk({
                   <PixelText className="text-sm uppercase text-blue-dark">Academy</PixelText>
                 </View>
               </View>
+              <YouthStatLine stats={offer.stats} />
               <View className="mt-3 flex-row gap-2">
                 <Metric label="Signing" value={formatCurrency(offer.signingBonus)} tone="negative" />
                 <Metric label="Weekly wage" value={formatCurrency(offer.weeklyWage)} />
@@ -1088,6 +1089,45 @@ function GuidedAction({
         />
       ) : null}
       {children}
+    </View>
+  );
+}
+
+/**
+ * The prospect's real stats, six across. Academy kids are the club's own, so the
+ * card states them outright rather than the scout's estimated ranges — two
+ * prospects on the same potential letter have to be tellable apart. The best of
+ * the six is picked out in gold so the shape of the player reads at a glance.
+ */
+function YouthStatLine({
+  stats,
+}: {
+  stats: readonly { readonly label: string; readonly value: number }[];
+}) {
+  if (stats.length === 0) return null;
+  const best = Math.max(...stats.map(stat => stat.value));
+  return (
+    <View className="mt-3 flex-row gap-1.5" accessibilityLabel={stats.map(stat => `${stat.label} ${stat.value}`).join(', ')}>
+      {stats.map(stat => {
+        const strongest = stat.value === best;
+        return (
+          <View key={stat.label} className="min-w-0 flex-1 border border-ink/25 px-1 pb-1 pt-0.5">
+            <PixelText className="text-center text-[10px] uppercase text-ink/45">{stat.label}</PixelText>
+            <Text className={strongest
+              ? 'mt-0.5 text-center font-mono text-base text-gold-dark'
+              : 'mt-0.5 text-center font-mono text-base text-ink'}
+            >
+              {stat.value}
+            </Text>
+            <View className="mt-1 h-1 bg-ink/10">
+              <View
+                className={strongest ? 'h-1 bg-gold-dark' : 'h-1 bg-pitch-dark'}
+                style={{ width: `${Math.max(0, Math.min(100, stat.value))}%` }}
+              />
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 }

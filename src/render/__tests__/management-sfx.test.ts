@@ -36,6 +36,8 @@ jest.mock('expo-audio', () => ({
 
 import {
   playCoachDepartureSfx,
+  playDrillGainRevealSfx,
+  playDrillProgressSfx,
   playEventSuccessSfx,
   playFacilityCompleteSfx,
   playFacilityStartSfx,
@@ -43,10 +45,12 @@ import {
   playMatchStatementSfx,
   playPositiveSfx,
   playStatStepSfx,
+  playSuperTrainingYaySfx,
   playTrainingStatDing,
   playTransactionConfirmSfx,
   playUiClickSfx,
   setManagementSfxMasterVolume,
+  stopDrillProgressSfx,
   teardownManagementSfx,
 } from '../management-sfx';
 
@@ -68,7 +72,7 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(18);
+    expect(mockPlayers).toHaveLength(21);
     const trainingDing = mockPlayers[1];
     expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
@@ -83,7 +87,7 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(18);
+    expect(mockPlayers).toHaveLength(21);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
@@ -109,21 +113,54 @@ describe('management feedback sounds', () => {
     expect(mockImpactAsync).toHaveBeenCalledWith('light');
   });
 
-  it('uses the tap for small interactions and confirmation for large action buttons', () => {
+  it('gives small interactions an audible click and large action buttons the confirmation', () => {
     const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
     const buttons = readFileSync(join(process.cwd(), 'src/ui/components/Scorecard.tsx'), 'utf8');
 
-    expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/stat-step-tap.m4a')");
-    expect(sounds).toContain("select: require('../../assets/audio/sfx/stat-step-tap.m4a')");
+    // A real push-button click, not the 80ms tap that vanished under the music.
+    expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-push-button.m4a')");
+    expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-push-button.m4a')");
+    expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/ui-push-button.m4a')");
     expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
     expect(buttons).toContain("pressSfx = 'positive'");
+  });
+
+  it('keeps the drill progress bed stoppable and the reveal on its own player', async () => {
+    playDrillProgressSfx();
+    await Promise.resolve();
+
+    expect(mockPlayers).toHaveLength(21);
+    const progress = mockPlayers[18];
+    expect(progress.seekTo).toHaveBeenCalledWith(0);
+    expect(progress.play).toHaveBeenCalledTimes(1);
+
+    stopDrillProgressSfx();
+    expect(progress.pause).toHaveBeenCalledTimes(1);
+
+    playDrillGainRevealSfx();
+    await Promise.resolve();
+    expect(mockPlayers[19].play).toHaveBeenCalledTimes(1);
+    // The reveal must not restart the bed the count-up just stopped.
+    expect(progress.play).toHaveBeenCalledTimes(1);
+  });
+
+  it('ties the progress bed to the count-up inside the drill scene', () => {
+    const scene = readFileSync(join(process.cwd(), 'src/render/DrillSceneOverlay.tsx'), 'utf8');
+
+    expect(scene).toContain('playDrillProgressSfx()');
+    // Stopped where the number lands AND on teardown, so a skipped scene is silent.
+    expect(scene.match(/stopDrillProgressSfx\(\)/g)).toHaveLength(2);
+    expect(scene).toContain('setCountLanded(true)');
+    // The gain stamp waits for the count; the number itself is green.
+    expect(scene).toContain('opacity: countLanded ? 1 : 0');
+    expect(scene).toContain("gainValue: { color: '#3f8a4a'");
   });
 
   it('routes semantic management cues to their dedicated player', async () => {
     playManagementActionSfx('success');
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(18);
+    expect(mockPlayers).toHaveLength(21);
     expect(mockPlayers[13].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[13].play).toHaveBeenCalledTimes(1);
   });
@@ -132,7 +169,7 @@ describe('management feedback sounds', () => {
     playPositiveSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(18);
+    expect(mockPlayers).toHaveLength(21);
     // 'positive' is appended last, so it owns the final player slot.
     const positive = mockPlayers[16];
     expect(positive.seekTo).toHaveBeenCalledWith(0);
@@ -141,11 +178,29 @@ describe('management feedback sounds', () => {
     expect(mockPlayers[2].play).not.toHaveBeenCalled();
   });
 
+  it('cheers as the SUPER takeover leaves the screen', async () => {
+    const celebration = readFileSync(
+      join(process.cwd(), 'src/ui/components/SuperTrainingCelebration.tsx'),
+      'utf8',
+    );
+
+    // Tied to the end of the takeover, not to the result landing — and it fires
+    // whether the celebration played out or was tapped away.
+    expect(celebration).toContain('playSuperTrainingYaySfx()');
+    expect(celebration).toContain('export const SUPER_CELEBRATION_MS = 3200');
+    expect(celebration).toContain('FIREWORK_DELAYS_MS');
+
+    playSuperTrainingYaySfx();
+    await Promise.resolve();
+    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers[20].play).toHaveBeenCalledTimes(1);
+  });
+
   it('plays the supplied stat-step tap independently from the neutral click', async () => {
     playStatStepSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(18);
+    expect(mockPlayers).toHaveLength(21);
     const statStep = mockPlayers[17];
     expect(statStep.seekTo).toHaveBeenCalledWith(0);
     expect(statStep.play).toHaveBeenCalledTimes(1);

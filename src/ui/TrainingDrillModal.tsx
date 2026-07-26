@@ -3,7 +3,10 @@ import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SfxPressable as Pressable } from './components/SfxPressable';
 import { SuperTrainingCelebration } from './components/SuperTrainingCelebration';
+import { DrillGainReveal } from './components/DrillGainReveal';
 import { DrillSceneOverlay, drillActivityId } from '../render/DrillSceneOverlay';
+import { BertFullBody } from './AssistantGuideOverlay';
+import { energyBand } from '../render/match-energy-ui';
 import { playDrillResultSfx, playSuperTrainingSfx, playManagementActionSfx } from '../render/management-sfx';
 import { playManagementHaptic } from '../render/haptics';
 import { useLayoutMode } from './layout/use-layout-mode';
@@ -39,8 +42,12 @@ export interface TrainingDrillModalProps {
   saveWarning?: string | null;
 }
 
-/** 'scene' plays the drill, then SUPER fireworks, then the injury card. */
-type ResultStage = 'scene' | 'super' | 'injury' | null;
+/**
+ * 'scene' plays the drill and counts the stat up, then the gain takes the screen
+ * — SUPER sessions get the fireworks, everything else gets the "+N Stat" super —
+ * and an injury card follows if the gamble was lost.
+ */
+type ResultStage = 'scene' | 'reveal' | 'super' | 'injury' | null;
 
 /**
  * The whole training loop lives here: tap a stat, the drill resolves instantly,
@@ -72,6 +79,14 @@ export function TrainingDrillModal({
   const wide = useLayoutMode() === 'twoColumn';
   const [activeResult, setActiveResult] = useState<DrillResultViewModel | null>(null);
   const [stage, setStage] = useState<ResultStage>(null);
+  // A drill you cannot afford stays tappable so it can say why. Silently doing
+  // nothing reads as a broken button. `bert` puts the assistant in the card for
+  // anything that is advice rather than a rule.
+  const [notice, setNotice] = useState<{ title: string; detail: string; bert?: boolean } | null>(null);
+  // Bert warns once per player per visit, and only after the result has finished
+  // playing — interrupting the drill scene with a lecture would bury the gain.
+  const redWarnedRef = useRef<string | null>(null);
+  const pendingRedWarningRef = useRef(false);
   const streakRef = useRef(0);
   // Seeded from the store's current sequence, not 0: dismissing the popup unmounts
   // this component, so a fresh ref would treat the last result as new and replay
@@ -97,23 +112,43 @@ export function TrainingDrillModal({
       playDrillResultSfx(streakRef.current);
     }
 
+    if (energyBand(condition) === 'red' && redWarnedRef.current !== playerId) {
+      redWarnedRef.current = playerId;
+      pendingRedWarningRef.current = true;
+    }
+
     setActiveResult(result);
     setStage('scene');
-  }, [lastDrillResult, playerId]);
+    // `condition` is a dependency so the warning reads the post-drill value; the
+    // sequence guard above makes any extra run a no-op.
+  }, [condition, lastDrillResult, playerId]);
 
   // Advances the presentation once the current beat finishes or is skipped.
   // The next stage is derived outside the updater — a setState updater must be
   // pure, and React may invoke it more than once. Memoised so the drill scene's
   // effect does not tear down and restart its animation on every parent render.
   const advanceStage = useCallback(() => {
-    const next: ResultStage = stage === 'scene' && activeResult?.isSuper
-      ? 'super'
-      : (stage === 'scene' || stage === 'super') && activeResult?.injury !== undefined
+    // One climax per drill: a SUPER session's fireworks already headline the
+    // gain, so the "+N Stat" super is for every other result.
+    const next: ResultStage = stage === 'scene'
+      ? (activeResult?.isSuper === true ? 'super' : 'reveal')
+      : (stage === 'reveal' || stage === 'super') && activeResult?.injury !== undefined
         ? 'injury'
         : null;
     setStage(next);
-    if (next === null) setActiveResult(null);
-  }, [stage, activeResult]);
+    if (next === null) {
+      setActiveResult(null);
+      if (pendingRedWarningRef.current) {
+        pendingRedWarningRef.current = false;
+        playManagementActionSfx('warning');
+        setNotice({
+          title: 'Bert has a word',
+          detail: `${playerName} is in the red. Push them again and you're gambling on an injury — and an injured player sits out for weeks.`,
+          bert: true,
+        });
+      }
+    }
+  }, [stage, activeResult, playerName]);
 
   const resultOption = activeResult === null
     ? undefined
@@ -238,7 +273,9 @@ export function TrainingDrillModal({
               ) : null}
               <View className="gap-2">
                 {options.map(option => {
-                  const disabled = injured || blockedByPromise || option.atSafetyCeiling || !option.affordable;
+                  const blocked = injured || blockedByPromise || option.atSafetyCeiling;
+                  const unaffordable = !blocked && !option.affordable;
+                  const disabled = blocked;
                   const isResultRow = stage === null && activeResult?.pathId === option.pathId;
                   return (
                     <Pressable
@@ -247,11 +284,23 @@ export function TrainingDrillModal({
                       accessibilityLabel={`Train ${playerName} in ${option.label} now`}
                       accessibilityHint={injured
                         ? `${playerName} is injured and cannot train.`
-                        : `${option.drillName}. Costs ${option.tpCost} training points and happens right away. Currently ${option.currentValue}.${injuryRiskPercent > 0 ? ` ${injuryRiskPercent} percent injury risk.` : ''}`}
+                        : unaffordable
+                          ? `Costs ${option.tpCost} training points. You have ${trainingPoints}.`
+                          : `${option.drillName}. Costs ${option.tpCost} training points and happens right away. Currently ${option.currentValue}.${injuryRiskPercent > 0 ? ` ${injuryRiskPercent} percent injury risk.` : ''}`}
                       accessibilityState={{ disabled }}
                       disabled={disabled}
-                      onPress={() => onTrainDrill(playerId, option.pathId)}
-                      className={disabled
+                      onPress={() => {
+                        if (unaffordable) {
+                          playManagementActionSfx('warning');
+                          setNotice({
+                            title: 'Not enough TP',
+                            detail: `${option.drillName} costs ${option.tpCost} TP and you have ${trainingPoints}. Advance the week to earn more.`,
+                          });
+                          return;
+                        }
+                        onTrainDrill(playerId, option.pathId);
+                      }}
+                      className={disabled || unaffordable
                         ? 'flex-row items-center justify-between border-2 border-ink/20 bg-white px-3 py-3 opacity-40'
                         : isResultRow
                           ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-3'
@@ -302,6 +351,14 @@ export function TrainingDrillModal({
               />
             ) : null}
 
+            {stage === 'reveal' && activeResult !== null ? (
+              <DrillGainReveal
+                gainLabel={`+${activeResult.after - activeResult.before} ${resultOption?.label ?? activeResult.attribute}`}
+                reduceMotion={reduceMotion}
+                onComplete={advanceStage}
+              />
+            ) : null}
+
             {stage === 'super' && activeResult !== null ? (
               <SuperTrainingCelebration
                 gainLabel={`+${activeResult.after - activeResult.before} ${resultOption?.shortCode ?? activeResult.attribute.toUpperCase()}`}
@@ -332,6 +389,48 @@ export function TrainingDrillModal({
                   </View>
                 </View>
               </Pressable>
+            ) : null}
+
+            {notice !== null ? (
+              <View style={styles.noticeLayer}>
+                {/* Backdrop and card are siblings, not nested pressables, so a tap
+                    on the card never falls through to the dismiss handler. */}
+                <Pressable
+                  accessible={false}
+                  onPress={() => setNotice(null)}
+                  style={StyleSheet.absoluteFill}
+                >
+                  <View style={styles.noticeBackdrop} />
+                </Pressable>
+                <View pointerEvents="box-none" style={styles.noticeCenter}>
+                  <View
+                    accessibilityRole="alert"
+                    accessibilityLabel={`${notice.title}. ${notice.detail}`}
+                    className="w-full max-w-[340px] border-2 border-b-4 border-ink bg-paper px-5 py-4"
+                  >
+                    <PixelText className={notice.bert === true
+                      ? 'text-center text-lg uppercase text-blue-dark'
+                      : 'text-center text-lg uppercase text-stamp'}
+                    >
+                      {notice.title}
+                    </PixelText>
+                    {notice.bert === true ? (
+                      <View className="mt-2 items-center">
+                        <BertFullBody pointing />
+                      </View>
+                    ) : null}
+                    <Text className="mt-2 text-center text-sm leading-5 text-ink/75">{notice.detail}</Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Dismiss"
+                      onPress={() => setNotice(null)}
+                      className="mt-4 min-h-11 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-6"
+                    >
+                      <PixelText className="text-base uppercase text-ink">Okay</PixelText>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
             ) : null}
           </View>
         </View>
@@ -367,6 +466,20 @@ function conditionBadgeStyle(condition: number): { box: string; text: string } {
 }
 
 const styles = StyleSheet.create({
+  // Sits above the drill scene and the injury card: it is the newest thing the
+  // player did, so it owns the popup until dismissed.
+  noticeLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 30 },
+  noticeBackdrop: { flex: 1, backgroundColor: 'rgba(36,31,46,0.78)' },
+  noticeCenter: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
   injuryBackdrop: {
     position: 'absolute',
     top: 0,

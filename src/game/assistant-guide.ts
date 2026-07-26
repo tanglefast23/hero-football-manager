@@ -50,6 +50,12 @@ export interface AssistantInboxProductAlert {
 export interface AssistantInboxWeekOptions {
   /** Newly relevant firsts. Queuing the same sequence repeatedly is harmless. */
   readonly dueGuideSequenceIds?: readonly AssistantInboxGuideSequenceId[];
+  /**
+   * Guides that stay queued this week instead of being delivered — for beats the
+   * player cannot action yet. They are not consumed, so they arrive in the first
+   * week that clears them.
+   */
+  readonly heldGuideSequenceIds?: readonly AssistantInboxGuideSequenceId[];
   /** Live product alerts. Urgent items outrank guides; normal items follow them. */
   readonly productAlerts?: readonly AssistantInboxProductAlert[];
 }
@@ -215,7 +221,9 @@ export function scheduleAssistantInboxWeek(
   state = queueAssistantGuideSequences(state, options.dueGuideSequenceIds ?? []);
   state = queueOneShotProductAlerts(state, productAlerts);
 
-  const queuedGuides = pendingAssistantInboxGuideSequences(state);
+  const held = options.heldGuideSequenceIds ?? [];
+  const queuedGuides = pendingAssistantInboxGuideSequences(state)
+    .filter(sequenceId => !held.includes(sequenceId));
   const currentDeliveryPrefix = inboxDeliveryWeekPrefix(state.season, state.week);
   const deliveredFlags = new Set(state.eventFlags.filter(flag => flag.startsWith(currentDeliveryPrefix)));
   const effectiveProductAlerts = mergeProductAlerts([
