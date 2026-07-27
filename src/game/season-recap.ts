@@ -133,6 +133,7 @@ function finalPosition(state: GameState): number {
     let played = 0;
     let points = 0;
     let difference = 0;
+    let goalsFor = 0;
     for (const fixture of state.fixtures) {
       if (fixture.season !== state.season || fixture.status !== 'played' || fixture.score === undefined) continue;
       if (fixture.homeClubId !== club.id && fixture.awayClubId !== club.id) continue;
@@ -141,10 +142,17 @@ function finalPosition(state: GameState): number {
       const conceded = home ? fixture.score.awayGoals : fixture.score.homeGoals;
       played += 1;
       difference += scored - conceded;
+      goalsFor += scored;
       points += scored > conceded ? 3 : scored === conceded ? 1 : 0;
     }
-    return { clubId: club.id, played, points, difference };
-  }).sort((left, right) => right.points - left.points || right.difference - left.difference || left.clubId.localeCompare(right.clubId));
+    return { clubId: club.id, played, points, difference, goalsFor };
+    // Goals-for is the third tiebreak in `compareStandings`, which decides
+    // prize money and promotion. Leaving it out here let the recap card
+    // congratulate a manager on 2nd in a season the table promoted them from 1st.
+  }).sort((left, right) => right.points - left.points
+    || right.difference - left.difference
+    || right.goalsFor - left.goalsFor
+    || left.clubId.localeCompare(right.clubId));
   const index = rows.findIndex(row => row.clubId === state.userClubId);
   if (index >= 0) return index + 1;
   return rows.length;

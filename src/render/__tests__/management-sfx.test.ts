@@ -72,7 +72,7 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     const trainingDing = mockPlayers[1];
     expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
@@ -87,7 +87,7 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
@@ -124,14 +124,18 @@ describe('management feedback sounds', () => {
     // swatch is one notch of an adjustment, not a commitment.
     expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/ui-stat-step.m4a')");
     expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
-    expect(buttons).toContain("pressSfx = 'positive'");
+    // Large buttons still confirm by default, but a destructive one answers with
+    // the back-button cue: dismissing a coach or erasing a save used to be
+    // applauded by the same chime that celebrates a signing.
+    expect(sounds).toContain("danger: require('../../assets/audio/sfx/back-button.m4a')");
+    expect(buttons).toContain("const cue = pressSfx ?? (variant === 'danger' ? 'danger' : 'positive');");
   });
 
   it('keeps the drill progress bed stoppable and the reveal on its own player', async () => {
     playDrillProgressSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     const progress = mockPlayers[18];
     expect(progress.seekTo).toHaveBeenCalledWith(0);
     expect(progress.play).toHaveBeenCalledTimes(1);
@@ -162,7 +166,7 @@ describe('management feedback sounds', () => {
     playManagementActionSfx('success');
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     expect(mockPlayers[13].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[13].play).toHaveBeenCalledTimes(1);
   });
@@ -171,7 +175,7 @@ describe('management feedback sounds', () => {
     playPositiveSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     // 'positive' is appended last, so it owns the final player slot.
     const positive = mockPlayers[16];
     expect(positive.seekTo).toHaveBeenCalledWith(0);
@@ -194,7 +198,7 @@ describe('management feedback sounds', () => {
 
     playSuperTrainingYaySfx();
     await Promise.resolve();
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     expect(mockPlayers[20].play).toHaveBeenCalledTimes(1);
   });
 
@@ -202,7 +206,7 @@ describe('management feedback sounds', () => {
     playStatStepSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     const statStep = mockPlayers[17];
     expect(statStep.seekTo).toHaveBeenCalledWith(0);
     expect(statStep.play).toHaveBeenCalledTimes(1);

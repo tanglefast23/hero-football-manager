@@ -109,12 +109,23 @@ export async function createCareerRepository(
   // week, and only ever updated from a write that succeeded.
   let backedUp = await readBackupGeneration(database);
 
-  async function writeBackup(state: GameState, stateJson: string): Promise<void> {
+  async function writeBackup(state: GameState, liveJson: string): Promise<void> {
     try {
+      // The live slot skips validation in production for speed, so an unnoticed
+      // state bug would be copied straight into the generation meant to survive
+      // it — both slots then fail the parse on load, and the only way out is
+      // deleting the career. A backup is written about once a season, so this
+      // one pays the full check. It runs inside the same catch as the write:
+      // the live save has already succeeded here, and a backup that cannot be
+      // validated must leave the previous generation in place rather than
+      // report the week as lost.
+      const backupJson = VALIDATE_ON_SAVE
+        ? liveJson
+        : serializeGameState(state, { validate: true });
       await database.runAsync(UPSERT_BACKUP_SQL, [
         BACKUP_SLOT,
         GAME_SCHEMA_VERSION,
-        stateJson,
+        backupJson,
         state.season,
         state.week,
         state.careerSeed,

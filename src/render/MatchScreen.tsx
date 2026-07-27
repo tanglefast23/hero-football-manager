@@ -1852,12 +1852,6 @@ export function MatchScreen({
       ? `${tiredCount} TIRED · ${substitutionsUsed}/${MAX_SUBSTITUTIONS}`
       : `${substitutionsUsed}/${MAX_SUBSTITUTIONS} USED`;
 
-  const surname = (name: string) => {
-    const parts = name.trim().split(/\s+/);
-    return parts[parts.length - 1];
-  };
-  const initials = (name: string) => name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-
   const openSwap = () => {
     if (
       match.phase === 'fulltime'

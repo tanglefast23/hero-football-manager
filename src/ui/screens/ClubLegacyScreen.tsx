@@ -7,6 +7,7 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 import type { ClubLegacyChoiceViewModel, ClubLegacyViewModel } from '../models';
 import { SettingsButton } from '../SettingsOverlay';
 import { TutorialTapCue } from '../TutorialTapCue';
+import { useTapGuard } from '../use-tap-guard';
 import { PixelText } from '../components/PixelText';
 import {
   TUTORIAL_TAP_CUE_ABOVE_OFFSET,
@@ -30,6 +31,9 @@ export function ClubLegacyScreen({
 }: ClubLegacyScreenProps) {
   const desktopContent = useDesktopContentStyle();
   const wide = useLayoutMode() === 'twoColumn';
+  // Legends retire in a queue, and this choice is irreversible: without the
+  // guard the second tap of a double-tap decides the next legend's future too.
+  const guardTap = useTapGuard();
   return (
     <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
       <ChalkboardBackdrop wide={wide} />
@@ -96,7 +100,7 @@ export function ClubLegacyScreen({
                 <ActionButton
                   label={`Choose ${choice.label}  ▸`}
                   accessibilityLabel={`Choose ${choice.label} for ${viewModel.playerName}. ${choice.outcome}`}
-                  onPress={() => onChoose(choice.id)}
+                  onPress={() => guardTap(() => onChoose(choice.id))}
                   variant={choice.id === 'coach-candidate' ? 'action' : 'confirm'}
                 />
               </PaperPanel>

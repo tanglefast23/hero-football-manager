@@ -18,6 +18,7 @@ import {
   createPreferencesRepository,
   createReplayRepository,
   DEFAULT_APP_PREFERENCES,
+  migrateDatabase,
   replaceFormationPreset,
   resetCareerDatabase,
   type AppPreferences,
@@ -539,14 +540,21 @@ function GameApp() {
     haptic: Parameters<typeof playManagementHaptic>[0] = 'commit',
   ) => {
     action();
-    if (useM1Store.getState().error !== null) return;
+    // A refused action used to return in silence while a merely blocked drill
+    // tap buzzed, so the one case that needs attention was the quiet one.
+    if (useM1Store.getState().error !== null) {
+      playManagementActionSfx('warning');
+      playManagementHaptic('warning');
+      return;
+    }
     setConciergeFocus(null);
     playManagementActionSfx(sound);
     playManagementHaptic(haptic);
   }, []);
 
+  // No cue of its own: every control that opens a confirmation already played
+  // one, and the two landing together read as a stutter.
   const requestConfirmation = useCallback((confirmation: PendingConfirmation) => {
-    playManagementActionSfx('select');
     setPendingConfirmation(confirmation);
   }, []);
 
@@ -649,7 +657,11 @@ function GameApp() {
     const target = before?.players.find(player => player.id === targetId);
     useM1Store.getState().submitTransferOffer(offer, pitchCard);
     const stateAfter = useM1Store.getState();
-    if (stateAfter.error !== null) return;
+    if (stateAfter.error !== null) {
+      playManagementActionSfx('warning');
+      playManagementHaptic('warning');
+      return;
+    }
     const after = useM1Store.getState().career;
     if (targetId !== undefined && after?.players.some(player => (
       player.id === targetId && player.clubId === after.userClubId
@@ -785,11 +797,21 @@ function GameApp() {
       }
     }
     void openDatabaseAsync(DATABASE_NAME)
-      .then(async database => ({
-        careerRepository: await createCareerRepository(database),
-        replayRepository: await createReplayRepository(database),
-        preferencesRepository: await createPreferencesRepository(database),
-      }))
+      .then(async database => {
+        // Migrate once up front. Each repository migrates defensively on its
+        // own, and three of those racing on a fresh database would all read the
+        // pre-migration version and then each try to apply migration 5 — an
+        // ALTER TABLE ADD COLUMN, which is not idempotent. With the schema
+        // already current their internal calls read the version and do nothing,
+        // so the three builds are free to overlap.
+        await migrateDatabase(database);
+        const [careerRepository, replayRepository, preferencesRepository] = await Promise.all([
+          createCareerRepository(database),
+          createReplayRepository(database),
+          createPreferencesRepository(database),
+        ]);
+        return { careerRepository, replayRepository, preferencesRepository };
+      })
       .then(async repositories => ({
         ...repositories,
         ...(await loadPreferencesFailSoft(repositories.preferencesRepository)),
@@ -976,7 +998,14 @@ function GameApp() {
           void resetCareerDatabase({
             openDatabase: () => openDatabaseAsync(DATABASE_NAME),
             deleteDatabaseFile: () => deleteDatabaseAsync(DATABASE_NAME),
-          }).then(() => setBootAttempt(attempt => attempt + 1));
+          })
+            .then(() => setBootAttempt(attempt => attempt + 1))
+            // This is the last way out of an unopenable database. If the reset
+            // itself fails there is nothing behind it, so say so — an unhandled
+            // rejection here reads as a button that does nothing, forever.
+            .catch(error => setBootError(
+              `The save could not be deleted. ${error instanceof Error ? error.message : String(error)}`,
+            ));
         }}
       />
     );
@@ -1754,6 +1783,13 @@ function BootFailure({
   onRestoreBackup?: { season: number; week: number; onRestore: () => void };
 }) {
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  // Armed is a dangerous state to leave lying around: the save is one tap from
+  // deletion, and the arming tap may have been a misfire. It expires on its own.
+  useEffect(() => {
+    if (!confirmingDiscard) return undefined;
+    const timer = setTimeout(() => setConfirmingDiscard(false), 5_000);
+    return () => clearTimeout(timer);
+  }, [confirmingDiscard]);
   return (
     <SafeAreaView className="flex-1 items-center justify-center bg-ink px-6">
       <View className="w-full border-2 border-stamp bg-paper p-5">
@@ -1764,7 +1800,10 @@ function BootFailure({
           tone="primary"
           label="Retry"
           accessibilityLabel="Retry opening club files"
-          onPress={onRetry}
+          onPress={() => {
+            setConfirmingDiscard(false);
+            onRetry();
+          }}
         />
         {onRestoreBackup !== undefined && (
           <BootFailureButton

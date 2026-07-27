@@ -614,6 +614,7 @@ const careerMarketSchema = z.object({
     consequenceApplied: z.boolean().optional(),
   }).passthrough().optional(),
   abandonedTransferNegotiationIds: z.array(nonemptyString).optional(),
+  abandonedRenewalNegotiationIds: z.array(nonemptyString).optional(),
 }).passthrough();
 
 const youthIntakeSchema = z.object({

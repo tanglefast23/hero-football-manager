@@ -225,6 +225,11 @@ export function SquadTrainingScreen({
     setDrillPickerOpen(true);
   }, [onSelectPlayer]);
 
+  // Stable so the popup's consume effect does not re-run on every render.
+  const forgetQuickTrainRequest = useCallback(() => {
+    setQuickTrainPathId(undefined);
+  }, []);
+
   /** Quick Train: the attribute IS the drill picker. */
   const handleTrainAttribute = useCallback((pathId: string) => {
     setTrainingCueUsed(true);
@@ -378,6 +383,7 @@ export function SquadTrainingScreen({
           reduceMotion={reduceMotion}
           saveWarning={saveWarning}
           quickTrainPathId={quickTrainPathId}
+          onQuickTrainConsumed={forgetQuickTrainRequest}
           conditionWarningSeen={conditionWarningSeen}
           onConditionWarningShown={onConditionWarningShown}
         />

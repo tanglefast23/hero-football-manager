@@ -7,7 +7,9 @@ import { clubSquadStrength } from '../m2-career';
 import {
   applyCareerNegotiationConsequence,
   acceptCareerTransferBid,
+  beginCareerRenewalTalks,
   beginCareerTransferTalks,
+  closeCareerRenewalTalks,
   closeCareerTransferTalks,
   careerCoachUnlockedFormationIds,
   completeCareerTransfer,
@@ -357,6 +359,57 @@ describe('career market integration', () => {
     expect(closed.transferTalks).toBeUndefined();
     expect(() => beginCareerTransferTalks(initial, closed, target.id))
       .toThrow('ended talks for this week');
+  });
+
+  test('closing renewal talks locks that player\'s deck for the rest of the season', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260728));
+    const lineupIds = new Set(
+      initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds,
+    );
+    const expiring = initial.players.find(player => (
+      player.clubId === initial.userClubId && !lineupIds.has(player.id)
+    ))!;
+    const seasonEnd = {
+      ...initial,
+      phase: 'season-end' as const,
+      players: initial.players.map(player => (
+        player.id === expiring.id ? { ...player, contractSeasonsRemaining: 0 } : player
+      )),
+    };
+
+    // A renewal id is season-stable, so reopening re-dealt one deterministic
+    // deck at round 0 — enough attempts and the hero wage cliff is negotiable
+    // down to whatever the deck's cheapest accepted offer happens to be.
+    const opened = beginCareerRenewalTalks(seasonEnd, seasonEnd.market!, expiring.id);
+    const closed = closeCareerRenewalTalks(seasonEnd, opened);
+    expect(closed.renewalTalks).toBeUndefined();
+    expect(() => beginCareerRenewalTalks(seasonEnd, closed, expiring.id))
+      .toThrow('ended talks for this season');
+  });
+
+  test('a locked renewal is a fresh conversation again next season', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260729));
+    const lineupIds = new Set(
+      initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds,
+    );
+    const expiring = initial.players.find(player => (
+      player.clubId === initial.userClubId && !lineupIds.has(player.id)
+    ))!;
+    const seasonEnd = {
+      ...initial,
+      phase: 'season-end' as const,
+      players: initial.players.map(player => (
+        player.id === expiring.id ? { ...player, contractSeasonsRemaining: 0 } : player
+      )),
+    };
+
+    const closed = closeCareerRenewalTalks(
+      seasonEnd,
+      beginCareerRenewalTalks(seasonEnd, seasonEnd.market!, expiring.id),
+    );
+    // The id embeds the season, so last season's record can never match.
+    const nextSeason = { ...seasonEnd, season: seasonEnd.season + 1 };
+    expect(() => beginCareerRenewalTalks(nextSeason, closed, expiring.id)).not.toThrow();
   });
 
   test('turns an accepted pitch-card deal into a real transfer and repairs the seller lineup', () => {

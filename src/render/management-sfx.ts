@@ -25,7 +25,8 @@ export type ManagementActionCue =
   | 'success'
   | 'hero'
   | 'warning'
-  | 'positive';
+  | 'positive'
+  | 'danger';
 
 type ManagementSfxKey = ExplicitManagementSfxKey | ManagementActionCue;
 
@@ -66,6 +67,11 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   'drill-progress': require('../../assets/audio/sfx/drill-progress.m4a'),
   'drill-gain-reveal': require('../../assets/audio/sfx/drill-gain-reveal.m4a'),
   'super-training-yay': require('../../assets/audio/sfx/super-training-yay.m4a'),
+  // Dismissing a coach or erasing a save used to answer with `positive`, the
+  // signing chime — a celebration for the one class of tap the manager may
+  // regret. This is the softer back-button cue: it confirms without applauding.
+  // Appended last so existing player indices stay stable.
+  danger: require('../../assets/audio/sfx/back-button.m4a'),
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
@@ -97,7 +103,16 @@ function initManagementSfx(): void {
 
 export function setManagementSfxMasterVolume(volume: number): void {
   masterVolume = Math.max(0, Math.min(1, volume));
-  for (const player of players.values()) player.volume = masterVolume;
+  // Called straight from a React effect, so a throwing native setter here would
+  // take the render with it — every other module in this folder guards its own.
+  for (const player of players.values()) {
+    try {
+      player.volume = masterVolume;
+      player.muted = masterVolume === 0;
+    } catch (error) {
+      warnOnce('volume apply failed', error);
+    }
+  }
 }
 
 export function playTrainingStatDing(): void {
@@ -191,6 +206,11 @@ export function playEventSuccessSfx(): void {
 /** Short, upbeat cue for positive outcomes (signings, confirmations); fail-soft. */
 export function playPositiveSfx(): void {
   playManagementSfx('positive');
+}
+
+/** Softer cue for a destructive commit — confirms the tap without celebrating it. */
+export function playDangerSfx(): void {
+  playManagementSfx('danger');
 }
 
 /** Short semantic cues shared by management screens; presentation-only and fail-soft. */

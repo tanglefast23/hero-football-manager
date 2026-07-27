@@ -52,9 +52,14 @@ function warnOnce(context: string, error: unknown): void {
 }
 
 function applyMasterVolume(): void {
+  // `muted` alongside `volume`: browsers on iOS ignore programmatic volume, so
+  // without it a muted game kept looping its menu theme at device level. This
+  // is the module that owns the longest-running loop, so it mattered most here.
+  const muted = masterVolume === 0;
   for (const [theme, player] of players) {
     try {
       player.volume = MUSIC_VOLUME * masterVolume;
+      player.muted = muted;
     } catch (error) {
       warnOnce(`${theme} volume failed`, error);
     }
@@ -62,6 +67,7 @@ function applyMasterVolume(): void {
   for (const [key, player] of sfxPlayers) {
     try {
       player.volume = masterVolume;
+      player.muted = muted;
     } catch (error) {
       warnOnce(`${key} volume failed`, error);
     }
