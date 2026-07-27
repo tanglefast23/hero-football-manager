@@ -1073,6 +1073,7 @@ function GameApp() {
           store.career,
           store.watchedMatch.fixture.id,
         )}
+        cupRoundLabel={store.watchedMatch.cupRoundLabel}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         onDone={finishWatchedMatch}
       />
