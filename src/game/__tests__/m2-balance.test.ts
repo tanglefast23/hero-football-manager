@@ -30,8 +30,14 @@ describe('M2 deterministic management balance rails', () => {
     // and never takes on the pitch's upkeep. The first D4 promotion also adds
     // the authored $15,000 recruitment fund, so retain rounded corridors around
     // the long-run economy.
+    // The upper corridor moved once the league purse began rising $10,000 per
+    // division: seed 77 is the only sampled career that wins a division above
+    // D5, and its peak went 95,482 -> 105,482, one D4 championship exactly.
+    // Every other sampled peak is unchanged.
     expect(summary.minimumBalance).toBeGreaterThanOrEqual(-335_000);
-    expect(summary.maximumBalance).toBeLessThanOrEqual(100_000);
+    // 110k, not 125k: the measured peak after the prize rise is 105,482, and a
+    // ceiling with 20% slack stops catching the regressions it exists for.
+    expect(summary.maximumBalance).toBeLessThanOrEqual(110_000);
     expect(summary.minimumWeeklyNet).toBeGreaterThanOrEqual(-15_000);
     expect(summary.maximumWeeklyNet).toBeLessThanOrEqual(40_000);
     expect(Number.isSafeInteger(summary.endingCash)).toBe(true);

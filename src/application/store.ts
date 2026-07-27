@@ -40,6 +40,7 @@ import {
   nextPendingClubLegend,
   quickMatchForFixture,
   protectBoardUltimatumPlayer,
+  purchaseCareerTrainingUpgrade,
   reconcilePendingClubLegends,
   relocateCareerFacility,
   renewCareerPlayer,
@@ -54,6 +55,7 @@ import {
   setCareerLineup,
   swapCareerLineupPlayer,
   trainPlayerInstantly,
+  trainingPathLabel,
   startNextSeason,
   startCareerScoutMission,
   submitCareerTransferOffer,
@@ -228,6 +230,7 @@ interface M1Store {
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
   selectPlayer: (playerId: string) => void;
   trainPlayer: (playerId: string, pathId: string) => void;
+  purchaseTrainingUpgrade: (pathId: string) => void;
   clearDrillResult: () => void;
   buildFacility: () => void;
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
@@ -1024,6 +1027,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
         error: null,
       });
       queueCareerSave(get, set, next);
+    });
+  },
+
+  purchaseTrainingUpgrade(pathId) {
+    guarded(set, () => {
+      const transaction = purchaseCareerTrainingUpgrade(requireCareer(get()), pathId);
+      set({
+        career: transaction.state,
+        error: null,
+        notice: {
+          tone: 'success',
+          message: `${trainingPathLabel(pathId)} drills upgraded to Tier ${transaction.offer.tier}.`,
+        },
+      });
+      queueCareerSave(get, set, transaction.state);
     });
   },
 

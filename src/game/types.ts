@@ -257,6 +257,7 @@ export type CashTransactionKind =
   | 'facility-build'
   | 'facility-upgrade'
   | 'facility-relocation'
+  | 'training-upgrade'
   | 'scouting'
   | 'transfer-buy'
   | 'transfer-sell'
@@ -402,6 +403,12 @@ export interface GameState {
   /** Optional only so pre-onboarding internal M1 saves remain loadable. */
   onboarding?: CareerOnboardingState;
   trainingPoints: number;
+  /**
+   * Drill tier the club has bought for each training path, keyed by path id.
+   * Absent paths — and every path in a save written before drill upgrades were
+   * a purchase — are owned at tier 1.
+   */
+  ownedTrainingTiers?: Record<string, number>;
   /** Lifetime instant-drill count; the RNG nonce that keeps back-to-back taps distinct. */
   totalInstantDrills?: number;
   ledgers: WeeklyLedger[];
