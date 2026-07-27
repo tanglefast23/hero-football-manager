@@ -84,6 +84,7 @@ import { mulberry32 } from '../sim/rng';
 import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
 import type { ManagementTab, PostMatchViewModel, WeeklyReviewViewModel } from '../ui';
 import { createLaunchCareerSetup, generateCareerSeed, reconcileLaunchRoster } from './launch';
+import { cachedRivalResults, clearRivalResultCache } from './rival-result-cache';
 import { careerMarketScoutOptions } from './market-source-adapter';
 import {
   postMatchViewModel,
@@ -675,12 +676,24 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const before = requireCareer(get());
       const { kind, fixture, fixtures, teams } = currentMatchday(before);
       const quickMatch = quickMatchForFixture(fixture, teams);
+      // Whatever the preload finished is handed over as a supplied result, so
+      // `resolveMatchday` simulates only what is genuinely missing. A cold or
+      // stale cache contributes nothing and it simulates all four, as before.
       const results = kind === 'league'
-        ? resolveMatchday(fixtures, teams, [quickMatch.result])
+        ? resolveMatchday(fixtures, teams, [
+            quickMatch.result,
+            ...cachedRivalResults(
+              fixtures.filter(candidate => candidate.id !== fixture.id),
+              teams,
+            ),
+          ])
         : [quickMatch.result];
       const userResult = results.find(result => result.fixtureId === fixture.id);
       if (userResult === undefined) throw new Error('the user fixture did not produce a result');
       const after = completeMatchday(before, results);
+      // The week is settled; nothing may claim these again, and the fingerprints
+      // are large enough that a season of them would be worth real memory.
+      clearRivalResultCache();
       const isOnboardingMatch = isFirstOnboardingFixture(before, fixture.id);
       const completed = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)
@@ -767,9 +780,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
           : {}),
       };
       const results = kind === 'league'
-        ? resolveMatchday(fixtures, teams, [supplied])
+        ? resolveMatchday(fixtures, teams, [
+            supplied,
+            ...cachedRivalResults(
+              fixtures.filter(candidate => candidate.id !== fixture.id),
+              teams,
+            ),
+          ])
         : [supplied];
       const after = completeMatchday(before, results);
+      // The week is settled; nothing may claim these again, and the fingerprints
+      // are large enough that a season of them would be worth real memory.
+      clearRivalResultCache();
       const highlights = result.events
         .filter(event => event.kind === 'GOAL')
         .map((event, index) => ({
