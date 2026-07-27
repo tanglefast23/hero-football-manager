@@ -91,6 +91,8 @@ import {
   shouldShowOpeningBrief,
 } from './src/ui';
 import {
+  activeCareerMatchday,
+  buildCareerMatchTeams,
   careerCoachUnlockedFormationIds,
   clubSquadStrength,
   hasActiveCareerContractPromise,
@@ -105,6 +107,7 @@ import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import type { TutorialAnchorLayout } from './src/ui/tutorial-cue-position';
 import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
+import { useRivalPreload } from './src/ui/use-rival-preload';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
 import { useM1Store } from './src/application/store';
 import { ScreenErrorBoundary } from './src/ui/ScreenErrorBoundary';
@@ -919,6 +922,41 @@ function GameApp() {
           store.selectedPlayerId,
         )),
     [store.career, content, store.selectedPlayerId],
+  );
+
+  // Rival squads are settled the moment the week advances, so the preload can
+  // start while the player is still on the home screen rather than waiting for
+  // the team sheet — a player who taps straight through would otherwise pay the
+  // whole freeze anyway. Keyed by the matchday itself: every lineup edit
+  // replaces the career object, and keying on that restarted the work.
+  const matchdayPreloadKey = store.career !== null && store.career.phase === 'matchday'
+    ? `${store.career.season}:${store.career.week}`
+    : null;
+
+  const matchdayPreload = useMemo(() => {
+    if (matchdayPreloadKey === null) return null;
+    const career = useM1Store.getState().career;
+    if (career === null) return null;
+    const matchday = activeCareerMatchday(career);
+    if (matchday === undefined || matchday.kind !== 'league') return null;
+    const rivals = matchday.fixtures.filter(candidate => candidate.id !== matchday.fixture.id);
+    if (rivals.length === 0) return null;
+    return {
+      rivals,
+      // Only the rival clubs: the user's own team is not an input to any of
+      // these fixtures, and rebuilding it here would churn on every swap.
+      teams: buildCareerMatchTeams(
+        career,
+        [...new Set(rivals.flatMap(candidate => [candidate.homeClubId, candidate.awayClubId]))],
+      ),
+    };
+  }, [matchdayPreloadKey]);
+
+  useRivalPreload(
+    matchdayPreloadKey,
+    matchdayPreload?.rivals ?? [],
+    matchdayPreload?.teams ?? null,
+    store.screen === 'watched',
   );
 
   const handleAdvanceWeek = advanceCareerWithSfx;
