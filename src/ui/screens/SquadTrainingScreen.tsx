@@ -106,6 +106,9 @@ export interface SquadTrainingScreenProps {
   drillPickerRequestToken?: number;
   /** Store save warning, shown inside the drill modal (a Modal covers the app banner). */
   saveWarning?: string | null;
+  /** True once Bert has given the condition lesson; it is one per career. */
+  conditionWarningSeen?: boolean;
+  onConditionWarningShown?: () => void;
 }
 
 export function SquadTrainingScreen({
@@ -120,6 +123,8 @@ export function SquadTrainingScreen({
   reduceMotion = false,
   drillPickerRequestToken,
   saveWarning = null,
+  conditionWarningSeen = false,
+  onConditionWarningShown,
 }: SquadTrainingScreenProps) {
   const { width } = useWindowDimensions();
   const wideColumns = width >= 600;
@@ -284,6 +289,8 @@ export function SquadTrainingScreen({
           onDismiss={() => setDrillPickerOpen(false)}
           reduceMotion={reduceMotion}
           saveWarning={saveWarning}
+          conditionWarningSeen={conditionWarningSeen}
+          onConditionWarningShown={onConditionWarningShown}
         />
       ) : null}
     </View>

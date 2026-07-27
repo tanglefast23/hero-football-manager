@@ -19,6 +19,7 @@ import {
   buildTrainingGround,
   completeFirstOnboardingMatch,
   completeAssistantGuideMilestone,
+  type AssistantGuideMilestone,
   completeAssistantGuideSequence,
   completeMatchday,
   completePostMatchAwakening,
@@ -204,6 +205,8 @@ interface M1Store {
   setActiveTab: (tab: ManagementTab) => void;
   reconcileAssistantInbox: () => void;
   completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
+  /** Retires a one-shot Bert lesson for the rest of the career. */
+  completeGuideMilestone: (milestone: AssistantGuideMilestone) => void;
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
   advanceCareer: () => void;
@@ -474,6 +477,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
   completeAssistantGuide(sequenceId) {
     guarded(set, () => {
       const next = completeAssistantGuideSequence(requireCareer(get()), sequenceId);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  completeGuideMilestone(milestone) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      if (hasAssistantGuideMilestone(career, milestone)) return;
+      const next = completeAssistantGuideMilestone(career, milestone);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

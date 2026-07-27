@@ -97,6 +97,7 @@ import {
   isFirstOnboardingFixture,
   isFullyCappedPlayer,
   leagueStandings,
+  hasAssistantGuideMilestone,
 } from './src/game';
 import type { DivisionLevel } from './src/game/pyramid';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
@@ -1263,6 +1264,9 @@ function GameApp() {
             reduceMotion={reduceMotion}
             drillPickerRequestToken={drillFocusToken ?? undefined}
             saveWarning={store.saveWarning}
+            conditionWarningSeen={store.career !== null
+              && hasAssistantGuideMilestone(store.career, 'condition-warning-seen')}
+            onConditionWarningShown={() => store.completeGuideMilestone('condition-warning-seen')}
           />
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen

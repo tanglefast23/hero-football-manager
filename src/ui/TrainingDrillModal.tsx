@@ -26,6 +26,14 @@ export interface TrainingDrillModalProps {
   trainingPoints: number;
   /** The latest tap's resolution; ignored unless it belongs to this player. */
   lastDrillResult: DrillResultViewModel | null;
+  /**
+   * True once Bert has explained the condition gamble. It is one lesson per
+   * career, not one per player: after that a red-lined squad is the manager's
+   * own call to make.
+   */
+  conditionWarningSeen?: boolean;
+  /** Retires the lesson for good. */
+  onConditionWarningShown?: () => void;
   /** Set while a promised player is owed drills: only they may train. */
   promiseGate?: { playerId: string; playerName: string; remaining: number };
   /** Jumps the popup to the promised player when their reminder is tapped. */
@@ -67,6 +75,8 @@ export function TrainingDrillModal({
   injuryWeeks,
   trainingPoints,
   lastDrillResult,
+  conditionWarningSeen = false,
+  onConditionWarningShown,
   promiseGate,
   onSwitchToPromised,
   onTrainDrill,
@@ -83,9 +93,8 @@ export function TrainingDrillModal({
   // nothing reads as a broken button. `bert` puts the assistant in the card for
   // anything that is advice rather than a rule.
   const [notice, setNotice] = useState<{ title: string; detail: string; bert?: boolean } | null>(null);
-  // Bert warns once per player per visit, and only after the result has finished
-  // playing — interrupting the drill scene with a lecture would bury the gain.
-  const redWarnedRef = useRef<string | null>(null);
+  // Bert warns once per CAREER, and only after the result has finished playing —
+  // interrupting the drill scene with a lecture would bury the gain.
   const pendingRedWarningRef = useRef(false);
   const streakRef = useRef(0);
   // Seeded from the store's current sequence, not 0: dismissing the popup unmounts
@@ -112,8 +121,7 @@ export function TrainingDrillModal({
       playDrillResultSfx(streakRef.current);
     }
 
-    if (energyBand(condition) === 'red' && redWarnedRef.current !== playerId) {
-      redWarnedRef.current = playerId;
+    if (energyBand(condition) === 'red' && !conditionWarningSeen) {
       pendingRedWarningRef.current = true;
     }
 
@@ -121,7 +129,7 @@ export function TrainingDrillModal({
     setStage('scene');
     // `condition` is a dependency so the warning reads the post-drill value; the
     // sequence guard above makes any extra run a no-op.
-  }, [condition, lastDrillResult, playerId]);
+  }, [condition, conditionWarningSeen, lastDrillResult, playerId]);
 
   // Advances the presentation once the current beat finishes or is skipped.
   // The next stage is derived outside the updater — a setState updater must be
@@ -140,6 +148,7 @@ export function TrainingDrillModal({
       setActiveResult(null);
       if (pendingRedWarningRef.current) {
         pendingRedWarningRef.current = false;
+        onConditionWarningShown?.();
         playManagementActionSfx('warning');
         setNotice({
           title: 'Bert has a word',
@@ -148,7 +157,7 @@ export function TrainingDrillModal({
         });
       }
     }
-  }, [stage, activeResult, playerName]);
+  }, [stage, activeResult, onConditionWarningShown, playerName]);
 
   const resultOption = activeResult === null
     ? undefined

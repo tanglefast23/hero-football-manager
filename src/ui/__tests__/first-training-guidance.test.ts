@@ -88,4 +88,19 @@ describe('first training guidance', () => {
     // Phase helper switches on selection
     expect(targets).toContain('guidedFirstFacilityPhase');
   });
+
+  it('gives the condition lesson once per career, not once per player', () => {
+    const modal = readFileSync(join(process.cwd(), 'src/ui/TrainingDrillModal.tsx'), 'utf8');
+    const guide = readFileSync(join(process.cwd(), 'src/game/assistant-guide.ts'), 'utf8');
+
+    // One lesson total. After Bert has explained the gamble, a red-lined squad
+    // is the manager's own call, so the flag lives on the career and survives
+    // a reload rather than resetting with the popup.
+    expect(guide).toContain("'condition-warning-seen'");
+    expect(guide).toContain("'condition-warning-seen': 'guide:bert:condition-warning-seen'");
+    expect(modal).toContain("if (energyBand(condition) === 'red' && !conditionWarningSeen)");
+    expect(modal).toContain('onConditionWarningShown?.();');
+    // The old per-player ref must be gone, or the lesson repeats down the squad.
+    expect(modal).not.toContain('redWarnedRef');
+  });
 });
