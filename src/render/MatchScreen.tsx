@@ -81,6 +81,8 @@ import {
   type PowerJuiceHeroTint,
 } from './power-cut-in';
 import { appendBannerNewestFour, type MatchBannerSubject } from './match-banners';
+import { CupTitleCard } from './CupTitleCard';
+import { cupTitleCard, type CupRoundLabel } from './cup-title-card';
 import { PowerEffectScene, type PowerEffectPoint } from './PowerEffectScene';
 import { powerEffectDescriptor } from './power-effect-descriptors';
 import { livePowerEffectActors, superSpeedAfterimageActors } from './live-power-effect-actors';
@@ -328,6 +330,7 @@ export function MatchScreen({
   colorSafeKits = true,
   pausedExternally = false,
   firstMatchTutorial = false,
+  cupRoundLabel,
   powerCutInQaEntries,
   powerMatchQa,
   onOpenSettings,
@@ -347,6 +350,8 @@ export function MatchScreen({
   colorSafeKits?: boolean;
   pausedExternally?: boolean;
   firstMatchTutorial?: boolean;
+  /** Set only for a Global Cup tie; it opens the match on the title card. */
+  cupRoundLabel?: CupRoundLabel;
   /** Dev-only held fixture for visual QA. Ignored by production bundles. */
   powerCutInQaEntries?: readonly PowerCutInQaEntry[];
   /** Dev-only live match scenario. It still fires through the real engine. */
@@ -497,7 +502,15 @@ export function MatchScreen({
    * punished with eleven exhausted players and five unused substitutions. */
   const [autoSubs, setAutoSubs] = useState(false);
   const autoSubsRef = useRef(false);
-  const [paused, setPaused] = useState(false);
+  // A Global Cup tie opens on a title card; a league fixture arrives with no
+  // `cupRoundLabel` and gets none. Decided once, at mount: flipping Reduce
+  // Motion from the settings overlay must not restyle a card already playing.
+  const [titleCard] = useState(() => cupTitleCard(cupRoundLabel, reduceMotion));
+  const [titleCardShowing, setTitleCardShowing] = useState(titleCard !== null);
+  // Starts paused behind the card so the very first RAF frame simulates
+  // nothing. The clock is held, not skipped — the loop keeps `last` current
+  // while paused, so no part of the card's duration lands in the accumulator.
+  const [paused, setPaused] = useState(titleCard !== null);
   const [swapOpen, setSwapOpen] = useState(false);
   const [firstMatchTutorialStep, setFirstMatchTutorialStep] = useState<
     'tired-modal' | 'tired-swap-cue' | null
@@ -516,9 +529,17 @@ export function MatchScreen({
   /** Which player's body is mid white/gold activation flash, and in which half. */
   const [heroTint, setHeroTint] = useState<{ player: number; tint: 'white' | 'gold' } | null>(null);
   const speedRef = useRef<MatchSpeed>(1);
-  const pausedRef = useRef(false);
+  const pausedRef = useRef(titleCard !== null);
   const userPausedRef = useRef(false);
   const automaticPauseReasonsRef = useRef(new Set<AutomaticMatchPauseReason>());
+  // Seeded during the first render rather than from an effect: the reason has
+  // to be in the set before anything can call syncPauseReasons(), or the first
+  // sync would resume a match the card is still covering.
+  const titleCardSeededRef = useRef(false);
+  if (!titleCardSeededRef.current) {
+    titleCardSeededRef.current = true;
+    if (titleCard !== null) automaticPauseReasonsRef.current.add('title-card');
+  }
   speedRef.current = speed;
 
   // ---- Activation camera & FX, all on the UI thread ----------------------
@@ -666,16 +687,24 @@ export function MatchScreen({
   useEffect(() => {
     initAudio();
     startTheme();
-    // The opening KICKOFF is emitted by createMatch before the RAF loop below
-    // starts slicing newEvents, so its whistle would be skipped — play any
-    // events already present at mount here. The loop starts from the current
-    // length, so nothing double-fires.
-    for (const e of match.events) playForEvent(e);
     return () => {
       stopTheme();
       teardownAudio();
     };
   }, []);
+
+  // The opening KICKOFF is emitted by createMatch before the RAF loop below
+  // starts slicing newEvents, so its whistle would be skipped — play any events
+  // already present at mount here. The loop starts from the current length, so
+  // nothing double-fires. Held behind a cup title card so the whistle sounds at
+  // the real kickoff rather than from under the card; the match is paused
+  // meanwhile, so no further events can accumulate before this runs.
+  const openingEventsPlayedRef = useRef(false);
+  useEffect(() => {
+    if (titleCardShowing || openingEventsPlayedRef.current) return;
+    openingEventsPlayedRef.current = true;
+    for (const e of match.events) playForEvent(e);
+  }, [titleCardShowing]);
 
   useEffect(() => {
     let raf = 0;
@@ -1849,6 +1878,12 @@ export function MatchScreen({
     automaticPauseReasonsRef.current.delete('swap');
     syncPauseReasons();
   };
+  /** The cup card has been read (or skipped): release kickoff. */
+  const dismissTitleCard = () => {
+    setTitleCardShowing(false);
+    automaticPauseReasonsRef.current.delete('title-card');
+    syncPauseReasons();
+  };
   const toggleAutoSubs = () => {
     const enabled = !autoSubs;
     setAutoSubs(enabled);
@@ -2512,6 +2547,10 @@ export function MatchScreen({
           reduceMotion={reduceMotion}
           onContinue={continueTiredPlayerTutorial}
         />
+      ) : null}
+      {/* Last child, so the cup card covers the whole match screen. */}
+      {titleCard !== null && titleCardShowing ? (
+        <CupTitleCard card={titleCard} onDone={dismissTitleCard} />
       ) : null}
     </View>
   );

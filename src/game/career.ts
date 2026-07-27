@@ -72,7 +72,7 @@ const UINT32_MAX = 4294967295;
  */
 export const CUP_SETTLEMENT_WEEKS = [6, 12, 18, 24, 27, 29] as const;
 
-type NationalCupRoundLabel =
+export type NationalCupRoundLabel =
   | 'Play-in'
   | 'Round of 32'
   | 'Round of 16'

@@ -3,7 +3,9 @@ export type AutomaticMatchPauseReason =
   | 'settings'
   | 'swap'
   | 'cut-in'
-  | 'tutorial';
+  | 'tutorial'
+  /** A Global Cup tie's opening title card holds kickoff until it clears. */
+  | 'title-card';
 
 export function shouldPauseMatch(
   userPaused: boolean,
