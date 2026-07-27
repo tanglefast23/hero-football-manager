@@ -61,7 +61,8 @@ describe('career player portrait roster', () => {
 
   it('keeps every portrait at the art-bible 24x29 cell and palette budget', () => {
     expect(sheet.cell).toEqual({ w: 24, h: 29 });
-    expect(Object.keys(sheet.palette).length).toBeLessThanOrEqual(24);
+    // See sprites.test.ts: the hair ramp is separate from the skin ramp now.
+    expect(Object.keys(sheet.palette).length).toBeLessThanOrEqual(26);
     for (const rows of Object.values(sheet.sprites)) {
       expect(rows).toHaveLength(29);
       for (const row of rows) {
