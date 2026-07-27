@@ -1417,7 +1417,9 @@ function GameApp() {
                 }
                 openAssistantGuide(alert.guideSequenceId, alert.destination);
               }
-              else if (alertId === 'training-ground') store.setActiveTab('club');
+              else if (alertId === 'training-ground' || alertId === 'build-reminder') {
+                store.setActiveTab('club');
+              }
               else if (alertId.startsWith('injury-')) {
                 store.selectPlayer(alertId.slice('injury-'.length));
                 store.setActiveTab('squad');
