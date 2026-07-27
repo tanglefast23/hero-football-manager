@@ -201,6 +201,8 @@ export function SubstitutionBoard({
     }
   }, [commit, isEligible, plan, starterAt, subById]);
 
+  // The button is disabled with nothing staged, so a player never reaches the
+  // refusal; it stays as the backstop for any caller that forgets to pass it.
   const save = useCallback(() => {
     if (!saveable) {
       playManagementActionSfx('warning');
@@ -209,8 +211,9 @@ export function SubstitutionBoard({
     onSave(planInputs(plan));
   }, [onSave, plan, saveable]);
 
+  // No cue here: this runs from a SfxPressable, which already clicks. `commit`
+  // below keeps its own because a drop is a gesture, not a press.
   const reset = useCallback(() => {
-    playUiClickSfx();
     setPlan(EMPTY_SUBSTITUTION_PLAN);
   }, []);
 
@@ -488,6 +491,10 @@ function LozengeButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
+      // Both halves, always: announcing "disabled" while still taking the press
+      // is a button that looks dead and acts alive. ActionButton pairs them the
+      // same way.
+      disabled={disabled}
       pressSfx={tone === 'blue' ? 'click' : 'click'}
       onPress={onPress}
       style={({ pressed }) => [
