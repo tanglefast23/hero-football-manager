@@ -13,6 +13,7 @@ import {
   TUTORIAL_TAP_CUE_RESERVED_SPACE,
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
+import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface ClubLegacyScreenProps {
   viewModel: ClubLegacyViewModel;
@@ -27,6 +28,7 @@ export function ClubLegacyScreen({
   onOpenSettings,
   guided = false,
 }: ClubLegacyScreenProps) {
+  const desktopContent = useDesktopContentStyle();
   const wide = useLayoutMode() === 'twoColumn';
   return (
     <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
@@ -42,7 +44,7 @@ export function ClubLegacyScreen({
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
+      <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}>
         <PaperPanel kicker="Retirement office" title={viewModel.playerName} stamp="Club legend">
           <View className="flex-row items-center gap-4">
             <View className="overflow-hidden border-2 border-b-4 border-gold-dark bg-gold-light">

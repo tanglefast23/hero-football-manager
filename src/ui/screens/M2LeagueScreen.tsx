@@ -18,6 +18,7 @@ import {
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface M2LeagueScreenProps {
   viewModel: M2LeagueViewModel;
@@ -34,6 +35,7 @@ export function M2LeagueScreen({
   onOpenCupFixture,
   guideNationalCup = false,
 }: M2LeagueScreenProps) {
+  const desktopContent = useDesktopContentStyle();
   const summary = viewModel.selectedDivisionSummary;
   const scrollRef = useRef<ScrollView>(null);
   const cupYRef = useRef<number | null>(null);
@@ -304,7 +306,7 @@ export function M2LeagueScreen({
   ];
 
   return (
-    <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 32 }, desktopContent]}>
       <SectionFlow
         mode={layoutMode}
         header={

@@ -7,6 +7,7 @@ import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { PixelText } from '../components/PixelText';
+import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
@@ -23,6 +24,7 @@ export function PostMatchLedgerScreen({
   onOpenSettings,
   textScale = 1,
 }: PostMatchLedgerScreenProps) {
+  const desktopContent = useDesktopContentStyle();
   const { result } = viewModel;
   const resultTone = result.outcomeLabel === 'WIN'
     ? 'success'
@@ -39,7 +41,7 @@ export function PostMatchLedgerScreen({
         </View>
         <SettingsButton onPress={onOpenSettings} />
       </View>
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+      <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 24 }, desktopContent]}>
         <View className="items-center py-3">
           <StatusChip label="Full time" tone={resultTone} />
           <PixelText className="mt-3 text-sm uppercase text-blue-dark">{result.competition}</PixelText>

@@ -6,12 +6,14 @@ import type { LeagueTableViewModel } from '../models';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface LeagueTableScreenProps {
   viewModel: LeagueTableViewModel;
 }
 
 export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
+  const desktopContent = useDesktopContentStyle();
   const pointsFromTop = viewModel.leaderPoints - viewModel.userPoints;
   const layoutMode = useLayoutMode();
 
@@ -138,7 +140,7 @@ export function LeagueTableScreen({ viewModel }: LeagueTableScreenProps) {
   ];
 
   return (
-    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
+    <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}>
       <SectionFlow
         mode={layoutMode}
         header={

@@ -12,6 +12,7 @@ import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SettingsButton } from '../SettingsOverlay';
 import { NegotiationPanel, useContractDraft } from './MarketScreen';
 import { PixelText } from '../components/PixelText';
+import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface SeasonEndScreenProps {
   viewModel: SeasonEndViewModel;
@@ -40,6 +41,7 @@ export function SeasonEndScreen({
   guideCopy,
   textScale = 1,
 }: SeasonEndScreenProps) {
+  const desktopContent = useDesktopContentStyle();
   const renewalDraft = useContractDraft(viewModel.renewalNegotiation);
   const wide = useLayoutMode() === 'twoColumn';
   const contract = viewModel.expiredContract;
@@ -61,7 +63,7 @@ export function SeasonEndScreen({
         </View>
         <SettingsButton onPress={onOpenSettings} />
       </View>
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
+      <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}>
         <View className="items-center py-3">
           <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Season complete</Text>
           <Text className="mt-2 font-pixel text-3xl uppercase tracking-wide text-white">{viewModel.seasonLabel}</Text>

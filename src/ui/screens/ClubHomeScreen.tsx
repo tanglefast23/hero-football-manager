@@ -11,6 +11,7 @@ import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 /** Full-card tint per alert tone — bible palette only, never off-palette Tailwind hues. */
 function alertPalette(tone: ClubAlertViewModel['tone']): string {
@@ -42,6 +43,7 @@ export function ClubHomeScreen({
   guideBoard = false,
   textScale = 1,
 }: ClubHomeScreenProps) {
+  const desktopContent = useDesktopContentStyle();
   const fixture = viewModel.nextFixture;
   const fixtureIsThisWeek = viewModel.nextMatchTimingLabel === 'This week';
   const layoutMode = useLayoutMode();
@@ -311,7 +313,7 @@ export function ClubHomeScreen({
   ];
 
   return (
-    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
+    <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}>
       <SectionFlow
         mode={layoutMode}
         header={

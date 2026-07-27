@@ -35,6 +35,7 @@ import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { InfoTip } from '../components/InfoTip';
 import { energyBand } from '../../render/match-energy-ui';
+import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 /**
  * The roster reads condition on the same three bands as the drill popup and
@@ -133,6 +134,7 @@ export function SquadTrainingScreen({
   conditionWarningSeen = false,
   onConditionWarningShown,
 }: SquadTrainingScreenProps) {
+  const desktopContent = useDesktopContentStyle();
   const { width } = useWindowDimensions();
   const wideColumns = width >= 600;
   // Wide columns spell their headers out in full ("SCORE", "POTENTIAL",
@@ -271,7 +273,7 @@ export function SquadTrainingScreen({
     <View className="flex-1">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}
         onScrollBeginDrag={() => {
           dismissPlayerGuide();
           dismissConditionCue();
