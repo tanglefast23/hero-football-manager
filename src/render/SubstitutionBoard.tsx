@@ -495,7 +495,7 @@ function LozengeButton({
       // is a button that looks dead and acts alive. ActionButton pairs them the
       // same way.
       disabled={disabled}
-      pressSfx={tone === 'blue' ? 'click' : 'click'}
+      pressSfx="click"
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,

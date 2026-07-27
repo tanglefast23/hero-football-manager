@@ -102,6 +102,12 @@ export interface CareerMarketState {
    * three-round cap. Ids embed season+week, so stale entries never match.
    */
   readonly abandonedTransferNegotiationIds?: readonly string[];
+  /**
+   * The same record for renewals, which need it more: a renewal id is stable
+   * for the whole season, so reopening replayed one deterministic deck until it
+   * yielded the cheapest accepted wage — the hero wage cliff, negotiated away.
+   */
+  readonly abandonedRenewalNegotiationIds?: readonly string[];
 }
 
 export interface CareerMarketTransaction {
@@ -254,6 +260,11 @@ export function expireCareerTransferListings(
 
 function transferNegotiationId(state: GameState, playerId: string): string {
   return `transfer-s${state.season}-w${state.week}-${playerId}`;
+}
+
+/** Season-stable: one renewal conversation per player per season. */
+function renewalNegotiationId(state: GameState, playerId: string): string {
+  return `renewal-s${state.season}-${playerId}`;
 }
 
 /**
@@ -432,6 +443,9 @@ export function beginCareerRenewalTalks(
 ): CareerMarketState {
   assertSeasonEndPhase(state);
   if (market.renewalTalks !== undefined) throw new Error('another renewal is already being negotiated');
+  if ((market.abandonedRenewalNegotiationIds ?? []).includes(renewalNegotiationId(state, playerId))) {
+    throw new Error('That agent has ended talks for this season. Renew or release at the next contract.');
+  }
   const player = expiredUserPlayer(state, playerId);
   const weeklyAsk = renewalContractAsk({
     weeklyWage: player.weeklyWage,
@@ -449,7 +463,7 @@ export function beginCareerRenewalTalks(
       playerId,
       negotiation: startContractNegotiation({
         careerSeed: state.careerSeed,
-        negotiationId: `renewal-s${state.season}-${playerId}`,
+        negotiationId: renewalNegotiationId(state, playerId),
         playerId,
         personality: marketPersonality(player.personality),
         weeklyAsk,
@@ -507,8 +521,26 @@ export function completeCareerRenewal(
   };
 }
 
-export function closeCareerRenewalTalks(market: CareerMarketState): CareerMarketState {
-  return { ...market, renewalTalks: undefined };
+/**
+ * Closes renewal talks and records the abandoned negotiation id, exactly as the
+ * transfer path does. The season prefix keeps the record from outliving the
+ * season it belongs to, so next season's renewal is a fresh conversation.
+ */
+export function closeCareerRenewalTalks(
+  state: GameState,
+  market: CareerMarketState,
+): CareerMarketState {
+  const talks = market.renewalTalks;
+  if (talks === undefined) return market;
+  const seasonPrefix = `renewal-s${state.season}-`;
+  return {
+    ...market,
+    renewalTalks: undefined,
+    abandonedRenewalNegotiationIds: [
+      ...(market.abandonedRenewalNegotiationIds ?? []).filter(id => id.startsWith(seasonPrefix)),
+      talks.negotiation.id,
+    ],
+  };
 }
 
 /** Lists a player and creates deterministic, club-specific AI bids. */

@@ -747,7 +747,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const before = requireCareer(get());
       const { kind, fixture, fixtures, teams } = currentMatchday(before);
       const watchedMatch = get().watchedMatch;
-      if (watchedMatch === null || watchedMatch.fixture.id !== fixture.id) {
+      // A second `onDone` for a match already settled is a duplicate delivery,
+      // not a fault: the first call cleared the context. Surfacing it threw a
+      // developer sentence into the player's error toast on a working game.
+      if (watchedMatch === null) return;
+      if (watchedMatch.fixture.id !== fixture.id) {
         throw new Error('the watched fixture context is missing');
       }
       const scorerPlayerIds = result.events
@@ -1361,7 +1365,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   closeRenewal() {
     guarded(set, () => {
       const career = requireCareer(get());
-      const next = { ...career, market: closeCareerRenewalTalks(requireMarket(career)) };
+      const next = { ...career, market: closeCareerRenewalTalks(career, requireMarket(career)) };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

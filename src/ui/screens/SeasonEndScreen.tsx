@@ -11,6 +11,7 @@ import type { TextScale } from '../../persistence';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SettingsButton } from '../SettingsOverlay';
 import { NegotiationPanel, useContractDraft } from './MarketScreen';
+import { useTapGuard } from '../use-tap-guard';
 import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
@@ -44,6 +45,10 @@ export function SeasonEndScreen({
   const desktopContent = useDesktopContentStyle();
   const renewalDraft = useContractDraft(viewModel.renewalNegotiation);
   const wide = useLayoutMode() === 'twoColumn';
+  // Renewals arrive as a queue: committing one re-renders this same button
+  // holding the next player, so an ordinary double-tap would sign a wage the
+  // manager never saw.
+  const guardTap = useTapGuard();
   const contract = viewModel.expiredContract;
   // The season-end fanfare is owned by App.tsx, keyed per career/season so it
   // fires exactly once. Do not add a second cue here.
@@ -258,7 +263,7 @@ export function SeasonEndScreen({
                     <ActionButton
                       label="Renew deal"
                       accessibilityLabel={`Renew ${contract.playerName} for ${contract.selectedTerm} seasons`}
-                      onPress={() => onRenewContract(contract.playerId, contract.selectedTerm)}
+                      onPress={() => guardTap(() => onRenewContract(contract.playerId, contract.selectedTerm))}
                     />
                   </View>
                   <View className="mt-2">

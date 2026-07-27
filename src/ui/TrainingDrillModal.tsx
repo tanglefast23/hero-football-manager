@@ -33,6 +33,13 @@ export interface TrainingDrillModalProps {
    */
   quickTrainPathId?: string;
   /**
+   * Clears the request above once this popup has opened its confirmation.
+   * Without it the request outlives the drill that answered it, and the effect
+   * below re-fires on the next `options` identity — which every resolved drill
+   * produces — reopening a spend confirmation the manager never asked for.
+   */
+  onQuickTrainConsumed?: () => void;
+  /**
    * True once Bert has explained the condition gamble. It is one lesson per
    * career, not one per player: after that a red-lined squad is the manager's
    * own call to make.
@@ -82,6 +89,7 @@ export function TrainingDrillModal({
   trainingPoints,
   lastDrillResult,
   quickTrainPathId,
+  onQuickTrainConsumed,
   conditionWarningSeen = false,
   onConditionWarningShown,
   promiseGate,
@@ -123,8 +131,12 @@ export function TrainingDrillModal({
   useEffect(() => {
     if (quickTrainPathId === undefined) return;
     const option = options.find(candidate => candidate.pathId === quickTrainPathId);
-    if (option !== undefined) setPendingConfirm(option);
-  }, [options, quickTrainPathId]);
+    if (option === undefined) return;
+    setPendingConfirm(option);
+    // One tap, one confirmation. The request is spent here rather than left
+    // standing, so the next resolved drill cannot re-trigger this effect.
+    onQuickTrainConsumed?.();
+  }, [onQuickTrainConsumed, options, quickTrainPathId]);
 
   useEffect(() => {
     const result = lastDrillResult;
@@ -163,6 +175,13 @@ export function TrainingDrillModal({
         ? 'injury'
         : null;
     setStage(next);
+    // The OUT card is the worst news the training loop delivers and it used to
+    // arrive in silence, with the cue landing on the tap that dismissed it —
+    // the drama mute, the paperwork loud.
+    if (next === 'injury') {
+      playManagementActionSfx('warning');
+      playManagementHaptic('warning');
+    }
     if (next === null) {
       setActiveResult(null);
       if (pendingRedWarningRef.current) {
@@ -405,10 +424,9 @@ export function TrainingDrillModal({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${playerName} got injured, out ${activeResult.injury.recoveryWeeks} weeks. Tap to continue.`}
-                onPress={() => {
-                  playManagementActionSfx('warning');
-                  advanceStage();
-                }}
+                // The cue now plays when the card appears; acknowledging it is
+                // an ordinary tap and takes the ordinary click.
+                onPress={advanceStage}
                 style={StyleSheet.absoluteFill}
               >
                 <View style={styles.injuryBackdrop}>

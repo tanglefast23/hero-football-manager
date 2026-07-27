@@ -38,6 +38,8 @@ function setPlayerVolume(player: AudioPlayer | null, context: string): void {
   if (!player) return;
   try {
     player.volume = masterVolume;
+    // Programmatic volume is a no-op in browsers on iOS; `muted` is not.
+    player.muted = masterVolume === 0;
   } catch (error) {
     warnOnce(`${context} volume failed`, error);
   }
