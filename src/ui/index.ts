@@ -4,6 +4,8 @@ export * from './PostMatchSummaryModal';
 export * from './CoachStaffOverlay';
 export * from './FacilityProjectNotice';
 export * from './PlayerSigningOverlay';
+export * from './PlayerWalkOnWelcome';
+export * from './CharacterSpeechOverlay';
 export * from './TutorialTapCue';
 export * from './ScreenErrorBoundary';
 export * from './models';

@@ -143,6 +143,14 @@ export interface ManagementShellProps {
     | 'advance-week';
   onMoneyGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
   onNavigationGuideAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
+  /**
+   * Clears guidance the player has stopped following. It runs when the finger
+   * lifts, never when it lands: dropping a cue also drops the room its screen
+   * reserved above the highlighted control, and reflowing mid-press slid that
+   * control out from under the finger, so the press the cue was asking for was
+   * delivered to whatever had taken its place. A helper cue must never eat the
+   * first tap.
+   */
   onDismissGuidance?: () => void;
 }
 
@@ -197,7 +205,7 @@ export function ManagementShell({
     <SafeAreaView
       className="flex-1 bg-paper-dark"
       edges={['left', 'right']}
-      onPointerDown={onDismissGuidance}
+      onPointerUp={onDismissGuidance}
     >
       {/* Persistent HUD bar — club and controls share the top row. The status-bar
           inset is padding on this bar, so the notch strip is HUD-coloured. */}

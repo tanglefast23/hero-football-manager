@@ -24,7 +24,16 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     const shell = readFileSync(join(process.cwd(), 'src/ui/ManagementShell.tsx'), 'utf8');
 
     expect(market).not.toContain('detail="If you want to hire this coach"');
-    expect(shell).toContain('onPointerDown={onDismissGuidance}');
+    expect(shell).toContain('onPointerUp={onDismissGuidance}');
+  });
+
+  it('never dismisses guidance before the press it collides with has landed', () => {
+    // Dismissing on press-down dropped the cue and the room its screen reserved
+    // above the highlighted control, so the control slid out from under the
+    // finger and the tap the cue was asking for went to its replacement.
+    const shell = readFileSync(join(process.cwd(), 'src/ui/ManagementShell.tsx'), 'utf8');
+
+    expect(shell).not.toContain('onPointerDown={onDismissGuidance}');
   });
 
   it('keeps the club name on the compact resource row', () => {

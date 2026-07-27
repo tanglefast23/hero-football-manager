@@ -13,7 +13,7 @@ import { SettingsButton } from '../SettingsOverlay';
 import { NegotiationPanel, useContractDraft } from './MarketScreen';
 import { useTapGuard } from '../use-tap-guard';
 import { PixelText } from '../components/PixelText';
-import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import { DesktopClamp, useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface SeasonEndScreenProps {
   viewModel: SeasonEndViewModel;
@@ -318,18 +318,22 @@ export function SeasonEndScreen({
         ) : null}
       </ScrollView>
 
+      {/* Same rule as the full-time report: the bar spans the window, the
+          button inside it keeps the two-column measure of the review above. */}
       <View className="border-t-[6px] border-white bg-ink/25 p-3">
-        <ActionButton
-          label={viewModel.sliceComplete ? 'Finish career review  ▸' : 'Begin next season  ▸'}
-          accessibilityLabel={viewModel.sliceComplete ? 'Finish the career review' : 'Begin the next season'}
-          onPress={onPrimaryAction}
-          disabled={!viewModel.canContinue}
-        />
-        {!viewModel.canContinue ? (
-          <PixelText className="mt-2 text-center text-sm uppercase tracking-wide text-red-light">
-            Resolve the expired contract first
-          </PixelText>
-        ) : null}
+        <DesktopClamp>
+          <ActionButton
+            label={viewModel.sliceComplete ? 'Finish career review  ▸' : 'Begin next season  ▸'}
+            accessibilityLabel={viewModel.sliceComplete ? 'Finish the career review' : 'Begin the next season'}
+            onPress={onPrimaryAction}
+            disabled={!viewModel.canContinue}
+          />
+          {!viewModel.canContinue ? (
+            <PixelText className="mt-2 text-center text-sm uppercase tracking-wide text-red-light">
+              Resolve the expired contract first
+            </PixelText>
+          ) : null}
+        </DesktopClamp>
       </View>
     </SafeAreaView>
   );

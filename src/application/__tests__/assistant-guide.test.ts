@@ -7,7 +7,9 @@ import {
   completeAssistantGuideMilestone,
   completeAssistantGuideSequence,
   hasAssistantGuideSequenceCompleted,
+  M2_ASSISTANT_GUIDE_SEQUENCE_IDS,
 } from '../../game/assistant-guide';
+import type { GameState } from '../../game/types';
 import { createLaunchCareerSetup } from '../launch';
 import {
   currentAssistantObjective,
@@ -16,6 +18,24 @@ import {
   reconcileSatisfiedAssistantGuideSequences,
 } from '../assistant-guide';
 import { homeViewModel, reconcileHomeAssistantInbox } from '../view-models';
+
+/**
+ * Reads every other first off the desk, which is the state the upgrade lesson
+ * waits for. Repeated because some guides only appear once their predecessor is
+ * read — the coach market before the hire, and so on.
+ */
+function clearOtherGuideFirsts(state: GameState): GameState {
+  let next = state;
+  for (let pass = 0; pass < M2_ASSISTANT_GUIDE_SEQUENCE_IDS.length; pass += 1) {
+    const remaining = dueAssistantInboxGuideSequences(next)
+      .filter(sequenceId => sequenceId !== 'facility-upgrade');
+    if (remaining.length === 0) return next;
+    for (const sequenceId of remaining) {
+      next = completeAssistantGuideSequence(next, sequenceId);
+    }
+  }
+  return next;
+}
 
 describe('assistant guide application flow', () => {
   test('flags the fixture on the morning of match week, once', () => {
@@ -153,31 +173,79 @@ describe('assistant guide application flow', () => {
     expect(reconciled.eventFlags).toContain('guide:bert:sequence-complete:head-coach-hire');
   });
 
-  test('teaches the first facility upgrade as soon as one is reachable', () => {
+  test('saves the first facility upgrade for a quiet week after the story season', () => {
     let state = createCareer(createLaunchCareerSetup(935));
     state = buildCareerFacility(state, 'training-pitch', { x: 2, y: 0 }).state;
     state = advanceWeek(state);
     state = advanceWeek(state); // the pitch now takes two weeks to open
     state = reconcileSatisfiedAssistantGuideSequences(state);
 
-    // Level 2 needs no promotion, so the lesson is due in D5 the moment the
-    // first pitch opens. It used to wait for D4 along with the level itself.
-    expect(dueAssistantInboxGuideSequences(state)).toContain('facility-upgrade');
+    // The pitch opens in Week 3 of the story season, days after the player paid
+    // for it. "Upgrade a facility" there reads as "build that again".
+    expect(state.facilities.trainingGroundBuilt).toBe(true);
+    expect(dueAssistantInboxGuideSequences(state)).not.toContain('facility-upgrade');
+
+    // Season 2 opens with firsts of its own, and the upgrade queues behind all
+    // of them rather than taking one of the three weekly slots.
+    const seasonTwo = { ...state, season: 2 };
+    expect(dueAssistantInboxGuideSequences(seasonTwo)).not.toContain('facility-upgrade');
+    const quietWeek = clearOtherGuideFirsts(seasonTwo);
+    expect(dueAssistantInboxGuideSequences(quietWeek)).toEqual(['facility-upgrade']);
 
     // Nothing left to teach once every building sits at the current ceiling.
     const atCeiling = {
-      ...state,
+      ...quietWeek,
       facilities: {
-        ...state.facilities,
+        ...quietWeek.facilities,
         grid: {
-          ...state.facilities.grid!,
-          buildings: state.facilities.grid!.buildings.map(building => (
+          ...quietWeek.facilities.grid!,
+          buildings: quietWeek.facilities.grid!.buildings.map(building => (
             { ...building, level: 2 as const }
           )),
         },
       },
     };
     expect(dueAssistantInboxGuideSequences(atCeiling)).not.toContain('facility-upgrade');
+  });
+
+  test('strips an upgrade lesson a story-season save was already handed', () => {
+    let state = createCareer(createLaunchCareerSetup(938));
+    state = buildCareerFacility(state, 'training-pitch', { x: 2, y: 0 }).state;
+    state = advanceWeek(state);
+    state = advanceWeek(state);
+    const weekThreeSave = {
+      ...state,
+      eventFlags: [
+        ...state.eventFlags,
+        'guide:bert:inbox:queued:facility-upgrade',
+        'guide:bert:inbox:delivered:s1:w3:guide:facility-upgrade',
+      ],
+    };
+
+    const repaired = reconcileSatisfiedAssistantGuideSequences(weekThreeSave);
+
+    expect(repaired.eventFlags.some(flag => flag.includes('facility-upgrade'))).toBe(false);
+  });
+
+  test('keeps the upgrade card off a desk that already has real work on it', () => {
+    let state = createCareer(createLaunchCareerSetup(939));
+    state = buildCareerFacility(state, 'training-pitch', { x: 2, y: 0 }).state;
+    state = advanceWeek(state);
+    state = advanceWeek(state);
+    state = clearOtherGuideFirsts({ ...state, season: 2 });
+
+    const upgradeCard = expect.objectContaining({ guideSequenceId: 'facility-upgrade' });
+    expect(homeViewModel(reconcileHomeAssistantInbox(state)).alerts).toContainEqual(upgradeCard);
+
+    const injured = {
+      ...state,
+      players: state.players.map((player, index) => (
+        player.clubId === state.userClubId && index === 0
+          ? { ...player, injuryWeeks: 2 }
+          : player
+      )),
+    };
+    expect(homeViewModel(reconcileHomeAssistantInbox(injured)).alerts).not.toContainEqual(upgradeCard);
   });
 
   it('offers Youth Intake in Week 2 and delays the Coaching Office prompt until Week 3', () => {

@@ -57,11 +57,17 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // Reusable celebratory cue for positive outcomes (e.g. signing a player).
   // Appended last so existing player indices stay stable.
   positive: require('../../assets/audio/sfx/positive.m4a'),
-  // Steppers get their own light tap rather than the push-button used for
-  // commits. A stat point or a hair swatch is one notch of an adjustment the
-  // player makes a dozen times in a row, and the heavier click made each notch
-  // sound like a decision.
-  'stat-step': require('../../assets/audio/sfx/ui-stat-step.m4a'),
+  // The +/- steppers read as too soft, and the gain cannot live in playback:
+  // every cue already plays at the 1.0 volume ceiling and expo-audio clamps
+  // there. So this is the push-button click rendered hotter (+3dB, peak-limited
+  // rather than clipped — the source had only 1.1dB of headroom left).
+  //
+  // This deliberately supersedes the dedicated lighter `ui-stat-step.m4a` tap:
+  // that clip sits at -16.3dB mean, quieter still than the click that prompted
+  // the complaint, and its 70ms crest factor means limiting eats any boost
+  // (+8dB of gain buys only 4dB of loudness). Restoring the lighter character
+  // means re-recording it with a fuller body, not re-levelling this one.
+  'stat-step': require('../../assets/audio/sfx/ui-push-button-loud.m4a'),
   // Appended last, after `positive` and `stat-step`, so existing player indices
   // stay stable.
   'drill-progress': require('../../assets/audio/sfx/drill-progress.m4a'),
