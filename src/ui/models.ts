@@ -33,6 +33,18 @@ export interface ClubAlertViewModel {
   playerId?: string;
 }
 
+/**
+ * A calendar beat with nothing to decide. Notes carry no route and no tone:
+ * the whole message is on the card, so there is nothing to open.
+ */
+export interface ManagerNoteViewModel {
+  id: string;
+  title: string;
+  detail: string;
+  /** Tips are a find on a quiet week; notes are the calendar. Read differently. */
+  kind?: 'note' | 'tip';
+}
+
 export interface LeagueSnippetViewModel {
   position: number;
   clubName: string;
@@ -79,6 +91,7 @@ export interface HomeViewModel {
   resources: ResourceSummaryViewModel;
   nextFixture: FixtureViewModel;
   alerts: readonly ClubAlertViewModel[];
+  notes: readonly ManagerNoteViewModel[];
   boardUltimatum?: {
     id: string;
     weeksRemaining: number;
@@ -302,11 +315,11 @@ export interface TrainingSlotStatOption {
   label: string;
   /** Attribute code for the compact current-value line, e.g. "DEF". */
   shortCode: 'PAC' | 'SHO' | 'PAS' | 'DEF' | 'TEC' | 'STA' | 'REF';
-  /** Best unlocked drill tier's title, e.g. "Duels 3". */
+  /** Owned drill tier's title, e.g. "Duels 3". */
   drillName: string;
-  /** Best unlocked tier's weekly TP cost. */
+  /** Owned tier's TP cost per tap. */
   tpCost: number;
-  /** Best unlocked tier's gain for this stat. */
+  /** Owned tier's gain for this stat. */
   gain: number;
   /** The selected player's current value in this stat. */
   currentValue: number;
@@ -314,6 +327,26 @@ export interface TrainingSlotStatOption {
   atSafetyCeiling: boolean;
   /** False when the TP bank cannot cover this drill right now. */
   affordable: boolean;
+}
+
+/** One training path's drill shop row: what the club owns and what the next tier costs. */
+export interface TrainingUpgradeViewModel {
+  pathId: string;
+  /** The stat the path trains, e.g. "Defense". */
+  label: string;
+  /** The owned drill's title, e.g. "Duels 2". */
+  drillName: string;
+  ownedTier: number;
+  /** What one tap of the owned drill gives and costs today. */
+  ownedGain: number;
+  ownedTpCost: number;
+  /** Absent once the path owns Tier 5. */
+  nextTier?: number;
+  nextGain?: number;
+  nextTpCost?: number;
+  cost?: number;
+  /** Set when the upgrade is on the shelf but cannot be bought yet. */
+  blockedReason?: string;
 }
 
 /** One resolved instant drill, sequenced so repeat taps re-animate. */
@@ -346,8 +379,10 @@ export interface SquadTrainingViewModel {
    * fifteen left the "Tap +" arrow pointing at nothing in particular.
    */
   createdPlayerId?: string;
-  /** Every stat path's best-tier option for the selected player, when one is selected. */
+  /** Every stat path's owned-tier option for the selected player, when one is selected. */
   selectedPlayerStatOptions?: readonly TrainingSlotStatOption[];
+  /** The drill shop: one row per training path, in TRAINING_PATHS order. */
+  drillUpgrades: readonly TrainingUpgradeViewModel[];
   /** Set while a fit promised player is still owed drills: only they may train. */
   trainingPromiseGate?: { playerId: string; playerName: string; remaining: number };
 }

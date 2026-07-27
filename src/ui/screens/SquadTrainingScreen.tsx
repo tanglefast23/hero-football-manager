@@ -10,6 +10,7 @@ import type {
   SquadPlayerViewModel,
   SquadTrainingViewModel,
   TrainingSlotStatOption,
+  TrainingUpgradeViewModel,
 } from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
@@ -107,6 +108,8 @@ export interface SquadTrainingScreenProps {
   onSelectPlayer: (playerId: string) => void;
   /** Resolves the drill instantly; the popup stays open for chain taps. */
   onTrainDrill: (playerId: string, pathId: string) => void;
+  /** Buys the next drill tier for one path. Money, not TP. */
+  onBuyDrillUpgrade: (pathId: string) => void;
   /** The latest resolved drill, sequenced so the popup can animate repeats. */
   lastDrillResult: DrillResultViewModel | null;
   trainingPoints: number;
@@ -134,6 +137,7 @@ export function SquadTrainingScreen({
   selectedPlayerId,
   onSelectPlayer,
   onTrainDrill,
+  onBuyDrillUpgrade,
   lastDrillResult,
   trainingPoints,
   guideTraining = false,
@@ -220,6 +224,11 @@ export function SquadTrainingScreen({
     onSelectPlayer(playerId);
     setDrillPickerOpen(true);
   }, [onSelectPlayer]);
+
+  // Stable so the popup's consume effect does not re-run on every render.
+  const forgetQuickTrainRequest = useCallback(() => {
+    setQuickTrainPathId(undefined);
+  }, []);
 
   /** Quick Train: the attribute IS the drill picker. */
   const handleTrainAttribute = useCallback((pathId: string) => {
@@ -315,6 +324,17 @@ export function SquadTrainingScreen({
         />
       ),
     }] : []),
+    {
+      key: 'drill-shop',
+      weight: 3 + viewModel.drillUpgrades.length,
+      node: (
+        <DrillShopSection
+          upgrades={viewModel.drillUpgrades}
+          money={viewModel.resources.money}
+          onBuy={onBuyDrillUpgrade}
+        />
+      ),
+    },
   ];
 
   return (
@@ -363,6 +383,7 @@ export function SquadTrainingScreen({
           reduceMotion={reduceMotion}
           saveWarning={saveWarning}
           quickTrainPathId={quickTrainPathId}
+          onQuickTrainConsumed={forgetQuickTrainRequest}
           conditionWarningSeen={conditionWarningSeen}
           onConditionWarningShown={onConditionWarningShown}
         />
@@ -562,6 +583,80 @@ function RosterSection({
                   {player.priorityDrillsRemaining ?? '+'}
                 </Text>
               </Pressable>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+interface DrillShopSectionProps {
+  upgrades: readonly TrainingUpgradeViewModel[];
+  money: number;
+  onBuy: (pathId: string) => void;
+}
+
+/**
+ * The drill shop. Reaching a division only puts the next tier on the shelf, so
+ * a row shows what the club trains with today, and then either what the
+ * upgrade would give or the one reason it cannot be bought.
+ */
+function DrillShopSection({ upgrades, money, onBuy }: DrillShopSectionProps) {
+  return (
+    <View>
+      <SectionLabel
+        eyebrow="Drill shop"
+        title="Upgrade a path"
+        right={<StatusChip label={formatCurrency(money)} />}
+      />
+      <View className="border-2 border-ink bg-white">
+        {upgrades.map(upgrade => {
+          const owned = `${upgrade.drillName} · +${upgrade.ownedGain} for ${upgrade.ownedTpCost} TP`;
+          const maxed = upgrade.nextTier === undefined;
+          const buyable = !maxed && upgrade.blockedReason === undefined;
+          return (
+            <View
+              key={upgrade.pathId}
+              className="flex-row items-center gap-3 border-b border-ink/10 px-3 py-2"
+            >
+              <View className="min-w-0 flex-1">
+                <PixelText className="text-sm uppercase tracking-wide text-blue-dark" numberOfLines={1}>
+                  {upgrade.label}
+                </PixelText>
+                <Text className="mt-0.5 text-sm text-ink" numberOfLines={1}>{owned}</Text>
+                {/* One line, not two: the upgrade's pitch while it can be
+                    bought, the reason it cannot once it cannot. Both at once
+                    repeated the tier number and painted the whole column. */}
+                <Text className="mt-0.5 text-xs text-ink/55" numberOfLines={2}>
+                  {maxed
+                    ? 'Best drill owned.'
+                    : upgrade.blockedReason
+                      ?? `Tier ${upgrade.nextTier} · +${upgrade.nextGain} for ${upgrade.nextTpCost} TP`}
+                </Text>
+              </View>
+              {maxed ? (
+                <View className="h-11 w-24 items-center justify-center border border-ink/20 bg-paper-dark">
+                  <PixelText className="text-sm uppercase text-ink/40">Tier 5</PixelText>
+                </View>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={buyable
+                    ? `Buy ${upgrade.label} Tier ${upgrade.nextTier} drill for ${formatCurrency(upgrade.cost ?? 0)}`
+                    : `${upgrade.label} Tier ${upgrade.nextTier} drill unavailable. ${upgrade.blockedReason ?? ''}`}
+                  accessibilityState={{ disabled: !buyable }}
+                  disabled={!buyable}
+                  onPress={() => onBuy(upgrade.pathId)}
+                  className={buyable
+                    ? 'h-11 w-24 items-center justify-center border-2 border-b-4 border-ink bg-gold-light'
+                    : 'h-11 w-24 items-center justify-center border border-ink/20 bg-paper-dark'}
+                >
+                  <Text className={buyable ? 'font-mono text-sm text-ink' : 'font-mono text-sm text-ink/40'}>
+                    {formatCurrency(upgrade.cost ?? 0)}
+                  </Text>
+                </Pressable>
+              )}
             </View>
           );
         })}

@@ -258,6 +258,13 @@ function warnOnce(context: string, err: unknown): void {
 function setPlayerVolume(player: AudioPlayer, baseVolume: number, context: string): void {
   try {
     player.volume = baseVolume * masterVolume;
+    // Browsers on iOS refuse programmatic volume outright — expo-audio's web
+    // player logs the setter as unsupported and leaves playback at device
+    // level. Volume 0 there meant the slider read 0% while the match theme
+    // kept playing, with no way to stop it from inside the game. `muted` is
+    // honoured on every platform, so it carries the mute; `volume` still
+    // carries the levels in between.
+    player.muted = masterVolume === 0;
   } catch (err) {
     warnOnce(`${context} volume failed`, err);
   }
@@ -365,6 +372,9 @@ export function teardownAudio(): void {
 
 export function playForEvent(e: MatchEvent): void {
   if (!ready) return;
+  // A muted match still issued a seek and a play for every event — hundreds of
+  // native round-trips per match to produce silence.
+  if (masterVolume === 0) return;
   try {
     for (const key of filesForEvent(e)) {
       const player = sfxPlayers.get(key);

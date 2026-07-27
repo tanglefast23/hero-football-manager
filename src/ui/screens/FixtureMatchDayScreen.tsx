@@ -61,15 +61,31 @@ export function FixtureMatchDayScreen({
   // re-arm on the next fixture, which is how that cup tie stays playable.
   const [handedOff, setHandedOff] = useState(false);
   const handedOffRef = useRef(false);
+  const reArmRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     handedOffRef.current = false;
     setHandedOff(false);
   }, [fixture.id]);
+  // A settled fixture unmounts this screen, so the pending re-arm below never
+  // runs. Clearing it on the way out keeps that true even if the unmount is slow.
+  useEffect(() => () => {
+    if (reArmRef.current !== null) clearTimeout(reArmRef.current);
+  }, []);
   const handOffFixture = (settle: () => void) => {
     if (handedOffRef.current) return;
     handedOffRef.current = true;
     setHandedOff(true);
     settle();
+    // The store can refuse — a blocked save is reachable right here — and then
+    // nothing navigates away, leaving both buttons latched off for good with
+    // only Back as an escape. Still being mounted on the next turn of the loop
+    // means the fixture never left, so the latch releases.
+    if (reArmRef.current !== null) clearTimeout(reArmRef.current);
+    reArmRef.current = setTimeout(() => {
+      reArmRef.current = null;
+      handedOffRef.current = false;
+      setHandedOff(false);
+    }, 0);
   };
 
   const swapWithBenchPlayer = (replacementId: string) => {

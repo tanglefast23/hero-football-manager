@@ -28,6 +28,7 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import { useTapGuard } from '../use-tap-guard';
 
 export interface MarketScreenProps {
   readonly viewModel: MarketViewModel;
@@ -881,6 +882,10 @@ export function NegotiationPanel({
   flush?: boolean;
 }) {
   const { weeklyWage, setWeeklyWage, termSeasons, setTermSeasons, perk, setPerk, pitchCard, setPitchCard } = draft;
+  // Talks allow three rounds and the panel re-renders in place after each one,
+  // so a double-tap spends two of them on the identical offer — and a third
+  // round reached that way can end the negotiation outright.
+  const guardTap = useTapGuard();
 
   const open = viewModel.status === 'OPEN';
   const moodClass = viewModel.mood === 'ANGRY' || viewModel.mood === 'UNHAPPY'
@@ -1042,7 +1047,7 @@ export function NegotiationPanel({
               label="Make the offer ▸"
               accessibilityLabel={`Offer ${formatCurrency(weeklyWage)} per week for ${termSeasons} seasons`}
               variant="confirm"
-              onPress={() => onSubmitContractOffer({ weeklyWage, termSeasons, perk }, pitchCard)}
+              onPress={() => guardTap(() => onSubmitContractOffer({ weeklyWage, termSeasons, perk }, pitchCard))}
             />
           </View>
           <Text className="mt-2 text-center text-sm text-ink/50">

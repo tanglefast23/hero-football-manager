@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "tips": [
+    {
+      "id": "condition-under-thirty",
+      "title": "Injury risk starts at 30 condition",
+      "body": "Above 30 condition a drill cannot injure anyone, so training a fresh player is free. Below it the risk is 10% plus 2% for every point under 30 — a player on 10 condition is a one-in-two gamble. A Medical Bay next to the Training Pitch takes a fifth off that risk."
+    },
+    {
+      "id": "potential-is-speed-not-ceiling",
+      "title": "Potential is speed, not a ceiling",
+      "body": "An E- player can reach the same numbers as an A+ one; they just take longer. Potential adds a flat training bonus — 0% at E-, one point per grade, 14% at A+ — and raises the chance a drill comes out SUPER, from 5% at E- to 33% at A+. Nobody is capped."
+    },
+    {
+      "id": "super-training-pity",
+      "title": "A SUPER drill is guaranteed eventually",
+      "body": "Every drill that does not roll SUPER brings that player closer to one. After twelve ordinary drills the next one on that player is guaranteed to be SUPER, whatever their potential. Grinding a low-potential player is never wasted."
+    },
+    {
+      "id": "drill-tiers-are-permanent",
+      "title": "Drill tiers survive relegation",
+      "body": "A drill tier is bought once and kept for the whole career. Reaching a division is permanent too, so going back down never takes away a tier you unlocked or paid for. Buy the upgrade the season you can afford it, not the season you feel safe."
+    },
+    {
+      "id": "cup-pays-more-than-the-league",
+      "title": "The Global Cup out-earns the league",
+      "body": "A full cup run pays $48,000 and 212 fans — more than any single league title, and the only way to grow your gate without a promotion. It is worth resting nobody for a cup week."
+    },
+    {
+      "id": "adjacency-bonuses",
+      "title": "Neighbouring buildings pay a bonus",
+      "body": "Three pairs of facilities reward being built next to each other: Gym and Dorm give +10% stamina training, Fan Shop and Stadium Stand give +10% merchandise income, and Medical Bay beside the Training Pitch cuts injury risk by 20%. Plan the grid before you fill it."
+    },
+    {
+      "id": "one-project-at-a-time",
+      "title": "The works crew only does one job",
+      "body": "One build or upgrade runs at a time, so the order you queue them in is the order you get them. Start the long, cheap projects on a week when your money is already spent."
+    },
+    {
+      "id": "hero-wage-cliff",
+      "title": "A hero's wage waits for their contract",
+      "body": "A player who awakens keeps their old wage until the contract runs out. At renewal they move to hero rates — three to five times what you were paying. The season a hero's deal expires is the season your wage bill jumps, so bank for it early."
+    },
+    {
+      "id": "hero-licence-cap",
+      "title": "The licence cap grows with the club",
+      "body": "You can only field a limited number of powered players at once: two in the lower divisions, three from Division 3, and four in Division 1. Signing a fourth hero early does not put a fourth hero on the pitch."
+    },
+    {
+      "id": "quick-result-is-the-same-match",
+      "title": "Quick Result is the same match",
+      "body": "Quick Result runs the identical engine to watching, and resolves to the identical scoreline. Skipping a match never costs you a result — only the chance to change formation, playstyle and substitutions while it is being played."
+    },
+    {
+      "id": "powers-fire-themselves",
+      "title": "Powers fire on their own",
+      "body": "There is no button to press. A hero builds Heat, banks it, and the power fires automatically when the moment is right. What you control is who is on the pitch, the formation, the playstyle and how hard they are working."
+    },
+    {
+      "id": "scout-office-narrows-the-range",
+      "title": "A better Scout Office narrows the guess",
+      "body": "Scout reports show a range, not a number, and the office level decides how wide it is: 30 points either way at level 1, 18 at level 2, 8 at level 3. At level 1 you are largely gambling, so upgrade before you spend big on a report."
+    },
+    {
+      "id": "keeper-uses-reflexes",
+      "title": "Keepers are rated on reflexes",
+      "body": "A goalkeeper's overall uses REF where an outfield player uses SHO, so a keeper with big shooting numbers is not a better keeper. Train Reflexes on them and nothing else matters much."
+    },
+    {
+      "id": "morale-becomes-paperwork",
+      "title": "Low morale becomes a transfer request",
+      "body": "A player who stays unhappy long enough stops sulking and asks to leave, and once the request is on your desk you are selling from a weak position. Fix morale while it is still just a number."
+    },
+    {
+      "id": "attributes-keep-growing",
+      "title": "There is no attribute cap",
+      "body": "Individual stats keep climbing to a universal ceiling of 999. Nothing about a player's grade or archetype stops them — an archetype only adds a bonus to its favoured attributes, never a limit on the rest."
+    },
+    {
+      "id": "league-prize-grows-per-division",
+      "title": "Prize money scales with the division",
+      "body": "Winning your division pays $20,000 in Division 5 and another $10,000 for every division above it, up to $60,000 in Division 1. Runners-up take half. Promotion pays for itself twice: once at the trophy, and again every season after."
+    }
+  ]
+}

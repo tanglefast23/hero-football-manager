@@ -1852,12 +1852,6 @@ export function MatchScreen({
       ? `${tiredCount} TIRED · ${substitutionsUsed}/${MAX_SUBSTITUTIONS}`
       : `${substitutionsUsed}/${MAX_SUBSTITUTIONS} USED`;
 
-  const surname = (name: string) => {
-    const parts = name.trim().split(/\s+/);
-    return parts[parts.length - 1];
-  };
-  const initials = (name: string) => name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-
   const openSwap = () => {
     if (
       match.phase === 'fulltime'
@@ -2322,7 +2316,13 @@ export function MatchScreen({
                     ? styles.powerActivationStackLeft
                     : styles.powerActivationStackRight,
                 ]}
-                onPress={() => setPowerCutIns([])}
+                // Only fires when the policy allows the skip, so the cue always
+                // means the tap landed. Explicit rather than via SfxPressable:
+                // the cut-in is cinematic and must not take a hover lift.
+                onPress={() => {
+                  playUiClickSfx();
+                  setPowerCutIns([]);
+                }}
               >
                 {/* The name card slams in from the edge on every activation.
                     Reduce Motion never starts the animation, so cardSlam holds

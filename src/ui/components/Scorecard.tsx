@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { playPositiveSfx, playUiClickSfx } from '../../render/management-sfx';
+import { playDangerSfx, playPositiveSfx, playUiClickSfx } from '../../render/management-sfx';
 import { PixelText } from './PixelText';
 
 function cx(...classes: Array<string | false | null | undefined>): string {
@@ -89,12 +89,13 @@ interface ActionButtonProps {
   compact?: boolean;
   maxFontSizeMultiplier?: number;
   /**
-   * Large action buttons confirm or commit, so they ring positive by default —
-   * except the paper variant, which is the neutral half of a question (cancel,
-   * back, pass, decline) and gets the plain click unless a call site asks for
-   * positive. Celebrating a decline made every refusal sound like a win.
+   * Large action buttons confirm or commit by default; use 'click' only for a
+   * non-committing action. Left unset the variant decides: a `danger` button
+   * answers with the back-button cue instead of the signing chime, and a `paper`
+   * one — the neutral half of a question (cancel, back, pass, decline) — gets
+   * the plain click, because celebrating a refusal made it sound like a win.
    */
-  pressSfx?: 'click' | 'positive';
+  pressSfx?: 'click' | 'positive' | 'danger';
 }
 
 /**
@@ -109,8 +110,14 @@ export function ActionButton({
   variant = 'primary',
   compact = false,
   maxFontSizeMultiplier,
-  pressSfx = variant === 'paper' ? 'click' : 'positive',
+  pressSfx,
 }: ActionButtonProps) {
+  // Dismissing a coach, erasing a save and releasing a player all landed on the
+  // celebratory signing chime, because every large button shared one default.
+  // Intent is carried by the variant — destructive or merely neutral — so the
+  // cue follows it.
+  const cue = pressSfx
+    ?? (variant === 'danger' ? 'danger' : variant === 'paper' ? 'click' : 'positive');
   const ramp = disabled
     ? { face: 'bg-grey', light: 'bg-grey-light', lip: 'bg-grey-dark', text: 'text-paper' }
     : BUTTON_RAMP[variant];
@@ -128,7 +135,8 @@ export function ActionButton({
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       onPress={() => {
-        if (pressSfx === 'positive') playPositiveSfx();
+        if (cue === 'positive') playPositiveSfx();
+        else if (cue === 'danger') playDangerSfx();
         else playUiClickSfx();
         onPress();
       }}

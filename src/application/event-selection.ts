@@ -17,13 +17,32 @@ const RARITY_WEIGHT = {
   legendary: 1,
 } as const;
 
+export interface EventOfferOptions {
+  /**
+   * Whether the week's desk is otherwise empty. Stories land on quiet weeks
+   * only: a week already carrying renewals, an injury and a Bert first has
+   * enough to read, and a fourth card there would be the one that gets skipped.
+   */
+  readonly deskClear: boolean;
+}
+
 /**
- * Chooses the story interruption before a management week settles. All random
- * inputs come from persisted career state, so save/reload cannot reroll an offer.
+ * Chooses the story that lands on this week's desk. All random inputs come from
+ * persisted career state, so save/reload cannot reroll an offer.
+ *
+ * A busy week does not advance the drought counter. The count the ramp reads is
+ * "quiet weeks that came up empty", so weeks that never rolled cannot inflate
+ * the odds of the next one that does.
+ *
+ * The quiet-week rule applies to the RANDOM deck only. Authored one-shots with a
+ * fixed window — the Giant Spider is the one that ships — fire inside it either
+ * way: their window falls in the opening season, when Bert's tutorial queue keeps
+ * the desk busy nearly every week, so gating them would retire them by accident.
  */
 export function eventOfferForWeek(
   state: GameState,
   catalog: EventCatalog,
+  options: EventOfferOptions,
 ): EventOfferForWeek {
   if (state.phase !== 'manage') {
     return { eventClock: { ...state.eventClock } };
@@ -31,7 +50,6 @@ export function eventOfferForWeek(
   if (state.onboarding !== undefined && state.onboarding.stage !== 'complete') {
     return { eventClock: { ...state.eventClock } };
   }
-
   const hadStoryLastWeek = state.resolvedEventHistory?.some(entry => (
     entry.season === state.season && entry.week === state.week - 1
   )) ?? false;
@@ -52,6 +70,10 @@ export function eventOfferForWeek(
       eventId: spider.id,
       eventClock: { ...state.eventClock, weeksWithoutEvent: 0 },
     };
+  }
+
+  if (!options.deskClear) {
+    return { eventClock: { ...state.eventClock } };
   }
 
   const weeklyRoll = deterministicCareerEventRoll(

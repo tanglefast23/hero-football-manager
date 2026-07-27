@@ -245,6 +245,22 @@ describe('substitution board layout', () => {
     expect(source).toContain('onSave(planInputs(plan))');
   });
 
+  it('makes a greyed-out lozenge inert, not just labelled as one', () => {
+    const source = board();
+
+    // accessibilityState alone announces "disabled" while the press still lands:
+    // a greyed RESET clicked and a greyed SAVE warned. The Pressable needs the
+    // prop itself, the way ActionButton pairs them.
+    expect(source).toMatch(/accessibilityState=\{\{ disabled \}\}[\s\S]{0,240}?\n {6}disabled=\{disabled\}/);
+    // One owner for the press cue: SfxPressable clicks, so reset must not too.
+    // Asserted against the body rather than the first statement, because reset
+    // also drops any half-finished tap pick — that is state, not a cue.
+    const resetBody = source.match(/const reset = useCallback\(\(\) => \{([\s\S]*?)\}, \[\]\);/)?.[1] ?? '';
+    expect(resetBody).toContain('setPlan(EMPTY_SUBSTITUTION_PLAN)');
+    expect(resetBody).toContain('setPicked(null)');
+    expect(resetBody).not.toContain('playUiClickSfx');
+  });
+
   it('lists two names per row on a phone', () => {
     const source = board();
 

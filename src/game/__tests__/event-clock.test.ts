@@ -1,6 +1,7 @@
 import {
   chooseWeightedOutcome,
   deterministicCareerEventRoll,
+  quietWeekEventChancePercent,
   recordEventChoice,
   rollWeeklyEvent,
   type EventClockState,
@@ -55,6 +56,24 @@ describe('weekly event clock', () => {
     expect(rollWeeklyEvent(state, 40, generous).offered).toBe(false);
     expect(rollWeeklyEvent({ weeksWithoutEvent: 1, riskyChoices: 0 }, 99, generous).offered).toBe(false);
     expect(rollWeeklyEvent({ weeksWithoutEvent: 2, riskyChoices: 0 }, 99, generous).offered).toBe(true);
+  });
+
+  it('raises the chance with every dry week without moving the guarantee', () => {
+    const tuning = { weeklyChancePercent: 18, guaranteeAfterDryWeeks: 6 };
+    const curve = [0, 1, 2, 3, 4, 5].map(dry => quietWeekEventChancePercent(dry, tuning));
+
+    expect(curve[0]).toBe(tuning.weeklyChancePercent);
+    expect(curve[curve.length - 1]).toBe(100);
+    // Eased, so the first dry week barely moves and the last moves a lot.
+    expect(curve[1] - curve[0]).toBeLessThan(curve[5] - curve[4]);
+    for (let dry = 1; dry < curve.length; dry += 1) {
+      expect(curve[dry]).toBeGreaterThan(curve[dry - 1]);
+    }
+    expect(quietWeekEventChancePercent(99, tuning)).toBe(100);
+  });
+
+  it('rejects a negative dry-week count', () => {
+    expect(() => quietWeekEventChancePercent(-1)).toThrow('non-negative integer');
   });
 
   it('rejects content tuning outside the supported range', () => {

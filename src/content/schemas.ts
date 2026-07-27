@@ -294,14 +294,17 @@ export const AssistantGuideContentSchema = z.strictObject({
   }
 });
 
+// The ceiling is the top tier's gain: the per-drill table below pins every
+// authored value exactly, so this bound only catches a gain invented outside it.
+const MAXIMUM_DRILL_GAIN = 23;
 const DrillGainsSchema = z.strictObject({
-  pac: z.number().int().min(1).max(9).optional(),
-  sho: z.number().int().min(1).max(9).optional(),
-  pas: z.number().int().min(1).max(9).optional(),
-  def: z.number().int().min(1).max(9).optional(),
-  tec: z.number().int().min(1).max(9).optional(),
-  sta: z.number().int().min(1).max(9).optional(),
-  ref: z.number().int().min(1).max(9).optional(),
+  pac: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+  sho: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+  pas: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+  def: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+  tec: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+  sta: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
+  ref: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
 }).refine(gains => Object.keys(gains).length === 1, 'a drill must improve exactly one attribute');
 
 const FOCUS_DRILL_PATHS = [
@@ -318,6 +321,9 @@ const FOCUS_DRILL_PATHS = [
 const FOCUS_DRILL_TIERS = [
   { suffix: '', label: '1', gain: 5 },
   { suffix: '-ii', label: '2', gain: 8 },
+  { suffix: '-iii', label: '3', gain: 12 },
+  { suffix: '-iv', label: '4', gain: 17 },
+  { suffix: '-v', label: '5', gain: 23 },
 ] as const;
 const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap(path => (
   FOCUS_DRILL_TIERS.map(tier => ({
@@ -338,10 +344,9 @@ export const TrainingDrillSchema = z.strictObject({
 
 export const TrainingCatalogSchema = z.strictObject({
   schemaVersion: ContentSchemaVersion,
-  // Seven paths, two tiers each. The old third rung was never reachable: the
-  // engine always resolves the best UNLOCKED drill, and tier 2 opened in the
-  // starting division, so tier 1 could not be selected by anyone.
-  focusDrills: z.array(TrainingDrillSchema).length(14),
+  focusDrills: z.array(TrainingDrillSchema).length(
+    FOCUS_DRILL_PATHS.length * FOCUS_DRILL_TIERS.length,
+  ),
 }).superRefine((catalog, context) => {
   addDuplicateIssues(
     catalog.focusDrills.map(drill => drill.id),
@@ -356,7 +361,7 @@ export const TrainingCatalogSchema = z.strictObject({
       addIssue(
         context,
         ['focusDrills', index, 'id'],
-        'focus drill ID must identify one of the seven two-tier drill paths',
+        'focus drill ID must identify one of the seven five-tier drill paths',
       );
       return;
     }
@@ -510,12 +515,30 @@ export const GlossaryCatalogSchema = z.strictObject({
   addDuplicateIssues(catalog.categories.map(category => category.id), context, ['categories'], 'glossary category');
 });
 
+/**
+ * A manager's tip: one non-obvious rule, stated once. The body is bounded so a
+ * tip stays a card on a quiet desk rather than becoming a second glossary.
+ */
+const ManagerTipSchema = z.strictObject({
+  id: idSchema,
+  title: displayNameSchema,
+  body: z.string().trim().min(1).max(400),
+});
+
+export const ManagerTipCatalogSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  tips: z.array(ManagerTipSchema).min(1),
+}).superRefine((catalog, context) => {
+  addDuplicateIssues(catalog.tips.map(tip => tip.id), context, ['tips'], 'manager tip');
+});
+
 export const LaunchContentSchema = z.strictObject({
   assistantGuide: AssistantGuideContentSchema,
   clubs: ClubCatalogSchema,
   glossary: GlossaryCatalogSchema,
   onboarding: OnboardingContentSchema,
   powers: PowerCatalogSchema,
+  tips: ManagerTipCatalogSchema,
   training: TrainingCatalogSchema,
   events: EventCatalogSchema,
 }).superRefine((content, context) => {

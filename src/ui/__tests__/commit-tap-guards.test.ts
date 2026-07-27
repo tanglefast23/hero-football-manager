@@ -1,0 +1,56 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+function read(relativePath: string): string {
+  return readFileSync(join(process.cwd(), relativePath), 'utf8');
+}
+
+/**
+ * These cover taps that spend the manager's money, training points or an
+ * irreversible choice. There is no component renderer in this project, so they
+ * assert the wiring at source level the way the rest of the UI suite does.
+ */
+describe('committing taps are guarded', () => {
+  it('spends a Quick Train request once instead of leaving it standing', () => {
+    const modal = read('src/ui/TrainingDrillModal.tsx');
+    const screen = read('src/ui/screens/SquadTrainingScreen.tsx');
+
+    // The effect re-runs on every new `options` identity, and a resolved drill
+    // produces one. Without the consume the confirmation reopened itself after
+    // each drill, proposing a spend nobody asked for.
+    expect(modal).toContain('onQuickTrainConsumed?.();');
+    expect(modal).toContain('}, [onQuickTrainConsumed, options, quickTrainPathId]);');
+    expect(screen).toContain('onQuickTrainConsumed={forgetQuickTrainRequest}');
+    expect(screen).toContain('setQuickTrainPathId(undefined);');
+  });
+
+  it('guards the three commits whose button re-renders holding the next decision', () => {
+    expect(read('src/ui/screens/MarketScreen.tsx'))
+      .toContain('onPress={() => guardTap(() => onSubmitContractOffer(');
+    expect(read('src/ui/screens/SeasonEndScreen.tsx'))
+      .toContain('onPress={() => guardTap(() => onRenewContract(');
+    expect(read('src/ui/screens/ClubLegacyScreen.tsx'))
+      .toContain('onPress={() => guardTap(() => onChoose(choice.id))}');
+  });
+
+  it('re-arms the match-day hand-off when the store refuses it', () => {
+    const source = read('src/ui/screens/FixtureMatchDayScreen.tsx');
+
+    // A blocked save leaves the screen mounted; without the re-arm both Watch
+    // and Quick Result stayed dead for that fixture with only Back as a way out.
+    expect(source).toContain('reArmRef.current = setTimeout(');
+    expect(source).toContain('handedOffRef.current = false;');
+    expect(source).toContain('if (reArmRef.current !== null) clearTimeout(reArmRef.current);');
+  });
+
+  it('answers a refused management action instead of failing silently', () => {
+    const source = read('App.tsx');
+    expect(source).toContain("playManagementActionSfx('warning');");
+    // The confirmation sheet no longer adds a second cue on top of the button's.
+    expect(source).not.toContain("playManagementActionSfx('select');\n    setPendingConfirmation");
+  });
+
+  it('keeps the last-resort database reset from failing in silence', () => {
+    expect(read('App.tsx')).toContain('The save could not be deleted.');
+  });
+});

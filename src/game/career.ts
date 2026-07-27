@@ -26,6 +26,7 @@ import {
 import {
   FIRST_D4_PROMOTION_RECRUITMENT_FUND,
   highestDivisionReached,
+  leaguePrizeMoney,
 } from './promotion-progression';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
 import type { NationalCupFixture, NationalCupResult } from './pyramid';
@@ -543,7 +544,8 @@ function settlementLines(
 
   if (state.week === SEASON_WEEKS) {
     const position = leagueStandings(state).find(row => row.clubId === state.userClubId)?.position;
-    const prize = position === 1 ? 20000 : position === 2 ? 10000 : 0;
+    const division = state.m2 === undefined ? 5 : currentUserDivision(state.m2);
+    const prize = position === undefined ? 0 : leaguePrizeMoney(division, position);
     if (prize > 0) {
       lines.push({
         kind: 'prize',

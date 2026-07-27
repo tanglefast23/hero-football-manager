@@ -1,4 +1,6 @@
 import { loadLaunchContent, type GameEvent, type LaunchContent } from '../content';
+import { managerNotes } from './manager-notes';
+import { eventOfferForWeek } from './event-selection';
 import {
   FACILITY_ADJACENCIES,
   FACILITY_CATALOG,
@@ -16,12 +18,20 @@ import {
   isFullyCappedPlayer,
   latestSeasonRecap,
   leagueStandings,
+  currentDeskTipId,
+  deterministicCareerEventRoll,
+  isDeskTipSettled,
+  markDeskTipSeen,
   nextPendingClubLegend,
+  offerCareerEvent,
+  unseenDeskTipIds,
   playerAttributeCaps,
   playerPotentialGrade,
   overtrainingInjuryChancePercent,
   superTrainingChancePercent,
   facilityEffects,
+  nextTrainingUpgradeOffer,
+  ownedTrainingTier,
   POSITION_TRAINING_ATTRIBUTES,
   reconcilePendingClubLegends,
   renewalQuote,
@@ -51,6 +61,7 @@ import type {
   FixtureViewModel,
   HomeViewModel,
   LeagueTableViewModel,
+  ManagerNoteViewModel,
   MatchDayViewModel,
   PostMatchViewModel,
   SeasonEndViewModel,
@@ -64,6 +75,7 @@ import {
   facilityUpgradeBlockedReason,
   highestDivisionReached,
   promotionRewardsForDivision,
+  trainingDrillTier,
 } from '../game/promotion-progression';
 import { marketNegotiationViewModel } from './market-view-model';
 import { leagueFixtureViewModel } from './m2-league-view-model';
@@ -683,6 +695,54 @@ const BUILD_REMINDER_ALERT: ClubAlertViewModel = {
   tone: 'info',
 };
 
+/** Tapping this card opens the story screen; Advance Week opens it regardless. */
+export const DESK_STORY_ALERT_ID = 'story-event';
+
+/**
+ * The week's story, waiting on the desk instead of ambushing the manager on
+ * their way out of the week. Only quiet weeks are offered one, so this never
+ * arrives on top of a full inbox.
+ */
+function deskStoryAlert(state: GameState): ClubAlertViewModel | undefined {
+  const pending = state.pendingEvent;
+  if (pending === undefined || pending.resolvedChoiceId !== undefined) return undefined;
+  const event = LAUNCH_CONTENT.events.events.find(candidate => candidate.id === pending.eventId);
+  if (event === undefined) return undefined;
+  return {
+    id: DESK_STORY_ALERT_ID,
+    title: event.title,
+    detail: event.body,
+    tone: 'event',
+  };
+}
+
+/**
+ * The drill shop, pointed out on a quiet week.
+ *
+ * Promotion already names the new tier on the season review, but that screen is
+ * a wall of rewards read once in a hurry, and the shop is the one reward that
+ * costs money and so gets postponed. This puts it back on the desk on a week
+ * with nothing else to read, and disappears for good the moment the club buys
+ * any upgrade — the point is to teach that the shop exists, not to nag.
+ */
+function drillShopAlert(state: GameState): ClubAlertViewModel | undefined {
+  // The copy promises a promotion opened the shop, so only say it once one has.
+  // Pre-M2 saves have no division record at all and never see this.
+  if ((state.m2?.highestDivisionReached ?? 5) >= 5) return undefined;
+  if (TRAINING_PATHS.some(path => ownedTrainingTier(state, path.pathId) > 1)) return undefined;
+  const affordable = TRAINING_PATHS
+    .map(path => nextTrainingUpgradeOffer(state, path.pathId))
+    .filter(offer => offer !== undefined && offer.blockedReason === undefined);
+  const offer = affordable[0];
+  if (offer === undefined) return undefined;
+  return {
+    id: `training-upgrade:tier-${offer.tier}`,
+    title: `Tier ${offer.tier} drills on sale`,
+    detail: `Promotion opened a stronger drill for every training path — ${formatMoney(offer.cost)} each, bought once and kept for the rest of the career. Every session on a tier ${offer.tier} drill adds more than the one you are running now. The shop is on the Squad screen.`,
+    tone: 'info',
+  };
+}
+
 /**
  * A clear desk after the opening weeks reads as "nothing left to do", which is
  * exactly when a manager stops expanding the grid. The nudge only fires when
@@ -781,6 +841,96 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
 
 export function reconcileHomeAssistantInbox(state: GameState): GameState {
   return homeAssistantInboxPlan(state).state;
+}
+
+/**
+ * True when this week's desk would show nothing to act on. Manager's Notes and
+ * the keep-building nudge do not count: neither is a decision, and both exist
+ * precisely because the week is quiet.
+ */
+export function isHomeDeskClear(state: GameState): boolean {
+  if (state.phase !== 'manage') return false;
+  const plan = homeAssistantInboxPlan(state);
+  return plan.productAlertIds.length === 0 && plan.guideSequenceIds.length === 0;
+}
+
+/**
+ * Settles whether this management week gets a story, once.
+ *
+ * This runs when the career arrives at a manage week rather than when the player
+ * leaves one, because a match week reaches its desk through the match rather
+ * than through Advance Week — deciding on the way out would skip every week with
+ * a fixture, which is most of them. The week stamp makes repeat calls free.
+ */
+export function settleWeeklyStory(state: GameState): GameState {
+  if (state.phase !== 'manage' || state.pendingEvent !== undefined) return state;
+  if (state.onboarding !== undefined && state.onboarding.stage !== 'complete') return state;
+  if (state.eventClock.storySettledSeason === state.season
+    && state.eventClock.storySettledWeek === state.week) {
+    return state;
+  }
+  const offer = eventOfferForWeek(state, LAUNCH_CONTENT.events, {
+    deskClear: isHomeDeskClear(state),
+  });
+  const settled: GameState = {
+    ...state,
+    eventClock: {
+      ...offer.eventClock,
+      storySettledSeason: state.season,
+      storySettledWeek: state.week,
+    },
+  };
+  return offer.eventId === undefined ? settled : offerCareerEvent(settled, offer.eventId);
+}
+
+/** Roughly a third of eligible weeks, so a tip stays a find rather than a lecture. */
+const DESK_TIP_CHANCE_PERCENT = 35;
+
+/**
+ * Settles whether this quiet week carries a manager's tip, once.
+ *
+ * Runs after the story: a week that already produced one has something to read,
+ * and stacking a tip under it turns the reward for a quiet week into homework.
+ * The record is written even when the roll fails, so the week cannot re-roll.
+ */
+export function settleWeeklyTip(state: GameState): GameState {
+  if (state.phase !== 'manage' || isDeskTipSettled(state)) return state;
+  if (state.onboarding !== undefined && state.onboarding.stage !== 'complete') return state;
+  if (state.pendingEvent !== undefined || !isHomeDeskClear(state)) return state;
+
+  const blank: GameState = { ...state, deskTip: { season: state.season, week: state.week } };
+  const unseen = unseenDeskTipIds(state, LAUNCH_CONTENT.tips.tips.map(tip => tip.id));
+  if (unseen.length === 0) return blank;
+  if (deskTipRoll(state, '__desk_tip_chance__', 100) >= DESK_TIP_CHANCE_PERCENT) return blank;
+
+  const tipId = unseen[deskTipRoll(state, '__desk_tip_pick__', unseen.length)];
+  return markDeskTipSeen(
+    { ...state, deskTip: { season: state.season, week: state.week, tipId } },
+    tipId,
+  );
+}
+
+function deskTipRoll(state: GameState, nonce: string, upperExclusive: number): number {
+  return deterministicCareerEventRoll(
+    {
+      careerSeed: state.careerSeed,
+      season: state.season,
+      week: state.week,
+      riskyChoices: state.eventClock.riskyChoices,
+    },
+    nonce,
+    0,
+    upperExclusive,
+  );
+}
+
+/** The tip on this week's desk, written out in full like a Manager's Note. */
+function deskTipNote(state: GameState): ManagerNoteViewModel | undefined {
+  const tipId = currentDeskTipId(state);
+  if (tipId === undefined) return undefined;
+  const tip = LAUNCH_CONTENT.tips.tips.find(candidate => candidate.id === tipId);
+  if (tip === undefined) return undefined;
+  return { id: `tip:${tip.id}`, kind: 'tip', title: tip.title, detail: tip.body };
 }
 
 function homeAssistantInboxPlan(state: GameState) {
@@ -944,9 +1094,24 @@ export function homeViewModel(state: GameState): HomeViewModel {
     ...guideAlerts,
     ...selectedProducts.filter(alert => alert.tone !== 'urgent'),
   ].slice(0, 3);
-  const alerts = isBuildReminderDue(state, scheduledAlerts)
-    ? [BUILD_REMINDER_ALERT]
-    : scheduledAlerts;
+  // A quiet week's own contents, in the order they earn attention: the story
+  // that landed this week, the shop the club has not found yet, and only if
+  // neither applies, the standing build nudge.
+  const tipNote = deskTipNote(state);
+  const homeNotes = tipNote === undefined ? managerNotes(state) : [...managerNotes(state), tipNote];
+  const storyAlert = deskStoryAlert(state);
+  const quietWeekAlerts = scheduledAlerts.length > 0
+    ? []
+    : [storyAlert, drillShopAlert(state)].filter(
+        (alert): alert is ClubAlertViewModel => alert !== undefined,
+      );
+  const alerts = quietWeekAlerts.length > 0
+    ? quietWeekAlerts
+    : storyAlert !== undefined
+      ? [storyAlert, ...scheduledAlerts]
+      : isBuildReminderDue(state, scheduledAlerts)
+        ? [BUILD_REMINDER_ALERT]
+        : scheduledAlerts;
 
   const standings = leagueStandings(state).map(row => ({
     position: row.position,
@@ -987,6 +1152,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
         }
       : fixtureViewModel(state, nextFixture),
     alerts,
+    notes: homeNotes,
     ...(boardUltimatum === undefined ? {} : {
       boardUltimatum: {
         id: boardUltimatum.id,
@@ -1284,6 +1450,28 @@ export function squadTrainingViewModel(
             affordable: drill.tpCost <= state.trainingPoints,
           };
         }),
+    }),
+    drillUpgrades: TRAINING_PATHS.map(path => {
+      const owned = resolveTrainingDrillForPath(state, path.pathId);
+      const offer = nextTrainingUpgradeOffer(state, path.pathId);
+      const next = offer === undefined
+        ? undefined
+        : content.training.focusDrills.find(candidate => candidate.id === offer.drillId);
+      return {
+        pathId: path.pathId,
+        label: path.label,
+        drillName: drillName(owned.id),
+        ownedTier: trainingDrillTier(owned.id),
+        ownedGain: owned.gains[path.attribute] ?? 0,
+        ownedTpCost: owned.tpCost,
+        ...(offer === undefined || next === undefined ? {} : {
+          nextTier: offer.tier,
+          nextGain: next.gains[path.attribute] ?? 0,
+          nextTpCost: next.tpCost,
+          cost: offer.cost,
+          ...(offer.blockedReason === undefined ? {} : { blockedReason: offer.blockedReason }),
+        }),
+      };
     }),
     ...(() => {
       const holder = pendingTrainingPriorityHolder(state);

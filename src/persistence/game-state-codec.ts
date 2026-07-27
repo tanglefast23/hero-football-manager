@@ -138,6 +138,7 @@ const cashTransactionSchema = z.object({
     'facility-build',
     'facility-upgrade',
     'facility-relocation',
+    'training-upgrade',
     'scouting',
     'transfer-buy',
     'transfer-sell',
@@ -613,6 +614,7 @@ const careerMarketSchema = z.object({
     consequenceApplied: z.boolean().optional(),
   }).passthrough().optional(),
   abandonedTransferNegotiationIds: z.array(nonemptyString).optional(),
+  abandonedRenewalNegotiationIds: z.array(nonemptyString).optional(),
 }).passthrough();
 
 const youthIntakeSchema = z.object({
@@ -726,6 +728,12 @@ const gameStateSchema = z
     awakening: awakeningSchema.optional(),
     onboarding: onboardingSchema.optional(),
     trainingPoints: nonnegativeInteger,
+    // Optional so a save written before drill upgrades became a purchase still
+    // loads; every path it does not name is owned at tier 1.
+    ownedTrainingTiers: z.record(
+      nonemptyString,
+      z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+    ).optional(),
     totalInstantDrills: nonnegativeInteger.optional(),
     ledgers: z.array(ledgerSchema),
     seasonOpeningCash: safeInteger.optional(),

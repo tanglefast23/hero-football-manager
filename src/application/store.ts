@@ -40,6 +40,7 @@ import {
   nextPendingClubLegend,
   quickMatchForFixture,
   protectBoardUltimatumPlayer,
+  purchaseCareerTrainingUpgrade,
   reconcilePendingClubLegends,
   relocateCareerFacility,
   renewCareerPlayer,
@@ -55,6 +56,7 @@ import {
   setCareerLineup,
   swapCareerLineupPlayer,
   trainPlayerInstantly,
+  trainingPathLabel,
   startNextSeason,
   startCareerScoutMission,
   submitCareerTransferOffer,
@@ -83,10 +85,13 @@ import { mulberry32 } from '../sim/rng';
 import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
 import type { ManagementTab, PostMatchViewModel, WeeklyReviewViewModel } from '../ui';
 import { createLaunchCareerSetup, generateCareerSeed, reconcileLaunchRoster } from './launch';
+import { cachedRivalResults, clearRivalResultCache } from './rival-result-cache';
 import { careerMarketScoutOptions } from './market-source-adapter';
 import {
   postMatchViewModel,
   reconcileHomeAssistantInbox,
+  settleWeeklyStory,
+  settleWeeklyTip,
   weeklyReviewViewModel,
 } from './view-models';
 import {
@@ -208,6 +213,8 @@ interface M1Store {
   continueAfterAwakening: () => void;
   setActiveTab: (tab: ManagementTab) => void;
   reconcileAssistantInbox: () => void;
+  /** Opens the story sitting on this week's desk. */
+  openDeskStory: () => void;
   completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
   /** Retires a one-shot Bert lesson for the rest of the career. */
   completeGuideMilestone: (milestone: AssistantGuideMilestone) => void;
@@ -229,6 +236,7 @@ interface M1Store {
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
   selectPlayer: (playerId: string) => void;
   trainPlayer: (playerId: string, pathId: string) => void;
+  purchaseTrainingUpgrade: (pathId: string) => void;
   clearDrillResult: () => void;
   buildFacility: () => void;
   buildClubFacility: (type: FacilityType, position: FacilityPosition) => void;
@@ -472,10 +480,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
   reconcileAssistantInbox() {
     const career = get().career;
     if (career === null) return;
-    const next = reconcileHomeAssistantInbox(career);
+    // Settling the story here (not only on Advance Week) is what gets a card
+    // onto the desk of a week the career reached through a match.
+    const next = settleWeeklyTip(settleWeeklyStory(reconcileHomeAssistantInbox(career)));
     if (next === career) return;
     set({ career: next });
     queueCareerSave(get, set, next);
+  },
+
+  openDeskStory() {
+    const career = get().career;
+    if (career?.pendingEvent === undefined) return;
+    set({ screen: 'event', error: null });
   },
 
   completeAssistantGuide(sequenceId) {
@@ -611,27 +627,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
         return;
       }
 
+      // A story already on the desk is this week's business. Advancing past an
+      // unopened card would lose it, so the last press opens it instead.
       if (career.pendingEvent !== undefined) {
         set({ screen: 'event', error: null });
         return;
       }
-      const eventOffer = eventOfferForWeek(career, launchContent.events);
-      if (eventOffer.eventId !== undefined) {
-        const next = offerCareerEvent(
-          { ...career, eventClock: eventOffer.eventClock },
-          eventOffer.eventId,
-        );
-        set({ career: next, screen: 'event', error: null });
-        queueCareerSave(get, set, next);
-        return;
-      }
 
-      const careerForAdvance = { ...career, eventClock: eventOffer.eventClock };
-      const advanced = advanceWeek(careerForAdvance);
-      const next = advanced.week !== career.week
+      const advanced = advanceWeek(career);
+      const withMilestone = advanced.week !== career.week
         && hasAssistantGuideMilestone(career, 'first-training-complete')
         ? completeAssistantGuideMilestone(advanced, 'first-week-advanced')
         : advanced;
+      // Stories belong to the week being entered, not the one being left, so the
+      // card is already on the desk when the manager first sees the new week.
+      const next = settleWeeklyTip(settleWeeklyStory(withMilestone));
       const weekReview = next.phase === 'manage' && next.week !== career.week
         ? weeklyReviewViewModel(career, next)
         : null;
@@ -667,12 +677,24 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const before = requireCareer(get());
       const { kind, fixture, fixtures, teams } = currentMatchday(before);
       const quickMatch = quickMatchForFixture(fixture, teams);
+      // Whatever the preload finished is handed over as a supplied result, so
+      // `resolveMatchday` simulates only what is genuinely missing. A cold or
+      // stale cache contributes nothing and it simulates all four, as before.
       const results = kind === 'league'
-        ? resolveMatchday(fixtures, teams, [quickMatch.result])
+        ? resolveMatchday(fixtures, teams, [
+            quickMatch.result,
+            ...cachedRivalResults(
+              fixtures.filter(candidate => candidate.id !== fixture.id),
+              teams,
+            ),
+          ])
         : [quickMatch.result];
       const userResult = results.find(result => result.fixtureId === fixture.id);
       if (userResult === undefined) throw new Error('the user fixture did not produce a result');
       const after = completeMatchday(before, results);
+      // The week is settled; nothing may claim these again, and the fingerprints
+      // are large enough that a season of them would be worth real memory.
+      clearRivalResultCache();
       const isOnboardingMatch = isFirstOnboardingFixture(before, fixture.id);
       const completed = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)
@@ -739,7 +761,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const before = requireCareer(get());
       const { kind, fixture, fixtures, teams } = currentMatchday(before);
       const watchedMatch = get().watchedMatch;
-      if (watchedMatch === null || watchedMatch.fixture.id !== fixture.id) {
+      // A second `onDone` for a match already settled is a duplicate delivery,
+      // not a fault: the first call cleared the context. Surfacing it threw a
+      // developer sentence into the player's error toast on a working game.
+      if (watchedMatch === null) return;
+      if (watchedMatch.fixture.id !== fixture.id) {
         throw new Error('the watched fixture context is missing');
       }
       // Resolved at the moment of each goal, not at fulltime — see goalsFrom.
@@ -754,9 +780,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
           : {}),
       };
       const results = kind === 'league'
-        ? resolveMatchday(fixtures, teams, [supplied])
+        ? resolveMatchday(fixtures, teams, [
+            supplied,
+            ...cachedRivalResults(
+              fixtures.filter(candidate => candidate.id !== fixture.id),
+              teams,
+            ),
+          ])
         : [supplied];
       const after = completeMatchday(before, results);
+      // The week is settled; nothing may claim these again, and the fingerprints
+      // are large enough that a season of them would be worth real memory.
+      clearRivalResultCache();
       const highlights = goals.map((goal, index) => ({
         id: `${fixture.id}-goal-${index}`,
         // Same rounding as the live match clock (MatchScreen): a goal's
@@ -1020,6 +1055,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
         error: null,
       });
       queueCareerSave(get, set, next);
+    });
+  },
+
+  purchaseTrainingUpgrade(pathId) {
+    guarded(set, () => {
+      const transaction = purchaseCareerTrainingUpgrade(requireCareer(get()), pathId);
+      set({
+        career: transaction.state,
+        error: null,
+        notice: {
+          tone: 'success',
+          message: `${trainingPathLabel(pathId)} drills upgraded to Tier ${transaction.offer.tier}.`,
+        },
+      });
+      queueCareerSave(get, set, transaction.state);
     });
   },
 
@@ -1333,7 +1383,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   closeRenewal() {
     guarded(set, () => {
       const career = requireCareer(get());
-      const next = { ...career, market: closeCareerRenewalTalks(requireMarket(career)) };
+      const next = { ...career, market: closeCareerRenewalTalks(career, requireMarket(career)) };
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });
@@ -1510,6 +1560,9 @@ function careerEventRoll(
 function resumeScreen(career: GameState): M1Screen {
   if (career.onboarding?.stage === 'create-player') return 'create-player';
   if (career.awakening.pending !== undefined || career.onboarding?.stage === 'reveal') return 'awakening';
+  // Relaunching with a story open resumes it. Nothing records that the card was
+  // opened, so treating the offer itself as "resume here" is what keeps a story
+  // from being lost between a kill and the next launch.
   if (career.pendingEvent !== undefined) return 'event';
   if (career.phase === 'matchday') return 'matchday';
   if (career.phase === 'season-end' || career.phase === 'complete') {

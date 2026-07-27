@@ -4,6 +4,7 @@ export * from './board-ultimatum';
 export * from './contract-promises';
 export * from './career';
 export * from './career-events';
+export * from './desk-tips';
 export * from './difficulty';
 export * from './cash-transactions';
 export * from './coach-weekly';

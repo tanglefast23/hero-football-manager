@@ -213,6 +213,9 @@ export function SubstitutionBoard({
    * Tap once to pick, tap the partner to trade. Tapping the picked card again
    * puts it back; tapping any other card moves the pick there, so a mis-tap
    * never strands the player in a state they have to guess their way out of.
+   *
+   * The cue is explicit here because a tap arrives through the pan responder,
+   * not through an SfxPressable that has already clicked.
    */
   const resolveTap = useCallback((source: DragSource) => {
     setPicked(current => {
@@ -233,6 +236,8 @@ export function SubstitutionBoard({
     });
   }, [isEligible, resolveDrop]);
 
+  // The button is disabled with nothing staged, so a player never reaches the
+  // refusal; it stays as the backstop for any caller that forgets to pass it.
   const save = useCallback(() => {
     if (!saveable) {
       playManagementActionSfx('warning');
@@ -241,8 +246,9 @@ export function SubstitutionBoard({
     onSave(planInputs(plan));
   }, [onSave, plan, saveable]);
 
+  // No cue here: this runs from a SfxPressable, which already clicks. `commit`
+  // below keeps its own because a drop is a gesture, not a press.
   const reset = useCallback(() => {
-    playUiClickSfx();
     setPicked(null);
     setPlan(EMPTY_SUBSTITUTION_PLAN);
   }, []);
@@ -545,7 +551,11 @@ function LozengeButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
-      pressSfx={tone === 'blue' ? 'click' : 'click'}
+      // Both halves, always: announcing "disabled" while still taking the press
+      // is a button that looks dead and acts alive. ActionButton pairs them the
+      // same way.
+      disabled={disabled}
+      pressSfx="click"
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,

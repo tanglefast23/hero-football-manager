@@ -72,7 +72,7 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     const trainingDing = mockPlayers[1];
     expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
@@ -87,7 +87,7 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
@@ -120,19 +120,26 @@ describe('management feedback sounds', () => {
     // A real push-button click, not the 80ms tap that vanished under the music.
     expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-push-button.m4a')");
     expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-push-button.m4a')");
-    expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/ui-push-button.m4a')");
+    // Steppers are the exception: a lighter tap, because a stat point or a hair
+    // swatch is one notch of an adjustment, not a commitment.
+    expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/ui-stat-step.m4a')");
     expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
-    // A committing button rings positive; the paper variant is the neutral half
-    // of a question (cancel, back, pass, decline) and only clicks, so a refusal
-    // never sounds like a win.
-    expect(buttons).toContain("pressSfx = variant === 'paper' ? 'click' : 'positive'");
+    // Large buttons still confirm by default, but the variant can speak for
+    // itself: a destructive one answers with the back-button cue (dismissing a
+    // coach or erasing a save used to be applauded by the chime that celebrates
+    // a signing), and a neutral paper one — cancel, back, pass, decline — only
+    // clicks, so a refusal never sounds like a win.
+    expect(sounds).toContain("danger: require('../../assets/audio/sfx/back-button.m4a')");
+    expect(buttons).toContain(
+      "const cue = pressSfx\n    ?? (variant === 'danger' ? 'danger' : variant === 'paper' ? 'click' : 'positive');",
+    );
   });
 
   it('keeps the drill progress bed stoppable and the reveal on its own player', async () => {
     playDrillProgressSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     const progress = mockPlayers[18];
     expect(progress.seekTo).toHaveBeenCalledWith(0);
     expect(progress.play).toHaveBeenCalledTimes(1);
@@ -163,7 +170,7 @@ describe('management feedback sounds', () => {
     playManagementActionSfx('success');
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     expect(mockPlayers[13].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[13].play).toHaveBeenCalledTimes(1);
   });
@@ -172,7 +179,7 @@ describe('management feedback sounds', () => {
     playPositiveSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     // 'positive' is appended last, so it owns the final player slot.
     const positive = mockPlayers[16];
     expect(positive.seekTo).toHaveBeenCalledWith(0);
@@ -195,7 +202,7 @@ describe('management feedback sounds', () => {
 
     playSuperTrainingYaySfx();
     await Promise.resolve();
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     expect(mockPlayers[20].play).toHaveBeenCalledTimes(1);
   });
 
@@ -203,7 +210,7 @@ describe('management feedback sounds', () => {
     playStatStepSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(21);
+    expect(mockPlayers).toHaveLength(22);
     const statStep = mockPlayers[17];
     expect(statStep.seekTo).toHaveBeenCalledWith(0);
     expect(statStep.play).toHaveBeenCalledTimes(1);
