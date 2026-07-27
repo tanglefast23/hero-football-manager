@@ -49,6 +49,7 @@ import {
   resolvePostMatchAwakening,
   resolveNextClubLegendLegacy,
   resolveMatchday,
+  goalsFrom,
   selectCareerEventPlayer,
   selectCareerLicensedHeroes,
   setCareerLineup,
@@ -741,10 +742,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
       if (watchedMatch === null || watchedMatch.fixture.id !== fixture.id) {
         throw new Error('the watched fixture context is missing');
       }
-      const scorerPlayerIds = result.events
-        .filter(event => event.kind === 'GOAL')
-        .map(event => result.players[event.by]?.def.id)
-        .filter((playerId): playerId is string => playerId !== undefined);
+      // Resolved at the moment of each goal, not at fulltime — see goalsFrom.
+      const goals = goalsFrom(result);
+      const scorerPlayerIds = goals.map(goal => goal.playerId);
       const supplied = {
         fixtureId: fixture.id,
         homeGoals: result.score[0],
@@ -757,17 +757,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ? resolveMatchday(fixtures, teams, [supplied])
         : [supplied];
       const after = completeMatchday(before, results);
-      const highlights = result.events
-        .filter(event => event.kind === 'GOAL')
-        .map((event, index) => ({
-          id: `${fixture.id}-goal-${index}`,
-          // Same rounding as the live match clock (MatchScreen): a goal's
-          // post-match minute must match the minute shown when it went in.
-          minuteLabel: `${Math.max(1, Math.min(90, Math.ceil((event.t / (HALF_TICKS * 2)) * 90)))}'`,
-          description: event.by >= 0 && event.by < result.players.length
-            ? `${result.players[event.by].def.name} scored`
-            : 'Goal',
-        }));
+      const highlights = goals.map((goal, index) => ({
+        id: `${fixture.id}-goal-${index}`,
+        // Same rounding as the live match clock (MatchScreen): a goal's
+        // post-match minute must match the minute shown when it went in.
+        minuteLabel: `${Math.max(1, Math.min(90, Math.ceil((goal.tick / (HALF_TICKS * 2)) * 90)))}'`,
+        description: `${goal.name} scored`,
+      }));
       const isOnboardingMatch = isFirstOnboardingFixture(before, fixture.id);
       const completed = isOnboardingMatch
         ? completeFirstOnboardingMatch(after, fixture.id)

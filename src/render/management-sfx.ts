@@ -78,16 +78,26 @@ function warnOnce(context: string, error: unknown): void {
 function initManagementSfx(): void {
   if (initAttempted) return;
   initAttempted = true;
+  let audio: typeof import('expo-audio');
   try {
-    const audio = require('expo-audio') as typeof import('expo-audio');
-    for (const key of Object.keys(MANAGEMENT_SFX) as ManagementSfxKey[]) {
+    audio = require('expo-audio') as typeof import('expo-audio');
+  } catch (error) {
+    // No audio module at all (headless Jest, an out-of-date dev client) — the
+    // whole catalog is unavailable and every play() becomes a no-op.
+    warnOnce('initialization failed; review sounds disabled for this session', error);
+    return;
+  }
+  // One cue failing to load is that cue's problem. Clearing the map on the first
+  // failure threw away every player already built, silencing the whole app for
+  // the session over a single bad asset.
+  for (const key of Object.keys(MANAGEMENT_SFX) as ManagementSfxKey[]) {
+    try {
       const player = audio.createAudioPlayer(MANAGEMENT_SFX[key]);
       player.volume = masterVolume;
       players.set(key, player);
+    } catch (error) {
+      warnOnce(`${key} failed to load; that cue is silent for this session`, error);
     }
-  } catch (error) {
-    players.clear();
-    warnOnce('initialization failed; review sounds disabled for this session', error);
   }
 }
 

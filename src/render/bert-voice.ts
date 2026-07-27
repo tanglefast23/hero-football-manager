@@ -3,6 +3,7 @@
 // 3.5s for a full briefing. Presentation-only and fail-soft, so headless Jest
 // and an out-of-date native dev client still render the guide with no audio.
 import type { AudioPlayer } from 'expo-audio';
+import { registerAudioOwner } from './audio-lifecycle';
 
 const VOICE_SOURCE = require('../../assets/audio/sfx/bert-voice-tick.m4a');
 
@@ -48,6 +49,11 @@ function initBertVoice(): void {
 
 export function setBertVoiceMasterVolume(volume: number): void {
   masterVolume = Math.max(0, Math.min(1, volume));
+  // Muting mid-sentence used to leave the ticker running at volume 0: silent,
+  // but still seeking and replaying the clip every 90ms until the message ran
+  // out. playBertVoice already refuses to start while muted; this makes muting
+  // stop a run already in flight.
+  if (masterVolume === 0) stopBertVoice();
   if (player === null) return;
   try {
     player.volume = masterVolume;
@@ -90,6 +96,16 @@ export function playBertVoice(durationMs: number): void {
   ticker = setInterval(tick, TICK_INTERVAL_MS);
   stopTimer = setTimeout(stopBertVoice, durationMs);
 }
+
+/**
+ * Backgrounding cuts Bert off mid-sentence and there is nothing to resume: the
+ * ticks are the length of a message the player is no longer reading, and the
+ * guide re-speaks whenever a page is shown again.
+ */
+registerAudioOwner({
+  suspend: stopBertVoice,
+  resume: () => {},
+});
 
 export function teardownBertVoice(): void {
   stopBertVoice();

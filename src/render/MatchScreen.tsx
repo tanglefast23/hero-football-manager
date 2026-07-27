@@ -1939,7 +1939,12 @@ export function MatchScreen({
     });
     setHud((current) => ({ ...current, banners: [...bannerRef.current] }));
   };
+  // Re-picking what is already selected is not a coaching decision: it would
+  // record a redundant replay input and flash a banner announcing no change.
+  // Compared against the DISPLAYED value, so a second tap landing before the
+  // queued input applies is caught too.
   const selectFormation = (formation: FormationId) => {
+    if (formation === displayedFormation) return;
     queueInput(match, { tick: match.tick + 1, kind: 'SET_FORMATION', formation });
     pushInputBanner(
       `formation-input:${match.tick}`,
@@ -1948,6 +1953,7 @@ export function MatchScreen({
     );
   };
   const selectMentality = (mentality: Mentality) => {
+    if (mentality === displayedMentality) return;
     queueInput(match, { tick: match.tick + 1, kind: 'SET_MENTALITY', mentality });
     pushInputBanner(`mentality-input:${match.tick}`, `PLAYSTYLE · ${mentality}`, 'mentality');
   };

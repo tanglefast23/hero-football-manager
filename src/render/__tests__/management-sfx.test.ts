@@ -122,7 +122,10 @@ describe('management feedback sounds', () => {
     expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-push-button.m4a')");
     expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/ui-push-button.m4a')");
     expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
-    expect(buttons).toContain("pressSfx = 'positive'");
+    // A committing button rings positive; the paper variant is the neutral half
+    // of a question (cancel, back, pass, decline) and only clicks, so a refusal
+    // never sounds like a win.
+    expect(buttons).toContain("pressSfx = variant === 'paper' ? 'click' : 'positive'");
   });
 
   it('keeps the drill progress bed stoppable and the reveal on its own player', async () => {

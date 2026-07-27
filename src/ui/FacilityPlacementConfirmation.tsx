@@ -2,13 +2,16 @@ import { Modal, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, Metric, PaperPanel, formatCurrency } from './components/Scorecard';
 import { FacilitySprite } from './components/FacilitySprite';
-import type { ClubFacilityCatalogViewModel } from './models';
+import type { ClubFacilityBuildingViewModel, ClubFacilityCatalogViewModel } from './models';
 
-export interface FacilityPlacement {
-  readonly catalog: ClubFacilityCatalogViewModel;
-  readonly x: number;
-  readonly y: number;
-}
+/**
+ * The two orders that spend money from the grid. A move charges a relocation
+ * fee the moment it is approved, exactly like a build charges its cost, so both
+ * ask the same question in the same place.
+ */
+export type FacilityPlacement =
+  | { readonly kind: 'build'; readonly catalog: ClubFacilityCatalogViewModel; readonly x: number; readonly y: number }
+  | { readonly kind: 'move'; readonly building: ClubFacilityBuildingViewModel; readonly x: number; readonly y: number };
 
 /** Placing a building spends money and books the club's only works crew, and
  * neither can be undone once the order is approved — so the grid tap proposes
@@ -24,9 +27,42 @@ export function FacilityPlacementConfirmation({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const { catalog, x, y } = placement;
+  const { x, y } = placement;
   const cellLabel = `Column ${x + 1}, row ${y + 1}`;
-  const weeksLabel = `${catalog.buildWeeks} ${catalog.buildWeeks === 1 ? 'week' : 'weeks'}`;
+  const order = placement.kind === 'build'
+    ? {
+      kicker: 'Works order',
+      title: 'Approve this build?',
+      stamp: `${placement.catalog.buildWeeks} ${placement.catalog.buildWeeks === 1 ? 'week' : 'weeks'}`,
+      type: placement.catalog.type,
+      level: 1 as const,
+      name: placement.catalog.name,
+      width: placement.catalog.width,
+      height: placement.catalog.height,
+      costLabel: 'Cost now',
+      cost: placement.catalog.buildCost,
+      upkeep: placement.catalog.weeklyUpkeep,
+      effectLabel: placement.catalog.effectLabel,
+      confirmLabel: 'Approve & start work  ▸',
+      confirmHint: `Approve building ${placement.catalog.name} at ${cellLabel} for ${formatCurrency(placement.catalog.buildCost)}`,
+    }
+    : {
+      kicker: 'Removal order',
+      title: 'Move it here?',
+      // A move is instant; there are no build weeks to serve.
+      stamp: 'Same day',
+      type: placement.building.type,
+      level: placement.building.level,
+      name: placement.building.name,
+      width: placement.building.width,
+      height: placement.building.height,
+      costLabel: 'Fee now',
+      cost: placement.building.relocationFee,
+      upkeep: placement.building.weeklyUpkeep,
+      effectLabel: placement.building.effectLabel,
+      confirmLabel: 'Approve the move  ▸',
+      confirmHint: `Approve moving ${placement.building.name} to ${cellLabel} for ${formatCurrency(placement.building.relocationFee)}`,
+    };
 
   return (
     <Modal
@@ -42,30 +78,30 @@ export function FacilityPlacementConfirmation({
             Sibling of the panel so taps on its controls never bubble here. */}
         <Pressable accessible={false} className="absolute inset-0" onPress={onCancel} />
         <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
-          <PaperPanel kicker="Works order" title="Approve this build?" stamp={weeksLabel.toUpperCase()}>
+          <PaperPanel kicker={order.kicker} title={order.title} stamp={order.stamp.toUpperCase()}>
             <View className="items-center border-y-2 border-ink bg-gold-light py-4">
               <View className="border-2 border-b-4 border-ink bg-white p-2">
-                <FacilitySprite type={catalog.type} level={1} />
+                <FacilitySprite type={order.type} level={order.level} />
               </View>
-              <Text className="mt-3 font-pixel text-xl uppercase text-ink">{catalog.name}</Text>
+              <Text className="mt-3 font-pixel text-xl uppercase text-ink">{order.name}</Text>
               <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
-                {cellLabel} · {catalog.width}×{catalog.height}
+                {cellLabel} · {order.width}×{order.height}
               </Text>
             </View>
 
             <View className="mt-4 flex-row gap-2">
-              <Metric label="Cost now" value={formatCurrency(catalog.buildCost)} tone="negative" />
-              <Metric label="Upkeep" value={`${formatCurrency(catalog.weeklyUpkeep)}/wk`} tone="negative" />
+              <Metric label={order.costLabel} value={formatCurrency(order.cost)} tone="negative" />
+              <Metric label="Upkeep" value={`${formatCurrency(order.upkeep)}/wk`} tone="negative" />
             </View>
 
             <Text className="mt-3 text-center text-base leading-5 text-ink/65">
-              {catalog.effectLabel}
+              {order.effectLabel}
             </Text>
 
             <View className="mt-4 gap-2">
               <ActionButton
-                label="Approve & start work  ▸"
-                accessibilityLabel={`Approve building ${catalog.name} at ${cellLabel} for ${formatCurrency(catalog.buildCost)}`}
+                label={order.confirmLabel}
+                accessibilityLabel={order.confirmHint}
                 variant="confirm"
                 onPress={onConfirm}
               />

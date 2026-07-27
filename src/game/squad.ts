@@ -375,24 +375,23 @@ export function releaseCareerPlayer(state: GameState, playerId: string): GameSta
   if (lineup === undefined) throw new Error('the user club has no lineup');
   const needsReplacement = lineup.playerIds.includes(playerId);
   const lineupIds = new Set(lineup.playerIds);
+  // Only an UNLICENSED hero is bench-only. Barring every powered player left an
+  // expired starter unable to leave whenever the bench cover happened to be a
+  // licensed hero, who is a perfectly legal starter.
+  const isEligibleReplacement = (candidate: CareerPlayer): boolean =>
+    candidate.clubId === state.userClubId
+    && candidate.id !== playerId
+    && !lineupIds.has(candidate.id)
+    && candidate.contractSeasonsRemaining > 0
+    && candidate.injuryWeeks === 0
+    && !(candidate.power !== undefined && !candidate.licensed);
   const replacement = needsReplacement
     ? state.players.find(candidate =>
-        candidate.clubId === state.userClubId
-        && candidate.id !== playerId
-        && !lineupIds.has(candidate.id)
-        && candidate.contractSeasonsRemaining > 0
-        && candidate.injuryWeeks === 0
-        && candidate.role === player.role
-        && candidate.power === undefined,
+        isEligibleReplacement(candidate) && candidate.role === player.role,
       ) ?? state.players.find(candidate =>
-        candidate.clubId === state.userClubId
-        && candidate.id !== playerId
-        && !lineupIds.has(candidate.id)
-        && candidate.contractSeasonsRemaining > 0
-        && candidate.injuryWeeks === 0
+        isEligibleReplacement(candidate)
         && player.role !== 'GK'
-        && candidate.role !== 'GK'
-        && candidate.power === undefined,
+        && candidate.role !== 'GK',
       )
     : undefined;
   if (needsReplacement && replacement === undefined) {

@@ -1149,6 +1149,16 @@ function playerStatTotal(player: CareerPlayer): number {
   return total;
 }
 
+/**
+ * An unlicensed hero is bench-only: buildTeamDef refuses a lineup containing
+ * one, so promoting him here saved a career that could not start its next
+ * match. Same rule as the board-ultimatum replacement.
+ */
+function isEligibleTransferReplacement(candidate: CareerPlayer): boolean {
+  return candidate.injuryWeeks === 0
+    && !(candidate.power !== undefined && !candidate.licensed);
+}
+
 function replaceTransferredStarter(state: GameState, player: CareerPlayer) {
   const lineup = state.lineups.find(candidate => candidate.clubId === player.clubId);
   if (lineup === undefined || !lineup.playerIds.includes(player.id)) return state.lineups;
@@ -1157,13 +1167,13 @@ function replaceTransferredStarter(state: GameState, player: CareerPlayer) {
     candidate.clubId === player.clubId
     && candidate.id !== player.id
     && !starters.has(candidate.id)
-    && candidate.injuryWeeks === 0
+    && isEligibleTransferReplacement(candidate)
     && candidate.role === player.role
   )) ?? state.players.find(candidate => (
     candidate.clubId === player.clubId
     && candidate.id !== player.id
     && !starters.has(candidate.id)
-    && candidate.injuryWeeks === 0
+    && isEligibleTransferReplacement(candidate)
     && candidate.role !== 'GK'
     && player.role !== 'GK'
   ));

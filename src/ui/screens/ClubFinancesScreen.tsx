@@ -103,6 +103,8 @@ export function ClubFinancesScreen({
   const [relocatingBuildingId, setRelocatingBuildingId] = useState<string | null>(null);
   const [previewCell, setPreviewCell] = useState<{ x: number; y: number } | null>(null);
   const [pendingPlacement, setPendingPlacement] = useState<FacilityPlacement | null>(null);
+  /** Why the last tapped square could not take the building; null while nothing has been refused. */
+  const [placementRejection, setPlacementRejection] = useState<string | null>(null);
   const [facilityGridWidth, setFacilityGridWidth] = useState(0);
   const selectedBuilding = facilities.buildings.find(
     building => building.id === selectedBuildingId,
@@ -156,6 +158,7 @@ export function ClubFinancesScreen({
     setSelectedBuildType(null);
     setRelocatingBuildingId(null);
     setPreviewCell(null);
+    setPlacementRejection(null);
   }, []);
 
   const handleGridCell = useCallback((x: number, y: number) => {
@@ -163,28 +166,43 @@ export function ClubFinancesScreen({
       guidedFirstFacility
       && !guidedFirstFacilityAllowsPlacement(selectedBuildType, x, y)
     ) return;
-    if (!canPlaceAt(x, y)) return;
-    if (relocatingBuildingId !== null) {
-      onRelocateFacility?.(relocatingBuildingId, x, y);
-      setRelocatingBuildingId(null);
+    // A square that cannot take the building says so. It stays tappable rather
+    // than disabled so the footprint preview still works, which means the tap
+    // has to answer — docs/08: nothing refuses silently.
+    if (!canPlaceAt(x, y)) {
+      setPlacementRejection(cellIsOccupied(x, y)
+        ? 'That square is taken. Pick an empty one.'
+        : 'It does not fit here. Try a square with more room.');
+      return;
+    }
+    setPlacementRejection(null);
+    // Either order spends money the moment it is approved, so the tap only ever
+    // proposes the square — the confirmation is where the club is committed.
+    if (relocatingBuilding !== undefined) {
+      setPendingPlacement({ kind: 'move', building: relocatingBuilding, x, y });
       setPreviewCell(null);
       return;
     }
     if (selectedBuildType !== null) {
       const catalog = facilities.catalog.find(entry => entry.type === selectedBuildType);
       if (catalog === undefined) return;
-      // The tap proposes a spot; money is only committed from the confirmation.
-      setPendingPlacement({ catalog, x, y });
+      setPendingPlacement({ kind: 'build', catalog, x, y });
       setPreviewCell(null);
     }
-  }, [canPlaceAt, facilities.catalog, guidedFirstFacility, onRelocateFacility, relocatingBuildingId, selectedBuildType]);
+  }, [canPlaceAt, cellIsOccupied, facilities.catalog, guidedFirstFacility, relocatingBuilding, selectedBuildType]);
 
   const confirmPendingPlacement = useCallback(() => {
     if (pendingPlacement === null) return;
+    if (pendingPlacement.kind === 'move') {
+      onRelocateFacility?.(pendingPlacement.building.id, pendingPlacement.x, pendingPlacement.y);
+      setPendingPlacement(null);
+      setRelocatingBuildingId(null);
+      return;
+    }
     onBuildFacility?.(pendingPlacement.catalog.type, pendingPlacement.x, pendingPlacement.y);
     setPendingPlacement(null);
     setSelectedBuildType(null);
-  }, [onBuildFacility, pendingPlacement]);
+  }, [onBuildFacility, onRelocateFacility, pendingPlacement]);
 
   const scrollFacilityGuideTargetIntoView = useCallback((phase: GuidedFirstFacilityPhase) => {
     if (!guidedFirstFacility || facilityGuideScrolledPhaseRef.current === phase) return;
@@ -349,6 +367,7 @@ export function ClubFinancesScreen({
           setRelocatingBuildingId={setRelocatingBuildingId}
           previewCell={previewCell}
           setPreviewCell={setPreviewCell}
+          placementRejection={placementRejection}
           facilityGridWidth={facilityGridWidth}
           setFacilityGridWidth={setFacilityGridWidth}
           selectedBuilding={selectedBuilding}
@@ -672,6 +691,8 @@ interface GroundsSectionProps {
   setRelocatingBuildingId: Dispatch<SetStateAction<string | null>>;
   previewCell: { x: number; y: number } | null;
   setPreviewCell: Dispatch<SetStateAction<{ x: number; y: number } | null>>;
+  /** Why the last tapped square was refused, shown in place of the placement hint. */
+  placementRejection: string | null;
   facilityGridWidth: number;
   setFacilityGridWidth: Dispatch<SetStateAction<number>>;
   selectedBuilding?: ClubFacilityBuildingViewModel;
@@ -707,6 +728,7 @@ function GroundsSection({
   setRelocatingBuildingId,
   previewCell,
   setPreviewCell,
+  placementRejection,
   facilityGridWidth,
   setFacilityGridWidth,
   selectedBuilding,
@@ -833,6 +855,9 @@ function GroundsSection({
                             ? `${buildable ? 'Build at' : 'Blocked at'} column ${x + 1}, row ${y + 1}`
                             : undefined}
                           disabled={!placementActive || !guideAllowsCell}
+                          // A blocked square answers with the refusal cue, not
+                          // the click that means the tap landed.
+                          pressSfx={buildable ? 'click' : 'warning'}
                           onPress={() => handleGridCell(x, y)}
                           onPressIn={() => setPreviewCell({ x, y })}
                           onPressOut={() => setPreviewCell(null)}
@@ -1008,8 +1033,11 @@ function GroundsSection({
                 <PixelText className="text-sm uppercase text-blue-dark">
                   {relocatingBuildingId !== null ? `Moving · ${activeLabel}` : `Placing · ${activeLabel}`}
                 </PixelText>
-                <Text className="mt-1 text-sm text-ink/70">
-                  Tap any + square above. A blue outline fits; red is blocked.
+                <Text className={placementRejection === null
+                  ? 'mt-1 text-sm text-ink/70'
+                  : 'mt-1 text-sm font-bold text-red-dark'}
+                >
+                  {placementRejection ?? 'Tap any + square above. A blue outline fits; red is blocked.'}
                 </Text>
               </View>
               <Pressable

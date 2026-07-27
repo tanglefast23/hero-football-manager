@@ -94,6 +94,14 @@ export function SubstitutionBoard({
   const wide = width >= WIDE_BOARD_MIN_WIDTH;
   const [plan, setPlan] = useState<SubstitutionPlan>(EMPTY_SUBSTITUTION_PLAN);
   const [drag, setDrag] = useState<DragSource | null>(null);
+  /**
+   * The card chosen by a tap, waiting for its partner. Dragging is a pointer
+   * skill: it cannot be done with a click, a keyboard, or a screen reader, and
+   * the cards have always claimed to be buttons. Picking then choosing is the
+   * same trade by two taps, and it drives the same predicate and the same
+   * highlighting as the drag.
+   */
+  const [picked, setPicked] = useState<DragSource | null>(null);
   /** The eligible card currently under the carried one, if any. */
   const [dropTarget, setDropTarget] = useState<CardId | null>(null);
   const cardViews = useRef(new Map<CardId, View>()).current;
@@ -201,6 +209,30 @@ export function SubstitutionBoard({
     }
   }, [commit, isEligible, plan, starterAt, subById]);
 
+  /**
+   * Tap once to pick, tap the partner to trade. Tapping the picked card again
+   * puts it back; tapping any other card moves the pick there, so a mis-tap
+   * never strands the player in a state they have to guess their way out of.
+   */
+  const resolveTap = useCallback((source: DragSource) => {
+    setPicked(current => {
+      if (current === null) {
+        playUiClickSfx();
+        return source;
+      }
+      if (current.id === source.id) {
+        playUiClickSfx();
+        return null;
+      }
+      if (isEligible(current, source.id)) {
+        resolveDrop(current, source.id);
+        return null;
+      }
+      playUiClickSfx();
+      return source;
+    });
+  }, [isEligible, resolveDrop]);
+
   const save = useCallback(() => {
     if (!saveable) {
       playManagementActionSfx('warning');
@@ -211,11 +243,15 @@ export function SubstitutionBoard({
 
   const reset = useCallback(() => {
     playUiClickSfx();
+    setPicked(null);
     setPlan(EMPTY_SUBSTITUTION_PLAN);
   }, []);
 
   const dragProps = {
+    onTap: resolveTap,
     onDragStart: (source: DragSource) => {
+      // A drag takes over from a half-finished tap rather than fighting it.
+      setPicked(null);
       measureCards();
       setDrag(source);
     },
@@ -235,6 +271,9 @@ export function SubstitutionBoard({
     },
   };
 
+  // Carried or picked, the board lights the same partners either way.
+  const active = drag ?? picked;
+
   return (
     <View style={styles.overlay}>
       <SfxPressable accessible={false} onPress={onCancel} style={StyleSheet.absoluteFill}>
@@ -249,7 +288,11 @@ export function SubstitutionBoard({
           <View style={styles.headerCopy}>
             <Text style={styles.eyebrow}>MATCH PAUSED</Text>
             <Text style={styles.title}>SUBSTITUTIONS</Text>
-            <Text style={styles.hint}>HOLD A PLAYER, DRAG ONTO THEIR REPLACEMENT</Text>
+            <Text style={styles.hint}>
+              {picked === null
+                ? 'TAP A PLAYER, THEN TAP THEIR REPLACEMENT'
+                : 'NOW TAP ANYONE LIT UP · TAP AGAIN TO CANCEL'}
+            </Text>
           </View>
           <View style={styles.headerRight}>
             <Text style={[styles.counter, atLimit ? styles.counterSpent : null]}>
@@ -300,15 +343,21 @@ export function SubstitutionBoard({
                         slot: player.index,
                         isKeeper: (incoming?.role ?? player.role) === 'GK',
                       }}
-                      lit={drag !== null && drag.id !== id && isEligible(drag, id)}
+                      lit={active !== null && active.id !== id && isEligible(active, id)}
+                      picked={picked?.id === id}
                       hint={dropTarget === id ? 'SWAP' : null}
                       compact={!wide}
                       holdToLift={!wide}
                       registerCard={registerCard}
                       {...dragProps}
                       accessibilityLabel={incoming === undefined
-                        ? `${player.name}, ${player.role}, ${Math.round(player.condition)} percent energy. Hold and drag onto a bench player to trade them.`
-                        : `${incoming.name}, ${incoming.role}, on for ${player.name}. Hold and drag onto ${player.name} on the bench to undo.`}
+                        ? `${player.name}, ${player.role}, ${Math.round(player.condition)} percent energy`
+                        : `${incoming.name}, ${incoming.role}, on for ${player.name}`}
+                      accessibilityHint={picked?.id === id
+                        ? 'Activate to put this player back'
+                        : incoming === undefined
+                          ? 'Activate, then activate a bench player to trade them'
+                          : `Activate, then activate ${player.name} on the bench to undo`}
                       style={styles.card}
                     >
                       <View style={styles.cardCopy}>
@@ -351,24 +400,28 @@ export function SubstitutionBoard({
                   {rows.map(entry => {
                     if (entry.kind === 'available') {
                       const id: CardId = `sub:${entry.sub.id}`;
-                      const lit = drag !== null && drag.id !== id && isEligible(drag, id);
-                      // While a starter is held, a card that cannot take them says
-                      // why — docs/08: nothing refuses silently.
-                      const reason = drag === null || drag.kind !== 'field' || lit
+                      const lit = active !== null && active.id !== id && isEligible(active, id);
+                      // While a starter is held or picked, a card that cannot take
+                      // them says why — docs/08: nothing refuses silently.
+                      const reason = active === null || active.kind !== 'field' || lit
                         ? null
-                        : ineligibleTag(entry.sub.role === 'GK', drag.isKeeper, atLimit);
+                        : ineligibleTag(entry.sub.role === 'GK', active.isKeeper, atLimit);
                       return (
                         <DragCard
                           key={id}
                           id={id}
                           source={{ id, kind: 'sub', subId: entry.sub.id, isKeeper: entry.sub.role === 'GK' }}
                           lit={lit}
+                          picked={picked?.id === id}
                           hint={dropTarget === id ? 'SWAP' : null}
                           compact={!wide}
                           holdToLift={!wide}
                           registerCard={registerCard}
                           {...dragProps}
-                          accessibilityLabel={`${entry.sub.name}, ${entry.sub.role}, fresh. Hold and drag onto a player on the field to trade them.`}
+                          accessibilityLabel={`${entry.sub.name}, ${entry.sub.role}, fresh`}
+                          accessibilityHint={picked?.id === id
+                            ? 'Activate to put this player back'
+                            : 'Activate, then activate a player on the field to trade them'}
                           style={styles.card}
                         >
                           <View style={styles.cardCopy}>
@@ -398,13 +451,17 @@ export function SubstitutionBoard({
                         key={id}
                         id={id}
                         source={{ id, kind: 'off', slot: entry.starter.index, isKeeper: entry.starter.role === 'GK' }}
-                        lit={drag !== null && drag.id !== id && isEligible(drag, id)}
+                        lit={active !== null && active.id !== id && isEligible(active, id)}
+                        picked={picked?.id === id}
                         hint={dropTarget === id ? 'KEEP ON' : null}
                         compact={!wide}
                         holdToLift={!wide}
                         registerCard={registerCard}
                         {...dragProps}
-                        accessibilityLabel={`${entry.starter.name} is coming off. Hold and drag onto their shirt on the field to keep them on.`}
+                        accessibilityLabel={`${entry.starter.name} is coming off`}
+                        accessibilityHint={picked?.id === id
+                          ? 'Activate to put this player back'
+                          : 'Activate, then activate their shirt on the field to keep them on'}
                         style={[styles.card, styles.cardDimmed]}
                       >
                         <View style={styles.cardCopy}>
@@ -510,13 +567,15 @@ function LozengeButton({
 }
 
 /**
- * A draggable card that is also a drop target. Cards spring home on release —
- * the plan decides where players live, never the gesture's resting place.
+ * A draggable card that is also a drop target, and a button either way. Cards
+ * spring home on release — the plan decides where players live, never the
+ * gesture's resting place.
  */
 function DragCard({
   id,
   source,
   lit,
+  picked,
   hint,
   compact,
   holdToLift,
@@ -525,13 +584,17 @@ function DragCard({
   onDragMove,
   onDragEnd,
   onDrop,
+  onTap,
   accessibilityLabel,
+  accessibilityHint,
   style,
   children,
 }: {
   id: CardId;
   source: DragSource;
   lit: boolean;
+  /** This is the card waiting for a partner, chosen by tap rather than carried. */
+  picked: boolean;
   /** Shown over this card while a compatible partner is carried onto it. */
   hint: string | null;
   compact: boolean;
@@ -542,7 +605,10 @@ function DragCard({
   onDragMove: (source: DragSource, pageX: number, pageY: number) => void;
   onDragEnd: () => void;
   onDrop: (source: DragSource, pageX: number, pageY: number) => void;
+  /** A click, a tap, Enter/Space, or a screen-reader activation. */
+  onTap: (source: DragSource) => void;
   accessibilityLabel: string;
+  accessibilityHint: string;
   style: object | readonly object[];
   children: React.ReactNode;
 }) {
@@ -556,8 +622,10 @@ function DragCard({
    * it closed over would be the plan from the first render, and staging a second
    * swap against that stale copy would silently erase the first.
    */
-  const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, holdToLift });
-  latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, holdToLift };
+  const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, holdToLift });
+  latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, holdToLift };
+
+  const tap = useCallback(() => latest.current.onTap(latest.current.source), []);
 
   /**
    * 0 at rest, 1 under the pointer, 2 while carried. One value so a card cannot
@@ -620,10 +688,17 @@ function DragCard({
       },
       onPanResponderRelease: (_event, gesture) => {
         const dropping = liftedRef.current;
-        const { source: from, onDrop: drop } = latest.current;
+        const { source: from, onDrop: drop, onTap: pick } = latest.current;
+        // A finger that never travelled is a tap, whether or not the card had
+        // time to lift under it. Releasing a card onto its own square is never
+        // a trade, so on the stacked board — where a card lifts after a hold
+        // rather than on movement — a slow tap would otherwise do nothing at all.
+        const still = Math.abs(gesture.dx) <= TAP_SLOP && Math.abs(gesture.dy) <= TAP_SLOP;
         release();
-        // A tap never drops: every swap needs a partner, so there is no sensible
-        // one-tap action.
+        if (still) {
+          pick(from);
+          return;
+        }
         if (dropping) drop(from, gesture.moveX, gesture.moveY);
       },
       onPanResponderTerminate: () => release(),
@@ -639,8 +714,20 @@ function DragCard({
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
       accessible
+      focusable
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
+      // The picked state rides in the label because it has nowhere else to go:
+      // `aria-selected` is not valid on role="button", so the web drops the
+      // accessibilityState below and a screen reader would never learn which
+      // card is waiting for a partner.
+      accessibilityLabel={picked ? `${accessibilityLabel}, picked` : accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ selected: picked }}
+      // VoiceOver and TalkBack activate through this, never through the pan
+      // responder — without it the card announced itself as a button that did
+      // nothing when activated.
+      onAccessibilityTap={tap}
+      {...keyboardActivation(tap)}
       style={[
         style,
         compact ? styles.gridCell : null,
@@ -649,6 +736,7 @@ function DragCard({
         // The one card the release would actually take. Every eligible card is
         // already lit, so the target has to out-shout them, not just join them.
         hint === null ? null : styles.cardTargeted,
+        picked ? styles.cardPicked : null,
         lifted ? styles.cardLifted : null,
         { transform: [...offset.getTranslateTransform(), { scale }] },
       ]}
@@ -662,6 +750,24 @@ function DragCard({
       {children}
     </Animated.View>
   );
+}
+
+/**
+ * `onKeyDown` is understood by react-native-web and forwarded to the DOM node,
+ * but it is not part of React Native's own ViewProps, so it is declared once
+ * here rather than cast at the call site. A focused card is then operable from
+ * the keyboard — the one input a drag can never serve. Native builds receive an
+ * unknown prop and ignore it.
+ */
+function keyboardActivation(activate: () => void): object {
+  return {
+    onKeyDown: (event: { key?: string; preventDefault?: () => void }) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      // Space would scroll the board out from under the card otherwise.
+      event.preventDefault?.();
+      activate();
+    },
+  };
 }
 
 /** Surnames only in a two-up cell, where a full name would not fit. */
@@ -789,6 +895,23 @@ const styles = StyleSheet.create({
     shadowColor: '#241f2e',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.45,
+    shadowRadius: 8,
+  },
+  /**
+   * Chosen by tap and waiting for a partner. It reads like a carried card
+   * standing still — same blue, same weight — because that is exactly what it
+   * is: the tap flow's half of a drag.
+   */
+  cardPicked: {
+    borderColor: '#3f6fb5',
+    borderWidth: 4,
+    opacity: 1,
+    zIndex: 30,
+    elevation: 12,
+    boxShadow: '0 0 0 4px rgba(90, 143, 214, 0.55)',
+    shadowColor: '#3f6fb5',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
     shadowRadius: 8,
   },
   /**

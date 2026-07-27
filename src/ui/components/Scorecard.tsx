@@ -88,7 +88,12 @@ interface ActionButtonProps {
   variant?: ButtonVariant;
   compact?: boolean;
   maxFontSizeMultiplier?: number;
-  /** Large action buttons confirm or commit by default; use 'click' only for a non-committing action. */
+  /**
+   * Large action buttons confirm or commit, so they ring positive by default —
+   * except the paper variant, which is the neutral half of a question (cancel,
+   * back, pass, decline) and gets the plain click unless a call site asks for
+   * positive. Celebrating a decline made every refusal sound like a win.
+   */
   pressSfx?: 'click' | 'positive';
 }
 
@@ -104,7 +109,7 @@ export function ActionButton({
   variant = 'primary',
   compact = false,
   maxFontSizeMultiplier,
-  pressSfx = 'positive',
+  pressSfx = variant === 'paper' ? 'click' : 'positive',
 }: ActionButtonProps) {
   const ramp = disabled
     ? { face: 'bg-grey', light: 'bg-grey-light', lip: 'bg-grey-dark', text: 'text-paper' }

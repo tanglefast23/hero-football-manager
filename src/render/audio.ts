@@ -14,6 +14,7 @@
 // crash a match.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 import type { MatchEvent, PowerId } from '../sim/types';
+import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
 
 // -- Asset table (the one place SFX filenames are named) --------------------
 // SFX are short one-shots. Supplied replacement effects use runtime-optimized
@@ -242,6 +243,9 @@ let warned = false;
 const sfxPlayers = new Map<SfxKey, AudioPlayer>();
 let themePlayer: AudioPlayer | null = null;
 let fireLoopPlayer: AudioPlayer | null = null;
+/** What the match asked for, so backgrounding can pause and returning can restore. */
+let themeWanted = false;
+let fireWanted = false;
 
 // Only the first failure of the session warns (whatever it is) — the point
 // is one diagnostic line, not a per-frame warning flood.
@@ -379,7 +383,8 @@ export function playForEvent(e: MatchEvent): void {
 }
 
 export function startTheme(): void {
-  if (!ready || !themePlayer) return;
+  themeWanted = true;
+  if (!ready || !themePlayer || audioIsSuspended()) return;
   try {
     themePlayer.play();
   } catch (err) {
@@ -388,6 +393,7 @@ export function startTheme(): void {
 }
 
 export function stopTheme(): void {
+  themeWanted = false;
   if (!ready || !themePlayer) return;
   try {
     themePlayer.pause();
@@ -403,7 +409,8 @@ export function stopTheme(): void {
 // tracking edges itself. seekTo(0) before play so each ignition restarts the
 // crackle from the top rather than resuming wherever the last burn paused.
 export function startFireAmbience(): void {
-  if (!ready || !fireLoopPlayer) return;
+  fireWanted = true;
+  if (!ready || !fireLoopPlayer || audioIsSuspended()) return;
   const p = fireLoopPlayer;
   try {
     p.seekTo(0).then(() => p.play()).catch((err: unknown) => warnOnce('fire loop start failed', err));
@@ -413,6 +420,7 @@ export function startFireAmbience(): void {
 }
 
 export function stopFireAmbience(): void {
+  fireWanted = false;
   if (!ready || !fireLoopPlayer) return;
   try {
     fireLoopPlayer.pause();
@@ -420,3 +428,30 @@ export function stopFireAmbience(): void {
     warnOnce('fire loop stop failed', err);
   }
 }
+
+/**
+ * Backgrounding the app or hiding the tab silences the loops without forgetting
+ * that the match wants them: `themeWanted`/`fireWanted` are what the match asked
+ * for, and coming back to the front honours that request again. A one-shot event
+ * SFX needs nothing here — it has already finished.
+ */
+registerAudioOwner({
+  suspend: () => {
+    if (!ready) return;
+    try {
+      themePlayer?.pause();
+      fireLoopPlayer?.pause();
+    } catch (err) {
+      warnOnce('background suspend failed', err);
+    }
+  },
+  resume: () => {
+    if (!ready) return;
+    try {
+      if (themeWanted) themePlayer?.play();
+      if (fireWanted) fireLoopPlayer?.play();
+    } catch (err) {
+      warnOnce('foreground resume failed', err);
+    }
+  },
+});
