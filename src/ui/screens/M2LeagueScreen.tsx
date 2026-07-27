@@ -229,7 +229,7 @@ export function M2LeagueScreen({
           ) : null}
           <SectionLabel
             eyebrow="All 50 clubs"
-            title="National Cup"
+            title="Global Cup"
             right={<StatusChip label={viewModel.cup.statusLabel} tone={viewModel.cup.championName ? 'hero' : 'normal'} />}
           />
 
@@ -239,7 +239,7 @@ export function M2LeagueScreen({
                 <Pressable
                   key={option.season}
                   accessibilityRole="button"
-                  accessibilityLabel={`${option.label} National Cup${option.championName ? `, won by ${option.championName}` : ''}`}
+                  accessibilityLabel={`${option.label} Global Cup${option.championName ? `, won by ${option.championName}` : ''}`}
                   accessibilityState={{ selected: option.selected, disabled: onSelectCupSeason === undefined }}
                   disabled={onSelectCupSeason === undefined}
                   onPress={() => onSelectCupSeason?.(option.season)}
@@ -285,7 +285,7 @@ export function M2LeagueScreen({
               <SectionLabel eyebrow={viewModel.cup.seasonLabel} title="Road to the final" />
               <View
                 accessible
-                accessibilityLabel={`${viewModel.cup.seasonLabel} National Cup road to the final`}
+                accessibilityLabel={`${viewModel.cup.seasonLabel} Global Cup road to the final`}
                 className="gap-4"
               >
                 {viewModel.cup.rounds.map(round => (

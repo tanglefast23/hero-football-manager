@@ -367,16 +367,16 @@
     {
       "id": "national-cup",
       "inbox": {
-        "title": "Your first National Cup",
+        "title": "Your first Global Cup",
         "detail": "Every division enters from around Week 10. One upset can change the season."
       },
       "destination": "league-cup",
       "pages": [
         {
           "kicker": "Knockout football",
-          "title": "No table. No second chances.",
+          "title": "Global Cup",
           "body": [
-            "Every division enters the seeded Cup around Week 10. Stronger clubs receive opening byes and are kept apart where possible; win to advance."
+            "Starting from week 10, all divisions against each other. Stronger clubs receive opening byes. Teams battle, no second chances until there's one winner. Lots of prizes and fans the further you can go!"
           ],
           "focus": "national-cup",
           "objective": "OPEN THE CUP DRAW.",

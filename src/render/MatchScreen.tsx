@@ -2028,7 +2028,6 @@ export function MatchScreen({
             energyUse={displayedEnergyUse}
             onSelectEnergyUse={selectEnergyUse}
             heroTiles={railHeroTiles}
-            autoPowers={displayedAutoPowers}
           />
         ) : null}
         <View style={railLayout ? styles.desktopPitchPane : null}>
@@ -2319,7 +2318,12 @@ export function MatchScreen({
         </View>
       </View>
       {hud.banners.length > 0 ? (
-        <View pointerEvents="none" style={[styles.bannerStack, railLayout ? { left: desktopPitchLeft } : null]}>
+        <View pointerEvents="none" style={[
+          styles.bannerStack,
+          // Only `left` was being moved for the rail, so the stack still
+          // reached the window's right edge and banners ran off the pitch.
+          railLayout ? { left: desktopPitchLeft, right: undefined, width: pitchWidth } : null,
+        ]}>
           {hud.banners.map(banner => (
             <Text
               key={banner.id}

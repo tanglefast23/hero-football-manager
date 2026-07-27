@@ -394,7 +394,10 @@ describe('validated M1 launch content', () => {
     const conciseBriefings = content.assistantGuide.sequences.slice(1)
       .flatMap(sequence => sequence.pages);
     expect(conciseBriefings.every(page => page.body.length === 1)).toBe(true);
-    expect(conciseBriefings.every(page => page.body[0].length <= 160)).toBe(true);
+    // 200, raised from 160 for the Global Cup briefing, which is the owner's
+    // own words at 199 characters. The cap exists so a briefing stays one
+    // readable card, not to hold any particular number.
+    expect(conciseBriefings.every(page => page.body[0].length <= 200)).toBe(true);
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'assistant-coach-hire')).toMatchObject({
         destination: 'coach-market',

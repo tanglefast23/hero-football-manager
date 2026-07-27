@@ -29,6 +29,19 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { InfoTip } from '../components/InfoTip';
+import { energyBand } from '../../render/match-energy-ui';
+
+/**
+ * The roster reads condition on the same three bands as the drill popup and
+ * every match energy bar, so 40% cannot look calm in the register and amber one
+ * tap deeper. Red is bold as well as coloured: at that level it is a warning,
+ * not a reading.
+ */
+const CONDITION_TONE: Readonly<Record<'green' | 'amber' | 'red', string>> = {
+  green: 'text-ink',
+  amber: 'text-gold-dark',
+  red: 'font-bold text-stamp',
+};
 
 /**
  * What each roster column actually means. The words are short because the
@@ -429,7 +442,12 @@ function RosterSection({
                 </View>
                 <Text className={`${currentColumnWidth} text-right font-mono text-base text-ink`} numberOfLines={1}>{player.overall}</Text>
                 <Text className={`${potentialColumnWidth} pr-1 text-right font-mono text-base text-gold-dark`} numberOfLines={1}>{player.potentialGrade}</Text>
-                <Text className={`${conditionColumnWidth} text-right font-mono text-sm ${player.condition < 30 ? 'text-stamp' : 'text-ink'}`} numberOfLines={1}>{player.condition}%</Text>
+                <Text
+                  className={`${conditionColumnWidth} text-right font-mono text-sm ${CONDITION_TONE[energyBand(player.condition)]}`}
+                  numberOfLines={1}
+                >
+                  {player.condition}%
+                </Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -506,7 +524,7 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
         <Metric
           label="Condition"
           value={`${selectedPlayer.condition}%`}
-          tone={selectedPlayer.condition < 30 ? 'negative' : 'positive'}
+          tone={energyBand(selectedPlayer.condition) === 'red' ? 'negative' : 'positive'}
         />
         <Metric label="Wage / wk" value={formatCurrency(selectedPlayer.weeklyWage)} />
       </View>
@@ -612,11 +630,12 @@ function SquadSortHeader({
     <InfoTip
       text={COLUMN_EXPLAINER[sortKey]}
       align={align}
+      className={widthClass}
       accessibilityLabel={`Sort by ${label}, ${direction ?? 'default order'}. Next: ${nextDirection}. ${COLUMN_EXPLAINER[sortKey]}`}
       onPress={() => onSort(sortKey)}
     >
     <View
-      className={`min-h-11 flex-row items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'} ${widthClass}`}
+      className={`min-h-11 w-full flex-row items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'}`}
     >
       <PixelText
         // A step down from the row values so the spelled-out words fit their

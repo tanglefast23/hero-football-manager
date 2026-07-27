@@ -100,7 +100,7 @@ export function FixtureMatchDayScreen({
     <View className="mt-6">
       <StageSection eyebrow="Team sheet" title="Starting eleven" right={<StatusChip label={viewModel.formationLabel} />} />
       <Text className="mb-3 text-sm leading-5 text-paper/70">
-        Tap a starter, then choose an available player in the same role. Every change is saved for future matches.
+        To change starters, tap the starter and the replacement. Every change is saved for future matches.
       </Text>
       {/* Desktop has the room to show who these people are: a face, a full name
           and the shirt, in a cell wide enough that no name is clipped. A phone

@@ -523,8 +523,8 @@ function settlementLines(
   if (currentCupRound !== undefined && homeCupFixture !== undefined) {
     lines.push({
       kind: 'tickets',
-      label: `National Cup ${currentCupRound.label} home gate`,
-      amount: homeGateIncome(state, userClub, 'National Cup ticket revenue'),
+      label: `Global Cup ${currentCupRound.label} home gate`,
+      amount: homeGateIncome(state, userClub, 'Global Cup ticket revenue'),
     });
   }
 
@@ -962,14 +962,33 @@ function awardNationalCupPrize(
     'Semi-final': 8_000,
     Final: 25_000,
   } as const;
+  /**
+   * A cup run is when a small club picks up neutrals, and it is the only way to
+   * grow the gate without going up a division. A full run is ~900 fans, kept
+   * deliberately under the 500-per-tier step promotion gives so the league
+   * ladder stays the main driver of income.
+   */
+  const fansByRound = {
+    'Play-in': 6,
+    'Round of 32': 10,
+    'Round of 16': 16,
+    'Quarter-final': 24,
+    'Semi-final': 36,
+    Final: 120,
+  } as const;
   const prize = prizeByRound[roundLabel];
+  const fansWon = fansByRound[roundLabel];
   const latestLedger = state.ledgers[state.ledgers.length - 1];
   if (latestLedger === undefined) throw new Error('National Cup prize requires a weekly ledger');
   const balanceAfter = checkedAdd(latestLedger.balanceAfter, prize, 'National Cup prize balance');
   return clearMetBoardUltimatum({
     ...state,
     clubs: state.clubs.map(club => club.id === state.userClubId
-      ? { ...club, cash: checkedAdd(club.cash, prize, 'National Cup prize cash') }
+      ? {
+          ...club,
+          cash: checkedAdd(club.cash, prize, 'Global Cup prize cash'),
+          fans: checkedAdd(club.fans, fansWon, 'Global Cup fans won'),
+        }
       : club),
     ledgers: state.ledgers.map((ledger, index) => index === state.ledgers.length - 1
       ? {
@@ -977,8 +996,8 @@ function awardNationalCupPrize(
           lines: [...ledger.lines, {
             kind: 'prize' as const,
             label: roundLabel === 'Final'
-              ? 'National Cup champions'
-              : `National Cup ${roundLabel} win`,
+              ? 'Global Cup champions'
+              : `Global Cup ${roundLabel} win`,
             amount: prize,
           }],
           balanceAfter,

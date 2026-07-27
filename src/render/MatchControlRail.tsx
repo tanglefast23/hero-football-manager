@@ -73,7 +73,6 @@ export interface MatchControlRailProps {
   onSelectEnergyUse: (mode: EnergyUse) => void;
   heroTiles: readonly MatchRailHeroTile[];
   /** True while the controlled team's heroes fire on the engine's context cue. */
-  autoPowers: boolean;
 }
 
 /**
@@ -110,7 +109,6 @@ export function MatchControlRail({
   energyUse,
   onSelectEnergyUse,
   heroTiles,
-  autoPowers,
 }: MatchControlRailProps) {
   const teamBand = energyBand(teamEnergy);
   return (
@@ -159,7 +157,7 @@ export function MatchControlRail({
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>FORMATION</Text>
+          <Text style={styles.cardTitle}>FORMATION ({FORMATION_LABELS[formation].toUpperCase()})</Text>
           <View style={styles.chipRow}>
             {formations.map((option) => {
               const selected = formation === option;
@@ -184,7 +182,6 @@ export function MatchControlRail({
               );
             })}
           </View>
-          <Text style={styles.caption}>{FORMATION_LABELS[formation].toUpperCase()}</Text>
           <Text style={[styles.cardTitle, styles.cardTitleSpaced]}>PLAYSTYLE</Text>
           <View style={styles.chipRow}>
             {MENTALITIES.map((option) => {
@@ -332,26 +329,9 @@ export function MatchControlRail({
                 >
                   {heroStatusText(tile)}
                 </Text>
-                {/* Read-only policy badge, NOT a toggle. The engine's
-                    SET_AUTO_POWERS is team-wide, and MatchScreen has no
-                    on-pitch tap-to-fire yet, so switching to M ('SAVE_FOR_TAP')
-                    would bank heat with no way to spend it. Make this a live
-                    switch once pitch-tap firing lands. */}
-                <View
-                  accessible
-                  accessibilityLabel={autoPowers
-                    ? 'Hero powers fire on their own cue'
-                    : 'Hero powers wait for your tap'}
-                  style={[styles.policyToggle, autoPowers ? styles.policyToggleAuto : null]}
-                >
-                  <Text style={styles.policyToggleText}>{autoPowers ? 'A' : 'M'}</Text>
-                </View>
               </View>
             </View>
           ))}
-          <Text style={styles.caption}>
-            ONE POWER TILE PER FIELDED HERO — THE RAIL GROWS TO 4 TILES WITH THE HERO LICENSE CAP.
-          </Text>
         </View>
       </ScrollView>
     </View>
@@ -530,20 +510,6 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   heroStatusReady: { color: '#edb54a' },
-  policyToggle: {
-    minWidth: 52,
-    minHeight: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3a3350',
-    borderWidth: 2,
-    borderColor: '#49415f',
-    borderBottomWidth: 4,
-    borderBottomColor: '#16121f',
-    borderRadius: 3,
-  },
-  policyToggleAuto: { backgroundColor: '#35618e', borderColor: '#77a4d8' },
-  policyToggleText: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 18 },
   energyFillGreen: { backgroundColor: ENERGY_FILL_COLORS.green },
   energyFillAmber: { backgroundColor: ENERGY_FILL_COLORS.amber },
   energyFillRed: { backgroundColor: ENERGY_FILL_COLORS.red },

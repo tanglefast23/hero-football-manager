@@ -186,7 +186,13 @@ export function TrainingDrillModal({
             <View className="flex-row items-center justify-between border-b-2 border-ink bg-paper-dark px-4 py-3">
               <View className="flex-1 pr-3">
                 <Text className="font-pixel text-sm uppercase text-blue-dark">Drills</Text>
-                <Text className="mt-1 font-pixel text-xl uppercase text-ink" numberOfLines={1}>{playerName}</Text>
+                {/* The position rides with the name: which drills are worth
+                    buying depends on where they play, and the popup covers the
+                    roster row that would otherwise tell you. */}
+                <Text className="mt-1 font-pixel text-xl uppercase text-ink" numberOfLines={1}>
+                  {playerName}
+                  <Text className="font-pixel text-base uppercase text-blue-dark">  {playerRole}</Text>
+                </Text>
               </View>
               <View className="mr-3 items-end">
                 <Text className="font-pixel text-sm uppercase text-ink/50">TP</Text>
@@ -334,13 +340,7 @@ export function TrainingDrillModal({
               ) : null}
             </ScrollView>
 
-            {/* The scene stays mounted under the gain and the fireworks. It used
-                to unmount the instant the drill finished, which dropped the
-                celebration back onto the drill list it came from — the list you
-                had already left. DrillSceneOverlay guards onComplete with a ref,
-                so holding it on its last frame cannot advance the stage twice. */}
-            {(stage === 'scene' || stage === 'reveal' || stage === 'super')
-              && activeResult !== null && resultOption !== undefined ? (
+            {stage === 'scene' && activeResult !== null && resultOption !== undefined ? (
               <DrillSceneOverlay
                 playerId={playerId}
                 playerName={playerName}
