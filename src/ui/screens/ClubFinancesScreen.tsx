@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { EmptyDocket } from '../components/EmptyDocket';
@@ -1201,9 +1201,26 @@ function GroundsSection({
                     key={entry.type}
                     ref={entry.type === 'coaching-office' ? coachingOfficeBuildTargetRef : undefined}
                     collapsable={entry.type === 'coaching-office' ? false : undefined}
-                    className="relative w-[48%]"
+                    className={guideFocus === 'coaching-office' && entry.type === 'coaching-office'
+                      ? 'relative mt-20 w-[48%]'
+                      : 'relative w-[48%]'}
                     onLayout={entry.type === 'coaching-office' ? scrollToCoachingOffice : undefined}
                   >
+                    {/* The inbox sends you here to build a Coaching Office, and the
+                        viewport already lands on it — but nothing said which of
+                        the eight cards to press. It wears the same gold tutorial
+                        glow as the Train button and the same arrow. */}
+                    {guideFocus === 'coaching-office' && entry.type === 'coaching-office' ? (
+                      <TutorialTapCue
+                        label="Tap here"
+                        detail="Coaching Office"
+                        style={{
+                          left: '50%',
+                          marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                          top: -82,
+                        }}
+                      />
+                    ) : null}
                     {guidedFirstFacility
                       && guidedFacilityPhase === 'build-menu'
                       && entry.type === 'training-pitch' ? (
@@ -1236,9 +1253,14 @@ function GroundsSection({
                       }}
                       className={selected
                         ? 'min-h-36 w-full border-2 border-b-4 border-blue-dark bg-blue-light/30 p-2'
-                        : entryEnabled
-                          ? 'min-h-36 w-full border-2 border-b-4 border-ink bg-white p-2'
-                          : 'min-h-36 w-full border-2 border-ink/20 bg-ink/5 p-2'}
+                        : guideFocus === 'coaching-office' && entry.type === 'coaching-office'
+                          ? 'min-h-36 w-full border-2 border-b-4 border-gold-dark bg-gold-light/25 p-2'
+                          : entryEnabled
+                            ? 'min-h-36 w-full border-2 border-b-4 border-ink bg-white p-2'
+                            : 'min-h-36 w-full border-2 border-ink/20 bg-ink/5 p-2'}
+                      style={guideFocus === 'coaching-office' && entry.type === 'coaching-office'
+                        ? styles.guidedFacilityGlow
+                        : undefined}
                     >
                       <View className="mb-2 flex-row items-start gap-2">
                         <View style={{ opacity: entryEnabled ? 1 : 0.35 }}>
@@ -1413,3 +1435,19 @@ function facilityColor(building: ClubFacilityBuildingViewModel): string {
   if (building.type === 'fan-shop' || building.type === 'stadium-stand') return '#C8DDF0';
   return '#F4E7C5';
 }
+
+/**
+ * The same gold the Train button wears during the first-training guide. Gold is
+ * the tutorial voice here, not a hero accent — it is only ever on screen while
+ * Bert is asking for a specific tap.
+ */
+const styles = StyleSheet.create({
+  guidedFacilityGlow: {
+    boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',
+    shadowColor: '#edb54a',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 9,
+    elevation: 10,
+  },
+});

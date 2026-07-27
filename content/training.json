@@ -1,26 +1,131 @@
 {
   "schemaVersion": 1,
   "focusDrills": [
-    { "id": "sprints", "name": "Sprints 1", "moneyCost": 0, "tpCost": 6, "gains": { "pac": 3 } },
-    { "id": "sprints-ii", "name": "Sprints 2", "moneyCost": 0, "tpCost": 10, "gains": { "pac": 5 } },
-    { "id": "sprints-iii", "name": "Sprints 3", "moneyCost": 0, "tpCost": 15, "gains": { "pac": 8 } },
-    { "id": "finishing", "name": "Finishing 1", "moneyCost": 0, "tpCost": 6, "gains": { "sho": 3 } },
-    { "id": "finishing-ii", "name": "Finishing 2", "moneyCost": 0, "tpCost": 10, "gains": { "sho": 5 } },
-    { "id": "finishing-iii", "name": "Finishing 3", "moneyCost": 0, "tpCost": 15, "gains": { "sho": 8 } },
-    { "id": "rondo", "name": "Rondo 1", "moneyCost": 0, "tpCost": 6, "gains": { "pas": 3 } },
-    { "id": "rondo-ii", "name": "Rondo 2", "moneyCost": 0, "tpCost": 10, "gains": { "pas": 5 } },
-    { "id": "rondo-iii", "name": "Rondo 3", "moneyCost": 0, "tpCost": 15, "gains": { "pas": 8 } },
-    { "id": "duels", "name": "Duels 1", "moneyCost": 0, "tpCost": 6, "gains": { "def": 3 } },
-    { "id": "duels-ii", "name": "Duels 2", "moneyCost": 0, "tpCost": 10, "gains": { "def": 5 } },
-    { "id": "duels-iii", "name": "Duels 3", "moneyCost": 0, "tpCost": 15, "gains": { "def": 8 } },
-    { "id": "first-touch", "name": "First Touch 1", "moneyCost": 0, "tpCost": 6, "gains": { "tec": 3 } },
-    { "id": "first-touch-ii", "name": "First Touch 2", "moneyCost": 0, "tpCost": 10, "gains": { "tec": 5 } },
-    { "id": "first-touch-iii", "name": "First Touch 3", "moneyCost": 0, "tpCost": 15, "gains": { "tec": 8 } },
-    { "id": "circuit", "name": "Circuit 1", "moneyCost": 0, "tpCost": 6, "gains": { "sta": 3 } },
-    { "id": "circuit-ii", "name": "Circuit 2", "moneyCost": 0, "tpCost": 10, "gains": { "sta": 5 } },
-    { "id": "circuit-iii", "name": "Circuit 3", "moneyCost": 0, "tpCost": 15, "gains": { "sta": 8 } },
-    { "id": "keeper-drills", "name": "Keeper Drills 1", "moneyCost": 0, "tpCost": 6, "gains": { "ref": 3 } },
-    { "id": "keeper-drills-ii", "name": "Keeper Drills 2", "moneyCost": 0, "tpCost": 10, "gains": { "ref": 5 } },
-    { "id": "keeper-drills-iii", "name": "Keeper Drills 3", "moneyCost": 0, "tpCost": 15, "gains": { "ref": 8 } }
+    {
+      "id": "sprints",
+      "name": "Sprints 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "pac": 5
+      }
+    },
+    {
+      "id": "sprints-ii",
+      "name": "Sprints 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "pac": 8
+      }
+    },
+    {
+      "id": "finishing",
+      "name": "Finishing 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "sho": 5
+      }
+    },
+    {
+      "id": "finishing-ii",
+      "name": "Finishing 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "sho": 8
+      }
+    },
+    {
+      "id": "rondo",
+      "name": "Rondo 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "pas": 5
+      }
+    },
+    {
+      "id": "rondo-ii",
+      "name": "Rondo 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "pas": 8
+      }
+    },
+    {
+      "id": "duels",
+      "name": "Duels 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "def": 5
+      }
+    },
+    {
+      "id": "duels-ii",
+      "name": "Duels 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "def": 8
+      }
+    },
+    {
+      "id": "first-touch",
+      "name": "First Touch 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "tec": 5
+      }
+    },
+    {
+      "id": "first-touch-ii",
+      "name": "First Touch 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "tec": 8
+      }
+    },
+    {
+      "id": "circuit",
+      "name": "Circuit 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "sta": 5
+      }
+    },
+    {
+      "id": "circuit-ii",
+      "name": "Circuit 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "sta": 8
+      }
+    },
+    {
+      "id": "keeper-drills",
+      "name": "Keeper Drills 1",
+      "moneyCost": 0,
+      "tpCost": 10,
+      "gains": {
+        "ref": 5
+      }
+    },
+    {
+      "id": "keeper-drills-ii",
+      "name": "Keeper Drills 2",
+      "moneyCost": 0,
+      "tpCost": 15,
+      "gains": {
+        "ref": 8
+      }
+    }
   ]
 }

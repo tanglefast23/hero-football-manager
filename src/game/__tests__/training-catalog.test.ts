@@ -8,8 +8,10 @@ describe('training catalog is TP-only with rebalanced costs', () => {
     }
   });
 
-  test('TP cost is 6/10/15 by tier', () => {
-    const byTier: Record<number, number> = { 1: 6, 2: 10, 3: 15 };
+  test('TP cost is 10/15 by tier', () => {
+    // The old 6 TP rung is gone: it could never be selected, because the engine
+    // resolves the best UNLOCKED drill and the 10 TP rung opened at D5.
+    const byTier: Record<number, number> = { 1: 10, 2: 15 };
     for (const drill of catalog.focusDrills) {
       expect(drill.tpCost).toBe(byTier[trainingDrillTier(drill.id)]);
     }

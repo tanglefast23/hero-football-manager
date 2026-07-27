@@ -97,6 +97,7 @@ import {
   isFirstOnboardingFixture,
   isFullyCappedPlayer,
   leagueStandings,
+  hasAssistantGuideMilestone,
 } from './src/game';
 import type { DivisionLevel } from './src/game/pyramid';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
@@ -157,6 +158,12 @@ interface PendingConfirmation {
   readonly tone?: 'normal' | 'danger' | 'hero';
   readonly onConfirm: () => void;
 }
+
+/**
+ * Week 6: late enough that the manager has trained the slow way a few times and
+ * felt the friction, early enough to matter for the rest of season one.
+ */
+const QUICK_TRAIN_LESSON_WEEK = 6;
 
 export default function App() {
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
@@ -1073,6 +1080,7 @@ function GameApp() {
           store.career,
           store.watchedMatch.fixture.id,
         )}
+        cupRoundLabel={store.watchedMatch.cupRoundLabel}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         onDone={finishWatchedMatch}
       />
@@ -1263,6 +1271,14 @@ function GameApp() {
             reduceMotion={reduceMotion}
             drillPickerRequestToken={drillFocusToken ?? undefined}
             saveWarning={store.saveWarning}
+            conditionWarningSeen={store.career !== null
+              && hasAssistantGuideMilestone(store.career, 'condition-warning-seen')}
+            onConditionWarningShown={() => store.completeGuideMilestone('condition-warning-seen')}
+            guideQuickTrain={store.career !== null
+              && store.career.season === 1
+              && store.career.week >= QUICK_TRAIN_LESSON_WEEK
+              && !hasAssistantGuideMilestone(store.career, 'quick-train-seen')}
+            onQuickTrainShown={() => store.completeGuideMilestone('quick-train-seen')}
           />
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen
@@ -1413,7 +1429,9 @@ function GameApp() {
                 }
                 openAssistantGuide(alert.guideSequenceId, alert.destination);
               }
-              else if (alertId === 'training-ground') store.setActiveTab('club');
+              else if (alertId === 'training-ground' || alertId === 'build-reminder') {
+                store.setActiveTab('club');
+              }
               else if (alertId.startsWith('injury-')) {
                 store.selectPlayer(alertId.slice('injury-'.length));
                 store.setActiveTab('squad');

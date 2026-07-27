@@ -26,6 +26,12 @@ export interface InfoTipProps {
   accessibilityLabel: string;
   /** Which edge the bubble hangs from, so it never runs off a column's side. */
   align?: 'left' | 'right';
+  /**
+   * Applied to the anchor, not the child. A wrapped table header has to keep
+   * occupying its column: without this the anchor shrinks to its text and the
+   * heading drifts off the numbers it labels.
+   */
+  className?: string;
   children: React.ReactNode;
   onPress?: () => void;
 }
@@ -46,6 +52,7 @@ export function InfoTip({
   text,
   accessibilityLabel,
   align = 'left',
+  className,
   children,
   onPress,
 }: InfoTipProps) {
@@ -85,7 +92,7 @@ export function InfoTip({
     : TIP_WIDTH;
 
   return (
-    <View style={styles.anchor}>
+    <View style={styles.anchor} className={className}>
       <Pressable
         accessibilityRole={onPress === undefined ? 'text' : 'button'}
         accessibilityLabel={accessibilityLabel}

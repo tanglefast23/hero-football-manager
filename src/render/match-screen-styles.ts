@@ -85,6 +85,9 @@ export const styles = StyleSheet.create({
     left: 18,
     right: 18,
     gap: 4,
+    // Banners size to their own text instead of filling the row. A stretched
+    // bar reads as a page element; a lozenge reads as an announcement.
+    alignItems: 'center',
   },
   banner: {
     textAlign: 'center',
@@ -94,8 +97,11 @@ export const styles = StyleSheet.create({
     backgroundColor: '#241f2edd',
     borderWidth: 2,
     borderColor: '#edb54a',
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
     paddingVertical: 8,
+    borderRadius: 4,
+    maxWidth: '100%',
+    overflow: 'hidden',
   },
   bannerThreat: { color: '#f4f1ea', borderColor: '#d94f52', backgroundColor: '#3a1512ee' },
   bannerAction: { color: '#f4f1ea', borderColor: '#77a4d8', backgroundColor: '#214566ee' },

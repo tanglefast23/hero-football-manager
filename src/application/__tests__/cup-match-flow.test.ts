@@ -81,7 +81,7 @@ describe('National Cup app routing', () => {
       postMatch: {
         result: {
           fixtureId: expect.stringContaining('-cup-'),
-          competition: 'National Cup · Play-in',
+          competition: 'Global Cup · Play-in',
         },
       },
     });
@@ -90,4 +90,32 @@ describe('National Cup app routing', () => {
     )).toBe(true);
   });
 
+  test('hands a watched cup tie its round, and a watched league fixture none', () => {
+    // The round is what the match screen's title card is built from, so it has
+    // to survive the trip from the bracket into the watched-match context.
+    useM1Store.getState().startNewCareer(2);
+    useM1Store.getState().completePlayerCreation({
+      name: 'Cup Runner',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    const career = useM1Store.getState().career!;
+
+    useM1Store.setState({
+      career: { ...career, week: 3, phase: 'matchday' },
+      screen: 'matchday',
+    });
+    useM1Store.getState().watchMatch();
+    expect(useM1Store.getState().error).toBeNull();
+    expect(useM1Store.getState().watchedMatch!.cupRoundLabel).toBeUndefined();
+
+    // Season 1 leaves the play-in week empty of league fixtures, so the
+    // matchday resolves to the cup tie on its own.
+    useM1Store.setState({
+      career: { ...career, week: PLAY_IN_WEEK, phase: 'matchday' },
+      screen: 'matchday',
+    });
+    useM1Store.getState().watchMatch();
+    expect(useM1Store.getState().error).toBeNull();
+    expect(useM1Store.getState().watchedMatch!.cupRoundLabel).toBe('Play-in');
+  });
 });

@@ -668,6 +668,33 @@ export function seasonEndViewModel(
   };
 }
 
+/** First week the empty desk is a habit worth nudging rather than a tutorial gap. */
+const BUILD_REMINDER_WEEK = 7;
+
+/**
+ * The standing "keep building" nudge. It lives outside the weekly inbox
+ * scheduler on purpose: it carries no persisted read state, so it simply
+ * reappears on any week the desk is genuinely empty.
+ */
+const BUILD_REMINDER_ALERT: ClubAlertViewModel = {
+  id: 'build-reminder',
+  title: 'Keep building',
+  detail: 'Remember to construct new buildings every week if you have the finances to do so.',
+  tone: 'info',
+};
+
+/**
+ * A clear desk after the opening weeks reads as "nothing left to do", which is
+ * exactly when a manager stops expanding the grid. The nudge only fires when
+ * the works crew is free — asking for a build the player cannot start would be
+ * an instruction that goes nowhere — and never crowds out a real inbox item.
+ */
+function isBuildReminderDue(state: GameState, alerts: readonly ClubAlertViewModel[]): boolean {
+  return alerts.length === 0
+    && state.week >= BUILD_REMINDER_WEEK
+    && state.facilities.grid?.construction === undefined;
+}
+
 /** Live, uncapped product alerts before Bert's weekly desk scheduler. */
 export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
   const roster = rosterForClub(state, state.userClubId);
@@ -912,11 +939,14 @@ export function homeViewModel(state: GameState): HomeViewModel {
       destination: sequence.destination,
     };
   });
-  const alerts = [
+  const scheduledAlerts = [
     ...selectedProducts.filter(alert => alert.tone === 'urgent'),
     ...guideAlerts,
     ...selectedProducts.filter(alert => alert.tone !== 'urgent'),
   ].slice(0, 3);
+  const alerts = isBuildReminderDue(state, scheduledAlerts)
+    ? [BUILD_REMINDER_ALERT]
+    : scheduledAlerts;
 
   const standings = leagueStandings(state).map(row => ({
     position: row.position,
@@ -1093,7 +1123,7 @@ export function matchDayViewModel(
       state,
       fixture,
       matchday.kind === 'national-cup'
-        ? `National Cup · ${matchday.cupRoundLabel ?? 'Knockout tie'}`
+        ? `Global Cup · ${matchday.cupRoundLabel ?? 'Knockout tie'}`
         : undefined,
     ),
     formationLabel,
@@ -1353,7 +1383,7 @@ export function postMatchViewModel(
       fixtureId,
       competition: cupRound === undefined
         ? careerDivisionLabel(before)
-        : `National Cup · ${cupRound.label}`,
+        : `Global Cup · ${cupRound.label}`,
       homeTeam: clubName(before, fixture.homeClubId),
       awayTeam: clubName(before, fixture.awayClubId),
       homeScore: score.homeGoals,

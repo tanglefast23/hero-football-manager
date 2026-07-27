@@ -27,6 +27,7 @@ import {
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface MarketScreenProps {
   readonly viewModel: MarketViewModel;
@@ -70,6 +71,7 @@ export function MarketScreen({
   requestedSection,
   requestedSectionToken,
 }: MarketScreenProps) {
+  const desktopContent = useDesktopContentStyle();
   const [section, setSection] = useState<MarketSectionId>(() => initialSection(viewModel));
   const [scrollDismissedGuideFocus, setScrollDismissedGuideFocus] = useState<AssistantGuideFocus>();
   const visibleGuideFocus = scrollDismissedGuideFocus === guideFocus ? undefined : guideFocus;
@@ -255,7 +257,7 @@ export function MarketScreen({
     <View ref={marketViewportRef} collapsable={false} className="flex-1">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}
         onScrollBeginDrag={handleScrollBeginDrag}
         onScroll={handleScroll}
         scrollEventThrottle={16}

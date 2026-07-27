@@ -66,15 +66,16 @@ describe('default two-season career journey', () => {
     // MONEY charge, which is always 0 now — the ledger line can never fire, so
     // the old "at least one training-charge week across the season" and "never
     // more than one per week" assertions no longer measure anything real.
-    // Division 5 unlocks tiers I and II, so each tap is Sprints 2 (+5 PAC,
-    // scaled by age and the Gym/Training Pitch level, more on a SUPER session).
-    // Three changes lifted this from 548: tier II is open in D5, a level-1
-    // facility is now x1.25 instead of x1.0, and the club banks
-    // BASE_WEEKLY_TRAINING_POINTS every week, so fewer of the plan's taps are
-    // refused for an empty bank. Cap-free training keeps raising the raw PAC
-    // value; Sprints trains only PAC, so STA stays at the creation value.
+    // D5 opens tier 1 (Sprints 1, +5 PAC) and the first promotion opens tier 2
+    // (+8), scaled by age and the Gym/Training Pitch level, more on a SUPER
+    // session. This lifted from 655 when the second rung moved from D2 to D4:
+    // this journey promotes, so most of season two now trains on +8 instead of
+    // +5. That is the point of the change — promotion should feel like a tier
+    // change — and the economy rails and ramp probes still pass around it.
+    // Cap-free training keeps raising the raw PAC value; Sprints trains only
+    // PAC, so STA stays at the creation value.
     expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
-      .toMatchObject({ pac: 655, sta: 50 });
+      .toMatchObject({ pac: 812, sta: 50 });
   });
 });
 

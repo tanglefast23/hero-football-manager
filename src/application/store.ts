@@ -19,6 +19,7 @@ import {
   buildTrainingGround,
   completeFirstOnboardingMatch,
   completeAssistantGuideMilestone,
+  type AssistantGuideMilestone,
   completeAssistantGuideSequence,
   completeMatchday,
   completePostMatchAwakening,
@@ -67,6 +68,7 @@ import {
   type FacilityPosition,
   type FacilityType,
   type LeagueFixture,
+  type NationalCupRoundLabel,
 } from '../game';
 import type { ContractOffer, PitchCard } from '../game/market';
 import type {
@@ -141,6 +143,8 @@ export interface WatchedMatch {
   away: TeamDef;
   userIsFixtureHome: boolean;
   controlledTeam: 0 | 1;
+  /** Present only for a Global Cup tie; it opens the match on a title card. */
+  cupRoundLabel?: NationalCupRoundLabel;
 }
 
 export type PostMatchOverlay = 'summary' | null;
@@ -204,6 +208,8 @@ interface M1Store {
   setActiveTab: (tab: ManagementTab) => void;
   reconcileAssistantInbox: () => void;
   completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
+  /** Retires a one-shot Bert lesson for the rest of the career. */
+  completeGuideMilestone: (milestone: AssistantGuideMilestone) => void;
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
   advanceCareer: () => void;
@@ -479,6 +485,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
+  completeGuideMilestone(milestone) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      if (hasAssistantGuideMilestone(career, milestone)) return;
+      const next = completeAssistantGuideMilestone(career, milestone);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
   openMatchday() {
     const career = get().career;
     if (career?.phase !== 'matchday') {
@@ -698,7 +714,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         );
       }
       const career = requireCareer(get());
-      const { fixture, teams } = currentMatchday(career);
+      const { fixture, teams, cupRoundLabel } = currentMatchday(career);
       const userIsFixtureHome = fixture.homeClubId === career.userClubId;
       set({
         watchedMatch: {
@@ -707,6 +723,9 @@ export const useM1Store = create<M1Store>((set, get) => ({
           away: teams[fixture.awayClubId],
           userIsFixtureHome,
           controlledTeam: userIsFixtureHome ? 0 : 1,
+          // Only a cup matchday carries a round; a league week leaves this
+          // undefined and the match opens with no title card.
+          ...(cupRoundLabel === undefined ? {} : { cupRoundLabel }),
         },
         screen: 'watched',
         error: null,
@@ -1364,7 +1383,7 @@ function currentMatchday(state: GameState) {
         [fixture.awayClubId]: withoutPowers(builtTeams[fixture.awayClubId]),
       }
     : builtTeams;
-  return { kind: matchday.kind, fixture, fixtures, teams };
+  return { kind: matchday.kind, fixture, fixtures, teams, cupRoundLabel: matchday.cupRoundLabel };
 }
 
 function requireMarket(state: GameState): NonNullable<GameState['market']> {

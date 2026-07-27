@@ -16,8 +16,10 @@ import {
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
+import { CupBracket } from '../components/CupBracket';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
+import { useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface M2LeagueScreenProps {
   viewModel: M2LeagueViewModel;
@@ -34,6 +36,7 @@ export function M2LeagueScreen({
   onOpenCupFixture,
   guideNationalCup = false,
 }: M2LeagueScreenProps) {
+  const desktopContent = useDesktopContentStyle();
   const summary = viewModel.selectedDivisionSummary;
   const scrollRef = useRef<ScrollView>(null);
   const cupYRef = useRef<number | null>(null);
@@ -47,7 +50,7 @@ export function M2LeagueScreen({
     }));
   }, [guideNationalCup, layoutMode]);
 
-  const sections: FlowSection[] = [
+  const allSections: FlowSection[] = [
     {
       key: 'ladder',
       weight: 13,
@@ -229,7 +232,7 @@ export function M2LeagueScreen({
           ) : null}
           <SectionLabel
             eyebrow="All 50 clubs"
-            title="National Cup"
+            title="Global Cup"
             right={<StatusChip label={viewModel.cup.statusLabel} tone={viewModel.cup.championName ? 'hero' : 'normal'} />}
           />
 
@@ -239,7 +242,7 @@ export function M2LeagueScreen({
                 <Pressable
                   key={option.season}
                   accessibilityRole="button"
-                  accessibilityLabel={`${option.label} National Cup${option.championName ? `, won by ${option.championName}` : ''}`}
+                  accessibilityLabel={`${option.label} Global Cup${option.championName ? `, won by ${option.championName}` : ''}`}
                   accessibilityState={{ selected: option.selected, disabled: onSelectCupSeason === undefined }}
                   disabled={onSelectCupSeason === undefined}
                   onPress={() => onSelectCupSeason?.(option.season)}
@@ -283,18 +286,26 @@ export function M2LeagueScreen({
               )}
 
               <SectionLabel eyebrow={viewModel.cup.seasonLabel} title="Road to the final" />
+              {/* The bracket carries the shape of the road; the round cards
+                  below it stay for the play-in and for tapping into a tie the
+                  manager can actually play. */}
               <View
                 accessible
-                accessibilityLabel={`${viewModel.cup.seasonLabel} National Cup road to the final`}
-                className="gap-4"
+                accessibilityLabel={`${viewModel.cup.seasonLabel} Global Cup bracket`}
+                className="mb-4 border-2 border-ink bg-white p-2"
               >
-                {viewModel.cup.rounds.map(round => (
-                  <CupRoundCard
-                    key={round.round}
-                    round={round}
-                    onOpenCupFixture={onOpenCupFixture}
-                  />
-                ))}
+                <CupBracket rounds={viewModel.cup.rounds} championName={viewModel.cup.championName} />
+              </View>
+              <View className="gap-4">
+                {viewModel.cup.rounds
+                  .filter(round => round.active || round.fixtures.some(fixture => fixture.playableNow))
+                  .map(round => (
+                    <CupRoundCard
+                      key={round.round}
+                      round={round}
+                      onOpenCupFixture={onOpenCupFixture}
+                    />
+                  ))}
               </View>
             </>
           )}
@@ -303,8 +314,21 @@ export function M2LeagueScreen({
     },
   ];
 
+  /**
+   * While the inbox is sending the manager here for the cup, the cup leads.
+   * SectionFlow fills column one top-to-bottom, so putting the cup first is
+   * what "left column, already framed" means on a wide viewport — there is no
+   * scrolling to do once it is the first thing on the page.
+   */
+  const sections = guideNationalCup
+    ? [
+        ...allSections.filter(section => section.key === 'cup'),
+        ...allSections.filter(section => section.key !== 'cup'),
+      ]
+    : allSections;
+
   return (
-    <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 32 }, desktopContent]}>
       <SectionFlow
         mode={layoutMode}
         header={

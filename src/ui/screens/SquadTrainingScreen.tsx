@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
 import { Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
-import type { DrillResultViewModel, SquadPlayerViewModel, SquadTrainingViewModel } from '../models';
+import type {
+  DrillResultViewModel,
+  SquadPlayerViewModel,
+  SquadTrainingViewModel,
+  TrainingSlotStatOption,
+} from '../models';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import {
@@ -29,6 +34,22 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { InfoTip } from '../components/InfoTip';
+import { energyBand } from '../../render/match-energy-ui';
+import { useDesktopContentStyle } from '../layout/DesktopClamp';
+
+/**
+ * The roster reads condition on the same three bands as the drill popup and
+ * every match energy bar, so 40% cannot look calm in the register and amber one
+ * tap deeper. Red is bold as well as coloured: at that level it is a warning,
+ * not a reading.
+ */
+const CONDITION_TONE: Readonly<Record<'green' | 'amber' | 'red', string>> = {
+  green: 'text-ink',
+  amber: 'text-gold-dark',
+  // font-pixel, not font-bold: Silkscreen ships one weight per file, so a bold
+  // request on the regular cut is synthetic and smears the bitmap.
+  red: 'font-pixel text-stamp',
+};
 
 /**
  * What each roster column actually means. The words are short because the
@@ -65,6 +86,9 @@ const COLUMN_EXPLAINER: Readonly<Record<SquadSortKey, string>> = {
  */
 const CONDITION_WARNING_DRILL = 3;
 
+/** How far below the viewport top the attribute grid sits once framed. */
+const QUICK_TRAIN_FRAME_TOP = 96;
+
 /**
  * Nudges the cue off the row's right edge so it sits over the condition column
  * rather than the row's centre. The cue is TUTORIAL_TAP_CUE_WIDTH wide, the
@@ -93,6 +117,16 @@ export interface SquadTrainingScreenProps {
   drillPickerRequestToken?: number;
   /** Store save warning, shown inside the drill modal (a Modal covers the app banner). */
   saveWarning?: string | null;
+  /** True once Bert has given the condition lesson; it is one per career. */
+  conditionWarningSeen?: boolean;
+  onConditionWarningShown?: () => void;
+  /**
+   * The week-6 Quick Train lesson. The screen selects a player, frames the
+   * attribute grid and points at it, because the lesson is meaningless without
+   * a grid on screen to point at.
+   */
+  guideQuickTrain?: boolean;
+  onQuickTrainShown?: () => void;
 }
 
 export function SquadTrainingScreen({
@@ -107,7 +141,12 @@ export function SquadTrainingScreen({
   reduceMotion = false,
   drillPickerRequestToken,
   saveWarning = null,
+  conditionWarningSeen = false,
+  onConditionWarningShown,
+  guideQuickTrain = false,
+  onQuickTrainShown,
 }: SquadTrainingScreenProps) {
+  const desktopContent = useDesktopContentStyle();
   const { width } = useWindowDimensions();
   const wideColumns = width >= 600;
   // Wide columns spell their headers out in full ("SCORE", "POTENTIAL",
@@ -135,6 +174,11 @@ export function SquadTrainingScreen({
    * waits for the drill popup to close, because the popup covers the roster.
    */
   const [conditionCuePlayerId, setConditionCuePlayerId] = useState<string | null>(null);
+  /** The stat the manager tapped in the player file, aimed at its drill. */
+  const [quickTrainPathId, setQuickTrainPathId] = useState<string | undefined>(undefined);
+  const scrollRef = useRef<ScrollView>(null);
+  const attributesRef = useRef<View>(null);
+  const attributesScrolledRef = useRef(false);
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
@@ -172,9 +216,19 @@ export function SquadTrainingScreen({
 
   const handleTrainingBadgePress = useCallback((playerId: string) => {
     setTrainingCueUsed(true);
+    setQuickTrainPathId(undefined);
     onSelectPlayer(playerId);
     setDrillPickerOpen(true);
   }, [onSelectPlayer]);
+
+  /** Quick Train: the attribute IS the drill picker. */
+  const handleTrainAttribute = useCallback((pathId: string) => {
+    setTrainingCueUsed(true);
+    setQuickTrainPathId(pathId);
+    setDrillPickerOpen(true);
+    // Doing the thing retires the lesson; there is nothing left to teach.
+    onQuickTrainShown?.();
+  }, [onQuickTrainShown]);
 
   useEffect(() => {
     if (drillPickerRequestToken === undefined) return;
@@ -189,6 +243,34 @@ export function SquadTrainingScreen({
   }, [lastDrillResult]);
 
   const dismissConditionCue = useCallback(() => setConditionCuePlayerId(null), []);
+
+  /**
+   * Pick someone if nobody is selected, or there is no attribute grid for the
+   * lesson to point at. The created player sorts first, so they are the pick.
+   */
+  useEffect(() => {
+    if (!guideQuickTrain || selectedPlayerId !== undefined) return;
+    const first = sortedPlayers[0];
+    if (first !== undefined) onSelectPlayer(first.id);
+  }, [guideQuickTrain, onSelectPlayer, selectedPlayerId, sortedPlayers]);
+
+  /** Frame the grid once, on the frame after it has laid out. */
+  const frameAttributes = useCallback(() => {
+    if (!guideQuickTrain || attributesScrolledRef.current) return;
+    const target = attributesRef.current;
+    const scroller = scrollRef.current;
+    if (target === null || scroller === null) return;
+    attributesScrolledRef.current = true;
+    requestAnimationFrame(() => {
+      target.measureInWindow((_x, y) => {
+        scroller.scrollTo({ y: Math.max(0, y - QUICK_TRAIN_FRAME_TOP), animated: true });
+      });
+    });
+  }, [guideQuickTrain]);
+
+  useEffect(() => {
+    if (!guideQuickTrain) attributesScrolledRef.current = false;
+  }, [guideQuickTrain]);
 
   const layoutMode = useLayoutMode();
 
@@ -222,7 +304,15 @@ export function SquadTrainingScreen({
       key: 'player-file',
       weight: 9,
       node: (
-        <PlayerFileSection selectedPlayer={selectedPlayer} selectedArchetype={selectedArchetype} />
+        <PlayerFileSection
+          selectedPlayer={selectedPlayer}
+          selectedArchetype={selectedArchetype}
+          statOptions={viewModel.selectedPlayerStatOptions}
+          onTrainAttribute={handleTrainAttribute}
+          guideQuickTrain={guideQuickTrain}
+          attributesRef={attributesRef}
+          onAttributesLayout={frameAttributes}
+        />
       ),
     }] : []),
   ];
@@ -230,8 +320,9 @@ export function SquadTrainingScreen({
   return (
     <View className="flex-1">
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}
         onScrollBeginDrag={() => {
           dismissPlayerGuide();
           dismissConditionCue();
@@ -271,6 +362,9 @@ export function SquadTrainingScreen({
           onDismiss={() => setDrillPickerOpen(false)}
           reduceMotion={reduceMotion}
           saveWarning={saveWarning}
+          quickTrainPathId={quickTrainPathId}
+          conditionWarningSeen={conditionWarningSeen}
+          onConditionWarningShown={onConditionWarningShown}
         />
       ) : null}
     </View>
@@ -429,7 +523,12 @@ function RosterSection({
                 </View>
                 <Text className={`${currentColumnWidth} text-right font-mono text-base text-ink`} numberOfLines={1}>{player.overall}</Text>
                 <Text className={`${potentialColumnWidth} pr-1 text-right font-mono text-base text-gold-dark`} numberOfLines={1}>{player.potentialGrade}</Text>
-                <Text className={`${conditionColumnWidth} text-right font-mono text-sm ${player.condition < 30 ? 'text-stamp' : 'text-ink'}`} numberOfLines={1}>{player.condition}%</Text>
+                <Text
+                  className={`${conditionColumnWidth} text-right font-mono text-sm ${CONDITION_TONE[energyBand(player.condition)]}`}
+                  numberOfLines={1}
+                >
+                  {player.condition}%
+                </Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -474,9 +573,24 @@ function RosterSection({
 interface PlayerFileSectionProps {
   selectedPlayer: SquadPlayerViewModel;
   selectedArchetype?: ArchetypeDevelopmentSummary;
+  /** Best unlocked drill per stat, so an attribute box can name its own drill. */
+  statOptions?: readonly TrainingSlotStatOption[];
+  onTrainAttribute?: (pathId: string) => void;
+  /** Week-6 lesson: point at the grid and explain that the boxes are buttons. */
+  guideQuickTrain?: boolean;
+  attributesRef?: RefObject<View | null>;
+  onAttributesLayout?: () => void;
 }
 
-function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSectionProps) {
+function PlayerFileSection({
+  selectedPlayer,
+  selectedArchetype,
+  statOptions,
+  onTrainAttribute,
+  guideQuickTrain = false,
+  attributesRef,
+  onAttributesLayout,
+}: PlayerFileSectionProps) {
   return (
     <PaperPanel
       kicker="Player file"
@@ -506,7 +620,7 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
         <Metric
           label="Condition"
           value={`${selectedPlayer.condition}%`}
-          tone={selectedPlayer.condition < 30 ? 'negative' : 'positive'}
+          tone={energyBand(selectedPlayer.condition) === 'red' ? 'negative' : 'positive'}
         />
         <Metric label="Wage / wk" value={formatCurrency(selectedPlayer.weeklyWage)} />
       </View>
@@ -563,7 +677,25 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
           <Text className="font-mono text-base text-ink">{selectedPlayer.fame}</Text>
         </View>
       </View>
-      <View className="mt-3 border-2 border-ink bg-white p-3">
+      <View
+        ref={attributesRef}
+        collapsable={false}
+        onLayout={onAttributesLayout}
+        className={guideQuickTrain
+          ? 'relative mt-20 border-2 border-blue-dark bg-blue-light/20 p-3'
+          : 'mt-3 border-2 border-ink bg-white p-3'}
+      >
+        {guideQuickTrain ? (
+          <TutorialTapCue
+            label="Quick Train"
+            detail="Select a player and tap the attribute you want to train."
+            style={{
+              left: '50%',
+              marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+              top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+            }}
+          />
+        ) : null}
         <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/50">Attributes</PixelText>
         <Text className="mb-3 text-xs leading-4 text-ink/55">
           PAC pace · SHO shooting · PAS passing · DEF defense · TEC technique · STA stamina · REF goalkeeping
@@ -573,14 +705,37 @@ function PlayerFileSection({ selectedPlayer, selectedArchetype }: PlayerFileSect
             .filter(attribute => selectedPlayer.role === 'GK'
               ? attribute.label !== 'SHO'
               : attribute.label !== 'REF')
-            .map(attribute => (
-              <View key={attribute.label} className="min-w-[29%] flex-1 border border-ink/20 bg-paper px-2 py-2">
-                <PixelText className="text-sm uppercase text-ink/50">{attribute.label}</PixelText>
-                <Text className="mt-1 font-mono text-base text-ink">
-                  {attribute.value}
-                </Text>
-              </View>
-            ))}
+            .map(attribute => {
+              // Quick Train: the attribute IS the button. Tapping it opens the
+              // confirmation for whichever drill trains that stat.
+              const option = statOptions?.find(candidate => candidate.shortCode === attribute.label);
+              const trainable = option !== undefined && onTrainAttribute !== undefined;
+              return (
+                <Pressable
+                  key={attribute.label}
+                  accessibilityRole={trainable ? 'button' : 'text'}
+                  accessibilityLabel={trainable
+                    ? `Train ${attribute.label}, currently ${attribute.value}. ${option.drillName} for ${option.tpCost} training points, plus ${option.gain}.`
+                    : `${attribute.label} ${attribute.value}`}
+                  disabled={!trainable}
+                  onPress={trainable ? () => onTrainAttribute(option.pathId) : undefined}
+                  className={trainable
+                    ? 'min-w-[29%] flex-1 border-2 border-b-4 border-ink/40 bg-paper px-2 py-2'
+                    : 'min-w-[29%] flex-1 border border-ink/20 bg-paper px-2 py-2'}
+                  style={({ pressed }) => ({ opacity: pressed && trainable ? 0.65 : undefined })}
+                >
+                  <PixelText className="text-sm uppercase text-ink/50">{attribute.label}</PixelText>
+                  <Text className="mt-1 font-mono text-base text-ink">
+                    {attribute.value}
+                  </Text>
+                  {trainable ? (
+                    <Text className="mt-0.5 font-mono text-xs text-blue-dark" numberOfLines={1}>
+                      +{option.gain} · {option.tpCost} TP
+                    </Text>
+                  ) : null}
+                </Pressable>
+              );
+            })}
         </View>
       </View>
     </PaperPanel>
@@ -612,11 +767,12 @@ function SquadSortHeader({
     <InfoTip
       text={COLUMN_EXPLAINER[sortKey]}
       align={align}
+      className={widthClass}
       accessibilityLabel={`Sort by ${label}, ${direction ?? 'default order'}. Next: ${nextDirection}. ${COLUMN_EXPLAINER[sortKey]}`}
       onPress={() => onSort(sortKey)}
     >
     <View
-      className={`min-h-11 flex-row items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'} ${widthClass}`}
+      className={`min-h-11 w-full flex-row items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'}`}
     >
       <PixelText
         // A step down from the row values so the spelled-out words fit their

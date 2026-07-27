@@ -47,4 +47,19 @@ describe('first facility placement guidance', () => {
       /guideFocus !== 'facility-grid'\s*&& guideFocus !== 'coaching-office' \? \(/,
     );
   });
+
+  it('points at the Coaching Office when the inbox asks for one', () => {
+    const finances = readFileSync(join(process.cwd(), 'src/ui/screens/ClubFinancesScreen.tsx'), 'utf8');
+
+    // The viewport already scrolled the card into view, but nothing said which
+    // of the eight cards to press.
+    expect(finances).toContain("guideFocus === 'coaching-office' && entry.type === 'coaching-office'");
+    expect(finances).toContain('detail="Coaching Office"');
+    expect(finances).toContain('styles.guidedFacilityGlow');
+    expect(finances).toContain('border-gold-dark bg-gold-light/25');
+    // Same gold as the first-training Train button, and it reserves the room
+    // above itself so the arrow lands in a gap, not over the row above.
+    expect(finances).toContain("boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)'");
+    expect(finances).toContain("'relative mt-20 w-[48%]'");
+  });
 });

@@ -62,14 +62,17 @@ describe('validated M1 launch content', () => {
       'GUST',
     ]);
     expect(content.powers.powers.filter(power => power.tier === 'starter').length).toBeGreaterThanOrEqual(3);
-    expect(content.training.focusDrills).toHaveLength(21);
+    expect(content.training.focusDrills).toHaveLength(14);
     const drillPaths = new Map<string, number[]>();
     for (const drill of content.training.focusDrills) {
       expect(Object.keys(drill.gains)).toHaveLength(1);
       const path = drill.id.replace(/-(ii|iii)$/, '');
       drillPaths.set(path, [...(drillPaths.get(path) ?? []), ...Object.values(drill.gains)]);
     }
-    expect([...drillPaths.values()]).toEqual(Array.from({ length: 7 }, () => [3, 5, 8]));
+    // Two rungs per path now: the old bottom one was unreachable, because the
+    // engine always resolves the best UNLOCKED drill and tier 2 opened in the
+    // starting division.
+    expect([...drillPaths.values()]).toEqual(Array.from({ length: 7 }, () => [5, 8]));
     expect(content.events.events).toHaveLength(50);
     expect(new Set(content.events.events.map(event => event.category))).toEqual(new Set([
       'mystery',
@@ -230,16 +233,16 @@ describe('validated M1 launch content', () => {
     expect(() => parseLaunchContent(multiStat)).toThrow(/exactly one attribute/);
 
     const wrongAttribute = cloneContent(loadLaunchContent());
-    wrongAttribute.training.focusDrills[0].gains = { sho: 3 };
-    expect(() => parseLaunchContent(wrongAttribute)).toThrow(/must grant exactly \+3 PAC/);
+    wrongAttribute.training.focusDrills[0].gains = { sho: 5 };
+    expect(() => parseLaunchContent(wrongAttribute)).toThrow(/must grant exactly \+5 PAC/);
 
     const wrongTierAmount = cloneContent(loadLaunchContent());
-    wrongTierAmount.training.focusDrills[1].gains.pac = 8;
+    wrongTierAmount.training.focusDrills[0].gains.pac = 8;
     expect(() => parseLaunchContent(wrongTierAmount)).toThrow(/must grant exactly \+5 PAC/);
 
     const unknownTier = cloneContent(loadLaunchContent());
-    unknownTier.training.focusDrills[2].id = 'sprints-iv';
-    expect(() => parseLaunchContent(unknownTier)).toThrow(/seven I\/II\/III drill paths/);
+    unknownTier.training.focusDrills[1].id = 'sprints-iv';
+    expect(() => parseLaunchContent(unknownTier)).toThrow(/seven two-tier drill paths/);
   });
 
   test('rejects broken lineup, event-chain, and power references', () => {
@@ -276,7 +279,7 @@ describe('validated M1 launch content', () => {
     expect(content.training.focusDrills).toContainEqual(expect.objectContaining({
       id: 'circuit',
       name: 'Circuit 1',
-      gains: { sta: 3 },
+      gains: { sta: 5 },
     }));
     expect(content.events.tuning).toEqual({
       weeklyChancePercent: 18,
@@ -394,7 +397,10 @@ describe('validated M1 launch content', () => {
     const conciseBriefings = content.assistantGuide.sequences.slice(1)
       .flatMap(sequence => sequence.pages);
     expect(conciseBriefings.every(page => page.body.length === 1)).toBe(true);
-    expect(conciseBriefings.every(page => page.body[0].length <= 160)).toBe(true);
+    // 200, raised from 160 for the Global Cup briefing, which is the owner's
+    // own words at 199 characters. The cap exists so a briefing stays one
+    // readable card, not to hold any particular number.
+    expect(conciseBriefings.every(page => page.body[0].length <= 200)).toBe(true);
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'assistant-coach-hire')).toMatchObject({
         destination: 'coach-market',

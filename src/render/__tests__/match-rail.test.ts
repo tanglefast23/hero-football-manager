@@ -114,7 +114,10 @@ describe('desktop match control rail', () => {
 
     expect(styleSource()).toContain("justifyContent: 'center'");
     expect(styleSource()).not.toContain('desktopPitchPane: { flex: 1');
-    expect(matchSource()).toContain('{ left: desktopPitchLeft }');
+    // The banner stack follows the pitch's real left edge AND its width: moving
+    // only `left` left the stack anchored to the window's right edge, so match
+    // banners ran off the pitch and across the whole desktop window.
+    expect(matchSource()).toContain('{ left: desktopPitchLeft, right: undefined, width: pitchWidth }');
 
     const railRight = pitchLeftEdge(width, pitchWidth) - MATCH_RAIL_GUTTER;
     const railLeft = railRight - MATCH_RAIL_WIDTH;
@@ -168,9 +171,17 @@ describe('desktop match control rail', () => {
     expect(source).toContain('SWAP OPENS THE BENCH · FRESH LEGS ENTER AT 100%');
     expect(source).toContain('TEAM ENERGY ({ENERGY_USE_LABELS[energyUse]})');
     expect(source).toContain('{teamEnergy}% AVERAGE · {tiredCount} TIRED (≤ 40%)');
-    expect(source).toContain(
+    // The formation's shape note rides in its heading, the way TEAM ENERGY
+    // already carries its mode — the rail has to fit more hero tiles as the
+    // licence cap grows, and a spare caption row is the cheapest thing to give up.
+    expect(source).toContain('FORMATION ({FORMATION_LABELS[formation].toUpperCase()})');
+    expect(source).not.toContain(
       'ONE POWER TILE PER FIELDED HERO — THE RAIL GROWS TO 4 TILES WITH THE HERO LICENSE CAP.',
     );
+    // The A/M badge went with it: powers always fire on their own cue, so the
+    // badge could only ever read 'A'.
+    expect(source).not.toContain('policyToggle');
+    expect(source).not.toContain('autoPowers');
     // Status tiles only: firing is a tap on the glowing hero, not a rail button.
     expect(source).not.toContain('>FIRE<');
   });
