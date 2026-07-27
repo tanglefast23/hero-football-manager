@@ -49,7 +49,7 @@ export function M2LeagueScreen({
     }));
   }, [guideNationalCup, layoutMode]);
 
-  const sections: FlowSection[] = [
+  const allSections: FlowSection[] = [
     {
       key: 'ladder',
       weight: 13,
@@ -304,6 +304,19 @@ export function M2LeagueScreen({
       ),
     },
   ];
+
+  /**
+   * While the inbox is sending the manager here for the cup, the cup leads.
+   * SectionFlow fills column one top-to-bottom, so putting the cup first is
+   * what "left column, already framed" means on a wide viewport — there is no
+   * scrolling to do once it is the first thing on the page.
+   */
+  const sections = guideNationalCup
+    ? [
+        ...allSections.filter(section => section.key === 'cup'),
+        ...allSections.filter(section => section.key !== 'cup'),
+      ]
+    : allSections;
 
   return (
     <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 32 }, desktopContent]}>

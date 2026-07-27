@@ -159,6 +159,12 @@ interface PendingConfirmation {
   readonly onConfirm: () => void;
 }
 
+/**
+ * Week 6: late enough that the manager has trained the slow way a few times and
+ * felt the friction, early enough to matter for the rest of season one.
+ */
+const QUICK_TRAIN_LESSON_WEEK = 6;
+
 export default function App() {
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
   if (process.env.EXPO_PUBLIC_POWER_MATCH_QA === '1') {
@@ -1268,6 +1274,11 @@ function GameApp() {
             conditionWarningSeen={store.career !== null
               && hasAssistantGuideMilestone(store.career, 'condition-warning-seen')}
             onConditionWarningShown={() => store.completeGuideMilestone('condition-warning-seen')}
+            guideQuickTrain={store.career !== null
+              && store.career.season === 1
+              && store.career.week >= QUICK_TRAIN_LESSON_WEEK
+              && !hasAssistantGuideMilestone(store.career, 'quick-train-seen')}
+            onQuickTrainShown={() => store.completeGuideMilestone('quick-train-seen')}
           />
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen

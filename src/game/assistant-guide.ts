@@ -38,7 +38,9 @@ export type AssistantGuideMilestone =
   | 'desk-intro-complete'
   | 'first-week-advanced'
   /** Bert explains the condition gamble once per career, then stays out of it. */
-  | 'condition-warning-seen';
+  | 'condition-warning-seen'
+  /** The Quick Train lesson: tap an attribute to train it. Shown once. */
+  | 'quick-train-seen';
 
 export type AssistantInboxProductAlertPriority = 'urgent' | 'normal';
 
@@ -80,6 +82,7 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'desk-intro-complete': 'guide:bert:desk-intro-complete',
   'first-week-advanced': 'guide:bert:first-week-advanced',
   'condition-warning-seen': 'guide:bert:condition-warning-seen',
+  'quick-train-seen': 'guide:bert:quick-train-seen',
 };
 
 const MILESTONE_BY_SEQUENCE: Readonly<Partial<Record<AssistantGuideSequenceId, AssistantGuideMilestone>>> = {

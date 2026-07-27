@@ -45,3 +45,18 @@ describe('desktop content width', () => {
     expect(clamp).toContain("useLayoutMode() === 'twoColumn'");
   });
 });
+
+describe('cup guidance', () => {
+  it('leads with the cup when the inbox sends you to it', () => {
+    const league = readFileSync(join(process.cwd(), 'src/ui/screens/M2LeagueScreen.tsx'), 'utf8');
+
+    // SectionFlow fills column one top-to-bottom, so "left column, already
+    // framed" on a wide viewport just means the cup is the first section —
+    // there is nothing to scroll to once it leads the page.
+    expect(league).toContain("allSections.filter(section => section.key === 'cup')");
+    expect(league).toContain("allSections.filter(section => section.key !== 'cup')");
+    expect(league).toContain('const sections = guideNationalCup');
+    // The phone keeps its scroll-into-view, because there the cup is below.
+    expect(league).toContain("if (guideNationalCup && layoutMode === 'single')");
+  });
+});

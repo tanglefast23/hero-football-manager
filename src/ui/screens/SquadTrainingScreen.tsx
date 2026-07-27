@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
@@ -86,6 +86,9 @@ const COLUMN_EXPLAINER: Readonly<Record<SquadSortKey, string>> = {
  */
 const CONDITION_WARNING_DRILL = 3;
 
+/** How far below the viewport top the attribute grid sits once framed. */
+const QUICK_TRAIN_FRAME_TOP = 96;
+
 /**
  * Nudges the cue off the row's right edge so it sits over the condition column
  * rather than the row's centre. The cue is TUTORIAL_TAP_CUE_WIDTH wide, the
@@ -117,6 +120,13 @@ export interface SquadTrainingScreenProps {
   /** True once Bert has given the condition lesson; it is one per career. */
   conditionWarningSeen?: boolean;
   onConditionWarningShown?: () => void;
+  /**
+   * The week-6 Quick Train lesson. The screen selects a player, frames the
+   * attribute grid and points at it, because the lesson is meaningless without
+   * a grid on screen to point at.
+   */
+  guideQuickTrain?: boolean;
+  onQuickTrainShown?: () => void;
 }
 
 export function SquadTrainingScreen({
@@ -133,6 +143,8 @@ export function SquadTrainingScreen({
   saveWarning = null,
   conditionWarningSeen = false,
   onConditionWarningShown,
+  guideQuickTrain = false,
+  onQuickTrainShown,
 }: SquadTrainingScreenProps) {
   const desktopContent = useDesktopContentStyle();
   const { width } = useWindowDimensions();
@@ -164,6 +176,9 @@ export function SquadTrainingScreen({
   const [conditionCuePlayerId, setConditionCuePlayerId] = useState<string | null>(null);
   /** The stat the manager tapped in the player file, aimed at its drill. */
   const [quickTrainPathId, setQuickTrainPathId] = useState<string | undefined>(undefined);
+  const scrollRef = useRef<ScrollView>(null);
+  const attributesRef = useRef<View>(null);
+  const attributesScrolledRef = useRef(false);
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
@@ -211,7 +226,9 @@ export function SquadTrainingScreen({
     setTrainingCueUsed(true);
     setQuickTrainPathId(pathId);
     setDrillPickerOpen(true);
-  }, []);
+    // Doing the thing retires the lesson; there is nothing left to teach.
+    onQuickTrainShown?.();
+  }, [onQuickTrainShown]);
 
   useEffect(() => {
     if (drillPickerRequestToken === undefined) return;
@@ -226,6 +243,34 @@ export function SquadTrainingScreen({
   }, [lastDrillResult]);
 
   const dismissConditionCue = useCallback(() => setConditionCuePlayerId(null), []);
+
+  /**
+   * Pick someone if nobody is selected, or there is no attribute grid for the
+   * lesson to point at. The created player sorts first, so they are the pick.
+   */
+  useEffect(() => {
+    if (!guideQuickTrain || selectedPlayerId !== undefined) return;
+    const first = sortedPlayers[0];
+    if (first !== undefined) onSelectPlayer(first.id);
+  }, [guideQuickTrain, onSelectPlayer, selectedPlayerId, sortedPlayers]);
+
+  /** Frame the grid once, on the frame after it has laid out. */
+  const frameAttributes = useCallback(() => {
+    if (!guideQuickTrain || attributesScrolledRef.current) return;
+    const target = attributesRef.current;
+    const scroller = scrollRef.current;
+    if (target === null || scroller === null) return;
+    attributesScrolledRef.current = true;
+    requestAnimationFrame(() => {
+      target.measureInWindow((_x, y) => {
+        scroller.scrollTo({ y: Math.max(0, y - QUICK_TRAIN_FRAME_TOP), animated: true });
+      });
+    });
+  }, [guideQuickTrain]);
+
+  useEffect(() => {
+    if (!guideQuickTrain) attributesScrolledRef.current = false;
+  }, [guideQuickTrain]);
 
   const layoutMode = useLayoutMode();
 
@@ -264,6 +309,9 @@ export function SquadTrainingScreen({
           selectedArchetype={selectedArchetype}
           statOptions={viewModel.selectedPlayerStatOptions}
           onTrainAttribute={handleTrainAttribute}
+          guideQuickTrain={guideQuickTrain}
+          attributesRef={attributesRef}
+          onAttributesLayout={frameAttributes}
         />
       ),
     }] : []),
@@ -272,6 +320,7 @@ export function SquadTrainingScreen({
   return (
     <View className="flex-1">
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         contentContainerStyle={[{ padding: 16, paddingBottom: 28 }, desktopContent]}
         onScrollBeginDrag={() => {
@@ -527,6 +576,10 @@ interface PlayerFileSectionProps {
   /** Best unlocked drill per stat, so an attribute box can name its own drill. */
   statOptions?: readonly TrainingSlotStatOption[];
   onTrainAttribute?: (pathId: string) => void;
+  /** Week-6 lesson: point at the grid and explain that the boxes are buttons. */
+  guideQuickTrain?: boolean;
+  attributesRef?: RefObject<View | null>;
+  onAttributesLayout?: () => void;
 }
 
 function PlayerFileSection({
@@ -534,6 +587,9 @@ function PlayerFileSection({
   selectedArchetype,
   statOptions,
   onTrainAttribute,
+  guideQuickTrain = false,
+  attributesRef,
+  onAttributesLayout,
 }: PlayerFileSectionProps) {
   return (
     <PaperPanel
@@ -621,7 +677,25 @@ function PlayerFileSection({
           <Text className="font-mono text-base text-ink">{selectedPlayer.fame}</Text>
         </View>
       </View>
-      <View className="mt-3 border-2 border-ink bg-white p-3">
+      <View
+        ref={attributesRef}
+        collapsable={false}
+        onLayout={onAttributesLayout}
+        className={guideQuickTrain
+          ? 'relative mt-20 border-2 border-blue-dark bg-blue-light/20 p-3'
+          : 'mt-3 border-2 border-ink bg-white p-3'}
+      >
+        {guideQuickTrain ? (
+          <TutorialTapCue
+            label="Quick Train"
+            detail="Select a player and tap the attribute you want to train."
+            style={{
+              left: '50%',
+              marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+              top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+            }}
+          />
+        ) : null}
         <PixelText className="mb-2 text-sm uppercase tracking-wide text-ink/50">Attributes</PixelText>
         <Text className="mb-3 text-xs leading-4 text-ink/55">
           PAC pace · SHO shooting · PAS passing · DEF defense · TEC technique · STA stamina · REF goalkeeping
