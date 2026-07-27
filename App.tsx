@@ -113,6 +113,7 @@ import {
 } from './src/application/assistant-guide';
 import { loadPreferencesFailSoft, markPowerCutInSeen } from './src/application/preferences';
 import {
+  DESK_STORY_ALERT_ID,
   awakeningCutsceneViewModel,
   clubLegacyViewModel,
   clubFinancesViewModel,
@@ -1438,6 +1439,8 @@ function GameApp() {
                 }
                 openAssistantGuide(alert.guideSequenceId, alert.destination);
               }
+              else if (alertId === DESK_STORY_ALERT_ID) store.openDeskStory();
+              else if (alertId.startsWith('training-upgrade:')) store.setActiveTab('squad');
               else if (alertId === 'training-ground' || alertId === 'build-reminder') {
                 store.setActiveTab('club');
               }

@@ -10,7 +10,7 @@ describe('M4 event selection', () => {
     const initial = createCareer(createLaunchCareerSetup(3));
     const state = { ...initial, season: 1, week: 7, phase: 'manage' as const };
 
-    expect(eventOfferForWeek(state, content)).toMatchObject({
+    expect(eventOfferForWeek(state, content, { deskClear: true })).toMatchObject({
       eventId: 'giant-spider-arrives',
       eventClock: { weeksWithoutEvent: 0 },
     });
@@ -27,7 +27,7 @@ describe('M4 event selection', () => {
       eventClock: { weeksWithoutEvent: 4, riskyChoices: 0 },
     };
 
-    expect(eventOfferForWeek(state, content)).toEqual({ eventClock: state.eventClock });
+    expect(eventOfferForWeek(state, content, { deskClear: true })).toEqual({ eventClock: state.eventClock });
   });
 
   it('is deterministic and never re-offers a resolved one-shot event', () => {
@@ -41,8 +41,8 @@ describe('M4 event selection', () => {
       resolvedEventIds: ['giant-spider-arrives', 'mysterious-energy-salesman'],
     };
 
-    const first = eventOfferForWeek(state, content);
-    const second = eventOfferForWeek(state, content);
+    const first = eventOfferForWeek(state, content, { deskClear: true });
+    const second = eventOfferForWeek(state, content, { deskClear: true });
 
     expect(second).toEqual(first);
     expect(first.eventId).toBeDefined();
@@ -61,7 +61,7 @@ describe('M4 event selection', () => {
       eventClock: { weeksWithoutEvent: 0, riskyChoices: 0 },
     };
 
-    const offer = eventOfferForWeek(state, content);
+    const offer = eventOfferForWeek(state, content, { deskClear: true });
 
     expect(offer.eventId).toBeUndefined();
     expect(offer.eventClock.weeksWithoutEvent).toBe(1);
@@ -78,9 +78,55 @@ describe('M4 event selection', () => {
       resolvedEventHistory: [{ eventId: 'team-bbq', season: 1, week: 7 }],
     };
 
-    expect(eventOfferForWeek(state, content)).toEqual({
+    expect(eventOfferForWeek(state, content, { deskClear: true })).toEqual({
       eventClock: { weeksWithoutEvent: 1, riskyChoices: 0 },
     });
+  });
+
+  it('keeps the random deck off a week that already has something to read', () => {
+    const initial = createCareer(createLaunchCareerSetup(99));
+    const state = {
+      ...initial,
+      season: 2,
+      week: 12,
+      phase: 'manage' as const,
+      eventClock: { weeksWithoutEvent: 7, riskyChoices: 2 },
+      resolvedEventIds: ['giant-spider-arrives'],
+    };
+
+    expect(eventOfferForWeek(state, content, { deskClear: true }).eventId).toBeDefined();
+    expect(eventOfferForWeek(state, content, { deskClear: false })).toEqual({
+      eventClock: state.eventClock,
+    });
+  });
+
+  /**
+   * The spider's window is Season 1 weeks 7-12, when Bert's tutorial queue keeps
+   * the desk busy almost every week. Gating it would quietly retire it.
+   */
+  it('fires the authored spider inside its window even on a busy week', () => {
+    const initial = createCareer(createLaunchCareerSetup(3));
+    const state = { ...initial, season: 1, week: 7, phase: 'manage' as const };
+
+    expect(eventOfferForWeek(state, content, { deskClear: false }).eventId)
+      .toBe('giant-spider-arrives');
+  });
+
+  it('does not count a busy week towards the dry spell', () => {
+    const initial = createCareer(createLaunchCareerSetup(1));
+    const state = {
+      ...initial,
+      season: 1,
+      week: 1,
+      phase: 'manage' as const,
+      eventClock: { weeksWithoutEvent: 3, riskyChoices: 0 },
+    };
+
+    // Only quiet weeks that came up empty raise the odds of the next one.
+    expect(eventOfferForWeek(state, content, { deskClear: false }).eventClock.weeksWithoutEvent)
+      .toBe(3);
+    expect(eventOfferForWeek(state, content, { deskClear: true }).eventClock.weeksWithoutEvent)
+      .not.toBe(3);
   });
 
   it('enforces personality, facility, and money requirements from content', () => {
@@ -121,6 +167,6 @@ describe('M4 event selection', () => {
       resolvedEventIds: ['giant-spider-arrives', barbecue.id],
     };
 
-    expect(eventOfferForWeek(state, repeatableOnly).eventId).toBe(barbecue.id);
+    expect(eventOfferForWeek(state, repeatableOnly, { deskClear: true }).eventId).toBe(barbecue.id);
   });
 });

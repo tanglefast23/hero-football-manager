@@ -116,8 +116,12 @@ describe('M1 app store integration', () => {
     const career = useM1Store.getState().career!;
     useM1Store.setState({ career: { ...career, week: 7, phase: 'manage' }, screen: 'management' });
 
-    useM1Store.getState().advanceCareer();
+    // Stories land on the desk when the week is reconciled, not as an ambush on
+    // the way out of it; the card is then opened from the inbox.
+    useM1Store.getState().reconcileAssistantInbox();
     expect(useM1Store.getState().career?.pendingEvent?.eventId).toBe('giant-spider-arrives');
+    useM1Store.getState().openDeskStory();
+    expect(useM1Store.getState().screen).toBe('event');
     const beforeChoice = useM1Store.getState().career!;
     const userClub = beforeChoice.clubs.find(club => club.id === beforeChoice.userClubId)!;
     const moraleBefore = beforeChoice.players
@@ -614,6 +618,9 @@ describe('M1 app store integration', () => {
         if (current.screen === 'postmatch') current.continueAfterMatch();
         else if (current.screen === 'week-review') current.continueWeekReview();
         else if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
+        // A story waits on the desk as an inbox card now, so the journey has to
+        // open it the way a manager would rather than advance past it.
+        else if (career.pendingEvent !== undefined) current.openDeskStory();
         else current.advanceCareer();
       } else {
         throw new Error(`unexpected persisted journey screen ${current.screen}`);

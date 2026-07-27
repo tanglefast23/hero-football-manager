@@ -3,6 +3,14 @@ import { mulberry32 } from '../sim/rng';
 export interface EventClockState {
   weeksWithoutEvent: number;
   riskyChoices: number;
+  /**
+   * The week whose story offer has already been settled. The desk is reconciled
+   * on every render of a management week, so without a stamp the same week would
+   * re-roll — and each re-roll would tick the drought counter again. Absent on
+   * saves written before stories moved to the desk.
+   */
+  storySettledSeason?: number;
+  storySettledWeek?: number;
 }
 
 /** Story pacing knobs; the launch values live in `content/events.json`. */
@@ -28,6 +36,33 @@ export interface CareerEventRollContext {
   riskyChoices: number;
 }
 
+/**
+ * The chance a quiet week produces a story, rising with the drought.
+ *
+ * A flat weekly chance makes long silences feel like the game forgot about you,
+ * and a hard "guaranteed on week N" makes the wait feel scripted. Ramping from
+ * the base chance to certainty across the guarantee window keeps the guarantee
+ * intact while the weeks before it get steadily more likely, so a drought
+ * breaks sooner on average without ever breaking on a fixed schedule.
+ */
+export function quietWeekEventChancePercent(
+  weeksWithoutEvent: number,
+  tuning: EventClockTuning = DEFAULT_EVENT_CLOCK_TUNING,
+): number {
+  validateTuning(tuning);
+  if (!Number.isInteger(weeksWithoutEvent) || weeksWithoutEvent < 0) {
+    throw new Error('dry-week count must be a non-negative integer');
+  }
+  const weeksToCertainty = Math.max(1, tuning.guaranteeAfterDryWeeks - 1);
+  const progress = Math.min(1, weeksWithoutEvent / weeksToCertainty);
+  const base = tuning.weeklyChancePercent;
+  // Eased rather than linear: the first dry week barely moves the odds and the
+  // last one moves them a lot, so the ramp reads as patience running out rather
+  // than a countdown. A linear rise from the same base roughly halves the mean
+  // drought, which floods the desk at the tuned base chance.
+  return Math.round(base + (100 - base) * progress * progress);
+}
+
 export function rollWeeklyEvent(
   state: EventClockState,
   rollPercent: number,
@@ -39,9 +74,7 @@ export function rollWeeklyEvent(
     throw new Error('event roll must be an integer from 0 to 99');
   }
 
-  const offered =
-    state.weeksWithoutEvent >= tuning.guaranteeAfterDryWeeks - 1 ||
-    rollPercent < tuning.weeklyChancePercent;
+  const offered = rollPercent < quietWeekEventChancePercent(state.weeksWithoutEvent, tuning);
 
   return {
     offered,

@@ -1,6 +1,7 @@
 import type { Attrs, PowerId, Role } from '../sim/types';
 import type { FacilityGridState } from './facilities';
 import type { CareerMarketState } from './market-career';
+import type { DeskTipState } from './desk-tips';
 import type { M2CareerState } from './m2-career';
 import type { YouthIntakeState } from './youth-intake';
 
@@ -150,6 +151,13 @@ export interface FacilityState {
 export interface CareerEventState {
   weeksWithoutEvent: number;
   riskyChoices: number;
+  /**
+   * The week whose story offer has already been settled, so reconciling the
+   * same desk twice cannot re-roll it. Absent on saves written before stories
+   * moved from the Advance Week interrupt to the inbox.
+   */
+  storySettledSeason?: number;
+  storySettledWeek?: number;
 }
 
 export interface ResolvedCareerEvent {
@@ -399,6 +407,8 @@ export interface GameState {
   /** Season-stamped history used by recaps; absent on pre-M4 saves. */
   resolvedEventHistory?: ResolvedCareerEvent[];
   pendingEvent?: PendingCareerEvent;
+  /** This week's manager's-tip decision. Absent on saves written before tips. */
+  deskTip?: DeskTipState;
   awakening: CareerAwakeningState;
   /** Optional only so pre-onboarding internal M1 saves remain loadable. */
   onboarding?: CareerOnboardingState;

@@ -238,10 +238,10 @@ export function CharacterCreationScreen({
                 onPress={() => {
                   adjust(stat, -1);
                 }}
-                className="h-11 w-11 items-center justify-center border-2 border-ink/40"
+                className="h-11 w-11 items-center justify-center border-2 border-ink bg-blue"
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : value <= CREATION_STAT_MIN ? 0.3 : 1 })}
               >
-                <Text className="font-mono text-2xl font-bold text-ink">−</Text>
+                <Text className="font-mono text-2xl font-bold text-white">−</Text>
               </Pressable>
               <Text className="w-12 text-center font-mono text-2xl text-ink">{value}</Text>
               <Pressable

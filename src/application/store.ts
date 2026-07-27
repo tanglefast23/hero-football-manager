@@ -88,6 +88,8 @@ import { careerMarketScoutOptions } from './market-source-adapter';
 import {
   postMatchViewModel,
   reconcileHomeAssistantInbox,
+  settleWeeklyStory,
+  settleWeeklyTip,
   weeklyReviewViewModel,
 } from './view-models';
 import {
@@ -209,6 +211,8 @@ interface M1Store {
   continueAfterAwakening: () => void;
   setActiveTab: (tab: ManagementTab) => void;
   reconcileAssistantInbox: () => void;
+  /** Opens the story sitting on this week's desk. */
+  openDeskStory: () => void;
   completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
   /** Retires a one-shot Bert lesson for the rest of the career. */
   completeGuideMilestone: (milestone: AssistantGuideMilestone) => void;
@@ -474,10 +478,18 @@ export const useM1Store = create<M1Store>((set, get) => ({
   reconcileAssistantInbox() {
     const career = get().career;
     if (career === null) return;
-    const next = reconcileHomeAssistantInbox(career);
+    // Settling the story here (not only on Advance Week) is what gets a card
+    // onto the desk of a week the career reached through a match.
+    const next = settleWeeklyTip(settleWeeklyStory(reconcileHomeAssistantInbox(career)));
     if (next === career) return;
     set({ career: next });
     queueCareerSave(get, set, next);
+  },
+
+  openDeskStory() {
+    const career = get().career;
+    if (career?.pendingEvent === undefined) return;
+    set({ screen: 'event', error: null });
   },
 
   completeAssistantGuide(sequenceId) {
@@ -613,27 +625,21 @@ export const useM1Store = create<M1Store>((set, get) => ({
         return;
       }
 
+      // A story already on the desk is this week's business. Advancing past an
+      // unopened card would lose it, so the last press opens it instead.
       if (career.pendingEvent !== undefined) {
         set({ screen: 'event', error: null });
         return;
       }
-      const eventOffer = eventOfferForWeek(career, launchContent.events);
-      if (eventOffer.eventId !== undefined) {
-        const next = offerCareerEvent(
-          { ...career, eventClock: eventOffer.eventClock },
-          eventOffer.eventId,
-        );
-        set({ career: next, screen: 'event', error: null });
-        queueCareerSave(get, set, next);
-        return;
-      }
 
-      const careerForAdvance = { ...career, eventClock: eventOffer.eventClock };
-      const advanced = advanceWeek(careerForAdvance);
-      const next = advanced.week !== career.week
+      const advanced = advanceWeek(career);
+      const withMilestone = advanced.week !== career.week
         && hasAssistantGuideMilestone(career, 'first-training-complete')
         ? completeAssistantGuideMilestone(advanced, 'first-week-advanced')
         : advanced;
+      // Stories belong to the week being entered, not the one being left, so the
+      // card is already on the desk when the manager first sees the new week.
+      const next = settleWeeklyTip(settleWeeklyStory(withMilestone));
       const weekReview = next.phase === 'manage' && next.week !== career.week
         ? weeklyReviewViewModel(career, next)
         : null;
@@ -1532,6 +1538,9 @@ function careerEventRoll(
 function resumeScreen(career: GameState): M1Screen {
   if (career.onboarding?.stage === 'create-player') return 'create-player';
   if (career.awakening.pending !== undefined || career.onboarding?.stage === 'reveal') return 'awakening';
+  // Relaunching with a story open resumes it. Nothing records that the card was
+  // opened, so treating the offer itself as "resume here" is what keeps a story
+  // from being lost between a kill and the next launch.
   if (career.pendingEvent !== undefined) return 'event';
   if (career.phase === 'matchday') return 'matchday';
   if (career.phase === 'season-end' || career.phase === 'complete') {

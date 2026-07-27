@@ -33,6 +33,18 @@ export interface ClubAlertViewModel {
   playerId?: string;
 }
 
+/**
+ * A calendar beat with nothing to decide. Notes carry no route and no tone:
+ * the whole message is on the card, so there is nothing to open.
+ */
+export interface ManagerNoteViewModel {
+  id: string;
+  title: string;
+  detail: string;
+  /** Tips are a find on a quiet week; notes are the calendar. Read differently. */
+  kind?: 'note' | 'tip';
+}
+
 export interface LeagueSnippetViewModel {
   position: number;
   clubName: string;
@@ -79,6 +91,7 @@ export interface HomeViewModel {
   resources: ResourceSummaryViewModel;
   nextFixture: FixtureViewModel;
   alerts: readonly ClubAlertViewModel[];
+  notes: readonly ManagerNoteViewModel[];
   boardUltimatum?: {
     id: string;
     weeksRemaining: number;

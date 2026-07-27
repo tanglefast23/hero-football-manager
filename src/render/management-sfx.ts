@@ -56,7 +56,11 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // Reusable celebratory cue for positive outcomes (e.g. signing a player).
   // Appended last so existing player indices stay stable.
   positive: require('../../assets/audio/sfx/positive.m4a'),
-  'stat-step': require('../../assets/audio/sfx/ui-push-button.m4a'),
+  // Steppers get their own light tap rather than the push-button used for
+  // commits. A stat point or a hair swatch is one notch of an adjustment the
+  // player makes a dozen times in a row, and the heavier click made each notch
+  // sound like a decision.
+  'stat-step': require('../../assets/audio/sfx/ui-stat-step.m4a'),
   // Appended last, after `positive` and `stat-step`, so existing player indices
   // stay stable.
   'drill-progress': require('../../assets/audio/sfx/drill-progress.m4a'),

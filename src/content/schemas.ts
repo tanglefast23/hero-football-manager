@@ -515,12 +515,30 @@ export const GlossaryCatalogSchema = z.strictObject({
   addDuplicateIssues(catalog.categories.map(category => category.id), context, ['categories'], 'glossary category');
 });
 
+/**
+ * A manager's tip: one non-obvious rule, stated once. The body is bounded so a
+ * tip stays a card on a quiet desk rather than becoming a second glossary.
+ */
+const ManagerTipSchema = z.strictObject({
+  id: idSchema,
+  title: displayNameSchema,
+  body: z.string().trim().min(1).max(400),
+});
+
+export const ManagerTipCatalogSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  tips: z.array(ManagerTipSchema).min(1),
+}).superRefine((catalog, context) => {
+  addDuplicateIssues(catalog.tips.map(tip => tip.id), context, ['tips'], 'manager tip');
+});
+
 export const LaunchContentSchema = z.strictObject({
   assistantGuide: AssistantGuideContentSchema,
   clubs: ClubCatalogSchema,
   glossary: GlossaryCatalogSchema,
   onboarding: OnboardingContentSchema,
   powers: PowerCatalogSchema,
+  tips: ManagerTipCatalogSchema,
   training: TrainingCatalogSchema,
   events: EventCatalogSchema,
 }).superRefine((content, context) => {

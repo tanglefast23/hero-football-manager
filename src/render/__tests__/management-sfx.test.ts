@@ -120,7 +120,9 @@ describe('management feedback sounds', () => {
     // A real push-button click, not the 80ms tap that vanished under the music.
     expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-push-button.m4a')");
     expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-push-button.m4a')");
-    expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/ui-push-button.m4a')");
+    // Steppers are the exception: a lighter tap, because a stat point or a hair
+    // swatch is one notch of an adjustment, not a commitment.
+    expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/ui-stat-step.m4a')");
     expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
     expect(buttons).toContain("pressSfx = 'positive'");
   });

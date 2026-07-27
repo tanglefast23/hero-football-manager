@@ -64,14 +64,22 @@ describe('M4 event balance rails', () => {
     expect(Math.max(...expectedRiskyCash)).toBeLessThanOrEqual(3_000);
   });
 
-  it('lands a useful but non-flooding number of stories across two seasons', () => {
+  /**
+   * `deskClear: true` on every week makes this a CEILING, not the rate a career
+   * actually sees: stories are only offered on weeks whose inbox is otherwise
+   * empty, and a played career has far fewer of those than sixty. Re-derived
+   * from 6/18/8-14 when the flat weekly chance became a ramp that eases up to
+   * the guarantee — the same guarantee week, reached with rising odds instead
+   * of a flat roll, so the drought ceiling is unchanged and the middle fills in.
+   */
+  it('lands a useful but non-flooding ceiling on stories across two seasons', () => {
     const counts = Array.from({ length: 50 }, (_, seed) => {
       let state = createCareer(createLaunchCareerSetup(seed));
       let count = 0;
       for (let season = 1; season <= 2; season += 1) {
         for (let week = 1; week <= 30; week += 1) {
           state = { ...state, season, week, phase: 'manage' };
-          const offer = eventOfferForWeek(state, catalog);
+          const offer = eventOfferForWeek(state, catalog, { deskClear: true });
           state = {
             ...state,
             eventClock: offer.eventClock,
@@ -92,9 +100,9 @@ describe('M4 event balance rails', () => {
     });
     const mean = counts.reduce((sum, count) => sum + count, 0) / counts.length;
 
-    expect(Math.min(...counts)).toBeGreaterThanOrEqual(6);
-    expect(Math.max(...counts)).toBeLessThanOrEqual(18);
-    expect(mean).toBeGreaterThanOrEqual(8);
-    expect(mean).toBeLessThanOrEqual(14);
+    expect(Math.min(...counts)).toBeGreaterThanOrEqual(10);
+    expect(Math.max(...counts)).toBeLessThanOrEqual(21);
+    expect(mean).toBeGreaterThanOrEqual(14);
+    expect(mean).toBeLessThanOrEqual(18);
   });
 });

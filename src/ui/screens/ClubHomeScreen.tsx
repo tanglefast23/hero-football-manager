@@ -47,6 +47,8 @@ export function ClubHomeScreen({
   const fixture = viewModel.nextFixture;
   const fixtureIsThisWeek = viewModel.nextMatchTimingLabel === 'This week';
   const layoutMode = useLayoutMode();
+  // While the tutorial is pointing at one card, nothing else belongs on the desk.
+  const visibleNotes = lockOtherAlerts ? [] : viewModel.notes;
 
   const sections: FlowSection[] = [
     {
@@ -104,7 +106,7 @@ export function ClubHomeScreen({
     },
     {
       key: 'inbox',
-      weight: 2 + 2 * Math.max(viewModel.alerts.length, 1),
+      weight: 2 + 2 * Math.max(viewModel.alerts.length, 1) + 3 * visibleNotes.length,
       node: (
         <View>
           <SectionLabel
@@ -113,11 +115,12 @@ export function ClubHomeScreen({
             right={<StatusChip label={`${viewModel.alerts.length} open`} tone={viewModel.alerts.length ? 'danger' : 'normal'} />}
           />
           <View className="gap-2">
-            {viewModel.alerts.length === 0 ? (
+            {viewModel.alerts.length === 0 && visibleNotes.length === 0 ? (
               <PaperPanel>
                 <Text className="text-ink/60" style={scaledBody(textScale)}>Desk clear. The board is suspiciously quiet.</Text>
               </PaperPanel>
-            ) : viewModel.alerts.map(alert => {
+            ) : null}
+            {viewModel.alerts.map(alert => {
               const guided = alert.id === guideAlertId;
               const locked = lockOtherAlerts && guideAlertId !== undefined && !guided;
               return (
@@ -145,6 +148,27 @@ export function ClubHomeScreen({
                 </Pressable>
               );
             })}
+            {/* Calendar notes carry their whole message, so they are read, not
+                opened — no chevron, no press target, no line clamp. They stay
+                out of the tutorial's way while it is pointing at one card. */}
+            {visibleNotes.map(note => (
+              <View
+                key={note.id}
+                accessibilityRole="summary"
+                accessibilityLabel={note.kind === 'tip'
+                  ? `Manager's tip. ${note.title}. ${note.detail}`
+                  : `${note.title}. ${note.detail}`}
+                className={`border-2 border-b-4 p-3 ${note.kind === 'tip'
+                  ? 'border-gold-dark bg-gold-light'
+                  : 'border-grey-dark bg-paper-dark'}`}
+              >
+                {note.kind === 'tip' ? (
+                  <PixelText className="mb-1 text-xs uppercase text-gold-dark">Manager's tip</PixelText>
+                ) : null}
+                <PixelText className="text-base uppercase text-ink">{note.title}</PixelText>
+                <Text className="mt-1 text-ink/70" style={scaledBody(textScale, 14, 18)}>{note.detail}</Text>
+              </View>
+            ))}
           </View>
         </View>
       ),
