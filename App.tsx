@@ -1256,6 +1256,15 @@ function GameApp() {
               }
             }}
             onTrainDrill={(playerId, pathId) => store.trainPlayer(playerId, pathId)}
+            onBuyDrillUpgrade={pathId => {
+              const upgrade = squadTrainingVm!.drillUpgrades.find(row => row.pathId === pathId);
+              requestConfirmation({
+                title: `Buy ${upgrade?.label ?? 'drill'} Tier ${upgrade?.nextTier ?? ''}?`,
+                detail: `Spend ${upgrade === undefined ? 'the shown cost' : formatCurrency(upgrade.cost ?? 0)} once. Every ${upgrade?.label ?? ''} drill from now on gives +${upgrade?.nextGain ?? 0} for ${upgrade?.nextTpCost ?? 0} TP.`,
+                confirmLabel: 'Buy upgrade',
+                onConfirm: () => store.purchaseTrainingUpgrade(pathId),
+              });
+            }}
             lastDrillResult={store.lastDrillResult}
             trainingPoints={store.career?.trainingPoints ?? 0}
             guideTraining={assistantObjective?.target === 'training-plan'}

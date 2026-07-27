@@ -11,6 +11,11 @@ import {
 } from './facilities';
 import { recordCashTransaction } from './cash-transactions';
 import { facilityUpgradeBlockedReason } from './promotion-progression';
+import {
+  nextTrainingUpgradeOffer,
+  trainingPathLabel,
+  type TrainingUpgradeOffer,
+} from './training-paths';
 import type { GameState } from './types';
 
 export interface CareerFacilityTransaction extends FacilityTransaction {
@@ -101,6 +106,43 @@ export function relocateCareerFacility(
       label: `Relocated ${FACILITY_CATALOG[building.type].name}`,
       amount: -transaction.cost,
       referenceId: building.id,
+    }),
+  };
+}
+
+export interface CareerTrainingUpgradeTransaction {
+  readonly state: GameState;
+  readonly offer: TrainingUpgradeOffer;
+}
+
+/**
+ * Buys the next drill tier for one training path. No phase assertion: nothing
+ * about the purchase is settled weekly the way construction is, and the squad
+ * room stays open outside the manage phase.
+ */
+export function purchaseCareerTrainingUpgrade(
+  state: GameState,
+  pathId: string,
+): CareerTrainingUpgradeTransaction {
+  const offer = nextTrainingUpgradeOffer(state, pathId);
+  if (offer === undefined) {
+    throw new Error(`${trainingPathLabel(pathId)} already owns its best drill`);
+  }
+  if (offer.blockedReason !== undefined) throw new Error(offer.blockedReason);
+  const paid: GameState = {
+    ...state,
+    clubs: state.clubs.map(club => club.id === state.userClubId
+      ? { ...club, cash: club.cash - offer.cost }
+      : club),
+    ownedTrainingTiers: { ...state.ownedTrainingTiers, [pathId]: offer.tier },
+  };
+  return {
+    offer,
+    state: recordCashTransaction(paid, {
+      kind: 'training-upgrade',
+      label: `${trainingPathLabel(pathId)} Tier ${offer.tier} drill bought`,
+      amount: -offer.cost,
+      referenceId: offer.drillId,
     }),
   };
 }

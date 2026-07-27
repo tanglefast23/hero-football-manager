@@ -1,5 +1,11 @@
 import type { Attrs } from '../sim/types';
-import { trainingDrillTier, trainingDrillBlockedReason } from './promotion-progression';
+import {
+  MAX_TRAINING_DRILL_TIER,
+  trainingDrillBlockedReason,
+  trainingDrillIdForTier,
+  trainingDrillUpgradeCost,
+  type TrainingDrillTier,
+} from './promotion-progression';
 import type { CareerTrainingDrill, GameState } from './types';
 
 export interface TrainingPath {
@@ -35,20 +41,67 @@ export function trainingPathAttribute(pathId: string): keyof Attrs {
 
 /** Strips the tier suffix so any tier's drill id maps back to its path. */
 export function trainingDrillPathId(drillId: string): string {
-  return drillId.replace(/-(ii|iii)$/, '');
+  return drillId.replace(/-(ii|iii|iv|v)$/, '');
 }
 
 /**
- * Returns the highest-tier drill for a path that the club has unlocked. Tier I
- * is always unlocked, so this never fails for a valid path.
+ * The tier the club has actually bought for a path. Every career starts owning
+ * tier 1 everywhere, and saves written before upgrades were a purchase have no
+ * record at all — both read as tier 1.
+ */
+export function ownedTrainingTier(state: GameState, pathId: string): TrainingDrillTier {
+  if (!PATH_BY_ID.has(pathId)) throw new Error(`unknown training path ${pathId}`);
+  const owned = state.ownedTrainingTiers?.[pathId] ?? 1;
+  if (!Number.isInteger(owned) || owned < 1 || owned > MAX_TRAINING_DRILL_TIER) {
+    throw new Error(`invalid owned training tier ${owned} for path ${pathId}`);
+  }
+  return owned as TrainingDrillTier;
+}
+
+/**
+ * Returns the drill the club owns for a path. Promotion no longer hands the
+ * better drill over — it only puts it up for sale — so this reads the purchase
+ * record rather than the best tier the division allows.
  */
 export function resolveTrainingDrillForPath(state: GameState, pathId: string): CareerTrainingDrill {
-  if (!PATH_BY_ID.has(pathId)) throw new Error(`unknown training path ${pathId}`);
-  const catalog = state.trainingRules?.focusDrills ?? [];
-  const best = catalog
-    .filter(drill => trainingDrillPathId(drill.id) === pathId)
-    .sort((a, b) => trainingDrillTier(b.id) - trainingDrillTier(a.id))
-    .find(drill => trainingDrillBlockedReason(state, drill.id) === undefined);
-  if (best === undefined) throw new Error(`no unlocked drill for path ${pathId}`);
-  return best;
+  const drillId = trainingDrillIdForTier(pathId, ownedTrainingTier(state, pathId));
+  const drill = state.trainingRules?.focusDrills.find(candidate => candidate.id === drillId);
+  if (drill === undefined) throw new Error(`no drill ${drillId} in the career catalog`);
+  return drill;
+}
+
+export interface TrainingUpgradeOffer {
+  readonly pathId: string;
+  readonly tier: TrainingDrillTier;
+  readonly drillId: string;
+  readonly cost: number;
+  /** Why the club cannot buy it right now; undefined when the purchase is legal. */
+  readonly blockedReason?: string;
+}
+
+/**
+ * The next tier on offer for a path, or undefined once the club owns tier 5.
+ * The reason is resolved here so the squad room, the store action, and the
+ * purchase itself all agree on one sentence.
+ */
+export function nextTrainingUpgradeOffer(
+  state: GameState,
+  pathId: string,
+): TrainingUpgradeOffer | undefined {
+  const owned = ownedTrainingTier(state, pathId);
+  if (owned >= MAX_TRAINING_DRILL_TIER) return undefined;
+  const tier = (owned + 1) as Exclude<TrainingDrillTier, 1>;
+  const drillId = trainingDrillIdForTier(pathId, tier);
+  const cost = trainingDrillUpgradeCost(tier);
+  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
+  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
+  const blockedReason = trainingDrillBlockedReason(state, drillId)
+    ?? (club.cash < cost ? 'Not enough money.' : undefined);
+  return {
+    pathId,
+    tier,
+    drillId,
+    cost,
+    ...(blockedReason === undefined ? {} : { blockedReason }),
+  };
 }

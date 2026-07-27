@@ -22,6 +22,7 @@ import {
   overtrainingInjuryChancePercent,
   superTrainingChancePercent,
   facilityEffects,
+  nextTrainingUpgradeOffer,
   POSITION_TRAINING_ATTRIBUTES,
   reconcilePendingClubLegends,
   renewalQuote,
@@ -64,6 +65,7 @@ import {
   facilityUpgradeBlockedReason,
   highestDivisionReached,
   promotionRewardsForDivision,
+  trainingDrillTier,
 } from '../game/promotion-progression';
 import { marketNegotiationViewModel } from './market-view-model';
 import { leagueFixtureViewModel } from './m2-league-view-model';
@@ -1254,6 +1256,28 @@ export function squadTrainingViewModel(
             affordable: drill.tpCost <= state.trainingPoints,
           };
         }),
+    }),
+    drillUpgrades: TRAINING_PATHS.map(path => {
+      const owned = resolveTrainingDrillForPath(state, path.pathId);
+      const offer = nextTrainingUpgradeOffer(state, path.pathId);
+      const next = offer === undefined
+        ? undefined
+        : content.training.focusDrills.find(candidate => candidate.id === offer.drillId);
+      return {
+        pathId: path.pathId,
+        label: path.label,
+        drillName: drillName(owned.id),
+        ownedTier: trainingDrillTier(owned.id),
+        ownedGain: owned.gains[path.attribute] ?? 0,
+        ownedTpCost: owned.tpCost,
+        ...(offer === undefined || next === undefined ? {} : {
+          nextTier: offer.tier,
+          nextGain: next.gains[path.attribute] ?? 0,
+          nextTpCost: next.tpCost,
+          cost: offer.cost,
+          ...(offer.blockedReason === undefined ? {} : { blockedReason: offer.blockedReason }),
+        }),
+      };
     }),
     ...(() => {
       const holder = pendingTrainingPriorityHolder(state);

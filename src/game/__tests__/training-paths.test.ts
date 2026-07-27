@@ -11,11 +11,20 @@ describe('training paths', () => {
     expect(TRAINING_PATHS.find(p => p.pathId === 'duels')?.attribute).toBe('def');
   });
 
-  test('catalog is baked into state and resolver returns tier II at a D5 start', () => {
+  test('catalog is baked into state and the resolver returns the OWNED tier', () => {
     const state = runHeadlessFullCareer(createLaunchCareerSetup(0), 1);
-    expect(state.trainingRules?.focusDrills.length).toBe(21);
+    expect(state.trainingRules?.focusDrills.length).toBe(35);
+    // Nothing has been bought, so the club still trains on tier 1 whatever
+    // division it reached: promotion puts upgrades on sale, it does not gift them.
     const drill = resolveTrainingDrillForPath(state, 'sprints');
-    expect(drill.id).toBe('sprints-ii'); // tiers I and II are both open in D5
+    expect(drill.id).toBe('sprints');
     expect(drill.gains.pac).toBe(5);
+
+    const bought = resolveTrainingDrillForPath(
+      { ...state, ownedTrainingTiers: { sprints: 3 } },
+      'sprints',
+    );
+    expect(bought.id).toBe('sprints-iii');
+    expect(bought.gains.pac).toBe(12);
   });
 });

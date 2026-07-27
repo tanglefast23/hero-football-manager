@@ -41,8 +41,8 @@ describe('M2 player-specific instant training growth', () => {
     const young = trainWithoutSuper(prepare(20), playerId, 'circuit');
     const prime = trainWithoutSuper(prepare(25), playerId, 'circuit');
 
-    // Circuit 2 (+5 STA) is the best tier unlocked at a D5 start. Age 20 scales
-    // by 1.5 (round(7.5) = 8), age 25 by 1.0.
+    // Circuit 1 (+5 STA) is the tier every career owns from the start. Age 20
+    // scales by 1.5 (round(7.5) = 8), age 25 by 1.0.
     expect(young.after).toBe(58);
     expect(prime.after).toBe(55);
   });
@@ -75,7 +75,7 @@ describe('M2 player-specific instant training growth', () => {
 
     const result = trainWithoutSuper(state, playerId, 'circuit');
 
-    // Circuit 2's +5 STA doubles under the Lv3 Gym to +10; Engine's 15% (150
+    // Circuit 1's +5 STA doubles under the Lv3 Gym to +10; Engine's 15% (150
     // hundredths) releases one whole point and banks 50. No growth wall at 90.
     expect(result.after).toBe(101);
     expect(result.state.players.find(p => p.id === playerId)?.trainingBonusRemainders?.sta).toBe(50);
@@ -85,7 +85,7 @@ describe('M2 player-specific instant training growth', () => {
     const initial = createCareer({ ...createLaunchCareerSetup(90214) });
     const playerId = initial.players.find(player => player.clubId === initial.userClubId)!.id;
     // Anchor gives +15% DEF; a FWD earns no position bonus on DEF, and there is
-    // no coach, so each +5 Duels 2 drill banks exactly 75 hundredths.
+    // no coach, so each +5 Duels 1 drill banks exactly 75 hundredths.
     let state: GameState = {
       ...initial,
       trainingPoints: 100,
@@ -139,29 +139,33 @@ describe('M2 player-specific instant training growth', () => {
     expect(maximum.after).toBe(999);
   });
 
-  test('unlocks drill tiers from the permanent best division reached', () => {
+  test('puts one drill tier on sale per division reached', () => {
     const initial = {
       ...createCareer({ ...createLaunchCareerSetup(90219) }),
       trainingPoints: 100,
     };
 
-    // Tier 2 is open from the D5 start; only tier 3 still waits for a promotion.
-    expect(trainingDrillBlockedReason(initial, 'sprints-ii')).toBeUndefined();
+    // Tier 1 is owned from the D5 start; tier 2 waits for the first promotion.
+    expect(trainingDrillBlockedReason(initial, 'sprints')).toBeUndefined();
+    expect(trainingDrillBlockedReason(initial, 'sprints-ii'))
+      .toBe('Tier 2 drills unlock in D4 · County League.');
 
     // The active pyramid is still Division 5: the stored best division keeps
-    // the earned tier unlocked after relegation.
+    // an earned tier on the shelf after relegation.
     const reachedDivisionFour = {
       ...initial,
       m2: { ...initial.m2!, highestDivisionReached: 4 as const },
     };
     expect(trainingDrillBlockedReason(reachedDivisionFour, 'sprints-ii')).toBeUndefined();
     expect(trainingDrillBlockedReason(reachedDivisionFour, 'sprints-iii'))
-      .toBe('Tier 3 drills unlock in D2 · National Championship.');
+      .toBe('Tier 3 drills unlock in D3 · Regional League.');
 
     const reachedDivisionTwo = {
       ...initial,
       m2: { ...initial.m2!, highestDivisionReached: 2 as const },
     };
-    expect(trainingDrillBlockedReason(reachedDivisionTwo, 'sprints-iii')).toBeUndefined();
+    expect(trainingDrillBlockedReason(reachedDivisionTwo, 'sprints-iv')).toBeUndefined();
+    expect(trainingDrillBlockedReason(reachedDivisionTwo, 'sprints-v'))
+      .toBe('Tier 5 drills unlock in D1 · Global League.');
   });
 });

@@ -34,6 +34,9 @@ describe('retired weekly-training migration', () => {
     expect(loaded.trainingCapNotices).toBeUndefined();
     expect(loaded.pendingTrainingPromiseBump).toBeUndefined();
     expect((loaded.trainingRules as Record<string, unknown>).maxFocusDrillsPerWeek).toBeUndefined();
-    expect((loaded.trainingRules as { focusDrills: unknown[] }).focusDrills).toHaveLength(21);
+    expect((loaded.trainingRules as { focusDrills: unknown[] }).focusDrills).toHaveLength(35);
+    // A save written before drill upgrades were a purchase names no owned
+    // tiers, and every path reads as tier 1.
+    expect(loaded.ownedTrainingTiers).toBeUndefined();
   });
 });
