@@ -2316,7 +2316,13 @@ export function MatchScreen({
                     ? styles.powerActivationStackLeft
                     : styles.powerActivationStackRight,
                 ]}
-                onPress={() => setPowerCutIns([])}
+                // Only fires when the policy allows the skip, so the cue always
+                // means the tap landed. Explicit rather than via SfxPressable:
+                // the cut-in is cinematic and must not take a hover lift.
+                onPress={() => {
+                  playUiClickSfx();
+                  setPowerCutIns([]);
+                }}
               >
                 {/* The name card slams in from the edge on every activation.
                     Reduce Motion never starts the animation, so cardSlam holds

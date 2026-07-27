@@ -22,9 +22,13 @@ export function PlayerSigningOverlay({
   reduceMotion?: boolean;
   onClose: () => void;
 }) {
+  // Every signing is a receipt worth celebrating, not just the first one — an
+  // academy or transfer arrival opening in silence read as a failed purchase.
+  // Keyed on who signed, not on how: back-to-back signings swap the props
+  // without unmounting, and the second arrival still gets its own cue.
   useEffect(() => {
-    if (player.source === 'rookie') playPositiveSfx();
-  }, [player.source]);
+    playPositiveSfx();
+  }, [player.playerId]);
 
   const isRookie = player.source === 'rookie';
 
