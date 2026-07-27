@@ -145,8 +145,12 @@ describe('M2 player-specific instant training growth', () => {
       trainingPoints: 100,
     };
 
-    // Tier 2 is open from the D5 start; only tier 3 still waits for a promotion.
-    expect(trainingDrillBlockedReason(initial, 'sprints-ii')).toBeUndefined();
+    // One rung per promotion: D5 opens tier 1, and tier 2 waits for D4. The old
+    // ladder opened both in D5, so the drill you started with was also the best
+    // available until D2 — no upgrade for the whole early and mid game.
+    expect(trainingDrillBlockedReason(initial, 'sprints')).toBeUndefined();
+    expect(trainingDrillBlockedReason(initial, 'sprints-ii'))
+      .toBe('Tier 2 drills unlock in D4 · County League.');
 
     // The active pyramid is still Division 5: the stored best division keeps
     // the earned tier unlocked after relegation.
@@ -154,14 +158,8 @@ describe('M2 player-specific instant training growth', () => {
       ...initial,
       m2: { ...initial.m2!, highestDivisionReached: 4 as const },
     };
+    // The first promotion is the upgrade, and it survives relegation because
+    // the unlock reads the best division ever reached.
     expect(trainingDrillBlockedReason(reachedDivisionFour, 'sprints-ii')).toBeUndefined();
-    expect(trainingDrillBlockedReason(reachedDivisionFour, 'sprints-iii'))
-      .toBe('Tier 3 drills unlock in D2 · National Championship.');
-
-    const reachedDivisionTwo = {
-      ...initial,
-      m2: { ...initial.m2!, highestDivisionReached: 2 as const },
-    };
-    expect(trainingDrillBlockedReason(reachedDivisionTwo, 'sprints-iii')).toBeUndefined();
   });
 });

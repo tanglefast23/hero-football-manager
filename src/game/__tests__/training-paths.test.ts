@@ -11,11 +11,13 @@ describe('training paths', () => {
     expect(TRAINING_PATHS.find(p => p.pathId === 'duels')?.attribute).toBe('def');
   });
 
-  test('catalog is baked into state and resolver returns tier II at a D5 start', () => {
+  test('catalog is baked into state and a D5 start resolves to tier 1', () => {
     const state = runHeadlessFullCareer(createLaunchCareerSetup(0), 1);
-    expect(state.trainingRules?.focusDrills.length).toBe(21);
+    expect(state.trainingRules?.focusDrills.length).toBe(14);
     const drill = resolveTrainingDrillForPath(state, 'sprints');
-    expect(drill.id).toBe('sprints-ii'); // tiers I and II are both open in D5
+    // The starting division resolves to the FIRST rung now. It used to resolve
+    // to the second, which is why the first was dead content.
+    expect(drill.id).toBe('sprints');
     expect(drill.gains.pac).toBe(5);
   });
 });

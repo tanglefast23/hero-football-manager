@@ -116,8 +116,10 @@ export function trainingDrillTier(drillId: string): TrainingDrillTier {
 }
 
 export function trainingDrillUnlockDivision(tier: TrainingDrillTier): DivisionLevel {
-  // Tier 2 drills open at D5 for the same reason level-2 facilities do.
-  return tier <= 2 ? 5 : 2;
+  // One rung per promotion, starting at the floor. The old ladder unlocked its
+  // second tier at D5 too, so the drill you started with was also the best one
+  // available until D2 — the whole early and mid game with no training upgrade.
+  return tier <= 1 ? 5 : 4;
 }
 
 /** Drill unlocks are permanent once their division has been reached. */

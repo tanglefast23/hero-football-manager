@@ -316,9 +316,8 @@ const FOCUS_DRILL_PATHS = [
 // Tier labels are Arabic digits: the Roman "I" rendered as a bare bar in the
 // UI font and read as a serif-less 1.
 const FOCUS_DRILL_TIERS = [
-  { suffix: '', label: '1', gain: 3 },
-  { suffix: '-ii', label: '2', gain: 5 },
-  { suffix: '-iii', label: '3', gain: 8 },
+  { suffix: '', label: '1', gain: 5 },
+  { suffix: '-ii', label: '2', gain: 8 },
 ] as const;
 const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap(path => (
   FOCUS_DRILL_TIERS.map(tier => ({
@@ -339,7 +338,10 @@ export const TrainingDrillSchema = z.strictObject({
 
 export const TrainingCatalogSchema = z.strictObject({
   schemaVersion: ContentSchemaVersion,
-  focusDrills: z.array(TrainingDrillSchema).length(21),
+  // Seven paths, two tiers each. The old third rung was never reachable: the
+  // engine always resolves the best UNLOCKED drill, and tier 2 opened in the
+  // starting division, so tier 1 could not be selected by anyone.
+  focusDrills: z.array(TrainingDrillSchema).length(14),
 }).superRefine((catalog, context) => {
   addDuplicateIssues(
     catalog.focusDrills.map(drill => drill.id),
@@ -354,7 +356,7 @@ export const TrainingCatalogSchema = z.strictObject({
       addIssue(
         context,
         ['focusDrills', index, 'id'],
-        'focus drill ID must identify one of the seven I/II/III drill paths',
+        'focus drill ID must identify one of the seven two-tier drill paths',
       );
       return;
     }

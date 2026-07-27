@@ -34,6 +34,9 @@ describe('retired weekly-training migration', () => {
     expect(loaded.trainingCapNotices).toBeUndefined();
     expect(loaded.pendingTrainingPromiseBump).toBeUndefined();
     expect((loaded.trainingRules as Record<string, unknown>).maxFocusDrillsPerWeek).toBeUndefined();
-    expect((loaded.trainingRules as { focusDrills: unknown[] }).focusDrills).toHaveLength(21);
+    // Seven paths, two rungs. The old bottom rung is gone: it could never be
+    // selected, because the engine resolves the best UNLOCKED drill and the
+    // second rung opened in the starting division.
+    expect((loaded.trainingRules as { focusDrills: unknown[] }).focusDrills).toHaveLength(14);
   });
 });

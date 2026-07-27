@@ -24,9 +24,10 @@ describe('training drill tier unlocks', () => {
     ).selectedPlayerStatOptions?.find(option => option.pathId === 'sprints');
 
     // Tier II is unlocked from the D5 start, alongside level-2 facilities.
-    expect(optionAt(5)).toMatchObject({ drillName: 'Sprints 2' });
+    expect(optionAt(5)).toMatchObject({ drillName: 'Sprints 1' });
+    // The first promotion is the upgrade, and it holds for the rest of the climb.
     expect(optionAt(4)).toMatchObject({ drillName: 'Sprints 2' });
-    expect(optionAt(2)).toMatchObject({ drillName: 'Sprints 3' });
+    expect(optionAt(2)).toMatchObject({ drillName: 'Sprints 2' });
   });
 
   test('marks a stat option unaffordable when the bank cannot cover one tap', () => {
@@ -69,8 +70,9 @@ describe('training drill tier unlocks', () => {
     const unlockedPathCount = TRAINING_PATHS.length - 1;
     expect(squadTrainingViewModel(state, content, player.id).selectedPlayerStatOptions)
       .toHaveLength(unlockedPathCount);
-    // Tier 2 is unlocked from the D5 start; tier 3 stays locked until D2 is reached.
-    expect(drillTiersAt(5)).toEqual(Array.from({ length: unlockedPathCount }, () => '2'));
-    expect(drillTiersAt(2)).toEqual(Array.from({ length: unlockedPathCount }, () => '3'));
+    // One rung per promotion: the starting division offers tier 1, and the
+    // first promotion upgrades every path at once.
+    expect(drillTiersAt(5)).toEqual(Array.from({ length: unlockedPathCount }, () => '1'));
+    expect(drillTiersAt(4)).toEqual(Array.from({ length: unlockedPathCount }, () => '2'));
   });
 });

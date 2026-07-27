@@ -16,6 +16,7 @@ import {
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
+import { CupBracket } from '../components/CupBracket';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
@@ -285,18 +286,26 @@ export function M2LeagueScreen({
               )}
 
               <SectionLabel eyebrow={viewModel.cup.seasonLabel} title="Road to the final" />
+              {/* The bracket carries the shape of the road; the round cards
+                  below it stay for the play-in and for tapping into a tie the
+                  manager can actually play. */}
               <View
                 accessible
-                accessibilityLabel={`${viewModel.cup.seasonLabel} Global Cup road to the final`}
-                className="gap-4"
+                accessibilityLabel={`${viewModel.cup.seasonLabel} Global Cup bracket`}
+                className="mb-4 border-2 border-ink bg-white p-2"
               >
-                {viewModel.cup.rounds.map(round => (
-                  <CupRoundCard
-                    key={round.round}
-                    round={round}
-                    onOpenCupFixture={onOpenCupFixture}
-                  />
-                ))}
+                <CupBracket rounds={viewModel.cup.rounds} />
+              </View>
+              <View className="gap-4">
+                {viewModel.cup.rounds
+                  .filter(round => round.active || round.fixtures.some(fixture => fixture.playableNow))
+                  .map(round => (
+                    <CupRoundCard
+                      key={round.round}
+                      round={round}
+                      onOpenCupFixture={onOpenCupFixture}
+                    />
+                  ))}
               </View>
             </>
           )}
