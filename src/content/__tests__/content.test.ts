@@ -62,17 +62,14 @@ describe('validated M1 launch content', () => {
       'GUST',
     ]);
     expect(content.powers.powers.filter(power => power.tier === 'starter').length).toBeGreaterThanOrEqual(3);
-    expect(content.training.focusDrills).toHaveLength(14);
+    expect(content.training.focusDrills).toHaveLength(35);
     const drillPaths = new Map<string, number[]>();
     for (const drill of content.training.focusDrills) {
       expect(Object.keys(drill.gains)).toHaveLength(1);
-      const path = drill.id.replace(/-(ii|iii)$/, '');
+      const path = drill.id.replace(/-(ii|iii|iv|v)$/, '');
       drillPaths.set(path, [...(drillPaths.get(path) ?? []), ...Object.values(drill.gains)]);
     }
-    // Two rungs per path now: the old bottom one was unreachable, because the
-    // engine always resolves the best UNLOCKED drill and tier 2 opened in the
-    // starting division.
-    expect([...drillPaths.values()]).toEqual(Array.from({ length: 7 }, () => [5, 8]));
+    expect([...drillPaths.values()]).toEqual(Array.from({ length: 7 }, () => [5, 8, 12, 17, 23]));
     expect(content.events.events).toHaveLength(50);
     expect(new Set(content.events.events.map(event => event.category))).toEqual(new Set([
       'mystery',
@@ -237,12 +234,12 @@ describe('validated M1 launch content', () => {
     expect(() => parseLaunchContent(wrongAttribute)).toThrow(/must grant exactly \+5 PAC/);
 
     const wrongTierAmount = cloneContent(loadLaunchContent());
-    wrongTierAmount.training.focusDrills[0].gains.pac = 8;
-    expect(() => parseLaunchContent(wrongTierAmount)).toThrow(/must grant exactly \+5 PAC/);
+    wrongTierAmount.training.focusDrills[1].gains.pac = 12;
+    expect(() => parseLaunchContent(wrongTierAmount)).toThrow(/must grant exactly \+8 PAC/);
 
     const unknownTier = cloneContent(loadLaunchContent());
-    unknownTier.training.focusDrills[1].id = 'sprints-iv';
-    expect(() => parseLaunchContent(unknownTier)).toThrow(/seven two-tier drill paths/);
+    unknownTier.training.focusDrills[2].id = 'sprints-vi';
+    expect(() => parseLaunchContent(unknownTier)).toThrow(/seven five-tier drill paths/);
   });
 
   test('rejects broken lineup, event-chain, and power references', () => {

@@ -66,16 +66,15 @@ describe('default two-season career journey', () => {
     // MONEY charge, which is always 0 now — the ledger line can never fire, so
     // the old "at least one training-charge week across the season" and "never
     // more than one per week" assertions no longer measure anything real.
-    // D5 opens tier 1 (Sprints 1, +5 PAC) and the first promotion opens tier 2
-    // (+8), scaled by age and the Gym/Training Pitch level, more on a SUPER
-    // session. This lifted from 655 when the second rung moved from D2 to D4:
-    // this journey promotes, so most of season two now trains on +8 instead of
-    // +5. That is the point of the change — promotion should feel like a tier
-    // change — and the economy rails and ramp probes still pass around it.
+    // Back to 655 from 812, and the reason is the whole point of the feature:
+    // drill tiers are BOUGHT now, and this journey never buys one. Reaching D4
+    // only puts Sprints 2 up for sale, so an automated plan that spends TP and
+    // nothing else trains on Sprints 1 (+5) for all sixty weeks. 812 was the
+    // number when the upgrade arrived free on promotion.
     // Cap-free training keeps raising the raw PAC value; Sprints trains only
     // PAC, so STA stays at the creation value.
     expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
-      .toMatchObject({ pac: 812, sta: 50 });
+      .toMatchObject({ pac: 655, sta: 50 });
   });
 });
 
@@ -127,6 +126,9 @@ describe('promotion reward presentation', () => {
           title: 'Recruitment fund · $15,000',
           detail: 'The board added $15,000 to club funds. Use it to recruit a player who can help the club survive the County League.',
         },
+        // Promotion puts the next drill tier on sale, one path at a time. It
+        // does not hand it over, so this line names a price.
+        { title: 'Tier 2 drills · $3,000 each' },
         // No 'Level 2 facilities': it is available from D5, so promoting to D4
         // must not present it as newly earned.
         { title: 'International scouting' },

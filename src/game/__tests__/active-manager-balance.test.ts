@@ -70,9 +70,18 @@ describe('active-manager economy rail', () => {
     // must not accumulate cash without bound. Re-centred once the user club's
     // gate/sponsor income began scaling with division (previously it was frozen
     // at D5 values for the whole climb, which is why the old 175k ceiling held).
-    // Observed max across seeds [0, 77, 20_260_719] is ~734,400 -- ceiling is
-    // that rounded up to the next 100k plus one 100k of margin.
-    expect(Math.max(...balances)).toBeLessThanOrEqual(/* CEILING */ 900_000);
+    // Re-centred again when the league purse began rising $10,000 per division
+    // to fund the drill shop: this flawless winner takes the champion prize in
+    // D5, D4, D3, D2 and twice in D1, so it banks exactly $140,000 more over
+    // six seasons. Measured peaks across [0, 77, 20_260_719] moved 799,220 ->
+    // 939,220, 799,680 -> 939,680 and 837,800 -> 977,800. Ceiling is the new
+    // worst case rounded up to the next 100k plus one 100k of margin.
+    // 1.0M, not 1.1M. The worst sampled peak after the prize rise is 977,800,
+    // so this keeps roughly the same proportional headroom the 900k bound had
+    // over its own 837,800 — a ceiling far above the measurement stops being a
+    // guardrail. Note the rail never BUYS a drill upgrade, so it banks the new
+    // promotion money a real manager would be spending; that is what moved.
+    expect(Math.max(...balances)).toBeLessThanOrEqual(/* CEILING */ 1_000_000);
     expect(balances.every(b => Number.isSafeInteger(b))).toBe(true);
     expect(state.trainingPoints).toBeGreaterThanOrEqual(0);
   });
