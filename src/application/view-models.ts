@@ -1123,7 +1123,7 @@ export function matchDayViewModel(
       state,
       fixture,
       matchday.kind === 'national-cup'
-        ? `National Cup · ${matchday.cupRoundLabel ?? 'Knockout tie'}`
+        ? `Global Cup · ${matchday.cupRoundLabel ?? 'Knockout tie'}`
         : undefined,
     ),
     formationLabel,
@@ -1383,7 +1383,7 @@ export function postMatchViewModel(
       fixtureId,
       competition: cupRound === undefined
         ? careerDivisionLabel(before)
-        : `National Cup · ${cupRound.label}`,
+        : `Global Cup · ${cupRound.label}`,
       homeTeam: clubName(before, fixture.homeClubId),
       awayTeam: clubName(before, fixture.awayClubId),
       homeScore: score.homeGoals,

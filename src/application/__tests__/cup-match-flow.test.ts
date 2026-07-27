@@ -81,7 +81,7 @@ describe('National Cup app routing', () => {
       postMatch: {
         result: {
           fixtureId: expect.stringContaining('-cup-'),
-          competition: 'National Cup · Play-in',
+          competition: 'Global Cup · Play-in',
         },
       },
     });
