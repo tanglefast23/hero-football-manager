@@ -294,7 +294,7 @@ export function M2LeagueScreen({
                 accessibilityLabel={`${viewModel.cup.seasonLabel} Global Cup bracket`}
                 className="mb-4 border-2 border-ink bg-white p-2"
               >
-                <CupBracket rounds={viewModel.cup.rounds} />
+                <CupBracket rounds={viewModel.cup.rounds} championName={viewModel.cup.championName} />
               </View>
               <View className="gap-4">
                 {viewModel.cup.rounds

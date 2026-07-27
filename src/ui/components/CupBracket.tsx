@@ -1,11 +1,15 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   COLUMN_WIDTH,
+  NARROW_BAND_COLUMNS,
   TIE_HEIGHT,
+  cupBracketBands,
   cupBracketConnectors,
   cupBracketLayout,
+  type BracketLayout,
   type BracketTie,
 } from '../cup-bracket';
+import { useLayoutMode } from '../layout/use-layout-mode';
 import type { M2CupRoundViewModel } from '../m2-league-models';
 import { PixelText } from './PixelText';
 
@@ -27,13 +31,39 @@ const HEADER_HEIGHT = 26;
 
 export interface CupBracketProps {
   rounds: readonly M2CupRoundViewModel[];
+  /** Shown as a plate over the tree once the cup has been won. */
+  championName?: string;
 }
 
-export function CupBracket({ rounds }: CupBracketProps) {
-  const layout = cupBracketLayout(rounds);
-  if (layout.columns.length === 0) return null;
-  const connectors = cupBracketConnectors(layout);
+export function CupBracket({ rounds, championName }: CupBracketProps) {
+  const narrow = useLayoutMode() !== 'twoColumn';
+  // A phone gets the tree wrapped into bands rather than five columns it would
+  // have to scroll sideways through, which hides the shape the bracket is for.
+  const bands = narrow ? cupBracketBands(rounds, NARROW_BAND_COLUMNS) : [cupBracketLayout(rounds)];
+  if (bands.length === 0 || bands[0].columns.length === 0) return null;
 
+  return (
+    <View>
+      {bands.map((band, index) => (
+        <View key={band.columns[0].round} style={index === 0 ? null : styles.bandGap}>
+          {index > 0 ? (
+            <Text style={styles.bandNote}>WINNERS FROM ABOVE</Text>
+          ) : null}
+          <BracketBand layout={band} />
+        </View>
+      ))}
+      {championName === undefined ? null : (
+        <View accessible accessibilityLabel={`${championName} won the Global Cup`} style={styles.champion}>
+          <PixelText className="text-xs uppercase text-ink/60">Global Cup winners</PixelText>
+          <PixelText className="mt-1 text-lg uppercase text-ink" numberOfLines={1}>{championName}</PixelText>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function BracketBand({ layout }: { layout: BracketLayout }) {
+  const connectors = cupBracketConnectors(layout);
   return (
     <ScrollView
       horizontal
@@ -146,6 +176,24 @@ function TieSide({ name, placeholder, beaten }: { name: string; placeholder: boo
 
 const styles = StyleSheet.create({
   headerRow: { height: HEADER_HEIGHT },
+  /** Bands are one tree wrapped, so the seam is spacing plus a hand-off note. */
+  bandGap: { marginTop: 18 },
+  bandNote: {
+    color: '#6b6675',
+    fontFamily: 'Silkscreen_400Regular',
+    fontSize: 10,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  champion: {
+    marginTop: 12,
+    alignItems: 'center',
+    borderWidth: RULE,
+    borderBottomWidth: 4,
+    borderColor: '#c8862a',
+    backgroundColor: '#f7d894',
+    paddingVertical: 10,
+  },
   header: { position: 'absolute', top: 0 },
   rule: { position: 'absolute', backgroundColor: '#3f6fb5' },
   tie: {

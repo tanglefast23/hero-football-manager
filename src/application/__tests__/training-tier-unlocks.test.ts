@@ -54,7 +54,7 @@ describe('training drill tier unlocks', () => {
     const state = createCareer(createLaunchCareerSetup(413, undefined, content));
     const player = state.players.find(candidate => candidate.clubId === state.userClubId)!;
     // Drill names end with their tier ("Sprints 2"), so the last word is the tier.
-    const drillTiersAt = (highestDivisionReached: 5 | 2): readonly string[] => (
+    const drillTiersAt = (highestDivisionReached: 5 | 4 | 2): readonly string[] => (
       squadTrainingViewModel(
         {
           ...state,

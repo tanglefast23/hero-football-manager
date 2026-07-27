@@ -128,6 +128,38 @@ export function cupBracketLayout(rounds: readonly M2CupRoundViewModel[]): Bracke
   };
 }
 
+/**
+ * A phone cannot show five columns at a readable size, and scrolling sideways
+ * hides the shape — which is the only thing a bracket is for. So the tree wraps
+ * into bands of two: Round of 32 with Round of 16, then Quarter- with Semi-
+ * final, and the Final left over on its own. Two columns is 324px, which fits a
+ * 375pt phone; three did not, and the Final fell off the right edge.
+ *
+ * Winners carry from the bottom of one band to the top of the next, which is
+ * the same reading order as the wide tree.
+ */
+export const NARROW_BAND_COLUMNS: readonly number[] = [2, 2];
+
+export function cupBracketBands(
+  rounds: readonly M2CupRoundViewModel[],
+  columnsPerBand: readonly number[],
+): readonly BracketLayout[] {
+  const bracketRounds = rounds
+    .filter(round => round.round >= BRACKET_FIRST_ROUND)
+    .sort((a, b) => a.round - b.round);
+  const bands: BracketLayout[] = [];
+  let cursor = 0;
+  for (const width of columnsPerBand) {
+    if (cursor >= bracketRounds.length) break;
+    // Each band is laid out on its own, so its first column drives its height:
+    // the Quarter-final band is four ties tall, not sixteen.
+    bands.push(cupBracketLayout(bracketRounds.slice(cursor, cursor + width)));
+    cursor += width;
+  }
+  if (cursor < bracketRounds.length) bands.push(cupBracketLayout(bracketRounds.slice(cursor)));
+  return bands.filter(band => band.columns.length > 0);
+}
+
 export interface BracketConnector {
   readonly key: string;
   /** Elbow from a pair of ties into the one they feed: across, down, across. */

@@ -3,6 +3,8 @@ import { join } from 'node:path';
 
 import {
   BRACKET_FIRST_ROUND,
+  NARROW_BAND_COLUMNS,
+  cupBracketBands,
   COLUMN_GAP,
   COLUMN_WIDTH,
   cupBracketConnectors,
@@ -111,7 +113,7 @@ describe('cup bracket rendering', () => {
   const league = readFileSync(join(process.cwd(), 'src/ui/screens/M2LeagueScreen.tsx'), 'utf8');
 
   it('replaces the stack of round cards with the tree', () => {
-    expect(league).toContain('<CupBracket rounds={viewModel.cup.rounds} />');
+    expect(league).toContain('<CupBracket rounds={viewModel.cup.rounds}');
     // The round cards survive only where they still do work: the live round and
     // any tie the manager can actually play.
     expect(league).toContain('round.active || round.fixtures.some(fixture => fixture.playableNow)');
@@ -141,5 +143,62 @@ describe('cup bracket rendering', () => {
   it('scrolls sideways rather than shrinking names to nothing', () => {
     expect(bracket).toContain('horizontal');
     expect(bracket).toContain('showsHorizontalScrollIndicator={false}');
+  });
+});
+
+describe('narrow bracket bands', () => {
+  const full = [
+    round(2, 'Round of 32', Array.from({ length: 16 }, (_u, i) => fixture(`H${i}`, `A${i}`))),
+    round(3, 'Round of 16', [], 8),
+    round(4, 'Quarter-final', [], 4),
+    round(5, 'Semi-final', [], 2),
+    round(6, 'Final', [], 1),
+  ];
+
+  it('wraps five columns into bands that each fit a phone', () => {
+    // Five columns on a phone means scrolling sideways, which hides the shape a
+    // bracket exists to show. Wrapping trades width for height instead.
+    // Two columns is 324px and fits a 375pt phone. Three did not: the Final
+    // fell off the right edge, which is the whole thing you came to see.
+    expect(NARROW_BAND_COLUMNS).toEqual([2, 2]);
+    const bands = cupBracketBands(full, NARROW_BAND_COLUMNS);
+    expect(bands).toHaveLength(3);
+    expect(bands[0].columns.map(c => c.label)).toEqual(['Round of 32', 'Round of 16']);
+    expect(bands[1].columns.map(c => c.label)).toEqual(['Quarter-final', 'Semi-final']);
+    expect(bands[2].columns.map(c => c.label)).toEqual(['Final']);
+    // Every band fits without sideways scrolling.
+    for (const band of bands) expect(band.width).toBeLessThanOrEqual(COLUMN_WIDTH * 2 + COLUMN_GAP);
+  });
+
+  it('gives each band its own height, so the later rounds are not 16 ties tall', () => {
+    const [first, second, third] = cupBracketBands(full, NARROW_BAND_COLUMNS);
+    expect(first.columns[0].ties).toHaveLength(16);
+    expect(second.columns[0].ties).toHaveLength(4);
+    expect(third.columns[0].ties).toHaveLength(1);
+    expect(second.height).toBeLessThan(first.height);
+    expect(third.height).toBeLessThan(second.height);
+  });
+
+  it('still halves within a band', () => {
+    const [, second] = cupBracketBands(full, NARROW_BAND_COLUMNS);
+    expect(second.columns.map(c => c.ties.length)).toEqual([4, 2]);
+  });
+
+  it('drops empty bands rather than rendering blank rows', () => {
+    const early = [round(2, 'Round of 32', [fixture('A', 'B'), fixture('C', 'D')])];
+    const bands = cupBracketBands(early, NARROW_BAND_COLUMNS);
+    expect(bands).toHaveLength(1);
+    expect(bands[0].columns.map(c => c.label)).toEqual(['Round of 32']);
+  });
+
+  it('crowns the winner on a plate rather than a lone Final column', () => {
+    const bracket = readFileSync(join(process.cwd(), 'src/ui/components/CupBracket.tsx'), 'utf8');
+    const league = readFileSync(join(process.cwd(), 'src/ui/screens/M2LeagueScreen.tsx'), 'utf8');
+    expect(bracket).toContain('championName === undefined ? null : (');
+    expect(bracket).toContain('Global Cup winners');
+    expect(bracket).toContain('WINNERS FROM ABOVE');
+    expect(league).toContain('championName={viewModel.cup.championName}');
+    // The wide tree stays one band.
+    expect(bracket).toContain("const narrow = useLayoutMode() !== 'twoColumn';");
   });
 });
