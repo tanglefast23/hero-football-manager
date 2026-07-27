@@ -7,6 +7,7 @@ import { DrillGainReveal } from './components/DrillGainReveal';
 import { DrillSceneOverlay, drillActivityId } from '../render/DrillSceneOverlay';
 import { BertFullBody } from './AssistantGuideOverlay';
 import { energyBand } from '../render/match-energy-ui';
+import { INSTANT_DRILL_CONDITION_COST } from '../game/training';
 import { playDrillResultSfx, playSuperTrainingSfx, playManagementActionSfx } from '../render/management-sfx';
 import { playManagementHaptic } from '../render/haptics';
 import { useLayoutMode } from './layout/use-layout-mode';
@@ -26,6 +27,11 @@ export interface TrainingDrillModalProps {
   trainingPoints: number;
   /** The latest tap's resolution; ignored unless it belongs to this player. */
   lastDrillResult: DrillResultViewModel | null;
+  /**
+   * Quick Train: the stat the manager tapped in the player file. The popup
+   * opens straight onto that drill's confirmation instead of the list.
+   */
+  quickTrainPathId?: string;
   /**
    * True once Bert has explained the condition gamble. It is one lesson per
    * career, not one per player: after that a red-lined squad is the manager's
@@ -75,6 +81,7 @@ export function TrainingDrillModal({
   injuryWeeks,
   trainingPoints,
   lastDrillResult,
+  quickTrainPathId,
   conditionWarningSeen = false,
   onConditionWarningShown,
   promiseGate,
@@ -93,6 +100,12 @@ export function TrainingDrillModal({
   // nothing reads as a broken button. `bert` puts the assistant in the card for
   // anything that is advice rather than a rule.
   const [notice, setNotice] = useState<{ title: string; detail: string; bert?: boolean } | null>(null);
+  /**
+   * The drill awaiting a yes. Nothing spends TP until this is confirmed —
+   * training used to fire on the first tap, which made an accidental brush of
+   * the list an irreversible spend.
+   */
+  const [pendingConfirm, setPendingConfirm] = useState<TrainingSlotStatOption | null>(null);
   // Bert warns once per CAREER, and only after the result has finished playing —
   // interrupting the drill scene with a lecture would bury the gain.
   const pendingRedWarningRef = useRef(false);
@@ -106,6 +119,12 @@ export function TrainingDrillModal({
   useEffect(() => {
     streakRef.current = 0;
   }, [playerId]);
+
+  useEffect(() => {
+    if (quickTrainPathId === undefined) return;
+    const option = options.find(candidate => candidate.pathId === quickTrainPathId);
+    if (option !== undefined) setPendingConfirm(option);
+  }, [options, quickTrainPathId]);
 
   useEffect(() => {
     const result = lastDrillResult;
@@ -313,7 +332,7 @@ export function TrainingDrillModal({
                           });
                           return;
                         }
-                        onTrainDrill(playerId, option.pathId);
+                        setPendingConfirm(option);
                       }}
                       className={disabled || unaffordable
                         ? 'flex-row items-center justify-between border-2 border-ink/20 bg-white px-3 py-3 opacity-40'
@@ -404,6 +423,101 @@ export function TrainingDrillModal({
                   </View>
                 </View>
               </Pressable>
+            ) : null}
+
+            {pendingConfirm !== null ? (
+              <View style={[styles.noticeLayer, styles.noticeCenter]}>
+                <Pressable
+                  accessible={false}
+                  onPress={() => setPendingConfirm(null)}
+                  style={StyleSheet.absoluteFill}
+                >
+                  <View style={styles.noticeBackdrop} />
+                </Pressable>
+                <View className="w-[88%] max-w-[380px] border-2 border-b-4 border-ink bg-paper p-4">
+                  <PixelText className="text-sm uppercase tracking-wide text-blue-dark">
+                    Confirm training
+                  </PixelText>
+                  <PixelText className="mt-1 text-xl uppercase text-ink" numberOfLines={2}>
+                    {pendingConfirm.drillName}
+                  </PixelText>
+                  <Text className="mt-1 text-sm text-ink/60">
+                    {playerName} · {playerRole}
+                  </Text>
+
+                  {/* Everything the decision needs, on one card: what it buys,
+                      what it costs, and what it risks. */}
+                  <View className="mt-3 gap-2">
+                    <View className="flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2">
+                      <PixelText className="text-sm uppercase text-ink">{pendingConfirm.label}</PixelText>
+                      <Text className="font-pixel text-base text-ink">
+                        {pendingConfirm.currentValue} → {pendingConfirm.currentValue + pendingConfirm.gain}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center justify-between px-1">
+                      <Text className="text-sm text-ink/60">Training points</Text>
+                      <Text className={pendingConfirm.affordable
+                        ? 'font-mono text-sm text-ink'
+                        : 'font-pixel text-sm text-stamp'}>
+                        {pendingConfirm.tpCost} of {trainingPoints}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center justify-between px-1">
+                      <Text className="text-sm text-ink/60">Condition after</Text>
+                      <Text className="font-mono text-sm text-ink">
+                        {condition}% → {Math.max(0, condition - INSTANT_DRILL_CONDITION_COST)}%
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center justify-between px-1">
+                      <Text className="text-sm text-ink/60">Injury risk</Text>
+                      <Text className={injuryRiskPercent > 0
+                        ? 'font-pixel text-sm text-stamp'
+                        : 'font-mono text-sm text-ink'}>
+                        {injuryRiskPercent > 0 ? `${injuryRiskPercent}%` : 'None'}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center justify-between px-1">
+                      <Text className="text-sm text-ink/60">SUPER chance</Text>
+                      <Text className="font-mono text-sm text-gold-dark">★ {superChancePercent}%</Text>
+                    </View>
+                  </View>
+
+                  <View className="mt-4 flex-row gap-2">
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Cancel training"
+                      onPress={() => setPendingConfirm(null)}
+                      className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
+                      style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                    >
+                      <PixelText className="text-base uppercase text-ink">Cancel</PixelText>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={pendingConfirm.affordable
+                        ? `Train ${pendingConfirm.drillName} for ${pendingConfirm.tpCost} training points`
+                        : `Not enough training points for ${pendingConfirm.drillName}`}
+                      accessibilityState={{ disabled: !pendingConfirm.affordable }}
+                      disabled={!pendingConfirm.affordable}
+                      onPress={() => {
+                        const chosen = pendingConfirm;
+                        setPendingConfirm(null);
+                        onTrainDrill(playerId, chosen.pathId);
+                      }}
+                      className={pendingConfirm.affordable
+                        ? 'min-h-12 flex-[1.4] items-center justify-center border-2 border-b-4 border-ink bg-blue px-3'
+                        : 'min-h-12 flex-[1.4] items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'}
+                      style={({ pressed }) => ({ opacity: pressed && pendingConfirm.affordable ? 0.65 : undefined })}
+                    >
+                      <PixelText className={pendingConfirm.affordable
+                        ? 'text-base uppercase text-white'
+                        : 'text-base uppercase text-ink/40'}>
+                        {pendingConfirm.affordable ? 'Train ▸' : 'Not enough TP'}
+                      </PixelText>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
             ) : null}
 
             {notice !== null ? (
