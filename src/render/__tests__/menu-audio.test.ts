@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 const mockPlayers: Array<{
   volume: number;
   loop: boolean;
@@ -36,7 +39,6 @@ jest.mock('expo-audio', () => ({
 }));
 
 import {
-  duckMenuMusicForSfx,
   menuThemeForScreen,
   playAdvanceWeekSfx,
   playPlanLockedSfx,
@@ -100,15 +102,19 @@ describe('non-match music ownership', () => {
     expect(mockPlayers.every(player => player.volume === 0)).toBe(true);
   });
 
-  it('briefly ducks the music so light stepper taps remain audible', () => {
+  it('never dips the music around a UI cue', () => {
+    // Ducking was added to rescue stepper taps that seemed to vanish under the
+    // bed. They were not quiet, they were not playing (see management-sfx-
+    // voices.test.ts); the dip was audible pumping bought for nothing.
+    const audio = readFileSync(join(process.cwd(), 'src/render/menu-audio.ts'), 'utf8');
+    const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
+
+    expect(audio).not.toContain('duckMenuMusicForSfx');
+    expect(audio).not.toContain('DUCKED_MUSIC_VOLUME');
+    expect(sounds).not.toContain('duckMenuMusicForSfx');
+
     setMenuTheme('management');
-
-    duckMenuMusicForSfx();
-    expect(mockPlayers.slice(0, 3).every(player => player.volume === 0.1)).toBe(true);
-
-    jest.advanceTimersByTime(159);
-    expect(mockPlayers[1].volume).toBe(0.1);
-    jest.advanceTimersByTime(1);
+    setMenuMasterVolume(1);
     expect(mockPlayers.slice(0, 3).every(player => player.volume === 0.5)).toBe(true);
   });
 
