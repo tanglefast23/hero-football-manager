@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   PanResponder,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -36,10 +37,9 @@ import {
 const WIDE_BOARD_MIN_WIDTH = 900;
 /** Movement under this counts as a still finger rather than a drag. */
 const TAP_SLOP = 8;
-/** Hold this long to lift a card. Shorter swipes scroll the list instead. */
-const LIFT_DELAY_MS = 180;
 /** How long the hover and lift emphasis takes to arrive. */
 const EMPHASIS_MS = 110;
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface Rect { x: number; y: number; width: number; height: number }
 
@@ -70,10 +70,11 @@ export interface SubstitutionBoardProps {
 /**
  * The substitution board: a centred modal where every swap is a straight trade.
  *
- * Drag a starter onto a bench player and the two change places. Everyone the
- * dragged player is allowed to trade with lights up, using the same predicate
- * (`canSwap`) that accepts the drop — so what glows and what works cannot
- * disagree. Drop anywhere else and the card springs home.
+ * On a phone, tap a starter and then their replacement. On a wide pointer
+ * layout, a starter can also be dragged onto a bench player. Everyone the
+ * chosen player is allowed to trade with lights up, using the same predicate
+ * (`canSwap`) that accepts the trade — so what glows and what works cannot
+ * disagree.
  *
  * Dressed to docs/01, /08 and /11: the warm cream clubhouse canvas with ink
  * structure, Silkscreen at four sizes, blue carrying every neutral action, and
@@ -291,18 +292,27 @@ export function SubstitutionBoard({
         style={[styles.board, wide ? styles.boardWide : styles.boardNarrow]}
       >
         <View style={styles.header}>
-          <View style={styles.headerCopy}>
+          <View style={styles.titleBlock}>
             <Text style={styles.eyebrow}>MATCH PAUSED</Text>
-            <Text style={styles.title}>SUBSTITUTIONS</Text>
+            <View style={styles.titleRow}>
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                numberOfLines={1}
+                style={[styles.title, wide ? null : styles.titleNarrow]}
+              >
+                SUBSTITUTIONS
+              </Text>
+              <Text style={[styles.counter, atLimit ? styles.counterSpent : null]}>
+                {substitutionsUsed + staged}/{MAX_SUBSTITUTIONS}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.headerControls}>
             <Text style={styles.hint}>
               {picked === null
                 ? 'TAP A PLAYER, THEN TAP THEIR REPLACEMENT'
                 : 'NOW TAP ANYONE LIT UP · TAP AGAIN TO CANCEL'}
-            </Text>
-          </View>
-          <View style={styles.headerRight}>
-            <Text style={[styles.counter, atLimit ? styles.counterSpent : null]}>
-              {substitutionsUsed + staged}/{MAX_SUBSTITUTIONS}
             </Text>
             <SfxPressable
               accessibilityRole="switch"
@@ -353,7 +363,7 @@ export function SubstitutionBoard({
                       picked={picked?.id === id}
                       hint={dropTarget === id ? 'SWAP' : null}
                       compact={!wide}
-                      holdToLift={!wide}
+                      dragEnabled={wide}
                       registerCard={registerCard}
                       {...dragProps}
                       accessibilityLabel={incoming === undefined
@@ -421,7 +431,7 @@ export function SubstitutionBoard({
                           picked={picked?.id === id}
                           hint={dropTarget === id ? 'SWAP' : null}
                           compact={!wide}
-                          holdToLift={!wide}
+                          dragEnabled={wide}
                           registerCard={registerCard}
                           {...dragProps}
                           accessibilityLabel={`${entry.sub.name}, ${entry.sub.role}, fresh`}
@@ -461,7 +471,7 @@ export function SubstitutionBoard({
                         picked={picked?.id === id}
                         hint={dropTarget === id ? 'KEEP ON' : null}
                         compact={!wide}
-                        holdToLift={!wide}
+                        dragEnabled={wide}
                         registerCard={registerCard}
                         {...dragProps}
                         accessibilityLabel={`${entry.starter.name} is coming off`}
@@ -577,9 +587,9 @@ function LozengeButton({
 }
 
 /**
- * A draggable card that is also a drop target, and a button either way. Cards
- * spring home on release — the plan decides where players live, never the
- * gesture's resting place.
+ * A card button on mobile and an additionally draggable drop target on wide
+ * pointer layouts. Cards spring home on release — the plan decides where
+ * players live, never the gesture's resting place.
  */
 function DragCard({
   id,
@@ -588,7 +598,7 @@ function DragCard({
   picked,
   hint,
   compact,
-  holdToLift,
+  dragEnabled,
   registerCard,
   onDragStart,
   onDragMove,
@@ -608,8 +618,8 @@ function DragCard({
   /** Shown over this card while a compatible partner is carried onto it. */
   hint: string | null;
   compact: boolean;
-  /** The stacked board scrolls, so there a card must be held before it lifts. */
-  holdToLift: boolean;
+  /** Drag is pointer-only. Mobile deliberately stays tap-to-replace. */
+  dragEnabled: boolean;
   registerCard: (id: CardId) => (view: View | null) => void;
   onDragStart: (source: DragSource) => void;
   onDragMove: (source: DragSource, pageX: number, pageY: number) => void;
@@ -626,14 +636,13 @@ function DragCard({
   const [lifted, setLifted] = useState(false);
   const [hovered, setHovered] = useState(false);
   const liftedRef = useRef(false);
-  const liftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * The responder is built once, so it must never read props directly: the plan
    * it closed over would be the plan from the first render, and staging a second
    * swap against that stale copy would silently erase the first.
    */
-  const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, holdToLift });
-  latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, holdToLift };
+  const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, dragEnabled });
+  latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, dragEnabled };
 
   const tap = useCallback(() => latest.current.onTap(latest.current.source), []);
 
@@ -652,8 +661,6 @@ function DragCard({
   const scale = emphasis.interpolate({ inputRange: [0, 1, 2], outputRange: [1, 1.02, 1.06] });
 
   const release = useCallback(() => {
-    if (liftTimer.current !== null) clearTimeout(liftTimer.current);
-    liftTimer.current = null;
     liftedRef.current = false;
     setLifted(false);
     offset.setValue({ x: 0, y: 0 });
@@ -661,8 +668,6 @@ function DragCard({
   }, [offset]);
 
   const lift = useCallback(() => {
-    if (liftTimer.current !== null) clearTimeout(liftTimer.current);
-    liftTimer.current = null;
     liftedRef.current = true;
     setLifted(true);
     latest.current.onDragStart(latest.current.source);
@@ -670,27 +675,13 @@ function DragCard({
 
   const responder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        // Held, not merely touched. A card that lifted on contact would swallow
-        // every swipe and leave the list unscrollable on a phone.
-        liftTimer.current = setTimeout(lift, LIFT_DELAY_MS);
-      },
-      // Until the card lifts, the list may take the gesture back and scroll;
-      // once lifted, it may not.
+      // The responder is never attached on mobile, but this guard keeps the
+      // pointer-only contract intact if the props change before a render lands.
+      onStartShouldSetPanResponder: () => latest.current.dragEnabled,
       onPanResponderTerminationRequest: () => !liftedRef.current,
       onPanResponderMove: (_event, gesture) => {
         if (!liftedRef.current) {
           if (Math.abs(gesture.dx) <= TAP_SLOP && Math.abs(gesture.dy) <= TAP_SLOP) return;
-          // Moving early means a scroll on the stacked board, where the columns
-          // are one long list — but on the wide board nothing scrolls sideways
-          // and a mouse always moves before the hold elapses, so waiting there
-          // just made the card refuse to pick up. Movement IS the drag.
-          if (latest.current.holdToLift) {
-            if (liftTimer.current !== null) clearTimeout(liftTimer.current);
-            liftTimer.current = null;
-            return;
-          }
           lift();
         }
         offset.setValue({ x: gesture.dx, y: gesture.dy });
@@ -716,9 +707,10 @@ function DragCard({
   ).current;
 
   return (
-    <Animated.View
+    <AnimatedPressable
       ref={registerCard(id)}
-      {...responder.panHandlers}
+      {...(dragEnabled ? responder.panHandlers : {})}
+      onPress={dragEnabled ? undefined : tap}
       // Hover is a pointer affordance and simply never fires on a touch screen,
       // so the board loses nothing there.
       onPointerEnter={() => setHovered(true)}
@@ -733,10 +725,9 @@ function DragCard({
       accessibilityLabel={picked ? `${accessibilityLabel}, picked` : accessibilityLabel}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ selected: picked }}
-      // VoiceOver and TalkBack activate through this, never through the pan
-      // responder — without it the card announced itself as a button that did
-      // nothing when activated.
-      onAccessibilityTap={tap}
+      // A wide dragged View still needs the explicit accessibility action.
+      // Native Pressable handles VoiceOver/TalkBack through onPress on mobile.
+      onAccessibilityTap={dragEnabled ? tap : undefined}
       {...keyboardActivation(tap)}
       style={[
         style,
@@ -758,7 +749,7 @@ function DragCard({
         </View>
       )}
       {children}
-    </Animated.View>
+    </AnimatedPressable>
   );
 }
 
@@ -829,12 +820,14 @@ const styles = StyleSheet.create({
   boardNarrow: { maxWidth: 520, maxHeight: '94%' },
   scroll: { flexGrow: 0, flexShrink: 1 },
   scrollContent: { gap: 16 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
-  headerCopy: { flex: 1, minWidth: 0 },
-  headerRight: { alignItems: 'flex-end', gap: 8 },
+  header: { gap: 8 },
+  titleBlock: { minWidth: 0 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  headerControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   eyebrow: { color: '#6b6675', fontFamily: PIXEL, fontSize: 13, letterSpacing: 1 },
-  title: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 24, letterSpacing: 1, marginTop: 4 },
-  hint: { color: '#6b6675', fontFamily: PIXEL, fontSize: 13, letterSpacing: 0.6, marginTop: 6 },
+  title: { flexShrink: 1, color: INK, fontFamily: PIXEL_BOLD, fontSize: 24, letterSpacing: 1, marginTop: 4 },
+  titleNarrow: { fontSize: 18 },
+  hint: { flex: 1, color: '#6b6675', fontFamily: PIXEL, fontSize: 13, letterSpacing: 0.6 },
   counter: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 18, fontVariant: ['tabular-nums'] },
   counterSpent: { color: '#a83440' },
   autoSub: {

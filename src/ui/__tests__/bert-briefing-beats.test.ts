@@ -43,14 +43,15 @@ describe('briefing beats', () => {
     expect(longest).toBe(5);
   });
 
-  it('puts a page objective last within its page', () => {
+  it('leaves CTA objectives to the tooltip and progression layer', () => {
     const beats = briefingBeats(guide, 'head-coach-market');
-    const objectives = beats.filter(beat => beat.kind === 'objective');
-    expect(objectives).toHaveLength(1);
-    expect(beats.at(-1)).toBe(objectives[0]);
-    expect(objectives[0].text).toBe(
-      guide.sequences.find(s => s.id === 'head-coach-market')?.pages[0].objective,
-    );
+    const objective = guide.sequences
+      .find(s => s.id === 'head-coach-market')
+      ?.pages[0].objective;
+
+    expect(objective).toBeDefined();
+    expect(beats.map(beat => beat.text)).not.toContain(objective);
+    expect(beats.every(beat => beat.kind === 'body')).toBe(true);
   });
 
   it('emits only body beats for a page with no objective', () => {
@@ -62,7 +63,6 @@ describe('briefing beats', () => {
     for (const sequence of guide.sequences) {
       const expected = sequence.pages.flatMap(page => [
         ...page.body,
-        ...(page.objective === undefined ? [] : [page.objective]),
       ]);
       expect(briefingBeats(guide, sequence.id).map(beat => beat.text)).toEqual(expected);
     }
@@ -78,9 +78,7 @@ describe('beat focus', () => {
     expect(beatFocus(beats, 4)).toBe('navigation');
   });
 
-  it('holds the first and last focus across the entrance and exit walks', () => {
-    // No beat is active while he is travelling; falling back to a plain dim
-    // would flash the cutout off and on around every briefing.
+  it('holds the first and last focus across edge transitions', () => {
     expect(beatFocus(beats, -1)).toBe('assistant');
     expect(beatFocus(beats, beats.length)).toBe('navigation');
   });

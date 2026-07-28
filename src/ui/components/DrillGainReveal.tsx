@@ -3,7 +3,8 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SfxPressable as Pressable } from './SfxPressable';
 import { playDrillGainRevealSfx } from '../../render/management-sfx';
 
-export const DRILL_GAIN_REVEAL_MS = 1_200;
+export const DRILL_GAIN_REVEAL_MS = 1_400;
+const REDUCED_MOTION_GAIN_REVEAL_MS = 700;
 const SPOKE_COUNT = 12;
 
 export interface DrillGainRevealProps {
@@ -35,7 +36,7 @@ export function DrillGainReveal({
   useEffect(() => {
     playDrillGainRevealSfx();
     if (reduceMotion) {
-      const held = setTimeout(completeOnce, 500);
+      const held = setTimeout(completeOnce, REDUCED_MOTION_GAIN_REVEAL_MS);
       return () => clearTimeout(held);
     }
     const plate = Animated.spring(punch, {

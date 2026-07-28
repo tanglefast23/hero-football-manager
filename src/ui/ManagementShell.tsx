@@ -174,6 +174,20 @@ export function ManagementShell({
   onNavigationGuideAnchorChange,
   onDismissGuidance,
 }: ManagementShellProps) {
+  const dismissFrameRef = useRef<number | null>(null);
+  const dismissGuidanceAfterPress = useCallback(() => {
+    if (onDismissGuidance === undefined || dismissFrameRef.current !== null) return;
+    // RN web resolves Pressable.onPress after pointer-up. Waiting one frame lets
+    // that action land before a disappearing cue reflows the control beneath it.
+    dismissFrameRef.current = requestAnimationFrame(() => {
+      dismissFrameRef.current = null;
+      onDismissGuidance();
+    });
+  }, [onDismissGuidance]);
+  useEffect(() => () => {
+    if (dismissFrameRef.current !== null) cancelAnimationFrame(dismissFrameRef.current);
+  }, []);
+
   // Desktop players drive the chrome from the keyboard; a no-op on phones.
   useKeyBindings(
     managementKeyBindings({ tabs: TABS, onTabChange, onAdvanceWeek, advanceWeekDisabled }),
@@ -205,7 +219,8 @@ export function ManagementShell({
     <SafeAreaView
       className="flex-1 bg-paper-dark"
       edges={['left', 'right']}
-      onPointerUp={onDismissGuidance}
+      onPointerUp={dismissGuidanceAfterPress}
+      onTouchEnd={dismissGuidanceAfterPress}
     >
       {/* Persistent HUD bar — club and controls share the top row. The status-bar
           inset is padding on this bar, so the notch strip is HUD-coloured. */}

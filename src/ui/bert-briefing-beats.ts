@@ -7,29 +7,28 @@ import type {
  * A briefing sequence, flattened into the beats Bert speaks.
  *
  * The framed window showed a whole page at once and stepped page by page. A
- * walk-on says one thing at a time, so a sequence has to become a flat list —
- * one beat per paragraph, plus the page's objective if it has one.
+ * briefing says one thing at a time, so a sequence has to become a flat list —
+ * one beat per explanatory paragraph. Page objectives remain in the content
+ * for tutorial progression, but the tooltip already presents the next action.
  *
  * Beats are structured rather than two arrays kept in lockstep: the spotlight
- * needs the focus, the voice needs the text, the bubble needs to know an
- * objective from flavour, and a pair of parallel arrays is one careless
- * `filter` away from misaligning all three.
+ * needs the focus and the voice needs the text; a pair of parallel arrays is
+ * one careless `filter` away from misaligning them.
  */
 export interface BriefingBeat {
   readonly text: string;
   readonly focus: AssistantGuideFocus;
-  /** Objectives are styled apart — it is the one line stating the next move. */
-  readonly kind: 'body' | 'objective';
+  readonly kind: 'body';
   /** Which page it came from, for the concierge handoff on completion. */
   readonly pageIndex: number;
 }
 
 /**
- * The schema allows 4 pages of up to 2 paragraphs, each with an optional
- * objective, so no sequence can exceed this. Real content peaks at five beats
- * (`management-intro`); the other 23 flatten to two or fewer.
+ * The schema allows 4 pages of up to 2 paragraphs, so no sequence can exceed
+ * this. Real content peaks at five beats (`management-intro`); the other 23
+ * flatten to two or fewer.
  */
-export const MAX_BRIEFING_BEATS = 12;
+export const MAX_BRIEFING_BEATS = 8;
 
 export function briefingBeats(
   content: AssistantGuideContent,
@@ -43,11 +42,6 @@ export function briefingBeats(
     for (const paragraph of page.body) {
       beats.push({ text: paragraph, focus: page.focus, kind: 'body', pageIndex });
     }
-    // Last within its page, so the instruction lands after the reasoning for it
-    // rather than before.
-    if (page.objective !== undefined) {
-      beats.push({ text: page.objective, focus: page.focus, kind: 'objective', pageIndex });
-    }
   });
   return beats;
 }
@@ -55,10 +49,8 @@ export function briefingBeats(
 /**
  * The focus that should be lit while a given beat shows.
  *
- * There is no active beat during the entrance and exit walks, so the first and
- * last beats' focus is held across them. Letting the spotlight fall back to a
- * plain dim for the length of a walk would flash the cutout off and on around
- * every briefing.
+ * Clamp out-of-range indices so a transition at either edge keeps the nearest
+ * meaningful focus instead of flashing the spotlight off.
  */
 export function beatFocus(
   beats: readonly BriefingBeat[],

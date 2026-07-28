@@ -5,7 +5,8 @@ import { playSuperTrainingYaySfx } from '../../render/management-sfx';
 
 const CONFETTI_COLORS = ['#f6c744', '#d94f52', '#5b3a91', '#f4f1ea', '#63c56b', '#62b5e5'];
 /** A SUPER session is the rarest thing in a training week; it gets held. */
-export const SUPER_CELEBRATION_MS = 3200;
+export const SUPER_CELEBRATION_MS = 3400;
+const REDUCED_MOTION_SUPER_CELEBRATION_MS = 800;
 /** Four bursts, staggered — one shared clock made them all pop in unison. */
 const FIREWORK_DELAYS_MS = [0, 260, 620, 980] as const;
 
@@ -40,7 +41,7 @@ export function SuperTrainingCelebration({
 
   useEffect(() => {
     if (reduceMotion) {
-      const timer = setTimeout(completeOnce, 600);
+      const timer = setTimeout(completeOnce, REDUCED_MOTION_SUPER_CELEBRATION_MS);
       return () => clearTimeout(timer);
     }
     const confetti = Animated.timing(confettiProgress, {

@@ -1867,6 +1867,29 @@ export function MatchScreen({
     }
     syncPauseReasons();
   };
+  const dismissFirstMatchCueFrameRef = useRef<number | null>(null);
+  const dismissFirstMatchCueAfterPress = () => {
+    if (
+      firstMatchTutorialStepRef.current !== 'tired-swap-cue'
+      || dismissFirstMatchCueFrameRef.current !== null
+    ) return;
+    // Let the pressed match control act before removing a cue that may reserve
+    // layout around it. If the player tapped Swap, openSwap has already handled
+    // the tutorial; a tap anywhere else retires the cue and releases its pause.
+    dismissFirstMatchCueFrameRef.current = requestAnimationFrame(() => {
+      dismissFirstMatchCueFrameRef.current = null;
+      if (firstMatchTutorialStepRef.current !== 'tired-swap-cue') return;
+      firstMatchTutorialStepRef.current = null;
+      setFirstMatchTutorialStep(null);
+      automaticPauseReasonsRef.current.delete('tutorial');
+      syncPauseReasons();
+    });
+  };
+  useEffect(() => () => {
+    if (dismissFirstMatchCueFrameRef.current !== null) {
+      cancelAnimationFrame(dismissFirstMatchCueFrameRef.current);
+    }
+  }, []);
   const closeSwap = () => {
     setSwapOpen(false);
     automaticPauseReasonsRef.current.delete('swap');
@@ -1994,7 +2017,11 @@ export function MatchScreen({
   }${paused ? ' · PAUSED' : ''}`;
 
   return (
-    <View style={[styles.root, highContrast ? styles.rootHighContrast : null]}>
+    <View
+      style={[styles.root, highContrast ? styles.rootHighContrast : null]}
+      onPointerUp={dismissFirstMatchCueAfterPress}
+      onTouchEnd={dismissFirstMatchCueAfterPress}
+    >
       {/* Desktop replaces this bar with the rail scoreboard card. */}
       {railLayout ? null : (
         <Pressable

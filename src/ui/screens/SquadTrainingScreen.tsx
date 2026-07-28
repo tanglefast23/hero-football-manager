@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Dispatch, RefObject, SetStateAction } from 'react';
+import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
@@ -90,21 +90,6 @@ const CONDITION_WARNING_DRILL = 3;
 /** How far below the viewport top the attribute grid sits once framed. */
 const QUICK_TRAIN_FRAME_TOP = 96;
 
-/**
- * Aims the cue's arrow at the CONDITION header rather than at a player's row.
- *
- * Measured in from the table's right edge: the header's own px-3 padding (12),
- * then the unlabelled Train column (56). The header text is right-aligned, so
- * the word ends flush against that point and its centre is half a word further
- * in — hence the width estimates rather than the cell width, which would aim
- * the arrow at empty space to the word's left.
- */
-function conditionCueRightOffset(wideColumns: boolean): number {
-  const headerWordWidth = wideColumns ? 86 : 38;
-  const wordCentreFromRight = 12 + 56 + headerWordWidth / 2;
-  return Math.max(0, wordCentreFromRight - TUTORIAL_TAP_CUE_WIDTH / 2);
-}
-
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
   /** The player currently focused for the profile card and drill popup (mirrors store.selectedPlayerId). */
@@ -134,6 +119,8 @@ export interface SquadTrainingScreenProps {
    */
   guideQuickTrain?: boolean;
   onQuickTrainShown?: () => void;
+  /** Changes after any completed screen tap so floating tips can retire together. */
+  dismissTipsToken?: number;
 }
 
 export function SquadTrainingScreen({
@@ -153,6 +140,7 @@ export function SquadTrainingScreen({
   onConditionWarningShown,
   guideQuickTrain = false,
   onQuickTrainShown,
+  dismissTipsToken = 0,
 }: SquadTrainingScreenProps) {
   const desktopContent = useDesktopContentStyle();
   const { width } = useWindowDimensions();
@@ -182,6 +170,9 @@ export function SquadTrainingScreen({
    * waits for the drill popup to close, because the popup covers the roster.
    */
   const [conditionCuePlayerId, setConditionCuePlayerId] = useState<string | null>(null);
+  const lastDismissTipsTokenRef = useRef(dismissTipsToken);
+  const guideQuickTrainRef = useRef(guideQuickTrain);
+  const [quickTrainCueDismissed, setQuickTrainCueDismissed] = useState(false);
   /** The stat the manager tapped in the player file, aimed at its drill. */
   const [quickTrainPathId, setQuickTrainPathId] = useState<string | undefined>(undefined);
   const scrollRef = useRef<ScrollView>(null);
@@ -257,6 +248,22 @@ export function SquadTrainingScreen({
 
   const dismissConditionCue = useCallback(() => setConditionCuePlayerId(null), []);
 
+  useEffect(() => {
+    if (lastDismissTipsTokenRef.current === dismissTipsToken) return;
+    lastDismissTipsTokenRef.current = dismissTipsToken;
+    dismissPlayerGuide();
+    dismissConditionCue();
+    // Only retire the lesson if it was already on screen when this tap began.
+    // The Advance Week tap can unlock Quick Train; that new lesson must not be
+    // dismissed by the same tap that caused it to appear.
+    if (guideQuickTrainRef.current) setQuickTrainCueDismissed(true);
+  }, [dismissConditionCue, dismissPlayerGuide, dismissTipsToken]);
+
+  useEffect(() => {
+    guideQuickTrainRef.current = guideQuickTrain;
+    if (!guideQuickTrain) setQuickTrainCueDismissed(false);
+  }, [guideQuickTrain]);
+
   /**
    * Pick someone if nobody is selected, or there is no attribute grid for the
    * lesson to point at. The created player sorts first, so they are the pick.
@@ -322,7 +329,7 @@ export function SquadTrainingScreen({
           selectedArchetype={selectedArchetype}
           statOptions={viewModel.selectedPlayerStatOptions}
           onTrainAttribute={handleTrainAttribute}
-          guideQuickTrain={guideQuickTrain}
+          guideQuickTrain={guideQuickTrain && !quickTrainCueDismissed}
           attributesRef={attributesRef}
           onAttributesLayout={frameAttributes}
         />
@@ -458,25 +465,30 @@ function RosterSection({
             style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
           />
         ) : null}
-        {/* The condition lesson is about the column, not about one player, so it
-            hangs above the table pointing down at the header. Parked inside a
-            row it reserved 78px of blank space in the middle of the register. */}
-        {conditionCueShowing ? (
-          <TutorialTapCue
-            label="Condition"
-            detail="Too low and they risk injury. You're okay for now."
-            style={{
-              right: conditionCueRightOffset(wideColumns),
-              top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-            }}
-          />
-        ) : null}
         <View className="flex-row items-center border-b border-ink/20 px-3">
           <View className="w-10" />
           <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
           <SquadSortHeader label={wideColumns ? 'Score' : 'OVR'} sortKey="overall" sort={squadSort} widthClass={currentColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
           <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-          <SquadSortHeader label={wideColumns ? 'Condition' : 'Cond'} sortKey="condition" sort={squadSort} widthClass={conditionColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          <SquadSortHeader
+            label={wideColumns ? 'Condition' : 'Cond'}
+            sortKey="condition"
+            sort={squadSort}
+            widthClass={conditionColumnWidth}
+            align="right"
+            onSort={key => setSquadSort(current => nextSquadSort(current, key))}
+            tutorialCue={conditionCueShowing ? (
+              <TutorialTapCue
+                label="Condition"
+                detail="Too low and they risk injury. You're okay for now."
+                style={{
+                  left: '50%',
+                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                  top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                }}
+              />
+            ) : null}
+          />
           {/* The train column needs its width to keep the + buttons aligned, but
               not a label: the + is self-explanatory and the word was clipping. */}
           <View className="w-14" />
@@ -855,6 +867,7 @@ function SquadSortHeader({
   widthClass,
   align = 'left',
   onSort,
+  tutorialCue,
 }: {
   label: string;
   sortKey: SquadSortKey;
@@ -862,6 +875,7 @@ function SquadSortHeader({
   widthClass: string;
   align?: 'left' | 'right';
   onSort: (key: SquadSortKey) => void;
+  tutorialCue?: ReactNode;
 }) {
   const direction = sort?.key === sortKey ? sort.direction : null;
   const nextDirection = direction === null
@@ -878,8 +892,9 @@ function SquadSortHeader({
       onPress={() => onSort(sortKey)}
     >
     <View
-      className={`min-h-11 w-full flex-row items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'}`}
+      className={`relative min-h-11 w-full flex-row items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'}`}
     >
+      {tutorialCue}
       <PixelText
         // A step down from the row values so the spelled-out words fit their
         // column with the sort arrow — headers label the data, they aren't it.

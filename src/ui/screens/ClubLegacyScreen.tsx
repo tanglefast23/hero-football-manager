@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
@@ -21,6 +22,7 @@ export interface ClubLegacyScreenProps {
   onChoose: (choice: ClubLegacyChoiceViewModel['id']) => void;
   onOpenSettings: () => void;
   guided?: boolean;
+  onDismissGuidance?: () => void;
 }
 
 export function ClubLegacyScreen({
@@ -28,14 +30,32 @@ export function ClubLegacyScreen({
   onChoose,
   onOpenSettings,
   guided = false,
+  onDismissGuidance,
 }: ClubLegacyScreenProps) {
   const desktopContent = useDesktopContentStyle();
   const wide = useLayoutMode() === 'twoColumn';
   // Legends retire in a queue, and this choice is irreversible: without the
   // guard the second tap of a double-tap decides the next legend's future too.
   const guardTap = useTapGuard();
+  const dismissFrameRef = useRef<number | null>(null);
+  const dismissGuidanceAfterPress = useCallback(() => {
+    if (!guided || onDismissGuidance === undefined || dismissFrameRef.current !== null) return;
+    dismissFrameRef.current = requestAnimationFrame(() => {
+      dismissFrameRef.current = null;
+      onDismissGuidance();
+    });
+  }, [guided, onDismissGuidance]);
+  useEffect(() => () => {
+    if (dismissFrameRef.current !== null) cancelAnimationFrame(dismissFrameRef.current);
+  }, []);
+
   return (
-    <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      className="flex-1 bg-pitch-dark"
+      edges={['top', 'left', 'right', 'bottom']}
+      onPointerUp={dismissGuidanceAfterPress}
+      onTouchEnd={dismissGuidanceAfterPress}
+    >
       <ChalkboardBackdrop wide={wide} />
       <View className="flex-row items-center justify-between px-4 py-3">
         <View className="flex-1">

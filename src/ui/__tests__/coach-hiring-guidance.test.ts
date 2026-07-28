@@ -13,7 +13,7 @@ describe('coach hiring guidance', () => {
     expect(market).not.toContain('guidedAssistantCoachId');
     expect(market).not.toContain('detail="If you want to hire this coach"');
     expect(app).toContain('const hideCoachHiringCues = store.activeTab === \'market\'');
-    expect(app).toContain('guideTarget={hideCoachHiringCues ? undefined : assistantObjective?.target}');
+    expect(app).toContain('guideTarget={hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget}');
   });
 
   it('labels the post-hire action Return home and routes it to Home', () => {

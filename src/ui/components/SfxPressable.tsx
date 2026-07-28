@@ -87,6 +87,10 @@ export function SfxPressable({
       }}
       onPressIn={event => {
         setPressed(true);
+        // Steppers are repeated tactile adjustments. Their cue belongs to the
+        // physical down-state, not the later release after the finger has
+        // already felt the haptic and seen the button dim.
+        if (onPress != null && pressSfx === 'stat-step') playStatStepSfx();
         onPressIn?.(event);
       }}
       onPressOut={event => {
@@ -94,8 +98,9 @@ export function SfxPressable({
         onPressOut?.(event);
       }}
       onPress={onPress == null ? undefined : event => {
-        if (pressSfx === 'stat-step') playStatStepSfx();
-        else if (pressSfx === 'warning') playManagementActionSfx('warning');
+        if (pressSfx === 'stat-step') {
+          // Already played on press-in so a release never doubles the cue.
+        } else if (pressSfx === 'warning') playManagementActionSfx('warning');
         else playUiClickSfx();
         onPress(event);
       }}
