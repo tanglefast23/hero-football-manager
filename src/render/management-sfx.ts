@@ -14,7 +14,8 @@ type ExplicitManagementSfxKey =
   | 'stat-step'
   | 'drill-progress'
   | 'drill-gain-reveal'
-  | 'super-training-yay';
+  | 'super-training-yay'
+  | 'super-celebration';
 
 export type ManagementActionCue =
   | 'select'
@@ -33,16 +34,19 @@ type ManagementSfxKey = ExplicitManagementSfxKey | ManagementActionCue;
 const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   'match-statement': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'training-ding': require('../../assets/audio/sfx/training-stat-ding.m4a'),
-  // One clear button attack. The supplied push-button recording swelled again
-  // about 80ms after its first hit, so one playback read as two clicks.
-  'ui-click': require('../../assets/audio/sfx/ui-single-click.m4a'),
+  // The supplied tap recording: a single 69ms attack that is silent after 28ms,
+  // so a fast run of taps never overlaps itself. Kept as PCM rather than AAC —
+  // a tap is the one cue where the decoder's priming delay is audible as lag.
+  'ui-click': require('../../assets/audio/sfx/ui-tap.wav'),
   // Player and coach signings intentionally share this confirmation sound.
   'transaction-confirm': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'coach-departure': require('../../assets/audio/sfx/fulltime-whistle.wav'),
   'facility-start': require('../../assets/audio/sfx/advance-week.m4a'),
   'facility-complete': require('../../assets/audio/sfx/facility-complete.m4a'),
   'event-success': require('../../assets/audio/sfx/crowd-cheer.wav'),
-  select: require('../../assets/audio/sfx/ui-single-click.m4a'),
+  // Same tap as `ui-click`: one sound answers a press on the screen, whichever
+  // cue name the caller reaches for.
+  select: require('../../assets/audio/sfx/ui-tap.wav'),
   cash: require('../../assets/audio/sfx/save-slap.wav'),
   build: require('../../assets/audio/sfx/tackle-thud.m4a'),
   dispatch: require('../../assets/audio/sfx/save-slap.wav'),
@@ -71,6 +75,10 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // regret. This is the softer back-button cue: it confirms without applauding.
   // Appended last so existing player indices stay stable.
   danger: require('../../assets/audio/sfx/back-button.m4a'),
+  // The level-up jingle under the SUPER takeover. Its 3.6s is the length of the
+  // celebration itself, which played out in silence before this.
+  // Appended last so existing player indices stay stable.
+  'super-celebration': require('../../assets/audio/sfx/level-up.m4a'),
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
@@ -188,9 +196,27 @@ export function playSuperTrainingSfx(): void {
   playManagementSfx('event-success');
 }
 
+/** The jingle that runs under the SUPER takeover, from the moment it appears. */
+export function playSuperCelebrationSfx(): void {
+  playManagementSfx('super-celebration');
+}
+
 /** The cheer that lands as the SUPER takeover leaves the screen. */
 export function playSuperTrainingYaySfx(): void {
   playManagementSfx('super-training-yay');
+}
+
+/**
+ * The takeover can be tapped away long before its jingle ends, and a 3.6s
+ * celebration still playing over the next screen is the loudest kind of stale.
+ * Owned by the takeover itself, like the drill scene's progress bed.
+ */
+export function stopSuperCelebrationSfx(): void {
+  try {
+    players.get('super-celebration')?.pause();
+  } catch (error) {
+    warnOnce('super celebration stop failed', error);
+  }
 }
 
 /**
