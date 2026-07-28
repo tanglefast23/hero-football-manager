@@ -276,9 +276,11 @@ describe('renderer juice wiring', () => {
 
     expect(worklet).not.toContain('Math.max(1, speed)');
     expect((worklet.match(/Math\.max\(MIN_MATCH_PLAYBACK_RATE, speed\)/g) ?? []).length).toBe(2);
-    // A mid-tick re-issue only has the unfinished fraction left to cover.
+    // A mid-tick re-issue only has the unfinished fraction left to cover, and
+    // that read happens inside the scheduled UI worklet rather than blocking JS.
     expect(worklet).toContain('const remaining = Math.max(0, Math.min(1, 1 - progress.value));');
-    expect(worklet).toContain('duration: (TICK_MS * remaining) / Math.max(MIN_MATCH_PLAYBACK_RATE, speed)');
+    expect(worklet).toContain('duration: tickDuration * remaining');
+    expect(worklet).toContain('runOnAtlasRuntime(\n      resumeAtlasFrameOnUI,');
   });
 });
 

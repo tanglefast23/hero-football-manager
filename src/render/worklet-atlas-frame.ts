@@ -8,6 +8,7 @@ import {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnUI } from 'react-native-worklets';
 import { TICK_MS } from '../sim/geometry';
 import { MIN_MATCH_PLAYBACK_RATE } from './match-speed';
 import type { PitchFrame } from './interpolate';
@@ -37,6 +38,7 @@ const ACTION_SLIDE = WORKLET_ACTION_SLIDE;
 const ACTION_FALL = 2;
 const ACTION_KNOCKDOWN = 3;
 const ACTION_STAGGER = WORKLET_ACTION_STAGGER;
+const IS_WEB_RUNTIME = typeof document !== 'undefined';
 
 interface WorkletAtlasOptions {
   initialFrame: PitchFrame;
@@ -55,6 +57,20 @@ interface WorkletAtlasOptions {
   ballFootDeadzonePx: number;
 }
 
+function runOnAtlasRuntime<Args extends unknown[], ReturnValue>(
+  worklet: (...args: Args) => ReturnValue,
+  ...args: Args
+): void {
+  if (IS_WEB_RUNTIME) {
+    // Worklets' web scheduler defers to the next RAF. Web has one runtime, so
+    // run synchronously to keep Atlas endpoints/statuses in the same frame as
+    // the React scene/HUD commit that follows publish().
+    worklet(...args);
+    return;
+  }
+  scheduleOnUI(worklet, ...args);
+}
+
 export interface WorkletAtlasController {
   transforms: ReturnType<typeof useRSXformBuffer>;
   visualPositions: SharedValue<Float32Array>;
@@ -64,15 +80,14 @@ export interface WorkletAtlasController {
   statuses: SharedValue<Float32Array>;
   zoneFractions: SharedValue<Float32Array>;
   carrier: SharedValue<number>;
-  simTick: SharedValue<number>;
-  progress: SharedValue<number>;
+  visualTick: SharedValue<number>;
   actionData: SharedValue<Float32Array>;
   publish: (
-    previous: PitchFrame,
     next: PitchFrame,
     tick: number,
     speed: number,
-    actions: Record<number, PlayerActionAnimation>
+    actions: Record<number, PlayerActionAnimation>,
+    snap: boolean,
   ) => void;
   pause: () => void;
   resume: (speed: number) => void;
@@ -141,9 +156,61 @@ function packStatuses(frame: PitchFrame): Float32Array {
   return Float32Array.from(frame.statuses, statusCode);
 }
 
+/**
+ * Samples the unposed position path at the instant a new sim frame arrives.
+ *
+ * This deliberately knows nothing about slide/stagger/fall presentation. Those
+ * offsets are applied later by `visualPositions`; carrying them into the next
+ * tick's interpolation base would permanently bake a temporary pose into player
+ * locomotion. The visibility exception matches the mapper below: a slot that
+ * just appeared was already drawn at its old target rather than between its
+ * hidden placeholder and that target.
+ */
+export function sampleRawRetargetPositions(
+  previous: Float32Array,
+  next: Float32Array,
+  previousVisibility: Float32Array,
+  nextVisibility: Float32Array,
+  progress: number,
+  incoming: Float32Array,
+  snap: boolean,
+): Float32Array {
+  'worklet';
+  if (snap) return incoming;
+
+  const output = new Float32Array(incoming.length);
+  const t = Math.max(0, Math.min(1, progress));
+  for (let index = 0; index < ATLAS_SLOT_COUNT; index += 1) {
+    const offset = index * 2;
+    const newlyVisible = index < PLAYER_COUNT
+      && previousVisibility[index] === 0
+      && nextVisibility[index] === 1;
+    output[offset] = newlyVisible
+      ? next[offset]
+      : previous[offset] + (next[offset] - previous[offset]) * t;
+    output[offset + 1] = newlyVisible
+      ? next[offset + 1]
+      : previous[offset + 1] + (next[offset + 1] - previous[offset + 1]) * t;
+  }
+  return output;
+}
+
 function clamp01Worklet(value: number): number {
   'worklet';
   return Math.max(0, Math.min(1, value));
+}
+
+export function sampleRawRetargetValue(
+  previous: number,
+  next: number,
+  progress: number,
+  incoming: number,
+  snap: boolean,
+): number {
+  'worklet';
+  if (snap) return incoming;
+  const t = clamp01Worklet(progress);
+  return previous + (next - previous) * t;
 }
 
 function smoothstepWorklet(value: number): number {
@@ -239,6 +306,102 @@ function actionPoseWorklet(
 }
 
 /**
+ * Retargets every moving part in one UI-runtime job. Sampling and replacement
+ * must be atomic: independent JS-thread shared-value writes can otherwise let a
+ * mapper observe a new target with an old interpolation base for one frame.
+ */
+export function retargetAtlasFrameOnUI(
+  previousPositions: SharedValue<Float32Array>,
+  nextPositions: SharedValue<Float32Array>,
+  previousVisibility: SharedValue<Float32Array>,
+  nextVisibility: SharedValue<Float32Array>,
+  previousBallHeight: SharedValue<number>,
+  nextBallHeight: SharedValue<number>,
+  actionData: SharedValue<Float32Array>,
+  statuses: SharedValue<Float32Array>,
+  zoneFractions: SharedValue<Float32Array>,
+  carrier: SharedValue<number>,
+  previousVisualTick: SharedValue<number>,
+  nextVisualTick: SharedValue<number>,
+  progress: SharedValue<number>,
+  incomingPositions: Float32Array,
+  incomingVisibility: Float32Array,
+  incomingBallHeight: number,
+  incomingActions: Float32Array,
+  incomingStatuses: Float32Array,
+  incomingZoneFractions: Float32Array,
+  incomingCarrier: number,
+  incomingTick: number,
+  duration: number,
+  snap: boolean,
+): void {
+  'worklet';
+  const t = clamp01Worklet(progress.value);
+  const retargetedPositions = sampleRawRetargetPositions(
+    previousPositions.value,
+    nextPositions.value,
+    previousVisibility.value,
+    nextVisibility.value,
+    t,
+    incomingPositions,
+    snap,
+  );
+  const retargetedBallHeight = sampleRawRetargetValue(
+    previousBallHeight.value,
+    nextBallHeight.value,
+    t,
+    incomingBallHeight,
+    snap,
+  );
+  const retargetedVisualTick = sampleRawRetargetValue(
+    previousVisualTick.value,
+    nextVisualTick.value,
+    t,
+    incomingTick,
+    snap,
+  );
+
+  previousPositions.value = retargetedPositions;
+  nextPositions.value = incomingPositions;
+  previousVisibility.value = snap ? incomingVisibility : nextVisibility.value;
+  nextVisibility.value = incomingVisibility;
+  previousBallHeight.value = retargetedBallHeight;
+  nextBallHeight.value = incomingBallHeight;
+  actionData.value = incomingActions;
+  statuses.value = incomingStatuses;
+  zoneFractions.value = incomingZoneFractions;
+  carrier.value = incomingCarrier;
+  previousVisualTick.value = retargetedVisualTick;
+  nextVisualTick.value = incomingTick;
+
+  // A plain assignment first cancels the old timing animation. Both writes
+  // happen in this worklet, so no mapper can render the reset against stale
+  // endpoints. A restart has equal endpoints and is a true hard snap; ordinary
+  // movement keeps the exact one-sim-tick wall-clock duration.
+  progress.value = snap ? 1 : 0;
+  if (snap) return;
+  progress.value = withTiming(1, {
+    duration,
+    easing: Easing.linear,
+  });
+}
+
+function pauseAtlasFrameOnUI(progress: SharedValue<number>): void {
+  'worklet';
+  cancelAnimation(progress);
+}
+
+function resumeAtlasFrameOnUI(progress: SharedValue<number>, tickDuration: number): void {
+  'worklet';
+  const remaining = Math.max(0, Math.min(1, 1 - progress.value));
+  cancelAnimation(progress);
+  progress.value = withTiming(1, {
+    duration: tickDuration * remaining,
+    easing: Easing.linear,
+  });
+}
+
+/**
  * Drives the Atlas transform buffer on Reanimated's UI runtime. The JS match
  * loop publishes only tick-boundary snapshots; interpolation and the 25
  * per-slot RSXform updates happen inside this worklet mapper, so a 60/120 Hz
@@ -273,8 +436,13 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
   const statuses = useSharedValue<Float32Array>(() => packStatuses(initialFrame));
   const zoneFractions = useSharedValue<Float32Array>(() => Float32Array.from(initialFrame.zoneFraction));
   const carrier = useSharedValue(initialFrame.carrier);
-  const simTick = useSharedValue(0);
+  const previousVisualTick = useSharedValue(0);
+  const nextVisualTick = useSharedValue(0);
   const progress = useSharedValue(1);
+  const visualTick = useDerivedValue(() => (
+    previousVisualTick.value
+      + (nextVisualTick.value - previousVisualTick.value) * progress.value
+  ));
 
   // Widen the typed-array backing buffer to ArrayBufferLike. TypeScript 6
   // otherwise infers `new Float32Array(...)` as ArrayBuffer-backed only, which
@@ -285,7 +453,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     const prev = previousPositions.value;
     const next = nextPositions.value;
     const packedActions = actionData.value;
-    const visualTick = Math.max(0, simTick.value - 1 + t);
+    const presentationTick = Math.max(0, visualTick.value);
     for (let index = 0; index < PLAYER_COUNT; index += 1) {
       const packedOffset = index * 2;
       const newlyVisible = previousVisibility.value[index] === 0 && nextVisibility.value[index] === 1;
@@ -295,7 +463,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
       const y = newlyVisible
         ? next[packedOffset + 1]
         : prev[packedOffset + 1] + (next[packedOffset + 1] - prev[packedOffset + 1]) * t;
-      const pose = actionPoseWorklet(packedActions, index, visualTick);
+      const pose = actionPoseWorklet(packedActions, index, presentationTick);
       const actionOffset = index * ACTION_STRIDE;
       const kind = packedActions[actionOffset];
       let centerX = x;
@@ -385,8 +553,8 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
       return;
     }
 
-    const visualTick = Math.max(0, simTick.value - 1 + t);
-    const pose = actionPoseWorklet(actionData.value, index, visualTick);
+    const presentationTick = Math.max(0, visualTick.value);
+    const pose = actionPoseWorklet(actionData.value, index, presentationTick);
     const actionOffset = index * ACTION_STRIDE;
     const usesActionCell = pose.active && actionData.value[actionOffset] === ACTION_SLIDE;
     const sourceWidth = usesActionCell ? actionCell.width : playerCell.width;
@@ -403,35 +571,60 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
   });
 
   const publish = useCallback((
-    previous: PitchFrame,
     next: PitchFrame,
     tick: number,
     speed: number,
-    actions: Record<number, PlayerActionAnimation>
+    actions: Record<number, PlayerActionAnimation>,
+    snap: boolean,
   ) => {
-    previousPositions.value = packPositions(previous);
-    nextPositions.value = packPositions(next);
-    previousVisibility.value = Float32Array.from(previous.visible, value => value ? 1 : 0);
-    nextVisibility.value = Float32Array.from(next.visible, value => value ? 1 : 0);
-    previousBallHeight.value = previous.ballHeight;
-    nextBallHeight.value = next.ballHeight;
-    actionData.value = packActions(actions);
-    statuses.value = packStatuses(next);
-    zoneFractions.value = Float32Array.from(next.zoneFraction);
-    carrier.value = next.carrier;
-    simTick.value = tick;
-    progress.value = 0;
-    progress.value = withTiming(1, {
+    // Continuity samples the UI runtime's in-flight raw pair rather than a JS
+    // snapshot, which may already be one display frame ahead after catch-up.
+    runOnAtlasRuntime(
+      retargetAtlasFrameOnUI,
+      previousPositions,
+      nextPositions,
+      previousVisibility,
+      nextVisibility,
+      previousBallHeight,
+      nextBallHeight,
+      actionData,
+      statuses,
+      zoneFractions,
+      carrier,
+      previousVisualTick,
+      nextVisualTick,
+      progress,
+      packPositions(next),
+      Float32Array.from(next.visible, value => value ? 1 : 0),
+      next.ballHeight,
+      packActions(actions),
+      packStatuses(next),
+      Float32Array.from(next.zoneFraction),
+      next.carrier,
+      tick,
       // `speed` is the wall-clock playback RATE, which slow-motion drops below
-      // 1 — the old Math.max(1, …) floor clamped the interpolation to a normal
-      // tick and made a dilated tick look like a freeze followed by a snap.
-      duration: TICK_MS / Math.max(MIN_MATCH_PLAYBACK_RATE, speed),
-      easing: Easing.linear,
-    });
-  }, [previousPositions, nextPositions, previousVisibility, nextVisibility, previousBallHeight, nextBallHeight, actionData, statuses, zoneFractions, carrier, simTick, progress]);
+      // 1. Preserve the exact duration used before continuity retargeting.
+      TICK_MS / Math.max(MIN_MATCH_PLAYBACK_RATE, speed),
+      snap,
+    );
+  }, [
+    previousPositions,
+    nextPositions,
+    previousVisibility,
+    nextVisibility,
+    previousBallHeight,
+    nextBallHeight,
+    actionData,
+    statuses,
+    zoneFractions,
+    carrier,
+    previousVisualTick,
+    nextVisualTick,
+    progress,
+  ]);
 
   const pause = useCallback(() => {
-    cancelAnimation(progress);
+    runOnAtlasRuntime(pauseAtlasFrameOnUI, progress);
   }, [progress]);
 
   const resume = useCallback((speed: number) => {
@@ -439,11 +632,11 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     // Re-issuing a whole tick's window from a part-way progress made the sprites
     // crawl and then snap — barely visible at 1x, but the activation dilation
     // re-issues this mid-tick on every step change, where it read as a hitch.
-    const remaining = Math.max(0, Math.min(1, 1 - progress.value));
-    progress.value = withTiming(1, {
-      duration: (TICK_MS * remaining) / Math.max(MIN_MATCH_PLAYBACK_RATE, speed),
-      easing: Easing.linear,
-    });
+    runOnAtlasRuntime(
+      resumeAtlasFrameOnUI,
+      progress,
+      TICK_MS / Math.max(MIN_MATCH_PLAYBACK_RATE, speed),
+    );
   }, [progress]);
 
   return {
@@ -455,8 +648,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
     statuses,
     zoneFractions,
     carrier,
-    simTick,
-    progress,
+    visualTick,
     actionData,
     publish,
     pause,
