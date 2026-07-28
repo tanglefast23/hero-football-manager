@@ -14,12 +14,12 @@ export interface PlayerSigningConfirmation {
 }
 
 /**
- * The receipt for a squad signing.
+ * The receipt for a transfer.
  *
- * The rookie does not come through here: their signing is the one the manager
- * has a relationship with, so it plays as a walk-on instead (see
- * PlayerWalkOnWelcome). This card is for the transfers and academy graduates
- * that arrive by the dozen, where a confirmation is all that is wanted.
+ * The rookie and the academy graduates do not come through here: those are
+ * players the manager picked one at a time, so they play as a walk-on instead
+ * (see PlayerWalkOnWelcome). This card is for the bought players, who arrive by
+ * the windowful and where a confirmation is all that is wanted.
  */
 export function PlayerSigningOverlay({
   player,
@@ -31,9 +31,9 @@ export function PlayerSigningOverlay({
   onClose: () => void;
 }) {
   // Every signing is a receipt worth celebrating, not just the first one — an
-  // academy or transfer arrival opening in silence read as a failed purchase.
-  // Keyed on who signed, not on how: back-to-back signings swap the props
-  // without unmounting, and the second arrival still gets its own cue.
+  // arrival opening in silence read as a failed purchase. Keyed on who signed,
+  // not on how: back-to-back signings swap the props without unmounting, and
+  // the second arrival still gets its own cue.
   useEffect(() => {
     playPositiveSfx();
   }, [player.playerId]);
@@ -54,7 +54,7 @@ export function PlayerSigningOverlay({
         <Pressable accessible={false} className="absolute inset-0" onPress={onClose} />
         <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
           <PaperPanel
-            kicker={player.source === 'academy' ? 'Academy contract signed' : 'Transfer complete'}
+            kicker="Transfer complete"
             title="Welcome to the club!"
             stamp="SIGNED"
           >
@@ -69,13 +69,11 @@ export function PlayerSigningOverlay({
                 {player.playerName}
               </Text>
               <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
-                {player.role} · {player.source === 'academy' ? 'Academy graduate' : 'First-team signing'}
+                {player.role} · First-team signing
               </Text>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
-              {player.source === 'academy'
-                ? 'The contract is complete, and the player has joined your squad.'
-                : 'The transfer is complete. Your new player is ready for selection.'}
+              The transfer is complete. Your new player is ready for selection.
             </Text>
             <View className="mt-4">
               <ActionButton

@@ -3,6 +3,7 @@ import { useWindowDimensions, View } from 'react-native';
 import { CharacterSpeechOverlay } from './CharacterSpeechOverlay';
 import { PLAYER_SPRITE_CELL, PlayerRunSprite } from '../render/PlayerRunSprite';
 import { playPositiveSfx } from '../render/management-sfx';
+import { arrivalLine } from './player-arrival-lines';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import type { PlayerSigningConfirmation } from './PlayerSigningOverlay';
 
@@ -13,15 +14,25 @@ const SPRITE_SCALE = 4;
  * the nav buttons — so the rail's own top edge is the floor.
  */
 const FALLBACK_GROUND_OFFSET = 78;
-const LINE_MS = 2_400;
+/**
+ * How long the bubble holds. The floor suits the short lines; anything longer
+ * is given reading time, because the academy pool runs to a full sentence and a
+ * remark that leaves mid-read is worse than no remark. A tap still skips it.
+ */
+const MIN_LINE_MS = 2_400;
+const MS_PER_CHARACTER = 60;
 
 /**
- * The rookie's hello.
+ * A new signing's hello.
  *
  * This used to be a framed card with a portrait and a button. It is now the
- * player themselves — the same sprite the match renders — walking onto the home
+ * player themselves — the same sprite the match renders — walking onto the
  * screen, saying one line, and leaving. Nothing is covered and nothing has to
  * be dismissed: the celebration IS the screen you were already looking at.
+ *
+ * The rookie and the academy graduates both come through here. The rookie says
+ * the one line written for them; a graduate draws from a pool, so signing a
+ * dozen of them over a career meets a dozen personalities.
  */
 export function PlayerWalkOnWelcome({
   player,
@@ -48,15 +59,17 @@ export function PlayerWalkOnWelcome({
     ? Math.max(0, viewportHeight - navigationAnchor.y)
     : FALLBACK_GROUND_OFFSET;
 
+  const line = arrivalLine(player);
+
   return (
     <CharacterSpeechOverlay
-      lines={['Thanks for believing in me!']}
+      lines={[line]}
       characterWidth={PLAYER_SPRITE_CELL.width * SPRITE_SCALE}
       characterHeight={PLAYER_SPRITE_CELL.height * SPRITE_SCALE}
       groundOffset={groundOffset}
-      autoAdvanceMs={LINE_MS}
+      autoAdvanceMs={Math.max(MIN_LINE_MS, line.length * MS_PER_CHARACTER)}
       reduceMotion={reduceMotion}
-      accessibilityLabel={`${player.playerName} says: thanks for believing in me.`}
+      accessibilityLabel={`${player.playerName} says: ${line}`}
       onDone={onDone}
     >
       <WalkingPlayer player={player} />
