@@ -12,7 +12,7 @@ import { tutorialCuePosition, type TutorialAnchorLayout } from './tutorial-cue-p
 
 /**
  * Only used until the tab rail has measured itself — the same fallback, and the
- * same reason, as the rookie's walk-on: a fixed clearance cannot be right on
+ * same reason as the rookie's welcome: a fixed clearance cannot be right on
  * both a phone and a desktop window.
  */
 const FALLBACK_GROUND_OFFSET = 78;
@@ -46,20 +46,20 @@ export interface BertBriefingWalkOnProps {
    * the money cutout from going dark the moment the beat that needs it arrives.
    */
   onFocusChange?: (focus: AssistantGuideFocus | undefined) => void;
-  /** Fires once, after he has walked off — the sequence is complete then. */
+  /** Fires once the player dismisses his final line. */
   onDone: () => void;
 }
 
 /**
- * Bert's briefing, delivered as a walk-on.
+ * Bert's briefing, delivered directly on the current screen.
  *
  * This replaces a framed window that boxed him in a card beside its own copy.
- * He now walks onto the screen he is talking about and says his piece one
- * bubble at a time, with the dimming and the lit cutout kept underneath — the
- * charm was never the reason the money beat worked, the spotlight was.
+ * He appears on the screen he is talking about and says his piece one bubble
+ * at a time, with the dimming and the lit cutout kept underneath — the charm
+ * was never the reason the money beat worked, the spotlight was.
  *
- * One entrance per sequence, not per page: the three-page opening is a single
- * arrival whose spotlight moves as he talks.
+ * The three-page opening remains one uninterrupted briefing whose spotlight
+ * moves as he talks.
  */
 export function BertBriefingWalkOn({
   content,
@@ -130,6 +130,7 @@ export function BertBriefingWalkOn({
         characterHeight={BERT_SPRITE_SIZE.height * BERT_SCALE}
         groundOffset={groundOffset}
         reduceMotion={reduceMotion}
+        instant
         bubbleScale={BERT_BUBBLE_SCALE}
         // No auto-advance. The rookie remarks and moves on; this is the game
         // teaching, and a timer would pull a rule off screen mid-sentence.
@@ -138,12 +139,10 @@ export function BertBriefingWalkOn({
         accessibilityLabel={beat === undefined
           ? undefined
           : `${content.assistant.name}: ${beat.text}`}
-        renderCharacter={({ walking }) => (
+        renderCharacter={() => (
           <BertFullBody
-            // Objectives are authored in capitals, which is what sets the one
-            // line stating the next move apart from the flavour around it.
             pointing={focus !== 'assistant'}
-            walking={walking}
+            walking={false}
             scale={BERT_SCALE}
             // The overlay draws its own contact shadow; his built-in one would
             // stack a second, darker patch under the same feet.

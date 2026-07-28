@@ -20,6 +20,11 @@ describe('countUpValue', () => {
     const review = readFileSync(join(process.cwd(), 'src/ui/screens/WeeklyReviewScreen.tsx'), 'utf8');
     const popup = readFileSync(join(process.cwd(), 'src/ui/TrainingDrillModal.tsx'), 'utf8');
     const scene = readFileSync(join(process.cwd(), 'src/render/DrillSceneOverlay.tsx'), 'utf8');
+    const gainReveal = readFileSync(join(process.cwd(), 'src/ui/components/DrillGainReveal.tsx'), 'utf8');
+    const superCelebration = readFileSync(
+      join(process.cwd(), 'src/ui/components/SuperTrainingCelebration.tsx'),
+      'utf8',
+    );
 
     expect(review).toContain('countUpValue(to - from, progress)');
     // Development left the weekly review: gains animate in the drill scene now.
@@ -30,5 +35,13 @@ describe('countUpValue', () => {
     expect(popup).toContain('SuperTrainingCelebration');
     expect(scene).toContain('DRILL_SCENE_MS');
     expect(scene).toContain('setCountedValue');
+    // Once the count lands, the scene keeps only the final stat value. The gain
+    // itself appears once, in the following full-screen result takeover.
+    expect(scene).not.toContain('gainDelta');
+    expect(scene).not.toContain('+{after - before} {shortCode}');
+    // Both possible result takeovers hold 0.2s longer than their previous
+    // 1.2s/3.2s durations.
+    expect(gainReveal).toContain('DRILL_GAIN_REVEAL_MS = 1_400');
+    expect(superCelebration).toContain('SUPER_CELEBRATION_MS = 3400');
   });
 });

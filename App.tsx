@@ -391,6 +391,10 @@ function GameApp() {
   const [activeGuideFocus, setActiveGuideFocus] = useState<AssistantGuideFocus | undefined>(undefined);
   const [requestedAssistantSequenceId, setRequestedAssistantSequenceId] = useState<AssistantGuideSequenceId | null>(null);
   const [conciergeFocus, setConciergeFocus] = useState<AssistantGuideFocus | null>(null);
+  // A screen-wide tap retires floating coach marks without completing the job
+  // they describe. The objective remains authoritative; only its cue is hidden.
+  const [dismissedAssistantObjectiveKey, setDismissedAssistantObjectiveKey] = useState<string | null>(null);
+  const [tipDismissSequence, setTipDismissSequence] = useState(0);
   const [marketSectionRequest, setMarketSectionRequest] = useState<{
     section: MarketSectionId;
     token: number;
@@ -909,6 +913,26 @@ function GameApp() {
   const assistantObjective = store.career === null
     ? null
     : currentAssistantObjective(store.career, store.activeTab);
+  const assistantObjectiveKey = assistantObjective === null
+    ? null
+    : `${assistantObjective.target}:${assistantObjective.text}`;
+  const previousAssistantObjectiveKeyRef = useRef(assistantObjectiveKey);
+  useEffect(() => {
+    if (previousAssistantObjectiveKeyRef.current === assistantObjectiveKey) return;
+    previousAssistantObjectiveKeyRef.current = assistantObjectiveKey;
+    setDismissedAssistantObjectiveKey(null);
+  }, [assistantObjectiveKey]);
+  const visibleAssistantObjectiveTarget = assistantObjectiveKey !== null
+    && assistantObjectiveKey === dismissedAssistantObjectiveKey
+    ? undefined
+    : assistantObjective?.target;
+  const dismissVisibleTips = useCallback(() => {
+    setConciergeFocus(null);
+    if (assistantObjectiveKey !== null) {
+      setDismissedAssistantObjectiveKey(assistantObjectiveKey);
+    }
+    setTipDismissSequence(sequence => sequence + 1);
+  }, [assistantObjectiveKey]);
   const hideCoachHiringCues = store.activeTab === 'market'
     && (
       conciergeFocus === 'coach-market'
@@ -1248,6 +1272,7 @@ function GameApp() {
         }}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         guided={conciergeFocus === 'club-legacy'}
+        onDismissGuidance={dismissVisibleTips}
       />
     );
   } else if (store.screen === 'championship-celebration') {
@@ -1326,10 +1351,10 @@ function GameApp() {
         guideFocus={activeGuideFocus === 'money' || activeGuideFocus === 'navigation'
           ? activeGuideFocus
           : undefined}
-        guideTarget={hideCoachHiringCues ? undefined : assistantObjective?.target}
+        guideTarget={hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget}
         onMoneyGuideAnchorChange={setMoneyGuideAnchor}
         onNavigationGuideAnchorChange={setNavigationGuideAnchor}
-        onDismissGuidance={conciergeFocus === null ? undefined : () => setConciergeFocus(null)}
+        onDismissGuidance={dismissVisibleTips}
       >
         {store.activeTab === 'squad' ? (
           <SquadTrainingScreen
@@ -1353,8 +1378,9 @@ function GameApp() {
             }}
             lastDrillResult={store.lastDrillResult}
             trainingPoints={store.career?.trainingPoints ?? 0}
-            guideTraining={assistantObjective?.target === 'training-plan'}
+            guideTraining={visibleAssistantObjectiveTarget === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
+            dismissTipsToken={tipDismissSequence}
             reduceMotion={reduceMotion}
             drillPickerRequestToken={drillFocusToken ?? undefined}
             saveWarning={store.saveWarning}
@@ -1389,7 +1415,7 @@ function GameApp() {
             )}
             onOpenCoachMarket={() => store.setActiveTab('market')}
             onDismissCoach={beginCoachDismissal}
-            guideTrainingGround={assistantObjective?.target === 'training-ground-facility'}
+            guideTrainingGround={visibleAssistantObjectiveTarget === 'training-ground-facility'}
             guideFocus={conciergeFocus ?? undefined}
           />
         ) : store.activeTab === 'market' && store.career.market !== undefined ? (
@@ -1557,7 +1583,7 @@ function GameApp() {
               'select',
               'select',
             )}
-            guideAlertId={assistantObjective?.target === 'training-ground-alert'
+            guideAlertId={visibleAssistantObjectiveTarget === 'training-ground-alert'
               ? 'training-ground'
               : conciergeFocus === 'retirement'
                 ? home.alerts.find(alert => alert.id.startsWith('retirement-announcement-'))?.id

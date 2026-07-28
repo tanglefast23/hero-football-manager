@@ -18,6 +18,12 @@ One file is deliberately kept without being loaded:
 It is not an orphan. An automated sweep that deletes unreferenced assets will
 flag it — don't.
 
+## Low-latency button source
+
+- **`ui-push-button.m4a`** — trimmed so its attack begins immediately. The
+  supplied file carried about 45ms of silence before the click, which made a
+  correctly wired button sound late even after its player was warm.
+
 ## Before deleting anything
 
 Assets go stale when a cue is repointed, and the `stat-step` cue has moved three

@@ -72,7 +72,7 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(22);
+    expect(mockPlayers).toHaveLength(28);
     const trainingDing = mockPlayers[1];
     expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
@@ -87,7 +87,7 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(22);
+    expect(mockPlayers).toHaveLength(28);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
@@ -111,6 +111,18 @@ describe('management feedback sounds', () => {
     // A plain tap is deliberately the lightest weight in the taxonomy so it does
     // not feel like a `commit` that spends club money.
     expect(mockImpactAsync).toHaveBeenCalledWith('light');
+  });
+
+  it('gives rapid neutral button presses independent warm voices too', () => {
+    playUiClickSfx();
+    playUiClickSfx();
+    playUiClickSfx();
+    playUiClickSfx();
+
+    const uiClickPool = [mockPlayers[2], mockPlayers[22], mockPlayers[23], mockPlayers[24]];
+    expect(uiClickPool.every(player => player.seekTo.mock.calls.length === 0)).toBe(true);
+    expect(uiClickPool.every(player => player.play.mock.calls.length === 1)).toBe(true);
+    expect(mockImpactAsync).toHaveBeenCalledTimes(4);
   });
 
   it('gives small interactions an audible click and large action buttons the confirmation', () => {
@@ -140,7 +152,7 @@ describe('management feedback sounds', () => {
     playDrillProgressSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(22);
+    expect(mockPlayers).toHaveLength(28);
     const progress = mockPlayers[18];
     expect(progress.seekTo).toHaveBeenCalledWith(0);
     expect(progress.play).toHaveBeenCalledTimes(1);
@@ -161,9 +173,10 @@ describe('management feedback sounds', () => {
     expect(scene).toContain('playDrillProgressSfx()');
     // Stopped where the number lands AND on teardown, so a skipped scene is silent.
     expect(scene.match(/stopDrillProgressSfx\(\)/g)).toHaveLength(2);
-    expect(scene).toContain('setCountLanded(true)');
-    // The gain stamp waits for the count; the number itself is green.
-    expect(scene).toContain('opacity: countLanded ? 1 : 0');
+    // The number itself is green; the duplicate inline "+N" stamp is gone
+    // because the following full-screen takeover owns the gain.
+    expect(scene).not.toContain('countLanded');
+    expect(scene).not.toContain('gainDelta');
     expect(scene).toContain("gainValue: { color: '#3f8a4a'");
   });
 
@@ -171,7 +184,7 @@ describe('management feedback sounds', () => {
     playManagementActionSfx('success');
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(22);
+    expect(mockPlayers).toHaveLength(28);
     expect(mockPlayers[13].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[13].play).toHaveBeenCalledTimes(1);
   });
@@ -180,7 +193,7 @@ describe('management feedback sounds', () => {
     playPositiveSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(22);
+    expect(mockPlayers).toHaveLength(28);
     // 'positive' is appended last, so it owns the final player slot.
     const positive = mockPlayers[16];
     expect(positive.seekTo).toHaveBeenCalledWith(0);
@@ -198,24 +211,33 @@ describe('management feedback sounds', () => {
     // Tied to the end of the takeover, not to the result landing — and it fires
     // whether the celebration played out or was tapped away.
     expect(celebration).toContain('playSuperTrainingYaySfx()');
-    expect(celebration).toContain('export const SUPER_CELEBRATION_MS = 3200');
+    expect(celebration).toContain('export const SUPER_CELEBRATION_MS = 3400');
     expect(celebration).toContain('FIREWORK_DELAYS_MS');
 
     playSuperTrainingYaySfx();
     await Promise.resolve();
-    expect(mockPlayers).toHaveLength(22);
+    expect(mockPlayers).toHaveLength(28);
     expect(mockPlayers[20].play).toHaveBeenCalledTimes(1);
   });
 
-  it('plays the supplied stat-step tap independently from the neutral click', async () => {
+  it('plays every rapid stat-step tap on a warm independent voice', async () => {
+    playStatStepSfx();
+    playStatStepSfx();
+    playStatStepSfx();
+    playStatStepSfx();
+
+    expect(mockPlayers).toHaveLength(28);
+    const statStepPool = [mockPlayers[17], mockPlayers[25], mockPlayers[26], mockPlayers[27]];
+    expect(statStepPool.every(player => player.seekTo.mock.calls.length === 0)).toBe(true);
+    expect(statStepPool.every(player => player.play.mock.calls.length === 1)).toBe(true);
+
+    // A fifth press arrives before the first voice has rewound. It takes the
+    // reliable asynchronous restart path rather than disappearing at clip end.
     playStatStepSfx();
     await Promise.resolve();
-
-    expect(mockPlayers).toHaveLength(22);
-    const statStep = mockPlayers[17];
-    expect(statStep.seekTo).toHaveBeenCalledWith(0);
-    expect(statStep.play).toHaveBeenCalledTimes(1);
+    expect(statStepPool[0].seekTo).toHaveBeenCalledWith(0, 0, 0);
+    expect(statStepPool[0].play).toHaveBeenCalledTimes(2);
     expect(mockPlayers[2].play).not.toHaveBeenCalled();
-    expect(mockImpactAsync).toHaveBeenCalledWith('light');
+    expect(mockImpactAsync).toHaveBeenCalledTimes(5);
   });
 });

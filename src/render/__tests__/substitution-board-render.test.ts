@@ -52,19 +52,18 @@ describe('substitution board layout', () => {
     expect(source).not.toContain('#c8862a');
   });
 
-  it('scrolls the list unless a card is held, and never drags on contact', () => {
+  it('keeps mobile tap-only so dragging the list always scrolls', () => {
     const source = board();
 
-    // A card that lifted on contact would swallow every swipe and leave a phone
-    // list unscrollable, so lifting takes a hold and the list may take the
-    // gesture back until then.
-    expect(source).toContain('const LIFT_DELAY_MS = 180');
-    expect(source).toContain('onPanResponderTerminationRequest: () => !liftedRef.current');
-    expect(source).toContain('liftTimer.current = setTimeout(');
-    expect(source).toContain('if (!liftedRef.current) {');
-    // Only a travelled finger drops. A still one is a tap — the pointer-free
-    // half of the same trade — even on the stacked board, where a card lifts on
-    // a hold and a slow tap would otherwise release onto its own square.
+    // The narrow board never attaches pan handlers, so a swipe belongs wholly
+    // to the ScrollView. Its cards use Pressable's normal tap cancellation.
+    expect(source).toContain('dragEnabled={wide}');
+    expect(source).toContain('{...(dragEnabled ? responder.panHandlers : {})}');
+    expect(source).toContain('onPress={dragEnabled ? undefined : tap}');
+    expect(source).not.toContain('holdToLift');
+    expect(source).not.toContain('LIFT_DELAY_MS');
+    expect(source).not.toContain('liftTimer');
+    // Wide pointer dragging still distinguishes a click from a travelled drop.
     expect(source).toContain(
       'const still = Math.abs(gesture.dx) <= TAP_SLOP && Math.abs(gesture.dy) <= TAP_SLOP;',
     );
@@ -78,8 +77,8 @@ describe('substitution board layout', () => {
     // PanResponder.create runs once. Closing over props would capture the plan
     // from the first render, and applySwap against that stale plan would drop
     // every swap staged before it.
-    expect(source).toContain('const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, holdToLift })');
-    expect(source).toContain('latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, holdToLift }');
+    expect(source).toContain('const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, dragEnabled })');
+    expect(source).toContain('latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, dragEnabled }');
     expect(source).toContain('latest.current.onDragStart(latest.current.source)');
     expect(source).toContain('const { source: from, onDrop: drop, onTap: pick } = latest.current;');
     // The tap path goes through the same ref, so an activation cannot stage a
@@ -95,7 +94,7 @@ describe('substitution board layout', () => {
     // The cards have always announced themselves as buttons. Dragging is a
     // pointer skill, so activation has to reach the same trade from a click, a
     // keyboard, or a screen reader.
-    expect(source).toContain('onAccessibilityTap={tap}');
+    expect(source).toContain('onAccessibilityTap={dragEnabled ? tap : undefined}');
     expect(source).toContain('{...keyboardActivation(tap)}');
     expect(source).toContain("if (event.key !== 'Enter' && event.key !== ' ') return;");
     expect(source).toContain('focusable');
@@ -116,17 +115,23 @@ describe('substitution board layout', () => {
     expect(source).toContain("'TAP A PLAYER, THEN TAP THEIR REPLACEMENT'");
   });
 
-  it('lifts on movement where nothing scrolls sideways, and on a hold where it does', () => {
+  it('keeps dragging as a wide pointer affordance only', () => {
     const source = board();
 
-    // A mouse always moves before a 180ms hold elapses, so on the wide board the
-    // hold cancelled essentially every drag attempt. Movement is the drag there;
-    // the stacked board is one scrolling list, so it keeps the hold.
-    expect(source).toContain('holdToLift={!wide}');
-    expect(source).toContain('if (latest.current.holdToLift) {');
+    // A mouse/pointer lifts on movement. Mobile never receives the responder.
+    expect(source).toContain('onStartShouldSetPanResponder: () => latest.current.dragEnabled');
     expect(source).toContain('lift();');
-    // The early-move branch must not still be an unconditional cancel.
-    expect(source).not.toContain('// Moved before the hold completed: that is a scroll, not a drag.');
+    expect(source).toContain('dragEnabled: boolean;');
+  });
+
+  it('keeps the title and substitution count on one row on a phone', () => {
+    const source = board();
+
+    expect(source).toContain('style={styles.titleRow}');
+    expect(source).toContain('numberOfLines={1}');
+    expect(source).toContain('adjustsFontSizeToFit');
+    expect(source).toContain('style={[styles.title, wide ? null : styles.titleNarrow]}');
+    expect(source).toContain('titleNarrow: { fontSize: 18 }');
   });
 
   it('promises the trade on the card actually under the carried one', () => {

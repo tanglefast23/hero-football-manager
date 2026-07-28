@@ -21,7 +21,8 @@ describe('first training guidance', () => {
     expect(source).not.toContain('<SquadSortHeader label="Role"');
     // Condition is still a sortable column, now spelled out and sharing its
     // width with the row cell beneath it.
-    expect(source).toContain('sortKey="condition" sort={squadSort} widthClass={conditionColumnWidth}');
+    expect(source).toContain('sortKey="condition"');
+    expect(source).toContain('widthClass={conditionColumnWidth}');
     // The train column keeps its width to hold the + buttons in line, but has
     // no header label to clip.
     expect(source).toContain('<View className="w-14" />');
@@ -36,6 +37,9 @@ describe('first training guidance', () => {
     expect(source).toContain('assignmentButtonGlow:');
     expect(source).toContain("boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)'");
     expect(homeSource).toContain('detail="Build the facility"');
+    expect(guideContent).toContain(
+      `"Let's build a Training Pitch which gives us more Training Points every week."`,
+    );
     expect(guideContent).not.toContain('"id": "squad-intro"');
   });
 
@@ -55,13 +59,18 @@ describe('first training guidance', () => {
     // It points at the CONDITION header, not at a row: the lesson is about the
     // column, and hanging it off a row reserved 78px of blank space inside the
     // register to make room for it.
-    expect(source).toContain('conditionCueRightOffset(wideColumns)');
+    expect(source).toContain('tutorialCue={conditionCueShowing ? (');
+    expect(source).toContain("left: '50%',");
+    expect(source).toContain('marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2');
     expect(source).toContain('label="Condition"');
     expect(source).toContain("detail=\"Too low and they risk injury. You're okay for now.\"");
     expect(source).toContain('const conditionCueShowing = conditionCuePlayerId !== null;');
+    expect(source).toContain('if (guideQuickTrainRef.current) setQuickTrainCueDismissed(true);');
+    expect(source).toContain('guideQuickTrain={guideQuickTrain && !quickTrainCueDismissed}');
     // The table, not a row, carries the cue and the space above it.
     expect(source).toContain("conditionCueShowing\n          ? 'relative mt-20 border-2 border-ink bg-white'");
     expect(source).not.toContain('guideConciergePlayer || showConditionCue');
+    expect(source).not.toContain('conditionCueRightOffset');
     // The count comes off the resolved state, which is what the save persists.
     expect(store).toContain('totalDrillsRun: next.totalInstantDrills ?? 0,');
   });

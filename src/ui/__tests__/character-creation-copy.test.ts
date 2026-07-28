@@ -62,6 +62,12 @@ describe('first-hire screen copy', () => {
     // Two appearance-arrow definitions render 6 buttons; two stat-stepper
     // definitions render 12 more buttons.
     expect(source.match(/pressSfx="stat-step"/g)?.length).toBe(4);
+    const pressable = readFileSync(
+      join(process.cwd(), 'src/ui/components/SfxPressable.tsx'),
+      'utf8',
+    );
+    expect(pressable).toMatch(/onPressIn=\{event => \{[\s\S]*?pressSfx === 'stat-step'[\s\S]*?playStatStepSfx\(\)/);
+    expect(pressable).toContain('Already played on press-in so a release never doubles the cue.');
   });
 
   it('cycles appearance through one shared helper', () => {

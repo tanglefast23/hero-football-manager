@@ -81,6 +81,19 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
 };
 
 const players = new Map<ManagementSfxKey, AudioPlayer>();
+const ownedPlayers = new Set<AudioPlayer>();
+type RapidManagementSfxKey = 'ui-click' | 'stat-step';
+const RAPID_SFX_KEYS: readonly RapidManagementSfxKey[] = ['ui-click', 'stat-step'];
+const RAPID_SFX_POOL_SIZE = 4;
+const RAPID_SFX_REWIND_DELAY_MS: Record<RapidManagementSfxKey, number> = {
+  'ui-click': 480,
+  'stat-step': 120,
+};
+const rapidPlayers = new Map<RapidManagementSfxKey, AudioPlayer[]>();
+const rapidPlayerCursor = new Map<RapidManagementSfxKey, number>();
+const rapidPlayerReady = new Set<AudioPlayer>();
+const rapidPlayerGeneration = new Map<AudioPlayer, number>();
+const rapidPlayerRewindTimers = new Map<AudioPlayer, ReturnType<typeof setTimeout>>();
 let masterVolume = 1;
 let initAttempted = false;
 const warned = new Set<string>();
@@ -108,20 +121,54 @@ function initManagementSfx(): void {
   // the session over a single bad asset.
   for (const key of Object.keys(MANAGEMENT_SFX) as ManagementSfxKey[]) {
     try {
-      const player = audio.createAudioPlayer(MANAGEMENT_SFX[key]);
+      const player = audio.createAudioPlayer(MANAGEMENT_SFX[key], {
+        // A button must not reopen the native audio session on every tap.
+        keepAudioSessionActive: true,
+      });
       player.volume = masterVolume;
       players.set(key, player);
+      ownedPlayers.add(player);
     } catch (error) {
       warnOnce(`${key} failed to load; that cue is silent for this session`, error);
     }
+  }
+
+  // One AVPlayer cannot restart a transient for every quick repeated tap: a
+  // second seek/play pair can overtake the first while its asynchronous seek is
+  // still completing. Four warm voices let human-speed steppers and button
+  // presses overlap, then each voice rewinds while the other three are free.
+  for (const key of RAPID_SFX_KEYS) {
+    const firstPlayer = players.get(key);
+    if (firstPlayer === undefined) continue;
+    const pool = [firstPlayer];
+    rapidPlayerReady.add(firstPlayer);
+    while (pool.length < RAPID_SFX_POOL_SIZE) {
+      try {
+        const player = audio.createAudioPlayer(MANAGEMENT_SFX[key], {
+          keepAudioSessionActive: true,
+        });
+        player.volume = masterVolume;
+        pool.push(player);
+        ownedPlayers.add(player);
+        rapidPlayerReady.add(player);
+      } catch (error) {
+        warnOnce(`${key} rapid player failed to load; repeated taps may be delayed`, error);
+        break;
+      }
+    }
+    rapidPlayers.set(key, pool);
+    rapidPlayerCursor.set(key, 0);
   }
 }
 
 export function setManagementSfxMasterVolume(volume: number): void {
   masterVolume = Math.max(0, Math.min(1, volume));
+  // App calls this on mount, before a player can reach a management button.
+  // Initialising here keeps asset/player construction off the first real tap.
+  initManagementSfx();
   // Called straight from a React effect, so a throwing native setter here would
   // take the render with it — every other module in this folder guards its own.
-  for (const player of players.values()) {
+  for (const player of ownedPlayers) {
     try {
       player.volume = masterVolume;
       player.muted = masterVolume === 0;
@@ -254,6 +301,10 @@ export function stopMatchStatementSfx(): void {
 
 function playManagementSfx(key: ManagementSfxKey): void {
   initManagementSfx();
+  if (key === 'ui-click' || key === 'stat-step') {
+    playRapidManagementSfx(key);
+    return;
+  }
   const player = players.get(key);
   if (player === undefined || masterVolume === 0) return;
   player.seekTo(0)
@@ -261,17 +312,71 @@ function playManagementSfx(key: ManagementSfxKey): void {
     .catch((error: unknown) => warnOnce(`${key} playback failed`, error));
 }
 
+function playRapidManagementSfx(key: RapidManagementSfxKey): void {
+  const pool = rapidPlayers.get(key);
+  if (pool === undefined || pool.length === 0 || masterVolume === 0) return;
+  const cursor = rapidPlayerCursor.get(key) ?? 0;
+  const player = pool[cursor % pool.length];
+  rapidPlayerCursor.set(key, (cursor + 1) % pool.length);
+
+  const generation = (rapidPlayerGeneration.get(player) ?? 0) + 1;
+  rapidPlayerGeneration.set(player, generation);
+  const previousTimer = rapidPlayerRewindTimers.get(player);
+  if (previousTimer !== undefined) clearTimeout(previousTimer);
+
+  const playAndPrepareNextTap = (): void => {
+    if (rapidPlayerGeneration.get(player) !== generation) return;
+    try {
+      rapidPlayerReady.delete(player);
+      player.play();
+      const timer = setTimeout(() => {
+        rapidPlayerRewindTimers.delete(player);
+        if (rapidPlayerGeneration.get(player) !== generation) return;
+        player.seekTo(0, 0, 0)
+          .then(() => {
+            if (rapidPlayerGeneration.get(player) === generation) {
+              rapidPlayerReady.add(player);
+            }
+          })
+          .catch((error: unknown) => warnOnce(`${key} rewind failed`, error));
+      }, RAPID_SFX_REWIND_DELAY_MS[key]);
+      rapidPlayerRewindTimers.set(player, timer);
+    } catch (error) {
+      warnOnce(`${key} playback failed`, error);
+    }
+  };
+
+  if (rapidPlayerReady.has(player)) {
+    // Fresh and pre-rewound voices start synchronously with the press.
+    playAndPrepareNextTap();
+    return;
+  }
+
+  // This only occurs beyond the four-voice human-speed pool. It still restarts
+  // reliably instead of letting a play() at the end of the clip disappear.
+  player.seekTo(0, 0, 0)
+    .then(playAndPrepareNextTap)
+    .catch((error: unknown) => warnOnce(`${key} restart failed`, error));
+}
+
 export function teardownManagementSfx(): void {
-  for (const [key, player] of players) {
+  for (const timer of rapidPlayerRewindTimers.values()) clearTimeout(timer);
+  rapidPlayerRewindTimers.clear();
+  for (const player of ownedPlayers) {
     try {
       player.pause();
       player.remove();
       player.release();
     } catch (error) {
-      warnOnce(`${key} teardown failed`, error);
+      warnOnce('player teardown failed', error);
     }
   }
   players.clear();
+  ownedPlayers.clear();
+  rapidPlayers.clear();
+  rapidPlayerCursor.clear();
+  rapidPlayerReady.clear();
+  rapidPlayerGeneration.clear();
   initAttempted = false;
   warned.clear();
 }

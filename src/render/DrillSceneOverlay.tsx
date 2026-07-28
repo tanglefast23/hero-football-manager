@@ -93,9 +93,6 @@ export function DrillSceneOverlay({
   const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const pop = useRef(new Animated.Value(1)).current;
   const [countedValue, setCountedValue] = useState(reduceMotion ? after : before);
-  // The "+N SHO" stamp stays hidden until the number has finished climbing, so
-  // the count is the only thing to watch and the gain reads as its payoff.
-  const [countLanded, setCountLanded] = useState(reduceMotion);
   const completedRef = useRef(false);
   const completeOnce = useCallback(() => {
     if (completedRef.current) return;
@@ -138,7 +135,6 @@ export function DrillSceneOverlay({
       if (ratio >= 1) {
         clearInterval(timer);
         stopDrillProgressSfx();
-        setCountLanded(true);
         Animated.sequence([
           Animated.spring(pop, { toValue: 1.3, friction: 4, useNativeDriver: true }),
           Animated.spring(pop, { toValue: 1, friction: 5, useNativeDriver: true }),
@@ -190,17 +186,6 @@ export function DrillSceneOverlay({
           <Animated.Text style={[styles.gainValue, { transform: [{ scale: pop }] }]}>
             {countedValue}
           </Animated.Text>
-          <Text
-            style={[
-              styles.gainDelta,
-              isSuper && styles.gainDeltaSuper,
-              // Space is held from the start so the stamp appearing never nudges
-              // the number mid-count.
-              { opacity: countLanded ? 1 : 0 },
-            ]}
-          >
-            +{after - before} {shortCode}
-          </Text>
         </View>
 
         <View style={styles.progressTrack}>
@@ -436,8 +421,6 @@ const styles = StyleSheet.create({
   },
   // Green while it climbs and after it lands: the number itself is the gain.
   gainValue: { color: '#3f8a4a', fontFamily: 'Silkscreen_700Bold', fontSize: 30 },
-  gainDelta: { color: '#3f8a4a', fontFamily: 'Silkscreen_700Bold', fontSize: 16 },
-  gainDeltaSuper: { color: '#c8862a' },
   progressTrack: { height: 9, borderTopWidth: 2, borderColor: '#241f2e', backgroundColor: '#cfc8da' },
   progressFill: { width: '100%', height: '100%', backgroundColor: '#3972bd' },
   progressFillSuper: { backgroundColor: '#edb54a' },

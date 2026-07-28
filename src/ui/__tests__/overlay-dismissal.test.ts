@@ -79,4 +79,17 @@ describe('overlay dismissal', () => {
     // framed window had are the wrapper's job now.
     expect(walkOn).toContain('accessibilityViewIsModal');
   });
+
+  it('shows and dismisses Bert instantly without changing the rookie walk-on', () => {
+    const bert = source('src/ui/BertBriefingWalkOn.tsx');
+    const rookie = source('src/ui/PlayerWalkOnWelcome.tsx');
+    const overlay = source('src/ui/CharacterSpeechOverlay.tsx');
+
+    expect(bert).toMatch(/<CharacterSpeechOverlay[\s\S]*?\n\s+instant\n/);
+    expect(bert).toContain('walking={false}');
+    expect(rookie).not.toMatch(/<CharacterSpeechOverlay[\s\S]*?\n\s+instant\n/);
+    expect(overlay).toContain("reduce || instant ? 'speaking' : 'arriving'");
+    expect(overlay).toContain('if (instant) {');
+    expect(overlay).toContain('onDone();');
+  });
 });

@@ -22,9 +22,20 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
   it('removes coach-card cues and dismisses retained global guidance on the next tap', () => {
     const market = readFileSync(join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'), 'utf8');
     const shell = readFileSync(join(process.cwd(), 'src/ui/ManagementShell.tsx'), 'utf8');
+    const legacy = readFileSync(join(process.cwd(), 'src/ui/screens/ClubLegacyScreen.tsx'), 'utf8');
+    const match = readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
 
     expect(market).not.toContain('detail="If you want to hire this coach"');
-    expect(shell).toContain('onPointerUp={onDismissGuidance}');
+    expect(shell).toContain('onPointerUp={dismissGuidanceAfterPress}');
+    expect(shell).toContain('onTouchEnd={dismissGuidanceAfterPress}');
+    expect(shell).toContain('requestAnimationFrame(() => {');
+    expect(appSource).toContain('setTipDismissSequence(sequence => sequence + 1)');
+    expect(appSource).toContain("guideAlertId={visibleAssistantObjectiveTarget === 'training-ground-alert'");
+    expect(appSource).toContain('lockOtherAlerts={assistantObjective?.target === \'training-ground-alert\'}');
+    expect(appSource).toContain('onDismissGuidance={dismissVisibleTips}');
+    expect(legacy).toContain('onTouchEnd={dismissGuidanceAfterPress}');
+    expect(match).toContain('onTouchEnd={dismissFirstMatchCueAfterPress}');
+    expect(match).toContain("automaticPauseReasonsRef.current.delete('tutorial');");
   });
 
   it('never dismisses guidance before the press it collides with has landed', () => {
@@ -34,6 +45,7 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     const shell = readFileSync(join(process.cwd(), 'src/ui/ManagementShell.tsx'), 'utf8');
 
     expect(shell).not.toContain('onPointerDown={onDismissGuidance}');
+    expect(shell).not.toContain('onTouchStart={onDismissGuidance}');
   });
 
   it('keeps the club name on the compact resource row', () => {

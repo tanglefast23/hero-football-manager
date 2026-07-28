@@ -47,6 +47,11 @@ export interface CharacterSpeechOverlayProps {
   /** Fires once they are all the way off screen. */
   onDone: () => void;
   reduceMotion?: boolean;
+  /**
+   * Places the character and bubble immediately, then finishes without an exit
+   * walk. Briefings can opt in without changing animated character welcomes.
+   */
+  instant?: boolean;
   accessibilityLabel?: string;
   /** Fires with the index of the line now showing, including the first. */
   onLineChange?: (index: number) => void;
@@ -89,6 +94,7 @@ export function CharacterSpeechOverlay({
   groundOffset = 0,
   onDone,
   reduceMotion = false,
+  instant = false,
   accessibilityLabel,
   onLineChange,
   mirrorSprite = true,
@@ -97,7 +103,7 @@ export function CharacterSpeechOverlay({
 }: CharacterSpeechOverlayProps) {
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const reduce = useReducedMotion(reduceMotion);
-  const [phase, setPhase] = useState<Phase>(reduce ? 'speaking' : 'arriving');
+  const [phase, setPhase] = useState<Phase>(reduce || instant ? 'speaking' : 'arriving');
   const [lineIndex, setLineIndex] = useState(0);
   const [bubbleWidth, setBubbleWidth] = useState(0);
   const [bubbleHeight, setBubbleHeight] = useState(0);
@@ -105,11 +111,12 @@ export function CharacterSpeechOverlay({
   // same tick would both see a stale `lineIndex` and skip a line, and a skipped
   // line here is a rule the player is never told again.
   const lineIndexRef = useRef(0);
+  const doneRef = useRef(false);
 
   const restLeft = viewportWidth * (1 - PENETRATION) - characterWidth / 2;
   const offRight = viewportWidth + 24;
 
-  const travel = useRef(new Animated.Value(reduce ? restLeft : offRight)).current;
+  const travel = useRef(new Animated.Value(reduce || instant ? restLeft : offRight)).current;
   const lean = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(0)).current;
   // `leaving` is read on the JS side to flip the sprite, so it is state as well
@@ -123,7 +130,7 @@ export function CharacterSpeechOverlay({
 
   // Arrive.
   useEffect(() => {
-    if (reduce || phase !== 'arriving') return undefined;
+    if (reduce || instant || phase !== 'arriving') return undefined;
     const animation = Animated.timing(travel, {
       toValue: restLeft,
       duration: walkMs(offRight, restLeft),
@@ -134,12 +141,17 @@ export function CharacterSpeechOverlay({
       if (finished) setPhase('speaking');
     });
     return () => animation.stop();
-  }, [offRight, phase, reduce, restLeft, travel, walkMs]);
+  }, [instant, offRight, phase, reduce, restLeft, travel, walkMs]);
 
   // Lean in and pop the bubble once they are standing still; both reset between
   // lines so every paragraph gets the same little delivery.
   useEffect(() => {
     if (phase !== 'speaking') return undefined;
+    if (instant) {
+      lean.setValue(1);
+      pop.setValue(1);
+      return undefined;
+    }
     lean.setValue(0);
     pop.setValue(0);
     const animation = Animated.sequence([
@@ -161,7 +173,7 @@ export function CharacterSpeechOverlay({
     ]);
     animation.start();
     return () => animation.stop();
-  }, [lean, lineIndex, phase, pop, reduce]);
+  }, [instant, lean, lineIndex, phase, pop, reduce]);
 
   // Leave.
   useEffect(() => {
@@ -201,8 +213,15 @@ export function CharacterSpeechOverlay({
       setLineIndex(next);
       return;
     }
+    if (instant) {
+      if (!doneRef.current) {
+        doneRef.current = true;
+        onDone();
+      }
+      return;
+    }
     setPhase('leaving');
-  }, [lines.length, phase, restLeft, travel]);
+  }, [instant, lines.length, onDone, phase, restLeft, travel]);
 
   // Announce the line to whoever is following along — the spotlight tracks it,
   // and the first line has to be reported as well as the ones tapped to.
