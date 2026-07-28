@@ -66,8 +66,19 @@ describe('first-hire screen copy', () => {
       join(process.cwd(), 'src/ui/components/SfxPressable.tsx'),
       'utf8',
     );
-    expect(pressable).toMatch(/onPressIn=\{event => \{[\s\S]*?pressSfx === 'stat-step'[\s\S]*?playStatStepSfx\(\)/);
-    expect(pressable).toContain('Already played on press-in so a release never doubles the cue.');
+    const pressInBody = /onPressIn=\{event => \{([\s\S]*?)onPressIn\?\.\(event\);/.exec(pressable)?.[1];
+    const pressBody = /onPress=\{onPress == null \? undefined : event => \{([\s\S]*?)onPress\(event\);/.exec(pressable)?.[1];
+    expect(pressInBody).not.toContain('playStatStepSfx()');
+    expect(pressBody).toContain("if (pressSfx === 'stat-step') playStatStepSfx();");
+    expect(pressBody?.match(/playStatStepSfx\(\)/g)).toHaveLength(1);
+  });
+
+  it('enters creation with one short navigation click and no trailing celebration', () => {
+    const welcome = readFileSync(
+      join(process.cwd(), 'src/ui/screens/NewGameWelcomeScreen.tsx'),
+      'utf8',
+    );
+    expect(welcome).toContain("pressSfx={hasSavedCareer ? 'danger' : 'click'}");
   });
 
   it('cycles appearance through one shared helper', () => {

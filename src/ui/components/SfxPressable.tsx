@@ -87,10 +87,6 @@ export function SfxPressable({
       }}
       onPressIn={event => {
         setPressed(true);
-        // Steppers are repeated tactile adjustments. Their cue belongs to the
-        // physical down-state, not the later release after the finger has
-        // already felt the haptic and seen the button dim.
-        if (onPress != null && pressSfx === 'stat-step') playStatStepSfx();
         onPressIn?.(event);
       }}
       onPressOut={event => {
@@ -98,9 +94,12 @@ export function SfxPressable({
         onPressOut?.(event);
       }}
       onPress={onPress == null ? undefined : event => {
-        if (pressSfx === 'stat-step') {
-          // Already played on press-in so a release never doubles the cue.
-        } else if (pressSfx === 'warning') playManagementActionSfx('warning');
+        // Keep every cue on the completed press. React Native Web does not
+        // guarantee that a synthetic/keyboard activation has a press-in phase,
+        // which left creation steppers silent while their value still changed.
+        // One owner here also makes one completed activation exactly one cue.
+        if (pressSfx === 'stat-step') playStatStepSfx();
+        else if (pressSfx === 'warning') playManagementActionSfx('warning');
         else playUiClickSfx();
         onPress(event);
       }}

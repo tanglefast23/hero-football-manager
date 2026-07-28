@@ -191,6 +191,10 @@ export function NewGameWelcomeScreen({
         accessibilityLabel={hasSavedCareer ? 'Replace saved career' : 'Start a new career'}
         onPress={onStartNewCareer}
         variant={hasSavedCareer ? 'danger' : 'hero'}
+        // Starting a fresh file is navigation, not the successful signing yet.
+        // The 1.67s positive cue followed us onto player creation and overlapped
+        // its first tap, making Chairman (but not a later Cozy tap) sound twice.
+        pressSfx={hasSavedCareer ? 'danger' : 'click'}
       />
       {onOpenAccessibility ? (
         <Pressable
