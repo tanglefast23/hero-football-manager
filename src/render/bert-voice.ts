@@ -1,26 +1,33 @@
-// Bert "speaks" in ticks: one short tick clip repeated at a typewriter cadence
-// for as long as the bubble's copy takes to say — 1s for a one-liner, 1.9s for
-// a full paragraph. Presentation-only and fail-soft, so headless Jest and an
-// out-of-date native dev client still render the guide with no audio.
+// Bert "speaks" for as long as the bubble's copy takes to say — 1s for a
+// one-liner, 1.9s for a full paragraph. Presentation-only and fail-soft, so
+// headless Jest and an out-of-date native dev client still render the guide
+// with no audio.
 import type { AudioPlayer } from 'expo-audio';
 import { registerAudioOwner } from './audio-lifecycle';
 
 /**
- * One tick plus the silence after it, so the run of ticks is the *player's*
- * loop rather than a JS timer's.
+ * The supplied dialogue run: 8.8s of continuous chatter, entered at an
+ * arbitrary point and cut off when the line ends.
  *
- * A timer used to re-trigger a single bare tick every 90ms, and only the first
- * one was ever heard: iOS retires an `AudioPlayer` seek by cancelling it when
- * the next seek arrives, so eleven seeks a second means ten cancellations a
- * second and ten `play()` calls that never run. Spacing the clip instead of the
- * calls removes the race outright — there is now exactly one seek per bubble.
+ * It replaces a 20ms tick this module looped at a 90ms cadence. The clip
+ * outlasts the longest line by more than four times, so the loop is gone with
+ * it, and so is the seam that forced the tick to be a mono 44.1kHz file.
  *
- * Rebuild after changing the tick or the cadence (44.1kHz mono keeps the loop
- * seam sample-exact; the tail is digital silence, so the seam cannot click):
- *   ffmpeg -y -i assets/audio/sfx/bert-voice-tick.m4a -af apad -t 0.090 \
- *     -ar 44100 -ac 1 -c:a pcm_s16le assets/audio/sfx/bert-voice-loop.wav
+ * What has NOT changed is the one constraint the tick was built around: exactly
+ * one seek per bubble. iOS retires an `AudioPlayer` seek by cancelling it when
+ * the next one arrives, so a voice re-seeked on a timer plays only its first
+ * sound. Keep it to a single seek per line.
+ *
+ * Rebuild after replacing the recording (it arrives ~14dB below every other
+ * cue, so the peak has to be brought up or Bert is inaudible under the music):
+ *   ffmpeg -y -i assets/audio/sfx/dialogue2.m4a -af volume=13.6dB \
+ *     -c:a aac -b:a 96k -ar 44100 -ac 1 \
+ *     assets/audio/sfx/bert-voice-dialogue2.m4a
  */
-const VOICE_SOURCE = require('../../assets/audio/sfx/bert-voice-loop.wav');
+const VOICE_SOURCE = require('../../assets/audio/sfx/bert-voice-dialogue2.m4a');
+/** Length of the clip, and the most any one line can consume of it. */
+const VOICE_CLIP_SECONDS = 8.8;
+const LONGEST_LINE_SECONDS = 2;
 
 /** Copy this short is a one-liner, not a message box. */
 const SHORT_MESSAGE_CHARS = 45;
@@ -76,7 +83,9 @@ function initBertVoice(): void {
       keepAudioSessionActive: true,
     });
     created.volume = masterVolume;
-    created.loop = true;
+    // No loop: the clip runs four times longer than the longest line, so its
+    // end is unreachable and looping would only matter if it were not.
+    created.loop = false;
     player = created;
   } catch (error) {
     player = null;
@@ -117,9 +126,12 @@ export function playBertVoice(durationMs: number): void {
   if (active === null || masterVolume === 0 || durationMs <= 0) return;
   stopBertVoice();
   const token = playToken;
-  // The one seek of the line: a looping voice left parked at the end of its
-  // clip ignores play(), so each bubble rewinds before it starts talking.
-  active.seekTo(0)
+  // The one seek of the line, landing somewhere new each time. Entering at 0
+  // would open every bubble on the identical syllables and differ only in where
+  // it stopped — the same metronomic problem the randomised duration above
+  // exists to avoid, moved from the length to the content.
+  const offset = Math.random() * (VOICE_CLIP_SECONDS - LONGEST_LINE_SECONDS);
+  active.seekTo(offset)
     .then(() => {
       if (token !== playToken) return;
       active.play();

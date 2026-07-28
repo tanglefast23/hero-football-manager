@@ -97,17 +97,23 @@ describe('bert voice', () => {
     expect(bertVoiceDurationMs('x'.repeat(131))).toBe(LONG_MESSAGE_MS);
   });
 
-  it('loops the clip natively for the whole line, then falls silent on its own', async () => {
+  it('plays one uninterrupted run for the whole line, then falls silent on its own', async () => {
     playBertVoice(SHORT_MESSAGE_MS);
     await settleSeeks();
     const player = mockPlayers[0];
     expect(player).toBeDefined();
-    // The run of ticks is the player's loop, not a JS timer re-triggering the
-    // clip: one seek and one play for the whole line. Repeatedly seeking a
-    // single voice is what silenced every tick after the first on iOS.
-    expect(player.loop).toBe(true);
+    // One seek and one play for the whole line. Repeatedly seeking a single
+    // voice is what silenced every tick after the first on iOS, and that
+    // constraint outlived the tick it was discovered with.
     expect(player.play).toHaveBeenCalledTimes(1);
     expect(player.seekTo).toHaveBeenCalledTimes(1);
+    // The dialogue clip outruns the longest line, so there is no end to loop at.
+    expect(player.loop).toBe(false);
+    // It enters the clip somewhere rather than always at the top, so two
+    // bubbles in a row never open on the same syllables.
+    const [offset] = player.seekTo.mock.calls[0];
+    expect(offset).toBeGreaterThanOrEqual(0);
+    expect(offset).toBeLessThanOrEqual(8.8 - 2);
 
     jest.advanceTimersByTime(SHORT_MESSAGE_MS);
     await settleSeeks();
