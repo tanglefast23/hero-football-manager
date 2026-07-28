@@ -103,6 +103,13 @@ export function SubstitutionBoard({
    * highlighting as the drag.
    */
   const [picked, setPicked] = useState<DragSource | null>(null);
+  /**
+   * The pick, mirrored so `resolveTap` can read it without a state updater —
+   * see the note there. Assigned during render, the way `DragCard` keeps its
+   * handler ref, so every path that clears the pick keeps it in step.
+   */
+  const pickedRef = useRef<DragSource | null>(null);
+  pickedRef.current = picked;
   /** The eligible card currently under the carried one, if any. */
   const [dropTarget, setDropTarget] = useState<CardId | null>(null);
   const cardViews = useRef(new Map<CardId, View>()).current;
@@ -217,24 +224,31 @@ export function SubstitutionBoard({
    *
    * The cue is explicit here because a tap arrives through the pan responder,
    * not through an SfxPressable that has already clicked.
+   *
+   * The pick is read from its ref rather than from a `setPicked` updater. An
+   * updater has to be pure — React may run it more than once for a single
+   * dispatch — and both the click and `resolveDrop`'s own `setPlan` are side
+   * effects, so a doubled run would click twice and stage the trade twice.
    */
   const resolveTap = useCallback((source: DragSource) => {
-    setPicked(current => {
-      if (current === null) {
-        playUiClickSfx();
-        return source;
-      }
-      if (current.id === source.id) {
-        playUiClickSfx();
-        return null;
-      }
-      if (isEligible(current, source.id)) {
-        resolveDrop(current, source.id);
-        return null;
-      }
+    const current = pickedRef.current;
+    if (current === null) {
       playUiClickSfx();
-      return source;
-    });
+      setPicked(source);
+      return;
+    }
+    if (current.id === source.id) {
+      playUiClickSfx();
+      setPicked(null);
+      return;
+    }
+    if (isEligible(current, source.id)) {
+      resolveDrop(current, source.id);
+      setPicked(null);
+      return;
+    }
+    playUiClickSfx();
+    setPicked(source);
   }, [isEligible, resolveDrop]);
 
   // The button is disabled with nothing staged, so a player never reaches the
