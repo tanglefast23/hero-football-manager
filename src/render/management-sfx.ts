@@ -1,6 +1,7 @@
 // Owns short management-screen feedback sounds. Kept fail-soft so an older
 // native dev client can still render the review UI when expo-audio is absent.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
+import { duckMenuMusicForSfx } from './menu-audio';
 
 type ExplicitManagementSfxKey =
   | 'match-statement'
@@ -33,16 +34,16 @@ type ManagementSfxKey = ExplicitManagementSfxKey | ManagementActionCue;
 const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   'match-statement': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'training-ding': require('../../assets/audio/sfx/training-stat-ding.m4a'),
-  // A real push-button click: the old 80ms tap was too slight to register under
-  // the music bed, so small buttons read as dead.
-  'ui-click': require('../../assets/audio/sfx/ui-push-button.m4a'),
+  // One clear button attack. The supplied push-button recording swelled again
+  // about 80ms after its first hit, so one playback read as two clicks.
+  'ui-click': require('../../assets/audio/sfx/ui-single-click.m4a'),
   // Player and coach signings intentionally share this confirmation sound.
   'transaction-confirm': require('../../assets/audio/sfx/match-statement-positive.m4a'),
   'coach-departure': require('../../assets/audio/sfx/fulltime-whistle.wav'),
   'facility-start': require('../../assets/audio/sfx/advance-week.m4a'),
   'facility-complete': require('../../assets/audio/sfx/facility-complete.m4a'),
   'event-success': require('../../assets/audio/sfx/crowd-cheer.wav'),
-  select: require('../../assets/audio/sfx/ui-push-button.m4a'),
+  select: require('../../assets/audio/sfx/ui-single-click.m4a'),
   cash: require('../../assets/audio/sfx/save-slap.wav'),
   build: require('../../assets/audio/sfx/tackle-thud.m4a'),
   dispatch: require('../../assets/audio/sfx/save-slap.wav'),
@@ -57,16 +58,9 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // Reusable celebratory cue for positive outcomes (e.g. signing a player).
   // Appended last so existing player indices stay stable.
   positive: require('../../assets/audio/sfx/positive.m4a'),
-  // The steppers keep the light tap, not the push-button click — the heavier
-  // click is what `ui-click` uses, and on the steppers it reads as too blunt.
-  // The gain cannot live in playback: every cue already plays at the 1.0
-  // volume ceiling and expo-audio clamps there, so it is baked into the asset.
-  //
-  // `stat-step-tap-loud.m4a` is `stat-step-tap.m4a` at 1.6x with a soft knee
-  // (sample ceiling -0.5dBFS, top rounded rather than squared off). Measured
-  // gain is +1.9 LU (-20.1 -> -18.2 LUFS), not the full +4.1 the 1.6x implies:
-  // the tap is an 85ms transient already peaking over full scale, so its crest
-  // factor eats the rest. Pushing past ~2x only trades grit for ~1dB more.
+  // Keep the lighter stepper character the controls were designed around.
+  // Playback briefly ducks the music because this 85ms transient otherwise
+  // disappears even at the asset and player volume ceilings.
   'stat-step': require('../../assets/audio/sfx/stat-step-tap-loud.m4a'),
   // Appended last, after `positive` and `stat-step`, so existing player indices
   // stay stable.
@@ -242,6 +236,7 @@ export function playUiClickSfx(): void {
 }
 
 export function playStatStepSfx(): void {
+  duckMenuMusicForSfx();
   playManagementSfx('stat-step');
   playTapHaptic();
 }

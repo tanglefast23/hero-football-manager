@@ -31,6 +31,8 @@ const MENU_SFX_SOURCES: Record<MenuSfx, AudioSource> = {
 };
 
 const MUSIC_VOLUME = 0.5;
+const DUCKED_MUSIC_VOLUME = 0.1;
+const SFX_DUCK_MS = 160;
 const LOOP_WATCHDOG_MS = 500;
 const IS_WEB = typeof document !== 'undefined';
 
@@ -44,6 +46,7 @@ let initAttempted = false;
 let webPlaybackUnlocked = !IS_WEB;
 let removeWebUnlockListeners: (() => void) | null = null;
 let loopWatchdog: ReturnType<typeof setInterval> | null = null;
+let musicDuckTimer: ReturnType<typeof setTimeout> | null = null;
 const recoveringThemes = new Set<Exclude<MenuTheme, null>>();
 
 function warnOnce(context: string, error: unknown): void {
@@ -57,9 +60,10 @@ function applyMasterVolume(): void {
   // without it a muted game kept looping its menu theme at device level. This
   // is the module that owns the longest-running loop, so it mattered most here.
   const muted = masterVolume === 0;
+  const musicVolume = musicDuckTimer === null ? MUSIC_VOLUME : DUCKED_MUSIC_VOLUME;
   for (const [theme, player] of players) {
     try {
-      player.volume = MUSIC_VOLUME * masterVolume;
+      player.volume = musicVolume * masterVolume;
       player.muted = muted;
     } catch (error) {
       warnOnce(`${theme} volume failed`, error);
@@ -73,6 +77,21 @@ function applyMasterVolume(): void {
       warnOnce(`${key} volume failed`, error);
     }
   }
+}
+
+/**
+ * Makes the intentionally light +/- tap readable without changing its
+ * character into the heavier general button click. Repeated taps extend one
+ * short dip instead of pumping the music up and down between presses.
+ */
+export function duckMenuMusicForSfx(): void {
+  if (!ready || activeTheme === null || masterVolume === 0) return;
+  if (musicDuckTimer !== null) clearTimeout(musicDuckTimer);
+  musicDuckTimer = setTimeout(() => {
+    musicDuckTimer = null;
+    applyMasterVolume();
+  }, SFX_DUCK_MS);
+  applyMasterVolume();
 }
 
 function playActiveTheme(): void {
@@ -272,6 +291,8 @@ export function setMenuTheme(theme: MenuTheme): void {
 
 export function teardownMenuAudio(): void {
   stopLoopWatchdog();
+  if (musicDuckTimer !== null) clearTimeout(musicDuckTimer);
+  musicDuckTimer = null;
   removeWebUnlockListeners?.();
   removeWebUnlockListeners = null;
   for (const [theme, player] of players) {

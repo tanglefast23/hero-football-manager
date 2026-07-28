@@ -66,14 +66,14 @@ function pointAlong(from: PowerEffectPoint, to: PowerEffectPoint, progress: numb
 }
 
 function makePolyline(points: readonly PowerEffectPoint[], close = false) {
-  const path = Skia.Path.Make();
-  if (points.length === 0) return path;
-  path.moveTo(points[0].x, points[0].y);
+  const builder = Skia.PathBuilder.Make();
+  if (points.length === 0) return builder.detach();
+  builder.moveTo(points[0].x, points[0].y);
   for (let index = 1; index < points.length; index += 1) {
-    path.lineTo(points[index].x, points[index].y);
+    builder.lineTo(points[index].x, points[index].y);
   }
-  if (close) path.close();
-  return path;
+  if (close) builder.close();
+  return builder.detach();
 }
 
 function makeCurve(
@@ -81,10 +81,10 @@ function makeCurve(
   control: PowerEffectPoint,
   to: PowerEffectPoint,
 ) {
-  const path = Skia.Path.Make();
-  path.moveTo(from.x, from.y);
-  path.quadTo(control.x, control.y, to.x, to.y);
-  return path;
+  const builder = Skia.PathBuilder.Make();
+  builder.moveTo(from.x, from.y);
+  builder.quadTo(control.x, control.y, to.x, to.y);
+  return builder.detach();
 }
 
 function makeBolt(from: PowerEffectPoint, to: PowerEffectPoint, jag: number) {
@@ -377,11 +377,12 @@ export function PowerEffectScene({
       const predict = segment(p, 0.05, 0.34);
       const intercept = easeOut(segment(p, 0.34, 0.68));
       const outlet = segment(p, 0.66, 1);
-      const eye = Skia.Path.Make();
-      eye.moveTo(origin.x - unit * 2, origin.y - unit * 2.4);
-      eye.quadTo(origin.x, origin.y - unit * 4, origin.x + unit * 2, origin.y - unit * 2.4);
-      eye.quadTo(origin.x, origin.y - unit * 0.8, origin.x - unit * 2, origin.y - unit * 2.4);
-      eye.close();
+      const eyeBuilder = Skia.PathBuilder.Make();
+      eyeBuilder.moveTo(origin.x - unit * 2, origin.y - unit * 2.4);
+      eyeBuilder.quadTo(origin.x, origin.y - unit * 4, origin.x + unit * 2, origin.y - unit * 2.4);
+      eyeBuilder.quadTo(origin.x, origin.y - unit * 0.8, origin.x - unit * 2, origin.y - unit * 2.4);
+      eyeBuilder.close();
+      const eye = eyeBuilder.detach();
       art = (
         <Fragment>
           <Path path={eye} color={palette.primary} opacity={0.35 + predict * 0.55} />
