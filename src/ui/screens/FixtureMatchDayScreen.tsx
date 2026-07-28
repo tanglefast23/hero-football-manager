@@ -348,8 +348,8 @@ export function FixtureMatchDayScreen({
           </View>
           <View className="flex-1">
             <ActionButton
-              label={wide ? 'Watch match  ▸' : 'Watch  ▸'}
-              accessibilityLabel="Watch match"
+              label={wide ? 'Play match  ▸' : 'Play  ▸'}
+              accessibilityLabel="Play match"
               onPress={() => handOffFixture(onWatchMatch)}
               disabled={watchDisabled || handedOff || !viewModel.licenseReady}
             />

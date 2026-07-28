@@ -111,6 +111,19 @@ describe('player-facing acceptance audit regressions', () => {
 
     expect(home).toContain("'Use Advance Week below'");
     expect(home).toContain("Use Advance Week below to prepare Match Day.");
+    expect(home).toContain('const fixtureIsThisWeek = viewModel.isCurrentGameWeek;');
+    expect(home).toContain('<MatchWeekMarquee active={fixtureIsThisWeek}>');
+    expect(home).toContain('absolute -inset-3 border-2 border-ink bg-red-dark');
+    expect(home).toContain('HORIZONTAL_MARQUEE_BULBS');
+    expect(home).toContain('VERTICAL_MARQUEE_BULBS');
+  });
+
+  test('calls the active match option Play while retaining Quick Result', () => {
+    const matchDay = source('src/ui/screens/FixtureMatchDayScreen.tsx');
+
+    expect(matchDay).toContain("label={wide ? 'Play match  ▸' : 'Play  ▸'}");
+    expect(matchDay).toContain('label="Quick result"');
+    expect(matchDay).not.toContain("label={wide ? 'Watch match  ▸' : 'Watch  ▸'}");
   });
 
   test('keeps the match-day docket free of redundant live-coaching and auto-context blocks', () => {
