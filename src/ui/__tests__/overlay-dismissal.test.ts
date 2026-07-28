@@ -44,14 +44,39 @@ describe('overlay dismissal', () => {
     expect(file).not.toContain('className="absolute inset-0" onPress={onConfirm}');
   });
 
-  it('keeps forced beats and Bert briefings tap-through-proof', () => {
-    // Bert's briefing advances only on its button: it is the game teaching, and
-    // an outside tap would skip the instruction the next objective depends on.
-    const guide = source('src/ui/AssistantGuideOverlay.tsx');
-    expect(guide).not.toContain('onPress={onDismiss}');
-
+  it('keeps forced beats undismissable', () => {
     // The story event is a decision; there is no dismissing it.
     const event = source('src/ui/screens/StoryEventScreen.tsx');
     expect(event).not.toContain('className="absolute inset-0"');
+  });
+
+  /**
+   * Bert's briefing used to advance only on its own button, so that an outside
+   * tap could not skip an instruction the next objective depended on. The
+   * walk-on makes the whole screen the button, which reverses that deliberately
+   * — nothing else about a walk-on works if part of the screen is inert.
+   *
+   * What survives of the old guarantee is the part that mattered: a briefing is
+   * never taken off screen by anything other than the player, and one tap can
+   * never cost them two lines.
+   */
+  it('never advances Bert past a line the player did not read', () => {
+    const walkOn = source('src/ui/BertBriefingWalkOn.tsx');
+    // No timer. The rookie auto-advances because he is making a remark; this is
+    // the game teaching, and a timer would pull a rule off mid-sentence.
+    expect(walkOn).not.toContain('autoAdvanceMs');
+
+    const overlay = source('src/ui/CharacterSpeechOverlay.tsx');
+    // Two taps in one tick both read the same stale index without this, and a
+    // skipped line here is a rule the player is never told again.
+    expect(overlay).toContain('lineIndexRef');
+    expect(overlay).toContain('const next = lineIndexRef.current + 1');
+  });
+
+  it('holds the screen while Bert is on it', () => {
+    const walkOn = source('src/ui/BertBriefingWalkOn.tsx');
+    // The shared overlay is a plain Pressable, so the modal semantics the old
+    // framed window had are the wrapper's job now.
+    expect(walkOn).toContain('accessibilityViewIsModal');
   });
 });

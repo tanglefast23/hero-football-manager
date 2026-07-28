@@ -7,6 +7,7 @@ import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { TutorialTapCue } from '../TutorialTapCue';
 import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
+import { GUIDED_ALERT_GLOW } from '../guidance-glow';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
@@ -28,6 +29,15 @@ export interface ClubHomeScreenProps {
   onProtectBoardCandidate: (playerId: string) => void;
   guideAlertId?: string;
   lockOtherAlerts?: boolean;
+  /**
+   * Lights the guided row once Bert has walked off. He tells you to check the
+   * inbox and then leaves; without this the instruction leaves with him, and
+   * the row he meant is one of several identical cards.
+   *
+   * Held back until he is gone on purpose — a glow competing with the dimmed
+   * screen and the spotlight would be a third thing asking for attention.
+   */
+  glowGuidedAlert?: boolean;
   guideBoard?: boolean;
   textScale?: TextScale;
 }
@@ -40,6 +50,7 @@ export function ClubHomeScreen({
   onProtectBoardCandidate,
   guideAlertId,
   lockOtherAlerts = false,
+  glowGuidedAlert = false,
   guideBoard = false,
   textScale = 1,
 }: ClubHomeScreenProps) {
@@ -132,7 +143,13 @@ export function ClubHomeScreen({
                   disabled={locked}
                   onPress={() => onOpenAlert(alert.id)}
                   className={`relative min-h-14 flex-row items-center justify-between border-2 border-b-4 p-3 ${alertPalette(alert.tone)}`}
-                  style={({ pressed }) => ({ opacity: locked ? 0.45 : pressed ? 0.75 : undefined })}
+                  // Kept in the existing function form rather than split into an
+                  // array: switching a Pressable's style to or from a function
+                  // has twice collapsed layout on iOS only in this project.
+                  style={({ pressed }) => ({
+                    opacity: locked ? 0.45 : pressed ? 0.75 : undefined,
+                    ...(guided && glowGuidedAlert ? GUIDED_ALERT_GLOW : {}),
+                  })}
                 >
                   {guided ? (
                     <TutorialTapCue

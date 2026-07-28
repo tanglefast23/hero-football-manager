@@ -20,12 +20,20 @@ const TILT_MS = 200;
 /** A beat between arriving and speaking, so the two reads as cause and effect. */
 const SETTLE_MS = 240;
 const BUBBLE_POP_MS = 200;
+/** Widest the bubble is ever drawn, and the margin it keeps from both edges. */
+const BUBBLE_MAX_WIDTH = 320;
+const BUBBLE_GUTTER = 8;
+const BUBBLE_FONT_SIZE = 15;
+const BUBBLE_LINE_HEIGHT = 21;
+/** Clearance the bubble keeps from the top of the screen, and from the app's
+ *  own header chrome sitting just under it. */
+const TOP_SAFE_MARGIN = 72;
 
 export interface CharacterSpeechOverlayProps {
   /** One bubble per entry. A tap moves to the next; the last tap sends them off. */
   lines: readonly string[];
   /** The character themselves — a match sprite, or Bert's pixel figure. */
-  children: React.ReactNode;
+  children?: React.ReactNode;
   /** Rendered size of `children`, needed to place the bubble above their head. */
   characterWidth: number;
   characterHeight: number;
@@ -40,6 +48,25 @@ export interface CharacterSpeechOverlayProps {
   onDone: () => void;
   reduceMotion?: boolean;
   accessibilityLabel?: string;
+  /** Fires with the index of the line now showing, including the first. */
+  onLineChange?: (index: number) => void;
+  /**
+   * The player sheet holds only a right-facing run, so an arriving character is
+   * drawn mirrored — in every phase but `leaving`. A front-facing figure has to
+   * opt out, or it spends the whole conversation reversed.
+   */
+  mirrorSprite?: boolean;
+  /**
+   * A character that needs to know it is moving. `children` covers the common
+   * case; this covers a figure whose own limbs animate, which cannot be told
+   * from outside because the phase is internal.
+   */
+  renderCharacter?: (state: { phase: Phase; walking: boolean }) => React.ReactNode;
+  /**
+   * Grows the bubble with the character. A big figure beside small type reads
+   * as a mistake rather than a choice.
+   */
+  bubbleScale?: number;
 }
 
 type Phase = 'arriving' | 'speaking' | 'leaving';
@@ -63,12 +90,21 @@ export function CharacterSpeechOverlay({
   onDone,
   reduceMotion = false,
   accessibilityLabel,
+  onLineChange,
+  mirrorSprite = true,
+  renderCharacter,
+  bubbleScale = 1,
 }: CharacterSpeechOverlayProps) {
-  const { width: viewportWidth } = useWindowDimensions();
+  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const reduce = useReducedMotion(reduceMotion);
   const [phase, setPhase] = useState<Phase>(reduce ? 'speaking' : 'arriving');
   const [lineIndex, setLineIndex] = useState(0);
   const [bubbleWidth, setBubbleWidth] = useState(0);
+  const [bubbleHeight, setBubbleHeight] = useState(0);
+  // Advancing reads this rather than the state value: two taps landing in the
+  // same tick would both see a stale `lineIndex` and skip a line, and a skipped
+  // line here is a rule the player is never told again.
+  const lineIndexRef = useRef(0);
 
   const restLeft = viewportWidth * (1 - PENETRATION) - characterWidth / 2;
   const offRight = viewportWidth + 24;
@@ -159,12 +195,46 @@ export function CharacterSpeechOverlay({
       return;
     }
     if (phase === 'leaving') return;
-    if (lineIndex < lines.length - 1) {
-      setLineIndex(index => index + 1);
+    const next = lineIndexRef.current + 1;
+    if (next < lines.length) {
+      lineIndexRef.current = next;
+      setLineIndex(next);
       return;
     }
     setPhase('leaving');
-  }, [lineIndex, lines.length, phase, restLeft, travel]);
+  }, [lines.length, phase, restLeft, travel]);
+
+  // Announce the line to whoever is following along — the spotlight tracks it,
+  // and the first line has to be reported as well as the ones tapped to.
+  useEffect(() => {
+    onLineChange?.(lineIndex);
+  }, [lineIndex, onLineChange]);
+
+  /**
+   * Reduced motion can be answered after the walk has already started. The
+   * arrival animation is then stopped by its own effect with the character
+   * still off screen, so parking them on their mark is the only way back.
+   */
+  useEffect(() => {
+    if (!reduce || phase !== 'arriving') return;
+    travel.setValue(restLeft);
+    setPhase('speaking');
+  }, [phase, reduce, restLeft, travel]);
+
+  /**
+   * Keep them on their mark when the window changes size.
+   *
+   * `travel` is seeded once and only driven while arriving or leaving, but the
+   * bubble recomputes its anchor from the live viewport every render. Without
+   * this, resizing mid-briefing — or a first paint that lands before the layout
+   * settles, which is the desktop case — leaves the character standing where
+   * the old width put them while their bubble has already moved, tail pointing
+   * at nobody.
+   */
+  useEffect(() => {
+    if (phase !== 'speaking') return;
+    travel.setValue(restLeft);
+  }, [phase, restLeft, travel]);
 
   // Auto-advance for a character who is remarking rather than briefing.
   useEffect(() => {
@@ -175,6 +245,7 @@ export function CharacterSpeechOverlay({
 
   const onBubbleLayout = useCallback((event: LayoutChangeEvent) => {
     setBubbleWidth(event.nativeEvent.layout.width);
+    setBubbleHeight(event.nativeEvent.layout.height);
   }, []);
 
   const line = lines[Math.min(lineIndex, lines.length - 1)];
@@ -186,7 +257,7 @@ export function CharacterSpeechOverlay({
   const characterCentre = restLeft + characterWidth / 2;
   const bubbleLeft = useMemo(() => {
     if (bubbleWidth === 0) return characterCentre;
-    const gutter = 8;
+    const gutter = BUBBLE_GUTTER;
     const ideal = characterCentre - bubbleWidth / 2;
     return Math.min(Math.max(ideal, gutter), Math.max(gutter, viewportWidth - bubbleWidth - gutter));
   }, [bubbleWidth, characterCentre, viewportWidth]);
@@ -194,6 +265,20 @@ export function CharacterSpeechOverlay({
     Math.max(characterCentre - bubbleLeft, 18),
     Math.max(18, bubbleWidth - 18),
   );
+
+  /**
+   * The bubble wants to sit above the character's head, but a tall character on
+   * a short screen pushes it into whatever the app keeps at the top — on the
+   * money briefing that is the cash counter and its own cue. Rather than let it
+   * ride off the top, it stops short and overlaps the character instead, which
+   * is the normal thing for a speech bubble to do.
+   */
+  const bubbleBottom = useMemo(() => {
+    const ideal = groundOffset + characterHeight + 22;
+    if (bubbleHeight === 0) return ideal;
+    const highest = viewportHeight - bubbleHeight - TOP_SAFE_MARGIN;
+    return Math.max(0, Math.min(ideal, highest));
+  }, [bubbleHeight, characterHeight, groundOffset, viewportHeight]);
 
   const tilt = lean.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${SPEAK_TILT_DEG}deg`] });
 
@@ -213,13 +298,22 @@ export function CharacterSpeechOverlay({
               styles.bubble,
               {
                 left: bubbleLeft,
-                bottom: groundOffset + characterHeight + 22,
+                bottom: bubbleBottom,
                 opacity: pop,
                 transform: [{ scale: pop }],
+                // The flat cap overflows a 320pt phone once both gutters are
+                // counted, so the narrower of the two always wins.
+                maxWidth: Math.min(
+                  BUBBLE_MAX_WIDTH * bubbleScale,
+                  viewportWidth - BUBBLE_GUTTER * 2,
+                ),
               },
             ]}
           >
-            <Text style={styles.bubbleText}>{line}</Text>
+            <Text style={[styles.bubbleText, bubbleScale === 1 ? null : {
+              fontSize: BUBBLE_FONT_SIZE * bubbleScale,
+              lineHeight: BUBBLE_LINE_HEIGHT * bubbleScale,
+            }]}>{line}</Text>
             <View style={[styles.tailBorder, { left: tailLeft - 10 }]} />
             <View style={[styles.tailFill, { left: tailLeft - 7 }]} />
           </Animated.View>
@@ -235,14 +329,15 @@ export function CharacterSpeechOverlay({
               transform: [
                 { translateX: travel },
                 // The sheet only holds a right-facing run, so arriving from the
-                // right means drawing it mirrored.
-                { scaleX: phase === 'leaving' ? 1 : -1 },
+                // right means drawing it mirrored. A front-facing figure opts
+                // out — mirroring it would only reverse the arm it points with.
+                { scaleX: mirrorSprite && phase !== 'leaving' ? -1 : 1 },
                 { rotate: tilt },
               ],
             },
           ]}
         >
-          {children}
+          {renderCharacter === undefined ? children : renderCharacter({ phase, walking })}
         </Animated.View>
 
         <Animated.View
@@ -296,7 +391,12 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     elevation: 6,
   },
-  bubbleText: { color: '#241f2e', fontSize: 15, lineHeight: 21, fontWeight: 'bold' },
+  bubbleText: {
+    color: '#241f2e',
+    fontSize: BUBBLE_FONT_SIZE,
+    lineHeight: BUBBLE_LINE_HEIGHT,
+    fontWeight: 'bold',
+  },
   // Two stacked triangles: the dark one is the bubble's border, the white one
   // sits a few pixels up to punch the border line out of the tail's mouth.
   tailBorder: {

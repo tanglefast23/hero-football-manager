@@ -66,7 +66,7 @@ import {
   PlayerWalkOnWelcome,
   ClubHomeScreen,
   ClubLegacyScreen,
-  AssistantGuideOverlay,
+  BertBriefingWalkOn,
   CharacterCreationScreen,
   AwakeningCutsceneScreen,
   ChampionshipCelebrationScreen,
@@ -380,7 +380,15 @@ function GameApp() {
   const [bootError, setBootError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<AppPreferences>(DEFAULT_APP_PREFERENCES);
   const [landingView, setLandingView] = useState<LandingView>('title');
-  const [assistantPageIndex, setAssistantPageIndex] = useState(0);
+  /**
+   * The focus of the briefing beat Bert is currently speaking.
+   *
+   * The walk-on owns which line is showing, but the anchors it wants lit are
+   * measured by screens far above it — measurement is gated on `guideFocus`.
+   * So the live focus is reported back up here rather than derived from a page
+   * index, which is what the framed window used before it stepped page by page.
+   */
+  const [activeGuideFocus, setActiveGuideFocus] = useState<AssistantGuideFocus | undefined>(undefined);
   const [requestedAssistantSequenceId, setRequestedAssistantSequenceId] = useState<AssistantGuideSequenceId | null>(null);
   const [conciergeFocus, setConciergeFocus] = useState<AssistantGuideFocus | null>(null);
   const [marketSectionRequest, setMarketSectionRequest] = useState<{
@@ -886,9 +894,6 @@ function GameApp() {
   const assistantSequence = assistantSequenceId === null
     ? undefined
     : content.assistantGuide.sequences.find(sequence => sequence.id === assistantSequenceId);
-  const assistantPage = assistantSequence?.pages[
-    Math.min(assistantPageIndex, (assistantSequence?.pages.length ?? 1) - 1)
-  ];
   /**
    * Whether Bert's guide is covering the screen.
    *
@@ -964,27 +969,31 @@ function GameApp() {
 
 
   useEffect(() => {
-    setAssistantPageIndex(0);
+    setActiveGuideFocus(undefined);
   }, [assistantSequenceId]);
 
-  const advanceAssistantGuide = useCallback(() => {
+  /**
+   * The end of a whole briefing, not of a page.
+   *
+   * The walk-on says every page's copy in one visit and reports back once, on
+   * its way off screen, so this runs only what the old per-page advance did on
+   * its last page. Completing per page here would finish the three-page opening
+   * on its first bubble.
+   */
+  const completeAssistantGuideSequence = useCallback(() => {
     if (assistantSequenceId === null || assistantSequence === undefined) return;
-    if (assistantPageIndex < assistantSequence.pages.length - 1) {
-      setAssistantPageIndex(index => index + 1);
-      return;
-    }
     store.completeAssistantGuide(assistantSequenceId);
     if (assistantSequenceId === requestedAssistantSequenceId) {
       setConciergeFocus(assistantSequence.pages.at(-1)?.focus ?? null);
       setRequestedAssistantSequenceId(null);
     }
-  }, [assistantPageIndex, assistantSequence, assistantSequenceId, requestedAssistantSequenceId, store.completeAssistantGuide]);
+  }, [assistantSequence, assistantSequenceId, requestedAssistantSequenceId, store.completeAssistantGuide]);
 
   const openAssistantGuide = useCallback((
     sequenceId: AssistantGuideSequenceId,
     destination: AssistantGuideDestination,
   ) => {
-    setAssistantPageIndex(0);
+    setActiveGuideFocus(undefined);
     setConciergeFocus(null);
     setRequestedAssistantSequenceId(sequenceId);
     const requestedMarketSection: MarketSectionId | undefined = destination === 'youth-intake'
@@ -1314,8 +1323,8 @@ function GameApp() {
         advanceWeekDisabled={store.saving
           || store.saveBlocked
           || (assistantObjective !== null && assistantObjective.target !== 'advance-week')}
-        guideFocus={assistantPage?.focus === 'money' || assistantPage?.focus === 'navigation'
-          ? assistantPage.focus
+        guideFocus={activeGuideFocus === 'money' || activeGuideFocus === 'navigation'
+          ? activeGuideFocus
           : undefined}
         guideTarget={hideCoachHiringCues ? undefined : assistantObjective?.target}
         onMoneyGuideAnchorChange={setMoneyGuideAnchor}
@@ -1554,6 +1563,10 @@ function GameApp() {
                 ? home.alerts.find(alert => alert.id.startsWith('retirement-announcement-'))?.id
                 : undefined}
             lockOtherAlerts={assistantObjective?.target === 'training-ground-alert'}
+            // Only once he is off screen: while he is still talking the row is
+            // under a dimmed pane anyway, and a third highlight would compete
+            // with the spotlight he is standing in.
+            glowGuidedAlert={!guideOverlayVisible}
             guideBoard={conciergeFocus === 'board-ultimatum' || conciergeFocus === 'board-protection'}
           />
         )}
@@ -1636,14 +1649,15 @@ function GameApp() {
             }
           }}
         />
-        {guideOverlayVisible ? (
-          <AssistantGuideOverlay
+        {guideOverlayVisible && assistantSequenceId !== null ? (
+          <BertBriefingWalkOn
             content={content.assistantGuide}
             sequenceId={assistantSequenceId}
-            pageIndex={assistantPageIndex}
             moneyAnchor={moneyGuideAnchor}
             navigationAnchor={navigationGuideAnchor}
-            onAdvance={advanceAssistantGuide}
+            reduceMotion={reduceMotion}
+            onFocusChange={setActiveGuideFocus}
+            onDone={completeAssistantGuideSequence}
           />
         ) : null}
         {coachOverlay !== null ? (

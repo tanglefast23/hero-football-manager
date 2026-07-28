@@ -5,7 +5,7 @@ import { SfxPressable as Pressable } from './components/SfxPressable';
 import { SuperTrainingCelebration } from './components/SuperTrainingCelebration';
 import { DrillGainReveal } from './components/DrillGainReveal';
 import { DrillSceneOverlay, drillActivityId } from '../render/DrillSceneOverlay';
-import { BertFullBody } from './AssistantGuideOverlay';
+import { BertFullBody } from './BertFullBody';
 import { energyBand } from '../render/match-energy-ui';
 import { INSTANT_DRILL_CONDITION_COST } from '../game/training';
 import { playDrillResultSfx, playSuperTrainingSfx, playManagementActionSfx } from '../render/management-sfx';

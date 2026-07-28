@@ -24,7 +24,7 @@ import {
 } from '../../render/menu-audio';
 import { buildFallbackAtlas, buildSpriteAtlas } from '../../render/sprites/buildAtlas';
 import { PIXEL_ART_SAMPLING } from '../../render/pixel-art-sampling';
-import { BertFullBody } from '../AssistantGuideOverlay';
+import { BertFullBody } from '../BertFullBody';
 import type {
   ChampionshipCelebrationPlayerViewModel,
   ChampionshipCelebrationViewModel,
