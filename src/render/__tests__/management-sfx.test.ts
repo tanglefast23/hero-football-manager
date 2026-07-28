@@ -120,10 +120,10 @@ describe('management feedback sounds', () => {
     // A real push-button click, not the 80ms tap that vanished under the music.
     expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-push-button.m4a')");
     expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-push-button.m4a')");
-    // Steppers are the exception, but louder rather than lighter: they sit at
-    // the volume ceiling like every other cue, so the only place their extra
-    // loudness can live is the asset itself.
-    expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/ui-push-button-loud.m4a')");
+    // Steppers keep the lighter tap rather than the push-button click, but a
+    // hotter render of it: they sit at the volume ceiling like every other cue,
+    // so the only place their extra loudness can live is the asset itself.
+    expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/stat-step-tap-loud.m4a')");
     expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
     // Large buttons still confirm by default, but the variant can speak for
     // itself: a destructive one answers with the back-button cue (dismissing a

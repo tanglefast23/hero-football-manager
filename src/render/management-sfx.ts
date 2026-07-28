@@ -57,17 +57,17 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // Reusable celebratory cue for positive outcomes (e.g. signing a player).
   // Appended last so existing player indices stay stable.
   positive: require('../../assets/audio/sfx/positive.m4a'),
-  // The +/- steppers read as too soft, and the gain cannot live in playback:
-  // every cue already plays at the 1.0 volume ceiling and expo-audio clamps
-  // there. So this is the push-button click rendered hotter (+3dB, peak-limited
-  // rather than clipped — the source had only 1.1dB of headroom left).
+  // The steppers keep the light tap, not the push-button click — the heavier
+  // click is what `ui-click` uses, and on the steppers it reads as too blunt.
+  // The gain cannot live in playback: every cue already plays at the 1.0
+  // volume ceiling and expo-audio clamps there, so it is baked into the asset.
   //
-  // This deliberately supersedes the dedicated lighter `ui-stat-step.m4a` tap:
-  // that clip sits at -16.3dB mean, quieter still than the click that prompted
-  // the complaint, and its 70ms crest factor means limiting eats any boost
-  // (+8dB of gain buys only 4dB of loudness). Restoring the lighter character
-  // means re-recording it with a fuller body, not re-levelling this one.
-  'stat-step': require('../../assets/audio/sfx/ui-push-button-loud.m4a'),
+  // `stat-step-tap-loud.m4a` is `stat-step-tap.m4a` at 1.6x with a soft knee
+  // (sample ceiling -0.5dBFS, top rounded rather than squared off). Measured
+  // gain is +1.9 LU (-20.1 -> -18.2 LUFS), not the full +4.1 the 1.6x implies:
+  // the tap is an 85ms transient already peaking over full scale, so its crest
+  // factor eats the rest. Pushing past ~2x only trades grit for ~1dB more.
+  'stat-step': require('../../assets/audio/sfx/stat-step-tap-loud.m4a'),
   // Appended last, after `positive` and `stat-step`, so existing player indices
   // stay stable.
   'drill-progress': require('../../assets/audio/sfx/drill-progress.m4a'),
