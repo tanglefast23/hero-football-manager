@@ -15,21 +15,21 @@ describe('rookie signing celebration', () => {
     // expression is now shared with the keyboard-shortcut gate so the two
     // cannot drift, and pinning its exact text blocks that kind of safe change.
     expect(appSource).toContain("assistantSequenceId !== null");
-    expect(appSource).toContain("playerSigning?.source !== 'rookie'");
+    expect(appSource).toContain('signingWalkOn === null');
     expect(appSource).toContain('const guideOverlayVisible');
     expect(appSource).toContain('{guideOverlayVisible');
   });
 
-  it('gives the rookie a walk-on and leaves the receipt card to squad signings', () => {
+  it('gives the rookie a walk-on and leaves the receipt card to bought players', () => {
     // The rookie walks onto the home screen and says one line; only the
-    // transfers and academy graduates still get the framed confirmation.
-    expect(appSource).toContain("playerSigning.source === 'rookie' ? (");
+    // transfers still get the framed confirmation.
+    expect(appSource).toContain('signingWalkOn !== null ? (');
     expect(appSource).toContain('<PlayerWalkOnWelcome');
-    expect(appSource).toContain("playerSigning.source !== 'rookie' ? (");
+    expect(appSource).toContain("playerSigning.source === 'transfer' ? (");
     expect(appSource).toContain('<PlayerSigningOverlay');
 
     expect(walkOnSource).toContain('playPositiveSfx()');
-    expect(walkOnSource).toContain("lines={['Thanks for believing in me!']}");
+    expect(walkOnSource).toContain('lines={[line]}');
     // He is the match sprite, not a portrait: the celebration and the pitch
     // must never disagree about what the player looks like.
     expect(walkOnSource).toContain('<PlayerRunSprite');

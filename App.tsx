@@ -899,6 +899,18 @@ function GameApp() {
     ? undefined
     : content.assistantGuide.sequences.find(sequence => sequence.id === assistantSequenceId);
   /**
+   * The signing that is walking onto the screen, if one is.
+   *
+   * The rookie and the academy graduates are players the manager picked one at
+   * a time, so they walk on and say their piece. A transfer stays a receipt — a
+   * character beat on every incoming player would wear out by the second
+   * window. Narrowed once here because three places need it: the two overlays,
+   * and Bert, who must not talk over them.
+   */
+  const signingWalkOn = playerSigning !== null && playerSigning.source !== 'transfer'
+    ? playerSigning
+    : null;
+  /**
    * Whether Bert's guide is covering the screen.
    *
    * Declared once and used both to render the overlay and to suspend keyboard
@@ -909,7 +921,7 @@ function GameApp() {
    * that same rail. Sharing the expression keeps the two from drifting apart.
    */
   const guideOverlayVisible = assistantSequenceId !== null
-    && playerSigning?.source !== 'rookie';
+    && signingWalkOn === null;
   const assistantObjective = store.career === null
     ? null
     : currentAssistantObjective(store.career, store.activeTab);
@@ -1719,18 +1731,15 @@ function GameApp() {
             onClose={() => setFacilityProjectNotice(null)}
           />
         ) : null}
-        {/* The rookie is the one signing the player has a relationship with, so
-            they get the walk-on. A squad transfer stays a receipt — a character
-            beat on every incoming player would wear out by the second window. */}
-        {playerSigning !== null && playerSigning.source === 'rookie' ? (
+        {signingWalkOn !== null ? (
           <PlayerWalkOnWelcome
-            player={playerSigning}
+            player={signingWalkOn}
             navigationAnchor={navigationGuideAnchor}
             reduceMotion={reduceMotion}
             onDone={() => setPlayerSigning(null)}
           />
         ) : null}
-        {playerSigning !== null && playerSigning.source !== 'rookie' ? (
+        {playerSigning !== null && playerSigning.source === 'transfer' ? (
           <PlayerSigningOverlay
             player={playerSigning}
             reduceMotion={reduceMotion}
