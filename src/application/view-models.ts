@@ -1001,13 +1001,24 @@ function standaloneInboxGuides(
 export function homeViewModel(state: GameState): HomeViewModel {
   const userClub = requireUserClub(state);
   const roster = rosterForClub(state, state.userClubId);
-  const nextFixture = state.fixtures
+  // The engine owns the definition of a playable game week, including Global
+  // Cup ties and league-first double headers. Do not infer it from the oldest
+  // scheduled league fixture: migrated saves can retain an overdue fixture,
+  // which used to make every later desk claim "This week."
+  const currentMatchday = activeCareerMatchday(state);
+  const nextLeagueFixture = state.fixtures
     .filter(fixture =>
       fixture.status === 'scheduled' &&
       fixture.season === state.season &&
+      fixture.week >= state.week &&
       (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId),
     )
     .sort((left, right) => left.week - right.week || left.round - right.round)[0];
+  const nextFixture = currentMatchday?.fixture ?? nextLeagueFixture;
+  const nextFixtureCompetition = currentMatchday?.kind === 'national-cup'
+    ? `Global Cup · ${currentMatchday.cupRoundLabel ?? 'Knockout tie'}`
+    : undefined;
+  const isCurrentGameWeek = currentMatchday !== undefined;
   const boardUltimatum = state.financialSafety?.boardUltimatum;
   const rosterById = new Map(roster.map(player => [player.id, player]));
   const latestBoardResolution = state.financialSafety?.latestBoardResolution;
@@ -1135,9 +1146,10 @@ export function homeViewModel(state: GameState): HomeViewModel {
     weekLabel: `Week ${state.week} / 30`,
     nextMatchTimingLabel: nextFixture === undefined
       ? state.phase === 'complete' ? 'Complete' : 'Season end'
-      : nextFixture.week <= state.week
+      : isCurrentGameWeek
         ? 'This week'
         : `In ${weekCountLabel(nextFixture.week - state.week).toLowerCase()}`,
+    isCurrentGameWeek,
     form: recentForm(state),
     resources: {
       money: userClub.cash,
@@ -1154,7 +1166,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
           opponentHeroCount: 0,
           matchdayReady: false,
         }
-      : fixtureViewModel(state, nextFixture),
+      : fixtureViewModel(state, nextFixture, nextFixtureCompetition),
     alerts,
     notes: homeNotes,
     ...(boardUltimatum === undefined ? {} : {

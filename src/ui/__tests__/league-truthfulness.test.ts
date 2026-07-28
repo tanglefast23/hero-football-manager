@@ -1,4 +1,4 @@
-import { createCareer } from '../../game';
+import { createCareer, CUP_SETTLEMENT_WEEKS } from '../../game';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { homeViewModel, leagueTableViewModel } from '../../application/view-models';
 
@@ -67,11 +67,65 @@ describe('management UI truthfulness view models', () => {
         : fixture),
     };
 
-    expect(homeViewModel(afterOpeningMatch).nextMatchTimingLabel).toBe('In 1 week');
+    expect(homeViewModel(afterOpeningMatch)).toMatchObject({
+      nextMatchTimingLabel: 'In 1 week',
+      isCurrentGameWeek: false,
+    });
     expect(homeViewModel({
       ...career,
       week: firstFixture.week,
       phase: 'matchday',
-    }).nextMatchTimingLabel).toBe('This week');
+    })).toMatchObject({
+      nextMatchTimingLabel: 'This week',
+      isCurrentGameWeek: true,
+    });
+  });
+
+  it('does not mark an overdue scheduled fixture as the current game week', () => {
+    const career = createCareer(createLaunchCareerSetup(924));
+    const userFixtures = career.fixtures
+      .filter(fixture =>
+        fixture.season === career.season &&
+        (fixture.homeClubId === career.userClubId || fixture.awayClubId === career.userClubId),
+      )
+      .sort((left, right) => left.week - right.week || left.round - right.round);
+    const staleFixture = userFixtures[0];
+    const futureFixture = userFixtures[1];
+    if (staleFixture === undefined || futureFixture === undefined) {
+      throw new Error('launch career needs at least two user fixtures');
+    }
+
+    const currentWeek = 2;
+    const viewModel = homeViewModel({
+      ...career,
+      week: currentWeek,
+      fixtures: career.fixtures.map(fixture => {
+        if (fixture.id === staleFixture.id) {
+          return { ...fixture, week: currentWeek - 1, status: 'scheduled' as const };
+        }
+        if (fixture.id === futureFixture.id) {
+          return { ...fixture, week: currentWeek + 4, status: 'scheduled' as const };
+        }
+        if (fixture.homeClubId === career.userClubId || fixture.awayClubId === career.userClubId) {
+          return { ...fixture, status: 'played' as const };
+        }
+        return fixture;
+      }),
+    });
+
+    expect(viewModel.nextFixture.id).toBe(futureFixture.id);
+    expect(viewModel.nextMatchTimingLabel).toBe('In 4 weeks');
+    expect(viewModel.isCurrentGameWeek).toBe(false);
+  });
+
+  it('marks a current Global Cup tie as game week and shows that matchup', () => {
+    const career = createCareer(createLaunchCareerSetup(2));
+    const cupWeek = CUP_SETTLEMENT_WEEKS[0];
+    const viewModel = homeViewModel({ ...career, week: cupWeek, phase: 'manage' });
+
+    expect(viewModel.isCurrentGameWeek).toBe(true);
+    expect(viewModel.nextMatchTimingLabel).toBe('This week');
+    expect(viewModel.nextFixture.competition).toBe('Global Cup · Play-in');
+    expect(viewModel.nextFixture.id).toContain('-cup-');
   });
 });

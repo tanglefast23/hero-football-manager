@@ -87,6 +87,8 @@ export interface HomeViewModel {
   divisionLabel: string;
   weekLabel: string;
   nextMatchTimingLabel: string;
+  /** True only when the engine has an unresolved league or Global Cup fixture this week. */
+  isCurrentGameWeek: boolean;
   form: readonly ('W' | 'D' | 'L')[];
   resources: ResourceSummaryViewModel;
   nextFixture: FixtureViewModel;

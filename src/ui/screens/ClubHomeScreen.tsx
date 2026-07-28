@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { EmptyDocket } from '../components/EmptyDocket';
@@ -13,6 +14,61 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
+
+const HORIZONTAL_MARQUEE_BULBS = Array.from({ length: 12 }, (_, index) => index);
+const VERTICAL_MARQUEE_BULBS = Array.from({ length: 7 }, (_, index) => index);
+
+function MarqueeBulb({ index }: { index: number }) {
+  return (
+    <View
+      className={index % 2 === 0
+        ? 'h-2 w-2 border border-ink bg-white'
+        : 'h-2 w-2 border border-ink bg-paper'}
+    />
+  );
+}
+
+/**
+ * Match week dresses the fixture like an old cinema marquee. The fascia stays
+ * outside the ordinary paper panel so the matchup keeps its calm, readable
+ * layout and non-match weeks retain the quieter desk treatment.
+ */
+function MatchWeekMarquee({ active, children }: { active: boolean; children: ReactNode }) {
+  if (!active) return <>{children}</>;
+
+  return (
+    <View className="relative">
+      <View
+        pointerEvents="none"
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        className="absolute -inset-3 border-2 border-ink bg-red-dark"
+      />
+      <View
+        pointerEvents="none"
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        className="absolute -inset-3"
+      >
+        <View className="absolute left-1 right-1 top-1 flex-row justify-between">
+          {HORIZONTAL_MARQUEE_BULBS.map(index => <MarqueeBulb key={`top-${index}`} index={index} />)}
+        </View>
+        <View className="absolute bottom-1 left-1 right-1 flex-row justify-between">
+          {HORIZONTAL_MARQUEE_BULBS.map(index => <MarqueeBulb key={`bottom-${index}`} index={index + 1} />)}
+        </View>
+        <View className="absolute bottom-4 left-1 top-4 justify-between">
+          {VERTICAL_MARQUEE_BULBS.map(index => <MarqueeBulb key={`left-${index}`} index={index + 1} />)}
+        </View>
+        <View className="absolute bottom-4 right-1 top-4 justify-between">
+          {VERTICAL_MARQUEE_BULBS.map(index => <MarqueeBulb key={`right-${index}`} index={index} />)}
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
 
 /** Full-card tint per alert tone — bible palette only, never off-palette Tailwind hues. */
 function alertPalette(tone: ClubAlertViewModel['tone']): string {
@@ -56,7 +112,7 @@ export function ClubHomeScreen({
 }: ClubHomeScreenProps) {
   const desktopContent = useDesktopContentStyle();
   const fixture = viewModel.nextFixture;
-  const fixtureIsThisWeek = viewModel.nextMatchTimingLabel === 'This week';
+  const fixtureIsThisWeek = viewModel.isCurrentGameWeek;
   const layoutMode = useLayoutMode();
   // While the tutorial is pointing at one card, nothing else belongs on the desk.
   const visibleNotes = lockOtherAlerts ? [] : viewModel.notes;
@@ -66,53 +122,55 @@ export function ClubHomeScreen({
       key: 'next-match',
       weight: 7,
       node: (
-        <PaperPanel kicker="Next match" title={fixture.competition} stamp={viewModel.nextMatchTimingLabel}>
-          <View className="border-y-2 border-ink py-4">
-            <View className="flex-row items-center justify-between gap-2">
-              <PixelText
-                className="flex-1 text-right text-xl uppercase text-ink"
-                numberOfLines={2}
-                adjustsFontSizeToFit
-                minimumFontScale={0.65}
-              >
-                {fixture.homeTeam}
-              </PixelText>
-              <View className="border-2 border-ink bg-ink px-3 py-2">
-                <Text className="font-pixel text-base text-paper">VS</Text>
+        <MatchWeekMarquee active={fixtureIsThisWeek}>
+          <PaperPanel kicker="Next match" title={fixture.competition} stamp={viewModel.nextMatchTimingLabel}>
+            <View className="border-y-2 border-ink py-4">
+              <View className="flex-row items-center justify-between gap-2">
+                <PixelText
+                  className="flex-1 text-right text-xl uppercase text-ink"
+                  numberOfLines={2}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.65}
+                >
+                  {fixture.homeTeam}
+                </PixelText>
+                <View className="border-2 border-ink bg-ink px-3 py-2">
+                  <Text className="font-pixel text-base text-paper">VS</Text>
+                </View>
+                <PixelText
+                  className="flex-1 text-xl uppercase text-ink"
+                  numberOfLines={2}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.65}
+                >
+                  {fixture.awayTeam}
+                </PixelText>
               </View>
-              <PixelText
-                className="flex-1 text-xl uppercase text-ink"
-                numberOfLines={2}
-                adjustsFontSizeToFit
-                minimumFontScale={0.65}
-              >
-                {fixture.awayTeam}
-              </PixelText>
+              <View className="mt-3 flex-row justify-center gap-2">
+                <StatusChip label={fixture.venueLabel} />
+                <StatusChip
+                  label={`${fixture.opponentHeroCount} rival hero${fixture.opponentHeroCount === 1 ? '' : 'es'}`}
+                  tone="hero"
+                />
+              </View>
             </View>
-            <View className="mt-3 flex-row justify-center gap-2">
-              <StatusChip label={fixture.venueLabel} />
-              <StatusChip
-                label={`${fixture.opponentHeroCount} rival hero${fixture.opponentHeroCount === 1 ? '' : 'es'}`}
-                tone="hero"
+            <View className="mt-4">
+              <ActionButton
+                label={fixture.matchdayReady
+                  ? 'Prepare match day  ▸'
+                  : fixtureIsThisWeek ? 'Use Advance Week below' : 'Advance to fixture week'}
+                accessibilityLabel={fixture.matchdayReady
+                  ? `Open match day for ${fixture.homeTeam} versus ${fixture.awayTeam}`
+                  : fixtureIsThisWeek
+                    ? `This week's fixture is ${fixture.homeTeam} versus ${fixture.awayTeam}. Use Advance Week below to prepare Match Day.`
+                    : `Next fixture is ${fixture.homeTeam} versus ${fixture.awayTeam}. Advance to its match week to prepare.`}
+                onPress={() => onOpenFixture(fixture.id)}
+                disabled={!fixture.matchdayReady}
+                variant="action"
               />
             </View>
-          </View>
-          <View className="mt-4">
-            <ActionButton
-              label={fixture.matchdayReady
-                ? 'Prepare match day  ▸'
-                : fixtureIsThisWeek ? 'Use Advance Week below' : 'Advance to fixture week'}
-              accessibilityLabel={fixture.matchdayReady
-                ? `Open match day for ${fixture.homeTeam} versus ${fixture.awayTeam}`
-                : fixtureIsThisWeek
-                  ? `This week's fixture is ${fixture.homeTeam} versus ${fixture.awayTeam}. Use Advance Week below to prepare Match Day.`
-                  : `Next fixture is ${fixture.homeTeam} versus ${fixture.awayTeam}. Advance to its match week to prepare.`}
-              onPress={() => onOpenFixture(fixture.id)}
-              disabled={!fixture.matchdayReady}
-              variant="action"
-            />
-          </View>
-        </PaperPanel>
+          </PaperPanel>
+        </MatchWeekMarquee>
       ),
     },
     {
