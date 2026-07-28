@@ -45,12 +45,14 @@ import {
   playMatchStatementSfx,
   playPositiveSfx,
   playStatStepSfx,
+  playSuperCelebrationSfx,
   playSuperTrainingYaySfx,
   playTrainingStatDing,
   playTransactionConfirmSfx,
   playUiClickSfx,
   setManagementSfxMasterVolume,
   stopDrillProgressSfx,
+  stopSuperCelebrationSfx,
   teardownManagementSfx,
 } from '../management-sfx';
 
@@ -72,7 +74,7 @@ describe('management feedback sounds', () => {
     playTrainingStatDing();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(28);
+    expect(mockPlayers).toHaveLength(29);
     const trainingDing = mockPlayers[1];
     expect(mockPlayers.every(player => player.volume === 0.5)).toBe(true);
     expect(trainingDing.seekTo).toHaveBeenCalledWith(0);
@@ -87,7 +89,7 @@ describe('management feedback sounds', () => {
     playMatchStatementSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(28);
+    expect(mockPlayers).toHaveLength(29);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
@@ -120,7 +122,7 @@ describe('management feedback sounds', () => {
     playUiClickSfx();
     await Promise.resolve();
 
-    const uiClickPool = [mockPlayers[2], mockPlayers[22], mockPlayers[23], mockPlayers[24]];
+    const uiClickPool = [mockPlayers[2], mockPlayers[23], mockPlayers[24], mockPlayers[25]];
     // One press, one rewind, one play — on a voice of its own, so four quick
     // presses never share a playhead.
     expect(uiClickPool.every(player => player.seekTo.mock.calls.length === 1)).toBe(true);
@@ -132,10 +134,11 @@ describe('management feedback sounds', () => {
     const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
     const buttons = readFileSync(join(process.cwd(), 'src/ui/components/Scorecard.tsx'), 'utf8');
 
-    // Ordinary controls use one single-attack click; steppers keep the lighter
-    // tap. Neither borrows headroom from the music.
-    expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-single-click.m4a')");
-    expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-single-click.m4a')");
+    // A press on the screen answers with the supplied tap, whichever of the two
+    // generic cue names the caller reaches for; steppers keep the lighter tap.
+    // Neither borrows headroom from the music.
+    expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-tap.wav')");
+    expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-tap.wav')");
     expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/stat-step-tap-loud.m4a')");
     expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
     // Large buttons still confirm by default, but the variant can speak for
@@ -153,7 +156,7 @@ describe('management feedback sounds', () => {
     playDrillProgressSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(28);
+    expect(mockPlayers).toHaveLength(29);
     const progress = mockPlayers[18];
     expect(progress.seekTo).toHaveBeenCalledWith(0);
     expect(progress.play).toHaveBeenCalledTimes(1);
@@ -185,7 +188,7 @@ describe('management feedback sounds', () => {
     playManagementActionSfx('success');
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(28);
+    expect(mockPlayers).toHaveLength(29);
     expect(mockPlayers[13].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[13].play).toHaveBeenCalledTimes(1);
   });
@@ -194,7 +197,7 @@ describe('management feedback sounds', () => {
     playPositiveSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(28);
+    expect(mockPlayers).toHaveLength(29);
     // 'positive' is appended last, so it owns the final player slot.
     const positive = mockPlayers[16];
     expect(positive.seekTo).toHaveBeenCalledWith(0);
@@ -217,8 +220,36 @@ describe('management feedback sounds', () => {
 
     playSuperTrainingYaySfx();
     await Promise.resolve();
-    expect(mockPlayers).toHaveLength(28);
+    expect(mockPlayers).toHaveLength(29);
     expect(mockPlayers[20].play).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs the level-up jingle under the SUPER takeover and stops it when it goes', async () => {
+    const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
+    const celebration = readFileSync(
+      join(process.cwd(), 'src/ui/components/SuperTrainingCelebration.tsx'),
+      'utf8',
+    );
+
+    expect(sounds).toContain("'super-celebration': require('../../assets/audio/sfx/level-up.m4a')");
+    // Started when the takeover appears, not when the result lands.
+    expect(celebration).toContain('playSuperCelebrationSfx()');
+    // Stopped where the takeover ends AND on teardown, so a 3.6s jingle never
+    // rings on over the screen behind it.
+    expect(celebration.match(/stopSuperCelebrationSfx\(\)/g)).toHaveLength(2);
+
+    playSuperCelebrationSfx();
+    await Promise.resolve();
+    const jingle = mockPlayers[22];
+    expect(jingle.seekTo).toHaveBeenCalledWith(0);
+    expect(jingle.play).toHaveBeenCalledTimes(1);
+
+    stopSuperCelebrationSfx();
+    expect(jingle.pause).toHaveBeenCalledTimes(1);
+    // The cheer that follows is its own cue, not a restart of the jingle.
+    playSuperTrainingYaySfx();
+    await Promise.resolve();
+    expect(jingle.play).toHaveBeenCalledTimes(1);
   });
 
   it('plays every rapid stat-step tap on an independent voice', async () => {
@@ -228,8 +259,8 @@ describe('management feedback sounds', () => {
     playStatStepSfx();
     await Promise.resolve();
 
-    expect(mockPlayers).toHaveLength(28);
-    const statStepPool = [mockPlayers[17], mockPlayers[25], mockPlayers[26], mockPlayers[27]];
+    expect(mockPlayers).toHaveLength(29);
+    const statStepPool = [mockPlayers[17], mockPlayers[26], mockPlayers[27], mockPlayers[28]];
     expect(statStepPool.every(player => player.seekTo.mock.calls.length === 1)).toBe(true);
     expect(statStepPool.every(player => player.play.mock.calls.length === 1)).toBe(true);
 

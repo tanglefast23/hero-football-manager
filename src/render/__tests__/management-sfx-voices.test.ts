@@ -150,7 +150,7 @@ describe('rapid tap voices', () => {
   });
 
   it('sounds a button click once per press, at any pace', async () => {
-    reset(0.44);
+    reset(0.069);
 
     for (let press = 0; press < 12; press += 1) {
       playUiClickSfx();

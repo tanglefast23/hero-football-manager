@@ -1,5 +1,6 @@
 const mockPlayers: Array<{
   volume: number;
+  loop: boolean;
   play: jest.Mock;
   pause: jest.Mock;
   seekTo: jest.Mock;
@@ -7,14 +8,20 @@ const mockPlayers: Array<{
   release: jest.Mock;
 }> = [];
 
+/** Resolvers for seeks still in flight, so a test can decide when one lands. */
+const pendingSeeks: Array<() => void> = [];
+
 jest.mock('expo-audio', () => ({
   setAudioModeAsync: jest.fn(() => Promise.resolve()),
   createAudioPlayer: jest.fn(() => {
     const player = {
       volume: -1,
+      loop: false,
       play: jest.fn(),
       pause: jest.fn(),
-      seekTo: jest.fn(() => Promise.resolve()),
+      seekTo: jest.fn(() => new Promise<void>(resolve => {
+        pendingSeeks.push(() => resolve());
+      })),
       remove: jest.fn(),
       release: jest.fn(),
     };
@@ -25,6 +32,8 @@ jest.mock('expo-audio', () => ({
 
 import {
   LONG_MESSAGE_MS,
+  REGULAR_MESSAGE_MAX_MS,
+  REGULAR_MESSAGE_MIN_MS,
   SHORT_MESSAGE_MS,
   bertVoiceDurationMs,
   playBertVoice,
@@ -32,15 +41,23 @@ import {
   teardownBertVoice,
 } from '../bert-voice';
 
-async function flushPromises(): Promise<void> {
+/** Lands every seek the player is waiting on, then drains the microtask queue. */
+async function settleSeeks(): Promise<void> {
+  for (const resolve of pendingSeeks.splice(0)) resolve();
   await Promise.resolve();
   await Promise.resolve();
 }
+
+const SHORT_LINE = 'So. You\'re the new manager.';
+const REGULAR_LINE = 'All you gotta do is win games, gain fans, get sponsors. Not hard right?';
+const LONG_LINE = 'Starting from week 10, all divisions play against each other. Stronger clubs'
+  + ' receive opening byes. The winner takes the cup and the prize money that comes with it.';
 
 describe('bert voice', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockPlayers.length = 0;
+    pendingSeeks.length = 0;
   });
 
   afterEach(() => {
@@ -48,57 +65,90 @@ describe('bert voice', () => {
     jest.useRealTimers();
   });
 
-  it('talks for two seconds on a short message and 3.5 on a long one', () => {
-    expect(bertVoiceDurationMs('Navigate round the facilities here.')).toBe(SHORT_MESSAGE_MS);
-    expect(bertVoiceDurationMs(
-      'Wages and upkeep go out every week, win or lose. Keep an eye on the money up top.'
-      + ' Win games, pull in fans, and you will be fine.',
-    )).toBe(LONG_MESSAGE_MS);
-    expect(SHORT_MESSAGE_MS).toBe(2_000);
-    expect(LONG_MESSAGE_MS).toBe(3_500);
+  it('talks for one second on a one-liner and 1.9 on a paragraph', () => {
+    expect(bertVoiceDurationMs(SHORT_LINE)).toBe(SHORT_MESSAGE_MS);
+    expect(bertVoiceDurationMs(LONG_LINE)).toBe(LONG_MESSAGE_MS);
+    expect(SHORT_MESSAGE_MS).toBe(1_000);
+    expect(LONG_MESSAGE_MS).toBe(1_900);
+    // Nothing said, nothing to tick under.
+    expect(bertVoiceDurationMs('   ')).toBe(0);
   });
 
-  it('ticks repeatedly while talking, then falls silent on its own', async () => {
+  it('varies a regular message box between 1.3 and 1.7 seconds', () => {
+    expect(REGULAR_MESSAGE_MIN_MS).toBe(1_300);
+    expect(REGULAR_MESSAGE_MAX_MS).toBe(1_700);
+
+    const durations = new Set<number>();
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      const duration = bertVoiceDurationMs(REGULAR_LINE);
+      expect(duration).toBeGreaterThanOrEqual(REGULAR_MESSAGE_MIN_MS);
+      expect(duration).toBeLessThanOrEqual(REGULAR_MESSAGE_MAX_MS);
+      durations.add(duration);
+    }
+    // Randomised, not a fixed middle value: consecutive bubbles must not tick
+    // for an identical, metronomic beat.
+    expect(durations.size).toBeGreaterThan(1);
+  });
+
+  it('sorts copy into the three bands at the documented boundaries', () => {
+    expect(bertVoiceDurationMs('x'.repeat(45))).toBe(SHORT_MESSAGE_MS);
+    expect(bertVoiceDurationMs('x'.repeat(46))).not.toBe(SHORT_MESSAGE_MS);
+    expect(bertVoiceDurationMs('x'.repeat(130))).not.toBe(LONG_MESSAGE_MS);
+    expect(bertVoiceDurationMs('x'.repeat(131))).toBe(LONG_MESSAGE_MS);
+  });
+
+  it('loops the clip natively for the whole line, then falls silent on its own', async () => {
     playBertVoice(SHORT_MESSAGE_MS);
-    await flushPromises();
+    await settleSeeks();
     const player = mockPlayers[0];
     expect(player).toBeDefined();
-    expect(player.play.mock.calls.length).toBeGreaterThan(0);
+    // The run of ticks is the player's loop, not a JS timer re-triggering the
+    // clip: one seek and one play for the whole line. Repeatedly seeking a
+    // single voice is what silenced every tick after the first on iOS.
+    expect(player.loop).toBe(true);
+    expect(player.play).toHaveBeenCalledTimes(1);
+    expect(player.seekTo).toHaveBeenCalledTimes(1);
 
     jest.advanceTimersByTime(SHORT_MESSAGE_MS);
-    await flushPromises();
-    // A run of ticks, not a single blip: ~2s at one tick per 90ms.
-    const ticksWhileTalking = player.play.mock.calls.length;
-    expect(ticksWhileTalking).toBeGreaterThan(5);
+    await settleSeeks();
     expect(player.pause).toHaveBeenCalled();
 
-    // Past the duration the ticker is cleared, so no further clip is triggered.
+    // Past the duration nothing restarts it.
     jest.advanceTimersByTime(5_000);
-    await flushPromises();
-    expect(player.play.mock.calls.length).toBe(ticksWhileTalking);
+    await settleSeeks();
+    expect(player.play).toHaveBeenCalledTimes(1);
   });
 
   it('stops mid-line when the page changes', async () => {
     playBertVoice(LONG_MESSAGE_MS);
-    await flushPromises();
+    await settleSeeks();
     const player = mockPlayers[0];
     jest.advanceTimersByTime(300);
-    await flushPromises();
-    const ticks = player.play.mock.calls.length;
 
     stopBertVoice();
+    expect(player.pause).toHaveBeenCalled();
     jest.advanceTimersByTime(LONG_MESSAGE_MS);
-    await flushPromises();
-    expect(player.play.mock.calls.length).toBe(ticks);
+    await settleSeeks();
+    expect(player.play).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not start looping on a seek that lands after the line ended', async () => {
+    playBertVoice(SHORT_MESSAGE_MS);
+    const player = mockPlayers[0];
+    // The page changes while the rewind is still in flight. A looping voice
+    // started by that late seek would tick on with nothing left to stop it.
+    stopBertVoice();
+    await settleSeeks();
+    expect(player.play).not.toHaveBeenCalled();
   });
 
   it('stays silent at zero master volume', async () => {
     const { setBertVoiceMasterVolume } = await import('../bert-voice');
     setBertVoiceMasterVolume(0);
     playBertVoice(SHORT_MESSAGE_MS);
-    await flushPromises();
+    await settleSeeks();
     jest.advanceTimersByTime(SHORT_MESSAGE_MS);
-    await flushPromises();
+    await settleSeeks();
     for (const player of mockPlayers) expect(player.play).not.toHaveBeenCalled();
     setBertVoiceMasterVolume(1);
   });

@@ -1,7 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SfxPressable as Pressable } from './SfxPressable';
-import { playSuperTrainingYaySfx } from '../../render/management-sfx';
+import {
+  playSuperCelebrationSfx,
+  playSuperTrainingYaySfx,
+  stopSuperCelebrationSfx,
+} from '../../render/management-sfx';
 
 const CONFETTI_COLORS = ['#f6c744', '#d94f52', '#5b3a91', '#f4f1ea', '#63c56b', '#62b5e5'];
 /** A SUPER session is the rarest thing in a training week; it gets held. */
@@ -34,10 +38,23 @@ export function SuperTrainingCelebration({
   const completeOnce = useRef(() => {
     if (completedRef.current) return;
     completedRef.current = true;
-    // The cheer lands as the takeover leaves, whether it played out or was tapped away.
+    // The cheer lands as the takeover leaves, whether it played out or was
+    // tapped away — and the jingle underneath it ends here rather than ringing
+    // on over the screen behind.
+    stopSuperCelebrationSfx();
     playSuperTrainingYaySfx();
     onComplete();
   }).current;
+
+  // The level-up jingle, for as long as the takeover is up. Started in its own
+  // effect so the reduced-motion path — which keeps the payoff and drops only
+  // the animation — still gets it.
+  useEffect(() => {
+    playSuperCelebrationSfx();
+    // A takeover closed without completing (the drill popup dismissed out from
+    // under it) must not leave 3.6s of celebration playing.
+    return () => stopSuperCelebrationSfx();
+  }, []);
 
   useEffect(() => {
     if (reduceMotion) {
