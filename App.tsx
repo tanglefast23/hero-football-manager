@@ -926,6 +926,11 @@ function GameApp() {
     && assistantObjectiveKey === dismissedAssistantObjectiveKey
     ? undefined
     : assistantObjective?.target;
+  const assistantObjectiveTargetTab = assistantObjective?.target === 'home-tab'
+    ? 'home'
+    : assistantObjective?.target === 'squad-tab'
+      ? 'squad'
+      : undefined;
   const dismissVisibleTips = useCallback(() => {
     setConciergeFocus(null);
     if (assistantObjectiveKey !== null) {
@@ -1350,6 +1355,14 @@ function GameApp() {
           || (assistantObjective !== null && assistantObjective.target !== 'advance-week')}
         guideFocus={activeGuideFocus === 'money' || activeGuideFocus === 'navigation'
           ? activeGuideFocus
+          : undefined}
+        // The helper sentence is the durable first-week flow. Only the
+        // floating arrow retires after a general screen tap; losing the text
+        // left a glowing control and a blocked Advance Week with no explanation.
+        guideObjective={assistantObjective?.text}
+        onGuideObjectivePress={assistantObjectiveTargetTab !== undefined
+          && assistantObjectiveTargetTab !== store.activeTab
+          ? () => store.setActiveTab(assistantObjectiveTargetTab)
           : undefined}
         guideTarget={hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget}
         onMoneyGuideAnchorChange={setMoneyGuideAnchor}

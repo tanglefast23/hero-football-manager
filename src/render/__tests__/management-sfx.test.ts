@@ -129,13 +129,12 @@ describe('management feedback sounds', () => {
     const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
     const buttons = readFileSync(join(process.cwd(), 'src/ui/components/Scorecard.tsx'), 'utf8');
 
-    // A real push-button click, not the 80ms tap that vanished under the music.
-    expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-push-button.m4a')");
-    expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-push-button.m4a')");
-    // Steppers keep the lighter tap rather than the push-button click, but a
-    // hotter render of it: they sit at the volume ceiling like every other cue,
-    // so the only place their extra loudness can live is the asset itself.
+    // Ordinary controls use one single-attack click. Steppers retain their
+    // lighter character and gain contrast by briefly ducking the music.
+    expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-single-click.m4a')");
+    expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-single-click.m4a')");
     expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/stat-step-tap-loud.m4a')");
+    expect(sounds).toContain('duckMenuMusicForSfx();');
     expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
     // Large buttons still confirm by default, but the variant can speak for
     // itself: a destructive one answers with the back-button cue (dismissing a

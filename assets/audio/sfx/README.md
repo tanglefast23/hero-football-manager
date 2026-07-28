@@ -6,23 +6,26 @@ mapping is pinned by `src/render/__tests__/management-sfx.test.ts`, which assert
 the literal `require()` source text, so a rename or repoint fails the suite rather
 than going quiet.
 
-## Retained masters
+## Retained sources
 
-One file is deliberately kept without being loaded:
+Two files are deliberately kept as sources:
 
-- **`stat-step-tap.m4a`** — the un-boosted source of `stat-step-tap-loud.m4a`.
-  The shipped asset is this one at 1.6x with a soft knee (sample ceiling
-  -0.5 dBFS). Keeping the master is what makes that render reproducible; delete
-  it and regenerating the stepper tap needs a fresh recording.
+- **`stat-step-tap.m4a`** — the un-boosted source of the shipped
+  `stat-step-tap-loud.m4a`. The light tap keeps its intended character while a
+  brief music dip makes it readable in play.
+- **`ui-push-button.m4a`** — the supplied resonant push-button recording used
+  to render `ui-single-click.m4a`.
 
-It is not an orphan. An automated sweep that deletes unreferenced assets will
-flag it — don't.
+They are not orphans. An automated sweep that deletes unreferenced assets will
+flag them — don't.
 
-## Low-latency button source
+## Shipped button cue
 
-- **`ui-push-button.m4a`** — trimmed so its attack begins immediately. The
-  supplied file carried about 45ms of silence before the click, which made a
-  correctly wired button sound late even after its player was warm.
+- **`ui-single-click.m4a`** — the supplied push-button recording with one
+  immediate attack and a smooth decay. The source swelled strongly again about
+  80ms after its first hit, so a single playback sounded like two button cues.
+  The rendered file keeps 240ms of silent tail so short taps stay reliable in
+  browser media playback.
 
 ## Before deleting anything
 

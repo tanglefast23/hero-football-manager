@@ -38,6 +38,17 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(match).toContain("automaticPauseReasonsRef.current.delete('tutorial');");
   });
 
+  it('keeps the first-week helper text after its floating arrow retires', () => {
+    const shell = readFileSync(join(process.cwd(), 'src/ui/ManagementShell.tsx'), 'utf8');
+
+    expect(appSource).toContain('guideTarget={hideCoachHiringCues ? undefined : visibleAssistantObjectiveTarget}');
+    expect(appSource).toContain('guideObjective={assistantObjective?.text}');
+    expect(appSource).not.toContain('guideObjective={visibleAssistantObjective');
+    expect(shell).toContain("accessibilityLabel={`Bert's current job: ${guideObjective}`}");
+    expect(shell).toContain('{guideObjective}</Text>');
+    expect(shell).toContain("Bert's job");
+  });
+
   it('never dismisses guidance before the press it collides with has landed', () => {
     // Dismissing on press-down dropped the cue and the room its screen reserved
     // above the highlighted control, so the control slid out from under the

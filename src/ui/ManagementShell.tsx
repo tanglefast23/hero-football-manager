@@ -134,6 +134,10 @@ export interface ManagementShellProps {
    */
   keyboardShortcutsEnabled?: boolean;
   guideFocus?: 'money' | 'navigation';
+  /** Persistent first-week helper copy; floating arrows may retire after a tap. */
+  guideObjective?: string;
+  /** Present when the helper itself can take the manager to the required tab. */
+  onGuideObjectivePress?: () => void;
   guideTarget?:
     | 'home-tab'
     | 'squad-tab'
@@ -169,6 +173,8 @@ export function ManagementShell({
   advanceWeekDisabled = false,
   keyboardShortcutsEnabled = true,
   guideFocus,
+  guideObjective,
+  onGuideObjectivePress,
   guideTarget,
   onMoneyGuideAnchorChange,
   onNavigationGuideAnchorChange,
@@ -281,6 +287,30 @@ export function ManagementShell({
         {/* Bottom chrome shares the content column: the Advance Week button and
             the five tabs never extend past the tables above them on desktop. */}
         <View className="w-full max-w-5xl self-center">
+        {guideObjective ? (
+          onGuideObjectivePress ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Bert's current job: ${guideObjective}`}
+              onPress={onGuideObjectivePress}
+              className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
+              style={({ pressed }) => ({ opacity: pressed ? 0.72 : undefined })}
+            >
+              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">Bert's job</Text>
+              <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">{guideObjective}</Text>
+              <Text className="font-mono text-lg font-bold text-ink">›</Text>
+            </Pressable>
+          ) : (
+            <View
+              accessible
+              accessibilityLabel={`Bert's current job: ${guideObjective}`}
+              className="mb-2 flex-row items-center border-2 border-b-4 border-blue-dark bg-blue-light px-3 py-2"
+            >
+              <Text className="font-mono text-xs font-bold uppercase text-blue-dark">Bert's job</Text>
+              <Text className="ml-3 flex-1 font-pixel text-xs uppercase text-ink">{guideObjective}</Text>
+            </View>
+          )
+        ) : null}
         <HoverTipAnchor
           tip={advanceWeekDisabled ? undefined : ADVANCE_WEEK_TIP}
           className={guideTarget === 'advance-week' ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}

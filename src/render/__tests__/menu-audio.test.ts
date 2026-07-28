@@ -36,6 +36,7 @@ jest.mock('expo-audio', () => ({
 }));
 
 import {
+  duckMenuMusicForSfx,
   menuThemeForScreen,
   playAdvanceWeekSfx,
   playPlanLockedSfx,
@@ -97,6 +98,18 @@ describe('non-match music ownership', () => {
 
     setMenuMasterVolume(0);
     expect(mockPlayers.every(player => player.volume === 0)).toBe(true);
+  });
+
+  it('briefly ducks the music so light stepper taps remain audible', () => {
+    setMenuTheme('management');
+
+    duckMenuMusicForSfx();
+    expect(mockPlayers.slice(0, 3).every(player => player.volume === 0.1)).toBe(true);
+
+    jest.advanceTimersByTime(159);
+    expect(mockPlayers[1].volume).toBe(0.1);
+    jest.advanceTimersByTime(1);
+    expect(mockPlayers.slice(0, 3).every(player => player.volume === 0.5)).toBe(true);
   });
 
   it('recovers the active theme if a native player stops at the end', async () => {
