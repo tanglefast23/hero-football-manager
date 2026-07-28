@@ -629,8 +629,7 @@ export function MatchScreen({
     statuses: workletStatuses,
     zoneFractions: workletZoneFractions,
     carrier: workletCarrier,
-    simTick: workletSimTick,
-    progress: workletProgress,
+    visualTick: workletVisualTick,
     actionData: workletActionData,
     publish: publishAtlasFrame,
     pause: pauseAtlasFrame,
@@ -871,6 +870,7 @@ export function MatchScreen({
       const eventsBefore = s.events.length;
       let snap = false;
       let advanced = false;
+      let pauseAfterPublish = false;
 
       // No pausedRef check needed here: the early return above already ran,
       // and the flag cannot flip mid-invocation on a single-threaded runtime.
@@ -1292,7 +1292,10 @@ export function MatchScreen({
           firstMatchTutorialStepRef.current = step;
           setFirstMatchTutorialStep(step);
           automaticPauseReasonsRef.current.add('tutorial');
-          syncPauseReasons();
+          // Publish the completed coaching tick first, then freeze it. Pausing
+          // here would queue before the UI-runtime publish and the new timing
+          // segment would immediately restart underneath the tutorial.
+          pauseAfterPublish = true;
           acc = 0;
         }
       }
@@ -1354,11 +1357,11 @@ export function MatchScreen({
         // updates all 25 Atlas transforms on the UI thread; React only receives
         // the discrete state used by HUD, chips, and event overlays.
         publishAtlasFrame(
-          prevRef.current!,
           nextRef.current!,
           s.tick,
           matchPlaybackRate(speedRef.current, dilationRef.current),
-          actionRef.current
+          actionRef.current,
+          snap || pauseAfterPublish || s.phase === 'fulltime',
         );
         setFrame(nextRef.current!);
         bannerRef.current = bannerRef.current.filter(banner => s.tick <= banner.untilTick);
@@ -1369,6 +1372,7 @@ export function MatchScreen({
           scoreFlash: !reduceMotion && s.tick <= scoreFlashUntilRef.current,
           visualTick: s.tick,
         });
+        if (pauseAfterPublish) syncPauseReasons();
       }
 
       if (s.phase === 'fulltime') {
@@ -1379,9 +1383,10 @@ export function MatchScreen({
         // `now` is the RAF timestamp: the same performance.now() timebase
         // the rest of the loop uses.
         if (fulltimeDeadlineRef.current === null) {
+          // The `else if` below guarantees a later RAF before unmounting, so
+          // even Reduce Motion presents the final React/Atlas frame once.
           fulltimeDeadlineRef.current = now + (reduceMotion ? 0 : FULLTIME_HOLD_MS);
-        }
-        if (now >= fulltimeDeadlineRef.current) {
+        } else if (now >= fulltimeDeadlineRef.current) {
           if (handedOffRef.current) return;
           handedOffRef.current = true;
           onDone(s);
@@ -2200,8 +2205,7 @@ export function MatchScreen({
                   layer="dust"
                   visualPositions={workletVisualPositions}
                   actionData={workletActionData}
-                  simTick={workletSimTick}
-                  progress={workletProgress}
+                  visualTick={workletVisualTick}
                   scale={scale}
                   playerDrawScale={playerSpriteScale.drawScale}
                   devicePixelRatio={devicePixelRatio}
@@ -2218,8 +2222,7 @@ export function MatchScreen({
                   layer="grass"
                   visualPositions={workletVisualPositions}
                   actionData={workletActionData}
-                  simTick={workletSimTick}
-                  progress={workletProgress}
+                  visualTick={workletVisualTick}
                   scale={scale}
                   playerDrawScale={playerSpriteScale.drawScale}
                   devicePixelRatio={devicePixelRatio}
@@ -2229,8 +2232,7 @@ export function MatchScreen({
                     and under it the mark would be invisible. */}
                 <WorkletDuelScuff
                   actionData={workletActionData}
-                  simTick={workletSimTick}
-                  progress={workletProgress}
+                  visualTick={workletVisualTick}
                   scale={scale}
                   playerDrawScale={playerSpriteScale.drawScale}
                   devicePixelRatio={devicePixelRatio}
@@ -2267,8 +2269,7 @@ export function MatchScreen({
                   statuses={workletStatuses}
                   zoneFractions={workletZoneFractions}
                   carrier={workletCarrier}
-                  simTick={workletSimTick}
-                  progress={workletProgress}
+                  visualTick={workletVisualTick}
                   controlledTeam={controlledTeam}
                   heroPlayers={rivalHeroPlayers}
                   fireTorchMask={fireTorchMask}

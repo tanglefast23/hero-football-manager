@@ -58,8 +58,7 @@ interface WorkletMatchOverlaysProps {
   statuses: SharedValue<Float32Array>;
   zoneFractions: SharedValue<Float32Array>;
   carrier: SharedValue<number>;
-  simTick: SharedValue<number>;
-  progress: SharedValue<number>;
+  visualTick: SharedValue<number>;
   controlledTeam: 0 | 1;
   heroPlayers: readonly number[];
   /**
@@ -122,8 +121,7 @@ export function WorkletSlideTackleEffects({
   layer,
   visualPositions,
   actionData,
-  simTick,
-  progress,
+  visualTick,
   scale,
   playerDrawScale,
   devicePixelRatio,
@@ -131,22 +129,21 @@ export function WorkletSlideTackleEffects({
   layer: 'dust' | 'grass';
   visualPositions: SharedValue<Float32Array>;
   actionData: SharedValue<Float32Array>;
-  simTick: SharedValue<number>;
-  progress: SharedValue<number>;
+  visualTick: SharedValue<number>;
   scale: number;
   playerDrawScale: number;
   devicePixelRatio: number;
 }) {
   const debris = usePathValue((builder) => {
     'worklet';
-    const visualTick = Math.max(0, simTick.value - 1 + progress.value);
+    const presentationTick = Math.max(0, visualTick.value);
     const pixel = scale * playerDrawScale;
     for (let player = 0; player < RENDER_PLAYER_COUNT; player += 1) {
       const offset = player * WORKLET_ACTION_STRIDE;
       if (actionData.value[offset] !== WORKLET_ACTION_SLIDE) continue;
       const startTick = actionData.value[offset + 1];
       const untilTick = actionData.value[offset + 5];
-      const elapsed = visualTick - startTick;
+      const elapsed = presentationTick - startTick;
       const duration = untilTick - startTick;
       if (elapsed < 1.5 || elapsed >= duration - 1) continue;
 
@@ -341,8 +338,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
     statuses,
     zoneFractions,
     carrier,
-    simTick,
-    progress,
+    visualTick,
     controlledTeam,
     heroPlayers,
     fireTorchMask,
@@ -372,8 +368,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           visualPositions={visualPositions}
           statuses={statuses}
           zoneFractions={zoneFractions}
-          simTick={simTick}
-          progress={progress}
+          visualTick={visualTick}
           controlledTeam={controlledTeam}
           scale={scale}
           ringRadius={ringRadius}
@@ -386,8 +381,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           layer={layer}
           visualPositions={visualPositions}
           statuses={statuses}
-          simTick={simTick}
-          progress={progress}
+          visualTick={visualTick}
           fireTorchMask={fireTorchMask}
           scale={scale}
           ringRadius={ringRadius}
@@ -401,8 +395,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           slot={slot}
           visualPositions={visualPositions}
           visibility={visibility}
-          simTick={simTick}
-          progress={progress}
+          visualTick={visualTick}
           scale={scale}
           ringRadius={ringRadius}
           reduceMotion={reduceMotion}
@@ -414,8 +407,7 @@ export function WorkletMatchOverlays(props: WorkletMatchOverlaysProps) {
           slot={marker.slot}
           grantTick={marker.grantTick}
           visualPositions={visualPositions}
-          simTick={simTick}
-          progress={progress}
+          visualTick={visualTick}
           scale={scale}
           ringRadius={ringRadius}
         />
@@ -437,16 +429,14 @@ function WorkletEncoreBolt({
   slot,
   grantTick,
   visualPositions,
-  simTick,
-  progress,
+  visualTick,
   scale,
   ringRadius,
 }: {
   slot: number;
   grantTick: number;
   visualPositions: SharedValue<Float32Array>;
-  simTick: SharedValue<number>;
-  progress: SharedValue<number>;
+  visualTick: SharedValue<number>;
   scale: number;
   ringRadius: number;
 }) {
@@ -463,8 +453,8 @@ function WorkletEncoreBolt({
     builder.lineTo(cx - w * 0.5, top + seg * 2.1);
   });
   const opacity = useDerivedValue(() => {
-    const visualTick = Math.max(0, simTick.value - 1 + progress.value);
-    const age = visualTick - grantTick;
+    const presentationTick = Math.max(0, visualTick.value);
+    const age = presentationTick - grantTick;
     if (age < 0) return 0;
     // Hold bright for the first few ticks, then fade out by the window's end.
     return Math.max(0, Math.min(1, 1 - (age - 6) / (ENCORE_MARKER_TICKS - 6)));
@@ -492,8 +482,7 @@ function WorkletDecoyRing({
   slot,
   visualPositions,
   visibility,
-  simTick,
-  progress,
+  visualTick,
   scale,
   ringRadius,
   reduceMotion,
@@ -501,8 +490,7 @@ function WorkletDecoyRing({
   slot: number;
   visualPositions: SharedValue<Float32Array>;
   visibility: SharedValue<Float32Array>;
-  simTick: SharedValue<number>;
-  progress: SharedValue<number>;
+  visualTick: SharedValue<number>;
   scale: number;
   ringRadius: number;
   reduceMotion: boolean;
@@ -518,8 +506,8 @@ function WorkletDecoyRing({
   });
   const opacity = useDerivedValue(() => {
     if (visibility.value[slot] !== 1) return 0;
-    const visualTick = Math.max(0, simTick.value - 1 + progress.value);
-    const pulse = reduceMotion || Math.floor(visualTick) % 20 < 10 ? 0.9 : 0.55;
+    const presentationTick = Math.max(0, visualTick.value);
+    const pulse = reduceMotion || Math.floor(presentationTick) % 20 < 10 ? 0.9 : 0.55;
     return pulse;
   });
 
@@ -535,8 +523,7 @@ function WorkletZoneIndicator({
   visualPositions,
   statuses,
   zoneFractions,
-  simTick,
-  progress,
+  visualTick,
   controlledTeam,
   scale,
   ringRadius,
@@ -546,8 +533,7 @@ function WorkletZoneIndicator({
   visualPositions: SharedValue<Float32Array>;
   statuses: SharedValue<Float32Array>;
   zoneFractions: SharedValue<Float32Array>;
-  simTick: SharedValue<number>;
-  progress: SharedValue<number>;
+  visualTick: SharedValue<number>;
   controlledTeam: 0 | 1;
   scale: number;
   ringRadius: number;
@@ -566,8 +552,8 @@ function WorkletZoneIndicator({
   });
   const opacity = useDerivedValue(() => {
     if (statuses.value[playerIndex] !== STATUS_ZONE) return 0;
-    const visualTick = Math.max(0, simTick.value - 1 + progress.value);
-    const pulse = reduceMotion || Math.floor(visualTick) % 20 < 10 ? 1 : 0.55;
+    const presentationTick = Math.max(0, visualTick.value);
+    const pulse = reduceMotion || Math.floor(presentationTick) % 20 < 10 ? 1 : 0.55;
     return zoneFractions.value[playerIndex] * pulse;
   });
 
@@ -588,8 +574,7 @@ function WorkletFlameLayer({
   layer,
   visualPositions,
   statuses,
-  simTick,
-  progress,
+  visualTick,
   fireTorchMask,
   scale,
   ringRadius,
@@ -598,8 +583,7 @@ function WorkletFlameLayer({
   layer: FlameLayer;
   visualPositions: SharedValue<Float32Array>;
   statuses: SharedValue<Float32Array>;
-  simTick: SharedValue<number>;
-  progress: SharedValue<number>;
+  visualTick: SharedValue<number>;
   fireTorchMask: number;
   scale: number;
   ringRadius: number;
@@ -607,7 +591,7 @@ function WorkletFlameLayer({
 }) {
   const path = usePathValue((builder) => {
     'worklet';
-    const visualTick = Math.max(0, simTick.value - 1 + progress.value);
+    const presentationTick = Math.max(0, visualTick.value);
     const width = ringRadius * 1.7;
     const height = ringRadius * 2.6;
     const count = 5;
@@ -620,14 +604,14 @@ function WorkletFlameLayer({
       for (let tongue = 0; tongue < count; tongue += 1) {
         const bx = cx - width / 2 + (width / (count - 1)) * tongue;
         const flick = reduceMotion ? 0 : 0.5 * (
-          Math.sin((visualTick + player * 2) * 1.1 + tongue * 1.7)
-          + Math.sin((visualTick + player * 2) * 0.7 + tongue * 2.3)
+          Math.sin((presentationTick + player * 2) * 1.1 + tongue * 1.7)
+          + Math.sin((presentationTick + player * 2) * 0.7 + tongue * 2.3)
         );
         const flameHeight = height * layer.heightScale * (0.7 + 0.3 * flick);
         const flameWidth = (width / count) * layer.widthScale;
         const tipX = reduceMotion
           ? bx
-          : bx + Math.sin((visualTick + player * 2) * 0.9 + tongue) * flameWidth * 0.5;
+          : bx + Math.sin((presentationTick + player * 2) * 0.9 + tongue) * flameWidth * 0.5;
         builder.moveTo(bx - flameWidth / 2, baseY);
         builder.quadTo(bx - flameWidth * 0.3, baseY - flameHeight * 0.6, tipX, baseY - flameHeight);
         builder.quadTo(bx + flameWidth * 0.3, baseY - flameHeight * 0.6, bx + flameWidth / 2, baseY);
@@ -656,27 +640,25 @@ function WorkletFlameLayer({
  */
 export function WorkletDuelScuff({
   actionData,
-  simTick,
-  progress,
+  visualTick,
   scale,
   playerDrawScale,
   devicePixelRatio,
 }: {
   actionData: SharedValue<Float32Array>;
-  simTick: SharedValue<number>;
-  progress: SharedValue<number>;
+  visualTick: SharedValue<number>;
   scale: number;
   playerDrawScale: number;
   devicePixelRatio: number;
 }) {
   const scuff = usePathValue((builder) => {
     'worklet';
-    const visualTick = Math.max(0, simTick.value - 1 + progress.value);
+    const presentationTick = Math.max(0, visualTick.value);
     const pixel = scale * playerDrawScale;
     for (let player = 0; player < RENDER_PLAYER_COUNT; player += 1) {
       const offset = player * WORKLET_ACTION_STRIDE;
       if (actionData.value[offset] !== WORKLET_ACTION_STAGGER) continue;
-      const age = visualTick - actionData.value[offset + 1];
+      const age = presentationTick - actionData.value[offset + 1];
       if (age < 0 || age >= DUEL_SCUFF_TICKS) continue;
 
       // Recoil direction, already a unit vector, plus its perpendicular: the
