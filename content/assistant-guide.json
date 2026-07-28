@@ -65,15 +65,6 @@
       "id": "desk-intro",
       "pages": [
         {
-          "kicker": "Bert's last word",
-          "title": "Back to your inbox",
-          "body": [
-            "You've still got one job waiting in your inbox."
-          ],
-          "focus": "assistant",
-          "buttonLabel": "Got it."
-        },
-        {
           "kicker": "The fixture list",
           "title": "One week to kick-off",
           "body": [

@@ -1,6 +1,6 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
-import { advanceFacilityConstruction, buildCareerFacility, createCareer } from '..';
+import { advanceFacilityConstruction, buildCareerFacility, buildCareerTeamDef, createCareer } from '..';
 import { leagueStandings } from '../career';
 import { startNextFullCareerSeason } from '../full-career';
 import { clubSquadStrength } from '../m2-career';
@@ -499,6 +499,45 @@ describe('career market integration', () => {
     };
     expect(() => sellCareerPlayer(brokeBuyerState, state.market!, reserve.id, buyer.id))
       .toThrow('cannot afford');
+  });
+
+  test('never fills a sold starter\'s shirt with an unlicensed hero', () => {
+    // An unlicensed hero is bench-only. Promoting one saved a career whose very
+    // next match could not be built, so the sale had to be undone by hand.
+    const base = createCareer(createLaunchCareerSetup(4243));
+    const lineup = base.lineups.find(candidate => candidate.clubId === base.userClubId)!;
+    const starters = new Set(lineup.playerIds);
+    const reserves = base.players.filter(player => (
+      player.clubId === base.userClubId && !starters.has(player.id)
+    ));
+    expect(reserves.length).toBeGreaterThanOrEqual(2);
+    // Slot 0 is the keeper; sell an outfield starter so both replacement passes
+    // are in play.
+    const soldId = lineup.playerIds[10];
+    const sold = base.players.find(player => player.id === soldId)!;
+    // The earliest reserve the search reaches, wearing the sold player's role so
+    // he wins the exact-role pass — an awakened hero still waiting on a licence.
+    const benchOnlyHero = reserves[0];
+    const state: GameState = {
+      ...base,
+      players: base.players.map(player => player.id === benchOnlyHero.id
+        ? {
+            ...player,
+            role: sold.role,
+            power: 'SUPER_SPEED' as const,
+            powerTier: 1 as const,
+            licensed: false,
+          }
+        : player),
+    };
+    const buyer = state.clubs.find(club => club.id !== state.userClubId)!;
+
+    const result = sellCareerPlayer(state, state.market!, soldId, buyer.id);
+    const repaired = result.state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+
+    expect(repaired.playerIds).not.toContain(benchOnlyHero.id);
+    expect(repaired.playerIds).toHaveLength(11);
+    expect(() => buildCareerTeamDef(result.state, state.userClubId)).not.toThrow();
   });
 
   test('hires one deterministic preseason coach candidate', () => {

@@ -90,8 +90,10 @@ interface ActionButtonProps {
   maxFontSizeMultiplier?: number;
   /**
    * Large action buttons confirm or commit by default; use 'click' only for a
-   * non-committing action. Left unset, a `danger` button answers with the
-   * back-button cue instead of the signing chime.
+   * non-committing action. Left unset the variant decides: a `danger` button
+   * answers with the back-button cue instead of the signing chime, and a `paper`
+   * one — the neutral half of a question (cancel, back, pass, decline) — gets
+   * the plain click, because celebrating a refusal made it sound like a win.
    */
   pressSfx?: 'click' | 'positive' | 'danger';
 }
@@ -112,8 +114,10 @@ export function ActionButton({
 }: ActionButtonProps) {
   // Dismissing a coach, erasing a save and releasing a player all landed on the
   // celebratory signing chime, because every large button shared one default.
-  // Destructive intent is carried by the variant, so the cue follows it.
-  const cue = pressSfx ?? (variant === 'danger' ? 'danger' : 'positive');
+  // Intent is carried by the variant — destructive or merely neutral — so the
+  // cue follows it.
+  const cue = pressSfx
+    ?? (variant === 'danger' ? 'danger' : variant === 'paper' ? 'click' : 'positive');
   const ramp = disabled
     ? { face: 'bg-grey', light: 'bg-grey-light', lip: 'bg-grey-dark', text: 'text-paper' }
     : BUTTON_RAMP[variant];

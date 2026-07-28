@@ -939,7 +939,7 @@ function homeAssistantInboxPlan(state: GameState) {
   const dueGuides = dueAssistantInboxGuideSequences(state);
   return scheduleAssistantInboxWeek(state, {
     dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
-    heldGuideSequenceIds: buildBlockedInboxGuides(state),
+    heldGuideSequenceIds: quietDeskInboxGuides(state, productAlerts),
     productAlerts: productAlerts.map(alert => ({
       id: alert.id,
       priority: assistantProductPriority(alert, dueGuides),
@@ -949,13 +949,17 @@ function homeAssistantInboxPlan(state: GameState) {
 }
 
 /**
- * Build beats the works crew makes impossible. Only one project runs at a time,
- * so an upgrade card that arrives mid-build is an instruction the player cannot
- * follow — it waits for a week with a free crew instead of burning its slot next
- * to the Coaching Office tutorial.
+ * Beats that only belong on an empty desk. Only one project runs at a time, so
+ * an upgrade card that arrives mid-build is an instruction the player cannot
+ * follow, and one that arrives next to an injury or a board deadline is a chore
+ * competing with real work. Held rather than dropped, so it lands on the first
+ * week with a free crew and nothing else on the desk.
  */
-function buildBlockedInboxGuides(state: GameState): AssistantInboxGuideSequenceId[] {
-  if (state.facilities.grid?.construction === undefined) return [];
+function quietDeskInboxGuides(
+  state: GameState,
+  productAlerts: readonly ClubAlertViewModel[],
+): AssistantInboxGuideSequenceId[] {
+  if (state.facilities.grid?.construction === undefined && productAlerts.length === 0) return [];
   return ['facility-upgrade'];
 }
 
@@ -1017,7 +1021,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
   const dueGuides = dueAssistantInboxGuideSequences(assistantState);
   const inboxPlan = scheduleAssistantInboxWeek(assistantState, {
     dueGuideSequenceIds: standaloneInboxGuides(dueGuides, productAlerts),
-    heldGuideSequenceIds: buildBlockedInboxGuides(assistantState),
+    heldGuideSequenceIds: quietDeskInboxGuides(assistantState, productAlerts),
     productAlerts: productAlerts.map(alert => ({
       id: alert.id,
       priority: assistantProductPriority(alert, dueGuides),

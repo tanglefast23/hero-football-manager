@@ -371,16 +371,19 @@ describe('validated M1 launch content', () => {
       ],
     });
     expect(managementIntroPages?.some(page => page.title === 'Read it first')).toBe(false);
-    expect(content.assistantGuide.sequences
+    const deskIntroPages = content.assistantGuide.sequences
       .find(sequence => sequence.id === 'desk-intro')
-      ?.pages[0]).toMatchObject({
-        title: 'Back to your inbox',
-        body: [
-          "You've still got one job waiting in your inbox.",
-        ],
-        focus: 'assistant',
-        buttonLabel: 'Got it.',
-      });
+      ?.pages;
+    // One page. The dropped opener counted the player's inbox for them — at the
+    // top of the week, before they could act, with a hardcoded "one job" that
+    // was wrong the moment two cards were waiting behind Bert.
+    expect(deskIntroPages).toHaveLength(1);
+    expect(deskIntroPages?.[0]).toMatchObject({
+      title: 'One week to kick-off',
+      focus: 'assistant',
+      buttonLabel: 'Right you are.',
+    });
+    expect(deskIntroPages?.some(page => page.body.some(line => line.includes('inbox')))).toBe(false);
     expect(content.assistantGuide.sequences
       .find(sequence => sequence.id === 'head-coach-market')
       ?.inbox?.title).toBe('HIRE A COACH');

@@ -91,14 +91,18 @@ const CONDITION_WARNING_DRILL = 3;
 const QUICK_TRAIN_FRAME_TOP = 96;
 
 /**
- * Nudges the cue off the row's right edge so it sits over the condition column
- * rather than the row's centre. The cue is TUTORIAL_TAP_CUE_WIDTH wide, the
- * Train button and its margin take 56px, and the condition cell is half its own
- * width in from there.
+ * Aims the cue's arrow at the CONDITION header rather than at a player's row.
+ *
+ * Measured in from the table's right edge: the header's own px-3 padding (12),
+ * then the unlabelled Train column (56). The header text is right-aligned, so
+ * the word ends flush against that point and its centre is half a word further
+ * in — hence the width estimates rather than the cell width, which would aim
+ * the arrow at empty space to the word's left.
  */
 function conditionCueRightOffset(wideColumns: boolean): number {
-  const conditionCellWidth = wideColumns ? 112 : 64;
-  return Math.max(0, 56 + conditionCellWidth / 2 - TUTORIAL_TAP_CUE_WIDTH / 2);
+  const headerWordWidth = wideColumns ? 86 : 38;
+  const wordCentreFromRight = 12 + 56 + headerWordWidth / 2;
+  return Math.max(0, wordCentreFromRight - TUTORIAL_TAP_CUE_WIDTH / 2);
 }
 
 export interface SquadTrainingScreenProps {
@@ -432,6 +436,9 @@ function RosterSection({
   onSelectPlayer,
   onPressTrainingBadge,
 }: RosterSectionProps) {
+  // The lesson is about the column, so it only needs to know that some player
+  // triggered it — not which row they are on.
+  const conditionCueShowing = conditionCuePlayerId !== null;
   return (
     <View>
       <SectionLabel
@@ -441,12 +448,27 @@ function RosterSection({
       />
       <View className={guidePlayers
         ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
-        : 'border-2 border-ink bg-white'}>
+        : conditionCueShowing
+          ? 'relative mt-20 border-2 border-ink bg-white'
+          : 'border-2 border-ink bg-white'}>
         {guidePlayers && !playerGuideDismissed ? (
           <TutorialTapCue
             label="Tap +"
             detail="Train a player"
             style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
+          />
+        ) : null}
+        {/* The condition lesson is about the column, not about one player, so it
+            hangs above the table pointing down at the header. Parked inside a
+            row it reserved 78px of blank space in the middle of the register. */}
+        {conditionCueShowing ? (
+          <TutorialTapCue
+            label="Condition"
+            detail="Too low and they risk injury. You're okay for now."
+            style={{
+              right: conditionCueRightOffset(wideColumns),
+              top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+            }}
           />
         ) : null}
         <View className="flex-row items-center border-b border-ink/20 px-3">
@@ -468,7 +490,6 @@ function RosterSection({
           </View>
         ) : sortedPlayers.map((player) => {
           const selected = player.id === selectedPlayerId;
-          const showConditionCue = player.id === conditionCuePlayerId;
           const glowAssignmentButton = guidePlayers
             && !trainingCueUsed
             && player.id === viewModel.createdPlayerId
@@ -485,20 +506,10 @@ function RosterSection({
                 : player.injuryWeeks > 0
                   ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
                   : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
-              style={guideConciergePlayer || showConditionCue
+              style={guideConciergePlayer
                 ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
                 : undefined}
             >
-              {showConditionCue ? (
-                <TutorialTapCue
-                  label="Condition"
-                  detail="Too low and they risk injury. You're okay for now."
-                  style={{
-                    right: conditionCueRightOffset(wideColumns),
-                    top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-                  }}
-                />
-              ) : null}
               {guideConciergePlayer ? (
                 <TutorialTapCue
                   label="Bert says"

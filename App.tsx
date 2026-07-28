@@ -63,6 +63,7 @@ import {
   CoachStaffOverlay,
   FacilityProjectNotice,
   PlayerSigningOverlay,
+  PlayerWalkOnWelcome,
   ClubHomeScreen,
   ClubLegacyScreen,
   AssistantGuideOverlay,
@@ -1665,7 +1666,18 @@ function GameApp() {
             onClose={() => setFacilityProjectNotice(null)}
           />
         ) : null}
-        {playerSigning !== null ? (
+        {/* The rookie is the one signing the player has a relationship with, so
+            they get the walk-on. A squad transfer stays a receipt — a character
+            beat on every incoming player would wear out by the second window. */}
+        {playerSigning !== null && playerSigning.source === 'rookie' ? (
+          <PlayerWalkOnWelcome
+            player={playerSigning}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={() => setPlayerSigning(null)}
+          />
+        ) : null}
+        {playerSigning !== null && playerSigning.source !== 'rookie' ? (
           <PlayerSigningOverlay
             player={playerSigning}
             reduceMotion={reduceMotion}

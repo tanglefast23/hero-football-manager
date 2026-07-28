@@ -272,4 +272,35 @@ describe('career squad integration', () => {
     expect(released.players.some(player => player.id === `${CLUB_IDS[0]}-p11`)).toBe(false);
     expect(released.clubs[0].weeklyWages).toBe(1200);
   });
+
+  it('lets an expired starter leave when the only cover is a licensed hero', () => {
+    // A licensed hero is a legal starter; only an UNLICENSED one is bench-only.
+    // Barring every powered player trapped the expired starter on the books.
+    const heroId = `${CLUB_IDS[0]}-p9`;
+    const coverId = `${CLUB_IDS[0]}-p12`;
+    const ended = advanceWeek({ ...career(), week: 30 as const });
+    // p12 takes the licence the released p9 gives up, so the club never holds
+    // more licensed heroes than the cap allows, and keeps a year on his deal —
+    // a replacement whose own contract has expired is ineligible for its own
+    // reason and would not isolate this rule.
+    const withHeroCover: GameState = {
+      ...ended,
+      players: ended.players.map(player => player.id === coverId
+        ? {
+            ...player,
+            power: 'SUPER_SPEED' as const,
+            powerTier: 1 as const,
+            licensed: true,
+            contractSeasonsRemaining: 1,
+          }
+        : player),
+    };
+
+    const released = releaseCareerPlayer(withHeroCover, heroId);
+
+    expect(released.players.some(player => player.id === heroId)).toBe(false);
+    expect(released.lineups[0].playerIds).toContain(coverId);
+    // The real proof: the repaired lineup still builds a legal match team.
+    expect(() => buildCareerTeamDef(released, CLUB_IDS[0])).not.toThrow();
+  });
 });

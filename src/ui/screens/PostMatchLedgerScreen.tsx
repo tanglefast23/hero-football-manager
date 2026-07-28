@@ -7,7 +7,7 @@ import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { PixelText } from '../components/PixelText';
-import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import { DesktopClamp, useDesktopContentStyle } from '../layout/DesktopClamp';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
@@ -84,12 +84,17 @@ export function PostMatchLedgerScreen({
         ) : null}
       </ScrollView>
 
+      {/* The bar stays full-bleed, the button inside it does not: on a wide
+          window it shares the two-column measure with the highlights above,
+          so its edges line up with them instead of running off to the frame. */}
       <View className="border-t-2 border-ink/20 bg-white p-3">
-        <ActionButton
-          label="Back to the office  ▸"
-          accessibilityLabel="Continue to the Home screen and review the match summary"
-          onPress={onContinue}
-        />
+        <DesktopClamp>
+          <ActionButton
+            label="Back to the office  ▸"
+            accessibilityLabel="Continue to the Home screen and review the match summary"
+            onPress={onContinue}
+          />
+        </DesktopClamp>
       </View>
     </SafeAreaView>
   );

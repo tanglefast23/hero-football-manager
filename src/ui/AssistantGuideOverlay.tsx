@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { AssistantGuideContent, AssistantGuideSequenceId } from '../content';
 import { ActionButton } from './components/Scorecard';
+import { SfxPressable as Pressable } from './components/SfxPressable';
 import { bertVoiceDurationMs, playBertVoice, stopBertVoice } from '../render/bert-voice';
 import { TutorialTapCue } from './TutorialTapCue';
 import {
@@ -45,10 +46,16 @@ export function AssistantGuideOverlay({
     ? tutorialCuePosition(moneyAnchor, viewportWidth)
     : null;
   if (page.focus === 'navigation') {
+    // One instruction, one gesture. A dedicated "Got it!" button asked the
+    // player to aim at a small target to acknowledge a sentence they had
+    // already read, so the whole overlay is the button instead.
     return (
-      <View
+      <Pressable
+        accessibilityRole="button"
         accessibilityViewIsModal
         accessibilityLabel="Bottom navigation guide"
+        accessibilityHint="Tap anywhere to continue"
+        onPress={onAdvance}
         className="absolute inset-0 z-50"
       >
         <TutorialSpotlight
@@ -62,11 +69,9 @@ export function AssistantGuideOverlay({
             anchor={navigationAnchor}
             viewportWidth={viewportWidth}
             viewportHeight={viewportHeight}
-            buttonLabel={page.buttonLabel}
-            onAdvance={onAdvance}
           />
         ) : null}
-      </View>
+      </Pressable>
     );
   }
 
@@ -175,15 +180,11 @@ function NavigationGuidePage({
   anchor,
   viewportWidth,
   viewportHeight,
-  buttonLabel,
-  onAdvance,
 }: {
   tip: string;
   anchor: TutorialAnchorLayout;
   viewportWidth: number;
   viewportHeight: number;
-  buttonLabel: string;
-  onAdvance: () => void;
 }) {
   // The whole rail is the subject, so ring it as one object and hang a single
   // tip centred over it. Stepping tab by tab turned one instruction into five
@@ -208,18 +209,9 @@ function NavigationGuidePage({
         }]}
       />
       <View
-        pointerEvents="box-none"
+        pointerEvents="none"
         style={[styles.navTourPanel, { left: panelLeft, width: panelWidth, bottom: panelBottom }]}
       >
-        <View style={styles.navTourButton}>
-          <ActionButton
-            label={buttonLabel}
-            accessibilityLabel="Finish bottom navigation guide"
-            onPress={onAdvance}
-            variant="action"
-            compact
-          />
-        </View>
         <View style={styles.navTourCardShadow}>
           <View
             accessible
@@ -233,6 +225,10 @@ function NavigationGuidePage({
               className="text-center font-mono text-xs leading-4 text-white"
             >
               {tip}
+            </Text>
+            {/* The overlay is the button now, so the card has to say so. */}
+            <Text accessible={false} className="mt-1 text-center font-mono text-[10px] uppercase text-white/60">
+              Tap anywhere to continue
             </Text>
             <Text accessible={false} style={[styles.navigationCalloutArrow, { left: arrowLeft - 7 }]}>▼</Text>
           </View>

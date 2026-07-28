@@ -36,8 +36,11 @@ describe('substitution board layout', () => {
   it('lights up exactly what a drop would accept', () => {
     const source = board();
 
-    // One predicate for the glow and the drop, so they cannot disagree.
-    expect(source).toContain('lit={drag !== null && drag.id !== id && isEligible(drag, id)}');
+    // One predicate for the glow and the drop, so they cannot disagree — and
+    // one `active` card, carried or picked, so a tap lights the same partners a
+    // drag does.
+    expect(source).toContain('const active = drag ?? picked;');
+    expect(source).toContain('lit={active !== null && active.id !== id && isEligible(active, id)}');
     expect(source).toContain('if (target === null || !isEligible(source, target)) return;');
     expect(source).toContain('canSwap(plan, starter, sub, substitutionsRemaining)');
     // Blue, never gold: docs/08 reserves the gold accent for hero and power.
@@ -59,7 +62,13 @@ describe('substitution board layout', () => {
     expect(source).toContain('onPanResponderTerminationRequest: () => !liftedRef.current');
     expect(source).toContain('liftTimer.current = setTimeout(');
     expect(source).toContain('if (!liftedRef.current) {');
-    // Only a lifted card drops; a tap is deliberately nothing.
+    // Only a travelled finger drops. A still one is a tap — the pointer-free
+    // half of the same trade — even on the stacked board, where a card lifts on
+    // a hold and a slow tap would otherwise release onto its own square.
+    expect(source).toContain(
+      'const still = Math.abs(gesture.dx) <= TAP_SLOP && Math.abs(gesture.dy) <= TAP_SLOP;',
+    );
+    expect(source).toMatch(/if \(still\) \{\s*pick\(from\);/);
     expect(source).toContain('if (dropping) drop(from, gesture.moveX, gesture.moveY);');
   });
 
@@ -69,12 +78,42 @@ describe('substitution board layout', () => {
     // PanResponder.create runs once. Closing over props would capture the plan
     // from the first render, and applySwap against that stale plan would drop
     // every swap staged before it.
-    expect(source).toContain('const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, holdToLift })');
-    expect(source).toContain('latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, holdToLift }');
+    expect(source).toContain('const latest = useRef({ source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, holdToLift })');
+    expect(source).toContain('latest.current = { source, onDragStart, onDragMove, onDragEnd, onDrop, onTap, holdToLift }');
     expect(source).toContain('latest.current.onDragStart(latest.current.source)');
-    expect(source).toContain('const { source: from, onDrop: drop } = latest.current;');
+    expect(source).toContain('const { source: from, onDrop: drop, onTap: pick } = latest.current;');
+    // The tap path goes through the same ref, so an activation cannot stage a
+    // swap against a plan from an earlier render either.
+    expect(source).toContain('const tap = useCallback(() => latest.current.onTap(latest.current.source), []);');
     // Every handler the responder calls has to come back through the ref.
     expect(source).not.toMatch(/onPanResponder\w+: \([^)]*\) => \{[^}]*\bonDrag(Start|Move|End)\(/);
+  });
+
+  it('can be worked without a pointer at all', () => {
+    const source = board();
+
+    // The cards have always announced themselves as buttons. Dragging is a
+    // pointer skill, so activation has to reach the same trade from a click, a
+    // keyboard, or a screen reader.
+    expect(source).toContain('onAccessibilityTap={tap}');
+    expect(source).toContain('{...keyboardActivation(tap)}');
+    expect(source).toContain("if (event.key !== 'Enter' && event.key !== ' ') return;");
+    expect(source).toContain('focusable');
+    expect(source).toContain('accessibilityState={{ selected: picked }}');
+    // aria-selected is invalid on role="button", so the web silently drops that
+    // state — the label is the only place the pick is announced everywhere.
+    expect(source).toContain('accessibilityLabel={picked ? `${accessibilityLabel}, picked` : accessibilityLabel}');
+    // Every card carries the action in a hint rather than burying "hold and
+    // drag" in the name a screen reader reads out first.
+    expect(source).toContain('accessibilityHint={picked?.id === id');
+    expect(source).not.toContain('Hold and drag onto');
+
+    // Two taps make a trade, a repeat tap takes it back, and any other card
+    // becomes the new pick — no dead ends.
+    expect(source).toContain('if (isEligible(current, source.id)) {');
+    expect(source).toContain('resolveDrop(current, source.id);');
+    expect(source).toContain('if (current.id === source.id) {');
+    expect(source).toContain("'TAP A PLAYER, THEN TAP THEIR REPLACEMENT'");
   });
 
   it('lifts on movement where nothing scrolls sideways, and on a hold where it does', () => {
@@ -214,7 +253,12 @@ describe('substitution board layout', () => {
     // prop itself, the way ActionButton pairs them.
     expect(source).toMatch(/accessibilityState=\{\{ disabled \}\}[\s\S]{0,240}?\n {6}disabled=\{disabled\}/);
     // One owner for the press cue: SfxPressable clicks, so reset must not too.
-    expect(source).toMatch(/const reset = useCallback\(\(\) => \{\s*\n\s*setPlan\(/);
+    // Asserted against the body rather than the first statement, because reset
+    // also drops any half-finished tap pick — that is state, not a cue.
+    const resetBody = source.match(/const reset = useCallback\(\(\) => \{([\s\S]*?)\}, \[\]\);/)?.[1] ?? '';
+    expect(resetBody).toContain('setPlan(EMPTY_SUBSTITUTION_PLAN)');
+    expect(resetBody).toContain('setPicked(null)');
+    expect(resetBody).not.toContain('playUiClickSfx');
   });
 
   it('lists two names per row on a phone', () => {

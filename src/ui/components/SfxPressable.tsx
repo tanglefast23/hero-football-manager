@@ -1,10 +1,15 @@
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import { Platform, Pressable as NativePressable, Text, View, type ViewStyle } from 'react-native';
-import { playStatStepSfx, playUiClickSfx } from '../../render/management-sfx';
+import { playManagementActionSfx, playStatStepSfx, playUiClickSfx } from '../../render/management-sfx';
 
 type NativePressableProps = ComponentProps<typeof NativePressable>;
 type SfxPressableProps = NativePressableProps & {
-  pressSfx?: 'click' | 'stat-step';
+  /**
+   * 'warning' is for a control that stays live so it can explain itself but
+   * cannot honour the tap — an affirming click there reads as "done" when
+   * nothing happened.
+   */
+  pressSfx?: 'click' | 'stat-step' | 'warning';
   /**
    * One short line explaining what this control does, shown on mouse hover.
    * Pointer-only by design: a tap has no hover phase, so this never fires on a
@@ -90,6 +95,7 @@ export function SfxPressable({
       }}
       onPress={onPress == null ? undefined : event => {
         if (pressSfx === 'stat-step') playStatStepSfx();
+        else if (pressSfx === 'warning') playManagementActionSfx('warning');
         else playUiClickSfx();
         onPress(event);
       }}

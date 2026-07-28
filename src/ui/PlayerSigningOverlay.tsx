@@ -13,6 +13,14 @@ export interface PlayerSigningConfirmation {
   source: 'rookie' | 'transfer' | 'academy';
 }
 
+/**
+ * The receipt for a squad signing.
+ *
+ * The rookie does not come through here: their signing is the one the manager
+ * has a relationship with, so it plays as a walk-on instead (see
+ * PlayerWalkOnWelcome). This card is for the transfers and academy graduates
+ * that arrive by the dozen, where a confirmation is all that is wanted.
+ */
 export function PlayerSigningOverlay({
   player,
   reduceMotion = false,
@@ -30,7 +38,6 @@ export function PlayerSigningOverlay({
     playPositiveSfx();
   }, [player.playerId]);
 
-  const isRookie = player.source === 'rookie';
 
   return (
     <Modal
@@ -47,9 +54,7 @@ export function PlayerSigningOverlay({
         <Pressable accessible={false} className="absolute inset-0" onPress={onClose} />
         <View accessibilityViewIsModal className="w-full max-w-[560px] self-center">
           <PaperPanel
-            kicker={isRookie
-              ? 'First contract signed'
-              : player.source === 'academy' ? 'Academy contract signed' : 'Transfer complete'}
+            kicker={player.source === 'academy' ? 'Academy contract signed' : 'Transfer complete'}
             title="Welcome to the club!"
             stamp="SIGNED"
           >
@@ -64,24 +69,18 @@ export function PlayerSigningOverlay({
                 {player.playerName}
               </Text>
               <Text className="mt-1 font-pixel text-sm uppercase text-blue-dark">
-                {player.role} · {isRookie
-                  ? 'Your first hire'
-                  : player.source === 'academy' ? 'Academy graduate' : 'First-team signing'}
+                {player.role} · {player.source === 'academy' ? 'Academy graduate' : 'First-team signing'}
               </Text>
             </View>
             <Text className="mt-4 text-center text-base leading-5 text-ink/65">
-              {isRookie
-                ? '“Thanks for the opportunity, boss! I’m going to score so many goals they’ll need a second scoreboard.”'
-                : player.source === 'academy'
+              {player.source === 'academy'
                 ? 'The contract is complete, and the player has joined your squad.'
                 : 'The transfer is complete. Your new player is ready for selection.'}
             </Text>
             <View className="mt-4">
               <ActionButton
-                label={isRookie ? 'Meet Bert  ▸' : 'Return to club  ▸'}
-                accessibilityLabel={isRookie
-                  ? 'Close rookie signing celebration and meet Bert'
-                  : 'Close player signing confirmation'}
+                label="Return to club  ▸"
+                accessibilityLabel="Close player signing confirmation"
                 onPress={onClose}
               />
             </View>

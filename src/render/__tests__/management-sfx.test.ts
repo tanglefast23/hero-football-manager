@@ -120,15 +120,20 @@ describe('management feedback sounds', () => {
     // A real push-button click, not the 80ms tap that vanished under the music.
     expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-push-button.m4a')");
     expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-push-button.m4a')");
-    // Steppers are the exception: a lighter tap, because a stat point or a hair
-    // swatch is one notch of an adjustment, not a commitment.
-    expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/ui-stat-step.m4a')");
+    // Steppers are the exception, but louder rather than lighter: they sit at
+    // the volume ceiling like every other cue, so the only place their extra
+    // loudness can live is the asset itself.
+    expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/ui-push-button-loud.m4a')");
     expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
-    // Large buttons still confirm by default, but a destructive one answers with
-    // the back-button cue: dismissing a coach or erasing a save used to be
-    // applauded by the same chime that celebrates a signing.
+    // Large buttons still confirm by default, but the variant can speak for
+    // itself: a destructive one answers with the back-button cue (dismissing a
+    // coach or erasing a save used to be applauded by the chime that celebrates
+    // a signing), and a neutral paper one — cancel, back, pass, decline — only
+    // clicks, so a refusal never sounds like a win.
     expect(sounds).toContain("danger: require('../../assets/audio/sfx/back-button.m4a')");
-    expect(buttons).toContain("const cue = pressSfx ?? (variant === 'danger' ? 'danger' : 'positive');");
+    expect(buttons).toContain(
+      "const cue = pressSfx\n    ?? (variant === 'danger' ? 'danger' : variant === 'paper' ? 'click' : 'positive');",
+    );
   });
 
   it('keeps the drill progress bed stoppable and the reveal on its own player', async () => {

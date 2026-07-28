@@ -1,7 +1,7 @@
 import * as simMatch from '../../sim/match';
 import { ROVERS, UNITED } from '../../sim/teams';
 import type { MatchEvent, MatchState, TeamDef } from '../../sim/types';
-import { quickResultForFixture, resolveMatchday } from '../matchday';
+import { goalsFrom, quickResultForFixture, resolveMatchday } from '../matchday';
 import type { FixtureResult, LeagueFixture } from '../types';
 
 const TEAMS: Readonly<Record<string, TeamDef>> = {
@@ -23,6 +23,9 @@ function fakeFulltimeMatch(score: [number, number], events: MatchEvent[]): Match
       def,
       team: index < 11 ? 0 : 1,
     })),
+    // Scorer resolution names players who have already left the pitch, so it
+    // reads the match-owned team copies rather than the live 22.
+    teams: [ROVERS, UNITED],
   } as unknown as MatchState;
 }
 
@@ -77,14 +80,23 @@ describe('quickResultForFixture', () => {
     }
   });
 
-  test('credits goals to the FINAL slot occupant, not the starting XI', () => {
-    // The regression this guards: scorers used to resolve against the original
-    // TeamDef, so after a substitution the replacement's goal was credited to
-    // the player who had been subbed off. Slot 1 here is occupied by a
-    // substitute at fulltime.
-    const substitute = { ...ROVERS.players[1], id: 'rovers-substitute' };
+  test('credits each goal to whoever held the shirt when it went in', () => {
+    // A GOAL event names a lineup SLOT, so a substitution makes both ends of the
+    // match wrong in opposite directions: resolving against the starting XI gave
+    // the substitute's goal to the starter, and resolving against the final
+    // state gave the starter's goal to the substitute. Slot 1 scores once before
+    // the swap and once after it, so only time-correct attribution passes.
+    const substitute = { ...ROVERS.players[1], id: 'rovers-substitute', name: 'Sub Striker' };
     const state = fakeFulltimeMatch([2, 1], [
       { t: 10, kind: 'GOAL', by: 1, team: 0 },
+      {
+        t: 15,
+        kind: 'SUBSTITUTION',
+        team: 0,
+        player: 1,
+        outPlayerId: ROVERS.players[1].id,
+        inPlayerId: substitute.id,
+      },
       { t: 20, kind: 'GOAL', by: 1, team: 0 },
       { t: 30, kind: 'GOAL', by: 12, team: 1 },
     ]);
@@ -97,7 +109,7 @@ describe('quickResultForFixture', () => {
         homeGoals: 2,
         awayGoals: 1,
         scorerPlayerIds: [
-          'rovers-substitute',
+          ROVERS.players[1].id,
           'rovers-substitute',
           UNITED.players[1].id,
         ],
@@ -106,6 +118,28 @@ describe('quickResultForFixture', () => {
       createMatch.mockRestore();
       envelopeFrom.mockRestore();
     }
+  });
+
+  test('names the scorer even after he has left the pitch', () => {
+    // The highlight reel labels goals by name, and a subbed-off scorer is no
+    // longer in the live 22 — his name has to come from the team copies.
+    const substitute = { ...ROVERS.players[1], id: 'rovers-substitute', name: 'Sub Striker' };
+    const state = fakeFulltimeMatch([1, 0], [
+      { t: 10, kind: 'GOAL', by: 1, team: 0 },
+      {
+        t: 15,
+        kind: 'SUBSTITUTION',
+        team: 0,
+        player: 1,
+        outPlayerId: ROVERS.players[1].id,
+        inPlayerId: substitute.id,
+      },
+    ]);
+    state.players[1] = { ...state.players[1], def: substitute };
+
+    expect(goalsFrom(state)).toEqual([
+      { playerId: ROVERS.players[1].id, name: ROVERS.players[1].name, tick: 10 },
+    ]);
   });
 
   test('validates fixture state, match seed, and both teams', () => {

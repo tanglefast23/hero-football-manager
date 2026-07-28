@@ -5,6 +5,7 @@
 // still render the UI even when expo-audio is unavailable.
 import type { AudioPlayer, AudioSource } from 'expo-audio';
 import type { M1Screen } from '../application/store';
+import { audioIsSuspended, registerAudioOwner } from './audio-lifecycle';
 
 export type MenuTheme = 'opening' | 'management' | 'event' | null;
 type MenuSfx = 'advance-week' | 'plan-locked' | 'league-champions';
@@ -75,13 +76,36 @@ function applyMasterVolume(): void {
 }
 
 function playActiveTheme(): void {
-  if (!ready || activeTheme === null) return;
+  if (!ready || activeTheme === null || audioIsSuspended()) return;
   try {
     players.get(activeTheme)?.play();
   } catch (error) {
     warnOnce(`${activeTheme} playback failed`, error);
   }
 }
+
+/**
+ * The menu theme is the loop most likely to be forgotten: a management screen
+ * left open in a background tab kept playing for as long as the tab lived.
+ * `activeTheme` still records which theme the app wants, so coming back to the
+ * front resumes exactly that one.
+ */
+registerAudioOwner({
+  suspend: () => {
+    if (!ready || activeTheme === null) return;
+    stopLoopWatchdog();
+    try {
+      players.get(activeTheme)?.pause();
+    } catch (error) {
+      warnOnce(`${activeTheme} background suspend failed`, error);
+    }
+  },
+  resume: () => {
+    if (!ready || activeTheme === null) return;
+    playActiveTheme();
+    startLoopWatchdog();
+  },
+});
 
 function startLoopWatchdog(): void {
   if (loopWatchdog !== null) return;

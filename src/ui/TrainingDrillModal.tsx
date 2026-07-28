@@ -12,6 +12,7 @@ import { playDrillResultSfx, playSuperTrainingSfx, playManagementActionSfx } fro
 import { playManagementHaptic } from '../render/haptics';
 import { useLayoutMode } from './layout/use-layout-mode';
 import type { DrillResultViewModel, TrainingSlotStatOption } from './models';
+import { ManagementSprite } from './components/ManagementSprite';
 import { PixelText } from './components/PixelText';
 
 export interface TrainingDrillModalProps {
@@ -360,6 +361,16 @@ export function TrainingDrillModal({
                           : 'flex-row items-center justify-between border-2 border-ink/30 bg-white px-3 py-3'}
                       style={({ pressed }) => ({ opacity: pressed && !disabled ? 0.65 : undefined })}
                     >
+                      {/* Desktop rows have the width to spare, so each drill gets
+                          its prop — cone, target, glove. The phone sheet stays
+                          text-only: there the row needs every point for the name,
+                          the cost and the gain. Decorative, so the row's own
+                          label is still all a screen reader hears. */}
+                      {wide ? (
+                        <View className="mr-3">
+                          <ManagementSprite spriteKey={`drill:${option.pathId}`} width={32} />
+                        </View>
+                      ) : null}
                       <View className="min-w-0 flex-1 pr-2">
                         <PixelText className="text-base uppercase text-ink" numberOfLines={1}>
                           {option.drillName}

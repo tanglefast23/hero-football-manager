@@ -117,19 +117,14 @@ export function dueAssistantInboxGuideSequences(
       ));
   const trainingPitchUnderConstruction = grid?.construction?.kind === 'BUILD'
     && grid.construction.type === 'training-pitch';
+  const upgradeReachable = operationalTrainingPitch
+    && completed('facility-placement')
+    && grid?.construction === undefined
+    && buildings.some(building => building.level < maxCareerFacilityLevel(state));
   if (!operationalTrainingPitch && !trainingPitchUnderConstruction) {
     due.push('facility-placement');
-  } else if (operationalTrainingPitch) {
-    if (completed('facility-placement')
-      && grid?.construction === undefined
-      && buildings.some(
-        building => building.level < maxCareerFacilityLevel(state),
-      )) {
-      due.push('facility-upgrade');
-    }
-    if ((state.facilities.grid?.discoveredAdjacencies.length ?? 0) > 0) {
-      due.push('facility-adjacency');
-    }
+  } else if (operationalTrainingPitch && (grid?.discoveredAdjacencies.length ?? 0) > 0) {
+    due.push('facility-adjacency');
   }
 
   if (scoutingUnlocked) {
@@ -172,7 +167,26 @@ export function dueAssistantInboxGuideSequences(
     due.push(completed('board-ultimatum') ? 'board-protection' : 'board-ultimatum');
   }
 
-  return due.filter(sequenceId => !completed(sequenceId));
+  const pending = due.filter(sequenceId => !completed(sequenceId));
+
+  /*
+   * The upgrade lesson is the only guide nothing is waiting on: the pitch
+   * already works, and levelling it is a choice the club can make any week.
+   * Taught the week the first pitch opened it read as "you just built that —
+   * build it again", so it holds until the story season is over (which is also
+   * the only cheap proof the grounds have been standing a while) and until the
+   * desk has no other first on it. Product alerts are checked where they are
+   * built, one ring out.
+   */
+  if (
+    upgradeReachable
+    && pending.length === 0
+    && !isStoryFeaturePacingActive(state)
+    && !completed('facility-upgrade')
+  ) {
+    pending.push('facility-upgrade');
+  }
+  return pending;
 }
 
 /**
@@ -223,6 +237,9 @@ export function reconcileSatisfiedAssistantGuideSequences(state: GameState): Gam
   if (!hasCoachingOffice && next.week < STORY_COACHING_OFFICE_GUIDE_WEEK) {
     premature.push('coaching-office');
   }
+  // Heals the saves that were handed the upgrade lesson days after paying for
+  // their first build. It returns on its own once the story season is over.
+  premature.push('facility-upgrade');
   if (!isStoryYouthUnlocked(next)) premature.push('youth-intake');
   if (!isStoryCupGuideUnlocked(next)) premature.push('national-cup');
   if (

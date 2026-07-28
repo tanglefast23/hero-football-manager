@@ -57,6 +57,14 @@ export function quickMatchForFixture(
   };
 }
 
+/** A goal credited to whoever was actually wearing the shirt at the time. */
+export interface MatchGoal {
+  readonly playerId: string;
+  readonly name: string;
+  /** Tick the goal went in, for a match-clock label. */
+  readonly tick: number;
+}
+
 /**
  * A fixture whose simulation can be advanced a bounded number of ticks and then
  * put down.
@@ -106,16 +114,45 @@ export function createFixtureResolver(
 }
 
 /**
- * Scorers resolve against the FINAL match state: after a substitution the
- * slot's `def` is the replacement, while the original TeamDef still names the
- * starter. Resolving against the TeamDef credited a substitute's goal to the
- * player who had been subbed off.
+ * Who scored, resolved at the moment of each goal.
+ *
+ * A GOAL event names a lineup SLOT, not a player, and substitutes inherit the
+ * slot they come on into. Reading the slot's occupant from the starting TeamDef
+ * credited a substitute's goal to the player he replaced; reading it from the
+ * final state makes the mirrored mistake, handing a starter's first-half goal
+ * to whoever came on for him later. Substitutions record the outgoing player,
+ * so rewinding them from the final state puts every slot back to the player who
+ * held it when the ball went in.
  */
+export function goalsFrom(match: MatchState): MatchGoal[] {
+  const names = new Map<string, string>();
+  for (const team of match.teams) {
+    for (const def of [...team.players, ...(team.bench ?? [])]) names.set(def.id, def.name);
+  }
+  const slotOwners = new Map<number, string>();
+  match.players.forEach((player, slot) => {
+    slotOwners.set(slot, player.def.id);
+    names.set(player.def.id, player.def.name);
+  });
+
+  const goals: MatchGoal[] = [];
+  for (let index = match.events.length - 1; index >= 0; index--) {
+    const event = match.events[index];
+    if (event.kind === 'GOAL') {
+      const playerId = slotOwners.get(event.by);
+      if (playerId !== undefined) {
+        goals.push({ playerId, name: names.get(playerId) ?? playerId, tick: event.t });
+      }
+      continue;
+    }
+    // Rewind: before this swap the shirt belonged to the player going off.
+    if (event.kind === 'SUBSTITUTION') slotOwners.set(event.player, event.outPlayerId);
+  }
+  return goals.reverse();
+}
+
 function fixtureResultFrom(fixture: LeagueFixture, match: MatchState): FixtureResult {
-  const scorerPlayerIds = match.events
-    .filter(event => event.kind === 'GOAL')
-    .map(event => match.players[event.by]?.def.id)
-    .filter((playerId): playerId is string => playerId !== undefined);
+  const scorerPlayerIds = goalsFrom(match).map(goal => goal.playerId);
   return {
     fixtureId: fixture.id,
     homeGoals: match.score[0],

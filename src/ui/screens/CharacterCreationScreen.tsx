@@ -135,7 +135,10 @@ export function CharacterCreationScreen({
       </PaperPanel>
 
       <PaperPanel kicker="Career pressure" title="Choose difficulty" stamp={difficulty} className="mt-5">
-        <View className="gap-3">
+        {/* A radio reports its state as `checked`, not `selected` — the latter
+            becomes aria-selected on web, which role="radio" does not expose, so
+            a screen reader announced neither option as chosen. */}
+        <View accessibilityRole="radiogroup" accessibilityLabel="Career pressure" className="gap-3">
           {([
             ['COZY', 'Casual mode'],
             ['CHAIRMAN', 'Expert mode'],
@@ -145,7 +148,7 @@ export function CharacterCreationScreen({
               <Pressable
                 key={mode}
                 accessibilityRole="radio"
-                accessibilityState={{ selected }}
+                accessibilityState={{ checked: selected }}
                 accessibilityLabel={`${mode} (${label})`}
                 onPress={() => {
                   setDifficulty(mode);

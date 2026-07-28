@@ -22,6 +22,10 @@ const FACILITIES = [
   'fan-shop', 'stadium-stand',
 ];
 
+// The seven training paths from src/game/training-paths.ts, keyed by path id so
+// the Drills popup can name a sprite straight from the option it renders.
+const DRILLS = ['sprints', 'finishing', 'rondo', 'duels', 'first-touch', 'circuit', 'keeper-drills'];
+
 const COACH_WARDROBES = [
   'suit-tie',
   'suit-open-collar',
@@ -231,6 +235,74 @@ function facilityMark(g, type) {
   else if (type === 'stadium-stand') { for (let y = 17; y <= 24; y += 3) rect(g, 7, y, 24, y + 1, y % 2 ? 'B' : 'R'); line(g, 24, 16, 27, 7, 'k'); }
 }
 
+/** The one ball every drill icon shares, drawn from its top-left corner. */
+function drillBall(g, x, y) {
+  rect(g, x + 3, y, x + 6, y, 'W'); rect(g, x + 1, y + 1, x + 8, y + 2, 'W');
+  rect(g, x, y + 3, x + 9, y + 6, 'W'); rect(g, x + 1, y + 7, x + 8, y + 8, 'W');
+  rect(g, x + 3, y + 9, x + 6, y + 9, 'W');
+  rect(g, x + 3, y + 3, x + 6, y + 5, 'K'); set(g, x + 1, y + 7, 'K'); set(g, x + 8, y + 2, 'K');
+  rect(g, x + 7, y + 6, x + 8, y + 7, 'C');
+}
+
+/** One prop per training path, each standing on the same strip of turf. */
+function drill(pathId) {
+  const g = grid(32, 32);
+  rect(g, 2, 27, 29, 29, 'G'); rect(g, 2, 29, 29, 29, 'g');
+  if (pathId === 'sprints') {
+    for (let i = 0; i < 7; i += 1) {
+      const band = i === 3 || i === 4;
+      rect(g, 16 - i, 8 + i * 2, 17 + i, 9 + i * 2, band ? 'W' : 'Y');
+      if (i >= 2) rect(g, 16 + i, 8 + i * 2, 17 + i, 9 + i * 2, band ? 'C' : 'y');
+    }
+    rect(g, 7, 22, 26, 25, 'Y'); rect(g, 7, 24, 26, 25, 'y');
+    rect(g, 1, 11, 5, 12, 'A'); rect(g, 1, 16, 6, 17, 'A'); rect(g, 1, 21, 5, 22, 'A');
+  } else if (pathId === 'finishing') {
+    // The Shooting Range's target, so the drill and the building that boosts it
+    // carry the same mark. A goal and net at this size only ever reads as a window.
+    rect(g, 13, 7, 27, 21, 'W'); rect(g, 11, 9, 29, 19, 'W');
+    rect(g, 15, 9, 25, 19, 'R'); rect(g, 13, 11, 27, 17, 'R');
+    rect(g, 17, 11, 23, 17, 'W'); rect(g, 15, 12, 25, 16, 'W');
+    rect(g, 18, 12, 22, 16, 'R'); rect(g, 17, 13, 23, 15, 'R');
+    rect(g, 19, 13, 21, 15, 'Y');
+    drillBall(g, 1, 16); rect(g, 0, 13, 4, 14, 'A');
+  } else if (pathId === 'rondo') {
+    rect(g, 4, 4, 19, 6, 'B');
+    for (let i = 0; i < 3; i += 1) rect(g, 20 + i, 3 + i, 20 + i, 7 - i, 'B');
+    rect(g, 13, 23, 28, 25, 'B');
+    for (let i = 0; i < 3; i += 1) rect(g, 12 - i, 22 + i, 12 - i, 26 - i, 'B');
+    drillBall(g, 11, 10);
+  } else if (pathId === 'duels') {
+    rect(g, 7, 5, 24, 18, 'B'); rect(g, 16, 5, 24, 18, 'b');
+    for (let i = 0; i < 6; i += 1) {
+      rect(g, 7 + i, 18 + i, 24 - i, 19 + i, 'B');
+      rect(g, 16, 18 + i, 24 - i, 19 + i, 'b');
+    }
+    rect(g, 14, 24, 17, 25, 'b'); rect(g, 14, 24, 15, 25, 'B');
+    rect(g, 7, 11, 24, 14, 'W'); rect(g, 16, 11, 24, 14, 'C');
+  } else if (pathId === 'first-touch') {
+    drillBall(g, 18, 3);
+    rect(g, 4, 10, 11, 19, 'D'); rect(g, 4, 17, 24, 23, 'D'); rect(g, 24, 19, 27, 23, 'D');
+    for (let x = 12; x <= 21; x += 4) rect(g, x, 18, x + 1, 20, 'W');
+    rect(g, 3, 23, 27, 25, 'h');
+    for (let x = 5; x <= 23; x += 6) rect(g, x, 25, x + 1, 26, 'h');
+  } else if (pathId === 'circuit') {
+    rect(g, 12, 4, 19, 7, 'k'); rect(g, 14, 6, 17, 10, 'A');
+    rect(g, 7, 10, 24, 25, 'A'); rect(g, 5, 13, 26, 22, 'A');
+    rect(g, 9, 12, 22, 23, 'W'); rect(g, 7, 15, 24, 20, 'W');
+    set(g, 15, 13, 'k'); set(g, 16, 22, 'k'); set(g, 8, 17, 'k'); set(g, 23, 17, 'k');
+    rect(g, 15, 14, 16, 18, 'K'); rect(g, 16, 17, 20, 18, 'K');
+  } else if (pathId === 'keeper-drills') {
+    rect(g, 5, 9, 9, 16, 'G'); rect(g, 11, 7, 15, 16, 'G');
+    rect(g, 17, 6, 21, 16, 'G'); rect(g, 23, 8, 27, 16, 'G');
+    rect(g, 5, 15, 27, 21, 'G'); rect(g, 2, 13, 6, 19, 'G');
+    rect(g, 8, 17, 24, 20, 'g');
+    rect(g, 4, 21, 26, 26, 'W'); rect(g, 4, 23, 26, 24, 'C');
+  } else {
+    throw new Error(`unknown training path ${pathId}`);
+  }
+  return [`drill:${pathId}`, rows(g)];
+}
+
 function worksite() {
   const g = grid(32, 32); rect(g, 3, 27, 28, 29, 'G'); rect(g, 6, 21, 25, 26, 'c');
   line(g, 7, 22, 12, 10, 'D'); line(g, 24, 22, 19, 10, 'D'); rect(g, 10, 12, 21, 14, 'D');
@@ -242,6 +314,7 @@ const sprites = Object.fromEntries([
   ...COACHES.flatMap(spec => [coach(spec, false), coach(spec, true)]),
   ...FACILITIES.flatMap(type => [1, 2, 3].map(level => facility(type, level))),
   worksite(),
+  ...DRILLS.map(pathId => drill(pathId)),
 ]);
 
 if (COACHES.length !== 32) throw new Error(`expected 32 curated coaches, received ${COACHES.length}`);

@@ -39,7 +39,7 @@ describe('first training guidance', () => {
     expect(guideContent).not.toContain('"id": "squad-intro"');
   });
 
-  it('warns about condition on the third drill of the career, pointing at that player', () => {
+  it('warns about condition on the third drill of the career, pointing at the column header', () => {
     const source = readFileSync(join(process.cwd(), 'src/ui/screens/SquadTrainingScreen.tsx'), 'utf8');
     const store = readFileSync(join(process.cwd(), 'src/application/store.ts'), 'utf8');
 
@@ -52,12 +52,16 @@ describe('first training guidance', () => {
     expect(source).toContain('setConditionCuePlayerId(lastDrillResult.playerId);');
     // The drill popup covers the roster, so the cue waits for it to close.
     expect(source).toContain('conditionCuePlayerId={drillPickerOpen ? null : conditionCuePlayerId}');
-    // It points at the condition column, not the middle of the row.
+    // It points at the CONDITION header, not at a row: the lesson is about the
+    // column, and hanging it off a row reserved 78px of blank space inside the
+    // register to make room for it.
     expect(source).toContain('conditionCueRightOffset(wideColumns)');
     expect(source).toContain('label="Condition"');
     expect(source).toContain("detail=\"Too low and they risk injury. You're okay for now.\"");
-    // The row reserves the space so the cue lands in a gap, not over the row above.
-    expect(source).toContain('guideConciergePlayer || showConditionCue');
+    expect(source).toContain('const conditionCueShowing = conditionCuePlayerId !== null;');
+    // The table, not a row, carries the cue and the space above it.
+    expect(source).toContain("conditionCueShowing\n          ? 'relative mt-20 border-2 border-ink bg-white'");
+    expect(source).not.toContain('guideConciergePlayer || showConditionCue');
     // The count comes off the resolved state, which is what the save persists.
     expect(store).toContain('totalDrillsRun: next.totalInstantDrills ?? 0,');
   });
