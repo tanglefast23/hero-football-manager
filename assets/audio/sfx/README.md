@@ -11,8 +11,10 @@ than going quiet.
 Two files are deliberately kept as sources:
 
 - **`stat-step-tap.m4a`** — the un-boosted source of the shipped
-  `stat-step-tap-loud.m4a`. The light tap keeps its intended character while a
-  brief music dip makes it readable in play.
+  `stat-step-tap-loud.m4a`. The light tap keeps its intended character and needs
+  no help to be heard: it sits about 13 dB over the menu bed at equal master
+  volume. Taps that seem to vanish under the music are taps that never played —
+  look at the voice pool in `management-sfx.ts`, not at the gain.
 - **`ui-push-button.m4a`** — the supplied resonant push-button recording used
   to render `ui-single-click.m4a`.
 

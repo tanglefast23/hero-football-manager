@@ -113,14 +113,17 @@ describe('management feedback sounds', () => {
     expect(mockImpactAsync).toHaveBeenCalledWith('light');
   });
 
-  it('gives rapid neutral button presses independent warm voices too', () => {
+  it('gives rapid neutral button presses independent voices too', async () => {
     playUiClickSfx();
     playUiClickSfx();
     playUiClickSfx();
     playUiClickSfx();
+    await Promise.resolve();
 
     const uiClickPool = [mockPlayers[2], mockPlayers[22], mockPlayers[23], mockPlayers[24]];
-    expect(uiClickPool.every(player => player.seekTo.mock.calls.length === 0)).toBe(true);
+    // One press, one rewind, one play — on a voice of its own, so four quick
+    // presses never share a playhead.
+    expect(uiClickPool.every(player => player.seekTo.mock.calls.length === 1)).toBe(true);
     expect(uiClickPool.every(player => player.play.mock.calls.length === 1)).toBe(true);
     expect(mockImpactAsync).toHaveBeenCalledTimes(4);
   });
@@ -129,12 +132,11 @@ describe('management feedback sounds', () => {
     const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
     const buttons = readFileSync(join(process.cwd(), 'src/ui/components/Scorecard.tsx'), 'utf8');
 
-    // Ordinary controls use one single-attack click. Steppers retain their
-    // lighter character and gain contrast by briefly ducking the music.
+    // Ordinary controls use one single-attack click; steppers keep the lighter
+    // tap. Neither borrows headroom from the music.
     expect(sounds).toContain("'ui-click': require('../../assets/audio/sfx/ui-single-click.m4a')");
     expect(sounds).toContain("select: require('../../assets/audio/sfx/ui-single-click.m4a')");
     expect(sounds).toContain("'stat-step': require('../../assets/audio/sfx/stat-step-tap-loud.m4a')");
-    expect(sounds).toContain('duckMenuMusicForSfx();');
     expect(sounds).toContain("positive: require('../../assets/audio/sfx/positive.m4a')");
     // Large buttons still confirm by default, but the variant can speak for
     // itself: a destructive one answers with the back-button cue (dismissing a
@@ -219,22 +221,24 @@ describe('management feedback sounds', () => {
     expect(mockPlayers[20].play).toHaveBeenCalledTimes(1);
   });
 
-  it('plays every rapid stat-step tap on a warm independent voice', async () => {
+  it('plays every rapid stat-step tap on an independent voice', async () => {
     playStatStepSfx();
     playStatStepSfx();
     playStatStepSfx();
     playStatStepSfx();
+    await Promise.resolve();
 
     expect(mockPlayers).toHaveLength(28);
     const statStepPool = [mockPlayers[17], mockPlayers[25], mockPlayers[26], mockPlayers[27]];
-    expect(statStepPool.every(player => player.seekTo.mock.calls.length === 0)).toBe(true);
+    expect(statStepPool.every(player => player.seekTo.mock.calls.length === 1)).toBe(true);
     expect(statStepPool.every(player => player.play.mock.calls.length === 1)).toBe(true);
 
-    // A fifth press arrives before the first voice has rewound. It takes the
-    // reliable asynchronous restart path rather than disappearing at clip end.
+    // The fifth press wraps back onto the first voice. It rewinds again rather
+    // than calling play() on a playhead that may be parked at the clip's end,
+    // where the platform player would simply ignore it.
     playStatStepSfx();
     await Promise.resolve();
-    expect(statStepPool[0].seekTo).toHaveBeenCalledWith(0, 0, 0);
+    expect(statStepPool[0].seekTo).toHaveBeenCalledWith(0);
     expect(statStepPool[0].play).toHaveBeenCalledTimes(2);
     expect(mockPlayers[2].play).not.toHaveBeenCalled();
     expect(mockImpactAsync).toHaveBeenCalledTimes(5);
