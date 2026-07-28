@@ -1,4 +1,6 @@
-export * from './AssistantGuideOverlay';
+export * from './BertBriefingWalkOn';
+export * from './BertFullBody';
+export * from './TutorialSpotlight';
 export * from './ManagementShell';
 export * from './PostMatchSummaryModal';
 export * from './CoachStaffOverlay';

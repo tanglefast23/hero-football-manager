@@ -17,7 +17,7 @@ describe('rookie signing celebration', () => {
     expect(appSource).toContain("assistantSequenceId !== null");
     expect(appSource).toContain("playerSigning?.source !== 'rookie'");
     expect(appSource).toContain('const guideOverlayVisible');
-    expect(appSource).toContain('{guideOverlayVisible ? (');
+    expect(appSource).toContain('{guideOverlayVisible');
   });
 
   it('gives the rookie a walk-on and leaves the receipt card to squad signings', () => {
