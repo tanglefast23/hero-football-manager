@@ -7,6 +7,7 @@ export type MatchSquadPlayer = ProgressionPlayer & {
   role: Role;
   lookId?: string;
   morale: number;
+  condition?: number;
   injuryWeeks?: number;
 };
 
@@ -77,6 +78,10 @@ export function buildTeamDef(
     if (!Number.isSafeInteger(player.morale) || player.morale < 0 || player.morale > 100) {
       throw new Error(`Player ${player.id} morale must be an integer from 0 to 100`);
     }
+    if (player.condition !== undefined
+      && (!Number.isSafeInteger(player.condition) || player.condition < 0 || player.condition > 100)) {
+      throw new Error(`Player ${player.id} condition must be an integer from 0 to 100`);
+    }
     for (const attribute of ATTR_NAMES) {
       const value = player.attrs[attribute];
       if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
@@ -119,6 +124,7 @@ export function buildTeamDef(
     name: player.name,
     role: player.role,
     ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+    startingCondition: player.condition ?? 100,
     attrs: matchAttrsAtMorale(player.attrs, player.morale),
     ...(player.licensed && player.power
       ? { power: player.power, powerTier: player.powerTier ?? 1 as const }

@@ -33,6 +33,8 @@ export interface Attrs {
 
 export interface PlayerDef {
   id: string; name: string; role: Role; attrs: Attrs; power?: PowerId; powerTier?: 1 | 2 | 3; lookId?: string;
+  /** Career readiness at kickoff or substitution; legacy/test teams default to 100. */
+  startingCondition?: number;
 }
 
 export interface TeamDef {

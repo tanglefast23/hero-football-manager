@@ -4,6 +4,7 @@ import type { AssistantGuideContent, AssistantGuideFocus } from '../content/sche
 import { bertVoiceDurationMs, playBertVoice, stopBertVoice } from '../render/bert-voice';
 import { BertFullBody } from './BertFullBody';
 import { beatFocus, briefingBeats } from './bert-briefing-beats';
+import { beatMoment } from './bert-beat-moments';
 import { NavigationRing, TutorialSpotlight } from './TutorialSpotlight';
 import { TutorialTapCue } from './TutorialTapCue';
 import { BERT_SPRITE_SIZE } from './bert-walk-frames';
@@ -99,7 +100,11 @@ export function BertBriefingWalkOn({
 
   if (beats.length === 0) return null;
 
-  const spotlightAnchor = focus === 'money' ? moneyAnchor : null;
+  const spotlightAnchor = focus === 'money'
+    ? moneyAnchor
+    : focus === 'navigation'
+      ? navigationAnchor
+      : null;
   const moneyCuePosition = focus === 'money' && moneyAnchor
     ? tutorialCuePosition(moneyAnchor, viewportWidth)
     : null;
@@ -142,6 +147,10 @@ export function BertBriefingWalkOn({
         renderCharacter={() => (
           <BertFullBody
             pointing={focus !== 'assistant'}
+            // The look is matched to the line, so it changes as he talks. It
+            // supersedes `pointing` whenever one is found; `pointing` remains
+            // the fallback for a sequence with no authored run.
+            moment={beatMoment(sequenceId, beats, beatIndex)}
             walking={false}
             scale={BERT_SCALE}
             // The overlay draws its own contact shadow; his built-in one would

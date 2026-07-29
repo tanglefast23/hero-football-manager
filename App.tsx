@@ -67,6 +67,8 @@ import {
   ClubHomeScreen,
   ClubLegacyScreen,
   BertBriefingWalkOn,
+  MatchdayConditionWarning,
+  matchdayConditionWarningPlayer,
   CharacterCreationScreen,
   AwakeningCutsceneScreen,
   ChampionshipCelebrationScreen,
@@ -1060,6 +1062,7 @@ function GameApp() {
   }, [store.setActiveTab]);
 
   let screen;
+  let lowConditionMatchdayStarter: ReturnType<typeof matchdayConditionWarningPlayer> = null;
   if (!fontsLoaded && !fontError && bootError === null) {
     screen = <LoadingScreen />;
   } else if (bootError !== null) {
@@ -1198,6 +1201,9 @@ function GameApp() {
       content,
       preferences.formationPresets[0].replaceAll('-', '–'),
     );
+    if (!hasAssistantGuideMilestone(store.career, 'match-condition-warning-seen')) {
+      lowConditionMatchdayStarter = matchdayConditionWarningPlayer(matchday.lineup);
+    }
     screen = (
       <FixtureMatchDayScreen
         viewModel={matchday}
@@ -1697,6 +1703,14 @@ function GameApp() {
             reduceMotion={reduceMotion}
             onFocusChange={setActiveGuideFocus}
             onDone={completeAssistantGuideSequence}
+          />
+        ) : null}
+        {!guideOverlayVisible && lowConditionMatchdayStarter !== null ? (
+          <MatchdayConditionWarning
+            key={lowConditionMatchdayStarter.id}
+            playerName={lowConditionMatchdayStarter.name}
+            reduceMotion={reduceMotion}
+            onDone={() => store.completeGuideMilestone('match-condition-warning-seen')}
           />
         ) : null}
         {coachOverlay !== null ? (

@@ -30,5 +30,12 @@ describe('training stat option rendering', () => {
     // risk both render in the popup header strip.
     expect(source).toContain('SUPER chance {superChancePercent}%');
     expect(source).toContain('{injuryRiskPercent}% injury risk');
+
+    // Confirmation keeps the authored +5 visible, then explains why this
+    // particular player can receive more (or less) than the base result.
+    expect(source).toContain('Base {pendingConfirm.label}');
+    expect(source).toContain('pendingConfirm.baseValueAfter');
+    expect(source).toContain("pendingConfirm.trainingModifierLabels.join(' + ')");
+    expect(source).toContain('pendingConfirm.trainingAdjustment');
   });
 });

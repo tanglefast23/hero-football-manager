@@ -1,5 +1,5 @@
 import { createLaunchCareerSetup } from '../launch';
-import { buildCareerTeamDef, createCareer } from '../../game';
+import { buildCareerTeamDef, createCareer, trainPlayerInstantly } from '../../game';
 import { HALF_TICKS } from '../../sim/geometry';
 import { createMatch, queueInput, tick } from '../../sim/match';
 import type { EnergyUse } from '../../sim/tactics';
@@ -35,6 +35,27 @@ function runMode(team: TeamDef, opponent: TeamDef, mode: EnergyUse): number {
 describe('opening-match stamina balance', () => {
   const career = createCareer(createLaunchCareerSetup(20260718));
   const teams = career.clubs.map(club => buildCareerTeamDef(career, club.id));
+
+  it('carries a four-drill focus stack from career condition into kickoff', () => {
+    const lineup = career.lineups.find(candidate => candidate.clubId === career.userClubId)!;
+    const player = career.players.find(candidate => (
+      candidate.clubId === career.userClubId
+      && candidate.role === 'FWD'
+      && lineup.playerIds.includes(candidate.id)
+    ))!;
+    let trained = { ...career, trainingPoints: 100 };
+    for (let drill = 0; drill < 4; drill += 1) {
+      trained = trainPlayerInstantly(trained, player.id, 'finishing').state;
+    }
+
+    const team = buildCareerTeamDef(trained, trained.userClubId);
+    const match = createMatch(981, team, teams[1]);
+    const playerIndex = match.players.findIndex(candidate => candidate.def.id === player.id);
+
+    expect(trained.players.find(candidate => candidate.id === player.id)?.condition).toBe(68);
+    expect(team.players.find(candidate => candidate.id === player.id)?.startingCondition).toBe(68);
+    expect(match.players[playerIndex].condition).toBe(68);
+  });
 
   it('separates whole-match Energy Use costs and makes high STA materially valuable', () => {
     const team = teams[0];

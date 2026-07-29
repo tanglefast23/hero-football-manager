@@ -6,10 +6,28 @@ import {
   BERT_WALK_STEP_MS,
   type BertWalkFrame,
 } from './bert-walk-frames';
+import {
+  BERT_MOMENTS,
+  bertExpressionParts,
+  bertHeadOffset,
+  bertPostureHidesFace,
+  bertPostureLean,
+  bertPostureParts,
+  type BertMomentId,
+  type BertPart,
+} from './bert-poses';
 
 export interface BertFullBodyProps {
   /** The talking pose: one arm out at whatever he is describing. */
   pointing: boolean;
+  /**
+   * An expression-and-posture pairing from `bert-poses`, for a beat that wants
+   * a specific look. Ignored while walking, which owns the whole figure.
+   *
+   * Left unset he renders exactly as authored, so every existing caller is
+   * unaffected by this prop existing.
+   */
+  moment?: BertMomentId;
   /**
    * Runs the two-frame cycle. False parks him on the standing frame, which is
    * the authored pose exactly — same contract as `PlayerRunSprite`.
@@ -39,6 +57,7 @@ export interface BertFullBodyProps {
  */
 export function BertFullBody({
   pointing,
+  moment,
   walking = false,
   groundShadow = true,
   scale = 1,
@@ -61,6 +80,15 @@ export function BertFullBody({
   // A pointing arm cannot also swing, so travelling always uses the arms-down
   // variant. Pointing is what he does once he has stopped and started talking.
   const showPointing = pointing && !walking;
+
+  // A posed beat replaces the figure wholesale. Walking wins over it: the walk
+  // is a two-frame cycle over the authored rectangles, and there is nothing
+  // sensible to interpolate between a stride and a man lying on his side.
+  if (moment !== undefined && !walking) {
+    return (
+      <PosedBert moment={moment} groundShadow={groundShadow} scale={scale} />
+    );
+  }
 
   return (
     <View
@@ -124,6 +152,70 @@ export function BertFullBody({
       </View>
     </View>
   );
+}
+
+/**
+ * The same figure, assembled from pose data rather than the StyleSheet.
+ *
+ * Two flat lists of rectangles — posture then expression — painted in order.
+ * The head carries an offset because a posture that moves the shoulders (a
+ * slump, a sit, lying down) has to take the face with it.
+ */
+function PosedBert({
+  moment,
+  groundShadow,
+  scale,
+}: {
+  moment: BertMomentId;
+  groundShadow: boolean;
+  scale: number;
+}) {
+  const { expression, posture } = BERT_MOMENTS[moment];
+  const lean = bertPostureLean(posture);
+  const head = bertHeadOffset(posture);
+  const face = bertPostureHidesFace(posture) ? [] : bertExpressionParts(expression);
+
+  return (
+    <View
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+      style={[styles.bertFrame, {
+        width: BERT_SPRITE_SIZE.width * scale,
+        height: BERT_SPRITE_SIZE.height * scale,
+      }]}
+    >
+      <View
+        style={[styles.bertSprite, {
+          transform: [{ scale }, ...(lean === 0 ? [] : [{ rotate: `${lean}deg` }])],
+        }]}
+      >
+        {groundShadow ? <View style={styles.bertGroundShadow} /> : null}
+        {bertPostureParts(posture).map((rect, index) => (
+          <View key={`posture-${index}`} style={partStyle(rect)} />
+        ))}
+        {face.map((rect, index) => (
+          <View key={`face-${index}`} style={partStyle(rect, head)} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** One pose rectangle as a style, shifted by the head offset when it is one. */
+function partStyle(rect: BertPart, offset?: { x: number; y: number }): ViewStyle {
+  const dx = offset?.x ?? 0;
+  const dy = offset?.y ?? 0;
+  return {
+    position: 'absolute',
+    ...(rect.left === undefined ? {} : { left: rect.left + dx }),
+    ...(rect.right === undefined ? {} : { right: rect.right - dx }),
+    ...(rect.top === undefined ? {} : { top: rect.top + dy }),
+    ...(rect.bottom === undefined ? {} : { bottom: rect.bottom - dy }),
+    width: rect.width,
+    height: rect.height,
+    backgroundColor: rect.color,
+    ...(rect.rotate === undefined ? {} : { transform: [{ rotate: `${rect.rotate}deg` }] }),
+  };
 }
 
 /**

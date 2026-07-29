@@ -323,6 +323,12 @@ export interface TrainingSlotStatOption {
   gain: number;
   /** The selected player's current value in this stat. */
   currentValue: number;
+  /** Where the authored drill alone would take this stat. */
+  baseValueAfter: number;
+  /** Signed whole-point difference from player and club training modifiers. */
+  trainingAdjustment: number;
+  /** Active modifiers grouped for the confirmation card. */
+  trainingModifierLabels: readonly string[];
   /** True at the invisible 999 safety ceiling; never shown as a number. */
   atSafetyCeiling: boolean;
   /** False when the TP bank cannot cover this drill right now. */

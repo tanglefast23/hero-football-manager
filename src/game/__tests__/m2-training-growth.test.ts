@@ -42,8 +42,8 @@ describe('M2 player-specific instant training growth', () => {
     const prime = trainWithoutSuper(prepare(25), playerId, 'circuit');
 
     // Circuit 1 (+5 STA) is the tier every career owns from the start. Age 20
-    // scales by 1.5 (round(7.5) = 8), age 25 by 1.0.
-    expect(young.after).toBe(58);
+    // scales by 1.3 (round(6.5) = 7), age 25 by 1.0.
+    expect(young.after).toBe(57);
     expect(prime.after).toBe(55);
   });
 

@@ -33,4 +33,34 @@ describe('training stat options', () => {
     expect(keeperOptions).toHaveLength(6);
     expect(keeperOptions.some(option => option.pathId === 'finishing')).toBe(false);
   });
+
+  it('separates the authored drill gain from Jojo-style player bonuses', () => {
+    const outfielder = roster.find(player => player.role !== 'GK')!;
+    const playerState = {
+      ...state,
+      players: state.players.map(player => player.id === outfielder.id
+        ? {
+            ...player,
+            age: 18,
+            role: 'FWD' as const,
+            archetype: 'All-Rounder' as const,
+            attrs: { ...player.attrs, sho: 73 },
+            trainingBonusRemainders: { sho: 75 },
+          }
+        : player),
+    };
+    const finishing = squadTrainingViewModel(
+      playerState,
+      content,
+      outfielder.id,
+    ).selectedPlayerStatOptions!.find(option => option.pathId === 'finishing')!;
+
+    expect(finishing).toMatchObject({
+      currentValue: 73,
+      gain: 5,
+      baseValueAfter: 78,
+      trainingAdjustment: 3,
+      trainingModifierLabels: ['Youth', 'FWD', 'All-Rounder'],
+    });
+  });
 });
