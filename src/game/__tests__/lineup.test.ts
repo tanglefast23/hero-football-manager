@@ -1,4 +1,6 @@
 import type { Attrs, PowerId, Role } from '../../sim/types';
+import { createMatch } from '../../sim/match';
+import { UNITED } from '../../sim/teams';
 import { buildTeamDef, matchAttrsAtMorale, type MatchSquadPlayer } from '../lineup';
 
 const BASE_ATTRS: Attrs = {
@@ -20,6 +22,7 @@ function squadPlayer(
     licensed?: boolean;
     attrs?: Attrs;
     morale?: number;
+    condition?: number;
   } = {},
 ): MatchSquadPlayer {
   return {
@@ -31,6 +34,7 @@ function squadPlayer(
     powerTier: options.powerTier,
     licensed: options.licensed ?? false,
     morale: options.morale ?? 50,
+    condition: options.condition ?? 100,
     weeklyWage: 200,
     onHeroWage: false,
     contractSeasonsRemaining: 2,
@@ -95,6 +99,18 @@ describe('buildTeamDef', () => {
 
     expect(team.players[9]).toMatchObject({ power: 'SUPER_SPEED', powerTier: 3 });
     expect(team.players[10]).toMatchObject({ power: 'FIRE_TORCH', powerTier: 1 });
+  });
+
+  it('starts a repeatedly trained hero at his real career condition', () => {
+    const roster = validRoster().map(player => (
+      player.id === 'fwd-speed' ? { ...player, condition: 68 } : player
+    ));
+
+    const team = buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS);
+    const match = createMatch(42, team, UNITED);
+
+    expect(team.players[9].startingCondition).toBe(68);
+    expect(match.players[9].condition).toBe(68);
   });
 
   it('rejects an invalid power tier before a squad reaches the match engine', () => {
@@ -272,6 +288,17 @@ describe('buildTeamDef', () => {
       roster,
       STARTING_IDS,
     )).toThrow(/morale must be an integer from 0 to 100/);
+  });
+
+  it.each([-1, 101, 1.5, Number.NaN])('rejects invalid condition %p', condition => {
+    const roster = validRoster().map(player => (
+      player.id === 'bench-regular' ? { ...player, condition } : player
+    ));
+    expect(() => buildTeamDef(
+      { id: 'rovers', name: 'Hero Rovers' },
+      roster,
+      STARTING_IDS,
+    )).toThrow(/condition must be an integer from 0 to 100/);
   });
 
   it('deep-copies match players and attributes without mutating the inputs', () => {

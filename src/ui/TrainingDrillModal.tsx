@@ -478,11 +478,30 @@ export function TrainingDrillModal({
                       what it costs, and what it risks. */}
                   <View className="mt-3 gap-2">
                     <View className="flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2">
-                      <PixelText className="text-sm uppercase text-ink">{pendingConfirm.label}</PixelText>
+                      <PixelText className="text-sm uppercase text-ink">
+                        Base {pendingConfirm.label}
+                      </PixelText>
                       <Text className="font-pixel text-base text-ink">
-                        {pendingConfirm.currentValue} → {pendingConfirm.currentValue + pendingConfirm.gain}
+                        {pendingConfirm.currentValue} → {pendingConfirm.baseValueAfter}
                       </Text>
                     </View>
+                    {pendingConfirm.trainingModifierLabels.length > 0 ? (
+                      <View className={pendingConfirm.trainingAdjustment >= 0
+                        ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2'
+                        : 'flex-row items-center justify-between border-2 border-gold-dark bg-gold-light px-3 py-2'}>
+                        <PixelText
+                          className="min-w-0 flex-1 pr-2 text-xs uppercase text-ink"
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                        >
+                          {pendingConfirm.trainingModifierLabels.join(' + ')} {pendingConfirm.trainingAdjustment >= 0 ? 'bonus' : 'adjustment'}
+                        </PixelText>
+                        <Text className="font-pixel text-base text-ink">
+                          {pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}
+                          {pendingConfirm.trainingAdjustment}
+                        </Text>
+                      </View>
+                    ) : null}
                     <View className="flex-row items-center justify-between px-1">
                       <Text className="text-sm text-ink/60">Training points</Text>
                       <Text className={pendingConfirm.affordable

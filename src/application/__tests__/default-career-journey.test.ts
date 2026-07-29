@@ -66,15 +66,15 @@ describe('default two-season career journey', () => {
     // MONEY charge, which is always 0 now — the ledger line can never fire, so
     // the old "at least one training-charge week across the season" and "never
     // more than one per week" assertions no longer measure anything real.
-    // Back to 655 from 812, and the reason is the whole point of the feature:
-    // drill tiers are BOUGHT now, and this journey never buys one. Reaching D4
-    // only puts Sprints 2 up for sale, so an automated plan that spends TP and
-    // nothing else trains on Sprints 1 (+5) for all sixty weeks. 812 was the
-    // number when the upgrade arrived free on promotion.
+    // Back to 570 from 655 because juniors now receive the deliberate 1.3x age
+    // bonus instead of 1.5x. The earlier drop from 812 was because drill tiers
+    // are BOUGHT now, and this journey never buys one. Reaching D4 only puts
+    // Sprints 2 up for sale, so an automated plan that spends TP and nothing
+    // else trains on Sprints 1 (+5) for all sixty weeks.
     // Cap-free training keeps raising the raw PAC value; Sprints trains only
     // PAC, so STA stays at the creation value.
     expect(first.players.find(player => player.id === 'bramble-rovers-created-player')?.attrs)
-      .toMatchObject({ pac: 655, sta: 50 });
+      .toMatchObject({ pac: 570, sta: 50 });
   });
 });
 

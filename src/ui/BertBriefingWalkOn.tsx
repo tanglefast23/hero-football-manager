@@ -100,7 +100,11 @@ export function BertBriefingWalkOn({
 
   if (beats.length === 0) return null;
 
-  const spotlightAnchor = focus === 'money' ? moneyAnchor : null;
+  const spotlightAnchor = focus === 'money'
+    ? moneyAnchor
+    : focus === 'navigation'
+      ? navigationAnchor
+      : null;
   const moneyCuePosition = focus === 'money' && moneyAnchor
     ? tutorialCuePosition(moneyAnchor, viewportWidth)
     : null;

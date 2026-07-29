@@ -16,6 +16,7 @@ import {
   pendingTrainingPriorityHolder,
   isAssistantInboxOneShotProductVisible,
   isFullyCappedPlayer,
+  instantTrainingPreview,
   latestSeasonRecap,
   leagueStandings,
   currentDeskTipId,
@@ -1454,6 +1455,7 @@ export function squadTrainingViewModel(
           const drill = resolveTrainingDrillForPath(state, path.pathId);
           const gain = drill.gains[path.attribute] ?? 0;
           const currentValue = selectedPlayer.attrs[path.attribute];
+          const preview = instantTrainingPreview(state, selectedPlayer.id, path.pathId);
           return {
             pathId: path.pathId,
             label: path.label,
@@ -1462,6 +1464,9 @@ export function squadTrainingViewModel(
             tpCost: drill.tpCost,
             gain,
             currentValue,
+            baseValueAfter: preview.baseAfter,
+            trainingAdjustment: preview.adjustment,
+            trainingModifierLabels: preview.modifierLabels,
             atSafetyCeiling: currentValue >= 999,
             affordable: drill.tpCost <= state.trainingPoints,
           };

@@ -43,6 +43,15 @@ describe('assistant guide milestones', () => {
     expect(hasAssistantGuideMilestone(next, 'desk-intro-complete')).toBe(true);
   });
 
+  test('records the matchday condition lesson only once per career', () => {
+    const state = createCareer(createLaunchCareerSetup(8_430));
+    const once = completeAssistantGuideMilestone(state, 'match-condition-warning-seen');
+    const twice = completeAssistantGuideMilestone(once, 'match-condition-warning-seen');
+
+    expect(hasAssistantGuideMilestone(once, 'match-condition-warning-seen')).toBe(true);
+    expect(twice).toBe(once);
+  });
+
   test('persists M2 firsts in insertion order and completes them idempotently', () => {
     const state = createCareer(createLaunchCareerSetup(844));
     const queued = queueAssistantGuideSequences(state, [

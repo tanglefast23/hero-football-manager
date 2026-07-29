@@ -10,6 +10,10 @@ import { SfxPressable as Pressable } from '../components/SfxPressable';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { PixelPortrait } from '../components/PixelPortrait';
+import {
+  matchdayConditionStatus,
+  type MatchdayConditionStatus,
+} from '../matchday-condition';
 
 /**
  * Three pixels per sprite pixel: a 72x87 face, which fits a w-28 pitch cell
@@ -31,6 +35,48 @@ export interface FixtureMatchDayScreenProps {
 }
 
 const ROLE_ORDER: ReadonlyArray<'FWD' | 'MID' | 'DEF' | 'GK'> = ['FWD', 'MID', 'DEF', 'GK'];
+
+const CONDITION_STAMP_STYLE: Readonly<Record<MatchdayConditionStatus['kind'], {
+  box: string;
+  text: string;
+}>> = {
+  'below-peak': {
+    box: 'border border-gold-dark bg-gold-light',
+    text: 'text-gold-dark',
+  },
+  fatigued: {
+    box: 'border-2 border-red-dark bg-red-light',
+    text: 'text-red-dark',
+  },
+  exhausted: {
+    box: 'border-2 border-paper bg-red-dark',
+    text: 'text-white',
+  },
+};
+
+function MatchdayConditionStamp({
+  condition,
+  compact = false,
+  showValue = true,
+}: {
+  condition: number;
+  compact?: boolean;
+  showValue?: boolean;
+}) {
+  const status = matchdayConditionStatus(condition);
+  if (status === null) return null;
+  const style = CONDITION_STAMP_STYLE[status.kind];
+  return (
+    <View className={`${style.box} ${compact ? 'mt-1 self-start px-1.5 py-0.5' : 'mt-1 px-1 py-0.5'}`}>
+      <PixelText
+        className={`${style.text} text-center uppercase ${compact ? 'text-[10px]' : 'text-[9px]'}`}
+        numberOfLines={compact ? 1 : 2}
+      >
+        {status.label}{showValue ? ` · ${condition}%` : ''}
+      </PixelText>
+    </View>
+  );
+}
 
 export function FixtureMatchDayScreen({
   viewModel,
@@ -133,53 +179,70 @@ export function FixtureMatchDayScreen({
             <View key={role} className={wide
               ? 'my-3 flex-row justify-center gap-4'
               : 'my-2 flex-row justify-center gap-2'}>
-              {players.map(player => (
-                <Pressable
-                  key={player.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${player.name}, starting ${player.role}, shirt ${player.shirtNumber}. Select to replace.`}
-                  accessibilityState={{ selected: player.id === selectedStarterId }}
-                  onPress={() => setSelectedStarterId(current => current === player.id ? null : player.id)}
-                  className={player.id === selectedStarterId
-                    ? (wide ? 'w-28 items-center border-2 border-blue-dark bg-blue-light p-2' : 'w-14 items-center border-2 border-blue-dark bg-blue-light p-1')
-                    : (wide ? 'w-28 items-center border-2 border-transparent p-2' : 'w-14 items-center border-2 border-transparent p-1')}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
-                >
-                  {wide ? (
-                    <View className={player.isHero
-                      ? 'border-2 border-gold bg-blue-light'
-                      : 'border-2 border-paper bg-blue-light'}>
-                      <PixelPortrait
-                        playerId={player.id}
-                        role={player.role}
-                        lookId={player.lookId}
-                        scale={PITCH_PORTRAIT_SCALE}
-                      />
-                    </View>
-                  ) : null}
-                  <View className={wide
-                    ? (player.isHero
-                      ? 'mt-1 h-7 w-7 items-center justify-center border-2 border-gold bg-ink'
-                      : 'mt-1 h-7 w-7 items-center justify-center border-2 border-paper bg-ink')
-                    : (player.isHero
-                      ? 'h-9 w-9 items-center justify-center border-2 border-gold bg-ink'
-                      : 'h-9 w-9 items-center justify-center border-2 border-paper bg-ink')}>
-                    <Text className={player.isHero ? 'font-mono text-sm text-gold' : 'font-mono text-sm text-paper'}>
-                      {player.shirtNumber}
-                    </Text>
-                  </View>
-                  <Text
-                    className={player.id === selectedStarterId
-                      ? 'mt-1 text-center text-sm font-bold text-ink'
-                      : 'mt-1 text-center text-sm font-bold text-paper'}
-                    // Wide cells spell the name out; the phone grid still has to
-                    // clip, because 56px cannot hold "Dario Flint".
-                    numberOfLines={wide ? 2 : 1}
+              {players.map(player => {
+                const conditionStatus = matchdayConditionStatus(player.condition);
+                const selected = player.id === selectedStarterId;
+                const cardClass = selected
+                  ? (wide ? 'w-28 items-center border-2 border-blue-dark bg-blue-light p-2' : 'w-16 items-center border-2 border-blue-dark bg-blue-light p-1')
+                  : conditionStatus?.kind === 'exhausted'
+                    ? (wide ? 'w-28 items-center border-2 border-red-light bg-red-dark p-2' : 'w-16 items-center border-2 border-red-light bg-red-dark p-1')
+                    : conditionStatus?.kind === 'fatigued'
+                      ? (wide ? 'w-28 items-center border-2 border-red-dark bg-red-light p-2' : 'w-16 items-center border-2 border-red-dark bg-red-light p-1')
+                      : conditionStatus?.kind === 'below-peak'
+                        ? (wide ? 'w-28 items-center border-2 border-gold-dark bg-gold-light p-2' : 'w-16 items-center border-2 border-gold-dark bg-gold-light p-1')
+                        : (wide ? 'w-28 items-center border-2 border-transparent p-2' : 'w-16 items-center border-2 border-transparent p-1');
+
+                return (
+                  <Pressable
+                    key={player.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${player.name}, starting ${player.role}, shirt ${player.shirtNumber}, condition ${player.condition} percent${conditionStatus === null ? '' : `, ${conditionStatus.label}`}. Select to replace.`}
+                    accessibilityState={{ selected }}
+                    onPress={() => setSelectedStarterId(current => current === player.id ? null : player.id)}
+                    className={cardClass}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
                   >
-                    {player.name}
-                  </Text>
-                </Pressable>
-              ))}
+                    {wide ? (
+                      <View className={player.isHero
+                        ? 'border-2 border-gold bg-blue-light'
+                        : 'border-2 border-paper bg-blue-light'}>
+                        <PixelPortrait
+                          playerId={player.id}
+                          role={player.role}
+                          lookId={player.lookId}
+                          scale={PITCH_PORTRAIT_SCALE}
+                        />
+                      </View>
+                    ) : null}
+                    <View className={wide
+                      ? (player.isHero
+                        ? 'mt-1 h-7 w-7 items-center justify-center border-2 border-gold bg-ink'
+                        : 'mt-1 h-7 w-7 items-center justify-center border-2 border-paper bg-ink')
+                      : (player.isHero
+                        ? 'h-9 w-9 items-center justify-center border-2 border-gold bg-ink'
+                        : 'h-9 w-9 items-center justify-center border-2 border-paper bg-ink')}>
+                      <Text className={player.isHero ? 'font-mono text-sm text-gold' : 'font-mono text-sm text-paper'}>
+                        {player.shirtNumber}
+                      </Text>
+                    </View>
+                    <Text
+                      className={selected
+                        ? 'mt-1 text-center text-sm font-bold text-ink'
+                        : conditionStatus?.kind === 'exhausted'
+                          ? 'mt-1 text-center text-sm font-bold text-white'
+                          : conditionStatus !== null
+                            ? 'mt-1 text-center text-sm font-bold text-ink'
+                            : 'mt-1 text-center text-sm font-bold text-paper'}
+                      // Wide cells spell the name out; the phone grid still has to
+                      // clip, because 64px cannot hold "Dario Flint".
+                      numberOfLines={wide ? 2 : 1}
+                    >
+                      {player.name}
+                    </Text>
+                    <MatchdayConditionStamp condition={player.condition} showValue={wide} />
+                  </Pressable>
+                );
+              })}
             </View>
           );
         })}
@@ -196,6 +259,7 @@ export function FixtureMatchDayScreen({
       />
       <View className="gap-2">
         {viewModel.bench.map(player => {
+          const conditionStatus = matchdayConditionStatus(player.condition);
           const roleMismatch = selectedStarter !== undefined && player.role !== selectedStarter.role;
           const disabled = selectedStarter === undefined || !player.canStart || roleMismatch;
           const statusLabel = player.unavailableLabel
@@ -204,13 +268,17 @@ export function FixtureMatchDayScreen({
             <Pressable
               key={player.id}
               accessibilityRole="button"
-              accessibilityLabel={`${player.name}, bench ${player.role}, rating ${player.overall}. ${statusLabel}.`}
+              accessibilityLabel={`${player.name}, bench ${player.role}, rating ${player.overall}, condition ${player.condition} percent${conditionStatus === null ? '' : `, ${conditionStatus.label}`}. ${statusLabel}.`}
               accessibilityState={{ disabled }}
               disabled={disabled}
               onPress={() => swapWithBenchPlayer(player.id)}
               className={disabled
                 ? 'min-h-14 flex-row items-center border-2 border-ink/20 bg-white p-3 opacity-50'
-                : 'min-h-14 flex-row items-center border-2 border-b-4 border-ink bg-white p-3'}
+                : conditionStatus?.kind === 'below-peak'
+                  ? 'min-h-14 flex-row items-center border-2 border-b-4 border-gold-dark bg-white p-3'
+                  : conditionStatus === null
+                    ? 'min-h-14 flex-row items-center border-2 border-b-4 border-ink bg-white p-3'
+                    : 'min-h-14 flex-row items-center border-2 border-b-4 border-red-dark bg-white p-3'}
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
             >
               <View className={player.isHero
@@ -224,6 +292,7 @@ export function FixtureMatchDayScreen({
                 <Text className="mt-1 font-mono text-sm text-ink/60">
                   {player.role} · Rating {player.overall} · Condition {player.condition}%
                 </Text>
+                <MatchdayConditionStamp condition={player.condition} compact />
               </View>
               <StatusChip
                 label={statusLabel}

@@ -280,7 +280,7 @@ describe('opponent season scaling', () => {
 describe('aging, retirement, and legacy', () => {
   it('uses the documented growth bands and declines only 30+ PAC/STA by one to three', () => {
     expect([16, 23, 24, 29, 30, 40].map(trainingMultiplierForAge))
-      .toEqual([1.5, 1.5, 1, 1, 0.6, 0.6]);
+      .toEqual([1.3, 1.3, 1, 1, 0.6, 0.6]);
     const young = lifecyclePlayer({ id: 'young', age: 23 });
     const prime = lifecyclePlayer({ id: 'prime', age: 29 });
     const veteran = lifecyclePlayer({ id: 'veteran', age: 30 });

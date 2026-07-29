@@ -464,9 +464,9 @@ export function opponentStrengthForSeason(baseStrength: number, season: number):
   return Math.min(MAX_PLAYER_ATTRIBUTE, baseStrength + seasonIncrease);
 }
 
-export function trainingMultiplierForAge(age: number): 1.5 | 1 | 0.6 {
+export function trainingMultiplierForAge(age: number): 1.3 | 1 | 0.6 {
   validateAge(age);
-  if (age <= 23) return 1.5;
+  if (age <= 23) return 1.3;
   if (age <= 29) return 1;
   return 0.6;
 }

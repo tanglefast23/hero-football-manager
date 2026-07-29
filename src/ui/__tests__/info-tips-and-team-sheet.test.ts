@@ -65,7 +65,7 @@ describe('starting eleven team sheet', () => {
     // Wide cells are twice as wide and spell the name out over two lines; the
     // phone grid still clips, because 56px cannot hold "Dario Flint".
     expect(screen).toContain("numberOfLines={wide ? 2 : 1}");
-    expect(screen).toContain("wide ? 'w-28 items-center border-2 border-transparent p-2' : 'w-14 items-center border-2 border-transparent p-1'");
+    expect(screen).toContain("wide ? 'w-28 items-center border-2 border-transparent p-2' : 'w-16 items-center border-2 border-transparent p-1'");
     // No portrait on the phone: eleven Skia canvases are not worth the frame.
     expect(screen).toContain('{wide ? (');
   });

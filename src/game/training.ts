@@ -1,5 +1,10 @@
 import { mulberry32 } from '../sim/rng';
-import { facilityEffects, isFacilityOperational } from './facilities';
+import {
+  FACILITY_CATALOG,
+  facilityEffects,
+  isFacilityOperational,
+  type FacilityType,
+} from './facilities';
 import { trainingMultiplierForAge } from './pyramid';
 import { careerCoachTrainingModifiers } from './coach-weekly';
 import {
@@ -38,6 +43,58 @@ export interface InstantDrillResolution {
   after: number;
   conditionAfter: number;
   injury?: { chancePercent: number; recoveryWeeks: number };
+}
+
+export interface InstantTrainingPreview {
+  /** The authored drill result before any player or club modifiers. */
+  baseAfter: number;
+  /** The ordinary-session result after every active modifier and banked fraction. */
+  adjustedAfter: number;
+  /** Signed difference between the authored base result and adjusted result. */
+  adjustment: number;
+  /** Short player-facing names for every modifier participating in the result. */
+  modifierLabels: readonly string[];
+}
+
+/**
+ * Previews the exact ordinary result for the confirmation card.
+ *
+ * SUPER remains a chance and therefore stays separate. Everything deterministic
+ * — age, position, archetype, facilities, coaches, and banked fractions — uses
+ * the same growth path as the drill itself so the card cannot promise +5 and
+ * then quietly award +9.
+ */
+export function instantTrainingPreview(
+  state: GameState,
+  playerId: string,
+  pathId: string,
+): InstantTrainingPreview {
+  const player = state.players.find(candidate => candidate.id === playerId);
+  if (player === undefined || player.clubId !== state.userClubId) {
+    throw new Error(`player ${playerId} is not on the user club`);
+  }
+  const drill = resolveTrainingDrillForPath(state, pathId);
+  const attribute = trainingPathAttribute(pathId);
+  const baseGain = drill.gains[attribute] ?? 0;
+  const currentValue = player.attrs[attribute];
+  const baseAfter = capPlayerTrainingGain(
+    player,
+    attribute,
+    currentValue,
+    checkedAdd(currentValue, baseGain, 'base training attribute'),
+  );
+  const adjustedAfter = applyInstantGrowthModifiers(
+    state,
+    player,
+    attribute,
+    baseGain,
+  ).value;
+  return {
+    baseAfter,
+    adjustedAfter,
+    adjustment: adjustedAfter - baseAfter,
+    modifierLabels: instantGrowthModifierLabels(state, player, attribute),
+  };
 }
 
 /**
@@ -230,6 +287,30 @@ function applyInstantGrowthModifiers(
   };
 }
 
+function instantGrowthModifierLabels(
+  state: GameState,
+  player: CareerPlayer,
+  attribute: keyof CareerPlayer['attrs'],
+): string[] {
+  const labels: string[] = [];
+  const ageMultiplier = trainingMultiplierForAge(player.age ?? 24);
+  if (ageMultiplier > 1) labels.push('Youth');
+  if (ageMultiplier < 1) labels.push('Veteran');
+  if (positionTrainingBonusPercent(player.role, attribute) > 0) labels.push(player.role);
+  if (archetypeTrainingBonusPercent(player.archetype, attribute) > 0) {
+    labels.push(player.archetype ?? 'Archetype');
+  }
+  const facilityLevel = facilityTrainingLevel(state, attribute);
+  if (facilityLevel > 0) {
+    labels.push(`${FACILITY_CATALOG[trainingFacilityType(attribute)].name} Lv${facilityLevel}`);
+  }
+  const coachScale = state.market === undefined
+    ? 100
+    : careerCoachTrainingModifiers(state.market).gainScalePercentByAttribute[attribute];
+  if (coachScale > 100) labels.push('Coach');
+  return labels;
+}
+
 function instantDrillRoll(
   careerSeed: number,
   nonce: number,
@@ -276,22 +357,34 @@ function facilityTrainingMultiplier(
   state: GameState,
   attribute: keyof CareerPlayer['attrs'],
 ): number {
-  const facilityType = attribute === 'sho'
+  return FACILITY_TRAINING_MULTIPLIER[facilityTrainingLevel(state, attribute)] ?? 1;
+}
+
+function trainingFacilityType(
+  attribute: keyof CareerPlayer['attrs'],
+): FacilityType {
+  return attribute === 'sho'
     ? 'shooting-range'
     : attribute === 'ref'
       ? 'keeper-court'
       : attribute === 'pas' || attribute === 'tec'
         ? 'tech-center'
         : attribute === 'pac' || attribute === 'sta'
-          ? 'gym'
-          : 'training-pitch';
+        ? 'gym'
+        : 'training-pitch';
+}
+
+function facilityTrainingLevel(
+  state: GameState,
+  attribute: keyof CareerPlayer['attrs'],
+): number {
+  const facilityType = trainingFacilityType(attribute);
   const grid = state.facilities.grid;
   // A building under construction trains nobody — the same rule the Medical
   // Bay, dorm, and income lookups already follow.
-  const level = grid?.buildings
+  return grid?.buildings
     .filter(building => building.type === facilityType && isFacilityOperational(grid, building.id))
     .reduce((maximum, building) => Math.max(maximum, building.level), 0) ?? 0;
-  return FACILITY_TRAINING_MULTIPLIER[level] ?? 1;
 }
 
 function checkedAdd(left: number, right: number, label: string): number {

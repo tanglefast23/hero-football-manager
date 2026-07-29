@@ -131,12 +131,13 @@ describe('match tactics', () => {
     expect(balanced.condition).toBeGreaterThan(allOut.condition);
   });
 
-  it('swaps a compatible bench player into the same render slot with fresh energy', () => {
+  it('swaps a compatible bench player into the same render slot at their carried condition', () => {
     const replacement: PlayerDef = {
       id: 'bench-mid',
       name: 'Mae Thorn',
       role: 'MID',
       attrs: { pac: 55, sho: 45, pas: 58, def: 47, tec: 56, sta: 64, ref: 10 },
+      startingCondition: 68,
     };
     const home: TeamDef = { ...ROVERS, bench: [replacement] };
     const match = createMatch(42, home, UNITED, { controlledTeam: 0 });
@@ -146,7 +147,8 @@ describe('match tactics', () => {
     tick(match);
 
     expect(match.players[6].def.id).toBe(replacement.id);
-    expect(match.players[6].condition).toBeGreaterThan(99);
+    expect(match.players[6].condition).toBeGreaterThan(67);
+    expect(match.players[6].condition).toBeLessThanOrEqual(68);
     expect(match.bench[0]).toEqual([]);
     expect(match.substitutionsUsed[0]).toBe(1);
     expect(match.events).toContainEqual({

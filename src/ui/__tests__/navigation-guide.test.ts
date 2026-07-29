@@ -36,6 +36,12 @@ describe('bottom navigation guide', () => {
     expect(walkOn).toContain('<NavigationRing anchor={navigationAnchor} />');
   });
 
+  it('keeps the whole navigation bar lit during its beat', () => {
+    expect(walkOn).toContain("focus === 'navigation'");
+    expect(walkOn).toContain('? navigationAnchor');
+    expect(walkOn).toContain('anchor={spotlightAnchor}');
+  });
+
   it('keeps the ring non-interactive so the whole screen stays the button', () => {
     expect(ring).toContain('pointerEvents="none"');
   });

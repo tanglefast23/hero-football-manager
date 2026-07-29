@@ -14,6 +14,20 @@ describe('match skeleton', () => {
     expect(m.events[0]).toMatchObject({ kind: 'KICKOFF', half: 1 });
   });
 
+  it('uses supplied starting condition and defaults legacy match players to fresh', () => {
+    const home = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => (
+        index === 10 ? { ...player, startingCondition: 68 } : player
+      )),
+    };
+
+    const match = createMatch(42, home, UNITED);
+
+    expect(match.players[10].condition).toBe(68);
+    expect(match.players[9].condition).toBe(100);
+  });
+
   it('runs to FULL_TIME with HALF_TIME inside the stoppage window', () => {
     const r = runMatch(42, ROVERS, UNITED);
     const kinds = r.events.map(e => e.kind);
@@ -87,6 +101,14 @@ describe('match skeleton', () => {
       )),
     };
     expect(() => createMatch(1, invalidPowerTier, UNITED)).toThrow('invalid power tier');
+
+    const invalidStartingCondition = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => (
+        index === 10 ? { ...player, startingCondition: 101 } : player
+      )),
+    };
+    expect(() => createMatch(1, invalidStartingCondition, UNITED)).toThrow('invalid starting condition');
   });
 
   it('preserves power tiers in a valid, runnable replay envelope', () => {
