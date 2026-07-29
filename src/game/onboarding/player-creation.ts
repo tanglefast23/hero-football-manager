@@ -40,8 +40,8 @@ export interface CreatedPlayerDraft {
 }
 
 export const DEFAULT_CREATED_APPEARANCE: Readonly<CreatedPlayerAppearance> = Object.freeze({
-  skinTone: 2,
-  hairstyle: 2,
+  skinTone: 0,
+  hairstyle: 0,
   kitAccent: 0,
 });
 

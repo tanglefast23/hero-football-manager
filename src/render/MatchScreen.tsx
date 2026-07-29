@@ -57,7 +57,11 @@ import {
 } from './WorkletMatchOverlays';
 import { BALL_AIRBORNE_THRESHOLD_CM, ballVisualOffset } from './ball-flight-visuals';
 import { matchPoliciesForControlledTeam, retainedCarrierIndex } from './match-control';
-import { shouldPauseMatch, type AutomaticMatchPauseReason } from './match-pause';
+import {
+  shouldPauseMatch,
+  syncBackgroundPauseReason,
+  type AutomaticMatchPauseReason,
+} from './match-pause';
 import {
   appendNewestFour,
   hasPowerJuiceExtras,
@@ -711,13 +715,14 @@ export function MatchScreen({
     let acc = 0;
 
     const sub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') {
+      const appIsActive = next === 'active';
+      if (appIsActive) {
+        // Resume from the same simulation instant instead of catching up while hidden.
         last = performance.now();
         acc = 0;
-      } else {
-        automaticPauseReasonsRef.current.add('background');
-        syncPauseReasons(); // background -> hard pause; user resumes via a tap
       }
+      syncBackgroundPauseReason(automaticPauseReasonsRef.current, appIsActive);
+      syncPauseReasons();
     });
 
     // ---- Activation juice ------------------------------------------------

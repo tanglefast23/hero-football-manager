@@ -13,3 +13,14 @@ export function shouldPauseMatch(
 ): boolean {
   return userPaused || automaticReasons.size > 0;
 }
+
+export function syncBackgroundPauseReason(
+  automaticReasons: Set<AutomaticMatchPauseReason>,
+  appIsActive: boolean,
+): void {
+  if (appIsActive) {
+    automaticReasons.delete('background');
+  } else {
+    automaticReasons.add('background');
+  }
+}

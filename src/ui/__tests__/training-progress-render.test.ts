@@ -31,10 +31,15 @@ describe('training stat option rendering', () => {
     expect(source).toContain('SUPER chance {superChancePercent}%');
     expect(source).toContain('{injuryRiskPercent}% injury risk');
 
-    // Confirmation keeps the authored +5 visible, then explains why this
-    // particular player can receive more (or less) than the base result.
+    // Confirmation presents both parts as net changes: the authored +5 first,
+    // then why this particular player can receive more (or less).
     expect(source).toContain('Base {pendingConfirm.label}');
-    expect(source).toContain('pendingConfirm.baseValueAfter');
+    expect(source).toContain(
+      'pendingConfirm.baseValueAfter - pendingConfirm.currentValue',
+    );
+    expect(source).not.toContain(
+      '{pendingConfirm.currentValue} → {pendingConfirm.baseValueAfter}',
+    );
     expect(source).toContain("pendingConfirm.trainingModifierLabels.join(' + ')");
     expect(source).toContain('pendingConfirm.trainingAdjustment');
   });

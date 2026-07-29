@@ -482,7 +482,7 @@ export function TrainingDrillModal({
                         Base {pendingConfirm.label}
                       </PixelText>
                       <Text className="font-pixel text-base text-ink">
-                        {pendingConfirm.currentValue} → {pendingConfirm.baseValueAfter}
+                        +{pendingConfirm.baseValueAfter - pendingConfirm.currentValue}
                       </Text>
                     </View>
                     {pendingConfirm.trainingModifierLabels.length > 0 ? (

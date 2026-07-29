@@ -4,6 +4,7 @@ import {
   CREATION_RATING_TOTAL,
   CREATION_STAT_MAX,
   CREATION_STAT_MIN,
+  DEFAULT_CREATED_APPEARANCE,
   DEFAULT_CREATION_RATINGS,
   creationPointsRemaining,
   validateCreatedPlayerDraft,
@@ -33,6 +34,18 @@ describe('created outfield player point-buy', () => {
     expect(Object.values(DEFAULT_CREATION_RATINGS).reduce((sum, value) => sum + value, 0))
       .toBe(6 * CREATION_BASE_RATING);
     expect(CREATION_RATING_TOTAL).toBe(6 * CREATION_BASE_RATING + CREATION_POINT_POOL);
+  });
+
+  it('starts every appearance selector on its first option', () => {
+    expect(DEFAULT_CREATED_APPEARANCE).toEqual({
+      skinTone: 0,
+      hairstyle: 0,
+      kitAccent: 0,
+    });
+    expect(validateCreatedPlayerDraft({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    }).appearance).toEqual(DEFAULT_CREATED_APPEARANCE);
   });
 
   it('allows flavor specialization without exceeding the Div-5 cap', () => {

@@ -1,4 +1,8 @@
-import { shouldPauseMatch, type AutomaticMatchPauseReason } from '../match-pause';
+import {
+  shouldPauseMatch,
+  syncBackgroundPauseReason,
+  type AutomaticMatchPauseReason,
+} from '../match-pause';
 
 describe('match pause reasons', () => {
   it('pauses for global settings and resumes only after every automatic reason closes', () => {
@@ -20,5 +24,24 @@ describe('match pause reasons', () => {
 
   it('holds the match while a first-match tutorial is open', () => {
     expect(shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['tutorial']))).toBe(true);
+  });
+
+  it('automatically releases only the background pause when the app returns', () => {
+    const backgroundOnly = new Set<AutomaticMatchPauseReason>();
+    syncBackgroundPauseReason(backgroundOnly, false);
+    expect(shouldPauseMatch(false, backgroundOnly)).toBe(true);
+
+    syncBackgroundPauseReason(backgroundOnly, true);
+    expect(backgroundOnly).toEqual(new Set<AutomaticMatchPauseReason>());
+    expect(shouldPauseMatch(false, backgroundOnly)).toBe(false);
+
+    const reasons = new Set<AutomaticMatchPauseReason>(['settings']);
+
+    syncBackgroundPauseReason(reasons, false);
+    expect(reasons).toEqual(new Set<AutomaticMatchPauseReason>(['settings', 'background']));
+
+    syncBackgroundPauseReason(reasons, true);
+    expect(reasons).toEqual(new Set<AutomaticMatchPauseReason>(['settings']));
+    expect(shouldPauseMatch(false, reasons)).toBe(true);
   });
 });

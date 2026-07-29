@@ -122,8 +122,8 @@ function TitleMenu({
   readonly onSettings: () => void;
 }) {
   return (
-    <View className="relative">
-      <View pointerEvents="none" className="absolute -top-[250px] left-0 right-0 h-[252px]">
+    <View className="relative z-20">
+      <View pointerEvents="none" className="absolute -top-[250px] left-0 right-0 z-20 h-[252px]">
         <TitlePlayerPopScene reduceMotion={reduceMotion} />
       </View>
       <View className="z-10 gap-2 border-[3px] border-ink bg-paper p-3">

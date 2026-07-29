@@ -116,7 +116,7 @@ export function TitlePlayerPopScene({
 
   return (
     <View
-      accessibilityLabel="Superpowered football players popping up from behind the menu while using their powers"
+      accessibilityLabel="Superpowered football players popping onto the title screen while using their powers"
       style={styles.scene}
     >
       <PopSlot
@@ -320,7 +320,7 @@ function PopSlot({
 const styles = StyleSheet.create({
   scene: {
     height: 250,
-    overflow: 'hidden',
+    overflow: 'visible',
     position: 'relative',
   },
   popSlot: {
