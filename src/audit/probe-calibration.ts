@@ -11,7 +11,7 @@ import type { TeamDef } from '../sim/types';
  */
 
 /**
- * Uniformly shifts every attribute on a team, clamped to the legal 1..99 match
+ * Uniformly shifts every attribute on a team, clamped to the legal 1..999 match
  * range. Used to synthesise an opponent a known number of rating points away.
  */
 export function scaleTeam(team: TeamDef, delta: number): TeamDef {
@@ -22,7 +22,7 @@ export function scaleTeam(team: TeamDef, delta: number): TeamDef {
       attrs: Object.fromEntries(
         Object.entries(player.attrs).map(([key, value]) => [
           key,
-          Math.max(1, Math.min(99, value + delta)),
+          Math.max(1, Math.min(999, value + delta)),
         ]),
       ) as unknown as typeof player.attrs,
     })),
@@ -52,11 +52,19 @@ export function scaleTeam(team: TeamDef, delta: number): TeamDef {
  * effect, not weak design, is why seven of seventeen powers landed on the clamp
  * floor.
  *
- * -11 interpolates to ppm ~1.44, which reproduces the 1.43 baseline the docs
- * always claimed. Re-measure this whenever team generation or the engine's
- * shot/save model changes; it is a measurement, not a preference.
+ * Phase-A remeasurement under engine m2.0 (400 frozen seeds) found:
+ *
+ * ```
+ *   -13   1.623
+ *   -12   1.403  <-- closest to the locked 1.43 center
+ *   -11   1.268
+ *   -10   1.290
+ * ```
+ *
+ * Re-measure this whenever team generation or the engine's shot/save model
+ * changes; it is a measurement, not a preference.
  */
-export const EVEN_DELTA = -11;
+export const EVEN_DELTA = -12;
 
 /**
  * Opponent deltas to sample when converting a points-per-match difference into
@@ -64,5 +72,5 @@ export const EVEN_DELTA = -11;
  * even point instead of sitting entirely inside a rout.
  */
 export const STRENGTH_LADDER: readonly number[] = [
-  -15, -14, -13, -12, -11, -10, -9, -8, -7,
+  -16, -15, -14, -13, -12, -11, -10, -9, -8,
 ];

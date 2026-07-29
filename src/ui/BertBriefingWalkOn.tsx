@@ -36,7 +36,9 @@ const BERT_BUBBLE_SCALE = 1.15;
 
 export interface BertBriefingWalkOnProps {
   content: AssistantGuideContent;
-  sequenceId: string;
+  sequenceId?: string;
+  /** A one-off persisted remark, such as a Cup giant-killing celebration. */
+  customMessage?: { readonly title: string; readonly body: string };
   moneyAnchor?: TutorialAnchorLayout | null;
   navigationAnchor?: TutorialAnchorLayout | null;
   reduceMotion?: boolean;
@@ -64,6 +66,7 @@ export interface BertBriefingWalkOnProps {
 export function BertBriefingWalkOn({
   content,
   sequenceId,
+  customMessage,
   moneyAnchor,
   navigationAnchor,
   reduceMotion = false,
@@ -74,8 +77,10 @@ export function BertBriefingWalkOn({
   const [beatIndex, setBeatIndex] = useState(0);
 
   const beats = useMemo(
-    () => briefingBeats(content, sequenceId),
-    [content, sequenceId],
+    () => customMessage === undefined
+      ? briefingBeats(content, sequenceId ?? '')
+      : [{ text: customMessage.body, focus: 'assistant' as const, kind: 'body' as const, pageIndex: 0 }],
+    [content, customMessage, sequenceId],
   );
   const beat = beats[Math.min(beatIndex, Math.max(0, beats.length - 1))];
   const focus = beatFocus(beats, beatIndex);
@@ -126,6 +131,7 @@ export function BertBriefingWalkOn({
 
       <CharacterSpeechOverlay
         lines={beats.map(entry => entry.text)}
+        heading={customMessage?.title}
         characterWidth={BERT_SPRITE_SIZE.width * BERT_SCALE}
         characterHeight={BERT_SPRITE_SIZE.height * BERT_SCALE}
         groundOffset={groundOffset}

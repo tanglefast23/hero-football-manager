@@ -20,7 +20,7 @@ Post-match, an **itemized income statement** shows every line (tickets, sponsor 
 
 ## Expenses
 
-Weekly wages (players + coach + staff), transfer fees, facility construction/upkeep, scouting missions, training money costs, event choices, loan interest.
+Weekly wages (players + coach + staff), transfer fees, facility construction/upkeep, scouting missions, event choices, loan interest. Instant drills cost TP only.
 
 ## Salaries & contracts (user-locked design)
 
@@ -28,6 +28,7 @@ Weekly wages (players + coach + staff), transfer fees, facility construction/upk
 - Contracts run 1–3 seasons. At expiry: renewal negotiation or free exit.
 - **Raises are structural**: renewal ask = current wage × (1 + growth since signing) × fame factor × personality (Greedy +20%, Loyal −10%).
 - **The hero wage cliff**: awakened players keep their pre-awakening wage until renewal (locked-in bargain), then ask hero rates (×3–5). Contract timing around awakenings is a core strategic layer.
+- **Scale-invariant anchors**: a generated support player's weekly wage is anchored by division (D5→D1: 150/230/340/500/700) and scaled by their seven-stat average relative to that division's support rating. Transfer bases use 6,500/9,500/14,500/22,000/32,000 and a quadratic role-rating premium. Larger raw ratings therefore represent better football rather than an accidental economy multiplier.
 - Underpaid stars (wage < 70% of market): morale drain, transfer requests, rival poach offers.
 
 ### Negotiation (mood meter + card mini-game)
@@ -68,7 +69,7 @@ The club owns **one works crew**, so only one build or upgrade project may run a
 | Prize: D5 champion / runner-up | 20,000 / 10,000 |
 | Cup: per round win / trophy | 2,000–8,000 / 25,000 |
 | Facility Lv1 build | 5,000–15,000 |
-| Focus drill (single-stat, max 3/week) | Tier I +3: 350–600 + 9–15 TP; Tier II +5: 700–1,000 + 18–25 TP; Tier III +8: 1,100–1,500 + 28–38 TP |
+| Focus drill (single-stat) | TP only: Tier I +3 for 6 TP; Tier II +5 for 10 TP; Tier III +8 for 15 TP |
 | Weekly TP income | Training Pitch +10/level; head coach 10 + 2× level; assistant 5 + level; match result +0 |
 | Transfer (decent D5 player) | 5,000–15,000 |
 | Pre-powered hero signing | 100,000+ + 2,500+/wk (Div 3 era) |

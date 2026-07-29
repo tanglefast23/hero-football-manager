@@ -1,7 +1,7 @@
 import './global.css';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LogBox, Modal, Text, View } from 'react-native';
+import { LogBox, Modal, Share, Text, View } from 'react-native';
 import { deleteDatabaseAsync, openDatabaseAsync } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -898,6 +898,8 @@ function GameApp() {
   const assistantSequence = assistantSequenceId === null
     ? undefined
     : content.assistantGuide.sequences.find(sequence => sequence.id === assistantSequenceId);
+  const cupGiantKillingCelebration = store.career
+    ?.pendingCupGiantKillingCelebrations?.[0];
   /**
    * The signing that is walking onto the screen, if one is.
    *
@@ -920,7 +922,9 @@ function GameApp() {
    * tabs underneath a full-screen briefing that was blocking mouse clicks on
    * that same rail. Sharing the expression keeps the two from drifting apart.
    */
-  const guideOverlayVisible = assistantSequenceId !== null
+  const guideOverlayVisible = (
+    assistantSequenceId !== null || cupGiantKillingCelebration !== undefined
+  )
     && signingWalkOn === null;
   const assistantObjective = store.career === null
     ? null
@@ -1106,6 +1110,11 @@ function GameApp() {
         message={store.persistenceLoadError}
         onRetry={() => setBootAttempt(attempt => attempt + 1)}
         onStartFresh={() => { void store.discardUnreadableSave(); }}
+        onExportRaw={() => {
+          void store.exportUnreadableSave(async (fileName, contents) => {
+            await Share.share({ title: fileName, message: contents });
+          });
+        }}
         onRestoreBackup={store.backupSummary === null
           ? undefined
           : { season: store.backupSummary.season, week: store.backupSummary.week, onRestore: () => { void store.restoreBackupSave(); } }}
@@ -1700,7 +1709,16 @@ function GameApp() {
             }
           }}
         />
-        {guideOverlayVisible && assistantSequenceId !== null ? (
+        {guideOverlayVisible && cupGiantKillingCelebration !== undefined ? (
+          <BertBriefingWalkOn
+            key={cupGiantKillingCelebration.fixtureId}
+            content={content.assistantGuide}
+            customMessage={cupGiantKillingCelebration}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={store.completeCupGiantKillingCelebration}
+          />
+        ) : guideOverlayVisible && assistantSequenceId !== null ? (
           <BertBriefingWalkOn
             content={content.assistantGuide}
             sequenceId={assistantSequenceId}
@@ -1887,11 +1905,13 @@ function BootFailure({
   message,
   onRetry,
   onStartFresh,
+  onExportRaw,
   onRestoreBackup,
 }: {
   message: string;
   onRetry: () => void;
   onStartFresh?: () => void;
+  onExportRaw?: () => void;
   onRestoreBackup?: { season: number; week: number; onRestore: () => void };
 }) {
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
@@ -1923,6 +1943,14 @@ function BootFailure({
             label={`Restore season ${onRestoreBackup.season} · week ${onRestoreBackup.week}`}
             accessibilityLabel={`Restore the backup saved at season ${onRestoreBackup.season}, week ${onRestoreBackup.week}`}
             onPress={onRestoreBackup.onRestore}
+          />
+        )}
+        {onExportRaw !== undefined && (
+          <BootFailureButton
+            tone="paper"
+            label="Export raw save"
+            accessibilityLabel="Export the unchanged raw saved career"
+            onPress={onExportRaw}
           />
         )}
         {onStartFresh !== undefined && (

@@ -26,8 +26,9 @@ import type {
   PlayerPersonality,
 } from './types';
 
-export const M2_CAREER_SCHEMA_VERSION = 1;
+export const M2_CAREER_SCHEMA_VERSION = 2;
 const UINT32_MAX = 4294967295;
+const ATTR_KEYS = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 
 export interface M2UserClubIdentity {
   id: string;
@@ -45,6 +46,8 @@ export interface M2CareerState {
   schemaVersion: number;
   careerSeed: number;
   userClubId: string;
+  /** Last season whose one-time rival growth step is present in the pyramid. */
+  opponentGrowthThroughSeason: number;
   /** Best tier ever reached; lower division numbers are stronger tiers. */
   highestDivisionReached?: DivisionLevel;
   pyramid: LeaguePyramid;
@@ -165,6 +168,7 @@ export function initializeM2Career(input: M2CareerInitialization): M2CareerState
     schemaVersion: M2_CAREER_SCHEMA_VERSION,
     careerSeed: input.careerSeed,
     userClubId: input.userClub.id,
+    opponentGrowthThroughSeason: 1,
     highestDivisionReached: 5,
     pyramid: { careerSeed: input.careerSeed, divisions },
     nationalCups: [],
@@ -252,7 +256,7 @@ export function deterministicM2FinishOrders(
     orderedClubIds: division.level === activeDivision
       ? [...activeOrderedClubIds]
       : division.clubs.slice().sort((left, right) => {
-          const strength = right.squadStrength - left.squadStrength;
+          const strength = currentClubStrength(right) - currentClubStrength(left);
           if (strength !== 0) return strength;
           const leftTie = stableSeasonTie(state.careerSeed, season, left.id);
           const rightTie = stableSeasonTie(state.careerSeed, season, right.id);
@@ -401,13 +405,13 @@ export function resolveM2CareerPlayerLifecycle(
  * callers that do not care are unaffected.
  */
 export interface OpponentGrowthRules {
-  opponentGrowthSeasonsPerPoint: number;
-  opponentGrowthCap: number;
+  opponentGrowthPercent: number;
+  opponentGrowthAttributeCap: number;
 }
 
 export const DEFAULT_OPPONENT_GROWTH: OpponentGrowthRules = {
-  opponentGrowthSeasonsPerPoint: 2,
-  opponentGrowthCap: 8,
+  opponentGrowthPercent: 3,
+  opponentGrowthAttributeCap: 700,
 };
 
 export function planEndlessCareerSeasonTransition(
@@ -421,15 +425,19 @@ export function planEndlessCareerSeasonTransition(
     throw new Error('completed season exceeds the supported range');
   }
   const nextSeason = completedSeason + 1;
+  const applyGrowth = state.opponentGrowthThroughSeason < nextSeason;
   let advancedState: M2CareerState = {
     ...state,
+    opponentGrowthThroughSeason: Math.max(state.opponentGrowthThroughSeason, nextSeason),
     pyramid: {
       ...state.pyramid,
       divisions: state.pyramid.divisions.map(candidate => ({
         ...candidate,
         clubs: candidate.clubs.map(club => club.id === state.userClubId
           ? cloneClub(club)
-          : scaleOpponentClub(club, nextSeason, growth)),
+          : applyGrowth
+            ? scaleOpponentClub(club, nextSeason, growth, state.careerSeed)
+            : cloneClub(club)),
       })),
     },
   };
@@ -572,19 +580,14 @@ function deterministicCupRoundResults(
   return round.fixtures.map(fixture => {
     const home = pyramidClub(state, fixture.homeClubId);
     const away = pyramidClub(state, fixture.awayClubId);
-    const homeScore = home.squadStrength + stableSeasonTie(
+    const winnerClubId = deterministicCupTieWinner(
       state.careerSeed,
-      cup.season * 10 + round.number,
-      home.id,
-    ) % 7;
-    const awayScore = away.squadStrength + stableSeasonTie(
-      state.careerSeed,
-      cup.season * 10 + round.number,
-      away.id,
-    ) % 7;
-    const homeWins = homeScore === awayScore
-      ? stableIdCompare(home.id, away.id) < 0
-      : homeScore > awayScore;
+      cup.season,
+      round.number,
+      home,
+      away,
+    );
+    const homeWins = winnerClubId === home.id;
     return {
       fixtureId: fixture.id,
       homeGoals: homeWins ? 1 : 0,
@@ -594,41 +597,72 @@ function deterministicCupRoundResults(
   });
 }
 
+export function deterministicCupTieWinner(
+  careerSeed: number,
+  season: number,
+  round: number,
+  home: PyramidClub,
+  away: PyramidClub,
+): string {
+  const homeScore = currentClubStrength(home) * deterministicCupPerformanceBasisPoints(
+    careerSeed,
+    season,
+    round,
+    home.id,
+  );
+  const awayScore = currentClubStrength(away) * deterministicCupPerformanceBasisPoints(
+    careerSeed,
+    season,
+    round,
+    away.id,
+  );
+  if (homeScore === awayScore) return stableIdCompare(home.id, away.id) < 0 ? home.id : away.id;
+  return homeScore > awayScore ? home.id : away.id;
+}
+
 function scaleOpponentClub(
   club: PyramidClub,
   season: number,
   growth: OpponentGrowthRules,
+  careerSeed: number,
 ): PyramidClub {
-  // `club` already contains every prior season's applied growth after the
-  // active division is synchronized. Apply only this season's step so the
-  // curve does not compound the same bonus every year.
-  const cumulative = (atSeason: number) => Math.min(
-    growth.opponentGrowthCap,
-    Math.floor(Math.max(0, atSeason - 1) / growth.opponentGrowthSeasonsPerPoint),
-  );
-  const increase = cumulative(season) - cumulative(season - 1);
-  const squadStrength = Math.min(MAX_PLAYER_ATTRIBUTE, club.squadStrength + increase);
+  const squad = club.squad.map(player => ({
+    ...player,
+    attrs: growOpponentAttrs(
+      player.attrs,
+      player.id,
+      season,
+      careerSeed,
+      growth,
+    ),
+  }));
   return {
     ...club,
-    squadStrength,
-    squad: club.squad.map(player => ({
-      ...player,
-      attrs: increaseAttrs(player.attrs, increase),
-    })),
+    squadStrength: clubSquadStrength(squad),
+    squad,
   };
 }
 
-function increaseAttrs(attrs: Attrs, increase: number): Attrs {
-  const boosted = (value: number) => Math.min(MAX_PLAYER_ATTRIBUTE, value + increase);
-  return {
-    pac: boosted(attrs.pac),
-    sho: boosted(attrs.sho),
-    pas: boosted(attrs.pas),
-    def: boosted(attrs.def),
-    tec: boosted(attrs.tec),
-    sta: boosted(attrs.sta),
-    ref: boosted(attrs.ref),
-  };
+function growOpponentAttrs(
+  attrs: Attrs,
+  playerId: string,
+  season: number,
+  careerSeed: number,
+  growth: OpponentGrowthRules,
+): Attrs {
+  const next = { ...attrs };
+  for (const attribute of ATTR_KEYS) {
+    const scaled = attrs[attribute] * (100 + growth.opponentGrowthPercent);
+    const floor = Math.floor(scaled / 100);
+    const remainder = scaled % 100;
+    const roll = opponentGrowthRoll(careerSeed, season, playerId, attribute) % 100;
+    next[attribute] = Math.min(
+      MAX_PLAYER_ATTRIBUTE,
+      growth.opponentGrowthAttributeCap,
+      floor + Number(roll < remainder),
+    );
+  }
+  return next;
 }
 
 function validateStateIdentity(state: M2CareerState): void {
@@ -636,10 +670,49 @@ function validateStateIdentity(state: M2CareerState): void {
     throw new Error(`unsupported M2 career schema ${state.schemaVersion}`);
   }
   validateSeed(state.careerSeed);
+  if (!Number.isSafeInteger(state.opponentGrowthThroughSeason)
+    || state.opponentGrowthThroughSeason < 1) {
+    throw new Error('opponent growth season must be a positive safe integer');
+  }
   if (state.pyramid.careerSeed !== state.careerSeed) {
     throw new Error('M2 career and pyramid seeds must match');
   }
   currentUserDivision(state);
+}
+
+function currentClubStrength(club: PyramidClub): number {
+  return club.squad.length === 0 ? club.squadStrength : clubSquadStrength(club.squad);
+}
+
+/**
+ * Mostly ±6%, with a 6.5% 2.5x tail and a 1.5% 7x giant tail. The distribution
+ * is a percentage, so rebasing attributes never makes the Cup window inert.
+ */
+export function deterministicCupPerformanceBasisPoints(
+  careerSeed: number,
+  season: number,
+  round: number,
+  clubId: string,
+): number {
+  const bucket = stableSeasonTie(careerSeed, season * 10 + round, `${clubId}:cup-tail`) % 10_000;
+  if (bucket < 150) return 70_000;
+  if (bucket < 800) return 25_000;
+  return 9_400 + (
+    stableSeasonTie(careerSeed, season * 10 + round, `${clubId}:cup-normal`) % 1_201
+  );
+}
+
+function opponentGrowthRoll(
+  careerSeed: number,
+  season: number,
+  playerId: string,
+  attribute: keyof Attrs,
+): number {
+  return stableSeasonTie(
+    careerSeed,
+    season,
+    `${playerId}:growth:${attribute}`,
+  );
 }
 
 function validateUserClub(club: M2UserClubIdentity): void {

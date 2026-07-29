@@ -4,8 +4,11 @@ import {
   coachLevelAfterSeasons,
   contractOfferValue,
   dealPitchCards,
+  DIVISION_TRANSFER_VALUE_ANCHORS,
+  DIVISION_WEEKLY_WAGE_ANCHORS,
   effectiveContractAsk,
   generateCoachMarket,
+  generatedPlayerWeeklyWage,
   isCoachCandidateEligible,
   isTransferWindowOpen,
   maxCoachLevelForClub,
@@ -23,6 +26,16 @@ import {
   type ScoutablePlayer,
   type ValuationPlayer,
 } from '../market';
+import {
+  DIVISION_SUPPORT_STRENGTHS,
+  generateLeaguePyramid,
+  type DivisionLevel,
+} from '../pyramid';
+import {
+  divisionFans,
+  divisionSponsorMonthlyFee,
+  divisionTicketPrice,
+} from '../full-career';
 
 const BASE_ATTRS: Attrs = {
   pac: 50,
@@ -228,7 +241,7 @@ describe('transfer rules and valuations', () => {
     expect([0, 5, 16, 19, 30, 31].some(isTransferWindowOpen)).toBe(false);
   });
 
-  it('incorporates role stats, age, potential, power tier, contract control, and division', () => {
+  it('incorporates role stats, age, potential, power tier, contract control, and division anchors', () => {
     const ordinary = valuationPlayer('ordinary');
     const stronger = valuationPlayer('stronger', {
       attrs: { ...BASE_ATTRS, pac: 70, pas: 70, tec: 70 },
@@ -254,7 +267,69 @@ describe('transfer rules and valuations', () => {
       valuationPlayer('expiring', { contractSeasonsRemaining: 0 }),
       5,
     ));
-    expect(playerValuation(ordinary, 1)).toBeGreaterThan(playerValuation(ordinary, 5));
+    const supportPlayer = (division: DivisionLevel) => valuationPlayer(`support-d${division}`, {
+      attrs: Object.fromEntries(
+        Object.keys(BASE_ATTRS).map(attribute => (
+          [attribute, DIVISION_SUPPORT_STRENGTHS[division]]
+        )),
+      ) as unknown as Attrs,
+    });
+    expect(playerValuation(supportPlayer(1), 1)).toBeGreaterThan(
+      playerValuation(supportPlayer(5), 5),
+    );
+  });
+
+  it('keeps generated support players affordable on each division income scale', () => {
+    const pyramid = generateLeaguePyramid(7_729);
+    for (const division of pyramid.divisions) {
+      const level = division.level;
+      const players = division.clubs.flatMap(club => club.squad);
+      const valuations = players
+        .map(player => playerValuation({
+          ...player,
+          potential: 3,
+          contractSeasonsRemaining: 2,
+        }, level))
+        .sort((left, right) => left - right);
+      const wages = players
+        .map(player => generatedPlayerWeeklyWage(player.attrs, level))
+        .sort((left, right) => left - right);
+      const weeklyGrossIncome = Math.floor(divisionFans(level) * 0.6)
+        * divisionTicketPrice(level) * 9 / 30
+        + divisionSponsorMonthlyFee(level) / 4;
+
+      expect(valuations[Math.floor(valuations.length / 2)])
+        .toBeLessThanOrEqual(weeklyGrossIncome * 10);
+      expect(wages[Math.floor(wages.length / 2)])
+        .toBeLessThanOrEqual(weeklyGrossIncome * 0.2);
+      expect(DIVISION_TRANSFER_VALUE_ANCHORS[level]).toBeGreaterThan(0);
+      expect(DIVISION_WEEKLY_WAGE_ANCHORS[level]).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps the awakening renewal cliff at the locked three-to-five times wage', () => {
+    const weeklyWage = generatedPlayerWeeklyWage(
+      Object.fromEntries(
+        Object.keys(BASE_ATTRS).map(attribute => [attribute, DIVISION_SUPPORT_STRENGTHS[3]]),
+      ) as unknown as Attrs,
+      3,
+    );
+    const player = {
+      weeklyWage,
+      personality: 'PROFESSIONAL' as const,
+      power: 'SUPER_SPEED' as const,
+      onHeroWage: false,
+    };
+    expect(renewalContractAsk(player, {
+      growthSinceSigningPercent: 0,
+      famePercent: 0,
+      heroMultiplier: 3,
+    })).toBe(weeklyWage * 3);
+    expect(renewalContractAsk(player, {
+      growthSinceSigningPercent: 0,
+      famePercent: 0,
+      heroMultiplier: 5,
+    })).toBe(weeklyWage * 5);
   });
 
   it('creates repeatable buying asks and selling bids inside their valuation bands', () => {

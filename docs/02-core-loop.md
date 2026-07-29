@@ -21,8 +21,8 @@ Session math: a match week ≈ 3–6 minutes (watched) or ~90 seconds (simmed). 
 
 ## The pyramid (long-term goal ladder)
 
-- **D5 · District League → D4 · County League → D3 · Regional League → D2 · National Championship → D1 · Global League**: 10 teams each; top 2 promoted, bottom 2 relegated. Opening strength bands are contiguous: D5 40–50, D4 50–60, D3 60–70, D2 70–80, and D1 80–90. A new club begins at 40, at the bottom of D5, against opponents spread from 42–50. The first five league opponents deliberately bend the curve toward the player: 50 at home, 45 away, 46 at home, 43 away, then 42 at home. The apparent one-point rise in match three accounts for the alternating venue, avoiding the old weakest-opponent spike and match-four rebound. Each division up means better sponsors, bigger gates, stronger opponents — and more opposing heroes.
-- **National Cup**: all-divisions knockout, entered every season. Its first settlement is around Week 10, after the opening league run. The draw is seeded by division: higher-division clubs are separated where possible and the strongest clubs receive the opening byes. Giant-killing = big prize + fame spikes.
+- **D5 · District League → D4 · County League → D3 · Regional League → D2 · National Championship → D1 · Global League**: 10 teams each; top 2 promoted, bottom 2 relegated. Honest raw squad-strength bands are D5 **40–50**, D4 **90–102**, D3 **135–151**, D2 **178–203**, and D1 **223–248**. The ordinary-support anchors are 40/88/130/175/214, each club's DEF/MID/FWD specialist has an explicit 94/180/268/356/442 role focus, and goalkeeper REF is 80/153/228/303/376. The first D4 season deliberately installs two 39/40 whole-squad relegation strugglers so a promoted D5 champion that prepares can survive; it does not weaken D4's established middle/top or the D3 clubs coming down. A new club begins at 40 against the same authored opening sequence: 50 at home, 45 away, 46 at home, 43 away, then 42 at home. Each division up means better sponsors, bigger gates, stronger opponents — and more opposing heroes.
+- **National Cup**: all-divisions knockout, entered every season. Its first settlement is around Week 10, after the opening league run. The draw freezes every entrant's division. A deterministic long-tailed performance model keeps same-division ties competitive while letting a lower club win roughly **5–10%** of one-division-gap ties and **1–2%** of two-plus-division gaps. Every player-controlled giant-killing gets Bert's post-result walk-on: enthusiastic for one division, full **GIANT-KILLERS!** treatment for two or more. AI-only upsets never interrupt the player.
 - **Career victory**: win D1 · Global League to complete the main climb. Endless play continues afterward, and a score recap (Kairosoft-style) shows after Season 10 regardless of progress; nothing ends.
 
 Promotion rewards are permanent: relegation changes the current opposition, not the club knowledge and infrastructure already earned.
@@ -34,7 +34,7 @@ Promotion rewards are permanent: relegation changes the current opposition, not 
 | D2 · National Championship | Level 3 facilities, Elite Prospect scouting, Level 4 coach access |
 | D1 · Global League | Fourth Hero License, Level 5 coach access |
 
-Opposing club strength scales with division and season count (slow, season-level scaling — never instant rubber-banding, and never "you won too big so they get stronger," which research showed players hate).
+Opposing club strength scales with division and season count (slow, season-level scaling — never instant rubber-banding, and never "you won too big so they get stronger," which research showed players hate). At each season boundary every non-user rating grows by **3% on Cozy** or **4% on Chairman**, with deterministic per-player/per-stat stochastic rounding and difficulty caps (700/800). The same percentage applies to support players, specialists, and goalkeeper REF.
 
 ## Failure is soft, never fatal
 

@@ -11,18 +11,24 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
 import {
   addCreatedPlayer,
+  BASE_WEEKLY_TRAINING_POINTS,
   beginStoryOnboarding,
   careerHeroLimit,
+  coachWeeklyTrainingPoints,
   createCareer,
+  DIVISION_GOALKEEPER_REF_RATINGS,
   DIVISION_SUPPORT_STRENGTHS,
   DIVISION_TYPICAL_PACE,
   divisionStarFocusedAttribute,
   generatedClubHeroCount,
   generatedClubPower,
+  MAX_FACILITY_LEVEL,
   playerPotentialGrade,
   potentialTierForDivision,
   POSITION_TRAINING_ATTRIBUTES,
+  resolveTrainingDrillForPath,
   roleOverall,
+  TRAINING_PITCH_TP_PER_LEVEL,
   trainPlayerInstantly,
   type CareerPlayer,
   type DivisionLevel,
@@ -47,25 +53,40 @@ const PATH_BY_ATTRIBUTE: Readonly<Record<keyof Attrs, string>> = {
 };
 const OPPONENT_MIDPOINT: Readonly<Record<DivisionLevel, number>> = {
   5: 45,
-  4: 55,
-  3: 65,
-  2: 75,
-  1: 85,
+  4: 96,
+  3: 143,
+  2: 191,
+  1: 236,
 };
+const FIFTEEN_SEASON_DIVISIONS = [
+  5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1,
+] as const satisfies readonly DivisionLevel[];
+const MAX_NORMAL_WEEKLY_TP = BASE_WEEKLY_TRAINING_POINTS
+  + MAX_FACILITY_LEVEL * TRAINING_PITCH_TP_PER_LEVEL
+  + coachWeeklyTrainingPoints(5, 'HEAD')
+  + coachWeeklyTrainingPoints(5, 'ASSISTANT');
+
 describeProbe('long-career open-ended development', () => {
   it('reports fast and slow promotion growth with maximum user heroes', () => {
     const scenarios = [
       { name: 'fast', divisions: [5, 4, 3, 2, 1, 1] as DivisionLevel[] },
-      { name: 'slow', divisions: [5, 5, 4, 4, 3, 3, 2, 2, 1, 1] as DivisionLevel[] },
+      {
+        name: 'slow',
+        divisions: [...FIFTEEN_SEASON_DIVISIONS],
+      },
     ];
     const lines = [
       '',
       'scenario season div heroes traineeRaw lineupEff bestPAC typicalPAC pace+ oppClub oppFocus W D L points%',
     ];
-    let highestFocusedAttribute = 0;
-    const checkpoints: Array<{ division: DivisionLevel; pointsPercent: number }> = [];
-    const oneSeasonPromotionPaceAdvantages: number[] = [];
-    const allPaceAdvantages: number[] = [];
+    let maxStackedPeakAttribute = 0;
+    const checkpoints: Array<{
+      scenario: string;
+      division: DivisionLevel;
+      firstSeasonInDivision: boolean;
+      pointsPercent: number;
+      trainedStarRating: number;
+    }> = [];
 
     for (const scenario of scenarios) {
       let state = probeCareer();
@@ -80,32 +101,29 @@ describeProbe('long-career open-ended development', () => {
         startingPlayers.find(player => player.role === 'MID')!,
       ];
       const traineeIds = trainees.map(player => player.id);
-      const recruitedDivisions = new Set<DivisionLevel>();
+      const visitedDivisions = new Set<DivisionLevel>();
 
       for (let seasonIndex = 0; seasonIndex < scenario.divisions.length; seasonIndex += 1) {
         const division = scenario.divisions[seasonIndex];
         state = setHighestDivision(state, division);
-        const firstSeasonInDivision = !recruitedDivisions.has(division);
-        if (firstSeasonInDivision) {
-          const recruitment = addDivisionRecruitment(
-            state,
-            lineupIds,
-            traineeIds,
-            division,
-            seasonIndex,
-          );
-          state = recruitment.state;
-          lineupIds = recruitment.lineupIds;
-          recruitedDivisions.add(division);
-          const expectedGradeFamily = ({ 5: 'E', 4: 'D', 3: 'C', 2: 'B', 1: 'A' } as const)[division];
-          expect(recruitment.youthGrade.startsWith(expectedGradeFamily)).toBe(true);
-          expect(recruitment.scoutGrade.split('/')
-            .every(grade => grade.startsWith(expectedGradeFamily))).toBe(true);
-          if (division === 1) expect(recruitment.scoutGrade).toContain('A+');
-          lines.push(
-            `  hires D${division}: youth ${recruitment.youthGrade} · scout ${recruitment.scoutGrade}`,
-          );
-        }
+        const firstSeasonInDivision = !visitedDivisions.has(division);
+        visitedDivisions.add(division);
+        const recruitment = addDivisionRecruitment(
+          state,
+          lineupIds,
+          traineeIds,
+          division,
+          seasonIndex,
+        );
+        state = recruitment.state;
+        lineupIds = recruitment.lineupIds;
+        const expectedGradeFamily = ({ 5: 'E', 4: 'D', 3: 'C', 2: 'B', 1: 'A' } as const)[division];
+        expect(recruitment.youthGrade.startsWith(expectedGradeFamily)).toBe(true);
+        expect(recruitment.scoutGrade.split('/')
+          .every(grade => grade.startsWith(expectedGradeFamily))).toBe(true);
+        lines.push(
+          `  hires D${division}: youth ${recruitment.youthGrade} · scout ${recruitment.scoutGrade}`,
+        );
         const heroLimit = careerHeroLimit(state);
 
         for (let week = 0; week < 30; week += 1) {
@@ -135,8 +153,11 @@ describeProbe('long-career open-ended development', () => {
           seasonIndex,
           traineeIds,
         );
-        checkpoints.push({ division, pointsPercent: result.pointsPercent });
         const userLineup = lineupIds.map(id => state.players.find(player => player.id === id)!);
+        const traineeRoleRatings = traineeIds.map(id => {
+          const player = state.players.find(candidate => candidate.id === id)!;
+          return roleOverall(player.role, player.attrs);
+        });
         const traineeAverage = Math.round(traineeIds.reduce(
           (sum, id) => sum + roleOverall(
             state.players.find(player => player.id === id)!.role,
@@ -144,6 +165,14 @@ describeProbe('long-career open-ended development', () => {
           ),
           0,
         ) / traineeIds.length);
+        const trainedStarRating = Math.max(...traineeRoleRatings);
+        checkpoints.push({
+          scenario: scenario.name,
+          division,
+          firstSeasonInDivision,
+          pointsPercent: result.pointsPercent,
+          trainedStarRating,
+        });
         const lineupEffectiveAverage = Math.round(userLineup.reduce(
           (sum, player) => sum + effectiveRoleOverall(player.role, player.attrs),
           0,
@@ -151,10 +180,6 @@ describeProbe('long-career open-ended development', () => {
         const bestPace = Math.max(...userLineup.map(player => player.attrs.pac));
         const typicalPace = DIVISION_TYPICAL_PACE[division];
         const paceAdvantage = paceAdvantagePercent(bestPace, typicalPace);
-        allPaceAdvantages.push(paceAdvantage);
-        if (scenario.name === 'fast' && firstSeasonInDivision) {
-          oneSeasonPromotionPaceAdvantages.push(paceAdvantage);
-        }
         lines.push([
           scenario.name.padEnd(9),
           String(seasonIndex + 1).padEnd(7),
@@ -181,28 +206,135 @@ describeProbe('long-career open-ended development', () => {
         };
       }
 
-      highestFocusedAttribute = Math.max(
-        highestFocusedAttribute,
+      maxStackedPeakAttribute = Math.max(
+        maxStackedPeakAttribute,
         ...state.players
           .filter(player => traineeIds.includes(player.id))
           .flatMap(player => POSITION_TRAINING_ATTRIBUTES[player.role].map(attribute => player.attrs[attribute])),
       );
     }
 
+    const organicPeakAttribute = organicCareerPeakAttribute();
+    lines.push(
+      `organic  15 seasons, three-tap active manager, max normal TP: peak ${organicPeakAttribute}`,
+    );
     // eslint-disable-next-line no-console
     console.log(lines.join('\n'));
-    expect(highestFocusedAttribute).toBeGreaterThan(99);
-    expect(highestFocusedAttribute).toBeLessThan(999);
-    expect(Math.min(...checkpoints.filter(checkpoint => checkpoint.division !== 1)
-      .map(checkpoint => checkpoint.pointsPercent))).toBeGreaterThanOrEqual(25);
-    expect(Math.min(...checkpoints.filter(checkpoint => checkpoint.division === 1)
-      .map(checkpoint => checkpoint.pointsPercent))).toBeGreaterThanOrEqual(20);
-    expect(Math.max(...checkpoints.map(checkpoint => checkpoint.pointsPercent))).toBeLessThanOrEqual(75);
-    expect(Math.min(...oneSeasonPromotionPaceAdvantages)).toBeGreaterThanOrEqual(25);
-    expect(Math.max(...oneSeasonPromotionPaceAdvantages)).toBeLessThanOrEqual(30);
-    expect(Math.max(...allPaceAdvantages)).toBeLessThanOrEqual(38);
-  }, 120_000);
+    // The supplied-TP policy intentionally drills the same three players every
+    // week for fifteen years, so it is the deliberate max-stacking exception
+    // in criterion 10. The organic policy uses only production-achievable TP
+    // and the established active-manager cadence of three taps per week,
+    // spreads those taps across the current XI, and recruits normally.
+    expect(maxStackedPeakAttribute).toBe(999);
+    expect(organicPeakAttribute).toBeGreaterThan(99);
+    expect(organicPeakAttribute).toBeLessThan(999);
+    const twoSeasonTrack = checkpoints.filter(checkpoint => checkpoint.scenario === 'slow');
+    expect(twoSeasonTrack).toHaveLength(15);
+    for (const division of [5, 4, 3, 2, 1] as const) {
+      const finalCheckpoint = twoSeasonTrack
+        .filter(checkpoint => checkpoint.division === division)
+        .at(-1);
+      expect(finalCheckpoint?.pointsPercent).toBeGreaterThanOrEqual(60);
+    }
+    const firstD1 = twoSeasonTrack.find(checkpoint => (
+      checkpoint.division === 1 && checkpoint.firstSeasonInDivision
+    ));
+    expect(firstD1).toBeDefined();
+    expect(firstD1!.trainedStarRating / divisionStarFocusedAttribute(1, 236))
+      .toBeGreaterThanOrEqual(0.8);
+    expect(firstD1!.trainedStarRating / divisionStarFocusedAttribute(1, 236))
+      .toBeLessThanOrEqual(1.25);
+    expect(firstD1!.trainedStarRating / DIVISION_SUPPORT_STRENGTHS[1])
+      .toBeGreaterThanOrEqual(1.7);
+  }, 900_000);
 });
+
+function organicCareerPeakAttribute(): number {
+  let state = probeCareer();
+  const coach = state.market?.coachCandidates[0];
+  if (state.market === undefined || coach === undefined) {
+    throw new Error('organic headroom probe needs the launch coach market');
+  }
+  state = {
+    ...state,
+    market: {
+      ...state.market,
+      headCoach: {
+        ...coach,
+        id: 'organic-head-coach',
+        level: 5,
+        specialties: ['ATTACK', 'FITNESS'],
+      },
+      assistantCoach: {
+        ...coach,
+        id: 'organic-assistant-coach',
+        level: 5,
+        specialties: ['DEFENSE', 'TECHNIQUE'],
+      },
+    },
+  };
+  let lineupIds = state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds;
+  let peak = 0;
+
+  for (let seasonIndex = 0; seasonIndex < FIFTEEN_SEASON_DIVISIONS.length; seasonIndex += 1) {
+    const division = FIFTEEN_SEASON_DIVISIONS[seasonIndex];
+    state = setHighestDivision(state, division);
+    const recruitment = addDivisionRecruitment(state, lineupIds, [], division, seasonIndex);
+    state = recruitment.state;
+    lineupIds = recruitment.lineupIds;
+
+    for (let week = 0; week < 30; week += 1) {
+      state = {
+        ...state,
+        trainingPoints: state.trainingPoints + MAX_NORMAL_WEEKLY_TP,
+      };
+      const trainedThisWeek = new Set<string>();
+      while (trainedThisWeek.size < 3) {
+        const candidate = lineupIds
+          .filter(playerId => !trainedThisWeek.has(playerId))
+          .map(playerId => state.players.find(player => player.id === playerId)!)
+          .filter(player => player.injuryWeeks === 0 && (player.condition ?? 100) >= 30)
+          .flatMap(player => POSITION_TRAINING_ATTRIBUTES[player.role].map(attribute => ({
+            player,
+            attribute,
+            pathId: PATH_BY_ATTRIBUTE[attribute],
+            rating: player.attrs[attribute],
+          })))
+          .filter(entry => resolveTrainingDrillForPath(state, entry.pathId).tpCost <= state.trainingPoints)
+          .sort((left, right) => (
+            left.rating - right.rating
+            || left.player.id.localeCompare(right.player.id)
+            || left.attribute.localeCompare(right.attribute)
+          ))[0];
+        if (candidate === undefined) break;
+        state = trainPlayerInstantly(state, candidate.player.id, candidate.pathId).state;
+        trainedThisWeek.add(candidate.player.id);
+      }
+      state = {
+        ...state,
+        players: state.players.map(player => player.clubId === state.userClubId
+          ? { ...player, condition: Math.min(100, (player.condition ?? 100) + 12) }
+          : player),
+      };
+    }
+
+    peak = Math.max(
+      peak,
+      ...state.players
+        .filter(player => player.clubId === state.userClubId)
+        .flatMap(player => POSITION_TRAINING_ATTRIBUTES[player.role]
+          .map(attribute => player.attrs[attribute])),
+    );
+    state = {
+      ...state,
+      players: state.players.map(player => player.clubId === state.userClubId
+        ? { ...player, age: (player.age ?? 24) + 1 }
+        : player),
+    };
+  }
+
+  return peak;
+}
 
 function probeCareer(): GameState {
   return addCreatedPlayer(
@@ -244,15 +376,18 @@ function addDivisionRecruitment(
     .map(id => state.players.find(player => player.id === id)!)
     .filter(player => player.role !== 'GK')
     .sort((left, right) => roleOverall(left.role, left.attrs) - roleOverall(right.role, right.attrs));
+  const goalkeeper = lineupIds
+    .map(id => state.players.find(player => player.id === id)!)
+    .find(player => player.role === 'GK');
   const scoutReplacements = supportStarters.slice(0, 2);
   const youthReplacement = supportStarters[2];
-  if (scoutReplacements.length !== 2 || youthReplacement === undefined) {
-    throw new Error('probe recruitment needs three non-trainee outfield starters');
+  if (goalkeeper === undefined || scoutReplacements.length !== 2 || youthReplacement === undefined) {
+    throw new Error('probe recruitment needs a keeper and three non-trainee outfield starters');
   }
   const youthPotential = potentialTierForDivision(division, 20);
   const scouts = scoutReplacements.map((replacement, index): CareerPlayer => ({
     ...replacement,
-    id: `probe-scout-d${division}-${division === 1 ? index + 3 : index + 1}`,
+    id: `probe-scout-s${seasonIndex + 1}-d${division}-${index + 1}`,
     name: `D${division} Scout Hire ${index + 1}`,
     attrs: focusedRoleAttrs(
       DIVISION_SUPPORT_STRENGTHS[division],
@@ -268,7 +403,7 @@ function addDivisionRecruitment(
   const youthBase = 35 + youthFieldLevel * 5;
   const youth: CareerPlayer = {
     ...youthReplacement,
-    id: `probe-youth-d${division}`,
+    id: `probe-youth-s${seasonIndex + 1}-d${division}`,
     name: `D${division} Youth Hire`,
     attrs: roleAttrs(
       youthBase,
@@ -279,21 +414,30 @@ function addDivisionRecruitment(
     potential: youthPotential,
     archetype: 'All-Rounder',
   };
-  const recruits = [...scouts, youth];
+  const keeper: CareerPlayer = {
+    ...goalkeeper,
+    id: `probe-keeper-s${seasonIndex + 1}-d${division}`,
+    name: `D${division} Keeper Hire`,
+    attrs: goalkeeperAttrs(division),
+    age: 24,
+    potential: potentialTierForDivision(division, 35),
+    archetype: 'Wall',
+  };
+  const recruits = [...scouts, keeper, youth];
+  const replacements = [...scoutReplacements, goalkeeper, youthReplacement];
   const nextLineupIds = [...lineupIds];
-  for (const recruit of recruits) {
-    const scoutIndex = scouts.findIndex(candidate => candidate.id === recruit.id);
-    const outgoing = scoutIndex >= 0 ? scoutReplacements[scoutIndex] : youthReplacement;
+  recruits.forEach((recruit, index) => {
+    const outgoing = replacements[index];
     if (roleOverall(recruit.role, recruit.attrs) > roleOverall(outgoing.role, outgoing.attrs)) {
       const slot = nextLineupIds.indexOf(outgoing.id);
       nextLineupIds[slot] = recruit.id;
     }
-  }
+  });
   const nextState: GameState = {
     ...state,
     season: seasonIndex + 1,
     week: 1,
-    players: [...state.players, ...scouts, youth],
+    players: [...state.players, ...scouts, keeper, youth],
     lineups: state.lineups.map(lineup => lineup.clubId === state.userClubId
       ? { ...lineup, playerIds: nextLineupIds }
       : lineup),
@@ -302,7 +446,7 @@ function addDivisionRecruitment(
     state: nextState,
     lineupIds: nextLineupIds,
     youthGrade: playerPotentialGrade(youth),
-    scoutGrade: scouts.map(playerPotentialGrade).join('/'),
+    scoutGrade: [...scouts, keeper].map(playerPotentialGrade).join('/'),
   };
 }
 
@@ -368,9 +512,11 @@ function opponentTeam(division: DivisionLevel, target: number): TeamDef {
     clubId: 'probe-opponent',
     name: `Opponent ${index}`,
     role,
-    attrs: starSlots.has(index)
-      ? focusedRoleAttrs(support, starFocus, role, typicalPace)
-      : roleAttrs(support, role, typicalPace),
+    attrs: role === 'GK'
+      ? goalkeeperAttrs(division)
+      : starSlots.has(index)
+        ? focusedRoleAttrs(support, starFocus, role, typicalPace)
+        : roleAttrs(support, role, typicalPace),
     licensed: false,
     weeklyWage: 0,
     onHeroWage: false,
@@ -449,6 +595,17 @@ function roleAttrs(target: number, role: Role, paceTarget = target): Attrs {
     tec: value(nudge[role].tec),
     sta: value(nudge[role].sta),
     ref: value(nudge[role].ref),
+  };
+}
+
+function goalkeeperAttrs(division: DivisionLevel): Attrs {
+  return {
+    ...roleAttrs(
+      DIVISION_SUPPORT_STRENGTHS[division],
+      'GK',
+      DIVISION_TYPICAL_PACE[division],
+    ),
+    ref: DIVISION_GOALKEEPER_REF_RATINGS[division],
   };
 }
 

@@ -47,6 +47,12 @@ Version policy: pin per EAS milestone; upgrade quarterly, never continuously (st
 4. **Replays are envelopes, not just seeds**: `{ schemaVersion, engineVersion, seed, both team snapshots, ordered input stream }`. Seed + taps alone go stale the moment stats or tuning change; the envelope pins everything. Golden tests snapshot full event payloads, not just event names. (Mid-match save/resume — which would also need the PRNG cursor — is an M1 concern, deliberately out of M0.)
 5. Golden replay fixtures must pass on every release; from M1, CI runs them on both Node and the Hermes runtime to catch engine drift, not just code drift.
 
+### Current compatibility boundary
+
+- Match replays require engine **m2.0**; older replay envelopes are refused rather than replayed with different simulation math.
+- Career saves require game schema **2**. Schema 1 is deliberately incompatible with the rebased persisted pyramid. The recovery screen can export the exact raw stored JSON before decoding; a requested export must succeed before reset is allowed.
+- Reset deletes only the affected career row, its season backup, and replay envelopes for that career seed in one transaction. Preferences and unrelated careers/replays survive. A failed transaction leaves the old save untouched.
+
 ## Testing strategy
 
 - **Unit**: sim actions (tackles, shots, gauge math), economy functions, negotiation math — Jest, TDD for sim/ and game/.
@@ -75,6 +81,12 @@ worth roughly **+1 to +6 squad points** if it is clearly useful, reliably fires,
 and performs its advertised football moment. No power may have a demonstrated
 negative effect. Manual activation and upgrades must not have a statistically
 established harmful reversal; they do not need to hit one exact number.
+
+Engine m2.0 re-centers every power probe on the same measured opponent delta:
+**−12**, where the frozen 400-seed no-power sample scores **1.403 points per
+match**, closest to the 1.43 target. Single-hero, multi-hero, and firing probes
+all import this value; none recomputes a different “even” point from displayed
+squad averages.
 
 League and opening-run probes therefore test the real randomized first-hero
 path instead of assuming every basic automatic power is exactly +2. The +2

@@ -20,7 +20,7 @@ import {
 } from '../../game';
 import { runMatch } from '../../sim/match';
 import type { PowerId, TeamDef } from '../../sim/types';
-import { scaleTeam as scale } from '../probe-calibration';
+import { EVEN_DELTA, scaleTeam as scale } from '../probe-calibration';
 
 const content = loadLaunchContent();
 const SEEDS = positiveIntegerEnv('MULTIHERO_VALUE_SEEDS', 1000);
@@ -138,7 +138,7 @@ describe('multihero marginal value', () => {
     const { user, opponent } = openingTeams();
     const userStrength = teamStrength(user);
     const opponentStrength = teamStrength(opponent);
-    const evenDelta = userStrength - opponentStrength;
+    const evenDelta = EVEN_DELTA;
     // Four healthy heroes target roughly +8 combined. Cover +12 through -4 so
     // stacking upside is measured rather than clipped at the one-hero ladder.
     const ladderDeltas = Array.from({ length: 17 }, (_, index) => evenDelta - 12 + index);
@@ -184,7 +184,7 @@ describe('multihero marginal value', () => {
       '',
       `=== MULTI-HERO MARGINAL VALUE (${SEEDS} paired seeds per sample) ===`,
       'mode: Tier 1, contextual auto-fire (the weakest player case)',
-      `starting-XI strength: user ${userStrength}, opponent ${opponentStrength}, calibrated even delta ${evenDelta}`,
+      `starting-XI strength: user ${userStrength}, opponent ${opponentStrength}, measured even delta ${evenDelta}`,
       `centered ladder coverage: ${formatSigned(baselineDelta - Math.min(...ladderDeltas))}`
       + ` to ${formatSigned(baselineDelta - Math.max(...ladderDeltas))} points of squad worth`,
       '',

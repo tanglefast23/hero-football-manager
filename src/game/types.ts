@@ -5,7 +5,7 @@ import type { DeskTipState } from './desk-tips';
 import type { M2CareerState } from './m2-career';
 import type { YouthIntakeState } from './youth-intake';
 
-export const GAME_SCHEMA_VERSION = 1;
+export const GAME_SCHEMA_VERSION = 2;
 export const SEASON_WEEKS = 30;
 
 export type GamePhase = 'manage' | 'matchday' | 'season-end' | 'complete';
@@ -309,6 +309,13 @@ export interface FinancialSafetyState {
   latestBoardResolution?: BoardUltimatumResolution;
 }
 
+export interface CupGiantKillingCelebration {
+  fixtureId: string;
+  divisionGap: number;
+  title: string;
+  body: string;
+}
+
 export interface BoardSaleCandidate {
   playerId: string;
   marketValue: number;
@@ -445,6 +452,8 @@ export interface GameState {
   /** Immutable snapshots used by the season-review presentation. */
   seasonRecaps?: SeasonRecap[];
   financialSafety?: FinancialSafetyState;
+  /** Persisted FIFO until Bert has delivered every post-Cup giant-killing walk-on. */
+  pendingCupGiantKillingCelebrations?: CupGiantKillingCelebration[];
 }
 
 export interface LeagueStanding {

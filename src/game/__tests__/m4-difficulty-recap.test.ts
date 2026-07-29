@@ -68,10 +68,10 @@ describe('M4 difficulty and season recap', () => {
       .toBeLessThan(difficultyRules(cozy).negativeWeeksBeforeIntervention);
     expect(difficultyRules(chairman).emergencyLoanAmount).toBeLessThan(difficultyRules(cozy).emergencyLoanAmount);
     // Chairman must be a harder GAME, not only a leaner budget.
-    expect(difficultyRules(chairman).opponentGrowthSeasonsPerPoint)
-      .toBeLessThan(difficultyRules(cozy).opponentGrowthSeasonsPerPoint);
-    expect(difficultyRules(chairman).opponentGrowthCap)
-      .toBeGreaterThan(difficultyRules(cozy).opponentGrowthCap);
+    expect(difficultyRules(chairman).opponentGrowthPercent)
+      .toBeGreaterThan(difficultyRules(cozy).opponentGrowthPercent);
+    expect(difficultyRules(chairman).opponentGrowthAttributeCap)
+      .toBeGreaterThan(difficultyRules(cozy).opponentGrowthAttributeCap);
   });
 
   it('records and reloads the complete deterministic season cabinet', () => {

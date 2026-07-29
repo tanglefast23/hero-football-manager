@@ -13,6 +13,7 @@ import {
   decodeCareerSaveFile,
   encodeCareerSaveFile,
   exportCareerSave,
+  exportRawCareerSave,
   importCareerSave,
   SAVE_FILE_FORMAT,
   SAVE_FILE_FORMAT_VERSION,
@@ -73,6 +74,24 @@ describe('career save file export', () => {
     const broken = { ...baseCareer(), week: 0 };
 
     expect(() => encodeCareerSaveFile(broken)).toThrow(InvalidGameStateError);
+  });
+
+  it('exports an incompatible raw payload byte-for-byte without decoding it', async () => {
+    const raw = {
+      schemaVersion: 1,
+      stateJson: '{"schemaVersion":1,"future":"untouched"}',
+    };
+    let written = '';
+    const result = await exportRawCareerSave({
+      raw,
+      writeFile: async (_fileName, contents) => {
+        written = contents;
+        return 'file:///raw.json';
+      },
+    });
+
+    expect(result.fileName).toBe('hero-football-manager-raw-schema-1.json');
+    expect(written).toBe(raw.stateJson);
   });
 });
 

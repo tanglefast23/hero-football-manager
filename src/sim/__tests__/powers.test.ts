@@ -1,5 +1,6 @@
 import { createMatch, queueInput, tick } from '../match';
 import { speedFor } from '../engine';
+import { fullConditionMovementSpeed } from '../attributes';
 import { activatePower, addGauge, ARM_WINDOW_TICKS, inUsefulContext, interruptWindup, knockOut, MAX_ZONES_PER_PLAYER, powerTick, ZONE_WINDOW_TICKS } from '../powers';
 import { ROVERS, UNITED } from '../teams';
 import type { MatchState, PowerId } from '../types';
@@ -296,7 +297,7 @@ describe('power effects', () => {
     const m = createMatch(42, ROVERS, UNITED);
     m.players[SPEEDSTER].def.attrs.pac = 999;
     const trainedMaximum = speedFor(m, SPEEDSTER);
-    expect(trainedMaximum).toBe(208);
+    expect(trainedMaximum).toBe(Math.round(fullConditionMovementSpeed(999)));
 
     m.players[SPEEDSTER].powerState = { kind: 'active', untilTick: m.tick + 40, strength: 1 };
     expect(speedFor(m, SPEEDSTER)).toBeGreaterThan(trainedMaximum);

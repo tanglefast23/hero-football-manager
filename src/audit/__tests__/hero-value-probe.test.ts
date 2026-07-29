@@ -20,7 +20,7 @@ import {
 } from '../../game';
 import { createMatch, queueInput, tick } from '../../sim/match';
 import type { PowerId, TeamDef } from '../../sim/types';
-import { scaleTeam as scale } from '../probe-calibration';
+import { EVEN_DELTA, scaleTeam as scale } from '../probe-calibration';
 import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 
 const content = loadLaunchContent();
@@ -196,7 +196,7 @@ describe('hero value', () => {
     const { user, opponent } = openingTeams();
     const userStrength = teamStrength(user);
     const opponentStrength = teamStrength(opponent);
-    const evenDelta = userStrength - opponentStrength;
+    const evenDelta = EVEN_DELTA;
     // Worth = evenDelta - measured opponent delta. These 11 points cover a
     // power worth +6 through -4 relative to the calibrated even matchup.
     const ladderDeltas = Array.from({ length: 11 }, (_, index) => evenDelta - 6 + index);
@@ -220,7 +220,7 @@ describe('hero value', () => {
       '',
       `=== HERO VALUE SHARD ${SHARD.index}/${SHARD.count} (${SEEDS} seeds per sample) ===`,
       `selected powers (${SELECTED_POWERS.length}/${SOLO_POWERS.length} solo-eligible): ${SELECTED_POWERS.join(', ')}`,
-      `starting-XI strength: user ${userStrength}, opponent ${opponentStrength}, calibrated even delta ${evenDelta}`,
+      `starting-XI strength: user ${userStrength}, opponent ${opponentStrength}, measured even delta ${evenDelta}`,
       '',
       '=== SHARED NO-HERO BASELINE LADDER ===',
       '  delta   raw ppm   fitted ppm',

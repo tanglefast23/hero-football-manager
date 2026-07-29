@@ -29,6 +29,7 @@ describe('hero-value well-tapped policy', () => {
         pos: { x: 3400, y: 9800 },
         vel: { x: 0, y: 300 },
         by: 20,
+        shotStrengthD64: 0,
         power: 40,
         targetX: 3400,
         z: 0,

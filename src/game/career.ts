@@ -30,6 +30,10 @@ import {
 } from './promotion-progression';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
 import type { NationalCupFixture, NationalCupResult } from './pyramid';
+import {
+  cupGiantKillingCelebration,
+  queueCupGiantKillingCelebration,
+} from './cup-giant-killing';
 import { repairCareerLineupForInjuries } from './squad';
 import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import {
@@ -767,12 +771,12 @@ function completeNationalCupMatchday(state: GameState, results: FixtureResult[])
     winnerClubId,
   };
   const resultByFixtureId = new Map([[result.fixtureId, result]]);
-  const progressed: GameState = {
+  const progressed: GameState = queueCupGiantKillingCelebration({
     ...state,
     m2: resolveNextM2NationalCupRound(state.m2, cupResult),
     players: resolveCareerMatchFame(state, cupMatchday.fixtures, resultByFixtureId),
     seasonGoalTallies: recordSeasonGoals(state, cupMatchday.fixtures, resultByFixtureId),
-  };
+  }, cupGiantKillingCelebration(state, cupFixture, winnerClubId));
   const cupOutcome: WeeklyMatchOutcome = winnerClubId === state.userClubId ? 'win' : 'loss';
   const settled = settleCurrentWeek(progressed, true, [cupOutcome]);
   return winnerClubId === state.userClubId

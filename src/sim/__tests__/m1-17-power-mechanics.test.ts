@@ -85,7 +85,7 @@ describe('m1.18 authored one-moment powers', () => {
     expect(inUsefulContext(match, hero)).toBe(true);
     match.players[hero].powerState = { kind: 'winding', untilTick: 15, strength: 1 };
     expect(attackingDecision(match, hero).kind).toBe('carry');
-    expect(dribbleBonus(match, hero)).toBeGreaterThan(0);
+    expect(dribbleBonus(match, hero).d64Mod).toBeGreaterThan(0);
   });
 
   it('commits Thunder Strike to driving through windup and shooting once active', () => {
@@ -127,9 +127,11 @@ describe('m1.18 authored one-moment powers', () => {
   it('does not spend a banked Thunder Strike on an ordinary shot', () => {
     const { match, hero } = matchWith('THUNDER_STRIKE');
     match.ball = { kind: 'held', by: hero };
-    match.players[hero].pos = { x: 2250, y: 700 };
+    match.players[hero].pos = { x: 3400, y: 700 };
     match.players[hero].powerState = { kind: 'zone', remainingTicks: 70 };
+    for (let idx = 11; idx < 22; idx += 1) match.players[idx].pos = { x: 600, y: 8000 };
 
+    expect(attackingDecision(match, hero).kind).toBe('shoot');
     possessionTick(match);
 
     expect(match.ball.kind).toBe('shot');
@@ -172,7 +174,7 @@ describe('m1.18 authored one-moment powers', () => {
     const before = { ...match.players[marker].pos };
     activatePower(match, hero, 1);
     expect(match.players[marker].pos).toEqual(before);
-    expect(dribbleBonus(match, carrier)).toBe(0);
+    expect(dribbleBonus(match, carrier).d64Mod).toBe(0);
     expect(match.decoyClones[0]).toMatchObject({ ownerIdx: hero, sourceIdx: 9 });
     expect(match.decoyClones[0]?.def.role).toBe('FWD');
     expect(match.decoyClones[0]?.def.attrs).toEqual(match.players[9].def.attrs);
@@ -571,7 +573,7 @@ describe('m1.18 authored one-moment powers', () => {
     match.players[hero].pos = { x: 3400, y: 4000 };
     match.players[hero].powerState = { kind: 'winding', untilTick: 15, strength: 1 };
     expect(attackingDecision(match, hero).kind).toBe('carry');
-    expect(dribbleBonus(match, hero)).toBeGreaterThan(0);
+    expect(dribbleBonus(match, hero).d64Mod).toBeGreaterThan(0);
   });
 
   it('keeps Fire Torch acquisition visible and stable while tiers change marker count', () => {
@@ -1094,7 +1096,8 @@ describe('m1.18 authored one-moment powers', () => {
       match.players[hero].pos = { x: 3400, y: 10000 };
       match.ball = {
         kind: 'shot', pos: { x: 3400, y: 9800 }, vel: { x: 0, y: 300 }, by: 20,
-        power: 1, targetX: 3400, z: 0, vz: 0, trajectory: 'driven', keeperChecked: false,
+        shotStrengthD64: 0, power: 1, targetX: 3400, z: 0, vz: 0,
+        trajectory: 'driven', keeperChecked: false,
       };
       match.rng = () => 0;
       powerTick(match);
@@ -1119,12 +1122,12 @@ describe('m1.18 authored one-moment powers', () => {
       const auto = activateAt(power, 0.85, 1, 0);
       const manual = activateAt(power, 1, 1, 0);
       const tier3 = activateAt(power, 1, 3, 0);
-      const autoBonus = keeperSaveBonus(auto.match, auto.hero);
-      const manualBonus = keeperSaveBonus(manual.match, manual.hero);
-      const tier3Bonus = keeperSaveBonus(tier3.match, tier3.hero);
-      expect(autoBonus).toBe(expected.auto);
-      expect(manualBonus).toBe(expected.manual);
-      expect(tier3Bonus).toBe(expected.tier3);
+      const autoBonus = keeperSaveBonus(auto.match, auto.hero).d64Mod;
+      const manualBonus = keeperSaveBonus(manual.match, manual.hero).d64Mod;
+      const tier3Bonus = keeperSaveBonus(tier3.match, tier3.hero).d64Mod;
+      expect(autoBonus).toBe(expected.auto * 64);
+      expect(manualBonus).toBe(expected.manual * 64);
+      expect(tier3Bonus).toBe(expected.tier3 * 64);
       expect(manualBonus - autoBonus).toBeGreaterThan(0);
       expect(tier3Bonus - manualBonus).toBeGreaterThanOrEqual(manualBonus - autoBonus);
     }
@@ -1187,8 +1190,8 @@ describe('m1.18 authored one-moment powers', () => {
     manual.match.players[manual.hero].def.powerTier = 3;
     activatePower(auto.match, auto.hero, 0.85);
     activatePower(manual.match, manual.hero, 1);
-    expect(dribbleBonus(auto.match, auto.hero)).toBe(22);
-    expect(dribbleBonus(manual.match, manual.hero)).toBe(32);
+    expect(dribbleBonus(auto.match, auto.hero).d64Mod).toBe(1408);
+    expect(dribbleBonus(manual.match, manual.hero).d64Mod).toBe(2048);
   });
 
   it('makes every authored attacking finish stronger from auto to tap to Tier 3', () => {
@@ -1212,8 +1215,8 @@ describe('m1.18 authored one-moment powers', () => {
       const tier3 = profile(power, 1, 3);
       expect(manual.aimScale).toBeLessThan(auto.aimScale);
       expect(tier3.aimScale).toBeLessThan(manual.aimScale);
-      expect(manual.powerBonus).toBeGreaterThan(auto.powerBonus);
-      expect(tier3.powerBonus).toBeGreaterThan(manual.powerBonus);
+      expect(manual.powerD64Mod).toBeGreaterThan(auto.powerD64Mod);
+      expect(tier3.powerD64Mod).toBeGreaterThan(manual.powerD64Mod);
     }
   });
 

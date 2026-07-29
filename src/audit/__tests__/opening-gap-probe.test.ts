@@ -74,9 +74,28 @@ describeProbe('opening gap', () => {
       });
       lines.push('  per attribute (user / field / gap): '
         + fieldAttrs.map(([k, v]) => `${k} ${userAttrs[k].toFixed(1)}/${v.toFixed(1)}/${(v - userAttrs[k]).toFixed(1)}`).join('  '));
+      const rivalTeams = ids.filter(id => id !== state.userClubId).map(id => teams[id]);
+      lines.push(`  keeper REF user ${userTeamKeeperRef(teams[state.userClubId])}`
+        + ` / field ${mean(rivalTeams.map(userTeamKeeperRef)).toFixed(1)}`
+        + ` | max SHO user ${maxShooting(teams[state.userClubId])}`
+        + ` / field ${mean(rivalTeams.map(maxShooting)).toFixed(1)}`);
     }
     // eslint-disable-next-line no-console
     console.log(lines.join('\n'));
     expect(KEYS.length).toBe(7);
   }, 600_000);
 });
+
+function userTeamKeeperRef(team: TeamDef): number {
+  const keeper = team.players.find(player => player.role === 'GK');
+  if (keeper === undefined) throw new Error(`team ${team.id} has no goalkeeper`);
+  return keeper.attrs.ref;
+}
+
+function maxShooting(team: TeamDef): number {
+  return Math.max(...team.players.filter(player => player.role !== 'GK').map(player => player.attrs.sho));
+}
+
+function mean(values: readonly number[]): number {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}

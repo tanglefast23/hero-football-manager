@@ -2,6 +2,7 @@ import { GAME_SCHEMA_VERSION, type GameState } from '../game/types';
 import { ENGINE_VERSION } from '../sim/match';
 import { InvalidSaveFileError, UnsupportedGameSchemaError } from './errors';
 import { parseStoredGameState, serializeGameState } from './game-state-codec';
+import type { RawStoredCareer } from './career-repository';
 
 /**
  * Marks a file as one of ours. A foreign JSON file is refused on this field
@@ -57,6 +58,12 @@ export interface CareerSaveExportResult {
   readonly uri: string;
   /** False when no `shareFile` was injected, so the file exists but was not offered. */
   readonly shared: boolean;
+}
+
+export interface RawCareerSaveExportOptions {
+  raw: RawStoredCareer;
+  writeFile: (fileName: string, contents: string) => Promise<string>;
+  shareFile?: (uri: string) => Promise<void>;
 }
 
 /** The file-system half of an import, plus the one write it is allowed to make. */
@@ -162,6 +169,20 @@ export async function exportCareerSave(
 ): Promise<CareerSaveExportResult> {
   const fileName = careerSaveFileName(options.state);
   const uri = await options.writeFile(fileName, encodeCareerSaveFile(options.state));
+  if (options.shareFile === undefined) return { fileName, uri, shared: false };
+  await options.shareFile(uri);
+  return { fileName, uri, shared: true };
+}
+
+/**
+ * Recovery export for a save this build intentionally cannot decode. The exact
+ * SQLite JSON text is wrapped as text, never parsed or migrated.
+ */
+export async function exportRawCareerSave(
+  options: RawCareerSaveExportOptions,
+): Promise<CareerSaveExportResult> {
+  const fileName = `hero-football-manager-raw-schema-${options.raw.schemaVersion}.json`;
+  const uri = await options.writeFile(fileName, options.raw.stateJson);
   if (options.shareFile === undefined) return { fileName, uri, shared: false };
   await options.shareFile(uri);
   return { fileName, uri, shared: true };

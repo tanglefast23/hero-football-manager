@@ -35,17 +35,34 @@ Passes and shots **travel through space** — a pass is a moving ball that can b
 
 Six visible stats, stored from **1–999**: **PAC** (pace) · **SHO** (shooting; GKs show **REF** reflexes instead) · **PAS** (passing) · **DEF** (defending) · **TEC** (technique/dribbling) · **STA** (stamina). The current overall rating averages those six role-relevant raw stats. Potential is an E− through A+ training-speed grade; it is not a match stat or a player ceiling. Morale, condition and consistency remain separate. (Every player stores all 7 fields — GKs' SHO and outfielders' REF are unused filler.)
 
-Ratings from 1–99 keep their original match behavior exactly. Above 99, the match engine converts the visible raw rating to a diminishing effective rating: raw 200 is generally effective 116, raw 500 is effective 132, and raw 999 is effective 140. PAC uses a separate movement curve: ordinary career development stays around a **38% soft target**, while the rare final stretch from raw 930 to 999 can reach effective PAC 168. This ensures every stat continues to matter while bounding probabilities and animation speed. A sensibly trained star is targeted to become about **25% faster than typical same-division opposition** before promotion; 999 PAC is the **60% trained-only endpoint** versus a typical 90-PAC D1 opponent. Superpowers are applied after this conversion and are explicit exceptions: an active Super Speed hero can exceed the trained movement endpoint, and other authored powers may similarly exceed ordinary shooting, defense, passing, stamina, or goalkeeping limits.
+The number shown is the number used. Contests and shot execution compare ratings as
+**ratios** in fixed-point log space: 400 vs 500 carries the same advantage as 40 vs
+50, without compressing either displayed rating. Condition contributes once as a
+scale-free modifier (100% down to a 75% ability floor), and a career player's stored
+condition now carries into kickoff and substitute entry.
+
+PAC and STA are bounded physical domains rather than contests. PAC reads a committed,
+strictly increasing 1/128-speed table: PAC 73 preserves the current D5 speed of 113,
+and PAC 999 is no more than 2× PAC 1 before powers, tactics, carrier slowdown, or
+Energy Use. Sub-pixel movement residue means a real table gain eventually changes
+pitch geometry even when the rendered coordinate is an integer. STA reads committed
+1/1000 drain tables that reproduce the established fatigue curve at all 999 ratings.
+Superpowers apply afterward as typed ratio, multiplier, geometry, or time effects;
+they never add invisible raw stat points.
 
 Contested actions resolve as opposed rolls through a logistic curve (in plain terms: the better your stat vs. theirs, the more often you win, but upsets always possible):
 
 ```
-P(success) = 1 / (1 + e^(-(attacker_stat − defender_stat + situation_mod) / 12))
+d64 = LOG64[attacker] + condition64 − LOG64[defender] − condition64 + authored_d64_mod
+P(success) = interpolated logistic table at d64
 ```
 
 - **Dribble past**: TEC (+PAC bonus if sprinting) vs. DEF.
 - **Pass**: PAS vs. distance/pressure threshold; interception check vs. nearest defender's DEF.
-- **Shot**: SHO vs. a difficulty score (distance, angle, pressure) produces shot power → GK save roll (REF) modified by **GK Resolve** (below).
+- **Shot**: keeper-relative SHO determines bounded aim and threat; conditioned SHO
+  plus a fixed-point distance/power effect produces shot strength → a symmetric REF
+  save roll modified by **GK Resolve** (below). The event's displayed power is a
+  projection only and never feeds the save roll back.
 - **Stamina**: condition drains through movement and exhausting actions; low STA multiplies that cost, so weak beginner players tire materially faster. The effect continues above 99: compared with 90 STA, 200 STA drains about 18% slower, 500 about 30% slower, and 999 about 36% slower. Drain is floored at 65% of the ordinary cost, so even a maxed player tires and substitutions remain relevant. Low condition scales all stats down by up to −25% late in the match. In the opening squads, an unchanged Starting XI playing on Balanced is tuned to finish across **0–60%**, with its worst player reaching approximately zero only late in the match.
 
 ### Playstyle, Energy Use, and fatigue
@@ -60,7 +77,7 @@ These are independent coaching axes. **Playstyle** controls tactical intent — 
 
 The All Out movement bonus fades with current condition and reaches no bonus at zero, so an exhausted player cannot keep a free speed advantage. Every match starts Balanced. User changes in watched matches are timestamped replay inputs; automatic teams make deterministic, RNG-free choices from the current score, time, lineups, bench, substitutions used, and team condition.
 
-Each team may use all five named bench players, for a maximum of five one-way substitutions; a player who leaves cannot return. The watched player's substitutions remain manual unless Auto Subs is enabled. The opponent evaluates at roughly 50, 60, 70, 80, and 85 minutes and may make at most one same-role outfield substitution at each checkpoint. It selects the most tired eligible outfielder at or below 60%, then ordinarily substitutes only when the best fresh reserve in that role is worth at least three more condition-adjusted role points. Red energy (`0–30`) is an emergency: on the next simulation tick, automatic coaching uses any available same-role fresh reserve regardless of that ordinary value margin. It never spends a routine fatigue substitution on the goalkeeper. Quick Result applies this same policy to both teams. Automatic Energy Use is reconsidered at roughly 65, 75, and 85 minutes: a team averaging 35% condition or less chooses Save Energy whenever no usable automatic fatigue substitution remains — whether the limit is reached or bench, role, or value constraints prevent one. Otherwise a trailing team chooses All Out, a leader chooses Save Energy from minute 75 onward, and a level team stays Balanced. Automatic coaching is regenerated from match state during replay rather than recorded as a fake user input.
+Each team may use all five named bench players, for a maximum of five one-way substitutions; a player who leaves cannot return. The watched player's substitutions remain manual unless Auto Subs is enabled. The opponent evaluates at roughly 50, 60, 70, 80, and 85 minutes and may make at most one same-role outfield substitution at each checkpoint. It selects the most tired eligible outfielder at or below 60%, then ordinarily substitutes only when the best fresh reserve in that role is worth about **6% more** after condition (the old 53-vs-50 D5 anchor, now ratio-based at every scale). Red energy (`0–30`) is an emergency: on the next simulation tick, automatic coaching uses any available same-role reserve regardless of that ordinary value margin. It never spends a routine fatigue substitution on the goalkeeper. Quick Result applies this same policy to both teams. Automatic Energy Use is reconsidered at roughly 65, 75, and 85 minutes: a team averaging 35% condition or less chooses Save Energy whenever no usable automatic fatigue substitution remains — whether the limit is reached or bench, role, or value constraints prevent one. Otherwise a trailing team chooses All Out, a leader chooses Save Energy from minute 75 onward, and a level team stays Balanced. Automatic coaching is regenerated from match state during replay rather than recorded as a fake user input.
 
 ### GK Resolve (the anti-frustration keystone)
 

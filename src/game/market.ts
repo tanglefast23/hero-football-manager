@@ -2,11 +2,36 @@ import { mulberry32 } from '../sim/rng';
 import type { Attrs, PowerId, Role } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import coachIdentityData from './coach-identities.json';
+import {
+  DIVISION_SUPPORT_STRENGTHS,
+  type DivisionLevel,
+} from './pyramid';
 
 const UINT32_MAX = 4294967295;
 const ATTR_NAMES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 const OUT_FIELD_ATTRS = ['pac', 'sho', 'pas', 'def', 'tec', 'sta'] as const;
 const GOALKEEPER_ATTRS = ['pac', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
+/**
+ * A support-level player in each division is priced against that division's
+ * actual income, rather than against an obsolete universal raw-stat baseline.
+ * The ladder still makes elite players more expensive, while a wholesale
+ * rebase of every rating no longer multiplies prices by accident.
+ */
+export const DIVISION_TRANSFER_VALUE_ANCHORS: Readonly<Record<DivisionLevel, number>> = {
+  1: 32_000,
+  2: 22_000,
+  3: 14_500,
+  4: 9_500,
+  5: 6_500,
+};
+/** Weekly wage for a support-level generated player in each division. */
+export const DIVISION_WEEKLY_WAGE_ANCHORS: Readonly<Record<DivisionLevel, number>> = {
+  1: 700,
+  2: 500,
+  3: 340,
+  4: 230,
+  5: 150,
+};
 
 export type PlayerPersonality =
   | 'FIERY'
@@ -274,15 +299,22 @@ export interface TransferQuote {
 }
 
 /**
- * Whole-money valuation. Six role-relevant stats set the base, then age,
- * potential, power tier, contract control, and the selling division adjust it.
+ * Whole-money valuation. Six role-relevant stats set a quadratic premium
+ * relative to the selling division's support band, then age, potential, power
+ * tier and contract control adjust it.
  */
 export function playerValuation(player: ValuationPlayer, sellingClubDivision: number): number {
   validateValuationPlayer(player);
   validateDivision(sellingClubDivision);
+  const division = sellingClubDivision as DivisionLevel;
   const attributes = player.role === 'GK' ? GOALKEEPER_ATTRS : OUT_FIELD_ATTRS;
   const total = attributes.reduce((sum, attribute) => sum + player.attrs[attribute], 0);
-  let value = Math.max(1000, (total - 180) * 80);
+  const supportTotal = DIVISION_SUPPORT_STRENGTHS[division] * attributes.length;
+  let value = checkedRound(
+    DIVISION_TRANSFER_VALUE_ANCHORS[division] * total * total
+      / (supportTotal * supportTotal),
+    'division-anchored player valuation',
+  );
   value = scaleByPercent(value, ageValuePercent(player.age), 'age-adjusted player valuation');
   value = scaleByPercent(
     value,
@@ -301,12 +333,33 @@ export function playerValuation(player: ValuationPlayer, sellingClubDivision: nu
     [60, 85, 100, 115][player.contractSeasonsRemaining],
     'contract-adjusted player valuation',
   );
-  value = scaleByPercent(
-    value,
-    [0, 130, 115, 100, 90, 80][sellingClubDivision],
-    'division-adjusted player valuation',
-  );
   return Math.max(500, value);
+}
+
+/**
+ * Rebased generated-player wage curve. Seven-stat average is compared with the
+ * division's support rating, so rival growth and star premiums remain visible
+ * without charging the user twice for the ladder's larger raw numbers.
+ */
+export function generatedPlayerWeeklyWage(
+  attrs: Readonly<Attrs>,
+  divisionValue: number,
+): number {
+  validateDivision(divisionValue);
+  for (const attribute of ATTR_NAMES) {
+    const value = attrs[attribute];
+    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PLAYER_ATTRIBUTE) {
+      throw new Error(`${attribute} must be an integer from 1 to ${MAX_PLAYER_ATTRIBUTE}`);
+    }
+  }
+  const division = divisionValue as DivisionLevel;
+  const total = ATTR_NAMES.reduce((sum, attribute) => sum + attrs[attribute], 0);
+  const wage = checkedRound(
+    DIVISION_WEEKLY_WAGE_ANCHORS[division] * total
+      / (DIVISION_SUPPORT_STRENGTHS[division] * ATTR_NAMES.length),
+    'division-anchored weekly wage',
+  );
+  return Math.max(150, wage);
 }
 
 /** Asking club quote: 105-125% of deterministic market value. */

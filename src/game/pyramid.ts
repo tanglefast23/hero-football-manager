@@ -185,10 +185,10 @@ const SQUAD_ROLES: readonly Role[] = [
 export const DIVISION_STRENGTH_BANDS: Readonly<
   Record<DivisionLevel, readonly [minimum: number, maximum: number]>
 > = {
-  1: [80, 90],
-  2: [70, 80],
-  3: [60, 70],
-  4: [50, 60],
+  1: [223, 248],
+  2: [178, 203],
+  3: [135, 151],
+  4: [90, 102],
   5: [40, 50],
 };
 /**
@@ -198,31 +198,51 @@ export const DIVISION_STRENGTH_BANDS: Readonly<
  * moving at elite pace.
  */
 export const DIVISION_SUPPORT_STRENGTHS: Readonly<Record<DivisionLevel, number>> = {
-  1: 48,
-  2: 46,
-  3: 44,
-  4: 42,
+  1: 214,
+  2: 175,
+  3: 130,
+  4: 88,
   5: 40,
+};
+/** Honest raw focus ratings for each division's DEF/MID/FWD specialist. */
+export const DIVISION_STAR_FOCUS_RATINGS: Readonly<Record<DivisionLevel, number>> = {
+  1: 442,
+  2: 356,
+  3: 268,
+  4: 180,
+  5: 94,
+};
+/**
+ * REF is authored explicitly now that keepers use the same ratio contest as
+ * every outfielder. It trails the division's star SHO so finishers retain the
+ * edge, while staying high enough to prevent every peer match becoming a rout.
+ */
+export const DIVISION_GOALKEEPER_REF_RATINGS: Readonly<Record<DivisionLevel, number>> = {
+  1: 376,
+  2: 303,
+  3: 228,
+  4: 153,
+  5: 80,
 };
 /**
  * A typical full-condition player's visual pace by division. D1 deliberately
- * lands at 90: universal-max PAC 999 moves 38% faster than that comparison.
+ * lands at 216: universal-max PAC 999 stays inside the ordinary 2x speed rail.
  */
 export const DIVISION_TYPICAL_PACE: Readonly<Record<DivisionLevel, number>> = {
-  1: 90,
-  2: 88,
-  3: 82,
-  4: 78,
+  1: 216,
+  2: 176,
+  3: 132,
+  4: 90,
   5: 72,
 };
 const GENERATED_STAR_SLOTS = new Set([2, 7, 12]);
 /**
- * Two survivable opponents installed for the user's D4 season. These
- * full-squad targets produce roughly 46-48 effective starting-XI strength at
- * the production match boundary, while leaving D4's established middle and
- * top untouched.
+ * Two survivable opponents installed for the user's first D4 season. These
+ * relegation strugglers sit below a promoted D5 champion so an ordinary
+ * pre-season can produce a real survival edge; D4's established 90–102
+ * middle/top and relegated D3 giants stay untouched.
  */
-export const DIVISION_FOUR_RELEGATION_PACK_STRENGTHS = [46, 47] as const;
+export const DIVISION_FOUR_RELEGATION_PACK_STRENGTHS = [39, 40] as const;
 const ARCHETYPES: readonly PlayerArchetype[] = [
   'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
 ];
@@ -265,9 +285,10 @@ export function generateLeaguePyramid(careerSeed: number): LeaguePyramid {
     for (let clubIndex = 0; clubIndex < CLUBS_PER_DIVISION; clubIndex += 1) {
       const id = `d${division}-club-${pad2(clubIndex + 1)}`;
       const targetStrength = targetStrengths[clubIndex];
-      const squad = tuneSquadToStrength(
+      const squad = tuneGeneratedSquadToStrength(
         generateSquad(id, division, targetStrength, random),
         targetStrength,
+        division,
       );
       clubs.push({
         id,
@@ -324,7 +345,7 @@ export function applyDivisionFourRelegationPack(
             if (club.squad.length === 0) {
               throw new Error(`Division 4 relegation club ${club.id} has no squad`);
             }
-            const squad = tuneSquadToStrength(club.squad, targetStrength);
+            const squad = tuneRelegationPackSquad(club.squad, targetStrength);
             return {
               ...club,
               squadStrength: averageSquadStrength(squad),
@@ -454,14 +475,6 @@ export function advanceNationalCup(
     cup.seedDivisionByClubId,
   );
   return { ...cup, rounds: [...rounds, nextRound] };
-}
-
-/** Opponents gain one raw rating point every two completed seasons, capped at +8. */
-export function opponentStrengthForSeason(baseStrength: number, season: number): number {
-  validateRating(baseStrength, 'base opponent strength');
-  validateSeason(season);
-  const seasonIncrease = Math.min(8, Math.floor((season - 1) / 2));
-  return Math.min(MAX_PLAYER_ATTRIBUTE, baseStrength + seasonIncrease);
 }
 
 export function trainingMultiplierForAge(age: number): 1.5 | 1 | 0.6 {
@@ -662,9 +675,10 @@ function generateSquad(
   targetStrength: number,
   random: Rng,
 ): PyramidPlayer[] {
-  const supportStrength = DIVISION_SUPPORT_STRENGTHS[division];
+  const supportStrength = divisionSupportStrengthForTarget(division, targetStrength);
   const typicalPace = DIVISION_TYPICAL_PACE[division];
   const focusedStarAttribute = divisionStarFocusedAttribute(division, targetStrength);
+  const goalkeeperRef = DIVISION_GOALKEEPER_REF_RATINGS[division];
   return SQUAD_ROLES.map((role, playerIndex) => {
     const age = integerRoll(random, 18, 32);
     return {
@@ -679,12 +693,14 @@ function generateSquad(
             role,
             random,
             typicalPace,
+            goalkeeperRef,
           )
         : generateAttributes(
             supportStrength + integerRoll(random, -3, 3),
             role,
             random,
             typicalPace,
+            goalkeeperRef,
           ),
       archetype: ARCHETYPES[Math.floor(random() * ARCHETYPES.length)],
       personality: PERSONALITIES[Math.floor(random() * PERSONALITIES.length)],
@@ -700,17 +716,29 @@ function generateSquad(
 
 /**
  * Raw value used for a generated club's three position-specialist attributes.
- * The other thirteen squad members remain near the division support strength,
- * while the club's existing authored average remains unchanged.
+ * It is explicit rather than back-solved from squad strength: rebasing support
+ * can therefore never collapse a star to one through a negative solve.
  */
 export function divisionStarFocusedAttribute(
   division: DivisionLevel,
   targetClubStrength: number,
 ): number {
   validateRating(targetClubStrength, 'target squad strength');
-  const support = DIVISION_SUPPORT_STRENGTHS[division];
-  const starOverall = Math.round((targetClubStrength * SQUAD_ROLES.length - support * 13) / 3);
-  return clampRating(starOverall * 2 - support);
+  return DIVISION_STAR_FOCUS_RATINGS[division];
+}
+
+/**
+ * Solves only the support value needed to place a club inside its strength
+ * band while leaving its three explicit stars untouched. A focused player's
+ * role overall is approximately halfway between support and star, so:
+ *   club = (13*support + 3*(support+star)/2) / 16.
+ */
+function divisionSupportStrengthForTarget(
+  division: DivisionLevel,
+  targetClubStrength: number,
+): number {
+  const star = DIVISION_STAR_FOCUS_RATINGS[division];
+  return clampRating(Math.round((32 * targetClubStrength - 3 * star) / 29));
 }
 
 function generateAttributes(
@@ -718,6 +746,7 @@ function generateAttributes(
   role: Role,
   random: Rng,
   paceTarget = target,
+  goalkeeperRefTarget = target,
 ): Attrs {
   const jitter = () => integerRoll(random, -3, 3);
   const nudges: Readonly<Record<Role, Attrs>> = {
@@ -734,7 +763,11 @@ function generateAttributes(
     def: clampRating(target + roleNudges.def + jitter()),
     tec: clampRating(target + roleNudges.tec + jitter()),
     sta: clampRating(target + roleNudges.sta + jitter()),
-    ref: clampRating(target + roleNudges.ref + jitter()),
+    ref: clampRating(
+      role === 'GK'
+        ? goalkeeperRefTarget + jitter()
+        : target + roleNudges.ref + jitter(),
+    ),
   };
 }
 
@@ -744,17 +777,92 @@ function generateFocusedAttributes(
   role: Role,
   random: Rng,
   paceTarget: number,
+  goalkeeperRefTarget: number,
 ): Attrs {
-  const attrs = generateAttributes(supportTarget, role, random, paceTarget);
+  const attrs = generateAttributes(
+    supportTarget,
+    role,
+    random,
+    paceTarget,
+    goalkeeperRefTarget,
+  );
   for (const attribute of POSITION_TRAINING_ATTRIBUTES[role]) {
     attrs[attribute] = clampRating(focusedTarget + integerRoll(random, -2, 2));
   }
   return attrs;
 }
 
-function averageSquadStrength(squad: readonly PyramidPlayer[]): number {
+export function averageSquadStrength(squad: readonly PyramidPlayer[]): number {
   const total = squad.reduce((sum, player) => sum + roleOverall(player.role, player.attrs), 0);
   return Math.round(total / squad.length);
+}
+
+/**
+ * Tunes an ordinary generated club while preserving the division's explicit
+ * PAC, specialist-focus and keeper-REF tables.
+ */
+function tuneGeneratedSquadToStrength(
+  squad: readonly PyramidPlayer[],
+  targetStrength: number,
+  division: DivisionLevel,
+): PyramidPlayer[] {
+  validateRating(targetStrength, 'target squad strength');
+  let tuned = squad.map(clonePlayer);
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const delta = targetStrength - averageSquadStrength(tuned);
+    if (delta === 0) return tuned;
+    tuned = tuned.map((player, playerIndex) => {
+      const protectedAttributes = new Set<keyof Attrs>(['pac']);
+      if (GENERATED_STAR_SLOTS.has(playerIndex)) {
+        for (const attribute of POSITION_TRAINING_ATTRIBUTES[player.role]) {
+          protectedAttributes.add(attribute);
+        }
+      }
+      if (player.role === 'GK') protectedAttributes.add('ref');
+      return {
+        ...player,
+        attrs: mapAttrsByKey(player.attrs, (attribute, value) => (
+          protectedAttributes.has(attribute) ? value : clampRating(value + delta)
+        )),
+      };
+    });
+  }
+  if (averageSquadStrength(tuned) !== targetStrength) {
+    throw new Error(`could not tune generated Division ${division} club to ${targetStrength}`);
+  }
+  return tuned;
+}
+
+/**
+ * The safety pack is a whole-club exception, not an ordinary D4 generator
+ * target. Scale PAC, specialists and keeper REF with the rest of the squad so
+ * its displayed safety-pack strength is also the team that reaches the match
+ * engine.
+ */
+function tuneRelegationPackSquad(
+  squad: readonly PyramidPlayer[],
+  targetStrength: number,
+): PyramidPlayer[] {
+  if (squad.length === 0) throw new Error('cannot tune an empty relegation-pack squad');
+  const startingStrength = averageSquadStrength(squad);
+  let tuned = squad.map(player => ({
+    ...clonePlayer(player),
+    attrs: mapAttrs(player.attrs, value => clampRating(
+      Math.round(value * targetStrength / startingStrength),
+    )),
+  }));
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const delta = targetStrength - averageSquadStrength(tuned);
+    if (delta === 0) return tuned;
+    tuned = tuned.map(player => ({
+      ...player,
+      attrs: mapAttrs(player.attrs, value => clampRating(value + delta)),
+    }));
+  }
+  if (averageSquadStrength(tuned) !== targetStrength) {
+    throw new Error(`could not tune Division 4 relegation club to ${targetStrength}`);
+  }
+  return tuned;
 }
 
 export function tuneSquadToStrength<T extends Pick<PyramidPlayer, 'role' | 'attrs'>>(
@@ -1043,6 +1151,21 @@ function mapAttrs(attrs: Attrs, transform: (value: number) => number): Attrs {
     tec: transform(attrs.tec),
     sta: transform(attrs.sta),
     ref: transform(attrs.ref),
+  };
+}
+
+function mapAttrsByKey(
+  attrs: Attrs,
+  transform: (attribute: keyof Attrs, value: number) => number,
+): Attrs {
+  return {
+    pac: transform('pac', attrs.pac),
+    sho: transform('sho', attrs.sho),
+    pas: transform('pas', attrs.pas),
+    def: transform('def', attrs.def),
+    tec: transform('tec', attrs.tec),
+    sta: transform('sta', attrs.sta),
+    ref: transform('ref', attrs.ref),
   };
 }
 

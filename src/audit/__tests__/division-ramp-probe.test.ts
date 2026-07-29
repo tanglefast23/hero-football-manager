@@ -44,10 +44,11 @@ import {
   playerAttributeCaps,
   resolvePostMatchAwakening,
   resolveTrainingDrillForPath,
+  roleOverall,
   selectCareerLicensedHeroes,
   startNextSeason,
   trainPlayerInstantly,
-  TRAINING_PATHS,
+  POSITION_TRAINING_ATTRIBUTES,
 } from '../../game';
 import { renewCareerPlayer } from '../../game/squad';
 import { buildCareerFacility, upgradeCareerFacility } from '../../game/management';
@@ -59,7 +60,6 @@ const content = loadLaunchContent();
 
 const SEEDS = [4_000_000, 20_260_725];
 const SEASONS = 2;
-const TRAIN_CONDITION_FLOOR = Number(process.env.TRAIN_CONDITION_FLOOR ?? '0');
 const AWAKENING_POWER_IDS = content.powers.powers.map(power => power.id);
 const AWAKENING_TRIGGER_IDS = content.onboarding.triggers.map(trigger => trigger.id);
 const AWAKENING_TUNING = {
@@ -75,58 +75,56 @@ function newCareer(seed: number): GameState {
 }
 
 /**
- * Spends the ENTIRE TP bank every week, across every eligible player.
- *
- * An earlier version of this probe capped at three drills a week, copied from
- * active-manager-balance's "sustainable cadence" helper. That cap does not exist
- * in the game: trainPlayerInstantly gates on TP cost, injury, and the
- * TRAINING_PRIORITY debt only, and pushing condition below
- * OVERTRAINING_CONDITION_THRESHOLD is an injury GAMBLE, not a block. Capping the
- * probe therefore under-trained the squad and made development look weaker than
- * it is. Drill spend is now limited only by the bank, which is what the player
- * actually experiences.
+ * Rotates the available weekly TP across one starting GK, DEF, MID and FWD.
+ * The keeper focuses REF; outfielders rotate their natural-role attributes.
+ * This is the owner-approved "trains well" profile used to size the rebased
+ * ladder: concentrated, sustainable development rather than spending the whole
+ * bank indiscriminately across reserves and irrelevant attributes.
  */
 function trainWithWholeBank(state: GameState): { state: GameState; drills: number; spent: number } {
   let next = state;
   let drills = 0;
   let spent = 0;
-  // Re-rank after every tap: a drill changes headroom, condition and the bank.
-  for (let guard = 0; guard < 200; guard += 1) {
-    const roster = next.players.filter(p => (
-      p.clubId === next.userClubId
-      && (p.injuryWeeks ?? 0) === 0
-      // Sensible play, not maximal play: drills cost condition, and condition
-      // drives movement speed, so training a tired player into an injury makes
-      // the match XI worse however good its attributes look.
-      && (p.condition ?? 100) >= TRAIN_CONDITION_FLOOR
-    ));
-    const candidates = roster.flatMap(p => {
-      const caps = playerAttributeCaps(p);
-      return TRAINING_PATHS
-        .map(path => ({
-          playerId: p.id,
-          pathId: path.pathId,
-          room: caps[path.attribute] - p.attrs[path.attribute],
-          condition: p.condition ?? 100,
-        }))
-        .filter(c => c.room > 0);
-    }).sort((a, b) => b.condition - a.condition || b.room - a.room);
+  const lineup = next.lineups.find(candidate => candidate.clubId === next.userClubId);
+  if (lineup === undefined) throw new Error('the ramp probe needs a user lineup');
+  const starters = lineup.playerIds
+    .map(id => next.players.find(player => player.id === id)!)
+    .filter(player => player.injuryWeeks === 0);
+  const core = (['GK', 'DEF', 'MID', 'FWD'] as const).map(role => starters
+    .filter(player => player.role === role)
+    .sort((left, right) => (
+      roleOverall(right.role, right.attrs) - roleOverall(left.role, left.attrs)
+      || left.id.localeCompare(right.id)
+    ))[0]).filter(player => player !== undefined);
+  const pathByAttribute = {
+    pac: 'sprints',
+    sho: 'finishing',
+    pas: 'rondo',
+    def: 'duels',
+    tec: 'first-touch',
+    sta: 'circuit',
+    ref: 'keeper-drills',
+  } as const;
 
-    let tapped = false;
-    for (const c of candidates) {
-      const cost = resolveTrainingDrillForPath(next, c.pathId).tpCost;
-      if (cost > next.trainingPoints) continue;
-      try {
-        next = trainPlayerInstantly(next, c.playerId, c.pathId).state;
-      } catch {
-        continue; // a TRAINING_PRIORITY debt owns the next drills
-      }
-      drills += 1;
-      spent += cost;
-      tapped = true;
-      break;
+  const rotation = (next.season * 30 + next.week) % core.length;
+  const trainingOrder = [...core.slice(rotation), ...core.slice(0, rotation)];
+  for (let index = 0; index < trainingOrder.length; index += 1) {
+    const player = trainingOrder[index];
+    const attributes = player.role === 'GK'
+      ? (['ref'] as const)
+      : POSITION_TRAINING_ATTRIBUTES[player.role];
+    const attribute = attributes[(next.season * 30 + next.week + index) % attributes.length];
+    if (player.attrs[attribute] >= playerAttributeCaps(player)[attribute]) continue;
+    const pathId = pathByAttribute[attribute];
+    const cost = resolveTrainingDrillForPath(next, pathId).tpCost;
+    if (cost > next.trainingPoints) continue;
+    try {
+      next = trainPlayerInstantly(next, player.id, pathId).state;
+    } catch {
+      continue; // a TRAINING_PRIORITY debt owns the next drills
     }
-    if (!tapped) break;
+    drills += 1;
+    spent += cost;
   }
   return { state: next, drills, spent };
 }
@@ -371,6 +369,20 @@ describeProbe('division ramp', () => {
           ? `; first promotion in season ${escaped.join(',')}`
           : '; NOBODY escaped D5'),
       );
+      if (
+        (train && (escaped.length !== SEEDS.length || Math.max(...escaped) > 2))
+        || (!train && escaped.length !== 0)
+      ) {
+        // Keep the diagnostic evidence visible when an acceptance assertion fails.
+        // eslint-disable-next-line no-console
+        console.log(lines.join('\n'));
+      }
+      if (train) {
+        expect(escaped).toHaveLength(SEEDS.length);
+        expect(Math.max(...escaped)).toBeLessThanOrEqual(2);
+      } else {
+        expect(escaped).toHaveLength(0);
+      }
     }
     // eslint-disable-next-line no-console
     console.log(lines.join('\n'));

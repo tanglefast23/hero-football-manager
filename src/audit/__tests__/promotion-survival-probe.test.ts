@@ -167,12 +167,18 @@ describe('promoted-club survival probe', () => {
     expect(runs).toHaveLength(SEEDS);
     expect(runs.every(run => run.prepared.played === run.control.played)).toBe(true);
     expect(runs.every(run => run.prepared.preWindowStrength > 0)).toBe(true);
+    report(runs);
     if (D4_WEEKS === FINAL_SEASON_WEEK) {
       expect(runs.every(run => run.prepared.completed && run.control.completed)).toBe(true);
       expect(runs.every(run => run.prepared.played === 18)).toBe(true);
+      expect(runs.filter(run => run.prepared.signed).length / runs.length).toBeGreaterThanOrEqual(0.8);
+      expect(runs.filter(run => run.prepared.position <= 8).length / runs.length).toBeGreaterThan(0.5);
+      const preparedPositions = runs
+        .map(run => run.prepared.position)
+        .sort((left, right) => left - right);
+      expect(preparedPositions[Math.floor(preparedPositions.length / 2)]).toBeLessThanOrEqual(8);
     }
 
-    report(runs);
   }, 1_800_000);
 });
 
@@ -714,7 +720,7 @@ function trainingGain(state: GameState, player: CareerPlayer, pathId: string): n
   const attrs: Attrs = { ...player.attrs };
   for (const [key, gain] of Object.entries(drill.gains)) {
     const attribute = key as keyof Attrs;
-    attrs[attribute] = Math.min(99, attrs[attribute] + (gain ?? 0));
+    attrs[attribute] = Math.min(999, attrs[attribute] + (gain ?? 0));
   }
   return roleOverall(player.role, attrs) - roleOverall(player.role, player.attrs);
 }

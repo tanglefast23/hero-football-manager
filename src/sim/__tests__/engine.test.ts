@@ -2,9 +2,13 @@ import { createMatch, runMatch, tick } from '../match';
 import {
   BEATEN_FALL_TICKS,
   BEATEN_STREAK_STALE_TICKS,
+  contestStat,
+  decisionStat,
   drainStamina,
-  effectiveStat,
+  executionStat,
+  keeperSaveProbability,
   launchPass,
+  movementStat,
   movementTick,
   possessionTick,
   restartKickoff,
@@ -558,14 +562,18 @@ describe('only defenders slide, even on a breakaway', () => {
 });
 
 describe('condition and STA', () => {
-  it('uses condition once to scale effective stats and speed by at most 25%', () => {
+  it('uses log-ratio condition for contest/execution/decision while movement remains legacy until A3', () => {
     const m = createMatch(42, ROVERS, UNITED);
     const idx = 5;
     m.players[idx].condition = 100;
-    expect(effectiveStat(m, idx, 'def')).toBe(m.players[idx].def.attrs.def);
+    const fullContest = contestStat(m, idx, 'def');
     const freshSpeed = speedFor(m, idx);
     m.players[idx].condition = 0;
-    expect(effectiveStat(m, idx, 'def')).toBe(Math.round(m.players[idx].def.attrs.def * 0.75));
+    const conditioned = Math.round(m.players[idx].def.attrs.def * 0.75);
+    expect(contestStat(m, idx, 'def')).toBeLessThan(fullContest);
+    expect(executionStat(m, idx, 'def')).toBe(contestStat(m, idx, 'def'));
+    expect(decisionStat(m, idx, 'def')).toBe(contestStat(m, idx, 'def'));
+    expect(movementStat(m, idx, 'def')).toBe(conditioned);
     expect(speedFor(m, idx)).toBeLessThan(freshSpeed);
   });
 
@@ -579,6 +587,111 @@ describe('condition and STA', () => {
     drainStamina(low, true);
     drainStamina(high, true);
     expect(low.condition).toBeLessThan(high.condition);
+  });
+
+  it('keeps execution save odds scale-invariant and every home-tier drill measurable', () => {
+    const m = createMatch(42, ROVERS, UNITED);
+    const shooter = 9;
+    const keeper = 11;
+    m.players[shooter].condition = 100;
+    m.players[keeper].condition = 100;
+
+    m.players[shooter].def.attrs.sho = 50;
+    m.players[keeper].def.attrs.ref = 50;
+    const lowScale = keeperSaveProbability(m, keeper, executionStat(m, shooter, 'sho'));
+    m.players[shooter].def.attrs.sho = 500;
+    m.players[keeper].def.attrs.ref = 500;
+    const highScale = keeperSaveProbability(m, keeper, executionStat(m, shooter, 'sho'));
+    expect(Math.abs(lowScale - highScale)).toBeLessThanOrEqual(0.001);
+
+    for (const [rating, gain] of [
+      [94, 5],
+      [180, 8],
+      [268, 12],
+      [356, 17],
+      [442, 23],
+    ] as const) {
+      m.players[shooter].def.attrs.sho = rating;
+      m.players[keeper].def.attrs.ref = rating;
+      const beforeDrill = keeperSaveProbability(m, keeper, executionStat(m, shooter, 'sho'));
+      m.players[shooter].def.attrs.sho = rating + gain;
+      const afterDrill = keeperSaveProbability(m, keeper, executionStat(m, shooter, 'sho'));
+      expect(beforeDrill - afterDrill).toBeGreaterThanOrEqual(0.01);
+    }
+  });
+
+  it('carries every home-tier PAC drill into measurable geometry and resets residue at kickoff', () => {
+    for (const [rating, gain] of [
+      [94, 5],
+      [180, 8],
+      [268, 12],
+      [356, 17],
+      [442, 23],
+    ] as const) {
+      const low = createMatch(42, ROVERS, UNITED);
+      const high = createMatch(42, ROVERS, UNITED);
+      const runner = 5;
+      low.players[runner].def.attrs.pac = rating;
+      high.players[runner].def.attrs.pac = rating + gain;
+      low.players[runner].pos = { x: 200, y: 9000 };
+      high.players[runner].pos = { x: 200, y: 9000 };
+      const start = { x: 200, y: 9000 };
+
+      for (let index = 0; index < 20; index += 1) {
+        movementTick(low);
+        movementTick(high);
+        low.tick += 1;
+        high.tick += 1;
+      }
+
+      const lowTravel = Math.hypot(
+        low.players[runner].pos.x - start.x,
+        low.players[runner].pos.y - start.y,
+      );
+      const highTravel = Math.hypot(
+        high.players[runner].pos.x - start.x,
+        high.players[runner].pos.y - start.y,
+      );
+      expect(highTravel).toBeGreaterThan(lowTravel);
+      expect(high.players[runner].movementResidue).toBeDefined();
+
+      restartKickoff(high, 0);
+      expect(high.players.every(player => (
+        player.movementResidue?.x === 0 && player.movementResidue?.y === 0
+      ))).toBe(true);
+    }
+  });
+
+  it('makes every division home-tier STA drill reduce fixed-point drain', () => {
+    const samples = [
+      [94, 5],
+      [180, 8],
+      [268, 12],
+      [356, 17],
+      [442, 23],
+    ] as const;
+    for (const [rating, gain] of samples) {
+      const match = createMatch(42, ROVERS, UNITED);
+      const low = {
+        ...match.players[5],
+        def: {
+          ...match.players[5].def,
+          attrs: { ...match.players[5].def.attrs, sta: rating },
+        },
+        condition: 100,
+      };
+      const high = {
+        ...low,
+        def: {
+          ...low.def,
+          attrs: { ...low.def.attrs, sta: rating + gain },
+        },
+        condition: 100,
+      };
+      drainStamina(low, true);
+      drainStamina(high, true);
+      expect(high.condition).toBeGreaterThan(low.condition);
+    }
   });
 
   it('applies Energy Use to real off-ball movement but never to carrier speed', () => {

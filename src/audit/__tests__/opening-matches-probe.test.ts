@@ -7,6 +7,8 @@
  * deterministic scores, which cannot affect the user's result in the opening
  * weeks and makes the sweep ~5x faster.
  */
+import { writeFileSync } from 'node:fs';
+
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
 import {
@@ -41,6 +43,8 @@ const tuning = {
 };
 const SEEDS = positiveIntegerEnv('OPENING_MATCHES_SEEDS', 300);
 const MATCHES_TRACKED = positiveIntegerEnv('OPENING_MATCHES_TRACKED', 5);
+const SEED_OFFSET = nonNegativeIntegerEnv('OPENING_MATCHES_SEED_OFFSET', 0);
+const OUTCOME_OUTPUT = process.env.OPENING_MATCHES_OUTCOME_OUTPUT;
 const TRAINED_PLAYERS = 3;
 
 interface PlayedMatch {
@@ -78,13 +82,24 @@ describe('opening-match balance probe', () => {
     const totalTrainedWeeks = trained.reduce((sum, run) => sum + run.weeksTrained, 0);
     expect(totalTrainedWeeks).toBeGreaterThan(0);
     expect(control.reduce((sum, run) => sum + run.weeksTrained, 0)).toBe(0);
+    if (OUTCOME_OUTPUT !== undefined) {
+      writeFileSync(OUTCOME_OUTPUT, `${JSON.stringify({
+        seedOffset: SEED_OFFSET,
+        seeds: Array.from(
+          { length: SEEDS },
+          (_, index) => 4_000_000 + (index + SEED_OFFSET) * 7919,
+        ),
+        trained: trained.map(run => matchOutcome(run.matches[0])),
+        control: control.map(run => matchOutcome(run.matches[0])),
+      }, null, 2)}\n`);
+    }
   }, 900_000);
 });
 
 function runCohort(train: boolean): CareerRun[] {
   const runs: CareerRun[] = [];
   for (let index = 0; index < SEEDS; index += 1) {
-    runs.push(runCareer(4_000_000 + index * 7919, train));
+    runs.push(runCareer(4_000_000 + (index + SEED_OFFSET) * 7919, train));
   }
   return runs;
 }
@@ -183,6 +198,16 @@ function positiveIntegerEnv(name: string, fallback: number): number {
   const parsed = Number(raw);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) {
     throw new Error(`${name} must be a positive integer`);
+  }
+  return parsed;
+}
+
+function nonNegativeIntegerEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative integer`);
   }
   return parsed;
 }
@@ -298,4 +323,11 @@ function report(label: string, runs: CareerRun[]): void {
   }
   // eslint-disable-next-line no-console
   console.log(lines.join('\n'));
+}
+
+function matchOutcome(match: PlayedMatch | undefined): 'W' | 'D' | 'L' {
+  if (match === undefined) throw new Error('opening outcome export requires the first match');
+  if (match.goalsFor > match.goalsAgainst) return 'W';
+  if (match.goalsFor < match.goalsAgainst) return 'L';
+  return 'D';
 }

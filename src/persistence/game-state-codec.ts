@@ -478,9 +478,10 @@ const nationalCupSchema = z.object({
   seedDivisionByClubId: z.record(nonemptyString, divisionLevelSchema).optional(),
 }).passthrough();
 const m2CareerSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   careerSeed: uint32,
   userClubId: nonemptyString,
+  opponentGrowthThroughSeason: positiveInteger,
   highestDivisionReached: divisionLevelSchema.optional(),
   pyramid: z.object({
     careerSeed: uint32,
@@ -768,6 +769,12 @@ const gameStateSchema = z
       boardUltimatum: boardUltimatumSchema.optional(),
       latestBoardResolution: boardUltimatumResolutionSchema.optional(),
     }).passthrough().optional(),
+    pendingCupGiantKillingCelebrations: z.array(z.object({
+      fixtureId: nonemptyString,
+      divisionGap: positiveInteger,
+      title: nonemptyString,
+      body: nonemptyString,
+    }).passthrough()).optional(),
   })
   .passthrough()
   .superRefine((state, context) => {
@@ -1684,10 +1691,9 @@ interface GameStateMigration {
 /**
  * The save-upgrade ladder, ordered by ascending `to`.
  *
- * `GAME_SCHEMA_VERSION` is still 1, so no boundary has been crossed and the
- * ladder is legitimately empty. It exists now, before the first bump, because
- * the alternative is discovering at bump time that every save in the field is
- * unreadable — the ladder has to predate the version it rescues.
+ * Schema 2 deliberately has no schema-1 rung: the honest division ladder
+ * changes every persisted rival. Development policy permits the break, while
+ * refusing here prevents a half-old/half-new pyramid from loading silently.
  *
  * To add a version: raise `GAME_SCHEMA_VERSION` in `src/game/types.ts` and append
  * `{ to: <new version>, up }` here. Anything the new schema requires must be

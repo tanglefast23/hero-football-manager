@@ -20,6 +20,7 @@ function squadPlayer(
     licensed?: boolean;
     attrs?: Attrs;
     morale?: number;
+    condition?: number;
   } = {},
 ): MatchSquadPlayer {
   return {
@@ -31,6 +32,7 @@ function squadPlayer(
     powerTier: options.powerTier,
     licensed: options.licensed ?? false,
     morale: options.morale ?? 50,
+    condition: options.condition,
     weeklyWage: 200,
     onHeroWage: false,
     contractSeasonsRemaining: 2,
@@ -95,6 +97,31 @@ describe('buildTeamDef', () => {
 
     expect(team.players[9]).toMatchObject({ power: 'SUPER_SPEED', powerTier: 3 });
     expect(team.players[10]).toMatchObject({ power: 'FIRE_TORCH', powerTier: 1 });
+  });
+
+  it('carries career condition into starters and bench definitions, including zero', () => {
+    const roster = validRoster().map(player => (
+      player.id === 'fwd-speed' ? { ...player, condition: 0 }
+        : player.id === 'bench-regular' ? { ...player, condition: 37 }
+          : player
+    ));
+
+    const team = buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS);
+
+    expect(team.players[9].startingCondition).toBe(0);
+    expect(team.bench?.find(player => player.id === 'bench-regular')?.startingCondition).toBe(37);
+  });
+
+  it('rejects invalid career condition before building a replay team', () => {
+    const roster = validRoster().map(player => (
+      player.id === 'fwd-speed' ? { ...player, condition: 101 } : player
+    ));
+
+    expect(() => buildTeamDef(
+      { id: 'rovers', name: 'Hero Rovers' },
+      roster,
+      STARTING_IDS,
+    )).toThrow(/condition must be an integer from 0 to 100/);
   });
 
   it('rejects an invalid power tier before a squad reaches the match engine', () => {

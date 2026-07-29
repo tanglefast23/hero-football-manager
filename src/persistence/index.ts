@@ -9,6 +9,7 @@ export {
   createCareerRepository,
   type CareerBackupSummary,
   type CareerRepository,
+  type RawStoredCareer,
 } from './career-repository';
 export {
   resetCareerDatabase,
@@ -19,6 +20,7 @@ export {
   decodeCareerSaveFile,
   encodeCareerSaveFile,
   exportCareerSave,
+  exportRawCareerSave,
   importCareerSave,
   SAVE_FILE_FORMAT,
   SAVE_FILE_FORMAT_VERSION,
@@ -27,6 +29,7 @@ export {
   type CareerSaveFileEnvelope,
   type CareerSaveImportOptions,
   type DecodedCareerSaveFile,
+  type RawCareerSaveExportOptions,
 } from './save-file';
 export {
   CorruptCareerSaveError,

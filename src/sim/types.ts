@@ -31,8 +31,21 @@ export interface Attrs {
   pac: number; sho: number; pas: number; def: number; tec: number; sta: number; ref: number;
 }
 
+/** Authored contest effects are expressed directly in fixed-point log-ratio units. */
+export interface D64Modifier {
+  readonly d64Mod: number;
+}
+
 export interface PlayerDef {
-  id: string; name: string; role: Role; attrs: Attrs; power?: PowerId; powerTier?: 1 | 2 | 3; lookId?: string;
+  id: string;
+  name: string;
+  role: Role;
+  attrs: Attrs;
+  /** Immutable career condition at match entry; static/authored teams default to 100. */
+  readonly startingCondition?: number;
+  power?: PowerId;
+  powerTier?: 1 | 2 | 3;
+  lookId?: string;
 }
 
 export interface TeamDef {
@@ -114,7 +127,7 @@ export interface SlideTackleState {
   remainingDistance: number;
   previousPos: Vec;
   targetPreviousPos: Vec;
-  /** Snapshot of Shadow Mark's one-challenge bonus; the cloak is consumed when the slide starts. */
+  /** Snapshot of Shadow Mark's one-challenge d64 bonus; the cloak is consumed when the slide starts. */
   shadowDefenseBonus?: number;
 }
 
@@ -122,6 +135,8 @@ export interface SimPlayer {
   def: PlayerDef;
   team: 0 | 1;
   pos: Vec;
+  /** Ordinary movement sub-pixel carry in 1/128 pitch units per axis. */
+  movementResidue?: Vec;
   condition: number;
   gauge: number; // this is HEAT (In-the-Zone model, 2026-07-17) — field name kept as `gauge` to limit churn
   /** Match-local Zone budget; prevents dominant teams from farming unlimited hero moments. */
@@ -220,6 +235,8 @@ export type BallState =
     pos: Vec;
     vel: Vec;
     by: number;
+    /** Keeper-facing fixed-point execution strength; display `power` never feeds resolution. */
+    shotStrengthD64: number;
     power: number;
     targetX: number;
     z: number;
