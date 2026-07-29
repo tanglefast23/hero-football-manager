@@ -7,6 +7,8 @@ import {
   createLegendLegacy,
   createNationalCup,
   DIVISION_FOUR_RELEGATION_PACK_STRENGTHS,
+  DIVISION_GOALKEEPER_REF_RATINGS,
+  DIVISION_STAR_FOCUS_RATINGS,
   DIVISION_SUPPORT_STRENGTHS,
   DIVISION_STRENGTH_BANDS,
   DIVISION_TYPICAL_PACE,
@@ -15,7 +17,6 @@ import {
   divisionTierLabel,
   isClubLegend,
   lowMoraleStatModifier,
-  opponentStrengthForSeason,
   resolvePromotionAndRelegation,
   resolveSeasonEndLifecycle,
   retirementAnnouncementAge,
@@ -71,8 +72,8 @@ describe('five-division pyramid generation', () => {
     ]);
     const globalLeagueStrengths = generateLeaguePyramid(88_421).divisions[0].clubs
       .map(club => club.squadStrength);
-    expect(Math.min(...globalLeagueStrengths)).toBe(80);
-    expect(Math.max(...globalLeagueStrengths)).toBe(90);
+    expect(Math.min(...globalLeagueStrengths)).toBe(DIVISION_STRENGTH_BANDS[1][0]);
+    expect(Math.max(...globalLeagueStrengths)).toBe(DIVISION_STRENGTH_BANDS[1][1]);
   });
 
   it('generates 50 persistent clubs and correctly shaped 16-player squads deterministically', () => {
@@ -109,7 +110,7 @@ describe('five-division pyramid generation', () => {
     }
   });
 
-  it('fills the five contiguous ten-point strength bands from D5 40-50 through D1 80-90', () => {
+  it('fills each locked honest-attribute strength band exactly', () => {
     const pyramid = generateLeaguePyramid(20260722);
     for (const division of pyramid.divisions) {
       const strengths = division.clubs.map(club => club.squadStrength);
@@ -125,12 +126,16 @@ describe('five-division pyramid generation', () => {
     const globalLeague = pyramid.divisions.find(division => division.level === 1)!;
     const districtLeague = pyramid.divisions.find(division => division.level === 5)!;
 
-    expect(DIVISION_SUPPORT_STRENGTHS).toEqual({ 1: 48, 2: 46, 3: 44, 4: 42, 5: 40 });
-    expect(DIVISION_TYPICAL_PACE).toEqual({ 1: 90, 2: 88, 3: 82, 4: 78, 5: 72 });
+    expect(DIVISION_SUPPORT_STRENGTHS).toEqual({ 1: 214, 2: 175, 3: 130, 4: 88, 5: 40 });
+    expect(DIVISION_TYPICAL_PACE).toEqual({ 1: 216, 2: 176, 3: 132, 4: 90, 5: 72 });
+    expect(DIVISION_STAR_FOCUS_RATINGS).toEqual({ 1: 442, 2: 356, 3: 268, 4: 180, 5: 94 });
+    expect(DIVISION_GOALKEEPER_REF_RATINGS).toEqual({ 1: 376, 2: 303, 3: 228, 4: 153, 5: 80 });
     expect(divisionStarFocusedAttribute(1, 85)).toBe(442);
     for (const club of globalLeague.clubs) {
-      expect(club.squad.filter(player => Math.max(...Object.values(player.attrs)) > 99))
+      expect(club.squad.filter(player => Math.max(...Object.values(player.attrs)) > 400))
         .toHaveLength(3);
+      expect(club.squad.filter(player => Math.max(...Object.values(player.attrs)) <= 400))
+        .toHaveLength(13);
       expect(club.squad.some(player => player.role === 'FWD' && player.attrs.pac > 99)).toBe(true);
     }
     const districtMaximum = Math.max(
@@ -148,7 +153,7 @@ describe('five-division pyramid generation', () => {
     const medianPace = (club: (typeof globalLeague.clubs)[number]) => (
       club.squad.map(player => player.attrs.pac).sort((left, right) => left - right)[8]
     );
-    expect(globalLeague.clubs.every(club => medianPace(club) >= 85 && medianPace(club) <= 95))
+    expect(globalLeague.clubs.every(club => medianPace(club) >= 214 && medianPace(club) <= 219))
       .toBe(true);
     expect(districtLeague.clubs.every(club => medianPace(club) >= 65 && medianPace(club) <= 75))
       .toBe(true);
@@ -183,7 +188,8 @@ describe('five-division pyramid generation', () => {
     expect(prepared.clubs.filter(club => expectedMinnowIds.includes(club.id))
       .map(club => club.squadStrength).sort((left, right) => left - right))
       .toEqual(DIVISION_FOUR_RELEGATION_PACK_STRENGTHS);
-    expect(Math.max(...prepared.clubs.map(club => club.squadStrength))).toBe(60);
+    expect(Math.max(...prepared.clubs.map(club => club.squadStrength)))
+      .toBe(DIVISION_STRENGTH_BANDS[4][1]);
     for (const division of first.divisions.filter(candidate => candidate.level !== 4)) {
       expect(division).toEqual(pyramid.divisions.find(candidate => candidate.level === division.level));
     }
@@ -267,13 +273,6 @@ describe('National Cup', () => {
 
     results[0] = { ...results[0], homeGoals: 2, awayGoals: 0 };
     expect(() => advanceNationalCup(cup, results)).toThrow('contradicts');
-  });
-});
-
-describe('opponent season scaling', () => {
-  it('grows only from division strength and the season clock, gently and with a fixed cap', () => {
-    expect([1, 2, 3, 4, 5, 10, 100].map(season => opponentStrengthForSeason(50, season)))
-      .toEqual([50, 50, 51, 51, 52, 54, 58]);
   });
 });
 

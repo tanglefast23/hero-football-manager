@@ -1,13 +1,19 @@
+import paceTable from './pace-table.json';
+import staminaTables from './stamina-tables.json';
+
 /**
- * Career attributes are open-ended. Match calculations use this bounded,
- * diminishing conversion so probabilities, movement and authored power
- * thresholds stay stable as raw ratings grow into the hundreds.
+ * Legacy bounded execution scale retained for the STA tables and the
+ * non-PAC movement fallback. Ratio contests do not use this conversion:
+ * contest, decision, and shot execution domains consume raw 1–999 ratings
+ * through their fixed-point logarithm, while PAC owns its separate table.
  *
  * Ratings from 1–99 are unchanged. Above 99, each extra raw point contributes
- * less match strength and the effective value approaches 149.
+ * less bounded execution strength and the effective value approaches 149.
  */
 export const MAX_PLAYER_ATTRIBUTE = 999;
 export const BASE_MOVEMENT_SPEED = 40;
+export const PACE_SPEED_SCALE = paceTable.scale;
+export const STAMINA_SCALE = staminaTables.scale;
 
 export function matchAttribute(rawAttribute: number): number {
   if (!Number.isSafeInteger(rawAttribute)
@@ -20,39 +26,25 @@ export function matchAttribute(rawAttribute: number): number {
 }
 
 /**
- * PAC uses a flatter post-99 curve than invisible contest stats. A normally
+ * PAC uses its own fixed-point geometry curve. A normally
  * developed division star stays around 25% faster than typical opposition.
  * The ordinary long-career band stays near a 38% soft target, then the rare
  * final stretch to 999 can reach the 60% hard endpoint versus typical D1 pace.
  */
 export function matchPaceAttribute(rawPace: number): number {
   assertPlayerAttribute(rawPace);
-  if (rawPace <= 99) return rawPace;
-  const anchors = [
-    [99, 99],
-    [120, 102],
-    [200, 108],
-    [300, 113],
-    [450, 120],
-    [600, 126],
-    [750, 132],
-    [930, 138],
-    [MAX_PLAYER_ATTRIBUTE, 168],
-  ] as const;
-  for (let index = 1; index < anchors.length; index += 1) {
-    const [rightRaw, rightEffective] = anchors[index];
-    if (rawPace > rightRaw) continue;
-    const [leftRaw, leftEffective] = anchors[index - 1];
-    return leftEffective + Math.round(
-      (rawPace - leftRaw) * (rightEffective - leftEffective) / (rightRaw - leftRaw),
-    );
-  }
-  return 168;
+  return Math.max(1, Math.round(paceSpeed128(rawPace) / PACE_SPEED_SCALE) - BASE_MOVEMENT_SPEED);
+}
+
+/** Full-condition ordinary movement speed in 1/128 pitch units. */
+export function paceSpeed128(rawPace: number): number {
+  assertPlayerAttribute(rawPace);
+  return paceTable.values[rawPace - 1];
 }
 
 /** Full-condition movement speed before powers, tactics, or ball-carrying slowdowns. */
 export function fullConditionMovementSpeed(rawPace: number): number {
-  return BASE_MOVEMENT_SPEED + matchPaceAttribute(rawPace);
+  return paceSpeed128(rawPace) / PACE_SPEED_SCALE;
 }
 
 export function paceAdvantagePercent(rawPace: number, comparisonRawPace: number): number {
@@ -68,17 +60,13 @@ export function paceAdvantagePercent(rawPace: number, comparisonRawPace: number)
  * of ordinary movement cost, keeping substitutions and energy use relevant.
  */
 export function staminaEnduranceScale(rawStamina: number): number {
-  const effectiveStamina = matchAttribute(rawStamina);
-  if (effectiveStamina <= 99) return 1.6 - effectiveStamina * 0.006;
-  return Math.max(0.65, 1.006 - (effectiveStamina - 99) * 0.008);
+  assertPlayerAttribute(rawStamina);
+  return staminaTables.endurance[rawStamina - 1] / STAMINA_SCALE;
 }
 
 export function slideStaminaDrainScale(rawStamina: number): number {
-  const effectiveStamina = matchAttribute(rawStamina);
-  if (effectiveStamina <= 99) {
-    return 1 + 0.6 * (100 - effectiveStamina) / 100;
-  }
-  return Math.max(0.65, 1.006 - (effectiveStamina - 99) * 0.009);
+  assertPlayerAttribute(rawStamina);
+  return staminaTables.slide[rawStamina - 1] / STAMINA_SCALE;
 }
 
 function assertPlayerAttribute(rawAttribute: number): void {

@@ -1,10 +1,16 @@
 import { BLEND_TICKS, blendedTableTarget, gkTarget, kickoffPos } from './movement-table';
 import { clamp, dist, dist2, moveToward, GOAL_CENTER_X, GOAL_W, HALF_TICKS, PITCH_W, PITCH_H, type Vec } from './geometry';
 import { emit } from './events';
-import { contest, contestProbability } from './contest';
+import {
+  conditionedRatingD64,
+  contest,
+  contestProbability,
+  ratingD64,
+  resolveD64,
+} from './contest';
 import { addGauge, clearPowerCommitment, clearRestartPowerState, consumeDecoyAction, consumeKeeperShotCharge, consumePhaseChallenge, consumePortalProtection, consumeShadowMark, finishMomentPower, futureSightInterceptor, gravityPriorityTarget, gravityRunnerTarget, gustDisruptsPass, gustPuntDestination, interruptWindup, isShadowMarked, powerActionBlocked, powerInteractionBlocked, speedMultiplier, fireSuppressed, dribbleBonus, defenseBonus, keeperSaveBonus, knockOut, phaseRunPreventsShot, powerFinishShotProfile, STRENGTH_LOCK_RANGE } from './powers';
 import { energyDrainMultiplier, energyMovementMultiplier, formationTarget, mentalityTarget, type EnergyUse } from './tactics';
-import type { Attrs, MatchState, MovementState, SimPlayer } from './types';
+import type { Attrs, D64Modifier, MatchState, MovementState, SimPlayer } from './types';
 import {
   activePlayerIndices,
   attributedPlayerIndex,
@@ -17,6 +23,8 @@ import {
   BASE_MOVEMENT_SPEED,
   matchAttribute,
   matchPaceAttribute,
+  paceSpeed128,
+  PACE_SPEED_SCALE,
   slideStaminaDrainScale,
   staminaEnduranceScale,
 } from './attributes';
@@ -136,28 +144,61 @@ function isConscious(state: MatchState, idx: number): boolean {
 }
 
 /**
- * Condition applies exactly once through this funnel, bottoming out at 75% of
- * the raw attribute. def.attrs stays immutable in production — fatigue/power
- * modifiers belong here (or in the powers queries), never in-place mutation.
+ * Bounded fallback retained only for non-PAC movement and the canonical STA
+ * table generator. Contest, decision, and shot execution consumers use the
+ * explicit d64 domain wrappers below.
  */
-export function effectiveStat(state: MatchState, idx: number, stat: keyof Attrs): number {
+function conditionedStat(state: MatchState, idx: number, stat: keyof Attrs): number {
   const player = requirePlayerAt(state, idx);
   // STA determines drain; every other action stat follows the canon curve:
   // full value at 100 condition, down to at most a 25% penalty at zero.
-  const baseAttribute = stat === 'pac'
-    ? matchPaceAttribute(player.def.attrs.pac)
-    : matchAttribute(player.def.attrs[stat]);
+  const baseAttribute = matchAttribute(player.def.attrs[stat]);
   if (stat === 'sta') return baseAttribute;
   const conditionScale = 0.75 + 0.25 * (player.condition / 100);
   return Math.max(1, Math.round(baseAttribute * conditionScale));
 }
 
-/** Authoritative speed: reads power state internally (Task 12 supplies the multiplier). */
+export function contestStat(state: MatchState, idx: number, stat: keyof Attrs): number {
+  const player = requirePlayerAt(state, idx);
+  return conditionedRatingD64(player.def.attrs[stat], player.condition);
+}
+
+export function movementStat(state: MatchState, idx: number, stat: keyof Attrs): number {
+  if (stat === 'pac') {
+    const player = requirePlayerAt(state, idx);
+    const pace = matchPaceAttribute(player.def.attrs.pac);
+    const conditionScale = 0.75 + 0.25 * (player.condition / 100);
+    return Math.max(1, Math.round(pace * conditionScale));
+  }
+  return conditionedStat(state, idx, stat);
+}
+
+export function executionStat(state: MatchState, idx: number, stat: keyof Attrs): number {
+  const player = requirePlayerAt(state, idx);
+  return conditionedRatingD64(player.def.attrs[stat], player.condition);
+}
+
+export function decisionStat(state: MatchState, idx: number, stat: keyof Attrs): number {
+  const player = requirePlayerAt(state, idx);
+  return conditionedRatingD64(player.def.attrs[stat], player.condition);
+}
+
+function conditionedPaceSpeed128(state: MatchState, idx: number): number {
+  const player = requirePlayerAt(state, idx);
+  const fullSpeed128 = paceSpeed128(player.def.attrs.pac);
+  const baseSpeed128 = BASE_MOVEMENT_SPEED * PACE_SPEED_SCALE;
+  const paceContribution128 = fullSpeed128 - baseSpeed128;
+  const conditionScale = 0.75 + 0.25 * player.condition / 100;
+  return baseSpeed128 + Math.round(paceContribution128 * conditionScale);
+}
+
+function speedFor128(state: MatchState, idx: number): number {
+  return Math.round(conditionedPaceSpeed128(state, idx) * speedMultiplier(state, idx));
+}
+
+/** Authoritative integer-coordinate speed for non-residue movement consumers. */
 export function speedFor(state: MatchState, idx: number): number {
-  return Math.round(
-    (BASE_MOVEMENT_SPEED + effectiveStat(state, idx, 'pac'))
-    * speedMultiplier(state, idx),
-  );
+  return Math.round(speedFor128(state, idx) / PACE_SPEED_SCALE);
 }
 
 export function ballPos(state: MatchState): Vec {
@@ -210,6 +251,7 @@ export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
       state.tactics[p.team].formation,
       kickoffPos(p.team, i % 11),
     );
+    p.movementResidue = { x: 0, y: 0 };
   }
   let striker = toTeam === 0 ? 9 : 20;
   if (!isConscious(state, striker)) {
@@ -219,6 +261,7 @@ export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
     }
   }
   state.players[striker].pos = { ...center };
+  state.players[striker].movementResidue = { x: 0, y: 0 };
   state.ball = { kind: 'held', by: striker };
   // Restart repositioning is a teleport — snap the phase to the kicking team
   // (no blend) and drop the presser lease.
@@ -386,8 +429,8 @@ function targetFor(state: MatchState, i: number, mv: MovementState, presserIdx: 
   // ball itself — they are contesting it, not shepherding a carrier.
   const pressTarget = i === presserIdx && state.ball.kind === 'held'
     ? standoffTarget(p.pos, ball, pressStandoffRadius(
-      effectiveStat(state, state.ball.by, 'pac'),
-      effectiveStat(state, i, 'pac'),
+      movementStat(state, state.ball.by, 'pac'),
+      movementStat(state, i, 'pac'),
     ))
     : null;
   return isCarrier
@@ -403,6 +446,7 @@ function slideMovementTick(state: MatchState, idx: number): void {
   const slide = p.slideTackle;
   if (!slide) return;
   const before = { ...p.pos };
+  p.movementResidue = { x: 0, y: 0 };
   const speed = Math.max(1, Math.round(speedFor(state, idx) * SLIDE_TACKLE_SPEED_MULTIPLIER));
   const step = Math.min(speed, slide.remainingDistance);
   p.pos = {
@@ -411,6 +455,34 @@ function slideMovementTick(state: MatchState, idx: number): void {
   };
   slide.previousPos = before;
   slide.remainingDistance = Math.max(0, slide.remainingDistance - dist(before, p.pos));
+}
+
+function moveTowardWithResidue(player: SimPlayer, target: Vec, speed128: number): Vec {
+  const dx = target.x - player.pos.x;
+  const dy = target.y - player.pos.y;
+  const distance2 = dx * dx + dy * dy;
+  if (distance2 === 0 || distance2 * PACE_SPEED_SCALE * PACE_SPEED_SCALE <= speed128 * speed128) {
+    player.movementResidue = { x: 0, y: 0 };
+    return { ...target };
+  }
+  const distance = Math.sqrt(distance2);
+  const residue = player.movementResidue ?? { x: 0, y: 0 };
+  const x128 = Math.round(dx * speed128 / distance) + residue.x;
+  const y128 = Math.round(dy * speed128 / distance) + residue.y;
+  const stepX = Math.trunc(x128 / PACE_SPEED_SCALE);
+  const stepY = Math.trunc(y128 / PACE_SPEED_SCALE);
+  const next = {
+    x: clamp(player.pos.x + stepX, 0, PITCH_W),
+    y: clamp(player.pos.y + stepY, 0, PITCH_H),
+  };
+  player.movementResidue = next.x === player.pos.x + stepX
+    && next.y === player.pos.y + stepY
+    ? {
+        x: x128 - stepX * PACE_SPEED_SCALE,
+        y: y128 - stepY * PACE_SPEED_SCALE,
+      }
+    : { x: 0, y: 0 };
+  return next;
 }
 
 export function movementTick(state: MatchState): void {
@@ -433,24 +505,32 @@ export function movementTick(state: MatchState): void {
       continue;
     }
     if (p.forcedMovement !== undefined && p.forcedMovement.untilTick > state.tick) {
+      p.movementResidue = { x: 0, y: 0 };
       p.pos = {
         x: Math.round(clamp(p.pos.x + p.forcedMovement.step.x, 0, PITCH_W)),
         y: Math.round(clamp(p.pos.y + p.forcedMovement.step.y, 300, PITCH_H - 300)),
       };
       continue;
     }
-    if (powerInteractionBlocked(state, i)) continue;
-    if (p.tackleRecoveryUntil > state.tick) continue;
+    if (powerInteractionBlocked(state, i)) {
+      p.movementResidue = { x: 0, y: 0 };
+      continue;
+    }
+    if (p.tackleRecoveryUntil > state.tick) {
+      p.movementResidue = { x: 0, y: 0 };
+      continue;
+    }
     const target = targetFor(state, i, mv, presserIdx, ball);
     const before = p.pos;
     // A carrier controls the ball while moving and cannot sustain an off-ball
     // sprint. The slower dribble also gives pressing and passing decisions time
     // to read on a 3-4 minute match instead of producing a shot every few seconds.
     const carrying = state.ball.kind === 'held' && state.ball.by === i;
-    const movementSpeed = carrying
-      ? Math.round(speedFor(state, i) * CARRIER_SPEED_SCALE)
-      : Math.round(speedFor(state, i) * energyMovementMultiplier(state.tactics[p.team].energyUse, p.condition));
-    p.pos = moveToward(p.pos, target, movementSpeed);
+    const movementSpeed128 = carrying
+      ? Math.round(speedFor128(state, i) * CARRIER_SPEED_SCALE)
+      : Math.round(speedFor128(state, i)
+        * energyMovementMultiplier(state.tactics[p.team].energyUse, p.condition));
+    p.pos = moveTowardWithResidue(p, target, movementSpeed128);
     drainStamina(p, dist2(before, p.pos) > 6400, state.tactics[p.team].energyUse);
   }
 }
@@ -507,13 +587,18 @@ const SHOT_FUN_BIAS = 0.06;
 const MIN_SHOT_VALUE = 0.06;
 const OBVIOUS_SHOT_DISTANCE = 1800;
 const CARRY_TIME_DISCOUNT = 0.7;
-const SHOT_KEEPER_MOD = -7;
+const SHOT_KEEPER_MOD_D64 = 0;
+const PASS_CONTEST_MOD_D64 = 640;
+const GEOMETRY_RELIEF_D64 = 64;
+const NO_D64_MOD: D64Modifier = { d64Mod: 0 };
 // Resolve should make sustained pressure visible without turning one strong
 // half into an irreversible keeper-collapse cascade. Six keeps repeated shots
 // meaningful while preserving a realistic recovery window at halftime.
 const RESOLVE_DAMAGE_DIVISOR = 6;
-const SHOT_POWER_BASELINE = 60;
-const KEEPER_RESOLVE_FLOOR = 0.9;
+const SHOT_DISPLAY_BASELINE = 60;
+const SHOT_DISTANCE_D64_PER_200 = 37;
+const POWER_FINISH_FULL_ADVANTAGE_D64 = 196; // 1.10x
+const POWER_FINISH_SATURATED_ADVANTAGE_D64 = 457; // 1.25x
 
 interface ActionValues {
   shot: number;
@@ -677,10 +762,14 @@ function shadowFrontalPressure(state: MatchState, by: number, pos: Vec): number 
 
 /** Aim error shared by decision quality and the actual launch. */
 function shotSpreadAt(state: MatchState, by: number, pos: Vec, distance: number, forDecision = false): number {
-  const sho = effectiveStat(state, by, 'sho');
-  const closeRangeSpread = sho <= 99
-    ? 500 + (99 - sho) * 8
-    : Math.round(50_000 / (sho + 1));
+  const shooter = requirePlayerAt(state, by);
+  const defendingTeam: 0 | 1 = shooter.team === 0 ? 1 : 0;
+  const keeperIdx = defendingTeam === 0 ? 0 : 11;
+  const executionShare = contestProbability(
+    executionStat(state, by, 'sho'),
+    executionStat(state, keeperIdx, 'ref'),
+  );
+  const closeRangeSpread = Math.round(1200 - 700 * executionShare);
   const base = closeRangeSpread + Math.round(distance / 4);
   const pressureSpread = hasFrontalPressure(state, by, pos, forDecision) ? Math.round(base * 1.25) : base;
   const finish = powerFinishShotProfile(state, by);
@@ -698,71 +787,54 @@ function poweredFinishChallengeHeadroom(state: MatchState, by: number): number {
   const shooter = requirePlayerAt(state, by);
   const defendingTeam: 0 | 1 = shooter.team === 0 ? 1 : 0;
   const keeperIdx = defendingTeam === 0 ? 0 : 11;
-  const advantage = effectiveStat(state, by, 'sho') - effectiveStat(state, keeperIdx, 'ref');
-  return clamp((14 - advantage) / 8, 0, 1);
+  const advantageD64 = executionStat(state, by, 'sho') - executionStat(state, keeperIdx, 'ref');
+  return clamp(
+    (POWER_FINISH_SATURATED_ADVANTAGE_D64 - advantageD64)
+      / (POWER_FINISH_SATURATED_ADVANTAGE_D64 - POWER_FINISH_FULL_ADVANTAGE_D64),
+    0,
+    1,
+  );
+}
+
+interface ShotStrength {
+  readonly d64: number;
+  readonly displayPower: number;
+}
+
+/** Fixed-point shot execution plus a bounded display projection for events/Resolve. */
+function shotStrengthAt(state: MatchState, by: number, distance: number): ShotStrength {
+  const d64 = executionStat(state, by, 'sho')
+    + shotBonus(state, by).d64Mod
+    - Math.round(distance * SHOT_DISTANCE_D64_PER_200 / 200);
+  return {
+    d64,
+    displayPower: clamp(
+      Math.round(SHOT_DISPLAY_BASELINE + (d64 - ratingD64(SHOT_DISPLAY_BASELINE)) / 64),
+      1,
+      999,
+    ),
+  };
 }
 
 /**
- * SHO already improves aim through shotSpreadAt(). Compress only its second
- * contribution to keeper-beating power so a rating gap matters without being
- * counted at full strength twice. Explicit power bonuses remain uncompressed.
+ * Single shot/save probability seam for both the shooter's expected-value
+ * decision and the ball's actual arrival. REF is fully symmetric in log-ratio
+ * space; roster values, not a hidden divisor, now control keeper dominance.
  */
-function shotPowerAt(state: MatchState, by: number, distance: number): number {
-  const sho = effectiveStat(state, by, 'sho');
-  return Math.max(1, Math.round(
-    SHOT_POWER_BASELINE
-      + (sho - SHOT_POWER_BASELINE) / 4
-      + shotBonus(state, by)
-      - distance / 200,
-  ));
-}
-
-/**
- * How much Reflexes a keeper actually brings to a save contest.
- *
- * The shooter's SHO reaches this contest already compressed (see `shotPowerAt`:
- * SHO improves aim through `shotSpreadAt` too, so its second contribution is
- * divided to avoid counting it twice). REF arrived UNCOMPRESSED, which made one
- * point of Reflexes worth roughly four points of finishing — and on one player
- * instead of eleven. Measured, +11 REF cut goals conceded by 0.637 a match,
- * while +10 pace across the whole XI was worth almost nothing.
- *
- * The anchor is deliberately NOT `SHOT_POWER_BASELINE`. Compressing around 60
- * when a D5 keeper sits near 45 would make every weak keeper ~11 points BETTER
- * and suppress scoring at the bottom of the game, where most of a career is
- * played. Anchoring low leaves a typical starting keeper roughly unchanged and
- * flattens the UPSIDE of training Reflexes, which is the actual goal.
- *
- * Resolve scales the compressed rating, so GK Resolve attrition still bites, and
- * explicit power bonuses stay uncompressed, matching `shotBonus`.
- *
- * 57 was MEASURED, not chosen. A linear compression has exactly one fixed point,
- * so every anchor trades keeper strength against scoring. 80 seeds, ROVERS (whose
- * keeper is REF 62) vs UNITED, reporting goals per match and the drop in goals
- * conceded from +11 keeper REF:
- *
- *   anchor   goals/match   leverage of +11 REF
- *   none        2.025            0.637
- *   45          4.313            0.625   keeper 13 points weaker; scoring blows out
- *   57          2.188            0.150   <- flattens the slope, holds the level
- *   60          1.788            0.263   keeper too strong; scoring suppressed
- *
- * So 57 cuts the value of training Reflexes by 4.25x — the compression divisor —
- * while moving scoring only +8%, and slightly TOWARD the 2.72 goals/match this
- * engine is documented to produce rather than further from it.
- */
-const KEEPER_SAVE_BASELINE = 57;
-
-function keeperSaveRating(state: MatchState, keeperIdx: number, resolveScale: number): number {
-  const ref = effectiveStat(state, keeperIdx, 'ref');
-  return Math.max(1, Math.round(
-    (KEEPER_SAVE_BASELINE + (ref - KEEPER_SAVE_BASELINE) / 4) * resolveScale,
-  ));
-}
-
-function keeperResolveScale(resolve: number): number {
-  return KEEPER_RESOLVE_FLOOR
-    + (1 - KEEPER_RESOLVE_FLOOR) * (resolve / 100);
+export function keeperSaveProbability(
+  state: MatchState,
+  keeperIdx: number,
+  shotStrengthD64: number,
+  keeperPowerBonus: D64Modifier = NO_D64_MOD,
+): number {
+  const keeper = requirePlayerAt(state, keeperIdx);
+  return contestProbability(
+    contestStat(state, keeperIdx, 'ref')
+      + resolveD64(state.resolve[keeper.team])
+      + keeperPowerBonus.d64Mod,
+    shotStrengthD64,
+    SHOT_KEEPER_MOD_D64,
+  );
 }
 
 /** Approximate probability that a shot from `pos` scores under the current shot/save model. */
@@ -772,12 +844,11 @@ function shotExpectedValue(state: MatchState, by: number, pos: Vec): number {
   const distance = dist(pos, goal);
   const spread = shotSpreadAt(state, by, pos, distance, true);
   const onTargetProbability = Math.min(1, (GOAL_W / 2) / spread);
-  const power = shotPowerAt(state, by, distance);
+  const shotStrength = shotStrengthAt(state, by, distance);
   const defendingTeam: 0 | 1 = shooter.team === 0 ? 1 : 0;
   const keeperIdx = defendingTeam === 0 ? 0 : 11;
-  const resolveScale = keeperResolveScale(state.resolve[defendingTeam]);
   const saveProbability = isAvailable(state, keeperIdx)
-    ? contestProbability(keeperSaveRating(state, keeperIdx, resolveScale), power, SHOT_KEEPER_MOD)
+    ? keeperSaveProbability(state, keeperIdx, shotStrength.d64)
     : 0;
   // The current launch model loses too little quality with distance, so decision
   // quality supplies a smooth 17-42m falloff rather than another hard range cliff.
@@ -792,7 +863,12 @@ function positionThreat(state: MatchState, by: number, pos: Vec): number {
   const progress = clamp((player.team === 0 ? PITCH_H - pos.y : pos.y) / PITCH_H, 0, 1);
   const progressCurve = progress * progress;
   const centrality = clamp(1 - Math.abs(pos.x - GOAL_CENTER_X) / GOAL_CENTER_X, 0, 1);
-  const skillScale = 0.16 + effectiveStat(state, by, 'sho') / 500;
+  const defendingTeam: 0 | 1 = player.team === 0 ? 1 : 0;
+  const keeperIdx = defendingTeam === 0 ? 0 : 11;
+  const skillScale = 0.16 + 0.30 * contestProbability(
+    executionStat(state, by, 'sho'),
+    executionStat(state, keeperIdx, 'ref'),
+  );
   const buildupValue = progressCurve * skillScale * (0.75 + centrality * 0.25);
   return Math.max(shotExpectedValue(state, by, pos), buildupValue);
 }
@@ -844,11 +920,17 @@ function passContestInputs(
   const spaceRelief = clamp(Math.trunc((receiverSpace - 300) / 80), 0, 15);
   const laneRelief = clamp(Math.trunc((clearance - 200) / 80), 0, 8);
   const hidden = isShadowMarked(state, interceptor);
-  const interceptStat = Math.max(1, effectiveStat(state, interceptor, 'def')
-    + defenseBonus(state, interceptor)
-    - (hidden ? 0 : spaceRelief + laneRelief));
+  const interceptStat = contestStat(state, interceptor, 'def')
+    + defenseBonus(state, interceptor).d64Mod
+    - (hidden
+      ? 0
+      : (spaceRelief + laneRelief) * GEOMETRY_RELIEF_D64);
   return {
-    probability: contestProbability(effectiveStat(state, from, 'pas'), interceptStat, 10),
+    probability: contestProbability(
+      contestStat(state, from, 'pas'),
+      interceptStat,
+      PASS_CONTEST_MOD_D64,
+    ),
     interceptor,
     interceptStat,
   };
@@ -891,9 +973,9 @@ function carryExpectedValue(state: MatchState, carrierIdx: number): number {
   const proximity = clamp((450 - markerDistance) / 250, 0, 1);
   const directionScale = goalSide ? 1 : 0.25;
   const tackleWin = contestProbability(
-    effectiveStat(state, markerIdx, 'def') + defenseBonus(state, markerIdx),
-    effectiveStat(state, carrierIdx, 'tec'),
-    -dribbleBonus(state, carrierIdx),
+    contestStat(state, markerIdx, 'def') + defenseBonus(state, markerIdx).d64Mod,
+    contestStat(state, carrierIdx, 'tec'),
+    -dribbleBonus(state, carrierIdx).d64Mod,
   );
   const retainProbability = 1 - tackleWin * proximity * directionScale;
   // Carrying must spend another decision window before cashing in the better
@@ -1185,7 +1267,13 @@ export function launchPass(
   const intendedTarget = authoredArrivalPos ?? receiver.pos;
   const inputs = passContestInputs(state, from, to, false, intendedTarget);
   const rolledOk = authoredGuaranteed
-    ? true : contest(state.rng, effectiveStat(state, from, 'pas'), inputs.interceptStat, 10);
+    ? true
+    : contest(
+        state.rng,
+        contestStat(state, from, 'pas'),
+        inputs.interceptStat,
+        PASS_CONTEST_MOD_D64,
+      );
   consumePortalProtection(state, from);
   const gustRedirect = authoredGuaranteed || !rolledOk
     ? null : gustDisruptsPass(state, passer.team, from);
@@ -1348,10 +1436,10 @@ function resolveActiveSlide(state: MatchState): boolean {
     };
     const won = contest(
       state.rng,
-      effectiveStat(state, tacklerIdx, 'def')
-        + (slide.shadowDefenseBonus ?? defenseBonus(state, tacklerIdx)),
-      effectiveStat(state, slide.targetIdx, 'tec'),
-      -dribbleBonus(state, slide.targetIdx),
+      contestStat(state, tacklerIdx, 'def')
+        + (slide.shadowDefenseBonus ?? defenseBonus(state, tacklerIdx).d64Mod),
+      contestStat(state, slide.targetIdx, 'tec'),
+      -dribbleBonus(state, slide.targetIdx).d64Mod,
     );
     finishSlide(state, tacklerIdx, won, true);
     return true;
@@ -1379,7 +1467,7 @@ function startSlide(state: MatchState, tacklerIdx: number, carrierIdx: number, d
     : { x: 0, y: carrier.team === 0 ? -1 : 1 };
   const untilTick = state.tick + SLIDE_TACKLE_TICKS;
   const shadowDefenseBonus = isShadowMarked(state, tacklerIdx)
-    ? defenseBonus(state, tacklerIdx) : undefined;
+    ? defenseBonus(state, tacklerIdx).d64Mod : undefined;
   tackler.slideTackle = {
     targetIdx: carrierIdx,
     startTick: state.tick,
@@ -1448,14 +1536,20 @@ function standingTackle(state: MatchState, tacklerIdx: number, carrierIdx: numbe
   tackler.tackleCooldownUntil = state.tick + STANDING_TACKLE_COOLDOWN_TICKS;
   // Named for what they are rather than contest()'s attacker/defender, which
   // inverts confusingly in a feature about the defender going down.
-  const tacklerDef = effectiveStat(state, tacklerIdx, 'def') + defenseBonus(state, tacklerIdx);
-  const carrierTec = effectiveStat(state, carrierIdx, 'tec');
-  const mod = -dribbleBonus(state, carrierIdx);
+  const tacklerDef = contestStat(state, tacklerIdx, 'def')
+    + defenseBonus(state, tacklerIdx).d64Mod;
+  const carrierTec = contestStat(state, carrierIdx, 'tec');
+  const mod = -dribbleBonus(state, carrierIdx).d64Mod;
   const winProbability = contestProbability(tacklerDef, carrierTec, mod);
   const roll = state.rng();
   const won = roll < winProbability;
   const dropped = !won && beatenDefenderDrops(
-    state, tackler, carrierIdx, tacklerDef + mod - carrierTec, winProbability, roll,
+    state,
+    tackler,
+    carrierIdx,
+    (tacklerDef + mod - carrierTec) / 64,
+    winProbability,
+    roll,
   );
   emit(state, {
     t: state.tick,
@@ -1534,10 +1628,12 @@ export function tackleTick(state: MatchState): void {
 }
 
 /** Moment-based shot spikes. Thunder Strike also drains Resolve through the normal save path. */
-export function shotBonus(state: MatchState, by: number): number {
+export function shotBonus(state: MatchState, by: number): D64Modifier {
   const finish = powerFinishShotProfile(state, by);
-  if (finish === null) return 0;
-  return Math.round(finish.powerBonus * poweredFinishChallengeHeadroom(state, by));
+  if (finish === null) return NO_D64_MOD;
+  return {
+    d64Mod: Math.round(finish.powerD64Mod * poweredFinishChallengeHeadroom(state, by)),
+  };
 }
 
 export function attemptShot(state: MatchState, by: number, distToGoal: number): void {
@@ -1550,7 +1646,7 @@ export function attemptShot(state: MatchState, by: number, distToGoal: number): 
   const trajectory = state.rng() < LIFTED_SHOT_CHANCE ? 'lifted' : 'driven';
   // distToGoal / 200 (Task 13 pre-flight Lever A, was / 100): the old penalty made
   // shots too easy to save; halving it targets goals/match ~2-3 and save rate ~70-80%.
-  const power = shotPowerAt(state, by, distToGoal);
+  const shotStrength = shotStrengthAt(state, by, distToGoal);
   if (shadowAmbusher !== -1) consumeShadowMark(state, shadowAmbusher);
   const attributedBy = attributedPlayerIndex(state, by);
   emit(state, {
@@ -1558,7 +1654,7 @@ export function attemptShot(state: MatchState, by: number, distToGoal: number): 
     kind: 'SHOT',
     by: attributedBy,
     ...(attributedBy === by ? {} : { actor: by }),
-    power,
+    power: shotStrength.displayPower,
     trajectory,
   });
   addGauge(state, by, SHOT_GAUGE);
@@ -1569,7 +1665,8 @@ export function attemptShot(state: MatchState, by: number, distToGoal: number): 
     pos: { ...shooter.pos },
     vel: { x: Math.trunc((targetX - shooter.pos.x) / Math.max(1, distToGoal / 300)), y: 300 * dir },
     by: attributedBy,
-    power,
+    shotStrengthD64: shotStrength.d64,
+    power: shotStrength.displayPower,
     targetX,
     z: 0,
     vz: trajectory === 'lifted' ? verticalLaunchSpeed(flightTicks, LIFTED_SHOT_GOAL_HEIGHT) : 0,
@@ -1596,13 +1693,12 @@ export function shotFlightTick(state: MatchState): void {
   if (onTarget && !b.keeperChecked && reachedKeeperPlane) {
     b.keeperChecked = true;
     if (isAvailable(state, gkIdx)) {
-      const resolveScale = keeperResolveScale(state.resolve[defendingTeam]);
       const powerSaveBonus = keeperSaveBonus(state, gkIdx);
-      const saved = contest(
-        state.rng,
-        keeperSaveRating(state, gkIdx, resolveScale) + powerSaveBonus,
-        b.power,
-        SHOT_KEEPER_MOD,
+      const saved = state.rng() < keeperSaveProbability(
+        state,
+        gkIdx,
+        b.shotStrengthD64,
+        powerSaveBonus,
       );
       consumeKeeperShotCharge(state, gkIdx);
       if (saved) {

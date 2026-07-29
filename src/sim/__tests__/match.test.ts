@@ -300,6 +300,21 @@ describe('validateEnvelope', () => {
     expect(() => validateEnvelope(env)).toThrow('replay envelope: home team player');
   });
 
+  it('serializes and validates starting condition in replay teams', () => {
+    const home = {
+      ...ROVERS,
+      players: ROVERS.players.map((player, index) => (
+        index === 9 ? { ...player, startingCondition: 0 } : player
+      )),
+    };
+    const env = envelopeFrom(createMatch(42, home, UNITED));
+    expect(env.home.players[9].startingCondition).toBe(0);
+    expect(() => validateEnvelope(env)).not.toThrow();
+
+    env.home.players[9] = { ...env.home.players[9], startingCondition: 101 };
+    expect(() => validateEnvelope(env)).toThrow(/startingCondition/);
+  });
+
   it('rejects an out-of-set opts.homePolicy (Task 13 pre-flight)', () => {
     const env = makeValidEnvelope();
     env.opts = { homePolicy: 'FIRE_AT_WILL' as unknown as FirePolicy };

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "rosterSeed": 20260729,
+  "matchesPerDivision": 100,
+  "matchSeedStride": 7919,
+  "ratings": {
+    "1": 376,
+    "2": 303,
+    "3": 228,
+    "4": 153,
+    "5": 80
+  },
+  "rails": {
+    "goalsPerMatch": [
+      2,
+      5
+    ],
+    "saveRate": [
+      0.5,
+      0.75
+    ]
+  },
+  "divisions": {
+    "1": {
+      "goals": 460,
+      "saves": 656,
+      "goalsPerMatch": 4.6,
+      "saveRate": 0.5878136200716846
+    },
+    "2": {
+      "goals": 454,
+      "saves": 641,
+      "goalsPerMatch": 4.54,
+      "saveRate": 0.5853881278538813
+    },
+    "3": {
+      "goals": 432,
+      "saves": 635,
+      "goalsPerMatch": 4.32,
+      "saveRate": 0.5951265229615745
+    },
+    "4": {
+      "goals": 439,
+      "saves": 590,
+      "goalsPerMatch": 4.39,
+      "saveRate": 0.5733722060252673
+    },
+    "5": {
+      "goals": 443,
+      "saves": 524,
+      "goalsPerMatch": 4.43,
+      "saveRate": 0.5418821096173733
+    }
+  }
+}

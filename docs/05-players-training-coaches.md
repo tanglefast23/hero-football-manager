@@ -3,7 +3,7 @@
 ## Player anatomy
 
 - **Identity**: procedurally generated name + look (skin tone, hair, facial hair, glasses/accessories, body type: slim/normal/heavy/muscular, height: short/normal/tall). Looks are cosmetic *flavor* except body type nudging awakening weights (doc 04).
-- **Stats**: PAC / SHO (REF for GKs) / PAS / DEF / TEC / STA. Career ratings run from **1–999** with no player-specific cap. Every point can improve match performance, while ratings above 99 use diminishing match returns so the engine stays stable. The only training hard stop is the universal 999 safety maximum; temporary superpower effects are exceptions and may exceed ordinary match limits.
+- **Stats**: PAC / SHO (REF for GKs) / PAS / DEF / TEC / STA. Career ratings run from **1–999** with no player-specific cap. Contests compare the displayed ratings as a log-ratio, so 400 vs 434 means the same advantage as 40 vs 43.4 and no post-99 compression makes the numbers dishonest. PAC uses a separate strictly increasing fixed-point movement table whose ordinary full-condition spread is capped at 2×; STA uses committed endurance/drain tables. The only training hard stop is the universal 999 safety maximum; temporary superpower effects are exceptions and may exceed ordinary match limits.
 - **Archetype** (visible): Speedster, Sniper, Playmaker, Anchor, Wall, Engine, All-Rounder, Prodigy. Archetypes change how quickly favored stats train; they never prevent an unfavored stat from growing.
 
 | Archetype | Exact training bonus |
@@ -23,7 +23,28 @@
 - **Potential progression**: recruitment quality rises with the club. D5 pools are 90% E-tier and 10% D-tier; D4 is 35% E / 60% D / 5% C; D3 is 5% E / 30% D / 60% C / 5% B; D2 is 5% D / 35% C / 60% B; D1 is 25% B / 75% A. Youth intake and scouting both use this division progression, so A and A+ players begin appearing in D1.
 - **Hidden**: the coarse scouting/valuation tier behind the grade, consistency, personality (see below).
 - **Personality** (visible after a few weeks): Fiery, Loyal, Greedy, Joker, Professional, Timid — drives event outcomes, negotiation behavior, morale swings.
-- **State**: age, morale, condition/stamina, injury status, contract (wage, seasons left), fame, power (or none).
+- **State**: age, morale, condition/stamina, injury status, contract (wage, seasons left), fame, power (or none). Career condition is the player's kickoff and substitution-entry condition; it is no longer reset to 100 for the match.
+
+### Generated division ratings
+
+| Division | Club strength band | Support | Specialist focus | GK REF | Typical PAC |
+|---|---:|---:|---:|---:|---:|
+| D5 | 40–50 | 40 | 94 | 80 | 72 |
+| D4 | 90–102 | 88 | 180 | 153 | 90 |
+| D3 | 135–151 | 130 | 268 | 228 | 132 |
+| D2 | 178–203 | 175 | 356 | 303 | 176 |
+| D1 | 223–248 | 214 | 442 | 376 | 216 |
+
+Generated clubs preserve these authored support/specialist/keeper values while
+their displayed `squadStrength` is always recomputed from the actual squad.
+The keeper ladder trails the specialist SHO ladder rather than the support band:
+the frozen 100-match-per-division peer sample produces 4.32–4.60 goals per match
+and 54.2–59.5% saves, keeping finishers dangerous without making keepers irrelevant.
+The first D4 season has two explicit 39/40 relegation-pack clubs so a prepared
+D5 promotion has a real survival contest without flattening established D4.
+Non-user players then grow once per season by 3% on Cozy or 4% on Chairman,
+including PAC and REF; deterministic stochastic rounding prevents small ratings
+from losing their fractional growth forever.
 
 ## Growth & aging
 
@@ -60,7 +81,7 @@ Exactly **one head coach** may be employed at a time (assistant slot unlocks wit
 
 - **Scout missions**: pick a region + focus, pay 1,000–5,000, and receive a shortlist in 2–3 weeks. D5 starts with Local plus a South America DEF brief; D4 adds another rotating international brief; D3 adds expensive, usually-wrong Rumored Hero searches; D2 adds Elite Prospect searches for young players with 4–5★ potential. Scout Office level independently controls report accuracy. All earned briefs survive relegation.
 - **Buying**: transfer fee to the club + contract negotiation with the player (doc 06). Transfer windows: pre-season + 2 weeks mid-season.
-- **Selling**: list a player; AI clubs bid within a valuation band: `f(stats total, age curve, potential, power tier ×4–8, contract seasons left, your division)`. Trained-up players sold at peak age are a legitimate money engine (user-locked decision: player sales are a core income).
+- **Selling**: list a player; AI clubs bid within a valuation band. The six role-relevant ratings are measured relative to the selling division's support anchor, with base transfer anchors of **$6,500 / $9,500 / $14,500 / $22,000 / $32,000** from D5→D1 before age, potential, power tier ×4–8, and contract control. This keeps a support signing affordable after the raw-rating rebase while preserving a strong quadratic premium for stars. Generated support wage anchors are **$150 / $230 / $340 / $500 / $700 per week** from D5→D1. Awakened players still keep their old wage until renewal, when the locked ×3–5 hero cliff applies.
 - **Youth intake**: 1–2 random 16–17 year olds offered each pre-season for a small signing bonus; quality scales with your Youth Field facility.
 
 ## Roster rules

@@ -189,6 +189,14 @@ describe('deterministic automatic coaching', () => {
     expect(Number.isSafeInteger(automaticRoleValue(player, 63))).toBe(true);
   });
 
+  it('keeps the same role-value gap when every rating scales by ten', () => {
+    const lowGap = automaticRoleValue(reserve('low-a', 'MID', 50), 100)
+      - automaticRoleValue(reserve('low-b', 'MID', 45), 100);
+    const highGap = automaticRoleValue(reserve('high-a', 'MID', 500), 100)
+      - automaticRoleValue(reserve('high-b', 'MID', 450), 100);
+    expect(Math.abs(lowGap - highGap)).toBeLessThanOrEqual(1);
+  });
+
   it('accepts the exact three-point improvement, rejects less, and breaks bench ties by ID', () => {
     const uniform = (player: PlayerDef, rating: number): PlayerDef => ({
       ...player,

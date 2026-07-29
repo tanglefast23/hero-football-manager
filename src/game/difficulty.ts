@@ -7,14 +7,10 @@ export interface DifficultyRules {
   sponsorIncomePercent: number;
   negativeWeeksBeforeIntervention: number;
   emergencyLoanAmount: number;
-  /**
-   * Seasons the league needs to gain one rating point. Lower means the field
-   * pulls away faster, which is the only lever that makes a mode harder to PLAY
-   * rather than merely harder to afford.
-   */
-  opponentGrowthSeasonsPerPoint: number;
-  /** Ceiling on cumulative league growth, so a long career cannot run away. */
-  opponentGrowthCap: number;
+  /** Annual percentage applied independently to all seven rival attributes. */
+  opponentGrowthPercent: number;
+  /** Hard attribute ceiling for generated rivals in endless careers. */
+  opponentGrowthAttributeCap: number;
   /**
    * The furthest into the red a club can ever go. The board tops the balance
    * back up to this line whenever a week would end below it.
@@ -47,8 +43,8 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
     sponsorIncomePercent: 100,
     negativeWeeksBeforeIntervention: 4,
     emergencyLoanAmount: 20_000,
-    opponentGrowthSeasonsPerPoint: 2,
-    opponentGrowthCap: 8,
+    opponentGrowthPercent: 3,
+    opponentGrowthAttributeCap: 700,
     cashFloor: -15_000,
   },
   CHAIRMAN: {
@@ -56,8 +52,8 @@ const RULES: Record<DifficultyMode, DifficultyRules> = {
     sponsorIncomePercent: 80,
     negativeWeeksBeforeIntervention: 2,
     emergencyLoanAmount: 10_000,
-    opponentGrowthSeasonsPerPoint: 1,
-    opponentGrowthCap: 10,
+    opponentGrowthPercent: 4,
+    opponentGrowthAttributeCap: 800,
     // Chairman is allowed to sink twice as deep before the board steps in, so
     // the danger zone lasts longer and the ultimatums bite harder. It is still
     // bounded — the mode is a harder game, not an unwinnable one.

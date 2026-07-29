@@ -46,6 +46,7 @@ const BACKUP_SUMMARY_SQL = `
   WHERE slot = ?
 `;
 const DELETE_BACKUP_SQL = 'DELETE FROM career_save_backups WHERE slot = ?';
+const DELETE_CAREER_REPLAYS_SQL = 'DELETE FROM replay_envelopes WHERE career_id = ?';
 // quick_check skips the (much slower) full index cross-check but still reads
 // every page, which is what tells a damaged file apart from an unreadable save.
 const INTEGRITY_CHECK_SQL = 'PRAGMA quick_check';
@@ -67,6 +68,12 @@ export interface CareerBackupSummary {
   readonly week: number;
 }
 
+export interface RawStoredCareer {
+  readonly schemaVersion: number;
+  /** Exact state_json text from SQLite; no game-schema decode has run. */
+  readonly stateJson: string;
+}
+
 /**
  * Which career the backup holds and where in it — the whole cache key for
  * deciding whether the stored copy is still the generation we want. A career
@@ -79,6 +86,8 @@ interface BackupGeneration extends CareerBackupSummary {
 export interface CareerRepository {
   save(state: GameState): Promise<void>;
   load(): Promise<GameState | null>;
+  /** Reads the live payload without decoding its game schema. */
+  loadRaw(): Promise<RawStoredCareer | null>;
   delete(): Promise<void>;
   /** Describes the previous-generation copy, or null when there is none. */
   backupSummary(): Promise<CareerBackupSummary | null>;
@@ -108,6 +117,24 @@ export async function createCareerRepository(
   // save path stays a single INSERT instead of re-reading the stored state every
   // week, and only ever updated from a write that succeeded.
   let backedUp = await readBackupGeneration(database);
+
+  async function readRawCareer(): Promise<RawStoredCareer | null> {
+    const row = await database.getFirstAsync<StoredCareerRow>(
+      LOAD_CAREER_SQL,
+      [PRIMARY_SLOT],
+    );
+    if (row === null) return null;
+    if (!Number.isSafeInteger(row.schema_version) || (row.schema_version as number) < 1) {
+      throw new CorruptCareerSaveError('schema_version column is missing or invalid');
+    }
+    if (typeof row.state_json !== 'string') {
+      throw new CorruptCareerSaveError('state_json column is not text');
+    }
+    return {
+      schemaVersion: row.schema_version as number,
+      stateJson: row.state_json,
+    };
+  }
 
   async function writeBackup(state: GameState, liveJson: string): Promise<void> {
     try {
@@ -172,6 +199,10 @@ export async function createCareerRepository(
       return decodeStoredCareer(row);
     },
 
+    async loadRaw(): Promise<RawStoredCareer | null> {
+      return readRawCareer();
+    },
+
     /**
      * Both generations go, in one transaction. A discard is the player saying
      * this career is over, and a backup that outlived its live slot is a career
@@ -179,7 +210,21 @@ export async function createCareerRepository(
      * played next.
      */
     async delete(): Promise<void> {
+      const raw = await readRawCareer();
+      const backup = await readBackupGeneration(database);
+      const careerSeeds = new Set<number>();
+      const liveSeed = raw === null ? null : rawCareerSeed(raw.stateJson);
+      if (liveSeed !== null) careerSeeds.add(liveSeed);
+      if (backup?.careerSeed !== null && backup?.careerSeed !== undefined) {
+        careerSeeds.add(backup.careerSeed);
+      }
       await database.withTransactionAsync(async () => {
+        for (const careerSeed of careerSeeds) {
+          await database.runAsync(
+            DELETE_CAREER_REPLAYS_SQL,
+            [`m1-career-${careerSeed}`],
+          );
+        }
         await database.runAsync(DELETE_CAREER_SQL, [PRIMARY_SLOT]);
         await database.runAsync(DELETE_BACKUP_SQL, [BACKUP_SLOT]);
       });
@@ -223,6 +268,19 @@ export async function createCareerRepository(
       return row?.quick_check === 'ok';
     },
   };
+}
+
+function rawCareerSeed(stateJson: string): number | null {
+  try {
+    const value = JSON.parse(stateJson) as unknown;
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+    const seed = (value as Record<string, unknown>).careerSeed;
+    return Number.isInteger(seed) && (seed as number) >= 0 && (seed as number) <= 0xffff_ffff
+      ? seed as number
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function decodeStoredCareer(row: StoredCareerRow): GameState {

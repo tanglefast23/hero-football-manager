@@ -1,5 +1,6 @@
 import {
   buyingTransferQuote,
+  generatedPlayerWeeklyWage,
   generateCoachMarket,
   isCoachCandidateEligible,
   isTransferWindowOpen,
@@ -984,7 +985,6 @@ function pyramidCareerPlayer(
   const power = eligibleIndex >= 0 && eligibleIndex < heroCount
     ? generatedClubPower(club.id, eligibleIndex, player.role)
     : undefined;
-  const average = Object.values(player.attrs).reduce((sum, value) => sum + value, 0) / 7;
   const potential = opponentPotential(player.id, division);
   return {
     id: player.id,
@@ -997,7 +997,7 @@ function pyramidCareerPlayer(
       ? {}
       : { power, powerTier: (division === 1 ? 3 : division <= 3 ? 2 : 1) as 1 | 2 | 3 }),
     licensed: power !== undefined,
-    weeklyWage: Math.max(150, Math.round(average * (7 - division))),
+    weeklyWage: generatedPlayerWeeklyWage(player.attrs, division),
     onHeroWage: power !== undefined,
     contractSeasonsRemaining: 2,
     morale: player.morale,

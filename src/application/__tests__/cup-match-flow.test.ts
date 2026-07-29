@@ -1,4 +1,5 @@
 import { CUP_SETTLEMENT_WEEKS, DEFAULT_CREATION_RATINGS } from '../../game';
+import { createMatch } from '../../sim/match';
 import { useM1Store } from '../store';
 
 const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
@@ -118,4 +119,112 @@ describe('National Cup app routing', () => {
     expect(useM1Store.getState().error).toBeNull();
     expect(useM1Store.getState().watchedMatch!.cupRoundLabel).toBe('Play-in');
   });
+
+  test.each([
+    { path: 'Quick Result', watched: false },
+    { path: 'watched', watched: true },
+  ])('queues exactly one Bert giant-killing walk-on after the $path path', ({ watched }) => {
+    const prepared = prepareGiantKillingCupTie(2);
+    const matchday = prepared.m2!.nationalCups[0].rounds[0].fixtures.find(fixture => (
+      fixture.homeClubId === prepared.userClubId || fixture.awayClubId === prepared.userClubId
+    ))!;
+
+    if (watched) {
+      useM1Store.getState().watchMatch();
+      const context = useM1Store.getState().watchedMatch!;
+      const result = createMatch(
+        context.fixture.matchSeed,
+        context.home,
+        context.away,
+        { controlledTeam: context.controlledTeam },
+      );
+      result.score = context.userIsFixtureHome ? [1, 0] : [0, 1];
+      result.phase = 'fulltime';
+      useM1Store.getState().finishWatchedMatch(result);
+      // A duplicate full-time callback is ignored and must not queue Bert twice.
+      useM1Store.getState().finishWatchedMatch(result);
+    } else {
+      useM1Store.getState().quickResult();
+      // The post-match screen rejects a double tap at the store boundary.
+      useM1Store.getState().quickResult();
+    }
+
+    expect(useM1Store.getState().career?.pendingCupGiantKillingCelebrations).toEqual([
+      expect.objectContaining({
+        fixtureId: matchday.id,
+        divisionGap: 2,
+        title: 'GIANT-KILLERS!',
+      }),
+    ]);
+    useM1Store.getState().completeCupGiantKillingCelebration();
+    expect(useM1Store.getState().career?.pendingCupGiantKillingCelebrations).toBeUndefined();
+  });
 });
+
+function prepareGiantKillingCupTie(divisionGap: 1 | 2) {
+  useM1Store.getState().startNewCareer(2);
+  useM1Store.getState().completePlayerCreation({
+    name: 'Cup Runner',
+    ratings: DEFAULT_CREATION_RATINGS,
+  });
+  const career = useM1Store.getState().career!;
+  const cup = career.m2!.nationalCups[0];
+  const fixture = cup.rounds[0].fixtures.find(candidate => (
+    candidate.homeClubId === career.userClubId || candidate.awayClubId === career.userClubId
+  ));
+  if (fixture === undefined) throw new Error('expected a user play-in fixture');
+  const opponentClubId = fixture.homeClubId === career.userClubId
+    ? fixture.awayClubId
+    : fixture.homeClubId;
+  const dominant = {
+    pac: 999, sho: 999, pas: 999, def: 999, tec: 999, sta: 999, ref: 999,
+  };
+  const overmatched = {
+    pac: 1, sho: 1, pas: 1, def: 1, tec: 1, sta: 1, ref: 1,
+  };
+  const nextCup = {
+    ...cup,
+    seedDivisionByClubId: {
+      ...cup.seedDivisionByClubId,
+      [career.userClubId]: 5 as const,
+      [opponentClubId]: (5 - divisionGap) as 3 | 4,
+    },
+  };
+  const prepared = {
+    ...career,
+    week: PLAY_IN_WEEK,
+    phase: 'matchday' as const,
+    players: career.players.map(player => (
+      player.clubId === career.userClubId
+        ? { ...player, attrs: dominant }
+        : player.clubId === opponentClubId
+          ? { ...player, attrs: overmatched }
+          : player
+    )),
+    m2: {
+      ...career.m2!,
+      nationalCups: career.m2!.nationalCups.map(candidate => (
+        candidate.season === nextCup.season ? nextCup : candidate
+      )),
+      pyramid: {
+        ...career.m2!.pyramid,
+        divisions: career.m2!.pyramid.divisions.map(division => ({
+          ...division,
+          clubs: division.clubs.map(club => (
+            club.id !== career.userClubId && club.id !== opponentClubId
+              ? club
+              : {
+                  ...club,
+                  squad: club.squad.map(player => ({
+                    ...player,
+                    attrs: club.id === career.userClubId ? dominant : overmatched,
+                  })),
+                }
+          )),
+        })),
+      },
+    },
+  };
+  useM1Store.setState({ career: prepared, screen: 'matchday' });
+  return prepared;
+}

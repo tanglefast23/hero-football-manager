@@ -2,7 +2,10 @@ import { createLaunchCareerSetup, reconcileLaunchRoster } from '../../applicatio
 import { createCareer, startNextSeason } from '../career';
 import { enableFullCareer } from '../full-career';
 import { clubSquadStrength, currentUserDivision } from '../m2-career';
-import { tuneSquadToStrength } from '../pyramid';
+import {
+  DIVISION_STRENGTH_BANDS,
+  tuneSquadToStrength,
+} from '../pyramid';
 import { runHeadlessFullCareer } from '../headless';
 import { buildCareerTeamDef } from '../squad';
 import type { GameState } from '../types';
@@ -164,18 +167,28 @@ describe('full M2 career clock', () => {
           clubId: club.id,
           strength: effectiveStartingElevenStrength(promoted, club.id),
         }));
-      const minnows = opponentStrengths.filter(club => club.strength >= 46 && club.strength <= 49.5);
-      const established = opponentStrengths.filter(club => (
-        !minnows.some(minnow => minnow.clubId === club.clubId)
+      const weakestFirst = opponentStrengths.slice().sort((left, right) => (
+        left.strength - right.strength || left.clubId.localeCompare(right.clubId)
       ));
+      const minnows = weakestFirst.slice(0, 2);
+      const established = weakestFirst.slice(2);
+      const strongestMinnow = Math.max(...minnows.map(club => club.strength));
+      const weakestEstablished = Math.min(...established.map(club => club.strength));
 
       expect(currentUserDivision(promoted.m2!)).toBe(4);
       expect(userStrength).toBeGreaterThanOrEqual(45);
-      expect(userStrength).toBeLessThanOrEqual(47);
+      expect(userStrength).toBeLessThanOrEqual(48);
       expect(minnows).toHaveLength(2);
-      expect(Math.min(...established.map(club => club.strength))).toBeGreaterThanOrEqual(51);
-      expect(Math.max(...opponentStrengths.map(club => club.strength))).toBeGreaterThanOrEqual(54);
-      expect(Math.max(...opponentStrengths.map(club => club.strength))).toBeLessThanOrEqual(55);
+      expect(strongestMinnow).toBeLessThanOrEqual(49);
+      // The locked 90-point D4 band is a whole-squad value; its selected XI can
+      // sit four points lower. Pin both that projection and the actual bridge.
+      expect(weakestEstablished)
+        .toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[4][0] - 4);
+      expect(weakestEstablished - strongestMinnow).toBeGreaterThanOrEqual(35);
+      expect(Math.max(...opponentStrengths.map(club => club.strength)))
+        .toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[4][1] - 3);
+      expect(Math.max(...opponentStrengths.map(club => club.strength)))
+        .toBeLessThanOrEqual(DIVISION_STRENGTH_BANDS[4][1] + 1);
     },
   );
 

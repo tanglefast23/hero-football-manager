@@ -13,7 +13,7 @@ A cozy, Kairosoft-style soccer club management sim where some of your players ar
 - **Power effect-art review (web, development only):** `EXPO_PUBLIC_POWER_ART_QA=1 npx expo start --web --port 8092`. This lighter review reel reuses the production effect layer, but deliberately uses a simplified pitch and demo actors; it is not a live match replay.
 - **Simulator:** `npx expo start` then press `i`, or build directly with the XcodeBuildMCP CLI (`simulator build-and-run --scheme HeroFootballManager --workspace-path ios/HeroFootballManager.xcworkspace`). Relaunch pointed at a specific bundler with `xcrun simctl launch <udid> com.tanglefast.herofootballmanager -RCT_jsLocation localhost:8082`.
 - **Native builds** (needed after any icon/audio/native-dep change — Metro can't hot-load native resources): local `xcodebuild` with cloud signing via the ASC API key. `security find-identity` showing 0 local certs is NORMAL (signing is cloud-based); `expo run:ios` fails its local-cert pre-check, so don't use it. Export `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` for CocoaPods. Device install: wireless (needs the one-time cabled network-pairing toggle) or the TestFlight upload pipeline.
-    - **Engine version discipline:** any replay-affecting `src/sim` change bumps `ENGINE_VERSION` in `src/sim/match.ts` and regenerates the golden snapshot (`npx jest src/sim/__tests__/parity-replay.test.ts -u`) in the same commit. Current engine: **m1.31**.
+    - **Engine version discipline:** any replay-affecting `src/sim` change bumps `ENGINE_VERSION` in `src/sim/match.ts` and regenerates the golden snapshot (`npx jest src/sim/__tests__/parity-replay.test.ts -u`) in the same commit. Current engine: **m2.0**.
 
 ## Planning documents
 
@@ -56,23 +56,27 @@ Research reports (source material, written by research agents):
 | Players | Fictional, procedurally generated (no licensing risk); gentle aging with retirement and a legacy system |
 | Stack | Expo/React Native + TypeScript + react-native-skia (Atlas API); deterministic pure-TS sim core |
 
-### Balance decisions (2026-07-25, not yet implemented)
+### Balance decisions (2026-07-25–29, implementation campaign complete)
 
-Measured audit found the D5→D1 ramp impossible (0 promotions across 6 best-play careers × 10 seasons). These are the owner's answers; each still needs implementation and re-measurement.
+The scale-invariant campaign replaces compressed high ratings with ratio-based
+contests, a bounded pace curve, an honest D5→D1 ladder, and percentage-based
+rival growth. The locked implementation spec and completed acceptance evidence are
+in [the scale-invariant attributes master spec](docs/superpowers/plans/2026-07-29-scale-invariant-attributes.md).
 
 | Question | Decision | Where it lands |
 |---|---|---|
-| Economy: cut wages or raise income? | **Raise income**, via the fans / ticket price / sponsor levers | Division scaling now implemented (`full-career.ts`); the D5 baseline ratio is still open |
-| Should PAC matter? | **Yes.** Pace must convert into chances — accepting it as a dead stat is rejected | Engine change; needs `ENGINE_VERSION` bump + band re-tuning |
-| Is the goalkeeper the most important player? | **No.** Flatten the shot/save asymmetry so the eleven matter roughly equally | `engine.ts` `saveProbability`: compress the keeper's REF around a baseline the way `shotPowerAt` already compresses SHO. Do **not** raise the shooter's `/4` — that divisor deliberately prevents SHO being counted twice (aim + power) |
-| Opponent shape | **Balanced teams, not three unbeatable specialists.** Cap star concentration | `pyramid.ts` star slots + `divisionStarFocusedAttribute` |
-| Opponent season scaling | **Much slower**, so a stalled division does not outrun the player | `m2-career.ts` `scaleOpponentClub` |
+| Economy: cut wages or raise income? | **Raise income**, via the fans / ticket price / sponsor levers | Division income scales; transfer values and generated wages are anchored to each division's support band |
+| Should PAC matter? | **Yes.** Pace must convert into chances — accepting it as a dead stat is rejected | `PACE_SPEED128` supplies bounded, strictly increasing movement with fixed-point residue carry |
+| Is the goalkeeper the most important player? | **No.** Flatten the shot/save asymmetry so the eleven matter roughly equally | REF now uses the symmetric log-ratio contest and each division has an explicit keeper REF target |
+| Opponent shape | **Balanced teams with visible specialists.** | Explicit support, specialist focus, pace, and keeper tables replace the old star back-solve |
+| Opponent season scaling | **Slow percentage growth**, so the meaning is stable at every division | Cozy +3%/season, Chairman +4%, deterministic stochastic rounding, capped below 999 |
 | Tutorial fixture | Open against the **3rd-strongest** rival, save the best for later | `schedule.ts` `pinOpeningLeagueOpponents` |
-| Hero worth | **Too low.** A full four-hero squad is +4.6 squad points against a ~19-point division gap; must become a real progression pillar | `content/powers.json` tiers |
+| Hero worth | **Powers are typed spectacle after ordinary ratios.** | Power bonuses use d64, multiplier, geometry, or time effects rather than hidden raw-stat additions |
 | Chairman mode | **Genuinely harder**, not Cozy with four economic knobs turned down | `difficulty.ts` needs a difficulty axis beyond the economy |
 | How hard is D5? | **1 season for a good player, 2 at most for someone still learning.** Not a multi-season tutorial arc, and never the current unsignposted permanent 10th place | Sets the target for every number above |
 | Should the harness gate the ramp? | **Yes** — assert a best-play career promotes out of D5 **within 2 seasons**, and that a competent-play career manages it in 1 | `m2-balance.test.ts` |
 | Manual Zone tap | **Removed permanently**; powers always fire automatically | Done — see docs/04 |
+| Cup giant-killing | **Enabled:** one division down wins 5–10%; two-plus down wins 1–2% | Deterministic long-tail Cup model; Bert celebrates every qualifying player win with gap-specific copy |
 
 ## Deliberately deferred (not forgotten)
 

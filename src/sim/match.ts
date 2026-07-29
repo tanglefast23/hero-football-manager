@@ -9,8 +9,8 @@ import { isEnergyUse, isFormationId, isMentality } from './tactics';
 import { MAX_PLAYER_ATTRIBUTE } from './attributes';
 import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, ReplayEnvelope, Role, SimPlayer, TeamDef } from './types';
 
-// m1.31 carries career condition into starters and substitutes instead of
-// resetting every player to 100 when they enter the match.
+// m2.0 makes displayed 1-999 ratings honest in ratio contests and execution,
+// carries career condition into matches, and uses bounded fixed-point PAC/STA.
 // m1.30 puts a beaten defender on the grass instead of letting him re-roll the
 // same duel every second, and lets a midfielder slide on that breakaway beat.
 // m1.28 compresses the keeper's REF around a measured baseline so training
@@ -23,7 +23,7 @@ import type { Attrs, MatchInput, MatchOpts, MatchResult, MatchState, PlayerDef, 
 // immediately when an outfielder reaches red energy.
 // m1.24 accepts 1–999 career attributes and converts values above 99 to
 // bounded, diminishing match strength.
-export const ENGINE_VERSION = 'm1.31';
+export const ENGINE_VERSION = 'm2.0';
 const TOTAL_TICKS = HALF_TICKS * 2;
 const STOPPAGE_CAP = 50;
 // A replay tap can only matter on a tick the match actually simulates. Even one
@@ -68,6 +68,7 @@ function makePlayers(home: TeamDef, away: TeamDef, opts: MatchOpts): SimPlayer[]
     defs.players.map(def => ({
       def, team,
       pos: { x: 0, y: 0 }, // set by restartKickoff below
+      movementResidue: { x: 0, y: 0 },
       condition: def.startingCondition ?? 100, gauge: 0, zonesOpened: 0,
       powerState: { kind: 'idle' as const },
       firePolicy: team === 0 ? (opts.homePolicy ?? 'SAVE_FOR_TAP') : (opts.awayPolicy ?? 'FIRE_WHEN_READY'),
@@ -339,7 +340,7 @@ export function validateTeamDef(team: TeamDef, label: string): void {
         || p.startingCondition < 0
         || p.startingCondition > 100)) {
       throw new Error(
-        `${label} player ${p.id} has invalid starting condition ${String(p.startingCondition)}; expected an integer from 0 to 100`,
+        `${label} player ${p.id} has invalid starting condition (startingCondition=${String(p.startingCondition)}); expected an integer from 0 to 100`,
       );
     }
     if (p.power !== undefined && !VALID_POWER_IDS.has(p.power)) {

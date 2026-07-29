@@ -113,6 +113,31 @@ describe('buildTeamDef', () => {
     expect(match.players[9].condition).toBe(68);
   });
 
+  it('carries career condition into starters and bench definitions, including zero', () => {
+    const roster = validRoster().map(player => (
+      player.id === 'fwd-speed' ? { ...player, condition: 0 }
+        : player.id === 'bench-regular' ? { ...player, condition: 37 }
+          : player
+    ));
+
+    const team = buildTeamDef({ id: 'rovers', name: 'Hero Rovers' }, roster, STARTING_IDS);
+
+    expect(team.players[9].startingCondition).toBe(0);
+    expect(team.bench?.find(player => player.id === 'bench-regular')?.startingCondition).toBe(37);
+  });
+
+  it('rejects invalid career condition before building a replay team', () => {
+    const roster = validRoster().map(player => (
+      player.id === 'fwd-speed' ? { ...player, condition: 101 } : player
+    ));
+
+    expect(() => buildTeamDef(
+      { id: 'rovers', name: 'Hero Rovers' },
+      roster,
+      STARTING_IDS,
+    )).toThrow(/condition must be an integer from 0 to 100/);
+  });
+
   it('rejects an invalid power tier before a squad reaches the match engine', () => {
     const roster = validRoster().map(player => (
       player.id === 'fwd-speed' ? { ...player, powerTier: 4 as 3 } : player

@@ -233,17 +233,17 @@ describe('M4 twelve-power catalog', () => {
 
     const thunder = matchWith('THUNDER_STRIKE');
     activatePower(thunder.match, thunder.hero, 1);
-    expect(shotBonus(thunder.match, thunder.hero)).toBeGreaterThan(70);
+    expect(shotBonus(thunder.match, thunder.hero).d64Mod).toBeGreaterThan(1024);
 
     const phase = matchWith('PHASE_RUN');
     prepareActivation(phase.match, phase.hero, 'PHASE_RUN');
     activatePower(phase.match, phase.hero, 1);
     expect(phaseRunPreventsShot(phase.match, phase.hero)).toBe(false);
-    expect(dribbleBonus(phase.match, phase.hero)).toBe(70);
+    expect(dribbleBonus(phase.match, phase.hero).d64Mod).toBe(4480);
 
     const keeper = matchWith('ELASTIC_KEEPER');
     activatePower(keeper.match, keeper.hero, 1);
-    expect(keeperSaveBonus(keeper.match, keeper.hero)).toBe(20);
+    expect(keeperSaveBonus(keeper.match, keeper.hero).d64Mod).toBe(1280);
   });
 
   it('scales effects by hero tier without changing replayed tap strength', () => {
@@ -361,7 +361,8 @@ describe('M4 twelve-power catalog', () => {
     if (power === 'ELASTIC_KEEPER') {
       match.ball = {
         kind: 'shot', pos: { x: 3400, y: 9800 }, vel: { x: 0, y: 300 }, by: opponent,
-        power: 40, targetX: 3400, z: 0, vz: 0, trajectory: 'driven', keeperChecked: false,
+        shotStrengthD64: 0, power: 40, targetX: 3400, z: 0, vz: 0,
+        trajectory: 'driven', keeperChecked: false,
       };
     } else if (power === 'FUTURE_SIGHT' || power === 'SUPER_STRENGTH' || power === 'WEB_TRAP'
       || power === 'GUST') {

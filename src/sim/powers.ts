@@ -1,13 +1,21 @@
 import { emit } from './events';
 import { dist2, moveToward, GOAL_CENTER_X, GOAL_W, PITCH_H, PITCH_W } from './geometry';
-import type { DecoyCloneState, MatchInput, MatchState, OutReason, PowerId, SimPlayer } from './types';
+import type {
+  D64Modifier,
+  DecoyCloneState,
+  MatchInput,
+  MatchState,
+  OutReason,
+  PowerId,
+  SimPlayer,
+} from './types';
 import {
   activePlayerIndices,
   decoyIndexForTeam,
   playerAt,
   requirePlayerAt,
 } from './entities';
-import { matchAttribute } from './attributes';
+import { contestProbability, ratingD64 } from './contest';
 
 export const WINDUP_TICKS = 15;
 export const TAP_STRENGTH = 1.0;
@@ -49,6 +57,11 @@ export const PURSUIT_MULT = 1.65;
 
 /** Heat cap. Heat can run well past 100 through ordinary involvement before an authored situation converts it into a Zone; it never gates firing once that Zone exists. */
 const GAUGE_CAP = 200;
+const NO_D64_MOD: D64Modifier = { d64Mod: 0 };
+
+function resetMovementResidue(player: SimPlayer): void {
+  player.movementResidue = { x: 0, y: 0 };
+}
 
 export function addGauge(state: MatchState, idx: number, amount: number): void {
   const p = playerAt(state, idx);
@@ -179,8 +192,8 @@ function hasUsableTarget(state: MatchState, idx: number): boolean {
 // and "someone is close enough to catch fire" can never drift apart, the same
 // guarantee STRENGTH_LOCK_RANGE gives Super Strength.
 export const TORCH_IGNITE_RANGE = 1400;
-const FIRE_FULL_MATCHUP_ADVANTAGE = 4;
-const FIRE_SATURATED_MATCHUP_ADVANTAGE = 15;
+const FIRE_FULL_MATCHUP_ADVANTAGE_D64 = 158; // 1.08x
+const FIRE_SATURATED_MATCHUP_ADVANTAGE_D64 = 538; // 1.30x
 const FIRE_MIN_MARKER_TICKS = 4;
 /** Current defensive planning and landing ranges in deterministic pitch units. */
 const ICE_RINK_RANGE = 2400;
@@ -768,7 +781,7 @@ function anchoredEffect(
 export function powerFinishShotProfile(
   state: MatchState,
   idx: number,
-): { aimScale: number; powerBonus: number } | null {
+): { aimScale: number; powerD64Mod: number } | null {
   const player = playerAt(state, idx);
   if (player === undefined) return null;
   if (!isActive(state, idx) || player.powerState.kind !== 'active') return null;
@@ -778,22 +791,22 @@ export function powerFinishShotProfile(
   if (player.def.power === 'THUNDER_STRIKE' && commitment === 'THUNDER_SHOT') {
     return {
       aimScale: clampEffect(0.90 - 0.30 * grade, 0.38, 0.66),
-      powerBonus: Math.round(70 * player.powerState.strength),
+      powerD64Mod: Math.round(1641 * player.powerState.strength),
     };
   }
 
   const authored = player.def.power === 'SUPER_SPEED' && commitment === 'SPEED_ACTION'
-    ? { aimScale: anchoredEffect(grade, 0.85, 0.77, 0.74), power: anchoredEffect(grade, 22, 28, 34) }
+    ? { aimScale: anchoredEffect(grade, 0.85, 0.77, 0.74), powerD64: anchoredEffect(grade, 669, 819, 958) }
     : player.def.power === 'BLINK_RUN' && commitment === 'BLINK_ACTION'
-      ? { aimScale: anchoredEffect(grade, 0.78, 0.779, 0.76), power: anchoredEffect(grade, 26, 27, 30) }
+      ? { aimScale: anchoredEffect(grade, 0.78, 0.779, 0.76), powerD64: anchoredEffect(grade, 770, 794, 866) }
       : player.def.power === 'FIRE_TORCH' && commitment === 'FIRE_RUN'
-        ? { aimScale: anchoredEffect(grade, 0.79, 0.77, 0.60), power: anchoredEffect(grade, 24, 26, 55) }
+        ? { aimScale: anchoredEffect(grade, 0.79, 0.77, 0.60), powerD64: anchoredEffect(grade, 720, 770, 1383) }
         : player.def.power === 'PHASE_RUN' && commitment === 'PHASE_ACTION'
-          ? { aimScale: anchoredEffect(grade, 0.98, 0.88, 0.78), power: anchoredEffect(grade, 4, 14, 26) }
+          ? { aimScale: anchoredEffect(grade, 0.98, 0.88, 0.78), powerD64: anchoredEffect(grade, 139, 450, 770) }
           : null;
   return authored === null ? null : {
     aimScale: authored.aimScale,
-    powerBonus: Math.round(authored.power),
+    powerD64Mod: Math.round(authored.powerD64),
   };
 }
 
@@ -846,6 +859,7 @@ export function knockOut(state: MatchState, idx: number, untilTick: number, reas
   p.actionLockSourceIdx = undefined;
   p.slideTackle = undefined;
   p.tackleRecoveryUntil = 0;
+  resetMovementResidue(p);
   // 'zone' is intentionally left untouched — see the pause/resume note above.
   p.outUntilTick = untilTick;
   p.outReason = reason;
@@ -993,11 +1007,11 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       // Contextual timing earns a brief visible opening against the goal-side
       // marker. Fire's active attacking burst carries the rest of its value;
       // extending 11-v-10 play creates runaway score tails in mismatch games.
-      const resistance = matchAttribute(state.players[marker].def.attrs.def);
-      const matchupAdvantage = matchAttribute(p.def.attrs.tec) - resistance;
+      const matchupAdvantageD64 = ratingD64(p.def.attrs.tec)
+        - ratingD64(state.players[marker].def.attrs.def);
       const matchupHeadroom = clampEffect(
-        (FIRE_SATURATED_MATCHUP_ADVANTAGE - matchupAdvantage)
-          / (FIRE_SATURATED_MATCHUP_ADVANTAGE - FIRE_FULL_MATCHUP_ADVANTAGE),
+        (FIRE_SATURATED_MATCHUP_ADVANTAGE_D64 - matchupAdvantageD64)
+          / (FIRE_SATURATED_MATCHUP_ADVANTAGE_D64 - FIRE_FULL_MATCHUP_ADVANTAGE_D64),
         0,
         1,
       );
@@ -1023,6 +1037,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
       && capturedTarget !== undefined) {
       const target = capturedTarget;
       if (target.outUntilTick <= state.tick) {
+        resetMovementResidue(p);
         p.pos = moveToward(p.pos, target.pos, strengthLandingRange(p, strength));
         const grade = activeActivationGrade(p);
         const flattenTicks = Math.round(90 + 70 * grade + 50 * upgradeLift(grade));
@@ -1035,6 +1050,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
     clearStrengthLock(state, idx, capturedTargetIdx);
     finishMomentPower(state, idx);
   } else if (power === 'BLINK_RUN') {
+    resetMovementResidue(p);
     p.pos = blinkDestination(state, idx, effectStrength);
     emit(state, { t: state.tick, kind: 'POWER_IMPACT', player: idx, power, target: idx });
   } else if (power === 'PORTAL_PASS') {
@@ -1044,6 +1060,7 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
         : immediatePortalDestination;
       if (destination !== null) {
         const receiver = requirePlayerAt(state, destination.receiver);
+        resetMovementResidue(receiver);
         receiver.pos = { ...destination.pos };
         receiver.portalProtectedUntilTick = state.tick + PORTAL_PROTECTION_TICKS;
         state.ball = { kind: 'held', by: destination.receiver };
@@ -1093,8 +1110,10 @@ export function activatePower(state: MatchState, idx: number, strength: number, 
         p.powerState.runnerPlayerId = state.players[gravityCurrentRunner.idx].def.id;
         p.powerState.runnerAnchor = gravityCurrentRunner.pos;
       }
+      resetMovementResidue(state.players[gravityPrimary]);
       state.players[gravityPrimary].pos = primaryAnchor;
       if (gravitySecondary !== undefined && secondaryAnchor !== undefined) {
+        resetMovementResidue(state.players[gravitySecondary]);
         state.players[gravitySecondary].pos = secondaryAnchor;
       }
     } else finishMomentPower(state, idx);
@@ -1554,6 +1573,7 @@ function springShadowHunt(state: MatchState, heroIdx: number): void {
   if (victim.team === hero.team || victim.def.role === 'GK' || victim.outUntilTick > state.tick
     || dist2(victim.pos, hero.powerAnchor) > SHADOW_HUNT_RADIUS * SHADOW_HUNT_RADIUS) return;
   const direction = hero.team === 0 ? 1 : -1;
+  resetMovementResidue(hero);
   hero.pos = {
     x: victim.pos.x,
     y: Math.round(clampEffect(victim.pos.y + direction * 120, 200, PITCH_H - 200)),
@@ -1628,6 +1648,7 @@ export function futureSightInterceptor(
     if (dist2(hero.pos, receiver.pos) > interceptRange * interceptRange) continue;
     const direction = hero.team === 0 ? -1 : 1;
     const escape = Math.round(280 + 100 * grade + 120 * upgradeLift(grade));
+    resetMovementResidue(hero);
     hero.pos = {
       x: receiver.pos.x,
       y: Math.max(300, Math.min(PITCH_H - 300, receiver.pos.y + direction * escape)),
@@ -1707,6 +1728,43 @@ function attackLaneClearance(
   return clearance;
 }
 
+type DecisionWeight = readonly [keyof SimPlayer['def']['attrs'], number];
+
+function weightedDecisionRatingD64(
+  player: SimPlayer,
+  weights: readonly DecisionWeight[],
+): number {
+  const totalWeight = weights.reduce((sum, [, weight]) => sum + weight, 0);
+  return Math.round(weights.reduce(
+    (sum, [attribute, weight]) => sum + ratingD64(player.def.attrs[attribute]) * weight,
+    0,
+  ) / totalWeight);
+}
+
+/** A bounded, scale-invariant share against eligible same-team peers. */
+function normalizedDecisionShare(
+  state: MatchState,
+  idx: number,
+  weights: readonly DecisionWeight[],
+  role?: SimPlayer['def']['role'],
+): number {
+  const player = requirePlayerAt(state, idx);
+  const peers = activePlayerIndices(state)
+    .map(peerIdx => requirePlayerAt(state, peerIdx))
+    .filter(peer => peer.team === player.team
+      && peer.def.role !== 'GK'
+      && (role === undefined || peer.def.role === role)
+      && peer.outUntilTick <= state.tick);
+  const ownRating = weightedDecisionRatingD64(player, weights);
+  const peerMean = peers.length === 0
+    ? ownRating
+    : Math.round(peers.reduce(
+      (sum, peer) => sum + weightedDecisionRatingD64(peer, weights),
+      0,
+    ) / peers.length);
+  return Math.round(contestProbability(ownRating, peerMean) * 1000);
+}
+
 function portalReceiverThreat(
   state: MatchState,
   idx: number,
@@ -1715,9 +1773,11 @@ function portalReceiverThreat(
   const player = requirePlayerAt(state, idx);
   const progress = attackingProgress(player.team, pos) / PITCH_H;
   const centrality = 1 - Math.abs(pos.x - PITCH_W / 2) / (PITCH_W / 2);
-  const technique = matchAttribute(player.def.attrs.sho) * 8
-    + matchAttribute(player.def.attrs.tec) * 4
-    + matchAttribute(player.def.attrs.pas) * 2;
+  const technique = normalizedDecisionShare(
+    state,
+    idx,
+    [['sho', 8], ['tec', 4], ['pas', 2]],
+  );
   return progress * progress * 1400
     + Math.max(0, centrality) * 300
     + openSpaceAt(state, player.team, pos) * 0.6
@@ -1907,8 +1967,7 @@ function bestDecoyForward(state: MatchState, heroIdx: number, carrierIdx: number
     if (idx === carrierIdx || idx === heroIdx || mate.team !== hero.team
       || mate.def.role !== 'FWD' || !friendlyTargetAvailable(state, hero.team, idx)) continue;
     const score = attackingProgress(mate.team, mate.pos) * 10
-      + matchAttribute(mate.def.attrs.sho) * 4
-      + matchAttribute(mate.def.attrs.tec) * 2;
+      + normalizedDecisionShare(state, idx, [['sho', 4], ['tec', 2]], 'FWD');
     if (score > bestScore || (score === bestScore && idx < best)) {
       best = idx;
       bestScore = score;
@@ -2105,6 +2164,7 @@ export function finishMomentPower(
   if (player.powerState.kind === 'active'
     && player.powerState.commitment === 'SHADOW_HUNT'
     && player.powerAnchor !== undefined) {
+    resetMovementResidue(player);
     player.pos = { ...player.powerAnchor };
   }
   if (player.def.power === 'DECOY_DOUBLE') dismissDecoyClone(state, player.team, decoyReason);
@@ -2199,38 +2259,40 @@ export function consumeKeeperShotCharge(state: MatchState, idx: number): void {
   if (player.def.power === 'ELASTIC_KEEPER' && isActive(state, idx)) finishMomentPower(state, idx);
 }
 
-export function dribbleBonus(state: MatchState, carrierIdx: number): number {
+export function dribbleBonus(state: MatchState, carrierIdx: number): D64Modifier {
   const player = playerAt(state, carrierIdx);
-  if (player === undefined) return 0;
+  if (player === undefined) return NO_D64_MOD;
   // Attacking wind-ups preserve the authored run without granting immunity.
   // A clean tackle can still cancel every one of them.
   if (player.powerState.kind === 'winding') {
     if (player.def.power === 'SUPER_SPEED') {
-      return Math.round(25 * tierEffectScale(player.def.powerTier));
+      return { d64Mod: Math.round(1600 * tierEffectScale(player.def.powerTier)) };
     }
-    const base = player.def.power === 'THUNDER_STRIKE' ? 24
-      : player.def.power === 'BLINK_RUN' || player.def.power === 'FIRE_TORCH' ? 20
+    const baseD64 = player.def.power === 'THUNDER_STRIKE' ? 1536
+      : player.def.power === 'BLINK_RUN' || player.def.power === 'FIRE_TORCH' ? 1280
         : 0;
-    if (base > 0) {
-      return Math.round(base * player.powerState.strength
-        * manualTimingScale(player.powerState.strength)
-        * tierEffectScale(player.def.powerTier));
+    if (baseD64 > 0) {
+      return {
+        d64Mod: Math.round(baseD64 * player.powerState.strength
+          * manualTimingScale(player.powerState.strength)
+          * tierEffectScale(player.def.powerTier)),
+      };
     }
   }
-  let bonus = 0;
+  let d64Mod = 0;
   if (isActive(state, carrierIdx) && player.powerState.kind === 'active') {
     const power = player.def.power;
     const grade = activeActivationGrade(player);
-    if (power === 'SUPER_SPEED') bonus = Math.round(anchoredEffect(grade, 22, 28, 32));
-    if (power === 'THUNDER_STRIKE') bonus = Math.round(anchoredEffect(grade, 12, 18, 30));
-    if (power === 'FIRE_TORCH') bonus = Math.round(anchoredEffect(grade, 60, 62, 88));
-    if (power === 'PHASE_RUN') bonus = Math.round(anchoredEffect(grade, 20, 70, 100));
+    if (power === 'SUPER_SPEED') d64Mod = Math.round(anchoredEffect(grade, 1408, 1792, 2048));
+    if (power === 'THUNDER_STRIKE') d64Mod = Math.round(anchoredEffect(grade, 768, 1152, 1920));
+    if (power === 'FIRE_TORCH') d64Mod = Math.round(anchoredEffect(grade, 3840, 3968, 5632));
+    if (power === 'PHASE_RUN') d64Mod = Math.round(anchoredEffect(grade, 1280, 4480, 6400));
     if (power === 'BLINK_RUN') {
       const geometryGrade = anchoredEffect(grade, 0.85, 0.855, 0.87);
-      bonus = Math.round(25 * familyEffectScale('BLINK_RUN') * geometryGrade);
+      d64Mod = Math.round(1600 * familyEffectScale('BLINK_RUN') * geometryGrade);
     }
   }
-  return bonus;
+  return { d64Mod };
 }
 
 export function fireSuppressed(state: MatchState, _tacklerIdx: number, carrierIdx: number): boolean {
@@ -2271,6 +2333,7 @@ export function consumePhaseChallenge(
     const score = space + centrality * 0.15;
     if (score > bestScore) { best = { x, y }; bestScore = score; }
   }
+  resetMovementResidue(carrier);
   carrier.pos = best;
   emit(state, {
     t: state.tick,
@@ -2282,23 +2345,27 @@ export function consumePhaseChallenge(
   return true;
 }
 
-export function defenseBonus(state: MatchState, idx: number): number {
-  if (!isActive(state, idx)) return 0;
+export function defenseBonus(state: MatchState, idx: number): D64Modifier {
+  if (!isActive(state, idx)) return NO_D64_MOD;
   const player = playerAt(state, idx);
-  if (player === undefined) return 0;
-  if (player.powerState.kind !== 'active') return 0;
+  if (player === undefined) return NO_D64_MOD;
+  if (player.powerState.kind !== 'active') return NO_D64_MOD;
   const power = player.def.power;
-  if (power === 'SUPER_STRENGTH') return Math.round(40 * player.powerState.strength);
-  if (power === 'SHADOW_MARK') return Math.round(60 * player.powerState.strength);
-  return 0;
+  if (power === 'SUPER_STRENGTH') {
+    return { d64Mod: Math.round(2560 * player.powerState.strength) };
+  }
+  if (power === 'SHADOW_MARK') {
+    return { d64Mod: Math.round(3840 * player.powerState.strength) };
+  }
+  return NO_D64_MOD;
 }
 
-export function keeperSaveBonus(state: MatchState, idx: number): number {
-  if (!isActive(state, idx)) return 0;
+export function keeperSaveBonus(state: MatchState, idx: number): D64Modifier {
+  if (!isActive(state, idx)) return NO_D64_MOD;
   const player = state.players[idx];
-  if (player.powerState.kind !== 'active') return 0;
+  if (player.powerState.kind !== 'active') return NO_D64_MOD;
   const power = player.def.power;
-  if (power !== 'ELASTIC_KEEPER' && power !== 'GIANT_GK') return 0;
+  if (power !== 'ELASTIC_KEEPER' && power !== 'GIANT_GK') return NO_D64_MOD;
 
   // Calibrated anchors keep the basic contextual fire near the balance floor,
   // make a well-placed tap visibly better, and reserve the large save spike for
@@ -2309,23 +2376,31 @@ export function keeperSaveBonus(state: MatchState, idx: number): number {
   const autoGrade = 0.85;
   const manualGrade = 1.15;
   const tier3Grade = manualGrade * 1.45;
-  const [autoBonus, manualBonus, tier3Bonus] = power === 'ELASTIC_KEEPER'
-    ? [12, 20, 32]
-    : [11, 20, 30];
+  const [autoBonusD64, manualBonusD64, tier3BonusD64] = power === 'ELASTIC_KEEPER'
+    ? [768, 1280, 2048]
+    : [704, 1280, 1920];
   if (grade <= manualGrade) {
     const timingProgress = clampEffect(
       (grade - autoGrade) / (manualGrade - autoGrade),
       0,
       1,
     );
-    return Math.round(autoBonus + (manualBonus - autoBonus) * timingProgress);
+    return {
+      d64Mod: Math.round(
+        autoBonusD64 + (manualBonusD64 - autoBonusD64) * timingProgress,
+      ),
+    };
   }
   const upgradeProgress = clampEffect(
     (grade - manualGrade) / (tier3Grade - manualGrade),
     0,
     1,
   );
-  return Math.round(manualBonus + (tier3Bonus - manualBonus) * upgradeProgress);
+  return {
+    d64Mod: Math.round(
+      manualBonusD64 + (tier3BonusD64 - manualBonusD64) * upgradeProgress,
+    ),
+  };
 }
 
 export function phaseRunPreventsShot(state: MatchState, idx: number): boolean {

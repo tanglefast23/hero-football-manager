@@ -35,6 +35,7 @@ export function performSubstitution(
     def: copyPlayerDef(replacement),
     team,
     pos: { ...outgoing.pos },
+    movementResidue: { x: 0, y: 0 },
     condition: replacement.startingCondition ?? 100,
     gauge: 0,
     zonesOpened: 0,

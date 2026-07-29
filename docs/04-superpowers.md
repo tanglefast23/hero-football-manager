@@ -2,7 +2,7 @@
 
 The signature system. Powers must feel **rare** (pillar 3), **spectacular** (comic FX), and **fair** (interruptible wind-ups, GK Resolve attrition, license slots). Every power obeys the **timing-sensitivity principle**: an effect is a *spike* tied to a moment, never a smear of passive percentages — activations must visibly change possession or geometry, and expert timing determines how valuable the change becomes.
 
-**Powers break ordinary limits by design.** The raw 999 rating ceiling and PAC's 60% movement endpoint apply to training and ordinary match performance only. An authored power resolves afterward and may temporarily exceed any ordinary stat, fatigue, contest, Resolve, geometry, or movement limit when that is the promised spectacle. These exceptions are temporary power effects; they never write a raw stat above 999 into the player save.
+**Powers break ordinary limits by design.** The raw 999 rating ceiling and PAC's 2× ordinary full-condition speed spread apply to training and ordinary match performance only. An authored power resolves afterward and may temporarily exceed any ordinary stat, fatigue, contest, Resolve, geometry, or movement limit when that is the promised spectacle. Contest and finish effects are authored directly as typed d64 ratio modifiers; other powers use explicit multipliers, geometry, or time. They never add hidden raw stat points or write a raw stat above 999 into the player save.
 
 ## Hero License slots (field cap)
 

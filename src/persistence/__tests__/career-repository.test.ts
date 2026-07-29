@@ -4,7 +4,7 @@ import {
   addCreatedPlayer,
   beginStoryOnboarding,
 } from '../../game';
-import type { CareerSetup, GameState } from '../../game/types';
+import { GAME_SCHEMA_VERSION, type CareerSetup, type GameState } from '../../game/types';
 import { createLaunchCareerSetup, reconcileLaunchRoster } from '../../application/launch';
 import { createCareerRepository } from '../career-repository';
 import { parseStoredGameState, serializeGameState } from '../game-state-codec';
@@ -155,6 +155,70 @@ describe('career repository', () => {
     await expect(repository.load()).resolves.toBeNull();
   });
 
+  it('reads an incompatible save as exact raw text without decoding it', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const stateJson = '{"schemaVersion":1,"careerSeed":7788,"unknown":{"keep":"exact"}}';
+    database.seedCareerRow({ schema_version: 1, state_json: stateJson });
+
+    await expect(repository.load()).rejects.toBeInstanceOf(UnsupportedGameSchemaError);
+    await expect(repository.loadRaw()).resolves.toEqual({
+      schemaVersion: 1,
+      stateJson,
+    });
+    expect(database.careerRow?.state_json).toBe(stateJson);
+  });
+
+  it('transactionally deletes only the career, its backup, and associated replays', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const state = makeState();
+    await repository.save(state);
+    database.preferencesRow = {
+      schema_version: 4,
+      preferences_json: '{"masterVolume":0.5}',
+    };
+    database.seedReplayRow({
+      career_id: `m1-career-${state.careerSeed}`,
+      fixture_id: 'associated',
+      sort_order: 1,
+      schema_version: 1,
+      engine_version: 'old',
+      envelope_json: '{}',
+    });
+    database.seedReplayRow({
+      career_id: 'm1-career-unrelated',
+      fixture_id: 'keep',
+      sort_order: 1,
+      schema_version: 1,
+      engine_version: 'old',
+      envelope_json: '{}',
+    });
+    const preferencesBefore = { ...database.preferencesRow };
+
+    await repository.delete();
+
+    expect(database.careerRow).toBeNull();
+    expect(database.backupRow).toBeNull();
+    expect([...database.replayRows.values()].map(row => row.fixture_id)).toEqual(['keep']);
+    expect(database.preferencesRow).toEqual(preferencesBefore);
+  });
+
+  it('leaves the live career and backup untouched when transactional reset fails', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createCareerRepository(database);
+    const state = makeState();
+    await repository.save(state);
+    const liveBefore = { ...database.careerRow! };
+    const backupBefore = { ...database.backupRow! };
+    database.writesFail = true;
+
+    await expect(repository.delete()).rejects.toThrow('disk is full');
+
+    expect(database.careerRow).toEqual(liveBefore);
+    expect(database.backupRow).toEqual(backupBefore);
+  });
+
   it('surfaces corrupt JSON clearly', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
@@ -172,8 +236,8 @@ describe('career repository', () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
     database.seedCareerRow({
-      schema_version: 1,
-      state_json: '{"schemaVersion":1}',
+      schema_version: GAME_SCHEMA_VERSION,
+      state_json: `{"schemaVersion":${GAME_SCHEMA_VERSION}}`,
     });
 
     await expect(repository.load()).rejects.toBeInstanceOf(
@@ -185,20 +249,25 @@ describe('career repository', () => {
   it('rejects an unsupported stored schema version before parsing its payload', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
-    database.seedCareerRow({ schema_version: 2, state_json: '{not-even-json' });
+    database.seedCareerRow({
+      schema_version: GAME_SCHEMA_VERSION + 1,
+      state_json: '{not-even-json',
+    });
 
     await expect(repository.load()).rejects.toBeInstanceOf(
       UnsupportedGameSchemaError,
     );
-    await expect(repository.load()).rejects.toThrow('schema 2 is unsupported');
+    await expect(repository.load()).rejects.toThrow(
+      `schema ${GAME_SCHEMA_VERSION + 1} is unsupported`,
+    );
   });
 
   it('rejects a payload schema that disagrees with the supported row version', async () => {
     const database = new FakePersistenceDatabase();
     const repository = await createCareerRepository(database);
     database.seedCareerRow({
-      schema_version: 1,
-      state_json: '{"schemaVersion":2}',
+      schema_version: GAME_SCHEMA_VERSION,
+      state_json: `{"schemaVersion":${GAME_SCHEMA_VERSION + 1}}`,
     });
 
     await expect(repository.load()).rejects.toBeInstanceOf(
@@ -276,7 +345,10 @@ describe('career backup generation', () => {
 
     // What data loss looks like from here: the row is still there and no longer
     // decodes. Without the backup the whole career would be gone.
-    database.seedCareerRow({ schema_version: 1, state_json: '{"schemaVersion":1}' });
+    database.seedCareerRow({
+      schema_version: GAME_SCHEMA_VERSION,
+      state_json: `{"schemaVersion":${GAME_SCHEMA_VERSION}}`,
+    });
     await expect(repository.load()).rejects.toBeInstanceOf(CorruptCareerSaveError);
 
     const restored = await repository.restoreBackup();
@@ -306,8 +378,8 @@ describe('career backup generation', () => {
     const state = makeState();
     await repository.save(state);
     database.seedBackupRow({
-      schema_version: 1,
-      state_json: '{"schemaVersion":1}',
+      schema_version: GAME_SCHEMA_VERSION,
+      state_json: `{"schemaVersion":${GAME_SCHEMA_VERSION}}`,
       saved_season: 1,
       saved_week: 1,
       saved_career_seed: state.careerSeed,

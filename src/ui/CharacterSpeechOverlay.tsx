@@ -32,6 +32,8 @@ const TOP_SAFE_MARGIN = 72;
 export interface CharacterSpeechOverlayProps {
   /** One bubble per entry. A tap moves to the next; the last tap sends them off. */
   lines: readonly string[];
+  /** Optional emphatic heading above the current bubble line. */
+  heading?: string;
   /** The character themselves — a match sprite, or Bert's pixel figure. */
   children?: React.ReactNode;
   /** Rendered size of `children`, needed to place the bubble above their head. */
@@ -87,6 +89,7 @@ type Phase = 'arriving' | 'speaking' | 'leaving';
  */
 export function CharacterSpeechOverlay({
   lines,
+  heading,
   children,
   characterWidth,
   characterHeight,
@@ -329,6 +332,12 @@ export function CharacterSpeechOverlay({
               },
             ]}
           >
+            {heading === undefined ? null : (
+              <Text style={[styles.bubbleHeading, bubbleScale === 1 ? null : {
+                fontSize: (BUBBLE_FONT_SIZE - 1) * bubbleScale,
+                lineHeight: (BUBBLE_LINE_HEIGHT - 2) * bubbleScale,
+              }]}>{heading}</Text>
+            )}
             <Text style={[styles.bubbleText, bubbleScale === 1 ? null : {
               fontSize: BUBBLE_FONT_SIZE * bubbleScale,
               lineHeight: BUBBLE_LINE_HEIGHT * bubbleScale,
@@ -415,6 +424,14 @@ const styles = StyleSheet.create({
     fontSize: BUBBLE_FONT_SIZE,
     lineHeight: BUBBLE_LINE_HEIGHT,
     fontWeight: 'bold',
+  },
+  bubbleHeading: {
+    color: '#c44536',
+    fontSize: BUBBLE_FONT_SIZE - 1,
+    lineHeight: BUBBLE_LINE_HEIGHT - 2,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    marginBottom: 5,
   },
   // Two stacked triangles: the dark one is the bubble's border, the white one
   // sits a few pixels up to punch the border line out of the tail's mouth.

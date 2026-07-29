@@ -17,6 +17,7 @@ import {
   buildCareerMatchTeams,
   buildCareerFacility,
   buildTrainingGround,
+  completeCupGiantKillingCelebration as markCupGiantKillingCelebrationComplete,
   completeFirstOnboardingMatch,
   completeAssistantGuideMilestone,
   type AssistantGuideMilestone,
@@ -178,6 +179,8 @@ interface M1Store {
   repository: CareerRepository | null;
   replayRepository: ReplayRepository | null;
   persistenceLoadError: string | null;
+  rawExportRequired: boolean;
+  rawExportSucceeded: boolean;
   persistenceReady: boolean;
   saving: boolean;
   hasSavedCareer: boolean;
@@ -205,6 +208,9 @@ interface M1Store {
     replayRepository?: ReplayRepository,
   ) => Promise<void>;
   discardUnreadableSave: () => Promise<void>;
+  exportUnreadableSave: (
+    share: (fileName: string, contents: string) => Promise<void>,
+  ) => Promise<void>;
   restoreBackupSave: () => Promise<void>;
   retrySave: () => void;
   startNewCareer: (seed?: number) => void;
@@ -218,6 +224,7 @@ interface M1Store {
   completeAssistantGuide: (sequenceId: AssistantGuideSequenceId) => void;
   /** Retires a one-shot Bert lesson for the rest of the career. */
   completeGuideMilestone: (milestone: AssistantGuideMilestone) => void;
+  completeCupGiantKillingCelebration: () => void;
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
   advanceCareer: () => void;
@@ -268,6 +275,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
   repository: null,
   replayRepository: null,
   persistenceLoadError: null,
+  rawExportRequired: false,
+  rawExportSucceeded: false,
   persistenceReady: false,
   saving: false,
   hasSavedCareer: false,
@@ -300,6 +309,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
         postMatchOverlay: null,
         weekReview: null,
         persistenceLoadError: null,
+        rawExportRequired: false,
+        rawExportSucceeded: false,
         backupSummary: await backupSummaryFailSoft(repository),
         error: null,
       });
@@ -320,13 +331,47 @@ export const useM1Store = create<M1Store>((set, get) => ({
         persistenceLoadError: `Save could not be loaded safely: ${errorMessage(error)}${
           damaged ? ' The game database file also reports damage.' : ''
         }`,
+        rawExportRequired: false,
+        rawExportSucceeded: false,
       });
     }
   },
 
-  async discardUnreadableSave() {
+  async exportUnreadableSave(share) {
     const { repository, persistenceLoadError } = get();
     if (repository === null || persistenceLoadError === null) return;
+    set({ rawExportRequired: true, rawExportSucceeded: false });
+    try {
+      const raw = await repository.loadRaw();
+      if (raw === null) throw new Error('the stored career row is missing');
+      const fileName = `hero-football-manager-raw-schema-${raw.schemaVersion}.json`;
+      await share(fileName, raw.stateJson);
+    } catch (error) {
+      set({
+        persistenceLoadError: `Raw save export failed: ${errorMessage(error)} The save is unchanged; deletion stays blocked until export succeeds or the app is relaunched.`,
+      });
+      return;
+    }
+    set({
+      rawExportSucceeded: true,
+      notice: { tone: 'info', message: 'Raw save exported. You can now start fresh if you choose.' },
+    });
+  },
+
+  async discardUnreadableSave() {
+    const {
+      repository,
+      persistenceLoadError,
+      rawExportRequired,
+      rawExportSucceeded,
+    } = get();
+    if (repository === null || persistenceLoadError === null) return;
+    if (rawExportRequired && !rawExportSucceeded) {
+      set({
+        persistenceLoadError: 'Raw save export was requested but did not finish. The save has not been deleted.',
+      });
+      return;
+    }
     try {
       await repository.delete();
     } catch (error) {
@@ -337,6 +382,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
     }
     set({
       persistenceLoadError: null,
+      rawExportRequired: false,
+      rawExportSucceeded: false,
       career: null,
       hasSavedCareer: false,
       screen: 'welcome',
@@ -507,6 +554,14 @@ export const useM1Store = create<M1Store>((set, get) => ({
       const career = requireCareer(get());
       if (hasAssistantGuideMilestone(career, milestone)) return;
       const next = completeAssistantGuideMilestone(career, milestone);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  completeCupGiantKillingCelebration() {
+    guarded(set, () => {
+      const next = markCupGiantKillingCelebrationComplete(requireCareer(get()));
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

@@ -1,5 +1,6 @@
 import { HALF_TICKS } from './geometry';
 import { emit } from './events';
+import { conditionD64, ratingD64 } from './contest';
 import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
 import type { BeforeSubstitution } from './substitutions';
 import type { EnergyUse } from './tactics';
@@ -10,7 +11,12 @@ const SUBSTITUTION_MINUTES = [50, 60, 70, 80, 85] as const;
 const ENERGY_USE_MINUTES = [65, 75, 85] as const;
 const AUTO_SUB_CONDITION = 60;
 export const AUTO_SUB_EMERGENCY_CONDITION = 30;
-const ROLE_VALUE_MARGIN = 300; // weighted score is stored at 100x player-facing points
+// Preserve the old D5 boundary exactly: at the scheduled threshold, a fresh
+// 48-rated reserve clears the three-point effective improvement over a tired
+// 50-rated starter, while a 47-rated reserve does not.
+const ROLE_VALUE_MARGIN_D64 = (
+  ratingD64(48) - ratingD64(50) - conditionD64(AUTO_SUB_CONDITION)
+);
 
 function tickForMinute(minute: number): number {
   return Math.round(TOTAL_TICKS * minute / 90);
@@ -29,18 +35,24 @@ function stableIdCompare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-function conditionedAttribute(raw: number, condition: number): number {
-  const bounded = Math.max(0, Math.min(100, condition));
-  return Math.max(1, Math.round(raw * (0.75 + 0.25 * bounded / 100)));
-}
-
-/** Integer role score at 100x precision, shared by outgoing and incoming rankings. */
+/** Weighted log-ratio role score, shared by outgoing and incoming rankings. */
 export function automaticRoleValue(player: PlayerDef, condition: number): number {
   if (player.role === 'GK') return 0;
-  return ROLE_WEIGHTS[player.role].reduce(
-    (sum, [attribute, weight]) => sum + conditionedAttribute(player.attrs[attribute], condition) * weight,
+  const weightedRatingD64 = Math.round(ROLE_WEIGHTS[player.role].reduce(
+    (sum, [attribute, weight]) => sum + ratingD64(player.attrs[attribute]) * weight,
     0,
-  );
+  ) / 100);
+  return weightedRatingD64 + conditionD64(condition);
+}
+
+/** Scale-free version of the shipping D5 three-point substitution margin. */
+export function automaticSubstitutionClearsMargin(
+  outgoing: PlayerDef,
+  outgoingCondition: number,
+  replacement: PlayerDef,
+): boolean {
+  return automaticRoleValue(replacement, 100)
+    >= automaticRoleValue(outgoing, outgoingCondition) + ROLE_VALUE_MARGIN_D64;
 }
 
 export function automaticTeams(state: MatchState): readonly (0 | 1)[] {
@@ -108,8 +120,11 @@ function automaticSubstitutionChoiceAtCondition(
     if (replacement === undefined) continue;
     if (
       requireValueMargin
-      && automaticRoleValue(replacement, 100)
-        < automaticRoleValue(outgoing.player.def, outgoing.player.condition) + ROLE_VALUE_MARGIN
+      && !automaticSubstitutionClearsMargin(
+        outgoing.player.def,
+        outgoing.player.condition,
+        replacement,
+      )
     ) {
       continue;
     }

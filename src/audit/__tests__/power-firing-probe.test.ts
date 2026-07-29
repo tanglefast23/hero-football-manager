@@ -26,7 +26,9 @@ import { shouldQueueWellTappedPower } from '../hero-value-tap-policy';
 
 const content = loadLaunchContent();
 const POWERS = content.powers.powers.map(power => power.id) as PowerId[];
+const SELECTED_POWERS = selectedPowerFilter(process.env.POWER_FIRING_ONLY, POWERS);
 const SEEDS = positiveIntegerEnv('POWER_FIRING_SEEDS', 200);
+const CALIBRATION_ONLY = process.env.POWER_FIRING_CALIBRATION_ONLY === '1';
 
 /**
  * Each power's designed carrier slot, matching src/sim/__tests__/power-cadence.
@@ -85,10 +87,21 @@ describe('power firing diagnostic', () => {
       '',
       `=== NO-HERO BASELINE at even strength: ppm ${baseline.ppm.toFixed(3)} ===`,
       '',
+      '=== NO-HERO CALIBRATION LADDER ===',
+      ...ladder.map(row => `opponent delta ${String(row.delta).padStart(3)}: ppm ${row.ppm.toFixed(3)}`),
+    ];
+    if (CALIBRATION_ONLY) {
+      // eslint-disable-next-line no-console
+      console.log(lines.join('\n'));
+      expect(ladder).toHaveLength(LADDER.length);
+      return;
+    }
+    lines.push(
+      '',
       '=== AUTO-FIRE (Quick Result) ===',
       'power              zones/match  fires/match  expired  fire%   ppm     worth',
-    ];
-    const autoRows = POWERS.map(power => {
+    );
+    const autoRows = SELECTED_POWERS.map(power => {
       const sample = run(grantPower(user, power), evenOpponent, false);
       lines.push(formatRow(power, sample, ladder));
       return { power, sample };
@@ -96,18 +109,18 @@ describe('power firing diagnostic', () => {
 
     lines.push('', '=== CONTEXT-GATED TAP (skilled watched play) ===');
     lines.push('power              zones/match  fires/match  expired  fire%   ppm     worth');
-    const tapRows = POWERS.map(power => {
+    const tapRows = SELECTED_POWERS.map(power => {
       const sample = run(grantPower(user, power), evenOpponent, true);
       lines.push(formatRow(power, sample, ladder));
       return { power, sample };
     });
 
     lines.push('', '=== SKILL DELTA (tapped minus auto) ===');
-    for (let index = 0; index < POWERS.length; index += 1) {
+    for (let index = 0; index < SELECTED_POWERS.length; index += 1) {
       const auto = autoRows[index].sample;
       const tapped = tapRows[index].sample;
       lines.push(
-        `${POWERS[index].padEnd(19)}`
+        `${SELECTED_POWERS[index].padEnd(19)}`
         + `fires ${auto.fires.toFixed(2)} -> ${tapped.fires.toFixed(2)}   `
         + `ppm ${auto.ppm.toFixed(3)} -> ${tapped.ppm.toFixed(3)}   `
         + `(${(tapped.ppm - auto.ppm >= 0 ? '+' : '')}${(tapped.ppm - auto.ppm).toFixed(3)})`,
@@ -116,7 +129,7 @@ describe('power firing diagnostic', () => {
 
     // eslint-disable-next-line no-console
     console.log(lines.join('\n'));
-    expect(POWERS.length).toBeGreaterThan(0);
+    expect(SELECTED_POWERS.length).toBeGreaterThan(0);
   }, 1_800_000);
 });
 
@@ -276,4 +289,18 @@ function positiveIntegerEnv(name: string, fallback: number): number {
   const value = Number(raw);
   if (!Number.isSafeInteger(value)) throw new Error(`${name} must be a safe positive integer`);
   return value;
+}
+
+function selectedPowerFilter(value: string | undefined, available: readonly PowerId[]): PowerId[] {
+  if (value === undefined) return [...available];
+  const requested = value.split(',').map(power => power.trim()).filter(Boolean);
+  if (requested.length === 0) throw new Error('POWER_FIRING_ONLY must name at least one power');
+  const availableIds: ReadonlySet<string> = new Set(available);
+  for (const power of requested) {
+    if (!availableIds.has(power)) {
+      throw new Error(`POWER_FIRING_ONLY contains unknown power: ${power}`);
+    }
+  }
+  const selected = new Set(requested);
+  return available.filter(power => selected.has(power));
 }

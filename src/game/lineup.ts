@@ -124,8 +124,8 @@ export function buildTeamDef(
     name: player.name,
     role: player.role,
     ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
-    startingCondition: player.condition ?? 100,
     attrs: matchAttrsAtMorale(player.attrs, player.morale),
+    startingCondition: player.condition ?? 100,
     ...(player.licensed && player.power
       ? { power: player.power, powerTier: player.powerTier ?? 1 as const }
       : {}),
