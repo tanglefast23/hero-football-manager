@@ -433,7 +433,9 @@ export function SubstitutionBoard({
                           : incoming === undefined
                             ? 'Activate, then activate a bench player to trade them'
                             : `Activate, then activate ${player.name} on the bench to undo`}
-                      style={styles.card}
+                      style={incoming === undefined
+                        ? styles.card
+                        : [styles.card, styles.cardSwapped]}
                     >
                       <View style={styles.cardCopy}>
                         <Text
@@ -975,6 +977,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     paddingHorizontal: 10,
     paddingVertical: 8,
+  },
+  // Restore the original swapped-shirt treatment: one even 3px dashed frame
+  // and a light tint. Blue replaces the old pre-doc gold so the border keeps
+  // the board's current neutral-action meaning.
+  cardSwapped: {
+    borderWidth: 3,
+    borderBottomWidth: 3,
+    borderColor: '#3f6fb5',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(90,143,214,0.12)',
   },
   cardDimmed: { backgroundColor: '#f4f1ea', borderColor: '#9a95a4', opacity: 0.6 },
   cardGuided: {
