@@ -31,10 +31,11 @@ describe('matchday condition guidance', () => {
     expect(matchdayConditionStatus(29)).toEqual({ kind: 'exhausted', label: 'Exhausted' });
   });
 
-  it('warns strictly below 70 and names the lowest-condition starter', () => {
-    expect(matchdayConditionWarningPlayer([player('jojo', 70)])).toBeNull();
+  it('warns the first time the Below Peak band appears and names the lowest-condition starter', () => {
+    expect(matchdayConditionWarningPlayer([player('fresh', 81)])).toBeNull();
+    expect(matchdayConditionWarningPlayer([player('jojo', 80)])?.id).toBe('jojo');
     expect(matchdayConditionWarningPlayer([
-      player('jojo', 68),
+      player('jojo', 72),
       player('tired-teammate', 42),
       player('fresh-teammate', 100),
     ])?.id).toBe('tired-teammate');
@@ -42,7 +43,7 @@ describe('matchday condition guidance', () => {
 
   it('uses the approved Bert copy with the affected player name', () => {
     expect(matchdayConditionWarningCopy('Jojo')).toBe(
-      'Boss, Jojo’s legs are heavy after all that training. He’ll start below his best and tire sooner today. Repeated drills build skill, but don’t overtrain players you need at their peak.',
+      'Boss, Jojo is below peak. The lower a player’s condition, the less effectively they’ll play on the field and the sooner they’ll tire. Training builds skill, but rest anyone you need at their best.',
     );
   });
 

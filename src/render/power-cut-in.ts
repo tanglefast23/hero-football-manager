@@ -61,10 +61,6 @@ export function powerOverlayPath(
     : 'banner';
 }
 
-export function powerCutInDurationMs(skippable: boolean): number {
-  return skippable ? 900 : 1200;
-}
-
 export function appendNewestFour<T>(items: readonly T[], item: T): T[] {
   return [...items, item].slice(-4);
 }
@@ -72,15 +68,21 @@ export function appendNewestFour<T>(items: readonly T[], item: T): T[] {
 export interface PowerCutInGroupPolicy {
   shouldPause: boolean;
   skippable: boolean;
-  durationMs: number;
 }
 
-/** Compact activation labels never pause the match. */
+/** A control-area power title never pauses the match. */
 export function powerCutInGroupPolicy(
   entries: readonly { skippable: boolean }[],
 ): PowerCutInGroupPolicy {
   const skippable = entries.length > 0 && entries.every(entry => entry.skippable);
-  return { shouldPause: false, skippable, durationMs: powerCutInDurationMs(skippable) };
+  return { shouldPause: false, skippable };
+}
+
+/** Keep the completed title in the control area for 1.5 final wall-clock seconds. */
+export const POWER_TAKEOVER_POST_POWER_MS = 1500;
+
+export function powerTakeoverShouldRemain(elapsedMs: number): boolean {
+  return elapsedMs < POWER_TAKEOVER_POST_POWER_MS;
 }
 
 export function powerCutInAccessibilityLabel(entries: readonly PowerCutInLabelEntry[]): string {
@@ -93,18 +95,13 @@ export function powerCutInAccessibilityLabel(entries: readonly PowerCutInLabelEn
   return `${powers}${powerCutInGroupPolicy(entries).skippable ? '. Tap to skip.' : ''}`;
 }
 
-/** Width contract for the one-to-four own-team cut-in grid. */
-export function powerCutInTileWidth(count: number, index: number): '50%' | '100%' {
-  return count === 1 || (count === 3 && index === 2) ? '100%' : '50%';
-}
-
 // ---------------------------------------------------------------------------
 // Activation "juice" — the beat sheet a POWER_FIRED plays through.
 //
 // Everything below is presentation-only and lives on the renderer's wall clock,
 // never the sim clock: the engine keeps taking the same fixed-step integer ticks
-// in the same order with the same RNG draws, the renderer just paces and dresses
-// them. Nothing here can move a replay.
+// in the same order with the same RNG draws while the renderer dresses them.
+// Nothing here can move a replay.
 //
 // docs/03 keeps the match on a static wide view through activations, and
 // shouldShowFullPowerCutIn() above records that full-pitch comic panels FAILED
@@ -112,11 +109,9 @@ export function powerCutInTileWidth(count: number, index: number): '50%' | '100%
 // non-blocking and on-pitch, and it is over inside ~0.56s.
 // ---------------------------------------------------------------------------
 
-/** Beat 1 — the drop into slow motion. */
-export const POWER_JUICE_DROP_MS = 80;
-/** Beat 2 ends here — the freeze-frame hold. */
-export const POWER_JUICE_HOLD_END_MS = 260;
-/** Beat 3 ends here — back to full speed, everything reset. */
+/** The shared alternating body flash ends here. */
+export const POWER_JUICE_HERO_FLASH_END_MS = 260;
+/** The complete activation visual window ends here. */
 export const POWER_JUICE_END_MS = 560;
 /** Decaying screen shake window (SUPER_STRENGTH). */
 export const POWER_JUICE_SHAKE_MS = 220;
@@ -130,9 +125,6 @@ export const POWER_JUICE_SPEED_LINES_MS = 240;
 export const POWER_JUICE_PUNCH_ZOOM = 2;
 /** How long that punch-in holds before cutting back to the wide view. */
 export const POWER_JUICE_PUNCH_MS = 360;
-/** Ability-name card slam-in: travel and duration. */
-export const POWER_JUICE_CARD_SLAM_PX = 120;
-export const POWER_JUICE_CARD_SLAM_MS = 90;
 /** One step of the hero's white/gold body flash. */
 export const POWER_JUICE_HERO_FLASH_MS = 65;
 
@@ -151,9 +143,8 @@ export interface PowerJuice {
 const NO_JUICE: PowerJuice = { shake: false, flash: false, speedLines: false, punchIn: false };
 
 /**
- * Per-power flavour. Every power shares the time dilation, the slammed-in name
- * card and the hero body flash; these are the three extras that separate a
- * shoulder charge from a blur from a save.
+ * Per-power flavour. Every power shares the slammed-in name card and hero body
+ * flash; these extras separate a shoulder charge from a blur from a save.
  */
 export function powerJuice(power: PowerId): PowerJuice {
   if (power === 'SUPER_STRENGTH') return { ...NO_JUICE, shake: true };
@@ -170,32 +161,6 @@ export function hasPowerJuiceExtras(power: PowerId): boolean {
   return juice.shake || juice.flash || juice.speedLines || juice.punchIn;
 }
 
-interface PowerJuiceDilationStep {
-  readonly untilMs: number;
-  readonly dilation: number;
-}
-
-/**
- * Stepped, not eased. Each step re-issues the Reanimated interpolation window
- * once, so a whole activation costs four re-issues instead of one per frame —
- * and a hard-stepped ramp is the on-style read for pixel art anyway.
- */
-export const POWER_JUICE_DILATION_STEPS: readonly PowerJuiceDilationStep[] = [
-  { untilMs: POWER_JUICE_DROP_MS, dilation: 0.5 },
-  { untilMs: POWER_JUICE_HOLD_END_MS, dilation: 0.15 },
-  { untilMs: 400, dilation: 0.35 },
-  { untilMs: POWER_JUICE_END_MS, dilation: 0.7 },
-];
-
-/** Wall-clock time dilation this far into an activation. 1 = normal speed. */
-export function powerJuiceDilation(elapsedMs: number): number {
-  if (elapsedMs < 0) return 1;
-  for (const step of POWER_JUICE_DILATION_STEPS) {
-    if (elapsedMs < step.untilMs) return step.dilation;
-  }
-  return 1;
-}
-
 export type PowerJuiceHeroTint = 'none' | 'white' | 'gold';
 
 /**
@@ -203,6 +168,6 @@ export type PowerJuiceHeroTint = 'none' | 'white' | 'gold';
  * then released back to whatever the player's status already says.
  */
 export function powerJuiceHeroTint(elapsedMs: number): PowerJuiceHeroTint {
-  if (elapsedMs < 0 || elapsedMs >= POWER_JUICE_HOLD_END_MS) return 'none';
+  if (elapsedMs < 0 || elapsedMs >= POWER_JUICE_HERO_FLASH_END_MS) return 'none';
   return Math.floor(elapsedMs / POWER_JUICE_HERO_FLASH_MS) % 2 === 0 ? 'white' : 'gold';
 }

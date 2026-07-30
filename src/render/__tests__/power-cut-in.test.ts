@@ -1,4 +1,13 @@
-import { appendNewestFour, powerCutInAccessibilityLabel, powerCutInDurationMs, powerCutInGroupPolicy, powerCutInPresentation, powerCutInTileWidth, powerOverlayPath, shouldShowFullPowerCutIn } from '../power-cut-in';
+import {
+  appendNewestFour,
+  POWER_TAKEOVER_POST_POWER_MS,
+  powerCutInAccessibilityLabel,
+  powerCutInGroupPolicy,
+  powerCutInPresentation,
+  powerOverlayPath,
+  powerTakeoverShouldRemain,
+  shouldShowFullPowerCutIn,
+} from '../power-cut-in';
 import { LAUNCH_POWER_IDS } from '../../game/power-catalog';
 
 describe('M4 power cut-in policy', () => {
@@ -28,21 +37,20 @@ describe('M4 power cut-in policy', () => {
     }
   });
 
-  it('uses the compact player card for full mode without motion gating', () => {
+  it('uses the full power title for full mode without motion gating', () => {
     expect(shouldShowFullPowerCutIn('full', false)).toBe(true);
     expect(shouldShowFullPowerCutIn('banner', false)).toBe(false);
     expect(shouldShowFullPowerCutIn('full', true)).toBe(true);
-    expect(powerCutInDurationMs(false)).toBeGreaterThan(powerCutInDurationMs(true));
+    expect(POWER_TAKEOVER_POST_POWER_MS).toBe(1500);
   });
 
-  it('lays out one full tile, two halves, two-up-one-down, and a 2x2 grid', () => {
-    expect([powerCutInTileWidth(1, 0)]).toEqual(['100%']);
-    expect([0, 1].map(index => powerCutInTileWidth(2, index))).toEqual(['50%', '50%']);
-    expect([0, 1, 2].map(index => powerCutInTileWidth(3, index))).toEqual(['50%', '50%', '100%']);
-    expect([0, 1, 2, 3].map(index => powerCutInTileWidth(4, index))).toEqual(['50%', '50%', '50%', '50%']);
+  it('keeps the completed title for the full extra 1.5 seconds', () => {
+    expect(powerTakeoverShouldRemain(0)).toBe(true);
+    expect(powerTakeoverShouldRemain(1499)).toBe(true);
+    expect(powerTakeoverShouldRemain(1500)).toBe(false);
   });
 
-  it('selects own-team compact cards and routes rivals or banner mode to text banners', () => {
+  it('selects own-team title takeovers and routes rivals or banner mode to text banners', () => {
     expect(powerOverlayPath('full', false, 0, 0)).toBe('tile');
     expect(powerOverlayPath('full', false, 1, 0)).toBe('banner');
     expect(powerOverlayPath('banner', false, 0, 0)).toBe('banner');
@@ -71,17 +79,14 @@ describe('M4 power cut-in policy', () => {
     expect(powerCutInGroupPolicy([])).toEqual({
       shouldPause: false,
       skippable: false,
-      durationMs: powerCutInDurationMs(false),
     });
     expect(powerCutInGroupPolicy([{ skippable: true }, { skippable: false }])).toEqual({
       shouldPause: false,
       skippable: false,
-      durationMs: powerCutInDurationMs(false),
     });
     expect(powerCutInGroupPolicy([{ skippable: true }, { skippable: true }])).toEqual({
       shouldPause: false,
       skippable: true,
-      durationMs: powerCutInDurationMs(true),
     });
   });
 });

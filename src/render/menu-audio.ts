@@ -13,9 +13,11 @@ type MenuSfx = 'advance-week' | 'plan-locked' | 'league-champions';
 export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): MenuTheme {
   if (screen === 'welcome') return 'opening';
   if (screen === 'create-player' || screen === 'management') return 'management';
-  if (screen === 'event' || screen === 'legacy' || (screen === 'awakening' && awakeningBeat >= 2)) {
+  if (screen === 'event' || screen === 'legacy') {
     return 'event';
   }
+  // Awakening owns a dedicated sad pre-rise cue and ascension sting.
+  void awakeningBeat;
   return null;
 }
 

@@ -246,8 +246,39 @@ describe('substitution board layout', () => {
     expect(source).toContain('setPlan(EMPTY_SUBSTITUTION_PLAN)');
     expect(source).toContain('onPress={onCancel}');
     expect(source).toContain('onPress={reset}');
-    expect(source).toContain('disabled={staged === 0}');
-    expect(source).toContain('onSave(planInputs(plan))');
+    expect(source).toContain('disabled={!saveable}');
+    expect(source).toContain('onSave(planInputs(plan), draftAutoSubs)');
+    // AUTO is part of the board's draft: toggling it lights SAVE, Cancel
+    // discards it, and Reset restores the value the board opened with.
+    expect(source).toContain('const [draftAutoSubs, setDraftAutoSubs] = useState(autoSubs)');
+    expect(source).toContain('const saveable = canSave(plan) || autoChanged;');
+    expect(source).toContain('setDraftAutoSubs(autoSubs);');
+  });
+
+  it('keeps all three footer labels on one line at phone text sizes', () => {
+    const source = board();
+    const lozenge = source.match(/function LozengeButton\(([\s\S]*?)\n}\n\n\/\*\*/)?.[1] ?? '';
+
+    expect(lozenge).toContain('adjustsFontSizeToFit');
+    expect(lozenge).toContain('numberOfLines={1}');
+    expect(lozenge).toContain('style={styles.buttonLabel}');
+    expect(source).toMatch(
+      /buttonLabel: \{[\s\S]{0,180}?fontSize: 13,/,
+    );
+  });
+
+  it('color-codes player names by position while leaving the role label readable', () => {
+    const source = board();
+
+    expect(source).toContain("FWD: { color: '#a83440' }");
+    expect(source).toContain("DEF: { color: '#3f6fb5' }");
+    expect(source).toContain("GK: { color: '#3f8a4a' }");
+    expect(source).toContain("MID: { color: '#5b3a91' }");
+    expect(source).toContain('POSITION_NAME_STYLE[incoming?.role ?? player.role]');
+    expect(source).toContain('POSITION_NAME_STYLE[entry.sub.role]');
+    expect(source).toContain('POSITION_NAME_STYLE[entry.starter.role]');
+    expect(source).toContain('<Text style={styles.role}> {incoming?.role ?? player.role}</Text>');
+    expect(source).toContain('<Text style={styles.role}> {entry.sub.role}</Text>');
   });
 
   it('makes a greyed-out lozenge inert, not just labelled as one', () => {
@@ -260,7 +291,9 @@ describe('substitution board layout', () => {
     // One owner for the press cue: SfxPressable clicks, so reset must not too.
     // Asserted against the body rather than the first statement, because reset
     // also drops any half-finished tap pick — that is state, not a cue.
-    const resetBody = source.match(/const reset = useCallback\(\(\) => \{([\s\S]*?)\}, \[\]\);/)?.[1] ?? '';
+    const resetBody = source.match(
+      /const reset = useCallback\(\(\) => \{([\s\S]*?)\}, \[autoSubs\]\);/,
+    )?.[1] ?? '';
     expect(resetBody).toContain('setPlan(EMPTY_SUBSTITUTION_PLAN)');
     expect(resetBody).toContain('setPicked(null)');
     expect(resetBody).not.toContain('playUiClickSfx');

@@ -16,7 +16,6 @@ import { TUTORIAL_TAP_CUE_WIDTH } from '../tutorial-cue-position';
 import { ManagementSprite } from '../components/ManagementSprite';
 import { facilityBenefit } from '../facility-benefit';
 import {
-  facilityAdjacencyClue,
   facilityAdjacencyLabel,
   facilityAdjacencyPresentation,
 } from '../facility-adjacency';
@@ -1210,17 +1209,15 @@ function GroundsSection({
               : 'flex-row flex-wrap gap-2'}>
               {viewModel.facilities.catalog.map(entry => {
                 const selected = selectedBuildType === entry.type;
-                const adjacencyClue = facilityAdjacencyClue(entry.type);
-                const knownAdjacency = adjacencyClue !== undefined
-                  && viewModel.facilities.discoveredAdjacencies.includes(adjacencyClue.adjacencyId)
-                  ? facilityAdjacencyPresentation(adjacencyClue.adjacencyId)
-                  : undefined;
+                const knownAdjacency = viewModel.facilities.discoveredAdjacencies
+                  .map(facilityAdjacencyPresentation)
+                  .find(presentation => presentation?.facilityTypes.includes(entry.type));
                 const adjacencyGuidance = knownAdjacency === undefined
-                  ? adjacencyClue?.text
+                  ? undefined
                   : `${knownAdjacency.pairLabel} · ${knownAdjacency.effectLabel}`;
                 const adjacencyAccessibility = adjacencyGuidance === undefined
                   ? ''
-                  : ` ${knownAdjacency === undefined ? 'Neighbour clue' : 'Known combo'}: ${adjacencyGuidance}${adjacencyGuidance.endsWith('.') ? '' : '.'}`;
+                  : ` Known combo: ${adjacencyGuidance}.`;
                 const guideAllowsType = !guidedFirstFacility
                   || guidedFirstFacilityAllowsBuildType(entry.type);
                 const entryEnabled = entry.available && entry.affordable && guideAllowsType;
@@ -1313,13 +1310,9 @@ function GroundsSection({
                           : 'Locked'}
                       </Text>
                       {adjacencyGuidance !== undefined && entry.available ? (
-                        <View className={knownAdjacency === undefined
-                          ? 'mt-2 border-t border-blue-dark/25 pt-2'
-                          : 'mt-2 border-t border-pitch-dark/25 pt-2'}>
-                          <PixelText className={knownAdjacency === undefined
-                            ? 'text-xs uppercase tracking-wide text-blue-dark'
-                            : 'text-xs uppercase tracking-wide text-pitch-dark'}>
-                            {knownAdjacency === undefined ? 'Neighbour clue' : 'Known combo'}
+                        <View className="mt-2 border-t border-pitch-dark/25 pt-2">
+                          <PixelText className="text-xs uppercase tracking-wide text-pitch-dark">
+                            Known combo
                           </PixelText>
                           <Text className="mt-1 text-xs leading-4 text-ink/65">
                             {adjacencyGuidance}
@@ -1345,7 +1338,7 @@ function GroundsSection({
             <PixelText className="text-sm uppercase tracking-wide text-ink/50">Facility pair bonuses</PixelText>
             {viewModel.facilities.discoveredAdjacencies.length === 0 ? (
               <Text className="mt-2 text-sm leading-4 text-ink/55">
-                No pairings discovered yet. Six buildings carry neighbour clues in the build menu. Place the right two edge-to-edge — corners do not count.
+                No pairings discovered yet. Some facilities hide a bonus when the right pair shares an edge. Corners do not count.
               </Text>
             ) : viewModel.facilities.discoveredAdjacencies.map(adjacency => {
               const presentation = facilityAdjacencyPresentation(adjacency);

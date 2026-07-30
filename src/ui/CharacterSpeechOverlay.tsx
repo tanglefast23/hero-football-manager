@@ -9,6 +9,7 @@ import {
   View,
   type LayoutChangeEvent,
 } from 'react-native';
+import { bertTypewriterStepMs } from './bert-typewriter';
 import { useReducedMotion } from './use-reduced-motion';
 
 /** How far in from the right edge a character comes to rest. */
@@ -74,6 +75,11 @@ export interface CharacterSpeechOverlayProps {
    * as a mistake rather than a choice.
    */
   bubbleScale?: number;
+  /**
+   * Reveals the current line one character at a time. A tap finishes that line
+   * before a later tap advances; reduced-motion mode always shows it in full.
+   */
+  typewriter?: boolean;
 }
 
 type Phase = 'arriving' | 'speaking' | 'leaving';
@@ -103,6 +109,7 @@ export function CharacterSpeechOverlay({
   mirrorSprite = true,
   renderCharacter,
   bubbleScale = 1,
+  typewriter = false,
 }: CharacterSpeechOverlayProps) {
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const reduce = useReducedMotion(reduceMotion);
@@ -110,10 +117,21 @@ export function CharacterSpeechOverlay({
   const [lineIndex, setLineIndex] = useState(0);
   const [bubbleWidth, setBubbleWidth] = useState(0);
   const [bubbleHeight, setBubbleHeight] = useState(0);
+  const line = lines[Math.min(lineIndex, Math.max(0, lines.length - 1))] ?? '';
+  const lineCharacters = useMemo(() => Array.from(line), [line]);
+  const initialReveal = {
+    lineIndex: 0,
+    line,
+    count: typewriter && !reduce ? 0 : lineCharacters.length,
+  };
+  const [reveal, setReveal] = useState(initialReveal);
   // Advancing reads this rather than the state value: two taps landing in the
   // same tick would both see a stale `lineIndex` and skip a line, and a skipped
   // line here is a rule the player is never told again.
   const lineIndexRef = useRef(0);
+  // The same protection applies to the reveal. Two quick taps may complete a
+  // line and advance it, but can never jump over an unseen line.
+  const revealRef = useRef(initialReveal);
   const doneRef = useRef(false);
 
   const restLeft = viewportWidth * (1 - PENETRATION) - characterWidth / 2;
@@ -178,6 +196,51 @@ export function CharacterSpeechOverlay({
     return () => animation.stop();
   }, [instant, lean, lineIndex, phase, pop, reduce]);
 
+  // Type Bert's current line. The full invisible remainder stays in the Text
+  // node below, so the bubble takes its final size once instead of twitching
+  // wider and taller as each character arrives.
+  useEffect(() => {
+    if (phase !== 'speaking') return undefined;
+
+    const setRevealCount = (count: number) => {
+      const next = { lineIndex, line, count };
+      revealRef.current = next;
+      setReveal(next);
+    };
+
+    if (!typewriter || reduce) {
+      setRevealCount(lineCharacters.length);
+      return undefined;
+    }
+
+    setRevealCount(0);
+    if (lineCharacters.length === 0) return undefined;
+
+    const stepMs = bertTypewriterStepMs(line);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const revealNextCharacter = () => {
+      const active = revealRef.current;
+      const currentCount = active.lineIndex === lineIndex && active.line === line
+        ? active.count
+        : 0;
+      const nextCount = Math.min(lineCharacters.length, currentCount + 1);
+      setRevealCount(nextCount);
+      if (nextCount < lineCharacters.length) {
+        timer = setTimeout(revealNextCharacter, stepMs);
+      }
+    };
+
+    // The first walking line already waits for the bubble's settle beat. Start
+    // the text with the bubble rather than typing several hidden characters.
+    timer = setTimeout(
+      revealNextCharacter,
+      instant || lineIndex > 0 ? 0 : SETTLE_MS,
+    );
+    return () => {
+      if (timer !== null) clearTimeout(timer);
+    };
+  }, [instant, line, lineCharacters.length, lineIndex, phase, reduce, typewriter]);
+
   // Leave.
   useEffect(() => {
     if (phase !== 'leaving') return undefined;
@@ -210,9 +273,37 @@ export function CharacterSpeechOverlay({
       return;
     }
     if (phase === 'leaving') return;
+
+    const currentLineIndex = lineIndexRef.current;
+    const currentLine = lines[currentLineIndex] ?? '';
+    const currentLineLength = Array.from(currentLine).length;
+    const activeReveal = revealRef.current;
+    const revealedCount = activeReveal.lineIndex === currentLineIndex
+      && activeReveal.line === currentLine
+      ? activeReveal.count
+      : 0;
+    if (typewriter && !reduce && revealedCount < currentLineLength) {
+      const completed = {
+        lineIndex: currentLineIndex,
+        line: currentLine,
+        count: currentLineLength,
+      };
+      revealRef.current = completed;
+      setReveal(completed);
+      return;
+    }
+
     const next = lineIndexRef.current + 1;
     if (next < lines.length) {
       lineIndexRef.current = next;
+      const nextLine = lines[next] ?? '';
+      const nextReveal = {
+        lineIndex: next,
+        line: nextLine,
+        count: typewriter && !reduce ? 0 : Array.from(nextLine).length,
+      };
+      revealRef.current = nextReveal;
+      setReveal(nextReveal);
       setLineIndex(next);
       return;
     }
@@ -224,7 +315,7 @@ export function CharacterSpeechOverlay({
       return;
     }
     setPhase('leaving');
-  }, [instant, lines.length, onDone, phase, restLeft, travel]);
+  }, [instant, lines, onDone, phase, reduce, restLeft, travel, typewriter]);
 
   // Announce the line to whoever is following along — the spotlight tracks it,
   // and the first line has to be reported as well as the ones tapped to.
@@ -258,20 +349,32 @@ export function CharacterSpeechOverlay({
     travel.setValue(restLeft);
   }, [phase, restLeft, travel]);
 
+  const revealedCharacterCount = !typewriter || reduce
+    ? lineCharacters.length
+    : reveal.lineIndex === lineIndex && reveal.line === line
+      ? Math.min(reveal.count, lineCharacters.length)
+      : 0;
+  const lineFullyRevealed = revealedCharacterCount >= lineCharacters.length;
+
   // Auto-advance for a character who is remarking rather than briefing.
   useEffect(() => {
-    if (autoAdvanceMs === undefined || phase !== 'speaking') return undefined;
+    if (
+      autoAdvanceMs === undefined
+      || phase !== 'speaking'
+      || !lineFullyRevealed
+    ) return undefined;
     const timer = setTimeout(advance, autoAdvanceMs);
     return () => clearTimeout(timer);
-  }, [advance, autoAdvanceMs, lineIndex, phase]);
+  }, [advance, autoAdvanceMs, lineFullyRevealed, lineIndex, phase]);
 
   const onBubbleLayout = useCallback((event: LayoutChangeEvent) => {
     setBubbleWidth(event.nativeEvent.layout.width);
     setBubbleHeight(event.nativeEvent.layout.height);
   }, []);
 
-  const line = lines[Math.min(lineIndex, lines.length - 1)];
   const lastLine = lineIndex >= lines.length - 1;
+  const visibleLine = lineCharacters.slice(0, revealedCharacterCount).join('');
+  const unrevealedLine = lineCharacters.slice(revealedCharacterCount).join('');
 
   // The bubble hangs over the character's head and is centred on them, but a
   // wide bubble on a narrow screen has to slide left to stay on the page — so
@@ -308,7 +411,11 @@ export function CharacterSpeechOverlay({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? line}
-      accessibilityHint={lastLine ? 'Tap anywhere to finish' : 'Tap anywhere for the next line'}
+      accessibilityHint={!lineFullyRevealed
+        ? 'Tap anywhere to show the full line'
+        : lastLine
+          ? 'Tap anywhere to finish'
+          : 'Tap anywhere for the next line'}
       onPress={advance}
       style={StyleSheet.absoluteFill}
     >
@@ -341,7 +448,12 @@ export function CharacterSpeechOverlay({
             <Text style={[styles.bubbleText, bubbleScale === 1 ? null : {
               fontSize: BUBBLE_FONT_SIZE * bubbleScale,
               lineHeight: BUBBLE_LINE_HEIGHT * bubbleScale,
-            }]}>{line}</Text>
+            }]}>
+              {visibleLine}
+              {unrevealedLine.length === 0 ? null : (
+                <Text style={styles.unrevealedText}>{unrevealedLine}</Text>
+              )}
+            </Text>
             <View style={[styles.tailBorder, { left: tailLeft - 10 }]} />
             <View style={[styles.tailFill, { left: tailLeft - 7 }]} />
           </Animated.View>
@@ -425,6 +537,7 @@ const styles = StyleSheet.create({
     lineHeight: BUBBLE_LINE_HEIGHT,
     fontWeight: 'bold',
   },
+  unrevealedText: { color: 'transparent' },
   bubbleHeading: {
     color: '#c44536',
     fontSize: BUBBLE_FONT_SIZE - 1,

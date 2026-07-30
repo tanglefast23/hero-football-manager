@@ -1,6 +1,6 @@
 import type { LineupPlayerViewModel } from './models';
 
-export const MATCHDAY_CONDITION_WARNING_THRESHOLD = 70;
+export const MATCHDAY_CONDITION_WARNING_THRESHOLD = 80;
 
 export type MatchdayConditionStatusKind = 'below-peak' | 'fatigued' | 'exhausted';
 
@@ -17,7 +17,7 @@ export function matchdayConditionStatus(condition: number): MatchdayConditionSta
 }
 
 export function matchdayConditionWarningCopy(playerName: string): string {
-  return `Boss, ${playerName}’s legs are heavy after all that training. He’ll start below his best and tire sooner today. Repeated drills build skill, but don’t overtrain players you need at their peak.`;
+  return `Boss, ${playerName} is below peak. The lower a player’s condition, the less effectively they’ll play on the field and the sooner they’ll tire. Training builds skill, but rest anyone you need at their best.`;
 }
 
 /** The lowest-condition starter owns Bert's one-time pre-match warning. */
@@ -25,7 +25,7 @@ export function matchdayConditionWarningPlayer(
   lineup: readonly LineupPlayerViewModel[],
 ): LineupPlayerViewModel | null {
   return lineup
-    .filter(player => player.condition < MATCHDAY_CONDITION_WARNING_THRESHOLD)
+    .filter(player => player.condition <= MATCHDAY_CONDITION_WARNING_THRESHOLD)
     .reduce<LineupPlayerViewModel | null>(
       (lowest, player) => lowest === null || player.condition < lowest.condition ? player : lowest,
       null,

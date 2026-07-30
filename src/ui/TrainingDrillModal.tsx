@@ -14,6 +14,11 @@ import { useLayoutMode } from './layout/use-layout-mode';
 import type { DrillResultViewModel, TrainingSlotStatOption } from './models';
 import { ManagementSprite } from './components/ManagementSprite';
 import { PixelText } from './components/PixelText';
+import {
+  maximumAffordableTrainingRuns,
+  maximumSafeTrainingRuns,
+  riskyTrainingRunCount,
+} from './training-repeat';
 
 export interface TrainingDrillModalProps {
   playerId: string;
@@ -71,6 +76,15 @@ export interface TrainingDrillModalProps {
  */
 type ResultStage = 'scene' | 'reveal' | 'super' | 'injury' | null;
 
+interface DrillBatch {
+  readonly pathId: string;
+  readonly total: number;
+  readonly current: number;
+  readonly remaining: number;
+}
+
+const REPEAT_PICKER_CELL_WIDTH = 48;
+
 /**
  * The whole training loop lives here: tap a stat, the drill resolves instantly,
  * and a sprite scene shows the player performing it while the stat counts up.
@@ -115,6 +129,12 @@ export function TrainingDrillModal({
    * the list an irreversible spend.
    */
   const [pendingConfirm, setPendingConfirm] = useState<TrainingSlotStatOption | null>(null);
+  const [repeatCount, setRepeatCount] = useState(1);
+  const [confirmingHighRisk, setConfirmingHighRisk] = useState(false);
+  const batchRef = useRef<DrillBatch | null>(null);
+  const [batchProgress, setBatchProgress] = useState<Pick<DrillBatch, 'current' | 'total'> | null>(null);
+  const repeatScrollRef = useRef<ScrollView | null>(null);
+  const [repeatPickerWidth, setRepeatPickerWidth] = useState(0);
   // Bert warns once per CAREER, and only after the result has finished playing —
   // interrupting the drill scene with a lecture would bury the gain.
   const pendingRedWarningRef = useRef(false);
@@ -127,6 +147,8 @@ export function TrainingDrillModal({
   // Reset the pitch streak whenever the popup moves to another player.
   useEffect(() => {
     streakRef.current = 0;
+    batchRef.current = null;
+    setBatchProgress(null);
   }, [playerId]);
 
   useEffect(() => {
@@ -134,10 +156,21 @@ export function TrainingDrillModal({
     const option = options.find(candidate => candidate.pathId === quickTrainPathId);
     if (option === undefined) return;
     setPendingConfirm(option);
+    setRepeatCount(1);
+    setConfirmingHighRisk(false);
     // One tap, one confirmation. The request is spent here rather than left
     // standing, so the next resolved drill cannot re-trigger this effect.
     onQuickTrainConsumed?.();
   }, [onQuickTrainConsumed, options, quickTrainPathId]);
+
+  useEffect(() => {
+    if (pendingConfirm === null) return;
+    const maximum = Math.max(
+      1,
+      maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost),
+    );
+    setRepeatCount(current => Math.min(current, maximum));
+  }, [pendingConfirm, trainingPoints]);
 
   useEffect(() => {
     const result = lastDrillResult;
@@ -163,6 +196,18 @@ export function TrainingDrillModal({
     // sequence guard above makes any extra run a no-op.
   }, [condition, conditionWarningSeen, lastDrillResult, playerId]);
 
+  const showPendingConditionWarning = useCallback(() => {
+    if (!pendingRedWarningRef.current) return;
+    pendingRedWarningRef.current = false;
+    onConditionWarningShown?.();
+    playManagementActionSfx('warning');
+    setNotice({
+      title: 'Bert has a word',
+      detail: `${playerName} is in the red. Push them again and you're gambling on an injury — and an injured player sits out for weeks.`,
+      bert: true,
+    });
+  }, [onConditionWarningShown, playerName]);
+
   // Advances the presentation once the current beat finishes or is skipped.
   // The next stage is derived outside the updater — a setState updater must be
   // pure, and React may invoke it more than once. Memoised so the drill scene's
@@ -185,18 +230,55 @@ export function TrainingDrillModal({
     }
     if (next === null) {
       setActiveResult(null);
-      if (pendingRedWarningRef.current) {
-        pendingRedWarningRef.current = false;
-        onConditionWarningShown?.();
-        playManagementActionSfx('warning');
-        setNotice({
-          title: 'Bert has a word',
-          detail: `${playerName} is in the red. Push them again and you're gambling on an injury — and an injured player sits out for weeks.`,
-          bert: true,
-        });
+      const batch = batchRef.current;
+      if (
+        batch !== null
+        && batch.remaining > 0
+        && activeResult?.injury === undefined
+      ) {
+        const nextBatch: DrillBatch = {
+          ...batch,
+          current: batch.current + 1,
+          remaining: batch.remaining - 1,
+        };
+        batchRef.current = nextBatch;
+        setBatchProgress({ current: nextBatch.current, total: nextBatch.total });
+        onTrainDrill(playerId, nextBatch.pathId);
+        return;
       }
+      batchRef.current = null;
+      setBatchProgress(null);
+      showPendingConditionWarning();
     }
-  }, [stage, activeResult, onConditionWarningShown, playerName]);
+  }, [activeResult, onTrainDrill, playerId, showPendingConditionWarning, stage]);
+
+  const startTrainingBatch = useCallback((
+    option: TrainingSlotStatOption,
+    runs: number,
+  ) => {
+    const queuedRuns = Math.max(
+      1,
+      Math.min(runs, maximumAffordableTrainingRuns(trainingPoints, option.tpCost)),
+    );
+    const batch: DrillBatch = {
+      pathId: option.pathId,
+      total: queuedRuns,
+      current: 1,
+      remaining: queuedRuns - 1,
+    };
+    batchRef.current = batch;
+    setBatchProgress({ current: 1, total: queuedRuns });
+    setConfirmingHighRisk(false);
+    setPendingConfirm(null);
+    onTrainDrill(playerId, option.pathId);
+  }, [onTrainDrill, playerId, trainingPoints]);
+
+  const dismiss = useCallback(() => {
+    batchRef.current = null;
+    setBatchProgress(null);
+    setConfirmingHighRisk(false);
+    onDismiss();
+  }, [onDismiss]);
 
   const resultOption = activeResult === null
     ? undefined
@@ -206,13 +288,59 @@ export function TrainingDrillModal({
   const owedHere = promiseGate !== undefined && promiseGate.playerId === playerId;
   const blockedByPromise = promiseGate !== undefined && promiseGate.playerId !== playerId;
   const conditionBadge = conditionBadgeStyle(condition);
+  const maximumAffordableRuns = pendingConfirm === null
+    ? 1
+    : Math.max(
+      1,
+      maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost),
+    );
+  const maximumSafeRuns = maximumSafeTrainingRuns(condition);
+  const selectedRiskyRuns = riskyTrainingRunCount(condition, repeatCount);
+  const repeatOptions = Array.from({ length: maximumAffordableRuns }, (_, index) => index + 1);
+  const selectRepeatCount = (runs: number, scroll = true) => {
+    setRepeatCount(runs);
+    if (scroll) {
+      repeatScrollRef.current?.scrollTo({
+        x: (runs - 1) * REPEAT_PICKER_CELL_WIDTH,
+        animated: !reduceMotion,
+      });
+    }
+  };
+  const selectRepeatOffset = (offsetX: number) => {
+    const index = Math.round(offsetX / REPEAT_PICKER_CELL_WIDTH);
+    selectRepeatCount(
+      Math.max(1, Math.min(maximumAffordableRuns, index + 1)),
+      false,
+    );
+  };
+  const repeatButton = (runs: number) => (
+    <Pressable
+      key={runs}
+      accessibilityRole="button"
+      accessibilityLabel={`Run this drill ${runs} time${runs === 1 ? '' : 's'} in a row`}
+      accessibilityState={{ selected: repeatCount === runs }}
+      onPress={() => selectRepeatCount(runs)}
+      style={[
+        styles.repeatOption,
+        wide ? styles.repeatOptionWide : null,
+        repeatCount === runs ? styles.repeatOptionSelected : null,
+      ]}
+    >
+      <Text style={[
+        styles.repeatOptionText,
+        repeatCount === runs ? styles.repeatOptionTextSelected : null,
+      ]}>
+        {runs}
+      </Text>
+    </Pressable>
+  );
 
   return (
     <Modal
       visible
       transparent
       animationType={reduceMotion ? 'none' : 'fade'}
-      onRequestClose={onDismiss}
+      onRequestClose={dismiss}
       statusBarTranslucent
     >
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right', 'bottom']}>
@@ -220,7 +348,7 @@ export function TrainingDrillModal({
           <Pressable
             accessible={false}
             style={StyleSheet.absoluteFill}
-            onPress={onDismiss}
+            onPress={dismiss}
           >
             <View className="flex-1" style={{ backgroundColor: 'rgba(36,31,46,0.62)' }} />
           </Pressable>
@@ -249,7 +377,7 @@ export function TrainingDrillModal({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Close training for ${playerName}`}
-                onPress={onDismiss}
+                onPress={dismiss}
                 className="h-11 w-11 items-center justify-center border-2 border-ink bg-white"
               >
                 <Text className="font-pixel text-lg text-ink">×</Text>
@@ -352,6 +480,8 @@ export function TrainingDrillModal({
                           });
                           return;
                         }
+                        setRepeatCount(1);
+                        setConfirmingHighRisk(false);
                         setPendingConfirm(option);
                       }}
                       className={disabled || unaffordable
@@ -405,7 +535,7 @@ export function TrainingDrillModal({
                 role={playerRole}
                 lookId={playerLookId}
                 activityId={drillActivityId(activeResult.pathId)}
-                drillName={resultOption.drillName}
+                drillName={`${resultOption.drillName}${batchProgress === null ? '' : ` · ${batchProgress.current}/${batchProgress.total}`}`}
                 shortCode={resultOption.shortCode}
                 before={activeResult.before}
                 after={activeResult.after}
@@ -454,7 +584,7 @@ export function TrainingDrillModal({
               </Pressable>
             ) : null}
 
-            {pendingConfirm !== null ? (
+            {pendingConfirm !== null && !confirmingHighRisk ? (
               <View style={[styles.noticeLayer, styles.noticeCenter]}>
                 <Pressable
                   accessible={false}
@@ -463,7 +593,7 @@ export function TrainingDrillModal({
                 >
                   <View style={styles.noticeBackdrop} />
                 </Pressable>
-                <View className="w-[88%] max-w-[380px] border-2 border-b-4 border-ink bg-paper p-4">
+                <View className="w-[88%] max-w-[480px] border-2 border-b-4 border-ink bg-paper p-4">
                   <PixelText className="text-sm uppercase tracking-wide text-blue-dark">
                     Confirm training
                   </PixelText>
@@ -479,7 +609,7 @@ export function TrainingDrillModal({
                   <View className="mt-3 gap-2">
                     <View className="flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2">
                       <PixelText className="text-sm uppercase text-ink">
-                        Base {pendingConfirm.label}
+                        Base {pendingConfirm.label} / drill
                       </PixelText>
                       <Text className="font-pixel text-base text-ink">
                         +{pendingConfirm.baseValueAfter - pendingConfirm.currentValue}
@@ -507,27 +637,77 @@ export function TrainingDrillModal({
                       <Text className={pendingConfirm.affordable
                         ? 'font-mono text-sm text-ink'
                         : 'font-pixel text-sm text-stamp'}>
-                        {pendingConfirm.tpCost} of {trainingPoints}
+                        {pendingConfirm.tpCost * repeatCount} of {trainingPoints}
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
                       <Text className="text-sm text-ink/60">Condition after</Text>
                       <Text className="font-mono text-sm text-ink">
-                        {condition}% → {Math.max(0, condition - INSTANT_DRILL_CONDITION_COST)}%
+                        {condition}% → {Math.max(0, condition - INSTANT_DRILL_CONDITION_COST * repeatCount)}%
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
                       <Text className="text-sm text-ink/60">Injury risk</Text>
-                      <Text className={injuryRiskPercent > 0
+                      <Text className={(injuryRiskPercent > 0
+                        || selectedRiskyRuns > 0)
                         ? 'font-pixel text-sm text-stamp'
                         : 'font-mono text-sm text-ink'}>
-                        {injuryRiskPercent > 0 ? `${injuryRiskPercent}%` : 'None'}
+                        {selectedRiskyRuns > 0
+                          ? `${selectedRiskyRuns} of ${repeatCount} drills`
+                          : injuryRiskPercent > 0 ? `${injuryRiskPercent}% each drill` : 'None'}
                       </Text>
                     </View>
                     <View className="flex-row items-center justify-between px-1">
                       <Text className="text-sm text-ink/60">SUPER chance</Text>
-                      <Text className="font-mono text-sm text-gold-dark">★ {superChancePercent}%</Text>
+                      <Text className="font-mono text-sm text-gold-dark">★ {superChancePercent}% each</Text>
                     </View>
+                  </View>
+
+                  <View className="mt-4 border-y-2 border-ink/20 py-3">
+                    <View className="mb-2 flex-row items-center justify-between">
+                      <PixelText className="text-xs uppercase tracking-wide text-ink/60">
+                        Runs in a row
+                      </PixelText>
+                      <View className="border-2 border-blue-dark bg-blue-light px-2 py-1">
+                        <PixelText className="text-sm text-blue-dark">{repeatCount}×</PixelText>
+                      </View>
+                    </View>
+                    {wide ? (
+                      <View style={styles.repeatDesktopRow}>
+                        {repeatOptions.map(repeatButton)}
+                      </View>
+                    ) : (
+                      <ScrollView
+                        ref={repeatScrollRef}
+                        horizontal
+                        bounces={false}
+                        decelerationRate="fast"
+                        snapToInterval={REPEAT_PICKER_CELL_WIDTH}
+                        snapToAlignment="center"
+                        showsHorizontalScrollIndicator={false}
+                        onLayout={event => setRepeatPickerWidth(event.nativeEvent.layout.width)}
+                        contentContainerStyle={[
+                          styles.repeatScrollContent,
+                          {
+                            paddingHorizontal: Math.max(
+                              2,
+                              (repeatPickerWidth - REPEAT_PICKER_CELL_WIDTH) / 2,
+                            ),
+                          },
+                        ]}
+                        onScrollEndDrag={event => (
+                          selectRepeatOffset(event.nativeEvent.contentOffset.x)
+                        )}
+                        onMomentumScrollEnd={event => (
+                          selectRepeatOffset(event.nativeEvent.contentOffset.x)
+                        )}
+                      >
+                        {repeatOptions.map(repeatButton)}
+                      </ScrollView>
+                    )}
+                    <Text className="mt-2 text-xs leading-4 text-ink/55">
+                      Each run keeps its own SUPER roll, injury roll and result reveal.
+                    </Text>
                   </View>
 
                   <View className="mt-4 flex-row gap-2">
@@ -543,14 +723,17 @@ export function TrainingDrillModal({
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={pendingConfirm.affordable
-                        ? `Train ${pendingConfirm.drillName} for ${pendingConfirm.tpCost} training points`
+                        ? `Run ${pendingConfirm.drillName} ${repeatCount} time${repeatCount === 1 ? '' : 's'} for ${pendingConfirm.tpCost * repeatCount} training points`
                         : `Not enough training points for ${pendingConfirm.drillName}`}
                       accessibilityState={{ disabled: !pendingConfirm.affordable }}
                       disabled={!pendingConfirm.affordable}
                       onPress={() => {
                         const chosen = pendingConfirm;
-                        setPendingConfirm(null);
-                        onTrainDrill(playerId, chosen.pathId);
+                        if (selectedRiskyRuns > 0) {
+                          setConfirmingHighRisk(true);
+                          return;
+                        }
+                        startTrainingBatch(chosen, repeatCount);
                       }}
                       className={pendingConfirm.affordable
                         ? 'min-h-12 flex-[1.4] items-center justify-center border-2 border-b-4 border-ink bg-blue px-3'
@@ -559,9 +742,85 @@ export function TrainingDrillModal({
                     >
                       <PixelText className={pendingConfirm.affordable
                         ? 'text-base uppercase text-white'
-                        : 'text-base uppercase text-ink/40'}>
-                        {pendingConfirm.affordable ? 'Train ▸' : 'Not enough TP'}
+                        : 'text-base uppercase text-ink/40'}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.72}
+                        numberOfLines={1}
+                      >
+                        {pendingConfirm.affordable ? `Train ${repeatCount}×` : 'Not enough TP'}
                       </PixelText>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
+            {pendingConfirm !== null && confirmingHighRisk ? (
+              <View style={[styles.noticeLayer, styles.noticeCenter]}>
+                <Pressable
+                  accessible={false}
+                  onPress={() => setConfirmingHighRisk(false)}
+                  style={StyleSheet.absoluteFill}
+                >
+                  <View style={styles.noticeBackdrop} />
+                </Pressable>
+                <View
+                  accessibilityRole="alert"
+                  accessibilityLabel={`High risk of injury. ${selectedRiskyRuns} of ${repeatCount} drills enter the injury-risk zone.`}
+                  className="w-[88%] max-w-[420px] border-2 border-b-4 border-red-dark bg-paper p-4"
+                >
+                  <PixelText className="text-sm uppercase tracking-wide text-red-dark">
+                    Safety check
+                  </PixelText>
+                  <PixelText className="mt-2 text-xl uppercase leading-7 text-ink">
+                    High risk of injury. Continue?
+                  </PixelText>
+                  <Text className="mt-3 text-sm leading-5 text-ink/70">
+                    {selectedRiskyRuns} of {repeatCount} selected drills start below 30% condition. Each one rolls a fresh injury chance.
+                  </Text>
+
+                  <View className="mt-4 gap-2">
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Continue all ${repeatCount} drills despite the injury risk`}
+                      onPress={() => startTrainingBatch(pendingConfirm, repeatCount)}
+                      className="min-h-12 items-center justify-center border-2 border-b-4 border-red-dark bg-red px-3"
+                    >
+                      <PixelText className="text-center text-sm uppercase text-white">
+                        Continue anyway · {repeatCount}×
+                      </PixelText>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={maximumSafeRuns > 0
+                        ? `Continue with the maximum safe number, ${Math.min(repeatCount, maximumSafeRuns)} drills`
+                        : 'No drills can be run without injury risk'}
+                      accessibilityState={{ disabled: maximumSafeRuns === 0 }}
+                      disabled={maximumSafeRuns === 0}
+                      onPress={() => {
+                        const saferRuns = Math.min(repeatCount, maximumSafeRuns);
+                        setRepeatCount(saferRuns);
+                        startTrainingBatch(pendingConfirm, saferRuns);
+                      }}
+                      className={maximumSafeRuns > 0
+                        ? 'min-h-12 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue px-3'
+                        : 'min-h-12 items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'}
+                    >
+                      <PixelText className={maximumSafeRuns > 0
+                        ? 'text-center text-sm uppercase text-white'
+                        : 'text-center text-sm uppercase text-ink/35'}>
+                        {maximumSafeRuns > 0
+                          ? `Continue with max safe · ${Math.min(repeatCount, maximumSafeRuns)}×`
+                          : 'No safe drills available'}
+                      </PixelText>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Cancel and return to the number picker"
+                      onPress={() => setConfirmingHighRisk(false)}
+                      className="min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
+                    >
+                      <PixelText className="text-sm uppercase text-ink">Cancel</PixelText>
                     </Pressable>
                   </View>
                 </View>
@@ -643,6 +902,41 @@ function conditionBadgeStyle(condition: number): { box: string; text: string } {
 }
 
 const styles = StyleSheet.create({
+  repeatDesktopRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  repeatScrollContent: {
+    alignItems: 'center',
+  },
+  repeatOption: {
+    width: REPEAT_PICKER_CELL_WIDTH - 4,
+    minHeight: 48,
+    marginHorizontal: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    borderColor: '#aaa7af',
+    backgroundColor: '#ffffff',
+  },
+  repeatOptionSelected: {
+    borderColor: '#31578f',
+    backgroundColor: '#9fc3eb',
+  },
+  repeatOptionWide: {
+    width: 42,
+    minHeight: 44,
+    marginHorizontal: 1,
+  },
+  repeatOptionText: {
+    fontFamily: 'PixelFont',
+    fontSize: 16,
+    color: '#77737f',
+  },
+  repeatOptionTextSelected: {
+    color: '#31578f',
+  },
   // Sits above the drill scene and the injury card: it is the newest thing the
   // player did, so it owns the popup until dismissed.
   noticeLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 30 },

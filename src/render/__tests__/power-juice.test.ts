@@ -6,67 +6,29 @@ import {
   matchShakeOffset,
   snapSpriteScale,
 } from '../interpolate';
-import { MIN_MATCH_PLAYBACK_RATE, matchPlaybackRate } from '../match-speed';
+import { matchPlaybackRate } from '../match-speed';
 import {
-  POWER_JUICE_DILATION_STEPS,
   POWER_JUICE_END_MS,
+  POWER_JUICE_HERO_FLASH_END_MS,
   POWER_JUICE_HERO_FLASH_MS,
-  POWER_JUICE_HOLD_END_MS,
   POWER_JUICE_PUNCH_ZOOM,
   hasPowerJuiceExtras,
   powerCutInGroupPolicy,
   powerJuice,
-  powerJuiceDilation,
   powerJuiceHeroTint,
 } from '../power-cut-in';
-import { TICK_MS } from '../../sim/geometry';
 
-describe('activation time dilation', () => {
-  it('drops into slow motion, holds, and returns to full speed', () => {
-    expect(powerJuiceDilation(-1)).toBe(1);
-    expect(powerJuiceDilation(0)).toBe(0.5);
-    expect(powerJuiceDilation(79)).toBe(0.5);
-    expect(powerJuiceDilation(80)).toBe(0.15);
-    expect(powerJuiceDilation(259)).toBe(0.15);
-    expect(powerJuiceDilation(260)).toBe(0.35);
-    expect(powerJuiceDilation(400)).toBe(0.7);
-    expect(powerJuiceDilation(POWER_JUICE_END_MS)).toBe(1);
-    expect(powerJuiceDilation(5000)).toBe(1);
-  });
-
-  it('is a small step ladder, so a whole activation re-issues the tick window four times', () => {
-    expect(POWER_JUICE_DILATION_STEPS).toHaveLength(4);
-    // Monotonically increasing windows, all inside the beat sheet.
-    const bounds = POWER_JUICE_DILATION_STEPS.map(step => step.untilMs);
-    expect([...bounds].sort((a, b) => a - b)).toEqual(bounds);
-    expect(bounds[bounds.length - 1]).toBe(POWER_JUICE_END_MS);
-    for (const step of POWER_JUICE_DILATION_STEPS) {
-      expect(step.dilation).toBeGreaterThan(0);
-      expect(step.dilation).toBeLessThan(1);
-    }
-  });
-
-  it('is over inside the ~0.56s the locked static-wide-view decision allows', () => {
+describe('activation presentation timing', () => {
+  it('keeps its brief visual effects inside the static-wide-view window', () => {
     expect(POWER_JUICE_END_MS).toBeLessThanOrEqual(600);
   });
 });
 
 describe('matchPlaybackRate', () => {
-  it('scales the chosen speed by the dilation and never divides by zero', () => {
-    expect(matchPlaybackRate(1, 1)).toBe(1);
-    expect(matchPlaybackRate(3, 1)).toBe(3);
-    expect(matchPlaybackRate(1, 0.15)).toBeCloseTo(0.15);
-    expect(matchPlaybackRate(2, 0.15)).toBeCloseTo(0.3);
-    expect(matchPlaybackRate(1, 0)).toBe(MIN_MATCH_PLAYBACK_RATE);
-    expect(matchPlaybackRate(1, -5)).toBe(MIN_MATCH_PLAYBACK_RATE);
-  });
-
-  it('stretches the interpolation window instead of clamping it to one tick', () => {
-    // The old Math.max(1, speed) floor made every dilated tick interpolate over
-    // a normal TICK_MS and then sit still — a stutter, not slow motion.
-    const slowest = TICK_MS / matchPlaybackRate(1, 0.15);
-    expect(slowest).toBeGreaterThan(TICK_MS);
-    expect(TICK_MS / Math.max(MIN_MATCH_PLAYBACK_RATE, matchPlaybackRate(1, 0))).toBe(TICK_MS * 10);
+  it('always follows the selected match speed', () => {
+    expect(matchPlaybackRate(1)).toBe(1);
+    expect(matchPlaybackRate(2)).toBe(2);
+    expect(matchPlaybackRate(3)).toBe(3);
   });
 });
 
@@ -103,18 +65,18 @@ describe('per-power juice flavour', () => {
 });
 
 describe('hero body flash', () => {
-  it('alternates white and gold four times across the drop and hold', () => {
+  it('alternates white and gold four times without slowing the match', () => {
     expect(powerJuiceHeroTint(-1)).toBe('none');
     expect(powerJuiceHeroTint(0)).toBe('white');
     expect(powerJuiceHeroTint(POWER_JUICE_HERO_FLASH_MS)).toBe('gold');
     expect(powerJuiceHeroTint(POWER_JUICE_HERO_FLASH_MS * 2)).toBe('white');
     expect(powerJuiceHeroTint(POWER_JUICE_HERO_FLASH_MS * 3)).toBe('gold');
-    expect(powerJuiceHeroTint(POWER_JUICE_HOLD_END_MS)).toBe('none');
+    expect(powerJuiceHeroTint(POWER_JUICE_HERO_FLASH_END_MS)).toBe('none');
     expect(powerJuiceHeroTint(POWER_JUICE_END_MS)).toBe('none');
   });
 
-  it('divides the hold window into whole steps, with no sliver at the end', () => {
-    expect(POWER_JUICE_HOLD_END_MS % POWER_JUICE_HERO_FLASH_MS).toBe(0);
+  it('divides the flash window into whole steps, with no sliver at the end', () => {
+    expect(POWER_JUICE_HERO_FLASH_END_MS % POWER_JUICE_HERO_FLASH_MS).toBe(0);
   });
 });
 
@@ -212,12 +174,13 @@ describe('renderer juice wiring', () => {
   const renderDir = join(process.cwd(), 'src', 'render');
   const matchSource = () => readFileSync(join(renderDir, 'MatchScreen.tsx'), 'utf8');
 
-  it('multiplies the dilation into the frame accumulator and nothing else', () => {
+  it('keeps activation visuals out of the frame accumulator', () => {
     const source = matchSource();
 
-    expect(source).toContain('acc + (now - last) * matchPlaybackRate(speedRef.current, dilationRef.current)');
-    // The sim must never see a delta: a dilated match still calls the same
-    // fixed-step tick(s) in the same order.
+    expect(source).toContain('acc + (now - last) * matchPlaybackRate(speedRef.current)');
+    expect(source).not.toContain('powerJuiceDilation');
+    expect(source).not.toContain('dilationRef');
+    // The sim still sees the same fixed-step tick(s) in the same order.
     expect(source).toContain('if (!heldForPowerReview) tick(s);');
     expect(source).not.toContain('tick(s, ');
   });
@@ -241,18 +204,19 @@ describe('renderer juice wiring', () => {
 
   it('gives Reduce Motion none of it', () => {
     const source = matchSource();
+    const takeover = readFileSync(join(renderDir, 'PowerTitleTakeover.tsx'), 'utf8');
 
     expect(source).toContain('const startJuice = (power: PowerId, player: number, now: number) => {\n      if (reduceMotion) return;');
-    expect(source).toContain('reduceMotion ? null : cardSlamStyle');
+    expect(takeover).toContain('reduceMotion ? null : shellStyle');
+    expect(takeover).toContain('reduceMotion ? styles.sheenHidden : sheenStyle');
   });
 
   it('keeps the activation non-blocking — no pause reason, no full-screen panel', () => {
     const source = matchSource();
 
     // docs/03 keeps the match on a static wide view and power-cut-in.ts records
-    // that full-pitch panels failed playtesting. Slow motion replaces a hard
-    // hit-stop precisely so the match never stops and the PAUSED chrome never
-    // lights up mid-activation.
+    // that full-pitch panels failed playtesting. The control-area title never
+    // stops the match or lights the PAUSED chrome mid-activation.
     expect(source).not.toContain("automaticPauseReasonsRef.current.add('cut-in')");
     expect(powerCutInGroupPolicy([{ skippable: true }]).shouldPause).toBe(false);
   });

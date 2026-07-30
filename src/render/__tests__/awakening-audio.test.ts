@@ -1,5 +1,6 @@
 const mockPlayers: Array<{
   volume: number;
+  loop: boolean;
   play: jest.Mock;
   pause: jest.Mock;
   seekTo: jest.Mock;
@@ -14,6 +15,7 @@ jest.mock('expo-audio', () => ({
   createAudioPlayer: jest.fn(() => {
     const player = {
       volume: -1,
+      loop: false,
       play: jest.fn(),
       pause: jest.fn(),
       seekTo: jest.fn(() => Promise.resolve()),
@@ -27,9 +29,12 @@ jest.mock('expo-audio', () => ({
 
 import {
   AWAKENING_HARPS_DELAY_MS,
+  AWAKENING_LIMP_CLIP_MS,
   playAwakeningAscension,
+  playAwakeningLimp,
   setAwakeningMasterVolume,
   stopAwakeningAscension,
+  stopAwakeningLimp,
   teardownAwakeningAudio,
 } from '../awakening-audio';
 
@@ -56,7 +61,7 @@ describe('awakening ascension audio', () => {
     playAwakeningAscension();
     await flushPromises();
 
-    expect(mockPlayers).toHaveLength(2);
+    expect(mockPlayers).toHaveLength(3);
     expect(mockPlayers[0].seekTo).toHaveBeenCalledWith(0);
     expect(mockPlayers[0].play).toHaveBeenCalledTimes(1);
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
@@ -80,7 +85,7 @@ describe('awakening ascension audio', () => {
     await flushPromises();
 
     expect(mockPlayers[1].play).not.toHaveBeenCalled();
-    expect(mockPlayers.every(player => player.pause.mock.calls.length > 0)).toBe(true);
+    expect(mockPlayers.slice(0, 2).every(player => player.pause.mock.calls.length > 0)).toBe(true);
   });
 
   it('restarts cleanly without leaving the first harp timer active', async () => {
@@ -106,5 +111,20 @@ describe('awakening ascension audio', () => {
 
     setAwakeningMasterVolume(0);
     expect(mockPlayers.every(player => player.volume === 0)).toBe(true);
+  });
+
+  it('plays the exact 10.3-second limp cue once until the rise begins', async () => {
+    expect(AWAKENING_LIMP_CLIP_MS).toBe(10_300);
+
+    playAwakeningLimp();
+    await flushPromises();
+
+    expect(mockPlayers).toHaveLength(3);
+    expect(mockPlayers[2].loop).toBe(false);
+    expect(mockPlayers[2].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers[2].play).toHaveBeenCalledTimes(1);
+
+    stopAwakeningLimp();
+    expect(mockPlayers[2].pause).toHaveBeenCalled();
   });
 });

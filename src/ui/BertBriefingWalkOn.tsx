@@ -39,7 +39,10 @@ export interface BertBriefingWalkOnProps {
   content: AssistantGuideContent;
   sequenceId?: string;
   /** A one-off persisted remark, such as a Cup giant-killing celebration. */
-  customMessage?: { readonly title: string; readonly body: string };
+  customMessage?: {
+    readonly title: string;
+    readonly body: string | readonly string[];
+  };
   moneyAnchor?: TutorialAnchorLayout | null;
   navigationAnchor?: TutorialAnchorLayout | null;
   reduceMotion?: boolean;
@@ -80,7 +83,15 @@ export function BertBriefingWalkOn({
   const beats = useMemo(
     () => customMessage === undefined
       ? briefingBeats(content, sequenceId ?? '')
-      : [{ text: customMessage.body, focus: 'assistant' as const, kind: 'body' as const, pageIndex: 0 }],
+      : (typeof customMessage.body === 'string'
+          ? [customMessage.body]
+          : customMessage.body
+        ).map((text, pageIndex) => ({
+          text,
+          focus: 'assistant' as const,
+          kind: 'body' as const,
+          pageIndex,
+        })),
     [content, customMessage, sequenceId],
   );
   const beat = beats[Math.min(beatIndex, Math.max(0, beats.length - 1))];
@@ -142,6 +153,7 @@ export function BertBriefingWalkOn({
         groundOffset={groundOffset}
         reduceMotion={reduceMotion}
         instant
+        typewriter
         bubbleScale={BERT_BUBBLE_SCALE}
         // No auto-advance. The rookie remarks and moves on; this is the game
         // teaching, and a timer would pull a rule off screen mid-sentence.

@@ -4,9 +4,15 @@ import { join } from 'path';
 describe('automatic superpower presentation', () => {
   it('shows only the actual power name when contextual automatic activation fires', () => {
     const source = readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+    const takeover = readFileSync(join(process.cwd(), 'src/render/PowerTitleTakeover.tsx'), 'utf8');
+    const rail = readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
 
-    expect(source).toContain('style={[styles.powerActivationName, { color: presentation.color }]}');
-    expect(source).toContain('{presentation.name}');
+    expect(takeover).toContain('{presentation.name}');
+    expect(takeover).toContain('{ backgroundColor: teamColor }');
+    expect(takeover).toContain("{ending ? 'POWER COMPLETE' : 'SUPER POWER'}");
+    expect(source).toContain('<PowerTitleTakeover');
+    expect(source).toContain('layout="mobile"');
+    expect(rail).toContain('<PowerTitleTakeover {...powerTakeover} layout="desktop" />');
     expect(source).toContain("text: `⚡ ${e.power.replace(/_/g, ' ')} — ${firingPlayer.def.name}`");
     expect(source).not.toContain('SUPER POWER READY');
     expect(source).not.toContain('heroPowerReady');

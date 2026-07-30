@@ -602,8 +602,8 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
       Float32Array.from(next.zoneFraction),
       next.carrier,
       tick,
-      // `speed` is the wall-clock playback RATE, which slow-motion drops below
-      // 1. Preserve the exact duration used before continuity retargeting.
+      // `speed` is the wall-clock playback rate. Preserve the exact duration
+      // used before continuity retargeting.
       TICK_MS / Math.max(MIN_MATCH_PLAYBACK_RATE, speed),
       snap,
     );
@@ -630,8 +630,7 @@ export function useWorkletAtlasFrame(options: WorkletAtlasOptions): WorkletAtlas
   const resume = useCallback((speed: number) => {
     // Only the UNFINISHED part of the current tick is left to interpolate.
     // Re-issuing a whole tick's window from a part-way progress made the sprites
-    // crawl and then snap — barely visible at 1x, but the activation dilation
-    // re-issues this mid-tick on every step change, where it read as a hitch.
+    // crawl and then snap when the user changes match speed mid-tick.
     runOnAtlasRuntime(
       resumeAtlasFrameOnUI,
       progress,

@@ -15,7 +15,7 @@ import {
   MENTALITY_CHIP_LABELS,
   type RailHeroStatus,
 } from './match-rail';
-import { MATCH_SPEEDS, type MatchSpeed } from './match-speed';
+import { availableMatchSpeeds, type MatchSpeed } from './match-speed';
 import {
   ENERGY_USE_MODES,
   FORMATION_LABELS,
@@ -24,6 +24,10 @@ import {
   type FormationId,
   type Mentality,
 } from '../sim/tactics';
+import {
+  PowerTitleTakeover,
+  type PowerTitleTakeoverProps,
+} from './PowerTitleTakeover';
 
 export interface MatchRailTiredPlayer {
   id: string;
@@ -52,6 +56,7 @@ export interface MatchControlRailProps {
   scoreFlash: boolean;
   paused: boolean;
   speed: MatchSpeed;
+  maximumSpeed: MatchSpeed;
   onSelectSpeed: (speed: MatchSpeed) => void;
   onTogglePause: () => void;
   onOpenSettings: () => void;
@@ -72,7 +77,8 @@ export interface MatchControlRailProps {
   energyUse: EnergyUse;
   onSelectEnergyUse: (mode: EnergyUse) => void;
   heroTiles: readonly MatchRailHeroTile[];
-  /** True while the controlled team's heroes fire on the engine's context cue. */
+  /** Replaces the complete control rail while a hero power is live. */
+  powerTakeover?: Omit<PowerTitleTakeoverProps, 'layout' | 'compact'>;
 }
 
 /**
@@ -90,6 +96,7 @@ export function MatchControlRail({
   scoreFlash,
   paused,
   speed,
+  maximumSpeed,
   onSelectSpeed,
   onTogglePause,
   onOpenSettings,
@@ -109,8 +116,16 @@ export function MatchControlRail({
   energyUse,
   onSelectEnergyUse,
   heroTiles,
+  powerTakeover,
 }: MatchControlRailProps) {
   const teamBand = energyBand(teamEnergy);
+  if (powerTakeover !== undefined) {
+    return (
+      <View style={styles.rail}>
+        <PowerTitleTakeover {...powerTakeover} layout="desktop" />
+      </View>
+    );
+  }
   return (
     <View style={styles.rail}>
       <ScrollView contentContainerStyle={styles.railContent}>
@@ -125,7 +140,7 @@ export function MatchControlRail({
             <SettingsButton onPress={onOpenSettings} variant="match" />
           </View>
           <View style={styles.chipRow}>
-            {MATCH_SPEEDS.map((option) => {
+            {availableMatchSpeeds(maximumSpeed).map((option) => {
               const selected = !paused && speed === option;
               return (
                 <SfxPressable

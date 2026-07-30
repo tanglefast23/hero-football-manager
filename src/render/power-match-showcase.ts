@@ -1,10 +1,14 @@
 import { PITCH_H, PITCH_W } from '../sim/geometry';
-import { powerTick, ZONE_WINDOW_TICKS } from '../sim/powers';
+import { tick } from '../sim/match';
+import { ZONE_WINDOW_TICKS } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
 import type { MatchState, PowerId, TeamDef } from '../sim/types';
 
-/** Brief still frame before the real contextual auto policy evaluates. */
-export const POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 10;
+/** 1.5 seconds of ordinary live play before the real auto policy evaluates. */
+export const POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 15;
+
+/** Let ordinary play continue for one second after the power ends, then freeze. */
+export const POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS = 1000;
 
 const HERO_INDEX: Readonly<Record<PowerId, number>> = {
   SUPER_SPEED: 10,
@@ -37,7 +41,7 @@ export function powerMatchShowcaseHeroIndex(power: PowerId): number {
  * also needs a powered teammate because that dependency is part of its actual
  * match behavior.
  */
-export function powerMatchShowcaseHome(power: PowerId): TeamDef {
+export function powerMatchShowcaseHome(power: PowerId, heroName?: string): TeamDef {
   const heroIndex = powerMatchShowcaseHeroIndex(power);
   return {
     ...ROVERS,
@@ -45,6 +49,7 @@ export function powerMatchShowcaseHome(power: PowerId): TeamDef {
     name: 'Power Showcase XI',
     players: ROVERS.players.map((player, index) => ({
       ...player,
+      name: index === heroIndex && heroName !== undefined ? heroName : player.name,
       attrs: { ...player.attrs },
       power: index === heroIndex
         ? power
@@ -132,7 +137,7 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
       place(match, 14, PITCH_W - 500, 1_850);
       place(match, 15, PITCH_W - 850, 1_050);
       holdBall(match, 6);
-      match.players[6].actionLockedUntilTick = match.tick + 20;
+      match.players[6].actionLockedUntilTick = POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
       break;
     case 'DECOY_DOUBLE':
       place(match, hero, 3_400, 4_300);
@@ -141,14 +146,14 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
       place(match, 10, 3_500, 3_600);
       place(match, 12, 2_700, 3_700);
       holdBall(match, 6);
-      match.players[6].actionLockedUntilTick = match.tick + 20;
+      match.players[6].actionLockedUntilTick = POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
       break;
     case 'FUTURE_SIGHT':
       place(match, hero, 2_200, 5_000);
       place(match, 11, 2_300, 5_000);
       place(match, 12, 2_500, 4_800);
       holdBall(match, 11);
-      match.players[11].actionLockedUntilTick = match.tick + 16;
+      match.players[11].actionLockedUntilTick = POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
       break;
     case 'SUPER_STRENGTH':
     case 'ICE_RINK':
@@ -207,14 +212,14 @@ function arrangePowerMatchShowcase(match: MatchState, power: PowerId): number {
       place(match, 9, 2_000, 3_000);
       place(match, 12, 1_500, 3_400);
       holdBall(match, 6);
-      match.players[6].actionLockedUntilTick = match.tick + 20;
+      match.players[6].actionLockedUntilTick = POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
       break;
     case 'GUST':
       place(match, hero, 2_200, 5_000);
       place(match, 11, 2_300, 5_000);
       place(match, 12, 2_500, 4_800);
       holdBall(match, 11);
-      match.players[11].actionLockedUntilTick = match.tick + 16;
+      match.players[11].actionLockedUntilTick = POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
       break;
   }
 
@@ -226,7 +231,7 @@ export function initializePowerMatchShowcase(
   power: PowerId,
 ): number {
   const hero = arrangePowerMatchShowcase(match, power);
-  match.players[hero].firePolicy = 'FIRE_WHEN_READY';
+  match.players[hero].firePolicy = 'SAVE_FOR_TAP';
   match.players[hero].gauge = 0;
   match.players[hero].zonesOpened = 1;
   match.players[hero].powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
@@ -235,25 +240,41 @@ export function initializePowerMatchShowcase(
 }
 
 /**
- * Holds the authored match tableau until the real contextual auto policy sees
- * the power's best moment. The banked Zone cannot expire in this review mode:
- * it waits indefinitely, fires at the normal automatic strength, stays held
- * through any wind-up, then ordinary match play resumes once the power is
- * active. Nothing is repositioned at activation time.
+ * Runs the actual match for the whole clip. The hero banks the first 1.5
+ * seconds while both teams follow their normal tactics, then switches to the
+ * real contextual auto policy. The Zone cannot expire while it waits for that
+ * useful moment, and nothing is repositioned at activation time.
  */
 export function advancePowerMatchShowcaseReady(match: MatchState, power: PowerId): boolean {
   const hero = powerMatchShowcaseHeroIndex(power);
-  const state = match.players[hero].powerState;
+  const player = match.players[hero];
+  const state = player.powerState;
   if (state.kind !== 'zone' && state.kind !== 'winding') return false;
-  match.tick++;
-  if (state.kind === 'zone' && match.tick <= POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS) {
+  const leadingIn = match.tick < POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS;
+  player.firePolicy = leadingIn ? 'SAVE_FOR_TAP' : 'FIRE_WHEN_READY';
+  tick(match);
+  if (leadingIn) {
+    // The surrounding match keeps simulating, but restore the few authored
+    // actors that define this power's useful moment. That keeps the 1.5-second
+    // lead-in readable without freezing the other players or teleporting
+    // anybody at activation.
+    arrangePowerMatchShowcase(match, power);
+    player.gauge = 0;
+    player.zonesOpened = 1;
+    player.powerState = { kind: 'zone', remainingTicks: ZONE_WINDOW_TICKS };
     return true;
   }
-  powerTick(match);
-  const nextState = match.players[hero].powerState;
+  const nextState = player.powerState;
+  if (nextState.kind === 'winding') {
+    // Keep only the authored carrier/target relationship intact during a
+    // visible wind-up. Everyone else keeps running the normal match, and the
+    // whole field is released the instant the power becomes active.
+    arrangePowerMatchShowcase(match, power);
+    player.firePolicy = 'FIRE_WHEN_READY';
+  }
   if (nextState.kind === 'zone') {
-    // The showcase has no Zone deadline. Only the real authored context may
-    // release this banked power.
+    // The acquisition clip has no Zone deadline. Only the real authored
+    // context may release this banked power after the lead-in.
     nextState.remainingTicks = ZONE_WINDOW_TICKS;
   }
   return true;

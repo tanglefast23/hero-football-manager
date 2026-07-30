@@ -11,6 +11,7 @@ import {
   initializePowerMatchShowcase,
   POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS,
   powerMatchShowcaseAway,
+  powerMatchShowcaseHeroIndex,
   powerMatchShowcaseHome,
 } from '../power-match-showcase';
 
@@ -30,18 +31,20 @@ describe('live power match showcase', () => {
 
     expect(match.players[hero]).toMatchObject({
       def: { power },
-      firePolicy: 'FIRE_WHEN_READY',
+      firePolicy: 'SAVE_FOR_TAP',
       powerState: { kind: 'zone' },
     });
     expect(inUsefulContext(match, hero)).toBe(true);
 
     const arrangedPositions = match.players.map(player => ({ ...player.pos }));
-    const arrangedBall = JSON.parse(JSON.stringify(match.ball));
     for (let heldTick = 0; heldTick < POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS; heldTick += 1) {
       expect(advancePowerMatchShowcaseReady(match, power)).toBe(true);
     }
-    expect(match.players.map(player => player.pos)).toEqual(arrangedPositions);
-    expect(match.ball).toEqual(arrangedBall);
+    expect(match.players.some((player, index) => (
+      player.pos.x !== arrangedPositions[index].x
+      || player.pos.y !== arrangedPositions[index].y
+    ))).toBe(true);
+    expect(match.tick).toBe(POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS);
     expect(inUsefulContext(match, hero)).toBe(true);
     expect(match.events).not.toContainEqual(expect.objectContaining({ kind: 'POWER_FIRED' }));
 
@@ -52,15 +55,12 @@ describe('live power match showcase', () => {
     expect(match.inputLog).toEqual([]);
   });
 
-  it('keeps an available power banked indefinitely until its best context exists', () => {
+  it('keeps an available power banked through the live lead-in', () => {
     const power = 'SUPER_STRENGTH' as const;
     const match = createMatch(42, powerMatchShowcaseHome(power), powerMatchShowcaseAway());
     const hero = initializePowerMatchShowcase(match, power);
-    const victim = 11;
-    match.players[victim].pos = { x: 100, y: 100 };
-    expect(inUsefulContext(match, hero)).toBe(false);
 
-    for (let heldTick = 0; heldTick < 250; heldTick += 1) {
+    for (let heldTick = 0; heldTick < POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS; heldTick += 1) {
       expect(advancePowerMatchShowcaseReady(match, power)).toBe(true);
     }
     expect(match.players[hero].powerState).toEqual({
@@ -71,11 +71,6 @@ describe('live power match showcase', () => {
       kind: 'POWER_EXPIRED',
       player: hero,
     }));
-
-    match.players[victim].pos = {
-      x: match.players[hero].pos.x + 500,
-      y: match.players[hero].pos.y,
-    };
     expect(inUsefulContext(match, hero)).toBe(true);
     advanceThroughAutoFire(match, power, hero);
     expect(match.events).toContainEqual(expect.objectContaining({
@@ -88,6 +83,12 @@ describe('live power match showcase', () => {
 
   it('keeps the rival team unpowered so only the selected effect is under review', () => {
     expect(powerMatchShowcaseAway().players.every(player => player.power === undefined)).toBe(true);
+  });
+
+  it('puts the newly awakened player into the live match clip', () => {
+    const power = 'SUPER_STRENGTH' as const;
+    const team = powerMatchShowcaseHome(power, 'Zip Vela');
+    expect(team.players[powerMatchShowcaseHeroIndex(power)].name).toBe('Zip Vela');
   });
 
   it('shows Web Trap on a clearly separated victim who stays fixed frame by frame', () => {

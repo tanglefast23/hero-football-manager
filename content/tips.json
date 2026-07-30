@@ -19,7 +19,14 @@
     {
       "id": "drill-tiers-are-permanent",
       "title": "Drill tiers survive relegation",
-      "body": "A drill tier is bought once and kept for the whole career. Reaching a division is permanent too, so going back down never takes away a tier you unlocked or paid for. Buy the upgrade the season you can afford it, not the season you feel safe."
+      "body": "A drill tier is bought once and kept for the whole career. Reaching a division is permanent too, so going back down never takes away a tier you unlocked or paid for. Buy the upgrade the season you can afford it, not the season you feel safe.",
+      "destination": "drill-shop"
+    },
+    {
+      "id": "player-columns-are-sortable",
+      "title": "Player columns are sortable",
+      "body": "Tap NAME, OVR, POT or COND at the top of the Team Register to sort the squad by that column. Tap the same heading again to reverse the order, and a third time to return to the usual lineup.",
+      "destination": "overall-sort"
     },
     {
       "id": "cup-pays-more-than-the-league",
@@ -28,8 +35,8 @@
     },
     {
       "id": "adjacency-bonuses",
-      "title": "Neighbouring buildings pay a bonus",
-      "body": "Three pairs of facilities reward being built next to each other: Gym and Dorm give +10% stamina training, Fan Shop and Stadium Stand give +10% merchandise income, and Medical Bay beside the Training Pitch cuts injury risk by 20%. Plan the grid before you fill it."
+      "title": "Some neighbours hide a bonus",
+      "body": "Certain facilities unlock a secret bonus when the right pair shares an edge. Try different neighbours without overplanning it — Bert will explain a combination only after you discover it."
     },
     {
       "id": "one-project-at-a-time",

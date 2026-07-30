@@ -133,7 +133,9 @@ describe('desktop match control rail', () => {
     const source = matchSource();
 
     expect(layoutModeForWidth(TWO_COLUMN_MIN_WIDTH - 1)).toBe('single');
-    expect(source).toContain("const railLayout = layoutModeForWidth(width) === 'twoColumn';");
+    expect(source).toContain(
+      "const railLayout = !presentationOnly && layoutModeForWidth(width) === 'twoColumn';",
+    );
     expect(source).toContain('? MATCH_RAIL_TOP_INSET + MATCH_RAIL_GUTTER');
     expect(source).toContain('const availablePitchWidth = railLayout');
     expect(source).toContain('width - MATCH_RAIL_WIDTH - MATCH_RAIL_GUTTER * 3');
@@ -142,7 +144,7 @@ describe('desktop match control rail', () => {
     // rail's reserved width is what gets measured, not the raw viewport.
     expect(source).toContain('matchPitchLayout(availablePitchWidth');
     // The phone scorebar and coaching dock render only in single mode.
-    expect(source).toContain('{railLayout ? null : (');
+    expect(source).toContain('{railLayout || presentationOnly ? null : (');
     expect(source).toContain('{railLayout ? (');
   });
 

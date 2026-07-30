@@ -25,7 +25,7 @@ describe('first training guidance', () => {
     expect(source).toContain('widthClass={conditionColumnWidth}');
     // The train column keeps its width to hold the + buttons in line, but has
     // no header label to clip.
-    expect(source).toContain('<View className="w-14" />');
+    expect(source).toContain('<View className="w-12" />');
     expect(source).toContain('ellipsizeMode="clip"');
     // The cue points at one button, not fifteen: only the rookie the manager
     // built glows, and it keeps glowing until it is actually pressed.
@@ -68,7 +68,8 @@ describe('first training guidance', () => {
     expect(source).toContain('if (guideQuickTrainRef.current) setQuickTrainCueDismissed(true);');
     expect(source).toContain('guideQuickTrain={guideQuickTrain && !quickTrainCueDismissed}');
     // The table, not a row, carries the cue and the space above it.
-    expect(source).toContain("conditionCueShowing\n          ? 'relative mt-20 border-2 border-ink bg-white'");
+    expect(source).toContain('conditionCueShowing || guideOverallSort');
+    expect(source).toContain("? 'relative mt-20 border-2 border-ink bg-white'");
     expect(source).not.toContain('guideConciergePlayer || showConditionCue');
     expect(source).not.toContain('conditionCueRightOffset');
     // The count comes off the resolved state, which is what the save persists.

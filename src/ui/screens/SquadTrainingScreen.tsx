@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
-import type { AssistantGuideFocus } from '../../content';
+import type { AssistantGuideFocus, ManagerTipDestination } from '../../content';
 import { Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
 import type {
@@ -89,6 +89,12 @@ const CONDITION_WARNING_DRILL = 3;
 
 /** How far below the viewport top the attribute grid sits once framed. */
 const QUICK_TRAIN_FRAME_TOP = 96;
+/**
+ * Three-letter roles still fit at the app's largest text size. This moves the
+ * name start 8pt right; tighter phone metrics and the train gutter pay for it
+ * so the flexible name cell keeps useful room.
+ */
+const ROSTER_ROLE_COLUMN_WIDTH = 48;
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
@@ -121,6 +127,11 @@ export interface SquadTrainingScreenProps {
   onQuickTrainShown?: () => void;
   /** Changes after any completed screen tap so floating tips can retire together. */
   dismissTipsToken?: number;
+  /** A Manager's Tip deep-link and its fresh request identity. */
+  managerTipGuideRequest?: {
+    target: ManagerTipDestination;
+    token: number;
+  };
 }
 
 export function SquadTrainingScreen({
@@ -141,6 +152,7 @@ export function SquadTrainingScreen({
   guideQuickTrain = false,
   onQuickTrainShown,
   dismissTipsToken = 0,
+  managerTipGuideRequest,
 }: SquadTrainingScreenProps) {
   const desktopContent = useDesktopContentStyle();
   const { width } = useWindowDimensions();
@@ -148,9 +160,9 @@ export function SquadTrainingScreen({
   // Wide columns spell their headers out in full ("SCORE", "POTENTIAL",
   // "CONDITION"), so each one has to be wide enough to hold the word plus its
   // sort arrow — a clipped header reads as a bug, not as an abbreviation.
-  const currentColumnWidth = wideColumns ? 'w-16' : 'w-10';
-  const potentialColumnWidth = wideColumns ? 'w-28' : 'w-14';
-  const conditionColumnWidth = wideColumns ? 'w-28' : 'w-16';
+  const currentColumnWidth = wideColumns ? 'w-16' : 'w-9';
+  const potentialColumnWidth = wideColumns ? 'w-28' : 'w-12';
+  const conditionColumnWidth = wideColumns ? 'w-28' : 'w-14';
   const selectedPlayer = viewModel.players.find(player => player.id === selectedPlayerId);
   const selectedArchetype = selectedPlayer === undefined
     ? undefined
@@ -173,10 +185,12 @@ export function SquadTrainingScreen({
   const lastDismissTipsTokenRef = useRef(dismissTipsToken);
   const guideQuickTrainRef = useRef(guideQuickTrain);
   const [quickTrainCueDismissed, setQuickTrainCueDismissed] = useState(false);
+  const [managerTipGuideTarget, setManagerTipGuideTarget] = useState<ManagerTipDestination | null>(null);
   /** The stat the manager tapped in the player file, aimed at its drill. */
   const [quickTrainPathId, setQuickTrainPathId] = useState<string | undefined>(undefined);
   const scrollRef = useRef<ScrollView>(null);
   const attributesRef = useRef<View>(null);
+  const drillShopRef = useRef<View>(null);
   const attributesScrolledRef = useRef(false);
   const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
   const sortedPlayers = useMemo(
@@ -253,11 +267,42 @@ export function SquadTrainingScreen({
     lastDismissTipsTokenRef.current = dismissTipsToken;
     dismissPlayerGuide();
     dismissConditionCue();
+    setManagerTipGuideTarget(null);
     // Only retire the lesson if it was already on screen when this tap began.
     // The Advance Week tap can unlock Quick Train; that new lesson must not be
     // dismissed by the same tap that caused it to appear.
     if (guideQuickTrainRef.current) setQuickTrainCueDismissed(true);
   }, [dismissConditionCue, dismissPlayerGuide, dismissTipsToken]);
+
+  useEffect(() => {
+    if (managerTipGuideRequest === undefined) return;
+    const { target } = managerTipGuideRequest;
+    setManagerTipGuideTarget(target);
+
+    // Let the guide's reserved space lay out before measuring. The second frame
+    // puts the target under the persistent HUD rather than under the tooltip.
+    let secondFrame: number | null = null;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        if (target === 'overall-sort') {
+          scrollRef.current?.scrollTo({ y: 0, animated: true });
+          return;
+        }
+        if (target === 'drill-shop') {
+          drillShopRef.current?.measureInWindow((_x, y) => {
+            scrollRef.current?.scrollTo({
+              y: Math.max(0, y - QUICK_TRAIN_FRAME_TOP),
+              animated: true,
+            });
+          });
+        }
+      });
+    });
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      if (secondFrame !== null) cancelAnimationFrame(secondFrame);
+    };
+  }, [managerTipGuideRequest]);
 
   useEffect(() => {
     guideQuickTrainRef.current = guideQuickTrain;
@@ -315,6 +360,7 @@ export function SquadTrainingScreen({
           trainingPoints={trainingPoints}
           selectedPlayerId={selectedPlayerId}
           guideFocus={guideFocus}
+          guideOverallSort={managerTipGuideTarget === 'overall-sort'}
           onSelectPlayer={onSelectPlayer}
           onPressTrainingBadge={handleTrainingBadgePress}
         />
@@ -339,11 +385,30 @@ export function SquadTrainingScreen({
       key: 'drill-shop',
       weight: 3 + viewModel.drillUpgrades.length,
       node: (
-        <DrillShopSection
-          upgrades={viewModel.drillUpgrades}
-          money={viewModel.resources.money}
-          onBuy={onBuyDrillUpgrade}
-        />
+        <View
+          ref={drillShopRef}
+          collapsable={false}
+          className={managerTipGuideTarget === 'drill-shop'
+            ? 'relative mt-20 border-2 border-blue-dark bg-blue-light/20 p-1'
+            : 'relative'}
+        >
+          {managerTipGuideTarget === 'drill-shop' ? (
+            <TutorialTapCue
+              label="Drill tiers"
+              detail="Drills unlock as you climb divisions"
+              style={{
+                left: '50%',
+                marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+              }}
+            />
+          ) : null}
+          <DrillShopSection
+            upgrades={viewModel.drillUpgrades}
+            money={viewModel.resources.money}
+            onBuy={onBuyDrillUpgrade}
+          />
+        </View>
       ),
     },
   ];
@@ -420,6 +485,7 @@ interface RosterSectionProps {
   trainingPoints: number;
   selectedPlayerId?: string;
   guideFocus?: AssistantGuideFocus;
+  guideOverallSort: boolean;
   onSelectPlayer: (playerId: string) => void;
   onPressTrainingBadge: (playerId: string) => void;
 }
@@ -440,6 +506,7 @@ function RosterSection({
   trainingPoints,
   selectedPlayerId,
   guideFocus,
+  guideOverallSort,
   onSelectPlayer,
   onPressTrainingBadge,
 }: RosterSectionProps) {
@@ -455,7 +522,7 @@ function RosterSection({
       />
       <View className={guidePlayers
         ? 'relative mt-20 border-4 border-blue-dark bg-blue-light p-1'
-        : conditionCueShowing
+        : conditionCueShowing || guideOverallSort
           ? 'relative mt-20 border-2 border-ink bg-white'
           : 'border-2 border-ink bg-white'}>
         {guidePlayers && !playerGuideDismissed ? (
@@ -465,10 +532,28 @@ function RosterSection({
             style={{ left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, top: -72 }}
           />
         ) : null}
-        <View className="flex-row items-center border-b border-ink/20 px-3">
-          <View className="w-10" />
+        <View className="flex-row items-center border-b border-ink/20 px-2">
+          <View style={styles.roleColumn} />
           <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
-          <SquadSortHeader label={wideColumns ? 'Score' : 'OVR'} sortKey="overall" sort={squadSort} widthClass={currentColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          <SquadSortHeader
+            label={wideColumns ? 'Score' : 'OVR'}
+            sortKey="overall"
+            sort={squadSort}
+            widthClass={currentColumnWidth}
+            align="right"
+            onSort={key => setSquadSort(current => nextSquadSort(current, key))}
+            tutorialCue={guideOverallSort ? (
+              <TutorialTapCue
+                label="Tap here"
+                detail="To sort"
+                style={{
+                  left: '50%',
+                  marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                  top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
+                }}
+              />
+            ) : null}
+          />
           <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
           <SquadSortHeader
             label={wideColumns ? 'Condition' : 'Cond'}
@@ -491,7 +576,7 @@ function RosterSection({
           />
           {/* The train column needs its width to keep the + buttons aligned, but
               not a label: the + is self-explanatory and the word was clipping. */}
-          <View className="w-14" />
+          <View className="w-12" />
         </View>
         {sortedPlayers.length === 0 ? (
           <View className="items-center px-4 py-8">
@@ -514,10 +599,10 @@ function RosterSection({
             <View
               key={player.id}
               className={selected
-                ? 'flex-row items-center border-b border-ink/20 bg-paper-dark px-3 py-2'
+                ? 'flex-row items-center border-b border-ink/20 bg-paper-dark px-2 py-2'
                 : player.injuryWeeks > 0
-                  ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-3 py-2'
-                  : 'flex-row items-center border-b border-ink/10 px-3 py-2'}
+                  ? 'flex-row items-center border-b border-red-dark/30 bg-red-light px-2 py-2'
+                  : 'flex-row items-center border-b border-ink/10 px-2 py-2'}
               style={guideConciergePlayer
                 ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE }
                 : undefined}
@@ -540,7 +625,13 @@ function RosterSection({
                 className="min-h-11 flex-1 flex-row items-center"
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
               >
-                <Text className={selected ? 'w-10 font-pixel text-sm text-ink' : 'w-10 font-pixel text-sm text-blue-dark'} numberOfLines={1}>{player.role}</Text>
+                <Text
+                  style={styles.roleColumn}
+                  className={selected ? 'font-pixel text-sm text-ink' : 'font-pixel text-sm text-blue-dark'}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
+                  numberOfLines={1}
+                >{player.role}</Text>
                 <View className="flex-1 pr-2">
                   <Text className="text-base font-bold text-ink" numberOfLines={1}>{player.name}</Text>
                   {player.injuryWeeks > 0 ? (
@@ -585,12 +676,12 @@ function RosterSection({
                 disabled={player.injuryWeeks > 0}
                 onPress={() => onPressTrainingBadge(player.id)}
                 className={player.injuryWeeks > 0
-                  ? 'ml-2 h-11 w-12 items-center justify-center border border-ink/20 bg-paper-dark'
+                  ? 'ml-1 h-11 w-11 items-center justify-center border border-ink/20 bg-paper-dark'
                   : player.priorityDrillsRemaining !== undefined
-                    ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-blue-dark bg-blue-light'
+                    ? 'ml-1 h-11 w-11 items-center justify-center border-2 border-blue-dark bg-blue-light'
                     : glowAssignmentButton
-                      ? 'ml-2 h-11 w-12 items-center justify-center border-2 border-gold-dark bg-gold-light'
-                      : 'ml-2 h-11 w-12 items-center justify-center border border-ink/30'}
+                      ? 'ml-1 h-11 w-11 items-center justify-center border-2 border-gold-dark bg-gold-light'
+                      : 'ml-1 h-11 w-11 items-center justify-center border border-ink/30'}
                 style={({ pressed }) => [
                   { opacity: pressed && player.injuryWeeks === 0 ? 0.65 : undefined },
                   glowAssignmentButton ? styles.assignmentButtonGlow : null,
@@ -912,6 +1003,7 @@ function SquadSortHeader({
 }
 
 const styles = StyleSheet.create({
+  roleColumn: { width: ROSTER_ROLE_COLUMN_WIDTH, flexShrink: 0 },
   assignmentButtonGlow: {
     boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',
     shadowColor: '#edb54a',

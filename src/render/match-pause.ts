@@ -4,6 +4,8 @@ export type AutomaticMatchPauseReason =
   | 'swap'
   | 'cut-in'
   | 'tutorial'
+  /** The acquired-power match clip freezes on its final frame for replay/continue. */
+  | 'showcase'
   /** A Global Cup tie's opening title card holds kickoff until it clears. */
   | 'title-card';
 

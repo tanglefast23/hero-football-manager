@@ -5,8 +5,8 @@ Events are the game's storyteller. They must feel like little comics: a setup, a
 ## System rules
 
 - **Roll**: 18% chance per week during the manage phase; guaranteed at least one event per 8 weeks (event dry-spell timer). These are club-life stories and resource decisions. **They do not award powers.**
-- **Format**: an event card — pixel illustration, 2–4 lines of flavor text, 2–3 choice buttons. Choices can be gated (needs a facility, a personality on the roster, or cash).
-- **Outcomes**: weighted rolls; weights shift with relevant stats, facilities, and personalities. Outcomes always narrate ("The spider respected the hustle."), never just emit numbers.
+- **Format**: an event card — pixel illustration, 2–4 lines of flavor text, 2–3 choice buttons. Choices can be gated (needs a facility, a personality on the roster, or cash). Risky choices use the light pastel-red decision surface, not the pitch showing through.
+- **Outcomes**: weighted rolls; weights shift with relevant stats, facilities, and personalities. Every choice opens a distinct result screen that says what happened. A risky miss explicitly says no bonus was earned; a success celebrates, names each reward, and pairs it with a small canonical 16×16 pixel-art object and staggered micro-animation. Outcomes always narrate ("The spider respected the hustle."), never just emit numbers.
 - **Risk philosophy**: safe choices give small guaranteed value; unusual choices carry stronger club-culture outcomes and occasional downside. The player should hover over a strange button and grin, without wondering whether declining it forfeits a hero.
 
 ## The template event (user's spider, fully specified)

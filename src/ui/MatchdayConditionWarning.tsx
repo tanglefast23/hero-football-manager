@@ -15,7 +15,7 @@ export interface MatchdayConditionWarningProps {
   onDone: () => void;
 }
 
-/** Bert's one-time lesson when concentrated training first reaches matchday. */
+/** Bert's one-time lesson when the first Below Peak badge reaches matchday. */
 export function MatchdayConditionWarning({
   playerName,
   reduceMotion = false,
@@ -35,6 +35,7 @@ export function MatchdayConditionWarning({
       characterHeight={BERT_SPRITE_SIZE.height * BERT_SCALE}
       groundOffset={MATCHDAY_ACTION_RAIL_CLEARANCE}
       reduceMotion={reduceMotion}
+      typewriter
       bubbleScale={BERT_BUBBLE_SCALE}
       mirrorSprite={false}
       accessibilityLabel={`Bert says: ${line}`}

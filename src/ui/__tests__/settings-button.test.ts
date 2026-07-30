@@ -51,6 +51,7 @@ describe('SettingsButton', () => {
   });
 
   it('shows persistence failures as an accessible in-app alert', () => {
+    const onToggleManagerTips = jest.fn();
     const element = SettingsOverlay({
       open: true,
       glossary: { schemaVersion: 1, categories: [{ id: 'players', title: 'Players', entries: [{ term: 'Fame', definition: 'Renown.' }] }] },
@@ -63,6 +64,7 @@ describe('SettingsButton', () => {
       highContrast: false,
       colorSafeKits: true,
       cutInMode: 'full',
+      managerTipsEnabled: true,
       saveError: 'Settings were not saved. Storage is unavailable.',
       onVolumeChange: jest.fn(),
       onToggleReduceMotion: jest.fn(),
@@ -72,6 +74,7 @@ describe('SettingsButton', () => {
       onToggleHighContrast: jest.fn(),
       onToggleColorSafeKits: jest.fn(),
       onToggleCutInMode: jest.fn(),
+      onToggleManagerTips,
       onGlossaryOpenChange: jest.fn(),
       onOpenChange: jest.fn(),
     });
@@ -80,5 +83,9 @@ describe('SettingsButton', () => {
     expect(alert?.props.accessibilityLiveRegion).toBe('assertive');
     expect(alert?.props.children).toBeDefined();
     expect(findByAccessibilityLabel(element, 'Open glossary')).toBeDefined();
+    const managerTips = findByAccessibilityLabel(element, "Manager's tips in inbox");
+    expect(managerTips?.props.accessibilityState).toEqual({ checked: true });
+    (managerTips?.props.onPress as (() => void) | undefined)?.();
+    expect(onToggleManagerTips).toHaveBeenCalledTimes(1);
   });
 });

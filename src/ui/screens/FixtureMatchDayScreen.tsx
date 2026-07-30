@@ -17,10 +17,12 @@ import {
 
 /**
  * Three pixels per sprite pixel: a 72x87 face, which fits a w-28 pitch cell
- * beside its shirt and full name without the row outgrowing the pitch box.
+ * with a full name without the row outgrowing the pitch box.
  * Whole number on purpose — a fractional scale smears a 1-bit face.
  */
 const PITCH_PORTRAIT_SCALE = 3;
+/** A crisp 48x58 face for the denser five-across phone rows. */
+const PITCH_PORTRAIT_COMPACT_SCALE = 2;
 
 export interface FixtureMatchDayScreenProps {
   viewModel: MatchDayViewModel;
@@ -164,13 +166,12 @@ export function FixtureMatchDayScreen({
       <Text className="mb-3 text-sm leading-5 text-paper/70">
         To change starters, tap the starter and the replacement. Every change is saved for future matches.
       </Text>
-      {/* Desktop has the room to show who these people are: a face, a full name
-          and the shirt, in a cell wide enough that no name is clipped. A phone
-          keeps the compact shirt-number grid, where a portrait per starter would
-          not fit and eleven Skia canvases are not worth the frame. */}
+      {/* Every starter is identified by their face and name. Phone cells share
+          the full row rather than stopping at 64pt, so the space that used to
+          sit around the grid now belongs to names. */}
       <View className={wide
         ? 'border-[3px] border-ink bg-pitch px-4 py-6'
-        : 'border-[3px] border-ink bg-pitch px-3 py-4'}>
+        : 'border-[3px] border-ink bg-pitch px-1 py-3'}>
         <View className="absolute inset-x-3 top-1/2 h-px bg-paper/50" />
         <View className="absolute left-1/2 top-0 h-full w-px bg-paper/40" />
         {ROLE_ORDER.map(role => {
@@ -178,19 +179,19 @@ export function FixtureMatchDayScreen({
           return (
             <View key={role} className={wide
               ? 'my-3 flex-row justify-center gap-4'
-              : 'my-2 flex-row justify-center gap-2'}>
+              : 'my-1.5 flex-row justify-center gap-1'}>
               {players.map(player => {
                 const conditionStatus = matchdayConditionStatus(player.condition);
                 const selected = player.id === selectedStarterId;
                 const cardClass = selected
-                  ? (wide ? 'w-28 items-center border-2 border-blue-dark bg-blue-light p-2' : 'w-16 items-center border-2 border-blue-dark bg-blue-light p-1')
+                  ? (wide ? 'w-28 items-center border-2 border-blue-dark bg-blue-light p-2' : 'min-w-0 max-w-24 flex-1 items-center border-2 border-blue-dark bg-blue-light px-0.5 py-1')
                   : conditionStatus?.kind === 'exhausted'
-                    ? (wide ? 'w-28 items-center border-2 border-red-light bg-red-dark p-2' : 'w-16 items-center border-2 border-red-light bg-red-dark p-1')
+                    ? (wide ? 'w-28 items-center border-2 border-red-light bg-red-dark p-2' : 'min-w-0 max-w-24 flex-1 items-center border-2 border-red-light bg-red-dark px-0.5 py-1')
                     : conditionStatus?.kind === 'fatigued'
-                      ? (wide ? 'w-28 items-center border-2 border-red-dark bg-red-light p-2' : 'w-16 items-center border-2 border-red-dark bg-red-light p-1')
+                      ? (wide ? 'w-28 items-center border-2 border-red-dark bg-red-light p-2' : 'min-w-0 max-w-24 flex-1 items-center border-2 border-red-dark bg-red-light px-0.5 py-1')
                       : conditionStatus?.kind === 'below-peak'
-                        ? (wide ? 'w-28 items-center border-2 border-gold-dark bg-gold-light p-2' : 'w-16 items-center border-2 border-gold-dark bg-gold-light p-1')
-                        : (wide ? 'w-28 items-center border-2 border-transparent p-2' : 'w-16 items-center border-2 border-transparent p-1');
+                        ? (wide ? 'w-28 items-center border-2 border-gold-dark bg-gold-light p-2' : 'min-w-0 max-w-24 flex-1 items-center border-2 border-gold-dark bg-gold-light px-0.5 py-1')
+                        : (wide ? 'w-28 items-center border-2 border-transparent p-2' : 'min-w-0 max-w-24 flex-1 items-center border-2 border-transparent px-0.5 py-1');
 
                 return (
                   <Pressable
@@ -202,28 +203,15 @@ export function FixtureMatchDayScreen({
                     className={cardClass}
                     style={({ pressed }) => ({ opacity: pressed ? 0.7 : undefined })}
                   >
-                    {wide ? (
-                      <View className={player.isHero
-                        ? 'border-2 border-gold bg-blue-light'
-                        : 'border-2 border-paper bg-blue-light'}>
-                        <PixelPortrait
-                          playerId={player.id}
-                          role={player.role}
-                          lookId={player.lookId}
-                          scale={PITCH_PORTRAIT_SCALE}
-                        />
-                      </View>
-                    ) : null}
-                    <View className={wide
-                      ? (player.isHero
-                        ? 'mt-1 h-7 w-7 items-center justify-center border-2 border-gold bg-ink'
-                        : 'mt-1 h-7 w-7 items-center justify-center border-2 border-paper bg-ink')
-                      : (player.isHero
-                        ? 'h-9 w-9 items-center justify-center border-2 border-gold bg-ink'
-                        : 'h-9 w-9 items-center justify-center border-2 border-paper bg-ink')}>
-                      <Text className={player.isHero ? 'font-mono text-sm text-gold' : 'font-mono text-sm text-paper'}>
-                        {player.shirtNumber}
-                      </Text>
+                    <View className={player.isHero
+                      ? 'border-2 border-gold bg-blue-light'
+                      : 'border-2 border-paper bg-blue-light'}>
+                      <PixelPortrait
+                        playerId={player.id}
+                        role={player.role}
+                        lookId={player.lookId}
+                        scale={wide ? PITCH_PORTRAIT_SCALE : PITCH_PORTRAIT_COMPACT_SCALE}
+                      />
                     </View>
                     <Text
                       className={selected
@@ -233,9 +221,7 @@ export function FixtureMatchDayScreen({
                           : conditionStatus !== null
                             ? 'mt-1 text-center text-sm font-bold text-ink'
                             : 'mt-1 text-center text-sm font-bold text-paper'}
-                      // Wide cells spell the name out; the phone grid still has to
-                      // clip, because 64px cannot hold "Dario Flint".
-                      numberOfLines={wide ? 2 : 1}
+                      numberOfLines={2}
                     >
                       {player.name}
                     </Text>

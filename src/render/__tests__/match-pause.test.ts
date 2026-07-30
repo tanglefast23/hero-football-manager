@@ -26,6 +26,10 @@ describe('match pause reasons', () => {
     expect(shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['tutorial']))).toBe(true);
   });
 
+  it('holds an acquired-power replay on its final frame', () => {
+    expect(shouldPauseMatch(false, new Set<AutomaticMatchPauseReason>(['showcase']))).toBe(true);
+  });
+
   it('automatically releases only the background pause when the app returns', () => {
     const backgroundOnly = new Set<AutomaticMatchPauseReason>();
     syncBackgroundPauseReason(backgroundOnly, false);

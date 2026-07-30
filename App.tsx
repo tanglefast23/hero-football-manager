@@ -12,6 +12,7 @@ import {
   type AssistantGuideDestination,
   type AssistantGuideFocus,
   type AssistantGuideSequenceId,
+  type ManagerTipDestination,
 } from './src/content';
 import {
   createCareerRepository,
@@ -33,8 +34,10 @@ import {
 import { setMasterVolume } from './src/render/audio';
 import {
   playAwakeningAscension,
+  playAwakeningLimp,
   setAwakeningMasterVolume,
   stopAwakeningAscension,
+  stopAwakeningLimp,
   teardownAwakeningAudio,
 } from './src/render/awakening-audio';
 import { nextDevVolume, type DevVolume } from './src/render/dev-volume';
@@ -109,6 +112,7 @@ import type { DivisionLevel } from './src/game/pyramid';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
 import type { TutorialAnchorLayout } from './src/ui/tutorial-cue-position';
 import { guidedFirstFacilityAllowsPlacement } from './src/ui/concierge-targets';
+import { facilityAdjacencyPresentation } from './src/ui/facility-adjacency';
 import { useReducedMotion } from './src/ui/use-reduced-motion';
 import { useRivalPreload } from './src/ui/use-rival-preload';
 import { SfxPressable as Pressable } from './src/ui/components/SfxPressable';
@@ -293,20 +297,23 @@ function PowerMatchQaApp() {
 
 function PowerCutInQaApp() {
   const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
-  if (!fontsLoaded) return <LoadingScreen />;
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#16121f' }}>
-        <MatchScreen
-          seed={42}
-          reduceMotion={false}
-          cutInMode="full"
-          powerCutInQaEntries={POWER_CUT_IN_QA_ENTRIES}
-          onOpenSettings={() => undefined}
-          onDone={() => undefined}
-        />
-      </SafeAreaView>
+      {!fontsLoaded ? <LoadingScreen /> : (
+        <>
+          <StatusBar style="light" />
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#16121f' }}>
+            <MatchScreen
+              seed={42}
+              reduceMotion={false}
+              cutInMode="full"
+              powerCutInQaEntries={POWER_CUT_IN_QA_ENTRIES}
+              onOpenSettings={() => undefined}
+              onDone={() => undefined}
+            />
+          </SafeAreaView>
+        </>
+      )}
     </SafeAreaProvider>
   );
 }
@@ -403,6 +410,13 @@ function GameApp() {
   } | null>(null);
   // Bumped when an inbox training-cap letter deep-links into the drill picker.
   const [drillFocusToken, setDrillFocusToken] = useState<number | null>(null);
+  const [managerTipGuideRequest, setManagerTipGuideRequest] = useState<{
+    target: ManagerTipDestination;
+    token: number;
+  } | null>(null);
+  // The navigation press creates the new cue; its own pointer-up must not also
+  // count as the "next tap" that dismisses it.
+  const skipNextGuidanceDismissRef = useRef(false);
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
@@ -491,6 +505,10 @@ function GameApp() {
   const toggleCutInMode = useCallback(() => {
     const current = preferencesRef.current;
     savePreferences({ ...current, cutInMode: current.cutInMode === 'full' ? 'banner' : 'full' });
+  }, [savePreferences]);
+  const toggleManagerTips = useCallback(() => {
+    const current = preferencesRef.current;
+    savePreferences({ ...current, managerTipsEnabled: !current.managerTipsEnabled });
   }, [savePreferences]);
   const cycleFormationPreset = useCallback((slot: number) => {
     const market = useM1Store.getState().career?.market;
@@ -780,10 +798,17 @@ function GameApp() {
   }, []);
 
   useEffect(() => {
+    if (store.screen === 'awakening' && awakeningBeat === 1) {
+      playAwakeningLimp();
+      stopAwakeningAscension();
+      return undefined;
+    }
     if (store.screen === 'awakening' && awakeningBeat === 3) {
+      stopAwakeningLimp();
       playAwakeningAscension();
       return () => stopAwakeningAscension();
     }
+    if (store.screen !== 'awakening') stopAwakeningLimp();
     stopAwakeningAscension();
     return undefined;
   }, [awakeningBeat, store.screen]);
@@ -902,6 +927,18 @@ function GameApp() {
     : content.assistantGuide.sequences.find(sequence => sequence.id === assistantSequenceId);
   const cupGiantKillingCelebration = store.career
     ?.pendingCupGiantKillingCelebrations?.[0];
+  const facilityComboReveal = store.screen !== 'management' || store.career === null
+    ? undefined
+    : store.career.facilities.grid?.discoveredAdjacencies
+        .map(facilityAdjacencyPresentation)
+        .find(presentation => (
+          presentation !== undefined
+          && !hasAssistantGuideMilestone(store.career!, presentation.milestone)
+        ));
+  const tripleSpeedIntroVisible = store.screen === 'watched'
+    && store.career !== null
+    && store.career.season >= 3
+    && !hasAssistantGuideMilestone(store.career, 'triple-speed-seen');
   /**
    * The signing that is walking onto the screen, if one is.
    *
@@ -925,7 +962,10 @@ function GameApp() {
    * that same rail. Sharing the expression keeps the two from drifting apart.
    */
   const guideOverlayVisible = (
-    assistantSequenceId !== null || cupGiantKillingCelebration !== undefined
+    assistantSequenceId !== null
+    || cupGiantKillingCelebration !== undefined
+    || facilityComboReveal !== undefined
+    || tripleSpeedIntroVisible
   )
     && signingWalkOn === null;
   const assistantObjective = store.career === null
@@ -949,8 +989,27 @@ function GameApp() {
     : assistantObjective?.target === 'squad-tab'
       ? 'squad'
       : undefined;
+  const openManagerTipDestination = useCallback((target: ManagerTipDestination) => {
+    skipNextGuidanceDismissRef.current = true;
+    // A pointer activation bubbles into the shell's tap-to-dismiss handler in
+    // this frame. Keyboard activation does not, so release the one-shot guard
+    // on the next frame rather than swallowing the user's first later tap.
+    requestAnimationFrame(() => {
+      skipNextGuidanceDismissRef.current = false;
+    });
+    setManagerTipGuideRequest(current => ({
+      target,
+      token: (current?.token ?? 0) + 1,
+    }));
+    store.setActiveTab('squad');
+  }, [store.setActiveTab]);
   const dismissVisibleTips = useCallback(() => {
+    if (skipNextGuidanceDismissRef.current) {
+      skipNextGuidanceDismissRef.current = false;
+      return;
+    }
     setConciergeFocus(null);
+    setManagerTipGuideRequest(null);
     if (assistantObjectiveKey !== null) {
       setDismissedAssistantObjectiveKey(assistantObjectiveKey);
     }
@@ -1206,7 +1265,8 @@ function GameApp() {
         onPowerCutInSeen={recordSeenPowerCutIn}
         highContrast={preferences.highContrast}
         colorSafeKits={preferences.colorSafeKits}
-        pausedExternally={globalSettingsOpen}
+        pausedExternally={globalSettingsOpen || tripleSpeedIntroVisible}
+        maximumSpeed={store.career.season >= 3 ? 3 : 2}
         firstMatchTutorial={isFirstOnboardingFixture(
           store.career,
           store.watchedMatch.fixture.id,
@@ -1367,6 +1427,7 @@ function GameApp() {
           setConciergeFocus(null);
           setMarketSectionRequest(null);
           setDrillFocusToken(null);
+          setManagerTipGuideRequest(null);
           store.setActiveTab(tab);
         }}
         onAdvanceWeek={handleAdvanceWeek}
@@ -1421,6 +1482,7 @@ function GameApp() {
             guideTraining={visibleAssistantObjectiveTarget === 'training-plan'}
             guideFocus={conciergeFocus ?? undefined}
             dismissTipsToken={tipDismissSequence}
+            managerTipGuideRequest={managerTipGuideRequest ?? undefined}
             reduceMotion={reduceMotion}
             drillPickerRequestToken={drillFocusToken ?? undefined}
             saveWarning={store.saveWarning}
@@ -1568,6 +1630,8 @@ function GameApp() {
             viewModel={home}
             textScale={preferences.textScale}
             onOpenFixture={store.openMatchday}
+            onOpenManagerTipDestination={openManagerTipDestination}
+            showManagerTips={preferences.managerTipsEnabled}
             onOpenAlert={alertId => {
               if (
                 assistantObjective?.target === 'training-ground-alert'
@@ -1693,6 +1757,7 @@ function GameApp() {
           highContrast={preferences.highContrast}
           colorSafeKits={preferences.colorSafeKits}
           cutInMode={preferences.cutInMode}
+          managerTipsEnabled={preferences.managerTipsEnabled}
           accessibilityCopy={content.assistantGuide.m4Fiction.accessibility}
           difficultyLabel={store.career?.onboarding?.stage === 'create-player'
             ? undefined
@@ -1706,6 +1771,7 @@ function GameApp() {
           onToggleHighContrast={toggleHighContrast}
           onToggleColorSafeKits={toggleColorSafeKits}
           onToggleCutInMode={toggleCutInMode}
+          onToggleManagerTips={toggleManagerTips}
           onGlossaryOpenChange={setGlobalGlossaryOpen}
           onOpenChange={open => {
             setGlobalSettingsOpen(open);
@@ -1733,6 +1799,33 @@ function GameApp() {
             reduceMotion={reduceMotion}
             onFocusChange={setActiveGuideFocus}
             onDone={completeAssistantGuideSequence}
+          />
+        ) : guideOverlayVisible && facilityComboReveal !== undefined ? (
+          <BertBriefingWalkOn
+            key={facilityComboReveal.id}
+            content={content.assistantGuide}
+            customMessage={{
+              title: `Secret combo · ${facilityComboReveal.pairLabel}`,
+              body: facilityComboReveal.discoveryCopy,
+            }}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={() => store.completeGuideMilestone(facilityComboReveal.milestone)}
+          />
+        ) : guideOverlayVisible && tripleSpeedIntroVisible ? (
+          <BertBriefingWalkOn
+            key="triple-speed-intro"
+            content={content.assistantGuide}
+            customMessage={{
+              title: '3× speed unlocked',
+              body: [
+                '3× match speed is now an option.',
+                'You’re a veteran coach now — you can manage the team even when the action moves this fast.',
+              ],
+            }}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={() => store.completeGuideMilestone('triple-speed-seen')}
           />
         ) : null}
         {!guideOverlayVisible && lowConditionMatchdayStarter !== null ? (
@@ -1811,8 +1904,14 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
   }, []);
 
   useEffect(() => {
-    setMenuTheme(previewBeat >= 2 ? 'event' : null);
+    setMenuTheme(null);
+    if (previewBeat === 1) {
+      playAwakeningLimp();
+      stopAwakeningAscension();
+      return undefined;
+    }
     if (previewBeat === 3) {
+      stopAwakeningLimp();
       playAwakeningAscension();
       return () => stopAwakeningAscension();
     }
@@ -1827,6 +1926,8 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
     role: 'FWD',
     powerId: 'SUPER_STRENGTH',
     powerName: 'SUPER STRENGTH',
+    powerDescription: content.powers.powers.find(power => power.id === 'SUPER_STRENGTH')?.description
+      ?? 'Charge a dangerous carrier, flatten them, and win the ball.',
     limpCopy: content.onboarding.limp.split('{name}').join('ZIP VELA'),
     triggerVisual: trigger.visual,
     triggerKicker: trigger.kicker,
@@ -1843,20 +1944,23 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
       : `NEXT SCENE · ${nextTriggerIndex + 1}/${content.onboarding.triggers.length}`,
   };
 
-  if (!fontsLoaded) return <LoadingScreen />;
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <AwakeningCutsceneScreen
-        key={trigger.id}
-        viewModel={viewModel}
-        initialBeat={1}
-        onBeatChange={setPreviewBeat}
-        onContinue={() => {
-          setPreviewBeat(1);
-          setTriggerIndex(nextTriggerIndex);
-        }}
-      />
+      {!fontsLoaded ? <LoadingScreen /> : (
+        <>
+          <StatusBar style="light" />
+          <AwakeningCutsceneScreen
+            key={trigger.id}
+            viewModel={viewModel}
+            initialBeat={1}
+            onBeatChange={setPreviewBeat}
+            onContinue={() => {
+              setPreviewBeat(1);
+              setTriggerIndex(nextTriggerIndex);
+            }}
+          />
+        </>
+      )}
     </SafeAreaProvider>
   );
 }

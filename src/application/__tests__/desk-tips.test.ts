@@ -66,6 +66,30 @@ describe("manager's tips", () => {
     });
   });
 
+  it('carries optional squad destinations from content onto actionable tips', () => {
+    const sortable = content.tips.tips.find(candidate => candidate.id === 'player-columns-are-sortable');
+    const drillTiers = content.tips.tips.find(candidate => candidate.id === 'drill-tiers-are-permanent');
+
+    expect(sortable).toMatchObject({
+      title: 'Player columns are sortable',
+      destination: 'overall-sort',
+    });
+    expect(drillTiers).toMatchObject({ destination: 'drill-shop' });
+
+    const base = deskClearCareer(20261208);
+    const home = homeViewModel({
+      ...base,
+      deskTip: { season: base.season, week: base.week, tipId: sortable!.id },
+    });
+    expect(home.notes).toContainEqual({
+      id: `tip:${sortable!.id}`,
+      kind: 'tip',
+      title: sortable!.title,
+      detail: sortable!.body,
+      destination: 'overall-sort',
+    });
+  });
+
   it('settles a week once, so re-reconciling cannot reroll it', () => {
     const settled = settleUntilTip(deskClearCareer(20261202));
 

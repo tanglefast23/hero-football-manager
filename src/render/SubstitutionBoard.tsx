@@ -61,10 +61,15 @@ export interface SubstitutionBoardProps {
   bench: readonly SubstitutionBenchPlayer[];
   substitutionsUsed: number;
   autoSubs: boolean;
-  onToggleAutoSubs: () => void;
   onCancel: () => void;
-  /** One entry per staged swap, ready for the engine's SUBSTITUTE input. */
-  onSave: (swaps: readonly { player: number; replacementId: string }[]) => void;
+  /**
+   * One entry per staged swap, ready for the engine's SUBSTITUTE input, plus
+   * the automatic-substitution preference staged in this visit.
+   */
+  onSave: (
+    swaps: readonly { player: number; replacementId: string }[],
+    autoSubs: boolean,
+  ) => void;
 }
 
 /**
@@ -78,22 +83,24 @@ export interface SubstitutionBoardProps {
  *
  * Dressed to docs/01, /08 and /11: the warm cream clubhouse canvas with ink
  * structure, Silkscreen at four sizes, blue carrying every neutral action, and
- * Track A lozenge buttons. Hero gold appears nowhere — docs/08 reserves it for
- * hero and power moments and nothing else. Anything unavailable says why, per the
- * same doc's interaction feedback contract.
+ * Track A lozenge buttons. Position-coloured names supplement the visible role
+ * text, while hero gold remains reserved for hero and power moments. Anything
+ * unavailable says why, per the same doc's interaction feedback contract.
  */
 export function SubstitutionBoard({
   field,
   bench,
   substitutionsUsed,
   autoSubs,
-  onToggleAutoSubs,
   onCancel,
   onSave,
 }: SubstitutionBoardProps) {
   const { width } = useWindowDimensions();
   const wide = width >= WIDE_BOARD_MIN_WIDTH;
   const [plan, setPlan] = useState<SubstitutionPlan>(EMPTY_SUBSTITUTION_PLAN);
+  // Auto belongs to the same draft as the swaps. Cancel therefore really
+  // cancels it; Save is the only path that changes the live match preference.
+  const [draftAutoSubs, setDraftAutoSubs] = useState(autoSubs);
   const [drag, setDrag] = useState<DragSource | null>(null);
   /**
    * The card chosen by a tap, waiting for its partner. Dragging is a pointer
@@ -120,8 +127,11 @@ export function SubstitutionBoard({
   const rows = useMemo(() => benchEntries(bench, field, plan), [bench, field, plan]);
   const staged = stagedCount(plan);
   const atLimit = atSubstitutionLimit(plan, substitutionsRemaining);
-  const saveable = canSave(plan);
-  const note = budgetNote(plan, substitutionsRemaining);
+  const autoChanged = draftAutoSubs !== autoSubs;
+  const saveable = canSave(plan) || autoChanged;
+  const note = autoChanged
+    ? `${budgetNote(plan, substitutionsRemaining)} Automatic substitutions will be turned ${draftAutoSubs ? 'on' : 'off'}.`
+    : budgetNote(plan, substitutionsRemaining);
 
   const starterAt = useCallback(
     (slot: number) => field.find(player => player.index === slot),
@@ -258,15 +268,16 @@ export function SubstitutionBoard({
       playManagementActionSfx('warning');
       return;
     }
-    onSave(planInputs(plan));
-  }, [onSave, plan, saveable]);
+    onSave(planInputs(plan), draftAutoSubs);
+  }, [draftAutoSubs, onSave, plan, saveable]);
 
   // No cue here: this runs from a SfxPressable, which already clicks. `commit`
   // below keeps its own because a drop is a gesture, not a press.
   const reset = useCallback(() => {
     setPicked(null);
     setPlan(EMPTY_SUBSTITUTION_PLAN);
-  }, []);
+    setDraftAutoSubs(autoSubs);
+  }, [autoSubs]);
 
   const dragProps = {
     onTap: resolveTap,
@@ -330,12 +341,12 @@ export function SubstitutionBoard({
             </Text>
             <SfxPressable
               accessibilityRole="switch"
-              accessibilityLabel={`Automatic substitutions ${autoSubs ? 'on' : 'off'}`}
-              accessibilityState={{ checked: autoSubs }}
-              onPress={onToggleAutoSubs}
-              style={[styles.autoSub, autoSubs ? styles.autoSubOn : null]}
+              accessibilityLabel={`Automatic substitutions ${draftAutoSubs ? 'on' : 'off'}. Save to apply`}
+              accessibilityState={{ checked: draftAutoSubs }}
+              onPress={() => setDraftAutoSubs(enabled => !enabled)}
+              style={[styles.autoSub, draftAutoSubs ? styles.autoSubOn : null]}
             >
-              <Text style={styles.autoSubText}>{autoSubs ? '☑ AUTO' : '☐ AUTO'}</Text>
+              <Text style={styles.autoSubText}>{draftAutoSubs ? '☑ AUTO' : '☐ AUTO'}</Text>
             </SfxPressable>
           </View>
         </View>
@@ -391,7 +402,13 @@ export function SubstitutionBoard({
                       style={styles.card}
                     >
                       <View style={styles.cardCopy}>
-                        <Text numberOfLines={1} style={incoming === undefined ? styles.name : styles.nameSwapped}>
+                        <Text
+                          numberOfLines={1}
+                          style={[
+                            incoming === undefined ? styles.name : styles.nameSwapped,
+                            POSITION_NAME_STYLE[incoming?.role ?? player.role],
+                          ]}
+                        >
                           {compactName(incoming?.name ?? player.name, !wide)}
                           <Text style={styles.role}> {incoming?.role ?? player.role}</Text>
                         </Text>
@@ -455,7 +472,10 @@ export function SubstitutionBoard({
                           style={styles.card}
                         >
                           <View style={styles.cardCopy}>
-                            <Text numberOfLines={1} style={styles.name}>
+                            <Text
+                              numberOfLines={1}
+                              style={[styles.name, POSITION_NAME_STYLE[entry.sub.role]]}
+                            >
                               {compactName(entry.sub.name, !wide)}
                               <Text style={styles.role}> {entry.sub.role}</Text>
                             </Text>
@@ -488,14 +508,20 @@ export function SubstitutionBoard({
                         dragEnabled={wide}
                         registerCard={registerCard}
                         {...dragProps}
-                        accessibilityLabel={`${entry.starter.name} is coming off`}
+                        accessibilityLabel={`${entry.starter.name}, ${entry.starter.role}, is coming off`}
                         accessibilityHint={picked?.id === id
                           ? 'Activate to put this player back'
                           : 'Activate, then activate their shirt on the field to keep them on'}
                         style={[styles.card, styles.cardDimmed]}
                       >
                         <View style={styles.cardCopy}>
-                          <Text numberOfLines={1} style={styles.nameDimmed}>
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              styles.nameDimmed,
+                              POSITION_NAME_STYLE[entry.starter.role],
+                            ]}
+                          >
                             {compactName(entry.starter.name, !wide)}
                             <Text style={styles.roleDimmed}> {entry.starter.role}</Text>
                           </Text>
@@ -527,15 +553,17 @@ export function SubstitutionBoard({
           />
           <LozengeButton
             label="RESET"
-            accessibilityLabel="Reset the board and put everyone back"
+            accessibilityLabel="Reset the board, put everyone back, and restore the automatic substitution setting"
             tone="grey"
-            disabled={staged === 0}
+            disabled={staged === 0 && !autoChanged}
             onPress={reset}
           />
           <LozengeButton
             label="SAVE"
             accessibilityLabel={saveable
-              ? `Save ${staged} substitution${staged === 1 ? '' : 's'}`
+              ? autoChanged
+                ? `Save automatic substitutions ${draftAutoSubs ? 'on' : 'off'}${staged > 0 ? ` and ${staged} substitution${staged === 1 ? '' : 's'}` : ''}`
+                : `Save ${staged} substitution${staged === 1 ? '' : 's'}`
               : 'Nothing to save yet'}
             tone="blue"
             wide
@@ -593,7 +621,14 @@ function LozengeButton({
       {({ pressed }) => (
         <>
           {pressed && !disabled ? null : <View style={[styles.gloss, gloss]} />}
-          <Text style={styles.buttonLabel}>{label}</Text>
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+            numberOfLines={1}
+            style={styles.buttonLabel}
+          >
+            {label}
+          </Text>
         </>
       )}
     </SfxPressable>
@@ -795,12 +830,19 @@ function compactName(name: string, compact: boolean): string {
 // docs/08 design language: 60% warm cream surfaces, 30% dark ink structure, and
 // an accent that means "hero" — so gold appears nowhere on this board. Blue
 // (#5a8fd6 face / #a3c8f0 gloss / #3f6fb5 lip) carries confirm and every neutral
-// action; grey is disabled and secondary; red-dark speaks only for the spent
-// limit. Type is Silkscreen at the doc's four sizes (13/15/18/24), two weights.
+// action; grey is disabled and secondary. Position names use the user's four
+// requested hues as a redundant cue, while the smaller role suffix stays neutral.
+// Type is Silkscreen at the doc's four sizes (13/15/18/24), two weights.
 const PIXEL_BOLD = 'Silkscreen_700Bold';
 const PIXEL = 'Silkscreen_400Regular';
 const INK = '#241f2e';
 const PAPER = '#f4f1ea';
+const POSITION_NAME_STYLE = {
+  FWD: { color: '#a83440' },
+  DEF: { color: '#3f6fb5' },
+  GK: { color: '#3f8a4a' },
+  MID: { color: '#5b3a91' },
+} as const satisfies Readonly<Record<SubstitutionFieldPlayer['role'], { color: string }>>;
 
 const styles = StyleSheet.create({
   overlay: {
@@ -977,9 +1019,9 @@ const styles = StyleSheet.create({
   /** Raised so the card being carried out of it clears the other column. */
   columnCarrying: { zIndex: 30 },
   cardCopy: { minWidth: 0 },
-  name: { color: INK, fontFamily: PIXEL_BOLD, fontSize: 15 },
-  nameSwapped: { color: '#3f6fb5', fontFamily: PIXEL_BOLD, fontSize: 15 },
-  nameDimmed: { color: '#6b6675', fontFamily: PIXEL_BOLD, fontSize: 15 },
+  name: { fontFamily: PIXEL_BOLD, fontSize: 15 },
+  nameSwapped: { fontFamily: PIXEL_BOLD, fontSize: 15 },
+  nameDimmed: { fontFamily: PIXEL_BOLD, fontSize: 15 },
   role: { color: '#6b6675', fontFamily: PIXEL_BOLD, fontSize: 13, letterSpacing: 0.5 },
   roleDimmed: { color: '#9a95a4', fontFamily: PIXEL_BOLD, fontSize: 13, letterSpacing: 0.5 },
   meta: { color: '#6b6675', fontFamily: PIXEL, fontSize: 13, marginTop: 4, letterSpacing: 0.6 },
@@ -1015,7 +1057,7 @@ const styles = StyleSheet.create({
   buttonLabel: {
     color: PAPER,
     fontFamily: PIXEL_BOLD,
-    fontSize: 15,
+    fontSize: 13,
     letterSpacing: 1,
     textShadowColor: INK,
     textShadowOffset: { width: 1, height: 1 },

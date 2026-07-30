@@ -18,6 +18,8 @@ export interface PixelPortraitProps {
   expression?: PortraitExpression;
   /** App-level reduced-motion preference; merged with the OS setting. */
   reduceMotion?: boolean;
+  /** Pixels per sprite pixel; compact lineup cards use a smaller whole scale. */
+  scale?: number;
 }
 
 /** Web portraits avoid one WebGL context per card, which can blank long rosters. */
@@ -27,7 +29,9 @@ export function PixelPortrait({
   lookId,
   expression = 'rest',
   reduceMotion = false,
+  scale = PIXEL_PORTRAIT_SCALE,
 }: PixelPortraitProps) {
+  const pixel = Math.max(1, Math.round(scale));
   const spriteKey = useMemo(
     () => portraitSpriteKey(playerId, role, expression, lookId),
     [expression, lookId, playerId, role],
@@ -84,8 +88,8 @@ export function PixelPortrait({
     <svg
       aria-hidden="true"
       focusable="false"
-      width={portraitSheet.cell.w * PIXEL_PORTRAIT_SCALE}
-      height={portraitSheet.cell.h * PIXEL_PORTRAIT_SCALE}
+      width={portraitSheet.cell.w * pixel}
+      height={portraitSheet.cell.h * pixel}
       viewBox={`0 0 ${portraitSheet.cell.w} ${portraitSheet.cell.h}`}
       shapeRendering="crispEdges"
       style={{ display: 'block' }}

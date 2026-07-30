@@ -22,6 +22,7 @@ describe('fail-soft app preferences', () => {
       highContrast: false,
       colorSafeKits: true,
       cutInMode: 'full',
+      managerTipsEnabled: true,
       seenPowerCutIns: [],
     });
     expect(saved).toEqual(result.preferences);

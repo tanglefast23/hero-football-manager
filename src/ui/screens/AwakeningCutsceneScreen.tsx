@@ -38,6 +38,7 @@ import { PIXEL_ART_SAMPLING } from '../../render/pixel-art-sampling';
 import { AwakeningTriggerCalloutIcon } from './awakening-trigger-visuals/AwakeningTriggerCalloutIcon';
 import { AwakeningTriggerVisual } from './awakening-trigger-visuals/AwakeningTriggerVisual';
 import { awakeningViewportHeight, nextAwakeningAction } from './awakening-progression';
+import { PowerAcquiredDemoModal } from '../PowerAcquiredDemoModal';
 
 const FOCUS_INDEX = 4;
 /** Where the huddle sits inside the visible strip, as a share of its height. */
@@ -93,6 +94,7 @@ export function AwakeningCutsceneScreen({
   const [beat, setBeat] = useState<1 | 2 | 3>(initialBeat);
   const [advanceReady, setAdvanceReady] = useState(false);
   const [triggerPropVisible, setTriggerPropVisible] = useState(false);
+  const [demoVisible, setDemoVisible] = useState(false);
   const cameraZoom = useSharedValue(1);
   // 0 -> 1 across the opening jolt; 1 means settled.
   const shakePhase = useSharedValue(1);
@@ -345,14 +347,14 @@ export function AwakeningCutsceneScreen({
     if (!advanceReady) return;
     const action = nextAwakeningAction(beat);
     if (action === 'continue') {
-      onContinue();
+      setDemoVisible(true);
       return;
     }
     setBeat(action);
   };
   const storyAccessibilityLabel = beat < 3
     ? `Awakening beat ${beat} of 3. Tap the story text to continue.`
-    : `${viewModel.playerName} awakened with ${viewModel.powerName}. ${viewModel.revealCopy} ${viewModel.licenseLabel}. ${viewModel.continueLabel}.`;
+    : `${viewModel.playerName} awakened with ${viewModel.powerName}. ${viewModel.powerDescription} ${viewModel.revealCopy} ${viewModel.licenseLabel}. Tap to watch a short demonstration.`;
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right', 'bottom']}>
@@ -436,18 +438,38 @@ export function AwakeningCutsceneScreen({
               {beat === 3 ? viewModel.playerName : current.title}
             </Text>
             {beat === 3 ? <Text style={styles.powerName}>{viewModel.powerName}</Text> : null}
+            {beat === 3 ? (
+              <View style={styles.powerDescriptionCard}>
+                <Text style={styles.powerDescriptionLabel}>WHAT IT DOES</Text>
+                <Text style={styles.powerDescription}>{viewModel.powerDescription}</Text>
+              </View>
+            ) : null}
             {copy !== null ? (
               <Text style={[styles.storyCopy, beat === 3 ? styles.heroCopy : null]}>{copy}</Text>
             ) : null}
             {beat === 3 ? (
               <View style={styles.heroFooter}>
                 <Text style={styles.license}>{viewModel.licenseLabel}</Text>
-                <Text style={styles.continueInline}>{viewModel.continueLabel} ›</Text>
+                <Text style={styles.continueInline}>WATCH IN MATCH ›</Text>
               </View>
             ) : null}
           </View>
         </Pressable>
       </View>
+      <PowerAcquiredDemoModal
+        visible={demoVisible}
+        playerName={viewModel.playerName}
+        powerId={viewModel.powerId}
+        powerName={viewModel.powerName}
+        description={viewModel.powerDescription}
+        continueLabel={viewModel.continueLabel}
+        reduceMotion={reduceMotion}
+        onClose={() => setDemoVisible(false)}
+        onContinue={() => {
+          setDemoVisible(false);
+          onContinue();
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -619,6 +641,9 @@ const styles = StyleSheet.create({
   heroInk: { color: '#241f2e' },
   beatTitle: { marginTop: 8, fontFamily: 'Silkscreen_700Bold', color: '#241f2e', fontSize: 24, lineHeight: 28, textTransform: 'uppercase' },
   powerName: { marginTop: 4, fontFamily: 'Silkscreen_700Bold', color: '#fff8df', fontSize: 17, textTransform: 'uppercase', letterSpacing: 1 },
+  powerDescriptionCard: { marginTop: 10, borderWidth: 2, borderColor: '#3f6fb5', backgroundColor: '#a3c8f0', paddingHorizontal: 10, paddingVertical: 8 },
+  powerDescriptionLabel: { color: '#3f6fb5', fontFamily: 'Silkscreen_700Bold', fontSize: 8, letterSpacing: 1.4 },
+  powerDescription: { marginTop: 4, color: '#241f2e', fontSize: 14, lineHeight: 19 },
   storyCopy: { marginTop: 12, color: '#3a3350', fontSize: 15, lineHeight: 22 },
   heroCopy: { color: '#241f2e' },
   heroFooter: { marginTop: 14, paddingTop: 12, borderTopWidth: 2, borderTopColor: '#241f2e55', flexDirection: 'row', justifyContent: 'space-between' },

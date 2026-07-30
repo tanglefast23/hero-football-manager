@@ -67,6 +67,12 @@ describe('non-match music ownership', () => {
     expect(menuThemeForScreen('create-player', 1)).toBe('management');
   });
 
+  it('leaves awakening music to its dedicated pre-rise and ascension cues', () => {
+    expect(menuThemeForScreen('awakening', 1)).toBeNull();
+    expect(menuThemeForScreen('awakening', 2)).toBeNull();
+    expect(menuThemeForScreen('awakening', 3)).toBeNull();
+  });
+
   it('hands off exclusively from opening to management to event music', () => {
     setMenuTheme('opening');
 

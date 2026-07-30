@@ -1,4 +1,4 @@
-import { MATCH_SPEEDS, nextMatchSpeed } from '../match-speed';
+import { availableMatchSpeeds, MATCH_SPEEDS, nextMatchSpeed } from '../match-speed';
 
 describe('watched-match playback speed', () => {
   it('cycles through 1x, 2x, and 3x', () => {
@@ -9,6 +9,13 @@ describe('watched-match playback speed', () => {
 
   it('offers the same three speeds as direct-select chips', () => {
     expect(MATCH_SPEEDS).toEqual([1, 2, 3]);
-    expect(MATCH_SPEEDS.map(nextMatchSpeed)).toEqual([2, 3, 1]);
+    expect(MATCH_SPEEDS.map(speed => nextMatchSpeed(speed))).toEqual([2, 3, 1]);
+  });
+
+  it('keeps 3x hidden until the veteran-speed unlock', () => {
+    expect(availableMatchSpeeds(2)).toEqual([1, 2]);
+    expect(nextMatchSpeed(1, 2)).toBe(2);
+    expect(nextMatchSpeed(2, 2)).toBe(1);
+    expect(availableMatchSpeeds(3)).toEqual([1, 2, 3]);
   });
 });

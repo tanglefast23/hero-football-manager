@@ -519,10 +519,13 @@ export const GlossaryCatalogSchema = z.strictObject({
  * A manager's tip: one non-obvious rule, stated once. The body is bounded so a
  * tip stays a card on a quiet desk rather than becoming a second glossary.
  */
+const ManagerTipDestinationSchema = z.enum(['drill-shop', 'overall-sort']);
 const ManagerTipSchema = z.strictObject({
   id: idSchema,
   title: displayNameSchema,
   body: z.string().trim().min(1).max(400),
+  /** Only tips with somewhere useful to demonstrate the rule declare a route. */
+  destination: ManagerTipDestinationSchema.optional(),
 });
 
 export const ManagerTipCatalogSchema = z.strictObject({
@@ -633,6 +636,8 @@ export type TrainingCatalog = z.infer<typeof TrainingCatalogSchema>;
 export type GameEvent = z.infer<typeof GameEventSchema>;
 export type EventCatalog = z.infer<typeof EventCatalogSchema>;
 export type GlossaryCatalog = z.infer<typeof GlossaryCatalogSchema>;
+export type ManagerTipDestination = z.infer<typeof ManagerTipDestinationSchema>;
+export type ManagerTipCatalog = z.infer<typeof ManagerTipCatalogSchema>;
 export type LaunchContent = z.infer<typeof LaunchContentSchema>;
 
 function addDuplicateIssues(

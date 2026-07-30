@@ -152,6 +152,7 @@ export function awakeningCutsceneViewModel(
     lookId: player.lookId,
     powerId: pending.power,
     powerName: power.name,
+    powerDescription: power.description,
     limpCopy: fillName(content.onboarding.limp),
     triggerVisual: trigger.visual,
     triggerKicker: trigger.kicker,
@@ -530,7 +531,18 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
       };
     }),
     ...(pending.resolvedChoiceId ? { resolvedChoiceId: pending.resolvedChoiceId } : {}),
-    ...(pending.outcomeText ? { outcomeTitle: 'The choice is made', outcomeText: pending.outcomeText } : {}),
+    ...(pending.outcomeText ? {
+      resolvedRisky: pending.resolvedRisky === true,
+      resolvedSuccess: pending.resolvedSuccess === true,
+      outcomeTitle: pending.resolvedRisky === true
+        ? pending.resolvedSuccess === true
+          ? resolvedOutcome?.successHeadline ?? 'The risk paid off'
+          : 'The gamble missed'
+        : 'Decision complete',
+      outcomeText: pending.outcomeText,
+      outcomeRewards: resolvedOutcome === undefined ? [] : eventRewardItems(resolvedOutcome.effects),
+      ...(pending.resolvedNextEventId === undefined ? {} : { outcomeHasFollowUp: true as const }),
+    } : {}),
     ...(pending.resolvedRisky === true && pending.resolvedSuccess === true && resolvedOutcome !== undefined
       ? {
           successCutscene: {
@@ -931,7 +943,13 @@ function deskTipNote(state: GameState): ManagerNoteViewModel | undefined {
   if (tipId === undefined) return undefined;
   const tip = LAUNCH_CONTENT.tips.tips.find(candidate => candidate.id === tipId);
   if (tip === undefined) return undefined;
-  return { id: `tip:${tip.id}`, kind: 'tip', title: tip.title, detail: tip.body };
+  return {
+    id: `tip:${tip.id}`,
+    kind: 'tip',
+    title: tip.title,
+    detail: tip.body,
+    ...(tip.destination === undefined ? {} : { destination: tip.destination }),
+  };
 }
 
 function homeAssistantInboxPlan(state: GameState) {
@@ -1790,22 +1808,54 @@ function describeEventEffects(
 function eventRewardLabels(
   effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
 ): string[] {
-  const rewards: string[] = [];
+  return eventRewardItems(effects).map(reward => reward.label);
+}
+
+function eventRewardItems(
+  effects: GameEvent['choices'][number]['outcomes'][number]['effects'],
+): NonNullable<StoryEventViewModel['outcomeRewards']> {
+  const rewards: NonNullable<StoryEventViewModel['outcomeRewards']>[number][] = [];
   const money = effects.reduce((sum, effect) => effect.type === 'money' ? sum + effect.amount : sum, 0);
   const morale = effects.reduce((sum, effect) => effect.type === 'morale' ? sum + effect.amount : sum, 0);
   const fans = effects.reduce((sum, effect) => effect.type === 'fans' ? sum + effect.amount : sum, 0);
   const trainingPoints = effects.reduce((sum, effect) => effect.type === 'tp' ? sum + effect.amount : sum, 0);
-  if (money !== 0) rewards.push(formatMoney(money, true));
-  if (morale !== 0) rewards.push(`${morale > 0 ? '+' : ''}${morale} squad morale`);
-  if (fans !== 0) rewards.push(`${fans > 0 ? '+' : ''}${fans} fans`);
-  if (trainingPoints !== 0) rewards.push(`${trainingPoints > 0 ? '+' : ''}${trainingPoints} TP`);
+  if (money !== 0) rewards.push({ label: formatMoney(money, true), kind: 'money', positive: money > 0 });
+  if (morale !== 0) rewards.push({
+    label: `${morale > 0 ? '+' : ''}${morale} squad morale`,
+    kind: 'morale',
+    positive: morale > 0,
+  });
+  if (fans !== 0) rewards.push({
+    label: `${fans > 0 ? '+' : ''}${fans} fans`,
+    kind: 'fans',
+    positive: fans > 0,
+  });
+  if (trainingPoints !== 0) rewards.push({
+    label: `${trainingPoints > 0 ? '+' : ''}${trainingPoints} TP`,
+    kind: 'training-points',
+    positive: trainingPoints > 0,
+  });
   for (const effect of effects) {
     if (effect.type === 'statDelta' && effect.amount !== 0) {
-      rewards.push(`${effect.amount > 0 ? '+' : ''}${effect.amount} ${effect.attribute.toUpperCase()}`);
+      rewards.push({
+        label: `${effect.amount > 0 ? '+' : ''}${effect.amount} ${effect.attribute.toUpperCase()}`,
+        kind: 'stat',
+        positive: effect.amount > 0,
+      });
     }
     if (effect.type === 'injury') {
-      rewards.push(`${effect.weeks} week${effect.weeks === 1 ? '' : 's'} out injured`);
+      rewards.push({
+        label: `${effect.weeks} week${effect.weeks === 1 ? '' : 's'} out injured`,
+        kind: 'injury',
+        positive: false,
+      });
     }
+  }
+  if (
+    rewards.length === 0
+    && effects.some(effect => effect.type === 'flag' && effect.value)
+  ) {
+    rewards.push({ label: 'Club story secured', kind: 'story', positive: true });
   }
   return rewards;
 }

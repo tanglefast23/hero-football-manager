@@ -1,6 +1,10 @@
 import type { MarketNegotiationViewModel } from './market-models';
 import type { M2LeagueFixtureViewModel } from './m2-league-models';
-import type { AssistantGuideDestination, AssistantGuideSequenceId } from '../content';
+import type {
+  AssistantGuideDestination,
+  AssistantGuideSequenceId,
+  ManagerTipDestination,
+} from '../content';
 import type { PotentialGrade } from '../game/archetype-caps';
 import type { PowerId } from '../sim/types';
 
@@ -43,6 +47,8 @@ export interface ManagerNoteViewModel {
   detail: string;
   /** Tips are a find on a quiet week; notes are the calendar. Read differently. */
   kind?: 'note' | 'tip';
+  /** Optional demonstration reached by the tip's Take Me There button. */
+  destination?: ManagerTipDestination;
 }
 
 export interface LeagueSnippetViewModel {
@@ -512,6 +518,21 @@ export interface StoryEventChoiceViewModel {
   disabledReason?: string;
 }
 
+export type StoryEventRewardKind =
+  | 'money'
+  | 'morale'
+  | 'fans'
+  | 'training-points'
+  | 'stat'
+  | 'injury'
+  | 'story';
+
+export interface StoryEventRewardViewModel {
+  label: string;
+  kind: StoryEventRewardKind;
+  positive: boolean;
+}
+
 export interface StoryEventViewModel {
   id: string;
   artKey: string;
@@ -524,8 +545,12 @@ export interface StoryEventViewModel {
   playerSelectionRequired: boolean;
   choices: readonly StoryEventChoiceViewModel[];
   resolvedChoiceId?: string;
+  resolvedRisky?: boolean;
+  resolvedSuccess?: boolean;
   outcomeTitle?: string;
   outcomeText?: string;
+  outcomeRewards?: readonly StoryEventRewardViewModel[];
+  outcomeHasFollowUp?: true;
   successCutscene?: {
     artKey: string;
     headline: string;
@@ -542,6 +567,8 @@ export interface AwakeningCutsceneViewModel {
   lookId?: string;
   powerId: PowerId;
   powerName: string;
+  /** Plain-language mechanics copy shown before the playable effect demo. */
+  powerDescription: string;
   limpCopy: string;
   triggerVisual:
     | 'caterpillar'

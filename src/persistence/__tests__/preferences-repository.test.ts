@@ -23,6 +23,7 @@ describe('app preferences repository', () => {
       masterVolume: 0.5 as const,
       reduceMotion: true,
       hudSide: 'right' as const,
+      managerTipsEnabled: false,
       seenPowerCutIns: ['SUPER_SPEED', 'WEB_TRAP', 'GUST'],
     };
     await repository.save(preferences);
@@ -47,7 +48,7 @@ describe('app preferences repository', () => {
       autoPowers: true,
       masterVolume: 0.75,
     });
-    expect(database.preferencesRow?.schema_version).toBe(4);
+    expect(database.preferencesRow?.schema_version).toBe(5);
   });
 
   it('migrates schema-2 preferences with M4 accessibility defaults', async () => {
@@ -71,12 +72,16 @@ describe('app preferences repository', () => {
       reduceMotion: true,
       hudSide: 'right',
     });
-    expect(database.preferencesRow?.schema_version).toBe(4);
+    expect(database.preferencesRow?.schema_version).toBe(5);
   });
 
   it('migrates schema-3 M4 preferences with an empty persistent cut-in history', async () => {
     const database = new FakePersistenceDatabase();
-    const { seenPowerCutIns: _seenPowerCutIns, ...m4Preferences } = DEFAULT_APP_PREFERENCES;
+    const {
+      seenPowerCutIns: _seenPowerCutIns,
+      managerTipsEnabled: _managerTipsEnabled,
+      ...m4Preferences
+    } = DEFAULT_APP_PREFERENCES;
     database.preferencesRow = {
       schema_version: 3,
       preferences_json: JSON.stringify({ ...m4Preferences, cutInMode: 'banner' }),
@@ -87,7 +92,20 @@ describe('app preferences repository', () => {
       ...DEFAULT_APP_PREFERENCES,
       cutInMode: 'banner',
     });
-    expect(database.preferencesRow?.schema_version).toBe(4);
+    expect(database.preferencesRow?.schema_version).toBe(5);
+  });
+
+  it('migrates schema-4 preferences with manager tips enabled', async () => {
+    const database = new FakePersistenceDatabase();
+    const { managerTipsEnabled: _managerTipsEnabled, ...schema4Preferences } = DEFAULT_APP_PREFERENCES;
+    database.preferencesRow = {
+      schema_version: 4,
+      preferences_json: JSON.stringify(schema4Preferences),
+    };
+    const repository = await createPreferencesRepository(database);
+
+    await expect(repository.load()).resolves.toEqual(DEFAULT_APP_PREFERENCES);
+    expect(database.preferencesRow?.schema_version).toBe(5);
   });
 
   it('cycles one preset without introducing duplicates', () => {

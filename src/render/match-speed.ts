@@ -6,9 +6,16 @@ export type MatchSpeed = 1 | 2 | 3;
  */
 export const MATCH_SPEEDS: readonly MatchSpeed[] = [1, 2, 3];
 
-export function nextMatchSpeed(current: MatchSpeed): MatchSpeed {
+export function availableMatchSpeeds(maximum: MatchSpeed): readonly MatchSpeed[] {
+  return MATCH_SPEEDS.filter(speed => speed <= maximum);
+}
+
+export function nextMatchSpeed(
+  current: MatchSpeed,
+  maximum: MatchSpeed = 3,
+): MatchSpeed {
   if (current === 1) return 2;
-  if (current === 2) return 3;
+  if (current === 2) return maximum >= 3 ? 3 : 1;
   return 1;
 }
 
@@ -19,16 +26,7 @@ export function nextMatchSpeed(current: MatchSpeed): MatchSpeed {
  */
 export const MIN_MATCH_PLAYBACK_RATE = 0.1;
 
-/**
- * How fast the match plays in wall-clock terms: the player's chosen speed
- * multiplied by a presentation-only time dilation (1 = normal, <1 = slow-mo).
- *
- * This is purely a pacing number. The engine is a fixed-step 10Hz integer-tick
- * machine and tick() takes no delta, so the renderer's accumulator only decides
- * *when* each tick happens — never what it computes. A dilated rate therefore
- * produces a byte-identical tick sequence and identical RNG draws, which is why
- * slow-mo needs no ENGINE_VERSION bump.
- */
-export function matchPlaybackRate(speed: MatchSpeed, timeDilation: number): number {
-  return Math.max(MIN_MATCH_PLAYBACK_RATE, speed * timeDilation);
+/** The player's chosen wall-clock match speed. */
+export function matchPlaybackRate(speed: MatchSpeed): number {
+  return speed;
 }

@@ -39,10 +39,16 @@ export type AssistantGuideMilestone =
   | 'first-week-advanced'
   /** Bert explains the condition gamble once per career, then stays out of it. */
   | 'condition-warning-seen'
-  /** Bert explains the first below-70 starter on matchday once per career. */
+  /** Bert explains the first Below Peak starter on matchday once per career. */
   | 'match-condition-warning-seen'
   /** The Quick Train lesson: tap an attribute to train it. Shown once. */
-  | 'quick-train-seen';
+  | 'quick-train-seen'
+  /** One concise discovery line per secret facility pairing. */
+  | 'facility-combo-gym-dorm-seen'
+  | 'facility-combo-fan-shop-stadium-seen'
+  | 'facility-combo-medical-training-pitch-seen'
+  /** Bert introduces the veteran-only 3× watched-match speed once. */
+  | 'triple-speed-seen';
 
 export type AssistantInboxProductAlertPriority = 'urgent' | 'normal';
 
@@ -86,6 +92,10 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'condition-warning-seen': 'guide:bert:condition-warning-seen',
   'match-condition-warning-seen': 'guide:bert:match-condition-warning-seen',
   'quick-train-seen': 'guide:bert:quick-train-seen',
+  'facility-combo-gym-dorm-seen': 'guide:bert:facility-combo-gym-dorm-seen',
+  'facility-combo-fan-shop-stadium-seen': 'guide:bert:facility-combo-fan-shop-stadium-seen',
+  'facility-combo-medical-training-pitch-seen': 'guide:bert:facility-combo-medical-training-pitch-seen',
+  'triple-speed-seen': 'guide:bert:triple-speed-seen',
 };
 
 const MILESTONE_BY_SEQUENCE: Readonly<Partial<Record<AssistantGuideSequenceId, AssistantGuideMilestone>>> = {

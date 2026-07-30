@@ -123,8 +123,6 @@ export function dueAssistantInboxGuideSequences(
     && buildings.some(building => building.level < maxCareerFacilityLevel(state));
   if (!operationalTrainingPitch && !trainingPitchUnderConstruction) {
     due.push('facility-placement');
-  } else if (operationalTrainingPitch && (grid?.discoveredAdjacencies.length ?? 0) > 0) {
-    due.push('facility-adjacency');
   }
 
   if (scoutingUnlocked) {

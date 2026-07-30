@@ -14,6 +14,7 @@ import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import type { ManagerTipDestination } from '../../content';
 
 const HORIZONTAL_MARQUEE_BULBS = Array.from({ length: 12 }, (_, index) => index);
 const VERTICAL_MARQUEE_BULBS = Array.from({ length: 7 }, (_, index) => index);
@@ -81,6 +82,7 @@ export interface ClubHomeScreenProps {
   viewModel: HomeViewModel;
   onOpenFixture: (fixtureId: string) => void;
   onOpenAlert: (alertId: string) => void;
+  onOpenManagerTipDestination?: (destination: ManagerTipDestination) => void;
   onOpenLeague: () => void;
   onProtectBoardCandidate: (playerId: string) => void;
   guideAlertId?: string;
@@ -95,6 +97,8 @@ export interface ClubHomeScreenProps {
    */
   glowGuidedAlert?: boolean;
   guideBoard?: boolean;
+  /** Second-career players can hide optional tips without hiding calendar notes. */
+  showManagerTips?: boolean;
   textScale?: TextScale;
 }
 
@@ -102,12 +106,14 @@ export function ClubHomeScreen({
   viewModel,
   onOpenFixture,
   onOpenAlert,
+  onOpenManagerTipDestination,
   onOpenLeague,
   onProtectBoardCandidate,
   guideAlertId,
   lockOtherAlerts = false,
   glowGuidedAlert = false,
   guideBoard = false,
+  showManagerTips = true,
   textScale = 1,
 }: ClubHomeScreenProps) {
   const desktopContent = useDesktopContentStyle();
@@ -115,7 +121,9 @@ export function ClubHomeScreen({
   const fixtureIsThisWeek = viewModel.isCurrentGameWeek;
   const layoutMode = useLayoutMode();
   // While the tutorial is pointing at one card, nothing else belongs on the desk.
-  const visibleNotes = lockOtherAlerts ? [] : viewModel.notes;
+  const visibleNotes = lockOtherAlerts
+    ? []
+    : viewModel.notes.filter(note => showManagerTips || note.kind !== 'tip');
 
   const sections: FlowSection[] = [
     {
@@ -223,25 +231,45 @@ export function ClubHomeScreen({
                 </Pressable>
               );
             })}
-            {/* Calendar notes carry their whole message, so they are read, not
-                opened — no chevron, no press target, no line clamp. They stay
-                out of the tutorial's way while it is pointing at one card. */}
+            {/* Calendar notes carry their whole message. A small subset of tips
+                also offers a data-declared demonstration; ordinary notes and
+                tips remain read-only cards. */}
             {visibleNotes.map(note => (
               <View
                 key={note.id}
-                accessibilityRole="summary"
-                accessibilityLabel={note.kind === 'tip'
-                  ? `Manager's tip. ${note.title}. ${note.detail}`
-                  : `${note.title}. ${note.detail}`}
                 className={`border-2 border-b-4 p-3 ${note.kind === 'tip'
                   ? 'border-gold-dark bg-gold-light'
                   : 'border-grey-dark bg-paper-dark'}`}
               >
-                {note.kind === 'tip' ? (
-                  <PixelText className="mb-1 text-xs uppercase text-gold-dark">Manager's tip</PixelText>
+                <View
+                  accessible
+                  accessibilityRole="summary"
+                  accessibilityLabel={note.kind === 'tip'
+                    ? `Manager's tip. ${note.title}. ${note.detail}`
+                    : `${note.title}. ${note.detail}`}
+                >
+                  {note.kind === 'tip' ? (
+                    <PixelText className="mb-1 text-xs uppercase text-gold-dark">Manager's tip</PixelText>
+                  ) : null}
+                  <PixelText className="text-base uppercase text-ink">{note.title}</PixelText>
+                  <Text className="mt-1 text-ink/70" style={scaledBody(textScale, 14, 18)}>{note.detail}</Text>
+                </View>
+                {note.destination !== undefined && onOpenManagerTipDestination !== undefined ? (
+                  <View className="mt-3">
+                    <ActionButton
+                      label="Take me there  ▸"
+                      accessibilityLabel={`Take me to ${note.destination === 'drill-shop' ? 'the Drill Shop' : 'the sortable player columns'}`}
+                      onPress={() => {
+                        if (note.destination !== undefined) {
+                          onOpenManagerTipDestination(note.destination);
+                        }
+                      }}
+                      variant="action"
+                      compact
+                      pressSfx="click"
+                    />
+                  </View>
                 ) : null}
-                <PixelText className="text-base uppercase text-ink">{note.title}</PixelText>
-                <Text className="mt-1 text-ink/70" style={scaledBody(textScale, 14, 18)}>{note.detail}</Text>
               </View>
             ))}
           </View>

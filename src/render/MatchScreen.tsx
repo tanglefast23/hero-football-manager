@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { Atlas, Canvas, Circle, Fill, Group, Rect, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
-import Animated, {
+import {
   Easing as ReanimatedEasing,
-  useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withSequence,
@@ -65,8 +64,6 @@ import {
 import {
   appendNewestFour,
   hasPowerJuiceExtras,
-  POWER_JUICE_CARD_SLAM_MS,
-  POWER_JUICE_CARD_SLAM_PX,
   POWER_JUICE_END_MS,
   POWER_JUICE_FLASH_MS,
   POWER_JUICE_FLASH_OPACITY,
@@ -78,12 +75,14 @@ import {
   powerCutInGroupPolicy,
   powerCutInPresentation,
   powerJuice,
-  powerJuiceDilation,
   powerJuiceHeroTint,
   powerOverlayPath,
+  POWER_TAKEOVER_POST_POWER_MS,
+  powerTakeoverShouldRemain,
   type PowerJuice,
   type PowerJuiceHeroTint,
 } from './power-cut-in';
+import { PowerTitleTakeover } from './PowerTitleTakeover';
 import { appendBannerNewestFour, type MatchBannerSubject } from './match-banners';
 import { CupTitleCard } from './CupTitleCard';
 import { cupTitleCard, type CupRoundLabel } from './cup-title-card';
@@ -93,6 +92,7 @@ import { livePowerEffectActors, superSpeedAfterimageActors } from './live-power-
 import {
   advancePowerMatchShowcaseReady,
   initializePowerMatchShowcase,
+  POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS,
 } from './power-match-showcase';
 import {
   AUTO_SUBSTITUTION_TICKS,
@@ -239,6 +239,10 @@ type PowerCutInEntry = {
   power: PowerId;
   playerName: string;
   skippable: boolean;
+  /** Present for real activations; the static QA group has no lifecycle owner. */
+  player?: number;
+  /** Wall-clock start of the one-second post-power hold. */
+  outroStartedAt?: number;
 };
 
 type MatchPowerEffectTarget =
@@ -334,9 +338,12 @@ export function MatchScreen({
   colorSafeKits = true,
   pausedExternally = false,
   firstMatchTutorial = false,
+  maximumSpeed = 3,
   cupRoundLabel,
   powerCutInQaEntries,
   powerMatchQa,
+  presentationOnly = false,
+  onPowerShowcaseComplete,
   onOpenSettings,
   onDone,
 }: {
@@ -354,12 +361,18 @@ export function MatchScreen({
   colorSafeKits?: boolean;
   pausedExternally?: boolean;
   firstMatchTutorial?: boolean;
+  /** Seasons 1–2 cap at 2×; the veteran 3× option unlocks in Season 3. */
+  maximumSpeed?: MatchSpeed;
   /** Set only for a Global Cup tie; it opens the match on the title card. */
   cupRoundLabel?: CupRoundLabel;
   /** Dev-only held fixture for visual QA. Ignored by production bundles. */
   powerCutInQaEntries?: readonly PowerCutInQaEntry[];
   /** Dev-only live match scenario. It still fires through the real engine. */
   powerMatchQa?: PowerMatchQaConfig;
+  /** Hide coaching controls and centre the pitch for an automatic match clip. */
+  presentationOnly?: boolean;
+  /** Acquisition replay only: freezes 1s after the staged power has ended. */
+  onPowerShowcaseComplete?: () => void;
   onOpenSettings: () => void;
   onDone: (state: MatchState) => void;
 }) {
@@ -382,8 +395,10 @@ export function MatchScreen({
   // left control rail, so the pitch reserves no dock height and instead gives
   // up the rail's width. Same aspect-ratio math either way; only `scale`
   // changes, so every sprite/atlas transform follows automatically.
-  const railLayout = layoutModeForWidth(width) === 'twoColumn';
-  const reservedChromeHeight = railLayout
+  const railLayout = !presentationOnly && layoutModeForWidth(width) === 'twoColumn';
+  const reservedChromeHeight = presentationOnly
+    ? 0
+    : railLayout
     ? MATCH_RAIL_TOP_INSET + MATCH_RAIL_GUTTER
     : (compactHeight ? 226 : 286);
   const availablePitchHeight = Math.max(280, height - reservedChromeHeight);
@@ -484,10 +499,8 @@ export function MatchScreen({
   // frame against whether any Fire Torch hero is ablaze (see the RAF loop).
   const fireLoopOnRef = useRef(false);
   // The activation beat sheet currently playing (power-cut-in.ts owns the
-  // timings). Presentation only: it paces and dresses ticks, never changes them.
+  // timings). Presentation only: it dresses ticks, never changes them.
   const juiceRef = useRef<ActivationJuice | null>(null);
-  // Wall-clock time dilation the frame accumulator is multiplying by. 1 = normal.
-  const dilationRef = useRef(1);
   // Last camera triple actually pushed to the UI thread, so an idle match never
   // writes shared values it has already written.
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
@@ -529,6 +542,7 @@ export function MatchScreen({
   const [powerCutIns, setPowerCutIns] = useState<PowerCutInEntry[]>(() => (
     powerCutInQaActive ? [...powerCutInQaEntries] : []
   ));
+  const powerShowcaseCompletedRef = useRef(false);
   const powerCutInPolicy = powerCutInGroupPolicy(powerCutIns);
   /** Which player's body is mid white/gold activation flash, and in which half. */
   const [heroTint, setHeroTint] = useState<{ player: number; tint: 'white' | 'gold' } | null>(null);
@@ -562,13 +576,6 @@ export function MatchScreen({
   const activationFlash = useSharedValue(0);
   const speedLineSlot = useSharedValue(-1);
   const speedLineLife = useSharedValue(0);
-  // Rests at 1 (card fully in place) so a Reduce Motion match — and the dev QA
-  // fixture, which seeds cut-ins without ever firing a power — still shows it.
-  const cardSlam = useSharedValue(1);
-  const cardSlamStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: -POWER_JUICE_CARD_SLAM_PX * (1 - cardSlam.value) }],
-    opacity: cardSlam.value,
-  }));
   const matchVisualIds = useMemo(() => [
     ...match.players.map((player, index) => (
       visualIdForMatchPlayer(index, player.def.id, player.def.role, player.def.lookId)
@@ -658,7 +665,7 @@ export function MatchScreen({
   const setPausedBoth = (value: boolean) => {
     pausedRef.current = value;
     if (value) pauseAtlasFrame();
-    else resumeAtlasFrame(matchPlaybackRate(speedRef.current, dilationRef.current));
+    else resumeAtlasFrame(matchPlaybackRate(speedRef.current));
     setPaused(value);
   };
 
@@ -673,14 +680,60 @@ export function MatchScreen({
   }, [pausedExternally]);
 
   useEffect(() => {
-    // A paused match is a still inspection frame; keep its activation label
-    // visible until play resumes instead of expiring against wall-clock time.
-    if (powerCutIns.length === 0 || powerCutInQaActive || paused) return undefined;
+    if (powerCutInQaActive || powerCutIns.length === 0) return;
+    const now = performance.now();
+    setPowerCutIns(current => {
+      let changed = false;
+      const next = current.map(entry => {
+        if (entry.outroStartedAt !== undefined || entry.player === undefined) return entry;
+        const player = match.players[entry.player];
+        const stillActive = player?.def.power === entry.power
+          && player.powerState.kind === 'active';
+        if (stillActive) return entry;
+        changed = true;
+        return { ...entry, outroStartedAt: now };
+      });
+      return changed ? next : current;
+    });
+  }, [hud.tick, match, powerCutInQaActive]);
+
+  useEffect(() => {
+    if (powerCutInQaActive) return undefined;
+    const endingEntries = powerCutIns.filter(entry => entry.outroStartedAt !== undefined);
+    if (endingEntries.length === 0) return undefined;
+    const nextDeadline = Math.min(...endingEntries.map(
+      entry => entry.outroStartedAt! + POWER_TAKEOVER_POST_POWER_MS,
+    ));
     const timer = setTimeout(() => {
-      setPowerCutIns([]);
-    }, powerCutInPolicy.durationMs);
+      const now = performance.now();
+      setPowerCutIns(current => current.filter(entry => (
+        entry.outroStartedAt === undefined
+        || powerTakeoverShouldRemain(now - entry.outroStartedAt)
+      )));
+    }, Math.max(0, Math.ceil(nextDeadline - performance.now())));
     return () => clearTimeout(timer);
-  }, [paused, powerCutInQaActive, powerCutIns.map(entry => entry.id).join('|')]);
+  }, [powerCutInQaActive, powerCutIns]);
+
+  useEffect(() => {
+    if (
+      powerMatchQa === undefined
+      || onPowerShowcaseComplete === undefined
+      || powerShowcaseCompletedRef.current
+    ) return undefined;
+    const endedPower = powerCutIns.find(entry => (
+      entry.power === powerMatchQa.power && entry.outroStartedAt !== undefined
+    ));
+    if (endedPower?.outroStartedAt === undefined) return undefined;
+    const freezeAt = endedPower.outroStartedAt + POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS;
+    const timer = setTimeout(() => {
+      if (powerShowcaseCompletedRef.current) return;
+      powerShowcaseCompletedRef.current = true;
+      automaticPauseReasonsRef.current.add('showcase');
+      syncPauseReasons();
+      onPowerShowcaseComplete();
+    }, Math.max(0, Math.ceil(freezeAt - performance.now())));
+    return () => clearTimeout(timer);
+  }, [onPowerShowcaseComplete, powerCutIns, powerMatchQa]);
 
   // Audio lifecycle — own effect, separate from the RAF loop below: starts
   // the match theme on mount, tears everything down on unmount. No pause
@@ -727,20 +780,14 @@ export function MatchScreen({
 
     // ---- Activation juice ------------------------------------------------
     // Beat sheet and timings live in power-cut-in.ts; this is only the wiring.
-    // Reduce Motion opts out of every part of it — no dilation, no camera move,
-    // no flash, no lines, no body flash.
+    // Reduce Motion opts out of every part of it — no camera move, flash,
+    // lines, or body flash.
 
     const resetJuice = () => {
       juiceRef.current = null;
       speedLineSlot.value = -1;
       speedLineLife.value = 0;
       activationFlash.value = 0;
-      if (dilationRef.current !== 1) {
-        dilationRef.current = 1;
-        if (!pausedRef.current) {
-          resumeAtlasFrame(matchPlaybackRate(speedRef.current, 1));
-        }
-      }
       if (cameraRef.current.zoom !== 1 || cameraRef.current.x !== 0 || cameraRef.current.y !== 0) {
         cameraRef.current.x = 0;
         cameraRef.current.y = 0;
@@ -766,12 +813,6 @@ export function MatchScreen({
         focusY: nextRef.current!.players[player].y * pitchScale,
         juice,
       };
-      // The name card slams in for every activation; the rest is per-power.
-      cardSlam.value = 0;
-      cardSlam.value = withTiming(1, {
-        duration: POWER_JUICE_CARD_SLAM_MS,
-        easing: ReanimatedEasing.out(ReanimatedEasing.cubic),
-      });
       if (juice.flash) {
         activationFlash.value = withSequence(
           withTiming(POWER_JUICE_FLASH_OPACITY, { duration: 30, easing: ReanimatedEasing.linear }),
@@ -799,15 +840,6 @@ export function MatchScreen({
       if (elapsed >= POWER_JUICE_END_MS) {
         resetJuice();
         return;
-      }
-
-      // Time dilation, re-issued only when the step changes (four times total).
-      const dilation = powerJuiceDilation(elapsed);
-      if (dilation !== dilationRef.current) {
-        dilationRef.current = dilation;
-        if (!pausedRef.current) {
-          resumeAtlasFrame(matchPlaybackRate(speedRef.current, dilation));
-        }
       }
 
       // Camera: an integer magnification step plus a device-pixel-quantised
@@ -862,12 +894,8 @@ export function MatchScreen({
       // Ledger item 7 — capped catch-up: never simulate more than
       // MAX_CATCHUP_TICKS in one frame, however long the JS thread stalled.
       //
-      // The activation dilation multiplies in here and nowhere else. tick()
-      // takes no delta, so a fractional rate stretches the wall-clock gap
-      // between ticks while the tick sequence — and every RNG draw inside it —
-      // stays byte-identical. That is why slow-mo cannot move a replay.
       acc = Math.min(
-        acc + (now - last) * matchPlaybackRate(speedRef.current, dilationRef.current),
+        acc + (now - last) * matchPlaybackRate(speedRef.current),
         TICK_MS * MAX_CATCHUP_TICKS,
       );
       last = now;
@@ -1068,6 +1096,7 @@ export function MatchScreen({
               power: e.power,
               playerName: firingPlayer.def.name,
               skippable,
+              player: e.player,
             }));
           } else {
             bannerRef.current = appendNewestFour(bannerRef.current, {
@@ -1278,8 +1307,8 @@ export function MatchScreen({
           }
         }
       }
-      // Every frame, not every tick: the beat sheet runs on wall clock so the
-      // camera and the dilation steps stay smooth through a slowed tick.
+      // Every frame, not every tick: the beat sheet runs on wall clock so its
+      // brief camera and tint effects stay smooth at every selected match speed.
       advanceJuice(now);
       if (
         advanced
@@ -1364,7 +1393,7 @@ export function MatchScreen({
         publishAtlasFrame(
           nextRef.current!,
           s.tick,
-          matchPlaybackRate(speedRef.current, dilationRef.current),
+          matchPlaybackRate(speedRef.current),
           actionRef.current,
           snap || pauseAfterPublish || s.phase === 'fulltime',
         );
@@ -1404,8 +1433,8 @@ export function MatchScreen({
     return () => {
       cancelAnimationFrame(raf);
       sub.remove();
-      // Never leave a dilated clock or an off-centre camera behind for the next
-      // loop (this effect restarts when Reduce Motion is toggled mid-match).
+      // Never leave an off-centre camera behind for the next loop (this effect
+      // restarts when Reduce Motion is toggled mid-match).
       resetJuice();
     };
   }, [
@@ -1850,6 +1879,25 @@ export function MatchScreen({
     || substitutionsUsed >= MAX_SUBSTITUTIONS
     || bench.length === 0;
   const coachingDisabled = match.phase === 'fulltime';
+  const primaryPowerCutIn = powerCutIns[powerCutIns.length - 1] ?? null;
+  const dismissPowerTakeover = () => {
+    if (!powerCutInPolicy.skippable) return;
+    playUiClickSfx();
+    setPowerCutIns([]);
+  };
+  const powerTakeover = primaryPowerCutIn === null ? undefined : {
+    power: primaryPowerCutIn.power,
+    playerName: primaryPowerCutIn.playerName,
+    additionalPowerCount: powerCutIns.filter(
+      entry => entry !== primaryPowerCutIn && entry.outroStartedAt === undefined,
+    ).length,
+    teamColor: teamKitColor(controlledTeam, colorSafeKits),
+    ending: primaryPowerCutIn.outroStartedAt !== undefined,
+    reduceMotion,
+    skippable: powerCutInPolicy.skippable,
+    accessibilityLabel: powerCutInAccessibilityLabel(powerCutIns),
+    onDismiss: dismissPowerTakeover,
+  };
   const guideSwapButton = firstMatchTutorialStep === 'tired-swap-cue';
   const mostTiredStarter = activeOnFieldIndices.length === 0
     ? null
@@ -1911,11 +1959,6 @@ export function MatchScreen({
     automaticPauseReasonsRef.current.delete('title-card');
     syncPauseReasons();
   };
-  const toggleAutoSubs = () => {
-    const enabled = !autoSubs;
-    setAutoSubs(enabled);
-    autoSubsRef.current = enabled;
-  };
   /**
    * Commits the whole board at once: one recorded SUBSTITUTE input per staged
    * pair, all on the same tick. The engine validates each one and the board
@@ -1924,7 +1967,10 @@ export function MatchScreen({
    */
   const commitSubstitutions = (
     swaps: readonly { player: number; replacementId: string }[],
+    nextAutoSubs: boolean,
   ) => {
+    setAutoSubs(nextAutoSubs);
+    autoSubsRef.current = nextAutoSubs;
     for (const swap of swaps) {
       try {
         queueInput(match, {
@@ -1951,9 +1997,10 @@ export function MatchScreen({
   // The tap cue stays at each call site: the dock plays it explicitly, and the
   // rail's SfxPressable plays it for every chip.
   const applySpeed = (next: MatchSpeed) => {
-    speedRef.current = next;
-    if (!pausedRef.current) resumeAtlasFrame(matchPlaybackRate(next, dilationRef.current));
-    setSpeed(next);
+    const allowed = next <= maximumSpeed ? next : maximumSpeed;
+    speedRef.current = allowed;
+    if (!pausedRef.current) resumeAtlasFrame(matchPlaybackRate(allowed));
+    setSpeed(allowed);
   };
   const toggleUserPause = () => {
     automaticPauseReasonsRef.current.delete('background');
@@ -2033,7 +2080,7 @@ export function MatchScreen({
       onTouchEnd={dismissFirstMatchCueAfterPress}
     >
       {/* Desktop replaces this bar with the rail scoreboard card. */}
-      {railLayout ? null : (
+      {railLayout || presentationOnly ? null : (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={paused ? 'Resume match' : 'Pause match'}
@@ -2064,7 +2111,7 @@ export function MatchScreen({
               hitSlop={10}
               onPress={() => {
                 playUiClickSfx();
-                applySpeed(nextMatchSpeed(speed));
+                applySpeed(nextMatchSpeed(speed, maximumSpeed));
               }}
             >
               <Text style={styles.ctrlText}>×{speed}</Text>
@@ -2073,7 +2120,13 @@ export function MatchScreen({
           </View>
         </Pressable>
       )}
-      <View style={railLayout ? styles.desktopBody : null}>
+      <View style={
+        railLayout
+          ? styles.desktopBody
+          : presentationOnly
+            ? styles.presentationBody
+            : null
+      }>
         {railLayout ? (
           <MatchControlRail
             scoreLine={`${homeCode} ${hud.score[0]} – ${hud.score[1]} ${awayCode}`}
@@ -2081,6 +2134,7 @@ export function MatchScreen({
             scoreFlash={hud.scoreFlash}
             paused={paused}
             speed={speed}
+            maximumSpeed={maximumSpeed}
             onSelectSpeed={applySpeed}
             onTogglePause={toggleUserPause}
             onOpenSettings={onOpenSettings}
@@ -2100,6 +2154,7 @@ export function MatchScreen({
             energyUse={displayedEnergyUse}
             onSelectEnergyUse={selectEnergyUse}
             heroTiles={railHeroTiles}
+            powerTakeover={powerTakeover}
           />
         ) : null}
         <View style={railLayout ? styles.desktopPitchPane : null}>
@@ -2305,7 +2360,7 @@ export function MatchScreen({
                 opacity={activationFlash}
               />
             </Canvas>
-            {carrier && powerCutIns.length === 0 ? (
+            {carrier ? (
               <View
                 pointerEvents="none"
                 style={[
@@ -2338,56 +2393,6 @@ export function MatchScreen({
                 ) : null}
               </View>
             ) : null}
-            {powerCutIns.length > 0 ? (
-              <Pressable
-                accessibilityRole={powerCutInPolicy.skippable ? 'button' : 'text'}
-                accessibilityLabel={powerCutInAccessibilityLabel(powerCutIns)}
-                disabled={!powerCutInPolicy.skippable}
-                style={[
-                  styles.powerActivationStack,
-                  hudSide === 'left'
-                    ? styles.powerActivationStackLeft
-                    : styles.powerActivationStackRight,
-                ]}
-                // Only fires when the policy allows the skip, so the cue always
-                // means the tap landed. Explicit rather than via SfxPressable:
-                // the cut-in is cinematic and must not take a hover lift.
-                onPress={() => {
-                  playUiClickSfx();
-                  setPowerCutIns([]);
-                }}
-              >
-                {/* The name card slams in from the edge on every activation.
-                    Reduce Motion never starts the animation, so cardSlam holds
-                    at its resting 1 and the card simply appears. */}
-                <Animated.View
-                  style={[styles.powerActivationSlam, reduceMotion ? null : cardSlamStyle]}
-                >
-                  {powerCutIns.slice(-2).map((entry) => {
-                    const presentation = powerCutInPresentation(entry.power);
-                    return (
-                      <View key={entry.id} style={styles.powerActivationCard}>
-                        <View style={styles.powerActivationHighlight} />
-                        <Text style={[styles.powerActivationGlyph, { color: presentation.color }]}>
-                          {presentation.glyph}
-                        </Text>
-                        <View style={styles.powerActivationCopy}>
-                          <Text numberOfLines={1} style={styles.powerActivationPlayer}>
-                            {entry.playerName}
-                          </Text>
-                          <Text
-                            numberOfLines={1}
-                            style={[styles.powerActivationName, { color: presentation.color }]}
-                          >
-                            {presentation.name}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </Animated.View>
-              </Pressable>
-            ) : null}
           </View>
         </View>
       </View>
@@ -2413,7 +2418,15 @@ export function MatchScreen({
         </View>
       ) : null}
       {/* Desktop moves every dock control into the left rail. */}
-      {railLayout ? null : (
+      {presentationOnly ? null : railLayout ? null : powerTakeover !== undefined ? (
+        <View style={[styles.coachingDock, compactHeight ? styles.coachingDockCompact : null]}>
+          <PowerTitleTakeover
+            {...powerTakeover}
+            layout="mobile"
+            compact={compactHeight}
+          />
+        </View>
+      ) : (
         <View style={[styles.coachingDock, compactHeight ? styles.coachingDockCompact : null]}>
           <View style={styles.coachBar}>
             <Pressable
@@ -2564,7 +2577,6 @@ export function MatchScreen({
           bench={bench}
           substitutionsUsed={substitutionsUsed}
           autoSubs={autoSubs}
-          onToggleAutoSubs={toggleAutoSubs}
           onCancel={closeSwap}
           onSave={commitSubstitutions}
         />

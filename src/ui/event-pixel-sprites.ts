@@ -4,6 +4,24 @@
  * reviewed sprite sheets; edit deliberately and keep every row 16 chars.
  */
 export const EVENT_SPRITE_ROWS: Readonly<Record<string, readonly string[]>> = {
+  supporters: [
+    '................',
+    '..KKK....KKK....',
+    '.KhhhK..KHHHK...',
+    '.KhWhK..KHWHK...',
+    '.KhhhK..KHHHK...',
+    '..KKK....KKK....',
+    '.KRRRK..KBBBK...',
+    'KRRRRRKKBBBBBK..',
+    'KRRWWRKKBBWWBK..',
+    'KRRRRRKKBBBBBK..',
+    '.KrrrK..KbbbK...',
+    '..K.K....K.K....',
+    '.KR.K....KB.K...',
+    '.KK......KK.....',
+    '................',
+    '................',
+  ],
   ball: [
     '................',
     '.....KKKKKK.....',

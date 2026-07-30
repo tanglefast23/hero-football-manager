@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { playEventSuccessSfx } from '../../render/management-sfx';
+import { playEventSuccessSfx, playManagementActionSfx } from '../../render/management-sfx';
 import { playManagementHaptic } from '../../render/haptics';
 import { ActionButton, PaperPanel, StatusChip } from '../components/Scorecard';
 import { EventArtwork } from '../components/EventArtwork';
@@ -11,6 +11,7 @@ import type { StoryEventChoiceViewModel, StoryEventViewModel } from '../models';
 import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { PixelText } from '../components/PixelText';
+import { EventPixelConfetti, EventRewardArt } from '../components/EventRewardArt';
 
 export interface StoryEventScreenProps {
   viewModel: StoryEventViewModel;
@@ -25,7 +26,7 @@ export interface StoryEventScreenProps {
 
 function choiceClass(choice: StoryEventChoiceViewModel): string {
   if (choice.disabled) return 'border-ink/20 bg-white opacity-40';
-  return choice.tone === 'risky' ? 'border-stamp bg-red-100' : 'border-ink/30 bg-white';
+  return choice.tone === 'risky' ? 'border-stamp bg-red-light' : 'border-ink/30 bg-white';
 }
 
 export function StoryEventScreen({
@@ -42,17 +43,27 @@ export function StoryEventScreen({
   const needsPlayer = viewModel.playerSelectionRequired && !viewModel.selectedPlayer;
   const reveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const rewardReveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  const playedSuccessKey = useRef<string | null>(null);
-  const successKey = viewModel.successCutscene === undefined
+  const playedOutcomeKey = useRef<string | null>(null);
+  const outcomeKey = !resolved
     ? null
     : `${viewModel.id}:${viewModel.resolvedChoiceId ?? 'resolved'}`;
+  const riskySuccess = viewModel.resolvedRisky === true && viewModel.resolvedSuccess === true;
+  const riskyFailure = viewModel.resolvedRisky === true && viewModel.resolvedSuccess !== true;
 
   useEffect(() => {
-    if (successKey === null) return undefined;
-    if (playedSuccessKey.current !== successKey) {
-      playedSuccessKey.current = successKey;
-      playEventSuccessSfx();
-      playManagementHaptic('success');
+    if (outcomeKey === null) return undefined;
+    if (playedOutcomeKey.current !== outcomeKey) {
+      playedOutcomeKey.current = outcomeKey;
+      if (riskySuccess) {
+        playEventSuccessSfx();
+        playManagementHaptic('success');
+      } else if (riskyFailure) {
+        playManagementActionSfx('warning');
+        playManagementHaptic('warning');
+      } else {
+        playManagementActionSfx('card');
+        playManagementHaptic('select');
+      }
     }
     if (reduceMotion) {
       reveal.setValue(1);
@@ -80,54 +91,106 @@ export function StoryEventScreen({
     ]);
     animation.start();
     return () => animation.stop();
-  }, [reduceMotion, reveal, rewardReveal, successKey]);
+  }, [outcomeKey, reduceMotion, reveal, rewardReveal, riskyFailure, riskySuccess]);
 
-  if (viewModel.successCutscene !== undefined) {
-    const cutscene = viewModel.successCutscene;
+  if (resolved) {
+    const rewards = viewModel.outcomeRewards ?? [];
+    const headline = riskySuccess
+      ? viewModel.successCutscene?.headline ?? viewModel.outcomeTitle ?? 'The risk paid off'
+      : riskyFailure
+        ? 'No bonus this time'
+        : viewModel.outcomeTitle ?? 'Decision complete';
+    const kicker = riskySuccess
+      ? 'RISK PAID OFF'
+      : riskyFailure
+        ? 'RISK MISSED'
+        : 'GUARANTEED RESULT';
+    const panelClass = riskySuccess
+      ? 'w-full max-w-[600px] self-center border-[3px] border-b-[7px] border-gold bg-ink/95 px-5 pb-5 pt-4'
+      : riskyFailure
+        ? 'w-full max-w-[600px] self-center border-[3px] border-b-[7px] border-red-dark bg-paper px-5 pb-5 pt-4'
+        : 'w-full max-w-[600px] self-center border-[3px] border-b-[7px] border-blue-dark bg-paper px-5 pb-5 pt-4';
     return (
       <SafeAreaView className="flex-1 bg-pitch-dark" edges={['top', 'left', 'right', 'bottom']}>
         <EventArtwork
-          artKey={cutscene.artKey}
+          artKey={riskySuccess ? `${viewModel.artKey}-success` : viewModel.artKey}
           category={viewModel.category}
-          success
+          success={riskySuccess}
           reduceMotion={reduceMotion}
-          className="flex-1 justify-end"
+          className="flex-1"
         >
+          {riskySuccess ? <EventPixelConfetti progress={rewardReveal} reduceMotion={reduceMotion} /> : null}
           <View className="absolute right-4 top-4"><SettingsButton onPress={onOpenSettings} variant="match" /></View>
-          <Animated.View
-            className="w-full max-w-[560px] self-center border-[3px] border-gold bg-ink/95 px-5 pb-5 pt-4"
-            style={{
-              opacity: reveal,
-              transform: [{ translateY: reveal.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }],
-            }}
+          <ScrollView
+            bounces={false}
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', padding: 16, paddingTop: 72 }}
+            showsVerticalScrollIndicator={false}
           >
-            <Text className="font-pixel text-xs uppercase tracking-[3px] text-gold">Risky success</Text>
-            <Text className="mt-2 font-pixel text-2xl uppercase leading-8 text-paper">{cutscene.headline}</Text>
-            <Text className="mt-3 text-paper/80" style={scaledBody(textScale)}>{viewModel.outcomeText}</Text>
             <Animated.View
-              className="mt-4"
+              className={panelClass}
               style={{
-                opacity: rewardReveal,
-                transform: [
-                  { translateY: rewardReveal.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
-                  { scale: rewardReveal.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) },
-                ],
+                opacity: reveal,
+                transform: [{
+                  translateY: reveal.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [28, 0],
+                    extrapolate: 'clamp',
+                  }),
+                }],
               }}
             >
-              <View className="flex-row flex-wrap gap-2">
-                {cutscene.rewards.length === 0
-                  ? <StatusChip label="Club story secured" tone="success" />
-                  : cutscene.rewards.map(reward => <StatusChip key={reward} label={reward} tone="success" />)}
+              <Text className={riskySuccess
+                ? 'font-pixel text-xs uppercase tracking-[3px] text-gold'
+                : riskyFailure
+                  ? 'font-pixel text-xs uppercase tracking-[3px] text-red-dark'
+                  : 'font-pixel text-xs uppercase tracking-[3px] text-blue-dark'}>
+                {kicker}
+              </Text>
+              <Text className={riskySuccess
+                ? 'mt-2 font-pixel text-2xl uppercase leading-8 text-paper'
+                : 'mt-2 font-pixel text-2xl uppercase leading-8 text-ink'}>
+                {headline}
+              </Text>
+              <Text
+                className={riskySuccess ? 'mt-3 text-paper/80' : 'mt-3 text-ink/75'}
+                style={scaledBody(textScale)}
+              >
+                {viewModel.outcomeText}
+              </Text>
+
+              {riskyFailure ? (
+                <View className="mt-4 border-2 border-red-dark bg-red-light px-4 py-3">
+                  <PixelText className="text-center text-lg uppercase text-red-dark">
+                    No bonus earned
+                  </PixelText>
+                </View>
+              ) : null}
+
+              {rewards.length > 0 ? (
+                <View className="mt-4 flex-row flex-wrap gap-3">
+                  {rewards.map((reward, index) => (
+                    <EventRewardArt
+                      key={`${reward.kind}:${reward.label}`}
+                      reward={reward}
+                      index={index}
+                      celebrate={riskySuccess}
+                      reduceMotion={reduceMotion}
+                    />
+                  ))}
+                </View>
+              ) : null}
+
+              <View className="mt-5">
+                <ActionButton
+                  label={viewModel.outcomeHasFollowUp ? 'Continue the story  ▸' : 'Return to the office  ▸'}
+                  accessibilityLabel={viewModel.outcomeHasFollowUp
+                    ? 'Continue to the follow-up story event'
+                    : 'Continue after the story event result'}
+                  onPress={onContinue}
+                />
               </View>
             </Animated.View>
-            <View className="mt-5">
-              <ActionButton
-                label={cutscene.hasFollowUp ? 'Continue the story  ▸' : 'Return to the office  ▸'}
-                accessibilityLabel={cutscene.hasFollowUp ? 'Continue to the follow-up story event' : 'Continue after the successful story event'}
-                onPress={onContinue}
-              />
-            </View>
-          </Animated.View>
+          </ScrollView>
         </EventArtwork>
       </SafeAreaView>
     );
@@ -190,8 +253,7 @@ export function StoryEventScreen({
             </View>
           ) : null}
 
-          {!resolved ? (
-            <View className="mt-6 gap-3">
+          <View className="mt-6 gap-3">
               <Text className="font-pixel text-xs uppercase tracking-[2px] text-gold-light">Your call</Text>
               {viewModel.choices.map((choice, index) => {
                 const disabled = Boolean(choice.disabled || needsPlayer);
@@ -218,15 +280,8 @@ export function StoryEventScreen({
               })}
               {needsPlayer ? <PixelText className="text-center text-sm uppercase tracking-wide text-red-light">Choose a player before making this call</PixelText> : null}
             </View>
-          ) : (
-            <PaperPanel kicker="Incident outcome" title={viewModel.outcomeTitle ?? 'Decision resolved'} stamp="Resolved" className="mt-6 bg-signal">
-              <Text className="text-base leading-6 text-ink">{viewModel.outcomeText}</Text>
-            </PaperPanel>
-          )}
         </View>
       </ScrollView>
-
-      {resolved ? <View className="border-t-[6px] border-white bg-ink/25 p-3"><ActionButton label="Return to the office  ▸" accessibilityLabel="Continue after the story event" onPress={onContinue} /></View> : null}
     </SafeAreaView>
   );
 }

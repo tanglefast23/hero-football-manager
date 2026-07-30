@@ -12,5 +12,8 @@ describe('web pixel portraits', () => {
     expect(source).toContain('<path');
     expect(source).not.toContain('@shopify/react-native-skia');
     expect(source).not.toContain('<Canvas');
+    expect(source).toContain('scale = PIXEL_PORTRAIT_SCALE');
+    expect(source).toContain('width={portraitSheet.cell.w * pixel}');
+    expect(source).toContain('height={portraitSheet.cell.h * pixel}');
   });
 });

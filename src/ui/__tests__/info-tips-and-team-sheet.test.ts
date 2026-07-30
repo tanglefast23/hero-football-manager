@@ -57,17 +57,23 @@ describe('column and personality explanations', () => {
 });
 
 describe('starting eleven team sheet', () => {
-  it('shows a face and a whole name where there is room for them', () => {
+  it('uses portraits and wider flexible name cells on phone and desktop', () => {
     const screen = read('src/ui/screens/FixtureMatchDayScreen.tsx');
+    const teamSheet = screen.match(/const teamSheet = \(([\s\S]*?)\n  const bench =/)?.[1] ?? '';
 
     expect(screen).toContain('const PITCH_PORTRAIT_SCALE = 3;');
-    expect(screen).toContain('scale={PITCH_PORTRAIT_SCALE}');
-    // Wide cells are twice as wide and spell the name out over two lines; the
-    // phone grid still clips, because 56px cannot hold "Dario Flint".
-    expect(screen).toContain("numberOfLines={wide ? 2 : 1}");
-    expect(screen).toContain("wide ? 'w-28 items-center border-2 border-transparent p-2' : 'w-16 items-center border-2 border-transparent p-1'");
-    // No portrait on the phone: eleven Skia canvases are not worth the frame.
-    expect(screen).toContain('{wide ? (');
+    expect(screen).toContain('const PITCH_PORTRAIT_COMPACT_SCALE = 2;');
+    expect(teamSheet).toContain(
+      'scale={wide ? PITCH_PORTRAIT_SCALE : PITCH_PORTRAIT_COMPACT_SCALE}',
+    );
+    expect(teamSheet).toContain('numberOfLines={2}');
+    expect(teamSheet).toContain(
+      "'min-w-0 max-w-24 flex-1 items-center border-2 border-transparent px-0.5 py-1'",
+    );
+    expect(teamSheet).toContain("'border-[3px] border-ink bg-pitch px-1 py-3'");
+    // Keep the shirt in the spoken accessibility label, but remove its visible
+    // number tile now that the portrait owns that space.
+    expect(teamSheet).not.toMatch(/<Text[^>]*>\s*\{player\.shirtNumber\}\s*<\/Text>/);
   });
 
   it('scales the portrait on whole pixels only', () => {
@@ -93,7 +99,8 @@ describe('quick train', () => {
     // Both entry points propose; neither spends on the first tap.
     expect(modal).toContain('setPendingConfirm(option);');
     expect(modal).toContain('const chosen = pendingConfirm;');
-    expect(modal).toContain('onTrainDrill(playerId, chosen.pathId);');
+    expect(modal).toContain('startTrainingBatch(chosen, repeatCount);');
+    expect(modal).toContain('onTrainDrill(playerId, option.pathId);');
     // Quick Train opens straight onto that drill's confirmation.
     expect(modal).toContain('if (quickTrainPathId === undefined) return;');
   });

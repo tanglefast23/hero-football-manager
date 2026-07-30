@@ -14,9 +14,9 @@ export interface PowerEffectPreviewProps {
 }
 
 /**
- * Production preview for the developer art-review route. It renders the exact
- * same PowerEffectScene used over the live match, rather than separate mock
- * artwork. Every replay is deterministic and stops after its final beat.
+ * Developer art-review route. It renders the exact same PowerEffectScene used
+ * over the live match, rather than separate mock artwork. Every replay is
+ * deterministic and stops after its final beat.
  */
 export function PowerEffectPreview({
   power,

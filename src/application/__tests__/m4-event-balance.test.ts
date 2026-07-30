@@ -37,8 +37,19 @@ describe('M4 risky-success cutscene rewards', () => {
       { outcomeIndex: 0, risky: true, success: true },
     );
 
-    expect(storyEventViewModel(resolved, withDevelopment).successCutscene?.rewards)
+    const viewModel = storyEventViewModel(resolved, withDevelopment);
+    expect(viewModel.successCutscene?.rewards)
       .toEqual(['+10 squad morale', '+100 fans', '+2 TEC', '2 weeks out injured']);
+    expect(viewModel).toMatchObject({
+      resolvedRisky: true,
+      resolvedSuccess: true,
+      outcomeRewards: [
+        { label: '+10 squad morale', kind: 'morale', positive: true },
+        { label: '+100 fans', kind: 'fans', positive: true },
+        { label: '+2 TEC', kind: 'stat', positive: true },
+        { label: '2 weeks out injured', kind: 'injury', positive: false },
+      ],
+    });
   });
 });
 
