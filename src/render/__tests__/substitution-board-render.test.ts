@@ -124,6 +124,18 @@ describe('substitution board layout', () => {
     expect(source).toContain('dragEnabled: boolean;');
   });
 
+  it('guides the exact tired starter without changing either input model', () => {
+    const source = board();
+
+    expect(source).toContain('guideFieldPlayer?: number;');
+    expect(source).toContain('const guideCardId: CardId | null = guideFieldPlayer === undefined');
+    expect(source).toContain('const guided = id === guideCardId;');
+    expect(source).toContain("guideLabel={guided ? (wide ? 'Click and drag' : 'Tap') : undefined}");
+    expect(source).toContain('onPress={dragEnabled ? undefined : tap}');
+    expect(source).toContain('onStartShouldSetPanResponder: () => latest.current.dragEnabled');
+    expect(source).toContain('if (source.id === guideCardId || target === guideCardId)');
+  });
+
   it('keeps the title and substitution count on one row on a phone', () => {
     const source = board();
 

@@ -19,7 +19,7 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(appSource).not.toMatch(/import\s*\{[^}]*\bAlert\b[^}]*\}\s*from\s*['"]react-native['"]/);
   });
 
-  it('removes coach-card cues and dismisses retained global guidance on the next tap', () => {
+  it('removes coach-card cues while retaining action-specific guidance until its target is used', () => {
     const market = readFileSync(join(process.cwd(), 'src/ui/screens/MarketScreen.tsx'), 'utf8');
     const shell = readFileSync(join(process.cwd(), 'src/ui/ManagementShell.tsx'), 'utf8');
     const legacy = readFileSync(join(process.cwd(), 'src/ui/screens/ClubLegacyScreen.tsx'), 'utf8');
@@ -34,7 +34,8 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(appSource).toContain('lockOtherAlerts={assistantObjective?.target === \'training-ground-alert\'}');
     expect(appSource).toContain('onDismissGuidance={dismissVisibleTips}');
     expect(legacy).toContain('onTouchEnd={dismissGuidanceAfterPress}');
-    expect(match).toContain('onTouchEnd={dismissFirstMatchCueAfterPress}');
+    expect(match).not.toContain('dismissFirstMatchCueAfterPress');
+    expect(match).toContain("firstMatchTutorialStepRef.current = 'tired-player-cue';");
     expect(match).toContain("automaticPauseReasonsRef.current.delete('tutorial');");
   });
 

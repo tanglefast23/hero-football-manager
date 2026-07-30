@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Atlas, Canvas, Circle, Fill, Group, Rect, Skia, type SkColor, type SkImage, type SkRect, type SkRSXform } from '@shopify/react-native-skia';
 import {
   Easing as ReanimatedEasing,
@@ -105,7 +105,11 @@ import { playHapticForEvent } from './haptics';
 import { FormationDiagram } from '../ui/components/FormationDiagram';
 import { SettingsButton } from '../ui/SettingsOverlay';
 import { TutorialTapCue } from '../ui/TutorialTapCue';
-import { TUTORIAL_TAP_CUE_WIDTH } from '../ui/tutorial-cue-position';
+import { TutorialSpotlight } from '../ui/TutorialSpotlight';
+import {
+  tutorialCuePositionAbove,
+  type TutorialAnchorLayout,
+} from '../ui/tutorial-cue-position';
 import { playUiClickSfx } from './management-sfx';
 import { FirstMatchCoachingModal } from './FirstMatchCoachingModal';
 import {
@@ -428,6 +432,8 @@ export function MatchScreen({
     : 0;
   const homeCode = scoreCode(home);
   const awayCode = scoreCode(away);
+  const homeKitColor = teamKitColor(0, colorSafeKits);
+  const awayKitColor = teamKitColor(1, colorSafeKits);
 
   // The RAF loop below drives the activation camera, and its effect deps
   // deliberately exclude layout (a resize must not restart the match clock), so
@@ -530,14 +536,45 @@ export function MatchScreen({
   const [paused, setPaused] = useState(titleCard !== null);
   const [swapOpen, setSwapOpen] = useState(false);
   const [firstMatchTutorialStep, setFirstMatchTutorialStep] = useState<
-    'tired-modal' | 'tired-swap-cue' | null
+    'tired-modal' | 'tired-swap-cue' | 'tired-player-cue' | null
   >(null);
   const firstMatchTutorialStepRef = useRef<
-    'tired-modal' | 'tired-swap-cue' | null
+    'tired-modal' | 'tired-swap-cue' | 'tired-player-cue' | null
   >(null);
+  /** Stable identity shared by the card, Swap cue, and substitution-board cue. */
+  const firstMatchTiredPlayerRef = useRef<number | null>(null);
   const firstMatchPromptsSeenRef = useRef<FirstMatchCoachingPromptsSeen>({
     tiredPlayer: false,
   });
+  const guideSwapButton = firstMatchTutorialStep === 'tired-swap-cue';
+  const swapGuideTargetRef = useRef<View>(null);
+  const swapGuideMeasureFrameRef = useRef<number | null>(null);
+  const [swapGuideAnchor, setSwapGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
+  const scheduleSwapGuideMeasurement = useCallback(() => {
+    if (!guideSwapButton) return;
+    if (swapGuideMeasureFrameRef.current !== null) {
+      cancelAnimationFrame(swapGuideMeasureFrameRef.current);
+    }
+    swapGuideMeasureFrameRef.current = requestAnimationFrame(() => {
+      swapGuideMeasureFrameRef.current = null;
+      swapGuideTargetRef.current?.measureInWindow((x, y, targetWidth, targetHeight) => {
+        if (targetWidth <= 0 || targetHeight <= 0) return;
+        setSwapGuideAnchor({ x, y, width: targetWidth, height: targetHeight });
+      });
+    });
+  }, [guideSwapButton]);
+  useEffect(() => {
+    if (!guideSwapButton) {
+      setSwapGuideAnchor(null);
+      return;
+    }
+    scheduleSwapGuideMeasurement();
+  }, [guideSwapButton, height, railLayout, scheduleSwapGuideMeasurement, width]);
+  useEffect(() => () => {
+    if (swapGuideMeasureFrameRef.current !== null) {
+      cancelAnimationFrame(swapGuideMeasureFrameRef.current);
+    }
+  }, []);
   const powerCutInQaActive = __DEV__ && powerCutInQaEntries !== undefined;
   const [powerCutIns, setPowerCutIns] = useState<PowerCutInEntry[]>(() => (
     powerCutInQaActive ? [...powerCutInQaEntries] : []
@@ -1323,6 +1360,7 @@ export function MatchScreen({
         if (prompt !== null) {
           const step = 'tired-modal';
           firstMatchPromptsSeenRef.current = { tiredPlayer: true };
+          firstMatchTiredPlayerRef.current = prompt.player;
           firstMatchTutorialStepRef.current = step;
           setFirstMatchTutorialStep(step);
           automaticPauseReasonsRef.current.add('tutorial');
@@ -1898,12 +1936,9 @@ export function MatchScreen({
     accessibilityLabel: powerCutInAccessibilityLabel(powerCutIns),
     onDismiss: dismissPowerTakeover,
   };
-  const guideSwapButton = firstMatchTutorialStep === 'tired-swap-cue';
-  const mostTiredStarter = activeOnFieldIndices.length === 0
+  const tutorialTiredStarter = firstMatchTiredPlayerRef.current === null
     ? null
-    : activeOnFieldIndices
-        .map((index) => match.players[index])
-        .reduce((worst, player) => (player.condition < worst.condition ? player : worst));
+    : playerAt(match, firstMatchTiredPlayerRef.current) ?? null;
   const swapSecondary = autoSubs
     ? `AUTO · ${substitutionsUsed}/${MAX_SUBSTITUTIONS}`
     : tiredCount > 0
@@ -1919,38 +1954,28 @@ export function MatchScreen({
     setSwapOpen(true);
     automaticPauseReasonsRef.current.add('swap');
     if (firstMatchTutorialStepRef.current === 'tired-swap-cue') {
-      firstMatchTutorialStepRef.current = null;
-      setFirstMatchTutorialStep(null);
-      automaticPauseReasonsRef.current.delete('tutorial');
+      firstMatchTutorialStepRef.current = 'tired-player-cue';
+      setFirstMatchTutorialStep('tired-player-cue');
     }
     syncPauseReasons();
   };
-  const dismissFirstMatchCueFrameRef = useRef<number | null>(null);
-  const dismissFirstMatchCueAfterPress = () => {
-    if (
-      firstMatchTutorialStepRef.current !== 'tired-swap-cue'
-      || dismissFirstMatchCueFrameRef.current !== null
-    ) return;
-    // Let the pressed match control act before removing a cue that may reserve
-    // layout around it. If the player tapped Swap, openSwap has already handled
-    // the tutorial; a tap anywhere else retires the cue and releases its pause.
-    dismissFirstMatchCueFrameRef.current = requestAnimationFrame(() => {
-      dismissFirstMatchCueFrameRef.current = null;
-      if (firstMatchTutorialStepRef.current !== 'tired-swap-cue') return;
-      firstMatchTutorialStepRef.current = null;
-      setFirstMatchTutorialStep(null);
-      automaticPauseReasonsRef.current.delete('tutorial');
-      syncPauseReasons();
-    });
-  };
-  useEffect(() => () => {
-    if (dismissFirstMatchCueFrameRef.current !== null) {
-      cancelAnimationFrame(dismissFirstMatchCueFrameRef.current);
-    }
-  }, []);
   const closeSwap = () => {
     setSwapOpen(false);
     automaticPauseReasonsRef.current.delete('swap');
+    // Cancel backs up one tutorial step instead of losing the lesson. The
+    // exact player remains captured for the next board visit.
+    if (firstMatchTutorialStepRef.current === 'tired-player-cue') {
+      firstMatchTutorialStepRef.current = 'tired-swap-cue';
+      setFirstMatchTutorialStep('tired-swap-cue');
+    }
+    syncPauseReasons();
+  };
+  const finishTiredPlayerTutorial = () => {
+    if (firstMatchTutorialStepRef.current !== 'tired-player-cue') return;
+    firstMatchTutorialStepRef.current = null;
+    firstMatchTiredPlayerRef.current = null;
+    setFirstMatchTutorialStep(null);
+    automaticPauseReasonsRef.current.delete('tutorial');
     syncPauseReasons();
   };
   /** The cup card has been read (or skipped): release kickoff. */
@@ -1987,7 +2012,6 @@ export function MatchScreen({
   };
 
   const continueTiredPlayerTutorial = () => {
-    playUiClickSfx();
     firstMatchTutorialStepRef.current = 'tired-swap-cue';
     setFirstMatchTutorialStep('tired-swap-cue');
   };
@@ -2074,11 +2098,7 @@ export function MatchScreen({
   }${paused ? ' · PAUSED' : ''}`;
 
   return (
-    <View
-      style={[styles.root, highContrast ? styles.rootHighContrast : null]}
-      onPointerUp={dismissFirstMatchCueAfterPress}
-      onTouchEnd={dismissFirstMatchCueAfterPress}
-    >
+    <View style={[styles.root, highContrast ? styles.rootHighContrast : null]}>
       {/* Desktop replaces this bar with the rail scoreboard card. */}
       {railLayout || presentationOnly ? null : (
         <Pressable
@@ -2095,12 +2115,15 @@ export function MatchScreen({
           }}
         >
           {/* Scoreboard "bug": an ink-outlined dark pill with a raised bottom
-              lip (Track-A bevel) and cream mono numerals; flashes hero-gold on a
-              goal. Tapping the surrounding bar still toggles pause. */}
+              lip (Track-A bevel). Team codes match their on-pitch kits while
+              the score and clock stay cream and flash hero-gold on a goal.
+              Tapping the surrounding bar still toggles pause. */}
           <View style={styles.scoreBug}>
             <Text style={[styles.scoreText, hud.scoreFlash ? styles.scoreTextFlash : null]}>
-              {homeCode} {hud.score[0]} – {hud.score[1]} {awayCode} · {minute}'{stoppage ? '+' : ''}
-              {paused ? ' ⏸' : ''}
+              <Text style={{ color: homeKitColor }}>{homeCode}</Text>
+              {` ${hud.score[0]} – ${hud.score[1]} `}
+              <Text style={{ color: awayKitColor }}>{awayCode}</Text>
+              {` · ${minute}'${stoppage ? '+' : ''}${paused ? ' ⏸' : ''}`}
             </Text>
           </View>
           <View style={styles.controls}>
@@ -2129,7 +2152,12 @@ export function MatchScreen({
       }>
         {railLayout ? (
           <MatchControlRail
-            scoreLine={`${homeCode} ${hud.score[0]} – ${hud.score[1]} ${awayCode}`}
+            homeCode={homeCode}
+            homeScore={hud.score[0]}
+            homeColor={homeKitColor}
+            awayCode={awayCode}
+            awayScore={hud.score[1]}
+            awayColor={awayKitColor}
             clockLine={railClockLine}
             scoreFlash={hud.scoreFlash}
             paused={paused}
@@ -2148,6 +2176,8 @@ export function MatchScreen({
             tiredPlayers={railTiredPlayers}
             swapDisabled={swapDisabled}
             guideSwap={guideSwapButton}
+            guideSwapAnchorRef={swapGuideTargetRef}
+            onGuideSwapLayout={scheduleSwapGuideMeasurement}
             onSwap={openSwap}
             teamEnergy={teamEnergy}
             tiredCount={tiredCount}
@@ -2472,6 +2502,9 @@ export function MatchScreen({
               </View>
             </Pressable>
             <Pressable
+              ref={swapGuideTargetRef}
+              collapsable={false}
+              onLayout={guideSwapButton ? scheduleSwapGuideMeasurement : undefined}
               accessibilityRole="button"
               accessibilityLabel={`Swap players. ${tiredCount === 0 ? 'No tired players.' : `${tiredCount} tired players.`} ${substitutionsRemaining} substitutions remaining.`}
               accessibilityHint={guideSwapButton
@@ -2494,17 +2527,6 @@ export function MatchScreen({
             >
               {guideSwapButton ? (
                 <View pointerEvents="none" style={styles.coachButtonGuidedHighlight} />
-              ) : null}
-              {firstMatchTutorialStep === 'tired-swap-cue' ? (
-                <TutorialTapCue
-                  label="Tap here"
-                  detail="Swap players"
-                  style={{
-                    left: '50%',
-                    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                    bottom: '100%',
-                  }}
-                />
               ) : null}
               <Text style={[styles.swapIcon, guideSwapButton ? styles.swapIconGuided : null]}>⇄</Text>
               <View style={styles.coachCopy}>
@@ -2571,29 +2593,52 @@ export function MatchScreen({
           </View>
         </View>
       )}
+      {guideSwapButton && swapGuideAnchor !== null ? (
+        <>
+          <View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, styles.firstMatchGuideOverlay]}
+          >
+            <TutorialSpotlight
+              anchor={swapGuideAnchor}
+              viewportWidth={width}
+              viewportHeight={height}
+            />
+          </View>
+          <TutorialTapCue
+            label={railLayout ? 'Click here' : 'Tap here'}
+            detail="Swap players"
+            style={tutorialCuePositionAbove(swapGuideAnchor, width, height)}
+          />
+        </>
+      ) : null}
       {swapOpen ? (
         <SubstitutionBoard
           field={substitutionBoardField}
           bench={bench}
           substitutionsUsed={substitutionsUsed}
           autoSubs={autoSubs}
+          guideFieldPlayer={firstMatchTutorialStep === 'tired-player-cue'
+            ? firstMatchTiredPlayerRef.current ?? undefined
+            : undefined}
+          onGuideFieldPlayerAction={finishTiredPlayerTutorial}
           onCancel={closeSwap}
           onSave={commitSubstitutions}
         />
       ) : null}
       {firstMatchTutorialStep === 'tired-modal' ? (
         <FirstMatchCoachingModal
-          title={mostTiredStarter === null
+          title={tutorialTiredStarter === null
             ? 'One player is very tired'
-            : `${mostTiredStarter.def.name} is very tired`}
+            : `${tutorialTiredStarter.def.name} is very tired`}
           body="Swap in a fresh player to give them some rest."
           buttonLabel="Show me"
-          player={mostTiredStarter === null ? undefined : {
-            id: mostTiredStarter.def.id,
-            name: mostTiredStarter.def.name,
-            role: mostTiredStarter.def.role,
-            lookId: mostTiredStarter.def.lookId,
-            energyPercent: Math.round(mostTiredStarter.condition),
+          player={tutorialTiredStarter === null ? undefined : {
+            id: tutorialTiredStarter.def.id,
+            name: tutorialTiredStarter.def.name,
+            role: tutorialTiredStarter.def.role,
+            lookId: tutorialTiredStarter.def.lookId,
+            energyPercent: Math.round(tutorialTiredStarter.condition),
           }}
           reduceMotion={reduceMotion}
           onContinue={continueTiredPlayerTutorial}

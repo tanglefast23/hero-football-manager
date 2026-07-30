@@ -11,7 +11,7 @@ export type MenuTheme = 'opening' | 'management' | 'event' | null;
 type MenuSfx = 'advance-week' | 'plan-locked' | 'league-champions';
 
 export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): MenuTheme {
-  if (screen === 'welcome') return 'opening';
+  if (screen === 'welcome' || screen === 'matchday') return 'opening';
   if (screen === 'create-player' || screen === 'management') return 'management';
   if (screen === 'event' || screen === 'legacy') {
     return 'event';

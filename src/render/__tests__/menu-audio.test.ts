@@ -67,6 +67,10 @@ describe('non-match music ownership', () => {
     expect(menuThemeForScreen('create-player', 1)).toBe('management');
   });
 
+  it('uses the opening theme on the match-day team sheet', () => {
+    expect(menuThemeForScreen('matchday', 1)).toBe('opening');
+  });
+
   it('leaves awakening music to its dedicated pre-rise and ascension cues', () => {
     expect(menuThemeForScreen('awakening', 1)).toBeNull();
     expect(menuThemeForScreen('awakening', 2)).toBeNull();

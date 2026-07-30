@@ -36,7 +36,7 @@ describe('first match coaching prompts', () => {
     state.players[1].condition = FIRST_MATCH_RED_ENERGY_THRESHOLD;
     expect(nextFirstMatchCoachingPrompt(state, 0, {
       tiredPlayer: false,
-    })).toBe('tired-player');
+    })).toEqual({ kind: 'tired-player', player: 1 });
     expect(nextFirstMatchCoachingPrompt(state, 0, {
       tiredPlayer: true,
     })).toBeNull();
@@ -67,7 +67,8 @@ describe('first match coaching prompts', () => {
     expect(app).toContain('firstMatchTutorial={isFirstOnboardingFixture(');
     expect(match).toContain('Swap in a fresh player to give them some rest.');
     expect(match).toContain('is very tired');
-    expect(match).toContain('mostTiredStarter');
+    expect(match).toContain('firstMatchTiredPlayerRef.current = prompt.player;');
+    expect(match).toContain('tutorialTiredStarter');
     expect(match).toContain('detail="Swap players"');
     expect(match).not.toContain('Try a new strategy');
     expect(match).not.toContain('The other team is pulling away.');
@@ -82,6 +83,9 @@ describe('first match coaching prompts', () => {
     expect(match).toContain('guideSwapButton ? styles.coachButtonGuided : null');
     expect(match).toContain('guideSwapButton ? styles.swapIconGuided : null');
     expect(match).toContain('guideSwapButton ? styles.coachLabelGuided : null');
+    expect(match).toContain('<TutorialSpotlight');
+    expect(match).toContain('anchor={swapGuideAnchor}');
+    expect(match).not.toContain('dismissFirstMatchCueAfterPress');
     expect(match).toMatch(
       /onPress=\{\(\) => \{\s*playUiClickSfx\(\);\s*openSwap\(\);\s*\}\}/,
     );
@@ -93,5 +97,19 @@ describe('first match coaching prompts', () => {
     expect(styles).toMatch(
       /coachButtonGuided:\s*\{[\s\S]*?opacity: 1,[\s\S]*?backgroundColor: '#5a8fd6',/,
     );
+  });
+
+  it('carries the named player into a device-specific substitution-board cue', () => {
+    const match = readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+    const board = readFileSync(join(process.cwd(), 'src/render/SubstitutionBoard.tsx'), 'utf8');
+
+    expect(match).toContain("firstMatchTutorialStepRef.current = 'tired-player-cue';");
+    expect(match).toContain('guideFieldPlayer={firstMatchTutorialStep === \'tired-player-cue\'');
+    expect(match).toContain('firstMatchTiredPlayerRef.current ?? undefined');
+    expect(match).toContain('onGuideFieldPlayerAction={finishTiredPlayerTutorial}');
+    expect(board).toContain("wide ? 'Click and drag' : 'Tap'");
+    expect(board).toContain('const guided = id === guideCardId;');
+    expect(board).toContain('guideLabel === undefined ? null : styles.cardGuided');
+    expect(board).toContain('consumeGuide(source);');
   });
 });

@@ -1,7 +1,6 @@
+import type { RefObject } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SettingsButton } from '../ui/SettingsOverlay';
-import { TutorialTapCue } from '../ui/TutorialTapCue';
-import { TUTORIAL_TAP_CUE_WIDTH } from '../ui/tutorial-cue-position';
 import { SfxPressable } from '../ui/components/SfxPressable';
 import {
   ENERGY_FILL_COLORS,
@@ -49,8 +48,12 @@ export interface MatchRailHeroTile {
 }
 
 export interface MatchControlRailProps {
-  /** Score bug line, e.g. "BRB 1 – 0 QRZ". */
-  scoreLine: string;
+  homeCode: string;
+  homeScore: number;
+  homeColor: string;
+  awayCode: string;
+  awayScore: number;
+  awayColor: string;
   /** Half + minute line, e.g. "1ST HALF · 23'". */
   clockLine: string;
   scoreFlash: boolean;
@@ -71,6 +74,9 @@ export interface MatchControlRailProps {
   swapDisabled: boolean;
   /** First-match tutorial: highlight the top swap control and float its cue. */
   guideSwap: boolean;
+  /** Measured by MatchScreen so its full-screen spotlight cuts out this button. */
+  guideSwapAnchorRef?: RefObject<View | null>;
+  onGuideSwapLayout?: () => void;
   onSwap: () => void;
   teamEnergy: number;
   tiredCount: number;
@@ -91,7 +97,12 @@ export interface MatchControlRailProps {
  * function style on a Pressable silently collapses layout on iOS.
  */
 export function MatchControlRail({
-  scoreLine,
+  homeCode,
+  homeScore,
+  homeColor,
+  awayCode,
+  awayScore,
+  awayColor,
   clockLine,
   scoreFlash,
   paused,
@@ -110,6 +121,8 @@ export function MatchControlRail({
   tiredPlayers,
   swapDisabled,
   guideSwap,
+  guideSwapAnchorRef,
+  onGuideSwapLayout,
   onSwap,
   teamEnergy,
   tiredCount,
@@ -133,7 +146,9 @@ export function MatchControlRail({
           <View style={styles.scoreRow}>
             <View style={styles.scoreBug}>
               <Text style={[styles.scoreText, scoreFlash ? styles.scoreTextFlash : null]}>
-                {scoreLine}
+                <Text style={{ color: homeColor }}>{homeCode}</Text>
+                {` ${homeScore} – ${awayScore} `}
+                <Text style={{ color: awayColor }}>{awayCode}</Text>
               </Text>
               <Text style={styles.clockText}>{clockLine}</Text>
             </View>
@@ -248,27 +263,26 @@ export function MatchControlRail({
                 <Text style={[styles.tiredPercent, textForBand(band)]}>
                   {Math.round(player.condition)}%
                 </Text>
-                <SfxPressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Swap ${player.name}, ${Math.round(player.condition)} percent energy`}
-                  accessibilityState={{ disabled: swapDisabled }}
-                  disabled={swapDisabled}
-                  style={[
-                    styles.swapButton,
-                    guided ? styles.swapButtonGuided : null,
-                    swapDisabled ? styles.disabled : null,
-                  ]}
-                  onPress={onSwap}
+                <View
+                  ref={guided ? guideSwapAnchorRef : undefined}
+                  collapsable={false}
+                  onLayout={guided ? onGuideSwapLayout : undefined}
                 >
-                  {guided ? (
-                    <TutorialTapCue
-                      label="Tap here"
-                      detail="Swap players"
-                      style={styles.swapCue}
-                    />
-                  ) : null}
-                  <Text style={styles.swapButtonText}>SWAP</Text>
-                </SfxPressable>
+                  <SfxPressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Swap ${player.name}, ${Math.round(player.condition)} percent energy`}
+                    accessibilityState={{ disabled: swapDisabled }}
+                    disabled={swapDisabled}
+                    style={[
+                      styles.swapButton,
+                      guided ? styles.swapButtonGuided : null,
+                      swapDisabled ? styles.disabled : null,
+                    ]}
+                    onPress={onSwap}
+                  >
+                    <Text style={styles.swapButtonText}>SWAP</Text>
+                  </SfxPressable>
+                </View>
               </View>
             );
           })}
@@ -497,9 +511,6 @@ const styles = StyleSheet.create({
     borderBottomColor: '#3f6fb5',
   },
   swapButtonText: { color: '#f4f1ea', fontFamily: PIXEL_BOLD, fontSize: 14, letterSpacing: 0.5 },
-  // Centred over the swap button it points at: the cue's arrow sits in the middle
-  // of its own width, so anchoring by the right edge aimed it off to one side.
-  swapCue: { left: '50%', marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2, bottom: '100%' },
   heroTile: {
     flexDirection: 'row',
     alignItems: 'center',

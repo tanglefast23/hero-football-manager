@@ -26,6 +26,7 @@ export const CARRIER_CARD_CONTENT_WIDTH =
 export const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#241f2e' },
   rootHighContrast: { backgroundColor: '#09070d' },
+  firstMatchGuideOverlay: { zIndex: 20, elevation: 20 },
   // Desktop two-pane body: control rail then pitch, centred as ONE group so the
   // rail always sits directly left of the touchline. A flexed pitch pane
   // centred the (height-limited) pitch inside all the leftover width instead,

@@ -10,7 +10,8 @@ describe('repeat-training presentation contract', () => {
     expect(modal).toContain('maximumAffordableTrainingRuns(trainingPoints, pendingConfirm.tpCost)');
     expect(modal).toContain('horizontal');
     expect(modal).toContain('snapToInterval={REPEAT_PICKER_CELL_WIDTH}');
-    expect(modal).toContain('snapToAlignment="center"');
+    expect(modal).toContain('snapToAlignment="start"');
+    expect(modal).not.toContain('repeatPickerWidth');
     expect(modal).toContain('Each run keeps its own SUPER roll, injury roll and result reveal.');
     expect(modal).toContain('batch.remaining > 0');
     expect(modal).toContain('onTrainDrill(playerId, nextBatch.pathId);');

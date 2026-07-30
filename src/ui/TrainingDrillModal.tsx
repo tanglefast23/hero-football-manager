@@ -134,7 +134,6 @@ export function TrainingDrillModal({
   const batchRef = useRef<DrillBatch | null>(null);
   const [batchProgress, setBatchProgress] = useState<Pick<DrillBatch, 'current' | 'total'> | null>(null);
   const repeatScrollRef = useRef<ScrollView | null>(null);
-  const [repeatPickerWidth, setRepeatPickerWidth] = useState(0);
   // Bert warns once per CAREER, and only after the result has finished playing —
   // interrupting the drill scene with a lecture would bury the gain.
   const pendingRedWarningRef = useRef(false);
@@ -683,18 +682,9 @@ export function TrainingDrillModal({
                         bounces={false}
                         decelerationRate="fast"
                         snapToInterval={REPEAT_PICKER_CELL_WIDTH}
-                        snapToAlignment="center"
+                        snapToAlignment="start"
                         showsHorizontalScrollIndicator={false}
-                        onLayout={event => setRepeatPickerWidth(event.nativeEvent.layout.width)}
-                        contentContainerStyle={[
-                          styles.repeatScrollContent,
-                          {
-                            paddingHorizontal: Math.max(
-                              2,
-                              (repeatPickerWidth - REPEAT_PICKER_CELL_WIDTH) / 2,
-                            ),
-                          },
-                        ]}
+                        contentContainerStyle={styles.repeatScrollContent}
                         onScrollEndDrag={event => (
                           selectRepeatOffset(event.nativeEvent.contentOffset.x)
                         )}

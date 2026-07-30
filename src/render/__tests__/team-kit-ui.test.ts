@@ -10,6 +10,7 @@ import {
 } from '../team-kit-ui';
 
 const matchSource = () => readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
+const railSource = () => readFileSync(join(process.cwd(), 'src/render/MatchControlRail.tsx'), 'utf8');
 
 /** WCAG 2.1 relative luminance of a #rrggbb colour. */
 function luminance(hex: string): number {
@@ -76,5 +77,19 @@ describe('match team kit colours', () => {
     expect(source).toContain('skColor(teamKitColor(');
     // No second copy of the kit literals left behind in the screen.
     expect(source).not.toContain("colorSafeKits ? '#edb54a' : '#d94f52'");
+  });
+
+  it('colors both scoreboard team codes from their matching kits', () => {
+    const source = matchSource();
+    const rail = railSource();
+
+    expect(source).toContain('const homeKitColor = teamKitColor(0, colorSafeKits);');
+    expect(source).toContain('const awayKitColor = teamKitColor(1, colorSafeKits);');
+    expect(source).toContain('<Text style={{ color: homeKitColor }}>{homeCode}</Text>');
+    expect(source).toContain('<Text style={{ color: awayKitColor }}>{awayCode}</Text>');
+    expect(source).toContain('homeColor={homeKitColor}');
+    expect(source).toContain('awayColor={awayKitColor}');
+    expect(rail).toContain('<Text style={{ color: homeColor }}>{homeCode}</Text>');
+    expect(rail).toContain('<Text style={{ color: awayColor }}>{awayCode}</Text>');
   });
 });

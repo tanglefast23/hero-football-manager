@@ -3,7 +3,11 @@ import type { MatchState } from '../sim/types';
 
 export const FIRST_MATCH_RED_ENERGY_THRESHOLD = 30;
 
-export type FirstMatchCoachingPrompt = 'tired-player';
+export interface FirstMatchCoachingPrompt {
+  readonly kind: 'tired-player';
+  /** Exact on-pitch slot named by the coaching card and guided on the board. */
+  readonly player: number;
+}
 
 export interface FirstMatchCoachingPromptsSeen {
   readonly tiredPlayer: boolean;
@@ -49,8 +53,9 @@ export function nextFirstMatchCoachingPrompt(
 ): FirstMatchCoachingPrompt | null {
   if (state.phase === 'fulltime') return null;
 
-  if (!seen.tiredPlayer && firstTiredControlledPlayer(state, controlledTeam) !== null) {
-    return 'tired-player';
+  const tiredPlayer = firstTiredControlledPlayer(state, controlledTeam);
+  if (!seen.tiredPlayer && tiredPlayer !== null) {
+    return { kind: 'tired-player', player: tiredPlayer };
   }
 
   return null;

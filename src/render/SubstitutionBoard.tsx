@@ -10,6 +10,11 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SfxPressable } from '../ui/components/SfxPressable';
+import { TutorialTapCue } from '../ui/TutorialTapCue';
+import {
+  TUTORIAL_TAP_CUE_RESERVED_SPACE,
+  TUTORIAL_TAP_CUE_WIDTH,
+} from '../ui/tutorial-cue-position';
 import { playManagementActionSfx, playUiClickSfx } from './management-sfx';
 import { MAX_SUBSTITUTIONS } from '../sim/substitutions';
 import { energyBand, ENERGY_FILL_COLORS } from './match-energy-ui';
@@ -61,6 +66,10 @@ export interface SubstitutionBoardProps {
   bench: readonly SubstitutionBenchPlayer[];
   substitutionsUsed: number;
   autoSubs: boolean;
+  /** Exact starter named by the first-match tired-player coaching card. */
+  guideFieldPlayer?: number;
+  /** Retires the helper once that exact starter is tapped, clicked, or dragged. */
+  onGuideFieldPlayerAction?: () => void;
   onCancel: () => void;
   /**
    * One entry per staged swap, ready for the engine's SUBSTITUTE input, plus
@@ -92,6 +101,8 @@ export function SubstitutionBoard({
   bench,
   substitutionsUsed,
   autoSubs,
+  guideFieldPlayer,
+  onGuideFieldPlayerAction,
   onCancel,
   onSave,
 }: SubstitutionBoardProps) {
@@ -227,6 +238,16 @@ export function SubstitutionBoard({
     }
   }, [commit, isEligible, plan, starterAt, subById]);
 
+  const guideCardId: CardId | null = guideFieldPlayer === undefined
+    ? null
+    : `field:${guideFieldPlayer}`;
+  const consumeGuide = useCallback((source: DragSource, target: CardId | null = null) => {
+    if (guideCardId === null) return;
+    if (source.id === guideCardId || target === guideCardId) {
+      onGuideFieldPlayerAction?.();
+    }
+  }, [guideCardId, onGuideFieldPlayerAction]);
+
   /**
    * Tap once to pick, tap the partner to trade. Tapping the picked card again
    * puts it back; tapping any other card moves the pick there, so a mis-tap
@@ -241,6 +262,7 @@ export function SubstitutionBoard({
    * effects, so a doubled run would click twice and stage the trade twice.
    */
   const resolveTap = useCallback((source: DragSource) => {
+    consumeGuide(source);
     const current = pickedRef.current;
     if (current === null) {
       playUiClickSfx();
@@ -259,7 +281,7 @@ export function SubstitutionBoard({
     }
     playUiClickSfx();
     setPicked(source);
-  }, [isEligible, resolveDrop]);
+  }, [consumeGuide, isEligible, resolveDrop]);
 
   // The button is disabled with nothing staged, so a player never reaches the
   // refusal; it stays as the backstop for any caller that forgets to pass it.
@@ -299,7 +321,9 @@ export function SubstitutionBoard({
       setDropTarget(over !== null && over !== source.id && isEligible(source, over) ? over : null);
     },
     onDrop: (source: DragSource, pageX: number, pageY: number) => {
-      resolveDrop(source, cardAt(pageX, pageY));
+      const target = cardAt(pageX, pageY);
+      if (target !== null && isEligible(source, target)) consumeGuide(source, target);
+      resolveDrop(source, target);
     },
   };
 
@@ -369,11 +393,15 @@ export function SubstitutionBoard({
             ]}>
               <Text style={styles.columnTitle}>FIELD</Text>
               <Text style={styles.columnHint}>MOST TIRED FIRST</Text>
-              <View style={wide ? undefined : styles.grid}>
+              <View style={[
+                wide ? undefined : styles.grid,
+                guideCardId === null ? null : styles.guidedFieldList,
+              ]}>
                 {orderedField.map(player => {
                   const incomingId = incomingFor(plan, player.index);
                   const incoming = incomingId === null ? undefined : subById(incomingId);
                   const id: CardId = `field:${player.index}`;
+                  const guided = id === guideCardId;
                   return (
                     <DragCard
                       key={id}
@@ -387,6 +415,8 @@ export function SubstitutionBoard({
                       lit={active !== null && active.id !== id && isEligible(active, id)}
                       picked={picked?.id === id}
                       hint={dropTarget === id ? 'SWAP' : null}
+                      guideLabel={guided ? (wide ? 'Click and drag' : 'Tap') : undefined}
+                      guideDetail={guided ? `Swap ${compactName(player.name, !wide)}` : undefined}
                       compact={!wide}
                       dragEnabled={wide}
                       registerCard={registerCard}
@@ -394,11 +424,15 @@ export function SubstitutionBoard({
                       accessibilityLabel={incoming === undefined
                         ? `${player.name}, ${player.role}, ${Math.round(player.condition)} percent energy`
                         : `${incoming.name}, ${incoming.role}, on for ${player.name}`}
-                      accessibilityHint={picked?.id === id
-                        ? 'Activate to put this player back'
-                        : incoming === undefined
-                          ? 'Activate, then activate a bench player to trade them'
-                          : `Activate, then activate ${player.name} on the bench to undo`}
+                      accessibilityHint={guided
+                        ? wide
+                          ? 'Click to select this player, or drag them onto a bench replacement'
+                          : 'Tap this player, then tap a bench replacement'
+                        : picked?.id === id
+                          ? 'Activate to put this player back'
+                          : incoming === undefined
+                            ? 'Activate, then activate a bench player to trade them'
+                            : `Activate, then activate ${player.name} on the bench to undo`}
                       style={styles.card}
                     >
                       <View style={styles.cardCopy}>
@@ -646,6 +680,8 @@ function DragCard({
   lit,
   picked,
   hint,
+  guideLabel,
+  guideDetail,
   compact,
   dragEnabled,
   registerCard,
@@ -666,6 +702,9 @@ function DragCard({
   picked: boolean;
   /** Shown over this card while a compatible partner is carried onto it. */
   hint: string | null;
+  /** First-match helper copy for the exact tired starter named by the modal. */
+  guideLabel?: string;
+  guideDetail?: string;
   compact: boolean;
   /** Drag is pointer-only. Mobile deliberately stays tap-to-replace. */
   dragEnabled: boolean;
@@ -786,11 +825,19 @@ function DragCard({
         // The one card the release would actually take. Every eligible card is
         // already lit, so the target has to out-shout them, not just join them.
         hint === null ? null : styles.cardTargeted,
+        guideLabel === undefined ? null : styles.cardGuided,
         picked ? styles.cardPicked : null,
         lifted ? styles.cardLifted : null,
         { transform: [...offset.getTranslateTransform(), { scale }] },
       ]}
     >
+      {guideLabel === undefined ? null : (
+        <TutorialTapCue
+          label={guideLabel}
+          detail={guideDetail ?? 'Swap this player'}
+          style={styles.cardGuideCue}
+        />
+      )}
       {hint === null ? null : (
         <View pointerEvents="none" style={styles.dropHint}>
           <Text style={styles.dropHintLabel}>{hint}</Text>
@@ -916,6 +963,7 @@ const styles = StyleSheet.create({
   emptyBench: { color: '#9a95a4', fontFamily: PIXEL, fontSize: 13, paddingVertical: 12 },
   // Two names per row on a phone, so a whole squad fits without scrolling.
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  guidedFieldList: { paddingTop: TUTORIAL_TAP_CUE_RESERVED_SPACE },
   gridCell: { width: '48.5%', minHeight: 64 },
   card: {
     minHeight: 58,
@@ -929,6 +977,24 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   cardDimmed: { backgroundColor: '#f4f1ea', borderColor: '#9a95a4', opacity: 0.6 },
+  cardGuided: {
+    borderColor: '#3f6fb5',
+    borderWidth: 4,
+    backgroundColor: '#d8e8f7',
+    opacity: 1,
+    zIndex: 50,
+    elevation: 14,
+    boxShadow: '0 0 0 4px rgba(90, 143, 214, 0.55)',
+    shadowColor: '#3f6fb5',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+  },
+  cardGuideCue: {
+    left: '50%',
+    marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+    bottom: '100%',
+  },
   // Blue, not gold: docs/08 reserves the gold accent for hero and power moments.
   cardLit: {
     borderColor: '#3f6fb5',
