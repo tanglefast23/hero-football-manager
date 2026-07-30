@@ -202,10 +202,12 @@ describe('substitution board layout', () => {
 
     expect(source).toContain('cardDimmed');
     expect(source).toContain('COMING OFF');
-    // A swapped shirt is the same box as any other card — no dotted border, no
-    // tinted background. Only its contents differ.
-    expect(source).not.toContain('cardSwapped');
-    expect(source).not.toContain("borderStyle: 'dashed'");
+    // The player coming on keeps the old swapped-shirt cue: a dashed blue
+    // frame and light tint, while ordinary field cards retain the solid frame.
+    expect(source).toContain(': [styles.card, styles.cardSwapped]');
+    expect(source).toContain('cardSwapped:');
+    expect(source).toContain("borderStyle: 'dashed'");
+    expect(source).toContain("backgroundColor: 'rgba(90,143,214,0.12)'");
     expect(source).toContain('benchEntries');
     // A leaver's card takes the drop that undoes its own swap and nothing else.
     expect(source).toContain('return target === `field:${source.slot}`;');

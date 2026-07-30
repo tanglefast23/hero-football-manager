@@ -161,6 +161,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
+    // MatchScreen's possession card is deliberately raised above the pitch.
+    // Raise the completed demo above the whole match HUD so that card can never
+    // cover the power name or explanation.
+    zIndex: 10,
+    elevation: 10,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(22, 18, 31, 0.18)',
     padding: 14,
