@@ -1,5 +1,20 @@
 # Attack-vs-Defense Training Leverage (m2.1) Implementation Plan
 
+> ## STATUS: HALTED AT THE MEASUREMENT GATE (2026-07-30) — DO NOT EXECUTE
+>
+> Task 1's corrected, power-free re-baseline **inverted this plan's premise**: with the
+> striker's live FIRE_TORCH stripped (the confound that produced the 1.89x/1.67x numbers
+> below), the bare engine measures REF/SHO = 0.80/0.87/0.81 and DEF/SHO = 0.76/0.85/0.50
+> across the three seed windows — **attacking training is already the best single-stat
+> buy, and there is no defensive dominance to fix**. Building the routing mechanism below
+> would push SHO further ahead and invert the imbalance it claims to close.
+>
+> Tasks 2-6 were never executed; no engine code changed; ENGINE_VERSION remains m2.0.
+> The Goal/Architecture sections below are kept VERBATIM as the historical record of the
+> superseded reasoning. Only Task 1's artifact shipped: the permanent probe at
+> `src/audit/__tests__/training-leverage-probe.test.ts`. Restarting any of this requires
+> a fresh owner decision grounded in the power-free numbers.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Shrink the measured defense-over-attack training-leverage gap (REF ≈ 1.9×, DEF ≈ 1.7× the points value of SHO per equal log-gain) to ≤ 1.35× by routing more chances to standout finishers — no hidden rating curves, no drill-price changes.
