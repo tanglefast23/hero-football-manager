@@ -10,7 +10,7 @@
 
 **Tech Stack:** Pure-TS sim (`src/sim/`, no RN/Expo imports, seeded PRNG only), Jest probes via `npm run test:probe`, deterministic fixed-seed rails.
 
-**Measured baseline (2026-07-30, 600 matches/arm, mirrored ROVERS, FIRE_WHEN_READY both sides, seeds 1–300):**
+**Measured baseline (2026-07-30, 600 matches/arm, mirrored ROVERS, FIRE_WHEN_READY both sides, seeds 1–300; power-on measurement — superseded by the power-free re-baseline below):**
 
 | Arm | pts/match | GF | GA | Δpts vs base |
 |---|---:|---:|---:|---:|
@@ -19,7 +19,18 @@
 | +24 DEF (CB, 64→88) | 1.882 | 1.620 | 0.957 | +0.507 |
 | +24 SHO (FWD, 62→86) | 1.678 | 1.953 | 1.548 | +0.303 |
 
-Leverage ratios: REF/SHO = **1.89**, DEF/SHO = **1.67**. Target after m2.1: **both ≤ 1.35** on the tuning window (seeds 1–300) AND the held-out window (1001–1300), and the full CI rail (seeds 2001–2150, bounds ≤ 1.45) green, with all existing balance rails green.
+Leverage ratios (power-on measurement; superseded by the power-free re-baseline below): REF/SHO = **1.89**, DEF/SHO = **1.67**.
+
+**Power-free re-baseline (2026-07-30, 600 matches/arm, mirrored ROVERS with FIRE_TORCH/SUPER_SPEED stripped, FIRE_WHEN_READY both sides, seeds 1–300).** Stripping the striker's live power reversed the sign: with the SHO arm no longer getting a self-reinforcing power-proc bonus on top of the raw attribute gain, SHO leverage is now *higher* than REF/DEF, not lower. Cells not printed by the probe for a given arm (it only logs GA for REF/DEF and GF for SHO) are marked `—`; BASE's GA is inferred equal to its GF by mirror symmetry, matching the convention of the power-on table above:
+
+| Arm | pts/match | GF | GA | Δpts vs base |
+|---|---:|---:|---:|---:|
+| BASE mirror | 1.323 | 0.962 | 0.962 | — |
+| +24 REF (GK, 62→86) | 1.918 | — | 0.292 | +0.595 |
+| +24 DEF (CB, 64→88) | 1.885 | — | 0.425 | +0.562 |
+| +24 SHO (FWD, 62→86) | 2.063 | 1.950 | — | +0.740 |
+
+Leverage ratios: REF/SHO = **0.80**, DEF/SHO = **0.76**. Target after m2.1: **both ≤ 1.35** on the tuning window (seeds 1–300) AND the held-out window (1001–1300), and the full CI rail (seeds 2001–2150, bounds ≤ 1.45) green, with all existing balance rails green.
 
 ---
 
@@ -81,12 +92,15 @@ All later tasks run inside `hfm-leverage-m2.1`. Finish via PR — main is often 
  * Held-out: LEVERAGE_SEED_START=1001 npm run test:probe -- src/audit/__tests__/training-leverage-probe.test.ts
  * Rail win: LEVERAGE_SEED_START=2001 LEVERAGE_SEEDS=150 npm run test:probe -- ...
  *
- * Baseline (m2.0, 2026-07-30, seeds 1-300): REF/SHO 1.89, DEF/SHO 1.67 — see
+ * Baseline (m2.0, 2026-07-30, seeds 1-300, powers ON — superseded, kept for
+ * history): REF/SHO 1.89, DEF/SHO 1.67.
+ * Baseline (m2.0, 2026-07-30, seeds 1-300, power-free re-baseline): REF/SHO
+ * 0.80, DEF/SHO 0.76 — see
  * docs/superpowers/plans/2026-07-30-attack-defense-training-leverage.md
  */
 import { runMatch } from '../../sim/match';
 import { ROVERS } from '../../sim/teams';
-import type { TeamDef } from '../../sim/types';
+import type { PowerId, TeamDef } from '../../sim/types';
 
 const POLICIES = {
   homePolicy: 'FIRE_WHEN_READY' as const,
@@ -94,19 +108,31 @@ const POLICIES = {
 };
 
 function positiveIntegerEnv(name: string, fallback: number): number {
-  const parsed = Number(process.env[name]);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  if (!/^[1-9]\d*$/.test(raw)) {
+    throw new Error(`${name} must be a positive integer, got ${JSON.stringify(raw)}`);
+  }
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(`${name} must be a safe positive integer, got ${JSON.stringify(raw)}`);
+  }
+  return value;
 }
 const SEEDS = positiveIntegerEnv('LEVERAGE_SEEDS', 300);
 const SEED_START = positiveIntegerEnv('LEVERAGE_SEED_START', 1);
 
-type MutableTeam = TeamDef & { players: Array<{ id: string; attrs: Record<string, number> }> };
+type MutableTeam = TeamDef & { players: Array<{ id: string; attrs: Record<string, number>; power?: PowerId }> };
 
 function mirror(tag: string): TeamDef {
   const team = structuredClone(ROVERS) as MutableTeam;
   team.id = `${ROVERS.id}-${tag}`;
   team.name = `${ROVERS.name} ${tag}`;
-  for (const player of team.players) player.id = `${player.id}-${tag}`;
+  for (const player of team.players) {
+    player.id = `${player.id}-${tag}`;
+    // Powers stripped so the arms measure bare stat leverage (repo probe convention).
+    player.power = undefined;
+  }
   return team;
 }
 
@@ -175,6 +201,8 @@ describe('training leverage probe', () => {
     console.log(`LEVERAGE SHO+24: pts=${sho.pts.toFixed(3)} GF=${sho.gf.toFixed(3)} lift=${shoLift.toFixed(3)} passes=${sho.passes.toFixed(1)} shots=${sho.shots.toFixed(1)} strikerShare=${(sho.trackedShotShare * 100).toFixed(1)}%`);
     console.log(`LEVERAGE ratios: REF/SHO=${(refLift / shoLift).toFixed(2)} DEF/SHO=${(defLift / shoLift).toFixed(2)}`);
     expect(shoLift).toBeGreaterThan(0);
+    expect(refLift).toBeGreaterThan(0);
+    expect(defLift).toBeGreaterThan(0);
   }, 1200000);
 });
 ```
@@ -503,7 +531,7 @@ LEVERAGE_SEED_START=1001 npm run test:probe -- src/audit/__tests__/training-leve
 ```ts
 import { runMatch } from '../match';
 import { ROVERS } from '../teams';
-import type { TeamDef } from '../types';
+import type { PowerId, TeamDef } from '../types';
 
 // m2.1 leverage rail: defensive training must not dwarf attacking training.
 // Guards the finisher-routing fix (docs/superpowers/plans/
@@ -526,13 +554,17 @@ const SEEDS = 150;
 const M20_BASE_PASSES_PER_MATCH = <recorded>;
 const M20_BASE_SHOTS_PER_MATCH = <recorded>;
 
-type MutableTeam = TeamDef & { players: Array<{ id: string; attrs: Record<string, number> }> };
+type MutableTeam = TeamDef & { players: Array<{ id: string; attrs: Record<string, number>; power?: PowerId }> };
 
 function mirror(tag: string): TeamDef {
   const team = structuredClone(ROVERS) as MutableTeam;
   team.id = `${ROVERS.id}-${tag}`;
   team.name = `${ROVERS.name} ${tag}`;
-  for (const player of team.players) player.id = `${player.id}-${tag}`;
+  for (const player of team.players) {
+    player.id = `${player.id}-${tag}`;
+    // Powers stripped so the arms measure bare stat leverage (repo probe convention).
+    player.power = undefined;
+  }
   return team;
 }
 

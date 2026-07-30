@@ -8,12 +8,15 @@
  * Held-out: LEVERAGE_SEED_START=1001 npm run test:probe -- src/audit/__tests__/training-leverage-probe.test.ts
  * Rail win: LEVERAGE_SEED_START=2001 LEVERAGE_SEEDS=150 npm run test:probe -- ...
  *
- * Baseline (m2.0, 2026-07-30, seeds 1-300): REF/SHO 1.89, DEF/SHO 1.67 — see
+ * Baseline (m2.0, 2026-07-30, seeds 1-300, powers ON — superseded, kept for
+ * history): REF/SHO 1.89, DEF/SHO 1.67.
+ * Baseline (m2.0, 2026-07-30, seeds 1-300, power-free re-baseline): REF/SHO
+ * 0.80, DEF/SHO 0.76 — see
  * docs/superpowers/plans/2026-07-30-attack-defense-training-leverage.md
  */
 import { runMatch } from '../../sim/match';
 import { ROVERS } from '../../sim/teams';
-import type { TeamDef } from '../../sim/types';
+import type { PowerId, TeamDef } from '../../sim/types';
 
 const POLICIES = {
   homePolicy: 'FIRE_WHEN_READY' as const,
@@ -21,19 +24,31 @@ const POLICIES = {
 };
 
 function positiveIntegerEnv(name: string, fallback: number): number {
-  const parsed = Number(process.env[name]);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  if (!/^[1-9]\d*$/.test(raw)) {
+    throw new Error(`${name} must be a positive integer, got ${JSON.stringify(raw)}`);
+  }
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(`${name} must be a safe positive integer, got ${JSON.stringify(raw)}`);
+  }
+  return value;
 }
 const SEEDS = positiveIntegerEnv('LEVERAGE_SEEDS', 300);
 const SEED_START = positiveIntegerEnv('LEVERAGE_SEED_START', 1);
 
-type MutableTeam = TeamDef & { players: Array<{ id: string; attrs: Record<string, number> }> };
+type MutableTeam = TeamDef & { players: Array<{ id: string; attrs: Record<string, number>; power?: PowerId }> };
 
 function mirror(tag: string): TeamDef {
   const team = structuredClone(ROVERS) as MutableTeam;
   team.id = `${ROVERS.id}-${tag}`;
   team.name = `${ROVERS.name} ${tag}`;
-  for (const player of team.players) player.id = `${player.id}-${tag}`;
+  for (const player of team.players) {
+    player.id = `${player.id}-${tag}`;
+    // Powers stripped so the arms measure bare stat leverage (repo probe convention).
+    player.power = undefined;
+  }
   return team;
 }
 
@@ -102,5 +117,7 @@ describe('training leverage probe', () => {
     console.log(`LEVERAGE SHO+24: pts=${sho.pts.toFixed(3)} GF=${sho.gf.toFixed(3)} lift=${shoLift.toFixed(3)} passes=${sho.passes.toFixed(1)} shots=${sho.shots.toFixed(1)} strikerShare=${(sho.trackedShotShare * 100).toFixed(1)}%`);
     console.log(`LEVERAGE ratios: REF/SHO=${(refLift / shoLift).toFixed(2)} DEF/SHO=${(defLift / shoLift).toFixed(2)}`);
     expect(shoLift).toBeGreaterThan(0);
+    expect(refLift).toBeGreaterThan(0);
+    expect(defLift).toBeGreaterThan(0);
   }, 1200000);
 });
