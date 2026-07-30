@@ -144,6 +144,40 @@ describe('non-match music ownership', () => {
     expect(management.play).toHaveBeenCalledTimes(1);
   });
 
+  it('rebuilds every player and resumes the theme when the audio session dies', () => {
+    setMenuTheme('opening');
+    // iOS kills the session server while backgrounded: the next native call
+    // throws "Session lookup failed" and the old player can never play again.
+    mockPlayers[1].play.mockImplementation(() => {
+      throw new Error('Session lookup failed');
+    });
+
+    setMenuTheme('management');
+
+    expect(mockPlayers).toHaveLength(12);
+    expect(mockPlayers[7].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers.slice(6, 9).every(player => player.loop)).toBe(true);
+    expect(setAudioModeAsync).toHaveBeenCalledTimes(2);
+  });
+
+  it('recovers a dead SFX player, then replays both the theme and the cue', async () => {
+    setMenuTheme('management');
+    mockPlayers[1].play.mockClear();
+    mockPlayers[3].seekTo.mockImplementation(() =>
+      Promise.reject(new Error('Unable to find the native shared object')));
+
+    playAdvanceWeekSfx();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockPlayers).toHaveLength(12);
+    expect(mockPlayers[7].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[9].seekTo).toHaveBeenCalledWith(0);
+    await Promise.resolve();
+    expect(mockPlayers[9].play).toHaveBeenCalledTimes(1);
+  });
+
   it('rewinds and plays the advance-week SFX on demand', async () => {
     setMenuTheme('management');
 

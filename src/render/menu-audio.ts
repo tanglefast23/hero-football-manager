@@ -77,11 +77,63 @@ function applyMasterVolume(): void {
   }
 }
 
+const RECOVERY_COOLDOWN_MS = 5000;
+let lastRecoveryAt = 0;
+
+/**
+ * iOS tears down the audio-session server while the app sits in the background
+ * (and a dev reload strands the previous context's players): every play() then
+ * throws "Session lookup failed" / "Server was dead when activation request was
+ * made". Dead native objects can't be revived, so recovery re-activates the
+ * session and rebuilds every player, preserving the requested theme. The
+ * cooldown keeps a device whose audio is genuinely broken fail-soft instead of
+ * rebuilding six players on every tap.
+ */
+function tryRecoverMenuAudio(): boolean {
+  const now = Date.now();
+  if (now - lastRecoveryAt < RECOVERY_COOLDOWN_MS) return false;
+  lastRecoveryAt = now;
+  const theme = activeTheme;
+  stopLoopWatchdog();
+  for (const [, player] of players) {
+    try {
+      player.remove();
+      player.release();
+    } catch {
+      // Already dead — that is why we are recovering.
+    }
+  }
+  for (const [, player] of sfxPlayers) {
+    try {
+      player.remove();
+      player.release();
+    } catch {
+      // Already dead — that is why we are recovering.
+    }
+  }
+  players.clear();
+  sfxPlayers.clear();
+  ready = false;
+  initAttempted = false;
+  initMenuAudio();
+  activeTheme = theme;
+  return ready;
+}
+
 function playActiveTheme(): void {
   if (!ready || activeTheme === null || audioIsSuspended()) return;
   try {
     players.get(activeTheme)?.play();
   } catch (error) {
+    if (tryRecoverMenuAudio()) {
+      try {
+        players.get(activeTheme)?.play();
+        return;
+      } catch (retryError) {
+        warnOnce(`${activeTheme} playback failed after recovery`, retryError);
+        return;
+      }
+    }
     warnOnce(`${activeTheme} playback failed`, error);
   }
 }
@@ -238,15 +290,27 @@ export function stopLeagueChampionsSfx(): void {
 function playMenuSfx(key: MenuSfx): void {
   initMenuAudio();
   if (!ready) return;
-  try {
-    const player = sfxPlayers.get(key);
-    if (!player) return;
-    player.seekTo(0)
-      .then(() => player.play())
-      .catch((error: unknown) => warnOnce(`${key} seek/play failed`, error));
-  } catch (error) {
-    warnOnce(`${key} playback failed`, error);
-  }
+  const attempt = (isRetry: boolean): void => {
+    const recoverOr = (label: string, error: unknown): void => {
+      if (!isRetry && tryRecoverMenuAudio()) {
+        // The music bed died with the same session — resume it, then the cue.
+        playActiveTheme();
+        attempt(true);
+        return;
+      }
+      warnOnce(label, error);
+    };
+    try {
+      const player = sfxPlayers.get(key);
+      if (!player) return;
+      player.seekTo(0)
+        .then(() => player.play())
+        .catch((error: unknown) => recoverOr(`${key} seek/play failed`, error));
+    } catch (error) {
+      recoverOr(`${key} playback failed`, error);
+    }
+  };
+  attempt(false);
 }
 
 export function setMenuTheme(theme: MenuTheme): void {
@@ -298,4 +362,5 @@ export function teardownMenuAudio(): void {
   activeTheme = null;
   ready = false;
   initAttempted = false;
+  lastRecoveryAt = 0;
 }
