@@ -110,11 +110,60 @@ function pausePlayer(player: AudioPlayer | null, context: string): void {
   }
 }
 
+const RECOVERY_COOLDOWN_MS = 5000;
+let lastRecoveryAt = 0;
+
+/**
+ * iOS tears down the audio-session server while the app sits in the background
+ * (and a dev reload strands the previous context's players): every seek/play
+ * then fails with "Session lookup failed". Dead native objects can't be
+ * revived, so recovery releases all three players and rebuilds them through
+ * the normal init, which also re-activates the session via setAudioModeAsync.
+ * Releases stay silent — warnOnce here is a single slot, and it must be kept
+ * for the failure that survives the retry. The cooldown keeps a device whose
+ * audio is genuinely broken fail-soft.
+ */
+function tryRecoverAwakeningAudio(): boolean {
+  const now = Date.now();
+  if (now - lastRecoveryAt < RECOVERY_COOLDOWN_MS) return false;
+  lastRecoveryAt = now;
+  clearHarpTimer();
+  for (const player of [angelsPlayer, harpsPlayer, limpPlayer]) {
+    if (!player) continue;
+    try {
+      player.remove();
+      player.release();
+    } catch {
+      // Already dead — that is why we are recovering.
+    }
+  }
+  angelsPlayer = null;
+  harpsPlayer = null;
+  limpPlayer = null;
+  ready = false;
+  initAttempted = false;
+  initAwakeningAudio();
+  return ready;
+}
+
+// Takes a getter, not a player: recovery replaces the module-level players, so
+// a retry (and the delayed harps layer) must re-read them instead of holding a
+// reference to a dead one.
 function playFromStart(
-  player: AudioPlayer,
+  getPlayer: () => AudioPlayer | null,
   context: string,
   shouldStart: () => boolean,
+  isRetry = false,
 ): Promise<boolean> {
+  const player = getPlayer();
+  if (!player) return Promise.resolve(false);
+  const recoverOr = (label: string, error: unknown): Promise<boolean> => {
+    if (!isRetry && tryRecoverAwakeningAudio()) {
+      return playFromStart(getPlayer, context, shouldStart, true);
+    }
+    warnOnce(label, error);
+    return Promise.resolve(false);
+  };
   try {
     return player.seekTo(0)
       .then(() => {
@@ -122,13 +171,9 @@ function playFromStart(
         player.play();
         return true;
       })
-      .catch((error: unknown) => {
-        warnOnce(`${context} seek/play failed`, error);
-        return false;
-      });
+      .catch((error: unknown) => recoverOr(`${context} seek/play failed`, error));
   } catch (error) {
-    warnOnce(`${context} playback failed`, error);
-    return Promise.resolve(false);
+    return recoverOr(`${context} playback failed`, error);
   }
 }
 
@@ -145,7 +190,7 @@ export function playAwakeningAscension(): void {
 
   if (!angelsPlayer) return;
   void playFromStart(
-    angelsPlayer,
+    () => angelsPlayer,
     'angels',
     () => generation === playbackGeneration,
   ).then(started => {
@@ -154,7 +199,7 @@ export function playAwakeningAscension(): void {
       harpTimer = null;
       if (!harpsPlayer || generation !== playbackGeneration) return;
       void playFromStart(
-        harpsPlayer,
+        () => harpsPlayer,
         'harps',
         () => generation === playbackGeneration,
       );
@@ -170,7 +215,7 @@ export function playAwakeningLimp(): void {
   const generation = limpPlaybackGeneration;
   pausePlayer(limpPlayer, 'limp');
   void playFromStart(
-    limpPlayer,
+    () => limpPlayer,
     'limp',
     () => generation === limpPlaybackGeneration,
   );
@@ -211,4 +256,5 @@ export function teardownAwakeningAudio(): void {
   limpPlayer = null;
   ready = false;
   initAttempted = false;
+  lastRecoveryAt = 0;
 }

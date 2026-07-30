@@ -98,6 +98,39 @@ function warnOnce(context: string, error: unknown): void {
   console.warn(`[management-sfx] ${context}`, error);
 }
 
+const RECOVERY_COOLDOWN_MS = 5000;
+let lastRecoveryAt = 0;
+
+/**
+ * iOS tears down the audio-session server while the app sits in the background
+ * (and a dev reload strands the previous context's players): every seek/play
+ * then fails with "Session lookup failed". Dead native objects can't be
+ * revived, so recovery releases the whole catalog and rebuilds it through the
+ * normal init — same cue order, same pool sizes, so every player index stays
+ * where the tests pin it. The cooldown keeps a device whose audio is genuinely
+ * broken fail-soft instead of rebuilding 29 players on every tap.
+ */
+function tryRecoverManagementSfx(): boolean {
+  const now = Date.now();
+  if (now - lastRecoveryAt < RECOVERY_COOLDOWN_MS) return false;
+  lastRecoveryAt = now;
+  for (const player of ownedPlayers) {
+    try {
+      player.remove();
+      player.release();
+    } catch {
+      // Already dead — that is why we are recovering.
+    }
+  }
+  players.clear();
+  ownedPlayers.clear();
+  rapidPlayers.clear();
+  rapidPlayerCursor.clear();
+  initAttempted = false;
+  initManagementSfx();
+  return players.size > 0;
+}
+
 function initManagementSfx(): void {
   if (initAttempted) return;
   initAttempted = true;
@@ -311,21 +344,35 @@ export function stopMatchStatementSfx(): void {
 
 function playManagementSfx(key: ManagementSfxKey): void {
   initManagementSfx();
-  const player = key === 'ui-click' || key === 'stat-step'
-    ? nextRapidPlayer(key)
-    : players.get(key);
-  if (player === undefined || masterVolume === 0) return;
-  // Every cue rewinds before it plays, rapid ones included. A voice parked at
-  // the end of its clip ignores play() outright and the tap is silent, and JS
-  // cannot know when a voice got there: playback begins some unmeasured time
-  // after play() returns, so a timer that rewinds on a fixed delay lands mid-
-  // clip as often as not — and a seek does not stop playback, so that rewind
-  // re-fires the transient and one press is heard twice. The pool below is
-  // what keeps quick repeats from cutting each other off; the seek is what
-  // makes each press sound exactly once.
-  player.seekTo(0)
-    .then(() => player.play())
-    .catch((error: unknown) => warnOnce(`${key} playback failed`, error));
+  const attempt = (isRetry: boolean): void => {
+    const recoverOr = (label: string, error: unknown): void => {
+      if (!isRetry && tryRecoverManagementSfx()) {
+        attempt(true);
+        return;
+      }
+      warnOnce(label, error);
+    };
+    const player = key === 'ui-click' || key === 'stat-step'
+      ? nextRapidPlayer(key)
+      : players.get(key);
+    if (player === undefined || masterVolume === 0) return;
+    // Every cue rewinds before it plays, rapid ones included. A voice parked at
+    // the end of its clip ignores play() outright and the tap is silent, and JS
+    // cannot know when a voice got there: playback begins some unmeasured time
+    // after play() returns, so a timer that rewinds on a fixed delay lands mid-
+    // clip as often as not — and a seek does not stop playback, so that rewind
+    // re-fires the transient and one press is heard twice. The pool below is
+    // what keeps quick repeats from cutting each other off; the seek is what
+    // makes each press sound exactly once.
+    try {
+      player.seekTo(0)
+        .then(() => player.play())
+        .catch((error: unknown) => recoverOr(`${key} playback failed`, error));
+    } catch (error) {
+      recoverOr(`${key} playback failed`, error);
+    }
+  };
+  attempt(false);
 }
 
 /** Round-robins the pooled voices so overlapping taps never share a playhead. */
@@ -352,5 +399,6 @@ export function teardownManagementSfx(): void {
   rapidPlayers.clear();
   rapidPlayerCursor.clear();
   initAttempted = false;
+  lastRecoveryAt = 0;
   warned.clear();
 }

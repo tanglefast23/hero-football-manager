@@ -113,6 +113,50 @@ describe('awakening ascension audio', () => {
     expect(mockPlayers.every(player => player.volume === 0)).toBe(true);
   });
 
+  it('rebuilds every player and replays the limp when the audio session dies', async () => {
+    playAwakeningLimp();
+    await flushPromises();
+    expect(mockPlayers).toHaveLength(3);
+    // iOS killed the session server: the next native call throws and the old
+    // player can never play again.
+    mockPlayers[2].seekTo.mockImplementation(() => {
+      throw new Error('Session lookup failed');
+    });
+
+    playAwakeningLimp();
+    await flushPromises();
+
+    expect(mockPlayers).toHaveLength(6);
+    expect(setAudioModeAsync).toHaveBeenCalledTimes(2);
+    const rebuiltLimp = mockPlayers[5];
+    expect(rebuiltLimp.seekTo).toHaveBeenCalledWith(0);
+    expect(rebuiltLimp.play).toHaveBeenCalledTimes(1);
+  });
+
+  it('recovers a dead angels player and still layers harps on the rebuilt pair', async () => {
+    playAwakeningAscension();
+    await flushPromises();
+    expect(mockPlayers).toHaveLength(3);
+    mockPlayers[0].seekTo.mockImplementation(() =>
+      Promise.reject(new Error('Unable to find the native shared object')));
+
+    playAwakeningAscension();
+    await flushPromises();
+    await flushPromises();
+
+    expect(mockPlayers).toHaveLength(6);
+    const rebuiltAngels = mockPlayers[3];
+    expect(rebuiltAngels.seekTo).toHaveBeenCalledWith(0);
+    expect(rebuiltAngels.play).toHaveBeenCalledTimes(1);
+
+    // The delayed harps layer must reach the rebuilt player, not the dead one.
+    jest.advanceTimersByTime(AWAKENING_HARPS_DELAY_MS);
+    await flushPromises();
+    expect(mockPlayers[4].seekTo).toHaveBeenCalledWith(0);
+    expect(mockPlayers[4].play).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[1].play).not.toHaveBeenCalled();
+  });
+
   it('plays the exact 10.3-second limp cue once until the rise begins', async () => {
     expect(AWAKENING_LIMP_CLIP_MS).toBe(10_300);
 
