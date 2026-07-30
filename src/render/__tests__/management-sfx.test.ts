@@ -252,6 +252,44 @@ describe('management feedback sounds', () => {
     expect(jingle.play).toHaveBeenCalledTimes(1);
   });
 
+  it('rebuilds the catalog and replays the cue when the audio session dies', async () => {
+    // iOS kills the session server while backgrounded: the next native call
+    // rejects and the old player can never play again.
+    mockPlayers[16].seekTo.mockImplementation(() =>
+      Promise.reject(new Error('Session lookup failed')));
+
+    playPositiveSfx();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Same catalog rebuilt in the same order — every index above stays valid.
+    expect(mockPlayers).toHaveLength(58);
+    expect(mockPlayers[16].release).toHaveBeenCalledTimes(1);
+    const rebuiltPositive = mockPlayers[29 + 16];
+    expect(rebuiltPositive.seekTo).toHaveBeenCalledWith(0);
+    await Promise.resolve();
+    expect(rebuiltPositive.play).toHaveBeenCalledTimes(1);
+  });
+
+  it('recovers a dead rapid voice and replays the tap on the rebuilt pool', async () => {
+    mockPlayers[2].seekTo.mockImplementation(() =>
+      Promise.reject(new Error('Unable to find the native shared object')));
+
+    playUiClickSfx();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockPlayers).toHaveLength(58);
+    // The rebuilt pool starts from a fresh cursor, so the retry lands on the
+    // rebuilt catalog's own ui-click voice.
+    const rebuiltUiClick = mockPlayers[29 + 2];
+    expect(rebuiltUiClick.seekTo).toHaveBeenCalledWith(0);
+    await Promise.resolve();
+    expect(rebuiltUiClick.play).toHaveBeenCalledTimes(1);
+  });
+
   it('plays every rapid stat-step tap on an independent voice', async () => {
     playStatStepSfx();
     playStatStepSfx();

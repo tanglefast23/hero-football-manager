@@ -368,6 +368,86 @@ export function teardownAudio(): void {
   fireLoopPlayer = null;
   ready = false;
   initAttempted = false; // allow the next mount to retry init
+  lastRecoveryAt = 0;
+}
+
+const RECOVERY_COOLDOWN_MS = 5000;
+let lastRecoveryAt = 0;
+
+/**
+ * iOS tears down the audio-session server while the app sits in the background
+ * (and a dev reload strands the previous context's players): every seek/play
+ * then fails with "Session lookup failed". Dead native objects can't be
+ * revived, so recovery releases every player and rebuilds them through the
+ * normal init, which also re-activates the session via setAudioModeAsync —
+ * then resumes whichever loops the match still wants. Releases stay silent:
+ * warnOnce here is a single slot, and it must be kept for the failure that
+ * survives the retry. The cooldown keeps a device whose audio is genuinely
+ * broken fail-soft instead of rebuilding ~40 players on every event.
+ */
+function tryRecoverMatchAudio(): boolean {
+  const now = Date.now();
+  if (now - lastRecoveryAt < RECOVERY_COOLDOWN_MS) return false;
+  lastRecoveryAt = now;
+  for (const player of [...sfxPlayers.values(), themePlayer, fireLoopPlayer]) {
+    if (!player) continue;
+    try {
+      player.remove();
+      player.release();
+    } catch {
+      // Already dead — that is why we are recovering.
+    }
+  }
+  sfxPlayers.clear();
+  themePlayer = null;
+  fireLoopPlayer = null;
+  ready = false;
+  initAttempted = false;
+  initAudio();
+  if (!ready) return false;
+  resumeWantedLoops();
+  return true;
+}
+
+/** After a rebuild, restart whatever the match still wants playing. */
+function resumeWantedLoops(): void {
+  if (audioIsSuspended()) return;
+  try {
+    if (themeWanted) themePlayer?.play();
+  } catch (err) {
+    warnOnce('theme resume after recovery failed', err);
+  }
+  const fire = fireLoopPlayer;
+  if (fireWanted && fire) {
+    try {
+      fire.seekTo(0).then(() => fire.play()).catch((err: unknown) => warnOnce('fire loop resume after recovery failed', err));
+    } catch (err) {
+      warnOnce('fire loop resume after recovery failed', err);
+    }
+  }
+}
+
+function playSfxKey(key: SfxKey, isRetry: boolean): void {
+  const player = sfxPlayers.get(key);
+  if (!player) return;
+  const recoverOr = (label: string, err: unknown): void => {
+    if (!isRetry && tryRecoverMatchAudio()) {
+      playSfxKey(key, true);
+      return;
+    }
+    warnOnce(label, err);
+  };
+  try {
+    // Chain play() AFTER the async seek resolves — NOT two separate
+    // statements. seekTo(0) is a native async call and play() is sync, so
+    // `seekTo(0); play()` runs play-then-seek on device: replaying a
+    // finished sub-second clip no-ops the play() (already at the end), then
+    // the late seek rewinds it while stopped — silent restarts (was the
+    // "no SFX on device" bug). Rewind first, then play from 0.
+    player.seekTo(0).then(() => player.play()).catch((err: unknown) => recoverOr('seek/play failed', err));
+  } catch (err) {
+    recoverOr('playback failed', err);
+  }
 }
 
 export function playForEvent(e: MatchEvent): void {
@@ -375,20 +455,8 @@ export function playForEvent(e: MatchEvent): void {
   // A muted match still issued a seek and a play for every event — hundreds of
   // native round-trips per match to produce silence.
   if (masterVolume === 0) return;
-  try {
-    for (const key of filesForEvent(e)) {
-      const player = sfxPlayers.get(key);
-      if (!player) continue;
-      // Chain play() AFTER the async seek resolves — NOT two separate
-      // statements. seekTo(0) is a native async call and play() is sync, so
-      // `seekTo(0); play()` runs play-then-seek on device: replaying a
-      // finished sub-second clip no-ops the play() (already at the end), then
-      // the late seek rewinds it while stopped — silent restarts (was the
-      // "no SFX on device" bug). Rewind first, then play from 0.
-      player.seekTo(0).then(() => player.play()).catch((err: unknown) => warnOnce('seek/play failed', err));
-    }
-  } catch (err) {
-    warnOnce('playback failed', err);
+  for (const key of filesForEvent(e)) {
+    playSfxKey(key, false);
   }
 }
 
@@ -398,6 +466,8 @@ export function startTheme(): void {
   try {
     themePlayer.play();
   } catch (err) {
+    // Recovery resumes the wanted loops itself, so success needs no retry here.
+    if (tryRecoverMatchAudio()) return;
     warnOnce('theme playback failed', err);
   }
 }
@@ -422,10 +492,15 @@ export function startFireAmbience(): void {
   fireWanted = true;
   if (!ready || !fireLoopPlayer || audioIsSuspended()) return;
   const p = fireLoopPlayer;
-  try {
-    p.seekTo(0).then(() => p.play()).catch((err: unknown) => warnOnce('fire loop start failed', err));
-  } catch (err) {
+  const recoverOr = (err: unknown): void => {
+    // Recovery restarts the wanted fire loop itself, so success needs no retry.
+    if (tryRecoverMatchAudio()) return;
     warnOnce('fire loop start failed', err);
+  };
+  try {
+    p.seekTo(0).then(() => p.play()).catch((err: unknown) => recoverOr(err));
+  } catch (err) {
+    recoverOr(err);
   }
 }
 
