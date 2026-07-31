@@ -243,3 +243,82 @@ Both were policy defects in `division-entry-probe.test.ts`, not game defects.
 - `npx tsc --noEmit` — clean, exit status checked directly
 - `npm test` — 249 suites, 2065 tests passed, 1 skipped
 - `ENGINE_VERSION` remains `m2.0`; `src/sim/` untouched
+
+## Result 4 — the finished ladder
+
+Two more iterations after Result 3, both driven by the same arithmetic: a squad
+grows about 1.10x a season, so a promotion that buys one season before the next
+relegation vote cannot consolidate a step much above 1.2x.
+
+**Iteration 2** brought D4 -> D3 and D3 -> D2 to 1.20x and deleted the D4
+relegation pack. It fixed the D3/D4 oscillation and every career reached D1 by
+season six — but holding D1 at [223, 248] made the last step 2.77x, and that was
+not a long climb but a divergent one. Opponent growth compounds at 3% a season
+on a field already far above D2, so one career's four D1 visits met fields of
+259, 275, 292 and 310 while its own squad oscillated around 110. Every D1 season
+finished 9th and relegated: the D3/D4 yo-yo had simply moved to the top.
+
+**Iteration 3** brought D1 down to 1.33x above D2 — three seasons of growth.
+Lowering its raw ratings costs nothing real. The contest reads ratios, and
+`matchAttribute` was compressing most of the old headroom away before it reached
+the pitch; the goalkeeper gate confirms D1 peer matches merely moved from 4.60
+to 3.98 goals a match and 0.588 to 0.619 save rate, both inside the locked rails.
+
+### Final ladder
+
+| | D5 | D4 | D3 | D2 | D1 |
+|---|---:|---:|---:|---:|---:|
+| band | [40,50] | [55,63] | [67,75] | [80,90] | [107,120] |
+| step | — | 1.31x | 1.20x | 1.20x | 1.33x |
+| seasons of growth | — | 2.8 | 1.9 | 1.9 | 3.0 |
+| support | 40 | 54 | 65 | 77 | 103 |
+| star focus | 94 | 111 | 133 | 159 | 212 |
+| keeper REF | 80 | 94 | 113 | 135 | 180 |
+| typical pace | 72 | 83 | 92 | 102 | 112 |
+
+### Measured, 12-season budget, 4 careers
+
+Division by season:
+
+```
+4000000  5 4 3 2 2 1 1 1 1 1 1 1
+4007919  5 5 4 3 2 1 2 1 1 1 1 1
+4015838  5 4 3 2 2 1 1 1 1 1 1 1
+4023757  5 4 4 3 3 3 2 2 3 2 2 1
+```
+
+| Entering | Mean gap | First-5 record | Entries |
+|---|---:|---|---:|
+| D5 | −2.7 | 13W / 4D / 8L | 5 |
+| D4 | −9.6 | 16W / 7D / 2L | 5 |
+| D3 | −13.6 | 23W / 7D / 5L | 7 |
+| D2 | −12.7 | 34W / 11D / 5L | 10 |
+| D1 | −25.1 | 59W / 40D / 6L | 21 |
+
+Every career reaches D1 and stays there. Across all four, exactly one relegation
+from D1 occurs (seed 4007919, season 6, arriving at a −48 gap), and that career
+returns the following season and wins the division twice. Seed 4023757 is the
+slow path — relegated from D3 and from D2, reaching D1 only in season 12 — which
+is the variance the ramp is supposed to have.
+
+The entry gap now grows monotonically with the division, −2.7 to −25.1, so each
+promotion is a visibly larger step than the last without any of them being a
+wall. That is the "slowly harder every division" shape the owner asked for.
+
+### Two caveats on these numbers
+
+- **The gap column understates the user.** Heroes are invisible to `squadMean`
+  because a power is not an attribute, and a licensed D1 hero at power tier 3 is
+  worth far more than the four league points one was measured at in D5. Careers
+  winning a division at a negative measured gap are doing it on powers.
+- **D1's first-five record is flattered by its own success.** Once a club stays
+  up, every subsequent season counts as another "entry", so those 21 rows are
+  mostly established seasons rather than arrivals. Read the four genuine first
+  entries instead: 4th, 9th (relegated), 1st, 1st.
+
+## Verification
+
+- `npx tsc --noEmit` — clean, exit status checked directly
+- `npm test` — 249 suites, 2064 tests passed, 1 skipped (one fewer than before:
+  the D4 relegation-pack test was deleted with the feature)
+- `ENGINE_VERSION` remains `m2.0`; `src/sim/` untouched throughout

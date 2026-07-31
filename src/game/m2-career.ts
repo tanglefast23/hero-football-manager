@@ -3,7 +3,6 @@ import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { roleOverall } from './archetype-caps';
 import {
   advanceNationalCup,
-  applyDivisionFourRelegationPack,
   createNationalCup,
   generateLeaguePyramid,
   resolvePromotionAndRelegation,
@@ -442,12 +441,6 @@ export function planEndlessCareerSeasonTransition(
     },
   };
   const division = currentUserDivision(advancedState);
-  if (division === 4) {
-    advancedState = {
-      ...advancedState,
-      pyramid: applyDivisionFourRelegationPack(advancedState.pyramid, state.userClubId),
-    };
-  }
   const currentClubs = advancedState.pyramid.divisions
     .find(candidate => candidate.level === division)!.clubs;
   const userClub = currentClubs.find(club => club.id === state.userClubId)!;

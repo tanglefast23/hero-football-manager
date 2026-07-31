@@ -3,7 +3,6 @@ import { createCareer, startNextSeason } from '../career';
 import { enableFullCareer } from '../full-career';
 import { clubSquadStrength, currentUserDivision } from '../m2-career';
 import {
-  DIVISION_FOUR_RELEGATION_PACK_STRENGTHS,
   DIVISION_STRENGTH_BANDS,
   tuneSquadToStrength,
 } from '../pyramid';
@@ -149,7 +148,7 @@ describe('full M2 career clock', () => {
   });
 
   test.each([78_003, 78_004, 78_005])(
-    'gives a sensibly prepared promoted club two D4 relegation rivals while preserving the real step above them (seed %i)',
+    'lands a sensibly prepared promoted club just behind a coherent D4 field (seed %i)',
     careerSeed => {
       const initial = createCareer({ ...createLaunchCareerSetup(careerSeed) });
       const userPlayers = initial.players.filter(player => player.clubId === initial.userClubId);
@@ -168,32 +167,26 @@ describe('full M2 career clock', () => {
           clubId: club.id,
           strength: effectiveStartingElevenStrength(promoted, club.id),
         }));
-      const weakestFirst = opponentStrengths.slice().sort((left, right) => (
-        left.strength - right.strength || left.clubId.localeCompare(right.clubId)
-      ));
-      const minnows = weakestFirst.slice(0, 2);
-      const established = weakestFirst.slice(2);
-      const strongestMinnow = Math.max(...minnows.map(club => club.strength));
-      const weakestEstablished = Math.min(...established.map(club => club.strength));
+      const ranked = opponentStrengths.map(club => club.strength).sort((left, right) => left - right);
+      const weakestOpponent = ranked[0];
+      const medianOpponent = ranked[Math.floor(ranked.length / 2)];
 
       expect(currentUserDivision(promoted.m2!)).toBe(4);
       expect(userStrength).toBeGreaterThanOrEqual(45);
       expect(userStrength).toBeLessThanOrEqual(48);
-      expect(minnows).toHaveLength(2);
-      expect(strongestMinnow).toBeLessThanOrEqual(49);
-      // The D4 band is a whole-squad value; its selected XI can sit four points
-      // lower. Pin both that projection and the actual bridge.
-      expect(weakestEstablished)
-        .toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[4][0] - 4);
-      // The bridge used to be pinned at 35, which was really pinning D4's old
-      // shape: two minnows and a wall 50 points above them, with nothing in
-      // between. That is what parked careers at 8th on exactly 12 points a
-      // season — four wins, the pack home and away. With the ladder's steps
-      // reversed the pack now sits just under a reachable band, so assert a
-      // step exists without re-pinning the gulf.
-      expect(weakestEstablished - strongestMinnow).toBeGreaterThanOrEqual(
-        DIVISION_STRENGTH_BANDS[4][0] - Math.max(...DIVISION_FOUR_RELEGATION_PACK_STRENGTHS) - 5,
-      );
+      // This test used to assert two relegation minnows and a 35-point gulf up
+      // to the rest. That gulf WAS the defect: a promoted club could beat the
+      // pack home and away for twelve points and nothing else all season. The
+      // pack was removed on 2026-07-31, so D4 is now one continuum — the club
+      // promoted alongside the user, six band clubs, and two relegated D3 sides.
+      //
+      // Nothing is manufactured below the newcomer. The weakest side is the
+      // fellow promoted club, a genuine peer rather than a gift.
+      expect(weakestOpponent).toBeGreaterThan(userStrength - 5);
+      // The user still arrives behind the field. The band is a whole-squad
+      // value and a selected XI can sit four points under it.
+      expect(userStrength).toBeLessThan(medianOpponent);
+      expect(medianOpponent).toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[4][0] - 4);
       // The strongest club's XI clears its band because selection takes the best
       // eleven of sixteen and three of those are position specialists. The old
       // rail of band-top + 1 only held because `matchAttribute` compresses

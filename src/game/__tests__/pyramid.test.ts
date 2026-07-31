@@ -1,12 +1,10 @@
 import type { Attrs } from '../../sim/types';
 import {
   advanceNationalCup,
-  applyDivisionFourRelegationPack,
   applyLowMoraleToStat,
   boostLegacyYouthAttributes,
   createLegendLegacy,
   createNationalCup,
-  DIVISION_FOUR_RELEGATION_PACK_STRENGTHS,
   DIVISION_GOALKEEPER_REF_RATINGS,
   DIVISION_STAR_FOCUS_RATINGS,
   DIVISION_SUPPORT_STRENGTHS,
@@ -126,17 +124,22 @@ describe('five-division pyramid generation', () => {
     const globalLeague = pyramid.divisions.find(division => division.level === 1)!;
     const districtLeague = pyramid.divisions.find(division => division.level === 5)!;
 
-    // Rebalanced 2026-07-31 so the ladder's steps grow as it climbs rather than
-    // shrink; D5 and D1 are the fixed endpoints. See DIVISION_STRENGTH_BANDS.
-    expect(DIVISION_SUPPORT_STRENGTHS).toEqual({ 1: 214, 2: 123, 3: 77, 4: 54, 5: 40 });
-    expect(DIVISION_TYPICAL_PACE).toEqual({ 1: 216, 2: 140, 3: 102, 4: 83, 5: 72 });
-    expect(DIVISION_STAR_FOCUS_RATINGS).toEqual({ 1: 442, 2: 252, 3: 159, 4: 111, 5: 94 });
-    expect(DIVISION_GOALKEEPER_REF_RATINGS).toEqual({ 1: 376, 2: 214, 3: 135, 4: 94, 5: 80 });
-    expect(divisionStarFocusedAttribute(1, 85)).toBe(442);
+    // Rebalanced 2026-07-31: D4 -> D3 and D3 -> D2 are 1.20x, the widest step a
+    // promoted club can consolidate in the one season promotion buys. D5 and D1
+    // are the fixed endpoints. See DIVISION_STRENGTH_BANDS.
+    expect(DIVISION_SUPPORT_STRENGTHS).toEqual({ 1: 103, 2: 77, 3: 65, 4: 54, 5: 40 });
+    expect(DIVISION_TYPICAL_PACE).toEqual({ 1: 112, 2: 102, 3: 92, 4: 83, 5: 72 });
+    expect(DIVISION_STAR_FOCUS_RATINGS).toEqual({ 1: 212, 2: 159, 3: 133, 4: 111, 5: 94 });
+    expect(DIVISION_GOALKEEPER_REF_RATINGS).toEqual({ 1: 180, 2: 135, 3: 113, 4: 94, 5: 80 });
+    expect(divisionStarFocusedAttribute(1, 85)).toBe(DIVISION_STAR_FOCUS_RATINGS[1]);
+    // Derived from the star table, not a literal: three specialists carry each
+    // club and the other thirteen sit at support level, whatever the ladder's
+    // absolute scale happens to be.
+    const starFloor = DIVISION_STAR_FOCUS_RATINGS[1] - 10;
     for (const club of globalLeague.clubs) {
-      expect(club.squad.filter(player => Math.max(...Object.values(player.attrs)) > 400))
+      expect(club.squad.filter(player => Math.max(...Object.values(player.attrs)) > starFloor))
         .toHaveLength(3);
-      expect(club.squad.filter(player => Math.max(...Object.values(player.attrs)) <= 400))
+      expect(club.squad.filter(player => Math.max(...Object.values(player.attrs)) <= starFloor))
         .toHaveLength(13);
       expect(club.squad.some(player => player.role === 'FWD' && player.attrs.pac > 99)).toBe(true);
     }
@@ -150,54 +153,17 @@ describe('five-division pyramid generation', () => {
         club.squad.flatMap(player => Object.values(player.attrs))
       )),
     );
-    expect(districtMaximum).toBeLessThan(160);
-    expect(globalMaximum).toBeGreaterThan(400);
+    expect(districtMaximum).toBeLessThan(DIVISION_STAR_FOCUS_RATINGS[5] + 66);
+    expect(globalMaximum).toBeGreaterThan(DIVISION_STAR_FOCUS_RATINGS[1] - 10);
     const medianPace = (club: (typeof globalLeague.clubs)[number]) => (
       club.squad.map(player => player.attrs.pac).sort((left, right) => left - right)[8]
     );
-    expect(globalLeague.clubs.every(club => medianPace(club) >= 214 && medianPace(club) <= 219))
-      .toBe(true);
+    const globalPace = DIVISION_TYPICAL_PACE[1];
+    expect(globalLeague.clubs.every(club => (
+      medianPace(club) >= globalPace - 2 && medianPace(club) <= globalPace + 3
+    ))).toBe(true);
     expect(districtLeague.clubs.every(club => medianPace(club) >= 65 && medianPace(club) <= 75))
       .toBe(true);
-  });
-
-  it('deterministically installs two D4 relegation clubs without weakening its middle, top, or other divisions', () => {
-    const pyramid = generateLeaguePyramid(20260723);
-    const divisionFour = pyramid.divisions.find(division => division.level === 4)!;
-    const userClub = divisionFour.clubs.slice()
-      .sort((left, right) => right.squadStrength - left.squadStrength || left.id.localeCompare(right.id))[0];
-    const expectedMinnowIds = divisionFour.clubs
-      .filter(club => club.id !== userClub.id)
-      .slice()
-      .sort((left, right) => left.squadStrength - right.squadStrength || left.id.localeCompare(right.id))
-      .slice(0, 2)
-      .map(club => club.id);
-    const before = JSON.stringify(pyramid);
-
-    const first = applyDivisionFourRelegationPack(pyramid, userClub.id);
-    const second = applyDivisionFourRelegationPack(pyramid, userClub.id);
-    const prepared = first.divisions.find(division => division.level === 4)!;
-    const minnowIds = prepared.clubs
-      .filter(club => DIVISION_FOUR_RELEGATION_PACK_STRENGTHS.some(
-        strength => strength === club.squadStrength,
-      ))
-      .sort((left, right) => left.squadStrength - right.squadStrength)
-      .map(club => club.id);
-
-    expect(JSON.stringify(first)).toBe(JSON.stringify(second));
-    expect(JSON.stringify(pyramid)).toBe(before);
-    expect(minnowIds).toEqual(expectedMinnowIds);
-    expect(prepared.clubs.filter(club => expectedMinnowIds.includes(club.id))
-      .map(club => club.squadStrength).sort((left, right) => left - right))
-      .toEqual(DIVISION_FOUR_RELEGATION_PACK_STRENGTHS);
-    expect(Math.max(...prepared.clubs.map(club => club.squadStrength)))
-      .toBe(DIVISION_STRENGTH_BANDS[4][1]);
-    for (const division of first.divisions.filter(candidate => candidate.level !== 4)) {
-      expect(division).toEqual(pyramid.divisions.find(candidate => candidate.level === division.level));
-    }
-    for (const club of prepared.clubs.filter(candidate => !expectedMinnowIds.includes(candidate.id))) {
-      expect(club).toEqual(divisionFour.clubs.find(candidate => candidate.id === club.id));
-    }
   });
 });
 

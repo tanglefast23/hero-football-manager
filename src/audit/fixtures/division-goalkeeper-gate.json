@@ -4,9 +4,9 @@
   "matchesPerDivision": 100,
   "matchSeedStride": 7919,
   "ratings": {
-    "1": 376,
-    "2": 214,
-    "3": 135,
+    "1": 180,
+    "2": 135,
+    "3": 113,
     "4": 94,
     "5": 80
   },
@@ -22,22 +22,22 @@
   },
   "divisions": {
     "1": {
-      "goals": 460,
-      "saves": 656,
-      "goalsPerMatch": 4.6,
-      "saveRate": 0.5878136200716846
+      "goals": 398,
+      "saves": 646,
+      "goalsPerMatch": 3.98,
+      "saveRate": 0.6187739463601533
     },
     "2": {
-      "goals": 444,
-      "saves": 615,
-      "goalsPerMatch": 4.44,
-      "saveRate": 0.5807365439093485
+      "goals": 435,
+      "saves": 593,
+      "goalsPerMatch": 4.35,
+      "saveRate": 0.5768482490272373
     },
     "3": {
-      "goals": 425,
-      "saves": 603,
-      "goalsPerMatch": 4.25,
-      "saveRate": 0.5865758754863813
+      "goals": 385,
+      "saves": 586,
+      "goalsPerMatch": 3.85,
+      "saveRate": 0.6035015447991761
     },
     "4": {
       "goals": 381,

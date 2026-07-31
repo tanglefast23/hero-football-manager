@@ -194,39 +194,53 @@ const SQUAD_ROLES: readonly Role[] = [
  * two clubs sat at exactly 8th on exactly 12 points for six seasons, the four
  * wins being the relegation pack home and away.
  *
- * The steps now grow instead: 1.31x, 1.44x, 1.59x, 1.74x — roughly 2.8, 3.9,
- * 4.9 and 5.8 seasons — so the last division is the wall and the first is a
- * ramp. D5 and D1 are untouched, which keeps the total climb, the opening
- * tutorial balance, and D1's rating scale exactly as they were; only the three
- * middle bands move.
+ * Reversing those steps to 1.31x, 1.44x, 1.59x, 1.74x got careers moving but
+ * left them oscillating: measured over twelve seasons, three of four bounced
+ * between D3 and D4 for the whole budget. A promotion only buys one season
+ * before the next relegation vote, and one season is 1.10x, so any step much
+ * above 1.2x cannot be consolidated — a club that just won D4 is under-strength
+ * for D3 by construction, drops, dominates D4 again, and repeats.
+ *
+ * D4 -> D3 and D3 -> D2 are therefore both 1.20x, a shade under two seasons
+ * each, which is the widest step a promoted club can hold.
+ *
+ * D1 came down too, and had to. Holding it at [223, 248] made D2 -> D1 a 2.77x
+ * step, and measured over twelve seasons that was not a long climb but a
+ * divergent one: opponent growth compounds at 3% a season, so D1's field read
+ * 259, 275, 292, 310 across one career's four visits while its own squad
+ * oscillated around 110. Every D1 season finished 9th and relegated. D1 is now
+ * 1.33x above D2 — three seasons of growth, the endgame the ladder was always
+ * described as having. Its raw ratings are much smaller, which costs nothing:
+ * the contest reads ratios, and `matchAttribute` was compressing most of the
+ * old headroom away before it reached the pitch.
  */
 export const DIVISION_STRENGTH_BANDS: Readonly<
   Record<DivisionLevel, readonly [minimum: number, maximum: number]>
 > = {
-  1: [223, 248],
-  2: [127, 143],
-  3: [80, 90],
+  1: [107, 120],
+  2: [80, 90],
+  3: [67, 75],
   4: [55, 63],
   5: [40, 50],
 };
 /**
  * Most players improve modestly between divisions while three position
  * specialists carry each generated club's extra strength. That shape keeps a
- * generated club recognisable — a few standouts among ordinary teammates — and
- * prevents every D1 sprite from moving at elite pace.
+ * generated club recognisable — a few standouts among ordinary teammates —
+ * rather than a uniform wall of elite ratings.
  */
 export const DIVISION_SUPPORT_STRENGTHS: Readonly<Record<DivisionLevel, number>> = {
-  1: 214,
-  2: 123,
-  3: 77,
+  1: 103,
+  2: 77,
+  3: 65,
   4: 54,
   5: 40,
 };
 /** Honest raw focus ratings for each division's DEF/MID/FWD specialist. */
 export const DIVISION_STAR_FOCUS_RATINGS: Readonly<Record<DivisionLevel, number>> = {
-  1: 442,
-  2: 252,
-  3: 159,
+  1: 212,
+  2: 159,
+  3: 133,
   4: 111,
   5: 94,
 };
@@ -236,35 +250,39 @@ export const DIVISION_STAR_FOCUS_RATINGS: Readonly<Record<DivisionLevel, number>
  * edge, while staying high enough to prevent every peer match becoming a rout.
  */
 export const DIVISION_GOALKEEPER_REF_RATINGS: Readonly<Record<DivisionLevel, number>> = {
-  1: 376,
-  2: 214,
-  3: 135,
+  1: 180,
+  2: 135,
+  3: 113,
   4: 94,
   5: 80,
 };
 /**
  * A typical full-condition player's visual pace by division. PAC is part of
  * `roleOverall`, so this table has to climb with the strength bands or a
- * division ends up slower than the one below it. D5's 72 and D1's 216 are the
- * fixed endpoints and the middle three interpolate between them across the new
- * band midpoints, which keeps every division's look unchanged at the two ends
- * of the pyramid.
+ * division ends up slower than the one below it — leaving D3 fast while its
+ * band fell would squeeze its other five stats below D4's and invert the
+ * pyramid in everything except speed.
+ *
+ * D5's 72 is the fixed endpoint and each division above adds about ten. The
+ * old note here claimed D1 had to sit at 216 so universal-max PAC 999 stayed
+ * inside a 2x speed rail; that is not a real constraint. The pace curve is
+ * nearly flat — speed(999) is 146.9 against speed(112) at 116.9 — so the ratio
+ * only reaches 2x at pac 1.
  */
 export const DIVISION_TYPICAL_PACE: Readonly<Record<DivisionLevel, number>> = {
-  1: 216,
-  2: 140,
-  3: 102,
+  1: 112,
+  2: 102,
+  3: 92,
   4: 83,
   5: 72,
 };
 const GENERATED_STAR_SLOTS = new Set([2, 7, 12]);
-/**
- * Two survivable opponents installed for the user's first D4 season. These
- * relegation strugglers sit below a promoted D5 champion so an ordinary
- * pre-season can produce a real survival edge; D4's established 90–102
- * middle/top and relegated D3 giants stay untouched.
- */
-export const DIVISION_FOUR_RELEGATION_PACK_STRENGTHS = [39, 40] as const;
+// Removed 2026-07-31: D4 used to install two clubs at strength 39 and 40 so a
+// promoted D5 champion had something it could beat. That crutch was sized for a
+// 90–102 band the club arrived 45 points below. Against the current [55,63] it
+// was two free wins that dragged the field mean down about four points, and the
+// measured effect was a division the user re-entered at a POSITIVE gap after
+// every relegation. The whole division is survivable now, so the pack is not.
 const ARCHETYPES: readonly PlayerArchetype[] = [
   'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
 ];
@@ -324,58 +342,6 @@ export function generateLeaguePyramid(careerSeed: number): LeaguePyramid {
   }
 
   return { careerSeed, divisions };
-}
-
-/**
- * Retunes only the two weakest non-user D4 clubs into the division's
- * relegation pack. The selected club IDs are stable for identical pyramid
- * state, and every other club and division keeps its authored strength.
- */
-export function applyDivisionFourRelegationPack(
-  pyramid: LeaguePyramid,
-  userClubId: string,
-): LeaguePyramid {
-  validatePyramid(pyramid);
-  const division = pyramid.divisions.find(candidate => candidate.level === 4)!;
-  if (!division.clubs.some(club => club.id === userClubId)) {
-    throw new Error(`user club ${userClubId} must be in Division 4 for its relegation pack`);
-  }
-  const selected = division.clubs
-    .filter(club => club.id !== userClubId)
-    .slice()
-    .sort((left, right) => (
-      left.squadStrength - right.squadStrength
-      || stableIdCompare(left.id, right.id)
-    ))
-    .slice(0, DIVISION_FOUR_RELEGATION_PACK_STRENGTHS.length);
-  if (selected.length !== DIVISION_FOUR_RELEGATION_PACK_STRENGTHS.length) {
-    throw new Error('Division 4 requires two non-user clubs for its relegation pack');
-  }
-  const targetByClubId = new Map(selected.map((club, index) => (
-    [club.id, DIVISION_FOUR_RELEGATION_PACK_STRENGTHS[index]] as const
-  )));
-
-  return {
-    ...pyramid,
-    divisions: pyramid.divisions.map(candidate => candidate.level !== 4
-      ? candidate
-      : {
-          ...candidate,
-          clubs: candidate.clubs.map(club => {
-            const targetStrength = targetByClubId.get(club.id);
-            if (targetStrength === undefined) return club;
-            if (club.squad.length === 0) {
-              throw new Error(`Division 4 relegation club ${club.id} has no squad`);
-            }
-            const squad = tuneRelegationPackSquad(club.squad, targetStrength);
-            return {
-              ...club,
-              squadStrength: averageSquadStrength(squad),
-              squad,
-            };
-          }),
-        }),
-  };
 }
 
 /** Resolves top-two promotion and bottom-two relegation without changing squad strength. */
@@ -851,38 +817,6 @@ function tuneGeneratedSquadToStrength(
   }
   if (averageSquadStrength(tuned) !== targetStrength) {
     throw new Error(`could not tune generated Division ${division} club to ${targetStrength}`);
-  }
-  return tuned;
-}
-
-/**
- * The safety pack is a whole-club exception, not an ordinary D4 generator
- * target. Scale PAC, specialists and keeper REF with the rest of the squad so
- * its displayed safety-pack strength is also the team that reaches the match
- * engine.
- */
-function tuneRelegationPackSquad(
-  squad: readonly PyramidPlayer[],
-  targetStrength: number,
-): PyramidPlayer[] {
-  if (squad.length === 0) throw new Error('cannot tune an empty relegation-pack squad');
-  const startingStrength = averageSquadStrength(squad);
-  let tuned = squad.map(player => ({
-    ...clonePlayer(player),
-    attrs: mapAttrs(player.attrs, value => clampRating(
-      Math.round(value * targetStrength / startingStrength),
-    )),
-  }));
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const delta = targetStrength - averageSquadStrength(tuned);
-    if (delta === 0) return tuned;
-    tuned = tuned.map(player => ({
-      ...player,
-      attrs: mapAttrs(player.attrs, value => clampRating(value + delta)),
-    }));
-  }
-  if (averageSquadStrength(tuned) !== targetStrength) {
-    throw new Error(`could not tune Division 4 relegation club to ${targetStrength}`);
   }
   return tuned;
 }

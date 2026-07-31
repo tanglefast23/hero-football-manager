@@ -17,7 +17,7 @@ import {
 } from '../m2-career';
 import { difficultyRules } from '../difficulty';
 import type { NationalCupResult } from '../pyramid';
-import { DIVISION_FOUR_RELEGATION_PACK_STRENGTHS, DIVISION_STRENGTH_BANDS } from '../pyramid';
+import { DIVISION_STRENGTH_BANDS } from '../pyramid';
 import { roleOverall } from '../archetype-caps';
 
 const USER_CLUB = { id: 'my-club', name: 'Caped Ball FC', squadStrength: 46 };
@@ -346,30 +346,27 @@ describe('M2 promotion and endless season planning', () => {
     expect(plan.generatedOpponentClubs).toHaveLength(9);
     expect(plan.generatedOpponentPlayers).toHaveLength(144);
     expect(plan.generatedOpponentClubs.every(club => club.squad.length === 16)).toBe(true);
-    const minnowIds = new Set(plan.generatedOpponentClubs
-      .filter(club => DIVISION_FOUR_RELEGATION_PACK_STRENGTHS.some(
-        strength => strength === club.squadStrength,
-      ))
-      .map(club => club.id));
-    expect([...minnowIds]).toHaveLength(2);
-    expect(plan.generatedOpponentClubs.filter(club => minnowIds.has(club.id))
-      .map(club => club.squadStrength).sort((left, right) => left - right))
-      .toEqual(DIVISION_FOUR_RELEGATION_PACK_STRENGTHS);
+    // Every D4 opponent is now an ordinary band club. The two-club relegation
+    // pack was removed on 2026-07-31: it was sized for a band the promoted club
+    // arrived 45 points below, and against the current one it was two free wins.
     for (const opponent of plan.generatedOpponentClubs) {
       const unscaled = promoted.state.pyramid.divisions[3].clubs.find(club => club.id === opponent.id)!;
-      if (!minnowIds.has(opponent.id)) {
-        expect(opponent.squadStrength).toBeGreaterThan(unscaled.squadStrength);
-        expect(opponent.squad[0].attrs.pac).toBeGreaterThanOrEqual(
-          Math.floor(unscaled.squad[0].attrs.pac * 1.03),
-        );
-      }
+      expect(opponent.squadStrength).toBeGreaterThan(unscaled.squadStrength);
+      expect(opponent.squad[0].attrs.pac).toBeGreaterThanOrEqual(
+        Math.floor(unscaled.squad[0].attrs.pac * 1.03),
+      );
     }
     // Derived from the band rather than pinned as literals, so rebalancing the
     // ladder cannot leave these silently describing a division that moved.
     const [d4Floor, d4Ceiling] = DIVISION_STRENGTH_BANDS[4];
-    expect(Math.min(...plan.generatedOpponentClubs
-      .filter(club => !minnowIds.has(club.id))
-      .map(club => club.squadStrength))).toBeGreaterThanOrEqual(d4Floor);
+    const ranked = plan.generatedOpponentClubs
+      .map(club => club.squadStrength)
+      .sort((left, right) => left - right);
+    // The weakest side is the club promoted alongside the user, which carries
+    // its D5 strength up rather than being retuned, so read the median for the
+    // division's own level and only require the floor to clear D5's.
+    expect(ranked[Math.floor(ranked.length / 2)]).toBeGreaterThanOrEqual(d4Floor);
+    expect(ranked[0]).toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[5][0]);
     expect(Math.max(...plan.generatedOpponentClubs.map(club => club.squadStrength)))
       .toBeGreaterThanOrEqual(d4Ceiling - 2);
     expect(Math.max(...plan.generatedOpponentClubs.map(club => club.squadStrength)))

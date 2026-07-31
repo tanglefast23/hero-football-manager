@@ -42,6 +42,7 @@ import {
   resolveTrainingDrillForPath,
   roleOverall,
   selectCareerLicensedHeroes,
+  setCareerLineup,
   startNextSeason,
   trainPlayerInstantly,
   type GameState,
@@ -308,16 +309,82 @@ function awakenHero(
   return next.awakening.pending === undefined ? next : completePostMatchAwakening(next);
 }
 
+/**
+ * A career awakens more heroes than the Hero License caps, and the surplus may
+ * neither start nor hold a licence. Two rules, in this order:
+ *
+ * 1. Spend the licences on players who are actually in the eleven. Preferring
+ *    whoever was licensed first strands a newly awakened starter without one,
+ *    and `buildTeamDef` then refuses the eleven mid-season.
+ * 2. Bench any powered starter still unlicensed after that.
+ *
+ * This is a policy gap rather than a game defect — production was correctly
+ * rejecting an eleven the probe built — and it only bites past season seven,
+ * which is why shorter budgets never saw it.
+ */
 function licenseHeroes(state: GameState): GameState {
   const powered = state.players.filter(player => (
     player.clubId === state.userClubId && player.power !== undefined
   ));
   if (powered.length === 0) return state;
+  const starting = new Set(
+    state.lineups.find(candidate => candidate.clubId === state.userClubId)?.playerIds ?? [],
+  );
+  const wanted = [...powered]
+    .sort((left, right) => Number(starting.has(right.id)) - Number(starting.has(left.id)))
+    .slice(0, careerHeroLimit(state))
+    .map(player => player.id);
   const licensed = powered.filter(player => player.licensed).map(player => player.id);
-  const wanted = [...licensed, ...powered.filter(player => !player.licensed).map(player => player.id)]
-    .slice(0, careerHeroLimit(state));
-  if (wanted.length === licensed.length) return state;
-  return selectCareerLicensedHeroes(state, wanted);
+  const unchanged = wanted.length === licensed.length
+    && wanted.every(playerId => licensed.includes(playerId));
+  return benchUnlicensedHeroes(
+    unchanged ? state : selectCareerLicensedHeroes(state, wanted),
+  );
+}
+
+/** Swaps unlicensed powered starters out one at a time, trying every legal substitute. */
+function benchUnlicensedHeroes(state: GameState): GameState {
+  let current = state;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const lineup = current.lineups.find(candidate => candidate.clubId === current.userClubId);
+    if (lineup === undefined) return current;
+    const roster = current.players.filter(player => player.clubId === current.userClubId);
+    const byId = new Map(roster.map(player => [player.id, player]));
+    const slot = lineup.playerIds.findIndex(playerId => {
+      const player = byId.get(playerId);
+      return player !== undefined && player.power !== undefined && !player.licensed;
+    });
+    if (slot === -1) return current;
+
+    const starter = byId.get(lineup.playerIds[slot])!;
+    const selected = new Set(lineup.playerIds);
+    const eligible = roster.filter(candidate => (
+      !selected.has(candidate.id)
+      && candidate.injuryWeeks === 0
+      && candidate.power === undefined
+      && (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK')
+    ));
+    // Same role first so the formation survives the swap.
+    const ordered = [
+      ...eligible.filter(candidate => candidate.role === starter.role),
+      ...eligible.filter(candidate => candidate.role !== starter.role),
+    ];
+
+    let applied: GameState | undefined;
+    for (const replacement of ordered) {
+      const playerIds = [...lineup.playerIds];
+      playerIds[slot] = replacement.id;
+      try {
+        applied = setCareerLineup(current, playerIds);
+        break;
+      } catch {
+        continue; // a contract promise pins this substitute; try the next
+      }
+    }
+    if (applied === undefined) return current; // nothing legal to swap in
+    current = applied;
+  }
+  return current;
 }
 
 /**
