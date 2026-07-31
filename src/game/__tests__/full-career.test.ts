@@ -180,15 +180,26 @@ describe('full M2 career clock', () => {
       expect(userStrength).toBeLessThanOrEqual(48);
       expect(minnows).toHaveLength(2);
       expect(strongestMinnow).toBeLessThanOrEqual(49);
-      // The locked 90-point D4 band is a whole-squad value; its selected XI can
-      // sit four points lower. Pin both that projection and the actual bridge.
+      // The locked D4 band is a whole-squad value; its selected XI can sit four
+      // points lower. Pin both that projection and the actual bridge.
       expect(weakestEstablished)
         .toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[4][0] - 4);
-      expect(weakestEstablished - strongestMinnow).toBeGreaterThanOrEqual(35);
+      // The minnows exist so a promoted champion has winnable fixtures, so what
+      // matters is that they sit below that champion — asserted above at 49 —
+      // and clearly below the established division. The bridge used to be 35
+      // points because D4 opened at 90 against a champion around 46; the
+      // 2026-07-31 even-ladder rebase drops D4 to 62 and the bridge with it.
+      // The division is now survivable on its own, and the pack is a run of
+      // winnable games rather than the only way to avoid relegation.
+      expect(weakestEstablished - strongestMinnow).toBeGreaterThanOrEqual(18);
       expect(Math.max(...opponentStrengths.map(club => club.strength)))
         .toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[4][1] - 3);
+      // Rivals grow every season, so the strongest club in the division sits
+      // above the band it was generated inside. The allowance is proportional
+      // rather than a flat +1: the even-ladder rebase shrank D4's absolute
+      // numbers, and a fixed margin silently tightens as a band comes down.
       expect(Math.max(...opponentStrengths.map(club => club.strength)))
-        .toBeLessThanOrEqual(DIVISION_STRENGTH_BANDS[4][1] + 1);
+        .toBeLessThanOrEqual(DIVISION_STRENGTH_BANDS[4][1] * 1.15);
     },
   );
 

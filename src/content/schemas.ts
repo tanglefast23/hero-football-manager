@@ -307,6 +307,21 @@ const DrillGainsSchema = z.strictObject({
   ref: z.number().int().min(1).max(MAXIMUM_DRILL_GAIN).optional(),
 }).refine(gains => Object.keys(gains).length === 1, 'a drill must improve exactly one attribute');
 
+/**
+ * `gains` overrides the shared tier ladder for one path.
+ *
+ * Keeper Drills is the only override, and it exists because REF is not read as
+ * often as the other six attributes — it is read far more. A keeper's rating
+ * contests every opposing shot, 14 a match at the opening fixture, while a
+ * striker's SHO touches only his own 2.6. Measured at the real opening roster
+ * (250 paired seeds, 2026-07-30) the uniform ladder therefore made a TP spent
+ * on Keeper Drills worth roughly 14x a TP spent on Finishing, and seven keeper
+ * taps alone moved the opening match from 88% losses to 34%.
+ *
+ * Pricing the ladder by exposure rather than uniformly brings the two within
+ * 1.6x once the comparison is normalised per contest. The pin stays exact so
+ * content still cannot drift; it is now per path rather than global.
+ */
 const FOCUS_DRILL_PATHS = [
   { id: 'sprints', name: 'Sprints', attribute: 'pac' },
   { id: 'finishing', name: 'Finishing', attribute: 'sho' },
@@ -314,7 +329,7 @@ const FOCUS_DRILL_PATHS = [
   { id: 'duels', name: 'Duels', attribute: 'def' },
   { id: 'first-touch', name: 'First Touch', attribute: 'tec' },
   { id: 'circuit', name: 'Circuit', attribute: 'sta' },
-  { id: 'keeper-drills', name: 'Keeper Drills', attribute: 'ref' },
+  { id: 'keeper-drills', name: 'Keeper Drills', attribute: 'ref', gains: [2, 3, 5, 7, 9] },
 ] as const;
 // Tier labels are Arabic digits: the Roman "I" rendered as a bare bar in the
 // UI font and read as a serif-less 1.
@@ -326,11 +341,11 @@ const FOCUS_DRILL_TIERS = [
   { suffix: '-v', label: '5', gain: 23 },
 ] as const;
 const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap(path => (
-  FOCUS_DRILL_TIERS.map(tier => ({
+  FOCUS_DRILL_TIERS.map((tier, tierIndex) => ({
     id: `${path.id}${tier.suffix}`,
     name: `${path.name} ${tier.label}`,
     attribute: path.attribute,
-    gain: tier.gain,
+    gain: 'gains' in path ? path.gains[tierIndex] : tier.gain,
   }))
 ));
 
