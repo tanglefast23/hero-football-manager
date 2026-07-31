@@ -31,10 +31,10 @@
     { "id": "circuit-iii", "name": "Circuit 3", "moneyCost": 0, "tpCost": 21, "gains": { "sta": 12 } },
     { "id": "circuit-iv", "name": "Circuit 4", "moneyCost": 0, "tpCost": 28, "gains": { "sta": 17 } },
     { "id": "circuit-v", "name": "Circuit 5", "moneyCost": 0, "tpCost": 36, "gains": { "sta": 23 } },
-    { "id": "keeper-drills", "name": "Keeper Drills 1", "moneyCost": 0, "tpCost": 10, "gains": { "ref": 5 } },
-    { "id": "keeper-drills-ii", "name": "Keeper Drills 2", "moneyCost": 0, "tpCost": 15, "gains": { "ref": 8 } },
-    { "id": "keeper-drills-iii", "name": "Keeper Drills 3", "moneyCost": 0, "tpCost": 21, "gains": { "ref": 12 } },
-    { "id": "keeper-drills-iv", "name": "Keeper Drills 4", "moneyCost": 0, "tpCost": 28, "gains": { "ref": 17 } },
-    { "id": "keeper-drills-v", "name": "Keeper Drills 5", "moneyCost": 0, "tpCost": 36, "gains": { "ref": 23 } }
+    { "id": "keeper-drills", "name": "Keeper Drills 1", "moneyCost": 0, "tpCost": 10, "gains": { "ref": 2 } },
+    { "id": "keeper-drills-ii", "name": "Keeper Drills 2", "moneyCost": 0, "tpCost": 15, "gains": { "ref": 3 } },
+    { "id": "keeper-drills-iii", "name": "Keeper Drills 3", "moneyCost": 0, "tpCost": 21, "gains": { "ref": 5 } },
+    { "id": "keeper-drills-iv", "name": "Keeper Drills 4", "moneyCost": 0, "tpCost": 28, "gains": { "ref": 7 } },
+    { "id": "keeper-drills-v", "name": "Keeper Drills 5", "moneyCost": 0, "tpCost": 36, "gains": { "ref": 9 } }
   ]
 }

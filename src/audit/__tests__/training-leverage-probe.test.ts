@@ -38,6 +38,14 @@ function positiveIntegerEnv(name: string, fallback: number): number {
 const SEEDS = positiveIntegerEnv('LEVERAGE_SEEDS', 300);
 const SEED_START = positiveIntegerEnv('LEVERAGE_SEED_START', 1);
 
+/**
+ * Powers are stripped by default so the arms measure bare stat leverage (repo
+ * probe convention). `LEVERAGE_POWERS=on` keeps them, which is the condition
+ * the recorded 1.89x REF/SHO baseline was measured under — the two numbers
+ * answer different questions and the header quotes both.
+ */
+const KEEP_POWERS = process.env.LEVERAGE_POWERS === 'on';
+
 type MutableTeam = TeamDef & { players: Array<{ id: string; attrs: Record<string, number>; power?: PowerId }> };
 
 function mirror(tag: string): TeamDef {
@@ -46,8 +54,7 @@ function mirror(tag: string): TeamDef {
   team.name = `${ROVERS.name} ${tag}`;
   for (const player of team.players) {
     player.id = `${player.id}-${tag}`;
-    // Powers stripped so the arms measure bare stat leverage (repo probe convention).
-    player.power = undefined;
+    if (!KEEP_POWERS) player.power = undefined;
   }
   return team;
 }
@@ -110,7 +117,7 @@ describe('training leverage probe', () => {
     const refLift = ref.pts - base.pts;
     const defLift = def.pts - base.pts;
     const shoLift = sho.pts - base.pts;
-    console.log(`LEVERAGE seeds=${SEED_START}..${SEED_START + SEEDS - 1}`);
+    console.log(`LEVERAGE seeds=${SEED_START}..${SEED_START + SEEDS - 1} powers=${KEEP_POWERS ? 'on' : 'off'}`);
     console.log(`LEVERAGE base: pts=${base.pts.toFixed(3)} GF=${base.gf.toFixed(3)} passes=${base.passes.toFixed(1)} shots=${base.shots.toFixed(1)} strikerShare=${(base.trackedShotShare * 100).toFixed(1)}%`);
     console.log(`LEVERAGE REF+24: pts=${ref.pts.toFixed(3)} GA=${ref.ga.toFixed(3)} lift=${refLift.toFixed(3)}`);
     console.log(`LEVERAGE DEF+24: pts=${def.pts.toFixed(3)} GA=${def.ga.toFixed(3)} lift=${defLift.toFixed(3)}`);

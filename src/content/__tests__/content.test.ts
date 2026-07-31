@@ -69,7 +69,19 @@ describe('validated M1 launch content', () => {
       const path = drill.id.replace(/-(ii|iii|iv|v)$/, '');
       drillPaths.set(path, [...(drillPaths.get(path) ?? []), ...Object.values(drill.gains)]);
     }
-    expect([...drillPaths.values()]).toEqual(Array.from({ length: 7 }, () => [5, 8, 12, 17, 23]));
+    // Six paths share the ladder. Keeper Drills is deliberately lower: REF is
+    // contested on every opposing shot, so a uniform ladder priced it at roughly
+    // 14x the value per TP of every other drill. See
+    // docs/superpowers/reports/2026-07-30-real-player-balance-findings.md.
+    expect(Object.fromEntries(drillPaths)).toEqual({
+      sprints: [5, 8, 12, 17, 23],
+      finishing: [5, 8, 12, 17, 23],
+      rondo: [5, 8, 12, 17, 23],
+      duels: [5, 8, 12, 17, 23],
+      'first-touch': [5, 8, 12, 17, 23],
+      circuit: [5, 8, 12, 17, 23],
+      'keeper-drills': [2, 3, 5, 7, 9],
+    });
     expect(content.events.events).toHaveLength(50);
     expect(new Set(content.events.events.map(event => event.category))).toEqual(new Set([
       'mystery',

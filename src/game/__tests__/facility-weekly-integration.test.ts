@@ -91,12 +91,16 @@ describe('facility weekly integration', () => {
     const spendPerWeek = 20;
     const base = BASE_WEEKLY_TRAINING_POINTS - spendPerWeek;
     const withPitch = base + TRAINING_PITCH_TP_PER_LEVEL;
+    // The opening balance is the career's launch grant. Taken from the first
+    // recorded balance rather than retyped, so retuning the grant retunes this
+    // expectation with it — the shape of the climb is what this test owns.
+    const launch = balances[0];
     expect(balances).toEqual([
-      30,
-      30 + base,
-      30 + base * 2,
-      30 + base * 2 + withPitch,
-      30 + base * 2 + withPitch * 2,
+      launch,
+      launch + base,
+      launch + base * 2,
+      launch + base * 2 + withPitch,
+      launch + base * 2 + withPitch * 2,
     ]);
     // Training is TP-only now; no money is ever charged, so no ledger line
     // of kind 'training' is ever recorded.
