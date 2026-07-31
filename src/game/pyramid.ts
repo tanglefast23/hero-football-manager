@@ -182,34 +182,53 @@ const SQUAD_ROLES: readonly Role[] = [
   'MID', 'MID', 'MID', 'MID', 'MID',
   'FWD', 'FWD', 'FWD', 'FWD',
 ];
+/**
+ * The rating band each division's clubs are generated inside.
+ *
+ * Rebased 2026-07-31 so every promotion is the same size of step. The bands used
+ * to climb 2.13x from D5 to D4 and only 1.24x from D2 to D1, which made the
+ * first promotion by far the steepest — at the point in a career where the
+ * manager has the fewest tools to answer it. Measured over four seven-season
+ * careers on the old bands, a club arrived 1 point behind D5's field, 30 behind
+ * D4's, and 89 behind D3's: each rung landed further back than the last, and D3
+ * returned a single point from a whole season.
+ *
+ * The span is unchanged — D5 still opens around 45 and D1 still tops out around
+ * 235 — but the four steps between them are now an equal 1.51x. What a manager
+ * learns surviving one division is what the next one asks of them.
+ *
+ * Every companion table below is rescaled by the same per-division factor, so a
+ * division stays internally consistent: `DIVISION_SUPPORT_STRENGTHS` prices
+ * wages in `market.ts`, and the star, keeper, and pace tables shape the squads
+ * generated inside these bands.
+ */
 export const DIVISION_STRENGTH_BANDS: Readonly<
   Record<DivisionLevel, readonly [minimum: number, maximum: number]>
 > = {
   1: [223, 248],
-  2: [178, 203],
-  3: [135, 151],
-  4: [90, 102],
+  2: [143, 169],
+  3: [93, 113],
+  4: [62, 74],
   5: [40, 50],
 };
 /**
  * Most players improve modestly between divisions while three position
- * specialists carry each generated club's extra strength. This mirrors the
- * player's three weekly training slots and prevents every D1 sprite from
- * moving at elite pace.
+ * specialists carry each generated club's extra strength, which keeps every D1
+ * sprite from moving at elite pace.
  */
 export const DIVISION_SUPPORT_STRENGTHS: Readonly<Record<DivisionLevel, number>> = {
   1: 214,
-  2: 175,
-  3: 130,
-  4: 88,
+  2: 143,
+  3: 94,
+  4: 62,
   5: 40,
 };
 /** Honest raw focus ratings for each division's DEF/MID/FWD specialist. */
 export const DIVISION_STAR_FOCUS_RATINGS: Readonly<Record<DivisionLevel, number>> = {
   1: 442,
-  2: 356,
-  3: 268,
-  4: 180,
+  2: 291,
+  3: 193,
+  4: 128,
   5: 94,
 };
 /**
@@ -219,9 +238,9 @@ export const DIVISION_STAR_FOCUS_RATINGS: Readonly<Record<DivisionLevel, number>
  */
 export const DIVISION_GOALKEEPER_REF_RATINGS: Readonly<Record<DivisionLevel, number>> = {
   1: 376,
-  2: 303,
-  3: 228,
-  4: 153,
+  2: 248,
+  3: 164,
+  4: 108,
   5: 80,
 };
 /**
@@ -230,9 +249,9 @@ export const DIVISION_GOALKEEPER_REF_RATINGS: Readonly<Record<DivisionLevel, num
  */
 export const DIVISION_TYPICAL_PACE: Readonly<Record<DivisionLevel, number>> = {
   1: 216,
-  2: 176,
-  3: 132,
-  4: 90,
+  2: 164,
+  3: 125,
+  4: 95,
   5: 72,
 };
 const GENERATED_STAR_SLOTS = new Set([2, 7, 12]);

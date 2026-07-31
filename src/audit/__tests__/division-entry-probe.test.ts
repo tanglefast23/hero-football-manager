@@ -38,6 +38,7 @@ import {
   playerAttributeCaps,
   POSITION_TRAINING_ATTRIBUTES,
   resolvePostMatchAwakening,
+  nextTrainingUpgradeOffer,
   resolveTrainingDrillForPath,
   roleOverall,
   selectCareerLicensedHeroes,
@@ -45,7 +46,11 @@ import {
   trainPlayerInstantly,
   type GameState,
 } from '../../game';
-import { buildCareerFacility, upgradeCareerFacility } from '../../game/management';
+import {
+  buildCareerFacility,
+  purchaseCareerTrainingUpgrade,
+  upgradeCareerFacility,
+} from '../../game/management';
 import { renewCareerPlayer } from '../../game/squad';
 import { runMatch } from '../../sim/match';
 import type { Attrs } from '../../sim/types';
@@ -146,6 +151,7 @@ function playCareer(seed: number): EntryRow[] {
       if (state.phase === 'manage') {
         state = licenseHeroes(state);
         state = buildFacilities(state);
+        state = buyDrillUpgrades(state);
         state = trainWholeBank(state);
         state = advanceWeek(state);
         continue;
@@ -236,22 +242,44 @@ function playMatchday(state: GameState): {
   const userFixture = matchday.fixtures.find(fixture => (
     fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId
   ));
+  // A matchday the user sits out is real — a cup round they are not in — and
+  // contributes no result rather than a 0-0.
   if (userFixture === undefined) return { state: played, goalDifference: 0 };
 
-  const settled = played.fixtures.find(fixture => fixture.id === userFixture.id);
-  const score = settled?.score;
   const isHome = userFixture.homeClubId === state.userClubId;
-  const goalsFor = score === undefined ? 0 : (isHome ? score.homeGoals : score.awayGoals);
-  const goalsAgainst = score === undefined ? 0 : (isHome ? score.awayGoals : score.homeGoals);
-  const outcome = goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L';
-
-  if (matchday.kind !== 'league') {
-    return { state: played, outcome, goalDifference: goalsFor - goalsAgainst };
-  }
   const side = teams[isHome ? userFixture.homeClubId : userFixture.awayClubId];
+
+  // Cup ties resolve outside `state.fixtures`, so they cannot be read back the
+  // way a league result can — and they are not division form anyway. They are
+  // played for their real side effects and excluded from the record.
+  //
+  // Reading them from `played.fixtures` used to miss and fall back to 0-0, which
+  // this probe counted as a draw. That is the whole of the "promoted club draws
+  // 20 of its first 25 D3 matches" result reported on 2026-07-30: cup rounds
+  // recorded as stalemates. Peer-versus-peer measurement in
+  // `division-decisiveness-probe` shows D3 football producing 4.78 goals a match
+  // and 16.7% draws, so no such stalemate exists.
+  if (matchday.kind !== 'league') {
+    return {
+      state: awakenHero(played, userFixture.id, side.players.map(player => player.id)),
+      goalDifference: 0,
+    };
+  }
+
+  const settled = played.fixtures.find(fixture => fixture.id === userFixture.id);
+  if (settled === undefined) {
+    throw new Error(`league fixture ${userFixture.id} vanished from the played matchday`);
+  }
+  if (settled.score === undefined) {
+    throw new Error(`league fixture ${userFixture.id} completed without a score`);
+  }
+  const { score } = settled;
+  const goalsFor = isHome ? score.homeGoals : score.awayGoals;
+  const goalsAgainst = isHome ? score.awayGoals : score.homeGoals;
+
   return {
     state: awakenHero(played, userFixture.id, side.players.map(player => player.id)),
-    outcome,
+    outcome: goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L',
     goalDifference: goalsFor - goalsAgainst,
   };
 }
@@ -290,6 +318,33 @@ function licenseHeroes(state: GameState): GameState {
     .slice(0, careerHeroLimit(state));
   if (wanted.length === licensed.length) return state;
   return selectCareerLicensedHeroes(state, wanted);
+}
+
+/**
+ * Buys the next drill tier for each core path once the club can afford it above
+ * a working reserve.
+ *
+ * Without this the probe modelled a manager permanently on Tier I — 5 points a
+ * tap — for an entire career, while the shop opens Tier II in D4, III in D3, IV
+ * in D2 and V in D1 at 8/12/17/23 points. That is the single largest lever a
+ * climbing club has, and leaving it out is what made D4 look like a wall: the
+ * squad grew about 5 points a season against a 48-point deficit.
+ *
+ * The reserve keeps the club solvent; a purchase that would trip the board's
+ * intervention is not one a real manager makes.
+ */
+const DRILL_UPGRADE_CASH_RESERVE = 12_000;
+
+function buyDrillUpgrades(state: GameState): GameState {
+  let next = state;
+  for (const pathId of ['finishing', 'duels', 'keeper-drills', 'rondo', 'first-touch']) {
+    const offer = nextTrainingUpgradeOffer(next, pathId);
+    if (offer === undefined || offer.blockedReason !== undefined) continue;
+    const cash = next.clubs.find(club => club.id === next.userClubId)?.cash ?? 0;
+    if (cash - offer.cost < DRILL_UPGRADE_CASH_RESERVE) continue;
+    next = purchaseCareerTrainingUpgrade(next, pathId).state;
+  }
+  return next;
 }
 
 function buildFacilities(state: GameState): GameState {

@@ -735,3 +735,117 @@ golden replay passes untouched, and `runMatch` returns identical output for
 identical inputs. A drill's gain changes what goes into a match, never how a
 match resolves. Bumping would invalidate every saved replay to record a change
 the simulation never saw.
+
+---
+
+# Correction, 2026-07-31 — two findings were instrument error
+
+Re-measured with a peer-versus-peer control that should have been run first.
+
+## The D3 draw-lock does not exist
+
+Reported as the most serious defect in the game: a promoted club drawing 20 of
+its first 25 D3 matches at an 87-point deficit, blamed on the contest curve
+flattening at high ratings.
+
+It was a bug in `division-entry-probe`. Cup ties resolve outside
+`state.fixtures`, so reading them back from there missed, fell through to a
+`score === undefined ? 0` default, and recorded 0-0 — which the probe counted as
+a league draw. The `0W-5D-0L` rows were cup rounds, not stalemates.
+
+`division-decisiveness-probe` now measures every division peer-versus-peer on
+production-generated clubs, and football gets *more* decisive as the pyramid
+climbs, not less:
+
+| Division | Goals/match | Draw% | 0-0% |
+|---|---:|---:|---:|
+| D5 peer | 2.40 | 25.8 | 7.1 |
+| D4 peer | 4.30 | 16.3 | 1.3 |
+| D3 peer | 4.78 | 16.7 | 0.8 |
+| D2 peer | 4.57 | 20.4 | 0.4 |
+| D1 peer | 5.20 | 15.4 | 0.0 |
+
+The probe now throws on an unreadable league result and excludes cup ties from
+division form, which is what it should have done from the start. A silent
+numeric default inside a measurement is the one place it cannot be tolerated.
+
+## "D5 is too easy" contradicts the documented target
+
+`division-ramp-probe` states the intent plainly: *"D5 in 1 season if you are
+good, 2 at most if you are not."* Four of four careers promoting in season one
+is the design working, not failing.
+
+## "D4 is a wall" was half instrument too
+
+The probe built a Training Pitch and then never visited the drill shop again,
+modelling a manager permanently on Tier I drills at 5 points a tap while the
+shop opens Tier II in D4, III in D3, IV in D2 and V in D1 at 8/12/17/23. That is
+the largest lever a climbing club has, and
+`promotion-progression.ts` says so directly: *"the climb is what funds the drill
+shop, which is the point of charging for it."*
+
+With purchases enabled, D4's first-five record moved from 43W/7D/50L to
+55W/4D/41L and one career won the division in season five.
+
+## What survived: the ladder steepened as it climbed
+
+| Step | Old ratio |
+|---|---:|
+| D5 → D4 | 2.13x |
+| D4 → D3 | 1.49x |
+| D3 → D2 | 1.33x |
+| D2 → D1 | 1.24x |
+
+The first promotion was by far the steepest, at the point in a career with the
+fewest tools to answer it, and the entry deficit compounded: -1.1 at D5, -29.5
+at D4, -88.7 at D3.
+
+# Shipped — the even ladder
+
+`DIVISION_STRENGTH_BANDS` rebased so all four steps are an equal 1.51x. The span
+is unchanged; D5 still opens around 45 and D1 still tops out at 235.
+
+| Division | Old band | New band |
+|---|---|---|
+| D1 | [223, 248] | [223, 248] |
+| D2 | [178, 203] | **[143, 169]** |
+| D3 | [135, 151] | **[93, 113]** |
+| D4 | [90, 102] | **[62, 74]** |
+| D5 | [40, 50] | [40, 50] |
+
+`DIVISION_SUPPORT_STRENGTHS`, `DIVISION_STAR_FOCUS_RATINGS`,
+`DIVISION_GOALKEEPER_REF_RATINGS` and `DIVISION_TYPICAL_PACE` are rescaled by the
+same per-division factor, so each division stays internally consistent — support
+strengths price wages in `market.ts`, and the star, keeper and pace tables shape
+the squads generated inside the bands.
+
+## Measured effect
+
+Four careers, seven-season budget, drill purchases enabled:
+
+| Entering | Before | After |
+|---|---|---|
+| D5 | gap -1.1, 17W/4D/9L, 6 entries | gap -3.0, 12W/4D/9L, 5 entries |
+| D4 | gap -29.5, 55W/4D/41L, 20 entries | gap -6.0, 48W/3D/19L, 14 entries |
+| D3 | gap -88.7, 0W/2D/8L, 2 entries | gap -44.6, **14W/9D/17L, 8 entries** |
+| D2 | never reached | gap -97.1, 0W/3D/2L, 1 entry |
+
+D3 went from unreachable — two entries and a single point across twenty-eight
+career-seasons — to a division careers actually reach and compete in. One career
+reached D2 for the first time.
+
+Peer football inside each division is unchanged: the regenerated
+`division-goalkeeper-gate` sample stays inside its locked rails at every level
+(goals per match 4.17 to 4.60 against a 2 to 5 rail, save rate 0.54 to 0.60
+against 0.50 to 0.75).
+
+## Still open
+
+D2 entry now sits at -97.1 from a single observation, which is where D3 used to
+be. Whether that is the next cliff or an artifact of one career arriving early
+needs more seeds before it is worth acting on.
+
+## ENGINE_VERSION
+
+Unchanged at `m2.0`. `src/sim/` is untouched and the golden replay passes. The
+bands decide which squads exist, never how a match between them resolves.
