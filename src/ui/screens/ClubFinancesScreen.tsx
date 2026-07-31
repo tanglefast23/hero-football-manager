@@ -1416,7 +1416,7 @@ function LegacyTrainingGroundSection({
             <Metric label="Weekly return" value={`+${facility.weeklyTrainingPoints} TP`} tone="positive" />
           </View>
           <PixelText className="mt-3 text-sm uppercase tracking-wide text-ink/50">
-            M1 offer: $8,000 cost · +10 TP every week
+            M1 offer: {formatCurrency(facility.cost)} cost · +{facility.weeklyTrainingPoints} TP every week
           </PixelText>
           {!facility.built && !facility.underConstruction ? (
             <View className={guideTrainingGround ? 'relative mt-3 border-2 border-blue-dark bg-blue-light p-1' : 'relative mt-3'}>

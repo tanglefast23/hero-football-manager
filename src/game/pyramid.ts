@@ -182,34 +182,52 @@ const SQUAD_ROLES: readonly Role[] = [
   'MID', 'MID', 'MID', 'MID', 'MID',
   'FWD', 'FWD', 'FWD', 'FWD',
 ];
+/**
+ * The climb, and the order it gets harder in.
+ *
+ * A club's squad grows about 1.10x a season, so the ratio between two bands is
+ * the number of seasons the division below takes to clear — and because the
+ * contest is a log ratio, only that ratio matters. The old ladder shrank as it
+ * climbed (2.13x, 1.49x, 1.33x, 1.24x), which put the hardest division first:
+ * D5 -> D4 was 7.9 seasons of growth and D2 -> D1 only 2.3. Measured over four
+ * careers, that is where careers stopped — 20 of 28 season-entries were D4, and
+ * two clubs sat at exactly 8th on exactly 12 points for six seasons, the four
+ * wins being the relegation pack home and away.
+ *
+ * The steps now grow instead: 1.31x, 1.44x, 1.59x, 1.74x — roughly 2.8, 3.9,
+ * 4.9 and 5.8 seasons — so the last division is the wall and the first is a
+ * ramp. D5 and D1 are untouched, which keeps the total climb, the opening
+ * tutorial balance, and D1's rating scale exactly as they were; only the three
+ * middle bands move.
+ */
 export const DIVISION_STRENGTH_BANDS: Readonly<
   Record<DivisionLevel, readonly [minimum: number, maximum: number]>
 > = {
   1: [223, 248],
-  2: [178, 203],
-  3: [135, 151],
-  4: [90, 102],
+  2: [127, 143],
+  3: [80, 90],
+  4: [55, 63],
   5: [40, 50],
 };
 /**
  * Most players improve modestly between divisions while three position
- * specialists carry each generated club's extra strength. This mirrors the
- * player's three weekly training slots and prevents every D1 sprite from
- * moving at elite pace.
+ * specialists carry each generated club's extra strength. That shape keeps a
+ * generated club recognisable — a few standouts among ordinary teammates — and
+ * prevents every D1 sprite from moving at elite pace.
  */
 export const DIVISION_SUPPORT_STRENGTHS: Readonly<Record<DivisionLevel, number>> = {
   1: 214,
-  2: 175,
-  3: 130,
-  4: 88,
+  2: 123,
+  3: 77,
+  4: 54,
   5: 40,
 };
 /** Honest raw focus ratings for each division's DEF/MID/FWD specialist. */
 export const DIVISION_STAR_FOCUS_RATINGS: Readonly<Record<DivisionLevel, number>> = {
   1: 442,
-  2: 356,
-  3: 268,
-  4: 180,
+  2: 252,
+  3: 159,
+  4: 111,
   5: 94,
 };
 /**
@@ -219,20 +237,24 @@ export const DIVISION_STAR_FOCUS_RATINGS: Readonly<Record<DivisionLevel, number>
  */
 export const DIVISION_GOALKEEPER_REF_RATINGS: Readonly<Record<DivisionLevel, number>> = {
   1: 376,
-  2: 303,
-  3: 228,
-  4: 153,
+  2: 214,
+  3: 135,
+  4: 94,
   5: 80,
 };
 /**
- * A typical full-condition player's visual pace by division. D1 deliberately
- * lands at 216: universal-max PAC 999 stays inside the ordinary 2x speed rail.
+ * A typical full-condition player's visual pace by division. PAC is part of
+ * `roleOverall`, so this table has to climb with the strength bands or a
+ * division ends up slower than the one below it. D5's 72 and D1's 216 are the
+ * fixed endpoints and the middle three interpolate between them across the new
+ * band midpoints, which keeps every division's look unchanged at the two ends
+ * of the pyramid.
  */
 export const DIVISION_TYPICAL_PACE: Readonly<Record<DivisionLevel, number>> = {
   1: 216,
-  2: 176,
-  3: 132,
-  4: 90,
+  2: 140,
+  3: 102,
+  4: 83,
   5: 72,
 };
 const GENERATED_STAR_SLOTS = new Set([2, 7, 12]);

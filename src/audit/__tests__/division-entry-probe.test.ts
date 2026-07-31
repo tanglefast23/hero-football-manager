@@ -41,6 +41,7 @@ import {
   resolveTrainingDrillForPath,
   roleOverall,
   selectCareerLicensedHeroes,
+  setCareerLineup,
   startNextSeason,
   trainPlayerInstantly,
   type GameState,
@@ -238,20 +239,27 @@ function playMatchday(state: GameState): {
   ));
   if (userFixture === undefined) return { state: played, goalDifference: 0 };
 
+  const isHome = userFixture.homeClubId === state.userClubId;
+  const side = teams[isHome ? userFixture.homeClubId : userFixture.awayClubId];
+
+  // A National Cup tie is played against another division, so it says nothing
+  // about the gap to *this* division's field. It is resolved but never sampled.
+  // Cup scores also live in `state.m2.nationalCups` rather than `state.fixtures`,
+  // so an earlier version that looked them up here found nothing and scored
+  // every cup week 0-0 — which is what produced the phantom D3 draw-lock.
+  if (matchday.kind !== 'league') return { state: played, goalDifference: 0 };
+
   const settled = played.fixtures.find(fixture => fixture.id === userFixture.id);
   const score = settled?.score;
-  const isHome = userFixture.homeClubId === state.userClubId;
-  const goalsFor = score === undefined ? 0 : (isHome ? score.homeGoals : score.awayGoals);
-  const goalsAgainst = score === undefined ? 0 : (isHome ? score.awayGoals : score.homeGoals);
-  const outcome = goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L';
-
-  if (matchday.kind !== 'league') {
-    return { state: played, outcome, goalDifference: goalsFor - goalsAgainst };
+  if (score === undefined) {
+    throw new Error(`league fixture ${userFixture.id} was played without recording a score`);
   }
-  const side = teams[isHome ? userFixture.homeClubId : userFixture.awayClubId];
+  const goalsFor = isHome ? score.homeGoals : score.awayGoals;
+  const goalsAgainst = isHome ? score.awayGoals : score.homeGoals;
+
   return {
     state: awakenHero(played, userFixture.id, side.players.map(player => player.id)),
-    outcome,
+    outcome: goalsFor > goalsAgainst ? 'W' : goalsFor === goalsAgainst ? 'D' : 'L',
     goalDifference: goalsFor - goalsAgainst,
   };
 }
@@ -288,8 +296,52 @@ function licenseHeroes(state: GameState): GameState {
   const licensed = powered.filter(player => player.licensed).map(player => player.id);
   const wanted = [...licensed, ...powered.filter(player => !player.licensed).map(player => player.id)]
     .slice(0, careerHeroLimit(state));
-  if (wanted.length === licensed.length) return state;
-  return selectCareerLicensedHeroes(state, wanted);
+  const selected = wanted.length === licensed.length
+    ? state
+    : selectCareerLicensedHeroes(state, wanted);
+  return benchUnlicensedHeroes(selected);
+}
+
+/**
+ * A career awakens more heroes than the Hero License caps, and the surplus may
+ * not start. Without this the probe left an unlicensed hero in the eleven and
+ * production's lineup rule rejected it mid-season — a policy gap, not a game
+ * defect: `buildTeamDef` was correctly refusing an eleven the probe built. It
+ * only bites past season seven, which is why shorter budgets never saw it.
+ */
+function benchUnlicensedHeroes(state: GameState): GameState {
+  const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
+  if (lineup === undefined) return state;
+  const roster = state.players.filter(player => player.clubId === state.userClubId);
+  const byId = new Map(roster.map(player => [player.id, player]));
+  const selected = new Set(lineup.playerIds);
+  const playerIds = [...lineup.playerIds];
+  let changed = false;
+
+  for (let slot = 0; slot < playerIds.length; slot += 1) {
+    const starter = byId.get(playerIds[slot]);
+    if (starter === undefined || starter.power === undefined || starter.licensed) continue;
+    const eligible = roster.filter(candidate => (
+      !selected.has(candidate.id)
+      && candidate.injuryWeeks === 0
+      && candidate.power === undefined
+      && (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK')
+    ));
+    // Same role first so the formation survives the swap.
+    const replacement = eligible.find(candidate => candidate.role === starter.role) ?? eligible[0];
+    if (replacement === undefined) continue;
+    selected.delete(starter.id);
+    selected.add(replacement.id);
+    playerIds[slot] = replacement.id;
+    changed = true;
+  }
+
+  if (!changed) return state;
+  try {
+    return setCareerLineup(state, playerIds);
+  } catch {
+    return state; // a contract promise pins the eleven this week
+  }
 }
 
 function buildFacilities(state: GameState): GameState {

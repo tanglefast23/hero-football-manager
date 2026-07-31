@@ -3,6 +3,7 @@ import { createCareer, startNextSeason } from '../career';
 import { enableFullCareer } from '../full-career';
 import { clubSquadStrength, currentUserDivision } from '../m2-career';
 import {
+  DIVISION_FOUR_RELEGATION_PACK_STRENGTHS,
   DIVISION_STRENGTH_BANDS,
   tuneSquadToStrength,
 } from '../pyramid';
@@ -180,15 +181,29 @@ describe('full M2 career clock', () => {
       expect(userStrength).toBeLessThanOrEqual(48);
       expect(minnows).toHaveLength(2);
       expect(strongestMinnow).toBeLessThanOrEqual(49);
-      // The locked 90-point D4 band is a whole-squad value; its selected XI can
-      // sit four points lower. Pin both that projection and the actual bridge.
+      // The D4 band is a whole-squad value; its selected XI can sit four points
+      // lower. Pin both that projection and the actual bridge.
       expect(weakestEstablished)
         .toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[4][0] - 4);
-      expect(weakestEstablished - strongestMinnow).toBeGreaterThanOrEqual(35);
+      // The bridge used to be pinned at 35, which was really pinning D4's old
+      // shape: two minnows and a wall 50 points above them, with nothing in
+      // between. That is what parked careers at 8th on exactly 12 points a
+      // season — four wins, the pack home and away. With the ladder's steps
+      // reversed the pack now sits just under a reachable band, so assert a
+      // step exists without re-pinning the gulf.
+      expect(weakestEstablished - strongestMinnow).toBeGreaterThanOrEqual(
+        DIVISION_STRENGTH_BANDS[4][0] - Math.max(...DIVISION_FOUR_RELEGATION_PACK_STRENGTHS) - 5,
+      );
+      // The strongest club's XI clears its band because selection takes the best
+      // eleven of sixteen and three of those are position specialists. The old
+      // rail of band-top + 1 only held because `matchAttribute` compresses
+      // everything above 99, and D4's old top of 102 sat just inside that
+      // squeeze; below 99 the premium shows undisguised. Pin it as a bounded
+      // percentage so it stays honest wherever the band sits.
       expect(Math.max(...opponentStrengths.map(club => club.strength)))
         .toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[4][1] - 3);
       expect(Math.max(...opponentStrengths.map(club => club.strength)))
-        .toBeLessThanOrEqual(DIVISION_STRENGTH_BANDS[4][1] + 1);
+        .toBeLessThanOrEqual(Math.round(DIVISION_STRENGTH_BANDS[4][1] * 1.2));
     },
   );
 
