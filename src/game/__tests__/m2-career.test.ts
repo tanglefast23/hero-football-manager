@@ -17,10 +17,7 @@ import {
 } from '../m2-career';
 import { difficultyRules } from '../difficulty';
 import type { NationalCupResult } from '../pyramid';
-import {
-  DIVISION_FOUR_RELEGATION_PACK_STRENGTHS,
-  DIVISION_STRENGTH_BANDS,
-} from '../pyramid';
+import { DIVISION_FOUR_RELEGATION_PACK_STRENGTHS, DIVISION_STRENGTH_BANDS } from '../pyramid';
 import { roleOverall } from '../archetype-caps';
 
 const USER_CLUB = { id: 'my-club', name: 'Caped Ball FC', squadStrength: 46 };
@@ -367,15 +364,16 @@ describe('M2 promotion and endless season planning', () => {
         );
       }
     }
+    // Derived from the band rather than pinned as literals, so rebalancing the
+    // ladder cannot leave these silently describing a division that moved.
+    const [d4Floor, d4Ceiling] = DIVISION_STRENGTH_BANDS[4];
     expect(Math.min(...plan.generatedOpponentClubs
       .filter(club => !minnowIds.has(club.id))
-      .map(club => club.squadStrength))).toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[4][0]);
-    // The strongest club a promoted D4 side meets is a relegated D3 giant, so
-    // this floor tracks D3's band rather than D4's.
+      .map(club => club.squadStrength))).toBeGreaterThanOrEqual(d4Floor);
     expect(Math.max(...plan.generatedOpponentClubs.map(club => club.squadStrength)))
-      .toBeGreaterThanOrEqual(DIVISION_STRENGTH_BANDS[3][0]);
+      .toBeGreaterThanOrEqual(d4Ceiling - 2);
     expect(Math.max(...plan.generatedOpponentClubs.map(club => club.squadStrength)))
-      .toBeLessThanOrEqual(155);
+      .toBeLessThanOrEqual(Math.round(d4Ceiling * 1.52));
     const inactiveOpponent = promoted.state.pyramid.divisions[4].clubs
       .find(club => club.id !== USER_CLUB.id)!;
     const advancedInactive = plan.state.pyramid.divisions[4].clubs

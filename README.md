@@ -71,11 +71,11 @@ in [the scale-invariant attributes master spec](docs/superpowers/plans/2026-07-2
 | Is the goalkeeper the most important player? | **No.** Flatten the shot/save asymmetry so the eleven matter roughly equally | REF now uses the symmetric log-ratio contest and each division has an explicit keeper REF target |
 | Opponent shape | **Balanced teams with visible specialists.** | Explicit support, specialist focus, pace, and keeper tables replace the old star back-solve |
 | Opponent season scaling | **Slow percentage growth**, so the meaning is stable at every division | Cozy +3%/season, Chairman +4%, deterministic stochastic rounding, capped below 999 |
-| Tutorial fixture | Open against the **3rd-strongest** rival, save the best for later | `schedule.ts` `pinOpeningLeagueOpponents` |
+| Tutorial fixture | Open against the **strongest** rival, then ease down to the weakest by match five | `schedule.ts` `pinOpeningLeagueOpponents` |
 | Hero worth | **Powers are typed spectacle after ordinary ratios.** | Power bonuses use d64, multiplier, geometry, or time effects rather than hidden raw-stat additions |
 | Chairman mode | **Genuinely harder**, not Cozy with four economic knobs turned down | `difficulty.ts` needs a difficulty axis beyond the economy |
 | How hard is D5? | **1 season for a good player, 2 at most for someone still learning.** Not a multi-season tutorial arc, and never the current unsignposted permanent 10th place | Sets the target for every number above |
-| Should the harness gate the ramp? | **Yes** — assert a best-play career promotes out of D5 **within 2 seasons**, and that a competent-play career manages it in 1 | `m2-balance.test.ts` |
+| Should the harness gate the ramp? | **Yes** — assert a best-play career promotes out of D5 **within 2 seasons**, and that a competent-play career manages it in 1 | `division-ramp-probe.test.ts` (`DIVISION_RAMP_PROBE=1`). Not `m2-balance.test.ts`: it scores fixtures from the seed alone and never reads squad strength |
 | Manual Zone tap | **Removed permanently**; powers always fire automatically | Done — see docs/04 |
 | Cup giant-killing | **Enabled:** one division down wins 5–10%; two-plus down wins 1–2% | Deterministic long-tail Cup model; Bert celebrates every qualifying player win with gap-specific copy |
 

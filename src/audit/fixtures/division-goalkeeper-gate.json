@@ -5,9 +5,9 @@
   "matchSeedStride": 7919,
   "ratings": {
     "1": 376,
-    "2": 248,
-    "3": 164,
-    "4": 108,
+    "2": 214,
+    "3": 135,
+    "4": 94,
     "5": 80
   },
   "rails": {
@@ -28,22 +28,22 @@
       "saveRate": 0.5878136200716846
     },
     "2": {
-      "goals": 451,
-      "saves": 657,
-      "goalsPerMatch": 4.51,
-      "saveRate": 0.5929602888086642
+      "goals": 444,
+      "saves": 615,
+      "goalsPerMatch": 4.44,
+      "saveRate": 0.5807365439093485
     },
     "3": {
-      "goals": 429,
-      "saves": 632,
-      "goalsPerMatch": 4.29,
-      "saveRate": 0.5956644674835061
+      "goals": 425,
+      "saves": 603,
+      "goalsPerMatch": 4.25,
+      "saveRate": 0.5865758754863813
     },
     "4": {
-      "goals": 417,
-      "saves": 587,
-      "goalsPerMatch": 4.17,
-      "saveRate": 0.5846613545816733
+      "goals": 381,
+      "saves": 591,
+      "goalsPerMatch": 3.81,
+      "saveRate": 0.6080246913580247
     },
     "5": {
       "goals": 443,

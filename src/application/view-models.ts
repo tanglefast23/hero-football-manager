@@ -42,6 +42,7 @@ import {
   scheduleAssistantInboxWeek,
   trainingPathAttribute,
   TRAINING_PATHS,
+  TRAINING_PITCH_TP_PER_LEVEL,
   weeklyFacilityUpkeep,
   weeklyAmbientTrainingPoints,
   weeklyMerchandiseIncome,
@@ -250,7 +251,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
         : { weeksRemaining: trainingGroundProject.weeksRemaining }),
       affordable: club.cash >= 8000 && trainingGroundProject === undefined,
       cost: 8000,
-      weeklyTrainingPoints: 10,
+      weeklyTrainingPoints: TRAINING_PITCH_TP_PER_LEVEL,
     },
     // Was `careerMode !== 'full'`, so already always false in a shipped career.
     // The flag and its dead branch in ClubFinancesScreen can go with the next

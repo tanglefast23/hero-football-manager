@@ -188,6 +188,15 @@ Worth fixing for coherence, not urgent for balance.
 
 ## Result 3 — division entry has three different shapes, none of them the intended ramp
 
+> **Correction, 2026-07-31.** Every W-D-L figure below is wrong. The probe
+> recorded each National Cup week as a fabricated 0-0 draw, because cup scores
+> live in `state.m2.nationalCups` and it looked them up in `state.fixtures`. The
+> draw counts, the D3 "draw-lock", and the conclusion drawn from them in the
+> paragraph after the table are all artifacts. The entry-gap column is
+> unaffected — it is read from squad attributes before kickoff. Corrected
+> measurements and the fix are in
+> `docs/superpowers/reports/2026-07-31-division-scaling-findings.md`.
+
 4 careers, 7-season budget, all 90 fixtures per season through the real engine.
 
 | Entering | Mean gap vs field | First-5 record | Entries |
@@ -243,9 +252,10 @@ No change was made. In rough order of value:
 2. **Do not ship the spec's +5 opponent buff as the primary fix.** It treats a
    symptom whose cause is a single training path, and a buff large enough to
    absorb a doubled keeper would produce the blowouts the spec itself rejects.
-3. **Revisit `DIVISION_STRENGTH_BANDS`.** The ~2x per-division scaling is what
-   produces the D3 draw-lock. Compressing the bands would restore decisive
-   results higher up the pyramid.
+3. ~~**Revisit `DIVISION_STRENGTH_BANDS`.**~~ **Withdrawn 2026-07-31.** The D3
+   draw-lock was a probe artifact, and peer matches measured decisive at every
+   division — goals rise and draws fall as the pyramid climbs. The bands are
+   fine; see the 07-31 report.
 4. **Re-tune D5 difficulty or the promotion requirement.** A −4 entry gap with
    4-of-4 season-1 promotions leaves no growth room in the first division.
 5. **Give `def` its own training facility.** The Training Pitch is currently the

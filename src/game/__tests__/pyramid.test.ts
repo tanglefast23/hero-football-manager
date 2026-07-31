@@ -126,10 +126,12 @@ describe('five-division pyramid generation', () => {
     const globalLeague = pyramid.divisions.find(division => division.level === 1)!;
     const districtLeague = pyramid.divisions.find(division => division.level === 5)!;
 
-    expect(DIVISION_SUPPORT_STRENGTHS).toEqual({ 1: 214, 2: 143, 3: 94, 4: 62, 5: 40 });
-    expect(DIVISION_TYPICAL_PACE).toEqual({ 1: 216, 2: 164, 3: 125, 4: 95, 5: 72 });
-    expect(DIVISION_STAR_FOCUS_RATINGS).toEqual({ 1: 442, 2: 291, 3: 193, 4: 128, 5: 94 });
-    expect(DIVISION_GOALKEEPER_REF_RATINGS).toEqual({ 1: 376, 2: 248, 3: 164, 4: 108, 5: 80 });
+    // Rebalanced 2026-07-31 so the ladder's steps grow as it climbs rather than
+    // shrink; D5 and D1 are the fixed endpoints. See DIVISION_STRENGTH_BANDS.
+    expect(DIVISION_SUPPORT_STRENGTHS).toEqual({ 1: 214, 2: 123, 3: 77, 4: 54, 5: 40 });
+    expect(DIVISION_TYPICAL_PACE).toEqual({ 1: 216, 2: 140, 3: 102, 4: 83, 5: 72 });
+    expect(DIVISION_STAR_FOCUS_RATINGS).toEqual({ 1: 442, 2: 252, 3: 159, 4: 111, 5: 94 });
+    expect(DIVISION_GOALKEEPER_REF_RATINGS).toEqual({ 1: 376, 2: 214, 3: 135, 4: 94, 5: 80 });
     expect(divisionStarFocusedAttribute(1, 85)).toBe(442);
     for (const club of globalLeague.clubs) {
       expect(club.squad.filter(player => Math.max(...Object.values(player.attrs)) > 400))
