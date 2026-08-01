@@ -23,9 +23,18 @@ something to chase:
 | Board | Metric | Eligible role |
 | --- | --- | --- |
 | Strikers | Goals | `FWD` |
-| Midfielders | Assists | `MID` |
+| Midfielders | Passes | `MID` |
 | Defenders | Tackles won | `DEF` |
 | Keepers | Saves | `GK` |
+
+**The midfield metric changed during execution.** This spec proposed assists.
+Measured on the shipped engine, ~93% of assists are credited to forwards —
+attackers receive the ball and carry it, so the last teammate to touch it before
+a goal is usually another attacker — and a `MID`-only assist board reads 3, 2, 1
+beside a 23-goal Golden Boot. Completed passes measured at 36% midfield share at
+D5 and 48% at D1, with names on the board from week one. The owner chose passes.
+Assists are still tracked, stamped and stored (§3 stands in full); they are
+simply not what this board ranks.
 
 Only two of these are real-world headline awards. The set is chosen for the
 one-per-position property, not for realism, and the boards are named by position

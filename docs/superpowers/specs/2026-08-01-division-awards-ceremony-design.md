@@ -51,7 +51,7 @@ season is what makes taking it off him next year mean anything.
 
 1. Keepers — saves
 2. Defenders — tackles won
-3. Midfielders — assists
+3. Midfielders — passes
 4. Strikers — goals
 
 Goals last. It is the award a football audience understands most immediately,

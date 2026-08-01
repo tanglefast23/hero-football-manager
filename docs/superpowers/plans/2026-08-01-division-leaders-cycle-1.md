@@ -922,12 +922,24 @@ In `src/game/types.ts`, replace line 437:
   /**
    * Absent on saves written before division-leader tracking. Those saves keep
    * loading, but their goal history does not survive: `seasonGoalTallies` is
-   * not migrated, and the root schema strips unknown keys, so the old rows are
-   * dropped on read. Accepted under the standing decision that breaking saves
-   * is fine until TestFlight.
+   * not migrated and nothing reads it any more. Accepted under the standing
+   * decision that breaking saves is fine until TestFlight.
    */
   seasonStatLines?: PlayerSeasonStatLine[];
 ```
+
+**Correction made during execution.** An earlier draft of this comment said the
+root schema "strips unknown keys, so the old rows are dropped on read". That is
+false — `gameStateSchema` ends `.passthrough()`
+(`src/persistence/game-state-codec.ts:781`), so an old save's
+`seasonGoalTallies` array survives every round trip as an untyped key that
+nothing reads.
+
+The player-facing consequence is unchanged (Golden Boot, `heroHasScored` and
+the championship scorer list all read zero for an in-flight career), but the
+mechanism differs, and a comment that misdescribes the codec would outlive
+everyone who remembers why it was written. Verify claims about the schema
+against the schema.
 
 **Be honest about what this costs.** Dropping the old rows takes the season
 Golden Boot, `heroHasScored` (`src/game/career-events.ts:240`) and the
