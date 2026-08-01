@@ -10,11 +10,12 @@ import type { PersistenceDatabase } from './database';
 import type { PowerId } from '../sim/types';
 import { migrateDatabase } from './migrations';
 
-const PREFERENCES_SCHEMA_VERSION = 5;
+const PREFERENCES_SCHEMA_VERSION = 6;
 const LEGACY_PREFERENCES_SCHEMA_VERSION = 1;
 const M2_PREFERENCES_SCHEMA_VERSION = 2;
 const M4_PREFERENCES_SCHEMA_VERSION = 3;
 const CUT_IN_HISTORY_PREFERENCES_SCHEMA_VERSION = 4;
+const MANAGER_TIPS_PREFERENCES_SCHEMA_VERSION = 5;
 const PRIMARY_SLOT = 1;
 
 export type MasterVolume = 0 | 0.25 | 0.5 | 0.75 | 1;
@@ -35,6 +36,8 @@ export interface AppPreferences {
   cutInMode: CutInMode;
   managerTipsEnabled: boolean;
   seenPowerCutIns: PowerId[];
+  /** Bench cover during a watched match, remembered between matches. */
+  autoSubs: boolean;
 }
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
@@ -50,6 +53,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   cutInMode: 'full',
   managerTipsEnabled: true,
   seenPowerCutIns: [],
+  autoSubs: false,
 };
 
 const FormationSchema = z.enum(FORMATION_IDS);
@@ -80,6 +84,7 @@ const PreferencesSchema = z.strictObject({
       !(RETIRED_POWER_IDS as readonly string[]).includes(id)
     )))
     .refine(values => new Set(values).size === values.length, 'seen power cut-ins must be unique'),
+  autoSubs: z.boolean(),
 });
 const LegacyPreferencesSchema = PreferencesSchema.pick({
   formationPresets: true,
@@ -96,8 +101,13 @@ const M2PreferencesSchema = PreferencesSchema.pick({
 const M4PreferencesSchema = PreferencesSchema.omit({
   managerTipsEnabled: true,
   seenPowerCutIns: true,
+  autoSubs: true,
 });
-const CutInHistoryPreferencesSchema = PreferencesSchema.omit({ managerTipsEnabled: true });
+const CutInHistoryPreferencesSchema = PreferencesSchema.omit({
+  managerTipsEnabled: true,
+  autoSubs: true,
+});
+const ManagerTipsPreferencesSchema = PreferencesSchema.omit({ autoSubs: true });
 
 const UPSERT_SQL = `
   INSERT INTO app_preferences (slot, schema_version, preferences_json)
@@ -151,6 +161,7 @@ export async function createPreferencesRepository(
           cutInMode: DEFAULT_APP_PREFERENCES.cutInMode,
           managerTipsEnabled: DEFAULT_APP_PREFERENCES.managerTipsEnabled,
           seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
+          autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -174,6 +185,7 @@ export async function createPreferencesRepository(
           cutInMode: DEFAULT_APP_PREFERENCES.cutInMode,
           managerTipsEnabled: DEFAULT_APP_PREFERENCES.managerTipsEnabled,
           seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
+          autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -192,6 +204,7 @@ export async function createPreferencesRepository(
           formationPresets: [...legacy.data.formationPresets],
           managerTipsEnabled: DEFAULT_APP_PREFERENCES.managerTipsEnabled,
           seenPowerCutIns: [...DEFAULT_APP_PREFERENCES.seenPowerCutIns],
+          autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
@@ -210,6 +223,25 @@ export async function createPreferencesRepository(
           formationPresets: [...legacy.data.formationPresets],
           managerTipsEnabled: DEFAULT_APP_PREFERENCES.managerTipsEnabled,
           seenPowerCutIns: [...legacy.data.seenPowerCutIns],
+          autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
+        };
+        await database.runAsync(UPSERT_SQL, [
+          PRIMARY_SLOT,
+          PREFERENCES_SCHEMA_VERSION,
+          JSON.stringify(migrated),
+        ]);
+        return migrated;
+      }
+      if (row.schema_version === MANAGER_TIPS_PREFERENCES_SCHEMA_VERSION) {
+        const legacy = ManagerTipsPreferencesSchema.safeParse(decoded);
+        if (!legacy.success) {
+          throw new Error(`Saved settings are invalid: ${legacy.error.issues[0]?.message ?? 'unknown error'}`);
+        }
+        const migrated: AppPreferences = {
+          ...legacy.data,
+          formationPresets: [...legacy.data.formationPresets],
+          seenPowerCutIns: [...legacy.data.seenPowerCutIns],
+          autoSubs: DEFAULT_APP_PREFERENCES.autoSubs,
         };
         await database.runAsync(UPSERT_SQL, [
           PRIMARY_SLOT,
