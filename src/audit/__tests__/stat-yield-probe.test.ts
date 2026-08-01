@@ -24,12 +24,21 @@
  *
  * Tackles are split by style because a power-assisted steal is emitted as a
  * real TACKLE and would otherwise silently inflate the defender category.
+ *
+ * The second test asks the follow-up question the first one cannot: assists
+ * exist in bulk, but WHO gets them. It compares three candidate midfield
+ * metrics by position line over full division seasons.
+ *
+ * This probe measures; it does not guard. The always-on guard on assist supply
+ * is `src/game/__tests__/assist-yield-rail.test.ts`, which runs in CI on the
+ * ROVERS/UNITED fixtures and asserts a share of goals rather than a rate.
  */
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
-import { buildCareerMatchTeams, createCareer } from '../../game';
-import { runMatch } from '../../sim/match';
-import type { MatchEvent, TeamDef } from '../../sim/types';
+import { buildCareerMatchTeams, createCareer, generateSeasonFixtures } from '../../game';
+import { attributedPlayerIndex } from '../../sim/entities';
+import { createMatch, runMatch, tick } from '../../sim/match';
+import type { MatchEvent, MatchState, Role, TeamDef } from '../../sim/types';
 
 const describeProbe = process.env.STAT_YIELD_PROBE === '1' ? describe : describe.skip;
 const content = loadLaunchContent();
@@ -278,7 +287,230 @@ describeProbe('division-leader stat yield', () => {
 
     expect(rows).toHaveLength(3);
   }, 600_000);
+
+  it('compares three candidate midfield metrics by position line', () => {
+    const lines: string[] = [];
+    for (const careerSeed of MIDFIELD_CAREER_SEEDS) {
+      for (const level of MIDFIELD_DIVISIONS) {
+        const block = measureDivisionSeason(careerSeed, level);
+        lines.push(...block);
+        // Printed per division: a run this long that only reports at the end is
+        // a run you cannot read until it finishes.
+        // eslint-disable-next-line no-console
+        console.log(block.join('\n'));
+      }
+    }
+    expect(lines.length).toBeGreaterThan(0);
+  }, 3_600_000);
 });
+
+// --- Which metric could carry the Midfielders board -------------------------
+//
+// The first test counts assists; it does not say who receives them. Measured on
+// production division squads, almost all of them land on forwards, because in
+// this engine an attacker receives the ball and carries it a long way, so the
+// last teammate to hold it before the scorer is usually another forward.
+//
+// Three candidates are measured side by side over a whole division season
+// (10 clubs, double round robin, 90 matches — what one board actually spans):
+//
+//   assists          what ships today: the engine's `assistedById` stamp.
+//   passes completed PASS events with ok: true, credited to `from`.
+//   chances created  the same walk-back as an assist, anchored on a SHOT
+//                    instead of a GOAL. There are ~6x more shots than goals,
+//                    so a thin midfield share can still fill a board.
+//
+// Production squads, not ROVERS/UNITED: the question is about role composition,
+// and the test fixtures are not built to be representative of one.
+const MIDFIELD_DIVISIONS = [5, 3, 1] as const;
+/** Extra career seeds, comma separated, to check a finding is not one seed's. */
+const MIDFIELD_CAREER_SEEDS = (process.env.STAT_YIELD_CAREER_SEEDS ?? String(CAREER_SEED))
+  .split(',')
+  .map((raw: string) => {
+    const parsed = Number(raw);
+    if (!Number.isSafeInteger(parsed)) throw new Error(`bad career seed ${raw}`);
+    return parsed;
+  });
+/** Week the LEADERS tab unlocks — a board nobody can read yet is not a board. */
+const LEADERS_UNLOCK_WEEK = 10;
+const ROLE_ORDER: readonly Role[] = ['GK', 'DEF', 'MID', 'FWD'];
+
+/**
+ * One match's events with every entity index already resolved to a stable
+ * player id. Resolving live, as the match runs, is the only way to be right
+ * about both substitutions (a slot changes owner mid-match) and decoy clones
+ * (entities 22/23 have no slot of their own).
+ */
+interface ResolvedEvent {
+  readonly kind: 'PASS' | 'SHOT' | 'GOAL' | 'SAVE' | 'MISS' | 'TACKLE' | 'KICKOFF';
+  readonly team: 0 | 1;
+  readonly byId?: string;
+  readonly toId?: string;
+  readonly ok?: boolean;
+  readonly assistedById?: string;
+}
+
+function resolveMatch(seed: number, home: TeamDef, away: TeamDef): ResolvedEvent[] {
+  const state: MatchState = createMatch(seed, home, away, POLICIES);
+  const resolved: ResolvedEvent[] = [];
+  const idOf = (entity: number): string | undefined =>
+    state.players[attributedPlayerIndex(state, entity)]?.def.id;
+  const teamOf = (entity: number): 0 | 1 =>
+    state.players[attributedPlayerIndex(state, entity)]?.team ?? teamOfSlot(entity);
+
+  let read = 0;
+  while (state.phase !== 'fulltime') {
+    tick(state);
+    for (; read < state.events.length; read += 1) {
+      const event = state.events[read];
+      if (event.kind === 'PASS') {
+        resolved.push({
+          kind: 'PASS', team: teamOf(event.from), byId: idOf(event.from),
+          toId: idOf(event.to), ok: event.ok,
+        });
+      } else if (event.kind === 'SHOT') {
+        resolved.push({ kind: 'SHOT', team: teamOf(event.by), byId: idOf(event.by) });
+      } else if (event.kind === 'GOAL') {
+        resolved.push({
+          kind: 'GOAL', team: event.team, byId: idOf(event.by),
+          ...(event.assistedById === undefined ? {} : { assistedById: event.assistedById }),
+        });
+      } else if (event.kind === 'SAVE' || event.kind === 'MISS' || event.kind === 'TACKLE') {
+        resolved.push({ kind: event.kind, team: teamOf(event.by), byId: idOf(event.by) });
+      } else if (event.kind === 'KICKOFF') {
+        resolved.push({ kind: 'KICKOFF', team: 0 });
+      }
+    }
+  }
+  return resolved;
+}
+
+/**
+ * The teammate whose successful pass put the ball at the shooter's feet, or
+ * undefined if the shot did not come from one. Walks back the way the assist
+ * rule clears its candidate: a restart, a goal, a save or any touch by the
+ * defending side ends the move.
+ */
+function chanceCreator(events: readonly ResolvedEvent[], shotIndex: number): string | undefined {
+  const shot = events[shotIndex];
+  for (let index = shotIndex - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event.kind === 'KICKOFF' || event.kind === 'GOAL' || event.kind === 'SAVE') return undefined;
+    if (event.team !== shot.team) return undefined;
+    if (event.kind === 'PASS' && event.ok === true && event.toId === shot.byId) {
+      return event.byId === shot.byId ? undefined : event.byId;
+    }
+  }
+  return undefined;
+}
+
+type Tally = Map<string, number>;
+
+interface MetricTallies {
+  readonly assists: Tally;
+  readonly passes: Tally;
+  readonly chances: Tally;
+  goals: number;
+  shots: number;
+}
+
+function emptyTallies(): MetricTallies {
+  return { assists: new Map(), passes: new Map(), chances: new Map(), goals: 0, shots: 0 };
+}
+
+function tallyMatch(events: readonly ResolvedEvent[], targets: readonly MetricTallies[]): void {
+  const bump = (tally: Tally, playerId: string | undefined): void => {
+    if (playerId === undefined) return;
+    tally.set(playerId, (tally.get(playerId) ?? 0) + 1);
+  };
+
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index];
+    if (event.kind === 'PASS' && event.ok === true) {
+      for (const target of targets) bump(target.passes, event.byId);
+    } else if (event.kind === 'GOAL') {
+      for (const target of targets) {
+        target.goals += 1;
+        bump(target.assists, event.assistedById);
+      }
+    } else if (event.kind === 'SHOT') {
+      const creator = chanceCreator(events, index);
+      for (const target of targets) {
+        target.shots += 1;
+        bump(target.chances, creator);
+      }
+    }
+  }
+}
+
+function measureDivisionSeason(careerSeed: number, level: number): string[] {
+  const state = createCareer(createLaunchCareerSetup(careerSeed, undefined, content));
+  const pyramid = state.m2?.pyramid;
+  if (pyramid === undefined) throw new Error('the career must have a pyramid');
+  const division = pyramid.divisions.find(candidate => candidate.level === level);
+  if (division === undefined) throw new Error(`no division ${level}`);
+
+  const clubIds = division.clubs.map(club => club.id);
+  const teams = buildCareerMatchTeams(state, clubIds);
+  const roleById = new Map<string, Role>();
+  for (const clubId of clubIds) {
+    for (const player of [...teams[clubId].players, ...(teams[clubId].bench ?? [])]) {
+      roleById.set(player.id, player.role);
+    }
+  }
+
+  const season = emptyTallies();
+  const atUnlock = emptyTallies();
+  for (const fixture of generateSeasonFixtures(clubIds, 1, careerSeed)) {
+    const events = resolveMatch(
+      fixture.matchSeed,
+      teams[fixture.homeClubId],
+      teams[fixture.awayClubId],
+    );
+    tallyMatch(events, fixture.week <= LEADERS_UNLOCK_WEEK ? [season, atUnlock] : [season]);
+  }
+
+  const headcount: Record<Role, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+  for (const role of roleById.values()) headcount[role] += 1;
+
+  const lines: string[] = [
+    '',
+    `=== D${level}, career seed ${careerSeed}: one division season `
+    + `(${season.goals} goals, ${season.shots} shots over 90 matches) ===`,
+    `squad make-up  ${ROLE_ORDER.map(role => `${role} ${headcount[role]}`).join('  ')}`,
+    'metric                GK    DEF    MID    FWD  total |  GK%  DEF%  MID%  FWD% | MIDs>0  top-5 MID board',
+  ];
+  const report = (label: string, tally: Tally): void => {
+    const byRole: Record<Role, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+    for (const [playerId, value] of tally) {
+      const role = roleById.get(playerId);
+      if (role !== undefined) byRole[role] += value;
+    }
+    const total = ROLE_ORDER.reduce((sum, role) => sum + byRole[role], 0);
+    const share = (role: Role): string =>
+      (total === 0 ? '0%' : `${((byRole[role] / total) * 100).toFixed(0)}%`).padStart(5);
+    const mids = [...tally.entries()]
+      .filter(([playerId]) => roleById.get(playerId) === 'MID')
+      .map(([, value]) => value)
+      .filter(value => value > 0)
+      .sort((left, right) => right - left);
+    lines.push(
+      label.padEnd(18)
+      + ROLE_ORDER.map(role => String(byRole[role]).padStart(7)).join('')
+      + String(total).padStart(7)
+      + ' |' + ROLE_ORDER.map(share).join('')
+      + ' | ' + String(mids.length).padStart(6)
+      + '  ' + (mids.slice(0, 5).join(', ') || '-'),
+    );
+  };
+  report('assists', season.assists);
+  report('passes', season.passes);
+  report('chances', season.chances);
+  report(`assists w<=${LEADERS_UNLOCK_WEEK}`, atUnlock.assists);
+  report(`passes w<=${LEADERS_UNLOCK_WEEK}`, atUnlock.passes);
+  report(`chances w<=${LEADERS_UNLOCK_WEEK}`, atUnlock.chances);
+  return lines;
+}
 
 function positiveIntegerEnv(name: string, fallback: number): number {
   const raw = process.env[name];
