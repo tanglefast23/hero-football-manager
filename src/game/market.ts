@@ -451,6 +451,14 @@ export interface RenewalAskFactors {
   readonly growthSinceSigningPercent: number;
   readonly famePercent: number;
   readonly heroMultiplier: number;
+  /**
+   * Signed percentage points from the player's loyalty, −20 to 20. Required
+   * rather than optional on purpose: an optional field defaulting to zero would
+   * let a real call site skip loyalty silently, and there is no way to tell that
+   * apart from a deliberate zero. `loyaltyRenewalPercent` in
+   * `src/game/loyalty.ts` produces it.
+   */
+  readonly loyaltyPercent: number;
 }
 
 const PITCH_CARDS: readonly PitchCard[] = [
@@ -492,6 +500,13 @@ export function renewalContractAsk(
     || factors.heroMultiplier > 5) {
     throw new Error('hero wage multiplier must be from 3 to 5');
   }
+  // Validated here rather than through `assertPercent`, which rejects negatives.
+  // This factor is signed: a loyal player asks for less, not zero less.
+  if (!Number.isInteger(factors.loyaltyPercent)
+    || factors.loyaltyPercent < -20
+    || factors.loyaltyPercent > 20) {
+    throw new Error('renewal loyalty factor must be an integer from -20 to 20');
+  }
 
   let ask = scaleByPercent(
     player.weeklyWage,
@@ -499,6 +514,7 @@ export function renewalContractAsk(
     'growth-adjusted renewal ask',
   );
   ask = scaleByPercent(ask, 100 + factors.famePercent, 'fame-adjusted renewal ask');
+  ask = scaleByPercent(ask, 100 + factors.loyaltyPercent, 'loyalty-adjusted renewal ask');
   ask = scaleByPercent(
     ask,
     player.personality === 'GREEDY' ? 120 : player.personality === 'LOYAL' ? 90 : 100,
