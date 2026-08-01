@@ -9,12 +9,6 @@ import type {
 } from '../m2-league-models';
 import { Metric, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
 import { LeagueFixtureRow } from '../components/LeagueFixtureRow';
-import { TutorialTapCue } from '../TutorialTapCue';
-import {
-  TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-  TUTORIAL_TAP_CUE_RESERVED_SPACE,
-  TUTORIAL_TAP_CUE_WIDTH,
-} from '../tutorial-cue-position';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { CupBracket } from '../components/CupBracket';
 import { useLayoutMode } from '../layout/use-layout-mode';
@@ -206,7 +200,6 @@ export function M2LeagueScreen({
       node: (
         <View
           className={guideNationalCup ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
-          style={guideNationalCup ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
           onLayout={event => {
             // React Native may release the synthetic event before the next frame.
             // Snapshot the primitive now so the guided scroll never reads a pooled event.
@@ -220,16 +213,6 @@ export function M2LeagueScreen({
             }
           }}
         >
-          {guideNationalCup ? (
-            <TutorialTapCue
-              detail="Open the Cup draw"
-              style={{
-                left: '50%',
-                marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-              }}
-            />
-          ) : null}
           <SectionLabel
             eyebrow="All 50 clubs"
             title="Global Cup"
