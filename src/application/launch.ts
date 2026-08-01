@@ -50,6 +50,7 @@ export function createLaunchCareerSetup(
     userClubId,
     launchRosterVersion: LAUNCH_ROSTER_VERSION,
     startingTrainingPoints: 30,
+    playerRequestRules: content.playerRequests,
     trainingRules: {
       focusDrills: content.training.focusDrills.map(drill => ({
         id: drill.id, moneyCost: drill.moneyCost, tpCost: drill.tpCost, gains: { ...drill.gains },
@@ -288,6 +289,12 @@ export function reconcileLaunchRoster(
             })),
           },
         }
+      : {}),
+    // Careers saved before requests existed have no baked catalog, and without
+    // one the tab would stay empty forever. Reconciliation supplies it the same
+    // way it supplies training rules.
+    ...(state.playerRequestRules === undefined && launch.playerRequestRules !== undefined
+      ? { playerRequestRules: launch.playerRequestRules }
       : {}),
     clubs: state.clubs.map(club => ({
       ...club,
