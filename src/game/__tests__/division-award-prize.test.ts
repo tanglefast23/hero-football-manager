@@ -2,9 +2,10 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '..';
 import { leagueStandings } from '../career';
 import {
-  DIVISION_AWARD_PRIZE_PER_TIER,
+  DIVISION_AWARD_PRIZE_TAPER_PERCENT,
   divisionAwardPrize,
   divisionAwardPrizePerCategory,
+  divisionAwardPrizeTotal,
 } from '../division-award-prize';
 import { startNextFullCareerSeason } from '../full-career';
 import { currentUserDivision } from '../m2-career';
@@ -45,15 +46,30 @@ describe('divisionAwardPrize', () => {
     expect(prize).toEqual({ trainingPoints: 120, categoriesWon: ['tacklesWon'] });
   });
 
-  test('a sweep pays four times the rate', () => {
+  test('a sweep pays the tapered total, not four full rates', () => {
     const prize = divisionAwardPrize({
       recap: recapWonBy(CATEGORIES),
       userClubId: USER_CLUB,
       targetDivision: 5,
     });
 
-    expect(prize.trainingPoints).toBe(120 * 4);
+    expect(prize.trainingPoints).toBe(120 + 90 + 60 + 30);
     expect(prize.categoriesWon).toEqual(CATEGORIES);
+  });
+
+  test('which boards were won cannot change what they pay', () => {
+    const forwards = divisionAwardPrize({
+      recap: recapWonBy(['goals', 'saves']),
+      userClubId: USER_CLUB,
+      targetDivision: 4,
+    });
+    const spine = divisionAwardPrize({
+      recap: recapWonBy(['passesCompleted', 'tacklesWon']),
+      userClubId: USER_CLUB,
+      targetDivision: 4,
+    });
+
+    expect(forwards.trainingPoints).toBe(spine.trainingPoints);
   });
 
   test('a rival top placing pays nothing, even with our man second', () => {
@@ -85,8 +101,9 @@ describe('divisionAwardPrize', () => {
     const promoted = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 3 });
     const relegated = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 });
 
-    expect(promoted.trainingPoints - relegated.trainingPoints)
-      .toBe(DIVISION_AWARD_PRIZE_PER_TIER * 2 * CATEGORIES.length);
+    expect(promoted.trainingPoints).toBeGreaterThan(relegated.trainingPoints);
+    expect(promoted.trainingPoints).toBe(divisionAwardPrizeTotal(3, CATEGORIES.length));
+    expect(relegated.trainingPoints).toBe(divisionAwardPrizeTotal(5, CATEGORIES.length));
   });
 
   test('every tier of the pyramid is priced, and nothing outside it is', () => {
@@ -119,6 +136,38 @@ describe('divisionAwardPrize', () => {
   });
 });
 
+describe('the diminishing-returns curve', () => {
+  test('pays the shipped D5 totals', () => {
+    expect([0, 1, 2, 3, 4].map(count => divisionAwardPrizeTotal(5, count)))
+      .toEqual([0, 120, 210, 270, 300]);
+  });
+
+  /**
+   * The shape, asserted separately from the literals above so a future retune
+   * of the rate or the taper breaks one test rather than every test: more boards
+   * must always be worth more in total, and each additional board must always be
+   * worth less on its own than the one before it.
+   */
+  test('holds its shape at every tier: always more, always less each time', () => {
+    for (const division of [5, 4, 3, 2, 1]) {
+      const totals = [0, 1, 2, 3, 4].map(count => divisionAwardPrizeTotal(division, count));
+      const marginals = totals.slice(1).map((total, index) => total - totals[index]);
+
+      expect(marginals.every(marginal => marginal > 0)).toBe(true);
+      for (let index = 1; index < marginals.length; index += 1) {
+        expect(marginals[index]).toBeLessThan(marginals[index - 1]);
+      }
+    }
+  });
+
+  test('refuses to extrapolate past the boards the taper prices', () => {
+    const boards = DIVISION_AWARD_PRIZE_TAPER_PERCENT.length;
+
+    expect(() => divisionAwardPrizeTotal(5, boards + 1)).toThrow(`at most ${boards} boards`);
+    expect(() => divisionAwardPrizeTotal(5, -1)).toThrow('cannot pay for -1 boards');
+  });
+});
+
 describe('banking the prize at the season transition', () => {
   test('the transition pays the entered division rate and stamps the recap', () => {
     const state = careerWithRecap(20260801, ['goals']);
@@ -131,7 +180,7 @@ describe('banking the prize at the season transition', () => {
     // number: this is what pins the rate to the division being entered.
     expect(entered).toBeLessThan(recapBefore.division);
     expect(next.trainingPoints - state.trainingPoints)
-      .toBe(divisionAwardPrizePerCategory(entered));
+      .toBe(divisionAwardPrizeTotal(entered, 1));
   });
 
   test('the granted figure is recorded on the season it was won in', () => {
@@ -141,9 +190,13 @@ describe('banking the prize at the season transition', () => {
 
     const stamped = next.seasonRecaps!.find(recap => recap.season === state.season)!;
     expect(stamped.divisionAwardPrize).toEqual({
-      trainingPoints: divisionAwardPrizePerCategory(currentUserDivision(next.m2!)) * 2,
+      trainingPoints: divisionAwardPrizeTotal(currentUserDivision(next.m2!), 2),
       categoriesWon: ['goals', 'saves'],
     });
+    // The taper has to survive the trip through the transition, not just the
+    // pure function: two boards must bank less than two full rates.
+    expect(stamped.divisionAwardPrize!.trainingPoints)
+      .toBeLessThan(divisionAwardPrizePerCategory(currentUserDivision(next.m2!)) * 2);
   });
 
   test('a season that won nothing is stamped with a zero rather than left blank', () => {
