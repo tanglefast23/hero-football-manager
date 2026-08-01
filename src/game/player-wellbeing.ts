@@ -112,6 +112,13 @@ function isUnderpaidPlayer(player: CareerPlayer): boolean {
     growthSinceSigningPercent: growthSinceSigningPercent(player),
     famePercent: Math.min(100, player.fame ?? 0),
     heroMultiplier: 4,
+    // Deliberately not the player's real loyalty. Loyalty has exactly one job —
+    // the price of the next contract — and the player card says so. Feeding it
+    // here would make every refused request ALSO raise the "fair wage" line,
+    // adding a silent -2 morale a week and a faster transfer request that no
+    // button on the decision card ever mentioned. A third punishment channel
+    // the manager was never shown is worse than no punishment at all.
+    loyaltyPercent: 0,
   });
   return player.weeklyWage * 100 < fairWage * 70;
 }

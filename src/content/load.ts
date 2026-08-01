@@ -3,6 +3,7 @@ import clubsJson from '../../content/clubs.json';
 import eventsJson from '../../content/events.json';
 import glossaryJson from '../../content/glossary.json';
 import onboardingJson from '../../content/onboarding.json';
+import playerRequestsJson from '../../content/player-requests.json';
 import powersJson from '../../content/powers.json';
 import tipsJson from '../../content/tips.json';
 import trainingJson from '../../content/training.json';
@@ -32,6 +33,7 @@ export function loadLaunchContent(): LaunchContent {
     clubs: clubsJson,
     glossary: glossaryJson,
     onboarding: onboardingJson,
+    playerRequests: playerRequestsJson,
     powers: powersJson,
     tips: tipsJson,
     training: trainingJson,

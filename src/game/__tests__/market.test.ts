@@ -324,12 +324,41 @@ describe('transfer rules and valuations', () => {
       growthSinceSigningPercent: 0,
       famePercent: 0,
       heroMultiplier: 3,
+      loyaltyPercent: 0,
     })).toBe(weeklyWage * 3);
     expect(renewalContractAsk(player, {
       growthSinceSigningPercent: 0,
       famePercent: 0,
       heroMultiplier: 5,
+      loyaltyPercent: 0,
     })).toBe(weeklyWage * 5);
+  });
+
+  it('discounts the renewal ask for a loyal player and inflates it for a disloyal one', () => {
+    const player = {
+      weeklyWage: 1000,
+      personality: 'PROFESSIONAL' as const,
+      onHeroWage: false,
+    };
+    const factors = { growthSinceSigningPercent: 0, famePercent: 0, heroMultiplier: 4 };
+
+    expect(renewalContractAsk(player, { ...factors, loyaltyPercent: -20 })).toBe(800);
+    expect(renewalContractAsk(player, { ...factors, loyaltyPercent: 0 })).toBe(1000);
+    expect(renewalContractAsk(player, { ...factors, loyaltyPercent: 20 })).toBe(1200);
+  });
+
+  it('rejects a loyalty factor outside the signed band the design allows', () => {
+    const player = {
+      weeklyWage: 1000,
+      personality: 'PROFESSIONAL' as const,
+      onHeroWage: false,
+    };
+    const factors = { growthSinceSigningPercent: 0, famePercent: 0, heroMultiplier: 4 };
+
+    expect(() => renewalContractAsk(player, { ...factors, loyaltyPercent: 21 }))
+      .toThrow('renewal loyalty factor');
+    expect(() => renewalContractAsk(player, { ...factors, loyaltyPercent: -21 }))
+      .toThrow('renewal loyalty factor');
   });
 
   it('creates repeatable buying asks and selling bids inside their valuation bands', () => {
@@ -448,7 +477,7 @@ describe('contract negotiation', () => {
   it('builds renewal asks from growth, fame, personality, and the delayed hero wage cliff', () => {
     const ordinary = renewalContractAsk(
       { weeklyWage: 200, personality: 'GREEDY', onHeroWage: false },
-      { growthSinceSigningPercent: 25, famePercent: 10, heroMultiplier: 4 },
+      { growthSinceSigningPercent: 25, famePercent: 10, heroMultiplier: 4, loyaltyPercent: 0 },
     );
     const hero = renewalContractAsk(
       {
@@ -457,7 +486,7 @@ describe('contract negotiation', () => {
         power: 'SUPER_SPEED',
         onHeroWage: false,
       },
-      { growthSinceSigningPercent: 25, famePercent: 10, heroMultiplier: 4 },
+      { growthSinceSigningPercent: 25, famePercent: 10, heroMultiplier: 4, loyaltyPercent: 0 },
     );
     const alreadyOnHeroRate = renewalContractAsk(
       {
@@ -466,7 +495,7 @@ describe('contract negotiation', () => {
         power: 'SUPER_SPEED',
         onHeroWage: true,
       },
-      { growthSinceSigningPercent: 0, famePercent: 0, heroMultiplier: 5 },
+      { growthSinceSigningPercent: 0, famePercent: 0, heroMultiplier: 5, loyaltyPercent: 0 },
     );
 
     expect(hero).toBe(ordinary * 4);

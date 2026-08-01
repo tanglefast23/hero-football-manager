@@ -25,6 +25,8 @@ import {
   pendingTrainingPriorityHolder,
 } from './contract-promises';
 import { repairCareerLineupForInjuries } from './squad';
+import { isAvailableForSelection } from './lineup';
+import { drillMultiplierPercent } from './player-requests';
 import { resolveTrainingDrillForPath, trainingPathAttribute } from './training-paths';
 import type { CareerPlayer, GameState } from './types';
 
@@ -112,7 +114,11 @@ export function trainPlayerInstantly(
   if (player === undefined || player.clubId !== state.userClubId) {
     throw new Error(`player ${playerId} is not on the user club`);
   }
+  // Two messages, not one "unavailable". The manager can act on an injury —
+  // the Medical Bay shortens it — and can only wait out leave, so collapsing
+  // them would throw away the one useful thing the error says.
   if (player.injuryWeeks > 0) throw new Error(`${player.name} is injured and cannot train`);
+  if ((player.awayWeeks ?? 0) > 0) throw new Error(`${player.name} is away and cannot train`);
   // A TRAINING_PRIORITY promise is a debt: the promised player owns the next
   // drills until their countdown drains. They remind the manager; an injured
   // holder pauses the debt instead of deadlocking training.
@@ -224,7 +230,14 @@ function applyInstantGrowthModifiers(
     : careerCoachTrainingModifiers(state.market);
   const structuralMultiplier = trainingMultiplierForAge(player.age ?? 24)
     * facilityTrainingMultiplier(state, attribute);
-  const baseGain = Math.max(1, Math.round(rolledGain * structuralMultiplier));
+  // A granted "my own guru" or "ease off the lads" scales gains for its spell.
+  // The floor of 1 stays: a drill must always be worth something, even at a
+  // compounded 30%, or the manager pays TP for literally nothing.
+  const requestScale = drillMultiplierPercent(state.playerRequests?.effects ?? [], player.id);
+  const baseGain = Math.max(
+    1,
+    Math.round(rolledGain * structuralMultiplier * requestScale / 100),
+  );
   const coachBonusPercent = (coachModifiers?.gainScalePercentByAttribute[attribute] ?? 100) - 100;
   const developmentBonusPercent = archetypeTrainingBonusPercent(player.archetype, attribute)
     + positionTrainingBonusPercent(player.role, attribute)

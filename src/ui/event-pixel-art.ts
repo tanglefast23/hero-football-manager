@@ -1,3 +1,4 @@
+import playerRequestsJson from '../../content/player-requests.json';
 import { EVENT_SPRITE_ROWS } from './event-pixel-sprites';
 
 /**
@@ -71,6 +72,13 @@ export const EVENT_OBJECTS: Readonly<Record<string, readonly string[]>> = {
   'event-training-drone': ['drone', 'cone'],
   'event-haunted-scoreboard': ['scoreboard', 'ghost'],
   'event-community-mural': ['paint-bucket', 'brush'],
+  // Player requests derive their entries from the catalog rather than repeating
+  // the pairing here. The sprite pair is authored content and belongs in
+  // `content/player-requests.json`; a second hand-written copy would be a
+  // second thing to keep in step, and nothing would notice when it drifted.
+  ...Object.fromEntries(
+    playerRequestsJson.requests.map(request => [`request-${request.id}`, request.art]),
+  ),
 };
 
 const FALLBACK_OBJECTS: readonly string[] = ['ball', 'star-sparkle'];

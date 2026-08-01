@@ -190,6 +190,7 @@ export const AssistantGuideSequenceIdSchema = z.enum([
   'club-legacy',
   'board-ultimatum',
   'board-protection',
+  'player-requests',
 ]);
 
 export const AssistantGuideFocusSchema = z.enum([
@@ -212,6 +213,7 @@ export const AssistantGuideFocusSchema = z.enum([
   'transfer-negotiation',
   'youth-intake',
   'national-cup',
+  'squad-requests',
   'injury-lineup',
   'emergency-loan',
   'transfer-request',
@@ -550,12 +552,132 @@ export const ManagerTipCatalogSchema = z.strictObject({
   addDuplicateIssues(catalog.tips.map(tip => tip.id), context, ['tips'], 'manager tip');
 });
 
+/**
+ * Sprite names a request may reference for its artwork.
+ *
+ * Duplicated from `src/ui/event-pixel-sprites.ts` on purpose: `src/content/`
+ * must not import from `src/ui/`. A name that drifts out of this list is caught
+ * by the coverage test in `src/ui/__tests__/event-pixel-sprites.test.ts`, which
+ * checks the shipped catalog against the real sprite table.
+ */
+const REQUEST_ART_SPRITES = new Set([
+  'banner-flag', 'boot', 'briefcase', 'burger', 'camera', 'chef-hat', 'cone',
+  'dog', 'drink-can', 'drone', 'envelope', 'headphones', 'letter',
+  'massage-table', 'microphone', 'money-bag', 'palm-tree', 'party-hat', 'plane',
+  'rain-cloud', 'scarf', 'scissors', 'shirt', 'spatula', 'speaker',
+  'sports-car', 'star-sparkle', 'sunglasses', 'tactics-board', 'tape-roll',
+  'ticket', 'tuning-fork', 'tv',
+]);
+
+/**
+ * What granting a request costs. Five archetypes, no status perks: a request
+ * must never write `contractPromise`, which holds a single object per player,
+ * so granting one would destroy whatever was agreed at the negotiating table.
+ */
+const RequestCostSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('MONEY_PLAYER'),
+    wageMultiple: z.number().int().min(1).max(50),
+  }),
+  z.strictObject({
+    kind: z.literal('MONEY_SQUAD'),
+    billMultiplePercent: z.number().int().min(5).max(300),
+  }),
+  z.strictObject({ kind: z.literal('ABSENCE'), weeks: z.number().int().min(1).max(4) }),
+  z.strictObject({ kind: z.literal('CONDITION_SQUAD'), amount: z.number().int().min(1).max(30) }),
+  z.strictObject({
+    kind: z.literal('DRILL_PLAYER'),
+    multiplierPercent: z.number().int().min(10).max(99),
+    weeks: z.number().int().min(1).max(8),
+  }),
+  z.strictObject({
+    kind: z.literal('DRILL_SQUAD'),
+    multiplierPercent: z.number().int().min(10).max(99),
+    weeks: z.number().int().min(1).max(8),
+  }),
+]);
+
+/** A themed reward a few squad requests carry, on top of loyalty and morale. */
+const RequestGrantBonusSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('CONDITION_SQUAD'), amount: z.number().int().min(1).max(20) }),
+  z.strictObject({ kind: z.literal('MORALE_SQUAD'), amount: z.number().int().min(1).max(10) }),
+]);
+
+const PlayerRequestSchema = z.strictObject({
+  id: idSchema,
+  title: displayNameSchema,
+  line: z.string().trim().min(1).max(160),
+  art: z.tuple([idSchema, idSchema]),
+  cost: RequestCostSchema,
+  grantBonus: RequestGrantBonusSchema.optional(),
+});
+
+const RequestCadenceSchema = z.strictObject({
+  minWeeks: z.number().int().min(1).max(30),
+  guaranteeWeeks: z.number().int().min(2).max(40),
+  starMinWeeks: z.number().int().min(1).max(30),
+  starGuaranteeWeeks: z.number().int().min(2).max(40),
+}).superRefine((cadence, context) => {
+  if (cadence.minWeeks >= cadence.guaranteeWeeks) {
+    addIssue(context, ['minWeeks'], 'cadence minWeeks must be below guaranteeWeeks');
+  }
+  if (cadence.starMinWeeks >= cadence.starGuaranteeWeeks) {
+    addIssue(context, ['starMinWeeks'], 'star cadence minWeeks must be below guaranteeWeeks');
+  }
+  if (cadence.starMinWeeks > cadence.minWeeks) {
+    addIssue(context, ['starMinWeeks'], 'a squad with a star must not wait longer');
+  }
+});
+
+export const PlayerRequestCatalogSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  tuning: z.strictObject({
+    startSeason: z.number().int().min(1).max(10),
+    startWeek: z.number().int().min(1).max(30),
+    baseChancePercent: z.number().int().min(1).max(100),
+    starFameThreshold: z.number().int().min(0).max(99),
+    starGoalRank: z.number().int().min(1).max(5),
+    /**
+     * Seasons, not weeks: `CareerPlayer` carries `seasonsAtClub` and nothing
+     * finer, so a week-level knob would be config that silently did nothing.
+     *
+     * Ships as 1: a player has to have been at the club through a season
+     * transition before they start making demands. `mergeCareerPlayer`
+     * (`src/game/m2-career.ts`) increments the field each transition, so a
+     * launch-squad player reads 1 by season 2 — which is when requests begin —
+     * while someone signed mid-season waits until the next rollover.
+     */
+    minSeasonsAtClub: z.number().int().min(0).max(5),
+    answerWeeks: z.number().int().min(1).max(5),
+    cadence: z.strictObject({
+      COZY: RequestCadenceSchema,
+      CHAIRMAN: RequestCadenceSchema,
+    }),
+  }),
+  requests: z.array(PlayerRequestSchema).min(1),
+}).superRefine((catalog, context) => {
+  addDuplicateIssues(catalog.requests.map(request => request.id), context, ['requests'], 'request ID');
+  catalog.requests.forEach((request, index) => {
+    request.art.forEach((sprite, spriteIndex) => {
+      if (!REQUEST_ART_SPRITES.has(sprite)) {
+        addIssue(context, ['requests', index, 'art', spriteIndex], `unknown request art sprite ${sprite}`);
+      }
+    });
+  });
+});
+
+export type PlayerRequestCatalog = z.infer<typeof PlayerRequestCatalogSchema>;
+export type PlayerRequestDefinition = z.infer<typeof PlayerRequestSchema>;
+export type RequestCost = z.infer<typeof RequestCostSchema>;
+export type RequestGrantBonus = z.infer<typeof RequestGrantBonusSchema>;
+
 export const LaunchContentSchema = z.strictObject({
   assistantGuide: AssistantGuideContentSchema,
   clubs: ClubCatalogSchema,
   glossary: GlossaryCatalogSchema,
   onboarding: OnboardingContentSchema,
   powers: PowerCatalogSchema,
+  playerRequests: PlayerRequestCatalogSchema,
   tips: ManagerTipCatalogSchema,
   training: TrainingCatalogSchema,
   events: EventCatalogSchema,

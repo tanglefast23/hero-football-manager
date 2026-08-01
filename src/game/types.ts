@@ -5,7 +5,7 @@ import type { DeskTipState } from './desk-tips';
 import type { M2CareerState } from './m2-career';
 import type { YouthIntakeState } from './youth-intake';
 
-export const GAME_SCHEMA_VERSION = 2;
+export const GAME_SCHEMA_VERSION = 3;
 export const SEASON_WEEKS = 30;
 
 export type GamePhase = 'manage' | 'matchday' | 'season-end' | 'complete';
@@ -37,6 +37,13 @@ export interface CareerSetup {
   players?: CareerPlayer[];
   lineups?: ClubLineupState[];
   trainingRules?: TrainingRules;
+  /**
+   * The player-request catalog, baked in like `trainingRules` so the pure
+   * engine can roll requests without importing content. Omitted by the balance
+   * harness and by fixtures that do not exercise requests, which is what turns
+   * the feature off for them.
+   */
+  playerRequestRules?: PlayerRequestCatalog;
   /** Defaults to Cozy for old fixtures and saves. */
   difficulty?: DifficultyMode;
 }
@@ -112,6 +119,20 @@ export interface CareerPlayer {
   consistency?: number;
   personality?: PlayerPersonality;
   condition?: number;
+  /**
+   * How much they want to stay, 0 to 100. Absent means "never moved from the
+   * derived starting value"; read it through `playerLoyalty` in
+   * `src/game/loyalty.ts` rather than touching this field directly.
+   */
+  loyalty?: number;
+  /**
+   * Weeks unavailable because a granted request took them away.
+   *
+   * Deliberately not `injuryWeeks`. Sharing that field would let the Medical
+   * Bay shorten a beach holiday and would make the roster announce that a
+   * striker is "recovering" from the Bahamas.
+   */
+  awayWeeks?: number;
   seasonsAtClub?: number;
   fame?: number;
   retirementAge?: number;
@@ -271,7 +292,8 @@ export type CashTransactionKind =
   | 'transfer-sell'
   | 'youth-signing'
   | 'coach-hiring'
-  | 'coach-dismissal';
+  | 'coach-dismissal'
+  | 'player-request';
 
 /**
  * Immediate M2 cash movements live beside weekly ledgers so buying something
@@ -391,6 +413,116 @@ export interface SeasonRecap {
   heroOfSeason?: SeasonRecapAward;
 }
 
+/**
+ * The request catalog, as the ENGINE requires it.
+ *
+ * Defined here rather than imported from `src/content/` because `src/game/` may
+ * depend only on itself and inward on `src/sim/` — a rule the architecture test
+ * enforces, and one that a type-only import would still break, since it leaves
+ * the ring unable to compile on its own.
+ *
+ * So the direction is inverted: the engine states the shape it needs, and the
+ * content catalog has to satisfy it. `src/content/__tests__/player-requests.test.ts`
+ * asserts that the zod-validated catalog is assignable to these types, which
+ * fails at compile time if either side drifts.
+ */
+export type PlayerRequestCost =
+  | { readonly kind: 'MONEY_PLAYER'; readonly wageMultiple: number }
+  | { readonly kind: 'MONEY_SQUAD'; readonly billMultiplePercent: number }
+  | { readonly kind: 'ABSENCE'; readonly weeks: number }
+  | { readonly kind: 'CONDITION_SQUAD'; readonly amount: number }
+  | { readonly kind: 'DRILL_PLAYER'; readonly multiplierPercent: number; readonly weeks: number }
+  | { readonly kind: 'DRILL_SQUAD'; readonly multiplierPercent: number; readonly weeks: number };
+
+export type PlayerRequestGrantBonus =
+  | { readonly kind: 'CONDITION_SQUAD'; readonly amount: number }
+  | { readonly kind: 'MORALE_SQUAD'; readonly amount: number };
+
+export interface PlayerRequestDefinition {
+  readonly id: string;
+  readonly title: string;
+  readonly line: string;
+  readonly art: readonly [string, string];
+  readonly cost: PlayerRequestCost;
+  readonly grantBonus?: PlayerRequestGrantBonus;
+}
+
+export interface PlayerRequestCadence {
+  readonly minWeeks: number;
+  readonly guaranteeWeeks: number;
+  readonly starMinWeeks: number;
+  readonly starGuaranteeWeeks: number;
+}
+
+export interface PlayerRequestTuning {
+  readonly startSeason: number;
+  readonly startWeek: number;
+  readonly baseChancePercent: number;
+  readonly starFameThreshold: number;
+  readonly starGoalRank: number;
+  readonly minSeasonsAtClub: number;
+  readonly answerWeeks: number;
+  readonly cadence: Readonly<Record<DifficultyMode, PlayerRequestCadence>>;
+}
+
+export interface PlayerRequestCatalog {
+  readonly tuning: PlayerRequestTuning;
+  readonly requests: readonly PlayerRequestDefinition[];
+}
+
+export type PlayerRequestResolution = 'GRANTED' | 'REFUSED' | 'LAPSED';
+
+export interface PendingPlayerRequest {
+  requestId: string;
+  playerId: string;
+  askedSeason: number;
+  askedWeek: number;
+  /**
+   * Money cost snapshotted when the request opened. Without it a renewal or a
+   * wage rise between the ask and the answer would silently change the number
+   * already printed on the card.
+   */
+  costAmount?: number;
+  /** True once the second-week inbox warning has been queued. */
+  warned: boolean;
+}
+
+/**
+ * Only the drill effects exist. The status requests that would have needed a
+ * perk — armband, shirt 10, guaranteed start, training priority — were cut
+ * from v1 because `contractPromise` holds a single object per player, so
+ * writing one from a request would destroy whatever was agreed at the
+ * negotiating table.
+ */
+export type RequestEffectKind = 'DRILL_PLAYER' | 'DRILL_SQUAD';
+
+export interface ActiveRequestEffect {
+  kind: RequestEffectKind;
+  /** Absent for squad-wide effects. */
+  playerId?: string;
+  weeksRemaining: number;
+  /** Drill gain scale, e.g. 50 for half gains. */
+  multiplierPercent?: number;
+}
+
+export interface ResolvedPlayerRequest {
+  requestId: string;
+  playerId: string;
+  season: number;
+  week: number;
+  resolution: PlayerRequestResolution;
+  costAmount?: number;
+}
+
+export interface PlayerRequestState {
+  weeksSinceRequest: number;
+  pending?: PendingPlayerRequest;
+  effects: ActiveRequestEffect[];
+  /** Newest first, capped at MAX_PLAYER_REQUEST_HISTORY. */
+  history: ResolvedPlayerRequest[];
+  lastAskingPlayerId?: string;
+}
+
 export interface GameState {
   schemaVersion: number;
   /** Marks launch-content roster migrations that have already been applied. */
@@ -408,6 +540,8 @@ export interface GameState {
   lineups: ClubLineupState[];
   facilities: FacilityState;
   trainingRules?: TrainingRules;
+  /** Baked request catalog; absent means requests never open for this career. */
+  playerRequestRules?: PlayerRequestCatalog;
   eventClock: CareerEventState;
   eventFlags: string[];
   resolvedEventIds: string[];
@@ -452,6 +586,8 @@ export interface GameState {
   /** Immutable snapshots used by the season-review presentation. */
   seasonRecaps?: SeasonRecap[];
   financialSafety?: FinancialSafetyState;
+  /** Absent on saves written before player requests; defaulted on reconciliation. */
+  playerRequests?: PlayerRequestState;
   /** Persisted FIFO until Bert has delivered every post-Cup giant-killing walk-on. */
   pendingCupGiantKillingCelebrations?: CupGiantKillingCelebration[];
 }

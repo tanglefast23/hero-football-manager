@@ -289,6 +289,12 @@ export function reconcileLaunchRoster(
           },
         }
       : {}),
+    // Careers saved before requests existed have no baked catalog, and without
+    // one the tab would stay empty forever. Reconciliation supplies it the same
+    // way it supplies training rules.
+    ...(state.playerRequestRules === undefined && launch.playerRequestRules !== undefined
+      ? { playerRequestRules: launch.playerRequestRules }
+      : {}),
     clubs: state.clubs.map(club => ({
       ...club,
       weeklyWages: wageByClub.get(club.id) ?? club.weeklyWages,

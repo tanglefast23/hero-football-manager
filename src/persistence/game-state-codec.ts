@@ -145,6 +145,7 @@ const cashTransactionSchema = z.object({
     'youth-signing',
     'coach-hiring',
     'coach-dismissal',
+    'player-request',
   ]),
   label: nonemptyString,
   amount: safeInteger.refine(value => value !== 0, 'must be non-zero'),
@@ -209,6 +210,8 @@ const playerSchema = z
       'must be at most 100',
     ),
     injuryWeeks: nonnegativeInteger,
+    loyalty: nonnegativeInteger.refine(value => value <= 100, 'must be at most 100').optional(),
+    awayWeeks: nonnegativeInteger.refine(value => value <= 10, 'must be at most 10').optional(),
     age: positiveInteger.refine((value) => value <= 99, 'must be at most 99').optional(),
     archetype: z.enum([
       'Speedster', 'Sniper', 'Playmaker', 'Anchor', 'Wall', 'Engine', 'All-Rounder', 'Prodigy',
@@ -343,6 +346,46 @@ const trainingRulesSchema = z
   })
   .passthrough();
 
+/**
+ * The baked player-request catalog.
+ *
+ * Deliberately loose — `.passthrough()` on the request entries, no re-check of
+ * cost shapes. `src/content/schemas.ts` is the authority on what a valid
+ * catalog is and validates it at load; repeating those rules here would be a
+ * second copy to keep in step, and the only thing this file actually needs to
+ * guarantee is that what comes back off disk is the shape the engine reads.
+ */
+const playerRequestRulesSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    tuning: z
+      .object({
+        startSeason: positiveInteger,
+        startWeek: positiveInteger,
+        baseChancePercent: positiveInteger,
+        starFameThreshold: nonnegativeInteger,
+        starGoalRank: positiveInteger,
+        minSeasonsAtClub: nonnegativeInteger,
+        answerWeeks: positiveInteger,
+        cadence: z.record(z.string(), z.object({
+          minWeeks: positiveInteger,
+          guaranteeWeeks: positiveInteger,
+          starMinWeeks: positiveInteger,
+          starGuaranteeWeeks: positiveInteger,
+        }).passthrough()),
+      })
+      .passthrough(),
+    requests: z.array(z.object({
+      id: nonemptyString,
+      title: nonemptyString,
+      line: nonemptyString,
+      art: z.array(nonemptyString),
+      cost: z.object({ kind: nonemptyString }).passthrough(),
+      grantBonus: z.object({ kind: nonemptyString }).passthrough().optional(),
+    }).passthrough()),
+  })
+  .passthrough();
+
 const eventClockSchema = z
   .object({
     weeksWithoutEvent: nonnegativeInteger,
@@ -410,6 +453,49 @@ const seasonGoalTallySchema = z
     season: positiveInteger,
     playerId: nonemptyString,
     goals: nonnegativeInteger,
+  })
+  .passthrough();
+
+const pendingPlayerRequestSchema = z
+  .object({
+    requestId: nonemptyString,
+    playerId: nonemptyString,
+    askedSeason: positiveInteger,
+    askedWeek: positiveInteger,
+    costAmount: nonnegativeInteger.optional(),
+    warned: z.boolean(),
+  })
+  .passthrough();
+
+const activeRequestEffectSchema = z
+  .object({
+    kind: z.enum(['DRILL_PLAYER', 'DRILL_SQUAD']),
+    playerId: nonemptyString.optional(),
+    weeksRemaining: positiveInteger.refine(value => value <= 30, 'must be at most 30'),
+    multiplierPercent: positiveInteger
+      .refine(value => value <= 200, 'must be at most 200')
+      .optional(),
+  })
+  .passthrough();
+
+const resolvedPlayerRequestSchema = z
+  .object({
+    requestId: nonemptyString,
+    playerId: nonemptyString,
+    season: positiveInteger,
+    week: positiveInteger,
+    resolution: z.enum(['GRANTED', 'REFUSED', 'LAPSED']),
+    costAmount: nonnegativeInteger.optional(),
+  })
+  .passthrough();
+
+const playerRequestStateSchema = z
+  .object({
+    weeksSinceRequest: nonnegativeInteger.refine(value => value <= 200, 'must be at most 200'),
+    pending: pendingPlayerRequestSchema.optional(),
+    effects: z.array(activeRequestEffectSchema).max(20),
+    history: z.array(resolvedPlayerRequestSchema).max(40),
+    lastAskingPlayerId: nonemptyString.optional(),
   })
   .passthrough();
 
@@ -715,6 +801,7 @@ const gameStateSchema = z
     lineups: z.array(lineupSchema),
     facilities: facilitiesSchema,
     trainingRules: trainingRulesSchema.optional(),
+    playerRequestRules: playerRequestRulesSchema.optional(),
     eventClock: eventClockSchema,
     eventFlags: z.array(nonemptyString),
     resolvedEventIds: z.array(nonemptyString),
@@ -757,6 +844,7 @@ const gameStateSchema = z
       retirementAge: positiveInteger.refine(value => value >= 33 && value <= 38, 'must be from 33 to 38'),
     }).passthrough()).optional(),
     seasonRecaps: z.array(seasonRecapSchema).optional(),
+    playerRequests: playerRequestStateSchema.optional(),
     financialSafety: z.object({
       consecutiveNegativeWeeks: nonnegativeInteger,
       emergencyLoanUsed: z.boolean(),
@@ -1699,7 +1787,21 @@ interface GameStateMigration {
  * `{ to: <new version>, up }` here. Anything the new schema requires must be
  * synthesised by `up`, because an old save will not carry it.
  */
-const GAME_STATE_MIGRATIONS: readonly GameStateMigration[] = [];
+const GAME_STATE_MIGRATIONS: readonly GameStateMigration[] = [
+  {
+    to: 3,
+    // Player requests added `loyalty`, `awayWeeks` and `playerRequests`, and
+    // every one of them is optional — loyalty is derived from the career seed
+    // whenever the field is absent (`src/game/loyalty.ts`), and the request
+    // state is defaulted during reconciliation. A schema-2 save is therefore
+    // already a valid schema-3 save and needs nothing synthesised.
+    //
+    // The rung still has to exist: the ladder refuses a missing boundary
+    // outright, so without it every save written before this feature would fail
+    // to load rather than upgrade.
+    up: state => state,
+  },
+];
 
 function readSchemaVersion(value: unknown, stored: boolean): number {
   if (!isRecord(value) || !Number.isSafeInteger(value.schemaVersion)) {

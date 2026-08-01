@@ -9,6 +9,7 @@ import {
 import { BASE_WEEKLY_TRAINING_POINTS, TRAINING_PITCH_TP_PER_LEVEL } from './facilities';
 import { deterministicPostMatchAwakeningRoll } from './post-match-awakening';
 import { buildTrainingGround } from './squad';
+import { isAvailableForSelection } from './lineup';
 import { trainPlayerInstantly } from './training';
 import { trainingDrillPathId } from './training-paths';
 import type { FocusDrill } from './progression';
@@ -196,7 +197,11 @@ function simulateSeasonOne(
     // active manager would.
     for (const slot of slots) {
       const player = state.players.find(candidate => candidate.id === slot.playerId);
-      if (player === undefined || player.injuryWeeks > 0) continue;
+      // Skips leave as well as injury. `trainPlayerInstantly` throws on both,
+      // and the catch below breaks out of the whole week's training — so an
+      // unskipped away player would silently truncate every later drill in the
+      // harness and read as a training shortfall that never happened.
+      if (player === undefined || !isAvailableForSelection(player)) continue;
       try {
         state = trainPlayerInstantly(state, slot.playerId, slot.pathId).state;
       } catch {

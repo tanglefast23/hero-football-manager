@@ -52,11 +52,26 @@
           "focus": "navigation",
           "buttonLabel": "Got it!",
           "navItems": [
-            { "tab": "HOME", "detail": "Today's work." },
-            { "tab": "SQUAD", "detail": "Team and training." },
-            { "tab": "CLUB", "detail": "Wages and grounds." },
-            { "tab": "MARKET", "detail": "Scout, hire and fire." },
-            { "tab": "LEAGUE", "detail": "Leagues and rivals." }
+            {
+              "tab": "HOME",
+              "detail": "Today's work."
+            },
+            {
+              "tab": "SQUAD",
+              "detail": "Team and training."
+            },
+            {
+              "tab": "CLUB",
+              "detail": "Wages and grounds."
+            },
+            {
+              "tab": "MARKET",
+              "detail": "Scout, hire and fire."
+            },
+            {
+              "tab": "LEAGUE",
+              "detail": "Leagues and rivals."
+            }
           ]
         }
       ]
@@ -521,6 +536,26 @@
           "focus": "board-protection",
           "objective": "PROTECT ONE PLAYER.",
           "buttonLabel": "Put the shield down."
+        }
+      ]
+    },
+    {
+      "id": "player-requests",
+      "inbox": {
+        "title": "A WORD FROM THE DRESSING ROOM",
+        "detail": "One of yours wants a favour."
+      },
+      "destination": "squad",
+      "pages": [
+        {
+          "kicker": "The dressing room",
+          "title": "They want things now",
+          "body": [
+            "Players with a name start asking for things. Say yes and it costs you today; say no and it costs you at contract time, because they remember."
+          ],
+          "focus": "squad-requests",
+          "objective": "OPEN THE REQUESTS TAB.",
+          "buttonLabel": "Let's hear it."
         }
       ]
     }

@@ -35,6 +35,7 @@ import {
   queueCupGiantKillingCelebration,
 } from './cup-giant-killing';
 import { repairCareerLineupForInjuries } from './squad';
+import { advancePlayerRequests } from './player-requests';
 import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import {
   applyBoardForcedSaleConsequences,
@@ -123,6 +124,9 @@ export function createCareer(setup: CareerSetup): GameState {
           gains: { ...drill.gains },
         })),
       },
+    }),
+    ...(setup.playerRequestRules === undefined ? {} : {
+      playerRequestRules: JSON.parse(JSON.stringify(setup.playerRequestRules)),
     }),
     eventClock: { weeksWithoutEvent: 0, riskyChoices: 0 },
     eventFlags: [],
@@ -422,8 +426,11 @@ function settleWeekResults(
       phase: 'season-end',
     };
     const withRecap = recordSeasonRecap(settledState);
+    // openRequests: false — leave and effects still tick, but no card is dealt
+    // on the week the season ends and the request clock resets.
+    const withRequests = advancePlayerRequests(withRecap, false);
     return advanceM2WeeklySidecars(
-      repairCareerLineupForInjuries(withRecap),
+      repairCareerLineupForInjuries(withRequests),
       state.week,
       cupAlreadyResolved,
     );
@@ -439,8 +446,13 @@ function settleWeekResults(
     week: checkedAdd(state.week, 1, 'career week'),
     phase: 'manage',
   };
+  // Runs on `settledState`, which already carries week + 1, so a pending request
+  // stamps `askedWeek` as the week the manager is about to play. It runs BEFORE
+  // repair because it decrements awayWeeks, and repair must see the
+  // post-decrement flags or a returning player sits out an extra week.
+  const withRequests = advancePlayerRequests(settledState, true);
   return advanceM2WeeklySidecars(
-    repairCareerLineupForInjuries(settledState),
+    repairCareerLineupForInjuries(withRequests),
     state.week,
     cupAlreadyResolved,
   );
