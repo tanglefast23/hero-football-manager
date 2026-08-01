@@ -1,5 +1,6 @@
 import * as simMatch from '../sim/match';
 import type { MatchState, ReplayEnvelope, TeamDef } from '../sim/types';
+import { contributionsFrom } from './match-contributions';
 import type { FixtureResult, LeagueFixture } from './types';
 
 const UINT32_MAX = 4294967295;
@@ -153,6 +154,7 @@ export function goalsFrom(match: MatchState): MatchGoal[] {
 
 function fixtureResultFrom(fixture: LeagueFixture, match: MatchState): FixtureResult {
   const scorerPlayerIds = goalsFrom(match).map(goal => goal.playerId);
+  const contributions = contributionsFrom(match);
   return {
     fixtureId: fixture.id,
     homeGoals: match.score[0],
@@ -160,6 +162,7 @@ function fixtureResultFrom(fixture: LeagueFixture, match: MatchState): FixtureRe
     ...(scorerPlayerIds.length === match.score[0] + match.score[1]
       ? { scorerPlayerIds }
       : {}),
+    ...(contributions.length > 0 ? { contributions } : {}),
   };
 }
 

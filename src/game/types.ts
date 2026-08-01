@@ -232,6 +232,12 @@ export interface FixtureResult extends FixtureScore {
   fixtureId: string;
   /** Ordered scorer IDs when the full simulation result is available. */
   scorerPlayerIds?: string[];
+  /**
+   * Per-player countable actions. Present alongside `scorerPlayerIds` rather
+   * than replacing it: career validation checks the scorer list against the
+   * scoreline, and that invariant is worth more than the small redundancy.
+   */
+  contributions?: PlayerMatchContribution[];
 }
 
 export type LedgerLineKind =
