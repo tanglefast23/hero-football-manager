@@ -74,6 +74,7 @@ import {
   type LeagueFixture,
   type NationalCupRoundLabel,
 } from '../game';
+import { contributionsFrom } from '../game/match-contributions';
 import type { ContractOffer, PitchCard } from '../game/market';
 import type {
   CareerBackupSummary,
@@ -826,6 +827,11 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // Resolved at the moment of each goal, not at fulltime — see goalsFrom.
       const goals = goalsFrom(result);
       const scorerPlayerIds = goals.map(goal => goal.playerId);
+      // A supplied result is passed through resolveMatchday verbatim, so
+      // anything omitted here is simply never recorded. Without this the
+      // player's own squad would be the one team missing from every
+      // leaderboard, while their simulated rivals filled it.
+      const contributions = contributionsFrom(result);
       const supplied = {
         fixtureId: fixture.id,
         homeGoals: result.score[0],
@@ -833,6 +839,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
         ...(scorerPlayerIds.length === result.score[0] + result.score[1]
           ? { scorerPlayerIds }
           : {}),
+        ...(contributions.length > 0 ? { contributions } : {}),
       };
       const results = kind === 'league'
         ? resolveMatchday(fixtures, teams, [
