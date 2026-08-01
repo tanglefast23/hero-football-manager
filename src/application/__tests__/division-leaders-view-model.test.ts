@@ -32,7 +32,7 @@ const PLAYERS: CareerPlayer[] = [
 const LINES: PlayerSeasonStatLine[] = [
   line('mine', 'me', { goals: 6 }),
   line('theirs', 'them', { goals: 9 }),
-  line('mid', 'me', { assists: 4 }),
+  line('mid', 'me', { passesCompleted: 4 }),
   line('def', 'them', { tacklesWon: 22 }),
   line('keeper', 'me', { saves: 31 }),
 ];
@@ -58,13 +58,13 @@ describe('divisionLeadersViewModel', () => {
    */
   it('produces one board per category with goals leading', () => {
     expect(leaders().boards.map(board => board.categoryId))
-      .toEqual(['goals', 'assists', 'tacklesWon', 'saves']);
+      .toEqual(['goals', 'passesCompleted', 'tacklesWon', 'saves']);
   });
 
   it('labels every board by the position line that can win it', () => {
     expect(leaders().boards.map(board => [board.boardLabel, board.metricLabel])).toEqual([
       ['Strikers', 'Goals'],
-      ['Midfielders', 'Assists'],
+      ['Midfielders', 'Passes'],
       ['Defenders', 'Tackles won'],
       ['Keepers', 'Saves'],
     ]);
@@ -216,7 +216,9 @@ function player(id: string, role: Role, clubId: string, name: string): CareerPla
 function line(
   playerId: string,
   clubId: string,
-  counts: Partial<Pick<PlayerSeasonStatLine, 'goals' | 'assists' | 'tacklesWon' | 'saves'>>,
+  counts: Partial<Pick<
+    PlayerSeasonStatLine, 'goals' | 'assists' | 'tacklesWon' | 'saves' | 'passesCompleted'
+  >>,
   competition: AwardCompetition = 'league',
 ): PlayerSeasonStatLine {
   return {
@@ -228,6 +230,7 @@ function line(
     assists: 0,
     tacklesWon: 0,
     saves: 0,
+    passesCompleted: 0,
     ...counts,
   };
 }

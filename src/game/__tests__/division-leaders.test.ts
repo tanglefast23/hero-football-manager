@@ -19,7 +19,8 @@ describe('division leader boards', () => {
     expect(ids.map(id => AWARD_CATEGORIES[id].role).sort())
       .toEqual(['DEF', 'FWD', 'GK', 'MID']);
     expect(AWARD_CATEGORIES.goals.boardLabel).toBe('Strikers');
-    expect(AWARD_CATEGORIES.assists.metricLabel).toBe('Assists');
+    expect(AWARD_CATEGORIES.passesCompleted.boardLabel).toBe('Midfielders');
+    expect(AWARD_CATEGORIES.passesCompleted.metricLabel).toBe('Passes');
   });
 
   /**
@@ -33,7 +34,7 @@ describe('division leader boards', () => {
       player('p_fwd', 'FWD', 'club_b'),
     ];
     const statLines = [
-      line('p_mid', 'club_a', { goals: 30, assists: 4, tacklesWon: 9, saves: 2 }),
+      line('p_mid', 'club_a', { goals: 30, tacklesWon: 9, saves: 2, passesCompleted: 4 }),
       line('p_fwd', 'club_b', { goals: 3 }),
     ];
     const boardIds = (category: AwardCategoryId): string[] => divisionLeaderBoard(
@@ -43,7 +44,7 @@ describe('division leader boards', () => {
     expect(boardIds('goals')).toEqual(['p_fwd']);
     expect(boardIds('tacklesWon')).toEqual([]);
     expect(boardIds('saves')).toEqual([]);
-    expect(boardIds('assists')).toEqual(['p_mid']);
+    expect(boardIds('passesCompleted')).toEqual(['p_mid']);
   });
 
   it('counts league rows only, so cup goals never inflate a division board', () => {
@@ -124,9 +125,9 @@ describe('division leader boards', () => {
   /** Roster order is an implementation detail; the board must not inherit it. */
   it('breaks a tie by player ID whatever order the roster arrives in', () => {
     const statLines = [
-      line('p_bravo', 'club_b', { assists: 12 }),
-      line('p_alpha', 'club_a', { assists: 12 }),
-      line('p_charlie', 'club_c', { assists: 12 }),
+      line('p_bravo', 'club_b', { passesCompleted: 12 }),
+      line('p_alpha', 'club_a', { passesCompleted: 12 }),
+      line('p_charlie', 'club_c', { passesCompleted: 12 }),
     ];
     const roster = [
       player('p_charlie', 'MID', 'club_c'),
@@ -134,9 +135,11 @@ describe('division leader boards', () => {
       player('p_alpha', 'MID', 'club_a'),
     ];
 
-    const board = divisionLeaderBoard({ category: 'assists', season: 1, players: roster, statLines });
+    const board = divisionLeaderBoard({
+      category: 'passesCompleted', season: 1, players: roster, statLines,
+    });
     const reversed = divisionLeaderBoard({
-      category: 'assists',
+      category: 'passesCompleted',
       season: 1,
       players: roster.slice().reverse(),
       statLines: statLines.slice().reverse(),
@@ -228,7 +231,9 @@ function player(id: string, role: Role, clubId: string): CareerPlayer {
 function line(
   playerId: string,
   clubId: string,
-  counts: Partial<Pick<PlayerSeasonStatLine, 'goals' | 'assists' | 'tacklesWon' | 'saves'>>,
+  counts: Partial<Pick<
+    PlayerSeasonStatLine, 'goals' | 'assists' | 'tacklesWon' | 'saves' | 'passesCompleted'
+  >>,
   competition: AwardCompetition = 'league',
 ): PlayerSeasonStatLine {
   return {
@@ -240,6 +245,7 @@ function line(
     assists: 0,
     tacklesWon: 0,
     saves: 0,
+    passesCompleted: 0,
     ...counts,
   };
 }

@@ -120,6 +120,7 @@ describe('career milestones derived from what the club did', () => {
         assists: 0,
         tacklesWon: 0,
         saves: 0,
+        passesCompleted: 0,
       }],
     };
     expect(earnedCareerMilestoneFlags(scoredWithoutPower)).toEqual([]);

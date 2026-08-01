@@ -193,8 +193,8 @@ describe('career season workflow', () => {
           awayGoals: userIsHome ? 0 : 2,
           scorerPlayerIds: [scorerId, scorerId],
           contributions: [
-            { playerId: scorerId, goals: 2, assists: 0, tacklesWon: 1, saves: 0 },
-            { playerId: keeperId, goals: 0, assists: 0, tacklesWon: 0, saves: 4 },
+            { playerId: scorerId, goals: 2, assists: 0, tacklesWon: 1, saves: 0, passesCompleted: 12 },
+            { playerId: keeperId, goals: 0, assists: 0, tacklesWon: 0, saves: 4, passesCompleted: 6 },
           ],
         }
       : { fixtureId: fixture.id, homeGoals: 0, awayGoals: 0 });
@@ -210,6 +210,7 @@ describe('career season workflow', () => {
       assists: 0,
       tacklesWon: 1,
       saves: 0,
+      passesCompleted: 12,
     });
     expect(settled.seasonStatLines).toContainEqual(
       expect.objectContaining({ playerId: keeperId, saves: 4 }),

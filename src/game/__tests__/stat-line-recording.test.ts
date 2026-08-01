@@ -10,7 +10,12 @@ import {
 import { contributionsFrom } from '../match-contributions';
 import { resolveMatchday } from '../matchday';
 import { buildCareerMatchTeams } from '../squad';
-import type { FixtureResult, GameState, LeagueFixture } from '../types';
+import type {
+  FixtureResult,
+  GameState,
+  LeagueFixture,
+  PlayerSeasonStatLine,
+} from '../types';
 
 describe('season stat line recording', () => {
   it('records every count of a played league week against the scorer own club', () => {
@@ -30,6 +35,7 @@ describe('season stat line recording', () => {
     expect(total(lines, 'assists')).toBeGreaterThan(0);
     expect(total(lines, 'tacklesWon')).toBeGreaterThan(0);
     expect(total(lines, 'saves')).toBeGreaterThan(0);
+    expect(total(lines, 'passesCompleted')).toBeGreaterThan(0);
   });
 
   it('produces identical rows from an identical career and week', () => {
@@ -116,8 +122,8 @@ function watchedResult(
 }
 
 function total(
-  lines: ReadonlyArray<{ goals: number; assists: number; tacklesWon: number; saves: number }>,
-  key: 'goals' | 'assists' | 'tacklesWon' | 'saves',
+  lines: readonly PlayerSeasonStatLine[],
+  key: 'goals' | 'assists' | 'tacklesWon' | 'saves' | 'passesCompleted',
 ): number {
   return lines.reduce((sum, line) => sum + line[key], 0);
 }

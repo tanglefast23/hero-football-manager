@@ -12,7 +12,9 @@ import type {
  * watched, so it builds to goals last. They are different jobs, and unifying
  * the two orders would cost one of them the thing it is ordered for.
  */
-const BOARD_ORDER: readonly AwardCategoryId[] = ['goals', 'assists', 'tacklesWon', 'saves'];
+const BOARD_ORDER: readonly AwardCategoryId[] = [
+  'goals', 'passesCompleted', 'tacklesWon', 'saves',
+];
 
 /** Five names read at a glance; a longer board is a table, not a leaderboard. */
 const BOARD_LIMIT = 5;

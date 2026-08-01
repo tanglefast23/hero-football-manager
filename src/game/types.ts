@@ -301,6 +301,7 @@ export interface PlayerMatchContribution {
   assists: number;
   tacklesWon: number;
   saves: number;
+  passesCompleted: number;
 }
 
 export type AwardCompetition = 'league' | 'cup';
@@ -321,9 +322,20 @@ export interface PlayerSeasonStatLine {
   assists: number;
   tacklesWon: number;
   saves: number;
+  passesCompleted: number;
 }
 
-export type AwardCategoryId = 'goals' | 'assists' | 'tacklesWon' | 'saves';
+/**
+ * Midfielders are ranked on passes rather than assists deliberately.
+ *
+ * Measured on this engine, ~93% of assists are credited to forwards: attackers
+ * receive the ball and carry it, so the last teammate to touch it before a goal
+ * is usually another attacker. A midfielders' assist board reads 3, 2, 1 beside
+ * a 23-goal Golden Boot. Passes completed is 36% midfield at D5 and 48% at D1,
+ * and it has names on it from week one. Assists are still recorded — they are
+ * real match data — they are simply not what this board ranks.
+ */
+export type AwardCategoryId = 'goals' | 'passesCompleted' | 'tacklesWon' | 'saves';
 
 /** One placing, denormalised so it survives the rival roster being regenerated. */
 export interface DivisionAwardPlacement {

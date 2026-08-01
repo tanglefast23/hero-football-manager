@@ -23,6 +23,7 @@ function statLine(
     assists: 0,
     tacklesWon: 0,
     saves: 0,
+    passesCompleted: 0,
   };
 }
 

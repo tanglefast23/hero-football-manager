@@ -15,7 +15,10 @@ function statLine(
   competition: AwardCompetition,
   goals: number,
 ): PlayerSeasonStatLine {
-  return { season: 1, playerId, clubId, competition, goals, assists: 0, tacklesWon: 0, saves: 0 };
+  return {
+    season: 1, playerId, clubId, competition, goals,
+    assists: 0, tacklesWon: 0, saves: 0, passesCompleted: 0,
+  };
 }
 
 function settleThroughWeekFour(state: GameState): GameState {

@@ -12,13 +12,15 @@ const TEAMS: Readonly<Record<string, TeamDef>> = {
 /**
  * The minimum MatchState surface quickMatchForFixture reads from an
  * already-finished match: phase (so the tick loop never runs), the flat
- * 22-slot players array (home 0-10, away 11-21), events, and score.
+ * 22-slot players array (home 0-10, away 11-21), events, score, and the decoy
+ * clone pair the contribution fold resolves entities 22 and 23 through.
  */
 function fakeFulltimeMatch(score: [number, number], events: MatchEvent[]): MatchState {
   return {
     phase: 'fulltime',
     score,
     events,
+    decoyClones: [null, null],
     players: [...ROVERS.players, ...UNITED.players].map((def, index) => ({
       def,
       team: index < 11 ? 0 : 1,

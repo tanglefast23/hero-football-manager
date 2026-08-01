@@ -55,6 +55,7 @@ function statLine(state: GameState): PlayerSeasonStatLine {
     assists: 2,
     tacklesWon: 5,
     saves: 0,
+    passesCompleted: 41,
   };
 }
 

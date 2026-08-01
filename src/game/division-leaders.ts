@@ -16,7 +16,9 @@ export interface AwardCategory {
 
 export const AWARD_CATEGORIES: Readonly<Record<AwardCategoryId, AwardCategory>> = Object.freeze({
   goals: { id: 'goals', role: 'FWD', boardLabel: 'Strikers', metricLabel: 'Goals' },
-  assists: { id: 'assists', role: 'MID', boardLabel: 'Midfielders', metricLabel: 'Assists' },
+  passesCompleted: {
+    id: 'passesCompleted', role: 'MID', boardLabel: 'Midfielders', metricLabel: 'Passes',
+  },
   tacklesWon: { id: 'tacklesWon', role: 'DEF', boardLabel: 'Defenders', metricLabel: 'Tackles won' },
   saves: { id: 'saves', role: 'GK', boardLabel: 'Keepers', metricLabel: 'Saves' },
 });

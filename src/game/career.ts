@@ -1284,6 +1284,11 @@ function sixtyPercentOf(value: number): number {
   }
 
   const groupsOfFive = Math.floor(fans / 5);
+        passesCompleted: checkedAdd(
+          previous?.passesCompleted ?? 0,
+          contribution.passesCompleted,
+          `${label} passes completed`,
+        ),
   const remainder = fans % 5;
   const wholeGroupAttendance = checkedMultiply(groupsOfFive, 3, 'ticket attendance');
   const remainderAttendance = Math.floor((remainder * 3) / 5);

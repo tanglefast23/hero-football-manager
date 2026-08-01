@@ -415,6 +415,7 @@ const seasonStatLineSchema = z
     assists: nonnegativeInteger,
     tacklesWon: nonnegativeInteger,
     saves: nonnegativeInteger,
+    passesCompleted: nonnegativeInteger,
   })
   .passthrough();
 
@@ -693,7 +694,7 @@ const divisionAwardPlacementSchema = z.object({
 /** One podium per category, and a podium is three deep. */
 const divisionAwardsSchema = z.object({
   goals: z.array(divisionAwardPlacementSchema).max(3),
-  assists: z.array(divisionAwardPlacementSchema).max(3),
+  passesCompleted: z.array(divisionAwardPlacementSchema).max(3),
   tacklesWon: z.array(divisionAwardPlacementSchema).max(3),
   saves: z.array(divisionAwardPlacementSchema).max(3),
 }).passthrough();

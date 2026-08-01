@@ -129,7 +129,7 @@ function divisionAwards(state: GameState): Record<AwardCategoryId, DivisionAward
   };
   return {
     goals: divisionPodium({ ...division, category: 'goals' }),
-    assists: divisionPodium({ ...division, category: 'assists' }),
+    passesCompleted: divisionPodium({ ...division, category: 'passesCompleted' }),
     tacklesWon: divisionPodium({ ...division, category: 'tacklesWon' }),
     saves: divisionPodium({ ...division, category: 'saves' }),
   };

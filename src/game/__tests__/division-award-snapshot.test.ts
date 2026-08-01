@@ -211,5 +211,6 @@ function line(playerId: string, season = 1): PlayerSeasonStatLine {
     assists: 0,
     tacklesWon: 0,
     saves: 0,
+    passesCompleted: 0,
   };
 }

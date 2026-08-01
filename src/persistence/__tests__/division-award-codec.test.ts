@@ -67,7 +67,7 @@ function recapWithGoals(goals: DivisionAwardPlacement[]): SeasonRecap {
     closingCash: 9_000,
     trainingCapsReached: 0,
     cupResult: 'Entered',
-    divisionAwards: { goals, assists: [], tacklesWon: [], saves: [] },
+    divisionAwards: { goals, passesCompleted: [], tacklesWon: [], saves: [] },
   };
 }
 
