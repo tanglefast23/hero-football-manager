@@ -12,6 +12,7 @@ import {
 import { difficultyRules } from './difficulty';
 import { recordCareerMilestones } from './career-events';
 import { recordSeasonRecap } from './season-recap';
+import { compareStandings } from './ordering';
 import { enableFullCareer, startNextFullCareerSeason } from './full-career';
 import {
   careerCoachWageLedgerAmount,
@@ -1325,20 +1326,6 @@ function sixtyPercentOf(value: number): number {
   const wholeGroupAttendance = checkedMultiply(groupsOfFive, 3, 'ticket attendance');
   const remainderAttendance = Math.floor((remainder * 3) / 5);
   return checkedAdd(wholeGroupAttendance, remainderAttendance, 'ticket attendance');
-}
-
-function compareStandings(
-  left: Omit<LeagueStanding, 'position'>,
-  right: Omit<LeagueStanding, 'position'>,
-): number {
-  if (left.points !== right.points) return left.points > right.points ? -1 : 1;
-  if (left.goalDifference !== right.goalDifference) {
-    return left.goalDifference > right.goalDifference ? -1 : 1;
-  }
-  if (left.goalsFor !== right.goalsFor) return left.goalsFor > right.goalsFor ? -1 : 1;
-  if (left.clubId < right.clubId) return -1;
-  if (left.clubId > right.clubId) return 1;
-  return 0;
 }
 
 function cloneFixture(fixture: LeagueFixture): LeagueFixture {

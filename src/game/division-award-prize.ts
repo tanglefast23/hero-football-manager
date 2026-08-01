@@ -134,10 +134,17 @@ export function divisionAwardPrize(query: DivisionAwardPrizeQuery): DivisionAwar
   const awards = query.recap.divisionAwards;
   // Absent on saves written before the boards shipped. Those careers simply
   // have nothing to pay for; there is no history to reconstruct a podium from.
+  // `?? []` covers a record present but missing a category. The save codec
+  // requires all four and `buildSeasonRecap` always writes all four, so this
+  // should be unreachable — but the ceremony's view model already defends the
+  // same state, and this is the caller that cannot afford not to. The display
+  // blanks a board; the transition throws, and a throw here surfaces as an error
+  // banner on every "start next season" tap, which is the permanently stranded
+  // career the whole design exists to prevent.
   const categoriesWon = awards === undefined
     ? []
     : (Object.keys(AWARD_CATEGORIES) as AwardCategoryId[])
-      .filter(category => awards[category][0]?.clubId === query.userClubId);
+      .filter(category => (awards[category] ?? [])[0]?.clubId === query.userClubId);
   return {
     trainingPoints: divisionAwardPrizeTotal(query.targetDivision, categoriesWon.length),
     categoriesWon,

@@ -95,6 +95,38 @@ describe('divisionAwardPrize', () => {
     })).toEqual({ trainingPoints: 0, categoriesWon: [] });
   });
 
+  /**
+   * The codec requires all four keys and `buildSeasonRecap` writes all four, so
+   * this record should not exist. It is guarded anyway because of WHERE this
+   * function is called: the ceremony's view model survives a partial record and
+   * blanks a board, while the transition used to index straight into it. A
+   * throw there is not a blank screen — it is an error banner on every "start
+   * next season" tap, and a career with no way forward.
+   */
+  test('a record missing a category pays nothing rather than throwing', () => {
+    const { goals, ...missingGoals } = recapWonBy(CATEGORIES).divisionAwards!;
+    const recap: SeasonRecap = {
+      ...recapWonBy(CATEGORIES),
+      divisionAwards: missingGoals as Record<AwardCategoryId, DivisionAwardPlacement[]>,
+    };
+
+    const prize = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 });
+
+    // The three surviving boards are still paid; only the absent one is skipped.
+    expect(prize.categoriesWon).toEqual(['passesCompleted', 'tacklesWon', 'saves']);
+    expect(prize.trainingPoints).toBe(divisionAwardPrizeTotal(5, 3));
+  });
+
+  test('a record with every category missing pays a zero, not an error', () => {
+    const recap: SeasonRecap = {
+      ...recapWonBy(CATEGORIES),
+      divisionAwards: {} as Record<AwardCategoryId, DivisionAwardPlacement[]>,
+    };
+
+    expect(divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 }))
+      .toEqual({ trainingPoints: 0, categoriesWon: [] });
+  });
+
   test('the same sweep is worth more promoted than relegated', () => {
     const recap = recapWonBy(CATEGORIES);
 

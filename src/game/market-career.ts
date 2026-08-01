@@ -1,3 +1,5 @@
+import { compareIds } from './ordering';
+
 import {
   buyingTransferQuote,
   generatedPlayerWeeklyWage,
@@ -586,7 +588,7 @@ export function listCareerPlayer(
     .map(club => ({ club, quote: sellingQuoteForBuyer(state, player, club.id, division) }))
     .filter(candidate => candidate.club.cash >= candidate.quote.fee)
     .sort((left, right) => (
-      right.quote.fee - left.quote.fee || left.club.id.localeCompare(right.club.id)
+      right.quote.fee - left.quote.fee || compareIds(left.club.id, right.club.id)
     ))
     .slice(0, 3)
     .map(({ club, quote }) => ({

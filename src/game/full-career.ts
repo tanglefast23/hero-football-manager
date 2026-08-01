@@ -3,6 +3,7 @@ import { assignDistinctPlayerLooks, nextDistinctPlayerLook } from './player-appe
 import { generateSeasonFixtures, pinOpeningLeagueOpponents } from './schedule';
 import { createCareerMarketState, refreshCareerMarketForNewSeason } from './market-career';
 import { generatedPlayerWeeklyWage } from './market';
+import { compareIds } from './ordering';
 import {
   applyM2PromotionAndRelegation,
   clubSquadStrength,
@@ -298,7 +299,7 @@ function balanceOpeningDivision(state: GameState): GameState {
     .filter(club => club.id !== state.userClubId)
     .sort((left, right) => (
       currentStrengths.get(left.id)! - currentStrengths.get(right.id)!
-      || left.id.localeCompare(right.id)
+      || compareIds(left.id, right.id)
     ));
   // The opening is deliberately rigged against the player: 40 against a field of
   // 42..50, so the user is the weakest club in the division and every week of

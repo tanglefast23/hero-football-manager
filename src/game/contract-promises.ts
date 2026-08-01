@@ -1,3 +1,5 @@
+import { compareIds } from './ordering';
+
 import type {
   CareerContractPerk,
   CareerContractPromise,
@@ -141,7 +143,7 @@ export function restoreCareerContractPromiseLineup(state: GameState): GameState 
     .slice()
     .sort((left, right) => (
       (left.contractPromise!.agreedSeason - right.contractPromise!.agreedSeason)
-      || left.id.localeCompare(right.id)
+      || compareIds(left.id, right.id)
     ));
   return promised.reduce((current, player) => ({
     ...current,
@@ -174,7 +176,7 @@ export function assertCareerLineupHonorsContractPromises(
     ))
     .sort((left, right) => (
       (left.contractPromise!.agreedSeason - right.contractPromise!.agreedSeason)
-      || left.id.localeCompare(right.id)
+      || compareIds(left.id, right.id)
     ));
   const enforceable = [
     ...promised.filter(player => player.role === 'GK').slice(0, 1),
@@ -256,7 +258,7 @@ function promisedReplacementSlot(
     .sort((left, right) => (
       roleOverall(left.player.role, left.player.attrs)
         - roleOverall(right.player.role, right.player.attrs)
-      || left.player.id.localeCompare(right.player.id)
+      || compareIds(left.player.id, right.player.id)
     ))[0]?.index ?? -1;
 }
 

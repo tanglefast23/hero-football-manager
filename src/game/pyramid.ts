@@ -1,6 +1,7 @@
 import { mulberry32, type Rng } from '../sim/rng';
 import type { Attrs, Role } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
+import { compareIds } from './ordering';
 import { POSITION_TRAINING_ATTRIBUTES, roleOverall } from './archetype-caps';
 import type { PlayerArchetype, PlayerPersonality } from './types';
 export type { PlayerArchetype, PlayerPersonality } from './types';
@@ -400,12 +401,12 @@ export function resolvePromotionAndRelegation(
     level,
     clubs: allClubs
       .filter(club => club.division === level)
-      .sort((left, right) => stableIdCompare(left.id, right.id)),
+      .sort((left, right) => compareIds(left.id, right.id)),
   }));
 
   return {
     pyramid: { careerSeed: pyramid.careerSeed, divisions },
-    movements: movements.sort((left, right) => stableIdCompare(left.clubId, right.clubId)),
+    movements: movements.sort((left, right) => compareIds(left.clubId, right.clubId)),
   };
 }
 
@@ -419,7 +420,7 @@ export function createNationalCup(
   validateClubIds(clubIds, NATIONAL_CUP_CLUB_COUNT, 'National Cup');
   validateSeason(season);
   validateSeed(careerSeed);
-  const sortedClubIds = [...clubIds].sort(stableIdCompare);
+  const sortedClubIds = [...clubIds].sort(compareIds);
   const seedDivisions = seedDivisionByClubId === undefined
     ? undefined
     : validateCupSeedDivisions(sortedClubIds, seedDivisionByClubId);
@@ -475,7 +476,7 @@ export function advanceNationalCup(
     return { ...cup, rounds, championClubId: advancingClubIds[0] };
   }
   const nextRound = createCupRound(
-    advancingClubIds.sort(stableIdCompare),
+    advancingClubIds.sort(compareIds),
     cup.season,
     current.number + 1,
     cup.careerSeed,
@@ -1163,10 +1164,6 @@ function cloneClub(club: PyramidClub): PyramidClub {
 
 function divisionLevels(): DivisionLevel[] {
   return [1, 2, 3, 4, 5];
-}
-
-function stableIdCompare(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function clampRating(value: number): number {

@@ -1,5 +1,6 @@
 import { divisionPodium } from './division-leaders';
 import { currentUserDivision } from './m2-career';
+import { compareIds, compareStandings } from './ordering';
 import type {
   AwardCategoryId,
   CareerPlayer,
@@ -48,11 +49,11 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
   const sortedScorers = roster.slice().sort((left, right) => (
     (goalsByPlayer.get(right.id) ?? 0) - (goalsByPlayer.get(left.id) ?? 0)
     || playerScore(right) - playerScore(left)
-    || left.id.localeCompare(right.id)
+    || compareIds(left.id, right.id)
   ));
   const sortedPlayers = roster.slice().sort((left, right) => (
     playerSeasonScore(right, goalsByPlayer) - playerSeasonScore(left, goalsByPlayer)
-    || left.id.localeCompare(right.id)
+    || compareIds(left.id, right.id)
   ));
   const topScorerGoals = sortedScorers[0] === undefined
     ? 0
@@ -197,11 +198,21 @@ function playerSeasonScore(player: CareerPlayer, goals: ReadonlyMap<string, numb
   return playerScore(player) + (goals.get(player.id) ?? 0) * 30 + (player.morale ?? 0) + (player.fame ?? 0);
 }
 
+/**
+ * Where the club finished the season it just played.
+ *
+ * Ordered by `compareStandings` — the same comparator `leagueStandings` sorts
+ * with, imported rather than restated. The transition promotes and relegates
+ * off that table while the awards ceremony prices its prize off this number, so
+ * the two must be one rule. Restating the terms here is what let them drift:
+ * this function once tiebroke with `localeCompare` where the table used plain
+ * `<`/`>`, and on an exact points, goal-difference and goals-for tie across the
+ * promotion cutoff the ceremony could frame a promotion that never happened.
+ */
 function finalPosition(state: GameState): number {
   const rows = state.clubs.map(club => {
-    let played = 0;
     let points = 0;
-    let difference = 0;
+    let goalDifference = 0;
     let goalsFor = 0;
     for (const fixture of state.fixtures) {
       if (fixture.season !== state.season || fixture.status !== 'played' || fixture.score === undefined) continue;
@@ -209,19 +220,12 @@ function finalPosition(state: GameState): number {
       const home = fixture.homeClubId === club.id;
       const scored = home ? fixture.score.homeGoals : fixture.score.awayGoals;
       const conceded = home ? fixture.score.awayGoals : fixture.score.homeGoals;
-      played += 1;
-      difference += scored - conceded;
+      goalDifference += scored - conceded;
       goalsFor += scored;
       points += scored > conceded ? 3 : scored === conceded ? 1 : 0;
     }
-    return { clubId: club.id, played, points, difference, goalsFor };
-    // Goals-for is the third tiebreak in `compareStandings`, which decides
-    // prize money and promotion. Leaving it out here let the recap card
-    // congratulate a manager on 2nd in a season the table promoted them from 1st.
-  }).sort((left, right) => right.points - left.points
-    || right.difference - left.difference
-    || right.goalsFor - left.goalsFor
-    || left.clubId.localeCompare(right.clubId));
+    return { clubId: club.id, points, goalDifference, goalsFor };
+  }).sort(compareStandings);
   const index = rows.findIndex(row => row.clubId === state.userClubId);
   if (index >= 0) return index + 1;
   return rows.length;

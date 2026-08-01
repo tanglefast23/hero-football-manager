@@ -1,6 +1,15 @@
-import { DEFAULT_CREATION_RATINGS, leagueStandings, type GameState } from '../../game';
+import {
+  DEFAULT_CREATION_RATINGS,
+  buildSeasonRecap,
+  createCareer,
+  leagueStandings,
+  recordSeasonRecap,
+  startNextFullCareerSeason,
+  type GameState,
+} from '../../game';
 import { divisionAwardPrizeTotal } from '../../game/division-award-prize';
 import { currentUserDivision } from '../../game/m2-career';
+import { createLaunchCareerSetup } from '../launch';
 import type {
   AwardCategoryId,
   DivisionAwardPlacement,
@@ -175,8 +184,109 @@ describe('the awards ceremony in the season transition', () => {
       // is priced against D4, the division he is about to enter.
       expect(projected).toBe(divisionAwardPrizeTotal(champions ? 4 : 5, 2));
     });
+
+    /**
+     * The case the two orderings can only be caught disagreeing on.
+     *
+     * Everything above the tiebreak is equal — points, goal difference and
+     * goals for — so the finish of the club at 2nd and the club at 3rd is
+     * decided purely by comparing two club IDs, and the promotion cutoff runs
+     * between them. The recap writer and the league table each used to do that
+     * comparison their own way: `finalPosition` with `localeCompare`, and
+     * `compareStandings` with plain `<`/`>`.
+     *
+     * One rival is renamed to an ID that those two rules order differently
+     * (ICU collates `bramble-rovers` before `Ferrous-United`; UTF-16 code units
+     * put the capital F first). Every shipped ID is a lowercase ASCII slug, so
+     * nothing in a real career reaches the disagreement — which is exactly why
+     * this has to be constructed, and exactly why `localeCompare` had to go:
+     * the ordering it produces is the host's to choose, and Hermes on device
+     * need not choose what V8 chooses here.
+     */
+    it('agrees with the transition when an exact tie decides the promotion cutoff', () => {
+      const career = tiedAtThePromotionCutoff();
+      const table = leagueStandings(career);
+      const user = table.find(row => row.clubId === career.userClubId)!;
+      const rival = table.find(row => row.clubId === TIED_RIVAL_CLUB)!;
+
+      // The tie is real and it straddles the cutoff, or the test proves nothing.
+      expect([user.points, user.goalDifference, user.goalsFor])
+        .toEqual([rival.points, rival.goalDifference, rival.goalsFor]);
+      expect([user.position, rival.position].sort()).toEqual([2, 3]);
+
+      const projected = careerAwardCeremonyViewModel(career).prize.totalTrainingPoints;
+      const next = startNextFullCareerSeason(career, table);
+      const banked = next.trainingPoints - career.trainingPoints;
+
+      expect(projected).toBe(banked);
+      // A zero on both sides would pass while proving nothing, and the two
+      // divisions in play price the same single board differently: 120 v 140.
+      expect(banked).toBeGreaterThan(0);
+      expect(banked).toBe(divisionAwardPrizeTotal(currentUserDivision(next.m2!), 1));
+    });
   });
 });
+
+/** The rival renamed onto the far side of the two collations. */
+const TIED_RIVAL_CLUB = 'Ferrous-United';
+
+/**
+ * A finished D5 season whose table is exact by construction.
+ *
+ * One club wins every match; the user's club and one rival each beat the other
+ * seven, draw with each other and lose to the champion, which leaves them level
+ * on all three sorted columns at 2nd and 3rd. A single stat line puts a user
+ * forward on top of the goals board, so there is a prize to disagree about.
+ */
+function tiedAtThePromotionCutoff(): GameState {
+  const created = createCareer(createLaunchCareerSetup(20_260_801));
+  // A whole-state rename: club IDs are unique slugs and player IDs are built
+  // from them, so replacing the string reaches the clubs, the squads, the
+  // fixtures, the lineups and the pyramid together, and the career stays
+  // internally consistent.
+  const base: GameState = JSON.parse(
+    JSON.stringify(created).split('ferrous-united').join(TIED_RIVAL_CLUB),
+  );
+
+  const CHAMPION = 'harbor-comets';
+  const tier = (clubId: string): number => {
+    if (clubId === CHAMPION) return 3;
+    if (clubId === base.userClubId || clubId === TIED_RIVAL_CLUB) return 2;
+    return 1;
+  };
+  const striker = base.players
+    .find(player => player.clubId === base.userClubId && player.role === 'FWD')!;
+
+  // Written by the real recap writer, so `finalPosition` is whatever
+  // `buildSeasonRecap` actually decides rather than whatever the test wants.
+  return recordSeasonRecap({
+    ...base,
+    phase: 'season-end',
+    fixtures: base.fixtures.map(fixture => {
+      const home = tier(fixture.homeClubId);
+      const away = tier(fixture.awayClubId);
+      return {
+        ...fixture,
+        status: 'played' as const,
+        score: {
+          homeGoals: home > away ? 1 : 0,
+          awayGoals: away > home ? 1 : 0,
+        },
+      };
+    }),
+    seasonStatLines: [{
+      season: base.season,
+      playerId: striker.id,
+      clubId: base.userClubId,
+      competition: 'league',
+      goals: 21,
+      assists: 0,
+      tacklesWon: 0,
+      saves: 0,
+      passesCompleted: 0,
+    }],
+  });
+}
 
 /**
  * The TP a full transition banks, driven through the screen's own stage machine
@@ -244,30 +354,22 @@ function startAtSeasonEnd({
   return finished;
 }
 
+/**
+ * The season's REAL recap, with only its four podiums replaced.
+ *
+ * Built by `buildSeasonRecap` rather than assembled here, because the field the
+ * ceremony prices its prize against is `finalPosition`, and that number has one
+ * author. A fixture that derived the finish from `leagueStandings` instead would
+ * be asserting that the transition agrees with itself: the recap writer — the
+ * only thing that can disagree — would never run.
+ */
 function recapWonBy(career: GameState, won: readonly AwardCategoryId[]): SeasonRecap {
-  const divisionAwards = Object.fromEntries(CATEGORIES.map(category => [
-    category,
-    podium(won.includes(category) ? career.userClubId : 'rival-club'),
-  ])) as Record<AwardCategoryId, DivisionAwardPlacement[]>;
   return {
-    season: career.season,
-    division: currentUserDivision(career.m2!),
-    // Read off the finished table rather than invented: the recap's finish is
-    // what the ceremony prices the prize against, and the transition promotes
-    // from the same table. A hardcoded position would let the two disagree
-    // without any test noticing.
-    finalPosition: leagueStandings(career).find(row => row.clubId === career.userClubId)!.position,
-    played: 18,
-    won: 9,
-    drawn: 4,
-    lost: 5,
-    goalsFor: 31,
-    goalsAgainst: 24,
-    cashChange: 4_200,
-    closingCash: 21_500,
-    trainingCapsReached: 0,
-    cupResult: 'Round of 16',
-    divisionAwards,
+    ...buildSeasonRecap(career),
+    divisionAwards: Object.fromEntries(CATEGORIES.map(category => [
+      category,
+      podium(won.includes(category) ? career.userClubId : 'rival-club'),
+    ])) as Record<AwardCategoryId, DivisionAwardPlacement[]>,
   };
 }
 

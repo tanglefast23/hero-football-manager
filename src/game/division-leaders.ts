@@ -1,4 +1,5 @@
 import type { Role } from '../sim/types';
+import { compareIds } from './ordering';
 import type {
   AwardCategoryId,
   CareerPlayer,
@@ -67,7 +68,7 @@ export function divisionLeaderBoard(query: DivisionLeaderQuery): DivisionLeaderE
     .filter(([, value]) => value > 0)
     // Player ID is the tiebreak so the board never depends on roster order.
     .sort(([leftId, leftValue], [rightId, rightValue]) => (
-      rightValue - leftValue || leftId.localeCompare(rightId)
+      rightValue - leftValue || compareIds(leftId, rightId)
     ));
 
   let position = 0;

@@ -3,6 +3,7 @@ import { careerDifficulty } from './difficulty';
 import { chooseWeightedOutcome, deterministicCareerEventRoll } from './event-clock';
 import { isAvailableForSelection } from './lineup';
 import { adjustLoyalty, playerLoyalty } from './loyalty';
+import { compareIds } from './ordering';
 import { repairCareerLineupForInjuries } from './squad';
 import type {
   ActiveRequestEffect,
@@ -95,7 +96,7 @@ export function starQualifiers(
   return [...goalsByPlayerId]
     .filter(([, goals]) => goals > 0)
     .sort(([leftId, leftGoals], [rightId, rightGoals]) => (
-      rightGoals - leftGoals || leftId.localeCompare(rightId)
+      rightGoals - leftGoals || compareIds(leftId, rightId)
     ))
     .slice(0, rank)
     .map(([playerId]) => playerId);
