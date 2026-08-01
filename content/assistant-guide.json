@@ -376,6 +376,35 @@
       ]
     },
     {
+      "id": "division-leaders",
+      "inbox": {
+        "title": "Who leads your division",
+        "detail": "Four awards, one for each position. Win one and the board pays for it."
+      },
+      "destination": "league-leaders",
+      "pages": [
+        {
+          "kicker": "The race within the race",
+          "title": "Division Leaders",
+          "body": [
+            "Four boards, one per position. Goals for strikers, assists for midfielders, tackles for defenders, saves for keepers. Everyone in your squad has something to chase."
+          ],
+          "focus": "division-leaders",
+          "objective": "SEE WHERE YOUR PLAYERS RANK.",
+          "buttonLabel": "Show me the boards."
+        },
+        {
+          "kicker": "Season's end",
+          "title": "Worth winning",
+          "body": [
+            "Whoever tops a board when the season ends is presented with it. Win one and the club is paid in Training Points for next season."
+          ],
+          "focus": "division-leaders",
+          "buttonLabel": "We'll take all four."
+        }
+      ]
+    },
+    {
       "id": "first-injury",
       "inbox": {
         "title": "Your first injury",

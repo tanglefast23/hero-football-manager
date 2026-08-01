@@ -358,6 +358,7 @@ describe('validated M1 launch content', () => {
       'transfer-negotiation',
       'youth-intake',
       'national-cup',
+      'division-leaders',
       'first-injury',
       'first-emergency-loan',
       'first-transfer-request',
@@ -400,7 +401,7 @@ describe('validated M1 launch content', () => {
       .find(sequence => sequence.id === 'head-coach-market')
       ?.inbox?.title).toBe('HIRE A COACH');
     const m2Sequences = content.assistantGuide.sequences.slice(2);
-    expect(m2Sequences).toHaveLength(22);
+    expect(m2Sequences).toHaveLength(23);
     expect(m2Sequences.every(sequence => (
       sequence.inbox !== undefined
       && sequence.destination !== undefined

@@ -59,6 +59,14 @@ describe('briefing beats', () => {
     expect(beats.every(beat => beat.kind === 'body')).toBe(true);
   });
 
+  it('includes a division-leaders beat pointing at the leaders tab', () => {
+    const beat = guide.sequences.find(sequence => sequence.id === 'division-leaders');
+    expect(beat).toBeDefined();
+    expect(beat?.destination).toBe('league-leaders');
+    expect(beat?.pages.length).toBeGreaterThan(0);
+    expect(beat?.pages.every(page => page.focus === 'division-leaders')).toBe(true);
+  });
+
   it('carries every paragraph of every page, in order', () => {
     for (const sequence of guide.sequences) {
       const expected = sequence.pages.flatMap(page => [

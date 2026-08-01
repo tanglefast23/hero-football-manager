@@ -1129,7 +1129,7 @@ function GameApp() {
         ? 'squad'
         : destination === 'club-facilities' || destination === 'club-finances'
           ? 'club'
-          : destination === 'league-cup'
+          : destination === 'league-cup' || destination === 'league-leaders'
             ? 'league'
             : 'home';
     store.setActiveTab(tab);
@@ -1624,7 +1624,11 @@ function GameApp() {
               setConciergeFocus(null);
               store.openCupFixture(fixtureId);
             }}
-            guideNationalCup={conciergeFocus === 'national-cup'}
+            guideSubTab={conciergeFocus === 'national-cup'
+              ? 'cup'
+              : conciergeFocus === 'division-leaders'
+                ? 'leaders'
+                : undefined}
           />
         ) : store.activeTab === 'league' ? (
           <LeagueTableScreen viewModel={leagueTableViewModel(store.career)} />
