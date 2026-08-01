@@ -37,6 +37,13 @@ export interface CareerSetup {
   players?: CareerPlayer[];
   lineups?: ClubLineupState[];
   trainingRules?: TrainingRules;
+  /**
+   * The player-request catalog, baked in like `trainingRules` so the pure
+   * engine can roll requests without importing content. Omitted by the balance
+   * harness and by fixtures that do not exercise requests, which is what turns
+   * the feature off for them.
+   */
+  playerRequestRules?: PlayerRequestCatalog;
   /** Defaults to Cozy for old fixtures and saves. */
   difficulty?: DifficultyMode;
 }
@@ -406,6 +413,63 @@ export interface SeasonRecap {
   heroOfSeason?: SeasonRecapAward;
 }
 
+/**
+ * The request catalog, as the ENGINE requires it.
+ *
+ * Defined here rather than imported from `src/content/` because `src/game/` may
+ * depend only on itself and inward on `src/sim/` — a rule the architecture test
+ * enforces, and one that a type-only import would still break, since it leaves
+ * the ring unable to compile on its own.
+ *
+ * So the direction is inverted: the engine states the shape it needs, and the
+ * content catalog has to satisfy it. `src/content/__tests__/player-requests.test.ts`
+ * asserts that the zod-validated catalog is assignable to these types, which
+ * fails at compile time if either side drifts.
+ */
+export type PlayerRequestCost =
+  | { readonly kind: 'MONEY_PLAYER'; readonly wageMultiple: number }
+  | { readonly kind: 'MONEY_SQUAD'; readonly billMultiplePercent: number }
+  | { readonly kind: 'ABSENCE'; readonly weeks: number }
+  | { readonly kind: 'CONDITION_SQUAD'; readonly amount: number }
+  | { readonly kind: 'DRILL_PLAYER'; readonly multiplierPercent: number; readonly weeks: number }
+  | { readonly kind: 'DRILL_SQUAD'; readonly multiplierPercent: number; readonly weeks: number };
+
+export type PlayerRequestGrantBonus =
+  | { readonly kind: 'CONDITION_SQUAD'; readonly amount: number }
+  | { readonly kind: 'MORALE_SQUAD'; readonly amount: number };
+
+export interface PlayerRequestDefinition {
+  readonly id: string;
+  readonly title: string;
+  readonly line: string;
+  readonly art: readonly [string, string];
+  readonly cost: PlayerRequestCost;
+  readonly grantBonus?: PlayerRequestGrantBonus;
+}
+
+export interface PlayerRequestCadence {
+  readonly minWeeks: number;
+  readonly guaranteeWeeks: number;
+  readonly starMinWeeks: number;
+  readonly starGuaranteeWeeks: number;
+}
+
+export interface PlayerRequestTuning {
+  readonly startSeason: number;
+  readonly startWeek: number;
+  readonly baseChancePercent: number;
+  readonly starFameThreshold: number;
+  readonly starGoalRank: number;
+  readonly minSeasonsAtClub: number;
+  readonly answerWeeks: number;
+  readonly cadence: Readonly<Record<DifficultyMode, PlayerRequestCadence>>;
+}
+
+export interface PlayerRequestCatalog {
+  readonly tuning: PlayerRequestTuning;
+  readonly requests: readonly PlayerRequestDefinition[];
+}
+
 export type PlayerRequestResolution = 'GRANTED' | 'REFUSED' | 'LAPSED';
 
 export interface PendingPlayerRequest {
@@ -476,6 +540,8 @@ export interface GameState {
   lineups: ClubLineupState[];
   facilities: FacilityState;
   trainingRules?: TrainingRules;
+  /** Baked request catalog; absent means requests never open for this career. */
+  playerRequestRules?: PlayerRequestCatalog;
   eventClock: CareerEventState;
   eventFlags: string[];
   resolvedEventIds: string[];

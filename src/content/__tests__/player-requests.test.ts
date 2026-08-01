@@ -1,6 +1,7 @@
 import { loadLaunchContent, parseLaunchContent } from '../load';
 import { PlayerRequestCatalogSchema } from '../schemas';
 import type { LaunchContent } from '../schemas';
+import type { PlayerRequestCatalog, PlayerRequestCost } from '../../game/types';
 
 function cloneContent(content: LaunchContent): LaunchContent {
   return JSON.parse(JSON.stringify(content)) as LaunchContent;
@@ -108,5 +109,32 @@ describe('validated player request catalog', () => {
     (content.playerRequests.requests[0].cost as { wageMultiple: number }).wageMultiple = 0;
 
     expect(() => parseLaunchContent(content)).toThrow();
+  });
+});
+
+describe('catalog conforms to the engine contract', () => {
+  test('the validated catalog is assignable to the shape src/game requires', () => {
+    // `src/game/` may depend only on itself and inward on `src/sim/`, so it
+    // cannot import these types from here — it declares its own contract and
+    // content has to satisfy it. This assignment is the check: if either side
+    // drifts, this file stops compiling. The runtime expect is incidental.
+    const catalog: PlayerRequestCatalog = loadLaunchContent().playerRequests;
+
+    expect(catalog.requests.length).toBeGreaterThan(0);
+  });
+
+  test('every authored cost kind is one the engine knows how to resolve', () => {
+    const engineKinds: ReadonlyArray<PlayerRequestCost['kind']> = [
+      'MONEY_PLAYER',
+      'MONEY_SQUAD',
+      'ABSENCE',
+      'CONDITION_SQUAD',
+      'DRILL_PLAYER',
+      'DRILL_SQUAD',
+    ];
+
+    for (const request of loadLaunchContent().playerRequests.requests) {
+      expect(engineKinds).toContain(request.cost.kind);
+    }
   });
 });

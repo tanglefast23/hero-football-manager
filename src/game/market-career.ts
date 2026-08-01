@@ -33,6 +33,7 @@ import {
 } from './loyalty';
 import { isFacilityOperational } from './facilities';
 import { isAvailableForSelection } from './lineup';
+import { cancelPendingPlayerRequestIfInvalid } from './player-requests';
 import {
   clubSquadStrength,
   currentUserDivision,
@@ -722,7 +723,12 @@ function completeCareerPlayerSale(
       referenceId: player.id,
     });
   return {
-    state: clearMetBoardUltimatum(reconcileBoardUltimatumCandidates(recordedState)),
+    // Cancels a pending request from the player who just left. Waiting for
+    // settlement would leave the Requests tab offering Grant on someone who is
+    // no longer at the club.
+    state: cancelPendingPlayerRequestIfInvalid(
+      clearMetBoardUltimatum(reconcileBoardUltimatumCandidates(recordedState)),
+    ),
     market: {
       ...market,
       transferListings: (market.transferListings ?? [])

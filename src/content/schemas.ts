@@ -636,9 +636,15 @@ export const PlayerRequestCatalogSchema = z.strictObject({
     starFameThreshold: z.number().int().min(0).max(99),
     starGoalRank: z.number().int().min(1).max(5),
     /**
-     * Seasons, not weeks. `CareerPlayer` carries `seasonsAtClub` and nothing
-     * finer, so a week-level knob here would be config that silently does
-     * nothing.
+     * Seasons, not weeks: `CareerPlayer` carries `seasonsAtClub` and nothing
+     * finer, so a week-level knob would be config that silently did nothing.
+     *
+     * Ships as 0, and that is load-bearing. `seasonsAtClub` is written as 0 when
+     * a player is created and is never incremented anywhere for a user-club
+     * player, so ANY positive value here excludes the entire squad forever and
+     * silently disables requests. A test in
+     * `src/game/__tests__/player-requests.test.ts` locks that down. Raise this
+     * only once tenure is actually maintained.
      */
     minSeasonsAtClub: z.number().int().min(0).max(5),
     answerWeeks: z.number().int().min(1).max(5),

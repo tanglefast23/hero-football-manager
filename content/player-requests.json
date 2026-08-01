@@ -6,7 +6,7 @@
     "baseChancePercent": 25,
     "starFameThreshold": 50,
     "starGoalRank": 2,
-    "minSeasonsAtClub": 1,
+    "minSeasonsAtClub": 0,
     "answerWeeks": 2,
     "cadence": {
       "COZY": { "minWeeks": 8, "guaranteeWeeks": 12, "starMinWeeks": 6, "starGuaranteeWeeks": 10 },

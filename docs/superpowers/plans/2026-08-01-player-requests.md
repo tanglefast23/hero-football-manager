@@ -12,6 +12,32 @@
 
 ---
 
+## Corrections made during implementation
+
+Three things this plan got wrong, found by building it. They are fixed in the
+code and recorded here so the plan is not a lie about what shipped.
+
+**1. The catalog is baked into career state, not passed as an argument.**
+`advancePlayerRequests` is called from `settleCurrentWeek`, a private function
+in `career.ts` reached through `advanceWeek` and `completeMatchday` — **129 call
+sites** between them. Threading a catalog parameter down was never viable. The
+codebase had already solved this: `trainingRules` is baked into `CareerSetup`
+and `GameState` precisely so the pure engine can resolve content without
+importing it. Requests follow that precedent as `playerRequestRules`. A career
+created without it never opens a request, which is exactly what the balance
+harness wants — Task 19's "suppress opens in headless" comes free.
+
+**2. `recordCashTransaction` records; it does not deduct.** It stamps
+`balanceAfter` from the club's *current* cash and mutates nothing. Charging has
+to happen first or the ledger logs a spend that never left the club.
+
+**3. `minSeasonsAtClub` ships as 0, and must.** `seasonsAtClub` is written as 0
+at player creation and **is never incremented anywhere** for a user-club player.
+Any positive minimum excludes the entire squad forever and silently disables the
+feature for the whole career. A test locks this.
+
+---
+
 ## Ground rules for every task
 
 - `src/game/` and `src/sim/` are **pure TypeScript**. No React Native, Expo or Skia imports. No `Math.random`, no `Date.now`. Every random draw goes through `deterministicCareerEventRoll` from `src/game/event-clock.ts`.

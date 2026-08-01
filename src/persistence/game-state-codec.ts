@@ -346,6 +346,46 @@ const trainingRulesSchema = z
   })
   .passthrough();
 
+/**
+ * The baked player-request catalog.
+ *
+ * Deliberately loose — `.passthrough()` on the request entries, no re-check of
+ * cost shapes. `src/content/schemas.ts` is the authority on what a valid
+ * catalog is and validates it at load; repeating those rules here would be a
+ * second copy to keep in step, and the only thing this file actually needs to
+ * guarantee is that what comes back off disk is the shape the engine reads.
+ */
+const playerRequestRulesSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    tuning: z
+      .object({
+        startSeason: positiveInteger,
+        startWeek: positiveInteger,
+        baseChancePercent: positiveInteger,
+        starFameThreshold: nonnegativeInteger,
+        starGoalRank: positiveInteger,
+        minSeasonsAtClub: nonnegativeInteger,
+        answerWeeks: positiveInteger,
+        cadence: z.record(z.string(), z.object({
+          minWeeks: positiveInteger,
+          guaranteeWeeks: positiveInteger,
+          starMinWeeks: positiveInteger,
+          starGuaranteeWeeks: positiveInteger,
+        }).passthrough()),
+      })
+      .passthrough(),
+    requests: z.array(z.object({
+      id: nonemptyString,
+      title: nonemptyString,
+      line: nonemptyString,
+      art: z.array(nonemptyString),
+      cost: z.object({ kind: nonemptyString }).passthrough(),
+      grantBonus: z.object({ kind: nonemptyString }).passthrough().optional(),
+    }).passthrough()),
+  })
+  .passthrough();
+
 const eventClockSchema = z
   .object({
     weeksWithoutEvent: nonnegativeInteger,
@@ -761,6 +801,7 @@ const gameStateSchema = z
     lineups: z.array(lineupSchema),
     facilities: facilitiesSchema,
     trainingRules: trainingRulesSchema.optional(),
+    playerRequestRules: playerRequestRulesSchema.optional(),
     eventClock: eventClockSchema,
     eventFlags: z.array(nonemptyString),
     resolvedEventIds: z.array(nonemptyString),

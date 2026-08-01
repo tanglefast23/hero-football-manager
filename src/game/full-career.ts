@@ -196,6 +196,18 @@ export function startNextFullCareerSeason(
     season,
     week: 1,
     phase: 'manage',
+    // A new season starts the request clock fresh and drops every effect.
+    // Effects are bounded in weeks, so carrying one across the break would
+    // spend a penalty in a season the manager never agreed to spend it in.
+    // History survives: the tab is a record of what you decided.
+    playerRequests: {
+      weeksSinceRequest: 0,
+      effects: [],
+      history: state.playerRequests?.history ?? [],
+      ...(state.playerRequests?.lastAskingPlayerId === undefined
+        ? {}
+        : { lastAskingPlayerId: state.playerRequests.lastAskingPlayerId }),
+    },
     clubs,
     fixtures,
     players,
