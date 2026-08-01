@@ -29,7 +29,7 @@ import {
   leaguePrizeMoney,
 } from './promotion-progression';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
-import type { NationalCupFixture, NationalCupResult } from './pyramid';
+import type { NationalCup, NationalCupFixture, NationalCupResult } from './pyramid';
 import {
   cupGiantKillingCelebration,
   queueCupGiantKillingCelebration,
@@ -77,6 +77,43 @@ const UINT32_MAX = 4294967295;
  * settling the final in week 30 alongside the season-end transition.
  */
 export const CUP_SETTLEMENT_WEEKS = [6, 12, 18, 24, 27, 29] as const;
+
+/**
+ * Long enough after the first cup match that a board has names on it rather
+ * than one lucky hat-trick, and short enough to still be the same conversation.
+ */
+const DIVISION_LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP = 3;
+
+/**
+ * Cup fixtures carry no week of their own: the engine settles round N in
+ * `CUP_SETTLEMENT_WEEKS[N - 1]`, so the calendar is the only place the week
+ * exists. Undrawn rounds are skipped — a round without fixtures has no match to
+ * count from.
+ */
+function firstCupMatchWeek(cups: readonly NationalCup[]): number {
+  const weeks = cups.flatMap(cup => cup.rounds
+    .filter(round => round.fixtures.length > 0)
+    .map(round => CUP_SETTLEMENT_WEEKS[round.number - 1] as number | undefined)
+    .filter((week): week is number => week !== undefined));
+  // `Math.min()` of nothing is Infinity, which happens to read correctly as
+  // "no first match yet", but leaning on that is not the same as saying it.
+  return weeks.length === 0 ? Number.POSITIVE_INFINITY : Math.min(...weeks);
+}
+
+/**
+ * When the division leader boards open. One derivation, read by both the
+ * League screen's sub-tab list and Bert's briefing: split them and the first
+ * move of the cup calendar sends the manager to a tab that is not there.
+ *
+ * A career with no cup drawn never unlocks, because an empty calendar makes
+ * `firstCupMatchWeek` infinite.
+ */
+export function isDivisionLeadersUnlocked(
+  cups: readonly NationalCup[],
+  week: number,
+): boolean {
+  return week >= firstCupMatchWeek(cups) + DIVISION_LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP;
+}
 
 export type NationalCupRoundLabel =
   | 'Play-in'

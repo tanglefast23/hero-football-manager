@@ -67,6 +67,21 @@ describe('briefing beats', () => {
     expect(beat?.pages.every(page => page.focus === 'division-leaders')).toBe(true);
   });
 
+  it('routes what that beat carries to the League screen leaders board', () => {
+    const beat = guide.sequences.find(sequence => sequence.id === 'division-leaders')!;
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    // The briefing hands its last page's focus to the concierge on its way out,
+    // which is what picks the board once the destination has picked the tab.
+    const focus = beat.pages[beat.pages.length - 1].focus;
+
+    // Read out of the content rather than typed here, so renaming either value
+    // fails this instead of quietly pointing Bert at nothing.
+    expect(app).toMatch(
+      new RegExp(`destination === '${beat.destination}'[\\s\\S]{0,40}?\\?\\s*'league'`),
+    );
+    expect(app).toMatch(new RegExp(`conciergeFocus === '${focus}'[\\s\\S]{0,40}?\\?\\s*'leaders'`));
+  });
+
   it('carries every paragraph of every page, in order', () => {
     for (const sequence of guide.sequences) {
       const expected = sequence.pages.flatMap(page => [

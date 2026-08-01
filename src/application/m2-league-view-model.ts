@@ -1,4 +1,4 @@
-import { CUP_SETTLEMENT_WEEKS } from '../game/career';
+import { CUP_SETTLEMENT_WEEKS, isDivisionLeadersUnlocked } from '../game/career';
 import {
   currentUserDivision,
   type M2CareerState,
@@ -103,12 +103,11 @@ export function m2LeagueViewModel(source: M2LeagueViewModelSource): M2LeagueView
   };
 }
 
-const LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP = 3;
-
 /**
  * Both unlocks are derived from the state that causes them, never persisted —
  * a stored flag is one more thing that can drift out of sync with the thing it
- * describes.
+ * describes. The leaders threshold is shared with Bert's briefing, so the
+ * inbox can never point at a tab this list has not added yet.
  */
 function availableSubTabs(source: M2LeagueViewModelSource): M2LeagueSubTab[] {
   const tabs: M2LeagueSubTab[] = ['league'];
@@ -116,26 +115,8 @@ function availableSubTabs(source: M2LeagueViewModelSource): M2LeagueSubTab[] {
   if (cups.length === 0) return tabs;
   tabs.push('cup');
 
-  const firstCupWeek = firstCupMatchWeek(cups);
-  const week = source.week ?? 0;
-  if (week >= firstCupWeek + LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP) tabs.push('leaders');
+  if (isDivisionLeadersUnlocked(cups, source.week ?? 0)) tabs.push('leaders');
   return tabs;
-}
-
-/**
- * Cup fixtures carry no week of their own: the engine settles round N in
- * `CUP_SETTLEMENT_WEEKS[N - 1]`, so the calendar is the only place the week
- * exists. Undrawn rounds are skipped — a round without fixtures has no match to
- * count from.
- */
-function firstCupMatchWeek(cups: readonly NationalCup[]): number {
-  const weeks = cups.flatMap(cup => cup.rounds
-    .filter(round => round.fixtures.length > 0)
-    .map(round => CUP_SETTLEMENT_WEEKS[round.number - 1] as number | undefined)
-    .filter((week): week is number => week !== undefined));
-  // `Math.min()` of nothing is Infinity, which happens to read correctly as
-  // "no first match yet", but leaning on that is not the same as saying it.
-  return weeks.length === 0 ? Number.POSITIVE_INFINITY : Math.min(...weeks);
 }
 
 function divisionSummary(
