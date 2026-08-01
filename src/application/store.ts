@@ -445,11 +445,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
         throw new Error('Resolve the save-load error before replacing this career.');
       }
       const replacedCareer = get().career;
-      const career = beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-        seed ?? generateCareerSeed(),
-        undefined,
-        launchContent,
-      )));
+      // Requests are attached here rather than inside createLaunchCareerSetup so
+      // that every measurement harness — the balance rails and the ~15 audit
+      // probes, all of which build their careers from that helper — stays
+      // request-free by default. A probe that silently accrued lapse penalties
+      // would be measuring a different game than its recorded baseline.
+      const career = beginStoryOnboarding(createCareer({
+        ...createLaunchCareerSetup(
+          seed ?? generateCareerSeed(),
+          undefined,
+          launchContent,
+        ),
+        playerRequestRules: launchContent.playerRequests,
+      }));
       set({
         career,
         hasSavedCareer: true,

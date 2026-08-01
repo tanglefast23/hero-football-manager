@@ -258,8 +258,11 @@ export function swapCareerLineupPlayer(
   if (starter.role !== replacement.role) {
     throw new Error(`Choose another ${starter.role} to preserve the formation.`);
   }
-  if (!isAvailableForSelection(replacement)) {
+  if (replacement.injuryWeeks > 0) {
     throw new Error(`${replacement.name} is injured and unavailable for selection.`);
+  }
+  if ((replacement.awayWeeks ?? 0) > 0) {
+    throw new Error(`${replacement.name} is away and unavailable for selection.`);
   }
   if (replacement.power !== undefined && !replacement.licensed) {
     throw new Error(`${replacement.name} needs a Hero License before joining the Starting XI.`);

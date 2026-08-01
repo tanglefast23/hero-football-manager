@@ -87,6 +87,7 @@ export function starQualifiers(
     .map(tally => tally.playerId);
 }
 
+/** Fallback only; the shipped value is authored as `tuning.starFameThreshold`. */
 export const STAR_FAME_THRESHOLD = 50;
 
 /**
@@ -95,14 +96,17 @@ export const STAR_FAME_THRESHOLD = 50;
  *
  * The qualifier list is a parameter rather than a hard-coded fame test so the
  * assists, tackles and saves boards from the separate division-leaders work can
- * drop in later without touching this function.
+ * drop in later without touching this function. The fame threshold is a
+ * parameter for the same reason: a tuning value nothing reads is a knob that
+ * lies about being adjustable.
  */
 export function weightForPlayer(
   player: Pick<CareerPlayer, 'id' | 'fame'>,
   qualifierIds: readonly string[],
+  fameThreshold: number = STAR_FAME_THRESHOLD,
 ): number {
   let weight = 1;
-  if ((player.fame ?? 0) >= STAR_FAME_THRESHOLD) weight *= 2;
+  if ((player.fame ?? 0) >= fameThreshold) weight *= 2;
   if (qualifierIds.includes(player.id)) weight *= 2;
   return weight;
 }
@@ -143,10 +147,11 @@ export function pickAsker(
   pool: readonly CareerPlayer[],
   qualifierIds: readonly string[],
   roll: number,
+  fameThreshold: number = STAR_FAME_THRESHOLD,
 ): CareerPlayer | undefined {
   if (pool.length === 0) return undefined;
   return pool[chooseWeightedOutcome(
-    pool.map(player => weightForPlayer(player, qualifierIds)),
+    pool.map(player => weightForPlayer(player, qualifierIds, fameThreshold)),
     roll,
   )];
 }
@@ -155,8 +160,12 @@ export function pickAsker(
 export function totalAskerWeight(
   pool: readonly CareerPlayer[],
   qualifierIds: readonly string[],
+  fameThreshold: number = STAR_FAME_THRESHOLD,
 ): number {
-  return pool.reduce((sum, player) => sum + weightForPlayer(player, qualifierIds), 0);
+  return pool.reduce(
+    (sum, player) => sum + weightForPlayer(player, qualifierIds, fameThreshold),
+    0,
+  );
 }
 
 export interface RequestPricingContext {
@@ -505,7 +514,9 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
     next.season,
     tuning.starGoalRank,
   );
-  const hasStar = roster.some(player => weightForPlayer(player, qualifiers) > 1);
+  const hasStar = roster.some(
+    player => weightForPlayer(player, qualifiers, tuning.starFameThreshold) > 1,
+  );
   const cadence = tuning.cadence[careerDifficulty(next)];
   const weeksSince = next.playerRequests!.weeksSinceRequest + 1;
   next = withRequests(next, { ...next.playerRequests!, weeksSinceRequest: weeksSince });
@@ -548,12 +559,13 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
     ...base,
     absence: definition.cost.kind === 'ABSENCE',
   });
-  const totalWeight = totalAskerWeight(pool, qualifiers);
+  const totalWeight = totalAskerWeight(pool, qualifiers, tuning.starFameThreshold);
   if (totalWeight === 0) return next;
   const asker = pickAsker(
     pool,
     qualifiers,
     deterministicCareerEventRoll(context, 'request:asker', 2, totalWeight),
+    tuning.starFameThreshold,
   );
   if (asker === undefined) return next;
 

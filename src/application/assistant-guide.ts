@@ -146,6 +146,16 @@ export function dueAssistantInboxGuideSequences(
     due.push('national-cup');
   }
 
+  // The week the Requests tab appears. Gated on the same baked catalog the tab
+  // itself reads, so a career that never received one — a measurement harness —
+  // is never told about a feature it does not have.
+  const requestTuning = state.playerRequestRules?.tuning;
+  if (requestTuning !== undefined
+    && (state.season > requestTuning.startSeason
+      || (state.season === requestTuning.startSeason && state.week >= requestTuning.startWeek))) {
+    due.push('player-requests');
+  }
+
   if (state.players.some(player => player.clubId === state.userClubId && player.injuryWeeks > 0)) {
     due.push('first-injury');
   }

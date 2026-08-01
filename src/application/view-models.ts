@@ -1475,6 +1475,7 @@ export function squadTrainingViewModel(
         condition: player.condition ?? 100,
         injuryWeeks: player.injuryWeeks,
         awayWeeks: player.awayWeeks ?? 0,
+        canTrain: isAvailableForSelection(player),
         isStarter: starterIds.has(player.id),
         age: player.age ?? 24,
         archetype: player.archetype ?? 'All-Rounder',

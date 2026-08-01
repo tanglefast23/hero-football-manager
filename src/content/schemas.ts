@@ -641,12 +641,11 @@ export const PlayerRequestCatalogSchema = z.strictObject({
      * Seasons, not weeks: `CareerPlayer` carries `seasonsAtClub` and nothing
      * finer, so a week-level knob would be config that silently did nothing.
      *
-     * Ships as 0, and that is load-bearing. `seasonsAtClub` is written as 0 when
-     * a player is created and is never incremented anywhere for a user-club
-     * player, so ANY positive value here excludes the entire squad forever and
-     * silently disables requests. A test in
-     * `src/game/__tests__/player-requests.test.ts` locks that down. Raise this
-     * only once tenure is actually maintained.
+     * Ships as 1: a player has to have been at the club through a season
+     * transition before they start making demands. `mergeCareerPlayer`
+     * (`src/game/m2-career.ts`) increments the field each transition, so a
+     * launch-squad player reads 1 by season 2 — which is when requests begin —
+     * while someone signed mid-season waits until the next rollover.
      */
     minSeasonsAtClub: z.number().int().min(0).max(5),
     answerWeeks: z.number().int().min(1).max(5),

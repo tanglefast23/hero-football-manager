@@ -719,13 +719,15 @@ function RosterSection({
                 accessibilityRole="button"
                 accessibilityLabel={player.injuryWeeks > 0
                   ? `${player.name} is injured and cannot train`
-                  : player.priorityDrillsRemaining !== undefined
-                    ? `Train ${player.name} now, ${player.priorityDrillsRemaining} promised drills owed`
-                    : `Train ${player.name} now`}
-                accessibilityState={{ disabled: player.injuryWeeks > 0 }}
-                disabled={player.injuryWeeks > 0}
+                  : player.awayWeeks > 0
+                    ? `${player.name} is away and cannot train`
+                    : player.priorityDrillsRemaining !== undefined
+                      ? `Train ${player.name} now, ${player.priorityDrillsRemaining} promised drills owed`
+                      : `Train ${player.name} now`}
+                accessibilityState={{ disabled: !player.canTrain }}
+                disabled={!player.canTrain}
                 onPress={() => onPressTrainingBadge(player.id)}
-                className={player.injuryWeeks > 0
+                className={!player.canTrain
                   ? 'ml-1 h-11 w-11 items-center justify-center border border-ink/20 bg-paper-dark'
                   : player.priorityDrillsRemaining !== undefined
                     ? 'ml-1 h-11 w-11 items-center justify-center border-2 border-blue-dark bg-blue-light'

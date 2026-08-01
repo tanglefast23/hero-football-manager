@@ -50,7 +50,6 @@ export function createLaunchCareerSetup(
     userClubId,
     launchRosterVersion: LAUNCH_ROSTER_VERSION,
     startingTrainingPoints: 30,
-    playerRequestRules: content.playerRequests,
     trainingRules: {
       focusDrills: content.training.focusDrills.map(drill => ({
         id: drill.id, moneyCost: drill.moneyCost, tpCost: drill.tpCost, gains: { ...drill.gains },

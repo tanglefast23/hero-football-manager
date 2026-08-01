@@ -35,6 +35,8 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   'transfer-negotiation': ['listing'],
   'youth-intake': ['encouraging'],
   'national-cup': ['celebrating'],
+  // Dressing-room gossip, then he points at the tab that will carry it.
+  'player-requests': ['confiding', 'pointing-out'],
 };
 
 /**

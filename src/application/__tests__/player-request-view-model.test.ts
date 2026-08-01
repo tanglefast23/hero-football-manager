@@ -7,8 +7,12 @@ import { playerRequestViewModel } from '../player-request-view-model';
 
 const CATALOG = loadLaunchContent().playerRequests;
 
+/** The real game attaches the catalog in store.ts; tests do it here. */
 function career(): GameState {
-  return createCareer(createLaunchCareerSetup(20260801));
+  return createCareer({
+    ...createLaunchCareerSetup(20260801),
+    playerRequestRules: CATALOG,
+  });
 }
 
 /** Season-2 week-5 or later, with sidecars kept in step. See the engine tests. */
@@ -47,9 +51,11 @@ describe('playerRequestViewModel', () => {
   });
 
   it('is unavailable for a career with no baked catalog', () => {
-    const { playerRequestRules: _dropped, ...setup } = createLaunchCareerSetup(20260801);
+    // Measurement harnesses build careers this way, so the tab must simply not
+    // exist for them rather than half-render.
+    const bare = createCareer(createLaunchCareerSetup(20260801));
 
-    expect(playerRequestViewModel(atStartWeek(createCareer(setup))).available).toBe(false);
+    expect(playerRequestViewModel(atStartWeek(bare)).available).toBe(false);
   });
 
   it('is available and quiet from season 2 week 5', () => {

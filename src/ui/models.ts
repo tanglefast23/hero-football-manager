@@ -264,6 +264,12 @@ export interface SquadPlayerViewModel {
   injuryWeeks: number;
   /** Weeks away on a granted request; shown as its own ON LEAVE panel. */
   awayWeeks: number;
+  /**
+   * Whether a drill would be accepted right now. Derived once here so the
+   * button and `trainPlayerInstantly` cannot disagree about who is available —
+   * a disabled control is better than an error banner after the tap.
+   */
+  canTrain: boolean;
   isStarter: boolean;
   age: number;
   archetype: string;

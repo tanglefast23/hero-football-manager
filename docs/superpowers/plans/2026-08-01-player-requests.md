@@ -31,10 +31,19 @@ harness wants — Task 19's "suppress opens in headless" comes free.
 `balanceAfter` from the club's *current* cash and mutates nothing. Charging has
 to happen first or the ledger logs a spend that never left the club.
 
-**3. `minSeasonsAtClub` ships as 0, and must.** `seasonsAtClub` is written as 0
-at player creation and **is never incremented anywhere** for a user-club player.
-Any positive minimum excludes the entire squad forever and silently disables the
-feature for the whole career. A test locks this.
+**3. `minSeasonsAtClub` ships as 1, per the spec.** An intermediate version of
+this plan claimed `seasonsAtClub` was never incremented and dropped the value to
+0. That claim was wrong — `mergeCareerPlayer` (`src/game/m2-career.ts`) adds one
+at every season transition, so a launch player reads 1 by season 2, which is
+when requests begin. The Fable 5 audit caught it. The test now asserts both
+halves: a first-season squad is excluded, a post-transition squad qualifies.
+
+**4. The catalog is attached in `store.ts`, not in `createLaunchCareerSetup`.**
+Roughly fifteen audit probes and the balance rails build careers from that
+helper. Baking the catalog there would have silently added lapse penalties to
+every one of them — measuring a different game than their recorded baselines.
+The real game opts in at its single career-creation site instead, so any harness
+written later is request-free by default rather than by remembering to opt out.
 
 ---
 

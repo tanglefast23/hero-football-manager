@@ -8,16 +8,10 @@ import {
 } from '../balance';
 
 const content = loadLaunchContent();
-// The harness measures the economy, not the dressing room. Requests are dropped
-// deliberately rather than auto-refused: refusing still bleeds morale and
-// loyalty, and because resolving one resets the drought counter it would produce
-// the maximum possible request throughput — more cumulative damage than any real
-// career would take. Omitting the catalog is what turns the feature off.
-const {
-  seed: _launchSeed,
-  playerRequestRules: _launchPlayerRequests,
-  ...launchCareerSetup
-} = createLaunchCareerSetup(1);
+// createLaunchCareerSetup carries no request catalog on purpose, so this and
+// every audit probe measure a career without them. The real game attaches the
+// catalog in store.ts.
+const { seed: _launchSeed, ...launchCareerSetup } = createLaunchCareerSetup(1);
 const LAUNCH_SCENARIO: MiniBalanceScenario = {
   careerSetup: {
     ...launchCareerSetup,

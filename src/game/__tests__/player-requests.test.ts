@@ -648,10 +648,19 @@ describe('request drill effects in real training', () => {
 
 /** A career that actually has the catalog baked in, so requests can open. */
 function tickingCareer(): GameState {
-  return createCareer({
+  const base = createCareer({
     ...createLaunchCareerSetup(20260801),
     playerRequestRules: CATALOG,
   });
+  // Stands in for the season transition that would have incremented tenure.
+  // Without it every fixture below sits behind the minSeasonsAtClub gate and
+  // the tick tests would pass by never opening anything.
+  return {
+    ...base,
+    players: base.players.map(player => (player.clubId === base.userClubId
+      ? { ...player, seasonsAtClub: (player.seasonsAtClub ?? 0) + 1 }
+      : player)),
+  };
 }
 
 /**
@@ -674,8 +683,10 @@ function atSeason(state: GameState, season: number): GameState {
 
 describe('advancePlayerRequests', () => {
   it('does nothing at all when the catalog was never baked in', () => {
-    // This is what turns the feature off for the balance harness.
-    const bare = createCareer(createLaunchCareerSetup(20260801));
+    // This is what turns the feature off for the balance harness and the audit
+    // probes: they build a setup and drop the catalog from it.
+    const { playerRequestRules: _dropped, ...setup } = createLaunchCareerSetup(20260801);
+    const bare = createCareer(setup);
 
     expect(advancePlayerRequests(atSeason(bare, 3), true).playerRequests).toBeUndefined();
   });
@@ -835,18 +846,24 @@ describe('advancePlayerRequests', () => {
   });
 });
 
-describe('shipped tuning cannot silently disable the feature', () => {
-  it('does not gate on a tenure field the game never increments', () => {
-    // `seasonsAtClub` is set to 0 when a player is created and is never
-    // incremented for a user-club player. Any positive minimum here would
-    // exclude the whole squad forever and the tab would stay empty for the
-    // entire career, with nothing failing to say so.
-    const squad = createCareer(createLaunchCareerSetup(20260801));
-    const roster = squad.players.filter(p => p.clubId === squad.userClubId);
+describe('the tenure gate lets a real season-2 squad ask', () => {
+  it('excludes a first-season squad and admits it after a season transition', () => {
+    // seasonsAtClub starts at 0 and is incremented by mergeCareerPlayer at each
+    // season transition (src/game/m2-career.ts). The shipped minimum of 1 is
+    // therefore "has been here through a rollover" — which every launch player
+    // satisfies by season 2, when requests begin. This asserts both halves,
+    // because a value the squad can never reach would leave the tab empty for
+    // an entire career with nothing failing to say so.
+    const fresh = createCareer(createLaunchCareerSetup(20260801));
+    const freshRoster = fresh.players.filter(p => p.clubId === fresh.userClubId);
+    const gate = { minSeasonsAtClub: CATALOG.tuning.minSeasonsAtClub, absence: false };
 
-    expect(eligibleAskers(roster, {
-      minSeasonsAtClub: CATALOG.tuning.minSeasonsAtClub,
-      absence: false,
-    }).length).toBeGreaterThan(0);
+    expect(eligibleAskers(freshRoster, gate)).toHaveLength(0);
+
+    const tenured = freshRoster.map(player => ({
+      ...player,
+      seasonsAtClub: (player.seasonsAtClub ?? 0) + 1,
+    }));
+    expect(eligibleAskers(tenured, gate).length).toBeGreaterThan(0);
   });
 });
