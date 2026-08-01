@@ -56,6 +56,7 @@ import {
   selectCareerLicensedHeroes,
   setCareerLineup,
   swapCareerLineupPlayer,
+  resolvePlayerRequest as resolveCareerPlayerRequest,
   trainPlayerInstantly,
   trainingPathLabel,
   startNextSeason,
@@ -74,6 +75,7 @@ import {
   type LeagueFixture,
   type NationalCupRoundLabel,
 } from '../game';
+import type { PlayerRequestResolution } from '../game/types';
 import type { ContractOffer, PitchCard } from '../game/market';
 import type {
   CareerBackupSummary,
@@ -241,6 +243,7 @@ interface M1Store {
   continueAfterEvent: () => void;
   toggleHeroLicense: (playerId: string) => void;
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
+  resolvePlayerRequest: (resolution: PlayerRequestResolution) => void;
   selectPlayer: (playerId: string) => void;
   trainPlayer: (playerId: string, pathId: string) => void;
   purchaseTrainingUpgrade: (pathId: string) => void;
@@ -1083,6 +1086,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
   swapStartingPlayer(starterId, replacementId) {
     guarded(set, () => {
       const next = swapCareerLineupPlayer(requireCareer(get()), starterId, replacementId);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  resolvePlayerRequest(resolution: PlayerRequestResolution) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const catalog = career.playerRequestRules;
+      if (catalog === undefined) throw new Error('this career has no player request catalog');
+      const next = resolveCareerPlayerRequest(career, catalog, resolution);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

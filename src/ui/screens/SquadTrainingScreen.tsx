@@ -37,6 +37,10 @@ import { PixelText } from '../components/PixelText';
 import { InfoTip } from '../components/InfoTip';
 import { energyBand } from '../../render/match-energy-ui';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
+import { LOYALTY_NO_RENEWAL_THRESHOLD, LOYALTY_WARNING_THRESHOLD } from '../../game/loyalty';
+import { GUIDED_ALERT_GLOW } from '../guidance-glow';
+import { SquadRequestsPanel } from './SquadRequestsPanel';
+import type { PlayerRequestViewModel } from '../../application/player-request-view-model';
 
 /**
  * The roster reads condition on the same three bands as the drill popup and
@@ -127,6 +131,10 @@ export interface SquadTrainingScreenProps {
   onQuickTrainShown?: () => void;
   /** Changes after any completed screen tap so floating tips can retire together. */
   dismissTipsToken?: number;
+  /** The Requests tab's model. `available: false` hides the tab row entirely. */
+  requestViewModel?: PlayerRequestViewModel;
+  /** Starts the walk-on; the decision card follows it. */
+  onOpenRequest?: () => void;
   /** A Manager's Tip deep-link and its fresh request identity. */
   managerTipGuideRequest?: {
     target: ManagerTipDestination;
@@ -152,6 +160,8 @@ export function SquadTrainingScreen({
   guideQuickTrain = false,
   onQuickTrainShown,
   dismissTipsToken = 0,
+  requestViewModel,
+  onOpenRequest,
   managerTipGuideRequest,
 }: SquadTrainingScreenProps) {
   const desktopContent = useDesktopContentStyle();
@@ -168,6 +178,7 @@ export function SquadTrainingScreen({
     ? undefined
     : archetypeDevelopmentSummary(selectedPlayer.archetype);
   const playerGuideTouchStartRef = useRef<TutorialTouchPoint | null>(null);
+  const [squadTab, setSquadTab] = useState<'drills' | 'requests'>('drills');
   const [drillPickerOpen, setDrillPickerOpen] = useState(false);
   const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
   /**
@@ -428,16 +439,55 @@ export function SquadTrainingScreen({
         onTouchEnd={forgetPlayerGuideTouch}
         onTouchCancel={forgetPlayerGuideTouch}
       >
-        <SectionFlow
-          mode={layoutMode}
-          header={
-            <View className="mb-6">
-              <PixelText className="text-sm uppercase tracking-[2px] text-blue-dark">Squad room</PixelText>
-              <PixelText className="mt-1 text-xl uppercase text-ink">Roster & training</PixelText>
-            </View>
-          }
-          sections={sections}
-        />
+        <View className="mb-6">
+          <PixelText className="text-sm uppercase tracking-[2px] text-blue-dark">Squad room</PixelText>
+          <PixelText className="mt-1 text-xl uppercase text-ink">Roster & training</PixelText>
+        </View>
+
+        {/* Drawn like the league's division selector so the two read as one
+            vocabulary. Absent entirely before season 2 week 5 — the row
+            appearing is part of what makes Bert's briefing feel like it
+            unlocked something. */}
+        {requestViewModel?.available ? (
+          <View className="mb-5 flex-row gap-1">
+            {(['drills', 'requests'] as const).map(tab => {
+              const selected = tab === squadTab;
+              const glowing = tab === 'requests' && requestViewModel.glowing && !selected;
+              const label = tab === 'drills' ? 'Drills' : 'Requests';
+              return (
+                <Pressable
+                  key={tab}
+                  accessibilityRole="tab"
+                  accessibilityLabel={glowing ? `${label} tab, one waiting` : `${label} tab`}
+                  accessibilityState={{ selected }}
+                  onPress={() => setSquadTab(tab)}
+                  className={selected
+                    ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1 py-2'
+                    : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1 py-2'}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.82 : 1,
+                    transform: [{ translateY: pressed ? 2 : 0 }],
+                    ...(glowing ? GUIDED_ALERT_GLOW : {}),
+                  })}
+                >
+                  <Text className="font-pixel text-sm uppercase text-ink">
+                    {label}{glowing ? '  \u25CF' : ''}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+
+        {requestViewModel?.available && squadTab === 'requests' ? (
+          <SquadRequestsPanel
+            viewModel={requestViewModel}
+            onOpenRequest={() => onOpenRequest?.()}
+            reduceMotion={reduceMotion}
+          />
+        ) : (
+          <SectionFlow mode={layoutMode} sections={sections} />
+        )}
       </ScrollView>
       {drillPickerOpen && selectedPlayer && viewModel.selectedPlayerStatOptions ? (
         <TrainingDrillModal
@@ -823,6 +873,17 @@ function PlayerFileSection({
           </Text>
           <Text className="mt-1 text-sm text-ink/70">Unavailable for match selection while recovering.</Text>
         </View>
+      ) : selectedPlayer.awayWeeks > 0 ? (
+        // Gold, not red: leave is a consequence the manager chose, and keeping
+        // red for injury alone means the two read apart at a glance.
+        <View className="mb-3 border-2 border-b-4 border-gold-dark bg-gold-light p-3">
+          <Text className="font-pixel text-base uppercase text-gold-dark">
+            ON LEAVE · {selectedPlayer.awayWeeks} {selectedPlayer.awayWeeks === 1 ? 'WEEK' : 'WEEKS'}
+          </Text>
+          <Text className="mt-1 text-sm text-ink/70">
+            Away on a granted request. Cannot be selected or trained.
+          </Text>
+        </View>
       ) : null}
       <View className="flex-row gap-2">
         <Metric label="Current rating" value={String(selectedPlayer.overall)} />
@@ -840,7 +901,26 @@ function PlayerFileSection({
           value={`${selectedPlayer.potentialGrade} · ${selectedPlayer.superChancePercent}% SUPER`}
           tone="positive"
         />
+        <Metric label="Fame" value={String(selectedPlayer.fame)} />
+      </View>
+      {/* Morale and loyalty sit together because they are the same kind of
+          number on two different clocks: morale swings on results and recovers
+          on wins, loyalty only moves when the manager decides something and
+          never recovers on its own. */}
+      <View className="mt-2 flex-row items-center gap-2">
         <Metric label="Morale" value={`${selectedPlayer.morale}%`} />
+        <InfoTip
+          align="right"
+          className="min-w-0 flex-1"
+          text={`How much they want to stay. It sets the price of their next contract, and below ${LOYALTY_NO_RENEWAL_THRESHOLD} they will not re-sign at all.`}
+          accessibilityLabel={`Loyalty ${selectedPlayer.loyalty} out of 100. It sets the price of their next contract, and below ${LOYALTY_NO_RENEWAL_THRESHOLD} they will not re-sign at all.`}
+        >
+          <Metric
+            label="Loyalty"
+            value={String(selectedPlayer.loyalty)}
+            tone={selectedPlayer.loyalty <= LOYALTY_WARNING_THRESHOLD ? 'negative' : 'normal'}
+          />
+        </InfoTip>
       </View>
       <View className="mt-3 flex-row items-center justify-between gap-3 border-t border-ink/20 pt-3">
         <View className="flex-1">

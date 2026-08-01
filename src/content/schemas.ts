@@ -190,6 +190,7 @@ export const AssistantGuideSequenceIdSchema = z.enum([
   'club-legacy',
   'board-ultimatum',
   'board-protection',
+  'player-requests',
 ]);
 
 export const AssistantGuideFocusSchema = z.enum([
@@ -212,6 +213,7 @@ export const AssistantGuideFocusSchema = z.enum([
   'transfer-negotiation',
   'youth-intake',
   'national-cup',
+  'squad-requests',
   'injury-lineup',
   'emergency-loan',
   'transfer-request',
