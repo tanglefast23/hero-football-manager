@@ -136,13 +136,27 @@ function divisionAwards(state: GameState): Record<AwardCategoryId, DivisionAward
 }
 
 /**
- * Keeps only the rows whose player the career can still name.
+ * Keeps only the rows the career can still render: a named player, in a season
+ * no older than the one that just finished.
  *
  * A promotion or relegation regenerates every rival roster, so those player IDs
  * resolve to nothing and their rows could only ever render as `p_10423 · 22
- * goals`. Retired players are spared explicitly: they leave `state.players` at
- * the season transition, and a rule keyed on that array alone would delete the
- * career record of the club's own retired heroes.
+ * goals`. Retired players are spared that rule explicitly: they leave
+ * `state.players` at the season transition, and a rule keyed on that array
+ * alone would delete the career record of the club's own retired heroes.
+ *
+ * Past seasons go because nothing durable reads them. Every board filters to
+ * the current season — the division leaderboards, the recap's Golden Boot, the
+ * championship celebration — and the podiums that mattered are already
+ * denormalised into `SeasonRecap.divisionAwards`, names and clubs included,
+ * precisely because raw rows do not survive a division change. The one
+ * unfiltered reader is the `first-hero-goal` milestone, and milestone flags are
+ * appended to `state.eventFlags` and never removed, so an earned flag cannot be
+ * un-earned by pruning the evidence a season later. Without this, a player who
+ * stays fifteen seasons carries fifteen rows forever.
+ *
+ * Called with the pre-transition state, so `state.season` is the season that
+ * just finished: it is kept, and everything before it is dropped.
  *
  * Only safe to run once the recap has snapshotted the season's podiums.
  */
@@ -151,7 +165,9 @@ export function prunedStatLines(state: GameState): PlayerSeasonStatLine[] {
     ...state.players.map(player => player.id),
     ...(state.retiredPlayers ?? []).map(player => player.id),
   ]);
-  return (state.seasonStatLines ?? []).filter(line => known.has(line.playerId));
+  return (state.seasonStatLines ?? []).filter(
+    line => line.season >= state.season && known.has(line.playerId),
+  );
 }
 
 export function recordSeasonRecap(state: GameState): GameState {

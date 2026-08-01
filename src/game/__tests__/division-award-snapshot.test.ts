@@ -10,7 +10,7 @@ import {
 import { AWARD_CATEGORIES, PODIUM_SIZE, divisionPodium } from '../division-leaders';
 import { resolveMatchday } from '../matchday';
 import { prunedStatLines } from '../season-recap';
-import { buildCareerMatchTeams } from '../squad';
+import { buildCareerMatchTeams, renewCareerPlayer } from '../squad';
 import type {
   AwardCategoryId,
   CareerPlayer,
@@ -24,10 +24,12 @@ const CATEGORY_IDS = Object.keys(AWARD_CATEGORIES) as AwardCategoryId[];
 
 describe('pruning dead stat rows', () => {
   it('keeps rows for players still on a roster', () => {
+    // A player transferred inside the division owns one row per club, and both
+    // belong to the season the board is still ranking.
     const state = stateWith(
-      [player('p_live', 'club_a')],
+      [player('p_live', 'club_b')],
       [],
-      [line('p_live'), line('p_live', 2)],
+      [line('p_live'), line('p_live', 1, 'club_b')],
     );
 
     expect(prunedStatLines(state)).toEqual(state.seasonStatLines);
@@ -59,17 +61,70 @@ describe('pruning dead stat rows', () => {
     expect(prunedStatLines(state).map(row => row.playerId).sort())
       .toEqual(['p_live', 'p_retired']);
   });
+
+  /**
+   * The unbounded-growth rule: a player who stays fifteen seasons used to carry
+   * fifteen rows forever, because existing on the roster was the only test.
+   */
+  it('drops a still-rostered player rows from earlier seasons', () => {
+    const state = stateWith(
+      [player('p_live', 'club_a')],
+      [],
+      [line('p_live', 1), line('p_live', 2), line('p_live', 3)],
+      3,
+    );
+
+    expect(prunedStatLines(state).map(row => row.season)).toEqual([3]);
+  });
+
+  it('keeps the season that just finished', () => {
+    const state = stateWith(
+      [player('p_live', 'club_a')],
+      [],
+      [line('p_live', 4)],
+      4,
+    );
+
+    expect(prunedStatLines(state)).toEqual(state.seasonStatLines);
+  });
+
+  it('keeps a retired player last season but not his earlier ones', () => {
+    const state = stateWith(
+      [player('p_live', 'club_a')],
+      [player('p_retired', 'club_a')],
+      [line('p_retired', 1), line('p_retired', 2), line('p_live', 2)],
+      2,
+    );
+
+    expect(prunedStatLines(state).map(row => `${row.playerId}:${row.season}`).sort())
+      .toEqual(['p_live:2', 'p_retired:2']);
+  });
 });
 
+/** Enough transitions that unbounded growth would be unmistakable. */
+const SEASONS_PLAYED = 4;
+
+let seasonEnd: GameState;
+let nextSeason: GameState;
+/** The season each transition left behind, and the rows the save kept after it. */
+const completedSeasons: number[] = [];
+const rowsAfterTransition: PlayerSeasonStatLine[][] = [];
+
+// One career serves both suites: simulating a season is the expensive part, and
+// the growth property needs several of them.
+beforeAll(() => {
+  let state = createCareer(createLaunchCareerSetup(2468));
+  for (let index = 0; index < SEASONS_PLAYED; index += 1) {
+    state = simulatedSeason(state);
+    if (index === 0) seasonEnd = state;
+    completedSeasons.push(state.season);
+    state = startNextCareerSeason(state);
+    if (index === 0) nextSeason = state;
+    rowsAfterTransition.push(state.seasonStatLines ?? []);
+  }
+}, 900_000);
+
 describe('division award snapshots', () => {
-  let seasonEnd: GameState;
-  let nextSeason: GameState;
-
-  beforeAll(() => {
-    seasonEnd = simulatedSeason(createCareer(createLaunchCareerSetup(2468)));
-    nextSeason = startNextSeason(seasonEnd);
-  }, 300_000);
-
   it('records a renderable podium for every category', () => {
     const awards = recapFor(seasonEnd, seasonEnd.season).divisionAwards;
     if (awards === undefined) throw new Error('the recap recorded no division awards');
@@ -145,6 +200,45 @@ describe('division award snapshots', () => {
   });
 });
 
+/**
+ * The reason past seasons are pruned at all. `seasonStatLines` used to keep
+ * every row a surviving player ever produced, so a fifteen-season career
+ * carried fifteen seasons of rows in the save. Measured before the season rule
+ * landed: 136, 270, 376 and 515 rows after the first four transitions.
+ */
+describe('bounded stat-line growth', () => {
+  it('keeps no row older than the season just completed', () => {
+    expect(rowsAfterTransition).toHaveLength(SEASONS_PLAYED);
+    rowsAfterTransition.forEach((rows, index) => {
+      expect(rows.length).toBeGreaterThan(0);
+      expect([...new Set(rows.map(row => row.season))]).toEqual([completedSeasons[index]]);
+    });
+  });
+
+  /**
+   * Stated as a bound rather than a fixed count: one season's rows vary with
+   * who played, but they cannot accumulate. Unbounded growth reaches 3.8x by
+   * the fourth transition, so this catches a regression well before the ratio
+   * gets close.
+   */
+  it('does not grow with the number of seasons played', () => {
+    const counts = rowsAfterTransition.map(rows => rows.length);
+
+    expect(Math.max(...counts)).toBeLessThanOrEqual(counts[0]! * 2);
+  });
+});
+
+/** Renews what expired, since an unresolved contract blocks the transition. */
+function startNextCareerSeason(state: GameState): GameState {
+  let renewed = state;
+  for (const player of state.players.filter(candidate => (
+    candidate.clubId === state.userClubId && candidate.contractSeasonsRemaining === 0
+  ))) {
+    renewed = renewCareerPlayer(renewed, player.id, 4, 1);
+  }
+  return startNextSeason(renewed);
+}
+
 function simulatedSeason(initialState: GameState): GameState {
   let state = initialState;
   while (state.phase !== 'season-end') {
@@ -181,8 +275,9 @@ function stateWith(
   players: CareerPlayer[],
   retiredPlayers: CareerPlayer[],
   seasonStatLines: PlayerSeasonStatLine[],
+  season = 1,
 ): GameState {
-  return { players, retiredPlayers, seasonStatLines } as unknown as GameState;
+  return { season, players, retiredPlayers, seasonStatLines } as unknown as GameState;
 }
 
 function player(id: string, clubId: string, role: Role = 'FWD'): CareerPlayer {
@@ -201,11 +296,11 @@ function player(id: string, clubId: string, role: Role = 'FWD'): CareerPlayer {
   };
 }
 
-function line(playerId: string, season = 1): PlayerSeasonStatLine {
+function line(playerId: string, season = 1, clubId = 'club_a'): PlayerSeasonStatLine {
   return {
     season,
     playerId,
-    clubId: 'club_a',
+    clubId,
     competition: 'league',
     goals: 1,
     assists: 0,
