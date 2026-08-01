@@ -513,6 +513,9 @@ function GameApp() {
     const current = preferencesRef.current;
     savePreferences({ ...current, managerTipsEnabled: !current.managerTipsEnabled });
   }, [savePreferences]);
+  const saveAutoSubs = useCallback((autoSubs: boolean) => {
+    savePreferences({ ...preferencesRef.current, autoSubs });
+  }, [savePreferences]);
   const cycleFormationPreset = useCallback((slot: number) => {
     const market = useM1Store.getState().career?.market;
     savePreferences(replaceFormationPreset(
@@ -1280,6 +1283,8 @@ function GameApp() {
         onPowerCutInSeen={recordSeenPowerCutIn}
         highContrast={preferences.highContrast}
         colorSafeKits={preferences.colorSafeKits}
+        autoSubs={preferences.autoSubs}
+        onAutoSubsChange={saveAutoSubs}
         pausedExternally={globalSettingsOpen || tripleSpeedIntroVisible}
         maximumSpeed={store.career.season >= 3 ? 3 : 2}
         firstMatchTutorial={isFirstOnboardingFixture(

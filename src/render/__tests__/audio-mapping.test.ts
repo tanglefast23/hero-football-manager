@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { filesForEvent } from '../audio';
 import type { MatchEvent } from '../../sim/types';
 import { LAUNCH_POWER_IDS } from '../../game/power-catalog';
@@ -11,7 +13,6 @@ describe('filesForEvent: event → SFX wiring', () => {
     expect(filesForEvent({ t: 0, kind: 'SAVE', by: 0, resolveLeft: 100 })).toEqual(['save-slap']);
     expect(filesForEvent({ t: 0, kind: 'MISS', by: 0 })).toEqual(['crowd-ooh']);
     expect(filesForEvent({ t: 0, kind: 'POWER_INTERRUPTED', player: 3 })).toEqual(['power-interrupt']);
-    expect(filesForEvent({ t: 0, kind: 'POWER_EXPIRED', player: 3 })).toEqual(['zone-expire']);
   });
 
   it('keeps the opening whistle and core action sounds wired', () => {
@@ -102,6 +103,16 @@ describe('filesForEvent: event → SFX wiring', () => {
 
   it('leaves RECOVERED intentionally silent (no matching asset)', () => {
     expect(filesForEvent({ t: 0, kind: 'RECOVERED', player: 5 })).toEqual([]);
+  });
+
+  it('leaves POWER_EXPIRED silent — the Zone stopped expiring at m1.27', () => {
+    // The countdown is gone, so a Zone never lapses in a played match: the only
+    // emit left sits behind POWER_TAP, which is test instrumentation (docs/04).
+    // The womp stayed wired long after it could play; keep it unwired.
+    expect(filesForEvent({ t: 0, kind: 'POWER_EXPIRED', player: 5 })).toEqual([]);
+
+    const audio = readFileSync(join(process.cwd(), 'src/render/audio.ts'), 'utf8');
+    expect(audio).not.toContain("'zone-expire'");
   });
 
   /**

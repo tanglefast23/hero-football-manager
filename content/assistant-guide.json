@@ -385,8 +385,17 @@
             "Starting from week 10, all divisions against each other. Stronger clubs receive opening byes. Teams battle, no second chances until there's one winner. Lots of prizes and fans the further you can go!"
           ],
           "focus": "national-cup",
-          "objective": "OPEN THE CUP DRAW.",
+          "objective": "WATCH THE CUP ROUNDS FILL IN.",
           "buttonLabel": "Show me the bracket."
+        },
+        {
+          "kicker": "The bracket",
+          "title": "Watch it here",
+          "body": [
+            "Every match in the round is listed on this page, and the scores come in live as they're played."
+          ],
+          "focus": "national-cup",
+          "buttonLabel": "I'll keep an eye on it."
         }
       ]
     },

@@ -34,7 +34,9 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   'transfer-bid': ['hold-on'],
   'transfer-negotiation': ['listing'],
   'youth-intake': ['encouraging'],
-  'national-cup': ['celebrating'],
+  // The format is the good news; the second beat just points at the page that
+  // will carry the scores, so it lands as instruction rather than more fanfare.
+  'national-cup': ['celebrating', 'pointing-out'],
   // Dressing-room gossip, then he points at the tab that will carry it.
   'player-requests': ['confiding', 'pointing-out'],
 };

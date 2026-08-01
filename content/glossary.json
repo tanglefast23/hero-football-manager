@@ -93,7 +93,7 @@
       "entries": [
         { "term": "Power", "definition": "A hero's visible, moment-specific super ability. Powers change possession or geometry rather than giving a hidden permanent stat smear." },
         { "term": "Heat", "definition": "Momentum earned from touches, tackles, shots, saves, and time on the pitch. At the threshold, Heat waits until that hero has a useful chance to enter the Zone." },
-        { "term": "The Zone", "definition": "A short glowing activation window. The hero fires automatically at the next useful moment; a window that fades unused returns half their Heat." },
+        { "term": "The Zone", "definition": "The glowing, fully charged state a hero enters while waiting for their power's useful moment. There is no countdown: the charge holds until that moment arrives." },
         { "term": "Automatic timing", "definition": "Every hero fires on their own when their power's useful moment appears. The same timing runs in watched matches, rival teams, and Quick Result." },
         { "term": "Wind-up", "definition": "The visible delay before a power starts. Many wind-ups can be interrupted, which returns half the hero's Heat." },
         { "term": "Hero License", "definition": "A permit allowing a powered player to use their power in the next match. You may own more heroes than the number you can license at once." }

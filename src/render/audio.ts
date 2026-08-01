@@ -62,7 +62,6 @@ type SfxKey =
   | 'save-slap'
   | 'crowd-ooh'
   | 'power-interrupt'
-  | 'zone-expire'
   | 'decoy-pop';
 
 const SFX_SOURCES: Record<SfxKey, AudioSource> = {
@@ -104,7 +103,6 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'save-slap': require('../../assets/audio/sfx/save-slap.wav'),
   'crowd-ooh': require('../../assets/audio/sfx/crowd-ooh.wav'),
   'power-interrupt': require('../../assets/audio/sfx/power-interrupt.wav'),
-  'zone-expire': require('../../assets/audio/sfx/zone-expire.wav'),
   'decoy-pop': require('../../assets/audio/sfx/decoy-pop.wav'),
 };
 
@@ -207,8 +205,6 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       return ['crowd-ooh'];       // shot off target — crowd groans
     case 'POWER_INTERRUPTED':
       return ['power-interrupt']; // wind-up tackled off
-    case 'POWER_EXPIRED':
-      return ['zone-expire'];     // an un-fired Zone window lapses
     case 'GUST_REDIRECT':
       return ['super-speed-whoosh']; // the incoming pass audibly bends on the wind
     case 'GUST_PUNT':
@@ -220,7 +216,16 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
     // RECOVERED (a player getting back up) has no matching asset — deliberately
     // silent, an explicit case (not a catch-all) so the exhaustiveness check
     // below stays meaningful.
+    //
+    // POWER_EXPIRED is silent because it can no longer reach a played match:
+    // the Zone stopped counting down at m1.27, so the sole remaining emit (the
+    // 'armed' branch of sim/powers.ts) is entered only from a POWER_TAP, which
+    // survives as test instrumentation alone (docs/04). Its zone-expire.wav
+    // deliberately stays in scripts/audio/catalog.mjs — that catalog seeds its
+    // generators by array index, so dropping the entry would re-roll every
+    // sound after it.
     case 'RECOVERED':
+    case 'POWER_EXPIRED':
     case 'FORMATION_CHANGED':
     case 'MENTALITY_CHANGED':
     case 'ENERGY_USE_CHANGED':
