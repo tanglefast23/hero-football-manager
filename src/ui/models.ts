@@ -6,6 +6,7 @@ import type {
   ManagerTipDestination,
 } from '../content';
 import type { PotentialGrade } from '../game/archetype-caps';
+import type { AwardCategoryId } from '../game/types';
 import type { PowerId } from '../sim/types';
 
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
@@ -715,4 +716,75 @@ export interface ChampionshipCelebrationViewModel {
     hasRecordedGoals: boolean;
   };
   squad: readonly ChampionshipCelebrationPlayerViewModel[];
+}
+
+/**
+ * One name on one podium.
+ *
+ * `position` is the podium slot, not the leader board's shared rank. The podium
+ * is already cut to three and ordered by the board's player-ID tiebreak, and
+ * the prize pays whoever tops it, so numbering the slots is what keeps the man
+ * who is crowned and the man who is paid the same man.
+ */
+export interface AwardCeremonyPlacingViewModel {
+  readonly position: number;
+  readonly playerId: string;
+  readonly playerName: string;
+  readonly clubName: string;
+  readonly value: number;
+  readonly isUserPlayer: boolean;
+}
+
+export interface AwardCeremonyBeatViewModel {
+  readonly categoryId: AwardCategoryId;
+  readonly boardLabel: string;
+  readonly metricLabel: string;
+  /**
+   * Up to three, in the order they are revealed: third, then second, then
+   * first. A division where nobody registered the metric has none.
+   */
+  readonly placings: readonly AwardCeremonyPlacingViewModel[];
+  /** Shown in place of the podium when the category has no placings. */
+  readonly emptyLabel: string;
+  /** The last placing revealed; absent only when the podium is empty. */
+  readonly winner?: AwardCeremonyPlacingViewModel;
+  /**
+   * What the winner says on the rostrum. A rival's winner speaks too — the
+   * walk-on, the jump and the line are identical, because a rival who takes the
+   * award off you should look like he won it.
+   */
+  readonly winnerLine?: string;
+  /**
+   * Present only when one of the manager's players finished second to a rival.
+   *
+   * A club taking first AND second gets one walk-on, not two: the winner
+   * speaks, and the runner-up stays on the podium list. Two sprites competing
+   * for one moment weakens both.
+   */
+  readonly runnerUp?: AwardCeremonyPlacingViewModel;
+  readonly runnerUpLine?: string;
+  /** Whether this board's prize was paid to the manager's club. */
+  readonly wonByUserPlayer: boolean;
+}
+
+export interface AwardCeremonyPrizeViewModel {
+  readonly totalTrainingPoints: number;
+  /**
+   * What ONE board is worth at the division the club is entering.
+   *
+   * Context for the total, not a factor of it: the prize tapers per board, so
+   * `total` is not this figure times `boardsWon`.
+   */
+  readonly perCategoryTrainingPoints: number;
+  readonly boardsWon: number;
+}
+
+export interface AwardCeremonyViewModel {
+  readonly seasonLabel: string;
+  /**
+   * Always four, in reveal order: keepers, defenders, midfielders, strikers.
+   * A season the club won nothing in still has four beats to watch.
+   */
+  readonly beats: readonly AwardCeremonyBeatViewModel[];
+  readonly prize: AwardCeremonyPrizeViewModel;
 }
