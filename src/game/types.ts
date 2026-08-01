@@ -428,6 +428,14 @@ export interface SeasonRecap {
   playerOfSeason?: SeasonRecapAward;
   youngPlayer?: SeasonRecapAward;
   heroOfSeason?: SeasonRecapAward;
+  /**
+   * Top three per category, denormalised at the season transition.
+   *
+   * The bridge to the awards ceremony. Raw stat rows for rivals are pruned once
+   * a division change regenerates their clubs, so anything the ceremony needs
+   * must be captured here while the players still exist.
+   */
+  divisionAwards?: Record<AwardCategoryId, DivisionAwardPlacement[]>;
 }
 
 export interface GameState {

@@ -683,6 +683,21 @@ const seasonRecapAwardSchema = z.object({
   detail: nonemptyString,
 }).passthrough();
 
+const divisionAwardPlacementSchema = z.object({
+  playerId: nonemptyString,
+  playerName: nonemptyString,
+  clubId: nonemptyString,
+  value: nonnegativeInteger,
+}).passthrough();
+
+/** One podium per category, and a podium is three deep. */
+const divisionAwardsSchema = z.object({
+  goals: z.array(divisionAwardPlacementSchema).max(3),
+  assists: z.array(divisionAwardPlacementSchema).max(3),
+  tacklesWon: z.array(divisionAwardPlacementSchema).max(3),
+  saves: z.array(divisionAwardPlacementSchema).max(3),
+}).passthrough();
+
 const seasonRecapSchema = z.object({
   season: positiveInteger,
   division: positiveInteger.refine(value => value <= 5, 'must be at most 5'),
@@ -702,6 +717,7 @@ const seasonRecapSchema = z.object({
   playerOfSeason: seasonRecapAwardSchema.optional(),
   youngPlayer: seasonRecapAwardSchema.optional(),
   heroOfSeason: seasonRecapAwardSchema.optional(),
+  divisionAwards: divisionAwardsSchema.optional(),
 }).passthrough();
 
 const gameStateSchema = z

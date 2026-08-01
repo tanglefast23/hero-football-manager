@@ -1,5 +1,14 @@
+import { divisionPodium } from './division-leaders';
 import { currentUserDivision } from './m2-career';
-import type { CareerPlayer, GameState, SeasonRecap, SeasonRecapAward } from './types';
+import type {
+  AwardCategoryId,
+  CareerPlayer,
+  DivisionAwardPlacement,
+  GameState,
+  PlayerSeasonStatLine,
+  SeasonRecap,
+  SeasonRecapAward,
+} from './types';
 
 export function buildSeasonRecap(state: GameState): SeasonRecap {
   const fixtures = state.fixtures.filter(fixture => (
@@ -71,6 +80,7 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     // the persisted recap field stays for old saves and always reads zero now.
     trainingCapsReached: 0,
     cupResult: cupResult(state),
+    divisionAwards: divisionAwards(state),
     ...(latestResolvedEvent === undefined ? {} : { memorableEventId: latestResolvedEvent }),
     // A Golden Boot for nobody is worse than no Golden Boot at all.
     ...(topScorerGoals === 0 || sortedScorers[0] === undefined ? {} : {
@@ -102,6 +112,46 @@ function seasonOpeningCash(state: GameState, closingCash: number): number {
     .filter(transaction => transaction.season === state.season)
     .reduce((total, transaction) => total + transaction.amount, 0);
   return closingCash - ledgerChange - transactionChange;
+}
+
+/**
+ * The four podiums, captured while every player on them still exists.
+ *
+ * `SeasonRecapAward` is not reused: it carries no club, and its number survives
+ * only inside a display string. The ceremony renders a club beside each placing
+ * and compares the values numerically.
+ */
+function divisionAwards(state: GameState): Record<AwardCategoryId, DivisionAwardPlacement[]> {
+  const division = {
+    season: state.season,
+    players: state.players,
+    statLines: state.seasonStatLines ?? [],
+  };
+  return {
+    goals: divisionPodium({ ...division, category: 'goals' }),
+    assists: divisionPodium({ ...division, category: 'assists' }),
+    tacklesWon: divisionPodium({ ...division, category: 'tacklesWon' }),
+    saves: divisionPodium({ ...division, category: 'saves' }),
+  };
+}
+
+/**
+ * Keeps only the rows whose player the career can still name.
+ *
+ * A promotion or relegation regenerates every rival roster, so those player IDs
+ * resolve to nothing and their rows could only ever render as `p_10423 · 22
+ * goals`. Retired players are spared explicitly: they leave `state.players` at
+ * the season transition, and a rule keyed on that array alone would delete the
+ * career record of the club's own retired heroes.
+ *
+ * Only safe to run once the recap has snapshotted the season's podiums.
+ */
+export function prunedStatLines(state: GameState): PlayerSeasonStatLine[] {
+  const known = new Set([
+    ...state.players.map(player => player.id),
+    ...(state.retiredPlayers ?? []).map(player => player.id),
+  ]);
+  return (state.seasonStatLines ?? []).filter(line => known.has(line.playerId));
 }
 
 export function recordSeasonRecap(state: GameState): GameState {
