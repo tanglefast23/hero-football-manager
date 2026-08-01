@@ -288,6 +288,15 @@ export interface CashTransaction {
   referenceId?: string;
 }
 
+/** One player's countable actions in a single finished match. */
+export interface PlayerMatchContribution {
+  playerId: string;
+  goals: number;
+  assists: number;
+  tacklesWon: number;
+  saves: number;
+}
+
 export interface PlayerSeasonGoalTally {
   season: number;
   playerId: string;
