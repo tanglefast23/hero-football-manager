@@ -122,6 +122,9 @@ describe('League sub-tab availability', () => {
     const career = initializeM2Career({ careerSeed: 551, userClub: USER_CLUB });
 
     expect(subTabs(career, 20)).toEqual(['league']);
+    // Nor later: with no cup there is no first match to count three weeks from,
+    // and the season rollover must not be mistaken for one.
+    expect(subTabs(career, 20, 4)).toEqual(['league']);
   });
 
   it('adds the cup as soon as one exists, before its first match is played', () => {
@@ -142,6 +145,22 @@ describe('League sub-tab availability', () => {
 
     expect(subTabs(career, firstCupWeek + 2)).toEqual(['league', 'cup']);
     expect(subTabs(career, firstCupWeek + 3)).toEqual(['league', 'cup', 'leaders']);
+  });
+
+  /**
+   * The week counter restarts at 1 every season while the cup calendar does
+   * not, so an unlock read off the week alone takes the tab away again for the
+   * opening weeks of season two — and Bert, whose beat fires once, never says
+   * a word about it. Once opened, the boards stay open.
+   */
+  it('keeps the leaders board open through the season rollover', () => {
+    const career = startM2NationalCup(
+      initializeM2Career({ careerSeed: 551, userClub: USER_CLUB }),
+      1,
+    );
+
+    expect(subTabs(career, 1, 2)).toEqual(['league', 'cup', 'leaders']);
+    expect(subTabs(career, CUP_SETTLEMENT_WEEKS[0] - 1, 3)).toEqual(['league', 'cup', 'leaders']);
   });
 
   it('carries the boards through the league view model', () => {
@@ -170,10 +189,10 @@ describe('League sub-tab availability', () => {
   });
 });
 
-function subTabs(career: M2CareerState, week: number): readonly string[] {
+function subTabs(career: M2CareerState, week: number, season = 1): readonly string[] {
   return m2LeagueViewModel({
     career,
-    season: 1,
+    season,
     week,
     activeStandings: standings(career),
   }).availableTabs;

@@ -85,19 +85,30 @@ export const CUP_SETTLEMENT_WEEKS = [6, 12, 18, 24, 27, 29] as const;
 const DIVISION_LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP = 3;
 
 /**
+ * Season and week of the career's very first cup match, or null before one is
+ * drawn.
+ *
  * Cup fixtures carry no week of their own: the engine settles round N in
  * `CUP_SETTLEMENT_WEEKS[N - 1]`, so the calendar is the only place the week
  * exists. Undrawn rounds are skipped — a round without fixtures has no match to
- * count from.
+ * count from. The season is carried alongside the week because `nationalCups`
+ * gains a cup per season, and a bare minimum over every cup's weeks would
+ * answer with a later season's calendar.
  */
-function firstCupMatchWeek(cups: readonly NationalCup[]): number {
-  const weeks = cups.flatMap(cup => cup.rounds
-    .filter(round => round.fixtures.length > 0)
-    .map(round => CUP_SETTLEMENT_WEEKS[round.number - 1] as number | undefined)
-    .filter((week): week is number => week !== undefined));
-  // `Math.min()` of nothing is Infinity, which happens to read correctly as
-  // "no first match yet", but leaning on that is not the same as saying it.
-  return weeks.length === 0 ? Number.POSITIVE_INFINITY : Math.min(...weeks);
+function firstCupMatch(cups: readonly NationalCup[]): { season: number; week: number } | null {
+  let first: { season: number; week: number } | null = null;
+  for (const cup of cups) {
+    for (const round of cup.rounds) {
+      if (round.fixtures.length === 0) continue;
+      const week = CUP_SETTLEMENT_WEEKS[round.number - 1] as number | undefined;
+      if (week === undefined) continue;
+      if (first === null || cup.season < first.season
+        || (cup.season === first.season && week < first.week)) {
+        first = { season: cup.season, week };
+      }
+    }
+  }
+  return first;
 }
 
 /**
@@ -105,14 +116,23 @@ function firstCupMatchWeek(cups: readonly NationalCup[]): number {
  * League screen's sub-tab list and Bert's briefing: split them and the first
  * move of the cup calendar sends the manager to a tab that is not there.
  *
- * A career with no cup drawn never unlocks, because an empty calendar makes
- * `firstCupMatchWeek` infinite.
+ * Monotonic in career time, not in the week counter. `week` restarts at 1 every
+ * season, so a threshold compared against the week alone re-locks the tab for
+ * the opening weeks of every season after the first — hiding live boards from a
+ * veteran career, and silently, because Bert's briefing only fires once.
+ *
+ * A career with no cup drawn never unlocks: there is no first match to count
+ * from.
  */
 export function isDivisionLeadersUnlocked(
   cups: readonly NationalCup[],
+  season: number,
   week: number,
 ): boolean {
-  return week >= firstCupMatchWeek(cups) + DIVISION_LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP;
+  const first = firstCupMatch(cups);
+  if (first === null) return false;
+  if (season !== first.season) return season > first.season;
+  return week >= first.week + DIVISION_LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP;
 }
 
 export type NationalCupRoundLabel =
@@ -1264,6 +1284,11 @@ function recordStatLines(
           `${label} tackles won`,
         ),
         saves: checkedAdd(previous?.saves ?? 0, contribution.saves, `${label} saves`),
+        passesCompleted: checkedAdd(
+          previous?.passesCompleted ?? 0,
+          contribution.passesCompleted,
+          `${label} passes completed`,
+        ),
       });
     }
   }
@@ -1284,11 +1309,6 @@ function sixtyPercentOf(value: number): number {
   }
 
   const groupsOfFive = Math.floor(fans / 5);
-        passesCompleted: checkedAdd(
-          previous?.passesCompleted ?? 0,
-          contribution.passesCompleted,
-          `${label} passes completed`,
-        ),
   const remainder = fans % 5;
   const wholeGroupAttendance = checkedMultiply(groupsOfFive, 3, 'ticket attendance');
   const remainderAttendance = Math.floor((remainder * 3) / 5);

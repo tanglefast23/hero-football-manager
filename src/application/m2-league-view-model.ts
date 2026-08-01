@@ -115,7 +115,7 @@ function availableSubTabs(source: M2LeagueViewModelSource): M2LeagueSubTab[] {
   if (cups.length === 0) return tabs;
   tabs.push('cup');
 
-  if (isDivisionLeadersUnlocked(cups, source.week ?? 0)) tabs.push('leaders');
+  if (isDivisionLeadersUnlocked(cups, source.season, source.week ?? 0)) tabs.push('leaders');
   return tabs;
 }
 

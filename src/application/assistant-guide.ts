@@ -149,7 +149,7 @@ export function dueAssistantInboxGuideSequences(
 
   // The same derivation the League screen's sub-tab list reads, so the boards
   // are always there by the time Bert points at them.
-  if (isDivisionLeadersUnlocked(state.m2.nationalCups, state.week)) {
+  if (isDivisionLeadersUnlocked(state.m2.nationalCups, state.season, state.week)) {
     due.push('division-leaders');
   }
 
