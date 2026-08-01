@@ -367,6 +367,12 @@ export interface DivisionAwardPlacement {
   value: number;
 }
 
+/** What the four division boards paid, in Training Points. */
+export interface DivisionAwardPrize {
+  trainingPoints: number;
+  categoriesWon: AwardCategoryId[];
+}
+
 export interface FinancialSafetyState {
   consecutiveNegativeWeeks: number;
   emergencyLoanUsed: boolean;
@@ -470,6 +476,16 @@ export interface SeasonRecap {
    * must be captured here while the players still exist.
    */
   divisionAwards?: Record<AwardCategoryId, DivisionAwardPlacement[]>;
+  /**
+   * What those podiums paid, stamped by the season transition that granted it.
+   *
+   * Absent means the transition has not run yet, not that nothing was won. The
+   * ceremony is presented BEFORE the transition, so it shows a projection it
+   * recomputes from `divisionAwards`; this field is the record of the grant,
+   * written afterwards, and it exists so the two can be compared instead of
+   * silently disagreeing. A season that won nothing is stamped with a zero.
+   */
+  divisionAwardPrize?: DivisionAwardPrize;
 }
 
 /**
