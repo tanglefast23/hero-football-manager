@@ -59,7 +59,7 @@ import {
 } from './src/render/management-sfx';
 import { setBertVoiceMasterVolume, teardownBertVoice } from './src/render/bert-voice';
 import { playManagementHaptic, setHapticsEnabled } from './src/render/haptics';
-import { assertRuntimeGoldenReplay, runtimeGoldenFingerprint } from './src/sim/runtime-golden';
+import { assertRuntimeGoldenReplay } from './src/sim/runtime-golden';
 import type { MatchState } from './src/sim/types';
 import {
   ClubFinancesScreen,
@@ -824,14 +824,15 @@ function GameApp() {
     let active = true;
     setBootError(null);
     // Expo's native runtime is Hermes. This gate executes the same full-payload
-    // replay fingerprint as the Node test to catch engine drift — but it runs two
-    // complete 2,000-tick matches synchronously, so it is development-only. In a
-    // shipped build it would add ~1s to cold start, and a runtime float shift
-    // would send every installed copy to an error screen instead of their save.
+    // replay fingerprints as the Node test to catch engine drift — but it runs
+    // two complete 2,000-tick matches synchronously (a goalless one and a
+    // scoring one), so it is development-only. In a shipped build it would add
+    // ~1s to cold start, and a runtime float shift would send every installed
+    // copy to an error screen instead of their save. The assert returns what it
+    // verified so logging it costs no extra match.
     if (__DEV__) {
       try {
-        assertRuntimeGoldenReplay();
-        console.info(`HERMES_GOLDEN_OK ${runtimeGoldenFingerprint()}`);
+        console.info(`HERMES_GOLDEN_OK ${assertRuntimeGoldenReplay()}`);
       } catch (error) {
         setBootError(error instanceof Error ? error.message : String(error));
         return () => {
