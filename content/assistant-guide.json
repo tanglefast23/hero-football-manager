@@ -379,7 +379,7 @@
       "id": "division-leaders",
       "inbox": {
         "title": "Who leads your division",
-        "detail": "Four awards, one for each position. Win one and the board pays for it."
+        "detail": "Four boards, one for each position. See where your players rank."
       },
       "destination": "league-leaders",
       "pages": [
@@ -394,10 +394,10 @@
           "buttonLabel": "Show me the boards."
         },
         {
-          "kicker": "Season's end",
-          "title": "Worth winning",
+          "kicker": "Week to week",
+          "title": "Worth watching",
           "body": [
-            "Whoever tops a board when the season ends is presented with it. Win one and the club is paid in Training Points for next season."
+            "Every board is division-wide, so the names beside yours are the ones you play. Check them as the season runs and you will know where your squad really stands."
           ],
           "focus": "division-leaders",
           "buttonLabel": "We'll take all four."
