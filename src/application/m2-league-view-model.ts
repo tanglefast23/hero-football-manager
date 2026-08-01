@@ -10,17 +10,24 @@ import type {
   NationalCupRound,
 } from '../game/pyramid';
 import { divisionTierLabel } from '../game/pyramid';
-import type { LeagueFixture, LeagueStanding } from '../game/types';
+import type {
+  CareerPlayer,
+  LeagueFixture,
+  LeagueStanding,
+  PlayerSeasonStatLine,
+} from '../game/types';
 import type {
   M2CupFixtureViewModel,
   M2CupRoundViewModel,
   M2CupRoundHistoryViewModel,
   M2DivisionSummaryViewModel,
   M2LeagueFixtureViewModel,
+  M2LeagueSubTab,
   M2LeagueViewModel,
   M2NationalCupViewModel,
 } from '../ui/m2-league-models';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
+import { divisionLeadersViewModel } from './division-leaders-view-model';
 
 export interface M2LeagueViewModelSource {
   readonly career: M2CareerState;
@@ -33,6 +40,9 @@ export interface M2LeagueViewModelSource {
   readonly phase?: 'manage' | 'matchday' | 'season-end' | 'complete';
   /** The full game schedule; the view model selects this club's current-season road. */
   readonly leagueFixtures?: readonly LeagueFixture[];
+  /** The live roster, which decides who is still eligible for a leader board. */
+  readonly players?: readonly CareerPlayer[];
+  readonly statLines?: readonly PlayerSeasonStatLine[];
 }
 
 /** Maps the sidecar pyramid and the live ten-club table into player-facing copy. */
@@ -82,7 +92,50 @@ export function m2LeagueViewModel(source: M2LeagueViewModelSource): M2LeagueView
     },
     leagueFixtures: leagueFixtureHistory(source, clubNames),
     cup: cupViewModel(source, clubNames),
+    availableTabs: availableSubTabs(source),
+    leaders: divisionLeadersViewModel({
+      season: source.season,
+      players: source.players ?? [],
+      statLines: source.statLines ?? [],
+      userClubId: source.career.userClubId,
+      clubNames,
+    }),
   };
+}
+
+const LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP = 3;
+
+/**
+ * Both unlocks are derived from the state that causes them, never persisted —
+ * a stored flag is one more thing that can drift out of sync with the thing it
+ * describes.
+ */
+function availableSubTabs(source: M2LeagueViewModelSource): M2LeagueSubTab[] {
+  const tabs: M2LeagueSubTab[] = ['league'];
+  const cups = source.career.nationalCups;
+  if (cups.length === 0) return tabs;
+  tabs.push('cup');
+
+  const firstCupWeek = firstCupMatchWeek(cups);
+  const week = source.week ?? 0;
+  if (week >= firstCupWeek + LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP) tabs.push('leaders');
+  return tabs;
+}
+
+/**
+ * Cup fixtures carry no week of their own: the engine settles round N in
+ * `CUP_SETTLEMENT_WEEKS[N - 1]`, so the calendar is the only place the week
+ * exists. Undrawn rounds are skipped — a round without fixtures has no match to
+ * count from.
+ */
+function firstCupMatchWeek(cups: readonly NationalCup[]): number {
+  const weeks = cups.flatMap(cup => cup.rounds
+    .filter(round => round.fixtures.length > 0)
+    .map(round => CUP_SETTLEMENT_WEEKS[round.number - 1] as number | undefined)
+    .filter((week): week is number => week !== undefined));
+  // `Math.min()` of nothing is Infinity, which happens to read correctly as
+  // "no first match yet", but leaning on that is not the same as saying it.
+  return weeks.length === 0 ? Number.POSITIVE_INFINITY : Math.min(...weeks);
 }
 
 function divisionSummary(

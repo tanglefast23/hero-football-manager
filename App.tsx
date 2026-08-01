@@ -1610,6 +1610,8 @@ function GameApp() {
               selectedDivision: selectedLeagueDivision,
               selectedCupSeason,
               leagueFixtures: store.career.fixtures,
+              players: store.career.players,
+              statLines: store.career.seasonStatLines ?? [],
               week: store.career.week,
               phase: store.career.phase,
             })}

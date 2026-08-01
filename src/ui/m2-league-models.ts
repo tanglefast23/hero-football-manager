@@ -1,4 +1,8 @@
+import type { AwardCategoryId } from '../game/types';
+
 export type M2DivisionLevelViewModel = 1 | 2 | 3 | 4 | 5;
+
+export type M2LeagueSubTab = 'league' | 'cup' | 'leaders';
 
 export interface M2DivisionSummaryViewModel {
   readonly level: M2DivisionLevelViewModel;
@@ -105,6 +109,28 @@ export interface M2NationalCupViewModel {
   readonly championName?: string;
 }
 
+export interface M2LeaderEntryViewModel {
+  readonly position: number;
+  readonly playerId: string;
+  readonly playerName: string;
+  readonly clubName: string;
+  readonly value: number;
+  readonly isUserPlayer: boolean;
+}
+
+export interface M2LeaderBoardViewModel {
+  readonly categoryId: AwardCategoryId;
+  readonly boardLabel: string;
+  readonly metricLabel: string;
+  /** Shown in place of the rows, so an unscored category still reads as a board. */
+  readonly emptyLabel: string;
+  readonly entries: readonly M2LeaderEntryViewModel[];
+}
+
+export interface M2DivisionLeadersViewModel {
+  readonly boards: readonly M2LeaderBoardViewModel[];
+}
+
 export interface M2LeagueViewModel {
   readonly title: string;
   readonly seasonLabel: string;
@@ -115,4 +141,7 @@ export interface M2LeagueViewModel {
   readonly activeTable: M2ActiveLeagueTableViewModel;
   readonly leagueFixtures: readonly M2LeagueFixtureViewModel[];
   readonly cup: M2NationalCupViewModel;
+  /** Always contains 'league'; the rest appear as the career earns them. */
+  readonly availableTabs: readonly M2LeagueSubTab[];
+  readonly leaders: M2DivisionLeadersViewModel;
 }
