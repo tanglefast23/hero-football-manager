@@ -16,12 +16,6 @@ import {
   subTabLabel,
   visibleSubTabs,
 } from '../components/DivisionLeaderBoard';
-import { TutorialTapCue } from '../TutorialTapCue';
-import {
-  TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-  TUTORIAL_TAP_CUE_RESERVED_SPACE,
-  TUTORIAL_TAP_CUE_WIDTH,
-} from '../tutorial-cue-position';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { CupBracket } from '../components/CupBracket';
 import { useLayoutMode } from '../layout/use-layout-mode';
@@ -221,18 +215,7 @@ export function M2LeagueScreen({
       node: (
         <View
           className={guidedCup ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
-          style={guidedCup ? { marginTop: TUTORIAL_TAP_CUE_RESERVED_SPACE } : undefined}
         >
-          {guidedCup ? (
-            <TutorialTapCue
-              detail="Open the Cup draw"
-              style={{
-                left: '50%',
-                marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
-                top: -TUTORIAL_TAP_CUE_ABOVE_OFFSET,
-              }}
-            />
-          ) : null}
           <SectionLabel
             eyebrow="All 50 clubs"
             title="Global Cup"

@@ -25,7 +25,15 @@ import {
 import type { CareerPlayer, GameState, PlayerPersonality } from './types';
 import { developmentPotentialCeiling, potentialTierForDivision } from './archetype-caps';
 import { recordCashTransaction } from './cash-transactions';
+import {
+  LOYALTY_NO_RENEWAL_THRESHOLD,
+  loyaltyRenewalPercent,
+  playerLoyalty,
+  willRenegotiate,
+} from './loyalty';
 import { isFacilityOperational } from './facilities';
+import { isAvailableForSelection } from './lineup';
+import { cancelPendingPlayerRequestIfInvalid } from './player-requests';
 import {
   clubSquadStrength,
   currentUserDivision,
@@ -448,6 +456,15 @@ export function beginCareerRenewalTalks(
     throw new Error('That agent has ended talks for this season. Renew or release at the next contract.');
   }
   const player = expiredUserPlayer(state, playerId);
+  const loyalty = playerLoyalty(player, state.careerSeed);
+  // Below the threshold there is no number that buys them. The manager has
+  // watched this fall on the player card all season and Bert said it would land
+  // here, so it is a consequence rather than an ambush.
+  if (!willRenegotiate(loyalty)) {
+    throw new Error(
+      `${player.name} will not re-sign. Loyalty below ${LOYALTY_NO_RENEWAL_THRESHOLD} ends talks before they start.`,
+    );
+  }
   const weeklyAsk = renewalContractAsk({
     weeklyWage: player.weeklyWage,
     personality: marketPersonality(player.personality),
@@ -457,6 +474,7 @@ export function beginCareerRenewalTalks(
     growthSinceSigningPercent: growthSinceSigningPercent(player),
     famePercent: Math.min(100, player.fame ?? 0),
     heroMultiplier: 4,
+    loyaltyPercent: loyaltyRenewalPercent(loyalty),
   });
   return {
     ...market,
@@ -705,7 +723,12 @@ function completeCareerPlayerSale(
       referenceId: player.id,
     });
   return {
-    state: clearMetBoardUltimatum(reconcileBoardUltimatumCandidates(recordedState)),
+    // Cancels a pending request from the player who just left. Waiting for
+    // settlement would leave the Requests tab offering Grant on someone who is
+    // no longer at the club.
+    state: cancelPendingPlayerRequestIfInvalid(
+      clearMetBoardUltimatum(reconcileBoardUltimatumCandidates(recordedState)),
+    ),
     market: {
       ...market,
       transferListings: (market.transferListings ?? [])
@@ -1187,7 +1210,7 @@ function playerStatTotal(player: CareerPlayer): number {
  * match. Same rule as the board-ultimatum replacement.
  */
 function isEligibleTransferReplacement(candidate: CareerPlayer): boolean {
-  return candidate.injuryWeeks === 0
+  return isAvailableForSelection(candidate)
     && !(candidate.power !== undefined && !candidate.licensed);
 }
 

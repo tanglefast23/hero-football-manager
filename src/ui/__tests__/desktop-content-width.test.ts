@@ -21,6 +21,9 @@ const EXEMPT = new Set([
   'HirePitchScreen.tsx',
   'StoryEventScreen.tsx',
   'ClubFinancesScreen.tsx',
+  // Not a scrolling screen: a panel rendered inside SquadTrainingScreen's
+  // already-clamped ScrollView. Clamping it again would nest two measures.
+  'SquadRequestsPanel.tsx',
 ]);
 
 describe('desktop content width', () => {

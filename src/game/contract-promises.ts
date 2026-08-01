@@ -7,6 +7,7 @@ import type {
 import { playerAttributeCaps, roleOverall } from './archetype-caps';
 import { highestDivisionReached } from './promotion-progression';
 import { TRAINING_PATHS } from './training-paths';
+import { isAvailableForSelection } from './lineup';
 
 const STARTING_PROMISES: readonly CareerContractPerk[] = [
   'GUARANTEED_STARTER',
@@ -114,7 +115,7 @@ export function pendingTrainingPriorityHolder(
 ): { playerId: string; playerName: string; remaining: number } | undefined {
   const holder = state.players.find(player => (
     player.clubId === state.userClubId
-    && player.injuryWeeks === 0
+    && isAvailableForSelection(player)
     && (player.priorityDrillsRemaining ?? 0) > 0
     && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
     && !isFullyCappedPlayer(player)
@@ -133,7 +134,7 @@ export function restoreCareerContractPromiseLineup(state: GameState): GameState 
   const promised = state.players
     .filter(player => (
       player.clubId === state.userClubId
-      && player.injuryWeeks === 0
+      && isAvailableForSelection(player)
       && hasActiveCareerContractPromise(player)
       && STARTING_PROMISES.includes(player.contractPromise!.perk)
     ))
@@ -167,7 +168,7 @@ export function assertCareerLineupHonorsContractPromises(
   const promised = state.players
     .filter(player => (
       player.clubId === state.userClubId
-      && player.injuryWeeks === 0
+      && isAvailableForSelection(player)
       && hasActiveCareerContractPromise(player)
       && STARTING_PROMISES.includes(player.contractPromise!.perk)
     ))

@@ -12,7 +12,10 @@ describe('launch glossary', () => {
     expect(definition('Potential')).toContain('development speed');
     expect(definition('Potential')).toContain('not how high');
     expect(definition('Potential')).toContain('A+');
-    expect(definition('The Zone')).toContain('activation window');
+    // Engine m1.27 removed the Zone countdown. The entry used to promise a short
+    // window that faded and refunded half the hero's Heat; refunding half Heat is
+    // the wind-up rule, not this one. Pin the fact, not a turn of phrase.
+    expect(definition('The Zone')).toContain('no countdown');
     expect(definition('Energy Use')).toContain('condition');
     expect(entries.length).toBeGreaterThanOrEqual(40);
   });

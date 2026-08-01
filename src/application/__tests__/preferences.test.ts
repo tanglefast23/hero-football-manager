@@ -24,6 +24,7 @@ describe('fail-soft app preferences', () => {
       cutInMode: 'full',
       managerTipsEnabled: true,
       seenPowerCutIns: [],
+      autoSubs: false,
     });
     expect(saved).toEqual(result.preferences);
     expect(result.warning).toContain('reset to defaults');

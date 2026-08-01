@@ -197,9 +197,33 @@ export function startNextFullCareerSeason(
     season,
     week: 1,
     phase: 'manage',
+    // Leave is dropped for the same reason effects are: it is measured in weeks
+    // against a season that has ended. It also cannot be allowed to survive —
+    // repairUserLineup backfills retirement-vacated slots without an
+    // availability check, so an away player could be promoted into the XI and
+    // then throw on the first matchday of the new season.
+    // A new season starts the request clock fresh and drops every effect.
+    // Effects are bounded in weeks, so carrying one across the break would
+    // spend a penalty in a season the manager never agreed to spend it in.
+    // History survives: the tab is a record of what you decided.
+    playerRequests: {
+      weeksSinceRequest: 0,
+      effects: [],
+      history: state.playerRequests?.history ?? [],
+      ...(state.playerRequests?.lastAskingPlayerId === undefined
+        ? {}
+        : { lastAskingPlayerId: state.playerRequests.lastAskingPlayerId }),
+    },
     clubs,
     fixtures,
-    players,
+    // Leave is dropped for the same reason effects are: it counts weeks against
+    // a season that has ended. It also must not survive — repairUserLineup
+    // backfills retirement-vacated slots with no availability check, so an away
+    // player could be promoted into the XI and then throw on the new season's
+    // first matchday.
+    players: players.map(player => (player.clubId === state.userClubId
+      ? { ...player, awayWeeks: 0 }
+      : player)),
     lineups,
     seasonOpeningCash: userClub.cash,
     m2: nextM2,

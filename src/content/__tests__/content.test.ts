@@ -366,6 +366,7 @@ describe('validated M1 launch content', () => {
       'club-legacy',
       'board-ultimatum',
       'board-protection',
+      'player-requests',
     ]);
     const managementIntroPages = content.assistantGuide.sequences
       .find(sequence => sequence.id === 'management-intro')
@@ -401,7 +402,7 @@ describe('validated M1 launch content', () => {
       .find(sequence => sequence.id === 'head-coach-market')
       ?.inbox?.title).toBe('HIRE A COACH');
     const m2Sequences = content.assistantGuide.sequences.slice(2);
-    expect(m2Sequences).toHaveLength(23);
+    expect(m2Sequences).toHaveLength(24);
     expect(m2Sequences.every(sequence => (
       sequence.inbox !== undefined
       && sequence.destination !== undefined

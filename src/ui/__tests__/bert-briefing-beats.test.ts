@@ -82,6 +82,21 @@ describe('briefing beats', () => {
     expect(app).toMatch(new RegExp(`conciergeFocus === '${focus}'[\\s\\S]{0,40}?\\?\\s*'leaders'`));
   });
 
+  it('lets Bert explain the cup page instead of pointing a tap cue at it', () => {
+    const league = readFileSync(
+      join(process.cwd(), 'src/ui/screens/M2LeagueScreen.tsx'),
+      'utf8',
+    );
+    const beats = briefingBeats(guide, 'national-cup');
+
+    // The cue said "Tap here" over a bracket with nothing tappable in it, and
+    // the tap only bounced the manager back to the top of the page.
+    expect(league).not.toContain('TutorialTapCue');
+    expect(beats).toHaveLength(2);
+    expect(beats[1].text).toContain('scores come in live');
+    expect(beats.every(beat => beat.focus === 'national-cup')).toBe(true);
+  });
+
   it('carries every paragraph of every page, in order', () => {
     for (const sequence of guide.sequences) {
       const expected = sequence.pages.flatMap(page => [

@@ -114,13 +114,19 @@ export const STRENGTH_LOCK_RANGE = 2000;
 const STRENGTH_LAND_RANGE = 900;
 
 /**
- * Powers whose entire effect resolves against a locked target. These never take
- * the late-window lapse (0.75) auto-fire: a targetless fire is a stat smear,
- * while an expiring rival zone is visible, playable threat (design ruling,
- * Task 12.2 follow-up). Their fires come only from a tap or a useful context —
- * and a Super Strength context inside STRENGTH_LOCK_RANGE guarantees the lock.
+ * Powers whose entire effect resolves against a locked target. These never fire
+ * targetless: a targetless fire is a stat smear, while a rival sitting on a
+ * charge they cannot spend is a visible, playable threat (design ruling, Task
+ * 12.2 follow-up). Since m1.27 the Zone no longer expires, so such a hero simply
+ * holds; the late-window lapse (0.75) survives only on the POWER_TAP armed path,
+ * as test instrumentation. Their fires come from a useful context — and a Super
+ * Strength context inside STRENGTH_LOCK_RANGE guarantees the lock.
  */
-/** Ticks left in the Zone at which auto stops holding out for the ideal moment. */
+/**
+ * Ticks left in the Zone below which the tap-policy audit counts the window as
+ * late. Auto-fire stopped holding out on a clock at m1.27; only src/audit reads
+ * this now.
+ */
 export const LATE_WINDOW_TICKS = 20;
 
 /**

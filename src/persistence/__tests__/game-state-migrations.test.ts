@@ -3,11 +3,15 @@ import { migrateStoredGameState } from '../game-state-codec';
 import { CorruptCareerSaveError, UnsupportedGameSchemaError } from '../errors';
 
 /**
- * The ladder is empty while GAME_SCHEMA_VERSION is 1, so these lock the
- * behaviour that matters at the boundary rather than any individual rung:
- * a current save passes through untouched, a future save is refused instead of
+ * These lock the behaviour at the boundary rather than any individual rung: a
+ * current save passes through untouched, a future save is refused instead of
  * being half-read, and an old save with no rung fails loudly with the schema
  * error rather than being reported as corrupt data.
+ *
+ * The 2 → 3 case is covered too, because that rung is load-bearing in a way
+ * that is easy to miss — the fields player requests added are all optional, so
+ * the rung looks like a no-op and deleting it would look harmless. It is not:
+ * without it the ladder refuses every schema-2 save outright.
  */
 describe('stored game state migrations', () => {
   it('passes a save already at the current version through unchanged', () => {
@@ -20,6 +24,13 @@ describe('stored game state migrations', () => {
     const save = { schemaVersion: GAME_SCHEMA_VERSION + 1 };
 
     expect(() => migrateStoredGameState(save)).toThrow(UnsupportedGameSchemaError);
+  });
+
+  it('walks a schema-2 save up to the current version', () => {
+    const save = { schemaVersion: 2, season: 3, userClubId: 'c1' };
+
+    expect(migrateStoredGameState(save))
+      .toEqual({ schemaVersion: GAME_SCHEMA_VERSION, season: 3, userClubId: 'c1' });
   });
 
   it('refuses an older save when no rung covers its version', () => {

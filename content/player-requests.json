@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "tuning": {
+    "startSeason": 2,
+    "startWeek": 5,
+    "baseChancePercent": 25,
+    "starFameThreshold": 50,
+    "starGoalRank": 2,
+    "minSeasonsAtClub": 1,
+    "answerWeeks": 2,
+    "cadence": {
+      "COZY": { "minWeeks": 8, "guaranteeWeeks": 12, "starMinWeeks": 6, "starGuaranteeWeeks": 10 },
+      "CHAIRMAN": { "minWeeks": 6, "guaranteeWeeks": 10, "starMinWeeks": 4, "starGuaranteeWeeks": 8 }
+    }
+  },
+  "requests": [
+    { "id": "gift-for-my-bae", "title": "Something with diamonds", "line": "Something with diamonds in it. She'll know if it's fake.", "art": ["money-bag", "star-sparkle"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 3 } },
+    { "id": "the-car", "title": "The car", "line": "I've seen the one. It's yellow.", "art": ["sports-car", "money-bag"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 12 } },
+    { "id": "gold-boots", "title": "Custom gold boots", "line": "My initials on the heel.", "art": ["boot", "star-sparkle"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 4 } },
+    { "id": "fly-my-mum-in", "title": "Fly my mum in", "line": "Every home game. She's never seen me play.", "art": ["ticket", "letter"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 5 } },
+    { "id": "personal-chef", "title": "A personal chef", "line": "I can't eat what's in that canteen.", "art": ["chef-hat", "burger"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 6 } },
+    { "id": "home-studio", "title": "A studio at home", "line": "I've got bars, boss. I need a booth.", "art": ["microphone", "tv"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 8 } },
+    { "id": "cousins-wedding", "title": "My cousin's wedding", "line": "I said I'd pay. Loudly. In front of everyone.", "art": ["envelope", "money-bag"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 7 } },
+    { "id": "matchday-barber", "title": "Matchday barber", "line": "I can't go out there like this.", "art": ["scissors", "scarf"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 3 } },
+    { "id": "highlights-drone", "title": "A highlights drone", "line": "My agent says I need content.", "art": ["drone", "camera"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 4 } },
+    { "id": "fix-my-old-pitch", "title": "Fix my old pitch", "line": "The one I grew up on. New fence, new nets.", "art": ["cone", "banner-flag"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 3 } },
+    { "id": "ship-my-car-over", "title": "Ship my car over", "line": "It's been in a container for six months.", "art": ["briefcase", "ticket"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 4 } },
+    { "id": "charity-match-back-home", "title": "A match back home", "line": "One game in my old town. I'm not asking twice.", "art": ["banner-flag", "letter"], "cost": { "kind": "MONEY_PLAYER", "wageMultiple": 6 } },
+
+    { "id": "squad-massage", "title": "Massage therapist", "line": "The lads are stiff. Get someone in.", "art": ["massage-table", "tape-roll"], "cost": { "kind": "MONEY_SQUAD", "billMultiplePercent": 50 }, "grantBonus": { "kind": "CONDITION_SQUAD", "amount": 8 } },
+    { "id": "squad-headphones", "title": "Squad headphones", "line": "Everyone. Matching. It's a unity thing.", "art": ["headphones", "shirt"], "cost": { "kind": "MONEY_SQUAD", "billMultiplePercent": 40 }, "grantBonus": { "kind": "MORALE_SQUAD", "amount": 3 } },
+    { "id": "charter-the-plane", "title": "Charter the plane", "line": "Six hours on a coach before a cup tie?", "art": ["plane", "ticket"], "cost": { "kind": "MONEY_SQUAD", "billMultiplePercent": 80 }, "grantBonus": { "kind": "CONDITION_SQUAD", "amount": 4 } },
+    { "id": "dressing-room-speakers", "title": "Dressing room speakers", "line": "The ones in there are a war crime.", "art": ["speaker", "party-hat"], "cost": { "kind": "MONEY_SQUAD", "billMultiplePercent": 40 }, "grantBonus": { "kind": "MORALE_SQUAD", "amount": 3 } },
+    { "id": "bbq-at-my-place", "title": "Barbecue at my place", "line": "Everyone's coming. You're paying.", "art": ["spatula", "party-hat"], "cost": { "kind": "MONEY_SQUAD", "billMultiplePercent": 30 } },
+    { "id": "proper-team-photo", "title": "A proper team photo", "line": "A real photographer. Not your phone.", "art": ["camera", "shirt"], "cost": { "kind": "MONEY_SQUAD", "billMultiplePercent": 50 }, "grantBonus": { "kind": "MORALE_SQUAD", "amount": 3 } },
+
+    { "id": "bahamas-fortnight", "title": "Two weeks in the Bahamas", "line": "Sun. Sea. Don't call me.", "art": ["palm-tree", "sunglasses"], "cost": { "kind": "ABSENCE", "weeks": 2 } },
+    { "id": "sisters-wedding", "title": "My sister's wedding", "line": "It's abroad. I'm giving a speech.", "art": ["envelope", "letter"], "cost": { "kind": "ABSENCE", "weeks": 1 } },
+    { "id": "film-cameo", "title": "A film cameo", "line": "They want me on set. I have a LINE.", "art": ["camera", "sunglasses"], "cost": { "kind": "ABSENCE", "weeks": 2 } },
+    { "id": "national-call-up", "title": "National call-up", "line": "My country called. I'm going.", "art": ["banner-flag", "ticket"], "cost": { "kind": "ABSENCE", "weeks": 2 } },
+    { "id": "grandmothers-birthday", "title": "Grandmother's birthday", "line": "She's ninety. I'm going home.", "art": ["letter", "dog"], "cost": { "kind": "ABSENCE", "weeks": 1 } },
+    { "id": "silent-retreat", "title": "A silent retreat", "line": "A month in the mountains. No football.", "art": ["rain-cloud", "tuning-fork"], "cost": { "kind": "ABSENCE", "weeks": 3 } },
+
+    { "id": "one-big-night-out", "title": "One big night out", "line": "The whole squad. One night. Trust me.", "art": ["drink-can", "party-hat"], "cost": { "kind": "CONDITION_SQUAD", "amount": 10 } },
+    { "id": "carnival-weekend", "title": "Carnival weekend", "line": "It's once a year and we're ALL going.", "art": ["banner-flag", "party-hat"], "cost": { "kind": "CONDITION_SQUAD", "amount": 8 } },
+    { "id": "all-night-tournament", "title": "All-night tournament", "line": "Video games. Dressing room. Till four.", "art": ["tv", "drink-can"], "cost": { "kind": "CONDITION_SQUAD", "amount": 6 } },
+
+    { "id": "my-own-guru", "title": "My own guru", "line": "He trains me my way for a month.", "art": ["tuning-fork", "cone"], "cost": { "kind": "DRILL_PLAYER", "multiplierPercent": 50, "weeks": 4 } },
+    { "id": "ease-off-the-lads", "title": "Ease off the lads", "line": "They're cooked, boss.", "art": ["cone", "rain-cloud"], "cost": { "kind": "DRILL_SQUAD", "multiplierPercent": 60, "weeks": 2 } },
+    { "id": "agent-in-the-room", "title": "My agent sits in", "line": "He watches training now. He has notes.", "art": ["briefcase", "tactics-board"], "cost": { "kind": "DRILL_PLAYER", "multiplierPercent": 70, "weeks": 3 } }
+  ]
+}

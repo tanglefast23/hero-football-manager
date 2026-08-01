@@ -8,6 +8,9 @@ import {
 } from '../balance';
 
 const content = loadLaunchContent();
+// createLaunchCareerSetup carries no request catalog on purpose, so this and
+// every audit probe measure a career without them. The real game attaches the
+// catalog in store.ts.
 const { seed: _launchSeed, ...launchCareerSetup } = createLaunchCareerSetup(1);
 const LAUNCH_SCENARIO: MiniBalanceScenario = {
   careerSetup: {

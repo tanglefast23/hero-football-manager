@@ -361,6 +361,54 @@ describe('career market integration', () => {
       .toThrow('ended talks for this week');
   });
 
+  test('a player below the loyalty threshold will not open renewal talks at all', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260801));
+    const lineupIds = new Set(
+      initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds,
+    );
+    const expiring = initial.players.find(player => (
+      player.clubId === initial.userClubId && !lineupIds.has(player.id)
+    ))!;
+    const seasonEnd = {
+      ...initial,
+      phase: 'season-end' as const,
+      players: initial.players.map(player => (
+        player.id === expiring.id
+          ? { ...player, contractSeasonsRemaining: 0, loyalty: 12 }
+          : player
+      )),
+    };
+
+    expect(() => beginCareerRenewalTalks(seasonEnd, seasonEnd.market!, expiring.id))
+      .toThrow('will not re-sign');
+  });
+
+  test('a loyal player renews for less than a disloyal one', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260801));
+    const lineupIds = new Set(
+      initial.lineups.find(lineup => lineup.clubId === initial.userClubId)!.playerIds,
+    );
+    const expiring = initial.players.find(player => (
+      player.clubId === initial.userClubId && !lineupIds.has(player.id)
+    ))!;
+    const at = (loyalty: number) => beginCareerRenewalTalks(
+      {
+        ...initial,
+        phase: 'season-end' as const,
+        players: initial.players.map(player => (
+          player.id === expiring.id
+            ? { ...player, contractSeasonsRemaining: 0, loyalty }
+            : player
+        )),
+      },
+      initial.market!,
+      expiring.id,
+    ).renewalTalks!.negotiation.weeklyAsk;
+
+    expect(at(95)).toBeLessThan(at(50));
+    expect(at(50)).toBeLessThan(at(35));
+  });
+
   test('closing renewal talks locks that player\'s deck for the rest of the season', () => {
     const initial = createCareer(createLaunchCareerSetup(20260728));
     const lineupIds = new Set(

@@ -13,6 +13,8 @@ export * from './event-clock';
 export * from './facilities';
 export * from './headless';
 export * from './lineup';
+export * from './loyalty';
+export * from './player-requests';
 export * from './matchday';
 export * from './management';
 export * from './market-career';

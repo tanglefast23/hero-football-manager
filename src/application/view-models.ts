@@ -73,6 +73,14 @@ import type {
   WeeklyReviewViewModel,
 } from '../ui';
 import { divisionTierLabel } from '../game/pyramid';
+import { careerDifficulty } from '../game/difficulty';
+import { isAvailableForSelection } from '../game/lineup';
+import { playerLoyalty } from '../game/loyalty';
+import {
+  requestDefinition,
+  requestTarget,
+  resolutionDeltas,
+} from '../game/player-requests';
 import {
   facilityUpgradeBlockedReason,
   highestDivisionReached,
@@ -791,7 +799,31 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     && isAssistantInboxOneShotProductVisible(state, boardResolutionAlertId);
   const trainingGroundUnderConstruction = state.facilities.grid?.construction?.kind === 'BUILD'
     && state.facilities.grid.construction.type === 'training-pitch';
+  const waitingRequest = state.playerRequests?.pending?.warned === true
+    ? state.playerRequests.pending
+    : undefined;
   return [
+    // Stated in full, on purpose. A lapse charges exactly what a refusal
+    // charges, so the manager has to have been told the number — otherwise
+    // ignoring the tab is cheaper than deciding, which is the wrong lesson.
+    ...(waitingRequest === undefined || state.playerRequestRules === undefined ? [] : [{
+      id: 'player-request-waiting',
+      title: 'Still waiting',
+      detail: (() => {
+        const asker = roster.find(player => player.id === waitingRequest.playerId);
+        const cost = resolutionDeltas(
+          'REFUSED',
+          requestTarget(requestDefinition(state.playerRequestRules!, waitingRequest.requestId).cost),
+          careerDifficulty(state),
+        ).asker;
+        return `${asker?.name ?? 'A player'} is still waiting on an answer.`
+          + ` Leave it and you lose ${Math.abs(cost.loyalty)} loyalty`
+          + ` and ${Math.abs(cost.morale)} morale.`;
+      })(),
+      tone: 'urgent' as const,
+      destination: 'squad' as const,
+      ...(waitingRequest.playerId === undefined ? {} : { playerId: waitingRequest.playerId }),
+    }]),
     ...(!state.facilities.trainingGroundBuilt && !trainingGroundUnderConstruction ? [{
       id: 'training-ground',
       title: 'Build your Training Pitch',
@@ -1355,13 +1387,18 @@ export function matchDayViewModel(
         overall: overall(player.role, player.attrs),
         condition: player.condition ?? 100,
         injuryWeeks: player.injuryWeeks,
+        awayWeeks: player.awayWeeks ?? 0,
         licensed: player.licensed,
-        canStart: player.injuryWeeks === 0 && !unlicensedHero,
+        canStart: isAvailableForSelection(player) && !unlicensedHero,
+        // Injury outranks leave for the label: a manager can act on an injury —
+        // the Medical Bay shortens it — and can only wait out a granted holiday.
         ...(player.injuryWeeks > 0
           ? { unavailableLabel: `OUT · ${weekCountLabel(player.injuryWeeks)}` }
-          : unlicensedHero
-            ? { unavailableLabel: 'Hero License required' }
-            : {}),
+          : (player.awayWeeks ?? 0) > 0
+            ? { unavailableLabel: `ON LEAVE · ${weekCountLabel(player.awayWeeks!)}` }
+            : unlicensedHero
+              ? { unavailableLabel: 'Hero License required' }
+              : {}),
       };
     }),
     heroLimit: careerHeroLimit(state),
@@ -1437,11 +1474,14 @@ export function squadTrainingViewModel(
         positionTrainingLabel: `+5% ${positionAttributes}`,
         condition: player.condition ?? 100,
         injuryWeeks: player.injuryWeeks,
+        awayWeeks: player.awayWeeks ?? 0,
+        canTrain: isAvailableForSelection(player),
         isStarter: starterIds.has(player.id),
         age: player.age ?? 24,
         archetype: player.archetype ?? 'All-Rounder',
         personality: player.personality ?? 'Professional',
         morale: player.morale,
+        loyalty: playerLoyalty(player, state.careerSeed),
         fame: player.fame ?? 0,
         weeklyWage: player.weeklyWage,
         contractLabel: player.contractSeasonsRemaining === 0

@@ -56,6 +56,7 @@ import {
   selectCareerLicensedHeroes,
   setCareerLineup,
   swapCareerLineupPlayer,
+  resolvePlayerRequest as resolveCareerPlayerRequest,
   trainPlayerInstantly,
   trainingPathLabel,
   startNextSeason,
@@ -75,6 +76,7 @@ import {
   type NationalCupRoundLabel,
 } from '../game';
 import { contributionsFrom } from '../game/match-contributions';
+import type { PlayerRequestResolution } from '../game/types';
 import type { ContractOffer, PitchCard } from '../game/market';
 import type {
   CareerBackupSummary,
@@ -242,6 +244,7 @@ interface M1Store {
   continueAfterEvent: () => void;
   toggleHeroLicense: (playerId: string) => void;
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
+  resolvePlayerRequest: (resolution: PlayerRequestResolution) => void;
   selectPlayer: (playerId: string) => void;
   trainPlayer: (playerId: string, pathId: string) => void;
   purchaseTrainingUpgrade: (pathId: string) => void;
@@ -443,11 +446,19 @@ export const useM1Store = create<M1Store>((set, get) => ({
         throw new Error('Resolve the save-load error before replacing this career.');
       }
       const replacedCareer = get().career;
-      const career = beginStoryOnboarding(createCareer(createLaunchCareerSetup(
-        seed ?? generateCareerSeed(),
-        undefined,
-        launchContent,
-      )));
+      // Requests are attached here rather than inside createLaunchCareerSetup so
+      // that every measurement harness — the balance rails and the ~15 audit
+      // probes, all of which build their careers from that helper — stays
+      // request-free by default. A probe that silently accrued lapse penalties
+      // would be measuring a different game than its recorded baseline.
+      const career = beginStoryOnboarding(createCareer({
+        ...createLaunchCareerSetup(
+          seed ?? generateCareerSeed(),
+          undefined,
+          launchContent,
+        ),
+        playerRequestRules: launchContent.playerRequests,
+      }));
       set({
         career,
         hasSavedCareer: true,
@@ -1090,6 +1101,17 @@ export const useM1Store = create<M1Store>((set, get) => ({
   swapStartingPlayer(starterId, replacementId) {
     guarded(set, () => {
       const next = swapCareerLineupPlayer(requireCareer(get()), starterId, replacementId);
+      set({ career: next, error: null });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  resolvePlayerRequest(resolution: PlayerRequestResolution) {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const catalog = career.playerRequestRules;
+      if (catalog === undefined) throw new Error('this career has no player request catalog');
+      const next = resolveCareerPlayerRequest(career, catalog, resolution);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

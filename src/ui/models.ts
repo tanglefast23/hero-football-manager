@@ -163,6 +163,8 @@ export interface LineupPlayerViewModel {
 
 export interface BenchPlayerViewModel extends LineupPlayerViewModel {
   injuryWeeks: number;
+  /** Weeks away on a granted request. Blocks selection exactly as injury does. */
+  awayWeeks: number;
   licensed: boolean;
   canStart: boolean;
   unavailableLabel?: string;
@@ -260,6 +262,14 @@ export interface SquadPlayerViewModel {
   overall: number;
   condition: number;
   injuryWeeks: number;
+  /** Weeks away on a granted request; shown as its own ON LEAVE panel. */
+  awayWeeks: number;
+  /**
+   * Whether a drill would be accepted right now. Derived once here so the
+   * button and `trainPlayerInstantly` cannot disagree about who is available —
+   * a disabled control is better than an error banner after the tap.
+   */
+  canTrain: boolean;
   isStarter: boolean;
   age: number;
   archetype: string;
@@ -273,6 +283,8 @@ export interface SquadPlayerViewModel {
   positionTrainingLabel: string;
   personality: string;
   morale: number;
+  /** How much they want to stay, 0-100. Decides the price of the next contract. */
+  loyalty: number;
   fame: number;
   weeklyWage: number;
   contractLabel: string;

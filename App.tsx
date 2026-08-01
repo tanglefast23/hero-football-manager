@@ -1,4 +1,5 @@
 import './global.css';
+import { playerRequestViewModel } from './src/application/player-request-view-model';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LogBox, Modal, Share, Text, View } from 'react-native';
@@ -67,6 +68,8 @@ import {
   FacilityProjectNotice,
   PlayerSigningOverlay,
   PlayerWalkOnWelcome,
+  PlayerRequestWalkOn,
+  PlayerRequestDecisionCard,
   ClubHomeScreen,
   ClubLegacyScreen,
   BertBriefingWalkOn,
@@ -509,6 +512,9 @@ function GameApp() {
   const toggleManagerTips = useCallback(() => {
     const current = preferencesRef.current;
     savePreferences({ ...current, managerTipsEnabled: !current.managerTipsEnabled });
+  }, [savePreferences]);
+  const saveAutoSubs = useCallback((autoSubs: boolean) => {
+    savePreferences({ ...preferencesRef.current, autoSubs });
   }, [savePreferences]);
   const cycleFormationPreset = useCallback((slot: number) => {
     const market = useM1Store.getState().career?.market;
@@ -1037,6 +1043,18 @@ function GameApp() {
     [store.career, content, store.selectedPlayerId],
   );
 
+  const playerRequestVm = useMemo(
+    () => (store.career === null ? undefined : playerRequestViewModel(store.career)),
+    [store.career],
+  );
+  const [requestStage, setRequestStage] = useState<'walk-on' | 'card' | null>(null);
+  // A resolved or cancelled request must take its overlay with it. Without this
+  // a granted card would keep rendering against a pending that no longer exists
+  // — and after a save reload, against one the manager never opened.
+  useEffect(() => {
+    if (playerRequestVm?.pending === undefined) setRequestStage(null);
+  }, [playerRequestVm?.pending?.requestId, playerRequestVm?.pending]);
+
   // Rival squads are settled the moment the week advances, so the preload can
   // start while the player is still on the home screen rather than waiting for
   // the team sheet — a player who taps straight through would otherwise pay the
@@ -1266,6 +1284,8 @@ function GameApp() {
         onPowerCutInSeen={recordSeenPowerCutIn}
         highContrast={preferences.highContrast}
         colorSafeKits={preferences.colorSafeKits}
+        autoSubs={preferences.autoSubs}
+        onAutoSubsChange={saveAutoSubs}
         pausedExternally={globalSettingsOpen || tripleSpeedIntroVisible}
         maximumSpeed={store.career.season >= 3 ? 3 : 2}
         firstMatchTutorial={isFirstOnboardingFixture(
@@ -1460,6 +1480,8 @@ function GameApp() {
       >
         {store.activeTab === 'squad' ? (
           <SquadTrainingScreen
+            requestViewModel={playerRequestVm}
+            onOpenRequest={() => setRequestStage('walk-on')}
             viewModel={squadTrainingVm!}
             selectedPlayerId={store.selectedPlayerId}
             onSelectPlayer={playerId => {
@@ -1876,6 +1898,31 @@ function GameApp() {
             player={playerSigning}
             reduceMotion={reduceMotion}
             onClose={() => setPlayerSigning(null)}
+          />
+        ) : null}
+        {/* Two stages: the player walks on and says their line, then the card
+            asks for a decision. Split so the manager meets the person before
+            being asked to price them. */}
+        {requestStage === 'walk-on' && playerRequestVm?.pending ? (
+          <PlayerRequestWalkOn
+            request={playerRequestVm.pending}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={() => setRequestStage('card')}
+          />
+        ) : null}
+        {requestStage === 'card' && playerRequestVm?.pending ? (
+          <PlayerRequestDecisionCard
+            request={playerRequestVm.pending}
+            reduceMotion={reduceMotion}
+            onGrant={() => {
+              store.resolvePlayerRequest('GRANTED');
+              setRequestStage(null);
+            }}
+            onRefuse={() => {
+              store.resolvePlayerRequest('REFUSED');
+              setRequestStage(null);
+            }}
           />
         ) : null}
         {store.screen === 'management'
