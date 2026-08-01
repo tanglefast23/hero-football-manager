@@ -345,7 +345,11 @@ export interface MatchState {
   ball: BallState;
   /** Stable id of the player last observed holding the ball. */
   ballHolderId: string | null;
-  /** Team of that holder, so a turnover is detectable without a slot lookup. */
+  /**
+   * Team of that holder, recorded rather than derived: by the time the next
+   * touch lands, a substitute may hold that slot, so the id alone no longer
+   * leads back to the team the previous holder played for.
+   */
   ballHolderTeam: 0 | 1 | null;
   /** Stable id of the previous same-team holder, or null when unassisted. */
   assistCandidateId: string | null;

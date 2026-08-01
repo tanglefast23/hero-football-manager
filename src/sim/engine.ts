@@ -1741,6 +1741,9 @@ export function shotFlightTick(state: MatchState): void {
 
   state.score[shooter.team]++;
   const scorerId = state.players[attributedPlayerIndex(state, b.by)].def.id;
+  // No path today makes the scorer his own candidate — taking the ball always
+  // displaces the previous holder. The guard is here so a future power that
+  // hands the ball back to its passer cannot credit a solo goal as an assist.
   const assistedById = state.assistCandidateId;
   emit(state, {
     t: state.tick,

@@ -226,13 +226,16 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
  *
  * The ball passes through non-held states (`pass`, `loose`) between touches, so
  * this returns early while nobody holds it — that is what preserves the
- * previous holder across a pass in flight. Nine call sites in the engine assign
- * `state.ball`; observing the result once per tick avoids patching all of them.
+ * previous holder across a pass in flight. Every ball assignment in the engine
+ * would otherwise need patching; observing the result once per tick does not.
  */
 export function observePossession(state: MatchState): void {
   if (state.ball.kind !== 'held') return;
   const holder = state.players[attributedPlayerIndex(state, state.ball.by)];
-  // A decoy clone whose source has left the pitch resolves to nothing.
+  // A clone entity (22/23) with no clone behind it resolves to no slot at all.
+  // A player who left the pitch is NOT this case — his slot holds his
+  // replacement, so that lookup succeeds and returns the wrong man; only the
+  // stable id kept below distinguishes them.
   if (holder === undefined) return;
   if (holder.def.id === state.ballHolderId) return;
   state.assistCandidateId =
