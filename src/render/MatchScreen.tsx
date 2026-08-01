@@ -181,8 +181,10 @@ const ZERO_SHAKE = { x: 0, y: 0 } as const;
 const MAX_SPEED_PER_TICK = 310;
 const SNAP_DIST2 = (2 * MAX_SPEED_PER_TICK) ** 2;
 
-// POWER_EXPIRED dim-flash duration, and POWER_FIRED/HALF_TIME banner display
-// duration — ledger item 5 ("flash the chip dim for ~30 ticks").
+// How long a HUD banner holds, and how long the score keeps flashing after a
+// goal, in sim ticks. The number comes from ledger item 5 ("flash the chip dim
+// for ~30 ticks") — but that chip dim was the POWER_EXPIRED flash, and it went
+// away with the Zone countdown at m1.27. Every caller left is a banner.
 const FLASH_TICKS = 30;
 
 // Ball-flight presentation (render-only) — lifted kicks show a curved history;
