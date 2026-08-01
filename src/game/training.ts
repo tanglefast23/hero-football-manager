@@ -25,6 +25,7 @@ import {
   pendingTrainingPriorityHolder,
 } from './contract-promises';
 import { repairCareerLineupForInjuries } from './squad';
+import { isAvailableForSelection } from './lineup';
 import { resolveTrainingDrillForPath, trainingPathAttribute } from './training-paths';
 import type { CareerPlayer, GameState } from './types';
 
@@ -112,7 +113,11 @@ export function trainPlayerInstantly(
   if (player === undefined || player.clubId !== state.userClubId) {
     throw new Error(`player ${playerId} is not on the user club`);
   }
+  // Two messages, not one "unavailable". The manager can act on an injury —
+  // the Medical Bay shortens it — and can only wait out leave, so collapsing
+  // them would throw away the one useful thing the error says.
   if (player.injuryWeeks > 0) throw new Error(`${player.name} is injured and cannot train`);
+  if ((player.awayWeeks ?? 0) > 0) throw new Error(`${player.name} is away and cannot train`);
   // A TRAINING_PRIORITY promise is a debt: the promised player owns the next
   // drills until their countdown drains. They remind the manager; an injured
   // holder pauses the debt instead of deadlocking training.

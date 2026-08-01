@@ -8,6 +8,7 @@ import type { GameState } from './types';
 import { powerIsCompatibleWithRole } from './power-catalog';
 import { hasActiveCareerContractPromise } from './contract-promises';
 import { careerHeroLimit } from './squad';
+import { isAvailableForSelection } from './lineup';
 
 export interface PostMatchAwakeningTuning {
   chancePercent: number;
@@ -233,7 +234,7 @@ function canSafelyAwaken(
   if (hasAvailableHeroLicense) return true;
   const player = state.players.find(candidate => candidate.id === playerId);
   if (player === undefined) return false;
-  if (player.injuryWeeks === 0
+  if (isAvailableForSelection(player)
     && (hasActiveCareerContractPromise(player, 'GUARANTEED_STARTER')
       || hasActiveCareerContractPromise(player, 'CAPTAINCY'))) return false;
   const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId);
@@ -272,7 +273,7 @@ function replacementForAwakenedStarter(
     player.clubId === state.userClubId
     && !lineupSet.has(player.id)
     && player.power === undefined
-    && player.injuryWeeks === 0,
+    && isAvailableForSelection(player),
   );
   return bench.find(player => player.role === selected.role)?.id
     ?? (selected.role === 'GK' ? undefined : bench.find(player => player.role !== 'GK')?.id);

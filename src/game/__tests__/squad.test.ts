@@ -71,6 +71,51 @@ function career(): GameState {
   return createCareer(setup());
 }
 
+describe('away players', () => {
+  function withAway(state: GameState, playerId: string, weeks: number): GameState {
+    return {
+      ...state,
+      players: state.players.map(player => (player.id === playerId
+        ? { ...player, awayWeeks: weeks }
+        : player)),
+    };
+  }
+
+  it('refuses to build a team with an away player still in the starting XI', () => {
+    const starterId = `${CLUB_IDS[0]}-p10`;
+    const away = withAway(career(), starterId, 2);
+
+    // Without this the guard only tested injuryWeeks, so a player on holiday
+    // did not error — they silently played the match.
+    expect(() => buildCareerTeamDef(away, CLUB_IDS[0])).toThrow('unavailable');
+  });
+
+  it('will not accept an away player as a bench replacement', () => {
+    const initial = career();
+    const starterId = `${CLUB_IDS[0]}-p10`;
+    const replacementId = `${CLUB_IDS[0]}-p12`;
+    const away = withAway(initial, replacementId, 1);
+
+    expect(() => swapCareerLineupPlayer(away, starterId, replacementId)).toThrow();
+  });
+
+  it('keeps an away player off the bench the sim is handed', () => {
+    const benchId = `${CLUB_IDS[0]}-p12`;
+    const away = withAway(career(), benchId, 1);
+
+    expect((buildCareerTeamDef(away, CLUB_IDS[0]).bench ?? []).map(player => player.id))
+      .not.toContain(benchId);
+  });
+
+  it('refuses to train an away player', () => {
+    const playerId = `${CLUB_IDS[0]}-p10`;
+    const away = withAway(career(), playerId, 1);
+
+    expect(() => trainPlayerInstantly(away, playerId, 'sprints'))
+      .toThrow('is away and cannot train');
+  });
+});
+
 describe('career squad integration', () => {
   it('turns the persistent lineup into a valid sim team and supports hero-slot competition', () => {
     const initial = career();

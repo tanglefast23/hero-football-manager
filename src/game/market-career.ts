@@ -32,6 +32,7 @@ import {
   willRenegotiate,
 } from './loyalty';
 import { isFacilityOperational } from './facilities';
+import { isAvailableForSelection } from './lineup';
 import {
   clubSquadStrength,
   currentUserDivision,
@@ -1203,7 +1204,7 @@ function playerStatTotal(player: CareerPlayer): number {
  * match. Same rule as the board-ultimatum replacement.
  */
 function isEligibleTransferReplacement(candidate: CareerPlayer): boolean {
-  return candidate.injuryWeeks === 0
+  return isAvailableForSelection(candidate)
     && !(candidate.power !== undefined && !candidate.licensed);
 }
 

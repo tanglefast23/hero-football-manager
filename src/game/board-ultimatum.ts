@@ -1,6 +1,7 @@
 import { sellingTransferQuote, type ValuationPlayer } from './market';
 import { currentUserDivision } from './m2-career';
 import { clearCareerContractPromise } from './contract-promises';
+import { isAvailableForSelection } from './lineup';
 import { createEmergencyYouthReplacement } from './youth-intake';
 import type {
   BoardSaleCandidate,
@@ -357,7 +358,7 @@ function replaceDepartingStarter(
 
 function isEligibleBoardLineupReplacement(player: CareerPlayer): boolean {
   return player.contractSeasonsRemaining > 0
-    && player.injuryWeeks === 0
+    && isAvailableForSelection(player)
     && !(player.power !== undefined && !player.licensed);
 }
 

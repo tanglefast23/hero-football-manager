@@ -1,5 +1,5 @@
 import type { TeamDef } from '../sim/types';
-import { buildTeamDef } from './lineup';
+import { buildTeamDef, isAvailableForSelection } from './lineup';
 import { renewContract, selectLicensedHeroes } from './progression';
 import { buildFacility as placeFacility, createFacilityGrid } from './facilities';
 import { applyLowMoraleToStat } from './pyramid';
@@ -41,10 +41,15 @@ export function buildCareerTeamDef(state: GameState, clubId: string): TeamDef {
   if (lineup === undefined) throw new Error(`missing lineup for club ${clubId}`);
 
   const roster = rosterForClub(state, clubId);
-  const injured = roster.find(
-    player => lineup.playerIds.includes(player.id) && player.injuryWeeks > 0,
+  // Injury and leave both land here. The check used to read injuryWeeks alone,
+  // which meant a player away on a granted request did not error — they quietly
+  // played the match.
+  const unavailable = roster.find(
+    player => lineup.playerIds.includes(player.id) && !isAvailableForSelection(player),
   );
-  if (injured !== undefined) throw new Error(`injured player ${injured.id} must be replaced in the lineup`);
+  if (unavailable !== undefined) {
+    throw new Error(`unavailable player ${unavailable.id} must be replaced in the lineup`);
+  }
 
   // M2's wellbeing model defines morale as a low-morale penalty with a neutral
   // band at 30+. Normalize the legacy match adapter's separate morale scaling
@@ -164,7 +169,7 @@ export function repairCareerLineupForInjuries(
 
   for (let slot = 0; slot < playerIds.length; slot += 1) {
     const starter = playerById.get(playerIds[slot]);
-    if (starter === undefined || starter.injuryWeeks === 0) continue;
+    if (starter === undefined || isAvailableForSelection(starter)) continue;
 
     selected.delete(starter.id);
     const licensedCount = playerIds.reduce((count, playerId, playerSlot) => {
@@ -175,7 +180,7 @@ export function repairCareerLineupForInjuries(
     const replacement = roster
       .filter(candidate => (
         !selected.has(candidate.id)
-        && candidate.injuryWeeks === 0
+        && isAvailableForSelection(candidate)
         && !(candidate.power !== undefined && !candidate.licensed)
         && (!candidate.licensed || licensedCount < heroLimit)
         && (slot === 0 ? candidate.role === 'GK' : candidate.role !== 'GK')
@@ -253,7 +258,7 @@ export function swapCareerLineupPlayer(
   if (starter.role !== replacement.role) {
     throw new Error(`Choose another ${starter.role} to preserve the formation.`);
   }
-  if (replacement.injuryWeeks > 0) {
+  if (!isAvailableForSelection(replacement)) {
     throw new Error(`${replacement.name} is injured and unavailable for selection.`);
   }
   if (replacement.power !== undefined && !replacement.licensed) {
@@ -383,7 +388,7 @@ export function releaseCareerPlayer(state: GameState, playerId: string): GameSta
     && candidate.id !== playerId
     && !lineupIds.has(candidate.id)
     && candidate.contractSeasonsRemaining > 0
-    && candidate.injuryWeeks === 0
+    && isAvailableForSelection(candidate)
     && !(candidate.power !== undefined && !candidate.licensed);
   const replacement = needsReplacement
     ? state.players.find(candidate =>

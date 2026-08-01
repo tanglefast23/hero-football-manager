@@ -9,7 +9,23 @@ export type MatchSquadPlayer = ProgressionPlayer & {
   morale: number;
   condition?: number;
   injuryWeeks?: number;
+  awayWeeks?: number;
 };
+
+/**
+ * Fit and present.
+ *
+ * Injury and leave are separate fields but identical to selection, so every
+ * caller asks this one question rather than testing two numbers and eventually
+ * forgetting one. The two are kept apart everywhere else on purpose: the
+ * Medical Bay shortens an injury and must never shorten a holiday, and the
+ * roster must not tell the manager a striker is "recovering" from the Bahamas.
+ */
+export function isAvailableForSelection(
+  player: { injuryWeeks?: number; awayWeeks?: number },
+): boolean {
+  return (player.injuryWeeks ?? 0) === 0 && (player.awayWeeks ?? 0) === 0;
+}
 
 const ATTR_NAMES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
 
@@ -132,7 +148,7 @@ export function buildTeamDef(
   });
   const bench = roster.filter(player =>
     !lineupIdSet.has(player.id)
-    && (player.injuryWeeks ?? 0) === 0
+    && isAvailableForSelection(player)
     && !(player.power && !player.licensed),
   );
 
