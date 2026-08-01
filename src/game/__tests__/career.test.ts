@@ -174,7 +174,7 @@ describe('career season workflow', () => {
     expect(restored.ledgers.at(-1)?.lines).toContainEqual(fundLine);
   });
 
-  it('adds supplied scorer identities to the persistent season goal ledger', () => {
+  it('adds supplied contributions to the persistent season stat lines', () => {
     let state = createCareer(createLaunchCareerSetup(909));
     while (state.phase !== 'matchday') state = advanceWeek(state);
 
@@ -182,7 +182,9 @@ describe('career season workflow', () => {
     const userFixture = fixtures.find(fixture =>
       fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId,
     )!;
-    const scorerId = state.lineups.find(lineup => lineup.clubId === state.userClubId)!.playerIds[1];
+    const lineup = state.lineups.find(candidate => candidate.clubId === state.userClubId)!;
+    const scorerId = lineup.playerIds[1];
+    const keeperId = lineup.playerIds[0];
     const userIsHome = userFixture.homeClubId === state.userClubId;
     const results = fixtures.map(fixture => fixture.id === userFixture.id
       ? {
@@ -190,16 +192,28 @@ describe('career season workflow', () => {
           homeGoals: userIsHome ? 2 : 0,
           awayGoals: userIsHome ? 0 : 2,
           scorerPlayerIds: [scorerId, scorerId],
+          contributions: [
+            { playerId: scorerId, goals: 2, assists: 0, tacklesWon: 1, saves: 0 },
+            { playerId: keeperId, goals: 0, assists: 0, tacklesWon: 0, saves: 4 },
+          ],
         }
       : { fixtureId: fixture.id, homeGoals: 0, awayGoals: 0 });
 
     const settled = completeMatchday(state, results);
 
-    expect(settled.seasonGoalTallies).toContainEqual({
+    expect(settled.seasonStatLines).toContainEqual({
       season: 1,
       playerId: scorerId,
+      clubId: state.userClubId,
+      competition: 'league',
       goals: 2,
+      assists: 0,
+      tacklesWon: 1,
+      saves: 0,
     });
+    expect(settled.seasonStatLines).toContainEqual(
+      expect.objectContaining({ playerId: keeperId, saves: 4 }),
+    );
   });
 
   it('pauses a scheduled week at matchday, accepts every result, and settles it', () => {

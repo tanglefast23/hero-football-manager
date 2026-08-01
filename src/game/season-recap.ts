@@ -28,11 +28,14 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
   const cashChange = club.cash - seasonOpeningCash(state, club.cash);
   const roster = state.players.filter(player => player.clubId === state.userClubId);
-  const goalsByPlayer = new Map(
-    (state.seasonGoalTallies ?? [])
-      .filter(tally => tally.season === state.season)
-      .map(tally => [tally.playerId, tally.goals]),
-  );
+  // Both competitions: the Golden Boot is the club's own award, and it counted
+  // cup goals before stat lines were split by competition. Only the division
+  // board is league-only.
+  const goalsByPlayer = new Map<string, number>();
+  for (const line of state.seasonStatLines ?? []) {
+    if (line.season !== state.season) continue;
+    goalsByPlayer.set(line.playerId, (goalsByPlayer.get(line.playerId) ?? 0) + line.goals);
+  }
   const sortedScorers = roster.slice().sort((left, right) => (
     (goalsByPlayer.get(right.id) ?? 0) - (goalsByPlayer.get(left.id) ?? 0)
     || playerScore(right) - playerScore(left)

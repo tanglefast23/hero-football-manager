@@ -303,10 +303,24 @@ export interface PlayerMatchContribution {
   saves: number;
 }
 
-export interface PlayerSeasonGoalTally {
+export type AwardCompetition = 'league' | 'cup';
+
+/**
+ * One player's season in one competition, for one club.
+ *
+ * `clubId` is stamped when the row is written rather than resolved at read
+ * time: players transfer mid-season, so a row resolved later would attribute a
+ * sold player's first-half goals to whoever bought him.
+ */
+export interface PlayerSeasonStatLine {
   season: number;
   playerId: string;
+  clubId: string;
+  competition: AwardCompetition;
   goals: number;
+  assists: number;
+  tacklesWon: number;
+  saves: number;
 }
 
 export interface FinancialSafetyState {
@@ -448,8 +462,16 @@ export interface GameState {
   seasonOpeningCash?: number;
   /** Immediate M2 purchases and sales; weekly settlement remains in ledgers. */
   cashTransactions?: CashTransaction[];
-  /** Optional so careers saved before Golden Boot tracking remain loadable. */
-  seasonGoalTallies?: PlayerSeasonGoalTally[];
+  /**
+   * Absent on saves written before division-leader tracking. Those saves keep
+   * loading, but their goal history does not survive: `seasonGoalTallies` is
+   * not migrated, and the root schema passes it through as an untyped key
+   * nothing reads any more — so the Golden Boot, the hero's first goal and the
+   * championship scorer list all start from zero for an in-flight career.
+   * Accepted under the standing decision that breaking saves is fine until
+   * TestFlight.
+   */
+  seasonStatLines?: PlayerSeasonStatLine[];
   /**
    * Every career is a full career. The field stays because saves in the field
    * carry it and the persisted schema keys two validation rules off it; the

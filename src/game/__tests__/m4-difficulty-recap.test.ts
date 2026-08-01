@@ -3,10 +3,19 @@ import { parseStoredGameState, serializeGameState } from '../../persistence/game
 import { activeCareerMatchday, advanceWeek, completeMatchday, createCareer, startNextSeason } from '../career';
 import { difficultyRules } from '../difficulty';
 import { buildSeasonRecap } from '../season-recap';
-import type { DifficultyMode, GameState } from '../types';
+import type { AwardCompetition, DifficultyMode, GameState, PlayerSeasonStatLine } from '../types';
 
 function career(difficulty: DifficultyMode): GameState {
   return createCareer(createLaunchCareerSetup(20260721, undefined, undefined, difficulty));
+}
+
+function statLine(
+  playerId: string,
+  clubId: string,
+  competition: AwardCompetition,
+  goals: number,
+): PlayerSeasonStatLine {
+  return { season: 1, playerId, clubId, competition, goals, assists: 0, tacklesWon: 0, saves: 0 };
 }
 
 function settleThroughWeekFour(state: GameState): GameState {
@@ -130,12 +139,21 @@ describe('M4 difficulty and season recap', () => {
     expect(recap.playerOfSeason).toBeDefined();
   });
 
-  it('awards the Golden Boot to the season top scorer', () => {
+  it('awards the Golden Boot on league and cup goals together', () => {
     const initial = career('COZY');
-    const scorer = initial.players.find(player => player.clubId === initial.userClubId)!;
+    const roster = initial.players.filter(player => player.clubId === initial.userClubId);
+    const scorer = roster[0];
+    // The club's own award counts every goal he scored for it. Only the
+    // division board is league-only, and a league-only Boot would hand this to
+    // the rival below on a cup run.
+    const leagueOnlyRival = roster[1];
     const recap = buildSeasonRecap({
       ...initial,
-      seasonGoalTallies: [{ season: 1, playerId: scorer.id, goals: 7 }],
+      seasonStatLines: [
+        statLine(scorer.id, scorer.clubId, 'league', 5),
+        statLine(scorer.id, scorer.clubId, 'cup', 2),
+        statLine(leagueOnlyRival.id, leagueOnlyRival.clubId, 'league', 6),
+      ],
     });
 
     expect(recap.topScorer).toMatchObject({ playerId: scorer.id, detail: '7 goals' });

@@ -405,11 +405,16 @@ const onboardingSchema = z
     }
   });
 
-const seasonGoalTallySchema = z
+const seasonStatLineSchema = z
   .object({
     season: positiveInteger,
     playerId: nonemptyString,
+    clubId: nonemptyString,
+    competition: z.enum(['league', 'cup']),
     goals: nonnegativeInteger,
+    assists: nonnegativeInteger,
+    tacklesWon: nonnegativeInteger,
+    saves: nonnegativeInteger,
   })
   .passthrough();
 
@@ -739,7 +744,7 @@ const gameStateSchema = z
     ledgers: z.array(ledgerSchema),
     seasonOpeningCash: safeInteger.optional(),
     cashTransactions: z.array(cashTransactionSchema).optional(),
-    seasonGoalTallies: z.array(seasonGoalTallySchema).optional(),
+    seasonStatLines: z.array(seasonStatLineSchema).optional(),
     // `'m1-slice'` was a second, finite career mode that no longer exists. The
     // value stays legal on read so saves written while it did are still
     // decodable; `parseStoredGameState` normalises it and the launch
@@ -1030,18 +1035,18 @@ const gameStateSchema = z
       clubIds.add(clubId);
     }
 
-    const goalTallyKeys = new Set<string>();
-    for (let index = 0; index < (state.seasonGoalTallies ?? []).length; index += 1) {
-      const tally = state.seasonGoalTallies![index];
-      const key = `${tally.season}:${tally.playerId}`;
-      if (goalTallyKeys.has(key)) {
+    const statLineKeys = new Set<string>();
+    for (let index = 0; index < (state.seasonStatLines ?? []).length; index += 1) {
+      const line = state.seasonStatLines![index];
+      const key = `${line.season}:${line.playerId}:${line.clubId}:${line.competition}`;
+      if (statLineKeys.has(key)) {
         context.addIssue({
           code: 'custom',
-          path: ['seasonGoalTallies', index],
-          message: 'season and player ID must be unique',
+          path: ['seasonStatLines', index],
+          message: 'season, player ID, club ID and competition must be unique',
         });
       }
-      goalTallyKeys.add(key);
+      statLineKeys.add(key);
     }
     if (!clubIds.has(state.userClubId)) {
       context.addIssue({

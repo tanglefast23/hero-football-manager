@@ -47,6 +47,7 @@ import {
 import {
   GAME_SCHEMA_VERSION,
   SEASON_WEEKS,
+  type AwardCompetition,
   type CareerSetup,
   type CareerPlayer,
   type ClubState,
@@ -131,7 +132,7 @@ export function createCareer(setup: CareerSetup): GameState {
     trainingPoints: setup.startingTrainingPoints ?? 0,
     ledgers: [],
     seasonOpeningCash: clubs.find(club => club.id === setup.userClubId)!.cash,
-    seasonGoalTallies: [],
+    seasonStatLines: [],
     careerMode: 'full',
   };
   return enableFullCareer(state);
@@ -217,7 +218,12 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
     };
   });
 
-  const seasonGoalTallies = recordSeasonGoals(state, scheduledFixtures, resultByFixtureId);
+  const seasonStatLines = recordStatLines(
+    state,
+    scheduledFixtures,
+    resultByFixtureId,
+    'league',
+  );
 
   const players = resolveCareerMatchFame(state, scheduledFixtures, resultByFixtureId);
 
@@ -225,7 +231,7 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
     ...state,
     fixtures,
     players,
-    seasonGoalTallies,
+    seasonStatLines,
   };
   if (nationalCupUserFixtureForCurrentWeek(playedLeagueState) !== undefined) {
     return { ...playedLeagueState, phase: 'matchday' };
@@ -775,7 +781,7 @@ function completeNationalCupMatchday(state: GameState, results: FixtureResult[])
     ...state,
     m2: resolveNextM2NationalCupRound(state.m2, cupResult),
     players: resolveCareerMatchFame(state, cupMatchday.fixtures, resultByFixtureId),
-    seasonGoalTallies: recordSeasonGoals(state, cupMatchday.fixtures, resultByFixtureId),
+    seasonStatLines: recordStatLines(state, cupMatchday.fixtures, resultByFixtureId, 'cup'),
   }, cupGiantKillingCelebration(state, cupFixture, winnerClubId));
   const cupOutcome: WeeklyMatchOutcome = winnerClubId === state.userClubId ? 'win' : 'loss';
   const settled = settleCurrentWeek(progressed, true, [cupOutcome]);
@@ -1176,29 +1182,51 @@ function validateResults(
   }
 }
 
-function recordSeasonGoals(
+/**
+ * Folds this matchday's contributions into the season's stat lines.
+ *
+ * League and cup are kept apart because a division board that counted goals
+ * scored against another division would not be a division board. The club is
+ * read from the roster now rather than resolved when the board is drawn: a
+ * player sold in January must keep the goals he scored before he left.
+ */
+function recordStatLines(
   state: GameState,
   fixtures: LeagueFixture[],
   resultByFixtureId: ReadonlyMap<string, FixtureResult>,
-): GameState['seasonGoalTallies'] {
-  const knownPlayerIds = new Set(state.players.map(player => player.id));
+  competition: AwardCompetition,
+): GameState['seasonStatLines'] {
+  const clubByPlayerId = new Map(state.players.map(player => [player.id, player.clubId]));
   const totals = new Map(
-    (state.seasonGoalTallies ?? []).map(tally => [
-      `${tally.season}:${tally.playerId}`,
-      { ...tally },
+    (state.seasonStatLines ?? []).map(line => [
+      `${line.season}:${line.playerId}:${line.clubId}:${line.competition}`,
+      { ...line },
     ]),
   );
 
   for (const fixture of fixtures) {
     const result = resultByFixtureId.get(fixture.id);
-    for (const playerId of result?.scorerPlayerIds ?? []) {
-      if (!knownPlayerIds.has(playerId)) continue;
-      const key = `${state.season}:${playerId}`;
+    for (const contribution of result?.contributions ?? []) {
+      // The original headless M1 harness runs club-only careers with no career
+      // roster, so its sim player IDs have nothing to attach a stat line to.
+      const clubId = clubByPlayerId.get(contribution.playerId);
+      if (clubId === undefined) continue;
+      const key = `${state.season}:${contribution.playerId}:${clubId}:${competition}`;
       const previous = totals.get(key);
+      const label = `${contribution.playerId} season`;
       totals.set(key, {
         season: state.season,
-        playerId,
-        goals: checkedAdd(previous?.goals ?? 0, 1, `${playerId} season goals`),
+        playerId: contribution.playerId,
+        clubId,
+        competition,
+        goals: checkedAdd(previous?.goals ?? 0, contribution.goals, `${label} goals`),
+        assists: checkedAdd(previous?.assists ?? 0, contribution.assists, `${label} assists`),
+        tacklesWon: checkedAdd(
+          previous?.tacklesWon ?? 0,
+          contribution.tacklesWon,
+          `${label} tackles won`,
+        ),
+        saves: checkedAdd(previous?.saves ?? 0, contribution.saves, `${label} saves`),
       });
     }
   }

@@ -228,17 +228,17 @@ function userLeagueResults(state: GameState): UserLeagueResult[] {
     });
 }
 
-// KNOWN QUIRK (accepted 2026-07-26): tallies persist across seasons and hero
+// KNOWN QUIRK (accepted 2026-07-26): stat lines persist across seasons and hero
 // status is tested at recognition time, so a player who scored before awakening
 // earns "first hero goal" the week they awaken. Deterministic and harmless —
-// fixing it needs a per-tally hero bit in the save, which the moment of a
+// fixing it needs a per-row hero bit in the save, which the moment of a
 // just-awakened striker's recognition doesn't justify.
 function heroHasScored(state: GameState): boolean {
   const heroIds = new Set(state.players
     .filter(player => player.clubId === state.userClubId && player.power !== undefined)
     .map(player => player.id));
-  return (state.seasonGoalTallies ?? []).some(
-    tally => tally.goals > 0 && heroIds.has(tally.playerId),
+  return (state.seasonStatLines ?? []).some(
+    line => line.goals > 0 && heroIds.has(line.playerId),
   );
 }
 

@@ -2,6 +2,8 @@ import { contributionsFrom } from '../../game/match-contributions';
 import { goalsFrom } from '../../game/matchday';
 import { createMatch, tick } from '../../sim/match';
 import { ROVERS, UNITED } from '../../sim/teams';
+import { DEFAULT_CREATION_RATINGS } from '../../game';
+import { useM1Store } from '../store';
 
 /**
  * The store builds its own FixtureResult from a watched MatchState instead of
@@ -30,3 +32,68 @@ describe('watched match contributions', () => {
     expect(contributions.reduce((sum, row) => sum + row.saves, 0)).toBeGreaterThan(0);
   });
 });
+
+/**
+ * A watched result is handed to `resolveMatchday` already finished, and a
+ * supplied result passes through verbatim: whatever the store leaves off it is
+ * never recorded. Drop the contributions there and the season's stat lines fill
+ * with the three simulated rivals while the player's own squad — the only match
+ * they actually watched — is the one club missing from every leaderboard.
+ */
+describe('watched match stat lines', () => {
+  beforeEach(() => {
+    useM1Store.setState(useM1Store.getInitialState(), true);
+  });
+
+  it('records the watching club own squad alongside the simulated rivals', () => {
+    useM1Store.getState().startNewCareer(2468);
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    advanceToMatchday();
+    useM1Store.getState().watchMatch();
+    const watched = useM1Store.getState().watchedMatch;
+    if (watched === null) throw new Error('watched match context was not created');
+    const match = createMatch(watched.fixture.matchSeed, watched.home, watched.away, {
+      controlledTeam: watched.controlledTeam,
+      homePolicy: 'FIRE_WHEN_READY',
+      awayPolicy: 'FIRE_WHEN_READY',
+    });
+    while (match.phase !== 'fulltime') tick(match);
+
+    useM1Store.getState().finishWatchedMatch(match);
+
+    const career = useM1Store.getState().career;
+    if (career === null) throw new Error('the career went missing over the matchday');
+    const lines = career.seasonStatLines ?? [];
+    const ownLines = lines.filter(line => line.clubId === career.userClubId);
+    const ownPlayerIds = new Set(career.players
+      .filter(player => player.clubId === career.userClubId)
+      .map(player => player.id));
+
+    expect(ownLines.length).toBeGreaterThan(0);
+    expect(ownLines.every(line => ownPlayerIds.has(line.playerId))).toBe(true);
+    expect(ownLines.every(line => line.competition === 'league')).toBe(true);
+    expect(ownLines.reduce((sum, line) => sum + line.saves, 0)).toBeGreaterThan(0);
+    expect(ownLines.reduce((sum, line) => sum + line.tacklesWon, 0)).toBeGreaterThan(0);
+    // The rivals were simulated on the same matchday; both paths must record.
+    expect(lines.some(line => line.clubId !== career.userClubId)).toBe(true);
+  });
+});
+
+function advanceToMatchday(): void {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const state = useM1Store.getState();
+    if (state.screen === 'matchday') return;
+    if (state.screen === 'week-review') {
+      state.continueWeekReview();
+      continue;
+    }
+    if (state.screen !== 'management') {
+      throw new Error(`the career stopped on the ${state.screen} screen before a matchday`);
+    }
+    state.advanceCareer();
+  }
+  throw new Error('the career never reached a matchday');
+}
