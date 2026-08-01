@@ -323,6 +323,16 @@ export interface PlayerSeasonStatLine {
   saves: number;
 }
 
+export type AwardCategoryId = 'goals' | 'assists' | 'tacklesWon' | 'saves';
+
+/** One placing, denormalised so it survives the rival roster being regenerated. */
+export interface DivisionAwardPlacement {
+  playerId: string;
+  playerName: string;
+  clubId: string;
+  value: number;
+}
+
 export interface FinancialSafetyState {
   consecutiveNegativeWeeks: number;
   emergencyLoanUsed: boolean;
