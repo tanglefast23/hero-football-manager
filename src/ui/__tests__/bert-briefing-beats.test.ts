@@ -59,6 +59,29 @@ describe('briefing beats', () => {
     expect(beats.every(beat => beat.kind === 'body')).toBe(true);
   });
 
+  it('includes a division-leaders beat pointing at the leaders tab', () => {
+    const beat = guide.sequences.find(sequence => sequence.id === 'division-leaders');
+    expect(beat).toBeDefined();
+    expect(beat?.destination).toBe('league-leaders');
+    expect(beat?.pages.length).toBeGreaterThan(0);
+    expect(beat?.pages.every(page => page.focus === 'division-leaders')).toBe(true);
+  });
+
+  it('routes what that beat carries to the League screen leaders board', () => {
+    const beat = guide.sequences.find(sequence => sequence.id === 'division-leaders')!;
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    // The briefing hands its last page's focus to the concierge on its way out,
+    // which is what picks the board once the destination has picked the tab.
+    const focus = beat.pages[beat.pages.length - 1].focus;
+
+    // Read out of the content rather than typed here, so renaming either value
+    // fails this instead of quietly pointing Bert at nothing.
+    expect(app).toMatch(
+      new RegExp(`destination === '${beat.destination}'[\\s\\S]{0,40}?\\?\\s*'league'`),
+    );
+    expect(app).toMatch(new RegExp(`conciergeFocus === '${focus}'[\\s\\S]{0,40}?\\?\\s*'leaders'`));
+  });
+
   it('lets Bert explain the cup page instead of pointing a tap cue at it', () => {
     const league = readFileSync(
       join(process.cwd(), 'src/ui/screens/M2LeagueScreen.tsx'),

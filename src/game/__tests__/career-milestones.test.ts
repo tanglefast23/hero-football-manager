@@ -111,7 +111,17 @@ describe('career milestones derived from what the club did', () => {
     const hero = fresh.players.find(player => player.clubId === fresh.userClubId)!;
     const scoredWithoutPower: GameState = {
       ...fresh,
-      seasonGoalTallies: [{ season: 1, playerId: hero.id, goals: 3 }],
+      seasonStatLines: [{
+        season: 1,
+        playerId: hero.id,
+        clubId: hero.clubId,
+        competition: 'league',
+        goals: 3,
+        assists: 0,
+        tacklesWon: 0,
+        saves: 0,
+        passesCompleted: 0,
+      }],
     };
     expect(earnedCareerMilestoneFlags(scoredWithoutPower)).toEqual([]);
 

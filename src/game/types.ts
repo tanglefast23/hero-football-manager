@@ -253,6 +253,12 @@ export interface FixtureResult extends FixtureScore {
   fixtureId: string;
   /** Ordered scorer IDs when the full simulation result is available. */
   scorerPlayerIds?: string[];
+  /**
+   * Per-player countable actions. Present alongside `scorerPlayerIds` rather
+   * than replacing it: career validation checks the scorer list against the
+   * scoreline, and that invariant is worth more than the small redundancy.
+   */
+  contributions?: PlayerMatchContribution[];
 }
 
 export type LedgerLineKind =
@@ -310,10 +316,55 @@ export interface CashTransaction {
   referenceId?: string;
 }
 
-export interface PlayerSeasonGoalTally {
-  season: number;
+/** One player's countable actions in a single finished match. */
+export interface PlayerMatchContribution {
   playerId: string;
   goals: number;
+  assists: number;
+  tacklesWon: number;
+  saves: number;
+  passesCompleted: number;
+}
+
+export type AwardCompetition = 'league' | 'cup';
+
+/**
+ * One player's season in one competition, for one club.
+ *
+ * `clubId` is stamped when the row is written rather than resolved at read
+ * time: players transfer mid-season, so a row resolved later would attribute a
+ * sold player's first-half goals to whoever bought him.
+ */
+export interface PlayerSeasonStatLine {
+  season: number;
+  playerId: string;
+  clubId: string;
+  competition: AwardCompetition;
+  goals: number;
+  assists: number;
+  tacklesWon: number;
+  saves: number;
+  passesCompleted: number;
+}
+
+/**
+ * Midfielders are ranked on passes rather than assists deliberately.
+ *
+ * Measured on this engine, ~93% of assists are credited to forwards: attackers
+ * receive the ball and carry it, so the last teammate to touch it before a goal
+ * is usually another attacker. A midfielders' assist board reads 3, 2, 1 beside
+ * a 23-goal Golden Boot. Passes completed is 36% midfield at D5 and 48% at D1,
+ * and it has names on it from week one. Assists are still recorded — they are
+ * real match data — they are simply not what this board ranks.
+ */
+export type AwardCategoryId = 'goals' | 'passesCompleted' | 'tacklesWon' | 'saves';
+
+/** One placing, denormalised so it survives the rival roster being regenerated. */
+export interface DivisionAwardPlacement {
+  playerId: string;
+  playerName: string;
+  clubId: string;
+  value: number;
 }
 
 export interface FinancialSafetyState {
@@ -411,6 +462,14 @@ export interface SeasonRecap {
   playerOfSeason?: SeasonRecapAward;
   youngPlayer?: SeasonRecapAward;
   heroOfSeason?: SeasonRecapAward;
+  /**
+   * Top three per category, denormalised at the season transition.
+   *
+   * The bridge to the awards ceremony. Raw stat rows for rivals are pruned once
+   * a division change regenerates their clubs, so anything the ceremony needs
+   * must be captured here while the players still exist.
+   */
+  divisionAwards?: Record<AwardCategoryId, DivisionAwardPlacement[]>;
 }
 
 /**
@@ -567,8 +626,16 @@ export interface GameState {
   seasonOpeningCash?: number;
   /** Immediate M2 purchases and sales; weekly settlement remains in ledgers. */
   cashTransactions?: CashTransaction[];
-  /** Optional so careers saved before Golden Boot tracking remain loadable. */
-  seasonGoalTallies?: PlayerSeasonGoalTally[];
+  /**
+   * Absent on saves written before division-leader tracking. Those saves keep
+   * loading, but their goal history does not survive: `seasonGoalTallies` is
+   * not migrated, and the root schema passes it through as an untyped key
+   * nothing reads any more — so the Golden Boot, the hero's first goal and the
+   * championship scorer list all start from zero for an in-flight career.
+   * Accepted under the standing decision that breaking saves is fine until
+   * TestFlight.
+   */
+  seasonStatLines?: PlayerSeasonStatLine[];
   /**
    * Every career is a full career. The field stays because saves in the field
    * carry it and the persisted schema keys two validation rules off it; the

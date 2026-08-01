@@ -1,5 +1,14 @@
+import { divisionPodium } from './division-leaders';
 import { currentUserDivision } from './m2-career';
-import type { CareerPlayer, GameState, SeasonRecap, SeasonRecapAward } from './types';
+import type {
+  AwardCategoryId,
+  CareerPlayer,
+  DivisionAwardPlacement,
+  GameState,
+  PlayerSeasonStatLine,
+  SeasonRecap,
+  SeasonRecapAward,
+} from './types';
 
 export function buildSeasonRecap(state: GameState): SeasonRecap {
   const fixtures = state.fixtures.filter(fixture => (
@@ -28,11 +37,14 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
   if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
   const cashChange = club.cash - seasonOpeningCash(state, club.cash);
   const roster = state.players.filter(player => player.clubId === state.userClubId);
-  const goalsByPlayer = new Map(
-    (state.seasonGoalTallies ?? [])
-      .filter(tally => tally.season === state.season)
-      .map(tally => [tally.playerId, tally.goals]),
-  );
+  // Both competitions: the Golden Boot is the club's own award, and it counted
+  // cup goals before stat lines were split by competition. Only the division
+  // board is league-only.
+  const goalsByPlayer = new Map<string, number>();
+  for (const line of state.seasonStatLines ?? []) {
+    if (line.season !== state.season) continue;
+    goalsByPlayer.set(line.playerId, (goalsByPlayer.get(line.playerId) ?? 0) + line.goals);
+  }
   const sortedScorers = roster.slice().sort((left, right) => (
     (goalsByPlayer.get(right.id) ?? 0) - (goalsByPlayer.get(left.id) ?? 0)
     || playerScore(right) - playerScore(left)
@@ -68,6 +80,7 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     // the persisted recap field stays for old saves and always reads zero now.
     trainingCapsReached: 0,
     cupResult: cupResult(state),
+    divisionAwards: divisionAwards(state),
     ...(latestResolvedEvent === undefined ? {} : { memorableEventId: latestResolvedEvent }),
     // A Golden Boot for nobody is worse than no Golden Boot at all.
     ...(topScorerGoals === 0 || sortedScorers[0] === undefined ? {} : {
@@ -99,6 +112,62 @@ function seasonOpeningCash(state: GameState, closingCash: number): number {
     .filter(transaction => transaction.season === state.season)
     .reduce((total, transaction) => total + transaction.amount, 0);
   return closingCash - ledgerChange - transactionChange;
+}
+
+/**
+ * The four podiums, captured while every player on them still exists.
+ *
+ * `SeasonRecapAward` is not reused: it carries no club, and its number survives
+ * only inside a display string. The ceremony renders a club beside each placing
+ * and compares the values numerically.
+ */
+function divisionAwards(state: GameState): Record<AwardCategoryId, DivisionAwardPlacement[]> {
+  const division = {
+    season: state.season,
+    players: state.players,
+    statLines: state.seasonStatLines ?? [],
+  };
+  return {
+    goals: divisionPodium({ ...division, category: 'goals' }),
+    passesCompleted: divisionPodium({ ...division, category: 'passesCompleted' }),
+    tacklesWon: divisionPodium({ ...division, category: 'tacklesWon' }),
+    saves: divisionPodium({ ...division, category: 'saves' }),
+  };
+}
+
+/**
+ * Keeps only the rows the career can still render: a named player, in a season
+ * no older than the one that just finished.
+ *
+ * A promotion or relegation regenerates every rival roster, so those player IDs
+ * resolve to nothing and their rows could only ever render as `p_10423 · 22
+ * goals`. Retired players are spared that rule explicitly: they leave
+ * `state.players` at the season transition, and a rule keyed on that array
+ * alone would delete the career record of the club's own retired heroes.
+ *
+ * Past seasons go because nothing durable reads them. Every board filters to
+ * the current season — the division leaderboards, the recap's Golden Boot, the
+ * championship celebration — and the podiums that mattered are already
+ * denormalised into `SeasonRecap.divisionAwards`, names and clubs included,
+ * precisely because raw rows do not survive a division change. The one
+ * unfiltered reader is the `first-hero-goal` milestone, and milestone flags are
+ * appended to `state.eventFlags` and never removed, so an earned flag cannot be
+ * un-earned by pruning the evidence a season later. Without this, a player who
+ * stays fifteen seasons carries fifteen rows forever.
+ *
+ * Called with the pre-transition state, so `state.season` is the season that
+ * just finished: it is kept, and everything before it is dropped.
+ *
+ * Only safe to run once the recap has snapshotted the season's podiums.
+ */
+export function prunedStatLines(state: GameState): PlayerSeasonStatLine[] {
+  const known = new Set([
+    ...state.players.map(player => player.id),
+    ...(state.retiredPlayers ?? []).map(player => player.id),
+  ]);
+  return (state.seasonStatLines ?? []).filter(
+    line => line.season >= state.season && known.has(line.playerId),
+  );
 }
 
 export function recordSeasonRecap(state: GameState): GameState {

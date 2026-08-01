@@ -14,7 +14,7 @@ import type {
   PlayerRequestDefinition,
   PlayerRequestResolution,
   PlayerRequestState,
-  PlayerSeasonGoalTally,
+  PlayerSeasonStatLine,
 } from './types';
 
 export interface RequestCadence {
@@ -73,18 +73,32 @@ export function requestChancePercent(
   return Math.round(baseChancePercent + (100 - baseChancePercent) * progress * progress);
 }
 
-/** Player ids in the top `rank` of the division for goals this season. */
+/**
+ * Player ids in the top `rank` of the division for league goals this season.
+ *
+ * Cup rows are skipped so this stays a division board: goals scored against
+ * another division never made a player his own division's top scorer. Rows are
+ * summed per player because a player sold mid-season keeps one stat line per
+ * club, and half a season each would rank him below where he actually finished.
+ */
 export function starQualifiers(
-  tallies: readonly PlayerSeasonGoalTally[],
+  statLines: readonly Pick<PlayerSeasonStatLine, 'season' | 'competition' | 'playerId' | 'goals'>[],
   season: number,
   rank: number,
 ): string[] {
-  return tallies
-    .filter(tally => tally.season === season && tally.goals > 0)
-    .slice()
-    .sort((left, right) => right.goals - left.goals || left.playerId.localeCompare(right.playerId))
+  const goalsByPlayerId = new Map<string, number>();
+  for (const line of statLines) {
+    if (line.season !== season || line.competition !== 'league') continue;
+    goalsByPlayerId.set(line.playerId, (goalsByPlayerId.get(line.playerId) ?? 0) + line.goals);
+  }
+
+  return [...goalsByPlayerId]
+    .filter(([, goals]) => goals > 0)
+    .sort(([leftId, leftGoals], [rightId, rightGoals]) => (
+      rightGoals - leftGoals || leftId.localeCompare(rightId)
+    ))
     .slice(0, rank)
-    .map(tally => tally.playerId);
+    .map(([playerId]) => playerId);
 }
 
 /** Fallback only; the shipped value is authored as `tuning.starFameThreshold`. */
@@ -510,7 +524,7 @@ export function advancePlayerRequests(state: GameState, openRequests: boolean): 
 
   const roster = next.players.filter(player => player.clubId === next.userClubId);
   const qualifiers = starQualifiers(
-    next.seasonGoalTallies ?? [],
+    next.seasonStatLines ?? [],
     next.season,
     tuning.starGoalRank,
   );

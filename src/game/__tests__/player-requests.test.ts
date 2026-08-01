@@ -92,20 +92,44 @@ describe('requestChancePercent', () => {
 });
 
 describe('starQualifiers', () => {
-  const tallies = [
-    { season: 2, playerId: 'a', goals: 9 },
-    { season: 2, playerId: 'b', goals: 12 },
-    { season: 2, playerId: 'c', goals: 4 },
-    { season: 1, playerId: 'd', goals: 30 },
+  const league = (season: number, playerId: string, goals: number) => ({
+    season,
+    playerId,
+    competition: 'league' as const,
+    goals,
+  });
+  const statLines = [
+    league(2, 'a', 9),
+    league(2, 'b', 12),
+    league(2, 'c', 4),
+    league(1, 'd', 30),
   ];
 
   it('names the top two scorers in the division this season', () => {
-    expect(starQualifiers(tallies, 2, 2)).toEqual(['b', 'a']);
+    expect(starQualifiers(statLines, 2, 2)).toEqual(['b', 'a']);
   });
 
   it('ignores other seasons and goalless players', () => {
-    expect(starQualifiers(tallies, 2, 5)).toEqual(['b', 'a', 'c']);
-    expect(starQualifiers([{ season: 2, playerId: 'e', goals: 0 }], 2, 2)).toEqual([]);
+    expect(starQualifiers(statLines, 2, 5)).toEqual(['b', 'a', 'c']);
+    expect(starQualifiers([league(2, 'e', 0)], 2, 2)).toEqual([]);
+  });
+
+  it('ignores cup goals, so the board stays a division board', () => {
+    const withCup = [
+      league(2, 'a', 9),
+      { season: 2, playerId: 'f', competition: 'cup' as const, goals: 40 },
+    ];
+    expect(starQualifiers(withCup, 2, 2)).toEqual(['a']);
+  });
+
+  it('sums a mid-season transfer\'s rows into the one player he is', () => {
+    const transferred = [
+      league(2, 'a', 9),
+      // Two league rows, one per club, the way stat lines are keyed.
+      league(2, 'b', 5),
+      league(2, 'b', 6),
+    ];
+    expect(starQualifiers(transferred, 2, 1)).toEqual(['b']);
   });
 });
 

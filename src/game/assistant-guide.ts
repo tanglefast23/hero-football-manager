@@ -16,6 +16,7 @@ export const M2_ASSISTANT_GUIDE_SEQUENCE_IDS = [
   'transfer-negotiation',
   'youth-intake',
   'national-cup',
+  'division-leaders',
   'player-requests',
   'first-injury',
   'first-emergency-loan',

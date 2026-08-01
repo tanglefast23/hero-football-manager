@@ -1,4 +1,4 @@
-import { CUP_SETTLEMENT_WEEKS } from '../game/career';
+import { CUP_SETTLEMENT_WEEKS, isDivisionLeadersUnlocked } from '../game/career';
 import {
   currentUserDivision,
   type M2CareerState,
@@ -10,17 +10,24 @@ import type {
   NationalCupRound,
 } from '../game/pyramid';
 import { divisionTierLabel } from '../game/pyramid';
-import type { LeagueFixture, LeagueStanding } from '../game/types';
+import type {
+  CareerPlayer,
+  LeagueFixture,
+  LeagueStanding,
+  PlayerSeasonStatLine,
+} from '../game/types';
 import type {
   M2CupFixtureViewModel,
   M2CupRoundViewModel,
   M2CupRoundHistoryViewModel,
   M2DivisionSummaryViewModel,
   M2LeagueFixtureViewModel,
+  M2LeagueSubTab,
   M2LeagueViewModel,
   M2NationalCupViewModel,
 } from '../ui/m2-league-models';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
+import { divisionLeadersViewModel } from './division-leaders-view-model';
 
 export interface M2LeagueViewModelSource {
   readonly career: M2CareerState;
@@ -33,6 +40,9 @@ export interface M2LeagueViewModelSource {
   readonly phase?: 'manage' | 'matchday' | 'season-end' | 'complete';
   /** The full game schedule; the view model selects this club's current-season road. */
   readonly leagueFixtures?: readonly LeagueFixture[];
+  /** The live roster, which decides who is still eligible for a leader board. */
+  readonly players?: readonly CareerPlayer[];
+  readonly statLines?: readonly PlayerSeasonStatLine[];
 }
 
 /** Maps the sidecar pyramid and the live ten-club table into player-facing copy. */
@@ -82,7 +92,31 @@ export function m2LeagueViewModel(source: M2LeagueViewModelSource): M2LeagueView
     },
     leagueFixtures: leagueFixtureHistory(source, clubNames),
     cup: cupViewModel(source, clubNames),
+    availableTabs: availableSubTabs(source),
+    leaders: divisionLeadersViewModel({
+      season: source.season,
+      players: source.players ?? [],
+      statLines: source.statLines ?? [],
+      userClubId: source.career.userClubId,
+      clubNames,
+    }),
   };
+}
+
+/**
+ * Both unlocks are derived from the state that causes them, never persisted —
+ * a stored flag is one more thing that can drift out of sync with the thing it
+ * describes. The leaders threshold is shared with Bert's briefing, so the
+ * inbox can never point at a tab this list has not added yet.
+ */
+function availableSubTabs(source: M2LeagueViewModelSource): M2LeagueSubTab[] {
+  const tabs: M2LeagueSubTab[] = ['league'];
+  const cups = source.career.nationalCups;
+  if (cups.length === 0) return tabs;
+  tabs.push('cup');
+
+  if (isDivisionLeadersUnlocked(cups, source.season, source.week ?? 0)) tabs.push('leaders');
+  return tabs;
 }
 
 function divisionSummary(

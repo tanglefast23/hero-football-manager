@@ -4,6 +4,7 @@ import {
   careerRosterCapacity,
   completeAssistantGuideSequence,
   deferAssistantGuideSequencesUntilUnlock,
+  isDivisionLeadersUnlocked,
   isFacilityOperational,
   isStoryCupGuideUnlocked,
   isStoryFeaturePacingActive,
@@ -144,6 +145,12 @@ export function dueAssistantInboxGuideSequences(
 
   if (state.m2.nationalCups.length > 0 && isStoryCupGuideUnlocked(state)) {
     due.push('national-cup');
+  }
+
+  // The same derivation the League screen's sub-tab list reads, so the boards
+  // are always there by the time Bert points at them.
+  if (isDivisionLeadersUnlocked(state.m2.nationalCups, state.season, state.week)) {
+    due.push('division-leaders');
   }
 
   // The week the Requests tab appears. Gated on the same baked catalog the tab

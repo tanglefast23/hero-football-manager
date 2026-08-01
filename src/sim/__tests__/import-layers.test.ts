@@ -25,7 +25,7 @@ const ALLOWED: Record<string, string[]> = {
   'auto-coaching.ts': ['contest', 'geometry', 'events', 'substitutions', 'tactics', 'types'],
   'powers.ts': ['types', 'geometry', 'events', 'entities', 'contest'],
   'engine.ts': ['movement-table', 'geometry', 'events', 'types', 'contest', 'powers', 'tactics', 'entities', 'attributes'],
-  'match.ts': ['rng', 'geometry', 'events', 'engine', 'types', 'powers', 'auto-coaching', 'substitutions', 'tactics', 'attributes'],
+  'match.ts': ['rng', 'geometry', 'events', 'engine', 'entities', 'types', 'powers', 'auto-coaching', 'substitutions', 'tactics', 'attributes'],
   'runtime-golden.ts': ['match', 'teams'],
 };
 

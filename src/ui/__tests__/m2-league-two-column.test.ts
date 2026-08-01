@@ -21,7 +21,10 @@ describe('national league two-column layout', () => {
     expect(source).toContain('viewModel.activeTable.rows.length');
   });
 
-  it('only auto-scrolls to the cup guide target in single-column mode', () => {
-    expect(source).toContain("layoutMode === 'single'");
+  it('reaches the cup guide target by tab, not by scrolling', () => {
+    // The sub-tabs retired the phone-only scroll-into-view: the guided section
+    // is now the only thing on the page in either mode.
+    expect(source).toContain('guideSubTab');
+    expect(source).not.toContain('scrollTo');
   });
 });

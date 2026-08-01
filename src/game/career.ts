@@ -29,7 +29,7 @@ import {
   leaguePrizeMoney,
 } from './promotion-progression';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
-import type { NationalCupFixture, NationalCupResult } from './pyramid';
+import type { NationalCup, NationalCupFixture, NationalCupResult } from './pyramid';
 import {
   cupGiantKillingCelebration,
   queueCupGiantKillingCelebration,
@@ -48,6 +48,7 @@ import {
 import {
   GAME_SCHEMA_VERSION,
   SEASON_WEEKS,
+  type AwardCompetition,
   type CareerSetup,
   type CareerPlayer,
   type ClubState,
@@ -77,6 +78,63 @@ const UINT32_MAX = 4294967295;
  * settling the final in week 30 alongside the season-end transition.
  */
 export const CUP_SETTLEMENT_WEEKS = [6, 12, 18, 24, 27, 29] as const;
+
+/**
+ * Long enough after the first cup match that a board has names on it rather
+ * than one lucky hat-trick, and short enough to still be the same conversation.
+ */
+const DIVISION_LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP = 3;
+
+/**
+ * Season and week of the career's very first cup match, or null before one is
+ * drawn.
+ *
+ * Cup fixtures carry no week of their own: the engine settles round N in
+ * `CUP_SETTLEMENT_WEEKS[N - 1]`, so the calendar is the only place the week
+ * exists. Undrawn rounds are skipped — a round without fixtures has no match to
+ * count from. The season is carried alongside the week because `nationalCups`
+ * gains a cup per season, and a bare minimum over every cup's weeks would
+ * answer with a later season's calendar.
+ */
+function firstCupMatch(cups: readonly NationalCup[]): { season: number; week: number } | null {
+  let first: { season: number; week: number } | null = null;
+  for (const cup of cups) {
+    for (const round of cup.rounds) {
+      if (round.fixtures.length === 0) continue;
+      const week = CUP_SETTLEMENT_WEEKS[round.number - 1] as number | undefined;
+      if (week === undefined) continue;
+      if (first === null || cup.season < first.season
+        || (cup.season === first.season && week < first.week)) {
+        first = { season: cup.season, week };
+      }
+    }
+  }
+  return first;
+}
+
+/**
+ * When the division leader boards open. One derivation, read by both the
+ * League screen's sub-tab list and Bert's briefing: split them and the first
+ * move of the cup calendar sends the manager to a tab that is not there.
+ *
+ * Monotonic in career time, not in the week counter. `week` restarts at 1 every
+ * season, so a threshold compared against the week alone re-locks the tab for
+ * the opening weeks of every season after the first — hiding live boards from a
+ * veteran career, and silently, because Bert's briefing only fires once.
+ *
+ * A career with no cup drawn never unlocks: there is no first match to count
+ * from.
+ */
+export function isDivisionLeadersUnlocked(
+  cups: readonly NationalCup[],
+  season: number,
+  week: number,
+): boolean {
+  const first = firstCupMatch(cups);
+  if (first === null) return false;
+  if (season !== first.season) return season > first.season;
+  return week >= first.week + DIVISION_LEADERS_UNLOCK_WEEKS_AFTER_FIRST_CUP;
+}
 
 export type NationalCupRoundLabel =
   | 'Play-in'
@@ -135,7 +193,7 @@ export function createCareer(setup: CareerSetup): GameState {
     trainingPoints: setup.startingTrainingPoints ?? 0,
     ledgers: [],
     seasonOpeningCash: clubs.find(club => club.id === setup.userClubId)!.cash,
-    seasonGoalTallies: [],
+    seasonStatLines: [],
     careerMode: 'full',
   };
   return enableFullCareer(state);
@@ -221,7 +279,12 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
     };
   });
 
-  const seasonGoalTallies = recordSeasonGoals(state, scheduledFixtures, resultByFixtureId);
+  const seasonStatLines = recordStatLines(
+    state,
+    scheduledFixtures,
+    resultByFixtureId,
+    'league',
+  );
 
   const players = resolveCareerMatchFame(state, scheduledFixtures, resultByFixtureId);
 
@@ -229,7 +292,7 @@ export function completeMatchday(state: GameState, results: FixtureResult[]): Ga
     ...state,
     fixtures,
     players,
-    seasonGoalTallies,
+    seasonStatLines,
   };
   if (nationalCupUserFixtureForCurrentWeek(playedLeagueState) !== undefined) {
     return { ...playedLeagueState, phase: 'matchday' };
@@ -787,7 +850,7 @@ function completeNationalCupMatchday(state: GameState, results: FixtureResult[])
     ...state,
     m2: resolveNextM2NationalCupRound(state.m2, cupResult),
     players: resolveCareerMatchFame(state, cupMatchday.fixtures, resultByFixtureId),
-    seasonGoalTallies: recordSeasonGoals(state, cupMatchday.fixtures, resultByFixtureId),
+    seasonStatLines: recordStatLines(state, cupMatchday.fixtures, resultByFixtureId, 'cup'),
   }, cupGiantKillingCelebration(state, cupFixture, winnerClubId));
   const cupOutcome: WeeklyMatchOutcome = winnerClubId === state.userClubId ? 'win' : 'loss';
   const settled = settleCurrentWeek(progressed, true, [cupOutcome]);
@@ -1188,29 +1251,56 @@ function validateResults(
   }
 }
 
-function recordSeasonGoals(
+/**
+ * Folds this matchday's contributions into the season's stat lines.
+ *
+ * League and cup are kept apart because a division board that counted goals
+ * scored against another division would not be a division board. The club is
+ * read from the roster now rather than resolved when the board is drawn: a
+ * player sold in January must keep the goals he scored before he left.
+ */
+function recordStatLines(
   state: GameState,
   fixtures: LeagueFixture[],
   resultByFixtureId: ReadonlyMap<string, FixtureResult>,
-): GameState['seasonGoalTallies'] {
-  const knownPlayerIds = new Set(state.players.map(player => player.id));
+  competition: AwardCompetition,
+): GameState['seasonStatLines'] {
+  const clubByPlayerId = new Map(state.players.map(player => [player.id, player.clubId]));
   const totals = new Map(
-    (state.seasonGoalTallies ?? []).map(tally => [
-      `${tally.season}:${tally.playerId}`,
-      { ...tally },
+    (state.seasonStatLines ?? []).map(line => [
+      `${line.season}:${line.playerId}:${line.clubId}:${line.competition}`,
+      { ...line },
     ]),
   );
 
   for (const fixture of fixtures) {
     const result = resultByFixtureId.get(fixture.id);
-    for (const playerId of result?.scorerPlayerIds ?? []) {
-      if (!knownPlayerIds.has(playerId)) continue;
-      const key = `${state.season}:${playerId}`;
+    for (const contribution of result?.contributions ?? []) {
+      // The original headless M1 harness runs club-only careers with no career
+      // roster, so its sim player IDs have nothing to attach a stat line to.
+      const clubId = clubByPlayerId.get(contribution.playerId);
+      if (clubId === undefined) continue;
+      const key = `${state.season}:${contribution.playerId}:${clubId}:${competition}`;
       const previous = totals.get(key);
+      const label = `${contribution.playerId} season`;
       totals.set(key, {
         season: state.season,
-        playerId,
-        goals: checkedAdd(previous?.goals ?? 0, 1, `${playerId} season goals`),
+        playerId: contribution.playerId,
+        clubId,
+        competition,
+        goals: checkedAdd(previous?.goals ?? 0, contribution.goals, `${label} goals`),
+        assists: checkedAdd(previous?.assists ?? 0, contribution.assists, `${label} assists`),
+        tacklesWon: checkedAdd(
+          previous?.tacklesWon ?? 0,
+          contribution.tacklesWon,
+          `${label} tackles won`,
+        ),
+        saves: checkedAdd(previous?.saves ?? 0, contribution.saves, `${label} saves`),
+        passesCompleted: checkedAdd(
+          previous?.passesCompleted ?? 0,
+          contribution.passesCompleted,
+          `${label} passes completed`,
+        ),
       });
     }
   }

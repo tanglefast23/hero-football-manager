@@ -400,6 +400,35 @@
       ]
     },
     {
+      "id": "division-leaders",
+      "inbox": {
+        "title": "Who leads your division",
+        "detail": "Four boards, one for each position. See where your players rank."
+      },
+      "destination": "league-leaders",
+      "pages": [
+        {
+          "kicker": "The race within the race",
+          "title": "Division Leaders",
+          "body": [
+            "Four boards, one per position. Goals for strikers, passes for midfielders, tackles for defenders, saves for keepers. Everyone in your squad has something to chase."
+          ],
+          "focus": "division-leaders",
+          "objective": "SEE WHERE YOUR PLAYERS RANK.",
+          "buttonLabel": "Show me the boards."
+        },
+        {
+          "kicker": "Week to week",
+          "title": "Worth watching",
+          "body": [
+            "Every board is division-wide, so the names beside yours are the ones you play. Check them as the season runs and you will know where your squad really stands."
+          ],
+          "focus": "division-leaders",
+          "buttonLabel": "We'll take all four."
+        }
+      ]
+    },
+    {
       "id": "first-injury",
       "inbox": {
         "title": "Your first injury",

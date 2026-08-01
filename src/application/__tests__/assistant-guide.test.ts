@@ -1,4 +1,4 @@
-import { advanceWeek, createCareer } from '../../game/career';
+import { advanceWeek, createCareer, CUP_SETTLEMENT_WEEKS } from '../../game/career';
 import { buildTrainingGround } from '../../game/squad';
 import { buildCareerFacility } from '../../game/management';
 import { hireCareerCoach } from '../../game/market-career';
@@ -338,6 +338,50 @@ describe('assistant guide application flow', () => {
     expect(homeViewModel(scheduled).alerts).toContainEqual(expect.objectContaining({
       guideSequenceId: 'assistant-coach-hire',
       destination: 'coach-market',
+    }));
+  });
+
+  test('opens the division leaders briefing when the boards themselves open', () => {
+    const drawn = createCareer(createLaunchCareerSetup(551));
+    const noCup: GameState = { ...drawn, m2: { ...drawn.m2!, nationalCups: [] } };
+    const firstCupWeek = CUP_SETTLEMENT_WEEKS[0];
+
+    // A career with no cup drawn has no leaders tab and must never be sent to
+    // one, however late the season gets.
+    expect(dueAssistantInboxGuideSequences({ ...noCup, week: firstCupWeek + 3 }))
+      .not.toContain('division-leaders');
+    expect(dueAssistantInboxGuideSequences({ ...drawn, week: firstCupWeek + 2 }))
+      .not.toContain('division-leaders');
+
+    const unlocked = { ...drawn, week: firstCupWeek + 3 };
+    expect(dueAssistantInboxGuideSequences(unlocked)).toContain('division-leaders');
+    // Reading it retires it, on the same completion flag as every other first.
+    expect(dueAssistantInboxGuideSequences(
+      completeAssistantGuideSequence(unlocked, 'division-leaders'),
+    )).not.toContain('division-leaders');
+  });
+
+  test('sends the delivered division leaders card to the leaders board', () => {
+    const firstCupWeek = CUP_SETTLEMENT_WEEKS[0];
+    let state: GameState = {
+      ...createCareer(createLaunchCareerSetup(551)),
+      week: firstCupWeek + 3,
+    };
+    // Only three cards reach a desk in a week, so the older firsts are read
+    // off it first — otherwise this asserts the tranche, not the routing.
+    for (let pass = 0; pass < M2_ASSISTANT_GUIDE_SEQUENCE_IDS.length; pass += 1) {
+      const others = dueAssistantInboxGuideSequences(state)
+        .filter(sequenceId => sequenceId !== 'division-leaders');
+      if (others.length === 0) break;
+      for (const sequenceId of others) {
+        state = completeAssistantGuideSequence(state, sequenceId);
+      }
+    }
+
+    const scheduled = reconcileHomeAssistantInbox(state);
+    expect(homeViewModel(scheduled).alerts).toContainEqual(expect.objectContaining({
+      guideSequenceId: 'division-leaders',
+      destination: 'league-leaders',
     }));
   });
 });

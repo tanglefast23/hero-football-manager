@@ -236,6 +236,9 @@ function drainSlideCondition(p: SimPlayer, energyUse: EnergyUse): void {
 
 export function restartKickoff(state: MatchState, toTeam: 0 | 1): void {
   clearRestartPowerState(state);
+  state.ballHolderId = null;
+  state.ballHolderTeam = null;
+  state.assistCandidateId = null;
   const center = { x: PITCH_W / 2, y: PITCH_H / 2 };
   for (let i = 0; i < BASE_PLAYER_COUNT; i++) {
     const p = state.players[i];
@@ -1707,6 +1710,10 @@ export function shotFlightTick(state: MatchState): void {
           state.resolve[defendingTeam] - Math.round(b.power / RESOLVE_DAMAGE_DIVISOR),
         );
         emit(state, { t: state.tick, kind: 'SAVE', by: gkIdx, resolveLeft: state.resolve[defendingTeam] });
+        // The move is over. Today's keeper always catches, so the turnover
+        // below would clear this anyway — it is here so that if a save ever
+        // drops a live rebound, the goal that follows is nobody's assist.
+        state.assistCandidateId = null;
         // A clean catch ends Giant GK's current dangerous attack. Clear it
         // before awarding save Heat so the keeper earns their next opportunity.
         if (keeper.def.power === 'GIANT_GK') finishMomentPower(state, gkIdx);
@@ -1733,6 +1740,17 @@ export function shotFlightTick(state: MatchState): void {
   }
 
   state.score[shooter.team]++;
-  emit(state, { t: state.tick, kind: 'GOAL', by: b.by, team: shooter.team });
+  const scorerId = state.players[attributedPlayerIndex(state, b.by)].def.id;
+  // No path today makes the scorer his own candidate — taking the ball always
+  // displaces the previous holder. The guard is here so a future power that
+  // hands the ball back to its passer cannot credit a solo goal as an assist.
+  const assistedById = state.assistCandidateId;
+  emit(state, {
+    t: state.tick,
+    kind: 'GOAL',
+    by: b.by,
+    team: shooter.team,
+    ...(assistedById !== null && assistedById !== scorerId ? { assistedById } : {}),
+  });
   restartKickoff(state, defendingTeam);
 }

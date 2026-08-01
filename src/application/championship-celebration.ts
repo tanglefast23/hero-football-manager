@@ -43,11 +43,13 @@ export function championshipCelebrationViewModel(
   if (finalFixture === undefined) throw new Error('the champions have no completed fixture');
   const spriteSide = finalFixture.homeClubId === state.userClubId ? 'r' : 'u';
 
-  const goalsByPlayerId = new Map(
-    (state.seasonGoalTallies ?? [])
-      .filter(tally => tally.season === state.season)
-      .map(tally => [tally.playerId, tally.goals]),
-  );
+  // Summed across competitions: a player now owns one row per competition, and
+  // the striker being paraded scored his cup goals for this club too.
+  const goalsByPlayerId = new Map<string, number>();
+  for (const line of state.seasonStatLines ?? []) {
+    if (line.season !== state.season) continue;
+    goalsByPlayerId.set(line.playerId, (goalsByPlayerId.get(line.playerId) ?? 0) + line.goals);
+  }
   const sorted = [...squad].sort((left, right) => {
     const goalDifference = (goalsByPlayerId.get(right.id) ?? 0) - (goalsByPlayerId.get(left.id) ?? 0);
     if (goalDifference !== 0) return goalDifference;

@@ -7,6 +7,25 @@ import {
   hasPendingChampionshipCelebration,
 } from '../championship-celebration';
 import { playerLookId } from '../../render/sprites/player-look';
+import type { AwardCompetition, PlayerSeasonStatLine } from '../../game/types';
+
+function statLine(
+  playerId: string,
+  competition: AwardCompetition,
+  goals: number,
+): PlayerSeasonStatLine {
+  return {
+    season: 1,
+    playerId,
+    clubId: 'bramble-rovers',
+    competition,
+    goals,
+    assists: 0,
+    tacklesWon: 0,
+    saves: 0,
+    passesCompleted: 0,
+  };
+}
 
 function championState() {
   const state = createCareer(createLaunchCareerSetup(777));
@@ -28,9 +47,12 @@ function championState() {
     week: 30,
     phase: 'season-end' as const,
     fixtures,
-    seasonGoalTallies: [
-      { season: 1, playerId: 'bramble-rovers-p10', goals: 12 },
-      { season: 1, playerId: 'bramble-rovers-p13', goals: 9 },
+    // The star's 12 are split across both competitions: the parade counts every
+    // goal he scored for the club, not only the league ones.
+    seasonStatLines: [
+      statLine('bramble-rovers-p10', 'league', 9),
+      statLine('bramble-rovers-p10', 'cup', 3),
+      statLine('bramble-rovers-p13', 'league', 9),
     ],
   };
 }

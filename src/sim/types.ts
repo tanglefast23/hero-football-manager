@@ -263,7 +263,19 @@ export type MatchEvent =
   }
   | { t: number; kind: 'SAVE'; by: number; resolveLeft: number }
   | { t: number; kind: 'MISS'; by: number }
-  | { t: number; kind: 'GOAL'; by: number; team: 0 | 1 }
+  | {
+    t: number;
+    kind: 'GOAL';
+    by: number;
+    team: 0 | 1;
+    /**
+     * Stable id of the teammate who held the ball immediately before the
+     * scorer. A stable id rather than a slot because the assisting touch
+     * precedes the goal by many ticks, so a substitution can land in between
+     * and a slot would resolve to the wrong player.
+     */
+    assistedById?: string;
+  }
   | { t: number; kind: 'POWER_READY'; player: number }
   | { t: number; kind: 'POWER_FIRED'; player: number; power: PowerId; strength: number }
   /** A power's authored on-pitch effect landing, distinct from ordinary ball/body contact. */
@@ -331,6 +343,16 @@ export interface MatchState {
   /** Fixed optional clone slots: team 0 is entity 22, team 1 is entity 23. */
   decoyClones: [DecoyCloneState | null, DecoyCloneState | null];
   ball: BallState;
+  /** Stable id of the player last observed holding the ball. */
+  ballHolderId: string | null;
+  /**
+   * Team of that holder, recorded rather than derived: by the time the next
+   * touch lands, a substitute may hold that slot, so the id alone no longer
+   * leads back to the team the previous holder played for.
+   */
+  ballHolderTeam: 0 | 1 | null;
+  /** Stable id of the previous same-team holder, or null when unassisted. */
+  assistCandidateId: string | null;
   movement: MovementState;
   tactics: [TeamTactics, TeamTactics];
   bench: [PlayerDef[], PlayerDef[]];

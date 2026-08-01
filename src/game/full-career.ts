@@ -27,6 +27,7 @@ import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { highestDivisionReached, recordHighestDivisionReached } from './promotion-progression';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
+import { prunedStatLines } from './season-recap';
 import type {
   CareerPlayer,
   ClubLineupState,
@@ -229,6 +230,15 @@ export function startNextFullCareerSeason(
     retiredPlayers,
     pendingLegacyPlayerIds,
     retirementAnnouncements,
+    // The new roster has replaced the division that just finished, so rows
+    // belonging to players who no longer exist anywhere can never be rendered
+    // again, and neither can rows from a season no board still reads. Pruning
+    // here rather than in the recap branch is what stops a season of dead rows
+    // riding along for another full season; the recap recorded at week 30
+    // already holds the podiums those rows produced. `state` is still the
+    // pre-transition state, so `state.season` is the season just completed and
+    // its rows survive.
+    seasonStatLines: prunedStatLines({ ...state, players, retiredPlayers }),
   };
   const withMarket: GameState = {
     ...next,

@@ -112,6 +112,9 @@ describe('player-controlled National Cup match flow', () => {
       homeGoals: userIsHome ? 2 : 0,
       awayGoals: userIsHome ? 0 : 2,
       scorerPlayerIds: [starterId, starterId],
+      contributions: [
+        { playerId: starterId, goals: 2, assists: 0, tacklesWon: 0, saves: 3, passesCompleted: 9 },
+      ],
     };
 
     const settled = completeMatchday(afterLeague, [userWin]);
@@ -131,10 +134,16 @@ describe('player-controlled National Cup match flow', () => {
     });
     expect(settled.players.find(player => player.id === starterId)?.fame).toBe(fameBeforeCup + 7);
     expect(settled.players.find(player => player.id === starterId)?.morale).toBe(58);
-    expect(settled.seasonGoalTallies).toContainEqual({
+    expect(settled.seasonStatLines).toContainEqual({
       season: settled.season,
       playerId: starterId,
+      clubId: settled.userClubId,
+      competition: 'cup',
       goals: 2,
+      assists: 0,
+      tacklesWon: 0,
+      saves: 3,
+      passesCompleted: 9,
     });
   });
 

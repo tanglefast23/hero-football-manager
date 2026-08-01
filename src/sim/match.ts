@@ -2,6 +2,7 @@ import { mulberry32 } from './rng';
 import { HALF_TICKS } from './geometry';
 import { emit } from './events';
 import { movementTick, possessionTick, restartKickoff, shotFlightTick, tackleTick } from './engine';
+import { attributedPlayerIndex } from './entities';
 import { cancelPowerReferencesForSubstitution, powerTick } from './powers';
 import { applyAutomaticCoaching } from './auto-coaching';
 import { MAX_SUBSTITUTIONS, performSubstitution } from './substitutions';
@@ -87,6 +88,9 @@ export function createMatch(seed: number, home: TeamDef, away: TeamDef, opts: Ma
     players: makePlayers(teams[0], teams[1], optsCopy),
     decoyClones: [null, null],
     ball: { kind: 'held', by: 9 },
+    ballHolderId: null,
+    ballHolderTeam: null,
+    assistCandidateId: null,
     // Inert placeholder (blendFrom === phase → no blend); restartKickoff below
     // resets it properly for the opening kickoff.
     movement: { phase: 0, blendFrom: 0, blendStartTick: 0, presserIdx: -1, presserSinceTick: 0 },
@@ -217,6 +221,31 @@ function processCoachingInput(state: MatchState, input: MatchInput): void {
   performSubstitution(state, team, input.player, input.replacementId, cancelPowerReferencesForSubstitution);
 }
 
+/**
+ * The single place possession changes are noticed.
+ *
+ * The ball passes through non-held states (`pass`, `loose`) between touches, so
+ * this returns early while nobody holds it — that is what preserves the
+ * previous holder across a pass in flight. Every ball assignment in the engine
+ * would otherwise need patching; observing the result once per tick does not.
+ */
+export function observePossession(state: MatchState): void {
+  if (state.ball.kind !== 'held') return;
+  const holder = state.players[attributedPlayerIndex(state, state.ball.by)];
+  // A clone entity (22/23) with no clone behind it resolves to no slot at all.
+  // A player who left the pitch is NOT this case — his slot holds his
+  // replacement, so that lookup succeeds and returns the wrong man; only the
+  // stable id kept below distinguishes them.
+  if (holder === undefined) return;
+  if (holder.def.id === state.ballHolderId) return;
+  state.assistCandidateId =
+    state.ballHolderId !== null && state.ballHolderTeam === holder.team
+      ? state.ballHolderId
+      : null;
+  state.ballHolderId = holder.def.id;
+  state.ballHolderTeam = holder.team;
+}
+
 export function tick(state: MatchState): void {
   if (state.phase === 'fulltime') return;
   state.tick++;
@@ -234,6 +263,7 @@ export function tick(state: MatchState): void {
   possessionTick(state);
   tackleTick(state);
   shotFlightTick(state);
+  observePossession(state);
 
   if (state.half === 1 && state.tick >= HALF_TICKS && (ballSettled(state) || state.tick >= HALF_TICKS + STOPPAGE_CAP)) {
     state.half = 2;

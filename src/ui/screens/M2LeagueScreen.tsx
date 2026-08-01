@@ -1,14 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SfxPressable as Pressable } from '../components/SfxPressable';
 import type {
   M2CupFixtureViewModel,
   M2CupRoundViewModel,
   M2DivisionLevelViewModel,
+  M2LeagueSubTab,
   M2LeagueViewModel,
 } from '../m2-league-models';
 import { Metric, PaperPanel, SectionLabel, StatusChip } from '../components/Scorecard';
 import { LeagueFixtureRow } from '../components/LeagueFixtureRow';
+import {
+  DivisionLeaderBoard,
+  resolveSubTab,
+  subTabLabel,
+  visibleSubTabs,
+} from '../components/DivisionLeaderBoard';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
 import { CupBracket } from '../components/CupBracket';
 import { useLayoutMode } from '../layout/use-layout-mode';
@@ -20,7 +27,8 @@ export interface M2LeagueScreenProps {
   onSelectDivision: (division: M2DivisionLevelViewModel) => void;
   onSelectCupSeason?: (season: number) => void;
   onOpenCupFixture?: (fixtureId: string) => void;
-  guideNationalCup?: boolean;
+  /** The board the inbox is sending the manager to, while that guide is live. */
+  guideSubTab?: M2LeagueSubTab;
 }
 
 export function M2LeagueScreen({
@@ -28,23 +36,27 @@ export function M2LeagueScreen({
   onSelectDivision,
   onSelectCupSeason,
   onOpenCupFixture,
-  guideNationalCup = false,
+  guideSubTab,
 }: M2LeagueScreenProps) {
   const desktopContent = useDesktopContentStyle();
   const summary = viewModel.selectedDivisionSummary;
-  const scrollRef = useRef<ScrollView>(null);
-  const cupYRef = useRef<number | null>(null);
   const layoutMode = useLayoutMode();
+  const [selectedSubTab, setSelectedSubTab] = useState<M2LeagueSubTab>('league');
 
+  /**
+   * The guide *selects* the tab rather than pinning it. Pinning would leave the
+   * strip inert until the concierge focus cleared, which reads as a broken tab.
+   */
   useEffect(() => {
-    if (!guideNationalCup || cupYRef.current === null || layoutMode !== 'single') return;
-    requestAnimationFrame(() => scrollRef.current?.scrollTo({
-      y: Math.max(0, cupYRef.current! - 12),
-      animated: true,
-    }));
-  }, [guideNationalCup, layoutMode]);
+    if (guideSubTab === undefined) return;
+    setSelectedSubTab(guideSubTab);
+  }, [guideSubTab]);
 
-  const allSections: FlowSection[] = [
+  const subTabs = visibleSubTabs(viewModel.availableTabs);
+  const activeSubTab = resolveSubTab(viewModel.availableTabs, selectedSubTab);
+  const guidedCup = guideSubTab === 'cup';
+
+  const leagueSections: FlowSection[] = [
     {
       key: 'ladder',
       weight: 13,
@@ -194,24 +206,15 @@ export function M2LeagueScreen({
         </View>
       ),
     },
+  ];
+
+  const cupSections: FlowSection[] = [
     {
       key: 'cup',
       weight: viewModel.cup.rounds.length > 0 ? 6 + 2 * viewModel.cup.rounds.length : 5,
       node: (
         <View
-          className={guideNationalCup ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
-          onLayout={event => {
-            // React Native may release the synthetic event before the next frame.
-            // Snapshot the primitive now so the guided scroll never reads a pooled event.
-            const cupY = event.nativeEvent.layout.y;
-            cupYRef.current = cupY;
-            if (guideNationalCup && layoutMode === 'single') {
-              requestAnimationFrame(() => scrollRef.current?.scrollTo({
-                y: Math.max(0, cupY - 12),
-                animated: true,
-              }));
-            }
-          }}
+          className={guidedCup ? 'relative border-2 border-blue-dark bg-blue-light p-1' : 'relative'}
         >
           <SectionLabel
             eyebrow="All 50 clubs"
@@ -297,33 +300,60 @@ export function M2LeagueScreen({
     },
   ];
 
-  /**
-   * While the inbox is sending the manager here for the cup, the cup leads.
-   * SectionFlow fills column one top-to-bottom, so putting the cup first is
-   * what "left column, already framed" means on a wide viewport — there is no
-   * scrolling to do once it is the first thing on the page.
-   */
-  const sections = guideNationalCup
-    ? [
-        ...allSections.filter(section => section.key === 'cup'),
-        ...allSections.filter(section => section.key !== 'cup'),
-      ]
-    : allSections;
+  const leadersSections: FlowSection[] = viewModel.leaders.boards.map(board => ({
+    key: `leaders-${board.categoryId}`,
+    weight: 3 + board.entries.length,
+    node: <DivisionLeaderBoard board={board} />,
+  }));
+
+  const sections = activeSubTab === 'cup'
+    ? cupSections
+    : activeSubTab === 'leaders'
+      ? leadersSections
+      : leagueSections;
 
   return (
-    <ScrollView ref={scrollRef} className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 32 }, desktopContent]}>
+    <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 32 }, desktopContent]}>
       <SectionFlow
         mode={layoutMode}
         header={
-          <View className="mb-5 flex-row items-end justify-between gap-3">
-            <View className="flex-1">
-              <Text className="font-pixel text-sm uppercase text-blue-dark">Competition office</Text>
-              <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.title}</Text>
+          <View className="mb-5">
+            <View className="flex-row items-end justify-between gap-3">
+              <View className="flex-1">
+                <Text className="font-pixel text-sm uppercase text-blue-dark">Competition office</Text>
+                <Text className="mt-1 font-pixel text-xl uppercase text-ink">{viewModel.title}</Text>
+              </View>
+              <View className="items-end gap-1">
+                <StatusChip label={viewModel.userDivisionBadge} />
+                <Text className="font-mono text-sm text-ink/50">{viewModel.seasonLabel}</Text>
+              </View>
             </View>
-            <View className="items-end gap-1">
-              <StatusChip label={viewModel.userDivisionBadge} />
-              <Text className="font-mono text-sm text-ink/50">{viewModel.seasonLabel}</Text>
-            </View>
+            {subTabs.length > 0 ? (
+              <View className="mt-4 flex-row gap-1">
+                {subTabs.map(tab => (
+                  <Pressable
+                    key={tab}
+                    accessibilityRole="tab"
+                    accessibilityLabel={subTabLabel(tab)}
+                    accessibilityState={{ selected: tab === activeSubTab }}
+                    onPress={() => setSelectedSubTab(tab)}
+                    // min-h-14 is load-bearing: the pressed style below is
+                    // function-form, which drops NativeWind layout on iOS if
+                    // height ever depends on it.
+                    className={tab === activeSubTab
+                      ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1'
+                      : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1'}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                  >
+                    <PixelText className={tab === activeSubTab
+                      ? 'text-sm uppercase text-ink'
+                      : 'text-sm uppercase text-ink/50'}>
+                      {subTabLabel(tab)}
+                    </PixelText>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
           </View>
         }
         sections={sections}
