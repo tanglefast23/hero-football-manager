@@ -56,10 +56,19 @@ export function PowerAcquiredDemoModal({
     [powerId],
   );
 
+  /**
+   * Opening only clears the freeze. It must NOT bump `replayKey`: the Modal
+   * mounts its children the moment `visible` turns true, so a bump here mounted
+   * MatchScreen, tore it straight back down, and mounted it again — building,
+   * releasing and rebuilding ~40 native audio players inside one frame. iOS
+   * answered that churn by killing the audio session ("Session lookup failed",
+   * then "Server was dead when activation request was made"), which surfaced as
+   * a warning toast over the demo. The key already carries `powerId`, and
+   * REPLAY bumps the counter itself, so nothing here needs to.
+   */
   useEffect(() => {
     if (!visible) return;
     setFrozen(false);
-    setReplayKey(key => key + 1);
   }, [powerId, visible]);
 
   const replay = useCallback(() => {
