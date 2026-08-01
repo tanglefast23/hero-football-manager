@@ -342,6 +342,8 @@ export function MatchScreen({
   colorSafeKits = true,
   pausedExternally = false,
   firstMatchTutorial = false,
+  autoSubs: initialAutoSubs = false,
+  onAutoSubsChange,
   maximumSpeed = 3,
   cupRoundLabel,
   powerCutInQaEntries,
@@ -365,6 +367,10 @@ export function MatchScreen({
   colorSafeKits?: boolean;
   pausedExternally?: boolean;
   firstMatchTutorial?: boolean;
+  /** Bench cover as the manager last left it, so it survives the final whistle. */
+  autoSubs?: boolean;
+  /** Fires only when the substitution board saves a different setting. */
+  onAutoSubsChange?: (autoSubs: boolean) => void;
   /** Seasons 1–2 cap at 2×; the veteran 3× option unlocks in Season 3. */
   maximumSpeed?: MatchSpeed;
   /** Set only for a Global Cup tie; it opens the match on the title card. */
@@ -522,9 +528,10 @@ export function MatchScreen({
   });
   const [speed, setSpeed] = useState<MatchSpeed>(1);
   /** Opt-in bench cover: a manager who only wants to watch should not be
-   * punished with eleven exhausted players and five unused substitutions. */
-  const [autoSubs, setAutoSubs] = useState(false);
-  const autoSubsRef = useRef(false);
+   * punished with eleven exhausted players and five unused substitutions.
+   * Seeded from the saved preference, so the choice is made once, not weekly. */
+  const [autoSubs, setAutoSubs] = useState(initialAutoSubs);
+  const autoSubsRef = useRef(initialAutoSubs);
   // A Global Cup tie opens on a title card; a league fixture arrives with no
   // `cupRoundLabel` and gets none. Decided once, at mount: flipping Reduce
   // Motion from the settings overlay must not restyle a card already playing.
@@ -1994,6 +2001,7 @@ export function MatchScreen({
     swaps: readonly { player: number; replacementId: string }[],
     nextAutoSubs: boolean,
   ) => {
+    if (nextAutoSubs !== autoSubsRef.current) onAutoSubsChange?.(nextAutoSubs);
     setAutoSubs(nextAutoSubs);
     autoSubsRef.current = nextAutoSubs;
     for (const swap of swaps) {

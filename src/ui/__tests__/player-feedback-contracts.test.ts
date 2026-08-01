@@ -51,6 +51,13 @@ describe('new power explanation contract', () => {
     expect(demo).toContain('zIndex: 10');
     expect(demo).toContain('elevation: 10');
     expect(match).toContain("automaticPauseReasonsRef.current.add('showcase')");
+    // Opening the demo mounts the match once. Bumping the replay key here as
+    // well remounted it immediately, and rebuilding every audio player twice in
+    // one frame killed the iOS audio session.
+    expect(demo).toMatch(
+      /if \(!visible\) return;\n {4}setFrozen\(false\);\n {2}\}, \[powerId, visible\]\);/,
+    );
+    expect(demo).toContain('const replay = useCallback(() => {');
     expect(showcase).toContain('POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 15');
     expect(showcase).toContain('POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS = 1000');
   });
