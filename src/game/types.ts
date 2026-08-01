@@ -5,7 +5,7 @@ import type { DeskTipState } from './desk-tips';
 import type { M2CareerState } from './m2-career';
 import type { YouthIntakeState } from './youth-intake';
 
-export const GAME_SCHEMA_VERSION = 2;
+export const GAME_SCHEMA_VERSION = 3;
 export const SEASON_WEEKS = 30;
 
 export type GamePhase = 'manage' | 'matchday' | 'season-end' | 'complete';
@@ -112,6 +112,20 @@ export interface CareerPlayer {
   consistency?: number;
   personality?: PlayerPersonality;
   condition?: number;
+  /**
+   * How much they want to stay, 0 to 100. Absent means "never moved from the
+   * derived starting value"; read it through `playerLoyalty` in
+   * `src/game/loyalty.ts` rather than touching this field directly.
+   */
+  loyalty?: number;
+  /**
+   * Weeks unavailable because a granted request took them away.
+   *
+   * Deliberately not `injuryWeeks`. Sharing that field would let the Medical
+   * Bay shorten a beach holiday and would make the roster announce that a
+   * striker is "recovering" from the Bahamas.
+   */
+  awayWeeks?: number;
   seasonsAtClub?: number;
   fame?: number;
   retirementAge?: number;
@@ -271,7 +285,8 @@ export type CashTransactionKind =
   | 'transfer-sell'
   | 'youth-signing'
   | 'coach-hiring'
-  | 'coach-dismissal';
+  | 'coach-dismissal'
+  | 'player-request';
 
 /**
  * Immediate M2 cash movements live beside weekly ledgers so buying something
@@ -391,6 +406,59 @@ export interface SeasonRecap {
   heroOfSeason?: SeasonRecapAward;
 }
 
+export type PlayerRequestResolution = 'GRANTED' | 'REFUSED' | 'LAPSED';
+
+export interface PendingPlayerRequest {
+  requestId: string;
+  playerId: string;
+  askedSeason: number;
+  askedWeek: number;
+  /**
+   * Money cost snapshotted when the request opened. Without it a renewal or a
+   * wage rise between the ask and the answer would silently change the number
+   * already printed on the card.
+   */
+  costAmount?: number;
+  /** True once the second-week inbox warning has been queued. */
+  warned: boolean;
+}
+
+/**
+ * Only the drill effects exist. The status requests that would have needed a
+ * perk — armband, shirt 10, guaranteed start, training priority — were cut
+ * from v1 because `contractPromise` holds a single object per player, so
+ * writing one from a request would destroy whatever was agreed at the
+ * negotiating table.
+ */
+export type RequestEffectKind = 'DRILL_PLAYER' | 'DRILL_SQUAD';
+
+export interface ActiveRequestEffect {
+  kind: RequestEffectKind;
+  /** Absent for squad-wide effects. */
+  playerId?: string;
+  weeksRemaining: number;
+  /** Drill gain scale, e.g. 50 for half gains. */
+  multiplierPercent?: number;
+}
+
+export interface ResolvedPlayerRequest {
+  requestId: string;
+  playerId: string;
+  season: number;
+  week: number;
+  resolution: PlayerRequestResolution;
+  costAmount?: number;
+}
+
+export interface PlayerRequestState {
+  weeksSinceRequest: number;
+  pending?: PendingPlayerRequest;
+  effects: ActiveRequestEffect[];
+  /** Newest first, capped at MAX_PLAYER_REQUEST_HISTORY. */
+  history: ResolvedPlayerRequest[];
+  lastAskingPlayerId?: string;
+}
+
 export interface GameState {
   schemaVersion: number;
   /** Marks launch-content roster migrations that have already been applied. */
@@ -452,6 +520,8 @@ export interface GameState {
   /** Immutable snapshots used by the season-review presentation. */
   seasonRecaps?: SeasonRecap[];
   financialSafety?: FinancialSafetyState;
+  /** Absent on saves written before player requests; defaulted on reconciliation. */
+  playerRequests?: PlayerRequestState;
   /** Persisted FIFO until Bert has delivered every post-Cup giant-killing walk-on. */
   pendingCupGiantKillingCelebrations?: CupGiantKillingCelebration[];
 }
