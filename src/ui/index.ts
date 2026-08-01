@@ -29,6 +29,7 @@ export * from './screens/ClubFinancesScreen';
 export * from './screens/CharacterCreationScreen';
 export * from './screens/AwakeningCutsceneScreen';
 export * from './screens/ChampionshipCelebrationScreen';
+export * from './screens/AwardsCeremonyScreen';
 export * from './screens/FixtureMatchDayScreen';
 export * from './screens/HirePitchScreen';
 export * from './screens/LeagueTableScreen';

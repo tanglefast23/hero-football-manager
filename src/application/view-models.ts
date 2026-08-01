@@ -602,9 +602,14 @@ export function seasonEndViewModel(
     ? promotionRewardsForDivision(promotedDivision)
     : [];
   const recap = latestSeasonRecap(state);
+  // `topScorer` is deliberately absent. It is a club-only award that counts cup
+  // goals, while the awards ceremony the manager has just watched crowns a
+  // division-wide, league-only, forwards-only Golden Boot — so the two can name
+  // different players truthfully. Showing both put a second Golden Boot on the
+  // screen one tap after the ceremony handed out the first.
   const recapAwards = recap === undefined
     ? []
-    : [recap.playerOfSeason, recap.topScorer, recap.youngPlayer, recap.heroOfSeason]
+    : [recap.playerOfSeason, recap.youngPlayer, recap.heroOfSeason]
       .filter((award): award is NonNullable<typeof award> => award !== undefined)
       .flatMap(award => {
         const player = state.players.find(candidate => candidate.id === award.playerId);
