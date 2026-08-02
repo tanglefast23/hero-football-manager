@@ -44,9 +44,13 @@ describe('full M2 career clock', () => {
 
     expect(strengths.get(full.userClubId)).toBe(40);
     expect(Math.min(...strengths.values())).toBe(40);
-    expect(Math.max(...strengths.values())).toBe(50);
+    // 51, not the 50 the pinning tuned it to: the opening fixture is sharpened
+    // afterwards with +5 on each of that one club's position attributes, which
+    // is worth about a point of squad strength. It was already the hardest of
+    // the five, so this raises the peak rather than reshaping the curve.
+    expect(Math.max(...strengths.values())).toBe(51);
     expect(openingOpponents).toEqual([
-      { strength: 50, userIsHome: true },
+      { strength: 51, userIsHome: true },
       { strength: 45, userIsHome: false },
       { strength: 46, userIsHome: true },
       { strength: 43, userIsHome: false },

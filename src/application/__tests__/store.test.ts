@@ -148,11 +148,16 @@ describe('M1 app store integration', () => {
       expect(resolved.players.find(candidate => candidate.id === player.id)?.morale)
         .toBe(Math.min(100, player.morale + 10));
     }
+    // No hasFollowUp: a resolved story only chains into a milestone recognition
+    // when the club has an unseen one banked, and by this point in the fixture
+    // it has none. It used to chain into `first-win` — the 2026-08-02 +5 on the
+    // opening opponent means that match is now a defeat, so the first win comes
+    // later and so does the beat that celebrates it. The chaining itself is
+    // covered where it belongs, by the milestone tests.
     expect(storyEventViewModel(resolved, loadLaunchContent()).successCutscene).toEqual({
       artKey: 'event-giant-spider-success',
       headline: 'A mascot is born',
       rewards: ['+10 squad morale', '+100 fans'],
-      hasFollowUp: true,
     });
     expect(userHeroes()).toHaveLength(1);
     useM1Store.getState().continueAfterEvent();

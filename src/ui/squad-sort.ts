@@ -1,10 +1,7 @@
-export type SquadSortKey = 'role' | 'player' | 'overall' | 'potential' | 'condition';
-export type SquadSortDirection = 'descending' | 'ascending';
-
-export interface SquadSort {
-  key: SquadSortKey;
-  direction: SquadSortDirection;
-}
+// The sort is a saved preference, so its vocabulary lives with the other
+// persisted UI settings (textScale, hudSide, cutInMode) rather than here.
+export type { SquadSort, SquadSortDirection, SquadSortKey } from '../persistence';
+import type { SquadSort, SquadSortKey } from '../persistence';
 
 interface SortableSquadPlayer {
   id: string;

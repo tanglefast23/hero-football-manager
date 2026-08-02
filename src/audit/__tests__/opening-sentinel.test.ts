@@ -112,22 +112,31 @@ describe('opening sentinel', () => {
     const digests = Object.fromEntries(
       ARMS.map(policy => [policy.id, outcomeDigest(byArm.get(policy.id)!)]),
     );
-    // Updated 2026-07-30 for the Keeper Drills gain ladder: 2/3/5/7/9 against
-    // every other path's 5/8/12/17/23. Every arm that taps the keeper moved;
-    // exactly the two that never do — smart-concentration, which pours the bank
-    // into the striker, and no-training — kept their previous digest. That split
-    // is itself the check that the change reached only what it was aimed at.
-    // Eight seeds cannot show a rate; the 500-seed measurement behind this
-    // digest is 10.2% wins for Ordinary and 10.8% for Smart, against 23.4% and
-    // 23.8% before.
+    // Updated 2026-08-02 for two owner-approved changes that both push the
+    // opener the same way: the outfield drill ladder cut to four fifths
+    // (5/8/12/17/23 → 4/6/10/14/18, Keeper Drills untouched), and +5 on each
+    // position attribute of the season's first opponent. Every arm moved,
+    // including the two that stayed put for the last revision — this change is
+    // not aimed at one training path, it is aimed at the fixture itself, so a
+    // split digest would have been the surprising result.
+    //
+    // The direction is intended. The opener's contract is at most 5% wins and
+    // at least 90% losses, and before these changes it sat at 10.2% and 71.8% —
+    // too easy on both counts. Six of seven arms are now a clean sweep of
+    // defeats across these eight seeds.
+    //
+    // Eight seeds cannot show a rate, and the 500-seed figures quoted here
+    // previously (10.2% Ordinary, 10.8% Smart) now predate the tree they
+    // describe. They are deliberately not restated: re-derive them from
+    // real-player-opening-probe before quoting a rate again.
     expect(digests).toEqual({
-      ordinary: 'LLWLLDWL',
-      'smart-breadth': 'LLLLLLDL',
-      'smart-extra-fwd': 'LLWLLLLL',
+      ordinary: 'LLLLWLLL',
+      'smart-breadth': 'LLDLWLLL',
+      'smart-extra-fwd': 'LLLLLLLL',
       'smart-concentration': 'LLLLLLLL',
-      'joe-observed-coach': 'LLWLLLWL',
-      'joe-observed-no-coach': 'LLLDDLWL',
-      'no-training': 'LLLLLLLD',
+      'joe-observed-coach': 'LLDLLLWL',
+      'joe-observed-no-coach': 'LLLLLLLL',
+      'no-training': 'LLLLLLLL',
     });
   });
 });

@@ -31,10 +31,10 @@ describe('training drill tier purchases', () => {
 
     // Climbing the pyramid changes nothing on its own: the club still trains on
     // the tier it bought.
-    expect(optionAt(5)).toMatchObject({ drillName: 'Sprints 1', gain: 5, tpCost: 10 });
-    expect(optionAt(4)).toMatchObject({ drillName: 'Sprints 1', gain: 5, tpCost: 10 });
-    expect(optionAt(2)).toMatchObject({ drillName: 'Sprints 1', gain: 5, tpCost: 10 });
-    expect(optionAt(2, 4)).toMatchObject({ drillName: 'Sprints 4', gain: 17, tpCost: 28 });
+    expect(optionAt(5)).toMatchObject({ drillName: 'Sprints 1', gain: 4, tpCost: 10 });
+    expect(optionAt(4)).toMatchObject({ drillName: 'Sprints 1', gain: 4, tpCost: 10 });
+    expect(optionAt(2)).toMatchObject({ drillName: 'Sprints 1', gain: 4, tpCost: 10 });
+    expect(optionAt(2, 4)).toMatchObject({ drillName: 'Sprints 4', gain: 14, tpCost: 28 });
   });
 
   test('marks a stat option unaffordable when the bank cannot cover one tap', () => {
@@ -74,7 +74,7 @@ describe('training drill tier purchases', () => {
       drillName: 'Sprints 1',
       ownedTier: 1,
       nextTier: 2,
-      nextGain: 8,
+      nextGain: 6,
       cost: 3_000,
       blockedReason: 'Tier 2 drills unlock in D4 · County League.',
     });

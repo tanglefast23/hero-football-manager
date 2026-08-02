@@ -62,9 +62,9 @@ describe('training stat options', () => {
 
     expect(finishing).toMatchObject({
       currentValue: 73,
-      gain: 5,
-      baseValueAfter: 78,
-      trainingAdjustment: 3,
+      gain: 4,
+      baseValueAfter: 77,
+      trainingAdjustment: 2,
       trainingModifierLabels: ['Youth', 'FWD', 'All-Rounder'],
     });
   });

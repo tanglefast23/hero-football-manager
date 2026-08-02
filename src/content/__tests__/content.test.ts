@@ -74,12 +74,12 @@ describe('validated M1 launch content', () => {
     // 14x the value per TP of every other drill. See
     // docs/superpowers/reports/2026-07-30-real-player-balance-findings.md.
     expect(Object.fromEntries(drillPaths)).toEqual({
-      sprints: [5, 8, 12, 17, 23],
-      finishing: [5, 8, 12, 17, 23],
-      rondo: [5, 8, 12, 17, 23],
-      duels: [5, 8, 12, 17, 23],
-      'first-touch': [5, 8, 12, 17, 23],
-      circuit: [5, 8, 12, 17, 23],
+      sprints: [4, 6, 10, 14, 18],
+      finishing: [4, 6, 10, 14, 18],
+      rondo: [4, 6, 10, 14, 18],
+      duels: [4, 6, 10, 14, 18],
+      'first-touch': [4, 6, 10, 14, 18],
+      circuit: [4, 6, 10, 14, 18],
       'keeper-drills': [2, 3, 5, 7, 9],
     });
     expect(content.events.events).toHaveLength(50);
@@ -242,12 +242,12 @@ describe('validated M1 launch content', () => {
     expect(() => parseLaunchContent(multiStat)).toThrow(/exactly one attribute/);
 
     const wrongAttribute = cloneContent(loadLaunchContent());
-    wrongAttribute.training.focusDrills[0].gains = { sho: 5 };
-    expect(() => parseLaunchContent(wrongAttribute)).toThrow(/must grant exactly \+5 PAC/);
+    wrongAttribute.training.focusDrills[0].gains = { sho: 4 };
+    expect(() => parseLaunchContent(wrongAttribute)).toThrow(/must grant exactly \+4 PAC/);
 
     const wrongTierAmount = cloneContent(loadLaunchContent());
-    wrongTierAmount.training.focusDrills[1].gains.pac = 12;
-    expect(() => parseLaunchContent(wrongTierAmount)).toThrow(/must grant exactly \+8 PAC/);
+    wrongTierAmount.training.focusDrills[1].gains.pac = 10;
+    expect(() => parseLaunchContent(wrongTierAmount)).toThrow(/must grant exactly \+6 PAC/);
 
     const unknownTier = cloneContent(loadLaunchContent());
     unknownTier.training.focusDrills[2].id = 'sprints-vi';
@@ -288,7 +288,7 @@ describe('validated M1 launch content', () => {
     expect(content.training.focusDrills).toContainEqual(expect.objectContaining({
       id: 'circuit',
       name: 'Circuit 1',
-      gains: { sta: 5 },
+      gains: { sta: 4 },
     }));
     expect(content.events.tuning).toEqual({
       weeklyChancePercent: 18,
