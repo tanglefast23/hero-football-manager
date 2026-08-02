@@ -16,17 +16,15 @@
  * afford it and refusing when it cannot — through the same production engine.
  *
  * It also measures what the first probe could not distinguish. Weekly wellbeing
- * writes the flag as
- *   `transferRequested: player.transferRequested === true || shouldRequestTransfer(updated)`
- * an OR against its own previous value, and no weekly path ever writes it back
- * to false; only a season-end renewal does, and only for a contract that has
- * actually expired. So a listed squad means either of two very different things:
- * fifteen players who want to leave today, or fifteen who were unhappy for four
- * weeks once and have been content ever since. The `stale` column re-runs
- * `shouldRequestTransfer` against each listed player's CURRENT morale and
- * low-morale streak — the same call weekly wellbeing makes. Anyone it returns
- * false for is carrying a memory, not a grievance, and is being held out of the
- * asker pool by a bit that nothing can clear.
+ * used to write the flag as an OR against its own previous value, with no
+ * weekly path back to false — only a season-end renewal cleared it, and only
+ * for a contract that had actually expired. So a listed squad meant either of
+ * two very different things: fifteen players who want to leave today, or
+ * fifteen who were unhappy for four weeks once and have been content ever
+ * since. The `stale` column re-runs `shouldRequestTransfer` against each listed
+ * player's CURRENT morale and low-morale streak — the same call weekly
+ * wellbeing makes. Anyone it returns false for is carrying a memory rather than
+ * a grievance.
  *
  * The columns, per settled week from the first week requests can open:
  *   squad    user-club players
@@ -35,6 +33,34 @@
  *   pool     eligible askers — a zero is a silent week the clock cannot end
  *   clock    `weeksSinceRequest`
  *   opens    requests dealt that week
+ *
+ * WHAT IT FOUND (2026-08-02, six seasons × three seeds, 146 settled weeks/arm)
+ *
+ * 1. The drought was real and answering did NOT rescue it. Ignoring every
+ *    request left 75–82 weeks silent (51–56%); granting every request the week
+ *    it opened left 63–76 (43–52%), still with 21-week silences. One asker
+ *    gaining +5 morale every twenty weeks cannot lift a squad losing morale
+ *    every week, so the first probe's "unmanaged squad is the worst case"
+ *    caveat did not explain the number away.
+ *
+ * 2. The stuck flag was NOT what emptied the pool — the hypothesis two
+ *    paragraphs above is refuted by its own column. `stale` read 0 at every
+ *    season end in all six arms: every listed player would raise his request
+ *    again on that week's morale. They were not carrying memories, they were
+ *    genuinely miserable, and `eligibleAskers` was correctly dropping them.
+ *
+ * 3. Removing `transferRequested` from `eligibleAskers` closed it completely:
+ *    0 silent weeks in every arm, asks up from 4–7 per career to 11–15, and the
+ *    pool floor up from 0 to 12–15. `weeksSinceRequest` fell back inside the
+ *    authored Cozy band — a peak of 8–12 against 17–49 before, since the clock
+ *    is no longer counting a drought it has no way to end.
+ *
+ * 4. STILL OPEN, and the reason this probe is worth keeping: `listed` remains
+ *    14–15 of 16 by season 3 and `stale` remains 0. Nothing here fixed the
+ *    morale collapse underneath, and the fix in (3) adds to it — three times
+ *    the asks in a club that cannot afford them means mostly refusals, at −4
+ *    morale to the asker each. This manager never trains and never buys, so a
+ *    played career should list fewer; that remains unmeasured.
  */
 import { createLaunchCareerSetup } from '../../application/launch';
 import { loadLaunchContent } from '../../content';
