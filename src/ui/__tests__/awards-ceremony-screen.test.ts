@@ -1,4 +1,7 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import {
+  PODIUM_ROW_MIN_HEIGHT,
   PRIZE_COUNT_UP_MS,
   arrivingPlacing,
   awardCeremonyStages,
@@ -6,6 +9,7 @@ import {
   isWalkOnStage,
   nextStageIndex,
   placingRowLabel,
+  podiumNameType,
   podiumRows,
   prizeAccessibilityLabel,
   prizeCountProgress,
@@ -37,18 +41,21 @@ function placing(
   };
 }
 
-/** Placings arrive third-first, which is the order the view model stores them in. */
+/**
+ * Placings arrive third-first, which is the order the view model stores them
+ * in. The default board is one the manager won, since a board he is nowhere on
+ * has no walk-on to stage at all.
+ */
 function beat(overrides: Partial<AwardCeremonyBeatViewModel> = {}): AwardCeremonyBeatViewModel {
-  const placings = [placing(3), placing(2), placing(1)];
+  const placings = [placing(3), placing(2), placing(1, { isUserPlayer: true })];
   return {
     categoryId: 'saves',
     boardLabel: 'Keepers',
     metricLabel: 'Saves',
     placings,
     emptyLabel: 'No saves recorded this season',
-    winner: placings[2],
-    winnerLine: 'Hands like glue.',
-    wonByUserPlayer: false,
+    speaker: { placing: placings[2], tone: 'winner', line: 'Hands like glue.' },
+    wonByUserPlayer: true,
     ...overrides,
   };
 }
@@ -76,7 +83,7 @@ describe('awardCeremonyStages', () => {
       { kind: 'placing', beatIndex: 0, revealed: 1 },
       { kind: 'placing', beatIndex: 0, revealed: 2 },
       { kind: 'placing', beatIndex: 0, revealed: 3 },
-      { kind: 'winner', beatIndex: 0, revealed: 3 },
+      { kind: 'walk-on', beatIndex: 0, revealed: 3 },
       { kind: 'result', beatIndex: 0, revealed: 3 },
       { kind: 'prize', beatIndex: -1, revealed: 0 },
     ]);
@@ -86,46 +93,51 @@ describe('awardCeremonyStages', () => {
    * The reveal is the whole point. A podium that appeared complete would be a
    * table; third, then second, then first is what makes the last name land.
    */
-  it('never reveals the winner before the placings below him', () => {
+  it('never reveals the walk-on before the placings below him', () => {
     const stages = awardCeremonyStages(ceremony({ beats: [beat()] }));
-    const winnerStage = stages.findIndex(stage => stage.kind === 'winner');
+    const walkOn = stages.findIndex(stage => stage.kind === 'walk-on');
 
-    expect(stages.slice(0, winnerStage).map(stage => stage.revealed)).toEqual([0, 1, 2, 3]);
-  });
-
-  it('adds a runner-up walk-on only when the beat carries one', () => {
-    const withRunnerUp = awardCeremonyStages(ceremony({
-      beats: [beat({
-        runnerUp: placing(2, { isUserPlayer: true }),
-        runnerUpLine: 'Next year.',
-      })],
-    }));
-
-    expect(withRunnerUp.map(stage => stage.kind)).toEqual([
-      'board', 'placing', 'placing', 'placing', 'winner', 'runner-up', 'result', 'prize',
-    ]);
+    expect(stages.slice(0, walkOn).map(stage => stage.revealed)).toEqual([0, 1, 2, 3]);
   });
 
   /**
-   * A rival winner is staged exactly like one of the manager's own. Only the
-   * runner-up beat and the prize know whose player it was.
+   * The rule the owner reversed after watching it: a rival never walks on, so a
+   * board the manager has nobody on is podium and nothing else.
    */
-  it('stages a rival winner identically to the manager’s own', () => {
-    const ownPlacings = [placing(3), placing(2), placing(1, { isUserPlayer: true })];
-    const own = awardCeremonyStages(ceremony({
+  it('stages no walk-on for a board the manager has nobody on', () => {
+    const rivalBoard = awardCeremonyStages(ceremony({
       beats: [beat({
-        placings: ownPlacings,
-        winner: ownPlacings[2],
-        wonByUserPlayer: true,
+        placings: [placing(3), placing(2), placing(1)],
+        speaker: undefined,
+        wonByUserPlayer: false,
       })],
     }));
 
-    expect(own).toEqual(awardCeremonyStages(ceremony({ beats: [beat()] })));
+    expect(rivalBoard.map(stage => stage.kind)).toEqual([
+      'board', 'placing', 'placing', 'placing', 'result', 'prize',
+    ]);
+  });
+
+  /** One walk-on a board, whether the manager's man won it or was beaten to it. */
+  it('stages one walk-on for a beaten player, exactly as for a winner', () => {
+    const runnerUpPlacings = [placing(3), placing(2, { isUserPlayer: true }), placing(1)];
+    const beaten = awardCeremonyStages(ceremony({
+      beats: [beat({
+        placings: runnerUpPlacings,
+        speaker: { placing: runnerUpPlacings[1], tone: 'runner-up', line: 'Next year.' },
+        wonByUserPlayer: false,
+      })],
+    }));
+
+    expect(beaten.map(stage => stage.kind)).toEqual([
+      'board', 'placing', 'placing', 'placing', 'walk-on', 'result', 'prize',
+    ]);
+    expect(beaten).toEqual(awardCeremonyStages(ceremony({ beats: [beat()] })));
   });
 
   it('gives an empty board a card and a result, and nobody to walk on', () => {
     const stages = awardCeremonyStages(ceremony({
-      beats: [beat({ placings: [], winner: undefined, winnerLine: undefined })],
+      beats: [beat({ placings: [], speaker: undefined, wonByUserPlayer: false })],
     }));
 
     expect(stages.map(stage => stage.kind)).toEqual(['board', 'result', 'prize']);
@@ -149,12 +161,12 @@ describe('advancing and skipping', () => {
   });
 
   it('skips a walk-on to that board’s podium result', () => {
-    const winner = stages.findIndex(stage => stage.kind === 'winner');
+    const walkOn = stages.findIndex(stage => stage.kind === 'walk-on');
 
-    const landed = stages[beatResultStageIndex(stages, winner)]!;
+    const landed = stages[beatResultStageIndex(stages, walkOn)]!;
 
     expect(landed.kind).toBe('result');
-    expect(landed.beatIndex).toBe(stages[winner]!.beatIndex);
+    expect(landed.beatIndex).toBe(stages[walkOn]!.beatIndex);
   });
 
   it('skips the whole ceremony to the prize, which is never skipped', () => {
@@ -171,7 +183,7 @@ describe('advancing and skipping', () => {
     const before = { ...viewModel.prize };
 
     const traversed = awardCeremonyStages(viewModel);
-    beatResultStageIndex(traversed, traversed.findIndex(stage => stage.kind === 'winner'));
+    beatResultStageIndex(traversed, traversed.findIndex(stage => stage.kind === 'walk-on'));
     prizeStageIndex(traversed);
     nextStageIndex(traversed, 0);
 
@@ -179,9 +191,10 @@ describe('advancing and skipping', () => {
     expect(traversed).toEqual(stages);
   });
 
-  it('treats only the two walk-ons as skippable staging', () => {
-    expect(stages.filter(isWalkOnStage).map(stage => stage.kind))
-      .toEqual(['winner', 'winner', 'winner', 'winner']);
+  /** One a board, four in the ceremony, and nothing else is skippable staging. */
+  it('treats the one walk-on a board as skippable staging', () => {
+    expect(stages.filter(isWalkOnStage).map(stage => stage.beatIndex)).toEqual([0, 1, 2, 3]);
+    expect(stages.filter(isWalkOnStage).every(stage => stage.kind === 'walk-on')).toBe(true);
     expect(isWalkOnStage(undefined)).toBe(false);
   });
 
@@ -246,16 +259,16 @@ describe('what the ceremony says out loud', () => {
       .toBe('Keepers, Saves. 2. Player 2, Quartz FC, 28 saves. 3. Player 3, Quartz FC, 27 saves.');
   });
 
-  it('reads the winner’s podium while he is speaking', () => {
-    const winner = stages.findIndex(candidate => candidate.kind === 'winner');
+  it('reads the whole podium while the walk-on speaks', () => {
+    const walkOn = stages.findIndex(candidate => candidate.kind === 'walk-on');
 
-    expect(stageAccessibilityLabel(viewModel, stages[winner]!))
+    expect(stageAccessibilityLabel(viewModel, stages[walkOn]!))
       .toContain('1. Player 1, Quartz FC, 29 saves.');
   });
 
   it('says a board nobody registered rather than falling silent', () => {
     const empty = ceremony({
-      beats: [beat({ placings: [], winner: undefined, winnerLine: undefined })],
+      beats: [beat({ placings: [], speaker: undefined, wonByUserPlayer: false })],
     });
 
     expect(stageAccessibilityLabel(empty, awardCeremonyStages(empty)[1]!))
@@ -265,6 +278,90 @@ describe('what the ceremony says out loud', () => {
   it('reads the prize on the last stage', () => {
     expect(stageAccessibilityLabel(viewModel, stages[prizeStageIndex(stages)]!))
       .toContain('210 Training Points');
+  });
+});
+
+/**
+ * The reel found both of these on its first render, at the 375pt floor.
+ */
+describe('what the ceremony has to fit on a small phone', () => {
+  const screen = readFileSync(
+    join(process.cwd(), 'src/ui/screens/AwardsCeremonyScreen.tsx'),
+    'utf8',
+  );
+
+  /**
+   * "Division Awards" in 16pt pixel type is about 188pt wide, centred on a
+   * 375pt screen — wider than what is left beside a skip control, so the two
+   * cannot share a row at the narrowest supported width. The band above the
+   * header is what keeps them apart, and it has to be measured from the
+   * control's own geometry or a taller button walks straight back under the
+   * title.
+   */
+  it('reserves the skip controls a band of their own above the title', () => {
+    expect(screen).toContain('const SKIP_CONTROL_BAND = SKIP_ROW_INSET');
+    expect(screen).toContain('+ SKIP_BUTTON_HEIGHT * SKIP_CONTROL_COUNT');
+    expect(screen).toContain('controlBand: { height: SKIP_CONTROL_BAND }');
+    expect(screen).toContain('<View style={styles.controlBand} />');
+  });
+
+  it('places the skip row from the same constants the band is measured from', () => {
+    expect(screen).toContain('right: SKIP_ROW_INSET,');
+    expect(screen).toContain('top: SKIP_ROW_INSET,');
+    expect(screen).toContain('gap: SKIP_ROW_GAP,');
+    expect(screen).toContain('minHeight: SKIP_BUTTON_HEIGHT,');
+  });
+
+  it('keeps ordinary names at full size', () => {
+    expect(podiumNameType('Flint Vale')).toEqual({
+      nameClass: 'text-base',
+      clubClass: 'text-sm',
+    });
+    expect(podiumNameType('A'.repeat(20)).nameClass).toBe('text-base');
+  });
+
+  it('steps a long name down rather than ellipsising it', () => {
+    expect(podiumNameType('A'.repeat(21)).nameClass).toBe('text-sm');
+    expect(podiumNameType('Konstantin Abercrombie-Vasquez').nameClass).toBe('text-xs');
+  });
+
+  /** Character creation caps a typed name at 24, so one never goes below `text-sm`. */
+  it('holds the longest name a player can type at the middle step', () => {
+    expect(podiumNameType('A'.repeat(24)).nameClass).toBe('text-sm');
+  });
+
+  /** The row reads name over club; a club set larger than its player is a bug. */
+  it('never sets the club larger than the name', () => {
+    const ascending = ['text-xs', 'text-sm', 'text-base'];
+
+    for (const length of [1, 20, 21, 26, 27, 40]) {
+      const type = podiumNameType('A'.repeat(length));
+
+      expect(ascending.indexOf(type.clubClass))
+        .toBeLessThanOrEqual(ascending.indexOf(type.nameClass));
+      expect(ascending).toContain(type.nameClass);
+    }
+  });
+
+  /**
+   * The step-down only works if the row keeps its height. Measured on the
+   * reel before this was pinned: a stepped row came out 52pt against 68pt,
+   * and the podium was visibly uneven.
+   */
+  it('holds every rostrum card at the full-size row height', () => {
+    expect(PODIUM_ROW_MIN_HEIGHT).toBe(68);
+    expect(screen).toContain(`min-h-[${PODIUM_ROW_MIN_HEIGHT}px]`);
+    expect(screen).not.toContain('min-h-12');
+  });
+
+  /**
+   * Every step is still one line. A second line would grow one row and make the
+   * whole podium reflow the moment a winner's name ran longer than the two
+   * already standing beneath him.
+   */
+  it('never asks a rostrum card for a second line', () => {
+    expect(screen).toContain('numberOfLines={1}');
+    expect(screen).not.toContain('numberOfLines={2}');
   });
 });
 

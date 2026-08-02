@@ -334,6 +334,52 @@ describe('weekly player wellbeing', () => {
     });
   });
 
+  /**
+   * The flag has to be able to go both ways, and this is the direction that was
+   * missing. It was written as `was || shouldRequest`, so a player who spent
+   * four weeks unhappy in season 1 was still listed at morale 100 in season 6 —
+   * still raising the "wants to leave" desk alert, and still dropped by
+   * `eligibleAskers`, which is what starved the player-request tab of anyone to
+   * ask. A `toBe(true)` here before the fix; a happy squad now clears itself.
+   */
+  test('withdraws a transfer request once the player is won back', () => {
+    let state = createCareer(createLaunchCareerSetup(12));
+    const player = userPlayers(state)[0];
+    state = withUserPlayerChanges(state, candidate => candidate.id === player.id
+      ? {
+          ...candidate,
+          personality: 'Professional',
+          morale: 5,
+          consecutiveLowMoraleWeeks: 4,
+        }
+      : candidate);
+
+    state = { ...state, players: resolveWeeklyPlayerWellbeing(state).players };
+    const listed = userPlayers(state).find(candidate => candidate.id === player.id)!;
+    expect(listed.transferRequested).toBe(true);
+
+    // Still listed while he is merely less miserable — the exact line is
+    // `shouldWithdrawTransferRequest`'s own test in pyramid.test.ts.
+    state = withUserPlayerChanges(state, candidate => candidate.id === player.id
+      ? { ...candidate, morale: 20 }
+      : candidate);
+    state = { ...state, players: resolveWeeklyPlayerWellbeing(state).players };
+    expect(
+      userPlayers(state).find(candidate => candidate.id === player.id)!.transferRequested,
+    ).toBe(true);
+
+    // Won back, and it stays withdrawn week after week.
+    state = withUserPlayerChanges(state, candidate => candidate.id === player.id
+      ? { ...candidate, morale: 100 }
+      : candidate);
+    for (let week = 0; week < 5; week += 1) {
+      state = { ...state, players: resolveWeeklyPlayerWellbeing(state).players };
+    }
+    expect(
+      userPlayers(state).find(candidate => candidate.id === player.id)!.transferRequested,
+    ).toBe(false);
+  });
+
   test('gives a Level 1 assistant Motivator an exact 2.5% morale effect', () => {
     let state = createCareer(createLaunchCareerSetup(11));
     const player = userPlayers(state)[0];

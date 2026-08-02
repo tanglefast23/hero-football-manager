@@ -39,6 +39,31 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   'national-cup': ['celebrating', 'pointing-out'],
   // Dressing-room gossip, then he points at the tab that will carry it.
   'player-requests': ['confiding', 'pointing-out'],
+
+  // The eight below were unauthored and fell through to DEFAULT_RUN. Seven are
+  // a single page, so they never reached past its first face and every one of
+  // them was delivered with `explaining` — the face for walking you through the
+  // scouting screen. Every authored beat above teaches something; every beat
+  // that was missed breaks something to you. That is not a coincidence, and it
+  // is why they were the wrong ones to leave on the default.
+  //
+  // Each takes a distinct posture as well as a distinct face: they never share
+  // a briefing, but they arrive in the same career, and a run of identical
+  // shapes reads as one stock reaction to four different pieces of news.
+  'first-injury': ['alarmed'],
+  'first-emergency-loan': ['warning-money'],
+  'first-transfer-request': ['disapproving'],
+  // Gentle rather than grave. A career ending is sad, not a disaster, and
+  // `bad-news` winces where `very-bad-news` would be covering its face.
+  'retirement': ['bad-news'],
+  // A legend's last decision is an honour to hand out, not a loss to absorb.
+  'club-legacy': ['confiding'],
+  // The board's four-week deadline, which is the hardest thing it ever says.
+  'board-ultimatum': ['warning-hard'],
+  // There is a way out of the forced sale — he is stopping you to show you it.
+  'board-protection': ['hold-on'],
+  // The one piece of good news here: explain the boards, then send you after one.
+  'division-leaders': ['explaining', 'encouraging'],
 };
 
 /**

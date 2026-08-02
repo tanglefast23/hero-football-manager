@@ -820,6 +820,85 @@ const seasonRecapSchema = z.object({
   divisionAwardPrize: divisionAwardPrizeSchema.optional(),
 }).passthrough();
 
+const divisionLevel = positiveInteger.refine(value => value <= 5, 'must be at most 5');
+const leaguePosition = positiveInteger.refine(value => value <= 10, 'must be at most 10');
+
+/**
+ * The record written once, at the summit.
+ *
+ * Validated as strictly as a recap because it is the same kind of thing: a
+ * denormalised snapshot that can never be rebuilt from live state, so a
+ * malformed one is not a display bug but a permanently wrong career record. A
+ * nameless player is rejected outright — an unnamed top scorer renders as a raw
+ * ID, which is the exact failure the snapshot exists to prevent.
+ */
+const hallOfFameSchema = z.object({
+  season: positiveInteger,
+  clubName: nonemptyString,
+  played: nonnegativeInteger,
+  won: nonnegativeInteger,
+  drawn: nonnegativeInteger,
+  lost: nonnegativeInteger,
+  goalsFor: nonnegativeInteger,
+  goalsAgainst: nonnegativeInteger,
+  divisionTitles: z.array(z.object({
+    season: positiveInteger,
+    division: divisionLevel,
+  }).passthrough()),
+  cupWinSeasons: z.array(positiveInteger),
+  // Five tiers exist, and a tier folds every spell at that level into one row.
+  tiers: z.array(z.object({
+    division: divisionLevel,
+    firstSeason: positiveInteger,
+    seasons: positiveInteger,
+    bestPosition: leaguePosition,
+  }).passthrough()).max(5),
+  topScorer: z.object({
+    playerId: nonemptyString,
+    playerName: nonemptyString,
+    goals: nonnegativeInteger,
+    goldenBoots: positiveInteger,
+  }).passthrough().optional(),
+  star: z.object({
+    playerId: nonemptyString,
+    playerName: nonemptyString,
+    fame: nonnegativeInteger,
+    seasonsAtClub: nonnegativeInteger,
+  }).passthrough().optional(),
+}).passthrough().superRefine((record, context) => {
+  if (record.won + record.drawn + record.lost !== record.played) {
+    context.addIssue({
+      code: 'custom',
+      path: ['played'],
+      message: 'results must add up to the games played',
+    });
+  }
+  const divisions = new Set(record.tiers.map(tier => tier.division));
+  if (divisions.size !== record.tiers.length) {
+    context.addIssue({
+      code: 'custom',
+      path: ['tiers'],
+      message: 'each tier may appear once',
+    });
+  }
+  const cupSeasons = new Set(record.cupWinSeasons);
+  if (cupSeasons.size !== record.cupWinSeasons.length) {
+    context.addIssue({
+      code: 'custom',
+      path: ['cupWinSeasons'],
+      message: 'a Cup can only be won once a season',
+    });
+  }
+  const titleKeys = new Set(record.divisionTitles.map(title => title.season));
+  if (titleKeys.size !== record.divisionTitles.length) {
+    context.addIssue({
+      code: 'custom',
+      path: ['divisionTitles'],
+      message: 'a season can only produce one division title',
+    });
+  }
+});
+
 const gameStateSchema = z
   .object({
     schemaVersion: z.literal(GAME_SCHEMA_VERSION),
@@ -879,6 +958,7 @@ const gameStateSchema = z
       retirementAge: positiveInteger.refine(value => value >= 33 && value <= 38, 'must be from 33 to 38'),
     }).passthrough()).optional(),
     seasonRecaps: z.array(seasonRecapSchema).optional(),
+    hallOfFame: hallOfFameSchema.optional(),
     playerRequests: playerRequestStateSchema.optional(),
     financialSafety: z.object({
       consecutiveNegativeWeeks: nonnegativeInteger,
@@ -1127,6 +1207,23 @@ const gameStateSchema = z
         }
       }
     }
+    if (state.hallOfFame !== undefined) {
+      // The record is a snapshot of seasons already played, so nothing in it
+      // may postdate the career carrying it. Catches a record grafted onto the
+      // wrong save far more cheaply than a screen full of impossible seasons.
+      const futureSeason = state.hallOfFame.season > state.season
+        || state.hallOfFame.divisionTitles.some(title => title.season > state.season)
+        || state.hallOfFame.cupWinSeasons.some(season => season > state.season)
+        || state.hallOfFame.tiers.some(tier => tier.firstSeason > state.season);
+      if (futureSeason) {
+        context.addIssue({
+          code: 'custom',
+          path: ['hallOfFame', 'season'],
+          message: 'the record cannot contain a season the career has not played',
+        });
+      }
+    }
+
     const cashTransactionIds = new Set<string>();
     for (let index = 0; index < (state.cashTransactions ?? []).length; index += 1) {
       const transaction = state.cashTransactions![index];

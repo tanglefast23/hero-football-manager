@@ -2,11 +2,14 @@ import { loadLaunchContent } from '../../content';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 import { createCareer } from '../career';
+import { careerDifficulty } from '../difficulty';
+import { runHeadlessFullCareer } from '../headless';
 import { playerLoyalty } from '../loyalty';
 import { buildCareerTeamDef } from '../squad';
 import { trainPlayerInstantly } from '../training';
 import {
   DEFAULT_PLAYER_REQUEST_STATE,
+  STAR_FAME_THRESHOLD,
   absenceWeeksFor,
   advancePlayerRequests,
   canAffordRequest,
@@ -24,7 +27,7 @@ import {
   totalAskerWeight,
   weightForPlayer,
 } from '../player-requests';
-import type { CareerPlayer, GameState } from '../types';
+import { SEASON_WEEKS, type CareerPlayer, type GameState } from '../types';
 
 /**
  * Tests may read content; production `src/game/*` may not. Every entry point
@@ -139,7 +142,7 @@ describe('weightForPlayer', () => {
   });
 
   it('doubles for a famous player', () => {
-    expect(weightForPlayer(player({ id: 'a', fame: 60 }), [])).toBe(2);
+    expect(weightForPlayer(player({ id: 'a', fame: STAR_FAME_THRESHOLD }), [])).toBe(2);
   });
 
   it('doubles for a division goal leader', () => {
@@ -147,7 +150,7 @@ describe('weightForPlayer', () => {
   });
 
   it('compounds to 4 for a famous goal leader', () => {
-    expect(weightForPlayer(player({ id: 'a', fame: 60 }), ['a'])).toBe(4);
+    expect(weightForPlayer(player({ id: 'a', fame: STAR_FAME_THRESHOLD }), ['a'])).toBe(4);
   });
 });
 
@@ -161,7 +164,7 @@ describe('eligibleAskers', () => {
     player({ id: 'previous' }),
   ];
 
-  it('excludes injured, away, transfer-listed and the previous asker', () => {
+  it('excludes injured, away and the previous asker', () => {
     const ids = eligibleAskers(roster, {
       lastAskingPlayerId: 'previous',
       minSeasonsAtClub: 0,
@@ -171,8 +174,23 @@ describe('eligibleAskers', () => {
     expect(ids).toContain('fit');
     expect(ids).not.toContain('injured');
     expect(ids).not.toContain('away');
-    expect(ids).not.toContain('listed');
     expect(ids).not.toContain('previous');
+  });
+
+  /**
+   * Wanting a move and wanting a new gym are different things.
+   *
+   * This exclusion used to exist and it starved the feature: a measured six
+   * seasons leaves 14–15 of a 16-man squad genuinely listed by season 3, which
+   * silenced the tab for 43–52% of settled weeks even when every request was
+   * granted on sight. A listed player asking is also the only way the manager
+   * can talk him round, since granting pays morale toward his withdrawal line.
+   */
+  it('lets a transfer-listed player ask', () => {
+    const ids = eligibleAskers(roster, { minSeasonsAtClub: 0, absence: false })
+      .map(candidate => candidate.id);
+
+    expect(ids).toContain('listed');
   });
 
   it('excludes a player in their first season at the club', () => {
@@ -213,7 +231,7 @@ describe('eligibleAskers', () => {
 
 describe('pickAsker', () => {
   it('is deterministic for the same roll and respects weight', () => {
-    const roster = [player({ id: 'a' }), player({ id: 'b', fame: 60 })];
+    const roster = [player({ id: 'a' }), player({ id: 'b', fame: STAR_FAME_THRESHOLD })];
 
     expect(totalAskerWeight(roster, [])).toBe(3);
     expect(pickAsker(roster, [], 0)?.id).toBe('a');
@@ -848,7 +866,15 @@ describe('advancePlayerRequests', () => {
     expect(next.playerRequests!.history).toHaveLength(0);
   });
 
-  it('cancels silently when the asker asks for a transfer', () => {
+  /**
+   * The inverse of the rule this used to assert.
+   *
+   * A pending ask survived everything except its author asking for a transfer,
+   * which meant a bad fortnight between the ask and the answer quietly voided a
+   * card the manager was still looking at. Leaving the club is now the only
+   * thing that invalidates one.
+   */
+  it('keeps the ask alive when the asker asks for a transfer', () => {
     const base = tickingCareer();
     const asker = base.players.find(p => p.clubId === base.userClubId)!;
     const listed: GameState = {
@@ -866,7 +892,127 @@ describe('advancePlayerRequests', () => {
       },
     };
 
-    expect(advancePlayerRequests(listed, true).playerRequests!.pending).toBeUndefined();
+    expect(advancePlayerRequests(listed, true).playerRequests!.pending)
+      .toMatchObject({ requestId: 'gold-boots', playerId: asker.id });
+  });
+});
+
+/**
+ * The half of `tuning.cadence` that had never run.
+ *
+ * `hasStar` used to be true from season 2 of every career ever played: the star
+ * threshold was 50, fame saturated at 99, and the whole first eleven cleared it
+ * inside one season. The non-star row of the cadence table was therefore
+ * unreachable in a real game — a shipped tuning knob that could only ever be
+ * read by a unit test.
+ *
+ * This plays real seasons rather than stamping a season number onto a fresh
+ * squad, because the fresh squad is exactly what could not prove it: its fame
+ * is zero, so it reads as starless whatever the threshold is.
+ */
+describe('the star gate divides a real career in two', () => {
+  it('runs the non-star cadence for its first seasons and the star one after', () => {
+    const hasStar = (state: GameState): boolean => state.players
+      .filter(candidate => candidate.clubId === state.userClubId)
+      .some(candidate => weightForPlayer(
+        candidate,
+        starQualifiers(state.seasonStatLines ?? [], state.season, CATALOG.tuning.starGoalRank),
+        CATALOG.tuning.starFameThreshold,
+      ) > 1);
+
+    // The catalog is attached here for the same reason the dev harness attaches
+    // it: `createLaunchCareerSetup` never carries one, so a career built without
+    // this line has requests switched off at the first line of the draw.
+    const played = (seasons: number): GameState => runHeadlessFullCareer(
+      { ...createLaunchCareerSetup(20260801), playerRequestRules: CATALOG },
+      seasons,
+    );
+    const early = played(3);
+    const late = played(7);
+
+    expect(hasStar(early)).toBe(false);
+    expect(hasStar(late)).toBe(true);
+    // And the starless seasons are not silent ones: the slower row still deals
+    // requests, which is the thing an unreachable branch could never show.
+    expect(early.playerRequests!.history.length).toBeGreaterThan(0);
+  }, 120_000);
+});
+
+/**
+ * WHICH row of `tuning.cadence` a starless squad is actually timed by.
+ *
+ * The test above proves a young squad reads as starless and still gets asked.
+ * It cannot prove the asking is on the SLOWER schedule, because both rows deal
+ * requests — swap the branch and it still passes. So this one holds the clock
+ * still at a chosen number of dry weeks and sweeps a whole season of rolls,
+ * which turns a probability into a count. The two rows overlap everywhere
+ * except in the windows below, and those are where the count separates:
+ *
+ *   at `starMinWeeks`      a star squad may be asked; a starless one cannot be
+ *   at `starGuaranteeWeeks` a star squad is always asked; a starless one is not
+ *   at `guaranteeWeeks`    a starless squad is always asked
+ *
+ * A career measured through the real weekly settlement is in
+ * `src/audit/__tests__/player-request-cadence-probe.test.ts`; the numbers here
+ * are the same ones it watches arrive.
+ */
+describe('the non-star cadence times a starless squad', () => {
+  /** Every week of a season, so one held clock produces a whole season of rolls. */
+  const SWEPT_WEEKS = Array.from({ length: SEASON_WEEKS }, (_, index) => index + 1);
+  const CADENCE = CATALOG.tuning.cadence[careerDifficulty(tickingCareer())];
+
+  /**
+   * How many of a season's weeks open a request when the drought is held at
+   * `weeksSinceRequest` dry weeks. Stored minus one, because the draw
+   * increments the clock before it reads it.
+   */
+  function opensPerSeason(dryWeeks: number, starred: boolean): number {
+    const base = tickingCareer();
+    const squad = base.players.filter(player => player.clubId === base.userClubId);
+    const starId = squad[0].id;
+    const players = base.players.map(player => {
+      if (player.clubId !== base.userClubId) return player;
+      // Zeroed rather than trusted: a launch roster that starts anyone above the
+      // threshold would make the starless half of this test vacuous.
+      return { ...player, fame: starred && player.id === starId
+        ? CATALOG.tuning.starFameThreshold
+        : 0 };
+    });
+
+    return SWEPT_WEEKS.filter(week => advancePlayerRequests({
+      ...atSeason(base, 3),
+      week,
+      players,
+      // Empty on purpose: a top-scorer qualifier is the other half of `hasStar`,
+      // and this test is about the fame half.
+      seasonStatLines: [],
+      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: dryWeeks - 1 },
+    }, true).playerRequests!.pending !== undefined).length;
+  }
+
+  it('stays silent through the weeks a star squad would already be asking in', () => {
+    expect(opensPerSeason(CADENCE.starMinWeeks, false)).toBe(0);
+    expect(opensPerSeason(CADENCE.minWeeks - 1, false)).toBe(0);
+    expect(opensPerSeason(CADENCE.starMinWeeks, true)).toBeGreaterThan(0);
+  });
+
+  it('reaches certainty on its own guarantee week, not the star one', () => {
+    expect(opensPerSeason(CADENCE.starGuaranteeWeeks, true)).toBe(SEASON_WEEKS);
+    expect(opensPerSeason(CADENCE.starGuaranteeWeeks, false)).toBeLessThan(SEASON_WEEKS);
+    expect(opensPerSeason(CADENCE.guaranteeWeeks, false)).toBe(SEASON_WEEKS);
+  });
+
+  /**
+   * The starless squad waits longer for the same certainty. Stated as a total
+   * across the shared window rather than week by week, because the ramp is
+   * eased and a single week can tie.
+   */
+  it('asks less often than a star squad across the weeks they share', () => {
+    const shared = [CADENCE.minWeeks, CADENCE.starGuaranteeWeeks];
+    const total = (starred: boolean): number => shared
+      .reduce((sum, dryWeeks) => sum + opensPerSeason(dryWeeks, starred), 0);
+
+    expect(total(false)).toBeLessThan(total(true));
   });
 });
 

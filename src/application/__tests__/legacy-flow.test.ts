@@ -54,9 +54,11 @@ describe('club-legend app flow', () => {
       playerName: 'Ari Flint',
       role: retiredLegend.role,
       queueLabel: 'Final legacy decision',
+      // Two choices. "Mentor a prospect" is not one of them: it needed a
+      // seventeenth roster place the season transition never leaves free.
       choices: [
         { id: 'coach-candidate' },
-        { id: 'mentor-youth' },
+        { id: 'farewell' },
       ],
     });
 
@@ -95,6 +97,40 @@ describe('club-legend app flow', () => {
 
     expect(useM1Store.getState().screen).toBe('legacy');
   });
+
+  /**
+   * The decline leaves the store in exactly the state the coach path leaves it
+   * in, minus the coach: the queue advanced, the office reached, no error. It
+   * was the missing half of a screen that presented one button.
+   */
+  it('clears the queue on a farewell without hiring anybody', () => {
+    useM1Store.getState().startNewCareer(73_533);
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    const current = useM1Store.getState().career!;
+    const retiredLegend = legendFrom(current.players.find(player =>
+      player.clubId === current.userClubId,
+    )!);
+    const coachesBefore = current.market?.coachCandidates ?? [];
+    useM1Store.setState({
+      career: {
+        ...current,
+        retiredPlayers: [retiredLegend],
+        pendingLegacyPlayerIds: [retiredLegend.id],
+      },
+      screen: 'legacy',
+    });
+
+    useM1Store.getState().chooseLegacy('farewell');
+
+    expect(useM1Store.getState().screen).toBe('management');
+    expect(useM1Store.getState().error).toBeNull();
+    expect(useM1Store.getState().career?.pendingLegacyPlayerIds).toEqual([]);
+    expect(useM1Store.getState().career?.market?.coachCandidates).toEqual(coachesBefore);
+    expect(useM1Store.getState().career?.players).toEqual(current.players);
+  });
 });
 
 function legendFrom(player: CareerPlayer): CareerPlayer {
@@ -103,7 +139,7 @@ function legendFrom(player: CareerPlayer): CareerPlayer {
     id: 'retired-legend',
     name: 'Ari Flint',
     age: 37,
-    fame: 88,
+    fame: 288,
     seasonsAtClub: 7,
     personality: 'Loyal',
     retirementAge: 37,

@@ -1,8 +1,8 @@
 import type { Attrs } from '../../sim/types';
 import {
+  CLUB_LEGEND_MIN_FAME,
   advanceNationalCup,
   applyLowMoraleToStat,
-  boostLegacyYouthAttributes,
   createLegendLegacy,
   createNationalCup,
   DIVISION_GOALKEEPER_REF_RATINGS,
@@ -19,6 +19,8 @@ import {
   resolveSeasonEndLifecycle,
   retirementAnnouncementAge,
   shouldRequestTransfer,
+  shouldWithdrawTransferRequest,
+  TRANSFER_REQUEST_WITHDRAW_MARGIN,
   trainingMultiplierForAge,
   updatePlayerWellbeing,
   type DivisionFinishOrder,
@@ -289,17 +291,22 @@ describe('aging, retirement, and legacy', () => {
     expect(retired.retiredPlayers).toHaveLength(1);
   });
 
-  it('offers eligible legends either a discounted coach or a boosted same-archetype youth', () => {
+  /**
+   * One outcome. The mentored youth was removed once it was measured: it needs
+   * a seventeenth roster place and the season transition always refills the
+   * squad to the sixteen-player cap, so it could never actually be taken.
+   */
+  it('turns an eligible legend into a discounted coach, and refuses anyone else', () => {
     const legend = lifecyclePlayer({
       id: 'legend-flint',
-      fame: 80,
+      fame: 230,
       seasonsAtClub: 7,
       archetype: 'Sniper',
       role: 'FWD',
     });
     expect(isClubLegend(legend)).toBe(true);
-    expect(isClubLegend({ fame: 69, seasonsAtClub: 10 })).toBe(false);
-    expect(createLegendLegacy(legend, 'coach-candidate', 8, 9)).toEqual({
+    expect(isClubLegend({ fame: CLUB_LEGEND_MIN_FAME - 1, seasonsAtClub: 10 })).toBe(false);
+    expect(createLegendLegacy(legend)).toEqual({
       choice: 'coach-candidate',
       coachCandidate: {
         id: 'legacy-coach-legend-flint',
@@ -309,15 +316,8 @@ describe('aging, retirement, and legacy', () => {
         loyaltyDiscountPercent: 20,
       },
     });
-    const youth = createLegendLegacy(legend, 'mentor-youth', 8, 9);
-    expect(youth.choice).toBe('mentor-youth');
-    if (youth.choice !== 'mentor-youth') throw new Error('expected youth legacy');
-    expect(youth.youth.archetype).toBe(legend.archetype);
-    expect(youth.youth.name.endsWith(' Flint')).toBe(true);
-    expect(youth.startingStatBoostPercent).toBe(15);
-    expect(boostLegacyYouthAttributes({ ...ATTRS, ref: 90 })).toEqual({
-      pac: 69, sho: 69, pas: 69, def: 69, tec: 69, sta: 69, ref: 103,
-    });
+    expect(() => createLegendLegacy(lifecyclePlayer({ id: 'journeyman', fame: 12, seasonsAtClub: 1 })))
+      .toThrow('not eligible');
   });
 });
 
@@ -347,5 +347,42 @@ describe('morale and condition', () => {
       personality: 'Loyal',
       consecutiveLowMoraleWeeks: 4,
     })).toBe(false);
+  });
+
+  /**
+   * Withdrawal must clear the trigger by a margin or the flag chatters: a
+   * Greedy player asks at 30 and would take it back on the first win that
+   * carried him to 31. The gap is what makes a withdrawal mean something.
+   */
+  it('withdraws a transfer request only well clear of the personality that raised it', () => {
+    const greedy = { condition: 100, personality: 'Greedy' as const, consecutiveLowMoraleWeeks: 0 };
+    expect(shouldWithdrawTransferRequest({ ...greedy, morale: 31 })).toBe(false);
+    expect(shouldWithdrawTransferRequest({
+      ...greedy,
+      morale: 30 + TRANSFER_REQUEST_WITHDRAW_MARGIN - 1,
+    })).toBe(false);
+    expect(shouldWithdrawTransferRequest({
+      ...greedy,
+      morale: 30 + TRANSFER_REQUEST_WITHDRAW_MARGIN,
+    })).toBe(true);
+
+    // The same margin off a lower patience line: a Loyal player asks at 12, so
+    // he is won back at 32 where the Greedy one still wants out.
+    const loyalMorale = 12 + TRANSFER_REQUEST_WITHDRAW_MARGIN;
+    expect(shouldWithdrawTransferRequest({
+      condition: 100,
+      personality: 'Loyal',
+      consecutiveLowMoraleWeeks: 0,
+      morale: loyalMorale,
+    })).toBe(true);
+    expect(shouldWithdrawTransferRequest({ ...greedy, morale: loyalMorale })).toBe(false);
+
+    // No streak term: `updatePlayerWellbeing` zeroes the low-morale counter as
+    // soon as morale clears 30, so a contented player is judged on morale alone.
+    expect(shouldWithdrawTransferRequest({
+      ...greedy,
+      morale: 100,
+      consecutiveLowMoraleWeeks: 9,
+    })).toBe(true);
   });
 });

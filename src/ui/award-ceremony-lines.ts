@@ -1,15 +1,15 @@
 import awardCeremonyLinesJson from '../../content/award-ceremony-lines.json';
 import type { AwardCategoryId } from '../game/types';
+import type { AwardCeremonySpeechTone } from './models';
 
 /**
  * What the players say on the rostrum at the end of a season.
  *
- * Two pools, because they answer opposite questions. A winner's line is spoken
- * by whoever topped the board — the manager's player or a rival's — so it can
- * neither assume the speaker's club nor name a metric, since the same pool
- * serves goals, passes, tackles and saves. A runner-up line is only ever spoken
- * by one of the manager's own players, and is never sour about the winner:
- * that is a man the manager is about to spend a season with.
+ * Two pools, because they answer opposite questions — but only ever one of the
+ * manager's own players speaks, so both are written in his squad's voice. A
+ * winner's line can still name no metric, since the same pool serves goals,
+ * passes, tackles and saves. A beaten player's line is never sour about the
+ * winner: that is a man the manager is about to spend a season with.
  *
  * Lines are capped at `MAX_ARRIVAL_LINE_LENGTH`, the same one-bubble ceiling
  * the walk-on pool uses. `src/content/schemas.ts` enforces both the cap and the
@@ -20,16 +20,14 @@ export const RUNNER_UP_CEREMONY_LINES: readonly string[] = awardCeremonyLinesJso
 
 export interface AwardCeremonySpeaker {
   category: AwardCategoryId;
-  winnerPlayerId: string;
-  /** Set only when one of the manager's own players finished second. */
-  runnerUpPlayerId?: string;
+  playerId: string;
+  /** Which pool he draws from: he topped his board, or he did not. */
+  tone: AwardCeremonySpeechTone;
 }
 
 export interface AwardCeremonySpeech {
   category: AwardCategoryId;
-  winnerLine: string;
-  /** Absent unless the beat named a runner-up. */
-  runnerUpLine?: string;
+  line: string;
 }
 
 /**
@@ -44,10 +42,13 @@ export interface AwardCeremonySpeech {
  *
  * Keying alone is not enough. Four independent draws from thirty are all
  * distinct only 29x28x27/30^3 ~ 81% of the time, so about one ceremony in five
- * would have two winners deliver the same line minutes apart, in the flagship
+ * would have two speakers deliver the same line minutes apart, in the flagship
  * moment of the season. A hashed index already claimed by an earlier beat
  * therefore probes forward to the next free line — which keeps the whole set
- * pure: same season, same four lines, no state and no `Math.random`.
+ * pure: same season, same lines, no state and no `Math.random`.
+ *
+ * The two pools are claimed separately, because a winner and a beaten player
+ * saying the same-numbered line are saying two different things.
  *
  * Beats come back in the order they were given, and the probe follows that
  * order: the first beat keeps its hashed line and later ones move.
@@ -56,23 +57,19 @@ export function awardCeremonySpeeches(
   speakers: readonly AwardCeremonySpeaker[],
   season: number,
 ): AwardCeremonySpeech[] {
-  const claimedWinnerLines = new Set<number>();
-  const claimedRunnerUpLines = new Set<number>();
+  const claimed: Record<AwardCeremonySpeechTone, Set<number>> = {
+    winner: new Set(),
+    'runner-up': new Set(),
+  };
 
   return speakers.map(speaker => {
-    const winnerLine = WINNER_CEREMONY_LINES[claimLineIndex(
-      ceremonyKey(speaker.winnerPlayerId, season, speaker.category),
-      WINNER_CEREMONY_LINES.length,
-      claimedWinnerLines,
-    )];
-    if (speaker.runnerUpPlayerId === undefined) return { category: speaker.category, winnerLine };
+    const pool = speaker.tone === 'winner' ? WINNER_CEREMONY_LINES : RUNNER_UP_CEREMONY_LINES;
     return {
       category: speaker.category,
-      winnerLine,
-      runnerUpLine: RUNNER_UP_CEREMONY_LINES[claimLineIndex(
-        ceremonyKey(speaker.runnerUpPlayerId, season, speaker.category),
-        RUNNER_UP_CEREMONY_LINES.length,
-        claimedRunnerUpLines,
+      line: pool[claimLineIndex(
+        ceremonyKey(speaker.playerId, season, speaker.category),
+        pool.length,
+        claimed[speaker.tone],
       )],
     };
   });
@@ -86,9 +83,9 @@ function ceremonyKey(playerId: string, season: number, category: AwardCategoryId
  * The hashed line, or the first free line after it. Wrapping past the end is
  * ordinary: a key landing on the last line still has 29 places to go.
  *
- * A ceremony has four beats and a pool has thirty lines, so the pool cannot run
- * dry; if a caller ever brings more speakers than lines, the last of them
- * repeat rather than speak nothing.
+ * A ceremony has four beats and at most one speaker each, against a pool of
+ * thirty lines, so the pool cannot run dry; if a caller ever brings more
+ * speakers than lines, the last of them repeat rather than speak nothing.
  */
 function claimLineIndex(key: string, poolSize: number, claimed: Set<number>): number {
   const hashed = hashString(key) % poolSize;

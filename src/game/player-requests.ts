@@ -102,8 +102,31 @@ export function starQualifiers(
     .map(([playerId]) => playerId);
 }
 
-/** Fallback only; the shipped value is authored as `tuning.starFameThreshold`. */
-export const STAR_FAME_THRESHOLD = 50;
+/**
+ * Where a squad player stops being anonymous.
+ *
+ * Fallback only; the shipped value is authored as `tuning.starFameThreshold`
+ * and the two must agree.
+ *
+ * This number has been wrong twice, in opposite directions, and both times
+ * because it was reasoned about rather than measured against the fame a squad
+ * actually reaches.
+ *
+ * At 50, with the fame ceiling at 99, every starter cleared it inside a season.
+ * `hasStar` was true from season 2 in every career ever played and the non-star
+ * half of `tuning.cadence` never executed.
+ *
+ * The ceiling then moved to 999 and this was scaled to 200 — ×4, taken off the
+ * old number instead of off the new curve. `player-request-cadence-probe`
+ * measured the result through the real match engine: top squad fame reaches
+ * 120-142 by season six, so `hasStar` was false for all 146 recorded weeks
+ * across three seeds. The same dead-row bug, now at the other end.
+ *
+ * 120 sits just under where a first-choice player arrives around season four or
+ * five, so a star is earned partway through a climb rather than issued at the
+ * start or never. Re-measure with the probe before moving it again.
+ */
+export const STAR_FAME_THRESHOLD = 120;
 
 /**
  * Base 1, doubled once per star qualifier met, so a famous division top scorer
@@ -138,6 +161,22 @@ export interface EligibilityContext {
   readonly absence: boolean;
 }
 
+/**
+ * A transfer request is not a vow of silence.
+ *
+ * Wanting a move and wanting a new gym are different things, so
+ * `transferRequested` is deliberately NOT tested here. It used to be, and it
+ * cost the feature half its life: measured over six seasons and three seeds
+ * with the production engine, 14–15 of a 16-man squad are legitimately listed
+ * by season 3 — not stale flags, every one of them would ask again today — and
+ * the tab fell silent for 43–52% of settled weeks, in stretches over 20 weeks
+ * long, even for a manager who granted every request on sight. The drought
+ * arrived exactly when a struggling club most needed the beat.
+ *
+ * The same reasoning removed the listing test from
+ * `cancelPendingPlayerRequestIfInvalid`: a request must not evaporate because
+ * its asker's mood dipped in the days after he made it.
+ */
 export function eligibleAskers(
   roster: readonly CareerPlayer[],
   context: EligibilityContext,
@@ -147,7 +186,6 @@ export function eligibleAskers(
   );
   return roster.filter(player => {
     if (!isAvailableForSelection(player)) return false;
-    if (player.transferRequested === true) return false;
     if (player.id === context.lastAskingPlayerId) return false;
     if ((player.seasonsAtClub ?? 0) < context.minSeasonsAtClub) return false;
     // Sending away the only fit keeper leaves no legal XI, so the request is
@@ -465,14 +503,18 @@ export function drillMultiplierPercent(
  * it — and `board-ultimatum` importing this module would close a cycle back
  * through `squad`. Retirement is covered by the season transition, which resets
  * the request clock outright.
+ *
+ * Leaving the club is the only thing that invalidates an ask. Asking for a
+ * transfer no longer does: see `eligibleAskers` for why a listed player may
+ * still make one, and granting his ask is now a way to talk him round, since a
+ * grant pays +5 morale toward the mood he must reach to withdraw.
  */
 export function cancelPendingPlayerRequestIfInvalid(state: GameState): GameState {
   const pending = state.playerRequests?.pending;
   if (pending === undefined) return state;
   const asker = state.players.find(player => player.id === pending.playerId);
   const stillValid = asker !== undefined
-    && asker.clubId === state.userClubId
-    && asker.transferRequested !== true;
+    && asker.clubId === state.userClubId;
   if (stillValid) return state;
   return { ...state, playerRequests: { ...state.playerRequests!, pending: undefined } };
 }

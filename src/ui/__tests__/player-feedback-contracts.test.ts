@@ -94,3 +94,24 @@ describe('veteran match-speed contract', () => {
     expect(rail).toContain('availableMatchSpeeds(maximumSpeed).map');
   });
 });
+
+/**
+ * Every walk-on in the game speaks through this overlay — a signing arriving,
+ * Bert briefing, a player making a request, an award winner on the rostrum.
+ */
+describe('speech bubble placement contract', () => {
+  it('does not paint a bubble it has not measured yet', () => {
+    const overlay = source('src/ui/CharacterSpeechOverlay.tsx');
+
+    // `onLayout` lands a frame or more after the bubble mounts, and until it
+    // does the only placement available is the character's centre — four
+    // fifths across, which on a 375pt phone leaves about 75pt and breaks the
+    // line to roughly one word each. The fallback has to stay, because the
+    // measuring pass needs somewhere to be; what must not happen is painting
+    // it. `pop` starts at zero and hides it by accident, but `instant` sets
+    // `pop` to 1 immediately and does not.
+    expect(overlay).toContain('if (bubbleWidth === 0) return characterCentre;');
+    expect(overlay).toContain('const bubbleMeasured = bubbleWidth > 0;');
+    expect(overlay).toContain('opacity: bubbleMeasured ? pop : 0,');
+  });
+});

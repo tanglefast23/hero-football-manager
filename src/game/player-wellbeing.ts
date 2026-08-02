@@ -1,8 +1,12 @@
 import { coachMotivatorStrengthHalfLevels } from './coach-weekly';
 import { isFacilityOperational, type FacilityGridState } from './facilities';
 import { growthSinceSigningPercent } from './market-career';
-import { renewalContractAsk } from './market';
-import { shouldRequestTransfer, updatePlayerWellbeing } from './pyramid';
+import { renewalContractAsk, renewalFamePercent } from './market';
+import {
+  shouldRequestTransfer,
+  shouldWithdrawTransferRequest,
+  updatePlayerWellbeing,
+} from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
 export const WEEKLY_CONDITION_RECOVERY = 12;
@@ -90,7 +94,14 @@ export function resolveWeeklyPlayerWellbeing(
       ...withoutLegacyRemainder,
       condition: updatedCondition,
       motivatorMoraleRemainderHalfPoints: motivation.remainderHalfPoints,
-      transferRequested: player.transferRequested === true || shouldRequestTransfer(updated),
+      // A standing request holds until it is won back, and a contented player
+      // does not carry one. Writing this as `was || shouldRequest` made the
+      // flag a memory instead of a state: it could only ever be set, so a squad
+      // accumulated permanent "wants to leave" alerts, and `eligibleAskers`
+      // — which drops listed players — starved until nobody could ask at all.
+      transferRequested: player.transferRequested === true
+        ? !shouldWithdrawTransferRequest(updated)
+        : shouldRequestTransfer(updated),
     };
   });
 
@@ -110,7 +121,7 @@ function isUnderpaidPlayer(player: CareerPlayer): boolean {
     onHeroWage: player.onHeroWage,
   }, {
     growthSinceSigningPercent: growthSinceSigningPercent(player),
-    famePercent: Math.min(100, player.fame ?? 0),
+    famePercent: renewalFamePercent(player.fame ?? 0),
     heroMultiplier: 4,
     // Deliberately not the player's real loyalty. Loyalty has exactly one job —
     // the price of the next contract — and the player card says so. Feeding it

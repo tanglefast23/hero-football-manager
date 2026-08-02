@@ -4,6 +4,7 @@ import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import coachIdentityData from './coach-identities.json';
 import { compareIds } from './ordering';
 import {
+  CLUB_LEGEND_MIN_FAME,
   DIVISION_SUPPORT_STRENGTHS,
   type DivisionLevel,
 } from './pyramid';
@@ -742,7 +743,68 @@ const PERSONALITIES: readonly PlayerPersonality[] = [
   'TIMID',
 ];
 
-const COACH_FAME_GATES = [0, 0, 100, 250, 500, 900] as const;
+/**
+ * Club fame, not player fame, indexed by the coach level it unlocks.
+ *
+ * Deliberately unchanged by the move of the player ceiling from 99 to 999. Club
+ * fame is a SUM over the squad and was never bounded by the per-player cap, so
+ * the seasons in which these gates are crossed did not move: a career reaches
+ * roughly 450 club fame in season 1 and 1050 in season 3 on either scale,
+ * because nobody is near any ceiling that early. All the new ceiling changes is
+ * that the total keeps climbing afterwards instead of flattening — every gate
+ * here is already behind the manager by then.
+ *
+ * Exported because `legacy-career.ts` prices the same gates onto its own coach
+ * candidates, and a second copy of this array is exactly the kind of thing that
+ * drifts.
+ */
+export const COACH_FAME_GATES = [0, 0, 100, 250, 500, 900] as const;
+
+/**
+ * The guard on the summed club total, raised with the player ceiling.
+ *
+ * A defensive clamp against corrupted data, not a balance value — nothing in
+ * the game gates above 900. It was 9999, which a sixteen-man squad could not
+ * reach while every player capped at 99 but reaches easily now, and a total
+ * pegged at its clamp would have quietly stopped tracking the squad it
+ * describes. Sixteen players at `FAME_CEILING` is 15984, so this cannot bind.
+ */
+export const CAREER_CLUB_FAME_CEILING = 99_999;
+
+/**
+ * A retired club legend's own fame, converted to the level of coach he becomes.
+ *
+ * One level per hundred fame above the club-legend gate, which is a bit over
+ * two more seasons of first-team football each: 200 makes a level 1 coach, 400
+ * a level 3, 600 and up a level 5. So the club's longest servants make its best
+ * coaches, and the very best of them is now reachable — under the old 99
+ * ceiling this topped out at level 3 no matter who retired.
+ *
+ * One rule, used by both paths that build a coach from a retired player. They
+ * used to disagree: `generateCoachMarket` divided fame by 250, which under a
+ * 99 ceiling could only ever return level 1.
+ */
+export function legendCoachLevel(fame: number): number {
+  assertNonNegativeSafeInteger(fame, 'retired legend fame');
+  return Math.max(1, Math.min(5, 1 + Math.floor((fame - CLUB_LEGEND_MIN_FAME) / 100)));
+}
+
+/**
+ * How much a player's renown adds to his renewal ask, as a percentage.
+ *
+ * Fame is not a percentage — it runs to `FAME_CEILING` — so it cannot be handed
+ * to `renewalContractAsk` raw. One point of premium per four fame puts the
+ * +100% maximum at 400, twice the star threshold and about nine seasons of
+ * first-team football: a genuine household name, and the same maximum a
+ * saturated player paid before. What changes is the middle, which used to be
+ * flat: every starter in the game hit the old 99-fame maximum in his second
+ * season and paid the full premium from then on, so the factor discriminated
+ * between nobody.
+ */
+export function renewalFamePercent(fame: number): number {
+  assertNonNegativeSafeInteger(fame, 'player fame');
+  return Math.min(100, Math.round(fame / 4));
+}
 
 export function maxCoachLevelForClub(division: number, fame: number): number {
   validateDivision(division);
@@ -779,7 +841,7 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
   const availableIdentities = COACH_IDENTITIES.filter(identity => !excludedPortraitIds.has(identity.id));
 
   for (const legend of legends.slice(0, targetCount)) {
-    const level = Math.min(5, maxLevel, 1 + Math.floor(legend.fame / 250));
+    const level = Math.min(maxLevel, legendCoachLevel(legend.fame));
     const specialties = legend.specialties === undefined
       ? pickCoachSpecialties(mulberry32(mixSeed(marketSeed, `legend:${legend.playerId}`)))
       : [legend.specialties[0], legend.specialties[1]] as const;

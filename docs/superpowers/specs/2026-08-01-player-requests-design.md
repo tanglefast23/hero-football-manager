@@ -92,8 +92,18 @@ A player may be picked only if all hold:
 - `injuryWeeks === 0` and `awayWeeks === 0`
 - at the club at least one full season (`seasonsAtClub >= 1`)
 - not the player who made the previous request
-- not `transferRequested`
 - **not the club's only fit goalkeeper**, if the drawn request is an `ABSENCE`
+
+`transferRequested` is deliberately **not** an exclusion (changed 2026-08-02;
+it was one until then). Wanting a move and wanting a new gym are different
+things. Measured over six seasons and three seeds on the production engine,
+14–15 of a 16-man squad are legitimately listed by season 3 — not stale flags,
+every one would ask again on that week's mood — and excluding them silenced the
+tab for 43–52% of settled weeks, in stretches past 20 weeks, even for a manager
+who granted every request on sight. The drought landed exactly when a
+struggling club most needed the beat. Letting a listed player ask also gives
+the manager the only lever that talks him round: a grant pays +5 morale toward
+the mood at which he withdraws the transfer request.
 
 ### Weighting
 
@@ -185,8 +195,13 @@ Spending past zero would also record a negative `balanceAfter`, which
 ### Cancellation
 
 A pending request cancels silently, with no loyalty or morale change, if the
-asker is sold, retires, or is transfer-listed, or when the season ends. The
-request clock resets at season rollover.
+asker is sold or retires, or when the season ends. The request clock resets at
+season rollover.
+
+Being transfer-listed does **not** cancel it (changed 2026-08-02, with the
+eligibility rule above). A bad fortnight between the ask and the answer used to
+void a card the manager was still looking at. Leaving the club is the only
+thing that invalidates an ask.
 
 ---
 
@@ -473,7 +488,8 @@ its existing assertions drift.
 - pricing for all six cost kinds, including a negative-cash club
 - grant / refuse / lapse deltas at both difficulties
 - effect expiry and `awayWeeks` countdown
-- cancellation on sale, retirement, transfer request and season rollover
+- cancellation on sale, retirement and season rollover, and its survival of a
+  transfer request
 
 **Loyalty** (`src/game/__tests__/loyalty.test.ts`)
 - initial roll stays within 60–75 and is seed-stable

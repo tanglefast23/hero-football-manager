@@ -164,8 +164,10 @@ describe('management injury and lineup presentation', () => {
       }],
     };
 
+    // One row per season, not per player: seven can announce in the same week
+    // and the desk shows three, so a row each dropped the rest for good.
     expect(homeViewModel(finalSeason).alerts).toContainEqual(expect.objectContaining({
-      id: `retirement-announcement-1-${player.id}`,
+      id: 'retirement-announcement-1',
       title: `${player.name} announces final season`,
       detail: 'Age 36 · retires after Season 2.',
       tone: 'info',
@@ -375,7 +377,15 @@ describe('management injury and lineup presentation', () => {
     expect(weekThreeAlerts.map(alert => alert.guideSequenceId)).toContain('youth-intake');
   });
 
-  it('delivers a crowded one-shot board resolution in the following week', () => {
+  /**
+   * Retargeted. This used to pin the board being crowded out — three injuries
+   * filled the week and the verdict was deferred — and on a real career that
+   * deferral never ended, because the next week had injuries too. The board's
+   * rows are built first and scheduled urgent now, so its verdict lands the
+   * week it happens. The one-shot lifecycle underneath is still the thing worth
+   * pinning: shown once, and then never again.
+   */
+  it('delivers a one-shot board resolution on a crowded desk, exactly once', () => {
     const initial = createCareer(createLaunchCareerSetup(20260727, undefined, content));
     const injuredIds = initial.players
       .filter(player => player.clubId === initial.userClubId)
@@ -400,12 +410,18 @@ describe('management injury and lineup presentation', () => {
       },
     };
 
-    expect(homeViewModel(crowded).alerts.map(alert => alert.id)).not.toContain(`board-resolution:${resolutionId}`);
+    const thisWeek = homeViewModel(crowded).alerts.map(alert => alert.id);
+    expect(thisWeek).toContain(`board-resolution:${resolutionId}`);
+    // Three injuries and the training-pitch nudge could not push it off.
+    expect(thisWeek).toHaveLength(3);
+
     const persisted = reconcileHomeAssistantInbox(crowded);
+    expect(homeViewModel(persisted).alerts.map(alert => alert.id))
+      .toContain(`board-resolution:${resolutionId}`);
+    expect(reconcileHomeAssistantInbox(persisted)).toBe(persisted);
+
     const nextWeek = { ...persisted, week: 2 };
-    expect(homeViewModel(nextWeek).alerts.map(alert => alert.id)).toContain(`board-resolution:${resolutionId}`);
-    const scheduled = reconcileHomeAssistantInbox(nextWeek);
-    expect(homeViewModel(scheduled).alerts.map(alert => alert.id)).toContain(`board-resolution:${resolutionId}`);
-    expect(reconcileHomeAssistantInbox(scheduled)).toBe(scheduled);
+    expect(homeViewModel(nextWeek).alerts.map(alert => alert.id))
+      .not.toContain(`board-resolution:${resolutionId}`);
   });
 });

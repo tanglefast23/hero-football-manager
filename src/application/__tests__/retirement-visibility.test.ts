@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { loadLaunchContent } from '../../content';
 import {
   advanceFacilityConstruction,
+  beginCareerTransferTalks,
   buildCareerFacility,
   createCareer,
   maxRenewalTermSeasons,
@@ -188,9 +189,72 @@ describe('signing term cap', () => {
     expect(view.shortTermReason).toBeUndefined();
   });
 
+  /**
+   * The ship path, not a hand-built view model.
+   *
+   * This asserted only that a fresh career has no open talks — trivially true,
+   * and `maxTermSeasons` lives INSIDE `negotiation`, so the field it exists to
+   * guard was never reached. It also passed the adapter a third argument it has
+   * never taken, which Jest ignores at runtime and only `tsc` caught.
+   *
+   * So it opens real talks with a veteran instead. The age is one season short
+   * of announcing, which forces the cap below the full three: an adapter that
+   * ignored retirement would hand back 3 and fail here.
+   */
   it('is supplied by the shipped market source, not just by tests', () => {
+    const base = createCareer(createLaunchCareerSetup(8811, undefined, content));
+    const division = base.m2!.pyramid.divisions.find(candidate => candidate.level === 4)!;
+    const raw = division.clubs[0].squad.find(candidate => candidate.role === 'DEF')!;
+    const veteranAge = ageOneSeasonFromAnnouncing(raw as unknown as CareerPlayer, base.careerSeed);
+    const career: GameState = {
+      ...base,
+      m2: {
+        ...base.m2!,
+        pyramid: {
+          ...base.m2!.pyramid,
+          divisions: base.m2!.pyramid.divisions.map(entry => ({
+            ...entry,
+            clubs: entry.clubs.map(club => ({
+              ...club,
+              squad: club.squad.map(player => (player.id === raw.id
+                ? { ...player, age: veteranAge }
+                : player)),
+            })),
+          })),
+        },
+      },
+    };
+
+    // Talks require a scout report, the same gate the shipped flow enforces.
+    const scouted = {
+      ...career.market!,
+      scoutReports: [{
+        playerId: raw.id,
+        role: raw.role,
+        age: veteranAge,
+        statRanges: Object.fromEntries(Object.entries(raw.attrs).map(([key, value]) => [
+          key,
+          { minimum: value, maximum: value },
+        ])) as never,
+        potentialRange: { minimum: 3 as const, maximum: 3 as const },
+      }],
+    };
+    const market = beginCareerTransferTalks(career, scouted, raw.id, division.level);
+    const source = careerMarketViewModelSource(career, market);
+    const expected = maxSigningTermSeasons(
+      { ...raw, age: veteranAge } as unknown as CareerPlayer,
+      career.careerSeed,
+    );
+
+    expect(source.negotiation).toBeDefined();
+    expect(source.negotiation!.maxTermSeasons).toBe(expected);
+    expect(source.negotiation!.maxTermSeasons).toBeLessThan(3);
+    expect(source.negotiation!.playerAge).toBe(veteranAge);
+  });
+
+  it('exposes no negotiation on a career with no talks open', () => {
     const career = createCareer(createLaunchCareerSetup(8811, undefined, content));
-    const source = careerMarketViewModelSource(career, career.market!, content);
+    const source = careerMarketViewModelSource(career, career.market!);
     // No talks open on a fresh career; the adapter must still typecheck and
     // expose the field, which is what stops the ship path defaulting to 1-2-3.
     expect(source.negotiation).toBeUndefined();

@@ -4,13 +4,14 @@ import {
   careerTransferTarget,
   type CareerMarketState,
 } from '../game/market-career';
-import type {
-  CoachCandidate,
-  ScoutFocus,
-  ScoutMissionResult,
-  ScoutRegion,
-  ScoutReport,
-  ValuationPlayer,
+import {
+  CAREER_CLUB_FAME_CEILING,
+  type CoachCandidate,
+  type ScoutFocus,
+  type ScoutMissionResult,
+  type ScoutRegion,
+  type ScoutReport,
+  type ValuationPlayer,
 } from '../game/market';
 import type { CareerPlayer, GameState } from '../game/types';
 import { maxSigningTermSeasons } from '../game/retirement';
@@ -354,7 +355,7 @@ function divisionForClub(state: GameState, clubId: string, fallback: number): nu
 }
 
 function clubFame(state: GameState): number {
-  return Math.max(0, Math.min(9999, state.players
+  return Math.max(0, Math.min(CAREER_CLUB_FAME_CEILING, state.players
     .filter(player => player.clubId === state.userClubId)
     .reduce((total, player) => total + (player.fame ?? 0), state.market?.clubFameAdjustment ?? 0)));
 }

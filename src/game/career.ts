@@ -30,6 +30,7 @@ import {
   leaguePrizeMoney,
 } from './promotion-progression';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
+import { FAME_CEILING } from './pyramid';
 import type { NationalCup, NationalCupFixture, NationalCupResult } from './pyramid';
 import {
   cupGiantKillingCelebration,
@@ -554,7 +555,7 @@ export function resolveCareerMatchFame(
   return state.players.map(player => {
     const gain = gains.get(player.id);
     if (gain === undefined) return clonePlayer(player);
-    return { ...clonePlayer(player), fame: Math.min(99, (player.fame ?? 0) + gain) };
+    return { ...clonePlayer(player), fame: Math.min(FAME_CEILING, (player.fame ?? 0) + gain) };
   });
 }
 
@@ -568,7 +569,7 @@ export function resolveCareerSeasonFame(state: GameState): CareerPlayer[] {
   const bonus = leagueBonus + (cupWon ? 5 : 0);
   if (bonus === 0) return state.players.map(clonePlayer);
   return state.players.map(player => player.clubId === state.userClubId
-    ? { ...clonePlayer(player), fame: Math.min(99, (player.fame ?? 0) + bonus) }
+    ? { ...clonePlayer(player), fame: Math.min(FAME_CEILING, (player.fame ?? 0) + bonus) }
     : clonePlayer(player));
 }
 

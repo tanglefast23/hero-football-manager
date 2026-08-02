@@ -8,6 +8,7 @@ import { FacilitySprite } from '../components/FacilitySprite';
 import type {
   ClubFacilityBuildingViewModel,
   ClubFinancesViewModel,
+  ClubLoanViewModel,
   FacilityTypeViewModel,
   TrainingGroundDecisionViewModel,
 } from '../models';
@@ -332,6 +333,12 @@ export function ClubFinancesScreen({
       weight: 6,
       node: <CashPositionSection viewModel={viewModel} guideFocus={guideFocus} />,
     },
+    // Directly under the balance, because it is the balance with a claim on it.
+    ...(viewModel.loan === undefined ? [] : [{
+      key: 'loan',
+      weight: 5,
+      node: <EmergencyLoanSection loan={viewModel.loan} />,
+    }]),
     {
       key: 'itemized',
       weight: 2 + viewModel.ledger.length,
@@ -483,6 +490,31 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
             </View>
           ) : null}
         </PaperPanel>
+    </View>
+  );
+}
+
+/**
+ * What the club still owes the board.
+ *
+ * Until this panel existed the outstanding balance was visible in exactly one
+ * place — a single inbox row that had to hold an urgent desk slot for the whole
+ * life of the loan to stay reachable. A debt is a fact you look up, so it lives
+ * with the accounts.
+ */
+function EmergencyLoanSection({ loan }: { readonly loan: ClubLoanViewModel }) {
+  return (
+    <View>
+      <PaperPanel kicker="Board loan" title="Emergency loan" stamp="Owed">
+        <View className="flex-row gap-2">
+          <Metric label="Borrowed" value={formatCurrency(loan.originalAmount)} />
+          <Metric label="Still owed" value={formatCurrency(loan.remainingBalance)} tone="negative" />
+          <Metric label={loan.scheduleLabel} value={loan.scheduleValue} />
+        </View>
+        <PixelText className="mt-3 text-xs uppercase leading-4 tracking-wide text-ink/45">
+          {loan.detail}
+        </PixelText>
+      </PaperPanel>
     </View>
   );
 }

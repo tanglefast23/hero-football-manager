@@ -136,14 +136,15 @@ export interface CoachLegacy {
   coachCandidate: LegendCoachCandidate;
 }
 
-export interface YouthLegacy {
-  choice: 'mentor-youth';
-  mentorPlayerId: string;
-  startingStatBoostPercent: 15;
-  youth: PyramidPlayer;
-}
-
-export type LegendLegacy = CoachLegacy | YouthLegacy;
+/**
+ * One outcome, not two.
+ *
+ * A mentored youth used to be the second option. It could never be taken: the
+ * season transition refills the squad to exactly the 16-player roster cap, so
+ * every legacy screen opened over a full roster and the transaction refused.
+ * Removed rather than repaired — the roster cap is the older rule.
+ */
+export type LegendLegacy = CoachLegacy;
 
 export interface WellbeingUpdate {
   moraleDelta?: number;
@@ -163,10 +164,48 @@ export const PYRAMID_DIVISION_COUNT = 5;
 export const PROMOTION_PLACES = 2;
 export const RELEGATION_PLACES = 2;
 export const NATIONAL_CUP_CLUB_COUNT = CLUBS_PER_DIVISION * PYRAMID_DIVISION_COUNT;
+/**
+ * The most famous a player can ever be, and the unit every fame threshold in
+ * the game is quoted in.
+ *
+ * A first-team regular banks roughly forty-five a season — one to three a match
+ * across a twenty-odd match league and cup year, two more per goal, three to
+ * ten for a top-two finish or a cup. Measured on three seeded careers, the best
+ * starter ends season 1 on about 50 and season 2 on about 95. So the ceiling is
+ * a career length: it takes some twenty seasons of unbroken first-team football
+ * to reach, which is longer than any career in this game lasts, and fame
+ * therefore never stops separating one player from another.
+ *
+ * It used to be 99, which a regular hit in his second season. A seeded career
+ * at season 3 held eleven starters tied at the cap against five reserves at 8,
+ * so every threshold below read true for the whole first eleven and false for
+ * nobody. Raising the ceiling is what gives the thresholds beneath it something
+ * to measure.
+ *
+ * Careers saved before this deliberately are NOT migrated. Their stored values
+ * are all inside the new range and stay legal, so nothing fails to load; a
+ * veteran squad simply reads as less famous than it is and re-earns its stars
+ * and legends over about four seasons of first-team football. The alternative —
+ * multiplying stored fame by ten — would pin every existing squad within a few
+ * points of the new ceiling forever, preserving the exact saturation this
+ * change exists to remove.
+ */
+export const FAME_CEILING = 999;
 export const CLUB_LEGEND_MIN_SEASONS = 5;
-export const CLUB_LEGEND_MIN_FAME = 70;
+/**
+ * Fame is the half of the club-legend test that never used to bind.
+ *
+ * At 70 the gate was met in a player's second season, so five seasons at the
+ * club was the only real requirement and "club legend" meant "was in the eleven
+ * and never left" — measured, eleven men at once from season 6 on. At 200 the
+ * two halves bind together: a regular starter clears it after four and a half
+ * seasons of first-team football, so the man who served his five seasons in the
+ * side qualifies while the man who served them in the reserves (roughly a third
+ * of the appearances, so a third of the fame) needs closer to twelve. Which is
+ * still a legend, just a patient one.
+ */
+export const CLUB_LEGEND_MIN_FAME = 200;
 export const LOW_MORALE_THRESHOLD = 30;
-export const LEGACY_YOUTH_STAT_BOOST_PERCENT = 15;
 export const DIVISION_NAMES: Readonly<Record<DivisionLevel, string>> = {
   1: 'Global League',
   2: 'National Championship',
@@ -572,54 +611,18 @@ export function isClubLegend(
     && player.fame >= CLUB_LEGEND_MIN_FAME;
 }
 
-export function createLegendLegacy(
-  legend: PyramidPlayer,
-  choice: 'coach-candidate' | 'mentor-youth',
-  season: number,
-  careerSeed: number,
-): LegendLegacy {
-  validateSeason(season);
-  validateSeed(careerSeed);
+export function createLegendLegacy(legend: PyramidPlayer): LegendLegacy {
   if (!isClubLegend(legend)) throw new Error(`${legend.name} is not eligible for a club-legend legacy`);
-  if (choice === 'coach-candidate') {
-    return {
-      choice,
-      coachCandidate: {
-        id: `legacy-coach-${legend.id}`,
-        formerPlayerId: legend.id,
-        name: legend.name,
-        specialties: coachSpecialtiesFor(legend),
-        loyaltyDiscountPercent: 20,
-      },
-    };
-  }
-  if (choice !== 'mentor-youth') throw new Error(`unknown club-legend legacy choice ${String(choice)}`);
-
-  const random = mulberry32(mixSeed(careerSeed, season, hashString(legend.id), 0x1e9ac7));
-  const targetStrength = integerRoll(random, 34, 43);
-  const role = legend.role;
-  const baseAttrs = generateAttributes(targetStrength, role, random);
-  const youth: PyramidPlayer = {
-    id: `legacy-youth-s${season}-${legend.id}`,
-    clubId: legend.clubId,
-    name: `${FIRST_NAMES[Math.floor(random() * FIRST_NAMES.length)]} ${lastNameOf(legend.name)}`,
-    role,
-    attrs: boostLegacyYouthAttributes(baseAttrs),
-    archetype: legend.archetype,
-    personality: PERSONALITIES[Math.floor(random() * PERSONALITIES.length)],
-    age: integerRoll(random, 16, 17),
-    fame: 5,
-    seasonsAtClub: 0,
-    morale: 65,
-    condition: 100,
-    consecutiveLowMoraleWeeks: 0,
+  return {
+    choice: 'coach-candidate',
+    coachCandidate: {
+      id: `legacy-coach-${legend.id}`,
+      formerPlayerId: legend.id,
+      name: legend.name,
+      specialties: coachSpecialtiesFor(legend),
+      loyaltyDiscountPercent: 20,
+    },
   };
-  return { choice, mentorPlayerId: legend.id, startingStatBoostPercent: 15, youth };
-}
-
-export function boostLegacyYouthAttributes(attrs: Attrs): Attrs {
-  validateAttrs(attrs);
-  return mapAttrs(attrs, value => Math.min(MAX_PLAYER_ATTRIBUTE, Math.round(value * 1.15)));
 }
 
 /** Applies explicit weekly morale/condition changes and tracks sustained low morale. */
@@ -657,24 +660,63 @@ export function applyLowMoraleToStat(stat: number, morale: number): number {
   return Math.max(1, Math.round(stat * lowMoraleStatModifier(morale)));
 }
 
+const TRANSFER_REQUEST_RULE: Readonly<Record<PlayerPersonality, { morale: number; weeks: number }>> = {
+  Greedy: { morale: 30, weeks: 2 },
+  Fiery: { morale: 25, weeks: 2 },
+  Joker: { morale: 22, weeks: 3 },
+  Timid: { morale: 25, weeks: 3 },
+  Professional: { morale: 18, weeks: 4 },
+  Loyal: { morale: 12, weeks: 5 },
+};
+
+function transferRequestRule(personality: PlayerPersonality): { morale: number; weeks: number } {
+  const rule = TRANSFER_REQUEST_RULE[personality];
+  if (rule === undefined) throw new Error(`unknown personality ${String(personality)}`);
+  return rule;
+}
+
+/**
+ * How far above his own patience line a player must climb to drop his request.
+ *
+ * Withdrawal cannot share the trigger morale or the flag chatters: a Greedy
+ * player asks at 30 and would take it back the first week a win carried him to
+ * 31, then ask again a month later. Twenty points of daylight makes a
+ * withdrawal mean the manager genuinely turned him around, and it keeps the
+ * personality meaningful in both directions — a Loyal player is won back at 32,
+ * a Greedy one not until 50.
+ */
+export const TRANSFER_REQUEST_WITHDRAW_MARGIN = 20;
+
 /** A predictable request rule: personality changes patience, but a single bad week never triggers it. */
 export function shouldRequestTransfer(player: WellbeingState): boolean {
   validatePercentage(player.morale, 'player morale');
   if (!Number.isInteger(player.consecutiveLowMoraleWeeks) || player.consecutiveLowMoraleWeeks < 0) {
     throw new Error('low-morale week count must be a non-negative integer');
   }
-  const rule: Readonly<Record<PlayerPersonality, { morale: number; weeks: number }>> = {
-    Greedy: { morale: 30, weeks: 2 },
-    Fiery: { morale: 25, weeks: 2 },
-    Joker: { morale: 22, weeks: 3 },
-    Timid: { morale: 25, weeks: 3 },
-    Professional: { morale: 18, weeks: 4 },
-    Loyal: { morale: 12, weeks: 5 },
-  };
-  const personalityRule = rule[player.personality];
-  if (personalityRule === undefined) throw new Error(`unknown personality ${String(player.personality)}`);
+  const personalityRule = transferRequestRule(player.personality);
   return player.morale <= personalityRule.morale
     && player.consecutiveLowMoraleWeeks >= personalityRule.weeks;
+}
+
+/**
+ * Whether a standing transfer request has been earned back.
+ *
+ * The counterpart `shouldRequestTransfer` never had. Weekly wellbeing used to
+ * write the flag as an OR against its own previous value, which made it a
+ * memory rather than a state: a player unhappy for four weeks in season 1 was
+ * still listed at morale 100 in season 6, still barred from
+ * `eligibleAskers`, and still raising the "wants to leave" desk alert that
+ * tells the manager to review and sell. Nothing but a season-end renewal could
+ * clear it, and only one of the two renewal paths did.
+ *
+ * No streak term here on purpose. `updatePlayerWellbeing` zeroes
+ * `consecutiveLowMoraleWeeks` the moment morale clears 30, so requiring a
+ * streak of contentment would test a counter that cannot count it.
+ */
+export function shouldWithdrawTransferRequest(player: WellbeingState): boolean {
+  validatePercentage(player.morale, 'player morale');
+  return player.morale >= transferRequestRule(player.personality).morale
+    + TRANSFER_REQUEST_WITHDRAW_MARGIN;
 }
 
 function generateSquad(
@@ -713,7 +755,15 @@ function generateSquad(
       archetype: ARCHETYPES[Math.floor(random() * ARCHETYPES.length)],
       personality: PERSONALITIES[Math.floor(random() * PERSONALITIES.length)],
       age,
-      fame: clamp((6 - division) * 10 + integerRoll(random, 0, 15), 0, 99),
+      // Priced in the same seasons the user's own players are. One division
+      // rank is worth about two seasons of first-team renown (80) and the
+      // spread inside a division is about three (120), so a District League pro
+      // reads as 80–200 and a Global League one as 400–520 — ten to twelve
+      // years at the top. That keeps a bought name genuinely more famous than
+      // your five-season captain and genuinely less famous than your
+      // twelve-season one, which is the ordering the old ceiling gave by
+      // accident: every rival sat under 65 while every user starter sat at 99.
+      fame: clamp((6 - division) * 80 + integerRoll(random, 0, 120), 0, FAME_CEILING),
       seasonsAtClub: integerRoll(random, 0, Math.min(8, age - 16)),
       morale: integerRoll(random, 55, 75),
       condition: 100,
@@ -1026,7 +1076,10 @@ function validateLifecyclePlayer(player: PyramidPlayer): void {
   if (player.id.trim().length === 0) throw new Error('player ID must be non-empty');
   validateAge(player.age);
   validateAttrs(player.attrs);
-  validatePercentage(player.fame, 'player fame');
+  // Fame is not a percentage and has not been one since the ceiling moved off
+  // 99. Left on `validatePercentage` this would reject every player the game
+  // now produces past his third season.
+  validateFame(player.fame);
   validatePercentage(player.morale, 'player morale');
   validatePercentage(player.condition, 'player condition');
   if (!Number.isInteger(player.seasonsAtClub) || player.seasonsAtClub < 0) {
@@ -1070,6 +1123,12 @@ function validateRating(value: number, label: string): void {
 function validatePercentage(value: number, label: string): void {
   if (!Number.isFinite(value) || value < 0 || value > 100) {
     throw new Error(`${label} must be a number from 0 to 100`);
+  }
+}
+
+function validateFame(value: number): void {
+  if (!Number.isFinite(value) || value < 0 || value > FAME_CEILING) {
+    throw new Error(`player fame must be a number from 0 to ${FAME_CEILING}`);
   }
 }
 
@@ -1178,7 +1237,3 @@ function pad2(value: number): string {
   return value.toString().padStart(2, '0');
 }
 
-function lastNameOf(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return parts[parts.length - 1] || 'Legacy';
-}
