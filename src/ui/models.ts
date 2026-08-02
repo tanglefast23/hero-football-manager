@@ -290,6 +290,8 @@ export interface SquadPlayerViewModel {
   weeklyWage: number;
   contractLabel: string;
   contractPromiseLabel?: string;
+  /** Set only within one season of the announcement; absent while it is far off. */
+  retirementLabel?: string;
   shirtNumber?: number;
   isCaptain: boolean;
   powerName?: string;
@@ -632,6 +634,8 @@ export interface ExpiredContractViewModel {
   quotedWeeklyWage: number;
   isHeroWageCliff: boolean;
   termOptions: readonly (1 | 2 | 3)[];
+  /** Present only when age has cut the term below three seasons. */
+  shortTermReason?: string;
   selectedTerm: 1 | 2 | 3;
   decision: 'pending' | 'renewed';
   requiresNegotiation: boolean;

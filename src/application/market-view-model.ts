@@ -14,6 +14,7 @@ import {
   type ValuationPlayer,
 } from '../game/market';
 import { divisionTierLabel, type DivisionLevel } from '../game/pyramid';
+import { contractTermOptions, shortContractReason } from '../game/retirement';
 import {
   playerPotentialGrade,
   playerPotentialTrainingBonusPercent,
@@ -72,6 +73,15 @@ export interface NegotiationViewSource {
   /** The visible starting number, normally current wage or the previous offer. */
   readonly openingWeeklyWage: number;
   readonly wageStep?: number;
+  /**
+   * Longest term this player will sign. Optional and defaulting to the full
+   * three seasons so every existing caller keeps working; the two career
+   * surfaces supply it, and they compute it differently because the week-30
+   * decrement has already run for a renewal but not for an in-season signing.
+   */
+  readonly maxTermSeasons?: 1 | 2 | 3;
+  /** Only needed to phrase the short-term line; omitted, the line is dropped. */
+  readonly playerAge?: number;
 }
 
 export interface YouthIntakeViewSource {
@@ -478,6 +488,7 @@ export function marketNegotiationViewModel(
   const previousOffer = negotiation.history.at(-1)?.offer.weeklyWage;
   const mood = moodPresentation(negotiation.mood);
   const wageStep = source.wageStep ?? 50;
+  const maxTermSeasons = source.maxTermSeasons ?? 3;
   const leverage = negotiation.pitchInfluencePercent;
   const lastOutcome = negotiation.history.at(-1)?.outcome;
   return {
@@ -509,6 +520,10 @@ export function marketNegotiationViewModel(
       used: negotiation.usedPitchCards.includes(card),
     } satisfies PitchCardViewModel)),
     perks: PERKS,
+    termOptions: contractTermOptions(maxTermSeasons),
+    ...(maxTermSeasons >= 3 || source.playerAge === undefined ? {} : {
+      shortTermReason: shortContractReason(source.playerAge, maxTermSeasons),
+    }),
     initialWeeklyWage: previousOffer ?? source.openingWeeklyWage,
     wageStep,
     ...(lastOutcome === undefined

@@ -9,9 +9,15 @@ import {
   attributeAffectsPlay,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
+  contractTermOptions,
   createFacilityGrid,
   currentUserDivision,
   difficultyRules,
+  isConsideringRetirement,
+  maxRenewalTermSeasons,
+  maxSigningTermSeasons,
+  retirementCardLabel,
+  shortContractReason,
   fixturesForCurrentWeek,
   hasActiveCareerContractPromise,
   pendingTrainingPriorityHolder,
@@ -591,6 +597,11 @@ export function seasonEndViewModel(
       && !willRetireAtSeasonTransition(player, state.season))
     .sort((left, right) => left.id.localeCompare(right.id));
   const expiredPlayer = expiredPlayers[0];
+  // Zero would mean an announced player, and `expiredPlayers` already filters
+  // those out through `willRetireAtSeasonTransition`.
+  const renewalTermCap = expiredPlayer === undefined
+    ? 3
+    : maxRenewalTermSeasons(expiredPlayer, state.careerSeed);
   const renewalTalks = state.market?.renewalTalks;
   const prizeMoney = state.ledgers[state.ledgers.length - 1]?.lines
     .filter(line => line.kind === 'prize')
@@ -684,8 +695,14 @@ export function seasonEndViewModel(
           ? renewalTalks.negotiation.weeklyAsk
           : renewalQuote(expiredPlayer, 4),
         isHeroWageCliff: expiredPlayer.power !== undefined && !expiredPlayer.onHeroWage,
-        termOptions: [1, 2, 3] as const,
-        selectedTerm,
+        termOptions: contractTermOptions(renewalTermCap),
+        // Clamped rather than trusted: the term is held in the store across
+        // players, so a 3 dialled in for one man must not survive onto the
+        // veteran queued behind him.
+        selectedTerm: Math.min(selectedTerm, Math.max(1, renewalTermCap)) as 1 | 2 | 3,
+        ...(renewalTermCap >= 3 ? {} : {
+          shortTermReason: shortContractReason(expiredPlayer.age ?? 24, renewalTermCap),
+        }),
         decision: 'pending' as const,
         requiresNegotiation: true,
         remainingExpiredCount: expiredPlayers.length,
@@ -701,6 +718,8 @@ export function seasonEndViewModel(
             lookId: expiredPlayer.lookId,
             openingWeeklyWage: expiredPlayer.weeklyWage,
             wageStep: 50,
+            maxTermSeasons: Math.max(1, renewalTermCap) as 1 | 2 | 3,
+            playerAge: expiredPlayer.age ?? 24,
           }),
         }),
     sliceComplete,
@@ -860,6 +879,17 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
       detail: `Age ${announcement.retirementAge} · retires after Season ${state.season}.`,
       tone: 'info' as const,
     })),
+    // The heads-up, one season ahead of the announcement above. One-shot, so it
+    // lands the week it is discovered and then leaves the three desk slots to
+    // injuries and board deadlines; the player card carries it from then on.
+    ...roster
+      .filter(player => isConsideringRetirement(player, state.careerSeed))
+      .map(player => ({
+        id: `retirement-considering-${state.season}-${player.id}`,
+        title: `${player.name} is thinking about retirement`,
+        detail: `Age ${player.age ?? 24} · one more season after this one. Plan the succession now.`,
+        tone: 'info' as const,
+      })),
     ...(negativeCashWeeks > 0 ? [{
       id: 'financial-warning',
       title: 'Board financial warning',
@@ -1035,8 +1065,10 @@ function assistantProductPriority(
   return 'normal';
 }
 
-function isOneShotProductAlert(alertId: string): boolean {
-  return alertId.startsWith('board-resolution:') || alertId.startsWith('training-cap:');
+export function isOneShotProductAlert(alertId: string): boolean {
+  return alertId.startsWith('board-resolution:')
+    || alertId.startsWith('training-cap:')
+    || alertId.startsWith('retirement-considering-');
 }
 
 function standaloneInboxGuides(
@@ -1495,6 +1527,11 @@ export function squadTrainingViewModel(
           : `${player.contractSeasonsRemaining} season${player.contractSeasonsRemaining === 1 ? '' : 's'} left`,
         ...(player.contractPromise === undefined ? {} : {
           contractPromiseLabel: contractPromiseLabel(player.contractPromise.perk),
+        }),
+        // Absent while retirement is more than a season away. The squad list
+        // deliberately knows less than the negotiating table does.
+        ...(retirementCardLabel(player, state.careerSeed) === undefined ? {} : {
+          retirementLabel: retirementCardLabel(player, state.careerSeed),
         }),
         ...(player.shirtNumber === undefined ? {} : { shirtNumber: player.shirtNumber }),
         isCaptain: player.isCaptain === true,

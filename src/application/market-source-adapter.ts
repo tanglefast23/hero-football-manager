@@ -13,6 +13,7 @@ import type {
   ValuationPlayer,
 } from '../game/market';
 import type { CareerPlayer, GameState } from '../game/types';
+import { maxSigningTermSeasons } from '../game/retirement';
 import { careerRosterCapacity } from '../game/youth-intake';
 import { highestDivisionReached } from '../game/promotion-progression';
 import {
@@ -153,6 +154,11 @@ export function careerMarketViewModelSource(
           lookId: player.lookId,
           openingWeeklyWage: player.weeklyWage,
           wageStep: wageStepFor(player.weeklyWage),
+          // Signing, not renewal: the window is open mid-season, so week 30 will
+          // still decrement this contract once before the season ends and the
+          // term has to cover the season in progress too.
+          maxTermSeasons: maxSigningTermSeasons(player, state.careerSeed),
+          playerAge: player.age ?? 24,
         };
       })();
 

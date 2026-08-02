@@ -58,6 +58,18 @@
       "port": 4173
     },
     {
+      "name": "worktree-export",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4174",
+        "--directory",
+        "/Users/joemacprom5/Documents/Vibecode/Hero_Football_Manager/.claude/worktrees/division-leaders-cycle-1/dist"
+      ],
+      "port": 4174
+    },
+    {
       "name": "mockups",
       "url": "http://localhost:4519",
       "port": 4519

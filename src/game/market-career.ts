@@ -43,6 +43,7 @@ import {
 } from './m2-career';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
 import type { DivisionLevel, PyramidClub, PyramidPlayer } from './pyramid';
+import { assertContractTermFitsCareer } from './retirement';
 import { assertUserCareerRosterSpace } from './youth-intake';
 import { isStoryScoutingUnlocked } from './story-progression';
 import {
@@ -392,6 +393,7 @@ export function completeCareerTransfer(
   const offer = talks.negotiation.acceptedOffer;
   const sellerClubId = player.clubId;
   const lineups = target.active ? replaceTransferredStarter(state, player) : state.lineups;
+  assertContractTermFitsCareer(player, offer.termSeasons, state.careerSeed, 'signing');
   const transferred: CareerPlayer = {
     ...player,
     clubId: state.userClubId,
@@ -521,6 +523,7 @@ export function completeCareerRenewal(
   }
   const player = expiredUserPlayer(state, talks.playerId);
   const wageDelta = accepted.weeklyWage - player.weeklyWage;
+  assertContractTermFitsCareer(player, accepted.termSeasons, state.careerSeed, 'renewal');
   const renewed: CareerPlayer = {
     ...player,
     weeklyWage: accepted.weeklyWage,
