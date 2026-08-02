@@ -56,6 +56,13 @@ export interface AwardsCeremonyScreenProps {
    */
   lookIds?: ReadonlyMap<string, string>;
   reduceMotion?: boolean;
+  /**
+   * Which stage the ceremony opens on. A career always opens on the first
+   * board; this exists for the development QA reel, which has to reach the
+   * fourth board and the prize without tapping through everything before them.
+   * Read once, so a caller that changes it has to remount.
+   */
+  initialStageIndex?: number;
   /** Leaves the ceremony. The prize has already been granted by the transition. */
   onComplete: () => void;
 }
@@ -78,11 +85,12 @@ export function AwardsCeremonyScreen({
   viewModel,
   lookIds,
   reduceMotion = false,
+  initialStageIndex = 0,
   onComplete,
 }: AwardsCeremonyScreenProps) {
   const reduce = useReducedMotion(reduceMotion);
   const stages = useMemo(() => awardCeremonyStages(viewModel), [viewModel]);
-  const [stageIndex, setStageIndex] = useState(0);
+  const [stageIndex, setStageIndex] = useState(Math.max(0, initialStageIndex));
   const stage = stages[Math.min(stageIndex, stages.length - 1)] ?? FALLBACK_STAGE;
   const beat = stageBeat(viewModel, stage);
   const walkOn = isWalkOnStage(stage);

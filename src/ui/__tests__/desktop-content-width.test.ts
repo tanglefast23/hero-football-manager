@@ -11,6 +11,7 @@ const read = (file: string) => readFileSync(join(process.cwd(), SCREEN_DIR, file
 const EXEMPT = new Set([
   'AwakeningArtQaScreen.tsx',
   'PowerArtQaScreen.tsx',
+  'AwardsCeremonyQaScreen.tsx',
   'AwakeningCutsceneScreen.tsx',
   'ChampionshipCelebrationScreen.tsx',
   'AwardsCeremonyScreen.tsx',

@@ -147,6 +147,7 @@ import {
   careerAwardCeremonyViewModel,
 } from './src/application/awards-ceremony';
 import { AwardsCeremonyScreen } from './src/ui/screens/AwardsCeremonyScreen';
+import { AwardsCeremonyQaScreen } from './src/ui/screens/AwardsCeremonyQaScreen';
 import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
 import { careerMarketViewModelSource } from './src/application/market-source-adapter';
@@ -200,6 +201,13 @@ export default function App() {
   }
   if (__DEV__ && process.env.EXPO_PUBLIC_AWAKENING_ART_QA === '1') {
     return <AwakeningArtQaApp triggerId={previewTriggerId ?? 'magic-sponge'} />;
+  }
+  // The ceremony only plays at a season boundary, so reviewing it in a career
+  // costs a whole simulated season. This reaches any board, and the prize, cold.
+  // Flag-only like the power art reel above, and for the same reason: the review
+  // has to run on a static web export, where `__DEV__` is false.
+  if (process.env.EXPO_PUBLIC_AWARDS_CEREMONY_QA === '1') {
+    return <AwardsCeremonyQaApp />;
   }
   if (__DEV__ && previewTriggerId) {
     return <AwakeningReviewApp triggerId={previewTriggerId} />;
@@ -387,6 +395,21 @@ function AwakeningArtQaApp({ triggerId }: { triggerId: string }) {
         ) % triggerCount)}
         onNext={() => setSelectedTriggerIndex((triggerIndex + 1) % triggerCount)}
       />
+    </SafeAreaProvider>
+  );
+}
+
+function AwardsCeremonyQaApp() {
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+
+  return (
+    <SafeAreaProvider>
+      {!fontsLoaded ? <LoadingScreen /> : (
+        <>
+          <StatusBar style="light" />
+          <AwardsCeremonyQaScreen />
+        </>
+      )}
     </SafeAreaProvider>
   );
 }
