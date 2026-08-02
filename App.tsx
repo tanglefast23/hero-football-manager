@@ -148,6 +148,7 @@ import {
 } from './src/application/awards-ceremony';
 import { AwardsCeremonyScreen } from './src/ui/screens/AwardsCeremonyScreen';
 import { AwardsCeremonyQaScreen } from './src/ui/screens/AwardsCeremonyQaScreen';
+import { DevHarnessScreen } from './src/ui/dev-harness/DevHarnessScreen';
 import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
 import { careerMarketViewModelSource } from './src/application/market-source-adapter';
@@ -188,6 +189,14 @@ const QUICK_TRAIN_LESSON_WEEK = 6;
 
 export default function App() {
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
+  // The dev harness: one flag and one build for every registered feature, so
+  // switching between them is a tap instead of a three-minute static export.
+  // Flag-only rather than `__DEV__ &&`, for the reason the reels below give:
+  // the review runs on a static web export, where `__DEV__` is false. A build
+  // without the flag inlines `undefined` here and the branch is dead code.
+  if (process.env.EXPO_PUBLIC_DEV_HARNESS === '1') {
+    return <DevHarnessApp />;
+  }
   if (process.env.EXPO_PUBLIC_POWER_MATCH_QA === '1') {
     return <PowerMatchQaApp />;
   }
@@ -408,6 +417,21 @@ function AwardsCeremonyQaApp() {
         <>
           <StatusBar style="light" />
           <AwardsCeremonyQaScreen />
+        </>
+      )}
+    </SafeAreaProvider>
+  );
+}
+
+function DevHarnessApp() {
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+
+  return (
+    <SafeAreaProvider>
+      {!fontsLoaded ? <LoadingScreen /> : (
+        <>
+          <StatusBar style="light" />
+          <DevHarnessScreen />
         </>
       )}
     </SafeAreaProvider>
