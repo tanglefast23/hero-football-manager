@@ -164,7 +164,7 @@ describe('eligibleAskers', () => {
     player({ id: 'previous' }),
   ];
 
-  it('excludes injured, away, transfer-listed and the previous asker', () => {
+  it('excludes injured, away and the previous asker', () => {
     const ids = eligibleAskers(roster, {
       lastAskingPlayerId: 'previous',
       minSeasonsAtClub: 0,
@@ -174,8 +174,23 @@ describe('eligibleAskers', () => {
     expect(ids).toContain('fit');
     expect(ids).not.toContain('injured');
     expect(ids).not.toContain('away');
-    expect(ids).not.toContain('listed');
     expect(ids).not.toContain('previous');
+  });
+
+  /**
+   * Wanting a move and wanting a new gym are different things.
+   *
+   * This exclusion used to exist and it starved the feature: a measured six
+   * seasons leaves 14–15 of a 16-man squad genuinely listed by season 3, which
+   * silenced the tab for 43–52% of settled weeks even when every request was
+   * granted on sight. A listed player asking is also the only way the manager
+   * can talk him round, since granting pays morale toward his withdrawal line.
+   */
+  it('lets a transfer-listed player ask', () => {
+    const ids = eligibleAskers(roster, { minSeasonsAtClub: 0, absence: false })
+      .map(candidate => candidate.id);
+
+    expect(ids).toContain('listed');
   });
 
   it('excludes a player in their first season at the club', () => {
@@ -851,7 +866,15 @@ describe('advancePlayerRequests', () => {
     expect(next.playerRequests!.history).toHaveLength(0);
   });
 
-  it('cancels silently when the asker asks for a transfer', () => {
+  /**
+   * The inverse of the rule this used to assert.
+   *
+   * A pending ask survived everything except its author asking for a transfer,
+   * which meant a bad fortnight between the ask and the answer quietly voided a
+   * card the manager was still looking at. Leaving the club is now the only
+   * thing that invalidates one.
+   */
+  it('keeps the ask alive when the asker asks for a transfer', () => {
     const base = tickingCareer();
     const asker = base.players.find(p => p.clubId === base.userClubId)!;
     const listed: GameState = {
@@ -869,7 +892,8 @@ describe('advancePlayerRequests', () => {
       },
     };
 
-    expect(advancePlayerRequests(listed, true).playerRequests!.pending).toBeUndefined();
+    expect(advancePlayerRequests(listed, true).playerRequests!.pending)
+      .toMatchObject({ requestId: 'gold-boots', playerId: asker.id });
   });
 });
 
