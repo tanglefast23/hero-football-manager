@@ -660,24 +660,63 @@ export function applyLowMoraleToStat(stat: number, morale: number): number {
   return Math.max(1, Math.round(stat * lowMoraleStatModifier(morale)));
 }
 
+const TRANSFER_REQUEST_RULE: Readonly<Record<PlayerPersonality, { morale: number; weeks: number }>> = {
+  Greedy: { morale: 30, weeks: 2 },
+  Fiery: { morale: 25, weeks: 2 },
+  Joker: { morale: 22, weeks: 3 },
+  Timid: { morale: 25, weeks: 3 },
+  Professional: { morale: 18, weeks: 4 },
+  Loyal: { morale: 12, weeks: 5 },
+};
+
+function transferRequestRule(personality: PlayerPersonality): { morale: number; weeks: number } {
+  const rule = TRANSFER_REQUEST_RULE[personality];
+  if (rule === undefined) throw new Error(`unknown personality ${String(personality)}`);
+  return rule;
+}
+
+/**
+ * How far above his own patience line a player must climb to drop his request.
+ *
+ * Withdrawal cannot share the trigger morale or the flag chatters: a Greedy
+ * player asks at 30 and would take it back the first week a win carried him to
+ * 31, then ask again a month later. Twenty points of daylight makes a
+ * withdrawal mean the manager genuinely turned him around, and it keeps the
+ * personality meaningful in both directions — a Loyal player is won back at 32,
+ * a Greedy one not until 50.
+ */
+export const TRANSFER_REQUEST_WITHDRAW_MARGIN = 20;
+
 /** A predictable request rule: personality changes patience, but a single bad week never triggers it. */
 export function shouldRequestTransfer(player: WellbeingState): boolean {
   validatePercentage(player.morale, 'player morale');
   if (!Number.isInteger(player.consecutiveLowMoraleWeeks) || player.consecutiveLowMoraleWeeks < 0) {
     throw new Error('low-morale week count must be a non-negative integer');
   }
-  const rule: Readonly<Record<PlayerPersonality, { morale: number; weeks: number }>> = {
-    Greedy: { morale: 30, weeks: 2 },
-    Fiery: { morale: 25, weeks: 2 },
-    Joker: { morale: 22, weeks: 3 },
-    Timid: { morale: 25, weeks: 3 },
-    Professional: { morale: 18, weeks: 4 },
-    Loyal: { morale: 12, weeks: 5 },
-  };
-  const personalityRule = rule[player.personality];
-  if (personalityRule === undefined) throw new Error(`unknown personality ${String(player.personality)}`);
+  const personalityRule = transferRequestRule(player.personality);
   return player.morale <= personalityRule.morale
     && player.consecutiveLowMoraleWeeks >= personalityRule.weeks;
+}
+
+/**
+ * Whether a standing transfer request has been earned back.
+ *
+ * The counterpart `shouldRequestTransfer` never had. Weekly wellbeing used to
+ * write the flag as an OR against its own previous value, which made it a
+ * memory rather than a state: a player unhappy for four weeks in season 1 was
+ * still listed at morale 100 in season 6, still barred from
+ * `eligibleAskers`, and still raising the "wants to leave" desk alert that
+ * tells the manager to review and sell. Nothing but a season-end renewal could
+ * clear it, and only one of the two renewal paths did.
+ *
+ * No streak term here on purpose. `updatePlayerWellbeing` zeroes
+ * `consecutiveLowMoraleWeeks` the moment morale clears 30, so requiring a
+ * streak of contentment would test a counter that cannot count it.
+ */
+export function shouldWithdrawTransferRequest(player: WellbeingState): boolean {
+  validatePercentage(player.morale, 'player morale');
+  return player.morale >= transferRequestRule(player.personality).morale
+    + TRANSFER_REQUEST_WITHDRAW_MARGIN;
 }
 
 function generateSquad(

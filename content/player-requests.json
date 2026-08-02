@@ -4,7 +4,7 @@
     "startSeason": 2,
     "startWeek": 5,
     "baseChancePercent": 25,
-    "starFameThreshold": 200,
+    "starFameThreshold": 120,
     "starGoalRank": 2,
     "minSeasonsAtClub": 1,
     "answerWeeks": 2,

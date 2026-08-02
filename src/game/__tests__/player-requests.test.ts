@@ -2,6 +2,7 @@ import { loadLaunchContent } from '../../content';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 import { createCareer } from '../career';
+import { careerDifficulty } from '../difficulty';
 import { runHeadlessFullCareer } from '../headless';
 import { playerLoyalty } from '../loyalty';
 import { buildCareerTeamDef } from '../squad';
@@ -26,7 +27,7 @@ import {
   totalAskerWeight,
   weightForPlayer,
 } from '../player-requests';
-import type { CareerPlayer, GameState } from '../types';
+import { SEASON_WEEKS, type CareerPlayer, type GameState } from '../types';
 
 /**
  * Tests may read content; production `src/game/*` may not. Every entry point
@@ -911,6 +912,84 @@ describe('the star gate divides a real career in two', () => {
     // requests, which is the thing an unreachable branch could never show.
     expect(early.playerRequests!.history.length).toBeGreaterThan(0);
   }, 120_000);
+});
+
+/**
+ * WHICH row of `tuning.cadence` a starless squad is actually timed by.
+ *
+ * The test above proves a young squad reads as starless and still gets asked.
+ * It cannot prove the asking is on the SLOWER schedule, because both rows deal
+ * requests — swap the branch and it still passes. So this one holds the clock
+ * still at a chosen number of dry weeks and sweeps a whole season of rolls,
+ * which turns a probability into a count. The two rows overlap everywhere
+ * except in the windows below, and those are where the count separates:
+ *
+ *   at `starMinWeeks`      a star squad may be asked; a starless one cannot be
+ *   at `starGuaranteeWeeks` a star squad is always asked; a starless one is not
+ *   at `guaranteeWeeks`    a starless squad is always asked
+ *
+ * A career measured through the real weekly settlement is in
+ * `src/audit/__tests__/player-request-cadence-probe.test.ts`; the numbers here
+ * are the same ones it watches arrive.
+ */
+describe('the non-star cadence times a starless squad', () => {
+  /** Every week of a season, so one held clock produces a whole season of rolls. */
+  const SWEPT_WEEKS = Array.from({ length: SEASON_WEEKS }, (_, index) => index + 1);
+  const CADENCE = CATALOG.tuning.cadence[careerDifficulty(tickingCareer())];
+
+  /**
+   * How many of a season's weeks open a request when the drought is held at
+   * `weeksSinceRequest` dry weeks. Stored minus one, because the draw
+   * increments the clock before it reads it.
+   */
+  function opensPerSeason(dryWeeks: number, starred: boolean): number {
+    const base = tickingCareer();
+    const squad = base.players.filter(player => player.clubId === base.userClubId);
+    const starId = squad[0].id;
+    const players = base.players.map(player => {
+      if (player.clubId !== base.userClubId) return player;
+      // Zeroed rather than trusted: a launch roster that starts anyone above the
+      // threshold would make the starless half of this test vacuous.
+      return { ...player, fame: starred && player.id === starId
+        ? CATALOG.tuning.starFameThreshold
+        : 0 };
+    });
+
+    return SWEPT_WEEKS.filter(week => advancePlayerRequests({
+      ...atSeason(base, 3),
+      week,
+      players,
+      // Empty on purpose: a top-scorer qualifier is the other half of `hasStar`,
+      // and this test is about the fame half.
+      seasonStatLines: [],
+      playerRequests: { ...DEFAULT_PLAYER_REQUEST_STATE, weeksSinceRequest: dryWeeks - 1 },
+    }, true).playerRequests!.pending !== undefined).length;
+  }
+
+  it('stays silent through the weeks a star squad would already be asking in', () => {
+    expect(opensPerSeason(CADENCE.starMinWeeks, false)).toBe(0);
+    expect(opensPerSeason(CADENCE.minWeeks - 1, false)).toBe(0);
+    expect(opensPerSeason(CADENCE.starMinWeeks, true)).toBeGreaterThan(0);
+  });
+
+  it('reaches certainty on its own guarantee week, not the star one', () => {
+    expect(opensPerSeason(CADENCE.starGuaranteeWeeks, true)).toBe(SEASON_WEEKS);
+    expect(opensPerSeason(CADENCE.starGuaranteeWeeks, false)).toBeLessThan(SEASON_WEEKS);
+    expect(opensPerSeason(CADENCE.guaranteeWeeks, false)).toBe(SEASON_WEEKS);
+  });
+
+  /**
+   * The starless squad waits longer for the same certainty. Stated as a total
+   * across the shared window rather than week by week, because the ramp is
+   * eased and a single week can tie.
+   */
+  it('asks less often than a star squad across the weeks they share', () => {
+    const shared = [CADENCE.minWeeks, CADENCE.starGuaranteeWeeks];
+    const total = (starred: boolean): number => shared
+      .reduce((sum, dryWeeks) => sum + opensPerSeason(dryWeeks, starred), 0);
+
+    expect(total(false)).toBeLessThan(total(true));
+  });
 });
 
 describe('the tenure gate lets a real season-2 squad ask', () => {

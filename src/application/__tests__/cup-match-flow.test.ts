@@ -153,7 +153,7 @@ describe('National Cup app routing', () => {
       expect.objectContaining({
         fixtureId: matchday.id,
         divisionGap: 2,
-        title: 'GIANT-KILLERS!',
+        title: 'Two divisions up!',
       }),
     ]);
     useM1Store.getState().completeCupGiantKillingCelebration();

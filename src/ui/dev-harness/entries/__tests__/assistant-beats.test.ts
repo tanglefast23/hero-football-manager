@@ -65,20 +65,22 @@ describe("the reel of Bert's briefings", () => {
     expect([...mirroredAuthoredIds()].sort()).toEqual([...realAuthoredIds()].sort());
   });
 
-  /** Eight sequences have no authored run today; the reel must be able to say so. */
-  it('leaves the fallback sequences visible as fallbacks', () => {
+  /**
+   * Every sequence now has an authored run.
+   *
+   * The eight that used to be here were the ones where Bert breaks something to
+   * you — an injury, a loan, a transfer request, a retirement, the board's
+   * deadline — and they were the ones on the fallback, so all seven single-page
+   * ones were delivered with `explaining`, the face for walking you through the
+   * scouting screen. Everything that had been authored was a tutorial.
+   *
+   * The reel keeps the fallback machinery: it still labels a sequence as
+   * unauthored if one ever appears again, and this asserts none does today.
+   */
+  it('leaves no sequence on the fallback run', () => {
     const fallback = authored.filter(id => !mirroredAuthoredIds().includes(id));
 
-    expect(fallback).toEqual([
-      'division-leaders',
-      'first-injury',
-      'first-emergency-loan',
-      'first-transfer-request',
-      'retirement',
-      'club-legacy',
-      'board-ultimatum',
-      'board-protection',
-    ]);
+    expect(fallback).toEqual([]);
   });
 
   /**

@@ -3,6 +3,8 @@ import { join } from 'path';
 import {
   GIANT_KILLING_CUP_UPSET_COPY,
   ONE_DIVISION_CUP_UPSET_COPY,
+  THREE_DIVISION_CUP_UPSET_COPY,
+  TWO_DIVISION_CUP_UPSET_COPY,
   completeCupGiantKillingCelebration,
   cupGiantKillingCelebration,
   queueCupGiantKillingCelebration,
@@ -57,7 +59,8 @@ describe('the Cup giant-killing reel', () => {
 
   it.each([
     [4, 1, ONE_DIVISION_CUP_UPSET_COPY.title],
-    [3, 2, GIANT_KILLING_CUP_UPSET_COPY.title],
+    [3, 2, TWO_DIVISION_CUP_UPSET_COPY.title],
+    [2, 3, THREE_DIVISION_CUP_UPSET_COPY.title],
     [1, 4, GIANT_KILLING_CUP_UPSET_COPY.title],
   ])('beats a D%i side for a gap of %i', (division, gap, title) => {
     const opponentClubId = opponentInDivision(state, division);

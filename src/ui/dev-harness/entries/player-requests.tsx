@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { playerRequestViewModel } from '../../../application/player-request-view-model';
+import { squadTrainingViewModel } from '../../../application/view-models';
 import { loadLaunchContent } from '../../../content/load';
 import { playerLoyalty } from '../../../game/loyalty';
 import {
@@ -14,7 +15,8 @@ import {
 import { SEASON_WEEKS, type GameState } from '../../../game/types';
 import { PlayerRequestDecisionCard } from '../../PlayerRequestDecisionCard';
 import { PlayerRequestWalkOn } from '../../PlayerRequestWalkOn';
-import { SquadRequestsPanel } from '../../screens/SquadRequestsPanel';
+import { SquadTrainingScreen } from '../../screens/SquadTrainingScreen';
+import type { SquadSort } from '../../squad-sort';
 import { devHarnessCareerAtWeek } from '../career';
 import { DevHarnessButton, devHarnessControlStyles } from '../DevHarnessControls';
 import type { DevHarnessEntry } from '../registry';
@@ -27,6 +29,15 @@ import type { DevHarnessEntry } from '../registry';
  * walk-on, and the decision card that prices both answers. Granting and
  * refusing go through the shipped `resolvePlayerRequest`, so the loyalty and
  * morale the panel below reports are the ones the career would keep.
+ *
+ * The whole `SquadTrainingScreen` is rendered, not just `SquadRequestsPanel`.
+ * The panel alone is a section label and one card — about a third of a phone —
+ * and floated on the harness's own cream it read as an unfinished screen rather
+ * than as a sparse tab. What a manager actually sees around it is the Squad
+ * room heading and the Drills/Requests tab row that the panel is one half of,
+ * so those are here, drawn by the shipped screen off the shipped
+ * `squadTrainingViewModel`. `initialSquadTab` is the one thing the reel asks of
+ * it: an address should land on the tab it names.
  *
  * Two things had to be arranged rather than waited for.
  *
@@ -178,8 +189,14 @@ export function PlayerRequestsReel({ caseId }: { readonly caseId: string }) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [decision, setDecision] = useState<string>();
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>();
+  const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
 
   const viewModel = useMemo(() => playerRequestViewModel(state), [state]);
+  const squadViewModel = useMemo(
+    () => squadTrainingViewModel(state, loadLaunchContent(), selectedPlayerId),
+    [state, selectedPlayerId],
+  );
   const pending = viewModel.pending;
 
   const reset = useCallback(() => {
@@ -212,16 +229,27 @@ export function PlayerRequestsReel({ caseId }: { readonly caseId: string }) {
 
   return (
     <View style={styles.root}>
-      <ScrollView
-        style={styles.tab}
-        contentContainerStyle={[styles.tabContent, { paddingTop: insets.top + 64 }]}
-      >
-        <SquadRequestsPanel
-          viewModel={viewModel}
+      {/* Full-bleed, like every other entry that opens a whole screen. The
+          harness bar and the control panel are overlays with their own hide
+          buttons; padding the screen out from under them would shrink it by
+          more than half a phone and make the tab look tighter than it is. */}
+      <View style={styles.tab}>
+        <SquadTrainingScreen
+          viewModel={squadViewModel}
+          requestViewModel={viewModel}
+          initialSquadTab="requests"
           onOpenRequest={() => setStage('walk-on')}
+          selectedPlayerId={selectedPlayerId}
+          onSelectPlayer={setSelectedPlayerId}
+          onTrainDrill={() => {}}
+          onBuyDrillUpgrade={() => {}}
+          lastDrillResult={null}
+          trainingPoints={state.trainingPoints}
+          squadSort={squadSort}
+          onChangeSquadSort={setSquadSort}
           reduceMotion={reduceMotion}
         />
-      </ScrollView>
+      </View>
 
       {stage === 'walk-on' && pending !== undefined ? (
         <PlayerRequestWalkOn
@@ -327,10 +355,6 @@ export const playerRequestsEntry: DevHarnessEntry = Object.freeze({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#241f2e' },
   tab: { flex: 1, backgroundColor: '#f4f1ea' },
-  tabContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 220,
-  },
   panel: {
     position: 'absolute',
     left: 0,

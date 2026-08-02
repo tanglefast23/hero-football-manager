@@ -5,19 +5,44 @@ import {
   GIANT_KILLING_CUP_UPSET_COPY,
   ONE_DIVISION_CUP_UPSET_COPY,
   queueCupGiantKillingCelebration,
+  THREE_DIVISION_CUP_UPSET_COPY,
+  TWO_DIVISION_CUP_UPSET_COPY,
 } from '../cup-giant-killing';
 import { createLaunchCareerSetup } from '../../application/launch';
 
 describe('Bert Cup giant-killing celebrations', () => {
-  it('pins the exact enthusiastic and giant-killer copy', () => {
+  it('pins one distinct speech per division gap', () => {
     expect(ONE_DIVISION_CUP_UPSET_COPY).toEqual({
       title: "You've toppled a favourite",
       body: "Boss, that was magnificent! We've just sent a club from the division above packing. That's a proper Cup upset — enjoy this one.",
     });
+    expect(TWO_DIVISION_CUP_UPSET_COPY).toEqual({
+      title: 'Two divisions up!',
+      body: "Boss — two divisions. TWO. Clubs like ours are not supposed to get past sides like that, and we just did it in front of everyone.",
+    });
+    expect(THREE_DIVISION_CUP_UPSET_COPY).toEqual({
+      title: 'THREE DIVISIONS!',
+      body: "Boss, I have run out of professional composure. Three divisions above us. Three! They will be talking about this one in the town for years.",
+    });
     expect(GIANT_KILLING_CUP_UPSET_COPY).toEqual({
       title: 'GIANT-KILLERS!',
-      body: "Boss... we've just killed a giant. A result like this happens only once or twice in a hundred tries. What this club has just achieved is extraordinary.",
+      body: "BOSS. Four divisions. The whole way up the pyramid, in one afternoon. Nobody does this. I have watched football my entire life and I have never — never — seen anything like it.",
     });
+  });
+
+  it('never repeats a speech across the four gaps the pyramid allows', () => {
+    // The defect this replaced: gaps of 2, 3 and 4 shared one speech, so the
+    // rarest result in the competition read exactly like the commonest upset —
+    // including a claim about how often it happens, which cannot be true of all
+    // three. `divisionGap` was computed and saved the whole time; nothing read it.
+    const copies = [
+      ONE_DIVISION_CUP_UPSET_COPY,
+      TWO_DIVISION_CUP_UPSET_COPY,
+      THREE_DIVISION_CUP_UPSET_COPY,
+      GIANT_KILLING_CUP_UPSET_COPY,
+    ];
+    expect(new Set(copies.map(copy => copy.title)).size).toBe(4);
+    expect(new Set(copies.map(copy => copy.body)).size).toBe(4);
   });
 
   it('uses frozen draw divisions and queues every qualifying player win FIFO', () => {
@@ -53,7 +78,7 @@ describe('Bert Cup giant-killing celebrations', () => {
     );
 
     expect(one).toMatchObject({ divisionGap: 1, ...ONE_DIVISION_CUP_UPSET_COPY });
-    expect(two).toMatchObject({ divisionGap: 2, ...GIANT_KILLING_CUP_UPSET_COPY });
+    expect(two).toMatchObject({ divisionGap: 2, ...TWO_DIVISION_CUP_UPSET_COPY });
     expect(queued.pendingCupGiantKillingCelebrations?.map(item => item.fixtureId))
       .toEqual(['one-gap', 'two-gap']);
     const afterOne = completeCupGiantKillingCelebration(queued);
