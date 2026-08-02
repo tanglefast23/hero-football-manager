@@ -17,7 +17,7 @@ describe('filesForEvent: event → SFX wiring', () => {
 
   it('keeps the opening whistle and core action sounds wired', () => {
     expect(filesForEvent({ t: 0, kind: 'KICKOFF', half: 1 })).toEqual(['kickoff-whistle']);
-    expect(filesForEvent({ t: 0, kind: 'GOAL', by: 9, team: 0 })).toEqual(['goal-fanfare', 'goal-celebration', 'crowd-cheer']);
+    expect(filesForEvent({ t: 0, kind: 'GOAL', by: 9, team: 0 })).toEqual(['goal-net-hit', 'goal-fanfare', 'goal-celebration', 'goal-crowd']);
     expect(filesForEvent({ t: 0, kind: 'TACKLE', by: 3, on: 14, won: true, style: 'slide', contact: true })).toEqual(['tackle-thud', 'grunt']);
     expect(filesForEvent({ t: 0, kind: 'TACKLE', by: 3, on: 14, won: false, style: 'slide', contact: false })).toEqual([]);
   });
@@ -89,6 +89,11 @@ describe('filesForEvent: event → SFX wiring', () => {
   it('uses the flame-up sound when Fire Torch activates', () => {
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 0.85 })).toEqual(['flame-up']);
     expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'FIRE_TORCH', strength: 1 })).toEqual(['flame-up']);
+  });
+
+  it('rallies on the drums, and never on the cut crowd wash', () => {
+    expect(filesForEvent({ t: 0, kind: 'POWER_FIRED', player: 9, power: 'RALLY_CRY', strength: 0.85 }))
+      .toEqual(['rally-drums']);
   });
 
   it('gives every launch power a sound somewhere in its deterministic lifecycle', () => {

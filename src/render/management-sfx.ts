@@ -43,7 +43,11 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   'coach-departure': require('../../assets/audio/sfx/fulltime-whistle.wav'),
   'facility-start': require('../../assets/audio/sfx/advance-week.m4a'),
   'facility-complete': require('../../assets/audio/sfx/facility-complete.m4a'),
-  'event-success': require('../../assets/audio/sfx/crowd-cheer.wav'),
+  // A gamble that paid off announces itself. This was the match crowd-cheer
+  // wash, which read as stadium ambience rather than a result — a brass fanfare
+  // is the cue that says the call was right. Trimmed to 3.55s (0.2s tail) and
+  // level-matched to `positive`, the other celebration cue.
+  'event-success': require('../../assets/audio/sfx/event-success-fanfare.m4a'),
   // Same tap as `ui-click`: one sound answers a press on the screen, whichever
   // cue name the caller reaches for.
   select: require('../../assets/audio/sfx/ui-tap.wav'),
@@ -75,9 +79,14 @@ const MANAGEMENT_SFX: Record<ManagementSfxKey, AudioSource> = {
   // regret. This is the softer back-button cue: it confirms without applauding.
   // Appended last so existing player indices stay stable.
   danger: require('../../assets/audio/sfx/back-button.m4a'),
-  // The level-up jingle under the SUPER takeover. Its 3.6s is the length of the
+  // The jingle under the SUPER takeover. Its 3.6s is the length of the
   // celebration itself, which played out in silence before this.
   // Appended last so existing player indices stay stable.
+  //
+  // This file is already the level-up cue the owner asked SUPER training to
+  // use — re-encoding the supplied source reproduced it byte for byte, so the
+  // sound was never the thing that was wrong. What was wrong is the crowd wash
+  // that used to start underneath it; see `playSuperTrainingSfx`.
   'super-celebration': require('../../assets/audio/sfx/level-up.m4a'),
 };
 
@@ -225,8 +234,10 @@ export function playDrillResultSfx(streak: number): void {
 
 /** Big celebratory hit for a SUPER training session. */
 export function playSuperTrainingSfx(): void {
+  // One cue, not two. The reveal used to lay a crowd wash under this sting and
+  // the takeover's own jingle started on top of it a moment later; the jingle
+  // is the celebration, and the sting is the hit that announces it.
   playManagementSfx('hero');
-  playManagementSfx('event-success');
 }
 
 /** The jingle that runs under the SUPER takeover, from the moment it appears. */
