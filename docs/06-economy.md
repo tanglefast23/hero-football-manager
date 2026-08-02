@@ -44,7 +44,7 @@ Numbers rule; the mini-game influences (user spec: helps, never fully decides).
 
 An 8×6 tile grid (expandable). Buildings: Training Pitch, Gym, Tech Center, Shooting Range, Keeper Court, Medical Bay, Dorm, Scout Office, Coaching Office, Youth Field, Fan Shop, and Stadium Stand tiers. Each: build cost, up to Lv3, small weekly upkeep.
 
-Facility quality is promotion-gated: D5 clubs build Level 1, reaching D4 permanently unlocks Level 2, and reaching D2 permanently unlocks Level 3. Existing higher-level buildings from older saves remain operational, but further upgrades follow the earned ceiling.
+Facility quality is partly promotion-gated: Levels 1 and 2 are available from D5, and reaching D2 permanently unlocks Level 3. Level 2 used to wait for D4 and was moved down after measurement — locking the club's main training accelerator behind the promotion it was needed to earn produced 0 promotions across 6 careers × 10 seasons. Existing higher-level buildings from older saves remain operational, but further upgrades follow the earned ceiling.
 
 The club owns **one works crew**, so only one build or upgrade project may run at once. Paying for a building starts construction and occupies its tiles immediately, but it produces **no benefit and no upkeep until completion**. An upgrade keeps the facility's current level active while work proceeds; the higher level begins only on completion. New careers receive an extra **$8,000** in their starting budget and are guided to place the Training Pitch as their first build, so paying for it returns cash to the previously balanced opening level. It pays nothing before it opens; from then on every weekly settlement creates **+28 TP per completed level**. Relocation is unavailable for the building under construction. Completion resolves at weekly settlement, appears in the Weekly Review with the finished building sprite, and uses the dedicated win fanfare.
 
@@ -69,8 +69,9 @@ The club owns **one works crew**, so only one build or upgrade project may run a
 | Prize: D5 champion / runner-up | 20,000 / 10,000 |
 | Cup: per round win / trophy | 2,000–8,000 / 25,000 |
 | Facility Lv1 build | 5,000–15,000 |
-| Focus drill (single-stat) | TP only: Tier I +3 for 6 TP; Tier II +5 for 10 TP; Tier III +8 for 15 TP |
-| Weekly TP income | Training Pitch +10/level; head coach 10 + 2× level; assistant 5 + level; match result +0 |
+| Focus drill (single-stat) | TP only, five tiers; tier 1 is the D5 starting drill and each tier up costs more TP for a bigger gain (exact gains and TP costs: `content/training.json`) |
+| Drill tier upgrade (per path) | $3,000 / $8,000 / $18,000 / $40,000 for tiers 2–5 |
+| Weekly TP income | 24 baseline; Training Pitch +28/completed level; head coach 10 + 2× level; assistant 5 + level; match result +0 |
 | Transfer (decent D5 player) | 5,000–15,000 |
 | Pre-powered hero signing | 100,000+ + 2,500+/wk (Div 3 era) |
 | Emergency loan | 20,000 once, 10%/season interest |
