@@ -22,6 +22,7 @@ export * from './m2-career';
 export * from './full-career';
 export * from './legacy-career';
 export * from './onboarding/player-creation';
+export * from './ordering';
 export * from './onboarding/story-onboarding';
 export * from './post-match-awakening';
 export * from './player-wellbeing';

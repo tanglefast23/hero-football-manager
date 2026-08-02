@@ -1,3 +1,5 @@
+import { compareIds } from './ordering';
+
 export type PlayerVisualRole = 'GK' | 'DEF' | 'MID' | 'FWD';
 
 export interface PlayerAppearanceIdentity {
@@ -166,8 +168,4 @@ function lookIndex(playerId: string, poolSize: number): number {
   // Generated club squads end in p01, p02, ... . Walking the pool with a
   // larger coprime step keeps new-season squads visually distinct.
   return (stablePlayerLookHash(numberedId[1]) + Number(numberedId[2]) * 101) % poolSize;
-}
-
-function compareIds(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }

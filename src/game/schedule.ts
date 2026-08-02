@@ -1,5 +1,6 @@
 import { mulberry32 } from '../sim/rng';
 import type { LeagueFixture } from './types';
+import { compareIds } from './ordering';
 
 const CLUB_COUNT = 10;
 const FIRST_LEG_ROUNDS = CLUB_COUNT - 1;
@@ -83,7 +84,7 @@ export function pinOpeningLeagueOpponents(
       if (!Number.isFinite(strength)) throw new Error(`opening schedule is missing strength for ${clubId}`);
       return { clubId, strength: strength! };
     })
-    .sort((left, right) => right.strength - left.strength || left.clubId.localeCompare(right.clubId));
+    .sort((left, right) => right.strength - left.strength || compareIds(left.clubId, right.clubId));
   const hardest = opponents[0].clubId;
   const upperMid = opponents[4].clubId;
   const lowerMid = opponents[5].clubId;
@@ -93,7 +94,7 @@ export function pinOpeningLeagueOpponents(
   const remaining = opponents
     .map(opponent => opponent.clubId)
     .filter(clubId => !pinned.has(clubId))
-    .sort((left, right) => left.localeCompare(right));
+    .sort(compareIds);
   return [
     userClubId,
     ...remaining,

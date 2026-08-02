@@ -1,6 +1,7 @@
 import { mulberry32, type Rng } from '../sim/rng';
 import type { Attrs, Role } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
+import { compareIds } from './ordering';
 import { POSITION_TRAINING_ATTRIBUTES, roleOverall } from './archetype-caps';
 import type { PlayerArchetype, PlayerPersonality } from './types';
 export type { PlayerArchetype, PlayerPersonality } from './types';
@@ -158,6 +159,9 @@ export interface WellbeingState {
 
 export const CLUBS_PER_DIVISION = 10;
 export const PYRAMID_DIVISION_COUNT = 5;
+/** How many clubs go up, and how many go down, at each end of a division. */
+export const PROMOTION_PLACES = 2;
+export const RELEGATION_PLACES = 2;
 export const NATIONAL_CUP_CLUB_COUNT = CLUBS_PER_DIVISION * PYRAMID_DIVISION_COUNT;
 export const CLUB_LEGEND_MIN_SEASONS = 5;
 export const CLUB_LEGEND_MIN_FAME = 70;
@@ -344,6 +348,26 @@ export function generateLeaguePyramid(careerSeed: number): LeaguePyramid {
   return { careerSeed, divisions };
 }
 
+/**
+ * Where a club that finished `finalPosition` in `division` plays next season.
+ *
+ * Top two up, bottom two down, with the pyramid's ends closed. Extracted so the
+ * awards ceremony can size its prize against the division the club is ABOUT to
+ * enter before the transition has run — the alternative was a second copy of
+ * the rule in the application ring, which would drift the first time either end
+ * of the ladder changed. `finalPosition` is 1-based, as standings are.
+ */
+export function divisionAfterFinish(
+  division: DivisionLevel,
+  finalPosition: number,
+): DivisionLevel {
+  if (division > 1 && finalPosition <= PROMOTION_PLACES) return (division - 1) as DivisionLevel;
+  if (division < 5 && finalPosition > CLUBS_PER_DIVISION - RELEGATION_PLACES) {
+    return (division + 1) as DivisionLevel;
+  }
+  return division;
+}
+
 /** Resolves top-two promotion and bottom-two relegation without changing squad strength. */
 export function resolvePromotionAndRelegation(
   pyramid: LeaguePyramid,
@@ -359,16 +383,12 @@ export function resolvePromotionAndRelegation(
     const orderedClubIds = orderByDivision.get(division.level)!;
     for (let index = 0; index < orderedClubIds.length; index += 1) {
       const clubId = orderedClubIds[index];
-      if (division.level > 1 && index < 2) {
-        const toDivision = (division.level - 1) as DivisionLevel;
-        targetDivisionByClubId.set(clubId, toDivision);
+      const toDivision = divisionAfterFinish(division.level, index + 1);
+      targetDivisionByClubId.set(clubId, toDivision);
+      if (toDivision < division.level) {
         movements.push({ clubId, fromDivision: division.level, toDivision, kind: 'promoted' });
-      } else if (division.level < 5 && index >= CLUBS_PER_DIVISION - 2) {
-        const toDivision = (division.level + 1) as DivisionLevel;
-        targetDivisionByClubId.set(clubId, toDivision);
+      } else if (toDivision > division.level) {
         movements.push({ clubId, fromDivision: division.level, toDivision, kind: 'relegated' });
-      } else {
-        targetDivisionByClubId.set(clubId, division.level);
       }
     }
   }
@@ -381,12 +401,12 @@ export function resolvePromotionAndRelegation(
     level,
     clubs: allClubs
       .filter(club => club.division === level)
-      .sort((left, right) => stableIdCompare(left.id, right.id)),
+      .sort((left, right) => compareIds(left.id, right.id)),
   }));
 
   return {
     pyramid: { careerSeed: pyramid.careerSeed, divisions },
-    movements: movements.sort((left, right) => stableIdCompare(left.clubId, right.clubId)),
+    movements: movements.sort((left, right) => compareIds(left.clubId, right.clubId)),
   };
 }
 
@@ -400,7 +420,7 @@ export function createNationalCup(
   validateClubIds(clubIds, NATIONAL_CUP_CLUB_COUNT, 'National Cup');
   validateSeason(season);
   validateSeed(careerSeed);
-  const sortedClubIds = [...clubIds].sort(stableIdCompare);
+  const sortedClubIds = [...clubIds].sort(compareIds);
   const seedDivisions = seedDivisionByClubId === undefined
     ? undefined
     : validateCupSeedDivisions(sortedClubIds, seedDivisionByClubId);
@@ -456,7 +476,7 @@ export function advanceNationalCup(
     return { ...cup, rounds, championClubId: advancingClubIds[0] };
   }
   const nextRound = createCupRound(
-    advancingClubIds.sort(stableIdCompare),
+    advancingClubIds.sort(compareIds),
     cup.season,
     current.number + 1,
     cup.careerSeed,
@@ -1144,10 +1164,6 @@ function cloneClub(club: PyramidClub): PyramidClub {
 
 function divisionLevels(): DivisionLevel[] {
   return [1, 2, 3, 4, 5];
-}
-
-function stableIdCompare(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function clampRating(value: number): number {

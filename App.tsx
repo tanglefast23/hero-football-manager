@@ -142,6 +142,11 @@ import type { AwakeningCutsceneViewModel, SquadTrainingViewModel } from './src/u
 import { AwakeningArtQaScreen } from './src/ui/screens/AwakeningArtQaScreen';
 import { PowerArtQaScreen } from './src/ui/screens/PowerArtQaScreen';
 import { championshipCelebrationViewModel } from './src/application/championship-celebration';
+import {
+  awardCeremonyLookIds,
+  careerAwardCeremonyViewModel,
+} from './src/application/awards-ceremony';
+import { AwardsCeremonyScreen } from './src/ui/screens/AwardsCeremonyScreen';
 import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
 import { careerMarketViewModelSource } from './src/application/market-source-adapter';
@@ -1397,6 +1402,15 @@ function GameApp() {
         )}
         reduceMotion={reduceMotion}
         onComplete={store.completeChampionshipCelebration}
+      />
+    );
+  } else if (store.screen === 'awards-ceremony') {
+    screen = (
+      <AwardsCeremonyScreen
+        viewModel={careerAwardCeremonyViewModel(store.career)}
+        lookIds={awardCeremonyLookIds(store.career)}
+        reduceMotion={reduceMotion}
+        onComplete={store.completeAwardsCeremony}
       />
     );
   } else if (store.screen === 'season-end') {

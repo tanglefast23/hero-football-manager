@@ -2,6 +2,7 @@ import { sellingTransferQuote, type ValuationPlayer } from './market';
 import { currentUserDivision } from './m2-career';
 import { clearCareerContractPromise } from './contract-promises';
 import { isAvailableForSelection } from './lineup';
+import { compareIds } from './ordering';
 import { createEmergencyYouthReplacement } from './youth-intake';
 import type {
   BoardSaleCandidate,
@@ -106,7 +107,7 @@ function eligibleBoardSaleCandidates(state: GameState): BoardSaleCandidate[] {
       const rightStarter = starters.has(right.playerId) ? 1 : 0;
       return leftStarter - rightStarter
         || right.forcedSaleFee - left.forcedSaleFee
-        || left.playerId.localeCompare(right.playerId);
+        || compareIds(left.playerId, right.playerId);
     });
 }
 
@@ -169,7 +170,7 @@ export function boardForcedSaleAtDeadline(
     const buyer = state.clubs
       .filter(club => club.id !== state.userClubId && club.cash >= candidate.forcedSaleFee)
       .slice()
-      .sort((left, right) => right.cash - left.cash || left.id.localeCompare(right.id))[0];
+      .sort((left, right) => right.cash - left.cash || compareIds(left.id, right.id))[0];
     if (buyer === undefined) continue;
     const fansLost = Math.min(
       userClub.fans,

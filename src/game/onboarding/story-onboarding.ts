@@ -1,5 +1,6 @@
 import type { PowerId, TeamDef } from '../../sim/types';
 import { developmentPotentialCeiling } from '../archetype-caps';
+import { compareIds } from '../ordering';
 import { assignDistinctPlayerLooks, createdAppearanceLookId } from '../player-appearance';
 import type { CareerPlayer, GameState, LeagueFixture } from '../types';
 import { STORY_STARTING_ROSTER_SIZE } from '../story-progression';
@@ -42,7 +43,7 @@ function trimStoryLaunchRoster(state: GameState, userPlayers: readonly CareerPla
     .sort((left, right) => (
       Number(right.role === 'FWD') - Number(left.role === 'FWD')
       || left.weeklyWage - right.weeklyWage
-      || left.id.localeCompare(right.id)
+      || compareIds(left.id, right.id)
     ));
   if (removable.length < removalCount) {
     throw new Error('Story onboarding needs enough reserve outfield players to open two roster slots');
@@ -184,7 +185,7 @@ function firstUserFixture(state: GameState): LeagueFixture {
     .filter(candidate => candidate.season === 1 && (
       candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId
     ))
-    .sort((left, right) => left.week - right.week || left.round - right.round || left.id.localeCompare(right.id))[0];
+    .sort((left, right) => left.week - right.week || left.round - right.round || compareIds(left.id, right.id))[0];
   if (fixture === undefined) throw new Error('The career has no first user fixture');
   return fixture;
 }

@@ -785,6 +785,18 @@ const divisionAwardsSchema = z.object({
   saves: z.array(divisionAwardPlacementSchema).max(3),
 }).passthrough();
 
+/**
+ * The grant, not the projection: written once by the season transition. Four
+ * boards exist, so four is the ceiling, and each may only be claimed once.
+ */
+const divisionAwardPrizeSchema = z.object({
+  trainingPoints: nonnegativeInteger,
+  categoriesWon: z
+    .array(z.enum(['goals', 'passesCompleted', 'tacklesWon', 'saves']))
+    .max(4)
+    .refine(value => new Set(value).size === value.length, 'must not repeat a category'),
+}).passthrough();
+
 const seasonRecapSchema = z.object({
   season: positiveInteger,
   division: positiveInteger.refine(value => value <= 5, 'must be at most 5'),
@@ -805,6 +817,7 @@ const seasonRecapSchema = z.object({
   youngPlayer: seasonRecapAwardSchema.optional(),
   heroOfSeason: seasonRecapAwardSchema.optional(),
   divisionAwards: divisionAwardsSchema.optional(),
+  divisionAwardPrize: divisionAwardPrizeSchema.optional(),
 }).passthrough();
 
 const gameStateSchema = z

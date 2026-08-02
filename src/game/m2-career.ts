@@ -1,6 +1,7 @@
 import type { Attrs } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import { roleOverall } from './archetype-caps';
+import { compareIds } from './ordering';
 import {
   advanceNationalCup,
   createNationalCup,
@@ -259,7 +260,7 @@ export function deterministicM2FinishOrders(
           if (strength !== 0) return strength;
           const leftTie = stableSeasonTie(state.careerSeed, season, left.id);
           const rightTie = stableSeasonTie(state.careerSeed, season, right.id);
-          return leftTie - rightTie || stableIdCompare(left.id, right.id);
+          return leftTie - rightTie || compareIds(left.id, right.id);
         }).map(club => club.id),
   }));
 }
@@ -447,7 +448,7 @@ export function planEndlessCareerSeasonTransition(
   const generatedOpponentClubs = currentClubs
     .filter(club => club.id !== state.userClubId)
     .map(cloneClub)
-    .sort((left, right) => stableIdCompare(left.id, right.id));
+    .sort((left, right) => compareIds(left.id, right.id));
   if (generatedOpponentClubs.length !== 9) {
     throw new Error(`Division ${division} must provide exactly nine opponents`);
   }
@@ -609,7 +610,7 @@ export function deterministicCupTieWinner(
     round,
     away.id,
   );
-  if (homeScore === awayScore) return stableIdCompare(home.id, away.id) < 0 ? home.id : away.id;
+  if (homeScore === awayScore) return compareIds(home.id, away.id) < 0 ? home.id : away.id;
   return homeScore > awayScore ? home.id : away.id;
 }
 
@@ -740,8 +741,4 @@ function cloneClub(club: PyramidClub): PyramidClub {
 
 function clonePlayer(player: PyramidPlayer): PyramidPlayer {
   return { ...player, attrs: { ...player.attrs } };
-}
-
-function stableIdCompare(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }

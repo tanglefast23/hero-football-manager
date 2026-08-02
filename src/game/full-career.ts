@@ -3,6 +3,7 @@ import { assignDistinctPlayerLooks, nextDistinctPlayerLook } from './player-appe
 import { generateSeasonFixtures, pinOpeningLeagueOpponents } from './schedule';
 import { createCareerMarketState, refreshCareerMarketForNewSeason } from './market-career';
 import { generatedPlayerWeeklyWage } from './market';
+import { compareIds } from './ordering';
 import {
   applyM2PromotionAndRelegation,
   clubSquadStrength,
@@ -23,6 +24,7 @@ import {
   type PyramidPlayer,
 } from './pyramid';
 import { difficultyRules } from './difficulty';
+import { divisionAwardPrize } from './division-award-prize';
 import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
 import { highestDivisionReached, recordHighestDivisionReached } from './promotion-progression';
@@ -133,6 +135,26 @@ export function startNextFullCareerSeason(
   const transition = planEndlessCareerSeasonTransition(m2, state.season, difficultyRules(state));
   m2 = transition.state;
 
+  // The division boards are paid here rather than by the ceremony that shows
+  // them, for the reason cup prize money is: a grant folded into the state at a
+  // point the career passes through exactly once cannot be paid twice by a
+  // screen being re-entered, backed into, or killed halfway through. The
+  // ceremony runs BEFORE this and displays a projection from the same pure
+  // function; nothing has moved until the lines below run.
+  //
+  // `transition.division` is the division the club is entering, which is the one
+  // the prize is sized against — the recap's own `division` is the one just
+  // played, and for a promoted or relegated club they differ.
+  const completedRecap = (state.seasonRecaps ?? [])
+    .find(recap => recap.season === state.season);
+  const awardPrize = completedRecap === undefined
+    ? undefined
+    : divisionAwardPrize({
+        recap: completedRecap,
+        userClubId: state.userClubId,
+        targetDivision: transition.division,
+      });
+
   const userPlayers = state.players.filter(player => player.clubId === state.userClubId);
   const lifecycle = resolveM2CareerPlayerLifecycle(userPlayers, state.season, state.careerSeed);
   const retiredIds = new Set(lifecycle.retiredPlayers.map(player => player.id));
@@ -239,6 +261,16 @@ export function startNextFullCareerSeason(
     // pre-transition state, so `state.season` is the season just completed and
     // its rows survive.
     seasonStatLines: prunedStatLines({ ...state, players, retiredPlayers }),
+    trainingPoints: awardPrize === undefined
+      ? state.trainingPoints
+      : checkedAdd(state.trainingPoints, awardPrize.trainingPoints, 'division award prize'),
+    // Stamped even when it paid nothing, so an absent field always means "this
+    // season has not been transitioned through yet" and never "won nothing".
+    seasonRecaps: awardPrize === undefined
+      ? state.seasonRecaps
+      : (state.seasonRecaps ?? []).map(recap => (recap.season === state.season
+        ? { ...recap, divisionAwardPrize: awardPrize }
+        : recap)),
   };
   const withMarket: GameState = {
     ...next,
@@ -267,7 +299,7 @@ function balanceOpeningDivision(state: GameState): GameState {
     .filter(club => club.id !== state.userClubId)
     .sort((left, right) => (
       currentStrengths.get(left.id)! - currentStrengths.get(right.id)!
-      || left.id.localeCompare(right.id)
+      || compareIds(left.id, right.id)
     ));
   // The opening is deliberately rigged against the player: 40 against a field of
   // 42..50, so the user is the weakest club in the division and every week of

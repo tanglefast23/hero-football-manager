@@ -1,0 +1,301 @@
+import { createLaunchCareerSetup } from '../../application/launch';
+import { createCareer } from '..';
+import { leagueStandings } from '../career';
+import {
+  DIVISION_AWARD_PRIZE_TAPER_PERCENT,
+  divisionAwardPrize,
+  divisionAwardPrizePerCategory,
+  divisionAwardPrizeTotal,
+} from '../division-award-prize';
+import { startNextFullCareerSeason } from '../full-career';
+import { currentUserDivision } from '../m2-career';
+import type {
+  AwardCategoryId,
+  DivisionAwardPlacement,
+  GameState,
+  SeasonRecap,
+} from '../types';
+
+const USER_CLUB = 'user-club';
+const RIVAL_CLUB = 'rival-club';
+const CATEGORIES: readonly AwardCategoryId[] = [
+  'goals',
+  'passesCompleted',
+  'tacklesWon',
+  'saves',
+];
+
+describe('divisionAwardPrize', () => {
+  test('a club that topped no board is paid nothing', () => {
+    const prize = divisionAwardPrize({
+      recap: recapWonBy([]),
+      userClubId: USER_CLUB,
+      targetDivision: 5,
+    });
+
+    expect(prize).toEqual({ trainingPoints: 0, categoriesWon: [] });
+  });
+
+  test('one board pays the entered division rate once', () => {
+    const prize = divisionAwardPrize({
+      recap: recapWonBy(['tacklesWon']),
+      userClubId: USER_CLUB,
+      targetDivision: 5,
+    });
+
+    expect(prize).toEqual({ trainingPoints: 120, categoriesWon: ['tacklesWon'] });
+  });
+
+  test('a sweep pays the tapered total, not four full rates', () => {
+    const prize = divisionAwardPrize({
+      recap: recapWonBy(CATEGORIES),
+      userClubId: USER_CLUB,
+      targetDivision: 5,
+    });
+
+    expect(prize.trainingPoints).toBe(120 + 90 + 60 + 30);
+    expect(prize.categoriesWon).toEqual(CATEGORIES);
+  });
+
+  test('which boards were won cannot change what they pay', () => {
+    const forwards = divisionAwardPrize({
+      recap: recapWonBy(['goals', 'saves']),
+      userClubId: USER_CLUB,
+      targetDivision: 4,
+    });
+    const spine = divisionAwardPrize({
+      recap: recapWonBy(['passesCompleted', 'tacklesWon']),
+      userClubId: USER_CLUB,
+      targetDivision: 4,
+    });
+
+    expect(forwards.trainingPoints).toBe(spine.trainingPoints);
+  });
+
+  test('a rival top placing pays nothing, even with our man second', () => {
+    // Every podium in the fixture carries a user player in second, so a prize
+    // here would mean the board is being read by club membership rather than by
+    // who actually won it.
+    const prize = divisionAwardPrize({
+      recap: recapWonBy(['goals']),
+      userClubId: USER_CLUB,
+      targetDivision: 5,
+    });
+
+    expect(prize).toEqual({ trainingPoints: 120, categoriesWon: ['goals'] });
+  });
+
+  test('a save written before the boards existed pays nothing', () => {
+    const { divisionAwards, ...withoutAwards } = recapWonBy(CATEGORIES);
+
+    expect(divisionAwardPrize({
+      recap: withoutAwards,
+      userClubId: USER_CLUB,
+      targetDivision: 5,
+    })).toEqual({ trainingPoints: 0, categoriesWon: [] });
+  });
+
+  /**
+   * The codec requires all four keys and `buildSeasonRecap` writes all four, so
+   * this record should not exist. It is guarded anyway because of WHERE this
+   * function is called: the ceremony's view model survives a partial record and
+   * blanks a board, while the transition used to index straight into it. A
+   * throw there is not a blank screen — it is an error banner on every "start
+   * next season" tap, and a career with no way forward.
+   */
+  test('a record missing a category pays nothing rather than throwing', () => {
+    const { goals, ...missingGoals } = recapWonBy(CATEGORIES).divisionAwards!;
+    const recap: SeasonRecap = {
+      ...recapWonBy(CATEGORIES),
+      divisionAwards: missingGoals as Record<AwardCategoryId, DivisionAwardPlacement[]>,
+    };
+
+    const prize = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 });
+
+    // The three surviving boards are still paid; only the absent one is skipped.
+    expect(prize.categoriesWon).toEqual(['passesCompleted', 'tacklesWon', 'saves']);
+    expect(prize.trainingPoints).toBe(divisionAwardPrizeTotal(5, 3));
+  });
+
+  test('a record with every category missing pays a zero, not an error', () => {
+    const recap: SeasonRecap = {
+      ...recapWonBy(CATEGORIES),
+      divisionAwards: {} as Record<AwardCategoryId, DivisionAwardPlacement[]>,
+    };
+
+    expect(divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 }))
+      .toEqual({ trainingPoints: 0, categoriesWon: [] });
+  });
+
+  test('the same sweep is worth more promoted than relegated', () => {
+    const recap = recapWonBy(CATEGORIES);
+
+    const promoted = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 3 });
+    const relegated = divisionAwardPrize({ recap, userClubId: USER_CLUB, targetDivision: 5 });
+
+    expect(promoted.trainingPoints).toBeGreaterThan(relegated.trainingPoints);
+    expect(promoted.trainingPoints).toBe(divisionAwardPrizeTotal(3, CATEGORIES.length));
+    expect(relegated.trainingPoints).toBe(divisionAwardPrizeTotal(5, CATEGORIES.length));
+  });
+
+  test('every tier of the pyramid is priced, and nothing outside it is', () => {
+    expect([5, 4, 3, 2, 1].map(divisionAwardPrizePerCategory))
+      .toEqual([120, 140, 160, 180, 200]);
+    expect(() => divisionAwardPrizePerCategory(0)).toThrow('division 0');
+    expect(() => divisionAwardPrizePerCategory(6)).toThrow('division 6');
+  });
+
+  test('is pure: repeatable, and it reads no clock and no randomness', () => {
+    const recap = recapWonBy(['goals', 'saves']);
+    const before = JSON.stringify(recap);
+    const random = jest.spyOn(Math, 'random');
+    const now = jest.spyOn(Date, 'now');
+    try {
+      const results = Array.from({ length: 20 }, () => divisionAwardPrize({
+        recap,
+        userClubId: USER_CLUB,
+        targetDivision: 4,
+      }));
+
+      for (const result of results) expect(result).toEqual(results[0]);
+      expect(random).not.toHaveBeenCalled();
+      expect(now).not.toHaveBeenCalled();
+      expect(JSON.stringify(recap)).toBe(before);
+    } finally {
+      random.mockRestore();
+      now.mockRestore();
+    }
+  });
+});
+
+describe('the diminishing-returns curve', () => {
+  test('pays the shipped D5 totals', () => {
+    expect([0, 1, 2, 3, 4].map(count => divisionAwardPrizeTotal(5, count)))
+      .toEqual([0, 120, 210, 270, 300]);
+  });
+
+  /**
+   * The shape, asserted separately from the literals above so a future retune
+   * of the rate or the taper breaks one test rather than every test: more boards
+   * must always be worth more in total, and each additional board must always be
+   * worth less on its own than the one before it.
+   */
+  test('holds its shape at every tier: always more, always less each time', () => {
+    for (const division of [5, 4, 3, 2, 1]) {
+      const totals = [0, 1, 2, 3, 4].map(count => divisionAwardPrizeTotal(division, count));
+      const marginals = totals.slice(1).map((total, index) => total - totals[index]);
+
+      expect(marginals.every(marginal => marginal > 0)).toBe(true);
+      for (let index = 1; index < marginals.length; index += 1) {
+        expect(marginals[index]).toBeLessThan(marginals[index - 1]);
+      }
+    }
+  });
+
+  test('refuses to extrapolate past the boards the taper prices', () => {
+    const boards = DIVISION_AWARD_PRIZE_TAPER_PERCENT.length;
+
+    expect(() => divisionAwardPrizeTotal(5, boards + 1)).toThrow(`at most ${boards} boards`);
+    expect(() => divisionAwardPrizeTotal(5, -1)).toThrow('cannot pay for -1 boards');
+  });
+});
+
+describe('banking the prize at the season transition', () => {
+  test('the transition pays the entered division rate and stamps the recap', () => {
+    const state = careerWithRecap(20260801, ['goals']);
+    const recapBefore = state.seasonRecaps![0];
+
+    const next = promoteAndStartNextSeason(state);
+
+    const entered = currentUserDivision(next.m2!);
+    // The club went up, so paying the played division would be a different
+    // number: this is what pins the rate to the division being entered.
+    expect(entered).toBeLessThan(recapBefore.division);
+    expect(next.trainingPoints - state.trainingPoints)
+      .toBe(divisionAwardPrizeTotal(entered, 1));
+  });
+
+  test('the granted figure is recorded on the season it was won in', () => {
+    const state = careerWithRecap(20260801, ['goals', 'saves']);
+
+    const next = promoteAndStartNextSeason(state);
+
+    const stamped = next.seasonRecaps!.find(recap => recap.season === state.season)!;
+    expect(stamped.divisionAwardPrize).toEqual({
+      trainingPoints: divisionAwardPrizeTotal(currentUserDivision(next.m2!), 2),
+      categoriesWon: ['goals', 'saves'],
+    });
+    // The taper has to survive the trip through the transition, not just the
+    // pure function: two boards must bank less than two full rates.
+    expect(stamped.divisionAwardPrize!.trainingPoints)
+      .toBeLessThan(divisionAwardPrizePerCategory(currentUserDivision(next.m2!)) * 2);
+  });
+
+  test('a season that won nothing is stamped with a zero rather than left blank', () => {
+    // Absent means "not yet paid". A blank on a season already transitioned
+    // through would let a re-entering ceremony read it as a projection to grant.
+    const state = careerWithRecap(20260801, []);
+
+    const next = promoteAndStartNextSeason(state);
+
+    expect(next.trainingPoints).toBe(state.trainingPoints);
+    expect(next.seasonRecaps!.find(recap => recap.season === state.season)!.divisionAwardPrize)
+      .toEqual({ trainingPoints: 0, categoriesWon: [] });
+  });
+});
+
+function promoteAndStartNextSeason(state: GameState): GameState {
+  const rows = leagueStandings(state);
+  const user = rows.find(row => row.clubId === state.userClubId)!;
+  const others = rows.filter(row => row.clubId !== state.userClubId);
+  return startNextFullCareerSeason(state, [user, ...others]);
+}
+
+function careerWithRecap(seed: number, won: readonly AwardCategoryId[]): GameState {
+  const career = createCareer(createLaunchCareerSetup(seed));
+  const recap: SeasonRecap = {
+    ...recapWonBy(won, career.userClubId),
+    season: career.season,
+    division: currentUserDivision(career.m2!),
+  };
+  return { ...career, seasonRecaps: [recap] };
+}
+
+/**
+ * A recap whose four podiums are topped by the user's club in exactly the named
+ * categories. Second place is always the user's club, so a prize that counted
+ * placings rather than wins would show up immediately.
+ */
+function recapWonBy(
+  won: readonly AwardCategoryId[],
+  userClubId: string = USER_CLUB,
+): SeasonRecap {
+  const divisionAwards = Object.fromEntries(CATEGORIES.map(category => [
+    category,
+    podium(won.includes(category) ? userClubId : RIVAL_CLUB, userClubId),
+  ])) as Record<AwardCategoryId, DivisionAwardPlacement[]>;
+  return {
+    season: 1,
+    division: 5,
+    finalPosition: 4,
+    played: 18,
+    won: 9,
+    drawn: 4,
+    lost: 5,
+    goalsFor: 31,
+    goalsAgainst: 24,
+    cashChange: 4_200,
+    closingCash: 21_500,
+    trainingCapsReached: 0,
+    cupResult: 'Round of 16',
+    divisionAwards,
+  };
+}
+
+function podium(winnerClubId: string, userClubId: string): DivisionAwardPlacement[] {
+  return [
+    { playerId: 'p_first', playerName: 'First Place', clubId: winnerClubId, value: 21 },
+    { playerId: 'p_second', playerName: 'Second Place', clubId: userClubId, value: 14 },
+    { playerId: 'p_third', playerName: 'Third Place', clubId: RIVAL_CLUB, value: 9 },
+  ];
+}

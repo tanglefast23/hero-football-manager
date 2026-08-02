@@ -107,6 +107,10 @@ import {
   completeChampionshipCelebration as markChampionshipCelebrationComplete,
   hasPendingChampionshipCelebration,
 } from './championship-celebration';
+import {
+  hasPendingAwardsCeremony,
+  markAwardsCeremonyComplete,
+} from './awards-ceremony';
 
 const launchContent = loadLaunchContent();
 const awakeningPowerIds = launchContent.powers.powers.map(power => power.id);
@@ -145,6 +149,9 @@ export type M1Screen =
   | 'week-review'
   | 'legacy'
   | 'championship-celebration'
+  // Every season passes through the awards, champions or not. The celebration
+  // only fires for a title, so the ceremony is the one fixture of the boundary.
+  | 'awards-ceremony'
   | 'season-end';
 
 export interface WatchedMatch {
@@ -238,6 +245,7 @@ interface M1Store {
   dismissPostMatchSummary: () => void;
   continueWeekReview: () => void;
   completeChampionshipCelebration: () => void;
+  completeAwardsCeremony: () => void;
   chooseLegacy: (choice: CareerLegendLegacyChoice) => void;
   selectEventPlayer: () => void;
   chooseEvent: (choiceId: string) => void;
@@ -667,8 +675,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
         set({ screen: 'matchday', error: null });
         return;
       }
-      if (hasPendingChampionshipCelebration(career)) {
-        set({ screen: 'championship-celebration', error: null });
+      // Both boundary presentations gate the recap: the title celebration when
+      // the club won the league, and the awards ceremony every season. Asking
+      // the boundary router rather than each flag in turn keeps one answer to
+      // "what comes before season-end" for every route into it.
+      const boundary = seasonBoundaryScreen(career);
+      if (boundary !== 'season-end') {
+        set({ screen: boundary, error: null });
         return;
       }
       if (career.phase === 'season-end') {
@@ -942,8 +955,34 @@ export const useM1Store = create<M1Store>((set, get) => ({
         throw new Error('there is no league championship celebration to complete');
       }
       const next = markChampionshipCelebrationComplete(career);
-      set({ career: next, screen: 'season-end', error: null });
+      // The title is celebrated first and the individual boards second, so the
+      // ceremony is what the trophy hands off to — never the recap directly.
+      set({ career: next, screen: seasonBoundaryScreen(next), error: null });
       queueCareerSave(get, set, next);
+    });
+  },
+
+  /**
+   * Leaves the awards ceremony for the season recap.
+   *
+   * Deliberately unconditional. This is the ONLY way off the ceremony screen,
+   * so it must not be able to refuse: a career that reached it with the flag
+   * already set, or with a phase that no longer matches, still has to be able
+   * to reach the recap and start the next season. Nothing is granted here —
+   * the transition pays the prize whether the ceremony was watched or skipped.
+   */
+  completeAwardsCeremony() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const next = markAwardsCeremonyComplete(career);
+      set({
+        career: next,
+        screen: next.phase === 'season-end' || next.phase === 'complete'
+          ? 'season-end'
+          : 'management',
+        error: null,
+      });
+      if (next !== career) queueCareerSave(get, set, next);
     });
   },
 
@@ -1656,10 +1695,17 @@ function resumeScreen(career: GameState): M1Screen {
   return 'management';
 }
 
+/**
+ * What the manager sees on arriving at a season boundary.
+ *
+ * The one router for every route into the recap — the final whistle, a week
+ * review, a relaunch, and the recap's own advance all ask it — so a boundary
+ * presentation cannot be skipped by arriving from an unusual direction, and a
+ * presentation already seen cannot be re-entered by backing into one.
+ */
 function seasonBoundaryScreen(career: GameState): M1Screen {
-  return hasPendingChampionshipCelebration(career)
-    ? 'championship-celebration'
-    : 'season-end';
+  if (hasPendingChampionshipCelebration(career)) return 'championship-celebration';
+  return hasPendingAwardsCeremony(career) ? 'awards-ceremony' : 'season-end';
 }
 
 function userMatchParticipantIds(

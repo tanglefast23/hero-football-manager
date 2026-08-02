@@ -601,6 +601,8 @@ describe('M1 app store integration', () => {
         }
       } else if (current.screen === 'championship-celebration') {
         current.completeChampionshipCelebration();
+      } else if (current.screen === 'awards-ceremony') {
+        current.completeAwardsCeremony();
       } else if (current.screen === 'season-end') {
         if (career.phase === 'season-end') {
           const expired = career.players.find(player =>
@@ -688,6 +690,10 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().screen).toBe('awakening');
 
     useM1Store.getState().continueAfterAwakening();
+    // The division awards stand between the last whistle and the recap, so a
+    // resumed final-match awakening lands on the ceremony first.
+    expect(useM1Store.getState().screen).toBe('awards-ceremony');
+    useM1Store.getState().completeAwardsCeremony();
     expect(useM1Store.getState().screen).toBe('season-end');
     expect(useM1Store.getState().career?.awakening.pending).toBeUndefined();
   });
@@ -1226,6 +1232,10 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
     }
     if (current.screen === 'championship-celebration') {
       current.completeChampionshipCelebration();
+      continue;
+    }
+    if (current.screen === 'awards-ceremony') {
+      current.completeAwardsCeremony();
       continue;
     }
     if (current.screen === 'season-end' && career.phase === 'season-end') {

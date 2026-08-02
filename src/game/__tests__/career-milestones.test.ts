@@ -1,5 +1,6 @@
 import { createLaunchCareerSetup } from '../../application/launch';
 import { createCareer } from '../career';
+import { compareIds } from '../ordering';
 import {
   CAREER_MILESTONES,
   CAREER_MILESTONE_CROWD,
@@ -24,7 +25,7 @@ function withUserResults(
     .filter(fixture => fixture.season === state.season
       && (fixture.homeClubId === state.userClubId || fixture.awayClubId === state.userClubId))
     .slice()
-    .sort((left, right) => left.week - right.week || left.id.localeCompare(right.id))
+    .sort((left, right) => left.week - right.week || compareIds(left.id, right.id))
     .slice(0, results.length);
   const resultByFixtureId = new Map(userFixtures.map((fixture, index) => [fixture.id, results[index]]));
 

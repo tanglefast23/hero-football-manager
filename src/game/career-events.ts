@@ -2,6 +2,7 @@ import type { Attrs, PowerId } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import type { GameState } from './types';
 import { LAUNCH_POWER_IDS } from './power-catalog';
+import { compareIds } from './ordering';
 
 const POWER_IDS: ReadonlySet<PowerId> = new Set(LAUNCH_POWER_IDS);
 
@@ -214,7 +215,7 @@ function userLeagueResults(state: GameState): UserLeagueResult[] {
     .sort((left, right) => (
       left.season - right.season
       || left.week - right.week
-      || left.id.localeCompare(right.id)
+      || compareIds(left.id, right.id)
     ))
     .flatMap(fixture => {
       const score = fixture.score;

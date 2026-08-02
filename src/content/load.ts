@@ -1,4 +1,5 @@
 import assistantGuideJson from '../../content/assistant-guide.json';
+import awardCeremonyLinesJson from '../../content/award-ceremony-lines.json';
 import clubsJson from '../../content/clubs.json';
 import eventsJson from '../../content/events.json';
 import glossaryJson from '../../content/glossary.json';
@@ -30,6 +31,7 @@ let cachedLaunchContent: LaunchContent | undefined;
 export function loadLaunchContent(): LaunchContent {
   cachedLaunchContent ??= parseLaunchContent({
     assistantGuide: assistantGuideJson,
+    awardCeremonyLines: awardCeremonyLinesJson,
     clubs: clubsJson,
     glossary: glossaryJson,
     onboarding: onboardingJson,

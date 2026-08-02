@@ -556,6 +556,30 @@ export const ManagerTipCatalogSchema = z.strictObject({
 });
 
 /**
+ * What a player says on the award rostrum: one pool for whoever won a board,
+ * one for a runner-up from the manager's own squad.
+ *
+ * Both ceilings are duplicated rather than imported — `src/content/` must not
+ * import from `src/ui/`. 64 is `MAX_ARRIVAL_LINE_LENGTH`
+ * (`src/ui/player-arrival-lines.ts`), the width of one speech bubble; 30 is the
+ * pool depth the in-ceremony de-dup probe is sized against. Both are asserted
+ * against their UI-side counterparts in
+ * `src/ui/__tests__/award-ceremony-lines.test.ts`.
+ */
+const MAX_CEREMONY_LINE_LENGTH = 64;
+const CEREMONY_LINE_POOL_SIZE = 30;
+const ceremonyLineSchema = z.string().trim().min(1).max(MAX_CEREMONY_LINE_LENGTH);
+
+export const AwardCeremonyLinesSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  winner: z.array(ceremonyLineSchema).length(CEREMONY_LINE_POOL_SIZE),
+  runnerUp: z.array(ceremonyLineSchema).length(CEREMONY_LINE_POOL_SIZE),
+}).superRefine((pools, context) => {
+  addDuplicateIssues(pools.winner, context, ['winner'], 'winner ceremony line');
+  addDuplicateIssues(pools.runnerUp, context, ['runnerUp'], 'runner-up ceremony line');
+});
+
+/**
  * Sprite names a request may reference for its artwork.
  *
  * Duplicated from `src/ui/event-pixel-sprites.ts` on purpose: `src/content/`
@@ -676,6 +700,7 @@ export type RequestGrantBonus = z.infer<typeof RequestGrantBonusSchema>;
 
 export const LaunchContentSchema = z.strictObject({
   assistantGuide: AssistantGuideContentSchema,
+  awardCeremonyLines: AwardCeremonyLinesSchema,
   clubs: ClubCatalogSchema,
   glossary: GlossaryCatalogSchema,
   onboarding: OnboardingContentSchema,
@@ -771,6 +796,7 @@ export type AssistantGuideSequenceId = z.infer<typeof AssistantGuideSequenceIdSc
 export type AssistantGuideFocus = z.infer<typeof AssistantGuideFocusSchema>;
 export type AssistantGuideDestination = z.infer<typeof AssistantGuideDestinationSchema>;
 export type AssistantGuideContent = z.infer<typeof AssistantGuideContentSchema>;
+export type AwardCeremonyLines = z.infer<typeof AwardCeremonyLinesSchema>;
 export type TrainingDrill = z.infer<typeof TrainingDrillSchema>;
 export type TrainingCatalog = z.infer<typeof TrainingCatalogSchema>;
 export type GameEvent = z.infer<typeof GameEventSchema>;

@@ -13,6 +13,7 @@ const EXEMPT = new Set([
   'PowerArtQaScreen.tsx',
   'AwakeningCutsceneScreen.tsx',
   'ChampionshipCelebrationScreen.tsx',
+  'AwardsCeremonyScreen.tsx',
   'FixtureMatchDayScreen.tsx',
   'TitleLandingScreen.tsx',
   'NewGameWelcomeScreen.tsx',

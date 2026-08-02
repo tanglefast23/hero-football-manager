@@ -1,5 +1,6 @@
 import type { TeamDef } from '../sim/types';
 import { buildTeamDef, isAvailableForSelection } from './lineup';
+import { compareIds } from './ordering';
 import { renewContract, selectLicensedHeroes } from './progression';
 import { buildFacility as placeFacility, createFacilityGrid } from './facilities';
 import { applyLowMoraleToStat } from './pyramid';
@@ -190,7 +191,7 @@ export function repairCareerLineupForInjuries(
         const rightRolePenalty = right.role === starter.role ? 0 : 1;
         if (leftRolePenalty !== rightRolePenalty) return leftRolePenalty - rightRolePenalty;
         if (left.licensed !== right.licensed) return left.licensed ? 1 : -1;
-        return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+        return compareIds(left.id, right.id);
       })[0];
     if (replacement === undefined) {
       throw new Error(`injured starter ${starter.id} has no eligible lineup replacement`);

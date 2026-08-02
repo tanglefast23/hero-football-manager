@@ -2,6 +2,7 @@ import { mulberry32 } from '../sim/rng';
 import type { Attrs, PowerId, Role } from '../sim/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import coachIdentityData from './coach-identities.json';
+import { compareIds } from './ordering';
 import {
   DIVISION_SUPPORT_STRENGTHS,
   type DivisionLevel,
@@ -187,7 +188,7 @@ export function resolveScoutMission(
   const eligible = candidates
     .filter(candidate => candidate.region === mission.region && matchesScoutFocus(candidate, mission.focus))
     .slice()
-    .sort((left, right) => left.id.localeCompare(right.id));
+    .sort((left, right) => compareIds(left.id, right.id));
   const random = mulberry32(mixSeed(mission.missionSeed, 'shortlist'));
   const shortlist = mission.focus.kind === 'RUMORED_HERO'
     ? rumoredHeroShortlist(eligible, shortlistSize, mission.missionSeed, random)
@@ -763,7 +764,7 @@ export function generateCoachMarket(setup: CoachMarketSetup): CoachCandidate[] {
   assertUniqueStrings(unlockIds, 'coach unlock ID');
   const excludedPortraitIds = new Set(setup.excludedPortraitIds ?? []);
   const legends = (setup.retiredLegends ?? []).slice().sort((left, right) =>
-    left.playerId.localeCompare(right.playerId),
+    compareIds(left.playerId, right.playerId),
   );
   assertUniqueStrings(legends.map(legend => legend.playerId), 'retired legend player ID');
   for (const legend of legends) validateRetiredLegend(legend);

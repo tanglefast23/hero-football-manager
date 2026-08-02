@@ -38,6 +38,11 @@ describe('club-legend app flow', () => {
     };
     useM1Store.setState({ career: seasonEnd, screen: 'season-end' });
 
+    // Every season boundary presents the division awards before the recap will
+    // advance, so the legacy queue is reached one screen further along.
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().screen).toBe('awards-ceremony');
+    useM1Store.getState().completeAwardsCeremony();
     useM1Store.getState().advanceCareer();
 
     expect(useM1Store.getState()).toMatchObject({
