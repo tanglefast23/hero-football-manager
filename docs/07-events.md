@@ -20,7 +20,7 @@ Events are the game's storyteller. They must feel like little comics: a setup, a
 
 Awakening math is intentionally absent here. A manager never needs to chase this event, accept a bite, or sacrifice its guaranteed reward to make a hero (doc 04).
 
-## Launch catalog (~30 events, by category)
+## Launch catalog (50 events in `content/events.json`, by category)
 
 - **Mystery (rare)**: Giant Spider · Meteor Shard in the Center Circle · Lightning Storm Training · Mysterious Energy Drink Salesman · Abandoned Lab Field Trip · Radioactive Pitch Repaint · A Very Old Boot (cursed?).
 - **Club life**: Team BBQ (morale vs. food poisoning) · Prank War (Joker-driven) · Lost Mascot Costume · Kit Clash (fans vote on a new kit) · Rat in the Trophy Cabinet.

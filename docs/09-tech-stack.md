@@ -50,7 +50,7 @@ Version policy: pin per EAS milestone; upgrade quarterly, never continuously (st
 ### Current compatibility boundary
 
 - Match replays require engine **m2.0**; older replay envelopes are refused rather than replayed with different simulation math.
-- Career saves require game schema **2**. Schema 1 is deliberately incompatible with the rebased persisted pyramid. The recovery screen can export the exact raw stored JSON before decoding; a requested export must succeed before reset is allowed.
+- Career saves require game schema **3**. A schema-2 save upgrades on load through the migration ladder in `game-state-codec.ts`; schema 1 has no rung and is deliberately incompatible with the rebased persisted pyramid. The recovery screen can export the exact raw stored JSON before decoding; a requested export must succeed before reset is allowed.
 - Reset deletes only the affected career row, its season backup, and replay envelopes for that career seed in one transaction. Preferences and unrelated careers/replays survive. A failed transaction leaves the old save untouched.
 
 ## Testing strategy

@@ -33,7 +33,7 @@ Passes and shots **travel through space** — a pass is a moving ball that can b
 
 ## Stats → outcomes
 
-Six visible stats, stored from **1–999**: **PAC** (pace) · **SHO** (shooting; GKs show **REF** reflexes instead) · **PAS** (passing) · **DEF** (defending) · **TEC** (technique/dribbling) · **STA** (stamina). The current overall rating averages those six role-relevant raw stats. Potential is an E− through A+ training-speed grade; it is not a match stat or a player ceiling. Morale, condition and consistency remain separate. (Every player stores all 7 fields — GKs' SHO and outfielders' REF are unused filler.)
+Six visible stats, stored from **1–999**: **PAC** (pace) · **SHO** (shooting; GKs show **REF** reflexes instead) · **PAS** (passing) · **DEF** (defending) · **TEC** (technique/dribbling) · **STA** (stamina). The current overall rating averages those six role-relevant raw stats. Potential is an E− through A+ training-speed grade; it is not a match stat or a player ceiling. Morale, condition and consistency remain separate. (Every player stores all 7 fields, but a role only reads some of them. Outfielders never read REF, and a goalkeeper never reads SHO, DEF or TEC — measured, not assumed: +200 to any of those replays 40 mirrored matches byte-identically, because a keeper never shoots, never tackles, is never tackled and never intercepts. The rest is unused filler.)
 
 The number shown is the number used. Contests and shot execution compare ratings as
 **ratios** in fixed-point log space: 400 vs 500 carries the same advantage as 40 vs

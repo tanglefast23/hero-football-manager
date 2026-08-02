@@ -841,9 +841,10 @@ export function isActive(state: MatchState, idx: number): boolean {
  * possession-freeze bug). In-progress power state is handled per canon
  * (docs/04): a winding hero gets the normal interrupt refund; an active hero
  * simply reverts to idle (the power already resolved — no refund). A hero knocked out
- * mid-Zone KEEPS the Zone: "a knocked-down hero stays hot" — the window is
- * paused (powerTick skips out players, so remainingTicks freezes) and resumes on
- * recovery. A permanently-out (red-carded) hero left in a paused Zone is inert.
+ * mid-Zone KEEPS the Zone: "a knocked-down hero stays hot". Since m1.27 that costs
+ * nothing to hold — the Zone has no countdown to pause — and powerTick skips out
+ * players, so the charge simply waits and fires on the first useful context after
+ * recovery. A permanently-out (red-carded) hero left in a held Zone is inert.
  * `untilTick` is the absolute tick to return at, not a duration — sendOff passes
  * Number.MAX_SAFE_INTEGER straight through.
  */

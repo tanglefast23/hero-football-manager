@@ -17,7 +17,10 @@ export interface PitchFrame {
   ballHeight: number; // centimetres above the pitch plane
   carrier: number; // -1 when ball not held
   statuses: PlayerStatus[];
-  zoneFraction: number[]; // remainingTicks / ZONE_WINDOW_TICKS while in zone, else 0
+  // Ring intensity, not a countdown: m1.27 stopped the Zone from expiring, so a
+  // held Zone reads a constant 1 and the glow holds at full strength until the
+  // power fires. Only the test-only 'armed' state still drains this.
+  zoneFraction: number[]; // remainingTicks / window ticks while in zone or armed, else 0
   moved: boolean[]; // true if a player's position changed vs the passed previous frame
   travel: number[]; // cumulative render-only distance, used to keep foot cadence tied to motion
   visible: boolean[]; // two reserved Decoy slots stay hidden while unused
