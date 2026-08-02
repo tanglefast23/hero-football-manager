@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { RUNNER_UP_CEREMONY_LINES, WINNER_CEREMONY_LINES } from '../award-ceremony-lines';
 import {
   MAX_ARRIVAL_LINE_LENGTH,
   ROOKIE_ARRIVAL_LINE,
@@ -8,6 +9,9 @@ import {
 } from '../player-arrival-lines';
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
+
+/** Doubled from twenty, which halves how often a career hears a line twice. */
+const YOUTH_POOL_SIZE = 40;
 
 /** The ids the academy actually issues — see youthIntakeOffers in youth-intake.ts. */
 function youthIds(seasons: number, offersPerIntake: number): string[] {
@@ -40,14 +44,22 @@ describe('youth arrival walk-on', () => {
     expect(walkOnSource).toContain('line.length * MS_PER_CHARACTER');
   });
 
-  it('offers twenty distinct lines that fit one speech bubble', () => {
-    expect(YOUTH_ARRIVAL_LINES).toHaveLength(20);
-    expect(new Set(YOUTH_ARRIVAL_LINES).size).toBe(20);
+  it('offers forty distinct lines that fit one speech bubble', () => {
+    expect(YOUTH_ARRIVAL_LINES).toHaveLength(YOUTH_POOL_SIZE);
+    expect(new Set(YOUTH_ARRIVAL_LINES).size).toBe(YOUTH_POOL_SIZE);
     for (const line of YOUTH_ARRIVAL_LINES) {
       expect(line.trim()).toBe(line);
       expect(line.length).toBeGreaterThan(0);
       expect(line.length).toBeLessThanOrEqual(MAX_ARRIVAL_LINE_LENGTH);
     }
+  });
+
+  it('never puts the same words in a walk-on and on the rostrum', () => {
+    // One player can do both in a career: sign in week 1 and take a board at
+    // the end of the season. A line shared between the pools is a copy-paste.
+    const ceremony = [...WINNER_CEREMONY_LINES, ...RUNNER_UP_CEREMONY_LINES];
+    expect(YOUTH_ARRIVAL_LINES.filter(line => ceremony.includes(line))).toEqual([]);
+    expect(ceremony).not.toContain(ROOKIE_ARRIVAL_LINE);
   });
 
   it('keeps the rookie on their own line whoever they are', () => {
@@ -68,13 +80,16 @@ describe('youth arrival walk-on', () => {
 
   it('spreads the real academy ids across the pool', () => {
     // Intake ids are sequential and nearly identical, which is exactly where a
-    // weak hash buckets everyone onto one line. Ten seasons of six offers must
-    // reach most of the pool, and no single intake may repeat itself.
-    const ids = youthIds(10, 6);
+    // weak hash buckets everyone onto one line. Twenty seasons of six offers
+    // must reach most of the doubled pool, and no single intake may repeat
+    // itself — two prospects walking on the same week is where a manager would
+    // actually catch the repeat.
+    const seasons = 20;
+    const ids = youthIds(seasons, 6);
     const lines = ids.map(id => arrivalLine({ playerId: id, source: 'academy' }));
-    expect(new Set(lines).size).toBeGreaterThanOrEqual(15);
+    expect(new Set(lines).size).toBeGreaterThanOrEqual(25);
 
-    for (let season = 0; season < 10; season += 1) {
+    for (let season = 0; season < seasons; season += 1) {
       const intake = lines.slice(season * 6, season * 6 + 6);
       expect(new Set(intake).size).toBe(intake.length);
     }
