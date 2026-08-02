@@ -22,9 +22,14 @@ import {
   playLeagueChampionsSfx,
   stopLeagueChampionsSfx,
 } from '../../render/menu-audio';
+import {
+  playCelebrationAnthem,
+  stopCelebrationAudio,
+} from '../../render/celebration-audio';
 import { buildFallbackAtlas, buildSpriteAtlas } from '../../render/sprites/buildAtlas';
 import { PIXEL_ART_SAMPLING } from '../../render/pixel-art-sampling';
 import { BertFullBody } from '../BertFullBody';
+import { CelebrationCoachRow } from '../components/CelebrationCoachRow';
 import type {
   ChampionshipCelebrationPlayerViewModel,
   ChampionshipCelebrationViewModel,
@@ -73,16 +78,19 @@ export function ChampionshipCelebrationScreen({
     if (finished.current) return;
     finished.current = true;
     stopLeagueChampionsSfx();
+    stopCelebrationAudio();
     onComplete();
   }, [onComplete]);
 
   useEffect(() => {
     playLeagueChampionsSfx();
+    playCelebrationAnthem();
     const timeout = setTimeout(completeOnce, reduceMotion ? REDUCED_MOTION_MS : CUTSCENE_MS);
     if (reduceMotion) {
       return () => {
         clearTimeout(timeout);
         stopLeagueChampionsSfx();
+        stopCelebrationAudio();
       };
     }
 
@@ -167,6 +175,7 @@ export function ChampionshipCelebrationScreen({
       confettiAnimation.stop();
       fireworkAnimation.stop();
       stopLeagueChampionsSfx();
+      stopCelebrationAudio();
     };
   }, [completeOnce, confettiProgress, crowdProgress, fireworkProgress, reduceMotion, titleProgress, tossProgress]);
 
@@ -373,6 +382,13 @@ export function ChampionshipCelebrationScreen({
           <Text className="font-pixel text-[10px] uppercase text-white">{viewModel.assistantName}</Text>
           <Text className="font-mono text-[8px] uppercase text-gold">Still here!</Text>
         </View>
+        {/* Inboard of Bert: he owns the corner, and the staff line up along
+            the touchline from him toward the squad. */}
+        <CelebrationCoachRow
+          coaches={viewModel.coaches}
+          spriteWidth={34}
+          style={styles.coachRow}
+        />
         <View style={styles.bertWrap}>
           <BertFullBody pointing={false} />
         </View>
@@ -551,6 +567,7 @@ const styles = StyleSheet.create({
   starNameplate: { position: 'absolute', zIndex: 12, left: 56, right: 82, bottom: 56, borderWidth: 3, borderColor: '#241f2e', backgroundColor: '#f6c744', paddingHorizontal: 9, paddingVertical: 8, shadowColor: '#241f2e', shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0 },
   bertWrap: { position: 'absolute', zIndex: 13, right: -12, bottom: -18, width: 104, height: 180, transform: [{ scale: 0.55 }] },
   bertLabel: { position: 'absolute', zIndex: 14, right: 6, bottom: 116, alignItems: 'center', borderWidth: 2, borderColor: '#f6c744', backgroundColor: '#241f2e', paddingHorizontal: 6, paddingVertical: 4, transform: [{ rotate: '3deg' }] },
+  coachRow: { position: 'absolute', zIndex: 12, right: 52, bottom: 6 },
   confetti: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(36,31,46,0.25)' },
   fireworkSpark: { position: 'absolute', width: 4, height: 14, borderRadius: 2 },
 });

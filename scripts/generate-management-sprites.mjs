@@ -62,7 +62,7 @@ function outline(g) {
 }
 function rows(g) { outline(g); return g.map(row => row.join('')); }
 
-function coach({ id, age, skin, hair, feature, accent, wardrobe }, joy) {
+function coachGrid({ age, skin, hair, feature, accent, wardrobe }, joy) {
   const g = grid(24, 29);
   rect(g, 6, 4, 17, 14, skin); rect(g, 7, 3, 16, 15, skin);
   rect(g, 8, 8, 9, 9, 'K'); rect(g, 14, 8, 15, 9, 'K');
@@ -71,7 +71,43 @@ function coach({ id, age, skin, hair, feature, accent, wardrobe }, joy) {
   coachBody(g, wardrobe, accent, skin);
   hairFeature(g, feature, hair, skin);
   ageFace(g, age, skin, feature);
-  return [`coach:${id}:${joy ? 'joy' : 'rest'}`, rows(g)];
+  return g;
+}
+
+function coach(spec, joy) {
+  return [`coach:${spec.id}:${joy ? 'joy' : 'rest'}`, rows(coachGrid(spec, joy))];
+}
+
+/** Where the bust ends and the standing figure's own legs begin. */
+const COACH_FIELD_HEIGHT = 34;
+
+/**
+ * The touchline figure, for the celebrations where a coach stands out on the
+ * grass instead of sitting in a staff list.
+ *
+ * The bust is the same drawing, unlifted: several hairstyles reach rows 0 and 1
+ * (`braid-crown`, `silver-roll`, `twin-braids`), so sliding the head up to make
+ * room would decapitate exactly the coaches with the most distinctive heads.
+ * The cell grows downward instead, and the shins and shoes are drawn into the
+ * same grid BEFORE the outline pass so the new leg meets the drawn trouser
+ * without a seam of ink across the knee.
+ *
+ * That leaves a coach four rows taller than a player's 30-row cell, which is
+ * the right answer rather than a compromise: rendered at the same pixel scale,
+ * a grown man stands a head over the chibi squad he is celebrating with.
+ */
+function coachField(spec, cheering) {
+  const bust = coachGrid(spec, cheering);
+  const g = grid(24, COACH_FIELD_HEIGHT);
+  for (let y = 0; y < bust.length; y += 1) for (let x = 0; x < 24; x += 1) g[y][x] = bust[y][x];
+  // Shins in the trouser grey every wardrobe's `trousers()` already uses, so a
+  // coat that covers the hips (padded-coat, rain-jacket, overcoat-scarf) still
+  // ends in the same pair of legs as a suit.
+  rect(g, 6, 28, 9, 31, 'k');
+  rect(g, 14, 28, 17, 31, 'k');
+  rect(g, 5, 32, 10, 33, 'K');
+  rect(g, 13, 32, 18, 33, 'K');
+  return [`coach:${spec.id}:${cheering ? 'field-cheer' : 'field'}`, rows(g)];
 }
 
 function coachBody(g, wardrobe, accent, skin) {
@@ -311,7 +347,12 @@ function worksite() {
 }
 
 const sprites = Object.fromEntries([
-  ...COACHES.flatMap(spec => [coach(spec, false), coach(spec, true)]),
+  ...COACHES.flatMap(spec => [
+    coach(spec, false),
+    coach(spec, true),
+    coachField(spec, false),
+    coachField(spec, true),
+  ]),
   ...FACILITIES.flatMap(type => [1, 2, 3].map(level => facility(type, level))),
   worksite(),
   ...DRILLS.map(pathId => drill(pathId)),

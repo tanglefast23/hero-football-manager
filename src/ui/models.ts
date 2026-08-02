@@ -755,6 +755,13 @@ export interface ChampionshipCelebrationPlayerViewModel {
   spriteKey: string;
 }
 
+/** A hired coach, drawn as a standing figure for the celebration scenes. */
+export interface CelebrationCoachViewModel {
+  readonly id: string;
+  readonly name: string;
+  readonly spriteKey: string;
+}
+
 export interface ChampionshipCelebrationViewModel {
   seasonLabel: string;
   clubName: string;
@@ -764,6 +771,8 @@ export interface ChampionshipCelebrationViewModel {
     hasRecordedGoals: boolean;
   };
   squad: readonly ChampionshipCelebrationPlayerViewModel[];
+  /** The hired staff, standing with the squad. Empty when the club runs none. */
+  coaches: readonly CelebrationCoachViewModel[];
 }
 
 /**
@@ -805,6 +814,8 @@ export interface EndgameCelebrationViewModel {
   readonly star?: EndgameCelebrationPlayerViewModel;
   /** Everyone else, for the two squad walk-outs. Empty on the true ending. */
   readonly squad: readonly EndgameCelebrationPlayerViewModel[];
+  /** The hired staff, standing with the squad. Empty when the club runs none. */
+  readonly coaches: readonly CelebrationCoachViewModel[];
   /** False on the true ending, which holds the manager in for all of it. */
   readonly skippable: boolean;
   readonly accessibilityLabel: string;

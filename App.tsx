@@ -41,6 +41,10 @@ import {
   stopAwakeningLimp,
   teardownAwakeningAudio,
 } from './src/render/awakening-audio';
+import {
+  setCelebrationMasterVolume,
+  teardownCelebrationAudio,
+} from './src/render/celebration-audio';
 import { nextDevVolume, type DevVolume } from './src/render/dev-volume';
 import {
   menuThemeForScreen,
@@ -830,6 +834,7 @@ function GameApp() {
     setManagementSfxMasterVolume(devVolume);
     setBertVoiceMasterVolume(devVolume);
     setAwakeningMasterVolume(devVolume);
+    setCelebrationMasterVolume(devVolume);
   }, [devVolume]);
 
   useEffect(() => {
@@ -860,6 +865,7 @@ function GameApp() {
     teardownManagementSfx();
     teardownBertVoice();
     teardownAwakeningAudio();
+    teardownCelebrationAudio();
   }, []);
 
   useEffect(() => {
@@ -2042,6 +2048,7 @@ function AwakeningReviewApp({ triggerId }: { triggerId: string }) {
     return () => {
       teardownMenuAudio();
       teardownAwakeningAudio();
+      teardownCelebrationAudio();
     };
   }, []);
 
