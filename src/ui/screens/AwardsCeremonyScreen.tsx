@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AWARD_CATEGORIES } from '../../game/division-leaders';
+import type { AwardCategoryId } from '../../game/types';
 import { PLAYER_SPRITE_CELL, PlayerRunSprite } from '../../render/PlayerRunSprite';
 import { CharacterSpeechOverlay } from '../CharacterSpeechOverlay';
 import { PixelText } from '../components/PixelText';
@@ -20,6 +21,7 @@ import {
   isWalkOnStage,
   nextStageIndex,
   placingRowLabel,
+  podiumNameType,
   podiumRows,
   prizeAccessibilityLabel,
   prizeCountValue,
@@ -33,10 +35,33 @@ import {
 import type {
   AwardCeremonyBeatViewModel,
   AwardCeremonyPlacingViewModel,
+  AwardCeremonySpeakerViewModel,
   AwardCeremonyViewModel,
 } from '../models';
 
 const SPRITE_SCALE = 4;
+/**
+ * The band at the top of the stage that belongs to the skip controls.
+ *
+ * The title is centred on the whole screen, and at the 375pt floor "Division
+ * Awards" in 16pt pixel type is about 188pt wide — wider than what is left
+ * beside a skip control, so no arrangement of side padding lets the two share a
+ * row without wrapping the title or breaking it outright at 320pt. Reserving
+ * the band above it instead means the header cannot reach the controls at ANY
+ * width, and the title keeps the full measure to be centred in.
+ *
+ * Derived from the control's own geometry, so growing a button or adding a
+ * third one moves the header with it rather than silently colliding.
+ */
+const SKIP_ROW_INSET = 12;
+const SKIP_BUTTON_HEIGHT = 44;
+const SKIP_ROW_GAP = 8;
+/** Two stacked controls is the most the ceremony ever shows at once. */
+const SKIP_CONTROL_COUNT = 2;
+const SKIP_CONTROL_BAND = SKIP_ROW_INSET
+  + SKIP_BUTTON_HEIGHT * SKIP_CONTROL_COUNT
+  + SKIP_ROW_GAP * (SKIP_CONTROL_COUNT - 1)
+  + SKIP_ROW_INSET;
 /** Clearance from the bottom edge, so the podium list stays readable behind him. */
 const GROUND_OFFSET = 96;
 /** How high the winner hops, and how long each half of the hop takes. */
@@ -56,6 +81,13 @@ export interface AwardsCeremonyScreenProps {
    */
   lookIds?: ReadonlyMap<string, string>;
   reduceMotion?: boolean;
+  /**
+   * Which stage the ceremony opens on. A career always opens on the first
+   * board; this exists for the development QA reel, which has to reach the
+   * fourth board and the prize without tapping through everything before them.
+   * Read once, so a caller that changes it has to remount.
+   */
+  initialStageIndex?: number;
   /** Leaves the ceremony. The prize has already been granted by the transition. */
   onComplete: () => void;
 }
@@ -64,11 +96,9 @@ export interface AwardsCeremonyScreenProps {
  * The four division boards, presented one at a time.
  *
  * Per board: the title card, then third, second and first arriving in turn,
- * then the winner walking on to speak. A RIVAL winner gets exactly the same
- * entry, hop and line as one of the manager's own — a rival taking the Golden
- * Boot off you has to look like he won it, or taking it back next season is
- * worth nothing. Only the prize and the runner-up walk-on know whose player it
- * was.
+ * then ONE walk-on — the manager's highest-placed player on that podium, and
+ * nobody else. A rival never walks on, so a board the manager is nowhere on
+ * reads out its three placings and moves on.
  *
  * Nothing here decides anything. The prize was granted by the season
  * transition (`startNextFullCareerSeason`), which runs whether this screen is
@@ -78,11 +108,12 @@ export function AwardsCeremonyScreen({
   viewModel,
   lookIds,
   reduceMotion = false,
+  initialStageIndex = 0,
   onComplete,
 }: AwardsCeremonyScreenProps) {
   const reduce = useReducedMotion(reduceMotion);
   const stages = useMemo(() => awardCeremonyStages(viewModel), [viewModel]);
-  const [stageIndex, setStageIndex] = useState(0);
+  const [stageIndex, setStageIndex] = useState(Math.max(0, initialStageIndex));
   const stage = stages[Math.min(stageIndex, stages.length - 1)] ?? FALLBACK_STAGE;
   const beat = stageBeat(viewModel, stage);
   const walkOn = isWalkOnStage(stage);
@@ -116,13 +147,19 @@ export function AwardsCeremonyScreen({
         // properties on iOS, and this one has to fill the screen.
         style={styles.stage}
       >
-        <View style={styles.header}>
-          <PixelText className="text-[10px] uppercase tracking-[3px] text-gold">
-            {viewModel.seasonLabel}
-          </PixelText>
-          <PixelText className="mt-1 text-base uppercase text-paper">
-            Division Awards
-          </PixelText>
+        <View style={styles.headerBlock}>
+          {/* The skip controls' own row in the column. They are drawn over it,
+              because they have to sit above the speech overlay, but the space
+              is allocated here so the title can never arrive underneath them. */}
+          <View style={styles.controlBand} />
+          <View style={styles.header}>
+            <PixelText className="text-[10px] uppercase tracking-[3px] text-gold">
+              {viewModel.seasonLabel}
+            </PixelText>
+            <PixelText className="mt-1 text-base uppercase text-paper">
+              Division Awards
+            </PixelText>
+          </View>
         </View>
 
         {stage.kind === 'prize' || beat === undefined ? (
@@ -138,11 +175,11 @@ export function AwardsCeremonyScreen({
         </View>
       </Pressable>
 
-      {walkOn && beat !== undefined ? (
+      {walkOn && beat?.speaker !== undefined ? (
         <AwardWalkOn
           key={`${stage.beatIndex}:${stage.kind}`}
-          beat={beat}
-          stage={stage}
+          categoryId={beat.categoryId}
+          speaker={beat.speaker}
           lookIds={lookIds}
           reduceMotion={reduce}
           onDone={advance}
@@ -244,17 +281,27 @@ function PodiumRow({
     : placing.isUserPlayer
       ? 'border-blue-dark bg-blue-light'
       : 'border-ink/40 bg-paper';
+  // A long name is set smaller, never wrapped: see `podiumNameType`. Every row
+  // stays 48pt whichever size it lands on, so one long name cannot reflow the
+  // two rows already standing beneath it.
+  const { nameClass, clubClass } = podiumNameType(placing.playerName);
 
   return (
     <View
       accessible
       accessibilityLabel={placingRowLabel(placing, metricLabel)}
-      className={`min-h-12 flex-row items-center border-2 border-b-4 px-3 py-2 ${surface}`}
+      // The floor is PODIUM_ROW_MIN_HEIGHT, spelled out because NativeWind
+      // compiles class strings and cannot read a constant.
+      className={`min-h-[68px] flex-row items-center border-2 border-b-4 px-3 py-2 ${surface}`}
     >
       <PixelText variant="data" className="w-8 text-base text-ink">{placing.position}</PixelText>
       <View className="min-w-0 flex-1 pr-2">
-        <Text className="text-base font-bold text-ink" numberOfLines={1}>{placing.playerName}</Text>
-        <Text className="mt-0.5 text-sm text-ink/50" numberOfLines={1}>{placing.clubName}</Text>
+        <Text className={`font-bold text-ink ${nameClass}`} numberOfLines={1}>
+          {placing.playerName}
+        </Text>
+        <Text className={`mt-0.5 text-ink/50 ${clubClass}`} numberOfLines={1}>
+          {placing.clubName}
+        </Text>
       </View>
       <PixelText variant="data" className="text-base text-ink">{placing.value}</PixelText>
     </View>
@@ -323,34 +370,33 @@ function PrizePanel({
 }
 
 /**
- * The winner — or the manager's runner-up — walking on to say one line.
+ * The manager's highest-placed player on this board, walking on to say one
+ * line. Whether it reads as a win or a near miss was decided by the view model,
+ * which drew the line from the matching pool.
  *
  * The same overlay the transfer welcome uses, so a ceremony arrival and a
  * signing arrival are visibly the same event: nothing new to learn, and one
  * path to fix when the walk changes.
  */
 function AwardWalkOn({
-  beat,
-  stage,
+  categoryId,
+  speaker,
   lookIds,
   reduceMotion,
   onDone,
 }: {
-  beat: AwardCeremonyBeatViewModel;
-  stage: AwardCeremonyStage;
+  categoryId: AwardCategoryId;
+  speaker: AwardCeremonySpeakerViewModel;
   lookIds?: ReadonlyMap<string, string>;
   reduceMotion: boolean;
   onDone: () => void;
 }) {
-  const speaker = stage.kind === 'winner' ? beat.winner : beat.runnerUp;
-  const line = stage.kind === 'winner' ? beat.winnerLine : beat.runnerUpLine;
-  if (speaker === undefined || line === undefined) return null;
-
+  const { placing, line } = speaker;
   // The board's own position line. A keeper board can only be topped by a
   // keeper, so the category is a better source for the sprite than any field
   // the placing would have to carry around for it.
-  const role = AWARD_CATEGORIES[beat.categoryId].role;
-  const lookId = lookIds?.get(speaker.playerId);
+  const role = AWARD_CATEGORIES[categoryId].role;
+  const lookId = lookIds?.get(placing.playerId);
 
   return (
     <CharacterSpeechOverlay
@@ -360,10 +406,10 @@ function AwardWalkOn({
       groundOffset={GROUND_OFFSET}
       autoAdvanceMs={Math.max(MIN_LINE_MS, line.length * MS_PER_CHARACTER)}
       reduceMotion={reduceMotion}
-      accessibilityLabel={`${speaker.playerName} says: ${line}`}
+      accessibilityLabel={`${placing.playerName} says: ${line}`}
       renderCharacter={({ phase, walking }) => (
         <CelebratingPlayer
-          playerId={speaker.playerId}
+          playerId={placing.playerId}
           role={role}
           {...(lookId === undefined ? {} : { lookId })}
           jumping={phase === 'speaking'}
@@ -443,9 +489,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 16,
     paddingBottom: 8,
   },
+  headerBlock: { width: '100%' },
+  controlBand: { height: SKIP_CONTROL_BAND },
   header: { alignItems: 'center', paddingBottom: 16 },
   footer: { alignItems: 'center', paddingTop: 16 },
   board: {
@@ -462,10 +509,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   podium: { gap: 8, padding: 12 },
-  skipRow: { position: 'absolute', right: 12, top: 12, zIndex: 20, gap: 8 },
+  skipRow: {
+    position: 'absolute',
+    right: SKIP_ROW_INSET,
+    top: SKIP_ROW_INSET,
+    zIndex: 20,
+    gap: SKIP_ROW_GAP,
+  },
   skipButton: {
     minWidth: 96,
-    minHeight: 44,
+    minHeight: SKIP_BUTTON_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,

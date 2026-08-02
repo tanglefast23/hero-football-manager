@@ -11,8 +11,10 @@ const read = (file: string) => readFileSync(join(process.cwd(), SCREEN_DIR, file
 const EXEMPT = new Set([
   'AwakeningArtQaScreen.tsx',
   'PowerArtQaScreen.tsx',
+  'AwardsCeremonyQaScreen.tsx',
   'AwakeningCutsceneScreen.tsx',
   'ChampionshipCelebrationScreen.tsx',
+  'EndgameCelebrationScreen.tsx',
   'AwardsCeremonyScreen.tsx',
   'FixtureMatchDayScreen.tsx',
   'TitleLandingScreen.tsx',
@@ -25,6 +27,9 @@ const EXEMPT = new Set([
   // Not a scrolling screen: a panel rendered inside SquadTrainingScreen's
   // already-clamped ScrollView. Clamping it again would nest two measures.
   'SquadRequestsPanel.tsx',
+  // Same reason: a sub-page of the Settings modal, whose panel is already
+  // capped at max-w-lg. The 1180pt measure is more than twice that.
+  'HallOfFameScreen.tsx',
 ]);
 
 describe('desktop content width', () => {

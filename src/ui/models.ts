@@ -36,6 +36,11 @@ export interface ClubAlertViewModel {
   destination?: AssistantGuideDestination;
   /** Set on player-scoped alerts (e.g. a player waiting on a request) so taps can deep-link to that player. */
   playerId?: string;
+  /**
+   * Marks a row about a powered player, drawn as the board panel's Hero chip.
+   * A hero leaving is the loaded case and used to read like any other row.
+   */
+  isHero?: boolean;
 }
 
 /**
@@ -105,6 +110,12 @@ export interface HomeViewModel {
     id: string;
     weeksRemaining: number;
     targetCash: number;
+    /**
+     * What the board is asking for, in words. The target is zero — the board
+     * wants the overdraft cleared — and printing that as "$0" read like an
+     * unfilled placeholder.
+     */
+    targetLabel: string;
     cashNeeded: number;
     protectedPlayerId?: string;
     candidates: readonly {
@@ -496,9 +507,29 @@ export interface ClubFacilityGridViewModel {
   };
 }
 
+/**
+ * The board's emergency loan, while any of it is still owed.
+ *
+ * Present only when there is a balance to show, which is the same rule the
+ * `emergency-loan` inbox row uses. The row was the club's ONLY view of this for
+ * as long as the loan lasted, which is why it could never be allowed to yield
+ * its desk slot; the accounts office is where a debt belongs.
+ */
+export interface ClubLoanViewModel {
+  /** What the board paid in. The balance starts higher: the loan carries interest. */
+  originalAmount: number;
+  remainingBalance: number;
+  /** 'Repayments begin' before the first repayment season, 'Weeks left' during it. */
+  scheduleLabel: string;
+  scheduleValue: string;
+  detail: string;
+}
+
 export interface ClubFinancesViewModel {
   periodLabel: string;
   resources: ResourceSummaryViewModel;
+  /** Absent until the board writes its one emergency loan, and once it is repaid. */
+  loan?: ClubLoanViewModel;
   ledger: readonly LedgerLineViewModel[];
   recentTransactions: readonly (LedgerLineViewModel & {
     periodLabel: string;
@@ -678,10 +709,21 @@ export interface SeasonEndViewModel {
 }
 
 export interface ClubLegacyChoiceViewModel {
-  id: 'coach-candidate' | 'mentor-youth';
+  id: 'coach-candidate' | 'farewell';
   label: string;
   detail: string;
   outcome: string;
+}
+
+/** One name on the club's roll of former players. */
+export interface ClubLegacyFormerPlayerViewModel {
+  playerId: string;
+  playerName: string;
+  role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
+  /** Powered players get the board panel's Hero chip here too. */
+  isHero: boolean;
+  detail: string;
 }
 
 export interface ClubLegacyViewModel {
@@ -695,7 +737,13 @@ export interface ClubLegacyViewModel {
   personality: string;
   fame: number;
   seasonsAtClub: number;
+  /** True when the legend played with a power. A hero's farewell reads differently. */
+  isHero: boolean;
   choices: readonly ClubLegacyChoiceViewModel[];
+  /** Everyone who has retired from this club, most recent first. */
+  formerPlayers: readonly ClubLegacyFormerPlayerViewModel[];
+  /** How many the roll is showing out of, when it is longer than the panel. */
+  formerPlayerTotal: number;
 }
 
 export interface ChampionshipCelebrationPlayerViewModel {
@@ -719,6 +767,50 @@ export interface ChampionshipCelebrationViewModel {
 }
 
 /**
+ * The three moments that mark the end of the main climb.
+ *
+ * `global-league` and `cup-winners` are the halfway houses — one trophy in, one
+ * still to get — and each points at the other. `true-ending` is the pair being
+ * completed, in whichever order the manager completed it.
+ */
+export type EndgameCelebrationKind = 'global-league' | 'cup-winners' | 'true-ending';
+
+export interface EndgameCelebrationPlayerViewModel {
+  readonly id: string;
+  readonly name: string;
+  readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  readonly isHero: boolean;
+  /** Career fame, which is what picked the star out of the squad. */
+  readonly fame: number;
+  /** The exact atlas character used for this player in the final match. */
+  readonly spriteKey: string;
+  /** His assigned look, so a single walk-on wears his own face. */
+  readonly lookId?: string;
+}
+
+export interface EndgameCelebrationViewModel {
+  readonly kind: EndgameCelebrationKind;
+  readonly seasonLabel: string;
+  readonly clubName: string;
+  readonly assistantName: string;
+  readonly headline: string;
+  readonly subheading: string;
+  /**
+   * Body copy on the two smaller screens, and one speech bubble per entry on
+   * the true ending. Always rendered in full under reduced motion: no line of
+   * this may live only in the animation.
+   */
+  readonly lines: readonly string[];
+  /** The highest-fame player. Absent only for a club with no squad left. */
+  readonly star?: EndgameCelebrationPlayerViewModel;
+  /** Everyone else, for the two squad walk-outs. Empty on the true ending. */
+  readonly squad: readonly EndgameCelebrationPlayerViewModel[];
+  /** False on the true ending, which holds the manager in for all of it. */
+  readonly skippable: boolean;
+  readonly accessibilityLabel: string;
+}
+
+/**
  * One name on one podium.
  *
  * `position` is the podium slot, not the leader board's shared rank. The podium
@@ -735,6 +827,22 @@ export interface AwardCeremonyPlacingViewModel {
   readonly isUserPlayer: boolean;
 }
 
+/**
+ * The one player who walks on to speak for a board.
+ *
+ * Always the manager's own: his highest-placed player on that podium. A rival
+ * never walks on, however he finished — reversed after seeing two walk-ons a
+ * board running, where the rival's moment cost the manager's the room.
+ */
+export interface AwardCeremonySpeakerViewModel {
+  readonly placing: AwardCeremonyPlacingViewModel;
+  /** Which pool the line was drawn from: he topped the board, or he did not. */
+  readonly tone: AwardCeremonySpeechTone;
+  readonly line: string;
+}
+
+export type AwardCeremonySpeechTone = 'winner' | 'runner-up';
+
 export interface AwardCeremonyBeatViewModel {
   readonly categoryId: AwardCategoryId;
   readonly boardLabel: string;
@@ -746,23 +854,12 @@ export interface AwardCeremonyBeatViewModel {
   readonly placings: readonly AwardCeremonyPlacingViewModel[];
   /** Shown in place of the podium when the category has no placings. */
   readonly emptyLabel: string;
-  /** The last placing revealed; absent only when the podium is empty. */
-  readonly winner?: AwardCeremonyPlacingViewModel;
   /**
-   * What the winner says on the rostrum. A rival's winner speaks too — the
-   * walk-on, the jump and the line are identical, because a rival who takes the
-   * award off you should look like he won it.
+   * Absent when no player of the manager's reached this podium, which is also
+   * every board a rival won outright: the three placings are read out and the
+   * ceremony moves on.
    */
-  readonly winnerLine?: string;
-  /**
-   * Present only when one of the manager's players finished second to a rival.
-   *
-   * A club taking first AND second gets one walk-on, not two: the winner
-   * speaks, and the runner-up stays on the podium list. Two sprites competing
-   * for one moment weakens both.
-   */
-  readonly runnerUp?: AwardCeremonyPlacingViewModel;
-  readonly runnerUpLine?: string;
+  readonly speaker?: AwardCeremonySpeakerViewModel;
   /** Whether this board's prize was paid to the manager's club. */
   readonly wonByUserPlayer: boolean;
 }
@@ -788,3 +885,82 @@ export interface AwardCeremonyViewModel {
   readonly beats: readonly AwardCeremonyBeatViewModel[];
   readonly prize: AwardCeremonyPrizeViewModel;
 }
+
+/** One figure on the Hall of Fame page: a label, the number, and what it is of. */
+export interface HallOfFameStatViewModel {
+  readonly id: string;
+  readonly label: string;
+  readonly value: string;
+  readonly detail: string;
+}
+
+/**
+ * One trophy, stamped with the season it was won.
+ *
+ * Deliberately not a stat row: an honour needs no third line saying what kind
+ * of trophy it is, because "D3 National champions" already says it.
+ */
+export interface HallOfFameHonourViewModel {
+  readonly id: string;
+  readonly label: string;
+  readonly value: string;
+}
+
+/**
+ * One tier the club played in, as the climb ladder draws it.
+ *
+ * Split into a figure and a sentence for the reason the stat rows are: at
+ * 375pt a tier row has about 255pt of text width, and the whole spell written
+ * as one line breaks after "best", leaving the finish stranded on a line of
+ * its own. Two lines, broken where the writing breaks anyway.
+ */
+export interface HallOfFameTierViewModel {
+  readonly division: number;
+  readonly label: string;
+  readonly firstSeason: number;
+  readonly seasons: number;
+  readonly bestPosition: number;
+  /** The finish, as the figure of the row: "Best 1st". */
+  readonly best: string;
+  /** When the club got there and how long it stayed. */
+  readonly detail: string;
+}
+
+/**
+ * The Hall of Fame before the climb is finished.
+ *
+ * A state of the page rather than a hidden page: the button is always there,
+ * and tapping it is the one place that says the climb has an end.
+ */
+export interface HallOfFameLockedViewModel {
+  readonly status: 'locked';
+  readonly title: string;
+  readonly kicker: string;
+  readonly headline: string;
+  readonly lines: readonly string[];
+  readonly accessibilityLabel: string;
+}
+
+/**
+ * The finished career's record.
+ *
+ * Every number here was captured when the climb completed and is only read
+ * back. Nothing on this page is recomputed from live state, which by then no
+ * longer holds the evidence.
+ */
+export interface HallOfFameRecordViewModel {
+  readonly status: 'complete';
+  readonly title: string;
+  readonly kicker: string;
+  readonly headline: string;
+  readonly subheading: string;
+  readonly stats: readonly HallOfFameStatViewModel[];
+  /** Titles and Cups, oldest first. */
+  readonly honours: readonly HallOfFameHonourViewModel[];
+  /** Shown instead of the honours list when the club won no league title. */
+  readonly honoursEmptyLabel: string;
+  readonly tiers: readonly HallOfFameTierViewModel[];
+  readonly accessibilityLabel: string;
+}
+
+export type HallOfFameViewModel = HallOfFameLockedViewModel | HallOfFameRecordViewModel;

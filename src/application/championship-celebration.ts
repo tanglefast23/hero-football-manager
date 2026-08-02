@@ -1,6 +1,7 @@
 import { leagueStandings, rosterForClub, type CareerPlayer, type GameState } from '../game';
 import type { ChampionshipCelebrationViewModel } from '../ui';
 import { playerLookId } from '../render/sprites/player-look';
+import { endgameSupersedesLeagueTitle } from './endgame-celebration';
 
 const FLAG_PREFIX = 'celebration:league-title:season-';
 
@@ -8,8 +9,18 @@ export function championshipCelebrationFlag(season: number): string {
   return `${FLAG_PREFIX}${season}`;
 }
 
+/**
+ * The ordinary title screen, which now covers D2–D5 and every D1 title after
+ * the first.
+ *
+ * The FIRST D1 title is the end of the ladder and gets its own screen, so this
+ * one stands down for it rather than announcing the same result first. The
+ * endgame screen flags the season on its way out, which is what stops this from
+ * firing the moment the suppression lifts.
+ */
 export function hasPendingChampionshipCelebration(state: GameState): boolean {
   if (state.phase !== 'season-end' && state.phase !== 'complete') return false;
+  if (endgameSupersedesLeagueTitle(state)) return false;
   const champions = leagueStandings(state)[0];
   return champions?.clubId === state.userClubId
     && !state.eventFlags.includes(championshipCelebrationFlag(state.season));

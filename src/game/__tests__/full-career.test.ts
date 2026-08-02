@@ -277,7 +277,7 @@ describe('full M2 career clock', () => {
             retirementAnnounced: true,
             retirementAnnouncementSeason: 1,
             seasonsAtClub: 6,
-            fame: 90,
+            fame: 300,
           }
         : player),
     };

@@ -11,9 +11,76 @@ A cozy, Kairosoft-style soccer club management sim where some of your players ar
 - **Metro:** `npx expo start` (defaults to port 8081; pass `--port 8082` to run a second bundler alongside another checkout). The dev app reads its bundle location from the shake-menu setting, which persists; the `-RCT_jsLocation` launch arg does not.
 - **Power live-match review (development only):** `EXPO_PUBLIC_POWER_MATCH_QA=1 npx expo start --web --port 8092`. This runs every launch power one at a time through the real `MatchScreen`, real Atlas players, contextual engine activation, team-colour control-area title, audio, and production effect art. Each scenario briefly holds its authored best-use match situation, then auto-fires at the normal contextual-auto strength. The power has no review timeout: if its best context is not present, it stays banked until that context appears. Previous, Restart, and Next controls cycle and replay the catalog.
 - **Power effect-art review (web, development only):** `EXPO_PUBLIC_POWER_ART_QA=1 npx expo start --web --port 8092`. This lighter review reel reuses the production effect layer, but deliberately uses a simplified pitch and demo actors; it is not a live match replay.
+- **Dev Harness (development only):** `EXPO_PUBLIC_DEV_HARNESS=1 npx expo start` — the front door for reviewing any screen. See [Dev Harness](#dev-harness) below.
+- **Awards ceremony review (development only):** `EXPO_PUBLIC_AWARDS_CEREMONY_QA=1 npx expo start`. Superseded by the Dev Harness, kept working for now. The division awards ceremony plays once a season, so this drives the real `AwardsCeremonyScreen` against fabricated podiums instead: pick a case (mixed / sweep / thin / nothing won), jump straight to any board or to the prize, and toggle reduced motion. Hide the control panel to see the layout untouched.
 - **Simulator:** `npx expo start` then press `i`, or build directly with the XcodeBuildMCP CLI (`simulator build-and-run --scheme HeroFootballManager --workspace-path ios/HeroFootballManager.xcworkspace`). Relaunch pointed at a specific bundler with `xcrun simctl launch <udid> com.tanglefast.herofootballmanager -RCT_jsLocation localhost:8082`.
 - **Native builds** (needed after any icon/audio/native-dep change — Metro can't hot-load native resources): local `xcodebuild` with cloud signing via the ASC API key. `security find-identity` showing 0 local certs is NORMAL (signing is cloud-based); `expo run:ios` fails its local-cert pre-check, so don't use it. Export `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` for CocoaPods. Device install: wireless (needs the one-time cabled network-pairing toggle) or the TestFlight upload pipeline.
     - **Engine version discipline:** any replay-affecting `src/sim` change bumps `ENGINE_VERSION` in `src/sim/match.ts` and regenerates the golden snapshot (`npx jest src/sim/__tests__/parity-replay.test.ts -u`) in the same commit. Current engine: **m2.0**.
+
+## Dev Harness
+
+One flag, one build, every registered feature a tap away. It exists because the older review reels (`EXPO_PUBLIC_POWER_MATCH_QA`, `EXPO_PUBLIC_POWER_CUTIN_QA`, `EXPO_PUBLIC_POWER_ART_QA`, `EXPO_PUBLIC_AWAKENING_ART_QA`, `EXPO_PUBLIC_AWARDS_CEREMONY_QA`) each have their own flag, and `process.env.EXPO_PUBLIC_*` is inlined at transform time — so switching from one reel to another costs a full static export. That friction is why most screens in this game have never been looked at.
+
+**Reaching it**
+
+```
+EXPO_PUBLIC_DEV_HARNESS=1 npx expo start          # Metro (web, simulator, device)
+```
+
+Static web export, which is where deep links are worth having:
+
+```
+rm -rf dist && EXPO_PUBLIC_DEV_HARNESS=1 npx expo export --platform web --clear
+node scripts/web/fix-worker-bundles.mjs
+cp node_modules/canvaskit-wasm/bin/full/canvaskit.wasm dist/
+npx serve dist
+```
+
+`--clear` is not optional: a cached transform keeps the previous flag inlined and you will debug a stale bundle.
+
+The flag is the only way in. A build without it inlines `undefined` at the check in `App()`, so the branch is dead code and no route a player can reach leads here.
+
+**Deep links**
+
+| URL | Opens |
+|---|---|
+| `#/dev` | the menu |
+| `#/dev/<entryId>` | that entry, on its first case |
+| `#/dev/<entryId>/<caseId>` | that entry, on that case |
+
+Cold loads work, so a screenshot of one exact state costs a URL rather than a run of taps: `http://localhost:3000/#/dev/awards-ceremony/sweep`. Selecting an entry or a case updates the hash, and an address the registry no longer holds — a renamed entry, a dropped case — falls back to the menu and corrects the URL rather than stranding you. Native has no location hash, so there the harness simply holds its route in memory; everything else behaves the same.
+
+**Adding an entry**
+
+1. Write `src/ui/dev-harness/entries/<feature>.tsx` and export one `DevHarnessEntry`:
+
+    ```tsx
+    export const boardUltimatumEntry: DevHarnessEntry = {
+      id: 'board-ultimatum',                 // url-safe, stable: it is half of a bookmark
+      group: 'Season',                       // menu section; a new name opens a new one
+      title: 'Board ultimatum',
+      summary: 'The warning the board issues when a season is going badly.',
+      cases: [
+        { id: 'first-warning', label: 'Warning', note: 'One bad season, still recoverable' },
+        { id: 'final', label: 'Final', note: 'Last chance before the sack' },
+      ],
+      render: caseId => <BoardUltimatumReel caseId={caseId as UltimatumCaseId} />,
+    };
+    ```
+
+2. Register it: one import plus one line in the `DEV_HARNESS_ENTRIES` array in `registry.ts`. Nothing self-registers, so that array is the whole answer to "what is in the harness".
+3. Feed the **production** screen its real inputs. Two ways, and the feature picks:
+    - Fabricate them, when the input is small. The awards entry writes four podiums into a `SeasonRecap` and hands it to the shipped view-model builder — never to a hand-assembled view model, which could only ever prove itself.
+    - Ask for a career, when the screen reads a whole `GameState`. `devHarnessCareerAtWeek(season, week)` and `devHarnessCareerAtSeasonEnd(season)` in `src/ui/dev-harness/career.ts` run the real season clock from a fixed seed and cache the result, so opening an entry pays for the simulation once. `devHarnessCareer({ id, seed, stopAt })` takes any stopping condition; give it an id that folds in everything you varied.
+4. Controls the entry owns go in the entry, drawn with `DevHarnessButton` and `devHarnessControlStyles` so they match the harness bar.
+
+`cases` are the *inputs* — the states worth a bookmark, one line each on the menu and one chip each in the harness bar. Anything a reviewer flips while looking at one of those states (a jump, a speed, a motion toggle) belongs inside the entry's own controls; folding it into `cases` multiplies the menu out into something nobody can read.
+
+The harness owns the top-left of an open entry and nothing else, and it remounts the entry whenever the case changes — so an entry may read its case once and keep state without worrying about the harness changing it underneath.
+
+Two house rules the harness inherits: give every `Pressable` an explicit `minHeight` in a **static** style (a function-form `style` drops layout properties on iOS and collapses the control to zero height), and add no audio cue (the management SFX table is index-addressed by eight tests).
+
+Logic goes in a module that imports no React: `route.ts` (addresses) and `career.ts` (seeded careers) are both covered by tests in `src/ui/dev-harness/__tests__/`. Jest runs with `testEnvironment: 'node'` and `require('react-native')` throws there, so nothing in the harness can be rendered in a test — the registry itself is not even importable from one.
 
 ## Planning documents
 

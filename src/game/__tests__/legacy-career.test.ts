@@ -29,7 +29,7 @@ function player(id: string, overrides: Partial<CareerPlayer> = {}): CareerPlayer
     personality: 'Loyal',
     condition: 100,
     seasonsAtClub: 7,
-    fame: 82,
+    fame: 300,
     retirementAge: 36,
     retirementAnnounced: true,
     retirementAnnouncementSeason: 3,
@@ -86,10 +86,10 @@ function state(overrides: Partial<GameState> = {}): GameState {
 describe('career club-legend queue', () => {
   it('returns the next unique eligible user-club legend and skips stale queue entries', () => {
     const legend = player('legend');
-    const second = player('second', { name: 'Milo Stone', fame: 90 });
+    const second = player('second', { name: 'Milo Stone', fame: 400 });
     const input = state({
       retiredPlayers: [
-        player('ineligible', { fame: 40 }),
+        player('ineligible', { fame: 120 }),
         player('foreign', { clubId: 'other-club' }),
         legend,
         { ...legend, name: 'Duplicate record' },
@@ -145,77 +145,84 @@ describe('career club-legend transactions', () => {
     expect(retried.state.pendingLegacyPlayerIds).toEqual([]);
   });
 
-  it('adds one deterministic boosted youth CareerPlayer, payroll, and preserves the next legend', () => {
-    const second = player('second', { name: 'Milo Stone', fame: 90 });
-    const input = state({
-      retiredPlayers: [player('legend'), second],
-      pendingLegacyPlayerIds: ['legend', 'legend', 'second'],
-    });
-    const beforePayroll = input.clubs[0].weeklyWages;
-    const first = resolveNextClubLegendLegacy(input, 'mentor-youth');
-    const repeated = resolveNextClubLegendLegacy(input, 'mentor-youth');
-    const youth = first.youthPlayer!;
-
-    expect(JSON.stringify(first)).toBe(JSON.stringify(repeated));
-    expect(first.state.pendingLegacyPlayerIds).toEqual(['second']);
-    expect(first.state.players).toContainEqual(youth);
-    expect(first.state.clubs[0].weeklyWages).toBe(beforePayroll + youth.weeklyWage);
-    expect(youth).toMatchObject({
-      id: 'legacy-youth-s4-legend',
-      clubId: USER_CLUB_ID,
-      role: 'FWD',
-      archetype: 'Sniper',
-      licensed: false,
-      weeklyWage: 240,
-      onHeroWage: false,
-      contractSeasonsRemaining: 3,
-      potential: 4,
-      consistency: 65,
-      condition: 100,
-      seasonsAtClub: 0,
-      fame: 5,
-      retirementAnnounced: false,
-    });
-    expect(youth.age).toBeGreaterThanOrEqual(16);
-    expect(youth.age).toBeLessThanOrEqual(17);
-    expect(youth.name.endsWith(' Flint')).toBe(true);
-    expect(youth.lookId).toMatch(/^f\d+$/);
-  });
-
-  it('does not duplicate a youth or charge payroll twice after a partially applied save', () => {
-    const initial = state();
-    const first = resolveNextClubLegendLegacy(initial, 'mentor-youth');
-    const youth = first.youthPlayer!;
-    const partial = state({
-      players: [youth],
-      clubs: first.state.clubs,
-      pendingLegacyPlayerIds: ['legend'],
-    });
-    const retried = resolveNextClubLegendLegacy(partial, 'mentor-youth');
-
-    expect(retried.state.players).toHaveLength(1);
-    expect(retried.youthPlayer?.lookId).toBe(youth.lookId);
-    expect(retried.state.clubs[0].weeklyWages).toBe(first.state.clubs[0].weeklyWages);
-    expect(retried.state.pendingLegacyPlayerIds).toEqual([]);
-  });
-
-  it('does not let a mentored legacy youth bypass the user roster cap', () => {
+  /**
+   * Retargeted from the mentored-youth roster-cap test, which pinned the reason
+   * that option was removed: it added a seventeenth player, the season
+   * transition always refills the squad to the sixteen-player cap, so the
+   * legacy screen only ever opened over a full roster and every offer of it
+   * threw. The legacy the game kept touches the squad not at all, so a full
+   * roster is no longer a reason a legend cannot be honoured.
+   */
+  it('resolves a legacy over a full 16-player roster', () => {
     const fullRoster = Array.from({ length: 16 }, (_, index) => player(`active-${index + 1}`, {
       age: 24,
       retirementAnnounced: false,
       contractSeasonsRemaining: 2,
     }));
-
-    expect(() => resolveNextClubLegendLegacy(
+    const resolved = resolveNextClubLegendLegacy(
       state({ players: fullRoster }),
-      'mentor-youth',
-    )).toThrow('16-player roster is full');
+      'coach-candidate',
+    );
+
+    expect(resolved.state.players).toHaveLength(16);
+    expect(resolved.state.clubs[0].weeklyWages).toBe(4_000);
+    expect(resolved.state.pendingLegacyPlayerIds).toEqual([]);
+    expect(resolved.coachCandidate?.retiredLegendPlayerId).toBe('legend');
   });
 
-  it('requires both a market and an eligible pending legend', () => {
-    expect(() => resolveNextClubLegendLegacy(state({ market: undefined }), 'coach-candidate'))
-      .toThrow('require a career market');
-    expect(() => resolveNextClubLegendLegacy(state({ pendingLegacyPlayerIds: [] }), 'mentor-youth'))
-      .toThrow('no eligible pending');
+  /**
+   * The decline. It has to clear the legend exactly as thoroughly as the coach
+   * path does — a farewell that left him in the queue would offer the same man
+   * again next week — while touching nothing else the club owns.
+   */
+  it('resolves a farewell without creating a coach, a player or a cost', () => {
+    const input = state();
+    const before = JSON.stringify(input);
+    const declined = resolveNextClubLegendLegacy(input, 'farewell');
+
+    expect(declined.resolvedPlayerId).toBe('legend');
+    expect(declined.choice).toBe('farewell');
+    expect(declined.coachCandidate).toBeUndefined();
+    expect(declined.state.pendingLegacyPlayerIds).toEqual([]);
+    expect(declined.state.market?.coachCandidates).toEqual([]);
+    expect(declined.state.players).toEqual(input.players);
+    expect(declined.state.clubs).toEqual(input.clubs);
+    // Still on the club's roll of former players: declined, not erased.
+    expect(declined.state.retiredPlayers?.map(retired => retired.id)).toEqual(['legend']);
+    expect(JSON.stringify(input)).toBe(before);
+    expect(JSON.parse(JSON.stringify(declined))).toEqual(declined);
+    // And he is gone from the queue for good, which is what the choice costs.
+    expect(nextPendingClubLegend(declined.state)).toBeUndefined();
+  });
+
+  it('advances a queue of legends one farewell at a time', () => {
+    const legend = player('legend');
+    const second = player('second', { name: 'Milo Stone', fame: 400 });
+    const queued = state({
+      retiredPlayers: [legend, second],
+      pendingLegacyPlayerIds: ['legend', 'second'],
+    });
+
+    const first = resolveNextClubLegendLegacy(queued, 'farewell');
+
+    expect(first.state.pendingLegacyPlayerIds).toEqual(['second']);
+    expect(nextPendingClubLegend(first.state)).toMatchObject({ id: 'second' });
+    // The two choices are interchangeable as queue operations, so a mixed queue
+    // resolves in one pass either way round.
+    expect(resolveNextClubLegendLegacy(first.state, 'coach-candidate').state.pendingLegacyPlayerIds)
+      .toEqual([]);
+  });
+
+  it('requires a market, an eligible pending legend, and a choice it knows', () => {
+    for (const choice of ['coach-candidate', 'farewell'] as const) {
+      expect(() => resolveNextClubLegendLegacy(state({ market: undefined }), choice))
+        .toThrow('require a career market');
+      expect(() => resolveNextClubLegendLegacy(state({ pendingLegacyPlayerIds: [] }), choice))
+        .toThrow('no eligible pending');
+    }
+    expect(() => resolveNextClubLegendLegacy(
+      state(),
+      'mentor-youth' as unknown as 'coach-candidate',
+    )).toThrow('unknown club-legend legacy choice mentor-youth');
   });
 });

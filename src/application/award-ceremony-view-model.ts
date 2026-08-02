@@ -10,6 +10,7 @@ import { awardCeremonySpeeches, type AwardCeremonySpeaker } from '../ui/award-ce
 import type {
   AwardCeremonyBeatViewModel,
   AwardCeremonyPlacingViewModel,
+  AwardCeremonySpeechTone,
   AwardCeremonyViewModel,
 } from '../ui/models';
 
@@ -53,9 +54,9 @@ export function awardCeremonyViewModel(
 ): AwardCeremonyViewModel {
   const podiums = REVEAL_ORDER.map(categoryId => ({
     categoryId,
-    // Podium order here (winner first) because the winner and the runner-up are
-    // read off the front; the beat reverses it for the reveal. Cut to three
-    // again, so the beat holds a podium whatever the stored record holds.
+    // Podium order here (winner first) because the speaker is read off the
+    // front; the beat reverses it for the reveal. Cut to three again, so the
+    // beat holds a podium whatever the stored record holds.
     placings: placementsFor(source.recap, categoryId)
       .slice(0, PODIUM_SIZE)
       .map((placement, index) => placing(placement, index + 1, source)),
@@ -65,36 +66,29 @@ export function awardCeremonyViewModel(
   const wonCategories = new Set(prize.categoriesWon);
 
   // Every line for the whole ceremony in one pass, so the de-duplication can
-  // see all four winners before the first card renders. Speakers are handed
+  // see all four speakers before the first card renders. Speakers are handed
   // over in reveal order, which is the order the probe resolves collisions in.
   const speakers: AwardCeremonySpeaker[] = podiums.flatMap(({ categoryId, placings }) => {
-    const winner = placings[0];
-    if (winner === undefined) return [];
-    const runnerUp = speakingRunnerUp(placings);
-    return [{
-      category: categoryId,
-      winnerPlayerId: winner.playerId,
-      ...(runnerUp === undefined ? {} : { runnerUpPlayerId: runnerUp.playerId }),
-    }];
+    const speaking = speakingPlacing(placings);
+    if (speaking === undefined) return [];
+    return [{ category: categoryId, playerId: speaking.playerId, tone: speechTone(speaking) }];
   });
-  const speeches = new Map(awardCeremonySpeeches(speakers, source.recap.season)
-    .map(speech => [speech.category, speech]));
+  const lines = new Map(awardCeremonySpeeches(speakers, source.recap.season)
+    .map(speech => [speech.category, speech.line]));
 
   const beats: AwardCeremonyBeatViewModel[] = podiums.map(({ categoryId, placings }) => {
     const category = AWARD_CATEGORIES[categoryId];
-    const speech = speeches.get(categoryId);
-    const runnerUp = speakingRunnerUp(placings);
+    const speaking = speakingPlacing(placings);
+    const line = lines.get(categoryId);
     return {
       categoryId,
       boardLabel: category.boardLabel,
       metricLabel: category.metricLabel,
       placings: [...placings].reverse(),
       emptyLabel: `No ${category.metricLabel.toLowerCase()} recorded this season`,
-      ...(placings[0] === undefined ? {} : { winner: placings[0] }),
-      ...(speech === undefined ? {} : { winnerLine: speech.winnerLine }),
-      ...(runnerUp === undefined || speech?.runnerUpLine === undefined
+      ...(speaking === undefined || line === undefined
         ? {}
-        : { runnerUp, runnerUpLine: speech.runnerUpLine }),
+        : { speaker: { placing: speaking, tone: speechTone(speaking), line } }),
       wonByUserPlayer: wonCategories.has(categoryId),
     };
   });
@@ -127,19 +121,25 @@ function awardPrize(source: AwardCeremonyViewModelSource): DivisionAwardPrize {
 }
 
 /**
- * The manager's second-placed player, when he is the one who speaks.
+ * The one player who walks on: the manager's highest-placed on this podium.
  *
- * A club with first AND second gets one walk-on: the winner's. Suppressing the
- * runner-up here rather than at the render also keeps him from claiming a line
- * out of the pool that no one will hear.
+ * A rival never walks on, whatever he won — the owner watched two walk-ons a
+ * board and reversed the rival's, so a board the manager is nowhere on now
+ * reveals its three placings and moves on. A club taking first AND second still
+ * gets one walk-on, and it is the winner's, because `placings` is winner-first.
+ *
+ * Deciding it here rather than at the render also keeps a player who will never
+ * be heard from claiming a line out of the pool.
  */
-function speakingRunnerUp(
+function speakingPlacing(
   placings: readonly AwardCeremonyPlacingViewModel[],
 ): AwardCeremonyPlacingViewModel | undefined {
-  const winner = placings[0];
-  if (winner === undefined || winner.isUserPlayer) return undefined;
-  const runnerUp = placings[1];
-  return runnerUp?.isUserPlayer === true ? runnerUp : undefined;
+  return placings.find(candidate => candidate.isUserPlayer);
+}
+
+/** Winning the board is the only thing that draws from the winner's pool. */
+function speechTone(placing: AwardCeremonyPlacingViewModel): AwardCeremonySpeechTone {
+  return placing.position === 1 ? 'winner' : 'runner-up';
 }
 
 function placing(

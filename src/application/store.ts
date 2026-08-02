@@ -111,6 +111,12 @@ import {
   hasPendingAwardsCeremony,
   markAwardsCeremonyComplete,
 } from './awards-ceremony';
+import {
+  endgameSupersedesLeagueTitle,
+  markEndgameCelebrationComplete,
+  pendingEndgameCelebration,
+} from './endgame-celebration';
+import { recordHallOfFame } from './hall-of-fame';
 
 const launchContent = loadLaunchContent();
 const awakeningPowerIds = launchContent.powers.powers.map(power => power.id);
@@ -149,6 +155,9 @@ export type M1Screen =
   | 'week-review'
   | 'legacy'
   | 'championship-celebration'
+  // The end of the main climb: the first D1 title, the first Cup, and the true
+  // ending when both are in. Once per career each, never per season.
+  | 'endgame-celebration'
   // Every season passes through the awards, champions or not. The celebration
   // only fires for a title, so the ceremony is the one fixture of the boundary.
   | 'awards-ceremony'
@@ -245,6 +254,8 @@ interface M1Store {
   dismissPostMatchSummary: () => void;
   continueWeekReview: () => void;
   completeChampionshipCelebration: () => void;
+  completeEndgameCelebration: () => void;
+  returnToTitleFromEnding: () => void;
   completeAwardsCeremony: () => void;
   chooseLegacy: (choice: CareerLegendLegacyChoice) => void;
   selectEventPlayer: () => void;
@@ -960,6 +971,64 @@ export const useM1Store = create<M1Store>((set, get) => ({
       set({ career: next, screen: seasonBoundaryScreen(next), error: null });
       queueCareerSave(get, set, next);
     });
+  },
+
+  /**
+   * Leaves an endgame celebration for whatever the boundary owes next.
+   *
+   * Deliberately unconditional, for the reason `completeAwardsCeremony` gives:
+   * this is the only way off the screen, so it must never refuse and strand a
+   * career on a watched cutscene.
+   *
+   * The D1 title the summit screen has just presented is flagged as celebrated
+   * on the way out. Without that, marking the endgame complete would un-suppress
+   * the ordinary league celebration and the manager would be told he had won
+   * the league by a second screen, seconds later.
+   */
+  completeEndgameCelebration() {
+    guarded(set, () => {
+      const career = requireCareer(get());
+      const superseded = endgameSupersedesLeagueTitle(career);
+      const celebrated = markEndgameCelebrationComplete(career);
+      // The Hall of Fame is banked HERE, before the season transition runs,
+      // because this is the last moment the evidence exists: the transition
+      // regenerates rival rosters and prunes the season's stat rows, and the
+      // record is the club's whole career. `recordHallOfFame` no-ops unless
+      // the true ending was just marked, so the two smaller celebrations pass
+      // through it untouched.
+      const next = recordHallOfFame(superseded
+        ? markChampionshipCelebrationComplete(celebrated)
+        : celebrated);
+      set({
+        career: next,
+        screen: next.phase === 'season-end' || next.phase === 'complete'
+          ? seasonBoundaryScreen(next)
+          : 'management',
+        error: null,
+      });
+      if (next !== career) queueCareerSave(get, set, next);
+    });
+  },
+
+  /**
+   * Leaves the true ending's finale for the title screen.
+   *
+   * The last tap of the last cutscene lands where the game started rather than
+   * on next season's desk. A manager who has just been thanked for playing
+   * should not be dropped straight back into a fixture list; that would step on
+   * the only ending the game has.
+   *
+   * The ordinary exit runs FIRST and this only redirects where it lands, so
+   * everything that exit is responsible for — the flags that stop the moment
+   * replaying, the Hall of Fame record, the save — happens exactly once and
+   * cannot drift out of step with a second copy of it here. Nothing is lost by
+   * leaving: the career is still there, and continuing it resumes at whatever
+   * the season boundary owes next.
+   */
+  returnToTitleFromEnding() {
+    get().completeEndgameCelebration();
+    if (get().error !== null) return;
+    set({ screen: 'welcome', activeTab: 'home' });
   },
 
   /**
@@ -1705,6 +1774,11 @@ function resumeScreen(career: GameState): M1Screen {
  */
 function seasonBoundaryScreen(career: GameState): M1Screen {
   if (hasPendingChampionshipCelebration(career)) return 'championship-celebration';
+  // After the ordinary title, never before it. A D1 title that fires an endgame
+  // moment suppresses the ordinary screen outright, so the only case where both
+  // play is a lesser division's title in the season the Cup completed the pair
+  // — and there the smaller news should land first and the summit last.
+  if (pendingEndgameCelebration(career) !== undefined) return 'endgame-celebration';
   return hasPendingAwardsCeremony(career) ? 'awards-ceremony' : 'season-end';
 }
 

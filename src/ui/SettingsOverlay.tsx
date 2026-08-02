@@ -6,6 +6,8 @@ import { adjustDevVolume, DEV_VOLUME_LEVELS, devVolumePercent, type DevVolume } 
 import type { CutInMode, HudSide, TextScale } from '../persistence';
 import type { GlossaryCatalog } from '../content';
 import { GlossaryPanel } from './GlossaryPanel';
+import { HallOfFameScreen } from './screens/HallOfFameScreen';
+import type { HallOfFameViewModel } from './models';
 import { volumeThumbLeft } from './volume-slider-thumb';
 import { PixelText } from './components/PixelText';
 
@@ -107,6 +109,14 @@ export interface SettingsOverlayProps {
   cutInMode: CutInMode;
   managerTipsEnabled: boolean;
   accessibilityCopy?: { title: string; body: string };
+  /**
+   * Omit to hide the row: with no career loaded there is no record to open,
+   * not even a locked one. Present in both states otherwise — the locked page
+   * is what tells a manager the climb has an end.
+   */
+  hallOfFame?: HallOfFameViewModel;
+  hallOfFameOpen?: boolean;
+  onHallOfFameOpenChange?: (open: boolean) => void;
   difficultyLabel?: 'COZY' | 'CHAIRMAN';
   saveError?: string | null;
   /** The result of the last export or import, shown until Settings closes. */
@@ -172,6 +182,9 @@ export function SettingsOverlay({
   cutInMode,
   managerTipsEnabled,
   accessibilityCopy,
+  hallOfFame,
+  hallOfFameOpen = false,
+  onHallOfFameOpenChange,
   difficultyLabel,
   saveError,
   saveFileStatus,
@@ -193,6 +206,9 @@ export function SettingsOverlay({
   const setOpenState = (next: boolean) => {
     onOpenChange(next);
   };
+  // Both sub-pages want the wider panel: a record read in a column two words
+  // across is not a record anybody reads.
+  const subPageOpen = glossaryOpen || (hallOfFameOpen && hallOfFame !== undefined);
 
   return (
     <Modal
@@ -216,13 +232,18 @@ export function SettingsOverlay({
             accessible={false}
             accessibilityViewIsModal
             importantForAccessibility="yes"
-            className={glossaryOpen
+            className={subPageOpen
               ? 'w-full max-w-lg border-2 border-b-4 border-ink bg-paper p-5'
               : 'w-full max-w-sm border-2 border-b-4 border-ink bg-paper p-5'}
             style={{ height: '88%' }}
           >
             {glossaryOpen ? (
               <GlossaryPanel content={glossary} onBack={() => onGlossaryOpenChange(false)} />
+            ) : hallOfFameOpen && hallOfFame !== undefined ? (
+              <HallOfFameScreen
+                viewModel={hallOfFame}
+                onBack={() => onHallOfFameOpenChange?.(false)}
+              />
             ) : (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4 }}>
             <Text className="font-pixel text-2xl uppercase text-ink">Settings</Text>
@@ -316,6 +337,23 @@ export function SettingsOverlay({
                 <Text className="font-pixel text-sm uppercase text-ink">Glossary</Text>
                 <Text className="font-pixel text-base text-blue-dark">A–Z ›</Text>
               </Pressable>
+              {hallOfFame === undefined ? null : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={hallOfFame.status === 'complete'
+                    ? 'Open the Hall of Fame'
+                    : 'Hall of Fame, locked until the climb is complete'}
+                  onPress={() => onHallOfFameOpenChange?.(true)}
+                  className="min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2"
+                >
+                  <Text className="font-pixel text-sm uppercase text-ink">Hall of Fame</Text>
+                  {/* Says which it is before it is opened, and opens either way:
+                      the locked page is what explains what finishes the climb. */}
+                  <Text className="font-pixel text-base uppercase text-blue-dark">
+                    {hallOfFame.status === 'complete' ? 'RECORD ›' : 'LOCKED ›'}
+                  </Text>
+                </Pressable>
+              )}
             </View>
             {onExportSave === undefined && onImportSave === undefined ? null : (
               <View className="mt-5 gap-3 border-t border-ink/15 pt-5">

@@ -143,6 +143,60 @@ describe('club finances immediate transaction history', () => {
     });
   });
 
+  /**
+   * The outstanding loan balance used to exist on exactly one surface — the
+   * `emergency-loan` inbox row — so a club could repay for thirty weeks with no
+   * way to check what it still owed. The accounts office is where a debt goes.
+   */
+  test('shows what the emergency loan borrowed, what remains, and when it is paid', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260724));
+    const loan = {
+      originalAmount: 20_000,
+      remainingBalance: 22_000,
+      repaymentStartsSeason: 2,
+      remainingWeeks: 30,
+    };
+    const borrowed = {
+      ...initial,
+      financialSafety: { consecutiveNegativeWeeks: 0, emergencyLoanUsed: true, loan },
+    };
+
+    // Season 1: nothing is taken yet, so the screen says when it starts.
+    expect(clubFinancesViewModel(borrowed).loan).toEqual({
+      originalAmount: 20_000,
+      remainingBalance: 22_000,
+      scheduleLabel: 'Repayments begin',
+      scheduleValue: 'Season 2',
+      detail: expect.stringContaining('Season 2'),
+    });
+
+    // Season 2, part-way through: the countdown replaces the start date.
+    const repaying = clubFinancesViewModel({
+      ...borrowed,
+      season: 2,
+      financialSafety: {
+        ...borrowed.financialSafety,
+        loan: { ...loan, remainingBalance: 9_000, remainingWeeks: 12 },
+      },
+    });
+    expect(repaying.loan).toMatchObject({
+      originalAmount: 20_000,
+      remainingBalance: 9_000,
+      scheduleLabel: 'Weeks left',
+      scheduleValue: '12',
+    });
+
+    // Cleared, and never taken: the same rule the inbox row uses.
+    expect(clubFinancesViewModel({
+      ...borrowed,
+      financialSafety: {
+        ...borrowed.financialSafety,
+        loan: { ...loan, remainingBalance: 0, remainingWeeks: 0 },
+      },
+    }).loan).toBeUndefined();
+    expect(clubFinancesViewModel(initial).loan).toBeUndefined();
+  });
+
   test('puts the completed benefit on every facility construction notice model', () => {
     const initial = createCareer(createLaunchCareerSetup(20260722));
     const catalog = clubFinancesViewModel(initial).facilities.catalog;

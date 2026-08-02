@@ -142,11 +142,16 @@ import type { AwakeningCutsceneViewModel, SquadTrainingViewModel } from './src/u
 import { AwakeningArtQaScreen } from './src/ui/screens/AwakeningArtQaScreen';
 import { PowerArtQaScreen } from './src/ui/screens/PowerArtQaScreen';
 import { championshipCelebrationViewModel } from './src/application/championship-celebration';
+import { endgameCelebrationViewModel } from './src/application/endgame-celebration';
+import { hallOfFameViewModel } from './src/application/hall-of-fame';
+import { EndgameCelebrationScreen } from './src/ui/screens/EndgameCelebrationScreen';
 import {
   awardCeremonyLookIds,
   careerAwardCeremonyViewModel,
 } from './src/application/awards-ceremony';
 import { AwardsCeremonyScreen } from './src/ui/screens/AwardsCeremonyScreen';
+import { AwardsCeremonyQaScreen } from './src/ui/screens/AwardsCeremonyQaScreen';
+import { DevHarnessScreen } from './src/ui/dev-harness/DevHarnessScreen';
 import { m2LeagueViewModel } from './src/application/m2-league-view-model';
 import { marketViewModel } from './src/application/market-view-model';
 import { careerMarketViewModelSource } from './src/application/market-source-adapter';
@@ -187,6 +192,14 @@ const QUICK_TRAIN_LESSON_WEEK = 6;
 
 export default function App() {
   const previewTriggerId = process.env.EXPO_PUBLIC_AWAKENING_PREVIEW_ID;
+  // The dev harness: one flag and one build for every registered feature, so
+  // switching between them is a tap instead of a three-minute static export.
+  // Flag-only rather than `__DEV__ &&`, for the reason the reels below give:
+  // the review runs on a static web export, where `__DEV__` is false. A build
+  // without the flag inlines `undefined` here and the branch is dead code.
+  if (process.env.EXPO_PUBLIC_DEV_HARNESS === '1') {
+    return <DevHarnessApp />;
+  }
   if (process.env.EXPO_PUBLIC_POWER_MATCH_QA === '1') {
     return <PowerMatchQaApp />;
   }
@@ -200,6 +213,13 @@ export default function App() {
   }
   if (__DEV__ && process.env.EXPO_PUBLIC_AWAKENING_ART_QA === '1') {
     return <AwakeningArtQaApp triggerId={previewTriggerId ?? 'magic-sponge'} />;
+  }
+  // The ceremony only plays at a season boundary, so reviewing it in a career
+  // costs a whole simulated season. This reaches any board, and the prize, cold.
+  // Flag-only like the power art reel above, and for the same reason: the review
+  // has to run on a static web export, where `__DEV__` is false.
+  if (process.env.EXPO_PUBLIC_AWARDS_CEREMONY_QA === '1') {
+    return <AwardsCeremonyQaApp />;
   }
   if (__DEV__ && previewTriggerId) {
     return <AwakeningReviewApp triggerId={previewTriggerId} />;
@@ -391,6 +411,36 @@ function AwakeningArtQaApp({ triggerId }: { triggerId: string }) {
   );
 }
 
+function AwardsCeremonyQaApp() {
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+
+  return (
+    <SafeAreaProvider>
+      {!fontsLoaded ? <LoadingScreen /> : (
+        <>
+          <StatusBar style="light" />
+          <AwardsCeremonyQaScreen />
+        </>
+      )}
+    </SafeAreaProvider>
+  );
+}
+
+function DevHarnessApp() {
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
+
+  return (
+    <SafeAreaProvider>
+      {!fontsLoaded ? <LoadingScreen /> : (
+        <>
+          <StatusBar style="light" />
+          <DevHarnessScreen />
+        </>
+      )}
+    </SafeAreaProvider>
+  );
+}
+
 function GameApp() {
   const store = useM1Store();
   const content = useMemo(loadLaunchContent, []);
@@ -428,6 +478,7 @@ function GameApp() {
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
+  const [globalHallOfFameOpen, setGlobalHallOfFameOpen] = useState(false);
   const [settingsSaveError, setSettingsSaveError] = useState<string | null>(null);
   const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
@@ -1407,6 +1458,19 @@ function GameApp() {
         onComplete={store.completeChampionshipCelebration}
       />
     );
+  } else if (store.screen === 'endgame-celebration') {
+    screen = (
+      <EndgameCelebrationScreen
+        viewModel={endgameCelebrationViewModel(
+          store.career,
+          content.assistantGuide.assistant.name,
+        )}
+        reduceMotion={reduceMotion}
+        onComplete={store.completeEndgameCelebration}
+        // The true ending's finale ends on the title screen it started from.
+        onReturnToTitle={store.returnToTitleFromEnding}
+      />
+    );
   } else if (store.screen === 'awards-ceremony') {
     screen = (
       <AwardsCeremonyScreen
@@ -1807,6 +1871,10 @@ function GameApp() {
           cutInMode={preferences.cutInMode}
           managerTipsEnabled={preferences.managerTipsEnabled}
           accessibilityCopy={content.assistantGuide.m4Fiction.accessibility}
+          // No career, no record to open — not even a locked one.
+          hallOfFame={store.career === null ? undefined : hallOfFameViewModel(store.career)}
+          hallOfFameOpen={globalHallOfFameOpen}
+          onHallOfFameOpenChange={setGlobalHallOfFameOpen}
           difficultyLabel={store.career?.onboarding?.stage === 'create-player'
             ? undefined
             : store.career?.difficulty ?? (store.career ? 'COZY' : undefined)}
@@ -1825,6 +1893,7 @@ function GameApp() {
             setGlobalSettingsOpen(open);
             if (!open) {
               setGlobalGlossaryOpen(false);
+              setGlobalHallOfFameOpen(false);
               setSettingsSaveError(null);
             }
           }}

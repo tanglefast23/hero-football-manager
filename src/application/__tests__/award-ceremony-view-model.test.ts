@@ -4,6 +4,10 @@ import type {
   DivisionAwardPlacement,
   SeasonRecap,
 } from '../../game/types';
+import {
+  RUNNER_UP_CEREMONY_LINES,
+  WINNER_CEREMONY_LINES,
+} from '../../ui/award-ceremony-lines';
 import { awardCeremonyViewModel } from '../award-ceremony-view-model';
 
 const CLUB_NAMES = new Map([
@@ -98,7 +102,7 @@ describe('awardCeremonyViewModel', () => {
       { position: 2, playerId: 'player-2', playerName: 'Player 2', clubName: 'Brambleroad', value: 28, isUserPlayer: true },
       { position: 1, playerId: 'player-1', playerName: 'Player 1', clubName: 'Quartz FC', value: 29, isUserPlayer: false },
     ]);
-    expect(beat.winner).toEqual(beat.placings[2]);
+    expect(beat.speaker?.placing).toEqual(beat.placings[1]);
   });
 
   it('resolves club names from the pyramid and falls back to the id for a club that is gone', () => {
@@ -111,37 +115,56 @@ describe('awardCeremonyViewModel', () => {
     expect(keepers.placings.map(placing => placing.clubName)).toEqual(['dissolved-club']);
   });
 
-  it('presents a rival winner exactly as it presents the manager own player', () => {
-    const rival = ceremony({ recap: recap({ divisionAwards: awards({ goals: podium() }) }) })
-      .beats[3];
-    const mine = ceremony({ recap: recap({ divisionAwards: awards({ goals: podium(1) }) }) })
+  /**
+   * The rule the owner reversed after watching it: a rival's walk-on is a
+   * second sprite for a moment that was never the manager's, so a board he has
+   * nobody on now reveals its three placings and moves on.
+   */
+  it('walks nobody on when a rival wins and no player of the manager is on the podium', () => {
+    const beat = ceremony({ recap: recap({ divisionAwards: awards({ goals: podium() }) }) })
       .beats[3];
 
-    expect(rival.winner?.playerId).toBe(mine.winner?.playerId);
-    expect(rival.winnerLine).toBe(mine.winnerLine);
-    expect(rival.winnerLine).toEqual(expect.any(String));
-    expect(rival.wonByUserPlayer).toBe(false);
-    expect(mine.wonByUserPlayer).toBe(true);
+    expect(beat.speaker).toBeUndefined();
+    expect(beat.wonByUserPlayer).toBe(false);
+    // The rival is still announced at the top of the podium. He just does not
+    // walk on to talk about it.
+    expect(beat.placings[2].position).toBe(1);
+    expect(beat.placings[2].isUserPlayer).toBe(false);
   });
 
-  it('adds a runner-up beat when one of the manager players finishes second to a rival', () => {
+  it('walks the manager own winner on with a winner line', () => {
+    const beat = ceremony({ recap: recap({ divisionAwards: awards({ goals: podium(1) }) }) })
+      .beats[3];
+
+    expect(beat.speaker?.placing).toEqual(beat.placings[2]);
+    expect(beat.speaker?.placing.isUserPlayer).toBe(true);
+    expect(beat.speaker?.tone).toBe('winner');
+    expect(WINNER_CEREMONY_LINES).toContain(beat.speaker?.line);
+    expect(beat.wonByUserPlayer).toBe(true);
+  });
+
+  it('walks the manager second-placed player on with a runner-up line', () => {
     const beat = ceremony({ recap: recap({ divisionAwards: awards({ tacklesWon: podium(2) }) }) })
       .beats[1];
 
-    expect(beat.runnerUp).toEqual(beat.placings[1]);
-    expect(beat.runnerUp?.isUserPlayer).toBe(true);
-    expect(beat.runnerUpLine).toEqual(expect.any(String));
+    expect(beat.speaker?.placing).toEqual(beat.placings[1]);
+    expect(beat.speaker?.placing.isUserPlayer).toBe(true);
+    expect(beat.speaker?.tone).toBe('runner-up');
+    expect(RUNNER_UP_CEREMONY_LINES).toContain(beat.speaker?.line);
+    expect(beat.wonByUserPlayer).toBe(false);
   });
 
-  it('leaves the runner-up beat off when second place belongs to a rival', () => {
+  /** Highest-placed, not second-placed: third is still the best he managed. */
+  it('walks the manager third-placed player on when he is the highest of the manager', () => {
     const beat = ceremony({ recap: recap({ divisionAwards: awards({ tacklesWon: podium(3) }) }) })
       .beats[1];
 
-    expect(beat.runnerUp).toBeUndefined();
-    expect(beat.runnerUpLine).toBeUndefined();
+    expect(beat.speaker?.placing.position).toBe(3);
+    expect(beat.speaker?.tone).toBe('runner-up');
+    expect(RUNNER_UP_CEREMONY_LINES).toContain(beat.speaker?.line);
   });
 
-  /** Two sprites competing for one moment weakens both, so the winner keeps it. */
+  /** Exactly one walk-on a board, and it belongs to the man who won it. */
   it('gives the moment to the winner when the manager takes first and second', () => {
     const bothMine = [
       placement('first', 'Gem Arrow', 'me', 29),
@@ -151,10 +174,10 @@ describe('awardCeremonyViewModel', () => {
     const beat = ceremony({ recap: recap({ divisionAwards: awards({ goals: bothMine }) }) })
       .beats[3];
 
-    expect(beat.winner?.playerId).toBe('first');
-    expect(beat.winnerLine).toEqual(expect.any(String));
-    expect(beat.runnerUp).toBeUndefined();
-    expect(beat.runnerUpLine).toBeUndefined();
+    expect(beat.speaker?.placing.playerId).toBe('first');
+    expect(beat.speaker?.placing.position).toBe(1);
+    expect(beat.speaker?.tone).toBe('winner');
+    expect(WINNER_CEREMONY_LINES).toContain(beat.speaker?.line);
   });
 
   it('presents a category with fewer than three placings', () => {
@@ -170,7 +193,7 @@ describe('awardCeremonyViewModel', () => {
     }).beats[2];
 
     expect(beat.placings.map(placing => placing.position)).toEqual([2, 1]);
-    expect(beat.winner?.playerId).toBe('one');
+    expect(beat.speaker?.placing.playerId).toBe('one');
     expect(beat.wonByUserPlayer).toBe(true);
   });
 
@@ -186,14 +209,12 @@ describe('awardCeremonyViewModel', () => {
     const beat = ceremony().beats[0];
 
     expect(beat.placings).toEqual([]);
-    expect(beat.winner).toBeUndefined();
-    expect(beat.winnerLine).toBeUndefined();
-    expect(beat.runnerUp).toBeUndefined();
+    expect(beat.speaker).toBeUndefined();
     expect(beat.wonByUserPlayer).toBe(false);
     expect(beat.emptyLabel).toBe('No saves recorded this season');
   });
 
-  it('gives every winner in one ceremony a different line', () => {
+  it('gives every speaker in one ceremony a different line', () => {
     const lines = ceremony({
       recap: recap({
         divisionAwards: awards({
@@ -203,7 +224,7 @@ describe('awardCeremonyViewModel', () => {
           saves: podium(1),
         }),
       }),
-    }).beats.map(beat => beat.winnerLine);
+    }).beats.map(beat => beat.speaker?.line);
 
     expect(lines.filter(line => line !== undefined)).toHaveLength(4);
     expect(new Set(lines).size).toBe(4);
@@ -253,7 +274,10 @@ describe('awardCeremonyViewModel', () => {
 
     expect(nothing.beats).toHaveLength(4);
     expect(nothing.beats.every(beat => !beat.wonByUserPlayer)).toBe(true);
-    expect(nothing.beats.filter(beat => beat.winner !== undefined)).toHaveLength(2);
+    expect(nothing.beats.filter(beat => beat.placings.length > 0)).toHaveLength(2);
+    // Two boards were contested and the manager was on neither, so the whole
+    // ceremony is podiums and no walk-on at all.
+    expect(nothing.beats.every(beat => beat.speaker === undefined)).toBe(true);
     expect(nothing.prize).toEqual({
       totalTrainingPoints: 0,
       perCategoryTrainingPoints: DIVISION_AWARD_PRIZE_AT_D5,

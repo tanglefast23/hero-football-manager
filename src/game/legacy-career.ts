@@ -1,28 +1,41 @@
-import type {
-  CoachCandidate,
-  CoachSpecialty as MarketCoachSpecialty,
-  PlayerPersonality as MarketPersonality,
+import {
+  COACH_FAME_GATES,
+  legendCoachLevel,
+  type CoachCandidate,
+  type CoachSpecialty as MarketCoachSpecialty,
+  type PlayerPersonality as MarketPersonality,
 } from './market';
 import {
   createLegendLegacy,
   isClubLegend,
-  retirementAnnouncementAge,
   type CoachSpecialty as LegacyCoachSpecialty,
   type PyramidPlayer,
 } from './pyramid';
 import type { CareerPlayer, GameState, PlayerPersonality } from './types';
-import { developmentPotentialCeiling } from './archetype-caps';
-import { nextDistinctPlayerLook } from './player-appearance';
-import { assertUserCareerRosterSpace } from './youth-intake';
 
-export type CareerLegendLegacyChoice = 'coach-candidate' | 'mentor-youth';
+/**
+ * The one thing a retiring legend can become, and the one honest way to say no.
+ *
+ * "Mentor a prospect" was a third choice until it was measured: it adds a
+ * seventeenth player, the season transition always refills the squad to the
+ * 16-player cap, so every offer of it was refused by the roster guard and the
+ * screen turned the refusal into an error banner. Removed rather than repaired.
+ *
+ * `farewell` creates nothing, and that is the point: with only the coach on it
+ * the screen was a notification wearing a decision's clothes. It costs no money
+ * and no morale — no such consequence exists to attach it to, and inventing one
+ * would price a decision the rest of the game has no vocabulary for. What it
+ * costs is the coach, permanently: the legend leaves the queue on either
+ * choice, and `eligiblePendingLegendIds` never offers him again.
+ */
+export type CareerLegendLegacyChoice = 'coach-candidate' | 'farewell';
 
 export interface CareerLegendLegacyTransaction {
   readonly state: GameState;
   readonly resolvedPlayerId: string;
   readonly choice: CareerLegendLegacyChoice;
+  /** Absent on `farewell`, which adds nobody to the market. */
   readonly coachCandidate?: CoachCandidate;
-  readonly youthPlayer?: CareerPlayer;
 }
 
 /** Returns a defensive copy of the first valid, unique legend still awaiting a choice. */
@@ -41,87 +54,58 @@ export function reconcilePendingClubLegends(state: GameState): GameState {
 }
 
 /**
- * Resolves the next queued club legend into one market coach or one mentored
- * youth. The returned state is JSON-safe and the input is never mutated.
+ * Resolves the next queued club legend, into one market coach or into nothing.
+ * The returned state is JSON-safe and the input is never mutated.
  */
 export function resolveNextClubLegendLegacy(
   state: GameState,
   choice: CareerLegendLegacyChoice,
 ): CareerLegendLegacyTransaction {
   if (state.market === undefined) throw new Error('club-legend legacy choices require a career market');
+  if (choice !== 'coach-candidate' && choice !== 'farewell') {
+    throw new Error(`unknown club-legend legacy choice ${String(choice)}`);
+  }
   const eligibleIds = eligiblePendingLegendIds(state);
   const legendId = eligibleIds[0];
   if (legendId === undefined) throw new Error('there is no eligible pending club legend');
-  const retired = uniqueRetiredPlayers(state).get(legendId)!;
-  const pyramidLegend = careerPlayerToPyramid(retired);
-  const legacy = createLegendLegacy(pyramidLegend, choice, state.season, state.careerSeed);
   const pendingLegacyPlayerIds = eligibleIds.slice(1);
-
-  if (legacy.choice === 'coach-candidate') {
-    const coachCandidate = legacyCoachToMarketCandidate(
-      legacy.coachCandidate,
-      pyramidLegend,
-    );
-    const alreadyPresent = state.market.coachCandidates.some(candidate =>
-      candidate.id === coachCandidate.id
-      || candidate.retiredLegendPlayerId === coachCandidate.retiredLegendPlayerId,
-    );
+  if (choice === 'farewell') {
+    // Resolved by the same rule the coach path resolves by: the legend is off
+    // the queue, and because he stays on `retiredPlayers` he is still on the
+    // club's roll of former players. Nothing else moves — no coach, no market
+    // entry, no roster change, no money.
     return {
-      state: {
-        ...state,
-        pendingLegacyPlayerIds,
-        market: {
-          ...state.market,
-          coachCandidates: alreadyPresent
-            ? [...state.market.coachCandidates]
-            : [...state.market.coachCandidates, coachCandidate],
-        },
-      },
+      state: { ...state, pendingLegacyPlayerIds },
       resolvedPlayerId: legendId,
       choice,
-      coachCandidate: cloneCoachCandidate(coachCandidate),
     };
   }
+  const retired = uniqueRetiredPlayers(state).get(legendId)!;
+  const pyramidLegend = careerPlayerToPyramid(retired);
+  const legacy = createLegendLegacy(pyramidLegend);
 
-  const generatedYouth = legacyYouthToCareerPlayer(legacy.youth, state.careerSeed);
-  const existingYouth = state.players.find(player => player.id === generatedYouth.id);
-  const youthPlayer = existingYouth === undefined
-    ? {
-        ...generatedYouth,
-        lookId: nextDistinctPlayerLook(generatedYouth, state.players),
-      }
-    : {
-        ...cloneCareerPlayer(existingYouth),
-        lookId: existingYouth.lookId ?? nextDistinctPlayerLook(
-          existingYouth,
-          state.players.filter(player => player.id !== existingYouth.id),
-        ),
-      };
-  const alreadyPresent = existingYouth !== undefined;
-  if (!alreadyPresent) assertUserCareerRosterSpace(state);
-  const weeklyWages = alreadyPresent
-    ? undefined
-    : checkedAdd(
-        requireUserClub(state).weeklyWages,
-        youthPlayer.weeklyWage,
-        'club-legend youth payroll',
-      );
+  const coachCandidate = legacyCoachToMarketCandidate(
+    legacy.coachCandidate,
+    pyramidLegend,
+  );
+  const alreadyPresent = state.market.coachCandidates.some(candidate =>
+    candidate.id === coachCandidate.id
+    || candidate.retiredLegendPlayerId === coachCandidate.retiredLegendPlayerId,
+  );
   return {
     state: {
       ...state,
       pendingLegacyPlayerIds,
-      players: alreadyPresent
-        ? state.players.map(cloneCareerPlayer)
-        : [...state.players.map(cloneCareerPlayer), youthPlayer],
-      clubs: weeklyWages === undefined
-        ? state.clubs.map(club => ({ ...club }))
-        : state.clubs.map(club => club.id === state.userClubId
-          ? { ...club, weeklyWages }
-          : { ...club }),
+      market: {
+        ...state.market,
+        coachCandidates: alreadyPresent
+          ? [...state.market.coachCandidates]
+          : [...state.market.coachCandidates, coachCandidate],
+      },
     },
     resolvedPlayerId: legendId,
     choice,
-    youthPlayer: cloneCareerPlayer(youthPlayer),
+    coachCandidate: cloneCoachCandidate(coachCandidate),
   };
 }
 
@@ -182,10 +166,10 @@ function legacyCoachToMarketCandidate(
   },
   legend: PyramidPlayer,
 ): CoachCandidate {
-  const level = Math.max(1, Math.min(5, 1 + Math.floor((legend.fame - 70) / 10)));
+  const level = legendCoachLevel(legend.fame);
   const baseWage = checkedMultiply(500, level, 'club-legend coach wage');
   const weeklyWage = Math.round(baseWage * (100 - legacy.loyaltyDiscountPercent) / 100);
-  const requiredFame = [0, 0, 100, 250, 500, 900][level];
+  const requiredFame = COACH_FAME_GATES[level];
   return {
     id: legacy.id,
     name: legacy.name,
@@ -201,41 +185,6 @@ function legacyCoachToMarketCandidate(
     requiredFame,
     loyaltyDiscountPercent: legacy.loyaltyDiscountPercent,
     retiredLegendPlayerId: legacy.formerPlayerId,
-  };
-}
-
-function legacyYouthToCareerPlayer(youth: PyramidPlayer, careerSeed: number): CareerPlayer {
-  return {
-    id: youth.id,
-    clubId: youth.clubId,
-    name: youth.name,
-    role: youth.role,
-    ...(youth.lookId === undefined ? {} : { lookId: youth.lookId }),
-    attrs: { ...youth.attrs },
-    licensed: false,
-    weeklyWage: 240,
-    onHeroWage: false,
-    contractSeasonsRemaining: 3,
-    morale: youth.morale,
-    injuryWeeks: 0,
-    age: youth.age,
-    archetype: youth.archetype,
-    potential: 4,
-    potentialCeiling: developmentPotentialCeiling({
-      id: youth.id,
-      role: youth.role,
-      attrs: youth.attrs,
-      age: youth.age,
-      potential: 4,
-    }),
-    consistency: 65,
-    personality: youth.personality,
-    condition: youth.condition,
-    seasonsAtClub: youth.seasonsAtClub,
-    fame: youth.fame,
-    retirementAge: retirementAnnouncementAge(youth, careerSeed),
-    retirementAnnounced: false,
-    consecutiveLowMoraleWeeks: youth.consecutiveLowMoraleWeeks,
   };
 }
 
@@ -263,24 +212,12 @@ function marketPersonality(personality: PlayerPersonality): MarketPersonality {
   return values[personality];
 }
 
-function requireUserClub(state: GameState): GameState['clubs'][number] {
-  const club = state.clubs.find(candidate => candidate.id === state.userClubId);
-  if (club === undefined) throw new Error(`unknown user club ${state.userClubId}`);
-  return club;
-}
-
 function cloneCareerPlayer(player: CareerPlayer): CareerPlayer {
   return { ...player, attrs: { ...player.attrs } };
 }
 
 function cloneCoachCandidate(candidate: CoachCandidate): CoachCandidate {
   return { ...candidate, specialties: [...candidate.specialties] as [MarketCoachSpecialty, MarketCoachSpecialty] };
-}
-
-function checkedAdd(left: number, right: number, label: string): number {
-  const value = left + right;
-  if (!Number.isSafeInteger(value)) throw new Error(`${label} exceeds the safe integer range`);
-  return value;
 }
 
 function checkedMultiply(left: number, right: number, label: string): number {
