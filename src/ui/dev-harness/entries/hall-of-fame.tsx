@@ -44,16 +44,55 @@ const CASE_NOTES: Readonly<Record<HallOfFameCaseId, string>> = Object.freeze({
   locked: 'Climb unfinished · what the button says before the end',
 });
 
+/** One season of a doctored career: where it played and how it finished. */
+interface FabricatedSeason {
+  readonly division: number;
+  readonly finalPosition: number;
+  readonly cupWon: boolean;
+}
+
 /**
- * Which seasons a doctored career won its league, and in which tier it played.
+ * The seasons a doctored career is made of.
  *
  * The seeded career finishes mid-table in D5 every year, so a record built from
  * it untouched would show one tier, no titles and no Cup — the one shape the
  * page can never actually be opened in.
+ *
+ * Everything the record shows is derived from this one table: the honours, the
+ * climb ladder, the win/draw/loss line and the goals. A club is never credited
+ * with four titles and a losing record, because the record and the trophies
+ * come from the same six seasons rather than from two different careers.
  */
-const LONG_CLIMB_DIVISIONS: readonly number[] = [5, 5, 4, 3, 2, 1];
-const LONG_CLIMB_TITLE_SEASONS: readonly number[] = [2, 3, 4, 6];
-const LONG_CLIMB_CUP_SEASONS: readonly number[] = [5, 6];
+const LONG_CLIMB_SEASONS: readonly FabricatedSeason[] = Object.freeze([
+  { division: 5, finalPosition: 4, cupWon: false },
+  { division: 5, finalPosition: 1, cupWon: false },
+  { division: 4, finalPosition: 1, cupWon: false },
+  { division: 3, finalPosition: 1, cupWon: false },
+  // Promoted in second, which is the other way up the pyramid: it is the one
+  // rung of the climb ladder that reads "Best 2nd", so the reviewer sees a tier
+  // row that was not won as well as four that were.
+  { division: 2, finalPosition: 2, cupWon: true },
+  { division: 1, finalPosition: 1, cupWon: true },
+]);
+
+/** Won it at the first attempt, in the only season it played. */
+const QUICK_CLIMB_SEASONS: readonly FabricatedSeason[] = Object.freeze([
+  { division: 1, finalPosition: 1, cupWon: true },
+]);
+
+/**
+ * What each kind of season was worth, as drawn and lost counts and goals per
+ * game.
+ *
+ * Wins are whatever is left of the fixtures the seeded career actually played,
+ * so a fabricated season can never claim more games than the schedule holds —
+ * only their results are rewritten.
+ */
+const SEASON_SHAPES = Object.freeze({
+  champion: { drawn: 3, lost: 2, goalsForPerGame: 2.4, goalsAgainstPerGame: 0.95 },
+  promoted: { drawn: 4, lost: 3, goalsForPerGame: 2.1, goalsAgainstPerGame: 1.2 },
+  settling: { drawn: 5, lost: 5, goalsForPerGame: 1.6, goalsAgainstPerGame: 1.45 },
+});
 
 export function HallOfFameReel({ caseId }: { readonly caseId: HallOfFameCaseId }) {
   const [frame, setFrame] = useState<FrameId>('panel');
@@ -127,11 +166,14 @@ export function hallOfFameCaseViewModel(caseId: HallOfFameCaseId): HallOfFameVie
 }
 
 /**
- * Writes the results a finished climb must have had.
+ * Writes the seasons a finished climb must have been made of.
  *
- * Only the fields the record is built from are touched — division, final
- * position, the Cup champion and the Golden Boot — so the games played, the
- * goals for and against and the squad all remain the seeded career's own.
+ * Division, final position, results, goals, the Cup champion and the Golden
+ * Boot are all rewritten from the case's own season table; the fixture count
+ * and the squad remain the seeded career's own. Results are rewritten with the
+ * rest deliberately — a manager who never intervenes finishes mid-table, and a
+ * record that credited that career's losing season with four titles would put
+ * the page in front of a reviewer as numbers no save can hold.
  *
  * The Golden Boot has to be written for the same reason: the harness career
  * settles fixtures from the fixture seed rather than by running the match
@@ -139,6 +181,7 @@ export function hallOfFameCaseViewModel(caseId: HallOfFameCaseId): HallOfFameVie
  */
 function withHonours(state: GameState, caseId: HallOfFameCaseId): GameState {
   const strikers = leadingStrikers(state);
+  const seasons = caseId === 'quick-climb' ? QUICK_CLIMB_SEASONS : LONG_CLIMB_SEASONS;
   const recaps = (state.seasonRecaps ?? []).map((recap): SeasonRecap => {
     // Two names sharing six seasons, so the reel shows a career total that had
     // to be summed rather than one season copied out.
@@ -152,17 +195,20 @@ function withHonours(state: GameState, caseId: HallOfFameCaseId): GameState {
         detail: `${9 + recap.season * 2} goals`,
       },
     };
-    if (caseId === 'quick-climb') {
-      // Won it at the first attempt, in the only season it played.
-      return { ...booted, division: 1, finalPosition: 1 };
-    }
+    const plan = seasons[recap.season - 1];
+    // Defensive: a career run past the table is left exactly as it was played
+    // rather than half-fabricated.
+    if (plan === undefined) return booted;
     return {
       ...booted,
-      division: LONG_CLIMB_DIVISIONS[recap.season - 1] ?? recap.division,
-      finalPosition: LONG_CLIMB_TITLE_SEASONS.includes(recap.season) ? 1 : recap.finalPosition,
+      division: plan.division,
+      finalPosition: plan.finalPosition,
+      ...seasonResults(recap.played, seasonShape(seasons, recap.season - 1)),
     };
   });
-  const cupSeasons = caseId === 'quick-climb' ? [1] : LONG_CLIMB_CUP_SEASONS;
+  const cupSeasons = seasons
+    .map((season, index) => (season.cupWon ? index + 1 : 0))
+    .filter(season => season > 0);
   return {
     ...state,
     seasonRecaps: recaps,
@@ -174,6 +220,40 @@ function withHonours(state: GameState, caseId: HallOfFameCaseId): GameState {
           : cup)),
       },
     }),
+  };
+}
+
+/**
+ * Which kind of season this was, read off the table rather than declared.
+ *
+ * A title is a champion's season; a season that ends one tier higher than it
+ * started was a promotion; anything else is the club settling into the level.
+ */
+function seasonShape(
+  seasons: readonly FabricatedSeason[],
+  index: number,
+): keyof typeof SEASON_SHAPES {
+  const season = seasons[index];
+  if (season === undefined) return 'settling';
+  if (season.finalPosition === 1) return 'champion';
+  const next = seasons[index + 1];
+  return next !== undefined && next.division < season.division ? 'promoted' : 'settling';
+}
+
+/** The results a season of that kind carried, over the games it played. */
+function seasonResults(played: number, shape: keyof typeof SEASON_SHAPES) {
+  const { drawn, lost, goalsForPerGame, goalsAgainstPerGame } = SEASON_SHAPES[shape];
+  // Clamped so the three always sum to the fixtures played, whatever the
+  // schedule length is.
+  const seasonDrawn = Math.min(drawn, played);
+  const seasonLost = Math.min(lost, played - seasonDrawn);
+  return {
+    played,
+    won: played - seasonDrawn - seasonLost,
+    drawn: seasonDrawn,
+    lost: seasonLost,
+    goalsFor: Math.round(played * goalsForPerGame),
+    goalsAgainst: Math.round(played * goalsAgainstPerGame),
   };
 }
 

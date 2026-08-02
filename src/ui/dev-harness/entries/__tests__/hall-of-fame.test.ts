@@ -72,6 +72,28 @@ describe('the Hall of Fame reel', () => {
     expect(viewModel.subheading).toContain('1 season');
   });
 
+  /**
+   * The reel fabricates the trophies, so it has to fabricate the results that
+   * won them. A club credited with four titles and a losing record is a page
+   * being reviewed against numbers no save can hold.
+   */
+  it.each<HallOfFameCaseId>(['long-climb', 'quick-climb'])(
+    'gives %s the record its trophies were won with',
+    caseId => {
+      const record = hallOfFameCaseState(caseId).hallOfFame;
+      if (record === undefined) throw new Error(`${caseId} banked no record`);
+
+      expect(record.played).toBe(record.won + record.drawn + record.lost);
+      expect(record.won).toBeGreaterThan(record.lost);
+      expect(record.goalsFor).toBeGreaterThan(record.goalsAgainst);
+      // A climb, not a wander: each tier on the ladder is above the last.
+      expect(record.divisionTitles.length).toBeGreaterThan(0);
+      const climbed = record.tiers.map(tier => tier.division);
+      expect(climbed.every((division, index) => index === 0 || division < climbed[index - 1]))
+        .toBe(true);
+    },
+  );
+
   it('opens the locked case on a career that banked nothing', () => {
     expect(hallOfFameCaseState('locked').hallOfFame).toBeUndefined();
     expect(hallOfFameCaseViewModel('locked').status).toBe('locked');

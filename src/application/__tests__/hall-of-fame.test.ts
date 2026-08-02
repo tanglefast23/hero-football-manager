@@ -361,6 +361,28 @@ describe('the Hall of Fame page', () => {
     expect(viewModel.stats.every(stat => stat.detail.length > 0)).toBe(true);
   });
 
+  /**
+   * The ladder is read on a phone, where a tier row has about 255pt of text.
+   * Written as one sentence, the row breaks after "best" and strands the
+   * finish on a line of its own, which reads as a broken renderer.
+   */
+  it('splits a tier into its finish and its spell', () => {
+    const state = finishedCareer();
+    const record = state.hallOfFame;
+    if (record === undefined) throw new Error('the climb recorded nothing');
+    const viewModel = hallOfFameViewModel({
+      ...state,
+      hallOfFame: {
+        ...record,
+        tiers: [{ division: 2, firstSeason: 5, seasons: 1, bestPosition: 2 }],
+      },
+    });
+    if (viewModel.status !== 'complete') throw new Error('the page did not unlock');
+
+    expect(viewModel.tiers[0].best).toBe('Best 2nd');
+    expect(viewModel.tiers[0].detail).toBe('Reached in season 5 · 1 season');
+  });
+
   it('lists honours oldest first, whichever trophy came first', () => {
     const state = finishedCareer();
     const record = state.hallOfFame;

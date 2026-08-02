@@ -103,7 +103,10 @@ export function HallOfFameScreen({
                     ? 'px-3 py-3'
                     : 'border-b border-ink/15 px-3 py-3'}
                 >
+                  {/* Same three lines as a stat row — name, figure, context —
+                      so the ladder reads with the record above it. */}
                   <Text className="text-base font-bold text-ink">{tier.label}</Text>
+                  <Text className="mt-1 font-mono text-base text-ink">{tier.best}</Text>
                   <Text className="mt-1 text-sm leading-5 text-ink/65">{tier.detail}</Text>
                 </View>
               ))}
@@ -124,7 +127,18 @@ export function HallOfFameScreen({
   );
 }
 
-/** Label, number, and what the number is of — one visual row for every figure. */
+/**
+ * Label, number, and what the number is of — one visual row for every figure.
+ *
+ * Stacked rather than label-left / figure-right. Side by side, the two halves
+ * share a phone's width and both wrap: at 375pt inside the Settings panel the
+ * row has about 255pt of text width, and "Won / Drawn / Lost" plus "71 / 21 /
+ * 16" is half again as wide as that. A wrapped label is untidy; a wrapped
+ * figure is worse, because "125 /" over "141" reads as a broken renderer
+ * rather than as a number. Stacking gives each line the full width, which no
+ * figure on this page comes close to, and it holds for the two rows whose
+ * value is a player's name and therefore has no length the layout can assume.
+ */
 function StatList({ rows }: { rows: readonly HallOfFameStatViewModel[] }) {
   return (
     <View className="border-2 border-ink bg-white">
@@ -135,11 +149,9 @@ function StatList({ rows }: { rows: readonly HallOfFameStatViewModel[] }) {
             ? 'px-3 py-3'
             : 'border-b border-ink/15 px-3 py-3'}
         >
-          <View className="flex-row items-baseline justify-between gap-3">
-            <Text className="font-pixel text-sm uppercase text-ink/60">{row.label}</Text>
-            {/* Monospace so the columns of a career line up down the page. */}
-            <Text className="shrink font-mono text-base text-ink">{row.value}</Text>
-          </View>
+          <Text className="font-pixel text-sm uppercase text-ink/60">{row.label}</Text>
+          {/* Monospace so the figures line up down the page. */}
+          <Text className="mt-1 font-mono text-base text-ink">{row.value}</Text>
           <Text className="mt-1 text-sm leading-5 text-ink/65">{row.detail}</Text>
         </View>
       ))}

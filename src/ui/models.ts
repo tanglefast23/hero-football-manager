@@ -906,13 +906,23 @@ export interface HallOfFameHonourViewModel {
   readonly value: string;
 }
 
-/** One tier the club played in, as the climb ladder draws it. */
+/**
+ * One tier the club played in, as the climb ladder draws it.
+ *
+ * Split into a figure and a sentence for the reason the stat rows are: at
+ * 375pt a tier row has about 255pt of text width, and the whole spell written
+ * as one line breaks after "best", leaving the finish stranded on a line of
+ * its own. Two lines, broken where the writing breaks anyway.
+ */
 export interface HallOfFameTierViewModel {
   readonly division: number;
   readonly label: string;
   readonly firstSeason: number;
   readonly seasons: number;
   readonly bestPosition: number;
+  /** The finish, as the figure of the row: "Best 1st". */
+  readonly best: string;
+  /** When the club got there and how long it stayed. */
   readonly detail: string;
 }
 

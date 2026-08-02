@@ -282,7 +282,8 @@ function tierViewModel(tier: HallOfFameTier): HallOfFameTierViewModel {
     firstSeason: tier.firstSeason,
     seasons: tier.seasons,
     bestPosition: tier.bestPosition,
-    detail: `Reached in season ${tier.firstSeason} · ${seasonCount(tier.seasons)} · best ${ordinal(tier.bestPosition)}`,
+    best: `Best ${ordinal(tier.bestPosition)}`,
+    detail: `Reached in season ${tier.firstSeason} · ${seasonCount(tier.seasons)}`,
   };
 }
 
