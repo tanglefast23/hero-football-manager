@@ -133,6 +133,63 @@ export function arrivingPlacing(
   return stage.kind === 'placing' ? beat.placings[stage.revealed - 1] : undefined;
 }
 
+/**
+ * Longest name each rostrum size holds, measured at the 375pt floor.
+ *
+ * The name column is about 220pt there, and 16pt bold spends roughly 9pt on a
+ * character of a long name's build; 14pt and 12pt scale from that. Character
+ * creation caps a typed name at 24, so the first step is the one the shipped
+ * game reaches — the second is for names that were not typed by hand.
+ */
+const PODIUM_NAME_FULL_MAX = 20;
+const PODIUM_NAME_TIGHT_MAX = 26;
+
+/**
+ * How tall every rostrum card is, whatever size its name landed on.
+ *
+ * The full-size row's own height: 16pt of padding, a 24pt name line, the 2pt
+ * between, a 20pt club line, and the 2/4pt border. Used as the row's FLOOR, so
+ * a name that stepped down cannot come out shorter than the two standing beside
+ * it — measured at 52pt against 68pt before this was pinned, which is exactly
+ * the uneven podium the step-down was supposed to avoid.
+ */
+export const PODIUM_ROW_MIN_HEIGHT = 68;
+
+export interface PodiumNameType {
+  /** Tailwind size for the player's name. */
+  readonly nameClass: string;
+  /** Tailwind size for his club, never larger than the name. */
+  readonly clubClass: string;
+}
+
+/**
+ * How big a name is set on its rostrum card.
+ *
+ * A long name steps DOWN rather than wrapping to a second line. The podium is
+ * three rows of one height, and a two-line row would make the whole board
+ * reflow the moment one player's name ran longer than the others' — the winner
+ * would land and the two names below him would jump. A step down changes one
+ * row's type size and nothing else, because `PODIUM_ROW_MIN_HEIGHT` holds the
+ * row at the full-size height whichever step it lands on.
+ *
+ * The club steps with the name, because the row's hierarchy is name-over-club
+ * and a club set larger than the player who plays for it reads as a bug. It
+ * stops at the name's size rather than going below it: at the last step the
+ * hierarchy is carried by weight and colour, which is what the League board's
+ * own rows lean on.
+ *
+ * Character creation caps a typed name at 24, so the shipped game only ever
+ * reaches the first step. The last one is for names nobody typed.
+ */
+export function podiumNameType(playerName: string): PodiumNameType {
+  if (playerName.length <= PODIUM_NAME_FULL_MAX) {
+    return { nameClass: 'text-base', clubClass: 'text-sm' };
+  }
+  return playerName.length <= PODIUM_NAME_TIGHT_MAX
+    ? { nameClass: 'text-sm', clubClass: 'text-xs' }
+    : { nameClass: 'text-xs', clubClass: 'text-xs' };
+}
+
 /** Reads as "1. Flint Vale, Quartz FC, 12 saves." — the League board's sentence. */
 export function placingRowLabel(
   placing: AwardCeremonyPlacingViewModel,

@@ -1,4 +1,7 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import {
+  PODIUM_ROW_MIN_HEIGHT,
   PRIZE_COUNT_UP_MS,
   arrivingPlacing,
   awardCeremonyStages,
@@ -6,6 +9,7 @@ import {
   isWalkOnStage,
   nextStageIndex,
   placingRowLabel,
+  podiumNameType,
   podiumRows,
   prizeAccessibilityLabel,
   prizeCountProgress,
@@ -265,6 +269,90 @@ describe('what the ceremony says out loud', () => {
   it('reads the prize on the last stage', () => {
     expect(stageAccessibilityLabel(viewModel, stages[prizeStageIndex(stages)]!))
       .toContain('210 Training Points');
+  });
+});
+
+/**
+ * The reel found both of these on its first render, at the 375pt floor.
+ */
+describe('what the ceremony has to fit on a small phone', () => {
+  const screen = readFileSync(
+    join(process.cwd(), 'src/ui/screens/AwardsCeremonyScreen.tsx'),
+    'utf8',
+  );
+
+  /**
+   * "Division Awards" in 16pt pixel type is about 188pt wide, centred on a
+   * 375pt screen — wider than what is left beside a skip control, so the two
+   * cannot share a row at the narrowest supported width. The band above the
+   * header is what keeps them apart, and it has to be measured from the
+   * control's own geometry or a taller button walks straight back under the
+   * title.
+   */
+  it('reserves the skip controls a band of their own above the title', () => {
+    expect(screen).toContain('const SKIP_CONTROL_BAND = SKIP_ROW_INSET');
+    expect(screen).toContain('+ SKIP_BUTTON_HEIGHT * SKIP_CONTROL_COUNT');
+    expect(screen).toContain('controlBand: { height: SKIP_CONTROL_BAND }');
+    expect(screen).toContain('<View style={styles.controlBand} />');
+  });
+
+  it('places the skip row from the same constants the band is measured from', () => {
+    expect(screen).toContain('right: SKIP_ROW_INSET,');
+    expect(screen).toContain('top: SKIP_ROW_INSET,');
+    expect(screen).toContain('gap: SKIP_ROW_GAP,');
+    expect(screen).toContain('minHeight: SKIP_BUTTON_HEIGHT,');
+  });
+
+  it('keeps ordinary names at full size', () => {
+    expect(podiumNameType('Flint Vale')).toEqual({
+      nameClass: 'text-base',
+      clubClass: 'text-sm',
+    });
+    expect(podiumNameType('A'.repeat(20)).nameClass).toBe('text-base');
+  });
+
+  it('steps a long name down rather than ellipsising it', () => {
+    expect(podiumNameType('A'.repeat(21)).nameClass).toBe('text-sm');
+    expect(podiumNameType('Konstantin Abercrombie-Vasquez').nameClass).toBe('text-xs');
+  });
+
+  /** Character creation caps a typed name at 24, so one never goes below `text-sm`. */
+  it('holds the longest name a player can type at the middle step', () => {
+    expect(podiumNameType('A'.repeat(24)).nameClass).toBe('text-sm');
+  });
+
+  /** The row reads name over club; a club set larger than its player is a bug. */
+  it('never sets the club larger than the name', () => {
+    const ascending = ['text-xs', 'text-sm', 'text-base'];
+
+    for (const length of [1, 20, 21, 26, 27, 40]) {
+      const type = podiumNameType('A'.repeat(length));
+
+      expect(ascending.indexOf(type.clubClass))
+        .toBeLessThanOrEqual(ascending.indexOf(type.nameClass));
+      expect(ascending).toContain(type.nameClass);
+    }
+  });
+
+  /**
+   * The step-down only works if the row keeps its height. Measured on the
+   * reel before this was pinned: a stepped row came out 52pt against 68pt,
+   * and the podium was visibly uneven.
+   */
+  it('holds every rostrum card at the full-size row height', () => {
+    expect(PODIUM_ROW_MIN_HEIGHT).toBe(68);
+    expect(screen).toContain(`min-h-[${PODIUM_ROW_MIN_HEIGHT}px]`);
+    expect(screen).not.toContain('min-h-12');
+  });
+
+  /**
+   * Every step is still one line. A second line would grow one row and make the
+   * whole podium reflow the moment a winner's name ran longer than the two
+   * already standing beneath him.
+   */
+  it('never asks a rostrum card for a second line', () => {
+    expect(screen).toContain('numberOfLines={1}');
+    expect(screen).not.toContain('numberOfLines={2}');
   });
 });
 

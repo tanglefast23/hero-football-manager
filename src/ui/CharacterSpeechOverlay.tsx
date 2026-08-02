@@ -376,6 +376,19 @@ export function CharacterSpeechOverlay({
   const visibleLine = lineCharacters.slice(0, revealedCharacterCount).join('');
   const unrevealedLine = lineCharacters.slice(revealedCharacterCount).join('');
 
+  /**
+   * Whether the bubble has reported its own size yet.
+   *
+   * It cannot be placed until it has: `onLayout` is delivered a frame or more
+   * after the bubble first mounts, and until then `bubbleLeft` can only fall
+   * back to the character's centre — four fifths of the way across — which on a
+   * 375pt phone leaves about 75pt and breaks the line to roughly one word each.
+   * So the first pass is a measuring pass and is not painted. `pop` starts at
+   * zero and usually hides it by accident; `instant` sets `pop` to 1 straight
+   * away and does not, which is where the garbled frame was actually visible.
+   */
+  const bubbleMeasured = bubbleWidth > 0;
+
   // The bubble hangs over the character's head and is centred on them, but a
   // wide bubble on a narrow screen has to slide left to stay on the page — so
   // the tail tracks the character rather than sitting at the bubble's middle.
@@ -428,7 +441,8 @@ export function CharacterSpeechOverlay({
               {
                 left: bubbleLeft,
                 bottom: bubbleBottom,
-                opacity: pop,
+                // Never paint an unmeasured bubble, whatever `pop` is doing.
+                opacity: bubbleMeasured ? pop : 0,
                 transform: [{ scale: pop }],
                 // The flat cap overflows a 320pt phone once both gutters are
                 // counted, so the narrower of the two always wins.

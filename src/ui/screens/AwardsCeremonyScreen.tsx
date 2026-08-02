@@ -20,6 +20,7 @@ import {
   isWalkOnStage,
   nextStageIndex,
   placingRowLabel,
+  podiumNameType,
   podiumRows,
   prizeAccessibilityLabel,
   prizeCountValue,
@@ -37,6 +38,28 @@ import type {
 } from '../models';
 
 const SPRITE_SCALE = 4;
+/**
+ * The band at the top of the stage that belongs to the skip controls.
+ *
+ * The title is centred on the whole screen, and at the 375pt floor "Division
+ * Awards" in 16pt pixel type is about 188pt wide — wider than what is left
+ * beside a skip control, so no arrangement of side padding lets the two share a
+ * row without wrapping the title or breaking it outright at 320pt. Reserving
+ * the band above it instead means the header cannot reach the controls at ANY
+ * width, and the title keeps the full measure to be centred in.
+ *
+ * Derived from the control's own geometry, so growing a button or adding a
+ * third one moves the header with it rather than silently colliding.
+ */
+const SKIP_ROW_INSET = 12;
+const SKIP_BUTTON_HEIGHT = 44;
+const SKIP_ROW_GAP = 8;
+/** Two stacked controls is the most the ceremony ever shows at once. */
+const SKIP_CONTROL_COUNT = 2;
+const SKIP_CONTROL_BAND = SKIP_ROW_INSET
+  + SKIP_BUTTON_HEIGHT * SKIP_CONTROL_COUNT
+  + SKIP_ROW_GAP * (SKIP_CONTROL_COUNT - 1)
+  + SKIP_ROW_INSET;
 /** Clearance from the bottom edge, so the podium list stays readable behind him. */
 const GROUND_OFFSET = 96;
 /** How high the winner hops, and how long each half of the hop takes. */
@@ -124,13 +147,19 @@ export function AwardsCeremonyScreen({
         // properties on iOS, and this one has to fill the screen.
         style={styles.stage}
       >
-        <View style={styles.header}>
-          <PixelText className="text-[10px] uppercase tracking-[3px] text-gold">
-            {viewModel.seasonLabel}
-          </PixelText>
-          <PixelText className="mt-1 text-base uppercase text-paper">
-            Division Awards
-          </PixelText>
+        <View style={styles.headerBlock}>
+          {/* The skip controls' own row in the column. They are drawn over it,
+              because they have to sit above the speech overlay, but the space
+              is allocated here so the title can never arrive underneath them. */}
+          <View style={styles.controlBand} />
+          <View style={styles.header}>
+            <PixelText className="text-[10px] uppercase tracking-[3px] text-gold">
+              {viewModel.seasonLabel}
+            </PixelText>
+            <PixelText className="mt-1 text-base uppercase text-paper">
+              Division Awards
+            </PixelText>
+          </View>
         </View>
 
         {stage.kind === 'prize' || beat === undefined ? (
@@ -252,17 +281,27 @@ function PodiumRow({
     : placing.isUserPlayer
       ? 'border-blue-dark bg-blue-light'
       : 'border-ink/40 bg-paper';
+  // A long name is set smaller, never wrapped: see `podiumNameType`. Every row
+  // stays 48pt whichever size it lands on, so one long name cannot reflow the
+  // two rows already standing beneath it.
+  const { nameClass, clubClass } = podiumNameType(placing.playerName);
 
   return (
     <View
       accessible
       accessibilityLabel={placingRowLabel(placing, metricLabel)}
-      className={`min-h-12 flex-row items-center border-2 border-b-4 px-3 py-2 ${surface}`}
+      // The floor is PODIUM_ROW_MIN_HEIGHT, spelled out because NativeWind
+      // compiles class strings and cannot read a constant.
+      className={`min-h-[68px] flex-row items-center border-2 border-b-4 px-3 py-2 ${surface}`}
     >
       <PixelText variant="data" className="w-8 text-base text-ink">{placing.position}</PixelText>
       <View className="min-w-0 flex-1 pr-2">
-        <Text className="text-base font-bold text-ink" numberOfLines={1}>{placing.playerName}</Text>
-        <Text className="mt-0.5 text-sm text-ink/50" numberOfLines={1}>{placing.clubName}</Text>
+        <Text className={`font-bold text-ink ${nameClass}`} numberOfLines={1}>
+          {placing.playerName}
+        </Text>
+        <Text className={`mt-0.5 text-ink/50 ${clubClass}`} numberOfLines={1}>
+          {placing.clubName}
+        </Text>
       </View>
       <PixelText variant="data" className="text-base text-ink">{placing.value}</PixelText>
     </View>
@@ -451,9 +490,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 16,
     paddingBottom: 8,
   },
+  headerBlock: { width: '100%' },
+  controlBand: { height: SKIP_CONTROL_BAND },
   header: { alignItems: 'center', paddingBottom: 16 },
   footer: { alignItems: 'center', paddingTop: 16 },
   board: {
@@ -470,10 +510,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   podium: { gap: 8, padding: 12 },
-  skipRow: { position: 'absolute', right: 12, top: 12, zIndex: 20, gap: 8 },
+  skipRow: {
+    position: 'absolute',
+    right: SKIP_ROW_INSET,
+    top: SKIP_ROW_INSET,
+    zIndex: 20,
+    gap: SKIP_ROW_GAP,
+  },
   skipButton: {
     minWidth: 96,
-    minHeight: 44,
+    minHeight: SKIP_BUTTON_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
