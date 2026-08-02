@@ -662,7 +662,15 @@ export const PlayerRequestCatalogSchema = z.strictObject({
     startSeason: z.number().int().min(1).max(10),
     startWeek: z.number().int().min(1).max(30),
     baseChancePercent: z.number().int().min(1).max(100),
-    starFameThreshold: z.number().int().min(0).max(99),
+    /**
+     * The bound is `FAME_CEILING` from `src/game/pyramid.ts`, restated rather
+     * than imported: nothing in `src/content/` depends on the game ring, and
+     * one zod bound is not worth opening that door. A threshold above the
+     * ceiling is one no player can ever cross, which would silently retire the
+     * star half of `cadence` — the mirror of what the shipped 50 did to the
+     * non-star half while fame still saturated at 99.
+     */
+    starFameThreshold: z.number().int().min(0).max(999),
     starGoalRank: z.number().int().min(1).max(5),
     /**
      * Seasons, not weeks: `CareerPlayer` carries `seasonsAtClub` and nothing

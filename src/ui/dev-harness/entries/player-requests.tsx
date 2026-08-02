@@ -8,6 +8,7 @@ import {
   advancePlayerRequests,
   resolvePlayerRequest,
   starQualifiers,
+  STAR_FAME_THRESHOLD,
   weightForPlayer,
 } from '../../../game/player-requests';
 import { SEASON_WEEKS, type GameState } from '../../../game/types';
@@ -44,8 +45,12 @@ import type { DevHarnessEntry } from '../registry';
  */
 
 const REQUEST_SEED = 23;
-/** Requests open at S2 W5; this is comfortably past that, with a settled squad. */
-const REQUEST_SEASON = 3;
+/**
+ * Requests open at S2 W5, but the star case needs a star: on this seed the
+ * first-team regulars cross the 200-fame star threshold in season 6, at 210.
+ * Season 3 was enough back when the threshold was 50 and fame capped at 99.
+ */
+const REQUEST_SEASON = 6;
 const REQUEST_WEEK = 2;
 /** Weeks of drawing before a case gives up. The longest wanted state lands well inside it. */
 const STEP_BUDGET = 80;
@@ -129,7 +134,7 @@ function askerWeight(state: GameState): number {
     state.season,
     catalog?.tuning.starGoalRank ?? 2,
   );
-  return weightForPlayer(asker, qualifiers, catalog?.tuning.starFameThreshold ?? 50);
+  return weightForPlayer(asker, qualifiers, catalog?.tuning.starFameThreshold ?? STAR_FAME_THRESHOLD);
 }
 
 function careerForCase(caseId: string): GameState {

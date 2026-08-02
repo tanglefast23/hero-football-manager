@@ -1,7 +1,7 @@
 import { coachMotivatorStrengthHalfLevels } from './coach-weekly';
 import { isFacilityOperational, type FacilityGridState } from './facilities';
 import { growthSinceSigningPercent } from './market-career';
-import { renewalContractAsk } from './market';
+import { renewalContractAsk, renewalFamePercent } from './market';
 import { shouldRequestTransfer, updatePlayerWellbeing } from './pyramid';
 import type { CareerPlayer, GameState } from './types';
 
@@ -110,7 +110,7 @@ function isUnderpaidPlayer(player: CareerPlayer): boolean {
     onHeroWage: player.onHeroWage,
   }, {
     growthSinceSigningPercent: growthSinceSigningPercent(player),
-    famePercent: Math.min(100, player.fame ?? 0),
+    famePercent: renewalFamePercent(player.fame ?? 0),
     heroMultiplier: 4,
     // Deliberately not the player's real loyalty. Loyalty has exactly one job —
     // the price of the next contract — and the player card says so. Feeding it

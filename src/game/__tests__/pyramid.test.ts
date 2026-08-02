@@ -1,5 +1,6 @@
 import type { Attrs } from '../../sim/types';
 import {
+  CLUB_LEGEND_MIN_FAME,
   advanceNationalCup,
   applyLowMoraleToStat,
   createLegendLegacy,
@@ -296,13 +297,13 @@ describe('aging, retirement, and legacy', () => {
   it('turns an eligible legend into a discounted coach, and refuses anyone else', () => {
     const legend = lifecyclePlayer({
       id: 'legend-flint',
-      fame: 80,
+      fame: 230,
       seasonsAtClub: 7,
       archetype: 'Sniper',
       role: 'FWD',
     });
     expect(isClubLegend(legend)).toBe(true);
-    expect(isClubLegend({ fame: 69, seasonsAtClub: 10 })).toBe(false);
+    expect(isClubLegend({ fame: CLUB_LEGEND_MIN_FAME - 1, seasonsAtClub: 10 })).toBe(false);
     expect(createLegendLegacy(legend)).toEqual({
       choice: 'coach-candidate',
       coachCandidate: {

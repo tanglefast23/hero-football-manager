@@ -29,7 +29,7 @@ function player(id: string, overrides: Partial<CareerPlayer> = {}): CareerPlayer
     personality: 'Loyal',
     condition: 100,
     seasonsAtClub: 7,
-    fame: 82,
+    fame: 300,
     retirementAge: 36,
     retirementAnnounced: true,
     retirementAnnouncementSeason: 3,
@@ -86,10 +86,10 @@ function state(overrides: Partial<GameState> = {}): GameState {
 describe('career club-legend queue', () => {
   it('returns the next unique eligible user-club legend and skips stale queue entries', () => {
     const legend = player('legend');
-    const second = player('second', { name: 'Milo Stone', fame: 90 });
+    const second = player('second', { name: 'Milo Stone', fame: 400 });
     const input = state({
       retiredPlayers: [
-        player('ineligible', { fame: 40 }),
+        player('ineligible', { fame: 120 }),
         player('foreign', { clubId: 'other-club' }),
         legend,
         { ...legend, name: 'Duplicate record' },
@@ -197,7 +197,7 @@ describe('career club-legend transactions', () => {
 
   it('advances a queue of legends one farewell at a time', () => {
     const legend = player('legend');
-    const second = player('second', { name: 'Milo Stone', fame: 90 });
+    const second = player('second', { name: 'Milo Stone', fame: 400 });
     const queued = state({
       retiredPlayers: [legend, second],
       pendingLegacyPlayerIds: ['legend', 'second'],

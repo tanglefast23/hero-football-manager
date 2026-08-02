@@ -72,7 +72,7 @@ const LEGACY_QUEUE_SIZES: Readonly<Record<string, number>> = Object.freeze({
 
 /** Old enough to be a legend by tenure and fame, on the shipped thresholds. */
 const LEGEND_SEASONS_AT_CLUB = 6;
-const LEGEND_FAME = 82;
+const LEGEND_FAME = 240;
 
 /** Young enough that nobody announces unless the reel asked them to. */
 const UNREMARKABLE_AGE = 24;

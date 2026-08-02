@@ -174,9 +174,9 @@ describe('Bert, flat out in front of them', () => {
 
 describe('the last thing anybody says', () => {
   /**
-   * The ceiling is geometry, not taste: his bubble settles around 166pt wide on
-   * a 375pt phone, so every extra fifteen characters is another line of white
-   * laid over the squad behind him.
+   * The ceiling is geometry, not taste: his bubble is drawn 320pt wide with its
+   * foot pinned above him, and it grows upward into the squad. Three lines fit
+   * in the foreground, four do not.
    */
   it('is two bubbles, and neither is tall enough to cover the pitch', () => {
     expect(BERT_SIGNOFF_LINES).toHaveLength(2);

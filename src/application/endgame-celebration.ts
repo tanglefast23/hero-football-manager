@@ -124,18 +124,17 @@ export function markEndgameCelebrationComplete(state: GameState): GameState {
  * season's goal tally only knows about this year, and the summit is about the
  * whole climb.
  *
- * Fame alone is not enough, and the reason is measured rather than assumed.
- * `resolveCareerMatchFame` caps fame at 99 (`career.ts:557`) and awards it to
- * anyone in the lineup every match, so a first eleven saturates within about
- * two seasons: a seeded career at season 3 already holds eleven starters at 99
- * against five reserves at 8. By the time anybody reaches this screen, fame has
- * stopped discriminating, and ranking on it alone would have handed the game's
- * most personal moment to whoever happened to sort first by ID.
+ * Fame decides it, and `seasonsAtClub` breaks the tie. That order used to be a
+ * fiction: fame was capped at 99 and awarded to anyone in the lineup every
+ * match, so a first eleven saturated within two seasons — a seeded career at
+ * season 3 held eleven starters at 99 against five reserves at 8 — and tenure
+ * was doing all the work while pretending to be a tiebreak. With the ceiling at
+ * `FAME_CEILING` a squad no longer bunches, so the sort now means what it says.
  *
- * `seasonsAtClub` breaks that tie, which is the truer reading anyway: among
- * players the club made equally famous, the one who stayed for all of it is the
- * one whose journey this was. ID order remains the final tiebreak so the choice
- * stays deterministic.
+ * The tiebreak stays, because it is still the right answer among equals: of two
+ * players the club made exactly as famous, the one who stayed for all of it is
+ * the one whose journey this was. ID order remains the final tiebreak so the
+ * choice stays deterministic.
  */
 export function highestFamePlayer(
   squad: readonly CareerPlayer[],
@@ -254,8 +253,7 @@ function celebrationCopy(
       'Boss. Before anyone else gets in here — thank you.',
       'You made me the player I am. Every bit of it came out of your coaching.',
       'We won the league. We won the Cup. I am glad we did.',
-      'But it is not the trophies I will carry.',
-      'It is the mornings on the training pitch, and the one man who kept turning up.',
+      'But it is not the trophies I will carry. It is the mornings on the training pitch, and the one man who kept turning up for me.',
       'Wherever this goes next, I got here with you. Thank you, boss.',
     ],
   };

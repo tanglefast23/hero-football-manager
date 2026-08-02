@@ -25,7 +25,7 @@ const entry = readFileSync(
  * the same stepping the entry does.
  */
 const SEED = 23;
-const SEASON = 3;
+const SEASON = 6;
 const WEEK = 2;
 const STEP_BUDGET = 80;
 

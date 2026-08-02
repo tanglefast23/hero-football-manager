@@ -139,7 +139,7 @@ function legendFrom(player: CareerPlayer): CareerPlayer {
     id: 'retired-legend',
     name: 'Ari Flint',
     age: 37,
-    fame: 88,
+    fame: 288,
     seasonsAtClub: 7,
     personality: 'Loyal',
     retirementAge: 37,

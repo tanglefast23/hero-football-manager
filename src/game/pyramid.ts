@@ -164,8 +164,47 @@ export const PYRAMID_DIVISION_COUNT = 5;
 export const PROMOTION_PLACES = 2;
 export const RELEGATION_PLACES = 2;
 export const NATIONAL_CUP_CLUB_COUNT = CLUBS_PER_DIVISION * PYRAMID_DIVISION_COUNT;
+/**
+ * The most famous a player can ever be, and the unit every fame threshold in
+ * the game is quoted in.
+ *
+ * A first-team regular banks roughly forty-five a season — one to three a match
+ * across a twenty-odd match league and cup year, two more per goal, three to
+ * ten for a top-two finish or a cup. Measured on three seeded careers, the best
+ * starter ends season 1 on about 50 and season 2 on about 95. So the ceiling is
+ * a career length: it takes some twenty seasons of unbroken first-team football
+ * to reach, which is longer than any career in this game lasts, and fame
+ * therefore never stops separating one player from another.
+ *
+ * It used to be 99, which a regular hit in his second season. A seeded career
+ * at season 3 held eleven starters tied at the cap against five reserves at 8,
+ * so every threshold below read true for the whole first eleven and false for
+ * nobody. Raising the ceiling is what gives the thresholds beneath it something
+ * to measure.
+ *
+ * Careers saved before this deliberately are NOT migrated. Their stored values
+ * are all inside the new range and stay legal, so nothing fails to load; a
+ * veteran squad simply reads as less famous than it is and re-earns its stars
+ * and legends over about four seasons of first-team football. The alternative —
+ * multiplying stored fame by ten — would pin every existing squad within a few
+ * points of the new ceiling forever, preserving the exact saturation this
+ * change exists to remove.
+ */
+export const FAME_CEILING = 999;
 export const CLUB_LEGEND_MIN_SEASONS = 5;
-export const CLUB_LEGEND_MIN_FAME = 70;
+/**
+ * Fame is the half of the club-legend test that never used to bind.
+ *
+ * At 70 the gate was met in a player's second season, so five seasons at the
+ * club was the only real requirement and "club legend" meant "was in the eleven
+ * and never left" — measured, eleven men at once from season 6 on. At 200 the
+ * two halves bind together: a regular starter clears it after four and a half
+ * seasons of first-team football, so the man who served his five seasons in the
+ * side qualifies while the man who served them in the reserves (roughly a third
+ * of the appearances, so a third of the fame) needs closer to twelve. Which is
+ * still a legend, just a patient one.
+ */
+export const CLUB_LEGEND_MIN_FAME = 200;
 export const LOW_MORALE_THRESHOLD = 30;
 export const DIVISION_NAMES: Readonly<Record<DivisionLevel, string>> = {
   1: 'Global League',
@@ -677,7 +716,15 @@ function generateSquad(
       archetype: ARCHETYPES[Math.floor(random() * ARCHETYPES.length)],
       personality: PERSONALITIES[Math.floor(random() * PERSONALITIES.length)],
       age,
-      fame: clamp((6 - division) * 10 + integerRoll(random, 0, 15), 0, 99),
+      // Priced in the same seasons the user's own players are. One division
+      // rank is worth about two seasons of first-team renown (80) and the
+      // spread inside a division is about three (120), so a District League pro
+      // reads as 80–200 and a Global League one as 400–520 — ten to twelve
+      // years at the top. That keeps a bought name genuinely more famous than
+      // your five-season captain and genuinely less famous than your
+      // twelve-season one, which is the ordering the old ceiling gave by
+      // accident: every rival sat under 65 while every user starter sat at 99.
+      fame: clamp((6 - division) * 80 + integerRoll(random, 0, 120), 0, FAME_CEILING),
       seasonsAtClub: integerRoll(random, 0, Math.min(8, age - 16)),
       morale: integerRoll(random, 55, 75),
       condition: 100,
@@ -990,7 +1037,10 @@ function validateLifecyclePlayer(player: PyramidPlayer): void {
   if (player.id.trim().length === 0) throw new Error('player ID must be non-empty');
   validateAge(player.age);
   validateAttrs(player.attrs);
-  validatePercentage(player.fame, 'player fame');
+  // Fame is not a percentage and has not been one since the ceiling moved off
+  // 99. Left on `validatePercentage` this would reject every player the game
+  // now produces past his third season.
+  validateFame(player.fame);
   validatePercentage(player.morale, 'player morale');
   validatePercentage(player.condition, 'player condition');
   if (!Number.isInteger(player.seasonsAtClub) || player.seasonsAtClub < 0) {
@@ -1034,6 +1084,12 @@ function validateRating(value: number, label: string): void {
 function validatePercentage(value: number, label: string): void {
   if (!Number.isFinite(value) || value < 0 || value > 100) {
     throw new Error(`${label} must be a number from 0 to 100`);
+  }
+}
+
+function validateFame(value: number): void {
+  if (!Number.isFinite(value) || value < 0 || value > FAME_CEILING) {
+    throw new Error(`player fame must be a number from 0 to ${FAME_CEILING}`);
   }
 }
 

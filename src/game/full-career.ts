@@ -2,7 +2,7 @@ import { developmentPotentialCeiling, potentialTierForDivision } from './archety
 import { assignDistinctPlayerLooks, nextDistinctPlayerLook } from './player-appearance';
 import { generateSeasonFixtures, pinOpeningLeagueOpponents } from './schedule';
 import { createCareerMarketState, refreshCareerMarketForNewSeason } from './market-career';
-import { generatedPlayerWeeklyWage } from './market';
+import { CAREER_CLUB_FAME_CEILING, generatedPlayerWeeklyWage } from './market';
 import { compareIds } from './ordering';
 import {
   applyM2PromotionAndRelegation,
@@ -641,7 +641,7 @@ function careerSquadStrength(players: readonly CareerPlayer[]): number {
 }
 
 function clubFame(state: GameState): number {
-  return Math.max(0, Math.min(9999, state.players
+  return Math.max(0, Math.min(CAREER_CLUB_FAME_CEILING, state.players
     .filter(player => player.clubId === state.userClubId)
     .reduce((sum, player) => sum + (player.fame ?? 0), state.market?.clubFameAdjustment ?? 0)));
 }

@@ -194,8 +194,21 @@ function playerScore(player: CareerPlayer): number {
   return Object.values(player.attrs).reduce((sum, value) => sum + value, 0);
 }
 
+/**
+ * Fame enters at a tenth of its face value, and has to.
+ *
+ * This picks the season's player, and the other three terms are a season's
+ * work: a few hundred points of attributes, thirty a goal, a morale reading out
+ * of 100. Fame is a career total that runs to `FAME_CEILING`, so added whole it
+ * would outweigh every one of them and the award would go to whoever had been
+ * here longest, every year, forever. A tenth keeps it worth what it was worth
+ * when the ceiling was 99: a nudge between close candidates.
+ */
 function playerSeasonScore(player: CareerPlayer, goals: ReadonlyMap<string, number>): number {
-  return playerScore(player) + (goals.get(player.id) ?? 0) * 30 + (player.morale ?? 0) + (player.fame ?? 0);
+  return playerScore(player)
+    + (goals.get(player.id) ?? 0) * 30
+    + (player.morale ?? 0)
+    + Math.round((player.fame ?? 0) / 10);
 }
 
 /**

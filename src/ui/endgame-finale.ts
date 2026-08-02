@@ -33,20 +33,25 @@ import { BERT_SPRITE_SIZE } from './bert-walk-frames';
  * them beside the staging also means the dev harness and the shipped game read
  * from one copy of the words instead of two that can drift.
  *
- * Both are SHORT, and that is a measurement rather than a preference. A speech
- * bubble is placed above the speaker, who stands four fifths of the way across
- * the screen, so on a 375pt phone it settles at about 166pt wide however much
- * text it holds. At that width a line runs to roughly fifteen characters: this
- * pair draws about seven lines each, and half as much again would put a white
- * column over the squad he is talking about. `MAX_SIGNOFF_CHARACTERS` holds the
- * ceiling that keeps them that size.
+ * Both are SHORT, and that is a measurement rather than a preference. He lies
+ * in the near foreground, so his bubble's foot is pinned just above him and
+ * every extra line of text grows it upward, toward the squad. On a 375pt phone
+ * the bubble is drawn 320pt wide, and there is about 110pt of clear air between
+ * its foot and the front row's boots: three lines of type measure 93pt and stay
+ * under them, four measure 114pt and stand in the celebration.
+ * `MAX_SIGNOFF_CHARACTERS` is the ceiling that keeps them to three.
  */
 export const BERT_SIGNOFF_LINES: readonly string[] = Object.freeze([
   'One last thing. This game was made by one man on his own — Joe Vu — and he thanks you very much.',
   'People like you are what let him make the next one. Keep an eye out for it.',
 ]);
 
-/** See `BERT_SIGNOFF_LINES`: past this a bubble starts covering the pitch. */
+/**
+ * See `BERT_SIGNOFF_LINES`: past this his bubble takes a fourth line and starts
+ * covering the squad. Measured at the drawn width — 106 characters still broke
+ * to three lines, 109 to four — so this leaves a line's worth of margin for a
+ * rewrite that happens to break badly.
+ */
 export const MAX_SIGNOFF_CHARACTERS = 100;
 
 /**

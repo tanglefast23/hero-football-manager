@@ -7,6 +7,7 @@ import {
   submitCareerRenewalOffer,
 } from '../market-career';
 import { createCareer, resolveCareerMatchFame, startNextSeason } from '../career';
+import { CLUB_LEGEND_MIN_FAME } from '../pyramid';
 import { releaseCareerPlayer } from '../squad';
 import type { GameState } from '../types';
 
@@ -31,18 +32,22 @@ describe('M2 fame and expired contracts', () => {
     const startingFame = state.players.find(player => player.id === scorerId)!.fame ?? 0;
     const reserveFame = state.players.find(player => player.id === reserveId)!.fame ?? 0;
 
-    // Eighteen scoring wins across a season are enough to make a homegrown
-    // player famous, while a player who never appears gains nothing.
-    for (let appearance = 0; appearance < 18; appearance += 1) {
+    // Forty scoring wins — about two seasons of league and cup football — are
+    // enough to make a homegrown player famous enough for the club-legend gate,
+    // while a player who never appears gains nothing. It used to take eighteen,
+    // back when fame saturated at 99 and the gate sat at 70; the gate now asks
+    // for a career rather than a good half-season.
+    for (let appearance = 0; appearance < 40; appearance += 1) {
       state = {
         ...state,
         players: resolveCareerMatchFame(state, [fixture], new Map([[fixture.id, result]])),
       };
     }
 
-    expect(state.players.find(player => player.id === scorerId)?.fame).toBe(startingFame + 90);
+    expect(state.players.find(player => player.id === scorerId)?.fame).toBe(startingFame + 200);
     expect(state.players.find(player => player.id === reserveId)?.fame).toBe(reserveFame);
-    expect(state.players.find(player => player.id === scorerId)?.fame).toBeGreaterThanOrEqual(70);
+    expect(state.players.find(player => player.id === scorerId)?.fame)
+      .toBeGreaterThanOrEqual(CLUB_LEGEND_MIN_FAME);
   });
 
   test('blocks a new full-career season until every ordinary or hero expiry is resolved', () => {

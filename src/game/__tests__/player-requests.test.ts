@@ -2,11 +2,13 @@ import { loadLaunchContent } from '../../content';
 import { createLaunchCareerSetup } from '../../application/launch';
 import { parseStoredGameState, serializeGameState } from '../../persistence/game-state-codec';
 import { createCareer } from '../career';
+import { runHeadlessFullCareer } from '../headless';
 import { playerLoyalty } from '../loyalty';
 import { buildCareerTeamDef } from '../squad';
 import { trainPlayerInstantly } from '../training';
 import {
   DEFAULT_PLAYER_REQUEST_STATE,
+  STAR_FAME_THRESHOLD,
   absenceWeeksFor,
   advancePlayerRequests,
   canAffordRequest,
@@ -139,7 +141,7 @@ describe('weightForPlayer', () => {
   });
 
   it('doubles for a famous player', () => {
-    expect(weightForPlayer(player({ id: 'a', fame: 60 }), [])).toBe(2);
+    expect(weightForPlayer(player({ id: 'a', fame: STAR_FAME_THRESHOLD }), [])).toBe(2);
   });
 
   it('doubles for a division goal leader', () => {
@@ -147,7 +149,7 @@ describe('weightForPlayer', () => {
   });
 
   it('compounds to 4 for a famous goal leader', () => {
-    expect(weightForPlayer(player({ id: 'a', fame: 60 }), ['a'])).toBe(4);
+    expect(weightForPlayer(player({ id: 'a', fame: STAR_FAME_THRESHOLD }), ['a'])).toBe(4);
   });
 });
 
@@ -213,7 +215,7 @@ describe('eligibleAskers', () => {
 
 describe('pickAsker', () => {
   it('is deterministic for the same roll and respects weight', () => {
-    const roster = [player({ id: 'a' }), player({ id: 'b', fame: 60 })];
+    const roster = [player({ id: 'a' }), player({ id: 'b', fame: STAR_FAME_THRESHOLD })];
 
     expect(totalAskerWeight(roster, [])).toBe(3);
     expect(pickAsker(roster, [], 0)?.id).toBe('a');
@@ -868,6 +870,47 @@ describe('advancePlayerRequests', () => {
 
     expect(advancePlayerRequests(listed, true).playerRequests!.pending).toBeUndefined();
   });
+});
+
+/**
+ * The half of `tuning.cadence` that had never run.
+ *
+ * `hasStar` used to be true from season 2 of every career ever played: the star
+ * threshold was 50, fame saturated at 99, and the whole first eleven cleared it
+ * inside one season. The non-star row of the cadence table was therefore
+ * unreachable in a real game — a shipped tuning knob that could only ever be
+ * read by a unit test.
+ *
+ * This plays real seasons rather than stamping a season number onto a fresh
+ * squad, because the fresh squad is exactly what could not prove it: its fame
+ * is zero, so it reads as starless whatever the threshold is.
+ */
+describe('the star gate divides a real career in two', () => {
+  it('runs the non-star cadence for its first seasons and the star one after', () => {
+    const hasStar = (state: GameState): boolean => state.players
+      .filter(candidate => candidate.clubId === state.userClubId)
+      .some(candidate => weightForPlayer(
+        candidate,
+        starQualifiers(state.seasonStatLines ?? [], state.season, CATALOG.tuning.starGoalRank),
+        CATALOG.tuning.starFameThreshold,
+      ) > 1);
+
+    // The catalog is attached here for the same reason the dev harness attaches
+    // it: `createLaunchCareerSetup` never carries one, so a career built without
+    // this line has requests switched off at the first line of the draw.
+    const played = (seasons: number): GameState => runHeadlessFullCareer(
+      { ...createLaunchCareerSetup(20260801), playerRequestRules: CATALOG },
+      seasons,
+    );
+    const early = played(3);
+    const late = played(7);
+
+    expect(hasStar(early)).toBe(false);
+    expect(hasStar(late)).toBe(true);
+    // And the starless seasons are not silent ones: the slower row still deals
+    // requests, which is the thing an unreachable branch could never show.
+    expect(early.playerRequests!.history.length).toBeGreaterThan(0);
+  }, 120_000);
 });
 
 describe('the tenure gate lets a real season-2 squad ask', () => {

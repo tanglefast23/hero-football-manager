@@ -1,7 +1,9 @@
-import type {
-  CoachCandidate,
-  CoachSpecialty as MarketCoachSpecialty,
-  PlayerPersonality as MarketPersonality,
+import {
+  COACH_FAME_GATES,
+  legendCoachLevel,
+  type CoachCandidate,
+  type CoachSpecialty as MarketCoachSpecialty,
+  type PlayerPersonality as MarketPersonality,
 } from './market';
 import {
   createLegendLegacy,
@@ -164,10 +166,10 @@ function legacyCoachToMarketCandidate(
   },
   legend: PyramidPlayer,
 ): CoachCandidate {
-  const level = Math.max(1, Math.min(5, 1 + Math.floor((legend.fame - 70) / 10)));
+  const level = legendCoachLevel(legend.fame);
   const baseWage = checkedMultiply(500, level, 'club-legend coach wage');
   const weeklyWage = Math.round(baseWage * (100 - legacy.loyaltyDiscountPercent) / 100);
-  const requiredFame = [0, 0, 100, 250, 500, 900][level];
+  const requiredFame = COACH_FAME_GATES[level];
   return {
     id: legacy.id,
     name: legacy.name,

@@ -379,15 +379,29 @@ export function CharacterSpeechOverlay({
   /**
    * Whether the bubble has reported its own size yet.
    *
-   * It cannot be placed until it has: `onLayout` is delivered a frame or more
+   * It cannot be *placed* until it has: `onLayout` is delivered a frame or more
    * after the bubble first mounts, and until then `bubbleLeft` can only fall
-   * back to the character's centre — four fifths of the way across — which on a
-   * 375pt phone leaves about 75pt and breaks the line to roughly one word each.
-   * So the first pass is a measuring pass and is not painted. `pop` starts at
-   * zero and usually hides it by accident; `instant` sets `pop` to 1 straight
-   * away and does not, which is where the garbled frame was actually visible.
+   * back to the character's centre. So the first pass is a measuring pass and is
+   * not painted. `pop` starts at zero and usually hides it by accident;
+   * `instant` sets `pop` to 1 straight away and does not, which is where the
+   * garbled frame was actually visible.
+   *
+   * It does not have to be measured to be *sized*: the bubble is laid out at the
+   * left edge with a maximum width and moved into place with a transform, so how
+   * the words break is settled on the first pass and never revisited.
    */
   const bubbleMeasured = bubbleWidth > 0;
+
+  /**
+   * Widest the bubble is drawn on this screen.
+   *
+   * The flat cap overflows a 320pt phone once both gutters are counted, so the
+   * narrower of the two always wins.
+   */
+  const bubbleMaxWidth = Math.min(
+    BUBBLE_MAX_WIDTH * bubbleScale,
+    viewportWidth - BUBBLE_GUTTER * 2,
+  );
 
   // The bubble hangs over the character's head and is centred on them, but a
   // wide bubble on a narrow screen has to slide left to stay on the page — so
@@ -439,17 +453,14 @@ export function CharacterSpeechOverlay({
             style={[
               styles.bubble,
               {
-                left: bubbleLeft,
                 bottom: bubbleBottom,
                 // Never paint an unmeasured bubble, whatever `pop` is doing.
                 opacity: bubbleMeasured ? pop : 0,
-                transform: [{ scale: pop }],
-                // The flat cap overflows a 320pt phone once both gutters are
-                // counted, so the narrower of the two always wins.
-                maxWidth: Math.min(
-                  BUBBLE_MAX_WIDTH * bubbleScale,
-                  viewportWidth - BUBBLE_GUTTER * 2,
-                ),
+                // Placement is a transform, not a layout position — see
+                // `styles.bubble`. `translateX` first, so `pop` still scales the
+                // bubble about its own middle wherever it has come to rest.
+                transform: [{ translateX: bubbleLeft }, { scale: pop }],
+                maxWidth: bubbleMaxWidth,
               },
             ]}
           >
@@ -529,9 +540,28 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: 'rgba(36,31,46,0.22)',
   },
+  /**
+   * Pinned to the left edge and carried across by a transform, which is the
+   * whole reason a long line reads as a paragraph rather than a column.
+   *
+   * An absolutely positioned box with no width of its own sizes to its content,
+   * but only within what is left of the row it is placed on: the space from its
+   * own `left` to the far edge. Positioning it at the character — four fifths of
+   * the way across — therefore left about 75pt to break the words into, and
+   * because `left` was itself computed from the measured width, every pass
+   * narrowed the space the next one had to measure in. The width settled
+   * wherever the wrap stopped changing, around 166pt on a 375pt phone, whatever
+   * the line said. A transform moves the drawn bubble without moving the box it
+   * was measured in, so the only limit on the width is `maxWidth`.
+   *
+   * Worth knowing if this ever comes back: the same loop looks milder in a
+   * browser, where the box refills the space it is given and so creeps a gutter
+   * wider on every pass instead of stopping. The phone is the honest instrument
+   * here, because native measures a paragraph to its longest line.
+   */
   bubble: {
     position: 'absolute',
-    maxWidth: 320,
+    left: 0,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 3,

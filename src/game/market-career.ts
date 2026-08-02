@@ -2,11 +2,13 @@ import { compareIds } from './ordering';
 
 import {
   buyingTransferQuote,
+  CAREER_CLUB_FAME_CEILING,
   generatedPlayerWeeklyWage,
   generateCoachMarket,
   isCoachCandidateEligible,
   isTransferWindowOpen,
   renewalContractAsk,
+  renewalFamePercent,
   resolveScoutMission,
   sellingTransferQuote,
   startContractNegotiation,
@@ -474,7 +476,7 @@ export function beginCareerRenewalTalks(
     onHeroWage: player.onHeroWage,
   }, {
     growthSinceSigningPercent: growthSinceSigningPercent(player),
-    famePercent: Math.min(100, player.fame ?? 0),
+    famePercent: renewalFamePercent(player.fame ?? 0),
     heroMultiplier: 4,
     loyaltyPercent: loyaltyRenewalPercent(loyalty),
   });
@@ -1336,7 +1338,7 @@ function hasCoachingOffice(state: GameState): boolean {
 }
 
 function careerClubFame(state: GameState, market: CareerMarketState): number {
-  return Math.max(0, Math.min(9999, state.players
+  return Math.max(0, Math.min(CAREER_CLUB_FAME_CEILING, state.players
     .filter(player => player.clubId === state.userClubId)
     .reduce((sum, player) => checkedAdd(sum, player.fame ?? 0, 'club fame'), market.clubFameAdjustment ?? 0)));
 }

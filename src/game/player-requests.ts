@@ -102,8 +102,21 @@ export function starQualifiers(
     .map(([playerId]) => playerId);
 }
 
-/** Fallback only; the shipped value is authored as `tuning.starFameThreshold`. */
-export const STAR_FAME_THRESHOLD = 50;
+/**
+ * Where a squad player stops being anonymous.
+ *
+ * Fallback only; the shipped value is authored as `tuning.starFameThreshold`
+ * and the two must agree. 200 is about four and a half seasons of first-team
+ * football at forty-five fame a season, or a player bought in from Division 4
+ * or above, so it picks out the handful of established names in a squad of
+ * sixteen rather than the whole eleven.
+ *
+ * It was 50, which every starter cleared inside one season while the fame
+ * ceiling sat at 99. `hasStar` was therefore true from season 2 onward in every
+ * career ever played, and the non-star half of `tuning.cadence` never once
+ * executed.
+ */
+export const STAR_FAME_THRESHOLD = 200;
 
 /**
  * Base 1, doubled once per star qualifier met, so a famous division top scorer
