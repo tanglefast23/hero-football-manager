@@ -76,6 +76,9 @@ export function ClubLegacyScreen({
             </View>
             <View className="flex-1 flex-row flex-wrap gap-2">
               <StatusChip label={viewModel.role} />
+              {/* Same chip the board panel puts on a hero it is about to sell:
+                  a powered player's farewell should never read like anyone's. */}
+              {viewModel.isHero ? <StatusChip label="Hero" tone="hero" /> : null}
               <StatusChip label={viewModel.archetype} tone="hero" />
               <StatusChip label={`${viewModel.fame} fame`} tone="success" />
             </View>
@@ -108,9 +111,9 @@ export function ClubLegacyScreen({
                 />
               ) : null}
               <PaperPanel
-                kicker={`Option ${index + 1}`}
+                kicker={viewModel.choices.length === 1 ? 'The offer' : `Option ${index + 1}`}
                 title={choice.label}
-                className={choice.id === 'coach-candidate' ? 'bg-blue-light' : 'bg-pitch-light'}
+                className="bg-blue-light"
               >
                 <Text className="text-base leading-6 text-ink/70">{choice.detail}</Text>
                 <View className="my-3 border-t border-ink/20" />
@@ -121,12 +124,65 @@ export function ClubLegacyScreen({
                   label={`Choose ${choice.label}  ▸`}
                   accessibilityLabel={`Choose ${choice.label} for ${viewModel.playerName}. ${choice.outcome}`}
                   onPress={() => guardTap(() => onChoose(choice.id))}
-                  variant={choice.id === 'coach-candidate' ? 'action' : 'confirm'}
+                  variant="action"
                 />
               </PaperPanel>
             </View>
           ))}
         </View>
+
+        {/* The club's own record of everyone who has left it. Nothing else in
+            the game reads `retiredPlayers`, so before this the list grew for
+            the whole career and was never once shown. It sits under the
+            decision, not beside it: the queue is what this screen is for. */}
+        {viewModel.formerPlayers.length === 0 ? null : (
+          <View className="mt-6 gap-4">
+            <StageSection
+              eyebrow="Club record"
+              title="Former players"
+            />
+            <PaperPanel
+              kicker="Retired"
+              title={`${viewModel.formerPlayerTotal} ${viewModel.formerPlayerTotal === 1 ? 'name' : 'names'}`}
+              stamp="Club history"
+            >
+              <View className="gap-2">
+                {viewModel.formerPlayers.map(former => (
+                  <View
+                    key={former.playerId}
+                    accessible
+                    accessibilityRole="summary"
+                    accessibilityLabel={`${former.playerName}. ${former.detail}.${former.isHero ? ' Hero.' : ''}`}
+                    className="flex-row items-center gap-3 border-2 border-ink/25 bg-white p-2"
+                  >
+                    <View className="overflow-hidden border-2 border-ink bg-paper-dark">
+                      <PixelPortrait
+                        playerId={former.playerId}
+                        role={former.role}
+                        lookId={former.lookId}
+                        expression="rest"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-2">
+                        <Text className="flex-1 text-base font-bold text-ink" numberOfLines={1}>
+                          {former.playerName}
+                        </Text>
+                        {former.isHero ? <StatusChip label="Hero" tone="hero" /> : null}
+                      </View>
+                      <Text className="mt-1 font-mono text-sm text-ink/65">{former.detail}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+              {viewModel.formerPlayerTotal > viewModel.formerPlayers.length ? (
+                <PixelText className="mt-3 text-sm uppercase text-ink/50">
+                  {viewModel.formerPlayerTotal - viewModel.formerPlayers.length} more in the archive
+                </PixelText>
+              ) : null}
+            </PaperPanel>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

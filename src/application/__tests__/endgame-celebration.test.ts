@@ -241,9 +241,23 @@ describe('the endgame celebrations', () => {
       );
 
       expect(league.skippable).toBe(true);
-      // The squad walks out with the star on the trophy screens; the true
-      // ending is one man alone.
       expect(league.squad.length).toBeGreaterThan(0);
+    });
+
+    /**
+     * The true ending opens on one man and ends on the whole club: he speaks,
+     * walks off, and everybody comes out for the curtain call. Handing that
+     * screen an empty squad would leave nobody to bring on for it.
+     */
+    it('gives the true ending a squad to bring out behind the star', () => {
+      const ending = endgameCelebrationViewModel(
+        careerAt({ division: 1, champions: true, cupWon: true }),
+        'Bert Rudge',
+      );
+
+      expect(ending.kind).toBe('true-ending');
+      expect(ending.squad.length).toBeGreaterThan(0);
+      expect(ending.squad.some(player => player.id === ending.star?.id)).toBe(false);
     });
 
     /**

@@ -136,14 +136,15 @@ export interface CoachLegacy {
   coachCandidate: LegendCoachCandidate;
 }
 
-export interface YouthLegacy {
-  choice: 'mentor-youth';
-  mentorPlayerId: string;
-  startingStatBoostPercent: 15;
-  youth: PyramidPlayer;
-}
-
-export type LegendLegacy = CoachLegacy | YouthLegacy;
+/**
+ * One outcome, not two.
+ *
+ * A mentored youth used to be the second option. It could never be taken: the
+ * season transition refills the squad to exactly the 16-player roster cap, so
+ * every legacy screen opened over a full roster and the transaction refused.
+ * Removed rather than repaired — the roster cap is the older rule.
+ */
+export type LegendLegacy = CoachLegacy;
 
 export interface WellbeingUpdate {
   moraleDelta?: number;
@@ -166,7 +167,6 @@ export const NATIONAL_CUP_CLUB_COUNT = CLUBS_PER_DIVISION * PYRAMID_DIVISION_COU
 export const CLUB_LEGEND_MIN_SEASONS = 5;
 export const CLUB_LEGEND_MIN_FAME = 70;
 export const LOW_MORALE_THRESHOLD = 30;
-export const LEGACY_YOUTH_STAT_BOOST_PERCENT = 15;
 export const DIVISION_NAMES: Readonly<Record<DivisionLevel, string>> = {
   1: 'Global League',
   2: 'National Championship',
@@ -572,54 +572,18 @@ export function isClubLegend(
     && player.fame >= CLUB_LEGEND_MIN_FAME;
 }
 
-export function createLegendLegacy(
-  legend: PyramidPlayer,
-  choice: 'coach-candidate' | 'mentor-youth',
-  season: number,
-  careerSeed: number,
-): LegendLegacy {
-  validateSeason(season);
-  validateSeed(careerSeed);
+export function createLegendLegacy(legend: PyramidPlayer): LegendLegacy {
   if (!isClubLegend(legend)) throw new Error(`${legend.name} is not eligible for a club-legend legacy`);
-  if (choice === 'coach-candidate') {
-    return {
-      choice,
-      coachCandidate: {
-        id: `legacy-coach-${legend.id}`,
-        formerPlayerId: legend.id,
-        name: legend.name,
-        specialties: coachSpecialtiesFor(legend),
-        loyaltyDiscountPercent: 20,
-      },
-    };
-  }
-  if (choice !== 'mentor-youth') throw new Error(`unknown club-legend legacy choice ${String(choice)}`);
-
-  const random = mulberry32(mixSeed(careerSeed, season, hashString(legend.id), 0x1e9ac7));
-  const targetStrength = integerRoll(random, 34, 43);
-  const role = legend.role;
-  const baseAttrs = generateAttributes(targetStrength, role, random);
-  const youth: PyramidPlayer = {
-    id: `legacy-youth-s${season}-${legend.id}`,
-    clubId: legend.clubId,
-    name: `${FIRST_NAMES[Math.floor(random() * FIRST_NAMES.length)]} ${lastNameOf(legend.name)}`,
-    role,
-    attrs: boostLegacyYouthAttributes(baseAttrs),
-    archetype: legend.archetype,
-    personality: PERSONALITIES[Math.floor(random() * PERSONALITIES.length)],
-    age: integerRoll(random, 16, 17),
-    fame: 5,
-    seasonsAtClub: 0,
-    morale: 65,
-    condition: 100,
-    consecutiveLowMoraleWeeks: 0,
+  return {
+    choice: 'coach-candidate',
+    coachCandidate: {
+      id: `legacy-coach-${legend.id}`,
+      formerPlayerId: legend.id,
+      name: legend.name,
+      specialties: coachSpecialtiesFor(legend),
+      loyaltyDiscountPercent: 20,
+    },
   };
-  return { choice, mentorPlayerId: legend.id, startingStatBoostPercent: 15, youth };
-}
-
-export function boostLegacyYouthAttributes(attrs: Attrs): Attrs {
-  validateAttrs(attrs);
-  return mapAttrs(attrs, value => Math.min(MAX_PLAYER_ATTRIBUTE, Math.round(value * 1.15)));
 }
 
 /** Applies explicit weekly morale/condition changes and tracks sustained low morale. */
@@ -1178,7 +1142,3 @@ function pad2(value: number): string {
   return value.toString().padStart(2, '0');
 }
 
-function lastNameOf(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return parts[parts.length - 1] || 'Legacy';
-}

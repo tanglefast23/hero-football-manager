@@ -36,6 +36,11 @@ export interface ClubAlertViewModel {
   destination?: AssistantGuideDestination;
   /** Set on player-scoped alerts (e.g. training caps) so taps can deep-link to that player. */
   playerId?: string;
+  /**
+   * Marks a row about a powered player, drawn as the board panel's Hero chip.
+   * A hero leaving is the loaded case and used to read like any other row.
+   */
+  isHero?: boolean;
 }
 
 /**
@@ -105,6 +110,12 @@ export interface HomeViewModel {
     id: string;
     weeksRemaining: number;
     targetCash: number;
+    /**
+     * What the board is asking for, in words. The target is zero — the board
+     * wants the overdraft cleared — and printing that as "$0" read like an
+     * unfilled placeholder.
+     */
+    targetLabel: string;
     cashNeeded: number;
     protectedPlayerId?: string;
     candidates: readonly {
@@ -496,9 +507,29 @@ export interface ClubFacilityGridViewModel {
   };
 }
 
+/**
+ * The board's emergency loan, while any of it is still owed.
+ *
+ * Present only when there is a balance to show, which is the same rule the
+ * `emergency-loan` inbox row uses. The row was the club's ONLY view of this for
+ * as long as the loan lasted, which is why it could never be allowed to yield
+ * its desk slot; the accounts office is where a debt belongs.
+ */
+export interface ClubLoanViewModel {
+  /** What the board paid in. The balance starts higher: the loan carries interest. */
+  originalAmount: number;
+  remainingBalance: number;
+  /** 'Repayments begin' before the first repayment season, 'Weeks left' during it. */
+  scheduleLabel: string;
+  scheduleValue: string;
+  detail: string;
+}
+
 export interface ClubFinancesViewModel {
   periodLabel: string;
   resources: ResourceSummaryViewModel;
+  /** Absent until the board writes its one emergency loan, and once it is repaid. */
+  loan?: ClubLoanViewModel;
   ledger: readonly LedgerLineViewModel[];
   recentTransactions: readonly (LedgerLineViewModel & {
     periodLabel: string;
@@ -678,10 +709,21 @@ export interface SeasonEndViewModel {
 }
 
 export interface ClubLegacyChoiceViewModel {
-  id: 'coach-candidate' | 'mentor-youth';
+  id: 'coach-candidate' | 'farewell';
   label: string;
   detail: string;
   outcome: string;
+}
+
+/** One name on the club's roll of former players. */
+export interface ClubLegacyFormerPlayerViewModel {
+  playerId: string;
+  playerName: string;
+  role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  lookId?: string;
+  /** Powered players get the board panel's Hero chip here too. */
+  isHero: boolean;
+  detail: string;
 }
 
 export interface ClubLegacyViewModel {
@@ -695,7 +737,13 @@ export interface ClubLegacyViewModel {
   personality: string;
   fame: number;
   seasonsAtClub: number;
+  /** True when the legend played with a power. A hero's farewell reads differently. */
+  isHero: boolean;
   choices: readonly ClubLegacyChoiceViewModel[];
+  /** Everyone who has retired from this club, most recent first. */
+  formerPlayers: readonly ClubLegacyFormerPlayerViewModel[];
+  /** How many the roll is showing out of, when it is longer than the panel. */
+  formerPlayerTotal: number;
 }
 
 export interface ChampionshipCelebrationPlayerViewModel {
@@ -837,3 +885,72 @@ export interface AwardCeremonyViewModel {
   readonly beats: readonly AwardCeremonyBeatViewModel[];
   readonly prize: AwardCeremonyPrizeViewModel;
 }
+
+/** One figure on the Hall of Fame page: a label, the number, and what it is of. */
+export interface HallOfFameStatViewModel {
+  readonly id: string;
+  readonly label: string;
+  readonly value: string;
+  readonly detail: string;
+}
+
+/**
+ * One trophy, stamped with the season it was won.
+ *
+ * Deliberately not a stat row: an honour needs no third line saying what kind
+ * of trophy it is, because "D3 National champions" already says it.
+ */
+export interface HallOfFameHonourViewModel {
+  readonly id: string;
+  readonly label: string;
+  readonly value: string;
+}
+
+/** One tier the club played in, as the climb ladder draws it. */
+export interface HallOfFameTierViewModel {
+  readonly division: number;
+  readonly label: string;
+  readonly firstSeason: number;
+  readonly seasons: number;
+  readonly bestPosition: number;
+  readonly detail: string;
+}
+
+/**
+ * The Hall of Fame before the climb is finished.
+ *
+ * A state of the page rather than a hidden page: the button is always there,
+ * and tapping it is the one place that says the climb has an end.
+ */
+export interface HallOfFameLockedViewModel {
+  readonly status: 'locked';
+  readonly title: string;
+  readonly kicker: string;
+  readonly headline: string;
+  readonly lines: readonly string[];
+  readonly accessibilityLabel: string;
+}
+
+/**
+ * The finished career's record.
+ *
+ * Every number here was captured when the climb completed and is only read
+ * back. Nothing on this page is recomputed from live state, which by then no
+ * longer holds the evidence.
+ */
+export interface HallOfFameRecordViewModel {
+  readonly status: 'complete';
+  readonly title: string;
+  readonly kicker: string;
+  readonly headline: string;
+  readonly subheading: string;
+  readonly stats: readonly HallOfFameStatViewModel[];
+  /** Titles and Cups, oldest first. */
+  readonly honours: readonly HallOfFameHonourViewModel[];
+  /** Shown instead of the honours list when the club won no league title. */
+  readonly honoursEmptyLabel: string;
+  readonly tiers: readonly HallOfFameTierViewModel[];
+  readonly accessibilityLabel: string;
+}
+
+export type HallOfFameViewModel = HallOfFameLockedViewModel | HallOfFameRecordViewModel;

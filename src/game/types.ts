@@ -488,6 +488,81 @@ export interface SeasonRecap {
   divisionAwardPrize?: DivisionAwardPrize;
 }
 
+/** One division title, stamped with the season it was taken. */
+export interface HallOfFameTitle {
+  season: number;
+  division: number;
+}
+
+/** One tier the club played in, and what it did there. */
+export interface HallOfFameTier {
+  division: number;
+  /** First season the club played at this tier. */
+  firstSeason: number;
+  seasons: number;
+  /** Best league finish at this tier; 1 is a title. */
+  bestPosition: number;
+}
+
+/**
+ * The club's leading scorer, counted the only way a finished career still can.
+ *
+ * `goals` is the total from the seasons he was the club's own top scorer, which
+ * is a floor rather than a career total: goals are recorded per season in
+ * `seasonStatLines`, and those rows are pruned at every season transition. The
+ * per-season Golden Boot in `SeasonRecap` is what survives, so it is what this
+ * counts — and it counts both competitions and every position, which the
+ * division goal board (strikers, league only) does not.
+ */
+export interface HallOfFameScorer {
+  playerId: string;
+  playerName: string;
+  goals: number;
+  /** Seasons he finished as the club's leading scorer. */
+  goldenBoots: number;
+}
+
+/** The most famous man in the squad when the climb ended. */
+export interface HallOfFameStar {
+  playerId: string;
+  playerName: string;
+  fame: number;
+  seasonsAtClub: number;
+}
+
+/**
+ * The career's record, denormalised the moment the climb is completed.
+ *
+ * A snapshot, never a live query, for the reason `SeasonRecap.divisionAwards`
+ * is one: promotion regenerates every rival roster and the season transition
+ * prunes old stat rows, so a career reopened ten seasons later cannot rebuild
+ * who scored what. Names and numbers are copied in while they are still true.
+ */
+export interface HallOfFameRecord {
+  /**
+   * The season the second trophy landed. Every career opens in season 1, so
+   * this is also the number of seasons the climb took.
+   */
+  season: number;
+  clubName: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  /** Every division title, oldest first. */
+  divisionTitles: HallOfFameTitle[];
+  /** Every season the National Cup was lifted, oldest first. */
+  cupWinSeasons: number[];
+  /** One row per tier played, in the order the club reached them. */
+  tiers: HallOfFameTier[];
+  /** Absent when nobody ever scored for the club. */
+  topScorer?: HallOfFameScorer;
+  /** Absent only for a club with no squad left. */
+  star?: HallOfFameStar;
+}
+
 /**
  * The request catalog, as the ENGINE requires it.
  *
@@ -668,6 +743,12 @@ export interface GameState {
   retirementAnnouncements?: CareerRetirementAnnouncement[];
   /** Immutable snapshots used by the season-review presentation. */
   seasonRecaps?: SeasonRecap[];
+  /**
+   * Written once, when both trophies are in. Absent means the climb is not
+   * finished — or was finished before the record existed, which no career can
+   * be given retroactively.
+   */
+  hallOfFame?: HallOfFameRecord;
   financialSafety?: FinancialSafetyState;
   /** Absent on saves written before player requests; defaulted on reconciliation. */
   playerRequests?: PlayerRequestState;

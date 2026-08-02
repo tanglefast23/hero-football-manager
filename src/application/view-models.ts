@@ -40,6 +40,7 @@ import {
   rosterForClub,
   roleOverall,
   scheduleAssistantInboxWeek,
+  SEASON_WEEKS,
   trainingPathAttribute,
   TRAINING_PATHS,
   TRAINING_PITCH_TP_PER_LEVEL,
@@ -58,6 +59,7 @@ import type {
   AwakeningCutsceneViewModel,
   ClubLegacyViewModel,
   ClubFinancesViewModel,
+  ClubLoanViewModel,
   ClubAlertViewModel,
   CoachStaffMemberViewModel,
   FixtureViewModel,
@@ -99,11 +101,25 @@ import { eventChoiceUnavailableReason } from './event-selection';
 const LAUNCH_CONTENT = loadLaunchContent();
 const ASSISTANT_GUIDE_CONTENT = LAUNCH_CONTENT.assistantGuide;
 
+/**
+ * How many former players the legacy panel shows before it stops counting.
+ *
+ * `retiredPlayers` grows for the life of the career, so a roll that printed all
+ * of them would eventually be longer than the decision it sits under.
+ */
+const CLUB_LEGACY_ROLL_LIMIT = 12;
+
 export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
   const reconciled = reconcilePendingClubLegends(state);
   const legend = nextPendingClubLegend(reconciled);
   if (legend === undefined) throw new Error('there is no pending club-legend decision');
   const pendingCount = reconciled.pendingLegacyPlayerIds?.length ?? 0;
+  // Newest first, and never the legend whose decision is on this screen: he is
+  // the panel above, and listing him twice reads as two different men.
+  const formerPlayers = (state.retiredPlayers ?? [])
+    .filter(player => player.clubId === state.userClubId && player.id !== legend.id)
+    .slice()
+    .reverse();
   return {
     seasonLabel: `Season ${state.season}`,
     queueLabel: pendingCount === 1 ? 'Final legacy decision' : `${pendingCount} legacy decisions remain`,
@@ -115,6 +131,9 @@ export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
     personality: legend.personality ?? 'Professional',
     fame: legend.fame ?? 0,
     seasonsAtClub: legend.seasonsAtClub ?? 0,
+    isHero: legend.power !== undefined,
+    // Two options, and neither is the safe one. The coach spends a wage the
+    // club may not have; the farewell spends the only chance to have him.
     choices: [
       {
         id: 'coach-candidate',
@@ -123,13 +142,26 @@ export function clubLegacyViewModel(state: GameState): ClubLegacyViewModel {
         outcome: 'Adds a loyalty-discounted candidate to the coach market.',
       },
       {
-        id: 'mentor-youth',
-        label: 'Mentor a prospect',
-        detail: `${legend.name} personally selects a teenage player and passes on the habits that made a club legend.`,
-        outcome: 'Adds one boosted youth player to the first-team squad.',
+        id: 'farewell',
+        label: 'Let him go',
+        detail: `${legend.name} takes the applause, shakes every hand in the building and walks out of it. Some players are not coaches, and the club has no wage spare to find out.`,
+        outcome: 'No coach, no cost. The offer is not made twice.',
       },
     ],
+    formerPlayers: formerPlayers.slice(0, CLUB_LEGACY_ROLL_LIMIT).map(player => ({
+      playerId: player.id,
+      playerName: player.name,
+      role: player.role,
+      ...(player.lookId === undefined ? {} : { lookId: player.lookId }),
+      isHero: player.power !== undefined,
+      detail: `${player.role} · ${seasonCountLabel(player.seasonsAtClub ?? 0)} · ${player.fame ?? 0} fame`,
+    })),
+    formerPlayerTotal: formerPlayers.length,
   };
+}
+
+function seasonCountLabel(seasons: number): string {
+  return `${seasons} season${seasons === 1 ? '' : 's'}`;
 }
 
 export function awakeningCutsceneViewModel(
@@ -223,12 +255,14 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     && state.facilities.grid.construction.kind === 'BUILD'
     ? state.facilities.grid.construction
     : undefined;
+  const loan = outstandingLoanViewModel(state);
   return {
     periodLabel: latest ? `S${latest.season} · W${latest.week}` : `S${state.season} · W${state.week}`,
     resources: {
       money: club.cash,
       trainingPoints: state.trainingPoints,
     },
+    ...(loan === undefined ? {} : { loan }),
     ledger: displayLines.map((line, index) => ({
       id: `finance-${state.season}-${state.week}-${index}`,
       label: line.label,
@@ -267,6 +301,31 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     legacyTrainingGroundVisible: false,
     coachingStaff: coachingStaffViewModels(state),
     facilities: facilityGridViewModel(state),
+  };
+}
+
+/**
+ * The outstanding emergency loan, on the same "is there a balance" rule the
+ * `emergency-loan` inbox row uses, so the desk and the accounts office can never
+ * disagree about whether the club is in debt.
+ *
+ * The weekly repayment itself is deliberately not restated here. The engine
+ * charges `ceil(balance / weeks)` and posts it to the ledger as its own line, so
+ * the exact figure is already on this screen the week it is taken — copying the
+ * formula into a view model would be a second place for it to drift.
+ */
+function outstandingLoanViewModel(state: GameState): ClubLoanViewModel | undefined {
+  const loan = state.financialSafety?.loan;
+  if (loan === undefined || loan.remainingBalance <= 0) return undefined;
+  const repaying = state.season >= loan.repaymentStartsSeason;
+  return {
+    originalAmount: loan.originalAmount,
+    remainingBalance: loan.remainingBalance,
+    scheduleLabel: repaying ? 'Weeks left' : 'Repayments begin',
+    scheduleValue: repaying ? `${loan.remainingWeeks}` : `Season ${loan.repaymentStartsSeason}`,
+    detail: repaying
+      ? 'A repayment leaves the balance every week until the debt clears. The board writes one loan per career, and this was it.'
+      : `Nothing is taken until Season ${loan.repaymentStartsSeason}. From then a repayment leaves the balance every week until the debt clears.`,
   };
 }
 
@@ -782,6 +841,9 @@ function isBuildReminderDue(state: GameState, alerts: readonly ClubAlertViewMode
     && state.facilities.grid?.construction === undefined;
 }
 
+/** Weeks of a season in which a squad's imminent retirements are called out. */
+const RETIREMENT_FINAL_WEEKS = 3;
+
 /** Live, uncapped product alerts before Bert's weekly desk scheduler. */
 export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
   const roster = rosterForClub(state, state.userClubId);
@@ -790,9 +852,6 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
     .filter(player => player.injuryWeeks > 0)
     .sort((left, right) => right.injuryWeeks - left.injuryWeeks || left.name.localeCompare(right.name));
   const transferRequests = roster.filter(player => player.transferRequested === true);
-  const retirementAnnouncements = (state.retirementAnnouncements ?? [])
-    .filter(announcement => announcement.announcedInSeason === state.season - 1)
-    .sort((left, right) => left.playerName.localeCompare(right.playerName));
   const negativeCashWeeks = state.financialSafety?.consecutiveNegativeWeeks ?? 0;
   const loan = state.financialSafety?.loan;
   const boardUltimatum = state.financialSafety?.boardUltimatum;
@@ -807,7 +866,77 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
   const waitingRequest = state.playerRequests?.pending?.warned === true
     ? state.playerRequests.pending
     : undefined;
+  const heroIds = new Set(roster
+    .filter(player => player.power !== undefined)
+    .map(player => player.id));
+  const retirementAnnouncements = (state.retirementAnnouncements ?? [])
+    .filter(announcement => announcement.announcedInSeason === state.season - 1)
+    .sort((left, right) => left.playerName.localeCompare(right.playerName));
+  // The last-chance notice. The announcement is a whole season old by the time
+  // the final matches arrive, so without this a farewell is something a manager
+  // reads about afterwards rather than something he can turn up for.
+  const finalWeeks = state.week > SEASON_WEEKS - RETIREMENT_FINAL_WEEKS
+    ? roster
+        .filter(player => willRetireAtSeasonTransition(player, state.season))
+        .sort((left, right) => left.name.localeCompare(right.name))
+    : [];
+  // Retired at the last transition, and nowhere else on the desk until now: a
+  // player announced in season S plays S+1 and is gone by S+2, so the season
+  // that has just started is the one that owes him a goodbye.
+  const justRetired = (state.retiredPlayers ?? [])
+    .filter(player => player.clubId === state.userClubId
+      && player.retirementAnnouncementSeason === state.season - 2)
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const retirementFarewellAlertId = `retirement-farewell:s${state.season}`;
+  const showRetirementFarewell = justRetired.length > 0
+    && isAssistantInboxOneShotProductVisible(state, retirementFarewellAlertId);
   return [
+    // The board speaks first.
+    //
+    // The desk carries three rows a week, and inside one priority rank this
+    // array's order is the tie-break (see `scheduleAssistantInboxWeek`). These
+    // four rows used to be built last, so an injury or a transfer request took
+    // every slot and the board was never heard — measured across all five
+    // escalation states, not one board row reached a desk that had anything
+    // else on it. Money trouble outranks a squad grumble: nothing else in this
+    // list can end the club.
+    ...(negativeCashWeeks > 0 ? [{
+      id: 'financial-warning',
+      title: 'Board financial warning',
+      detail: `Cash has stayed negative for ${negativeCashWeeks} week${negativeCashWeeks === 1 ? '' : 's'}. Transfers and building are locked until the balance recovers.`,
+      tone: 'urgent' as const,
+    }] : []),
+    // Kept even next to the warning above: the two carry different facts, what
+    // is locked and what is owed. It is the one board row that does NOT hold an
+    // urgent slot (see `assistantProductPriority`) — the accounts office now
+    // carries the outstanding balance permanently, so this row announces the
+    // debt rather than being the only place to read it.
+    ...(loan !== undefined && loan.remainingBalance > 0 ? [{
+      id: 'emergency-loan',
+      title: 'Emergency loan active',
+      detail: `${formatMoney(loan.remainingBalance)} remains.`
+        + (state.season >= loan.repaymentStartsSeason
+          ? ` ${loan.remainingWeeks} week${loan.remainingWeeks === 1 ? '' : 's'} of repayments left.`
+          : ` Repayments begin in Season ${loan.repaymentStartsSeason}.`)
+        + ' The balance is on the finances screen.',
+      tone: 'info' as const,
+    }] : []),
+    ...(boardUltimatum === undefined ? [] : [{
+      id: 'board-ultimatum',
+      title: `Board deadline · ${boardUltimatum.weeksRemaining} week${boardUltimatum.weeksRemaining === 1 ? '' : 's'}`,
+      detail: `Reach ${boardTargetLabel(boardUltimatum.targetCash)} or the board will sell one visible, unprotected candidate.`,
+      tone: 'urgent' as const,
+    }]),
+    ...(!showBoardResolution || latestBoardResolution === undefined ? [] : [{
+      id: boardResolutionAlertId!,
+      title: latestBoardResolution.kind === 'TARGET_MET'
+        ? 'Board cash target met'
+        : 'Board sale completed',
+      detail: latestBoardResolution.kind === 'TARGET_MET'
+        ? 'The intervention is closed. No player was sold.'
+        : `${state.players.find(player => player.id === latestBoardResolution.playerId)?.name ?? 'A player'} joined ${clubName(state, latestBoardResolution.buyerClubId)} for ${formatMoney(latestBoardResolution.fee)}.`,
+      tone: latestBoardResolution.kind === 'TARGET_MET' ? 'info' as const : 'urgent' as const,
+    }]),
     // Stated in full, on purpose. A lapse charges exactly what a refusal
     // charges, so the manager has to have been told the number — otherwise
     // ignoring the tab is cheaper than deciding, which is the wrong lesson.
@@ -841,6 +970,46 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
       detail: 'Resolve these contracts before the next season can begin.',
       tone: 'urgent' as const,
     }] : []),
+    // Retirement, in one row per beat rather than one row per player. Seven can
+    // arrive in the same week, the desk shows three, and `retirementAnnouncements`
+    // is overwritten at the next transition — so a row each meant four farewells
+    // were lost for good, with nothing to say they had ever been made.
+    ...(!showRetirementFarewell ? [] : [{
+      id: retirementFarewellAlertId,
+      title: justRetired.length === 1
+        ? `${justRetired[0].name} has retired`
+        : `${justRetired.length} players have retired`,
+      detail: `${namesWithOverflow(justRetired.map(player => player.name))}`
+        + ` ${justRetired.length === 1 ? 'played his' : 'played their'} last match for the club`
+        + ` in Season ${state.season - 1}.`,
+      tone: 'info' as const,
+      ...(justRetired.some(player => player.power !== undefined) ? { isHero: true } : {}),
+    }]),
+    ...(finalWeeks.length === 0 ? [] : [{
+      id: `retirement-final-weeks-${state.season}`,
+      title: finalWeeks.length === 1
+        ? `${finalWeeks[0].name}'s last matches`
+        : `${finalWeeks.length} players play their last matches`,
+      detail: `${namesWithOverflow(finalWeeks.map(player => player.name))}`
+        + ` ${finalWeeks.length === 1 ? 'retires' : 'retire'} when the season ends`
+        + ` — ${weekCountLabel(SEASON_WEEKS - state.week + 1).toLowerCase()} left.`,
+      tone: 'info' as const,
+      ...(finalWeeks.some(player => player.power !== undefined) ? { isHero: true } : {}),
+    }]),
+    ...(retirementAnnouncements.length === 0 ? [] : [{
+      id: `retirement-announcement-${state.season - 1}`,
+      title: retirementAnnouncements.length === 1
+        ? `${retirementAnnouncements[0].playerName} announces final season`
+        : `${retirementAnnouncements.length} players announce final seasons`,
+      detail: retirementAnnouncements.length === 1
+        ? `Age ${retirementAnnouncements[0].retirementAge} · retires after Season ${state.season}.`
+        : `${namesWithOverflow(retirementAnnouncements.map(announcement => announcement.playerName))}`
+          + ` retire after Season ${state.season}.`,
+      tone: 'info' as const,
+      ...(retirementAnnouncements.some(announcement => heroIds.has(announcement.playerId))
+        ? { isHero: true }
+        : {}),
+    }]),
     ...injured.map(player => ({
       id: `injury-${player.id}`,
       title: `${player.name} · OUT`,
@@ -853,41 +1022,33 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
       detail: 'Low morale has become a transfer request. Review the player and decide whether to sell.',
       tone: 'urgent' as const,
     })),
-    ...retirementAnnouncements.map(announcement => ({
-      id: `retirement-announcement-${announcement.announcedInSeason}-${announcement.playerId}`,
-      title: `${announcement.playerName} announces final season`,
-      detail: `Age ${announcement.retirementAge} · retires after Season ${state.season}.`,
-      tone: 'info' as const,
-    })),
-    ...(negativeCashWeeks > 0 ? [{
-      id: 'financial-warning',
-      title: 'Board financial warning',
-      detail: `Cash has stayed negative for ${negativeCashWeeks} week${negativeCashWeeks === 1 ? '' : 's'}. Transfers and building are locked until the balance recovers.`,
-      tone: 'urgent' as const,
-    }] : []),
-    ...(loan !== undefined && loan.remainingBalance > 0 ? [{
-      id: 'emergency-loan',
-      title: 'Emergency loan active',
-      detail: `${formatMoney(loan.remainingBalance)} remains. Repayments begin in Season ${loan.repaymentStartsSeason}.`,
-      tone: 'info' as const,
-    }] : []),
-    ...(boardUltimatum === undefined ? [] : [{
-      id: 'board-ultimatum',
-      title: `Board deadline · ${boardUltimatum.weeksRemaining} week${boardUltimatum.weeksRemaining === 1 ? '' : 's'}`,
-      detail: `Reach ${formatMoney(boardUltimatum.targetCash)} cash or the board will sell one visible, unprotected candidate.`,
-      tone: 'urgent' as const,
-    }]),
-    ...(!showBoardResolution || latestBoardResolution === undefined ? [] : [{
-      id: boardResolutionAlertId!,
-      title: latestBoardResolution.kind === 'TARGET_MET'
-        ? 'Board cash target met'
-        : 'Board sale completed',
-      detail: latestBoardResolution.kind === 'TARGET_MET'
-        ? 'The intervention is closed. No player was sold.'
-        : `${state.players.find(player => player.id === latestBoardResolution.playerId)?.name ?? 'A player'} joined ${clubName(state, latestBoardResolution.buyerClubId)} for ${formatMoney(latestBoardResolution.fee)}.`,
-      tone: latestBoardResolution.kind === 'TARGET_MET' ? 'info' as const : 'urgent' as const,
-    }]),
   ];
+}
+
+/**
+ * A name list that fits one desk row, with the remainder counted rather than
+ * dropped. Alert details render on two lines, so seven names do not fit.
+ */
+function namesWithOverflow(names: readonly string[], shown = 3): string {
+  if (names.length <= shown) {
+    return names.length <= 1
+      ? names[0] ?? ''
+      : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  }
+  return `${names.slice(0, shown).join(', ')} and ${names.length - shown} more`;
+}
+
+/**
+ * What the board is asking for, in words.
+ *
+ * The target is always zero: the board wants the overdraft cleared, not a
+ * balance built. Printing that through the money formatter produced "Reach $0
+ * cash", which reads like copy nobody finished. The number is left alone —
+ * raising it would change how hard the fail-soft economy bites — and only the
+ * sentence is fixed. A future non-zero target still reads correctly.
+ */
+function boardTargetLabel(targetCash: number): string {
+  return targetCash <= 0 ? 'a positive balance' : `${formatMoney(targetCash)} cash`;
 }
 
 export function reconcileHomeAssistantInbox(state: GameState): GameState {
@@ -1020,6 +1181,15 @@ function quietDeskInboxGuides(
   return ['facility-upgrade'];
 }
 
+/**
+ * Which rows are guaranteed one of the week's three slots.
+ *
+ * Priority is what buys the place — urgent rows outrank Bert's guides and
+ * ordinary rows queue behind them — while `tone` only decides how a row looks.
+ * Treating the two as the same field is how the board's own notices became
+ * unreachable: an emergency loan reads calmly, so it scheduled as an ordinary
+ * row and never landed on a desk that had anything else on it.
+ */
 function assistantProductPriority(
   alert: ClubAlertViewModel,
   dueGuides: readonly AssistantInboxGuideSequenceId[],
@@ -1027,6 +1197,12 @@ function assistantProductPriority(
   // The guided first week cannot advance until this project starts, so reserve
   // it a slot without presenting the calm proposal as a red emergency card.
   if (alert.id === 'training-ground') return 'urgent';
+  // Calm in tone, unmissable in fact: each of these is a deadline the club
+  // cannot look up later. `emergency-loan` is deliberately not among them —
+  // see the note on `isBoardNoticeAlertId`.
+  if (isBoardNoticeAlertId(alert.id)) return 'urgent';
+  // A three-week window, and then the player is gone.
+  if (alert.id.startsWith('retirement-final-weeks-')) return 'urgent';
   if (alert.tone === 'urgent') return 'urgent';
   if (dueGuides.includes('retirement') && alert.id.startsWith('retirement-announcement-')) {
     return 'urgent';
@@ -1034,8 +1210,28 @@ function assistantProductPriority(
   return 'normal';
 }
 
+/**
+ * The board notices that are time-critical: the warning, the deadline and the
+ * verdict. Each states something the manager can only act on this week, and
+ * none of them is written down anywhere else.
+ *
+ * `emergency-loan` used to be the fourth. It held an urgent slot because the
+ * outstanding balance appeared on no other screen, which meant a club repaying
+ * a loan gave up one of three desk rows every week for as long as it owed
+ * anything — two of three while it sat on the cash floor, and all three at an
+ * ultimatum deadline. The balance now lives on the finances screen, so the row
+ * queues like any other standing fact.
+ */
+function isBoardNoticeAlertId(alertId: string): boolean {
+  return alertId === 'financial-warning'
+    || alertId === 'board-ultimatum'
+    || alertId.startsWith('board-resolution:');
+}
+
 function isOneShotProductAlert(alertId: string): boolean {
-  return alertId.startsWith('board-resolution:') || alertId.startsWith('training-cap:');
+  return alertId.startsWith('board-resolution:')
+    || alertId.startsWith('training-cap:')
+    || alertId.startsWith('retirement-farewell:');
 }
 
 function standaloneInboxGuides(
@@ -1231,6 +1427,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
         id: boardUltimatum.id,
         weeksRemaining: boardUltimatum.weeksRemaining,
         targetCash: boardUltimatum.targetCash,
+        targetLabel: boardTargetLabel(boardUltimatum.targetCash),
         cashNeeded: Math.max(0, boardUltimatum.targetCash - userClub.cash),
         ...(boardUltimatum.protectedPlayerId === undefined
           || !rosterById.has(boardUltimatum.protectedPlayerId)

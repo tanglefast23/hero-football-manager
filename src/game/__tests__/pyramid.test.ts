@@ -2,7 +2,6 @@ import type { Attrs } from '../../sim/types';
 import {
   advanceNationalCup,
   applyLowMoraleToStat,
-  boostLegacyYouthAttributes,
   createLegendLegacy,
   createNationalCup,
   DIVISION_GOALKEEPER_REF_RATINGS,
@@ -289,7 +288,12 @@ describe('aging, retirement, and legacy', () => {
     expect(retired.retiredPlayers).toHaveLength(1);
   });
 
-  it('offers eligible legends either a discounted coach or a boosted same-archetype youth', () => {
+  /**
+   * One outcome. The mentored youth was removed once it was measured: it needs
+   * a seventeenth roster place and the season transition always refills the
+   * squad to the sixteen-player cap, so it could never actually be taken.
+   */
+  it('turns an eligible legend into a discounted coach, and refuses anyone else', () => {
     const legend = lifecyclePlayer({
       id: 'legend-flint',
       fame: 80,
@@ -299,7 +303,7 @@ describe('aging, retirement, and legacy', () => {
     });
     expect(isClubLegend(legend)).toBe(true);
     expect(isClubLegend({ fame: 69, seasonsAtClub: 10 })).toBe(false);
-    expect(createLegendLegacy(legend, 'coach-candidate', 8, 9)).toEqual({
+    expect(createLegendLegacy(legend)).toEqual({
       choice: 'coach-candidate',
       coachCandidate: {
         id: 'legacy-coach-legend-flint',
@@ -309,15 +313,8 @@ describe('aging, retirement, and legacy', () => {
         loyaltyDiscountPercent: 20,
       },
     });
-    const youth = createLegendLegacy(legend, 'mentor-youth', 8, 9);
-    expect(youth.choice).toBe('mentor-youth');
-    if (youth.choice !== 'mentor-youth') throw new Error('expected youth legacy');
-    expect(youth.youth.archetype).toBe(legend.archetype);
-    expect(youth.youth.name.endsWith(' Flint')).toBe(true);
-    expect(youth.startingStatBoostPercent).toBe(15);
-    expect(boostLegacyYouthAttributes({ ...ATTRS, ref: 90 })).toEqual({
-      pac: 69, sho: 69, pas: 69, def: 69, tec: 69, sta: 69, ref: 103,
-    });
+    expect(() => createLegendLegacy(lifecyclePlayer({ id: 'journeyman', fame: 12, seasonsAtClub: 1 })))
+      .toThrow('not eligible');
   });
 });
 

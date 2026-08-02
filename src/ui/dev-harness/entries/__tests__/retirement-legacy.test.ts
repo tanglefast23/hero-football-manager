@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { clubLegacyViewModel, homeViewModel } from '../../../../application/view-models';
 import { resolveNextClubLegendLegacy } from '../../../../game/legacy-career';
 import { CLUB_LEGEND_MIN_FAME, CLUB_LEGEND_MIN_SEASONS } from '../../../../game/pyramid';
+import { careerRosterCapacity, userCareerRosterCount } from '../../../../game/youth-intake';
 import type { GameState } from '../../../../game/types';
 
 /**
@@ -42,18 +43,22 @@ function career(caseId: RetirementLegacyCaseId): GameState {
   return retirementLegacyCareer(caseId, OPTIONS);
 }
 
+function retirementAlerts(state: GameState) {
+  return homeViewModel(state).alerts.filter(alert => alert.id.startsWith('retirement-'));
+}
+
 function retirementRows(state: GameState): string[] {
-  return homeViewModel(state).alerts
-    .filter(alert => alert.id.startsWith('retirement-announcement-'))
-    .map(alert => alert.title);
+  return retirementAlerts(state).map(alert => alert.title);
 }
 
 describe('the retirement and legacy reel', () => {
-  it('registers three squads and three queues', () => {
+  it('registers five squads and three queues', () => {
     expect(retirementLegacyEntry.cases.map(entry => entry.id)).toEqual([
       'announcement',
       'hero-farewell',
       'generation',
+      'last-matches',
+      'farewell',
       'legacy-one',
       'legacy-queue',
       'legacy-empty',
@@ -91,31 +96,79 @@ describe('the retirement and legacy reel', () => {
     expect(announcement?.retirementAge).toBeLessThanOrEqual(38);
   });
 
-  /** The emotionally loaded one: a player with a power is the one leaving. */
-  it('gives the hero farewell an actual hero', () => {
+  /**
+   * The emotionally loaded one, and the one that used to read like any other
+   * row: the desk never said the player leaving had a power.
+   */
+  it('marks the hero farewell as a hero', () => {
     const state = career('hero-farewell');
     const announcement = state.retirementAnnouncements?.[0];
     const leaving = state.players.find(player => player.id === announcement?.playerId);
+    const row = retirementAlerts(state)[0];
 
     expect(leaving?.power).toBeDefined();
     expect(retirementRows(state)).toHaveLength(1);
+    expect(row?.isHero).toBe(true);
+    // The ordinary farewell carries no chip, so the chip means something.
+    expect(retirementAlerts(career('announcement'))[0]?.isHero).toBeUndefined();
   });
 
   /**
-   * The measurement the case exists to take: the desk carries three items a
-   * week, so a generation ageing out arrives larger than the inbox it lands in
-   * and the remainder is dropped with nothing to say it existed.
+   * The measurement the case exists to take. Seven farewells arrive in a desk
+   * that shows three rows, and `retirementAnnouncements` is overwritten at the
+   * next transition — so one row per player lost four of them for good. One
+   * grouped row names three and counts the rest.
    */
-  it('ages a whole generation out at once and shows the desk overflowing', () => {
+  it('ages a whole generation out at once without losing anybody', () => {
     const state = career('generation');
     const announced = state.retirementAnnouncements?.length ?? 0;
-    const shown = retirementRows(state);
+    const rows = retirementAlerts(state);
 
     expect(announced).toBeGreaterThan(3);
-    expect(shown.length).toBeLessThanOrEqual(3);
-    expect(shown.length).toBeLessThan(announced);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].title).toBe(`${announced} players announce final seasons`);
+    expect(rows[0].detail).toContain(`and ${announced - 3} more`);
     expect(retirementLegacyNote('generation', state)).toContain(`Announced ${announced}`);
-    expect(retirementLegacyNote('generation', state)).toContain(`${shown.length} on the desk`);
+    expect(retirementLegacyNote('generation', state)).toContain('1 on the desk');
+  });
+
+  /**
+   * The advance warning. An announcement is a season old by the time the last
+   * match is played, so without this the send-off is something a manager reads
+   * about afterwards. It schedules urgent because its window is three weeks
+   * wide — a busy desk must not swallow it.
+   */
+  it('warns that the last matches are being played, even on a busy desk', () => {
+    const state = career('last-matches');
+    const busy = retirementLegacyCareer('last-matches', { quietDesk: false });
+    const warning = retirementAlerts(state)
+      .find(alert => alert.id.startsWith('retirement-final-weeks-'));
+
+    expect(warning).toBeDefined();
+    expect(warning?.detail).toContain('when the season ends');
+    expect(warning?.detail).toContain('weeks left');
+    expect(warning?.isHero).toBe(true);
+    expect(retirementAlerts(busy).map(alert => alert.id))
+      .toContain(`retirement-final-weeks-${busy.season}`);
+  });
+
+  /**
+   * The moment that did not exist at all. `retiredPlayers` grew for the whole
+   * career and was rendered nowhere, so a player below the legend thresholds
+   * got one announcement and then vanished.
+   */
+  it('says goodbye the season after a player has actually gone', () => {
+    const state = career('farewell');
+    const gone = state.retiredPlayers ?? [];
+    const row = retirementAlerts(state)
+      .find(alert => alert.id === `retirement-farewell:s${state.season}`);
+
+    expect(gone.length).toBe(3);
+    expect(gone.every(player => player.retirementAnnouncementSeason === state.season - 2)).toBe(true);
+    expect(state.players.some(player => gone.some(left => left.id === player.id))).toBe(false);
+    expect(row?.title).toBe('3 players have retired');
+    expect(row?.detail).toContain(`Season ${state.season - 1}`);
+    expect(row?.isHero).toBe(true);
   });
 
   it('queues legends the shipped thresholds accept', () => {
@@ -134,7 +187,7 @@ describe('the retirement and legacy reel', () => {
     expect(clubLegacyViewModel(career('legacy-queue')).queueLabel).toBe('3 legacy decisions remain');
   });
 
-  /** The reel's two buttons are the shipped transaction, so the queue advances. */
+  /** The reel's buttons are the shipped transaction, so the queue advances. */
   it('advances the queue through the real legacy transaction', () => {
     const state = career('legacy-queue');
     const first = state.pendingLegacyPlayerIds?.[0];
@@ -147,16 +200,66 @@ describe('the retirement and legacy reel', () => {
   });
 
   /**
-   * "Mentor a prospect" adds a seventeenth player to a squad the season
-   * transition has already refilled to its role targets. Whether it can be
-   * taken at all is therefore a roster-space question, and the reel reports
-   * the count rather than assuming an answer.
+   * Two choices, and both of them work over a full roster. "Mentor a prospect"
+   * did not: it added a seventeenth player to a squad the season transition has
+   * already refilled to the sixteen-player cap, so every offer of it threw and
+   * the store turned the throw into an error banner under a button that still
+   * looked available.
    */
-  it('reports the roster space the mentor choice needs', () => {
+  it('offers the coach and the farewell, over a full roster', () => {
     const state = career('legacy-queue');
+    const legacy = clubLegacyViewModel(state);
 
+    expect(legacy.choices.map(choice => choice.id)).toEqual(['coach-candidate', 'farewell']);
+    // Both read as decisions: a label, why it happens, and what it does.
+    expect(legacy.choices.every(choice => (
+      choice.label.length > 0 && choice.detail.length > 0 && choice.outcome.length > 0
+    ))).toBe(true);
     expect(retirementLegacyNote('legacy-queue', state)).toMatch(/roster \d+\/\d+/);
     expect(retirementLegacyNote('legacy-queue', state)).toContain('Queue 3');
+    // The roster is full, and both legacies resolve anyway.
+    expect(userCareerRosterCount(state)).toBe(careerRosterCapacity(state));
+    expect(() => resolveNextClubLegendLegacy(state, 'coach-candidate')).not.toThrow();
+    expect(() => resolveNextClubLegendLegacy(state, 'farewell')).not.toThrow();
+  });
+
+  /**
+   * The measurement the second button exists to survive: the queue advances the
+   * same way, and the coach market is the number that separates the two.
+   */
+  it('advances the queue on a farewell without touching the coach market', () => {
+    const state = career('legacy-queue');
+    const first = state.pendingLegacyPlayerIds?.[0];
+    const coachesBefore = state.market?.coachCandidates.length ?? 0;
+
+    const declined = resolveNextClubLegendLegacy(state, 'farewell');
+    const hired = resolveNextClubLegendLegacy(state, 'coach-candidate');
+
+    expect(declined.resolvedPlayerId).toBe(first);
+    expect(declined.state.pendingLegacyPlayerIds).toHaveLength(2);
+    expect(declined.coachCandidate).toBeUndefined();
+    expect(declined.state.market?.coachCandidates).toHaveLength(coachesBefore);
+    expect(hired.state.market?.coachCandidates).toHaveLength(coachesBefore + 1);
+    expect(retirementLegacyNote('legacy-queue', declined.state))
+      .toContain(`coach market ${coachesBefore}`);
+    expect(retirementLegacyNote('legacy-queue', hired.state))
+      .toContain(`coach market ${coachesBefore + 1}`);
+  });
+
+  /**
+   * The club's own record of everyone who has left it. `retiredPlayers` grows
+   * for the life of a career and used to be rendered on no screen at all.
+   */
+  it('shows the roll of former players beside the decision', () => {
+    const legacy = clubLegacyViewModel(career('legacy-queue'));
+
+    expect(legacy.isHero).toBe(true);
+    // Three retired, one of them the legend this screen is deciding about.
+    expect(legacy.formerPlayerTotal).toBe(2);
+    expect(legacy.formerPlayers.map(former => former.playerId)).not.toContain(legacy.playerId);
+    expect(legacy.formerPlayers.every(former => /\d+ seasons? · \d+ fame/.test(former.detail)))
+      .toBe(true);
+    expect(retirementLegacyNote('legacy-queue', career('legacy-queue'))).toContain('roll shows 2/2');
   });
 
   it('has no legacy screen for an empty queue, and says so', () => {
@@ -171,6 +274,8 @@ describe('the retirement and legacy reel', () => {
     expect(isLegacyCase('announcement')).toBe(false);
     expect(isLegacyCase('hero-farewell')).toBe(false);
     expect(isLegacyCase('generation')).toBe(false);
+    expect(isLegacyCase('last-matches')).toBe(false);
+    expect(isLegacyCase('farewell')).toBe(false);
     expect(isLegacyCase('legacy-one')).toBe(true);
     expect(isLegacyCase('legacy-empty')).toBe(true);
   });

@@ -51,10 +51,14 @@ export interface BoardUltimatumOptions {
   readonly weeksRemaining: number;
   /**
    * Clears the career's own unrelated inbox rows (transfer requests, injuries,
-   * Bert's firsts). The desk shows three items a week and the board's rows are
-   * built LAST in `homeProductAlerts`, so on a busy desk they are the ones that
-   * fall off — which is worth seeing, hence the toggle rather than a silent
-   * clean-up.
+   * Bert's firsts). The board's rows used to be built LAST in
+   * `homeProductAlerts`, so on a busy desk they were the ones that fell off and
+   * this toggle was the difference between seeing the escalation and seeing
+   * nothing. They are built first now, and the three time-critical ones are
+   * scheduled urgent, so the toggle measures rather than rescues: both settings
+   * must show the same warning, deadline and verdict. The loan row is the
+   * deliberate exception — it queues like any ordinary notice, because the
+   * balance it reports is on the finances screen every week regardless.
    */
   readonly quietDesk: boolean;
 }
@@ -82,13 +86,13 @@ function withCash(state: GameState, cash: number): GameState {
 }
 
 /**
- * A desk with nothing on it but the board, so the board's own rows are visible.
+ * A desk with nothing on it but the board.
  *
  * The seeded career is played by a manager who never intervenes, so by season 2
  * it is carrying transfer requests, injuries, an unbuilt training pitch and
  * every one of Bert's firsts — none of which a manager who had been playing
- * would still have, and all of which outrank the board for the three inbox rows
- * a week.
+ * would still have, and all of which used to outrank the board for the three
+ * inbox rows a week.
  */
 function withQuietDesk(state: GameState): GameState {
   const cleared: GameState = {
@@ -227,7 +231,8 @@ export function boardUltimatumNote(state: GameState): string {
   const safety = state.financialSafety;
   const ultimatum = safety?.boardUltimatum;
   const produced = homeProductAlerts(state).filter(alert => isBoardAlertId(alert.id));
-  const onDesk = homeViewModel(state).alerts.filter(alert => isBoardAlertId(alert.id));
+  const deskRows = homeViewModel(state).alerts;
+  const onDesk = deskRows.filter(alert => isBoardAlertId(alert.id));
   return [
     `Cash ${club?.cash ?? 0}`,
     `red weeks ${safety?.consecutiveNegativeWeeks ?? 0}/${difficultyRules(state).negativeWeeksBeforeIntervention}`,
@@ -236,7 +241,13 @@ export function boardUltimatumNote(state: GameState): string {
       ? 'no deadline'
       : `target ${ultimatum.targetCash} · ${ultimatum.candidates.length} on the block`
         + (ultimatum.protectedPlayerId === undefined ? ' · none protected' : ' · one protected'),
+    // The measurement the reel exists to take. It read 0/n on every busy desk.
+    // The three time-critical rows must now read n/n whatever else the week is
+    // carrying; the loan row may queue, because the balance it used to be the
+    // only copy of is on the finances screen. The second number is what that
+    // bought: how many of the week's three slots the board is holding.
     `board rows ${onDesk.length}/${produced.length} on the desk`,
+    `board holds ${onDesk.length}/${deskRows.length} slots`,
   ].join(' · ');
 }
 

@@ -186,14 +186,18 @@ export function endgameCelebrationViewModel(
     subheading: copy.subheading,
     lines: copy.lines,
     ...(starViewModel === undefined ? {} : { star: starViewModel }),
-    // The true ending is one man talking to his manager. The other two are the
-    // whole squad walking out, which is what makes them read as team moments.
-    squad: kind === 'true-ending'
-      ? []
-      : squad
-        .filter(player => player.id !== star?.id)
-        .sort((left, right) => compareIds(left.id, right.id))
-        .map(toViewModel),
+    // The star is never in here twice: he is carried separately because all
+    // three moments treat him differently from the men beside him.
+    //
+    // The true ending takes the squad too. It OPENS as one man talking to his
+    // manager, and the rest of the club is not on the pitch while he does it —
+    // but once he has finished and walked off, everybody comes out for the
+    // curtain call, and a screen holding no squad would have had nobody to
+    // bring on for the last thing the game ever shows.
+    squad: squad
+      .filter(player => player.id !== star?.id)
+      .sort((left, right) => compareIds(left.id, right.id))
+      .map(toViewModel),
     // Held in on the true ending, which plays once per career and never again.
     skippable: kind !== 'true-ending',
     accessibilityLabel: `${copy.headline}. ${copy.subheading}. ${copy.lines.join(' ')}`,
@@ -250,7 +254,8 @@ function celebrationCopy(
       'Boss. Before anyone else gets in here — thank you.',
       'You made me the player I am. Every bit of it came out of your coaching.',
       'We won the league. We won the Cup. I am glad we did.',
-      'But it is not the trophies I will carry. It is the mornings on the training pitch, and the one man who kept turning up for me.',
+      'But it is not the trophies I will carry.',
+      'It is the mornings on the training pitch, and the one man who kept turning up.',
       'Wherever this goes next, I got here with you. Thank you, boss.',
     ],
   };

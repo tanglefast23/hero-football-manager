@@ -105,7 +105,10 @@ function endgameQaViewModel(kind: EndgameCelebrationKind): EndgameCelebrationVie
     subheading: copy.subheading,
     lines: copy.lines,
     star,
-    squad: kind === 'true-ending' ? [] : squad,
+    // Every moment gets the squad now: the trophy screens walk them out at the
+    // top, and the true ending brings them on for the curtain call once the
+    // star has finished talking.
+    squad,
     skippable: kind !== 'true-ending',
     accessibilityLabel: `${copy.headline}. ${copy.subheading}. ${copy.lines.join(' ')}`,
   };
@@ -150,7 +153,7 @@ const QA_COPY: Readonly<Record<EndgameCelebrationKind, {
 const CASE_NOTES: Readonly<Record<EndgameCelebrationKind, string>> = Object.freeze({
   'global-league': 'First D1 title, Cup unwon · full squad walk-out, biggest staging',
   'cup-winners': 'First Cup, D1 unwon · smaller staging, still not a consolation',
-  'true-ending': 'Both trophies in · one man, five bubbles, no skip',
+  'true-ending': 'Both trophies in · five bubbles, then the squad out and Bert’s sign-off. No skip. The last tap goes to the title screen in the game; here it replays.',
 });
 
 export const endgameCelebrationEntry: DevHarnessEntry = Object.freeze({

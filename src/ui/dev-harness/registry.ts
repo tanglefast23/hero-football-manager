@@ -5,6 +5,7 @@ import { boardUltimatumEntry } from './entries/board-ultimatum';
 import { careerEventsEntry } from './entries/career-events';
 import { cupGiantKillingEntry } from './entries/cup-giant-killing';
 import { endgameCelebrationEntry } from './entries/endgame';
+import { hallOfFameEntry } from './entries/hall-of-fame';
 import { playerRequestsEntry } from './entries/player-requests';
 import { promotionTransitionEntry } from './entries/promotion-transition';
 import { retirementLegacyEntry } from './entries/retirement-legacy';
@@ -60,5 +61,6 @@ export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   retirementLegacyEntry,
   awardsCeremonyEntry,
   endgameCelebrationEntry,
+  hallOfFameEntry,
   assistantBeatsEntry,
 ]);

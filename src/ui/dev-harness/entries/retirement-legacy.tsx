@@ -7,11 +7,12 @@ import {
   nextPendingClubLegend,
   reconcilePendingClubLegends,
   resolveNextClubLegendLegacy,
+  type CareerLegendLegacyChoice,
 } from '../../../game/legacy-career';
 import { resolveM2CareerPlayerLifecycle } from '../../../game/m2-career';
 import { generatedClubPower } from '../../../game/power-catalog';
 import { isClubLegend, retirementAnnouncementAge } from '../../../game/pyramid';
-import type { CareerPlayer, GameState } from '../../../game/types';
+import { SEASON_WEEKS, type CareerPlayer, type GameState } from '../../../game/types';
 import { careerRosterCapacity, userCareerRosterCount } from '../../../game/youth-intake';
 import { ClubHomeScreen } from '../../screens/ClubHomeScreen';
 import { ClubLegacyScreen } from '../../screens/ClubLegacyScreen';
@@ -34,15 +35,20 @@ import type { DevHarnessEntry } from '../registry';
  * fed by their own view-model builders. What the reel fabricates is ages: the
  * one input a career spends seasons accumulating.
  *
- * The legacy choice is wired to the real `resolveNextClubLegendLegacy`, so
- * "Join the staff" and "Mentor a prospect" do here exactly what they do in a
- * career — including refusing, which is worth seeing.
+ * Both legacy choices are wired to the real `resolveNextClubLegendLegacy`, so
+ * "Join the staff" and "Let him go" do here exactly what they do in a career.
+ * There are two rather than three: "Mentor a prospect" was removed once this
+ * reel showed that it always refused — it needs a seventeenth roster place, and
+ * the season transition refills the squad to the sixteen-player cap before the
+ * screen ever opens. The farewell replaced it, and creates nothing at all.
  */
 
 export type RetirementLegacyCaseId =
   | 'announcement'
   | 'hero-farewell'
   | 'generation'
+  | 'last-matches'
+  | 'farewell'
   | 'legacy-one'
   | 'legacy-queue'
   | 'legacy-empty';
@@ -50,8 +56,10 @@ export type RetirementLegacyCaseId =
 export interface RetirementLegacyOptions {
   /**
    * Clears the career's own unrelated inbox rows. The desk shows three items a
-   * week; retirement notices are built near the end of `homeProductAlerts` and
-   * carry the quieter tone, so on a busy desk they are the rows that fall off.
+   * week and a retirement notice carries the quieter tone, so on a busy desk it
+   * queues behind every injury — except the last-matches warning, which is
+   * scheduled urgent because its window is three weeks wide and then the player
+   * is gone.
    */
   readonly quietDesk: boolean;
 }
@@ -69,11 +77,20 @@ const LEGEND_FAME = 82;
 /** Young enough that nobody announces unless the reel asked them to. */
 const UNREMARKABLE_AGE = 24;
 
+/** Late enough in the season that the last-matches warning is live. */
+const FINAL_WEEKS_WEEK = SEASON_WEEKS - 2;
+
 /**
  * Season 2, so the desk has a previous season for a notice to have been made
  * in: `homeProductAlerts` only shows announcements from `season - 1`.
+ *
+ * The farewell case needs one more, because a player who has already retired
+ * announced it two seasons back: season 1 is the earliest a notice can be
+ * stamped, so the season that mourns him is season 3.
  */
-function baseCareer(): GameState {
+function baseCareer(caseId: RetirementLegacyCaseId): GameState {
+  if (caseId === 'farewell') return devHarnessCareerAtWeek(3, 2);
+  if (caseId === 'last-matches') return devHarnessCareerAtWeek(2, FINAL_WEEKS_WEEK);
   return devHarnessCareerAtWeek(2, 2);
 }
 
@@ -197,16 +214,53 @@ function withRetiredLegends(state: GameState, count: number): GameState {
   };
 }
 
+/**
+ * The squad after a generation has actually gone: the players are off the
+ * roster and on file, stamped with the season that makes the desk say goodbye.
+ *
+ * Only bench players leave. A real transition refills the squad in the same
+ * step, and taking a starter out here would leave the lineup pointing at
+ * somebody who no longer exists — a fault of the reel, not of the feature.
+ */
+function withJustRetired(state: GameState, count: number, makeHero: boolean): GameState {
+  const lineupIds = new Set(
+    state.lineups.find(lineup => lineup.clubId === state.userClubId)?.playerIds ?? [],
+  );
+  const leaving = userRoster(state)
+    .filter(player => !lineupIds.has(player.id))
+    .slice(0, count)
+    .map((player, index) => {
+      // Announced two seasons back is what makes this season the one that
+      // mourns him: he announced in S-2, played S-1, and is gone in S.
+      const retiring: CareerPlayer = {
+        ...player,
+        age: announcementAge(state, player) + 1,
+        retirementAnnouncementSeason: state.season - 2,
+      };
+      return index === 0 && makeHero ? asHero(state, retiring) : retiring;
+    });
+  const lifecycle = resolveM2CareerPlayerLifecycle(leaving, state.season - 1, state.careerSeed);
+  const departedIds = new Set(lifecycle.retiredPlayers.map(player => player.id));
+  return {
+    ...state,
+    players: state.players.filter(player => !departedIds.has(player.id)),
+    retiredPlayers: lifecycle.retiredPlayers,
+  };
+}
+
 /** One state of the arc, built by the lifecycle that owns it. */
 export function retirementLegacyCareer(
   caseId: RetirementLegacyCaseId,
   options: RetirementLegacyOptions,
 ): GameState {
-  const base = options.quietDesk ? withQuietDesk(baseCareer()) : baseCareer();
+  const raw = baseCareer(caseId);
+  const base = options.quietDesk ? withQuietDesk(raw) : raw;
 
   if (caseId === 'announcement') return agedForAnnouncement(base, 1, false);
   if (caseId === 'hero-farewell') return agedForAnnouncement(base, 1, true);
   if (caseId === 'generation') return agedForAnnouncement(base, 7, true);
+  if (caseId === 'last-matches') return agedForAnnouncement(base, 3, true);
+  if (caseId === 'farewell') return withJustRetired(base, 3, true);
   if (caseId === 'legacy-empty') return base;
   return withRetiredLegends(base, LEGACY_QUEUE_SIZES[caseId] ?? 1);
 }
@@ -222,17 +276,27 @@ export function retirementLegacyNote(
 ): string {
   if (isLegacyCase(caseId)) {
     const queued = state.pendingLegacyPlayerIds?.length ?? 0;
+    const legacy = queued === 0 ? undefined : clubLegacyViewModel(state);
     return [
       `Queue ${queued}`,
       `retired on file ${state.retiredPlayers?.length ?? 0}`,
+      `roll shows ${legacy?.formerPlayers.length ?? 0}/${legacy?.formerPlayerTotal ?? 0}`,
       `roster ${userCareerRosterCount(state)}/${careerRosterCapacity(state)}`,
+      // The difference between the two choices, in one number: the coach path
+      // moves it, the farewell must leave it exactly where it was.
+      `coach market ${state.market?.coachCandidates.length ?? 0}`,
     ].join(' · ');
   }
   const announced = state.retirementAnnouncements?.length ?? 0;
-  const onDesk = homeViewModel(state).alerts
-    .filter(alert => alert.id.startsWith('retirement-announcement-'))
-    .length;
-  return `Announced ${announced} · ${onDesk} on the desk · desk holds 3 rows a week`;
+  const rows = homeViewModel(state).alerts.filter(alert => alert.id.startsWith('retirement-'));
+  return [
+    `Announced ${announced}`,
+    `retired on file ${state.retiredPlayers?.length ?? 0}`,
+    // One row now covers a whole intake, so this reads 1 where it used to read
+    // 3 while four more farewells were dropped and never mentioned again.
+    `${rows.length} on the desk (${rows.map(row => row.id).join(', ') || 'none'})`,
+    'desk holds 3 rows a week',
+  ].join(' · ');
 }
 
 /** The queue the legacy screen has no picture for: no legend, no screen. */
@@ -247,8 +311,9 @@ function EmptyLegacyPanel({ reason }: { readonly reason: string }) {
       </Text>
       <Text style={styles.emptyQuote}>{reason}</Text>
       <Text style={styles.emptyBody}>
-        Nothing in the game shows a club its retired players once their legacy
-        is chosen, so this is where the arc ends.
+        The roll of former players lives on that screen too, so with the queue
+        empty the club's own record of who has left it is unreachable until the
+        next legend retires.
       </Text>
     </View>
   );
@@ -278,7 +343,7 @@ export function RetirementLegacyReel({ caseId }: { readonly caseId: RetirementLe
     change();
   }, []);
 
-  const choose = useCallback((choice: 'coach-candidate' | 'mentor-youth') => {
+  const choose = useCallback((choice: CareerLegendLegacyChoice) => {
     try {
       const transaction = resolveNextClubLegendLegacy(state, choice);
       setPlayed(reconcilePendingClubLegends(transaction.state));
@@ -394,7 +459,17 @@ const CASES: readonly { id: RetirementLegacyCaseId; label: string; note: string 
   {
     id: 'generation',
     label: 'Generation',
-    note: 'A whole generation ages out at once · the desk holds three',
+    note: 'Seven announce at once · one grouped row, nobody dropped',
+  },
+  {
+    id: 'last-matches',
+    label: 'Last week',
+    note: 'Three weeks left · the warning that a farewell is coming',
+  },
+  {
+    id: 'farewell',
+    label: 'Gone',
+    note: 'The season after · they have actually retired, and the desk says so',
   },
   {
     id: 'legacy-one',
@@ -414,9 +489,11 @@ const CASES: readonly { id: RetirementLegacyCaseId; label: string; note: string 
 ]);
 
 /**
- * The cases are six inputs: three squads of different ages, and three legacy
- * queues of different lengths. The desk toggle and Bert's cue are dials inside
- * one of them, so they stay local.
+ * The cases are eight inputs: five squads at different points of the same
+ * goodbye — announced, announced-and-a-hero, a whole generation, the last three
+ * weeks, and the season after — and three legacy queues of different lengths.
+ * The desk toggle and Bert's cue are dials inside one of them, so they stay
+ * local.
  */
 export const retirementLegacyEntry: DevHarnessEntry = Object.freeze({
   id: 'retirement-legacy',

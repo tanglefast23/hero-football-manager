@@ -143,6 +143,7 @@ import { AwakeningArtQaScreen } from './src/ui/screens/AwakeningArtQaScreen';
 import { PowerArtQaScreen } from './src/ui/screens/PowerArtQaScreen';
 import { championshipCelebrationViewModel } from './src/application/championship-celebration';
 import { endgameCelebrationViewModel } from './src/application/endgame-celebration';
+import { hallOfFameViewModel } from './src/application/hall-of-fame';
 import { EndgameCelebrationScreen } from './src/ui/screens/EndgameCelebrationScreen';
 import {
   awardCeremonyLookIds,
@@ -477,6 +478,7 @@ function GameApp() {
   const [fontsLoaded, fontError] = useFonts({ Silkscreen_400Regular, Silkscreen_700Bold });
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const [globalGlossaryOpen, setGlobalGlossaryOpen] = useState(false);
+  const [globalHallOfFameOpen, setGlobalHallOfFameOpen] = useState(false);
   const [settingsSaveError, setSettingsSaveError] = useState<string | null>(null);
   const [moneyGuideAnchor, setMoneyGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
   const [navigationGuideAnchor, setNavigationGuideAnchor] = useState<TutorialAnchorLayout | null>(null);
@@ -1462,6 +1464,8 @@ function GameApp() {
         )}
         reduceMotion={reduceMotion}
         onComplete={store.completeEndgameCelebration}
+        // The true ending's finale ends on the title screen it started from.
+        onReturnToTitle={store.returnToTitleFromEnding}
       />
     );
   } else if (store.screen === 'awards-ceremony') {
@@ -1862,6 +1866,10 @@ function GameApp() {
           cutInMode={preferences.cutInMode}
           managerTipsEnabled={preferences.managerTipsEnabled}
           accessibilityCopy={content.assistantGuide.m4Fiction.accessibility}
+          // No career, no record to open — not even a locked one.
+          hallOfFame={store.career === null ? undefined : hallOfFameViewModel(store.career)}
+          hallOfFameOpen={globalHallOfFameOpen}
+          onHallOfFameOpenChange={setGlobalHallOfFameOpen}
           difficultyLabel={store.career?.onboarding?.stage === 'create-player'
             ? undefined
             : store.career?.difficulty ?? (store.career ? 'COZY' : undefined)}
@@ -1880,6 +1888,7 @@ function GameApp() {
             setGlobalSettingsOpen(open);
             if (!open) {
               setGlobalGlossaryOpen(false);
+              setGlobalHallOfFameOpen(false);
               setSettingsSaveError(null);
             }
           }}

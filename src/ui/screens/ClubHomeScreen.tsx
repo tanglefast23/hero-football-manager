@@ -224,7 +224,10 @@ export function ClubHomeScreen({
                     />
                   ) : null}
                   <View className="flex-1 pr-3">
-                    <PixelText className="text-base uppercase text-ink">{alert.title}</PixelText>
+                    <View className="flex-row items-center gap-2">
+                      <PixelText className="flex-1 text-base uppercase text-ink">{alert.title}</PixelText>
+                      {alert.isHero ? <StatusChip label="Hero" tone="hero" /> : null}
+                    </View>
                     <Text className="mt-1 text-ink/70" style={scaledBody(textScale, 14, 18)} numberOfLines={2}>{alert.detail}</Text>
                   </View>
                   <Text className="font-pixel text-xl text-ink">›</Text>
@@ -341,7 +344,7 @@ export function ClubHomeScreen({
           />
           <PaperPanel kicker="Board deadline" title="Reach the target. Avoid a forced sale." stamp="Career continues" className="bg-red-light">
             <Text className="text-ink/70" style={scaledBody(textScale, 14, 20)}>
-              Reach {formatCurrency(viewModel.boardUltimatum.targetCash)} cash before the deadline. If you miss it, the board sells one candidate shown below at a {viewModel.boardUltimatum.candidates[0]?.discountPercent ?? 30}% discount. Your protected player is untouchable, and your career continues either way.
+              Reach {viewModel.boardUltimatum.targetLabel} before the deadline. If you miss it, the board sells one candidate shown below at a {viewModel.boardUltimatum.candidates[0]?.discountPercent ?? 30}% discount. Your protected player is untouchable, and your career continues either way.
             </Text>
             <View className="mt-3 flex-row gap-2">
               <Metric label="Cash needed" value={formatCurrency(viewModel.boardUltimatum.cashNeeded)} tone="negative" />

@@ -72,7 +72,8 @@ describe('the firework display', () => {
       expect(burst.leftPercent).toBeGreaterThanOrEqual(0);
       expect(burst.leftPercent).toBeLessThanOrEqual(95);
       expect(burst.topPercent).toBeGreaterThanOrEqual(0);
-      // The stand runs to 44% of the screen; a shell below that is behind it.
+      // The horizon is at 46% of the screen (`HORIZON_PERCENT`); a shell that
+      // opens below this is going off behind the stand.
       expect(burst.topPercent).toBeLessThan(36);
       expect(burst.scale).toBeGreaterThan(0);
     });
