@@ -719,6 +719,50 @@ export interface ChampionshipCelebrationViewModel {
 }
 
 /**
+ * The three moments that mark the end of the main climb.
+ *
+ * `global-league` and `cup-winners` are the halfway houses — one trophy in, one
+ * still to get — and each points at the other. `true-ending` is the pair being
+ * completed, in whichever order the manager completed it.
+ */
+export type EndgameCelebrationKind = 'global-league' | 'cup-winners' | 'true-ending';
+
+export interface EndgameCelebrationPlayerViewModel {
+  readonly id: string;
+  readonly name: string;
+  readonly role: 'GK' | 'DEF' | 'MID' | 'FWD';
+  readonly isHero: boolean;
+  /** Career fame, which is what picked the star out of the squad. */
+  readonly fame: number;
+  /** The exact atlas character used for this player in the final match. */
+  readonly spriteKey: string;
+  /** His assigned look, so a single walk-on wears his own face. */
+  readonly lookId?: string;
+}
+
+export interface EndgameCelebrationViewModel {
+  readonly kind: EndgameCelebrationKind;
+  readonly seasonLabel: string;
+  readonly clubName: string;
+  readonly assistantName: string;
+  readonly headline: string;
+  readonly subheading: string;
+  /**
+   * Body copy on the two smaller screens, and one speech bubble per entry on
+   * the true ending. Always rendered in full under reduced motion: no line of
+   * this may live only in the animation.
+   */
+  readonly lines: readonly string[];
+  /** The highest-fame player. Absent only for a club with no squad left. */
+  readonly star?: EndgameCelebrationPlayerViewModel;
+  /** Everyone else, for the two squad walk-outs. Empty on the true ending. */
+  readonly squad: readonly EndgameCelebrationPlayerViewModel[];
+  /** False on the true ending, which holds the manager in for all of it. */
+  readonly skippable: boolean;
+  readonly accessibilityLabel: string;
+}
+
+/**
  * One name on one podium.
  *
  * `position` is the podium slot, not the leader board's shared rank. The podium

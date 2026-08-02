@@ -142,6 +142,8 @@ import type { AwakeningCutsceneViewModel, SquadTrainingViewModel } from './src/u
 import { AwakeningArtQaScreen } from './src/ui/screens/AwakeningArtQaScreen';
 import { PowerArtQaScreen } from './src/ui/screens/PowerArtQaScreen';
 import { championshipCelebrationViewModel } from './src/application/championship-celebration';
+import { endgameCelebrationViewModel } from './src/application/endgame-celebration';
+import { EndgameCelebrationScreen } from './src/ui/screens/EndgameCelebrationScreen';
 import {
   awardCeremonyLookIds,
   careerAwardCeremonyViewModel,
@@ -1449,6 +1451,17 @@ function GameApp() {
         )}
         reduceMotion={reduceMotion}
         onComplete={store.completeChampionshipCelebration}
+      />
+    );
+  } else if (store.screen === 'endgame-celebration') {
+    screen = (
+      <EndgameCelebrationScreen
+        viewModel={endgameCelebrationViewModel(
+          store.career,
+          content.assistantGuide.assistant.name,
+        )}
+        reduceMotion={reduceMotion}
+        onComplete={store.completeEndgameCelebration}
       />
     );
   } else if (store.screen === 'awards-ceremony') {
