@@ -6,6 +6,7 @@ import {
   FACILITY_CATALOG,
   activeCareerMatchday,
   activeFacilityAdjacencies,
+  attributeAffectsPlay,
   careerHeroLimit,
   careerCoachWageLedgerAmount,
   createFacilityGrid,
@@ -1512,9 +1513,7 @@ export function squadTrainingViewModel(
     }),
     ...(selectedPlayer === undefined ? {} : {
       selectedPlayerStatOptions: TRAINING_PATHS
-        .filter(path => selectedPlayer.role === 'GK'
-          ? path.attribute !== 'sho'
-          : path.attribute !== 'ref')
+        .filter(path => attributeAffectsPlay(selectedPlayer.role, path.attribute))
         .map(path => {
           const drill = resolveTrainingDrillForPath(state, path.pathId);
           const gain = drill.gains[path.attribute] ?? 0;

@@ -69,10 +69,41 @@ export const PLAYER_ARCHETYPES = [
   'Prodigy',
 ] as const satisfies readonly PlayerArchetype[];
 
+/**
+ * Attributes the match engine never reads for a role, so training them is a
+ * pure TP loss. Measured, not assumed: a +200 boost to any of these replays 40
+ * mirrored matches byte-identically (role-stat relevance probe, 2026-08-02).
+ *
+ * Only the keeper is special-cased in the engine — `attackingDecision` zeroes
+ * their shot branch, `tackleTick` never lets them slide and no keeper was ever
+ * the tackler, the tackled or the interceptor across the probe. Outfielders are
+ * driven by lineup slot rather than role, so nothing but REF is dead for them:
+ * a defender fielded in a forward slot shoots like a forward.
+ */
+const INERT_ATTRIBUTES: Readonly<Record<Role, readonly (keyof Attrs)[]>> = {
+  GK: ['sho', 'def', 'tec'],
+  DEF: ['ref'],
+  MID: ['ref'],
+  FWD: ['ref'],
+};
+
+/** Whether training this attribute can change anything the role does in a match. */
+export function attributeAffectsPlay(role: Role, attribute: keyof Attrs): boolean {
+  return !INERT_ATTRIBUTES[role].includes(attribute);
+}
+
+/**
+ * The three attributes each role trains at +5%. Every entry has to pass
+ * `attributeAffectsPlay` or the bonus steers the manager into wasted TP — which
+ * is exactly what the keeper's old DEF entry did. PAS replaced it: distribution
+ * after a catch is the one thing a keeper does with the ball. PAC would measure
+ * better still, but it is the division PAC table's column (see pyramid.ts
+ * `generateFocusedAttributes`) and a focus entry would overwrite it.
+ */
 export const POSITION_TRAINING_ATTRIBUTES: Readonly<
   Record<Role, readonly (keyof Attrs)[]>
 > = {
-  GK: ['ref', 'def', 'sta'],
+  GK: ['ref', 'pas', 'sta'],
   DEF: ['def', 'sta', 'pas'],
   MID: ['pas', 'tec', 'sta'],
   FWD: ['sho', 'pac', 'tec'],
