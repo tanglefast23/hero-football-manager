@@ -161,6 +161,22 @@ export interface EligibilityContext {
   readonly absence: boolean;
 }
 
+/**
+ * A transfer request is not a vow of silence.
+ *
+ * Wanting a move and wanting a new gym are different things, so
+ * `transferRequested` is deliberately NOT tested here. It used to be, and it
+ * cost the feature half its life: measured over six seasons and three seeds
+ * with the production engine, 14–15 of a 16-man squad are legitimately listed
+ * by season 3 — not stale flags, every one of them would ask again today — and
+ * the tab fell silent for 43–52% of settled weeks, in stretches over 20 weeks
+ * long, even for a manager who granted every request on sight. The drought
+ * arrived exactly when a struggling club most needed the beat.
+ *
+ * The same reasoning removed the listing test from
+ * `cancelPendingPlayerRequestIfInvalid`: a request must not evaporate because
+ * its asker's mood dipped in the days after he made it.
+ */
 export function eligibleAskers(
   roster: readonly CareerPlayer[],
   context: EligibilityContext,
@@ -170,7 +186,6 @@ export function eligibleAskers(
   );
   return roster.filter(player => {
     if (!isAvailableForSelection(player)) return false;
-    if (player.transferRequested === true) return false;
     if (player.id === context.lastAskingPlayerId) return false;
     if ((player.seasonsAtClub ?? 0) < context.minSeasonsAtClub) return false;
     // Sending away the only fit keeper leaves no legal XI, so the request is
@@ -488,14 +503,18 @@ export function drillMultiplierPercent(
  * it — and `board-ultimatum` importing this module would close a cycle back
  * through `squad`. Retirement is covered by the season transition, which resets
  * the request clock outright.
+ *
+ * Leaving the club is the only thing that invalidates an ask. Asking for a
+ * transfer no longer does: see `eligibleAskers` for why a listed player may
+ * still make one, and granting his ask is now a way to talk him round, since a
+ * grant pays +5 morale toward the mood he must reach to withdraw.
  */
 export function cancelPendingPlayerRequestIfInvalid(state: GameState): GameState {
   const pending = state.playerRequests?.pending;
   if (pending === undefined) return state;
   const asker = state.players.find(player => player.id === pending.playerId);
   const stillValid = asker !== undefined
-    && asker.clubId === state.userClubId
-    && asker.transferRequested !== true;
+    && asker.clubId === state.userClubId;
   if (stillValid) return state;
   return { ...state, playerRequests: { ...state.playerRequests!, pending: undefined } };
 }
