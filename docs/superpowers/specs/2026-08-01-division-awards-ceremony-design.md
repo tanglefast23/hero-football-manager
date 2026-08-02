@@ -1,7 +1,9 @@
 # Division Awards Ceremony — design
 
 **Date:** 2026-08-01
-**Status:** approved design, ready for planning
+**Status:** built; §2–§4, §6 and §8 amended 2026-08-02 after the owner watched it
+run — the rival walk-on was removed, leaving one walk-on a board and only ever
+one of your own players
 **Scope:** Cycle 2 of 2
 **Depends on:** [2026-08-01-division-leaders-design.md](2026-08-01-division-leaders-design.md)
 
@@ -47,6 +49,11 @@ where you never see the other clubs' best players is a division that does not
 feel populated, and losing the Golden Boot to a striker you have watched all
 season is what makes taking it off him next year mean anything.
 
+A rival winner is therefore **named and placed on the podium, but never walks
+on**. The board reads out third, second and first exactly as it would for your
+own players; what a rival does not get is the sprite entry and the line. See §3
+for the rule and for why the original one was reversed.
+
 **Reveal order** is fixed and ascending in prestige, so the sequence builds:
 
 1. Keepers — saves
@@ -66,26 +73,32 @@ Each category is one screen state, advanced by tap.
 1. **Category card.** The position and metric, briefly.
 2. **Top three.** Third, then second, then first — each arriving in turn rather
    than as a static list, so the order of reveal carries the tension.
-3. **Winner.** The winner's row emphasises, and:
-   - **Any winner**, yours or a rival's, gets the visual treatment: their sprite
-     walks on, jumps, and speaks a line.
-   - The prize line appears only when the winner is one of yours.
-4. **Second place, conditional.** If one of your players finished second, they
-   walk on after the winner and speak a runner-up line. This fires whether the
-   winner was yours or a rival's.
-5. **Tap to continue** to the next category.
+3. **One walk-on, conditional.** The highest-placed player on that podium who
+   belongs to **your** club walks on, jumps, and speaks:
+   - He finished first → a **winner** line, and the prize line appears.
+   - He finished second or third → a **runner-up** line.
+   - **No player of yours on the podium at all → nobody walks on.** The board
+     shows its three placings and the ceremony moves on.
+4. **Tap to continue** to the next category.
 
-**A rival winner gets the identical walk-on.** Same sprite entry, same jump,
-same line. The only differences are that no prize line appears and there is no
-runner-up beat unless one of yours placed second. A rival who wins the Golden
-Boot off you should feel like he won it — that is what makes taking it back
-matter — so his moment is not diminished to save a few seconds.
+**Exactly one walk-on a board, and only ever yours.** A rival never walks on,
+whatever he won. Your club taking first and second still produces one walk-on,
+and it is the winner's.
 
-The cost of that is paid by the skip, not by a flatter presentation.
+### The rival walk-on was reversed
 
-**One walk-on at a time.** If two of your players place first and second in the
-same category, the winner speaks and the runner-up does not. Two sprites
-competing for the same moment weakens both.
+This document originally specified the opposite — a rival winner got the
+identical entry, jump and line, on the argument that "a rival who wins the
+Golden Boot off you should feel like he won it", with your runner-up walking on
+after him. That shipped, the owner watched it, and reversed it: two walk-ons a
+board is too many, and the one the manager cares about is the second of them,
+arriving after a stranger has already had the moment. The rival's presence on
+the podium carries the rivalry; his sprite was spending the board's attention
+without adding to it.
+
+The old "one walk-on at a time" tie-breaker existed to stop two of your own
+players both walking on. It is now subsumed: there is only ever one walk-on, and
+it is your highest-placed man.
 
 ---
 
@@ -94,8 +107,10 @@ competing for the same moment weakens both.
 Two pools of thirty lines each, shipped as content:
 
 - **Winner lines** — happy, in the voice of a player who has just won something.
-- **Runner-up lines** — spoken only by your own players. Working harder next
-  season, or something funny about second place. Never bitter about the winner.
+- **Runner-up lines** — beaten to it, and coming back for it next season. Never
+  bitter about the winner.
+
+Both pools are now spoken only by your own players, since nobody else walks on.
 
 Both follow the tonal rule already established for arrival lines: deliberately
 interleaved so a run of them does not land in a rut, and short enough to be a
@@ -123,19 +138,21 @@ same award in a later season draws a different line. No `Math.random`, no state.
 
 ### De-duplicate within the ceremony
 
-Four winners drawing independently from thirty lines collide more often than is
-comfortable: `29 × 28 × 27 / 30³` ≈ 81% all-distinct, so roughly **one ceremony
-in five** has two winners deliver the identical line minutes apart, in the
-flagship moment of the season.
+Four speakers — one a board, at most — drawing independently from thirty lines
+collide more often than is comfortable: `29 × 28 × 27 / 30³` ≈ 81% all-distinct,
+so roughly **one ceremony in five** has two of them deliver the identical line
+minutes apart, in the flagship moment of the season.
 
 The arrival-line pool tolerates repeats because signings are spread across
 weeks. The ceremony compresses four draws into a single sitting, so it needs a
 de-dup: if a hashed index is already taken by an earlier category this ceremony,
 probe forward to the next free line.
 
-This stays a pure function. All four winners are known from the recap before the
-first card renders, so the whole set is computable up front — no state, no
-`Math.random`, and the same season always produces the same four lines.
+This stays a pure function. All four speakers are known from the recap before
+the first card renders, so the whole set is computable up front — no state, no
+`Math.random`, and the same season always produces the same lines. The two pools
+claim indices separately, so a winner and a beaten player never displace each
+other.
 
 Across seasons, thirty lines means a repeat is noticeable only after many wins
 in the same category — acceptable, and far cheaper than threading "what was said
@@ -224,17 +241,20 @@ are skippable after first view:
 Skipping never changes what was awarded, because the ceremony does not award
 anything — the season transition does, from the same pure function, whether or
 not a single frame was watched. A player who skips every ceremony for ten
-seasons ends up in exactly the same state as one who watches them all. This is
-what makes the full rival walk-on affordable: the staging can be generous
-because nobody is forced to sit through it twice.
+seasons ends up in exactly the same state as one who watches them all.
+
+"Skip this walk-on" now skips the board's only walk-on, so it can never leave a
+second sprite waiting behind the one just dismissed.
 
 **Sprite reuse.** The walk-on reuses the existing overlay machinery rather than
 inventing a second one — `PlayerWalkOnWelcome`, `CharacterSpeechOverlay` and
 `ChampionshipCelebrationScreen` already solve sprite entry, speech bubbles and
 celebration staging.
 
-**Rival sprites.** Rival players have `lookId` and paper-doll data like anyone
-else, so a rival winner renders through the same path. No new art.
+**Rival sprites.** Not needed: no rival walks on. A rival winner is a name, a
+club and a figure on the podium. Rival players do carry `lookId` and paper-doll
+data like anyone else, so reinstating a rival walk-on would need no new art —
+but nothing renders one today.
 
 ### SFX trap
 
@@ -263,12 +283,14 @@ saves" without a display string being the only place the figure exists.
 
 - **Line selection is stable**: same player, season and category yields the same
   line across repeated calls and re-renders.
-- **No two winners share a line** in the same ceremony, including when the
+- **No two speakers share a line** in the same ceremony, including when the
   de-dup probe has to wrap.
 - **Line pools** are the stated length, unique, and within the character limit.
-- **Beat sequencing**: rival winner, own winner, own runner-up behind a rival
-  winner, own first *and* second in one category, and a category with fewer than
-  three qualifying players.
+- **Beat sequencing**, one walk-on a board at most: a rival winner with nobody
+  of yours on the podium produces **no** walk-on; your winner speaks a winner
+  line; your second-placed man behind a rival speaks a runner-up line; your
+  first *and* second produces one walk-on, the winner's; and a category with
+  fewer than three qualifying players still stages correctly.
 - **A season winning nothing** produces a complete, coherent ceremony.
 - **Count-up** reaches exactly the target and never overshoots.
 - **Reduced motion** shows final values with no animation.

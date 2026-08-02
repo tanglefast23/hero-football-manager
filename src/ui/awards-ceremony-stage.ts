@@ -19,10 +19,11 @@ export type AwardCeremonyStageKind =
   | 'board'
   /** One placing arriving. Third first, first last. */
   | 'placing'
-  /** The winner walking on to speak, rival or not. */
-  | 'winner'
-  /** The manager's own player who finished second to a rival. */
-  | 'runner-up'
+  /**
+   * The manager's highest-placed player on this board walking on to speak.
+   * At most one a board, and never a rival.
+   */
+  | 'walk-on'
   /** The finished podium, held until the manager taps on. */
   | 'result'
   /** The ceremony's single prize screen. */
@@ -55,11 +56,8 @@ export function awardCeremonyStages(
     beat.placings.forEach((_, index) => {
       stages.push({ kind: 'placing', beatIndex, revealed: index + 1 });
     });
-    if (beat.winner !== undefined && beat.winnerLine !== undefined) {
-      stages.push({ kind: 'winner', beatIndex, revealed });
-    }
-    if (beat.runnerUp !== undefined && beat.runnerUpLine !== undefined) {
-      stages.push({ kind: 'runner-up', beatIndex, revealed });
+    if (beat.speaker !== undefined) {
+      stages.push({ kind: 'walk-on', beatIndex, revealed });
     }
     stages.push({ kind: 'result', beatIndex, revealed });
   });
@@ -78,9 +76,8 @@ export function nextStageIndex(
 /**
  * Where "skip this walk-on" lands: the podium result for the board being shown.
  *
- * A board's winner and runner-up are one staging, so skipping the winner skips
- * the runner-up with him. Splitting them would leave the manager tapping past a
- * second sprite he has just said he does not want to watch.
+ * A board stages one walk-on at most, so this is one sprite skipped and never a
+ * second one waiting behind him.
  */
 export function beatResultStageIndex(
   stages: readonly AwardCeremonyStage[],
@@ -101,7 +98,7 @@ export function prizeStageIndex(stages: readonly AwardCeremonyStage[]): number {
 }
 
 export function isWalkOnStage(stage: AwardCeremonyStage | undefined): boolean {
-  return stage?.kind === 'winner' || stage?.kind === 'runner-up';
+  return stage?.kind === 'walk-on';
 }
 
 export function stageBeat(

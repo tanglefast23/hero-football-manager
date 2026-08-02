@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AWARD_CATEGORIES } from '../../game/division-leaders';
+import type { AwardCategoryId } from '../../game/types';
 import { PLAYER_SPRITE_CELL, PlayerRunSprite } from '../../render/PlayerRunSprite';
 import { CharacterSpeechOverlay } from '../CharacterSpeechOverlay';
 import { PixelText } from '../components/PixelText';
@@ -34,6 +35,7 @@ import {
 import type {
   AwardCeremonyBeatViewModel,
   AwardCeremonyPlacingViewModel,
+  AwardCeremonySpeakerViewModel,
   AwardCeremonyViewModel,
 } from '../models';
 
@@ -94,11 +96,9 @@ export interface AwardsCeremonyScreenProps {
  * The four division boards, presented one at a time.
  *
  * Per board: the title card, then third, second and first arriving in turn,
- * then the winner walking on to speak. A RIVAL winner gets exactly the same
- * entry, hop and line as one of the manager's own — a rival taking the Golden
- * Boot off you has to look like he won it, or taking it back next season is
- * worth nothing. Only the prize and the runner-up walk-on know whose player it
- * was.
+ * then ONE walk-on — the manager's highest-placed player on that podium, and
+ * nobody else. A rival never walks on, so a board the manager is nowhere on
+ * reads out its three placings and moves on.
  *
  * Nothing here decides anything. The prize was granted by the season
  * transition (`startNextFullCareerSeason`), which runs whether this screen is
@@ -175,11 +175,11 @@ export function AwardsCeremonyScreen({
         </View>
       </Pressable>
 
-      {walkOn && beat !== undefined ? (
+      {walkOn && beat?.speaker !== undefined ? (
         <AwardWalkOn
           key={`${stage.beatIndex}:${stage.kind}`}
-          beat={beat}
-          stage={stage}
+          categoryId={beat.categoryId}
+          speaker={beat.speaker}
           lookIds={lookIds}
           reduceMotion={reduce}
           onDone={advance}
@@ -370,34 +370,33 @@ function PrizePanel({
 }
 
 /**
- * The winner — or the manager's runner-up — walking on to say one line.
+ * The manager's highest-placed player on this board, walking on to say one
+ * line. Whether it reads as a win or a near miss was decided by the view model,
+ * which drew the line from the matching pool.
  *
  * The same overlay the transfer welcome uses, so a ceremony arrival and a
  * signing arrival are visibly the same event: nothing new to learn, and one
  * path to fix when the walk changes.
  */
 function AwardWalkOn({
-  beat,
-  stage,
+  categoryId,
+  speaker,
   lookIds,
   reduceMotion,
   onDone,
 }: {
-  beat: AwardCeremonyBeatViewModel;
-  stage: AwardCeremonyStage;
+  categoryId: AwardCategoryId;
+  speaker: AwardCeremonySpeakerViewModel;
   lookIds?: ReadonlyMap<string, string>;
   reduceMotion: boolean;
   onDone: () => void;
 }) {
-  const speaker = stage.kind === 'winner' ? beat.winner : beat.runnerUp;
-  const line = stage.kind === 'winner' ? beat.winnerLine : beat.runnerUpLine;
-  if (speaker === undefined || line === undefined) return null;
-
+  const { placing, line } = speaker;
   // The board's own position line. A keeper board can only be topped by a
   // keeper, so the category is a better source for the sprite than any field
   // the placing would have to carry around for it.
-  const role = AWARD_CATEGORIES[beat.categoryId].role;
-  const lookId = lookIds?.get(speaker.playerId);
+  const role = AWARD_CATEGORIES[categoryId].role;
+  const lookId = lookIds?.get(placing.playerId);
 
   return (
     <CharacterSpeechOverlay
@@ -407,10 +406,10 @@ function AwardWalkOn({
       groundOffset={GROUND_OFFSET}
       autoAdvanceMs={Math.max(MIN_LINE_MS, line.length * MS_PER_CHARACTER)}
       reduceMotion={reduceMotion}
-      accessibilityLabel={`${speaker.playerName} says: ${line}`}
+      accessibilityLabel={`${placing.playerName} says: ${line}`}
       renderCharacter={({ phase, walking }) => (
         <CelebratingPlayer
-          playerId={speaker.playerId}
+          playerId={placing.playerId}
           role={role}
           {...(lookId === undefined ? {} : { lookId })}
           jumping={phase === 'speaking'}

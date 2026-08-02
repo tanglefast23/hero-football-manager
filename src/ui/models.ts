@@ -735,6 +735,22 @@ export interface AwardCeremonyPlacingViewModel {
   readonly isUserPlayer: boolean;
 }
 
+/**
+ * The one player who walks on to speak for a board.
+ *
+ * Always the manager's own: his highest-placed player on that podium. A rival
+ * never walks on, however he finished — reversed after seeing two walk-ons a
+ * board running, where the rival's moment cost the manager's the room.
+ */
+export interface AwardCeremonySpeakerViewModel {
+  readonly placing: AwardCeremonyPlacingViewModel;
+  /** Which pool the line was drawn from: he topped the board, or he did not. */
+  readonly tone: AwardCeremonySpeechTone;
+  readonly line: string;
+}
+
+export type AwardCeremonySpeechTone = 'winner' | 'runner-up';
+
 export interface AwardCeremonyBeatViewModel {
   readonly categoryId: AwardCategoryId;
   readonly boardLabel: string;
@@ -746,23 +762,12 @@ export interface AwardCeremonyBeatViewModel {
   readonly placings: readonly AwardCeremonyPlacingViewModel[];
   /** Shown in place of the podium when the category has no placings. */
   readonly emptyLabel: string;
-  /** The last placing revealed; absent only when the podium is empty. */
-  readonly winner?: AwardCeremonyPlacingViewModel;
   /**
-   * What the winner says on the rostrum. A rival's winner speaks too — the
-   * walk-on, the jump and the line are identical, because a rival who takes the
-   * award off you should look like he won it.
+   * Absent when no player of the manager's reached this podium, which is also
+   * every board a rival won outright: the three placings are read out and the
+   * ceremony moves on.
    */
-  readonly winnerLine?: string;
-  /**
-   * Present only when one of the manager's players finished second to a rival.
-   *
-   * A club taking first AND second gets one walk-on, not two: the winner
-   * speaks, and the runner-up stays on the podium list. Two sprites competing
-   * for one moment weakens both.
-   */
-  readonly runnerUp?: AwardCeremonyPlacingViewModel;
-  readonly runnerUpLine?: string;
+  readonly speaker?: AwardCeremonySpeakerViewModel;
   /** Whether this board's prize was paid to the manager's club. */
   readonly wonByUserPlayer: boolean;
 }

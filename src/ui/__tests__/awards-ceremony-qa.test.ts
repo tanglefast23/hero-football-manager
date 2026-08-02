@@ -84,50 +84,74 @@ describe('the fabricated ceremonies', () => {
  * rather than quietly turning the reel into a demo of nothing.
  */
 describe('the walk-on states the reel has to reach', () => {
-  it('walks the runner-up on when a rival wins and your player is second', () => {
+  it('walks your second-placed player on when a rival wins the board', () => {
     const keepers = viewModelFor('mixed').beats[0];
+    const winner = keepers.placings.find(placing => placing.position === 1);
 
-    expect(keepers.winner?.isUserPlayer).toBe(false);
-    expect(keepers.runnerUp?.isUserPlayer).toBe(true);
-    expect(keepers.runnerUpLine).toBeDefined();
+    expect(winner?.isUserPlayer).toBe(false);
+    expect(keepers.speaker?.placing.isUserPlayer).toBe(true);
+    expect(keepers.speaker?.placing.position).toBe(2);
+    expect(keepers.speaker?.tone).toBe('runner-up');
   });
 
   it('gives a board your own player wins, with nobody following him on', () => {
     const defenders = viewModelFor('mixed').beats[1];
 
-    expect(defenders.winner?.isUserPlayer).toBe(true);
+    expect(defenders.speaker?.placing.isUserPlayer).toBe(true);
+    expect(defenders.speaker?.placing.position).toBe(1);
+    expect(defenders.speaker?.tone).toBe('winner');
     expect(defenders.wonByUserPlayer).toBe(true);
-    expect(defenders.runnerUp).toBeUndefined();
   });
 
   /**
    * The rule that is impossible to see live without luck: first AND second are
-   * yours, and only the winner speaks.
+   * yours, and it is the winner who walks on.
    */
-  it('suppresses the runner-up when your club takes first and second', () => {
+  it('walks the winner on when your club takes first and second', () => {
     const midfielders = viewModelFor('mixed').beats[2];
     const second = midfielders.placings.find(placing => placing.position === 2);
 
-    expect(midfielders.winner?.isUserPlayer).toBe(true);
     expect(second?.isUserPlayer).toBe(true);
-    expect(midfielders.runnerUp).toBeUndefined();
-    expect(midfielders.runnerUpLine).toBeUndefined();
+    expect(midfielders.speaker?.placing.position).toBe(1);
+    expect(midfielders.speaker?.placing.isUserPlayer).toBe(true);
+    expect(midfielders.speaker?.tone).toBe('winner');
+    expect(awardCeremonyStages(viewModelFor('mixed'))
+      .filter(stage => stage.beatIndex === 2 && stage.kind === 'walk-on')).toHaveLength(1);
   });
 
-  it('gives a board you are nowhere on', () => {
+  /** The reversed rule, and the reason the reel keeps a board like this one. */
+  it('gives a rival board you are nowhere on, which nobody walks on to', () => {
     const strikers = viewModelFor('mixed').beats[3];
 
     expect(strikers.placings.some(placing => placing.isUserPlayer)).toBe(false);
     expect(strikers.wonByUserPlayer).toBe(false);
+    expect(strikers.speaker).toBeUndefined();
+    expect(awardCeremonyStages(viewModelFor('mixed'))
+      .filter(stage => stage.beatIndex === 3)
+      .map(stage => stage.kind)).toEqual(['board', 'placing', 'placing', 'placing', 'result']);
   });
 
-  it.each(CASE_IDS)('never lets %s speak a runner-up who is not yours, or not second', caseId => {
+  it.each(CASE_IDS)('never lets %s walk on anyone but your highest-placed', caseId => {
     for (const beat of viewModelFor(caseId).beats) {
-      if (beat.runnerUp === undefined) continue;
-      expect(beat.runnerUp.isUserPlayer).toBe(true);
-      expect(beat.runnerUp.position).toBe(2);
-      expect(beat.winner?.isUserPlayer).toBe(false);
+      const mine = beat.placings.filter(placing => placing.isUserPlayer);
+      const highest = Math.min(...mine.map(placing => placing.position));
+
+      if (mine.length === 0) {
+        expect(beat.speaker).toBeUndefined();
+        continue;
+      }
+      expect(beat.speaker?.placing.position).toBe(highest);
+      expect(beat.speaker?.placing.isUserPlayer).toBe(true);
+      expect(beat.speaker?.tone).toBe(highest === 1 ? 'winner' : 'runner-up');
     }
+  });
+
+  it.each(CASE_IDS)('stages at most one walk-on a board for %s', caseId => {
+    const viewModel = viewModelFor(caseId);
+    const walkOns = awardCeremonyStages(viewModel).filter(stage => stage.kind === 'walk-on');
+
+    expect(walkOns).toHaveLength(viewModel.beats.filter(beat => beat.speaker !== undefined).length);
+    expect(new Set(walkOns.map(stage => stage.beatIndex)).size).toBe(walkOns.length);
   });
 });
 
@@ -141,20 +165,41 @@ describe('the thin and barren cases', () => {
   it('leaves the empty board with nobody to walk on', () => {
     const empty = viewModelFor('thin').beats[2];
 
-    expect(empty.winner).toBeUndefined();
-    expect(empty.winnerLine).toBeUndefined();
-    expect(empty.runnerUp).toBeUndefined();
+    expect(empty.placings).toEqual([]);
+    expect(empty.speaker).toBeUndefined();
     expect(empty.emptyLabel).toBe('No passes recorded this season');
     expect(awardCeremonyStages(viewModelFor('thin'))
       .filter(stage => stage.beatIndex === 2)
       .map(stage => stage.kind)).toEqual(['board', 'result']);
   });
 
-  it('still walks the winner on when only one name made the board', () => {
+  /** A rival alone on a board is announced and never walked on. */
+  it('leaves a one-name rival board with nobody to walk on either', () => {
     const single = viewModelFor('thin').beats[0];
 
-    expect(single.winner).toBeDefined();
-    expect(single.winnerLine).toBeDefined();
+    expect(single.placings).toHaveLength(1);
+    expect(single.placings[0].isUserPlayer).toBe(false);
+    expect(single.speaker).toBeUndefined();
+  });
+
+  it('walks your beaten player on from a two-name board', () => {
+    const twoNames = viewModelFor('thin').beats[1];
+
+    expect(twoNames.placings).toHaveLength(2);
+    expect(twoNames.speaker?.placing.position).toBe(2);
+    expect(twoNames.speaker?.tone).toBe('runner-up');
+  });
+
+  /**
+   * Third is still the highest of yours on the board, so he speaks — a season
+   * winning nothing is not a season nobody from your club is heard in.
+   */
+  it('walks your third-placed player on in a barren season', () => {
+    const keepers = viewModelFor('barren').beats[0];
+
+    expect(keepers.speaker?.placing.position).toBe(3);
+    expect(keepers.speaker?.placing.isUserPlayer).toBe(true);
+    expect(keepers.speaker?.tone).toBe('runner-up');
   });
 
   it('states a barren season rather than counting up to zero', () => {
@@ -196,21 +241,27 @@ describe('the widths the reel is meant to stress', () => {
     expect(Math.max(...names.map(name => name.length))).toBeGreaterThanOrEqual(28);
   });
 
-  it('speaks the longest line the pools allow, on the board it advertises', () => {
-    const keepers = viewModelFor('mixed').beats[0];
+  /**
+   * One line a board now, so the two pools are stressed on two boards: the
+   * keepers' beaten man says the longest runner-up line, the defenders' winner
+   * the longest winner line.
+   */
+  it('speaks the longest line each pool allows, on the boards it advertises', () => {
+    const [keepers, defenders] = viewModelFor('mixed').beats;
 
-    expect(keepers.winnerLine?.length).toBeGreaterThanOrEqual(60);
-    expect(keepers.runnerUpLine?.length).toBeGreaterThanOrEqual(55);
-    // The long name and the long line land on the same rostrum card on purpose.
-    expect(keepers.winner?.playerName.length).toBeGreaterThanOrEqual(28);
+    expect(keepers.speaker?.tone).toBe('runner-up');
+    expect(keepers.speaker?.line.length).toBeGreaterThanOrEqual(55);
+    expect(defenders.speaker?.tone).toBe('winner');
+    expect(defenders.speaker?.line.length).toBeGreaterThanOrEqual(60);
+    // The longest bubble is spoken over the podium carrying the longest name.
+    expect(Math.max(...keepers.placings.map(placing => placing.playerName.length)))
+      .toBeGreaterThanOrEqual(28);
   });
 
   it.each(CASE_IDS)('keeps every %s line inside the one-bubble cap', caseId => {
     for (const beat of viewModelFor(caseId).beats) {
-      for (const line of [beat.winnerLine, beat.runnerUpLine]) {
-        if (line === undefined) continue;
-        expect(line.length).toBeLessThanOrEqual(MAX_ARRIVAL_LINE_LENGTH);
-      }
+      if (beat.speaker === undefined) continue;
+      expect(beat.speaker.line.length).toBeLessThanOrEqual(MAX_ARRIVAL_LINE_LENGTH);
     }
   });
 });
@@ -255,11 +306,25 @@ describe('the reviewer’s note', () => {
   it('names the walk-on rule each board is about to demonstrate', () => {
     const viewModel = viewModelFor('mixed');
 
-    expect(awardsCeremonyQaNote(viewModel, 'saves')).toContain('runner-up walks on');
-    expect(awardsCeremonyQaNote(viewModel, 'tacklesWon')).toContain('yours wins');
+    expect(awardsCeremonyQaNote(viewModel, 'saves'))
+      .toBe('3 placings · rival wins · your 2nd walks on · the rival winner does not');
+    expect(awardsCeremonyQaNote(viewModel, 'tacklesWon'))
+      .toBe('3 placings · yours wins · your winner walks on alone');
     expect(awardsCeremonyQaNote(viewModel, 'passesCompleted'))
-      .toContain('only the winner walks on');
-    expect(awardsCeremonyQaNote(viewModel, 'goals')).toContain('rival wins');
+      .toBe('3 placings · yours wins · yours 1st AND 2nd · only the winner walks on');
+    expect(awardsCeremonyQaNote(viewModel, 'goals'))
+      .toBe('3 placings · rival wins · none of yours on the podium · nobody walks on');
+  });
+
+  /** The note is derived, so it cannot promise a walk-on the ceremony skips. */
+  it.each(CASE_IDS)('never claims a walk-on %s is not about to play', caseId => {
+    const viewModel = viewModelFor(caseId);
+
+    for (const beat of viewModel.beats) {
+      const note = awardsCeremonyQaNote(viewModel, beat.categoryId);
+
+      expect(note.includes('nobody walks on')).toBe(beat.speaker === undefined);
+    }
   });
 
   it('calls an empty board empty and a barren prize barren', () => {

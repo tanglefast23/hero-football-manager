@@ -12,7 +12,11 @@ import {
   prizeCountsUp,
   prizeStageIndex,
 } from './awards-ceremony-stage';
-import type { AwardCeremonyBeatViewModel, AwardCeremonyViewModel } from './models';
+import type {
+  AwardCeremonyBeatViewModel,
+  AwardCeremonySpeechTone,
+  AwardCeremonyViewModel,
+} from './models';
 
 /**
  * Fabricated ceremonies for the development-only awards reel.
@@ -20,8 +24,8 @@ import type { AwardCeremonyBeatViewModel, AwardCeremonyViewModel } from './model
  * Nothing here re-implements the ceremony. Each case fabricates the one input
  * the real builder takes — a season recap carrying four podiums — and hands it
  * to `awardCeremonyViewModel`, so the reel shows exactly what a career shows:
- * the same reveal order, the same suppressed runner-up, the same tapered prize.
- * A fixture that assembled the view model by hand could only ever prove itself.
+ * the same reveal order, the same single walk-on, the same tapered prize. A
+ * fixture that assembled the view model by hand could only ever prove itself.
  *
  * Values sit in the ranges a D5 season actually produces — saves 55-65, tackles
  * won 45-65, passes 150-175, goals 20-24 — so the podium is laid out at the
@@ -72,22 +76,25 @@ interface QaCase {
   readonly label: string;
   readonly podiums: QaPodiums;
   /**
-   * The board whose spoken lines are pinned to the longest the pools hold.
+   * The boards whose spoken line is pinned to the longest its pool holds. One
+   * board per pool, since a board now speaks one line: the reel still stresses
+   * the widest winner line and the widest runner-up line in a single pass.
    * Absent leaves every line as the hash picked it.
    */
-  readonly longestLinesOn?: AwardCategoryId;
+  readonly longestLinesOn?: readonly AwardCategoryId[];
 }
 
 const QA_CASES: Readonly<Record<AwardsCeremonyQaCaseId, QaCase>> = Object.freeze({
   /**
    * The season that exercises every walk-on rule at once, one board each:
-   * keepers a rival win with your man second (the runner-up speaks), defenders
-   * your own win, midfielders your first AND second (only the winner speaks),
-   * strikers a board you are nowhere on.
+   * keepers a rival win with your man second (your man speaks, the rival does
+   * not), defenders your own win, midfielders your first AND second (one
+   * walk-on, the winner's), strikers a rival board you are nowhere on, which
+   * nobody walks on to at all.
    */
   mixed: {
     label: 'Mixed',
-    longestLinesOn: 'saves',
+    longestLinesOn: ['saves', 'tacklesWon'],
     podiums: {
       saves: [
         { name: LONG_PLAYER_NAME, clubId: 'thunder-borough', value: 63 },
@@ -159,8 +166,9 @@ const QA_CASES: Readonly<Record<AwardsCeremonyQaCaseId, QaCase>> = Object.freeze
   },
   /**
    * Four full boards and nothing to show for them. Your players place third
-   * twice — near enough to sting, never near enough to speak — so the prize
-   * screen has to state the barren season rather than count to zero.
+   * twice, which is still the highest you finished on those boards, so each of
+   * them walks on with a beaten line — and the prize screen has to state the
+   * barren season rather than count to zero.
    */
   barren: {
     label: 'Nothing',
@@ -320,18 +328,28 @@ function beatNote(beat: AwardCeremonyBeatViewModel): string {
   const count = beat.placings.length;
   if (count === 0) return 'Empty board · no winner, nobody walks on';
   const rows = `${count} placing${count === 1 ? '' : 's'}`;
-  const winner = beat.winner?.isUserPlayer === true ? 'yours wins' : 'rival wins';
+  const winner = beat.placings.find(placing => placing.position === 1);
+  const won = winner?.isUserPlayer === true ? 'yours wins' : 'rival wins';
+  return `${rows} · ${won} · ${walkOnNote(beat)}`;
+}
+
+/** The one thing the reviewer is here to check: who, if anyone, walks on. */
+function walkOnNote(beat: AwardCeremonyBeatViewModel): string {
+  const { speaker } = beat;
+  if (speaker === undefined) return 'none of yours on the podium · nobody walks on';
+  if (speaker.tone === 'runner-up') {
+    // The podium is cut to three, so a beaten speaker is second or third.
+    const place = speaker.placing.position === 2 ? '2nd' : '3rd';
+    return `your ${place} walks on · the rival winner does not`;
+  }
   const second = beat.placings.find(placing => placing.position === 2);
-  const walkOn = beat.runnerUp !== undefined
-    ? 'your runner-up walks on after him'
-    : second?.isUserPlayer === true
-      ? 'yours 1st AND 2nd · only the winner walks on'
-      : 'winner walks on alone';
-  return `${rows} · ${winner} · ${walkOn}`;
+  return second?.isUserPlayer === true
+    ? 'yours 1st AND 2nd · only the winner walks on'
+    : 'your winner walks on alone';
 }
 
 /**
- * Pins one board's two lines to the longest the shipped pools hold.
+ * Pins the named boards' spoken line to the longest its pool holds.
  *
  * The pools cap at `MAX_ARRIVAL_LINE_LENGTH` and the bubble is 320pt wide, so
  * the ceiling is where wrapping breaks if it breaks — and which line a beat
@@ -341,20 +359,22 @@ function beatNote(beat: AwardCeremonyBeatViewModel): string {
  */
 function withLongestLines(
   viewModel: AwardCeremonyViewModel,
-  categoryId: AwardCategoryId,
+  categoryIds: readonly AwardCategoryId[],
 ): AwardCeremonyViewModel {
   return {
     ...viewModel,
-    beats: viewModel.beats.map(beat => (beat.categoryId !== categoryId ? beat : {
-      ...beat,
-      ...(beat.winnerLine === undefined
-        ? {}
-        : { winnerLine: longestLine(WINNER_CEREMONY_LINES) }),
-      ...(beat.runnerUpLine === undefined
-        ? {}
-        : { runnerUpLine: longestLine(RUNNER_UP_CEREMONY_LINES) }),
-    })),
+    beats: viewModel.beats.map(beat => (
+      !categoryIds.includes(beat.categoryId) || beat.speaker === undefined ? beat : {
+        ...beat,
+        speaker: { ...beat.speaker, line: longestLine(poolFor(beat.speaker.tone)) },
+      }
+    )),
   };
+}
+
+/** The pool a beat's one speaker drew from, and therefore its worst case. */
+function poolFor(tone: AwardCeremonySpeechTone): readonly string[] {
+  return tone === 'winner' ? WINNER_CEREMONY_LINES : RUNNER_UP_CEREMONY_LINES;
 }
 
 function longestLine(lines: readonly string[]): string {

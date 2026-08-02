@@ -17,17 +17,20 @@ function cloneContent(content: LaunchContent): LaunchContent {
 }
 
 /**
- * Four winners whose keys all hash onto the last line of the pool in season 7,
+ * Four speakers whose keys all hash onto the last line of the pool in season 7,
  * found by search rather than by hope: a de-dup test built on inputs that
  * happen not to collide asserts nothing. Listed in ceremony reveal order, so
  * the keeper claims line 29 and the other three must probe past the end.
+ *
+ * Four is the ceiling now: one speaker a board, and only ever the manager's
+ * own.
  */
 const COLLIDING_SEASON = 7;
 const COLLIDING_WINNERS: AwardCeremonySpeaker[] = [
-  { category: 'saves', winnerPlayerId: 'p_26' },
-  { category: 'tacklesWon', winnerPlayerId: 'p_29' },
-  { category: 'passesCompleted', winnerPlayerId: 'p_17' },
-  { category: 'goals', winnerPlayerId: 'p_110' },
+  { category: 'saves', playerId: 'p_26', tone: 'winner' },
+  { category: 'tacklesWon', playerId: 'p_29', tone: 'winner' },
+  { category: 'passesCompleted', playerId: 'p_17', tone: 'winner' },
+  { category: 'goals', playerId: 'p_110', tone: 'winner' },
 ];
 
 describe('award ceremony lines', () => {
@@ -66,47 +69,57 @@ describe('award ceremony lines', () => {
     expect(() => AwardCeremonyLinesSchema.parse(paragraph.awardCeremonyLines)).toThrow();
   });
 
-  it('gives a winner the same line every time it is asked', () => {
+  it('gives a speaker the same line every time it is asked', () => {
     // The ceremony holds a speaking sprite across taps and rotations, and
     // re-renders on both. A rolled line would change mid-sentence.
-    const speakers: AwardCeremonySpeaker[] = [{ category: 'goals', winnerPlayerId: 'p_401' }];
-    const first = awardCeremonySpeeches(speakers, 3)[0].winnerLine;
+    const speakers: AwardCeremonySpeaker[] = [
+      { category: 'goals', playerId: 'p_401', tone: 'winner' },
+    ];
+    const first = awardCeremonySpeeches(speakers, 3)[0].line;
 
     expect(WINNER_CEREMONY_LINES).toContain(first);
     for (let repeat = 0; repeat < 5; repeat += 1) {
-      expect(awardCeremonySpeeches(speakers, 3)[0].winnerLine).toBe(first);
+      expect(awardCeremonySpeeches(speakers, 3)[0].line).toBe(first);
     }
   });
 
   it('moves the same winner onto a different line in a different season', () => {
-    const speakers: AwardCeremonySpeaker[] = [{ category: 'saves', winnerPlayerId: 'p_26' }];
-    const seventh = awardCeremonySpeeches(speakers, 7)[0].winnerLine;
-    const eighth = awardCeremonySpeeches(speakers, 8)[0].winnerLine;
+    const speakers: AwardCeremonySpeaker[] = [
+      { category: 'saves', playerId: 'p_26', tone: 'winner' },
+    ];
+    const seventh = awardCeremonySpeeches(speakers, 7)[0].line;
+    const eighth = awardCeremonySpeeches(speakers, 8)[0].line;
 
     expect(seventh).not.toBe(eighth);
     // A key that barely moves with the season would repeat a career's worth of
     // ceremonies onto one line.
     const decade = Array.from({ length: 10 }, (unused, index) => (
-      awardCeremonySpeeches(speakers, index + 1)[0].winnerLine
+      awardCeremonySpeeches(speakers, index + 1)[0].line
     ));
     expect(new Set(decade).size).toBeGreaterThanOrEqual(5);
   });
 
-  it('never lets two winners in one ceremony deliver the same line', () => {
+  it('never lets two speakers in one ceremony deliver the same line', () => {
     // Proof the fixture bites: alone, each of the four draws the identical line.
     const solo = COLLIDING_WINNERS.map(
-      speaker => awardCeremonySpeeches([speaker], COLLIDING_SEASON)[0].winnerLine,
+      speaker => awardCeremonySpeeches([speaker], COLLIDING_SEASON)[0].line,
     );
     expect(new Set(solo).size).toBe(1);
     expect(solo[0]).toBe(WINNER_CEREMONY_LINES[AWARD_CEREMONY_POOL_SIZE - 1]);
 
     const ceremony = awardCeremonySpeeches(COLLIDING_WINNERS, COLLIDING_SEASON);
-    const lines = ceremony.map(beat => beat.winnerLine);
+    const lines = ceremony.map(beat => beat.line);
     expect(new Set(lines).size).toBe(COLLIDING_WINNERS.length);
     // The claimed line is the last in the pool, so the other three can only be
     // served by a probe that wraps around the end.
     expect(lines[0]).toBe(WINNER_CEREMONY_LINES[AWARD_CEREMONY_POOL_SIZE - 1]);
     expect(lines.slice(1)).toEqual(WINNER_CEREMONY_LINES.slice(0, 3));
+  });
+
+  /** One speaker a board, so a whole ceremony is four draws at the very most. */
+  it('resolves at most one line a board', () => {
+    expect(awardCeremonySpeeches(COLLIDING_WINNERS, COLLIDING_SEASON)).toHaveLength(4);
+    expect(awardCeremonySpeeches([], COLLIDING_SEASON)).toEqual([]);
   });
 
   it('resolves the whole ceremony at once, in the order the beats are given', () => {
@@ -122,27 +135,43 @@ describe('award ceremony lines', () => {
     ]);
   });
 
-  it('speaks for a runner-up only when the ceremony names one', () => {
+  it('draws a beaten speaker from the runner-up pool and a winner from the winner pool', () => {
     const speeches = awardCeremonySpeeches([
-      { category: 'saves', winnerPlayerId: 'p_26' },
-      { category: 'goals', winnerPlayerId: 'p_110', runnerUpPlayerId: 'p_88' },
+      { category: 'saves', playerId: 'p_26', tone: 'winner' },
+      { category: 'goals', playerId: 'p_88', tone: 'runner-up' },
     ], 4);
 
-    expect(speeches[0].runnerUpLine).toBeUndefined();
-    expect(RUNNER_UP_CEREMONY_LINES).toContain(speeches[1].runnerUpLine);
-    // The two pools are drawn separately: a runner-up never borrows the mood of
-    // a winner's line.
-    expect(WINNER_CEREMONY_LINES).not.toContain(speeches[1].runnerUpLine);
+    expect(WINNER_CEREMONY_LINES).toContain(speeches[0].line);
+    expect(RUNNER_UP_CEREMONY_LINES).toContain(speeches[1].line);
+    // The two pools are drawn separately: a beaten player never borrows the
+    // mood of a winner's line.
+    expect(WINNER_CEREMONY_LINES).not.toContain(speeches[1].line);
   });
 
   it('de-duplicates runner-up lines the same way it de-duplicates winners', () => {
-    const speeches = awardCeremonySpeeches(COLLIDING_WINNERS.map(speaker => ({
-      ...speaker,
-      runnerUpPlayerId: speaker.winnerPlayerId,
-    })), COLLIDING_SEASON);
-    const runnerUpLines = speeches.map(beat => beat.runnerUpLine);
+    const speeches = awardCeremonySpeeches(
+      COLLIDING_WINNERS.map(speaker => ({ ...speaker, tone: 'runner-up' as const })),
+      COLLIDING_SEASON,
+    );
+    const lines = speeches.map(beat => beat.line);
 
-    expect(new Set(runnerUpLines).size).toBe(COLLIDING_WINNERS.length);
-    expect(runnerUpLines[0]).toBe(RUNNER_UP_CEREMONY_LINES[AWARD_CEREMONY_POOL_SIZE - 1]);
+    expect(new Set(lines).size).toBe(COLLIDING_WINNERS.length);
+    expect(lines[0]).toBe(RUNNER_UP_CEREMONY_LINES[AWARD_CEREMONY_POOL_SIZE - 1]);
+  });
+
+  /**
+   * The pools are claimed independently, so a ceremony mixing a winner and a
+   * beaten player does not push either off a line the other took.
+   */
+  it('lets a winner and a beaten player hold the same index in their own pools', () => {
+    // Both keys hash onto the last index of their pool, which is the whole
+    // point: one claiming it must not push the other off it.
+    const speeches = awardCeremonySpeeches([
+      { ...COLLIDING_WINNERS[0], tone: 'winner' },
+      { ...COLLIDING_WINNERS[1], tone: 'runner-up' },
+    ], COLLIDING_SEASON);
+
+    expect(speeches[0].line).toBe(WINNER_CEREMONY_LINES[AWARD_CEREMONY_POOL_SIZE - 1]);
+    expect(speeches[1].line).toBe(RUNNER_UP_CEREMONY_LINES[AWARD_CEREMONY_POOL_SIZE - 1]);
   });
 });
