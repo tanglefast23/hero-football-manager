@@ -17,7 +17,7 @@
 | All-Rounder | +5% all stats |
 | Prodigy | +20% all stats |
 
-- **Natural position** (visible): adds another **+5%** to three role skills. GK: REF/DEF/STA; DEF: DEF/STA/PAS; MID: PAS/TEC/STA; FWD: SHO/PAC/TEC.
+- **Natural position** (visible): adds another **+5%** to three role skills. GK: REF/PAS/STA; DEF: DEF/STA/PAS; MID: PAS/TEC/STA; FWD: SHO/PAC/TEC. The keeper's bonus used to name DEF, which the engine never reads for them — it now names PAS, the one thing a keeper does with the ball.
 - **Current rating**: the rounded average of the six attributes the role can use. Outfield players use SHO and ignore REF; goalkeepers use REF and ignore SHO.
 - **Potential**: a permanent **SUPER-session chance grade**, not a cap and not a speed multiplier. Every instant drill rolls a chance of a **SUPER TRAINING SESSION** that multiplies the drill's base gain by **1.5×** with a full celebration. **E− is 5%**, and every step adds two points, up to **A+ at 33%**. A pity timer guarantees a SUPER at latest on the 12th drill since a player's last one, so low grades still hit jackpots. The player file shows the grade and exact percentage.
 - **Potential progression**: recruitment quality rises with the club. D5 pools are 90% E-tier and 10% D-tier; D4 is 35% E / 60% D / 5% C; D3 is 5% E / 30% D / 60% C / 5% B; D2 is 5% D / 35% C / 60% B; D1 is 25% B / 75% A. Youth intake and scouting both use this division progression, so A and A+ players begin appearing in D1.
