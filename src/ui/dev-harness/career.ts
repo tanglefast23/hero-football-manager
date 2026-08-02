@@ -6,6 +6,7 @@ import {
   createCareer,
   startNextSeason,
 } from '../../game/career';
+import { willRetireAtSeasonTransition } from '../../game/m2-career';
 import { renewCareerPlayer } from '../../game/squad';
 import { mulberry32 } from '../../sim/rng';
 import type { GameState } from '../../game/types';
@@ -151,9 +152,17 @@ function nextState(state: GameState): GameState {
   if (state.phase === 'season-end') {
     // Letting a contract lapse would shrink the squad a screen is being
     // reviewed against, so everyone signs again at the cheapest terms.
+    //
+    // Everyone except a player leaving at this very transition. The same filter
+    // `startNextSeason` and `runHeadlessFullCareer` gate on: an announced
+    // retirement is exempt from the expiry gate, the season review never offers
+    // him a renewal, and `renewCareerPlayer` now refuses one outright — so
+    // renewing him here was work the shipped game never does.
     let renewed = state;
     for (const player of state.players.filter(candidate => (
-      candidate.clubId === state.userClubId && candidate.contractSeasonsRemaining === 0
+      candidate.clubId === state.userClubId
+      && candidate.contractSeasonsRemaining === 0
+      && !willRetireAtSeasonTransition(candidate, state.season)
     ))) {
       renewed = renewCareerPlayer(renewed, player.id, 4, 1);
     }

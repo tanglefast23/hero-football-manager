@@ -60,6 +60,7 @@ import {
   type CareerPlayer,
   type GameState,
 } from '../../game';
+import { willRetireAtSeasonTransition } from '../../game/m2-career';
 import type { ScoutReport } from '../../game/market';
 import { mulberry32 } from '../../sim/rng';
 import type { Attrs, Role } from '../../sim/types';
@@ -218,7 +219,9 @@ function createPromotedCareer(seed: number): GameState {
     throw new Error(`promotion seed ${seed} failed its authored D5 promotion`);
   }
   for (const player of state.players.filter(candidate => (
-    candidate.clubId === state.userClubId && candidate.contractSeasonsRemaining === 0
+    candidate.clubId === state.userClubId
+    && candidate.contractSeasonsRemaining === 0
+    && !willRetireAtSeasonTransition(candidate, state.season)
   ))) {
     state = renewCareerPlayer(state, player.id, 4, 2);
   }

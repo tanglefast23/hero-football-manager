@@ -50,6 +50,7 @@ import {
   trainPlayerInstantly,
   POSITION_TRAINING_ATTRIBUTES,
 } from '../../game';
+import { willRetireAtSeasonTransition } from '../../game/m2-career';
 import { renewCareerPlayer } from '../../game/squad';
 import { buildCareerFacility, upgradeCareerFacility } from '../../game/management';
 import { runMatch } from '../../sim/match';
@@ -323,7 +324,9 @@ function playCareer(seed: number, train: boolean): SeasonRow[] {
     });
 
     for (const player of state.players.filter(c => (
-      c.clubId === state.userClubId && c.contractSeasonsRemaining === 0
+      c.clubId === state.userClubId
+      && c.contractSeasonsRemaining === 0
+      && !willRetireAtSeasonTransition(c, state.season)
     ))) {
       state = renewCareerPlayer(state, player.id, 4, 1);
     }
