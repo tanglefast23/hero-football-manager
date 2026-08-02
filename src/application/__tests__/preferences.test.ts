@@ -25,6 +25,7 @@ describe('fail-soft app preferences', () => {
       managerTipsEnabled: true,
       seenPowerCutIns: [],
       autoSubs: false,
+      squadSort: null,
     });
     expect(saved).toEqual(result.preferences);
     expect(result.warning).toContain('reset to defaults');

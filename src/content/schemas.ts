@@ -338,12 +338,15 @@ const FOCUS_DRILL_PATHS = [
 ] as const;
 // Tier labels are Arabic digits: the Roman "I" rendered as a bare bar in the
 // UI font and read as a serif-less 1.
+// The outfield ladder was 5/8/12/17/23 and is now that curve scaled by 4/5, so
+// tier 1 grants 4. Rounding to whole points cancels out across the five rungs:
+// the ladder still totals exactly four fifths of what it used to (52 of 65).
 const FOCUS_DRILL_TIERS = [
-  { suffix: '', label: '1', gain: 5 },
-  { suffix: '-ii', label: '2', gain: 8 },
-  { suffix: '-iii', label: '3', gain: 12 },
-  { suffix: '-iv', label: '4', gain: 17 },
-  { suffix: '-v', label: '5', gain: 23 },
+  { suffix: '', label: '1', gain: 4 },
+  { suffix: '-ii', label: '2', gain: 6 },
+  { suffix: '-iii', label: '3', gain: 10 },
+  { suffix: '-iv', label: '4', gain: 14 },
+  { suffix: '-v', label: '5', gain: 18 },
 ] as const;
 const EXPECTED_FOCUS_DRILLS = FOCUS_DRILL_PATHS.flatMap(path => (
   FOCUS_DRILL_TIERS.map((tier, tierIndex) => ({

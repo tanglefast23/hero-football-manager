@@ -1877,13 +1877,14 @@ export function MatchScreen({
   let pendingFormation: MatchInput | undefined;
   let pendingMentality: MatchInput | undefined;
   let pendingEnergyUse: MatchInput | undefined;
-  let pendingAutoPowers: MatchInput | undefined;
   for (let i = match.pendingInputs.length - 1; i >= 0; i--) {
     const input = match.pendingInputs[i];
     if (input.kind === 'SET_FORMATION') pendingFormation ??= input;
     else if (input.kind === 'SET_MENTALITY') pendingMentality ??= input;
     else if (input.kind === 'SET_ENERGY_USE') pendingEnergyUse ??= input;
-    else if (input.kind === 'SET_AUTO_POWERS') pendingAutoPowers ??= input;
+    // SET_AUTO_POWERS is deliberately not scanned: the M/A badge it fed was
+    // removed with the manual tap (2026-07-25), and the input survives as test
+    // instrumentation only. Nothing in the HUD reads a firing policy now.
   }
   const displayedFormation = pendingFormation?.kind === 'SET_FORMATION'
     ? pendingFormation.formation
@@ -1894,11 +1895,6 @@ export function MatchScreen({
   const displayedEnergyUse = pendingEnergyUse?.kind === 'SET_ENERGY_USE'
     ? pendingEnergyUse.energyUse
     : currentTactics.energyUse;
-  // SET_AUTO_POWERS is a team-wide policy in the engine, so one flag drives
-  // every hero tile's M/A badge.
-  const displayedAutoPowers = pendingAutoPowers?.kind === 'SET_AUTO_POWERS'
-    ? pendingAutoPowers.enabled
-    : match.players[teamOffset].firePolicy === 'FIRE_WHEN_READY';
   const carrierIndex = retainedCarrierIndex(frame.carrier, lastCarrierRef.current);
   useEffect(() => {
     if (frame.carrier >= 0) lastCarrierRef.current = frame.carrier;

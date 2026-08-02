@@ -572,6 +572,9 @@ function GameApp() {
   const saveAutoSubs = useCallback((autoSubs: boolean) => {
     savePreferences({ ...preferencesRef.current, autoSubs });
   }, [savePreferences]);
+  const saveSquadSort = useCallback((squadSort: AppPreferences['squadSort']) => {
+    savePreferences({ ...preferencesRef.current, squadSort });
+  }, [savePreferences]);
   const cycleFormationPreset = useCallback((slot: number) => {
     const market = useM1Store.getState().career?.market;
     savePreferences(replaceFormationPreset(
@@ -1560,6 +1563,8 @@ function GameApp() {
           <SquadTrainingScreen
             requestViewModel={playerRequestVm}
             onOpenRequest={() => setRequestStage('walk-on')}
+            squadSort={preferences.squadSort}
+            onChangeSquadSort={saveSquadSort}
             viewModel={squadTrainingVm!}
             selectedPlayerId={store.selectedPlayerId}
             onSelectPlayer={playerId => {

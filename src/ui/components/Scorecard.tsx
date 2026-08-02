@@ -47,20 +47,28 @@ export function PaperPanel({ children, title, kicker, stamp, className, tone = '
         className,
       )}
     >
+      {/* The stamp shares the top row with the kicker and stops there. It used
+          to sit beside the whole text column, and a wide one ("ORDINARY
+          FOOTBALL") squeezed the title into a one-word-per-line ladder. The row
+          is justify-end so a stamp without a kicker still lands right. */}
       {(kicker || title) && (
-        <View className="mb-3 flex-row items-start justify-between gap-3">
-          <View className="flex-1">
-            {kicker ? (
-              <Text className={cx('font-pixel text-sm uppercase', attention ? 'text-gold-dark' : 'text-stamp')}>{kicker}</Text>
-            ) : null}
-            {title ? (
-              <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
-            ) : null}
-          </View>
-          {stamp ? (
-            <View className={cx('border-2 border-b-4 px-2 py-1', attention ? 'border-gold-dark bg-gold' : 'border-stamp bg-red-light/40')}>
-              <Text className={cx('font-pixel text-sm uppercase', attention ? 'text-ink' : 'text-stamp')}>{stamp}</Text>
+        <View className="mb-3">
+          {(kicker || stamp) ? (
+            <View className="flex-row items-start justify-end gap-3">
+              {kicker ? (
+                <Text className={cx('flex-1 font-pixel text-sm uppercase', attention ? 'text-gold-dark' : 'text-stamp')}>
+                  {kicker}
+                </Text>
+              ) : null}
+              {stamp ? (
+                <View className={cx('border-2 border-b-4 px-2 py-1', attention ? 'border-gold-dark bg-gold' : 'border-stamp bg-red-light/40')}>
+                  <Text className={cx('font-pixel text-sm uppercase', attention ? 'text-ink' : 'text-stamp')}>{stamp}</Text>
+                </View>
+              ) : null}
             </View>
+          ) : null}
+          {title ? (
+            <Text className="mt-1 font-pixel text-xl uppercase text-ink">{title}</Text>
           ) : null}
         </View>
       )}

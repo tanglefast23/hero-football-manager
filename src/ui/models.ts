@@ -34,7 +34,7 @@ export interface ClubAlertViewModel {
   tone: 'urgent' | 'event' | 'info';
   guideSequenceId?: AssistantGuideSequenceId;
   destination?: AssistantGuideDestination;
-  /** Set on player-scoped alerts (e.g. training caps) so taps can deep-link to that player. */
+  /** Set on player-scoped alerts (e.g. a player waiting on a request) so taps can deep-link to that player. */
   playerId?: string;
   /**
    * Marks a row about a powered player, drawn as the board panel's Hero chip.

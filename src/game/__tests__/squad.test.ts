@@ -233,10 +233,10 @@ describe('career squad integration', () => {
       }
     }
     expect(trained.trainingPoints).toBe(80);
-    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(55);
+    expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.pac).toBe(54);
     expect(trained.players.find(player => player.id.endsWith('-p9'))?.attrs.def).toBe(50);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.pac).toBe(50);
-    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(55);
+    expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p1`)?.attrs.def).toBe(54);
     expect(trained.players.find(player => player.id === `${CLUB_IDS[0]}-p2`)?.attrs.def).toBe(50);
     // Training is TP-only; weekly settlement never charges money for it.
     expect(advanceWeek(trained).ledgers[0].lines.some(line => line.kind === 'training')).toBe(false);

@@ -106,6 +106,7 @@ export function ClubFinancesScreen({
   /** Why the last tapped square could not take the building; null while nothing has been refused. */
   const [placementRejection, setPlacementRejection] = useState<string | null>(null);
   const [facilityGridWidth, setFacilityGridWidth] = useState(0);
+  const [coachingOfficeScrollCueDismissed, setCoachingOfficeScrollCueDismissed] = useState(false);
   const selectedBuilding = facilities.buildings.find(
     building => building.id === selectedBuildingId,
   );
@@ -269,10 +270,15 @@ export function ClubFinancesScreen({
   useEffect(() => {
     if (guideFocus !== 'coaching-office') {
       coachingOfficeScrolledRef.current = false;
+      setCoachingOfficeScrollCueDismissed(false);
       return;
     }
     scrollToCoachingOffice();
   }, [guideFocus, scrollToCoachingOffice]);
+
+  const dismissCoachingOfficeScrollCue = useCallback(() => {
+    setCoachingOfficeScrollCueDismissed(true);
+  }, []);
 
   useEffect(() => {
     if (guideFocus !== 'facility-grid') return;
@@ -392,6 +398,8 @@ export function ClubFinancesScreen({
           scrollFacilityGuideTargetIntoView={scrollFacilityGuideTargetIntoView}
           coachingOfficeBuildTargetRef={coachingOfficeBuildTargetRef}
           scrollToCoachingOffice={scrollToCoachingOffice}
+          showCoachingOfficeScrollCue={guideFocus === 'coaching-office' && !coachingOfficeScrollCueDismissed}
+          dismissCoachingOfficeScrollCue={dismissCoachingOfficeScrollCue}
         />
       ),
     },
@@ -742,6 +750,8 @@ interface GroundsSectionProps {
   scrollFacilityGuideTargetIntoView: (phase: GuidedFirstFacilityPhase) => void;
   coachingOfficeBuildTargetRef: RefObject<View | null>;
   scrollToCoachingOffice: () => void;
+  showCoachingOfficeScrollCue: boolean;
+  dismissCoachingOfficeScrollCue: () => void;
 }
 
 function GroundsSection({
@@ -778,6 +788,8 @@ function GroundsSection({
   scrollFacilityGuideTargetIntoView,
   coachingOfficeBuildTargetRef,
   scrollToCoachingOffice,
+  showCoachingOfficeScrollCue,
+  dismissCoachingOfficeScrollCue,
 }: GroundsSectionProps) {
   const facilities = viewModel.facilities;
   return (
@@ -1267,7 +1279,7 @@ function GroundsSection({
                         viewport already lands on it — but nothing said which of
                         the eight cards to press. It wears the same gold tutorial
                         glow as the Train button and the same arrow. */}
-                    {guideFocus === 'coaching-office' && entry.type === 'coaching-office' ? (
+                    {guideFocus === 'coaching-office' && entry.type === 'coaching-office' && !selected ? (
                       <TutorialTapCue
                         label="Tap here"
                         detail="Coaching Office"
@@ -1276,6 +1288,23 @@ function GroundsSection({
                           marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
                           top: -82,
                         }}
+                      />
+                    ) : null}
+                    {/* Selecting the card arms the build, but the grid it drops
+                        onto is off the top of the screen — the tap looked like
+                        it did nothing. Points back up at the grid, and gets out
+                        of the way on a tap for anyone who already knows. */}
+                    {showCoachingOfficeScrollCue && entry.type === 'coaching-office' && selected ? (
+                      <TutorialTapCue
+                        label="Scroll up"
+                        detail="Then tap a + square"
+                        direction="up"
+                        style={{
+                          left: '50%',
+                          marginLeft: -TUTORIAL_TAP_CUE_WIDTH / 2,
+                          top: -92,
+                        }}
+                        onDismiss={dismissCoachingOfficeScrollCue}
                       />
                     ) : null}
                     {guidedFirstFacility

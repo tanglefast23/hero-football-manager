@@ -207,18 +207,19 @@ describe('facility weekly integration', () => {
       state = tapIfAffordable(state, playerId, 'circuit');
       state = advanceWeek(state);
     }
-    // A Level 1 Gym is now x1.25, and Circuit 2 (+5) is the open tier, so each
-    // tap lands 6 real STA and banks 60 percentage points of the adjacency's
-    // 10% — enough to release a whole extra point on roughly every other tap.
+    // A Level 1 Gym is now x1.25, and Circuit 2 (+4) is the open tier, so each
+    // tap lands 5 real STA and banks a fraction of the adjacency's 10% — enough
+    // to release a whole extra point on roughly every other tap.
     const afterNine = state.players.find(player => player.id === playerId);
-    expect(afterNine?.attrs.sta).toBe(startingSta + 61);
-    expect(afterNine?.facilityStaBonusRemainder).toBe(60);
+    expect(afterNine?.attrs.sta).toBe(startingSta + 51);
+    expect(afterNine?.facilityStaBonusRemainder).toBe(70);
 
+    // The tenth tap is one of the paying ones: 5 real plus the banked point.
     state = tapIfAffordable(state, playerId, 'circuit');
     state = advanceWeek(state);
     const afterTen = state.players.find(player => player.id === playerId);
-    expect(afterTen?.attrs.sta).toBe(startingSta + 69);
-    expect(afterTen?.facilityStaBonusRemainder).toBe(30);
+    expect(afterTen?.attrs.sta).toBe(startingSta + 57);
+    expect(afterTen?.facilityStaBonusRemainder).toBe(20);
   });
 
   test('raises the home gate by 25% per Stadium Stand level, best level only', () => {
@@ -295,12 +296,12 @@ describe('facility weekly integration', () => {
       return trained.players.find(player => player.id === playerId)!.attrs.pac - 50;
     };
 
-    // Sprints 2 gives +5 PAC at age 25. The old formula made level 1 x1.0, so
+    // Sprints 1 gives +4 PAC at age 25. The old formula made level 1 x1.0, so
     // the first Gym a club ever built changed nothing at all.
-    expect(atGymLevel(0)).toBe(5);
-    expect(atGymLevel(1)).toBe(6); // round(5 x 1.25)
-    expect(atGymLevel(2)).toBe(8); // round(5 x 1.5)
-    expect(atGymLevel(3)).toBe(10);
+    expect(atGymLevel(0)).toBe(4);
+    expect(atGymLevel(1)).toBe(5); // round(4 x 1.25)
+    expect(atGymLevel(2)).toBe(6); // round(4 x 1.5)
+    expect(atGymLevel(3)).toBe(8);
   });
 
   test('keeps M1 ambient TP behavior and charges no upkeep when the grid is absent', () => {

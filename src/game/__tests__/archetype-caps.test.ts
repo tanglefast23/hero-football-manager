@@ -5,6 +5,7 @@ import {
   POSITION_TRAINING_ATTRIBUTES,
   POTENTIAL_GRADES,
   archetypeTrainingBonusPercent,
+  attributeAffectsPlay,
   capPlayerTrainingGain,
   playerAttributeCaps,
   playerPotentialGrade,
@@ -66,6 +67,16 @@ describe('open-ended player development', () => {
       }
     },
   );
+
+  test('never steers a role toward an attribute its matches ignore', () => {
+    for (const [role, positionAttributes] of Object.entries(POSITION_TRAINING_ATTRIBUTES) as
+      [Role, readonly (keyof Attrs)[]][]) {
+      for (const attribute of positionAttributes) {
+        expect([role, attribute, attributeAffectsPlay(role, attribute)])
+          .toEqual([role, attribute, true]);
+      }
+    }
+  });
 
   test('derives a stable three-step grade inside each persisted talent tier', () => {
     for (const potential of [1, 2, 3, 4, 5] as const) {

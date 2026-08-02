@@ -35,6 +35,7 @@ import type {
   ClubLineupState,
   ClubState,
   GameState,
+  LeagueFixture,
   LeagueStanding,
 } from './types';
 
@@ -339,11 +340,53 @@ function balanceOpeningDivision(state: GameState): GameState {
     state.userClubId,
     balancedStrengths,
   );
+  const fixtures = generateSeasonFixtures(scheduleClubIds, state.season, state.careerSeed);
   return {
     ...state,
-    players,
-    fixtures: generateSeasonFixtures(scheduleClubIds, state.season, state.careerSeed),
+    players: strengthenFirstOpponent(players, fixtures, state.userClubId),
+    fixtures,
   };
+}
+
+/** The attribute each position is judged by, and the one a +5 is felt through. */
+const FIRST_OPPONENT_KEY_ATTR: Readonly<Record<CareerPlayer['role'], 'ref' | 'def' | 'pas' | 'sho'>> = {
+  GK: 'ref',
+  DEF: 'def',
+  MID: 'pas',
+  FWD: 'sho',
+};
+const FIRST_OPPONENT_BONUS = 5;
+
+/**
+ * Week one is watched with nothing built and nothing trained, so it carries the
+ * whole first impression of what a league match costs. Every player in that one
+ * opponent gets +5 on their position's defining attribute — applied after the
+ * schedule is pinned, so it sharpens the opening fixture without disturbing the
+ * strength ordering that chose it. The rest of the division is untouched.
+ */
+function strengthenFirstOpponent(
+  players: readonly CareerPlayer[],
+  fixtures: readonly LeagueFixture[],
+  userClubId: string,
+): CareerPlayer[] {
+  const opener = fixtures
+    .filter(fixture => fixture.homeClubId === userClubId || fixture.awayClubId === userClubId)
+    .sort((left, right) => left.week - right.week || compareIds(left.id, right.id))[0];
+  if (opener === undefined) return [...players];
+  const opponentClubId = opener.homeClubId === userClubId ? opener.awayClubId : opener.homeClubId;
+  return players.map(player => {
+    if (player.clubId !== opponentClubId) return player;
+    const key = FIRST_OPPONENT_KEY_ATTR[player.role];
+    const attrs = {
+      ...player.attrs,
+      [key]: Math.min(99, player.attrs[key] + FIRST_OPPONENT_BONUS),
+    };
+    return {
+      ...player,
+      attrs,
+      signingStatTotal: Object.values(attrs).reduce((sum, value) => sum + value, 0),
+    };
+  });
 }
 
 function generatedActiveDivision(

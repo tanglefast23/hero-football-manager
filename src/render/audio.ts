@@ -128,7 +128,7 @@ let masterVolume = 1;
 
 // Activation and impact are separate so a power-up never impersonates the
 // later ball/body contact. Instant spatial powers intentionally sound only on
-// POWER_IMPACT; a manual activation still layers the tap confirmation.
+// POWER_IMPACT, so their one cue lands on the moment the player can see.
 const POWER_AUDIO: Record<PowerId, {
   readonly activation: readonly SfxKey[];
   readonly impact: readonly SfxKey[];
