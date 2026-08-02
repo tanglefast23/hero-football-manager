@@ -343,7 +343,10 @@ export function TrainingDrillModal({
       statusBarTranslucent
     >
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right', 'bottom']}>
-        <View className={wide ? 'flex-1 items-center justify-center px-3 py-6' : 'flex-1 justify-end px-3 pb-3'}>
+        <View
+          accessibilityViewIsModal
+          className={wide ? 'flex-1 items-center justify-center px-3 py-6' : 'flex-1 justify-end px-3 pb-3'}
+        >
           <Pressable
             accessible={false}
             style={StyleSheet.absoluteFill}
@@ -352,7 +355,6 @@ export function TrainingDrillModal({
             <View className="flex-1" style={{ backgroundColor: 'rgba(36,31,46,0.62)' }} />
           </Pressable>
           <View
-            accessibilityViewIsModal
             className={wide
               ? 'w-full max-w-[560px] overflow-hidden border-2 border-b-4 border-ink bg-paper'
               : 'w-full overflow-hidden border-2 border-b-4 border-ink bg-paper'}
@@ -582,17 +584,29 @@ export function TrainingDrillModal({
                 </View>
               </Pressable>
             ) : null}
+          </View>
 
-            {pendingConfirm !== null && !confirmingHighRisk ? (
-              <View style={[styles.noticeLayer, styles.noticeCenter]}>
-                <Pressable
-                  accessible={false}
-                  onPress={() => setPendingConfirm(null)}
-                  style={StyleSheet.absoluteFill}
+          {pendingConfirm !== null && !confirmingHighRisk ? (
+            <View style={[styles.noticeLayer, styles.noticeCenter]}>
+              <Pressable
+                accessible={false}
+                onPress={() => setPendingConfirm(null)}
+                style={StyleSheet.absoluteFill}
+              >
+                <View style={styles.noticeBackdrop} />
+              </Pressable>
+              <View
+                className="w-[88%] max-w-[480px] overflow-hidden border-2 border-b-4 border-ink bg-paper"
+                style={styles.confirmCard}
+              >
+                {/* On the busiest drills this card is taller than a phone's
+                    popup, so the body scrolls and the buttons stay pinned
+                    underneath it. A confirmation whose Cancel has been clipped
+                    off the bottom is worse than no confirmation at all. */}
+                <ScrollView
+                  style={styles.confirmScroll}
+                  contentContainerStyle={styles.confirmScrollContent}
                 >
-                  <View style={styles.noticeBackdrop} />
-                </Pressable>
-                <View className="w-[88%] max-w-[480px] border-2 border-b-4 border-ink bg-paper p-4">
                   <PixelText className="text-sm uppercase tracking-wide text-blue-dark">
                     Confirm training
                   </PixelText>
@@ -662,7 +676,9 @@ export function TrainingDrillModal({
                     </View>
                   </View>
 
-                  <View className="mt-4 border-y-2 border-ink/20 py-3">
+                  {/* Open at the bottom: the footer's rule closes this section,
+                      so a second one here would only double the line. */}
+                  <View className="mt-4 border-t-2 border-ink/20 pt-3">
                     <View className="mb-2 flex-row items-center justify-between">
                       <PixelText className="text-xs uppercase tracking-wide text-ink/60">
                         Runs in a row
@@ -699,166 +715,166 @@ export function TrainingDrillModal({
                       Each run keeps its own SUPER roll, injury roll and result reveal.
                     </Text>
                   </View>
+                </ScrollView>
 
-                  <View className="mt-4 flex-row gap-2">
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Cancel training"
-                      onPress={() => setPendingConfirm(null)}
-                      className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
-                      style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                <View className="flex-row gap-2 border-t-2 border-ink/20 px-4 py-3">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel training"
+                    onPress={() => setPendingConfirm(null)}
+                    className="min-h-12 flex-1 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
+                  >
+                    <PixelText className="text-base uppercase text-ink">Cancel</PixelText>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={pendingConfirm.affordable
+                      ? `Run ${pendingConfirm.drillName} ${repeatCount} time${repeatCount === 1 ? '' : 's'} for ${pendingConfirm.tpCost * repeatCount} training points`
+                      : `Not enough training points for ${pendingConfirm.drillName}`}
+                    accessibilityState={{ disabled: !pendingConfirm.affordable }}
+                    disabled={!pendingConfirm.affordable}
+                    onPress={() => {
+                      const chosen = pendingConfirm;
+                      if (selectedRiskyRuns > 0) {
+                        setConfirmingHighRisk(true);
+                        return;
+                      }
+                      startTrainingBatch(chosen, repeatCount);
+                    }}
+                    className={pendingConfirm.affordable
+                      ? 'min-h-12 flex-[1.4] items-center justify-center border-2 border-b-4 border-ink bg-blue px-3'
+                      : 'min-h-12 flex-[1.4] items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'}
+                    style={({ pressed }) => ({ opacity: pressed && pendingConfirm.affordable ? 0.65 : undefined })}
+                  >
+                    <PixelText className={pendingConfirm.affordable
+                      ? 'text-base uppercase text-white'
+                      : 'text-base uppercase text-ink/40'}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
+                      numberOfLines={1}
                     >
-                      <PixelText className="text-base uppercase text-ink">Cancel</PixelText>
-                    </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={pendingConfirm.affordable
-                        ? `Run ${pendingConfirm.drillName} ${repeatCount} time${repeatCount === 1 ? '' : 's'} for ${pendingConfirm.tpCost * repeatCount} training points`
-                        : `Not enough training points for ${pendingConfirm.drillName}`}
-                      accessibilityState={{ disabled: !pendingConfirm.affordable }}
-                      disabled={!pendingConfirm.affordable}
-                      onPress={() => {
-                        const chosen = pendingConfirm;
-                        if (selectedRiskyRuns > 0) {
-                          setConfirmingHighRisk(true);
-                          return;
-                        }
-                        startTrainingBatch(chosen, repeatCount);
-                      }}
-                      className={pendingConfirm.affordable
-                        ? 'min-h-12 flex-[1.4] items-center justify-center border-2 border-b-4 border-ink bg-blue px-3'
-                        : 'min-h-12 flex-[1.4] items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'}
-                      style={({ pressed }) => ({ opacity: pressed && pendingConfirm.affordable ? 0.65 : undefined })}
-                    >
-                      <PixelText className={pendingConfirm.affordable
-                        ? 'text-base uppercase text-white'
-                        : 'text-base uppercase text-ink/40'}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.72}
-                        numberOfLines={1}
-                      >
-                        {pendingConfirm.affordable ? `Train ${repeatCount}×` : 'Not enough TP'}
-                      </PixelText>
-                    </Pressable>
-                  </View>
+                      {pendingConfirm.affordable ? `Train ${repeatCount}×` : 'Not enough TP'}
+                    </PixelText>
+                  </Pressable>
                 </View>
               </View>
-            ) : null}
+            </View>
+          ) : null}
 
-            {pendingConfirm !== null && confirmingHighRisk ? (
-              <View style={[styles.noticeLayer, styles.noticeCenter]}>
-                <Pressable
-                  accessible={false}
-                  onPress={() => setConfirmingHighRisk(false)}
-                  style={StyleSheet.absoluteFill}
-                >
-                  <View style={styles.noticeBackdrop} />
-                </Pressable>
+          {pendingConfirm !== null && confirmingHighRisk ? (
+            <View style={[styles.noticeLayer, styles.noticeCenter]}>
+              <Pressable
+                accessible={false}
+                onPress={() => setConfirmingHighRisk(false)}
+                style={StyleSheet.absoluteFill}
+              >
+                <View style={styles.noticeBackdrop} />
+              </Pressable>
+              <View
+                accessibilityRole="alert"
+                accessibilityLabel={`High risk of injury. ${selectedRiskyRuns} of ${repeatCount} drills enter the injury-risk zone.`}
+                className="w-[88%] max-w-[420px] border-2 border-b-4 border-red-dark bg-paper p-4"
+              >
+                <PixelText className="text-sm uppercase tracking-wide text-red-dark">
+                  Safety check
+                </PixelText>
+                <PixelText className="mt-2 text-xl uppercase leading-7 text-ink">
+                  High risk of injury. Continue?
+                </PixelText>
+                <Text className="mt-3 text-sm leading-5 text-ink/70">
+                  {selectedRiskyRuns} of {repeatCount} selected drills start below 30% condition. Each one rolls a fresh injury chance.
+                </Text>
+
+                <View className="mt-4 gap-2">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Continue all ${repeatCount} drills despite the injury risk`}
+                    onPress={() => startTrainingBatch(pendingConfirm, repeatCount)}
+                    className="min-h-12 items-center justify-center border-2 border-b-4 border-red-dark bg-red px-3"
+                  >
+                    <PixelText className="text-center text-sm uppercase text-white">
+                      Continue anyway · {repeatCount}×
+                    </PixelText>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={maximumSafeRuns > 0
+                      ? `Continue with the maximum safe number, ${Math.min(repeatCount, maximumSafeRuns)} drills`
+                      : 'No drills can be run without injury risk'}
+                    accessibilityState={{ disabled: maximumSafeRuns === 0 }}
+                    disabled={maximumSafeRuns === 0}
+                    onPress={() => {
+                      const saferRuns = Math.min(repeatCount, maximumSafeRuns);
+                      setRepeatCount(saferRuns);
+                      startTrainingBatch(pendingConfirm, saferRuns);
+                    }}
+                    className={maximumSafeRuns > 0
+                      ? 'min-h-12 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue px-3'
+                      : 'min-h-12 items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'}
+                  >
+                    <PixelText className={maximumSafeRuns > 0
+                      ? 'text-center text-sm uppercase text-white'
+                      : 'text-center text-sm uppercase text-ink/35'}>
+                      {maximumSafeRuns > 0
+                        ? `Continue with max safe · ${Math.min(repeatCount, maximumSafeRuns)}×`
+                        : 'No safe drills available'}
+                    </PixelText>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel and return to the number picker"
+                    onPress={() => setConfirmingHighRisk(false)}
+                    className="min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
+                  >
+                    <PixelText className="text-sm uppercase text-ink">Cancel</PixelText>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          ) : null}
+
+          {notice !== null ? (
+            <View style={styles.noticeLayer}>
+              {/* Backdrop and card are siblings, not nested pressables, so a tap
+                  on the card never falls through to the dismiss handler. */}
+              <Pressable
+                accessible={false}
+                onPress={() => setNotice(null)}
+                style={StyleSheet.absoluteFill}
+              >
+                <View style={styles.noticeBackdrop} />
+              </Pressable>
+              <View pointerEvents="box-none" style={styles.noticeCenter}>
                 <View
                   accessibilityRole="alert"
-                  accessibilityLabel={`High risk of injury. ${selectedRiskyRuns} of ${repeatCount} drills enter the injury-risk zone.`}
-                  className="w-[88%] max-w-[420px] border-2 border-b-4 border-red-dark bg-paper p-4"
+                  accessibilityLabel={`${notice.title}. ${notice.detail}`}
+                  className="w-full max-w-[340px] border-2 border-b-4 border-ink bg-paper px-5 py-4"
                 >
-                  <PixelText className="text-sm uppercase tracking-wide text-red-dark">
-                    Safety check
-                  </PixelText>
-                  <PixelText className="mt-2 text-xl uppercase leading-7 text-ink">
-                    High risk of injury. Continue?
-                  </PixelText>
-                  <Text className="mt-3 text-sm leading-5 text-ink/70">
-                    {selectedRiskyRuns} of {repeatCount} selected drills start below 30% condition. Each one rolls a fresh injury chance.
-                  </Text>
-
-                  <View className="mt-4 gap-2">
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Continue all ${repeatCount} drills despite the injury risk`}
-                      onPress={() => startTrainingBatch(pendingConfirm, repeatCount)}
-                      className="min-h-12 items-center justify-center border-2 border-b-4 border-red-dark bg-red px-3"
-                    >
-                      <PixelText className="text-center text-sm uppercase text-white">
-                        Continue anyway · {repeatCount}×
-                      </PixelText>
-                    </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={maximumSafeRuns > 0
-                        ? `Continue with the maximum safe number, ${Math.min(repeatCount, maximumSafeRuns)} drills`
-                        : 'No drills can be run without injury risk'}
-                      accessibilityState={{ disabled: maximumSafeRuns === 0 }}
-                      disabled={maximumSafeRuns === 0}
-                      onPress={() => {
-                        const saferRuns = Math.min(repeatCount, maximumSafeRuns);
-                        setRepeatCount(saferRuns);
-                        startTrainingBatch(pendingConfirm, saferRuns);
-                      }}
-                      className={maximumSafeRuns > 0
-                        ? 'min-h-12 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue px-3'
-                        : 'min-h-12 items-center justify-center border-2 border-ink/20 bg-ink/10 px-3'}
-                    >
-                      <PixelText className={maximumSafeRuns > 0
-                        ? 'text-center text-sm uppercase text-white'
-                        : 'text-center text-sm uppercase text-ink/35'}>
-                        {maximumSafeRuns > 0
-                          ? `Continue with max safe · ${Math.min(repeatCount, maximumSafeRuns)}×`
-                          : 'No safe drills available'}
-                      </PixelText>
-                    </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Cancel and return to the number picker"
-                      onPress={() => setConfirmingHighRisk(false)}
-                      className="min-h-12 items-center justify-center border-2 border-b-4 border-ink bg-white px-3"
-                    >
-                      <PixelText className="text-sm uppercase text-ink">Cancel</PixelText>
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
-            ) : null}
-
-            {notice !== null ? (
-              <View style={styles.noticeLayer}>
-                {/* Backdrop and card are siblings, not nested pressables, so a tap
-                    on the card never falls through to the dismiss handler. */}
-                <Pressable
-                  accessible={false}
-                  onPress={() => setNotice(null)}
-                  style={StyleSheet.absoluteFill}
-                >
-                  <View style={styles.noticeBackdrop} />
-                </Pressable>
-                <View pointerEvents="box-none" style={styles.noticeCenter}>
-                  <View
-                    accessibilityRole="alert"
-                    accessibilityLabel={`${notice.title}. ${notice.detail}`}
-                    className="w-full max-w-[340px] border-2 border-b-4 border-ink bg-paper px-5 py-4"
+                  <PixelText className={notice.bert === true
+                    ? 'text-center text-lg uppercase text-blue-dark'
+                    : 'text-center text-lg uppercase text-stamp'}
                   >
-                    <PixelText className={notice.bert === true
-                      ? 'text-center text-lg uppercase text-blue-dark'
-                      : 'text-center text-lg uppercase text-stamp'}
-                    >
-                      {notice.title}
-                    </PixelText>
-                    {notice.bert === true ? (
-                      <View className="mt-2 items-center">
-                        <BertFullBody pointing />
-                      </View>
-                    ) : null}
-                    <Text className="mt-2 text-center text-sm leading-5 text-ink/75">{notice.detail}</Text>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Dismiss"
-                      onPress={() => setNotice(null)}
-                      className="mt-4 min-h-11 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-6"
-                    >
-                      <PixelText className="text-base uppercase text-ink">Okay</PixelText>
-                    </Pressable>
-                  </View>
+                    {notice.title}
+                  </PixelText>
+                  {notice.bert === true ? (
+                    <View className="mt-2 items-center">
+                      <BertFullBody pointing />
+                    </View>
+                  ) : null}
+                  <Text className="mt-2 text-center text-sm leading-5 text-ink/75">{notice.detail}</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Dismiss"
+                    onPress={() => setNotice(null)}
+                    className="mt-4 min-h-11 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-6"
+                  >
+                    <PixelText className="text-base uppercase text-ink">Okay</PixelText>
+                  </Pressable>
                 </View>
               </View>
-            ) : null}
-          </View>
+            </View>
+          ) : null}
         </View>
       </SafeAreaView>
     </Modal>
@@ -928,7 +944,10 @@ const styles = StyleSheet.create({
     color: '#31578f',
   },
   // Sits above the drill scene and the injury card: it is the newest thing the
-  // player did, so it owns the popup until dismissed.
+  // player did, so it owns the popup until dismissed. These layers are siblings
+  // of the sheet rather than children of it — the sheet is `overflow-hidden` and
+  // only as tall as its own content, which clipped the top and bottom off any
+  // card taller than it.
   noticeLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 30 },
   noticeBackdrop: { flex: 1, backgroundColor: 'rgba(36,31,46,0.78)' },
   noticeCenter: {
@@ -940,7 +959,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 24,
   },
+  // Shrinks to the space the layer above leaves it instead of overflowing it.
+  confirmCard: { maxHeight: '100%', flexShrink: 1 },
+  // flexGrow 0 keeps a short card at its content height; flexShrink 1 hands the
+  // overflow to the scroller once it is taller than the screen allows.
+  confirmScroll: { flexGrow: 0, flexShrink: 1 },
+  confirmScrollContent: { padding: 16 },
   injuryBackdrop: {
     position: 'absolute',
     top: 0,
