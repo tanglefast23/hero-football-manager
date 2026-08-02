@@ -1,6 +1,7 @@
 import { leagueStandings, rosterForClub, type CareerPlayer, type GameState } from '../game';
 import type { ChampionshipCelebrationViewModel } from '../ui';
 import { playerLookId } from '../render/sprites/player-look';
+import { celebrationCoaches } from './celebration-staff';
 import { endgameSupersedesLeagueTitle } from './endgame-celebration';
 
 const FLAG_PREFIX = 'celebration:league-title:season-';
@@ -92,6 +93,7 @@ export function championshipCelebrationViewModel(
       .filter(player => player.id !== star.id)
       .sort((left, right) => compareIds(left.id, right.id))
       .map(playerViewModel),
+    coaches: celebrationCoaches(state),
   };
 }
 

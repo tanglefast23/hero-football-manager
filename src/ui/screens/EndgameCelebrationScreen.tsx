@@ -29,10 +29,16 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import { playLeagueChampionsSfx, stopLeagueChampionsSfx } from '../../render/menu-audio';
+import {
+  playCelebrationAnthem,
+  playEndingFarewell,
+  stopCelebrationAudio,
+} from '../../render/celebration-audio';
 import { PLAYER_SPRITE_CELL, PlayerRunSprite } from '../../render/PlayerRunSprite';
 import { buildFallbackAtlas, buildSpriteAtlas } from '../../render/sprites/buildAtlas';
 import { PIXEL_ART_SAMPLING } from '../../render/pixel-art-sampling';
 import { BertFullBody } from '../BertFullBody';
+import { CelebrationCoachRow } from '../components/CelebrationCoachRow';
 import { CharacterSpeechOverlay } from '../CharacterSpeechOverlay';
 import { PixelText } from '../components/PixelText';
 import { SfxPressable } from '../components/SfxPressable';
@@ -64,9 +70,13 @@ import type {
  * ground under the same fireworks and differ only in who walks out on it and
  * what is said. Splitting them would be three copies of a stadium.
  *
- * Nothing here touches `stopTheme`: whatever music carried the manager into
- * this moment carries him through it. Opening the summit with silence, or with
- * a restart, would make the biggest screen in the game the one that stutters.
+ * Each moment brings its own music rather than carrying the previous screen's
+ * bed through. The design doc asked for continuity, and the owner overruled it
+ * once the true ending existed to listen to: a season-boundary theme playing
+ * under a man thanking you for his career is the wrong sound, and the summit is
+ * the one place in the game worth its own song. The true ending therefore runs
+ * TWO — the farewell under the speech, the anthem the moment the squad joins
+ * him — handed over in `TrueEnding`.
  */
 
 /** How long the two trophy screens hold before they hand back on their own. */
@@ -155,12 +165,14 @@ export function EndgameCelebrationScreen({
     if (finished.current) return;
     finished.current = true;
     stopLeagueChampionsSfx();
+    stopCelebrationAudio();
     onComplete();
   }, [onComplete]);
   const returnToTitleOnce = useCallback(() => {
     if (finished.current) return;
     finished.current = true;
     stopLeagueChampionsSfx();
+    stopCelebrationAudio();
     (onReturnToTitle ?? onComplete)();
   }, [onComplete, onReturnToTitle]);
 
@@ -443,6 +455,7 @@ function TrophyScene({
 
   useEffect(() => {
     playLeagueChampionsSfx();
+    playCelebrationAnthem();
     const timeout = setTimeout(onDone, reduceMotion ? REDUCED_MOTION_MS : TROPHY_SCENE_MS);
     if (reduceMotion) return () => clearTimeout(timeout);
     const animation = Animated.loop(Animated.sequence([
@@ -531,6 +544,9 @@ function TrophyScene({
       </Animated.View>
 
       <View style={styles.bertRow}>
+        {/* Beside Bert, on the same grass line: the bench, watching the club
+            they built come out with the trophy. */}
+        <CelebrationCoachRow coaches={viewModel.coaches} spriteWidth={30} />
         {/* Sized through his own scale prop rather than a transform: a
             transformed box still takes its full height in layout, and the 47pt
             it was quietly holding is 47pt of grass the squad never got to
@@ -596,6 +612,18 @@ function TrueEnding({
   const still = reduceMotion || star === undefined;
   const curtainCall = still || walkedOff;
 
+  // Two beds, handed over on the same frame the squad joins him: the farewell
+  // holds the speech for as long as the player takes to read it, and the anthem
+  // opens the instant the pitch fills. Reduced motion collapses both beats into
+  // one picture with everybody already out, so it opens on the anthem and never
+  // plays the speech bed at all.
+  useEffect(() => {
+    if (curtainCall) playCelebrationAnthem();
+    else playEndingFarewell();
+  }, [curtainCall]);
+  // Leaving for the title screen must not carry a song with it.
+  useEffect(() => () => stopCelebrationAudio(), []);
+
   const performers = useMemo(() => (
     [...(star === undefined ? [] : [star]), ...viewModel.squad].map(player => ({
       id: player.id,
@@ -613,7 +641,21 @@ function TrueEnding({
       {/* Outside the safe area with the ground and the sky: these men stand in
           window coordinates, on grass that runs to the edges of the glass. */}
       {curtainCall ? (
-        <CurtainCall spots={stage.spots} atlas={atlas} reduceMotion={reduceMotion} />
+        <>
+          <CurtainCall spots={stage.spots} atlas={atlas} reduceMotion={reduceMotion} />
+          {/* Stood over Bert, who is flat out in the near grass. He keeps his
+              mark and his moment; the staff fill the space beside him that the
+              squad never reaches, on the same footline he lies on. */}
+          <View
+            pointerEvents="none"
+            style={[styles.finaleCoaches, {
+              bottom: stage.bert.up,
+              right: width * BERT_REST_FROM_RIGHT + stage.bert.boxWidth * 0.75,
+            }]}
+          >
+            <CelebrationCoachRow coaches={viewModel.coaches} spriteWidth={32} />
+          </View>
+        </>
       ) : null}
 
       <CelebrationSafeArea accessibilityLabel={viewModel.accessibilityLabel}>
@@ -1014,6 +1056,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(36,31,46,0.85)',
   },
   stillBert: { position: 'absolute' },
+  finaleCoaches: { position: 'absolute', zIndex: 2 },
   // Below the fixed title band, which is about 150pt tall at the 375pt floor.
   farewell: { flex: 1, paddingHorizontal: 16, paddingBottom: 16, paddingTop: 180 },
   farewellList: { flex: 1 },

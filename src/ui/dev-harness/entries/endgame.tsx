@@ -109,6 +109,12 @@ function endgameQaViewModel(kind: EndgameCelebrationKind): EndgameCelebrationVie
     // top, and the true ending brings them on for the curtain call once the
     // star has finished talking.
     squad,
+    // Two of the thirty-two, so the harness shows the staff row staged rather
+    // than the empty-club case the scenes also have to survive.
+    coaches: [
+      { id: 'qa-head', name: 'Amara Okafor', spriteKey: 'coach:amara-okafor:field-cheer' },
+      { id: 'qa-assistant', name: 'Kenji Sato', spriteKey: 'coach:kenji-sato:field-cheer' },
+    ],
     skippable: kind !== 'true-ending',
     accessibilityLabel: `${copy.headline}. ${copy.subheading}. ${copy.lines.join(' ')}`,
   };
