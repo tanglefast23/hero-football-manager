@@ -22,16 +22,21 @@ describe('training stat options', () => {
     expect(duels).not.toHaveProperty('room');
   });
 
-  it('hides keeper drills from outfield players and finishing from goalkeepers', () => {
+  it('offers only the drills the match engine reads for that role', () => {
     const outfielder = roster.find(player => player.role !== 'GK')!;
     const keeper = roster.find(player => player.role === 'GK')!;
     const outfieldOptions = squadTrainingViewModel(state, content, outfielder.id).selectedPlayerStatOptions!;
     const keeperOptions = squadTrainingViewModel(state, content, keeper.id).selectedPlayerStatOptions!;
 
-    expect(outfieldOptions).toHaveLength(6);
-    expect(outfieldOptions.some(option => option.pathId === 'keeper-drills')).toBe(false);
-    expect(keeperOptions).toHaveLength(6);
-    expect(keeperOptions.some(option => option.pathId === 'finishing')).toBe(false);
+    // Outfielders never face a shot, so REF is the only drill they lose.
+    expect(outfieldOptions.map(option => option.pathId)).toEqual(
+      ['sprints', 'finishing', 'rondo', 'duels', 'first-touch', 'circuit'],
+    );
+    // A keeper never shoots, never tackles and is never tackled, so Finishing,
+    // Duels and First Touch all buy them literally nothing.
+    expect(keeperOptions.map(option => option.pathId)).toEqual(
+      ['sprints', 'rondo', 'circuit', 'keeper-drills'],
+    );
   });
 
   it('separates the authored drill gain from Jojo-style player bonuses', () => {
