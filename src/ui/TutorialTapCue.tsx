@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import {
   Animated,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -18,6 +19,12 @@ export interface TutorialTapCueProps {
   style?: StyleProp<ViewStyle>;
   /** App-level Reduce Motion preference; the OS setting is honoured regardless. */
   reduceMotion?: boolean;
+  /**
+   * Makes the cue itself tappable, to be dismissed. Cues that point at a real
+   * control stay untappable so they can never swallow the tap they are asking
+   * for — only a cue with nothing beneath it takes this.
+   */
+  onDismiss?: () => void;
 }
 
 /** A non-blocking, Kairosoft-style prompt anchored beside the real control. */
@@ -28,6 +35,7 @@ export function TutorialTapCue({
   labelOffsetX = 0,
   style,
   reduceMotion = false,
+  onDismiss,
 }: TutorialTapCueProps) {
   const bounce = useRef(new Animated.Value(0)).current;
   // This was the one perpetual animation Reduce Motion could not stop: the
@@ -62,6 +70,42 @@ export function TutorialTapCue({
     outputRange: direction === 'down' ? [-3, 6] : [3, -6],
   });
 
+  const cue = (
+    <Animated.View style={[styles.cue, { transform: [{ translateY: travel }] }]}>
+      {direction === 'up' ? <Text style={styles.arrow}>▲</Text> : null}
+      <View
+        style={[
+          styles.labelShadow,
+          labelOffsetX === 0 ? null : { transform: [{ translateX: labelOffsetX }] },
+        ]}
+      >
+        <View style={styles.labelFrame}>
+          <Text className="text-center font-pixel text-sm uppercase text-white">{label}</Text>
+          <Text className="mt-1 text-center font-mono text-[10px] uppercase text-white/90">
+            {detail}
+          </Text>
+        </View>
+      </View>
+      {direction === 'down' ? <Text style={styles.arrow}>▼</Text> : null}
+    </Animated.View>
+  );
+
+  if (onDismiss !== undefined) {
+    return (
+      // box-none, so only the label itself takes the tap and the anchor's
+      // full-width empty margins stay transparent to whatever is under them.
+      <View pointerEvents="box-none" style={[styles.anchor, style]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${label}. ${detail}. Tap to dismiss.`}
+          onPress={onDismiss}
+        >
+          {cue}
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View
       accessible
@@ -70,23 +114,7 @@ export function TutorialTapCue({
       pointerEvents="none"
       style={[styles.anchor, style]}
     >
-      <Animated.View style={[styles.cue, { transform: [{ translateY: travel }] }]}>
-        {direction === 'up' ? <Text style={styles.arrow}>▲</Text> : null}
-        <View
-          style={[
-            styles.labelShadow,
-            labelOffsetX === 0 ? null : { transform: [{ translateX: labelOffsetX }] },
-          ]}
-        >
-          <View style={styles.labelFrame}>
-            <Text className="text-center font-pixel text-sm uppercase text-white">{label}</Text>
-            <Text className="mt-1 text-center font-mono text-[10px] uppercase text-white/90">
-              {detail}
-            </Text>
-          </View>
-        </View>
-        {direction === 'down' ? <Text style={styles.arrow}>▼</Text> : null}
-      </Animated.View>
+      {cue}
     </View>
   );
 }

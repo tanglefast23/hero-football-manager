@@ -49,7 +49,7 @@ describe('app preferences repository', () => {
       autoPowers: true,
       masterVolume: 0.75,
     });
-    expect(database.preferencesRow?.schema_version).toBe(6);
+    expect(database.preferencesRow?.schema_version).toBe(7);
   });
 
   it('migrates schema-2 preferences with M4 accessibility defaults', async () => {
@@ -73,7 +73,7 @@ describe('app preferences repository', () => {
       reduceMotion: true,
       hudSide: 'right',
     });
-    expect(database.preferencesRow?.schema_version).toBe(6);
+    expect(database.preferencesRow?.schema_version).toBe(7);
   });
 
   it('migrates schema-3 M4 preferences with an empty persistent cut-in history', async () => {
@@ -82,6 +82,7 @@ describe('app preferences repository', () => {
       seenPowerCutIns: _seenPowerCutIns,
       managerTipsEnabled: _managerTipsEnabled,
       autoSubs: _autoSubs,
+      squadSort: _squadSort,
       ...m4Preferences
     } = DEFAULT_APP_PREFERENCES;
     database.preferencesRow = {
@@ -94,7 +95,7 @@ describe('app preferences repository', () => {
       ...DEFAULT_APP_PREFERENCES,
       cutInMode: 'banner',
     });
-    expect(database.preferencesRow?.schema_version).toBe(6);
+    expect(database.preferencesRow?.schema_version).toBe(7);
   });
 
   it('migrates schema-4 preferences with manager tips enabled', async () => {
@@ -102,6 +103,7 @@ describe('app preferences repository', () => {
     const {
       managerTipsEnabled: _managerTipsEnabled,
       autoSubs: _autoSubs,
+      squadSort: _squadSort,
       ...schema4Preferences
     } = DEFAULT_APP_PREFERENCES;
     database.preferencesRow = {
@@ -111,12 +113,16 @@ describe('app preferences repository', () => {
     const repository = await createPreferencesRepository(database);
 
     await expect(repository.load()).resolves.toEqual(DEFAULT_APP_PREFERENCES);
-    expect(database.preferencesRow?.schema_version).toBe(6);
+    expect(database.preferencesRow?.schema_version).toBe(7);
   });
 
   it('migrates schema-5 preferences with bench cover off, keeping the rest', async () => {
     const database = new FakePersistenceDatabase();
-    const { autoSubs: _autoSubs, ...schema5Preferences } = DEFAULT_APP_PREFERENCES;
+    const {
+      autoSubs: _autoSubs,
+      squadSort: _squadSort,
+      ...schema5Preferences
+    } = DEFAULT_APP_PREFERENCES;
     database.preferencesRow = {
       schema_version: 5,
       preferences_json: JSON.stringify({
@@ -133,7 +139,35 @@ describe('app preferences repository', () => {
       seenPowerCutIns: ['GRAVITY_WELL'],
       autoSubs: false,
     });
-    expect(database.preferencesRow?.schema_version).toBe(6);
+    expect(database.preferencesRow?.schema_version).toBe(7);
+  });
+
+  it('migrates schema-6 preferences to the roster order the club has not chosen yet', async () => {
+    const database = new FakePersistenceDatabase();
+    const { squadSort: _squadSort, ...schema6Preferences } = DEFAULT_APP_PREFERENCES;
+    database.preferencesRow = {
+      schema_version: 6,
+      preferences_json: JSON.stringify({ ...schema6Preferences, autoSubs: true }),
+    };
+    const repository = await createPreferencesRepository(database);
+
+    await expect(repository.load()).resolves.toEqual({
+      ...DEFAULT_APP_PREFERENCES,
+      autoSubs: true,
+      squadSort: null,
+    });
+    expect(database.preferencesRow?.schema_version).toBe(7);
+  });
+
+  it('keeps the roster ordering the manager picked', async () => {
+    const database = new FakePersistenceDatabase();
+    const repository = await createPreferencesRepository(database);
+    const preferences: AppPreferences = {
+      ...DEFAULT_APP_PREFERENCES,
+      squadSort: { key: 'potential', direction: 'ascending' },
+    };
+    await repository.save(preferences);
+    await expect(repository.load()).resolves.toEqual(preferences);
   });
 
   it('cycles one preset without introducing duplicates', () => {

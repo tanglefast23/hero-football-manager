@@ -41,16 +41,14 @@ export function WeeklyReviewScreen({
   const balanceAnimationsStarted = reduceMotion || animationsReady;
   const balanceComplete = reduceMotion || balanceAnimationsComplete;
 
+  // Backstop, not a gate: the count-ups land themselves in about a second, but
+  // they run on requestAnimationFrame, which stalls while the app is
+  // backgrounded. This lands the final figures either way.
   useEffect(() => {
     if (!balanceAnimationsStarted || balanceComplete) return undefined;
     const timeout = setTimeout(() => setBalanceAnimationsComplete(true), 2800);
     return () => clearTimeout(timeout);
   }, [balanceAnimationsStarted, balanceComplete]);
-
-  const continueOrFinish = () => {
-    if (balanceComplete) onContinue();
-    else setBalanceAnimationsComplete(true);
-  };
 
   const moneyCard = (
     <WeeklyBalanceCard
@@ -135,10 +133,14 @@ export function WeeklyReviewScreen({
 
       <View className="border-t-[6px] border-white bg-ink/25 p-3">
         <View className={wide ? 'w-full max-w-[1180px] self-center' : 'w-full'}>
+          {/* Leaving is the skip. This press used to be eaten while the
+              count-ups ran, so the button played its chime and the week never
+              started — a dead button, since nothing here is worth holding a
+              manager on. Skipping elsewhere is its own labelled control. */}
           <ActionButton
             label={`Start ${viewModel.nextWeekLabel}  ▸`}
             accessibilityLabel={`Finish the weekly review and start ${viewModel.nextWeekLabel}`}
-            onPress={continueOrFinish}
+            onPress={onContinue}
           />
         </View>
       </View>

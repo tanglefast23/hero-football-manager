@@ -43,6 +43,16 @@ describe('committing taps are guarded', () => {
     expect(source).toContain('if (reArmRef.current !== null) clearTimeout(reArmRef.current);');
   });
 
+  it('starts the week on the first tap instead of spending it on an animation skip', () => {
+    const source = read('src/ui/screens/WeeklyReviewScreen.tsx');
+
+    // The press used to be swallowed for 2.8s after the screen mounted — about
+    // twice the longest count-up — so a manager who tapped once the numbers had
+    // settled heard the button's chime and stayed on the review.
+    expect(source).toContain('onPress={onContinue}');
+    expect(source).not.toContain('setBalanceAnimationsComplete(true);\n  };');
+  });
+
   it('answers a refused management action instead of failing silently', () => {
     const source = read('App.tsx');
     expect(source).toContain("playManagementActionSfx('warning');");

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   StyleSheet,
   Text,
   View,
@@ -41,6 +42,8 @@ import { awakeningViewportHeight, nextAwakeningAction } from './awakening-progre
 import { PowerAcquiredDemoModal } from '../PowerAcquiredDemoModal';
 
 const FOCUS_INDEX = 4;
+/** How far the CTA halo dips between breaths; never to nothing, so it still reads as lit. */
+const CTA_GLOW_MIN_OPACITY = 0.35;
 /** Where the huddle sits inside the visible strip, as a share of its height. */
 const SCENE_ANCHOR_RATIO = 0.8;
 const DRAW_SCALE = 2.15;
@@ -432,7 +435,14 @@ export function AwakeningCutsceneScreen({
           ]}>
             <View style={styles.storyTopline}>
               <Text style={[styles.beatKicker, beat === 3 ? styles.heroInk : null]}>{current.kicker}</Text>
-              <Text style={[styles.tapHint, beat === 3 ? styles.heroInk : null]}>{tapHint}</Text>
+              {/* Lit only once the tap does something. While the scene is still
+                  playing the same line is a status, and a status that glows
+                  like a button is a promise the screen cannot keep. */}
+              {advanceReady ? (
+                <AwakeningCta label={tapHint} reduceMotion={reduceMotion} />
+              ) : (
+                <Text style={[styles.tapHint, beat === 3 ? styles.heroInk : null]}>{tapHint}</Text>
+              )}
             </View>
             <Text style={[styles.beatTitle, beat === 3 ? styles.heroInk : null]}>
               {beat === 3 ? viewModel.playerName : current.title}
@@ -450,7 +460,7 @@ export function AwakeningCutsceneScreen({
             {beat === 3 ? (
               <View style={styles.heroFooter}>
                 <Text style={styles.license}>{viewModel.licenseLabel}</Text>
-                <Text style={styles.continueInline}>WATCH IN MATCH ›</Text>
+                <AwakeningCta label="WATCH IN MATCH ›" reduceMotion={reduceMotion} />
               </View>
             ) : null}
           </View>
@@ -471,6 +481,43 @@ export function AwakeningCutsceneScreen({
         }}
       />
     </SafeAreaView>
+  );
+}
+
+/**
+ * Every "tap to go on" in the awakening, in one shape: hero gold on ink,
+ * behind a breathing halo. The sequence is the one place a manager watches
+ * rather than plays, so the single thing they still have to do is the only
+ * thing on the panel wearing the accent.
+ *
+ * The halo is a layer of its own rather than the chip's own opacity — fading
+ * the chip would fade the label with it, which reads as dimming, not glowing.
+ */
+function AwakeningCta({ label, reduceMotion }: { label: string; reduceMotion: boolean }) {
+  const pulse = useRef(new Animated.Value(reduceMotion ? 1 : CTA_GLOW_MIN_OPACITY)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      pulse.setValue(1);
+      return;
+    }
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 620, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: CTA_GLOW_MIN_OPACITY, duration: 620, useNativeDriver: true }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulse, reduceMotion]);
+
+  return (
+    <View style={styles.ctaAnchor}>
+      <Animated.View pointerEvents="none" style={[styles.ctaGlow, { opacity: pulse }]} />
+      <View style={styles.ctaChip}>
+        <Text style={styles.ctaText}>{label}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -648,5 +695,35 @@ const styles = StyleSheet.create({
   heroCopy: { color: '#241f2e' },
   heroFooter: { marginTop: 14, paddingTop: 12, borderTopWidth: 2, borderTopColor: '#241f2e55', flexDirection: 'row', justifyContent: 'space-between' },
   license: { fontFamily: 'Silkscreen_400Regular', color: '#241f2e', fontSize: 10, textTransform: 'uppercase' },
-  continueInline: { fontFamily: 'Silkscreen_400Regular', color: '#241f2e', fontSize: 10, textTransform: 'uppercase' },
+  ctaAnchor: { position: 'relative' },
+  ctaGlow: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    backgroundColor: '#edb54a',
+    // Same halo geometry as the guided-alert glow, in hero gold: docs/08 gives
+    // gold to hero and power elements, and this whole screen is one.
+    boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',
+    shadowColor: '#edb54a',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 9,
+    elevation: 10,
+  },
+  ctaChip: {
+    backgroundColor: '#241f2e',
+    borderWidth: 2,
+    borderColor: '#f7d894',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  ctaText: {
+    fontFamily: 'Silkscreen_700Bold',
+    color: '#edb54a',
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
 });

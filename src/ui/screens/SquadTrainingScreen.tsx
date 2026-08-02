@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
 import type { AssistantGuideFocus, ManagerTipDestination } from '../../content';
@@ -140,6 +140,9 @@ export interface SquadTrainingScreenProps {
     target: ManagerTipDestination;
     token: number;
   };
+  /** The saved roster ordering. Held by the app shell so it survives leaving the tab. */
+  squadSort: SquadSort | null;
+  onChangeSquadSort: (sort: SquadSort | null) => void;
 }
 
 export function SquadTrainingScreen({
@@ -163,6 +166,8 @@ export function SquadTrainingScreen({
   requestViewModel,
   onOpenRequest,
   managerTipGuideRequest,
+  squadSort,
+  onChangeSquadSort,
 }: SquadTrainingScreenProps) {
   const desktopContent = useDesktopContentStyle();
   const { width } = useWindowDimensions();
@@ -203,7 +208,9 @@ export function SquadTrainingScreen({
   const attributesRef = useRef<View>(null);
   const drillShopRef = useRef<View>(null);
   const attributesScrolledRef = useRef(false);
-  const [squadSort, setSquadSort] = useState<SquadSort | null>(null);
+  const setSquadSort = useCallback((key: SquadSortKey) => {
+    onChangeSquadSort(nextSquadSort(squadSort, key));
+  }, [onChangeSquadSort, squadSort]);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
     [squadSort, viewModel.players],
@@ -530,7 +537,7 @@ interface RosterSectionProps {
   potentialColumnWidth: string;
   conditionColumnWidth: string;
   squadSort: SquadSort | null;
-  setSquadSort: Dispatch<SetStateAction<SquadSort | null>>;
+  setSquadSort: (key: SquadSortKey) => void;
   sortedPlayers: readonly SquadPlayerViewModel[];
   trainingPoints: number;
   selectedPlayerId?: string;
@@ -584,14 +591,14 @@ function RosterSection({
         ) : null}
         <View className="flex-row items-center border-b border-ink/20 px-2">
           <View style={styles.roleColumn} />
-          <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" onSort={setSquadSort} />
           <SquadSortHeader
             label={wideColumns ? 'Score' : 'OVR'}
             sortKey="overall"
             sort={squadSort}
             widthClass={currentColumnWidth}
             align="right"
-            onSort={key => setSquadSort(current => nextSquadSort(current, key))}
+            onSort={setSquadSort}
             tutorialCue={guideOverallSort ? (
               <TutorialTapCue
                 label="Tap here"
@@ -604,14 +611,14 @@ function RosterSection({
               />
             ) : null}
           />
-          <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={key => setSquadSort(current => nextSquadSort(current, key))} />
+          <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={setSquadSort} />
           <SquadSortHeader
             label={wideColumns ? 'Condition' : 'Cond'}
             sortKey="condition"
             sort={squadSort}
             widthClass={conditionColumnWidth}
             align="right"
-            onSort={key => setSquadSort(current => nextSquadSort(current, key))}
+            onSort={setSquadSort}
             tutorialCue={conditionCueShowing ? (
               <TutorialTapCue
                 label="Condition"

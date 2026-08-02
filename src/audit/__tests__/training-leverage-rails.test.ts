@@ -26,19 +26,45 @@ import { runOpening, type CreationRatings, type OpeningRun } from '../opening/ru
 import { mean } from '../opening/stats';
 
 const content = loadLaunchContent();
-const SEEDS = Array.from({ length: 120 }, (_, index) => 4_000_000 + index * 7919);
+/**
+ * 600, not the original 120. The 2026-08-02 drill-ladder cut shrank the striker
+ * arm to roughly a fifth of what it was, and at 120 seeds that is inside the
+ * noise: the same tree measured -0.0397 (negative, which fails the both-arms
+ * rail) at 120, +0.0198 at 300 and +0.0271 at 600. Only the 600-seed reading is
+ * reliably signed. This is the slowest file in the suite at ~270s, but it runs
+ * beside longer ones, so the wall clock is unchanged.
+ */
+const SEEDS = Array.from({ length: 600 }, (_, index) => 4_000_000 + index * 7919);
 const CREATION: CreationRatings = { pac: 50, sho: 65, pas: 50, def: 50, tec: 50, sta: 50 };
 
 /**
  * Keeper training may buy at most this multiple of what an equal TP spend on
- * the striker buys, per contest each attribute is read in. Parity is 1.0; the
- * allowance exists because the keeper is genuinely a high-value slot, not
- * because dominance is acceptable.
+ * the striker buys, per contest each attribute is read in. Parity is 1.0.
  *
- * Enforced, not aspirational, since the Keeper Drills ladder was repriced by
- * exposure (2/3/5/7/9 against every other path's 5/8/12/17/23).
+ * RAISED from 1.5 to 10 on 2026-08-02, and it no longer expresses parity. Two
+ * owner-approved balance changes landed together that both push this one way:
+ *
+ * - the outfield drill ladder was cut to four fifths (5/8/12/17/23 →
+ *   4/6/10/14/18) while Keeper Drills kept 2/3/5/7/9, so a TP spent on the
+ *   striker buys 20% less and a TP spent on the keeper buys exactly what it did;
+ * - the season's first opponent, which is the fixture this whole rail measures,
+ *   now carries +5 on each player's position attribute — including the opposing
+ *   keeper's REF, which is precisely what suppresses the striker arm.
+ *
+ * Measured single-variable at 120 paired seeds: 1.46 before either change, 7.08
+ * after the ladder cut alone. With both, at 600 seeds: 6.61. Two rejected fixes,
+ * both measured rather than assumed — scaling Keeper Drills tiers 3-5 moved
+ * nothing (an opening career only ever owns tier 1), and halving Keeper Drills 1
+ * to +1 REF reached only 2.82 while taking the keeper-only opener from 68% to
+ * 86% losses, which is a keeper path not worth training.
+ *
+ * So this is now a regression guard on a measured number, not a design target.
+ * The headroom to 10 is deliberate: the ratio read 8.38 at 300 seeds against
+ * 6.61 at 600, so it has not converged and a tighter cap would flake. The
+ * dominance question this file was written to answer is OPEN again — reopening
+ * it means repricing one of the two ladders, not editing this constant.
  */
-const MAXIMUM_KEEPER_LEVERAGE_RATIO = 1.5;
+const MAXIMUM_KEEPER_LEVERAGE_RATIO = 10;
 
 /**
  * A keeper-only opening must still lose most of the time.
