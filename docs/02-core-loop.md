@@ -4,10 +4,10 @@
 
 Time advances in weeks. One button — **Advance Week** — is the game's primary CTA, always visible on Home. A week resolves in this order:
 
-1. **Manage phase** (player-driven, untimed): set training plans, handle transfers/contracts, build facilities, respond to any event card.
-2. **Match day** (if scheduled): pre-match screen (lineup, formation, tactic, hero power priorities) → Watch or Quick Result → post-match income statement (itemized, Kairosoft-style: tickets, sponsor fees, prize, minus wages).
-3. **Week tick**: wages paid, training results applied, stamina recovers, injuries count down, sponsor/fan numbers update, next event rolls.
-4. **Weekly Review**: a fast 2–4 second payoff shows the exact cash movement at the top, spotlights focused trainees and their stat gains in the center, and lists only applicable recovery, contract, event, or next-fixture updates. One tap finishes every animation immediately. On match weeks, player development is folded into the post-match statement instead of adding another screen.
+1. **Manage phase** (player-driven, untimed): spend the TP bank on instant drills, handle transfers/contracts, build facilities, respond to any event card.
+2. **Match day** (if scheduled): pre-match screen (starting eleven, bench swaps, hero licenses — formation, Playstyle and Energy Use are live match controls, not pre-match ones) → Watch or Quick Result → post-match income statement (itemized, Kairosoft-style: tickets, sponsor fees, prize, minus wages).
+3. **Week tick**: wages paid, the week's TP income banked, condition recovers, injuries count down, sponsor/fan numbers update, next event rolls. Training results are not settled here — drills resolve the moment they are tapped.
+4. **Weekly Review**: a fast 2–4 second payoff shows the exact cash movement at the top, the TP the week just banked beneath it, and lists only applicable recovery, contract, event, or next-fixture updates. One tap finishes every animation immediately. On match weeks, player development is folded into the post-match statement instead of adding another screen.
 
 Session math: a match week ≈ 3–6 minutes (watched) or ~90 seconds (simmed). Non-match weeks ≈ 30–90 seconds. The loop is playable one-handed in portrait.
 
@@ -29,10 +29,12 @@ Promotion rewards are permanent: relegation changes the current opposition, not 
 
 | First reach | Permanent club rewards currently wired |
 |---|---|
-| D4 · County League | Recruitment fund · $15,000, Level 2 facilities, expanded international scouting, Level 2 coach access (Fame still required) |
-| D3 · Regional League | Rumored Hero scouting, third Hero License, Level 3 coach access |
-| D2 · National Championship | Level 3 facilities, Elite Prospect scouting, Level 4 coach access |
-| D1 · Global League | Fourth Hero License, Level 5 coach access |
+| D4 · County League | Recruitment fund · $15,000, tier 2 drills on sale, expanded international scouting, Level 2 coach access (Fame still required) |
+| D3 · Regional League | Tier 3 drills on sale, Rumored Hero scouting, third Hero License, Level 3 coach access |
+| D2 · National Championship | Tier 4 drills on sale, Level 3 facilities, Elite Prospect scouting, Level 4 coach access |
+| D1 · Global League | Tier 5 drills on sale, fourth Hero License, Level 5 coach access |
+
+Level 2 facilities are **not** a promotion reward: they are available from D5, because gating the club's main training accelerator behind the promotion it was needed to earn measured 0 promotions across 6 careers × 10 seasons. A drill tier reaching the shelf is likewise not the same as owning it — each path is bought separately (doc 05).
 
 Opposing club strength scales with division and season count (slow, season-level scaling — never instant rubber-banding, and never "you won too big so they get stronger," which research showed players hate). At each season boundary every non-user rating grows by **3% on Cozy** or **4% on Chairman**, with deterministic per-player/per-stat stochastic rounding and difficulty caps (700/800). The same percentage applies to support players, specialists, and goalkeeper REF.
 
