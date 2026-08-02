@@ -14,6 +14,12 @@ import type { PlayerRequestViewModel } from '../../application/player-request-vi
  * price them. Below it sits the ledger of what was already decided, which keeps
  * the tab from being blank in the many weeks where nobody wants anything — and
  * makes a habit of saying no visible.
+ *
+ * The ledger has an empty state because of the one week the pair of them left
+ * uncovered: the FIRST request of a career, when there is a card but nothing
+ * behind it yet, which left better than half a phone blank on the exact screen
+ * Bert has just sent the manager to. It also says what the ledger is for before
+ * there is anything in it to infer that from.
  */
 export function SquadRequestsPanel({
   viewModel,
@@ -69,7 +75,18 @@ export function SquadRequestsPanel({
         </Pressable>
       )}
 
-      {viewModel.history.length > 0 ? (
+      {viewModel.history.length === 0 ? (
+        // Only under a card. With nothing pending the docket above is already
+        // saying "nothing here", and two empty states stacked say it twice.
+        pending === undefined ? null : (
+          <View className="mt-4">
+            <EmptyDocket
+              title="Nothing decided yet"
+              detail="Answered or ignored, every request ends up here."
+            />
+          </View>
+        )
+      ) : (
         <PaperPanel kicker="Recently" title="What you decided" className="mt-4">
           <View className="gap-2">
             {viewModel.history.slice(0, 6).map(entry => (
@@ -90,7 +107,7 @@ export function SquadRequestsPanel({
             ))}
           </View>
         </PaperPanel>
-      ) : null}
+      )}
     </View>
   );
 }

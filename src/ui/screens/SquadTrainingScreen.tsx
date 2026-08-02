@@ -135,6 +135,13 @@ export interface SquadTrainingScreenProps {
   requestViewModel?: PlayerRequestViewModel;
   /** Starts the walk-on; the decision card follows it. */
   onOpenRequest?: () => void;
+  /**
+   * Which sub-tab the screen opens on. Drills in the game, because that is what
+   * the Squad tab is most weeks; the dev harness opens straight on Requests so
+   * an address reaches the panel without a tap. Read once — after that the tab
+   * row owns the choice.
+   */
+  initialSquadTab?: 'drills' | 'requests';
   /** A Manager's Tip deep-link and its fresh request identity. */
   managerTipGuideRequest?: {
     target: ManagerTipDestination;
@@ -165,6 +172,7 @@ export function SquadTrainingScreen({
   dismissTipsToken = 0,
   requestViewModel,
   onOpenRequest,
+  initialSquadTab = 'drills',
   managerTipGuideRequest,
   squadSort,
   onChangeSquadSort,
@@ -183,7 +191,7 @@ export function SquadTrainingScreen({
     ? undefined
     : archetypeDevelopmentSummary(selectedPlayer.archetype);
   const playerGuideTouchStartRef = useRef<TutorialTouchPoint | null>(null);
-  const [squadTab, setSquadTab] = useState<'drills' | 'requests'>('drills');
+  const [squadTab, setSquadTab] = useState<'drills' | 'requests'>(initialSquadTab);
   const [drillPickerOpen, setDrillPickerOpen] = useState(false);
   const [playerGuideDismissed, setPlayerGuideDismissed] = useState(false);
   /**

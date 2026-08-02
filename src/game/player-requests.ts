@@ -106,17 +106,27 @@ export function starQualifiers(
  * Where a squad player stops being anonymous.
  *
  * Fallback only; the shipped value is authored as `tuning.starFameThreshold`
- * and the two must agree. 200 is about four and a half seasons of first-team
- * football at forty-five fame a season, or a player bought in from Division 4
- * or above, so it picks out the handful of established names in a squad of
- * sixteen rather than the whole eleven.
+ * and the two must agree.
  *
- * It was 50, which every starter cleared inside one season while the fame
- * ceiling sat at 99. `hasStar` was therefore true from season 2 onward in every
- * career ever played, and the non-star half of `tuning.cadence` never once
- * executed.
+ * This number has been wrong twice, in opposite directions, and both times
+ * because it was reasoned about rather than measured against the fame a squad
+ * actually reaches.
+ *
+ * At 50, with the fame ceiling at 99, every starter cleared it inside a season.
+ * `hasStar` was true from season 2 in every career ever played and the non-star
+ * half of `tuning.cadence` never executed.
+ *
+ * The ceiling then moved to 999 and this was scaled to 200 — ×4, taken off the
+ * old number instead of off the new curve. `player-request-cadence-probe`
+ * measured the result through the real match engine: top squad fame reaches
+ * 120-142 by season six, so `hasStar` was false for all 146 recorded weeks
+ * across three seeds. The same dead-row bug, now at the other end.
+ *
+ * 120 sits just under where a first-choice player arrives around season four or
+ * five, so a star is earned partway through a climb rather than issued at the
+ * start or never. Re-measure with the probe before moving it again.
  */
-export const STAR_FAME_THRESHOLD = 200;
+export const STAR_FAME_THRESHOLD = 120;
 
 /**
  * Base 1, doubled once per star qualifier met, so a famous division top scorer

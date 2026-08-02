@@ -19,6 +19,8 @@ import {
   resolveSeasonEndLifecycle,
   retirementAnnouncementAge,
   shouldRequestTransfer,
+  shouldWithdrawTransferRequest,
+  TRANSFER_REQUEST_WITHDRAW_MARGIN,
   trainingMultiplierForAge,
   updatePlayerWellbeing,
   type DivisionFinishOrder,
@@ -345,5 +347,42 @@ describe('morale and condition', () => {
       personality: 'Loyal',
       consecutiveLowMoraleWeeks: 4,
     })).toBe(false);
+  });
+
+  /**
+   * Withdrawal must clear the trigger by a margin or the flag chatters: a
+   * Greedy player asks at 30 and would take it back on the first win that
+   * carried him to 31. The gap is what makes a withdrawal mean something.
+   */
+  it('withdraws a transfer request only well clear of the personality that raised it', () => {
+    const greedy = { condition: 100, personality: 'Greedy' as const, consecutiveLowMoraleWeeks: 0 };
+    expect(shouldWithdrawTransferRequest({ ...greedy, morale: 31 })).toBe(false);
+    expect(shouldWithdrawTransferRequest({
+      ...greedy,
+      morale: 30 + TRANSFER_REQUEST_WITHDRAW_MARGIN - 1,
+    })).toBe(false);
+    expect(shouldWithdrawTransferRequest({
+      ...greedy,
+      morale: 30 + TRANSFER_REQUEST_WITHDRAW_MARGIN,
+    })).toBe(true);
+
+    // The same margin off a lower patience line: a Loyal player asks at 12, so
+    // he is won back at 32 where the Greedy one still wants out.
+    const loyalMorale = 12 + TRANSFER_REQUEST_WITHDRAW_MARGIN;
+    expect(shouldWithdrawTransferRequest({
+      condition: 100,
+      personality: 'Loyal',
+      consecutiveLowMoraleWeeks: 0,
+      morale: loyalMorale,
+    })).toBe(true);
+    expect(shouldWithdrawTransferRequest({ ...greedy, morale: loyalMorale })).toBe(false);
+
+    // No streak term: `updatePlayerWellbeing` zeroes the low-morale counter as
+    // soon as morale clears 30, so a contented player is judged on morale alone.
+    expect(shouldWithdrawTransferRequest({
+      ...greedy,
+      morale: 100,
+      consecutiveLowMoraleWeeks: 9,
+    })).toBe(true);
   });
 });

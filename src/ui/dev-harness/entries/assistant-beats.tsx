@@ -52,6 +52,14 @@ const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
   'youth-intake',
   'national-cup',
   'player-requests',
+  'first-injury',
+  'first-emergency-loan',
+  'first-transfer-request',
+  'retirement',
+  'club-legacy',
+  'board-ultimatum',
+  'board-protection',
+  'division-leaders',
 ]);
 
 /** Short enough for a 52pt chip; the note line carries the full id. */
