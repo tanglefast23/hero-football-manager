@@ -565,7 +565,10 @@ const nationalCupSchema = z.object({
     entrantClubIds: z.array(nonemptyString),
     byeClubIds: z.array(nonemptyString),
     fixtures: z.array(cupFixtureSchema),
-  }).passthrough()).min(1),
+    // A settled cup outside the bracket-retention window keeps its result and
+    // gives up its rounds, so "has rounds" is no longer a shape invariant. The
+    // cross-check below still requires them while a cup is being played.
+  }).passthrough()),
   championClubId: nonemptyString.optional(),
   seedDivisionByClubId: z.record(nonemptyString, divisionLevelSchema).optional(),
 }).passthrough();
@@ -1112,8 +1115,18 @@ const gameStateSchema = z
           });
         }
         cupSeasons.add(cup.season);
-        if (cup.championClubId === undefined) activeCupCount += 1;
-        else if (!pyramidClubIds.has(cup.championClubId)) {
+        if (cup.championClubId === undefined) {
+          activeCupCount += 1;
+          // Pruning only ever takes the rounds of a cup that already has a
+          // champion, so a cup still being played without them is corruption.
+          if (cup.rounds.length === 0) {
+            context.addIssue({
+              code: 'custom',
+              path: ['m2', 'nationalCups', cupIndex, 'rounds'],
+              message: 'an unfinished National Cup must keep its rounds',
+            });
+          }
+        } else if (!pyramidClubIds.has(cup.championClubId)) {
           context.addIssue({
             code: 'custom',
             path: ['m2', 'nationalCups', cupIndex, 'championClubId'],

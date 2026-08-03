@@ -7,6 +7,7 @@ import { TutorialTapCue } from './TutorialTapCue';
 import type { TutorialAnchorLayout } from './tutorial-cue-position';
 import { SettingsButton } from './SettingsOverlay';
 import { HoverTipAnchor, SfxPressable as Pressable } from './components/SfxPressable';
+import { managementHeaderLine } from './management-header';
 import { managementKeyBindings, tabNumberKey } from './management-key-bindings';
 import { useKeyBindings } from './use-key-bindings';
 import { PixelText } from './components/PixelText';
@@ -180,6 +181,7 @@ export function ManagementShell({
   onNavigationGuideAnchorChange,
   onDismissGuidance,
 }: ManagementShellProps) {
+  const headerLine = managementHeaderLine(seasonLabel, weekLabel);
   const dismissFrameRef = useRef<number | null>(null);
   const dismissGuidanceAfterPress = useCallback(() => {
     if (onDismissGuidance === undefined || dismissFrameRef.current !== null) return;
@@ -266,9 +268,10 @@ export function ManagementShell({
             className="font-pixel text-sm uppercase text-blue-dark"
             numberOfLines={1}
             adjustsFontSizeToFit
+            accessibilityLabel={headerLine.spoken}
             maxFontSizeMultiplier={CHROME_MAX_FONT_SIZE_MULTIPLIER}
           >
-            {seasonLabel} · {weekLabel}
+            {headerLine.visible}
           </Text>
         </View>
       </View>
