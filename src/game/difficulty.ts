@@ -1,5 +1,14 @@
 import type { DifficultyMode, GameState } from './types';
 
+/**
+ * The mode a career plays at when it has no recorded difficulty: pre-difficulty
+ * saves and the measurement fixtures that build a state directly. It is NOT the
+ * new-game default — the first-hire picker leads with Chairman and always
+ * commits a choice, so this never decides what a fresh career plays.
+ *
+ * Keep it Cozy. The balance rails read it as "the Cozy curve", so flipping it
+ * silently re-points the Season-1 Cozy bankruptcy harness at Chairman.
+ */
 export const DEFAULT_DIFFICULTY: DifficultyMode = 'COZY';
 
 export interface DifficultyRules {

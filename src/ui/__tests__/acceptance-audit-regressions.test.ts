@@ -18,7 +18,7 @@ describe('player-facing acceptance audit regressions', () => {
 
     expect(creation).toContain('initialDifficulty: DifficultyMode;');
     expect(creation).toContain('useState<DifficultyMode>(initialDifficulty)');
-    expect(app).toContain("initialDifficulty={store.career.difficulty ?? 'COZY'}");
+    expect(app).toContain("initialDifficulty={store.career.difficulty ?? 'CHAIRMAN'}");
   });
 
   test('makes transient notices temporary and produces one clean spoken sentence', () => {

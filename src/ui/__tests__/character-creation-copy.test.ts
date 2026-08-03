@@ -11,6 +11,13 @@ describe('first-hire screen copy', () => {
     expect(source).not.toContain('No wage subsidy');
   });
 
+  it('leads with Chairman and offers Cozy as the alternative below it', () => {
+    // Chairman is the default career, so it is the option the list opens on;
+    // Cozy is the one you step down to. Order carries that, not just the label.
+    expect(source.indexOf("['CHAIRMAN', 'Expert mode']"))
+      .toBeLessThan(source.indexOf("['COZY', 'Casual mode']"));
+  });
+
   it('starts directly with player creation instead of a Bert note', () => {
     expect(source).not.toContain('Bert Rudge');
     expect(source).not.toContain('title="Registration note"');

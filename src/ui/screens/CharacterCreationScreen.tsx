@@ -140,8 +140,8 @@ export function CharacterCreationScreen({
             a screen reader announced neither option as chosen. */}
         <View accessibilityRole="radiogroup" accessibilityLabel="Career pressure" className="gap-3">
           {([
-            ['COZY', 'Casual mode'],
             ['CHAIRMAN', 'Expert mode'],
+            ['COZY', 'Casual mode'],
           ] as const).map(([mode, label]) => {
             const selected = difficulty === mode;
             return (
