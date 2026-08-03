@@ -44,6 +44,8 @@ import { PowerAcquiredDemoModal } from '../PowerAcquiredDemoModal';
 const FOCUS_INDEX = 4;
 /** How far the CTA halo dips between breaths; never to nothing, so it still reads as lit. */
 const CTA_GLOW_MIN_OPACITY = 0.35;
+/** How far the CTA swells at the top of a breath. Enough to catch the eye, not enough to jump. */
+const CTA_PULSE_MAX_SCALE = 1.07;
 /** Where the huddle sits inside the visible strip, as a share of its height. */
 const SCENE_ANCHOR_RATIO = 0.8;
 const DRAW_SCALE = 2.15;
@@ -460,7 +462,7 @@ export function AwakeningCutsceneScreen({
             {beat === 3 ? (
               <View style={styles.heroFooter}>
                 <Text style={styles.license}>{viewModel.licenseLabel}</Text>
-                <AwakeningCta label="WATCH IN MATCH ›" reduceMotion={reduceMotion} />
+                <AwakeningCta label="WATCH EXAMPLE ›" reduceMotion={reduceMotion} />
               </View>
             ) : null}
           </View>
@@ -492,9 +494,18 @@ export function AwakeningCutsceneScreen({
  *
  * The halo is a layer of its own rather than the chip's own opacity — fading
  * the chip would fade the label with it, which reads as dimming, not glowing.
+ *
+ * The chip breathes in size on the same value that drives the halo, so the
+ * glow and the swell are one movement rather than two things ticking at each
+ * other. Reduce Motion flattens the size range instead of switching the
+ * transform off, which keeps a single type on the style either way.
  */
 function AwakeningCta({ label, reduceMotion }: { label: string; reduceMotion: boolean }) {
   const pulse = useRef(new Animated.Value(reduceMotion ? 1 : CTA_GLOW_MIN_OPACITY)).current;
+  const scale = pulse.interpolate({
+    inputRange: [CTA_GLOW_MIN_OPACITY, 1],
+    outputRange: reduceMotion ? [1, 1] : [1, CTA_PULSE_MAX_SCALE],
+  });
 
   useEffect(() => {
     if (reduceMotion) {
@@ -514,9 +525,9 @@ function AwakeningCta({ label, reduceMotion }: { label: string; reduceMotion: bo
   return (
     <View style={styles.ctaAnchor}>
       <Animated.View pointerEvents="none" style={[styles.ctaGlow, { opacity: pulse }]} />
-      <View style={styles.ctaChip}>
+      <Animated.View style={[styles.ctaChip, { transform: [{ scale }] }]}>
         <Text style={styles.ctaText}>{label}</Text>
-      </View>
+      </Animated.View>
     </View>
   );
 }

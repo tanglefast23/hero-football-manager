@@ -71,10 +71,14 @@ describe('non-match music ownership', () => {
     expect(menuThemeForScreen('matchday', 1)).toBe('opening');
   });
 
-  it('leaves awakening music to its dedicated pre-rise and ascension cues', () => {
+  it('lays the event bed under the awakening from the bite onwards', () => {
+    // Beat 1 is the hush, and the limp cue owns it alone. From beat 2 the bed
+    // plays under the limp's tail and holds through the rise: the beats are
+    // tap-paced, so without it a slow reader sits in silence once the two short
+    // cues have finished. Removed once by accident (a49f006); pinned here.
     expect(menuThemeForScreen('awakening', 1)).toBeNull();
-    expect(menuThemeForScreen('awakening', 2)).toBeNull();
-    expect(menuThemeForScreen('awakening', 3)).toBeNull();
+    expect(menuThemeForScreen('awakening', 2)).toBe('event');
+    expect(menuThemeForScreen('awakening', 3)).toBe('event');
   });
 
   it('hands off exclusively from opening to management to event music', () => {

@@ -86,7 +86,14 @@ export interface ClubHomeScreenProps {
   onOpenLeague: () => void;
   onProtectBoardCandidate: (playerId: string) => void;
   guideAlertId?: string;
-  lockOtherAlerts?: boolean;
+  /**
+   * Clears the optional manager's notes off the desk so the guided row is the
+   * loudest thing on it. It does NOT disable the other alerts: the first week's
+   * two jobs — hire a coach, build the pitch — are both required before the
+   * week can advance, and which one you do first is your call. Bert points at
+   * one; he no longer bars the other.
+   */
+  focusGuidedAlert?: boolean;
   /**
    * Lights the guided row once Bert has walked off. He tells you to check the
    * inbox and then leaves; without this the instruction leaves with him, and
@@ -110,7 +117,7 @@ export function ClubHomeScreen({
   onOpenLeague,
   onProtectBoardCandidate,
   guideAlertId,
-  lockOtherAlerts = false,
+  focusGuidedAlert = false,
   glowGuidedAlert = false,
   guideBoard = false,
   showManagerTips = true,
@@ -120,8 +127,9 @@ export function ClubHomeScreen({
   const fixture = viewModel.nextFixture;
   const fixtureIsThisWeek = viewModel.isCurrentGameWeek;
   const layoutMode = useLayoutMode();
-  // While the tutorial is pointing at one card, nothing else belongs on the desk.
-  const visibleNotes = lockOtherAlerts
+  // While the tutorial is pointing at one card, no optional reading belongs on
+  // the desk. The other alerts stay — they are jobs, not notes.
+  const visibleNotes = focusGuidedAlert
     ? []
     : viewModel.notes.filter(note => showManagerTips || note.kind !== 'tip');
 
@@ -199,21 +207,18 @@ export function ClubHomeScreen({
             ) : null}
             {viewModel.alerts.map(alert => {
               const guided = alert.id === guideAlertId;
-              const locked = lockOtherAlerts && guideAlertId !== undefined && !guided;
               return (
                 <Pressable
                   key={alert.id}
                   accessibilityRole="button"
                   accessibilityLabel={`${alert.title}. ${alert.detail}`}
-                  accessibilityState={{ disabled: locked }}
-                  disabled={locked}
                   onPress={() => onOpenAlert(alert.id)}
                   className={`relative min-h-14 flex-row items-center justify-between border-2 border-b-4 p-3 ${alertPalette(alert.tone)}`}
                   // Kept in the existing function form rather than split into an
                   // array: switching a Pressable's style to or from a function
                   // has twice collapsed layout on iOS only in this project.
                   style={({ pressed }) => ({
-                    opacity: locked ? 0.45 : pressed ? 0.75 : undefined,
+                    opacity: pressed ? 0.75 : undefined,
                     ...(guided && glowGuidedAlert ? GUIDED_ALERT_GLOW : {}),
                   })}
                 >

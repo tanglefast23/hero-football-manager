@@ -460,6 +460,11 @@ function GameApp() {
    * index, which is what the framed window used before it stepped page by page.
    */
   const [activeGuideFocus, setActiveGuideFocus] = useState<AssistantGuideFocus | undefined>(undefined);
+  // Where the League sub-tab Bert is pointing at sits, so his scrim can leave a
+  // hole over it. Measured by the screen that draws it; owned here because the
+  // briefing overlay is a sibling of that screen, not a child.
+  const [leagueSubTabGuideAnchor, setLeagueSubTabGuideAnchor] =
+    useState<TutorialAnchorLayout | null>(null);
   const [requestedAssistantSequenceId, setRequestedAssistantSequenceId] = useState<AssistantGuideSequenceId | null>(null);
   const [conciergeFocus, setConciergeFocus] = useState<AssistantGuideFocus | null>(null);
   // A screen-wide tap retires floating coach marks without completing the job
@@ -997,6 +1002,18 @@ function GameApp() {
   const assistantSequence = assistantSequenceId === null
     ? undefined
     : content.assistantGuide.sequences.find(sequence => sequence.id === assistantSequenceId);
+  /**
+   * The board Bert is talking about, from the moment he starts talking.
+   * `conciergeFocus` only lands when the whole briefing ends, so waiting for it
+   * left him pointing at the Leaders tab while League was still the selected
+   * one behind him. The briefing's own last page names the same focus.
+   */
+  const leagueGuideFocus = conciergeFocus ?? assistantSequence?.pages.at(-1)?.focus;
+  const leagueGuideSubTab = leagueGuideFocus === 'national-cup'
+    ? 'cup' as const
+    : leagueGuideFocus === 'division-leaders'
+      ? 'leaders' as const
+      : undefined;
   const cupGiantKillingCelebration = store.career
     ?.pendingCupGiantKillingCelebrations?.[0];
   const facilityComboReveal = store.screen !== 'management' || store.career === null
@@ -1735,11 +1752,8 @@ function GameApp() {
               setConciergeFocus(null);
               store.openCupFixture(fixtureId);
             }}
-            guideSubTab={conciergeFocus === 'national-cup'
-              ? 'cup'
-              : conciergeFocus === 'division-leaders'
-                ? 'leaders'
-                : undefined}
+            guideSubTab={leagueGuideSubTab}
+            onGuideSubTabAnchorChange={setLeagueSubTabGuideAnchor}
           />
         ) : store.activeTab === 'league' ? (
           <LeagueTableScreen viewModel={leagueTableViewModel(store.career)} />
@@ -1810,7 +1824,7 @@ function GameApp() {
               : conciergeFocus === 'retirement'
                 ? home.alerts.find(alert => alert.id.startsWith('retirement-announcement-'))?.id
                 : undefined}
-            lockOtherAlerts={assistantObjective?.target === 'training-ground-alert'}
+            focusGuidedAlert={assistantObjective?.target === 'training-ground-alert'}
             // Only once he is off screen: while he is still talking the row is
             // under a dimmed pane anyway, and a third highlight would compete
             // with the spotlight he is standing in.
@@ -1919,6 +1933,7 @@ function GameApp() {
             sequenceId={assistantSequenceId}
             moneyAnchor={moneyGuideAnchor}
             navigationAnchor={navigationGuideAnchor}
+            subTabAnchor={leagueSubTabGuideAnchor}
             reduceMotion={reduceMotion}
             onFocusChange={setActiveGuideFocus}
             onDone={completeAssistantGuideSequence}

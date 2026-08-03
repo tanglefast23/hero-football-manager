@@ -18,6 +18,7 @@ import {
   type FacilityGridState,
 } from '../facilities';
 import { buildCareerFacility } from '../management';
+import { FACILITY_CATALOG } from '../facilities';
 import {
   hireCareerCoach,
   startCareerScoutMission,
@@ -127,11 +128,14 @@ describe('M2 weekly sidecars', () => {
     };
     for (let week = 0; week < 4; week += 1) state = settleScheduledWeek(state);
 
+    // The rescue clears the hole and leaves a Stadium Stand's worth behind, so
+    // the club's one intervention buys a way out rather than a week of air.
+    // The deficit here is 14,255, hence 29,255 lent and 15,000 left.
     expect(state.financialSafety).toMatchObject({
       emergencyLoanUsed: true,
       loan: {
-        originalAmount: 20_000,
-        remainingBalance: 22_000,
+        originalAmount: 29_255,
+        remainingBalance: 32_181,
         repaymentStartsSeason: 2,
         remainingWeeks: 30,
       },
@@ -139,8 +143,12 @@ describe('M2 weekly sidecars', () => {
     expect(state.ledgers[3].lines).toContainEqual({
       kind: 'emergency-loan',
       label: 'Board emergency loan',
-      amount: 20_000,
+      amount: 29_255,
     });
+    // The property, not just the number: whatever the deficit was, the week the
+    // loan lands the club can afford the stand Bert points at.
+    const rescuedCash = state.clubs.find(club => club.id === state.userClubId)!.cash;
+    expect(rescuedCash).toBe(FACILITY_CATALOG['stadium-stand'].buildCost);
 
     const repaymentState: GameState = {
       ...fullCareer(505),

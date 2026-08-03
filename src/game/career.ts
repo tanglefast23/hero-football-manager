@@ -1,6 +1,7 @@
 import { generateSeasonFixtures } from './schedule';
 import {
   BASE_WEEKLY_TRAINING_POINTS,
+  FACILITY_CATALOG,
   TRAINING_PITCH_TP_PER_LEVEL,
   advanceFacilityConstruction,
   createFacilityGrid,
@@ -64,6 +65,13 @@ import {
 
 const CLUB_COUNT = 10;
 const UINT32_MAX = 4294967295;
+/**
+ * What the emergency loan must leave in the bank once the deficit is cleared:
+ * a Stadium Stand, the club's income building. Read from the catalog so a
+ * change to the stand's price moves the rescue with it rather than leaving
+ * Bert promising a building the loan can no longer buy.
+ */
+const EMERGENCY_LOAN_FLOOR = FACILITY_CATALOG['stadium-stand'].buildCost;
 /**
  * The week each Hero Cup round settles, chosen to land on weeks the league
  * calendar leaves empty so a cup tie is its own event instead of a second match
@@ -905,17 +913,31 @@ function resolveFinancialSafety(
   let emergencyLoanUsed = previous.emergencyLoanUsed;
   const rules = difficultyRules(state);
   if (balanceAfter < 0 && consecutiveNegativeWeeks >= rules.negativeWeeksBeforeIntervention && !emergencyLoanUsed) {
+    // The rescue clears the hole AND leaves a Stadium Stand's worth of cash on
+    // the table. A flat sum paid off the deficit and left whatever happened to
+    // remain, which on a bad week was nothing — the one intervention the club
+    // ever gets bought it a week of breathing and no way out of the hole. The
+    // floor makes the loan a springboard: the stand is the club's income
+    // building, so the money arrives already earmarked for earning it back.
+    //
+    // Never smaller than the difficulty's own figure, so this can only ever
+    // raise a rescue, never shrink one.
+    const deficit = -balanceAfter;
+    const amount = Math.max(
+      rules.emergencyLoanAmount,
+      checkedAdd(deficit, EMERGENCY_LOAN_FLOOR, 'emergency loan floor'),
+    );
     lines.push({
       kind: 'emergency-loan',
       label: 'Board emergency loan',
-      amount: rules.emergencyLoanAmount,
+      amount,
     });
-    balanceAfter = checkedAdd(balanceAfter, rules.emergencyLoanAmount, 'emergency loan balance');
+    balanceAfter = checkedAdd(balanceAfter, amount, 'emergency loan balance');
     emergencyLoanUsed = true;
     consecutiveNegativeWeeks = balanceAfter < 0 ? consecutiveNegativeWeeks : 0;
     loan = {
-      originalAmount: rules.emergencyLoanAmount,
-      remainingBalance: Math.ceil(rules.emergencyLoanAmount * 1.1),
+      originalAmount: amount,
+      remainingBalance: Math.ceil(amount * 1.1),
       repaymentStartsSeason: checkedAdd(state.season, 1, 'loan repayment season'),
       remainingWeeks: 30,
     };

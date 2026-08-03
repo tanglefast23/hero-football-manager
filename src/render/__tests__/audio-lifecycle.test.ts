@@ -83,6 +83,12 @@ const {
   setMenuTheme,
   teardownMenuAudio,
 } = require('../menu-audio') as typeof import('../menu-audio');
+const {
+  initAudio,
+  startTheme,
+  stopTheme,
+  teardownAudio,
+} = require('../audio') as typeof import('../audio');
 
 describe('audio lifecycle', () => {
   beforeEach(() => {
@@ -164,5 +170,54 @@ describe('audio lifecycle', () => {
 
     setTabHidden(false);
     expect(mockPlayers[1].play).toHaveBeenCalledTimes(1);
+  });
+
+  describe('a match theme coming back from the background', () => {
+    afterEach(() => {
+      stopTheme();
+      teardownAudio();
+    });
+
+    it('rebuilds the session when the resumed loop accepts play and stays silent', () => {
+      initAudio();
+      startTheme();
+      const before = mockPlayers.length;
+      const theme = mockPlayers.find(player => player.loop === true)!;
+      expect(theme.play).toHaveBeenCalledTimes(1);
+
+      setTabHidden(true);
+      expect(theme.pause).toHaveBeenCalled();
+
+      // iOS tore the session down while the app was away: play() is accepted
+      // and nothing comes out. This is the case a thrown error never covered.
+      theme.playing = false;
+      theme.play.mockImplementation(() => {});
+
+      setTabHidden(false);
+      expect(theme.play).toHaveBeenCalledTimes(2);
+      // Nothing has noticed yet — the check is deliberately a beat later.
+      expect(theme.release).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(500);
+
+      expect(theme.release).toHaveBeenCalled();
+      expect(mockPlayers.length).toBeGreaterThan(before);
+      const rebuilt = mockPlayers.slice(before).find(player => player.loop === true)!;
+      expect(rebuilt.play).toHaveBeenCalled();
+    });
+
+    it('leaves a loop that really did resume alone', () => {
+      initAudio();
+      startTheme();
+      const before = mockPlayers.length;
+      const theme = mockPlayers.find(player => player.loop === true)!;
+
+      setTabHidden(true);
+      setTabHidden(false);
+      jest.advanceTimersByTime(500);
+
+      expect(theme.release).not.toHaveBeenCalled();
+      expect(mockPlayers.length).toBe(before);
+    });
   });
 });

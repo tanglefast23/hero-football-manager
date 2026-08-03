@@ -70,8 +70,11 @@ describe('briefing beats', () => {
   it('routes what that beat carries to the League screen leaders board', () => {
     const beat = guide.sequences.find(sequence => sequence.id === 'division-leaders')!;
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
-    // The briefing hands its last page's focus to the concierge on its way out,
-    // which is what picks the board once the destination has picked the tab.
+    // The destination picks the tab; the focus picks the board. The focus is
+    // read from the live briefing first and only then from the concierge the
+    // briefing hands it to on its way out — otherwise the board arrived after
+    // Bert had finished pointing at it, and he talked about Leaders while
+    // League was still the selected tab behind him.
     const focus = beat.pages[beat.pages.length - 1].focus;
 
     // Read out of the content rather than typed here, so renaming either value
@@ -79,7 +82,28 @@ describe('briefing beats', () => {
     expect(app).toMatch(
       new RegExp(`destination === '${beat.destination}'[\\s\\S]{0,40}?\\?\\s*'league'`),
     );
-    expect(app).toMatch(new RegExp(`conciergeFocus === '${focus}'[\\s\\S]{0,40}?\\?\\s*'leaders'`));
+    expect(app).toContain(
+      'const leagueGuideFocus = conciergeFocus ?? assistantSequence?.pages.at(-1)?.focus;',
+    );
+    expect(app).toMatch(new RegExp(`leagueGuideFocus === '${focus}'[\\s\\S]{0,40}?\\?\\s*'leaders'`));
+    expect(app).toContain('guideSubTab={leagueGuideSubTab}');
+  });
+
+  it('lifts the briefing scrim off the sub-tab it is talking about', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    const league = readFileSync(
+      join(process.cwd(), 'src/ui/screens/M2LeagueScreen.tsx'),
+      'utf8',
+    );
+    const walkOn = readFileSync(join(process.cwd(), 'src/ui/BertBriefingWalkOn.tsx'), 'utf8');
+
+    // Selecting the tab makes it look chosen; it still sat under the same
+    // dimming as the boards he was NOT pointing at. The screen measures it, App
+    // holds it, and the spotlight cuts its hole there.
+    expect(league).toContain('ref={tab === guideSubTab ? guidedSubTabAnchor.anchorRef : undefined}');
+    expect(app).toContain('onGuideSubTabAnchorChange={setLeagueSubTabGuideAnchor}');
+    expect(app).toContain('subTabAnchor={leagueSubTabGuideAnchor}');
+    expect(walkOn).toContain("focus === 'division-leaders' || focus === 'national-cup'");
   });
 
   it('lets Bert explain the cup page instead of pointing a tap cue at it', () => {

@@ -12,7 +12,7 @@
     },
     "events": {
       "title": "Safe or strange",
-      "body": "Safe choices bank a modest result. Risky choices can become a proper club story—or a very expensive Bert anecdote. Powers never depend on these events."
+      "body": "Safe pays a small, sure reward. Risky pays more, or nothing at all. Powers are never affected."
     },
     "seasonRecap": {
       "title": "Put the year in the cabinet",
@@ -411,20 +411,11 @@
           "kicker": "The race within the race",
           "title": "Division Leaders",
           "body": [
-            "Four boards, one per position. Goals for strikers, passes for midfielders, tackles for defenders, saves for keepers. Everyone in your squad has something to chase."
+            "Curious who's leading the division in the categories you can brag about. Tap the Leaders tab."
           ],
           "focus": "division-leaders",
           "objective": "SEE WHERE YOUR PLAYERS RANK.",
           "buttonLabel": "Show me the boards."
-        },
-        {
-          "kicker": "Week to week",
-          "title": "Worth watching",
-          "body": [
-            "Every board is division-wide, so the names beside yours are the ones you play. Check them as the season runs and you will know where your squad really stands."
-          ],
-          "focus": "division-leaders",
-          "buttonLabel": "We'll take all four."
         }
       ]
     },

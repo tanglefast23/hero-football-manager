@@ -31,12 +31,27 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(shell).toContain('requestAnimationFrame(() => {');
     expect(appSource).toContain('setTipDismissSequence(sequence => sequence + 1)');
     expect(appSource).toContain("guideAlertId={visibleAssistantObjectiveTarget === 'training-ground-alert'");
-    expect(appSource).toContain('lockOtherAlerts={assistantObjective?.target === \'training-ground-alert\'}');
+    expect(appSource).toContain('focusGuidedAlert={assistantObjective?.target === \'training-ground-alert\'}');
     expect(appSource).toContain('onDismissGuidance={dismissVisibleTips}');
     expect(legacy).toContain('onTouchEnd={dismissGuidanceAfterPress}');
     expect(match).not.toContain('dismissFirstMatchCueAfterPress');
     expect(match).toContain("firstMatchTutorialStepRef.current = 'tired-player-cue';");
     expect(match).toContain("automaticPauseReasonsRef.current.delete('tutorial');");
+  });
+
+  it('points at one first-week job without barring the other', () => {
+    const home = readFileSync(join(process.cwd(), 'src/ui/screens/ClubHomeScreen.tsx'), 'utf8');
+
+    // Hire a coach and build the pitch are both required before the week can
+    // advance, so either may be done first. The guided row keeps its cue and
+    // its glow; nothing on the desk is dimmed out of reach.
+    expect(home).toContain('const guided = alert.id === guideAlertId;');
+    expect(home).not.toContain('const locked =');
+    expect(home).not.toContain('disabled={locked}');
+    expect(home).not.toContain('opacity: locked');
+    // The focus prop survives for what it should still do: clear the optional
+    // notes, never the jobs.
+    expect(home).toContain('const visibleNotes = focusGuidedAlert');
   });
 
   it('keeps the first-week helper text after its floating arrow retires', () => {

@@ -11,46 +11,7 @@ import { managementHeaderLine } from './management-header';
 import { managementKeyBindings, tabNumberKey } from './management-key-bindings';
 import { useKeyBindings } from './use-key-bindings';
 import { PixelText } from './components/PixelText';
-
-function useGuideAnchor(
-  enabled: boolean,
-  onAnchorChange?: (anchor: TutorialAnchorLayout | null) => void,
-) {
-  const anchorRef = useRef<View>(null);
-  const measurementFrameRef = useRef<number | null>(null);
-
-  const measureAnchor = useCallback(() => {
-    anchorRef.current?.measureInWindow((x, y, width, height) => {
-      if (width > 0 && height > 0) onAnchorChange?.({ x, y, width, height });
-    });
-  }, [onAnchorChange]);
-
-  const scheduleMeasurement = useCallback(() => {
-    if (!enabled || onAnchorChange === undefined) return;
-    if (measurementFrameRef.current !== null) cancelAnimationFrame(measurementFrameRef.current);
-    measurementFrameRef.current = requestAnimationFrame(() => {
-      measurementFrameRef.current = null;
-      measureAnchor();
-    });
-  }, [enabled, measureAnchor, onAnchorChange]);
-
-  useEffect(() => {
-    if (!enabled) {
-      onAnchorChange?.(null);
-      return;
-    }
-    scheduleMeasurement();
-    return () => {
-      if (measurementFrameRef.current !== null) {
-        cancelAnimationFrame(measurementFrameRef.current);
-        measurementFrameRef.current = null;
-      }
-      onAnchorChange?.(null);
-    };
-  }, [enabled, onAnchorChange, scheduleMeasurement]);
-
-  return { anchorRef, scheduleMeasurement };
-}
+import { useGuideAnchor } from './use-guide-anchor';
 
 const TABS: ReadonlyArray<{
   id: ManagementTab; label: string; glyph: string; available: boolean; tip: string;

@@ -84,6 +84,8 @@ interface DrillBatch {
 }
 
 const REPEAT_PICKER_CELL_WIDTH = 48;
+/** How long the drill list ignores presses after a presentation closes under it. */
+const PRESENTATION_SETTLE_MS = 350;
 
 /**
  * The whole training loop lives here: tap a stat, the drill resolves instantly,
@@ -207,6 +209,15 @@ export function TrainingDrillModal({
     });
   }, [onConditionWarningShown, playerName]);
 
+  /**
+   * When a skip tap ends the presentation, the drill list is suddenly back under
+   * the finger. Tapped twice quickly, the second press landed on the row the
+   * overlay had been covering and opened a drill nobody asked for. The list goes
+   * deaf for a beat whenever a presentation closes, so the next drill needs a
+   * fresh, deliberate tap — however the animation ended, on its own or skipped.
+   */
+  const presentationClosedAtRef = useRef(0);
+
   // Advances the presentation once the current beat finishes or is skipped.
   // The next stage is derived outside the updater — a setState updater must be
   // pure, and React may invoke it more than once. Memoised so the drill scene's
@@ -228,6 +239,7 @@ export function TrainingDrillModal({
       playManagementHaptic('warning');
     }
     if (next === null) {
+      presentationClosedAtRef.current = Date.now();
       setActiveResult(null);
       const batch = batchRef.current;
       if (
@@ -473,6 +485,11 @@ export function TrainingDrillModal({
                       accessibilityState={{ disabled }}
                       disabled={disabled}
                       onPress={() => {
+                        // A drill starts only from a still list: never through a
+                        // presentation, and never on the tail of the tap that
+                        // just dismissed one.
+                        if (stage !== null) return;
+                        if (Date.now() - presentationClosedAtRef.current < PRESENTATION_SETTLE_MS) return;
                         if (unaffordable) {
                           playManagementActionSfx('warning');
                           setNotice({
