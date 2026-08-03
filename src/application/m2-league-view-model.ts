@@ -224,7 +224,12 @@ function cupViewModel(
   source: M2LeagueViewModelSource,
   clubNames: ReadonlyMap<string, string>,
 ): M2NationalCupViewModel {
-  const cups = source.career.nationalCups.slice().sort((left, right) => left.season - right.season);
+  // Only cups that still hold a bracket can be drawn on this tab. Seasons past
+  // the retention window keep their champion for the record books but have
+  // given up their rounds, and offering one throws on the way to rendering it.
+  const cups = source.career.nationalCups
+    .filter(cup => cup.rounds.length > 0)
+    .sort((left, right) => left.season - right.season);
   if (cups.length === 0) {
     return {
       available: false,

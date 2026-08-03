@@ -265,6 +265,35 @@ export function deterministicM2FinishOrders(
   }));
 }
 
+/**
+ * How many seasons keep their full Hero Cup bracket.
+ *
+ * The M2 clock never ends, so retaining every bracket grew the save without
+ * bound — 13 kb per season, 769 kb of cups by season 60, re-serialised after
+ * every action. Ten seasons is what the Cup tab's season picker can usefully
+ * offer; past that a bracket is history nobody opens. The cup RECORD is never
+ * dropped, only its rounds, because the champion is what Hall of Fame, the
+ * endgame trigger and "cups won" are counted from.
+ */
+export const RETAINED_CUP_BRACKET_SEASONS = 10;
+
+/**
+ * Drops the rounds of completed cups that have fallen outside the retention
+ * window. An unfinished cup is never touched — it is still being played — and
+ * a cup already pruned is left alone.
+ */
+function pruneCupBrackets(cups: readonly NationalCup[]): NationalCup[] {
+  const ordered = [...cups].sort((left, right) => left.season - right.season);
+  const firstRetained = Math.max(0, ordered.length - RETAINED_CUP_BRACKET_SEASONS);
+  return ordered.map((cup, index) => {
+    if (index >= firstRetained) return cup;
+    if (cup.championClubId === undefined || cup.rounds.length === 0) return cup;
+    // The seeding map only serves a bracket that can still be drawn or shown.
+    const { seedDivisionByClubId: retiredSeeds, ...record } = cup;
+    return { ...record, rounds: [] };
+  });
+}
+
 /** Starts one all-division cup while retaining completed cups as plain history. */
 export function startM2NationalCup(state: M2CareerState, season: number): M2CareerState {
   validateStateIdentity(state);
@@ -283,10 +312,10 @@ export function startM2NationalCup(state: M2CareerState, season: number): M2Care
   )));
   return {
     ...state,
-    nationalCups: [
+    nationalCups: pruneCupBrackets([
       ...state.nationalCups,
       createNationalCup(clubIds, season, state.careerSeed, seedDivisionByClubId),
-    ],
+    ]),
   };
 }
 
