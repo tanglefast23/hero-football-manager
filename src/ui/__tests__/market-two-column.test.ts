@@ -7,14 +7,18 @@ describe('market two-column layout', () => {
     'utf8',
   );
 
-  it('renders every desk as a section on wide viewports', () => {
+  it('flows the chosen desk through SectionFlow with the auto-detected mode', () => {
     expect(source).toContain('useLayoutMode');
     expect(source).toContain('<SectionFlow');
-    expect(source).toContain("layoutMode === 'single'");
+    // One flow for both widths. The phone-only branch used to hold the docket,
+    // which is why the tab strip existed nowhere else.
+    expect(source).not.toContain("layoutMode === 'single'");
   });
 
-  it('keeps the phone tab docket for single-column mode', () => {
-    expect(source).toContain('docket'); // the tab bar still exists for phones
+  it('wears the shared tab strip in the header rather than its own glyph docket', () => {
+    expect(source).toContain('<ScreenTabs');
+    expect(source).toContain('docketTabs');
+    expect(source).not.toContain('function DocketTab');
   });
 
   it('derives desk section weights from view-model content counts', () => {

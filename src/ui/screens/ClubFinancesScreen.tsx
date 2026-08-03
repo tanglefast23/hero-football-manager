@@ -9,6 +9,7 @@ import type {
   ClubFacilityBuildingViewModel,
   ClubFinancesViewModel,
   ClubLoanViewModel,
+  ClubOfficeTab,
   FacilityTypeViewModel,
   TrainingGroundDecisionViewModel,
 } from '../models';
@@ -30,6 +31,7 @@ import {
   type GuidedFirstFacilityPhase,
 } from '../concierge-targets';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
+import { ScreenTabs, type ScreenTab } from '../components/ScreenTabs';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 
@@ -58,8 +60,18 @@ function scrollToTarget(
   });
 }
 
+/** Which board each section belongs to. Facility first — it is the one the desk sends you to. */
+const CLUB_OFFICE_TABS: readonly ScreenTab<ClubOfficeTab>[] = [
+  { id: 'facility', label: 'Facility', accessibilityLabel: 'Facility board' },
+  { id: 'staff', label: 'Staff', accessibilityLabel: 'Staff board' },
+  { id: 'finances', label: 'Finances', accessibilityLabel: 'Finances board' },
+];
+
 export interface ClubFinancesScreenProps {
   viewModel: ClubFinancesViewModel;
+  /** The board on show. Owned above so the inbox and Bert can both open one. */
+  activeTab: ClubOfficeTab;
+  onSelectTab: (tab: ClubOfficeTab) => void;
   onOpenLedgerLine?: (ledgerLineId: string) => void;
   onBuildTrainingGround: () => void;
   onBuildFacility?: (type: FacilityTypeViewModel, x: number, y: number) => void;
@@ -73,6 +85,8 @@ export interface ClubFinancesScreenProps {
 
 export function ClubFinancesScreen({
   viewModel,
+  activeTab,
+  onSelectTab,
   onOpenLedgerLine,
   onBuildTrainingGround,
   onBuildFacility,
@@ -327,7 +341,7 @@ export function ClubFinancesScreen({
 
   const layoutMode = useLayoutMode();
 
-  const sections: FlowSection[] = [
+  const financeSections: FlowSection[] = [
     {
       key: 'cash-position',
       weight: 6,
@@ -349,6 +363,9 @@ export function ClubFinancesScreen({
       weight: 2 + viewModel.recentTransactions.length,
       node: <RecentTransactionsSection viewModel={viewModel} />,
     }] : []),
+  ];
+
+  const staffSections: FlowSection[] = [
     {
       key: 'coaching-staff',
       weight: viewModel.coachingStaff.length === 0 ? 4 : 3 + 4 * viewModel.coachingStaff.length,
@@ -360,6 +377,9 @@ export function ClubFinancesScreen({
         />
       ),
     },
+  ];
+
+  const facilitySections: FlowSection[] = [
     {
       key: 'grounds',
       weight: 10 + viewModel.facilities.height * 2,
@@ -418,6 +438,12 @@ export function ClubFinancesScreen({
     }] : []),
   ];
 
+  const sections = activeTab === 'facility'
+    ? facilitySections
+    : activeTab === 'staff'
+      ? staffSections
+      : financeSections;
+
   return (
     <View ref={scrollViewportRef} collapsable={false} className="flex-1">
     <ScrollView
@@ -429,15 +455,26 @@ export function ClubFinancesScreen({
       }}
       scrollEventThrottle={16}
     >
+      {/*
+        The office is named once. Which of its three boards is open is the tab
+        strip's job, and each board's own section label says what it holds — a
+        per-board page title put "Coaching staff" directly above a section
+        heading reading "Coaching staff".
+      */}
       <SectionFlow
         mode={layoutMode}
         header={
-      <View className="mb-5 flex-row items-end justify-between">
-        <View>
-          <PixelText className="text-sm uppercase text-blue-dark">Accounts office</PixelText>
-          <PixelText className="mt-1 text-xl uppercase text-ink">Club finances</PixelText>
+      <View className="mb-5">
+        <View className="flex-row items-end justify-between">
+          <View className="flex-1 pr-3">
+            <PixelText className="text-sm uppercase text-blue-dark">Club office</PixelText>
+            <PixelText className="mt-1 text-xl uppercase text-ink" numberOfLines={1}>
+              {viewModel.clubName}
+            </PixelText>
+          </View>
+          <StatusChip label={viewModel.periodLabel} />
         </View>
-        <StatusChip label={viewModel.periodLabel} />
+        <ScreenTabs tabs={CLUB_OFFICE_TABS} activeId={activeTab} onSelect={onSelectTab} />
       </View>
         }
         sections={sections}

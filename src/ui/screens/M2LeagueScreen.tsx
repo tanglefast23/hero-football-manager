@@ -17,6 +17,7 @@ import {
   visibleSubTabs,
 } from '../components/DivisionLeaderBoard';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
+import { ScreenTabs } from '../components/ScreenTabs';
 import { useGuideAnchor } from '../use-guide-anchor';
 import type { TutorialAnchorLayout } from '../tutorial-cue-position';
 import { CupBracket } from '../components/CupBracket';
@@ -341,34 +342,16 @@ export function M2LeagueScreen({
                 <Text className="font-mono text-sm text-ink/50">{viewModel.seasonLabel}</Text>
               </View>
             </View>
-            {subTabs.length > 0 ? (
-              <View className="mt-4 flex-row gap-1">
-                {subTabs.map(tab => (
-                  <Pressable
-                    key={tab}
-                    ref={tab === guideSubTab ? guidedSubTabAnchor.anchorRef : undefined}
-                    onLayout={tab === guideSubTab ? guidedSubTabAnchor.scheduleMeasurement : undefined}
-                    accessibilityRole="tab"
-                    accessibilityLabel={subTabLabel(tab)}
-                    accessibilityState={{ selected: tab === activeSubTab }}
-                    onPress={() => setSelectedSubTab(tab)}
-                    // min-h-14 is load-bearing: the pressed style below is
-                    // function-form, which drops NativeWind layout on iOS if
-                    // height ever depends on it.
-                    className={tab === activeSubTab
-                      ? 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-blue-dark bg-blue-light px-1'
-                      : 'min-h-14 flex-1 items-center justify-center border-2 border-b-4 border-ink/40 bg-white px-1'}
-                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                  >
-                    <PixelText className={tab === activeSubTab
-                      ? 'text-sm uppercase text-ink'
-                      : 'text-sm uppercase text-ink/50'}>
-                      {subTabLabel(tab)}
-                    </PixelText>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
+            <ScreenTabs
+              tabs={subTabs.map(tab => ({ id: tab, label: subTabLabel(tab) }))}
+              activeId={activeSubTab}
+              onSelect={setSelectedSubTab}
+              anchor={guideSubTab === undefined ? undefined : {
+                id: guideSubTab,
+                ref: guidedSubTabAnchor.anchorRef,
+                onLayout: guidedSubTabAnchor.scheduleMeasurement,
+              }}
+            />
           </View>
         }
         sections={sections}

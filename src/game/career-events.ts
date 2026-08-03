@@ -3,6 +3,7 @@ import { MAX_PLAYER_ATTRIBUTE } from '../sim/attributes';
 import type { GameState } from './types';
 import { LAUNCH_POWER_IDS } from './power-catalog';
 import { compareIds } from './ordering';
+import { recordFanGain } from './fan-growth';
 
 const POWER_IDS: ReadonlySet<PowerId> = new Set(LAUNCH_POWER_IDS);
 
@@ -337,7 +338,7 @@ export function applyCareerEventOutcome(
       }),
     },
   };
-  return withCareerMilestoneRecognition(resolved, presentation);
+  return withCareerMilestoneRecognition(recordFanGain(resolved, fans - club.fans), presentation);
 }
 
 /**

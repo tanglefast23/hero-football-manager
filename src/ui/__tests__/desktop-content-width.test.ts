@@ -67,6 +67,6 @@ describe('cup guidance', () => {
     expect(league).toContain('? cupSections');
     // The guide selects a tab, it does not pin one: the strip has to stay live
     // while the concierge focus is still set.
-    expect(league).toContain('onPress={() => setSelectedSubTab(tab)}');
+    expect(league).toContain('onSelect={setSelectedSubTab}');
   });
 });

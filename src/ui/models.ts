@@ -11,6 +11,14 @@ import type { PowerId } from '../sim/types';
 
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
 
+/**
+ * The Club office's three boards. Held above the screen because the desk sends
+ * the manager to a specific one — the inbox's build job opens Facility, the
+ * ledger warnings open Finances — and because Bert's fans lesson has to know
+ * which board is showing before he steps out on it.
+ */
+export type ClubOfficeTab = 'facility' | 'staff' | 'finances';
+
 export interface ResourceSummaryViewModel {
   money: number;
   trainingPoints: number;
@@ -599,6 +607,8 @@ export interface ClubFinancesViewModel {
   wageSubsidyLabel?: string;
   trainingGround: TrainingGroundDecisionViewModel;
   legacyTrainingGroundVisible: boolean;
+  /** Titles the office. The board being read is named by the tab strip under it. */
+  clubName: string;
   coachingStaff: readonly CoachStaffMemberViewModel[];
   facilities: ClubFacilityGridViewModel;
 }

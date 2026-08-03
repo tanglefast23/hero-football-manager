@@ -60,12 +60,14 @@ const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
   'board-ultimatum',
   'board-protection',
   'division-leaders',
-  // The last two are authored the same way but have no content sequence: they
+  // The last four are authored the same way but have no content sequence: they
   // are one-off remarks App.tsx hands him as a custom message, so the reel
   // cannot play them. They belong here all the same — this list is a claim
   // about what has been authored, not about what is reachable from the reel.
   'inbox-duty-reminder',
   'first-cup-exit',
+  'first-fans',
+  'first-fans-ledger',
 ]);
 
 /** Short enough for a 52pt chip; the note line carries the full id. */

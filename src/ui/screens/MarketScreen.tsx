@@ -1,4 +1,4 @@
-import { cloneElement, useEffect, useRef, useState, type Dispatch, type ReactNode, type RefObject, type SetStateAction } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type ReactNode, type RefObject, type SetStateAction } from 'react';
 import {
   ScrollView,
   Text,
@@ -25,6 +25,7 @@ import {
   TUTORIAL_TAP_CUE_WIDTH,
 } from '../tutorial-cue-position';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
+import { ScreenTabs, type ScreenTab } from '../components/ScreenTabs';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
 import { useDesktopContentStyle } from '../layout/DesktopClamp';
@@ -165,20 +166,32 @@ export function MarketScreen({
     youthSectionVisible,
   ]);
 
+  /**
+   * The docket's boards, in desk order. The strip rides in the header rather
+   * than under the registration panel: the manager reads the office name, then
+   * picks a board, exactly as the League screen's competition office works.
+   */
+  const docketTabs: ScreenTab<MarketSectionId>[] = [
+    ...(youthSectionVisible ? [{ id: 'YOUTH' as const, label: 'Youth', accessibilityLabel: 'Youth desk' }] : []),
+    ...(scoutSectionVisible ? [{ id: 'SCOUT' as const, label: 'Scout', accessibilityLabel: 'Scout desk' }] : []),
+    ...(transferSectionVisible ? [{ id: 'TRANSFERS' as const, label: 'Deals', accessibilityLabel: 'Deals desk' }] : []),
+    ...(coachSectionVisible ? [{ id: 'COACHES' as const, label: 'Coaches', accessibilityLabel: 'Coaches desk' }] : []),
+  ];
+
   const header = (
-    <View className="flex-row items-end justify-between gap-3">
-      <View className="flex-1">
-        <Text className="font-pixel text-sm uppercase tracking-[2px] text-blue-dark">
-          Recruitment office
-        </Text>
-        <Text className="mt-1 font-pixel text-xl uppercase text-ink">Market docket</Text>
+    <View className="mb-5">
+      <View className="flex-row items-end justify-between gap-3">
+        <View className="flex-1">
+          <Text className="font-pixel text-sm uppercase tracking-[2px] text-blue-dark">
+            Recruitment office
+          </Text>
+          <Text className="mt-1 font-pixel text-xl uppercase text-ink">Market docket</Text>
+        </View>
+        <StatusChip label={viewModel.periodLabel} />
       </View>
-      <StatusChip label={viewModel.periodLabel} />
+      <ScreenTabs tabs={docketTabs} activeId={section} onSelect={setSection} />
     </View>
   );
-  const wideHeader = cloneElement(header, {
-    className: `mb-5 ${header.props.className}`,
-  });
 
   const youthDesk = viewModel.youth ? (
     <YouthDesk
@@ -204,13 +217,16 @@ export function MarketScreen({
     <CoachDesk viewModel={viewModel} onHireCoach={onHireCoach} />
   ) : null;
 
-  const activeDesk = section === 'YOUTH' && viewModel.youth
-    ? youthDesk
-    : section === 'SCOUT'
-      ? scoutDesk
-      : section === 'TRANSFERS'
-        ? transferDesk
-        : coachDesk;
+  /** Only the chosen board is on the desk, so its weight is the one that counts. */
+  const activeDeskSection: FlowSection | undefined = section === 'YOUTH' && viewModel.youth
+    ? { key: 'youth-desk', weight: 4 + 5 * viewModel.youth.offers.length, node: youthDesk }
+    : section === 'SCOUT' && scoutSectionVisible
+      ? { key: 'scout-desk', weight: 8, node: scoutDesk }
+      : section === 'TRANSFERS' && transferSectionVisible
+        ? { key: 'transfer-desk', weight: 3 + 3 * viewModel.transfers.length, node: transferDesk }
+        : coachSectionVisible
+          ? { key: 'coach-desk', weight: 3 + 4 * viewModel.coaches.length, node: coachDesk }
+          : undefined;
 
   const sections: FlowSection[] = [
     {
@@ -232,26 +248,7 @@ export function MarketScreen({
         />
       ),
     }] : []),
-    ...(viewModel.youth ? [{
-      key: 'youth-desk',
-      weight: 4 + 5 * viewModel.youth.offers.length,
-      node: youthDesk,
-    }] : []),
-    ...(scoutSectionVisible ? [{
-      key: 'scout-desk',
-      weight: 8,
-      node: scoutDesk,
-    }] : []),
-    ...(transferSectionVisible ? [{
-      key: 'transfer-desk',
-      weight: 3 + 3 * viewModel.transfers.length,
-      node: transferDesk,
-    }] : []),
-    ...(coachSectionVisible ? [{
-      key: 'coach-desk',
-      weight: 3 + 4 * viewModel.coaches.length,
-      node: coachDesk,
-    }] : []),
+    ...(activeDeskSection === undefined ? [] : [activeDeskSection]),
   ];
 
   return (
@@ -263,41 +260,7 @@ export function MarketScreen({
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-      {layoutMode === 'single' ? (
-        <>
-          {header}
-          <RegistrationDesk viewModel={viewModel} />
-
-          {viewModel.negotiation ? (
-            <NegotiationPanel
-              viewModel={viewModel.negotiation}
-              draft={negotiationDraft}
-              onSubmitContractOffer={onSubmitContractOffer}
-              onClose={onCloseNegotiation}
-              guided={visibleGuideFocus === 'transfer-negotiation'}
-            />
-          ) : null}
-
-          <View className="mt-6 flex-row border-2 border-b-4 border-ink bg-paper-dark p-1">
-            {viewModel.sections.includes('YOUTH') && viewModel.youth ? (
-              <DocketTab id="YOUTH" label="Youth" glyph="★" selected={section === 'YOUTH'} onPress={setSection} />
-            ) : null}
-            {viewModel.sections.includes('SCOUT') ? (
-              <DocketTab id="SCOUT" label="Scout" glyph="⌖" selected={section === 'SCOUT'} onPress={setSection} />
-            ) : null}
-            {viewModel.sections.includes('TRANSFERS') ? (
-              <DocketTab id="TRANSFERS" label="Deals" glyph="⇄" selected={section === 'TRANSFERS'} onPress={setSection} />
-            ) : null}
-            {viewModel.sections.includes('COACHES') ? (
-              <DocketTab id="COACHES" label="Coaches" glyph="▣" selected={section === 'COACHES'} onPress={setSection} />
-            ) : null}
-          </View>
-
-          <View className="mt-6">{activeDesk}</View>
-        </>
-      ) : (
-        <SectionFlow mode={layoutMode} header={wideHeader} sections={sections} />
-      )}
+        <SectionFlow mode={layoutMode} header={header} sections={sections} />
       </ScrollView>
     </View>
   );
@@ -416,42 +379,6 @@ function YouthDesk({
         </View>
       )}
     </View>
-  );
-}
-
-function DocketTab({
-  id,
-  label,
-  glyph,
-  selected,
-  onPress,
-}: {
-  id: MarketSectionId;
-  label: string;
-  glyph: string;
-  selected: boolean;
-  onPress: (id: MarketSectionId) => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityLabel={`${label} desk`}
-      accessibilityState={{ selected }}
-      onPress={() => onPress(id)}
-      className={selected
-        ? 'min-h-14 flex-1 items-center justify-center border-2 border-blue-dark bg-blue-light px-1'
-        : 'min-h-14 flex-1 items-center justify-center border-2 border-transparent px-1'}
-      style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
-    >
-      <Text className={selected ? 'font-mono text-lg font-bold text-ink' : 'font-mono text-lg text-ink/45'}>
-        {glyph}
-      </Text>
-      <PixelText className={selected
-        ? 'mt-0.5 text-sm uppercase text-ink'
-        : 'mt-0.5 text-sm uppercase text-ink/50'}>
-        {label}
-      </PixelText>
-    </Pressable>
   );
 }
 

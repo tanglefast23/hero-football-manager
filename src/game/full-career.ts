@@ -27,6 +27,7 @@ import { difficultyRules } from './difficulty';
 import { divisionAwardPrize } from './division-award-prize';
 import { initializeSeasonYouthIntake, reconcileStoryYouthIntake } from './youth-intake';
 import { reconcileBoardUltimatumCandidates } from './board-ultimatum';
+import { recordFanGain } from './fan-growth';
 import { highestDivisionReached, recordHighestDivisionReached } from './promotion-progression';
 import { generatedClubHeroCount, generatedClubPower } from './power-catalog';
 import { prunedStatLines } from './season-recap';
@@ -284,10 +285,13 @@ export function startNextFullCareerSeason(
           clubFame(next),
         ),
   };
-  return reconcileBoardUltimatumCandidates({
-    ...withMarket,
-    youthIntake: initializeSeasonYouthIntake(withMarket),
-  });
+  return recordFanGain(
+    reconcileBoardUltimatumCandidates({
+      ...withMarket,
+      youthIntake: initializeSeasonYouthIntake(withMarket),
+    }),
+    userClub.fans - currentUserClub.fans,
+  );
 }
 
 function balanceOpeningDivision(state: GameState): GameState {
