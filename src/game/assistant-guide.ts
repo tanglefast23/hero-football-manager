@@ -50,7 +50,14 @@ export type AssistantGuideMilestone =
   | 'facility-combo-fan-shop-stadium-seen'
   | 'facility-combo-medical-training-pitch-seen'
   /** Bert introduces the veteran-only 3× watched-match speed once. */
-  | 'triple-speed-seen';
+  | 'triple-speed-seen'
+  /**
+   * The first crowd the club ever wins. Two beats, one per screen: the
+   * congratulations on the desk, then the ledger he walks you to. Held apart so
+   * a career that closes between them resumes on the board it still owes.
+   */
+  | 'first-fans-seen'
+  | 'first-fans-ledger-seen';
 
 export type AssistantInboxProductAlertPriority = 'urgent' | 'normal';
 
@@ -98,6 +105,8 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'facility-combo-fan-shop-stadium-seen': 'guide:bert:facility-combo-fan-shop-stadium-seen',
   'facility-combo-medical-training-pitch-seen': 'guide:bert:facility-combo-medical-training-pitch-seen',
   'triple-speed-seen': 'guide:bert:triple-speed-seen',
+  'first-fans-seen': 'guide:bert:first-fans-seen',
+  'first-fans-ledger-seen': 'guide:bert:first-fans-ledger-seen',
 };
 
 const MILESTONE_BY_SEQUENCE: Readonly<Partial<Record<AssistantGuideSequenceId, AssistantGuideMilestone>>> = {

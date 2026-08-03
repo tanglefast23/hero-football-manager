@@ -306,6 +306,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     // The flag and its dead branch in ClubFinancesScreen can go with the next
     // src/ui pass.
     legacyTrainingGroundVisible: false,
+    clubName: club.name,
     coachingStaff: coachingStaffViewModels(state),
     facilities: facilityGridViewModel(state),
   };

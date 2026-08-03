@@ -100,7 +100,13 @@ describe('briefing beats', () => {
     // Selecting the tab makes it look chosen; it still sat under the same
     // dimming as the boards he was NOT pointing at. The screen measures it, App
     // holds it, and the spotlight cuts its hole there.
-    expect(league).toContain('ref={tab === guideSubTab ? guidedSubTabAnchor.anchorRef : undefined}');
+    const tabs = readFileSync(
+      join(process.cwd(), 'src/ui/components/ScreenTabs.tsx'),
+      'utf8',
+    );
+    expect(league).toContain('ref: guidedSubTabAnchor.anchorRef,');
+    expect(league).toContain('onLayout: guidedSubTabAnchor.scheduleMeasurement,');
+    expect(tabs).toContain('tab.id === anchor.id ? anchor.ref : undefined');
     expect(app).toContain('onGuideSubTabAnchorChange={setLeagueSubTabGuideAnchor}');
     expect(app).toContain('subTabAnchor={leagueSubTabGuideAnchor}');
     expect(walkOn).toContain("focus === 'division-leaders' || focus === 'national-cup'");

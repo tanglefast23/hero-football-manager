@@ -99,6 +99,7 @@ import {
   type CoachOverlayCoach,
   type FacilityProjectNoticeModel,
   type PlayerSigningConfirmation,
+  type ClubOfficeTab,
   type MarketSectionId,
   formatCurrency,
   shouldShowOpeningBrief,
@@ -110,6 +111,7 @@ import {
   clubSquadStrength,
   hasActiveCareerContractPromise,
   hasAssistantGuideSequenceCompleted,
+  hasEverGainedFans,
   isFirstOnboardingFixture,
   isFullyCappedPlayer,
   leagueStandings,
@@ -475,6 +477,13 @@ function GameApp() {
     section: MarketSectionId;
     token: number;
   } | null>(null);
+  /**
+   * The Club office board on show. Owned here rather than inside the screen
+   * because three things outside it choose the board: the inbox's build job
+   * opens Facility, the ledger warnings open Finances, and Bert's fans lesson
+   * has to know Finances is showing before he walks out onto it.
+   */
+  const [clubOfficeTab, setClubOfficeTab] = useState<ClubOfficeTab>('facility');
   // Bumped when an inbox training-cap letter deep-links into the drill picker.
   const [drillFocusToken, setDrillFocusToken] = useState<number | null>(null);
   const [managerTipGuideRequest, setManagerTipGuideRequest] = useState<{
@@ -1029,6 +1038,26 @@ function GameApp() {
     && store.career.season >= 3
     && !hasAssistantGuideMilestone(store.career, 'triple-speed-seen');
   /**
+   * Bert's one lesson on the crowd, in two beats on two screens.
+   *
+   * The congratulations belong on the desk, because that is where the manager
+   * lands after the week that won the fans. The ledger tour belongs on the
+   * ledger. Each beat is gated on its own milestone rather than one shared
+   * flag, so a career closed between them opens on the half it still owes
+   * instead of losing the second half or repeating the first.
+   */
+  const fansLessonVisible = store.screen === 'management'
+    && store.activeTab === 'home'
+    && store.career !== null
+    && hasEverGainedFans(store.career)
+    && !hasAssistantGuideMilestone(store.career, 'first-fans-seen');
+  const fansLedgerTourVisible = store.screen === 'management'
+    && store.activeTab === 'club'
+    && clubOfficeTab === 'finances'
+    && store.career !== null
+    && hasAssistantGuideMilestone(store.career, 'first-fans-seen')
+    && !hasAssistantGuideMilestone(store.career, 'first-fans-ledger-seen');
+  /**
    * The signing that is walking onto the screen, if one is.
    *
    * The rookie and the academy graduates are players the manager picked one at
@@ -1055,6 +1084,8 @@ function GameApp() {
     || cupGiantKillingCelebration !== undefined
     || facilityComboReveal !== undefined
     || tripleSpeedIntroVisible
+    || fansLessonVisible
+    || fansLedgerTourVisible
   )
     && signingWalkOn === null;
   const assistantObjective = store.career === null
@@ -1069,6 +1100,14 @@ function GameApp() {
     previousAssistantObjectiveKeyRef.current = assistantObjectiveKey;
     setDismissedAssistantObjectiveKey(null);
   }, [assistantObjectiveKey]);
+  /**
+   * The opening's build job is on the Facility board. The inbox already opens
+   * that board, but the manager can reach the Club office from the nav rail
+   * too, and the objective would then be pointing at a page that is not up.
+   */
+  useEffect(() => {
+    if (assistantObjective?.target === 'training-ground-facility') setClubOfficeTab('facility');
+  }, [assistantObjective?.target]);
   const visibleAssistantObjectiveTarget = assistantObjectiveKey !== null
     && assistantObjectiveKey === dismissedAssistantObjectiveKey
     ? undefined
@@ -1218,6 +1257,10 @@ function GameApp() {
         token: (current?.token ?? 0) + 1,
       }));
     }
+    // The grounds and the ledger are two different boards now, so a Club
+    // destination has to name which one it means.
+    if (destination === 'club-facilities') setClubOfficeTab('facility');
+    else if (destination === 'club-finances') setClubOfficeTab('finances');
     const tab = sequenceId === 'board-ultimatum' || sequenceId === 'board-protection'
       ? 'home'
       : destination === 'coach-market'
@@ -1627,6 +1670,8 @@ function GameApp() {
         ) : store.activeTab === 'club' ? (
           <ClubFinancesScreen
             viewModel={clubFinancesViewModel(store.career)}
+            activeTab={clubOfficeTab}
+            onSelectTab={setClubOfficeTab}
             onBuildTrainingGround={buildTrainingGroundWithSfx}
             onBuildFacility={buildClubFacilityWithFeedback}
             onUpgradeFacility={buildingId => {
@@ -1644,7 +1689,15 @@ function GameApp() {
               'build',
               'commit',
             )}
-            onOpenCoachMarket={() => store.setActiveTab('market')}
+            onOpenCoachMarket={() => {
+              // The Staff board's own button, so it lands on the Coaches desk
+              // rather than whichever docket the market happened to open on.
+              setMarketSectionRequest(current => ({
+                section: 'COACHES',
+                token: (current?.token ?? 0) + 1,
+              }));
+              store.setActiveTab('market');
+            }}
             onDismissCoach={beginCoachDismissal}
             guideTrainingGround={visibleAssistantObjectiveTarget === 'training-ground-facility'}
             guideFocus={conciergeFocus ?? undefined}
@@ -1781,6 +1834,7 @@ function GameApp() {
               else if (alertId === DESK_STORY_ALERT_ID) store.openDeskStory();
               else if (alertId.startsWith('training-upgrade:')) store.setActiveTab('squad');
               else if (alertId === 'training-ground' || alertId === 'build-reminder') {
+                setClubOfficeTab('facility');
                 store.setActiveTab('club');
               }
               else if (alertId.startsWith('injury-')) {
@@ -1800,6 +1854,7 @@ function GameApp() {
               }
               else if (alertId === 'renewals') store.setActiveTab('squad');
               else if (alertId === 'financial-warning' || alertId === 'emergency-loan') {
+                setClubOfficeTab('finances');
                 store.setActiveTab('club');
               }
               else if (alertId === 'board-ultimatum') {
@@ -1964,6 +2019,47 @@ function GameApp() {
             navigationAnchor={navigationGuideAnchor}
             reduceMotion={reduceMotion}
             onDone={() => store.completeGuideMilestone('triple-speed-seen')}
+          />
+        ) : guideOverlayVisible && fansLessonVisible ? (
+          <BertBriefingWalkOn
+            key="first-fans"
+            content={content.assistantGuide}
+            // Authored beats rather than a briefing sequence: nothing queued
+            // this, the turnstiles did. `sequenceId` still names the run of
+            // looks in bert-beat-moments so the good news is not delivered
+            // deadpan.
+            sequenceId="first-fans"
+            customMessage={{
+              title: 'New faces on the terraces',
+              body: [
+                'Fans! You pick them up by winning, going deep in the cup, and climbing a division.',
+                'They pay at the gate every home game, and they buy shirts once you build a shop. Come see where the money lands.',
+              ],
+            }}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={() => {
+              store.completeGuideMilestone('first-fans-seen');
+              // He said he would show you; the second beat is waiting there.
+              setClubOfficeTab('finances');
+              store.setActiveTab('club');
+            }}
+          />
+        ) : guideOverlayVisible && fansLedgerTourVisible ? (
+          <BertBriefingWalkOn
+            key="first-fans-ledger"
+            content={content.assistantGuide}
+            sequenceId="first-fans-ledger"
+            customMessage={{
+              title: 'The page nobody likes',
+              body: [
+                'Here we are. Nobody wants to look at this page, because it lists every bill the club owes.',
+                'But it also lists the money coming in — gate, sponsor, prizes. Check it every week and nothing here can ambush you.',
+              ],
+            }}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={() => store.completeGuideMilestone('first-fans-ledger-seen')}
           />
         ) : null}
         {!guideOverlayVisible && lowConditionMatchdayStarter !== null ? (

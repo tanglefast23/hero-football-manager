@@ -565,7 +565,10 @@ describe('career milestones recorded at settlement', () => {
       state = state.phase === 'manage' ? advanceWeek(state) : winUserMatch(state);
       if (state.phase === 'matchday') continue;
       // What the club has passed and what the save records never drift apart.
-      expect([...state.eventFlags].sort()).toEqual([...earnedCareerMilestoneFlags(state)].sort());
+      // Only the milestone ledger: the save also carries engine facts with no
+      // recognition story behind them, such as the first crowd it ever won.
+      expect([...state.eventFlags].filter(flag => flag.startsWith('milestone:')).sort())
+        .toEqual([...earnedCareerMilestoneFlags(state)].sort());
     }
 
     expect(state.eventFlags.length).toBeGreaterThanOrEqual(3);

@@ -11,6 +11,7 @@ export * from './cash-transactions';
 export * from './coach-weekly';
 export * from './event-clock';
 export * from './facilities';
+export * from './fan-growth';
 export * from './headless';
 export * from './lineup';
 export * from './loyalty';

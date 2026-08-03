@@ -60,6 +60,11 @@ const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
   'board-ultimatum',
   'board-protection',
   'division-leaders',
+  // Authored beats rather than content sequences — App.tsx owns their copy — so
+  // the reel cannot play them. Listed anyway: this is a mirror of the map, and
+  // a mirror with holes in it is worse than no mirror.
+  'first-fans',
+  'first-fans-ledger',
 ]);
 
 /** Short enough for a 52pt chip; the note line carries the full id. */

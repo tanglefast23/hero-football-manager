@@ -64,6 +64,13 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   'board-protection': ['hold-on'],
   // The one piece of good news here: explain the boards, then send you after one.
   'division-leaders': ['explaining', 'encouraging'],
+
+  // The crowd is the first thing the club earns that is not money, so it opens
+  // as a celebration and then turns into the lesson about what it pays for.
+  'first-fans': ['celebrating', 'explaining'],
+  // The ledger. Deadpan over the bills, because he is reading them out and the
+  // joke is that he knows nobody wants to; then he talks you into the habit.
+  'first-fans-ledger': ['listing', 'encouraging'],
 };
 
 /**

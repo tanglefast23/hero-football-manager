@@ -12,6 +12,7 @@ import {
 } from './facilities';
 import { difficultyRules } from './difficulty';
 import { recordCareerMilestones } from './career-events';
+import { recordFanGain } from './fan-growth';
 import { recordSeasonRecap } from './season-recap';
 import { compareStandings } from './ordering';
 import { enableFullCareer, startNextFullCareerSeason } from './full-career';
@@ -1086,7 +1087,7 @@ function awardNationalCupPrize(
   const latestLedger = state.ledgers[state.ledgers.length - 1];
   if (latestLedger === undefined) throw new Error('Hero Cup prize requires a weekly ledger');
   const balanceAfter = checkedAdd(latestLedger.balanceAfter, prize, 'Hero Cup prize balance');
-  return clearMetBoardUltimatum({
+  return recordFanGain(clearMetBoardUltimatum({
     ...state,
     clubs: state.clubs.map(club => club.id === state.userClubId
       ? {
@@ -1108,7 +1109,7 @@ function awardNationalCupPrize(
           balanceAfter,
         }
       : ledger),
-  });
+  }), fansWon);
 }
 
 export function weeklyAmbientTrainingPoints(state: GameState): number {
