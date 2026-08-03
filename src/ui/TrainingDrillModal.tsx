@@ -136,6 +136,15 @@ export function TrainingDrillModal({
   const batchRef = useRef<DrillBatch | null>(null);
   const [batchProgress, setBatchProgress] = useState<Pick<DrillBatch, 'current' | 'total'> | null>(null);
   const repeatScrollRef = useRef<ScrollView | null>(null);
+  /**
+   * Set only while the manager's own finger is moving the number row. Tapping a
+   * number also scrolls the row to it, and on iOS a programmatic animated
+   * scroll ends by firing onMomentumScrollEnd exactly like a flick does.
+   * Ungated, that event re-read the count off wherever the row actually
+   * stopped — and barely five cells fit the phone card, so every number past
+   * those clamps short and the tapped 3 became 2 a third of a second later.
+   */
+  const draggingRepeatRef = useRef(false);
   // Bert warns once per CAREER, and only after the result has finished playing —
   // interrupting the drill scene with a lecture would bury the gain.
   const pendingRedWarningRef = useRef(false);
@@ -311,6 +320,10 @@ export function TrainingDrillModal({
   const selectRepeatCount = (runs: number, scroll = true) => {
     setRepeatCount(runs);
     if (scroll) {
+      // The tap IS the decision. Clearing the flag first means the scroll it
+      // starts — and any flick still decelerating underneath it — cannot be
+      // read back as a second, later decision.
+      draggingRepeatRef.current = false;
       repeatScrollRef.current?.scrollTo({
         x: (runs - 1) * REPEAT_PICKER_CELL_WIDTH,
         animated: !reduceMotion,
@@ -318,6 +331,7 @@ export function TrainingDrillModal({
     }
   };
   const selectRepeatOffset = (offsetX: number) => {
+    if (!draggingRepeatRef.current) return;
     const index = Math.round(offsetX / REPEAT_PICKER_CELL_WIDTH);
     selectRepeatCount(
       Math.max(1, Math.min(maximumAffordableRuns, index + 1)),
@@ -718,6 +732,7 @@ export function TrainingDrillModal({
                         snapToAlignment="start"
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.repeatScrollContent}
+                        onScrollBeginDrag={() => { draggingRepeatRef.current = true; }}
                         onScrollEndDrag={event => (
                           selectRepeatOffset(event.nativeEvent.contentOffset.x)
                         )}
