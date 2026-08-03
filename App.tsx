@@ -1024,6 +1024,20 @@ function GameApp() {
           presentation !== undefined
           && !hasAssistantGuideMilestone(store.career!, presentation.milestone)
         ));
+  /**
+   * Bert's one consolation for going out of the Cup.
+   *
+   * Read off the report rather than queued by the career ring: a knockout
+   * defeat is the exit, the report already knows it is one, and hanging it
+   * here keeps the save shape alone. He appears on the full-time screen
+   * because that is where the manager is standing when the run ends — held
+   * back to the office, the sympathy would arrive after they had already
+   * clicked past the defeat and started on next week.
+   */
+  const cupExitConsolationVisible = store.screen === 'postmatch'
+    && store.postMatch?.result.cupExit === true
+    && store.career !== null
+    && !hasAssistantGuideMilestone(store.career, 'first-cup-exit-seen');
   const tripleSpeedIntroVisible = store.screen === 'watched'
     && store.career !== null
     && store.career.season >= 3
@@ -1053,6 +1067,7 @@ function GameApp() {
   const guideOverlayVisible = (
     assistantSequenceId !== null
     || cupGiantKillingCelebration !== undefined
+    || cupExitConsolationVisible
     || facilityComboReveal !== undefined
     || tripleSpeedIntroVisible
   )
@@ -1927,6 +1942,27 @@ function GameApp() {
             reduceMotion={reduceMotion}
             onDone={store.completeCupGiantKillingCelebration}
           />
+        ) : guideOverlayVisible && cupExitConsolationVisible ? (
+          <BertBriefingWalkOn
+            key="first-cup-exit"
+            content={content.assistantGuide}
+            // Authored beats rather than a briefing sequence, the same as the
+            // giant-killing above it: this is a reaction to one result, not a
+            // lesson the career queued. `sequenceId` still names the run of
+            // looks in bert-beat-moments so the promise is not delivered by
+            // the face that just winced at the scoreline.
+            sequenceId="first-cup-exit"
+            customMessage={{
+              title: 'Out of the Cup',
+              body: [
+                'The cup run is over. But that’s understandable.',
+                'You’re playing against the very best teams and leagues. We can slay these giants in the future!',
+              ],
+            }}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={() => store.completeGuideMilestone('first-cup-exit-seen')}
+          />
         ) : guideOverlayVisible && assistantSequenceId !== null ? (
           <BertBriefingWalkOn
             content={content.assistantGuide}
@@ -1964,6 +2000,28 @@ function GameApp() {
             navigationAnchor={navigationGuideAnchor}
             reduceMotion={reduceMotion}
             onDone={() => store.completeGuideMilestone('triple-speed-seen')}
+          />
+        ) : null}
+        {store.inboxDutyReminder !== null ? (
+          <BertBriefingWalkOn
+            key="inbox-duty-reminder"
+            content={content.assistantGuide}
+            // Authored beats rather than a briefing sequence: this is a reply to
+            // a press, not a lesson the career has queued, so it owns its copy
+            // here. `sequenceId` still names the run of looks in
+            // bert-beat-moments so the joke is not delivered by the face that
+            // just refused the manager.
+            sequenceId="inbox-duty-reminder"
+            customMessage={{
+              title: 'Desk not clear',
+              body: [
+                'Clear every job in the inbox before you move the week on.',
+                'I know, it’s tough work. But someone’s got to be the boss, and they gave you the chair.',
+              ],
+            }}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={store.dismissInboxDutyReminder}
           />
         ) : null}
         {!guideOverlayVisible && lowConditionMatchdayStarter !== null ? (

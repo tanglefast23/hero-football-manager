@@ -221,7 +221,8 @@ export function SectionLabel({ eyebrow, title, right }: SectionLabelProps) {
 interface StatusChipProps {
   label: string;
   selected?: boolean;
-  tone?: 'normal' | 'hero' | 'success' | 'danger';
+  /** `info` is the calm counterpart to `danger` — the safe half of a pair. */
+  tone?: 'normal' | 'hero' | 'success' | 'danger' | 'info';
 }
 
 export function StatusChip({ label, selected = false, tone = 'normal' }: StatusChipProps) {
@@ -233,7 +234,9 @@ export function StatusChip({ label, selected = false, tone = 'normal' }: StatusC
         ? 'border-pitch-dark bg-pitch-light text-ink'
         : tone === 'danger'
           ? 'border-red-dark bg-red-light text-ink'
-          : 'border-ink/40 bg-white text-ink';
+          : tone === 'info'
+            ? 'border-blue-dark bg-blue-light text-ink'
+            : 'border-ink/40 bg-white text-ink';
 
   return (
     <View className={cx('min-h-8 justify-center border-2 px-2 py-1', palette)}>

@@ -38,4 +38,19 @@ describe("manager's tip navigation", () => {
     expect(squad).toContain('scrollRef.current?.scrollTo({ y: 0, animated: true })');
     expect(squad).toContain('setManagerTipGuideTarget(null)');
   });
+
+  it('claims the top of the register in the request frame, before any late layout', () => {
+    const squad = read('src/ui/screens/SquadTrainingScreen.tsx');
+
+    expect(squad).toContain('scrollRef.current?.scrollTo({ y: 0, animated: false })');
+  });
+
+  it('sorts the register highest-first from the cue and drops the selection', () => {
+    const squad = read('src/ui/screens/SquadTrainingScreen.tsx');
+
+    // The sort orders every player, so no selected row survives above it.
+    expect(squad).toContain('onSelectPlayer(undefined)');
+    expect(squad).toContain("const guidedSortTap = managerTipGuideTarget === 'overall-sort';");
+    expect(squad).toContain("? { key: 'overall', direction: 'descending' }");
+  });
 });

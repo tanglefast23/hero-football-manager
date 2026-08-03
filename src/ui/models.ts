@@ -215,6 +215,14 @@ export interface MatchResultViewModel {
    * the manager's point of view — a drawn match boxes nobody.
    */
   winner: 'home' | 'away' | null;
+  /**
+   * True when this defeat put the club out of the Hero Cup.
+   *
+   * There is no second leg and level ties are settled on the day, so a cup
+   * loss is always the end of the run — which is what Bert's once-a-career
+   * consolation is hung on.
+   */
+  cupExit: boolean;
 }
 
 /**
@@ -552,16 +560,40 @@ export interface ClubLoanViewModel {
   detail: string;
 }
 
+/**
+ * Match, sponsor and prize income from the settled week.
+ *
+ * These are the three ledger kinds `weeklyNet` deliberately cannot forecast — a
+ * gate needs a home fixture, the sponsor pays every fourth week, the prize lands
+ * once a season — so they are reported as banked fact beside the projection
+ * rather than folded into it.
+ */
+export interface ClubVariableIncomeViewModel {
+  amount: number;
+  /**
+   * Why the amount is zero, on the weeks where a bare `$0` would read as a bug
+   * rather than as a fact. Absent whenever the amount speaks for itself.
+   */
+  detail?: string;
+}
+
 export interface ClubFinancesViewModel {
   periodLabel: string;
   resources: ResourceSummaryViewModel;
   /** Absent until the board writes its one emergency loan, and once it is repaid. */
   loan?: ClubLoanViewModel;
-  ledger: readonly LedgerLineViewModel[];
+  /**
+   * The settled weeks the statement shows, newest first, each line carrying the
+   * week it belongs to. Falls back to the recurring projection before the first
+   * week settles.
+   */
+  ledger: readonly (LedgerLineViewModel & { periodLabel: string })[];
   recentTransactions: readonly (LedgerLineViewModel & {
     periodLabel: string;
     balanceAfter: number;
   })[];
+  fans: number;
+  variableIncome: ClubVariableIncomeViewModel;
   weeklyNet: number;
   projectedBalance: number;
   wageSubsidyLabel?: string;

@@ -107,13 +107,16 @@ function cupRoundNotes(state: GameState): ManagerNoteViewModel[] {
 
   const opponentId = fixture.homeClubId === state.userClubId ? fixture.awayClubId : fixture.homeClubId;
   const opponent = state.clubs.find(club => club.id === opponentId)?.name ?? 'your opponent';
-  const venue = fixture.homeClubId === state.userClubId ? 'at home' : 'away';
+  // Name the ground rather than trailing "at home" after the opponent, which
+  // reads as the opponent being the home side.
+  const venue = fixture.homeClubId === state.userClubId ? 'our stadium' : 'their stadium';
+  const opening = `Playing ${opponent} at ${venue}.`;
   return [{
     id: `note:cup-round:${round.number}`,
     title: `Manager's Note: Hero Cup ${round.label} this week`,
     detail: nextRoundLabel === undefined || nextRoundWeek === undefined
-      ? `${opponent}, ${venue}. Win it and the Hero Cup is yours — the biggest prize money and the biggest crowd of the season.`
-      : `${opponent}, ${venue}. Win and you reach the ${nextRoundLabel} in Week ${nextRoundWeek}, where the prize money and the fans both grow. Lose and your run is over — there is no second chance.`,
+      ? `${opening} Win it and the Hero Cup is yours — the biggest prize money and the biggest crowd of the season.`
+      : `${opening} Win and you reach the ${nextRoundLabel} in Week ${nextRoundWeek}, where the prize money and the fans both grow. Lose and your run is over — there is no second chance.`,
   }];
 }
 

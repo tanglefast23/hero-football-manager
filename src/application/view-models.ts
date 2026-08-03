@@ -59,6 +59,7 @@ import {
   type FacilityLevel,
   type FacilityType,
   type GameState,
+  type LedgerLineKind,
   type PlacedFacility,
   type AssistantInboxGuideSequenceId,
 } from '../game';
@@ -67,6 +68,7 @@ import type {
   ClubLegacyViewModel,
   ClubFinancesViewModel,
   ClubLoanViewModel,
+  ClubVariableIncomeViewModel,
   ClubAlertViewModel,
   CoachStaffMemberViewModel,
   FixtureViewModel,
@@ -223,6 +225,54 @@ export function awakeningCutsceneViewModel(
   };
 }
 
+/**
+ * How many settled weeks the itemized statement keeps on screen.
+ *
+ * It showed exactly one, which made every recurring line unreadable as a trend
+ * and made a home gate — the club's largest income, and only ever a ledger line
+ * — vanish the moment the next week settled. Four covers a home/away pair plus
+ * the four-weekly sponsor payment, so every recurring rhythm appears at least
+ * once. `state.ledgers` is append-only and never trimmed, so this is purely a
+ * display window.
+ */
+const STATEMENT_WEEKS = 4;
+
+/** The three ledger kinds no weekly projection can forecast. */
+const VARIABLE_INCOME_KINDS: readonly LedgerLineKind[] = ['tickets', 'sponsor', 'prize'];
+
+function ledgerLineKind(amount: number): 'income' | 'expense' | 'neutral' {
+  return amount > 0 ? 'income' : amount < 0 ? 'expense' : 'neutral';
+}
+
+/**
+ * Match, sponsor and prize income banked in the settled week, with a reason
+ * attached whenever that total is zero for a knowable cause. An away week earns
+ * no gate at all, so a bare `$0` there reads as a broken number rather than as
+ * the plain fact that the club played somewhere else.
+ */
+function variableIncomeViewModel(state: GameState): ClubVariableIncomeViewModel {
+  const settled = state.ledgers[state.ledgers.length - 1];
+  const amount = (settled?.lines ?? [])
+    .filter(line => VARIABLE_INCOME_KINDS.includes(line.kind))
+    .reduce((sum, line) => sum + line.amount, 0);
+  if (amount !== 0) return { amount };
+  if (settled === undefined) return { amount, detail: 'no match' };
+  // Cup ties live in the M2 sidecar, so `state.fixtures` is the league season
+  // alone — exactly the fixture whose venue decides the ordinary gate.
+  const fixture = state.fixtures.find(candidate => (
+    candidate.season === settled.season
+    && candidate.week === settled.week
+    && (candidate.homeClubId === state.userClubId || candidate.awayClubId === state.userClubId)
+  ));
+  // The league calendar leaves weeks empty — the season opens with two of them —
+  // so "no match" is a distinct fact from "played away", and both beat a bare $0.
+  if (fixture === undefined) return { amount, detail: 'no match' };
+  if (fixture.awayClubId === state.userClubId) return { amount, detail: 'away game' };
+  // A home week that banked nothing is not a state the settlement can produce.
+  // Saying nothing is honest; inventing a reason would not be.
+  return { amount };
+}
+
 export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
   const club = requireUserClub(state);
   const wageSubsidyPercent = difficultyRules(state).seasonOneWageSubsidyPercent;
@@ -258,7 +308,24 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
     }] : []),
   ];
   const weeklyNet = recurringProjectionLines.reduce((sum, line) => sum + line.amount, 0);
-  const displayLines = latest?.lines ?? recurringProjectionLines;
+  // Newest week first: the statement is read top-down like a bank statement,
+  // and the week just settled is the one the manager came here to check.
+  const settledStatements = state.ledgers.slice(-STATEMENT_WEEKS).reverse();
+  const statement = settledStatements.length === 0
+    ? recurringProjectionLines.map((line, index) => ({
+      id: `finance-projection-${index}`,
+      periodLabel: `S${state.season} · W${state.week}`,
+      label: line.label,
+      amount: line.amount,
+      kind: ledgerLineKind(line.amount),
+    }))
+    : settledStatements.flatMap(entry => entry.lines.map((line, index) => ({
+      id: `finance-${entry.season}-${entry.week}-${index}`,
+      periodLabel: `S${entry.season} · W${entry.week}`,
+      label: line.label,
+      amount: line.amount,
+      kind: ledgerLineKind(line.amount),
+    })));
   const trainingGroundProject = state.facilities.grid?.construction?.type === 'training-pitch'
     && state.facilities.grid.construction.kind === 'BUILD'
     ? state.facilities.grid.construction
@@ -271,12 +338,7 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
       trainingPoints: state.trainingPoints,
     },
     ...(loan === undefined ? {} : { loan }),
-    ledger: displayLines.map((line, index) => ({
-      id: `finance-${state.season}-${state.week}-${index}`,
-      label: line.label,
-      amount: line.amount,
-      kind: line.amount > 0 ? 'income' : line.amount < 0 ? 'expense' : 'neutral',
-    })),
+    ledger: statement,
     recentTransactions: [...(state.cashTransactions ?? [])]
       .slice(-8)
       .reverse()
@@ -288,6 +350,8 @@ export function clubFinancesViewModel(state: GameState): ClubFinancesViewModel {
         balanceAfter: transaction.balanceAfter,
         kind: transaction.amount > 0 ? 'income' as const : 'expense' as const,
       })),
+    fans: club.fans,
+    variableIncome: variableIncomeViewModel(state),
     weeklyNet,
     projectedBalance: club.cash + weeklyNet,
     ...(state.season === 1 && wageSubsidyPercent > 0
@@ -1904,6 +1968,7 @@ export function postMatchViewModel(
       winner: score.homeGoals > score.awayGoals
         ? 'home'
         : score.awayGoals > score.homeGoals ? 'away' : null,
+      cupExit: cupRound !== undefined && outcomeLabel === 'LOSS',
       headline: cupRound !== undefined
         ? outcomeLabel === 'WIN'
           ? 'Cup dream alive. You are through.'

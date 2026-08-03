@@ -104,7 +104,8 @@ export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
   /** The player currently focused for the profile card and drill popup (mirrors store.selectedPlayerId). */
   selectedPlayerId?: string;
-  onSelectPlayer: (playerId: string) => void;
+  /** Passing undefined clears the selection, which sorting the register does. */
+  onSelectPlayer: (playerId: string | undefined) => void;
   /** Resolves the drill instantly; the popup stays open for chain taps. */
   onTrainDrill: (playerId: string, pathId: string) => void;
   /** Buys the next drill tier for one path. Money, not TP. */
@@ -217,8 +218,19 @@ export function SquadTrainingScreen({
   const drillShopRef = useRef<View>(null);
   const attributesScrolledRef = useRef(false);
   const setSquadSort = useCallback((key: SquadSortKey) => {
-    onChangeSquadSort(nextSquadSort(squadSort, key));
-  }, [onChangeSquadSort, squadSort]);
+    // A sort is a statement about the whole register, so it drops the current
+    // selection. Keeping it left the open player file reading as a row pinned
+    // above the order it was supposed to obey.
+    onSelectPlayer(undefined);
+    // The tip promised a highest-first sort and the manager just did as it
+    // asked, so the guided tap lands there whatever order was saved before —
+    // and the cue it came from has now been used up.
+    const guidedSortTap = managerTipGuideTarget === 'overall-sort';
+    setManagerTipGuideTarget(null);
+    onChangeSquadSort(guidedSortTap && key === 'overall'
+      ? { key: 'overall', direction: 'descending' }
+      : nextSquadSort(squadSort, key));
+  }, [managerTipGuideTarget, onChangeSquadSort, onSelectPlayer, squadSort]);
   const sortedPlayers = useMemo(
     () => sortSquadPlayers(viewModel.players, squadSort),
     [squadSort, viewModel.players],
@@ -304,6 +316,14 @@ export function SquadTrainingScreen({
     if (managerTipGuideRequest === undefined) return;
     const { target } = managerTipGuideRequest;
     setManagerTipGuideTarget(target);
+
+    // The Team Register is the first section, so the top of the scroller is the
+    // target. Claim it in this frame, before any restored offset or late layout
+    // can leave the manager looking at a section they did not ask for; the
+    // animated pass below then settles it once the cue's space exists.
+    if (target === 'overall-sort') {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    }
 
     // Let the guide's reserved space lay out before measuring. The second frame
     // puts the target under the persistent HUD rather than under the tooltip.

@@ -310,6 +310,10 @@ describe('M1 app store integration', () => {
     expect(review.facilityCompletion).toBeUndefined();
 
     useM1Store.getState().continueWeekReview();
+    // Week 2's desk carries the youth intake, which holds Advance Week until it
+    // is answered. This test is about the pitch, so it answers and moves on.
+    useM1Store.getState().advanceCareer();
+    expect(answerRefusedDeskDuty()).toBe(true);
     useM1Store.getState().advanceCareer();
     const secondReview = useM1Store.getState().weekReview!;
     expect(useM1Store.getState().career?.facilities.trainingGroundBuilt).toBe(true);
@@ -659,7 +663,14 @@ describe('M1 app store integration', () => {
         // A story waits on the desk as an inbox card now, so the journey has to
         // open it the way a manager would rather than advance past it.
         else if (career.pendingEvent !== undefined) current.openDeskStory();
-        else current.advanceCareer();
+        else {
+          // Same again for an opening-week duty, answered in the same step as
+          // the press it refuses: the reminder is in-memory app state by design,
+          // so the relaunch checkpoint below would wipe it and the journey would
+          // press the same refused button until it ran out of steps.
+          current.advanceCareer();
+          answerRefusedDeskDuty();
+        }
       } else {
         throw new Error(`unexpected persisted journey screen ${current.screen}`);
       }
@@ -908,6 +919,10 @@ describe('M1 app store integration', () => {
 
     expect(useM1Store.getState().saveWarning).toBeNull();
     expect(useM1Store.getState().consecutiveSaveFailures).toBe(0);
+    // The week the save pause was lifted on still carries its own desk duty,
+    // and that refusal is a separate thing from the save block being cleared.
+    useM1Store.getState().advanceCareer();
+    answerRefusedDeskDuty();
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBeGreaterThan(advancedWeek);
     // Each queued save serialises a whole career synchronously, so this needs the
@@ -1279,7 +1294,13 @@ function driveStoreUntil(done: (state: ReturnType<typeof useM1Store.getState>) =
     }
     if (current.screen === 'management') {
       if (current.postMatchOverlay === 'summary') current.dismissPostMatchSummary();
-      else current.advanceCareer();
+      else {
+        // An opening-week duty refuses the advance; answering it is what a
+        // manager does next. Done in the same step so a journey that reloads
+        // between steps cannot lose the refusal and press the button forever.
+        current.advanceCareer();
+        answerRefusedDeskDuty();
+      }
       continue;
     }
     throw new Error(`unexpected journey screen ${current.screen}`);
@@ -1347,6 +1368,7 @@ function examplePostMatch(): PostMatchViewModel {
       awayScore: 0,
       outcomeLabel: 'WIN',
       winner: 'home',
+      cupExit: false,
       headline: 'The office will be loud tonight.',
     },
     ledger: [{ id: 'tickets', label: 'League home gate', amount: 1200, kind: 'income' }],
@@ -1389,10 +1411,32 @@ function advanceToWeek(week: number): void {
       );
     }
     state.advanceCareer();
+    answerRefusedDeskDuty();
   }
   throw new Error(
     `advanceToWeek(${week}) stalled at week ${useM1Store.getState().career?.week}`,
   );
+}
+
+/**
+ * Answers whatever the opening weeks' desk just refused an Advance Week for,
+ * and reports whether there was anything to answer.
+ *
+ * Declining the youth intake is the cheapest answer a manager has — it is free
+ * and it closes the window — so a test that is not about the youth system can
+ * clear the desk without disturbing the squad it is about to assert on. Any
+ * other duty is loud rather than silently skipped: a helper that quietly
+ * cleared an unexpected refusal would hide the next gate someone adds.
+ */
+function answerRefusedDeskDuty(): boolean {
+  const refused = useM1Store.getState().inboxDutyReminder;
+  if (refused === null) return false;
+  useM1Store.getState().dismissInboxDutyReminder();
+  if (!refused.includes('youth-intake')) {
+    throw new Error(`the desk refused with ${refused.join(', ')}, which this helper cannot clear`);
+  }
+  useM1Store.getState().declineYouth();
+  return true;
 }
 
 function startAwakenedCareer(seed: number): void {
