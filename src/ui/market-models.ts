@@ -164,6 +164,10 @@ export interface MarketNegotiationViewModel {
   readonly pitchLeverageLabel: string;
   readonly cards: readonly PitchCardViewModel[];
   readonly perks: readonly ContractPerkViewModel[];
+  /** Terms this player will actually sign; shorter than 1-2-3 for a veteran. */
+  readonly termOptions: readonly (1 | 2 | 3)[];
+  /** Present only when age has cut the term below three seasons. */
+  readonly shortTermReason?: string;
   readonly initialWeeklyWage: number;
   readonly wageStep: number;
   readonly lastOutcomeLabel?: string;

@@ -840,8 +840,11 @@ export interface ContractDraft {
  * the wage, term, promise, and pitch card the user had dialled in.
  */
 export function useContractDraft(viewModel: MarketNegotiationViewModel | undefined): ContractDraft {
+  // A veteran may not be offered the usual two seasons, so the default has to
+  // bend to the cap or the panel opens on a term the button cannot submit.
+  const maxTerm = viewModel?.termOptions.at(-1) ?? 3;
   const [weeklyWage, setWeeklyWage] = useState(viewModel?.initialWeeklyWage ?? 0);
-  const [termSeasons, setTermSeasons] = useState<1 | 2 | 3>(2);
+  const [termSeasons, setTermSeasons] = useState<1 | 2 | 3>(Math.min(2, maxTerm) as 1 | 2 | 3);
   const [perk, setPerk] = useState<ContractPerk>('GUARANTEED_STARTER');
   const [pitchCard, setPitchCard] = useState<PitchCard | undefined>();
 
@@ -854,9 +857,9 @@ export function useContractDraft(viewModel: MarketNegotiationViewModel | undefin
     setPitchCard(undefined);
     // Term and promise reset with the target too. Leaving them behind handed the
     // next player a term and a binding promise the user never chose for them.
-    setTermSeasons(2);
+    setTermSeasons(Math.min(2, maxTerm) as 1 | 2 | 3);
     setPerk('GUARANTEED_STARTER');
-  }, [id, roundLabel, initialWeeklyWage]);
+  }, [id, roundLabel, initialWeeklyWage, maxTerm]);
 
   return {
     weeklyWage, setWeeklyWage, termSeasons, setTermSeasons,
@@ -954,7 +957,7 @@ export function NegotiationPanel({
           <View className="mt-4">
             <Text className="font-pixel text-sm uppercase text-stamp">2 · Contract term</Text>
             <View className="mt-2 flex-row gap-2">
-              {([1, 2, 3] as const).map(term => (
+              {viewModel.termOptions.map(term => (
                 <Pressable
                   key={term}
                   accessibilityRole="radio"
@@ -969,6 +972,11 @@ export function NegotiationPanel({
                 </Pressable>
               ))}
             </View>
+            {viewModel.shortTermReason === undefined ? null : (
+              <Text className="mt-2 text-sm leading-5 text-ink/60">
+                {viewModel.shortTermReason}
+              </Text>
+            )}
           </View>
 
           <View className="mt-4">

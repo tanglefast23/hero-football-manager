@@ -2,6 +2,7 @@ import { createLaunchCareerSetup } from '../../application/launch';
 import {
   activeCareerMatchday, advanceWeek, completeMatchday, createCareer, startNextSeason,
 } from '../career';
+import { willRetireAtSeasonTransition } from '../m2-career';
 import { renewCareerPlayer } from '../squad';
 import { trainPlayerInstantly } from '../training';
 import { resolveTrainingDrillForPath, TRAINING_PATHS } from '../training-paths';
@@ -59,7 +60,12 @@ describe('active-manager economy rail', () => {
         const md = activeCareerMatchday(state)!;
         state = completeMatchday(state, md.fixtures.map(f => winnerScore(f, state.userClubId)));
       } else if (state.phase === 'season-end') {
-        for (const p of state.players.filter(p => p.clubId === state.userClubId && p.contractSeasonsRemaining === 0)) {
+        // Mirrors `startNextSeason`'s own gate: a player who has announced his
+        // retirement is exempt from the expiry check and is never offered a
+        // renewal by the season review.
+        for (const p of state.players.filter(p => p.clubId === state.userClubId
+          && p.contractSeasonsRemaining === 0
+          && !willRetireAtSeasonTransition(p, state.season))) {
           state = renewCareerPlayer(state, p.id, 4, 1);
         }
         state = startNextSeason(state);

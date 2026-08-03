@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { seasonEndViewModel } from '../../../application/view-models';
 import { loadLaunchContent } from '../../../content/load';
 import { leagueStandings, startNextSeason } from '../../../game/career';
-import { currentUserDivision } from '../../../game/m2-career';
+import { currentUserDivision, willRetireAtSeasonTransition } from '../../../game/m2-career';
 import {
   divisionAfterFinish,
   divisionTierLabel,
@@ -138,8 +138,12 @@ export function PromotionTransitionReel({ caseId }: { readonly caseId: string })
   const runTransition = useCallback(() => {
     try {
       let renewed = state;
+      // A player leaving at this transition is exempt from the expiry gate and
+      // may not re-sign, so renewing him would refuse the whole transition.
       for (const player of state.players.filter(candidate => (
-        candidate.clubId === state.userClubId && candidate.contractSeasonsRemaining === 0
+        candidate.clubId === state.userClubId
+        && candidate.contractSeasonsRemaining === 0
+        && !willRetireAtSeasonTransition(candidate, state.season)
       ))) {
         renewed = renewCareerPlayer(renewed, player.id, 4, 1);
       }

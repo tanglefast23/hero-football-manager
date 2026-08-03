@@ -943,6 +943,9 @@ function PlayerFileSection({
         <View className="flex-1">
           <PixelText className="text-sm uppercase tracking-wide text-ink/50">Contract</PixelText>
           <Text className="mt-1 text-base font-bold text-ink">{selectedPlayer.contractLabel}</Text>
+          {selectedPlayer.retirementLabel === undefined ? null : (
+            <Text className="mt-1 text-sm text-ink/60">{selectedPlayer.retirementLabel}</Text>
+          )}
         </View>
         {selectedPlayer.powerName ? <StatusChip label={selectedPlayer.powerName} tone="hero" /> : null}
       </View>

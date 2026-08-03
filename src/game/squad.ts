@@ -4,6 +4,7 @@ import { compareIds } from './ordering';
 import { renewContract, selectLicensedHeroes } from './progression';
 import { buildFacility as placeFacility, createFacilityGrid } from './facilities';
 import { applyLowMoraleToStat } from './pyramid';
+import { assertContractTermFitsCareer } from './retirement';
 import {
   assertCareerLineupHonorsContractPromises,
   restoreCareerContractPromiseLineup,
@@ -344,6 +345,10 @@ export function renewCareerPlayer(
     candidate => candidate.id === playerId && candidate.clubId === state.userClubId,
   );
   if (player === undefined) throw new Error(`unknown user-club player ${playerId}`);
+  // `renewContract` is pure and holds neither the career seed nor the squad, so
+  // the career-length check cannot live inside it. This is the live path — the
+  // store renews through here, not through the negotiated market flow.
+  assertContractTermFitsCareer(player, termSeasons, state.careerSeed, 'renewal');
 
   const renewed = renewContract(player, heroMultiplier, termSeasons);
   const wageIncrease = renewed.weeklyWage - player.weeklyWage;

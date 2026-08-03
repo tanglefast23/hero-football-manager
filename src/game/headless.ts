@@ -5,6 +5,7 @@ import {
   createCareer,
   startNextSeason,
 } from './career';
+import { willRetireAtSeasonTransition } from './m2-career';
 import { renewCareerPlayer } from './squad';
 import { mulberry32 } from '../sim/rng';
 import type { CareerSetup, GameState } from './types';
@@ -57,8 +58,14 @@ export function runHeadlessFullCareer(
         matchday.fixtures.map(deterministicFixtureScore),
       );
     } else if (state.phase === 'season-end') {
+      // The same filter `startNextSeason` gates on. A player who has announced
+      // their retirement is exempt from the expiry gate because he is leaving at
+      // this transition, and the season review never offers him a renewal — so
+      // renewing him here was work the shipped game never does.
       for (const player of state.players.filter(candidate => (
-        candidate.clubId === state.userClubId && candidate.contractSeasonsRemaining === 0
+        candidate.clubId === state.userClubId
+        && candidate.contractSeasonsRemaining === 0
+        && !willRetireAtSeasonTransition(candidate, state.season)
       ))) {
         state = renewCareerPlayer(state, player.id, 4, 1);
       }

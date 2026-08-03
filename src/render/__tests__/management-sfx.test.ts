@@ -115,6 +115,21 @@ describe('management feedback sounds', () => {
     expect(mockImpactAsync).toHaveBeenCalledWith('light');
   });
 
+  it('answers a risky career event with the fanfare, and never with the old cheer', () => {
+    const sounds = readFileSync(join(process.cwd(), 'src/render/management-sfx.ts'), 'utf8');
+
+    expect(sounds).toContain(
+      "'event-success': require('../../assets/audio/sfx/event-success-fanfare.m4a')",
+    );
+    expect(sounds).toContain(
+      "'super-celebration': require('../../assets/audio/sfx/level-up.m4a')",
+    );
+    // The crowd wash is gone from the catalog. Asserted on the require rather
+    // than the file, because the comment above `event-success` still names the
+    // sound it replaced — which is the point of the comment.
+    expect(sounds).not.toContain("require('../../assets/audio/sfx/crowd-cheer.wav')");
+  });
+
   it('gives rapid neutral button presses independent voices too', async () => {
     playUiClickSfx();
     playUiClickSfx();

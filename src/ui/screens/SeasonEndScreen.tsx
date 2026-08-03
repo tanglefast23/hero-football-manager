@@ -259,6 +259,11 @@ export function SeasonEndScreen({
                       );
                     })}
                   </View>
+                  {contract.shortTermReason === undefined ? null : (
+                    <Text className="mt-2 text-sm leading-5 text-ink/60">
+                      {contract.shortTermReason}
+                    </Text>
+                  )}
                   <View className="mt-3">
                     <ActionButton
                       label="Renew deal"

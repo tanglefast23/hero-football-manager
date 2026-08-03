@@ -67,6 +67,7 @@ import {
   startNextSeason,
   type GameState,
 } from '../../game';
+import { willRetireAtSeasonTransition } from '../../game/m2-career';
 import { resolveMatchday } from '../../game/matchday';
 import { eligibleAskers, starQualifiers, weightForPlayer } from '../../game/player-requests';
 import { buildCareerMatchTeams } from '../../game/squad';
@@ -165,6 +166,7 @@ function runCareer(seed: number): WeekRow[] {
       if (state.season >= SEASONS) break;
       for (const player of userSquad(state).filter(candidate => (
         candidate.contractSeasonsRemaining === 0
+        && !willRetireAtSeasonTransition(candidate, state.season)
       ))) {
         state = renewCareerPlayer(state, player.id, 4, 1);
       }

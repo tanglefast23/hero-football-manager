@@ -44,6 +44,7 @@ import {
   type GameState,
   type LeagueFixture,
 } from '../../game';
+import { willRetireAtSeasonTransition } from '../../game/m2-career';
 import { renewCareerPlayer } from '../../game/squad';
 import { mulberry32 } from '../../sim/rng';
 
@@ -193,6 +194,7 @@ function runSeasons(seed: number): SeasonRow[] {
       if (rows.length === SEASONS) break;
       for (const player of userSquad(state).filter(candidate => (
         candidate.contractSeasonsRemaining === 0
+        && !willRetireAtSeasonTransition(candidate, state.season)
       ))) {
         state = renewCareerPlayer(state, player.id, 4, 1);
       }

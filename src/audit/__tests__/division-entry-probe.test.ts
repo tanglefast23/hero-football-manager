@@ -52,6 +52,7 @@ import {
   purchaseCareerTrainingUpgrade,
   upgradeCareerFacility,
 } from '../../game/management';
+import { willRetireAtSeasonTransition } from '../../game/m2-career';
 import { renewCareerPlayer } from '../../game/squad';
 import { runMatch } from '../../sim/match';
 import type { Attrs } from '../../sim/types';
@@ -193,7 +194,9 @@ function playCareer(seed: number): EntryRow[] {
 
     if (season === SEASON_BUDGET) break;
     for (const player of state.players.filter(candidate => (
-      candidate.clubId === state.userClubId && candidate.contractSeasonsRemaining === 0
+      candidate.clubId === state.userClubId
+      && candidate.contractSeasonsRemaining === 0
+      && !willRetireAtSeasonTransition(candidate, state.season)
     ))) {
       state = renewCareerPlayer(state, player.id, 4, 1);
     }

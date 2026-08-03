@@ -35,9 +35,11 @@ type SfxKey =
   | 'duel-scuff'
   | 'goal-fanfare'
   | 'goal-celebration'
-  | 'crowd-cheer'
+  | 'goal-net-hit'
+  | 'goal-crowd'
   | 'card-whistle'
   | 'crowd-jeer'
+  | 'rally-drums'
   | 'zone-enter'
   | 'positive'
   | 'extinguisher-spray'
@@ -76,9 +78,13 @@ const SFX_SOURCES: Record<SfxKey, AudioSource> = {
   'duel-scuff': require('../../assets/audio/sfx/duel-scuff.wav'),
   'goal-fanfare': require('../../assets/audio/sfx/goal-fanfare.m4a'),
   'goal-celebration': require('../../assets/audio/sfx/goal-celebration.m4a'),
-  'crowd-cheer': require('../../assets/audio/sfx/crowd-cheer.wav'),
+  // The ball going in, cut to the 0.35s of actual hit plus its tail — the
+  // supplied recording is two seconds, and all but the front of it is silence.
+  'goal-net-hit': require('../../assets/audio/sfx/goal-net-hit.m4a'),
+  'goal-crowd': require('../../assets/audio/sfx/goal-crowd.m4a'),
   'card-whistle': require('../../assets/audio/sfx/card-whistle.wav'),
   'crowd-jeer': require('../../assets/audio/sfx/crowd-jeer.wav'),
+  'rally-drums': require('../../assets/audio/sfx/rally-drums.m4a'),
   'zone-enter': require('../../assets/audio/sfx/zone-enter.m4a'),
   positive: require('../../assets/audio/sfx/positive.m4a'),
   'extinguisher-spray': require('../../assets/audio/sfx/extinguisher-spray.wav'),
@@ -144,7 +150,11 @@ const POWER_AUDIO: Record<PowerId, {
   SUPER_STRENGTH: { activation: ['super-strength-boom'], impact: [] },
   WEB_TRAP: { activation: ['web-cast'], impact: ['web-spring'] },
   ELASTIC_KEEPER: { activation: ['keeper-stretch'], impact: [] },
-  RALLY_CRY: { activation: ['crowd-cheer'], impact: [] },
+  // The one activation that is not a short sting. Rally Cry lifts a stand
+  // rather than hitting a ball, and 4.3s of drums is the sound of it building —
+  // the supplied cue, kept at its own length rather than clipped to match the
+  // sub-second whooshes and booms around it.
+  RALLY_CRY: { activation: ['rally-drums'], impact: [] },
   ICE_RINK: { activation: ['ice-freeze'], impact: ['ice-slide'] },
   SHADOW_MARK: { activation: ['shadow-burrow'], impact: ['shadow-emerge'] },
   GRAVITY_WELL: { activation: ['super-strength-boom'], impact: [] },
@@ -161,8 +171,8 @@ const POWER_AUDIO: Record<PowerId, {
 // reach it.
 //
 // CARD is paired with crowd-jeer (a booing reaction) on the same
-// action+crowd-reaction pattern GOAL uses with crowd-cheer — this specific
-// pairing isn't spelled out verbatim in the plan, so flag it for review.
+// action+crowd-reaction pattern GOAL uses: the ball hits the net, the fanfare
+// and its celebration land on top, and the stand answers.
 export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
   switch (e.kind) {
     case 'KICKOFF':
@@ -186,7 +196,9 @@ export function filesForEvent(e: MatchEvent): readonly SfxKey[] {
       if (e.style !== 'standing' || e.won) return ['tackle-thud', 'grunt'];
       return e.dropped ? ['body-fall'] : ['duel-scuff'];
     case 'GOAL':
-      return ['goal-fanfare', 'goal-celebration', 'crowd-cheer'];
+      // Everything in a list fires at once, so this is a chord rather than a
+      // sequence: contact, fanfare, celebration, crowd.
+      return ['goal-net-hit', 'goal-fanfare', 'goal-celebration', 'goal-crowd'];
     case 'CARD':
       return ['card-whistle', 'crowd-jeer'];
     case 'POWER_READY':
