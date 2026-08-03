@@ -31,7 +31,7 @@ export interface CupTitleCardProps {
 }
 
 /**
- * The opening card for a Global Cup tie: big competition name, the round
+ * The opening card for a Hero Cup tie: big competition name, the round
  * underneath, and a ball lobbed across the screen behind them.
  *
  * The match is already paused when this mounts (MatchScreen holds the

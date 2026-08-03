@@ -132,7 +132,7 @@ describe("manager's notes", () => {
       const week = CUP_SETTLEMENT_WEEKS[1];
       const note = managerNotes({ ...state, week }).find(candidate => candidate.id === 'note:cup-round:2');
 
-      expect(note?.title).toBe("Manager's Note: Global Cup Round of 32 this week");
+      expect(note?.title).toBe("Manager's Note: Hero Cup Round of 32 this week");
       expect(note?.detail).toContain('Round of 16');
       expect(note?.detail).toContain(`Week ${CUP_SETTLEMENT_WEEKS[2]}`);
     });
@@ -157,7 +157,7 @@ describe("manager's notes", () => {
       const note = managerNotes({ ...state, week: CUP_SETTLEMENT_WEEKS[5] })
         .find(candidate => candidate.id === 'note:cup-round:6');
 
-      expect(note?.detail).toContain('Global Cup is yours');
+      expect(note?.detail).toContain('Hero Cup is yours');
     });
 
     it('goes quiet once the cup has a champion', () => {

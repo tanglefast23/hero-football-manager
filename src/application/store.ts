@@ -169,7 +169,7 @@ export interface WatchedMatch {
   away: TeamDef;
   userIsFixtureHome: boolean;
   controlledTeam: 0 | 1;
-  /** Present only for a Global Cup tie; it opens the match on a title card. */
+  /** Present only for a Hero Cup tie; it opens the match on a title card. */
   cupRoundLabel?: NationalCupRoundLabel;
 }
 

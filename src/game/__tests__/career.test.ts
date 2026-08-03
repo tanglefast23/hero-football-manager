@@ -81,7 +81,7 @@ function allDraws(state: GameState): FixtureResult[] {
   }));
 }
 
-/** Draws every fixture, league or National Cup, to the season-end boundary. */
+/** Draws every fixture, league or Hero Cup, to the season-end boundary. */
 function finishSeason(initialState: GameState): GameState {
   let state = initialState;
 
@@ -481,7 +481,7 @@ describe('finances and two-season boundary', () => {
   });
 });
 
-describe('National Cup settlement calendar', () => {
+describe('Hero Cup settlement calendar', () => {
   const career = createCareer(createLaunchCareerSetup(77));
 
   /** The weeks the production schedule fills with league fixtures in a season. */

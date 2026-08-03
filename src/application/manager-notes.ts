@@ -93,7 +93,7 @@ function cupRoundNotes(state: GameState): ManagerNoteViewModel[] {
   if (round.byeClubIds.includes(state.userClubId)) {
     return [{
       id: `note:cup-bye:${round.number}`,
-      title: `Manager's Note: Global Cup bye through the ${round.label}`,
+      title: `Manager's Note: Hero Cup bye through the ${round.label}`,
       detail: nextRoundLabel === undefined || nextRoundWeek === undefined
         ? 'You sit this round out and go straight through.'
         : `You sit this round out. Your run starts in Week ${nextRoundWeek} in the ${nextRoundLabel}.`,
@@ -110,9 +110,9 @@ function cupRoundNotes(state: GameState): ManagerNoteViewModel[] {
   const venue = fixture.homeClubId === state.userClubId ? 'at home' : 'away';
   return [{
     id: `note:cup-round:${round.number}`,
-    title: `Manager's Note: Global Cup ${round.label} this week`,
+    title: `Manager's Note: Hero Cup ${round.label} this week`,
     detail: nextRoundLabel === undefined || nextRoundWeek === undefined
-      ? `${opponent}, ${venue}. Win it and the Global Cup is yours — the biggest prize money and the biggest crowd of the season.`
+      ? `${opponent}, ${venue}. Win it and the Hero Cup is yours — the biggest prize money and the biggest crowd of the season.`
       : `${opponent}, ${venue}. Win and you reach the ${nextRoundLabel} in Week ${nextRoundWeek}, where the prize money and the fans both grow. Lose and your run is over — there is no second chance.`,
   }];
 }

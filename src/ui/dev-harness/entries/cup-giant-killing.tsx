@@ -18,7 +18,7 @@ import type { DevHarnessEntry } from '../registry';
  * The Cup upset, which needs an upset.
  *
  * A club only sees this by drawing a side from a higher division in the
- * National Cup and then beating it, so the two-division-and-worse copy — the
+ * Hero Cup and then beating it, so the two-division-and-worse copy — the
  * one that claims a result like this happens once or twice in a hundred tries —
  * is among the least-seen strings in the game. The queue behind it has been
  * seen by nobody at all: celebrations are appended to

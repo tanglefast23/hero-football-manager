@@ -30,7 +30,7 @@ import {
   leaguePrizeMoney,
 } from './promotion-progression';
 import { resolveWeeklyPlayerWellbeing, type WeeklyMatchOutcome } from './player-wellbeing';
-import { FAME_CEILING } from './pyramid';
+import { CUP_DISPLAY_NAME, FAME_CEILING } from './pyramid';
 import type { NationalCup, NationalCupFixture, NationalCupResult } from './pyramid';
 import {
   cupGiantKillingCelebration,
@@ -65,7 +65,7 @@ import {
 const CLUB_COUNT = 10;
 const UINT32_MAX = 4294967295;
 /**
- * The week each National Cup round settles, chosen to land on weeks the league
+ * The week each Hero Cup round settles, chosen to land on weeks the league
  * calendar leaves empty so a cup tie is its own event instead of a second match
  * bolted onto a league week. `leagueWeekForRound` fills weeks 3–28 in season 1
  * and 5–28 from season 2 on, which leaves these empty weeks:
@@ -605,8 +605,8 @@ function settlementLines(
   if (currentCupRound !== undefined && homeCupFixture !== undefined) {
     lines.push({
       kind: 'tickets',
-      label: `Global Cup ${currentCupRound.label} home gate`,
-      amount: homeGateIncome(state, userClub, 'Global Cup ticket revenue'),
+      label: `${CUP_DISPLAY_NAME} ${currentCupRound.label} home gate`,
+      amount: homeGateIncome(state, userClub, 'Hero Cup ticket revenue'),
     });
   }
 
@@ -828,13 +828,13 @@ function advanceM2WeeklySidecars(
 function completeNationalCupMatchday(state: GameState, results: FixtureResult[]): GameState {
   const cupMatchday = activeCareerMatchday(state);
   if (cupMatchday?.kind !== 'national-cup' || cupMatchday.cupRoundLabel === undefined) {
-    throw new Error('the matchday has no scheduled league or National Cup fixture');
+    throw new Error('the matchday has no scheduled league or Hero Cup fixture');
   }
   validateResults(state, cupMatchday.fixtures, results);
   const result = results[0];
   const cupFixture = nationalCupFixtureById(state, cupMatchday.fixture.id);
   if (cupFixture === undefined || state.m2 === undefined) {
-    throw new Error(`unknown National Cup fixture ${cupMatchday.fixture.id}`);
+    throw new Error(`unknown Hero Cup fixture ${cupMatchday.fixture.id}`);
   }
   const winnerClubId = result.homeGoals > result.awayGoals
     ? cupFixture.homeClubId
@@ -1062,15 +1062,15 @@ function awardNationalCupPrize(
   const prize = prizeByRound[roundLabel];
   const fansWon = fansByRound[roundLabel];
   const latestLedger = state.ledgers[state.ledgers.length - 1];
-  if (latestLedger === undefined) throw new Error('National Cup prize requires a weekly ledger');
-  const balanceAfter = checkedAdd(latestLedger.balanceAfter, prize, 'National Cup prize balance');
+  if (latestLedger === undefined) throw new Error('Hero Cup prize requires a weekly ledger');
+  const balanceAfter = checkedAdd(latestLedger.balanceAfter, prize, 'Hero Cup prize balance');
   return clearMetBoardUltimatum({
     ...state,
     clubs: state.clubs.map(club => club.id === state.userClubId
       ? {
           ...club,
-          cash: checkedAdd(club.cash, prize, 'Global Cup prize cash'),
-          fans: checkedAdd(club.fans, fansWon, 'Global Cup fans won'),
+          cash: checkedAdd(club.cash, prize, 'Hero Cup prize cash'),
+          fans: checkedAdd(club.fans, fansWon, 'Hero Cup fans won'),
         }
       : club),
     ledgers: state.ledgers.map((ledger, index) => index === state.ledgers.length - 1
@@ -1079,8 +1079,8 @@ function awardNationalCupPrize(
           lines: [...ledger.lines, {
             kind: 'prize' as const,
             label: roundLabel === 'Final'
-              ? 'Global Cup champions'
-              : `Global Cup ${roundLabel} win`,
+              ? `${CUP_DISPLAY_NAME} champions`
+              : `${CUP_DISPLAY_NAME} ${roundLabel} win`,
             amount: prize,
           }],
           balanceAfter,

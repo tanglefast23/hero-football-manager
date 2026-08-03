@@ -213,7 +213,7 @@ describe('deterministic scouting', () => {
       focus: { kind: 'ELITE_PROSPECT' },
       scoutOfficeLevel: 2,
       division: 3,
-    })).toThrow('D2 · National Championship');
+    })).toThrow('D2 · National League');
 
     const mission = startScoutMission({
       careerSeed: 9,

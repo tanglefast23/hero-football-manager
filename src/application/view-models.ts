@@ -1270,7 +1270,7 @@ export function homeViewModel(state: GameState): HomeViewModel {
     .sort((left, right) => left.week - right.week || left.round - right.round)[0];
   const nextFixture = currentMatchday?.fixture ?? nextLeagueFixture;
   const nextFixtureCompetition = currentMatchday?.kind === 'national-cup'
-    ? `Global Cup · ${currentMatchday.cupRoundLabel ?? 'Knockout tie'}`
+    ? `Hero Cup · ${currentMatchday.cupRoundLabel ?? 'Knockout tie'}`
     : undefined;
   const isCurrentGameWeek = currentMatchday !== undefined;
   const boardUltimatum = state.financialSafety?.boardUltimatum;
@@ -1560,7 +1560,7 @@ export function matchDayViewModel(
       state,
       fixture,
       matchday.kind === 'national-cup'
-        ? `Global Cup · ${matchday.cupRoundLabel ?? 'Knockout tie'}`
+        ? `Hero Cup · ${matchday.cupRoundLabel ?? 'Knockout tie'}`
         : undefined,
     ),
     formationLabel,
@@ -1852,7 +1852,7 @@ export function postMatchViewModel(
       fixtureId,
       competition: cupRound === undefined
         ? careerDivisionLabel(before)
-        : `Global Cup · ${cupRound.label}`,
+        : `Hero Cup · ${cupRound.label}`,
       homeTeam: clubName(before, fixture.homeClubId),
       awayTeam: clubName(before, fixture.awayClubId),
       homeScore: score.homeGoals,

@@ -206,9 +206,15 @@ export const CLUB_LEGEND_MIN_SEASONS = 5;
  */
 export const CLUB_LEGEND_MIN_FAME = 200;
 export const LOW_MORALE_THRESHOLD = 30;
+/**
+ * The ladder is a geography ladder — District, County, Regional, National,
+ * Global — so the name alone tells the manager how high they have climbed.
+ * Every rung is a League for the same reason: the only word that changes is
+ * the one carrying the meaning.
+ */
 export const DIVISION_NAMES: Readonly<Record<DivisionLevel, string>> = {
   1: 'Global League',
-  2: 'National Championship',
+  2: 'National League',
   3: 'Regional League',
   4: 'County League',
   5: 'District League',
@@ -217,6 +223,19 @@ export const DIVISION_NAMES: Readonly<Record<DivisionLevel, string>> = {
 export function divisionTierLabel(level: DivisionLevel): string {
   return `D${level} · ${DIVISION_NAMES[level]}`;
 }
+
+/**
+ * The knockout's player-facing name, and the single source for it.
+ *
+ * It deliberately sits outside the geography ladder above. The cup is the one
+ * competition every club in the pyramid enters at once, so borrowing any rung's
+ * adjective would file it under that rung: a "Hero Cup" reads as D1's second
+ * trophy, and a "Hero Cup" reads as D2's. Both misname the thing, and both
+ * collide at the climax, where career victory is D1 *and* the cup — "Global
+ * League and Hero Cup" is one trophy said twice. "Hero" belongs to no rung
+ * and to the whole game.
+ */
+export const CUP_DISPLAY_NAME = 'Hero Cup';
 
 const UINT32_RANGE = 4294967296;
 const SQUAD_ROLES: readonly Role[] = [
@@ -449,14 +468,14 @@ export function resolvePromotionAndRelegation(
   };
 }
 
-/** Creates the 50-club National Cup. Fourteen clubs receive deterministic play-in byes. */
+/** Creates the 50-club Hero Cup. Fourteen clubs receive deterministic play-in byes. */
 export function createNationalCup(
   clubIds: readonly string[],
   season: number,
   careerSeed: number,
   seedDivisionByClubId?: Readonly<Record<string, DivisionLevel>>,
 ): NationalCup {
-  validateClubIds(clubIds, NATIONAL_CUP_CLUB_COUNT, 'National Cup');
+  validateClubIds(clubIds, NATIONAL_CUP_CLUB_COUNT, 'Hero Cup');
   validateSeason(season);
   validateSeed(careerSeed);
   const sortedClubIds = [...clubIds].sort(compareIds);
@@ -479,14 +498,14 @@ export function advanceNationalCup(
 ): NationalCup {
   validateSeason(cup.season);
   validateSeed(cup.careerSeed);
-  if (cup.championClubId !== undefined) throw new Error('the National Cup is already complete');
-  if (cup.rounds.length < 1 || cup.rounds.length > 6) throw new Error('the National Cup has invalid rounds');
+  if (cup.championClubId !== undefined) throw new Error('the Hero Cup is already complete');
+  if (cup.rounds.length < 1 || cup.rounds.length > 6) throw new Error('the Hero Cup has invalid rounds');
   const current = cup.rounds[cup.rounds.length - 1];
   if (current.fixtures.some(fixture => fixture.status !== 'scheduled')) {
-    throw new Error('the current National Cup round has already been resolved');
+    throw new Error('the current Hero Cup round has already been resolved');
   }
   if (results.length !== current.fixtures.length) {
-    throw new Error(`National Cup round ${current.number} requires exactly ${current.fixtures.length} results`);
+    throw new Error(`Hero Cup round ${current.number} requires exactly ${current.fixtures.length} results`);
   }
   const resultByFixtureId = new Map<string, NationalCupResult>();
   for (const result of results) {
@@ -930,9 +949,9 @@ function createCupRound(
 ): NationalCupRound {
   const entrantsByRound = [50, 32, 16, 8, 4, 2] as const;
   const expectedEntrants = entrantsByRound[round - 1];
-  if (expectedEntrants === undefined) throw new Error(`unsupported National Cup round ${round}`);
+  if (expectedEntrants === undefined) throw new Error(`unsupported Hero Cup round ${round}`);
   if (entrantClubIds.length !== expectedEntrants) {
-    throw new Error(`National Cup round ${round} requires ${expectedEntrants} entrants`);
+    throw new Error(`Hero Cup round ${round} requires ${expectedEntrants} entrants`);
   }
   const random = mulberry32(mixSeed(careerSeed, season, round, 0xc09c0a));
   const seededEntrants = seedDivisionByClubId === undefined
@@ -981,7 +1000,7 @@ function validateCupSeedDivisions(
   for (const clubId of clubIds) {
     const division = seedDivisionByClubId[clubId];
     if (division === undefined || !divisionLevels().includes(division)) {
-      throw new Error(`National Cup seed division is missing or invalid for ${clubId}`);
+      throw new Error(`Hero Cup seed division is missing or invalid for ${clubId}`);
     }
     result[clubId] = division;
   }
@@ -1012,23 +1031,23 @@ function cupRoundLabel(round: number): NationalCupRound['label'] {
     'Play-in', 'Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final',
   ];
   const label = labels[round - 1];
-  if (label === undefined) throw new Error(`unsupported National Cup round ${round}`);
+  if (label === undefined) throw new Error(`unsupported Hero Cup round ${round}`);
   return label;
 }
 
 function validateCupResult(fixture: NationalCupFixture, result: NationalCupResult): void {
   if (!Number.isSafeInteger(result.homeGoals) || result.homeGoals < 0
     || !Number.isSafeInteger(result.awayGoals) || result.awayGoals < 0) {
-    throw new Error(`National Cup result ${result.fixtureId} has invalid goals`);
+    throw new Error(`Hero Cup result ${result.fixtureId} has invalid goals`);
   }
   if (result.winnerClubId !== fixture.homeClubId && result.winnerClubId !== fixture.awayClubId) {
-    throw new Error(`National Cup winner for ${fixture.id} must be one of its clubs`);
+    throw new Error(`Hero Cup winner for ${fixture.id} must be one of its clubs`);
   }
   if (result.homeGoals > result.awayGoals && result.winnerClubId !== fixture.homeClubId) {
-    throw new Error(`National Cup winner for ${fixture.id} contradicts its score`);
+    throw new Error(`Hero Cup winner for ${fixture.id} contradicts its score`);
   }
   if (result.awayGoals > result.homeGoals && result.winnerClubId !== fixture.awayClubId) {
-    throw new Error(`National Cup winner for ${fixture.id} contradicts its score`);
+    throw new Error(`Hero Cup winner for ${fixture.id} contradicts its score`);
   }
 }
 

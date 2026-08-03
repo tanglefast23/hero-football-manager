@@ -63,7 +63,7 @@ describe('career facility transactions', () => {
     const levelTwo = completeProject(upgradeCareerFacility(built, 'facility-1').state);
     expect(levelTwo.facilities.grid?.buildings.find(building => building.id === 'facility-1')?.level).toBe(2);
     expect(() => upgradeCareerFacility(levelTwo, 'facility-1'))
-      .toThrow('Level 3 facilities unlock in D2 · National Championship');
+      .toThrow('Level 3 facilities unlock in D2 · National League');
 
     const d2 = { ...levelTwo, m2: { ...levelTwo.m2!, highestDivisionReached: 2 as const } };
     const levelThree = completeProject(upgradeCareerFacility(d2, 'facility-1').state);

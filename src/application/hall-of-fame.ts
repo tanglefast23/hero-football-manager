@@ -151,7 +151,7 @@ export function hallOfFameViewModel(state: GameState): HallOfFameViewModel {
   if (record === undefined) {
     const lines = [
       'Finish the climb to see your record.',
-      'Both trophies: the Global League and the National Cup.',
+      'Both trophies: the Global League and the Hero Cup.',
     ];
     return {
       status: 'locked',
@@ -218,7 +218,7 @@ function recordStats(record: HallOfFameRecord): HallOfFameStatViewModel[] {
     },
     {
       id: 'cups',
-      label: 'National Cups',
+      label: 'Hero Cups',
       value: `${record.cupWinSeasons.length}`,
       detail: record.cupWinSeasons.length === 0
         ? 'None recorded'
@@ -265,7 +265,7 @@ function recordHonours(record: HallOfFameRecord): HallOfFameHonourViewModel[] {
       id: `cup-${season}`,
       season,
       label: `Season ${season}`,
-      value: 'National Cup winners',
+      value: 'Hero Cup winners',
     })),
   ];
   return honours

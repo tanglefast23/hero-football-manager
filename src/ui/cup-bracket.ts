@@ -1,7 +1,7 @@
 import type { M2CupFixtureViewModel, M2CupRoundViewModel } from './m2-league-models';
 
 /**
- * Pure geometry for the Global Cup bracket.
+ * Pure geometry for the Hero Cup bracket.
  *
  * The tree is laid out here rather than in the component so the spacing rules —
  * every round half as tall, ties centred on the pair they came from — can be

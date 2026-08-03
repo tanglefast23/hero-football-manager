@@ -131,11 +131,11 @@ const QA_COPY: Readonly<Record<EndgameCelebrationKind, {
     lines: [
       'There is no division above this one. The ladder is finished.',
       'Rook Halloway climbed every rung of it with you.',
-      'One trophy is still out there. Win the National Cup and the climb is complete.',
+      'One trophy is still out there. Win the Hero Cup and the climb is complete.',
     ],
   },
   'cup-winners': {
-    headline: 'NATIONAL CUP WINNERS',
+    headline: 'HERO CUP WINNERS',
     subheading: 'Bramble Rovers · Knockout champions',
     lines: [
       'Every round a single tie, every tie a single chance. You took all of them.',
@@ -145,7 +145,7 @@ const QA_COPY: Readonly<Record<EndgameCelebrationKind, {
   },
   'true-ending': {
     headline: 'THE CLIMB IS COMPLETE',
-    subheading: 'Bramble Rovers · Global League and National Cup',
+    subheading: 'Bramble Rovers · Global League and Hero Cup',
     lines: [
       'Boss. Before anyone else gets in here — thank you.',
       'You made me the player I am. Every bit of it came out of your coaching.',

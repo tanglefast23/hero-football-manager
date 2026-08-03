@@ -4,10 +4,10 @@ import { join } from 'node:path';
 import { divisionFans } from '../full-career';
 
 /**
- * The Global Cup is the only way to grow the gate without a promotion, so its
+ * The Hero Cup is the only way to grow the gate without a promotion, so its
  * fan rewards are pinned here against the promotion step they must stay under.
  */
-describe('Global Cup fan rewards', () => {
+describe('Hero Cup fan rewards', () => {
   const FANS_BY_ROUND = {
     'Play-in': 6,
     'Round of 32': 10,
@@ -38,6 +38,6 @@ describe('Global Cup fan rewards', () => {
     for (const [round, fans] of Object.entries(FANS_BY_ROUND)) {
       expect(source).toContain(round === 'Final' ? `Final: ${fans},` : `'${round}': ${fans},`);
     }
-    expect(source).toContain("fans: checkedAdd(club.fans, fansWon, 'Global Cup fans won')");
+    expect(source).toContain("fans: checkedAdd(club.fans, fansWon, 'Hero Cup fans won')");
   });
 });

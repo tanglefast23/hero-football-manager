@@ -91,7 +91,7 @@ function cupReadyCareer(userIsHome: boolean, leagueUserIsHome?: boolean): GameSt
   return afterLeague;
 }
 
-describe('player-controlled National Cup match flow', () => {
+describe('player-controlled Hero Cup match flow', () => {
   test('pauses a double-header week for the user tie, then settles after that tie', () => {
     const initial = fullCareerAtPlayIn();
     const afterLeague = completeMatchday(initial, leagueDraws(initial));
@@ -129,7 +129,7 @@ describe('player-controlled National Cup match flow', () => {
     expect(settled.ledgers).toHaveLength(1);
     expect(settled.ledgers[0].lines).toContainEqual({
       kind: 'prize',
-      label: 'Global Cup Play-in win',
+      label: 'Hero Cup Play-in win',
       amount: 2_000,
     });
     expect(settled.players.find(player => player.id === starterId)?.fame).toBe(fameBeforeCup + 7);
@@ -172,7 +172,7 @@ describe('player-controlled National Cup match flow', () => {
 
     const ledger = settled.ledgers.at(-1)!;
     expect(ledger.lines.filter(line => line.kind === 'tickets')).toContainEqual(
-      { kind: 'tickets', label: 'Global Cup Play-in home gate', amount: expectedGate },
+      { kind: 'tickets', label: 'Hero Cup Play-in home gate', amount: expectedGate },
     );
     expect(ledger.balanceAfter).toBe(
       userClub.cash + ledger.lines.reduce((total, line) => total + line.amount, 0),
@@ -191,7 +191,7 @@ describe('player-controlled National Cup match flow', () => {
     const settled = completeMatchday(afterLeague, [userWin]);
 
     expect(settled.ledgers.at(-1)?.lines.some(line => (
-      line.kind === 'tickets' && line.label.startsWith('National Cup')
+      line.kind === 'tickets' && line.label.startsWith('Hero Cup')
     ))).toBe(false);
   });
 });

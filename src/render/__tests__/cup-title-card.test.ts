@@ -24,13 +24,13 @@ const ROUND_DISPLAY: Record<CupRoundLabel, string> = {
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
-describe('the Global Cup title card', () => {
+describe('the Hero Cup title card', () => {
   it('opens a cup tie under the competition name and its round', () => {
     const card = cupTitleCard('Quarter-final', false);
 
-    expect(CUP_TITLE_CARD_TITLE).toBe('GLOBAL CUP');
+    expect(CUP_TITLE_CARD_TITLE).toBe('HERO CUP');
     expect(card).not.toBeNull();
-    expect(card!.title).toBe('GLOBAL CUP');
+    expect(card!.title).toBe('HERO CUP');
     expect(card!.roundLabel).toBe('QUARTER-FINAL');
   });
 
@@ -60,7 +60,7 @@ describe('the Global Cup title card', () => {
   });
 
   it('speaks the round in its written form, not the shouted one', () => {
-    expect(cupTitleCard('Semi-final', false)!.accessibilityLabel).toBe('Global Cup. Semi-final.');
+    expect(cupTitleCard('Semi-final', false)!.accessibilityLabel).toBe('Hero Cup. Semi-final.');
   });
 
   it('flies the ball in from off one edge and out past the other', () => {

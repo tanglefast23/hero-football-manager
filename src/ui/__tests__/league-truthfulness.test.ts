@@ -118,14 +118,14 @@ describe('management UI truthfulness view models', () => {
     expect(viewModel.isCurrentGameWeek).toBe(false);
   });
 
-  it('marks a current Global Cup tie as game week and shows that matchup', () => {
+  it('marks a current Hero Cup tie as game week and shows that matchup', () => {
     const career = createCareer(createLaunchCareerSetup(2));
     const cupWeek = CUP_SETTLEMENT_WEEKS[0];
     const viewModel = homeViewModel({ ...career, week: cupWeek, phase: 'manage' });
 
     expect(viewModel.isCurrentGameWeek).toBe(true);
     expect(viewModel.nextMatchTimingLabel).toBe('This week');
-    expect(viewModel.nextFixture.competition).toBe('Global Cup · Play-in');
+    expect(viewModel.nextFixture.competition).toBe('Hero Cup · Play-in');
     expect(viewModel.nextFixture.id).toContain('-cup-');
   });
 });

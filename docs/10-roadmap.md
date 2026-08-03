@@ -41,10 +41,10 @@ The second existential question — "does *managing heroes* stay fun across seas
 ## M2 — The management game (4 weeks)
 
 - Facilities grid + adjacency, scouting + transfers + valuations, contracts + mood-meter negotiation + Pitch Cards, coach system, morale/condition, aging + retirement + legacy.
-- All five divisions + National Cup; opposing squads generated with division-appropriate strength.
+- All five divisions + Hero Cup; opposing squads generated with division-appropriate strength.
 
 > **✅ CODE COMPLETE — 2026-07-19.** The endless five-division career, playable
-> National Cup ties, grounds/staff/market loops, negotiated renewals, youth and
+> Hero Cup ties, grounds/staff/market loops, negotiated renewals, youth and
 > legend decisions, M2 save reconciliation, transaction history, and multi-season
 > deterministic balance rails are integrated. This records implementation status,
 > not a substitute for the next owner playtest verdict.

@@ -97,7 +97,7 @@ describe('m2LeagueViewModel', () => {
       userDivisionBadge: 'D5 · #3',
       selectedDivision: 2,
       selectedDivisionSummary: {
-        label: 'D2 · National Championship',
+        label: 'D2 · National League',
         selected: true,
         userDivision: false,
       },
@@ -295,7 +295,7 @@ describe('m2LeagueViewModel', () => {
     expect(empty.cup).toMatchObject({
       available: false,
       statusLabel: 'Draw pending',
-      currentRoundLabel: 'National Cup not drawn',
+      currentRoundLabel: 'Hero Cup not drawn',
     });
 
     const malformed = standings(career);

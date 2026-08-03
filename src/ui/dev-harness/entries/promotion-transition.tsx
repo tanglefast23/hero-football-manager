@@ -28,7 +28,7 @@ import type { DevHarnessEntry } from '../registry';
  *
  * Every case is the SAME seeded club at a different season boundary, so the
  * five chips read as one club's story rather than five unrelated fixtures:
- * seed 23 goes up twice, settles, falls out of the National Championship, and
+ * seed 23 goes up twice, settles, falls out of the National League, and
  * eventually wins the Global League. The seasons were measured, not guessed.
  */
 

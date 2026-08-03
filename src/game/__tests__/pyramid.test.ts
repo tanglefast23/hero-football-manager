@@ -67,7 +67,7 @@ describe('five-division pyramid generation', () => {
       'D5 · District League',
       'D4 · County League',
       'D3 · Regional League',
-      'D2 · National Championship',
+      'D2 · National League',
       'D1 · Global League',
     ]);
     const globalLeagueStrengths = generateLeaguePyramid(88_421).divisions[0].clubs
@@ -202,7 +202,7 @@ describe('promotion and relegation', () => {
   });
 });
 
-describe('National Cup', () => {
+describe('Hero Cup', () => {
   it('creates a deterministic 50-club play-in and advances to one champion with stable fixture IDs', () => {
     const clubIds = generateLeaguePyramid(77).divisions.flatMap(division =>
       division.clubs.map(club => club.id),

@@ -55,7 +55,7 @@ function settleScheduledWeek(state: GameState): GameState {
 }
 
 describe('M2 weekly sidecars', () => {
-  test('advances exactly one National Cup round on each cup calendar week', () => {
+  test('advances exactly one Hero Cup round on each cup calendar week', () => {
     // The cup calendar settles in weeks the league leaves empty, so the play-in
     // week is settled through ordinary week advancement rather than as the
     // second half of a double-header.

@@ -64,7 +64,7 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     const shell = readFileSync(join(process.cwd(), 'src/ui/ManagementShell.tsx'), 'utf8');
     const clubName = shell.indexOf('{clubName}');
     const resources = shell.indexOf('{resourceCluster}', clubName);
-    const period = shell.indexOf('{seasonLabel} · {weekLabel}');
+    const period = shell.indexOf('{headerLine.visible}');
 
     expect(clubName).toBeGreaterThan(0);
     expect(resources).toBeGreaterThan(clubName);

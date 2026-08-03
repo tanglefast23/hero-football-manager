@@ -553,7 +553,7 @@ export interface HallOfFameRecord {
   goalsAgainst: number;
   /** Every division title, oldest first. */
   divisionTitles: HallOfFameTitle[];
-  /** Every season the National Cup was lifted, oldest first. */
+  /** Every season the Hero Cup was lifted, oldest first. */
   cupWinSeasons: number[];
   /** One row per tier played, in the order the club reached them. */
   tiers: HallOfFameTier[];

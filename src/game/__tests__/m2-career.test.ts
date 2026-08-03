@@ -197,7 +197,7 @@ function generatedStarSupportRatio(
   );
 }
 
-describe('M2 National Cup integration', () => {
+describe('M2 Hero Cup integration', () => {
   it('keeps same-division ties familiar while enabling rare giant-killings', () => {
     const club = (id: string, strength: number) => ({
       id,
@@ -260,7 +260,7 @@ describe('M2 National Cup integration', () => {
       advanced = advanceM2NationalCup(advanced, homeWins(advanced));
     }
     expect(advanced.nationalCups[0].rounds).toHaveLength(6);
-    expect(() => advanceM2NationalCup(advanced, [])).toThrow('no active National Cup');
+    expect(() => advanceM2NationalCup(advanced, [])).toThrow('no active Hero Cup');
     expect(startM2NationalCup(advanced, 2).nationalCups).toHaveLength(2);
   });
 
@@ -316,7 +316,7 @@ describe('M2 National Cup integration', () => {
 
     expect(weekly.nationalCups[0].championClubId).toBeDefined();
     expect(JSON.stringify(weekly)).toBe(JSON.stringify(quickResolveM2NationalCup(started)));
-    expect(() => resolveNextM2NationalCupRound(weekly)).toThrow('no active National Cup');
+    expect(() => resolveNextM2NationalCupRound(weekly)).toThrow('no active Hero Cup');
   });
 });
 

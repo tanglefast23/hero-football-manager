@@ -336,7 +336,7 @@ describe('the Hall of Fame page', () => {
     if (viewModel.status !== 'locked') throw new Error('an unfinished career unlocked the page');
 
     expect(viewModel.lines[0]).toBe('Finish the climb to see your record.');
-    expect(viewModel.lines.join(' ')).toContain('National Cup');
+    expect(viewModel.lines.join(' ')).toContain('Hero Cup');
     expect(viewModel.accessibilityLabel).toContain('Finish the climb');
   });
 
@@ -402,7 +402,7 @@ describe('the Hall of Fame page', () => {
     ]);
     // Named the way the league table names it, never invented here.
     expect(viewModel.honours[0].value).toBe(`${DIVISION_NAMES[5]} champions`);
-    expect(viewModel.honours[1].value).toBe('National Cup winners');
+    expect(viewModel.honours[1].value).toBe('Hero Cup winners');
   });
 
   it('says so when a Cup-only career never topped a table', () => {

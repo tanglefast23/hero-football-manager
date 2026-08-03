@@ -53,7 +53,7 @@ export function isGlobalLeagueChampion(state: GameState): boolean {
   return leagueStandings(state)[0]?.clubId === state.userClubId;
 }
 
-/** Whether the club has ever lifted the National Cup. Cups are never dropped. */
+/** Whether the club has ever lifted the Hero Cup. Cups are never dropped. */
 export function hasWonNationalCup(state: GameState): boolean {
   return (state.m2?.nationalCups ?? []).some(cup => cup.championClubId === state.userClubId);
 }
@@ -232,13 +232,13 @@ function celebrationCopy(
       lines: [
         'There is no division above this one. The ladder is finished.',
         `${starName} climbed every rung of it with you.`,
-        'One trophy is still out there. Win the National Cup and the climb is complete.',
+        'One trophy is still out there. Win the Hero Cup and the climb is complete.',
       ],
     };
   }
   if (kind === 'cup-winners') {
     return {
-      headline: 'NATIONAL CUP WINNERS',
+      headline: 'HERO CUP WINNERS',
       subheading: `${clubName} · Knockout champions`,
       lines: [
         'Every round a single tie, every tie a single chance. You took all of them.',
@@ -249,7 +249,7 @@ function celebrationCopy(
   }
   return {
     headline: 'THE CLIMB IS COMPLETE',
-    subheading: `${clubName} · Global League and National Cup`,
+    subheading: `${clubName} · Global League and Hero Cup`,
     // One bubble per entry. He is talking to the manager, not to a camera.
     lines: [
       'Boss. Before anyone else gets in here — thank you.',

@@ -375,7 +375,7 @@ export function MatchScreen({
   onAutoSubsChange?: (autoSubs: boolean) => void;
   /** Seasons 1–2 cap at 2×; the veteran 3× option unlocks in Season 3. */
   maximumSpeed?: MatchSpeed;
-  /** Set only for a Global Cup tie; it opens the match on the title card. */
+  /** Set only for a Hero Cup tie; it opens the match on the title card. */
   cupRoundLabel?: CupRoundLabel;
   /** Dev-only held fixture for visual QA. Ignored by production bundles. */
   powerCutInQaEntries?: readonly PowerCutInQaEntry[];
@@ -534,7 +534,7 @@ export function MatchScreen({
    * Seeded from the saved preference, so the choice is made once, not weekly. */
   const [autoSubs, setAutoSubs] = useState(initialAutoSubs);
   const autoSubsRef = useRef(initialAutoSubs);
-  // A Global Cup tie opens on a title card; a league fixture arrives with no
+  // A Hero Cup tie opens on a title card; a league fixture arrives with no
   // `cupRoundLabel` and gets none. Decided once, at mount: flipping Reduce
   // Motion from the settings overlay must not restyle a card already playing.
   const [titleCard] = useState(() => cupTitleCard(cupRoundLabel, reduceMotion));

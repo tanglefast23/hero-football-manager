@@ -12,7 +12,7 @@ Money is lumpy and stressful; TP flows steadily from investments in staff and gr
 ## Income (all four, per user decision)
 
 1. **Sponsors** — the backbone. 1 slot at start → 3 by fame tier. Each sponsor: monthly fee + season objective bonus ("finish top 3": +5,000) + a signing perk (cash advance, or unlocks a scout region/drill). Offers refresh each pre-season; better divisions and fame unlock better sponsors. A **Buzz meter** (goals, wins, hero moments) settles into a sponsor bonus twice per season (Grand Prix Story's twice-yearly settlement — two financial "paydays" beat a flat trickle).
-2. **Tickets & fans** — every home match, league or Cup, earns its own gate: fans × attendance rate × ticket price. A double-header week can therefore show separate League and National Cup gate lines. Fans grow on wins, star heroes fielded, promotions; shrink slowly on losing streaks. Ticket price is settable (too high = attendance drops — a gentle lever, not a spreadsheet).
+2. **Tickets & fans** — every home match, league or Cup, earns its own gate: fans × attendance rate × ticket price. A double-header week can therefore show separate League and Hero Cup gate lines. Fans grow on wins, star heroes fielded, promotions; shrink slowly on losing streaks. Ticket price is settable (too high = attendance drops — a gentle lever, not a spreadsheet).
 3. **Prize money** — league placement paid at season end + per-round cup prizes. Promotion pays a bonus.
 4. **Player sales** — doc 05. The "training facilities print money" loop.
 

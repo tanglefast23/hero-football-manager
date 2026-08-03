@@ -7,7 +7,7 @@ import type { NationalCupRoundLabel } from '../game/career';
 export type CupRoundLabel = NationalCupRoundLabel;
 
 /** The competition's player-facing name. */
-export const CUP_TITLE_CARD_TITLE = 'GLOBAL CUP';
+export const CUP_TITLE_CARD_TITLE = 'HERO CUP';
 
 /** Ball crosses, card holds, whistle. */
 export const CUP_TITLE_CARD_MS = 2_600;
@@ -33,7 +33,7 @@ export interface CupTitleCardModel {
 }
 
 /**
- * The opening card for a Global Cup tie, or null for a league fixture.
+ * The opening card for a Hero Cup tie, or null for a league fixture.
  *
  * `cupRoundLabel` is the whole test: activeCareerMatchday only sets it on a
  * cup matchday, so a league week reaches the match screen with it undefined
@@ -49,7 +49,7 @@ export function cupTitleCard(
     roundLabel: cupRoundLabel.toUpperCase(),
     durationMs: reduceMotion ? CUP_TITLE_CARD_REDUCED_MOTION_MS : CUP_TITLE_CARD_MS,
     showBall: !reduceMotion,
-    accessibilityLabel: `Global Cup. ${cupRoundLabel}.`,
+    accessibilityLabel: `Hero Cup. ${cupRoundLabel}.`,
   };
 }
 

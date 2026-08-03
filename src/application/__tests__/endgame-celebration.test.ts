@@ -214,8 +214,8 @@ describe('the endgame celebrations', () => {
       );
 
       expect(league.headline).toBe('GLOBAL LEAGUE CHAMPIONS');
-      expect(league.lines.join(' ')).toContain('National Cup');
-      expect(cup.headline).toBe('NATIONAL CUP WINNERS');
+      expect(league.lines.join(' ')).toContain('Hero Cup');
+      expect(cup.headline).toBe('HERO CUP WINNERS');
       expect(cup.lines.join(' ')).toContain('D1');
     });
 
@@ -469,7 +469,7 @@ function inDivision(state: GameState, level: DivisionLevel): GameState {
   return { ...state, m2: { ...m2, pyramid: { ...m2.pyramid, divisions } } };
 }
 
-/** Hands the club the National Cup it entered. */
+/** Hands the club the Hero Cup it entered. */
 function withCupWinner(state: GameState): GameState {
   const m2 = state.m2!;
   return {

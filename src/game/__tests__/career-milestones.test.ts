@@ -151,7 +151,7 @@ describe('career milestones derived from what the club did', () => {
     expect(earnedCareerMilestoneFlags(rivalsOnly)).toEqual([]);
   });
 
-  it('earns a cup milestone from a won National Cup tie', () => {
+  it('earns a cup milestone from a won Hero Cup tie', () => {
     const cupWinner: GameState = {
       ...fresh,
       m2: {

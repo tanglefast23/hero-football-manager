@@ -373,14 +373,14 @@
     {
       "id": "national-cup",
       "inbox": {
-        "title": "Your first Global Cup",
+        "title": "Your first Hero Cup",
         "detail": "Every division enters from around Week 10. One upset can change the season."
       },
       "destination": "league-cup",
       "pages": [
         {
           "kicker": "Knockout football",
-          "title": "Global Cup",
+          "title": "Hero Cup",
           "body": [
             "Starting from week 10, all divisions against each other. Stronger clubs receive opening byes. Teams battle, no second chances until there's one winner. Lots of prizes and fans the further you can go!"
           ],

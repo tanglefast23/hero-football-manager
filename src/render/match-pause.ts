@@ -6,7 +6,7 @@ export type AutomaticMatchPauseReason =
   | 'tutorial'
   /** The acquired-power match clip freezes on its final frame for replay/continue. */
   | 'showcase'
-  /** A Global Cup tie's opening title card holds kickoff until it clears. */
+  /** A Hero Cup tie's opening title card holds kickoff until it clears. */
   | 'title-card';
 
 export function shouldPauseMatch(

@@ -4,7 +4,7 @@ import { useM1Store } from '../store';
 
 const PLAY_IN_WEEK = CUP_SETTLEMENT_WEEKS[0];
 
-describe('National Cup app routing', () => {
+describe('Hero Cup app routing', () => {
   beforeEach(() => {
     useM1Store.setState(useM1Store.getInitialState(), true);
   });
@@ -82,7 +82,7 @@ describe('National Cup app routing', () => {
       postMatch: {
         result: {
           fixtureId: expect.stringContaining('-cup-'),
-          competition: 'Global Cup · Play-in',
+          competition: 'Hero Cup · Play-in',
         },
       },
     });

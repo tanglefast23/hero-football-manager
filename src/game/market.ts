@@ -6,6 +6,7 @@ import { compareIds } from './ordering';
 import {
   CLUB_LEGEND_MIN_FAME,
   DIVISION_SUPPORT_STRENGTHS,
+  divisionTierLabel,
   type DivisionLevel,
 } from './pyramid';
 
@@ -147,10 +148,10 @@ export function startScoutMission(setup: ScoutMissionSetup): ScoutMission {
     throw new Error(`unknown scouting region ${String(setup.region)}`);
   }
   if (setup.focus.kind === 'RUMORED_HERO' && setup.division > 3) {
-    throw new Error('rumored hero scouting unlocks in D3 · Regional League');
+    throw new Error(`rumored hero scouting unlocks in ${divisionTierLabel(3)}`);
   }
   if (setup.focus.kind === 'ELITE_PROSPECT' && setup.division > 2) {
-    throw new Error('elite prospect scouting unlocks in D2 · National Championship');
+    throw new Error(`elite prospect scouting unlocks in ${divisionTierLabel(2)}`);
   }
 
   const missionSeed = mixSeed(

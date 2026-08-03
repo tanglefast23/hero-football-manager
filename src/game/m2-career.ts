@@ -265,15 +265,44 @@ export function deterministicM2FinishOrders(
   }));
 }
 
+/**
+ * How many seasons keep their full Hero Cup bracket.
+ *
+ * The M2 clock never ends, so retaining every bracket grew the save without
+ * bound — 13 kb per season, 769 kb of cups by season 60, re-serialised after
+ * every action. Ten seasons is what the Cup tab's season picker can usefully
+ * offer; past that a bracket is history nobody opens. The cup RECORD is never
+ * dropped, only its rounds, because the champion is what Hall of Fame, the
+ * endgame trigger and "cups won" are counted from.
+ */
+export const RETAINED_CUP_BRACKET_SEASONS = 10;
+
+/**
+ * Drops the rounds of completed cups that have fallen outside the retention
+ * window. An unfinished cup is never touched — it is still being played — and
+ * a cup already pruned is left alone.
+ */
+function pruneCupBrackets(cups: readonly NationalCup[]): NationalCup[] {
+  const ordered = [...cups].sort((left, right) => left.season - right.season);
+  const firstRetained = Math.max(0, ordered.length - RETAINED_CUP_BRACKET_SEASONS);
+  return ordered.map((cup, index) => {
+    if (index >= firstRetained) return cup;
+    if (cup.championClubId === undefined || cup.rounds.length === 0) return cup;
+    // The seeding map only serves a bracket that can still be drawn or shown.
+    const { seedDivisionByClubId: retiredSeeds, ...record } = cup;
+    return { ...record, rounds: [] };
+  });
+}
+
 /** Starts one all-division cup while retaining completed cups as plain history. */
 export function startM2NationalCup(state: M2CareerState, season: number): M2CareerState {
   validateStateIdentity(state);
   validateSeason(season);
   if (state.nationalCups.some(cup => cup.championClubId === undefined)) {
-    throw new Error('the active National Cup must finish before another can start');
+    throw new Error('the active Hero Cup must finish before another can start');
   }
   if (state.nationalCups.some(cup => cup.season === season)) {
-    throw new Error(`Season ${season} already has a National Cup`);
+    throw new Error(`Season ${season} already has a Hero Cup`);
   }
   const clubIds = state.pyramid.divisions.flatMap(division =>
     division.clubs.map(club => club.id),
@@ -283,10 +312,10 @@ export function startM2NationalCup(state: M2CareerState, season: number): M2Care
   )));
   return {
     ...state,
-    nationalCups: [
+    nationalCups: pruneCupBrackets([
       ...state.nationalCups,
       createNationalCup(clubIds, season, state.careerSeed, seedDivisionByClubId),
-    ],
+    ]),
   };
 }
 
@@ -302,7 +331,7 @@ export function advanceM2NationalCup(
       break;
     }
   }
-  if (activeCupIndex === -1) throw new Error('there is no active National Cup');
+  if (activeCupIndex === -1) throw new Error('there is no active Hero Cup');
   const advanced = advanceNationalCup(state.nationalCups[activeCupIndex], results);
   return {
     ...state,
@@ -321,16 +350,16 @@ export function resolveNextM2NationalCupRound(
 ): M2CareerState {
   validateStateIdentity(state);
   const cup = state.nationalCups.find(candidate => candidate.championClubId === undefined);
-  if (cup === undefined) throw new Error('there is no active National Cup');
+  if (cup === undefined) throw new Error('there is no active Hero Cup');
   const round = cup.rounds[cup.rounds.length - 1];
   if (round === undefined || round.fixtures.some(fixture => fixture.status !== 'scheduled')) {
-    throw new Error('the active National Cup has no scheduled round');
+    throw new Error('the active Hero Cup has no scheduled round');
   }
   const results = deterministicCupRoundResults(state, cup, round.number);
   if (suppliedResult === undefined) return advanceM2NationalCup(state, results);
   const fixtureIndex = round.fixtures.findIndex(fixture => fixture.id === suppliedResult.fixtureId);
   if (fixtureIndex === -1) {
-    throw new Error(`National Cup result ${suppliedResult.fixtureId} is not in the current round`);
+    throw new Error(`Hero Cup result ${suppliedResult.fixtureId} is not in the current round`);
   }
   return advanceM2NationalCup(
     state,
@@ -569,7 +598,7 @@ function deterministicCupRoundResults(
 ): NationalCupResult[] {
   const round = cup.rounds[cup.rounds.length - 1];
   if (round === undefined || round.number !== roundNumber) {
-    throw new Error(`National Cup round ${roundNumber} is not current`);
+    throw new Error(`Hero Cup round ${roundNumber} is not current`);
   }
   return round.fixtures.map(fixture => {
     const home = pyramidClub(state, fixture.homeClubId);

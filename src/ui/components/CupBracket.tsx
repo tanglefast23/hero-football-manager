@@ -14,7 +14,7 @@ import type { M2CupRoundViewModel } from '../m2-league-models';
 import { PixelText } from './PixelText';
 
 /**
- * The Global Cup as a bracket rather than a stack of round cards.
+ * The Hero Cup as a bracket rather than a stack of round cards.
  *
  * A knockout is a shape, and the shape is the information: how far you are from
  * the final, and who has to fall for you to get there. Stacked cards told you
@@ -53,8 +53,8 @@ export function CupBracket({ rounds, championName }: CupBracketProps) {
         </View>
       ))}
       {championName === undefined ? null : (
-        <View accessible accessibilityLabel={`${championName} won the Global Cup`} style={styles.champion}>
-          <PixelText className="text-xs uppercase text-ink/60">Global Cup winners</PixelText>
+        <View accessible accessibilityLabel={`${championName} won the Hero Cup`} style={styles.champion}>
+          <PixelText className="text-xs uppercase text-ink/60">Hero Cup winners</PixelText>
           <PixelText className="mt-1 text-lg uppercase text-ink" numberOfLines={1}>{championName}</PixelText>
         </View>
       )}

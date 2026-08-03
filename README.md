@@ -107,7 +107,7 @@ Research reports (source material, written by research agents):
 |---|---|
 | Match involvement | Matches auto-play and powers always fire automatically in their authored context — there is no manual hero tap. The player's live controls are Formation, Playstyle, Swap, and Energy Use |
 | Match effort | Playstyle controls tactical intent; Save Energy / Balanced / All Out controls physical effort, movement, and condition drain without directly changing passing or shooting |
-| Career structure | Climb from D5 · District League to D1 · Global League; win **both** D1 and the National Cup to complete the main journey, then continue endlessly; the career record is kept in the Hall of Fame |
+| Career structure | Climb from D5 · District League to D1 · Global League; win **both** D1 and the Hero Cup to complete the main journey, then continue endlessly; the career record is kept in the Hall of Fame |
 | Business model | Paid app, ~$0.99, no IAP at launch; economy balanced purely for fun |
 | Art direction | B+ "heroic chibi" pixel art + comic FX layer + broadcast match dressing |
 | Opening music | **“Heroes Start Here”** — original 128 BPM title-screen fanfare and seamless chiptune loop |
