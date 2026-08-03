@@ -210,6 +210,29 @@ export interface MatchResultViewModel {
   awayScore: number;
   outcomeLabel: 'WIN' | 'DRAW' | 'LOSS';
   headline: string;
+  /**
+   * Which name the report boxes up as the winner, from the score rather than
+   * the manager's point of view — a drawn match boxes nobody.
+   */
+  winner: 'home' | 'away' | null;
+}
+
+/**
+ * What the touchline does about the result, decided once so a re-render cannot
+ * change the gaffer's mind halfway through reading it.
+ *
+ * A loss puts him in tears unless the blame roll comes up, in which case the
+ * assistant is standing there being pointed at instead. Absent entirely when
+ * the club has no head coach to react.
+ */
+export interface FulltimeReactionViewModel {
+  pose: 'joy' | 'cry' | 'point';
+  coachPortraitId: string;
+  coachName: string;
+  /** Only on the blame pose: who is getting it. */
+  assistantPortraitId?: string;
+  assistantName?: string;
+  blameLine?: string;
 }
 
 export interface LedgerLineViewModel {
@@ -264,6 +287,8 @@ export interface PostMatchViewModel {
   highlights: readonly HighlightViewModel[];
   updates: readonly WeekUpdateViewModel[];
   facilityCompletion?: FacilityCompletionViewModel;
+  /** Absent when the club has nobody on the touchline to react. */
+  reaction?: FulltimeReactionViewModel;
 }
 
 export interface SquadPlayerViewModel {

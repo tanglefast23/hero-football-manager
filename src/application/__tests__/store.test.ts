@@ -1346,6 +1346,7 @@ function examplePostMatch(): PostMatchViewModel {
       homeScore: 1,
       awayScore: 0,
       outcomeLabel: 'WIN',
+      winner: 'home',
       headline: 'The office will be loud tonight.',
     },
     ledger: [{ id: 'tickets', label: 'League home gate', amount: 1200, kind: 'income' }],
