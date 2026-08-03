@@ -8,6 +8,8 @@ import { scaledBody } from '../text-scale';
 import type { TextScale } from '../../persistence';
 import { PixelText } from '../components/PixelText';
 import { DesktopClamp, useDesktopContentStyle } from '../layout/DesktopClamp';
+import { ManagementSprite } from '../components/ManagementSprite';
+import type { FulltimeReactionViewModel } from '../models';
 
 export interface PostMatchLedgerScreenProps {
   viewModel: PostMatchViewModel;
@@ -42,23 +44,34 @@ export function PostMatchLedgerScreen({
         <SettingsButton onPress={onOpenSettings} />
       </View>
       <ScrollView className="flex-1" contentContainerStyle={[{ padding: 16, paddingBottom: 24 }, desktopContent]}>
+        {/* Stacked rather than side by side: two names in 24-point columns
+            either wrapped mid-word or truncated to "BRAMB LE RO_" on a phone,
+            which is no way to read your own club's name. The vertical run has
+            the width to spell both out, and it gives the winner's box somewhere
+            to sit without crowding the score. */}
         <View className="items-center py-3">
           <StatusChip label="Full time" tone={resultTone} />
           <PixelText className="mt-3 text-sm uppercase text-blue-dark">{result.competition}</PixelText>
-          <View className="mt-4 flex-row items-center gap-4">
-            <PixelText className="w-24 text-right text-base uppercase text-ink" numberOfLines={2}>{result.homeTeam}</PixelText>
-            <View className="flex-row items-center border-2 border-ink bg-ink px-4 py-3">
-              <Text className="font-mono text-3xl text-paper">{result.homeScore}</Text>
-              <Text className="mx-3 font-mono text-xl text-paper/60">–</Text>
-              <Text className="font-mono text-3xl text-paper">{result.awayScore}</Text>
-            </View>
-            <PixelText className="w-24 text-base uppercase text-ink" numberOfLines={2}>{result.awayTeam}</PixelText>
+
+          <TeamLine name={result.homeTeam} won={result.winner === 'home'} />
+
+          <View className="mt-3 flex-row items-center border-2 border-ink bg-ink px-5 py-3">
+            <Text className="font-mono text-3xl text-paper">{result.homeScore}</Text>
+            <Text className="mx-3 font-mono text-xl text-paper/60">–</Text>
+            <Text className="font-mono text-3xl text-paper">{result.awayScore}</Text>
           </View>
-          <View className="mt-4 -rotate-2 border-2 border-stamp px-4 py-2">
-            <PixelText className="text-xl uppercase text-stamp">{result.outcomeLabel}</PixelText>
-          </View>
-          <Text className="mt-4 text-center text-ink/70" style={scaledBody(textScale)}>{result.headline}</Text>
+          {result.winner === null ? (
+            <PixelText className="mt-3 text-base uppercase text-ink/60">Draw</PixelText>
+          ) : null}
+
+          <TeamLine name={result.awayTeam} won={result.winner === 'away'} />
+
+          <Text className="mt-5 text-center text-ink/70" style={scaledBody(textScale)}>{result.headline}</Text>
         </View>
+
+        {viewModel.reaction ? (
+          <FulltimeReaction reaction={viewModel.reaction} textScale={textScale} />
+        ) : null}
 
         {viewModel.highlights.length ? (
           <View className="mt-6">
@@ -97,5 +110,81 @@ export function PostMatchLedgerScreen({
         </DesktopClamp>
       </View>
     </SafeAreaView>
+  );
+}
+
+/**
+ * One club, on its own line, spelled out. The winner wears a red box with the
+ * word under it rather than beside it, so the box stays a box on the narrowest
+ * phone instead of squeezing into a badge.
+ */
+function TeamLine({ name, won }: { name: string; won: boolean }) {
+  return (
+    <View className="mt-4 items-center">
+      <View className={won
+        ? 'border-2 border-stamp px-4 py-2'
+        : 'px-4 py-2'}>
+        <PixelText
+          className="text-center text-base uppercase text-ink"
+          numberOfLines={2}
+        >
+          {name}
+        </PixelText>
+      </View>
+      {won ? (
+        <PixelText className="mt-2 text-xl uppercase text-stamp">Win</PixelText>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * The touchline, bottom left, once the numbers have been read.
+ *
+ * The gaffer is the last thing on the report on purpose: the result is the
+ * headline, and his opinion of it is the footnote. On the blame roll the
+ * assistant stands to his right, which is the side the pointing sprite's arm
+ * comes out of, so the finger lands on a person rather than on air.
+ */
+function FulltimeReaction({
+  reaction,
+  textScale,
+}: {
+  reaction: FulltimeReactionViewModel;
+  textScale: TextScale;
+}) {
+  const blaming = reaction.pose === 'point' && reaction.assistantPortraitId !== undefined;
+  const mood = reaction.pose === 'joy'
+    ? `${reaction.coachName} is celebrating`
+    : blaming
+      ? `${reaction.coachName} is blaming ${reaction.assistantName}`
+      : `${reaction.coachName} is in tears`;
+
+  return (
+    <View className="mt-6 items-start">
+      {blaming && reaction.blameLine ? (
+        <View className="max-w-[280px]">
+          <View className="border-2 border-ink bg-white px-3 py-2">
+            <Text className="text-ink" style={scaledBody(textScale)}>{reaction.blameLine}</Text>
+          </View>
+          {/* The tail sits under the gaffer's half of the bubble, not the
+              assistant's: it is his line. */}
+          <PixelText className="ml-6 text-base text-ink">▼</PixelText>
+        </View>
+      ) : null}
+      <View
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={blaming && reaction.blameLine
+          ? `${mood}. "${reaction.blameLine}"`
+          : mood}
+        className="flex-row items-end gap-3"
+      >
+        <ManagementSprite spriteKey={`coach:${reaction.coachPortraitId}:${reaction.pose}`} width={56} />
+        {blaming ? (
+          <ManagementSprite spriteKey={`coach:${reaction.assistantPortraitId}:rest`} width={56} />
+        ) : null}
+      </View>
+    </View>
   );
 }

@@ -585,6 +585,23 @@ export const AwardCeremonyLinesSchema = z.strictObject({
 });
 
 /**
+ * What the gaffer says when he decides the assistant lost it for him.
+ *
+ * One pool, twenty lines, no scoring or weighting: the full-time report picks
+ * one by fixture so the same match always produces the same outburst. Bounded
+ * to the ceremony length because it has to fit in a speech bubble beside a
+ * 24-pixel-wide coach on a phone.
+ */
+const BLAME_LINE_POOL_SIZE = 20;
+
+export const FulltimeBlameLinesSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  lines: z.array(ceremonyLineSchema).length(BLAME_LINE_POOL_SIZE),
+}).superRefine((pool, context) => {
+  addDuplicateIssues(pool.lines, context, ['lines'], 'full-time blame line');
+});
+
+/**
  * Sprite names a request may reference for its artwork.
  *
  * Duplicated from `src/ui/event-pixel-sprites.ts` on purpose: `src/content/`
@@ -714,6 +731,7 @@ export type RequestGrantBonus = z.infer<typeof RequestGrantBonusSchema>;
 export const LaunchContentSchema = z.strictObject({
   assistantGuide: AssistantGuideContentSchema,
   awardCeremonyLines: AwardCeremonyLinesSchema,
+  fulltimeBlameLines: FulltimeBlameLinesSchema,
   clubs: ClubCatalogSchema,
   glossary: GlossaryCatalogSchema,
   onboarding: OnboardingContentSchema,
@@ -810,6 +828,7 @@ export type AssistantGuideFocus = z.infer<typeof AssistantGuideFocusSchema>;
 export type AssistantGuideDestination = z.infer<typeof AssistantGuideDestinationSchema>;
 export type AssistantGuideContent = z.infer<typeof AssistantGuideContentSchema>;
 export type AwardCeremonyLines = z.infer<typeof AwardCeremonyLinesSchema>;
+export type FulltimeBlameLines = z.infer<typeof FulltimeBlameLinesSchema>;
 export type TrainingDrill = z.infer<typeof TrainingDrillSchema>;
 export type TrainingCatalog = z.infer<typeof TrainingCatalogSchema>;
 export type GameEvent = z.infer<typeof GameEventSchema>;

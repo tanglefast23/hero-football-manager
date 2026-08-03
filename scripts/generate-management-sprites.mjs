@@ -62,20 +62,71 @@ function outline(g) {
 }
 function rows(g) { outline(g); return g.map(row => row.join('')); }
 
-function coachGrid({ age, skin, hair, feature, accent, wardrobe }, joy) {
+/**
+ * The four things a coach's face does. Every one of them is drawn inside the
+ * eye and mouth blocks the resting face already owns, because hairFeature()
+ * and ageFace() run afterwards and will happily paint over anything that
+ * strays up into the brow rows.
+ */
+const COACH_EXPRESSIONS = ['rest', 'joy', 'cry', 'point'];
+
+function coachFace(g, expression, skin) {
+  rect(g, 8, 8, 9, 9, 'K'); rect(g, 14, 8, 15, 9, 'K');
+  if (expression === 'joy') {
+    set(g, 9, 9, skin); set(g, 15, 9, skin); rect(g, 10, 12, 13, 13, 'W');
+    return;
+  }
+  if (expression === 'cry') {
+    // Eyes squeezed shut to a line, mouth open and turned down at the corners,
+    // and a tear under each. The downturned mouth alone reads as a scowl at
+    // this size — the tears are what make it grief rather than temper.
+    rect(g, 8, 8, 9, 9, skin); rect(g, 14, 8, 15, 9, skin);
+    rect(g, 8, 9, 9, 9, 'K'); rect(g, 14, 9, 15, 9, 'K');
+    rect(g, 10, 12, 13, 13, 'W'); set(g, 10, 12, skin); set(g, 13, 12, skin);
+    rect(g, 8, 10, 8, 11, 'B'); rect(g, 15, 10, 15, 11, 'B');
+    return;
+  }
+  if (expression === 'point') {
+    // The scowl is cut out of the eye blocks rather than drawn as brows above
+    // them: clearing the outer-top pixel tilts both eyes down towards the nose.
+    // Mouth open, because he is saying it out loud.
+    set(g, 8, 8, skin); set(g, 15, 8, skin);
+    rect(g, 10, 12, 13, 13, 'W'); set(g, 10, 13, skin); set(g, 13, 13, skin);
+    return;
+  }
+  rect(g, 11, 12, 12, 12, 'K');
+}
+
+/**
+ * Straightens the coach's right arm out to the side with the finger extended.
+ *
+ * The sleeve colour is sampled off the drawn body rather than passed in:
+ * thirteen wardrobes paint their sleeves their own way, and a blamed assistant
+ * deserves to be pointed at in the coat the gaffer is actually wearing. The
+ * hanging forearm underneath is cleared first, from x18 outwards, which is past
+ * the torso of every wardrobe and leaves the shoulder stub intact.
+ */
+function pointingArm(g, skin) {
+  const sleeve = g[21]?.[18] ?? g[21]?.[17] ?? 'k';
+  rect(g, 18, 21, 21, 27, '.');
+  rect(g, 17, 18, 20, 20, sleeve);
+  rect(g, 20, 18, 21, 20, skin);
+  rect(g, 21, 19, 22, 19, skin);
+}
+
+function coachGrid({ age, skin, hair, feature, accent, wardrobe }, expression) {
   const g = grid(24, 29);
   rect(g, 6, 4, 17, 14, skin); rect(g, 7, 3, 16, 15, skin);
-  rect(g, 8, 8, 9, 9, 'K'); rect(g, 14, 8, 15, 9, 'K');
-  if (joy) { set(g, 9, 9, skin); set(g, 15, 9, skin); rect(g, 10, 12, 13, 13, 'W'); }
-  else rect(g, 11, 12, 12, 12, 'K');
+  coachFace(g, expression, skin);
   coachBody(g, wardrobe, accent, skin);
+  if (expression === 'point') pointingArm(g, skin);
   hairFeature(g, feature, hair, skin);
   ageFace(g, age, skin, feature);
   return g;
 }
 
-function coach(spec, joy) {
-  return [`coach:${spec.id}:${joy ? 'joy' : 'rest'}`, rows(coachGrid(spec, joy))];
+function coach(spec, expression) {
+  return [`coach:${spec.id}:${expression}`, rows(coachGrid(spec, expression))];
 }
 
 /** Where the bust ends and the standing figure's own legs begin. */
@@ -97,7 +148,7 @@ const COACH_FIELD_HEIGHT = 34;
  * a grown man stands a head over the chibi squad he is celebrating with.
  */
 function coachField(spec, cheering) {
-  const bust = coachGrid(spec, cheering);
+  const bust = coachGrid(spec, cheering ? 'joy' : 'rest');
   const g = grid(24, COACH_FIELD_HEIGHT);
   for (let y = 0; y < bust.length; y += 1) for (let x = 0; x < 24; x += 1) g[y][x] = bust[y][x];
   // Shins in the trouser grey every wardrobe's `trousers()` already uses, so a
@@ -348,8 +399,7 @@ function worksite() {
 
 const sprites = Object.fromEntries([
   ...COACHES.flatMap(spec => [
-    coach(spec, false),
-    coach(spec, true),
+    ...COACH_EXPRESSIONS.map(expression => coach(spec, expression)),
     coachField(spec, false),
     coachField(spec, true),
   ]),
@@ -373,6 +423,17 @@ if (usedWardrobes.size !== COACH_WARDROBES.length) {
 }
 const restingCoaches = COACHES.map(spec => JSON.stringify(sprites[`coach:${spec.id}:rest`]));
 if (new Set(restingCoaches).size !== COACHES.length) throw new Error('coach resting portraits must all be unique');
+// Every expression has to differ from the resting face, or a full-time report
+// would show a beaming coach after a 0-4 and nobody would know why.
+for (const spec of COACHES) {
+  for (const expression of COACH_EXPRESSIONS.filter(name => name !== 'rest')) {
+    const key = `coach:${spec.id}:${expression}`;
+    if (sprites[key] === undefined) throw new Error(`missing ${key}`);
+    if (JSON.stringify(sprites[key]) === JSON.stringify(sprites[`coach:${spec.id}:rest`])) {
+      throw new Error(`${key} is identical to the resting face`);
+    }
+  }
+}
 
 for (const [key, spriteRows] of Object.entries(sprites)) for (const row of spriteRows) for (const char of row) {
   if (!(char in PALETTE)) throw new Error(`${key} uses unknown palette key ${char}`);

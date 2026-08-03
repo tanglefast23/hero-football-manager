@@ -74,6 +74,7 @@ import type {
   LeagueTableViewModel,
   ManagerNoteViewModel,
   MatchDayViewModel,
+  FulltimeReactionViewModel,
   PostMatchViewModel,
   SeasonEndViewModel,
   StoryEventViewModel,
@@ -1887,6 +1888,7 @@ export function postMatchViewModel(
     ? goalsFor > goalsAgainst ? 'WIN' : goalsFor < goalsAgainst ? 'LOSS' : 'DRAW'
     : cupWinnerClubId === before.userClubId ? 'WIN' : 'LOSS';
   const completedFacility = facilityCompletion(before, after);
+  const reaction = fulltimeReaction(after, fixtureId, score, outcomeLabel);
 
   return {
     result: {
@@ -1899,6 +1901,9 @@ export function postMatchViewModel(
       homeScore: score.homeGoals,
       awayScore: score.awayGoals,
       outcomeLabel,
+      winner: score.homeGoals > score.awayGoals
+        ? 'home'
+        : score.awayGoals > score.homeGoals ? 'away' : null,
       headline: cupRound !== undefined
         ? outcomeLabel === 'WIN'
           ? 'Cup dream alive. You are through.'
@@ -1921,7 +1926,65 @@ export function postMatchViewModel(
     highlights,
     updates: weekUpdates(before, after),
     ...(completedFacility === undefined ? {} : { facilityCompletion: completedFacility }),
+    ...(reaction === undefined ? {} : { reaction }),
   };
+}
+
+/**
+ * The touchline's answer to the result.
+ *
+ * Rolled off the fixture id rather than a random number so the same match always
+ * produces the same reaction: the report can be reopened, re-rendered, or
+ * replayed from a save without the gaffer changing his story. One loss in three
+ * turns into a blaming, and only when there is an assistant in the building to
+ * blame — pointing at an empty touchline is worse than crying.
+ */
+const BLAME_ROLL_IN = 3;
+
+function fulltimeReaction(
+  state: GameState,
+  fixtureId: string,
+  score: { homeGoals: number; awayGoals: number },
+  outcomeLabel: 'WIN' | 'DRAW' | 'LOSS',
+): FulltimeReactionViewModel | undefined {
+  const headCoach = state.market?.headCoach;
+  if (headCoach === undefined) return undefined;
+  const coach = {
+    coachPortraitId: headCoach.portraitId ?? headCoach.id,
+    coachName: headCoach.name,
+  };
+  if (outcomeLabel === 'WIN') return { pose: 'joy', ...coach };
+  if (outcomeLabel === 'DRAW') return undefined;
+
+  const assistant = state.market?.assistantCoach;
+  // Fixture ids are structural — every career's opener is `s1-r1-m1` — so a roll
+  // keyed on the id alone would blame the assistant in the same weeks of every
+  // save on earth. The scoreline and the man in the job are what make this
+  // club's season its own, and both are fixed once the match is over.
+  const draw = `${fixtureId}:${state.season}:${score.homeGoals}-${score.awayGoals}:${headCoach.id}`;
+  if (assistant === undefined || hashString(`blame:${draw}`) % BLAME_ROLL_IN !== 0) {
+    return { pose: 'cry', ...coach };
+  }
+  const pool = LAUNCH_CONTENT.fulltimeBlameLines.lines;
+  return {
+    pose: 'point',
+    ...coach,
+    assistantPortraitId: assistant.portraitId ?? assistant.id,
+    assistantName: assistant.name,
+    // A second, independent draw: the roll decides whether he speaks, the line
+    // decides what he says, and one must not narrow the other.
+    blameLine: pool[hashString(`blame-line:${draw}`) % pool.length],
+  };
+}
+
+/** FNV-1a, the same shape the game ring uses to turn an id into a stable draw. */
+function hashString(value: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 function weekUpdates(before: GameState, after: GameState): WeeklyReviewViewModel['updates'] {

@@ -50,6 +50,40 @@ describe('management pixel sprites', () => {
     expect(data.sprites['facility:worksite']).toHaveLength(32);
   });
 
+  test('gives every coach a face for winning, losing, and blaming', () => {
+    // The full-time report reads these straight off the head coach's portrait
+    // id, so a missing pose is a broken report rather than a missing sprite.
+    for (const coach of coachIdentities) {
+      const rest = data.sprites[`coach:${coach.id}:rest` as keyof typeof data.sprites];
+      for (const pose of ['joy', 'cry', 'point'] as const) {
+        const rows = data.sprites[`coach:${coach.id}:${pose}` as keyof typeof data.sprites];
+        expect(rows).toBeDefined();
+        expect(rows).toHaveLength(29);
+        // A pose that came out identical to the resting face would show a calm
+        // gaffer after a 0-4 and nobody would know the feature was broken.
+        expect(rows.join('\n')).not.toEqual(rest.join('\n'));
+      }
+    }
+  });
+
+  test('cries in tears and points with an arm', () => {
+    // Spot-checked on one coach rather than all 32: this asserts the drawing
+    // reads as what it claims, which is the same drawing code for everyone.
+    const cry = data.sprites['coach:amara-okafor:cry' as keyof typeof data.sprites];
+    const point = data.sprites['coach:amara-okafor:point' as keyof typeof data.sprites];
+    const rest = data.sprites['coach:amara-okafor:rest' as keyof typeof data.sprites];
+
+    // 'B' is the blue in the palette and appears nowhere on a resting face.
+    expect(rest.join('')).not.toContain('B');
+    expect(cry.join('')).toContain('B');
+
+    // The pointing arm reaches further right than any resting silhouette does.
+    const rightmost = (rows: readonly string[]) => Math.max(
+      ...rows.map(row => row.replace(/\.+$/, '').length),
+    );
+    expect(rightmost(point)).toBeGreaterThan(rightmost(rest));
+  });
+
   test('uses only declared palette keys', () => {
     for (const rows of Object.values(data.sprites)) for (const row of rows) for (const key of row) {
       expect(Object.prototype.hasOwnProperty.call(data.palette, key)).toBe(true);
