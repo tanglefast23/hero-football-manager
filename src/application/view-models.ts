@@ -596,9 +596,11 @@ export function storyEventViewModel(state: GameState, content: LaunchContent): S
       return {
         id: choice.id,
         label: choice.label,
+        // The RISKY/SAFE stamp beside the label already names the tone, so this
+        // line only has to say what each one pays.
         detail: choice.risky
-          ? 'An unusual choice with a bigger upside and a real chance of disappointment.'
-          : 'The steadier option with a guaranteed outcome.',
+          ? 'Bigger reward, real chance of nothing.'
+          : 'Smaller reward, guaranteed.',
         consequenceHint: describeEventChoiceOutcome(choice),
         tone: choice.risky ? 'risky' as const : 'safe' as const,
         disabled: pending.resolvedChoiceId !== undefined || disabledReason !== undefined,
@@ -2067,10 +2069,10 @@ function recentForm(state: GameState): Array<'W' | 'D' | 'L'> {
 function describeEventChoiceOutcome(choice: GameEvent['choices'][number]): string {
   if (!choice.risky) return describeSafeOutcome(choice.outcomes[0]?.effects ?? []);
   const success = choice.outcomes.find(outcome => outcome.effects.some(effect => effect.type !== 'flag'));
-  if (success === undefined) return 'Risky choice with no guaranteed reward';
+  if (success === undefined) return 'No guaranteed reward';
   const reward = describeEventEffects(success.effects);
   const hasEmptyFailure = choice.outcomes.some(outcome => outcome.effects.length === 0);
-  return `${success.weight}% chance: ${reward}.${hasEmptyFailure ? ' Failure gives no reward.' : ''}`;
+  return `${success.weight}% chance: ${reward}.${hasEmptyFailure ? ' Otherwise nothing.' : ''}`;
 }
 
 function describeSafeOutcome(effects: GameEvent['choices'][number]['outcomes'][number]['effects']): string {

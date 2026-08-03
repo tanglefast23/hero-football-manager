@@ -45,6 +45,8 @@ export interface BertBriefingWalkOnProps {
   };
   moneyAnchor?: TutorialAnchorLayout | null;
   navigationAnchor?: TutorialAnchorLayout | null;
+  /** The League sub-tab the beat is about, so the scrim lifts off it. */
+  subTabAnchor?: TutorialAnchorLayout | null;
   reduceMotion?: boolean;
   /**
    * The lit anchor is measured by screens far above this one, and measurement
@@ -73,6 +75,7 @@ export function BertBriefingWalkOn({
   customMessage,
   moneyAnchor,
   navigationAnchor,
+  subTabAnchor,
   reduceMotion = false,
   onFocusChange,
   onDone,
@@ -120,7 +123,12 @@ export function BertBriefingWalkOn({
     ? moneyAnchor
     : focus === 'navigation'
       ? navigationAnchor
-      : null;
+      // The board beats point at a sub-tab rather than a chip or the rail, and
+      // a tab talked about under the scrim reads as one he is not talking
+      // about.
+      : focus === 'division-leaders' || focus === 'national-cup'
+        ? subTabAnchor
+        : null;
   const moneyCuePosition = focus === 'money' && moneyAnchor
     ? tutorialCuePosition(moneyAnchor, viewportWidth)
     : null;

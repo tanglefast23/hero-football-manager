@@ -130,7 +130,7 @@ describe('M1 app store integration', () => {
     expect(storyEventViewModel(beforeChoice, loadLaunchContent()).choices).toEqual([
       expect.objectContaining({
         id: 'adopt-spider',
-        consequenceHint: '35% chance: +10 squad morale and +100 fans. Failure gives no reward.',
+        consequenceHint: '35% chance: +10 squad morale and +100 fans. Otherwise nothing.',
         tone: 'risky',
       }),
       expect.objectContaining({
@@ -504,6 +504,36 @@ describe('M1 app store integration', () => {
 
     const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
     useM1Store.getState().hireCoach(coachId);
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(weekBefore + 1);
+  });
+
+  it('takes the first week\'s two inbox jobs in either order', () => {
+    // Bert points at the pitch, but the coach is a job too, not a queue
+    // position. Doing them the other way round has to reach the same week 2.
+    useM1Store.getState().startNewCareer(793);
+    useM1Store.getState().completePlayerCreation({
+      name: 'Jo Rook',
+      ratings: DEFAULT_CREATION_RATINGS,
+    });
+    useM1Store.getState().completeAssistantGuide('management-intro');
+    useM1Store.getState().setActiveTab('squad');
+    useM1Store.getState().trainPlayer('bramble-rovers-created-player', 'sprints');
+    useM1Store.getState().setActiveTab('home');
+    const weekBefore = useM1Store.getState().career!.week;
+
+    // The coach first — the one the desk used to refuse until the pitch was up.
+    const coachId = useM1Store.getState().career!.market!.coachCandidates[0].id;
+    useM1Store.getState().hireCoach(coachId);
+    useM1Store.getState().advanceCareer();
+    expect(useM1Store.getState().career?.week).toBe(weekBefore);
+    expect(useM1Store.getState().error).toBe(
+      'Build the Training Ground from your inbox before advancing the week.',
+    );
+
+    useM1Store.getState().setActiveTab('club');
+    useM1Store.getState().buildClubFacility('training-pitch', { x: 0, y: 0 });
+    useM1Store.getState().setActiveTab('home');
     useM1Store.getState().advanceCareer();
     expect(useM1Store.getState().career?.week).toBe(weekBefore + 1);
   });

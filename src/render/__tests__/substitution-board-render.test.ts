@@ -58,8 +58,7 @@ describe('substitution board layout', () => {
     // The narrow board never attaches pan handlers, so a swipe belongs wholly
     // to the ScrollView. Its cards use Pressable's normal tap cancellation.
     expect(source).toContain('dragEnabled={wide}');
-    expect(source).toContain('{...(dragEnabled ? responder.panHandlers : {})}');
-    expect(source).toContain('onPress={dragEnabled ? undefined : tap}');
+    expect(source).toContain('{...(dragEnabled ? responder.panHandlers : { onPress: tap })}');
     expect(source).not.toContain('holdToLift');
     expect(source).not.toContain('LIFT_DELAY_MS');
     expect(source).not.toContain('liftTimer');
@@ -124,14 +123,61 @@ describe('substitution board layout', () => {
     expect(source).toContain('dragEnabled: boolean;');
   });
 
+  it('never hands the pan responder to a Pressable, which swallows it whole', () => {
+    // Not folklore, and not a guess: derive the collision from the library that
+    // actually runs the board on a desktop. Pressable spreads its own press
+    // handlers AFTER the caller's props, and they cover every responder prop a
+    // PanResponder needs — so a Pressable around a drag overwrites the lot and
+    // the card answers neither the drag nor the click that ends one.
+    const panResponder = require('react-native-web/dist/cjs/exports/PanResponder');
+    const pressModule = require('react-native-web/dist/cjs/modules/usePressEvents/PressResponder');
+    const PressResponder = pressModule.default ?? pressModule;
+    const panKeys: string[] = Object.keys(
+      panResponder.create({ onStartShouldSetPanResponder: () => true }).panHandlers,
+    );
+    const pressKeys: string[] = Object.keys(new PressResponder({}).getEventHandlers());
+
+    expect(panKeys.filter(key => pressKeys.includes(key))).toEqual(
+      expect.arrayContaining([
+        'onStartShouldSetResponder',
+        'onResponderGrant',
+        'onResponderMove',
+        'onResponderRelease',
+      ]),
+    );
+
+    // So the card that carries the gesture is a plain Animated.View, and the
+    // Pressable stays on mobile, where there is no drag for it to swallow.
+    const source = board();
+    expect(source).toContain('const Shell = dragEnabled ? Animated.View : AnimatedPressable;');
+    expect(source).toContain('{...(dragEnabled ? responder.panHandlers : { onPress: tap })}');
+    // The old wiring: panHandlers spread onto a Pressable, which ate them.
+    expect(source).not.toContain('onPress={dragEnabled ? undefined : tap}');
+    expect(source).not.toContain('<AnimatedPressable');
+  });
+
+  it('leaves the desktop both ways of making a swap', () => {
+    const source = board();
+
+    // Drag a card onto its partner, or click one and click the other: the wide
+    // board answers both, and the click arrives as a still release from the
+    // very same responder that carries the drag.
+    expect(source).toContain('if (still) {');
+    expect(source).toMatch(/if \(still\) \{\s*pick\(from\);/);
+    expect(source).toContain("guideLabel={guided ? (wide ? 'Click or drag' : 'Tap') : undefined}");
+    // Pressable supplied the pointer cursor on web; a dragged View has to ask.
+    expect(source).toContain("cardPointer: { cursor: 'pointer' }");
+    expect(source).toContain('dragEnabled ? styles.cardPointer : null');
+  });
+
   it('guides the exact tired starter without changing either input model', () => {
     const source = board();
 
     expect(source).toContain('guideFieldPlayer?: number;');
     expect(source).toContain('const guideCardId: CardId | null = guideFieldPlayer === undefined');
     expect(source).toContain('const guided = id === guideCardId;');
-    expect(source).toContain("guideLabel={guided ? (wide ? 'Click and drag' : 'Tap') : undefined}");
-    expect(source).toContain('onPress={dragEnabled ? undefined : tap}');
+    expect(source).toContain("guideLabel={guided ? (wide ? 'Click or drag' : 'Tap') : undefined}");
+    expect(source).toContain('{...(dragEnabled ? responder.panHandlers : { onPress: tap })}');
     expect(source).toContain('onStartShouldSetPanResponder: () => latest.current.dragEnabled');
     expect(source).toContain('if (source.id === guideCardId || target === guideCardId)');
   });

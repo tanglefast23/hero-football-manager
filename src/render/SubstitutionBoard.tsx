@@ -415,7 +415,7 @@ export function SubstitutionBoard({
                       lit={active !== null && active.id !== id && isEligible(active, id)}
                       picked={picked?.id === id}
                       hint={dropTarget === id ? 'SWAP' : null}
-                      guideLabel={guided ? (wide ? 'Click and drag' : 'Tap') : undefined}
+                      guideLabel={guided ? (wide ? 'Click or drag' : 'Tap') : undefined}
                       guideDetail={guided ? `Swap ${compactName(player.name, !wide)}` : undefined}
                       compact={!wide}
                       dragEnabled={wide}
@@ -796,11 +796,25 @@ function DragCard({
     }),
   ).current;
 
+  /**
+   * A dragged card must never be a Pressable. Both react-native-web's Pressable
+   * and React Native's own spread their press handlers *after* the caller's
+   * props, and those handlers cover every responder prop a PanResponder needs —
+   * onStartShouldSetResponder, onResponderGrant, onResponderMove,
+   * onResponderRelease and the rest. Wrapping the drag in one silently
+   * overwrites `panHandlers`, and the card then answers neither the drag nor
+   * the click that ends one. So the pointer card is a plain Animated.View,
+   * which leaves the desktop both ways in: drag a card onto its partner, or
+   * click one and click the other — a click is a release that never travelled,
+   * and `onPanResponderRelease` sends it to the same `tap`. Mobile keeps the
+   * Pressable, where there is no drag for it to swallow.
+   */
+  const Shell = dragEnabled ? Animated.View : AnimatedPressable;
+
   return (
-    <AnimatedPressable
+    <Shell
       ref={registerCard(id)}
-      {...(dragEnabled ? responder.panHandlers : {})}
-      onPress={dragEnabled ? undefined : tap}
+      {...(dragEnabled ? responder.panHandlers : { onPress: tap })}
       // Hover is a pointer affordance and simply never fires on a touch screen,
       // so the board loses nothing there.
       onPointerEnter={() => setHovered(true)}
@@ -822,6 +836,8 @@ function DragCard({
       style={[
         style,
         compact ? styles.gridCell : null,
+        // Pressable hands the web a pointer cursor; a dragged View has to ask.
+        dragEnabled ? styles.cardPointer : null,
         lit ? styles.cardLit : null,
         hovered && !lifted ? styles.cardHovered : null,
         // The one card the release would actually take. Every eligible card is
@@ -847,7 +863,7 @@ function DragCard({
         </View>
       )}
       {children}
-    </AnimatedPressable>
+    </Shell>
   );
 }
 
@@ -989,6 +1005,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(90,143,214,0.12)',
   },
   cardDimmed: { backgroundColor: '#f4f1ea', borderColor: '#9a95a4', opacity: 0.6 },
+  cardPointer: { cursor: 'pointer' },
   cardGuided: {
     borderColor: '#3f6fb5',
     borderWidth: 4,

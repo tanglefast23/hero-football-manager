@@ -13,11 +13,15 @@ type MenuSfx = 'advance-week' | 'plan-locked' | 'league-champions';
 export function menuThemeForScreen(screen: M1Screen, awakeningBeat: number): MenuTheme {
   if (screen === 'welcome' || screen === 'matchday') return 'opening';
   if (screen === 'create-player' || screen === 'management') return 'management';
-  if (screen === 'event' || screen === 'legacy') {
+  // The awakening carries the event bed from the bite onwards. Beat 1 is left
+  // to the sad limp cue alone, because that beat IS the silence before it; from
+  // beat 2 the bed plays under the limp's tail and stays through the rise, so
+  // the scene never drops to nothing while the manager reads. a49f006 dropped
+  // this line and left two short one-shots in a tap-paced scene — the reveal
+  // card was read in silence.
+  if (screen === 'event' || screen === 'legacy' || (screen === 'awakening' && awakeningBeat >= 2)) {
     return 'event';
   }
-  // Awakening owns a dedicated sad pre-rise cue and ascension sting.
-  void awakeningBeat;
   return null;
 }
 

@@ -107,7 +107,8 @@ describe('first match coaching prompts', () => {
     expect(match).toContain('guideFieldPlayer={firstMatchTutorialStep === \'tired-player-cue\'');
     expect(match).toContain('firstMatchTiredPlayerRef.current ?? undefined');
     expect(match).toContain('onGuideFieldPlayerAction={finishTiredPlayerTutorial}');
-    expect(board).toContain("wide ? 'Click and drag' : 'Tap'");
+    // Desktop takes either, so the cue names both rather than the drag alone.
+    expect(board).toContain("wide ? 'Click or drag' : 'Tap'");
     expect(board).toContain('const guided = id === guideCardId;');
     expect(board).toContain('guideLabel === undefined ? null : styles.cardGuided');
     expect(board).toContain('consumeGuide(source);');

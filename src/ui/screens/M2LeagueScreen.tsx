@@ -17,6 +17,8 @@ import {
   visibleSubTabs,
 } from '../components/DivisionLeaderBoard';
 import { SectionFlow, type FlowSection } from '../layout/SectionFlow';
+import { useGuideAnchor } from '../use-guide-anchor';
+import type { TutorialAnchorLayout } from '../tutorial-cue-position';
 import { CupBracket } from '../components/CupBracket';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import { PixelText } from '../components/PixelText';
@@ -29,6 +31,12 @@ export interface M2LeagueScreenProps {
   onOpenCupFixture?: (fixtureId: string) => void;
   /** The board the inbox is sending the manager to, while that guide is live. */
   guideSubTab?: M2LeagueSubTab;
+  /**
+   * Reports where the guided sub-tab sits so the briefing can lift its scrim
+   * off it. Bert talks about the Leaders board; without this the tab he means
+   * sat under the same dimming as everything else he was not talking about.
+   */
+  onGuideSubTabAnchorChange?: (anchor: TutorialAnchorLayout | null) => void;
 }
 
 export function M2LeagueScreen({
@@ -37,6 +45,7 @@ export function M2LeagueScreen({
   onSelectCupSeason,
   onOpenCupFixture,
   guideSubTab,
+  onGuideSubTabAnchorChange,
 }: M2LeagueScreenProps) {
   const desktopContent = useDesktopContentStyle();
   const summary = viewModel.selectedDivisionSummary;
@@ -55,6 +64,10 @@ export function M2LeagueScreen({
   const subTabs = visibleSubTabs(viewModel.availableTabs);
   const activeSubTab = resolveSubTab(viewModel.availableTabs, selectedSubTab);
   const guidedCup = guideSubTab === 'cup';
+  const guidedSubTabAnchor = useGuideAnchor(
+    guideSubTab !== undefined,
+    onGuideSubTabAnchorChange,
+  );
 
   const leagueSections: FlowSection[] = [
     {
@@ -333,6 +346,8 @@ export function M2LeagueScreen({
                 {subTabs.map(tab => (
                   <Pressable
                     key={tab}
+                    ref={tab === guideSubTab ? guidedSubTabAnchor.anchorRef : undefined}
+                    onLayout={tab === guideSubTab ? guidedSubTabAnchor.scheduleMeasurement : undefined}
                     accessibilityRole="tab"
                     accessibilityLabel={subTabLabel(tab)}
                     accessibilityState={{ selected: tab === activeSubTab }}

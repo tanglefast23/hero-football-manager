@@ -228,7 +228,10 @@ export function StoryEventScreen({
               <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
             </PaperPanel>
           ) : null}
-          <PaperPanel kicker="Club report" title="Something needs your call" stamp="One shot" className="mt-4">
+          {/* Not "Something needs your call" — the choices below are already
+              headed "Your call", and a panel title that repeats the next
+              heading spends a line saying nothing. */}
+          <PaperPanel kicker="Club report" title="What happened" stamp="One shot" className="mt-4">
             <Text className="text-ink/70" style={scaledBody(textScale)}>{viewModel.body}</Text>
           </PaperPanel>
 

@@ -539,14 +539,16 @@ export const GlossaryCatalogSchema = z.strictObject({
 });
 
 /**
- * A manager's tip: one non-obvious rule, stated once. The body is bounded so a
- * tip stays a card on a quiet desk rather than becoming a second glossary.
+ * A manager's tip: one non-obvious rule, stated once, in the plainest words it
+ * fits into. The body is bounded so a tip stays a card on a quiet desk rather
+ * than becoming a second glossary — 200 rather than the old 400, because at
+ * 400 the cards had grown into paragraphs nobody reads on a phone.
  */
 const ManagerTipDestinationSchema = z.enum(['drill-shop', 'overall-sort']);
 const ManagerTipSchema = z.strictObject({
   id: idSchema,
   title: displayNameSchema,
-  body: z.string().trim().min(1).max(400),
+  body: z.string().trim().min(1).max(200),
   /** Only tips with somewhere useful to demonstrate the rule declare a route. */
   destination: ManagerTipDestinationSchema.optional(),
 });

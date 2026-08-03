@@ -386,6 +386,7 @@ export function teardownAudio(): void {
   ready = false;
   initAttempted = false; // allow the next mount to retry init
   lastRecoveryAt = 0;
+  cancelResumeVerify();
 }
 
 const RECOVERY_COOLDOWN_MS = 5000;
@@ -539,6 +540,7 @@ export function stopFireAmbience(): void {
  */
 registerAudioOwner({
   suspend: () => {
+    cancelResumeVerify();
     if (!ready) return;
     try {
       themePlayer?.pause();
@@ -553,7 +555,45 @@ registerAudioOwner({
       if (themeWanted) themePlayer?.play();
       if (fireWanted) fireLoopPlayer?.play();
     } catch (err) {
+      // Recovery resumes the wanted loops itself, so success needs no retry.
+      if (tryRecoverMatchAudio()) return;
       warnOnce('foreground resume failed', err);
+      return;
     }
+    verifyResume();
   },
 });
+
+/** How long a resumed loop gets to actually start before it counts as dead. */
+const RESUME_VERIFY_MS = 400;
+let resumeVerifyTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelResumeVerify(): void {
+  if (resumeVerifyTimer === null) return;
+  clearTimeout(resumeVerifyTimer);
+  resumeVerifyTimer = null;
+}
+
+/**
+ * Leaving a live match for the home screen and coming back left the players
+ * running and the music gone. iOS had torn the audio session down while the app
+ * was away, and on the way back `play()` neither threw nor made a sound — so the
+ * throw path above never fired and nothing rebuilt the session. The theme only
+ * returned if some later goal or whistle happened to fail loudly enough to
+ * trigger recovery on its own.
+ *
+ * So the loops are asked, a beat later, whether they are actually playing. A
+ * silent refusal is indistinguishable from a dead session, and the answer is the
+ * same either way: rebuild, which reactivates the session and restarts whatever
+ * the match still wants.
+ */
+function verifyResume(): void {
+  cancelResumeVerify();
+  resumeVerifyTimer = setTimeout(() => {
+    resumeVerifyTimer = null;
+    if (!ready || audioIsSuspended()) return;
+    const stalled = (themeWanted && themePlayer?.playing === false)
+      || (fireWanted && fireLoopPlayer?.playing === false);
+    if (stalled) tryRecoverMatchAudio();
+  }, RESUME_VERIFY_MS);
+}
