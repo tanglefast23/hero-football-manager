@@ -69,6 +69,7 @@ import {
   type InstantDrillResolution,
   type CareerLegendLegacyChoice,
   type AssistantGuideSequenceId,
+  type AssistantInboxGuideSequenceId,
   type GameState,
   type FacilityPosition,
   type FacilityType,
@@ -98,6 +99,7 @@ import {
   settleWeeklyTip,
   weeklyReviewViewModel,
 } from './view-models';
+import { outstandingInboxDuties } from './assistant-guide';
 import {
   eventChoiceUnavailableReason,
   eventOfferForWeek,
@@ -219,6 +221,12 @@ interface M1Store {
   postMatch: PostMatchViewModel | null;
   postMatchOverlay: PostMatchOverlay;
   weekReview: WeeklyReviewViewModel | null;
+  /**
+   * The desk jobs that refused the last Advance Week, or null when nothing has.
+   * App state rather than career state: it is a reaction to a press, not a fact
+   * about the club, and it must not survive a reload.
+   */
+  inboxDutyReminder: readonly AssistantInboxGuideSequenceId[] | null;
   selectedContractTerm: 1 | 2 | 3;
   error: string | null;
   notice: StoreNotice | null;
@@ -244,6 +252,8 @@ interface M1Store {
   /** Retires a one-shot Bert lesson for the rest of the career. */
   completeGuideMilestone: (milestone: AssistantGuideMilestone) => void;
   completeCupGiantKillingCelebration: () => void;
+  /** Sends Bert away after he has refused an Advance Week. */
+  dismissInboxDutyReminder: () => void;
   openMatchday: () => void;
   openCupFixture: (fixtureId: string) => void;
   advanceCareer: () => void;
@@ -264,7 +274,8 @@ interface M1Store {
   toggleHeroLicense: (playerId: string) => void;
   swapStartingPlayer: (starterId: string, replacementId: string) => void;
   resolvePlayerRequest: (resolution: PlayerRequestResolution) => void;
-  selectPlayer: (playerId: string) => void;
+  /** Passing undefined clears the selection — sorting the register deselects. */
+  selectPlayer: (playerId: string | undefined) => void;
   trainPlayer: (playerId: string, pathId: string) => void;
   purchaseTrainingUpgrade: (pathId: string) => void;
   clearDrillResult: () => void;
@@ -314,6 +325,7 @@ export const useM1Store = create<M1Store>((set, get) => ({
   postMatch: null,
   postMatchOverlay: null,
   weekReview: null,
+  inboxDutyReminder: null,
   selectedContractTerm: 1,
   error: null,
   notice: null,
@@ -598,6 +610,12 @@ export const useM1Store = create<M1Store>((set, get) => ({
     });
   },
 
+  dismissInboxDutyReminder() {
+    // Nothing to persist: the refusal lives and dies with the press that caused
+    // it, and the duties themselves are already recorded on the career.
+    set({ inboxDutyReminder: null });
+  },
+
   openMatchday() {
     const career = get().career;
     if (career?.phase !== 'matchday') {
@@ -722,6 +740,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
       // unopened card would lose it, so the last press opens it instead.
       if (career.pendingEvent !== undefined) {
         set({ screen: 'event', error: null });
+        return;
+      }
+
+      // The same argument, one step earlier: a job still sitting in the opening
+      // weeks' inbox is this week's business too. Bert says so rather than the
+      // button simply doing nothing, because a press that produces silence
+      // reads as a broken button.
+      const outstandingDuties = outstandingInboxDuties(career);
+      if (outstandingDuties.length > 0) {
+        set({ inboxDutyReminder: outstandingDuties, error: null });
         return;
       }
 
@@ -1095,7 +1123,16 @@ export const useM1Store = create<M1Store>((set, get) => ({
   chooseEvent(choiceId) {
     guarded(set, () => {
       const career = requireCareer(get());
-      const next = resolveContentEvent(career, choiceId);
+      // Bert's safe-or-risky card is a one-time explanation, and picking a
+      // choice is the proof it was read. Marking it here rather than only on
+      // the way out means a career that is closed between the choice and the
+      // outcome — or whose last save is coalesced away — never reopens with
+      // the lesson still pending, and the manager is never taught the same
+      // rule twice.
+      const seen = career.eventFlags.includes('m4:event-guide-seen')
+        ? career
+        : { ...career, eventFlags: [...career.eventFlags, 'm4:event-guide-seen'] };
+      const next = resolveContentEvent(seen, choiceId);
       set({ career: next, error: null });
       queueCareerSave(get, set, next);
     });

@@ -34,6 +34,8 @@ describe('Hero Cup app routing', () => {
       screen: 'postmatch',
       career: { week: 4, phase: 'manage' },
     });
+    // A league defeat ends nothing, so it must never read as a cup exit.
+    expect(useM1Store.getState().postMatch!.result.cupExit).toBe(false);
 
     useM1Store.getState().continueAfterMatch();
     expect(useM1Store.getState()).toMatchObject({
@@ -124,7 +126,7 @@ describe('Hero Cup app routing', () => {
     { path: 'Quick Result', watched: false },
     { path: 'watched', watched: true },
   ])('queues exactly one Bert giant-killing walk-on after the $path path', ({ watched }) => {
-    const prepared = prepareGiantKillingCupTie(2);
+    const prepared = prepareCupTie(2);
     const matchday = prepared.m2!.nationalCups[0].rounds[0].fixtures.find(fixture => (
       fixture.homeClubId === prepared.userClubId || fixture.awayClubId === prepared.userClubId
     ))!;
@@ -159,9 +161,30 @@ describe('Hero Cup app routing', () => {
     useM1Store.getState().completeCupGiantKillingCelebration();
     expect(useM1Store.getState().career?.pendingCupGiantKillingCelebrations).toBeUndefined();
   });
+
+  test('calls a knockout defeat the end of the cup run, and a win not', () => {
+    // There is no second leg in this competition, so one defeat is the exit —
+    // which is what Bert's once-a-career consolation is hung on.
+    prepareCupTie(2, 'opponent');
+    useM1Store.getState().quickResult();
+    expect(useM1Store.getState().postMatch!.result).toMatchObject({
+      outcomeLabel: 'LOSS',
+      cupExit: true,
+    });
+    // Being knocked out by a club two divisions up is not a giant-killing.
+    expect(useM1Store.getState().career?.pendingCupGiantKillingCelebrations).toBeUndefined();
+
+    useM1Store.setState(useM1Store.getInitialState(), true);
+    prepareCupTie(2, 'user');
+    useM1Store.getState().quickResult();
+    expect(useM1Store.getState().postMatch!.result).toMatchObject({
+      outcomeLabel: 'WIN',
+      cupExit: false,
+    });
+  });
 });
 
-function prepareGiantKillingCupTie(divisionGap: 1 | 2) {
+function prepareCupTie(divisionGap: 1 | 2, winner: 'user' | 'opponent' = 'user') {
   useM1Store.getState().startNewCareer(2);
   useM1Store.getState().completePlayerCreation({
     name: 'Cup Runner',
@@ -176,12 +199,17 @@ function prepareGiantKillingCupTie(divisionGap: 1 | 2) {
   const opponentClubId = fixture.homeClubId === career.userClubId
     ? fixture.awayClubId
     : fixture.homeClubId;
-  const dominant = {
+  const strong = {
     pac: 999, sho: 999, pas: 999, def: 999, tec: 999, sta: 999, ref: 999,
   };
-  const overmatched = {
+  const weak = {
     pac: 1, sho: 1, pas: 1, def: 1, tec: 1, sta: 1, ref: 1,
   };
+  // A knockout tie has to end decisively for either assertion to mean anything,
+  // so the side that is meant to go through is made unbeatable rather than
+  // merely favoured — penalties would otherwise decide it.
+  const dominant = winner === 'user' ? strong : weak;
+  const overmatched = winner === 'user' ? weak : strong;
   const nextCup = {
     ...cup,
     seedDivisionByClubId: {

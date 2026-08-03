@@ -34,9 +34,21 @@ const AUTHORED: Record<string, readonly BertMomentId[]> = {
   'transfer-bid': ['hold-on'],
   'transfer-negotiation': ['listing'],
   'youth-intake': ['encouraging'],
+  // He is physically in the way of the button, so the first beat is the hand
+  // up rather than a pointed finger — he is not directing traffic, he is
+  // stopping it. The second beat has to change the face as well as the words,
+  // because a joke delivered by the look that just refused you reads as
+  // sarcasm; `teasing` is the one that lands it as sympathy.
+  'inbox-duty-reminder': ['hold-on', 'teasing'],
   // The format is the good news; the second beat just points at the page that
   // will carry the scores, so it lands as instruction rather than more fanfare.
   'national-cup': ['celebrating', 'pointing-out'],
+  // The other end of the same competition. He takes the defeat on the chin
+  // first — `bad-news` winces and sags, which is a man agreeing with you that
+  // it hurt — and only then leans in to promise giants. Delivering the promise
+  // on the wincing face would make it sound like he did not believe it, and
+  // delivering the loss on the encouraging one would make him a salesman.
+  'first-cup-exit': ['bad-news', 'encouraging'],
   // Dressing-room gossip, then he points at the tab that will carry it.
   'player-requests': ['confiding', 'pointing-out'],
 

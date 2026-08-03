@@ -24,9 +24,20 @@ export interface StoryEventScreenProps {
   textScale?: TextScale;
 }
 
+/**
+ * Both calls are coloured, not just the dangerous one.
+ *
+ * A pastel-red card beside a white one reads as one option and one blank,
+ * so the eye lands on the gamble by default and the guaranteed reward looks
+ * like the absence of a choice. Blue is the game's safe colour everywhere
+ * else — the guaranteed line under this card is already `text-blue-dark` —
+ * so the fill just finishes a pairing the copy had already made. A disabled
+ * call keeps the blank card: it is not an option, so it should not be one of
+ * the two colours that mean "pick me".
+ */
 function choiceClass(choice: StoryEventChoiceViewModel): string {
   if (choice.disabled) return 'border-ink/20 bg-white opacity-40';
-  return choice.tone === 'risky' ? 'border-stamp bg-red-light' : 'border-ink/30 bg-white';
+  return choice.tone === 'risky' ? 'border-stamp bg-red-light' : 'border-blue-dark bg-blue-light';
 }
 
 export function StoryEventScreen({
@@ -222,18 +233,31 @@ export function StoryEventScreen({
           </View>
         </EventArtwork>
 
+        {/* The report is the dark band's own text — the band gives the story a
+            name, this gives it the facts — so the two are one block: full-bleed
+            like the band, with the band's bottom rule serving as the report's
+            top edge instead of a second line 16px below it.
+            Not "Something needs your call" — the choices below are already
+            headed "Your call", and a panel title that repeats the next
+            heading spends a line saying nothing. */}
+        <PaperPanel
+          kicker="Club report"
+          title="What happened"
+          className="border-x-0 border-t-0"
+        >
+          <Text className="text-ink/70" style={scaledBody(textScale)}>{viewModel.body}</Text>
+        </PaperPanel>
+
         <View className="w-full max-w-[720px] self-center p-4">
+          {/* Bert's rules card follows the facts rather than preceding them: it
+              explains safe-versus-risky, which is the decision immediately
+              below, and moving it here keeps the report flush with the band
+              whether or not this is the career's first interruption. */}
           {guideCopy ? (
             <PaperPanel kicker="Bert Rudge" title={guideCopy.title} stamp="No power effect">
               <Text className="text-ink/70" style={scaledBody(textScale)}>{guideCopy.body}</Text>
             </PaperPanel>
           ) : null}
-          {/* Not "Something needs your call" — the choices below are already
-              headed "Your call", and a panel title that repeats the next
-              heading spends a line saying nothing. */}
-          <PaperPanel kicker="Club report" title="What happened" stamp="One shot" className="mt-4">
-            <Text className="text-ink/70" style={scaledBody(textScale)}>{viewModel.body}</Text>
-          </PaperPanel>
 
           {viewModel.playerSelectionRequired || viewModel.selectedPlayer ? (
             <View className="mt-5">
@@ -270,11 +294,11 @@ export function StoryEventScreen({
                     onPress={() => onChoose(choice.id)}
                     className={`min-h-20 flex-row items-center border-2 p-3 ${choiceClass(choice)}`}
                   >
-                    <View className={choice.tone === 'risky' ? 'mr-3 h-10 w-10 items-center justify-center border-2 border-stamp' : 'mr-3 h-10 w-10 items-center justify-center border-2 border-ink/40'}>
-                      <Text className={choice.tone === 'risky' ? 'font-mono text-base text-stamp' : 'font-mono text-base text-ink'}>{String(index + 1).padStart(2, '0')}</Text>
+                    <View className={choice.tone === 'risky' ? 'mr-3 h-10 w-10 items-center justify-center border-2 border-stamp' : 'mr-3 h-10 w-10 items-center justify-center border-2 border-blue-dark'}>
+                      <Text className={choice.tone === 'risky' ? 'font-mono text-base text-stamp' : 'font-mono text-base text-blue-dark'}>{String(index + 1).padStart(2, '0')}</Text>
                     </View>
                     <View className="flex-1">
-                      <View className="flex-row items-center justify-between gap-2"><PixelText className="flex-1 text-base uppercase text-ink">{choice.label}</PixelText><StatusChip label={choice.tone} tone={choice.tone === 'risky' ? 'danger' : 'normal'} /></View>
+                      <View className="flex-row items-center justify-between gap-2"><PixelText className="flex-1 text-base uppercase text-ink">{choice.label}</PixelText><StatusChip label={choice.tone} tone={choice.tone === 'risky' ? 'danger' : 'info'} /></View>
                       <Text className="mt-1 text-sm leading-5 text-ink/60">{choice.detail}</Text>
                       <Text className={choice.disabledReason ? 'mt-2 text-sm font-bold text-stamp' : choice.tone === 'risky' ? 'mt-2 text-sm font-bold text-stamp' : 'mt-2 text-sm font-bold text-blue-dark'}>{choice.disabledReason ?? choice.consequenceHint}</Text>
                     </View>

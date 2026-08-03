@@ -5,6 +5,7 @@ import { boardUltimatumEntry } from './entries/board-ultimatum';
 import { careerEventsEntry } from './entries/career-events';
 import { cupGiantKillingEntry } from './entries/cup-giant-killing';
 import { endgameCelebrationEntry } from './entries/endgame';
+import { fulltimeReportEntry } from './entries/fulltime-report';
 import { hallOfFameEntry } from './entries/hall-of-fame';
 import { playerRequestsEntry } from './entries/player-requests';
 import { promotionTransitionEntry } from './entries/promotion-transition';
@@ -53,6 +54,7 @@ export interface DevHarnessCase {
 export const DEV_HARNESS_ENTRIES: readonly DevHarnessEntry[] = Object.freeze([
   // Ordered so the menu reads as a career does: what happens during a season,
   // then what closes one, then the two ends of the whole climb.
+  fulltimeReportEntry,
   careerEventsEntry,
   playerRequestsEntry,
   boardUltimatumEntry,

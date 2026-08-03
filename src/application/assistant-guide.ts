@@ -4,6 +4,7 @@ import {
   careerRosterCapacity,
   completeAssistantGuideSequence,
   deferAssistantGuideSequencesUntilUnlock,
+  FACILITY_CATALOG,
   isDivisionLeadersUnlocked,
   isFacilityOperational,
   isStoryCupGuideUnlocked,
@@ -202,6 +203,79 @@ export function dueAssistantInboxGuideSequences(
     pending.push('facility-upgrade');
   }
   return pending;
+}
+
+/**
+ * The desk jobs that hold the week open: the opening's two assigned tasks.
+ *
+ * Three rules decide what may be on this list, and between them they exclude
+ * most of the inbox.
+ *
+ * It must have a completion out in the world. Bert's explainers — the coach
+ * market, the cup format, the league boards — have nothing to finish, so
+ * gating on one would hold the week shut with no way to open it.
+ *
+ * It must not wall the first press of the career. `facility-placement` is a
+ * real duty by the first test and is still deliberately absent: the training
+ * pitch is already due in week 1 and stays due until it is built, so blocking
+ * on it would refuse the opening Advance Week of every new career. Week 1 asks
+ * for the pitch through the objective line instead, which is the gentler
+ * instrument and the one the opening was written around.
+ *
+ * It must be completable *this week* — see `affordable` below. A duty the club
+ * cannot pay for would otherwise trap a career that has no way to earn until
+ * the week moves, and nothing in this game is allowed to end that way.
+ */
+const BLOCKING_INBOX_DUTIES: readonly AssistantInboxGuideSequenceId[] = [
+  'coaching-office',
+  'youth-intake',
+];
+
+/**
+ * Whether the club could actually clear this duty right now.
+ *
+ * The youth intake is always answerable — declining closes it and costs
+ * nothing — so only the build has a price to check. Checked against the same
+ * `buildCost` the facility screen spends, so the gate lifts at exactly the
+ * moment the button it is pointing at would refuse.
+ */
+function isInboxDutyAffordable(
+  state: GameState,
+  duty: AssistantInboxGuideSequenceId,
+): boolean {
+  if (duty !== 'coaching-office') return true;
+  const cash = state.clubs.find(club => club.id === state.userClubId)?.cash ?? 0;
+  return cash >= FACILITY_CATALOG['coaching-office'].buildCost;
+}
+
+/**
+ * The last week an unfinished duty stops the clock.
+ *
+ * Long enough to cover the opening's own assignments — the youth intake opens
+ * in week 2 and the coaching office in week 3 — and no longer. By week 4 the
+ * manager has been shown what a desk job looks like and what happens when one
+ * is left; after that, ignoring the desk is a decision they are allowed to make
+ * and live with, which is the whole shape of this game's economy.
+ */
+export const LAST_GATED_INBOX_WEEK = 3;
+
+/**
+ * The duties still owed this week, or none once the opening is over.
+ *
+ * Reads the same `dueAssistantInboxGuideSequences` the desk itself renders, so
+ * a duty disappears from here at the exact moment it leaves the inbox — the
+ * coaching office clears when construction *starts*, because that is when its
+ * building joins the grid, and the youth intake clears on a signing or a
+ * decline alike.
+ */
+export function outstandingInboxDuties(
+  state: GameState,
+): AssistantInboxGuideSequenceId[] {
+  if (state.season !== 1 || state.week > LAST_GATED_INBOX_WEEK) return [];
+  const due = new Set(dueAssistantInboxGuideSequences(state));
+  return BLOCKING_INBOX_DUTIES.filter(
+    duty => due.has(duty) && isInboxDutyAffordable(state, duty),
+  );
 }
 
 /**

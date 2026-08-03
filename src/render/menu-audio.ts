@@ -124,8 +124,43 @@ function tryRecoverMenuAudio(): boolean {
   return ready;
 }
 
+/**
+ * True while a real match is on screen and owns the music.
+ *
+ * Normally the top-level screen settles this on its own — `menuThemeForScreen`
+ * returns null for a match, so there is nothing to collide with. The power
+ * acquisition demo breaks that: it mounts a live MatchScreen *over* the
+ * awakening, whose event bed is still the theme the app wants, so the bed and
+ * the match theme looped on top of each other for the whole clip. The same
+ * would happen to any future match clip shown over a menu screen.
+ *
+ * Modelled as a yield rather than a theme change so the caller never has to
+ * know which bed was playing: `activeTheme` still records what the app wants,
+ * and the bed picks itself back up when the pitch goes away.
+ */
+let yieldedToMatch = false;
+
+/** Silences the menu bed for as long as a match owns the screen. Idempotent. */
+export function yieldMenuThemeToMatch(): void {
+  if (yieldedToMatch) return;
+  yieldedToMatch = true;
+  if (!ready || activeTheme === null) return;
+  try {
+    players.get(activeTheme)?.pause();
+  } catch (error) {
+    warnOnce(`${activeTheme} match yield failed`, error);
+  }
+}
+
+/** Hands the music back to whichever bed the app still wants. Idempotent. */
+export function releaseMenuThemeToMatch(): void {
+  if (!yieldedToMatch) return;
+  yieldedToMatch = false;
+  playActiveTheme();
+}
+
 function playActiveTheme(): void {
-  if (!ready || activeTheme === null || audioIsSuspended()) return;
+  if (!ready || activeTheme === null || audioIsSuspended() || yieldedToMatch) return;
   try {
     players.get(activeTheme)?.play();
   } catch (error) {
@@ -169,7 +204,9 @@ function startLoopWatchdog(): void {
   if (loopWatchdog !== null) return;
   loopWatchdog = setInterval(() => {
     const theme = activeTheme;
-    if (!ready || theme === null || recoveringThemes.has(theme)) return;
+    // A yielded bed is paused on purpose, not stalled — reviving it here would
+    // restart the exact overlap the yield exists to prevent.
+    if (!ready || theme === null || yieldedToMatch || recoveringThemes.has(theme)) return;
     const player = players.get(theme);
     if (player === undefined) return;
     try {
@@ -186,7 +223,7 @@ function startLoopWatchdog(): void {
       recoveringThemes.add(theme);
       player.seekTo(0)
         .then(() => {
-          if (ready && activeTheme === theme) {
+          if (ready && activeTheme === theme && !yieldedToMatch) {
             player.loop = true;
             player.play();
           }
@@ -367,4 +404,7 @@ export function teardownMenuAudio(): void {
   ready = false;
   initAttempted = false;
   lastRecoveryAt = 0;
+  // A match unmounting after teardown can no longer release the yield, so it
+  // must not survive here or the next session would start permanently silent.
+  yieldedToMatch = false;
 }

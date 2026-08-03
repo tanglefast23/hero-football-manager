@@ -11,9 +11,12 @@ import {
 } from '../../game/assistant-guide';
 import type { GameState } from '../../game/types';
 import { createLaunchCareerSetup } from '../launch';
+import { FACILITY_CATALOG } from '../../game/facilities';
 import {
   currentAssistantObjective,
   dueAssistantInboxGuideSequences,
+  LAST_GATED_INBOX_WEEK,
+  outstandingInboxDuties,
   pendingAssistantGuideSequence,
   reconcileSatisfiedAssistantGuideSequences,
 } from '../assistant-guide';
@@ -274,6 +277,64 @@ describe('assistant guide application flow', () => {
     const weekThree = { ...afterYouth, week: 3 };
     expect(dueAssistantInboxGuideSequences(weekThree)).toContain('coaching-office');
     expect(dueAssistantInboxGuideSequences(weekThree)).not.toContain('youth-intake');
+  });
+
+  it('holds the week open for the opening inbox duties and lets it go afterwards', () => {
+    let state = createCareer(createLaunchCareerSetup(415));
+    state = {
+      ...state,
+      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+    };
+
+    // Week 1 must never be walled: the training pitch is due from the first
+    // morning, and refusing the opening Advance Week of every career is a much
+    // bigger change than teaching the desk.
+    expect(dueAssistantInboxGuideSequences(state)).toContain('facility-placement');
+    expect(outstandingInboxDuties(state)).toEqual([]);
+
+    const weekTwo = reconcileStoryYouthIntake({ ...state, week: 2 });
+    expect(outstandingInboxDuties(weekTwo)).toEqual(['youth-intake']);
+
+    // Declining is a completion, so the gate can be cleared without spending.
+    const afterYouth = completeAssistantGuideSequence(weekTwo, 'youth-intake');
+    expect(outstandingInboxDuties(afterYouth)).toEqual([]);
+
+    const weekThree = { ...afterYouth, week: 3 };
+    expect(outstandingInboxDuties(weekThree)).toEqual(['coaching-office']);
+
+    // Starting construction clears it — the building joins the grid at once,
+    // which is what the desk reads. Finishing it is not required.
+    const building = buildCareerFacility(weekThree, 'coaching-office', { x: 1, y: 4 }).state;
+    expect(outstandingInboxDuties(building)).toEqual([]);
+
+    // Week 4 onwards the desk is the manager's own business.
+    expect(outstandingInboxDuties({ ...weekThree, week: LAST_GATED_INBOX_WEEK + 1 })).toEqual([]);
+    expect(outstandingInboxDuties({ ...weekThree, season: 2 })).toEqual([]);
+  });
+
+  it('never holds the week open for a duty the club cannot pay for', () => {
+    let state = createCareer(createLaunchCareerSetup(415));
+    state = {
+      ...state,
+      market: hireCareerCoach(state, state.market!, state.market!.coachCandidates[0].id),
+      week: 3,
+    };
+    expect(outstandingInboxDuties(state)).toContain('coaching-office');
+
+    // A club that cannot afford the office has no way to earn until the week
+    // moves, so the gate must let go rather than end the career on a locked
+    // button. Fail-soft, like the rest of the economy. The duty stays on the
+    // desk — it is still the job — it just stops holding the clock.
+    const broke = {
+      ...state,
+      clubs: state.clubs.map(club => (
+        club.id === state.userClubId
+          ? { ...club, cash: FACILITY_CATALOG['coaching-office'].buildCost - 1 }
+          : club
+      )),
+    };
+    expect(dueAssistantInboxGuideSequences(broke)).toContain('coaching-office');
+    expect(outstandingInboxDuties(broke)).not.toContain('coaching-office');
   });
 
   it('keeps the Training Pitch objective unfinished until construction completes', () => {

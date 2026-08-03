@@ -82,6 +82,7 @@ import {
   type PowerJuice,
   type PowerJuiceHeroTint,
 } from './power-cut-in';
+import { releaseMenuThemeToMatch, yieldMenuThemeToMatch } from './menu-audio';
 import { PowerTitleTakeover } from './PowerTitleTakeover';
 import { appendBannerNewestFour, type MatchBannerSubject } from './match-banners';
 import { CupTitleCard } from './CupTitleCard';
@@ -92,6 +93,7 @@ import { livePowerEffectActors, superSpeedAfterimageActors } from './live-power-
 import {
   advancePowerMatchShowcaseReady,
   initializePowerMatchShowcase,
+  powerMatchShowcaseEffectSpent,
   POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS,
 } from './power-match-showcase';
 import {
@@ -589,6 +591,8 @@ export function MatchScreen({
     powerCutInQaActive ? [...powerCutInQaEntries] : []
   ));
   const powerShowcaseCompletedRef = useRef(false);
+  /** When the showcased power stopped being watchable, for powers that outlive it. */
+  const [powerShowcaseSpentAt, setPowerShowcaseSpentAt] = useState<number | undefined>(undefined);
   const powerCutInPolicy = powerCutInGroupPolicy(powerCutIns);
   /** Which player's body is mid white/gold activation flash, and in which half. */
   const [heroTint, setHeroTint] = useState<{ player: number; tint: 'white' | 'gold' } | null>(null);
@@ -760,6 +764,20 @@ export function MatchScreen({
     return () => clearTimeout(timer);
   }, [powerCutInQaActive, powerCutIns]);
 
+  // Watched on the tick rather than on the power's state, because for Portal
+  // Pass the state outlives the picture: the transfer is already over while the
+  // sim is still counting down an inert cooldown.
+  useEffect(() => {
+    if (
+      powerMatchQa === undefined
+      || onPowerShowcaseComplete === undefined
+      || powerShowcaseSpentAt !== undefined
+      || powerShowcaseCompletedRef.current
+    ) return;
+    if (!powerMatchShowcaseEffectSpent(match, powerMatchQa.power)) return;
+    setPowerShowcaseSpentAt(performance.now());
+  }, [hud.tick, match, onPowerShowcaseComplete, powerMatchQa, powerShowcaseSpentAt]);
+
   useEffect(() => {
     if (
       powerMatchQa === undefined
@@ -769,8 +787,13 @@ export function MatchScreen({
     const endedPower = powerCutIns.find(entry => (
       entry.power === powerMatchQa.power && entry.outroStartedAt !== undefined
     ));
-    if (endedPower?.outroStartedAt === undefined) return undefined;
-    const freezeAt = endedPower.outroStartedAt + POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS;
+    // Whichever comes first: the power's own ending, or the moment its effect
+    // stopped being watchable. They are the same instant for every power but
+    // the ones that hold an inert state afterwards.
+    const endedAt = [endedPower?.outroStartedAt, powerShowcaseSpentAt]
+      .filter((value): value is number => value !== undefined);
+    if (endedAt.length === 0) return undefined;
+    const freezeAt = Math.min(...endedAt) + POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS;
     const timer = setTimeout(() => {
       if (powerShowcaseCompletedRef.current) return;
       powerShowcaseCompletedRef.current = true;
@@ -779,19 +802,26 @@ export function MatchScreen({
       onPowerShowcaseComplete();
     }, Math.max(0, Math.ceil(freezeAt - performance.now())));
     return () => clearTimeout(timer);
-  }, [onPowerShowcaseComplete, powerCutIns, powerMatchQa]);
+  }, [onPowerShowcaseComplete, powerCutIns, powerMatchQa, powerShowcaseSpentAt]);
 
   // Audio lifecycle — own effect, separate from the RAF loop below: starts
   // the match theme on mount, tears everything down on unmount. No pause
   // handling needed (see src/render/audio.ts) — the theme keeps looping
   // through a paused match, and playForEvent() below is only ever reached
   // from ticks the RAF loop actually simulates.
+  // The yield pairs with the theme: a pitch on screen owns the music, and
+  // claiming that here — where the match theme already starts and stops — is
+  // the one place a future caller cannot forget it. In ordinary play there is
+  // no menu bed to silence, so this is a no-op; it earns its keep when a match
+  // is shown *over* a menu screen, as the power demo does over the awakening.
   useEffect(() => {
     initAudio();
+    yieldMenuThemeToMatch();
     startTheme();
     return () => {
       stopTheme();
       teardownAudio();
+      releaseMenuThemeToMatch();
     };
   }, []);
 

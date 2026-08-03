@@ -170,21 +170,19 @@ export function ClubHomeScreen({
                 />
               </View>
             </View>
-            <View className="mt-4">
-              <ActionButton
-                label={fixture.matchdayReady
-                  ? 'Prepare match day  ▸'
-                  : fixtureIsThisWeek ? 'Use Advance Week below' : 'Advance to fixture week'}
-                accessibilityLabel={fixture.matchdayReady
-                  ? `Open match day for ${fixture.homeTeam} versus ${fixture.awayTeam}`
-                  : fixtureIsThisWeek
-                    ? `This week's fixture is ${fixture.homeTeam} versus ${fixture.awayTeam}. Use Advance Week below to prepare Match Day.`
-                    : `Next fixture is ${fixture.homeTeam} versus ${fixture.awayTeam}. Advance to its match week to prepare.`}
-                onPress={() => onOpenFixture(fixture.id)}
-                disabled={!fixture.matchdayReady}
-                variant="action"
-              />
-            </View>
+            {/* Only match day is a job for this card. Until then the week is
+                advanced from the bar at the bottom, so the card shows no button
+                rather than a dead one repeating that instruction. */}
+            {fixture.matchdayReady ? (
+              <View className="mt-4">
+                <ActionButton
+                  label="Prepare match day  ▸"
+                  accessibilityLabel={`Open match day for ${fixture.homeTeam} versus ${fixture.awayTeam}`}
+                  onPress={() => onOpenFixture(fixture.id)}
+                  variant="action"
+                />
+              </View>
+            ) : null}
           </PaperPanel>
         </MatchWeekMarquee>
       ),

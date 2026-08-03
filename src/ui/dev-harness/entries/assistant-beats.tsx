@@ -60,9 +60,12 @@ const AUTHORED_EXPRESSION_RUNS: readonly string[] = Object.freeze([
   'board-ultimatum',
   'board-protection',
   'division-leaders',
-  // Authored beats rather than content sequences — App.tsx owns their copy — so
-  // the reel cannot play them. Listed anyway: this is a mirror of the map, and
-  // a mirror with holes in it is worse than no mirror.
+  // The last four are authored the same way but have no content sequence: they
+  // are one-off remarks App.tsx hands him as a custom message, so the reel
+  // cannot play them. They belong here all the same — this list is a claim
+  // about what has been authored, not about what is reachable from the reel.
+  'inbox-duty-reminder',
+  'first-cup-exit',
   'first-fans',
   'first-fans-ledger',
 ]);

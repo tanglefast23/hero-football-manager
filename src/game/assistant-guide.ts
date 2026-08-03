@@ -52,6 +52,12 @@ export type AssistantGuideMilestone =
   /** Bert introduces the veteran-only 3× watched-match speed once. */
   | 'triple-speed-seen'
   /**
+   * Bert takes the sting out of the first Cup exit, then never mentions it
+   * again — being knocked out is the ordinary shape of a knockout competition,
+   * and a gaffer who consoles you every season is a nag.
+   */
+  | 'first-cup-exit-seen'
+  /**
    * The first crowd the club ever wins. Two beats, one per screen: the
    * congratulations on the desk, then the ledger he walks you to. Held apart so
    * a career that closes between them resumes on the board it still owes.
@@ -105,6 +111,7 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'facility-combo-fan-shop-stadium-seen': 'guide:bert:facility-combo-fan-shop-stadium-seen',
   'facility-combo-medical-training-pitch-seen': 'guide:bert:facility-combo-medical-training-pitch-seen',
   'triple-speed-seen': 'guide:bert:triple-speed-seen',
+  'first-cup-exit-seen': 'guide:bert:first-cup-exit-seen',
   'first-fans-seen': 'guide:bert:first-fans-seen',
   'first-fans-ledger-seen': 'guide:bert:first-fans-ledger-seen',
 };
