@@ -71,6 +71,93 @@ describe('club finances immediate transaction history', () => {
     );
   });
 
+  /**
+   * A home gate is the club's largest income and exists only as a ledger line,
+   * so a one-week statement window made it unreadable the moment the next week
+   * settled. The window keeps the last four weeks, newest first.
+   */
+  test('keeps four settled weeks on the statement, newest first, each line dated', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260725));
+    const week = (number: number) => ({
+      season: 1,
+      week: number,
+      lines: [
+        { kind: 'tickets' as const, label: 'League home gate', amount: 100 * number },
+        { kind: 'wages' as const, label: 'Weekly wages', amount: -50 },
+      ],
+      balanceAfter: 1_000,
+    });
+    const fiveWeeks = { ...initial, week: 6, ledgers: [1, 2, 3, 4, 5].map(week) };
+
+    const viewModel = clubFinancesViewModel(fiveWeeks);
+
+    // Five settled, four shown: week 1 has aged out.
+    expect(viewModel.ledger).toHaveLength(8);
+    expect(viewModel.ledger[0]).toMatchObject({
+      periodLabel: 'S1 · W5',
+      label: 'League home gate',
+      amount: 500,
+      kind: 'income',
+    });
+    expect(viewModel.ledger.at(-1)).toMatchObject({
+      periodLabel: 'S1 · W2',
+      label: 'Weekly wages',
+      kind: 'expense',
+    });
+    expect(viewModel.ledger.map(line => line.periodLabel)).toEqual([
+      'S1 · W5', 'S1 · W5', 'S1 · W4', 'S1 · W4',
+      'S1 · W3', 'S1 · W3', 'S1 · W2', 'S1 · W2',
+    ]);
+    expect(new Set(viewModel.ledger.map(line => line.id)).size).toBe(8);
+  });
+
+  /**
+   * `weeklyNet` cannot forecast a gate, a four-weekly sponsor fee or a season
+   * prize, so the panel reports what those three actually banked. A zero needs
+   * its reason attached or it reads as a broken number.
+   */
+  test('reports banked match, sponsor and prize income and explains a zero', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260726));
+    const settled = (lines: { kind: 'tickets' | 'sponsor' | 'prize' | 'wages'; label: string; amount: number }[]) => ({
+      ...initial,
+      week: 2,
+      ledgers: [{ season: 1, week: 1, lines, balanceAfter: 1_000 }],
+    });
+
+    expect(clubFinancesViewModel(settled([
+      { kind: 'tickets', label: 'League home gate', amount: 2_040 },
+      { kind: 'sponsor', label: 'Monthly sponsor fee', amount: 600 },
+      { kind: 'wages', label: 'Weekly wages', amount: -1_180 },
+    ])).variableIncome).toEqual({ amount: 2_640 });
+
+    // Away in the settled week: no gate line exists at all, and the screen says why.
+    const awayFixture = initial.fixtures.find(fixture => fixture.awayClubId === initial.userClubId)!;
+    const away = settled([{ kind: 'wages', label: 'Weekly wages', amount: -1_180 }]);
+    expect(clubFinancesViewModel({
+      ...away,
+      fixtures: [{ ...awayFixture, season: 1, week: 1 }],
+    }).variableIncome).toEqual({ amount: 0, detail: 'away game' });
+
+    // The league calendar opens with two fixture-free weeks, and a settled week
+    // with no fixture at all must not read as a bare zero either.
+    expect(clubFinancesViewModel({
+      ...settled([{ kind: 'wages', label: 'Weekly wages', amount: -1_180 }]),
+      fixtures: [],
+    }).variableIncome).toEqual({ amount: 0, detail: 'no match' });
+
+    // Before the first week settles there is nothing to report yet.
+    expect(clubFinancesViewModel(initial).variableIncome)
+      .toEqual({ amount: 0, detail: 'no match' });
+  });
+
+  test('puts the club fan count on the finances panel', () => {
+    const initial = createCareer(createLaunchCareerSetup(20260727));
+    const club = initial.clubs.find(candidate => candidate.id === initial.userClubId)!;
+
+    expect(clubFinancesViewModel(initial).fans).toBe(club.fans);
+    expect(club.fans).toBeGreaterThan(0);
+  });
+
   test('does not advertise or project the Cozy wage subsidy on Chairman difficulty', () => {
     const chairman = createCareer(createLaunchCareerSetup(
       20260721,

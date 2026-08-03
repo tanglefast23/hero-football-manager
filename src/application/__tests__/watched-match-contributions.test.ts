@@ -94,6 +94,18 @@ function advanceToMatchday(): void {
       throw new Error(`the career stopped on the ${state.screen} screen before a matchday`);
     }
     state.advanceCareer();
+    // The opening weeks hold Advance Week until the desk is clear. This test is
+    // about match stat lines, so it answers the duty the cheapest way there is
+    // — declining the youth intake is free and closes the window — and carries
+    // on to the fixture it came for.
+    const refused = useM1Store.getState().inboxDutyReminder;
+    if (refused !== null) {
+      useM1Store.getState().dismissInboxDutyReminder();
+      if (!refused.includes('youth-intake')) {
+        throw new Error(`the desk refused with ${refused.join(', ')} before a matchday`);
+      }
+      useM1Store.getState().declineYouth();
+    }
   }
   throw new Error('the career never reached a matchday');
 }

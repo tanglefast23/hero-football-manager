@@ -9,6 +9,7 @@ import type { MatchState, PowerId } from '../../sim/types';
 import {
   advancePowerMatchShowcaseReady,
   initializePowerMatchShowcase,
+  powerMatchShowcaseEffectSpent,
   POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS,
   powerMatchShowcaseAway,
   powerMatchShowcaseHeroIndex,
@@ -124,5 +125,50 @@ describe('live power match showcase', () => {
 
     expect(match.events).toContainEqual(expect.objectContaining({ kind: 'SAVE', by: hero }));
     expect(match.ball).toMatchObject({ kind: 'held', by: hero, caught: true });
+  });
+
+  /**
+   * The clip used to run until the hero's `active` state expired. For Portal
+   * Pass that is a 40-tick Heat lock with nothing on screen, so the demo kept
+   * playing for seconds after the runner had already shot.
+   */
+  it('calls Portal Pass spent when the runner releases the ball, well before its lock expires', () => {
+    const power = 'PORTAL_PASS' as const;
+    const match = createMatch(42, powerMatchShowcaseHome(power), powerMatchShowcaseAway());
+    const hero = initializePowerMatchShowcase(match, power);
+
+    expect(powerMatchShowcaseEffectSpent(match, power)).toBe(false);
+    advanceThroughAutoFire(match, power, hero);
+
+    // The transfer has landed: a protected runner is holding the ball, and the
+    // clip is at its most watchable — nothing is spent yet.
+    const activeState = match.players[hero].powerState;
+    expect(activeState.kind).toBe('active');
+    const lockExpiresAt = activeState.kind === 'active' ? activeState.untilTick : 0;
+    expect(powerMatchShowcaseEffectSpent(match, power)).toBe(false);
+
+    let spentAtTick: number | undefined;
+    for (let frame = 0; frame < 60 && spentAtTick === undefined; frame += 1) {
+      tick(match);
+      if (powerMatchShowcaseEffectSpent(match, power)) spentAtTick = match.tick;
+    }
+
+    expect(spentAtTick).toBeDefined();
+    // The whole point: the picture finishes before the lock does.
+    expect(spentAtTick!).toBeLessThan(lockExpiresAt);
+  });
+
+  it('never calls a sustained power spent early', () => {
+    const power = 'SUPER_SPEED' as const;
+    const match = createMatch(42, powerMatchShowcaseHome(power), powerMatchShowcaseAway());
+    const hero = initializePowerMatchShowcase(match, power);
+    advanceThroughAutoFire(match, power, hero);
+
+    // Powers whose visible effect and active window are the same thing keep the
+    // original rule, so the freeze still waits for the state to end.
+    for (let frame = 0; frame < 40; frame += 1) {
+      expect(powerMatchShowcaseEffectSpent(match, power)).toBe(false);
+      tick(match);
+    }
   });
 });

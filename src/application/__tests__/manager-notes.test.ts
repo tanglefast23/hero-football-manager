@@ -137,6 +137,33 @@ describe("manager's notes", () => {
       expect(note?.detail).toContain(`Week ${CUP_SETTLEMENT_WEEKS[2]}`);
     });
 
+    it('names the ground so the venue cannot read as the rival club\'s', () => {
+      // The helper hands the user the home tie, so the away half is built by
+      // swapping the two clubs on that same fixture.
+      const home = cupCareer(20260911, 2, 'playing');
+      const week = CUP_SETTLEMENT_WEEKS[1];
+      const cup = home.m2!.nationalCups[0]!;
+      const tie = cup.rounds[0]!.fixtures[0]!;
+      const away: GameState = {
+        ...home,
+        m2: {
+          ...home.m2!,
+          nationalCups: [{
+            ...cup,
+            rounds: [{
+              ...cup.rounds[0]!,
+              fixtures: [{ ...tie, homeClubId: tie.awayClubId, awayClubId: tie.homeClubId }],
+            }],
+          }],
+        },
+      };
+      const detailFor = (state: GameState) => managerNotes({ ...state, week })
+        .find(candidate => candidate.id === 'note:cup-round:2')?.detail;
+
+      expect(detailFor(home)).toMatch(/^Playing .+ at our stadium\./);
+      expect(detailFor(away)).toMatch(/^Playing .+ at their stadium\./);
+    });
+
     it('stops updating once the club is knocked out', () => {
       const state = cupCareer(20260912, 2, 'out');
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { AssistantGuideFocus } from '../../content';
-import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
+import { ActionButton, Metric, PaperPanel, SectionLabel, StatusChip, formatCompactNumber, formatCurrency } from '../components/Scorecard';
 import { EmptyDocket } from '../components/EmptyDocket';
 import { FacilitySprite } from '../components/FacilitySprite';
 import type {
@@ -479,9 +479,16 @@ function CashPositionSection({ viewModel, guideFocus }: CashPositionSectionProps
             />
             <Metric label="Projected balance" value={formatCurrency(viewModel.projectedBalance)} />
           </View>
-          <PixelText className="mt-3 text-xs uppercase leading-4 tracking-wide text-ink/45">
-            Forward estimate · known weekly commitments and steady merchandise · match, sponsor and prize income excluded
-          </PixelText>
+          <View className="mt-2 flex-row gap-2">
+            <Metric label="Fans" value={formatCompactNumber(viewModel.fans)} />
+            <Metric
+              label="Match, sponsor & prize"
+              value={viewModel.variableIncome.detail === undefined
+                ? formatCurrency(viewModel.variableIncome.amount, true)
+                : `${formatCurrency(viewModel.variableIncome.amount)} (${viewModel.variableIncome.detail})`}
+              tone={viewModel.variableIncome.amount > 0 ? 'positive' : 'normal'}
+            />
+          </View>
           {viewModel.wageSubsidyLabel ? (
             <View className="mt-3 border border-pitch-dark bg-pitch-light px-3 py-2">
               <PixelText className="text-sm uppercase tracking-wide text-ink">
@@ -531,7 +538,7 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
         {viewModel.ledger.length === 0 ? (
           <EmptyDocket
             title="Statement empty"
-            detail="Wages, gate receipts and transfers land here as the week is played."
+            detail="Wages, gate receipts, sponsor money and upkeep land here as each week is played."
           />
         ) : (
         <View className="border-2 border-ink bg-white">
@@ -545,10 +552,13 @@ function ItemizedStatementSection({ viewModel, onOpenLedgerLine }: ItemizedState
               : line.kind === 'expense'
                 ? 'text-red-dark'
                 : 'text-ink';
-            const accessibilityLabel = `${line.label}, ${line.amount > 0 ? 'plus ' : ''}${formatCurrency(line.amount)}`;
+            const accessibilityLabel = `${line.periodLabel}, ${line.label}, ${line.amount > 0 ? 'plus ' : ''}${formatCurrency(line.amount)}`;
             const content = (
               <>
-                <Text className="flex-1 text-base text-ink">{line.label}</Text>
+                <View className="flex-1 pr-3">
+                  <Text className="text-base text-ink">{line.label}</Text>
+                  <Text className="font-mono text-xs uppercase text-ink/50">{line.periodLabel}</Text>
+                </View>
                 <Text className={`font-mono text-base ${amountClass}`}>
                   {formatCurrency(line.amount, true)}
                 </Text>
@@ -593,11 +603,11 @@ interface RecentTransactionsSectionProps {
 function RecentTransactionsSection({ viewModel }: RecentTransactionsSectionProps) {
   return (
     <View>
-          <SectionLabel eyebrow="Cash activity" title="Recent club transactions" />
+          <SectionLabel eyebrow="Cash activity" title="Recent signings & builds" />
           {viewModel.recentTransactions.length === 0 ? (
             <EmptyDocket
-              title="No cash activity"
-              detail="Money in and out of the club shows up here after the first week is played."
+              title="Nothing signed or built"
+              detail="Transfers, youth signings, coach hires and facility work land here. Weekly wages and gate money stay on the statement above."
             />
           ) : (
           <View className="border-2 border-ink bg-white">

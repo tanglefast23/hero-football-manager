@@ -17,6 +17,20 @@ describe('repeat-training presentation contract', () => {
     expect(modal).toContain('onTrainDrill(playerId, nextBatch.pathId);');
   });
 
+  it('lets a tapped number stand instead of reading it back off the scroll offset', () => {
+    const modal = source('src/ui/TrainingDrillModal.tsx');
+
+    // Tapping a number also scrolls the row to it, and on iOS a programmatic
+    // animated scroll ends by firing onMomentumScrollEnd like any other.
+    // Ungated, that event re-derived the count from wherever the row actually
+    // stopped — and only about five cells fit the phone card, so every number
+    // past those clamps short and the tapped "3" quietly became "2" a third of
+    // a second later. Only the manager's own finger may move the selection.
+    expect(modal).toContain('draggingRepeatRef.current = false;');
+    expect(modal).toContain('onScrollBeginDrag={() => { draggingRepeatRef.current = true; }}');
+    expect(modal).toContain('if (!draggingRepeatRef.current) return;');
+  });
+
   it('names risky runs and offers all three requested safety choices', () => {
     const modal = source('src/ui/TrainingDrillModal.tsx');
 

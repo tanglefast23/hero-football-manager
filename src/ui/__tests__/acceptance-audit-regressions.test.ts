@@ -106,11 +106,14 @@ describe('player-facing acceptance audit regressions', () => {
     expect(settings).toContain('accessibilityRole="text" accessibilityLabel={`Career difficulty ${difficultyLabel}`}');
   });
 
-  test('tells the player how to enter a current-week match day', () => {
+  test('marks the current match week and offers a button only when match day is ready', () => {
     const home = source('src/ui/screens/ClubHomeScreen.tsx');
 
-    expect(home).toContain("'Use Advance Week below'");
-    expect(home).toContain("Use Advance Week below to prepare Match Day.");
+    // Advancing the week is the bottom bar's job, so the card carries no
+    // disabled stand-in button pointing at it.
+    expect(home).toContain('{fixture.matchdayReady ? (');
+    expect(home).not.toContain('Use Advance Week below');
+    expect(home).not.toContain('Advance to fixture week');
     expect(home).toContain('const fixtureIsThisWeek = viewModel.isCurrentGameWeek;');
     expect(home).toContain('<MatchWeekMarquee active={fixtureIsThisWeek}>');
     expect(home).toContain('absolute -inset-3 border-2 border-ink bg-red-dark');

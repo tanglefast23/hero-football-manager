@@ -10,6 +10,38 @@ export const POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 15;
 /** Let ordinary play continue for one second after the power ends, then freeze. */
 export const POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS = 1000;
 
+/**
+ * True once the showcased power has finished being worth watching, for the
+ * powers whose sim `active` window outlives what is on screen.
+ *
+ * Portal Pass is the case that forced this. It resolves completely at
+ * activation, and the 40 ticks of `active` that follow are a Heat and cooldown
+ * lock with nothing to see (`DUR` in src/sim/powers.ts says so in as many
+ * words). The clip froze on that state plus a second, so it ran for roughly
+ * five seconds of ordinary play after the shot it exists to show. What ends
+ * this clip is the runner's first touch out of the portal — the pass or the
+ * shot — or the shield lapsing if they hold onto it.
+ *
+ * Every other power's visible effect and active window are the same thing, so
+ * they keep the original rule and this returns false for them. Deliberately a
+ * read of live match state rather than a sim change: the cooldown is balance,
+ * and shortening it would move every match and cost an ENGINE_VERSION bump to
+ * fix a presentation problem.
+ */
+export function powerMatchShowcaseEffectSpent(match: MatchState, power: PowerId): boolean {
+  if (power !== 'PORTAL_PASS') return false;
+  const hero = match.players[powerMatchShowcaseHeroIndex(power)];
+  // Nothing is spent until the portal has actually fired.
+  if (hero === undefined || hero.powerState.kind !== 'active') return false;
+  const receiver = match.players.findIndex(
+    player => player.portalProtectedUntilTick !== undefined,
+  );
+  // No protected runner left: the shield lapsed, or the transfer found nobody.
+  // Either way the authored moment is behind us and only the lock remains.
+  if (receiver === -1) return true;
+  return !(match.ball.kind === 'held' && match.ball.by === receiver);
+}
+
 const HERO_INDEX: Readonly<Record<PowerId, number>> = {
   SUPER_SPEED: 10,
   BLINK_RUN: 10,

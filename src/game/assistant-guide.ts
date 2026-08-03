@@ -50,7 +50,13 @@ export type AssistantGuideMilestone =
   | 'facility-combo-fan-shop-stadium-seen'
   | 'facility-combo-medical-training-pitch-seen'
   /** Bert introduces the veteran-only 3× watched-match speed once. */
-  | 'triple-speed-seen';
+  | 'triple-speed-seen'
+  /**
+   * Bert takes the sting out of the first Cup exit, then never mentions it
+   * again — being knocked out is the ordinary shape of a knockout competition,
+   * and a gaffer who consoles you every season is a nag.
+   */
+  | 'first-cup-exit-seen';
 
 export type AssistantInboxProductAlertPriority = 'urgent' | 'normal';
 
@@ -98,6 +104,7 @@ const FLAG_BY_MILESTONE: Readonly<Record<AssistantGuideMilestone, string>> = {
   'facility-combo-fan-shop-stadium-seen': 'guide:bert:facility-combo-fan-shop-stadium-seen',
   'facility-combo-medical-training-pitch-seen': 'guide:bert:facility-combo-medical-training-pitch-seen',
   'triple-speed-seen': 'guide:bert:triple-speed-seen',
+  'first-cup-exit-seen': 'guide:bert:first-cup-exit-seen',
 };
 
 const MILESTONE_BY_SEQUENCE: Readonly<Partial<Record<AssistantGuideSequenceId, AssistantGuideMilestone>>> = {
