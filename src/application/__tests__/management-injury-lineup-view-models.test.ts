@@ -336,10 +336,12 @@ describe('management injury and lineup presentation', () => {
     // This deliberately stale Week-15 fixture never completed the required
     // first pitch, so its urgent Training Pitch card still carries the
     // facility-placement guide and pushes scout-mission out of the three slots.
+    // Being urgent is also why it leads: the desk orders on priority, and Bert's
+    // guides queue behind it.
     expect(inbox.map(alert => alert.guideSequenceId)).toEqual([
+      'facility-placement',
       'head-coach-market',
       'youth-intake',
-      'facility-placement',
     ]);
   });
 

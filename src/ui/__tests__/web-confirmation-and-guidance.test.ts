@@ -49,6 +49,10 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
     expect(home).not.toContain('const locked =');
     expect(home).not.toContain('disabled={locked}');
     expect(home).not.toContain('opacity: locked');
+    // Nor may the handler re-impose the bar the screen dropped. It used to
+    // swallow every tap but the pitch's, which left the coach card doing
+    // nothing while the Market tab it points at stayed open all along.
+    expect(appSource).not.toContain("&& alertId !== 'training-ground'");
     // The focus prop survives for what it should still do: clear the optional
     // notes, never the jobs.
     expect(home).toContain('const visibleNotes = focusGuidedAlert');

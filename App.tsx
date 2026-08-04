@@ -1852,10 +1852,10 @@ function GameApp() {
             onOpenManagerTipDestination={openManagerTipDestination}
             showManagerTips={preferences.managerTipsEnabled}
             onOpenAlert={alertId => {
-              if (
-                assistantObjective?.target === 'training-ground-alert'
-                && alertId !== 'training-ground'
-              ) return;
+              // Every row on the desk opens, including while Bert is pointing at
+              // the pitch. He points at one first-week job and bars neither: the
+              // Market tab was never gated, so gating only the card that
+              // advertises the coach market made that card a dead tap.
               const alert = home.alerts.find(candidate => candidate.id === alertId);
               if (alert?.guideSequenceId !== undefined && alert.destination !== undefined) {
                 if (alertId.startsWith('injury-')) {
