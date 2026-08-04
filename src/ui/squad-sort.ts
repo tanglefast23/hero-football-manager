@@ -2,13 +2,14 @@
 // persisted UI settings (textScale, hudSide, cutInMode) rather than here.
 export type { SquadSort, SquadSortDirection, SquadSortKey } from '../persistence';
 import type { SquadSort, SquadSortKey } from '../persistence';
+import { POTENTIAL_GRADES, type PotentialGrade } from '../game/archetype-caps';
 
 interface SortableSquadPlayer {
   id: string;
   name: string;
   role: 'GK' | 'DEF' | 'MID' | 'FWD';
   overall: number;
-  superChancePercent: number;
+  potentialGrade: PotentialGrade;
   condition: number;
 }
 
@@ -60,7 +61,12 @@ function comparePlayers(
   if (key === 'role') return left.role.localeCompare(right.role);
   if (key === 'overall') return left.overall - right.overall;
   if (key === 'potential') {
-    return left.superChancePercent - right.superChancePercent;
+    // Sorted by the grade the column prints. It used to key on the SUPER
+    // chance, which stayed on raw potential when the grade moved to growth
+    // speed — two different measurements, so a sorted POT column read as
+    // unordered. Players sharing a letter keep their default order.
+    return POTENTIAL_GRADES.indexOf(left.potentialGrade)
+      - POTENTIAL_GRADES.indexOf(right.potentialGrade);
   }
   return left.condition - right.condition;
 }

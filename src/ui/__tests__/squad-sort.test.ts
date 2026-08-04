@@ -1,10 +1,10 @@
 import { nextSquadSort, sortSquadPlayers, type SquadSort } from '../squad-sort';
 
 const players = [
-  { id: '1', name: 'Sam Mitts', role: 'GK' as const, overall: 43, superChancePercent: 1, condition: 100 },
-  { id: '2', name: 'Ed Stone', role: 'DEF' as const, overall: 45, superChancePercent: 10, condition: 75 },
-  { id: '3', name: 'Bo Hedges', role: 'DEF' as const, overall: 45, superChancePercent: 10, condition: 100 },
-  { id: '4', name: 'Gio Marsh', role: 'MID' as const, overall: 50, superChancePercent: 14, condition: 60 },
+  { id: '1', name: 'Sam Mitts', role: 'GK' as const, overall: 43, potentialGrade: 'E' as const, condition: 100 },
+  { id: '2', name: 'Ed Stone', role: 'DEF' as const, overall: 45, potentialGrade: 'C+' as const, condition: 75 },
+  { id: '3', name: 'Bo Hedges', role: 'DEF' as const, overall: 45, potentialGrade: 'C+' as const, condition: 100 },
+  { id: '4', name: 'Gio Marsh', role: 'MID' as const, overall: 50, potentialGrade: 'B' as const, condition: 60 },
 ];
 
 describe('squad table sorting', () => {
@@ -39,5 +39,26 @@ describe('squad table sorting', () => {
 
   it('restores the exact default order when sorting is cleared', () => {
     expect(sortSquadPlayers(players, null).map(player => player.name)).toEqual(players.map(player => player.name));
+  });
+
+  /**
+   * The POT column sorts by the letter it prints. It used to key on the SUPER
+   * chance, which stayed on raw potential when the printed grade moved to
+   * growth speed — so a squad sorted by POT came back B, B−, C−, E, D+, and
+   * read as though the header did nothing.
+   */
+  it('orders the potential column by the grade it shows', () => {
+    const register = [
+      { id: '1', name: 'Jobo', role: 'FWD' as const, overall: 55, potentialGrade: 'B' as const, condition: 88 },
+      { id: '2', name: 'Zip Vela', role: 'FWD' as const, overall: 41, potentialGrade: 'E' as const, condition: 100 },
+      { id: '3', name: 'Ty Brooks', role: 'DEF' as const, overall: 38, potentialGrade: 'C-' as const, condition: 100 },
+      { id: '4', name: 'Gio Marsh', role: 'MID' as const, overall: 45, potentialGrade: 'D+' as const, condition: 100 },
+      { id: '5', name: 'Mae Thorn', role: 'DEF' as const, overall: 36, potentialGrade: 'B-' as const, condition: 100 },
+    ];
+
+    expect(sortSquadPlayers(register, { key: 'potential', direction: 'descending' }).map(p => p.name))
+      .toEqual(['Jobo', 'Mae Thorn', 'Ty Brooks', 'Gio Marsh', 'Zip Vela']);
+    expect(sortSquadPlayers(register, { key: 'potential', direction: 'ascending' }).map(p => p.name))
+      .toEqual(['Zip Vela', 'Gio Marsh', 'Ty Brooks', 'Mae Thorn', 'Jobo']);
   });
 });
