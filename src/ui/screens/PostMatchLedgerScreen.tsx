@@ -1,4 +1,4 @@
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, SectionLabel, StatusChip } from '../components/Scorecard';
 import type { PostMatchViewModel } from '../models';
@@ -9,6 +9,12 @@ import type { TextScale } from '../../persistence';
 import { PixelText } from '../components/PixelText';
 import { DesktopClamp, useDesktopContentStyle } from '../layout/DesktopClamp';
 import { ManagementSprite } from '../components/ManagementSprite';
+import {
+  SPEECH_BUBBLE_FONT_SIZE,
+  SPEECH_BUBBLE_LINE_HEIGHT,
+  SpeechBubbleTail,
+  speechBubbleStyles,
+} from '../speech-bubble';
 import type { FulltimeReactionViewModel } from '../models';
 
 export interface PostMatchLedgerScreenProps {
@@ -168,13 +174,17 @@ function FulltimeReaction({
 
   return (
     <View className="mt-6 items-start">
-      <View className="max-w-[280px]">
-        <View className="border-2 border-ink bg-white px-3 py-2">
-          <Text className="text-ink" style={scaledBody(textScale)}>{reaction.line}</Text>
-        </View>
-        {/* The tail sits under the gaffer's half of the bubble, not the
-            assistant's: it is his line either way. */}
-        <PixelText className="ml-6 text-base text-ink">▼</PixelText>
+      {/* The same bubble Bert speaks out of, down to the drawn tail — see
+          src/ui/speech-bubble.tsx. The tail points at the gaffer's half, not the
+          assistant's: it is his line either way. */}
+      <View style={[speechBubbleStyles.box, styles.reactionBubble]}>
+        <Text
+          style={[
+            speechBubbleStyles.text,
+            scaledBody(textScale, SPEECH_BUBBLE_FONT_SIZE, SPEECH_BUBBLE_LINE_HEIGHT),
+          ]}
+        >{reaction.line}</Text>
+        <SpeechBubbleTail left={REACTION_TAIL_LEFT} />
       </View>
       <View
         accessible
@@ -182,11 +192,24 @@ function FulltimeReaction({
         accessibilityLabel={`${mood}. "${reaction.line}"`}
         className="flex-row items-end gap-3"
       >
-        <ManagementSprite spriteKey={`coach:${reaction.coachPortraitId}:${reaction.pose}`} width={56} />
+        <ManagementSprite spriteKey={`coach:${reaction.coachPortraitId}:${reaction.pose}`} width={COACH_SPRITE_WIDTH} />
         {blaming ? (
-          <ManagementSprite spriteKey={`coach:${reaction.assistantPortraitId}:rest`} width={56} />
+          <ManagementSprite spriteKey={`coach:${reaction.assistantPortraitId}:rest`} width={COACH_SPRITE_WIDTH} />
         ) : null}
       </View>
     </View>
   );
 }
+
+const COACH_SPRITE_WIDTH = 56;
+/** He stands flush left under the bubble, so the tail points at his middle. */
+const REACTION_TAIL_LEFT = COACH_SPRITE_WIDTH / 2;
+
+const styles = StyleSheet.create({
+  reactionBubble: {
+    maxWidth: 280,
+    // The drawn tail hangs below the bubble, so the sprite has to start below
+    // the point rather than below the box.
+    marginBottom: 18,
+  },
+});

@@ -93,8 +93,10 @@ import { livePowerEffectActors, superSpeedAfterimageActors } from './live-power-
 import {
   advancePowerMatchShowcaseReady,
   initializePowerMatchShowcase,
-  powerMatchShowcaseEffectSpent,
-  powerMatchShowcaseFreezeMs,
+  POWER_MATCH_SHOWCASE_CARD_DELAY_MS,
+  POWER_MATCH_SHOWCASE_SAFETY_FREEZE_MS,
+  powerMatchShowcaseSucceeded,
+  powerMatchShowcaseSuccessRestartsPlay,
 } from './power-match-showcase';
 import {
   AUTO_SUBSTITUTION_TICKS,
@@ -591,8 +593,11 @@ export function MatchScreen({
     powerCutInQaActive ? [...powerCutInQaEntries] : []
   ));
   const powerShowcaseCompletedRef = useRef(false);
-  /** When the showcased power stopped being watchable, for powers that outlive it. */
-  const [powerShowcaseSpentAt, setPowerShowcaseSpentAt] = useState<number | undefined>(undefined);
+  /**
+   * When the clip froze on its success. The pitch stops there; the result card
+   * follows a beat later so the manager sees the goal before it is written over.
+   */
+  const [powerShowcaseFrozenAt, setPowerShowcaseFrozenAt] = useState<number | undefined>(undefined);
   const powerCutInPolicy = powerCutInGroupPolicy(powerCutIns);
   /** Which player's body is mid white/gold activation flash, and in which half. */
   const [heroTint, setHeroTint] = useState<{ player: number; tint: 'white' | 'gold' } | null>(null);
@@ -764,45 +769,50 @@ export function MatchScreen({
     return () => clearTimeout(timer);
   }, [powerCutInQaActive, powerCutIns]);
 
-  // Watched on the tick rather than on the power's state, because for Portal
-  // Pass the state outlives the picture: the transfer is already over while the
-  // sim is still counting down an inert cooldown.
+  /**
+   * The result card, a beat after the pitch froze.
+   *
+   * Split from the freeze on purpose. The clip stops on the frame where the
+   * power's promise lands — for the shooting powers that is the ball at the net
+   * — and a card published on the same frame would cover the only thing the
+   * manager was brought here to see. It also waits out the power's own cut-in
+   * where one is still playing, so the card never lands on top of it.
+   */
   useEffect(() => {
     if (
       powerMatchQa === undefined
       || onPowerShowcaseComplete === undefined
-      || powerShowcaseSpentAt !== undefined
-      || powerShowcaseCompletedRef.current
-    ) return;
-    if (!powerMatchShowcaseEffectSpent(match, powerMatchQa.power)) return;
-    setPowerShowcaseSpentAt(performance.now());
-  }, [hud.tick, match, onPowerShowcaseComplete, powerMatchQa, powerShowcaseSpentAt]);
-
-  useEffect(() => {
-    if (
-      powerMatchQa === undefined
-      || onPowerShowcaseComplete === undefined
-      || powerShowcaseCompletedRef.current
+      || powerShowcaseFrozenAt === undefined
     ) return undefined;
-    const endedPower = powerCutIns.find(entry => (
-      entry.power === powerMatchQa.power && entry.outroStartedAt !== undefined
-    ));
-    // Whichever comes first: the power's own ending, or the moment its effect
-    // stopped being watchable. They are the same instant for every power but
-    // the ones that hold an inert state afterwards.
-    const endedAt = [endedPower?.outroStartedAt, powerShowcaseSpentAt]
-      .filter((value): value is number => value !== undefined);
-    if (endedAt.length === 0) return undefined;
-    const freezeAt = Math.min(...endedAt) + powerMatchShowcaseFreezeMs(powerMatchQa.power);
+    const cutIn = powerCutIns.find(entry => entry.power === powerMatchQa.power);
+    const cutInEndsAt = cutIn === undefined ? undefined : cutIn.outroStartedAt;
+    // A cut-in still mid-flight has no ending yet: wait for the render pass
+    // that gives it one rather than guessing when it will arrive.
+    if (cutIn !== undefined && cutInEndsAt === undefined) return undefined;
+    const showAt = Math.max(powerShowcaseFrozenAt, cutInEndsAt ?? 0)
+      + POWER_MATCH_SHOWCASE_CARD_DELAY_MS;
+    const timer = setTimeout(
+      onPowerShowcaseComplete,
+      Math.max(0, Math.ceil(showAt - performance.now())),
+    );
+    return () => clearTimeout(timer);
+  }, [onPowerShowcaseComplete, powerCutIns, powerMatchQa, powerShowcaseFrozenAt]);
+
+  /**
+   * The backstop. A clip whose promise never lands would otherwise run until
+   * full time behind a modal with no way out, so freeze it regardless.
+   */
+  useEffect(() => {
+    if (powerMatchQa === undefined || onPowerShowcaseComplete === undefined) return undefined;
     const timer = setTimeout(() => {
       if (powerShowcaseCompletedRef.current) return;
       powerShowcaseCompletedRef.current = true;
       automaticPauseReasonsRef.current.add('showcase');
       syncPauseReasons();
-      onPowerShowcaseComplete();
-    }, Math.max(0, Math.ceil(freezeAt - performance.now())));
+      setPowerShowcaseFrozenAt(performance.now());
+    }, POWER_MATCH_SHOWCASE_SAFETY_FREEZE_MS);
     return () => clearTimeout(timer);
-  }, [onPowerShowcaseComplete, powerCutIns, powerMatchQa, powerShowcaseSpentAt]);
+  }, [onPowerShowcaseComplete, powerMatchQa]);
 
   // Audio lifecycle — own effect, separate from the RAF loop below: starts
   // the match theme on mount, tears everything down on unmount. No pause
@@ -980,6 +990,7 @@ export function MatchScreen({
       let snap = false;
       let advanced = false;
       let pauseAfterPublish = false;
+      let showcaseFroze = false;
 
       // No pausedRef check needed here: the early return above already ran,
       // and the flag cannot flip mid-invocation on a single-threaded runtime.
@@ -991,6 +1002,30 @@ export function MatchScreen({
         if (!heldForPowerReview) tick(s);
         advanced = true;
         nextRef.current = snapshotFrame(s, before);
+
+        // The acquisition clip ends when the power's promise lands, not on a
+        // timer, so what the manager is left looking at is the power working.
+        if (
+          powerMatchQa !== undefined
+          && onPowerShowcaseComplete !== undefined
+          && !powerShowcaseCompletedRef.current
+          && powerMatchShowcaseSucceeded(s, powerMatchQa.power)
+        ) {
+          powerShowcaseCompletedRef.current = true;
+          if (powerMatchShowcaseSuccessRestartsPlay(powerMatchQa.power)) {
+            // A goal restarts the kickoff inside the tick it is scored, so this
+            // tick's own frame is already twenty-two players on the halfway
+            // line. The one before it still has the ball at the net.
+            nextRef.current = before;
+          }
+          automaticPauseReasonsRef.current.add('showcase');
+          // Publish the frozen frame before pausing, the same order the first
+          // match's coaching prompt uses a few hundred lines below.
+          pauseAfterPublish = true;
+          showcaseFroze = true;
+          acc = 0;
+          break;
+        }
 
         for (let i = 0; i < RENDER_PLAYER_COUNT; i++) {
           if (dist2(prevRef.current!.players[i], nextRef.current.players[i]) > SNAP_DIST2) {
@@ -1484,6 +1519,7 @@ export function MatchScreen({
           visualTick: s.tick,
         });
         if (pauseAfterPublish) syncPauseReasons();
+        if (showcaseFroze) setPowerShowcaseFrozenAt(performance.now());
       }
 
       if (s.phase === 'fulltime') {

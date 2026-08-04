@@ -98,6 +98,14 @@ export function AwakeningCutsceneScreen({
   const viewportHeight = awakeningViewportHeight(width, height);
   const [beat, setBeat] = useState<1 | 2 | 3>(initialBeat);
   const [advanceReady, setAdvanceReady] = useState(false);
+  /**
+   * Fast-forwards the beat now playing to its final frame, set by the beat's own
+   * effect. A tap during a beat lands here; a tap after it advances the story.
+   * The same two-stage tap Bert's bubbles use — finish the line, then move on —
+   * so a manager who has seen the awakening before can walk it through at their
+   * own pace without ever skipping a beat unseen.
+   */
+  const skipBeatRef = useRef<(() => void) | null>(null);
   const [triggerPropVisible, setTriggerPropVisible] = useState(false);
   const [demoVisible, setDemoVisible] = useState(false);
   const cameraZoom = useSharedValue(1);
@@ -216,6 +224,8 @@ export function AwakeningCutsceneScreen({
     setTriggerPropVisible(false);
     let readyDelay: number;
     let propTimer: ReturnType<typeof setTimeout> | undefined;
+    /** Snaps this beat to the frame it was going to settle on, for a skip tap. */
+    let settle: () => void;
     if (beat === 1) {
       limpTravel.value = 0;
       limp.value = 0;
@@ -267,6 +277,13 @@ export function AwakeningCutsceneScreen({
       readyDelay = reduceMotion
         ? 500
         : HUDDLE_DELAY_MS + HUDDLE_DURATION_MS + HUDDLE_PAUSE_MS;
+      settle = () => {
+        limpTravel.value = 1;
+        limp.value = 1;
+        rush.value = 1;
+        shakePhase.value = 1;
+        cameraZoom.value = reduceMotion ? 1.2 : 1.42;
+      };
     } else if (beat === 2) {
       limpTravel.value = 1;
       limp.value = 1;
@@ -280,6 +297,10 @@ export function AwakeningCutsceneScreen({
         easing: ReanimatedEasing.inOut(ReanimatedEasing.cubic),
       });
       readyDelay = reduceMotion ? 500 : TRIGGER_REVEAL_MS + 900;
+      settle = () => {
+        setTriggerPropVisible(true);
+        cameraZoom.value = reduceMotion ? 1.8 : 2.25;
+      };
     } else {
       limpTravel.value = 1;
       limp.value = 1;
@@ -309,9 +330,24 @@ export function AwakeningCutsceneScreen({
         easing: ReanimatedEasing.out(ReanimatedEasing.cubic),
       });
       readyDelay = reduceMotion ? 500 : ASCENT_DURATION_MS + 700;
+      settle = () => {
+        // The white-out is a transition, not a destination: skipping past the
+        // lift means skipping the flash that sold it, so it ends cleared.
+        revealFlash.value = 0;
+        ascent.value = 1;
+        burst.value = 1;
+        cameraZoom.value = reduceMotion ? 1.55 : 1.68;
+      };
     }
     const readyTimer = setTimeout(() => setAdvanceReady(true), readyDelay);
+    skipBeatRef.current = () => {
+      clearTimeout(readyTimer);
+      if (propTimer !== undefined) clearTimeout(propTimer);
+      settle();
+      setAdvanceReady(true);
+    };
     return () => {
+      skipBeatRef.current = null;
       clearTimeout(readyTimer);
       if (propTimer !== undefined) clearTimeout(propTimer);
     };
@@ -341,15 +377,21 @@ export function AwakeningCutsceneScreen({
       ? `${viewModel.triggerCopy} ${viewModel.omenCopy}`
       : viewModel.revealCopy;
   const focusY = centerY - (beat === 3 ? 70 : 0);
-  const tapHint = beat === 3
-    ? advanceReady
+  const tapHint = !advanceReady
+    ? 'TAP TO SKIP'
+    : beat === 3
       ? viewModel.firstHero ? 'HERO #1' : 'NEW HERO'
-      : 'ASCENDING…'
-    : advanceReady
-      ? 'TAP TEXT TO CONTINUE'
-      : beat === 1 ? 'SCENE PLAYING…' : 'REVEALING…';
+      : 'TAP TO CONTINUE';
+  /**
+   * One tap, two jobs. Mid-beat it jumps to the end of what is playing rather
+   * than fast-forwarding through it: at 3x the hobble and the huddle are a blur,
+   * and the point of these beats is the pose they arrive at.
+   */
   const advanceStory = () => {
-    if (!advanceReady) return;
+    if (!advanceReady) {
+      skipBeatRef.current?.();
+      return;
+    }
     const action = nextAwakeningAction(beat);
     if (action === 'continue') {
       setDemoVisible(true);
@@ -358,8 +400,11 @@ export function AwakeningCutsceneScreen({
     setBeat(action);
   };
   const storyAccessibilityLabel = beat < 3
-    ? `Awakening beat ${beat} of 3. Tap the story text to continue.`
-    : `${viewModel.playerName} awakened with ${viewModel.powerName}. ${viewModel.powerDescription} ${viewModel.revealCopy} ${viewModel.licenseLabel}. Tap to watch a short demonstration.`;
+    ? `Awakening beat ${beat} of 3.`
+    : `${viewModel.playerName} awakened with ${viewModel.powerName}. ${viewModel.powerDescription} ${viewModel.revealCopy} ${viewModel.licenseLabel}.`;
+  const storyAccessibilityHint = advanceReady
+    ? beat < 3 ? 'Tap anywhere for the next beat' : 'Tap anywhere to watch a short demonstration'
+    : 'Tap anywhere to skip to the end of this beat';
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right', 'bottom']}>
@@ -422,13 +467,20 @@ export function AwakeningCutsceneScreen({
               </View>
             </View>
           ) : null}
+          {/* The whole picture is the button too, so a skip tap can land where
+              the manager is already looking instead of on the text below. */}
+          <Pressable
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            onPress={advanceStory}
+            style={StyleSheet.absoluteFill}
+          />
         </View>
 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={storyAccessibilityLabel}
-          accessibilityState={{ disabled: !advanceReady }}
-          disabled={!advanceReady}
+          accessibilityHint={storyAccessibilityHint}
           onPress={advanceStory}
         >
           <View style={[

@@ -10,6 +10,12 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 import { bertTypewriterStepMs } from './bert-typewriter';
+import {
+  SPEECH_BUBBLE_FONT_SIZE,
+  SPEECH_BUBBLE_LINE_HEIGHT,
+  SpeechBubbleTail,
+  speechBubbleStyles,
+} from './speech-bubble';
 import { useReducedMotion } from './use-reduced-motion';
 
 /** How far in from the right edge a character comes to rest. */
@@ -24,8 +30,8 @@ const BUBBLE_POP_MS = 200;
 /** Widest the bubble is ever drawn, and the margin it keeps from both edges. */
 const BUBBLE_MAX_WIDTH = 320;
 const BUBBLE_GUTTER = 8;
-const BUBBLE_FONT_SIZE = 15;
-const BUBBLE_LINE_HEIGHT = 21;
+const BUBBLE_FONT_SIZE = SPEECH_BUBBLE_FONT_SIZE;
+const BUBBLE_LINE_HEIGHT = SPEECH_BUBBLE_LINE_HEIGHT;
 /** Clearance the bubble keeps from the top of the screen, and from the app's
  *  own header chrome sitting just under it. */
 const TOP_SAFE_MARGIN = 72;
@@ -479,8 +485,7 @@ export function CharacterSpeechOverlay({
                 <Text style={styles.unrevealedText}>{unrevealedLine}</Text>
               )}
             </Text>
-            <View style={[styles.tailBorder, { left: tailLeft - 10 }]} />
-            <View style={[styles.tailFill, { left: tailLeft - 7 }]} />
+            <SpeechBubbleTail left={tailLeft} />
           </Animated.View>
         ) : null}
 
@@ -560,27 +565,11 @@ const styles = StyleSheet.create({
    * here, because native measures a paragraph to its longest line.
    */
   bubble: {
+    ...speechBubbleStyles.box,
     position: 'absolute',
     left: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 3,
-    borderColor: '#241f2e',
-    borderRadius: 10,
-    backgroundColor: '#ffffff',
-    // The pixel-art drop shadow the rest of the UI uses: one hard offset, no blur.
-    shadowColor: '#241f2e',
-    shadowOffset: { width: 5, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 6,
   },
-  bubbleText: {
-    color: '#241f2e',
-    fontSize: BUBBLE_FONT_SIZE,
-    lineHeight: BUBBLE_LINE_HEIGHT,
-    fontWeight: 'bold',
-  },
+  bubbleText: speechBubbleStyles.text,
   unrevealedText: { color: 'transparent' },
   bubbleHeading: {
     color: '#c44536',
@@ -589,32 +578,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textTransform: 'uppercase',
     marginBottom: 5,
-  },
-  // Two stacked triangles: the dark one is the bubble's border, the white one
-  // sits a few pixels up to punch the border line out of the tail's mouth.
-  tailBorder: {
-    position: 'absolute',
-    bottom: -16,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 10,
-    borderRightWidth: 10,
-    borderTopWidth: 16,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: '#241f2e',
-  },
-  tailFill: {
-    position: 'absolute',
-    bottom: -9,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 7,
-    borderRightWidth: 7,
-    borderTopWidth: 11,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: '#ffffff',
   },
   progressRow: {
     position: 'absolute',

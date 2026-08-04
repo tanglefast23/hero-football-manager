@@ -9,12 +9,19 @@ import type { MatchState, PowerId } from '../../sim/types';
 import {
   advancePowerMatchShowcaseReady,
   initializePowerMatchShowcase,
-  powerMatchShowcaseEffectSpent,
   POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS,
   powerMatchShowcaseAway,
   powerMatchShowcaseHeroIndex,
   powerMatchShowcaseHome,
+  powerMatchShowcaseSeed,
+  powerMatchShowcaseSucceeded,
+  powerMatchShowcaseSuccessRestartsPlay,
 } from '../power-match-showcase';
+
+/** Twelve seconds of clip — longer than any of them, well short of the modal's backstop. */
+const CLIP_TICK_BUDGET = 120;
+/** The promise has to land in the same move the power fired in. */
+const MAX_FOLLOW_THROUGH_TICKS = 35;
 
 function advanceThroughAutoFire(match: MatchState, power: PowerId, hero: number): void {
   for (let guard = 0; guard < 40; guard += 1) {
@@ -128,47 +135,53 @@ describe('live power match showcase', () => {
   });
 
   /**
-   * The clip used to run until the hero's `active` state expired. For Portal
-   * Pass that is a 40-tick Heat lock with nothing on screen, so the demo kept
-   * playing for seconds after the runner had already shot.
+   * The clip a manager is shown when they awaken a hero has to be that power
+   * working. The showcase is a real deterministic match, so on the one seed
+   * every power used to share, Thunder Strike's demonstration of "enough force
+   * to batter keeper Resolve" ended in a miss, Blink Run's and Phase Run's
+   * shots were saved, and Portal Pass's went wide.
+   *
+   * The fix is a seed per power, chosen because its clip ends in that power's
+   * own promise landing. This is the test that keeps them honest: it is the
+   * only thing standing between a tuning change and a hero's first impression
+   * being a demonstration of failure. If it fails, re-run the search rather
+   * than relaxing the condition.
    */
-  it('calls Portal Pass spent when the runner releases the ball, well before its lock expires', () => {
-    const power = 'PORTAL_PASS' as const;
-    const match = createMatch(42, powerMatchShowcaseHome(power), powerMatchShowcaseAway());
+  it.each(LAUNCH_POWER_IDS)('%s lands its promise inside the clip on its pinned seed', power => {
+    const match = createMatch(
+      powerMatchShowcaseSeed(power),
+      powerMatchShowcaseHome(power),
+      powerMatchShowcaseAway(),
+    );
     const hero = initializePowerMatchShowcase(match, power);
 
-    expect(powerMatchShowcaseEffectSpent(match, power)).toBe(false);
-    advanceThroughAutoFire(match, power, hero);
+    expect(powerMatchShowcaseSucceeded(match, power)).toBe(false);
 
-    // The transfer has landed: a protected runner is holding the ball, and the
-    // clip is at its most watchable — nothing is spent yet.
-    const activeState = match.players[hero].powerState;
-    expect(activeState.kind).toBe('active');
-    const lockExpiresAt = activeState.kind === 'active' ? activeState.untilTick : 0;
-    expect(powerMatchShowcaseEffectSpent(match, power)).toBe(false);
-
-    let spentAtTick: number | undefined;
-    for (let frame = 0; frame < 60 && spentAtTick === undefined; frame += 1) {
-      tick(match);
-      if (powerMatchShowcaseEffectSpent(match, power)) spentAtTick = match.tick;
+    let firedAt: number | undefined;
+    let successAt: number | undefined;
+    for (let frame = 0; frame < CLIP_TICK_BUDGET && successAt === undefined; frame += 1) {
+      if (!advancePowerMatchShowcaseReady(match, power)) tick(match);
+      if (firedAt === undefined && match.events.some(
+        event => event.kind === 'POWER_FIRED' && event.player === hero,
+      )) firedAt = match.tick;
+      if (powerMatchShowcaseSucceeded(match, power)) successAt = match.tick;
     }
 
-    expect(spentAtTick).toBeDefined();
-    // The whole point: the picture finishes before the lock does.
-    expect(spentAtTick!).toBeLessThan(lockExpiresAt);
+    expect(firedAt).toBeDefined();
+    expect(successAt).toBeDefined();
+    // Nothing may be read as success before the power that is supposed to have
+    // caused it has fired.
+    expect(successAt!).toBeGreaterThanOrEqual(firedAt!);
+    // And the manager should not be made to wait for it: the promise lands
+    // inside the same move, not two attacks later.
+    expect(successAt! - firedAt!).toBeLessThanOrEqual(MAX_FOLLOW_THROUGH_TICKS);
   });
 
-  it('never calls a sustained power spent early', () => {
-    const power = 'SUPER_SPEED' as const;
-    const match = createMatch(42, powerMatchShowcaseHome(power), powerMatchShowcaseAway());
-    const hero = initializePowerMatchShowcase(match, power);
-    advanceThroughAutoFire(match, power, hero);
-
-    // Powers whose visible effect and active window are the same thing keep the
-    // original rule, so the freeze still waits for the state to end.
-    for (let frame = 0; frame < 40; frame += 1) {
-      expect(powerMatchShowcaseEffectSpent(match, power)).toBe(false);
-      tick(match);
-    }
+  it('holds the frame before the success only where the success restarts play', () => {
+    // A goal restarts the kickoff inside the tick it is scored, so those clips
+    // have to freeze one frame earlier. Nothing else does.
+    expect(powerMatchShowcaseSuccessRestartsPlay('THUNDER_STRIKE')).toBe(true);
+    expect(powerMatchShowcaseSuccessRestartsPlay('ELASTIC_KEEPER')).toBe(false);
+    expect(powerMatchShowcaseSuccessRestartsPlay('WEB_TRAP')).toBe(false);
   });
 });

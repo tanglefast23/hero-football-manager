@@ -65,7 +65,11 @@ describe('new power explanation contract', () => {
     expect(demo).toContain('powerMatchShowcaseHome(powerId, playerName)');
     expect(demo).toContain('onPowerShowcaseComplete');
     expect(demo).toContain('label="REPLAY"');
-    expect(demo).toContain('label="CONT"');
+    // Spelled out. "CONT" saved four characters on a button with a whole row to
+    // itself, and read like a debug stub next to REPLAY.
+    expect(demo).toContain('label="CONTINUE"');
+    // Each power's clip runs on the seed that makes its own promise land.
+    expect(demo).toContain('seed={powerMatchShowcaseSeed(powerId)}');
     expect(demo).toContain('presentationOnly');
     expect(demo).toContain('zIndex: 10');
     expect(demo).toContain('elevation: 10');
@@ -78,7 +82,12 @@ describe('new power explanation contract', () => {
     );
     expect(demo).toContain('const replay = useCallback(() => {');
     expect(showcase).toContain('POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 15');
-    expect(showcase).toContain('POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS = 1000');
+    // The clip ends on the power's promise landing, not on a timer running out.
+    expect(showcase).toContain('export function powerMatchShowcaseSucceeded(');
+    expect(match).toContain('powerMatchShowcaseSucceeded(s, powerMatchQa.power)');
+    // A goal restarts the kickoff in the tick it is scored, so those clips
+    // freeze on the frame before it.
+    expect(match).toContain('nextRef.current = before;');
   });
 });
 

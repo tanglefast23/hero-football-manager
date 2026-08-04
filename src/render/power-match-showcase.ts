@@ -2,62 +2,137 @@ import { PITCH_H, PITCH_W } from '../sim/geometry';
 import { tick } from '../sim/match';
 import { ZONE_WINDOW_TICKS } from '../sim/powers';
 import { ROVERS, UNITED } from '../sim/teams';
-import type { MatchState, PowerId, TeamDef } from '../sim/types';
+import type { MatchEvent, MatchState, PowerId, TeamDef } from '../sim/types';
 
 /** 1.5 seconds of ordinary live play before the real auto policy evaluates. */
 export const POWER_MATCH_SHOWCASE_AUTO_FIRE_DELAY_TICKS = 15;
 
-/** Let ordinary play continue for one second after the power ends, then freeze. */
-export const POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS = 1000;
+/**
+ * How long the frozen pitch is held before the result card slides over it.
+ *
+ * The clip stops on the success itself, which for the shooting powers is the
+ * same tick the goal restarts the kickoff — so the card cannot come with it or
+ * the manager never sees what they were shown. This is the beat in between.
+ */
+export const POWER_MATCH_SHOWCASE_CARD_DELAY_MS = 900;
 
 /**
- * Powers whose point is made after their own effect ends, and how much longer
- * than the standard second the clip holds for them.
- *
- * Gravity Well is the case that forced this. The pull is only the setup — the
- * card promises a runner into the abandoned lane and a pass into it, and both
- * happen once the well has released. Freezing a second after the effect ended
- * caught the vacated space and none of the use made of it.
+ * A clip must never be able to run forever. If the promise somehow fails to
+ * land, freeze anyway rather than leave the manager holding an unclosable
+ * modal. `power-match-showcase-success.test.ts` is what keeps this unreachable.
  */
-const EXTRA_FREEZE_MS: Partial<Readonly<Record<PowerId, number>>> = {
-  GRAVITY_WELL: 1000,
+export const POWER_MATCH_SHOWCASE_SAFETY_FREEZE_MS = 14_000;
+
+/**
+ * The seed each clip runs on.
+ *
+ * These are not decoration. The showcase is a real deterministic match, so
+ * whether the shot goes in is the engine's answer and not a storyboard's — and
+ * on the single seed every power used to share, Thunder Strike's demonstration
+ * of "enough force to batter keeper Resolve" ended in a miss. Each seed below
+ * is the lowest one whose clip ends in that power's own promise landing, found
+ * by exhaustive search and pinned by test. A sim change that moves any of them
+ * fails that test rather than quietly shipping a demonstration of failure.
+ */
+const SHOWCASE_SEEDS: Readonly<Record<PowerId, number>> = {
+  SUPER_SPEED: 5,
+  BLINK_RUN: 1,
+  THUNDER_STRIKE: 1,
+  FIRE_TORCH: 2,
+  PHASE_RUN: 15,
+  PORTAL_PASS: 1,
+  DECOY_DOUBLE: 26,
+  FUTURE_SIGHT: 3,
+  SUPER_STRENGTH: 1,
+  WEB_TRAP: 1,
+  ELASTIC_KEEPER: 1,
+  RALLY_CRY: 1,
+  ICE_RINK: 2,
+  SHADOW_MARK: 69,
+  GRAVITY_WELL: 1,
+  GIANT_GK: 1,
+  GUST: 2,
 };
 
-/** How long ordinary play continues after `power` ends before the clip freezes. */
-export function powerMatchShowcaseFreezeMs(power: PowerId): number {
-  return POWER_MATCH_SHOWCASE_POST_POWER_FREEZE_MS + (EXTRA_FREEZE_MS[power] ?? 0);
+export function powerMatchShowcaseSeed(power: PowerId): number {
+  return SHOWCASE_SEEDS[power];
 }
 
 /**
- * True once the showcased power has finished being worth watching, for the
- * powers whose sim `active` window outlives what is on screen.
- *
- * Portal Pass is the case that forced this. It resolves completely at
- * activation, and the 40 ticks of `active` that follow are a Heat and cooldown
- * lock with nothing to see (`DUR` in src/sim/powers.ts says so in as many
- * words). The clip froze on that state plus a second, so it ran for roughly
- * five seconds of ordinary play after the shot it exists to show. What ends
- * this clip is the runner's first touch out of the portal — the pass or the
- * shot — or the shield lapsing if they hold onto it.
- *
- * Every other power's visible effect and active window are the same thing, so
- * they keep the original rule and this returns false for them. Deliberately a
- * read of live match state rather than a sim change: the cooldown is balance,
- * and shortening it would move every match and cost an ENGINE_VERSION bump to
- * fix a presentation problem.
+ * The powers whose card ends in a shot, and whose clip therefore has to end in
+ * a goal. Anything less is a demonstration of the power not working.
  */
-export function powerMatchShowcaseEffectSpent(match: MatchState, power: PowerId): boolean {
-  if (power !== 'PORTAL_PASS') return false;
-  const hero = match.players[powerMatchShowcaseHeroIndex(power)];
-  // Nothing is spent until the portal has actually fired.
-  if (hero === undefined || hero.powerState.kind !== 'active') return false;
-  const receiver = match.players.findIndex(
-    player => player.portalProtectedUntilTick !== undefined,
+const SCORES: ReadonlySet<PowerId> = new Set<PowerId>([
+  'SUPER_SPEED',
+  'BLINK_RUN',
+  'THUNDER_STRIKE',
+  'FIRE_TORCH',
+  'PHASE_RUN',
+  'PORTAL_PASS',
+  'DECOY_DOUBLE',
+]);
+
+/**
+ * True when this power's success is a goal, which the engine restarts from
+ * inside the same tick it is scored.
+ *
+ * The caller needs to know because the frame that shows the ball at the net is
+ * then the one *before* the success tick — by the time the tick has finished,
+ * twenty-two players are standing on the halfway line.
+ */
+export function powerMatchShowcaseSuccessRestartsPlay(power: PowerId): boolean {
+  return SCORES.has(power);
+}
+
+/**
+ * Whether the showcased power has now done what its card says it does.
+ *
+ * One condition per power, each read straight off the power's own promise
+ * rather than off a timer:
+ *
+ * - the seven that end in a shot have to score;
+ * - the two keepers have to make the save;
+ * - Super Strength has to win the ball it flattens someone for;
+ * - Gust has to complete the redirect *and* the punt that follows it;
+ * - Rally Cry has to have banked the Encore on its teammate;
+ * - Gravity Well has to see the feed into the lane it emptied;
+ * - and the four that land an effect on somebody — Web Trap, Ice Rink, Shadow
+ *   Mark, Future Sight — have to land it.
+ */
+export function powerMatchShowcaseSucceeded(match: MatchState, power: PowerId): boolean {
+  const hero = powerMatchShowcaseHeroIndex(power);
+  const firedAt = match.events.find(
+    (event): event is Extract<MatchEvent, { kind: 'POWER_FIRED' }> => (
+      event.kind === 'POWER_FIRED' && event.player === hero
+    ),
+  )?.t;
+  if (firedAt === undefined) return false;
+
+  // Rally Cry hands over a state, not a moment: the Encore is the whole of what
+  // it promises, and nothing is emitted when it lands.
+  if (power === 'RALLY_CRY') {
+    return match.players[RALLY_TEAMMATE]?.encoreState !== undefined;
+  }
+
+  const since = (predicate: (event: MatchEvent) => boolean): boolean => (
+    match.events.some(event => event.t >= firedAt && predicate(event))
   );
-  // No protected runner left: the shield lapsed, or the transfer found nobody.
-  // Either way the authored moment is behind us and only the lock remains.
-  if (receiver === -1) return true;
-  return !(match.ball.kind === 'held' && match.ball.by === receiver);
+
+  if (SCORES.has(power)) return since(event => event.kind === 'GOAL' && event.team === 0);
+  if (power === 'ELASTIC_KEEPER' || power === 'GIANT_GK') {
+    return since(event => event.kind === 'SAVE' && event.by === hero);
+  }
+  if (power === 'SUPER_STRENGTH') {
+    return since(event => event.kind === 'TACKLE' && event.by === hero && event.won);
+  }
+  // The redirect is only half of it — the card promises the keeper punts it
+  // back into attack, so the clip runs until he has.
+  if (power === 'GUST') return since(event => event.kind === 'GUST_PUNT');
+  // The pull is the setup; the pass into the lane it emptied is the point.
+  if (power === 'GRAVITY_WELL') {
+    return since(event => event.kind === 'PASS' && event.ok && event.t > firedAt);
+  }
+  return since(event => event.kind === 'POWER_IMPACT' && event.player === hero);
 }
 
 const HERO_INDEX: Readonly<Record<PowerId, number>> = {

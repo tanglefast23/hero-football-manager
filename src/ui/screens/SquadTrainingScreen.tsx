@@ -99,6 +99,12 @@ const QUICK_TRAIN_FRAME_TOP = 96;
  * so the flexible name cell keeps useful room.
  */
 const ROSTER_ROLE_COLUMN_WIDTH = 48;
+/** The same 48pt as a utility class, so the POS header lines up with its cells. */
+const ROSTER_ROLE_COLUMN_CLASS = 'w-12';
+/** The 40pt train circle plus its 4pt gutter. */
+const ROSTER_TRAIN_COLUMN_CLASS = 'w-11';
+/** Pads the 40pt circle back out to the 44pt minimum touch target. */
+const ROSTER_TRAIN_BUTTON_HIT_SLOP = 2;
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
@@ -184,9 +190,18 @@ export function SquadTrainingScreen({
   // Wide columns spell their headers out in full ("SCORE", "POTENTIAL",
   // "CONDITION"), so each one has to be wide enough to hold the word plus its
   // sort arrow — a clipped header reads as a bug, not as an abbreviation.
-  const currentColumnWidth = wideColumns ? 'w-16' : 'w-9';
+  //
+  // A React Native <View> does not clip its children, so a header wider than
+  // its column does not truncate: it spills sideways over the neighbouring
+  // header. That is what made "OVR POT COND" read as "OVR POTCOND" on a phone.
+  // Every narrow width below therefore holds its own label plus the sort arrow
+  // with a few points to spare, and the only flexible cell — the name — pays.
+  const currentColumnWidth = wideColumns ? 'w-16' : 'w-12';
   const potentialColumnWidth = wideColumns ? 'w-28' : 'w-12';
-  const conditionColumnWidth = wideColumns ? 'w-28' : 'w-14';
+  const conditionColumnWidth = wideColumns ? 'w-28' : 'w-[60px]';
+  // Headers label the data, they aren't it. Phone headers step down one further
+  // than the wide ones so four abbreviations and an arrow fit side by side.
+  const headerLabelSize = wideColumns ? 'text-xs' : 'text-[10px]';
   const selectedPlayer = viewModel.players.find(player => player.id === selectedPlayerId);
   const selectedArchetype = selectedPlayer === undefined
     ? undefined
@@ -420,6 +435,7 @@ export function SquadTrainingScreen({
           currentColumnWidth={currentColumnWidth}
           potentialColumnWidth={potentialColumnWidth}
           conditionColumnWidth={conditionColumnWidth}
+          headerLabelSize={headerLabelSize}
           squadSort={squadSort}
           setSquadSort={setSquadSort}
           sortedPlayers={sortedPlayers}
@@ -584,6 +600,7 @@ interface RosterSectionProps {
   currentColumnWidth: string;
   potentialColumnWidth: string;
   conditionColumnWidth: string;
+  headerLabelSize: string;
   squadSort: SquadSort | null;
   setSquadSort: (key: SquadSortKey) => void;
   sortedPlayers: readonly SquadPlayerViewModel[];
@@ -605,6 +622,7 @@ function RosterSection({
   currentColumnWidth,
   potentialColumnWidth,
   conditionColumnWidth,
+  headerLabelSize,
   squadSort,
   setSquadSort,
   sortedPlayers,
@@ -638,13 +656,14 @@ function RosterSection({
           />
         ) : null}
         <View className="flex-row items-center border-b border-ink/20 px-2">
-          <View style={styles.roleColumn} />
-          <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" onSort={setSquadSort} />
+          <SquadSortHeader label="Pos" sortKey="role" sort={squadSort} widthClass={ROSTER_ROLE_COLUMN_CLASS} labelSize={headerLabelSize} onSort={setSquadSort} />
+          <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" labelSize={headerLabelSize} onSort={setSquadSort} />
           <SquadSortHeader
             label={wideColumns ? 'Score' : 'OVR'}
             sortKey="overall"
             sort={squadSort}
             widthClass={currentColumnWidth}
+            labelSize={headerLabelSize}
             align="right"
             onSort={setSquadSort}
             tutorialCue={guideOverallSort ? (
@@ -659,12 +678,13 @@ function RosterSection({
               />
             ) : null}
           />
-          <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} align="right" onSort={setSquadSort} />
+          <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} labelSize={headerLabelSize} align="right" onSort={setSquadSort} />
           <SquadSortHeader
             label={wideColumns ? 'Condition' : 'Cond'}
             sortKey="condition"
             sort={squadSort}
             widthClass={conditionColumnWidth}
+            labelSize={headerLabelSize}
             align="right"
             onSort={setSquadSort}
             tutorialCue={conditionCueShowing ? (
@@ -681,7 +701,7 @@ function RosterSection({
           />
           {/* The train column needs its width to keep the + buttons aligned, but
               not a label: the + is self-explanatory and the word was clipping. */}
-          <View className="w-12" />
+          <View className={ROSTER_TRAIN_COLUMN_CLASS} />
         </View>
         {sortedPlayers.length === 0 ? (
           <View className="items-center px-4 py-8">
@@ -782,13 +802,17 @@ function RosterSection({
                 accessibilityState={{ disabled: !player.canTrain }}
                 disabled={!player.canTrain}
                 onPress={() => onPressTrainingBadge(player.id)}
+                // A 40pt circle inside a 44pt row of touch: hitSlop keeps the
+                // tap target at the platform minimum while the badge itself
+                // sits a little inside it and hands the 4pt back to the columns.
+                hitSlop={ROSTER_TRAIN_BUTTON_HIT_SLOP}
                 className={!player.canTrain
-                  ? 'ml-1 h-11 w-11 items-center justify-center border border-ink/20 bg-paper-dark'
+                  ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/20 bg-paper-dark'
                   : player.priorityDrillsRemaining !== undefined
-                    ? 'ml-1 h-11 w-11 items-center justify-center border-2 border-blue-dark bg-blue-light'
+                    ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-blue-dark bg-blue-light'
                     : glowAssignmentButton
-                      ? 'ml-1 h-11 w-11 items-center justify-center border-2 border-gold-dark bg-gold-light'
-                      : 'ml-1 h-11 w-11 items-center justify-center border border-ink/30'}
+                      ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border-2 border-gold-dark bg-gold-light'
+                      : 'ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/30'}
                 style={({ pressed }) => [
                   { opacity: pressed && player.injuryWeeks === 0 ? 0.65 : undefined },
                   glowAssignmentButton ? styles.assignmentButtonGlow : null,
@@ -1096,6 +1120,7 @@ function SquadSortHeader({
   sortKey,
   sort,
   widthClass,
+  labelSize,
   align = 'left',
   onSort,
   tutorialCue,
@@ -1104,6 +1129,8 @@ function SquadSortHeader({
   sortKey: SquadSortKey;
   sort: SquadSort | null;
   widthClass: string;
+  /** Font-size utility for the label; phones step down so four fit in a row. */
+  labelSize: string;
   align?: 'left' | 'right';
   onSort: (key: SquadSortKey) => void;
   tutorialCue?: ReactNode;
@@ -1130,8 +1157,8 @@ function SquadSortHeader({
         // A step down from the row values so the spelled-out words fit their
         // column with the sort arrow — headers label the data, they aren't it.
         className={direction === null
-          ? 'text-xs uppercase text-ink/50'
-          : 'text-xs uppercase text-blue-dark'}
+          ? `${labelSize} uppercase text-ink/50`
+          : `${labelSize} uppercase text-blue-dark`}
         numberOfLines={1}
         ellipsizeMode="clip"
       >

@@ -10,6 +10,7 @@ import { MatchScreen, type PowerMatchQaConfig } from '../render/MatchScreen';
 import {
   powerMatchShowcaseAway,
   powerMatchShowcaseHome,
+  powerMatchShowcaseSeed,
 } from '../render/power-match-showcase';
 import type { PowerId } from '../sim/types';
 import { ActionButton } from './components/Scorecard';
@@ -90,7 +91,7 @@ export function PowerAcquiredDemoModal({
         <View style={styles.match}>
           <MatchScreen
             key={`${powerId}:${replayKey}`}
-            seed={42}
+            seed={powerMatchShowcaseSeed(powerId)}
             home={home}
             away={away}
             controlledTeam={0}
@@ -126,7 +127,7 @@ export function PowerAcquiredDemoModal({
                   </View>
                   <View style={styles.button}>
                     <ActionButton
-                      label="CONT"
+                      label="CONTINUE"
                       accessibilityLabel={`${continueLabel}. Continue after the ${powerName} match demonstration`}
                       onPress={onContinue}
                     />

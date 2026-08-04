@@ -8,13 +8,23 @@ const players = [
 ];
 
 describe('squad table sorting', () => {
-  it('cycles descending, ascending, then default for the active column', () => {
+  it('cycles a rating column best-first, then worst-first, then default', () => {
     const descending = nextSquadSort(null, 'overall');
     expect(descending).toEqual({ key: 'overall', direction: 'descending' });
     const ascending = nextSquadSort(descending, 'overall');
     expect(ascending).toEqual({ key: 'overall', direction: 'ascending' });
     expect(nextSquadSort(ascending, 'overall')).toBeNull();
-    expect(nextSquadSort(ascending, 'player')).toEqual({ key: 'player', direction: 'descending' });
+    expect(nextSquadSort(ascending, 'player')).toEqual({ key: 'player', direction: 'ascending' });
+  });
+
+  it('opens the text columns alphabetically, then reverses, then clears', () => {
+    for (const key of ['player', 'role'] as const) {
+      const ascending = nextSquadSort(null, key);
+      expect(ascending).toEqual({ key, direction: 'ascending' });
+      const descending = nextSquadSort(ascending, key);
+      expect(descending).toEqual({ key, direction: 'descending' });
+      expect(nextSquadSort(descending, key)).toBeNull();
+    }
   });
 
   it.each<[SquadSort, string[]]>([

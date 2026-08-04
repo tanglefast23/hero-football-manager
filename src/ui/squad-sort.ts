@@ -12,9 +12,25 @@ interface SortableSquadPlayer {
   condition: number;
 }
 
+/**
+ * Which way a column opens on its first tap. A rating is asked for best-first,
+ * so numbers open descending. A name or a position is asked for alphabetically,
+ * so text opens A to Z — tapping POS and getting M, G, F, D reads as broken.
+ */
+const OPENS_ASCENDING: Readonly<Record<SquadSortKey, boolean>> = {
+  player: true,
+  role: true,
+  overall: false,
+  potential: false,
+  condition: false,
+};
+
 export function nextSquadSort(current: SquadSort | null, key: SquadSortKey): SquadSort | null {
-  if (current?.key !== key) return { key, direction: 'descending' };
-  if (current.direction === 'descending') return { key, direction: 'ascending' };
+  const opening = OPENS_ASCENDING[key] ? 'ascending' : 'descending';
+  if (current?.key !== key) return { key, direction: opening };
+  if (current.direction === opening) {
+    return { key, direction: opening === 'ascending' ? 'descending' : 'ascending' };
+  }
   return null;
 }
 

@@ -44,6 +44,21 @@ describe('awakening cutscene framing', () => {
     expect(source).toContain('<Canvas style={{ width, height: viewportHeight }}>');
   });
 
+  it('lets a tap skip the beat that is playing before it advances the story', () => {
+    const source = sceneSource();
+
+    // Two stages on one tap: finish what is playing, then move on. Without the
+    // first, a manager on their third awakening sits through the whole hobble.
+    expect(source).toContain('skipBeatRef.current?.();');
+    expect(source).toContain('let settle: () => void;');
+    expect(source).toContain('skipBeatRef.current = () => {');
+    // The picture is a tap target too, not just the text panel underneath it.
+    expect(source).toContain('style={StyleSheet.absoluteFill}');
+    expect(source).toContain("'TAP TO SKIP'");
+    // Nothing may be disabled while a beat plays, or the skip tap goes nowhere.
+    expect(source).not.toContain('disabled={!advanceReady}');
+  });
+
   it('would have put the old anchor off screen on a desktop window', () => {
     const width = 1920;
     const viewport = awakeningViewportHeight(width, 1080);

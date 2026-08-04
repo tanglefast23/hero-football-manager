@@ -36,12 +36,17 @@ describe('squad potential labels', () => {
     );
     expect(source).not.toContain("'w-10 font-pixel text-sm text-ink'");
     expect(source).not.toContain("'w-10 font-pixel text-sm text-blue-dark'");
-    // The numeric cells and train gutter give that extra role width back to
-    // the only flexible cell, so ordinary names still fit at phone width.
-    expect(source).toContain("wideColumns ? 'w-16' : 'w-9'");
+    // A View does not clip its children on native, so a header wider than its
+    // column paints over its neighbour instead of truncating. Every phone width
+    // holds its own label plus the sort arrow; the flexible name cell pays.
+    expect(source).toContain("wideColumns ? 'w-16' : 'w-12'");
     expect(source).toContain("wideColumns ? 'w-28' : 'w-12'");
-    expect(source).toContain("wideColumns ? 'w-28' : 'w-14'");
-    expect(source).toContain('<View className="w-12" />');
-    expect(source).toContain("'ml-1 h-11 w-11");
+    expect(source).toContain("wideColumns ? 'w-28' : 'w-[60px]'");
+    expect(source).toContain("const headerLabelSize = wideColumns ? 'text-xs' : 'text-[10px]';");
+    expect(source).toContain("const ROSTER_TRAIN_COLUMN_CLASS = 'w-11';");
+    expect(source).toContain('<View className={ROSTER_TRAIN_COLUMN_CLASS} />');
+    // A 40pt circle with hitSlop back out to the 44pt minimum touch target.
+    expect(source).toContain("'ml-1 h-10 w-10 items-center justify-center rounded-full");
+    expect(source).toContain('hitSlop={ROSTER_TRAIN_BUTTON_HIT_SLOP}');
   });
 });
