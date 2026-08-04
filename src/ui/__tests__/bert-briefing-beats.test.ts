@@ -83,7 +83,7 @@ describe('briefing beats', () => {
       new RegExp(`destination === '${beat.destination}'[\\s\\S]{0,40}?\\?\\s*'league'`),
     );
     expect(app).toContain(
-      'const leagueGuideFocus = conciergeFocus ?? assistantSequence?.pages.at(-1)?.focus;',
+      'const leagueGuideFocus = visibleConciergeFocus ?? assistantSequence?.pages.at(-1)?.focus;',
     );
     expect(app).toMatch(new RegExp(`leagueGuideFocus === '${focus}'[\\s\\S]{0,40}?\\?\\s*'leaders'`));
     expect(app).toContain('guideSubTab={leagueGuideSubTab}');

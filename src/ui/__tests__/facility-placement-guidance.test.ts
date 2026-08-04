@@ -27,7 +27,7 @@ describe('first facility placement guidance', () => {
     expect(source).toMatch(
       /\/>\s*\{buildable \? \(\s*<View\s*pointerEvents="none"[\s\S]*?alignItems: 'center',[\s\S]*?justifyContent: 'center',[\s\S]*?width: FACILITY_PLACEMENT_PLUS_SIZE,[\s\S]*?height: FACILITY_PLACEMENT_PLUS_THICKNESS,/,
     );
-    expect(appSource).toContain("conciergeFocus === 'facility-grid'");
+    expect(appSource).toContain("visibleConciergeFocus === 'facility-grid'");
     expect(appSource).toContain('!guidedFirstFacilityAllowsPlacement(type, x, y)');
   });
 

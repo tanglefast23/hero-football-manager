@@ -25,7 +25,7 @@ export function AssistantModeChoiceScreen({
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View
           className={wide
-            ? 'w-full max-w-[980px] flex-1 self-center justify-center px-10 py-8'
+            ? 'w-full max-w-[1180px] flex-1 self-center justify-center px-10 py-8'
             : 'flex-1 justify-center px-5 py-6'}
         >
           <Text className={wide
