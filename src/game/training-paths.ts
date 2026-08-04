@@ -74,6 +74,14 @@ const REFERENCE_OUTFIELD_PATH_ID = 'sprints';
 /**
  * How far short of the ordinary ladder a given drill falls.
  *
+ * **This number feeds a deliberate lie.** It is what lets a keeper's card show
+ * the outfield gain while only the halved one is stored, so lowering the keeper
+ * ladder in `content/training.json` does not break this function — it silently
+ * makes the lie roughly twice as large (measured: 412 points of drift over a
+ * long career today, 776 at a halved ladder). Read the tripwire at the top of
+ * `src/audit/__tests__/keeper-display-drift-rail.test.ts` before changing those
+ * gains; that rail will fail and is the decision point, not an obstacle.
+ *
  * Keyed on the drill rather than the path because the upgrade shop quotes tiers
  * the club has not bought yet, and a path's owned tier is the wrong answer for
  * those rows.

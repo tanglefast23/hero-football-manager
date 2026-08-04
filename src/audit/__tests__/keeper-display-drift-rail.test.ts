@@ -5,6 +5,40 @@ import type { GameState } from '../../game/types';
 import { MAX_PLAYER_ATTRIBUTE } from '../../sim/attributes';
 
 /**
+ * TRIPWIRE — read this before re-tuning the keeper ladder.
+ *
+ * The display parity trick is a deliberate lie: a keeper is shown the outfield
+ * gain while only the halved one is stored. The lie stays small only while
+ * Keeper Drills stay half the outfield ladder (2/3/5/7/9 against 4/6/10/14/18).
+ *
+ * Lower the keeper gains and the lie grows roughly twice as fast. Measured over
+ * 150 weekly taps: today's ladder drifts 412 points, a halved one drifts 776 —
+ * not because the per-tap gap doubles, but because a keeper on a weaker ladder
+ * spends far longer on the low tiers, taking many more taps to reach the stat
+ * ceiling that eventually stops the drift.
+ *
+ * Any change that weakens the keeper ladder has to answer this first:
+ *
+ *   KEEPER_GAIN_PROBE=1 npm run test:probe -- \
+ *     src/audit/__tests__/keeper-drill-gain-probe.test.ts
+ *
+ * That probe only ever sweeps the ladder *downward* — its candidates are
+ * [1, 0.75, 0.5, 0.4, 0.3, 0.2] against a 1.5x leverage target — so the change
+ * it recommends is exactly the change that makes this worse.
+ *
+ * The code will not break. `keeperDisplayLadderMultiplier` reads the halving out
+ * of content, so a re-tune carries the display with it automatically. What needs
+ * a human decision is whether the *larger* lie is still acceptable, or whether
+ * it is time to rescale the Reflexes axis for real (plan §2b) and delete this.
+ *
+ * This rail is what forces that decision into the open rather than letting it
+ * ship quietly. Verified 2026-08-04: it stays silent at today's ladder and fires
+ * at 0.5x and below. If it fails, do not raise the bound to make it pass.
+ *
+ * See docs/superpowers/plans/2026-08-04-keeper-drill-display-parity.md §6.
+ *
+ * ---
+ *
  * The tripwire on the keeper display trick.
  *
  * `refDisplayBonus` lets a keeper's card read as though Keeper Drills used the

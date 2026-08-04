@@ -169,16 +169,16 @@ why the gain dial is the one under investigation.
 **This does not cancel the spec, and it is not a crisis either.** The honest size
 of the effect, in the units §6 argues are the right ones:
 
-| ladder | stored/tap | displayed/tap | gap/tap |
-|---|---:|---:|---:|
-| today (x1) | +2 | +4 | **+2** |
-| x0.4 | +1 | +4 | **+3** |
+**Corrected by measurement, step 4.** The tier-1 arithmetic says the gap goes
+from +2 to +3 per tap — half again, not the four times the 2:1 to 4:1 ratio
+suggests. That is true and it is not the whole story. Measured across 150 weekly
+taps, the accumulated drift goes **412 → 776, about 1.9x**, because a keeper on
+a weaker ladder climbs far more slowly and therefore takes many more taps before
+reaching the stat ceiling that eventually stops the drift.
 
-Half again as much drift per tap, not four times as much. The displayed-to-stored
-*ratio* does go 2:1 to 4:1, which sounds far worse than it is — precisely the
-compression §6 rejects the ratio framing for. A re-tune makes the rail fire
-sooner and earns a line in the constant's comment. It does not invalidate the
-design.
+So a re-tune roughly doubles the lie. That still does not invalidate the design —
+the multiplier is read from content and carries the display with it — but it is
+the reason the rail exists and the reason it fires at 0.5x and below.
 
 What it does change is the constant. §3 must not hardcode
 `KEEPER_DISPLAY_LADDER_MULTIPLIER = 2`, because 2 only means "undo the halving"
