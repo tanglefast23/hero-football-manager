@@ -3,6 +3,7 @@ import {
   PLAYER_ARCHETYPES,
   createCareer,
   playerAttributeCaps,
+  playerGrowthGrade,
   playerPotentialGrade,
   superTrainingChancePercent,
   roleOverall,
@@ -37,7 +38,14 @@ describe('open-ended potential in the Squad desk', () => {
         attribute.cap,
       ]))).toEqual(playerAttributeCaps(careerPlayer));
       expect(player.overall).toBe(roleOverall(careerPlayer.role, careerPlayer.attrs));
-      expect(player.potentialGrade).toBe(playerPotentialGrade(careerPlayer));
+      // The column is the training-speed grade this test was always named for:
+      // age band, position and archetype at three quarters, the SUPER lottery at
+      // one. It used to print raw talent, which flattered a thirty-year-old with
+      // a ceiling they could no longer reach.
+      expect(player.potentialGrade).toBe(playerGrowthGrade(careerPlayer));
+      // The odds beside it stay on the *raw* grade, because that is what
+      // `trainPlayerInstantly` rolls against. Deriving them from the growth
+      // grade would print a number the drill does not use.
       expect(player.superChancePercent)
         .toBe(superTrainingChancePercent(playerPotentialGrade(careerPlayer)));
     }

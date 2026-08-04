@@ -40,6 +40,7 @@ import {
   offerCareerEvent,
   unseenDeskTipIds,
   playerAttributeCaps,
+  playerGrowthGrade,
   playerPotentialGrade,
   overtrainingInjuryChancePercent,
   superTrainingChancePercent,
@@ -1832,7 +1833,13 @@ export function squadTrainingViewModel(
     },
     ...(createdPlayer === undefined ? {} : { createdPlayerId: createdPlayer.id }),
     players: orderedRoster.map(player => {
-      const potentialGrade = playerPotentialGrade(player);
+      // The column reports how fast this player still improves, not the raw
+      // talent they were generated with — that grade flattered a thirty-year-old
+      // who could no longer reach it.
+      const potentialGrade = playerGrowthGrade(player);
+      // The SUPER chance stays on the raw grade, because that is what the engine
+      // actually rolls against (`trainPlayerInstantly`). Deriving it from the
+      // growth grade would print odds the drill does not use.
       const personalCaps = playerAttributeCaps(player);
       const positionAttributes = POSITION_TRAINING_ATTRIBUTES[player.role]
         .map(attribute => attribute.toUpperCase())
@@ -1844,7 +1851,7 @@ export function squadTrainingViewModel(
         lookId: player.lookId,
         overall: overall(player.role, player.attrs),
         potentialGrade,
-        superChancePercent: superTrainingChancePercent(potentialGrade),
+        superChancePercent: superTrainingChancePercent(playerPotentialGrade(player)),
         ...((player.priorityDrillsRemaining ?? 0) > 0
           && hasActiveCareerContractPromise(player, 'TRAINING_PRIORITY')
           ? { priorityDrillsRemaining: player.priorityDrillsRemaining }

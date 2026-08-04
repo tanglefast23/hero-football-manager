@@ -80,7 +80,11 @@ const COLUMN_EXPLAINER: Readonly<Record<SquadSortKey, string>> = {
   player: 'Name, position, and whether they start.',
   role: 'Where they play: keeper, defence, midfield or attack.',
   overall: 'Their ability right now, out of 99. It is what they bring to Saturday.',
-  potential: 'How good they could still become. A high grade trains faster and further.',
+  // Was "A high grade trains faster and further", which was wrong twice over:
+  // the grade contributed nothing to the ordinary gain, and the "further" was a
+  // cap that cap-free development retired. It now measures what the column is
+  // read for, so the words can finally match it.
+  potential: 'How fast they still improve. Age, position and archetype set most of it; the SUPER chance the rest.',
   condition: 'Fresh legs. Training and matches drain it; low condition risks injury.',
 };
 

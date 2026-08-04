@@ -10,10 +10,13 @@ import { trainingMultiplierForAge } from './pyramid';
 import { careerCoachTrainingModifiers } from './coach-weekly';
 import {
   archetypeTrainingBonusPercent,
+  attributeAffectsPlay,
   capPlayerTrainingGain,
   playerPotentialGrade,
+  POTENTIAL_GRADES,
   positionTrainingBonusPercent,
   superTrainingChancePercent,
+  type PotentialGrade,
 } from './archetype-caps';
 import {
   gridMedicalBayLevel,
@@ -394,6 +397,81 @@ function applyInstantGrowthModifiers(
     ...(hasPercentBonusState ? { trainingBonusRemainders } : {}),
     ...(facilityStaBonusRemainder === undefined ? {} : { facilityStaBonusRemainder }),
   };
+}
+
+/**
+ * How much of the grade is the training the manager can act on today, and how
+ * much is the SUPER lottery. Three quarters to the former: it is deterministic,
+ * it is the reason one player outgrows another, and it is what the column is
+ * read for.
+ */
+const GROWTH_MULTIPLIER_WEIGHT = 0.75;
+const GROWTH_SUPER_WEIGHT = 0.25;
+
+/**
+ * The span the training multiplier can occupy, used to put it on the same 0-1
+ * scale as the SUPER chance before the two are blended. Derived, not guessed:
+ * the floor is the veteran band with no bonuses at all, and the ceiling is the
+ * youth band carrying Prodigy on every attribute plus the position bonus on the
+ * three it applies to. `stays inside the grade scale at both extremes` is the
+ * test that keeps these honest, and the clamp below means a content change that
+ * outruns them degrades to a boundary grade rather than an index crash.
+ */
+const GROWTH_MULTIPLIER_FLOOR = 0.6;
+const GROWTH_MULTIPLIER_CEILING = 1.3 * 1.25;
+const GROWTH_SUPER_FLOOR = 5;
+const GROWTH_SUPER_CEILING = 33;
+
+const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
+
+/**
+ * What the register's Potential column measures: how fast this player still
+ * improves, not how good they were once capable of becoming.
+ *
+ * The old column was raw talent, and it flattered exactly the player a manager
+ * should be wary of — a thirty-one-year-old at potential 5 shows a grade they
+ * can no longer reach, because the veteran age band divides every gain they
+ * take by more than two. Read as *remaining* potential the name still holds,
+ * and now the number agrees with it.
+ *
+ * Deliberately excludes the facility and coach multipliers. Those are club-wide,
+ * so folding them in would move all sixteen grades together and never reorder
+ * them — the column would twitch on every upgrade while saying nothing new about
+ * who to train. Only per-player terms count.
+ *
+ * `player.potential` itself is untouched. It still sets the SUPER chance, the
+ * transfer valuation (`market.ts`) and what the scouts hunt for; this is a
+ * reading of it, not a replacement.
+ */
+export function playerGrowthGrade(player: CareerPlayer): PotentialGrade {
+  const trainable = (Object.keys(player.attrs) as (keyof CareerPlayer['attrs'])[])
+    .filter(attribute => attributeAffectsPlay(player.role, attribute));
+  // Averaged across the attributes this role actually uses, because the bonuses
+  // are per-attribute — a Sniper is +15% on Shooting and nothing on Defense, and
+  // one letter cannot say so. The mean is what they get over a season of drills.
+  const averageBonusPercent = trainable.length === 0
+    ? 0
+    : trainable.reduce(
+      (total, attribute) => total
+        + positionTrainingBonusPercent(player.role, attribute)
+        + archetypeTrainingBonusPercent(player.archetype, attribute),
+      0,
+    ) / trainable.length;
+
+  const multiplier = trainingMultiplierForAge(player.age ?? 24)
+    * (1 + averageBonusPercent / 100);
+  const multiplierScore = clamp01(
+    (multiplier - GROWTH_MULTIPLIER_FLOOR)
+    / (GROWTH_MULTIPLIER_CEILING - GROWTH_MULTIPLIER_FLOOR),
+  );
+  const superScore = clamp01(
+    (superTrainingChancePercent(playerPotentialGrade(player)) - GROWTH_SUPER_FLOOR)
+    / (GROWTH_SUPER_CEILING - GROWTH_SUPER_FLOOR),
+  );
+
+  const blended = GROWTH_MULTIPLIER_WEIGHT * multiplierScore
+    + GROWTH_SUPER_WEIGHT * superScore;
+  return POTENTIAL_GRADES[Math.round(blended * (POTENTIAL_GRADES.length - 1))];
 }
 
 function instantGrowthModifierLabels(
