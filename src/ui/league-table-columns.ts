@@ -26,6 +26,9 @@
 export const LEAGUE_HEADER_ADVANCE_EM: Readonly<Record<string, number>> = {
   '#': 0.875,
   P: 0.75,
+  W: 1.0,
+  D: 0.75,
+  L: 0.75,
   GD: 1.5,
   PTS: 2.125,
 };
@@ -54,6 +57,9 @@ export const LEAGUE_HEADER_FONT_SIZE = 12.25;
 export const LEAGUE_CELL_FONT_SIZE = {
   position: 14,
   played: 12.25,
+  won: 12.25,
+  drawn: 12.25,
+  lost: 12.25,
   goalDifference: 12.25,
   points: 14,
 } as const;
@@ -83,6 +89,11 @@ export const COLUMN_MIN_GUTTER = 4;
  * value demand, rounded up onto the four-point grid.
  */
 export const LEAGUE_COLUMN_WIDTH = {
+  // Won, drawn and lost appear only on the full table screen. Same demand as
+  // played: a two-digit count at full text scale.
+  won: 36,
+  drawn: 36,
+  lost: 36,
   // "10" at full text scale wants 37.6.
   position: 40,
   // "30" wants 33.4.
