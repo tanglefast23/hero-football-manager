@@ -66,7 +66,7 @@ These corrections supersede any conflicting detail later in the original task te
 
 There is no monolithic `game-state-codec.test.ts` — the codec's suites are split by feature (`m2-game-state-codec.test.ts`, `hall-of-fame-codec.test.ts`, and so on), each building its fixture with `createCareer(createLaunchCareerSetup(seed))`. Follow that convention with a new focused file. The public API is `serializeGameState` / `parseStoredGameState`; there is no `encodeGameState`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/persistence/__tests__/assistant-mode-codec.test.ts`:
 
@@ -99,12 +99,12 @@ describe('assistant mode codec', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/persistence/__tests__/assistant-mode-codec.test.ts`
 Expected: FAIL — `assistantTeaches` is not exported from `src/game/assistant-guide`.
 
-- [ ] **Step 3: Add the type and the field**
+- [x] **Step 3: Add the type and the field**
 
 In `src/game/types.ts`, above the `GameState` interface:
 
@@ -127,7 +127,7 @@ Then, immediately after the `difficulty?: DifficultyMode;` line at `src/game/typ
   assistantMode?: AssistantMode;
 ```
 
-- [ ] **Step 4: Add the predicate**
+- [x] **Step 4: Add the predicate**
 
 At the top of `src/game/assistant-guide.ts`, change the import line to bring in the type, then add the predicate below the existing imports:
 
@@ -151,7 +151,7 @@ export function assistantTeaches(
 export type { AssistantMode };
 ```
 
-- [ ] **Step 5: Add the codec field**
+- [x] **Step 5: Add the codec field**
 
 In `src/persistence/game-state-codec.ts`, directly after the `difficulty` line at 925:
 
@@ -159,17 +159,17 @@ In `src/persistence/game-state-codec.ts`, directly after the `difficulty` line a
     assistantMode: z.enum(['teacher', 'advisor']).optional(),
 ```
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [x] **Step 6: Run the test to verify it passes**
 
 Run: `npx jest src/persistence/__tests__/assistant-mode-codec.test.ts`
 Expected: PASS, 2 tests
 
-- [ ] **Step 7: Verify `src/game` still exports cleanly**
+- [x] **Step 7: Verify `src/game` still exports cleanly**
 
 Run: `npx tsc --noEmit`
 Expected: no errors. If `assistantTeaches` is not reachable from `src/game/index.ts`, add it to that file's export list alongside the other `assistant-guide` exports.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/game/types.ts src/game/assistant-guide.ts src/game/index.ts src/persistence/game-state-codec.ts src/persistence/__tests__/assistant-mode-codec.test.ts

@@ -685,6 +685,9 @@ export interface PlayerRequestState {
   lastAskingPlayerId?: string;
 }
 
+/** Whether Bert teaches this career or limits himself to real club business. */
+export type AssistantMode = 'teacher' | 'advisor';
+
 export interface GameState {
   schemaVersion: number;
   /** Marks launch-content roster migrations that have already been applied. */
@@ -696,6 +699,8 @@ export interface GameState {
   phase: GamePhase;
   /** Old saves omit this and are treated as Cozy. */
   difficulty?: DifficultyMode;
+  /** Old saves omit this and are taught, exactly as they were. */
+  assistantMode?: AssistantMode;
   clubs: ClubState[];
   fixtures: LeagueFixture[];
   players: CareerPlayer[];

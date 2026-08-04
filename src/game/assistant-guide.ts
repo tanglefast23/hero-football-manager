@@ -1,4 +1,18 @@
-import type { GameState } from './types';
+import type { AssistantMode, GameState } from './types';
+
+/**
+ * Whether Bert is teaching this career.
+ *
+ * This is the only comparison against the persisted mode. Keeping the decision
+ * here makes every teaching surface discoverable by searching for this helper.
+ */
+export function assistantTeaches(
+  state: Pick<GameState, 'assistantMode'>,
+): boolean {
+  return (state.assistantMode ?? 'teacher') === 'teacher';
+}
+
+export type { AssistantMode };
 
 export const M2_ASSISTANT_GUIDE_SEQUENCE_IDS = [
   'head-coach-market',

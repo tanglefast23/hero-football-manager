@@ -923,6 +923,7 @@ const gameStateSchema = z
     week: positiveInteger,
     phase: z.enum(['manage', 'matchday', 'season-end', 'complete']),
     difficulty: z.enum(['COZY', 'CHAIRMAN']).optional(),
+    assistantMode: z.enum(['teacher', 'advisor']).optional(),
     clubs: z.array(clubSchema).length(10),
     fixtures: z.array(fixtureSchema),
     players: z.array(playerSchema),
