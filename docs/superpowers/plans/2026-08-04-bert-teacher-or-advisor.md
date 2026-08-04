@@ -608,7 +608,7 @@ git commit -m "feat: let Settings change Bert's job mid-career"
 - Modify: `src/application/preferences.ts`
 - Test: `src/persistence/__tests__/preferences-repository.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/persistence/__tests__/preferences-repository.test.ts`, inside the outermost `describe`. The file already imports `FakePersistenceDatabase` from `./fake-database` and constructs it with `new FakePersistenceDatabase()` — reuse that rather than writing a second helper.
 
@@ -658,12 +658,12 @@ Append to `src/persistence/__tests__/preferences-repository.test.ts`, inside the
 
 The three `formationPresets` values above must be real `FormationId`s that the file's other fixtures already use, and must be distinct — `PreferencesSchema` refines on uniqueness. Copy them from an existing fixture in the same file.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/persistence/__tests__/preferences-repository.test.ts`
 Expected: FAIL — `climbCompleted` does not exist on `AppPreferences`.
 
-- [ ] **Step 3: Change the shape**
+- [x] **Step 3: Change the shape**
 
 In `src/persistence/preferences-repository.ts`, in `AppPreferences` (line 36), **delete** `managerTipsEnabled: boolean;` and add:
 
@@ -682,7 +682,7 @@ In `DEFAULT_APP_PREFERENCES` (line 55), delete `managerTipsEnabled: true,` and a
 
 In `PreferencesSchema` (line 82), delete `managerTipsEnabled: z.boolean(),` and add `climbCompleted: z.boolean(),`.
 
-- [ ] **Step 4: Extend the version ladder**
+- [x] **Step 4: Extend the version ladder**
 
 At the top of `src/persistence/preferences-repository.ts`, change line 13 and add the new constant:
 
@@ -733,7 +733,7 @@ const ManagerTipsRowSchema = PreferencesSchema
   .extend(RetiredTipsShape);
 ```
 
-- [ ] **Step 5: Fill the new field in every migration branch**
+- [x] **Step 5: Fill the new field in every migration branch**
 
 In each of the six existing branches in `load()` (lines 173–300), the `migrated` object spreads `legacy.data`. Two edits per branch:
 
@@ -769,7 +769,7 @@ Apply the same `const { managerTipsEnabled: _retired, ...carried }` shape to the
 
 **Do NOT destructure it in the `M4` or `CutInHistory` branches.** Version 3 and 4 rows predate the field: their schemas omit it and always did, so `legacy.data` has no such property and destructuring it is a TypeScript error. Those two branches — and `Legacy` and `M2`, which pick too few fields to ever carry it — need exactly two edits each: delete the `managerTipsEnabled: DEFAULT_APP_PREFERENCES.managerTipsEnabled,` line, and add `climbCompleted: DEFAULT_APP_PREFERENCES.climbCompleted,`.
 
-- [ ] **Step 6: Add the version 7 branch**
+- [x] **Step 6: Add the version 7 branch**
 
 Directly above the final `if (row.schema_version !== PREFERENCES_SCHEMA_VERSION)` check (line 302):
 
@@ -797,12 +797,12 @@ Directly above the final `if (row.schema_version !== PREFERENCES_SCHEMA_VERSION)
       }
 ```
 
-- [ ] **Step 7: Run the tests**
+- [x] **Step 7: Run the tests**
 
 Run: `npx jest src/persistence/__tests__/preferences-repository.test.ts`
 Expected: PASS. Several pre-existing cases in this file WILL fail first and must be updated, not worked around: any that assert on `managerTipsEnabled` (delete the assertion — the field is retired, not renamed) and any that assert the stored `schema_version` is `7` (it is now `8`). The first case, `loads manual powers and the three coverage formations by default`, compares against `DEFAULT_APP_PREFERENCES` wholesale and passes untouched.
 
-- [ ] **Step 8: Update every compile site in the same checkpoint**
+- [x] **Step 8: Update every compile site in the same checkpoint**
 
 Run: `npx tsc --noEmit`
 Do not commit a knowingly broken preference shape. Update `App.tsx`,
@@ -812,7 +812,7 @@ Do not commit a knowingly broken preference shape. Update `App.tsx`,
 additional compiler-reported fixture. `src/application/preferences.ts` spreads
 the shape and should need no change.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/persistence/preferences-repository.ts src/persistence/__tests__/preferences-repository.test.ts
@@ -1166,7 +1166,7 @@ git commit -m "feat: ask a veteran what Bert is for"
 - Modify: `src/ui/SettingsOverlay.tsx:110,183,304-312`
 - Test: `src/ui/__tests__/assistant-mode-choice.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/ui/__tests__/assistant-mode-choice.test.ts`:
 
@@ -1239,12 +1239,12 @@ describe('the app wires the mode to every teaching surface', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/ui/__tests__/assistant-mode-choice.test.ts`
 Expected: FAIL on every case in the new describe.
 
-- [ ] **Step 3: Replace the Settings row**
+- [x] **Step 3: Replace the Settings row**
 
 In `src/ui/SettingsOverlay.tsx`, replace `managerTipsEnabled: boolean;` (line 110) with:
 
@@ -1282,7 +1282,7 @@ Replace the Manager's tips `Pressable` (lines 302–312) with:
               ) : null}
 ```
 
-- [ ] **Step 4: Add the landing view and the derived predicate**
+- [x] **Step 4: Add the landing view and the derived predicate**
 
 In `App.tsx`, change line 183:
 
@@ -1299,7 +1299,7 @@ Add near the other derived values, after `store.career` is in scope (beside `gui
 
 Import it: `import { assistantTeaches } from './src/game/assistant-guide';` — or add to the existing import block from `'./src/game'` if that is how the file imports game symbols.
 
-- [ ] **Step 5: Gate the one-shots**
+- [x] **Step 5: Gate the one-shots**
 
 Before the edits, one gate you must NOT need to change, and must understand. `App.tsx:1624` carries a **fourth** refusal of Advance Week that the store knows nothing about:
 
@@ -1377,7 +1377,7 @@ objective state before calling the store action. The store action clears
 Finally, change the transfer-listing success notice to generic truthful copy;
 Advisor must never be told Bert left a follow-up note that is hidden.
 
-- [ ] **Step 6: Route the prompt**
+- [x] **Step 6: Route the prompt**
 
 Replace `toggleManagerTips` (lines 586–589) with nothing — delete the callback. Then change `startNewCareer` (line 973) so the veteran path stops at the question:
 
@@ -1434,7 +1434,7 @@ Add the screen branch directly above the `store.screen === 'welcome'` branch (li
 
 and change the existing welcome branch's condition to `store.screen === 'welcome' && landingView !== 'assistant-mode'` if it does not already exclude other landing views by ordering. Import `AssistantModeChoiceScreen` from `'./src/ui'`.
 
-- [ ] **Step 7: Mirror the unlock into preferences**
+- [x] **Step 7: Mirror the unlock into preferences**
 
 Add beside the other effects (near line 987):
 
@@ -1454,7 +1454,7 @@ Add beside the other effects (near line 987):
 
 Import `careerClimbCompleted` from `'./src/application/store'`.
 
-- [ ] **Step 8: Wire Settings and the desk**
+- [x] **Step 8: Wire Settings and the desk**
 
 At line 1853, replace `showManagerTips={preferences.managerTipsEnabled}` with:
 
@@ -1474,17 +1474,17 @@ At lines 1981 and 1999, replace `managerTipsEnabled={preferences.managerTipsEnab
 Pass a local wrapper rather than `store.setAssistantMode` directly. The wrapper
 performs the transient-state cleanup above and then calls the store action.
 
-- [ ] **Step 9: Run the tests**
+- [x] **Step 9: Run the tests**
 
 Run: `npx jest src/ui/__tests__/assistant-mode-choice.test.ts src/ui/__tests__/manager-tip-navigation.test.ts`
 Expected: the new file PASSES. `manager-tip-navigation.test.ts` will FAIL — it asserts `showManagerTips={preferences.managerTipsEnabled}`, which is exactly the line this task retires. Update its assertion to `showManagerTips={careerTeaches}` and keep the rest of the file, which still pins the `ClubHomeScreen` end of the wiring.
 
-- [ ] **Step 10: Typecheck**
+- [x] **Step 10: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add App.tsx src/ui/SettingsOverlay.tsx src/ui/__tests__/assistant-mode-choice.test.ts src/ui/__tests__/manager-tip-navigation.test.ts

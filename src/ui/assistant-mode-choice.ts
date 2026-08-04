@@ -34,3 +34,8 @@ export const ASSISTANT_MODE_CHOICE: AssistantModeChoiceCopy = {
     },
   ],
 };
+
+/** First careers stay on the shipped route; only proven devices are asked. */
+export function shouldAskAssistantMode(climbCompleted: boolean): boolean {
+  return climbCompleted;
+}

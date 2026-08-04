@@ -18,6 +18,8 @@ export * from './models';
 export * from './market-models';
 export * from './m2-league-models';
 export * from './opening-brief';
+export * from './assistant-mode-choice';
+export * from './advisor-milestones';
 export * from './player-arrival-lines';
 export * from './components/Scorecard';
 export * from './components/FormationDiagram';

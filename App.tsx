@@ -81,6 +81,7 @@ import {
   matchdayConditionWarningPlayer,
   CharacterCreationScreen,
   AwakeningCutsceneScreen,
+  AssistantModeChoiceScreen,
   ChampionshipCelebrationScreen,
   FixtureMatchDayScreen,
   LeagueTableScreen,
@@ -102,10 +103,13 @@ import {
   type ClubOfficeTab,
   type MarketSectionId,
   formatCurrency,
+  advisorMilestonesToBank,
+  shouldAskAssistantMode,
   shouldShowOpeningBrief,
 } from './src/ui';
 import {
   activeCareerMatchday,
+  assistantTeaches,
   buildCareerMatchTeams,
   careerCoachUnlockedFormationIds,
   clubSquadStrength,
@@ -116,6 +120,7 @@ import {
   isFullyCappedPlayer,
   leagueStandings,
   hasAssistantGuideMilestone,
+  type AssistantMode,
 } from './src/game';
 import type { DivisionLevel } from './src/game/pyramid';
 import { SettingsOverlay } from './src/ui/SettingsOverlay';
@@ -131,7 +136,11 @@ import {
   currentAssistantObjective,
   pendingAssistantGuideSequence,
 } from './src/application/assistant-guide';
-import { loadPreferencesFailSoft, markPowerCutInSeen } from './src/application/preferences';
+import {
+  loadPreferencesFailSoft,
+  markPowerCutInSeen,
+  rememberCompletedClimb,
+} from './src/application/preferences';
 import {
   DESK_STORY_ALERT_ID,
   awakeningCutsceneViewModel,
@@ -181,7 +190,7 @@ appText.defaultProps = {
 LogBox.ignoreLogs([/Packager status check returned unexpected result/]);
 
 const DATABASE_NAME = 'hero-football-manager.db';
-type LandingView = 'title' | 'story' | 'settings';
+type LandingView = 'title' | 'story' | 'settings' | 'assistant-mode';
 
 interface PendingConfirmation {
   readonly title: string;
@@ -479,6 +488,8 @@ function GameApp() {
    * clipped desk row it replaces.
    */
   const [openedBoardFinanceAlertId, setOpenedBoardFinanceAlertId] = useState<string | null>(null);
+  const careerTeaches = store.career === null || assistantTeaches(store.career);
+  const visibleConciergeFocus = careerTeaches ? conciergeFocus : null;
   // A screen-wide tap retires floating coach marks without completing the job
   // they describe. The objective remains authoritative; only its cue is hidden.
   const [dismissedAssistantObjectiveKey, setDismissedAssistantObjectiveKey] = useState<string | null>(null);
@@ -500,6 +511,7 @@ function GameApp() {
     target: ManagerTipDestination;
     token: number;
   } | null>(null);
+  const visibleManagerTipGuideRequest = careerTeaches ? managerTipGuideRequest : null;
   // The navigation press creates the new cue; its own pointer-up must not also
   // count as the "next tap" that dismisses it.
   const skipNextGuidanceDismissRef = useRef(false);
@@ -592,10 +604,6 @@ function GameApp() {
   const toggleCutInMode = useCallback(() => {
     const current = preferencesRef.current;
     savePreferences({ ...current, cutInMode: current.cutInMode === 'full' ? 'banner' : 'full' });
-  }, [savePreferences]);
-  const toggleManagerTips = useCallback(() => {
-    const current = preferencesRef.current;
-    savePreferences({ ...current, managerTipsEnabled: !current.managerTipsEnabled });
   }, [savePreferences]);
   const saveAutoSubs = useCallback((autoSubs: boolean) => {
     savePreferences({ ...preferencesRef.current, autoSubs });
@@ -696,7 +704,7 @@ function GameApp() {
 
   const buildClubFacilityWithFeedback = useCallback((type: FacilityProjectNoticeModel['type'], x: number, y: number) => {
     if (
-      conciergeFocus === 'facility-grid'
+      visibleConciergeFocus === 'facility-grid'
       && !guidedFirstFacilityAllowsPlacement(type, x, y)
     ) return;
     const before = useM1Store.getState().career?.facilities.grid?.construction;
@@ -706,7 +714,7 @@ function GameApp() {
       setConciergeFocus(null);
       showStartedFacilityProject();
     }
-  }, [conciergeFocus, showStartedFacilityProject]);
+  }, [showStartedFacilityProject, visibleConciergeFocus]);
 
   const upgradeClubFacilityWithFeedback = useCallback((buildingId: string) => {
     const before = useM1Store.getState().career?.facilities.grid?.construction;
@@ -980,9 +988,25 @@ function GameApp() {
     store.finishWatchedMatch(result);
   }, [store.finishWatchedMatch]);
 
-  const startNewCareer = useCallback(() => {
+  const handleSetAssistantMode = useCallback((assistantMode: AssistantMode) => {
+    if (assistantMode === 'advisor') {
+      setRequestedAssistantSequenceId(null);
+      setConciergeFocus(null);
+      setManagerTipGuideRequest(null);
+      setActiveGuideFocus(undefined);
+      setDismissedAssistantObjectiveKey(null);
+      setMarketSectionRequest(null);
+    }
+    store.setAssistantMode(assistantMode);
+  }, [store.setAssistantMode]);
+
+  const beginNewCareer = useCallback((assistantMode?: AssistantMode) => {
+    const begin = () => {
+      setLandingView('title');
+      store.startNewCareer(undefined, assistantMode);
+    };
     if (!store.hasSavedCareer) {
-      store.startNewCareer();
+      begin();
       return;
     }
     requestConfirmation({
@@ -990,9 +1014,56 @@ function GameApp() {
       detail: 'Starting over permanently erases the current career and its match replays.',
       confirmLabel: 'Erase and start over',
       tone: 'danger',
-      onConfirm: () => store.startNewCareer(),
+      onConfirm: begin,
     });
   }, [requestConfirmation, store.hasSavedCareer, store.startNewCareer]);
+
+  const startNewCareer = useCallback(() => {
+    if (shouldAskAssistantMode(preferencesRef.current.climbCompleted)) {
+      setLandingView('assistant-mode');
+      return;
+    }
+    beginNewCareer();
+  }, [beginNewCareer]);
+
+  useEffect(() => {
+    const current = preferencesRef.current;
+    const remembered = rememberCompletedClimb(current, store.career);
+    if (remembered !== current) savePreferences(remembered);
+  }, [savePreferences, store.career]);
+
+  useEffect(() => {
+    const career = store.career;
+    if (career === null || careerTeaches) return;
+    const lowConditionMatchday = store.screen === 'matchday'
+      && matchdayConditionWarningPlayer(matchDayViewModel(
+        career,
+        content,
+        preferences.formationPresets[0].replaceAll('-', '–'),
+      ).lineup) !== null;
+    const milestones = advisorMilestonesToBank(career, {
+      enteredManagement: store.screen === 'management',
+      viewingSquad: store.screen === 'management' && store.activeTab === 'squad',
+      viewingHome: store.screen === 'management' && store.activeTab === 'home',
+      viewingFinances: store.screen === 'management'
+        && store.activeTab === 'club'
+        && clubOfficeTab === 'finances',
+      watchingMatch: store.screen === 'watched',
+      cupExit: store.screen === 'postmatch' && store.postMatch?.result.cupExit === true,
+      lowConditionMatchday,
+    });
+    for (const milestone of milestones) store.completeGuideMilestone(milestone);
+  }, [
+    careerTeaches,
+    clubOfficeTab,
+    content,
+    preferences.formationPresets,
+    store.activeTab,
+    store.career,
+    store.completeGuideMilestone,
+    store.postMatch,
+    store.screen,
+  ]);
 
   useEffect(() => {
     if (store.career !== null) store.reconcileAssistantInbox();
@@ -1001,6 +1072,7 @@ function GameApp() {
   useEffect(() => {
     if (
       store.screen === 'legacy'
+      && careerTeaches
       && store.career !== null
       && requestedAssistantSequenceId === null
       && !hasAssistantGuideSequenceCompleted(store.career, 'club-legacy')
@@ -1008,16 +1080,18 @@ function GameApp() {
       setRequestedAssistantSequenceId('club-legacy');
       setConciergeFocus(null);
     }
-  }, [requestedAssistantSequenceId, store.career, store.screen]);
+  }, [careerTeaches, requestedAssistantSequenceId, store.career, store.screen]);
 
   const onboardingAssistantSequenceId = store.screen === 'management' && store.career !== null
     ? pendingAssistantGuideSequence(store.career, store.activeTab)
     : null;
-  const assistantSequenceId = onboardingAssistantSequenceId ?? (
-    (store.screen === 'management' || store.screen === 'legacy')
-      ? requestedAssistantSequenceId
-      : null
-  );
+  const assistantSequenceId = !careerTeaches
+    ? null
+    : onboardingAssistantSequenceId ?? (
+        (store.screen === 'management' || store.screen === 'legacy')
+          ? requestedAssistantSequenceId
+          : null
+      );
   const assistantSequence = assistantSequenceId === null
     ? undefined
     : content.assistantGuide.sequences.find(sequence => sequence.id === assistantSequenceId);
@@ -1027,7 +1101,7 @@ function GameApp() {
    * left him pointing at the Leaders tab while League was still the selected
    * one behind him. The briefing's own last page names the same focus.
    */
-  const leagueGuideFocus = conciergeFocus ?? assistantSequence?.pages.at(-1)?.focus;
+  const leagueGuideFocus = visibleConciergeFocus ?? assistantSequence?.pages.at(-1)?.focus;
   const leagueGuideSubTab = leagueGuideFocus === 'national-cup'
     ? 'cup' as const
     : leagueGuideFocus === 'division-leaders'
@@ -1035,7 +1109,7 @@ function GameApp() {
       : undefined;
   const cupGiantKillingCelebration = store.career
     ?.pendingCupGiantKillingCelebrations?.[0];
-  const facilityComboReveal = store.screen !== 'management' || store.career === null
+  const facilityComboReveal = !careerTeaches || store.screen !== 'management' || store.career === null
     ? undefined
     : store.career.facilities.grid?.discoveredAdjacencies
         .map(facilityAdjacencyPresentation)
@@ -1053,11 +1127,13 @@ function GameApp() {
    * back to the office, the sympathy would arrive after they had already
    * clicked past the defeat and started on next week.
    */
-  const cupExitConsolationVisible = store.screen === 'postmatch'
+  const cupExitConsolationVisible = careerTeaches
+    && store.screen === 'postmatch'
     && store.postMatch?.result.cupExit === true
     && store.career !== null
     && !hasAssistantGuideMilestone(store.career, 'first-cup-exit-seen');
-  const tripleSpeedIntroVisible = store.screen === 'watched'
+  const tripleSpeedIntroVisible = careerTeaches
+    && store.screen === 'watched'
     && store.career !== null
     && store.career.season >= 3
     && !hasAssistantGuideMilestone(store.career, 'triple-speed-seen');
@@ -1070,12 +1146,14 @@ function GameApp() {
    * flag, so a career closed between them opens on the half it still owes
    * instead of losing the second half or repeating the first.
    */
-  const fansLessonVisible = store.screen === 'management'
+  const fansLessonVisible = careerTeaches
+    && store.screen === 'management'
     && store.activeTab === 'home'
     && store.career !== null
     && hasEverGainedFans(store.career)
     && !hasAssistantGuideMilestone(store.career, 'first-fans-seen');
-  const fansLedgerTourVisible = store.screen === 'management'
+  const fansLedgerTourVisible = careerTeaches
+    && store.screen === 'management'
     && store.activeTab === 'club'
     && clubOfficeTab === 'finances'
     && store.career !== null
@@ -1181,9 +1259,9 @@ function GameApp() {
   }, [assistantObjectiveKey]);
   const hideCoachHiringCues = store.activeTab === 'market'
     && (
-      conciergeFocus === 'coach-market'
-      || conciergeFocus === 'coach-hire'
-      || conciergeFocus === 'assistant-coach-hire'
+      visibleConciergeFocus === 'coach-market'
+      || visibleConciergeFocus === 'coach-hire'
+      || visibleConciergeFocus === 'assistant-coach-hire'
     );
 
   // Memoized so unrelated re-renders of the squad tab (scroll cues, selection
@@ -1390,6 +1468,13 @@ function GameApp() {
         onBack={() => setLandingView('title')}
       />
     );
+  } else if (store.screen === 'welcome' && landingView === 'assistant-mode') {
+    screen = (
+      <AssistantModeChoiceScreen
+        onChoose={beginNewCareer}
+        onBack={() => setLandingView('story')}
+      />
+    );
   } else if (store.screen === 'welcome') {
     screen = (
       <NewGameWelcomeScreen
@@ -1464,7 +1549,7 @@ function GameApp() {
       content,
       preferences.formationPresets[0].replaceAll('-', '–'),
     );
-    if (!hasAssistantGuideMilestone(store.career, 'match-condition-warning-seen')) {
+    if (careerTeaches && !hasAssistantGuideMilestone(store.career, 'match-condition-warning-seen')) {
       lowConditionMatchdayStarter = matchdayConditionWarningPlayer(matchday.lineup);
     }
     screen = (
@@ -1530,7 +1615,7 @@ function GameApp() {
         onContinue={store.continueAfterEvent}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
         reduceMotion={reduceMotion}
-        guideCopy={store.career.eventFlags.includes('m4:event-guide-seen')
+        guideCopy={!careerTeaches || store.career.eventFlags.includes('m4:event-guide-seen')
           ? undefined
           : content.assistantGuide.m4Fiction.events}
         textScale={preferences.textScale}
@@ -1545,7 +1630,7 @@ function GameApp() {
           store.chooseLegacy(choice);
         }}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
-        guided={conciergeFocus === 'club-legacy'}
+        guided={visibleConciergeFocus === 'club-legacy'}
         onDismissGuidance={dismissVisibleTips}
       />
     );
@@ -1612,7 +1697,7 @@ function GameApp() {
         })}
         onPrimaryAction={() => season.sliceComplete ? store.setActiveTab('home') : store.advanceCareer()}
         onOpenSettings={() => setGlobalSettingsOpen(true)}
-        guideCopy={store.career.eventFlags.includes('m4:season-recap-guide-seen')
+        guideCopy={!careerTeaches || store.career.eventFlags.includes('m4:season-recap-guide-seen')
           ? undefined
           : content.assistantGuide.m4Fiction.seasonRecap}
         textScale={preferences.textScale}
@@ -1645,7 +1730,8 @@ function GameApp() {
         advanceWeekDisabled={store.saving
           || store.saveBlocked
           || (assistantObjective !== null && assistantObjective.target !== 'advance-week')}
-        guideFocus={activeGuideFocus === 'money' || activeGuideFocus === 'navigation'
+        guideFocus={careerTeaches
+          && (activeGuideFocus === 'money' || activeGuideFocus === 'navigation')
           ? activeGuideFocus
           : undefined}
         // The helper sentence is the durable first-week flow. Only the
@@ -1671,7 +1757,7 @@ function GameApp() {
             selectedPlayerId={store.selectedPlayerId}
             onSelectPlayer={playerId => {
               store.selectPlayer(playerId);
-              if (conciergeFocus === 'injury-lineup' || conciergeFocus === 'transfer-request') {
+              if (visibleConciergeFocus === 'injury-lineup' || visibleConciergeFocus === 'transfer-request') {
                 setConciergeFocus(null);
               }
             }}
@@ -1689,16 +1775,19 @@ function GameApp() {
             lastDrillResult={store.lastDrillResult}
             trainingPoints={store.career?.trainingPoints ?? 0}
             guideTraining={visibleAssistantObjectiveTarget === 'training-plan'}
-            guideFocus={conciergeFocus ?? undefined}
+            guideFocus={visibleConciergeFocus ?? undefined}
             dismissTipsToken={tipDismissSequence}
-            managerTipGuideRequest={managerTipGuideRequest ?? undefined}
+            managerTipGuideRequest={visibleManagerTipGuideRequest ?? undefined}
             reduceMotion={reduceMotion}
             drillPickerRequestToken={drillFocusToken ?? undefined}
             saveWarning={store.saveWarning}
-            conditionWarningSeen={store.career !== null
-              && hasAssistantGuideMilestone(store.career, 'condition-warning-seen')}
+            conditionWarningSeen={!careerTeaches || (
+              store.career !== null
+              && hasAssistantGuideMilestone(store.career, 'condition-warning-seen')
+            )}
             onConditionWarningShown={() => store.completeGuideMilestone('condition-warning-seen')}
-            guideQuickTrain={store.career !== null
+            guideQuickTrain={careerTeaches
+              && store.career !== null
               && store.career.season === 1
               && store.career.week >= QUICK_TRAIN_LESSON_WEEK
               && !hasAssistantGuideMilestone(store.career, 'quick-train-seen')}
@@ -1756,7 +1845,7 @@ function GameApp() {
             }}
             onDismissCoach={beginCoachDismissal}
             guideTrainingGround={visibleAssistantObjectiveTarget === 'training-ground-facility'}
-            guideFocus={conciergeFocus ?? undefined}
+            guideFocus={visibleConciergeFocus ?? undefined}
           />
         ) : store.activeTab === 'market' && store.career.market !== undefined ? (
           <MarketScreen
@@ -1831,7 +1920,7 @@ function GameApp() {
             onSubmitContractOffer={submitTransferOfferWithFeedback}
             onCloseNegotiation={store.closeTransferTalks}
             onDismissGuideFocus={() => setConciergeFocus(null)}
-            guideFocus={conciergeFocus ?? undefined}
+            guideFocus={visibleConciergeFocus ?? undefined}
             requestedSection={marketSectionRequest?.section}
             requestedSectionToken={marketSectionRequest?.token}
           />
@@ -1872,7 +1961,7 @@ function GameApp() {
             textScale={preferences.textScale}
             onOpenFixture={store.openMatchday}
             onOpenManagerTipDestination={openManagerTipDestination}
-            showManagerTips={preferences.managerTipsEnabled}
+            showManagerTips={careerTeaches}
             onOpenAlert={alertId => {
               // Every row on the desk opens, including while Bert is pointing at
               // the pitch. He points at one first-week job and bars neither: the
@@ -1937,7 +2026,7 @@ function GameApp() {
             )}
             guideAlertId={visibleAssistantObjectiveTarget === 'training-ground-alert'
               ? 'training-ground'
-              : conciergeFocus === 'retirement'
+              : visibleConciergeFocus === 'retirement'
                 ? home.alerts.find(alert => alert.id.startsWith('retirement-announcement-'))?.id
                 : undefined}
             focusGuidedAlert={assistantObjective?.target === 'training-ground-alert'}
@@ -1945,7 +2034,7 @@ function GameApp() {
             // under a dimmed pane anyway, and a third highlight would compete
             // with the spotlight he is standing in.
             glowGuidedAlert={!guideOverlayVisible}
-            guideBoard={conciergeFocus === 'board-ultimatum' || conciergeFocus === 'board-protection'}
+            guideBoard={visibleConciergeFocus === 'board-ultimatum' || visibleConciergeFocus === 'board-protection'}
           />
         )}
       </ManagementShell>
@@ -2005,7 +2094,9 @@ function GameApp() {
           highContrast={preferences.highContrast}
           colorSafeKits={preferences.colorSafeKits}
           cutInMode={preferences.cutInMode}
-          managerTipsEnabled={preferences.managerTipsEnabled}
+          assistantMode={store.career === null
+            ? undefined
+            : store.career.assistantMode ?? 'teacher'}
           accessibilityCopy={content.assistantGuide.m4Fiction.accessibility}
           // No career, no record to open — not even a locked one.
           hallOfFame={store.career === null ? undefined : hallOfFameViewModel(store.career)}
@@ -2023,7 +2114,7 @@ function GameApp() {
           onToggleHighContrast={toggleHighContrast}
           onToggleColorSafeKits={toggleColorSafeKits}
           onToggleCutInMode={toggleCutInMode}
-          onToggleManagerTips={toggleManagerTips}
+          onSetAssistantMode={store.career === null ? undefined : handleSetAssistantMode}
           onGlossaryOpenChange={setGlobalGlossaryOpen}
           onOpenChange={open => {
             setGlobalSettingsOpen(open);
@@ -2172,7 +2263,7 @@ function GameApp() {
             }}
           />
         ) : null}
-        {store.inboxDutyReminder !== null ? (
+        {careerTeaches && store.inboxDutyReminder !== null ? (
           <BertBriefingWalkOn
             key="inbox-duty-reminder"
             content={content.assistantGuide}

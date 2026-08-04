@@ -23,7 +23,7 @@ describe('app preferences repository', () => {
       masterVolume: 0.5 as const,
       reduceMotion: true,
       hudSide: 'right' as const,
-      managerTipsEnabled: false,
+      climbCompleted: true,
       seenPowerCutIns: ['SUPER_SPEED', 'WEB_TRAP', 'GUST'],
       autoSubs: true,
     };
@@ -49,7 +49,7 @@ describe('app preferences repository', () => {
       autoPowers: true,
       masterVolume: 0.75,
     });
-    expect(database.preferencesRow?.schema_version).toBe(7);
+    expect(database.preferencesRow?.schema_version).toBe(8);
   });
 
   it('migrates schema-2 preferences with M4 accessibility defaults', async () => {
@@ -73,16 +73,16 @@ describe('app preferences repository', () => {
       reduceMotion: true,
       hudSide: 'right',
     });
-    expect(database.preferencesRow?.schema_version).toBe(7);
+    expect(database.preferencesRow?.schema_version).toBe(8);
   });
 
   it('migrates schema-3 M4 preferences with an empty persistent cut-in history', async () => {
     const database = new FakePersistenceDatabase();
     const {
       seenPowerCutIns: _seenPowerCutIns,
-      managerTipsEnabled: _managerTipsEnabled,
       autoSubs: _autoSubs,
       squadSort: _squadSort,
+      climbCompleted: _climbCompleted,
       ...m4Preferences
     } = DEFAULT_APP_PREFERENCES;
     database.preferencesRow = {
@@ -95,15 +95,15 @@ describe('app preferences repository', () => {
       ...DEFAULT_APP_PREFERENCES,
       cutInMode: 'banner',
     });
-    expect(database.preferencesRow?.schema_version).toBe(7);
+    expect(database.preferencesRow?.schema_version).toBe(8);
   });
 
   it('migrates schema-4 preferences with manager tips enabled', async () => {
     const database = new FakePersistenceDatabase();
     const {
-      managerTipsEnabled: _managerTipsEnabled,
       autoSubs: _autoSubs,
       squadSort: _squadSort,
+      climbCompleted: _climbCompleted,
       ...schema4Preferences
     } = DEFAULT_APP_PREFERENCES;
     database.preferencesRow = {
@@ -113,7 +113,7 @@ describe('app preferences repository', () => {
     const repository = await createPreferencesRepository(database);
 
     await expect(repository.load()).resolves.toEqual(DEFAULT_APP_PREFERENCES);
-    expect(database.preferencesRow?.schema_version).toBe(7);
+    expect(database.preferencesRow?.schema_version).toBe(8);
   });
 
   it('migrates schema-5 preferences with bench cover off, keeping the rest', async () => {
@@ -121,8 +121,10 @@ describe('app preferences repository', () => {
     const {
       autoSubs: _autoSubs,
       squadSort: _squadSort,
-      ...schema5Preferences
+      climbCompleted: _climbCompleted,
+      ...schema5Base
     } = DEFAULT_APP_PREFERENCES;
+    const schema5Preferences = { ...schema5Base, managerTipsEnabled: true };
     database.preferencesRow = {
       schema_version: 5,
       preferences_json: JSON.stringify({
@@ -139,12 +141,17 @@ describe('app preferences repository', () => {
       seenPowerCutIns: ['GRAVITY_WELL'],
       autoSubs: false,
     });
-    expect(database.preferencesRow?.schema_version).toBe(7);
+    expect(database.preferencesRow?.schema_version).toBe(8);
   });
 
   it('migrates schema-6 preferences to the roster order the club has not chosen yet', async () => {
     const database = new FakePersistenceDatabase();
-    const { squadSort: _squadSort, ...schema6Preferences } = DEFAULT_APP_PREFERENCES;
+    const {
+      squadSort: _squadSort,
+      climbCompleted: _climbCompleted,
+      ...schema6Base
+    } = DEFAULT_APP_PREFERENCES;
+    const schema6Preferences = { ...schema6Base, managerTipsEnabled: true };
     database.preferencesRow = {
       schema_version: 6,
       preferences_json: JSON.stringify({ ...schema6Preferences, autoSubs: true }),
@@ -156,7 +163,7 @@ describe('app preferences repository', () => {
       autoSubs: true,
       squadSort: null,
     });
-    expect(database.preferencesRow?.schema_version).toBe(7);
+    expect(database.preferencesRow?.schema_version).toBe(8);
   });
 
   it('keeps the roster ordering the manager picked', async () => {
@@ -221,5 +228,51 @@ describe('app preferences repository', () => {
       '3-4-3',
       '3-5-2',
     ]);
+  });
+
+  it('defaults a fresh install to a locked climb and retires the narrow tips toggle', async () => {
+    const repository = await createPreferencesRepository(new FakePersistenceDatabase());
+    const preferences = await repository.load();
+
+    expect(preferences.climbCompleted).toBe(false);
+    expect('managerTipsEnabled' in preferences).toBe(false);
+  });
+
+  it('migrates a version 7 row by dropping the tips flag and locking the climb', async () => {
+    const database = new FakePersistenceDatabase();
+    database.preferencesRow = {
+      schema_version: 7,
+      preferences_json: JSON.stringify({
+        formationPresets: ['4-4-2', '3-4-3', '5-3-2'],
+        autoPowers: false,
+        masterVolume: 1,
+        reduceMotion: false,
+        hudSide: 'left',
+        hapticsEnabled: true,
+        textScale: 1,
+        highContrast: false,
+        colorSafeKits: true,
+        cutInMode: 'full',
+        managerTipsEnabled: false,
+        seenPowerCutIns: [],
+        autoSubs: false,
+        squadSort: null,
+      }),
+    };
+
+    const repository = await createPreferencesRepository(database);
+    const preferences = await repository.load();
+    expect(preferences.climbCompleted).toBe(false);
+    expect('managerTipsEnabled' in preferences).toBe(false);
+    expect(database.preferencesRow?.schema_version).toBe(8);
+  });
+
+  it('round-trips a completed climb', async () => {
+    const repository = await createPreferencesRepository(new FakePersistenceDatabase());
+    const preferences = await repository.load();
+
+    await repository.save({ ...preferences, climbCompleted: true });
+
+    expect((await repository.load()).climbCompleted).toBe(true);
   });
 });
