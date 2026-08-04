@@ -57,6 +57,11 @@ import { MAX_PLAYER_ATTRIBUTE } from '../../sim/attributes';
  * env var is set — a rail that never runs is decoration. Nothing here simulates
  * a match, so it costs milliseconds and can afford to run every time.
  *
+ * The `-rail` in the filename is load-bearing. `jest.config.js` ignores
+ * `src/audit/__tests__/*-probe.test.ts` outright, so renaming this file to
+ * match its neighbours would silently drop it from every run without failing
+ * anything. Keep the suffix.
+ *
  * See docs/superpowers/plans/2026-08-04-keeper-drill-display-parity.md §6.
  */
 

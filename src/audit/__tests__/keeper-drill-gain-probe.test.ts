@@ -19,6 +19,29 @@
  *
  * Content-only. No engine behaviour changes and no ENGINE_VERSION decision.
  *
+ * KNOWN LIMITATION — measured 2026-08-04, before spending an hour on a full run.
+ *
+ * This scales the whole ladder but only ever *measures* Tier I. An opening
+ * career buys about seven drills, so the keeper never reaches Tier II, and the
+ * paragraph above is the one thing the instrument cannot check.
+ *
+ * After rounding, six candidates collapse to two distinguishable arms:
+ *
+ *   x1.00, x0.75          -> Tier I gain 2   (identical rows)
+ *   x0.50 through x0.20   -> Tier I gain 1   (identical rows)
+ *
+ * A 25-seed run produced byte-identical output within each group. More seeds
+ * cannot separate them — the collapse is structural, not sampling noise. Do not
+ * pay for the 150-seed default expecting a finer answer than "2 versus 1".
+ *
+ * The striker reference also came back **negative** at 25 seeds
+ * (goals created/100TP = -0.171), which makes the ratio column's denominator
+ * negative and every ratio it prints meaningless. Fix that before trusting any
+ * number here.
+ *
+ * To make this probe answer the question it poses, it needs to run past the
+ * opening so Tiers II-V are actually bought.
+ *
  * Env:
  *   KEEPER_GAIN_SEEDS  paired seeds per arm (default 150)
  */
