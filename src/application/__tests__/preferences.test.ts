@@ -1,5 +1,8 @@
 import { DEFAULT_APP_PREFERENCES, type AppPreferences, type PreferencesRepository } from '../../persistence';
-import { loadPreferencesFailSoft, markPowerCutInSeen } from '../preferences';
+import { createCareer } from '../../game';
+import { TRUE_ENDING_SEEN_FLAG } from '../endgame-celebration';
+import { createLaunchCareerSetup } from '../launch';
+import { loadPreferencesFailSoft, markPowerCutInSeen, rememberCompletedClimb } from '../preferences';
 
 describe('fail-soft app preferences', () => {
   it('resets damaged preferences without blocking the career boot', async () => {
@@ -22,7 +25,7 @@ describe('fail-soft app preferences', () => {
       highContrast: false,
       colorSafeKits: true,
       cutInMode: 'full',
-      managerTipsEnabled: true,
+      climbCompleted: false,
       seenPowerCutIns: [],
       autoSubs: false,
       squadSort: null,
@@ -49,5 +52,19 @@ describe('fail-soft app preferences', () => {
 
     expect(second.seenPowerCutIns).toEqual(['SUPER_SPEED', 'WEB_TRAP']);
     expect(markPowerCutInSeen(second, 'SUPER_SPEED')).toBe(second);
+  });
+
+  it('backfills the completed climb from an existing career and stays idempotent', () => {
+    const career = createCareer(createLaunchCareerSetup(20260804));
+    const finished = {
+      ...career,
+      eventFlags: [...career.eventFlags, TRUE_ENDING_SEEN_FLAG],
+    };
+
+    expect(rememberCompletedClimb(DEFAULT_APP_PREFERENCES, career))
+      .toBe(DEFAULT_APP_PREFERENCES);
+    const remembered = rememberCompletedClimb(DEFAULT_APP_PREFERENCES, finished);
+    expect(remembered.climbCompleted).toBe(true);
+    expect(rememberCompletedClimb(remembered, finished)).toBe(remembered);
   });
 });

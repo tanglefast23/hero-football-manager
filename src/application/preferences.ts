@@ -4,6 +4,8 @@ import {
   type PreferencesRepository,
 } from '../persistence';
 import type { PowerId } from '../sim/types';
+import type { GameState } from '../game/types';
+import { TRUE_ENDING_SEEN_FLAG } from './endgame-celebration';
 
 export interface LoadedPreferences {
   preferences: AppPreferences;
@@ -48,4 +50,14 @@ export function markPowerCutInSeen(preferences: AppPreferences, power: PowerId):
     formationPresets: [...preferences.formationPresets],
     seenPowerCutIns: [...preferences.seenPowerCutIns, power],
   };
+}
+
+/** Mirrors the career's true-ending proof into the device-level preference. */
+export function rememberCompletedClimb(
+  preferences: AppPreferences,
+  career: Pick<GameState, 'eventFlags'> | null,
+): AppPreferences {
+  if (preferences.climbCompleted || career === null) return preferences;
+  if (!career.eventFlags.includes(TRUE_ENDING_SEEN_FLAG)) return preferences;
+  return { ...preferences, climbCompleted: true };
 }

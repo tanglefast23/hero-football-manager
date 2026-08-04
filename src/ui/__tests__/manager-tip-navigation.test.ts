@@ -22,8 +22,8 @@ describe("manager's tip navigation", () => {
     expect(app).toContain('skipNextGuidanceDismissRef.current = true;');
     expect(app).toContain("store.setActiveTab('squad');");
     expect(app).toContain('onOpenManagerTipDestination={openManagerTipDestination}');
-    expect(app).toContain('showManagerTips={preferences.managerTipsEnabled}');
-    expect(app).toContain('managerTipGuideRequest={managerTipGuideRequest ?? undefined}');
+    expect(app).toContain('showManagerTips={careerTeaches}');
+    expect(app).toContain('managerTipGuideRequest={visibleManagerTipGuideRequest ?? undefined}');
   });
 
   it('focuses the requested squad target and dismisses its cue on the next tap', () => {

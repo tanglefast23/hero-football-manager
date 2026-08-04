@@ -64,7 +64,7 @@ describe('first match coaching prompts', () => {
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
     const match = readFileSync(join(process.cwd(), 'src/render/MatchScreen.tsx'), 'utf8');
 
-    expect(app).toContain('firstMatchTutorial={isFirstOnboardingFixture(');
+    expect(app).toContain('firstMatchTutorial={careerTeaches && isFirstOnboardingFixture(');
     expect(match).toContain('Swap in a fresh player to give them some rest.');
     expect(match).toContain('is very tired');
     expect(match).toContain('firstMatchTiredPlayerRef.current = prompt.player;');

@@ -5,13 +5,13 @@ describe('cross-platform destructive confirmation and retained guidance', () => 
   const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
   it('routes start-over through the in-app confirmation sheet instead of native Alert', () => {
-    const start = appSource.indexOf('const startNewCareer = useCallback');
-    const end = appSource.indexOf('\n\n  useEffect', start);
-    const startOverHandler = appSource.slice(start, end);
+    const start = appSource.indexOf('const beginNewCareer = useCallback');
+    const end = appSource.indexOf('\n\n  const startNewCareer = useCallback', start);
+    const beginNewCareerHandler = appSource.slice(start, end);
 
-    expect(startOverHandler).toContain('requestConfirmation({');
-    expect(startOverHandler).toContain("confirmLabel: 'Erase and start over'");
-    expect(startOverHandler).not.toContain('Alert.alert');
+    expect(beginNewCareerHandler).toContain('requestConfirmation({');
+    expect(beginNewCareerHandler).toContain("confirmLabel: 'Erase and start over'");
+    expect(beginNewCareerHandler).not.toContain('Alert.alert');
   });
 
   it('does not use React Native Alert for any web-facing error path', () => {

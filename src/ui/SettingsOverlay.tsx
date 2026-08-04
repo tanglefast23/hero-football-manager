@@ -10,6 +10,7 @@ import { HallOfFameScreen } from './screens/HallOfFameScreen';
 import type { HallOfFameViewModel } from './models';
 import { volumeThumbLeft } from './volume-slider-thumb';
 import { PixelText } from './components/PixelText';
+import type { AssistantMode } from '../game/types';
 
 /** Snap a raw 0–1 gesture position to the nearest supported volume level. */
 function snapVolume(raw: number): DevVolume {
@@ -107,7 +108,9 @@ export interface SettingsOverlayProps {
   highContrast: boolean;
   colorSafeKits: boolean;
   cutInMode: CutInMode;
-  managerTipsEnabled: boolean;
+  /** Omit both values when no career is loaded; there is nothing to advise. */
+  assistantMode?: AssistantMode;
+  onSetAssistantMode?: (mode: AssistantMode) => void;
   accessibilityCopy?: { title: string; body: string };
   /**
    * Omit to hide the row: with no career loaded there is no record to open,
@@ -135,7 +138,6 @@ export interface SettingsOverlayProps {
   onToggleHighContrast: () => void;
   onToggleColorSafeKits: () => void;
   onToggleCutInMode: () => void;
-  onToggleManagerTips: () => void;
   onGlossaryOpenChange: (open: boolean) => void;
   onOpenChange: (open: boolean) => void;
 }
@@ -180,7 +182,8 @@ export function SettingsOverlay({
   highContrast,
   colorSafeKits,
   cutInMode,
-  managerTipsEnabled,
+  assistantMode,
+  onSetAssistantMode,
   accessibilityCopy,
   hallOfFame,
   hallOfFameOpen = false,
@@ -199,7 +202,6 @@ export function SettingsOverlay({
   onToggleHighContrast,
   onToggleColorSafeKits,
   onToggleCutInMode,
-  onToggleManagerTips,
   onGlossaryOpenChange,
   onOpenChange,
 }: SettingsOverlayProps) {
@@ -298,18 +300,25 @@ export function SettingsOverlay({
                 <Text className="font-pixel text-sm uppercase text-ink">Text size</Text>
                 <Text className="font-pixel text-base text-blue-dark">{textScale === 1 ? 'SYSTEM' : textScale === 1.15 ? 'ROOMY' : 'LARGE'}</Text>
               </Pressable>
-              <Pressable
-                accessibilityRole="switch"
-                accessibilityLabel="Manager's tips in inbox"
-                accessibilityState={{ checked: managerTipsEnabled }}
-                onPress={onToggleManagerTips}
-                className={managerTipsEnabled
-                  ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2'
-                  : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}
-              >
-                <Text className="font-pixel text-sm uppercase text-ink">Manager's tips</Text>
-                <Text className="font-pixel text-base text-ink">{managerTipsEnabled ? 'ON' : 'OFF'}</Text>
-              </Pressable>
+              {assistantMode !== undefined && onSetAssistantMode !== undefined ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={assistantMode === 'teacher'
+                    ? 'Bert is teaching. Tap to have him stay out of your way.'
+                    : 'Bert is advising. Tap to have him teach again.'}
+                  onPress={() => onSetAssistantMode(
+                    assistantMode === 'teacher' ? 'advisor' : 'teacher',
+                  )}
+                  className={assistantMode === 'teacher'
+                    ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2'
+                    : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}
+                >
+                  <Text className="font-pixel text-sm uppercase text-ink">Bert</Text>
+                  <Text className="font-pixel text-base uppercase text-blue-dark">
+                    {assistantMode === 'teacher' ? 'TEACHER' : 'ADVISOR'}
+                  </Text>
+                </Pressable>
+              ) : null}
               <Pressable accessibilityRole="switch" accessibilityLabel="High contrast" accessibilityState={{ checked: highContrast }} onPress={onToggleHighContrast} className={highContrast ? 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-blue-light px-3 py-2' : 'min-h-12 flex-row items-center justify-between border-2 border-ink bg-paper-dark px-3 py-2'}>
                 <Text className="font-pixel text-sm uppercase text-ink">High contrast</Text><Text className="font-pixel text-base text-ink">{highContrast ? 'ON' : 'OFF'}</Text>
               </Pressable>

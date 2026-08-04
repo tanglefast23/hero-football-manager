@@ -1,4 +1,18 @@
-import type { GameState } from './types';
+import type { AssistantMode, GameState } from './types';
+
+/**
+ * Whether Bert is teaching this career.
+ *
+ * This is the only comparison against the persisted mode. Keeping the decision
+ * here makes every teaching surface discoverable by searching for this helper.
+ */
+export function assistantTeaches(
+  state: Pick<GameState, 'assistantMode'>,
+): boolean {
+  return (state.assistantMode ?? 'teacher') === 'teacher';
+}
+
+export type { AssistantMode };
 
 export const M2_ASSISTANT_GUIDE_SEQUENCE_IDS = [
   'head-coach-market',
@@ -125,6 +139,7 @@ const M2_SEQUENCE_IDS = new Set<string>(M2_ASSISTANT_GUIDE_SEQUENCE_IDS);
 const SEQUENCE_COMPLETE_PREFIX = 'guide:bert:sequence-complete:';
 const INBOX_QUEUED_PREFIX = 'guide:bert:inbox:queued:';
 const INBOX_DELIVERED_PREFIX = 'guide:bert:inbox:delivered:';
+const INBOX_ADVISOR_SUPPRESSED_PREFIX = 'guide:bert:inbox:advisor-suppressed:';
 const INBOX_PENDING_PRODUCT_PREFIX = 'guide:bert:inbox:pending-product:';
 const INBOX_ACKNOWLEDGED_PRODUCT_PREFIX = 'guide:bert:inbox:acknowledged-product:';
 const MAX_PERSISTED_ONE_SHOT_PRODUCT_FLAGS = 24;
@@ -231,6 +246,19 @@ export function pendingAssistantInboxGuideSequences(
   return pending;
 }
 
+/**
+ * Restores every hidden Advisor guide to the ordinary queue.
+ *
+ * Suppression is separate from completion: changing back to Teacher is an
+ * explicit request for the accepted backlog, so its queued flags stay intact.
+ */
+export function clearAdvisorAssistantInboxSuppressions(state: GameState): GameState {
+  const eventFlags = state.eventFlags.filter(
+    flag => !flag.startsWith(INBOX_ADVISOR_SUPPRESSED_PREFIX),
+  );
+  return arraysEqual(eventFlags, state.eventFlags) ? state : { ...state, eventFlags };
+}
+
 /** True until a one-shot notice has been scheduled, plus the week it is visible. */
 export function isAssistantInboxOneShotProductVisible(
   state: Pick<GameState, 'eventFlags' | 'season' | 'week'>,
@@ -259,10 +287,17 @@ export function scheduleAssistantInboxWeek(
   state = queueOneShotProductAlerts(state, productAlerts);
 
   const held = options.heldGuideSequenceIds ?? [];
-  const queuedGuides = pendingAssistantInboxGuideSequences(state)
-    .filter(sequenceId => !held.includes(sequenceId));
   const currentDeliveryPrefix = inboxDeliveryWeekPrefix(state.season, state.week);
   const deliveredFlags = new Set(state.eventFlags.filter(flag => flag.startsWith(currentDeliveryPrefix)));
+  const queuedGuides = pendingAssistantInboxGuideSequences(state)
+    .filter(sequenceId => !held.includes(sequenceId))
+    .filter(sequenceId => (
+      assistantTeaches(state)
+      || !state.eventFlags.includes(advisorSuppressedGuideFlag(sequenceId))
+      // Repeated reconciliation in the delivery week must see the same logical
+      // desk. The suppression begins only when the next week opens.
+      || deliveredFlags.has(guideDeliveryFlag(state.season, state.week, sequenceId))
+    ));
   const effectiveProductAlerts = mergeProductAlerts([
     ...productAlerts
       .filter(alert => (
@@ -328,6 +363,9 @@ export function scheduleAssistantInboxWeek(
   const guideSequenceIds = selected.flatMap(candidate => candidate.kind === 'guide'
     ? [candidate.id as AssistantInboxGuideSequenceId]
     : []);
+  if (!assistantTeaches(state)) {
+    state = appendMissingFlags(state, guideSequenceIds.map(advisorSuppressedGuideFlag));
+  }
   const productAlertIds = selected.flatMap(candidate => candidate.kind === 'product'
     ? [candidate.id]
     : []);
@@ -485,6 +523,10 @@ function sequenceCompletionFlag(sequenceId: AssistantGuideSequenceId): string {
 
 function queuedSequenceFlag(sequenceId: AssistantInboxGuideSequenceId): string {
   return `${INBOX_QUEUED_PREFIX}${sequenceId}`;
+}
+
+function advisorSuppressedGuideFlag(sequenceId: AssistantInboxGuideSequenceId): string {
+  return `${INBOX_ADVISOR_SUPPRESSED_PREFIX}${sequenceId}`;
 }
 
 function inboxDeliveryWeekPrefix(season: number, week: number): string {

@@ -27,14 +27,20 @@ describe('the board money rows', () => {
     expect(app).toMatch(
       /alertId === 'financial-warning' \|\| alertId === 'emergency-loan'\) \{\s*\n\s*setClubOfficeTab\('finances'\)/,
     );
-    expect(app).toContain('setOpenedBoardFinanceAlertId(alertId);');
+    expect(app).toContain('setOpenedBoardFinanceAlertId(careerTeaches ? alertId : null);');
     expect(app).toContain('customMessage={boardFinanceMessage}');
+  });
+
+  it('keeps the alert and ledger but suppresses Bert for an Advisor career', () => {
+    expect(app).toContain('const boardFinanceMessage = !careerTeaches');
+    expect(app).toContain('setOpenedBoardFinanceAlertId(careerTeaches ? alertId : null);');
+    expect(app).toContain('setOpenedBoardFinanceAlertId(null);');
   });
 
   it('rebuilds the message from the live career rather than the press', () => {
     // Both rows quote numbers that move every week. A copy captured when the
     // row was tapped would reintroduce the defect this replaces.
-    expect(app).toMatch(/boardFinanceMessage = openedBoardFinanceAlertId === null[\s\S]{0,160}boardFinanceBriefing\(store\.career, openedBoardFinanceAlertId\)/);
+    expect(app).toMatch(/boardFinanceMessage = !careerTeaches[\s\S]{0,220}openedBoardFinanceAlertId === null[\s\S]{0,160}boardFinanceBriefing\(store\.career, openedBoardFinanceAlertId\)/);
   });
 
   it('suspends the keyboard rail while the briefing covers the screen', () => {
