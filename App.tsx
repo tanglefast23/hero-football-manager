@@ -135,6 +135,7 @@ import { loadPreferencesFailSoft, markPowerCutInSeen } from './src/application/p
 import {
   DESK_STORY_ALERT_ID,
   awakeningCutsceneViewModel,
+  boardFinanceBriefing,
   clubLegacyViewModel,
   clubFinancesViewModel,
   homeViewModel,
@@ -469,6 +470,15 @@ function GameApp() {
     useState<TutorialAnchorLayout | null>(null);
   const [requestedAssistantSequenceId, setRequestedAssistantSequenceId] = useState<AssistantGuideSequenceId | null>(null);
   const [conciergeFocus, setConciergeFocus] = useState<AssistantGuideFocus | null>(null);
+  /**
+   * Which board money row the manager has just opened, if any.
+   *
+   * Held here rather than on the career because the briefing is a reply to a
+   * press: the rows themselves recur every week the money stays bad, and a
+   * warning the manager could only ever read once would be worse than the
+   * clipped desk row it replaces.
+   */
+  const [openedBoardFinanceAlertId, setOpenedBoardFinanceAlertId] = useState<string | null>(null);
   // A screen-wide tap retires floating coach marks without completing the job
   // they describe. The objective remains authoritative; only its cue is hidden.
   const [dismissedAssistantObjectiveKey, setDismissedAssistantObjectiveKey] = useState<string | null>(null);
@@ -1084,6 +1094,16 @@ function GameApp() {
     ? playerSigning
     : null;
   /**
+   * The board's money message in full, for the row the manager just opened.
+   *
+   * Rebuilt from the live career on every render rather than captured at the
+   * press: the row that opened it quotes numbers, and reading a stale copy of
+   * them would be the same defect as the clipped desk row in a new place.
+   */
+  const boardFinanceMessage = openedBoardFinanceAlertId === null || store.career === null
+    ? undefined
+    : boardFinanceBriefing(store.career, openedBoardFinanceAlertId);
+  /**
    * Whether Bert's guide is covering the screen.
    *
    * Declared once and used both to render the overlay and to suspend keyboard
@@ -1101,6 +1121,7 @@ function GameApp() {
     || tripleSpeedIntroVisible
     || fansLessonVisible
     || fansLedgerTourVisible
+    || boardFinanceMessage !== undefined
   )
     && signingWalkOn === null;
   const assistantObjective = store.career === null
@@ -1891,6 +1912,11 @@ function GameApp() {
               else if (alertId === 'financial-warning' || alertId === 'emergency-loan') {
                 setClubOfficeTab('finances');
                 store.setActiveTab('club');
+                // The ledger alone never said what the row said. Bert repeats
+                // the whole warning here, one bubble per tap, because the desk
+                // clips it at two lines and nothing else in the game finishes
+                // the sentence.
+                setOpenedBoardFinanceAlertId(alertId);
               }
               else if (alertId === 'board-ultimatum') {
                 store.notify('Choose one protected player in the Board intervention panel below.');
@@ -2116,6 +2142,34 @@ function GameApp() {
             navigationAnchor={navigationGuideAnchor}
             reduceMotion={reduceMotion}
             onDone={() => store.completeGuideMilestone('first-fans-ledger-seen')}
+          />
+        ) : null}
+        {boardFinanceMessage !== undefined && openedBoardFinanceAlertId !== null ? (
+          <BertBriefingWalkOn
+            key={`board-finance-${openedBoardFinanceAlertId}`}
+            content={content.assistantGuide}
+            // Authored beats rather than a briefing sequence: the sequences are
+            // one-shot firsts, and these two rows come back every week the
+            // money stays bad. `sequenceId` still names the run of looks in
+            // bert-beat-moments so a warning is not delivered cheerfully.
+            sequenceId={openedBoardFinanceAlertId === 'emergency-loan'
+              ? 'board-emergency-loan'
+              : 'board-financial-warning'}
+            customMessage={boardFinanceMessage}
+            navigationAnchor={navigationGuideAnchor}
+            reduceMotion={reduceMotion}
+            onDone={() => {
+              const wasLoan = openedBoardFinanceAlertId === 'emergency-loan';
+              setOpenedBoardFinanceAlertId(null);
+              // He has just told a bailed-out club to build something that
+              // earns. Saying so and leaving the manager on the ledger would
+              // make it advice; opening the board and lighting the two
+              // money-making buildings makes it a next move.
+              if (wasLoan) {
+                setClubOfficeTab('facility');
+                setConciergeFocus('income-facilities');
+              }
+            }}
           />
         ) : null}
         {store.inboxDutyReminder !== null ? (

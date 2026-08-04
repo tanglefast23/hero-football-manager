@@ -1196,6 +1196,81 @@ export function homeProductAlerts(state: GameState): ClubAlertViewModel[] {
   ];
 }
 
+export interface BoardFinanceBriefingViewModel {
+  readonly title: string;
+  /** One speech bubble per entry, read by tapping through them in order. */
+  readonly body: readonly string[];
+}
+
+/**
+ * The board's money message, said in full.
+ *
+ * The desk row clips its detail to two lines, so the warning above and the loan
+ * notice were both readable only as far as the ellipsis — the manager was being
+ * told his club was in danger and could not find out what that meant. This is
+ * the same message with room to finish its sentences, delivered on the finances
+ * screen the row already opens.
+ *
+ * It is deliberately rebuilt on every tap rather than shown once per career:
+ * both rows return every week the money stays bad, and the numbers they quote
+ * change underneath them. Kept beside `homeProductAlerts` because the row and
+ * the briefing are one message in two lengths, and a week count that disagreed
+ * between them would read as a second problem.
+ */
+export function boardFinanceBriefing(
+  state: GameState,
+  alertId: string,
+): BoardFinanceBriefingViewModel | undefined {
+  const safety = state.financialSafety;
+  if (alertId === 'financial-warning') {
+    const weeks = safety?.consecutiveNegativeWeeks ?? 0;
+    if (weeks === 0) return undefined;
+    const cash = requireUserClub(state).cash;
+    // What the board actually does next, which is not the same thing twice: the
+    // rescue fires once, and the club that has spent it gets an ultimatum and a
+    // sale instead. Promising the wrong one is worse than promising nothing.
+    const graceWeeks = difficultyRules(state).negativeWeeksBeforeIntervention - weeks;
+    const consequence = safety?.emergencyLoanUsed === true
+      ? 'starts selling players'
+      : 'steps in with an emergency loan';
+    return {
+      title: 'Board financial warning',
+      body: [
+        `The club has been in the red for ${weeks} week${weeks === 1 ? '' : 's'}.`
+          + ` The balance is ${formatMoney(cash)}.`,
+        graceWeeks > 0
+          ? 'Nothing can be bought while it stays there. No signings, no new building.'
+            + ` ${graceWeeks} more week${graceWeeks === 1 ? '' : 's'} in the red and the board ${consequence}.`
+          : 'Nothing can be bought while it stays there. No signings, no new building.'
+            + ' The board has run out of patience.',
+        'If you have the funds to do so, create a facility to help earn more income.'
+          + ' If not, the board is having an emergency meeting right now.',
+      ],
+    };
+  }
+  if (alertId === 'emergency-loan') {
+    const loan = safety?.loan;
+    if (loan === undefined || loan.remainingBalance <= 0) return undefined;
+    const repaying = state.season >= loan.repaymentStartsSeason;
+    return {
+      title: 'Emergency loan active',
+      body: [
+        `The board’s emergency loan landed. ${formatMoney(loan.remainingBalance)} of it still has to go back.`,
+        (repaying
+          ? `${loan.remainingWeeks} week${loan.remainingWeeks === 1 ? '' : 's'} of repayments left,`
+            + ' taken out of the club’s money every week.'
+          : `Repayments begin in Season ${loan.repaymentStartsSeason}.`)
+          + ' That was the club’s one automatic rescue. There is no second.',
+        'Build something that earns while you sleep, like a shop or a stand,'
+          + (repaying
+            ? ' or the repayments will keep taking their cut every week.'
+            : ' or the repayments will find you next season.'),
+      ],
+    };
+  }
+  return undefined;
+}
+
 /**
  * A name list that fits one desk row, with the remainder counted rather than
  * dropped. Alert details render on two lines, so seven names do not fit.
