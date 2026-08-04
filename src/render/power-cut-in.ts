@@ -78,6 +78,19 @@ export function powerCutInGroupPolicy(
   return { shouldPause: false, skippable };
 }
 
+/**
+ * Whether a cut-in that has not started its outro should start it now.
+ *
+ * Normally a cut-in ends when its power leaves `active`, which only a further
+ * sim tick can do. A frozen clip has stopped taking ticks, so a power that was
+ * still mid-effect on the frozen frame stays active for good — Portal Pass and
+ * Gravity Well both freeze that way — and its cut-in would hold an outro that
+ * can never start. The freeze ends it instead.
+ */
+export function powerCutInOutroDue(powerStillActive: boolean, clipFrozen: boolean): boolean {
+  return clipFrozen || !powerStillActive;
+}
+
 /** Keep the completed title in the control area for 1.5 final wall-clock seconds. */
 export const POWER_TAKEOVER_POST_POWER_MS = 1500;
 

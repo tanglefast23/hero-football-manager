@@ -77,6 +77,14 @@ export function PowerAcquiredDemoModal({
     setReplayKey(key => key + 1);
   }, []);
 
+  /**
+   * Stable on purpose. MatchScreen hangs its clip timers — including the
+   * backstop that guarantees this card ever appears — off this callback's
+   * identity, so a fresh arrow per render would restart the countdown every
+   * time the awakening behind the modal re-rendered.
+   */
+  const showResult = useCallback(() => setFrozen(true), []);
+
   return (
     <Modal
       visible={visible}
@@ -100,7 +108,7 @@ export function PowerAcquiredDemoModal({
             maximumSpeed={1}
             powerMatchQa={powerMatchQa}
             presentationOnly
-            onPowerShowcaseComplete={() => setFrozen(true)}
+            onPowerShowcaseComplete={showResult}
             onOpenSettings={onClose}
             onDone={ignoreFinishedMatch}
           />

@@ -78,6 +78,7 @@ import {
   powerJuiceHeroTint,
   powerOverlayPath,
   POWER_TAKEOVER_POST_POWER_MS,
+  powerCutInOutroDue,
   powerTakeoverShouldRemain,
   type PowerJuice,
   type PowerJuiceHeroTint,
@@ -93,8 +94,8 @@ import { livePowerEffectActors, superSpeedAfterimageActors } from './live-power-
 import {
   advancePowerMatchShowcaseReady,
   initializePowerMatchShowcase,
-  POWER_MATCH_SHOWCASE_CARD_DELAY_MS,
   POWER_MATCH_SHOWCASE_SAFETY_FREEZE_MS,
+  powerMatchShowcaseCardDueAt,
   powerMatchShowcaseSucceeded,
   powerMatchShowcaseSuccessRestartsPlay,
 } from './power-match-showcase';
@@ -593,6 +594,8 @@ export function MatchScreen({
     powerCutInQaActive ? [...powerCutInQaEntries] : []
   ));
   const powerShowcaseCompletedRef = useRef(false);
+  /** Whether the clip has already handed the manager their REPLAY/CONTINUE card. */
+  const powerShowcaseCardShownRef = useRef(false);
   /**
    * When the clip froze on its success. The pitch stops there; the result card
    * follows a beat later so the manager sees the goal before it is written over.
@@ -734,9 +737,17 @@ export function MatchScreen({
     syncPauseReasons();
   }, [pausedExternally]);
 
+  /**
+   * A cut-in ends when its power does — or when the clip holding it freezes.
+   *
+   * This runs on the tick, so a frozen showcase is the one state it can never
+   * be woken out of: no further tick is coming, and a power still `active` on
+   * the frozen frame would hold its cut-in open for the life of the modal.
+   */
   useEffect(() => {
     if (powerCutInQaActive || powerCutIns.length === 0) return;
     const now = performance.now();
+    const clipFrozen = powerShowcaseFrozenAt !== undefined;
     setPowerCutIns(current => {
       let changed = false;
       const next = current.map(entry => {
@@ -744,13 +755,13 @@ export function MatchScreen({
         const player = match.players[entry.player];
         const stillActive = player?.def.power === entry.power
           && player.powerState.kind === 'active';
-        if (stillActive) return entry;
+        if (!powerCutInOutroDue(stillActive, clipFrozen)) return entry;
         changed = true;
         return { ...entry, outroStartedAt: now };
       });
       return changed ? next : current;
     });
-  }, [hud.tick, match, powerCutInQaActive]);
+  }, [hud.tick, match, powerCutInQaActive, powerShowcaseFrozenAt]);
 
   useEffect(() => {
     if (powerCutInQaActive) return undefined;
@@ -777,6 +788,11 @@ export function MatchScreen({
    * — and a card published on the same frame would cover the only thing the
    * manager was brought here to see. It also waits out the power's own cut-in
    * where one is still playing, so the card never lands on top of it.
+   *
+   * The wait is bounded by the freeze rather than by the cut-in: a cut-in with
+   * no ending yet is one the effect above is about to end, and treating it as
+   * a reason to hold the card indefinitely is what stranded the manager on a
+   * frozen pitch.
    */
   useEffect(() => {
     if (
@@ -785,31 +801,37 @@ export function MatchScreen({
       || powerShowcaseFrozenAt === undefined
     ) return undefined;
     const cutIn = powerCutIns.find(entry => entry.power === powerMatchQa.power);
-    const cutInEndsAt = cutIn === undefined ? undefined : cutIn.outroStartedAt;
-    // A cut-in still mid-flight has no ending yet: wait for the render pass
-    // that gives it one rather than guessing when it will arrive.
-    if (cutIn !== undefined && cutInEndsAt === undefined) return undefined;
-    const showAt = Math.max(powerShowcaseFrozenAt, cutInEndsAt ?? 0)
-      + POWER_MATCH_SHOWCASE_CARD_DELAY_MS;
+    const showAt = powerMatchShowcaseCardDueAt(powerShowcaseFrozenAt, cutIn?.outroStartedAt);
     const timer = setTimeout(
-      onPowerShowcaseComplete,
+      () => {
+        powerShowcaseCardShownRef.current = true;
+        onPowerShowcaseComplete();
+      },
       Math.max(0, Math.ceil(showAt - performance.now())),
     );
     return () => clearTimeout(timer);
   }, [onPowerShowcaseComplete, powerCutIns, powerMatchQa, powerShowcaseFrozenAt]);
 
   /**
-   * The backstop. A clip whose promise never lands would otherwise run until
-   * full time behind a modal with no way out, so freeze it regardless.
+   * The backstop, which guards the card rather than the freeze.
+   *
+   * A clip whose promise never lands would run until full time behind a modal
+   * with no way out — but so would one that froze and then never handed over,
+   * and that is the harder failure to see coming. Whatever the clip is doing at
+   * this point, the manager gets their buttons.
    */
   useEffect(() => {
     if (powerMatchQa === undefined || onPowerShowcaseComplete === undefined) return undefined;
     const timer = setTimeout(() => {
-      if (powerShowcaseCompletedRef.current) return;
-      powerShowcaseCompletedRef.current = true;
-      automaticPauseReasonsRef.current.add('showcase');
-      syncPauseReasons();
-      setPowerShowcaseFrozenAt(performance.now());
+      if (powerShowcaseCardShownRef.current) return;
+      powerShowcaseCardShownRef.current = true;
+      if (!powerShowcaseCompletedRef.current) {
+        powerShowcaseCompletedRef.current = true;
+        automaticPauseReasonsRef.current.add('showcase');
+        syncPauseReasons();
+        setPowerShowcaseFrozenAt(performance.now());
+      }
+      onPowerShowcaseComplete();
     }, POWER_MATCH_SHOWCASE_SAFETY_FREEZE_MS);
     return () => clearTimeout(timer);
   }, [onPowerShowcaseComplete, powerMatchQa]);
