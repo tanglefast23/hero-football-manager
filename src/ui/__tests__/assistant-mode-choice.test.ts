@@ -63,6 +63,7 @@ describe('the app wires the choice to every teaching surface', () => {
       'conditionWarningSeen={!careerTeaches',
       'guideQuickTrain={careerTeaches',
       'showManagerTips={careerTeaches}',
+      'firstMatchTutorial={careerTeaches',
     ]) {
       expect(app).toContain(fragment);
     }

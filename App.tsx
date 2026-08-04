@@ -1534,7 +1534,7 @@ function GameApp() {
         onAutoSubsChange={saveAutoSubs}
         pausedExternally={globalSettingsOpen || tripleSpeedIntroVisible}
         maximumSpeed={store.career.season >= 3 ? 3 : 2}
-        firstMatchTutorial={isFirstOnboardingFixture(
+        firstMatchTutorial={careerTeaches && isFirstOnboardingFixture(
           store.career,
           store.watchedMatch.fixture.id,
         )}

@@ -49,7 +49,11 @@ export function advisorMilestonesToBank(
   if (context.enteredManagement && state.season === 1 && state.week === 1) {
     add('intro-complete');
   }
-  if (state.season === 1 && state.week === firstUserFixtureWeek(state)) {
+  if (
+    context.viewingHome
+    && state.season === 1
+    && state.week === firstUserFixtureWeek(state)
+  ) {
     add('desk-intro-complete');
   }
   if (context.viewingSquad && (state.totalInstantDrills ?? 0) >= 3) {

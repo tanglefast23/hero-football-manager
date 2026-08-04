@@ -37,6 +37,11 @@ describe('silently banking lessons an Advisor has already lived through', () => 
         || fixture.awayClubId === advisor.userClubId)
       .map(fixture => fixture.week));
     expect(advisorMilestonesToBank({ ...advisor, week: firstFixtureWeek }, NO_CONTEXT))
+      .not.toContain('desk-intro-complete');
+    expect(advisorMilestonesToBank({ ...advisor, week: firstFixtureWeek }, {
+      ...NO_CONTEXT,
+      viewingHome: true,
+    }))
       .toContain('desk-intro-complete');
   });
 
