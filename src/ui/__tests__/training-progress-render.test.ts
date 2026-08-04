@@ -44,13 +44,16 @@ describe('training stat option rendering', () => {
     // to add to the line above, not a total standing in its place. Printing a
     // result there made "+4" then "+3" scan as +7.
     expect(source).toContain("{pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}");
-    // Each name coloured by its own direction, because the row mixes them:
-    // "Veteran + GK + Prodigy" is one modifier that costs and two that pay, and
-    // one colour across the row cannot say which is which.
-    expect(source).toContain("modifier.helps ? 'text-pitch-dark' : 'text-red-dark'");
-    // The box takes the colour of the net, so the summary and the detail may
-    // disagree — a veteran with good archetypes is a red box with green names.
-    expect(source).toContain('border-red-dark bg-red-light px-3 py-2');
+    // Only the modifier that costs wears a colour. Marking the bonuses green as
+    // well emphasised every word — which emphasises nothing — and forced a
+    // green-on-red pairing that measured 1.9:1 against the 4.5:1 text needs.
+    // Ink on the tinted box is 10.8:1; the red exception is 4.4:1.
+    expect(source).toContain("modifier.helps ? 'text-ink' : 'text-red-dark'");
+    expect(source).not.toContain("modifier.helps ? 'text-pitch-dark'");
+    // The box takes the colour of the net, as a tint rather than the full
+    // colour, so the label has somewhere legible to sit.
+    expect(source).toContain('border-red-dark bg-red-light/40 px-3 py-2');
+    expect(source).toContain('border-pitch-dark bg-pitch-light/40 px-3 py-2');
     // Gold is gone. A drag is a drag; amber read as neither.
     expect(source).not.toContain('border-gold-dark bg-gold-light px-3 py-2');
   });

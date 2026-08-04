@@ -692,18 +692,28 @@ export function TrainingDrillModal({
                         a veteran with good archetypes reads red overall with two
                         green names inside it, which is the true story. */}
                     {pendingConfirm.trainingModifiers.length > 0 ? (
+                      // The fill is a tint rather than the full colour. At full
+                      // strength a green label on the red box measured 1.9:1 and
+                      // on the green box 2.5:1, against the 4.5:1 a body of text
+                      // needs — the second was only passable because the hues
+                      // were close, not because it was legible.
                       <View className={pendingConfirm.trainingAdjustment >= 0
-                        ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2'
-                        : 'flex-row items-center justify-between border-2 border-red-dark bg-red-light px-3 py-2'}>
+                        ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light/40 px-3 py-2'
+                        : 'flex-row items-center justify-between border-2 border-red-dark bg-red-light/40 px-3 py-2'}>
                         <PixelText
                           className="min-w-0 flex-1 pr-2 text-xs uppercase text-ink"
                           numberOfLines={2}
                           adjustsFontSizeToFit
                         >
+                          {/* Only the modifier that costs is coloured. Marking
+                              the three that pay as well left every word
+                              emphasised, which emphasises nothing, and forced a
+                              green-on-red pairing no tint could rescue. The
+                              bonuses are the expected case and read as ink. */}
                           {pendingConfirm.trainingModifiers.map((modifier, index) => (
                             <PixelText
                               key={modifier.label}
-                              className={modifier.helps ? 'text-pitch-dark' : 'text-red-dark'}
+                              className={modifier.helps ? 'text-ink' : 'text-red-dark'}
                             >
                               {index === 0 ? '' : ' + '}{modifier.label}
                             </PixelText>
