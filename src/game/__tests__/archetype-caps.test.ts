@@ -9,12 +9,11 @@ import {
   capPlayerTrainingGain,
   playerAttributeCaps,
   playerPotentialGrade,
-  playerPotentialTrainingBonusPercent,
   positionTrainingBonusPercent,
   potentialTierForDivision,
-  potentialTrainingBonusPercent,
   remainingDevelopmentPotential,
   roleOverall,
+  superTrainingChancePercent,
 } from '../archetype-caps';
 
 const ATTRIBUTES = ['pac', 'sho', 'pas', 'def', 'tec', 'sta', 'ref'] as const;
@@ -37,8 +36,6 @@ describe('open-ended player development', () => {
       'B-', 'B', 'B+',
       'A-', 'A', 'A+',
     ]);
-    expect(POTENTIAL_GRADES.map(potentialTrainingBonusPercent))
-      .toEqual(Array.from({ length: 15 }, (_, index) => index));
   });
 
   test.each([
@@ -85,8 +82,6 @@ describe('open-ended player development', () => {
       expect(first).toBe(second);
       expect(POTENTIAL_GRADES.indexOf(first)).toBeGreaterThanOrEqual((potential - 1) * 3);
       expect(POTENTIAL_GRADES.indexOf(first)).toBeLessThan(potential * 3);
-      expect(playerPotentialTrainingBonusPercent({ id: `player-${potential}`, potential }))
-        .toBe(POTENTIAL_GRADES.indexOf(first));
     }
   });
 
@@ -112,8 +107,10 @@ describe('open-ended player development', () => {
     const attrs: Attrs = { ...BASE_ATTRS, sho: 80, ref: 20 };
     expect(roleOverall('FWD', attrs)).toBe(55);
     expect(roleOverall('GK', attrs)).toBe(45);
-    expect(playerPotentialTrainingBonusPercent({ id: 'fast-learner', potential: 5 }))
-      .toBeGreaterThan(playerPotentialTrainingBonusPercent({ id: 'slow-learner', potential: 1 }));
+    // Potential buys a better SUPER roll and nothing else — it contributes no
+    // percent to an ordinary drill, which is what the market label used to claim.
+    expect(superTrainingChancePercent(playerPotentialGrade({ id: 'fast-learner', potential: 5 })))
+      .toBeGreaterThan(superTrainingChancePercent(playerPotentialGrade({ id: 'slow-learner', potential: 1 })));
   });
 
   test('allows growth through 99 and stops only at the universal 999 safety ceiling', () => {

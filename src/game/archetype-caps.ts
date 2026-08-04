@@ -156,16 +156,6 @@ export function superTrainingChancePercent(grade: PotentialGrade): number {
   return 5 + POTENTIAL_GRADES.indexOf(grade) * 2;
 }
 
-/** E− is +0%; every grade step adds exactly one percentage point. */
-export function potentialTrainingBonusPercent(grade: PotentialGrade): number {
-  return POTENTIAL_GRADES.indexOf(grade);
-}
-
-export function playerPotentialTrainingBonusPercent(
-  player: Pick<PotentialProfile, 'id' | 'potential'>,
-): number {
-  return potentialTrainingBonusPercent(playerPotentialGrade(player));
-}
 
 /** Total attribute points normal training can still add before the 999 safety ceiling. */
 export function remainingDevelopmentPotential(
@@ -207,11 +197,6 @@ export function roleOverall(role: Role, attrs: Readonly<Attrs>): number {
   return Math.round(total / attributes.length);
 }
 
-/** Legacy score-to-grade adapter. New players derive their grade from talent tier and ID. */
-export function potentialGradeForOverall(overall: number): PotentialGrade {
-  assertAttributeValue(overall, 'projected overall');
-  return POTENTIAL_GRADE_BANDS.find(band => overall <= band.maximum)?.grade ?? 'A+';
-}
 
 /** Stable fine-grained ceiling for legacy players that only persisted a 1–5 potential tier. */
 export function deterministicPotentialCeiling(
@@ -288,17 +273,6 @@ export function potentialTierForDivision(
   return 1;
 }
 
-export function resolvedPotentialCeiling(player: PotentialProfile): number {
-  if (player.potentialCeiling !== undefined) {
-    if (!Number.isSafeInteger(player.potentialCeiling)
-      || player.potentialCeiling < 46
-      || player.potentialCeiling > 99) {
-      throw new Error('player potential ceiling must be an integer from 46 to 99');
-    }
-    return player.potentialCeiling;
-  }
-  return deterministicPotentialCeiling(player.id, player.potential ?? 3);
-}
 
 /**
  * Compatibility adapter for old cap-aware callers. Personal caps have been
