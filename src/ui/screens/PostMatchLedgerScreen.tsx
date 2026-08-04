@@ -65,8 +65,6 @@ export function PostMatchLedgerScreen({
           ) : null}
 
           <TeamLine name={result.awayTeam} won={result.winner === 'away'} />
-
-          <Text className="mt-5 text-center text-ink/70" style={scaledBody(textScale)}>{result.headline}</Text>
         </View>
 
         {viewModel.reaction ? (
@@ -141,10 +139,14 @@ function TeamLine({ name, won }: { name: string; won: boolean }) {
 /**
  * The touchline, bottom left, once the numbers have been read.
  *
- * The gaffer is the last thing on the report on purpose: the result is the
- * headline, and his opinion of it is the footnote. On the blame roll the
- * assistant stands to his right, which is the side the pointing sprite's arm
- * comes out of, so the finger lands on a person rather than on air.
+ * The gaffer carries the whole verdict now. The report used to print a written
+ * headline under the score and leave him standing there mute, which said the
+ * same thing twice in two voices and gave the silent version the better billing.
+ * He speaks every week instead: the score states the fact, he says what it meant.
+ *
+ * On the blame roll the assistant stands to his right, which is the side the
+ * pointing sprite's arm comes out of, so the finger lands on a person rather
+ * than on air.
  */
 function FulltimeReaction({
   reaction,
@@ -158,26 +160,26 @@ function FulltimeReaction({
     ? `${reaction.coachName} is celebrating`
     : blaming
       ? `${reaction.coachName} is blaming ${reaction.assistantName}`
-      : `${reaction.coachName} is in tears`;
+      : reaction.pose === 'cry'
+        ? `${reaction.coachName} is in tears`
+        // A draw leaves him at rest, so there is no mood to name — read out who
+        // is talking and let the line carry the rest.
+        : `${reaction.coachName} on the result`;
 
   return (
     <View className="mt-6 items-start">
-      {blaming && reaction.blameLine ? (
-        <View className="max-w-[280px]">
-          <View className="border-2 border-ink bg-white px-3 py-2">
-            <Text className="text-ink" style={scaledBody(textScale)}>{reaction.blameLine}</Text>
-          </View>
-          {/* The tail sits under the gaffer's half of the bubble, not the
-              assistant's: it is his line. */}
-          <PixelText className="ml-6 text-base text-ink">▼</PixelText>
+      <View className="max-w-[280px]">
+        <View className="border-2 border-ink bg-white px-3 py-2">
+          <Text className="text-ink" style={scaledBody(textScale)}>{reaction.line}</Text>
         </View>
-      ) : null}
+        {/* The tail sits under the gaffer's half of the bubble, not the
+            assistant's: it is his line either way. */}
+        <PixelText className="ml-6 text-base text-ink">▼</PixelText>
+      </View>
       <View
         accessible
         accessibilityRole="image"
-        accessibilityLabel={blaming && reaction.blameLine
-          ? `${mood}. "${reaction.blameLine}"`
-          : mood}
+        accessibilityLabel={`${mood}. "${reaction.line}"`}
         className="flex-row items-end gap-3"
       >
         <ManagementSprite spriteKey={`coach:${reaction.coachPortraitId}:${reaction.pose}`} width={56} />

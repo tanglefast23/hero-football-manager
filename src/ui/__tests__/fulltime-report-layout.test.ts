@@ -37,13 +37,24 @@ describe('full-time report layout', () => {
     // The assistant stands on the side the pointing arm comes out of, and only
     // ever in his resting face — he is being blamed, not joining in.
     expect(source).toContain('coach:${reaction.assistantPortraitId}:rest');
-    expect(source).toContain('{reaction.blameLine}');
   });
 
-  it('reads the whole outburst to a screen reader, not just the picture', () => {
+  it('gives the gaffer the verdict instead of printing one over his head', () => {
     const source = screen();
 
-    expect(source).toContain('accessibilityLabel={blaming && reaction.blameLine');
+    // The written headline is gone: the score states the fact and he says what
+    // it meant. Two voices saying the same thing gave the silent one top
+    // billing, and the manager read the caption rather than the man.
+    expect(source).not.toContain('result.headline');
+    // The bubble is no longer gated on the blame roll — it renders every week.
+    expect(source).not.toContain('{blaming && reaction.blameLine ? (');
+    expect(source).toContain('{reaction.line}');
+  });
+
+  it('reads the whole line to a screen reader, not just the picture', () => {
+    const source = screen();
+
+    expect(source).toContain('accessibilityLabel={`${mood}. "${reaction.line}"`}');
     expect(source).toContain('is blaming ${reaction.assistantName}');
     expect(source).toContain('is in tears');
     expect(source).toContain('is celebrating');

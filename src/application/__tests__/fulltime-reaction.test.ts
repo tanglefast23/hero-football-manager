@@ -71,13 +71,34 @@ describe('full-time touchline reaction', () => {
       .toMatchObject({ pose: 'cry' });
   });
 
-  it('has nothing to say about a draw, and nothing to say without a coach', () => {
-    expect(reactionFor(20260803, 'draw', { assistant: false }).reaction).toBeUndefined();
+  it('stands at rest for a draw and still says something', () => {
+    // A draw used to return no reaction at all, which left the report with a
+    // score and nothing under it. He has an opinion about a point too.
+    const drawn = reactionFor(20260803, 'draw', { assistant: false }).reaction!;
+    expect(drawn.pose).toBe('rest');
+    expect(content.fulltimeCoachLines.leagueDraw).toContain(drawn.line);
+  });
 
+  it('says nothing at all without a coach in the building', () => {
     const { before, after, fixtureId } = careerWithStaff(20260803, { assistant: false });
     const coachless: GameState = { ...after, market: { ...after.market!, headCoach: undefined } };
     expect(postMatchViewModel(before, coachless, fixtureId, { homeGoals: 0, awayGoals: 2 }).reaction)
       .toBeUndefined();
+  });
+
+  it('reads a league result by how heavily it went', () => {
+    const { before, after, fixtureId, isHome } = careerWithStaff(20260804, { assistant: false });
+    const score = (goalsFor: number, goalsAgainst: number) => (isHome
+      ? { homeGoals: goalsFor, awayGoals: goalsAgainst }
+      : { homeGoals: goalsAgainst, awayGoals: goalsFor });
+    const lineFor = (goalsFor: number, goalsAgainst: number) =>
+      postMatchViewModel(before, after, fixtureId, score(goalsFor, goalsAgainst)).reaction!.line;
+
+    // Three clear is a hiding either way; two is a Saturday.
+    expect(content.fulltimeCoachLines.leagueWinBig).toContain(lineFor(4, 1));
+    expect(content.fulltimeCoachLines.leagueWinClose).toContain(lineFor(3, 1));
+    expect(content.fulltimeCoachLines.leagueLossClose).toContain(lineFor(1, 3));
+    expect(content.fulltimeCoachLines.leagueLossBig).toContain(lineFor(1, 4));
   });
 
   it('never points at an assistant who is not there', () => {
@@ -96,11 +117,14 @@ describe('full-time touchline reaction', () => {
       poses.push(reaction.pose);
       if (reaction.pose === 'point') {
         expect(reaction.assistantPortraitId).toBeDefined();
-        expect(content.fulltimeBlameLines.lines).toContain(reaction.blameLine);
-        lines.add(reaction.blameLine!);
+        expect(content.fulltimeBlameLines.lines).toContain(reaction.line);
+        lines.add(reaction.line);
       } else {
         expect(reaction.pose).toBe('cry');
-        expect(reaction.blameLine).toBeUndefined();
+        // He is grieving the result rather than blaming a man for it, so the
+        // line has to come from the defeat pool and not the blame pool.
+        expect(content.fulltimeCoachLines.leagueLossClose).toContain(reaction.line);
+        expect(content.fulltimeBlameLines.lines).not.toContain(reaction.line);
       }
     }
     const blamed = poses.filter(pose => pose === 'point').length;

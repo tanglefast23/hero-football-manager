@@ -602,6 +602,54 @@ export const FulltimeBlameLinesSchema = z.strictObject({
 });
 
 /**
+ * What the gaffer says about the result itself, one pool per kind of afternoon.
+ *
+ * The league reads a result by how heavily it went; the cup reads it by who it
+ * was against, because a knockout tie is remembered for the opponent and a
+ * Tuesday in the league is remembered for the margin. That is why the two
+ * competitions bucket on different axes rather than sharing one ladder.
+ *
+ * Fifteen a pool is shallow enough to write well and deep enough that a season
+ * of wins does not repeat itself. Bounded to the ceremony length for the same
+ * reason the blame lines are: one speech bubble, one phone.
+ */
+const COACH_LINE_POOL_SIZE = 15;
+
+const coachLinePool = z.array(ceremonyLineSchema).length(COACH_LINE_POOL_SIZE);
+
+export const FulltimeCoachLinesSchema = z.strictObject({
+  schemaVersion: ContentSchemaVersion,
+  /** Won by three or more. */
+  leagueWinBig: coachLinePool,
+  /** Won by one or two. */
+  leagueWinClose: coachLinePool,
+  leagueDraw: coachLinePool,
+  /** Lost by one or two. */
+  leagueLossClose: coachLinePool,
+  /** Lost by three or more. */
+  leagueLossBig: coachLinePool,
+  /** Beat a club a division or more above us. */
+  cupWinGiant: coachLinePool,
+  /** Beat a club a little above us. */
+  cupWinBetter: coachLinePool,
+  /** Beat a club level with us or a little below. */
+  cupWinSlight: coachLinePool,
+  /** Beat a club well below us. */
+  cupWinRoutine: coachLinePool,
+  /** Lost to a club a division or more above us. */
+  cupLossStrong: coachLinePool,
+  /** Lost to a club near enough our own size. */
+  cupLossEven: coachLinePool,
+  /** Lost to a club well below us: the tie nobody lets you forget. */
+  cupLossWeak: coachLinePool,
+}).superRefine((pools, context) => {
+  for (const [name, lines] of Object.entries(pools)) {
+    if (name === 'schemaVersion') continue;
+    addDuplicateIssues(lines as readonly string[], context, [name], `${name} coach line`);
+  }
+});
+
+/**
  * Sprite names a request may reference for its artwork.
  *
  * Duplicated from `src/ui/event-pixel-sprites.ts` on purpose: `src/content/`
@@ -732,6 +780,7 @@ export const LaunchContentSchema = z.strictObject({
   assistantGuide: AssistantGuideContentSchema,
   awardCeremonyLines: AwardCeremonyLinesSchema,
   fulltimeBlameLines: FulltimeBlameLinesSchema,
+  fulltimeCoachLines: FulltimeCoachLinesSchema,
   clubs: ClubCatalogSchema,
   glossary: GlossaryCatalogSchema,
   onboarding: OnboardingContentSchema,
@@ -829,6 +878,9 @@ export type AssistantGuideDestination = z.infer<typeof AssistantGuideDestination
 export type AssistantGuideContent = z.infer<typeof AssistantGuideContentSchema>;
 export type AwardCeremonyLines = z.infer<typeof AwardCeremonyLinesSchema>;
 export type FulltimeBlameLines = z.infer<typeof FulltimeBlameLinesSchema>;
+export type FulltimeCoachLines = z.infer<typeof FulltimeCoachLinesSchema>;
+/** Which pool of the gaffer's lines an afternoon draws from. */
+export type FulltimeCoachLinePool = Exclude<keyof FulltimeCoachLines, 'schemaVersion'>;
 export type TrainingDrill = z.infer<typeof TrainingDrillSchema>;
 export type TrainingCatalog = z.infer<typeof TrainingCatalogSchema>;
 export type GameEvent = z.infer<typeof GameEventSchema>;
