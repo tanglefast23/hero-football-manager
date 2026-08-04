@@ -4,11 +4,28 @@
 
 **Goal:** After a device has won both trophies, starting a new game asks whether Bert should teach; choosing Advisor silences every teaching surface and lifts every block on Advance Week, while keeping him for every decision and story beat.
 
-**Architecture:** One optional enum on `GameState` (`assistantMode`, absent = `'teacher'`), read through a single exported predicate `assistantTeaches(state)`. Four pure functions in the application ring return empty for Advisor, which cascades to nearly every surface; the remaining one-shots are gated at their `App.tsx` call sites. The unlock (`climbCompleted`) lives in `AppPreferences` because it is the only fact that must survive `startNewCareer()` erasing the save.
+**Architecture:** One optional enum on `GameState` (`assistantMode`, absent = `'teacher'`), read through a single exported predicate `assistantTeaches(state)`. Advisor removes the opening walk-ons, objectives, hard duties, and every teaching presentation. The due-guide derivation and weekly inbox scheduler still run: hidden guides occupy the same deterministic weekly slots, are then suppressed from future Advisor weeks, and remain queued for the accepted Advisor-to-Teacher backlog. Product alerts and story/tip cadence therefore do not change merely because Bert is hidden. The unlock (`climbCompleted`) lives in `AppPreferences` because it is the only fact that must survive `startNewCareer()` erasing the save.
 
 **Tech Stack:** TypeScript, React Native (Expo), zustand, zod, Jest (`testEnvironment: 'node'` — no DOM, no `react-native` import).
 
 **Spec:** `docs/superpowers/specs/2026-08-04-bert-teacher-or-advisor-design.md`
+
+---
+
+## Approved audit corrections
+
+These corrections supersede any conflicting detail later in the original task text.
+
+- [x] Keep `dueAssistantInboxGuideSequences` mode-neutral. Returning `[]` changed `isHomeDeskClear`, weekly stories, and desk tips.
+- [x] In Advisor mode, schedule newly due standalone guides for pacing, hide their rows, and persist a separate suppression flag so the same hidden guide does not occupy every future week. Switching back to Teacher removes only those suppression flags; the ordinary queued flags remain and deliver the accepted backlog.
+- [x] Hide guide metadata attached to product alerts while retaining the product alert itself.
+- [x] Clear active teaching UI state and `inboxDutyReminder` immediately on Teacher-to-Advisor.
+- [x] Gate the first-story rules card and season-recap explanation as teaching surfaces, while still banking their existing seen flags.
+- [x] Make the transfer-listing confirmation truthful in either mode; it must not promise a Bert note that Advisor hides.
+- [x] Keep the choice screen container out of the accessibility tree. The question and every action are separate VoiceOver elements.
+- [x] Seed the version-7 preferences row through `FakePersistenceDatabase.preferencesRow`; do not insert into a table that has not been migrated and do not use the string slot `primary`.
+- [x] Test actual routing, unlock backfill persistence, queued-guide switching, active-focus clearing, missed raw-copy surfaces, and a bounded four-season Advisor run.
+- [x] Every implementation checkpoint must compile. Preference-shape removal and all of its call sites are one checkpoint rather than knowingly committing TypeScript errors.
 
 ---
 
@@ -28,7 +45,9 @@
 - `src/game/assistant-guide.ts` — export `assistantTeaches`
 - `src/persistence/game-state-codec.ts:925` — codec field
 - `src/persistence/preferences-repository.ts` — add `climbCompleted`, retire `managerTipsEnabled`, schema version 8
-- `src/application/assistant-guide.ts` — four early-returns
+- `src/application/assistant-guide.ts` — three presentation/block early-returns; due-guide derivation remains mode-neutral
+- `src/game/assistant-guide.ts` — Advisor suppression flags for pacing-safe hidden inbox guides
+- `src/application/view-models.ts` — hide guide rows/metadata without changing logical desk occupancy
 - `src/application/store.ts` — the blocks, `startNewCareer(seed, mode)`, `setAssistantMode`, `careerClimbCompleted`
 - `src/ui/SettingsOverlay.tsx` — the Bert row replaces the Manager's tips row
 - `src/ui/screens/ClubHomeScreen.tsx` — unchanged prop, new source
@@ -159,10 +178,12 @@ git commit -m "feat: record whether a career is taught"
 
 ---
 
-## Task 2: The four functions honour the mode
+## Task 2: Teaching presentation honours the mode without changing desk pacing
 
 **Files:**
-- Modify: `src/application/assistant-guide.ts:34,69,271,351`
+- Modify: `src/application/assistant-guide.ts:34,271,351`
+- Modify: `src/game/assistant-guide.ts`
+- Modify: `src/application/view-models.ts`
 - Test: `src/application/__tests__/assistant-mode.test.ts` (create)
 
 - [ ] **Step 1: Write the failing test**
@@ -219,10 +240,11 @@ describe('a taught career', () => {
 });
 
 describe('an advised career', () => {
-  it('has no walk-on, no objective and no inbox firsts', () => {
+  it('has no walk-on or objective but keeps the same logical inbox firsts', () => {
     const career = { ...openedCareer(), assistantMode: 'advisor' as const };
     expect(pendingAssistantGuideSequence(career, 'home')).toBeNull();
-    expect(dueAssistantInboxGuideSequences(career)).toEqual([]);
+    expect(dueAssistantInboxGuideSequences(career))
+      .toEqual(dueAssistantInboxGuideSequences({ ...career, assistantMode: 'teacher' }));
     expect(currentAssistantObjective(career, 'home')).toBeNull();
   });
 
@@ -239,9 +261,9 @@ describe('an advised career', () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/application/__tests__/assistant-mode.test.ts`
-Expected: FAIL — the advised career still returns `'management-intro'`, a non-empty due list, an objective, and `['youth-intake']`.
+Expected: FAIL — the advised career still returns `'management-intro'`, an objective, and `['youth-intake']`. The due list is deliberately unchanged.
 
-- [ ] **Step 3: Add the four early-returns**
+- [ ] **Step 3: Add the three presentation/block early-returns**
 
 In `src/application/assistant-guide.ts`, add `assistantTeaches` to the existing import block from `'../game'`, then add one guard as the first line of each function body.
 
@@ -256,15 +278,9 @@ export function pendingAssistantGuideSequence(
   if (isFirstCareerWeek(state)) {
 ```
 
-`dueAssistantInboxGuideSequences` (line 69):
-
-```ts
-export function dueAssistantInboxGuideSequences(
-  state: GameState,
-): AssistantInboxGuideSequenceId[] {
-  if (!assistantTeaches(state)) return [];
-  if (state.market === undefined || state.m2 === undefined) {
-```
+Do not add a mode guard to `dueAssistantInboxGuideSequences`. Story and tip
+settlement read the same scheduled inbox as the desk. Erasing the due list here
+silently changes the game's event cadence.
 
 `outstandingInboxDuties` (line 271):
 
@@ -291,6 +307,22 @@ export function currentAssistantObjective(
 
 Run: `npx jest src/application/__tests__/assistant-mode.test.ts`
 Expected: PASS, 4 tests.
+
+- [ ] **Step 4b: Make hidden inbox pacing finite and presentation-only**
+
+Add a namespaced Advisor-suppression flag in `src/game/assistant-guide.ts`.
+After a standalone guide consumes a logical weekly slot in Advisor mode, bank
+that suppression flag. While the career remains Advisor, omit suppressed guides
+from later weekly selections; do not complete them or delete their ordinary
+queued flag. When `setAssistantMode('teacher')` runs, remove the suppression
+flags so the accepted backlog becomes visible.
+
+In `src/application/view-models.ts`, keep the logical `inboxPlan` intact for
+`isHomeDeskClear`, but omit standalone guide rows and guide metadata attached to
+product rows from the returned Advisor `HomeViewModel`. Add focused tests proving
+that the first hidden tranche occupies the same logical week as Teacher, the
+next week does not repeat it, no Bert row is rendered, product alerts remain,
+and switching back to Teacher exposes the queued backlog.
 
 - [ ] **Step 5: Verify no existing suite regressed**
 
@@ -590,12 +622,9 @@ Append to `src/persistence/__tests__/preferences-repository.test.ts`, inside the
 
   it('migrates a version 7 row by dropping the tips flag and locking the climb', async () => {
     const database = new FakePersistenceDatabase();
-    await database.runAsync(
-      `INSERT INTO app_preferences (slot, schema_version, preferences_json) VALUES (?, ?, ?)`,
-      [
-        'primary',
-        7,
-        JSON.stringify({
+    database.preferencesRow = {
+      schema_version: 7,
+      preferences_json: JSON.stringify({
           formationPresets: ['4-4-2', '4-3-3', '5-3-2'],
           autoPowers: false,
           masterVolume: 1,
@@ -610,9 +639,8 @@ Append to `src/persistence/__tests__/preferences-repository.test.ts`, inside the
           seenPowerCutIns: [],
           autoSubs: false,
           squadSort: null,
-        }),
-      ],
-    );
+      }),
+    };
 
     const repository = await createPreferencesRepository(database);
     const preferences = await repository.load();
@@ -774,10 +802,15 @@ Directly above the final `if (row.schema_version !== PREFERENCES_SCHEMA_VERSION)
 Run: `npx jest src/persistence/__tests__/preferences-repository.test.ts`
 Expected: PASS. Several pre-existing cases in this file WILL fail first and must be updated, not worked around: any that assert on `managerTipsEnabled` (delete the assertion — the field is retired, not renamed) and any that assert the stored `schema_version` is `7` (it is now `8`). The first case, `loads manual powers and the three coverage formations by default`, compares against `DEFAULT_APP_PREFERENCES` wholesale and passes untouched.
 
-- [ ] **Step 8: Fix the two compile sites**
+- [ ] **Step 8: Update every compile site in the same checkpoint**
 
 Run: `npx tsc --noEmit`
-Expected: errors in `src/application/preferences.ts` (nothing to change — it spreads) and `App.tsx` + `src/ui/SettingsOverlay.tsx`. Leave the App and Settings errors for Task 8; they are fixed there. If `src/application/preferences.ts` reports an error, it is because `defaultPreferences()` clones array fields explicitly — `climbCompleted` is a boolean and needs no clone, so no change is required there.
+Do not commit a knowingly broken preference shape. Update `App.tsx`,
+`src/ui/SettingsOverlay.tsx`, `src/application/__tests__/preferences.test.ts`,
+`src/ui/__tests__/settings-button.test.ts`, and
+`src/ui/__tests__/hall-of-fame-settings.test.ts` in this checkpoint, plus any
+additional compiler-reported fixture. `src/application/preferences.ts` spreads
+the shape and should need no change.
 
 - [ ] **Step 9: Commit**
 
@@ -914,7 +947,6 @@ Create `src/ui/__tests__/assistant-mode-choice.test.ts`:
 ```ts
 import {
   ASSISTANT_MODE_CHOICE,
-  assistantModeChoiceAccessibilityLabel,
 } from '../assistant-mode-choice';
 import { BERT_MOMENTS } from '../bert-poses';
 
@@ -936,11 +968,11 @@ describe("the question Bert asks a manager who has won everything", () => {
     expect(Object.keys(BERT_MOMENTS)).toContain(ASSISTANT_MODE_CHOICE.moment);
   });
 
-  it('reads the whole question aloud in one label', () => {
-    const label = assistantModeChoiceAccessibilityLabel();
-    expect(label).toContain(ASSISTANT_MODE_CHOICE.line);
-    expect(label).toContain(ASSISTANT_MODE_CHOICE.options[0].label);
-    expect(label).toContain(ASSISTANT_MODE_CHOICE.options[1].label);
+  it('gives each choice its own complete screen-reader label', () => {
+    for (const option of ASSISTANT_MODE_CHOICE.options) {
+      expect(option.accessibilityLabel).toContain(option.label);
+      expect(option.accessibilityLabel).toContain(option.detail);
+    }
   });
 });
 ```
@@ -997,13 +1029,6 @@ export const ASSISTANT_MODE_CHOICE: AssistantModeChoiceCopy = {
   ],
 };
 
-/** The whole question as one string, for a screen reader landing on the page. */
-export function assistantModeChoiceAccessibilityLabel(): string {
-  return [
-    ASSISTANT_MODE_CHOICE.line,
-    ...ASSISTANT_MODE_CHOICE.options.map(option => option.accessibilityLabel),
-  ].join(' ');
-}
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -1025,7 +1050,6 @@ import { BertFullBody } from '../BertFullBody';
 import { useLayoutMode } from '../layout/use-layout-mode';
 import {
   ASSISTANT_MODE_CHOICE,
-  assistantModeChoiceAccessibilityLabel,
 } from '../assistant-mode-choice';
 
 export interface AssistantModeChoiceScreenProps {
@@ -1050,8 +1074,6 @@ export function AssistantModeChoiceScreen({
       <ChalkboardBackdrop wide={wide} />
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
         <View
-          accessible
-          accessibilityLabel={assistantModeChoiceAccessibilityLabel()}
           className={wide
             ? 'w-full max-w-[1180px] flex-1 self-center px-10 pb-8 pt-8'
             : 'flex-1 px-5 pb-4 pt-6'}
@@ -1065,7 +1087,12 @@ export function AssistantModeChoiceScreen({
 
           <View className="mt-8 flex-row items-end gap-4">
             <BertFullBody pointing={false} moment={ASSISTANT_MODE_CHOICE.moment} />
-            <View className="flex-1 border-2 border-ink bg-white p-4">
+            <View
+              accessible
+              accessibilityRole="text"
+              accessibilityLabel={ASSISTANT_MODE_CHOICE.line}
+              className="flex-1 border-2 border-ink bg-white p-4"
+            >
               <Text className="text-base leading-6 text-ink">
                 {ASSISTANT_MODE_CHOICE.line}
               </Text>
@@ -1102,6 +1129,10 @@ export function AssistantModeChoiceScreen({
 ```
 
 Do **not** use a function-form `style` prop on any `Pressable` in this file. Function-style on a Pressable renders zero-height and untappable on iOS only — it has bitten this codebase twice.
+Do **not** mark the page wrapper accessible. On iOS that groups the nested
+buttons into the parent and can make Teacher, Advisor, and Back unreachable to
+VoiceOver. The question bubble and all three actions are sibling accessibility
+elements.
 
 - [ ] **Step 6: Export the screen**
 
@@ -1329,6 +1360,23 @@ Six edits in `App.tsx`, each adding `careerTeaches &&` to an existing condition:
 
 `conditionWarningSeen` is "has been seen, so do not show it" — an advised career passes `true` so the lesson never fires.
 
+Also gate the two raw instructional copy props that do not mention a guide
+milestone in their names:
+
+- `StoryEventScreen.guideCopy` — pass `undefined` in Advisor, but keep the
+  existing seen flag lifecycle.
+- `SeasonEndScreen.guideCopy` — pass `undefined` in Advisor, but keep the
+  existing seen flag lifecycle.
+
+When Teacher changes to Advisor, clear `requestedAssistantSequenceId`,
+`conciergeFocus`, `managerTipGuideRequest`, `activeGuideFocus`, and dismissed
+objective state before calling the store action. The store action clears
+`inboxDutyReminder`. Derive every guide focus and sequence consumer through
+`careerTeaches` as defence against stale state already queued in React.
+
+Finally, change the transfer-listing success notice to generic truthful copy;
+Advisor must never be told Bert left a follow-up note that is hidden.
+
 - [ ] **Step 6: Route the prompt**
 
 Replace `toggleManagerTips` (lines 586–589) with nothing — delete the callback. Then change `startNewCareer` (line 973) so the veteran path stops at the question:
@@ -1422,6 +1470,9 @@ At lines 1981 and 1999, replace `managerTipsEnabled={preferences.managerTipsEnab
             : store.career.assistantMode ?? 'teacher'}
           onSetAssistantMode={store.career === null ? undefined : store.setAssistantMode}
 ```
+
+Pass a local wrapper rather than `store.setAssistantMode` directly. The wrapper
+performs the transient-state cleanup above and then calls the store action.
 
 - [ ] **Step 9: Run the tests**
 
@@ -1525,6 +1576,22 @@ describe('advice costs the manager nothing', () => {
   });
 });
 ```
+
+- [ ] **Step 1b: Add bounded long-career and parity coverage**
+
+The one-week comparison above is a smoke test, not the proof. Add a four-season
+Advisor run that automatically resolves ordinary game decisions and asserts the
+career never gets stuck on a Bert gate. Alongside it, drive a Teacher reference
+career from the same seed while completing each delivered tutorial tranche.
+After every entered management week, compare a mode-neutral projection that
+includes clubs, players, fixtures, phase, season/week, training points,
+`eventClock`, `pendingEvent`, resolved events, and `deskTip`, while excluding
+only `assistantMode` and namespaced Bert guide flags. This is the regression
+test for the audit's central finding.
+
+The final verification tests are expected to pass when introduced because they
+validate the completed behavior; the red-green requirement applies to each
+implementation task, not to this final proof task.
 
 Add `import type { GameState } from '../../game/types';` to the file's imports if Task 2 did not already add it.
 

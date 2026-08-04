@@ -146,22 +146,25 @@ state in `App.tsx:454`, and the career store is a separate zustand store. The
 Advance Week block lives in the store, so a preferences-held mode would have to
 be threaded into the store — a new coupling, for one enum.
 
-On `GameState`, the four decision functions read it off the state they already
-receive, with **zero signature changes**, staying pure and headless-testable as
-`CLAUDE.md` requires. It is also per-career by the user's own framing: the
-question is asked when a career starts.
+On `GameState`, the presentation and block decisions read it off the state they
+already receive, with **zero signature changes**, staying pure and
+headless-testable as `CLAUDE.md` requires. The due-guide derivation deliberately
+does not: weekly stories and tips use the same logical inbox schedule, so
+erasing due guides would change the game rather than merely hide Bert. It is
+also per-career by the user's own framing: the question is asked when a career
+starts.
 
 Cost: one optional field in `game-state-codec.ts`, modelled exactly on
 `difficulty: z.enum([...]).optional()` (`src/persistence/game-state-codec.ts:925`).
 
 ### What Advisor silences
 
-Four functions return empty, and that cascades:
+Three functions return empty, and the rendered inbox filters its guide strand:
 
 | Function | Advisor returns | Silences |
 |---|---|---|
 | `pendingAssistantGuideSequence` | `null` | `management-intro`, `desk-intro` |
-| `dueAssistantInboxGuideSequences` | `[]` | all 24 explainers |
+| rendered Advisor inbox | no guide rows or guide metadata | all 24 explainers, while retaining logical weekly occupancy |
 | `currentAssistantObjective` | `null` | objective line, arrows, guidance glow |
 | `outstandingInboxDuties` | `[]` | the weeks 1–3 block |
 
@@ -202,10 +205,14 @@ The rule: **if it carries a decision or a story beat, he stays. If it explains
 or enforces, he goes.**
 
 The inbox itself keeps running. `scheduleAssistantInboxWeek` still delivers
-product alerts and still writes their delivery and acknowledgement flags for an
-Advisor career; only the guide strand of its input is empty. That is the point —
-an alert is the club telling the manager something happened, which is the half
-of the desk Advisor is meant to keep.
+product alerts and still writes their delivery and acknowledgement flags. It
+also allocates deterministic logical slots to newly due hidden guides so weekly
+story and tip cadence does not jump merely because Bert is hidden. Once a guide
+has consumed that Advisor slot, a separate namespaced suppression flag keeps it
+from occupying every later week. Its ordinary queued flag remains, so switching
+back to Teacher still delivers the accepted backlog. The `HomeViewModel` removes
+only guide rows and guide metadata; an alert is the club telling the manager
+something happened, which is the half of the desk Advisor is meant to keep.
 
 ### The prompt
 
@@ -309,9 +316,10 @@ losing the unlock, not losing a save.
 
 Headless and deterministic, per `CLAUDE.md`.
 
-**Mode behaviour** (`src/application/__tests__/assistant-guide.test.ts`):
-each of the four functions returns empty for an Advisor career and unchanged
-values for a Teacher career built from the same seed.
+**Mode behaviour** (`src/application/__tests__/assistant-guide.test.ts`): the
+three presentation/block functions return empty for an Advisor career, due
+guides remain mode-neutral, and the rendered Advisor desk contains no guide
+rows or guide metadata.
 
 **The blocks** (store tests): a fresh Advisor career at S1W1 advances the week
 with nothing trained, nothing built, off the home tab, and with the youth intake
@@ -319,10 +327,11 @@ unanswered. Each case is paired with the Teacher career that still refuses it,
 so the opening is pinned as unchanged. The Teacher cases must bank
 `intro-complete` first — see Risks.
 
-**Reaching the end**: an Advisor career runs through the existing headless
-harness for four seasons and matches the Teacher career from the same seed
-week-for-week. Advisor changes presentation and gating only; the simulation must
-be byte-identical.
+**Reaching the end**: an Advisor career runs for four seasons without a Bert
+gate. A Teacher reference career from the same seed completes each delivered
+tutorial tranche; after every entered management week a mode-neutral projection
+including event state matches. Advisor changes presentation and gating only;
+guide flags and the mode field are the only excluded state.
 
 **Persistence**: `assistantMode` round-trips through the codec and defaults to
 `'teacher'` when absent. `climbCompleted` round-trips, defaults `false`, and a
