@@ -940,7 +940,7 @@ git commit -m "feat: expose whether the loaded career finished the climb"
 
 Jest here has no DOM and cannot render React Native, so the copy lives in a plain module and the test asserts on that — the same split `matchday-condition.ts` uses for `MatchdayConditionWarning`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/ui/__tests__/assistant-mode-choice.test.ts`:
 
@@ -977,12 +977,12 @@ describe("the question Bert asks a manager who has won everything", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/ui/__tests__/assistant-mode-choice.test.ts`
 Expected: FAIL — cannot find module `../assistant-mode-choice`.
 
-- [ ] **Step 3: Write the copy module**
+- [x] **Step 3: Write the copy module**
 
 Create `src/ui/assistant-mode-choice.ts`:
 
@@ -1031,12 +1031,12 @@ export const ASSISTANT_MODE_CHOICE: AssistantModeChoiceCopy = {
 
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/ui/__tests__/assistant-mode-choice.test.ts`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Write the screen**
+- [x] **Step 5: Write the screen**
 
 Create `src/ui/screens/AssistantModeChoiceScreen.tsx`:
 
@@ -1134,7 +1134,7 @@ buttons into the parent and can make Teacher, Advisor, and Back unreachable to
 VoiceOver. The question bubble and all three actions are sibling accessibility
 elements.
 
-- [ ] **Step 6: Export the screen**
+- [x] **Step 6: Export the screen**
 
 In `src/ui/index.ts`, add the export beside the other screens:
 
@@ -1145,12 +1145,12 @@ export type { AssistantModeChoiceScreenProps } from './screens/AssistantModeChoi
 
 Match the file's existing export style — if it re-exports with `export *`, no edit is needed.
 
-- [ ] **Step 7: Typecheck**
+- [x] **Step 7: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: only the known `App.tsx` / `SettingsOverlay.tsx` errors from Task 5, fixed in Task 8.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/ui/assistant-mode-choice.ts src/ui/screens/AssistantModeChoiceScreen.tsx src/ui/index.ts src/ui/__tests__/assistant-mode-choice.test.ts
