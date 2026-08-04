@@ -263,6 +263,45 @@ describe('M1 app store integration', () => {
     expect(useM1Store.getState().career?.resolvedEventIds).toContain('hundredth-fan');
   });
 
+  /**
+   * A story used to be the toll on the way OUT of a week: Advance Week opened
+   * the card instead of advancing, and answering it spent the week. It belongs
+   * to the week it was drawn for, so it is now the first thing in that week and
+   * the manager still has the week to act on whatever it did to the club.
+   */
+  it("opens a week's story on arrival and hands the week back when it is answered", () => {
+    startAwakenedCareer(457);
+    const career = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...career,
+        phase: 'manage',
+        week: 8,
+        pendingEvent: {
+          eventId: 'hundredth-fan',
+          resolvedChoiceId: 'hundredth-fan-parade',
+          outcomeText: 'The parade inspires a new stadium mural.',
+          resolvedOutcomeIndex: 0,
+          resolvedRisky: true,
+          resolvedSuccess: true,
+        },
+      },
+      screen: 'week-review',
+    });
+
+    // The review hands over to the story, not to the desk.
+    useM1Store.getState().continueWeekReview();
+    expect(useM1Store.getState().screen).toBe('event');
+
+    useM1Store.getState().continueAfterEvent();
+
+    // Answered — and week 8 is still there to be played.
+    expect(useM1Store.getState().screen).toBe('management');
+    expect(useM1Store.getState().career?.week).toBe(8);
+    expect(useM1Store.getState().career?.pendingEvent).toBeUndefined();
+    expect(useM1Store.getState().career?.resolvedEventIds).toContain('hundredth-fan');
+  });
+
   it('trains a player the moment a drill is tapped and reviews the week without it', () => {
     startCreatedCareer(789);
     const before = useM1Store.getState().career!;

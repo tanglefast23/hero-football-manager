@@ -582,7 +582,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
     // onto the desk of a week the career reached through a match.
     const next = settleWeeklyTip(settleWeeklyStory(reconcileHomeAssistantInbox(career)));
     if (next === career) return;
-    set({ career: next });
+    // A week reached through a match has no review to hand the story over, so
+    // this is where its opening beat arrives: the desk has just come up and the
+    // story settles onto it. Same rule either way — read it entering the week.
+    const opensStory = career.pendingEvent === undefined
+      && next.pendingEvent !== undefined
+      && get().screen === 'management';
+    set({ career: next, ...(opensStory ? { screen: 'event' as const } : {}) });
     queueCareerSave(get, set, next);
   },
 
@@ -989,7 +995,13 @@ export const useM1Store = create<M1Store>((set, get) => ({
       weekReview: null,
       screen: career.phase === 'season-end' || career.phase === 'complete'
         ? seasonBoundaryScreen(career)
-        : 'management',
+        // A story is the top of the week it was drawn for, not a toll on the way
+        // out of it. The manager reads it on arrival and then has the whole week
+        // to act on what it did, rather than meeting it as an ambush on the
+        // Advance Week press seven days later.
+        : career.pendingEvent !== undefined
+          ? 'event'
+          : 'management',
       activeTab: 'home',
       error: null,
     });
@@ -1148,8 +1160,8 @@ export const useM1Store = create<M1Store>((set, get) => ({
 
   continueAfterEvent() {
     guarded(set, () => {
-      // This action advances the week on its own, so it honours the same
-      // saveBlocked pause as advanceCareer.
+      // Resolving a story writes the club's money, morale and roster, so it
+      // honours the same saveBlocked pause as advanceCareer.
       if (get().saveBlocked) {
         throw new Error(
           'The last few weeks could not be saved, so the season is paused. Free up space on your device, then try saving again.',
@@ -1179,23 +1191,22 @@ export const useM1Store = create<M1Store>((set, get) => ({
           return;
         }
       }
-      const next = advanceWeek(dismissed);
-      const weekReview = next.phase === 'manage' && next.week !== dismissed.week
-        ? weeklyReviewViewModel(dismissed, next)
-        : null;
+      // Answering a story hands the week back rather than spending it. The
+      // story is read entering the week, so "Return to the office" now returns
+      // to the office — the manager still has the week to trade, train and
+      // build on whatever the story just did to the club.
       set({
-        career: next,
-        screen: weekReview !== null
-          ? 'week-review'
-          : next.phase === 'matchday'
+        career: dismissed,
+        screen: dismissed.phase === 'matchday'
           ? 'matchday'
-          : next.phase === 'season-end' || next.phase === 'complete'
-            ? seasonBoundaryScreen(next)
+          : dismissed.phase === 'season-end' || dismissed.phase === 'complete'
+            ? seasonBoundaryScreen(dismissed)
             : 'management',
-        weekReview,
+        activeTab: 'home',
+        weekReview: null,
         error: null,
       });
-      queueCareerSave(get, set, next);
+      queueCareerSave(get, set, dismissed);
     });
   },
 
