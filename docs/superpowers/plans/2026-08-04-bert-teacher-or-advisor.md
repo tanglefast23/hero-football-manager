@@ -1500,7 +1500,7 @@ git commit -m "feat: route the veteran's choice and silence the lessons it turns
 
 Advisor changes presentation and gating only. If it changes the simulation, something reached into the wrong ring.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Two claims. First, that the simulation is untouched — driven through the store, because that is the ring the gates live in. Second, that the game ring never reads the field at all, which is what makes the first claim structural rather than a lucky seed.
 
@@ -1577,7 +1577,7 @@ describe('advice costs the manager nothing', () => {
 });
 ```
 
-- [ ] **Step 1b: Add bounded long-career and parity coverage**
+- [x] **Step 1b: Add bounded long-career and parity coverage**
 
 The one-week comparison above is a smoke test, not the proof. Add a four-season
 Advisor run that automatically resolves ordinary game decisions and asserts the
@@ -1595,22 +1595,22 @@ implementation task, not to this final proof task.
 
 Add `import type { GameState } from '../../game/types';` to the file's imports if Task 2 did not already add it.
 
-- [ ] **Step 2: Run the tests**
+- [x] **Step 2: Run the tests**
 
 Run: `npx jest src/application/__tests__/assistant-mode.test.ts -t "advice costs"`
 Expected: PASS, 3 tests. A failure in the first means an Advisor gate changed the simulation; the second is the only sanctioned difference; the third names the file that reached into the game ring. Fix the cause, never the assertion.
 
-- [ ] **Step 3: Run the whole suite**
+- [x] **Step 3: Run the whole suite**
 
 Run: `npx jest`
 Expected: PASS. Expect nothing to fail; this branch touches no sim code, so `ENGINE_VERSION` is untouched and the golden replay must be unchanged. If the golden-replay snapshot moves, stop — something entered `src/sim/` that should not have.
 
-- [ ] **Step 4: Typecheck**
+- [x] **Step 4: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/application/__tests__/assistant-mode.test.ts
