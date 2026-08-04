@@ -40,18 +40,19 @@ describe('training stat option rendering', () => {
     expect(source).not.toContain(
       '{pendingConfirm.currentValue} → {pendingConfirm.baseValueAfter}',
     );
-    // The card may never print a negative, and may never promise more than the
-    // count-up delivers. So the second line is this player's *result*, named
-    // after them rather than after whatever is dragging it down: a thirty-year-
-    // old reads "FOR NORA VALE +2", not "VETERAN … -2". The signed adjustment
-    // survives only as the border colour.
-    expect(source).toContain('For {playerName}');
+    // The modifier names stay — they are what says why this player differs from
+    // the drill row above. What changed is the number beside them: the result
+    // this player gets, never the signed delta that produced it.
+    expect(source).toContain("{pendingConfirm.trainingModifierLabels.join(' + ')}");
     expect(source).toContain(
       '+{pendingConfirm.baseValueAfter\n                            + pendingConfirm.trainingAdjustment\n                            - pendingConfirm.currentValue}',
     );
-    expect(source).not.toContain("trainingModifierLabels.join(' + ')} {pendingConfirm.trainingAdjustment");
+    // Never a negative in front of the manager, and never the word "bonus" on a
+    // net drag — that would only move the dishonesty into the label.
     expect(source).not.toContain("{pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}");
-    // Direction is still carried, just not as a number the manager reads.
-    expect(source).toContain('pendingConfirm.trainingAdjustment >= 0');
+    expect(source).not.toContain("trainingAdjustment >= 0 ? 'bonus' : 'adjustment'");
+    // One colour for every position. A keeper's card turning gold where a
+    // striker's stays green made the keeper read as the problem.
+    expect(source).not.toContain('border-gold-dark bg-gold-light px-3 py-2');
   });
 });

@@ -659,29 +659,34 @@ export function TrainingDrillModal({
                         +{pendingConfirm.baseValueAfter - pendingConfirm.currentValue}
                       </Text>
                     </View>
-                    {/* This player's own result, named after them rather than
-                        after what is holding them back.
+                    {/* What this player's own modifiers deliver — the result,
+                        never the signed delta that produced it.
 
-                        Two rules the wording has to keep at once. It may never
-                        print a negative — a thirty-year-old reading
-                        "VETERAN … -2" is being told off for their age on a card
-                        that is supposed to be selling them a session. And it may
-                        never promise more than the count-up two seconds later
-                        delivers, which is why the drop cannot simply be hidden:
-                        the base line reconciles with the drill row's advertised
-                        gain, and this line is what actually lands. Both numbers
-                        are things the manager receives. The gold border still
-                        carries the direction for anyone who wants it. */}
+                        Three rules at once. It may never print a negative: a
+                        thirty-year-old reading "VETERAN … -2" is being told off
+                        for their age on a card whose job is to sell them a
+                        session. It may never promise more than the count-up two
+                        seconds later delivers, which is why the drop cannot
+                        simply be hidden — the base line reconciles with the
+                        drill row above, and this line is what actually lands.
+                        And it looks the same for every position: a keeper's card
+                        turning gold where a striker's is green made the keeper
+                        read as the problem, which is the whole thing this
+                        change set exists to stop.
+
+                        The modifier names stay because they are the useful part
+                        — they say *why* this player differs from the row above.
+                        What is gone is the word "bonus": calling a net drag a
+                        bonus would only move the dishonesty from the number into
+                        the label. */}
                     {pendingConfirm.trainingModifierLabels.length > 0 ? (
-                      <View className={pendingConfirm.trainingAdjustment >= 0
-                        ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2'
-                        : 'flex-row items-center justify-between border-2 border-gold-dark bg-gold-light px-3 py-2'}>
+                      <View className="flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2">
                         <PixelText
                           className="min-w-0 flex-1 pr-2 text-xs uppercase text-ink"
                           numberOfLines={2}
                           adjustsFontSizeToFit
                         >
-                          For {playerName}
+                          {pendingConfirm.trainingModifierLabels.join(' + ')}
                         </PixelText>
                         <Text className="font-pixel text-base text-ink">
                           +{pendingConfirm.baseValueAfter
