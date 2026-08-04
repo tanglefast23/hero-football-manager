@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import type { GestureResponderEvent } from 'react-native';
+import type { GestureResponderEvent, ViewStyle } from 'react-native';
 import type { AssistantGuideFocus, ManagerTipDestination } from '../../content';
 import { Metric, PaperPanel, SectionLabel, StatusChip, formatCurrency } from '../components/Scorecard';
 import { PixelPortrait } from '../components/PixelPortrait';
@@ -26,6 +26,14 @@ import {
   type SquadSort,
   type SquadSortKey,
 } from '../squad-sort';
+import {
+  HEADER_MAX_FONT_MULTIPLIER,
+  REGISTER_COLUMN_WIDTH,
+  SORT_ARROW_GAP,
+  SORT_ARROW_HEIGHT,
+  SORT_ARROW_WIDTH,
+  TRAIN_BUTTON_HIT_SLOP,
+} from '../squad-register-columns';
 import { archetypeDevelopmentSummary, type ArchetypeDevelopmentSummary } from '../archetype-development';
 import {
   shouldDismissTutorialForDrag,
@@ -94,17 +102,28 @@ const CONDITION_WARNING_DRILL = 3;
 /** How far below the viewport top the attribute grid sits once framed. */
 const QUICK_TRAIN_FRAME_TOP = 96;
 /**
- * Three-letter roles still fit at the app's largest text size. This moves the
- * name start 8pt right; tighter phone metrics and the train gutter pay for it
- * so the flexible name cell keeps useful room.
+ * Every fixed register column, header and cells alike, in points. Deriving
+ * them lives in squad-register-columns.ts, which explains why they are points
+ * and not Tailwind width classes: `w-12` is 42pt on native, not 48, and the
+ * role header used to sit 6pt left of the role cells because of it.
  */
-const ROSTER_ROLE_COLUMN_WIDTH = 48;
-/** The same 48pt as a utility class, so the POS header lines up with its cells. */
-const ROSTER_ROLE_COLUMN_CLASS = 'w-12';
-/** The 40pt train circle plus its 4pt gutter. */
+type RosterColumnStyles = Record<'role' | 'overall' | 'potential' | 'condition', ViewStyle>;
+const ROSTER_COLUMN_STYLE: { phone: RosterColumnStyles; wide: RosterColumnStyles } = {
+  phone: StyleSheet.create({
+    role: { width: REGISTER_COLUMN_WIDTH.phone.role, flexShrink: 0 },
+    overall: { width: REGISTER_COLUMN_WIDTH.phone.overall, flexShrink: 0 },
+    potential: { width: REGISTER_COLUMN_WIDTH.phone.potential, flexShrink: 0 },
+    condition: { width: REGISTER_COLUMN_WIDTH.phone.condition, flexShrink: 0 },
+  }),
+  wide: StyleSheet.create({
+    role: { width: REGISTER_COLUMN_WIDTH.wide.role, flexShrink: 0 },
+    overall: { width: REGISTER_COLUMN_WIDTH.wide.overall, flexShrink: 0 },
+    potential: { width: REGISTER_COLUMN_WIDTH.wide.potential, flexShrink: 0 },
+    condition: { width: REGISTER_COLUMN_WIDTH.wide.condition, flexShrink: 0 },
+  }),
+};
+/** The train circle plus its gutter. */
 const ROSTER_TRAIN_COLUMN_CLASS = 'w-11';
-/** Pads the 40pt circle back out to the 44pt minimum touch target. */
-const ROSTER_TRAIN_BUTTON_HIT_SLOP = 2;
 
 export interface SquadTrainingScreenProps {
   viewModel: SquadTrainingViewModel;
@@ -191,14 +210,11 @@ export function SquadTrainingScreen({
   // "CONDITION"), so each one has to be wide enough to hold the word plus its
   // sort arrow — a clipped header reads as a bug, not as an abbreviation.
   //
-  // A React Native <View> does not clip its children, so a header wider than
-  // its column does not truncate: it spills sideways over the neighbouring
-  // header. That is what made "OVR POT COND" read as "OVR POTCOND" on a phone.
-  // Every narrow width below therefore holds its own label plus the sort arrow
-  // with a few points to spare, and the only flexible cell — the name — pays.
-  const currentColumnWidth = wideColumns ? 'w-16' : 'w-12';
-  const potentialColumnWidth = wideColumns ? 'w-28' : 'w-12';
-  const conditionColumnWidth = wideColumns ? 'w-28' : 'w-[60px]';
+  // Both sets of widths are derived in squad-register-columns.ts: each holds
+  // its own label at the largest text size a header may reach, plus the arrow,
+  // plus a gutter to the column beside it. The name is the only flexible cell,
+  // so the name pays. Header and row share one style, so they cannot drift.
+  const columns = wideColumns ? ROSTER_COLUMN_STYLE.wide : ROSTER_COLUMN_STYLE.phone;
   // Headers label the data, they aren't it. Phone headers step down one further
   // than the wide ones so four abbreviations and an arrow fit side by side.
   const headerLabelSize = wideColumns ? 'text-xs' : 'text-[10px]';
@@ -432,9 +448,7 @@ export function SquadTrainingScreen({
           trainingCueUsed={trainingCueUsed}
           conditionCuePlayerId={drillPickerOpen ? null : conditionCuePlayerId}
           wideColumns={wideColumns}
-          currentColumnWidth={currentColumnWidth}
-          potentialColumnWidth={potentialColumnWidth}
-          conditionColumnWidth={conditionColumnWidth}
+          columns={columns}
           headerLabelSize={headerLabelSize}
           squadSort={squadSort}
           setSquadSort={setSquadSort}
@@ -597,9 +611,8 @@ interface RosterSectionProps {
   /** Set while the condition warning is pointing at this player's row. */
   conditionCuePlayerId: string | null;
   wideColumns: boolean;
-  currentColumnWidth: string;
-  potentialColumnWidth: string;
-  conditionColumnWidth: string;
+  /** One width per fixed column, shared by the header and the cells below it. */
+  columns: RosterColumnStyles;
   headerLabelSize: string;
   squadSort: SquadSort | null;
   setSquadSort: (key: SquadSortKey) => void;
@@ -619,9 +632,7 @@ function RosterSection({
   trainingCueUsed,
   conditionCuePlayerId,
   wideColumns,
-  currentColumnWidth,
-  potentialColumnWidth,
-  conditionColumnWidth,
+  columns,
   headerLabelSize,
   squadSort,
   setSquadSort,
@@ -656,13 +667,13 @@ function RosterSection({
           />
         ) : null}
         <View className="flex-row items-center border-b border-ink/20 px-2">
-          <SquadSortHeader label="Pos" sortKey="role" sort={squadSort} widthClass={ROSTER_ROLE_COLUMN_CLASS} labelSize={headerLabelSize} onSort={setSquadSort} />
+          <SquadSortHeader label="Pos" sortKey="role" sort={squadSort} columnStyle={columns.role} labelSize={headerLabelSize} onSort={setSquadSort} />
           <SquadSortHeader label={wideColumns ? 'Player' : 'Name'} sortKey="player" sort={squadSort} widthClass="flex-1" labelSize={headerLabelSize} onSort={setSquadSort} />
           <SquadSortHeader
             label={wideColumns ? 'Score' : 'OVR'}
             sortKey="overall"
             sort={squadSort}
-            widthClass={currentColumnWidth}
+            columnStyle={columns.overall}
             labelSize={headerLabelSize}
             align="right"
             onSort={setSquadSort}
@@ -678,12 +689,12 @@ function RosterSection({
               />
             ) : null}
           />
-          <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} widthClass={potentialColumnWidth} labelSize={headerLabelSize} align="right" onSort={setSquadSort} />
+          <SquadSortHeader label={wideColumns ? 'Potential' : 'POT'} sortKey="potential" sort={squadSort} columnStyle={columns.potential} labelSize={headerLabelSize} align="right" onSort={setSquadSort} />
           <SquadSortHeader
             label={wideColumns ? 'Condition' : 'Cond'}
             sortKey="condition"
             sort={squadSort}
-            widthClass={conditionColumnWidth}
+            columnStyle={columns.condition}
             labelSize={headerLabelSize}
             align="right"
             onSort={setSquadSort}
@@ -751,7 +762,7 @@ function RosterSection({
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : undefined })}
               >
                 <Text
-                  style={styles.roleColumn}
+                  style={columns.role}
                   className={selected ? 'font-pixel text-sm text-ink' : 'font-pixel text-sm text-blue-dark'}
                   adjustsFontSizeToFit
                   minimumFontScale={0.8}
@@ -781,10 +792,11 @@ function RosterSection({
                     <PixelText className="mt-0.5 text-sm uppercase text-gold-dark" numberOfLines={1}>★ {player.powerName}</PixelText>
                   ) : null}
                 </View>
-                <Text className={`${currentColumnWidth} text-right font-mono text-base text-ink`} numberOfLines={1}>{player.overall}</Text>
-                <Text className={`${potentialColumnWidth} pr-1 text-right font-mono text-base text-gold-dark`} numberOfLines={1}>{player.potentialGrade}</Text>
+                <Text style={columns.overall} className="text-right font-mono text-base text-ink" numberOfLines={1}>{player.overall}</Text>
+                <Text style={columns.potential} className="pr-1 text-right font-mono text-base text-gold-dark" numberOfLines={1}>{player.potentialGrade}</Text>
                 <Text
-                  className={`${conditionColumnWidth} text-right font-mono text-sm ${CONDITION_TONE[energyBand(player.condition)]}`}
+                  style={columns.condition}
+                  className={`text-right font-mono text-sm ${CONDITION_TONE[energyBand(player.condition)]}`}
                   numberOfLines={1}
                 >
                   {player.condition}%
@@ -802,10 +814,13 @@ function RosterSection({
                 accessibilityState={{ disabled: !player.canTrain }}
                 disabled={!player.canTrain}
                 onPress={() => onPressTrainingBadge(player.id)}
-                // A 40pt circle inside a 44pt row of touch: hitSlop keeps the
-                // tap target at the platform minimum while the badge itself
-                // sits a little inside it and hands the 4pt back to the columns.
-                hitSlop={ROSTER_TRAIN_BUTTON_HIT_SLOP}
+                // The circle is 35pt — `w-10` is 2.5rem, and a rem is 14pt here
+                // — so hitSlop is what carries the tap target over the 44pt
+                // minimum, at 45. It costs no layout, so the columns keep every
+                // point. The slop overlaps the row's own tap area by a point or
+                // two; the button is the later sibling and wins there, which is
+                // the right way round for the more consequential target.
+                hitSlop={TRAIN_BUTTON_HIT_SLOP}
                 className={!player.canTrain
                   ? 'ml-1 h-10 w-10 items-center justify-center rounded-full border border-ink/20 bg-paper-dark'
                   : player.priorityDrillsRemaining !== undefined
@@ -1115,11 +1130,30 @@ function PlayerFileSection({
   );
 }
 
+/**
+ * The sort arrow, drawn rather than typed.
+ *
+ * Silkscreen has no glyph for ▼ or ▲, so a typed one is served by whatever
+ * face iOS falls back to, at an advance this side of the screen cannot know —
+ * and because the header clips to its column, the arrow was the first thing
+ * cut off. Measured on a phone at the xxLarge text size: OVR showed 1pt of its
+ * arrow, POT 4pt. A drawn triangle is the same width at every text size, which
+ * is what lets squad-register-columns.ts prove the widths hold.
+ *
+ * Two stacked borders with transparent sides, the way the speech bubble draws
+ * its tail — the same trick, and the only way to fill a triangle without an
+ * image or a canvas.
+ */
+function SquadSortArrow({ direction }: { direction: 'ascending' | 'descending' }) {
+  return <View style={direction === 'descending' ? styles.sortArrowDown : styles.sortArrowUp} />;
+}
+
 function SquadSortHeader({
   label,
   sortKey,
   sort,
   widthClass,
+  columnStyle,
   labelSize,
   align = 'left',
   onSort,
@@ -1128,7 +1162,9 @@ function SquadSortHeader({
   label: string;
   sortKey: SquadSortKey;
   sort: SquadSort | null;
-  widthClass: string;
+  /** For the one flexible column; every fixed column passes columnStyle. */
+  widthClass?: string;
+  columnStyle?: ViewStyle;
   /** Font-size utility for the label; phones step down so four fit in a row. */
   labelSize: string;
   align?: 'left' | 'right';
@@ -1146,11 +1182,15 @@ function SquadSortHeader({
       text={COLUMN_EXPLAINER[sortKey]}
       align={align}
       className={widthClass}
+      style={columnStyle}
       accessibilityLabel={`Sort by ${label}, ${direction ?? 'default order'}. Next: ${nextDirection}. ${COLUMN_EXPLAINER[sortKey]}`}
       onPress={() => onSort(sortKey)}
     >
     <View
-      className={`relative min-h-11 w-full flex-row items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'}`}
+      className={`relative min-h-11 w-full flex-row items-center ${align === 'right' ? 'justify-end' : 'justify-start'}`}
+      // The gap the column widths are sized around, in points rather than in a
+      // utility class: `gap-1` is 3.5pt on native, not 4.
+      style={styles.sortHeaderRow}
     >
       {tutorialCue}
       <PixelText
@@ -1159,18 +1199,53 @@ function SquadSortHeader({
         className={direction === null
           ? `${labelSize} uppercase text-ink/50`
           : `${labelSize} uppercase text-blue-dark`}
+        // Capped, because the column under it cannot grow with the reader's
+        // text size and a header that outgrows its column paints over the one
+        // beside it. The full sentence is on the accessibility label.
+        maxFontSizeMultiplier={HEADER_MAX_FONT_MULTIPLIER}
+        // Shrinks before the arrow does, so at a text size beyond anything
+        // measured here the label gives up a letter rather than the arrow
+        // disappearing — losing which way a column is sorted is worse.
+        style={styles.sortHeaderLabel}
         numberOfLines={1}
         ellipsizeMode="clip"
       >
-        {label}{direction === 'descending' ? ' ▼' : direction === 'ascending' ? ' ▲' : ''}
+        {label}
       </PixelText>
+      {direction === null ? null : <SquadSortArrow direction={direction} />}
     </View>
     </InfoTip>
   );
 }
 
+/** blue-dark, the colour the sorted label already uses. */
+const SORT_ARROW_COLOUR = '#3f6fb5';
+
 const styles = StyleSheet.create({
-  roleColumn: { width: ROSTER_ROLE_COLUMN_WIDTH, flexShrink: 0 },
+  sortHeaderRow: { gap: SORT_ARROW_GAP },
+  sortHeaderLabel: { flexShrink: 1 },
+  sortArrowDown: {
+    width: 0,
+    height: 0,
+    flexShrink: 0,
+    borderLeftWidth: SORT_ARROW_WIDTH / 2,
+    borderRightWidth: SORT_ARROW_WIDTH / 2,
+    borderTopWidth: SORT_ARROW_HEIGHT,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: SORT_ARROW_COLOUR,
+  },
+  sortArrowUp: {
+    width: 0,
+    height: 0,
+    flexShrink: 0,
+    borderLeftWidth: SORT_ARROW_WIDTH / 2,
+    borderRightWidth: SORT_ARROW_WIDTH / 2,
+    borderBottomWidth: SORT_ARROW_HEIGHT,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: SORT_ARROW_COLOUR,
+  },
   assignmentButtonGlow: {
     boxShadow: '0 0 12px 4px rgba(237, 181, 74, 0.9)',
     shadowColor: '#edb54a',

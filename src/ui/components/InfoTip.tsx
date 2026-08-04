@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 /**
  * Long enough that an unhurried tap still counts as a tap. RN suppresses
@@ -32,6 +33,12 @@ export interface InfoTipProps {
    * heading drifts off the numbers it labels.
    */
   className?: string;
+  /**
+   * The same job as `className`, for a caller whose column width is a measured
+   * number of points rather than a utility class — Tailwind's widths are rem,
+   * and a rem is React Native's 14pt on native, so `w-12` is 42pt and not 48.
+   */
+  style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
   onPress?: () => void;
 }
@@ -53,6 +60,7 @@ export function InfoTip({
   accessibilityLabel,
   align = 'left',
   className,
+  style,
   children,
   onPress,
 }: InfoTipProps) {
@@ -92,7 +100,7 @@ export function InfoTip({
     : TIP_WIDTH;
 
   return (
-    <View style={styles.anchor} className={className}>
+    <View style={[styles.anchor, style]} className={className}>
       <Pressable
         accessibilityRole={onPress === undefined ? 'text' : 'button'}
         accessibilityLabel={accessibilityLabel}
