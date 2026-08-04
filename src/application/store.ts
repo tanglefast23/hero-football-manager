@@ -278,6 +278,12 @@ interface M1Store {
   /** Passing undefined clears the selection — sorting the register deselects. */
   selectPlayer: (playerId: string | undefined) => void;
   trainPlayer: (playerId: string, pathId: string) => void;
+  /**
+   * Runs the rest of a repeat batch at once, for when the manager skips out of
+   * the presentation. The drills were paid for and queued; watching them is
+   * optional, so leaving early must not cancel them.
+   */
+  trainPlayerBatch: (playerId: string, pathId: string, runs: number) => void;
   purchaseTrainingUpgrade: (pathId: string) => void;
   clearDrillResult: () => void;
   buildFacility: () => void;
@@ -1284,6 +1290,52 @@ export const useM1Store = create<M1Store>((set, get) => ({
           totalDrillsRun: next.totalInstantDrills ?? 0,
         },
         error: null,
+      });
+      queueCareerSave(get, set, next);
+    });
+  },
+
+  trainPlayerBatch(playerId, pathId, runs) {
+    guarded(set, () => {
+      let career = requireCareer(get());
+      let sequence = get().lastDrillResult?.sequence ?? 0;
+      let last: InstantDrillResult | null = null;
+      let injuredAfter: number | undefined;
+
+      for (let run = 0; run < runs; run += 1) {
+        const player = career.players.find(candidate => candidate.id === playerId);
+        // An injury ends the batch here exactly as it ends a watched one — the
+        // engine would refuse the next drill anyway, and being skipped past is
+        // no reason to train a player who has pulled up.
+        if (player === undefined || player.injuryWeeks > 0) break;
+        const { state, ...result } = trainPlayerInstantly(career, playerId, pathId);
+        career = state;
+        sequence += 1;
+        last = { ...result, sequence, totalDrillsRun: career.totalInstantDrills ?? 0 };
+        if (result.injury !== undefined) {
+          injuredAfter = result.injury.recoveryWeeks;
+          break;
+        }
+      }
+
+      if (last === null) return;
+      const next = hasAssistantGuideMilestone(career, 'first-training-complete')
+        ? career
+        : completeAssistantGuideMilestone(career, 'first-training-complete');
+      const injuredPlayer = next.players.find(candidate => candidate.id === playerId);
+      set({
+        career: next,
+        lastDrillResult: last,
+        error: null,
+        // The skipped drills reported themselves in silence; an injury among
+        // them cannot. It is why the rest of the batch did not run.
+        ...(injuredAfter === undefined ? {} : {
+          notice: {
+            tone: 'info' as const,
+            message: `${injuredPlayer?.name ?? 'The player'} pulled up in training — out ${injuredAfter} `
+              + `${injuredAfter === 1 ? 'week' : 'weeks'}.`,
+          },
+        }),
       });
       queueCareerSave(get, set, next);
     });

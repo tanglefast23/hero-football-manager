@@ -1655,6 +1655,7 @@ function GameApp() {
               }
             }}
             onTrainDrill={(playerId, pathId) => store.trainPlayer(playerId, pathId)}
+            onTrainDrillBatch={(playerId, pathId, runs) => store.trainPlayerBatch(playerId, pathId, runs)}
             onBuyDrillUpgrade={pathId => {
               const upgrade = squadTrainingVm!.drillUpgrades.find(row => row.pathId === pathId);
               requestConfirmation({

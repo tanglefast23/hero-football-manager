@@ -325,6 +325,55 @@ describe('M1 app store integration', () => {
     });
   });
 
+  /**
+   * Skipping out of the presentation used to cancel the drills still queued
+   * behind it: a confirmed 3x batch counted only the cards the manager sat
+   * through. The animation is the optional part, not the training.
+   */
+  it('runs the drills queued behind a skipped presentation', () => {
+    startCreatedCareer(789);
+    const before = useM1Store.getState().career!;
+    const playerId = 'bramble-rovers-created-player';
+
+    useM1Store.getState().buildFacility();
+    // The manager confirms three runs, watches the first, then taps outside.
+    useM1Store.getState().trainPlayer(playerId, 'sprints');
+    const watched = useM1Store.getState().lastDrillResult!;
+    useM1Store.getState().trainPlayerBatch(playerId, 'sprints', 2);
+
+    const finished = useM1Store.getState().career!;
+    expect(useM1Store.getState().error).toBeNull();
+    // All three counted: the TP, the tally, and the stat itself.
+    expect(finished.trainingPoints).toBe(before.trainingPoints - 30);
+    expect(finished.totalInstantDrills).toBe(3);
+    expect(useM1Store.getState().lastDrillResult).toMatchObject({ sequence: 3 });
+    expect(finished.players.find(player => player.id === playerId)!.attrs.pac)
+      .toBeGreaterThan(watched.after);
+  });
+
+  it('trains nobody when the skipped batch belongs to a player who has pulled up', () => {
+    startCreatedCareer(789);
+    useM1Store.getState().buildFacility();
+    const playerId = 'bramble-rovers-created-player';
+    const career = useM1Store.getState().career!;
+    useM1Store.setState({
+      career: {
+        ...career,
+        players: career.players.map(player => player.id === playerId
+          ? { ...player, injuryWeeks: 3 }
+          : player),
+      },
+    });
+    const before = useM1Store.getState().career!;
+
+    useM1Store.getState().trainPlayerBatch(playerId, 'sprints', 2);
+
+    // Silently, and without an error banner: the batch simply has nowhere to go.
+    expect(useM1Store.getState().error).toBeNull();
+    expect(useM1Store.getState().career?.trainingPoints).toBe(before.trainingPoints);
+    expect(useM1Store.getState().career?.totalInstantDrills ?? 0).toBe(0);
+  });
+
   it('accepts a TRAINING_PRIORITY renewal as a five-drill debt', () => {
     useM1Store.getState().startNewCareer(20260831);
     useM1Store.getState().completePlayerCreation({

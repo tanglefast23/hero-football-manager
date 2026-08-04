@@ -137,6 +137,8 @@ export interface SquadTrainingScreenProps {
   onSelectPlayer: (playerId: string | undefined) => void;
   /** Resolves the drill instantly; the popup stays open for chain taps. */
   onTrainDrill: (playerId: string, pathId: string) => void;
+  /** Resolves the drills queued behind the one on screen, without their cards. */
+  onTrainDrillBatch: (playerId: string, pathId: string, runs: number) => void;
   /** Buys the next drill tier for one path. Money, not TP. */
   onBuyDrillUpgrade: (pathId: string) => void;
   /** The latest resolved drill, sequenced so the popup can animate repeats. */
@@ -187,6 +189,7 @@ export function SquadTrainingScreen({
   selectedPlayerId,
   onSelectPlayer,
   onTrainDrill,
+  onTrainDrillBatch,
   onBuyDrillUpgrade,
   lastDrillResult,
   trainingPoints,
@@ -594,6 +597,7 @@ export function SquadTrainingScreen({
           promiseGate={viewModel.trainingPromiseGate}
           onSwitchToPromised={onSelectPlayer}
           onTrainDrill={onTrainDrill}
+          onTrainDrillBatch={onTrainDrillBatch}
           onDismiss={() => setDrillPickerOpen(false)}
           reduceMotion={reduceMotion}
           saveWarning={saveWarning}
