@@ -69,14 +69,17 @@ describe('keeper confirm card', () => {
     expect(drills.baseValueAfter - drills.currentValue).toBe(drills.gain);
   });
 
-  it('never puts a negative number in front of a keeper, at any age', () => {
+  it('never reduces the headline gain or the realised result for a keeper', () => {
     const state = careerState();
     const gk = keeper(state);
 
-    // The rule, stated by the owner: never show a negative modifier or a reduced
-    // headline gain on the keeper card. A thirty-year-old reading "VETERAN … -2"
-    // is being told off for their age on a card that exists to sell them a
-    // session. Both numbers the card prints have to be things they receive.
+    /*
+     * A keeper's headline is the outfield ladder's number and what they actually
+     * receive is always a gain, at every age. The *net difference* line below it
+     * may well be negative — a veteran trains slower and the card says so in red
+     * — but that is the modifiers' doing and applies identically to a striker of
+     * the same age. Nothing here may be reduced for being a goalkeeper.
+     */
     for (const age of [22, 26, 31, 34]) {
       const aged: GameState = {
         ...state,
@@ -171,5 +174,48 @@ describe('the stored value at the store boundary', () => {
     expect(res.after).toBe(trained.attrs.ref);
     expect(res.displayedAfter).toBeGreaterThan(res.after);
     expect(res.displayedAfter).toBe(trained.attrs.ref + trained.refDisplayBonus!);
+  });
+});
+
+/**
+ * The confirm card's second box is the *net difference* the player's own
+ * modifiers make, coloured by which way it goes — and each modifier name carries
+ * its own colour, because "Veteran + GK + Prodigy" mixes one that costs with
+ * two that pay and a single colour cannot say so.
+ */
+describe('training modifier signs', () => {
+  it('marks the age penalty as a cost and every bonus as a gain', () => {
+    const state = careerState();
+    const gk = keeper(state);
+    const veteran: GameState = {
+      ...state,
+      players: state.players.map(p => (p.id === gk.id ? { ...p, age: 31 } : p)),
+    };
+    const option = squadTrainingViewModel(veteran, content, gk.id)
+      .selectedPlayerStatOptions!.find(o => o.pathId === 'keeper-drills')!;
+
+    const veteranEntry = option.trainingModifiers.find(m => m.label === 'Veteran');
+    expect(veteranEntry).toBeDefined();
+    expect(veteranEntry!.helps).toBe(false);
+    // Everything else on the list is only ever added when it pays.
+    for (const modifier of option.trainingModifiers.filter(m => m.label !== 'Veteran')) {
+      expect(modifier.helps).toBe(true);
+    }
+  });
+
+  it('leaves a young player with nothing but gains', () => {
+    const state = careerState();
+    const gk = keeper(state);
+    const young: GameState = {
+      ...state,
+      players: state.players.map(p => (p.id === gk.id ? { ...p, age: 22 } : p)),
+    };
+    const option = squadTrainingViewModel(young, content, gk.id)
+      .selectedPlayerStatOptions!.find(o => o.pathId === 'keeper-drills')!;
+
+    expect(option.trainingModifiers.map(m => m.label)).toContain('Youth');
+    expect(option.trainingModifiers.every(m => m.helps)).toBe(true);
+    // And the net difference is what the second box prints, signed.
+    expect(option.trainingAdjustment).toBeGreaterThan(0);
   });
 });

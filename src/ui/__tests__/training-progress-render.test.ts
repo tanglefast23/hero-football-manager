@@ -40,19 +40,18 @@ describe('training stat option rendering', () => {
     expect(source).not.toContain(
       '{pendingConfirm.currentValue} → {pendingConfirm.baseValueAfter}',
     );
-    // The modifier names stay — they are what says why this player differs from
-    // the drill row above. What changed is the number beside them: the result
-    // this player gets, never the signed delta that produced it.
-    expect(source).toContain("{pendingConfirm.trainingModifierLabels.join(' + ')}");
-    expect(source).toContain(
-      '+{pendingConfirm.baseValueAfter\n                            + pendingConfirm.trainingAdjustment\n                            - pendingConfirm.currentValue}',
-    );
-    // Never a negative in front of the manager, and never the word "bonus" on a
-    // net drag — that would only move the dishonesty into the label.
-    expect(source).not.toContain("{pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}");
-    expect(source).not.toContain("trainingAdjustment >= 0 ? 'bonus' : 'adjustment'");
-    // One colour for every position. A keeper's card turning gold where a
-    // striker's stays green made the keeper read as the problem.
+    // The second box is the net difference the modifiers make, signed — a number
+    // to add to the line above, not a total standing in its place. Printing a
+    // result there made "+4" then "+3" scan as +7.
+    expect(source).toContain("{pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}");
+    // Each name coloured by its own direction, because the row mixes them:
+    // "Veteran + GK + Prodigy" is one modifier that costs and two that pay, and
+    // one colour across the row cannot say which is which.
+    expect(source).toContain("modifier.helps ? 'text-pitch-dark' : 'text-red-dark'");
+    // The box takes the colour of the net, so the summary and the detail may
+    // disagree — a veteran with good archetypes is a red box with green names.
+    expect(source).toContain('border-red-dark bg-red-light px-3 py-2');
+    // Gold is gone. A drag is a drag; amber read as neither.
     expect(source).not.toContain('border-gold-dark bg-gold-light px-3 py-2');
   });
 });

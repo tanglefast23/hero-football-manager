@@ -8,6 +8,7 @@ import type {
 import type { PotentialGrade } from '../game/archetype-caps';
 import type { AwardCategoryId } from '../game/types';
 import type { PowerId } from '../sim/types';
+import type { TrainingModifier } from '../game/training';
 
 export type ManagementTab = 'home' | 'squad' | 'club' | 'market' | 'league';
 
@@ -405,7 +406,8 @@ export interface TrainingSlotStatOption {
   /** Signed whole-point difference from player and club training modifiers. */
   trainingAdjustment: number;
   /** Active modifiers grouped for the confirmation card. */
-  trainingModifierLabels: readonly string[];
+  /** Each influence on this drill's result, with the direction it pushes. */
+  trainingModifiers: readonly TrainingModifier[];
   /** True at the invisible 999 safety ceiling; never shown as a number. */
   atSafetyCeiling: boolean;
   /** False when the TP bank cannot cover this drill right now. */

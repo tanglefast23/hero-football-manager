@@ -65,7 +65,11 @@ describe('training stat options', () => {
       gain: 4,
       baseValueAfter: 77,
       trainingAdjustment: 2,
-      trainingModifierLabels: ['Youth', 'FWD', 'All-Rounder'],
+      trainingModifiers: [
+        { label: 'Youth', helps: true },
+        { label: 'FWD', helps: true },
+        { label: 'All-Rounder', helps: true },
+      ],
     });
   });
 });

@@ -61,6 +61,20 @@ export interface InstantDrillResolution {
   injury?: { chancePercent: number; recoveryWeeks: number };
 }
 
+/**
+ * One named influence on a drill's result, and which way it pushes.
+ *
+ * `helps` exists because the card colours each name individually: "Veteran + GK
+ * + Prodigy" mixes one modifier that costs with two that pay, and a single
+ * colour across the row cannot say which is which. Today only the veteran age
+ * band sets it false — every other entry is added to the list solely when it is
+ * a bonus.
+ */
+export interface TrainingModifier {
+  readonly label: string;
+  readonly helps: boolean;
+}
+
 export interface InstantTrainingPreview {
   /** The authored drill result before any player or club modifiers. */
   baseAfter: number;
@@ -68,8 +82,8 @@ export interface InstantTrainingPreview {
   adjustedAfter: number;
   /** Signed difference between the authored base result and adjusted result. */
   adjustment: number;
-  /** Short player-facing names for every modifier participating in the result. */
-  modifierLabels: readonly string[];
+  /** Every modifier participating in the result, each with its own direction. */
+  modifiers: readonly TrainingModifier[];
 }
 
 /**
@@ -122,7 +136,7 @@ export function instantTrainingPreview(
     baseAfter,
     adjustedAfter,
     adjustment: adjustedAfter - baseAfter,
-    modifierLabels: instantGrowthModifierLabels(state, player, attribute),
+    modifiers: instantGrowthModifierLabels(state, player, attribute),
   };
 }
 
@@ -386,24 +400,32 @@ function instantGrowthModifierLabels(
   state: GameState,
   player: CareerPlayer,
   attribute: keyof CareerPlayer['attrs'],
-): string[] {
-  const labels: string[] = [];
+): TrainingModifier[] {
+  const modifiers: TrainingModifier[] = [];
   const ageMultiplier = trainingMultiplierForAge(player.age ?? 24);
-  if (ageMultiplier > 1) labels.push('Youth');
-  if (ageMultiplier < 1) labels.push('Veteran');
-  if (positionTrainingBonusPercent(player.role, attribute) > 0) labels.push(player.role);
+  // The only entry on this list that can cost the player anything. Every other
+  // modifier below is pushed solely when it pays, so `helps` is false here and
+  // nowhere else — which is exactly what the card colours on.
+  if (ageMultiplier > 1) modifiers.push({ label: 'Youth', helps: true });
+  if (ageMultiplier < 1) modifiers.push({ label: 'Veteran', helps: false });
+  if (positionTrainingBonusPercent(player.role, attribute) > 0) {
+    modifiers.push({ label: player.role, helps: true });
+  }
   if (archetypeTrainingBonusPercent(player.archetype, attribute) > 0) {
-    labels.push(player.archetype ?? 'Archetype');
+    modifiers.push({ label: player.archetype ?? 'Archetype', helps: true });
   }
   const facilityLevel = facilityTrainingLevel(state, attribute);
   if (facilityLevel > 0) {
-    labels.push(`${FACILITY_CATALOG[trainingFacilityType(attribute)].name} Lv${facilityLevel}`);
+    modifiers.push({
+      label: `${FACILITY_CATALOG[trainingFacilityType(attribute)].name} Lv${facilityLevel}`,
+      helps: true,
+    });
   }
   const coachScale = state.market === undefined
     ? 100
     : careerCoachTrainingModifiers(state.market).gainScalePercentByAttribute[attribute];
-  if (coachScale > 100) labels.push('Coach');
-  return labels;
+  if (coachScale > 100) modifiers.push({ label: 'Coach', helps: true });
+  return modifiers;
 }
 
 function instantDrillRoll(

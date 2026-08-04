@@ -1912,7 +1912,7 @@ export function squadTrainingViewModel(
             currentValue,
             baseValueAfter: preview.baseAfter,
             trainingAdjustment: preview.adjustment,
-            trainingModifierLabels: preview.modifierLabels,
+            trainingModifiers: preview.modifiers,
             // The stored value, never the displayed one: a keeper whose card
             // has stalled at 999 may still have real room to train.
             atSafetyCeiling: selectedPlayer.attrs[path.attribute] >= 999,

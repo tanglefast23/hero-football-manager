@@ -167,7 +167,7 @@ function visibleDrills(state: GameState, player: CareerPlayer): VisibleDrillOpti
       currentValue,
       adjustedAfter: preview.adjustedAfter,
       visibleGain: preview.adjustedAfter - currentValue,
-      modifierLabels: [...preview.modifierLabels],
+      modifierLabels: preview.modifiers.map(modifier => modifier.label),
     };
   });
 }

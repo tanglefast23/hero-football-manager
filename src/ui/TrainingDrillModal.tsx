@@ -679,19 +679,39 @@ export function TrainingDrillModal({
                         What is gone is the word "bonus": calling a net drag a
                         bonus would only move the dishonesty from the number into
                         the label. */}
-                    {pendingConfirm.trainingModifierLabels.length > 0 ? (
-                      <View className="flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2">
+                    {/* The net difference this player's own modifiers make to
+                        the line above — a number to add, not a total to read in
+                        its place. Two boxes both showing a result made "+4" then
+                        "+3" scan as +7.
+
+                        Each name carries its own colour because the row mixes
+                        directions: "Veteran + GK + Prodigy" is one modifier that
+                        costs and two that pay, and a single colour across the
+                        row cannot say which is which. The box takes the colour
+                        of the net, so the summary and the detail can disagree —
+                        a veteran with good archetypes reads red overall with two
+                        green names inside it, which is the true story. */}
+                    {pendingConfirm.trainingModifiers.length > 0 ? (
+                      <View className={pendingConfirm.trainingAdjustment >= 0
+                        ? 'flex-row items-center justify-between border-2 border-pitch-dark bg-pitch-light px-3 py-2'
+                        : 'flex-row items-center justify-between border-2 border-red-dark bg-red-light px-3 py-2'}>
                         <PixelText
                           className="min-w-0 flex-1 pr-2 text-xs uppercase text-ink"
                           numberOfLines={2}
                           adjustsFontSizeToFit
                         >
-                          {pendingConfirm.trainingModifierLabels.join(' + ')}
+                          {pendingConfirm.trainingModifiers.map((modifier, index) => (
+                            <PixelText
+                              key={modifier.label}
+                              className={modifier.helps ? 'text-pitch-dark' : 'text-red-dark'}
+                            >
+                              {index === 0 ? '' : ' + '}{modifier.label}
+                            </PixelText>
+                          ))}
                         </PixelText>
                         <Text className="font-pixel text-base text-ink">
-                          +{pendingConfirm.baseValueAfter
-                            + pendingConfirm.trainingAdjustment
-                            - pendingConfirm.currentValue}
+                          {pendingConfirm.trainingAdjustment >= 0 ? '+' : ''}
+                          {pendingConfirm.trainingAdjustment}
                         </Text>
                       </View>
                     ) : null}
