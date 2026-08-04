@@ -48,7 +48,7 @@ describe("Bert's first-fans lesson", () => {
 
   it('sends the manager after income rather than dwelling on the bills', () => {
     expect(app).toContain('make sure you have income streams');
-    expect(app).toContain('get you more fans if you need the money');
+    expect(app).toContain('help with fans or income if you’re short on cash');
   });
 
   /** The owner's rule: the face is chosen for the line, never left to the fallback run. */

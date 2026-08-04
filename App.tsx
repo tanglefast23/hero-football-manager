@@ -2110,7 +2110,7 @@ function GameApp() {
               body: [
                 'No one loves to look at the finances, except smart guys.',
                 'You’re a smart guy so look at it and make sure you have income streams.',
-                'Build buildings that get you more fans if you need the money.',
+                'Build facilities that help with fans or income if you’re short on cash.',
               ],
             }}
             navigationAnchor={navigationGuideAnchor}
