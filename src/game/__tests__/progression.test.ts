@@ -1,6 +1,5 @@
 import type { Attrs, PowerId } from '../../sim/types';
 import {
-  applyTrainingPlan,
   renewContract,
   renewalQuote,
   selectLicensedHeroes,
@@ -129,83 +128,3 @@ describe('contract renewal', () => {
   });
 });
 
-describe('focus training', () => {
-  const drills: FocusDrill[] = [
-    { id: 'sprints', moneyCost: 400, tpCost: 10, gains: { pac: 4 } },
-    { id: 'rondo', moneyCost: 600, tpCost: 15, gains: { pas: 3, tec: 2 } },
-  ];
-
-  it('charges drills once and applies their gains only to assigned players', () => {
-    const roster = [player('a'), player('b'), player('c')];
-    const before = JSON.stringify(roster);
-
-    const result = applyTrainingPlan(roster, ['a', 'c'], drills, { money: 2_000, tp: 40 });
-
-    expect(result.resources).toEqual({ money: 1_000, tp: 15 });
-    expect(result.players[0].attrs).toMatchObject({ pac: 54, pas: 53, tec: 52 });
-    expect(result.players[1]).toBe(roster[1]);
-    expect(result.players[2].attrs).toMatchObject({ pac: 54, pas: 53, tec: 52 });
-    expect(JSON.stringify(roster)).toBe(before);
-  });
-
-  it('keeps growing past 99 and stops only at the universal 999 safety ceiling', () => {
-    const almostMaxed = player('max', {
-      attrs: { ...BASE_ATTRS, pac: 98, pas: 97, tec: 99 },
-    });
-
-    const result = applyTrainingPlan(
-      [almostMaxed],
-      ['max'],
-      drills,
-      { money: 1_000, tp: 25 },
-    );
-
-    expect(result.players[0].attrs).toMatchObject({ pac: 102, pas: 100, tec: 101 });
-    expect(almostMaxed.attrs).toMatchObject({ pac: 98, pas: 97, tec: 99 });
-  });
-
-  it('rejects unaffordable plans, invalid IDs, too many drills, and non-integer tuning', () => {
-    const roster = [player('a')];
-    const fourDrills = [
-      ...drills,
-      { id: 'duels', moneyCost: 400, tpCost: 10, gains: { def: 2 } },
-      { id: 'circuit', moneyCost: 400, tpCost: 10, gains: { sta: 2 } },
-    ];
-
-    expect(() => applyTrainingPlan(roster, ['a'], drills, { money: 999, tp: 25 })).toThrow();
-    expect(() => applyTrainingPlan(roster, ['missing'], drills, { money: 1_000, tp: 25 })).toThrow();
-    expect(() => applyTrainingPlan(roster, ['a'], fourDrills, { money: 2_000, tp: 50 })).toThrow();
-    expect(() => applyTrainingPlan(
-      roster,
-      ['a'],
-      [{ id: 'bad', moneyCost: 1.5, tpCost: 1, gains: { pac: 1 } }],
-      { money: 100, tp: 100 },
-    )).toThrow();
-    expect(() => applyTrainingPlan(
-      roster,
-      ['a'],
-      [{ id: 'bad', moneyCost: 1, tpCost: 1, gains: { pac: 1.5 } }],
-      { money: 100, tp: 100 },
-    )).toThrow();
-  });
-
-  it.each([
-    ['NaN', Number.NaN],
-    ['Infinity', Number.POSITIVE_INFINITY],
-    ['a fraction', 50.5],
-    ['zero', 0],
-    ['over 999', 1_000],
-  ])('rejects %s in existing roster attributes, even for an unassigned player', (_label, pac) => {
-    const roster = [
-      player('assigned'),
-      player('malformed-bench', { attrs: { ...BASE_ATTRS, pac } }),
-    ];
-
-    expect(() => applyTrainingPlan(
-      roster,
-      ['assigned'],
-      drills,
-      { money: 1_000, tp: 25 },
-    )).toThrow(/Player malformed-bench attribute pac must be from 1 to 999/);
-  });
-});

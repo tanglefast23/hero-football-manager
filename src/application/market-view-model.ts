@@ -17,8 +17,8 @@ import { divisionTierLabel, type DivisionLevel } from '../game/pyramid';
 import { contractTermOptions, shortContractReason } from '../game/retirement';
 import {
   playerPotentialGrade,
-  playerPotentialTrainingBonusPercent,
   POTENTIAL_GRADES,
+  superTrainingChancePercent,
 } from '../game/archetype-caps';
 import type {
   ContractPerkViewModel,
@@ -460,12 +460,22 @@ function transferListing(
   };
 }
 
+/**
+ * The grade and what it actually buys.
+ *
+ * This used to read "C+ · +8% training", which was false: potential contributes
+ * nothing to an ordinary drill and has not since its percent bonus was removed
+ * and the job moved to the SUPER roll. A manager scouting an A+ prospect was
+ * told they train 14% faster when the truth is that they hit a SUPER session a
+ * third of the time. Same stale claim the register's Potential tooltip carried
+ * until 0bbe4f7 — one deletion, two pieces of text left behind it.
+ */
 function exactPotentialLabel(
   playerId: string,
   potential: 1 | 2 | 3 | 4 | 5,
 ): string {
-  const profile = { id: playerId, potential };
-  return `${playerPotentialGrade(profile)} · +${playerPotentialTrainingBonusPercent(profile)}% training`;
+  const grade = playerPotentialGrade({ id: playerId, potential });
+  return `${grade} · SUPER ${superTrainingChancePercent(grade)}%`;
 }
 
 function scoutPotentialLabel(
